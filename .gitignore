@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Local config and secrets
+proxy.config.json
+.env
+.env.*
+!.env.example
+
+# Generated certificates and local tool state
+.certs/
+.claude/
+
+# Runtime files and logs
+*.log
+*.pid
+*.jsonl
+*.jsonl.*.bak
+.static-server.*.log
+
+# Build outputs
+dist/
+build/
+out/
+*.zip
+
+# Tauri workspace/output kept local for this repo
+src-tauri/
+
+# Misc local artifacts
+/400

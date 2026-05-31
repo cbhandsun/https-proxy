@@ -1,0 +1,89 @@
+{
+  "activeProfile": "example-openai",
+  "appSettings": {
+    "autoStartProxy": false,
+    "closeToTray": true,
+    "showTopMenu": true,
+    "showTrayMenu": true,
+    "showWindowOnTrayCommand": true,
+    "stopProxyOnExit": true
+  },
+  "diagnostics": {
+    "captureGemini": true,
+    "captureOpenAI": false,
+    "captureOutboundSse": true,
+    "captureRequestToolResults": true,
+    "enabled": false,
+    "maxFileBytes": 5242880,
+    "maxTextBytes": 12000
+  },
+  "entryServers": [
+    {
+      "basePath": "/v1",
+      "enabled": true,
+      "host": "localhost",
+      "listenPort": 3443,
+      "name": "Claude Messages",
+      "protocol": "claude"
+    },
+    {
+      "basePath": "/v1",
+      "enabled": true,
+      "host": "localhost",
+      "listenPort": 3445,
+      "name": "OpenAI Responses",
+      "protocol": "openai-responses"
+    },
+    {
+      "basePath": "/v1",
+      "enabled": true,
+      "host": "localhost",
+      "listenPort": 3447,
+      "name": "OpenAI Chat Completions",
+      "protocol": "openai-chat"
+    }
+  ],
+  "claudeDesktop": {
+    "baseUrl": "https://localhost:3443",
+    "enabled": false,
+    "mode": "proxy",
+    "models": [
+      {
+        "labelOverride": "GPT-5.4",
+        "profileId": "example-openai",
+        "routeId": "claude-sonnet-4-6",
+        "supports1m": true,
+        "upstreamModel": "gpt-5.4"
+      }
+    ],
+    "profileName": "HTTPS Proxy",
+    "token": ""
+  },
+  "localServer": {
+    "basePath": "/v1",
+    "host": "localhost",
+    "listenPort": 3443,
+    "protocol": "claude"
+  },
+  "modelRoutes": [
+    {
+      "from": "default",
+      "profileId": "example-openai",
+      "to": "gpt-5.4"
+    }
+  ],
+  "profiles": [
+    {
+      "apiKey": "",
+      "id": "example-openai",
+      "name": "Example OpenAI-Compatible Upstream",
+      "protocol": "openai",
+      "targetUrl": "https://api.example.com/v1"
+    }
+  ],
+  "protocolOptions": {
+    "preserveClaudeMessageShape": true,
+    "stableToolUseIds": true,
+    "thinkingPolicy": "drop"
+  }
+}
