@@ -3,304 +3,10 @@
 <head>
   <meta charset="utf-8">
   <title>HTTPS Proxy Manager</title>
-  <style>
-    :root {
-      --bg: #eef3f8;
-      --bg-soft: #f7f9fc;
-      --card-bg: rgba(255, 255, 255, 0.92);
-      --card-highlight: rgba(255, 255, 255, 0.74);
-      --input-bg: #ffffff;
-      --text: #0f172a;
-      --muted: #64748b;
-      --border: rgba(148, 163, 184, 0.34);
-      --border-strong: rgba(100, 116, 139, 0.38);
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --primary-soft: rgba(37, 99, 235, 0.1);
-      --primary-ring: rgba(37, 99, 235, 0.2);
-      --success: #059669;
-      --success-soft: rgba(5, 150, 105, 0.12);
-      --warning: #d97706;
-      --warning-soft: rgba(217, 119, 6, 0.13);
-      --danger: #dc2626;
-      --danger-soft: rgba(220, 38, 38, 0.12);
-      --secondary: #475569;
-      --secondary-soft: rgba(71, 85, 105, 0.12);
-      --light-bg: rgba(241, 245, 249, 0.74);
-      --sidebar-bg: rgba(255, 255, 255, 0.88);
-      --hover-bg: rgba(37, 99, 235, 0.07);
-      --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-      --shadow-soft: 0 10px 26px rgba(15, 23, 42, 0.06);
-      --header-bg: radial-gradient(circle at top left, #1d4ed8 0, #111827 42%, #020617 100%);
-      --pre-bg: #020617;
-      --pre-text: #bfdbfe;
-      --radius-lg: 18px;
-      --radius-md: 14px;
-      --radius-sm: 10px;
-    }
-
-    [data-theme="dark"] {
-      --bg: #07111f;
-      --bg-soft: #0b1628;
-      --card-bg: rgba(15, 23, 42, 0.86);
-      --card-highlight: rgba(30, 41, 59, 0.72);
-      --input-bg: rgba(2, 6, 23, 0.42);
-      --text: #e5edf7;
-      --muted: #93a4ba;
-      --border: rgba(148, 163, 184, 0.18);
-      --border-strong: rgba(148, 163, 184, 0.28);
-      --primary: #60a5fa;
-      --primary-hover: #93c5fd;
-      --primary-soft: rgba(96, 165, 250, 0.14);
-      --primary-ring: rgba(96, 165, 250, 0.28);
-      --success: #34d399;
-      --success-soft: rgba(52, 211, 153, 0.13);
-      --warning: #fbbf24;
-      --warning-soft: rgba(251, 191, 36, 0.13);
-      --danger: #fb7185;
-      --danger-soft: rgba(251, 113, 133, 0.14);
-      --secondary: #94a3b8;
-      --secondary-soft: rgba(148, 163, 184, 0.13);
-      --light-bg: rgba(15, 23, 42, 0.74);
-      --sidebar-bg: rgba(15, 23, 42, 0.82);
-      --hover-bg: rgba(96, 165, 250, 0.1);
-      --shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
-      --shadow-soft: 0 14px 32px rgba(0, 0, 0, 0.22);
-      --header-bg: radial-gradient(circle at top left, rgba(37, 99, 235, 0.58), #0f172a 42%, #020617 100%);
-      --pre-bg: #020617;
-      --pre-text: #93c5fd;
-    }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; }
-    body { margin: 0; font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif; background: linear-gradient(180deg, var(--bg), var(--bg-soft)); color: var(--text); transition: background 0.3s, color 0.3s; overflow: hidden; min-height: 100vh; display: flex; flex-direction: column; }
-    body::before { content: ''; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 16% -8%, rgba(37, 99, 235, 0.16), transparent 34%), radial-gradient(circle at 96% 8%, rgba(14, 165, 233, 0.12), transparent 30%); z-index: -1; }
-    header { padding: 14px 22px 15px; background: var(--header-bg); color: white; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 12px 34px rgba(2, 6, 23, 0.18); }
-    header h1 { margin: 0; font-size: 21px; letter-spacing: -0.02em; color: white; }
-    .header-content { flex: 1; min-width: 0; }
-    .header-actions { display: flex; gap: 8px; align-items: center; }
-
-    h2 { margin: 0 0 8px; font-size: 18px; letter-spacing: -0.01em; color: var(--text); }
-    h3 { margin: 0 0 7px; font-size: 15px; color: var(--text); }
-    main { padding: 14px 18px 18px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-
-    button { border: 1px solid transparent; border-radius: var(--radius-sm); padding: 6px 10px; min-height: 30px; background: linear-gradient(180deg, var(--primary), var(--primary-hover)); color: white; cursor: pointer; margin: 3px 4px 3px 0; font-size: 13px; font-weight: 650; transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease; box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18); }
-    button:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(37, 99, 235, 0.24); }
-    button:active { transform: translateY(0); }
-    button:disabled { cursor: not-allowed; opacity: 0.65; transform: none; box-shadow: none; }
-    button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 2px; }
-    button.secondary { background: var(--secondary-soft); color: var(--text); border-color: var(--border-strong); box-shadow: none; }
-    button.danger { background: var(--danger-soft); color: var(--danger); border-color: rgba(220, 38, 38, 0.22); box-shadow: none; }
-    button.light { background: var(--light-bg); color: var(--text); border-color: var(--border); box-shadow: none; }
-    button.light:hover, button.secondary:hover { background: var(--hover-bg); border-color: var(--primary); color: var(--primary); box-shadow: none; }
-    button.danger:hover { background: var(--danger); color: white; border-color: var(--danger); box-shadow: 0 8px 18px var(--danger-soft); }
-
-    button.nav { width: 100%; margin: 0; padding: 8px 10px; min-height: 34px; background: transparent; color: var(--muted); text-align: left; display: flex; align-items: center; gap: 8px; border-radius: 10px; border: 1px solid transparent; box-shadow: none; font-weight: 650; }
-    button.nav svg { width: 16px; height: 16px; opacity: 0.7; stroke-width: 2.5; flex: none; }
-    button.nav:hover:not(.active) { background: var(--hover-bg); color: var(--text); transform: none; box-shadow: none; }
-    button.nav.active { background: linear-gradient(135deg, var(--primary-soft), rgba(14, 165, 233, 0.08)); color: var(--primary); border-color: rgba(96, 165, 250, 0.24); font-weight: 800; box-shadow: inset 3px 0 0 var(--primary); }
-    button.nav.active svg { opacity: 1; }
-
-    input, select { width: 100%; min-height: 32px; padding: 6px 9px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; min-width: 0; background: var(--input-bg); color: var(--text); transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease; }
-    input:hover, select:hover { border-color: var(--border-strong); }
-    label { font-weight: 700; color: var(--muted); }
-    pre { background: var(--pre-bg); color: var(--pre-text); padding: 10px; border-radius: 12px; overflow: auto; max-height: 280px; white-space: pre-wrap; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 12px; border: 1px solid var(--border); }
-
-    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 12px; }
-    th, td { padding: 8px 9px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
-    th { color: var(--muted); font-size: 12px; font-weight: 800; background: var(--light-bg); }
-    tr:hover td { background: var(--hover-bg); }
-
-    .muted { color: var(--muted); font-size: 12px; word-break: break-word; }
-    .hint { margin: -3px 0 9px; line-height: 1.45; }
-    .summary { margin-top: 5px; color: rgba(226, 232, 240, 0.78); font-size: 12px; line-height: 1.35; word-break: break-word; }
-
-    .shell { display: grid; grid-template-columns: 188px minmax(0, 1fr); gap: 14px; align-items: stretch; min-height: 0; flex: 1; overflow: hidden; }
-    .sidebar { background: var(--sidebar-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 7px; height: 100%; max-height: 100%; overflow-y: auto; border: 1px solid var(--border); backdrop-filter: blur(18px); }
-    .content { min-width: 0; min-height: 0; overflow-y: auto; padding-right: 4px; }
-
-    .view { display: none; }
-    .view.active { display: block; animation: fade-in 0.25s ease; }
-    .view-fill.active { height: 100%; min-height: 0; display: flex; flex-direction: column; }
-    .view-fill > .card:last-child { margin-bottom: 0; }
-    .card-fill { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    .card-fill > div { min-height: 0; }
-    .fill-target { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-    .card-scroll { overflow: auto; }
-    .legacy-claude-desktop-config { flex: none; }
-    .card-scroll > .card:last-child { margin-bottom: 0; }
-    .two-col-fill { flex: 1; min-height: 0; align-items: stretch; }
-    .two-col-fill > .card { min-height: 0; display: flex; flex-direction: column; margin-bottom: 0; }
-    .scroll-fill { flex: 1; min-height: 0; overflow: auto; }
-    .card-fill .route-table-scroll { flex: 1; max-height: none; min-height: 0; }
-    .card-fill .route-table-scroll table { min-height: 100%; }
-    .card-fill .route-table-scroll tbody { height: 100%; }
-    .card-fill .route-table { flex: 1; min-height: 0; }
-    @keyframes fade-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-    .card { background: var(--card-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 12px; margin-bottom: 10px; border: 1px solid var(--border); backdrop-filter: blur(18px); }
-    .hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 9px; margin-bottom: 12px; }
-    .metric { background: linear-gradient(180deg, var(--card-bg), var(--card-highlight)); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); padding: 10px; min-width: 0; border: 1px solid var(--border); transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; position: relative; overflow: hidden; }
-    .metric::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(135deg, rgba(96, 165, 250, 0.08), transparent 38%); opacity: 0.8; }
-    .metric > * { position: relative; z-index: 1; }
-    .metric:hover { transform: translateY(-2px); border-color: rgba(96, 165, 250, 0.34); box-shadow: var(--shadow); }
-    .metric-label { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 5px; }
-    .metric-value { font-weight: 850; font-size: 15px; line-height: 1.28; word-break: break-word; color: var(--text); }
-    .metric-actions { margin-top: 6px; }
-
-    .row { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 8px; align-items: center; margin-bottom: 8px; }
-    #claudeDesktop.view-fill.active { display: flex; flex-direction: column; }
-    #claudeDesktop .status-strip { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
-    #claudeDesktop .status-strip .notice { margin: 0; padding: 7px 10px; line-height: 1.3; }
-    #claudeDesktop .status-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-    #claudeDesktop .mapping-card { order: 2; }
-    #claudeDesktop .advanced-card { order: 3; flex: none; padding: 0; overflow: hidden; }
-    #claudeDesktop .advanced-card details { padding: 0; }
-    #claudeDesktop .advanced-card summary { padding: 11px 12px; cursor: pointer; font-weight: 800; color: var(--text); list-style: none; display: flex; align-items: center; justify-content: space-between; }
-    #claudeDesktop .advanced-card summary::after { content: '展开'; color: var(--muted); font-size: 12px; font-weight: 700; }
-    #claudeDesktop .advanced-card details[open] summary { border-bottom: 1px solid var(--border); }
-    #claudeDesktop .advanced-card details[open] summary::after { content: '收起'; }
-    #claudeDesktop .advanced-body { padding: 10px 12px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; align-items: start; }
-    #claudeDesktop .advanced-body > .settings-grid,
-    #claudeDesktop .advanced-body > #claudeDesktopPreview,
-    #claudeDesktop .advanced-body > .actions { grid-column: 1 / -1; }
-    #claudeDesktop .row { margin-bottom: 0; grid-template-columns: 108px minmax(0, 1fr); }
-    #claudeDesktop .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    #claudeDesktop .setting-item { padding: 8px 10px; }
-    #claudeDesktop .setting-desc { display: inline; margin-left: 2px; }
-    #claudeDesktop .rule-editor { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
-    #claudeDesktop .rule-editor button { grid-column: auto; }
-    #claudeDesktop .notice { margin-top: 6px; }
-    #claudeDesktop .actions { margin-top: 6px; }
-    .two-col { display: grid; grid-template-columns: minmax(250px, 300px) minmax(0, 1fr); gap: 10px; align-items: start; }
-    .profiles { display: flex; flex-direction: column; gap: 7px; }
-    .profile { border: 1px solid var(--border); border-radius: 12px; padding: 9px; cursor: pointer; background: var(--card-highlight); transition: all 0.2s; }
-    .profile:hover { border-color: var(--primary); background: var(--hover-bg); }
-    .profile.selected { border-color: var(--primary); background: var(--primary-soft); box-shadow: inset 3px 0 0 var(--primary); }
-    .profile.active:not(.selected) { border-color: rgba(96, 165, 250, 0.44); }
-    .profile-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .profile-title strong { display: block; min-width: 0; color: var(--text); }
-
-    .badges { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
-    .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 7px; font-size: 11px; background: var(--primary-soft); color: var(--primary); white-space: nowrap; font-weight: 750; border: 1px solid rgba(96, 165, 250, 0.18); }
-    .badge.active { background: var(--success-soft); color: var(--success); border-color: rgba(5, 150, 105, 0.2); }
-    .badge.protocol { background: var(--light-bg); color: var(--muted); border: 1px solid var(--border); }
-
-    .actions { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
-    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; margin-top: 8px; }
-    .setting-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: var(--card-highlight); transition: border-color 0.2s, background 0.2s; }
-    .setting-item:hover { border-color: var(--border-strong); background: var(--hover-bg); }
-    .setting-item label { display: flex; gap: 8px; align-items: flex-start; color: var(--text); font-size: 13px; line-height: 1.35; }
-    .setting-item input { width: auto; margin-top: 3px; accent-color: var(--primary); }
-    .setting-title { font-weight: 800; color: var(--text); }
-    .setting-desc { color: var(--muted); font-size: 12px; margin-top: 2px; line-height: 1.35; }
-    .inline-check { display: inline-flex; align-items: center; gap: 6px; margin: 3px 4px 3px 0; font-weight: 650; font-size: 13px; color: var(--text); }
-    .inline-check input { width: auto; accent-color: var(--primary); }
-
-    .entry-list { display: flex; flex-direction: column; gap: 7px; margin-top: 9px; }
-    .entry-server-row { border: 1px solid var(--border); border-radius: 12px; padding: 9px; background: var(--card-highlight); }
-    .entry-server-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 7px; }
-    .entry-server-title { display: flex; gap: 6px; align-items: center; min-width: 0; flex-wrap: wrap; }
-    .entry-server-title strong { color: var(--text); }
-    .entry-server-fields { display: grid; grid-template-columns: 1.1fr 80px 1fr 1fr 1.2fr; gap: 6px; align-items: center; }
-    .entry-server-fields input, .entry-server-fields select { background: var(--input-bg); }
-
-    .rule-editor { display: grid; grid-template-columns: 1fr 1.1fr auto 1fr auto; gap: 6px; align-items: center; }
-    .route-preview { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 6px; align-items: stretch; margin-top: 9px; }
-    .route-step { border: 1px solid var(--border); border-radius: 12px; padding: 8px; background: var(--card-highlight); }
-    .route-label { color: var(--muted); font-size: 12px; font-weight: 750; margin-bottom: 3px; }
-    .route-value { word-break: break-word; font-weight: 800; color: var(--text); }
-    .route-arrow { display: flex; align-items: center; color: var(--muted); font-weight: 800; }
-
-    .notice { border: 1px solid rgba(217, 119, 6, 0.28); background: var(--warning-soft); color: var(--warning); border-radius: 12px; padding: 8px 10px; font-size: 13px; margin-top: 7px; line-height: 1.35; }
-
-    .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; background: #94a3b8; transition: all 0.3s ease; position: relative; }
-    .status-dot.green { background: var(--success); box-shadow: 0 0 12px var(--success-soft); }
-    .status-dot.green::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--success); opacity: 0; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(2); opacity: 0; } }
-    .status-dot.amber { background: var(--warning); box-shadow: 0 0 12px var(--warning-soft); }
-    .status-dot.red { background: var(--danger); box-shadow: 0 0 12px var(--danger-soft); }
-
-    .route-table { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-    .route-table-head { flex: none; overflow: hidden; background: var(--light-bg); border-bottom: 1px solid var(--border); }
-    .route-table-scroll { flex: 1; min-height: 0; max-height: clamp(220px, 42vh, 420px); overflow: auto; border: 0; border-radius: 0; }
-    #claudeDesktop .route-table-scroll { max-height: none; }
-    #overviewRoutes .route-table, #overviewRoutes .route-table-scroll { max-height: none; }
-    .route-table table { table-layout: fixed; border-radius: 0; }
-    .route-table th, .route-table td { width: 25%; }
-    #claudeDesktopModels .route-table th, #claudeDesktopModels .route-table td { width: 16.66%; }
-    .route-table th { border-bottom: 0; }
-    .route-table-scroll tr:last-child td { border-bottom: 0; }
-
-    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 9px 0; border-bottom: 1px solid var(--border); }
-    .tab-button { margin: 0; border-radius: 12px 12px 0 0; background: transparent; color: var(--muted); border: 1px solid transparent; border-bottom: 0; box-shadow: none; }
-    .tab-button:hover { background: var(--hover-bg); box-shadow: none; }
-    .tab-button.active { background: var(--primary-soft); color: var(--primary); font-weight: 800; border-color: var(--border); }
-
-    .diagnostics-panel { display: none; min-height: 0; }
-    .diagnostics-panel.active { display: flex; flex-direction: column; flex: 1; }
-    .diagnostics-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-    .diagnostics-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .diagnostics-options { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-    .panel-head h3 { margin: 0; }
-    .log-meta { color: var(--muted); font-size: 12px; }
-    .log-viewer { flex: 1; height: auto; min-height: 0; overflow: auto; border: 1px solid var(--border); border-radius: 14px; background: #020617; color: #bfdbfe; padding: 10px 12px; line-height: 1.45; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
-    .monitor-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; height: auto; overflow-y: auto; padding-right: 4px; }
-
-    .modal-backdrop { position: fixed; inset: 0; z-index: 9998; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(0, 0, 0, 0.56); backdrop-filter: blur(6px); }
-    .modal-backdrop.active { display: flex; }
-    .modal { width: min(420px, 100%); background: var(--card-bg); border-radius: 18px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35); padding: 20px; border: 1px solid var(--border); }
-    .modal h3 { margin-bottom: 8px; color: var(--text); }
-    .modal p { margin: 0; color: var(--muted); line-height: 1.5; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-    .modal-actions button { margin: 0; }
-
-    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-    .toast { background: var(--card-bg); color: var(--text); padding: 12px 18px; border-radius: 14px; box-shadow: var(--shadow); border-left: 4px solid var(--primary); font-size: 14px; font-weight: 700; border: 1px solid var(--border); border-left-width: 4px; animation: toast-in 0.3s ease forwards; min-width: 210px; backdrop-filter: blur(16px); }
-    .toast.error { border-left-color: var(--danger); }
-    .toast.success { border-left-color: var(--success); }
-    @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-    .theme-toggle { background: rgba(255, 255, 255, 0.08); padding: 6px; margin: 0; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; color: white; opacity: 0.9; box-shadow: none; border-color: rgba(255, 255, 255, 0.12); }
-    .theme-toggle:hover { background: rgba(255, 255, 255, 0.16); opacity: 1; transform: none; box-shadow: none; }
-    .theme-toggle svg { width: 18px; height: 18px; }
-
-    .log-line { display: block; }
-    .log-line.info { color: var(--success); }
-    .log-line.warn { color: var(--warning); }
-    .log-line.error { color: var(--danger); }
-    .log-line.arrow { color: var(--primary); }
-    .log-line.muted { color: var(--muted); opacity: 0.76; }
-
-    @media (max-width: 980px) {
-      main { padding: 12px; overflow-y: auto; }
-      header { padding: 12px 14px; }
-      .shell, .two-col, .route-preview { grid-template-columns: 1fr; }
-      .shell { overflow: visible; }
-      .sidebar { position: static; display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 6px; height: auto; max-height: none; overflow: visible; }
-      .content { overflow: visible; padding-right: 0; }
-      #claudeDesktop.view-fill.active { display: block; }
-      #claudeDesktop .status-strip { grid-template-columns: 1fr; }
-      #claudeDesktop .status-actions { justify-content: flex-start; }
-      #claudeDesktop .advanced-body { grid-template-columns: 1fr; }
-      #claudeDesktop .settings-grid { grid-template-columns: 1fr; }
-      .view-fill.active { height: auto; display: block; }
-      .card-fill, .two-col-fill, .two-col-fill > .card { display: block; }
-      .card-scroll, .scroll-fill { overflow: visible; }
-      .monitor-list, .log-viewer { height: clamp(260px, 52vh, 430px); }
-      .rule-editor, .entry-server-fields { grid-template-columns: 1fr; }
-      .row { grid-template-columns: 1fr; gap: 4px; align-items: start; }
-    }
-
-    @media (max-width: 640px) {
-      .hero { grid-template-columns: 1fr; }
-      .diagnostics-toolbar, .panel-head, .entry-server-head { align-items: stretch; }
-      .diagnostics-actions, .diagnostics-options, .actions { width: 100%; }
-      button { width: 100%; margin-right: 0; }
-      button.nav { width: 100%; }
-    }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./app.css?v=homepage-polish-20260605-3">
 </head>
 <body>
   <header>
@@ -346,6 +52,7 @@
       <div class="metric">
         <div class="metric-label">代理状态</div>
         <div id="heroProxyStatus" class="metric-value"><span class="status-dot"></span>检查中...</div>
+        <div id="heroPortDiagnostics" class="muted">端口诊断：检查中...</div>
         <div class="metric-actions"><button id="refreshProxyStatus" class="light">刷新状态</button></div>
       </div>
       <div class="metric">
@@ -362,10 +69,15 @@
       <nav class="sidebar">
         <button class="nav active" data-view-button="overview"><svg><use href="#icon-overview"/></svg> 总览</button>
         <button class="nav" data-view-button="monitor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> 实时监控</button>
+        <button class="nav" data-view-button="promptsAuditView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 对话审计</button>
+        <button class="nav" data-view-button="usageReportView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-7"/><path d="M14 7h5v5"/></svg> 使用报告</button>
         <button class="nav" data-view-button="entry"><svg><use href="#icon-entry"/></svg> 本地入口</button>
         <button class="nav" data-view-button="profilesView"><svg><use href="#icon-profiles"/></svg> 上游目标</button>
         <button class="nav" data-view-button="routes"><svg><use href="#icon-routes"/></svg> 模型路由</button>
-        <button class="nav" data-view-button="claudeDesktop"><svg><use href="#icon-entry"/></svg> Claude Desktop</button>
+        <button class="nav" data-view-button="claudeDesktop"><svg><use href="#icon-entry"/></svg> 工具配置</button>
+        <button class="nav" data-view-button="envCheckView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 环境检查</button>
+        <button class="nav" data-view-button="codeToolsView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> 代码工具</button>
+        <button class="nav" data-view-button="promptsView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 提示词同步</button>
         <button class="nav" data-view-button="cert"><svg><use href="#icon-cert"/></svg> 证书与信任</button>
         <button class="nav" data-view-button="diagnostics"><svg><use href="#icon-diagnostics"/></svg> 日志与诊断</button>
         <button class="nav" data-view-button="advanced"><svg><use href="#icon-advanced"/></svg> 设置</button>
@@ -373,10 +85,12 @@
 
       <div class="content">
         <section id="overview" class="view view-fill active">
-          <div class="card">
-            <h2>代理总览</h2>
-            <div class="muted hint">日常使用只需要确认本地入口、默认上游和证书状态；复杂配置在左侧分区中调整。</div>
-            <div class="actions">
+          <div class="card overview-panel">
+            <div>
+              <h2>代理总览</h2>
+              <div class="muted hint">确认入口、上游、证书和运行状态；复杂配置在左侧分区中调整。</div>
+            </div>
+            <div class="overview-actions">
               <button data-command="start">启动代理</button>
               <button data-command="stop" class="danger">停止代理</button>
               <button data-command="restart" class="secondary">重启代理</button>
@@ -385,9 +99,74 @@
               <button id="openLog" class="light">打开日志</button>
             </div>
           </div>
-          <div class="card card-fill">
-            <h3>当前路由</h3>
+          <div class="card card-fill overview-route-card">
+            <div class="overview-route-head">
+              <h3>当前路由</h3>
+              <div class="muted">客户端模型 → 上游目标 → 实际模型</div>
+            </div>
             <div id="overviewRoutes" class="fill-target"></div>
+          </div>
+        </section>
+
+        <section id="promptsAuditView" class="view view-fill">
+          <div class="audit-container">
+            <div class="audit-sidebar">
+              <div class="audit-sidebar-header">
+                <h3>审计历史</h3>
+                <div class="audit-sidebar-actions">
+                  <button id="refreshAudit" class="btn-icon-only" title="刷新">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                  </button>
+                  <button id="clearAudit" class="btn-icon-only danger" title="清空审计日志">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div id="auditHistoryList" class="audit-history-list">
+                <!-- 历史请求项目将在此动态插入 -->
+              </div>
+            </div>
+            <div class="audit-detail" id="auditDetailPanel">
+              <div class="audit-detail-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <p>选择左侧的历史记录查看对话详情</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="usageReportView" class="view view-fill">
+          <div class="card card-fill usage-report-card">
+            <div class="usage-report-head">
+              <div>
+                <h2>使用报告</h2>
+                <div id="usageReportMeta" class="muted hint">等待刷新</div>
+              </div>
+              <div class="usage-report-actions">
+                <select id="usageReportWindow">
+                  <option value="">最近 300 条</option>
+                  <option value="today">今天</option>
+                  <option value="7d">最近 7 天</option>
+                  <option value="30d">最近 30 天</option>
+                </select>
+                <button id="refreshUsageReport" class="light">刷新</button>
+              </div>
+            </div>
+            <div id="usageReportSummary" class="usage-summary-grid"></div>
+            <div class="usage-report-body">
+              <div class="usage-panel">
+                <h3>按上游目标</h3>
+                <div id="usageByProfile" class="usage-table-wrap"></div>
+              </div>
+              <div class="usage-panel">
+                <h3>按模型</h3>
+                <div id="usageByModel" class="usage-table-wrap"></div>
+              </div>
+            </div>
+            <div class="usage-panel usage-recent-panel">
+              <h3>最近请求</h3>
+              <div id="usageRecent" class="usage-table-wrap"></div>
+            </div>
           </div>
         </section>
 
@@ -395,9 +174,19 @@
           <div class="card card-fill">
             <h2>实时监控</h2>
             <div class="muted hint">监控所有通过代理的请求 lifecycle，帮助调试模型映射与上游响应。</div>
-            <div class="actions">
-              <button id="clearMonitor" class="danger">清空监控</button>
-              <label class="inline-check"><input id="autoScrollMonitor" type="checkbox" checked> 自动滚动</label>
+            <div class="actions" style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
+              <button id="clearMonitor" class="danger" style="margin: 0;">清空监控</button>
+              <label class="inline-check" style="margin: 0;"><input id="autoScrollMonitor" type="checkbox" checked> 自动滚动</label>
+
+              <div style="flex: 1; min-width: 200px; display: flex; gap: 8px; align-items: center; justify-content: flex-end;">
+                <input id="monitorSearch" type="text" placeholder="搜索方法、路径或模型..." style="max-width: 240px; min-height: 32px; padding: 4px 10px; border-radius: var(--radius-sm);">
+                <select id="monitorStatusFilter" style="max-width: 130px; min-height: 32px; padding: 4px 10px; border-radius: var(--radius-sm);">
+                  <option value="all">所有状态</option>
+                  <option value="success">成功 (2xx)</option>
+                  <option value="error">异常 (4xx, 5xx)</option>
+                  <option value="route">仅映射路由</option>
+                </select>
+              </div>
             </div>
             <div id="monitorList" class="monitor-list">
               <div class="muted">暂无请求记录...</div>
@@ -431,10 +220,28 @@
               <h2>上游目标</h2>
               <div class="muted hint">这里维护可被路由选择的目标服务，不是多个本地代理入口。</div>
               <div id="profiles" class="profiles scroll-fill"></div>
-              <div class="actions"><button id="addProfile" class="light">新增上游目标</button></div>
+              <div class="actions"><button id="addProfile" class="light">新增上游目标</button><button id="testAllLatencies" class="light">测试所有节点延迟</button></div>
             </div>
             <div class="card card-scroll">
               <h2>编辑上游目标</h2>
+              <fieldset style="border:none; padding:0; margin:0 0 20px 0;">
+                <legend style="font-weight:700; font-size:13px; color:#6b7280; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">服务商预设模版</legend>
+                <div class="row">
+                  <label>快速预设</label>
+                  <select id="providerPreset">
+                    <option value="">-- 手动配置或自定义服务商 --</option>
+                    <option value="openai">OpenAI Official (官方接口)</option>
+                    <option value="claude">Anthropic Claude Official (官方接口)</option>
+                    <option value="gemini">Google Gemini Official (官方接口)</option>
+                    <option value="deepseek">DeepSeek Official (官方接口)</option>
+                    <option value="siliconflow">SiliconFlow (硅基流动托管)</option>
+                    <option value="ollama">Ollama (本地部署运行)</option>
+                    <option value="openrouter">OpenRouter (多模聚合网关)</option>
+                  </select>
+                </div>
+                <div id="providerPresetHelp" class="notice" style="display:none; margin:10px 0 0 0; font-size:11.5px; padding:10px 12px; line-height:1.6; border-radius:var(--radius-sm); border: 1px dashed var(--border);"></div>
+              </fieldset>
+
               <fieldset style="border:none; padding:0; margin:0 0 20px 0;">
                 <legend style="font-weight:700; font-size:13px; color:#6b7280; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">基础信息</legend>
                 <div class="row"><label>目标 ID</label><input id="id" placeholder="例如 gemini-main"></div>
@@ -446,11 +253,41 @@
                 <div class="row"><label>端点协议</label><select id="protocol"><option value="openai">OpenAI 兼容</option><option value="claude">Claude Messages</option><option value="gemini">Gemini generateContent</option></select></div>
                 <div class="row"><label>目标 URL</label><input id="targetUrl" placeholder="OpenAI: http://host:80/v1；Gemini: https://generativelanguage.googleapis.com"></div>
                 <div class="row"><label>API Key</label><input id="apiKey" type="password"></div>
+                <div id="officialAuthSection" style="display: none; margin-top: 15px; padding: 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border);">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+                    <div style="font-weight: 700; font-size: 12.5px; color: var(--text);">官方直连托管 & 时效仪表盘</div>
+                    <a id="officialPortalLink" href="#" target="_blank" style="color: var(--primary); text-decoration: none; font-size: 12px; font-weight: 500;" class="hover-underline">访问官方入口</a>
+                  </div>
+
+                  <!-- 导入凭证控制 -->
+                  <div id="importCredsControl" style="margin-bottom: 12px;">
+                    <div class="muted hint" style="font-size: 11.5px; margin-bottom: 6px;">你可以点击下方按钮一键导入本地 CLI 登录凭证进行托管：</div>
+                    <button id="importCliCreds" class="secondary" style="font-size: 11px; padding: 4px 10px; min-height: auto; width: auto; display: inline-block; margin: 0; outline: none;">一键导入本地 CLI 凭证</button>
+                    <div id="importCredsStatus" style="font-size: 11px; margin-top: 5px; color: var(--text-muted);"></div>
+                  </div>
+
+                  <!-- 实时限额监控 -->
+                  <div id="limitsDashboard" style="background: rgba(0, 0, 0, 0.01); border-radius: 6px; padding: 10px; border: 1px solid var(--border);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                      <span class="muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">当前账号可用时效限额</span>
+                      <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted);">
+                        <span id="rate-limits-time-display" style="font-size: 11px;">🕒 未同步</span>
+                        <button id="refresh-limits-action" class="icon-btn" title="刷新限额" style="background: none; border: none; padding: 2px; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; outline: none; transition: transform 0.2s;">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div id="rate-limits-container" style="display: flex; gap: 8px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; margin-top: 6px;">
+                      <!-- 限额项动态插入 -->
+                    </div>
+                  </div>
+                </div>
               </fieldset>
 
               <div class="notice">API Key 会明文写入本地配置文件，打开配置文件前请注意不要外传。</div>
               <div class="actions">
                 <button id="saveProfile">保存上游目标</button>
+                <button id="testProfileAuthBtn" class="secondary">测试连接/登录</button>
                 <button id="activateProfile" class="secondary">设为默认上游并重启</button>
                 <button id="openConfig" class="light">打开配置文件</button>
               </div>
@@ -469,6 +306,28 @@
               <input id="modelRewriteTo" list="availableModels" placeholder="上游模型，例如 gemini-3-flash-preview">
               <datalist id="availableModels"></datalist>
               <button id="addRule" class="light">添加路由</button>
+              <button id="testModelRoute" class="light" style="color: #3b82f6; border-color: #3b82f6;">测试目标模型</button>
+            </div>
+            <div id="modelAutocompleteContainer" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; margin-bottom: 12px; font-size: 11px;">
+              <span style="color: var(--muted); align-self: center;">推荐客户端模型:</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-sonnet-4-5</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-sonnet-4-5-20250929</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-haiku-4-5</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-haiku-4-5-20251001</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-opus-4-1</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-opus-4-1-20250805</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-sonnet-4-0</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-sonnet-4-20250514</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-opus-4-0</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-opus-4-20250514</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-3-7-sonnet-latest</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-3-7-sonnet-20250219</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-3-5-sonnet-20241022</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-3-5-haiku-latest</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-3-5-haiku-20241022</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-3-opus-latest</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-3-opus-20240229</span>
+              <span class="autocomplete-tag" style="cursor: pointer; padding: 2px 8px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); user-select: none; transition: all 0.2s ease;">claude-3-haiku-20240307</span>
             </div>
             <div><span id="modelStatus" class="muted"></span></div>
             <div class="route-preview">
@@ -487,51 +346,500 @@
         </section>
 
         <section id="claudeDesktop" class="view view-fill">
-          <div class="card status-strip">
-            <div id="claudeDesktopStatus" class="notice">尚未检查 Claude Desktop 配置。</div>
-            <div class="status-actions">
-              <button id="applyClaudeDesktop" class="secondary">写入 Claude Desktop</button>
-              <button id="restoreClaudeDesktop" class="danger">恢复官方模式</button>
-              <button id="refreshClaudeDesktop" class="light">刷新状态</button>
-            </div>
-          </div>
-
-          <div class="card card-fill mapping-card">
-            <h2>Desktop 模型映射</h2>
-            <div class="muted hint compact-mobile">Desktop 只看到 claude-* 模型，本地代理负责转发到真实上游；Route ID 必须是 Desktop 可识别的安全名称。</div>
-            <div class="rule-editor">
-              <input id="cdRouteId" placeholder="claude-sonnet-4-6">
-              <input id="cdLabelOverride" placeholder="菜单显示名，例如 GPT-5.5">
-              <select id="cdProfileId" title="目标上游"></select>
-              <input id="cdUpstreamModel" list="availableModels" placeholder="真实上游模型">
-              <button id="addClaudeDesktopModel" class="light">添加映射</button>
-            </div>
-            <div id="claudeDesktopModels" class="fill-target"></div>
-          </div>
-
-          <div class="card advanced-card">
-            <details id="claudeDesktopAdvanced">
-              <summary>高级配置</summary>
-              <div class="advanced-body">
-                <div class="settings-grid">
-                  <div class="setting-item">
-                    <label><input id="claudeDesktopEnabled" type="checkbox"><span><span class="setting-title">启用 Claude Desktop 管理</span><span class="setting-desc">保存配置后可一键写入 Claude Desktop 3P profile。</span></span></label>
+          <div class="two-col two-col-fill">
+            <!-- 左侧：工具列表 -->
+            <div class="card" style="display: flex; flex-direction: column; height: 100%; margin-bottom: 0;">
+              <h2>工具集成</h2>
+              <div class="muted hint">在此一键切换开发客户端、命令行助手与 Desktop 的代理接管状态。</div>
+              <div id="toolsList" class="tools-list scroll-fill" style="margin-top: 12px;">
+                <!-- Claude Desktop -->
+                <div class="tool-item selected" data-tool-id="claude-desktop" id="toolItem-claude-desktop">
+                  <div class="tool-item-info">
+                    <span class="tool-item-title">Claude Desktop</span>
+                    <span class="tool-item-desc">官方 GUI 桌面客户端</span>
                   </div>
-                  <div class="setting-item">
-                    <label><input id="claudeDesktopSupports1mDefault" type="checkbox"><span><span class="setting-title">新增映射默认声明 1M</span><span class="setting-desc">仅影响之后新增的 Desktop 模型映射。</span></span></label>
-                  </div>
+                  <span class="badge" id="toolBadge-claude-desktop">检查中...</span>
                 </div>
-                <div class="row"><label>模式</label><select id="claudeDesktopMode"><option value="proxy">本地映射</option><option value="direct">直连上游</option><option value="official">恢复官方</option></select></div>
-                <div class="row"><label>本地网关 URL</label><input id="claudeDesktopBaseUrl" placeholder="https://localhost:3443"></div>
-                <div class="row"><label>Bearer Token</label><input id="claudeDesktopToken" type="password" placeholder="留空则应用时自动生成"></div>
-                <div class="row"><label>直连 Base URL</label><input id="claudeDesktopDirectBaseUrl" placeholder="默认使用当前上游 URL"></div>
-                <div class="row"><label>直连 API Key</label><input id="claudeDesktopDirectApiKey" type="password" placeholder="默认使用当前上游 API Key"></div>
-                <div class="notice" id="claudeDesktopPreview"></div>
-                <div class="actions">
-                  <button id="saveClaudeDesktop">保存 Desktop 配置</button>
+                <!-- Claude Code CLI -->
+                <div class="tool-item" data-tool-id="claude-code" id="toolItem-claude-code">
+                  <div class="tool-item-info">
+                    <span class="tool-item-title">Claude Code CLI</span>
+                    <span class="tool-item-desc">命令行 AI 编程助手</span>
+                  </div>
+                  <span class="badge" id="toolBadge-claude-code">检查中...</span>
+                </div>
+                <!-- Antigravity CLI -->
+                <div class="tool-item" data-tool-id="antigravity-cli" id="toolItem-antigravity-cli">
+                  <div class="tool-item-info">
+                    <span class="tool-item-title">Antigravity CLI</span>
+                    <span class="tool-item-desc">本智能开发助手</span>
+                  </div>
+                  <span class="badge" id="toolBadge-antigravity-cli">检查中...</span>
+                </div>
+                <!-- Gemini CLI -->
+                <div class="tool-item" data-tool-id="gemini-cli" id="toolItem-gemini-cli">
+                  <div class="tool-item-info">
+                    <span class="tool-item-title">Google Gemini CLI</span>
+                    <span class="tool-item-desc">谷歌官方命令行工具</span>
+                  </div>
+                  <span class="badge" id="toolBadge-gemini-cli">检查中...</span>
+                </div>
+                <!-- Codex CLI -->
+                <div class="tool-item" data-tool-id="codex-cli" id="toolItem-codex-cli">
+                  <div class="tool-item-info">
+                    <span class="tool-item-title">Codex CLI</span>
+                    <span class="tool-item-desc">Codex 命令行助手</span>
+                  </div>
+                  <span class="badge" id="toolBadge-codex-cli">检查中...</span>
                 </div>
               </div>
-            </details>
+              <div class="actions" style="margin-top: 12px;">
+                <button id="refreshAllTools" class="light" style="width: 100%; margin-right: 0;">刷新所有状态</button>
+              </div>
+            </div>
+
+            <!-- 右侧：当前选中工具的配置详情 -->
+            <div class="card card-scroll" style="display: flex; flex-direction: column; margin-bottom: 0; min-height: 0;">
+              <!-- Claude Desktop 配置面板 -->
+              <div id="toolPanel-claude-desktop" class="tool-panel active">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h3 style="margin: 0; font-size: 16px;">Claude Desktop 配置</h3>
+                  <span id="claudeDesktopTitleDot" class="status-dot"></span>
+                </div>
+                <div class="muted hint" style="margin-bottom: 12px;">配置本地代理以劫持 Claude Desktop 的 API 请求，并将其路由转发到你指定的自定义上游。</div>
+
+                <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px;">
+                  <div id="claudeDesktopStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">尚未检查 Claude Desktop 配置。</div>
+                  <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start;">
+                    <button id="applyClaudeDesktop" class="secondary" style="margin: 0;">写入 Claude Desktop</button>
+                    <button id="restoreClaudeDesktop" class="danger" style="margin: 0;">恢复官方模式</button>
+                    <button id="refreshClaudeDesktop" class="light" style="margin: 0;">刷新状态</button>
+                  </div>
+                </div>
+
+                <div class="card card-fill mapping-card" style="padding: 0; border: none; box-shadow: none; background: transparent; margin-bottom: 16px;">
+                  <h3 style="margin-top: 0; font-size: 14px;">Desktop 模型映射</h3>
+                  <div class="muted hint compact-mobile" style="margin-bottom: 10px;">Desktop 客户端仅能调用官方 `claude-*` 模型。本地代理可通过映射将其转发到指定的真实上游模型。</div>
+                  <div class="rule-editor" style="margin-bottom: 12px;">
+                    <select id="cdRouteId" title="选择 Claude Desktop 路由 ID">
+                      <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
+                      <option value="claude-opus-4-7">claude-opus-4-7</option>
+                      <option value="claude-haiku-4-5">claude-haiku-4-5</option>
+                      <option value="claude-sonnet-4-5">claude-sonnet-4-5</option>
+                      <option value="claude-opus-4-5">claude-opus-4-5</option>
+                    </select>
+                    <input id="cdLabelOverride" placeholder="菜单显示名，例如 GPT-4o">
+                    <select id="cdProfileId" title="目标上游"></select>
+                    <input id="cdUpstreamModel" list="availableModels" placeholder="真实上游模型">
+                    <label class="inline-check" style="white-space: nowrap;"><input id="claudeDesktopSupports1mDefault" type="checkbox">1M</label>
+                    <button id="addClaudeDesktopModel" class="light">添加映射</button>
+                  </div>
+                  <div id="claudeDesktopModels" class="fill-target"></div>
+                </div>
+
+                <div class="card advanced-card" style="padding: 0; border: 1px solid var(--border); overflow: hidden; background: var(--card-highlight);">
+                  <details id="claudeDesktopAdvanced">
+                    <summary style="padding: 12px 16px; cursor: pointer; font-weight: 700; color: var(--text); list-style: none; display: flex; align-items: center; justify-content: space-between;">高级配置</summary>
+                    <div class="advanced-body" style="padding: 12px 16px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; align-items: start;">
+                      <div class="settings-grid" style="grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="setting-item">
+                          <label><input id="claudeDesktopEnabled" type="checkbox"><span><span class="setting-title">启用 Claude Desktop 管理</span><span class="setting-desc">保存配置后一键写入 Claude Desktop 3P profile。</span></span></label>
+                        </div>
+                      </div>
+                      <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>模式</label><select id="claudeDesktopMode"><option value="proxy">本地映射</option><option value="direct">直连上游</option><option value="official">恢复官方</option></select></div>
+                      <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>本地网关 URL</label><input id="claudeDesktopBaseUrl" placeholder="https://localhost:3443"></div>
+                      <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>Bearer Token</label><input id="claudeDesktopToken" type="password" placeholder="留空则应用时自动生成"></div>
+                      <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>直连 Base URL</label><input id="claudeDesktopDirectBaseUrl" placeholder="默认使用当前上游 URL"></div>
+                      <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>直连 API Key</label><input id="claudeDesktopDirectApiKey" type="password" placeholder="默认使用当前上游 API Key"></div>
+                      <div class="notice" id="claudeDesktopPreview" style="grid-column: 1 / -1; margin-top: 10px;"></div>
+                      <div class="actions" style="grid-column: 1 / -1; margin-top: 10px;">
+                        <button id="saveClaudeDesktop">保存 Desktop 配置</button>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <!-- Claude Code CLI 配置面板 -->
+              <div id="toolPanel-claude-code" class="tool-panel">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h3 style="margin: 0; font-size: 16px;">Claude Code CLI 配置</h3>
+                  <span id="claudeCodeTitleDot" class="status-dot"></span>
+                </div>
+                <div class="muted hint" style="margin-bottom: 12px;">命令行 AI 助手 Claude Code 会优先读取本地环境变量和 settings.json 进行连接。</div>
+
+                <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px;">
+                  <div id="claudeCodeStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">正在检查 Claude Code 状态...</div>
+                  <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start;">
+                    <button id="applyClaudeCode" class="secondary" style="margin: 0;">应用本地代理</button>
+                    <button id="restoreClaudeCode" class="danger" style="margin: 0;">恢复官方直连（启用登录）</button>
+                    <button id="refreshClaudeCode" class="light" style="margin: 0;">刷新状态</button>
+                  </div>
+                </div>
+
+                <div class="card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px;">
+                  <h3 style="margin-top: 0; font-size: 14px;">💡 使用说明与指引</h3>
+                  <div style="font-size: 13px; line-height: 1.6; color: var(--text);">
+                    <p>1. <strong>应用代理</strong>后，我们会将本地代理的 Base URL 和必要的 Token 写入 Claude Code 的用户配置目录中，所有 CLI 交互都会静默流经本地代理，并依据您的“模型路由”进行分发。</p>
+                    <p>2. <strong>恢复直连</strong>模式下，您可以运行官方 <code>claude login</code> 正常通过浏览器进行 OAuth 认证，之后再切换为代理模式即可继续使用本地节点。</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Antigravity CLI 配置面板 -->
+              <div id="toolPanel-antigravity-cli" class="tool-panel">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h3 style="margin: 0; font-size: 16px;">Antigravity CLI 配置</h3>
+                  <span id="antigravityCliTitleDot" class="status-dot"></span>
+                </div>
+                <div class="muted hint" style="margin-bottom: 12px;">智能体助手 Antigravity CLI 会优先读取本地环境变量和 settings.json 进行接驳。</div>
+
+                <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px;">
+                  <div id="antigravityCliStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">正在检查 Antigravity CLI 状态...</div>
+                  <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start;">
+                    <button id="applyAntigravityCli" class="secondary" style="margin: 0;">应用本地代理</button>
+                    <button id="restoreAntigravityCli" class="danger" style="margin: 0;">恢复官方直连</button>
+                    <button id="refreshAntigravityCli" class="light" style="margin: 0;">刷新状态</button>
+                  </div>
+                </div>
+
+                <div class="card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px;">
+                  <h3 style="margin-top: 0; font-size: 14px;">💡 使用说明与指引</h3>
+                  <div style="font-size: 13px; line-height: 1.6; color: var(--text);">
+                    <p>1. <strong>应用代理</strong>后，我们会将本地代理的 Base URL 和必要的 Token 写入 Antigravity CLI 的用户配置目录中，所有 CLI 交互都会静默流经本地代理，并依据您的“模型路由”进行分发。</p>
+                    <p>2. <strong>恢复直连</strong>模式下，您可以还原所有配置信息，直连云端官方服务。</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Google Gemini CLI 配置面板 -->
+              <div id="toolPanel-gemini-cli" class="tool-panel">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h3 style="margin: 0; font-size: 16px;">Google Gemini CLI 配置</h3>
+                  <span id="geminiCliTitleDot" class="status-dot"></span>
+                </div>
+                <div class="muted hint" style="margin-bottom: 12px;">Gemini CLI 助手连接 Google 官方接口。在受到网络限制或需要定制路由时，可将其一键桥接到本地代理服务。</div>
+
+                <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px;">
+                  <div id="geminiCliStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">正在检查 Google Gemini CLI 状态...</div>
+                  <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start;">
+                    <button id="applyGeminiCli" class="secondary" style="margin: 0;">应用本地代理</button>
+                    <button id="restoreGeminiCli" class="danger" style="margin: 0;">恢复官方直连（启用认证）</button>
+                    <button id="refreshGeminiCli" class="light" style="margin: 0;">刷新状态</button>
+                  </div>
+                </div>
+
+                <div class="card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px;">
+                  <h3 style="margin-top: 0; font-size: 14px;">💡 使用说明与指引</h3>
+                  <div style="font-size: 13px; line-height: 1.6; color: var(--text);">
+                    <p>1. <strong>应用本地代理</strong>会自动设定环境变量或配置文件中的 <code>api_endpoint</code> 为本代理解析的网关端点。</p>
+                    <p>2. <strong>恢复直连</strong>则抹除自定义端点设置，切回 Google 官方服务器，此时可顺畅进行常规命令行 OAuth 安全认证。</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Codex CLI 配置面板 -->
+              <div id="toolPanel-codex-cli" class="tool-panel">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h3 style="margin: 0; font-size: 16px;">Codex CLI 配置</h3>
+                  <span id="codexTitleDot" class="status-dot"></span>
+                </div>
+                <div class="muted hint" style="margin-bottom: 12px;">Codex CLI 开发助手读取本地 `config.toml` 文件进行 API 接驳，在此可通过一键修改配置使其重定向至本地代理节点。</div>
+
+                <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px;">
+                  <div id="codexStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">正在检查 Codex CLI 状态...</div>
+                  <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start;">
+                    <button id="applyCodex" class="secondary" style="margin: 0;">应用本地代理</button>
+                    <button id="restoreCodex" class="danger" style="margin: 0;">恢复官方直连</button>
+                    <button id="refreshCodex" class="light" style="margin: 0;">刷新状态</button>
+                  </div>
+                </div>
+
+                <div class="card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px;">
+                  <h3 style="margin-top: 0; font-size: 14px;">💡 使用说明与指引</h3>
+                  <div style="font-size: 13px; line-height: 1.6; color: var(--text);">
+                    <p>1. <strong>配置代理</strong>将重写本地 <code>auth.json</code> 或 <code>config.toml</code> 内的 baseUrl 字段，令 Codex 请求通过本地中转做多模型智能路由。</p>
+                    <p>2. <strong>恢复直连</strong>将直接还原所有配置信息，让客户端直连云端原始服务。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="envCheckView" class="view view-fill">
+          <div class="card card-fill card-scroll" style="display: flex; flex-direction: column; margin-bottom: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div>
+                <h2 style="margin: 0 0 4px 0;">本地环境检查</h2>
+                <div class="muted hint">检测本地全局 npm AI 编程 CLI 工具的安装及版本情况，一键保持最新。</div>
+              </div>
+              <div class="actions" style="margin: 0; display: flex; gap: 8px;">
+                <button id="btnDiagnosticsConflicts" class="secondary" style="margin: 0; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  诊断与安装冲突
+                </button>
+                <button id="btnRefreshEnv" class="light" style="margin: 0; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" id="svgRefreshEnv"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                  刷新状态
+                </button>
+                <button id="btnUpgradeAllEnv" class="primary" style="margin: 0; font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  全部升级 (0)
+                </button>
+              </div>
+            </div>
+
+            <div id="envInstallProgressPanel" style="display: none; margin-top: 12px; margin-bottom: 8px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-hover);">
+              <!-- 动态渲染安装/升级进度 -->
+            </div>
+
+            <!-- 卡片网格 -->
+            <div class="env-grid" id="envGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 16px; margin-bottom: 24px;">
+              <!-- 动态渲染 6 个 CLI 卡片 -->
+            </div>
+
+            <!-- 手动安装命令折叠面板 -->
+            <div class="card" style="background: var(--bg-hover); border: 1px solid var(--border); padding: 0; margin-top: auto; border-radius: 6px; overflow: hidden; flex-shrink: 0;">
+              <div id="manualInstallHeader" style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
+                <div style="font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" id="manualInstallArrow" style="transition: transform 0.2s; transform: rotate(-90deg);"><polyline points="9 18 15 12 9 6"/></svg>
+                  手动安装命令
+                </div>
+              </div>
+              <div id="manualInstallBody" style="display: none; padding: 0 16px 16px 16px; border-top: 1px solid var(--border); background: var(--card-bg);">
+                <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span class="muted" style="font-size: 13px;">在终端运行以下命令以手动全局安装或升级 AI 编程助手：</span>
+                  <button id="btnCopyInstallCommands" class="light" style="margin: 0; padding: 4px 8px; font-size: 12px;">复制</button>
+                </div>
+                <pre id="installCommandsText" style="margin: 0; padding: 12px; background: var(--bg-hover); border-radius: 4px; overflow-x: auto; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; color: var(--text-muted); text-align: left;">
+# Claude Code (Windows Native Recommended)
+irm https://claude.ai/install.ps1 | iex
+# Claude Code (NPM Alternative)
+npm i -g @anthropic-ai/claude-code@latest
+
+# Antigravity CLI (Windows Native Recommended)
+irm https://antigravity.google/cli/install.ps1 | iex
+# Antigravity CLI (NPM Alternative)
+npm i -g antigravity-cli@latest
+
+# Codex (NPM)
+npm i -g @openai/codex@latest
+
+# OpenCode (NPM)
+npm i -g opencode-ai@latest
+
+# OpenClaw (NPM)
+npm i -g openclaw@latest
+
+# Hermes (NPM)
+npm i -g hermes-agent@latest</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="promptsView" class="view view-fill">
+          <div class="two-col" style="display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: stretch; min-height: 0; flex: 1;">
+            <div class="card card-fill card-scroll" style="display: flex; flex-direction: column; margin-bottom: 0;">
+              <h2>提示词同步</h2>
+              <div class="muted hint">通过统一定制的系统提示词，快速同步给 Claude Code 等本地 AI 命令行助手，保持开发风格的一致性。</div>
+              <div class="row">
+                <label>目标助手</label>
+                <select id="promptClientType">
+                  <option value="claude">Claude Code (CLAUDE.md)</option>
+                  <option value="antigravity">Antigravity CLI (CLAUDE.md)</option>
+                  <option value="codex">Codex (AGENTS.md)</option>
+                  <option value="gemini">Gemini CLI (GEMINI.md)</option>
+                </select>
+              </div>
+              <div class="notice">
+                提示词将被保存并同步到当前用户主目录下的对应配置文件中（例如：~/.claude/CLAUDE.md 等）。
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 8px; flex: 1; min-height: 0;">
+                <label style="font-weight: 600;">系统提示词内容 (Markdown 格式)</label>
+                <textarea id="promptContent" style="flex: 1; min-height: 350px; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--input-bg); color: var(--text); resize: none;" placeholder="# Custom Instructions&#10;&#10;Here are my coding guidelines..."></textarea>
+              </div>
+              <div class="actions" style="margin-top: 10px;">
+                <button id="syncPromptBtn">一键同步到本地助手</button>
+              </div>
+            </div>
+
+            <div class="card card-fill" style="display: flex; flex-direction: column; margin-bottom: 0; min-height: 0;">
+              <h3>提示词插件与市场</h3>
+              <div class="muted hint" style="margin-bottom: 12px;">一键加载高质量系统提示词模版，或将自定义提示词存为本地插件。</div>
+
+              <div class="tabs" role="tablist" style="margin-bottom: 12px; display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+                <button class="tab-button active" id="tabPresetPrompts" style="flex: 1; text-align: center; padding: 6px 0; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--light-bg); color: var(--text);">系统插件</button>
+                <button class="tab-button" id="tabCustomPrompts" style="flex: 1; text-align: center; padding: 6px 0; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: var(--radius-sm); border: 1px solid transparent; background: transparent; color: var(--muted);">本地与市场</button>
+              </div>
+
+              <div id="presetPromptsPanel" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px;">
+                <!-- 系统提示词插件动态加载 -->
+              </div>
+
+              <div id="customPromptsPanel" style="flex: 1; display: none; flex-direction: column; min-height: 0;">
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+                  <input id="templateNameInput" type="text" placeholder="自定义模板名称..." style="min-height: 32px; font-size: 12px; padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--input-bg); color: var(--text);">
+                  <button id="saveTemplateBtn" class="secondary" style="width: 100%; margin: 0; min-height: 32px; font-size: 12px;">保存当前内容为模板</button>
+                </div>
+
+                <div id="templateList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px;">
+                  <!-- 用户自存模板动态加载 -->
+                </div>
+              </div>
+            </div>
+        </section>
+
+        <section id="codeToolsView" class="view view-fill">
+          <div class="two-col two-col-fill" style="display: grid; grid-template-columns: 240px 1fr; gap: 16px; align-items: stretch; min-height: 0; height: 100%;">
+            <!-- 左侧：启动配置列表 (Profiles Sidebar) -->
+            <div class="card" style="display: flex; flex-direction: column; height: 100%; margin-bottom: 0; padding: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <h2 style="margin: 0; font-size: 15px;">启动预设</h2>
+                <button id="cliAddProfileBtn" class="light" style="margin: 0; padding: 4px 8px; min-height: 26px; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  新建
+                </button>
+              </div>
+              <div class="muted hint" style="margin-bottom: 12px; font-size: 11.5px;">保存常用工作区与变量环境，快速一键切换。</div>
+
+              <!-- 预设列表 -->
+              <div id="cliProfilesList" class="tools-list scroll-fill" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
+                <!-- 动态渲染的 Profiles -->
+              </div>
+            </div>
+
+            <!-- 右侧：当前配置面板 + 可视化会话监控 -->
+            <div class="scroll-fill" style="display: flex; flex-direction: column; gap: 16px; height: 100%; min-height: 0; overflow-y: auto; padding-right: 4px;">
+              <!-- 启动配置表单 -->
+              <div class="card" style="padding: 20px; margin-bottom: 0; display: flex; flex-direction: column; gap: 14px; flex-shrink: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                  <h3 id="cliProfileDetailTitle" style="margin: 0; font-size: 15px; display: flex; align-items: center; gap: 6px;">
+                    <span id="cliProfileActiveDot" class="status-dot green" style="width: 8px; height: 8px;"></span>
+                    启动配置详情
+                  </h3>
+                  <div style="display: flex; gap: 6px;">
+                    <button id="cliCopyProfileBtn" class="light" style="margin: 0; padding: 4px 8px; min-height: 26px; font-size: 11px;">复制</button>
+                    <button id="cliDeleteProfileBtn" class="danger-soft" style="margin: 0; padding: 4px 8px; min-height: 26px; font-size: 11px; color: var(--danger); border-color: rgba(225, 29, 72, 0.25);">删除</button>
+                  </div>
+                </div>
+
+                <!-- 双列网格表单 -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px;">
+
+                  <!-- 配置名称 -->
+                  <div style="display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1;">
+                    <label for="cliProfileNameInput" style="font-weight: 600; color: var(--text); font-size: 13px;">配置名称</label>
+                    <input id="cliProfileNameInput" type="text" placeholder="例如: 前端项目代理启动 / 快速命令行" style="min-height: 38px;">
+                  </div>
+
+                  <!-- CLI 工具 -->
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label for="cliToolSelect" style="font-weight: 600; color: var(--text); font-size: 13px;">CLI 工具</label>
+                    <select id="cliToolSelect" style="min-height: 38px;">
+                      <option value="claude-code">Claude Code</option>
+                      <option value="antigravity-cli">Antigravity CLI</option>
+                      <option value="codex">Codex CLI</option>
+                      <option value="opencode">OpenCode CLI</option>
+                      <option value="openclaw">OpenClaw CLI</option>
+                      <option value="hermes">Hermes CLI</option>
+                    </select>
+                  </div>
+
+                  <!-- 模型 -->
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label for="cliModelSelect" style="font-weight: 600; color: var(--text); font-size: 13px; display: flex; align-items: center; gap: 4px;">
+                      客户端模型
+                      <span title="流经代理的 CLI 请求将以此客户端模型进行路由解析，命中相应的上游重定向规则" style="cursor: help; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: var(--muted); font-weight: bold;">?</span>
+                    </label>
+                    <select id="cliModelSelect" style="min-height: 38px;">
+                      <option value="default">default | 默认上游 (不重定向)</option>
+                    </select>
+                  </div>
+
+                  <!-- 自定义参数 -->
+                  <div style="display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1;">
+                    <label for="cliCustomArgsInput" style="font-weight: 600; color: var(--text); font-size: 13px;">自定义启动参数 (附加在命令后)</label>
+                    <input id="cliCustomArgsInput" type="text" placeholder="例如: commit --no-edit (留空则默认启动交互式命令行)" style="min-height: 38px; font-family: var(--font-mono); font-size: 12.5px;">
+                  </div>
+
+                  <!-- 工作目录 -->
+                  <div style="display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1;">
+                    <label for="cliCwdInput" style="font-weight: 600; color: var(--text); font-size: 13px;">工作目录</label>
+                    <div style="display: flex; gap: 8px; width: 100%;">
+                      <input id="cliCwdInput" type="text" placeholder="选择工作目录" style="flex: 1; min-height: 38px;">
+                      <button id="cliSelectFolderBtn" class="secondary" style="margin: 0; min-height: 38px; padding: 0 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; white-space: nowrap;">选择文件夹</button>
+                    </div>
+                  </div>
+
+                  <!-- 环境变量 -->
+                  <div style="display: flex; flex-direction: column; gap: 6px; grid-column: 1 / -1;">
+                    <label for="cliEnvsInput" style="font-weight: 600; color: var(--text); font-size: 13px;">环境变量</label>
+                    <textarea id="cliEnvsInput" placeholder="KEY1=value1&#10;KEY2=value2" style="width: 100%; min-height: 70px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; padding: 10px; resize: vertical;"></textarea>
+                    <div class="muted" style="font-size: 11px; margin-top: -2px;">输入自定义环境变量（每行一个，格式：KEY=value）</div>
+                  </div>
+
+                  <!-- 终端 -->
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label for="cliTerminalSelect" style="font-weight: 600; color: var(--text); font-size: 13px;">终端类型</label>
+                    <select id="cliTerminalSelect" style="min-height: 38px;">
+                      <option value="Command Prompt">Command Prompt</option>
+                      <option value="PowerShell">PowerShell</option>
+                    </select>
+                  </div>
+
+                  <!-- 其它选项与启动 -->
+                  <div style="display: flex; flex-direction: column; justify-content: center; gap: 8px;">
+                    <label class="inline-check" style="color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; font-size: 13px; margin: 0;">
+                      <input id="cliUpgradeCheck" type="checkbox" style="width: 15px; height: 15px; margin: 0; accent-color: var(--primary);">
+                      检查更新并安装最新版本
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 启动按钮 -->
+                <div style="margin-top: 6px;">
+                  <button id="cliLaunchBtn" style="width: 100%; min-height: 44px; border-radius: var(--radius-md); font-size: 15px; font-weight: 700; background: var(--primary); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px var(--primary-soft); transition: all 0.2s;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+                    启动 CLI 助手
+                  </button>
+                </div>
+              </div>
+
+              <!-- 运行会话监视器 -->
+              <div class="card" style="padding: 20px; display: flex; flex-direction: column; min-height: 200px; flex-grow: 1;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h3 style="margin: 0; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                    <span class="pulse-indicator" id="sessionsMonitorHeartbeat"></span>
+                    可视化活动会话监控
+                  </h3>
+                  <button id="cliRefreshSessionsBtn" class="light" style="margin: 0; padding: 2px 8px; min-height: 24px; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    刷新
+                  </button>
+                </div>
+                <div class="muted hint" style="margin-bottom: 12px; font-size: 11.5px;">监控由当前代理接管请求的 CLI 会话（含调用次数及活跃时间）。销毁后，代理将拒绝其后续发出的请求。</div>
+
+                <div style="flex: 1; overflow-y: auto;">
+                  <table class="session-table" style="width: 100%;">
+                    <thead>
+                      <tr>
+                        <th>CLI 助手</th>
+                        <th>客户端模型</th>
+                        <th>请求次数</th>
+                        <th>最近活跃</th>
+                        <th style="text-align: right; padding-right: 8px;">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="cliSessionsTableBody">
+                      <!-- 动态渲染的运行中会话列表 -->
+                    </tbody>
+                  </table>
+                  <div id="cliNoSessionsTip" class="muted" style="text-align: center; padding: 24px 0; font-size: 13px;">暂无运行中的活动 CLI 会话</div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -622,6 +930,15 @@
               <div class="setting-item">
                 <label><input id="stopProxyOnExit" type="checkbox"><span><span class="setting-title">退出管理器时停止代理</span><span class="setting-desc">彻底退出应用时同步停止本地代理进程。</span></span></label>
               </div>
+              <div class="setting-item">
+                <label><input id="disableLocalProxy" type="checkbox"><span><span class="setting-title">禁用本地代理自动探测</span><span class="setting-desc">如果你使用 TUN 模式 (如 Clash TUN / V2ray TUN)，请勾选此项以防止代理冲突。</span></span></label>
+              </div>
+              <div class="setting-item">
+                <label><input id="conversationAuditEnabled" type="checkbox"><span><span class="setting-title">记录对话审计日志</span><span class="setting-desc">关闭后减少请求响应捕获和本地审计写入开销。</span></span></label>
+              </div>
+              <div class="setting-item">
+                <label><input id="performanceMode" type="checkbox"><span><span class="setting-title">性能模式</span><span class="setting-desc">降低玻璃模糊、阴影和动画开销，提升滚动和切页流畅度。</span></span></label>
+              </div>
             </div>
             <div class="actions"><button id="saveAppSettings" class="light">保存应用设置</button></div>
           </div>
@@ -648,1233 +965,10 @@
     </div>
   </div>
 
-  <script>
-    // 提供基础的 Mock 以防在非 Tauri 环境下崩溃
-    if (!window.proxyManager) {
-      window.proxyManager = {
-        readConfig: async () => ({ profiles: [], modelRoutes: [], localServer: {}, appSettings: {}, claudeDesktop: { models: [] } }),
-        saveConfig: async (c) => c,
-        readLog: async () => '非 Tauri 环境：无法读取日志',
-        readDiagnostics: async () => ({ status: { ok: false }, output: '' }),
-        diagnosticsStatus: async () => ({ ok: false }),
-        claudeDesktopStatus: async () => ({ ok: false, supported: false }),
-        certStatus: async () => ({ ok: false, exists: false }),
-        readEvents: async () => [],
-        onTrayCommand: () => Promise.resolve(() => {}),
-        onOpenView: () => Promise.resolve(() => {}),
-      };
-    }
-
-    if (!window.proxyManager.readConfig && window.__TAURI__ && window.__TAURI__.core) {
-      const invoke = window.__TAURI__.core.invoke;
-      window.proxyManager = {
-        readConfig: () => invoke('read_config'),
-        saveConfig: (config) => invoke('save_config', { config }),
-        setActive: (profileId) => invoke('set_active', { profileId }),
-        listModels: (profile) => invoke('list_models', { profile }),
-        certStatus: () => invoke('cert_status'),
-        installCert: () => invoke('install_cert'),
-        uninstallCert: () => invoke('uninstall_cert'),
-        openCertDir: () => invoke('open_cert_dir'),
-        command: (command) => invoke('proxy_command', { command }),
-        testConnectivity: () => invoke('test_connectivity'),
-        readLog: () => invoke('read_log'),
-        clearLog: () => invoke('clear_log'),
-        readDiagnostics: () => invoke('read_diagnostics'),
-        clearDiagnostics: () => invoke('clear_diagnostics'),
-        diagnosticsStatus: () => invoke('diagnostics_status'),
-        readEvents: () => invoke('read_events'),
-        claudeDesktopStatus: () => invoke('claude_desktop_status'),
-        applyClaudeDesktop: () => invoke('apply_claude_desktop'),
-        restoreClaudeDesktop: () => invoke('restore_claude_desktop'),
-        applyAppMenu: (show) => invoke('apply_app_menu', { show }),
-        onTrayCommand: (handler) => {
-          if (!window.__TAURI__.event) return Promise.resolve(() => {});
-          return window.__TAURI__.event.listen('tray-command', (event) => handler(event.payload));
-        },
-        onOpenView: (handler) => {
-          if (!window.__TAURI__.event) return Promise.resolve(() => {});
-          return window.__TAURI__.event.listen('open-view', (event) => handler(event.payload));
-        },
-        openConfig: () => invoke('open_config'),
-        openLog: () => invoke('open_log'),
-      };
-    }
-
-    let config;
-    let selectedId;
-    let modelRoutes = [];
-    let availableModels = [];
-    let baseUrl = '';
-    let editingRouteIndex = null;
-    let logRefreshTimer = null;
-    let logRefreshInFlight = false;
-    let heartbeatTimer = null;
-    let currentTheme = 'light';
-    let monitorEvents = [];
-    let lastEventTime = null;
-    let lastStatusRefresh = 0;
-    let lastCertRefresh = 0;
-    let statusRefreshInFlight = false;
-
-    const fields = ['id', 'name', 'targetUrl', 'protocol', 'apiKey'];
-    const $ = (id) => document.getElementById(id);
-    const defaultEntryServers = [
-      { name: 'Claude Messages', host: 'localhost', listenPort: 3443, basePath: '/v1', protocol: 'claude' },
-      { name: 'OpenAI Responses', host: 'localhost', listenPort: 3445, basePath: '/v1', protocol: 'openai-responses' },
-      { name: 'OpenAI Chat Completions', host: 'localhost', listenPort: 3447, basePath: '/v1', protocol: 'openai-chat' },
-    ];
-
-    function escapeHtml(value) {
-      return String(value == null ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
-    function initTheme() {
-      currentTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      applyTheme(currentTheme);
-    }
-
-    function applyTheme(theme) {
-      document.documentElement.setAttribute('data-theme', theme);
-      $('themeIconSun').style.display = theme === 'dark' ? 'block' : 'none';
-      $('themeIconMoon').style.display = theme === 'dark' ? 'none' : 'block';
-      localStorage.setItem('theme', theme);
-      currentTheme = theme;
-    }
-
-    $('themeToggle').onclick = () => {
-      applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-    };
-
-    function colorizeLog(text) {
-      if (!text) return '';
-      return text.split('\n').map(line => {
-        let className = '';
-        if (line.includes('-> ')) className = 'info arrow';
-        else if (line.includes('ok ')) className = 'info';
-        else if (line.includes('!! ')) className = 'warn';
-        else if (line.includes('xx ')) className = 'error';
-        else if (line.includes('[stdout]') || line.includes('[stderr]')) className = 'muted';
-
-        return `<span class="log-line ${className}">${line}</span>`;
-      }).join('');
-    }
-
-    function startHeartbeat() {
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      heartbeatTimer = setInterval(async () => {
-        await refreshProxyStatus({ passive: true });
-        if (isMonitorVisible()) await refreshMonitor();
-      }, document.hidden ? 30000 : 8000);
-    }
-
-    document.addEventListener('visibilitychange', () => {
-      startHeartbeat();
-    });
-
-    function isMonitorVisible() {
-      return $('monitor').classList.contains('active');
-    }
-
-    async function refreshMonitor() {
-      try {
-        const events = await window.proxyManager.readEvents();
-        if (!events || events.length === 0) {
-          if (monitorEvents.length === 0) $('monitorList').innerHTML = '<div class="muted">暂无请求记录...</div>';
-          return;
-        }
-
-        const lastEvent = events[events.length - 1];
-        if (lastEventTime === lastEvent.time && monitorEvents.length === events.length) return;
-
-        lastEventTime = lastEvent.time;
-        monitorEvents = events;
-        renderMonitor();
-      } catch (err) {
-        console.error('Failed to refresh monitor:', err);
-      }
-    }
-
-    function renderMonitor() {
-      const container = $('monitorList');
-      const shouldScroll = $('autoScrollMonitor').checked;
-
-      const html = monitorEvents.slice(-50).reverse().map(event => {
-        const time = new Date(event.time).toLocaleTimeString();
-        let title = '';
-        let details = '';
-        let badgeClass = 'protocol';
-        let levelClass = '';
-
-        if (event.kind === 'request_start') {
-          title = `${event.method} ${event.path}`;
-          details = `Client: ${event.clientIp}`;
-        } else if (event.kind === 'route') {
-          title = `Route: ${event.sourceModel} → ${event.targetModel}`;
-          details = `Profile: ${event.profileName} (${event.protocol})`;
-          badgeClass = 'active';
-        } else if (event.kind === 'request_end') {
-          title = `${event.method} ${event.path} -> ${event.statusCode}`;
-          details = `Elapsed: ${event.elapsed}ms${event.usage ? ` | Tokens: ${event.usage.input_tokens}+${event.usage.output_tokens}` : ''}`;
-          if (event.statusCode >= 400) levelClass = 'error';
-          else if (event.statusCode >= 200) levelClass = 'success';
-        } else if (event.kind === 'upstream_error' || event.kind === 'proxy_error') {
-          title = `ERROR: ${event.kind === 'proxy_error' ? event.error : (event.code + ' ' + (event.body || ''))}`;
-          details = `${event.method} ${event.path}`;
-          levelClass = 'error';
-        }
-
-        return `
-          <div class="profile" style="cursor:default; padding: 10px; border-left: 4px solid ${levelClass === 'error' ? 'var(--danger)' : (levelClass === 'success' ? '#10b981' : 'var(--border)')}">
-            <div class="profile-title">
-              <strong style="font-size:13px">${title}</strong>
-              <span class="badge ${badgeClass}">${time}</span>
-            </div>
-            <div class="muted" style="margin-top:4px">${details}</div>
-          </div>
-        `;
-      }).join('');
-
-      container.innerHTML = html || '<div class="muted">暂无请求记录...</div>';
-    }
-
-    $('clearMonitor').onclick = async () => {
-      await window.proxyManager.clearEvents();
-      monitorEvents = [];
-      lastEventTime = null;
-      renderMonitor();
-      showToast('监控已清空');
-    };
-
-    function showToast(message, type = 'success') {
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = message;
-      $('toastContainer').appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = 'all 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
-
-    function confirmAction({ title, message, confirmText = '确认', danger = true }) {
-      return new Promise((resolve) => {
-        const modal = $('confirmModal');
-        const ok = $('confirmOk');
-        const cancel = $('confirmCancel');
-        $('confirmTitle').textContent = title;
-        $('confirmMessage').textContent = message;
-        ok.textContent = confirmText;
-        ok.className = danger ? 'danger' : 'secondary';
-        modal.classList.add('active');
-        modal.setAttribute('aria-hidden', 'false');
-        const finish = (confirmed) => {
-          modal.classList.remove('active');
-          modal.setAttribute('aria-hidden', 'true');
-          ok.onclick = null;
-          cancel.onclick = null;
-          modal.onclick = null;
-          document.onkeydown = null;
-          resolve(confirmed);
-        };
-        ok.onclick = () => finish(true);
-        cancel.onclick = () => finish(false);
-        modal.onclick = (event) => { if (event.target === modal) finish(false); };
-        document.onkeydown = (event) => { if (event.key === 'Escape') finish(false); };
-        cancel.focus();
-      });
-    }
-
-    function showDiagnosticsTab(panelId) {
-      document.querySelectorAll('[data-diagnostics-tab]').forEach((button) => {
-        button.classList.toggle('active', button.dataset.diagnosticsTab === panelId);
-      });
-      document.querySelectorAll('.diagnostics-panel').forEach((panel) => {
-        panel.classList.toggle('active', panel.id === panelId);
-      });
-      if (panelId === 'logPanel') refreshLog({ forceScroll: true });
-      if (panelId === 'diagnosticsPanel') refreshDiagnostics({ forceScroll: true });
-    }
-
-    function protocolName(value) {
-      if (value === 'gemini') return 'Gemini';
-      if (value === 'claude') return 'Claude';
-      if (value === 'claude-desktop') return 'Claude Desktop';
-      if (value === 'openai-responses') return 'OpenAI Responses';
-      if (value === 'openai-chat') return 'OpenAI Chat';
-      return 'OpenAI';
-    }
-
-    function entryProtocolName(value) {
-      if (value === 'claude') return 'Claude Messages';
-      if (value === 'claude-desktop') return 'Claude Desktop';
-      if (value === 'openai-responses') return 'OpenAI Responses';
-      if (value === 'openai-chat') return 'OpenAI Chat Completions';
-      return protocolName(value);
-    }
-
-    function normalizeEntryProtocol(value) {
-      const protocol = String(value || '').trim().toLowerCase();
-      if (protocol === 'responses' || protocol === 'response' || protocol === 'openai-response') return 'openai-responses';
-      if (protocol === 'chat' || protocol === 'chat-completions' || protocol === 'openai-chat-completions' || protocol === 'openai') return 'openai-chat';
-      if (protocol === 'desktop' || protocol === 'claude-desktop') return 'claude-desktop';
-      if (protocol === 'claude' || protocol === 'openai-responses' || protocol === 'openai-chat' || protocol === 'claude-desktop') return protocol;
-      return 'claude';
-    }
-
-    function defaultEntriesForLocal() {
-      const host = (config.localServer && config.localServer.host) || 'localhost';
-      const basePath = (config.localServer && config.localServer.basePath) || '/v1';
-      const localPort = Number((config.localServer && config.localServer.listenPort) || 3443);
-      return defaultEntryServers.map((entry, index) => ({
-        ...entry,
-        host: entry.protocol === 'claude-desktop' ? entry.host : host,
-        basePath: entry.protocol === 'claude-desktop' ? entry.basePath : basePath,
-        listenPort: index === 0 ? localPort : entry.listenPort,
-      }));
-    }
-
-    function selectedProfile() {
-      return config.profiles.find((profile) => profile.id === selectedId) || config.profiles[0];
-    }
-
-    function activeProfile() {
-      return config.profiles.find((profile) => profile.id === config.activeProfile) || config.profiles[0];
-    }
-
-    function ensureLocalServer() {
-      const active = activeProfile() || {};
-      if (!config.localServer) config.localServer = {};
-      config.localServer.host = config.localServer.host || 'localhost';
-      config.localServer.listenPort = Number(config.localServer.listenPort || active.listenPort || 3443);
-      config.localServer.basePath = config.localServer.basePath || '/v1';
-      config.localServer.protocol = normalizeEntryProtocol(config.localServer.protocol || 'claude');
-    }
-
-    function ensureEntryServers() {
-      ensureLocalServer();
-      const defaults = defaultEntriesForLocal();
-      const source = Array.isArray(config.entryServers) ? config.entryServers.filter(Boolean) : [];
-      const byProtocol = new Map(source.map((entry) => [normalizeEntryProtocol(entry.protocol), entry]));
-      config.entryServers = defaults.map((fallback) => {
-        const existing = byProtocol.get(fallback.protocol);
-        return {
-          name: existing && existing.name ? existing.name : fallback.name,
-          host: existing && existing.host ? existing.host : fallback.host,
-          listenPort: Number((existing && (existing.listenPort || existing.port)) || fallback.listenPort),
-          basePath: existing && existing.basePath ? existing.basePath : fallback.basePath,
-          protocol: fallback.protocol,
-          enabled: existing && existing.enabled === false ? false : true,
-        };
-      });
-    }
-
-    function ensureAppSettings() {
-      if (!config.appSettings) config.appSettings = {};
-      if (typeof config.appSettings.closeToTray !== 'boolean') config.appSettings.closeToTray = true;
-      if (typeof config.appSettings.stopProxyOnExit !== 'boolean') config.appSettings.stopProxyOnExit = true;
-      if (typeof config.appSettings.autoStartProxy !== 'boolean') config.appSettings.autoStartProxy = true;
-      if (typeof config.appSettings.showTopMenu !== 'boolean') config.appSettings.showTopMenu = true;
-      if (typeof config.appSettings.showTrayMenu !== 'boolean') config.appSettings.showTrayMenu = true;
-      if (typeof config.appSettings.showWindowOnTrayCommand !== 'boolean') config.appSettings.showWindowOnTrayCommand = true;
-    }
-
-    async function applyTopMenuVisibility(show) {
-      if (window.proxyManager.applyAppMenu) await window.proxyManager.applyAppMenu(show);
-    }
-
-    function fillAppSettings() {
-      ensureAppSettings();
-      $('closeToTray').checked = config.appSettings.closeToTray;
-      $('stopProxyOnExit').checked = config.appSettings.stopProxyOnExit;
-      $('autoStartProxy').checked = config.appSettings.autoStartProxy;
-      $('showTopMenu').checked = config.appSettings.showTopMenu;
-      $('showTrayMenu').checked = config.appSettings.showTrayMenu;
-      $('showWindowOnTrayCommand').checked = config.appSettings.showWindowOnTrayCommand;
-    }
-
-    function collectAppSettings() {
-      config.appSettings = {
-        closeToTray: $('closeToTray').checked,
-        stopProxyOnExit: $('stopProxyOnExit').checked,
-        autoStartProxy: $('autoStartProxy').checked,
-        showTopMenu: $('showTopMenu').checked,
-        showTrayMenu: $('showTrayMenu').checked,
-        showWindowOnTrayCommand: $('showWindowOnTrayCommand').checked,
-      };
-    }
-
-    function defaultClaudeDesktopModel() {
-      const route = currentRoutes()[0] || {};
-      const active = activeProfile() || {};
-      const upstream = route.to || 'gpt-5.5';
-      return {
-        routeId: 'claude-sonnet-4-6',
-        labelOverride: upstream,
-        supports1m: true,
-        profileId: route.profileId || active.id || config.activeProfile,
-        upstreamModel: upstream,
-      };
-    }
-
-    function ensureClaudeDesktop() {
-      if (!config.claudeDesktop) config.claudeDesktop = {};
-      if (typeof config.claudeDesktop.enabled !== 'boolean') config.claudeDesktop.enabled = false;
-      if (!['proxy', 'direct', 'official'].includes(config.claudeDesktop.mode)) config.claudeDesktop.mode = 'proxy';
-      if (!config.claudeDesktop.profileName) config.claudeDesktop.profileName = 'HTTPS Proxy';
-      if (!config.claudeDesktop.baseUrl || config.claudeDesktop.baseUrl === 'http://127.0.0.1:15721/claude-desktop' || config.claudeDesktop.baseUrl === 'https://localhost:3443/v1') config.claudeDesktop.baseUrl = claudeProxyBaseUrl();
-      if (typeof config.claudeDesktop.token !== 'string') config.claudeDesktop.token = '';
-      if (!Array.isArray(config.claudeDesktop.models) || config.claudeDesktop.models.length === 0) {
-        config.claudeDesktop.models = [defaultClaudeDesktopModel()];
-      }
-    }
-
-    function fillClaudeDesktop() {
-      ensureClaudeDesktop();
-      $('claudeDesktopEnabled').checked = config.claudeDesktop.enabled;
-      $('claudeDesktopMode').value = config.claudeDesktop.mode;
-      $('claudeDesktopBaseUrl').value = config.claudeDesktop.baseUrl;
-      $('claudeDesktopToken').value = config.claudeDesktop.token || '';
-      $('claudeDesktopDirectBaseUrl').value = config.claudeDesktop.directBaseUrl || '';
-      $('claudeDesktopDirectApiKey').value = config.claudeDesktop.directApiKey || '';
-      $('claudeDesktopSupports1mDefault').checked = true;
-      renderClaudeDesktopProfiles();
-      renderClaudeDesktopModels();
-      renderClaudeDesktopPreview();
-    }
-
-    function collectClaudeDesktop() {
-      ensureClaudeDesktop();
-      config.claudeDesktop.enabled = $('claudeDesktopEnabled').checked;
-      config.claudeDesktop.mode = $('claudeDesktopMode').value;
-      config.claudeDesktop.baseUrl = $('claudeDesktopBaseUrl').value.trim() || claudeProxyBaseUrl();
-      config.claudeDesktop.token = $('claudeDesktopToken').value.trim();
-      config.claudeDesktop.directBaseUrl = $('claudeDesktopDirectBaseUrl').value.trim();
-      config.claudeDesktop.directApiKey = $('claudeDesktopDirectApiKey').value.trim();
-    }
-
-    function renderClaudeDesktopProfiles() {
-      $('cdProfileId').innerHTML = config.profiles.map((profile) => `<option value="${profile.id}">${escapeHtml(profile.name || profile.id)} · ${protocolName(profile.protocol)}</option>`).join('');
-      $('cdProfileId').value = config.activeProfile;
-    }
-
-    function renderClaudeDesktopPreview() {
-      collectClaudeDesktop();
-      const mode = config.claudeDesktop.mode;
-      const lines = [];
-      if (mode === 'proxy') {
-        lines.push(`Desktop Gateway：${config.claudeDesktop.baseUrl}`);
-        lines.push(`模型数：${config.claudeDesktop.models.length}，代理运行时需要保持 Claude Desktop 入口开启。`);
-      } else if (mode === 'direct') {
-        lines.push('直连模式会把 Claude Desktop 指向当前上游或这里填写的直连地址。');
-      } else {
-        lines.push('恢复官方模式会切回 Claude Desktop 内置登录，不再使用本地代理。');
-      }
-      $('claudeDesktopPreview').innerHTML = lines.map(escapeHtml).join('<br>');
-    }
-
-    function renderClaudeDesktopModels() {
-      ensureClaudeDesktop();
-      if (!config.claudeDesktop.models.length) {
-        $('claudeDesktopModels').innerHTML = '<div class="muted">暂无 Desktop 模型映射。</div>';
-        return;
-      }
-      $('claudeDesktopModels').innerHTML = `<div class="route-table"><div class="route-table-head"><table><thead><tr><th>Route ID</th><th>菜单显示名</th><th>上游</th><th>真实模型</th><th>1M</th><th></th></tr></thead></table></div><div class="route-table-scroll"><table><tbody>${
-        config.claudeDesktop.models.map((model, index) => {
-          const profile = config.profiles.find((item) => item.id === model.profileId) || {};
-          return `<tr>
-            <td>${escapeHtml(model.routeId || model.from || '')}</td>
-            <td>${escapeHtml(model.labelOverride || '')}</td>
-            <td>${escapeHtml(profile.name || model.profileId || '')}</td>
-            <td>${escapeHtml(model.upstreamModel || model.to || '')}</td>
-            <td>${model.supports1m === false ? '否' : '是'}</td>
-            <td><button class="light" data-cd-edit="${index}">编辑</button><button class="danger" data-cd-delete="${index}">删除</button></td>
-          </tr>`;
-        }).join('')
-      }</tbody></table></div></div>`;
-      $('claudeDesktopModels').querySelectorAll('[data-cd-edit]').forEach((button) => {
-        button.onclick = () => {
-          const model = config.claudeDesktop.models[Number(button.dataset.cdEdit)];
-          $('cdRouteId').value = model.routeId || model.from || '';
-          $('cdLabelOverride').value = model.labelOverride || '';
-          $('cdProfileId').value = model.profileId || config.activeProfile;
-          $('cdUpstreamModel').value = model.upstreamModel || model.to || '';
-          $('claudeDesktopSupports1mDefault').checked = model.supports1m !== false;
-          config.claudeDesktop.models.splice(Number(button.dataset.cdEdit), 1);
-          renderClaudeDesktopModels();
-        };
-      });
-      $('claudeDesktopModels').querySelectorAll('[data-cd-delete]').forEach((button) => {
-        button.onclick = () => {
-          config.claudeDesktop.models.splice(Number(button.dataset.cdDelete), 1);
-          renderClaudeDesktopModels();
-          renderClaudeDesktopPreview();
-        };
-      });
-    }
-
-    function syncClaudeDesktopRoutesToModelRoutes() {
-      ensureClaudeDesktop();
-      if (!Array.isArray(modelRoutes)) modelRoutes = [];
-      for (const model of config.claudeDesktop.models) {
-        const from = (model.routeId || model.from || '').trim();
-        const profileId = (model.profileId || config.activeProfile || '').trim();
-        const to = (model.upstreamModel || model.to || '').trim();
-        if (!from || !profileId || !to) continue;
-        const next = { from, profileId, to };
-        const index = modelRoutes.findIndex((route) => route.from === from);
-        if (index >= 0) modelRoutes[index] = next;
-        else modelRoutes.push(next);
-      }
-      config.modelRoutes = modelRoutes.map((route) => ({ from: route.from, profileId: route.profileId, to: route.to }));
-    }
-
-    function fillLocalServer() {
-      ensureLocalServer();
-      ensureEntryServers();
-      $('localHost').value = config.localServer.host;
-      $('localPort').value = config.localServer.listenPort;
-      $('localBasePath').value = config.localServer.basePath;
-      renderEntryServers();
-      renderLocalPreview();
-    }
-
-    function collectLocalServer() {
-      config.localServer = {
-        host: $('localHost').value.trim() || 'localhost',
-        listenPort: Number($('localPort').value || 3443),
-        basePath: $('localBasePath').value.trim() || '/v1',
-        protocol: 'claude',
-      };
-      collectEntryServers();
-    }
-
-    function collectEntryServers() {
-      const rows = Array.from(document.querySelectorAll('[data-entry-index]'));
-      if (rows.length === 0) {
-        ensureEntryServers();
-        return;
-      }
-      config.entryServers = rows.map((row) => ({
-        name: row.querySelector('[data-entry-name]').value.trim() || entryProtocolName(row.querySelector('[data-entry-protocol]').value),
-        host: row.querySelector('[data-entry-host]').value.trim() || 'localhost',
-        listenPort: Number(row.querySelector('[data-entry-port]').value || 3443),
-        basePath: row.querySelector('[data-entry-base-path]').value.trim() || '/v1',
-        protocol: normalizeEntryProtocol(row.querySelector('[data-entry-protocol]').value),
-        enabled: row.querySelector('[data-entry-enabled]').checked,
-        tls: normalizeEntryProtocol(row.querySelector('[data-entry-protocol]').value) === 'claude-desktop' ? false : true,
-      }));
-      const claudeEntry = config.entryServers.find((entry) => entry.protocol === 'claude') || config.entryServers[0];
-      if (claudeEntry) {
-        config.localServer.host = claudeEntry.host;
-        config.localServer.listenPort = claudeEntry.listenPort;
-        config.localServer.basePath = claudeEntry.basePath;
-        config.localServer.protocol = 'claude';
-        if (document.activeElement !== $('localHost')) $('localHost').value = claudeEntry.host;
-        if (document.activeElement !== $('localPort')) $('localPort').value = claudeEntry.listenPort;
-        if (document.activeElement !== $('localBasePath')) $('localBasePath').value = claudeEntry.basePath;
-      }
-    }
-
-    function renderEntryServers() {
-      ensureEntryServers();
-      $('entryServers').innerHTML = config.entryServers.map((entry, index) => {
-        const protocol = normalizeEntryProtocol(entry.protocol);
-        const scheme = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
-        const url = `${scheme}://${entry.host || 'localhost'}:${entry.listenPort || 3443}${entry.basePath || '/v1'}`;
-        return `<div class="entry-server-row" data-entry-index="${index}">
-          <div class="entry-server-head">
-            <div class="entry-server-title">
-              <strong>${escapeHtml(entry.name || entryProtocolName(protocol))}</strong>
-              <span class="badge protocol">${entryProtocolName(protocol)}</span>
-              <span class="badge">${escapeHtml(url)}</span>
-            </div>
-            <label class="inline-check"><input data-entry-enabled type="checkbox" ${entry.enabled === false ? '' : 'checked'}> 启用</label>
-          </div>
-          <div class="entry-server-fields">
-            <input data-entry-name value="${escapeHtml(entry.name || entryProtocolName(protocol))}" placeholder="显示名称">
-            <input data-entry-port type="number" value="${Number(entry.listenPort || 3443)}" placeholder="端口">
-            <input data-entry-host value="${escapeHtml(entry.host || 'localhost')}" placeholder="Host">
-            <input data-entry-base-path value="${escapeHtml(entry.basePath || '/v1')}" placeholder="路径">
-            <select data-entry-protocol title="入口协议">
-              <option value="claude" ${protocol === 'claude' ? 'selected' : ''}>Claude Messages</option>
-              <option value="openai-responses" ${protocol === 'openai-responses' ? 'selected' : ''}>OpenAI Responses</option>
-              <option value="openai-chat" ${protocol === 'openai-chat' ? 'selected' : ''}>OpenAI Chat Completions</option>
-              <option value="claude-desktop" ${protocol === 'claude-desktop' ? 'selected' : ''}>Claude Desktop</option>
-            </select>
-          </div>
-        </div>`;
-      }).join('');
-      $('entryServers').querySelectorAll('input, select').forEach((input) => {
-        input.oninput = () => { collectEntryServers(); renderLocalPreview(); };
-        input.onchange = () => { collectEntryServers(); renderLocalPreview(); renderEntryServers(); };
-      });
-    }
-
-    function renderLocalPreview() {
-      collectEntryServers();
-      const entries = Array.isArray(config.entryServers) ? config.entryServers.filter((entry) => entry.enabled !== false) : [];
-      const primary = entries.find((entry) => entry.protocol === 'claude') || entries[0] || { host: $('localHost').value.trim() || 'localhost', listenPort: $('localPort').value || 3443, basePath: $('localBasePath').value.trim() || '/v1', protocol: 'claude' };
-      baseUrl = `https://${primary.host || 'localhost'}:${primary.listenPort || 3443}${primary.basePath || '/v1'}`;
-      $('localUrlPreview').innerHTML = entries.map((entry) => {
-        const protocol = normalizeEntryProtocol(entry.protocol);
-        const scheme = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
-        const url = `${scheme}://${entry.host || 'localhost'}:${entry.listenPort || 3443}${entry.basePath || '/v1'}`;
-        return `<div><strong>${entryProtocolName(entry.protocol)}</strong>：${escapeHtml(url)}</div>`;
-      }).join('') || `IDE Base URL：${escapeHtml(baseUrl)}`;
-      $('heroBaseUrl').textContent = baseUrl;
-    }
-
-    function claudeProxyBaseUrl() {
-      ensureEntryServers();
-      const entry = (config.entryServers || []).find((item) => item.enabled !== false && normalizeEntryProtocol(item.protocol) === 'claude')
-        || { host: 'localhost', listenPort: 3443, basePath: '/v1', tls: true };
-      const scheme = entry.tls === false ? 'http' : 'https';
-      const host = entry.host === '0.0.0.0' ? '127.0.0.1' : (entry.host || 'localhost');
-      const basePath = entry.basePath === '/v1' ? '' : (entry.basePath || '');
-      return `${scheme}://${host}:${entry.listenPort || 3443}${basePath}`.replace(/\/+$/, '');
-    }
-
-    function currentRoutes() {
-      if (Array.isArray(config.modelRoutes)) return config.modelRoutes.filter((route) => route && route.from && route.profileId && route.to);
-      const active = selectedProfile();
-      const legacyRules = active.modelRewriteFrom && active.modelRewriteTo ? [{ from: active.modelRewriteFrom, to: active.modelRewriteTo }] : [];
-      return (active.modelRewriteRules || legacyRules).filter((rule) => rule && rule.from && rule.to).map((rule) => ({ from: rule.from, profileId: active.id, to: rule.to }));
-    }
-
-    function renderRouteProfiles(selectedValue) {
-      $('modelRouteProfile').innerHTML = config.profiles.map((profile) => `<option value="${profile.id}">${profile.name || profile.id} · ${protocolName(profile.protocol)} · ${profile.targetUrl}</option>`).join('');
-      $('modelRouteProfile').value = selectedValue || selectedId || config.activeProfile;
-    }
-
-    function renderModelOptions(selectedValue) {
-      $('availableModels').innerHTML = availableModels.map((model) => `<option value="${model}"></option>`).join('');
-      $('modelRewriteTo').value = selectedValue || '';
-    }
-
-    function routesTable() {
-      if (modelRoutes.length === 0) return '<div class="muted">暂无模型路由，未命中的请求会使用默认上游。</div>';
-      const rows = modelRoutes.map((route, index) => {
-        const profile = config.profiles.find((item) => item.id === route.profileId);
-        const target = profile ? `${profile.name || profile.id}<div class="muted">${protocolName(profile.protocol)} · ${profile.targetUrl}</div>` : route.profileId;
-        return `<tr><td><strong>${route.from}</strong></td><td>${target}</td><td><strong>${route.to}</strong></td><td><button class="light" data-edit-route="${index}">编辑</button> <button class="danger" data-delete-route="${index}">删除</button></td></tr>`;
-      }).join('');
-      return `<div class="route-table"><div class="route-table-head"><table><thead><tr><th>客户端模型</th><th>转发到上游</th><th>上游模型</th><th>操作</th></tr></thead></table></div><div class="route-table-scroll"><table><tbody>${rows}</tbody></table></div></div>`;
-    }
-
-    function resetRouteEditor() {
-      editingRouteIndex = null;
-      $('modelRewriteFrom').value = '';
-      renderModelOptions('');
-      $('modelStatus').textContent = '';
-      $('addRule').textContent = '添加路由';
-    }
-
-    function showView(viewId) {
-      document.querySelectorAll('[data-view-button]').forEach((item) => item.classList.remove('active'));
-      document.querySelectorAll('.view').forEach((view) => view.classList.remove('active'));
-      const button = document.querySelector(`[data-view-button="${viewId}"]`);
-      const view = $(viewId);
-      if (button) button.classList.add('active');
-      if (view) view.classList.add('active');
-      if (viewId === 'diagnostics') showDiagnosticsTab('logPanel');
-      if (viewId === 'monitor') refreshMonitor();
-      if (viewId === 'claudeDesktop') refreshClaudeDesktopStatus();
-    }
-
-    function showRoutesView() {
-      showView('routes');
-    }
-
-    function showDiagnosticsView(tabId = 'logPanel') {
-      showView('diagnostics');
-      showDiagnosticsTab(tabId);
-    }
-
-    function bindRouteActions(container) {
-      container.querySelectorAll('[data-edit-route]').forEach((button) => {
-        button.onclick = () => {
-          const index = Number(button.dataset.editRoute);
-          const route = modelRoutes[index];
-          if (!route) return;
-          editingRouteIndex = index;
-          $('modelRewriteFrom').value = route.from;
-          $('modelRouteProfile').value = route.profileId;
-          availableModels = [];
-          renderModelOptions(route.to);
-          $('modelStatus').textContent = '正在编辑已保存路由';
-          $('addRule').textContent = '保存编辑';
-          $('output').textContent = '正在编辑模型路由：' + route.from;
-          showRoutesView();
-        };
-      });
-      container.querySelectorAll('[data-delete-route]').forEach((button) => {
-        button.onclick = () => {
-          const index = Number(button.dataset.deleteRoute);
-          modelRoutes.splice(index, 1);
-          if (editingRouteIndex === index) resetRouteEditor();
-          else if (editingRouteIndex !== null && editingRouteIndex > index) editingRouteIndex -= 1;
-          config.modelRoutes = modelRoutes.map((route) => ({ from: route.from, profileId: route.profileId, to: route.to }));
-          renderRules();
-          renderOverview();
-        };
-      });
-    }
-
-    function renderRules() {
-      const container = $('modelRewriteRules');
-      container.innerHTML = routesTable();
-      bindRouteActions(container);
-    }
-
-    function renderOverview() {
-      const active = activeProfile();
-      $('heroDefaultProfile').textContent = active ? `${active.name || active.id} · ${protocolName(active.protocol)}` : '未配置';
-      $('heroRouteCount').textContent = `${modelRoutes.length} 条`;
-      $('summary').textContent = active ? `本地入口：${baseUrl} · 默认上游：${active.name || active.id} · ${protocolName(active.protocol)} · ${active.targetUrl}` : '';
-      $('overviewRoutes').innerHTML = routesTable();
-      bindRouteActions($('overviewRoutes'));
-    }
-
-    function fillForm(profile) {
-      if (!profile) return;
-      selectedId = profile.id;
-      for (const field of fields) $(field).value = profile[field] || '';
-      $('protocol').value = profile.protocol || 'openai';
-      modelRoutes = currentRoutes().map((route) => ({ from: route.from, profileId: route.profileId, to: route.to }));
-      availableModels = [];
-      resetRouteEditor();
-      renderRouteProfiles(selectedId);
-      renderModelOptions('');
-      renderRules();
-      renderProfiles();
-      if (config.claudeDesktop) renderClaudeDesktopProfiles();
-      renderOverview();
-    }
-
-    function collectForm() {
-      return {
-        id: $('id').value.trim(),
-        name: $('name').value.trim(),
-        targetUrl: $('targetUrl').value.trim(),
-        protocol: $('protocol').value,
-        apiKey: $('apiKey').value.trim(),
-      };
-    }
-
-    function renderProfiles() {
-      $('profiles').innerHTML = '';
-      for (const profile of config.profiles) {
-        const item = document.createElement('div');
-        const classes = ['profile'];
-        if (profile.id === selectedId) classes.push('selected');
-        if (profile.id === config.activeProfile) classes.push('active');
-        item.className = classes.join(' ');
-        const isActive = profile.id === config.activeProfile;
-        const isSelected = profile.id === selectedId;
-        item.innerHTML = `<div class="profile-title"><strong>${profile.name || profile.id}</strong><span class="badges"><span class="badge protocol">${protocolName(profile.protocol)}</span>${isActive ? '<span class="badge active">默认上游</span>' : ''}${isSelected && !isActive ? '<span class="badge">正在编辑</span>' : ''}</span></div><div class="muted">${profile.targetUrl}</div><div class="muted">${isActive ? '未命中路由时使用该上游' : '可被模型路由选择'}</div>`;
-        item.onclick = () => fillForm(profile);
-        $('profiles').appendChild(item);
-      }
-      renderOverview();
-    }
-
-    async function load() {
-      initTheme();
-      if (window.proxyManager.onTrayCommand) {
-        await window.proxyManager.onTrayCommand(async (result) => {
-          const commandNames = { status: '代理状态', start: '启动代理', stop: '停止代理', restart: '重启代理' };
-          const title = commandNames[result.command] || result.command;
-          const msg = result.output || `${title}完成`;
-          $('output').textContent = msg;
-          showDiagnosticsTab('outputPanel');
-          showToast(title + (result.code === 0 ? '成功' : '失败'), result.code === 0 ? 'success' : 'error');
-          await refreshLog();
-          await refreshProxyStatus();
-        });
-      }
-      config = await window.proxyManager.readConfig();
-      selectedId = config.activeProfile;
-      ensureLocalServer();
-      ensureAppSettings();
-      ensureClaudeDesktop();
-      if (!Array.isArray(config.modelRoutes)) config.modelRoutes = currentRoutes();
-      fillLocalServer();
-      fillAppSettings();
-      fillClaudeDesktop();
-      fillForm(selectedProfile());
-      await refreshClaudeDesktopStatus();
-      await refreshLog();
-      await refreshCertStatus();
-      await refreshProxyStatus();
-      startHeartbeat();
-    }
-
-    function scrollLogToBottom(targetId = 'log') {
-      const log = $(targetId);
-      requestAnimationFrame(() => { log.scrollTop = log.scrollHeight; });
-    }
-
-    function isNearBottom(element) {
-      return element.scrollHeight - element.scrollTop - element.clientHeight < 40;
-    }
-
-    function isDiagnosticsVisible() {
-      return $('diagnostics').classList.contains('active');
-    }
-
-    async function refreshLog(options = {}) {
-      if (logRefreshInFlight) return;
-      logRefreshInFlight = true;
-      const log = $('log');
-      const shouldKeepBottom = options.forceScroll || ($('autoScrollLog') && $('autoScrollLog').checked) || isNearBottom(log);
-      try {
-        $('logRefreshState').textContent = '刷新中...';
-        const rawLog = await window.proxyManager.readLog();
-        log.innerHTML = colorizeLog(rawLog) || '<span class="log-line muted">暂无日志</span>';
-        $('logRefreshState').textContent = '已刷新 ' + new Date().toLocaleTimeString();
-        if (shouldKeepBottom) scrollLogToBottom('log');
-      } catch (err) {
-        $('logRefreshState').textContent = '刷新失败';
-        throw err;
-      } finally {
-        logRefreshInFlight = false;
-      }
-    }
-
-    function renderDiagnosticsStatus(status) {
-      if (!status || !status.config) return '诊断状态不可用';
-      const config = status.config;
-      const files = (status.files || []).map((item) => `${item.label}:${item.exists ? item.bytes + 'B' : '无'}`).join(' / ');
-      return `enabled=${config.enabled}，Gemini=${config.captureGemini}，OpenAI=${config.captureOpenAI}，outbound=${config.captureOutboundSse}，requestTools=${config.captureRequestToolResults}\n${files}`;
-    }
-
-    async function refreshDiagnostics(options = {}) {
-      const output = $('diagnosticsOutput');
-      const shouldKeepBottom = options.forceScroll || ($('autoScrollLog') && $('autoScrollLog').checked) || isNearBottom(output);
-      try {
-        $('diagnosticsRefreshState').textContent = '刷新中...';
-        const result = await window.proxyManager.readDiagnostics();
-        $('diagnosticsStatus').textContent = renderDiagnosticsStatus(result.status);
-        output.textContent = result.output || '暂无诊断事件';
-        $('diagnosticsRefreshState').textContent = '已刷新 ' + new Date().toLocaleTimeString();
-        if (shouldKeepBottom) scrollLogToBottom('diagnosticsOutput');
-      } catch (err) {
-        $('diagnosticsRefreshState').textContent = '刷新失败';
-        throw err;
-      }
-    }
-    function setLogAutoRefresh(enabled) {
-      if (logRefreshTimer) {
-        clearInterval(logRefreshTimer);
-        logRefreshTimer = null;
-      }
-      if (!enabled) return;
-      logRefreshTimer = setInterval(() => {
-        if (!isDiagnosticsVisible()) return;
-        if ($('logPanel').classList.contains('active')) refreshLog();
-        if ($('diagnosticsPanel').classList.contains('active')) refreshDiagnostics();
-      }, 3000);
-    }
-
-    async function clearLog() {
-      const confirmed = await confirmAction({
-        title: '清理日志？',
-        message: '这会直接清空当前代理日志文件，不再生成备份。',
-        confirmText: '清理日志',
-      });
-      if (!confirmed) return;
-      const result = await window.proxyManager.clearLog();
-      $('output').textContent = result.output || (result.ok ? '日志已清理' : '日志清理失败');
-      showDiagnosticsTab('logPanel');
-      showToast($('output').textContent, result.ok ? 'success' : 'error');
-      await refreshLog({ forceScroll: true });
-    }
-
-    async function clearDiagnostics() {
-      const confirmed = await confirmAction({
-        title: '清理诊断事件？',
-        message: '这会直接清空当前诊断采样文件，不再生成备份。',
-        confirmText: '清理诊断',
-      });
-      if (!confirmed) return;
-      const result = await window.proxyManager.clearDiagnostics();
-      const msg = result.output || (result.ok ? '诊断事件已清理' : '诊断事件清理失败');
-      $('output').textContent = msg;
-      showDiagnosticsTab('diagnosticsPanel');
-      showToast(msg, result.ok ? 'success' : 'error');
-      await refreshDiagnostics({ forceScroll: true });
-    }
-
-    async function refreshProxyStatus(options = {}) {
-      const now = Date.now();
-      if (statusRefreshInFlight || (options.passive && now - lastStatusRefresh < 7000)) return;
-      statusRefreshInFlight = true;
-      lastStatusRefresh = now;
-      const statusElement = $('heroProxyStatus');
-      try {
-        const result = await window.proxyManager.command('status');
-        const output = result.output || '';
-        if (/PID\s*:\s*\d+/i.test(output) || output.includes('https://')) {
-          const pidMatch = output.match(/PID\s*:\s*(\d+)/i);
-          const pid = pidMatch ? ` (PID: ${pidMatch[1]})` : '';
-          statusElement.innerHTML = `<span class="status-dot green"></span>运行中${pid}`;
-          return;
-        }
-        if (output.trim()) {
-          statusElement.innerHTML = '<span class="status-dot amber"></span>未运行';
-          return;
-        }
-        statusElement.innerHTML = '<span class="status-dot red"></span>状态未知';
-      } catch (err) {
-        statusElement.innerHTML = '<span class="status-dot red"></span>检查失败';
-      } finally {
-        statusRefreshInFlight = false;
-      }
-    }
-
-    async function refreshClaudeDesktopStatus() {
-      if (!window.proxyManager.claudeDesktopStatus) return;
-      try {
-        const status = await window.proxyManager.claudeDesktopStatus();
-        if (!status.supported) {
-          $('claudeDesktopStatus').textContent = `当前平台不可写入 Claude Desktop 配置：${status.error || ''}`;
-          return;
-        }
-        const configured = status.configured ? '已写入 3P profile' : '未写入';
-        const actual = status.actualBaseUrl || '无';
-        const expected = status.expectedBaseUrl || '无';
-        const pathText = status.profilePath ? `\nProfile：${status.profilePath}` : '';
-        $('claudeDesktopStatus').textContent = `${configured}；模式：${status.mode}；当前 URL：${actual}；预期 URL：${expected}${pathText}`;
-      } catch (err) {
-        $('claudeDesktopStatus').textContent = `Claude Desktop 状态检查失败：${err && err.message ? err.message : err}`;
-      }
-    }
-
-    async function refreshCertStatus(options = {}) {
-      const now = Date.now();
-      if (options.passive && now - lastCertRefresh < 60000) return;
-      lastCertRefresh = now;
-      try {
-        const status = await window.proxyManager.certStatus();
-        if (!status.ok) {
-          $('certStatus').textContent = `证书状态检查失败：${status.error || '未知错误'}；目录：${status.certDir || ''}`;
-          $('heroCertStatus').innerHTML = '<span class="status-dot red"></span>检查失败';
-          return;
-        }
-        const trustText = status.trusted ? '已信任到当前用户证书库' : '未信任';
-        const existsText = status.exists ? '证书文件已生成' : '证书文件未生成';
-        const expiresText = status.notAfter ? `；有效期至：${status.notAfter}` : '';
-        $('certStatus').textContent = `${existsText}；${trustText}${expiresText}；目录：${status.certDir}`;
-        $('heroCertStatus').innerHTML = `<span class="status-dot ${status.trusted ? 'green' : 'amber'}"></span>${status.trusted ? '已信任' : '未信任'}`;
-      } catch (err) {
-        const message = err && err.message ? err.message : '未知错误';
-        $('certStatus').textContent = `证书状态检查失败：${message}`;
-        $('heroCertStatus').innerHTML = '<span class="status-dot red"></span>检查失败';
-      }
-    }
-
-    async function installCert() {
-      const result = await window.proxyManager.installCert();
-      const msg = result.output || (result.ok ? '证书已安装' : '证书安装失败');
-      $('output').textContent = msg;
-      showToast(msg, result.ok ? 'success' : 'error');
-      await refreshCertStatus();
-    }
-
-    async function uninstallCert() {
-      const confirmed = await confirmAction({
-        title: '卸载证书？',
-        message: '卸载后 IDE 或浏览器可能无法信任本地 HTTPS 代理，直到重新安装证书。',
-        confirmText: '卸载证书',
-      });
-      if (!confirmed) return;
-      const result = await window.proxyManager.uninstallCert();
-      const msg = result.output || (result.ok ? '证书已卸载' : '证书卸载失败');
-      $('output').textContent = msg;
-      showDiagnosticsTab('outputPanel');
-      showToast(msg, result.ok ? 'success' : 'error');
-      await refreshCertStatus();
-    }
-
-    async function run(command) {
-      const confirmations = {
-        stop: { title: '停止代理？', message: '停止后正在使用本地代理的 IDE 或客户端请求会失败。', confirmText: '停止代理' },
-        restart: { title: '重启代理？', message: '重启会短暂中断本地代理连接，正在进行的请求可能失败。', confirmText: '重启代理', danger: false },
-      };
-      if (confirmations[command]) {
-        const confirmed = await confirmAction(confirmations[command]);
-        if (!confirmed) return;
-      }
-      const result = await window.proxyManager.command(command);
-      const msg = result.output || `命令完成：${command}`;
-      $('output').textContent = msg;
-      showDiagnosticsTab('outputPanel');
-      showToast(msg, result.code === 0 ? 'success' : 'error');
-      await refreshLog();
-      await refreshProxyStatus();
-    }
-
-    async function testConnectivity() {
-      showDiagnosticsView('outputPanel');
-      $('output').textContent = '正在测试代理连通性...';
-      const result = await window.proxyManager.testConnectivity();
-      const msg = result.output || (result.ok ? '代理连通性测试成功' : '代理连通性测试失败');
-      $('output').textContent = msg;
-      showToast(msg, result.ok ? 'success' : 'error');
-      await refreshLog();
-      await refreshProxyStatus();
-    }
-
-    async function fetchModels() {
-      $('fetchModels').disabled = true;
-      $('modelStatus').textContent = '获取中...';
-      try {
-        const profile = config.profiles.find((item) => item.id === $('modelRouteProfile').value) || collectForm();
-        const result = await window.proxyManager.listModels(profile);
-        if (!result.ok) {
-          $('modelStatus').textContent = '获取失败';
-          $('output').textContent = result.error || '获取模型失败';
-          return;
-        }
-        availableModels = result.models || [];
-        renderModelOptions($('modelRewriteTo').value);
-        $('modelStatus').textContent = '已获取 ' + availableModels.length + ' 个模型';
-        $('output').textContent = availableModels.length > 0 ? '模型列表已更新' : '上游返回成功，但没有解析到模型 ID';
-      } catch (err) {
-        $('modelStatus').textContent = '获取失败';
-        const message = err && err.message ? err.message : '获取模型失败';
-        $('output').textContent = message.includes("No handler registered for 'models:list'") ? '请完全退出并重新启动管理器窗口后再获取模型，新 IPC 需要 Electron 主进程重新加载。' : message;
-      } finally {
-        $('fetchModels').disabled = false;
-      }
-    }
-
-    async function saveConfig(message) {
-      collectLocalServer();
-      collectAppSettings();
-      collectClaudeDesktop();
-      syncClaudeDesktopRoutesToModelRoutes();
-      config.modelRoutes = modelRoutes.map((route) => ({ from: route.from, profileId: route.profileId, to: route.to }));
-      config = await window.proxyManager.saveConfig(config);
-      if (message === '应用设置已保存') await applyTopMenuVisibility(config.appSettings.showTopMenu);
-      fillLocalServer();
-      fillAppSettings();
-      fillClaudeDesktop();
-      renderRouteProfiles($('modelRouteProfile').value);
-      renderProfiles();
-      renderRules();
-      const msg = message || '配置已保存';
-      $('output').textContent = msg;
-      showToast(msg);
-    }
-
-    $('addRule').onclick = () => {
-      const from = $('modelRewriteFrom').value.trim();
-      const profileId = $('modelRouteProfile').value;
-      const to = $('modelRewriteTo').value.trim();
-      if (!from || !profileId || !to) {
-        $('output').textContent = '客户端模型、目标上游和上游模型必填';
-        return;
-      }
-      const index = editingRouteIndex !== null && modelRoutes[editingRouteIndex]
-        ? editingRouteIndex
-        : modelRoutes.findIndex((route) => route.from === from);
-      const nextRoute = { from, profileId, to };
-      const isEditing = editingRouteIndex !== null && modelRoutes[editingRouteIndex];
-      if (index >= 0) modelRoutes[index] = nextRoute;
-      else modelRoutes.push(nextRoute);
-      config.modelRoutes = modelRoutes.map((route) => ({ from: route.from, profileId: route.profileId, to: route.to }));
-      resetRouteEditor();
-      renderRules();
-      renderOverview();
-      $('output').textContent = (isEditing ? '模型路由已更新：' : '模型路由已添加：') + from + ' → ' + (config.profiles.find((item) => item.id === profileId)?.name || profileId) + ' → ' + to + '，保存路由配置后生效';
-    };
-
-    $('fetchModels').onclick = fetchModels;
-    $('modelRouteProfile').onchange = () => {
-      availableModels = [];
-      renderModelOptions($('modelRewriteTo').value);
-      $('modelStatus').textContent = editingRouteIndex === null ? '' : '正在编辑已保存路由';
-    };
-
-    $('saveProfile').onclick = async () => {
-      const profile = collectForm();
-      if (!profile.id || !profile.targetUrl) {
-        $('output').textContent = 'ID 和目标 URL 必填';
-        return;
-      }
-      const index = config.profiles.findIndex((item) => item.id === selectedId || item.id === profile.id);
-      if (index >= 0) config.profiles[index] = profile;
-      else config.profiles.push(profile);
-      selectedId = profile.id;
-      await saveConfig('上游目标已保存');
-    };
-
-    $('activateProfile').onclick = async () => {
-      await $('saveProfile').onclick();
-      config = await window.proxyManager.setActive(selectedId);
-      renderProfiles();
-      await run('restart');
-    };
-
-    ['localHost', 'localPort', 'localBasePath'].forEach((id) => {
-      $(id).oninput = () => {
-        ensureEntryServers();
-        const claudeEntry = config.entryServers.find((entry) => entry.protocol === 'claude');
-        if (claudeEntry) {
-          claudeEntry.host = $('localHost').value.trim() || 'localhost';
-          claudeEntry.listenPort = Number($('localPort').value || 3443);
-          claudeEntry.basePath = $('localBasePath').value.trim() || '/v1';
-          renderEntryServers();
-        }
-        renderLocalPreview();
-      };
-    });
-
-    $('saveEntry').onclick = () => saveConfig('本地入口已保存，重启代理后生效');
-    $('resetEntryServers').onclick = () => {
-      ensureLocalServer();
-      config.entryServers = defaultEntriesForLocal();
-      fillLocalServer();
-      $('output').textContent = '已恢复默认入口，保存后生效';
-    };
-    $('showTopMenu').onchange = async () => {
-      ensureAppSettings();
-      config.appSettings.showTopMenu = $('showTopMenu').checked;
-      await applyTopMenuVisibility(config.appSettings.showTopMenu);
-    };
-    $('saveAppSettings').onclick = () => saveConfig('应用设置已保存');
-    $('saveRoutes').onclick = () => saveConfig('模型路由已保存');
-    $('saveClaudeDesktop').onclick = () => saveConfig('Claude Desktop 配置已保存');
-    $('refreshClaudeDesktop').onclick = refreshClaudeDesktopStatus;
-    ['claudeDesktopEnabled', 'claudeDesktopMode', 'claudeDesktopBaseUrl', 'claudeDesktopToken', 'claudeDesktopDirectBaseUrl', 'claudeDesktopDirectApiKey'].forEach((id) => {
-      $(id).oninput = renderClaudeDesktopPreview;
-      $(id).onchange = renderClaudeDesktopPreview;
-    });
-    $('addClaudeDesktopModel').onclick = () => {
-      ensureClaudeDesktop();
-      const routeId = $('cdRouteId').value.trim() || 'claude-sonnet-4-6';
-      const upstreamModel = $('cdUpstreamModel').value.trim();
-      if (!upstreamModel) {
-        $('output').textContent = 'Desktop 映射需要填写真实上游模型';
-        return;
-      }
-      const next = {
-        routeId,
-        labelOverride: $('cdLabelOverride').value.trim() || upstreamModel,
-        profileId: $('cdProfileId').value || config.activeProfile,
-        upstreamModel,
-        supports1m: $('claudeDesktopSupports1mDefault').checked,
-      };
-      const index = config.claudeDesktop.models.findIndex((item) => (item.routeId || item.from) === routeId);
-      if (index >= 0) config.claudeDesktop.models[index] = next;
-      else config.claudeDesktop.models.push(next);
-      $('cdRouteId').value = '';
-      $('cdLabelOverride').value = '';
-      $('cdUpstreamModel').value = '';
-      renderClaudeDesktopModels();
-      renderClaudeDesktopPreview();
-      $('output').textContent = `Desktop 映射已更新：${routeId} → ${upstreamModel}`;
-    };
-    $('applyClaudeDesktop').onclick = async () => {
-      await saveConfig('Claude Desktop 配置已保存，正在写入...');
-      const status = await window.proxyManager.applyClaudeDesktop();
-      config = await window.proxyManager.readConfig();
-      fillClaudeDesktop();
-      await refreshClaudeDesktopStatus();
-      const msg = status.configured ? 'Claude Desktop 3P profile 已写入，重启 Claude Desktop 后生效' : 'Claude Desktop 配置已处理';
-      $('output').textContent = msg;
-      showToast(msg, 'success');
-    };
-    $('restoreClaudeDesktop').onclick = async () => {
-      const confirmed = await confirmAction({
-        title: '恢复 Claude Desktop 官方模式？',
-        message: '这会移除本工具管理的 3P profile，并要求重启 Claude Desktop 后生效。',
-        confirmText: '恢复官方模式',
-      });
-      if (!confirmed) return;
-      const status = await window.proxyManager.restoreClaudeDesktop();
-      config = await window.proxyManager.readConfig();
-      fillClaudeDesktop();
-      await refreshClaudeDesktopStatus();
-      const msg = status.ok ? 'Claude Desktop 已恢复官方模式，重启 Claude Desktop 后生效' : '恢复官方模式失败';
-      $('output').textContent = msg;
-      showToast(msg, status.ok ? 'success' : 'error');
-    };
-
-    $('addProfile').onclick = () => {
-      const id = `profile-${Date.now()}`;
-      fillForm({ id, name: '新上游目标', targetUrl: 'http://host:80/v1', protocol: 'openai', apiKey: '', modelRewriteRules: [] });
-    };
-
-    document.querySelectorAll('[data-command]').forEach((button) => {
-      button.onclick = () => run(button.dataset.command);
-    });
-    if (window.proxyManager.onOpenView) {
-      window.proxyManager.onOpenView((viewId) => showView(viewId));
-    }
-
-    document.querySelectorAll('[data-view-button]').forEach((button) => {
-      button.onclick = () => showView(button.dataset.viewButton);
-    });
-
-    $('copyBaseUrl').onclick = async () => {
-      await navigator.clipboard.writeText(baseUrl);
-      $('output').textContent = `已复制：${baseUrl}`;
-    };
-    $('openConfig').onclick = () => window.proxyManager.openConfig();
-    $('openConfigAdvanced').onclick = () => window.proxyManager.openConfig();
-    $('openLog').onclick = () => window.proxyManager.openLog();
-    $('openLogDiagnostics').onclick = () => window.proxyManager.openLog();
-    $('testConnectivity').onclick = async () => {
-      showDiagnosticsView('outputPanel');
-      await testConnectivity();
-    };
-    $('testConnectivityDiagnostics').onclick = testConnectivity;
-    $('testConnectivityEntry').onclick = async () => {
-      showDiagnosticsView('outputPanel');
-      await testConnectivity();
-    };
-    $('refreshLog').onclick = () => { showDiagnosticsTab('logPanel'); };
-    $('refreshDiagnostics').onclick = async () => { showDiagnosticsTab('diagnosticsPanel'); };
-    $('scrollLogBottom').onclick = () => {
-      if ($('diagnosticsPanel').classList.contains('active')) scrollLogToBottom('diagnosticsOutput');
-      else { showDiagnosticsTab('logPanel'); scrollLogToBottom('log'); }
-    };
-    $('clearLog').onclick = clearLog;
-    $('clearDiagnostics').onclick = clearDiagnostics;
-    $('autoRefreshLog').onchange = () => {
-      setLogAutoRefresh($('autoRefreshLog').checked);
-      if ($('autoRefreshLog').checked) {
-        if ($('logPanel').classList.contains('active')) refreshLog({ forceScroll: true });
-        if ($('diagnosticsPanel').classList.contains('active')) refreshDiagnostics({ forceScroll: true });
-      }
-    };
-    $('autoScrollLog').onchange = () => {
-      if ($('autoScrollLog').checked) {
-        if ($('logPanel').classList.contains('active')) scrollLogToBottom('log');
-        if ($('diagnosticsPanel').classList.contains('active')) scrollLogToBottom('diagnosticsOutput');
-      }
-    };
-    setLogAutoRefresh($('autoRefreshLog').checked);
-    $('installCert').onclick = installCert;
-    $('installHeroCert').onclick = installCert;
-    $('uninstallCert').onclick = uninstallCert;
-    $('openCertDir').onclick = () => window.proxyManager.openCertDir();
-    $('refreshCert').onclick = refreshCertStatus;
-    $('refreshHeroCertStatus').onclick = refreshCertStatus;
-    $('refreshProxyStatus').onclick = refreshProxyStatus;
-    document.querySelectorAll('[data-diagnostics-tab]').forEach((button) => {
-      button.onclick = () => showDiagnosticsTab(button.dataset.diagnosticsTab);
-    });
-    load();
-  </script>
+  <script defer src="./app-bridge.js?v=env-install-irm-progress-20260605-1"></script>
+  <script defer src="./app-audit.js?v=env-install-irm-progress-20260605-1"></script>
+  <script defer src="./app-cli.js?v=env-install-irm-progress-20260605-1"></script>
+  <script defer src="./app-diagnostics.js?v=env-install-irm-progress-20260605-1"></script>
+  <script defer src="./app.js?v=env-install-irm-progress-20260605-1"></script>
 </body>
 </html>

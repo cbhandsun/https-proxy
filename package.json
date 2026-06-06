@@ -3,16 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test": "node test/adapter.test.js",
-    "dev": "tauri dev",
-    "build": "tauri build",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "start": "node openai-proxy.js",
+    "test": "npm run frontend:check && npm run test:unit && npm run test:thinking && npm run test:env",
+    "test:unit": "node test/adapter.test.js",
+    "test:thinking": "node test/thinking-persistence.test.js",
+    "test:env": "node test/env-tools.test.js",
+    "test:integration": "node test/headers-routing.test.js",
+    "test:all": "npm test && npm run test:integration",
+    "check:syntax": "node scripts/check-syntax.js",
+    "verify": "npm run check:syntax && npm run test:all",
+    "frontend:sync": "node scripts/sync-frontend.js",
+    "frontend:check": "node scripts/sync-frontend.js --check",
+    "dev": "npx tauri dev",
+    "build": "npx tauri build",
+    "tauri:dev": "npx tauri dev",
+    "tauri:build": "npx tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.0"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.9.0"
+    "node-forge": "^1.4.0"
   }
 }

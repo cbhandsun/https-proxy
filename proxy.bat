@@ -11,7 +11,13 @@ if /i "%COMMAND%"=="/?" goto usage
 if /i "%COMMAND%"=="-h" goto usage
 if /i "%COMMAND%"=="--help" goto usage
 
-pwsh -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%proxy.ps1" %*
+where pwsh >nul 2>&1
+if not errorlevel 1 (
+  pwsh -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%proxy.ps1" %*
+  goto end
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%proxy.ps1" %*
 goto end
 
 :usage
@@ -35,6 +41,7 @@ echo.
 if /i "%COMMAND%"=="tail" goto no_pause
 if /i "%COMMAND%"=="open" goto no_pause
 if defined CLAUDECODE goto no_pause
+if defined NO_PAUSE goto no_pause
 echo.
 pause
 :no_pause

@@ -11,7 +11,9 @@ param(
     [Alias('t')][string]$Target = '',
     [Alias('k')][string]$ApiKey = '',
     [string]$ModelRewriteFrom = '',
-    [string]$ModelRewriteTo = ''
+    [string]$ModelRewriteTo = '',
+    [switch]$NoReleaseOccupiedPorts,
+    [switch]$ForceReleaseOccupiedPorts
 )
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -20,6 +22,7 @@ $DataDir = $ScriptDir
 if ($env:PROXY_DATA_DIR) { $DataDir = $env:PROXY_DATA_DIR }
 New-Item -ItemType Directory -Path $DataDir -Force | Out-Null
 $PidFile = Join-Path $DataDir '.proxy.pid'
+$LockFile = Join-Path $DataDir '.proxy.lock'
 $LogFile = Join-Path $DataDir 'proxy.log'
 $ErrLogFile = Join-Path $DataDir 'proxy.err.log'
 $ConfigFile = Join-Path $DataDir 'proxy.config.json'
@@ -27,12 +30,20 @@ $JsFile = Join-Path $ScriptDir 'openai-proxy.js'
 $BundledNode = Join-Path $ScriptDir 'runtime\node\node.exe'
 $NodeExe = (Get-Command 'node' -ErrorAction SilentlyContinue).Source
 if (Test-Path $BundledNode) { $NodeExe = $BundledNode }
-$BundledOpenSsl = Join-Path $ScriptDir 'runtime\openssl\bin\openssl.exe'
-if (-not $env:PROXY_OPENSSL_EXE -and (Test-Path $BundledOpenSsl)) { $env:PROXY_OPENSSL_EXE = $BundledOpenSsl }
+$script:ExitCode = 0
+$script:CommandLineCache = @{}
 
 function Write-Status {
     param([string]$Icon, [string]$Message)
+    if ($Icon -eq 'x') { $script:ExitCode = 1 }
     Write-Host "$(Get-Date -Format 'HH:mm:ss') $Icon $Message"
+}
+
+function Write-DebugTiming {
+    param([string]$Label, [long]$StartMs)
+    if ($env:PROXY_DEBUG_TIMING -eq '1') {
+        Write-Status ' ' ("timing {0}: {1}ms" -f $Label, ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() - $StartMs))
+    }
 }
 
 function Test-NodeInstalled {
@@ -42,11 +53,17 @@ function Test-NodeInstalled {
 
 function Get-ProxyCommandLine {
     param([int]$ProcessId)
+    if ($script:CommandLineCache.ContainsKey($ProcessId)) {
+        return $script:CommandLineCache[$ProcessId]
+    }
     try {
         $escaped = ("ProcessId = {0}" -f $ProcessId)
         $proc = Get-CimInstance Win32_Process -Filter $escaped -ErrorAction Stop
-        return [string]$proc.CommandLine
+        $commandLine = [string]$proc.CommandLine
+        $script:CommandLineCache[$ProcessId] = $commandLine
+        return $commandLine
     } catch {
+        $script:CommandLineCache[$ProcessId] = ''
         return ''
     }
 }
@@ -55,8 +72,273 @@ function Test-IsProxyProcess {
     param($Process)
     if (-not $Process -or $Process.ProcessName -ne 'node') { return $false }
     $commandLine = Get-ProxyCommandLine -ProcessId $Process.Id
-    if (-not $commandLine) { return $true }
+    if (-not $commandLine) { return $false }
     return $commandLine -like "*$JsFile*" -or $commandLine -like '*openai-proxy.js*'
+}
+
+function Invoke-WithProxyLock {
+    param(
+        [scriptblock]$Action,
+        [int]$TimeoutMs = 10000
+    )
+
+    $stream = $null
+    $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
+    while ($null -eq $stream) {
+        try {
+            $stream = [System.IO.File]::Open($LockFile, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+        } catch {
+            if ((Get-Date) -ge $deadline) {
+                Write-Status 'x' 'Another proxy operation is still running; please retry in a moment.'
+                return
+            }
+            Start-Sleep -Milliseconds 120
+        }
+    }
+
+    try {
+        & $Action
+    } finally {
+        if ($stream) { $stream.Dispose() }
+    }
+}
+
+function Get-PortListeners {
+    param(
+        [int[]]$Ports = $(Get-ConfiguredPorts),
+        [switch]$IncludeCommandLine
+    )
+
+    $listeners = @()
+    $listenPorts = @($Ports | Select-Object -Unique)
+    if ($listenPorts.Count -eq 0) { return @() }
+    try {
+        $connections = @(Get-NetTCPConnection -LocalPort $listenPorts -State Listen -ErrorAction SilentlyContinue)
+        foreach ($conn in $connections) {
+            $proc = Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue
+            $commandLine = ''
+            if ($IncludeCommandLine -and $proc -and $proc.ProcessName -eq 'node') { $commandLine = Get-ProxyCommandLine -ProcessId $proc.Id }
+            $isProxy = $false
+            if ($proc -and $proc.ProcessName -eq 'node' -and $commandLine) {
+                $isProxy = $commandLine -like "*$JsFile*" -or $commandLine -like '*openai-proxy.js*'
+            }
+            $listeners += [pscustomobject]@{
+                Port = [int]$conn.LocalPort
+                LocalAddress = [string]$conn.LocalAddress
+                OwningProcess = [int]$conn.OwningProcess
+                ProcessName = if ($proc) { [string]$proc.ProcessName } else { '' }
+                Path = if ($proc) { [string]$proc.Path } else { '' }
+                CommandLine = $commandLine
+                IsProxy = $isProxy
+            }
+        }
+    } catch {}
+
+    return @($listeners)
+}
+
+function Format-PortListener {
+    param($Listener)
+    $name = if ($Listener.ProcessName) { $Listener.ProcessName } else { 'unknown' }
+    $path = if ($Listener.Path) { " ($($Listener.Path))" } else { '' }
+    return "port $($Listener.Port) -> PID $($Listener.OwningProcess) [$name]$path"
+}
+
+function Test-ProtectedPortOwner {
+    param($Listener)
+    if (-not $Listener -or -not $Listener.OwningProcess) { return $true }
+    if ($Listener.OwningProcess -eq $PID) { return $true }
+    if ($Listener.OwningProcess -le 4) { return $true }
+    return $false
+}
+
+function ConvertTo-SingleQuotedPsString {
+    param([string]$Value)
+    return "'" + ($Value -replace "'", "''") + "'"
+}
+
+function Start-ProxyLauncher {
+    $argList = [char]34 + $JsFile + [char]34
+    Start-Process -FilePath $NodeExe -ArgumentList $argList -WorkingDirectory $ScriptDir -WindowStyle Hidden -PassThru
+}
+
+function Reset-LogFileIfBinary {
+    param([string]$Path)
+    try {
+        if (-not (Test-Path $Path)) { return }
+        $shouldReset = $false
+        $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        try {
+            $length = [Math]::Min(512, [int]$stream.Length)
+            if ($length -le 0) { return }
+            $buffer = New-Object byte[] $length
+            $null = $stream.Read($buffer, 0, $length)
+            $shouldReset = $buffer -contains 0
+        } finally {
+            $stream.Dispose()
+        }
+        if ($shouldReset) { Set-Content -Path $Path -Value '' -Encoding UTF8 }
+    } catch {}
+}
+
+function Test-AutoReleasePortOwner {
+    param($Listener)
+    if (-not $Listener) { return $false }
+    if ($Listener.IsProxy) { return $true }
+    if ($ForceReleaseOccupiedPorts) { return $true }
+    if ($Listener.ProcessName -eq 'node') { return $true }
+    if ($Listener.CommandLine -and ($Listener.CommandLine -like '*openai-proxy.js*' -or $Listener.CommandLine -like "*$ScriptDir*")) { return $true }
+    if ($Listener.Path -and $Listener.Path.StartsWith($ScriptDir, [System.StringComparison]::OrdinalIgnoreCase)) { return $true }
+    return $false
+}
+
+function Release-OccupiedPorts {
+    $configuredPorts = @(Get-ConfiguredPorts)
+    $possiblyOccupiedPorts = @($configuredPorts | Where-Object { Test-LocalTcpPort -ListenPort $_ -TimeoutMs 80 })
+    if ($possiblyOccupiedPorts.Count -eq 0) { return $true }
+
+    $listeners = @(Get-PortListeners -Ports $possiblyOccupiedPorts)
+    if ($listeners.Count -eq 0) { return $true }
+
+    $conflictOwners = @{}
+    foreach ($listener in $listeners) {
+        if (-not $conflictOwners.ContainsKey($listener.OwningProcess)) {
+            $conflictOwners[$listener.OwningProcess] = @()
+        }
+        $conflictOwners[$listener.OwningProcess] += $listener
+    }
+
+    foreach ($ownerId in @($conflictOwners.Keys)) {
+        $ownedPorts = @($conflictOwners[$ownerId])
+        $sample = $ownedPorts[0]
+
+        if ($sample.IsProxy) {
+            Write-Status '!' "Found existing proxy owner on configured ports: $((@($ownedPorts) | ForEach-Object { $_.Port }) -join ', ')"
+            continue
+        }
+
+        foreach ($listener in $ownedPorts) {
+            Write-Status '!' "Port occupied: $(Format-PortListener $listener)"
+        }
+
+        if ($NoReleaseOccupiedPorts) {
+            Write-Status 'x' 'Port release disabled by -NoReleaseOccupiedPorts'
+            return $false
+        }
+
+        if (Test-ProtectedPortOwner $sample) {
+            Write-Status 'x' "Refusing to stop protected process PID $($sample.OwningProcess)"
+            return $false
+        }
+
+        if (-not (Test-AutoReleasePortOwner $sample)) {
+            Write-Status 'x' "Refusing to auto-release unknown port owner PID $($sample.OwningProcess). Use -ForceReleaseOccupiedPorts if this process should be stopped."
+            return $false
+        }
+
+        try {
+            Write-Status '!' "Auto-releasing occupied proxy port(s) by stopping PID $($sample.OwningProcess)"
+            Stop-Process -Id $sample.OwningProcess -Force -ErrorAction Stop
+            Start-Sleep -Milliseconds 600
+        } catch {
+            Write-Status 'x' "Failed to release PID $($sample.OwningProcess): $_"
+            return $false
+        }
+    }
+
+    $remaining = @(Get-PortListeners -Ports $possiblyOccupiedPorts | Where-Object { -not $_.IsProxy })
+    if ($remaining.Count -gt 0) {
+        foreach ($listener in $remaining) {
+            Write-Status 'x' "Still occupied: $(Format-PortListener $listener)"
+        }
+        return $false
+    }
+
+    return $true
+}
+
+function Get-ConfiguredPorts {
+    $ports = New-Object System.Collections.Generic.List[int]
+
+    if ($PortWasSpecified) {
+        $ports.Add($Port)
+        $ports.Add($Port + 100)
+        return @($ports | Select-Object -Unique)
+    }
+
+    try {
+        if (Test-Path $ConfigFile) {
+            $config = Get-Content $ConfigFile -Raw | ConvertFrom-Json
+            if ($config.entryServers) {
+                foreach ($entry in $config.entryServers) {
+                    if ($entry.enabled -ne $false -and $entry.listenPort) {
+                        $ports.Add([int]$entry.listenPort)
+                    }
+                }
+            }
+            $basePort = $Port
+            if ($config.localServer -and $config.localServer.listenPort) {
+                $basePort = [int]$config.localServer.listenPort
+            }
+            if ($config.localServer -and $config.localServer.managementPort) {
+                $ports.Add([int]$config.localServer.managementPort)
+            } else {
+                $ports.Add($basePort + 100)
+            }
+        }
+    } catch {}
+
+    if ($ports.Count -eq 0) {
+        $ports.Add($Port)
+        $ports.Add($Port + 100)
+    }
+    return @($ports | Select-Object -Unique)
+}
+
+function Get-ManagementPort {
+    if ($PortWasSpecified) { return ($Port + 100) }
+    try {
+        if (Test-Path $ConfigFile) {
+            $config = Get-Content $ConfigFile -Raw | ConvertFrom-Json
+            if ($config.localServer -and $config.localServer.managementPort) {
+                return [int]$config.localServer.managementPort
+            }
+            if ($config.localServer -and $config.localServer.listenPort) {
+                return ([int]$config.localServer.listenPort + 100)
+            }
+        }
+    } catch {}
+    return ($Port + 100)
+}
+
+function Test-LocalTcpPort {
+    param(
+        [int]$ListenPort,
+        [int]$TimeoutMs = 150
+    )
+    $client = $null
+    try {
+        $client = [System.Net.Sockets.TcpClient]::new()
+        $connect = $client.BeginConnect('127.0.0.1', $ListenPort, $null, $null)
+        if (-not $connect.AsyncWaitHandle.WaitOne($TimeoutMs)) { return $false }
+        $client.EndConnect($connect)
+        return $true
+    } catch {
+        return $false
+    } finally {
+        if ($client) { $client.Dispose() }
+    }
+}
+
+function Get-ProxyHealth {
+    $managementPort = Get-ManagementPort
+    if (-not (Test-LocalTcpPort -ListenPort $managementPort)) { return $null }
+    try {
+        $uri = "http://127.0.0.1:$managementPort/v1/local/health"
+        $health = Invoke-RestMethod -UseBasicParsing -Uri $uri -TimeoutSec 2 -ErrorAction Stop
+        if ($health -and $health.appId -eq 'https-proxy-manager') { return $health }
+    } catch {}
+    return $null
 }
 
 function Get-ProxyProcess {
@@ -80,26 +362,65 @@ function Get-ProxyProcess {
     return $null
 }
 
-function Get-PortProcess {
-    try {
-        $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop | Select-Object -First 1
-        if (-not $conn) { return $null }
-        return Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue
-    } catch {
-        return $null
+function Get-PortProcesses {
+    $result = @{}
+    foreach ($listener in Get-PortListeners) {
+        if (-not $result.ContainsKey($listener.OwningProcess)) {
+            $proc = Get-Process -Id $listener.OwningProcess -ErrorAction SilentlyContinue
+            if ($proc) { $result[$listener.OwningProcess] = $proc }
+        }
     }
+    return @($result.Values)
+}
+
+function Get-AllProxyProcesses {
+    param([switch]$IncludeFullScan)
+    $result = @{}
+
+    $health = Get-ProxyHealth
+    if ($health -and $health.pid) {
+        $proc = Get-Process -Id ([int]$health.pid) -ErrorAction SilentlyContinue
+        if ($proc -and -not $result.ContainsKey($proc.Id)) {
+            $result[$proc.Id] = $proc
+        }
+    }
+
+    try {
+        if (Test-Path $PidFile) {
+            $rawPid = (Get-Content $PidFile -Raw -ErrorAction SilentlyContinue).Trim()
+            if ($rawPid -match '^\d+$') {
+                $proc = Get-Process -Id ([int]$rawPid) -ErrorAction SilentlyContinue
+                if (Test-IsProxyProcess $proc -and -not $result.ContainsKey($proc.Id)) {
+                    $result[$proc.Id] = $proc
+                }
+            }
+        }
+    } catch {}
+
+    foreach ($proc in Get-PortProcesses) {
+        if (Test-IsProxyProcess $proc -and -not $result.ContainsKey($proc.Id)) {
+            $result[$proc.Id] = $proc
+        }
+    }
+
+    if ($IncludeFullScan -and $result.Count -eq 0) {
+        foreach ($proc in Get-Process node -ErrorAction SilentlyContinue) {
+            if (Test-IsProxyProcess $proc -and -not $result.ContainsKey($proc.Id)) {
+                $result[$proc.Id] = $proc
+            }
+        }
+    }
+
+    return @($result.Values | Sort-Object Id)
 }
 
 function Get-RunningProxyProcess {
-    $proc = Get-ProxyProcess
-    if ($proc) { return $proc }
-
-    $portProc = Get-PortProcess
-    if (Test-IsProxyProcess $portProc) {
-        $portProc.Id | Out-File $PidFile -Encoding ASCII
-        return $portProc
+    $procs = @(Get-AllProxyProcesses)
+    if ($procs.Count -gt 0) {
+        $procs[0].Id | Out-File $PidFile -Encoding ASCII
+        return $procs[0]
     }
-
+    Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
     return $null
 }
 
@@ -121,15 +442,31 @@ function Get-EntryAddresses {
 }
 
 function Start-Proxy {
+    $startTick = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     if (-not (Test-NodeInstalled)) { return }
     if (-not (Test-Path $JsFile)) { Write-Status 'x' "Not found: $JsFile"; return }
 
-    $existing = Get-RunningProxyProcess
-    if ($existing) { Write-Status '!' "Proxy already running (PID: $($existing.Id))"; return }
+    $health = Get-ProxyHealth
+    Write-DebugTiming 'health-check' $startTick
+    if ($health) {
+        if ($health.pid) { $health.pid | Out-File $PidFile -Encoding ASCII }
+        Write-Status '!' "Proxy already running (PID: $($health.pid))"
+        return
+    }
+
+    if (-not (Release-OccupiedPorts)) {
+        Write-Status 'x' 'Proxy start aborted because configured port(s) are occupied.'
+        return
+    }
+    Write-DebugTiming 'release-check' $startTick
 
     if (-not (Test-Path $ConfigFile)) {
         $bundledConfig = Join-Path $ScriptDir 'proxy.config.json'
         if (Test-Path $bundledConfig) { Copy-Item $bundledConfig $ConfigFile -Force }
+        else {
+            $exampleConfig = Join-Path $ScriptDir 'proxy.config.example.json'
+            if (Test-Path $exampleConfig) { Copy-Item $exampleConfig $ConfigFile -Force }
+        }
     }
 
     $env:PROXY_DATA_DIR = $DataDir
@@ -140,48 +477,133 @@ function Start-Proxy {
     if ($ModelRewriteTo -ne '') { $env:MODEL_REWRITE_TO = $ModelRewriteTo }
 
     try {
-        $argList = [char]34 + $JsFile + [char]34
-        $proc = Start-Process -FilePath $NodeExe -ArgumentList $argList -WorkingDirectory $ScriptDir -WindowStyle Hidden -RedirectStandardOutput $LogFile -RedirectStandardError $ErrLogFile -PassThru
-        Start-Sleep -Milliseconds 1200
-        if (-not $proc -or $proc.HasExited) {
-            $exitCode = 'unknown'
-            if ($proc) { $exitCode = $proc.ExitCode }
-            Write-Status 'x' "Exited immediately (ExitCode: $exitCode)"
-            return
+        Reset-LogFileIfBinary $LogFile
+        Reset-LogFileIfBinary $ErrLogFile
+        Write-DebugTiming 'pre-launch' $startTick
+        $launcher = Start-ProxyLauncher
+        Write-DebugTiming 'launch-process' $startTick
+        $health = $null
+        $startedProc = $null
+        $managementPort = Get-ManagementPort
+        for ($i = 0; $i -lt 20; $i++) {
+            Start-Sleep -Milliseconds 250
+            if (Test-LocalTcpPort -ListenPort $managementPort) {
+                $startedProc = $launcher
+                break
+            }
+            if ($launcher -and $launcher.HasExited -and $i -ge 3) { break }
+        }
+        Write-DebugTiming 'ready-wait' $startTick
+
+        if (-not $startedProc) {
+            $health = Get-ProxyHealth
+            if ($health -and $health.pid) {
+                $startedProc = Get-Process -Id ([int]$health.pid) -ErrorAction SilentlyContinue
+            }
         }
 
-        $proc.Id | Out-File $PidFile -Encoding ASCII
-        Write-Status '+' "Proxy started (PID: $($proc.Id))"
+        if (-not $startedProc) {
+            $found = @(Get-AllProxyProcesses)
+            if ($found.Count -gt 0) {
+                $found[0].Id | Out-File $PidFile -Encoding ASCII
+                Write-Status '+' "Proxy started (PID: $($found[0].Id))"
+            } else {
+                $exitCode = 'unknown'
+                if ($launcher -and $launcher.HasExited) { $exitCode = $launcher.ExitCode }
+                Write-Status 'x' "Exited immediately (ExitCode: $exitCode)"
+                if (Test-Path $ErrLogFile) {
+                    $tail = @(Get-Content $ErrLogFile -Tail 8 -ErrorAction SilentlyContinue)
+                    foreach ($line in $tail) {
+                        if ($line) { Write-Status ' ' $line }
+                    }
+                }
+                return
+            }
+        } else {
+            $startedProc.Id | Out-File $PidFile -Encoding ASCII
+            Write-Status '+' "Proxy started (PID: $($startedProc.Id))"
+        }
         foreach ($address in Get-EntryAddresses) { Write-Status ' ' "Address: $address" }
         Write-Status ' ' "Log: $LogFile"
+        Write-DebugTiming 'done' $startTick
     } catch {
         Write-Status 'x' "Start failed: $_"
     }
 }
 
 function Stop-Proxy {
-    $proc = Get-RunningProxyProcess
-    if (-not $proc) { Write-Status '!' 'Proxy is not running'; return }
-
-    try {
-        Stop-Process -Id $proc.Id -Force -ErrorAction Stop
-        $null = $proc.WaitForExit(5000)
-        Write-Status '+' "Proxy stopped (PID: $($proc.Id))"
-    } catch {
-        Write-Status 'x' "Stop failed: $_"
-    } finally {
-        Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
+    $health = Get-ProxyHealth
+    if ($health -and $health.pid) {
+        $proc = Get-Process -Id ([int]$health.pid) -ErrorAction SilentlyContinue
+        if ($proc) {
+            try {
+                Stop-Process -Id $proc.Id -Force -ErrorAction Stop
+                $null = $proc.WaitForExit(500)
+                Write-Status '+' "Proxy stopped (PID: $($proc.Id))"
+                Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
+                return
+            } catch {
+                Write-Status 'x' "Stop failed for PID $($proc.Id): $_"
+                return
+            }
+        }
     }
+
+    $procs = @(Get-AllProxyProcesses)
+    if ($procs.Count -eq 0) { Write-Status '!' 'Proxy is not running'; return }
+
+    foreach ($proc in $procs) {
+        try {
+            Stop-Process -Id $proc.Id -Force -ErrorAction Stop
+            $null = $proc.WaitForExit(1200)
+            Write-Status '+' "Proxy stopped (PID: $($proc.Id))"
+        } catch {
+            Write-Status 'x' "Stop failed for PID $($proc.Id): $_"
+        }
+    }
+    Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
 }
 
 function Get-Status {
-    $proc = Get-RunningProxyProcess
-    if ($proc) {
-        $up = (Get-Date) - $proc.StartTime
-        Write-Status '+' "Running (PID: $($proc.Id), uptime $($up.Hours)h $($up.Minutes)m)"
+    $health = Get-ProxyHealth
+    if ($health) {
+        if ($health.pid) { $health.pid | Out-File $PidFile -Encoding ASCII }
+        Write-Status '+' "Running (PID: $($health.pid), uptime $([math]::Floor([double]$health.uptimeSec / 3600))h $([math]::Floor(([double]$health.uptimeSec % 3600) / 60))m)"
+        if ($health.ports -and $health.ports.entries) {
+            foreach ($entry in @($health.ports.entries)) {
+                $scheme = if ($entry.tls -eq $false) { 'http' } else { 'https' }
+                Write-Status ' ' "Address: ${scheme}://$($entry.host):$($entry.listenPort)$($entry.basePath) [$($entry.protocol)]"
+                Write-Status ' ' "Port: port $($entry.listenPort) -> PID $($health.pid) [node]"
+            }
+        } else {
+            foreach ($address in Get-EntryAddresses) { Write-Status ' ' "Address: $address" }
+        }
+        if ($health.ports -and $health.ports.management) {
+            Write-Status ' ' "Port: port $($health.ports.management) -> PID $($health.pid) [node] [management]"
+        }
+        return
+    }
+
+    $procs = @(Get-AllProxyProcesses)
+    if ($procs.Count -gt 0) {
+        $procs[0].Id | Out-File $PidFile -Encoding ASCII
+        foreach ($proc in $procs) {
+            $up = (Get-Date) - $proc.StartTime
+            Write-Status '+' "Running (PID: $($proc.Id), uptime $($up.Hours)h $($up.Minutes)m)"
+        }
+        if ($procs.Count -gt 1) {
+            Write-Status '!' "Multiple proxy processes detected: $($procs.Count). Use 'proxy.bat restart' to collapse to a single instance."
+        }
         foreach ($address in Get-EntryAddresses) { Write-Status ' ' "Address: $address" }
+        foreach ($listener in Get-PortListeners) {
+            Write-Status ' ' "Port: $(Format-PortListener $listener)"
+        }
     } else {
         Write-Status '!' 'Proxy is not running'
+        $listeners = @(Get-PortListeners)
+        foreach ($listener in $listeners) {
+            Write-Status '!' "Port occupied: $(Format-PortListener $listener)"
+        }
     }
 }
 
@@ -249,9 +671,9 @@ function Trust-Cert {
 }
 
 switch ($Command) {
-    'start' { Start-Proxy }
-    'stop' { Stop-Proxy }
-    'restart' { Stop-Proxy; Start-Sleep -Milliseconds 800; Start-Proxy }
+    'start' { Invoke-WithProxyLock { Start-Proxy } }
+    'stop' { Invoke-WithProxyLock { Stop-Proxy } }
+    'restart' { Invoke-WithProxyLock { Stop-Proxy; Start-Sleep -Milliseconds 800; Start-Proxy } }
     'status' { Get-Status }
     'logs' { Show-Logs }
     'tail' { Tail-Logs }
@@ -260,3 +682,5 @@ switch ($Command) {
     'config' { Open-Config }
     'trust-cert' { Trust-Cert }
 }
+
+exit $script:ExitCode
