@@ -13,8 +13,11 @@ proxy.config.json
 
 # Runtime files and logs
 *.log
+*.log.*
 *.pid
+.proxy.lock
 *.jsonl
+*.jsonl.*
 *.jsonl.*.bak
 .static-server.*.log
 
@@ -24,8 +27,7 @@ build/
 out/
 *.zip
 
-# Tauri workspace/output kept local for this repo
-src-tauri/
-
 # Misc local artifacts
 /400
+/prev_electron_ui.html
+/test.json

@@ -1,0 +1,30 @@
+{
+  "name": "https-proxy-manager-trae-bridge",
+  "displayName": "HTTPS Proxy Manager Trae Bridge",
+  "description": "Local-only bridge from HTTPS Proxy Manager to Trae official-login chat commands.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "*"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "httpsProxyManager.traeBridge.status",
+        "title": "HTTPS Proxy Manager Trae Bridge: Status"
+      }
+    ]
+  }
+}

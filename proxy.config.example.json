@@ -6,7 +6,8 @@
     "showTopMenu": true,
     "showTrayMenu": true,
     "showWindowOnTrayCommand": true,
-    "stopProxyOnExit": true
+    "stopProxyOnExit": true,
+    "conversationAuditEnabled": true
   },
   "diagnostics": {
     "captureGemini": true,
@@ -79,6 +80,28 @@
       "name": "Example OpenAI-Compatible Upstream",
       "protocol": "openai",
       "targetUrl": "https://api.example.com/v1"
+    },
+    {
+      "apiKey": "",
+      "id": "claude-official",
+      "name": "Claude Official",
+      "protocol": "claude",
+      "targetUrl": "https://api.anthropic.com/v1"
+    },
+    {
+      "apiKey": "",
+      "authMode": "official-login",
+      "id": "google-official",
+      "name": "Google Official",
+      "protocol": "gemini",
+      "targetUrl": "https://generativelanguage.googleapis.com"
+    },
+    {
+      "apiKey": "",
+      "id": "openai-official",
+      "name": "OpenAI Official",
+      "protocol": "openai",
+      "targetUrl": "https://api.openai.com/v1"
     }
   ],
   "protocolOptions": {

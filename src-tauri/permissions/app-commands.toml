@@ -1,0 +1,19 @@
+[[permission]]
+identifier = "allow-all-app-commands"
+description = "Allow executing all custom Rust commands for this app"
+
+[permission.commands]
+allow = [
+  "apply_app_menu",
+  "applyAppMenu",
+  "open_config",
+  "openConfig",
+  "open_log",
+  "openLog",
+  "open_cert_dir",
+  "openCertDir",
+  "get_proxy_debug",
+  "getProxyDebug",
+  "execute_proxy_command",
+  "executeProxyCommand"
+]

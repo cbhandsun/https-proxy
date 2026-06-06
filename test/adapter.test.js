@@ -2,6 +2,38 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const {
+  fileSignature,
+  readLastLinesOfJsonl,
+  isQuietLocalPollRequest,
+  isLocalManagementPath,
+  isAllowedManagementOrigin,
+} = require('../lib/proxy/management-utils');
+const {
+  routeMatches,
+  dispatchLocalManagementRoute,
+} = require('../lib/proxy/management-router');
+const {
+  parseVersionText,
+  isVersionNewer,
+} = require('../lib/proxy/env-tools');
+const {
+  setTomlValue,
+  deleteTomlValue,
+  setEnvValue,
+  deleteEnvValue,
+} = require('../lib/proxy/tool-configs');
+const {
+  getModelRoutes,
+} = require('../lib/proxy/config');
+const { createGoogleOfficialRuntime } = require('../lib/proxy/google-official-runtime');
+const { handleCountTokens } = require('../lib/proxy/local-handlers');
+const { createMcpHub, normalizeMcpTool, mergeClaudeTools } = require('../lib/proxy/mcp-hub');
+const {
+  buildUsageReport,
+  extractUsageFromJsonPayload,
+  estimateCost,
+} = require('../lib/proxy/usage-report');
 
 function buildModelsUrls(targetUrl, protocol) {
   const base = new URL(targetUrl);
@@ -42,37 +74,74 @@ const {
   flushClaudeSseFilter,
   getLocalServer,
   prepareRequestBuffer,
+  prepareRequestBufferWithResolver,
   buildLocalModelsResponse,
   buildLocalClaudeModelObject,
   redactDiagnosticsValue,
   summarizeClaudeToolHistory,
   extractDiagnosticsSsePayload,
   writeJsonlBounded,
+  flushJsonlWrites,
   parseGeminiError,
   geminiErrorToClaude,
   setGeminiCooldown,
   getGeminiCooldown,
   openAIResponsesToChat,
   openAIChatToResponses,
+  openAIChatToResponsesRequest,
   processOpenAIChatSseChunkToResponses,
   flushOpenAIChatSseToResponses,
+  processOpenAIResponsesSseChunkToChat,
   getEntryServers,
   getClaudeDesktopRoutes,
   stripClaudeDesktopPrefix,
   isClaudeDesktopRequest,
+  removeClaudeDesktopGatewayProvider,
+  claudeDesktopStatusFromConfig,
   shouldConvertResponsesToOpenAIChat,
   parseModelsRequestPath,
+  isOpenAIOfficialLoginToken,
+  isGoogleOfficialLoginToken,
+  shouldUseChatGPTBackendForOfficialLogin,
+  officialLoginProvider,
+  configuredAuthMode,
+  inferOfficialProfileAuthMode,
+  getModelsUrl,
+  isOpenAIOfficialCodexTarget,
+  codexOfficialModelsFromCache,
+  buildOpenAIOfficialCodexModelsResponse,
+  openAIOfficialCodexModelSupport,
+  isTraeOfficialTarget,
+  isTraeOfficialProfile,
+  normalizeTraeOfficialModelName,
+  traeModelsFromStateRows,
+  buildTraeOfficialModelsResponseFromRows,
+  traeOfficialModelSupport,
+  buildTraeBridgePromptFromOpenAIChat,
+  buildTraeBridgeOpenAIChatCompletion,
+  normalizeTraeBridgeText,
+  googleOfficialCodeAssistUrl,
+  buildGoogleOfficialModelsResponse,
+  googleOfficialModelsFromAvailableModels,
+  decodeAntigravityOAuthStateValue,
+  buildGoogleOfficialLoadCodeAssistRequest,
+  buildGoogleOfficialAvailableModelsRequest,
+  buildGoogleOfficialRetrieveUserQuotaRequest,
+  formatGoogleOfficialAvailableModels,
+  formatGoogleOfficialUserQuota,
+  formatCodexLocalRateLimits,
+  prioritizeCodexSessionFiles,
+  buildModelListRequest,
+  buildProfileAuthProbeRequest,
+  evaluateOpenAIProfileAuthResponse,
+  evaluateGeminiProfileAuthResponse,
+  evaluateClaudeProfileAuthResponse,
 } = require('../openai-proxy');
 
+const tests = [];
+
 function test(name, fn) {
-  try {
-    fn();
-    console.log('ok - ' + name);
-  } catch (err) {
-    console.error('not ok - ' + name);
-    console.error(err.stack || err.message);
-    process.exitCode = 1;
-  }
+  tests.push({ name, fn });
 }
 
 function safeUnlink(filePath) {
@@ -328,7 +397,15 @@ test('parses target URL and rewrites routed model', () => {
     path: '/v1',
   });
 
-  const prepared = prepareRequestBuffer(Buffer.from(JSON.stringify({ model: 'claude-haiku-4-5-20251001', messages: [] })), undefined);
+  const fixedResolver = () => ({
+    profile: { id: 'openai-official', protocol: 'openai', targetUrl: 'https://chatgpt.com/backend-api/codex' },
+    route: { from: 'claude-haiku-4-5-20251001', profileId: 'openai-official', to: 'gpt-5.3-codex' }
+  });
+  const prepared = prepareRequestBufferWithResolver(
+    Buffer.from(JSON.stringify({ model: 'claude-haiku-4-5-20251001', messages: [] })),
+    undefined,
+    fixedResolver
+  );
   const rewritten = JSON.parse(prepared.buffer.toString('utf8'));
   assert.strictEqual(prepared.routed, true);
   assert.strictEqual(rewritten.model, 'gpt-5.3-codex');
@@ -563,6 +640,452 @@ test('uses Gemini API key query param without bearer headers', () => {
   assert.deepStrictEqual(requestHeaders, { accept: 'application/json' });
 });
 
+test('builds real upstream model list request for OpenAI compatible APIs', () => {
+  assert.strictEqual(getModelsUrl('https://api.openai.com/v1', 'openai'), 'https://api.openai.com/v1/models?limit=1000');
+  const request = buildModelListRequest('https://api.openai.com/v1', 'openai', 'sk-proj-test');
+  assert.strictEqual(request.method, 'GET');
+  assert.strictEqual(request.requestUrl, 'https://api.openai.com/v1/models?limit=1000');
+  assert.strictEqual(request.headers.authorization, 'Bearer sk-proj-test');
+});
+
+test('builds real upstream model list request for OpenAI official login', () => {
+  const request = buildModelListRequest('https://chatgpt.com/backend-api/codex', 'openai', 'eyJhbGciOiJtest');
+  assert.strictEqual(request.method, 'GET');
+  assert.strictEqual(request.requestUrl, 'https://chatgpt.com/backend-api/models');
+  assert.strictEqual(request.headers.authorization, 'Bearer eyJhbGciOiJtest');
+});
+
+test('builds real upstream model list request for Gemini API key auth', () => {
+  const request = buildModelListRequest('https://generativelanguage.googleapis.com', 'gemini', 'AIza-api-key');
+  const url = new URL(request.requestUrl);
+  assert.strictEqual(url.origin + url.pathname, 'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.strictEqual(url.searchParams.get('pageSize'), '1000');
+  assert.strictEqual(url.searchParams.get('key'), 'AIza-api-key');
+  assert.strictEqual(request.headers.authorization, undefined);
+  assert.strictEqual(request.headers['x-goog-api-key'], undefined);
+});
+
+test('builds real upstream model list request for Gemini official login auth', () => {
+  const request = buildModelListRequest('https://generativelanguage.googleapis.com', 'gemini', 'ya29.google-token');
+  const url = new URL(request.requestUrl);
+  assert.strictEqual(url.searchParams.get('key'), null);
+  assert.strictEqual(url.searchParams.get('pageSize'), '1000');
+  assert.strictEqual(request.headers.authorization, 'Bearer ya29.google-token');
+  assert.strictEqual(request.headers['x-goog-api-key'], undefined);
+});
+
+test('detects official login tokens separately from API keys', () => {
+  assert.strictEqual(isOpenAIOfficialLoginToken('eyJhbGciOiJtest'), true);
+  assert.strictEqual(isOpenAIOfficialLoginToken('sk-proj-test'), false);
+  assert.strictEqual(isGoogleOfficialLoginToken('ya29.google-token'), true);
+  assert.strictEqual(isGoogleOfficialLoginToken('AIza-api-key'), false);
+});
+
+test('infers official credential mode from explicit config and upstream protocol', () => {
+  assert.strictEqual(configuredAuthMode({ authMode: 'cli' }), 'official-login');
+  assert.strictEqual(configuredAuthMode({ credentialMode: 'api-key' }), 'api-key');
+  assert.strictEqual(officialLoginProvider({ protocol: 'gemini', authMode: 'official-login' }), 'google');
+  assert.strictEqual(officialLoginProvider({ protocol: 'openai', authMode: 'official-login' }), 'openai');
+  assert.strictEqual(officialLoginProvider({ protocol: 'trae', authMode: 'official-login' }), 'trae');
+  assert.strictEqual(officialLoginProvider({ targetUrl: 'https://coresg-normal.trae.ai', authMode: 'official-login' }), 'trae');
+  assert.strictEqual(officialLoginProvider({ protocol: 'gemini', authMode: 'api-key' }), '');
+});
+
+test('keeps Gemini API key mode separate from Google official login mode', () => {
+  assert.strictEqual(inferOfficialProfileAuthMode({ apiKey: '' }, 'google'), 'official-login');
+  assert.strictEqual(inferOfficialProfileAuthMode({ apiKey: 'ya29.google-token' }, 'google'), 'official-login');
+  assert.strictEqual(inferOfficialProfileAuthMode({ apiKey: 'AIza-api-key' }, 'google'), 'api-key');
+  assert.strictEqual(inferOfficialProfileAuthMode({ authMode: 'api-key', apiKey: '' }, 'google'), 'api-key');
+  assert.strictEqual(inferOfficialProfileAuthMode({ authMode: 'official-login', apiKey: 'AIza-api-key' }, 'google'), 'official-login');
+});
+
+test('builds OpenAI official login probe against ChatGPT backend models', () => {
+  const probe = buildProfileAuthProbeRequest(
+    'openai',
+    'https://chatgpt.com/backend-api/codex',
+    'eyJhbGciOiJtest',
+    'gpt-5.3-codex',
+    'official-login'
+  );
+  assert.strictEqual(probe.method, 'GET');
+  assert.strictEqual(probe.fullUrl, 'https://chatgpt.com/backend-api/models');
+  assert.strictEqual(probe.headers.authorization, 'Bearer eyJhbGciOiJtest');
+  assert.strictEqual(probe.requestBody, null);
+  assert.strictEqual(shouldUseChatGPTBackendForOfficialLogin('https://api.openai.com/v1'), true);
+  assert.strictEqual(shouldUseChatGPTBackendForOfficialLogin('http://127.0.0.1:9999/v1'), false);
+});
+
+test('builds OpenAI official Codex model list from Codex cache only', () => {
+  const cache = {
+    fetched_at: '2026-06-02T13:23:50Z',
+    models: [
+      { slug: 'gpt-5.5', display_name: 'GPT-5.5', supported_in_api: true, visibility: 'list', priority: 2 },
+      { slug: 'gpt-5.3-codex-spark', supported_in_api: false, visibility: 'list', priority: 3 },
+      { slug: 'codex-auto-review', supported_in_api: true, visibility: 'hide', priority: 4 }
+    ]
+  };
+  const response = buildOpenAIOfficialCodexModelsResponse(cache);
+  assert.strictEqual(isOpenAIOfficialCodexTarget('https://chatgpt.com/backend-api/codex'), true);
+  assert.strictEqual(isOpenAIOfficialCodexTarget('https://chatgpt.com/backend-api/models'), false);
+  assert.deepStrictEqual(response.models, ['gpt-5.5']);
+  assert.deepStrictEqual(response.unsupportedModels, ['gpt-5.3-codex-spark']);
+  assert.deepStrictEqual(response.hiddenModels, ['codex-auto-review']);
+  assert.deepStrictEqual(codexOfficialModelsFromCache(cache).map(m => m.slug), ['gpt-5.5']);
+});
+
+test('checks OpenAI official Codex model support using dot slugs', () => {
+  const cache = {
+    models: [
+      { slug: 'gpt-5.5', supported_in_api: true, visibility: 'list' },
+      { slug: 'gpt-5.3-codex-spark', supported_in_api: false, visibility: 'list' },
+      { slug: 'codex-auto-review', supported_in_api: true, visibility: 'hide' }
+    ]
+  };
+  assert.deepStrictEqual(openAIOfficialCodexModelSupport('codex/gpt-5.5', cache), {
+    known: true,
+    supported: true,
+    model: 'gpt-5.5',
+    visibility: 'list',
+    supportedInApi: true
+  });
+  assert.strictEqual(openAIOfficialCodexModelSupport('gpt-5-5', cache).known, false);
+  assert.strictEqual(openAIOfficialCodexModelSupport('gpt-5.3-codex-spark', cache).supported, false);
+  assert.strictEqual(openAIOfficialCodexModelSupport('codex-auto-review', cache).supported, false);
+});
+
+test('builds Trae official model list from Trae state rows', () => {
+  const rows = [
+    {
+      key: '7478324853305803784_AI.agent.model.model_list_map',
+      value: JSON.stringify({
+        solo_coder: [
+          { name: 'gpt-5.4', display_name: 'GPT-5.4', model_type: 'reasoning_model', is_default: true },
+          { name: 'gemini-3-pro', display_name: 'Gemini-3-Pro-Preview', model_type: 'reasoning_model' }
+        ],
+        solo_builder: [
+          { name: 'kimi-k2-0905', display_name: 'Kimi-K2-0905', model_type: 'chat_model' }
+        ]
+      })
+    },
+    {
+      key: 'AI.agent.modelList',
+      value: JSON.stringify([
+        { name: 'claude3.5', display_name: 'Claude-3.5-Sonnet', model_type: 'chat_model' }
+      ])
+    }
+  ];
+  const response = buildTraeOfficialModelsResponseFromRows(rows);
+  assert.strictEqual(isTraeOfficialTarget('https://coresg-normal.trae.ai/api/ide/v1'), true);
+  assert.strictEqual(isTraeOfficialProfile({ id: 'trae-official' }), true);
+  assert.strictEqual(normalizeTraeOfficialModelName('trae/gpt-5.4'), 'gpt-5.4');
+  assert.deepStrictEqual(response.models, ['GPT-5.4', 'Gemini-3-Pro-Preview', 'Kimi-K2-0905', 'Claude-3.5-Sonnet']);
+  assert.strictEqual(response.modelMap['GPT-5.4'], 'gpt-5.4');
+  assert.strictEqual(traeModelsFromStateRows(rows).length, 4);
+  assert.deepStrictEqual(traeOfficialModelSupport('trae/GPT-5.4', rows), {
+    known: true,
+    supported: true,
+    model: 'gpt-5.4',
+    displayName: 'GPT-5.4',
+    modelType: 'reasoning_model'
+  });
+  assert.strictEqual(traeOfficialModelSupport('gpt-unknown', rows).known, false);
+});
+
+test('builds Trae bridge prompt from OpenAI chat request', () => {
+  const imageData = 'data:image/png;base64,ZmFrZS1pbWFnZQ==';
+  const result = buildTraeBridgePromptFromOpenAIChat({
+    messages: [
+      { role: 'system', content: 'Use concise Chinese.' },
+      { role: 'developer', content: 'Return only the answer.' },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '分析这个截图' },
+          { type: 'image_url', image_url: { url: imageData } }
+        ]
+      }
+    ]
+  });
+  assert.ok(result.prompt.includes('System:\nUse concise Chinese.'));
+  assert.ok(result.prompt.includes('Developer:\nReturn only the answer.'));
+  assert.ok(result.prompt.includes('User:\n分析这个截图\n[image]'));
+  assert.strictEqual(result.images.length, 1);
+  assert.strictEqual(result.images[0].mimeType, 'image/png');
+  assert.strictEqual(result.images[0].base64, 'ZmFrZS1pbWFnZQ==');
+});
+
+test('builds OpenAI chat completion from Trae bridge text', () => {
+  assert.strictEqual(normalizeTraeBridgeText({ ok: true, text: '你好' }), '你好');
+  const response = buildTraeBridgeOpenAIChatCompletion({ model: 'trae/GPT-5.4' }, '桥接成功', 'gpt-5.4');
+  assert.strictEqual(response.object, 'chat.completion');
+  assert.strictEqual(response.model, 'gpt-5.4');
+  assert.strictEqual(response.choices[0].message.role, 'assistant');
+  assert.strictEqual(response.choices[0].message.content, '桥接成功');
+});
+
+test('formats Codex local session rate limits as OpenAI window limits', () => {
+  const nowMs = Date.UTC(2026, 0, 1, 12, 0, 0);
+  const reset5h = Math.round((nowMs + 2 * 3600 * 1000) / 1000);
+  const resetWeek = Math.round((nowMs + 5 * 86400 * 1000) / 1000);
+  const resetDate = new Date(reset5h * 1000);
+  const expectedResetDisplay = `${String(resetDate.getHours()).padStart(2, '0')}:${String(resetDate.getMinutes()).padStart(2, '0')}`;
+  const limits = formatCodexLocalRateLimits({
+    limit_id: 'codex',
+    plan_type: 'prolite',
+    primary: { used_percent: 30, window_minutes: 300, resets_at: reset5h },
+    secondary: { used_percent: 14, window_minutes: 10080, resets_at: resetWeek }
+  }, nowMs);
+  assert.deepStrictEqual(limits.map(item => item.window), ['5小时', '1周']);
+  assert.deepStrictEqual(limits.map(item => item.percent), [70, 86]);
+  assert.deepStrictEqual(limits.map(item => item.usedPercent), [30, 14]);
+  assert.strictEqual(limits[0].resetIn, '2h0m');
+  assert.strictEqual(limits[0].resetDisplay, expectedResetDisplay);
+  assert.strictEqual(limits[0].planType, 'prolite');
+});
+
+test('prioritizes Codex rate limits from the current thread session', () => {
+  const current = path.join('sessions', 'rollout-2026-06-02T00-29-10-019e873c-6f4f-7f31-9826-22cd50aae934.jsonl');
+  const other = path.join('sessions', 'rollout-2026-06-02T02-41-37-019e87b5-b333-7600-bf25-f00573708191.jsonl');
+  const ordered = prioritizeCodexSessionFiles([other, current], '019e873c-6f4f-7f31-9826-22cd50aae934');
+  assert.strictEqual(ordered[0], current);
+});
+
+test('builds Google official login model list from official config', () => {
+  const response = buildGoogleOfficialModelsResponse();
+  assert.strictEqual(response.ok, true);
+  assert.strictEqual(response.authMode, 'official-login');
+  assert.strictEqual(response.source, 'official-model-config');
+  assert.ok(response.models.includes('Gemini 3.5 Flash (Medium)'));
+  assert.ok(response.models.includes('gemini-3.5-flash-low'));
+  assert.ok(response.models.includes('gemini-3-flash-agent'));
+  assert.ok(response.models.includes('gemini-3.5-flash-extra-low'));
+  assert.ok(response.models.includes('gemini-3.1'));
+  assert.ok(response.models.includes('gemini-3.1-pro-low'));
+});
+
+test('maps Google official available models using AGY model ids and labels', () => {
+  const models = googleOfficialModelsFromAvailableModels({
+    models: {
+      'gemini-3.5-flash-low': { displayName: 'Gemini 3.5 Flash (Medium)' },
+      'gemini-3-flash-agent': { displayName: 'Gemini 3.5 Flash (High)' },
+      'gemini-3.5-flash-extra-low': { displayName: 'Gemini 3.5 Flash (Low)' }
+    }
+  });
+  assert.ok(models.includes('Gemini 3.5 Flash (Medium)'));
+  assert.ok(models.includes('gemini-3.5-flash-low'));
+  assert.ok(models.includes('gemini-3-flash-agent'));
+  assert.ok(models.includes('gemini-3.5-flash-extra-low'));
+});
+
+test('decodes Antigravity OAuth state payload without Gemini CLI credentials', () => {
+  const toBase64Url = (value) => Buffer.from(value).toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+  const inner = toBase64Url('token ya29.test-access Bearer refresh 1//test-refresh ' + 'x'.repeat(96));
+  const outer = Buffer.from(`oauthTokenInfoSentinelKey ${inner}`).toString('base64');
+  const creds = decodeAntigravityOAuthStateValue(outer);
+  assert.strictEqual(creds.access_token, 'ya29.test-access');
+  assert.strictEqual(creds.refresh_token, '1//test-refresh');
+  assert.ok(creds.client_id.includes('apps.googleusercontent.com'));
+  assert.strictEqual(creds.__readOnly, true);
+});
+
+test('caches refreshed Antigravity official access token in process', async () => {
+  let refreshCalls = 0;
+  const runtime = createGoogleOfficialRuntime({
+    makeRequest: async () => {
+      refreshCalls += 1;
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ access_token: 'ya29.fresh-' + refreshCalls, expires_in: 3600 })
+      };
+    },
+    googleOfficialCodeAssistUrl,
+    googleOfficialModelsFromAvailableModels,
+    readAntigravityOfficialCredentialState: () => ({
+      credsPath: null,
+      source: 'antigravity-state',
+      content: {
+        access_token: 'ya29.old',
+        refresh_token: '1//same-refresh',
+        token_type: 'Bearer',
+        __readOnly: true,
+        __source: 'antigravity-state',
+        expiry_date: 1
+      }
+    }),
+    isGoogleOfficialLoginToken,
+    buildGoogleOfficialLoadCodeAssistRequest,
+  });
+
+  assert.strictEqual(await runtime.getFreshAntigravityOfficialAccessToken(), 'ya29.fresh-1');
+  assert.strictEqual(await runtime.getFreshAntigravityOfficialAccessToken(), 'ya29.fresh-1');
+  assert.strictEqual(refreshCalls, 1);
+});
+
+test('builds Google official login Code Assist probe instead of public Gemini API', () => {
+  const probe = buildGoogleOfficialLoadCodeAssistRequest('ya29.google-token');
+  assert.strictEqual(googleOfficialCodeAssistUrl('loadCodeAssist'), 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist');
+  assert.strictEqual(probe.method, 'POST');
+  assert.strictEqual(probe.fullUrl, 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist');
+  assert.strictEqual(probe.headers.authorization, 'Bearer ya29.google-token');
+  assert.strictEqual(probe.headers['content-type'], 'application/json');
+  const body = JSON.parse(probe.requestBody);
+  assert.strictEqual(body.mode, 'HEALTH_CHECK');
+  assert.strictEqual(body.metadata.pluginType, 'GEMINI');
+});
+
+test('builds Google official quota requests for Antigravity backend', () => {
+  const available = buildGoogleOfficialAvailableModelsRequest('ya29.google-token', 'project-1');
+  assert.strictEqual(available.method, 'POST');
+  assert.strictEqual(available.fullUrl, 'https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels');
+  assert.strictEqual(available.headers.authorization, 'Bearer ya29.google-token');
+  assert.deepStrictEqual(JSON.parse(available.requestBody), { project: 'project-1' });
+
+  const quota = buildGoogleOfficialRetrieveUserQuotaRequest('ya29.google-token', 'project-1');
+  assert.strictEqual(quota.fullUrl, 'https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota');
+  assert.deepStrictEqual(JSON.parse(quota.requestBody), { project: 'project-1', userAgent: 'antigravity' });
+});
+
+test('formats Google official available model quota as remaining percent', () => {
+  const limits = formatGoogleOfficialAvailableModels({
+    models: {
+      'chat_20706': {
+        displayName: 'chat_20706',
+        quotaInfo: { remainingFraction: 1 }
+      },
+      'tab_flash_lite_preview': {
+        displayName: 'tab_flash_lite_preview',
+        quotaInfo: { remainingFraction: 1 }
+      },
+      'gemini-3-pro-high': {
+        displayName: 'Gemini 3 Pro High',
+        quotaInfo: { remainingFraction: 0.12, resetTime: '2999-01-01T00:00:00Z' }
+      },
+      'gemini-3-pro-agent': {
+        displayName: 'Gemini 3 Pro High',
+        quotaInfo: { remainingFraction: 0.12, resetTime: '2999-01-01T00:00:00Z' }
+      },
+      'claude-sonnet-4-6-thinking': {
+        displayName: 'Claude Sonnet 4.6 Thinking',
+        quotaInfo: { remainingFraction: 0.75, resetTime: '2999-01-01T00:00:00Z' }
+      }
+    }
+  });
+  assert.strictEqual(limits.length, 2);
+  assert.strictEqual(limits.some(item => item.modelId.startsWith('chat_')), false);
+  assert.strictEqual(limits.some(item => item.modelId.startsWith('tab_')), false);
+  const low = limits.find(item => item.modelId === 'gemini-3-pro-high');
+  assert.strictEqual(low.remainingPercent, 12);
+  assert.strictEqual(low.percent, 12);
+  assert.notStrictEqual(low.resetIn, '2h2m');
+});
+
+test('formats Google official user quota buckets as remaining percent fallback', () => {
+  const limits = formatGoogleOfficialUserQuota({
+    buckets: [{
+      modelId: 'gemini-3-flash',
+      remainingFraction: 0.25,
+      remainingAmount: '25',
+      resetTime: '2999-01-01T00:00:00Z'
+    }]
+  });
+  assert.strictEqual(limits[0].model, 'gemini-3-flash');
+  assert.strictEqual(limits[0].remainingPercent, 25);
+  assert.strictEqual(limits[0].remainingAmount, '25');
+});
+
+test('builds Gemini official login probe through Code Assist backend', () => {
+  const probe = buildProfileAuthProbeRequest(
+    'gemini',
+    'https://generativelanguage.googleapis.com',
+    'ya29.google-token',
+    'models/gemini-2.5-pro',
+    'official-login'
+  );
+  assert.strictEqual(probe.method, 'POST');
+  assert.strictEqual(probe.fullUrl, 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist');
+  assert.strictEqual(probe.headers.authorization, 'Bearer ya29.google-token');
+  assert.strictEqual(probe.headers['content-type'], 'application/json');
+  assert.strictEqual(probe.fullUrl.includes('generativelanguage.googleapis.com'), false);
+});
+
+test('builds Gemini API key probe with key query param', () => {
+  const probe = buildProfileAuthProbeRequest(
+    'gemini',
+    'https://generativelanguage.googleapis.com',
+    'AIza-api-key',
+    'gemini-2.5-flash',
+    'api-key'
+  );
+  const url = new URL(probe.fullUrl);
+  assert.strictEqual(probe.method, 'POST');
+  assert.strictEqual(url.searchParams.get('key'), 'AIza-api-key');
+  assert.strictEqual(probe.headers.authorization, undefined);
+});
+
+test('evaluates OpenAI official login probe responses without rejecting network-side blocks', () => {
+  const success = evaluateOpenAIProfileAuthResponse(
+    { statusCode: 200, headers: {}, body: JSON.stringify({ models: [{ slug: 'gpt-5.3-codex' }] }) },
+    { testModel: 'gpt-5.3-codex', authMode: 'official-login' }
+  );
+  assert.deepStrictEqual(success, {
+    ok: true,
+    authMode: 'official-login',
+    message: '官方登录凭证有效，模型 gpt-5.3-codex 已在后台列表中。'
+  });
+
+  const cloudflare = evaluateOpenAIProfileAuthResponse(
+    { statusCode: 403, headers: { 'content-type': 'text/html' }, body: '<html>blocked</html>' },
+    { testModel: 'gpt-5.3-codex', authMode: 'official-login' }
+  );
+  assert.strictEqual(cloudflare.ok, true);
+  assert.strictEqual(cloudflare.authMode, 'official-login');
+  assert.ok(cloudflare.warning.includes('403'));
+});
+
+test('evaluates Gemini Code Assist profile auth responses', () => {
+  const ok = evaluateGeminiProfileAuthResponse(
+    { statusCode: 200, headers: {}, body: '{}' },
+    {
+      authMode: 'official-login',
+      probeFullUrl: 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist'
+    }
+  );
+  assert.deepStrictEqual(ok, {
+    ok: true,
+    authMode: 'official-login',
+    source: 'code-assist',
+    message: 'Google 官方登录凭证有效，Code Assist/Antigravity 后端可达。'
+  });
+
+  const failed = evaluateGeminiProfileAuthResponse(
+    { statusCode: 401, headers: {}, body: JSON.stringify([{ error: { message: 'invalid oauth' } }]) },
+    {
+      authMode: 'official-login',
+      probeFullUrl: 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist'
+    }
+  );
+  assert.deepStrictEqual(failed, {
+    ok: false,
+    authMode: 'official-login',
+    source: 'code-assist',
+    error: 'Google 官方登录后端探测失败 HTTP 401: invalid oauth'
+  });
+});
+
+test('evaluates Claude profile auth error responses', () => {
+  const result = evaluateClaudeProfileAuthResponse(
+    { statusCode: 404, headers: {}, body: JSON.stringify({ error: { message: 'model not found' } }) },
+    { testModel: 'claude-3-5-sonnet-20241022' }
+  );
+  assert.deepStrictEqual(result, {
+    ok: false,
+    error: 'HTTP 404: model not found'
+  });
+});
+
 test('builds local OpenAI-compatible model list from routed model names', () => {
   assert.deepStrictEqual(buildLocalModelsResponse([
     { from: 'claude-haiku-4-5-20251001', profileId: 'yhrouter', to: 'gpt-5.5' },
@@ -613,6 +1136,29 @@ test('uses explicit model list format for each entry protocol', () => {
   assert.strictEqual(buildLocalModelsResponse(routes, 'claude').data[0].display_name, 'claude-gemini');
   assert.strictEqual(buildLocalModelsResponse(routes, 'openai').object, 'list');
   assert.strictEqual(buildLocalModelsResponse(routes, 'openai').data[0].object, 'model');
+});
+
+test('carries Claude Desktop display labels into regular Claude model discovery', () => {
+  const routes = getModelRoutes({
+    modelRoutes: [
+      { from: 'claude-opus-4-7', profileId: 'openai-official', to: 'gpt-5.5' },
+    ],
+    claudeDesktop: {
+      models: [
+        { routeId: 'claude-opus-4-7', labelOverride: 'GPT-5.5', supports1m: true },
+      ],
+    },
+  });
+
+  assert.strictEqual(routes[0].labelOverride, 'GPT-5.5');
+  assert.strictEqual(routes[0].supports1m, true);
+  assert.deepStrictEqual(buildLocalModelsResponse(routes, 'claude').data[0], {
+    id: 'claude-opus-4-7',
+    type: 'model',
+    display_name: 'GPT-5.5',
+    created_at: '1970-01-01T00:00:00.000Z',
+    supports1m: true,
+  });
 });
 
 test('uses global local server config with legacy profile port fallback', () => {
@@ -696,6 +1242,50 @@ test('maps Responses image URLs and JSON object format to Chat format', () => {
   assert.deepStrictEqual(result.response_format, { type: 'json_object' });
 });
 
+test('maps Chat image URLs to Responses input_image URL strings', () => {
+  const result = openAIChatToResponsesRequest({
+    model: 'client-model',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: 'describe' },
+        { type: 'image_url', image_url: { url: 'data:image/png;base64,abc123' } },
+      ],
+    }],
+  });
+
+  assert.deepStrictEqual(result.input[0].content, [
+    { type: 'input_text', text: 'describe' },
+    { type: 'input_image', image_url: 'data:image/png;base64,abc123' },
+  ]);
+});
+
+test('maps Chat tool call ids to Responses function-call item ids', () => {
+  const result = openAIChatToResponsesRequest({
+    model: 'client-model',
+    messages: [
+      { role: 'user', content: 'lookup' },
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [{
+          id: 'call_nbeAei9W3PPIiz5JVyTrNrfb',
+          type: 'function',
+          function: { name: 'builtin_web_search', arguments: '{"q":"x"}' },
+        }],
+      },
+      { role: 'tool', tool_call_id: 'call_nbeAei9W3PPIiz5JVyTrNrfb', content: 'blocked' },
+    ],
+  });
+
+  const functionCall = result.input.find((item) => item.type === 'function_call');
+  const functionOutput = result.input.find((item) => item.type === 'function_call_output');
+  assert.ok(functionCall.id.startsWith('fc_'));
+  assert.notStrictEqual(functionCall.id, 'call_nbeAei9W3PPIiz5JVyTrNrfb');
+  assert.strictEqual(functionCall.call_id, 'call_nbeAei9W3PPIiz5JVyTrNrfb');
+  assert.strictEqual(functionOutput.call_id, 'call_nbeAei9W3PPIiz5JVyTrNrfb');
+});
+
 test('converts Chat response text and tool calls to Responses output', () => {
   const result = openAIChatToResponses({
     id: 'chatcmpl_123',
@@ -709,6 +1299,7 @@ test('converts Chat response text and tool calls to Responses output', () => {
   assert.strictEqual(result.output[0].type, 'message');
   assert.strictEqual(result.output[0].content[0].text, 'answer');
   assert.strictEqual(result.output[1].type, 'function_call');
+  assert.ok(result.output[1].id.startsWith('fc_'));
   assert.strictEqual(result.output[1].call_id, 'call_1');
   assert.strictEqual(result.output[1].name, 'lookup');
   assert.deepStrictEqual(result.usage, { input_tokens: 10, output_tokens: 5, total_tokens: 15 });
@@ -758,20 +1349,82 @@ test('builds Claude Desktop safe routes from explicit mappings', () => {
       models: [
         { routeId: 'gpt-5.5', profileId: 'yhrouter', upstreamModel: 'gpt-5.5', labelOverride: 'GPT-5.5', supports1m: true },
         { routeId: 'claude-opus-4-7', profileId: 'yhrouter', upstreamModel: 'gpt-5.4', supports1m: false },
+        { routeId: 'claude-opus-4-6-thinking', profileId: 'yhrouter', upstreamModel: 'gpt-5.6', labelOverride: 'GPT-5.6' },
       ],
     },
   });
 
-  assert.deepStrictEqual(routes.map((route) => route.from), ['claude-sonnet-4-6', 'claude-opus-4-7']);
+  assert.deepStrictEqual(routes.map((route) => route.from), ['claude-sonnet-4-6', 'claude-opus-4-7', 'claude-opus-4-6-thinking']);
   assert.strictEqual(routes[0].to, 'gpt-5.5');
   assert.strictEqual(routes[0].labelOverride, 'GPT-5.5');
   assert.strictEqual(routes[1].supports1m, false);
+  assert.strictEqual(routes[2].to, 'gpt-5.6');
+  assert.strictEqual(routes[2].labelOverride, 'GPT-5.6');
+});
+
+test('inherits Claude Desktop upstream routing from global routes while keeping labels and 1M flag', () => {
+  const routes = getClaudeDesktopRoutes({
+    activeProfile: 'yhrouter',
+    profiles: [{ id: 'yhrouter' }],
+    modelRoutes: [
+      { from: 'claude-opus-4-6-thinking', profileId: 'openai-official', to: 'gpt-5.6' },
+    ],
+    claudeDesktop: {
+      models: [
+        { routeId: 'claude-opus-4-6-thinking', labelOverride: 'GPT-5.6 Thinking', supports1m: false },
+      ],
+    },
+  });
+
+  assert.deepStrictEqual(routes, [{
+    from: 'claude-opus-4-6-thinking',
+    profileId: 'openai-official',
+    to: 'gpt-5.6',
+    labelOverride: 'GPT-5.6 Thinking',
+    supports1m: false,
+  }]);
 });
 
 test('detects and strips Claude Desktop gateway prefix', () => {
   assert.strictEqual(isClaudeDesktopRequest({ protocol: 'claude-desktop' }, '/v1/messages'), true);
   assert.strictEqual(isClaudeDesktopRequest({ protocol: 'claude' }, '/claude-desktop/v1/messages'), true);
   assert.strictEqual(stripClaudeDesktopPrefix('/claude-desktop/v1/models'), '/v1/models');
+});
+
+test('classifies and removes Claude Desktop gateway config', () => {
+  const proxyStatus = claudeDesktopStatusFromConfig({
+    primaryProvider: 'gateway',
+    providers: {
+      gateway: {
+        inferenceGatewayBaseUrl: 'https://localhost:3443/claude-desktop',
+        inferenceGatewayApiKey: 'hpm-test',
+      },
+      other: { keep: true },
+    },
+  }, true, 'claude_desktop_config.json');
+  assert.strictEqual(proxyStatus.mode, 'proxy');
+  assert.strictEqual(proxyStatus.gatewayUrl, 'https://localhost:3443/claude-desktop');
+  assert.strictEqual(proxyStatus.hasToken, true);
+
+  const directStatus = claudeDesktopStatusFromConfig({
+    primaryProvider: 'gateway',
+    providers: {
+      gateway: {
+        inferenceGatewayBaseUrl: 'https://api.anthropic.com',
+      },
+    },
+  }, true, 'claude_desktop_config.json');
+  assert.strictEqual(directStatus.mode, 'direct');
+
+  const restored = removeClaudeDesktopGatewayProvider({
+    primaryProvider: 'gateway',
+    providers: {
+      gateway: { inferenceGatewayBaseUrl: 'https://localhost:3443' },
+      custom: { keep: true },
+    },
+  });
+  assert.deepStrictEqual(restored, { providers: { custom: { keep: true } } });
+  assert.deepStrictEqual(removeClaudeDesktopGatewayProvider({ primaryProvider: 'gateway', providers: { gateway: {} } }), {});
 });
 
 test('detects Chat-only OpenAI upstream profiles for Responses bridging', () => {
@@ -798,6 +1451,30 @@ test('buffers fragmented Chat tool-call SSE when converting to Responses stream'
   assert.strictEqual(state.toolCalls[0].arguments, '{"q":"x"}');
   assert.deepStrictEqual(state.completedOutputItems.map((item) => item.type), ['function_call']);
   assert.ok(writes.join('').includes('response.function_call_arguments.done'));
+});
+
+test('waits for Responses function_call name before emitting Chat tool call', () => {
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = { id: 'chatcmpl_test', created: 1, model: 'client-model', buffer: '', started: false, toolCalls: [], usage: null, done: false };
+  const event = (payload) => 'event: ' + payload.type + '\ndata: ' + JSON.stringify(payload) + '\n\n';
+  const args = JSON.stringify({ file_path: 'E:/DEV/WorkSpace/Efficiency/package.json', offset: 0, limit: 2400 });
+
+  processOpenAIResponsesSseChunkToChat(clientRes, event({
+    type: 'response.function_call_arguments.delta',
+    item_id: 'call_1',
+    delta: args,
+  }), state);
+  assert.strictEqual(writes.some((chunk) => chunk.includes('tool_calls')), false);
+
+  processOpenAIResponsesSseChunkToChat(clientRes, event({
+    type: 'response.output_item.done',
+    item: { type: 'function_call', id: 'fc_1', call_id: 'call_1', name: 'Read', arguments: args },
+  }), state);
+
+  const output = writes.join('');
+  assert.ok(output.includes('"name":"Read"'));
+  assert.strictEqual(output.includes('"name":"tool"'), false);
 });
 
 test('keeps Responses stream output order across text, tool call, and more text', () => {
@@ -872,13 +1549,14 @@ test('extracts diagnostics only for key SSE events', () => {
   assert.strictEqual(start.toolName, 'Bash');
 });
 
-test('writes bounded JSONL and rotates oversized diagnostics files', () => {
+test('writes bounded JSONL and rotates oversized diagnostics files', async () => {
   const filePath = path.join(os.tmpdir(), 'https-proxy-diagnostics-test-' + process.pid + '-' + Date.now() + '.jsonl');
   const rotated = filePath + '.1';
   try {
     fs.writeFileSync(filePath, 'x'.repeat(2048));
     safeUnlink(rotated);
     assert.strictEqual(writeJsonlBounded(filePath, { ok: true }, 1024), true);
+    await flushJsonlWrites();
     assert.ok(fs.existsSync(rotated));
     const text = fs.readFileSync(filePath, 'utf8');
     assert.ok(text.includes('"ok":true'));
@@ -888,5 +1566,245 @@ test('writes bounded JSONL and rotates oversized diagnostics files', () => {
   }
 });
 
-if (process.exitCode) process.exit(process.exitCode);
-console.log('all tests passed');
+test('reads JSONL tail records and reports file signatures', () => {
+  const filePath = path.join(os.tmpdir(), 'https-proxy-management-utils-test-' + process.pid + '-' + Date.now() + '.jsonl');
+  try {
+    fs.writeFileSync(filePath, [
+      JSON.stringify({ index: 1 }),
+      JSON.stringify({ index: 2 }),
+      JSON.stringify({ index: 3 }),
+      ''
+    ].join('\n'));
+    assert.notStrictEqual(fileSignature(filePath), 'missing');
+    assert.deepStrictEqual(readLastLinesOfJsonl(filePath, 2).map((item) => item.index), [2, 3]);
+  } finally {
+    safeUnlink(filePath);
+  }
+});
+
+test('identifies quiet management polling endpoints', () => {
+  assert.strictEqual(isLocalManagementPath('/v1/local/config'), true);
+  assert.strictEqual(isLocalManagementPath('/local/events?after=1'), true);
+  assert.strictEqual(isLocalManagementPath('/v1/messages'), false);
+  assert.strictEqual(isQuietLocalPollRequest('GET', '/v1/local/cli/sessions'), true);
+  assert.strictEqual(isQuietLocalPollRequest('HEAD', '/local/events'), true);
+  assert.strictEqual(isQuietLocalPollRequest('GET', '/v1/local/log'), true);
+  assert.strictEqual(isQuietLocalPollRequest('GET', '/v1/local/audit/conversations'), true);
+  assert.strictEqual(isQuietLocalPollRequest('GET', '/v1/local/usage/report'), true);
+  assert.strictEqual(isQuietLocalPollRequest('POST', '/v1/local/config'), false);
+  assert.strictEqual(isQuietLocalPollRequest('GET', '/v1/messages'), false);
+});
+
+test('logs request_end for local count_tokens responses', () => {
+  const chunks = [];
+  const headers = [];
+  const events = [];
+  const req = { method: 'POST', url: '/v1/messages/count_tokens?beta=true' };
+  const res = {
+    writeHead(statusCode, nextHeaders) {
+      headers.push({ statusCode, headers: nextHeaders });
+    },
+    end(body) {
+      chunks.push(body);
+    },
+  };
+  handleCountTokens(
+    req,
+    res,
+    Buffer.from(JSON.stringify({ messages: [{ role: 'user', content: 'hello world' }] })),
+    (value) => String(value || '').split(/\s+/).filter(Boolean).length,
+    (method, requestPath, startTime, statusCode, extra) => events.push({ method, requestPath, startTime, statusCode, extra }),
+    Date.now()
+  );
+
+  assert.strictEqual(headers[0].statusCode, 200);
+  assert.deepStrictEqual(JSON.parse(chunks[0]), { input_tokens: 2 });
+  assert.strictEqual(events.length, 1);
+  assert.strictEqual(events[0].requestPath, '/v1/messages/count_tokens?beta=true');
+  assert.strictEqual(events[0].statusCode, 200);
+  assert.strictEqual(events[0].extra.type, 'local_count_tokens');
+  assert.strictEqual(events[0].extra.inputTokens, 2);
+});
+
+test('normalizes and merges MCP tools as Claude tool declarations', () => {
+  const server = { id: 'local', prefix: 'fs' };
+  const normalized = normalizeMcpTool({
+    name: 'read_file',
+    description: 'Read a file',
+    inputSchema: { type: 'object', required: ['path'], properties: { path: { type: 'string' } } },
+  }, server);
+  assert.deepStrictEqual(normalized, {
+    name: 'fs_read_file',
+    description: 'Read a file',
+    input_schema: { type: 'object', required: ['path'], properties: { path: { type: 'string' } } },
+  });
+
+  const merged = mergeClaudeTools([
+    { name: 'Read', input_schema: { type: 'object', properties: {} } },
+  ], [
+    { name: 'Read', input_schema: { type: 'object', properties: { duplicate: { type: 'string' } } } },
+    normalized,
+  ]);
+  assert.strictEqual(merged.length, 2);
+  assert.strictEqual(merged[1].name, 'fs_read_file');
+});
+
+test('injects MCP tools into Claude request bodies', async () => {
+  const server = require('http').createServer((req, res) => {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      const parsed = JSON.parse(body || '{}');
+      assert.strictEqual(parsed.method, 'tools/list');
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        jsonrpc: '2.0',
+        id: parsed.id,
+        result: {
+          tools: [{
+            name: 'search_docs',
+            description: 'Search docs',
+            input_schema: { type: 'object', properties: { q: { type: 'string' } } },
+          }],
+        },
+      }));
+    });
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const address = server.address();
+    const hub = createMcpHub({
+      getConfig: () => ({
+        mcpHub: {
+          servers: [{ id: 'docs', url: `http://127.0.0.1:${address.port}`, injectAll: true, prefix: 'docs' }],
+          routing: [],
+        },
+      }),
+    });
+    assert.strictEqual(typeof hub.augmentRequestTools, 'function');
+    const augmented = await hub.augmentRequestTools({ model: 'claude-sonnet', tools: [] });
+    assert.deepStrictEqual(augmented.tools, [{
+      name: 'docs_search_docs',
+      description: 'Search docs',
+      input_schema: { type: 'object', properties: { q: { type: 'string' } } },
+    }]);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('allows only local management origins by default', () => {
+  assert.strictEqual(isAllowedManagementOrigin('http://localhost:1430'), true);
+  assert.strictEqual(isAllowedManagementOrigin('https://127.0.0.1:3443'), true);
+  assert.strictEqual(isAllowedManagementOrigin('tauri://localhost'), true);
+  assert.strictEqual(isAllowedManagementOrigin('https://example.com'), false);
+  assert.strictEqual(isAllowedManagementOrigin('null'), false);
+});
+
+test('dispatches local management routes from a route table', () => {
+  const route = { method: 'GET', paths: ['/v1/local/auth/rate-limits'], match: 'prefix' };
+  assert.strictEqual(routeMatches(route, 'GET', '/v1/local/auth/rate-limits?profileId=codex'), true);
+  assert.strictEqual(routeMatches(route, 'POST', '/v1/local/auth/rate-limits'), false);
+  assert.strictEqual(routeMatches({ method: 'GET', paths: ['/v1/local/usage/report'] }, 'GET', '/v1/local/usage/report'), true);
+
+  const calls = [];
+  const req = {};
+  const res = {};
+  const handled = dispatchLocalManagementRoute({
+    method: 'GET',
+    pathname: '/v1/local/health',
+    req,
+    res,
+    handlers: {
+      health: (nextReq, nextRes) => calls.push([nextReq === req, nextRes === res]),
+    },
+  });
+  assert.strictEqual(handled, true);
+  assert.deepStrictEqual(calls, [[true, true]]);
+  assert.strictEqual(dispatchLocalManagementRoute({ method: 'GET', pathname: '/v1/messages', req, res, handlers: {} }), false);
+});
+
+test('usage report aggregates provider usage and model pricing by profile', () => {
+  const usage = extractUsageFromJsonPayload({ usage: { prompt_tokens: 1000, completion_tokens: 500, total_tokens: 1500 } });
+  assert.deepStrictEqual(usage, {
+    inputTokens: 1000,
+    outputTokens: 500,
+    cachedInputTokens: 0,
+    totalTokens: 1500,
+    source: 'provider',
+  });
+
+  const cost = estimateCost(usage, 'gpt-5-mini', {});
+  assert.strictEqual(cost.known, true);
+  assert.ok(cost.amount > 0);
+
+  const report = buildUsageReport([
+    {
+      id: 'req-1',
+      time: '2026-06-05T10:00:00.000Z',
+      profileId: 'openai-main',
+      profileName: 'OpenAI Main',
+      originalModel: 'gpt-5-mini',
+      rewriteModel: 'gpt-5-mini',
+      protocol: 'openai',
+      statusCode: 200,
+      usage,
+    },
+    {
+      id: 'req-2',
+      time: '2026-06-05T11:00:00.000Z',
+      profileId: 'openai-main',
+      profileName: 'OpenAI Main',
+      originalModel: 'gpt-5-mini',
+      statusCode: 500,
+      messages: [{ role: 'user', content: 'hello' }],
+      response: { content: 'error' },
+    },
+  ], {});
+
+  assert.strictEqual(report.total.requests, 2);
+  assert.strictEqual(report.total.successes, 1);
+  assert.strictEqual(report.total.errors, 1);
+  assert.strictEqual(report.byProfile[0].key, 'openai-main');
+  assert.ok(report.total.inputTokens >= 1000);
+  assert.ok(report.total.cost > 0);
+});
+
+test('parses and compares environment tool versions', () => {
+  assert.strictEqual(parseVersionText('claude 1.2.3'), '1.2.3');
+  assert.strictEqual(parseVersionText('0.7.1-beta.2'), '0.7.1-beta.2');
+  assert.strictEqual(isVersionNewer('1.2.3', '1.2.4'), true);
+  assert.strictEqual(isVersionNewer('1.3.0', '1.2.9'), false);
+  assert.strictEqual(isVersionNewer('1.2.3', '1.2.3'), false);
+});
+
+test('updates TOML and env values for local tool proxy config', () => {
+  const toml = 'theme = "dark"\nbase_url = "https://old.example"\n';
+  const updatedToml = setTomlValue(toml, 'base_url', 'https://localhost:3447');
+  assert.strictEqual(updatedToml, 'theme = "dark"\nbase_url = "https://localhost:3447"\n');
+  assert.strictEqual(setTomlValue('', 'model_provider', 'custom'), '\nmodel_provider = "custom"\n');
+  assert.strictEqual(deleteTomlValue(updatedToml, 'base_url'), 'theme = "dark"\n');
+
+  const env = 'KEEP=yes\nGOOGLE_GEMINI_BASE_URL=https://old.example\n';
+  const updatedEnv = setEnvValue(env, 'GOOGLE_GEMINI_BASE_URL', 'https://localhost:3443');
+  assert.strictEqual(updatedEnv, 'KEEP=yes\nGOOGLE_GEMINI_BASE_URL=https://localhost:3443\n');
+  assert.strictEqual(setEnvValue('', 'ANTHROPIC_BASE_URL', 'https://localhost:3443'), '\nANTHROPIC_BASE_URL=https://localhost:3443\n');
+  assert.strictEqual(deleteEnvValue(updatedEnv, 'GOOGLE_GEMINI_BASE_URL'), 'KEEP=yes\n');
+});
+
+(async () => {
+  for (const item of tests) {
+    try {
+      await item.fn();
+      console.log('ok - ' + item.name);
+    } catch (err) {
+      console.error('not ok - ' + item.name);
+      console.error(err.stack || err.message);
+      process.exitCode = 1;
+    }
+  }
+  if (process.exitCode) process.exit(process.exitCode);
+  console.log('all tests passed');
+  process.exit(0);
+})();

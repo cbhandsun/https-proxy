@@ -17,6 +17,12 @@ if exist "%RELEASE_EXE%" (
   exit /b 0
 )
 
+set "RELEASE_EXE=%SCRIPT_DIR%src-tauri\target\release\app.exe"
+if exist "%RELEASE_EXE%" (
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%RELEASE_EXE%' -WorkingDirectory '%SCRIPT_DIR%'"
+  exit /b 0
+)
+
 where npm >nul 2>&1
 if errorlevel 1 (
   echo 未检测到 npm，请先安装 Node.js。
