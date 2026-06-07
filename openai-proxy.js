@@ -14,7 +14,19 @@ const util = require('util');
 const crypto = require('crypto');
 
 const { createLogger, withRequest, newRequestId, installReqIdMiddleware } = require('./lib/proxy/logger');
+const { createMetrics, collectDefaultProcessMetrics } = require('./lib/proxy/metrics');
 const log = createLogger('proxy');
+
+// 初始化指标 (process_* 注入 5s 周期)
+const metricsInstance = createMetrics();
+collectDefaultProcessMetrics(metricsInstance);
+// 应用级指标声明
+metricsInstance.counter('proxy_requests_total', 'Total number of proxy requests received');
+metricsInstance.counter('proxy_errors_total', 'Total number of proxy request errors');
+metricsInstance.counter('proxy_config_reloads_total', 'Total number of config hot-reloads');
+metricsInstance.counter('proxy_route_cache_total', 'Route resolution cache events');
+metricsInstance.histogram('proxy_request_duration_seconds', 'Proxy request duration in seconds', { buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30] });
+metricsInstance.gauge('proxy_active_profile_id', 'Currently active profile id (set to 1 for whichever is active)');
 
 const APP_ID = 'https-proxy-manager';
 const MANAGEMENT_TOKEN = process.env.MGMT_TOKEN || crypto.randomBytes(16).toString('hex');
@@ -617,6 +629,7 @@ const {
 const { createTraeBridgeRuntime } = require('./lib/proxy/trae-bridge-runtime');
 const { createTraeOfficialHandlers } = require('./lib/proxy/trae-official-handlers');
 const { createTraeStatusHandlers } = require('./lib/proxy/trae-status-handlers');
+const { currentTraeDebugSettings } = require('./lib/proxy/trae-debug-center');
 
 let CONFIG = loadConfig();
 let PROFILES = getProfiles(CONFIG);
@@ -654,6 +667,11 @@ const {
 const {
   handleLocalTraeStatusRequest,
   handleLocalTraeBridgeStatusRequest,
+  handleLocalTraeDebugEventsRequest,
+  handleLocalTraeDebugSettingsRequest,
+  handleLocalTraeDebugSettingsSaveRequest,
+  handleLocalTraeDebugNativeStatusRequest,
+  handleLocalTraeDebugNativeScanRequest,
 } = createTraeStatusHandlers({ makeRequest });
 const {
   handleLocalAntigravityCliStatusRequest,
@@ -716,6 +734,7 @@ const managementHandlers = createManagementHandlers({
   PORT,
   CLI_SESSIONS,
   PROTOCOL_OPTIONS,
+  metricsInstance,
   reloadProxyConfig,
   makeRequest,
   requestWithProxy,
@@ -729,6 +748,11 @@ const managementHandlers = createManagementHandlers({
   handleLocalCertUntrustRequest,
   handleLocalTraeStatusRequest,
   handleLocalTraeBridgeStatusRequest,
+  handleLocalTraeDebugEventsRequest,
+  handleLocalTraeDebugSettingsRequest,
+  handleLocalTraeDebugSettingsSaveRequest,
+  handleLocalTraeDebugNativeStatusRequest,
+  handleLocalTraeDebugNativeScanRequest,
   handleLocalAntigravityCliStatusRequest,
   handleLocalAntigravityCliApplyRequest,
   handleLocalAntigravityCliRestoreRequest,
@@ -812,6 +836,15 @@ try {
       https.globalAgent = newAgent;
 
       log.info('[config] Configuration hot-reloaded successfully. Active profile:', ACTIVE_PROFILE.id);
+      // 指标埋点
+      try {
+        metricsInstance.counter('proxy_config_reloads_total').inc();
+        metricsInstance.gauge('proxy_active_profile_id').set(1, { id: ACTIVE_PROFILE.id });
+        if (typeof _indexCache !== 'undefined' && _indexCache && _indexCache.index) {
+          _indexCache.index.rebuild(MODEL_ROUTES);
+          metricsInstance.counter('proxy_route_cache_total').inc(1, { event: 'rebuild' });
+        }
+      } catch (e) { /* never break on metrics */ }
     } catch (err) {
       log.error('[config] Failed to apply hot-reload configuration:', err.message);
       throw err;
@@ -918,6 +951,13 @@ function logRequestEnd(method, path, startTime, statusCode, extra) {
     statusCode,
     ...(extra || {})
   });
+  // 指标埋点:观察直方图 + 错误计数
+  try {
+    metricsInstance.histogram('proxy_request_duration_seconds').observe(elapsed / 1000);
+    if (statusCode && statusCode >= 500) {
+      metricsInstance.counter('proxy_errors_total').inc(1, { type: (extra && extra.type) || 'unknown' });
+    }
+  } catch (e) { /* never break on metrics */ }
 }
 
 function installLocalManagementRequestEndLogger(clientRes, method, path, startTime) {
@@ -1056,6 +1096,7 @@ const {
   writeClaudeSseEvent,
   fallbackId,
   stableCreated,
+  getTraeDebugSettings: currentTraeDebugSettings,
 });
 
 const {
@@ -1255,8 +1296,11 @@ function handleRequestInner(clientReq, clientRes, entry) {
   const effectiveUrlPath = desktopRequest ? stripClaudeDesktopPrefix(urlPath) : urlPath;
   const effectiveUrlPathname = effectiveUrlPath.split('?')[0];
   const localManagementRequest = isLocalManagementPath(effectiveUrlPathname);
-
+  // 指标埋点:每个非本地管理请求递增
   const isApiRequest = urlPath.indexOf('/chat/completions') >= 0 || urlPath.indexOf('/messages') >= 0 || urlPath.indexOf('/v1/chat/completions') >= 0 || urlPath.indexOf('/v1/messages') >= 0;
+  if (!localManagementRequest) {
+    metricsInstance.counter('proxy_requests_total').inc();
+  }
   const auditEnabled = isApiRequest
     && process.env.PROXY_DISABLE_CONVERSATION_AUDIT !== '1'
     && !(CONFIG.appSettings && CONFIG.appSettings.conversationAuditEnabled === false);
