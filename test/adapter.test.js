@@ -1021,6 +1021,34 @@ test('writes compact Trae raw progress comments when debug mode is enabled', asy
   });
 });
 
+test('can surface Trae raw progress as visible OpenAI stream text when explicitly enabled', async () => {
+  await withTraeSseServer((req, res) => {
+    assert.strictEqual(req.url, '/v1/chat/stream');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    res.write('event: raw_event\ndata: {"ts":1234,"service":"chat","method":"chat","channelId":"c1","event":"plan_item","payload":{"id":"p1","thought":{"redacted":true,"chars":8},"agent_status":{"status":"running"},"tool_call_info":{"id":"t1","name":"run_command","result":{"status":"success"}}}}\n\n');
+    res.write('event: text_delta\ndata: {"text":"done"}\n\n');
+    res.end('event: done\ndata: {"ok":true,"text":"done"}\n\n');
+  }, async (baseUrl) => {
+    const runtime = createFakeTraeRuntime(baseUrl, { rawProgressMode: 'visible', liveHeartbeatMs: 0 });
+    const chunks = [];
+    const clientRes = {
+      writeHead(statusCode, headers) {
+        this.statusCode = statusCode;
+        this.headers = headers;
+      },
+      write(chunk) { chunks.push(String(chunk)); },
+      end() { this.ended = true; },
+    };
+    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
+    const output = chunks.join('');
+    assert.ok(output.includes('[Trae plan_item tool=run_command status=success]'));
+    assert.ok(output.includes('"content":"done"'));
+    assert.ok(!output.includes('thought'));
+    assert.ok(!output.includes(': trae-raw'));
+    assert.ok(output.indexOf('[Trae plan_item') < output.indexOf('"content":"done"'));
+  });
+});
+
 test('writes OpenAI live stream chunks from Trae bridge SSE', async () => {
   await withTraeSseServer((req, res) => {
     assert.strictEqual(req.url, '/v1/chat/stream');
@@ -1156,6 +1184,58 @@ test('writes redacted Trae log progress comments while waiting for final text', 
       assert.ok(!output.includes('redacted'));
       assert.ok(output.indexOf('"kind":"tool_start"') < output.indexOf('"content":"late"'));
       assert.strictEqual(clientRes.ended, true);
+    });
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('can surface Trae log progress as visible OpenAI stream text when explicitly enabled', async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trae-log-visible-progress-'));
+  const logRoot = path.join(tempRoot, '20260606T000000');
+  const rendererDir = path.join(logRoot, 'window1');
+  const modularDir = path.join(logRoot, 'Modular');
+  fs.mkdirSync(rendererDir, { recursive: true });
+  fs.mkdirSync(modularDir, { recursive: true });
+  const rendererLog = path.join(rendererDir, 'renderer.log');
+  const agentLog = path.join(modularDir, 'ai-agent_0_1_stdout.log');
+  fs.writeFileSync(rendererLog, 'old renderer line\n');
+  fs.writeFileSync(agentLog, 'old agent line\n');
+  try {
+    await withTraeSseServer((req, res) => {
+      assert.strictEqual(req.url, '/v1/chat/stream');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      setTimeout(() => {
+        fs.appendFileSync(rendererLog, '2026-06-06T00:00:00.001-07:00 [info] [tooling] [message:msg_1] 11111111-1111-4111-8111-111111111111 icube.common.commands.tooling.listFolder start \n');
+        fs.appendFileSync(agentLog, '2026-06-06T00:00:00.003-07:00 INFO process_ipc_request:route:chat:do_chat: ai_agent::domain::plan::simple_service_v2: first token flushed thought, thought="", reasoning=Some("redacted") trace_id="trace_1" task_id=task_1 message_id=message_1\n');
+      }, 20);
+      setTimeout(() => {
+        res.write('event: text_delta\ndata: {"text":"late"}\n\n');
+        res.end('event: done\ndata: {"ok":true,"text":"late"}\n\n');
+      }, 420);
+    }, async (baseUrl) => {
+      const runtime = createFakeTraeRuntime(baseUrl, {
+        liveHeartbeatMs: 0,
+        liveLogProgress: true,
+        liveLogProgressMode: 'visible',
+        traeLogRoot: logRoot
+      });
+      const chunks = [];
+      const clientRes = {
+        writeHead(statusCode, headers) {
+          this.statusCode = statusCode;
+          this.headers = headers;
+        },
+        write(chunk) { chunks.push(String(chunk)); },
+        end() { this.ended = true; },
+      };
+      await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
+      const output = chunks.join('');
+      assert.ok(output.includes('[Trae tool_start command=icube.common.commands.tooling.listFolder]'));
+      assert.ok(output.includes('[Trae model_first_token]'));
+      assert.ok(output.includes('"content":"late"'));
+      assert.ok(!output.includes('reasoning'));
+      assert.ok(output.indexOf('[Trae tool_start') < output.indexOf('"content":"late"'));
     });
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
@@ -2111,6 +2191,9 @@ test('management handler aggregate exposes tool integration routes', () => {
     handleLocalCertUntrustRequest: noop,
     handleLocalTraeStatusRequest: noop,
     handleLocalTraeBridgeStatusRequest: noop,
+    handleLocalTraeDebugEventsRequest: noop,
+    handleLocalTraeDebugNativeStatusRequest: noop,
+    handleLocalTraeDebugNativeScanRequest: noop,
     handleLocalAntigravityCliStatusRequest: noop,
     handleLocalAntigravityCliApplyRequest: noop,
     handleLocalAntigravityCliRestoreRequest: noop,
