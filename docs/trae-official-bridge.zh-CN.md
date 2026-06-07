@@ -129,6 +129,8 @@ http://127.0.0.1:17861/debug/commands
 - `TRAE_BRIDGE_TIMEOUT_MS`，默认 5 分钟
 - `TRAE_BRIDGE_LIVE_HEARTBEAT_MS`，live stream 代理侧心跳间隔，默认 2 秒
 - `TRAE_BRIDGE_LOG_PROGRESS=0`，关闭 Trae 本地日志旁路进度事件
+- `TRAE_BRIDGE_RAW_PROGRESS=comment` 或 `1`，将 Raw Stream Patch 事件映射为
+  API SSE comment，默认关闭
 - `TRAE_BRIDGE_BUSY_RETRY_ATTEMPTS`，Trae 会话 busy / running 时的重试次数，默认 30
 - `TRAE_BRIDGE_BUSY_RETRY_DELAY_MS`，busy 重试间隔，默认 1000ms
 
@@ -447,6 +449,21 @@ $response = Invoke-WebRequest `
 
 ([regex]::Matches($response.Content, '^event: raw_event', 'Multiline')).Count
 ```
+
+让 OpenAI / Responses / Claude API 侧也看到这些过程事件，需要重启代理并开启：
+
+```powershell
+$env:TRAE_BRIDGE_RAW_PROGRESS = 'comment'
+```
+
+开启后代理不会把过程写入 assistant 正文，而是写成 SSE comment：
+
+```text
+: trae-raw {"source":"trae-raw","event":"plan_item","agentStatus":"running","toolName":"finish"}
+```
+
+标准 SDK 可能忽略 SSE comment；`curl`、`Invoke-WebRequest` 或自定义 SSE 客户端可以
+看到。这个模式只适合调试，不建议默认开启。
 
 ### 安全边界
 
