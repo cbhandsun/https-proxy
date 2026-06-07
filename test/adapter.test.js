@@ -1,5 +1,6 @@
 const assert = require('assert');
 const fs = require('fs');
+const http = require('http');
 const os = require('os');
 const path = require('path');
 const { Readable } = require('stream');
@@ -37,6 +38,7 @@ const {
   extractUsageFromJsonPayload,
   estimateCost,
 } = require('../lib/proxy/usage-report');
+const { createTraeBridgeRuntime } = require('../lib/proxy/trae-bridge-runtime');
 
 function buildModelsUrls(targetUrl, protocol) {
   const base = new URL(targetUrl);
@@ -929,6 +931,202 @@ test('builds OpenAI chat completion from Trae bridge text', () => {
   assert.strictEqual(response.model, 'gpt-5.4');
   assert.strictEqual(response.choices[0].message.role, 'assistant');
   assert.strictEqual(response.choices[0].message.content, '桥接成功');
+});
+
+function createFakeTraeRuntime(baseUrl, overrides = {}) {
+  return createTraeBridgeRuntime({
+    makeRequest: async () => ({ statusCode: 200, headers: {}, body: '{}' }),
+    getTraeOfficialBridgeUrl: (pathname) => baseUrl + pathname,
+    normalizeTraeBridgeText,
+    buildTraeBridgeOpenAIChatCompletion,
+    openAIChatToResponses,
+    processOpenAIChatSseChunkToResponses,
+    flushOpenAIChatSseToResponses,
+    writeClaudeSseEvent: () => {},
+    fallbackId: (prefix) => prefix + '_test',
+    stableCreated: () => 123,
+    bridgeTimeoutMs: 5000,
+    liveHeartbeatMs: 25,
+    liveLogProgress: false,
+    ...overrides,
+  });
+}
+
+async function withTraeSseServer(handler, fn) {
+  const server = http.createServer(handler);
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address();
+  try {
+    return await fn(`http://127.0.0.1:${port}`);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+test('streams Trae bridge SSE text and interaction events', async () => {
+  await withTraeSseServer((req, res) => {
+    assert.strictEqual(req.url, '/v1/chat/stream');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    res.write('event: text_delta\ndata: {"text":"hello"}\n\n');
+    res.write('event: progress\ndata: {"phase":"running","elapsedMs":2000}\n\n');
+    res.write('event: interaction\ndata: {"interaction":{"type":"RunCommand","command":"dir","cwd":"E:/repo"}}\n\n');
+    res.end('event: done\ndata: {"ok":true,"text":"hello world"}\n\n');
+  }, async (baseUrl) => {
+    const runtime = createFakeTraeRuntime(baseUrl);
+    const deltas = [];
+    const progressEvents = [];
+    const interactions = [];
+    const result = await runtime.streamTraeOfficialBridge({ prompt: 'hello', model: 'gpt-5.4' }, {
+      onTextDelta: (text) => deltas.push(text),
+      onProgress: (progress) => progressEvents.push(progress),
+      onInteraction: (interaction) => interactions.push(interaction),
+    });
+    assert.deepStrictEqual(deltas, ['hello']);
+    assert.strictEqual(progressEvents[0].phase, 'running');
+    assert.strictEqual(interactions[0].type, 'RunCommand');
+    assert.strictEqual(result.text, 'hello world');
+  });
+});
+
+test('writes OpenAI live stream chunks from Trae bridge SSE', async () => {
+  await withTraeSseServer((req, res) => {
+    assert.strictEqual(req.url, '/v1/chat/stream');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    res.write('event: text_delta\ndata: {"text":"first"}\n\n');
+    res.write('event: progress\ndata: {"phase":"running","elapsedMs":2000}\n\n');
+    res.write('event: interaction\ndata: {"interaction":{"type":"RunCommand","command":"dir","cwd":"E:/repo"}}\n\n');
+    res.end('event: done\ndata: {"ok":true,"text":"first"}\n\n');
+  }, async (baseUrl) => {
+    const runtime = createFakeTraeRuntime(baseUrl);
+    const chunks = [];
+    const clientRes = {
+      writeHead(statusCode, headers) {
+        this.statusCode = statusCode;
+        this.headers = headers;
+      },
+      write(chunk) { chunks.push(String(chunk)); },
+      end() { this.ended = true; },
+    };
+    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
+    const output = chunks.join('');
+    assert.strictEqual(clientRes.statusCode, 200);
+    assert.ok(output.includes('"role":"assistant"'));
+    assert.ok(output.includes('"content":"first"'));
+    assert.ok(output.includes(': trae-progress {"phase":"running","elapsedMs":2000}'));
+    assert.ok(output.includes('[Trae RunCommand cwd=E:/repo command=dir]'));
+    assert.ok(output.includes('data: [DONE]'));
+    assert.strictEqual(clientRes.ended, true);
+  });
+});
+
+test('writes proxy heartbeat while Trae bridge is waiting for final text', async () => {
+  await withTraeSseServer((req, res) => {
+    assert.strictEqual(req.url, '/v1/chat/stream');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    setTimeout(() => {
+      res.write('event: text_delta\ndata: {"text":"late"}\n\n');
+      res.end('event: done\ndata: {"ok":true,"text":"late"}\n\n');
+    }, 80);
+  }, async (baseUrl) => {
+    const runtime = createFakeTraeRuntime(baseUrl);
+    const chunks = [];
+    const clientRes = {
+      writeHead(statusCode, headers) {
+        this.statusCode = statusCode;
+        this.headers = headers;
+      },
+      write(chunk) { chunks.push(String(chunk)); },
+      end() { this.ended = true; },
+    };
+    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
+    const output = chunks.join('');
+    const heartbeatIndex = output.indexOf(': trae-progress {"phase":"running"');
+    const textIndex = output.indexOf('"content":"late"');
+    assert.ok(heartbeatIndex >= 0);
+    assert.ok(output.includes('"source":"proxy"'));
+    assert.ok(textIndex > heartbeatIndex);
+    assert.strictEqual(clientRes.ended, true);
+  });
+});
+
+test('finishes OpenAI live stream with visible Trae bridge error after headers are sent', async () => {
+  await withTraeSseServer((req, res) => {
+    assert.strictEqual(req.url, '/v1/chat/stream');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    res.end('event: error\ndata: {"error":"Now session is not waiting input, sessionId: test"}\n\n');
+  }, async (baseUrl) => {
+    const runtime = createFakeTraeRuntime(baseUrl, { liveHeartbeatMs: 0 });
+    const chunks = [];
+    const clientRes = {
+      writeHead(statusCode, headers) {
+        this.statusCode = statusCode;
+        this.headers = headers;
+      },
+      write(chunk) { chunks.push(String(chunk)); },
+      end() { this.ended = true; },
+    };
+    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
+    const output = chunks.join('');
+    assert.strictEqual(clientRes.statusCode, 200);
+    assert.ok(output.includes(': trae-progress {"phase":"error"'));
+    assert.ok(output.includes('[Trae bridge busy: Now session is not waiting input, sessionId: test]'));
+    assert.ok(output.includes('data: [DONE]'));
+    assert.strictEqual(clientRes.ended, true);
+  });
+});
+
+test('writes redacted Trae log progress comments while waiting for final text', async () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'trae-log-progress-'));
+  const logRoot = path.join(tempRoot, '20260606T000000');
+  const rendererDir = path.join(logRoot, 'window1');
+  const modularDir = path.join(logRoot, 'Modular');
+  fs.mkdirSync(rendererDir, { recursive: true });
+  fs.mkdirSync(modularDir, { recursive: true });
+  const rendererLog = path.join(rendererDir, 'renderer.log');
+  const agentLog = path.join(modularDir, 'ai-agent_0_1_stdout.log');
+  fs.writeFileSync(rendererLog, 'old renderer line\n');
+  fs.writeFileSync(agentLog, 'old agent line\n');
+  try {
+    await withTraeSseServer((req, res) => {
+      assert.strictEqual(req.url, '/v1/chat/stream');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      setTimeout(() => {
+        fs.appendFileSync(rendererLog, '2026-06-06T00:00:00.001-07:00 [info] [tooling] [message:msg_1] 11111111-1111-4111-8111-111111111111 icube.common.commands.tooling.listFolder start \n');
+        fs.appendFileSync(rendererLog, '2026-06-06T00:00:00.002-07:00 [info] [tooling] 11111111-1111-4111-8111-111111111111 icube.common.commands.tooling.listFolder end, cost=3ms [{\"code\":\"0\"}]\n');
+        fs.appendFileSync(agentLog, '2026-06-06T00:00:00.003-07:00 INFO process_ipc_request:route:chat:do_chat: ai_agent::domain::plan::simple_service_v2: first token flushed thought, thought=\"\", reasoning=Some(\"redacted\") trace_id=\"trace_1\" task_id=task_1 message_id=message_1\n');
+      }, 20);
+      setTimeout(() => {
+        res.write('event: text_delta\ndata: {"text":"late"}\n\n');
+        res.end('event: done\ndata: {"ok":true,"text":"late"}\n\n');
+      }, 420);
+    }, async (baseUrl) => {
+      const runtime = createFakeTraeRuntime(baseUrl, {
+        liveHeartbeatMs: 0,
+        liveLogProgress: true,
+        traeLogRoot: logRoot
+      });
+      const chunks = [];
+      const clientRes = {
+        writeHead(statusCode, headers) {
+          this.statusCode = statusCode;
+          this.headers = headers;
+        },
+        write(chunk) { chunks.push(String(chunk)); },
+        end() { this.ended = true; },
+      };
+      await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
+      const output = chunks.join('');
+      assert.ok(output.includes('"source":"trae-log"'));
+      assert.ok(output.includes('"kind":"tool_start"'));
+      assert.ok(output.includes('"kind":"tool_end"'));
+      assert.ok(output.includes('"kind":"model_first_token"'));
+      assert.ok(!output.includes('redacted'));
+      assert.ok(output.indexOf('"kind":"tool_start"') < output.indexOf('"content":"late"'));
+      assert.strictEqual(clientRes.ended, true);
+    });
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
 });
 
 test('formats Codex local session rate limits as OpenAI window limits', () => {

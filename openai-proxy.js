@@ -1058,11 +1058,15 @@ const {
 
 const {
   callTraeOfficialBridge,
+  streamTraeOfficialBridge,
   writeTraeBridgeOpenAIStream,
+  writeTraeBridgeOpenAILiveStream,
   buildTraeBridgeOpenAIResponsesResponse,
   writeTraeBridgeOpenAIResponsesStream,
+  writeTraeBridgeOpenAIResponsesLiveStream,
   buildTraeBridgeClaudeMessageResponse,
   writeTraeBridgeClaudeStream,
+  writeTraeBridgeClaudeLiveStream,
 } = createTraeBridgeRuntime({
   makeRequest,
   getTraeOfficialBridgeUrl,
@@ -1089,12 +1093,16 @@ const {
   claudeMessagesToOpenAIChat,
   getTraeOfficialBridgeUrl,
   callTraeOfficialBridge,
+  streamTraeOfficialBridge,
   writeTraeBridgeOpenAIStream,
+  writeTraeBridgeOpenAILiveStream,
   buildTraeBridgeOpenAIChatCompletion,
   buildTraeBridgeOpenAIResponsesResponse,
   writeTraeBridgeOpenAIResponsesStream,
+  writeTraeBridgeOpenAIResponsesLiveStream,
   buildTraeBridgeClaudeMessageResponse,
   writeTraeBridgeClaudeStream,
+  writeTraeBridgeClaudeLiveStream,
 });
 
 function sendGeminiRateLimit(clientReq, clientRes, upstreamPath, startTime, targetModel, retryAfterSeconds, message, meta) {
