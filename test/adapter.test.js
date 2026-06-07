@@ -967,6 +967,7 @@ test('streams Trae bridge SSE text and interaction events', async () => {
   await withTraeSseServer((req, res) => {
     assert.strictEqual(req.url, '/v1/chat/stream');
     res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    res.write('event: raw_event\ndata: {"ts":1234,"service":"chat","method":"chat","event":"plan_item","payload":{"id":"p1","agent_status":{"status":"running"},"tool_call_info":{"id":"t1","name":"finish"}}}\n\n');
     res.write('event: text_delta\ndata: {"text":"hello"}\n\n');
     res.write('event: progress\ndata: {"phase":"running","elapsedMs":2000}\n\n');
     res.write('event: interaction\ndata: {"interaction":{"type":"RunCommand","command":"dir","cwd":"E:/repo"}}\n\n');
@@ -976,15 +977,47 @@ test('streams Trae bridge SSE text and interaction events', async () => {
     const deltas = [];
     const progressEvents = [];
     const interactions = [];
+    const rawEvents = [];
     const result = await runtime.streamTraeOfficialBridge({ prompt: 'hello', model: 'gpt-5.4' }, {
       onTextDelta: (text) => deltas.push(text),
       onProgress: (progress) => progressEvents.push(progress),
       onInteraction: (interaction) => interactions.push(interaction),
+      onRawEvent: (rawEvent) => rawEvents.push(rawEvent),
     });
     assert.deepStrictEqual(deltas, ['hello']);
     assert.strictEqual(progressEvents[0].phase, 'running');
     assert.strictEqual(interactions[0].type, 'RunCommand');
+    assert.strictEqual(rawEvents[0].event, 'plan_item');
     assert.strictEqual(result.text, 'hello world');
+  });
+});
+
+test('writes compact Trae raw progress comments when debug mode is enabled', async () => {
+  await withTraeSseServer((req, res) => {
+    assert.strictEqual(req.url, '/v1/chat/stream');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    res.write('event: raw_event\ndata: {"ts":1234,"service":"chat","method":"chat","channelId":"c1","event":"plan_item","payload":{"id":"p1","task_id":"task1","thought":{"redacted":true,"chars":8},"reasoning_content":{"redacted":true,"chars":21},"agent_status":{"status":"running","run_mode":"foreground"},"tool_call_info":{"id":"t1","name":"finish","result":{"status":"success"}}}}\n\n');
+    res.write('event: text_delta\ndata: {"text":"done"}\n\n');
+    res.end('event: done\ndata: {"ok":true,"text":"done"}\n\n');
+  }, async (baseUrl) => {
+    const runtime = createFakeTraeRuntime(baseUrl, { rawProgressMode: 'comment', liveHeartbeatMs: 0 });
+    const chunks = [];
+    const clientRes = {
+      writeHead(statusCode, headers) {
+        this.statusCode = statusCode;
+        this.headers = headers;
+      },
+      write(chunk) { chunks.push(String(chunk)); },
+      end() { this.ended = true; },
+    };
+    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
+    const output = chunks.join('');
+    assert.ok(output.includes(': trae-raw {"source":"trae-raw","event":"plan_item"'));
+    assert.ok(output.includes('"agentStatus":"running"'));
+    assert.ok(output.includes('"toolName":"finish"'));
+    assert.ok(!output.includes('reasoning_content'));
+    assert.ok(output.includes('"content":"done"'));
+    assert.ok(output.includes('data: [DONE]'));
   });
 });
 

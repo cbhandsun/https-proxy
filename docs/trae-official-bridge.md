@@ -137,6 +137,8 @@ Proxy configuration knobs:
 - `TRAE_BRIDGE_LIVE_HEARTBEAT_MS` controls proxy-side live heartbeat interval,
   default 2 seconds
 - `TRAE_BRIDGE_LOG_PROGRESS=0` disables Trae local-log progress side-channel
+- `TRAE_BRIDGE_RAW_PROGRESS=comment` or `1` maps Raw Stream Patch events to API
+  SSE comments, disabled by default
 - `TRAE_BRIDGE_BUSY_RETRY_ATTEMPTS` controls retries when the Trae session is
   busy or running, default 30
 - `TRAE_BRIDGE_BUSY_RETRY_DELAY_MS` controls the busy retry delay, default
@@ -487,6 +489,22 @@ $response = Invoke-WebRequest `
 
 ([regex]::Matches($response.Content, '^event: raw_event', 'Multiline')).Count
 ```
+
+To expose these process events at the OpenAI / Responses / Claude API layer,
+restart the proxy with:
+
+```powershell
+$env:TRAE_BRIDGE_RAW_PROGRESS = 'comment'
+```
+
+The proxy keeps them out of assistant text and writes SSE comments instead:
+
+```text
+: trae-raw {"source":"trae-raw","event":"plan_item","agentStatus":"running","toolName":"finish"}
+```
+
+Standard SDKs may ignore SSE comments. `curl`, `Invoke-WebRequest`, or a custom
+SSE client can see them. This is intended for debugging, not as a default mode.
 
 ### Safety Boundary
 
