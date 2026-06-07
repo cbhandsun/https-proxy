@@ -129,8 +129,12 @@ http://127.0.0.1:17861/debug/commands
 - `TRAE_BRIDGE_TIMEOUT_MS`，默认 5 分钟
 - `TRAE_BRIDGE_LIVE_HEARTBEAT_MS`，live stream 代理侧心跳间隔，默认 2 秒
 - `TRAE_BRIDGE_LOG_PROGRESS=0`，关闭 Trae 本地日志旁路进度事件
+- `TRAE_BRIDGE_LOG_PROGRESS=visible`，将 Trae 日志旁路安全摘要写入 assistant
+  正文；普通 SDK 可见，但会改变输出内容
 - `TRAE_BRIDGE_RAW_PROGRESS=comment` 或 `1`，将 Raw Stream Patch 事件映射为
   API SSE comment，默认关闭
+- `TRAE_BRIDGE_RAW_PROGRESS=visible`，将 Raw Stream Patch 安全摘要写入
+  assistant 正文，例如 `[Trae plan_item tool=...]`
 - `TRAE_BRIDGE_BUSY_RETRY_ATTEMPTS`，Trae 会话 busy / running 时的重试次数，默认 30
 - `TRAE_BRIDGE_BUSY_RETRY_DELAY_MS`，busy 重试间隔，默认 1000ms
 
@@ -465,6 +469,23 @@ $env:TRAE_BRIDGE_RAW_PROGRESS = 'comment'
 标准 SDK 可能忽略 SSE comment；`curl`、`Invoke-WebRequest` 或自定义 SSE 客户端可以
 看到。这个模式只适合调试，不建议默认开启。
 
+如果希望普通 SDK/客户端也看到过程，可以改用可见模式：
+
+```powershell
+$env:TRAE_BRIDGE_RAW_PROGRESS = 'visible'
+$env:TRAE_BRIDGE_LOG_PROGRESS = 'visible'
+```
+
+这会把安全摘要写入流式正文，例如：
+
+```text
+[Trae tool_start command=icube.common.commands.tooling.listFolder]
+[Trae plan_item tool=run_command status=success]
+```
+
+可见模式更接近 Trae UI 里的过程感，但它会改变 assistant 输出文本；面向自动化消费
+时建议仍使用 `comment` 或单独读取诊断事件。
+
 ### 安全边界
 
 Raw payload 可能包含 prompt、模型配置、token 计数、`ak` / `sk`、
@@ -498,6 +519,59 @@ node scripts/unpatch-trae-raw-stream.js
 回滚后重启 Trae。`rawStreamCommand` 和 `raw_event` 深层事件会消失，但 Trae 安装
 完整性警告应随之消失。长期稳定方案仍应优先使用公开 bridge、日志旁路和心跳；
 Raw Stream Patch 只作为 Debug 模式开关。
+
+## 原生协议深探针（实验）
+
+现有默认方案仍保留：公开 bridge、日志旁路、Raw Stream Patch 和可见摘要模式都不依赖
+原生注入。下面这条线只用于验证 Trae agent 容器内更深的模型协议是否可观察。
+
+先安装 Frida 工具（一次性）：
+
+```powershell
+python -m pip install --user frida-tools
+```
+
+静态/运行时扫描：
+
+```powershell
+node scripts/trae-deep-probe.js --launch-cmd
+python scripts/trae-frida-scan.py
+```
+
+当前验证到的分层事实：
+
+- `ai_agent.dll` 内存在 `LLMClientRequestRaw`、`LLMRawChatMessage`、
+  `api/ide/v2/llm_raw_chat`、`request body`、`response body` 等协议字符串。
+- 加载 `ai_agent.dll` 的 Trae 进程导入了 `WinHttpSendRequest` 和
+  `WinHttpWriteData`，可作为 native HTTP 出站边界。
+- 加载 `aha_net.dll` 的 Trae 进程暴露 `AhaNet_fetch`、
+  `AhaNet_WsClient_send`，并通过 `sscronet.dll` 进入 Cronet 请求层。
+- 默认 Trae 日志通常只给 URL、`body_len` 和 typed request 摘要，不给完整 body。
+
+确定 PID 后，可做默认脱敏 hook：
+
+```powershell
+python scripts/trae-frida-scan.py
+
+# 选择输出里带 ai_agent.dll 的 PID，观察 WinHTTP 边界
+python scripts/trae-frida-native-probe.py --pid <ai_agent_pid> --duration 45
+
+# 选择输出里带 aha_net.dll 的 PID，观察 AhaNet / Cronet 边界
+python scripts/trae-frida-native-probe.py --pid <aha_net_pid> --duration 45
+```
+
+`trae-frida-native-probe.py` 默认只输出事件、长度、HTTP method、URL path、是否
+像 JSON、是否命中协议关键词；不打印 header value、请求体、prompt、token 或模型
+消息。只有显式加 `--capture-preview` 才会输出脱敏预览：
+
+```powershell
+python scripts/trae-frida-native-probe.py --pid <pid> --duration 20 --capture-preview
+```
+
+`--capture-preview` 仍可能包含敏感上下文，只能用于本机短时诊断，不要贴到 issue、
+日志或聊天里。若要捕获真实模型 body，下一步不是再扩展 API 代理，而是继续在
+`ai_agent.dll` 的 WinHTTP 写入点或 `aha_net.dll`/`sscronet.dll` 上传 provider
+回调上做一次性本机 hook；这已经进入高风险 Debug 区，不适合作为常驻产品功能。
 
 ## 排障清单
 
