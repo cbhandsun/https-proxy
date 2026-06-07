@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+coverage/
+tauri-ui/dist/
+tauri-ui/node_modules/
+src-tauri/target/
+src-tauri/gen/
+**/*.min.js
+**/*.lock
+package-lock.json
+.traegit/
+.git/
+docs/
+proxy.config.example.json

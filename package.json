@@ -13,6 +13,11 @@
     "test:all": "npm test && npm run test:integration",
     "check:syntax": "node scripts/check-syntax.js",
     "verify": "npm run check:syntax && npm run test:all",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,cjs,mjs,json,md}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{js,cjs,mjs,json,md}\" --ignore-path .prettierignore",
+    "prepare": "husky",
     "frontend:sync": "node scripts/sync-frontend.js",
     "frontend:check": "node scripts/sync-frontend.js --check",
     "dev": "npx tauri dev",
@@ -23,7 +28,18 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.0",
     "eslint": "^9.39.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "prettier": "^3.8.3"
+  },
+  "lint-staged": {
+    "*.{js,cjs,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "node-forge": "^1.4.0",
