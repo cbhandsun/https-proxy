@@ -21,7 +21,9 @@
     "tauri:build": "npx tauri build"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.9.0"
+    "@tauri-apps/cli": "^2.9.0",
+    "eslint": "^9.39.4",
+    "prettier": "^3.8.3"
   },
   "dependencies": {
     "node-forge": "^1.4.0",
