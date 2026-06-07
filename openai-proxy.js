@@ -755,43 +755,72 @@ const managementHandlers = createManagementHandlers({
   globalHttpsAgent,
 });
 
-let watchTimeout;
-try {
-  fs.watch(CONFIG_FILE, (event) => {
-    if (event === 'change') {
-      clearTimeout(watchTimeout);
-      watchTimeout = setTimeout(reloadProxyConfig, 100);
+// 配置文件热重载：debounce + lock + 重试
+let _configWatcher = null;
+function reloadProxyConfig() {
+  // 兼容旧 API: 立刻调度一次重载
+  if (_configWatcher && typeof _configWatcher.scheduleNow === 'function') {
+    _configWatcher.scheduleNow();
+  } else {
+    // 没有装上 watcher 时退化为旧实现
+    try {
+      const nextConfig = loadConfig();
+      CONFIG = nextConfig;
+      PROFILES = getProfiles(nextConfig);
+      ACTIVE_PROFILE = getActiveProfile(nextConfig);
+      LOCAL_SERVER = getLocalServer(nextConfig);
+      MODEL_ROUTES = getModelRoutes(nextConfig);
+      CLAUDE_DESKTOP_ROUTES = getClaudeDesktopRoutes(nextConfig);
+
+      const nextOptions = { ...DEFAULT_CONFIG.protocolOptions, ...(nextConfig.protocolOptions || {}) };
+      for (const key of Object.keys(PROTOCOL_OPTIONS)) {
+        delete PROTOCOL_OPTIONS[key];
+      }
+      Object.assign(PROTOCOL_OPTIONS, nextOptions);
+
+      const newAgent = createHttpsAgent();
+      globalHttpsAgent = newAgent;
+      https.globalAgent = newAgent;
+
+      log.info('[config] Configuration reloaded (legacy). Active profile:', ACTIVE_PROFILE.id);
+    } catch (err) {
+      log.error('[config] Failed to reload configuration:', err.message);
     }
+  }
+}
+
+try {
+  const { debounceReload } = require('./lib/proxy/config-watcher');
+  _configWatcher = debounceReload(CONFIG_FILE, (nextConfig) => {
+    try {
+      CONFIG = nextConfig;
+      PROFILES = getProfiles(nextConfig);
+      ACTIVE_PROFILE = getActiveProfile(nextConfig);
+      LOCAL_SERVER = getLocalServer(nextConfig);
+      MODEL_ROUTES = getModelRoutes(nextConfig);
+      CLAUDE_DESKTOP_ROUTES = getClaudeDesktopRoutes(nextConfig);
+
+      const nextOptions = { ...DEFAULT_CONFIG.protocolOptions, ...(nextConfig.protocolOptions || {}) };
+      for (const key of Object.keys(PROTOCOL_OPTIONS)) {
+        delete PROTOCOL_OPTIONS[key];
+      }
+      Object.assign(PROTOCOL_OPTIONS, nextOptions);
+
+      // Recreate HTTPS agent when TLS verification setting changes
+      const newAgent = createHttpsAgent();
+      globalHttpsAgent = newAgent;
+      https.globalAgent = newAgent;
+
+      log.info('[config] Configuration hot-reloaded successfully. Active profile:', ACTIVE_PROFILE.id);
+    } catch (err) {
+      log.error('[config] Failed to apply hot-reload configuration:', err.message);
+      throw err;
+    }
+  }, {
+    onError: (err) => log.warn('[config] Hot-reload error:', err && err.message),
   });
 } catch (err) {
   log.warn('[config] Failed to watch config file:', err.message);
-}
-
-function reloadProxyConfig() {
-  try {
-    const nextConfig = loadConfig();
-    CONFIG = nextConfig;
-    PROFILES = getProfiles(nextConfig);
-    ACTIVE_PROFILE = getActiveProfile(nextConfig);
-    LOCAL_SERVER = getLocalServer(nextConfig);
-    MODEL_ROUTES = getModelRoutes(nextConfig);
-    CLAUDE_DESKTOP_ROUTES = getClaudeDesktopRoutes(nextConfig);
-
-    const nextOptions = { ...DEFAULT_CONFIG.protocolOptions, ...(nextConfig.protocolOptions || {}) };
-    for (const key of Object.keys(PROTOCOL_OPTIONS)) {
-      delete PROTOCOL_OPTIONS[key];
-    }
-    Object.assign(PROTOCOL_OPTIONS, nextOptions);
-
-    // Recreate HTTPS agent when TLS verification setting changes
-    const newAgent = createHttpsAgent();
-    globalHttpsAgent = newAgent;
-    https.globalAgent = newAgent;
-
-    log.info('[config] Configuration hot-reloaded successfully. Active profile:', ACTIVE_PROFILE.id);
-  } catch (err) {
-    log.error('[config] Failed to hot-reload configuration:', err.message);
-  }
 }
 
 function fallbackId(prefix, value) {
