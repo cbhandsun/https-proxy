@@ -215,6 +215,52 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         return { ok: false, error: err && err.name === 'AbortError' ? 'Claude Desktop 状态检查超时' : err.message };
       }
     },
+    traeBridgeStatus: async () => {
+      try {
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/bridge/status`, {}, 7000);
+      } catch (err) {
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Bridge 状态检查超时' : err.message };
+      }
+    },
+    traeDebugEvents: async () => {
+      try {
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/events?limit=80`, {}, 7000);
+      } catch (err) {
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Debug 事件读取超时' : err.message };
+      }
+    },
+    traeDebugSettings: async () => {
+      try {
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/settings`, {}, 7000);
+      } catch (err) {
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Debug 开关读取超时' : err.message };
+      }
+    },
+    saveTraeDebugSettings: async (payload) => {
+      try {
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/settings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload || {})
+        }, 7000);
+      } catch (err) {
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Debug 开关保存超时' : err.message };
+      }
+    },
+    traeDebugNativeStatus: async () => {
+      try {
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/native/status`, {}, 7000);
+      } catch (err) {
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Native Debug 状态读取超时' : err.message };
+      }
+    },
+    traeDebugNativeScan: async () => {
+      try {
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/native/scan`, { method: 'POST' }, 30000);
+      } catch (err) {
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Native 扫描超时' : err.message };
+      }
+    },
     applyClaudeDesktop: async () => {
       try {
         return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/claude-desktop/apply`, { method: 'POST' }, 10000);

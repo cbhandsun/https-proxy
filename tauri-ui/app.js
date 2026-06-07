@@ -1812,6 +1812,249 @@ async function refreshClaudeCodeStatus() {
   }
 }
 
+function formatTraeBridgeUrl(status) {
+  const url = status && (status.bridgeUrl || status.url || status.healthUrl);
+  if (!url) return 'http://127.0.0.1:17861';
+  return String(url).replace(/\/health$/, '');
+}
+
+function formatTraeCommand(status, key, fallback = '未发现') {
+  const value = status && status[key];
+  return value ? String(value) : fallback;
+}
+
+async function refreshTraeBridgeStatus() {
+  const badgeEl = $('toolBadge-trae-bridge');
+  const dotEl = $('traeBridgeTitleDot');
+  const statusEl = $('traeBridgeStatus');
+  if (!statusEl) return;
+  if (!window.proxyManager.traeBridgeStatus) {
+    statusEl.textContent = '当前版本缺少 Trae Bridge 状态接口。';
+    statusEl.className = 'notice';
+    if (badgeEl) { badgeEl.textContent = '不可用'; badgeEl.className = 'badge error'; }
+    if (dotEl) dotEl.className = 'status-dot red';
+    return;
+  }
+  try {
+    const status = await window.proxyManager.traeBridgeStatus();
+    const reachable = status && status.ok !== false && (
+      status.statusCode === 200 ||
+      Boolean(status.command) ||
+      Boolean(status.waitCommand) ||
+      Boolean(status.streamCommand) ||
+      Boolean(status.rawStreamCommand)
+    );
+    if (!reachable) {
+      const reason = status && (status.error || status.message || status.statusCode);
+      statusEl.textContent = `Trae Bridge 未连接；本地桥接服务通常位于 http://127.0.0.1:17861。${reason ? `原因：${reason}` : '请确认 Trae 已启动并加载扩展。'}`;
+      statusEl.className = 'notice';
+      if (badgeEl) { badgeEl.textContent = '未连接'; badgeEl.className = 'badge official'; }
+      if (dotEl) dotEl.className = 'status-dot amber';
+      return;
+    }
+
+    const bridgeUrl = formatTraeBridgeUrl(status);
+    const waitCommand = formatTraeCommand(status, 'waitCommand', formatTraeCommand(status, 'command'));
+    const streamCommand = formatTraeCommand(status, 'streamCommand');
+    const rawStreamCommand = formatTraeCommand(status, 'rawStreamCommand');
+    const discoveredCount = Number.isFinite(status.discoveredCommandCount)
+      ? status.discoveredCommandCount
+      : (Array.isArray(status.discoveredCommands) ? status.discoveredCommands.length : 0);
+    const rawAvailable = rawStreamCommand !== '未发现';
+    const rawText = rawAvailable ? `Raw 调试流：${rawStreamCommand}` : 'Raw 调试流：未发现';
+
+    statusEl.textContent = `Trae Bridge 已连接；地址：${bridgeUrl}；等待命令：${waitCommand}；流式命令：${streamCommand}；${rawText}；发现命令：${discoveredCount} 个。`;
+    statusEl.className = 'notice green';
+    if (badgeEl) { badgeEl.textContent = rawAvailable ? '已连接' : '可用'; badgeEl.className = 'badge active'; }
+    if (dotEl) dotEl.className = 'status-dot green';
+    refreshTraeDebugSettings();
+  } catch (err) {
+    statusEl.textContent = `Trae Bridge 状态检查失败：${err && err.message ? err.message : err}`;
+    statusEl.className = 'notice';
+    if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
+    if (dotEl) dotEl.className = 'status-dot red';
+  }
+}
+
+let lastTraeNativeDebugCommands = [
+  'python scripts\\trae-frida-scan.py',
+  'python scripts\\trae-frida-native-probe.py --pid <ai_agent_pid> --duration 45',
+  'python scripts\\trae-frida-native-probe.py --pid <aha_net_pid> --duration 45'
+].join('\n');
+
+function renderTraeDebugEvents(events) {
+  const target = $('traeDebugEvents');
+  if (!target) return;
+  if (!Array.isArray(events) || events.length === 0) {
+    target.innerHTML = '<div class="muted">暂无过程事件。先发起一次 Trae 请求，或启用 Raw Stream Patch 后再刷新。</div>';
+    return;
+  }
+  target.innerHTML = events.slice(-40).reverse().map((event) => {
+    const source = event.source || 'trae';
+    const kind = event.kind || event.event || 'event';
+    const message = event.message || [
+      kind,
+      event.toolName ? `tool=${event.toolName}` : '',
+      event.toolStatus ? `status=${event.toolStatus}` : '',
+      event.bodyLen == null ? '' : `body=${event.bodyLen}`,
+    ].filter(Boolean).join(' ');
+    return `
+      <div class="trae-debug-event">
+        <div class="trae-debug-event-source">${escapeHtml(source)}</div>
+        <div class="trae-debug-event-message">${escapeHtml(message)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function formatTraeNativeCommandBlock(status, scanSummary) {
+  const commands = status && status.commands ? status.commands : {};
+  const aiPid = scanSummary && scanSummary.aiAgentPid;
+  const ahaPid = scanSummary && scanSummary.ahaNetPid;
+  return [
+    commands.installFrida || 'python -m pip install --user frida-tools',
+    commands.scan || 'python scripts\\trae-frida-scan.py',
+    aiPid
+      ? `python scripts\\trae-frida-native-probe.py --pid ${aiPid} --duration 45`
+      : (commands.aiAgentHook || 'python scripts\\trae-frida-native-probe.py --pid <ai_agent_pid> --duration 45'),
+    ahaPid
+      ? `python scripts\\trae-frida-native-probe.py --pid ${ahaPid} --duration 45`
+      : (commands.ahaNetHook || 'python scripts\\trae-frida-native-probe.py --pid <aha_net_pid> --duration 45'),
+  ].join('\n');
+}
+
+async function refreshTraeDebugEvents() {
+  const summaryEl = $('traeDebugSummary');
+  if (!summaryEl || !window.proxyManager.traeDebugEvents) return;
+  summaryEl.textContent = '正在读取 Trae 过程事件...';
+  summaryEl.className = 'notice';
+  try {
+    const [eventsResult, nativeStatus] = await Promise.all([
+      window.proxyManager.traeDebugEvents(),
+      window.proxyManager.traeDebugNativeStatus ? window.proxyManager.traeDebugNativeStatus() : Promise.resolve(null)
+    ]);
+    if (nativeStatus && nativeStatus.commands) {
+      lastTraeNativeDebugCommands = formatTraeNativeCommandBlock(nativeStatus);
+    }
+    if (!eventsResult || eventsResult.ok === false) {
+      summaryEl.textContent = `Trae Debug 事件读取失败：${eventsResult && eventsResult.error ? eventsResult.error : '未知错误'}`;
+      summaryEl.className = 'notice';
+      renderTraeDebugEvents([]);
+      return;
+    }
+    const rawCount = eventsResult.raw && Number.isFinite(eventsResult.raw.rawEventCount) ? eventsResult.raw.rawEventCount : 0;
+    const logCount = Number.isFinite(eventsResult.logEventCount) ? eventsResult.logEventCount : 0;
+    const eventCount = Array.isArray(eventsResult.events) ? eventsResult.events.length : 0;
+    summaryEl.textContent = `已聚合 ${eventCount} 条安全过程事件；Raw ${rawCount} 条，日志摘要 ${logCount} 条。`;
+    summaryEl.className = 'notice green';
+    renderTraeDebugEvents(eventsResult.events || []);
+  } catch (err) {
+    summaryEl.textContent = `Trae Debug 事件读取失败：${err && err.message ? err.message : err}`;
+    summaryEl.className = 'notice';
+  }
+}
+
+function applyTraeDebugSettingsToUi(settings) {
+  const rawEl = $('traeRawCommentsEnabled');
+  const visibleEl = $('traeApiVisibleProgressEnabled');
+  const logEl = $('traeLogProgressEnabled');
+  if (rawEl) rawEl.checked = Boolean(settings && settings.rawCommentsEnabled);
+  if (visibleEl) visibleEl.checked = Boolean(settings && settings.apiVisibleProgressEnabled);
+  if (logEl) logEl.checked = settings ? settings.liveLogProgress !== false : true;
+}
+
+function collectTraeDebugSettingsFromUi() {
+  const visible = Boolean($('traeApiVisibleProgressEnabled') && $('traeApiVisibleProgressEnabled').checked);
+  return {
+    rawCommentsEnabled: visible || Boolean($('traeRawCommentsEnabled') && $('traeRawCommentsEnabled').checked),
+    apiVisibleProgressEnabled: visible,
+    liveLogProgress: !($('traeLogProgressEnabled') && $('traeLogProgressEnabled').checked === false),
+  };
+}
+
+async function refreshTraeDebugSettings() {
+  if (!window.proxyManager.traeDebugSettings) return;
+  try {
+    const settings = await window.proxyManager.traeDebugSettings();
+    if (settings && settings.ok !== false) applyTraeDebugSettingsToUi(settings);
+  } catch (err) {
+    // Debug switches are optional; the status banner will show bridge health separately.
+  }
+}
+
+async function saveTraeDebugSettingsFromUi() {
+  const summaryEl = $('traeDebugSummary');
+  if (!window.proxyManager.saveTraeDebugSettings) return;
+  const payload = collectTraeDebugSettingsFromUi();
+  if ($('traeRawCommentsEnabled')) $('traeRawCommentsEnabled').checked = payload.rawCommentsEnabled;
+  if (summaryEl) {
+    summaryEl.textContent = '正在保存 Trae Debug 开关...';
+    summaryEl.className = 'notice';
+  }
+  try {
+    const settings = await window.proxyManager.saveTraeDebugSettings(payload);
+    if (!settings || settings.ok === false) throw new Error(settings && settings.error || '保存失败');
+    applyTraeDebugSettingsToUi(settings);
+    const msg = settings.apiVisibleProgressEnabled
+      ? 'Trae API 可见过程已开启；后续流式 API 会把安全过程摘要写入 assistant 正文。'
+      : 'Trae Debug 开关已保存；API 正文不再注入可见过程摘要。';
+    if (summaryEl) {
+      summaryEl.textContent = msg;
+      summaryEl.className = settings.apiVisibleProgressEnabled ? 'notice green' : 'notice';
+    }
+    $('output').textContent = msg;
+    showToast(msg, 'success');
+  } catch (err) {
+    const msg = `保存 Trae Debug 开关失败：${err && err.message ? err.message : err}`;
+    if (summaryEl) summaryEl.textContent = msg;
+    showToast(msg, 'error');
+  }
+}
+
+async function scanTraeNativeDebug() {
+  const outputEl = $('traeNativeDebugOutput');
+  const summaryEl = $('traeDebugSummary');
+  if (!outputEl || !window.proxyManager.traeDebugNativeScan) return;
+  outputEl.textContent = '正在扫描 Trae Native PID...';
+  if (summaryEl) {
+    summaryEl.textContent = 'Native 扫描运行中；这是一次性 Frida attach 扫描。';
+    summaryEl.className = 'notice';
+  }
+  try {
+    const [status, scan] = await Promise.all([
+      window.proxyManager.traeDebugNativeStatus ? window.proxyManager.traeDebugNativeStatus() : Promise.resolve(null),
+      window.proxyManager.traeDebugNativeScan()
+    ]);
+    const scanSummary = scan && scan.summary ? scan.summary : {};
+    if (status && status.commands) {
+      lastTraeNativeDebugCommands = formatTraeNativeCommandBlock(status, scanSummary);
+    }
+    const lines = [
+      scan && scan.ok ? 'Native 扫描完成。' : `Native 扫描失败：${scan && (scan.error || scan.status) || '未知错误'}`,
+      `ai_agent PID: ${scanSummary.aiAgentPid || '未发现'}`,
+      `aha_net PID: ${scanSummary.ahaNetPid || '未发现'}`,
+      '',
+      '候选进程:',
+      ...(Array.isArray(scanSummary.candidates) && scanSummary.candidates.length
+        ? scanSummary.candidates.map((item) => `- ${item.pid}: ${item.modules.join(', ')}`)
+        : ['- 未发现 native 候选']),
+      '',
+      '脱敏扫描输出:',
+      scan && scan.output ? scan.output : ''
+    ];
+    outputEl.textContent = lines.join('\n');
+    if (summaryEl) {
+      summaryEl.textContent = scan && scan.ok
+        ? 'Native PID 扫描完成；可复制 Hook 命令进行短时本机 Debug。'
+        : 'Native PID 扫描未完成；可检查 Frida/Python 状态。';
+      summaryEl.className = scan && scan.ok ? 'notice green' : 'notice';
+    }
+  } catch (err) {
+    outputEl.textContent = `Native 扫描失败：${err && err.message ? err.message : err}`;
+    if (summaryEl) summaryEl.textContent = outputEl.textContent;
+  }
+}
+
 async function refreshAntigravityCliStatus() {
   if (!window.proxyManager.antigravityCliStatus) return;
   const badgeEl = $('toolBadge-antigravity-cli');
@@ -1995,6 +2238,7 @@ async function refreshAllToolStatuses(options = {}) {
   toolStatusRefreshInFlight = Promise.allSettled([
     refreshClaudeDesktopStatus(),
     refreshClaudeCodeStatus(),
+    refreshTraeBridgeStatus(),
     refreshAntigravityCliStatus(),
     refreshGeminiCliStatus(),
     refreshCodexStatus(),
@@ -2937,6 +3181,61 @@ $('restoreClaudeCode').onclick = async () => {
   showToast(msg, status.ok ? 'success' : 'error');
 };
 $('refreshClaudeCode').onclick = refreshClaudeCodeStatus;
+
+const TRAE_RAW_PROGRESS_ENV_COMMAND = [
+  "$env:TRAE_BRIDGE_RAW_PROGRESS = 'comment'",
+  '.\\proxy.bat restart'
+].join('\n');
+
+const TRAE_VISIBLE_PROGRESS_ENV_COMMAND = [
+  "$env:TRAE_BRIDGE_RAW_PROGRESS = 'visible'",
+  "$env:TRAE_BRIDGE_LOG_PROGRESS = 'visible'",
+  '.\\proxy.bat restart'
+].join('\n');
+
+const refreshTraeBridgeButton = $('refreshTraeBridge');
+if (refreshTraeBridgeButton) refreshTraeBridgeButton.onclick = refreshTraeBridgeStatus;
+
+const refreshTraeDebugEventsButton = $('refreshTraeDebugEvents');
+if (refreshTraeDebugEventsButton) refreshTraeDebugEventsButton.onclick = refreshTraeDebugEvents;
+
+const scanTraeNativeDebugButton = $('scanTraeNativeDebug');
+if (scanTraeNativeDebugButton) scanTraeNativeDebugButton.onclick = scanTraeNativeDebug;
+
+['traeRawCommentsEnabled', 'traeApiVisibleProgressEnabled', 'traeLogProgressEnabled'].forEach((id) => {
+  const input = $(id);
+  if (input) input.onchange = saveTraeDebugSettingsFromUi;
+});
+
+const copyTraeNativeDebugCommandsButton = $('copyTraeNativeDebugCommands');
+if (copyTraeNativeDebugCommandsButton) {
+  copyTraeNativeDebugCommandsButton.onclick = async () => {
+    await navigator.clipboard.writeText(lastTraeNativeDebugCommands);
+    const msg = 'Trae Native Debug 命令已复制。默认命令为脱敏短时运行；不要长期常驻。';
+    $('output').textContent = msg;
+    showToast(msg, 'success');
+  };
+}
+
+const copyTraeRawProgressEnvButton = $('copyTraeRawProgressEnv');
+if (copyTraeRawProgressEnvButton) {
+  copyTraeRawProgressEnvButton.onclick = async () => {
+    await navigator.clipboard.writeText(TRAE_RAW_PROGRESS_ENV_COMMAND);
+    const msg = 'Trae Raw 调试流开关命令已复制，执行后需重启代理进程。';
+    $('output').textContent = msg;
+    showToast(msg, 'success');
+  };
+}
+
+const copyTraeVisibleProgressEnvButton = $('copyTraeVisibleProgressEnv');
+if (copyTraeVisibleProgressEnvButton) {
+  copyTraeVisibleProgressEnvButton.onclick = async () => {
+    await navigator.clipboard.writeText(TRAE_VISIBLE_PROGRESS_ENV_COMMAND);
+    const msg = 'Trae 可见过程开关已复制，执行后普通流式客户端也能看到过程摘要。';
+    $('output').textContent = msg;
+    showToast(msg, 'success');
+  };
+}
 
 // Antigravity CLI
 $('applyAntigravityCli').onclick = async () => {

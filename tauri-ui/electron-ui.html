@@ -376,6 +376,14 @@
                   </div>
                   <span class="badge" id="toolBadge-codex-desktop">检查中...</span>
                 </div>
+                <!-- Trae Bridge -->
+                <div class="tool-item" data-tool-id="trae-bridge" id="toolItem-trae-bridge">
+                  <div class="tool-item-info">
+                    <span class="tool-item-title">Trae</span>
+                    <span class="tool-item-desc">官方登录桥接与调试流</span>
+                  </div>
+                  <span class="badge" id="toolBadge-trae-bridge">检查中...</span>
+                </div>
                 <!-- Claude Code CLI -->
                 <div class="tool-item" data-tool-id="claude-code" id="toolItem-claude-code">
                   <div class="tool-item-info">
@@ -516,6 +524,53 @@
                       <button id="copyCodexApiLoginDesktop" class="light" style="margin: 0;">复制 API 登录命令</button>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <!-- Trae Bridge 配置面板 -->
+              <div id="toolPanel-trae-bridge" class="tool-panel">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h3 style="margin: 0; font-size: 16px;">Trae 集成</h3>
+                  <span id="traeBridgeTitleDot" class="status-dot"></span>
+                </div>
+                <div class="muted hint" style="margin-bottom: 12px;">Trae 官方登录通过本地扩展桥接到代理；这里集中查看桥接健康、命令能力与调试流入口。</div>
+
+                <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px;">
+                  <div id="traeBridgeStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">正在检查 Trae Bridge 状态...</div>
+                  <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start; flex-wrap: wrap;">
+                    <button id="refreshTraeBridge" class="light" style="margin: 0;">刷新状态</button>
+                    <button id="copyTraeRawProgressEnv" class="light" style="margin: 0;">复制调试流开关</button>
+                    <button id="copyTraeVisibleProgressEnv" class="light" style="margin: 0;">复制可见过程开关</button>
+                  </div>
+                </div>
+
+                <div class="card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px;">
+                  <h3 style="margin-top: 0; font-size: 14px;">能力边界</h3>
+                  <div style="font-size: 13px; line-height: 1.6; color: var(--text);">
+                    <p>1. Trae Bridge 依赖 Trae 扩展宿主的 <code>127.0.0.1:17861</code> 本地服务，代理只负责接入和转译。</p>
+                    <p>2. 普通官方登录链路只能看到最终返回；Raw Stream Patch 属于诊断模式，可把 Trae 原始事件映射成 SSE 注释。</p>
+                    <p>3. 可见过程模式会把安全摘要写入 assistant 正文，普通 SDK 也能看到，但会改变最终输出内容。</p>
+                    <p>4. Raw Stream Patch 会修改 Trae 安装文件，可能触发“安装似乎损坏”的完整性警告；不建议作为常驻模式。</p>
+                  </div>
+                </div>
+
+                <div class="card trae-debug-card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px; margin-top: 16px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap;">
+                    <h3 style="margin: 0; font-size: 14px;">Trae Debug Center</h3>
+                    <div class="status-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                      <button id="refreshTraeDebugEvents" class="light" style="margin: 0;">刷新过程事件</button>
+                      <button id="scanTraeNativeDebug" class="light" style="margin: 0;">扫描 Native PID</button>
+                      <button id="copyTraeNativeDebugCommands" class="light" style="margin: 0;">复制 Hook 命令</button>
+                    </div>
+                  </div>
+                  <div class="settings-grid trae-debug-switches" style="margin: 0 0 10px 0;">
+                    <label><input id="traeRawCommentsEnabled" type="checkbox"><span><span class="setting-title">Raw SSE 注释</span><span class="setting-desc">把 Raw Stream Patch 安全摘要写成 SSE comment，普通 SDK 可能忽略。</span></span></label>
+                    <label><input id="traeApiVisibleProgressEnabled" type="checkbox"><span><span class="setting-title">API 可见过程</span><span class="setting-desc">把安全摘要写入 assistant 正文，普通流式客户端可见，会改变输出内容。</span></span></label>
+                    <label><input id="traeLogProgressEnabled" type="checkbox" checked><span><span class="setting-title">日志旁路过程</span><span class="setting-desc">读取 Trae 本地日志里的工具/模型阶段摘要，关闭后 API 不再输出日志旁路进度。</span></span></label>
+                  </div>
+                  <div id="traeDebugSummary" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">等待刷新 Debug 事件。</div>
+                  <div id="traeDebugEvents" class="trae-debug-events"></div>
+                  <pre id="traeNativeDebugOutput" class="trae-debug-output">Native Debug 未扫描。</pre>
                 </div>
               </div>
 

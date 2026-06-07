@@ -518,6 +518,49 @@ tr:hover td { background: var(--hover-bg); }
 .route-arrow { display: flex; align-items: center; color: var(--muted); font-weight: 800; justify-content: center; }
 
 .notice { border: 1px solid rgba(217, 119, 6, 0.2); background: var(--warning-soft); color: var(--warning); border-radius: var(--radius-md); padding: 10px 12px; font-size: 13px; margin-top: 10px; line-height: 1.45; }
+.notice.green { border-color: rgba(16, 185, 129, 0.2); background: var(--success-soft); color: var(--success); }
+
+.trae-debug-card {
+  display: grid;
+  gap: 10px;
+}
+
+.trae-debug-events {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.trae-debug-event {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  font-size: 12px;
+}
+
+.trae-debug-event-source {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.trae-debug-event-message {
+  min-width: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.trae-debug-output {
+  max-height: 260px;
+  overflow: auto;
+  margin: 0;
+  font-size: 12px;
+}
 
 .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: #94a3b8; transition: all 0.3s ease; position: relative; }
 .status-dot.green { background: var(--success); box-shadow: 0 0 10px var(--success-soft); }

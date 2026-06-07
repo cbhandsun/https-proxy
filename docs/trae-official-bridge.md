@@ -137,8 +137,12 @@ Proxy configuration knobs:
 - `TRAE_BRIDGE_LIVE_HEARTBEAT_MS` controls proxy-side live heartbeat interval,
   default 2 seconds
 - `TRAE_BRIDGE_LOG_PROGRESS=0` disables Trae local-log progress side-channel
+- `TRAE_BRIDGE_LOG_PROGRESS=visible` writes safe local-log progress summaries
+  into assistant text; regular SDKs can see it, but it changes output content
 - `TRAE_BRIDGE_RAW_PROGRESS=comment` or `1` maps Raw Stream Patch events to API
   SSE comments, disabled by default
+- `TRAE_BRIDGE_RAW_PROGRESS=visible` writes safe Raw Stream Patch summaries into
+  assistant text, for example `[Trae plan_item tool=...]`
 - `TRAE_BRIDGE_BUSY_RETRY_ATTEMPTS` controls retries when the Trae session is
   busy or running, default 30
 - `TRAE_BRIDGE_BUSY_RETRY_DELAY_MS` controls the busy retry delay, default
@@ -506,6 +510,24 @@ The proxy keeps them out of assistant text and writes SSE comments instead:
 Standard SDKs may ignore SSE comments. `curl`, `Invoke-WebRequest`, or a custom
 SSE client can see them. This is intended for debugging, not as a default mode.
 
+If regular SDKs or clients need to see process summaries, use visible mode:
+
+```powershell
+$env:TRAE_BRIDGE_RAW_PROGRESS = 'visible'
+$env:TRAE_BRIDGE_LOG_PROGRESS = 'visible'
+```
+
+That writes safe summaries into streamed assistant text:
+
+```text
+[Trae tool_start command=icube.common.commands.tooling.listFolder]
+[Trae plan_item tool=run_command status=success]
+```
+
+Visible mode feels closer to the Trae UI process stream, but it changes
+assistant output text. For automation, prefer `comment` mode or a dedicated
+diagnostic event consumer.
+
 ### Safety Boundary
 
 Raw payloads can contain prompt text, model config, token counts, `ak` / `sk`,
@@ -542,6 +564,65 @@ Restart Trae after rollback. The deep `rawStreamCommand` / `raw_event` path will
 disappear, and the install-integrity warning should disappear as well. For
 normal operation, prefer the public bridge command, log side-channel, and
 heartbeat progress; keep Raw Stream Patch as a Debug-mode switch.
+
+## Native Protocol Deep Probe (Experimental)
+
+The existing default paths remain unchanged: public bridge, log side-channel,
+Raw Stream Patch, and visible summary mode do not depend on native injection.
+This line is only for checking whether deeper model-protocol traffic inside the
+Trae agent container is observable.
+
+Install Frida tools once:
+
+```powershell
+python -m pip install --user frida-tools
+```
+
+Static/runtime scan:
+
+```powershell
+node scripts/trae-deep-probe.js --launch-cmd
+python scripts/trae-frida-scan.py
+```
+
+Verified layers so far:
+
+- `ai_agent.dll` contains protocol strings such as `LLMClientRequestRaw`,
+  `LLMRawChatMessage`, `api/ide/v2/llm_raw_chat`, `request body`, and
+  `response body`.
+- The Trae process that loads `ai_agent.dll` imports `WinHttpSendRequest` and
+  `WinHttpWriteData`, which are native HTTP outbound boundaries.
+- The Trae process that loads `aha_net.dll` exports `AhaNet_fetch` and
+  `AhaNet_WsClient_send`, then enters Cronet through `sscronet.dll`.
+- Default Trae logs usually expose URL, `body_len`, and typed request summaries,
+  not full request bodies.
+
+After identifying PIDs, run the redacted native hook:
+
+```powershell
+python scripts/trae-frida-scan.py
+
+# Pick the PID that has ai_agent.dll to watch WinHTTP boundaries
+python scripts/trae-frida-native-probe.py --pid <ai_agent_pid> --duration 45
+
+# Pick the PID that has aha_net.dll to watch AhaNet / Cronet boundaries
+python scripts/trae-frida-native-probe.py --pid <aha_net_pid> --duration 45
+```
+
+`trae-frida-native-probe.py` defaults to redacted output: event names, lengths,
+HTTP methods, URL paths, JSON-like hints, and protocol-keyword hits. It does not
+print header values, request bodies, prompts, tokens, or model messages. Only
+explicitly enabling `--capture-preview` prints a redacted preview:
+
+```powershell
+python scripts/trae-frida-native-probe.py --pid <pid> --duration 20 --capture-preview
+```
+
+`--capture-preview` can still contain sensitive local context. Use it only for a
+short local diagnostic run, and do not paste its output into issues, logs, or
+chat. Capturing the real model body would require a one-off local hook around
+`ai_agent.dll` WinHTTP writes or `aha_net.dll` / `sscronet.dll` upload-provider
+callbacks. That is a high-risk Debug path, not a permanent product feature.
 
 ## Troubleshooting
 
