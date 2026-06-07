@@ -6,7 +6,7 @@
     "postinstall": "npm run frontend:sync",
     "start": "node openai-proxy.js",
     "test": "npm run frontend:check && npm run test:unit && npm run test:thinking && npm run test:env",
-    "test:unit": "node test/adapter.test.js && node test/secret-crypto.test.js && node test/exception-handlers.test.js && node test/logger.test.js && node test/config-watcher.test.js && node test/route-index.test.js && node test/protocol-openai.test.js && node test/stream-claude.test.js && node test/metrics.test.js && node test/config-protocol-version.test.js",
+    "test:unit": "node test/adapter.test.js && node test/secret-crypto.test.js && node test/exception-handlers.test.js && node test/logger.test.js && node test/config-watcher.test.js && node test/route-index.test.js && node test/protocol-openai.test.js && node test/stream-claude.test.js && node test/metrics.test.js && node test/config-protocol-version.test.js && node test/extension-utils.test.js && node test/extension-sanitize.test.js",
     "test:thinking": "node test/thinking-persistence.test.js",
     "test:env": "node test/env-tools.test.js && node test/tool-configs.test.js",
     "test:integration": "node test/headers-routing.test.js",
