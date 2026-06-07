@@ -1049,6 +1049,42 @@ test('can surface Trae raw progress as visible OpenAI stream text when explicitl
   });
 });
 
+test('can surface Trae raw progress using runtime debug switch without restart', async () => {
+  let debugSettings = { rawProgressMode: '', logProgressMode: '', liveLogProgress: false };
+  await withTraeSseServer((req, res) => {
+    assert.strictEqual(req.url, '/v1/chat/stream');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+    res.write('event: raw_event\ndata: {"event":"plan_item","payload":{"agent_status":{"status":"running"},"tool_call_info":{"name":"run_command","result":{"status":"success"}}}}\n\n');
+    res.write('event: text_delta\ndata: {"text":"done"}\n\n');
+    res.end('event: done\ndata: {"ok":true,"text":"done"}\n\n');
+  }, async (baseUrl) => {
+    const runtime = createFakeTraeRuntime(baseUrl, {
+      liveHeartbeatMs: 0,
+      getTraeDebugSettings: () => debugSettings,
+    });
+    const firstChunks = [];
+    const firstRes = {
+      writeHead(statusCode) { this.statusCode = statusCode; },
+      write(chunk) { firstChunks.push(String(chunk)); },
+      end() { this.ended = true; },
+    };
+    await runtime.writeTraeBridgeOpenAILiveStream(firstRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
+    assert.ok(!firstChunks.join('').includes('[Trae plan_item'));
+
+    debugSettings = { rawProgressMode: 'visible', logProgressMode: 'visible', liveLogProgress: true };
+    const secondChunks = [];
+    const secondRes = {
+      writeHead(statusCode) { this.statusCode = statusCode; },
+      write(chunk) { secondChunks.push(String(chunk)); },
+      end() { this.ended = true; },
+    };
+    await runtime.writeTraeBridgeOpenAILiveStream(secondRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
+    const output = secondChunks.join('');
+    assert.ok(output.includes('[Trae plan_item tool=run_command status=success]'));
+    assert.ok(output.includes('"content":"done"'));
+  });
+});
+
 test('writes OpenAI live stream chunks from Trae bridge SSE', async () => {
   await withTraeSseServer((req, res) => {
     assert.strictEqual(req.url, '/v1/chat/stream');
@@ -2192,6 +2228,8 @@ test('management handler aggregate exposes tool integration routes', () => {
     handleLocalTraeStatusRequest: noop,
     handleLocalTraeBridgeStatusRequest: noop,
     handleLocalTraeDebugEventsRequest: noop,
+    handleLocalTraeDebugSettingsRequest: noop,
+    handleLocalTraeDebugSettingsSaveRequest: noop,
     handleLocalTraeDebugNativeStatusRequest: noop,
     handleLocalTraeDebugNativeScanRequest: noop,
     handleLocalAntigravityCliStatusRequest: noop,
