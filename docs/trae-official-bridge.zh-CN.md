@@ -117,6 +117,8 @@ OpenAI / Responses / Claude 客户端
 ```text
 http://127.0.0.1:17861/health
 http://127.0.0.1:17861/v1/chat
+http://127.0.0.1:17861/v1/chat/stream
+http://127.0.0.1:17861/debug/commands
 ```
 
 可配置环境变量：
@@ -125,6 +127,10 @@ http://127.0.0.1:17861/v1/chat
 - `TRAE_BRIDGE_PORT` 或 `TRAE_OPENAI_BRIDGE_PORT`，默认 `17861`
 - `TRAE_BRIDGE_URL` 或 `TRAE_OPENAI_BRIDGE_URL`，可覆盖完整桥接地址
 - `TRAE_BRIDGE_TIMEOUT_MS`，默认 5 分钟
+- `TRAE_BRIDGE_LIVE_HEARTBEAT_MS`，live stream 代理侧心跳间隔，默认 2 秒
+- `TRAE_BRIDGE_LOG_PROGRESS=0`，关闭 Trae 本地日志旁路进度事件
+- `TRAE_BRIDGE_BUSY_RETRY_ATTEMPTS`，Trae 会话 busy / running 时的重试次数，默认 30
+- `TRAE_BRIDGE_BUSY_RETRY_DELAY_MS`，busy 重试间隔，默认 1000ms
 
 ## 协议转换
 
@@ -151,6 +157,51 @@ Trae bridge 目前支持三个代理入口：
 
 当前 streaming 是兼容流式：等 Trae 完成后，把最终文本包装为 SSE chunk 输出。
 它不是 token 级 AhaNet 实时流。
+
+因此 Trae UI 里显示的思考过程、执行步骤和工具调用，当前不会从 OpenAI /
+Claude / Responses 接口实时吐出。代理侧现在调用的是
+`wx.bridge.sendAndWaitResponse`，这个命令只把 Trae 最终回复返回给本地 bridge。
+如果要把过程映射到接口事件，需要先确认 Trae extension host 是否暴露可用的
+streaming 命令，例如 `im.bridge.sendPromptStreaming`，以及这个命令是否能返回
+可序列化的事件流。
+
+新增的 `/v1/chat/stream` 会调用 `im.bridge.sendPromptStreaming`，把 Trae 的累计
+文本回调转为 `text_delta` SSE，把未确认的 Trae 交互转为 `interaction` SSE。代理
+再把这些事件转换到 OpenAI Chat、OpenAI Responses 或 Claude Messages 的流式
+响应里。第一版不会把 Trae 内部工具伪造成客户端工具调用，而是作为可见文本标记
+输出，避免客户端重复执行 Trae 已经处理的工具。
+
+Trae 当前公开 streaming 命令通常只在最终 `ReplyUser` 计划项出现时才回调文本，
+所以中间的 UI 思考/执行步骤不一定会变成 `text_delta`。bridge 会每 2 秒输出
+`progress` SSE 心跳；代理侧将其转换为 OpenAI/Responses 的 SSE comment 或
+Claude `ping` 事件。这个心跳只表示 Trae 仍在运行，不代表拿到了隐藏思考内容。
+
+继续排查后确认，Trae 的 renderer / ai-agent 日志会更早记录部分执行状态，例如：
+
+- `[ai-chat][sendToAgent]`：请求进入 Trae 会话。
+- `[tooling] ... start/end`：Trae 侧 IDE 工具或命令开始/结束。
+- `[ai-chat][PlanItemStreamParser] confirm_info received`：计划项确认状态。
+- `first token flushed thought`：模型首 token 已到达，但日志里的 reasoning 文本不会转发。
+- `[AgentStatus] received`、`plan final token cost`：agent 完成与耗时。
+
+代理现在会在 live stream 期间从当前 Trae 日志文件的请求起始偏移开始尾随新增行，
+把这些安全摘要转换成 `source:"trae-log"` 的进度事件。OpenAI Chat / Responses
+入口会以 SSE comment 输出，例如：
+
+```text
+: trae-progress {"source":"trae-log","kind":"tool_start","command":"icube.common.commands.tooling.listFolder"}
+```
+
+Claude 入口仍保持协议兼容，只把这些日志进度映射为 `ping`，不把状态文本写入正文。
+日志旁路不会输出命令结果正文，也不会输出日志中的 reasoning 片段。它只是让接口侧
+能比最终回复更早看到 Trae 侧确实在执行哪些阶段。
+
+如果 streaming 命令遇到 `Now session is not waiting input` / busy / running，
+bridge 会按 `TRAE_BRIDGE_BUSY_RETRY_ATTEMPTS` 和
+`TRAE_BRIDGE_BUSY_RETRY_DELAY_MS` 重试，并在 SSE 里输出 `phase:"busy"` 进度。
+重试仍失败时会回退到 `wx.bridge.sendAndWaitResponse`。如果流式响应头已经发出，
+后续错误会作为可见的 bridge busy / error 标记写入流里，然后正常结束流，避免
+接口侧只看到长时间空白或突然断流。
 
 ## 并发处理
 
@@ -192,6 +243,19 @@ Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:17861/health' -Timeout
   "port": 17861
 }
 ```
+
+检查 Trae extension host 当前可见的 bridge / streaming 候选命令：
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:17861/debug/commands' -TimeoutSec 3
+```
+
+重点看：
+
+- `waitCommand`：当前实际用于生成的等待式命令。
+- `streamCommand`：是否发现可用 streaming 候选命令。
+- `streamingCommands`：候选 streaming 命令是否 available。
+- `discoveredCommands`：Trae 当前暴露的相关命令列表。
 
 通过管理端点检查：
 
@@ -291,6 +355,132 @@ Invoke-WebRequest `
 - Chat: `3447 /v1/chat/completions`
 
 例如，在 Claude 入口调用 `/v1/chat/completions` 会被拒绝，这是正常的路径保护。
+
+## Raw Stream Patch 诊断模式
+
+`im.bridge.sendPromptStreaming` 是公开 bridge 命令，只能稳定拿到累计文本、
+`interaction` 和运行心跳。要观察 Trae UI 中更早出现的计划项、模型配置、token
+统计和内部 timing，需要临时 patch Trae 安装目录里的 workbench bundle。
+
+本次验证确认的最深可用钩子是：
+
+```text
+Trae workbench.desktop.main.js
+  -> TransportManager.executeStreamRequest
+  -> this._client.sendStreamRequest("request_stream", packet, onData, onError, onEnd)
+  -> onData(f)
+  -> f.data.event / f.data.payload
+```
+
+这个位置比 `im.bridge.sendPromptStreaming` 更早。它直接位于 Aha RPC
+`request_stream` 返回到 renderer 后的第一站，可以看到：
+
+- `metadata`
+- `model_config`
+- `token_usage`
+- `timing_events`
+- `plan_item`
+- `done`
+
+验证时，最小请求 `请只回复 OK。` 的 `/v1/chat/stream` 返回过：
+
+```text
+RAW_EVENT_COUNT=18
+TEXT_DELTA_COUNT=1
+```
+
+其中 `raw_event` 会先于最终 `text_delta` 出现。示例事件：
+
+```text
+event: raw_event
+data: {"event":"plan_item","payload":{"agent_status":{"status":"running"}}}
+
+event: raw_event
+data: {"event":"done","payload":{"status":"completed"}}
+```
+
+### 安装与验证
+
+安装实验补丁：
+
+```powershell
+node scripts/patch-trae-raw-stream.js
+```
+
+脚本会 patch 两类文件并自动备份：
+
+- `%LOCALAPPDATA%/Programs/Trae/resources/app/out/vs/workbench/workbench.desktop.main.js`
+- `%LOCALAPPDATA%/Programs/Trae/resources/app/node_modules/@byted-icube/ai-modules-chat/dist/index.mjs`
+
+补丁加载需要重启 Trae。重启后检查命令是否出现：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:17861/debug/commands |
+  ConvertTo-Json -Depth 6
+```
+
+期望包含：
+
+```json
+{
+  "rawStreamCommand": "im.bridge.subscribeRawStream"
+}
+```
+
+检查 raw 队列快照：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:17861/debug/raw-stream |
+  ConvertTo-Json -Depth 8
+```
+
+检查 SSE 是否实时输出 raw 事件：
+
+```powershell
+$body = @{ prompt = '请只回复 OK。' } | ConvertTo-Json -Compress
+$response = Invoke-WebRequest `
+  -Uri http://127.0.0.1:17861/v1/chat/stream `
+  -Method POST `
+  -ContentType 'application/json' `
+  -Body $body `
+  -TimeoutSec 120
+
+([regex]::Matches($response.Content, '^event: raw_event', 'Multiline')).Count
+```
+
+### 安全边界
+
+Raw payload 可能包含 prompt、模型配置、token 计数、`ak` / `sk`、
+`reasoning_content`、`thought` 等敏感字段。bridge 默认做递归脱敏：
+
+- `authorization` / `token` / `api_key` / `secret` / `ak` / `sk` 等输出
+  `[redacted]`
+- `reasoning` / `thought` / `prompt` / `content` / `text` 等正文类字段只保留
+  `{ redacted: true, chars: N }`
+- 大对象限制深度、数组长度和字段数量，避免把整段内部上下文吐到接口侧
+- `/v1/chat/stream` 只转发 `service:"chat", method:"chat"` 的 Aha RPC 事件，
+  过滤掉非聊天 RPC 和 UI 层重复事件
+
+### 完整性警告与回滚
+
+这个方案会修改 Trae 安装目录文件。Trae 启动时可能提示：
+
+```text
+Trae 安装似乎损坏。请重新安装。
+```
+
+这是安装完整性校验命中了，不代表本地 bridge 代码坏了。该方案适合临时诊断和
+验证，不建议长期作为默认产品路径。
+
+回滚补丁：
+
+```powershell
+node scripts/unpatch-trae-raw-stream.js
+```
+
+回滚后重启 Trae。`rawStreamCommand` 和 `raw_event` 深层事件会消失，但 Trae 安装
+完整性警告应随之消失。长期稳定方案仍应优先使用公开 bridge、日志旁路和心跳；
+Raw Stream Patch 只作为 Debug 模式开关。
 
 ## 排障清单
 

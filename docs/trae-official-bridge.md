@@ -124,6 +124,8 @@ The bridge listens only on localhost:
 ```text
 http://127.0.0.1:17861/health
 http://127.0.0.1:17861/v1/chat
+http://127.0.0.1:17861/v1/chat/stream
+http://127.0.0.1:17861/debug/commands
 ```
 
 Proxy configuration knobs:
@@ -132,6 +134,13 @@ Proxy configuration knobs:
 - `TRAE_BRIDGE_PORT` or `TRAE_OPENAI_BRIDGE_PORT` defaults to `17861`
 - `TRAE_BRIDGE_URL` or `TRAE_OPENAI_BRIDGE_URL` can override the base URL
 - `TRAE_BRIDGE_TIMEOUT_MS` defaults to 5 minutes
+- `TRAE_BRIDGE_LIVE_HEARTBEAT_MS` controls proxy-side live heartbeat interval,
+  default 2 seconds
+- `TRAE_BRIDGE_LOG_PROGRESS=0` disables Trae local-log progress side-channel
+- `TRAE_BRIDGE_BUSY_RETRY_ATTEMPTS` controls retries when the Trae session is
+  busy or running, default 30
+- `TRAE_BRIDGE_BUSY_RETRY_DELAY_MS` controls the busy retry delay, default
+  1000ms
 
 ## Request Conversion
 
@@ -150,8 +159,58 @@ For OpenAI Chat Completions, OpenAI Responses, and Claude Messages:
    - Claude Messages `message`
 8. For `stream: true`, emit protocol-compatible SSE chunks.
 
-Current streaming is compatibility streaming. It returns the final Trae response
-as SSE chunks after Trae completes. It is not token-level AhaNet streaming.
+Streaming requests now use `/v1/chat/stream`, which calls Trae's
+`im.bridge.sendPromptStreaming` command when it is available. The local bridge
+converts Trae's cumulative text callback into `text_delta` SSE events and
+unconfirmed Trae interactions into `interaction` SSE events. The proxy then
+maps those events back to OpenAI Chat, OpenAI Responses, or Claude Messages
+streaming responses.
+
+This is still not a raw token-level AhaNet stream. The first implementation
+does not pretend that Trae's internal tools are client-side tool calls; it emits
+them as visible text markers so the client can see the Trae-side process without
+running the same tool twice.
+
+Trae's public streaming command usually calls back with text only after the
+final `ReplyUser` plan item is available, so intermediate UI thinking or tool
+execution steps do not always become `text_delta` events. The bridge emits a
+`progress` SSE heartbeat every 2 seconds while Trae is running. The proxy maps
+that heartbeat to OpenAI/Responses SSE comments or Claude `ping` events. This
+heartbeat only proves the Trae-side run is still active; it does not expose
+hidden reasoning.
+
+Further investigation found that Trae's renderer and ai-agent logs record some
+process state earlier than `im.bridge.sendPromptStreaming` returns text:
+
+- `[ai-chat][sendToAgent]`: the request entered the Trae session.
+- `[tooling] ... start/end`: a Trae-side IDE tool or command started/finished.
+- `[ai-chat][PlanItemStreamParser] confirm_info received`: plan-item
+  confirmation status.
+- `first token flushed thought`: the model reached first token. The reasoning
+  text in this log line is intentionally not forwarded.
+- `[AgentStatus] received` and `plan final token cost`: agent completion and
+  timing.
+
+During live streams, the proxy tails only newly appended lines from the current
+Trae log files and maps safe summaries to `source:"trae-log"` progress events.
+OpenAI Chat and Responses expose these as SSE comments, for example:
+
+```text
+: trae-progress {"source":"trae-log","kind":"tool_start","command":"icube.common.commands.tooling.listFolder"}
+```
+
+Claude remains protocol-compatible and maps these log-progress events to
+`ping`. The side-channel does not forward command output bodies or reasoning
+snippets; it only provides earlier operational status from Trae's own local
+logs.
+
+If the streaming command returns `Now session is not waiting input`, busy, or
+running, the bridge retries according to `TRAE_BRIDGE_BUSY_RETRY_ATTEMPTS` and
+`TRAE_BRIDGE_BUSY_RETRY_DELAY_MS`, and emits `phase:"busy"` SSE progress while
+waiting. If streaming still fails, it falls back to `wx.bridge.sendAndWaitResponse`.
+If stream headers have already been sent, later errors are written as visible
+bridge busy/error markers and the stream is closed normally, instead of leaving
+the client with a silent gap or abrupt disconnect.
 
 The proxy serializes Trae bridge calls. Trae's current chat session can reject
 parallel sends with `Now session is not waiting input`, so concurrent requests
@@ -186,6 +245,20 @@ Expected JSON includes:
   "port": 17861
 }
 ```
+
+Discover bridge and streaming commands currently visible to Trae's extension
+host:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:17861/debug/commands' -TimeoutSec 3
+```
+
+Important fields:
+
+- `waitCommand`: the wait/final-response command used for non-streaming calls.
+- `streamCommand`: the streaming command used for live streaming when present.
+- `streamingCommands`: whether streaming candidates are available.
+- `discoveredCommands`: related commands exposed by the current Trae runtime.
 
 Check through the proxy management API:
 
@@ -328,6 +401,129 @@ Trae official bridge now supports:
 
 Use the protocol path that matches the entry. Calling `/v1/chat/completions` on
 the Claude entry still returns a path mismatch by design.
+
+## Raw Stream Patch Diagnostic Mode
+
+`im.bridge.sendPromptStreaming` is the public bridge command. It can reliably
+surface cumulative text, `interaction` events, and heartbeats, but it usually
+does not expose the earlier plan/tool/timing events that Trae shows in its own
+UI. For deeper debugging, we verified a temporary patch against Trae's installed
+workbench bundle.
+
+The deepest working hook found so far is:
+
+```text
+Trae workbench.desktop.main.js
+  -> TransportManager.executeStreamRequest
+  -> this._client.sendStreamRequest("request_stream", packet, onData, onError, onEnd)
+  -> onData(f)
+  -> f.data.event / f.data.payload
+```
+
+This is the first renderer-side stop after the Aha RPC `request_stream` returns.
+It can expose events such as:
+
+- `metadata`
+- `model_config`
+- `token_usage`
+- `timing_events`
+- `plan_item`
+- `done`
+
+A minimal direct bridge stream request for `请只回复 OK。` produced:
+
+```text
+RAW_EVENT_COUNT=18
+TEXT_DELTA_COUNT=1
+```
+
+That confirms `raw_event` can arrive before the final `text_delta`.
+
+### Install And Verify
+
+Install the experimental patch:
+
+```powershell
+node scripts/patch-trae-raw-stream.js
+```
+
+The script patches and backs up:
+
+- `%LOCALAPPDATA%/Programs/Trae/resources/app/out/vs/workbench/workbench.desktop.main.js`
+- `%LOCALAPPDATA%/Programs/Trae/resources/app/node_modules/@byted-icube/ai-modules-chat/dist/index.mjs`
+
+Restart Trae after patching, then check command registration:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:17861/debug/commands |
+  ConvertTo-Json -Depth 6
+```
+
+Expected field:
+
+```json
+{
+  "rawStreamCommand": "im.bridge.subscribeRawStream"
+}
+```
+
+Inspect the raw queue snapshot:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:17861/debug/raw-stream |
+  ConvertTo-Json -Depth 8
+```
+
+Check direct SSE output:
+
+```powershell
+$body = @{ prompt = '请只回复 OK。' } | ConvertTo-Json -Compress
+$response = Invoke-WebRequest `
+  -Uri http://127.0.0.1:17861/v1/chat/stream `
+  -Method POST `
+  -ContentType 'application/json' `
+  -Body $body `
+  -TimeoutSec 120
+
+([regex]::Matches($response.Content, '^event: raw_event', 'Multiline')).Count
+```
+
+### Safety Boundary
+
+Raw payloads can contain prompt text, model config, token counts, `ak` / `sk`,
+`reasoning_content`, `thought`, and other sensitive internals. The bridge
+therefore recursively redacts before forwarding:
+
+- token, authorization, API key, secret, `ak`, and `sk` fields become
+  `[redacted]`
+- reasoning, thought, prompt, content, and text-like fields keep only
+  `{ redacted: true, chars: N }`
+- large objects are depth, array, and key-count limited
+- `/v1/chat/stream` forwards only Aha RPC events with `service:"chat"` and
+  `method:"chat"`, filtering non-chat RPCs and duplicate UI-layer events
+
+### Integrity Warning And Rollback
+
+This mode edits Trae's installed files. Trae can show:
+
+```text
+Trae 安装似乎损坏。请重新安装。
+```
+
+That is Trae's integrity check detecting the patched install, not a bridge code
+failure. This mode is useful for temporary diagnostics and proof-of-capability,
+but it should not be treated as the default product path.
+
+Rollback:
+
+```powershell
+node scripts/unpatch-trae-raw-stream.js
+```
+
+Restart Trae after rollback. The deep `rawStreamCommand` / `raw_event` path will
+disappear, and the install-integrity warning should disappear as well. For
+normal operation, prefer the public bridge command, log side-channel, and
+heartbeat progress; keep Raw Stream Patch as a Debug-mode switch.
 
 ## Troubleshooting
 
