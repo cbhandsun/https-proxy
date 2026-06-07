@@ -363,6 +363,7 @@ const {
   getLocalServer,
   getEntryServers,
   getModelRoutes,
+  resolveProfileProtocolVersion,
   encryptKey,
   decryptKey,
 } = require('./lib/proxy/config');
@@ -1683,6 +1684,12 @@ function handleRequestInner(clientReq, clientRes, entry) {
     function doForward(currentPrepared, attempt = 1) {
       const MAX_RETRIES = 2; // Up to 3 total attempts
       const requestProtocol = isGeminiProfile(currentPrepared.profile) ? 'gemini' : (isClaudeProfile(currentPrepared.profile) ? 'claude' : 'openai');
+      // 协议版本透传:Claude 走 anthropic-version header
+      const protocolVersion = resolveProfileProtocolVersion(currentPrepared.profile);
+      if (protocolVersion) {
+        // 通过 out-of-band 变量携带,稍后在 outgoingHeaders 合并
+        currentPrepared._protocolVersion = protocolVersion;
+      }
 
       if (clientRes.__auditData) {
         populateAuditDataFromPrepared(clientRes, currentPrepared, requestBuffer);
@@ -1830,6 +1837,10 @@ function handleRequestInner(clientReq, clientRes, entry) {
         return;
       }
       const outgoingHeaders = { ...fwdHeaders };
+      // 协议版本透传:Claude 走 anthropic-version header,其它协议作为额外元数据记录
+      if (requestProtocol === 'claude' && currentPrepared._protocolVersion) {
+        outgoingHeaders['anthropic-version'] = String(currentPrepared._protocolVersion);
+      }
       const managesAuth = Boolean(apiKey) || currentPrepared.authMode === 'official-login';
       if (managesAuth) {
         delete outgoingHeaders['authorization'];
