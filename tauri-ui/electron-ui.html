@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./app.css?v=homepage-polish-20260605-3">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header>
@@ -78,6 +79,7 @@
         <button class="nav" data-view-button="envCheckView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 环境检查</button>
         <button class="nav" data-view-button="codeToolsView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> 代码工具</button>
         <button class="nav" data-view-button="promptsView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 提示词同步</button>
+        <button class="nav" data-view-button="mcpHubView"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> MCP 服务器</button>
         <button class="nav" data-view-button="cert"><svg><use href="#icon-cert"/></svg> 证书与信任</button>
         <button class="nav" data-view-button="diagnostics"><svg><use href="#icon-diagnostics"/></svg> 日志与诊断</button>
         <button class="nav" data-view-button="advanced"><svg><use href="#icon-advanced"/></svg> 设置</button>
@@ -153,6 +155,10 @@
               </div>
             </div>
             <div id="usageReportSummary" class="usage-summary-grid"></div>
+            <div class="card" style="margin-bottom: 16px; padding: 16px;">
+              <h3 style="margin-top: 0;">Token 消耗趋势</h3>
+              <canvas id="usageChart" style="max-height: 300px; width: 100%;"></canvas>
+            </div>
             <div class="usage-report-body">
               <div class="usage-panel">
                 <h3>按上游目标</h3>
@@ -289,6 +295,7 @@
                 <button id="saveProfile">保存上游目标</button>
                 <button id="testProfileAuthBtn" class="secondary">测试连接/登录</button>
                 <button id="activateProfile" class="secondary">设为默认上游并重启</button>
+                <button id="copyIdeConfigBtn" class="secondary">复制 IDE 配置</button>
                 <button id="openConfig" class="light">打开配置文件</button>
               </div>
             </div>
@@ -304,6 +311,7 @@
               <select id="modelRouteProfile" title="目标上游"></select>
               <button id="fetchModels" class="light">获取上游模型</button>
               <input id="modelRewriteTo" list="availableModels" placeholder="上游模型，例如 gemini-3-flash-preview">
+              <input id="modelRewriteLabel" placeholder="展示名，可选">
               <datalist id="availableModels"></datalist>
               <button id="addRule" class="light">添加路由</button>
               <button id="testModelRoute" class="light" style="color: #3b82f6; border-color: #3b82f6;">测试目标模型</button>
@@ -359,6 +367,14 @@
                     <span class="tool-item-desc">官方 GUI 桌面客户端</span>
                   </div>
                   <span class="badge" id="toolBadge-claude-desktop">检查中...</span>
+                </div>
+                <!-- Codex Desktop -->
+                <div class="tool-item" data-tool-id="codex-desktop" id="toolItem-codex-desktop">
+                  <div class="tool-item-info">
+                    <span class="tool-item-title">Codex Desktop</span>
+                    <span class="tool-item-desc">OpenAI Codex 桌面应用</span>
+                  </div>
+                  <span class="badge" id="toolBadge-codex-desktop">检查中...</span>
                 </div>
                 <!-- Claude Code CLI -->
                 <div class="tool-item" data-tool-id="claude-code" id="toolItem-claude-code">
@@ -460,6 +476,49 @@
                 </div>
               </div>
 
+              <!-- Codex Desktop 配置面板 -->
+              <div id="toolPanel-codex-desktop" class="tool-panel">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                  <h3 style="margin: 0; font-size: 16px;">Codex Desktop 配置</h3>
+                  <span id="codexDesktopTitleDot" class="status-dot"></span>
+                </div>
+                <div class="muted hint" style="margin-bottom: 12px;">Codex Desktop 会读取 Codex 用户级配置；这里可以同时切换 <code>~/.codex/config.toml</code> 的本地 Responses 入口与 <code>auth.json</code> 登录态。官方登录 token 只用于 Codex 官方路径；路由到 API 模型时由本地代理使用上游配置里的 API Key。</div>
+
+                <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px;">
+                  <div id="codexDesktopStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">正在检查 Codex Desktop 状态...</div>
+                  <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start;">
+                    <button id="applyCodexDesktop" class="secondary" style="margin: 0;">使用本地代理(API)</button>
+                    <button id="restoreCodexDesktop" class="danger" style="margin: 0;">恢复官方直连(官方登录)</button>
+                    <button id="refreshCodexDesktop" class="light" style="margin: 0;">刷新状态</button>
+                  </div>
+                </div>
+
+                <div class="card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px;">
+                  <h3 style="margin-top: 0; font-size: 14px;">能力边界</h3>
+                  <div style="font-size: 13px; line-height: 1.6; color: var(--text);">
+                    <p>1. <strong>使用本地代理(API)</strong>会写入 <code>openai_base_url = "https://localhost:3445/v1"</code>、托管模型目录，并切到本地代理占位 API 登录态。</p>
+                    <p>2. <strong>代理 + 官方登录</strong>会保留/恢复 ChatGPT token，但 API 模型仍由本地代理使用上游配置里的 API Key 调用。</p>
+                    <p>3. 模型目录由“模型路由”的客户端模型与展示名生成；Codex Desktop 是启动时读取配置，通常需要重启或新开会话后生效。</p>
+                  </div>
+                </div>
+
+                <div class="card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px; margin-top: 16px;">
+                  <h3 style="margin-top: 0; font-size: 14px;">登录切换</h3>
+                  <div style="font-size: 13px; line-height: 1.6; color: var(--text);">
+                    <p>高级组合用于调试或保留官方额度路径。没有官方登录备份时，请先运行 <code>codex login</code>。</p>
+                    <div class="status-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                      <button id="codexDesktopApiLogin" class="secondary" style="margin: 0;">一键 API 登录</button>
+                      <button id="codexDesktopOfficialLogin" class="light" style="margin: 0;">启动官方登录</button>
+                      <button id="codexDesktopBackupAuth" class="light" style="margin: 0;">检测并备份登录</button>
+                      <button id="switchCodexDesktopProxyOfficial" class="light" style="margin: 0;">代理 + 官方登录</button>
+                      <button id="switchCodexDesktopDirectApi" class="light" style="margin: 0;">官方直连 + API 登录</button>
+                      <button id="copyCodexChatGptLoginDesktop" class="light" style="margin: 0;">复制官方登录命令</button>
+                      <button id="copyCodexApiLoginDesktop" class="light" style="margin: 0;">复制 API 登录命令</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Claude Code CLI 配置面板 -->
               <div id="toolPanel-claude-code" class="tool-panel">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
@@ -544,13 +603,13 @@
                   <h3 style="margin: 0; font-size: 16px;">Codex CLI 配置</h3>
                   <span id="codexTitleDot" class="status-dot"></span>
                 </div>
-                <div class="muted hint" style="margin-bottom: 12px;">Codex CLI 开发助手读取本地 `config.toml` 文件进行 API 接驳，在此可通过一键修改配置使其重定向至本地代理节点。</div>
+                <div class="muted hint" style="margin-bottom: 12px;">Codex CLI 和 Codex Desktop 共享用户级配置；这里可以切换本地代理入口和 Codex 登录态。官方 token 不会直接当 OpenAI API Key 使用。</div>
 
                 <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px;">
                   <div id="codexStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">正在检查 Codex CLI 状态...</div>
                   <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start;">
-                    <button id="applyCodex" class="secondary" style="margin: 0;">应用本地代理</button>
-                    <button id="restoreCodex" class="danger" style="margin: 0;">恢复官方直连</button>
+                    <button id="applyCodex" class="secondary" style="margin: 0;">使用本地代理(API)</button>
+                    <button id="restoreCodex" class="danger" style="margin: 0;">恢复官方直连(官方登录)</button>
                     <button id="refreshCodex" class="light" style="margin: 0;">刷新状态</button>
                   </div>
                 </div>
@@ -558,8 +617,18 @@
                 <div class="card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px;">
                   <h3 style="margin-top: 0; font-size: 14px;">💡 使用说明与指引</h3>
                   <div style="font-size: 13px; line-height: 1.6; color: var(--text);">
-                    <p>1. <strong>配置代理</strong>将重写本地 <code>auth.json</code> 或 <code>config.toml</code> 内的 baseUrl 字段，令 Codex 请求通过本地中转做多模型智能路由。</p>
-                    <p>2. <strong>恢复直连</strong>将直接还原所有配置信息，让客户端直连云端原始服务。</p>
+                    <p>1. <strong>使用本地代理(API)</strong>会写入 <code>openai_base_url = "https://localhost:3445/v1"</code>，并切到本地代理占位 API 登录。</p>
+                    <p>2. <strong>恢复官方直连(官方登录)</strong>会移除代理配置，并恢复已备份的 ChatGPT token；没有备份时请先运行官方登录。</p>
+                    <p>3. 高级组合适合调试：代理 + 官方登录可保留官方额度路径；官方直连 + API 登录需要真实 OpenAI API Key。</p>
+                    <div class="status-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                      <button id="codexApiLogin" class="secondary" style="margin: 0;">一键 API 登录</button>
+                      <button id="codexOfficialLogin" class="light" style="margin: 0;">启动官方登录</button>
+                      <button id="codexBackupAuth" class="light" style="margin: 0;">检测并备份登录</button>
+                      <button id="switchCodexProxyOfficial" class="light" style="margin: 0;">代理 + 官方登录</button>
+                      <button id="switchCodexDirectApi" class="light" style="margin: 0;">官方直连 + API 登录</button>
+                      <button id="copyCodexChatGptLogin" class="light" style="margin: 0;">复制官方登录命令</button>
+                      <button id="copyCodexApiLogin" class="light" style="margin: 0;">复制 API 登录命令</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -839,6 +908,39 @@ npm i -g hermes-agent@latest</pre>
                   <div id="cliNoSessionsTip" class="muted" style="text-align: center; padding: 24px 0; font-size: 13px;">暂无运行中的活动 CLI 会话</div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="mcpHubView" class="view view-fill">
+          <div class="card card-fill card-scroll" style="display: flex; flex-direction: column; margin-bottom: 0;">
+            <h2>MCP 服务器管理</h2>
+            <div class="muted hint">配置 Model Context Protocol (MCP) 服务器，让 AI 能够调用本地工具。</div>
+
+            <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px;">
+                <div id="mcpHubStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">尚未加载 MCP 配置。</div>
+                <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start;">
+                    <button id="refreshMcpHub" class="light" style="margin: 0;">刷新配置与日志</button>
+                </div>
+            </div>
+
+            <div class="card card-fill" style="padding: 0; border: none; box-shadow: none; background: transparent; margin-bottom: 16px;">
+              <h3 style="margin-top: 0; font-size: 14px;">已配置服务器</h3>
+              <div id="mcpServersList" class="fill-target"></div>
+              <div class="actions" style="margin-top: 12px;">
+                  <button id="addMcpServer" class="secondary">新增 MCP 服务器</button>
+              </div>
+            </div>
+
+            <div class="card" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 16px;">
+              <h3 style="margin-top: 0; font-size: 14px;">最近执行日志 (Execution Logs)</h3>
+              <div id="mcpExecutionLogs" style="margin-top: 8px; font-family: var(--font-mono); font-size: 12px; max-height: 300px; overflow-y: auto;">
+                <div class="muted">暂无执行记录...</div>
+              </div>
+            </div>
+
+            <div class="actions" style="margin-top: 20px;">
+                <button id="saveMcpHub">保存所有 MCP 配置</button>
             </div>
           </div>
         </section>

@@ -1,5 +1,6 @@
 let selectedAuditRecordId = null;
 let cachedAuditRecords = [];
+let usageChartInstance = null;
 const AUDIT_LIST_LIMIT = 30;
 const AUDIT_SNIPPET_CHARS = 180;
 const AUDIT_SYSTEM_PREVIEW_CHARS = 6000;
@@ -19,6 +20,22 @@ function formatAuditCost(cost) {
   if (!Number.isFinite(amount)) return '未匹配单价';
   if (amount > 0 && amount < 0.0001) return `< $0.0001`;
   return `$${amount.toFixed(4)}`;
+}
+
+function auditUpstreamModel(record) {
+  const rewriteModel = String(record && record.rewriteModel || '').trim();
+  if (rewriteModel && rewriteModel !== '-') return rewriteModel;
+  return String(record && record.originalModel || '').trim();
+}
+
+function auditModelFlowLabel(record) {
+  const originalModel = String(record && record.originalModel || '').trim();
+  const upstreamModel = auditUpstreamModel(record);
+  if (!originalModel && !upstreamModel) return '未知模型';
+  if (originalModel && upstreamModel && upstreamModel !== originalModel) {
+    return `${originalModel} -> ${upstreamModel}`;
+  }
+  return upstreamModel || originalModel;
 }
 
 function formatAuditJson(value, limit = AUDIT_INSPECTOR_PREVIEW_CHARS) {
@@ -194,6 +211,60 @@ function renderUsageReport(report) {
   $('usageByProfile').innerHTML = renderUsageTable(report.byProfile || [], 'profile');
   $('usageByModel').innerHTML = renderUsageTable(report.byModel || [], 'model');
   $('usageRecent').innerHTML = renderUsageRecent(report.recent || []);
+  updateUsageChart(report.byDay || []);
+}
+
+function updateUsageChart(dayData) {
+  const ctx = $('usageChart');
+  if (!ctx) return;
+
+  const labels = dayData.map(d => d.key);
+  const inputTokens = dayData.map(d => d.inputTokens);
+  const outputTokens = dayData.map(d => d.outputTokens);
+
+  if (usageChartInstance) {
+    usageChartInstance.destroy();
+  }
+
+  if (typeof Chart === 'undefined') {
+    console.warn('Chart.js not loaded');
+    return;
+  }
+
+  usageChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: '输入 Token',
+          data: inputTokens,
+          backgroundColor: 'rgba(59, 130, 246, 0.6)',
+          borderColor: 'rgb(59, 130, 246)',
+          borderWidth: 1
+        },
+        {
+          label: '输出 Token',
+          data: outputTokens,
+          backgroundColor: 'rgba(16, 185, 129, 0.6)',
+          borderColor: 'rgb(16, 185, 129)',
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true }
+      },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { mode: 'index', intersect: false }
+      }
+    }
+  });
 }
 
 function renderUsageTable(rows, type) {
@@ -310,6 +381,8 @@ async function loadAuditRecords() {
       const latency = record.elapsed ? `${record.elapsed}ms` : '??? ms';
       const isSuccess = record.statusCode >= 200 && record.statusCode < 300;
       const usage = record.usage || {};
+      const modelFlow = auditModelFlowLabel(record);
+      const upstreamModel = auditUpstreamModel(record);
 
       item.innerHTML = `
         <div class="audit-item-meta">
@@ -318,11 +391,11 @@ async function loadAuditRecords() {
         </div>
         <div class="audit-item-info">
           <span style="font-weight: 600; color: var(--primary);">${escapeHtml(record.protocol === 'claude' ? 'Claude' : 'OpenAI')}</span>
-          <span style="color: var(--muted); font-size: 11px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(record.originalModel || '未知模型')}</span>
+          <span style="color: var(--muted); font-size: 11px; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(modelFlow)}</span>
         </div>
         <div class="audit-item-snippet">${escapeHtml(userSnippet)}</div>
         <div style="font-size: 10px; color: var(--muted); margin-top: 2px; display: flex; justify-content: space-between;">
-          <span>流向: ${escapeHtml(record.profileName || '默认')}</span>
+          <span>上游: ${escapeHtml(upstreamModel || '未指定')} · ${escapeHtml(record.profileName || '默认')}</span>
           <span>${formatAuditTokens(usage.totalTokens || 0)} tok · ${escapeHtml(latency)}</span>
         </div>
       `;
@@ -356,7 +429,8 @@ function formatRecordToMarkdown(record) {
   md += `- **协议**: ${record.protocol === 'claude' ? 'Claude SSE' : 'OpenAI Protocol'}\n`;
   md += `- **目标上游**: ${record.profileName || '默认'}\n`;
   md += `- **请求模型**: ${record.originalModel || '未指定'}\n`;
-  if (record.rewriteModel) {
+  md += `- **上游模型**: ${auditUpstreamModel(record) || '未指定'}\n`;
+  if (record.rewriteModel && record.rewriteModel !== '-') {
     md += `- **重写转发**: ${record.rewriteModel}\n`;
   }
   md += `- **状态码**: ${record.statusCode || '???'}\n`;
@@ -460,6 +534,7 @@ function renderAuditDetail(record) {
   const isSuccess = record.statusCode >= 200 && record.statusCode < 300;
   const usage = record.usage || {};
   const cost = record.cost || {};
+  const upstreamModel = auditUpstreamModel(record);
   const usageSource = usage.source === 'provider' ? '上游 usage' : '本地估算';
 
   // 1. 详情头部
@@ -475,7 +550,8 @@ function renderAuditDetail(record) {
       </div>
       <div class="audit-detail-meta">
         <span>请求模型: <code>${escapeHtml(record.originalModel || '未指定')}</code></span>
-        ${record.rewriteModel ? `<span>重写转发: <code>${escapeHtml(record.rewriteModel)}</code></span>` : ''}
+        <span>上游模型: <code>${escapeHtml(upstreamModel || '未指定')}</code></span>
+        ${(record.rewriteModel && record.rewriteModel !== '-') ? `<span>重写转发: <code>${escapeHtml(record.rewriteModel)}</code></span>` : ''}
         <span>延迟耗时: <strong style="color: var(--primary);">${escapeHtml(latencyStr)}</strong></span>
       </div>
       <div class="audit-usage-strip">

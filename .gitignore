@@ -15,6 +15,8 @@ proxy.config.json
 *.log
 *.log.*
 *.pid
+.mgmt-token
+.mgmt-token-*
 .proxy.lock
 *.jsonl
 *.jsonl.*
@@ -27,7 +29,25 @@ build/
 out/
 *.zip
 
+# Frontend mirrors (canonical source: tauri-ui/)
+/app.js
+/app.css
+/app-bridge.js
+/app-audit.js
+/app-cli.js
+/app-diagnostics.js
+/electron-ui.html
+
+# Test runtime artifacts
+test/*.log
+test/*.log.*
+test/.mgmt-token*
+test/*.jsonl
+test/*.jsonl.*
+/test.json
+/.proxy.lock
+/.proxy.pid
+
 # Misc local artifacts
 /400
 /prev_electron_ui.html
-/test.json

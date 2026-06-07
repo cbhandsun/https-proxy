@@ -417,8 +417,11 @@ function runLatencyApiTest() {
     });
     
     let isStarted = false;
+    let managementToken = '';
     proxyProc.stdout.on('data', (data) => {
       const output = data.toString();
+      const tokenMatch = output.match(/mgmt_token:\s*([a-f0-9]+)/i);
+      if (tokenMatch) managementToken = tokenMatch[1];
       if (output.includes('Listen:') && !isStarted) {
         isStarted = true;
         
@@ -428,7 +431,7 @@ function runLatencyApiTest() {
           port: 4443,
           path: '/v1/local/profile/latency',
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken }
         }, (res) => {
           let body = '';
           res.on('data', chunk => body += chunk);
@@ -475,8 +478,11 @@ function runPromptsSyncApiTest() {
     });
     
     let isStarted = false;
+    let managementToken = '';
     proxyProc.stdout.on('data', (data) => {
       const output = data.toString();
+      const tokenMatch = output.match(/mgmt_token:\s*([a-f0-9]+)/i);
+      if (tokenMatch) managementToken = tokenMatch[1];
       if (output.includes('Listen:') && !isStarted) {
         isStarted = true;
         
@@ -486,7 +492,7 @@ function runPromptsSyncApiTest() {
           port: 4443,
           path: '/v1/local/prompts/sync',
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken }
         }, (resClaude) => {
           let bodyClaude = '';
           resClaude.on('data', chunk => bodyClaude += chunk);
@@ -504,7 +510,7 @@ function runPromptsSyncApiTest() {
                 port: 4443,
                 path: '/v1/local/prompts/sync',
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken }
               }, (resAnti) => {
                 let bodyAnti = '';
                 resAnti.on('data', chunk => bodyAnti += chunk);
