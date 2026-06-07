@@ -13,7 +13,7 @@ const net = require('net');
 const util = require('util');
 const crypto = require('crypto');
 
-const { createLogger } = require('./lib/proxy/logger');
+const { createLogger, withRequest, newRequestId, installReqIdMiddleware } = require('./lib/proxy/logger');
 const log = createLogger('proxy');
 
 const APP_ID = 'https-proxy-manager';
@@ -1210,6 +1210,14 @@ function sendEntryPathError(clientRes, entry, method, clientPath) {
   }));
 }
 function handleRequest(clientReq, clientRes, entry) {
+  // 绑定 reqId 到本请求的异步作用域，日志自动附加
+  const reqId = clientReq.reqId || clientReq.headers['x-request-id'] || newRequestId();
+  clientReq.reqId = reqId;
+  if (!clientRes.headersSent) try { clientRes.setHeader('x-request-id', reqId); } catch (e) {}
+  return withRequest({ reqId }, () => handleRequestInner(clientReq, clientRes, entry));
+}
+
+function handleRequestInner(clientReq, clientRes, entry) {
   const startTime = Date.now();
   const clientIp = getClientIp(clientReq);
   const urlPath = clientReq.url;
