@@ -2,6 +2,7 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { Readable } = require('stream');
 const {
   fileSignature,
   readLastLinesOfJsonl,
@@ -10,6 +11,7 @@ const {
   isAllowedManagementOrigin,
 } = require('../lib/proxy/management-utils');
 const {
+  ROUTES,
   routeMatches,
   dispatchLocalManagementRoute,
 } = require('../lib/proxy/management-router');
@@ -28,6 +30,7 @@ const {
 } = require('../lib/proxy/config');
 const { createGoogleOfficialRuntime } = require('../lib/proxy/google-official-runtime');
 const { handleCountTokens } = require('../lib/proxy/local-handlers');
+const { createManagementHandlers } = require('../lib/proxy/handlers/management');
 const { createMcpHub, normalizeMcpTool, mergeClaudeTools } = require('../lib/proxy/mcp-hub');
 const {
   buildUsageReport,
@@ -292,7 +295,7 @@ test('keeps Gemini tool result names when thought signature is absent', () => {
   const { flushPendingGeminiToolCall } = require('../openai-proxy');
   flushPendingGeminiToolCall(clientRes, state, state.tools);
   const next = claudeMessagesToGemini({
-    messages: [{ role: 'user', content: [{ type: 'tool_result', tool_use_id: 'gemini-tool-read-abc', content: 'file contents' }] }],
+    messages: [{ role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_read_abc', content: 'file contents' }] }],
     tools: [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }],
   }, 'gemini-3-flash-preview');
   assert.strictEqual(next.contents[0].parts[0].functionResponse.name, 'Read');
@@ -323,6 +326,12 @@ test('normalizes prefixed Gemini tool names and rejects empty common tool args',
   assert.strictEqual(bash.content[0].type, 'text');
   assert.ok(bash.content[0].text.includes('Please call the same tool again with complete arguments'));
   assert.ok(bash.content[0].text.includes('command'));
+
+  const undeclared = geminiResponseToClaude({
+    candidates: [{ content: { parts: [{ functionCall: { name: 'Write', args: { file_path: 'a', content: 'b' } } }] } }],
+  }, 'gemini-3-flash-preview', [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }]);
+  assert.strictEqual(undeclared.content[0].type, 'text');
+  assert.ok(undeclared.content[0].text.includes('not available in the current tool list'));
 
   const glob = geminiResponseToClaude({
     candidates: [{ content: { parts: [{ functionCall: { name: 'functions.Glob', args: { pattern: '**/*.js' } }, thoughtSignature: 'sig-glob' }] } }],
@@ -361,6 +370,44 @@ test('normalizes unsafe Gemini asset listing command', () => {
   assert.strictEqual(result.content[0].type, 'tool_use');
   assert.strictEqual(result.content[0].name, 'Bash');
   assert.strictEqual(result.content[0].input.command, 'for d in "assets" "images" "static"; do [ -d "$d" ] && ls -R "$d"; done');
+});
+
+test('non-stream Gemini large Write tool call is staged as a short Bash copy', () => {
+  const content = 'x'.repeat(40000);
+  const result = geminiResponseToClaude({
+    candidates: [{ finishReason: 'STOP', content: { parts: [{ functionCall: { name: 'Write', args: { file_path: 'E:/tmp/large-write.js', content } } }] } }],
+  }, 'gemini-3-flash-preview', [
+    { name: 'Write', input_schema: { type: 'object', required: ['file_path', 'content'] } },
+    { name: 'Bash', input_schema: { type: 'object', required: ['command'] } },
+  ]);
+
+  assert.strictEqual(result.content[0].type, 'tool_use');
+  assert.strictEqual(result.content[0].name, 'Bash');
+  assert.ok(result.content[0].input.command.includes('cp '));
+  assert.ok(result.content[0].input.command.includes('/e/tmp/large-write.js'));
+  assert.ok(result.content[0].input.command.length < 512);
+  assert.ok(!result.content[0].input.command.includes(content.slice(0, 100)));
+  assert.strictEqual(result.stop_reason, 'tool_use');
+});
+
+test('non-stream Gemini large Write falls back to text when Bash is unavailable', () => {
+  const content = 'x'.repeat(40000);
+  const result = geminiResponseToClaude({
+    candidates: [{ finishReason: 'STOP', content: { parts: [{ functionCall: { name: 'Write', args: { file_path: 'E:/tmp/large-write.js', content } } }] } }],
+  }, 'gemini-3-flash-preview', [{ name: 'Write', input_schema: { type: 'object', required: ['file_path', 'content'] } }]);
+
+  assert.strictEqual(result.content[0].type, 'text');
+  assert.ok(result.content[0].text.includes('too large'));
+  assert.strictEqual(result.stop_reason, 'end_turn');
+});
+
+test('marks Gemini tool responses with Claude tool_use stop reason', () => {
+  const result = geminiResponseToClaude({
+    candidates: [{ finishReason: 'STOP', content: { parts: [{ functionCall: { name: 'Bash', args: { command: 'pwd' } } }] } }],
+  }, 'gemini-3-flash-preview', [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }]);
+
+  assert.strictEqual(result.content[0].type, 'tool_use');
+  assert.strictEqual(result.stop_reason, 'tool_use');
 });
 
 test('converts Gemini response to Claude message', () => {
@@ -516,6 +563,30 @@ test('unified stream protection preserves valid tool_use blocks', () => {
   assert.ok(!output.includes('Please call the same tool again'));
 });
 
+test('unified stream protection drops DeepSeek thinking blocks and remaps tool indexes', () => {
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(chunk) };
+  const state = { buffer: '', pendingClaudeTool: null };
+
+  processClaudeSseChunk(clientRes, 'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":"","signature":""}}\n\n', state);
+  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"plan"}}\n\n', state);
+  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig"}}\n\n', state);
+  processClaudeSseChunk(clientRes, 'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n', state);
+  processClaudeSseChunk(clientRes, 'event: content_block_start\ndata: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"call_1","name":"Read","input":{}}}\n\n', state);
+  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"file_path\\":\\"D:/x.js\\"}"}}\n\n', state);
+  processClaudeSseChunk(clientRes, 'event: content_block_stop\ndata: {"type":"content_block_stop","index":1}\n\n', state);
+  flushClaudeSseFilter(clientRes, state);
+
+  const output = writes.join('');
+  assert.ok(!output.includes('"type":"thinking"'));
+  assert.ok(!output.includes('thinking_delta'));
+  assert.ok(!output.includes('signature_delta'));
+  assert.ok(output.includes('"type":"tool_use"'));
+  assert.ok(output.includes('"index":0'));
+  assert.ok(!output.includes('"index":1'));
+  assert.ok(output.includes('D:/x.js'));
+});
+
 test('OpenAI stream sanitizer drops empty optional tool args only', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
@@ -569,7 +640,7 @@ test('Gemini converted tool_use sends args as input_json_delta', () => {
   const state = { textIndex: -1, textOpen: false, stopReason: 'end_turn', usage: { input_tokens: 0, output_tokens: 0 }, tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }], pendingToolCall: null };
 
   processGeminiSseEvent(clientRes, 'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","args":{"command":"ls -R","description":"List files"}},"thoughtSignature":"sig-bash"}]}}]}\r\n', state, 'gemini-3-flash-preview');
-  const { flushPendingGeminiToolCall } = require('../openai-proxy');
+  const { flushPendingGeminiToolCall, geminiClaudeStopReason } = require('../openai-proxy');
   flushPendingGeminiToolCall(clientRes, state, state.tools);
   const output = writes.join('');
   assert.ok(output.includes('"type":"tool_use"'));
@@ -577,6 +648,43 @@ test('Gemini converted tool_use sends args as input_json_delta', () => {
   assert.ok(output.includes('"type":"input_json_delta"'));
   assert.ok(output.includes('\\"command\\":\\"ls -R\\"'));
   assert.ok(!output.includes('Please call the same tool again'));
+  assert.strictEqual(geminiClaudeStopReason(state), 'tool_use');
+});
+
+test('Gemini converted large tool args are split across input_json_delta chunks', () => {
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(chunk) };
+  const content = 'x'.repeat(20000);
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Write', input_schema: { type: 'object', required: ['file_path', 'content'] } }],
+    pendingToolCall: null,
+  };
+
+  processGeminiSseEvent(clientRes, 'data: ' + JSON.stringify({
+    candidates: [{
+      content: {
+        parts: [{
+          functionCall: {
+            name: 'Write',
+            args: { file_path: 'E:/tmp/large.txt', content },
+          },
+        }],
+      },
+    }],
+  }) + '\r\n', state, 'gemini-3-flash-preview');
+  const { flushPendingGeminiToolCall } = require('../openai-proxy');
+  flushPendingGeminiToolCall(clientRes, state, state.tools);
+
+  const deltas = writes.join('').split(/\n/).filter((line) => line.startsWith('data: '))
+    .map((line) => JSON.parse(line.replace(/^data:\s*/, '')))
+    .filter((event) => event.type === 'content_block_delta' && event.delta && event.delta.type === 'input_json_delta');
+  assert.ok(deltas.length > 1);
+  const parsed = JSON.parse(deltas.map((event) => event.delta.partial_json).join(''));
+  assert.deepStrictEqual(parsed, { file_path: 'E:/tmp/large.txt', content });
 });
 
 test('builds Gemini generateContent paths', () => {
@@ -1626,6 +1734,27 @@ test('logs request_end for local count_tokens responses', () => {
   assert.strictEqual(events[0].extra.inputTokens, 2);
 });
 
+test('captures request model for local count_tokens audit records', () => {
+  const req = { method: 'POST', url: '/v1/messages/count_tokens?beta=true' };
+  const res = {
+    __auditData: { originalModel: '', protocol: '' },
+    writeHead() {},
+    end() {},
+  };
+
+  handleCountTokens(
+    req,
+    res,
+    Buffer.from(JSON.stringify({ model: 'claude-sonnet-4-0', messages: [{ role: 'user', content: 'hello world' }] })),
+    (value) => String(value || '').split(/\s+/).filter(Boolean).length,
+    () => {},
+    Date.now()
+  );
+
+  assert.strictEqual(res.__auditData.originalModel, 'claude-sonnet-4-0');
+  assert.strictEqual(res.__auditData.protocol, 'claude');
+});
+
 test('normalizes and merges MCP tools as Claude tool declarations', () => {
   const server = { id: 'local', prefix: 'fs' };
   const normalized = normalizeMcpTool({
@@ -1723,6 +1852,168 @@ test('dispatches local management routes from a route table', () => {
   assert.strictEqual(handled, true);
   assert.deepStrictEqual(calls, [[true, true]]);
   assert.strictEqual(dispatchLocalManagementRoute({ method: 'GET', pathname: '/v1/messages', req, res, handlers: {} }), false);
+});
+
+test('management handler aggregate exposes tool integration routes', () => {
+  const noop = () => {};
+  const handlers = createManagementHandlers({
+    CONFIG: () => ({}),
+    PROFILES: () => [],
+    ACTIVE_PROFILE: () => ({}),
+    LOCAL_SERVER: () => ({}),
+    MODEL_ROUTES: () => [],
+    ENTRY_SERVERS: () => [],
+    APP_ID: 'test',
+    PACKAGE_VERSION: '0.0.0',
+    PORT: 3443,
+    CLI_SESSIONS: new Map(),
+    PROTOCOL_OPTIONS: {},
+    reloadProxyConfig: noop,
+    makeRequest: noop,
+    requestWithProxy: noop,
+    logProxyEvent: noop,
+    logRequestEnd: noop,
+    resolveOfficialCredentials: noop,
+    resolveConfiguredProfile: noop,
+    handleLocalCertStatusRequest: noop,
+    handleLocalCertTrustRequest: noop,
+    handleLocalCertUntrustRequest: noop,
+    handleLocalTraeStatusRequest: noop,
+    handleLocalTraeBridgeStatusRequest: noop,
+    handleLocalAntigravityCliStatusRequest: noop,
+    handleLocalAntigravityCliApplyRequest: noop,
+    handleLocalAntigravityCliRestoreRequest: noop,
+    handleLocalClaudeCodeStatusRequest: noop,
+    handleLocalClaudeCodeApplyRequest: noop,
+    handleLocalClaudeCodeRestoreRequest: noop,
+    handleLocalCodexStatusRequest: noop,
+    handleLocalCodexApplyRequest: noop,
+    handleLocalCodexRestoreRequest: noop,
+    handleLocalCodexSwitchRequest: noop,
+    handleLocalCodexApiLoginRequest: noop,
+    handleLocalCodexOfficialLoginRequest: noop,
+    handleLocalCodexAuthBackupRequest: noop,
+    handleLocalCodexDesktopStatusRequest: noop,
+    handleLocalCodexDesktopApplyRequest: noop,
+    handleLocalCodexDesktopRestoreRequest: noop,
+    handleLocalCodexDesktopSwitchRequest: noop,
+    handleLocalCodexDesktopApiLoginRequest: noop,
+    handleLocalCodexDesktopOfficialLoginRequest: noop,
+    handleLocalCodexDesktopAuthBackupRequest: noop,
+    handleLocalGeminiCliStatusRequest: noop,
+    handleLocalGeminiCliApplyRequest: noop,
+    handleLocalGeminiCliRestoreRequest: noop,
+  });
+
+  const toolRoutes = ROUTES.filter((route) => /codex|claudeCode|antigravityCli|geminiCli|trae/.test(route.handlerName));
+  assert.ok(toolRoutes.length > 0);
+  for (const route of toolRoutes) {
+    const legacyHandlerName = 'handleLocal' + route.handlerName.charAt(0).toUpperCase() + route.handlerName.slice(1) + 'Request';
+    assert.strictEqual(typeof handlers[legacyHandlerName], 'function', legacyHandlerName);
+  }
+});
+
+function invokeJsonManagementHandler(handler, body) {
+  return new Promise((resolve) => {
+    const req = Readable.from([Buffer.from(JSON.stringify(body))]);
+    const res = {
+      statusCode: 0,
+      headers: null,
+      writeHead(statusCode, headers) {
+        this.statusCode = statusCode;
+        this.headers = headers;
+      },
+      end(payload) {
+        resolve({
+          statusCode: this.statusCode,
+          headers: this.headers,
+          body: payload ? JSON.parse(payload) : null,
+        });
+      },
+    };
+    handler(req, res);
+  });
+}
+
+test('route test treats Trae official profile as bridge-backed provider', async () => {
+  const noop = () => {};
+  const makeRequestCalls = [];
+  const handlers = createManagementHandlers({
+    CONFIG: () => ({}),
+    PROFILES: () => [{
+      id: 'trae-official',
+      protocol: 'trae',
+      targetUrl: 'https://coresg-normal.trae.ai',
+      authMode: 'official-login',
+    }],
+    ACTIVE_PROFILE: () => ({}),
+    LOCAL_SERVER: () => ({}),
+    MODEL_ROUTES: () => [],
+    ENTRY_SERVERS: () => [],
+    APP_ID: 'test',
+    PACKAGE_VERSION: '0.0.0',
+    PORT: 3443,
+    CLI_SESSIONS: new Map(),
+    PROTOCOL_OPTIONS: {},
+    reloadProxyConfig: noop,
+    makeRequest: async (url, options) => {
+      makeRequestCalls.push({ url, options });
+      return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+    },
+    requestWithProxy: noop,
+    logProxyEvent: noop,
+    logRequestEnd: noop,
+    resolveConfiguredProfile: (profile) => profile,
+    resolveOfficialCredentials: async ({ profile }) => ({
+      profile: { ...profile, protocol: 'trae', targetUrl: 'https://coresg-normal.trae.ai' },
+      authMode: 'official-login',
+      authProvider: 'trae',
+    }),
+    queryTraeStateRows: async () => ({ ok: true, rows: [] }),
+    traeOfficialModelSupport: (model) => ({
+      known: model === 'trae/minimax-m3',
+      supported: model === 'trae/minimax-m3',
+      model: 'minimax-m3',
+    }),
+    getTraeOfficialBridgeUrl: (pathname) => `http://127.0.0.1:17861${pathname}`,
+    handleLocalCertStatusRequest: noop,
+    handleLocalCertTrustRequest: noop,
+    handleLocalCertUntrustRequest: noop,
+    handleLocalTraeStatusRequest: noop,
+    handleLocalTraeBridgeStatusRequest: noop,
+    handleLocalAntigravityCliStatusRequest: noop,
+    handleLocalAntigravityCliApplyRequest: noop,
+    handleLocalAntigravityCliRestoreRequest: noop,
+    handleLocalClaudeCodeStatusRequest: noop,
+    handleLocalClaudeCodeApplyRequest: noop,
+    handleLocalClaudeCodeRestoreRequest: noop,
+    handleLocalCodexStatusRequest: noop,
+    handleLocalCodexApplyRequest: noop,
+    handleLocalCodexRestoreRequest: noop,
+    handleLocalCodexSwitchRequest: noop,
+    handleLocalCodexDesktopStatusRequest: noop,
+    handleLocalCodexDesktopApplyRequest: noop,
+    handleLocalCodexDesktopRestoreRequest: noop,
+    handleLocalCodexDesktopSwitchRequest: noop,
+    handleLocalGeminiCliStatusRequest: noop,
+    handleLocalGeminiCliApplyRequest: noop,
+    handleLocalGeminiCliRestoreRequest: noop,
+  });
+
+  const response = await invokeJsonManagementHandler(handlers.handleLocalRouteTestRequest, {
+    profileId: 'trae-official',
+    protocol: 'trae',
+    targetUrl: 'https://coresg-normal.trae.ai',
+    apiKey: '[redacted]',
+    to: 'trae/minimax-m3',
+  });
+
+  assert.strictEqual(response.statusCode, 200);
+  assert.strictEqual(response.body.ok, true);
+  assert.strictEqual(response.body.source, 'trae-bridge');
+  assert.strictEqual(response.body.model, 'minimax-m3');
+  assert.strictEqual(makeRequestCalls.length, 1);
+  assert.strictEqual(makeRequestCalls[0].url, 'http://127.0.0.1:17861/health');
 });
 
 test('usage report aggregates provider usage and model pricing by profile', () => {

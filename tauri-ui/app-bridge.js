@@ -33,6 +33,18 @@ window.fetch = function(url, options) {
       const mgmtPort = Number(cachedPort) + 100;
       url = `http://127.0.0.1:${mgmtPort}${url}`;
     }
+
+    // 自动注入管理 Token
+    options = options || {};
+    options.headers = options.headers || {};
+    const token = localStorage.getItem('hpm_mgmt_token');
+    if (token && !options.headers['x-mgmt-token']) {
+      if (options.headers instanceof Headers) {
+        options.headers.set('x-mgmt-token', token);
+      } else {
+        options.headers['x-mgmt-token'] = token;
+      }
+    }
   }
   return originalFetch.call(this, url, options);
 };
@@ -59,6 +71,31 @@ const getApiBase = () => {
   return `http://127.0.0.1:${getManagementPort()}`;
 };
 
+const withTimeout = (promise, timeoutMs, message) => {
+  let timerId;
+  const timeout = new Promise((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timerId));
+};
+
+const fetchJsonWithTimeout = async (url, options = {}, timeoutMs = 7000) => {
+  const controller = new AbortController();
+  const timerId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (err) {
+      data = { error: `HTTP ${res.status}` };
+    }
+    return res.ok ? data : { ok: false, ...data, statusCode: res.status };
+  } finally {
+    clearTimeout(timerId);
+  }
+};
+
 if (!window.proxyManager || !window.proxyManager.setActive) {
   window.proxyManager = {
     applyAppMenu: async (show) => {
@@ -70,7 +107,9 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       const quiet = options.quiet === true;
       for (let attempt = 0; attempt < attempts; attempt++) {
         try {
-          const res = await fetch(`${getApiBase()}/v1/local/config`);
+          const res = await fetch(`${getApiBase()}/v1/local/config`, {
+            headers: { 'x-mgmt-token': localStorage.getItem('hpm_mgmt_token') || '' }
+          });
           const data = await res.json();
           if (!res.ok || data.error) throw new Error(data.error || 'Failed to fetch config');
           if (data && data.localServer && data.localServer.listenPort) {
@@ -171,24 +210,21 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     },
     claudeDesktopStatus: async () => {
       try {
-        const res = await fetch(`${getApiBase()}/v1/local/claude-desktop/status`);
-        return await res.json();
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/claude-desktop/status`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err.message };
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Claude Desktop 状态检查超时' : err.message };
       }
     },
     applyClaudeDesktop: async () => {
       try {
-        const res = await fetch(`${getApiBase()}/v1/local/claude-desktop/apply`, { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/claude-desktop/apply`, { method: 'POST' }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreClaudeDesktop: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/claude-desktop/restore', { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/claude-desktop/restore', { method: 'POST' }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
@@ -196,17 +232,21 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     certStatus: async () => {
       if (window.__TAURI__ && window.__TAURI__.core) {
         try {
-          const nativeStatus = await window.__TAURI__.core.invoke('get_cert_status_native');
+          const nativeStatus = await withTimeout(
+            window.__TAURI__.core.invoke('get_cert_status_native'),
+            3500,
+            'Tauri native certificate status timed out'
+          );
           if (nativeStatus && nativeStatus.ok) return nativeStatus;
         } catch (err) {
           console.debug('Native certificate status unavailable:', err);
         }
       }
       try {
-        const res = await fetch(getApiBase() + '/v1/local/cert');
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/cert', {}, 7000);
       } catch (err) {
-        return { ok: false, exists: false };
+        const isAbort = err && err.name === 'AbortError';
+        return { ok: false, exists: false, error: isAbort ? '证书状态请求超时' : (err && err.message ? err.message : '证书状态请求失败') };
       }
     },
     listModels: async (profile) => {
@@ -339,48 +379,42 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     onOpenView: () => Promise.resolve(() => {}),
     claudeCodeStatus: async () => {
       try {
-        const res = await fetch(`${getApiBase()}/v1/local/claude-code/status`);
-        return await res.json();
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/claude-code/status`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err.message };
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Claude Code 状态检查超时' : err.message };
       }
     },
     applyClaudeCode: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/claude-code/apply', { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/claude-code/apply', { method: 'POST' }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreClaudeCode: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/claude-code/restore', { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/claude-code/restore', { method: 'POST' }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     antigravityCliStatus: async () => {
       try {
-        const res = await fetch(`${getApiBase()}/v1/local/antigravity-cli/status`);
-        return await res.json();
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/antigravity-cli/status`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err.message };
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Antigravity CLI 状态检查超时' : err.message };
       }
     },
     applyAntigravityCli: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/antigravity-cli/apply', { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/antigravity-cli/apply', { method: 'POST' }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreAntigravityCli: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/antigravity-cli/restore', { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/antigravity-cli/restore', { method: 'POST' }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
@@ -423,48 +457,143 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     },
     codexStatus: async () => {
       try {
-        const res = await fetch(`${getApiBase()}/v1/local/codex/status`);
-        return await res.json();
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/codex/status`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err.message };
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Codex CLI 状态检查超时' : err.message };
+      }
+    },
+    codexDesktopStatus: async () => {
+      try {
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/codex-desktop/status`, {}, 7000);
+      } catch (err) {
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Codex Desktop 状态检查超时' : err.message };
       }
     },
     applyCodex: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/codex/apply', { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/apply', { method: 'POST' }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    switchCodex: async (payload = {}) => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/switch', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    codexApiLogin: async (payload = {}) => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/auth/api-login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    codexOfficialLogin: async (payload = {}) => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/auth/official-login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    codexAuthBackup: async () => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/auth/backup', { method: 'POST' }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    applyCodexDesktop: async () => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/apply', { method: 'POST' }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    codexDesktopApiLogin: async (payload = {}) => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/auth/api-login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    codexDesktopOfficialLogin: async (payload = {}) => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/auth/official-login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    codexDesktopAuthBackup: async () => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/auth/backup', { method: 'POST' }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    switchCodexDesktop: async (payload = {}) => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/switch', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreCodex: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/codex/restore', { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/restore', { method: 'POST' }, 10000);
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    },
+    restoreCodexDesktop: async () => {
+      try {
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/restore', { method: 'POST' }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     geminiCliStatus: async () => {
       try {
-        const res = await fetch(`${getApiBase()}/v1/local/gemini-cli/status`);
-        return await res.json();
+        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/gemini-cli/status`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err.message };
+        return { ok: false, error: err && err.name === 'AbortError' ? 'Gemini CLI 状态检查超时' : err.message };
       }
     },
     applyGeminiCli: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/gemini-cli/apply', { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/gemini-cli/apply', { method: 'POST' }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreGeminiCli: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/gemini-cli/restore', { method: 'POST' });
-        return await res.json();
+        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/gemini-cli/restore', { method: 'POST' }, 10000);
       } catch (err) {
         return { ok: false, error: err.message };
       }
@@ -550,6 +679,15 @@ if (window.__TAURI__ && window.__TAURI__.core) {
     } catch (e) {
       console.error('Proxy command failed:', e);
       return { code: -1, output: String(e), ok: false, error: String(e), message: String(e), running: false };
+    }
+  };
+  window.proxyManager.launchCodexLoginScript = async (scriptPath) => {
+    try {
+      const res = await invoke('launch_codex_login_script', { scriptPath });
+      return { ok: true, ...res };
+    } catch (e) {
+      console.error('Codex login script launch failed:', e);
+      return { ok: false, error: String(e) };
     }
   };
   window.proxyManager.onTrayCommand = (handler) => {

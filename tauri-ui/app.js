@@ -128,6 +128,7 @@ let lastEventTime = null;
 let monitorRefreshInFlight = false;
 let lastStatusRefresh = 0;
 let lastCertRefresh = 0;
+let certRefreshInFlight = null;
 let statusRefreshInFlight = false;
 let currentViewId = 'overview';
 let viewDomCache = null;
@@ -229,6 +230,14 @@ async function perfTrack(label, task) {
   } finally {
     finish();
   }
+}
+
+function promiseWithTimeout(promise, timeoutMs, message) {
+  let timerId;
+  const timeout = new Promise((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timerId));
 }
 
 function scheduleStartupTask(label, task, options = {}) {
@@ -904,7 +913,8 @@ function routesTable() {
   const rows = modelRoutes.map((route, index) => {
     const profile = config && Array.isArray(config.profiles) ? config.profiles.find((item) => item.id === route.profileId) : null;
     const target = profile ? `${escapeHtml(profile.name || profile.id)}<div class="muted">${protocolName(profile.protocol)} · ${escapeHtml(profile.targetUrl)}</div>` : escapeHtml(route.profileId);
-    return `<tr><td><strong>${escapeHtml(route.from)}</strong></td><td>${target}</td><td><strong>${escapeHtml(route.to)}</strong></td><td><div class="route-actions"><button class="light" data-test-route="${index}">测试</button><button class="light" data-edit-route="${index}">编辑</button><button class="danger" data-delete-route="${index}">删除</button></div></td></tr>`;
+    const label = route.labelOverride ? `<div class="muted">展示名: ${escapeHtml(route.labelOverride)}</div>` : '';
+    return `<tr><td><strong>${escapeHtml(route.from)}</strong>${label}</td><td>${target}</td><td><strong>${escapeHtml(route.to)}</strong></td><td><div class="route-actions"><button class="light" data-test-route="${index}">测试</button><button class="light" data-edit-route="${index}">编辑</button><button class="danger" data-delete-route="${index}">删除</button></div></td></tr>`;
   }).join('');
   return `<div class="route-table route-table-compact"><div class="route-table-head"><table><thead><tr><th>客户端模型</th><th>转发到上游</th><th>上游模型</th><th>操作</th></tr></thead></table></div><div class="route-table-scroll"><table><tbody>${rows}</tbody></table></div></div>`;
 }
@@ -912,6 +922,7 @@ function routesTable() {
 function resetRouteEditor() {
   editingRouteIndex = null;
   $('modelRewriteFrom').value = '';
+  $('modelRewriteLabel').value = '';
   renderModelOptions('');
   $('modelStatus').textContent = '';
   $('addRule').textContent = '添加路由';
@@ -944,6 +955,7 @@ function showView(viewId) {
   if (viewId === 'claudeDesktop') refreshAllToolStatuses({ passive: true });
   if (viewId === 'envCheckView') refreshEnvStatus({ passive: true });
   if (viewId === 'codeToolsView') { initCodeToolsView(); }
+  if (viewId === 'mcpHubView') { initMcpHubView(); }
   startHeartbeat();
   finishViewPerf();
 }
@@ -1035,6 +1047,7 @@ function bindRouteActions(container) {
       if (!route) return;
       editingRouteIndex = index;
       $('modelRewriteFrom').value = route.from;
+      $('modelRewriteLabel').value = route.labelOverride || '';
       $('modelRouteProfile').value = route.profileId;
       availableModels = [];
       renderModelOptions(route.to);
@@ -1447,7 +1460,15 @@ function initToolsTabSwitching() {
       document.querySelectorAll('.tool-panel').forEach(panel => panel.classList.remove('active'));
       const activePanel = $(`toolPanel-${toolId}`);
       if (activePanel) activePanel.classList.add('active');
+      refreshAllToolStatuses({ force: true }).catch((err) => console.error('refreshAllToolStatuses error:', err));
     };
+  }
+
+  if (toolsList && !toolsList.dataset.statusRefreshScheduled) {
+    toolsList.dataset.statusRefreshScheduled = 'true';
+    setTimeout(() => {
+      refreshAllToolStatuses({ force: true }).catch((err) => console.error('refreshAllToolStatuses startup error:', err));
+    }, 250);
   }
 
   const refreshAllBtn = $('refreshAllTools');
@@ -1620,6 +1641,7 @@ async function load() {
 
   applyLoadedConfig(config);
 
+  scheduleStartupTask('load.certStatus', () => refreshCertStatus({ passive: true }), { timeout: 1200, delay: 80 });
   scheduleStartupTask('load.startupProxyWork', runStartupProxyWork, { timeout: 1800, delay: 120 });
 
   try { initToolsTabSwitching(); } catch (e) { console.error('initToolsTabSwitching error:', e); }
@@ -1717,10 +1739,12 @@ async function refreshClaudeDesktopStatus() {
       return;
     }
     const configured = status.configured ? '已写入 3P profile' : '未写入';
-    const actual = status.actualBaseUrl || '无';
+    const actual = status.actualBaseUrl || status.gatewayUrl || '无';
     const expected = status.expectedBaseUrl || '无';
-    const pathText = status.profilePath ? `\nProfile：${status.profilePath}` : '';
-    $('claudeDesktopStatus').textContent = `${configured}；模式：${status.mode}；当前 URL：${actual}；预期 URL：${expected}${pathText}`;
+    const desiredMode = status.desiredMode ? `；选择模式：${status.desiredMode}` : '';
+    const matchText = status.matchesExpected === false ? '；状态：需重新写入' : '';
+    const pathText = (status.profilePath || status.configPath) ? `\nProfile：${status.profilePath || status.configPath}` : '';
+    $('claudeDesktopStatus').textContent = `${configured}；模式：${status.mode}${desiredMode}；当前 URL：${actual}；预期 URL：${expected}${matchText}${pathText}`;
 
     // Update badge and title dot
     if (badgeEl) {
@@ -1853,12 +1877,41 @@ async function refreshGeminiCliStatus() {
   }
 }
 
+function formatCodexAuthSummary(status) {
+  const labels = {
+    chatgpt: '官方登录',
+    api: 'API 登录',
+    mixed: '官方 token + 用户 API Key',
+    'legacy-managed-api-key': '旧版代理占位 Key',
+    none: '未登录'
+  };
+  const label = labels[status && status.authMode] || '未知';
+  const notes = [];
+  if (status && status.authConflict) {
+    notes.push('Codex 运行时仍会二选一，建议切换前清理不需要的凭据');
+  }
+  if (status && status.hasManagedApiKey) {
+    notes.push('检测到旧版代理占位 Key，恢复直连会自动清理');
+  }
+  if (status && status.hasProxyManagedApiKey) {
+    notes.push('本地代理占位 Key');
+  }
+  if (status && status.authMode !== 'chatgpt' && !status.chatGptBackupExists) {
+    notes.push('未备份官方登录');
+  }
+  if (notes.length === 0 && status && status.authGuarded) {
+    notes.push('可一键切换登录态');
+  }
+  return `；Codex 登录: ${label}${notes.length ? `（${notes.join('；')}）` : ''}`;
+}
+
 async function refreshCodexStatus() {
   if (!window.proxyManager.codexStatus) return;
   const badgeEl = $('toolBadge-codex-cli');
   const dotEl = $('codexTitleDot');
   try {
     const status = await window.proxyManager.codexStatus();
+    if (status && status.ok === false && status.error) throw new Error(status.error);
     if (!status.exists) {
       $('codexStatus').textContent = `未检测到 Codex CLI 配置文件 (路径: ${status.configPath || ''})`;
       $('codexStatus').className = 'notice';
@@ -1866,13 +1919,15 @@ async function refreshCodexStatus() {
       if (dotEl) dotEl.className = 'status-dot';
       return;
     }
+    const auth = formatCodexAuthSummary(status);
     if (status.baseUrl) {
-      $('codexStatus').textContent = `已配置本地代理；网关地址: ${status.baseUrl}，配置路径: ${status.configPath}`;
+      const legacy = status.legacyBaseUrl && !status.openaiBaseUrl ? '（旧 base_url 写法）' : '';
+      $('codexStatus').textContent = `已配置本地代理；网关地址: ${status.baseUrl}${legacy}${auth}，配置路径: ${status.configPath}`;
       $('codexStatus').className = 'notice green';
       if (badgeEl) { badgeEl.textContent = '已代理'; badgeEl.className = 'badge active'; }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
-      $('codexStatus').textContent = `官方直连；配置路径: ${status.configPath}`;
+      $('codexStatus').textContent = `官方直连${auth}；配置路径: ${status.configPath}`;
       $('codexStatus').className = 'notice';
       if (badgeEl) { badgeEl.textContent = '直连'; badgeEl.className = 'badge direct'; }
       if (dotEl) dotEl.className = 'status-dot amber';
@@ -1880,6 +1935,49 @@ async function refreshCodexStatus() {
   } catch (err) {
     $('codexStatus').textContent = `Codex CLI 状态检查失败：${err && err.message ? err.message : err}`;
     $('codexStatus').className = 'notice';
+    if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
+    if (dotEl) dotEl.className = 'status-dot red';
+  }
+}
+
+async function refreshCodexDesktopStatus() {
+  if (!window.proxyManager.codexDesktopStatus) return;
+  const badgeEl = $('toolBadge-codex-desktop');
+  const dotEl = $('codexDesktopTitleDot');
+  try {
+    const status = await window.proxyManager.codexDesktopStatus();
+    if (status && status.ok === false && status.error) throw new Error(status.error);
+    if (!status.exists) {
+      const auth = formatCodexAuthSummary(status);
+      $('codexDesktopStatus').textContent = `未检测到 Codex 用户配置 (路径: ${status.configPath || ''})${auth}；应用代理会自动创建共享配置。`;
+      $('codexDesktopStatus').className = 'notice';
+      if (badgeEl) { badgeEl.textContent = '未检测'; badgeEl.className = 'badge official'; }
+      if (dotEl) dotEl.className = 'status-dot';
+      return;
+    }
+    const auth = formatCodexAuthSummary(status);
+    if (status.baseUrl) {
+      const restartText = status.requiresRestart ? '；重启 Codex Desktop 或新开会话后生效' : '';
+      const legacy = status.legacyBaseUrl && !status.openaiBaseUrl ? '；当前为旧 base_url 写法' : '';
+      const catalog = status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
+        ? `；模型目录 ${status.modelCatalog.modelCount || 0} 个模型 / ${status.modelCatalog.routeCount || 0} 条路由`
+        : '';
+      $('codexDesktopStatus').textContent = `已接入共享 Codex 配置；网关地址: ${status.baseUrl}${legacy}${catalog}${auth}，配置路径: ${status.configPath}${restartText}`;
+      $('codexDesktopStatus').className = 'notice green';
+      if (badgeEl) { badgeEl.textContent = '已代理'; badgeEl.className = 'badge active'; }
+      if (dotEl) dotEl.className = 'status-dot green';
+    } else {
+      const catalog = status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
+        ? `；已生成模型目录 ${status.modelCatalog.modelCount || 0} 个模型`
+        : '';
+      $('codexDesktopStatus').textContent = `官方直连${catalog}${auth}；配置路径: ${status.configPath}。Codex Desktop 通过共享 config.toml 和启动时模型目录接管。`;
+      $('codexDesktopStatus').className = 'notice';
+      if (badgeEl) { badgeEl.textContent = '直连'; badgeEl.className = 'badge direct'; }
+      if (dotEl) dotEl.className = 'status-dot amber';
+    }
+  } catch (err) {
+    $('codexDesktopStatus').textContent = `Codex Desktop 状态检查失败：${err && err.message ? err.message : err}`;
+    $('codexDesktopStatus').className = 'notice';
     if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
     if (dotEl) dotEl.className = 'status-dot red';
   }
@@ -1899,7 +1997,8 @@ async function refreshAllToolStatuses(options = {}) {
     refreshClaudeCodeStatus(),
     refreshAntigravityCliStatus(),
     refreshGeminiCliStatus(),
-    refreshCodexStatus()
+    refreshCodexStatus(),
+    refreshCodexDesktopStatus()
   ]).finally(() => {
     lastToolStatusRefresh = Date.now();
     toolStatusRefreshInFlight = null;
@@ -2347,27 +2446,33 @@ bindCriticalFrontendControls('early');
 async function refreshCertStatus(options = {}) {
   const now = Date.now();
   if (options.passive && now - lastCertRefresh < 60000) return;
+  if (certRefreshInFlight) return certRefreshInFlight;
   const finishPerf = perfStart('refresh.certStatus');
-  lastCertRefresh = now;
-  try {
-    const status = await window.proxyManager.certStatus();
-    if (!status.ok) {
-      $('certStatus').textContent = `证书状态检查失败：${status.error || '未知错误'}；目录：${status.certDir || ''}`;
+  certRefreshInFlight = (async () => {
+    try {
+      const status = await promiseWithTimeout(window.proxyManager.certStatus(), 9000, '证书状态检查超时');
+      lastCertRefresh = Date.now();
+      if (!status || !status.ok) {
+        $('certStatus').textContent = `证书状态检查失败：${status && status.error ? status.error : '未知错误'}；目录：${status && status.certDir ? status.certDir : ''}`;
+        $('heroCertStatus').innerHTML = '<span class="status-dot red"></span>检查失败';
+        return;
+      }
+      const trustText = status.trusted ? '已信任到系统/当前用户证书库' : '未信任';
+      const existsText = status.exists ? '证书文件已生成' : '证书文件未生成';
+      const expiresText = status.notAfter ? `；有效期至：${status.notAfter}` : '';
+      $('certStatus').textContent = `${existsText}；${trustText}${expiresText}；目录：${status.certDir || ''}`;
+      $('heroCertStatus').innerHTML = `<span class="status-dot ${status.trusted ? 'green' : 'amber'}"></span>${status.trusted ? '已信任' : '未信任'}`;
+    } catch (err) {
+      lastCertRefresh = Date.now();
+      const message = err && err.message ? err.message : '未知错误';
+      $('certStatus').textContent = `证书状态检查失败：${message}`;
       $('heroCertStatus').innerHTML = '<span class="status-dot red"></span>检查失败';
-      return;
+    } finally {
+      certRefreshInFlight = null;
+      finishPerf();
     }
-    const trustText = status.trusted ? '已信任到系统/当前用户证书库' : '未信任';
-    const existsText = status.exists ? '证书文件已生成' : '证书文件未生成';
-    const expiresText = status.notAfter ? `；有效期至：${status.notAfter}` : '';
-    $('certStatus').textContent = `${existsText}；${trustText}${expiresText}；目录：${status.certDir}`;
-    $('heroCertStatus').innerHTML = `<span class="status-dot ${status.trusted ? 'green' : 'amber'}"></span>${status.trusted ? '已信任' : '未信任'}`;
-  } catch (err) {
-    const message = err && err.message ? err.message : '未知错误';
-    $('certStatus').textContent = `证书状态检查失败：${message}`;
-    $('heroCertStatus').innerHTML = '<span class="status-dot red"></span>检查失败';
-  } finally {
-    finishPerf();
-  }
+  })();
+  return certRefreshInFlight;
 }
 
 function schedulePassiveCertRefresh() {
@@ -2492,6 +2597,7 @@ $('addRule').onclick = () => {
   const from = $('modelRewriteFrom').value.trim();
   const profileId = $('modelRouteProfile').value;
   const to = $('modelRewriteTo').value.trim();
+  const labelOverride = $('modelRewriteLabel').value.trim();
   if (!from || !profileId || !to) {
     $('output').textContent = '客户端模型、目标上游和上游模型必填';
     return;
@@ -2502,6 +2608,8 @@ $('addRule').onclick = () => {
   const nextRoute = { from, profileId, to };
   const isEditing = editingRouteIndex !== null && modelRoutes[editingRouteIndex];
   const previousRoute = index >= 0 ? modelRoutes[index] : null;
+  if (labelOverride) nextRoute.labelOverride = labelOverride;
+  if (previousRoute && previousRoute.supports1m !== undefined) nextRoute.supports1m = previousRoute.supports1m;
   if (index >= 0) modelRoutes[index] = nextRoute;
   else modelRoutes.push(nextRoute);
   syncClaudeDesktopModelFromRoute(previousRoute ? previousRoute.from : from, nextRoute);
@@ -2668,6 +2776,34 @@ $('activateProfile').onclick = async () => {
   }
 };
 
+$('copyIdeConfigBtn').onclick = () => {
+  const profile = collectForm();
+  const entries = config.entryServers || [];
+  const primaryEntry = entries.find(e => e.protocol === (profile.protocol === 'claude' ? 'claude' : 'openai')) || entries[0] || { host: 'localhost', listenPort: 3443, basePath: '/v1' };
+  const scheme = primaryEntry.tls === false ? 'http' : 'https';
+  const host = primaryEntry.host === '0.0.0.0' ? '127.0.0.1' : primaryEntry.host;
+  const baseUrl = `${scheme}://${host || 'localhost'}:${primaryEntry.listenPort || 3443}${primaryEntry.basePath || '/v1'}`;
+
+  const envs = [
+    `# Environment variables for ${profile.name || profile.id}`,
+    `# API Protocol: ${protocolName(profile.protocol)}`,
+    '',
+    `ANTHROPIC_BASE_URL="${baseUrl}"`,
+    `CLAUDE_BASE_URL="${baseUrl}"`,
+    `OPENAI_BASE_URL="${baseUrl}"`,
+    '# Note: API Key can be any string when using the proxy with managed keys,',
+    '# or the actual key if you want to bypass the proxy authentication layer.',
+    'ANTHROPIC_API_KEY="sk-ant-proxy-managed"',
+    'OPENAI_API_KEY="sk-proxy-managed"'
+  ].join('\n');
+
+  navigator.clipboard.writeText(envs).then(() => {
+    showToast('已复制 IDE 环境变量配置到剪贴板', 'success');
+  }).catch(err => {
+    showToast('复制失败: ' + err.message, 'error');
+  });
+};
+
 ['localHost', 'localPort', 'localBasePath'].forEach((id) => {
   $(id).oninput = () => {
     ensureEntryServers();
@@ -2743,6 +2879,13 @@ $('addClaudeDesktopModel').onclick = () => {
     : `Desktop 映射已更新：${routeId} → ${upstreamModel}`;
 };
 $('applyClaudeDesktop').onclick = async () => {
+  ensureClaudeDesktop();
+  collectClaudeDesktop();
+  if (config.claudeDesktop.mode === 'official') {
+    config.claudeDesktop.mode = 'proxy';
+    $('claudeDesktopMode').value = 'proxy';
+  }
+  renderClaudeDesktopPreview();
   await saveConfig('Claude Desktop 配置已保存，正在写入...');
   const status = await window.proxyManager.applyClaudeDesktop();
   config = await window.proxyManager.readConfig();
@@ -2759,6 +2902,11 @@ $('restoreClaudeDesktop').onclick = async () => {
     confirmText: '恢复官方模式',
   });
   if (!confirmed) return;
+  ensureClaudeDesktop();
+  config.claudeDesktop.mode = 'official';
+  $('claudeDesktopMode').value = 'official';
+  renderClaudeDesktopPreview();
+  await saveConfig('Claude Desktop 配置已保存，正在恢复官方模式...');
   const status = await window.proxyManager.restoreClaudeDesktop();
   config = await window.proxyManager.readConfig();
   fillClaudeDesktop();
@@ -2836,28 +2984,274 @@ $('restoreGeminiCli').onclick = async () => {
 };
 $('refreshGeminiCli').onclick = refreshGeminiCliStatus;
 
-// Codex CLI
-$('applyCodex').onclick = async () => {
-  const status = await window.proxyManager.applyCodex();
-  await refreshCodexStatus();
-  const msg = status.ok ? '已成功将 Codex CLI 托管到路由代理！' : '托管到路由代理失败';
-  $('output').textContent = msg;
-  showToast(msg, status.ok ? 'success' : 'error');
+async function switchCodexMode(surface, payload, options = {}) {
+  await saveConfig(options.savingText || '模型路由已保存，正在切换 Codex 配置...');
+  const api = surface === 'desktop' ? window.proxyManager.switchCodexDesktop : window.proxyManager.switchCodex;
+  if (!api) {
+    return { ok: false, error: '当前版本缺少 Codex 切换接口' };
+  }
+  const status = await api(payload);
+  await Promise.allSettled([refreshCodexDesktopStatus(), refreshCodexStatus()]);
+  const catalog = status && status.connection && status.connection.modelCatalog
+    ? `，模型目录 ${status.connection.modelCatalog.routeCount || 0} 条路由`
+    : (status && status.connection && status.connection.modelCatalogWarning ? `，模型目录生成失败：${status.connection.modelCatalogWarning}` : '');
+  const msg = status.ok
+    ? `${options.successText || 'Codex 配置已切换'}${catalog}${surface === 'desktop' ? '，重启或新开会话后生效' : ''}！`
+    : `${options.errorPrefix || 'Codex 切换失败'}：${toolActionErrorMessage(status, '未知错误')}`;
+  const finalMsg = status.ok && status.partial && status.authWarning
+    ? `${msg} 登录态未完成：${status.authWarning}`
+    : msg;
+  $('output').textContent = finalMsg;
+  showToast(finalMsg, status.ok ? (status.partial ? 'warning' : 'success') : 'error');
+  return status;
+}
+
+// Codex Desktop
+$('applyCodexDesktop').onclick = async () => {
+  await switchCodexMode('desktop', { connection: 'proxy', auth: 'api' }, {
+    savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + API 登录...',
+    successText: '已切换到 Codex Desktop 本地代理 + API 登录',
+    errorPrefix: '切换到本地代理 + API 登录失败',
+  });
 };
-$('restoreCodex').onclick = async () => {
+$('restoreCodexDesktop').onclick = async () => {
   const confirmed = await confirmAction({
-    title: '恢复 Codex CLI 官方直连？',
-    message: '这会移除 Codex CLI 中的代理设置。恢复后您将连接到官方服务。',
+    title: '恢复 Codex Desktop 官方直连 + 官方登录？',
+    message: '这会移除 Codex 共享配置中的本地代理设置，并尝试恢复已备份的 ChatGPT 官方登录 token。Codex CLI 也会受影响。',
     confirmText: '恢复官方直连',
   });
   if (!confirmed) return;
-  const status = await window.proxyManager.restoreCodex();
-  await refreshCodexStatus();
-  const msg = status.ok ? '已恢复 Codex CLI 官方直连模式！' : '恢复官方模式失败';
-  $('output').textContent = msg;
-  showToast(msg, status.ok ? 'success' : 'error');
+  await switchCodexMode('desktop', { connection: 'direct', auth: 'chatgpt' }, {
+    savingText: '正在切换到 Codex Desktop 官方直连 + 官方登录...',
+    successText: '已切换到 Codex Desktop 官方直连 + 官方登录',
+    errorPrefix: '恢复官方直连 + 官方登录失败',
+  });
+};
+$('refreshCodexDesktop').onclick = refreshCodexDesktopStatus;
+
+const CODEX_CHATGPT_LOGIN_COMMAND = [
+  'codex logout',
+  'codex login'
+].join('\n');
+
+const CODEX_API_LOGIN_COMMAND = [
+  'codex logout',
+  'cmd /d /s /c "echo|set /p=sk-proxy-managed" | codex login --with-api-key'
+].join('\n');
+
+let codexOfficialLoginPollTimer = null;
+
+function codexSurfaceApi(surface, name) {
+  const desktopMap = {
+    status: window.proxyManager.codexDesktopStatus,
+    apiLogin: window.proxyManager.codexDesktopApiLogin,
+    officialLogin: window.proxyManager.codexDesktopOfficialLogin,
+    backup: window.proxyManager.codexDesktopAuthBackup,
+  };
+  const cliMap = {
+    status: window.proxyManager.codexStatus,
+    apiLogin: window.proxyManager.codexApiLogin,
+    officialLogin: window.proxyManager.codexOfficialLogin,
+    backup: window.proxyManager.codexAuthBackup,
+  };
+  const api = surface === 'desktop' ? desktopMap[name] : cliMap[name];
+  return typeof api === 'function' ? api : null;
+}
+
+async function refreshBothCodexStatuses() {
+  await Promise.allSettled([refreshCodexDesktopStatus(), refreshCodexStatus()]);
+}
+
+async function backupCurrentCodexLogin(surface, options = {}) {
+  const backupApi = codexSurfaceApi(surface, 'backup');
+  if (!backupApi) return { ok: false, error: '当前版本缺少 Codex 登录备份接口' };
+  const result = await backupApi();
+  await refreshBothCodexStatuses();
+  if (result.ok) {
+    const pieces = [];
+    if (result.chatgptBackedUp) pieces.push('官方登录');
+    if (result.apiBackedUp) pieces.push('API 登录');
+    const msg = pieces.length
+      ? `已备份 Codex ${pieces.join('、')}状态。`
+      : '未检测到可备份的 Codex 登录态。';
+    if (!options.quiet) {
+      $('output').textContent = msg;
+      showToast(msg, pieces.length ? 'success' : 'warning');
+    }
+  } else if (!options.quiet) {
+    const msg = `备份 Codex 登录态失败：${toolActionErrorMessage(result, '未知错误')}`;
+    $('output').textContent = msg;
+    showToast(msg, 'error');
+  }
+  return result;
+}
+
+function startCodexOfficialLoginPolling(surface) {
+  if (codexOfficialLoginPollTimer) clearInterval(codexOfficialLoginPollTimer);
+  let attempts = 0;
+  codexOfficialLoginPollTimer = setInterval(async () => {
+    attempts += 1;
+    const statusApi = codexSurfaceApi(surface, 'status');
+    if (!statusApi) return;
+    try {
+      const status = await statusApi();
+      if (status && status.authMode === 'chatgpt' && status.hasChatGptTokens) {
+        clearInterval(codexOfficialLoginPollTimer);
+        codexOfficialLoginPollTimer = null;
+        await backupCurrentCodexLogin(surface, { quiet: true });
+        await refreshBothCodexStatuses();
+        const msg = '已检测到 Codex 官方登录，并完成备份。现在可以使用“代理 + 官方登录”或“恢复官方直连(官方登录)”。';
+        $('output').textContent = msg;
+        showToast(msg, 'success');
+      } else if (attempts >= 40) {
+        clearInterval(codexOfficialLoginPollTimer);
+        codexOfficialLoginPollTimer = null;
+        const msg = '还未检测到 Codex 官方登录完成。请在登录窗口完成后点击“检测并备份登录”。';
+        $('output').textContent = msg;
+        showToast(msg, 'warning');
+      }
+    } catch (err) {}
+  }, 3000);
+}
+
+function bindCodexApiLoginButton(buttonId, surface) {
+  const button = $(buttonId);
+  if (!button) return;
+  button.onclick = async () => {
+    const api = codexSurfaceApi(surface, 'apiLogin');
+    if (!api) return;
+    const result = await api({ apiKey: 'sk-proxy-managed' });
+    await refreshBothCodexStatuses();
+    const msg = result.ok
+      ? '已完成 Codex API 登录（本地代理占位 Key）。'
+      : `Codex API 登录失败：${toolActionErrorMessage(result, '未知错误')}`;
+    $('output').textContent = msg;
+    showToast(msg, result.ok ? 'success' : 'error');
+  };
+}
+
+function bindCodexOfficialLoginButton(buttonId, surface) {
+  const button = $(buttonId);
+  if (!button) return;
+  button.onclick = async () => {
+    const api = codexSurfaceApi(surface, 'officialLogin');
+    if (!api) return;
+    const nativeLauncher = window.proxyManager.launchCodexLoginScript;
+    const result = await api({ logout: true, launch: nativeLauncher ? false : true });
+    let launchResult = null;
+    if (result.ok && nativeLauncher && result.scriptPath) {
+      launchResult = await nativeLauncher(result.scriptPath);
+      if (!launchResult || !launchResult.ok) {
+        launchResult = await api({ logout: true, launch: true });
+      }
+    }
+    await refreshBothCodexStatuses();
+    const launched = result.ok && (!nativeLauncher || (launchResult && launchResult.ok));
+    const msg = launched
+      ? '已打开 Codex 官方登录窗口。完成登录后界面会自动检测并备份。'
+      : `启动 Codex 官方登录失败：${toolActionErrorMessage(launchResult || result, '未知错误')}`;
+    $('output').textContent = msg;
+    showToast(msg, launched ? 'success' : 'error');
+    if (launched) startCodexOfficialLoginPolling(surface);
+  };
+}
+
+function bindCodexBackupButton(buttonId, surface) {
+  const button = $(buttonId);
+  if (!button) return;
+  button.onclick = async () => {
+    await backupCurrentCodexLogin(surface);
+  };
+}
+
+function bindCopyCodexLoginCommand(buttonId, command, label) {
+  const button = $(buttonId);
+  if (!button) return;
+  button.onclick = async () => {
+    await navigator.clipboard.writeText(command);
+    $('output').textContent = `${label}已复制到剪贴板。Codex 登录态是二选一，执行前请确认需要切换。`;
+    showToast(`${label}已复制`, 'success');
+  };
+}
+
+function toolActionErrorMessage(status, fallback) {
+  if (!status) return fallback;
+  return status.error || status.message || status.modelCatalogWarning || fallback;
+}
+
+bindCopyCodexLoginCommand('copyCodexChatGptLoginDesktop', CODEX_CHATGPT_LOGIN_COMMAND, 'Codex 官方登录命令');
+bindCopyCodexLoginCommand('copyCodexApiLoginDesktop', CODEX_API_LOGIN_COMMAND, 'Codex API 登录命令');
+bindCodexApiLoginButton('codexDesktopApiLogin', 'desktop');
+bindCodexOfficialLoginButton('codexDesktopOfficialLogin', 'desktop');
+bindCodexBackupButton('codexDesktopBackupAuth', 'desktop');
+const switchCodexDesktopProxyOfficial = $('switchCodexDesktopProxyOfficial');
+if (switchCodexDesktopProxyOfficial) {
+  switchCodexDesktopProxyOfficial.onclick = async () => {
+    await switchCodexMode('desktop', { connection: 'proxy', auth: 'chatgpt' }, {
+      savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + 官方登录...',
+      successText: '已切换到 Codex Desktop 本地代理 + 官方登录',
+      errorPrefix: '切换到代理 + 官方登录失败',
+    });
+  };
+}
+const switchCodexDesktopDirectApi = $('switchCodexDesktopDirectApi');
+if (switchCodexDesktopDirectApi) {
+  switchCodexDesktopDirectApi.onclick = async () => {
+    await switchCodexMode('desktop', { connection: 'direct', auth: 'api' }, {
+      savingText: '正在切换到 Codex Desktop 官方直连 + API 登录...',
+      successText: '已切换到 Codex Desktop 官方直连 + API 登录',
+      errorPrefix: '切换到官方直连 + API 登录失败',
+    });
+  };
+}
+
+// Codex CLI
+$('applyCodex').onclick = async () => {
+  await switchCodexMode('cli', { connection: 'proxy', auth: 'api' }, {
+    savingText: '模型路由已保存，正在切换到 Codex CLI 本地代理 + API 登录...',
+    successText: '已切换到 Codex CLI 本地代理 + API 登录',
+    errorPrefix: '切换到本地代理 + API 登录失败',
+  });
+};
+$('restoreCodex').onclick = async () => {
+  const confirmed = await confirmAction({
+    title: '恢复 Codex CLI 官方直连 + 官方登录？',
+    message: '这会移除 Codex 共享配置中的代理设置，并尝试恢复已备份的 ChatGPT 官方登录 token。',
+    confirmText: '恢复官方直连',
+  });
+  if (!confirmed) return;
+  await switchCodexMode('cli', { connection: 'direct', auth: 'chatgpt' }, {
+    savingText: '正在切换到 Codex CLI 官方直连 + 官方登录...',
+    successText: '已切换到 Codex CLI 官方直连 + 官方登录',
+    errorPrefix: '恢复官方直连 + 官方登录失败',
+  });
 };
 $('refreshCodex').onclick = refreshCodexStatus;
+bindCopyCodexLoginCommand('copyCodexChatGptLogin', CODEX_CHATGPT_LOGIN_COMMAND, 'Codex 官方登录命令');
+bindCopyCodexLoginCommand('copyCodexApiLogin', CODEX_API_LOGIN_COMMAND, 'Codex API 登录命令');
+bindCodexApiLoginButton('codexApiLogin', 'cli');
+bindCodexOfficialLoginButton('codexOfficialLogin', 'cli');
+bindCodexBackupButton('codexBackupAuth', 'cli');
+const switchCodexProxyOfficial = $('switchCodexProxyOfficial');
+if (switchCodexProxyOfficial) {
+  switchCodexProxyOfficial.onclick = async () => {
+    await switchCodexMode('cli', { connection: 'proxy', auth: 'chatgpt' }, {
+      savingText: '模型路由已保存，正在切换到 Codex CLI 本地代理 + 官方登录...',
+      successText: '已切换到 Codex CLI 本地代理 + 官方登录',
+      errorPrefix: '切换到代理 + 官方登录失败',
+    });
+  };
+}
+const switchCodexDirectApi = $('switchCodexDirectApi');
+if (switchCodexDirectApi) {
+  switchCodexDirectApi.onclick = async () => {
+    await switchCodexMode('cli', { connection: 'direct', auth: 'api' }, {
+      savingText: '正在切换到 Codex CLI 官方直连 + API 登录...',
+      successText: '已切换到 Codex CLI 官方直连 + API 登录',
+      errorPrefix: '切换到官方直连 + API 登录失败',
+    });
+  };
+}
 
 // 折叠与展开手动安装命令
 $('manualInstallHeader').onclick = () => {
@@ -3318,6 +3712,164 @@ if (saveTplBtn) {
     loadTemplates();
     showToast('模板保存成功');
   };
+}
+
+// --- MCP Hub UI Logic ---
+
+let mcpHubConfig = { servers: [], routing: [] };
+
+async function initMcpHubView() {
+  const container = $('mcpHubView');
+  if (!container || container.dataset.initialized) {
+    refreshMcpHub();
+    return;
+  }
+  container.dataset.initialized = 'true';
+
+  $('refreshMcpHub').onclick = () => refreshMcpHub();
+  $('addMcpServer').onclick = () => addMcpServer();
+  $('saveMcpHub').onclick = () => saveMcpHub();
+
+  refreshMcpHub();
+}
+
+async function refreshMcpHub() {
+  const status = $('mcpHubStatus');
+  status.textContent = '正在加载 MCP 配置...';
+
+  try {
+    const res = await window.proxyManager.mcpHubGet();
+    if (res.ok) {
+      mcpHubConfig = res.mcpHub;
+      renderMcpServers();
+      status.textContent = `已加载 ${mcpHubConfig.servers.length} 个服务器，${mcpHubConfig.routing.length} 条路由规则。`;
+    } else {
+      status.textContent = '加载 MCP 配置失败：' + (res.error || '未知错误');
+    }
+
+    const logsRes = await window.proxyManager.mcpHubLogs();
+    if (logsRes.ok) {
+      renderMcpLogs(logsRes.logs);
+    }
+  } catch (err) {
+    status.textContent = '加载失败：' + err.message;
+  }
+}
+
+function renderMcpServers() {
+  const container = $('mcpServersList');
+  if (!mcpHubConfig || !mcpHubConfig.servers || mcpHubConfig.servers.length === 0) {
+    container.innerHTML = '<div class="muted" style="padding:20px; text-align:center;">暂无已配置的 MCP 服务器。</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="route-table">
+      <div class="route-table-head">
+        <table>
+          <thead>
+            <tr>
+              <th>服务器 ID</th>
+              <th>URL (SSE)</th>
+              <th>前缀</th>
+              <th style="width:60px">注入</th>
+              <th style="width:80px">操作</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <div class="route-table-scroll">
+        <table>
+          <tbody>
+            ${mcpHubConfig.servers.map((s, index) => `
+              <tr>
+                <td><input type="text" value="${escapeAttr(s.id)}" class="table-input" onchange="updateMcpServer(${index}, 'id', this.value)"></td>
+                <td><input type="text" value="${escapeAttr(s.url)}" class="table-input" placeholder="http://..." onchange="updateMcpServer(${index}, 'url', this.value)"></td>
+                <td><input type="text" value="${escapeAttr(s.prefix || '')}" class="table-input" placeholder="可选" onchange="updateMcpServer(${index}, 'prefix', this.value)"></td>
+                <td style="text-align:center"><input type="checkbox" ${s.injectAll ? 'checked' : ''} onchange="updateMcpServer(${index}, 'injectAll', this.checked)"></td>
+                <td style="text-align:right"><button class="danger" style="padding:2px 8px; font-size:12px; margin:0;" onclick="deleteMcpServer(${index})">删除</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+window.updateMcpServer = (index, field, value) => {
+  if (mcpHubConfig.servers[index]) {
+    mcpHubConfig.servers[index][field] = value;
+  }
+};
+
+window.deleteMcpServer = (index) => {
+  mcpHubConfig.servers.splice(index, 1);
+  renderMcpServers();
+};
+
+function addMcpServer() {
+  if (!mcpHubConfig.servers) mcpHubConfig.servers = [];
+  mcpHubConfig.servers.push({
+    id: 'mcp-server-' + Math.random().toString(36).substring(2, 6),
+    url: 'http://localhost:3000/sse',
+    prefix: '',
+    injectAll: true
+  });
+  renderMcpServers();
+}
+
+function renderMcpLogs(logs) {
+  const container = $('mcpExecutionLogs');
+  if (!logs || logs.length === 0) {
+    container.innerHTML = '<div class="muted">暂无执行记录...</div>';
+    return;
+  }
+
+  container.innerHTML = logs.map(log => {
+    const time = new Date(log.time).toLocaleTimeString();
+    const statusClass = log.status === 'error' ? 'red' : 'green';
+    const detail = log.error ? `<div style="color:#ef4444; margin-top:4px;">Error: ${escapeHtml(log.error)}</div>` : '';
+    return `
+      <div class="log-entry" style="margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span class="muted">[${time}]</span>
+            <strong style="color:var(--text)">${escapeHtml(log.serverId)}</strong>:
+            <code style="color:var(--primary); font-weight:600;">${escapeHtml(log.toolName)}</code>
+          </div>
+          <span class="badge ${statusClass}">${log.status === 'error' ? '失败' : '成功'} (${log.elapsed}ms)</span>
+        </div>
+        ${detail}
+        <details style="margin-top:6px;">
+          <summary style="cursor:pointer; color:var(--primary); font-size:11px; user-select:none;">查看参数/结果</summary>
+          <pre style="background:rgba(0,0,0,0.05); padding:8px; margin-top:4px; border-radius:4px; font-size:11.5px; white-space:pre-wrap; word-break:break-all;">${escapeHtml(JSON.stringify({ input: log.input, result: log.result }, null, 2))}</pre>
+        </details>
+      </div>
+    `;
+  }).join('');
+}
+
+async function saveMcpHub() {
+  const btn = $('saveMcpHub');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '正在保存...';
+
+  try {
+    const res = await window.proxyManager.mcpHubSave({ mcpHub: mcpHubConfig });
+    if (res.ok) {
+      showToast('MCP 配置已保存', 'success');
+      refreshMcpHub();
+    } else {
+      showToast('保存失败：' + (res.error || '未知错误'), 'error');
+    }
+  } catch (err) {
+    showToast('保存出错：' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
 }
 
 bindCriticalFrontendControls('final');

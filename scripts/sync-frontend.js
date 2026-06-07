@@ -33,6 +33,7 @@ function validateCanonicalHtml() {
   const cliMatch = html.match(/<script\s+defer\s+src=["']\.\/app-cli\.js(?:\?[^"']*)?["']><\/script>/);
   const diagnosticsMatch = html.match(/<script\s+defer\s+src=["']\.\/app-diagnostics\.js(?:\?[^"']*)?["']><\/script>/);
   const appMatch = html.match(/<script\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>/);
+  const chartMatch = html.match(/<script\s+src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js["']><\/script>/);
   const bridgeIndex = bridgeMatch ? bridgeMatch.index : -1;
   const auditIndex = auditMatch ? auditMatch.index : -1;
   const cliIndex = cliMatch ? cliMatch.index : -1;
@@ -44,7 +45,7 @@ function validateCanonicalHtml() {
   if (/<style[\s>]/i.test(html)) {
     fail('tauri-ui/electron-ui.html contains an inline <style> block; move CSS to tauri-ui/app.css');
   }
-  const inlineScripts = html.match(/<script(?!\s+defer\s+src=["']\.\/app-(?:bridge|audit|cli|diagnostics)\.js(?:\?[^"']*)?["']><\/script>)(?!\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>)[\s>]/gi) || [];
+  const inlineScripts = html.match(/<script(?!\s+defer\s+src=["']\.\/app-(?:bridge|audit|cli|diagnostics)\.js(?:\?[^"']*)?["']><\/script>)(?!\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>)(?!\s+src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js["']><\/script>)[\s>]/gi) || [];
   if (inlineScripts.length > 0) {
     fail('tauri-ui/electron-ui.html contains inline script tags; move JavaScript to tauri-ui/app.js');
   }

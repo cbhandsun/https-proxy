@@ -506,6 +506,40 @@ fn open_cert_dir() {
 }
 
 #[tauri::command]
+fn launch_codex_login_script(script_path: String) -> Result<serde_json::Value, String> {
+    let path = PathBuf::from(&script_path);
+    if !path.exists() {
+        return Err(format!("Codex login script not found: {}", script_path));
+    }
+    if path.extension().and_then(|ext| ext.to_str()).unwrap_or("") != "ps1" {
+        return Err("Codex login script must be a .ps1 file".to_string());
+    }
+
+    let mut command = Command::new("powershell.exe");
+    command
+        .args(["-NoExit", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(&path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NEW_CONSOLE: u32 = 0x00000010;
+        command.creation_flags(CREATE_NEW_CONSOLE);
+    }
+
+    let child = command
+        .spawn()
+        .map_err(|err| format!("Failed to launch Codex login script: {}", err))?;
+    Ok(serde_json::json!({
+        "pid": child.id(),
+        "scriptPath": script_path
+    }))
+}
+
+#[tauri::command]
 fn get_proxy_debug() -> serde_json::Value {
     let cwd = std::env::current_dir().unwrap_or_default();
     let exe = std::env::current_exe().unwrap_or_default();
@@ -867,6 +901,7 @@ pub fn run() {
             open_config,
             open_log,
             open_cert_dir,
+            launch_codex_login_script,
             get_proxy_debug,
             get_cert_status_native,
             execute_proxy_command

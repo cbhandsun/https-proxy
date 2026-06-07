@@ -107,7 +107,8 @@ function prepareMonitorEvent(event) {
     details = `Client: ${event.clientIp}`;
   } else if (event.kind === 'route') {
     title = `Route: ${event.sourceModel} → ${event.targetModel}`;
-    details = `Profile: ${event.profileName} (${event.protocol})`;
+    const contextInfo = event.estimatedContextTokens ? ` | Context: ${event.estimatedContextTokens}tok` : '';
+    details = `Profile: ${event.profileName} (${event.protocol})${contextInfo}`;
     badgeClass = 'active';
   } else if (event.kind === 'request_end') {
     title = `${event.method} ${event.path} -> ${event.statusCode}`;

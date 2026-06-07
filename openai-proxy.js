@@ -11,25 +11,42 @@ const os = require('os');
 const url = require('url');
 const net = require('net');
 const util = require('util');
+const crypto = require('crypto');
+
+const { createLogger } = require('./lib/proxy/logger');
+const log = createLogger('proxy');
 
 const APP_ID = 'https-proxy-manager';
+const MANAGEMENT_TOKEN = process.env.MGMT_TOKEN || crypto.randomBytes(16).toString('hex');
 let PACKAGE_VERSION = '0.1.0';
 try {
   PACKAGE_VERSION = require('./package.json').version || PACKAGE_VERSION;
 } catch (err) {}
 
-const globalHttpsAgent = new https.Agent({
+function shouldVerifyUpstreamTls() {
+  if (process.env.PROXY_ALLOW_UNTRUSTED_UPSTREAM === '1') return false;
+  try {
+    const cfg = loadConfig();
+    return cfg.appSettings && cfg.appSettings.verifyUpstreamTls !== false;
+  } catch (e) { return true; }
+}
+
+function createHttpsAgent() {
+  return new https.Agent({
+    keepAlive: true,
+    maxSockets: 100,
+    maxFreeSockets: 10,
+    timeout: 60000,
+    rejectUnauthorized: shouldVerifyUpstreamTls(),
+  });
+}
+
+let globalHttpsAgent = createHttpsAgent();
+let globalHttpAgent = new http.Agent({
   keepAlive: true,
   maxSockets: 100,
   maxFreeSockets: 10,
   timeout: 60000,
-  rejectUnauthorized: false
-});
-const globalHttpAgent = new http.Agent({
-  keepAlive: true,
-  maxSockets: 100,
-  maxFreeSockets: 10,
-  timeout: 60000
 });
 https.globalAgent = globalHttpsAgent;
 http.globalAgent = globalHttpAgent;
@@ -230,9 +247,8 @@ function requestWithProxy(targetUrl, options, callback) {
                 const tlsSocket = tls.connect({
                   socket: socket,
                   servername: target.hostname,
-                  rejectUnauthorized: false
+                  rejectUnauthorized: shouldVerifyUpstreamTls()
                 }, () => {
-                  const headers = { ...options.headers, host: target.hostname };
                   const req = attachRequestTimeout(http.request({
                     createConnection: () => tlsSocket,
                     method: options.method || 'GET',
@@ -301,7 +317,7 @@ function requestWithProxy(targetUrl, options, callback) {
               const tlsSocket = tls.connect({
                 socket: socket,
                 servername: target.hostname,
-                rejectUnauthorized: false
+                rejectUnauthorized: shouldVerifyUpstreamTls()
               }, () => {
                 const headers = { ...options.headers, host: target.hostname };
                 const req = attachRequestTimeout(http.request({
@@ -365,6 +381,9 @@ function requestWithProxy(targetUrl, options, callback) {
 }
 
 
+const { createAuthResolver } = require('./lib/proxy/auth-resolver');
+const { createManagementHandlers } = require('./lib/proxy/handlers/management');
+
 const {
   DATA_DIR,
   CONFIG_FILE,
@@ -378,6 +397,22 @@ const {
   encryptKey,
   decryptKey,
 } = require('./lib/proxy/config');
+
+function writeManagementTokenFile(managementPort) {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const tokenFiles = [path.join(DATA_DIR, '.mgmt-token')];
+    const portNumber = Number(managementPort);
+    if (Number.isFinite(portNumber) && portNumber > 0) {
+      tokenFiles.unshift(path.join(DATA_DIR, `.mgmt-token-${portNumber}`));
+    }
+    for (const tokenFile of tokenFiles) {
+      fs.writeFileSync(tokenFile, MANAGEMENT_TOKEN, { encoding: 'utf8', mode: 0o600 });
+    }
+  } catch (err) {
+    log.warn('[mgmt] Failed to write management token file:', err.message);
+  }
+}
 
 function setupFileConsoleTee() {
   if (process.env.PROXY_DISABLE_FILE_LOG === '1') return;
@@ -419,7 +454,7 @@ function setupFileConsoleTee() {
       writeLine(err, args);
     };
   } catch (e) {
-    try { console.error('[log] Failed to initialize file logging:', e.message); } catch (_) {}
+    try { log.error('[log] Failed to initialize file logging:', e.message); } catch (_) {}
   }
 }
 
@@ -597,8 +632,10 @@ const {
   evaluateClaudeProfileAuthResponse,
 } = require('./lib/proxy/profile-auth');
 const { createHttpClient } = require('./lib/proxy/http-client');
+const { validateConfig } = require('./lib/proxy/validator');
 const { createCertManagement } = require('./lib/proxy/cert-management');
 const { handleLocalPromptsSyncRequest, handleLocalPromptsPresetsRequest } = require('./lib/proxy/prompts-sync');
+const { logUsage, getUsageSummary } = require('./lib/proxy/usage');
 const { createGoogleOfficialRuntime } = require('./lib/proxy/google-official-runtime');
 const { createMcpHub } = require('./lib/proxy/mcp-hub');
 const {
@@ -671,10 +708,95 @@ const {
   handleLocalCodexStatusRequest,
   handleLocalCodexApplyRequest,
   handleLocalCodexRestoreRequest,
+  handleLocalCodexSwitchRequest,
+  handleLocalCodexApiLoginRequest,
+  handleLocalCodexOfficialLoginRequest,
+  handleLocalCodexAuthBackupRequest,
+  handleLocalCodexDesktopStatusRequest,
+  handleLocalCodexDesktopApplyRequest,
+  handleLocalCodexDesktopRestoreRequest,
+  handleLocalCodexDesktopSwitchRequest,
+  handleLocalCodexDesktopApiLoginRequest,
+  handleLocalCodexDesktopOfficialLoginRequest,
+  handleLocalCodexDesktopAuthBackupRequest,
   handleLocalGeminiCliStatusRequest,
   handleLocalGeminiCliApplyRequest,
   handleLocalGeminiCliRestoreRequest,
 } = createToolConfigHandlers();
+
+const {
+  resolveOfficialCredentials,
+  resolveConfiguredProfile,
+} = createAuthResolver({
+  loadConfig,
+  getProfiles,
+  decryptKey,
+  officialLoginProvider,
+  inferOfficialProfileAuthMode,
+  configuredAuthMode,
+  isRedactedSecret,
+  readGoogleOfficialCredentialFile,
+  refreshGoogleAccessToken,
+  getFreshAntigravityOfficialAccessToken,
+  resolveGoogleOfficialLoginPrepared,
+  shouldUseChatGPTBackendForOfficialLogin,
+  TRAE_OFFICIAL_TARGET_URL,
+  readTraeStorageSummary,
+  isGoogleOfficialLoginToken,
+  isOpenAIOfficialLoginToken,
+  PROFILES: () => PROFILES, // Use a getter if PROFILES is re-assigned
+});
+
+const managementHandlers = createManagementHandlers({
+  CONFIG: () => CONFIG,
+  PROFILES: () => PROFILES,
+  ACTIVE_PROFILE: () => ACTIVE_PROFILE,
+  LOCAL_SERVER: () => LOCAL_SERVER,
+  MODEL_ROUTES: () => MODEL_ROUTES,
+  ENTRY_SERVERS: () => ENTRY_SERVERS,
+  APP_ID,
+  PACKAGE_VERSION,
+  PORT,
+  CLI_SESSIONS,
+  PROTOCOL_OPTIONS,
+  reloadProxyConfig,
+  makeRequest,
+  requestWithProxy,
+  logProxyEvent,
+  logRequestEnd,
+  decryptKey,
+  resolveOfficialCredentials,
+  resolveConfiguredProfile,
+  handleLocalCertStatusRequest,
+  handleLocalCertTrustRequest,
+  handleLocalCertUntrustRequest,
+  handleLocalTraeStatusRequest,
+  handleLocalTraeBridgeStatusRequest,
+  handleLocalAntigravityCliStatusRequest,
+  handleLocalAntigravityCliApplyRequest,
+  handleLocalAntigravityCliRestoreRequest,
+  handleLocalClaudeCodeStatusRequest,
+  handleLocalClaudeCodeApplyRequest,
+  handleLocalClaudeCodeRestoreRequest,
+  handleLocalCodexStatusRequest,
+  handleLocalCodexApplyRequest,
+  handleLocalCodexRestoreRequest,
+  handleLocalCodexSwitchRequest,
+  handleLocalCodexApiLoginRequest,
+  handleLocalCodexOfficialLoginRequest,
+  handleLocalCodexAuthBackupRequest,
+  handleLocalCodexDesktopStatusRequest,
+  handleLocalCodexDesktopApplyRequest,
+  handleLocalCodexDesktopRestoreRequest,
+  handleLocalCodexDesktopSwitchRequest,
+  handleLocalCodexDesktopApiLoginRequest,
+  handleLocalCodexDesktopOfficialLoginRequest,
+  handleLocalCodexDesktopAuthBackupRequest,
+  handleLocalGeminiCliStatusRequest,
+  handleLocalGeminiCliApplyRequest,
+  handleLocalGeminiCliRestoreRequest,
+  globalHttpsAgent,
+});
 
 let watchTimeout;
 try {
@@ -685,7 +807,7 @@ try {
     }
   });
 } catch (err) {
-  console.warn('[config] Failed to watch config file:', err.message);
+  log.warn('[config] Failed to watch config file:', err.message);
 }
 
 function reloadProxyConfig() {
@@ -704,9 +826,14 @@ function reloadProxyConfig() {
     }
     Object.assign(PROTOCOL_OPTIONS, nextOptions);
 
-    console.log('[config] Configuration hot-reloaded successfully. Active profile:', ACTIVE_PROFILE.id);
+    // Recreate HTTPS agent when TLS verification setting changes
+    const newAgent = createHttpsAgent();
+    globalHttpsAgent = newAgent;
+    https.globalAgent = newAgent;
+
+    log.info('[config] Configuration hot-reloaded successfully. Active profile:', ACTIVE_PROFILE.id);
   } catch (err) {
-    console.error('[config] Failed to hot-reload configuration:', err.message);
+    log.error('[config] Failed to hot-reload configuration:', err.message);
   }
 }
 
@@ -721,7 +848,16 @@ function resolveRoute(model) {
 }
 
 function resolveClaudeDesktopRoute(model) {
-  return resolveRouteForModel(model, CLAUDE_DESKTOP_ROUTES, PROFILES, ACTIVE_PROFILE);
+  const resolved = resolveRouteForModel(model, CLAUDE_DESKTOP_ROUTES, PROFILES, ACTIVE_PROFILE);
+  if (resolved.route) return resolved;
+  if (String(model || '').trim() === 'claude-opus-4-8') {
+    return resolveRouteForModel('claude-opus-4-1', CLAUDE_DESKTOP_ROUTES, PROFILES, ACTIVE_PROFILE);
+  }
+  return resolved;
+}
+
+function isClaudeDesktop3pRequest(headers) {
+  return String(headers && headers['user-agent'] || '').toLowerCase().includes('claude-desktop-3p');
 }
 
 function handleModelsRequest(clientReq, clientRes, requestInfo, forcedFormat) {
@@ -736,8 +872,9 @@ function prepareRequestBufferWithResolver(buffer, encoding, resolver) {
   return prepareRequestBufferForRoute(buffer, encoding, ACTIVE_PROFILE, resolver || resolveRoute);
 }
 
-function logModelMapping(kind, method, upstreamPath, prepared) {
-  return logRouteModelMapping(kind, method, upstreamPath, prepared, logProxyEvent);
+function logModelMapping(kind, method, upstreamPath, prepared, requestBuffer) {
+  const estimatedContextTokens = estimateTokens(captureRequestBody(prepared.buffer || requestBuffer).body);
+  return logRouteModelMapping(kind, method, upstreamPath, { ...prepared, estimatedContextTokens }, logProxyEvent);
 }
 
 const {
@@ -814,7 +951,7 @@ const MAX_CONVERSION_RESPONSE_BYTES = Math.max(1024 * 1024, Number(process.env.P
 
 // 全局异常处理，避免进程意外崩溃
 process.on('uncaughtException', (err) => {
-  console.error('[Uncaught Exception]', err);
+  log.error('[Uncaught Exception]', err);
   if (typeof logProxyEvent === 'function') {
     try {
       logProxyEvent('uncaught_exception', { error: err.message, stack: err.stack });
@@ -822,7 +959,7 @@ process.on('uncaughtException', (err) => {
   }
 });
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Unhandled Rejection]', reason);
+  log.error('[Unhandled Rejection]', reason);
   if (typeof logProxyEvent === 'function') {
     try {
       logProxyEvent('unhandled_rejection', { reason: String(reason) });
@@ -850,6 +987,7 @@ const {
   normalizeClaudeContent,
   isClaudeThinkingBlock,
   sampleGeminiToolEvent,
+  protocolOptions: PROTOCOL_OPTIONS,
 });
 
 const {
@@ -888,6 +1026,7 @@ const {
   makeSafeClaudeToolUseContentBlock,
   writeClaudeSseEvent,
   flushPendingGeminiToolCall,
+  geminiClaudeStopReason,
   processGeminiSseEvent,
   processClaudeSseChunk,
   flushClaudeSseFilter,
@@ -909,6 +1048,7 @@ const {
   claudeStopReasonFromGemini,
   geminiUsageToClaude,
   fallbackId,
+  protocolOptions: PROTOCOL_OPTIONS,
 });
 
 ({ filterClaudeToolUseBlocks, filterClaudeJsonBody } = createClaudeFilters({
@@ -1004,12 +1144,14 @@ const {
   flushClaudeSseToOpenAI,
   processGeminiSseEvent,
   flushPendingGeminiToolCall,
+  geminiClaudeStopReason,
   sampleResponseChunk,
   logProxyEvent,
   logRequestEnd,
   fallbackId,
   stableCreated,
   extractSseDataPayloads,
+  mcpHub,
   maxConversionResponseBytes: MAX_CONVERSION_RESPONSE_BYTES,
 });
 
@@ -1040,1456 +1182,6 @@ function forceResponsesEntry(entry) {
   return entry && entry.protocol === 'openai-responses';
 }
 
-function sendEntryPathError(clientRes, entry, method, clientPath) {
-  clientRes.writeHead(404, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'access-control-allow-origin': '*',
-    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'access-control-allow-headers': '*',
-  });
-  clientRes.end(JSON.stringify({
-    error: {
-      type: 'invalid_request_error',
-      message: 'Path ' + method + ' ' + clientPath + ' is not supported by ' + entryLabel(entry) + ' entry',
-    },
-  }));
-}
-
-function handleLocalLatencyRequest(clientReq, clientRes) {
-  const chunks = [];
-  clientReq.on('data', chunk => chunks.push(chunk));
-  clientReq.on('end', async () => {
-    try {
-      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      let { protocol, targetUrl, apiKey, id, profileId } = body;
-      if (!targetUrl || !protocol) {
-        throw new Error('targetUrl and protocol are required');
-      }
-
-      const lookupId = id || profileId;
-      let finalProfile = resolveConfiguredProfile({ id: lookupId, protocol, targetUrl, apiKey }, lookupId);
-
-      const resolved = await resolveOfficialCredentials({ profile: finalProfile });
-      protocol = resolved.profile.protocol || protocol;
-      targetUrl = resolved.profile.targetUrl || targetUrl;
-      apiKey = resolved.profile.apiKey;
-
-      const url = getModelsUrl(targetUrl, protocol);
-      const urlObj = new URL(url);
-      const transport = urlObj.protocol === 'https:' ? https : http;
-      const headers = { 'accept': 'application/json' };
-      if (apiKey) {
-        if (protocol === 'claude') headers['x-api-key'] = apiKey;
-        else if (protocol === 'gemini') {
-          if (isGoogleOfficialLoginToken(apiKey)) headers['authorization'] = 'Bearer ' + apiKey;
-          else headers['x-goog-api-key'] = apiKey;
-        }
-        else headers['authorization'] = 'Bearer ' + apiKey;
-      }
-
-      const startTime = Date.now();
-      const targetFullUrl = urlObj.protocol + '//' + urlObj.host + urlObj.pathname + urlObj.search;
-      const req = requestWithProxy(targetFullUrl, { method: 'GET', headers }, (res) => {
-        const latency = Date.now() - startTime;
-        res.resume();
-        clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({ ok: true, latency }));
-      });
-
-      req.on('error', (err) => {
-        clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({ ok: false, error: err.message }));
-      });
-
-    } catch (err) {
-      clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ error: err.message }));
-    }
-  });
-}
-
-function handleLocalClaudeDesktopStatusRequest(clientReq, clientRes) {
-  try {
-    const status = getClaudeDesktopStatus();
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: true, ...status }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalClaudeDesktopApplyRequest(clientReq, clientRes) {
-  try {
-    const result = applyClaudeDesktopConfig(CONFIG, CONFIG_FILE, decryptKey);
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: true, ...result }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalClaudeDesktopRestoreRequest(clientReq, clientRes) {
-  try {
-    restoreClaudeDesktopConfig(CONFIG, CONFIG_FILE);
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: true }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalCliCredentialsRequest(clientReq, clientRes) {
-  try {
-    const parsedUrl = new URL(clientReq.url, 'http://localhost');
-    const type = parsedUrl.searchParams.get('type') || '';
-
-    if (type === 'google') {
-      const credsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
-      if (fs.existsSync(credsPath)) {
-        const content = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-        clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({
-          ok: true,
-          token: content.access_token || '',
-          expiry: content.expiry_date || 0,
-          hasRefreshToken: !!content.refresh_token
-        }));
-        return;
-      }
-    } else if (type === 'antigravity' || type === 'agy') {
-      const agyCreds = readAntigravityOfficialCredentialState();
-      if (agyCreds && agyCreds.content) {
-        const sendAgyCreds = (token) => {
-          clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({
-            ok: true,
-            token: token || agyCreds.content.access_token || '',
-            expiry: agyCreds.content.expiry_date || 0,
-            hasRefreshToken: !!agyCreds.content.refresh_token,
-            source: agyCreds.source
-          }));
-        };
-        if (agyCreds.content.refresh_token) {
-          refreshGoogleAccessToken(null, agyCreds.content)
-            .then(sendAgyCreds)
-            .catch(() => sendAgyCreds(agyCreds.content.access_token || ''));
-        } else {
-          sendAgyCreds(agyCreds.content.access_token || '');
-        }
-        return;
-      }
-    } else if (type === 'codex' || type === 'openai') {
-      const authPath = path.join(os.homedir(), '.codex', 'auth.json');
-      if (fs.existsSync(authPath)) {
-        const content = JSON.parse(fs.readFileSync(authPath, 'utf8'));
-        const token = (content.tokens && content.tokens.access_token) || content.OPENAI_API_KEY || '';
-        clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({
-          ok: true,
-          token: token,
-          hasRefreshToken: !!(content.tokens && content.tokens.refresh_token)
-        }));
-        return;
-      }
-    }
-
-    clientRes.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: false, error: '未找到本地凭据文件' }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-async function handleLocalRateLimitsRequest(clientReq, clientRes) {
-  try {
-    const urlObj = new URL(clientReq.url, 'http://localhost');
-    const profileId = urlObj.searchParams.get('profileId') || 'openai-official';
-
-    const profile = PROFILES.find(p => p.id === profileId);
-    if (!profile) {
-      clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: false, error: '找不到 Profile' }));
-      return;
-    }
-
-    let finalProfile = { ...profile };
-    let foundApiKey = finalProfile.apiKey;
-    if (foundApiKey && foundApiKey.startsWith('hpm-enc:')) {
-      foundApiKey = decryptKey(foundApiKey);
-    }
-    finalProfile.apiKey = foundApiKey;
-
-    const resolved = await resolveOfficialCredentials({ profile: finalProfile });
-    let apiKey = resolved.profile.apiKey;
-
-    if (!apiKey) {
-      if (profileId === 'openai-official' || officialLoginProvider(resolved.profile) === 'openai') {
-        sendCodexLocalRateLimitsOrError(clientRes, '未检测到 OpenAI 官方登录凭证，已尝试读取 Codex 本地限额。');
-      } else {
-        clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({ ok: false, limits: [], error: '未检测到官方登录凭证，无法同步真实限额。' }));
-      }
-      return;
-    }
-
-    if (profileId === 'google-official') {
-      let projectId = resolved.profile.projectId || resolved.profile.managedProjectId || process.env.GOOGLE_CLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT_ID || '';
-      if (!projectId) {
-        const loadProbe = buildGoogleOfficialLoadCodeAssistRequest(apiKey);
-        const loadRes = await makeRequest(loadProbe.fullUrl, { method: loadProbe.method, headers: loadProbe.headers }, loadProbe.requestBody);
-        if (loadRes.statusCode >= 200 && loadRes.statusCode < 300) {
-          try {
-            const loaded = JSON.parse(loadRes.body);
-            projectId = loaded.cloudaicompanionProject || (loaded.currentTier && loaded.currentTier.cloudaicompanionProject) || '';
-          } catch (e) {}
-        }
-      }
-
-      const availableReq = buildGoogleOfficialAvailableModelsRequest(apiKey, projectId);
-      const availableRes = await makeRequest(availableReq.fullUrl, { method: availableReq.method, headers: availableReq.headers }, availableReq.requestBody);
-      if (availableRes.statusCode >= 200 && availableRes.statusCode < 300) {
-        let parsed = {};
-        try { parsed = JSON.parse(availableRes.body); } catch (e) {}
-        const limits = formatGoogleOfficialAvailableModels(parsed);
-        clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({ ok: true, limits, source: 'fetchAvailableModels', projectId: projectId || undefined }));
-        return;
-      }
-
-      const quotaReq = buildGoogleOfficialRetrieveUserQuotaRequest(apiKey, projectId);
-      const quotaRes = await makeRequest(quotaReq.fullUrl, { method: quotaReq.method, headers: quotaReq.headers }, quotaReq.requestBody);
-      if (quotaRes.statusCode >= 200 && quotaRes.statusCode < 300) {
-        let parsed = {};
-        try { parsed = JSON.parse(quotaRes.body); } catch (e) {}
-        const limits = formatGoogleOfficialUserQuota(parsed);
-        clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({ ok: true, limits, source: 'retrieveUserQuota', projectId: projectId || undefined }));
-        return;
-      }
-
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({
-        ok: false,
-        limits: [],
-        source: 'fetchAvailableModels',
-        error: `Google 官方限额同步失败 HTTP ${availableRes.statusCode}: ${availableRes.body || quotaRes.body || '无响应'}`
-      }));
-      return;
-    }
-
-    const targetUrl = 'https://chatgpt.com/backend-api/rate_limits';
-    const targetUrlObj = new URL(targetUrl);
-
-    const headers = {
-      'authorization': 'Bearer ' + apiKey,
-      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'accept': 'application/json',
-    };
-
-    const req = https.request({
-      hostname: targetUrlObj.hostname,
-      port: 443,
-      path: targetUrlObj.pathname + targetUrlObj.search,
-      method: 'GET',
-      headers,
-      timeout: 5000,
-      agent: globalHttpsAgent,
-    }, (res) => {
-      const chunks = [];
-      res.on('data', c => chunks.push(c));
-      res.on('end', () => {
-        const dataStr = Buffer.concat(chunks).toString('utf8');
-        try {
-          if (res.statusCode !== 200) {
-            console.warn(`[RateLimits] Fetch official rate limits failed with status ${res.statusCode}.`);
-            sendCodexLocalRateLimitsOrError(clientRes, `OpenAI 后端限额接口 HTTP ${res.statusCode}: ${dataStr || '无法获取真实限额'}`);
-            return;
-          }
-          const data = JSON.parse(dataStr);
-          const formatted = formatRateLimits(data);
-          if (!formatted.length) {
-            sendCodexLocalRateLimitsOrError(clientRes, 'OpenAI 后端限额接口未返回可用窗口数据。');
-            return;
-          }
-          clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ ok: true, limits: formatted, source: 'chatgpt-rate-limits' }));
-        } catch (err) {
-          console.warn(`[RateLimits] Parse limits data failed: ${err.message}.`);
-          sendCodexLocalRateLimitsOrError(clientRes, '解析 OpenAI 后端限额失败: ' + err.message);
-        }
-      });
-    });
-
-    req.on('timeout', () => {
-      req.destroy();
-    });
-
-    req.on('error', (err) => {
-      console.warn(`[RateLimits] Request failed: ${err.message}.`);
-      sendCodexLocalRateLimitsOrError(clientRes, '同步 OpenAI 后端限额失败: ' + err.message);
-    });
-
-    req.end();
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: false, error: err.message }));
-  }
-}
-
-function sendCodexLocalRateLimitsOrError(clientRes, error) {
-  const local = readLatestCodexLocalRateLimits();
-  clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-  if (local.ok) {
-    clientRes.end(JSON.stringify({ ...local, warning: error || undefined }));
-  } else {
-    clientRes.end(JSON.stringify({ ok: false, limits: [], error: error || local.error }));
-  }
-}
-
-function decryptProfileApiKey(profile) {
-  let apiKey = profile && profile.apiKey;
-  if (apiKey && apiKey.startsWith('hpm-enc:')) {
-    apiKey = decryptKey(apiKey);
-  } else if (apiKey === '***' || apiKey === '[redacted]') {
-    apiKey = '';
-  }
-  return apiKey;
-}
-
-function resolveConfiguredProfile(inputProfile, lookupId) {
-  const id = lookupId || (inputProfile && (inputProfile.profileId || inputProfile.id));
-  let finalProfile = {
-    ...(inputProfile || {}),
-    id: id || (inputProfile && inputProfile.id),
-    apiKey: decryptProfileApiKey(inputProfile || {})
-  };
-
-  if (id) {
-    const config = loadConfig();
-    const profiles = getProfiles(config) || [];
-    const found = profiles.find(p => p && p.id === id);
-    if (found) {
-      finalProfile = {
-        ...found,
-        apiKey: decryptProfileApiKey(found)
-      };
-    }
-  }
-
-  return finalProfile;
-}
-
-function resolveOfficialCredentials(prepared, clientHeaders) {
-  return new Promise((resolve) => {
-    const profile = prepared.profile;
-    if (!profile) return resolve(prepared);
-
-    const provider = officialLoginProvider(profile);
-    const isOfficialProfile = Boolean(provider);
-    const requestedAuthMode = isOfficialProfile ? inferOfficialProfileAuthMode(profile, provider) : configuredAuthMode(profile);
-
-    if (!isOfficialProfile) {
-      const clientAuth = clientHeaders && (clientHeaders['authorization'] || clientHeaders['x-api-key'] || clientHeaders['x-goog-api-key'] || clientHeaders['api-key']);
-      if (clientAuth && clientAuth !== 'Bearer PROXY_MANAGED' && clientAuth !== 'PROXY_MANAGED' && !clientAuth.includes('***') && !clientAuth.includes('[redacted]')) {
-        return resolve(prepared);
-      }
-
-      const hasValidKey = !isRedactedSecret(profile.apiKey);
-      if (hasValidKey) {
-        prepared.authMode = 'api-key';
-        return resolve(prepared);
-      }
-    } else {
-      // 官方特权路由，忽略并擦除任何客户端传入的自定义 API key，解耦原有密钥，仅允许从本地官方凭据或配置加载
-      const profileId = profile.id ? String(profile.id).toLowerCase() : '';
-      const globalProfile = profileId
-        ? PROFILES.find(p => p.id && String(p.id).toLowerCase() === profileId)
-        : null;
-      let allowedConfigKey = null;
-      if (globalProfile && globalProfile.apiKey) {
-        let key = globalProfile.apiKey;
-        if (key.startsWith('hpm-enc:')) {
-          key = decryptKey(key);
-        }
-        if (!isRedactedSecret(key)) {
-          allowedConfigKey = key;
-        }
-      }
-
-      if (profile.apiKey !== allowedConfigKey) {
-        profile.apiKey = null;
-      }
-    }
-
-    if (provider === 'google') {
-      if (requestedAuthMode === 'api-key') {
-        prepared.authMode = 'api-key';
-        prepared.authProvider = 'google';
-        return resolve(prepared);
-      }
-
-      const localCreds = readGoogleOfficialCredentialFile();
-      if (localCreds) {
-        const { credsPath, content } = localCreds;
-        const hasExpired = content.expiry_date && Date.now() > content.expiry_date - 300000;
-
-        if (hasExpired && content.refresh_token) {
-          const refreshPromise = content.__readOnly && content.__source === 'antigravity-state'
-            ? getFreshAntigravityOfficialAccessToken()
-            : refreshGoogleAccessToken(credsPath, content);
-          if (!(content.__readOnly && content.__source === 'antigravity-state')) {
-            console.log('[auth] Google OAuth token expired or expiring soon, refreshing...');
-          }
-          refreshPromise
-            .then((newToken) => {
-              resolveGoogleOfficialLoginPrepared(prepared, profile, newToken, resolve);
-            })
-            .catch((err) => {
-              console.error('[auth] Failed to refresh Google token:', err.message);
-              if (!isRedactedSecret(profile.apiKey) && isGoogleOfficialLoginToken(profile.apiKey)) {
-                resolveGoogleOfficialLoginPrepared(prepared, profile, profile.apiKey, resolve);
-                return;
-              } else if (content.access_token) {
-                resolveGoogleOfficialLoginPrepared(prepared, profile, content.access_token, resolve);
-                return;
-              }
-              resolve(prepared);
-            });
-          return;
-        } else if (content.access_token) {
-          resolveGoogleOfficialLoginPrepared(prepared, profile, content.access_token, resolve);
-          return;
-        }
-      } else if (!isRedactedSecret(profile.apiKey) && isGoogleOfficialLoginToken(profile.apiKey)) {
-        resolveGoogleOfficialLoginPrepared(prepared, profile, profile.apiKey, resolve);
-        return;
-      }
-    }
-
-    if (provider === 'openai') {
-      if (requestedAuthMode === 'api-key') {
-        prepared.authMode = 'api-key';
-        prepared.authProvider = 'openai';
-        return resolve(prepared);
-      }
-      if (!isRedactedSecret(profile.apiKey)) {
-        prepared.authMode = 'official-login';
-        prepared.authProvider = 'openai';
-        if (prepared.authMode === 'official-login' && shouldUseChatGPTBackendForOfficialLogin(profile.targetUrl)) {
-          prepared.profile = { ...profile, targetUrl: 'https://chatgpt.com/backend-api/codex' };
-        }
-        return resolve(prepared);
-      }
-
-      const authPath = path.join(os.homedir(), '.codex', 'auth.json');
-      if (fs.existsSync(authPath)) {
-        try {
-          const content = JSON.parse(fs.readFileSync(authPath, 'utf8'));
-          const token = (content.tokens && content.tokens.access_token) || content.OPENAI_API_KEY || null;
-          if (token && token !== 'PROXY_MANAGED') {
-            prepared.profile = { ...profile, apiKey: token };
-            if (token.startsWith('eyJ')) {
-              if (shouldUseChatGPTBackendForOfficialLogin(profile.targetUrl)) {
-                prepared.profile.targetUrl = 'https://chatgpt.com/backend-api/codex';
-              }
-              prepared.authMode = 'official-login';
-            } else {
-              prepared.authMode = 'api-key';
-            }
-            prepared.authProvider = 'openai';
-          }
-        } catch (e) {
-          console.error('[auth] Error loading Codex OAuth credentials:', e.message);
-        }
-      }
-    }
-
-    if (provider === 'trae') {
-      prepared.authMode = 'official-login';
-      prepared.authProvider = 'trae';
-      prepared.profile = {
-        ...profile,
-        protocol: 'trae',
-        targetUrl: profile.targetUrl || TRAE_OFFICIAL_TARGET_URL,
-        apiKey: null
-      };
-      prepared.traeOfficialStorage = readTraeStorageSummary();
-      return resolve(prepared);
-    }
-
-    resolve(prepared);
-  });
-}
-
-let localEventsResponseCache = { key: '', body: '' };
-let localLogResponseCache = { key: '', body: '' };
-let localDiagnosticsResponseCache = { key: '', body: '' };
-
-function handleLocalEventsRequest(clientReq, clientRes) {
-  try {
-    const eventsFile = path.join(DATA_DIR, 'proxy-events.jsonl');
-    const parsedUrl = new URL(clientReq.url, `http://${clientReq.headers.host || 'localhost'}`);
-    const limit = Math.min(1000, Math.max(1, Number(parsedUrl.searchParams.get('limit') || 200)));
-    const after = parsedUrl.searchParams.get('after');
-    const afterTime = after ? Date.parse(after) : NaN;
-    const readLimit = Number.isFinite(afterTime) ? Math.min(5000, limit * 5) : limit;
-    const cacheKey = [eventsFile, fileSignature(eventsFile), limit, after || '', readLimit].join('|');
-    if (cacheKey === localEventsResponseCache.key) {
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(localEventsResponseCache.body);
-      return;
-    }
-    let events = readLastLinesOfJsonl(eventsFile, readLimit, 512 * 1024);
-    if (Number.isFinite(afterTime)) {
-      events = events.filter((event) => Date.parse(event.time || '') > afterTime).slice(-limit);
-    } else {
-      events = events.slice(-limit);
-    }
-    const body = JSON.stringify(events);
-    localEventsResponseCache = { key: cacheKey, body };
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(body);
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalEventsClearRequest(clientReq, clientRes) {
-  try {
-    const eventsFile = path.join(DATA_DIR, 'proxy-events.jsonl');
-    if (fs.existsSync(eventsFile)) {
-      fs.writeFileSync(eventsFile, '', 'utf8');
-    }
-    localEventsResponseCache = { key: '', body: '' };
-    localDiagnosticsResponseCache = { key: '', body: '' };
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: true }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalGetConfigRequest(clientReq, clientRes) {
-  try {
-    const rawConfig = loadConfig();
-    const cloned = JSON.parse(JSON.stringify(rawConfig));
-    if (cloned && Array.isArray(cloned.profiles)) {
-      for (const profile of cloned.profiles) {
-        if (profile && profile.apiKey) {
-          profile.apiKey = '[redacted]';
-        }
-      }
-    }
-    if (cloned && cloned.claudeDesktop && cloned.claudeDesktop.directApiKey) {
-      cloned.claudeDesktop.directApiKey = '[redacted]';
-    }
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify(cloned));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalSaveConfigRequest(clientReq, clientRes) {
-  const chunks = [];
-  clientReq.on('data', chunk => chunks.push(chunk));
-  clientReq.on('end', () => {
-    try {
-      const newConfig = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-
-      let currentRaw = {};
-      try {
-        if (fs.existsSync(CONFIG_FILE)) {
-          currentRaw = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-        }
-      } catch (e) {}
-
-      if (newConfig && Array.isArray(newConfig.profiles)) {
-        for (const profile of newConfig.profiles) {
-          if (!profile) continue;
-          const currentProfile = (currentRaw.profiles || []).find(p => p && p.id === profile.id);
-          if (profile.apiKey === '[redacted]' || profile.apiKey === '***') {
-            profile.apiKey = currentProfile ? currentProfile.apiKey : '';
-          }
-          if (profile.apiKey && !profile.apiKey.startsWith('hpm-enc:')) {
-            profile.apiKey = encryptKey(profile.apiKey);
-          }
-        }
-      }
-
-      if (newConfig && newConfig.claudeDesktop) {
-        if (newConfig.claudeDesktop.directApiKey === '[redacted]' || newConfig.claudeDesktop.directApiKey === '***') {
-          newConfig.claudeDesktop.directApiKey = (currentRaw.claudeDesktop && currentRaw.claudeDesktop.directApiKey) || '';
-        }
-        if (newConfig.claudeDesktop.directApiKey && !newConfig.claudeDesktop.directApiKey.startsWith('hpm-enc:')) {
-          newConfig.claudeDesktop.directApiKey = encryptKey(newConfig.claudeDesktop.directApiKey);
-        }
-      }
-
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf8');
-      reloadProxyConfig();
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: true }));
-    } catch (err) {
-      clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ error: err.message }));
-    }
-  });
-}
-
-function handleLocalSetActiveRequest(clientReq, clientRes) {
-  const chunks = [];
-  clientReq.on('data', chunk => chunks.push(chunk));
-  clientReq.on('end', () => {
-    try {
-      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      const { profileId } = body;
-      if (!profileId) throw new Error('profileId is required');
-
-      let rawConfig = {};
-      if (fs.existsSync(CONFIG_FILE)) {
-        rawConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-      } else {
-        rawConfig = loadConfig();
-      }
-
-      rawConfig.activeProfile = profileId;
-      fs.writeFileSync(CONFIG_FILE, JSON.stringify(rawConfig, null, 2), 'utf8');
-      reloadProxyConfig();
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: true }));
-    } catch (err) {
-      clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ error: err.message }));
-    }
-  });
-}
-
-function readTailText(filePath, maxLines = 300, maxBytes = 256 * 1024) {
-  if (!fs.existsSync(filePath)) return '暂无日志记录';
-  const stat = fs.statSync(filePath);
-  if (stat.size === 0) return '暂无日志记录';
-
-  const safeBytes = Math.min(stat.size, Math.max(8 * 1024, Number(maxBytes || 256 * 1024)));
-  const fd = fs.openSync(filePath, 'r');
-  try {
-    const buffer = Buffer.alloc(safeBytes);
-    fs.readSync(fd, buffer, 0, safeBytes, stat.size - safeBytes);
-    const text = buffer.toString('utf8');
-    const lines = text.split('\n');
-    const safeLines = Math.min(2000, Math.max(1, Number(maxLines || 300)));
-    return lines.slice(-safeLines).join('\n');
-  } finally {
-    fs.closeSync(fd);
-  }
-}
-
-function handleLocalLogRequest(clientReq, clientRes) {
-  clientRes.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'access-control-allow-origin': '*' });
-  const logFile = path.join(DATA_DIR, 'proxy.log');
-  const parsedUrl = new URL(clientReq.url, `http://${clientReq.headers.host || 'localhost'}`);
-  const full = parsedUrl.searchParams.get('full') === '1';
-  if (full && fs.existsSync(logFile)) {
-    clientRes.end(fs.readFileSync(logFile, 'utf8'));
-    return;
-  }
-  const maxLines = Number(parsedUrl.searchParams.get('lines') || 300);
-  const maxBytes = Number(parsedUrl.searchParams.get('maxBytes') || 256 * 1024);
-  const cacheKey = [logFile, fileSignature(logFile), fileSignature(PROXY_EVENTS_FILE), maxLines, maxBytes].join('|');
-  if (cacheKey === localLogResponseCache.key) {
-    clientRes.end(localLogResponseCache.body);
-    return;
-  }
-  let body = readTailText(logFile, maxLines, maxBytes);
-  const recentEvents = formatRecentProxyEventsForLog(30);
-  if (recentEvents) {
-    body += (body && !body.endsWith('\n') ? '\n' : '') + '\n--- recent proxy events ---\n' + recentEvents;
-  }
-  localLogResponseCache = { key: cacheKey, body };
-  clientRes.end(body);
-}
-
-function formatRecentProxyEventsForLog(limit) {
-  const events = readLastLinesOfJsonl(PROXY_EVENTS_FILE, limit, 256 * 1024);
-  if (!events.length) return '';
-  return events.map((event) => {
-    const time = event.time || '-';
-    if (event.kind === 'request_start') {
-      return `${time} request_start ${event.method || ''} ${event.path || ''} entry=${event.entryProtocol || '-'}`;
-    }
-    if (event.kind === 'route') {
-      return `${time} route ${event.method || ''} ${event.path || ''} ${event.sourceModel || '-'} -> ${event.profileId || '-'}:${event.targetModel || '-'} protocol=${event.protocol || '-'}`;
-    }
-    if (event.kind === 'request_end') {
-      const endpoint = event.upstreamEndpoint ? ` upstream=${event.upstreamEndpoint}` : '';
-      return `${time} request_end ${event.method || ''} ${event.path || ''} -> ${event.statusCode || '-'} elapsed=${event.elapsed || 0}ms type=${event.type || '-'}${endpoint}`;
-    }
-    if (event.kind === 'upstream_error') {
-      return `${time} upstream_error ${event.method || ''} ${event.path || ''} -> ${event.code || '-'} model=${event.model || '-'} body=${event.body || ''}`;
-    }
-    if (event.kind === 'proxy_error') {
-      return `${time} proxy_error ${event.method || ''} ${event.path || ''} ${event.code || ''} ${event.error || ''}`;
-    }
-    return `${time} ${event.kind || 'event'} ${JSON.stringify(event)}`;
-  }).join('\n');
-}
-
-function getFormattedDiagnosticsOutput() {
-  const allEvents = [];
-
-  // 1. proxy-events.jsonl (max 100)
-  const proxyEvents = readLastLinesOfJsonl(PROXY_EVENTS_FILE, 100);
-  for (const item of proxyEvents) {
-    const time = item.time || new Date().toISOString();
-    let text = '';
-    if (item.kind === 'request_start') {
-      text = `[Proxy-Request] ${item.method} ${item.path} (clientIp: ${item.clientIp || 'unknown'}, protocol: ${item.entryProtocol || 'unknown'})`;
-    } else if (item.kind === 'request_end') {
-      text = `[Proxy-Response] ${item.method} ${item.path} -> ${item.statusCode} (elapsed: ${item.elapsed || 0}ms, type: ${(item.extra && item.extra.type) || 'unknown'})`;
-    } else if (item.kind === 'upstream_error') {
-      text = `[Upstream-Error] ${item.method} ${item.path} -> ${item.code} (model: ${item.model || 'N/A'}, errorBody: ${item.body || ''})`;
-    } else if (item.kind === 'proxy_error') {
-      text = `[Proxy-Error] ${item.method} ${item.path} (error: ${item.error || 'N/A'})`;
-    } else {
-      text = `[Event] kind=${item.kind} ${JSON.stringify(item)}`;
-    }
-    allEvents.push({ time, text });
-  }
-
-  // 2. tool-call-audit.jsonl (max 20)
-  const toolAudits = readLastLinesOfJsonl(TOOL_AUDIT_FILE, 20);
-  for (const item of toolAudits) {
-    const time = item.time || new Date().toISOString();
-    const text = `[Tool-Audit] tool: ${item.toolName} (source: ${item.source}) - Status: INVALID, Error: ${item.error}`;
-    allEvents.push({ time, text });
-  }
-
-  // 3. gemini-tool-samples.jsonl (max 20)
-  const geminiTools = readLastLinesOfJsonl(GEMINI_SAMPLE_FILE, 20);
-  for (const item of geminiTools) {
-    const time = item.time || new Date().toISOString();
-    const text = `[Gemini-Tool] reason: ${item.reason} - payload: ${JSON.stringify(item.payload)}`;
-    allEvents.push({ time, text });
-  }
-
-  // 4. diagnostics-outbound-sse.jsonl (max 20)
-  const sseSamples = readLastLinesOfJsonl(DIAGNOSTICS_OUTBOUND_SSE_FILE, 20);
-  for (const item of sseSamples) {
-    const time = item.time || new Date().toISOString();
-    const p = item.payload || {};
-    const text = `[Outbound-SSE] event: ${p.event} (index: ${p.index}, toolName: ${p.toolName || 'N/A'})`;
-    allEvents.push({ time, text });
-  }
-
-  // 5. diagnostics-request-tools.jsonl (max 20)
-  const requestTools = readLastLinesOfJsonl(DIAGNOSTICS_REQUEST_TOOLS_FILE, 20);
-  for (const item of requestTools) {
-    const time = item.time || new Date().toISOString();
-    const p = item.payload || {};
-    const text = `[Request-Tools] model: ${p.model} (messageCount: ${p.messageCount || 0}, uses: ${p.toolUses ? p.toolUses.length : 0}, results: ${p.toolResults ? p.toolResults.length : 0})`;
-    allEvents.push({ time, text });
-  }
-
-  // 6. Sort chronologically
-  allEvents.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-
-  if (allEvents.length === 0) {
-    return '暂无诊断事件。请确保 diagnostics.enabled 在配置文件中开启，并进行了一些代理请求。';
-  }
-
-  return allEvents.map(ev => {
-    const localTime = new Date(ev.time).toLocaleString();
-    return `[${localTime}] ${ev.text}`;
-  }).join('\n');
-}
-
-async function handleLocalEnvCheckRequest(clientReq, clientRes) {
-  try {
-    const result = await checkEnvironmentTools();
-
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({
-      ok: true,
-      ...result
-    }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-async function handleLocalEnvUpgradeRequest(clientReq, clientRes) {
-  const chunks = [];
-  clientReq.on('data', chunk => chunks.push(chunk));
-  clientReq.on('end', async () => {
-    try {
-      let body = {};
-      if (chunks.length > 0) {
-        try {
-          body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-        } catch (e) {}
-      }
-      const { toolId } = body;
-      const toolIds = Array.isArray(body.toolIds) ? body.toolIds.filter(Boolean) : null;
-      let targetTools = [];
-      if (toolIds && toolIds.length > 0) {
-        const allowedIds = new Set(toolIds);
-        targetTools = ENV_CHECK_TOOLS.filter(t => allowedIds.has(t.id));
-      } else if (toolId) {
-        const found = ENV_CHECK_TOOLS.find(t => t.id === toolId);
-        if (found) targetTools.push(found);
-      } else {
-        targetTools = [...ENV_CHECK_TOOLS];
-      }
-
-      if (targetTools.length === 0) {
-        throw new Error('未找到指定的工具包');
-      }
-
-      const results = [];
-      for (const tool of targetTools) {
-        const job = startToolInstallJob(tool);
-        results.push({
-          id: tool.id,
-          name: tool.name,
-          ok: job.status !== 'failed',
-          jobId: job.jobId,
-          status: job.status,
-          error: job.error || null,
-          startedAt: job.startedAt,
-          endedAt: job.endedAt || null,
-          installCommand: job.installCommand,
-          usesIrm: job.usesIrm,
-          lastLine: job.lastLine || '',
-          outputTail: (job.output || '').slice(-2000)
-        });
-      }
-
-      clearEnvCaches();
-
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: true, results }));
-    } catch (err) {
-      clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ error: err.message }));
-    }
-  });
-}
-
-function handleLocalEnvInstallJobsRequest(clientReq, clientRes) {
-  try {
-    const reqUrl = new URL(clientReq.url, `http://${clientReq.headers.host || 'localhost'}`);
-    const ids = (reqUrl.searchParams.get('ids') || '').split(',').map(id => id.trim()).filter(Boolean);
-    const jobs = listInstallJobs(ids);
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: true, jobs }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalSelectDirectoryRequest(clientReq, clientRes) {
-  try {
-    const cp = require('child_process');
-    const cmd = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$code = { Add-Type -AssemblyName System.Windows.Forms; $dialog = New-Object System.Windows.Forms.FolderBrowserDialog; $dialog.Description = '选择工作目录'; $dialog.ShowNewFolderButton = $true; if ($dialog.ShowDialog() -eq 'OK') { $dialog.SelectedPath } }; $thread = [PowerShell]::Create().AddScript($code); $thread.Runspace.ApartmentState = 'STA'; $result = $thread.BeginInvoke(); while (-not $result.IsCompleted) { Start-Sleep -Milliseconds 100 }; $thread.EndInvoke($result)"`;
-
-    cp.exec(cmd, (err, stdout, stderr) => {
-      if (err) {
-        clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({ error: err.message }));
-        return;
-      }
-      const selectedPath = stdout.trim();
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: true, path: selectedPath }));
-    });
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-async function handleLocalCliLaunchRequest(clientReq, clientRes) {
-  const chunks = [];
-  clientReq.on('data', chunk => chunks.push(chunk));
-  clientReq.on('end', async () => {
-    try {
-      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      const { toolId, model, cwd, envs, terminal, upgrade, customArgs } = body;
-
-      if (!toolId) throw new Error('toolId is required');
-
-      const foundTool = ENV_CHECK_TOOLS.find(t => t.id === toolId);
-      if (!foundTool) throw new Error('Unknown tool: ' + toolId);
-
-      if (upgrade) {
-        await new Promise((resolve) => {
-          runToolInstall(foundTool).then((res) => {
-            if (!res.ok) {
-              console.error(`[cli-launch] Failed to upgrade ${foundTool.name}:`, res.error);
-            }
-            resolve();
-          }).catch((err) => {
-            console.error(`[cli-launch] Failed to upgrade ${foundTool.name}:`, err.message);
-            resolve();
-          });
-        });
-      }
-
-      const sessionToken = 'hpm-session-' + Math.random().toString(36).substring(2, 10);
-      CLI_SESSIONS.set(sessionToken, {
-        toolId,
-        toolName: foundTool.name,
-        modelOverride: model,
-        customArgs: customArgs || '',
-        createdAt: Date.now(),
-        lastUsedAt: 0,
-        requestCount: 0
-      });
-
-      let proxyUrl = 'https://localhost:3443';
-      const entries = ENTRY_SERVERS || [];
-      const httpsEntry = entries.find(e => e.protocol === 'claude' || e.protocol === 'openai');
-      if (httpsEntry) {
-        proxyUrl = `${httpsEntry.tls === false ? 'http' : 'https'}://localhost:${httpsEntry.listenPort}`;
-      } else if (LOCAL_SERVER) {
-        proxyUrl = `${LOCAL_SERVER.tls === false ? 'http' : 'https'}://localhost:${PORT}`;
-      }
-
-      const customEnvs = {};
-      if (envs && typeof envs === 'string') {
-        const lines = envs.split('\n');
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith('#')) continue;
-          const idx = trimmed.indexOf('=');
-          if (idx > 0) {
-            const k = trimmed.substring(0, idx).trim();
-            const v = trimmed.substring(idx + 1).trim();
-            if (k) customEnvs[k] = v;
-          }
-        }
-      }
-
-      const injectedEnvs = {
-        'ANTHROPIC_BASE_URL': proxyUrl,
-        'ANTHROPIC_API_KEY': sessionToken,
-        'ANTHROPIC_AUTH_TOKEN': sessionToken,
-        'OPENAI_BASE_URL': proxyUrl + '/v1',
-        'OPENAI_API_KEY': sessionToken,
-        'GEMINI_API_BASE': proxyUrl + '/v1',
-        'GEMINI_API_KEY': sessionToken,
-        'GOOGLE_GEMINI_BASE_URL': proxyUrl + '/v1',
-        'DEEPSEEK_API_KEY': sessionToken,
-        ...customEnvs
-      };
-      if (toolId === 'claude-code') {
-        delete injectedEnvs['ANTHROPIC_AUTH_TOKEN'];
-      }
-
-      const workDir = cwd ? path.resolve(cwd) : process.cwd();
-      let cliCommand = foundTool.command;
-      if (customArgs && typeof customArgs === 'string' && customArgs.trim()) {
-        cliCommand += ' ' + customArgs.trim();
-      }
-
-      let launchCmd = '';
-      if (terminal === 'PowerShell' || terminal === 'powershell') {
-        const envSetStatements = Object.keys(injectedEnvs)
-          .map(k => {
-            const val = injectedEnvs[k] || '';
-            return `$env:${k}='${val.replace(/'/g, "''")}'`;
-          })
-          .join('; ');
-        launchCmd = `start powershell -NoExit -Command "Set-Location -Path '${workDir.replace(/'/g, "''")}'; $Host.UI.RawUI.WindowTitle='Claude Code (${model || 'default'})'; ${envSetStatements}; ${cliCommand}"`;
-      } else {
-        const envSetStatements = Object.keys(injectedEnvs)
-          .map(k => `set ${k}=${injectedEnvs[k] || ''}`)
-          .join(' && ');
-        launchCmd = `cmd /c start cmd /k "title Claude Code (${model || 'default'}) && cd /d ${workDir} && ${envSetStatements} && ${cliCommand}"`;
-      }
-
-      console.log(`[cli-launch] Launching ${foundTool.name} via ${terminal} in ${workDir} with args: ${customArgs || 'none'}`);
-      cp.exec(launchCmd, { cwd: workDir }, (err) => {
-        if (err) {
-          console.error(`[cli-launch] Exec error:`, err.message);
-        }
-      });
-
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: true, sessionToken }));
-    } catch (err) {
-      clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ error: err.message }));
-    }
-  });
-}
-
-function handleLocalCliSessionsRequest(clientReq, clientRes) {
-  try {
-    const list = [];
-    for (const [token, session] of CLI_SESSIONS.entries()) {
-      list.push({
-        sessionToken: token,
-        toolId: session.toolId,
-        toolName: session.toolName || session.toolId,
-        modelOverride: session.modelOverride,
-        customArgs: session.customArgs || '',
-        createdAt: session.createdAt,
-        lastUsedAt: session.lastUsedAt || 0,
-        requestCount: session.requestCount || 0
-      });
-    }
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: true, sessions: list }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalCliSessionDeleteRequest(clientReq, clientRes) {
-  const chunks = [];
-  clientReq.on('data', chunk => chunks.push(chunk));
-  clientReq.on('end', () => {
-    try {
-      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      const { sessionToken } = body;
-      if (!sessionToken) throw new Error('sessionToken is required');
-
-      const deleted = CLI_SESSIONS.delete(sessionToken);
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: true, deleted }));
-    } catch (err) {
-      clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ error: err.message }));
-    }
-  });
-}
-
-function handleLocalHealthRequest(clientReq, clientRes) {
-  clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-  clientRes.end(JSON.stringify({
-    ok: true,
-    appId: APP_ID,
-    version: PACKAGE_VERSION,
-    status: 'running',
-    pid: process.pid,
-    uptimeSec: Math.round(process.uptime()),
-    ports: {
-      management: parseInt(process.env.MGMT_PORT || CONFIG.localServer?.managementPort || (PORT + 100), 10),
-      entries: ENTRY_SERVERS.map((entry) => ({
-        protocol: entry.protocol,
-        host: entry.host,
-        listenPort: entry.listenPort,
-        basePath: entry.basePath,
-        tls: entry.tls !== false,
-      })),
-    },
-  }));
-}
-
-function handleLocalDiagnosticsGetRequest(clientReq, clientRes) {
-  try {
-    const config = getDiagnosticsConfig();
-
-    const filesMeta = [
-      { label: 'Gemini采样', path: GEMINI_SAMPLE_FILE },
-      { label: '工具审计', path: TOOL_AUDIT_FILE },
-      { label: '响应采样', path: RESPONSE_SAMPLE_FILE },
-      { label: '出站SSE', path: DIAGNOSTICS_OUTBOUND_SSE_FILE },
-      { label: '请求工具', path: DIAGNOSTICS_REQUEST_TOOLS_FILE },
-      { label: '代理事件', path: PROXY_EVENTS_FILE }
-    ];
-
-    const cacheKey = [
-      JSON.stringify(config),
-      ...filesMeta.map((item) => `${item.path}:${fileSignature(item.path)}`)
-    ].join('|');
-    if (cacheKey === localDiagnosticsResponseCache.key) {
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(localDiagnosticsResponseCache.body);
-      return;
-    }
-
-    const files = filesMeta.map(item => {
-      const exists = fs.existsSync(item.path);
-      const bytes = exists ? fs.statSync(item.path).size : 0;
-      return { label: item.label, exists, bytes };
-    });
-
-    const output = getFormattedDiagnosticsOutput();
-
-    const body = JSON.stringify({
-      ok: true,
-      status: {
-        config,
-        files
-      },
-      output
-    });
-    localDiagnosticsResponseCache = { key: cacheKey, body };
-
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(body);
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalDiagnosticsClearRequest(clientReq, clientRes) {
-  try {
-    const filesToClear = [
-      GEMINI_SAMPLE_FILE,
-      TOOL_AUDIT_FILE,
-      RESPONSE_SAMPLE_FILE,
-      DIAGNOSTICS_OUTBOUND_SSE_FILE,
-      DIAGNOSTICS_REQUEST_TOOLS_FILE,
-      PROXY_EVENTS_FILE
-    ];
-
-    for (const file of filesToClear) {
-      if (fs.existsSync(file)) {
-        fs.writeFileSync(file, '', 'utf8');
-      }
-    }
-    localEventsResponseCache = { key: '', body: '' };
-    localDiagnosticsResponseCache = { key: '', body: '' };
-
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: true }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalModelsListRequest(clientReq, clientRes) {
-  const chunks = [];
-  clientReq.on('data', chunk => chunks.push(chunk));
-  clientReq.on('end', async () => {
-    let responded = false;
-    let activeReq = null;
-    const sendJson = (payload) => {
-      if (responded || clientRes.writableEnded) return;
-      responded = true;
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify(payload));
-    };
-    const hardTimeout = setTimeout(() => {
-      if (activeReq && typeof activeReq.destroy === 'function') {
-        activeReq.destroy(new Error('获取上游模型超时'));
-      }
-      sendJson({ ok: false, error: '获取上游模型超时，请检查上游地址、代理网络或官方登录凭证。' });
-    }, 12000);
-
-    try {
-      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      let { id, protocol, targetUrl, apiKey } = body;
-      if (!targetUrl || !protocol) throw new Error('targetUrl and protocol are required');
-
-      let finalProfile = resolveConfiguredProfile({ id, protocol, targetUrl, apiKey }, id);
-
-      const resolved = await resolveOfficialCredentials({ profile: finalProfile });
-      protocol = resolved.profile.protocol || protocol;
-      targetUrl = resolved.profile.targetUrl || targetUrl;
-      apiKey = resolved.profile.apiKey;
-
-      if (resolved.authProvider === 'google' && resolved.authMode === 'official-login') {
-        clearTimeout(hardTimeout);
-        try {
-          const upstreamModels = await fetchGoogleOfficialAvailableModels(apiKey, resolved.googleOfficialProjectId);
-          if (upstreamModels.ok) {
-            sendJson(upstreamModels);
-          } else {
-            sendJson({
-              ...buildGoogleOfficialModelsResponse(),
-              warning: upstreamModels.error,
-              source: 'official-model-config-fallback'
-            });
-          }
-        } catch (err) {
-          sendJson({
-            ...buildGoogleOfficialModelsResponse(),
-            warning: err.message,
-            source: 'official-model-config-fallback'
-          });
-        }
-        return;
-      }
-
-      if (resolved.authProvider === 'openai' && resolved.authMode === 'official-login' && isOpenAIOfficialCodexTarget(targetUrl)) {
-        clearTimeout(hardTimeout);
-        sendJson(buildOpenAIOfficialCodexModelsResponse());
-        return;
-      }
-
-      if (resolved.authProvider === 'trae' && resolved.authMode === 'official-login') {
-        clearTimeout(hardTimeout);
-        sendJson(await buildTraeOfficialModelsResponse());
-        return;
-      }
-
-      const listRequest = buildModelListRequest(targetUrl, protocol, apiKey);
-
-      const req = requestWithProxy(listRequest.requestUrl, {
-        method: listRequest.method,
-        headers: listRequest.headers,
-        timeout: 8000
-      }, (res) => {
-        const resChunks = [];
-        res.on('data', c => resChunks.push(c));
-        res.on('end', () => {
-          clearTimeout(hardTimeout);
-          const dataStr = Buffer.concat(resChunks).toString('utf8');
-          try {
-            const resData = JSON.parse(dataStr);
-            if (res.statusCode !== 200) {
-              const errMsg = resData.error && typeof resData.error === 'object'
-                ? (resData.error.message || JSON.stringify(resData.error))
-                : (resData.error || dataStr || `HTTP ${res.statusCode}`);
-              sendJson({ ok: false, error: errMsg, requestUrl: listRequest.requestUrl.replace(/([?&]key=)[^&]+/, '$1[redacted]') });
-              return;
-            }
-            let models = [];
-            if (Array.isArray(resData.models)) {
-              models = resData.models.map(m => {
-                if (typeof m === 'string') return m;
-                return m.slug || m.name || m.id || JSON.stringify(m);
-              }).map(name => name.replace(/^models\//, ''));
-            } else if (Array.isArray(resData.data)) {
-              models = resData.data.map(m => {
-                if (typeof m === 'string') return m;
-                return m.id || m.slug || m.name || JSON.stringify(m);
-              });
-            } else if (resData.models && typeof resData.models === 'object') {
-              models = Object.keys(resData.models);
-            }
-            sendJson({ ok: true, models, authMode: resolved.authMode || (isGoogleOfficialLoginToken(apiKey) ? 'official-login' : 'api-key'), source: 'upstream-api' });
-          } catch (err) {
-            if (res.statusCode !== 200) {
-              sendJson({ ok: false, error: `HTTP ${res.statusCode}: ${dataStr || '无法解析的错误响应'}` });
-            } else {
-              sendJson({ ok: false, error: '解析模型响应失败: ' + err.message });
-            }
-          }
-        });
-      });
-      activeReq = req;
-      req.on('error', (err) => {
-        clearTimeout(hardTimeout);
-        sendJson({ ok: false, error: err.message });
-      });
-      req.end();
-    } catch (err) {
-      clearTimeout(hardTimeout);
-      sendJson({ ok: false, error: err.message });
-    }
-  });
-}
-
-function handleLocalRouteTestRequest(clientReq, clientRes) {
-  const chunks = [];
-  clientReq.on('data', chunk => chunks.push(chunk));
-  clientReq.on('end', async () => {
-    try {
-      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      let { profileId, protocol, targetUrl, apiKey, to } = body;
-      if (!targetUrl || !protocol || !to) {
-        throw new Error('targetUrl, protocol and upstreamModel (to) are required');
-      }
-
-      let finalProfile = resolveConfiguredProfile({ id: profileId, protocol, targetUrl, apiKey }, profileId);
-
-      // 动态解析官方托管凭据（如自适应从本地 ~/.codex/auth.json 读取最新的 Codex 凭证）
-      const resolved = await resolveOfficialCredentials({ profile: finalProfile });
-      protocol = resolved.profile.protocol || protocol;
-      targetUrl = resolved.profile.targetUrl || targetUrl;
-      apiKey = resolved.profile.apiKey;
-
-      const target = parseTargetUrl(targetUrl);
-      const urlObj = new URL(targetUrl);
-      const transport = urlObj.protocol === 'https:' ? https : http;
-
-      let testPath = '';
-      let testHeaders = {
-        'content-type': 'application/json',
-        'accept': 'application/json'
-      };
-      let testBody = '';
-
-      if (resolved.authMode === 'official-login' && resolved.authProvider === 'trae') {
-        const state = await queryTraeStateRows();
-        const support = state.ok ? traeOfficialModelSupport(to, state.rows) : { known: false, supported: false, model: normalizeTraeOfficialModelName(to) };
-        clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        if (support.known && support.supported) {
-          clientRes.end(JSON.stringify({
-            ok: true,
-            message: `Trae 国际版官方登录缓存已加载；${to} 映射到 Trae 后端模型 ${support.model}。`,
-            authMode: 'official-login',
-            source: 'trae-state-cache',
-            model: support.model,
-            displayName: support.displayName
-          }));
-        } else {
-          clientRes.end(JSON.stringify({
-            ok: false,
-            authMode: 'official-login',
-            source: 'trae-state-cache',
-            error: state.ok
-              ? `Trae 国际版模型缓存未返回 ${normalizeTraeOfficialModelName(to)}。`
-              : `无法读取 Trae 国际版模型缓存: ${state.error}`
-          }));
-        }
-        return;
-      }
-
-      if (protocol === 'gemini') {
-        if (resolved.authMode === 'official-login' && resolved.authProvider === 'google' && apiKey && isGoogleOfficialLoginToken(apiKey)) {
-          const check = await testProfileAuthUpstream(protocol, targetUrl, apiKey, to, 'official-login');
-          clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify(check.ok ? {
-            ok: true,
-            message: `Google 官方登录链路可达；${to} 将按 Antigravity/Code Assist 官方后端路由校验。`,
-            authMode: 'official-login',
-            source: check.source || 'code-assist'
-          } : check));
-          return;
-        }
-        const geminiApiKey = apiKey || '';
-        testPath = `/v1beta/models/${encodeURIComponent(to)}:generateContent`;
-        if (geminiApiKey && isGoogleOfficialLoginToken(geminiApiKey)) {
-          testHeaders['authorization'] = 'Bearer ' + geminiApiKey;
-        } else if (geminiApiKey) {
-          testPath += `?key=${encodeURIComponent(geminiApiKey)}`;
-        }
-        testBody = JSON.stringify({
-          contents: [{ parts: [{ text: 'ping' }] }],
-          generationConfig: { maxOutputTokens: 1 }
-        });
-      } else if (protocol === 'claude') {
-        const hasV1 = target.path.endsWith('/v1') || target.path.includes('/v1/');
-        testPath = hasV1 ? target.path + '/messages' : '/v1/messages';
-        testBody = JSON.stringify({
-          model: to,
-          messages: [{ role: 'user', content: 'ping' }],
-          max_tokens: 1
-        });
-        if (apiKey) {
-          testHeaders['x-api-key'] = apiKey;
-        }
-        testHeaders['anthropic-version'] = '2023-06-01';
-      } else {
-        if (resolved.authMode === 'official-login' && resolved.authProvider === 'openai' && apiKey && isOpenAIOfficialLoginToken(apiKey)) {
-          const check = await testProfileAuthUpstream(protocol, targetUrl, apiKey, to, 'official-login');
-          clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify(check.ok ? {
-            ok: true,
-            message: check.message || `OpenAI 官方登录链路可用；${to} 将按 Codex 官方模型缓存校验。`,
-            authMode: 'official-login',
-            source: check.source || 'codex'
-          } : check));
-          return;
-        }
-
-        const hasV1 = target.path.endsWith('/v1') || target.path.includes('/v1/');
-        testPath = hasV1 ? target.path + '/chat/completions' : '/v1/chat/completions';
-        testBody = JSON.stringify({
-          model: to,
-          messages: [{ role: 'user', content: 'ping' }],
-          max_tokens: 1
-        });
-        if (apiKey) {
-          testHeaders['authorization'] = 'Bearer ' + apiKey;
-        }
-      }
-
-      const targetFullUrl = urlObj.protocol + '//' + urlObj.host + testPath;
-      const options = {
-        method: 'POST',
-        headers: testHeaders,
-        body: testBody,
-        timeout: 10000
-      };
-
-      const req = requestWithProxy(targetFullUrl, options, (res) => {
-        const resChunks = [];
-        res.on('data', c => resChunks.push(c));
-        res.on('end', () => {
-          const dataStr = Buffer.concat(resChunks).toString('utf8');
-          try {
-            const resData = JSON.parse(dataStr);
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-              clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-              clientRes.end(JSON.stringify({ ok: true, message: '连接成功，模型响应正常。' }));
-            } else {
-              let errMsg = '';
-              if (protocol === 'gemini') {
-                errMsg = resData.error && resData.error.message ? resData.error.message : JSON.stringify(resData);
-              } else if (protocol === 'claude') {
-                errMsg = resData.error && resData.error.message ? resData.error.message : JSON.stringify(resData);
-              } else {
-                errMsg = resData.error && resData.error.message ? resData.error.message : (resData.error || dataStr || `HTTP ${res.statusCode}`);
-              }
-              clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-              clientRes.end(JSON.stringify({ ok: false, error: `${errMsg}` }));
-            }
-          } catch (err) {
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-              clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-              clientRes.end(JSON.stringify({ ok: true, message: '连接成功，但上游返回了非 JSON 响应。' }));
-            } else {
-              clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-              clientRes.end(JSON.stringify({ ok: false, error: `HTTP ${res.statusCode}: ${dataStr || '无法解析的错误响应'}` }));
-            }
-          }
-        });
-      });
-
-      req.on('error', (err) => {
-        if (!clientRes.writableEnded) {
-          clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ ok: false, error: err.message }));
-        }
-      });
-
-      req.on('timeout', () => {
-        if (!clientRes.writableEnded) {
-          clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ ok: false, error: '请求超时 (10秒)，可能是网络不通或被防火墙拦截' }));
-        }
-        req.destroy();
-      });
-
-      req.write(testBody);
-      req.end();
-    } catch (err) {
-      clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ error: err.message }));
-    }
-  });
-}
-
-function sendUnauthorizedClaudeDesktop(clientRes) {
-  clientRes.writeHead(401, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'www-authenticate': 'Bearer',
-    'access-control-allow-origin': '*',
-    'access-control-allow-methods': 'GET, HEAD, POST, OPTIONS',
-    'access-control-allow-headers': '*',
-  });
-  clientRes.end(JSON.stringify({ error: { type: 'authentication_error', message: 'Claude Desktop gateway token is invalid or missing' } }));
-}
-
 function sendEntryHealth(clientRes, entry, method, clientPath) {
   const body = JSON.stringify({
     ok: true,
@@ -2505,6 +1197,26 @@ function sendEntryHealth(clientRes, entry, method, clientPath) {
     'access-control-allow-headers': '*',
   });
   clientRes.end(method === 'HEAD' ? undefined : body);
+}
+
+function sendUnauthorizedClaudeDesktop(clientRes) {
+  clientRes.writeHead(401, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'access-control-allow-headers': '*',
+  });
+  clientRes.end(JSON.stringify({
+    error: {
+      type: 'authentication_error',
+      message: 'Claude Desktop gateway request is missing or using an invalid token.',
+    },
+  }));
+}
+
+function isPublicLocalManagementPath(pathname) {
+  const normalized = String(pathname || '').split('?')[0];
+  return normalized === '/v1/local/health' || normalized === '/local/health';
 }
 
 function isEntryHealthPath(entry, method, clientPath) {
@@ -2526,92 +1238,20 @@ function isAllowedEntryPath(entry, method, clientPath) {
   return true;
 }
 
-const LOCAL_MANAGEMENT_HANDLERS = {
-  selectDirectory: handleLocalSelectDirectoryRequest,
-  cliLaunch: handleLocalCliLaunchRequest,
-  cliSessions: handleLocalCliSessionsRequest,
-  cliSessionDelete: handleLocalCliSessionDeleteRequest,
-  auditConversations: handleLocalAuditConversationsRequest,
-  auditConversationsClear: handleLocalAuditConversationsClearRequest,
-  auditRetry: handleLocalAuditRetryRequest,
-  usageReport: handleLocalUsageReportRequest,
-  profileTestAuth: handleLocalProfileTestAuthRequest,
-  health: handleLocalHealthRequest,
-  getConfig: handleLocalGetConfigRequest,
-  saveConfig: handleLocalSaveConfigRequest,
-  setActive: handleLocalSetActiveRequest,
-  log: handleLocalLogRequest,
-  envCheck: handleLocalEnvCheckRequest,
-  envInstallJobs: handleLocalEnvInstallJobsRequest,
-  envUpgrade: handleLocalEnvUpgradeRequest,
-  diagnosticsGet: handleLocalDiagnosticsGetRequest,
-  diagnosticsClear: handleLocalDiagnosticsClearRequest,
-  certStatus: handleLocalCertStatusRequest,
-  certTrust: handleLocalCertTrustRequest,
-  certUntrust: handleLocalCertUntrustRequest,
-  modelsList: handleLocalModelsListRequest,
-  routeTest: handleLocalRouteTestRequest,
-  latency: handleLocalLatencyRequest,
-  promptsSync: handleLocalPromptsSyncRequest,
-  promptsPresetsGet: (req, res) => handleLocalPromptsPresetsRequest(req, res, CONFIG, (newConfig) => {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf8');
-    reloadProxyConfig();
-  }),
-  promptsPresetsSave: (req, res) => handleLocalPromptsPresetsRequest(req, res, CONFIG, (newConfig) => {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(newConfig, null, 2), 'utf8');
-    reloadProxyConfig();
-  }),
-  mcpHubGet: (req, res) => {
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    res.end(JSON.stringify({ ok: true, mcpHub: CONFIG.mcpHub || { servers: [], routing: [] } }));
-  },
-  mcpHubSave: (req, res) => {
-    const chunks = [];
-    req.on('data', chunk => chunks.push(chunk));
-    req.on('end', () => {
-      try {
-        const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-        const mcpHubConfig = body.mcpHub;
-        if (!mcpHubConfig || !Array.isArray(mcpHubConfig.servers) || !Array.isArray(mcpHubConfig.routing)) {
-          throw new Error('mcpHub.servers and mcpHub.routing are required arrays');
-        }
-        CONFIG.mcpHub = {
-          servers: mcpHubConfig.servers,
-          routing: mcpHubConfig.routing,
-        };
-        fs.writeFileSync(CONFIG_FILE, JSON.stringify(CONFIG, null, 2), 'utf8');
-        reloadProxyConfig();
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch (err) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        res.end(JSON.stringify({ error: err.message }));
-      }
-    });
-  },
-  claudeCodeStatus: handleLocalClaudeCodeStatusRequest,
-  claudeCodeApply: handleLocalClaudeCodeApplyRequest,
-  claudeCodeRestore: handleLocalClaudeCodeRestoreRequest,
-  antigravityCliStatus: handleLocalAntigravityCliStatusRequest,
-  traeStatus: handleLocalTraeStatusRequest,
-  traeBridgeStatus: handleLocalTraeBridgeStatusRequest,
-  antigravityCliApply: handleLocalAntigravityCliApplyRequest,
-  antigravityCliRestore: handleLocalAntigravityCliRestoreRequest,
-  claudeDesktopStatus: handleLocalClaudeDesktopStatusRequest,
-  claudeDesktopApply: handleLocalClaudeDesktopApplyRequest,
-  claudeDesktopRestore: handleLocalClaudeDesktopRestoreRequest,
-  codexStatus: handleLocalCodexStatusRequest,
-  codexApply: handleLocalCodexApplyRequest,
-  codexRestore: handleLocalCodexRestoreRequest,
-  geminiCliStatus: handleLocalGeminiCliStatusRequest,
-  geminiCliApply: handleLocalGeminiCliApplyRequest,
-  geminiCliRestore: handleLocalGeminiCliRestoreRequest,
-  cliCredentials: handleLocalCliCredentialsRequest,
-  rateLimits: handleLocalRateLimitsRequest,
-  events: handleLocalEventsRequest,
-  eventsClear: handleLocalEventsClearRequest,
-};
-
+function sendEntryPathError(clientRes, entry, method, clientPath) {
+  clientRes.writeHead(404, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'access-control-allow-headers': '*',
+  });
+  clientRes.end(JSON.stringify({
+    error: {
+      type: 'invalid_request_error',
+      message: 'Path ' + method + ' ' + clientPath + ' is not supported by ' + entryLabel(entry) + ' entry',
+    },
+  }));
+}
 function handleRequest(clientReq, clientRes, entry) {
   const startTime = Date.now();
   const clientIp = getClientIp(clientReq);
@@ -2843,12 +1483,18 @@ function handleRequest(clientReq, clientRes, entry) {
           }
 
           auditData.usage = auditProviderUsage || estimateUsageForRecord(auditData);
+          logUsage({
+            profileId: auditData.profileId,
+            model: auditData.rewriteModel || auditData.originalModel,
+            inputTokens: auditData.usage.input_tokens || 0,
+            outputTokens: auditData.usage.output_tokens || 0
+          });
           const costModel = auditData.rewriteModel || auditData.originalModel || '';
           auditData.cost = estimateCost(auditData.usage, costModel, CONFIG);
           appendAuditRecord(auditData);
         }
       } catch(e) {
-        console.error('!! failed to write conversation audit logs:', e);
+        log.error('!! failed to write conversation audit logs:', e);
       }
 
       return result;
@@ -2879,7 +1525,7 @@ function handleRequest(clientReq, clientRes, entry) {
 
   const localPollRequest = isQuietLocalPollRequest(method, effectiveUrlPathname);
   if (!localPollRequest) {
-    console.log('-> ' + method + ' ' + urlPath + '  [' + clientIp + '] entry=' + entryLabel(entry));
+    log.info('-> ' + method + ' ' + urlPath + '  [' + clientIp + '] entry=' + entryLabel(entry));
     logProxyEvent('request_start', { method, path: urlPath, clientIp, entryProtocol: entryLabel(entry), entryPort: entry && entry.listenPort, claudeDesktop: desktopRequest });
   }
 
@@ -2901,15 +1547,24 @@ function handleRequest(clientReq, clientRes, entry) {
   }
 
   // Local Admin APIs
-  if (localManagementRequest) {
+  if (localManagementRequest && !isPublicLocalManagementPath(effectiveUrlPathname)) {
     installLocalManagementRequestEndLogger(clientRes, method, urlPath, startTime);
+
+    const clientToken = clientReq.headers['x-mgmt-token'] || new URL(clientReq.url, 'http://localhost').searchParams.get('token');
+    if (clientToken !== MANAGEMENT_TOKEN) {
+      console.warn(`[mgmt] Unauthorized management request from ${clientIp}: ${method} ${urlPath}`);
+      clientRes.writeHead(401, { 'Content-Type': 'application/json' });
+      clientRes.end(JSON.stringify({ error: 'Unauthorized management access' }));
+      logRequestEnd(method, urlPath, startTime, 401, { type: 'management_unauthorized' });
+      return;
+    }
   }
   if (dispatchLocalManagementRoute({
     method,
     pathname: effectiveUrlPathname,
     req: clientReq,
     res: clientRes,
-    handlers: LOCAL_MANAGEMENT_HANDLERS,
+    handlers: managementHandlers,
   })) {
     return;
   }
@@ -2979,24 +1634,20 @@ function handleRequest(clientReq, clientRes, entry) {
         originalLength: captured.originalLength,
       };
     }
+    const shouldUseDesktopRoutes = desktopRequest || isClaudeDesktop3pRequest(clientReq.headers);
+    const initialPrepared = prepareRequestBufferWithResolver(requestBuffer, clientReq.headers['content-encoding'], shouldUseDesktopRoutes ? resolveClaudeDesktopRoute : resolveRoute);
     if (method === 'POST' && clientPath.indexOf('/v1/messages/count_tokens') === 0) {
+      populateAuditDataFromPrepared(clientRes, initialPrepared, requestBuffer);
       handleCountTokens(clientReq, clientRes, requestBuffer, logRequestEnd, startTime);
       return;
     }
 
     function doForward(currentPrepared, attempt = 1) {
+      const MAX_RETRIES = 2; // Up to 3 total attempts
       const requestProtocol = isGeminiProfile(currentPrepared.profile) ? 'gemini' : (isClaudeProfile(currentPrepared.profile) ? 'claude' : 'openai');
 
       if (clientRes.__auditData) {
-        clientRes.__auditData.originalModel = currentPrepared.model || '';
-        clientRes.__auditData.rewriteModel = currentPrepared.rewriteTo || '';
-        clientRes.__auditData.profileId = currentPrepared.profile ? currentPrepared.profile.id : '';
-        clientRes.__auditData.profileName = currentPrepared.profile ? (currentPrepared.profile.name || currentPrepared.profile.id) : '';
-        clientRes.__auditData.protocol = requestProtocol;
-
-        const extracted = extractPromptFromBuffer(currentPrepared.buffer || requestBuffer, requestProtocol);
-        clientRes.__auditData.system = extracted.system;
-        clientRes.__auditData.messages = extracted.messages;
+        populateAuditDataFromPrepared(clientRes, currentPrepared, requestBuffer);
       }
 
       if (currentPrepared.authMode === 'official-login' && currentPrepared.authProvider === 'trae') {
@@ -3024,10 +1675,28 @@ function handleRequest(clientReq, clientRes, entry) {
 
       const target = parseTargetUrl(currentPrepared.profile.targetUrl);
       const upstreamPath = target.path + clientPath.replace(/^\/v1/, '');
-      const apiKey = process.env.API_KEY || currentPrepared.profile.apiKey || null;
+      const apiKey = currentPrepared.authMode === 'official-login'
+        ? (currentPrepared.profile.apiKey || null)
+        : (process.env.API_KEY || currentPrepared.profile.apiKey || null);
       const isClaudeEntryRequest = forceClaudeEntry(entry) && isClaudeMessagesPath(clientPath);
       const isChatEntryRequest = forceChatEntry(entry) && isOpenAIChatCompletionsPath(clientPath);
       const isResponsesEntryRequest = forceResponsesEntry(entry) && isOpenAIResponsesPath(clientPath);
+
+      if (
+        currentPrepared.authMode === 'official-login'
+        && currentPrepared.authProvider === 'google'
+        && isGeminiProfile(currentPrepared.profile)
+        && !(typeof apiKey === 'string' && apiKey.startsWith('ya29.'))
+      ) {
+        sendJsonError(clientRes, 401, {
+          error: {
+            type: 'authentication_error',
+            message: 'Google official-login credentials are unavailable or expired. Please sign in again before using this route.'
+          }
+        });
+        logRequestEnd(method, urlPath, startTime, 401, { type: 'google_official_auth_missing' });
+        return;
+      }
 
       const isResponsesUpstream = currentPrepared.profile && (
         currentPrepared.profile.api === 'openai-codex-responses' ||
@@ -3043,7 +1712,7 @@ function handleRequest(clientReq, clientRes, entry) {
           clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Chat to Responses conversion does not support compressed request bodies' } }));
           return;
         }
-        logModelMapping('chat->responses', method, upstreamPath, currentPrepared);
+        logModelMapping('chat->responses', method, upstreamPath, currentPrepared, requestBuffer);
         handleOpenAIChatToOpenAIResponses(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
         return;
       }
@@ -3054,7 +1723,7 @@ function handleRequest(clientReq, clientRes, entry) {
           clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Claude to Responses conversion does not support compressed request bodies' } }));
           return;
         }
-        logModelMapping('claude->responses', method, upstreamPath, currentPrepared);
+        logModelMapping('claude->responses', method, upstreamPath, currentPrepared, requestBuffer);
         handleClaudeMessagesToOpenAIResponses(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
         return;
       }
@@ -3065,7 +1734,7 @@ function handleRequest(clientReq, clientRes, entry) {
           clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Claude to OpenAI conversion does not support compressed request bodies' } }));
           return;
         }
-        logModelMapping('claude->openai', method, upstreamPath, currentPrepared);
+        logModelMapping('claude->openai', method, upstreamPath, currentPrepared, requestBuffer);
         handleClaudeMessagesToOpenAIChat(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
         return;
       }
@@ -3076,7 +1745,7 @@ function handleRequest(clientReq, clientRes, entry) {
           clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'OpenAI to Gemini conversion does not support compressed request bodies' } }));
           return;
         }
-        logModelMapping('openai->gemini', method, upstreamPath, currentPrepared);
+        logModelMapping('openai->gemini', method, upstreamPath, currentPrepared, requestBuffer);
         handleOpenAIChatToGeminiMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
         return;
       }
@@ -3086,7 +1755,7 @@ function handleRequest(clientReq, clientRes, entry) {
           clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'OpenAI to Claude conversion does not support compressed request bodies' } }));
           return;
         }
-        logModelMapping('openai->claude', method, upstreamPath, currentPrepared);
+        logModelMapping('openai->claude', method, upstreamPath, currentPrepared, requestBuffer);
         handleOpenAIChatToClaudeMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
         return;
       }
@@ -3097,18 +1766,18 @@ function handleRequest(clientReq, clientRes, entry) {
           return;
         }
         if (isClaudeProfile(currentPrepared.profile)) {
-          logModelMapping('responses->claude', method, upstreamPath, currentPrepared);
+          logModelMapping('responses->claude', method, upstreamPath, currentPrepared, requestBuffer);
           handleOpenAIResponsesToClaudeMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
           return;
         }
         if (isGeminiProfile(currentPrepared.profile)) {
-          logModelMapping('responses->gemini', method, upstreamPath, currentPrepared);
+          logModelMapping('responses->gemini', method, upstreamPath, currentPrepared, requestBuffer);
           handleOpenAIResponsesToGeminiMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
           return;
         }
       }
       if (isResponsesEntryRequest && method === 'POST' && isOpenAIProfile(currentPrepared.profile) && shouldConvertResponsesToOpenAIChat(currentPrepared.profile)) {
-        logModelMapping('responses->chat', method, upstreamPath, currentPrepared);
+        logModelMapping('responses->chat', method, upstreamPath, currentPrepared, requestBuffer);
         handleOpenAIResponsesToOpenAIChat(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
         return;
       }
@@ -3118,7 +1787,7 @@ function handleRequest(clientReq, clientRes, entry) {
           clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Gemini conversion does not support compressed request bodies' } }));
           return;
         }
-        logModelMapping('claude->gemini', method, upstreamPath, currentPrepared);
+        logModelMapping('claude->gemini', method, upstreamPath, currentPrepared, requestBuffer);
         handleGeminiMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
         return;
       }
@@ -3146,7 +1815,7 @@ function handleRequest(clientReq, clientRes, entry) {
       }
       if (currentPrepared.routed) {
         outgoingHeaders['content-length'] = Buffer.byteLength(currentPrepared.buffer);
-        logModelMapping('route', method, upstreamPath, currentPrepared);
+        logModelMapping('route', method, upstreamPath, currentPrepared, requestBuffer);
       }
 
       if (clientRes.__auditData) {
@@ -3171,6 +1840,14 @@ function handleRequest(clientReq, clientRes, entry) {
         agent: target.protocol === 'https:' ? globalHttpsAgent : globalHttpAgent,
       }, (proxyRes) => {
         const code = proxyRes.statusCode;
+
+        if ((code === 429 || code >= 500) && attempt <= MAX_RETRIES) {
+          const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+          console.warn(`[Retry] Upstream returned ${code}, retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
+          proxyRes.destroy();
+          setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
+          return;
+        }
 
         if (attempt === 1 && (code >= 500 || code === 429) && currentPrepared.profile.backupProfileId) {
           const backupProfile = (getProfiles(loadConfig()) || []).find(p => p.id === currentPrepared.profile.backupProfileId);
@@ -3210,7 +1887,7 @@ function handleRequest(clientReq, clientRes, entry) {
           });
           proxyRes.on('end', function() {
             flushClaudeSseFilter(clientRes, sseState);
-            console.log('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (streaming sanitized, ' + (Date.now()-startTime) + 'ms)');
+            log.info('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (streaming sanitized, ' + (Date.now()-startTime) + 'ms)');
             clientRes.end();
             logRequestEnd(method, urlPath, startTime, code, { type: 'openai_stream_sanitized' });
           });
@@ -3228,7 +1905,7 @@ function handleRequest(clientReq, clientRes, entry) {
           });
           proxyRes.on('end', function() {
             flushClaudeSseFilter(clientRes, sseState);
-            console.log('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (protected streaming, ' + (Date.now()-startTime) + 'ms)');
+            log.info('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (protected streaming, ' + (Date.now()-startTime) + 'ms)');
             clientRes.end();
             logRequestEnd(method, urlPath, startTime, code, { type: 'openai_stream_protected' });
           });
@@ -3238,7 +1915,7 @@ function handleRequest(clientReq, clientRes, entry) {
         proxyRes.on('data', function(chunk) {
           if (!logged) {
             const elapsed = Date.now() - startTime;
-            if (!isStream) console.log('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (' + elapsed + 'ms)');
+            if (!isStream) log.info('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (' + elapsed + 'ms)');
             logged = true;
           }
 
@@ -3251,7 +1928,7 @@ function handleRequest(clientReq, clientRes, entry) {
         });
 
         proxyRes.on('end', function() {
-          if (isStream) console.log('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (streaming, ' + (Date.now()-startTime) + 'ms)');
+          if (isStream) log.info('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (streaming, ' + (Date.now()-startTime) + 'ms)');
           logRequestEnd(method, urlPath, startTime, code, { type: isStream ? 'openai_stream' : 'openai' });
 
           if (code >= 400 && errorChunks.length > 0) {
@@ -3259,7 +1936,7 @@ function handleRequest(clientReq, clientRes, entry) {
             const retryAfter = proxyRes.headers['retry-after'] || '-';
             const body = Buffer.concat(errorChunks).toString('utf8').replace(/\s+/g, ' ').trim();
             const requestedModel = currentPrepared.model || '';
-            console.warn('!! upstream error ' + method + ' ' + upstreamPath + ' -> ' + code + ' model=' + requestedModel + ' request-id=' + requestId + ' retry-after=' + retryAfter + ' body=' + body);
+            log.warn('!! upstream error ' + method + ' ' + upstreamPath + ' -> ' + code + ' model=' + requestedModel + ' request-id=' + requestId + ' retry-after=' + retryAfter + ' body=' + body);
             logProxyEvent('upstream_error', { method, path: upstreamPath, code, model: requestedModel, body });
           }
         });
@@ -3268,10 +1945,24 @@ function handleRequest(clientReq, clientRes, entry) {
       });
 
       proxyReq.on('timeout', function() {
+        if (attempt <= MAX_RETRIES) {
+          const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+          console.warn(`[Retry] Upstream timeout, retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
+          proxyReq.destroy();
+          setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
+          return;
+        }
         proxyReq.destroy(new Error('Gateway Timeout (Upstream request timed out)'));
       });
 
       proxyReq.on('error', function(err) {
+        if (attempt <= MAX_RETRIES) {
+          const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+          console.warn(`[Retry] Upstream error (${err.message}), retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
+          proxyReq.destroy();
+          setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
+          return;
+        }
         if (attempt === 1 && currentPrepared.profile.backupProfileId) {
           const backupProfile = (getProfiles(loadConfig()) || []).find(p => p.id === currentPrepared.profile.backupProfileId);
           if (backupProfile) {
@@ -3282,7 +1973,7 @@ function handleRequest(clientReq, clientRes, entry) {
           }
         }
 
-        console.error('xx ' + method + ' ' + urlPath + '  ' + (err.code || err.message));
+        log.error('xx ' + method + ' ' + urlPath + '  ' + (err.code || err.message));
         logProxyEvent('proxy_error', { method, path: urlPath, error: err.message, code: err.code });
         if (!clientRes.headersSent) {
           clientRes.writeHead(502, {
@@ -3296,8 +1987,6 @@ function handleRequest(clientReq, clientRes, entry) {
 
       proxyReq.end(currentPrepared.buffer);
     }
-
-    const initialPrepared = prepareRequestBufferWithResolver(requestBuffer, clientReq.headers['content-encoding'], desktopRequest ? resolveClaudeDesktopRoute : resolveRoute);
 
     if (cliSession && cliSession.modelOverride) {
       const targetModel = cliSession.modelOverride;
@@ -3330,7 +2019,7 @@ function handleRequest(clientReq, clientRes, entry) {
       }
       doForward(prepared, 1);
     }).catch(function(err) {
-      console.error('[auth] Failed to resolve credentials:', err.message);
+      log.error('[auth] Failed to resolve credentials:', err.message);
       doForward(initialPrepared, 1);
     });
   });
@@ -3404,11 +2093,11 @@ if (require.main === module) {
 
     function handleListenError(serverName, err) {
       if (err && err.code === 'EADDRINUSE') {
-        console.error('[startup] ' + serverName + ' is already in use. Stop the owning process or change the configured port.');
+        log.error('[startup] ' + serverName + ' is already in use. Stop the owning process or change the configured port.');
         process.exit(1);
         return;
       }
-      console.error('[startup] ' + serverName + ' failed: ' + (err && err.message ? err.message : err));
+      log.error('[startup] ' + serverName + ' failed: ' + (err && err.message ? err.message : err));
       process.exit(1);
     }
 
@@ -3425,16 +2114,16 @@ if (require.main === module) {
         handleListenError('port ' + listenHost + ':' + entry.listenPort, err);
       });
       server.listen(entry.listenPort, listenHost, function() {
-        console.log('  Listen:  ' + (entry.tls === false ? 'http' : 'https') + '://' + entry.host + ':' + entry.listenPort + entry.basePath + '  [' + entry.protocol + ']');
+        log.info('  Listen:  ' + (entry.tls === false ? 'http' : 'https') + '://' + entry.host + ':' + entry.listenPort + entry.basePath + '  [' + entry.protocol + ']');
       });
       return server;
     }
 
-    console.log('');
-    console.log('+-----------------------------------------------+');
-    console.log('|        OpenAI HTTPS Proxy                      |');
-    console.log('+-----------------------------------------------+');
-    console.log('');
+    log.info('');
+    log.info('+-----------------------------------------------+');
+    log.info('|        OpenAI HTTPS Proxy                      |');
+    log.info('+-----------------------------------------------+');
+    log.info('');
 
     const envEntry = process.env.PORT ? [{ ...LOCAL_SERVER, listenPort: PORT }] : ENTRY_SERVERS;
     for (const entry of envEntry) listenEntry(entry);
@@ -3464,28 +2153,30 @@ if (require.main === module) {
       handleListenError('management port 127.0.0.1:' + MGMT_PORT, err);
     });
     mgmtServer.listen(MGMT_PORT, '127.0.0.1', function() {
-      console.log('  Mgmt:    http://127.0.0.1:' + MGMT_PORT + '/v1/local/*  [management-http]');
+      writeManagementTokenFile(MGMT_PORT);
+      log.info('  Mgmt:    http://127.0.0.1:' + MGMT_PORT + '/v1/local/*  [management-http]');
     });
 
     process.nextTick(function() {
-      console.log('');
-      console.log('  Profile: ' + (ACTIVE_PROFILE.name || ACTIVE_PROFILE.id || 'default'));
-      console.log('  Target:  ' + ACTIVE_PROFILE.targetUrl);
-      console.log('  Routes:  ' + MODEL_ROUTES.length);
-      console.log('');
-      console.log('  SDK Config:');
+      log.info('');
+      log.info('  Profile: ' + (ACTIVE_PROFILE.name || ACTIVE_PROFILE.id || 'default'));
+      log.info('  Target:  ' + ACTIVE_PROFILE.targetUrl);
+      log.info('  Routes:  ' + MODEL_ROUTES.length);
+      log.info('');
+      log.info('  SDK Config:');
       for (const entry of envEntry) {
-        console.log('    ' + entry.protocol + ': ' + (entry.tls === false ? 'http' : 'https') + '://' + entry.host + ':' + entry.listenPort + entry.basePath);
+        log.info('    ' + entry.protocol + ': ' + (entry.tls === false ? 'http' : 'https') + '://' + entry.host + ':' + entry.listenPort + entry.basePath);
       }
-      console.log('    management: http://127.0.0.1:' + MGMT_PORT + '/v1/local/*');
-      console.log('    openai.api_key  = "your key"');
-      console.log('');
-      console.log('  Ctrl+C to stop');
-      console.log('');
+      log.info('    management: http://127.0.0.1:' + MGMT_PORT + '/v1/local/*');
+      log.info('    mgmt_token: ' + MANAGEMENT_TOKEN);
+      log.info('    openai.api_key  = "your key"');
+      log.info('');
+      log.info('  Ctrl+C to stop');
+      log.info('');
     });
 
     process.on('SIGINT', function() {
-      console.log('\nStopping...');
+      log.info('\nStopping...');
       shutdown();
     });
     process.on('SIGTERM', shutdown);
@@ -3493,7 +2184,7 @@ if (require.main === module) {
 
   checkExistingManagementServer(function(isRunning) {
     if (isRunning) {
-      console.log('[single-instance] Existing proxy management endpoint detected on 127.0.0.1:' + MGMT_PORT + '; exiting duplicate process.');
+      log.info('[single-instance] Existing proxy management endpoint detected on 127.0.0.1:' + MGMT_PORT + '; exiting duplicate process.');
       process.exit(0);
       return;
     }
@@ -3531,6 +2222,28 @@ function appendAuditText(current, addition) {
   const remaining = AUDIT_MAX_TEXT_CHARS - base.length;
   if (text.length > remaining) return { value: base + text.slice(0, remaining), truncated: true };
   return { value: base + text, truncated: false };
+}
+
+function populateAuditDataFromPrepared(clientRes, prepared, requestBuffer) {
+  const auditData = clientRes && clientRes.__auditData;
+  if (!auditData || !prepared) return;
+  const profile = prepared.profile || {};
+  const requestProtocol = isGeminiProfile(profile) ? 'gemini' : (isClaudeProfile(profile) ? 'claude' : 'openai');
+  auditData.originalModel = prepared.model || '';
+  auditData.rewriteModel = prepared.rewriteTo || '';
+  auditData.profileId = profile.id || '';
+  auditData.profileName = profile.name || profile.id || '';
+  auditData.protocol = requestProtocol;
+
+  try {
+    const sourceBuffer = prepared.buffer || requestBuffer || Buffer.alloc(0);
+    const extracted = extractPromptFromBuffer(sourceBuffer, requestProtocol);
+    auditData.system = extracted.system;
+    auditData.messages = extracted.messages;
+  } catch (err) {
+    auditData.system = auditData.system || '';
+    auditData.messages = auditData.messages || [];
+  }
 }
 
 function extractPromptFromBuffer(buffer, protocol) {
@@ -3639,209 +2352,6 @@ function extractPromptFromBuffer(buffer, protocol) {
   return { system, messages };
 }
 
-function handleLocalAuditConversationsRequest(clientReq, clientRes) {
-  try {
-    const url = new URL(clientReq.url, `http://${clientReq.headers.host || 'localhost'}`);
-    const limit = Number(url.searchParams.get('limit') || 50);
-    const records = getAuditRecords(limit);
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: true, conversations: records }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function handleLocalAuditConversationsClearRequest(clientReq, clientRes) {
-  try {
-    const ok = clearAuditRecords();
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok }));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ error: err.message }));
-  }
-}
-
-function readJsonBodyFromRequest(clientReq, callback) {
-  const chunks = [];
-  let bytes = 0;
-  clientReq.on('data', (chunk) => {
-    chunks.push(chunk);
-    bytes += chunk.length;
-    if (bytes > 1024 * 1024) {
-      chunks.length = 0;
-      clientReq.destroy(new Error('Request body too large'));
-    }
-  });
-  clientReq.on('end', () => {
-    try {
-      const text = Buffer.concat(chunks, bytes).toString('utf8');
-      callback(null, text ? JSON.parse(text) : {});
-    } catch (err) {
-      callback(err);
-    }
-  });
-  clientReq.on('error', (err) => callback(err));
-}
-
-function localReplayBaseUrl(record) {
-  const tls = LOCAL_SERVER && LOCAL_SERVER.tls === false ? false : true;
-  const port = Number(record && record.entryPort) || PORT;
-  return `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
-}
-
-function handleLocalAuditRetryRequest(clientReq, clientRes) {
-  readJsonBodyFromRequest(clientReq, async (bodyErr, payload) => {
-    if (bodyErr) {
-      clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: false, error: bodyErr.message }));
-      return;
-    }
-    try {
-      const record = getAuditRecordById(payload && payload.id);
-      if (!record) {
-        clientRes.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({ ok: false, error: '未找到对应审计记录' }));
-        return;
-      }
-      if (!record.request || !record.request.body || record.request.truncated) {
-        clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-        clientRes.end(JSON.stringify({ ok: false, error: '该请求体为空或已截断，无法安全重试' }));
-        return;
-      }
-
-      const replayHeaders = headersForReplay(record.request.headers);
-      replayHeaders['content-type'] = replayHeaders['content-type'] || replayHeaders['Content-Type'] || 'application/json';
-      replayHeaders['x-hpm-retry-of'] = record.id;
-      const replayBody = record.request.body;
-      replayHeaders['content-length'] = Buffer.byteLength(replayBody);
-      const replayUrl = localReplayBaseUrl(record) + record.path;
-      const response = await makeRequest(replayUrl, {
-        method: record.method || 'POST',
-        headers: replayHeaders,
-        timeout: Number(payload && payload.timeout) || 60000,
-      }, replayBody);
-      const parsed = parseJsonText(response.body);
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({
-        ok: response.statusCode >= 200 && response.statusCode < 300,
-        statusCode: response.statusCode,
-        headers: redactHeaders(response.headers || {}),
-        body: parsed || response.body,
-        bodyText: parsed ? '' : response.body,
-      }));
-    } catch (err) {
-      clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: false, error: err.message }));
-    }
-  });
-}
-
-function handleLocalUsageReportRequest(clientReq, clientRes) {
-  try {
-    const url = new URL(clientReq.url, `http://${clientReq.headers.host || 'localhost'}`);
-    const limit = Number(url.searchParams.get('limit') || 300);
-    const after = url.searchParams.get('after') || '';
-    let records = getAuditRecords(limit);
-    if (after) {
-      const afterTime = Date.parse(after);
-      if (Number.isFinite(afterTime)) {
-        records = records.filter((record) => Date.parse(record.time || '') >= afterTime);
-      }
-    }
-    const report = buildUsageReport(records, CONFIG);
-    clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify(report));
-  } catch (err) {
-    clientRes.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-    clientRes.end(JSON.stringify({ ok: false, error: err.message }));
-  }
-}
-
-async function testProfileAuthUpstream(protocol, targetUrl, apiKey, testModel = null, authMode = 'api-key') {
-  try {
-    if (protocol === 'openai' && authMode === 'official-login' && isOpenAIOfficialCodexTarget(targetUrl) && testModel) {
-      const support = openAIOfficialCodexModelSupport(testModel);
-      if (support.known && support.supported) {
-        return {
-          ok: true,
-          authMode,
-          source: 'codex-model-cache',
-          message: `OpenAI 官方登录凭证已加载；Codex 模型缓存确认 ${support.model} 可用于 API。`
-        };
-      }
-      if (support.known) {
-        return {
-          ok: false,
-          authMode,
-          source: 'codex-model-cache',
-          error: `Codex 模型 ${support.model} 当前不支持 API 路由。`
-        };
-      }
-      return {
-        ok: false,
-        authMode,
-        source: 'codex-model-cache',
-        error: `Codex 官方模型缓存未返回 ${normalizeOpenAIOfficialCodexModelName(testModel)}，不要按 ChatGPT Web 模型列表路由。`
-      };
-    }
-
-    const probe = buildProfileAuthProbeRequest(protocol, targetUrl, apiKey, testModel, authMode);
-    if (probe.unsupported) {
-      return { ok: false, error: `Unsupported protocol: ${protocol}` };
-    }
-
-    if (protocol === 'openai') {
-      const res = await makeRequest(probe.fullUrl, { method: probe.method, headers: probe.headers }, probe.requestBody);
-      return evaluateOpenAIProfileAuthResponse(res, { testModel, authMode });
-    } else if (protocol === 'gemini') {
-      const res = await makeRequest(probe.fullUrl, { method: probe.method, headers: probe.headers }, probe.requestBody);
-      return evaluateGeminiProfileAuthResponse(res, { testModel, authMode, probeFullUrl: probe.fullUrl });
-    } else if (protocol === 'claude') {
-      const res = await makeRequest(probe.fullUrl, { method: probe.method, headers: probe.headers }, probe.requestBody);
-      return evaluateClaudeProfileAuthResponse(res, { testModel });
-    } else {
-      return { ok: false, error: `Unsupported protocol: ${protocol}` };
-    }
-  } catch (err) {
-    return { ok: false, error: `Network error: ${err.message}` };
-  }
-}
-
-function handleLocalProfileTestAuthRequest(clientReq, clientRes) {
-  const chunks = [];
-  clientReq.on('data', chunk => chunks.push(chunk));
-  clientReq.on('end', async () => {
-    try {
-      const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      let { protocol, targetUrl, profileId, testModel } = body;
-      profileId = profileId || body.id;
-      let { apiKey } = body;
-
-      if (!protocol || !targetUrl) {
-        throw new Error('protocol and targetUrl are required');
-      }
-
-      let finalProfile = resolveConfiguredProfile({ id: profileId, protocol, targetUrl, apiKey }, profileId);
-
-      const resolved = await resolveOfficialCredentials({ profile: finalProfile });
-      protocol = resolved.profile.protocol || protocol;
-      apiKey = resolved.profile.apiKey;
-      const finalTargetUrl = resolved.profile.targetUrl || targetUrl;
-
-      const result = await testProfileAuthUpstream(protocol, finalTargetUrl, apiKey, testModel, resolved.authMode || 'api-key');
-
-      clientRes.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify(result));
-    } catch (err) {
-      clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-      clientRes.end(JSON.stringify({ ok: false, error: err.message }));
-    }
-  });
-}
-
-
 module.exports = {
   claudeMessagesToGemini,
   geminiResponseToClaude,
@@ -3852,6 +2362,7 @@ module.exports = {
   processGeminiSseEvent,
   processClaudeSseChunk,
   flushClaudeSseFilter,
+  geminiClaudeStopReason,
   filterClaudeToolUseBlocks,
   filterClaudeJsonBody,
   openAIChatToClaudeMessages,
@@ -3945,5 +2456,6 @@ module.exports = {
   ensureCert,
   CERT_DIR,
   CERT_FILE,
-  KEY_FILE,
+  MANAGEMENT_TOKEN,
+  managementHandlers,
 };
