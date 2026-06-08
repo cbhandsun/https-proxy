@@ -16,9 +16,10 @@
       <div id="summary" class="summary"></div>
     </div>
     <div class="header-actions">
-      <button id="themeToggle" class="theme-toggle" title="切换主题">
+      <button id="themeToggle" class="theme-toggle" title="切换主题：浅色 / 深色 / 跟随系统">
         <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span id="themeAutoBadge" class="theme-auto-badge" title="跟随系统" style="display: none;">A</span>
       </button>
     </div>
   </header>
@@ -1082,6 +1083,9 @@ npm i -g hermes-agent@latest</pre>
                 <label><input id="showTrayMenu" type="checkbox"><span><span class="setting-title">显示托盘右键菜单</span><span class="setting-desc">保存后需要重启管理器生效。</span></span></label>
               </div>
               <div class="setting-item">
+                <label><input id="desktopNotifications" type="checkbox"><span><span class="setting-title">桌面通知（启动/停止/重启）</span><span class="setting-desc">需要系统授权；可在浏览器设置中调整权限。</span></span></label>
+              </div>
+              <div class="setting-item">
                 <label><input id="showWindowOnTrayCommand" type="checkbox"><span><span class="setting-title">托盘命令执行后显示主窗口</span><span class="setting-desc">从托盘执行启动、停止、重启后自动唤起窗口。</span></span></label>
               </div>
               <div class="setting-item">
@@ -1122,6 +1126,7 @@ npm i -g hermes-agent@latest</pre>
     </div>
   </div>
 
+  <script defer src="./app-ux.js?v=env-install-irm-progress-20260605-1"></script>
   <script defer src="./app-bridge.js?v=env-install-irm-progress-20260605-1"></script>
   <script defer src="./app-audit.js?v=env-install-irm-progress-20260605-1"></script>
   <script defer src="./app-cli.js?v=env-install-irm-progress-20260605-1"></script>

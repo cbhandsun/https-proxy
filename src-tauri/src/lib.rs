@@ -740,9 +740,18 @@ pub fn run() {
                     .build(app)?;
                 let start_item = MenuItemBuilder::new("启动代理")
                     .id("tray_start")
+                    .accelerator("CmdOrCtrl+Alt+S")
                     .build(app)?;
                 let stop_item = MenuItemBuilder::new("停止代理")
                     .id("tray_stop")
+                    .accelerator("CmdOrCtrl+Alt+X")
+                    .build(app)?;
+                let restart_item = MenuItemBuilder::new("重启代理")
+                    .id("tray_restart")
+                    .accelerator("CmdOrCtrl+Alt+R")
+                    .build(app)?;
+                let status_item = MenuItemBuilder::new("查看状态")
+                    .id("tray_status")
                     .build(app)?;
                 let sep = tauri::menu::PredefinedMenuItem::separator(app)?;
                 let quit_item = MenuItemBuilder::new("退出").id("tray_quit").build(app)?;
@@ -753,6 +762,9 @@ pub fn run() {
                         &sep,
                         &start_item,
                         &stop_item,
+                        &restart_item,
+                        &tauri::menu::PredefinedMenuItem::separator(app)?,
+                        &status_item,
                         &tauri::menu::PredefinedMenuItem::separator(app)?,
                         &quit_item,
                     ])
@@ -798,6 +810,29 @@ pub fn run() {
                                     let _ = w.set_focus();
                                     let _ = w.emit("tray-command", "stopped");
                                 }
+                            }
+                        } else if id == "tray_restart" {
+                            std::thread::spawn(|| {
+                                let _ = stop_proxy_direct();
+                                std::thread::sleep(std::time::Duration::from_millis(250));
+                                if start_proxy_direct().is_err() {
+                                    let _ = run_proxy_bat(&["restart"]);
+                                }
+                            });
+                            if read_app_setting("showWindowOnTrayCommand", true) {
+                                if let Some(w) = app_handle.get_webview_window("main") {
+                                    let _ = w.show();
+                                    let _ = w.set_focus();
+                                    let _ = w.emit("tray-command", "restarted");
+                                }
+                            }
+                        } else if id == "tray_status" {
+                            // 显示窗口即可查看状态（前端定时刷新）
+                            if let Some(w) = app_handle.get_webview_window("main") {
+                                let _ = w.show();
+                                let _ = w.unminimize();
+                                let _ = w.set_focus();
+                                let _ = w.emit("tray-command", "status");
                             }
                         } else if id == "tray_quit" {
                             // 直接退出，RunEvent::Exit 会负责停止代理
