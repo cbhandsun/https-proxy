@@ -13,7 +13,12 @@ const net = require('net');
 const util = require('util');
 const crypto = require('crypto');
 
-const { createLogger, withRequest, newRequestId, installReqIdMiddleware } = require('./lib/proxy/logger');
+const {
+  createLogger,
+  withRequest,
+  newRequestId,
+  installReqIdMiddleware,
+} = require('./lib/proxy/logger');
 const { createMetrics, collectDefaultProcessMetrics } = require('./lib/proxy/metrics');
 const log = createLogger('proxy');
 
@@ -25,8 +30,13 @@ metricsInstance.counter('proxy_requests_total', 'Total number of proxy requests 
 metricsInstance.counter('proxy_errors_total', 'Total number of proxy request errors');
 metricsInstance.counter('proxy_config_reloads_total', 'Total number of config hot-reloads');
 metricsInstance.counter('proxy_route_cache_total', 'Route resolution cache events');
-metricsInstance.histogram('proxy_request_duration_seconds', 'Proxy request duration in seconds', { buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30] });
-metricsInstance.gauge('proxy_active_profile_id', 'Currently active profile id (set to 1 for whichever is active)');
+metricsInstance.histogram('proxy_request_duration_seconds', 'Proxy request duration in seconds', {
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30],
+});
+metricsInstance.gauge(
+  'proxy_active_profile_id',
+  'Currently active profile id (set to 1 for whichever is active)'
+);
 
 const APP_ID = 'https-proxy-manager';
 const MANAGEMENT_TOKEN = process.env.MGMT_TOKEN || crypto.randomBytes(16).toString('hex');
@@ -40,7 +50,9 @@ function shouldVerifyUpstreamTls() {
   try {
     const cfg = loadConfig();
     return cfg.appSettings && cfg.appSettings.verifyUpstreamTls !== false;
-  } catch (e) { return true; }
+  } catch (e) {
+    return true;
+  }
 }
 
 function createHttpsAgent() {
@@ -54,7 +66,7 @@ function createHttpsAgent() {
 }
 
 let globalHttpsAgent = createHttpsAgent();
-let globalHttpAgent = new http.Agent({
+const globalHttpAgent = new http.Agent({
   keepAlive: true,
   maxSockets: 100,
   maxFreeSockets: 10,
@@ -78,12 +90,16 @@ function detectLocalProxy(callback) {
     }
   } catch (e) {}
 
-  if (proxyDetectCached && (Date.now() - lastDetectTime < 15000)) {
+  if (proxyDetectCached && Date.now() - lastDetectTime < 15000) {
     if (callback) callback(detectedProxyUrl, detectedProxyType);
     return;
   }
 
-  const envProxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.https_proxy || process.env.http_proxy;
+  const envProxy =
+    process.env.HTTPS_PROXY ||
+    process.env.HTTP_PROXY ||
+    process.env.https_proxy ||
+    process.env.http_proxy;
   if (envProxy) {
     detectedProxyUrl = envProxy;
     detectedProxyType = envProxy.startsWith('socks') ? 'socks5' : 'http';
@@ -114,7 +130,9 @@ function detectLocalProxy(callback) {
         found = true;
         detectedProxyType = type;
         detectedProxyUrl = `${type}://127.0.0.1:${port}`;
-        console.log(`[proxy] Auto-detected local ${type} proxy on port ${port}: ${detectedProxyUrl}`);
+        console.log(
+          `[proxy] Auto-detected local ${type} proxy on port ${port}: ${detectedProxyUrl}`
+        );
         lastDetectTime = Date.now();
         proxyDetectCached = true;
         socket.destroy();
@@ -178,15 +196,15 @@ function requestWithProxy(targetUrl, options, callback) {
     return req;
   }
 
-  emitter.write = function(chunk) {
+  emitter.write = function (chunk) {
     if (emitter.activeReq) emitter.activeReq.write(chunk);
     else emitter.pendingBody = (emitter.pendingBody || '') + chunk;
   };
-  emitter.end = function() {
+  emitter.end = function () {
     if (emitter.activeReq) emitter.activeReq.end();
     else emitter.ended = true;
   };
-  emitter.destroy = function(err) {
+  emitter.destroy = function (err) {
     if (emitter.activeReq && typeof emitter.activeReq.destroy === 'function') {
       emitter.activeReq.destroy(err);
     }
@@ -226,22 +244,31 @@ function requestWithProxy(targetUrl, options, callback) {
               timeout: requestTimeout || 5000,
             });
           } catch (agentErr) {
-            console.warn(`[proxy] SOCKS5 agent init failed (${agentErr.message}), falling back to direct connection...`);
+            console.warn(
+              `[proxy] SOCKS5 agent init failed (${agentErr.message}), falling back to direct connection...`
+            );
             executeDirect();
             return;
           }
-          const req = attachRequestTimeout(https.request({
-            agent: socksAgent,
-            hostname: target.hostname,
-            port: target.port || 443,
-            path: target.path,
-            method: options.method || 'GET',
-            headers: { ...(options.headers || {}), host: target.hostname },
-          }, callback));
+          const req = attachRequestTimeout(
+            https.request(
+              {
+                agent: socksAgent,
+                hostname: target.hostname,
+                port: target.port || 443,
+                path: target.path,
+                method: options.method || 'GET',
+                headers: { ...(options.headers || {}), host: target.hostname },
+              },
+              callback
+            )
+          );
           emitter.activeReq = req;
           req.on('error', (e) => {
             if (!fallbackTriggered) {
-              console.warn(`[proxy] SOCKS5 via ${proxyUrl} failed (${e.message}), falling back to direct connection...`);
+              console.warn(
+                `[proxy] SOCKS5 via ${proxyUrl} failed (${e.message}), falling back to direct connection...`
+              );
               fallbackTriggered = true;
               executeDirect();
             } else {
@@ -254,15 +281,19 @@ function requestWithProxy(targetUrl, options, callback) {
           req.end();
         } else {
           // HTTP CONNECT tunnel
-          const connectReq = attachRequestTimeout(http.request({
-            hostname: proxy.hostname,
-            port: proxy.port,
-            method: 'CONNECT',
-            path: target.hostname + ':' + (target.port || 443),
-            headers: proxy.auth ? {
-              'Proxy-Authorization': 'Basic ' + Buffer.from(proxy.auth).toString('base64')
-            } : {}
-          }));
+          const connectReq = attachRequestTimeout(
+            http.request({
+              hostname: proxy.hostname,
+              port: proxy.port,
+              method: 'CONNECT',
+              path: target.hostname + ':' + (target.port || 443),
+              headers: proxy.auth
+                ? {
+                    'Proxy-Authorization': 'Basic ' + Buffer.from(proxy.auth).toString('base64'),
+                  }
+                : {},
+            })
+          );
           emitter.activeReq = connectReq;
 
           connectReq.on('connect', (res, socket, head) => {
@@ -282,28 +313,36 @@ function requestWithProxy(targetUrl, options, callback) {
               return;
             }
 
-              const tls = require('tls');
-              const tlsSocket = tls.connect({
+            const tls = require('tls');
+            const tlsSocket = tls.connect(
+              {
                 socket: socket,
                 servername: target.hostname,
-                rejectUnauthorized: shouldVerifyUpstreamTls()
-              }, () => {
+                rejectUnauthorized: shouldVerifyUpstreamTls(),
+              },
+              () => {
                 const headers = { ...options.headers, host: target.hostname };
-                const req = attachRequestTimeout(http.request({
-                  createConnection: () => tlsSocket,
-                  method: options.method || 'GET',
-                  path: target.path,
-                  headers: headers
-                }, callback));
+                const req = attachRequestTimeout(
+                  http.request(
+                    {
+                      createConnection: () => tlsSocket,
+                      method: options.method || 'GET',
+                      path: target.path,
+                      headers: headers,
+                    },
+                    callback
+                  )
+                );
 
                 emitter.activeReq = req;
                 req.on('error', (e) => emitter.emit('error', e));
 
                 if (emitter.pendingBody) {
                   req.write(emitter.pendingBody);
+                }
+                req.end();
               }
-              req.end();
-            });
+            );
 
             tlsSocket.on('error', (e) => {
               emitter.emit('error', e);
@@ -312,7 +351,9 @@ function requestWithProxy(targetUrl, options, callback) {
 
           connectReq.on('error', (e) => {
             if (!fallbackTriggered) {
-              console.warn(`[proxy] HTTP proxy via ${proxyUrl} failed (${e.message}), falling back to direct connection...`);
+              console.warn(
+                `[proxy] HTTP proxy via ${proxyUrl} failed (${e.message}), falling back to direct connection...`
+              );
               executeDirect();
             }
           });
@@ -325,13 +366,18 @@ function requestWithProxy(targetUrl, options, callback) {
         if (proxy.auth) {
           headers['Proxy-Authorization'] = 'Basic ' + Buffer.from(proxy.auth).toString('base64');
         }
-        const req = attachRequestTimeout(http.request({
-          hostname: proxy.hostname,
-          port: proxy.port,
-          path: targetUrl,
-          method: options.method || 'GET',
-          headers: headers
-        }, callback));
+        const req = attachRequestTimeout(
+          http.request(
+            {
+              hostname: proxy.hostname,
+              port: proxy.port,
+              path: targetUrl,
+              method: options.method || 'GET',
+              headers: headers,
+            },
+            callback
+          )
+        );
 
         emitter.activeReq = req;
         req.on('error', (e) => emitter.emit('error', e));
@@ -348,7 +394,6 @@ function requestWithProxy(targetUrl, options, callback) {
 
   return emitter;
 }
-
 
 const { createAuthResolver } = require('./lib/proxy/auth-resolver');
 const { createManagementHandlers } = require('./lib/proxy/handlers/management');
@@ -388,15 +433,24 @@ function setupFileConsoleTee() {
   if (process.env.PROXY_DISABLE_FILE_LOG === '1') return;
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    const maxLogBytes = Math.max(256 * 1024, Number(process.env.PROXY_LOG_MAX_BYTES || 5 * 1024 * 1024));
+    const maxLogBytes = Math.max(
+      256 * 1024,
+      Number(process.env.PROXY_LOG_MAX_BYTES || 5 * 1024 * 1024)
+    );
     const rotateIfOversized = (filePath) => {
       try {
         if (!fs.existsSync(filePath)) return;
         const stat = fs.statSync(filePath);
         if (stat.size <= maxLogBytes) return;
         const rotated = filePath + '.1';
-        try { fs.unlinkSync(rotated); } catch (_) {}
-        try { fs.renameSync(filePath, rotated); } catch (_) { fs.writeFileSync(filePath, '', 'utf8'); }
+        try {
+          fs.unlinkSync(rotated);
+        } catch (_) {}
+        try {
+          fs.renameSync(filePath, rotated);
+        } catch (_) {
+          fs.writeFileSync(filePath, '', 'utf8');
+        }
       } catch (_) {}
     };
     const logPath = path.join(DATA_DIR, 'proxy.log');
@@ -409,7 +463,9 @@ function setupFileConsoleTee() {
     const originalWarn = console.warn.bind(console);
     const originalError = console.error.bind(console);
     const writeLine = (stream, args) => {
-      try { stream.write(util.format(...args) + '\n'); } catch (_) {}
+      try {
+        stream.write(util.format(...args) + '\n');
+      } catch (_) {}
     };
     console.log = (...args) => {
       originalLog(...args);
@@ -424,7 +480,9 @@ function setupFileConsoleTee() {
       writeLine(err, args);
     };
   } catch (e) {
-    try { log.error('[log] Failed to initialize file logging:', e.message); } catch (_) {}
+    try {
+      log.error('[log] Failed to initialize file logging:', e.message);
+    } catch (_) {}
   }
 }
 
@@ -436,12 +494,7 @@ const {
   fallbackId: fallbackIdWithOptions,
   stableCreated,
 } = require('./lib/proxy/ids');
-const {
-  CERT_DIR,
-  CERT_FILE,
-  KEY_FILE,
-  ensureCert,
-} = require('./lib/proxy/cert');
+const { CERT_DIR, CERT_FILE, KEY_FILE, ensureCert } = require('./lib/proxy/cert');
 const {
   localModelIds,
   buildLocalOpenAIModelObject,
@@ -479,6 +532,8 @@ const {
   isOpenAIResponsesPath,
   prepareRequestBuffer: prepareRequestBufferForRoute,
   logModelMapping: logRouteModelMapping,
+  resetRouteIndex: resetProxyRouteIndex,
+  rebuildRouteIndex: rebuildProxyRouteIndex,
 } = require('./lib/proxy/routing');
 const {
   getClaudeDesktopRoutes,
@@ -498,7 +553,7 @@ const {
   RESPONSE_SAMPLE_FILE,
   DIAGNOSTICS_OUTBOUND_SSE_FILE,
   DIAGNOSTICS_REQUEST_TOOLS_FILE,
-  PROXY_EVENTS_FILE
+  PROXY_EVENTS_FILE,
 } = require('./lib/proxy/diagnostics');
 const {
   parseClaudeSseEvent,
@@ -526,7 +581,7 @@ const {
   appendAuditRecord,
   getAuditRecords,
   getAuditRecordById,
-  clearAuditRecords
+  clearAuditRecords,
 } = require('./lib/proxy/audit');
 const {
   redactHeaders,
@@ -604,14 +659,14 @@ const {
 const { createHttpClient } = require('./lib/proxy/http-client');
 const { validateConfig } = require('./lib/proxy/validator');
 const { createCertManagement } = require('./lib/proxy/cert-management');
-const { handleLocalPromptsSyncRequest, handleLocalPromptsPresetsRequest } = require('./lib/proxy/prompts-sync');
+const {
+  handleLocalPromptsSyncRequest,
+  handleLocalPromptsPresetsRequest,
+} = require('./lib/proxy/prompts-sync');
 const { logUsage, getUsageSummary } = require('./lib/proxy/usage');
 const { createGoogleOfficialRuntime } = require('./lib/proxy/google-official-runtime');
 const { createMcpHub } = require('./lib/proxy/mcp-hub');
-const {
-  getModelsUrl,
-  buildModelListRequest,
-} = require('./lib/proxy/model-list');
+const { getModelsUrl, buildModelListRequest } = require('./lib/proxy/model-list');
 const {
   isRedactedSecret,
   isOpenAIOfficialLoginToken,
@@ -660,11 +715,8 @@ const {
   isGoogleOfficialLoginToken,
   buildGoogleOfficialLoadCodeAssistRequest,
 });
-const {
-  handleLocalCertStatusRequest,
-  handleLocalCertTrustRequest,
-  handleLocalCertUntrustRequest,
-} = createCertManagement();
+const { handleLocalCertStatusRequest, handleLocalCertTrustRequest, handleLocalCertUntrustRequest } =
+  createCertManagement();
 const {
   handleLocalTraeStatusRequest,
   handleLocalTraeBridgeStatusRequest,
@@ -700,10 +752,7 @@ const {
   handleLocalGeminiCliRestoreRequest,
 } = createToolConfigHandlers();
 
-const {
-  resolveOfficialCredentials,
-  resolveConfiguredProfile,
-} = createAuthResolver({
+const { resolveOfficialCredentials, resolveConfiguredProfile } = createAuthResolver({
   loadConfig,
   getProfiles,
   decryptKey,
@@ -797,7 +846,10 @@ function reloadProxyConfig() {
       MODEL_ROUTES = getModelRoutes(nextConfig);
       CLAUDE_DESKTOP_ROUTES = getClaudeDesktopRoutes(nextConfig);
 
-      const nextOptions = { ...DEFAULT_CONFIG.protocolOptions, ...(nextConfig.protocolOptions || {}) };
+      const nextOptions = {
+        ...DEFAULT_CONFIG.protocolOptions,
+        ...(nextConfig.protocolOptions || {}),
+      };
       for (const key of Object.keys(PROTOCOL_OPTIONS)) {
         delete PROTOCOL_OPTIONS[key];
       }
@@ -816,43 +868,54 @@ function reloadProxyConfig() {
 
 try {
   const { debounceReload } = require('./lib/proxy/config-watcher');
-  _configWatcher = debounceReload(CONFIG_FILE, (nextConfig) => {
-    try {
-      CONFIG = nextConfig;
-      PROFILES = getProfiles(nextConfig);
-      ACTIVE_PROFILE = getActiveProfile(nextConfig);
-      LOCAL_SERVER = getLocalServer(nextConfig);
-      MODEL_ROUTES = getModelRoutes(nextConfig);
-      CLAUDE_DESKTOP_ROUTES = getClaudeDesktopRoutes(nextConfig);
-
-      const nextOptions = { ...DEFAULT_CONFIG.protocolOptions, ...(nextConfig.protocolOptions || {}) };
-      for (const key of Object.keys(PROTOCOL_OPTIONS)) {
-        delete PROTOCOL_OPTIONS[key];
-      }
-      Object.assign(PROTOCOL_OPTIONS, nextOptions);
-
-      // Recreate HTTPS agent when TLS verification setting changes
-      const newAgent = createHttpsAgent();
-      globalHttpsAgent = newAgent;
-      https.globalAgent = newAgent;
-
-      log.info('[config] Configuration hot-reloaded successfully. Active profile:', ACTIVE_PROFILE.id);
-      // 指标埋点
+  _configWatcher = debounceReload(
+    CONFIG_FILE,
+    (nextConfig) => {
       try {
-        metricsInstance.counter('proxy_config_reloads_total').inc();
-        metricsInstance.gauge('proxy_active_profile_id').set(1, { id: ACTIVE_PROFILE.id });
-        if (typeof _indexCache !== 'undefined' && _indexCache && _indexCache.index) {
-          _indexCache.index.rebuild(MODEL_ROUTES);
-          metricsInstance.counter('proxy_route_cache_total').inc(1, { event: 'rebuild' });
+        CONFIG = nextConfig;
+        PROFILES = getProfiles(nextConfig);
+        ACTIVE_PROFILE = getActiveProfile(nextConfig);
+        LOCAL_SERVER = getLocalServer(nextConfig);
+        MODEL_ROUTES = getModelRoutes(nextConfig);
+        CLAUDE_DESKTOP_ROUTES = getClaudeDesktopRoutes(nextConfig);
+
+        const nextOptions = {
+          ...DEFAULT_CONFIG.protocolOptions,
+          ...(nextConfig.protocolOptions || {}),
+        };
+        for (const key of Object.keys(PROTOCOL_OPTIONS)) {
+          delete PROTOCOL_OPTIONS[key];
         }
-      } catch (e) { /* never break on metrics */ }
-    } catch (err) {
-      log.error('[config] Failed to apply hot-reload configuration:', err.message);
-      throw err;
+        Object.assign(PROTOCOL_OPTIONS, nextOptions);
+
+        // Recreate HTTPS agent when TLS verification setting changes
+        const newAgent = createHttpsAgent();
+        globalHttpsAgent = newAgent;
+        https.globalAgent = newAgent;
+
+        log.info(
+          '[config] Configuration hot-reloaded successfully. Active profile:',
+          ACTIVE_PROFILE.id
+        );
+        // 指标埋点
+        try {
+          metricsInstance.counter('proxy_config_reloads_total').inc();
+          metricsInstance.gauge('proxy_active_profile_id').set(1, { id: ACTIVE_PROFILE.id });
+          if (rebuildProxyRouteIndex(MODEL_ROUTES)) {
+            metricsInstance.counter('proxy_route_cache_total').inc(1, { event: 'rebuild' });
+          }
+        } catch (e) {
+          /* never break on metrics */
+        }
+      } catch (err) {
+        log.error('[config] Failed to apply hot-reload configuration:', err.message);
+        throw err;
+      }
+    },
+    {
+      onError: (err) => log.warn('[config] Hot-reload error:', err && err.message),
     }
-  }, {
-    onError: (err) => log.warn('[config] Hot-reload error:', err && err.message),
-  });
+  );
 } catch (err) {
   log.warn('[config] Failed to watch config file:', err.message);
 }
@@ -877,7 +940,9 @@ function resolveClaudeDesktopRoute(model) {
 }
 
 function isClaudeDesktop3pRequest(headers) {
-  return String(headers && headers['user-agent'] || '').toLowerCase().includes('claude-desktop-3p');
+  return String((headers && headers['user-agent']) || '')
+    .toLowerCase()
+    .includes('claude-desktop-3p');
 }
 
 function handleModelsRequest(clientReq, clientRes, requestInfo, forcedFormat) {
@@ -893,18 +958,23 @@ function prepareRequestBufferWithResolver(buffer, encoding, resolver) {
 }
 
 function logModelMapping(kind, method, upstreamPath, prepared, requestBuffer) {
-  const estimatedContextTokens = estimateTokens(captureRequestBody(prepared.buffer || requestBuffer).body);
-  return logRouteModelMapping(kind, method, upstreamPath, { ...prepared, estimatedContextTokens }, logProxyEvent);
+  const estimatedContextTokens = estimateTokens(
+    captureRequestBody(prepared.buffer || requestBuffer).body
+  );
+  return logRouteModelMapping(
+    kind,
+    method,
+    upstreamPath,
+    { ...prepared, estimatedContextTokens },
+    logProxyEvent
+  );
 }
 
-const {
-  normalizeClaudeContent,
-  isClaudeThinkingBlock,
-  filterClaudeCompatibleBlocks,
-} = createClaudeFilters({
-  protocolOptions: PROTOCOL_OPTIONS,
-  makeSafeClaudeToolUseContentBlock: () => ({ type: 'text', text: '' }),
-});
+const { normalizeClaudeContent, isClaudeThinkingBlock, filterClaudeCompatibleBlocks } =
+  createClaudeFilters({
+    protocolOptions: PROTOCOL_OPTIONS,
+    makeSafeClaudeToolUseContentBlock: () => ({ type: 'text', text: '' }),
+  });
 
 const {
   getDiagnosticsConfig,
@@ -950,15 +1020,19 @@ function logRequestEnd(method, path, startTime, statusCode, extra) {
     path,
     elapsed,
     statusCode,
-    ...(extra || {})
+    ...(extra || {}),
   });
   // 指标埋点:观察直方图 + 错误计数
   try {
     metricsInstance.histogram('proxy_request_duration_seconds').observe(elapsed / 1000);
     if (statusCode && statusCode >= 500) {
-      metricsInstance.counter('proxy_errors_total').inc(1, { type: (extra && extra.type) || 'unknown' });
+      metricsInstance
+        .counter('proxy_errors_total')
+        .inc(1, { type: (extra && extra.type) || 'unknown' });
     }
-  } catch (e) { /* never break on metrics */ }
+  } catch (e) {
+    /* never break on metrics */
+  }
 }
 
 function installLocalManagementRequestEndLogger(clientRes, method, path, startTime) {
@@ -971,17 +1045,33 @@ function installLocalManagementRequestEndLogger(clientRes, method, path, startTi
   });
 }
 
-const AUDIT_MAX_CAPTURE_BYTES = Math.max(16 * 1024, Number(process.env.PROXY_AUDIT_MAX_CAPTURE_BYTES || 256 * 1024));
-const AUDIT_MAX_TEXT_CHARS = Math.max(1024, Number(process.env.PROXY_AUDIT_MAX_TEXT_CHARS || 120000));
-const MAX_REQUEST_BODY_BYTES = Math.max(1024 * 1024, Number(process.env.PROXY_MAX_REQUEST_BODY_BYTES || 32 * 1024 * 1024));
-const MAX_CONVERSION_RESPONSE_BYTES = Math.max(1024 * 1024, Number(process.env.PROXY_MAX_CONVERSION_RESPONSE_BYTES || 16 * 1024 * 1024));
+const AUDIT_MAX_CAPTURE_BYTES = Math.max(
+  16 * 1024,
+  Number(process.env.PROXY_AUDIT_MAX_CAPTURE_BYTES || 256 * 1024)
+);
+const AUDIT_MAX_TEXT_CHARS = Math.max(
+  1024,
+  Number(process.env.PROXY_AUDIT_MAX_TEXT_CHARS || 120000)
+);
+const MAX_REQUEST_BODY_BYTES = Math.max(
+  1024 * 1024,
+  Number(process.env.PROXY_MAX_REQUEST_BODY_BYTES || 32 * 1024 * 1024)
+);
+const MAX_CONVERSION_RESPONSE_BYTES = Math.max(
+  1024 * 1024,
+  Number(process.env.PROXY_MAX_CONVERSION_RESPONSE_BYTES || 16 * 1024 * 1024)
+);
 
 // 全局异常处理，避免进程意外崩溃
 const exceptionHandlers = require('./lib/proxy/exception-handlers');
 exceptionHandlers.install({
   onEvent: (kind, payload) => {
     if (typeof logProxyEvent === 'function') {
-      try { logProxyEvent(kind, payload); } catch (e) { /* ignore */ }
+      try {
+        logProxyEvent(kind, payload);
+      } catch (e) {
+        /* ignore */
+      }
     }
   },
 });
@@ -1125,12 +1215,38 @@ const {
   writeTraeBridgeClaudeLiveStream,
 });
 
-function sendGeminiRateLimit(clientReq, clientRes, upstreamPath, startTime, targetModel, retryAfterSeconds, message, meta) {
-  return sendGeminiRateLimitResponse(clientReq, clientRes, upstreamPath, startTime, targetModel, retryAfterSeconds, message, meta, logRequestEnd);
+function sendGeminiRateLimit(
+  clientReq,
+  clientRes,
+  upstreamPath,
+  startTime,
+  targetModel,
+  retryAfterSeconds,
+  message,
+  meta
+) {
+  return sendGeminiRateLimitResponse(
+    clientReq,
+    clientRes,
+    upstreamPath,
+    startTime,
+    targetModel,
+    retryAfterSeconds,
+    message,
+    meta,
+    logRequestEnd
+  );
 }
 
 function handleCountTokens(clientReq, clientRes, requestBuffer, requestEndLogger, startTime) {
-  return handleLocalCountTokens(clientReq, clientRes, requestBuffer, estimateTokens, requestEndLogger, startTime);
+  return handleLocalCountTokens(
+    clientReq,
+    clientRes,
+    requestBuffer,
+    estimateTokens,
+    requestEndLogger,
+    startTime
+  );
 }
 
 const {
@@ -1195,7 +1311,9 @@ function modelsFormatForEntry(entry) {
 }
 
 function routesForEntry(entry, desktopRequest) {
-  return desktopRequest || (entry && entry.protocol === 'claude-desktop') ? CLAUDE_DESKTOP_ROUTES : MODEL_ROUTES;
+  return desktopRequest || (entry && entry.protocol === 'claude-desktop')
+    ? CLAUDE_DESKTOP_ROUTES
+    : MODEL_ROUTES;
 }
 
 function forceClaudeEntry(entry) {
@@ -1234,12 +1352,14 @@ function sendUnauthorizedClaudeDesktop(clientRes) {
     'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'access-control-allow-headers': '*',
   });
-  clientRes.end(JSON.stringify({
-    error: {
-      type: 'authentication_error',
-      message: 'Claude Desktop gateway request is missing or using an invalid token.',
-    },
-  }));
+  clientRes.end(
+    JSON.stringify({
+      error: {
+        type: 'authentication_error',
+        message: 'Claude Desktop gateway request is missing or using an invalid token.',
+      },
+    })
+  );
 }
 
 function isPublicLocalManagementPath(pathname) {
@@ -1259,7 +1379,9 @@ function isAllowedEntryPath(entry, method, clientPath) {
   if (!entry) return true;
   if (method !== 'POST') return false;
   if (forceClaudeEntry(entry)) {
-    return isClaudeMessagesPath(clientPath) || clientPath.indexOf('/v1/messages/count_tokens') === 0;
+    return (
+      isClaudeMessagesPath(clientPath) || clientPath.indexOf('/v1/messages/count_tokens') === 0
+    );
   }
   if (forceChatEntry(entry)) return isOpenAIChatCompletionsPath(clientPath);
   if (forceResponsesEntry(entry)) return isOpenAIResponsesPath(clientPath);
@@ -1273,18 +1395,30 @@ function sendEntryPathError(clientRes, entry, method, clientPath) {
     'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'access-control-allow-headers': '*',
   });
-  clientRes.end(JSON.stringify({
-    error: {
-      type: 'invalid_request_error',
-      message: 'Path ' + method + ' ' + clientPath + ' is not supported by ' + entryLabel(entry) + ' entry',
-    },
-  }));
+  clientRes.end(
+    JSON.stringify({
+      error: {
+        type: 'invalid_request_error',
+        message:
+          'Path ' +
+          method +
+          ' ' +
+          clientPath +
+          ' is not supported by ' +
+          entryLabel(entry) +
+          ' entry',
+      },
+    })
+  );
 }
 function handleRequest(clientReq, clientRes, entry) {
   // 绑定 reqId 到本请求的异步作用域，日志自动附加
   const reqId = clientReq.reqId || clientReq.headers['x-request-id'] || newRequestId();
   clientReq.reqId = reqId;
-  if (!clientRes.headersSent) try { clientRes.setHeader('x-request-id', reqId); } catch (e) {}
+  if (!clientRes.headersSent)
+    try {
+      clientRes.setHeader('x-request-id', reqId);
+    } catch (e) {}
   return withRequest({ reqId }, () => handleRequestInner(clientReq, clientRes, entry));
 }
 
@@ -1298,14 +1432,19 @@ function handleRequestInner(clientReq, clientRes, entry) {
   const effectiveUrlPathname = effectiveUrlPath.split('?')[0];
   const localManagementRequest = isLocalManagementPath(effectiveUrlPathname);
   // 指标埋点:每个非本地管理请求递增
-  const isApiRequest = urlPath.indexOf('/chat/completions') >= 0 || urlPath.indexOf('/messages') >= 0 || urlPath.indexOf('/v1/chat/completions') >= 0 || urlPath.indexOf('/v1/messages') >= 0;
+  const isApiRequest =
+    urlPath.indexOf('/chat/completions') >= 0 ||
+    urlPath.indexOf('/messages') >= 0 ||
+    urlPath.indexOf('/v1/chat/completions') >= 0 ||
+    urlPath.indexOf('/v1/messages') >= 0;
   if (!localManagementRequest) {
     metricsInstance.counter('proxy_requests_total').inc();
   }
-  const auditEnabled = isApiRequest
-    && process.env.PROXY_DISABLE_CONVERSATION_AUDIT !== '1'
-    && !(CONFIG.appSettings && CONFIG.appSettings.conversationAuditEnabled === false);
-  let responseBuffer = [];
+  const auditEnabled =
+    isApiRequest &&
+    process.env.PROXY_DISABLE_CONVERSATION_AUDIT !== '1' &&
+    !(CONFIG.appSettings && CONFIG.appSettings.conversationAuditEnabled === false);
+  const responseBuffer = [];
   let responseBytes = 0;
   let responseTruncated = false;
   let sseContent = '';
@@ -1341,15 +1480,16 @@ function handleRequestInner(clientReq, clientRes, entry) {
       responseHeaders: {},
       usage: null,
       cost: null,
-      response: { role: 'assistant', content: '', tool_calls: [] }
+      response: { role: 'assistant', content: '', tool_calls: [] },
     };
 
     const originalWrite = clientRes.write;
     const originalEnd = clientRes.end;
     const originalWriteHead = clientRes.writeHead;
 
-    clientRes.writeHead = function(statusCode, reasonPhrase, headers) {
-      const headerObj = headers || (reasonPhrase && typeof reasonPhrase === 'object' ? reasonPhrase : {});
+    clientRes.writeHead = function (statusCode, reasonPhrase, headers) {
+      const headerObj =
+        headers || (reasonPhrase && typeof reasonPhrase === 'object' ? reasonPhrase : {});
       if (headerObj) {
         const contentType = headerObj['content-type'] || headerObj['Content-Type'] || '';
         if (contentType.indexOf('text/event-stream') >= 0) {
@@ -1369,7 +1509,8 @@ function handleRequestInner(clientReq, clientRes, entry) {
           let capturedLength = 0;
           if (responseBytes < AUDIT_MAX_CAPTURE_BYTES) {
             const remaining = AUDIT_MAX_CAPTURE_BYTES - responseBytes;
-            const captured = chunkBuffer.length > remaining ? chunkBuffer.subarray(0, remaining) : chunkBuffer;
+            const captured =
+              chunkBuffer.length > remaining ? chunkBuffer.subarray(0, remaining) : chunkBuffer;
             responseBuffer.push(captured);
             responseBytes += captured.length;
             capturedLength = captured.length;
@@ -1378,7 +1519,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
         } else {
           const text = chunk.toString('utf8');
           const lines = text.split('\n');
-          lines.forEach(line => {
+          lines.forEach((line) => {
             const trimmed = line.trim();
             if (trimmed.startsWith('data:')) {
               const dataStr = trimmed.substring(5).trim();
@@ -1412,7 +1553,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
                     sseToolCallsMap.set(index, {
                       id: block.id,
                       name: block.name,
-                      args: ''
+                      args: '',
                     });
                   }
                 }
@@ -1426,7 +1567,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
                     if (appended.truncated) auditTextTruncated = true;
                   }
                   if (Array.isArray(delta.tool_calls)) {
-                    delta.tool_calls.forEach(tc => {
+                    delta.tool_calls.forEach((tc) => {
                       const idx = tc.index;
                       const existing = sseToolCallsMap.get(idx) || { args: '' };
                       if (tc.id) existing.id = tc.id;
@@ -1443,19 +1584,19 @@ function handleRequestInner(clientReq, clientRes, entry) {
                     });
                   }
                 }
-              } catch(e) {}
+              } catch (e) {}
             }
           });
         }
       }
     }
 
-    clientRes.write = function(chunk, encoding, callback) {
+    clientRes.write = function (chunk, encoding, callback) {
       captureAuditResponseChunk(chunk, encoding);
       return originalWrite.apply(this, arguments);
     };
 
-    clientRes.end = function(chunk, encoding, callback) {
+    clientRes.end = function (chunk, encoding, callback) {
       if (chunk) {
         captureAuditResponseChunk(chunk, encoding);
       }
@@ -1473,12 +1614,14 @@ function handleRequestInner(clientReq, clientRes, entry) {
             const toolCalls = [];
             for (const [idx, tc] of sseToolCallsMap.entries()) {
               let parsedArgs = tc.args;
-              try { parsedArgs = JSON.parse(tc.args); } catch(e){}
+              try {
+                parsedArgs = JSON.parse(tc.args);
+              } catch (e) {}
               toolCalls.push({
                 id: tc.id || `tc-${idx}`,
                 name: tc.name || '',
                 args: parsedArgs,
-                truncated: tc.truncated === true
+                truncated: tc.truncated === true,
               });
             }
             auditData.response.tool_calls = toolCalls;
@@ -1489,7 +1632,10 @@ function handleRequestInner(clientReq, clientRes, entry) {
               auditData.response.body = resBodyStr;
               auditData.response.bodyTruncated = responseTruncated;
               const resJson = JSON.parse(resBodyStr);
-              auditProviderUsage = mergeUsage(auditProviderUsage, extractUsageFromJsonPayload(resJson));
+              auditProviderUsage = mergeUsage(
+                auditProviderUsage,
+                extractUsageFromJsonPayload(resJson)
+              );
 
               if (resJson.choices && resJson.choices[0] && resJson.choices[0].message) {
                 const msg = resJson.choices[0].message;
@@ -1497,14 +1643,16 @@ function handleRequestInner(clientReq, clientRes, entry) {
                 auditData.response.content = appended.value;
                 if (appended.truncated) auditData.response.truncated = true;
                 if (Array.isArray(msg.tool_calls)) {
-                  auditData.response.tool_calls = msg.tool_calls.map(tc => {
+                  auditData.response.tool_calls = msg.tool_calls.map((tc) => {
                     let args = tc.function && tc.function.arguments;
-                    try { if (typeof args === 'string') args = JSON.parse(args); } catch(e){}
+                    try {
+                      if (typeof args === 'string') args = JSON.parse(args);
+                    } catch (e) {}
                     return { id: tc.id, name: tc.function && tc.function.name, args };
                   });
                 }
               } else if (Array.isArray(resJson.content)) {
-                resJson.content.forEach(block => {
+                resJson.content.forEach((block) => {
                   if (block.type === 'text') {
                     const appended = appendAuditText(auditData.response.content, block.text || '');
                     auditData.response.content = appended.value;
@@ -1513,12 +1661,12 @@ function handleRequestInner(clientReq, clientRes, entry) {
                     auditData.response.tool_calls.push({
                       id: block.id,
                       name: block.name,
-                      args: block.input
+                      args: block.input,
                     });
                   }
                 });
               }
-            } catch(e){}
+            } catch (e) {}
           }
 
           auditData.usage = auditProviderUsage || estimateUsageForRecord(auditData);
@@ -1526,13 +1674,13 @@ function handleRequestInner(clientReq, clientRes, entry) {
             profileId: auditData.profileId,
             model: auditData.rewriteModel || auditData.originalModel,
             inputTokens: auditData.usage.input_tokens || 0,
-            outputTokens: auditData.usage.output_tokens || 0
+            outputTokens: auditData.usage.output_tokens || 0,
           });
           const costModel = auditData.rewriteModel || auditData.originalModel || '';
           auditData.cost = estimateCost(auditData.usage, costModel, CONFIG);
           appendAuditRecord(auditData);
         }
-      } catch(e) {
+      } catch (e) {
         log.error('!! failed to write conversation audit logs:', e);
       }
 
@@ -1541,7 +1689,11 @@ function handleRequestInner(clientReq, clientRes, entry) {
   }
 
   // 拦截并提取会话 Token
-  const clientAuth = clientReq.headers['authorization'] || clientReq.headers['x-api-key'] || clientReq.headers['x-goog-api-key'] || clientReq.headers['api-key'];
+  const clientAuth =
+    clientReq.headers['authorization'] ||
+    clientReq.headers['x-api-key'] ||
+    clientReq.headers['x-goog-api-key'] ||
+    clientReq.headers['api-key'];
   let sessionToken = '';
   let cliSession = null;
   if (clientAuth) {
@@ -1556,7 +1708,8 @@ function handleRequestInner(clientReq, clientRes, entry) {
   if (cliSession) {
     cliSession.lastUsedAt = Date.now();
     cliSession.requestCount = (cliSession.requestCount || 0) + 1;
-    if (clientReq.headers['authorization']) clientReq.headers['authorization'] = 'Bearer PROXY_MANAGED';
+    if (clientReq.headers['authorization'])
+      clientReq.headers['authorization'] = 'Bearer PROXY_MANAGED';
     if (clientReq.headers['x-api-key']) clientReq.headers['x-api-key'] = 'PROXY_MANAGED';
     if (clientReq.headers['x-goog-api-key']) clientReq.headers['x-goog-api-key'] = 'PROXY_MANAGED';
     if (clientReq.headers['api-key']) clientReq.headers['api-key'] = 'PROXY_MANAGED';
@@ -1565,7 +1718,14 @@ function handleRequestInner(clientReq, clientRes, entry) {
   const localPollRequest = isQuietLocalPollRequest(method, effectiveUrlPathname);
   if (!localPollRequest) {
     log.info('-> ' + method + ' ' + urlPath + '  [' + clientIp + '] entry=' + entryLabel(entry));
-    logProxyEvent('request_start', { method, path: urlPath, clientIp, entryProtocol: entryLabel(entry), entryPort: entry && entry.listenPort, claudeDesktop: desktopRequest });
+    logProxyEvent('request_start', {
+      method,
+      path: urlPath,
+      clientIp,
+      entryProtocol: entryLabel(entry),
+      entryPort: entry && entry.listenPort,
+      claudeDesktop: desktopRequest,
+    });
   }
 
   if (localManagementRequest && !installManagementCorsGuard(clientReq, clientRes)) {
@@ -1589,7 +1749,9 @@ function handleRequestInner(clientReq, clientRes, entry) {
   if (localManagementRequest && !isPublicLocalManagementPath(effectiveUrlPathname)) {
     installLocalManagementRequestEndLogger(clientRes, method, urlPath, startTime);
 
-    const clientToken = clientReq.headers['x-mgmt-token'] || new URL(clientReq.url, 'http://localhost').searchParams.get('token');
+    const clientToken =
+      clientReq.headers['x-mgmt-token'] ||
+      new URL(clientReq.url, 'http://localhost').searchParams.get('token');
     if (clientToken !== MANAGEMENT_TOKEN) {
       console.warn(`[mgmt] Unauthorized management request from ${clientIp}: ${method} ${urlPath}`);
       clientRes.writeHead(401, { 'Content-Type': 'application/json' });
@@ -1598,19 +1760,24 @@ function handleRequestInner(clientReq, clientRes, entry) {
       return;
     }
   }
-  if (dispatchLocalManagementRoute({
-    method,
-    pathname: effectiveUrlPathname,
-    req: clientReq,
-    res: clientRes,
-    handlers: managementHandlers,
-  })) {
+  if (
+    dispatchLocalManagementRoute({
+      method,
+      pathname: effectiveUrlPathname,
+      req: clientReq,
+      res: clientRes,
+      handlers: managementHandlers,
+    })
+  ) {
     return;
   }
 
   // Forward request - pass path as-is (SDK already includes /v1 from base_url)
   // Normalize path: tools may or may not include /v1 prefix
-  if ((method === 'GET' || method === 'HEAD') && (effectiveUrlPathname === '/favicon.ico' || effectiveUrlPathname === '/v1/favicon.ico')) {
+  if (
+    (method === 'GET' || method === 'HEAD') &&
+    (effectiveUrlPathname === '/favicon.ico' || effectiveUrlPathname === '/v1/favicon.ico')
+  ) {
     clientRes.writeHead(204, {
       'Cache-Control': 'public, max-age=86400',
       'access-control-allow-origin': '*',
@@ -1627,17 +1794,27 @@ function handleRequestInner(clientReq, clientRes, entry) {
 
   const modelRequest = parseModelsRequestPath(effectiveUrlPath);
   if ((method === 'GET' || method === 'HEAD') && modelRequest) {
-    handleLocalModelsRequest(clientReq, clientRes, modelRequest, routesForEntry(entry, desktopRequest), desktopRequest ? 'claude' : modelsFormatForEntry(entry));
+    handleLocalModelsRequest(
+      clientReq,
+      clientRes,
+      modelRequest,
+      routesForEntry(entry, desktopRequest),
+      desktopRequest ? 'claude' : modelsFormatForEntry(entry)
+    );
     return;
   }
-  const clientPath = effectiveUrlPath.indexOf('/v1') === 0 ? effectiveUrlPath : '/v1' + effectiveUrlPath;
+  const clientPath =
+    effectiveUrlPath.indexOf('/v1') === 0 ? effectiveUrlPath : '/v1' + effectiveUrlPath;
   if (isEntryHealthPath(entry, method, clientPath)) {
     sendEntryHealth(clientRes, entry, method, clientPath);
     return;
   }
   if (!isAllowedEntryPath(entry, method, clientPath)) {
     sendEntryPathError(clientRes, entry, method, clientPath);
-    logRequestEnd(method, urlPath, startTime, 404, { type: 'entry_path_mismatch', entryProtocol: entryLabel(entry) });
+    logRequestEnd(method, urlPath, startTime, 404, {
+      type: 'entry_path_mismatch',
+      entryProtocol: entryLabel(entry),
+    });
     return;
   }
   const fwdHeaders = { ...clientReq.headers };
@@ -1646,21 +1823,30 @@ function handleRequestInner(clientReq, clientRes, entry) {
   const requestChunks = [];
   let requestBytes = 0;
   let requestTooLarge = false;
-  clientReq.on('data', function(chunk) {
+  clientReq.on('data', function (chunk) {
     if (requestTooLarge) return;
     requestChunks.push(chunk);
     requestBytes += chunk.length;
     if (requestBytes > MAX_REQUEST_BODY_BYTES) {
       requestTooLarge = true;
       requestChunks.length = 0;
-      logProxyEvent('request_too_large', { method, path: urlPath, bytes: requestBytes, limit: MAX_REQUEST_BODY_BYTES });
+      logProxyEvent('request_too_large', {
+        method,
+        path: urlPath,
+        bytes: requestBytes,
+        limit: MAX_REQUEST_BODY_BYTES,
+      });
     }
   });
 
-  clientReq.on('end', function() {
+  clientReq.on('end', function () {
     if (requestTooLarge) {
       sendRequestTooLarge(clientReq, clientRes, MAX_REQUEST_BODY_BYTES);
-      logRequestEnd(method, urlPath, startTime, 413, { type: 'request_too_large', bytes: requestBytes, limit: MAX_REQUEST_BODY_BYTES });
+      logRequestEnd(method, urlPath, startTime, 413, {
+        type: 'request_too_large',
+        bytes: requestBytes,
+        limit: MAX_REQUEST_BODY_BYTES,
+      });
       return;
     }
     const requestBuffer = Buffer.concat(requestChunks, requestBytes);
@@ -1674,7 +1860,11 @@ function handleRequestInner(clientReq, clientRes, entry) {
       };
     }
     const shouldUseDesktopRoutes = desktopRequest || isClaudeDesktop3pRequest(clientReq.headers);
-    const initialPrepared = prepareRequestBufferWithResolver(requestBuffer, clientReq.headers['content-encoding'], shouldUseDesktopRoutes ? resolveClaudeDesktopRoute : resolveRoute);
+    const initialPrepared = prepareRequestBufferWithResolver(
+      requestBuffer,
+      clientReq.headers['content-encoding'],
+      shouldUseDesktopRoutes ? resolveClaudeDesktopRoute : resolveRoute
+    );
     if (method === 'POST' && clientPath.indexOf('/v1/messages/count_tokens') === 0) {
       populateAuditDataFromPrepared(clientRes, initialPrepared, requestBuffer);
       handleCountTokens(clientReq, clientRes, requestBuffer, logRequestEnd, startTime);
@@ -1683,7 +1873,11 @@ function handleRequestInner(clientReq, clientRes, entry) {
 
     function doForward(currentPrepared, attempt = 1) {
       const MAX_RETRIES = 2; // Up to 3 total attempts
-      const requestProtocol = isGeminiProfile(currentPrepared.profile) ? 'gemini' : (isClaudeProfile(currentPrepared.profile) ? 'claude' : 'openai');
+      const requestProtocol = isGeminiProfile(currentPrepared.profile)
+        ? 'gemini'
+        : isClaudeProfile(currentPrepared.profile)
+          ? 'claude'
+          : 'openai';
       // 协议版本透传:Claude 走 anthropic-version header
       const protocolVersion = resolveProfileProtocolVersion(currentPrepared.profile);
       if (protocolVersion) {
@@ -1695,24 +1889,49 @@ function handleRequestInner(clientReq, clientRes, entry) {
         populateAuditDataFromPrepared(clientRes, currentPrepared, requestBuffer);
       }
 
-      if (currentPrepared.authMode === 'official-login' && currentPrepared.authProvider === 'trae') {
+      if (
+        currentPrepared.authMode === 'official-login' &&
+        currentPrepared.authProvider === 'trae'
+      ) {
         if (method === 'POST' && isOpenAIChatCompletionsPath(clientPath)) {
-          handleTraeOfficialChatCompletion(clientReq, clientRes, requestBuffer, currentPrepared, startTime, urlPath);
+          handleTraeOfficialChatCompletion(
+            clientReq,
+            clientRes,
+            requestBuffer,
+            currentPrepared,
+            startTime,
+            urlPath
+          );
           return;
         }
         if (method === 'POST' && isOpenAIResponsesPath(clientPath)) {
-          handleTraeOfficialResponses(clientReq, clientRes, requestBuffer, currentPrepared, startTime, urlPath);
+          handleTraeOfficialResponses(
+            clientReq,
+            clientRes,
+            requestBuffer,
+            currentPrepared,
+            startTime,
+            urlPath
+          );
           return;
         }
         if (method === 'POST' && isClaudeMessagesPath(clientPath)) {
-          handleTraeOfficialClaudeMessages(clientReq, clientRes, requestBuffer, currentPrepared, startTime, urlPath);
+          handleTraeOfficialClaudeMessages(
+            clientReq,
+            clientRes,
+            requestBuffer,
+            currentPrepared,
+            startTime,
+            urlPath
+          );
           return;
         }
         sendJsonError(clientRes, 501, {
           error: {
             type: 'not_implemented',
-            message: 'Trae 官方登录桥接目前支持 OpenAI /v1/chat/completions、OpenAI /v1/responses 和 Claude /v1/messages。'
-          }
+            message:
+              'Trae 官方登录桥接目前支持 OpenAI /v1/chat/completions、OpenAI /v1/responses 和 Claude /v1/messages。',
+          },
         });
         logRequestEnd(method, urlPath, startTime, 501, { type: 'trae_official_unsupported_path' });
         return;
@@ -1720,120 +1939,299 @@ function handleRequestInner(clientReq, clientRes, entry) {
 
       const target = parseTargetUrl(currentPrepared.profile.targetUrl);
       const upstreamPath = target.path + clientPath.replace(/^\/v1/, '');
-      const apiKey = currentPrepared.authMode === 'official-login'
-        ? (currentPrepared.profile.apiKey || null)
-        : (process.env.API_KEY || currentPrepared.profile.apiKey || null);
+      const apiKey =
+        currentPrepared.authMode === 'official-login'
+          ? currentPrepared.profile.apiKey || null
+          : process.env.API_KEY || currentPrepared.profile.apiKey || null;
       const isClaudeEntryRequest = forceClaudeEntry(entry) && isClaudeMessagesPath(clientPath);
       const isChatEntryRequest = forceChatEntry(entry) && isOpenAIChatCompletionsPath(clientPath);
-      const isResponsesEntryRequest = forceResponsesEntry(entry) && isOpenAIResponsesPath(clientPath);
+      const isResponsesEntryRequest =
+        forceResponsesEntry(entry) && isOpenAIResponsesPath(clientPath);
 
       if (
-        currentPrepared.authMode === 'official-login'
-        && currentPrepared.authProvider === 'google'
-        && isGeminiProfile(currentPrepared.profile)
-        && !(typeof apiKey === 'string' && apiKey.startsWith('ya29.'))
+        currentPrepared.authMode === 'official-login' &&
+        currentPrepared.authProvider === 'google' &&
+        isGeminiProfile(currentPrepared.profile) &&
+        !(typeof apiKey === 'string' && apiKey.startsWith('ya29.'))
       ) {
         sendJsonError(clientRes, 401, {
           error: {
             type: 'authentication_error',
-            message: 'Google official-login credentials are unavailable or expired. Please sign in again before using this route.'
-          }
+            message:
+              'Google official-login credentials are unavailable or expired. Please sign in again before using this route.',
+          },
         });
         logRequestEnd(method, urlPath, startTime, 401, { type: 'google_official_auth_missing' });
         return;
       }
 
-      const isResponsesUpstream = currentPrepared.profile && (
-        currentPrepared.profile.api === 'openai-codex-responses' ||
-        (currentPrepared.profile.targetUrl && (
-          currentPrepared.profile.targetUrl.includes('/backend-api/codex') ||
-          currentPrepared.profile.targetUrl.includes('/backend-api')
-        ))
-      );
+      const isResponsesUpstream =
+        currentPrepared.profile &&
+        (currentPrepared.profile.api === 'openai-codex-responses' ||
+          (currentPrepared.profile.targetUrl &&
+            (currentPrepared.profile.targetUrl.includes('/backend-api/codex') ||
+              currentPrepared.profile.targetUrl.includes('/backend-api'))));
 
       if (isResponsesUpstream && isOpenAIChatCompletionsPath(clientPath) && method === 'POST') {
         if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Chat to Responses conversion does not support compressed request bodies' } }));
+          clientRes.writeHead(400, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'access-control-allow-origin': '*',
+          });
+          clientRes.end(
+            JSON.stringify({
+              error: {
+                type: 'invalid_request_error',
+                message: 'Chat to Responses conversion does not support compressed request bodies',
+              },
+            })
+          );
           return;
         }
         logModelMapping('chat->responses', method, upstreamPath, currentPrepared, requestBuffer);
-        handleOpenAIChatToOpenAIResponses(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
+        handleOpenAIChatToOpenAIResponses(
+          clientReq,
+          clientRes,
+          currentPrepared,
+          target,
+          apiKey,
+          upstreamPath,
+          startTime
+        );
         return;
       }
 
       if (isResponsesUpstream && isClaudeEntryRequest && method === 'POST') {
         if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Claude to Responses conversion does not support compressed request bodies' } }));
+          clientRes.writeHead(400, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'access-control-allow-origin': '*',
+          });
+          clientRes.end(
+            JSON.stringify({
+              error: {
+                type: 'invalid_request_error',
+                message:
+                  'Claude to Responses conversion does not support compressed request bodies',
+              },
+            })
+          );
           return;
         }
         logModelMapping('claude->responses', method, upstreamPath, currentPrepared, requestBuffer);
-        handleClaudeMessagesToOpenAIResponses(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
+        handleClaudeMessagesToOpenAIResponses(
+          clientReq,
+          clientRes,
+          currentPrepared,
+          target,
+          apiKey,
+          upstreamPath,
+          startTime
+        );
         return;
       }
 
-      if ((shouldConvertClaudeMessagesToOpenAI(clientReq, currentPrepared.profile, clientPath) || (isClaudeEntryRequest && isOpenAIProfile(currentPrepared.profile))) && method === 'POST') {
+      if (
+        (shouldConvertClaudeMessagesToOpenAI(clientReq, currentPrepared.profile, clientPath) ||
+          (isClaudeEntryRequest && isOpenAIProfile(currentPrepared.profile))) &&
+        method === 'POST'
+      ) {
         if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Claude to OpenAI conversion does not support compressed request bodies' } }));
+          clientRes.writeHead(400, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'access-control-allow-origin': '*',
+          });
+          clientRes.end(
+            JSON.stringify({
+              error: {
+                type: 'invalid_request_error',
+                message: 'Claude to OpenAI conversion does not support compressed request bodies',
+              },
+            })
+          );
           return;
         }
         logModelMapping('claude->openai', method, upstreamPath, currentPrepared, requestBuffer);
-        handleClaudeMessagesToOpenAIChat(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
+        handleClaudeMessagesToOpenAIChat(
+          clientReq,
+          clientRes,
+          currentPrepared,
+          target,
+          apiKey,
+          upstreamPath,
+          startTime
+        );
         return;
       }
-      if (method === 'POST' && isClaudeMessagesPath(clientPath)) sampleRequestToolResults(currentPrepared, requestProtocol, upstreamPath);
+      if (method === 'POST' && isClaudeMessagesPath(clientPath))
+        sampleRequestToolResults(currentPrepared, requestProtocol, upstreamPath);
       if (isChatEntryRequest && isGeminiProfile(currentPrepared.profile) && method === 'POST') {
         if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'OpenAI to Gemini conversion does not support compressed request bodies' } }));
+          clientRes.writeHead(400, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'access-control-allow-origin': '*',
+          });
+          clientRes.end(
+            JSON.stringify({
+              error: {
+                type: 'invalid_request_error',
+                message: 'OpenAI to Gemini conversion does not support compressed request bodies',
+              },
+            })
+          );
           return;
         }
         logModelMapping('openai->gemini', method, upstreamPath, currentPrepared, requestBuffer);
-        handleOpenAIChatToGeminiMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
+        handleOpenAIChatToGeminiMessages(
+          clientReq,
+          clientRes,
+          currentPrepared,
+          target,
+          apiKey,
+          upstreamPath,
+          startTime
+        );
         return;
       }
-      if (isClaudeProfile(currentPrepared.profile) && method === 'POST' && isOpenAIChatCompletionsPath(clientPath)) {
+      if (
+        isClaudeProfile(currentPrepared.profile) &&
+        method === 'POST' &&
+        isOpenAIChatCompletionsPath(clientPath)
+      ) {
         if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'OpenAI to Claude conversion does not support compressed request bodies' } }));
+          clientRes.writeHead(400, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'access-control-allow-origin': '*',
+          });
+          clientRes.end(
+            JSON.stringify({
+              error: {
+                type: 'invalid_request_error',
+                message: 'OpenAI to Claude conversion does not support compressed request bodies',
+              },
+            })
+          );
           return;
         }
         logModelMapping('openai->claude', method, upstreamPath, currentPrepared, requestBuffer);
-        handleOpenAIChatToClaudeMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
+        handleOpenAIChatToClaudeMessages(
+          clientReq,
+          clientRes,
+          currentPrepared,
+          target,
+          apiKey,
+          upstreamPath,
+          startTime
+        );
         return;
       }
-      if (isResponsesEntryRequest && method === 'POST' && !isOpenAIProfile(currentPrepared.profile)) {
+      if (
+        isResponsesEntryRequest &&
+        method === 'POST' &&
+        !isOpenAIProfile(currentPrepared.profile)
+      ) {
         if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'OpenAI Responses conversion does not support compressed request bodies' } }));
+          clientRes.writeHead(400, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'access-control-allow-origin': '*',
+          });
+          clientRes.end(
+            JSON.stringify({
+              error: {
+                type: 'invalid_request_error',
+                message: 'OpenAI Responses conversion does not support compressed request bodies',
+              },
+            })
+          );
           return;
         }
         if (isClaudeProfile(currentPrepared.profile)) {
-          logModelMapping('responses->claude', method, upstreamPath, currentPrepared, requestBuffer);
-          handleOpenAIResponsesToClaudeMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
+          logModelMapping(
+            'responses->claude',
+            method,
+            upstreamPath,
+            currentPrepared,
+            requestBuffer
+          );
+          handleOpenAIResponsesToClaudeMessages(
+            clientReq,
+            clientRes,
+            currentPrepared,
+            target,
+            apiKey,
+            upstreamPath,
+            startTime
+          );
           return;
         }
         if (isGeminiProfile(currentPrepared.profile)) {
-          logModelMapping('responses->gemini', method, upstreamPath, currentPrepared, requestBuffer);
-          handleOpenAIResponsesToGeminiMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
+          logModelMapping(
+            'responses->gemini',
+            method,
+            upstreamPath,
+            currentPrepared,
+            requestBuffer
+          );
+          handleOpenAIResponsesToGeminiMessages(
+            clientReq,
+            clientRes,
+            currentPrepared,
+            target,
+            apiKey,
+            upstreamPath,
+            startTime
+          );
           return;
         }
       }
-      if (isResponsesEntryRequest && method === 'POST' && isOpenAIProfile(currentPrepared.profile) && shouldConvertResponsesToOpenAIChat(currentPrepared.profile)) {
+      if (
+        isResponsesEntryRequest &&
+        method === 'POST' &&
+        isOpenAIProfile(currentPrepared.profile) &&
+        shouldConvertResponsesToOpenAIChat(currentPrepared.profile)
+      ) {
         logModelMapping('responses->chat', method, upstreamPath, currentPrepared, requestBuffer);
-        handleOpenAIResponsesToOpenAIChat(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
+        handleOpenAIResponsesToOpenAIChat(
+          clientReq,
+          clientRes,
+          currentPrepared,
+          target,
+          apiKey,
+          upstreamPath,
+          startTime
+        );
         return;
       }
-      if (isGeminiProfile(currentPrepared.profile) && method === 'POST' && isClaudeMessagesPath(clientPath)) {
+      if (
+        isGeminiProfile(currentPrepared.profile) &&
+        method === 'POST' &&
+        isClaudeMessagesPath(clientPath)
+      ) {
         if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' });
-          clientRes.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Gemini conversion does not support compressed request bodies' } }));
+          clientRes.writeHead(400, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'access-control-allow-origin': '*',
+          });
+          clientRes.end(
+            JSON.stringify({
+              error: {
+                type: 'invalid_request_error',
+                message: 'Gemini conversion does not support compressed request bodies',
+              },
+            })
+          );
           return;
         }
         logModelMapping('claude->gemini', method, upstreamPath, currentPrepared, requestBuffer);
-        handleGeminiMessages(clientReq, clientRes, currentPrepared, target, apiKey, upstreamPath, startTime);
+        handleGeminiMessages(
+          clientReq,
+          clientRes,
+          currentPrepared,
+          target,
+          apiKey,
+          upstreamPath,
+          startTime
+        );
         return;
       }
       const outgoingHeaders = { ...fwdHeaders };
@@ -1874,129 +2272,235 @@ function handleRequestInner(clientReq, clientRes, entry) {
           targetHost: target.hostname,
           targetProtocol: target.protocol,
           headers: redactHeaders(outgoingHeaders),
-          body: captureRequestBody(currentPrepared.buffer, outgoingHeaders['content-encoding']).body,
+          body: captureRequestBody(currentPrepared.buffer, outgoingHeaders['content-encoding'])
+            .body,
         };
       }
 
       const transport = target.protocol === 'https:' ? https : http;
-      const proxyReq = transport.request({
-        hostname: process.env.TARGET || target.hostname,
-        port: parseInt(process.env.TARGET_PORT || target.port, 10),
-        path: upstreamPath,
-        method: method,
-        headers: outgoingHeaders,
-        timeout: 45000,
-        agent: target.protocol === 'https:' ? globalHttpsAgent : globalHttpAgent,
-      }, (proxyRes) => {
-        const code = proxyRes.statusCode;
+      const proxyReq = transport.request(
+        {
+          hostname: process.env.TARGET || target.hostname,
+          port: parseInt(process.env.TARGET_PORT || target.port, 10),
+          path: upstreamPath,
+          method: method,
+          headers: outgoingHeaders,
+          timeout: 45000,
+          agent: target.protocol === 'https:' ? globalHttpsAgent : globalHttpAgent,
+        },
+        (proxyRes) => {
+          const code = proxyRes.statusCode;
 
-        if ((code === 429 || code >= 500) && attempt <= MAX_RETRIES) {
-          const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-          console.warn(`[Retry] Upstream returned ${code}, retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
-          proxyRes.destroy();
-          setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
-          return;
-        }
-
-        if (attempt === 1 && (code >= 500 || code === 429) && currentPrepared.profile.backupProfileId) {
-          const backupProfile = (getProfiles(loadConfig()) || []).find(p => p.id === currentPrepared.profile.backupProfileId);
-          if (backupProfile) {
-            console.warn(`[Failover] Upstream returned status ${code}, falling back to backup profile: ${backupProfile.id}`);
-            const backupPrepared = { ...currentPrepared, profile: backupProfile };
+          if ((code === 429 || code >= 500) && attempt <= MAX_RETRIES) {
+            const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+            console.warn(
+              `[Retry] Upstream returned ${code}, retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
+            );
             proxyRes.destroy();
-            doForward(backupPrepared, 2);
+            setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
             return;
           }
-        }
 
-        const headers = {
-          ...proxyRes.headers,
-          'access-control-allow-origin': '*',
-          'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'access-control-allow-headers': '*',
-        };
-
-        const isStream = (proxyRes.headers['content-type'] || '').indexOf('text/event-stream') >= 0;
-        const shouldSanitizeOpenAIStream = code >= 200 && code < 300 && isStream && isClaudeMessagesPath(clientPath) && isOpenAIProfile(currentPrepared.profile);
-        const shouldProtectStream = code >= 200 && code < 300 && isStream && isClaudeMessagesPath(clientPath) && !isOpenAIProfile(currentPrepared.profile);
-        if (shouldProtectStream || shouldSanitizeOpenAIStream) delete headers['content-length'];
-        clientRes.writeHead(code, headers);
-        const errorChunks = [];
-        let errorBytes = 0;
-        let logged = false;
-
-        if (shouldSanitizeOpenAIStream) {
-          clientRes.__diagnostics = { protocol: 'openai', route: currentPrepared.model, target: currentPrepared.rewriteTo, upstreamPath, profile: currentPrepared.profile && currentPrepared.profile.id };
-          const sseState = { buffer: '', pendingClaudeTool: null, mode: 'strip-empty-optionals' };
-          proxyRes.on('data', function(chunk) {
-            const chunkText = chunk.toString('utf8');
-            if (!logged) logged = true;
-            sampleResponseChunk('openai-upstream', chunkText, { route: currentPrepared.model, target: currentPrepared.rewriteTo, upstreamPath });
-            processClaudeSseChunk(clientRes, chunkText, sseState);
-          });
-          proxyRes.on('end', function() {
-            flushClaudeSseFilter(clientRes, sseState);
-            log.info('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (streaming sanitized, ' + (Date.now()-startTime) + 'ms)');
-            clientRes.end();
-            logRequestEnd(method, urlPath, startTime, code, { type: 'openai_stream_sanitized' });
-          });
-          return;
-        }
-
-        if (shouldProtectStream) {
-          clientRes.__diagnostics = { protocol: 'openai', route: currentPrepared.model, target: currentPrepared.rewriteTo, upstreamPath, profile: currentPrepared.profile && currentPrepared.profile.id };
-          const sseState = { buffer: '', pendingClaudeTool: null };
-          proxyRes.on('data', function(chunk) {
-            const chunkText = chunk.toString('utf8');
-            if (!logged) logged = true;
-            sampleResponseChunk('openai-upstream', chunkText, { route: currentPrepared.model, target: currentPrepared.rewriteTo, upstreamPath });
-            processClaudeSseChunk(clientRes, chunkText, sseState);
-          });
-          proxyRes.on('end', function() {
-            flushClaudeSseFilter(clientRes, sseState);
-            log.info('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (protected streaming, ' + (Date.now()-startTime) + 'ms)');
-            clientRes.end();
-            logRequestEnd(method, urlPath, startTime, code, { type: 'openai_stream_protected' });
-          });
-          return;
-        }
-
-        proxyRes.on('data', function(chunk) {
-          if (!logged) {
-            const elapsed = Date.now() - startTime;
-            if (!isStream) log.info('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (' + elapsed + 'ms)');
-            logged = true;
+          if (
+            attempt === 1 &&
+            (code >= 500 || code === 429) &&
+            currentPrepared.profile.backupProfileId
+          ) {
+            const backupProfile = (getProfiles(loadConfig()) || []).find(
+              (p) => p.id === currentPrepared.profile.backupProfileId
+            );
+            if (backupProfile) {
+              console.warn(
+                `[Failover] Upstream returned status ${code}, falling back to backup profile: ${backupProfile.id}`
+              );
+              const backupPrepared = { ...currentPrepared, profile: backupProfile };
+              proxyRes.destroy();
+              doForward(backupPrepared, 2);
+              return;
+            }
           }
 
-          if (code >= 400 && !isStream && errorBytes < 4096) {
-            const remaining = 4096 - errorBytes;
-            const part = chunk.length > remaining ? chunk.subarray(0, remaining) : chunk;
-            errorChunks.push(part);
-            errorBytes += part.length;
+          const headers = {
+            ...proxyRes.headers,
+            'access-control-allow-origin': '*',
+            'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'access-control-allow-headers': '*',
+          };
+
+          const isStream =
+            (proxyRes.headers['content-type'] || '').indexOf('text/event-stream') >= 0;
+          const shouldSanitizeOpenAIStream =
+            code >= 200 &&
+            code < 300 &&
+            isStream &&
+            isClaudeMessagesPath(clientPath) &&
+            isOpenAIProfile(currentPrepared.profile);
+          const shouldProtectStream =
+            code >= 200 &&
+            code < 300 &&
+            isStream &&
+            isClaudeMessagesPath(clientPath) &&
+            !isOpenAIProfile(currentPrepared.profile);
+          if (shouldProtectStream || shouldSanitizeOpenAIStream) delete headers['content-length'];
+          clientRes.writeHead(code, headers);
+          const errorChunks = [];
+          let errorBytes = 0;
+          let logged = false;
+
+          if (shouldSanitizeOpenAIStream) {
+            clientRes.__diagnostics = {
+              protocol: 'openai',
+              route: currentPrepared.model,
+              target: currentPrepared.rewriteTo,
+              upstreamPath,
+              profile: currentPrepared.profile && currentPrepared.profile.id,
+            };
+            const sseState = { buffer: '', pendingClaudeTool: null, mode: 'strip-empty-optionals' };
+            proxyRes.on('data', function (chunk) {
+              const chunkText = chunk.toString('utf8');
+              if (!logged) logged = true;
+              sampleResponseChunk('openai-upstream', chunkText, {
+                route: currentPrepared.model,
+                target: currentPrepared.rewriteTo,
+                upstreamPath,
+              });
+              processClaudeSseChunk(clientRes, chunkText, sseState);
+            });
+            proxyRes.on('end', function () {
+              flushClaudeSseFilter(clientRes, sseState);
+              log.info(
+                'ok ' +
+                  method +
+                  ' ' +
+                  urlPath +
+                  '  -> ' +
+                  code +
+                  ' (streaming sanitized, ' +
+                  (Date.now() - startTime) +
+                  'ms)'
+              );
+              clientRes.end();
+              logRequestEnd(method, urlPath, startTime, code, { type: 'openai_stream_sanitized' });
+            });
+            return;
           }
-        });
 
-        proxyRes.on('end', function() {
-          if (isStream) log.info('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (streaming, ' + (Date.now()-startTime) + 'ms)');
-          logRequestEnd(method, urlPath, startTime, code, { type: isStream ? 'openai_stream' : 'openai' });
-
-          if (code >= 400 && errorChunks.length > 0) {
-            const requestId = proxyRes.headers['x-request-id'] || proxyRes.headers['request-id'] || proxyRes.headers['anthropic-request-id'] || '-';
-            const retryAfter = proxyRes.headers['retry-after'] || '-';
-            const body = Buffer.concat(errorChunks).toString('utf8').replace(/\s+/g, ' ').trim();
-            const requestedModel = currentPrepared.model || '';
-            log.warn('!! upstream error ' + method + ' ' + upstreamPath + ' -> ' + code + ' model=' + requestedModel + ' request-id=' + requestId + ' retry-after=' + retryAfter + ' body=' + body);
-            logProxyEvent('upstream_error', { method, path: upstreamPath, code, model: requestedModel, body });
+          if (shouldProtectStream) {
+            clientRes.__diagnostics = {
+              protocol: 'openai',
+              route: currentPrepared.model,
+              target: currentPrepared.rewriteTo,
+              upstreamPath,
+              profile: currentPrepared.profile && currentPrepared.profile.id,
+            };
+            const sseState = { buffer: '', pendingClaudeTool: null };
+            proxyRes.on('data', function (chunk) {
+              const chunkText = chunk.toString('utf8');
+              if (!logged) logged = true;
+              sampleResponseChunk('openai-upstream', chunkText, {
+                route: currentPrepared.model,
+                target: currentPrepared.rewriteTo,
+                upstreamPath,
+              });
+              processClaudeSseChunk(clientRes, chunkText, sseState);
+            });
+            proxyRes.on('end', function () {
+              flushClaudeSseFilter(clientRes, sseState);
+              log.info(
+                'ok ' +
+                  method +
+                  ' ' +
+                  urlPath +
+                  '  -> ' +
+                  code +
+                  ' (protected streaming, ' +
+                  (Date.now() - startTime) +
+                  'ms)'
+              );
+              clientRes.end();
+              logRequestEnd(method, urlPath, startTime, code, { type: 'openai_stream_protected' });
+            });
+            return;
           }
-        });
 
-        proxyRes.pipe(clientRes);
-      });
+          proxyRes.on('data', function (chunk) {
+            if (!logged) {
+              const elapsed = Date.now() - startTime;
+              if (!isStream)
+                log.info('ok ' + method + ' ' + urlPath + '  -> ' + code + ' (' + elapsed + 'ms)');
+              logged = true;
+            }
 
-      proxyReq.on('timeout', function() {
+            if (code >= 400 && !isStream && errorBytes < 4096) {
+              const remaining = 4096 - errorBytes;
+              const part = chunk.length > remaining ? chunk.subarray(0, remaining) : chunk;
+              errorChunks.push(part);
+              errorBytes += part.length;
+            }
+          });
+
+          proxyRes.on('end', function () {
+            if (isStream)
+              log.info(
+                'ok ' +
+                  method +
+                  ' ' +
+                  urlPath +
+                  '  -> ' +
+                  code +
+                  ' (streaming, ' +
+                  (Date.now() - startTime) +
+                  'ms)'
+              );
+            logRequestEnd(method, urlPath, startTime, code, {
+              type: isStream ? 'openai_stream' : 'openai',
+            });
+
+            if (code >= 400 && errorChunks.length > 0) {
+              const requestId =
+                proxyRes.headers['x-request-id'] ||
+                proxyRes.headers['request-id'] ||
+                proxyRes.headers['anthropic-request-id'] ||
+                '-';
+              const retryAfter = proxyRes.headers['retry-after'] || '-';
+              const body = Buffer.concat(errorChunks).toString('utf8').replace(/\s+/g, ' ').trim();
+              const requestedModel = currentPrepared.model || '';
+              log.warn(
+                '!! upstream error ' +
+                  method +
+                  ' ' +
+                  upstreamPath +
+                  ' -> ' +
+                  code +
+                  ' model=' +
+                  requestedModel +
+                  ' request-id=' +
+                  requestId +
+                  ' retry-after=' +
+                  retryAfter +
+                  ' body=' +
+                  body
+              );
+              logProxyEvent('upstream_error', {
+                method,
+                path: upstreamPath,
+                code,
+                model: requestedModel,
+                body,
+              });
+            }
+          });
+
+          proxyRes.pipe(clientRes);
+        }
+      );
+
+      proxyReq.on('timeout', function () {
         if (attempt <= MAX_RETRIES) {
           const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-          console.warn(`[Retry] Upstream timeout, retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
+          console.warn(
+            `[Retry] Upstream timeout, retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
+          );
           proxyReq.destroy();
           setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
           return;
@@ -2004,18 +2508,24 @@ function handleRequestInner(clientReq, clientRes, entry) {
         proxyReq.destroy(new Error('Gateway Timeout (Upstream request timed out)'));
       });
 
-      proxyReq.on('error', function(err) {
+      proxyReq.on('error', function (err) {
         if (attempt <= MAX_RETRIES) {
           const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
-          console.warn(`[Retry] Upstream error (${err.message}), retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
+          console.warn(
+            `[Retry] Upstream error (${err.message}), retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
+          );
           proxyReq.destroy();
           setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
           return;
         }
         if (attempt === 1 && currentPrepared.profile.backupProfileId) {
-          const backupProfile = (getProfiles(loadConfig()) || []).find(p => p.id === currentPrepared.profile.backupProfileId);
+          const backupProfile = (getProfiles(loadConfig()) || []).find(
+            (p) => p.id === currentPrepared.profile.backupProfileId
+          );
           if (backupProfile) {
-            console.warn(`[Failover] Upstream request failed (${err.message}), falling back to backup profile: ${backupProfile.id}`);
+            console.warn(
+              `[Failover] Upstream request failed (${err.message}), falling back to backup profile: ${backupProfile.id}`
+            );
             const backupPrepared = { ...currentPrepared, profile: backupProfile };
             doForward(backupPrepared, 2);
             return;
@@ -2029,10 +2539,13 @@ function handleRequestInner(clientReq, clientRes, entry) {
             'Content-Type': 'application/json; charset=utf-8',
             'access-control-allow-origin': '*',
           });
-          clientRes.end(JSON.stringify({ error: { message: 'Proxy error: ' + err.message, type: 'proxy_error' } }));
+          clientRes.end(
+            JSON.stringify({
+              error: { message: 'Proxy error: ' + err.message, type: 'proxy_error' },
+            })
+          );
         }
       });
-
 
       proxyReq.end(currentPrepared.buffer);
     }
@@ -2045,7 +2558,10 @@ function handleRequestInner(clientReq, clientRes, entry) {
       initialPrepared.route = resolved.route;
       initialPrepared.model = targetModel;
       initialPrepared.routed = true;
-      initialPrepared.rewriteTo = resolved.route && resolved.route.to && resolved.route.to !== '*' ? resolved.route.to : targetModel;
+      initialPrepared.rewriteTo =
+        resolved.route && resolved.route.to && resolved.route.to !== '*'
+          ? resolved.route.to
+          : targetModel;
 
       if (!clientReq.headers['content-encoding'] && requestBuffer && requestBuffer.length > 0) {
         try {
@@ -2058,28 +2574,39 @@ function handleRequestInner(clientReq, clientRes, entry) {
       }
     }
 
-    resolveOfficialCredentials(initialPrepared, clientReq.headers).then(async function(prepared) {
-      if (isClaudeMessagesPath(clientPath) && prepared.buffer && !clientReq.headers['content-encoding']) {
-        try {
-          const parsed = JSON.parse(prepared.buffer.toString('utf8'));
-          const augmented = await mcpHub.augmentRequestTools(parsed);
-          prepared.buffer = Buffer.from(JSON.stringify(augmented));
-        } catch (e) {}
-      }
-      doForward(prepared, 1);
-    }).catch(function(err) {
-      log.error('[auth] Failed to resolve credentials:', err.message);
-      doForward(initialPrepared, 1);
-    });
+    resolveOfficialCredentials(initialPrepared, clientReq.headers)
+      .then(async function (prepared) {
+        if (
+          isClaudeMessagesPath(clientPath) &&
+          prepared.buffer &&
+          !clientReq.headers['content-encoding']
+        ) {
+          try {
+            const parsed = JSON.parse(prepared.buffer.toString('utf8'));
+            const augmented = await mcpHub.augmentRequestTools(parsed);
+            prepared.buffer = Buffer.from(JSON.stringify(augmented));
+          } catch (e) {}
+        }
+        doForward(prepared, 1);
+      })
+      .catch(function (err) {
+        log.error('[auth] Failed to resolve credentials:', err.message);
+        doForward(initialPrepared, 1);
+      });
   });
 
-  clientReq.on('aborted', function() { clientRes.destroy(); });
+  clientReq.on('aborted', function () {
+    clientRes.destroy();
+  });
 }
 
 /* ========== 启动 ========== */
 
 if (require.main === module) {
-  const MGMT_PORT = parseInt(process.env.MGMT_PORT || CONFIG.localServer?.managementPort || (PORT + 100), 10);
+  const MGMT_PORT = parseInt(
+    process.env.MGMT_PORT || CONFIG.localServer?.managementPort || PORT + 100,
+    10
+  );
 
   function checkExistingManagementServer(callback) {
     let settled = false;
@@ -2088,51 +2615,58 @@ if (require.main === module) {
       settled = true;
       callback(isProxy);
     }
-    const req = http.request({
-      host: '127.0.0.1',
-      port: MGMT_PORT,
-      path: '/v1/local/health',
-      method: 'GET',
-      timeout: 500,
-    }, function(res) {
-      let body = '';
-      res.setEncoding('utf8');
-      res.on('data', function(chunk) {
-        body += chunk;
-        if (body.length > 4096) req.destroy();
-      });
-      res.on('end', function() {
-        try {
-          const parsed = JSON.parse(body || '{}');
-          finish(res.statusCode >= 200 && res.statusCode < 300 && parsed.appId === APP_ID);
-        } catch (err) {
-          finish(false);
-        }
-      });
-    });
-    req.on('timeout', function() {
+    const req = http.request(
+      {
+        host: '127.0.0.1',
+        port: MGMT_PORT,
+        path: '/v1/local/health',
+        method: 'GET',
+        timeout: 500,
+      },
+      function (res) {
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', function (chunk) {
+          body += chunk;
+          if (body.length > 4096) req.destroy();
+        });
+        res.on('end', function () {
+          try {
+            const parsed = JSON.parse(body || '{}');
+            finish(res.statusCode >= 200 && res.statusCode < 300 && parsed.appId === APP_ID);
+          } catch (err) {
+            finish(false);
+          }
+        });
+      }
+    );
+    req.on('timeout', function () {
       req.destroy();
       finish(false);
     });
-    req.on('error', function() {
+    req.on('error', function () {
       finish(false);
     });
     req.end();
   }
 
   function startServers() {
-    var tlsConfig = ensureCert();
-    var servers = [];
+    const tlsConfig = ensureCert();
+    const servers = [];
 
     // Wire safety-module shutdown hook to our local shutdown
-    try { exceptionHandlers.setShutdownHook(function(reason) { shutdown(); }); } catch (e) {}
+    try {
+      exceptionHandlers.setShutdownHook(function (reason) {
+        shutdown();
+      });
+    } catch (e) {}
 
     function shutdown() {
       let remaining = servers.length;
       if (!remaining) process.exit(0);
       for (const server of servers) {
         try {
-          server.close(function() {
+          server.close(function () {
             remaining -= 1;
             if (remaining === 0) process.exit(0);
           });
@@ -2145,7 +2679,11 @@ if (require.main === module) {
 
     function handleListenError(serverName, err) {
       if (err && err.code === 'EADDRINUSE') {
-        log.error('[startup] ' + serverName + ' is already in use. Stop the owning process or change the configured port.');
+        log.error(
+          '[startup] ' +
+            serverName +
+            ' is already in use. Stop the owning process or change the configured port.'
+        );
         process.exit(1);
         return;
       }
@@ -2154,19 +2692,33 @@ if (require.main === module) {
     }
 
     function listenEntry(entry) {
-      var factory = entry.tls === false ? http : https;
-      var server = entry.tls === false ? factory.createServer(function(req, res) {
-        handleRequest(req, res, entry);
-      }) : factory.createServer(tlsConfig, function(req, res) {
-        handleRequest(req, res, entry);
-      });
+      const factory = entry.tls === false ? http : https;
+      const server =
+        entry.tls === false
+          ? factory.createServer(function (req, res) {
+              handleRequest(req, res, entry);
+            })
+          : factory.createServer(tlsConfig, function (req, res) {
+              handleRequest(req, res, entry);
+            });
       servers.push(server);
-      var listenHost = entry.host === 'localhost' ? '127.0.0.1' : entry.host;
-      server.on('error', function(err) {
+      const listenHost = entry.host === 'localhost' ? '127.0.0.1' : entry.host;
+      server.on('error', function (err) {
         handleListenError('port ' + listenHost + ':' + entry.listenPort, err);
       });
-      server.listen(entry.listenPort, listenHost, function() {
-        log.info('  Listen:  ' + (entry.tls === false ? 'http' : 'https') + '://' + entry.host + ':' + entry.listenPort + entry.basePath + '  [' + entry.protocol + ']');
+      server.listen(entry.listenPort, listenHost, function () {
+        log.info(
+          '  Listen:  ' +
+            (entry.tls === false ? 'http' : 'https') +
+            '://' +
+            entry.host +
+            ':' +
+            entry.listenPort +
+            entry.basePath +
+            '  [' +
+            entry.protocol +
+            ']'
+        );
       });
       return server;
     }
@@ -2183,7 +2735,7 @@ if (require.main === module) {
     // ── HTTP 管理端口 ──────────────────────────────────
     // 纯 HTTP 服务器，仅处理 /v1/local/* 管理 API，不转发代理请求。
     // 解决 Tauri 生产模式下 webview 无法访问自签名 HTTPS 的问题。
-    const mgmtServer = http.createServer(function(req, res) {
+    const mgmtServer = http.createServer(function (req, res) {
       const urlPath = req.url || '';
       if (!installManagementCorsGuard(req, res)) return;
       if (req.method === 'OPTIONS') {
@@ -2201,15 +2753,15 @@ if (require.main === module) {
       res.end(JSON.stringify({ error: 'Management port only accepts /v1/local/* requests' }));
     });
     servers.push(mgmtServer);
-    mgmtServer.on('error', function(err) {
+    mgmtServer.on('error', function (err) {
       handleListenError('management port 127.0.0.1:' + MGMT_PORT, err);
     });
-    mgmtServer.listen(MGMT_PORT, '127.0.0.1', function() {
+    mgmtServer.listen(MGMT_PORT, '127.0.0.1', function () {
       writeManagementTokenFile(MGMT_PORT);
       log.info('  Mgmt:    http://127.0.0.1:' + MGMT_PORT + '/v1/local/*  [management-http]');
     });
 
-    process.nextTick(function() {
+    process.nextTick(function () {
       log.info('');
       log.info('  Profile: ' + (ACTIVE_PROFILE.name || ACTIVE_PROFILE.id || 'default'));
       log.info('  Target:  ' + ACTIVE_PROFILE.targetUrl);
@@ -2217,7 +2769,17 @@ if (require.main === module) {
       log.info('');
       log.info('  SDK Config:');
       for (const entry of envEntry) {
-        log.info('    ' + entry.protocol + ': ' + (entry.tls === false ? 'http' : 'https') + '://' + entry.host + ':' + entry.listenPort + entry.basePath);
+        log.info(
+          '    ' +
+            entry.protocol +
+            ': ' +
+            (entry.tls === false ? 'http' : 'https') +
+            '://' +
+            entry.host +
+            ':' +
+            entry.listenPort +
+            entry.basePath
+        );
       }
       log.info('    management: http://127.0.0.1:' + MGMT_PORT + '/v1/local/*');
       log.info('    mgmt_token: ' + MANAGEMENT_TOKEN);
@@ -2227,16 +2789,20 @@ if (require.main === module) {
       log.info('');
     });
 
-    process.on('SIGINT', function() {
+    process.on('SIGINT', function () {
       log.info('\nStopping...');
       shutdown();
     });
     process.on('SIGTERM', shutdown);
   }
 
-  checkExistingManagementServer(function(isRunning) {
+  checkExistingManagementServer(function (isRunning) {
     if (isRunning) {
-      log.info('[single-instance] Existing proxy management endpoint detected on 127.0.0.1:' + MGMT_PORT + '; exiting duplicate process.');
+      log.info(
+        '[single-instance] Existing proxy management endpoint detected on 127.0.0.1:' +
+          MGMT_PORT +
+          '; exiting duplicate process.'
+      );
       process.exit(0);
       return;
     }
@@ -2255,13 +2821,13 @@ function sendRequestTooLarge(clientReq, clientRes, limit) {
   const body = JSON.stringify({
     error: {
       type: 'request_too_large',
-      message: 'Request body exceeds proxy limit of ' + limit + ' bytes'
-    }
+      message: 'Request body exceeds proxy limit of ' + limit + ' bytes',
+    },
   });
   clientRes.writeHead(413, {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(body),
-    'access-control-allow-origin': '*'
+    'access-control-allow-origin': '*',
   });
   clientRes.end(body);
 }
@@ -2280,7 +2846,11 @@ function populateAuditDataFromPrepared(clientRes, prepared, requestBuffer) {
   const auditData = clientRes && clientRes.__auditData;
   if (!auditData || !prepared) return;
   const profile = prepared.profile || {};
-  const requestProtocol = isGeminiProfile(profile) ? 'gemini' : (isClaudeProfile(profile) ? 'claude' : 'openai');
+  const requestProtocol = isGeminiProfile(profile)
+    ? 'gemini'
+    : isClaudeProfile(profile)
+      ? 'claude'
+      : 'openai';
   auditData.originalModel = prepared.model || '';
   auditData.rewriteModel = prepared.rewriteTo || '';
   auditData.profileId = profile.id || '';
@@ -2306,28 +2876,28 @@ function extractPromptFromBuffer(buffer, protocol) {
 
     if (protocol === 'gemini') {
       if (raw.systemInstruction && Array.isArray(raw.systemInstruction.parts)) {
-        system = raw.systemInstruction.parts.map(p => p.text || '').join('\n');
+        system = raw.systemInstruction.parts.map((p) => p.text || '').join('\n');
       }
       if (Array.isArray(raw.contents)) {
-        raw.contents.forEach(item => {
+        raw.contents.forEach((item) => {
           const role = item.role === 'model' ? 'assistant' : 'user';
           let content = '';
           const toolUses = [];
           const toolResults = [];
           if (Array.isArray(item.parts)) {
-            item.parts.forEach(p => {
+            item.parts.forEach((p) => {
               if (p.text) content += p.text;
               if (p.functionCall) {
                 toolUses.push({
                   id: p.functionCall.name,
                   name: p.functionCall.name,
-                  args: p.functionCall.args
+                  args: p.functionCall.args,
                 });
               }
               if (p.functionResponse) {
                 toolResults.push({
                   name: p.functionResponse.name,
-                  content: p.functionResponse.response
+                  content: p.functionResponse.response,
                 });
               }
             });
@@ -2339,13 +2909,13 @@ function extractPromptFromBuffer(buffer, protocol) {
       if (raw.system) {
         if (typeof raw.system === 'string') system = raw.system;
         else if (Array.isArray(raw.system)) {
-          system = raw.system.map(x => x.text || JSON.stringify(x)).join('\n');
+          system = raw.system.map((x) => x.text || JSON.stringify(x)).join('\n');
         }
       }
 
       const rawMessages = Array.isArray(raw.messages) ? raw.messages : [];
-      rawMessages.forEach(msg => {
-        let role = msg.role;
+      rawMessages.forEach((msg) => {
+        const role = msg.role;
         let content = '';
         const toolUses = [];
         const toolResults = [];
@@ -2358,7 +2928,7 @@ function extractPromptFromBuffer(buffer, protocol) {
         if (typeof msg.content === 'string') {
           content = msg.content;
         } else if (Array.isArray(msg.content)) {
-          msg.content.forEach(block => {
+          msg.content.forEach((block) => {
             if (block.type === 'text') {
               content += block.text || '';
             } else if (block.type === 'image_url') {
@@ -2371,20 +2941,20 @@ function extractPromptFromBuffer(buffer, protocol) {
             } else if (block.type === 'tool_result') {
               toolResults.push({
                 id: block.tool_use_id,
-                content: block.content
+                content: block.content,
               });
             }
           });
         }
 
         if (Array.isArray(msg.tool_calls)) {
-          msg.tool_calls.forEach(tc => {
+          msg.tool_calls.forEach((tc) => {
             const id = tc.id;
             const name = tc.function && tc.function.name;
             let args = tc.function && tc.function.arguments;
             try {
               if (typeof args === 'string') args = JSON.parse(args);
-            } catch(e){}
+            } catch (e) {}
             toolUses.push({ id, name, args });
           });
         }
@@ -2392,7 +2962,7 @@ function extractPromptFromBuffer(buffer, protocol) {
         if (role === 'tool') {
           toolResults.push({
             id: msg.tool_call_id,
-            content: msg.content
+            content: msg.content,
           });
         }
 
