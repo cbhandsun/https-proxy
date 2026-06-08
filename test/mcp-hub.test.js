@@ -28,14 +28,9 @@ async function run() {
 
   // ─── 2. retry-after-failure actually waits and retries ────────
   let attempts = 0;
-  const delays = [];
-  const start = Date.now();
   const { server, port } = await startStubServer((req, res) => {
     attempts += 1;
-    let body = '';
-    req.on('data', (c) => {
-      body += c;
-    });
+    req.on('data', () => {});
     req.on('end', () => {
       if (attempts < 3) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -93,7 +88,6 @@ async function run() {
 
     // Compare with the broken pattern to confirm it would have failed:
     let brokenResolved = false;
-    const t1 = Date.now();
     const brokenPromise = new Promise((brokenResolve) => setTimeout(brokenResolve, 50));
     setTimeout(() => {
       // If the broken pattern worked, brokenResolved would be true after 50ms.

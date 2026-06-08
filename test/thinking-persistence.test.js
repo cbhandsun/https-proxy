@@ -18,7 +18,11 @@ const parseClaudeSseEvent = (event) => {
   }
   if (trimmed.includes('content_block_start')) {
     const isThinking = trimmed.includes('"type":"thinking"');
-    return { eventName: 'content_block_start', dataText: '{}', data: { content_block: { type: isThinking ? 'thinking' : 'text' } } };
+    return {
+      eventName: 'content_block_start',
+      dataText: '{}',
+      data: { content_block: { type: isThinking ? 'thinking' : 'text' } },
+    };
   }
   if (trimmed.includes('content_block_delta')) {
     let thinking = '';
@@ -31,7 +35,11 @@ const parseClaudeSseEvent = (event) => {
         text = parsed.delta.text || '';
       }
     } catch (e) {}
-    return { eventName: 'content_block_delta', dataText: '{}', data: { delta: { thinking, text } } };
+    return {
+      eventName: 'content_block_delta',
+      dataText: '{}',
+      data: { delta: { thinking, text } },
+    };
   }
   if (trimmed.includes('content_block_stop')) {
     return { eventName: 'content_block_stop', dataText: '{}', data: {} };
@@ -49,7 +57,7 @@ function runThinkingTests() {
   {
     const filters = createClaudeFilters({
       protocolOptions: { thinkingPolicy: 'passthrough' },
-      makeSafeClaudeToolUseContentBlock: () => {}
+      makeSafeClaudeToolUseContentBlock: () => {},
     });
     const protocol = createOpenAIProtocol({
       cleanToolArgs,
@@ -62,15 +70,15 @@ function runThinkingTests() {
       geminiToolResponseText: (text) => text,
       parseClaudeSseEvent,
       deltaPartialJson,
-      protocolOptions: { thinkingPolicy: 'passthrough' }
+      protocolOptions: { thinkingPolicy: 'passthrough' },
     });
 
     // Test non-stream
     const payload = {
       content: [
         { type: 'thinking', thinking: 'I am reasoning...' },
-        { type: 'text', text: 'Hello!' }
-      ]
+        { type: 'text', text: 'Hello!' },
+      ],
     };
     const openAI = protocol.claudeResponseToOpenAIChat(payload, 'gpt-4');
     assert.strictEqual(openAI.choices[0].message.reasoning_content, 'I am reasoning...');
@@ -79,14 +87,37 @@ function runThinkingTests() {
     // Test stream
     const chunks = [];
     const clientRes = {
-      write: (data) => chunks.push(data)
+      write: (data) => chunks.push(data),
     };
-    const state = { buffer: '', inThinking: false, toolCallIndex: 0, hasToolCalls: false, stopReason: 'stop', done: false };
-    
-    protocol.processClaudeSseChunkToOpenAI(clientRes, 'event: content_block_start\ndata: {"content_block":{"type":"thinking"}}\n\n', state);
-    protocol.processClaudeSseChunkToOpenAI(clientRes, 'event: content_block_delta\ndata: {"delta":{"thinking":"Thinking step 1"}}\n\n', state);
-    protocol.processClaudeSseChunkToOpenAI(clientRes, 'event: content_block_stop\ndata: {}\n\n', state);
-    protocol.processClaudeSseChunkToOpenAI(clientRes, 'event: message_stop\ndata: [DONE]\n\n', state);
+    const state = {
+      buffer: '',
+      inThinking: false,
+      toolCallIndex: 0,
+      hasToolCalls: false,
+      stopReason: 'stop',
+      done: false,
+    };
+
+    protocol.processClaudeSseChunkToOpenAI(
+      clientRes,
+      'event: content_block_start\ndata: {"content_block":{"type":"thinking"}}\n\n',
+      state
+    );
+    protocol.processClaudeSseChunkToOpenAI(
+      clientRes,
+      'event: content_block_delta\ndata: {"delta":{"thinking":"Thinking step 1"}}\n\n',
+      state
+    );
+    protocol.processClaudeSseChunkToOpenAI(
+      clientRes,
+      'event: content_block_stop\ndata: {}\n\n',
+      state
+    );
+    protocol.processClaudeSseChunkToOpenAI(
+      clientRes,
+      'event: message_stop\ndata: [DONE]\n\n',
+      state
+    );
 
     const sseOutput = chunks.join('');
     assert.ok(sseOutput.includes('reasoning_content'));
@@ -99,7 +130,7 @@ function runThinkingTests() {
   {
     const filters = createClaudeFilters({
       protocolOptions: { thinkingPolicy: 'inject' },
-      makeSafeClaudeToolUseContentBlock: () => {}
+      makeSafeClaudeToolUseContentBlock: () => {},
     });
     const protocol = createOpenAIProtocol({
       cleanToolArgs,
@@ -112,31 +143,57 @@ function runThinkingTests() {
       geminiToolResponseText: (text) => text,
       parseClaudeSseEvent,
       deltaPartialJson,
-      protocolOptions: { thinkingPolicy: 'inject' }
+      protocolOptions: { thinkingPolicy: 'inject' },
     });
 
     // Test non-stream
     const payload = {
       content: [
         { type: 'thinking', thinking: 'I am reasoning...' },
-        { type: 'text', text: 'Hello!' }
-      ]
+        { type: 'text', text: 'Hello!' },
+      ],
     };
     const openAI = protocol.claudeResponseToOpenAIChat(payload, 'gpt-4');
     assert.strictEqual(openAI.choices[0].message.reasoning_content, undefined);
-    assert.strictEqual(openAI.choices[0].message.content, '<think>\nI am reasoning...\n</think>\nHello!');
+    assert.strictEqual(
+      openAI.choices[0].message.content,
+      '<think>\nI am reasoning...\n</think>\nHello!'
+    );
 
     // Test stream
     const chunks = [];
     const clientRes = {
-      write: (data) => chunks.push(data)
+      write: (data) => chunks.push(data),
     };
-    const state = { buffer: '', inThinking: false, toolCallIndex: 0, hasToolCalls: false, stopReason: 'stop', done: false };
-    
-    protocol.processClaudeSseChunkToOpenAI(clientRes, 'event: content_block_start\ndata: {"content_block":{"type":"thinking"}}\n\n', state);
-    protocol.processClaudeSseChunkToOpenAI(clientRes, 'event: content_block_delta\ndata: {"delta":{"thinking":"Thinking step 1"}}\n\n', state);
-    protocol.processClaudeSseChunkToOpenAI(clientRes, 'event: content_block_stop\ndata: {}\n\n', state);
-    protocol.processClaudeSseChunkToOpenAI(clientRes, 'event: message_stop\ndata: [DONE]\n\n', state);
+    const state = {
+      buffer: '',
+      inThinking: false,
+      toolCallIndex: 0,
+      hasToolCalls: false,
+      stopReason: 'stop',
+      done: false,
+    };
+
+    protocol.processClaudeSseChunkToOpenAI(
+      clientRes,
+      'event: content_block_start\ndata: {"content_block":{"type":"thinking"}}\n\n',
+      state
+    );
+    protocol.processClaudeSseChunkToOpenAI(
+      clientRes,
+      'event: content_block_delta\ndata: {"delta":{"thinking":"Thinking step 1"}}\n\n',
+      state
+    );
+    protocol.processClaudeSseChunkToOpenAI(
+      clientRes,
+      'event: content_block_stop\ndata: {}\n\n',
+      state
+    );
+    protocol.processClaudeSseChunkToOpenAI(
+      clientRes,
+      'event: message_stop\ndata: [DONE]\n\n',
+      state
+    );
 
     const sseOutput = chunks.join('');
     assert.ok(sseOutput.includes('<think>'));
@@ -150,7 +207,7 @@ function runThinkingTests() {
   {
     const filters = createClaudeFilters({
       protocolOptions: { thinkingPolicy: 'drop' },
-      makeSafeClaudeToolUseContentBlock: () => {}
+      makeSafeClaudeToolUseContentBlock: () => {},
     });
     const protocol = createOpenAIProtocol({
       cleanToolArgs,
@@ -163,15 +220,15 @@ function runThinkingTests() {
       geminiToolResponseText: (text) => text,
       parseClaudeSseEvent,
       deltaPartialJson,
-      protocolOptions: { thinkingPolicy: 'drop' }
+      protocolOptions: { thinkingPolicy: 'drop' },
     });
 
     // Test non-stream
     const payload = {
       content: [
         { type: 'thinking', thinking: 'I am reasoning...' },
-        { type: 'text', text: 'Hello!' }
-      ]
+        { type: 'text', text: 'Hello!' },
+      ],
     };
     const openAI = protocol.claudeResponseToOpenAIChat(payload, 'gpt-4');
     assert.strictEqual(openAI.choices[0].message.reasoning_content, undefined);
@@ -182,7 +239,7 @@ function runThinkingTests() {
 
 function runPersistenceTests() {
   console.log('Running Responses Persistence tests...');
-  
+
   const mockDeps = {
     claudeMessagesToOpenAIChat: () => {},
     openAIResponseToClaudeMessage: () => {},
@@ -213,7 +270,7 @@ function runPersistenceTests() {
     logRequestEnd: () => {},
     fallbackId: (prefix) => prefix + '_mock',
     stableCreated: () => 1234567,
-    extractSseDataPayloads: () => []
+    extractSseDataPayloads: () => [],
   };
 
   const cachePath = path.join(DATA_DIR, '.responses_history.cache.json');
@@ -222,13 +279,13 @@ function runPersistenceTests() {
   }
 
   // 1. Initial creation (empty cache)
-  let handlers = createProxyHandlers(mockDeps);
+  const handlers = createProxyHandlers(mockDeps);
   assert.strictEqual(handlers._responsesHistory.size, 0);
 
   // 2. Add history and verify it gets persisted
   const testId = 'resp_test_id';
   const testMessages = [{ role: 'user', content: 'hello cache' }];
-  
+
   handlers._rememberResponsesHistory(testId, testMessages);
   assert.strictEqual(handlers._responsesHistory.size, 1);
   assert.deepStrictEqual(handlers._responsesHistory.get(testId), testMessages);

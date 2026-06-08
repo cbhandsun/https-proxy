@@ -52,3 +52,4 @@ test/*.jsonl.*
 # Misc local artifacts
 /400
 /prev_electron_ui.html
+/eslint-stats.json

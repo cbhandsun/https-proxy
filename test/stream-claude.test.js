@@ -17,7 +17,7 @@ const noopSanitize = (call) => ({ name: call && call.name, args: call && call.ar
 const noopSample = () => {};
 const noopAudit = () => {};
 const noopRemember = () => {};
-const noopUsage = (u) => ({ input_tokens: 0, output_tokens: 0 });
+const noopUsage = (_u) => ({ input_tokens: 0, output_tokens: 0 });
 
 const stream = createClaudeStream({
   cleanToolArgs,
@@ -36,7 +36,11 @@ const stream = createClaudeStream({
       else if (line.startsWith('data: ')) dataText += line.substring(6);
     }
     let data = null;
-    if (dataText && dataText !== '[DONE]') { try { data = JSON.parse(dataText); } catch (e) {} }
+    if (dataText && dataText !== '[DONE]') {
+      try {
+        data = JSON.parse(dataText);
+      } catch (e) {}
+    }
     return { eventName, dataText, data };
   },
   resolveSseBlockIndex: () => 0,
@@ -50,10 +54,17 @@ const stream = createClaudeStream({
   protocolOptions: {},
 });
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 function t(name, fn) {
-  try { fn(); pass += 1; console.log('  ok -', name); }
-  catch (err) { fail += 1; console.error('  FAIL -', name, '\n   ', err.message); }
+  try {
+    fn();
+    pass += 1;
+    console.log('  ok -', name);
+  } catch (err) {
+    fail += 1;
+    console.error('  FAIL -', name, '\n   ', err.message);
+  }
 }
 
 function makeRes() {
@@ -66,7 +77,14 @@ function makeRes() {
 }
 
 function makeState() {
-  return { buffer: '', textIndex: -1, textOpen: false, thinkingOpen: false, toolCalls: [], finishReason: null };
+  return {
+    buffer: '',
+    textIndex: -1,
+    textOpen: false,
+    thinkingOpen: false,
+    toolCalls: [],
+    finishReason: null,
+  };
 }
 
 console.log('stream-claude golden fixture tests');
@@ -75,7 +93,11 @@ console.log('stream-claude golden fixture tests');
 t('role chunk is buffered and emits no Claude events', () => {
   const res = makeRes();
   const state = makeState();
-  stream.processOpenAISseChunkToClaude(res, 'data: {"choices":[{"delta":{"role":"assistant"}}]}\n\n', state);
+  stream.processOpenAISseChunkToClaude(
+    res,
+    'data: {"choices":[{"delta":{"role":"assistant"}}]}\n\n',
+    state
+  );
   assert.strictEqual(res.full(), '', 'role chunk alone should not emit any Claude event');
 });
 
@@ -98,7 +120,11 @@ t('role + text content chunk emits content_block_start + content_block_delta', (
 t('text delta emits content_block_start + content_block_delta', () => {
   const res = makeRes();
   const state = makeState();
-  stream.processOpenAISseChunkToClaude(res, 'data: {"choices":[{"delta":{"content":"hi"}}]}\n\n', state);
+  stream.processOpenAISseChunkToClaude(
+    res,
+    'data: {"choices":[{"delta":{"content":"hi"}}]}\n\n',
+    state
+  );
   const text = res.full();
   assert.ok(text.includes('content_block_start'));
   assert.ok(text.includes('"text"'));
@@ -111,7 +137,11 @@ t('text delta emits content_block_start + content_block_delta', () => {
 t('reasoning_content opens thinking block', () => {
   const res = makeRes();
   const state = makeState();
-  stream.processOpenAISseChunkToClaude(res, 'data: {"choices":[{"delta":{"reasoning_content":"deep thought"}}]}\n\n', state);
+  stream.processOpenAISseChunkToClaude(
+    res,
+    'data: {"choices":[{"delta":{"reasoning_content":"deep thought"}}]}\n\n',
+    state
+  );
   const text = res.full();
   assert.ok(text.includes('"thinking"'));
   assert.ok(text.includes('thinking_delta'));
@@ -163,7 +193,11 @@ t('[DONE] sets state.done', () => {
 t('finish_reason is stored in state', () => {
   const res = makeRes();
   const state = makeState();
-  stream.processOpenAISseChunkToClaude(res, 'data: {"choices":[{"finish_reason":"stop"}]}\n\n', state);
+  stream.processOpenAISseChunkToClaude(
+    res,
+    'data: {"choices":[{"finish_reason":"stop"}]}\n\n',
+    state
+  );
   assert.strictEqual(state.finishReason, 'stop');
 });
 
@@ -182,7 +216,11 @@ t('buffer is split correctly across chunk boundaries', () => {
   const state = makeState();
   // First chunk ends mid-event
   stream.processOpenAISseChunkToClaude(res, 'data: {"choices":[{"delta":{"role":"assis', state);
-  assert.strictEqual(state.buffer, 'data: {"choices":[{"delta":{"role":"assis', 'incomplete data should be buffered');
+  assert.strictEqual(
+    state.buffer,
+    'data: {"choices":[{"delta":{"role":"assis',
+    'incomplete data should be buffered'
+  );
   // Second chunk completes it
   stream.processOpenAISseChunkToClaude(res, 'tant"}}]}\n\n', state);
   // role chunk alone emits no events; verify the buffer was processed

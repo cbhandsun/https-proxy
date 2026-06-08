@@ -1502,7 +1502,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
       return originalWriteHead.apply(this, arguments);
     };
 
-    function captureAuditResponseChunk(chunk, encoding) {
+    const captureAuditResponseChunk = function (chunk, encoding) {
       if (chunk) {
         if (!isStream) {
           const chunkBuffer = bufferFromResponseChunk(chunk, encoding);
@@ -1589,7 +1589,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
           });
         }
       }
-    }
+    };
 
     clientRes.write = function (chunk, encoding, callback) {
       captureAuditResponseChunk(chunk, encoding);
@@ -2608,7 +2608,7 @@ if (require.main === module) {
     10
   );
 
-  function checkExistingManagementServer(callback) {
+  const checkExistingManagementServer = function (callback) {
     let settled = false;
     function finish(isProxy) {
       if (settled) return;
@@ -2648,9 +2648,9 @@ if (require.main === module) {
       finish(false);
     });
     req.end();
-  }
+  };
 
-  function startServers() {
+  const startServers = function () {
     const tlsConfig = ensureCert();
     const servers = [];
 
@@ -2794,7 +2794,7 @@ if (require.main === module) {
       shutdown();
     });
     process.on('SIGTERM', shutdown);
-  }
+  };
 
   checkExistingManagementServer(function (isRunning) {
     if (isRunning) {

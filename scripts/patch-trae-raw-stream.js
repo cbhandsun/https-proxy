@@ -1,11 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const TRAE_ROOT = process.env.TRAE_INSTALL_ROOT || path.join(
-  process.env.LOCALAPPDATA || '',
-  'Programs',
-  'Trae'
-);
+const TRAE_ROOT =
+  process.env.TRAE_INSTALL_ROOT || path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Trae');
 
 const CHAT_MODULE = path.join(
   TRAE_ROOT,
@@ -38,7 +35,10 @@ function readFile(file) {
 }
 
 function backupFile(file) {
-  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, '')
+    .slice(0, 14);
   const backup = `${file}.bak-https-proxy-raw-stream-${stamp}`;
   fs.copyFileSync(file, backup);
   return backup;
@@ -61,7 +61,8 @@ function patchFile(file, patcher) {
 function patchStreamHook(source, label) {
   if (source.includes(`${MARKER}RawEmitter`)) return source;
 
-  const needle = 'onMessage(e,t){let{sessionId:i,context:r}=t;if(this.streamStallMonitor.onEvent(i,e.event,e.payload)';
+  const needle =
+    'onMessage(e,t){let{sessionId:i,context:r}=t;if(this.streamStallMonitor.onEvent(i,e.event,e.payload)';
   if (!source.includes(needle)) {
     throw new Error(`Could not find SideChatStreamService onMessage hook in ${label}`);
   }
@@ -74,7 +75,7 @@ function patchStreamHook(source, label) {
     'n.events.length>500&&n.events.shift();',
     'for(const e of n.listeners)try{e(o)}catch{}',
     `}catch(${MARKER}RawEmitter){}`,
-    'let{sessionId:i,context:r}=t;if(this.streamStallMonitor.onEvent(i,e.event,e.payload)'
+    'let{sessionId:i,context:r}=t;if(this.streamStallMonitor.onEvent(i,e.event,e.payload)',
   ].join('');
 
   return source.replace(needle, emitHook);
@@ -87,7 +88,8 @@ function patchChatModule(source) {
 function patchTransportHook(source) {
   if (source.includes(`${MARKER}TransportEmitter`)) return source;
 
-  const needle = 'const d=f=>{if(!f)return;if(f.code!==0){const m=Yge.create(f.code,f.message,void 0,void 0,f.data);e.getController().error(m),c(m);return}n||(n=!0),f.data&&e.getController().write(f.data),f.data?.event===_vt.Done&&(e.getController().complete(f.data||void 0),l())}';
+  const needle =
+    'const d=f=>{if(!f)return;if(f.code!==0){const m=Yge.create(f.code,f.message,void 0,void 0,f.data);e.getController().error(m),c(m);return}n||(n=!0),f.data&&e.getController().write(f.data),f.data?.event===_vt.Done&&(e.getController().complete(f.data||void 0),l())}';
   if (!source.includes(needle)) {
     throw new Error('Could not find TransportManager stream callback in workbench');
   }
@@ -101,17 +103,18 @@ function patchTransportHook(source) {
     'o.events.length>500&&o.events.shift();',
     'for(const e of o.listeners)try{e(a)}catch{}',
     `}catch(${MARKER}TransportEmitter){}`,
-    'if(f.code!==0){const m=Yge.create(f.code,f.message,void 0,void 0,f.data);e.getController().error(m),c(m);return}n||(n=!0),f.data&&e.getController().write(f.data),f.data?.event===_vt.Done&&(e.getController().complete(f.data||void 0),l())}'
+    'if(f.code!==0){const m=Yge.create(f.code,f.message,void 0,void 0,f.data);e.getController().error(m),c(m);return}n||(n=!0),f.data&&e.getController().write(f.data),f.data?.event===_vt.Done&&(e.getController().complete(f.data||void 0),l())}',
   ].join('');
 
   return source.replace(needle, replacement);
 }
 
 function patchWorkbench(source) {
-  let patched = patchTransportHook(source);
+  const patched = patchTransportHook(source);
   if (patched.includes('im.bridge.subscribeRawStream')) return patched;
 
-  const needle = 'K(NRr);var ORr=class extends ee{constructor(){super({id:"im.bridge.respondToInteraction"';
+  const needle =
+    'K(NRr);var ORr=class extends ee{constructor(){super({id:"im.bridge.respondToInteraction"';
   if (!patched.includes(needle)) {
     throw new Error('Could not find IM bridge command registration point in workbench');
   }
@@ -127,7 +130,7 @@ function patchWorkbench(source) {
     '}',
     '};',
     'K(HPMRawStreamBridgeCommand);',
-    'var ORr=class extends ee{constructor(){super({id:"im.bridge.respondToInteraction"'
+    'var ORr=class extends ee{constructor(){super({id:"im.bridge.respondToInteraction"',
   ].join('');
 
   return patched.replace(needle, command);

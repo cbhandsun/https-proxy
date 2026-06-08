@@ -16,19 +16,14 @@ const {
   routeMatches,
   dispatchLocalManagementRoute,
 } = require('../lib/proxy/management-router');
-const {
-  parseVersionText,
-  isVersionNewer,
-} = require('../lib/proxy/env-tools');
+const { parseVersionText, isVersionNewer } = require('../lib/proxy/env-tools');
 const {
   setTomlValue,
   deleteTomlValue,
   setEnvValue,
   deleteEnvValue,
 } = require('../lib/proxy/tool-configs');
-const {
-  getModelRoutes,
-} = require('../lib/proxy/config');
+const { getModelRoutes } = require('../lib/proxy/config');
 const { createGoogleOfficialRuntime } = require('../lib/proxy/google-official-runtime');
 const { handleCountTokens } = require('../lib/proxy/local-handlers');
 const { createManagementHandlers } = require('../lib/proxy/handlers/management');
@@ -44,15 +39,29 @@ function buildModelsUrls(targetUrl, protocol) {
   const base = new URL(targetUrl);
   if (protocol === 'gemini') return [new URL('/v1beta/models?pageSize=1000', base.origin)];
   if (protocol === 'claude') {
-    if (base.hostname === 'api.deepseek.com') return [new URL('/models?limit=1000', base.origin), new URL(base.pathname.replace(/\/$/, '') + '/v1/models?limit=1000', base.origin)];
-    return [new URL(base.pathname.replace(/\/$/, '') + '/v1/models?limit=1000', base.origin), new URL('/models?limit=1000', base.origin)];
+    if (base.hostname === 'api.deepseek.com')
+      return [
+        new URL('/models?limit=1000', base.origin),
+        new URL(base.pathname.replace(/\/$/, '') + '/v1/models?limit=1000', base.origin),
+      ];
+    return [
+      new URL(base.pathname.replace(/\/$/, '') + '/v1/models?limit=1000', base.origin),
+      new URL('/models?limit=1000', base.origin),
+    ];
   }
   return [new URL(base.pathname.replace(/\/$/, '') + '/models?limit=1000', base.origin)];
 }
 
 function normalizeModels(payload) {
-  const items = Array.isArray(payload && payload.data) ? payload.data : (Array.isArray(payload && payload.models) ? payload.models : []);
-  return items.map((item) => String(item.id || item.name || '').replace(/^models\//, '')).filter(Boolean).sort();
+  const items = Array.isArray(payload && payload.data)
+    ? payload.data
+    : Array.isArray(payload && payload.models)
+      ? payload.models
+      : [];
+  return items
+    .map((item) => String(item.id || item.name || '').replace(/^models\//, ''))
+    .filter(Boolean)
+    .sort();
 }
 
 function prepareModelRequest(requestUrl, headers, apiKey) {
@@ -78,7 +87,6 @@ const {
   processClaudeSseChunk,
   flushClaudeSseFilter,
   getLocalServer,
-  prepareRequestBuffer,
   prepareRequestBufferWithResolver,
   buildLocalModelsResponse,
   buildLocalClaudeModelObject,
@@ -161,7 +169,8 @@ function safeUnlink(filePath) {
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
     }
   }
-  if (lastError && process.env.DEBUG_TEST_CLEANUP) console.warn('warn - could not remove test file ' + filePath + ': ' + lastError.message);
+  if (lastError && process.env.DEBUG_TEST_CLEANUP)
+    console.warn('warn - could not remove test file ' + filePath + ': ' + lastError.message);
 }
 
 test('converts Claude text request to Gemini generateContent body', () => {
@@ -193,90 +202,179 @@ test('converts Claude text request to Gemini generateContent body', () => {
 });
 
 test('converts images and tool declarations', () => {
-  const result = claudeMessagesToGemini({
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'text', text: 'describe' },
-        { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'abc123' } },
+  const result = claudeMessagesToGemini(
+    {
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'describe' },
+            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'abc123' } },
+          ],
+        },
       ],
-    }],
-    tools: [{
-      name: 'lookup',
-      description: 'lookup data',
-      input_schema: {
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
-        type: 'object',
-        properties: {
-          q: { type: 'string' },
-          maybe: { type: ['string', 'null'] },
-          count: { type: 'integer', minimum: 1, exclusiveMinimum: 0 },
-          formatted: { type: 'string', format: 'date-time', minLength: 3, maxLength: 30, pattern: '^x' },
-          choice: { oneOf: [{ type: 'string' }, { type: 'number' }] },
-          nested: {
-            type: 'array',
-            items: {
-              type: 'object',
-              additionalProperties: false,
-              properties: { v: { type: 'string' } },
+      tools: [
+        {
+          name: 'lookup',
+          description: 'lookup data',
+          input_schema: {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            type: 'object',
+            properties: {
+              q: { type: 'string' },
+              maybe: { type: ['string', 'null'] },
+              count: { type: 'integer', minimum: 1, exclusiveMinimum: 0 },
+              formatted: {
+                type: 'string',
+                format: 'date-time',
+                minLength: 3,
+                maxLength: 30,
+                pattern: '^x',
+              },
+              choice: { oneOf: [{ type: 'string' }, { type: 'number' }] },
+              nested: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: { v: { type: 'string' } },
+                },
+              },
             },
+            required: ['q'],
+            propertyOrdering: ['q', 'count'],
+            additionalProperties: false,
+            propertyNames: { pattern: '^[a-z]+$' },
           },
         },
-        required: ['q'],
-        propertyOrdering: ['q', 'count'],
-        additionalProperties: false,
-        propertyNames: { pattern: '^[a-z]+$' },
-      },
-    }],
-    tool_choice: { type: 'tool', name: 'lookup' },
-  }, 'gemini-2.5-pro');
+      ],
+      tool_choice: { type: 'tool', name: 'lookup' },
+    },
+    'gemini-2.5-pro'
+  );
 
   assert.strictEqual(result.contents[0].parts[0].text, 'describe');
-  assert.deepStrictEqual(result.contents[0].parts[1], { inlineData: { mimeType: 'image/png', data: 'abc123' } });
+  assert.deepStrictEqual(result.contents[0].parts[1], {
+    inlineData: { mimeType: 'image/png', data: 'abc123' },
+  });
   assert.strictEqual(result.tools[0].functionDeclarations[0].name, 'lookup');
   assert.strictEqual(result.tools[0].functionDeclarations[0].parameters.$schema, undefined);
-  assert.strictEqual(result.tools[0].functionDeclarations[0].parameters.additionalProperties, undefined);
+  assert.strictEqual(
+    result.tools[0].functionDeclarations[0].parameters.additionalProperties,
+    undefined
+  );
   assert.strictEqual(result.tools[0].functionDeclarations[0].parameters.propertyNames, undefined);
   assert.strictEqual(result.tools[0].functionDeclarations[0].parameters.type, 'OBJECT');
-  assert.deepStrictEqual(result.tools[0].functionDeclarations[0].parameters.properties.q, { type: 'STRING' });
-  assert.deepStrictEqual(result.tools[0].functionDeclarations[0].parameters.properties.maybe, { type: 'STRING', nullable: true });
-  assert.strictEqual(result.tools[0].functionDeclarations[0].parameters.properties.count.exclusiveMinimum, undefined);
-  assert.deepStrictEqual(result.tools[0].functionDeclarations[0].parameters.properties.formatted, { type: 'STRING', format: 'date-time', minLength: 3, maxLength: 30, pattern: '^x' });
-  assert.deepStrictEqual(result.tools[0].functionDeclarations[0].parameters.propertyOrdering, ['q', 'count']);
-  assert.strictEqual(result.tools[0].functionDeclarations[0].parameters.properties.choice.oneOf, undefined);
-  assert.strictEqual(result.tools[0].functionDeclarations[0].parameters.properties.nested.items.additionalProperties, undefined);
-  assert.deepStrictEqual(result.toolConfig, { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: ['lookup'] } });
+  assert.deepStrictEqual(result.tools[0].functionDeclarations[0].parameters.properties.q, {
+    type: 'STRING',
+  });
+  assert.deepStrictEqual(result.tools[0].functionDeclarations[0].parameters.properties.maybe, {
+    type: 'STRING',
+    nullable: true,
+  });
+  assert.strictEqual(
+    result.tools[0].functionDeclarations[0].parameters.properties.count.exclusiveMinimum,
+    undefined
+  );
+  assert.deepStrictEqual(result.tools[0].functionDeclarations[0].parameters.properties.formatted, {
+    type: 'STRING',
+    format: 'date-time',
+    minLength: 3,
+    maxLength: 30,
+    pattern: '^x',
+  });
+  assert.deepStrictEqual(result.tools[0].functionDeclarations[0].parameters.propertyOrdering, [
+    'q',
+    'count',
+  ]);
+  assert.strictEqual(
+    result.tools[0].functionDeclarations[0].parameters.properties.choice.oneOf,
+    undefined
+  );
+  assert.strictEqual(
+    result.tools[0].functionDeclarations[0].parameters.properties.nested.items.additionalProperties,
+    undefined
+  );
+  assert.deepStrictEqual(result.toolConfig, {
+    functionCallingConfig: { mode: 'ANY', allowedFunctionNames: ['lookup'] },
+  });
 });
 
 test('omits Claude tool history when Gemini tools are present', () => {
-  const result = claudeMessagesToGemini({
-    messages: [
-      { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_1', name: 'lookup', input: { q: 'price' } }] },
-      { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', name: 'lookup', content: '42' }] },
-      { role: 'assistant', content: [{ type: 'text', text: 'nested' }, { type: 'server_tool_use', payload: { functionCall: { name: 'Grep', args: { pattern: 'x' } } } }] },
-      { role: 'user', content: 'continue' },
-    ],
-    tools: [{ name: 'lookup', input_schema: { type: 'object', properties: {} } }],
-  }, 'gemini-2.5-pro');
+  const result = claudeMessagesToGemini(
+    {
+      messages: [
+        {
+          role: 'assistant',
+          content: [{ type: 'tool_use', id: 'toolu_1', name: 'lookup', input: { q: 'price' } }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: 'toolu_1', name: 'lookup', content: '42' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'nested' },
+            {
+              type: 'server_tool_use',
+              payload: { functionCall: { name: 'Grep', args: { pattern: 'x' } } },
+            },
+          ],
+        },
+        { role: 'user', content: 'continue' },
+      ],
+      tools: [{ name: 'lookup', input_schema: { type: 'object', properties: {} } }],
+    },
+    'gemini-2.5-pro'
+  );
 
   assert.strictEqual(result.contents.length, 3);
-  assert.deepStrictEqual(result.contents[0], { role: 'model', parts: [{ functionCall: { name: 'lookup', args: { q: 'price' } }, thoughtSignature: 'context_engineering_is_the_way_to_go' }] });
-  assert.deepStrictEqual(result.contents[1], { role: 'user', parts: [{ functionResponse: { name: 'lookup', response: { content: '42' } } }] });
+  assert.deepStrictEqual(result.contents[0], {
+    role: 'model',
+    parts: [
+      {
+        functionCall: { name: 'lookup', args: { q: 'price' } },
+        thoughtSignature: 'context_engineering_is_the_way_to_go',
+      },
+    ],
+  });
+  assert.deepStrictEqual(result.contents[1], {
+    role: 'user',
+    parts: [{ functionResponse: { name: 'lookup', response: { content: '42' } } }],
+  });
   assert.deepStrictEqual(result.contents[2], { role: 'user', parts: [{ text: 'continue' }] });
 });
 
 test('restores Gemini thought signatures for tool history', () => {
-  const response = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'lookup', args: { q: 'x' } }, thoughtSignature: 'sig-1' }] } }],
-  }, 'gemini-3-flash-preview');
+  const response = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              { functionCall: { name: 'lookup', args: { q: 'x' } }, thoughtSignature: 'sig-1' },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview'
+  );
 
-  const result = claudeMessagesToGemini({
-    messages: [
-      { role: 'assistant', content: response.content },
-      { role: 'user', content: [{ type: 'tool_result', tool_use_id: response.content[0].id, content: '42' }] },
-    ],
-    tools: [{ name: 'lookup', input_schema: { type: 'object', properties: {} } }],
-  }, 'gemini-3-flash-preview');
+  const result = claudeMessagesToGemini(
+    {
+      messages: [
+        { role: 'assistant', content: response.content },
+        {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: response.content[0].id, content: '42' }],
+        },
+      ],
+      tools: [{ name: 'lookup', input_schema: { type: 'object', properties: {} } }],
+    },
+    'gemini-3-flash-preview'
+  );
 
   assert.deepStrictEqual(result.contents[0], {
     role: 'model',
@@ -291,97 +389,284 @@ test('restores Gemini thought signatures for tool history', () => {
 test('keeps Gemini tool result names when thought signature is absent', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
-  const state = { textIndex: -1, textOpen: false, stopReason: 'end_turn', usage: { input_tokens: 0, output_tokens: 0 }, tools: [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }], pendingToolCall: null };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }],
+    pendingToolCall: null,
+  };
 
-  processGeminiSseEvent(clientRes, 'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Read","args":{"file_path":"D:\\\\DEV\\\\WorkSapce\\\\Efficiency\\\\https-proxy\\\\electron-main.js"},"id":"read-abc"}}]}}]}\r\n', state, 'gemini-3-flash-preview');
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Read","args":{"file_path":"D:\\\\DEV\\\\WorkSapce\\\\Efficiency\\\\https-proxy\\\\electron-main.js"},"id":"read-abc"}}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
   const { flushPendingGeminiToolCall } = require('../openai-proxy');
   flushPendingGeminiToolCall(clientRes, state, state.tools);
-  const next = claudeMessagesToGemini({
-    messages: [{ role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_read_abc', content: 'file contents' }] }],
-    tools: [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }],
-  }, 'gemini-3-flash-preview');
+  const next = claudeMessagesToGemini(
+    {
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'toolu_read_abc', content: 'file contents' },
+          ],
+        },
+      ],
+      tools: [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }],
+    },
+    'gemini-3-flash-preview'
+  );
   assert.strictEqual(next.contents[0].parts[0].functionResponse.name, 'Read');
 });
 test('skips Gemini tool calls missing required args', () => {
-  const result = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'Glob', args: {} }, thoughtSignature: 'sig-missing' }] } }],
-  }, 'gemini-3-flash-preview', [{ name: 'Glob', input_schema: { type: 'object', required: ['pattern'], properties: { pattern: { type: 'string' } } } }]);
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [{ functionCall: { name: 'Glob', args: {} }, thoughtSignature: 'sig-missing' }],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    [
+      {
+        name: 'Glob',
+        input_schema: {
+          type: 'object',
+          required: ['pattern'],
+          properties: { pattern: { type: 'string' } },
+        },
+      },
+    ]
+  );
 
   assert.strictEqual(result.content[0].type, 'text');
-  assert.ok(result.content[0].text.includes('Please call the same tool again with complete arguments'));
+  assert.ok(
+    result.content[0].text.includes('Please call the same tool again with complete arguments')
+  );
   assert.ok(result.content[0].text.includes('pattern'));
 });
 
 test('skips common tool calls missing fallback required args', () => {
-  const result = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'default_api:Grep', args: {} }, thoughtSignature: 'sig-grep' }] } }],
-  }, 'gemini-3-flash-preview', []);
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                functionCall: { name: 'default_api:Grep', args: {} },
+                thoughtSignature: 'sig-grep',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    []
+  );
 
   assert.strictEqual(result.content[0].type, 'text');
   assert.ok(result.content[0].text.includes('pattern'));
 });
 
 test('normalizes prefixed Gemini tool names and rejects empty common tool args', () => {
-  const bash = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'default_api__Bash', args: {} }, thoughtSignature: 'sig-bash' }] } }],
-  }, 'gemini-3-flash-preview', []);
+  const bash = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                functionCall: { name: 'default_api__Bash', args: {} },
+                thoughtSignature: 'sig-bash',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    []
+  );
   assert.strictEqual(bash.content[0].type, 'text');
-  assert.ok(bash.content[0].text.includes('Please call the same tool again with complete arguments'));
+  assert.ok(
+    bash.content[0].text.includes('Please call the same tool again with complete arguments')
+  );
   assert.ok(bash.content[0].text.includes('command'));
 
-  const undeclared = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'Write', args: { file_path: 'a', content: 'b' } } }] } }],
-  }, 'gemini-3-flash-preview', [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }]);
+  const undeclared = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [{ functionCall: { name: 'Write', args: { file_path: 'a', content: 'b' } } }],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }]
+  );
   assert.strictEqual(undeclared.content[0].type, 'text');
   assert.ok(undeclared.content[0].text.includes('not available in the current tool list'));
 
-  const glob = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'functions.Glob', args: { pattern: '**/*.js' } }, thoughtSignature: 'sig-glob' }] } }],
-  }, 'gemini-3-flash-preview', []);
+  const glob = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                functionCall: { name: 'functions.Glob', args: { pattern: '**/*.js' } },
+                thoughtSignature: 'sig-glob',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    []
+  );
   assert.strictEqual(glob.content[0].type, 'tool_use');
   assert.strictEqual(glob.content[0].name, 'Glob');
   assert.deepStrictEqual(glob.content[0].input, { pattern: '**/*.js' });
 });
 
 test('recovers Gemini tool args from wrappers and JSON strings', () => {
-  const wrapped = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'tool_Grep', args: { arguments: { pattern: 'needle' } } }, thoughtSignature: 'sig-grep' }] } }],
-  }, 'gemini-3-flash-preview', []);
+  const wrapped = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                functionCall: { name: 'tool_Grep', args: { arguments: { pattern: 'needle' } } },
+                thoughtSignature: 'sig-grep',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    []
+  );
   assert.strictEqual(wrapped.content[0].type, 'tool_use');
   assert.strictEqual(wrapped.content[0].name, 'Grep');
   assert.deepStrictEqual(wrapped.content[0].input, { pattern: 'needle' });
 
-  const sibling = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'Glob', args: {}, arguments: { pattern: '**/*.js' } }, thoughtSignature: 'sig-glob-sibling' }] } }],
-  }, 'gemini-3-flash-preview', []);
+  const sibling = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                functionCall: { name: 'Glob', args: {}, arguments: { pattern: '**/*.js' } },
+                thoughtSignature: 'sig-glob-sibling',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    []
+  );
   assert.strictEqual(sibling.content[0].type, 'tool_use');
   assert.deepStrictEqual(sibling.content[0].input, { pattern: '**/*.js' });
 
-  const jsonArgs = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'Bash', args: '{"command":"pwd"}' }, thoughtSignature: 'sig-bash-json' }] } }],
-  }, 'gemini-3-flash-preview', []);
+  const jsonArgs = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                functionCall: { name: 'Bash', args: '{"command":"pwd"}' },
+                thoughtSignature: 'sig-bash-json',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    []
+  );
   assert.strictEqual(jsonArgs.content[0].type, 'tool_use');
   assert.deepStrictEqual(jsonArgs.content[0].input, { command: 'pwd' });
 });
 
 test('normalizes unsafe Gemini asset listing command', () => {
-  const result = geminiResponseToClaude({
-    candidates: [{ content: { parts: [{ functionCall: { name: 'Bash', args: { command: 'ls -R assets images static', description: 'Check for any asset directories.' } }, thoughtSignature: 'sig-bash-assets' }] } }],
-  }, 'gemini-3-flash-preview', []);
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                functionCall: {
+                  name: 'Bash',
+                  args: {
+                    command: 'ls -R assets images static',
+                    description: 'Check for any asset directories.',
+                  },
+                },
+                thoughtSignature: 'sig-bash-assets',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    []
+  );
 
   assert.strictEqual(result.content[0].type, 'tool_use');
   assert.strictEqual(result.content[0].name, 'Bash');
-  assert.strictEqual(result.content[0].input.command, 'for d in "assets" "images" "static"; do [ -d "$d" ] && ls -R "$d"; done');
+  assert.strictEqual(
+    result.content[0].input.command,
+    'for d in "assets" "images" "static"; do [ -d "$d" ] && ls -R "$d"; done'
+  );
 });
 
 test('non-stream Gemini large Write tool call is staged as a short Bash copy', () => {
   const content = 'x'.repeat(40000);
-  const result = geminiResponseToClaude({
-    candidates: [{ finishReason: 'STOP', content: { parts: [{ functionCall: { name: 'Write', args: { file_path: 'E:/tmp/large-write.js', content } } }] } }],
-  }, 'gemini-3-flash-preview', [
-    { name: 'Write', input_schema: { type: 'object', required: ['file_path', 'content'] } },
-    { name: 'Bash', input_schema: { type: 'object', required: ['command'] } },
-  ]);
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          finishReason: 'STOP',
+          content: {
+            parts: [
+              {
+                functionCall: {
+                  name: 'Write',
+                  args: { file_path: 'E:/tmp/large-write.js', content },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    [
+      { name: 'Write', input_schema: { type: 'object', required: ['file_path', 'content'] } },
+      { name: 'Bash', input_schema: { type: 'object', required: ['command'] } },
+    ]
+  );
 
   assert.strictEqual(result.content[0].type, 'tool_use');
   assert.strictEqual(result.content[0].name, 'Bash');
@@ -394,9 +679,27 @@ test('non-stream Gemini large Write tool call is staged as a short Bash copy', (
 
 test('non-stream Gemini large Write falls back to text when Bash is unavailable', () => {
   const content = 'x'.repeat(40000);
-  const result = geminiResponseToClaude({
-    candidates: [{ finishReason: 'STOP', content: { parts: [{ functionCall: { name: 'Write', args: { file_path: 'E:/tmp/large-write.js', content } } }] } }],
-  }, 'gemini-3-flash-preview', [{ name: 'Write', input_schema: { type: 'object', required: ['file_path', 'content'] } }]);
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          finishReason: 'STOP',
+          content: {
+            parts: [
+              {
+                functionCall: {
+                  name: 'Write',
+                  args: { file_path: 'E:/tmp/large-write.js', content },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    [{ name: 'Write', input_schema: { type: 'object', required: ['file_path', 'content'] } }]
+  );
 
   assert.strictEqual(result.content[0].type, 'text');
   assert.ok(result.content[0].text.includes('too large'));
@@ -404,22 +707,38 @@ test('non-stream Gemini large Write falls back to text when Bash is unavailable'
 });
 
 test('marks Gemini tool responses with Claude tool_use stop reason', () => {
-  const result = geminiResponseToClaude({
-    candidates: [{ finishReason: 'STOP', content: { parts: [{ functionCall: { name: 'Bash', args: { command: 'pwd' } } }] } }],
-  }, 'gemini-3-flash-preview', [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }]);
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          finishReason: 'STOP',
+          content: { parts: [{ functionCall: { name: 'Bash', args: { command: 'pwd' } } }] },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }]
+  );
 
   assert.strictEqual(result.content[0].type, 'tool_use');
   assert.strictEqual(result.stop_reason, 'tool_use');
 });
 
 test('converts Gemini response to Claude message', () => {
-  const result = geminiResponseToClaude({
-    candidates: [{
-      finishReason: 'MAX_TOKENS',
-      content: { parts: [{ text: 'hello' }, { functionCall: { name: 'lookup', args: { q: 'x' } } }] },
-    }],
-    usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 3 },
-  }, 'gemini-2.5-pro');
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          finishReason: 'MAX_TOKENS',
+          content: {
+            parts: [{ text: 'hello' }, { functionCall: { name: 'lookup', args: { q: 'x' } } }],
+          },
+        },
+      ],
+      usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 3 },
+    },
+    'gemini-2.5-pro'
+  );
 
   assert.strictEqual(result.type, 'message');
   assert.strictEqual(result.role, 'assistant');
@@ -433,7 +752,10 @@ test('converts Gemini response to Claude message', () => {
 });
 
 test('maps Gemini usage and stop reasons', () => {
-  assert.deepStrictEqual(geminiUsageToClaude({ promptTokenCount: 1, candidatesTokenCount: 2 }), { input_tokens: 1, output_tokens: 2 });
+  assert.deepStrictEqual(geminiUsageToClaude({ promptTokenCount: 1, candidatesTokenCount: 2 }), {
+    input_tokens: 1,
+    output_tokens: 2,
+  });
   assert.strictEqual(claudeStopReasonFromGemini('STOP'), 'end_turn');
   assert.strictEqual(claudeStopReasonFromGemini('SAFETY'), 'stop_sequence');
 });
@@ -447,8 +769,12 @@ test('parses target URL and rewrites routed model', () => {
   });
 
   const fixedResolver = () => ({
-    profile: { id: 'openai-official', protocol: 'openai', targetUrl: 'https://chatgpt.com/backend-api/codex' },
-    route: { from: 'claude-haiku-4-5-20251001', profileId: 'openai-official', to: 'gpt-5.3-codex' }
+    profile: {
+      id: 'openai-official',
+      protocol: 'openai',
+      targetUrl: 'https://chatgpt.com/backend-api/codex',
+    },
+    route: { from: 'claude-haiku-4-5-20251001', profileId: 'openai-official', to: 'gpt-5.3-codex' },
   });
   const prepared = prepareRequestBufferWithResolver(
     Buffer.from(JSON.stringify({ model: 'claude-haiku-4-5-20251001', messages: [] })),
@@ -463,9 +789,19 @@ test('parses target URL and rewrites routed model', () => {
 test('parses Gemini streaming SSE events with CRLF separators', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
-  const state = { textIndex: -1, textOpen: false, stopReason: 'end_turn', usage: { input_tokens: 0, output_tokens: 0 } };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+  };
 
-  processGeminiSseEvent(clientRes, 'data: {"candidates":[{"content":{"parts":[{"text":"hi"}]}}],"usageMetadata":{"promptTokenCount":2,"candidatesTokenCount":1}}\r\n', state, 'gemini-3-flash-preview');
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"text":"hi"}]}}],"usageMetadata":{"promptTokenCount":2,"candidatesTokenCount":1}}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
 
   assert.strictEqual(state.textOpen, true);
   assert.deepStrictEqual(state.usage, { input_tokens: 2, output_tokens: 1 });
@@ -475,11 +811,28 @@ test('parses Gemini streaming SSE events with CRLF separators', () => {
 test('buffers streaming Gemini tool calls until args are complete', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
-  const state = { textIndex: -1, textOpen: false, stopReason: 'end_turn', usage: { input_tokens: 0, output_tokens: 0 }, tools: [{ name: 'Glob', input_schema: { type: 'object', required: ['pattern'] } }], pendingToolCall: null };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Glob', input_schema: { type: 'object', required: ['pattern'] } }],
+    pendingToolCall: null,
+  };
 
-  processGeminiSseEvent(clientRes, 'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Glob","args":{}},"thoughtSignature":"sig-glob"}]}}]}\r\n', state, 'gemini-3-flash-preview');
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Glob","args":{}},"thoughtSignature":"sig-glob"}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
   assert.strictEqual(writes.length, 0);
-  processGeminiSseEvent(clientRes, 'data: {"candidates":[{"content":{"parts":[{"functionCall":{"args":{"pattern":"**/*.js"}}}]}}]}\r\n', state, 'gemini-3-flash-preview');
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"args":{"pattern":"**/*.js"}}}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
   assert.strictEqual(writes.length, 0);
 
   const { flushPendingGeminiToolCall } = require('../openai-proxy');
@@ -492,9 +845,21 @@ test('buffers streaming Gemini tool calls until args are complete', () => {
 test('streams retry text for incomplete Gemini tool calls', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
-  const state = { textIndex: -1, textOpen: false, stopReason: 'end_turn', usage: { input_tokens: 0, output_tokens: 0 }, tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }], pendingToolCall: null };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }],
+    pendingToolCall: null,
+  };
 
-  processGeminiSseEvent(clientRes, 'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"default_api:Bash","args":{}},"thoughtSignature":"sig-bash"}]},"finishReason":"STOP"}]}\r\n', state, 'gemini-3-flash-preview');
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"default_api:Bash","args":{}},"thoughtSignature":"sig-bash"}]},"finishReason":"STOP"}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
   const { flushPendingGeminiToolCall } = require('../openai-proxy');
   flushPendingGeminiToolCall(clientRes, state, state.tools);
   const output = writes.join('');
@@ -506,9 +871,21 @@ test('streams retry text for incomplete Gemini tool calls', () => {
 test('streams sibling Gemini tool args without emitting empty inputs', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
-  const state = { textIndex: -1, textOpen: false, stopReason: 'end_turn', usage: { input_tokens: 0, output_tokens: 0 }, tools: [{ name: 'Glob', input_schema: { type: 'object', required: ['pattern'] } }], pendingToolCall: null };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Glob', input_schema: { type: 'object', required: ['pattern'] } }],
+    pendingToolCall: null,
+  };
 
-  processGeminiSseEvent(clientRes, 'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Glob","args":{},"arguments":{"pattern":"**/*.js"}},"thoughtSignature":"sig-glob"}]}}]}\r\n', state, 'gemini-3-flash-preview');
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Glob","args":{},"arguments":{"pattern":"**/*.js"}},"thoughtSignature":"sig-glob"}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
   const { flushPendingGeminiToolCall } = require('../openai-proxy');
   flushPendingGeminiToolCall(clientRes, state, state.tools);
   const output = writes.join('');
@@ -521,9 +898,21 @@ test('streams sibling Gemini tool args without emitting empty inputs', () => {
 test('Gemini SSE write guard rejects empty common tool inputs', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
-  const state = { textIndex: -1, textOpen: false, stopReason: 'end_turn', usage: { input_tokens: 0, output_tokens: 0 }, tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }], pendingToolCall: null };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }],
+    pendingToolCall: null,
+  };
 
-  processGeminiSseEvent(clientRes, 'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","args":{}},"thoughtSignature":"sig-bash"}]}}]}\r\n', state, 'gemini-3-flash-preview');
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","args":{}},"thoughtSignature":"sig-bash"}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
   state.pendingToolCall.args = {};
   state.pendingToolCall.name = 'Bash';
   const { flushPendingGeminiToolCall } = require('../openai-proxy');
@@ -539,8 +928,16 @@ test('unified stream protection rewrites invalid tool_use blocks', () => {
   const clientRes = { write: (chunk) => writes.push(chunk) };
   const state = { buffer: '', pendingClaudeTool: null };
 
-  processClaudeSseChunk(clientRes, 'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Bash","input":{}}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n', state);
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Bash","input":{}}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n',
+    state
+  );
   flushClaudeSseFilter(clientRes, state);
   const output = writes.join('');
   assert.ok(output.includes('Please call the same tool again with complete arguments'));
@@ -553,9 +950,21 @@ test('unified stream protection preserves valid tool_use blocks', () => {
   const clientRes = { write: (chunk) => writes.push(chunk) };
   const state = { buffer: '', pendingClaudeTool: null };
 
-  processClaudeSseChunk(clientRes, 'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Glob","input":{}}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"pattern\\":\\"**/*.js\\"}"}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n', state);
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Glob","input":{}}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"pattern\\":\\"**/*.js\\"}"}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n',
+    state
+  );
   flushClaudeSseFilter(clientRes, state);
   const output = writes.join('');
   assert.ok(output.includes('"type":"tool_use"'));
@@ -570,13 +979,41 @@ test('unified stream protection drops DeepSeek thinking blocks and remaps tool i
   const clientRes = { write: (chunk) => writes.push(chunk) };
   const state = { buffer: '', pendingClaudeTool: null };
 
-  processClaudeSseChunk(clientRes, 'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":"","signature":""}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"plan"}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig"}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_start\ndata: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"call_1","name":"Read","input":{}}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"file_path\\":\\"D:/x.js\\"}"}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_stop\ndata: {"type":"content_block_stop","index":1}\n\n', state);
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":"","signature":""}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"plan"}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig"}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_start\ndata: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"call_1","name":"Read","input":{}}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_delta\ndata: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"file_path\\":\\"D:/x.js\\"}"}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_stop\ndata: {"type":"content_block_stop","index":1}\n\n',
+    state
+  );
   flushClaudeSseFilter(clientRes, state);
 
   const output = writes.join('');
@@ -594,8 +1031,16 @@ test('OpenAI stream sanitizer drops empty optional tool args only', () => {
   const clientRes = { write: (chunk) => writes.push(chunk) };
   const state = { buffer: '', pendingClaudeTool: null, mode: 'strip-empty-optionals' };
 
-  processClaudeSseChunk(clientRes, 'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Read","input":{"file_path":"D:/x.js","pages":""}}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n', state);
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Read","input":{"file_path":"D:/x.js","pages":""}}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n',
+    state
+  );
   flushClaudeSseFilter(clientRes, state);
   const output = writes.join('');
   assert.ok(output.includes('"type":"tool_use"'));
@@ -609,9 +1054,21 @@ test('OpenAI stream sanitizer drops empty optional tool args from deltas', () =>
   const clientRes = { write: (chunk) => writes.push(chunk) };
   const state = { buffer: '', pendingClaudeTool: null, mode: 'strip-empty-optionals' };
 
-  processClaudeSseChunk(clientRes, 'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Read","input":{}}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"file_path\\":\\"D:/x.js\\",\\"pages\\":\\"\\"}"}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n', state);
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Read","input":{}}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"file_path\\":\\"D:/x.js\\",\\"pages\\":\\"\\"}"}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n',
+    state
+  );
   flushClaudeSseFilter(clientRes, state);
   const output = writes.join('');
   assert.ok(output.includes('"type":"input_json_delta"'));
@@ -625,10 +1082,26 @@ test('OpenAI stream sanitizer buffers split optional args deltas', () => {
   const clientRes = { write: (chunk) => writes.push(chunk) };
   const state = { buffer: '', pendingClaudeTool: null, mode: 'strip-empty-optionals' };
 
-  processClaudeSseChunk(clientRes, 'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Glob","input":{}}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"pattern"}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\\":\\"**/*.js\\",\\"pages\\":\\"\\"}"}}\n\n', state);
-  processClaudeSseChunk(clientRes, 'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n', state);
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_1","name":"Glob","input":{}}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"pattern"}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"\\":\\"**/*.js\\",\\"pages\\":\\"\\"}"}}\n\n',
+    state
+  );
+  processClaudeSseChunk(
+    clientRes,
+    'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n',
+    state
+  );
   flushClaudeSseFilter(clientRes, state);
   const output = writes.join('');
   assert.ok(output.includes('\\"pattern\\":\\"**/*.js\\"'));
@@ -639,9 +1112,21 @@ test('OpenAI stream sanitizer buffers split optional args deltas', () => {
 test('Gemini converted tool_use sends args as input_json_delta', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
-  const state = { textIndex: -1, textOpen: false, stopReason: 'end_turn', usage: { input_tokens: 0, output_tokens: 0 }, tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }], pendingToolCall: null };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }],
+    pendingToolCall: null,
+  };
 
-  processGeminiSseEvent(clientRes, 'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","args":{"command":"ls -R","description":"List files"}},"thoughtSignature":"sig-bash"}]}}]}\r\n', state, 'gemini-3-flash-preview');
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","args":{"command":"ls -R","description":"List files"}},"thoughtSignature":"sig-bash"}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
   const { flushPendingGeminiToolCall, geminiClaudeStopReason } = require('../openai-proxy');
   flushPendingGeminiToolCall(clientRes, state, state.tools);
   const output = writes.join('');
@@ -662,75 +1147,111 @@ test('Gemini converted large tool args are split across input_json_delta chunks'
     textOpen: false,
     stopReason: 'end_turn',
     usage: { input_tokens: 0, output_tokens: 0 },
-    tools: [{ name: 'Write', input_schema: { type: 'object', required: ['file_path', 'content'] } }],
+    tools: [
+      { name: 'Write', input_schema: { type: 'object', required: ['file_path', 'content'] } },
+    ],
     pendingToolCall: null,
   };
 
-  processGeminiSseEvent(clientRes, 'data: ' + JSON.stringify({
-    candidates: [{
-      content: {
-        parts: [{
-          functionCall: {
-            name: 'Write',
-            args: { file_path: 'E:/tmp/large.txt', content },
+  processGeminiSseEvent(
+    clientRes,
+    'data: ' +
+      JSON.stringify({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    name: 'Write',
+                    args: { file_path: 'E:/tmp/large.txt', content },
+                  },
+                },
+              ],
+            },
           },
-        }],
-      },
-    }],
-  }) + '\r\n', state, 'gemini-3-flash-preview');
+        ],
+      }) +
+      '\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
   const { flushPendingGeminiToolCall } = require('../openai-proxy');
   flushPendingGeminiToolCall(clientRes, state, state.tools);
 
-  const deltas = writes.join('').split(/\n/).filter((line) => line.startsWith('data: '))
+  const deltas = writes
+    .join('')
+    .split(/\n/)
+    .filter((line) => line.startsWith('data: '))
     .map((line) => JSON.parse(line.replace(/^data:\s*/, '')))
-    .filter((event) => event.type === 'content_block_delta' && event.delta && event.delta.type === 'input_json_delta');
+    .filter(
+      (event) =>
+        event.type === 'content_block_delta' &&
+        event.delta &&
+        event.delta.type === 'input_json_delta'
+    );
   assert.ok(deltas.length > 1);
   const parsed = JSON.parse(deltas.map((event) => event.delta.partial_json).join(''));
   assert.deepStrictEqual(parsed, { file_path: 'E:/tmp/large.txt', content });
 });
 
 test('builds Gemini generateContent paths', () => {
-  assert.strictEqual(geminiGeneratePath('', 'gemini-3-flash-preview', false), '/v1beta/models/gemini-3-flash-preview:generateContent');
-  assert.strictEqual(geminiGeneratePath('/v1', 'gemini 3 flash', true), '/v1beta/models/gemini%203%20flash:streamGenerateContent');
+  assert.strictEqual(
+    geminiGeneratePath('', 'gemini-3-flash-preview', false),
+    '/v1beta/models/gemini-3-flash-preview:generateContent'
+  );
+  assert.strictEqual(
+    geminiGeneratePath('/v1', 'gemini 3 flash', true),
+    '/v1beta/models/gemini%203%20flash:streamGenerateContent'
+  );
 });
 
 test('builds and normalizes OpenAI-compatible model list requests', () => {
   const urls = buildModelsUrls('http://yhrouter.example:80/v1', 'openai');
   assert.strictEqual(urls[0].toString(), 'http://yhrouter.example/v1/models?limit=1000');
-  assert.deepStrictEqual(normalizeModels({
-    data: [
-      { id: 'yh/gpt-5.3-codex' },
-      { id: 'gpt-5.5' },
-    ],
-  }), ['gpt-5.5', 'yh/gpt-5.3-codex']);
+  assert.deepStrictEqual(
+    normalizeModels({
+      data: [{ id: 'yh/gpt-5.3-codex' }, { id: 'gpt-5.5' }],
+    }),
+    ['gpt-5.5', 'yh/gpt-5.3-codex']
+  );
 });
 
 test('builds Claude model list requests under the upstream base path', () => {
   const urls = buildModelsUrls('https://claude.example/anthropic', 'claude');
-  assert.deepStrictEqual(urls.map((url) => url.toString()), [
-    'https://claude.example/anthropic/v1/models?limit=1000',
-    'https://claude.example/models?limit=1000',
-  ]);
+  assert.deepStrictEqual(
+    urls.map((url) => url.toString()),
+    [
+      'https://claude.example/anthropic/v1/models?limit=1000',
+      'https://claude.example/models?limit=1000',
+    ]
+  );
 });
 
 test('builds DeepSeek model list requests with the documented endpoint first', () => {
   const urls = buildModelsUrls('https://api.deepseek.com/anthropic', 'claude');
-  assert.deepStrictEqual(urls.map((url) => url.toString()), [
-    'https://api.deepseek.com/models?limit=1000',
-    'https://api.deepseek.com/anthropic/v1/models?limit=1000',
-  ]);
+  assert.deepStrictEqual(
+    urls.map((url) => url.toString()),
+    [
+      'https://api.deepseek.com/models?limit=1000',
+      'https://api.deepseek.com/anthropic/v1/models?limit=1000',
+    ]
+  );
 });
 
 test('builds and normalizes Gemini model list requests', () => {
   const urls = buildModelsUrls('https://generativelanguage.googleapis.com', 'gemini');
   assert.strictEqual(urls.length, 1);
-  assert.strictEqual(urls[0].toString(), 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000');
-  assert.deepStrictEqual(normalizeModels({
-    models: [
-      { name: 'models/gemini-2.5-pro' },
-      { name: 'models/gemini-2.5-flash' },
-    ],
-  }), ['gemini-2.5-flash', 'gemini-2.5-pro']);
+  assert.strictEqual(
+    urls[0].toString(),
+    'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000'
+  );
+  assert.deepStrictEqual(
+    normalizeModels({
+      models: [{ name: 'models/gemini-2.5-pro' }, { name: 'models/gemini-2.5-flash' }],
+    }),
+    ['gemini-2.5-flash', 'gemini-2.5-pro']
+  );
 });
 
 test('uses Gemini API key query param without bearer headers', () => {
@@ -746,12 +1267,18 @@ test('uses Gemini API key query param without bearer headers', () => {
     'gemini-key'
   );
 
-  assert.strictEqual(requestUrl.toString(), 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key=gemini-key');
+  assert.strictEqual(
+    requestUrl.toString(),
+    'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key=gemini-key'
+  );
   assert.deepStrictEqual(requestHeaders, { accept: 'application/json' });
 });
 
 test('builds real upstream model list request for OpenAI compatible APIs', () => {
-  assert.strictEqual(getModelsUrl('https://api.openai.com/v1', 'openai'), 'https://api.openai.com/v1/models?limit=1000');
+  assert.strictEqual(
+    getModelsUrl('https://api.openai.com/v1', 'openai'),
+    'https://api.openai.com/v1/models?limit=1000'
+  );
   const request = buildModelListRequest('https://api.openai.com/v1', 'openai', 'sk-proj-test');
   assert.strictEqual(request.method, 'GET');
   assert.strictEqual(request.requestUrl, 'https://api.openai.com/v1/models?limit=1000');
@@ -759,16 +1286,27 @@ test('builds real upstream model list request for OpenAI compatible APIs', () =>
 });
 
 test('builds real upstream model list request for OpenAI official login', () => {
-  const request = buildModelListRequest('https://chatgpt.com/backend-api/codex', 'openai', 'eyJhbGciOiJtest');
+  const request = buildModelListRequest(
+    'https://chatgpt.com/backend-api/codex',
+    'openai',
+    'eyJhbGciOiJtest'
+  );
   assert.strictEqual(request.method, 'GET');
   assert.strictEqual(request.requestUrl, 'https://chatgpt.com/backend-api/models');
   assert.strictEqual(request.headers.authorization, 'Bearer eyJhbGciOiJtest');
 });
 
 test('builds real upstream model list request for Gemini API key auth', () => {
-  const request = buildModelListRequest('https://generativelanguage.googleapis.com', 'gemini', 'AIza-api-key');
+  const request = buildModelListRequest(
+    'https://generativelanguage.googleapis.com',
+    'gemini',
+    'AIza-api-key'
+  );
   const url = new URL(request.requestUrl);
-  assert.strictEqual(url.origin + url.pathname, 'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.strictEqual(
+    url.origin + url.pathname,
+    'https://generativelanguage.googleapis.com/v1beta/models'
+  );
   assert.strictEqual(url.searchParams.get('pageSize'), '1000');
   assert.strictEqual(url.searchParams.get('key'), 'AIza-api-key');
   assert.strictEqual(request.headers.authorization, undefined);
@@ -776,7 +1314,11 @@ test('builds real upstream model list request for Gemini API key auth', () => {
 });
 
 test('builds real upstream model list request for Gemini official login auth', () => {
-  const request = buildModelListRequest('https://generativelanguage.googleapis.com', 'gemini', 'ya29.google-token');
+  const request = buildModelListRequest(
+    'https://generativelanguage.googleapis.com',
+    'gemini',
+    'ya29.google-token'
+  );
   const url = new URL(request.requestUrl);
   assert.strictEqual(url.searchParams.get('key'), null);
   assert.strictEqual(url.searchParams.get('pageSize'), '1000');
@@ -794,19 +1336,43 @@ test('detects official login tokens separately from API keys', () => {
 test('infers official credential mode from explicit config and upstream protocol', () => {
   assert.strictEqual(configuredAuthMode({ authMode: 'cli' }), 'official-login');
   assert.strictEqual(configuredAuthMode({ credentialMode: 'api-key' }), 'api-key');
-  assert.strictEqual(officialLoginProvider({ protocol: 'gemini', authMode: 'official-login' }), 'google');
-  assert.strictEqual(officialLoginProvider({ protocol: 'openai', authMode: 'official-login' }), 'openai');
-  assert.strictEqual(officialLoginProvider({ protocol: 'trae', authMode: 'official-login' }), 'trae');
-  assert.strictEqual(officialLoginProvider({ targetUrl: 'https://coresg-normal.trae.ai', authMode: 'official-login' }), 'trae');
+  assert.strictEqual(
+    officialLoginProvider({ protocol: 'gemini', authMode: 'official-login' }),
+    'google'
+  );
+  assert.strictEqual(
+    officialLoginProvider({ protocol: 'openai', authMode: 'official-login' }),
+    'openai'
+  );
+  assert.strictEqual(
+    officialLoginProvider({ protocol: 'trae', authMode: 'official-login' }),
+    'trae'
+  );
+  assert.strictEqual(
+    officialLoginProvider({
+      targetUrl: 'https://coresg-normal.trae.ai',
+      authMode: 'official-login',
+    }),
+    'trae'
+  );
   assert.strictEqual(officialLoginProvider({ protocol: 'gemini', authMode: 'api-key' }), '');
 });
 
 test('keeps Gemini API key mode separate from Google official login mode', () => {
   assert.strictEqual(inferOfficialProfileAuthMode({ apiKey: '' }, 'google'), 'official-login');
-  assert.strictEqual(inferOfficialProfileAuthMode({ apiKey: 'ya29.google-token' }, 'google'), 'official-login');
+  assert.strictEqual(
+    inferOfficialProfileAuthMode({ apiKey: 'ya29.google-token' }, 'google'),
+    'official-login'
+  );
   assert.strictEqual(inferOfficialProfileAuthMode({ apiKey: 'AIza-api-key' }, 'google'), 'api-key');
-  assert.strictEqual(inferOfficialProfileAuthMode({ authMode: 'api-key', apiKey: '' }, 'google'), 'api-key');
-  assert.strictEqual(inferOfficialProfileAuthMode({ authMode: 'official-login', apiKey: 'AIza-api-key' }, 'google'), 'official-login');
+  assert.strictEqual(
+    inferOfficialProfileAuthMode({ authMode: 'api-key', apiKey: '' }, 'google'),
+    'api-key'
+  );
+  assert.strictEqual(
+    inferOfficialProfileAuthMode({ authMode: 'official-login', apiKey: 'AIza-api-key' }, 'google'),
+    'official-login'
+  );
 });
 
 test('builds OpenAI official login probe against ChatGPT backend models', () => {
@@ -829,10 +1395,16 @@ test('builds OpenAI official Codex model list from Codex cache only', () => {
   const cache = {
     fetched_at: '2026-06-02T13:23:50Z',
     models: [
-      { slug: 'gpt-5.5', display_name: 'GPT-5.5', supported_in_api: true, visibility: 'list', priority: 2 },
+      {
+        slug: 'gpt-5.5',
+        display_name: 'GPT-5.5',
+        supported_in_api: true,
+        visibility: 'list',
+        priority: 2,
+      },
       { slug: 'gpt-5.3-codex-spark', supported_in_api: false, visibility: 'list', priority: 3 },
-      { slug: 'codex-auto-review', supported_in_api: true, visibility: 'hide', priority: 4 }
-    ]
+      { slug: 'codex-auto-review', supported_in_api: true, visibility: 'hide', priority: 4 },
+    ],
   };
   const response = buildOpenAIOfficialCodexModelsResponse(cache);
   assert.strictEqual(isOpenAIOfficialCodexTarget('https://chatgpt.com/backend-api/codex'), true);
@@ -840,7 +1412,10 @@ test('builds OpenAI official Codex model list from Codex cache only', () => {
   assert.deepStrictEqual(response.models, ['gpt-5.5']);
   assert.deepStrictEqual(response.unsupportedModels, ['gpt-5.3-codex-spark']);
   assert.deepStrictEqual(response.hiddenModels, ['codex-auto-review']);
-  assert.deepStrictEqual(codexOfficialModelsFromCache(cache).map(m => m.slug), ['gpt-5.5']);
+  assert.deepStrictEqual(
+    codexOfficialModelsFromCache(cache).map((m) => m.slug),
+    ['gpt-5.5']
+  );
 });
 
 test('checks OpenAI official Codex model support using dot slugs', () => {
@@ -848,18 +1423,21 @@ test('checks OpenAI official Codex model support using dot slugs', () => {
     models: [
       { slug: 'gpt-5.5', supported_in_api: true, visibility: 'list' },
       { slug: 'gpt-5.3-codex-spark', supported_in_api: false, visibility: 'list' },
-      { slug: 'codex-auto-review', supported_in_api: true, visibility: 'hide' }
-    ]
+      { slug: 'codex-auto-review', supported_in_api: true, visibility: 'hide' },
+    ],
   };
   assert.deepStrictEqual(openAIOfficialCodexModelSupport('codex/gpt-5.5', cache), {
     known: true,
     supported: true,
     model: 'gpt-5.5',
     visibility: 'list',
-    supportedInApi: true
+    supportedInApi: true,
   });
   assert.strictEqual(openAIOfficialCodexModelSupport('gpt-5-5', cache).known, false);
-  assert.strictEqual(openAIOfficialCodexModelSupport('gpt-5.3-codex-spark', cache).supported, false);
+  assert.strictEqual(
+    openAIOfficialCodexModelSupport('gpt-5.3-codex-spark', cache).supported,
+    false
+  );
   assert.strictEqual(openAIOfficialCodexModelSupport('codex-auto-review', cache).supported, false);
 });
 
@@ -869,26 +1447,40 @@ test('builds Trae official model list from Trae state rows', () => {
       key: '7478324853305803784_AI.agent.model.model_list_map',
       value: JSON.stringify({
         solo_coder: [
-          { name: 'gpt-5.4', display_name: 'GPT-5.4', model_type: 'reasoning_model', is_default: true },
-          { name: 'gemini-3-pro', display_name: 'Gemini-3-Pro-Preview', model_type: 'reasoning_model' }
+          {
+            name: 'gpt-5.4',
+            display_name: 'GPT-5.4',
+            model_type: 'reasoning_model',
+            is_default: true,
+          },
+          {
+            name: 'gemini-3-pro',
+            display_name: 'Gemini-3-Pro-Preview',
+            model_type: 'reasoning_model',
+          },
         ],
         solo_builder: [
-          { name: 'kimi-k2-0905', display_name: 'Kimi-K2-0905', model_type: 'chat_model' }
-        ]
-      })
+          { name: 'kimi-k2-0905', display_name: 'Kimi-K2-0905', model_type: 'chat_model' },
+        ],
+      }),
     },
     {
       key: 'AI.agent.modelList',
       value: JSON.stringify([
-        { name: 'claude3.5', display_name: 'Claude-3.5-Sonnet', model_type: 'chat_model' }
-      ])
-    }
+        { name: 'claude3.5', display_name: 'Claude-3.5-Sonnet', model_type: 'chat_model' },
+      ]),
+    },
   ];
   const response = buildTraeOfficialModelsResponseFromRows(rows);
   assert.strictEqual(isTraeOfficialTarget('https://coresg-normal.trae.ai/api/ide/v1'), true);
   assert.strictEqual(isTraeOfficialProfile({ id: 'trae-official' }), true);
   assert.strictEqual(normalizeTraeOfficialModelName('trae/gpt-5.4'), 'gpt-5.4');
-  assert.deepStrictEqual(response.models, ['GPT-5.4', 'Gemini-3-Pro-Preview', 'Kimi-K2-0905', 'Claude-3.5-Sonnet']);
+  assert.deepStrictEqual(response.models, [
+    'GPT-5.4',
+    'Gemini-3-Pro-Preview',
+    'Kimi-K2-0905',
+    'Claude-3.5-Sonnet',
+  ]);
   assert.strictEqual(response.modelMap['GPT-5.4'], 'gpt-5.4');
   assert.strictEqual(traeModelsFromStateRows(rows).length, 4);
   assert.deepStrictEqual(traeOfficialModelSupport('trae/GPT-5.4', rows), {
@@ -896,7 +1488,7 @@ test('builds Trae official model list from Trae state rows', () => {
     supported: true,
     model: 'gpt-5.4',
     displayName: 'GPT-5.4',
-    modelType: 'reasoning_model'
+    modelType: 'reasoning_model',
   });
   assert.strictEqual(traeOfficialModelSupport('gpt-unknown', rows).known, false);
 });
@@ -911,10 +1503,10 @@ test('builds Trae bridge prompt from OpenAI chat request', () => {
         role: 'user',
         content: [
           { type: 'text', text: '分析这个截图' },
-          { type: 'image_url', image_url: { url: imageData } }
-        ]
-      }
-    ]
+          { type: 'image_url', image_url: { url: imageData } },
+        ],
+      },
+    ],
   });
   assert.ok(result.prompt.includes('System:\nUse concise Chinese.'));
   assert.ok(result.prompt.includes('Developer:\nReturn only the answer.'));
@@ -926,7 +1518,11 @@ test('builds Trae bridge prompt from OpenAI chat request', () => {
 
 test('builds OpenAI chat completion from Trae bridge text', () => {
   assert.strictEqual(normalizeTraeBridgeText({ ok: true, text: '你好' }), '你好');
-  const response = buildTraeBridgeOpenAIChatCompletion({ model: 'trae/GPT-5.4' }, '桥接成功', 'gpt-5.4');
+  const response = buildTraeBridgeOpenAIChatCompletion(
+    { model: 'trae/GPT-5.4' },
+    '桥接成功',
+    'gpt-5.4'
+  );
   assert.strictEqual(response.object, 'chat.completion');
   assert.strictEqual(response.model, 'gpt-5.4');
   assert.strictEqual(response.choices[0].message.role, 'assistant');
@@ -964,212 +1560,329 @@ async function withTraeSseServer(handler, fn) {
 }
 
 test('streams Trae bridge SSE text and interaction events', async () => {
-  await withTraeSseServer((req, res) => {
-    assert.strictEqual(req.url, '/v1/chat/stream');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
-    res.write('event: raw_event\ndata: {"ts":1234,"service":"chat","method":"chat","event":"plan_item","payload":{"id":"p1","agent_status":{"status":"running"},"tool_call_info":{"id":"t1","name":"finish"}}}\n\n');
-    res.write('event: text_delta\ndata: {"text":"hello"}\n\n');
-    res.write('event: progress\ndata: {"phase":"running","elapsedMs":2000}\n\n');
-    res.write('event: interaction\ndata: {"interaction":{"type":"RunCommand","command":"dir","cwd":"E:/repo"}}\n\n');
-    res.end('event: done\ndata: {"ok":true,"text":"hello world"}\n\n');
-  }, async (baseUrl) => {
-    const runtime = createFakeTraeRuntime(baseUrl);
-    const deltas = [];
-    const progressEvents = [];
-    const interactions = [];
-    const rawEvents = [];
-    const result = await runtime.streamTraeOfficialBridge({ prompt: 'hello', model: 'gpt-5.4' }, {
-      onTextDelta: (text) => deltas.push(text),
-      onProgress: (progress) => progressEvents.push(progress),
-      onInteraction: (interaction) => interactions.push(interaction),
-      onRawEvent: (rawEvent) => rawEvents.push(rawEvent),
-    });
-    assert.deepStrictEqual(deltas, ['hello']);
-    assert.strictEqual(progressEvents[0].phase, 'running');
-    assert.strictEqual(interactions[0].type, 'RunCommand');
-    assert.strictEqual(rawEvents[0].event, 'plan_item');
-    assert.strictEqual(result.text, 'hello world');
-  });
+  await withTraeSseServer(
+    (req, res) => {
+      assert.strictEqual(req.url, '/v1/chat/stream');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      res.write(
+        'event: raw_event\ndata: {"ts":1234,"service":"chat","method":"chat","event":"plan_item","payload":{"id":"p1","agent_status":{"status":"running"},"tool_call_info":{"id":"t1","name":"finish"}}}\n\n'
+      );
+      res.write('event: text_delta\ndata: {"text":"hello"}\n\n');
+      res.write('event: progress\ndata: {"phase":"running","elapsedMs":2000}\n\n');
+      res.write(
+        'event: interaction\ndata: {"interaction":{"type":"RunCommand","command":"dir","cwd":"E:/repo"}}\n\n'
+      );
+      res.end('event: done\ndata: {"ok":true,"text":"hello world"}\n\n');
+    },
+    async (baseUrl) => {
+      const runtime = createFakeTraeRuntime(baseUrl);
+      const deltas = [];
+      const progressEvents = [];
+      const interactions = [];
+      const rawEvents = [];
+      const result = await runtime.streamTraeOfficialBridge(
+        { prompt: 'hello', model: 'gpt-5.4' },
+        {
+          onTextDelta: (text) => deltas.push(text),
+          onProgress: (progress) => progressEvents.push(progress),
+          onInteraction: (interaction) => interactions.push(interaction),
+          onRawEvent: (rawEvent) => rawEvents.push(rawEvent),
+        }
+      );
+      assert.deepStrictEqual(deltas, ['hello']);
+      assert.strictEqual(progressEvents[0].phase, 'running');
+      assert.strictEqual(interactions[0].type, 'RunCommand');
+      assert.strictEqual(rawEvents[0].event, 'plan_item');
+      assert.strictEqual(result.text, 'hello world');
+    }
+  );
 });
 
 test('writes compact Trae raw progress comments when debug mode is enabled', async () => {
-  await withTraeSseServer((req, res) => {
-    assert.strictEqual(req.url, '/v1/chat/stream');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
-    res.write('event: raw_event\ndata: {"ts":1234,"service":"chat","method":"chat","channelId":"c1","event":"plan_item","payload":{"id":"p1","task_id":"task1","thought":{"redacted":true,"chars":8},"reasoning_content":{"redacted":true,"chars":21},"agent_status":{"status":"running","run_mode":"foreground"},"tool_call_info":{"id":"t1","name":"finish","result":{"status":"success"}}}}\n\n');
-    res.write('event: text_delta\ndata: {"text":"done"}\n\n');
-    res.end('event: done\ndata: {"ok":true,"text":"done"}\n\n');
-  }, async (baseUrl) => {
-    const runtime = createFakeTraeRuntime(baseUrl, { rawProgressMode: 'comment', liveHeartbeatMs: 0 });
-    const chunks = [];
-    const clientRes = {
-      writeHead(statusCode, headers) {
-        this.statusCode = statusCode;
-        this.headers = headers;
-      },
-      write(chunk) { chunks.push(String(chunk)); },
-      end() { this.ended = true; },
-    };
-    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
-    const output = chunks.join('');
-    assert.ok(output.includes(': trae-raw {"source":"trae-raw","event":"plan_item"'));
-    assert.ok(output.includes('"agentStatus":"running"'));
-    assert.ok(output.includes('"toolName":"finish"'));
-    assert.ok(!output.includes('reasoning_content'));
-    assert.ok(output.includes('"content":"done"'));
-    assert.ok(output.includes('data: [DONE]'));
-  });
+  await withTraeSseServer(
+    (req, res) => {
+      assert.strictEqual(req.url, '/v1/chat/stream');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      res.write(
+        'event: raw_event\ndata: {"ts":1234,"service":"chat","method":"chat","channelId":"c1","event":"plan_item","payload":{"id":"p1","task_id":"task1","thought":{"redacted":true,"chars":8},"reasoning_content":{"redacted":true,"chars":21},"agent_status":{"status":"running","run_mode":"foreground"},"tool_call_info":{"id":"t1","name":"finish","result":{"status":"success"}}}}\n\n'
+      );
+      res.write('event: text_delta\ndata: {"text":"done"}\n\n');
+      res.end('event: done\ndata: {"ok":true,"text":"done"}\n\n');
+    },
+    async (baseUrl) => {
+      const runtime = createFakeTraeRuntime(baseUrl, {
+        rawProgressMode: 'comment',
+        liveHeartbeatMs: 0,
+      });
+      const chunks = [];
+      const clientRes = {
+        writeHead(statusCode, headers) {
+          this.statusCode = statusCode;
+          this.headers = headers;
+        },
+        write(chunk) {
+          chunks.push(String(chunk));
+        },
+        end() {
+          this.ended = true;
+        },
+      };
+      await runtime.writeTraeBridgeOpenAILiveStream(
+        clientRes,
+        { model: 'trae/gpt-5.4' },
+        { prompt: 'hello', model: 'gpt-5.4' },
+        'gpt-5.4'
+      );
+      const output = chunks.join('');
+      assert.ok(output.includes(': trae-raw {"source":"trae-raw","event":"plan_item"'));
+      assert.ok(output.includes('"agentStatus":"running"'));
+      assert.ok(output.includes('"toolName":"finish"'));
+      assert.ok(!output.includes('reasoning_content'));
+      assert.ok(output.includes('"content":"done"'));
+      assert.ok(output.includes('data: [DONE]'));
+    }
+  );
 });
 
 test('can surface Trae raw progress as visible OpenAI stream text when explicitly enabled', async () => {
-  await withTraeSseServer((req, res) => {
-    assert.strictEqual(req.url, '/v1/chat/stream');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
-    res.write('event: raw_event\ndata: {"ts":1234,"service":"chat","method":"chat","channelId":"c1","event":"plan_item","payload":{"id":"p1","thought":{"redacted":true,"chars":8},"agent_status":{"status":"running"},"tool_call_info":{"id":"t1","name":"run_command","result":{"status":"success"}}}}\n\n');
-    res.write('event: text_delta\ndata: {"text":"done"}\n\n');
-    res.end('event: done\ndata: {"ok":true,"text":"done"}\n\n');
-  }, async (baseUrl) => {
-    const runtime = createFakeTraeRuntime(baseUrl, { rawProgressMode: 'visible', liveHeartbeatMs: 0 });
-    const chunks = [];
-    const clientRes = {
-      writeHead(statusCode, headers) {
-        this.statusCode = statusCode;
-        this.headers = headers;
-      },
-      write(chunk) { chunks.push(String(chunk)); },
-      end() { this.ended = true; },
-    };
-    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
-    const output = chunks.join('');
-    assert.ok(output.includes('[Trae plan_item tool=run_command status=success]'));
-    assert.ok(output.includes('"content":"done"'));
-    assert.ok(!output.includes('thought'));
-    assert.ok(!output.includes(': trae-raw'));
-    assert.ok(output.indexOf('[Trae plan_item') < output.indexOf('"content":"done"'));
-  });
+  await withTraeSseServer(
+    (req, res) => {
+      assert.strictEqual(req.url, '/v1/chat/stream');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      res.write(
+        'event: raw_event\ndata: {"ts":1234,"service":"chat","method":"chat","channelId":"c1","event":"plan_item","payload":{"id":"p1","thought":{"redacted":true,"chars":8},"agent_status":{"status":"running"},"tool_call_info":{"id":"t1","name":"run_command","result":{"status":"success"}}}}\n\n'
+      );
+      res.write('event: text_delta\ndata: {"text":"done"}\n\n');
+      res.end('event: done\ndata: {"ok":true,"text":"done"}\n\n');
+    },
+    async (baseUrl) => {
+      const runtime = createFakeTraeRuntime(baseUrl, {
+        rawProgressMode: 'visible',
+        liveHeartbeatMs: 0,
+      });
+      const chunks = [];
+      const clientRes = {
+        writeHead(statusCode, headers) {
+          this.statusCode = statusCode;
+          this.headers = headers;
+        },
+        write(chunk) {
+          chunks.push(String(chunk));
+        },
+        end() {
+          this.ended = true;
+        },
+      };
+      await runtime.writeTraeBridgeOpenAILiveStream(
+        clientRes,
+        { model: 'trae/gpt-5.4' },
+        { prompt: 'hello', model: 'gpt-5.4' },
+        'gpt-5.4'
+      );
+      const output = chunks.join('');
+      assert.ok(output.includes('[Trae plan_item tool=run_command status=success]'));
+      assert.ok(output.includes('"content":"done"'));
+      assert.ok(!output.includes('thought'));
+      assert.ok(!output.includes(': trae-raw'));
+      assert.ok(output.indexOf('[Trae plan_item') < output.indexOf('"content":"done"'));
+    }
+  );
 });
 
 test('can surface Trae raw progress using runtime debug switch without restart', async () => {
   let debugSettings = { rawProgressMode: '', logProgressMode: '', liveLogProgress: false };
-  await withTraeSseServer((req, res) => {
-    assert.strictEqual(req.url, '/v1/chat/stream');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
-    res.write('event: raw_event\ndata: {"event":"plan_item","payload":{"agent_status":{"status":"running"},"tool_call_info":{"name":"run_command","result":{"status":"success"}}}}\n\n');
-    res.write('event: text_delta\ndata: {"text":"done"}\n\n');
-    res.end('event: done\ndata: {"ok":true,"text":"done"}\n\n');
-  }, async (baseUrl) => {
-    const runtime = createFakeTraeRuntime(baseUrl, {
-      liveHeartbeatMs: 0,
-      getTraeDebugSettings: () => debugSettings,
-    });
-    const firstChunks = [];
-    const firstRes = {
-      writeHead(statusCode) { this.statusCode = statusCode; },
-      write(chunk) { firstChunks.push(String(chunk)); },
-      end() { this.ended = true; },
-    };
-    await runtime.writeTraeBridgeOpenAILiveStream(firstRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
-    assert.ok(!firstChunks.join('').includes('[Trae plan_item'));
+  await withTraeSseServer(
+    (req, res) => {
+      assert.strictEqual(req.url, '/v1/chat/stream');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      res.write(
+        'event: raw_event\ndata: {"event":"plan_item","payload":{"agent_status":{"status":"running"},"tool_call_info":{"name":"run_command","result":{"status":"success"}}}}\n\n'
+      );
+      res.write('event: text_delta\ndata: {"text":"done"}\n\n');
+      res.end('event: done\ndata: {"ok":true,"text":"done"}\n\n');
+    },
+    async (baseUrl) => {
+      const runtime = createFakeTraeRuntime(baseUrl, {
+        liveHeartbeatMs: 0,
+        getTraeDebugSettings: () => debugSettings,
+      });
+      const firstChunks = [];
+      const firstRes = {
+        writeHead(statusCode) {
+          this.statusCode = statusCode;
+        },
+        write(chunk) {
+          firstChunks.push(String(chunk));
+        },
+        end() {
+          this.ended = true;
+        },
+      };
+      await runtime.writeTraeBridgeOpenAILiveStream(
+        firstRes,
+        { model: 'trae/gpt-5.4' },
+        { prompt: 'hello', model: 'gpt-5.4' },
+        'gpt-5.4'
+      );
+      assert.ok(!firstChunks.join('').includes('[Trae plan_item'));
 
-    debugSettings = { rawProgressMode: 'visible', logProgressMode: 'visible', liveLogProgress: true };
-    const secondChunks = [];
-    const secondRes = {
-      writeHead(statusCode) { this.statusCode = statusCode; },
-      write(chunk) { secondChunks.push(String(chunk)); },
-      end() { this.ended = true; },
-    };
-    await runtime.writeTraeBridgeOpenAILiveStream(secondRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
-    const output = secondChunks.join('');
-    assert.ok(output.includes('[Trae plan_item tool=run_command status=success]'));
-    assert.ok(output.includes('"content":"done"'));
-  });
+      debugSettings = {
+        rawProgressMode: 'visible',
+        logProgressMode: 'visible',
+        liveLogProgress: true,
+      };
+      const secondChunks = [];
+      const secondRes = {
+        writeHead(statusCode) {
+          this.statusCode = statusCode;
+        },
+        write(chunk) {
+          secondChunks.push(String(chunk));
+        },
+        end() {
+          this.ended = true;
+        },
+      };
+      await runtime.writeTraeBridgeOpenAILiveStream(
+        secondRes,
+        { model: 'trae/gpt-5.4' },
+        { prompt: 'hello', model: 'gpt-5.4' },
+        'gpt-5.4'
+      );
+      const output = secondChunks.join('');
+      assert.ok(output.includes('[Trae plan_item tool=run_command status=success]'));
+      assert.ok(output.includes('"content":"done"'));
+    }
+  );
 });
 
 test('writes OpenAI live stream chunks from Trae bridge SSE', async () => {
-  await withTraeSseServer((req, res) => {
-    assert.strictEqual(req.url, '/v1/chat/stream');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
-    res.write('event: text_delta\ndata: {"text":"first"}\n\n');
-    res.write('event: progress\ndata: {"phase":"running","elapsedMs":2000}\n\n');
-    res.write('event: interaction\ndata: {"interaction":{"type":"RunCommand","command":"dir","cwd":"E:/repo"}}\n\n');
-    res.end('event: done\ndata: {"ok":true,"text":"first"}\n\n');
-  }, async (baseUrl) => {
-    const runtime = createFakeTraeRuntime(baseUrl);
-    const chunks = [];
-    const clientRes = {
-      writeHead(statusCode, headers) {
-        this.statusCode = statusCode;
-        this.headers = headers;
-      },
-      write(chunk) { chunks.push(String(chunk)); },
-      end() { this.ended = true; },
-    };
-    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
-    const output = chunks.join('');
-    assert.strictEqual(clientRes.statusCode, 200);
-    assert.ok(output.includes('"role":"assistant"'));
-    assert.ok(output.includes('"content":"first"'));
-    assert.ok(output.includes(': trae-progress {"phase":"running","elapsedMs":2000}'));
-    assert.ok(output.includes('[Trae RunCommand cwd=E:/repo command=dir]'));
-    assert.ok(output.includes('data: [DONE]'));
-    assert.strictEqual(clientRes.ended, true);
-  });
+  await withTraeSseServer(
+    (req, res) => {
+      assert.strictEqual(req.url, '/v1/chat/stream');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      res.write('event: text_delta\ndata: {"text":"first"}\n\n');
+      res.write('event: progress\ndata: {"phase":"running","elapsedMs":2000}\n\n');
+      res.write(
+        'event: interaction\ndata: {"interaction":{"type":"RunCommand","command":"dir","cwd":"E:/repo"}}\n\n'
+      );
+      res.end('event: done\ndata: {"ok":true,"text":"first"}\n\n');
+    },
+    async (baseUrl) => {
+      const runtime = createFakeTraeRuntime(baseUrl);
+      const chunks = [];
+      const clientRes = {
+        writeHead(statusCode, headers) {
+          this.statusCode = statusCode;
+          this.headers = headers;
+        },
+        write(chunk) {
+          chunks.push(String(chunk));
+        },
+        end() {
+          this.ended = true;
+        },
+      };
+      await runtime.writeTraeBridgeOpenAILiveStream(
+        clientRes,
+        { model: 'trae/gpt-5.4' },
+        { prompt: 'hello', model: 'gpt-5.4' },
+        'gpt-5.4'
+      );
+      const output = chunks.join('');
+      assert.strictEqual(clientRes.statusCode, 200);
+      assert.ok(output.includes('"role":"assistant"'));
+      assert.ok(output.includes('"content":"first"'));
+      assert.ok(output.includes(': trae-progress {"phase":"running","elapsedMs":2000}'));
+      assert.ok(output.includes('[Trae RunCommand cwd=E:/repo command=dir]'));
+      assert.ok(output.includes('data: [DONE]'));
+      assert.strictEqual(clientRes.ended, true);
+    }
+  );
 });
 
 test('writes proxy heartbeat while Trae bridge is waiting for final text', async () => {
-  await withTraeSseServer((req, res) => {
-    assert.strictEqual(req.url, '/v1/chat/stream');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
-    setTimeout(() => {
-      res.write('event: text_delta\ndata: {"text":"late"}\n\n');
-      res.end('event: done\ndata: {"ok":true,"text":"late"}\n\n');
-    }, 80);
-  }, async (baseUrl) => {
-    const runtime = createFakeTraeRuntime(baseUrl);
-    const chunks = [];
-    const clientRes = {
-      writeHead(statusCode, headers) {
-        this.statusCode = statusCode;
-        this.headers = headers;
-      },
-      write(chunk) { chunks.push(String(chunk)); },
-      end() { this.ended = true; },
-    };
-    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
-    const output = chunks.join('');
-    const heartbeatIndex = output.indexOf(': trae-progress {"phase":"running"');
-    const textIndex = output.indexOf('"content":"late"');
-    assert.ok(heartbeatIndex >= 0);
-    assert.ok(output.includes('"source":"proxy"'));
-    assert.ok(textIndex > heartbeatIndex);
-    assert.strictEqual(clientRes.ended, true);
-  });
+  await withTraeSseServer(
+    (req, res) => {
+      assert.strictEqual(req.url, '/v1/chat/stream');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      setTimeout(() => {
+        res.write('event: text_delta\ndata: {"text":"late"}\n\n');
+        res.end('event: done\ndata: {"ok":true,"text":"late"}\n\n');
+      }, 80);
+    },
+    async (baseUrl) => {
+      const runtime = createFakeTraeRuntime(baseUrl);
+      const chunks = [];
+      const clientRes = {
+        writeHead(statusCode, headers) {
+          this.statusCode = statusCode;
+          this.headers = headers;
+        },
+        write(chunk) {
+          chunks.push(String(chunk));
+        },
+        end() {
+          this.ended = true;
+        },
+      };
+      await runtime.writeTraeBridgeOpenAILiveStream(
+        clientRes,
+        { model: 'trae/gpt-5.4' },
+        { prompt: 'hello', model: 'gpt-5.4' },
+        'gpt-5.4'
+      );
+      const output = chunks.join('');
+      const heartbeatIndex = output.indexOf(': trae-progress {"phase":"running"');
+      const textIndex = output.indexOf('"content":"late"');
+      assert.ok(heartbeatIndex >= 0);
+      assert.ok(output.includes('"source":"proxy"'));
+      assert.ok(textIndex > heartbeatIndex);
+      assert.strictEqual(clientRes.ended, true);
+    }
+  );
 });
 
 test('finishes OpenAI live stream with visible Trae bridge error after headers are sent', async () => {
-  await withTraeSseServer((req, res) => {
-    assert.strictEqual(req.url, '/v1/chat/stream');
-    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
-    res.end('event: error\ndata: {"error":"Now session is not waiting input, sessionId: test"}\n\n');
-  }, async (baseUrl) => {
-    const runtime = createFakeTraeRuntime(baseUrl, { liveHeartbeatMs: 0 });
-    const chunks = [];
-    const clientRes = {
-      writeHead(statusCode, headers) {
-        this.statusCode = statusCode;
-        this.headers = headers;
-      },
-      write(chunk) { chunks.push(String(chunk)); },
-      end() { this.ended = true; },
-    };
-    await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
-    const output = chunks.join('');
-    assert.strictEqual(clientRes.statusCode, 200);
-    assert.ok(output.includes(': trae-progress {"phase":"error"'));
-    assert.ok(output.includes('[Trae bridge busy: Now session is not waiting input, sessionId: test]'));
-    assert.ok(output.includes('data: [DONE]'));
-    assert.strictEqual(clientRes.ended, true);
-  });
+  await withTraeSseServer(
+    (req, res) => {
+      assert.strictEqual(req.url, '/v1/chat/stream');
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      res.end(
+        'event: error\ndata: {"error":"Now session is not waiting input, sessionId: test"}\n\n'
+      );
+    },
+    async (baseUrl) => {
+      const runtime = createFakeTraeRuntime(baseUrl, { liveHeartbeatMs: 0 });
+      const chunks = [];
+      const clientRes = {
+        writeHead(statusCode, headers) {
+          this.statusCode = statusCode;
+          this.headers = headers;
+        },
+        write(chunk) {
+          chunks.push(String(chunk));
+        },
+        end() {
+          this.ended = true;
+        },
+      };
+      await runtime.writeTraeBridgeOpenAILiveStream(
+        clientRes,
+        { model: 'trae/gpt-5.4' },
+        { prompt: 'hello', model: 'gpt-5.4' },
+        'gpt-5.4'
+      );
+      const output = chunks.join('');
+      assert.strictEqual(clientRes.statusCode, 200);
+      assert.ok(output.includes(': trae-progress {"phase":"error"'));
+      assert.ok(
+        output.includes('[Trae bridge busy: Now session is not waiting input, sessionId: test]')
+      );
+      assert.ok(output.includes('data: [DONE]'));
+      assert.strictEqual(clientRes.ended, true);
+    }
+  );
 });
 
 test('writes redacted Trae log progress comments while waiting for final text', async () => {
@@ -1184,43 +1897,64 @@ test('writes redacted Trae log progress comments while waiting for final text', 
   fs.writeFileSync(rendererLog, 'old renderer line\n');
   fs.writeFileSync(agentLog, 'old agent line\n');
   try {
-    await withTraeSseServer((req, res) => {
-      assert.strictEqual(req.url, '/v1/chat/stream');
-      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
-      setTimeout(() => {
-        fs.appendFileSync(rendererLog, '2026-06-06T00:00:00.001-07:00 [info] [tooling] [message:msg_1] 11111111-1111-4111-8111-111111111111 icube.common.commands.tooling.listFolder start \n');
-        fs.appendFileSync(rendererLog, '2026-06-06T00:00:00.002-07:00 [info] [tooling] 11111111-1111-4111-8111-111111111111 icube.common.commands.tooling.listFolder end, cost=3ms [{\"code\":\"0\"}]\n');
-        fs.appendFileSync(agentLog, '2026-06-06T00:00:00.003-07:00 INFO process_ipc_request:route:chat:do_chat: ai_agent::domain::plan::simple_service_v2: first token flushed thought, thought=\"\", reasoning=Some(\"redacted\") trace_id=\"trace_1\" task_id=task_1 message_id=message_1\n');
-      }, 20);
-      setTimeout(() => {
-        res.write('event: text_delta\ndata: {"text":"late"}\n\n');
-        res.end('event: done\ndata: {"ok":true,"text":"late"}\n\n');
-      }, 420);
-    }, async (baseUrl) => {
-      const runtime = createFakeTraeRuntime(baseUrl, {
-        liveHeartbeatMs: 0,
-        liveLogProgress: true,
-        traeLogRoot: logRoot
-      });
-      const chunks = [];
-      const clientRes = {
-        writeHead(statusCode, headers) {
-          this.statusCode = statusCode;
-          this.headers = headers;
-        },
-        write(chunk) { chunks.push(String(chunk)); },
-        end() { this.ended = true; },
-      };
-      await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
-      const output = chunks.join('');
-      assert.ok(output.includes('"source":"trae-log"'));
-      assert.ok(output.includes('"kind":"tool_start"'));
-      assert.ok(output.includes('"kind":"tool_end"'));
-      assert.ok(output.includes('"kind":"model_first_token"'));
-      assert.ok(!output.includes('redacted'));
-      assert.ok(output.indexOf('"kind":"tool_start"') < output.indexOf('"content":"late"'));
-      assert.strictEqual(clientRes.ended, true);
-    });
+    await withTraeSseServer(
+      (req, res) => {
+        assert.strictEqual(req.url, '/v1/chat/stream');
+        res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+        setTimeout(() => {
+          fs.appendFileSync(
+            rendererLog,
+            '2026-06-06T00:00:00.001-07:00 [info] [tooling] [message:msg_1] 11111111-1111-4111-8111-111111111111 icube.common.commands.tooling.listFolder start \n'
+          );
+          fs.appendFileSync(
+            rendererLog,
+            '2026-06-06T00:00:00.002-07:00 [info] [tooling] 11111111-1111-4111-8111-111111111111 icube.common.commands.tooling.listFolder end, cost=3ms [{"code":"0"}]\n'
+          );
+          fs.appendFileSync(
+            agentLog,
+            '2026-06-06T00:00:00.003-07:00 INFO process_ipc_request:route:chat:do_chat: ai_agent::domain::plan::simple_service_v2: first token flushed thought, thought="", reasoning=Some("redacted") trace_id="trace_1" task_id=task_1 message_id=message_1\n'
+          );
+        }, 20);
+        setTimeout(() => {
+          res.write('event: text_delta\ndata: {"text":"late"}\n\n');
+          res.end('event: done\ndata: {"ok":true,"text":"late"}\n\n');
+        }, 420);
+      },
+      async (baseUrl) => {
+        const runtime = createFakeTraeRuntime(baseUrl, {
+          liveHeartbeatMs: 0,
+          liveLogProgress: true,
+          traeLogRoot: logRoot,
+        });
+        const chunks = [];
+        const clientRes = {
+          writeHead(statusCode, headers) {
+            this.statusCode = statusCode;
+            this.headers = headers;
+          },
+          write(chunk) {
+            chunks.push(String(chunk));
+          },
+          end() {
+            this.ended = true;
+          },
+        };
+        await runtime.writeTraeBridgeOpenAILiveStream(
+          clientRes,
+          { model: 'trae/gpt-5.4' },
+          { prompt: 'hello', model: 'gpt-5.4' },
+          'gpt-5.4'
+        );
+        const output = chunks.join('');
+        assert.ok(output.includes('"source":"trae-log"'));
+        assert.ok(output.includes('"kind":"tool_start"'));
+        assert.ok(output.includes('"kind":"tool_end"'));
+        assert.ok(output.includes('"kind":"model_first_token"'));
+        assert.ok(!output.includes('redacted'));
+        assert.ok(output.indexOf('"kind":"tool_start"') < output.indexOf('"content":"late"'));
+        assert.strictEqual(clientRes.ended, true);
+      }
+    );
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -1238,41 +1972,61 @@ test('can surface Trae log progress as visible OpenAI stream text when explicitl
   fs.writeFileSync(rendererLog, 'old renderer line\n');
   fs.writeFileSync(agentLog, 'old agent line\n');
   try {
-    await withTraeSseServer((req, res) => {
-      assert.strictEqual(req.url, '/v1/chat/stream');
-      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
-      setTimeout(() => {
-        fs.appendFileSync(rendererLog, '2026-06-06T00:00:00.001-07:00 [info] [tooling] [message:msg_1] 11111111-1111-4111-8111-111111111111 icube.common.commands.tooling.listFolder start \n');
-        fs.appendFileSync(agentLog, '2026-06-06T00:00:00.003-07:00 INFO process_ipc_request:route:chat:do_chat: ai_agent::domain::plan::simple_service_v2: first token flushed thought, thought="", reasoning=Some("redacted") trace_id="trace_1" task_id=task_1 message_id=message_1\n');
-      }, 20);
-      setTimeout(() => {
-        res.write('event: text_delta\ndata: {"text":"late"}\n\n');
-        res.end('event: done\ndata: {"ok":true,"text":"late"}\n\n');
-      }, 420);
-    }, async (baseUrl) => {
-      const runtime = createFakeTraeRuntime(baseUrl, {
-        liveHeartbeatMs: 0,
-        liveLogProgress: true,
-        liveLogProgressMode: 'visible',
-        traeLogRoot: logRoot
-      });
-      const chunks = [];
-      const clientRes = {
-        writeHead(statusCode, headers) {
-          this.statusCode = statusCode;
-          this.headers = headers;
-        },
-        write(chunk) { chunks.push(String(chunk)); },
-        end() { this.ended = true; },
-      };
-      await runtime.writeTraeBridgeOpenAILiveStream(clientRes, { model: 'trae/gpt-5.4' }, { prompt: 'hello', model: 'gpt-5.4' }, 'gpt-5.4');
-      const output = chunks.join('');
-      assert.ok(output.includes('[Trae tool_start command=icube.common.commands.tooling.listFolder]'));
-      assert.ok(output.includes('[Trae model_first_token]'));
-      assert.ok(output.includes('"content":"late"'));
-      assert.ok(!output.includes('reasoning'));
-      assert.ok(output.indexOf('[Trae tool_start') < output.indexOf('"content":"late"'));
-    });
+    await withTraeSseServer(
+      (req, res) => {
+        assert.strictEqual(req.url, '/v1/chat/stream');
+        res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+        setTimeout(() => {
+          fs.appendFileSync(
+            rendererLog,
+            '2026-06-06T00:00:00.001-07:00 [info] [tooling] [message:msg_1] 11111111-1111-4111-8111-111111111111 icube.common.commands.tooling.listFolder start \n'
+          );
+          fs.appendFileSync(
+            agentLog,
+            '2026-06-06T00:00:00.003-07:00 INFO process_ipc_request:route:chat:do_chat: ai_agent::domain::plan::simple_service_v2: first token flushed thought, thought="", reasoning=Some("redacted") trace_id="trace_1" task_id=task_1 message_id=message_1\n'
+          );
+        }, 20);
+        setTimeout(() => {
+          res.write('event: text_delta\ndata: {"text":"late"}\n\n');
+          res.end('event: done\ndata: {"ok":true,"text":"late"}\n\n');
+        }, 420);
+      },
+      async (baseUrl) => {
+        const runtime = createFakeTraeRuntime(baseUrl, {
+          liveHeartbeatMs: 0,
+          liveLogProgress: true,
+          liveLogProgressMode: 'visible',
+          traeLogRoot: logRoot,
+        });
+        const chunks = [];
+        const clientRes = {
+          writeHead(statusCode, headers) {
+            this.statusCode = statusCode;
+            this.headers = headers;
+          },
+          write(chunk) {
+            chunks.push(String(chunk));
+          },
+          end() {
+            this.ended = true;
+          },
+        };
+        await runtime.writeTraeBridgeOpenAILiveStream(
+          clientRes,
+          { model: 'trae/gpt-5.4' },
+          { prompt: 'hello', model: 'gpt-5.4' },
+          'gpt-5.4'
+        );
+        const output = chunks.join('');
+        assert.ok(
+          output.includes('[Trae tool_start command=icube.common.commands.tooling.listFolder]')
+        );
+        assert.ok(output.includes('[Trae model_first_token]'));
+        assert.ok(output.includes('"content":"late"'));
+        assert.ok(!output.includes('reasoning'));
+        assert.ok(output.indexOf('[Trae tool_start') < output.indexOf('"content":"late"'));
+      }
+    );
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -1284,24 +2038,45 @@ test('formats Codex local session rate limits as OpenAI window limits', () => {
   const resetWeek = Math.round((nowMs + 5 * 86400 * 1000) / 1000);
   const resetDate = new Date(reset5h * 1000);
   const expectedResetDisplay = `${String(resetDate.getHours()).padStart(2, '0')}:${String(resetDate.getMinutes()).padStart(2, '0')}`;
-  const limits = formatCodexLocalRateLimits({
-    limit_id: 'codex',
-    plan_type: 'prolite',
-    primary: { used_percent: 30, window_minutes: 300, resets_at: reset5h },
-    secondary: { used_percent: 14, window_minutes: 10080, resets_at: resetWeek }
-  }, nowMs);
-  assert.deepStrictEqual(limits.map(item => item.window), ['5小时', '1周']);
-  assert.deepStrictEqual(limits.map(item => item.percent), [70, 86]);
-  assert.deepStrictEqual(limits.map(item => item.usedPercent), [30, 14]);
+  const limits = formatCodexLocalRateLimits(
+    {
+      limit_id: 'codex',
+      plan_type: 'prolite',
+      primary: { used_percent: 30, window_minutes: 300, resets_at: reset5h },
+      secondary: { used_percent: 14, window_minutes: 10080, resets_at: resetWeek },
+    },
+    nowMs
+  );
+  assert.deepStrictEqual(
+    limits.map((item) => item.window),
+    ['5小时', '1周']
+  );
+  assert.deepStrictEqual(
+    limits.map((item) => item.percent),
+    [70, 86]
+  );
+  assert.deepStrictEqual(
+    limits.map((item) => item.usedPercent),
+    [30, 14]
+  );
   assert.strictEqual(limits[0].resetIn, '2h0m');
   assert.strictEqual(limits[0].resetDisplay, expectedResetDisplay);
   assert.strictEqual(limits[0].planType, 'prolite');
 });
 
 test('prioritizes Codex rate limits from the current thread session', () => {
-  const current = path.join('sessions', 'rollout-2026-06-02T00-29-10-019e873c-6f4f-7f31-9826-22cd50aae934.jsonl');
-  const other = path.join('sessions', 'rollout-2026-06-02T02-41-37-019e87b5-b333-7600-bf25-f00573708191.jsonl');
-  const ordered = prioritizeCodexSessionFiles([other, current], '019e873c-6f4f-7f31-9826-22cd50aae934');
+  const current = path.join(
+    'sessions',
+    'rollout-2026-06-02T00-29-10-019e873c-6f4f-7f31-9826-22cd50aae934.jsonl'
+  );
+  const other = path.join(
+    'sessions',
+    'rollout-2026-06-02T02-41-37-019e87b5-b333-7600-bf25-f00573708191.jsonl'
+  );
+  const ordered = prioritizeCodexSessionFiles(
+    [other, current],
+    '019e873c-6f4f-7f31-9826-22cd50aae934'
+  );
   assert.strictEqual(ordered[0], current);
 });
 
@@ -1323,8 +2098,8 @@ test('maps Google official available models using AGY model ids and labels', () 
     models: {
       'gemini-3.5-flash-low': { displayName: 'Gemini 3.5 Flash (Medium)' },
       'gemini-3-flash-agent': { displayName: 'Gemini 3.5 Flash (High)' },
-      'gemini-3.5-flash-extra-low': { displayName: 'Gemini 3.5 Flash (Low)' }
-    }
+      'gemini-3.5-flash-extra-low': { displayName: 'Gemini 3.5 Flash (Low)' },
+    },
   });
   assert.ok(models.includes('Gemini 3.5 Flash (Medium)'));
   assert.ok(models.includes('gemini-3.5-flash-low'));
@@ -1333,11 +2108,15 @@ test('maps Google official available models using AGY model ids and labels', () 
 });
 
 test('decodes Antigravity OAuth state payload without Gemini CLI credentials', () => {
-  const toBase64Url = (value) => Buffer.from(value).toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-  const inner = toBase64Url('token ya29.test-access Bearer refresh 1//test-refresh ' + 'x'.repeat(96));
+  const toBase64Url = (value) =>
+    Buffer.from(value)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  const inner = toBase64Url(
+    'token ya29.test-access Bearer refresh 1//test-refresh ' + 'x'.repeat(96)
+  );
   const outer = Buffer.from(`oauthTokenInfoSentinelKey ${inner}`).toString('base64');
   const creds = decodeAntigravityOAuthStateValue(outer);
   assert.strictEqual(creds.access_token, 'ya29.test-access');
@@ -1353,7 +2132,7 @@ test('caches refreshed Antigravity official access token in process', async () =
       refreshCalls += 1;
       return {
         statusCode: 200,
-        body: JSON.stringify({ access_token: 'ya29.fresh-' + refreshCalls, expires_in: 3600 })
+        body: JSON.stringify({ access_token: 'ya29.fresh-' + refreshCalls, expires_in: 3600 }),
       };
     },
     googleOfficialCodeAssistUrl,
@@ -1367,8 +2146,8 @@ test('caches refreshed Antigravity official access token in process', async () =
         token_type: 'Bearer',
         __readOnly: true,
         __source: 'antigravity-state',
-        expiry_date: 1
-      }
+        expiry_date: 1,
+      },
     }),
     isGoogleOfficialLoginToken,
     buildGoogleOfficialLoadCodeAssistRequest,
@@ -1381,9 +2160,15 @@ test('caches refreshed Antigravity official access token in process', async () =
 
 test('builds Google official login Code Assist probe instead of public Gemini API', () => {
   const probe = buildGoogleOfficialLoadCodeAssistRequest('ya29.google-token');
-  assert.strictEqual(googleOfficialCodeAssistUrl('loadCodeAssist'), 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist');
+  assert.strictEqual(
+    googleOfficialCodeAssistUrl('loadCodeAssist'),
+    'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist'
+  );
   assert.strictEqual(probe.method, 'POST');
-  assert.strictEqual(probe.fullUrl, 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist');
+  assert.strictEqual(
+    probe.fullUrl,
+    'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist'
+  );
   assert.strictEqual(probe.headers.authorization, 'Bearer ya29.google-token');
   assert.strictEqual(probe.headers['content-type'], 'application/json');
   const body = JSON.parse(probe.requestBody);
@@ -1394,44 +2179,59 @@ test('builds Google official login Code Assist probe instead of public Gemini AP
 test('builds Google official quota requests for Antigravity backend', () => {
   const available = buildGoogleOfficialAvailableModelsRequest('ya29.google-token', 'project-1');
   assert.strictEqual(available.method, 'POST');
-  assert.strictEqual(available.fullUrl, 'https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels');
+  assert.strictEqual(
+    available.fullUrl,
+    'https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels'
+  );
   assert.strictEqual(available.headers.authorization, 'Bearer ya29.google-token');
   assert.deepStrictEqual(JSON.parse(available.requestBody), { project: 'project-1' });
 
   const quota = buildGoogleOfficialRetrieveUserQuotaRequest('ya29.google-token', 'project-1');
-  assert.strictEqual(quota.fullUrl, 'https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota');
-  assert.deepStrictEqual(JSON.parse(quota.requestBody), { project: 'project-1', userAgent: 'antigravity' });
+  assert.strictEqual(
+    quota.fullUrl,
+    'https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota'
+  );
+  assert.deepStrictEqual(JSON.parse(quota.requestBody), {
+    project: 'project-1',
+    userAgent: 'antigravity',
+  });
 });
 
 test('formats Google official available model quota as remaining percent', () => {
   const limits = formatGoogleOfficialAvailableModels({
     models: {
-      'chat_20706': {
+      chat_20706: {
         displayName: 'chat_20706',
-        quotaInfo: { remainingFraction: 1 }
+        quotaInfo: { remainingFraction: 1 },
       },
-      'tab_flash_lite_preview': {
+      tab_flash_lite_preview: {
         displayName: 'tab_flash_lite_preview',
-        quotaInfo: { remainingFraction: 1 }
+        quotaInfo: { remainingFraction: 1 },
       },
       'gemini-3-pro-high': {
         displayName: 'Gemini 3 Pro High',
-        quotaInfo: { remainingFraction: 0.12, resetTime: '2999-01-01T00:00:00Z' }
+        quotaInfo: { remainingFraction: 0.12, resetTime: '2999-01-01T00:00:00Z' },
       },
       'gemini-3-pro-agent': {
         displayName: 'Gemini 3 Pro High',
-        quotaInfo: { remainingFraction: 0.12, resetTime: '2999-01-01T00:00:00Z' }
+        quotaInfo: { remainingFraction: 0.12, resetTime: '2999-01-01T00:00:00Z' },
       },
       'claude-sonnet-4-6-thinking': {
         displayName: 'Claude Sonnet 4.6 Thinking',
-        quotaInfo: { remainingFraction: 0.75, resetTime: '2999-01-01T00:00:00Z' }
-      }
-    }
+        quotaInfo: { remainingFraction: 0.75, resetTime: '2999-01-01T00:00:00Z' },
+      },
+    },
   });
   assert.strictEqual(limits.length, 2);
-  assert.strictEqual(limits.some(item => item.modelId.startsWith('chat_')), false);
-  assert.strictEqual(limits.some(item => item.modelId.startsWith('tab_')), false);
-  const low = limits.find(item => item.modelId === 'gemini-3-pro-high');
+  assert.strictEqual(
+    limits.some((item) => item.modelId.startsWith('chat_')),
+    false
+  );
+  assert.strictEqual(
+    limits.some((item) => item.modelId.startsWith('tab_')),
+    false
+  );
+  const low = limits.find((item) => item.modelId === 'gemini-3-pro-high');
   assert.strictEqual(low.remainingPercent, 12);
   assert.strictEqual(low.percent, 12);
   assert.notStrictEqual(low.resetIn, '2h2m');
@@ -1439,12 +2239,14 @@ test('formats Google official available model quota as remaining percent', () =>
 
 test('formats Google official user quota buckets as remaining percent fallback', () => {
   const limits = formatGoogleOfficialUserQuota({
-    buckets: [{
-      modelId: 'gemini-3-flash',
-      remainingFraction: 0.25,
-      remainingAmount: '25',
-      resetTime: '2999-01-01T00:00:00Z'
-    }]
+    buckets: [
+      {
+        modelId: 'gemini-3-flash',
+        remainingFraction: 0.25,
+        remainingAmount: '25',
+        resetTime: '2999-01-01T00:00:00Z',
+      },
+    ],
   });
   assert.strictEqual(limits[0].model, 'gemini-3-flash');
   assert.strictEqual(limits[0].remainingPercent, 25);
@@ -1460,7 +2262,10 @@ test('builds Gemini official login probe through Code Assist backend', () => {
     'official-login'
   );
   assert.strictEqual(probe.method, 'POST');
-  assert.strictEqual(probe.fullUrl, 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist');
+  assert.strictEqual(
+    probe.fullUrl,
+    'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist'
+  );
   assert.strictEqual(probe.headers.authorization, 'Bearer ya29.google-token');
   assert.strictEqual(probe.headers['content-type'], 'application/json');
   assert.strictEqual(probe.fullUrl.includes('generativelanguage.googleapis.com'), false);
@@ -1488,7 +2293,7 @@ test('evaluates OpenAI official login probe responses without rejecting network-
   assert.deepStrictEqual(success, {
     ok: true,
     authMode: 'official-login',
-    message: '官方登录凭证有效，模型 gpt-5.3-codex 已在后台列表中。'
+    message: '官方登录凭证有效，模型 gpt-5.3-codex 已在后台列表中。',
   });
 
   const cloudflare = evaluateOpenAIProfileAuthResponse(
@@ -1505,69 +2310,112 @@ test('evaluates Gemini Code Assist profile auth responses', () => {
     { statusCode: 200, headers: {}, body: '{}' },
     {
       authMode: 'official-login',
-      probeFullUrl: 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist'
+      probeFullUrl: 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist',
     }
   );
   assert.deepStrictEqual(ok, {
     ok: true,
     authMode: 'official-login',
     source: 'code-assist',
-    message: 'Google 官方登录凭证有效，Code Assist/Antigravity 后端可达。'
+    message: 'Google 官方登录凭证有效，Code Assist/Antigravity 后端可达。',
   });
 
   const failed = evaluateGeminiProfileAuthResponse(
-    { statusCode: 401, headers: {}, body: JSON.stringify([{ error: { message: 'invalid oauth' } }]) },
+    {
+      statusCode: 401,
+      headers: {},
+      body: JSON.stringify([{ error: { message: 'invalid oauth' } }]),
+    },
     {
       authMode: 'official-login',
-      probeFullUrl: 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist'
+      probeFullUrl: 'https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist',
     }
   );
   assert.deepStrictEqual(failed, {
     ok: false,
     authMode: 'official-login',
     source: 'code-assist',
-    error: 'Google 官方登录后端探测失败 HTTP 401: invalid oauth'
+    error: 'Google 官方登录后端探测失败 HTTP 401: invalid oauth',
   });
 });
 
 test('evaluates Claude profile auth error responses', () => {
   const result = evaluateClaudeProfileAuthResponse(
-    { statusCode: 404, headers: {}, body: JSON.stringify({ error: { message: 'model not found' } }) },
+    {
+      statusCode: 404,
+      headers: {},
+      body: JSON.stringify({ error: { message: 'model not found' } }),
+    },
     { testModel: 'claude-3-5-sonnet-20241022' }
   );
   assert.deepStrictEqual(result, {
     ok: false,
-    error: 'HTTP 404: model not found'
+    error: 'HTTP 404: model not found',
   });
 });
 
 test('builds local OpenAI-compatible model list from routed model names', () => {
-  assert.deepStrictEqual(buildLocalModelsResponse([
-    { from: 'claude-haiku-4-5-20251001', profileId: 'yhrouter', to: 'gpt-5.5' },
-    { from: 'claude-gemini', profileId: 'google-gemini', to: 'gemini-3-flash-preview' },
-    { from: 'claude-haiku-4-5-20251001', profileId: 'other', to: 'other-model' },
-  ]), {
-    object: 'list',
-    data: [
-      { id: 'claude-gemini', object: 'model', created: 0, owned_by: 'local-proxy', root: 'claude-gemini', parent: null, permission: [] },
-      { id: 'claude-haiku-4-5-20251001', object: 'model', created: 0, owned_by: 'local-proxy', root: 'claude-haiku-4-5-20251001', parent: null, permission: [] },
-    ],
-  });
+  assert.deepStrictEqual(
+    buildLocalModelsResponse([
+      { from: 'claude-haiku-4-5-20251001', profileId: 'yhrouter', to: 'gpt-5.5' },
+      { from: 'claude-gemini', profileId: 'google-gemini', to: 'gemini-3-flash-preview' },
+      { from: 'claude-haiku-4-5-20251001', profileId: 'other', to: 'other-model' },
+    ]),
+    {
+      object: 'list',
+      data: [
+        {
+          id: 'claude-gemini',
+          object: 'model',
+          created: 0,
+          owned_by: 'local-proxy',
+          root: 'claude-gemini',
+          parent: null,
+          permission: [],
+        },
+        {
+          id: 'claude-haiku-4-5-20251001',
+          object: 'model',
+          created: 0,
+          owned_by: 'local-proxy',
+          root: 'claude-haiku-4-5-20251001',
+          parent: null,
+          permission: [],
+        },
+      ],
+    }
+  );
 });
 
 test('builds local Claude-compatible model list from routed model names', () => {
-  assert.deepStrictEqual(buildLocalModelsResponse([
-    { from: 'claude-haiku-4-5-20251001', profileId: 'yhrouter', to: 'gpt-5.5' },
-    { from: 'claude-gemini', profileId: 'google-gemini', to: 'gemini-3-flash-preview' },
-  ], 'claude'), {
-    data: [
-      { id: 'claude-gemini', type: 'model', display_name: 'claude-gemini', created_at: '1970-01-01T00:00:00.000Z' },
-      { id: 'claude-haiku-4-5-20251001', type: 'model', display_name: 'claude-haiku-4-5-20251001', created_at: '1970-01-01T00:00:00.000Z' },
-    ],
-    has_more: false,
-    first_id: 'claude-gemini',
-    last_id: 'claude-haiku-4-5-20251001',
-  });
+  assert.deepStrictEqual(
+    buildLocalModelsResponse(
+      [
+        { from: 'claude-haiku-4-5-20251001', profileId: 'yhrouter', to: 'gpt-5.5' },
+        { from: 'claude-gemini', profileId: 'google-gemini', to: 'gemini-3-flash-preview' },
+      ],
+      'claude'
+    ),
+    {
+      data: [
+        {
+          id: 'claude-gemini',
+          type: 'model',
+          display_name: 'claude-gemini',
+          created_at: '1970-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'claude-haiku-4-5-20251001',
+          type: 'model',
+          display_name: 'claude-haiku-4-5-20251001',
+          created_at: '1970-01-01T00:00:00.000Z',
+        },
+      ],
+      has_more: false,
+      first_id: 'claude-gemini',
+      last_id: 'claude-haiku-4-5-20251001',
+    }
+  );
   assert.deepStrictEqual(buildLocalClaudeModelObject('claude-gemini'), {
     id: 'claude-gemini',
     type: 'model',
@@ -1579,8 +2427,14 @@ test('builds local Claude-compatible model list from routed model names', () => 
 test('parses model list and retrieve paths with and without v1 prefix', () => {
   assert.deepStrictEqual(parseModelsRequestPath('/v1/models'), { kind: 'list' });
   assert.deepStrictEqual(parseModelsRequestPath('/models'), { kind: 'list' });
-  assert.deepStrictEqual(parseModelsRequestPath('/v1/models/claude-gemini'), { kind: 'retrieve', id: 'claude-gemini' });
-  assert.deepStrictEqual(parseModelsRequestPath('/models/claude-gemini'), { kind: 'retrieve', id: 'claude-gemini' });
+  assert.deepStrictEqual(parseModelsRequestPath('/v1/models/claude-gemini'), {
+    kind: 'retrieve',
+    id: 'claude-gemini',
+  });
+  assert.deepStrictEqual(parseModelsRequestPath('/models/claude-gemini'), {
+    kind: 'retrieve',
+    id: 'claude-gemini',
+  });
 });
 
 test('uses explicit model list format for each entry protocol', () => {
@@ -1588,20 +2442,19 @@ test('uses explicit model list format for each entry protocol', () => {
     { from: 'claude-gemini', profileId: 'google-gemini', to: 'gemini-3-flash-preview' },
   ];
   assert.strictEqual(buildLocalModelsResponse(routes, 'claude').data[0].type, 'model');
-  assert.strictEqual(buildLocalModelsResponse(routes, 'claude').data[0].display_name, 'claude-gemini');
+  assert.strictEqual(
+    buildLocalModelsResponse(routes, 'claude').data[0].display_name,
+    'claude-gemini'
+  );
   assert.strictEqual(buildLocalModelsResponse(routes, 'openai').object, 'list');
   assert.strictEqual(buildLocalModelsResponse(routes, 'openai').data[0].object, 'model');
 });
 
 test('carries Claude Desktop display labels into regular Claude model discovery', () => {
   const routes = getModelRoutes({
-    modelRoutes: [
-      { from: 'claude-opus-4-7', profileId: 'openai-official', to: 'gpt-5.5' },
-    ],
+    modelRoutes: [{ from: 'claude-opus-4-7', profileId: 'openai-official', to: 'gpt-5.5' }],
     claudeDesktop: {
-      models: [
-        { routeId: 'claude-opus-4-7', labelOverride: 'GPT-5.5', supports1m: true },
-      ],
+      models: [{ routeId: 'claude-opus-4-7', labelOverride: 'GPT-5.5', supports1m: true }],
     },
   });
 
@@ -1617,24 +2470,30 @@ test('carries Claude Desktop display labels into regular Claude model discovery'
 });
 
 test('uses global local server config with legacy profile port fallback', () => {
-  assert.deepStrictEqual(getLocalServer({
-    activeProfile: 'legacy',
-    profiles: [{ id: 'legacy', listenPort: 4555 }],
-  }), {
-    host: 'localhost',
-    listenPort: 4555,
-    basePath: '/v1',
-  });
+  assert.deepStrictEqual(
+    getLocalServer({
+      activeProfile: 'legacy',
+      profiles: [{ id: 'legacy', listenPort: 4555 }],
+    }),
+    {
+      host: 'localhost',
+      listenPort: 4555,
+      basePath: '/v1',
+    }
+  );
 
-  assert.deepStrictEqual(getLocalServer({
-    localServer: { host: '127.0.0.1', listenPort: 3666, basePath: '/proxy' },
-    activeProfile: 'legacy',
-    profiles: [{ id: 'legacy', listenPort: 4555 }],
-  }), {
-    host: '127.0.0.1',
-    listenPort: 3666,
-    basePath: '/proxy',
-  });
+  assert.deepStrictEqual(
+    getLocalServer({
+      localServer: { host: '127.0.0.1', listenPort: 3666, basePath: '/proxy' },
+      activeProfile: 'legacy',
+      profiles: [{ id: 'legacy', listenPort: 4555 }],
+    }),
+    {
+      host: '127.0.0.1',
+      listenPort: 3666,
+      basePath: '/proxy',
+    }
+  );
 });
 
 test('maps OpenAI Responses function items and tool choice to Chat format', () => {
@@ -1645,14 +2504,29 @@ test('maps OpenAI Responses function items and tool choice to Chat format', () =
       { type: 'function_call', call_id: 'call_1', name: 'lookup', arguments: '{"q":"x"}' },
       { type: 'function_call_output', call_id: 'call_1', output: '42' },
     ],
-    tools: [{ type: 'function', name: 'lookup', description: 'Lookup data', parameters: { type: 'object', properties: { q: { type: 'string' } } }, strict: true }],
+    tools: [
+      {
+        type: 'function',
+        name: 'lookup',
+        description: 'Lookup data',
+        parameters: { type: 'object', properties: { q: { type: 'string' } } },
+        strict: true,
+      },
+    ],
     tool_choice: { type: 'function', name: 'lookup' },
     parallel_tool_calls: false,
     seed: 123,
     user: 'user-1',
     frequency_penalty: 0.1,
     presence_penalty: 0.2,
-    text: { format: { type: 'json_schema', name: 'LookupResult', schema: { type: 'object', properties: { answer: { type: 'string' } } }, strict: true } },
+    text: {
+      format: {
+        type: 'json_schema',
+        name: 'LookupResult',
+        schema: { type: 'object', properties: { answer: { type: 'string' } } },
+        strict: true,
+      },
+    },
     reasoning: { effort: 'medium' },
   });
 
@@ -1661,7 +2535,11 @@ test('maps OpenAI Responses function items and tool choice to Chat format', () =
   assert.strictEqual(result.messages[1].tool_calls[0].id, 'call_1');
   assert.strictEqual(result.messages[1].tool_calls[0].function.name, 'lookup');
   assert.strictEqual(result.messages[1].tool_calls[0].function.arguments, '{"q":"x"}');
-  assert.deepStrictEqual(result.messages[2], { role: 'tool', tool_call_id: 'call_1', content: '42' });
+  assert.deepStrictEqual(result.messages[2], {
+    role: 'tool',
+    tool_call_id: 'call_1',
+    content: '42',
+  });
   assert.deepStrictEqual(result.tool_choice, { type: 'function', function: { name: 'lookup' } });
   assert.strictEqual(result.tools[0].function.strict, true);
   assert.strictEqual(result.parallel_tool_calls, false);
@@ -1683,10 +2561,15 @@ test('maps OpenAI Responses function items and tool choice to Chat format', () =
 test('maps Responses image URLs and JSON object format to Chat format', () => {
   const result = openAIResponsesToChat({
     model: 'client-model',
-    input: [{ role: 'user', content: [
-      { type: 'input_text', text: 'describe' },
-      { type: 'input_image', image_url: 'data:image/png;base64,abc123' },
-    ] }],
+    input: [
+      {
+        role: 'user',
+        content: [
+          { type: 'input_text', text: 'describe' },
+          { type: 'input_image', image_url: 'data:image/png;base64,abc123' },
+        ],
+      },
+    ],
     text: { format: { type: 'json_object' } },
   });
 
@@ -1700,13 +2583,15 @@ test('maps Responses image URLs and JSON object format to Chat format', () => {
 test('maps Chat image URLs to Responses input_image URL strings', () => {
   const result = openAIChatToResponsesRequest({
     model: 'client-model',
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'text', text: 'describe' },
-        { type: 'image_url', image_url: { url: 'data:image/png;base64,abc123' } },
-      ],
-    }],
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'describe' },
+          { type: 'image_url', image_url: { url: 'data:image/png;base64,abc123' } },
+        ],
+      },
+    ],
   });
 
   assert.deepStrictEqual(result.input[0].content, [
@@ -1723,11 +2608,13 @@ test('maps Chat tool call ids to Responses function-call item ids', () => {
       {
         role: 'assistant',
         content: null,
-        tool_calls: [{
-          id: 'call_nbeAei9W3PPIiz5JVyTrNrfb',
-          type: 'function',
-          function: { name: 'builtin_web_search', arguments: '{"q":"x"}' },
-        }],
+        tool_calls: [
+          {
+            id: 'call_nbeAei9W3PPIiz5JVyTrNrfb',
+            type: 'function',
+            function: { name: 'builtin_web_search', arguments: '{"q":"x"}' },
+          },
+        ],
       },
       { role: 'tool', tool_call_id: 'call_nbeAei9W3PPIiz5JVyTrNrfb', content: 'blocked' },
     ],
@@ -1742,12 +2629,29 @@ test('maps Chat tool call ids to Responses function-call item ids', () => {
 });
 
 test('converts Chat response text and tool calls to Responses output', () => {
-  const result = openAIChatToResponses({
-    id: 'chatcmpl_123',
-    created: 123456,
-    choices: [{ message: { role: 'assistant', content: 'answer', tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'lookup', arguments: '{"q":"x"}' } }] } }],
-    usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
-  }, 'client-model');
+  const result = openAIChatToResponses(
+    {
+      id: 'chatcmpl_123',
+      created: 123456,
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: 'answer',
+            tool_calls: [
+              {
+                id: 'call_1',
+                type: 'function',
+                function: { name: 'lookup', arguments: '{"q":"x"}' },
+              },
+            ],
+          },
+        },
+      ],
+      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+    },
+    'client-model'
+  );
 
   assert.strictEqual(result.id, 'resp_123');
   assert.strictEqual(result.object, 'response');
@@ -1767,16 +2671,20 @@ test('builds configured multi-protocol entry servers', () => {
       { listenPort: 3443, protocol: 'claude' },
       { listenPort: 3445, protocol: 'responses' },
       { listenPort: 3447, protocol: 'chat-completions' },
-      { listenPort: 15721, protocol: 'claude-desktop', host: '127.0.0.1', basePath: '/claude-desktop', tls: false },
+      {
+        listenPort: 15721,
+        protocol: 'claude-desktop',
+        host: '127.0.0.1',
+        basePath: '/claude-desktop',
+        tls: false,
+      },
     ],
   });
 
-  assert.deepStrictEqual(entries.map((entry) => entry.listenPort + ':' + entry.protocol), [
-    '3443:claude',
-    '3445:openai-responses',
-    '3447:openai-chat',
-    '15721:claude-desktop',
-  ]);
+  assert.deepStrictEqual(
+    entries.map((entry) => entry.listenPort + ':' + entry.protocol),
+    ['3443:claude', '3445:openai-responses', '3447:openai-chat', '15721:claude-desktop']
+  );
   assert.strictEqual(entries[3].tls, false);
 });
 
@@ -1786,14 +2694,16 @@ test('falls back to local server entry with protocol when entries are disabled',
     entryServers: [{ listenPort: 3443, protocol: 'claude', enabled: false }],
   }).filter((entry) => entry.protocol !== 'claude-desktop');
 
-  assert.deepStrictEqual(entries, [{
-    name: 'openai-responses',
-    host: '127.0.0.1',
-    listenPort: 3000,
-    basePath: '/proxy',
-    protocol: 'openai-responses',
-    tls: true,
-  }]);
+  assert.deepStrictEqual(entries, [
+    {
+      name: 'openai-responses',
+      host: '127.0.0.1',
+      listenPort: 3000,
+      basePath: '/proxy',
+      protocol: 'openai-responses',
+      tls: true,
+    },
+  ]);
 });
 
 test('builds Claude Desktop safe routes from explicit mappings', () => {
@@ -1802,14 +2712,33 @@ test('builds Claude Desktop safe routes from explicit mappings', () => {
     profiles: [{ id: 'yhrouter' }],
     claudeDesktop: {
       models: [
-        { routeId: 'gpt-5.5', profileId: 'yhrouter', upstreamModel: 'gpt-5.5', labelOverride: 'GPT-5.5', supports1m: true },
-        { routeId: 'claude-opus-4-7', profileId: 'yhrouter', upstreamModel: 'gpt-5.4', supports1m: false },
-        { routeId: 'claude-opus-4-6-thinking', profileId: 'yhrouter', upstreamModel: 'gpt-5.6', labelOverride: 'GPT-5.6' },
+        {
+          routeId: 'gpt-5.5',
+          profileId: 'yhrouter',
+          upstreamModel: 'gpt-5.5',
+          labelOverride: 'GPT-5.5',
+          supports1m: true,
+        },
+        {
+          routeId: 'claude-opus-4-7',
+          profileId: 'yhrouter',
+          upstreamModel: 'gpt-5.4',
+          supports1m: false,
+        },
+        {
+          routeId: 'claude-opus-4-6-thinking',
+          profileId: 'yhrouter',
+          upstreamModel: 'gpt-5.6',
+          labelOverride: 'GPT-5.6',
+        },
       ],
     },
   });
 
-  assert.deepStrictEqual(routes.map((route) => route.from), ['claude-sonnet-4-6', 'claude-opus-4-7', 'claude-opus-4-6-thinking']);
+  assert.deepStrictEqual(
+    routes.map((route) => route.from),
+    ['claude-sonnet-4-6', 'claude-opus-4-7', 'claude-opus-4-6-thinking']
+  );
   assert.strictEqual(routes[0].to, 'gpt-5.5');
   assert.strictEqual(routes[0].labelOverride, 'GPT-5.5');
   assert.strictEqual(routes[1].supports1m, false);
@@ -1826,49 +2755,66 @@ test('inherits Claude Desktop upstream routing from global routes while keeping 
     ],
     claudeDesktop: {
       models: [
-        { routeId: 'claude-opus-4-6-thinking', labelOverride: 'GPT-5.6 Thinking', supports1m: false },
+        {
+          routeId: 'claude-opus-4-6-thinking',
+          labelOverride: 'GPT-5.6 Thinking',
+          supports1m: false,
+        },
       ],
     },
   });
 
-  assert.deepStrictEqual(routes, [{
-    from: 'claude-opus-4-6-thinking',
-    profileId: 'openai-official',
-    to: 'gpt-5.6',
-    labelOverride: 'GPT-5.6 Thinking',
-    supports1m: false,
-  }]);
+  assert.deepStrictEqual(routes, [
+    {
+      from: 'claude-opus-4-6-thinking',
+      profileId: 'openai-official',
+      to: 'gpt-5.6',
+      labelOverride: 'GPT-5.6 Thinking',
+      supports1m: false,
+    },
+  ]);
 });
 
 test('detects and strips Claude Desktop gateway prefix', () => {
   assert.strictEqual(isClaudeDesktopRequest({ protocol: 'claude-desktop' }, '/v1/messages'), true);
-  assert.strictEqual(isClaudeDesktopRequest({ protocol: 'claude' }, '/claude-desktop/v1/messages'), true);
+  assert.strictEqual(
+    isClaudeDesktopRequest({ protocol: 'claude' }, '/claude-desktop/v1/messages'),
+    true
+  );
   assert.strictEqual(stripClaudeDesktopPrefix('/claude-desktop/v1/models'), '/v1/models');
 });
 
 test('classifies and removes Claude Desktop gateway config', () => {
-  const proxyStatus = claudeDesktopStatusFromConfig({
-    primaryProvider: 'gateway',
-    providers: {
-      gateway: {
-        inferenceGatewayBaseUrl: 'https://localhost:3443/claude-desktop',
-        inferenceGatewayApiKey: 'hpm-test',
+  const proxyStatus = claudeDesktopStatusFromConfig(
+    {
+      primaryProvider: 'gateway',
+      providers: {
+        gateway: {
+          inferenceGatewayBaseUrl: 'https://localhost:3443/claude-desktop',
+          inferenceGatewayApiKey: 'hpm-test',
+        },
+        other: { keep: true },
       },
-      other: { keep: true },
     },
-  }, true, 'claude_desktop_config.json');
+    true,
+    'claude_desktop_config.json'
+  );
   assert.strictEqual(proxyStatus.mode, 'proxy');
   assert.strictEqual(proxyStatus.gatewayUrl, 'https://localhost:3443/claude-desktop');
   assert.strictEqual(proxyStatus.hasToken, true);
 
-  const directStatus = claudeDesktopStatusFromConfig({
-    primaryProvider: 'gateway',
-    providers: {
-      gateway: {
-        inferenceGatewayBaseUrl: 'https://api.anthropic.com',
+  const directStatus = claudeDesktopStatusFromConfig(
+    {
+      primaryProvider: 'gateway',
+      providers: {
+        gateway: {
+          inferenceGatewayBaseUrl: 'https://api.anthropic.com',
+        },
       },
     },
-  }, true, 'claude_desktop_config.json');
+    true,
+    'claude_desktop_config.json'
+  );
   assert.strictEqual(directStatus.mode, 'direct');
 
   const restored = removeClaudeDesktopGatewayProvider({
@@ -1879,13 +2825,22 @@ test('classifies and removes Claude Desktop gateway config', () => {
     },
   });
   assert.deepStrictEqual(restored, { providers: { custom: { keep: true } } });
-  assert.deepStrictEqual(removeClaudeDesktopGatewayProvider({ primaryProvider: 'gateway', providers: { gateway: {} } }), {});
+  assert.deepStrictEqual(
+    removeClaudeDesktopGatewayProvider({ primaryProvider: 'gateway', providers: { gateway: {} } }),
+    {}
+  );
 });
 
 test('detects Chat-only OpenAI upstream profiles for Responses bridging', () => {
   assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'openai-chat' }), true);
-  assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'openai', supportsResponses: false }), true);
-  assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'openai', responsesMode: 'chat' }), true);
+  assert.strictEqual(
+    shouldConvertResponsesToOpenAIChat({ protocol: 'openai', supportsResponses: false }),
+    true
+  );
+  assert.strictEqual(
+    shouldConvertResponsesToOpenAIChat({ protocol: 'openai', responsesMode: 'chat' }),
+    true
+  );
   assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'openai-responses' }), false);
   assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'openai' }), false);
 });
@@ -1893,39 +2848,129 @@ test('detects Chat-only OpenAI upstream profiles for Responses bridging', () => 
 test('buffers fragmented Chat tool-call SSE when converting to Responses stream', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
-  const state = { id: 'resp_test', created_at: 1, model: 'client-model', buffer: '', started: false, outputIndex: 0, messageId: null, textItemStarted: false, textItemDone: false, text: '', pendingToolCalls: [], toolCalls: [], completedOutputItems: [], usage: undefined, done: false };
+  const state = {
+    id: 'resp_test',
+    created_at: 1,
+    model: 'client-model',
+    buffer: '',
+    started: false,
+    outputIndex: 0,
+    messageId: null,
+    textItemStarted: false,
+    textItemDone: false,
+    text: '',
+    pendingToolCalls: [],
+    toolCalls: [],
+    completedOutputItems: [],
+    usage: undefined,
+    done: false,
+  };
   const event = (payload) => 'data: ' + JSON.stringify(payload) + '\n\n';
 
-  processOpenAIChatSseChunkToResponses(clientRes, event({ choices: [{ delta: { tool_calls: [{ index: 0, id: 'call_1', type: 'function', function: { name: 'lookup', arguments: '' } }] }, finish_reason: null }] }), state);
-  processOpenAIChatSseChunkToResponses(clientRes, event({ choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: '{"q"' } }] }, finish_reason: null }] }), state);
-  processOpenAIChatSseChunkToResponses(clientRes, event({ choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: ':"x"}' } }] }, finish_reason: null }] }), state);
-  processOpenAIChatSseChunkToResponses(clientRes, event({ choices: [{ delta: {}, finish_reason: 'tool_calls' }] }), state);
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    event({
+      choices: [
+        {
+          delta: {
+            tool_calls: [
+              {
+                index: 0,
+                id: 'call_1',
+                type: 'function',
+                function: { name: 'lookup', arguments: '' },
+              },
+            ],
+          },
+          finish_reason: null,
+        },
+      ],
+    }),
+    state
+  );
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    event({
+      choices: [
+        {
+          delta: { tool_calls: [{ index: 0, function: { arguments: '{"q"' } }] },
+          finish_reason: null,
+        },
+      ],
+    }),
+    state
+  );
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    event({
+      choices: [
+        {
+          delta: { tool_calls: [{ index: 0, function: { arguments: ':"x"}' } }] },
+          finish_reason: null,
+        },
+      ],
+    }),
+    state
+  );
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    event({ choices: [{ delta: {}, finish_reason: 'tool_calls' }] }),
+    state
+  );
 
   assert.strictEqual(state.toolCalls.length, 1);
   assert.strictEqual(state.toolCalls[0].name, 'lookup');
   assert.strictEqual(state.toolCalls[0].arguments, '{"q":"x"}');
-  assert.deepStrictEqual(state.completedOutputItems.map((item) => item.type), ['function_call']);
+  assert.deepStrictEqual(
+    state.completedOutputItems.map((item) => item.type),
+    ['function_call']
+  );
   assert.ok(writes.join('').includes('response.function_call_arguments.done'));
 });
 
 test('waits for Responses function_call name before emitting Chat tool call', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(String(chunk)) };
-  const state = { id: 'chatcmpl_test', created: 1, model: 'client-model', buffer: '', started: false, toolCalls: [], usage: null, done: false };
-  const event = (payload) => 'event: ' + payload.type + '\ndata: ' + JSON.stringify(payload) + '\n\n';
-  const args = JSON.stringify({ file_path: 'E:/DEV/WorkSpace/Efficiency/package.json', offset: 0, limit: 2400 });
+  const state = {
+    id: 'chatcmpl_test',
+    created: 1,
+    model: 'client-model',
+    buffer: '',
+    started: false,
+    toolCalls: [],
+    usage: null,
+    done: false,
+  };
+  const event = (payload) =>
+    'event: ' + payload.type + '\ndata: ' + JSON.stringify(payload) + '\n\n';
+  const args = JSON.stringify({
+    file_path: 'E:/DEV/WorkSpace/Efficiency/package.json',
+    offset: 0,
+    limit: 2400,
+  });
 
-  processOpenAIResponsesSseChunkToChat(clientRes, event({
-    type: 'response.function_call_arguments.delta',
-    item_id: 'call_1',
-    delta: args,
-  }), state);
-  assert.strictEqual(writes.some((chunk) => chunk.includes('tool_calls')), false);
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    event({
+      type: 'response.function_call_arguments.delta',
+      item_id: 'call_1',
+      delta: args,
+    }),
+    state
+  );
+  assert.strictEqual(
+    writes.some((chunk) => chunk.includes('tool_calls')),
+    false
+  );
 
-  processOpenAIResponsesSseChunkToChat(clientRes, event({
-    type: 'response.output_item.done',
-    item: { type: 'function_call', id: 'fc_1', call_id: 'call_1', name: 'Read', arguments: args },
-  }), state);
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    event({
+      type: 'response.output_item.done',
+      item: { type: 'function_call', id: 'fc_1', call_id: 'call_1', name: 'Read', arguments: args },
+    }),
+    state
+  );
 
   const output = writes.join('');
   assert.ok(output.includes('"name":"Read"'));
@@ -1935,15 +2980,62 @@ test('waits for Responses function_call name before emitting Chat tool call', ()
 test('keeps Responses stream output order across text, tool call, and more text', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
-  const state = { id: 'resp_order', created_at: 1, model: 'client-model', buffer: '', started: false, outputIndex: 0, messageId: null, textItemStarted: false, textItemDone: false, text: '', pendingToolCalls: [], toolCalls: [], completedOutputItems: [], usage: undefined, done: false };
+  const state = {
+    id: 'resp_order',
+    created_at: 1,
+    model: 'client-model',
+    buffer: '',
+    started: false,
+    outputIndex: 0,
+    messageId: null,
+    textItemStarted: false,
+    textItemDone: false,
+    text: '',
+    pendingToolCalls: [],
+    toolCalls: [],
+    completedOutputItems: [],
+    usage: undefined,
+    done: false,
+  };
   const event = (payload) => 'data: ' + JSON.stringify(payload) + '\n\n';
 
-  processOpenAIChatSseChunkToResponses(clientRes, event({ choices: [{ delta: { content: 'before' }, finish_reason: null }] }), state);
-  processOpenAIChatSseChunkToResponses(clientRes, event({ choices: [{ delta: { tool_calls: [{ index: 0, id: 'call_1', type: 'function', function: { name: 'lookup', arguments: '{"q":"x"}' } }] }, finish_reason: null }] }), state);
-  processOpenAIChatSseChunkToResponses(clientRes, event({ choices: [{ delta: { content: 'after' }, finish_reason: null }] }), state);
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    event({ choices: [{ delta: { content: 'before' }, finish_reason: null }] }),
+    state
+  );
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    event({
+      choices: [
+        {
+          delta: {
+            tool_calls: [
+              {
+                index: 0,
+                id: 'call_1',
+                type: 'function',
+                function: { name: 'lookup', arguments: '{"q":"x"}' },
+              },
+            ],
+          },
+          finish_reason: null,
+        },
+      ],
+    }),
+    state
+  );
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    event({ choices: [{ delta: { content: 'after' }, finish_reason: null }] }),
+    state
+  );
   flushOpenAIChatSseToResponses(clientRes, state);
 
-  assert.deepStrictEqual(state.completedOutputItems.map((item) => item.type), ['message', 'function_call', 'message']);
+  assert.deepStrictEqual(
+    state.completedOutputItems.map((item) => item.type),
+    ['message', 'function_call', 'message']
+  );
   assert.strictEqual(state.completedOutputItems[0].content[0].text, 'before');
   assert.strictEqual(state.completedOutputItems[2].content[0].text, 'after');
 });
@@ -1955,7 +3047,10 @@ test('parses Gemini rate limit retry metadata', () => {
       message: 'Quota exceeded. Please retry in 43.024s.',
       status: 'RESOURCE_EXHAUSTED',
       details: [
-        { '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaMetric: 'tokens', quotaId: 'InputTokensPerMinute' }] },
+        {
+          '@type': 'type.googleapis.com/google.rpc.QuotaFailure',
+          violations: [{ quotaMetric: 'tokens', quotaId: 'InputTokensPerMinute' }],
+        },
         { '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay: '43s' },
       ],
     },
@@ -1974,7 +3069,11 @@ test('tracks Gemini local rate limit cooldown', () => {
   assert.ok(active.retryAfterSeconds > 0);
 });
 test('redacts diagnostics secrets recursively', () => {
-  const result = redactDiagnosticsValue({ apiKey: 'secret', headers: { authorization: 'Bearer abc', ok: 'yes' }, nested: [{ 'x-goog-api-key': 'gemini' }] });
+  const result = redactDiagnosticsValue({
+    apiKey: 'secret',
+    headers: { authorization: 'Bearer abc', ok: 'yes' },
+    nested: [{ 'x-goog-api-key': 'gemini' }],
+  });
   assert.strictEqual(result.apiKey, '[redacted]');
   assert.strictEqual(result.headers.authorization, '[redacted]');
   assert.strictEqual(result.headers.ok, 'yes');
@@ -1982,12 +3081,23 @@ test('redacts diagnostics secrets recursively', () => {
 });
 
 test('summarizes Claude tool history diagnostics', () => {
-  const summary = summarizeClaudeToolHistory({ messages: [
-    { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_1', name: 'Read', input: { file_path: 'a' } }] },
-    { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'abc' }] },
-    { role: 'assistant', content: [{ type: 'tool_use', id: 'toolu_1', name: 'Read', input: {} }] },
-    { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'missing', content: 'x', is_error: true }] },
-  ] });
+  const summary = summarizeClaudeToolHistory({
+    messages: [
+      {
+        role: 'assistant',
+        content: [{ type: 'tool_use', id: 'toolu_1', name: 'Read', input: { file_path: 'a' } }],
+      },
+      { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'abc' }] },
+      {
+        role: 'assistant',
+        content: [{ type: 'tool_use', id: 'toolu_1', name: 'Read', input: {} }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'tool_result', tool_use_id: 'missing', content: 'x', is_error: true }],
+      },
+    ],
+  });
   assert.strictEqual(summary.toolUses.length, 2);
   assert.strictEqual(summary.toolResults[0].hasMatchingToolUse, true);
   assert.strictEqual(summary.toolResults[1].hasMatchingToolUse, false);
@@ -1995,17 +3105,32 @@ test('summarizes Claude tool history diagnostics', () => {
 });
 
 test('extracts diagnostics only for key SSE events', () => {
-  assert.strictEqual(extractDiagnosticsSsePayload('content_block_delta', { index: 0, delta: { type: 'text_delta', text: 'hello' } }), null);
-  const payload = extractDiagnosticsSsePayload('content_block_delta', { index: 1, delta: { type: 'input_json_delta', partial_json: '{"command":"ls"}' } });
+  assert.strictEqual(
+    extractDiagnosticsSsePayload('content_block_delta', {
+      index: 0,
+      delta: { type: 'text_delta', text: 'hello' },
+    }),
+    null
+  );
+  const payload = extractDiagnosticsSsePayload('content_block_delta', {
+    index: 1,
+    delta: { type: 'input_json_delta', partial_json: '{"command":"ls"}' },
+  });
   assert.strictEqual(payload.event, 'content_block_delta');
   assert.strictEqual(payload.partial_json, '{"command":"ls"}');
-  const start = extractDiagnosticsSsePayload('content_block_start', { index: 2, content_block: { type: 'tool_use', id: 'toolu', name: 'Bash', input: {} } });
+  const start = extractDiagnosticsSsePayload('content_block_start', {
+    index: 2,
+    content_block: { type: 'tool_use', id: 'toolu', name: 'Bash', input: {} },
+  });
   assert.strictEqual(start.toolUseId, 'toolu');
   assert.strictEqual(start.toolName, 'Bash');
 });
 
 test('writes bounded JSONL and rotates oversized diagnostics files', async () => {
-  const filePath = path.join(os.tmpdir(), 'https-proxy-diagnostics-test-' + process.pid + '-' + Date.now() + '.jsonl');
+  const filePath = path.join(
+    os.tmpdir(),
+    'https-proxy-diagnostics-test-' + process.pid + '-' + Date.now() + '.jsonl'
+  );
   const rotated = filePath + '.1';
   try {
     fs.writeFileSync(filePath, 'x'.repeat(2048));
@@ -2022,16 +3147,25 @@ test('writes bounded JSONL and rotates oversized diagnostics files', async () =>
 });
 
 test('reads JSONL tail records and reports file signatures', () => {
-  const filePath = path.join(os.tmpdir(), 'https-proxy-management-utils-test-' + process.pid + '-' + Date.now() + '.jsonl');
+  const filePath = path.join(
+    os.tmpdir(),
+    'https-proxy-management-utils-test-' + process.pid + '-' + Date.now() + '.jsonl'
+  );
   try {
-    fs.writeFileSync(filePath, [
-      JSON.stringify({ index: 1 }),
-      JSON.stringify({ index: 2 }),
-      JSON.stringify({ index: 3 }),
-      ''
-    ].join('\n'));
+    fs.writeFileSync(
+      filePath,
+      [
+        JSON.stringify({ index: 1 }),
+        JSON.stringify({ index: 2 }),
+        JSON.stringify({ index: 3 }),
+        '',
+      ].join('\n')
+    );
     assert.notStrictEqual(fileSignature(filePath), 'missing');
-    assert.deepStrictEqual(readLastLinesOfJsonl(filePath, 2).map((item) => item.index), [2, 3]);
+    assert.deepStrictEqual(
+      readLastLinesOfJsonl(filePath, 2).map((item) => item.index),
+      [2, 3]
+    );
   } finally {
     safeUnlink(filePath);
   }
@@ -2067,8 +3201,12 @@ test('logs request_end for local count_tokens responses', () => {
     req,
     res,
     Buffer.from(JSON.stringify({ messages: [{ role: 'user', content: 'hello world' }] })),
-    (value) => String(value || '').split(/\s+/).filter(Boolean).length,
-    (method, requestPath, startTime, statusCode, extra) => events.push({ method, requestPath, startTime, statusCode, extra }),
+    (value) =>
+      String(value || '')
+        .split(/\s+/)
+        .filter(Boolean).length,
+    (method, requestPath, startTime, statusCode, extra) =>
+      events.push({ method, requestPath, startTime, statusCode, extra }),
     Date.now()
   );
 
@@ -2092,8 +3230,16 @@ test('captures request model for local count_tokens audit records', () => {
   handleCountTokens(
     req,
     res,
-    Buffer.from(JSON.stringify({ model: 'claude-sonnet-4-0', messages: [{ role: 'user', content: 'hello world' }] })),
-    (value) => String(value || '').split(/\s+/).filter(Boolean).length,
+    Buffer.from(
+      JSON.stringify({
+        model: 'claude-sonnet-4-0',
+        messages: [{ role: 'user', content: 'hello world' }],
+      })
+    ),
+    (value) =>
+      String(value || '')
+        .split(/\s+/)
+        .filter(Boolean).length,
     () => {},
     Date.now()
   );
@@ -2104,23 +3250,30 @@ test('captures request model for local count_tokens audit records', () => {
 
 test('normalizes and merges MCP tools as Claude tool declarations', () => {
   const server = { id: 'local', prefix: 'fs' };
-  const normalized = normalizeMcpTool({
-    name: 'read_file',
-    description: 'Read a file',
-    inputSchema: { type: 'object', required: ['path'], properties: { path: { type: 'string' } } },
-  }, server);
+  const normalized = normalizeMcpTool(
+    {
+      name: 'read_file',
+      description: 'Read a file',
+      inputSchema: { type: 'object', required: ['path'], properties: { path: { type: 'string' } } },
+    },
+    server
+  );
   assert.deepStrictEqual(normalized, {
     name: 'fs_read_file',
     description: 'Read a file',
     input_schema: { type: 'object', required: ['path'], properties: { path: { type: 'string' } } },
   });
 
-  const merged = mergeClaudeTools([
-    { name: 'Read', input_schema: { type: 'object', properties: {} } },
-  ], [
-    { name: 'Read', input_schema: { type: 'object', properties: { duplicate: { type: 'string' } } } },
-    normalized,
-  ]);
+  const merged = mergeClaudeTools(
+    [{ name: 'Read', input_schema: { type: 'object', properties: {} } }],
+    [
+      {
+        name: 'Read',
+        input_schema: { type: 'object', properties: { duplicate: { type: 'string' } } },
+      },
+      normalized,
+    ]
+  );
   assert.strictEqual(merged.length, 2);
   assert.strictEqual(merged[1].name, 'fs_read_file');
 });
@@ -2128,22 +3281,28 @@ test('normalizes and merges MCP tools as Claude tool declarations', () => {
 test('injects MCP tools into Claude request bodies', async () => {
   const server = require('http').createServer((req, res) => {
     let body = '';
-    req.on('data', (chunk) => { body += chunk; });
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
     req.on('end', () => {
       const parsed = JSON.parse(body || '{}');
       assert.strictEqual(parsed.method, 'tools/list');
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({
-        jsonrpc: '2.0',
-        id: parsed.id,
-        result: {
-          tools: [{
-            name: 'search_docs',
-            description: 'Search docs',
-            input_schema: { type: 'object', properties: { q: { type: 'string' } } },
-          }],
-        },
-      }));
+      res.end(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: parsed.id,
+          result: {
+            tools: [
+              {
+                name: 'search_docs',
+                description: 'Search docs',
+                input_schema: { type: 'object', properties: { q: { type: 'string' } } },
+              },
+            ],
+          },
+        })
+      );
     });
   });
 
@@ -2153,18 +3312,27 @@ test('injects MCP tools into Claude request bodies', async () => {
     const hub = createMcpHub({
       getConfig: () => ({
         mcpHub: {
-          servers: [{ id: 'docs', url: `http://127.0.0.1:${address.port}`, injectAll: true, prefix: 'docs' }],
+          servers: [
+            {
+              id: 'docs',
+              url: `http://127.0.0.1:${address.port}`,
+              injectAll: true,
+              prefix: 'docs',
+            },
+          ],
           routing: [],
         },
       }),
     });
     assert.strictEqual(typeof hub.augmentRequestTools, 'function');
     const augmented = await hub.augmentRequestTools({ model: 'claude-sonnet', tools: [] });
-    assert.deepStrictEqual(augmented.tools, [{
-      name: 'docs_search_docs',
-      description: 'Search docs',
-      input_schema: { type: 'object', properties: { q: { type: 'string' } } },
-    }]);
+    assert.deepStrictEqual(augmented.tools, [
+      {
+        name: 'docs_search_docs',
+        description: 'Search docs',
+        input_schema: { type: 'object', properties: { q: { type: 'string' } } },
+      },
+    ]);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
@@ -2180,9 +3348,19 @@ test('allows only local management origins by default', () => {
 
 test('dispatches local management routes from a route table', () => {
   const route = { method: 'GET', paths: ['/v1/local/auth/rate-limits'], match: 'prefix' };
-  assert.strictEqual(routeMatches(route, 'GET', '/v1/local/auth/rate-limits?profileId=codex'), true);
+  assert.strictEqual(
+    routeMatches(route, 'GET', '/v1/local/auth/rate-limits?profileId=codex'),
+    true
+  );
   assert.strictEqual(routeMatches(route, 'POST', '/v1/local/auth/rate-limits'), false);
-  assert.strictEqual(routeMatches({ method: 'GET', paths: ['/v1/local/usage/report'] }, 'GET', '/v1/local/usage/report'), true);
+  assert.strictEqual(
+    routeMatches(
+      { method: 'GET', paths: ['/v1/local/usage/report'] },
+      'GET',
+      '/v1/local/usage/report'
+    ),
+    true
+  );
 
   const calls = [];
   const req = {};
@@ -2198,7 +3376,16 @@ test('dispatches local management routes from a route table', () => {
   });
   assert.strictEqual(handled, true);
   assert.deepStrictEqual(calls, [[true, true]]);
-  assert.strictEqual(dispatchLocalManagementRoute({ method: 'GET', pathname: '/v1/messages', req, res, handlers: {} }), false);
+  assert.strictEqual(
+    dispatchLocalManagementRoute({
+      method: 'GET',
+      pathname: '/v1/messages',
+      req,
+      res,
+      handlers: {},
+    }),
+    false
+  );
 });
 
 test('management handler aggregate exposes tool integration routes', () => {
@@ -2257,10 +3444,16 @@ test('management handler aggregate exposes tool integration routes', () => {
     handleLocalGeminiCliRestoreRequest: noop,
   });
 
-  const toolRoutes = ROUTES.filter((route) => /codex|claudeCode|antigravityCli|geminiCli|trae/.test(route.handlerName));
+  const toolRoutes = ROUTES.filter((route) =>
+    /codex|claudeCode|antigravityCli|geminiCli|trae/.test(route.handlerName)
+  );
   assert.ok(toolRoutes.length > 0);
   for (const route of toolRoutes) {
-    const legacyHandlerName = 'handleLocal' + route.handlerName.charAt(0).toUpperCase() + route.handlerName.slice(1) + 'Request';
+    const legacyHandlerName =
+      'handleLocal' +
+      route.handlerName.charAt(0).toUpperCase() +
+      route.handlerName.slice(1) +
+      'Request';
     assert.strictEqual(typeof handlers[legacyHandlerName], 'function', legacyHandlerName);
   }
 });
@@ -2292,12 +3485,14 @@ test('route test treats Trae official profile as bridge-backed provider', async 
   const makeRequestCalls = [];
   const handlers = createManagementHandlers({
     CONFIG: () => ({}),
-    PROFILES: () => [{
-      id: 'trae-official',
-      protocol: 'trae',
-      targetUrl: 'https://coresg-normal.trae.ai',
-      authMode: 'official-login',
-    }],
+    PROFILES: () => [
+      {
+        id: 'trae-official',
+        protocol: 'trae',
+        targetUrl: 'https://coresg-normal.trae.ai',
+        authMode: 'official-login',
+      },
+    ],
     ACTIVE_PROFILE: () => ({}),
     LOCAL_SERVER: () => ({}),
     MODEL_ROUTES: () => [],
@@ -2369,7 +3564,9 @@ test('route test treats Trae official profile as bridge-backed provider', async 
 });
 
 test('usage report aggregates provider usage and model pricing by profile', () => {
-  const usage = extractUsageFromJsonPayload({ usage: { prompt_tokens: 1000, completion_tokens: 500, total_tokens: 1500 } });
+  const usage = extractUsageFromJsonPayload({
+    usage: { prompt_tokens: 1000, completion_tokens: 500, total_tokens: 1500 },
+  });
   assert.deepStrictEqual(usage, {
     inputTokens: 1000,
     outputTokens: 500,
@@ -2382,29 +3579,32 @@ test('usage report aggregates provider usage and model pricing by profile', () =
   assert.strictEqual(cost.known, true);
   assert.ok(cost.amount > 0);
 
-  const report = buildUsageReport([
-    {
-      id: 'req-1',
-      time: '2026-06-05T10:00:00.000Z',
-      profileId: 'openai-main',
-      profileName: 'OpenAI Main',
-      originalModel: 'gpt-5-mini',
-      rewriteModel: 'gpt-5-mini',
-      protocol: 'openai',
-      statusCode: 200,
-      usage,
-    },
-    {
-      id: 'req-2',
-      time: '2026-06-05T11:00:00.000Z',
-      profileId: 'openai-main',
-      profileName: 'OpenAI Main',
-      originalModel: 'gpt-5-mini',
-      statusCode: 500,
-      messages: [{ role: 'user', content: 'hello' }],
-      response: { content: 'error' },
-    },
-  ], {});
+  const report = buildUsageReport(
+    [
+      {
+        id: 'req-1',
+        time: '2026-06-05T10:00:00.000Z',
+        profileId: 'openai-main',
+        profileName: 'OpenAI Main',
+        originalModel: 'gpt-5-mini',
+        rewriteModel: 'gpt-5-mini',
+        protocol: 'openai',
+        statusCode: 200,
+        usage,
+      },
+      {
+        id: 'req-2',
+        time: '2026-06-05T11:00:00.000Z',
+        profileId: 'openai-main',
+        profileName: 'OpenAI Main',
+        originalModel: 'gpt-5-mini',
+        statusCode: 500,
+        messages: [{ role: 'user', content: 'hello' }],
+        response: { content: 'error' },
+      },
+    ],
+    {}
+  );
 
   assert.strictEqual(report.total.requests, 2);
   assert.strictEqual(report.total.successes, 1);
@@ -2432,7 +3632,10 @@ test('updates TOML and env values for local tool proxy config', () => {
   const env = 'KEEP=yes\nGOOGLE_GEMINI_BASE_URL=https://old.example\n';
   const updatedEnv = setEnvValue(env, 'GOOGLE_GEMINI_BASE_URL', 'https://localhost:3443');
   assert.strictEqual(updatedEnv, 'KEEP=yes\nGOOGLE_GEMINI_BASE_URL=https://localhost:3443\n');
-  assert.strictEqual(setEnvValue('', 'ANTHROPIC_BASE_URL', 'https://localhost:3443'), '\nANTHROPIC_BASE_URL=https://localhost:3443\n');
+  assert.strictEqual(
+    setEnvValue('', 'ANTHROPIC_BASE_URL', 'https://localhost:3443'),
+    '\nANTHROPIC_BASE_URL=https://localhost:3443\n'
+  );
   assert.strictEqual(deleteEnvValue(updatedEnv, 'GOOGLE_GEMINI_BASE_URL'), 'KEEP=yes\n');
 });
 
