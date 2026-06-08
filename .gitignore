@@ -28,6 +28,7 @@ dist/
 build/
 out/
 *.zip
+tauri-ui/dist/
 
 # Frontend mirrors (canonical source: tauri-ui/)
 /app.js

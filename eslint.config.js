@@ -125,6 +125,7 @@ module.exports = [
     // Tests get a slightly looser rule set
     files: ['test/**/*.js', '**/*.test.js'],
     languageOptions: {
+      sourceType: 'module',
       globals: {
         describe: 'readonly',
         it: 'readonly',
@@ -141,6 +142,53 @@ module.exports = [
     },
     rules: {
       'no-unused-expressions': 'off',
+    },
+  },
+  {
+    // ESM sources (Vite entry, tauri-ui/src/*, *.mjs config files)
+    files: ['**/*.mjs', 'vite.config.mjs', 'eslint.config.js'],
+    languageOptions: {
+      sourceType: 'module',
+    },
+  },
+  {
+    // ESM modules in tauri-ui/src/ run in the browser (Vite-bundled). Add
+    // browser globals so `document` and friends are recognized.
+    files: ['tauri-ui/src/**/*.js'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        fetch: 'readonly',
+        Promise: 'readonly',
+        Map: 'readonly',
+        Set: 'readonly',
+        WeakMap: 'readonly',
+        WeakSet: 'readonly',
+        Symbol: 'readonly',
+        Proxy: 'readonly',
+        Reflect: 'readonly',
+        JSON: 'readonly',
+        Math: 'readonly',
+        Date: 'readonly',
+        RegExp: 'readonly',
+        Error: 'readonly',
+        TypeError: 'readonly',
+        ArrayBuffer: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        HTMLElement: 'readonly',
+        Element: 'readonly',
+        customElements: 'readonly',
+      },
     },
   },
   {
