@@ -6,6 +6,7 @@ const repoRoot = path.resolve(__dirname, '..');
 const filePairs = [
   ['tauri-ui/electron-ui.html', 'electron-ui.html'],
   ['tauri-ui/app.css', 'app.css'],
+  ['tauri-ui/app-ux.js', 'app-ux.js'],
   ['tauri-ui/app-bridge.js', 'app-bridge.js'],
   ['tauri-ui/app-audit.js', 'app-audit.js'],
   ['tauri-ui/app-cli.js', 'app-cli.js'],
@@ -71,7 +72,7 @@ function validateCanonicalHtml() {
   }
   const inlineScripts =
     html.match(
-      /<script(?!\s+defer\s+src=["']\.\/app-(?:bridge|audit|cli|diagnostics)\.js(?:\?[^"']*)?["']><\/script>)(?!\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>)(?!\s+src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js["']><\/script>)[\s>]/gi
+      /<script(?!\s+defer\s+src=["']\.\/app-(?:ux|bridge|audit|cli|diagnostics)\.js(?:\?[^"']*)?["']><\/script>)(?!\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>)(?!\s+src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js["']><\/script>)[\s>]/gi
     ) || [];
   if (inlineScripts.length > 0) {
     fail(
