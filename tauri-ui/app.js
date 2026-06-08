@@ -137,7 +137,12 @@ let lastCertRefresh = 0;
 let certRefreshInFlight = null;
 let statusRefreshInFlight = false;
 let currentViewId = 'overview';
-const viewDomCache = null;
+// Declared with let (not const) so getViewDomCache() in
+// app-diagnostics.js can lazy-initialise the cache the first time
+// a view switch happens. With const this throws
+// "Assignment to constant variable" the moment the user clicks any
+// [data-view-button] tab.
+let viewDomCache = null;
 
 const fields = ['id', 'name', 'targetUrl', 'protocol', 'apiKey'];
 const $ = (id) => document.getElementById(id);
