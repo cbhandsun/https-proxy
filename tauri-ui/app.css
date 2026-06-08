@@ -701,6 +701,22 @@ tr:hover td { background: var(--hover-bg); }
 }
 .theme-toggle:hover { background: rgba(255, 255, 255, 0.16); opacity: 1; transform: scale(1.05); box-shadow: none; }
 .theme-toggle svg { width: 18px; height: 18px; }
+.theme-auto-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 1.5px solid var(--header-bg);
+}
 
 .log-line { display: block; }
 .log-line.info { color: #10b981; }

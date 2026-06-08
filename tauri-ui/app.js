@@ -1,4 +1,4 @@
-let rateLimitsData = {};
+const rateLimitsData = {};
 let limitsTimeDisplayTimer = null;
 let lastRenderedLimitsProfileId = '';
 let lastRenderedLimitsHtml = '';
@@ -30,25 +30,31 @@ function renderLimitsHtml(profileId) {
     return '<span style="opacity: 0.6; font-size: 11px;">无限制数据</span>';
   }
 
-  return data.limits.map(limit => {
-    let color = '#10b981';
-    const value = Number.isFinite(Number(limit.remainingPercent)) ? Number(limit.remainingPercent) : Number(limit.percent || 0);
-    const isRemaining = Number.isFinite(Number(limit.remainingPercent));
-    if (isRemaining) {
-      if (value <= 20) color = '#ef4444';
-      else if (value <= 50) color = '#f59e0b';
-    } else {
-      if (value >= 80) color = '#ef4444';
-      else if (value >= 50) color = '#f59e0b';
-    }
+  return data.limits
+    .map((limit) => {
+      let color = '#10b981';
+      const value = Number.isFinite(Number(limit.remainingPercent))
+        ? Number(limit.remainingPercent)
+        : Number(limit.percent || 0);
+      const isRemaining = Number.isFinite(Number(limit.remainingPercent));
+      if (isRemaining) {
+        if (value <= 20) color = '#ef4444';
+        else if (value <= 50) color = '#f59e0b';
+      } else {
+        if (value >= 80) color = '#ef4444';
+        else if (value >= 50) color = '#f59e0b';
+      }
 
-    const label = escapeHtml(limit.model ? limit.model : limit.window);
-    const resetValue = limit.resetDisplay || limit.resetIn || '';
-    const resetText = resetValue ? `<span style="opacity: 0.6; font-size: 10px;">🕒 ${escapeHtml(resetValue)}</span>` : '';
-    return `<span style="background: rgba(255, 255, 255, 0.03); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 4px;">
+      const label = escapeHtml(limit.model ? limit.model : limit.window);
+      const resetValue = limit.resetDisplay || limit.resetIn || '';
+      const resetText = resetValue
+        ? `<span style="opacity: 0.6; font-size: 10px;">🕒 ${escapeHtml(resetValue)}</span>`
+        : '';
+      return `<span style="background: rgba(255, 255, 255, 0.03); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 4px;">
       ${label}: <strong style="color: ${color}; font-weight: 700;">${value}%</strong> ${resetText}
     </span>`;
-  }).join(' ');
+    })
+    .join(' ');
 }
 
 async function refreshRateLimits(profileId) {
@@ -62,18 +68,18 @@ async function refreshRateLimits(profileId) {
     if (result.ok) {
       rateLimitsData[profileId] = {
         limits: result.limits || [],
-        refreshedAt: Date.now()
+        refreshedAt: Date.now(),
       };
     } else {
       rateLimitsData[profileId] = {
         error: result.error || '获取失败',
-        refreshedAt: Date.now()
+        refreshedAt: Date.now(),
       };
     }
   } catch (err) {
     rateLimitsData[profileId] = {
       error: err.message,
-      refreshedAt: Date.now()
+      refreshedAt: Date.now(),
     };
   }
 
@@ -100,7 +106,7 @@ function updateLimitsTimeDisplay() {
 
 let config;
 let selectedId;
-let profileLatencies = {};
+const profileLatencies = {};
 let isTestingLatency = false;
 let modelRoutes = [];
 let availableModels = [];
@@ -110,28 +116,28 @@ let lastRenderedRulesHtml = '';
 let lastRenderedOverviewSignature = '';
 let lastRenderedOverviewRoutesHtml = '';
 let lastRenderedProfilesHtml = '';
-let logRefreshTimer = null;
-let logRefreshInFlight = false;
-let lastRenderedLog = '';
-let diagnosticsRefreshInFlight = false;
-let lastRenderedDiagnosticsOutput = '';
-let lastRenderedDiagnosticsStatus = '';
-let lastLogAutoRefreshAt = 0;
-let lastRenderedMonitorHtml = null;
-let heartbeatTimer = null;
+const logRefreshTimer = null;
+const logRefreshInFlight = false;
+const lastRenderedLog = '';
+const diagnosticsRefreshInFlight = false;
+const lastRenderedDiagnosticsOutput = '';
+const lastRenderedDiagnosticsStatus = '';
+const lastLogAutoRefreshAt = 0;
+const lastRenderedMonitorHtml = null;
+const heartbeatTimer = null;
 let proxyRecoveryInFlight = false;
 let manualProxyStopSuppressed = false;
 let lastProxyRecoveryAt = 0;
 let currentTheme = 'light';
-let monitorEvents = [];
-let lastEventTime = null;
-let monitorRefreshInFlight = false;
+const monitorEvents = [];
+const lastEventTime = null;
+const monitorRefreshInFlight = false;
 let lastStatusRefresh = 0;
 let lastCertRefresh = 0;
 let certRefreshInFlight = null;
 let statusRefreshInFlight = false;
 let currentViewId = 'overview';
-let viewDomCache = null;
+const viewDomCache = null;
 
 const fields = ['id', 'name', 'targetUrl', 'protocol', 'apiKey'];
 const $ = (id) => document.getElementById(id);
@@ -159,9 +165,27 @@ const CLI_SESSIONS_HIDDEN_MS = 15000;
 const MONITOR_SEARCH_BODY_LIMIT = 600;
 const MONITOR_RENDER_WINDOW = 30;
 const defaultEntryServers = [
-  { name: 'Claude Messages', host: 'localhost', listenPort: 3443, basePath: '/v1', protocol: 'claude' },
-  { name: 'OpenAI Responses', host: 'localhost', listenPort: 3445, basePath: '/v1', protocol: 'openai-responses' },
-  { name: 'OpenAI Chat Completions', host: 'localhost', listenPort: 3447, basePath: '/v1', protocol: 'openai-chat' },
+  {
+    name: 'Claude Messages',
+    host: 'localhost',
+    listenPort: 3443,
+    basePath: '/v1',
+    protocol: 'claude',
+  },
+  {
+    name: 'OpenAI Responses',
+    host: 'localhost',
+    listenPort: 3445,
+    basePath: '/v1',
+    protocol: 'openai-responses',
+  },
+  {
+    name: 'OpenAI Chat Completions',
+    host: 'localhost',
+    listenPort: 3447,
+    basePath: '/v1',
+    protocol: 'openai-chat',
+  },
 ];
 
 function escapeHtml(value) {
@@ -190,7 +214,9 @@ function exposePerfRecords() {
   window.__hpmPerf = {
     records: perfRecords,
     report: () => perfRecords.slice(-50),
-    clear: () => { perfRecords.length = 0; }
+    clear: () => {
+      perfRecords.length = 0;
+    },
   };
   document.documentElement.dataset.perfRecords = JSON.stringify(perfRecords.slice(-20));
 }
@@ -209,7 +235,7 @@ function recordPerf(label, duration, meta = {}) {
     label,
     duration: Math.round(duration * 10) / 10,
     at: new Date().toISOString(),
-    ...meta
+    ...meta,
   };
   perfRecords.push(entry);
   if (perfRecords.length > 200) perfRecords.shift();
@@ -261,11 +287,22 @@ function scheduleStartupTask(label, task, options = {}) {
 }
 
 function initTheme() {
-  currentTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  if (window.UX && window.UX.theme) {
+    window.UX.theme.init();
+    return;
+  }
+  // Fallback: legacy light/dark toggle
+  currentTheme =
+    localStorage.getItem('theme') ||
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   applyTheme(currentTheme);
 }
 
 function applyTheme(theme) {
+  if (window.UX && window.UX.theme) {
+    window.UX.theme.apply(theme);
+    return;
+  }
   document.documentElement.setAttribute('data-theme', theme);
   $('themeIconSun').style.display = theme === 'dark' ? 'block' : 'none';
   $('themeIconMoon').style.display = theme === 'dark' ? 'none' : 'block';
@@ -276,6 +313,12 @@ function applyTheme(theme) {
 const themeBtn = $('themeToggle');
 if (themeBtn) {
   themeBtn.onclick = () => {
+    if (window.UX && window.UX.theme) {
+      const next = window.UX.theme.cycle();
+      const labels = { light: '已切换为浅色', dark: '已切换为深色', auto: '已切换为跟随系统' };
+      showToast(labels[next] || '主题已切换', 'success');
+      return;
+    }
     applyTheme(currentTheme === 'light' ? 'dark' : 'light');
   };
 }
@@ -315,8 +358,12 @@ function confirmAction({ title, message, confirmText = '确认', danger = true }
     };
     ok.onclick = () => finish(true);
     cancel.onclick = () => finish(false);
-    modal.onclick = (event) => { if (event.target === modal) finish(false); };
-    document.onkeydown = (event) => { if (event.key === 'Escape') finish(false); };
+    modal.onclick = (event) => {
+      if (event.target === modal) finish(false);
+    };
+    document.onkeydown = (event) => {
+      if (event.key === 'Escape') finish(false);
+    };
     cancel.focus();
   });
 }
@@ -350,11 +397,26 @@ function entryProtocolName(value) {
 }
 
 function normalizeEntryProtocol(value) {
-  const protocol = String(value || '').trim().toLowerCase();
-  if (protocol === 'responses' || protocol === 'response' || protocol === 'openai-response') return 'openai-responses';
-  if (protocol === 'chat' || protocol === 'chat-completions' || protocol === 'openai-chat-completions' || protocol === 'openai') return 'openai-chat';
+  const protocol = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (protocol === 'responses' || protocol === 'response' || protocol === 'openai-response')
+    return 'openai-responses';
+  if (
+    protocol === 'chat' ||
+    protocol === 'chat-completions' ||
+    protocol === 'openai-chat-completions' ||
+    protocol === 'openai'
+  )
+    return 'openai-chat';
   if (protocol === 'desktop' || protocol === 'claude-desktop') return 'claude-desktop';
-  if (protocol === 'claude' || protocol === 'openai-responses' || protocol === 'openai-chat' || protocol === 'claude-desktop') return protocol;
+  if (
+    protocol === 'claude' ||
+    protocol === 'openai-responses' ||
+    protocol === 'openai-chat' ||
+    protocol === 'claude-desktop'
+  )
+    return protocol;
   return 'claude';
 }
 
@@ -377,7 +439,9 @@ function selectedProfile() {
 
 function activeProfile() {
   if (!config || !Array.isArray(config.profiles)) return null;
-  return config.profiles.find((profile) => profile.id === config.activeProfile) || config.profiles[0];
+  return (
+    config.profiles.find((profile) => profile.id === config.activeProfile) || config.profiles[0]
+  );
 }
 
 function ensureLocalServer() {
@@ -385,7 +449,9 @@ function ensureLocalServer() {
   const active = activeProfile() || {};
   if (!config.localServer) config.localServer = {};
   config.localServer.host = config.localServer.host || 'localhost';
-  config.localServer.listenPort = Number(config.localServer.listenPort || (active && active.listenPort) || 3443);
+  config.localServer.listenPort = Number(
+    config.localServer.listenPort || (active && active.listenPort) || 3443
+  );
   config.localServer.basePath = config.localServer.basePath || '/v1';
   config.localServer.protocol = normalizeEntryProtocol(config.localServer.protocol || 'claude');
 }
@@ -394,13 +460,17 @@ function ensureEntryServers() {
   ensureLocalServer();
   const defaults = defaultEntriesForLocal();
   const source = Array.isArray(config.entryServers) ? config.entryServers.filter(Boolean) : [];
-  const byProtocol = new Map(source.map((entry) => [normalizeEntryProtocol(entry.protocol), entry]));
+  const byProtocol = new Map(
+    source.map((entry) => [normalizeEntryProtocol(entry.protocol), entry])
+  );
   config.entryServers = defaults.map((fallback) => {
     const existing = byProtocol.get(fallback.protocol);
     return {
       name: existing && existing.name ? existing.name : fallback.name,
       host: existing && existing.host ? existing.host : fallback.host,
-      listenPort: Number((existing && (existing.listenPort || existing.port)) || fallback.listenPort),
+      listenPort: Number(
+        (existing && (existing.listenPort || existing.port)) || fallback.listenPort
+      ),
       basePath: existing && existing.basePath ? existing.basePath : fallback.basePath,
       protocol: fallback.protocol,
       enabled: existing && existing.enabled === false ? false : true,
@@ -411,13 +481,23 @@ function ensureEntryServers() {
 function ensureAppSettings() {
   if (!config.appSettings) config.appSettings = {};
   if (typeof config.appSettings.closeToTray !== 'boolean') config.appSettings.closeToTray = true;
-  if (typeof config.appSettings.stopProxyOnExit !== 'boolean') config.appSettings.stopProxyOnExit = true;
-  if (typeof config.appSettings.autoStartProxy !== 'boolean') config.appSettings.autoStartProxy = true;
+  if (typeof config.appSettings.stopProxyOnExit !== 'boolean')
+    config.appSettings.stopProxyOnExit = true;
+  if (typeof config.appSettings.autoStartProxy !== 'boolean')
+    config.appSettings.autoStartProxy = true;
   if (typeof config.appSettings.showTopMenu !== 'boolean') config.appSettings.showTopMenu = true;
   if (typeof config.appSettings.showTrayMenu !== 'boolean') config.appSettings.showTrayMenu = true;
-  if (typeof config.appSettings.showWindowOnTrayCommand !== 'boolean') config.appSettings.showWindowOnTrayCommand = true;
-  if (typeof config.appSettings.disableLocalProxy !== 'boolean') config.appSettings.disableLocalProxy = false;
-  if (typeof config.appSettings.conversationAuditEnabled !== 'boolean') config.appSettings.conversationAuditEnabled = true;
+  if (typeof config.appSettings.showWindowOnTrayCommand !== 'boolean')
+    config.appSettings.showWindowOnTrayCommand = true;
+  if (typeof config.appSettings.desktopNotifications !== 'boolean') {
+    // Default to enabled if the browser says Notification is usable; otherwise
+    // off so the toggle does not dangle a "supported" promise.
+    config.appSettings.desktopNotifications = window.UX ? window.UX.canNotify() : false;
+  }
+  if (typeof config.appSettings.disableLocalProxy !== 'boolean')
+    config.appSettings.disableLocalProxy = false;
+  if (typeof config.appSettings.conversationAuditEnabled !== 'boolean')
+    config.appSettings.conversationAuditEnabled = true;
   if (typeof config.appSettings.performanceMode !== 'boolean') {
     const cachedPerfMode = localStorage.getItem('hpm_performance_mode');
     config.appSettings.performanceMode = cachedPerfMode == null ? true : cachedPerfMode !== 'false';
@@ -427,7 +507,9 @@ function ensureAppSettings() {
 function applyPerformanceMode(enabled) {
   const value = enabled ? 'true' : 'false';
   document.documentElement.setAttribute('data-performance-mode', value);
-  try { localStorage.setItem('hpm_performance_mode', value); } catch (e) {}
+  try {
+    localStorage.setItem('hpm_performance_mode', value);
+  } catch (e) {}
 }
 
 async function applyTopMenuVisibility(show) {
@@ -446,6 +528,7 @@ function fillAppSettings() {
   $('showTopMenu').checked = config.appSettings.showTopMenu;
   $('showTrayMenu').checked = config.appSettings.showTrayMenu;
   $('showWindowOnTrayCommand').checked = config.appSettings.showWindowOnTrayCommand;
+  $('desktopNotifications').checked = config.appSettings.desktopNotifications;
   $('disableLocalProxy').checked = config.appSettings.disableLocalProxy;
   $('conversationAuditEnabled').checked = config.appSettings.conversationAuditEnabled;
   $('performanceMode').checked = config.appSettings.performanceMode;
@@ -461,6 +544,7 @@ function collectAppSettings() {
     showTopMenu: $('showTopMenu').checked,
     showTrayMenu: $('showTrayMenu').checked,
     showWindowOnTrayCommand: $('showWindowOnTrayCommand').checked,
+    desktopNotifications: $('desktopNotifications').checked,
     disableLocalProxy: $('disableLocalProxy').checked,
     conversationAuditEnabled: $('conversationAuditEnabled').checked,
     performanceMode: $('performanceMode').checked,
@@ -483,9 +567,15 @@ function defaultClaudeDesktopModel() {
 function ensureClaudeDesktop() {
   if (!config.claudeDesktop) config.claudeDesktop = {};
   if (typeof config.claudeDesktop.enabled !== 'boolean') config.claudeDesktop.enabled = false;
-  if (!['proxy', 'direct', 'official'].includes(config.claudeDesktop.mode)) config.claudeDesktop.mode = 'proxy';
+  if (!['proxy', 'direct', 'official'].includes(config.claudeDesktop.mode))
+    config.claudeDesktop.mode = 'proxy';
   if (!config.claudeDesktop.profileName) config.claudeDesktop.profileName = 'HTTPS Proxy';
-  if (!config.claudeDesktop.baseUrl || config.claudeDesktop.baseUrl === 'http://127.0.0.1:15721/claude-desktop' || config.claudeDesktop.baseUrl === 'https://localhost:3443/v1') config.claudeDesktop.baseUrl = claudeProxyBaseUrl();
+  if (
+    !config.claudeDesktop.baseUrl ||
+    config.claudeDesktop.baseUrl === 'http://127.0.0.1:15721/claude-desktop' ||
+    config.claudeDesktop.baseUrl === 'https://localhost:3443/v1'
+  )
+    config.claudeDesktop.baseUrl = claudeProxyBaseUrl();
   if (typeof config.claudeDesktop.token !== 'string') config.claudeDesktop.token = '';
   if (!Array.isArray(config.claudeDesktop.models) || config.claudeDesktop.models.length === 0) {
     config.claudeDesktop.models = [defaultClaudeDesktopModel()];
@@ -528,13 +618,15 @@ function renderClaudeDesktopRouteOptions(selectedValue) {
   if (!select) return;
   const previous = String(selectedValue || select.value || '').trim();
   const ids = claudeDesktopRouteOptions(previous);
-  select.innerHTML = ids.map((id) => `<option value="${escapeAttr(id)}">${escapeHtml(id)}</option>`).join('');
-  select.value = ids.includes(previous) ? previous : (ids[0] || 'claude-sonnet-4-6');
+  select.innerHTML = ids
+    .map((id) => `<option value="${escapeAttr(id)}">${escapeHtml(id)}</option>`)
+    .join('');
+  select.value = ids.includes(previous) ? previous : ids[0] || 'claude-sonnet-4-6';
   updateClaudeDesktopRouteDetails();
 }
 
 function routeIdOfClaudeDesktopModel(model) {
-  return String(model && (model.routeId || model.from || model.model) || '').trim();
+  return String((model && (model.routeId || model.from || model.model)) || '').trim();
 }
 
 function globalRouteForClaudeDesktop(routeId) {
@@ -548,9 +640,13 @@ function resolveClaudeDesktopModel(model) {
   const route = globalRouteForClaudeDesktop(routeId);
   return {
     routeId,
-    labelOverride: String(model && (model.labelOverride || model.displayName) || '').trim(),
-    profileId: String(model && (model.profileId || '') || route && route.profileId || '').trim(),
-    upstreamModel: String(model && (model.upstreamModel || model.to || '') || route && route.to || '').trim(),
+    labelOverride: String((model && (model.labelOverride || model.displayName)) || '').trim(),
+    profileId: String(
+      (model && (model.profileId || '')) || (route && route.profileId) || ''
+    ).trim(),
+    upstreamModel: String(
+      (model && (model.upstreamModel || model.to || '')) || (route && route.to) || ''
+    ).trim(),
     supports1m: model && model.supports1m !== false,
     inherited: !!route,
   };
@@ -602,7 +698,12 @@ function collectClaudeDesktop() {
 }
 
 function renderClaudeDesktopProfiles() {
-  $('cdProfileId').innerHTML = config.profiles.map((profile) => `<option value="${escapeAttr(profile.id)}">${escapeHtml(profile.name || profile.id)} · ${protocolName(profile.protocol)}</option>`).join('');
+  $('cdProfileId').innerHTML = config.profiles
+    .map(
+      (profile) =>
+        `<option value="${escapeAttr(profile.id)}">${escapeHtml(profile.name || profile.id)} · ${protocolName(profile.protocol)}</option>`
+    )
+    .join('');
   $('cdProfileId').value = config.activeProfile;
   updateClaudeDesktopRouteDetails();
 }
@@ -613,7 +714,9 @@ function renderClaudeDesktopPreview() {
   const lines = [];
   if (mode === 'proxy') {
     lines.push(`Desktop Gateway：${config.claudeDesktop.baseUrl}`);
-    lines.push(`模型数：${config.claudeDesktop.models.length}，代理运行时需要保持 Claude Desktop 入口开启。`);
+    lines.push(
+      `模型数：${config.claudeDesktop.models.length}，代理运行时需要保持 Claude Desktop 入口开启。`
+    );
   } else if (mode === 'direct') {
     lines.push('直连模式会把 Claude Desktop 指向当前上游或这里填写的直连地址。');
   } else {
@@ -640,8 +743,8 @@ function renderClaudeDesktopModels() {
     container.innerHTML = '<div class="muted">暂无 Desktop 模型映射。</div>';
     return;
   }
-  container.innerHTML = `<div class="route-table"><div class="route-table-head"><table><thead><tr><th>Route ID</th><th>菜单显示名</th><th>上游</th><th>真实模型</th><th>1M</th><th></th></tr></thead></table></div><div class="route-table-scroll"><table><tbody>${
-    config.claudeDesktop.models.map((model, index) => {
+  container.innerHTML = `<div class="route-table"><div class="route-table-head"><table><thead><tr><th>Route ID</th><th>菜单显示名</th><th>上游</th><th>真实模型</th><th>1M</th><th></th></tr></thead></table></div><div class="route-table-scroll"><table><tbody>${config.claudeDesktop.models
+    .map((model, index) => {
       const resolved = resolveClaudeDesktopModel(model);
       const profile = config.profiles.find((item) => item.id === resolved.profileId) || {};
       return `<tr>
@@ -652,8 +755,8 @@ function renderClaudeDesktopModels() {
         <td>${resolved.supports1m ? '是' : '否'}</td>
         <td><button class="light" data-cd-edit="${index}">编辑</button><button class="danger" data-cd-delete="${index}">删除</button></td>
       </tr>`;
-    }).join('')
-  }</tbody></table></div></div>`;
+    })
+    .join('')}</tbody></table></div></div>`;
   if (!container.dataset.delegated) {
     container.dataset.delegated = 'true';
     container.onclick = (event) => {
@@ -722,7 +825,8 @@ function modelRoutesForConfig() {
 }
 
 function syncClaudeDesktopModelFromRoute(previousFrom, route) {
-  if (!config || !config.claudeDesktop || !Array.isArray(config.claudeDesktop.models) || !route) return false;
+  if (!config || !config.claudeDesktop || !Array.isArray(config.claudeDesktop.models) || !route)
+    return false;
   const oldFrom = String(previousFrom || '').trim();
   const newFrom = String(route.from || '').trim();
   const index = config.claudeDesktop.models.findIndex((model) => {
@@ -753,7 +857,9 @@ function removeClaudeDesktopModelForRoute(routeId) {
   if (!config || !config.claudeDesktop || !Array.isArray(config.claudeDesktop.models)) return false;
   const from = String(routeId || '').trim();
   const before = config.claudeDesktop.models.length;
-  config.claudeDesktop.models = config.claudeDesktop.models.filter((model) => String(model.routeId || model.from || '').trim() !== from);
+  config.claudeDesktop.models = config.claudeDesktop.models.filter(
+    (model) => String(model.routeId || model.from || '').trim() !== from
+  );
   if (config.claudeDesktop.models.length === before) {
     renderClaudeDesktopRouteOptions();
     return false;
@@ -790,15 +896,21 @@ function collectEntryServers() {
     return;
   }
   config.entryServers = rows.map((row) => ({
-    name: row.querySelector('[data-entry-name]').value.trim() || entryProtocolName(row.querySelector('[data-entry-protocol]').value),
+    name:
+      row.querySelector('[data-entry-name]').value.trim() ||
+      entryProtocolName(row.querySelector('[data-entry-protocol]').value),
     host: row.querySelector('[data-entry-host]').value.trim() || 'localhost',
     listenPort: Number(row.querySelector('[data-entry-port]').value || 3443),
     basePath: row.querySelector('[data-entry-base-path]').value.trim() || '/v1',
     protocol: normalizeEntryProtocol(row.querySelector('[data-entry-protocol]').value),
     enabled: row.querySelector('[data-entry-enabled]').checked,
-    tls: normalizeEntryProtocol(row.querySelector('[data-entry-protocol]').value) === 'claude-desktop' ? false : true,
+    tls:
+      normalizeEntryProtocol(row.querySelector('[data-entry-protocol]').value) === 'claude-desktop'
+        ? false
+        : true,
   }));
-  const claudeEntry = config.entryServers.find((entry) => entry.protocol === 'claude') || config.entryServers[0];
+  const claudeEntry =
+    config.entryServers.find((entry) => entry.protocol === 'claude') || config.entryServers[0];
   if (claudeEntry) {
     config.localServer.host = claudeEntry.host;
     config.localServer.listenPort = claudeEntry.listenPort;
@@ -806,7 +918,8 @@ function collectEntryServers() {
     config.localServer.protocol = 'claude';
     if (document.activeElement !== $('localHost')) $('localHost').value = claudeEntry.host;
     if (document.activeElement !== $('localPort')) $('localPort').value = claudeEntry.listenPort;
-    if (document.activeElement !== $('localBasePath')) $('localBasePath').value = claudeEntry.basePath;
+    if (document.activeElement !== $('localBasePath'))
+      $('localBasePath').value = claudeEntry.basePath;
   }
 }
 
@@ -832,11 +945,12 @@ function scheduleEntryServersRender() {
 
 function renderEntryServers() {
   ensureEntryServers();
-  $('entryServers').innerHTML = config.entryServers.map((entry, index) => {
-    const protocol = normalizeEntryProtocol(entry.protocol);
-    const scheme = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
-    const url = `${scheme}://${entry.host || 'localhost'}:${entry.listenPort || 3443}${entry.basePath || '/v1'}`;
-    return `<div class="entry-server-row" data-entry-index="${index}">
+  $('entryServers').innerHTML = config.entryServers
+    .map((entry, index) => {
+      const protocol = normalizeEntryProtocol(entry.protocol);
+      const scheme = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
+      const url = `${scheme}://${entry.host || 'localhost'}:${entry.listenPort || 3443}${entry.basePath || '/v1'}`;
+      return `<div class="entry-server-row" data-entry-index="${index}">
       <div class="entry-server-head">
         <div class="entry-server-title">
           <strong>${escapeHtml(entry.name || entryProtocolName(protocol))}</strong>
@@ -858,64 +972,108 @@ function renderEntryServers() {
         </select>
       </div>
     </div>`;
-  }).join('');
-  $('entryServers').querySelectorAll('input, select').forEach((input) => {
-    input.oninput = () => { collectEntryServers(); scheduleLocalPreview(); };
-    input.onchange = () => { collectEntryServers(); scheduleEntryServersRender(); };
-  });
+    })
+    .join('');
+  $('entryServers')
+    .querySelectorAll('input, select')
+    .forEach((input) => {
+      input.oninput = () => {
+        collectEntryServers();
+        scheduleLocalPreview();
+      };
+      input.onchange = () => {
+        collectEntryServers();
+        scheduleEntryServersRender();
+      };
+    });
 }
 
 function renderLocalPreview() {
   collectEntryServers();
-  const entries = Array.isArray(config.entryServers) ? config.entryServers.filter((entry) => entry.enabled !== false) : [];
-  const primary = entries.find((entry) => entry.protocol === 'claude') || entries[0] || { host: $('localHost').value.trim() || 'localhost', listenPort: $('localPort').value || 3443, basePath: $('localBasePath').value.trim() || '/v1', protocol: 'claude' };
+  const entries = Array.isArray(config.entryServers)
+    ? config.entryServers.filter((entry) => entry.enabled !== false)
+    : [];
+  const primary = entries.find((entry) => entry.protocol === 'claude') ||
+    entries[0] || {
+      host: $('localHost').value.trim() || 'localhost',
+      listenPort: $('localPort').value || 3443,
+      basePath: $('localBasePath').value.trim() || '/v1',
+      protocol: 'claude',
+    };
   baseUrl = `https://${primary.host || 'localhost'}:${primary.listenPort || 3443}${primary.basePath || '/v1'}`;
-  $('localUrlPreview').innerHTML = entries.map((entry) => {
-    const protocol = normalizeEntryProtocol(entry.protocol);
-    const scheme = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
-    const url = `${scheme}://${entry.host || 'localhost'}:${entry.listenPort || 3443}${entry.basePath || '/v1'}`;
-    return `<div><strong>${entryProtocolName(entry.protocol)}</strong>：${escapeHtml(url)}</div>`;
-  }).join('') || `IDE Base URL：${escapeHtml(baseUrl)}`;
+  $('localUrlPreview').innerHTML =
+    entries
+      .map((entry) => {
+        const protocol = normalizeEntryProtocol(entry.protocol);
+        const scheme = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
+        const url = `${scheme}://${entry.host || 'localhost'}:${entry.listenPort || 3443}${entry.basePath || '/v1'}`;
+        return `<div><strong>${entryProtocolName(entry.protocol)}</strong>：${escapeHtml(url)}</div>`;
+      })
+      .join('') || `IDE Base URL：${escapeHtml(baseUrl)}`;
   $('heroBaseUrl').textContent = baseUrl;
 }
 
 function claudeProxyBaseUrl() {
   ensureEntryServers();
-  const entry = (config.entryServers || []).find((item) => item.enabled !== false && normalizeEntryProtocol(item.protocol) === 'claude')
-    || { host: 'localhost', listenPort: 3443, basePath: '/v1', tls: true };
+  const entry = (config.entryServers || []).find(
+    (item) => item.enabled !== false && normalizeEntryProtocol(item.protocol) === 'claude'
+  ) || { host: 'localhost', listenPort: 3443, basePath: '/v1', tls: true };
   const scheme = entry.tls === false ? 'http' : 'https';
-  const host = entry.host === '0.0.0.0' ? '127.0.0.1' : (entry.host || 'localhost');
-  const basePath = entry.basePath === '/v1' ? '' : (entry.basePath || '');
+  const host = entry.host === '0.0.0.0' ? '127.0.0.1' : entry.host || 'localhost';
+  const basePath = entry.basePath === '/v1' ? '' : entry.basePath || '';
   return `${scheme}://${host}:${entry.listenPort || 3443}${basePath}`.replace(/\/+$/, '');
 }
 
 function currentRoutes() {
   if (!config) return [];
-  if (Array.isArray(config.modelRoutes)) return config.modelRoutes.filter((route) => route && route.from && route.profileId && route.to);
+  if (Array.isArray(config.modelRoutes))
+    return config.modelRoutes.filter((route) => route && route.from && route.profileId && route.to);
   const active = selectedProfile();
   if (!active) return [];
-  const legacyRules = active.modelRewriteFrom && active.modelRewriteTo ? [{ from: active.modelRewriteFrom, to: active.modelRewriteTo }] : [];
-  return (active.modelRewriteRules || legacyRules).filter((rule) => rule && rule.from && rule.to).map((rule) => ({ from: rule.from, profileId: active.id, to: rule.to }));
+  const legacyRules =
+    active.modelRewriteFrom && active.modelRewriteTo
+      ? [{ from: active.modelRewriteFrom, to: active.modelRewriteTo }]
+      : [];
+  return (active.modelRewriteRules || legacyRules)
+    .filter((rule) => rule && rule.from && rule.to)
+    .map((rule) => ({ from: rule.from, profileId: active.id, to: rule.to }));
 }
 
 function renderRouteProfiles(selectedValue) {
-  $('modelRouteProfile').innerHTML = config.profiles.map((profile) => `<option value="${escapeAttr(profile.id)}">${escapeHtml(profile.name || profile.id)} · ${protocolName(profile.protocol)} · ${escapeHtml(profile.targetUrl)}</option>`).join('');
+  $('modelRouteProfile').innerHTML = config.profiles
+    .map(
+      (profile) =>
+        `<option value="${escapeAttr(profile.id)}">${escapeHtml(profile.name || profile.id)} · ${protocolName(profile.protocol)} · ${escapeHtml(profile.targetUrl)}</option>`
+    )
+    .join('');
   $('modelRouteProfile').value = selectedValue || selectedId || config.activeProfile;
 }
 
 function renderModelOptions(selectedValue) {
-  $('availableModels').innerHTML = availableModels.map((model) => `<option value="${escapeAttr(model)}"></option>`).join('');
+  $('availableModels').innerHTML = availableModels
+    .map((model) => `<option value="${escapeAttr(model)}"></option>`)
+    .join('');
   $('modelRewriteTo').value = selectedValue || '';
 }
 
 function routesTable() {
-  if (modelRoutes.length === 0) return '<div class="muted">暂无模型路由，未命中的请求会使用默认上游。</div>';
-  const rows = modelRoutes.map((route, index) => {
-    const profile = config && Array.isArray(config.profiles) ? config.profiles.find((item) => item.id === route.profileId) : null;
-    const target = profile ? `${escapeHtml(profile.name || profile.id)}<div class="muted">${protocolName(profile.protocol)} · ${escapeHtml(profile.targetUrl)}</div>` : escapeHtml(route.profileId);
-    const label = route.labelOverride ? `<div class="muted">展示名: ${escapeHtml(route.labelOverride)}</div>` : '';
-    return `<tr><td><strong>${escapeHtml(route.from)}</strong>${label}</td><td>${target}</td><td><strong>${escapeHtml(route.to)}</strong></td><td><div class="route-actions"><button class="light" data-test-route="${index}">测试</button><button class="light" data-edit-route="${index}">编辑</button><button class="danger" data-delete-route="${index}">删除</button></div></td></tr>`;
-  }).join('');
+  if (modelRoutes.length === 0)
+    return '<div class="muted">暂无模型路由，未命中的请求会使用默认上游。</div>';
+  const rows = modelRoutes
+    .map((route, index) => {
+      const profile =
+        config && Array.isArray(config.profiles)
+          ? config.profiles.find((item) => item.id === route.profileId)
+          : null;
+      const target = profile
+        ? `${escapeHtml(profile.name || profile.id)}<div class="muted">${protocolName(profile.protocol)} · ${escapeHtml(profile.targetUrl)}</div>`
+        : escapeHtml(route.profileId);
+      const label = route.labelOverride
+        ? `<div class="muted">展示名: ${escapeHtml(route.labelOverride)}</div>`
+        : '';
+      return `<tr><td><strong>${escapeHtml(route.from)}</strong>${label}</td><td>${target}</td><td><strong>${escapeHtml(route.to)}</strong></td><td><div class="route-actions"><button class="light" data-test-route="${index}">测试</button><button class="light" data-edit-route="${index}">编辑</button><button class="danger" data-delete-route="${index}">删除</button></div></td></tr>`;
+    })
+    .join('');
   return `<div class="route-table route-table-compact"><div class="route-table-head"><table><thead><tr><th>客户端模型</th><th>转发到上游</th><th>上游模型</th><th>操作</th></tr></thead></table></div><div class="route-table-scroll"><table><tbody>${rows}</tbody></table></div></div>`;
 }
 
@@ -937,7 +1095,9 @@ function showView(viewId) {
     return;
   }
   const cache = getViewDomCache();
-  cache.buttons.forEach((item) => item.classList.toggle('active', item.dataset.viewButton === viewId));
+  cache.buttons.forEach((item) =>
+    item.classList.toggle('active', item.dataset.viewButton === viewId)
+  );
   cache.views.forEach((view) => view.classList.toggle('active', view.id === viewId));
   const view = $(viewId);
   currentViewId = view && view.classList.contains('active') ? viewId : currentViewId;
@@ -950,12 +1110,20 @@ function showView(viewId) {
 
   if (viewId === 'diagnostics') showDiagnosticsTab('logPanel');
   if (viewId === 'monitor') refreshMonitor();
-  if (viewId === 'promptsAuditView') { initPromptsAuditView(); }
-  if (viewId === 'usageReportView') { initUsageReportView(); }
+  if (viewId === 'promptsAuditView') {
+    initPromptsAuditView();
+  }
+  if (viewId === 'usageReportView') {
+    initUsageReportView();
+  }
   if (viewId === 'claudeDesktop') refreshAllToolStatuses({ passive: true });
   if (viewId === 'envCheckView') refreshEnvStatus({ passive: true });
-  if (viewId === 'codeToolsView') { initCodeToolsView(); }
-  if (viewId === 'mcpHubView') { initMcpHubView(); }
+  if (viewId === 'codeToolsView') {
+    initCodeToolsView();
+  }
+  if (viewId === 'mcpHubView') {
+    initMcpHubView();
+  }
   startHeartbeat();
   finishViewPerf();
 }
@@ -1013,7 +1181,7 @@ function bindRouteActions(container) {
           protocol: profile.protocol,
           targetUrl: profile.targetUrl,
           apiKey: '[redacted]',
-          to: route.to
+          to: route.to,
         });
 
         if (result.ok) {
@@ -1055,7 +1223,9 @@ function bindRouteActions(container) {
       $('addRule').textContent = '保存编辑';
       $('output').textContent = '正在编辑模型路由：' + route.from;
       showRoutesView();
-      document.querySelector('.rule-editor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document
+        .querySelector('.rule-editor')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       $('modelRewriteTo').focus();
     };
   });
@@ -1084,9 +1254,13 @@ function renderRules() {
 
 function renderOverview() {
   const active = activeProfile();
-  const defaultProfileText = active ? `${active.name || active.id} · ${protocolName(active.protocol)}` : '未配置';
+  const defaultProfileText = active
+    ? `${active.name || active.id} · ${protocolName(active.protocol)}`
+    : '未配置';
   const routeCountText = `${modelRoutes.length} 条`;
-  const summaryText = active ? `本地入口：${baseUrl} · 默认上游：${active.name || active.id} · ${protocolName(active.protocol)} · ${active.targetUrl}` : '';
+  const summaryText = active
+    ? `本地入口：${baseUrl} · 默认上游：${active.name || active.id} · ${protocolName(active.protocol)} · ${active.targetUrl}`
+    : '';
   const routesHtml = routesTable();
   const nextSignature = [defaultProfileText, routeCountText, summaryText].join('\u001f');
 
@@ -1169,7 +1343,8 @@ function renderDashboardLimits(profileId) {
 
   const data = rateLimitsData[profileId];
   if (timeDisplay) {
-    const nextText = (data && !data.loading) ? `🕒 ${getRelativeTime(data.refreshedAt)}` : '🕒 未同步';
+    const nextText =
+      data && !data.loading ? `🕒 ${getRelativeTime(data.refreshedAt)}` : '🕒 未同步';
     if (nextText !== lastRenderedLimitsTimeText) {
       timeDisplay.textContent = nextText;
       lastRenderedLimitsTimeText = nextText;
@@ -1193,20 +1368,20 @@ async function refreshRateLimitsFromUI() {
     if (result.ok) {
       rateLimitsData[selectedId] = {
         limits: result.limits || [],
-        refreshedAt: Date.now()
+        refreshedAt: Date.now(),
       };
       showToast('官方凭证与使用限额同步成功', 'success');
     } else {
       rateLimitsData[selectedId] = {
         error: result.error || '获取失败',
-        refreshedAt: Date.now()
+        refreshedAt: Date.now(),
       };
       showToast('同步限额失败：' + (result.error || '未知错误'), 'error');
     }
   } catch (err) {
     rateLimitsData[selectedId] = {
       error: err.message,
-      refreshedAt: Date.now()
+      refreshedAt: Date.now(),
     };
     showToast('同步限额出错：' + err.message, 'error');
   }
@@ -1226,7 +1401,7 @@ const PROVIDER_PRESETS = {
     protocol: 'openai',
     targetUrl: 'https://api.openai.com/v1',
     keyUrl: 'https://platform.openai.com/api-keys',
-    desc: '官方 OpenAI 接口。适用于 GPT-4o, GPT-4o-mini 等官方模型。'
+    desc: '官方 OpenAI 接口。适用于 GPT-4o, GPT-4o-mini 等官方模型。',
   },
   claude: {
     name: 'Claude Official',
@@ -1234,7 +1409,7 @@ const PROVIDER_PRESETS = {
     protocol: 'claude',
     targetUrl: 'https://api.anthropic.com/v1',
     keyUrl: 'https://console.anthropic.com/settings/keys',
-    desc: '官方 Anthropic Claude 接口。适用于 Claude 3.5 Sonnet / Haiku / Opus 官方模型。'
+    desc: '官方 Anthropic Claude 接口。适用于 Claude 3.5 Sonnet / Haiku / Opus 官方模型。',
   },
   gemini: {
     name: 'Gemini Official',
@@ -1242,7 +1417,7 @@ const PROVIDER_PRESETS = {
     protocol: 'gemini',
     targetUrl: 'https://generativelanguage.googleapis.com',
     keyUrl: 'https://aistudio.google.com/app/apikey',
-    desc: '官方 Google Gemini 开发者接口（通过 Google AI Studio 服务）。'
+    desc: '官方 Google Gemini 开发者接口（通过 Google AI Studio 服务）。',
   },
   deepseek: {
     name: 'DeepSeek Official',
@@ -1250,7 +1425,7 @@ const PROVIDER_PRESETS = {
     protocol: 'openai',
     targetUrl: 'https://api.deepseek.com/v1',
     keyUrl: 'https://platform.deepseek.com/api_keys',
-    desc: 'DeepSeek 官方的 OpenAI 兼容接口，提供超低成本的高智能交互。'
+    desc: 'DeepSeek 官方的 OpenAI 兼容接口，提供超低成本的高智能交互。',
   },
   siliconflow: {
     name: 'SiliconFlow',
@@ -1258,7 +1433,7 @@ const PROVIDER_PRESETS = {
     protocol: 'openai',
     targetUrl: 'https://api.siliconflow.cn/v1',
     keyUrl: 'https://siliconflow.cn/zh-cn/',
-    desc: '硅基流动开源大模型平台，提供 DeepSeek-V3/R1、Qwen、Llama 等海量模型的超速托管服务。'
+    desc: '硅基流动开源大模型平台，提供 DeepSeek-V3/R1、Qwen、Llama 等海量模型的超速托管服务。',
   },
   ollama: {
     name: 'Ollama Local',
@@ -1266,7 +1441,7 @@ const PROVIDER_PRESETS = {
     protocol: 'openai',
     targetUrl: 'http://localhost:11434/v1',
     keyUrl: '',
-    desc: '本地部署运行的 Ollama 服务，通常用于离线运行开源大模型。<b>注：本地运行，不需要填写 API Key。</b>'
+    desc: '本地部署运行的 Ollama 服务，通常用于离线运行开源大模型。<b>注：本地运行，不需要填写 API Key。</b>',
   },
   openrouter: {
     name: 'OpenRouter',
@@ -1274,8 +1449,8 @@ const PROVIDER_PRESETS = {
     protocol: 'openai',
     targetUrl: 'https://openrouter.ai/api/v1',
     keyUrl: 'https://openrouter.ai/settings/keys',
-    desc: '聚合了大量主流模型与开源模型的第三方转发网关，支持单 API Key 调用数百种模型。'
-  }
+    desc: '聚合了大量主流模型与开源模型的第三方转发网关，支持单 API Key 调用数百种模型。',
+  },
 };
 
 // 初始化服务商预设选项绑定
@@ -1305,9 +1480,14 @@ function initProviderPresets() {
     // 如果是新建状态（ID 包含 profile- 或 name 是默认的“新上游目标”），则自动填充 ID 和名称
     const currentId = $('id').value.trim();
     const currentName = $('name').value.trim();
-    if (!currentId || currentId.startsWith('profile-') || currentName === '新上游目标' || !currentName) {
+    if (
+      !currentId ||
+      currentId.startsWith('profile-') ||
+      currentName === '新上游目标' ||
+      !currentName
+    ) {
       // 生成一个防冲突的 ID
-      const existingIds = config.profiles.map(p => p.id);
+      const existingIds = config.profiles.map((p) => p.id);
       let targetId = preset.defaultId;
       let counter = 1;
       while (existingIds.includes(targetId) && targetId !== selectedId) {
@@ -1375,7 +1555,11 @@ function fillForm(profile) {
     }
   }
 
-  modelRoutes = currentRoutes().map((route) => ({ from: route.from, profileId: route.profileId, to: route.to }));
+  modelRoutes = currentRoutes().map((route) => ({
+    from: route.from,
+    profileId: route.profileId,
+    to: route.to,
+  }));
   availableModels = [];
   resetRouteEditor();
   renderRouteProfiles(selectedId);
@@ -1408,33 +1592,35 @@ function renderProfiles() {
       fillForm(profile);
     };
   }
-  const renderedProfilesHtml = config.profiles.map((profile) => {
-    const classes = ['profile'];
-    if (profile.id === selectedId) classes.push('selected');
-    if (profile.id === config.activeProfile) classes.push('active');
-    const isActive = profile.id === config.activeProfile;
-    const isSelected = profile.id === selectedId;
+  const renderedProfilesHtml = config.profiles
+    .map((profile) => {
+      const classes = ['profile'];
+      if (profile.id === selectedId) classes.push('selected');
+      if (profile.id === config.activeProfile) classes.push('active');
+      const isActive = profile.id === config.activeProfile;
+      const isSelected = profile.id === selectedId;
 
-    const latency = profileLatencies[profile.id];
-    let latencyHtml = '';
-    if (latency !== undefined) {
-      if (latency === 'testing') {
-        latencyHtml = '<span class="badge protocol">测试中...</span>';
-      } else if (typeof latency === 'number') {
-        if (latency < 100) {
-          latencyHtml = `<span class="badge active">${latency} ms</span>`;
-        } else if (latency < 300) {
-          latencyHtml = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: rgb(245, 158, 11); border-color: rgba(245, 158, 11, 0.2); font-weight: 600;">${latency} ms</span>`;
+      const latency = profileLatencies[profile.id];
+      let latencyHtml = '';
+      if (latency !== undefined) {
+        if (latency === 'testing') {
+          latencyHtml = '<span class="badge protocol">测试中...</span>';
+        } else if (typeof latency === 'number') {
+          if (latency < 100) {
+            latencyHtml = `<span class="badge active">${latency} ms</span>`;
+          } else if (latency < 300) {
+            latencyHtml = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: rgb(245, 158, 11); border-color: rgba(245, 158, 11, 0.2); font-weight: 600;">${latency} ms</span>`;
+          } else {
+            latencyHtml = `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border-color: rgba(239, 68, 68, 0.2); font-weight: 600;">${latency} ms</span>`;
+          }
         } else {
-          latencyHtml = `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border-color: rgba(239, 68, 68, 0.2); font-weight: 600;">${latency} ms</span>`;
+          latencyHtml = `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border-color: rgba(239, 68, 68, 0.2);">${latency}</span>`;
         }
-      } else {
-        latencyHtml = `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border-color: rgba(239, 68, 68, 0.2);">${latency}</span>`;
       }
-    }
 
-    return `<div class="${classes.join(' ')}" data-profile-id="${escapeAttr(profile.id)}"><div class="profile-title"><strong>${escapeHtml(profile.name || profile.id)}</strong><span class="badges"><span class="badge protocol">${protocolName(profile.protocol)}</span>${isActive ? '<span class="badge active">默认上游</span>' : ''}${isSelected && !isActive ? '<span class="badge">正在编辑</span>' : ''}${latencyHtml}</span></div><div class="muted">${escapeHtml(profile.targetUrl)}</div><div class="muted">${isActive ? '未命中路由时使用该上游' : '可被模型路由选择'}</div></div>`;
-  }).join('');
+      return `<div class="${classes.join(' ')}" data-profile-id="${escapeAttr(profile.id)}"><div class="profile-title"><strong>${escapeHtml(profile.name || profile.id)}</strong><span class="badges"><span class="badge protocol">${protocolName(profile.protocol)}</span>${isActive ? '<span class="badge active">默认上游</span>' : ''}${isSelected && !isActive ? '<span class="badge">正在编辑</span>' : ''}${latencyHtml}</span></div><div class="muted">${escapeHtml(profile.targetUrl)}</div><div class="muted">${isActive ? '未命中路由时使用该上游' : '可被模型路由选择'}</div></div>`;
+    })
+    .join('');
 
   if (renderedProfilesHtml !== lastRenderedProfilesHtml) {
     container.innerHTML = renderedProfilesHtml;
@@ -1453,21 +1639,27 @@ function initToolsTabSwitching() {
       const toolId = item.dataset.toolId;
 
       // Switch active tool item styling
-      document.querySelectorAll('#toolsList .tool-item').forEach(el => el.classList.remove('selected'));
+      document
+        .querySelectorAll('#toolsList .tool-item')
+        .forEach((el) => el.classList.remove('selected'));
       item.classList.add('selected');
 
       // Switch active panel visibility
-      document.querySelectorAll('.tool-panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelectorAll('.tool-panel').forEach((panel) => panel.classList.remove('active'));
       const activePanel = $(`toolPanel-${toolId}`);
       if (activePanel) activePanel.classList.add('active');
-      refreshAllToolStatuses({ force: true }).catch((err) => console.error('refreshAllToolStatuses error:', err));
+      refreshAllToolStatuses({ force: true }).catch((err) =>
+        console.error('refreshAllToolStatuses error:', err)
+      );
     };
   }
 
   if (toolsList && !toolsList.dataset.statusRefreshScheduled) {
     toolsList.dataset.statusRefreshScheduled = 'true';
     setTimeout(() => {
-      refreshAllToolStatuses({ force: true }).catch((err) => console.error('refreshAllToolStatuses startup error:', err));
+      refreshAllToolStatuses({ force: true }).catch((err) =>
+        console.error('refreshAllToolStatuses startup error:', err)
+      );
     }, 250);
   }
 
@@ -1490,16 +1682,35 @@ function initToolsTabSwitching() {
 }
 
 function fallbackConfig() {
-  return { profiles: [], modelRoutes: [], localServer: {}, appSettings: {}, claudeDesktop: { models: [] }, __fallback: true };
+  return {
+    profiles: [],
+    modelRoutes: [],
+    localServer: {},
+    appSettings: {},
+    claudeDesktop: { models: [] },
+    __fallback: true,
+  };
 }
 
 function applyLoadedConfig(nextConfig) {
   config = nextConfig || fallbackConfig();
   selectedId = config ? config.activeProfile : null;
 
-  try { ensureLocalServer(); } catch (e) { console.error('ensureLocalServer error:', e); }
-  try { ensureAppSettings(); } catch (e) { console.error('ensureAppSettings error:', e); }
-  try { ensureClaudeDesktop(); } catch (e) { console.error('ensureClaudeDesktop error:', e); }
+  try {
+    ensureLocalServer();
+  } catch (e) {
+    console.error('ensureLocalServer error:', e);
+  }
+  try {
+    ensureAppSettings();
+  } catch (e) {
+    console.error('ensureAppSettings error:', e);
+  }
+  try {
+    ensureClaudeDesktop();
+  } catch (e) {
+    console.error('ensureClaudeDesktop error:', e);
+  }
 
   if (config && !Array.isArray(config.modelRoutes)) {
     try {
@@ -1509,17 +1720,39 @@ function applyLoadedConfig(nextConfig) {
     }
   }
 
-  try { fillLocalServer(); } catch (e) { console.error('fillLocalServer error:', e); }
-  try { fillAppSettings(); } catch (e) { console.error('fillAppSettings error:', e); }
-  try { fillClaudeDesktop(); } catch (e) { console.error('fillClaudeDesktop error:', e); }
-  try { fillForm(selectedProfile()); } catch (e) { console.error('fillForm error:', e); }
-  try { renderOverview(); } catch (e) { console.error('renderOverview error:', e); }
+  try {
+    fillLocalServer();
+  } catch (e) {
+    console.error('fillLocalServer error:', e);
+  }
+  try {
+    fillAppSettings();
+  } catch (e) {
+    console.error('fillAppSettings error:', e);
+  }
+  try {
+    fillClaudeDesktop();
+  } catch (e) {
+    console.error('fillClaudeDesktop error:', e);
+  }
+  try {
+    fillForm(selectedProfile());
+  } catch (e) {
+    console.error('fillForm error:', e);
+  }
+  try {
+    renderOverview();
+  } catch (e) {
+    console.error('renderOverview error:', e);
+  }
   return config;
 }
 
 async function hydrateConfigAfterStartup() {
   if (!config || !config.__fallback) return;
-  const latest = await perfTrack('load.hydrateConfig', () => window.proxyManager.readConfig({ attempts: 8, retryDelay: 500, quiet: true }));
+  const latest = await perfTrack('load.hydrateConfig', () =>
+    window.proxyManager.readConfig({ attempts: 8, retryDelay: 500, quiet: true })
+  );
   if (latest && !latest.__fallback) {
     applyLoadedConfig(latest);
   }
@@ -1595,7 +1828,9 @@ async function ensureProxyRecovered(options = {}) {
 async function runStartupProxyWork() {
   await hydrateConfigAfterStartup();
   await ensureProxyStartedFromUi();
-  await perfTrack('load.initialRefresh', () => refreshProxyStatus().catch(e => console.error('refreshProxyStatus error:', e)));
+  await perfTrack('load.initialRefresh', () =>
+    refreshProxyStatus().catch((e) => console.error('refreshProxyStatus error:', e))
+  );
   schedulePassiveCertRefresh();
 }
 
@@ -1604,10 +1839,14 @@ function schedulePromptStartupWork() {
   const type = $('promptClientType').value;
   $('promptContent').value = localStorage.getItem(`prompt_content_${type}`) || '';
   initPromptsTabSwitching();
-  scheduleStartupTask('load.prompts', () => {
-    loadPresetPrompts();
-    loadTemplates();
-  }, { timeout: 2500, delay: 160 });
+  scheduleStartupTask(
+    'load.prompts',
+    () => {
+      loadPresetPrompts();
+      loadTemplates();
+    },
+    { timeout: 2500, delay: 160 }
+  );
 }
 
 async function load() {
@@ -1617,23 +1856,35 @@ async function load() {
   initProviderPresets();
   if (window.proxyManager.onTrayCommand) {
     try {
-      Promise.resolve(window.proxyManager.onTrayCommand(async (result) => {
-        const commandNames = { status: '代理状态', start: '启动代理', stop: '停止代理', restart: '重启代理' };
-        const title = commandNames[result.command] || result.command;
-        const msg = result.output || `${title}完成`;
-        $('output').textContent = msg;
-        showDiagnosticsTab('outputPanel');
-        showToast(title + (result.code === 0 ? '成功' : '失败'), result.code === 0 ? 'success' : 'error');
-        await refreshLog().catch(e => console.error(e));
-        await refreshProxyStatus().catch(e => console.error(e));
-      })).catch((err) => console.error('onTrayCommand setup failed:', err));
+      Promise.resolve(
+        window.proxyManager.onTrayCommand(async (result) => {
+          const commandNames = {
+            status: '代理状态',
+            start: '启动代理',
+            stop: '停止代理',
+            restart: '重启代理',
+          };
+          const title = commandNames[result.command] || result.command;
+          const msg = result.output || `${title}完成`;
+          $('output').textContent = msg;
+          showDiagnosticsTab('outputPanel');
+          showToast(
+            title + (result.code === 0 ? '成功' : '失败'),
+            result.code === 0 ? 'success' : 'error'
+          );
+          await refreshLog().catch((e) => console.error(e));
+          await refreshProxyStatus().catch((e) => console.error(e));
+        })
+      ).catch((err) => console.error('onTrayCommand setup failed:', err));
     } catch (err) {
       console.error('onTrayCommand setup failed:', err);
     }
   }
 
   try {
-    config = await perfTrack('load.readConfig', () => window.proxyManager.readConfig({ attempts: 2, retryDelay: 250, quiet: true }));
+    config = await perfTrack('load.readConfig', () =>
+      window.proxyManager.readConfig({ attempts: 2, retryDelay: 250, quiet: true })
+    );
   } catch (err) {
     console.error('Failed to read config:', err);
     config = fallbackConfig();
@@ -1641,11 +1892,22 @@ async function load() {
 
   applyLoadedConfig(config);
 
-  scheduleStartupTask('load.certStatus', () => refreshCertStatus({ passive: true }), { timeout: 1200, delay: 80 });
+  scheduleStartupTask('load.certStatus', () => refreshCertStatus({ passive: true }), {
+    timeout: 1200,
+    delay: 80,
+  });
   scheduleStartupTask('load.startupProxyWork', runStartupProxyWork, { timeout: 1800, delay: 120 });
 
-  try { initToolsTabSwitching(); } catch (e) { console.error('initToolsTabSwitching error:', e); }
-  try { startHeartbeat(); } catch (e) { console.error('startHeartbeat error:', e); }
+  try {
+    initToolsTabSwitching();
+  } catch (e) {
+    console.error('initToolsTabSwitching error:', e);
+  }
+  try {
+    startHeartbeat();
+  } catch (e) {
+    console.error('startHeartbeat error:', e);
+  }
 
   try {
     schedulePromptStartupWork();
@@ -1660,7 +1922,9 @@ async function load() {
   } catch (e) {
     console.error('updateLimitsTimeDisplay setup error:', e);
   }
-  finishLoadPerf({ profiles: Array.isArray(config && config.profiles) ? config.profiles.length : 0 });
+  finishLoadPerf({
+    profiles: Array.isArray(config && config.profiles) ? config.profiles.length : 0,
+  });
 }
 
 async function refreshProxyStatus(options = {}) {
@@ -1733,8 +1997,12 @@ async function refreshClaudeDesktopStatus() {
   try {
     const status = await window.proxyManager.claudeDesktopStatus();
     if (!status.supported) {
-      $('claudeDesktopStatus').textContent = `当前平台不可写入 Claude Desktop 配置：${status.error || ''}`;
-      if (badgeEl) { badgeEl.textContent = '不支持'; badgeEl.className = 'badge error'; }
+      $('claudeDesktopStatus').textContent =
+        `当前平台不可写入 Claude Desktop 配置：${status.error || ''}`;
+      if (badgeEl) {
+        badgeEl.textContent = '不支持';
+        badgeEl.className = 'badge error';
+      }
       if (dotEl) dotEl.className = 'status-dot red';
       return;
     }
@@ -1743,8 +2011,12 @@ async function refreshClaudeDesktopStatus() {
     const expected = status.expectedBaseUrl || '无';
     const desiredMode = status.desiredMode ? `；选择模式：${status.desiredMode}` : '';
     const matchText = status.matchesExpected === false ? '；状态：需重新写入' : '';
-    const pathText = (status.profilePath || status.configPath) ? `\nProfile：${status.profilePath || status.configPath}` : '';
-    $('claudeDesktopStatus').textContent = `${configured}；模式：${status.mode}${desiredMode}；当前 URL：${actual}；预期 URL：${expected}${matchText}${pathText}`;
+    const pathText =
+      status.profilePath || status.configPath
+        ? `\nProfile：${status.profilePath || status.configPath}`
+        : '';
+    $('claudeDesktopStatus').textContent =
+      `${configured}；模式：${status.mode}${desiredMode}；当前 URL：${actual}；预期 URL：${expected}${matchText}${pathText}`;
 
     // Update badge and title dot
     if (badgeEl) {
@@ -1774,8 +2046,12 @@ async function refreshClaudeDesktopStatus() {
       }
     }
   } catch (err) {
-    $('claudeDesktopStatus').textContent = `Claude Desktop 状态检查失败：${err && err.message ? err.message : err}`;
-    if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
+    $('claudeDesktopStatus').textContent =
+      `Claude Desktop 状态检查失败：${err && err.message ? err.message : err}`;
+    if (badgeEl) {
+      badgeEl.textContent = '失败';
+      badgeEl.className = 'badge error';
+    }
     if (dotEl) dotEl.className = 'status-dot red';
   }
 }
@@ -1787,27 +2063,42 @@ async function refreshClaudeCodeStatus() {
   try {
     const status = await window.proxyManager.claudeCodeStatus();
     if (!status.exists) {
-      $('claudeCodeStatus').textContent = `未检测到 Claude Code 配置文件 (路径: ${status.configPath || ''})`;
+      $('claudeCodeStatus').textContent =
+        `未检测到 Claude Code 配置文件 (路径: ${status.configPath || ''})`;
       $('claudeCodeStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '未检测'; badgeEl.className = 'badge official'; }
+      if (badgeEl) {
+        badgeEl.textContent = '未检测';
+        badgeEl.className = 'badge official';
+      }
       if (dotEl) dotEl.className = 'status-dot';
       return;
     }
     if (status.baseUrl) {
-      $('claudeCodeStatus').textContent = `已配置本地代理；网关地址: ${status.baseUrl}，配置路径: ${status.configPath}`;
+      $('claudeCodeStatus').textContent =
+        `已配置本地代理；网关地址: ${status.baseUrl}，配置路径: ${status.configPath}`;
       $('claudeCodeStatus').className = 'notice green';
-      if (badgeEl) { badgeEl.textContent = '已代理'; badgeEl.className = 'badge active'; }
+      if (badgeEl) {
+        badgeEl.textContent = '已代理';
+        badgeEl.className = 'badge active';
+      }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
       $('claudeCodeStatus').textContent = `官方直连/已启用登录；配置路径: ${status.configPath}`;
       $('claudeCodeStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '直连'; badgeEl.className = 'badge direct'; }
+      if (badgeEl) {
+        badgeEl.textContent = '直连';
+        badgeEl.className = 'badge direct';
+      }
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('claudeCodeStatus').textContent = `Claude Code 状态检查失败：${err && err.message ? err.message : err}`;
+    $('claudeCodeStatus').textContent =
+      `Claude Code 状态检查失败：${err && err.message ? err.message : err}`;
     $('claudeCodeStatus').className = 'notice';
-    if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
+    if (badgeEl) {
+      badgeEl.textContent = '失败';
+      badgeEl.className = 'badge error';
+    }
     if (dotEl) dotEl.className = 'status-dot red';
   }
 }
@@ -1831,47 +2122,66 @@ async function refreshTraeBridgeStatus() {
   if (!window.proxyManager.traeBridgeStatus) {
     statusEl.textContent = '当前版本缺少 Trae Bridge 状态接口。';
     statusEl.className = 'notice';
-    if (badgeEl) { badgeEl.textContent = '不可用'; badgeEl.className = 'badge error'; }
+    if (badgeEl) {
+      badgeEl.textContent = '不可用';
+      badgeEl.className = 'badge error';
+    }
     if (dotEl) dotEl.className = 'status-dot red';
     return;
   }
   try {
     const status = await window.proxyManager.traeBridgeStatus();
-    const reachable = status && status.ok !== false && (
-      status.statusCode === 200 ||
-      Boolean(status.command) ||
-      Boolean(status.waitCommand) ||
-      Boolean(status.streamCommand) ||
-      Boolean(status.rawStreamCommand)
-    );
+    const reachable =
+      status &&
+      status.ok !== false &&
+      (status.statusCode === 200 ||
+        Boolean(status.command) ||
+        Boolean(status.waitCommand) ||
+        Boolean(status.streamCommand) ||
+        Boolean(status.rawStreamCommand));
     if (!reachable) {
       const reason = status && (status.error || status.message || status.statusCode);
       statusEl.textContent = `Trae Bridge 未连接；本地桥接服务通常位于 http://127.0.0.1:17861。${reason ? `原因：${reason}` : '请确认 Trae 已启动并加载扩展。'}`;
       statusEl.className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '未连接'; badgeEl.className = 'badge official'; }
+      if (badgeEl) {
+        badgeEl.textContent = '未连接';
+        badgeEl.className = 'badge official';
+      }
       if (dotEl) dotEl.className = 'status-dot amber';
       return;
     }
 
     const bridgeUrl = formatTraeBridgeUrl(status);
-    const waitCommand = formatTraeCommand(status, 'waitCommand', formatTraeCommand(status, 'command'));
+    const waitCommand = formatTraeCommand(
+      status,
+      'waitCommand',
+      formatTraeCommand(status, 'command')
+    );
     const streamCommand = formatTraeCommand(status, 'streamCommand');
     const rawStreamCommand = formatTraeCommand(status, 'rawStreamCommand');
     const discoveredCount = Number.isFinite(status.discoveredCommandCount)
       ? status.discoveredCommandCount
-      : (Array.isArray(status.discoveredCommands) ? status.discoveredCommands.length : 0);
+      : Array.isArray(status.discoveredCommands)
+        ? status.discoveredCommands.length
+        : 0;
     const rawAvailable = rawStreamCommand !== '未发现';
     const rawText = rawAvailable ? `Raw 调试流：${rawStreamCommand}` : 'Raw 调试流：未发现';
 
     statusEl.textContent = `Trae Bridge 已连接；地址：${bridgeUrl}；等待命令：${waitCommand}；流式命令：${streamCommand}；${rawText}；发现命令：${discoveredCount} 个。`;
     statusEl.className = 'notice green';
-    if (badgeEl) { badgeEl.textContent = rawAvailable ? '已连接' : '可用'; badgeEl.className = 'badge active'; }
+    if (badgeEl) {
+      badgeEl.textContent = rawAvailable ? '已连接' : '可用';
+      badgeEl.className = 'badge active';
+    }
     if (dotEl) dotEl.className = 'status-dot green';
     refreshTraeDebugSettings();
   } catch (err) {
     statusEl.textContent = `Trae Bridge 状态检查失败：${err && err.message ? err.message : err}`;
     statusEl.className = 'notice';
-    if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
+    if (badgeEl) {
+      badgeEl.textContent = '失败';
+      badgeEl.className = 'badge error';
+    }
     if (dotEl) dotEl.className = 'status-dot red';
   }
 }
@@ -1879,32 +2189,41 @@ async function refreshTraeBridgeStatus() {
 let lastTraeNativeDebugCommands = [
   'python scripts\\trae-frida-scan.py',
   'python scripts\\trae-frida-native-probe.py --pid <ai_agent_pid> --duration 45',
-  'python scripts\\trae-frida-native-probe.py --pid <aha_net_pid> --duration 45'
+  'python scripts\\trae-frida-native-probe.py --pid <aha_net_pid> --duration 45',
 ].join('\n');
 
 function renderTraeDebugEvents(events) {
   const target = $('traeDebugEvents');
   if (!target) return;
   if (!Array.isArray(events) || events.length === 0) {
-    target.innerHTML = '<div class="muted">暂无过程事件。先发起一次 Trae 请求，或启用 Raw Stream Patch 后再刷新。</div>';
+    target.innerHTML =
+      '<div class="muted">暂无过程事件。先发起一次 Trae 请求，或启用 Raw Stream Patch 后再刷新。</div>';
     return;
   }
-  target.innerHTML = events.slice(-40).reverse().map((event) => {
-    const source = event.source || 'trae';
-    const kind = event.kind || event.event || 'event';
-    const message = event.message || [
-      kind,
-      event.toolName ? `tool=${event.toolName}` : '',
-      event.toolStatus ? `status=${event.toolStatus}` : '',
-      event.bodyLen == null ? '' : `body=${event.bodyLen}`,
-    ].filter(Boolean).join(' ');
-    return `
+  target.innerHTML = events
+    .slice(-40)
+    .reverse()
+    .map((event) => {
+      const source = event.source || 'trae';
+      const kind = event.kind || event.event || 'event';
+      const message =
+        event.message ||
+        [
+          kind,
+          event.toolName ? `tool=${event.toolName}` : '',
+          event.toolStatus ? `status=${event.toolStatus}` : '',
+          event.bodyLen == null ? '' : `body=${event.bodyLen}`,
+        ]
+          .filter(Boolean)
+          .join(' ');
+      return `
       <div class="trae-debug-event">
         <div class="trae-debug-event-source">${escapeHtml(source)}</div>
         <div class="trae-debug-event-message">${escapeHtml(message)}</div>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 }
 
 function formatTraeNativeCommandBlock(status, scanSummary) {
@@ -1916,10 +2235,12 @@ function formatTraeNativeCommandBlock(status, scanSummary) {
     commands.scan || 'python scripts\\trae-frida-scan.py',
     aiPid
       ? `python scripts\\trae-frida-native-probe.py --pid ${aiPid} --duration 45`
-      : (commands.aiAgentHook || 'python scripts\\trae-frida-native-probe.py --pid <ai_agent_pid> --duration 45'),
+      : commands.aiAgentHook ||
+        'python scripts\\trae-frida-native-probe.py --pid <ai_agent_pid> --duration 45',
     ahaPid
       ? `python scripts\\trae-frida-native-probe.py --pid ${ahaPid} --duration 45`
-      : (commands.ahaNetHook || 'python scripts\\trae-frida-native-probe.py --pid <aha_net_pid> --duration 45'),
+      : commands.ahaNetHook ||
+        'python scripts\\trae-frida-native-probe.py --pid <aha_net_pid> --duration 45',
   ].join('\n');
 }
 
@@ -1931,7 +2252,9 @@ async function refreshTraeDebugEvents() {
   try {
     const [eventsResult, nativeStatus] = await Promise.all([
       window.proxyManager.traeDebugEvents(),
-      window.proxyManager.traeDebugNativeStatus ? window.proxyManager.traeDebugNativeStatus() : Promise.resolve(null)
+      window.proxyManager.traeDebugNativeStatus
+        ? window.proxyManager.traeDebugNativeStatus()
+        : Promise.resolve(null),
     ]);
     if (nativeStatus && nativeStatus.commands) {
       lastTraeNativeDebugCommands = formatTraeNativeCommandBlock(nativeStatus);
@@ -1942,7 +2265,10 @@ async function refreshTraeDebugEvents() {
       renderTraeDebugEvents([]);
       return;
     }
-    const rawCount = eventsResult.raw && Number.isFinite(eventsResult.raw.rawEventCount) ? eventsResult.raw.rawEventCount : 0;
+    const rawCount =
+      eventsResult.raw && Number.isFinite(eventsResult.raw.rawEventCount)
+        ? eventsResult.raw.rawEventCount
+        : 0;
     const logCount = Number.isFinite(eventsResult.logEventCount) ? eventsResult.logEventCount : 0;
     const eventCount = Array.isArray(eventsResult.events) ? eventsResult.events.length : 0;
     summaryEl.textContent = `已聚合 ${eventCount} 条安全过程事件；Raw ${rawCount} 条，日志摘要 ${logCount} 条。`;
@@ -1964,11 +2290,16 @@ function applyTraeDebugSettingsToUi(settings) {
 }
 
 function collectTraeDebugSettingsFromUi() {
-  const visible = Boolean($('traeApiVisibleProgressEnabled') && $('traeApiVisibleProgressEnabled').checked);
+  const visible = Boolean(
+    $('traeApiVisibleProgressEnabled') && $('traeApiVisibleProgressEnabled').checked
+  );
   return {
-    rawCommentsEnabled: visible || Boolean($('traeRawCommentsEnabled') && $('traeRawCommentsEnabled').checked),
+    rawCommentsEnabled:
+      visible || Boolean($('traeRawCommentsEnabled') && $('traeRawCommentsEnabled').checked),
     apiVisibleProgressEnabled: visible,
-    liveLogProgress: !($('traeLogProgressEnabled') && $('traeLogProgressEnabled').checked === false),
+    liveLogProgress: !(
+      $('traeLogProgressEnabled') && $('traeLogProgressEnabled').checked === false
+    ),
   };
 }
 
@@ -1993,7 +2324,8 @@ async function saveTraeDebugSettingsFromUi() {
   }
   try {
     const settings = await window.proxyManager.saveTraeDebugSettings(payload);
-    if (!settings || settings.ok === false) throw new Error(settings && settings.error || '保存失败');
+    if (!settings || settings.ok === false)
+      throw new Error((settings && settings.error) || '保存失败');
     applyTraeDebugSettingsToUi(settings);
     const msg = settings.apiVisibleProgressEnabled
       ? 'Trae API 可见过程已开启；后续流式 API 会把安全过程摘要写入 assistant 正文。'
@@ -2022,15 +2354,19 @@ async function scanTraeNativeDebug() {
   }
   try {
     const [status, scan] = await Promise.all([
-      window.proxyManager.traeDebugNativeStatus ? window.proxyManager.traeDebugNativeStatus() : Promise.resolve(null),
-      window.proxyManager.traeDebugNativeScan()
+      window.proxyManager.traeDebugNativeStatus
+        ? window.proxyManager.traeDebugNativeStatus()
+        : Promise.resolve(null),
+      window.proxyManager.traeDebugNativeScan(),
     ]);
     const scanSummary = scan && scan.summary ? scan.summary : {};
     if (status && status.commands) {
       lastTraeNativeDebugCommands = formatTraeNativeCommandBlock(status, scanSummary);
     }
     const lines = [
-      scan && scan.ok ? 'Native 扫描完成。' : `Native 扫描失败：${scan && (scan.error || scan.status) || '未知错误'}`,
+      scan && scan.ok
+        ? 'Native 扫描完成。'
+        : `Native 扫描失败：${(scan && (scan.error || scan.status)) || '未知错误'}`,
       `ai_agent PID: ${scanSummary.aiAgentPid || '未发现'}`,
       `aha_net PID: ${scanSummary.ahaNetPid || '未发现'}`,
       '',
@@ -2040,13 +2376,14 @@ async function scanTraeNativeDebug() {
         : ['- 未发现 native 候选']),
       '',
       '脱敏扫描输出:',
-      scan && scan.output ? scan.output : ''
+      scan && scan.output ? scan.output : '',
     ];
     outputEl.textContent = lines.join('\n');
     if (summaryEl) {
-      summaryEl.textContent = scan && scan.ok
-        ? 'Native PID 扫描完成；可复制 Hook 命令进行短时本机 Debug。'
-        : 'Native PID 扫描未完成；可检查 Frida/Python 状态。';
+      summaryEl.textContent =
+        scan && scan.ok
+          ? 'Native PID 扫描完成；可复制 Hook 命令进行短时本机 Debug。'
+          : 'Native PID 扫描未完成；可检查 Frida/Python 状态。';
       summaryEl.className = scan && scan.ok ? 'notice green' : 'notice';
     }
   } catch (err) {
@@ -2062,27 +2399,42 @@ async function refreshAntigravityCliStatus() {
   try {
     const status = await window.proxyManager.antigravityCliStatus();
     if (!status.exists) {
-      $('antigravityCliStatus').textContent = `未检测到 Antigravity CLI 配置文件 (路径: ${status.configPath || ''})`;
+      $('antigravityCliStatus').textContent =
+        `未检测到 Antigravity CLI 配置文件 (路径: ${status.configPath || ''})`;
       $('antigravityCliStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '未检测'; badgeEl.className = 'badge official'; }
+      if (badgeEl) {
+        badgeEl.textContent = '未检测';
+        badgeEl.className = 'badge official';
+      }
       if (dotEl) dotEl.className = 'status-dot';
       return;
     }
     if (status.baseUrl) {
-      $('antigravityCliStatus').textContent = `已配置本地代理；网关地址: ${status.baseUrl}，配置路径: ${status.configPath}`;
+      $('antigravityCliStatus').textContent =
+        `已配置本地代理；网关地址: ${status.baseUrl}，配置路径: ${status.configPath}`;
       $('antigravityCliStatus').className = 'notice green';
-      if (badgeEl) { badgeEl.textContent = '已代理'; badgeEl.className = 'badge active'; }
+      if (badgeEl) {
+        badgeEl.textContent = '已代理';
+        badgeEl.className = 'badge active';
+      }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
       $('antigravityCliStatus').textContent = `官方直连/未配置；配置路径: ${status.configPath}`;
       $('antigravityCliStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '直连'; badgeEl.className = 'badge direct'; }
+      if (badgeEl) {
+        badgeEl.textContent = '直连';
+        badgeEl.className = 'badge direct';
+      }
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('antigravityCliStatus').textContent = `Antigravity CLI 状态检查失败：${err && err.message ? err.message : err}`;
+    $('antigravityCliStatus').textContent =
+      `Antigravity CLI 状态检查失败：${err && err.message ? err.message : err}`;
     $('antigravityCliStatus').className = 'notice';
-    if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
+    if (badgeEl) {
+      badgeEl.textContent = '失败';
+      badgeEl.className = 'badge error';
+    }
     if (dotEl) dotEl.className = 'status-dot red';
   }
 }
@@ -2094,28 +2446,43 @@ async function refreshGeminiCliStatus() {
   try {
     const status = await window.proxyManager.geminiCliStatus();
     if (!status.exists) {
-      $('geminiCliStatus').textContent = `未检测到 Google Gemini CLI 配置文件 (路径: ${status.configPath || ''})`;
+      $('geminiCliStatus').textContent =
+        `未检测到 Google Gemini CLI 配置文件 (路径: ${status.configPath || ''})`;
       $('geminiCliStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '未检测'; badgeEl.className = 'badge official'; }
+      if (badgeEl) {
+        badgeEl.textContent = '未检测';
+        badgeEl.className = 'badge official';
+      }
       if (dotEl) dotEl.className = 'status-dot';
       return;
     }
     if (status.apiEndpoint || status.envBaseUrl) {
       const ep = status.apiEndpoint || status.envBaseUrl;
-      $('geminiCliStatus').textContent = `已配置本地代理；网关地址: ${ep}，配置路径: ${status.configPath}`;
+      $('geminiCliStatus').textContent =
+        `已配置本地代理；网关地址: ${ep}，配置路径: ${status.configPath}`;
       $('geminiCliStatus').className = 'notice green';
-      if (badgeEl) { badgeEl.textContent = '已代理'; badgeEl.className = 'badge active'; }
+      if (badgeEl) {
+        badgeEl.textContent = '已代理';
+        badgeEl.className = 'badge active';
+      }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
       $('geminiCliStatus').textContent = `官方直连/已启用认证；配置路径: ${status.configPath}`;
       $('geminiCliStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '直连'; badgeEl.className = 'badge direct'; }
+      if (badgeEl) {
+        badgeEl.textContent = '直连';
+        badgeEl.className = 'badge direct';
+      }
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('geminiCliStatus').textContent = `Google Gemini CLI 状态检查失败：${err && err.message ? err.message : err}`;
+    $('geminiCliStatus').textContent =
+      `Google Gemini CLI 状态检查失败：${err && err.message ? err.message : err}`;
     $('geminiCliStatus').className = 'notice';
-    if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
+    if (badgeEl) {
+      badgeEl.textContent = '失败';
+      badgeEl.className = 'badge error';
+    }
     if (dotEl) dotEl.className = 'status-dot red';
   }
 }
@@ -2126,7 +2493,7 @@ function formatCodexAuthSummary(status) {
     api: 'API 登录',
     mixed: '官方 token + 用户 API Key',
     'legacy-managed-api-key': '旧版代理占位 Key',
-    none: '未登录'
+    none: '未登录',
   };
   const label = labels[status && status.authMode] || '未知';
   const notes = [];
@@ -2156,29 +2523,44 @@ async function refreshCodexStatus() {
     const status = await window.proxyManager.codexStatus();
     if (status && status.ok === false && status.error) throw new Error(status.error);
     if (!status.exists) {
-      $('codexStatus').textContent = `未检测到 Codex CLI 配置文件 (路径: ${status.configPath || ''})`;
+      $('codexStatus').textContent =
+        `未检测到 Codex CLI 配置文件 (路径: ${status.configPath || ''})`;
       $('codexStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '未检测'; badgeEl.className = 'badge official'; }
+      if (badgeEl) {
+        badgeEl.textContent = '未检测';
+        badgeEl.className = 'badge official';
+      }
       if (dotEl) dotEl.className = 'status-dot';
       return;
     }
     const auth = formatCodexAuthSummary(status);
     if (status.baseUrl) {
       const legacy = status.legacyBaseUrl && !status.openaiBaseUrl ? '（旧 base_url 写法）' : '';
-      $('codexStatus').textContent = `已配置本地代理；网关地址: ${status.baseUrl}${legacy}${auth}，配置路径: ${status.configPath}`;
+      $('codexStatus').textContent =
+        `已配置本地代理；网关地址: ${status.baseUrl}${legacy}${auth}，配置路径: ${status.configPath}`;
       $('codexStatus').className = 'notice green';
-      if (badgeEl) { badgeEl.textContent = '已代理'; badgeEl.className = 'badge active'; }
+      if (badgeEl) {
+        badgeEl.textContent = '已代理';
+        badgeEl.className = 'badge active';
+      }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
       $('codexStatus').textContent = `官方直连${auth}；配置路径: ${status.configPath}`;
       $('codexStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '直连'; badgeEl.className = 'badge direct'; }
+      if (badgeEl) {
+        badgeEl.textContent = '直连';
+        badgeEl.className = 'badge direct';
+      }
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('codexStatus').textContent = `Codex CLI 状态检查失败：${err && err.message ? err.message : err}`;
+    $('codexStatus').textContent =
+      `Codex CLI 状态检查失败：${err && err.message ? err.message : err}`;
     $('codexStatus').className = 'notice';
-    if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
+    if (badgeEl) {
+      badgeEl.textContent = '失败';
+      badgeEl.className = 'badge error';
+    }
     if (dotEl) dotEl.className = 'status-dot red';
   }
 }
@@ -2192,36 +2574,55 @@ async function refreshCodexDesktopStatus() {
     if (status && status.ok === false && status.error) throw new Error(status.error);
     if (!status.exists) {
       const auth = formatCodexAuthSummary(status);
-      $('codexDesktopStatus').textContent = `未检测到 Codex 用户配置 (路径: ${status.configPath || ''})${auth}；应用代理会自动创建共享配置。`;
+      $('codexDesktopStatus').textContent =
+        `未检测到 Codex 用户配置 (路径: ${status.configPath || ''})${auth}；应用代理会自动创建共享配置。`;
       $('codexDesktopStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '未检测'; badgeEl.className = 'badge official'; }
+      if (badgeEl) {
+        badgeEl.textContent = '未检测';
+        badgeEl.className = 'badge official';
+      }
       if (dotEl) dotEl.className = 'status-dot';
       return;
     }
     const auth = formatCodexAuthSummary(status);
     if (status.baseUrl) {
       const restartText = status.requiresRestart ? '；重启 Codex Desktop 或新开会话后生效' : '';
-      const legacy = status.legacyBaseUrl && !status.openaiBaseUrl ? '；当前为旧 base_url 写法' : '';
-      const catalog = status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
-        ? `；模型目录 ${status.modelCatalog.modelCount || 0} 个模型 / ${status.modelCatalog.routeCount || 0} 条路由`
-        : '';
-      $('codexDesktopStatus').textContent = `已接入共享 Codex 配置；网关地址: ${status.baseUrl}${legacy}${catalog}${auth}，配置路径: ${status.configPath}${restartText}`;
+      const legacy =
+        status.legacyBaseUrl && !status.openaiBaseUrl ? '；当前为旧 base_url 写法' : '';
+      const catalog =
+        status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
+          ? `；模型目录 ${status.modelCatalog.modelCount || 0} 个模型 / ${status.modelCatalog.routeCount || 0} 条路由`
+          : '';
+      $('codexDesktopStatus').textContent =
+        `已接入共享 Codex 配置；网关地址: ${status.baseUrl}${legacy}${catalog}${auth}，配置路径: ${status.configPath}${restartText}`;
       $('codexDesktopStatus').className = 'notice green';
-      if (badgeEl) { badgeEl.textContent = '已代理'; badgeEl.className = 'badge active'; }
+      if (badgeEl) {
+        badgeEl.textContent = '已代理';
+        badgeEl.className = 'badge active';
+      }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
-      const catalog = status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
-        ? `；已生成模型目录 ${status.modelCatalog.modelCount || 0} 个模型`
-        : '';
-      $('codexDesktopStatus').textContent = `官方直连${catalog}${auth}；配置路径: ${status.configPath}。Codex Desktop 通过共享 config.toml 和启动时模型目录接管。`;
+      const catalog =
+        status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
+          ? `；已生成模型目录 ${status.modelCatalog.modelCount || 0} 个模型`
+          : '';
+      $('codexDesktopStatus').textContent =
+        `官方直连${catalog}${auth}；配置路径: ${status.configPath}。Codex Desktop 通过共享 config.toml 和启动时模型目录接管。`;
       $('codexDesktopStatus').className = 'notice';
-      if (badgeEl) { badgeEl.textContent = '直连'; badgeEl.className = 'badge direct'; }
+      if (badgeEl) {
+        badgeEl.textContent = '直连';
+        badgeEl.className = 'badge direct';
+      }
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('codexDesktopStatus').textContent = `Codex Desktop 状态检查失败：${err && err.message ? err.message : err}`;
+    $('codexDesktopStatus').textContent =
+      `Codex Desktop 状态检查失败：${err && err.message ? err.message : err}`;
     $('codexDesktopStatus').className = 'notice';
-    if (badgeEl) { badgeEl.textContent = '失败'; badgeEl.className = 'badge error'; }
+    if (badgeEl) {
+      badgeEl.textContent = '失败';
+      badgeEl.className = 'badge error';
+    }
     if (dotEl) dotEl.className = 'status-dot red';
   }
 }
@@ -2242,7 +2643,7 @@ async function refreshAllToolStatuses(options = {}) {
     refreshAntigravityCliStatus(),
     refreshGeminiCliStatus(),
     refreshCodexStatus(),
-    refreshCodexDesktopStatus()
+    refreshCodexDesktopStatus(),
   ]).finally(() => {
     lastToolStatusRefresh = Date.now();
     toolStatusRefreshInFlight = null;
@@ -2293,7 +2694,7 @@ function rememberEnvInstallJobs(results = []) {
       installCommand: result.installCommand || '',
       usesIrm: !!result.usesIrm,
       lastLine: result.lastLine || result.error || result.outputTail || '任务已启动',
-      outputTail: result.outputTail || ''
+      outputTail: result.outputTail || '',
     });
     if (result.status !== 'succeeded' && result.status !== 'failed') {
       hasRunning = true;
@@ -2313,8 +2714,9 @@ function envJobStatusLabel(status) {
 function updateEnvInstallProgressPanel() {
   const panel = $('envInstallProgressPanel');
   if (!panel) return;
-  const jobs = Array.from(envInstallJobsByTool.values())
-    .sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+  const jobs = Array.from(envInstallJobsByTool.values()).sort(
+    (a, b) => (b.startedAt || 0) - (a.startedAt || 0)
+  );
   if (jobs.length === 0) {
     panel.style.display = 'none';
     panel.innerHTML = '';
@@ -2328,10 +2730,11 @@ function updateEnvInstallProgressPanel() {
       <span class="muted" style="font-size: 12px;">显示最近任务输出，完成后会自动刷新版本状态</span>
     </div>
     <div style="display: grid; gap: 8px;">
-      ${jobs.map(job => {
-        const failed = job.status === 'failed';
-        const succeeded = job.status === 'succeeded';
-        return `
+      ${jobs
+        .map((job) => {
+          const failed = job.status === 'failed';
+          const succeeded = job.status === 'succeeded';
+          return `
           <div style="display: grid; grid-template-columns: minmax(120px, 180px) minmax(100px, 140px) 1fr; gap: 10px; align-items: start; padding: 8px 10px; border: 1px solid ${failed ? 'rgba(239, 68, 68, 0.35)' : 'var(--border)'}; border-radius: 6px; background: ${succeeded ? 'rgba(16, 185, 129, 0.08)' : 'var(--card-bg)'};">
             <div>
               <div style="font-weight: 700; color: var(--text);">${escapeHtml(job.name || job.toolId || '')}</div>
@@ -2341,7 +2744,8 @@ function updateEnvInstallProgressPanel() {
             <code style="display: block; max-height: 48px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--text); font-family: var(--font-mono); font-size: 11.5px; line-height: 1.35;">${escapeHtml(job.lastLine || job.outputTail || job.installCommand || '等待输出...')}</code>
           </div>
         `;
-      }).join('')}
+        })
+        .join('')}
     </div>
   `;
 }
@@ -2360,7 +2764,7 @@ function markEnvInstallSubmitting(toolIds = []) {
       usesIrm: installCommand.startsWith('irm '),
       startedAt: now,
       lastLine: '正在提交安装任务...',
-      outputTail: ''
+      outputTail: '',
     });
   }
   updateEnvInstallProgressPanel();
@@ -2368,7 +2772,7 @@ function markEnvInstallSubmitting(toolIds = []) {
 }
 
 function finalizeEnvInstallSubmission(toolIds = [], results = [], fallbackError = '') {
-  const byId = new Map((results || []).map(result => [result && result.id, result]));
+  const byId = new Map((results || []).map((result) => [result && result.id, result]));
   for (const toolId of toolIds.filter(Boolean)) {
     const result = byId.get(toolId);
     if (result && result.jobId) continue;
@@ -2380,7 +2784,9 @@ function finalizeEnvInstallSubmission(toolIds = [], results = [], fallbackError 
       status: failed ? 'failed' : 'succeeded',
       endedAt: Date.now(),
       error: fallbackError || (result && result.error) || '',
-      lastLine: failed ? (fallbackError || (result && result.error) || '安装任务失败') : '安装/升级完成'
+      lastLine: failed
+        ? fallbackError || (result && result.error) || '安装任务失败'
+        : '安装/升级完成',
     });
   }
   updateEnvInstallProgressPanel();
@@ -2388,8 +2794,8 @@ function finalizeEnvInstallSubmission(toolIds = [], results = [], fallbackError 
 
 async function pollEnvInstallJobs() {
   const jobIds = Array.from(envInstallJobsByTool.values())
-    .filter(job => job && job.jobId && job.status !== 'succeeded' && job.status !== 'failed')
-    .map(job => job.jobId);
+    .filter((job) => job && job.jobId && job.status !== 'succeeded' && job.status !== 'failed')
+    .map((job) => job.jobId);
   if (jobIds.length === 0) {
     if (envInstallPollTimer) clearInterval(envInstallPollTimer);
     envInstallPollTimer = null;
@@ -2422,14 +2828,20 @@ async function pollEnvInstallJobs() {
 function startEnvInstallPolling() {
   if (envInstallPollTimer) return;
   envInstallPollTimer = setInterval(() => {
-    pollEnvInstallJobs().catch(err => console.error('环境安装进度轮询失败:', err));
+    pollEnvInstallJobs().catch((err) => console.error('环境安装进度轮询失败:', err));
   }, 1200);
-  pollEnvInstallJobs().catch(err => console.error('环境安装进度轮询失败:', err));
+  pollEnvInstallJobs().catch((err) => console.error('环境安装进度轮询失败:', err));
 }
 
 async function refreshEnvStatus(options = {}) {
   const now = Date.now();
-  if (options.passive && !options.force && lastRenderedEnvHtml && now - lastEnvStatusRefresh < 30000) return;
+  if (
+    options.passive &&
+    !options.force &&
+    lastRenderedEnvHtml &&
+    now - lastEnvStatusRefresh < 30000
+  )
+    return;
   if (isRefreshingEnv) return;
   isRefreshingEnv = true;
   const finishPerf = perfStart('refresh.envStatus');
@@ -2444,7 +2856,10 @@ async function refreshEnvStatus(options = {}) {
 
   // 预渲染加载骨架；被动刷新已有结果时不闪烁列表。
   if (!options.passive || !lastRenderedEnvHtml) {
-    grid.innerHTML = Array(6).fill(0).map(() => `
+    grid.innerHTML = Array(6)
+      .fill(0)
+      .map(
+        () => `
     <div class="card" style="padding: 16px; display: flex; flex-direction: column; min-height: 120px; opacity: 0.7;">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -2457,7 +2872,9 @@ async function refreshEnvStatus(options = {}) {
         <div style="display: flex; justify-content: space-between; height: 14px; background: var(--border); border-radius: 2px; width: 80%;"></div>
       </div>
     </div>
-  `).join('');
+  `
+      )
+      .join('');
   }
 
   try {
@@ -2467,21 +2884,23 @@ async function refreshEnvStatus(options = {}) {
     let updateCount = 0;
     let installCount = 0;
     const actionToolIds = [];
-    const envHtml = res.tools.map(tool => {
-      if (tool && tool.id) lastEnvToolsById.set(tool.id, tool);
-      const isInstalled = !!tool.current;
-      if (!isInstalled) installCount++;
-      if (tool.hasUpdate) updateCount++;
-      if (!isInstalled || tool.hasUpdate) actionToolIds.push(tool.id);
+    const envHtml = res.tools
+      .map((tool) => {
+        if (tool && tool.id) lastEnvToolsById.set(tool.id, tool);
+        const isInstalled = !!tool.current;
+        if (!isInstalled) installCount++;
+        if (tool.hasUpdate) updateCount++;
+        if (!isInstalled || tool.hasUpdate) actionToolIds.push(tool.id);
 
-      const statusClass = isInstalled ? 'green' : 'amber';
-      const toolId = escapeHtml(tool.id || '');
-      const toolName = escapeHtml(tool.name || tool.id || '');
-      const currentVersion = escapeHtml(tool.current || '未安装');
-      const latestVersion = escapeHtml(tool.latest || '加载中...');
-      const installCommand = escapeHtml(getPreferredEnvInstallCommand(tool));
-      const installJob = envInstallJobsByTool.get(tool.id);
-      const progressHtml = installJob ? `
+        const statusClass = isInstalled ? 'green' : 'amber';
+        const toolId = escapeHtml(tool.id || '');
+        const toolName = escapeHtml(tool.name || tool.id || '');
+        const currentVersion = escapeHtml(tool.current || '未安装');
+        const latestVersion = escapeHtml(tool.latest || '加载中...');
+        const installCommand = escapeHtml(getPreferredEnvInstallCommand(tool));
+        const installJob = envInstallJobsByTool.get(tool.id);
+        const progressHtml = installJob
+          ? `
             <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px; padding: 8px 10px; border: 1px solid ${installJob.status === 'failed' ? 'rgba(239, 68, 68, 0.35)' : 'var(--border)'}; border-radius: 6px; background: ${installJob.status === 'succeeded' ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-hover)'};">
               <div style="display: flex; justify-content: space-between; gap: 8px; align-items: center;">
                 <span class="muted">安装进度</span>
@@ -2489,18 +2908,20 @@ async function refreshEnvStatus(options = {}) {
               </div>
               <div class="muted" style="font-size: 12px;">${installJob.usesIrm ? '官方 irm 安装脚本' : 'npm 全局安装'}</div>
               <code style="display: block; max-height: 42px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--text); font-family: var(--font-mono); font-size: 11.5px; line-height: 1.35;">${escapeHtml(installJob.lastLine || installJob.outputTail || '等待输出...')}</code>
-            </div>` : '';
-      const isJobRunning = installJob && installJob.status !== 'succeeded' && installJob.status !== 'failed';
-      const actionButton = isJobRunning ?
-        `<button class="light" disabled style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1; opacity: 0.7;">执行中</button>` :
-        (!isInstalled ?
-          `<button class="primary" data-upgrade-tool="${toolId}" data-upgrade-action="install" style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1;">安装</button>` :
-          (tool.hasUpdate ?
-            `<button class="primary" data-upgrade-tool="${toolId}" data-upgrade-action="upgrade" style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1;">升级</button>` :
-            `<button class="light" disabled style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1; opacity: 0.5;">最新</button>`));
+            </div>`
+          : '';
+        const isJobRunning =
+          installJob && installJob.status !== 'succeeded' && installJob.status !== 'failed';
+        const actionButton = isJobRunning
+          ? `<button class="light" disabled style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1; opacity: 0.7;">执行中</button>`
+          : !isInstalled
+            ? `<button class="primary" data-upgrade-tool="${toolId}" data-upgrade-action="install" style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1;">安装</button>`
+            : tool.hasUpdate
+              ? `<button class="primary" data-upgrade-tool="${toolId}" data-upgrade-action="upgrade" style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1;">升级</button>`
+              : `<button class="light" disabled style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1; opacity: 0.5;">最新</button>`;
 
-      return `
-        <div class="card env-card" style="padding: 16px; display: flex; flex-direction: column; min-height: 142px; border: 1px solid ${(!isInstalled || tool.hasUpdate) ? 'var(--primary)' : 'var(--border)'}; background: ${(!isInstalled || tool.hasUpdate) ? 'rgba(var(--primary-rgb), 0.05)' : 'var(--card-bg)'};">
+        return `
+        <div class="card env-card" style="padding: 16px; display: flex; flex-direction: column; min-height: 142px; border: 1px solid ${!isInstalled || tool.hasUpdate ? 'var(--primary)' : 'var(--border)'}; background: ${!isInstalled || tool.hasUpdate ? 'rgba(var(--primary-rgb), 0.05)' : 'var(--card-bg)'};">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span class="status-dot ${statusClass}" style="margin: 0;"></span>
@@ -2525,7 +2946,8 @@ async function refreshEnvStatus(options = {}) {
           </div>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
     lastEnvActionToolIds = actionToolIds.filter(Boolean);
     if (envHtml !== lastRenderedEnvHtml) {
       grid.innerHTML = envHtml;
@@ -2533,13 +2955,13 @@ async function refreshEnvStatus(options = {}) {
     }
 
     const actionCount = updateCount + installCount;
-    btnUpgradeAll.textContent = actionCount > 0 ? `全部安装/升级 (${actionCount})` : '全部安装/升级 (0)';
+    btnUpgradeAll.textContent =
+      actionCount > 0 ? `全部安装/升级 (${actionCount})` : '全部安装/升级 (0)';
     btnUpgradeAll.disabled = actionCount === 0;
     lastEnvStatusRefresh = Date.now();
     if (res.latestPending) {
       scheduleEnvPendingRefresh();
     }
-
   } catch (err) {
     showToast('环境检查刷新失败: ' + err.message, 'error');
     grid.innerHTML = `<div class="notice" style="grid-column: 1 / -1;">刷新失败，请检查网络或代理服务器运行状态：${escapeHtml(err.message)}</div>`;
@@ -2554,12 +2976,12 @@ async function refreshEnvStatus(options = {}) {
   }
 }
 
-window.upgradeSingleTool = async function(toolId, action = 'upgrade') {
+window.upgradeSingleTool = async function (toolId, action = 'upgrade') {
   const isInstall = action === 'install';
   const confirmed = await confirmAction({
     title: isInstall ? '安装助手工具' : '升级助手工具',
     message: `确认要${isInstall ? '安装' : '升级'}该 AI 命令行工具吗？这将在后台执行全局安装命令，耗时可能较长。`,
-    confirmText: isInstall ? '确定安装' : '确定升级'
+    confirmText: isInstall ? '确定安装' : '确定升级',
   });
   if (!confirmed) return;
 
@@ -2578,19 +3000,23 @@ window.upgradeSingleTool = async function(toolId, action = 'upgrade') {
 
     rememberEnvInstallJobs(res.results || []);
     finalizeEnvInstallSubmission([toolId], res.results || []);
-    showToast(isInstall ? '安装任务已启动，正在显示进度...' : '升级任务已启动，正在显示进度...', 'success');
+    showToast(
+      isInstall ? '安装任务已启动，正在显示进度...' : '升级任务已启动，正在显示进度...',
+      'success'
+    );
     refreshEnvStatus({ passive: true, force: true });
   } catch (err) {
     finalizeEnvInstallSubmission([toolId], [], err.message);
     showToast((isInstall ? '工具安装失败：' : '工具升级失败：') + err.message, 'error');
   }
-}
+};
 
 async function upgradeAllEnv() {
   const confirmed = await confirmAction({
     title: '全部安装/升级',
-    message: '确认要安装缺失工具并升级有更新的 AI 命令行工具吗？这将在后台依次串行执行全局安装命令，需要数分钟时间。',
-    confirmText: '全部安装/升级'
+    message:
+      '确认要安装缺失工具并升级有更新的 AI 命令行工具吗？这将在后台依次串行执行全局安装命令，需要数分钟时间。',
+    confirmText: '全部安装/升级',
   });
   if (!confirmed) return;
 
@@ -2611,9 +3037,9 @@ async function upgradeAllEnv() {
 
     rememberEnvInstallJobs(res.results || []);
     finalizeEnvInstallSubmission(batchToolIds, res.results || []);
-    const failed = res.results.filter(r => !r.ok);
+    const failed = res.results.filter((r) => !r.ok);
     if (failed.length > 0) {
-      showToast(`部分包升级失败: ${failed.map(f => f.name).join(', ')}`, 'error');
+      showToast(`部分包升级失败: ${failed.map((f) => f.name).join(', ')}`, 'error');
     } else {
       showToast('安装/升级任务已启动，正在显示进度...', 'success');
     }
@@ -2694,18 +3120,25 @@ async function refreshCertStatus(options = {}) {
   const finishPerf = perfStart('refresh.certStatus');
   certRefreshInFlight = (async () => {
     try {
-      const status = await promiseWithTimeout(window.proxyManager.certStatus(), 9000, '证书状态检查超时');
+      const status = await promiseWithTimeout(
+        window.proxyManager.certStatus(),
+        9000,
+        '证书状态检查超时'
+      );
       lastCertRefresh = Date.now();
       if (!status || !status.ok) {
-        $('certStatus').textContent = `证书状态检查失败：${status && status.error ? status.error : '未知错误'}；目录：${status && status.certDir ? status.certDir : ''}`;
+        $('certStatus').textContent =
+          `证书状态检查失败：${status && status.error ? status.error : '未知错误'}；目录：${status && status.certDir ? status.certDir : ''}`;
         $('heroCertStatus').innerHTML = '<span class="status-dot red"></span>检查失败';
         return;
       }
       const trustText = status.trusted ? '已信任到系统/当前用户证书库' : '未信任';
       const existsText = status.exists ? '证书文件已生成' : '证书文件未生成';
       const expiresText = status.notAfter ? `；有效期至：${status.notAfter}` : '';
-      $('certStatus').textContent = `${existsText}；${trustText}${expiresText}；目录：${status.certDir || ''}`;
-      $('heroCertStatus').innerHTML = `<span class="status-dot ${status.trusted ? 'green' : 'amber'}"></span>${status.trusted ? '已信任' : '未信任'}`;
+      $('certStatus').textContent =
+        `${existsText}；${trustText}${expiresText}；目录：${status.certDir || ''}`;
+      $('heroCertStatus').innerHTML =
+        `<span class="status-dot ${status.trusted ? 'green' : 'amber'}"></span>${status.trusted ? '已信任' : '未信任'}`;
     } catch (err) {
       lastCertRefresh = Date.now();
       const message = err && err.message ? err.message : '未知错误';
@@ -2720,7 +3153,10 @@ async function refreshCertStatus(options = {}) {
 }
 
 function schedulePassiveCertRefresh() {
-  const run = () => refreshCertStatus({ passive: true }).catch((err) => console.error('refreshCertStatus error:', err));
+  const run = () =>
+    refreshCertStatus({ passive: true }).catch((err) =>
+      console.error('refreshCertStatus error:', err)
+    );
   if (window.requestIdleCallback) {
     window.requestIdleCallback(run, { timeout: 2500 });
   } else {
@@ -2754,16 +3190,32 @@ async function uninstallCert() {
 function proxyCommandToastMessage(command, result) {
   const output = String((result && (result.output || result.message || result.error)) || '').trim();
   if (!output) return `命令完成：${command}`;
-  const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const important = lines.filter((line) => /Port occupied|Auto-releasing|Still occupied|Refusing|aborted|failed|timed out|timeout|Exited immediately|already running|started|stopped|Running/i.test(line));
+  const lines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const important = lines.filter((line) =>
+    /Port occupied|Auto-releasing|Still occupied|Refusing|aborted|failed|timed out|timeout|Exited immediately|already running|started|stopped|Running/i.test(
+      line
+    )
+  );
   const picked = (important.length ? important : lines).slice(0, 3);
   return picked.join('；');
 }
 
 async function run(command) {
   const confirmations = {
-    stop: { title: '停止代理？', message: '停止后正在使用本地代理的 IDE 或客户端请求会失败。', confirmText: '停止代理' },
-    restart: { title: '重启代理？', message: '重启会短暂中断本地代理连接，正在进行的请求可能失败。', confirmText: '重启代理', danger: false },
+    stop: {
+      title: '停止代理？',
+      message: '停止后正在使用本地代理的 IDE 或客户端请求会失败。',
+      confirmText: '停止代理',
+    },
+    restart: {
+      title: '重启代理？',
+      message: '重启会短暂中断本地代理连接，正在进行的请求可能失败。',
+      confirmText: '重启代理',
+      danger: false,
+    },
   };
   if (confirmations[command]) {
     const confirmed = await confirmAction(confirmations[command]);
@@ -2779,6 +3231,19 @@ async function run(command) {
   $('output').textContent = msg;
   showDiagnosticsTab('outputPanel');
   showToast(proxyCommandToastMessage(command, result), result.code === 0 ? 'success' : 'error');
+  if (
+    window.UX &&
+    result.code === 0 &&
+    ['start', 'stop', 'restart'].includes(command) &&
+    config.appSettings &&
+    config.appSettings.desktopNotifications
+  ) {
+    const titles = { start: '代理已启动', stop: '代理已停止', restart: '代理已重启' };
+    window.UX.notify(titles[command], {
+      body: msg.split('\n').slice(0, 2).join(' / '),
+      tag: `proxy:${command}`,
+    });
+  }
   await refreshLog();
   await refreshProxyStatus();
 }
@@ -2798,7 +3263,8 @@ async function fetchModels() {
   $('fetchModels').disabled = true;
   $('modelStatus').textContent = '获取中...';
   try {
-    const profile = config.profiles.find((item) => item.id === $('modelRouteProfile').value) || collectForm();
+    const profile =
+      config.profiles.find((item) => item.id === $('modelRouteProfile').value) || collectForm();
     const result = await window.proxyManager.listModels(profile);
     if (!result.ok) {
       $('modelStatus').textContent = '获取失败';
@@ -2809,11 +3275,16 @@ async function fetchModels() {
     renderModelOptions($('modelRewriteTo').value);
     $('modelStatus').textContent = '已获取 ' + availableModels.length + ' 个模型';
     const modeText = result.authMode === 'official-login' ? '（官方登录方式）' : '';
-    $('output').textContent = availableModels.length > 0 ? '模型列表已更新' + modeText : '上游返回成功，但没有解析到模型 ID' + modeText;
+    $('output').textContent =
+      availableModels.length > 0
+        ? '模型列表已更新' + modeText
+        : '上游返回成功，但没有解析到模型 ID' + modeText;
   } catch (err) {
     $('modelStatus').textContent = '获取失败';
     const message = err && err.message ? err.message : '获取模型失败';
-    $('output').textContent = message.includes("No handler registered for 'models:list'") ? '请完全退出并重新启动管理器窗口后再获取模型，新 IPC 需要 Electron 主进程重新加载。' : message;
+    $('output').textContent = message.includes("No handler registered for 'models:list'")
+      ? '请完全退出并重新启动管理器窗口后再获取模型，新 IPC 需要 Electron 主进程重新加载。'
+      : message;
   } finally {
     $('fetchModels').disabled = false;
   }
@@ -2846,21 +3317,30 @@ $('addRule').onclick = () => {
     $('output').textContent = '客户端模型、目标上游和上游模型必填';
     return;
   }
-  const index = editingRouteIndex !== null && modelRoutes[editingRouteIndex]
-    ? editingRouteIndex
-    : modelRoutes.findIndex((route) => route.from === from);
+  const index =
+    editingRouteIndex !== null && modelRoutes[editingRouteIndex]
+      ? editingRouteIndex
+      : modelRoutes.findIndex((route) => route.from === from);
   const nextRoute = { from, profileId, to };
   const isEditing = editingRouteIndex !== null && modelRoutes[editingRouteIndex];
   const previousRoute = index >= 0 ? modelRoutes[index] : null;
   if (labelOverride) nextRoute.labelOverride = labelOverride;
-  if (previousRoute && previousRoute.supports1m !== undefined) nextRoute.supports1m = previousRoute.supports1m;
+  if (previousRoute && previousRoute.supports1m !== undefined)
+    nextRoute.supports1m = previousRoute.supports1m;
   if (index >= 0) modelRoutes[index] = nextRoute;
   else modelRoutes.push(nextRoute);
   syncClaudeDesktopModelFromRoute(previousRoute ? previousRoute.from : from, nextRoute);
   config.modelRoutes = modelRoutesForConfig();
   resetRouteEditor();
   scheduleDashboardRender({ rules: true, overview: true });
-  $('output').textContent = (isEditing ? '模型路由已更新：' : '模型路由已添加：') + from + ' → ' + (config.profiles.find((item) => item.id === profileId)?.name || profileId) + ' → ' + to + '，保存路由配置后生效';
+  $('output').textContent =
+    (isEditing ? '模型路由已更新：' : '模型路由已添加：') +
+    from +
+    ' → ' +
+    (config.profiles.find((item) => item.id === profileId)?.name || profileId) +
+    ' → ' +
+    to +
+    '，保存路由配置后生效';
 };
 
 $('fetchModels').onclick = fetchModels;
@@ -2909,7 +3389,7 @@ $('testModelRoute').onclick = async () => {
   }
 };
 
-document.querySelectorAll('#modelAutocompleteContainer .autocomplete-tag').forEach(tag => {
+document.querySelectorAll('#modelAutocompleteContainer .autocomplete-tag').forEach((tag) => {
   tag.onclick = () => {
     $('modelRewriteFrom').value = tag.textContent.trim();
     showToast('已选择客户端模型：' + tag.textContent.trim(), 'success');
@@ -2941,10 +3421,12 @@ $('importCliCreds').onclick = async () => {
   const result = await window.proxyManager.cliCredentials(type);
   if (result.ok && result.token) {
     $('apiKey').value = result.token;
-    $('importCredsStatus').textContent = '本地凭证导入成功！请点击下方【保存上游目标】按钮保存修改。';
+    $('importCredsStatus').textContent =
+      '本地凭证导入成功！请点击下方【保存上游目标】按钮保存修改。';
     showToast('本地凭证导入成功！', 'success');
   } else {
-    $('importCredsStatus').textContent = '导入失败：' + (result.error || '未检测到有效的本地 CLI 凭据，请确保您已在本地终端登录过。');
+    $('importCredsStatus').textContent =
+      '导入失败：' + (result.error || '未检测到有效的本地 CLI 凭据，请确保您已在本地终端登录过。');
     showToast('导入本地凭证失败', 'error');
   }
 };
@@ -2955,7 +3437,9 @@ $('saveProfile').onclick = async () => {
     $('output').textContent = 'ID 和目标 URL 必填';
     return;
   }
-  const index = config.profiles.findIndex((item) => item.id === selectedId || item.id === profile.id);
+  const index = config.profiles.findIndex(
+    (item) => item.id === selectedId || item.id === profile.id
+  );
   if (index >= 0) config.profiles[index] = profile;
   else config.profiles.push(profile);
   selectedId = profile.id;
@@ -2980,13 +3464,14 @@ $('testProfileAuthBtn').onclick = async () => {
       protocol: profile.protocol,
       targetUrl: profile.targetUrl,
       apiKey: profile.apiKey,
-      profileId: profile.id || selectedId
+      profileId: profile.id || selectedId,
     };
     const result = await window.proxyManager.testProfileAuth(payload);
     if (result && result.ok) {
       const modeText = result.authMode === 'official-login' ? '官方登录凭证' : '密钥鉴权';
       showToast(modeText + '测试成功！', 'success');
-      $('output').textContent = result.warning || result.message || ('上游目标' + modeText + '测试成功，连接正常。');
+      $('output').textContent =
+        result.warning || result.message || '上游目标' + modeText + '测试成功，连接正常。';
     } else {
       showToast('连接/登录测试失败：' + (result.error || '未知错误'), 'error');
       $('output').textContent = '鉴权失败详情: ' + (result.error || '未知错误');
@@ -3023,7 +3508,10 @@ $('activateProfile').onclick = async () => {
 $('copyIdeConfigBtn').onclick = () => {
   const profile = collectForm();
   const entries = config.entryServers || [];
-  const primaryEntry = entries.find(e => e.protocol === (profile.protocol === 'claude' ? 'claude' : 'openai')) || entries[0] || { host: 'localhost', listenPort: 3443, basePath: '/v1' };
+  const primaryEntry = entries.find(
+    (e) => e.protocol === (profile.protocol === 'claude' ? 'claude' : 'openai')
+  ) ||
+    entries[0] || { host: 'localhost', listenPort: 3443, basePath: '/v1' };
   const scheme = primaryEntry.tls === false ? 'http' : 'https';
   const host = primaryEntry.host === '0.0.0.0' ? '127.0.0.1' : primaryEntry.host;
   const baseUrl = `${scheme}://${host || 'localhost'}:${primaryEntry.listenPort || 3443}${primaryEntry.basePath || '/v1'}`;
@@ -3038,14 +3526,17 @@ $('copyIdeConfigBtn').onclick = () => {
     '# Note: API Key can be any string when using the proxy with managed keys,',
     '# or the actual key if you want to bypass the proxy authentication layer.',
     'ANTHROPIC_API_KEY="sk-ant-proxy-managed"',
-    'OPENAI_API_KEY="sk-proxy-managed"'
+    'OPENAI_API_KEY="sk-proxy-managed"',
   ].join('\n');
 
-  navigator.clipboard.writeText(envs).then(() => {
-    showToast('已复制 IDE 环境变量配置到剪贴板', 'success');
-  }).catch(err => {
-    showToast('复制失败: ' + err.message, 'error');
-  });
+  navigator.clipboard
+    .writeText(envs)
+    .then(() => {
+      showToast('已复制 IDE 环境变量配置到剪贴板', 'success');
+    })
+    .catch((err) => {
+      showToast('复制失败: ' + err.message, 'error');
+    });
 };
 
 ['localHost', 'localPort', 'localBasePath'].forEach((id) => {
@@ -3086,7 +3577,14 @@ $('saveAppSettings').onclick = () => saveConfig('应用设置已保存');
 $('saveRoutes').onclick = () => saveConfig('模型路由已保存');
 $('saveClaudeDesktop').onclick = () => saveConfig('Claude Desktop 配置已保存');
 $('refreshClaudeDesktop').onclick = refreshClaudeDesktopStatus;
-['claudeDesktopEnabled', 'claudeDesktopMode', 'claudeDesktopBaseUrl', 'claudeDesktopToken', 'claudeDesktopDirectBaseUrl', 'claudeDesktopDirectApiKey'].forEach((id) => {
+[
+  'claudeDesktopEnabled',
+  'claudeDesktopMode',
+  'claudeDesktopBaseUrl',
+  'claudeDesktopToken',
+  'claudeDesktopDirectBaseUrl',
+  'claudeDesktopDirectApiKey',
+].forEach((id) => {
   $(id).oninput = scheduleClaudeDesktopPreview;
   $(id).onchange = renderClaudeDesktopPreview;
 });
@@ -3110,7 +3608,9 @@ $('addClaudeDesktopModel').onclick = () => {
     next.profileId = $('cdProfileId').value || config.activeProfile;
     next.upstreamModel = upstreamModel;
   }
-  const index = config.claudeDesktop.models.findIndex((item) => (item.routeId || item.from) === routeId);
+  const index = config.claudeDesktop.models.findIndex(
+    (item) => (item.routeId || item.from) === routeId
+  );
   if (index >= 0) config.claudeDesktop.models[index] = next;
   else config.claudeDesktop.models.push(next);
   renderClaudeDesktopRouteOptions();
@@ -3135,7 +3635,9 @@ $('applyClaudeDesktop').onclick = async () => {
   config = await window.proxyManager.readConfig();
   fillClaudeDesktop();
   await refreshClaudeDesktopStatus();
-  const msg = status.configured ? 'Claude Desktop 3P profile 已写入，重启 Claude Desktop 后生效' : 'Claude Desktop 配置已处理';
+  const msg = status.configured
+    ? 'Claude Desktop 3P profile 已写入，重启 Claude Desktop 后生效'
+    : 'Claude Desktop 配置已处理';
   $('output').textContent = msg;
   showToast(msg, 'success');
 };
@@ -3155,7 +3657,9 @@ $('restoreClaudeDesktop').onclick = async () => {
   config = await window.proxyManager.readConfig();
   fillClaudeDesktop();
   await refreshClaudeDesktopStatus();
-  const msg = status.ok ? 'Claude Desktop 已恢复官方模式，重启 Claude Desktop 后生效' : '恢复官方模式失败';
+  const msg = status.ok
+    ? 'Claude Desktop 已恢复官方模式，重启 Claude Desktop 后生效'
+    : '恢复官方模式失败';
   $('output').textContent = msg;
   showToast(msg, status.ok ? 'success' : 'error');
 };
@@ -3176,7 +3680,9 @@ $('restoreClaudeCode').onclick = async () => {
   if (!confirmed) return;
   const status = await window.proxyManager.restoreClaudeCode();
   await refreshClaudeCodeStatus();
-  const msg = status.ok ? '已恢复 Claude Code 官方直连模式！您现在可以正常登录官方。' : '恢复官方模式失败';
+  const msg = status.ok
+    ? '已恢复 Claude Code 官方直连模式！您现在可以正常登录官方。'
+    : '恢复官方模式失败';
   $('output').textContent = msg;
   showToast(msg, status.ok ? 'success' : 'error');
 };
@@ -3184,13 +3690,13 @@ $('refreshClaudeCode').onclick = refreshClaudeCodeStatus;
 
 const TRAE_RAW_PROGRESS_ENV_COMMAND = [
   "$env:TRAE_BRIDGE_RAW_PROGRESS = 'comment'",
-  '.\\proxy.bat restart'
+  '.\\proxy.bat restart',
 ].join('\n');
 
 const TRAE_VISIBLE_PROGRESS_ENV_COMMAND = [
   "$env:TRAE_BRIDGE_RAW_PROGRESS = 'visible'",
   "$env:TRAE_BRIDGE_LOG_PROGRESS = 'visible'",
-  '.\\proxy.bat restart'
+  '.\\proxy.bat restart',
 ].join('\n');
 
 const refreshTraeBridgeButton = $('refreshTraeBridge');
@@ -3202,10 +3708,12 @@ if (refreshTraeDebugEventsButton) refreshTraeDebugEventsButton.onclick = refresh
 const scanTraeNativeDebugButton = $('scanTraeNativeDebug');
 if (scanTraeNativeDebugButton) scanTraeNativeDebugButton.onclick = scanTraeNativeDebug;
 
-['traeRawCommentsEnabled', 'traeApiVisibleProgressEnabled', 'traeLogProgressEnabled'].forEach((id) => {
-  const input = $(id);
-  if (input) input.onchange = saveTraeDebugSettingsFromUi;
-});
+['traeRawCommentsEnabled', 'traeApiVisibleProgressEnabled', 'traeLogProgressEnabled'].forEach(
+  (id) => {
+    const input = $(id);
+    if (input) input.onchange = saveTraeDebugSettingsFromUi;
+  }
+);
 
 const copyTraeNativeDebugCommandsButton = $('copyTraeNativeDebugCommands');
 if (copyTraeNativeDebugCommandsButton) {
@@ -3277,7 +3785,9 @@ $('restoreGeminiCli').onclick = async () => {
   if (!confirmed) return;
   const status = await window.proxyManager.restoreGeminiCli();
   await refreshGeminiCliStatus();
-  const msg = status.ok ? '已恢复 Google Gemini CLI 官方直连模式！您现在可以正常登录官方。' : '恢复官方模式失败';
+  const msg = status.ok
+    ? '已恢复 Google Gemini CLI 官方直连模式！您现在可以正常登录官方。'
+    : '恢复官方模式失败';
   $('output').textContent = msg;
   showToast(msg, status.ok ? 'success' : 'error');
 };
@@ -3285,21 +3795,28 @@ $('refreshGeminiCli').onclick = refreshGeminiCliStatus;
 
 async function switchCodexMode(surface, payload, options = {}) {
   await saveConfig(options.savingText || '模型路由已保存，正在切换 Codex 配置...');
-  const api = surface === 'desktop' ? window.proxyManager.switchCodexDesktop : window.proxyManager.switchCodex;
+  const api =
+    surface === 'desktop'
+      ? window.proxyManager.switchCodexDesktop
+      : window.proxyManager.switchCodex;
   if (!api) {
     return { ok: false, error: '当前版本缺少 Codex 切换接口' };
   }
   const status = await api(payload);
   await Promise.allSettled([refreshCodexDesktopStatus(), refreshCodexStatus()]);
-  const catalog = status && status.connection && status.connection.modelCatalog
-    ? `，模型目录 ${status.connection.modelCatalog.routeCount || 0} 条路由`
-    : (status && status.connection && status.connection.modelCatalogWarning ? `，模型目录生成失败：${status.connection.modelCatalogWarning}` : '');
+  const catalog =
+    status && status.connection && status.connection.modelCatalog
+      ? `，模型目录 ${status.connection.modelCatalog.routeCount || 0} 条路由`
+      : status && status.connection && status.connection.modelCatalogWarning
+        ? `，模型目录生成失败：${status.connection.modelCatalogWarning}`
+        : '';
   const msg = status.ok
     ? `${options.successText || 'Codex 配置已切换'}${catalog}${surface === 'desktop' ? '，重启或新开会话后生效' : ''}！`
     : `${options.errorPrefix || 'Codex 切换失败'}：${toolActionErrorMessage(status, '未知错误')}`;
-  const finalMsg = status.ok && status.partial && status.authWarning
-    ? `${msg} 登录态未完成：${status.authWarning}`
-    : msg;
+  const finalMsg =
+    status.ok && status.partial && status.authWarning
+      ? `${msg} 登录态未完成：${status.authWarning}`
+      : msg;
   $('output').textContent = finalMsg;
   showToast(finalMsg, status.ok ? (status.partial ? 'warning' : 'success') : 'error');
   return status;
@@ -3307,35 +3824,41 @@ async function switchCodexMode(surface, payload, options = {}) {
 
 // Codex Desktop
 $('applyCodexDesktop').onclick = async () => {
-  await switchCodexMode('desktop', { connection: 'proxy', auth: 'api' }, {
-    savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + API 登录...',
-    successText: '已切换到 Codex Desktop 本地代理 + API 登录',
-    errorPrefix: '切换到本地代理 + API 登录失败',
-  });
+  await switchCodexMode(
+    'desktop',
+    { connection: 'proxy', auth: 'api' },
+    {
+      savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + API 登录...',
+      successText: '已切换到 Codex Desktop 本地代理 + API 登录',
+      errorPrefix: '切换到本地代理 + API 登录失败',
+    }
+  );
 };
 $('restoreCodexDesktop').onclick = async () => {
   const confirmed = await confirmAction({
     title: '恢复 Codex Desktop 官方直连 + 官方登录？',
-    message: '这会移除 Codex 共享配置中的本地代理设置，并尝试恢复已备份的 ChatGPT 官方登录 token。Codex CLI 也会受影响。',
+    message:
+      '这会移除 Codex 共享配置中的本地代理设置，并尝试恢复已备份的 ChatGPT 官方登录 token。Codex CLI 也会受影响。',
     confirmText: '恢复官方直连',
   });
   if (!confirmed) return;
-  await switchCodexMode('desktop', { connection: 'direct', auth: 'chatgpt' }, {
-    savingText: '正在切换到 Codex Desktop 官方直连 + 官方登录...',
-    successText: '已切换到 Codex Desktop 官方直连 + 官方登录',
-    errorPrefix: '恢复官方直连 + 官方登录失败',
-  });
+  await switchCodexMode(
+    'desktop',
+    { connection: 'direct', auth: 'chatgpt' },
+    {
+      savingText: '正在切换到 Codex Desktop 官方直连 + 官方登录...',
+      successText: '已切换到 Codex Desktop 官方直连 + 官方登录',
+      errorPrefix: '恢复官方直连 + 官方登录失败',
+    }
+  );
 };
 $('refreshCodexDesktop').onclick = refreshCodexDesktopStatus;
 
-const CODEX_CHATGPT_LOGIN_COMMAND = [
-  'codex logout',
-  'codex login'
-].join('\n');
+const CODEX_CHATGPT_LOGIN_COMMAND = ['codex logout', 'codex login'].join('\n');
 
 const CODEX_API_LOGIN_COMMAND = [
   'codex logout',
-  'cmd /d /s /c "echo|set /p=sk-proxy-managed" | codex login --with-api-key'
+  'cmd /d /s /c "echo|set /p=sk-proxy-managed" | codex login --with-api-key',
 ].join('\n');
 
 let codexOfficialLoginPollTimer = null;
@@ -3399,7 +3922,8 @@ function startCodexOfficialLoginPolling(surface) {
         codexOfficialLoginPollTimer = null;
         await backupCurrentCodexLogin(surface, { quiet: true });
         await refreshBothCodexStatuses();
-        const msg = '已检测到 Codex 官方登录，并完成备份。现在可以使用“代理 + 官方登录”或“恢复官方直连(官方登录)”。';
+        const msg =
+          '已检测到 Codex 官方登录，并完成备份。现在可以使用“代理 + 官方登录”或“恢复官方直连(官方登录)”。';
         $('output').textContent = msg;
         showToast(msg, 'success');
       } else if (attempts >= 40) {
@@ -3468,7 +3992,8 @@ function bindCopyCodexLoginCommand(buttonId, command, label) {
   if (!button) return;
   button.onclick = async () => {
     await navigator.clipboard.writeText(command);
-    $('output').textContent = `${label}已复制到剪贴板。Codex 登录态是二选一，执行前请确认需要切换。`;
+    $('output').textContent =
+      `${label}已复制到剪贴板。Codex 登录态是二选一，执行前请确认需要切换。`;
     showToast(`${label}已复制`, 'success');
   };
 }
@@ -3478,39 +4003,59 @@ function toolActionErrorMessage(status, fallback) {
   return status.error || status.message || status.modelCatalogWarning || fallback;
 }
 
-bindCopyCodexLoginCommand('copyCodexChatGptLoginDesktop', CODEX_CHATGPT_LOGIN_COMMAND, 'Codex 官方登录命令');
-bindCopyCodexLoginCommand('copyCodexApiLoginDesktop', CODEX_API_LOGIN_COMMAND, 'Codex API 登录命令');
+bindCopyCodexLoginCommand(
+  'copyCodexChatGptLoginDesktop',
+  CODEX_CHATGPT_LOGIN_COMMAND,
+  'Codex 官方登录命令'
+);
+bindCopyCodexLoginCommand(
+  'copyCodexApiLoginDesktop',
+  CODEX_API_LOGIN_COMMAND,
+  'Codex API 登录命令'
+);
 bindCodexApiLoginButton('codexDesktopApiLogin', 'desktop');
 bindCodexOfficialLoginButton('codexDesktopOfficialLogin', 'desktop');
 bindCodexBackupButton('codexDesktopBackupAuth', 'desktop');
 const switchCodexDesktopProxyOfficial = $('switchCodexDesktopProxyOfficial');
 if (switchCodexDesktopProxyOfficial) {
   switchCodexDesktopProxyOfficial.onclick = async () => {
-    await switchCodexMode('desktop', { connection: 'proxy', auth: 'chatgpt' }, {
-      savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + 官方登录...',
-      successText: '已切换到 Codex Desktop 本地代理 + 官方登录',
-      errorPrefix: '切换到代理 + 官方登录失败',
-    });
+    await switchCodexMode(
+      'desktop',
+      { connection: 'proxy', auth: 'chatgpt' },
+      {
+        savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + 官方登录...',
+        successText: '已切换到 Codex Desktop 本地代理 + 官方登录',
+        errorPrefix: '切换到代理 + 官方登录失败',
+      }
+    );
   };
 }
 const switchCodexDesktopDirectApi = $('switchCodexDesktopDirectApi');
 if (switchCodexDesktopDirectApi) {
   switchCodexDesktopDirectApi.onclick = async () => {
-    await switchCodexMode('desktop', { connection: 'direct', auth: 'api' }, {
-      savingText: '正在切换到 Codex Desktop 官方直连 + API 登录...',
-      successText: '已切换到 Codex Desktop 官方直连 + API 登录',
-      errorPrefix: '切换到官方直连 + API 登录失败',
-    });
+    await switchCodexMode(
+      'desktop',
+      { connection: 'direct', auth: 'api' },
+      {
+        savingText: '正在切换到 Codex Desktop 官方直连 + API 登录...',
+        successText: '已切换到 Codex Desktop 官方直连 + API 登录',
+        errorPrefix: '切换到官方直连 + API 登录失败',
+      }
+    );
   };
 }
 
 // Codex CLI
 $('applyCodex').onclick = async () => {
-  await switchCodexMode('cli', { connection: 'proxy', auth: 'api' }, {
-    savingText: '模型路由已保存，正在切换到 Codex CLI 本地代理 + API 登录...',
-    successText: '已切换到 Codex CLI 本地代理 + API 登录',
-    errorPrefix: '切换到本地代理 + API 登录失败',
-  });
+  await switchCodexMode(
+    'cli',
+    { connection: 'proxy', auth: 'api' },
+    {
+      savingText: '模型路由已保存，正在切换到 Codex CLI 本地代理 + API 登录...',
+      successText: '已切换到 Codex CLI 本地代理 + API 登录',
+      errorPrefix: '切换到本地代理 + API 登录失败',
+    }
+  );
 };
 $('restoreCodex').onclick = async () => {
   const confirmed = await confirmAction({
@@ -3519,14 +4064,22 @@ $('restoreCodex').onclick = async () => {
     confirmText: '恢复官方直连',
   });
   if (!confirmed) return;
-  await switchCodexMode('cli', { connection: 'direct', auth: 'chatgpt' }, {
-    savingText: '正在切换到 Codex CLI 官方直连 + 官方登录...',
-    successText: '已切换到 Codex CLI 官方直连 + 官方登录',
-    errorPrefix: '恢复官方直连 + 官方登录失败',
-  });
+  await switchCodexMode(
+    'cli',
+    { connection: 'direct', auth: 'chatgpt' },
+    {
+      savingText: '正在切换到 Codex CLI 官方直连 + 官方登录...',
+      successText: '已切换到 Codex CLI 官方直连 + 官方登录',
+      errorPrefix: '恢复官方直连 + 官方登录失败',
+    }
+  );
 };
 $('refreshCodex').onclick = refreshCodexStatus;
-bindCopyCodexLoginCommand('copyCodexChatGptLogin', CODEX_CHATGPT_LOGIN_COMMAND, 'Codex 官方登录命令');
+bindCopyCodexLoginCommand(
+  'copyCodexChatGptLogin',
+  CODEX_CHATGPT_LOGIN_COMMAND,
+  'Codex 官方登录命令'
+);
 bindCopyCodexLoginCommand('copyCodexApiLogin', CODEX_API_LOGIN_COMMAND, 'Codex API 登录命令');
 bindCodexApiLoginButton('codexApiLogin', 'cli');
 bindCodexOfficialLoginButton('codexOfficialLogin', 'cli');
@@ -3534,21 +4087,29 @@ bindCodexBackupButton('codexBackupAuth', 'cli');
 const switchCodexProxyOfficial = $('switchCodexProxyOfficial');
 if (switchCodexProxyOfficial) {
   switchCodexProxyOfficial.onclick = async () => {
-    await switchCodexMode('cli', { connection: 'proxy', auth: 'chatgpt' }, {
-      savingText: '模型路由已保存，正在切换到 Codex CLI 本地代理 + 官方登录...',
-      successText: '已切换到 Codex CLI 本地代理 + 官方登录',
-      errorPrefix: '切换到代理 + 官方登录失败',
-    });
+    await switchCodexMode(
+      'cli',
+      { connection: 'proxy', auth: 'chatgpt' },
+      {
+        savingText: '模型路由已保存，正在切换到 Codex CLI 本地代理 + 官方登录...',
+        successText: '已切换到 Codex CLI 本地代理 + 官方登录',
+        errorPrefix: '切换到代理 + 官方登录失败',
+      }
+    );
   };
 }
 const switchCodexDirectApi = $('switchCodexDirectApi');
 if (switchCodexDirectApi) {
   switchCodexDirectApi.onclick = async () => {
-    await switchCodexMode('cli', { connection: 'direct', auth: 'api' }, {
-      savingText: '正在切换到 Codex CLI 官方直连 + API 登录...',
-      successText: '已切换到 Codex CLI 官方直连 + API 登录',
-      errorPrefix: '切换到官方直连 + API 登录失败',
-    });
+    await switchCodexMode(
+      'cli',
+      { connection: 'direct', auth: 'api' },
+      {
+        savingText: '正在切换到 Codex CLI 官方直连 + API 登录...',
+        successText: '已切换到 Codex CLI 官方直连 + API 登录',
+        errorPrefix: '切换到官方直连 + API 登录失败',
+      }
+    );
   };
 }
 
@@ -3574,7 +4135,14 @@ $('btnCopyInstallCommands').onclick = async () => {
 
 $('addProfile').onclick = () => {
   const id = `profile-${Date.now()}`;
-  fillForm({ id, name: '新上游目标', targetUrl: 'http://host:80/v1', protocol: 'openai', apiKey: '', modelRewriteRules: [] });
+  fillForm({
+    id,
+    name: '新上游目标',
+    targetUrl: 'http://host:80/v1',
+    protocol: 'openai',
+    apiKey: '',
+    modelRewriteRules: [],
+  });
 };
 
 document.querySelectorAll('[data-command]').forEach((button) => {
@@ -3618,18 +4186,22 @@ $('manualInstallHeader').onclick = () => {
 };
 $('btnCopyInstallCommands').onclick = () => {
   const text = $('installCommandsText').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('安装命令已复制到剪贴板', 'success');
-  }).catch(err => {
-    showToast('复制失败: ' + err.message, 'error');
-  });
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      showToast('安装命令已复制到剪贴板', 'success');
+    })
+    .catch((err) => {
+      showToast('复制失败: ' + err.message, 'error');
+    });
 };
 $('btnDiagnosticsConflicts').onclick = async () => {
   const confirmed = await confirmAction({
     title: '依赖诊断与安装提示',
-    message: '全局安装 npm 工具可能遇到以下冲突：\n1. 权限不足：Windows 下请确保以管理员身份运行终端；\n2. 镜像源失效：我们默认使用了淘宝 npmmirror 镜像源以确保国内连通性。\n\n需要前往日志输出查看代理健康状态吗？',
+    message:
+      '全局安装 npm 工具可能遇到以下冲突：\n1. 权限不足：Windows 下请确保以管理员身份运行终端；\n2. 镜像源失效：我们默认使用了淘宝 npmmirror 镜像源以确保国内连通性。\n\n需要前往日志输出查看代理健康状态吗？',
     confirmText: '查看健康状态',
-    cancelText: '知道了'
+    cancelText: '知道了',
   });
   if (confirmed) {
     showDiagnosticsView('outputPanel');
@@ -3663,13 +4235,13 @@ $('testAllLatencies').onclick = async () => {
       const res = await fetch(`${baseUrl}/v1/local/profile/latency`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           protocol: profile.protocol,
           targetUrl: profile.targetUrl,
-          apiKey: profile.apiKey
-        })
+          apiKey: profile.apiKey,
+        }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -3696,7 +4268,10 @@ $('testAllLatencies').onclick = async () => {
 
 let promptContentSaveTimer = null;
 
-function persistPromptContentNow(type = $('promptClientType').value, content = $('promptContent').value) {
+function persistPromptContentNow(
+  type = $('promptClientType').value,
+  content = $('promptContent').value
+) {
   if (promptContentSaveTimer) {
     clearTimeout(promptContentSaveTimer);
     promptContentSaveTimer = null;
@@ -3738,9 +4313,9 @@ $('syncPromptBtn').onclick = async () => {
     const res = await fetch(`${baseUrl}/v1/local/prompts/sync`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ type, content })
+      body: JSON.stringify({ type, content }),
     });
     const data = await res.json();
     if (data.ok) {
@@ -3764,43 +4339,51 @@ const SYSTEM_PRESET_PROMPTS = [
   {
     name: '简约开发助手 (KISS)',
     desc: '倡导模块化与避免过度设计，严格遵守简约至上原则。',
-    content: '# Role\n你是一个追求极简设计与高可维护性的代码重构和软件开发专家。\n\n# 核心原则 (KISS)\n1. 简洁至上：不写不需要的代码，拒绝过度工程与不必要的防御性设计。\n2. 模块化：保持方法短小精悍，职责单一。\n3. 良好文档：为复杂的非直观逻辑编写清晰的内联注释。'
+    content:
+      '# Role\n你是一个追求极简设计与高可维护性的代码重构和软件开发专家。\n\n# 核心原则 (KISS)\n1. 简洁至上：不写不需要的代码，拒绝过度工程与不必要的防御性设计。\n2. 模块化：保持方法短小精悍，职责单一。\n3. 良好文档：为复杂的非直观逻辑编写清晰的内联注释。',
   },
   {
     name: '代码重构大师',
     desc: '渐进式重构代码，消除条件嵌套，保持 API 签名完全兼容。',
-    content: '# Role\n你是一个严谨的资深系统架构师，擅长发现既有代码库中的瓶颈并进行渐进式重构。\n\n# 核心原则\n1. 兼容性：严禁破坏原有的公共 API 或公共方法签名。\n2. 可读性：通过引入清晰的中间变量、消除嵌套条件分支来提升代码表现力。\n3. 性能：定位高频热循环，并在必要时提供优化和 Benchmark 建议。'
+    content:
+      '# Role\n你是一个严谨的资深系统架构师，擅长发现既有代码库中的瓶颈并进行渐进式重构。\n\n# 核心原则\n1. 兼容性：严禁破坏原有的公共 API 或公共方法签名。\n2. 可读性：通过引入清晰的中间变量、消除嵌套条件分支来提升代码表现力。\n3. 性能：定位高频热循环，并在必要时提供优化和 Benchmark 建议。',
   },
   {
     name: 'Bug 诊断侦探',
     desc: '追踪异常还原诱因，细致搜查空引用溢出，以最小改动解决缺陷。',
-    content: '# Role\n你是一个逻辑严密的软件调试专家，擅长从异常栈和日志中顺藤摸瓜定位问题根本。\n\n# 核心原则\n1. 溯源分析：不要只修复表象，深入推导问题的根本诱因。\n2. 边界检查：重点检查空指针（NPE）、越界、并发竞争和类型转换异常。\n3. 最小改动：用最少、最优雅的代码修改来解决问题，严防引入新缺陷。'
+    content:
+      '# Role\n你是一个逻辑严密的软件调试专家，擅长从异常栈和日志中顺藤摸瓜定位问题根本。\n\n# 核心原则\n1. 溯源分析：不要只修复表象，深入推导问题的根本诱因。\n2. 边界检查：重点检查空指针（NPE）、越界、并发竞争和类型转换异常。\n3. 最小改动：用最少、最优雅的代码修改来解决问题，严防引入新缺陷。',
   },
   {
     name: 'Git 提交规范器',
     desc: '一键将近期变更整理并格式化为 Angular Git Commit 统一规范。',
-    content: '# Role\n你是一个专业的 Git 工作流管理专家，协助开发者生成完美遵循 Angular 规范的提交日志。\n\n# 核心原则\n提交日志格式应为：\n`<type>(<scope>): <subject>`\n\n常见 `<type>`:\n- feat: 新功能\n- fix: 修复 Bug\n- docs: 文档变更\n- style: 代码格式调整（不影响逻辑）\n- refactor: 重构（既非新增也非修复）\n- test: 添加或修改测试\n- chore: 构建工具或辅助工具的变动'
+    content:
+      '# Role\n你是一个专业的 Git 工作流管理专家，协助开发者生成完美遵循 Angular 规范的提交日志。\n\n# 核心原则\n提交日志格式应为：\n`<type>(<scope>): <subject>`\n\n常见 `<type>`:\n- feat: 新功能\n- fix: 修复 Bug\n- docs: 文档变更\n- style: 代码格式调整（不影响逻辑）\n- refactor: 重构（既非新增也非修复）\n- test: 添加或修改测试\n- chore: 构建工具或辅助工具的变动',
   },
   {
     name: '单元测试大师',
     desc: '编写高可靠单元测试，包含全边界模拟，隔离外部依赖及网络。',
-    content: '# Role\n你是一个追求高覆盖率与防御性测试的软件测试工程专家。\n\n# 核心原则\n1. 边界覆盖：为目标方法编写包含正常参数、最大/最小边界值、空值与异常输入的测试用例。\n2. 单一断言：尽量保持单元测试紧凑，每次重点验证一个逻辑分支。\n3. Mock 隔离：合理使用 Mock 框架隔离第三方依赖或数据库网络调用。'
+    content:
+      '# Role\n你是一个追求高覆盖率与防御性测试的软件测试工程专家。\n\n# 核心原则\n1. 边界覆盖：为目标方法编写包含正常参数、最大/最小边界值、空值与异常输入的测试用例。\n2. 单一断言：尽量保持单元测试紧凑，每次重点验证一个逻辑分支。\n3. Mock 隔离：合理使用 Mock 框架隔离第三方依赖或数据库网络调用。',
   },
   {
     name: 'PRD 需求撰写专家',
     desc: '梳理业务核心价值、痛点及细分功能，建立清晰验收标准（AC）。',
-    content: '# Role\n你是一个具备严密逻辑与同理心的资深产品经理，擅长将零散的想法转化为结构清晰、逻辑严谨的产品需求文档（PRD）。\n\n# 核心原则\n1. 业务价值：清晰界定目标用户痛点、用户画像及此功能能带来的商业/体验价值。\n2. 需求拆解：将大功能拆分为细粒度的功能点列表。\n3. 规则细节：详细梳理输入限制、状态变迁、网络异常等边界规则。\n4. 验收标准：为每一个功能点编写清晰的测试用例与验收条件 (AC)。'
+    content:
+      '# Role\n你是一个具备严密逻辑与同理心的资深产品经理，擅长将零散的想法转化为结构清晰、逻辑严谨的产品需求文档（PRD）。\n\n# 核心原则\n1. 业务价值：清晰界定目标用户痛点、用户画像及此功能能带来的商业/体验价值。\n2. 需求拆解：将大功能拆分为细粒度的功能点列表。\n3. 规则细节：详细梳理输入限制、状态变迁、网络异常等边界规则。\n4. 验收标准：为每一个功能点编写清晰的测试用例与验收条件 (AC)。',
   },
   {
     name: '业务流程梳理师',
     desc: '分析复杂的业务流转链路，设计异常降级与状态演变矩阵。',
-    content: '# Role\n你是一个精通系统交互与状态演变的产品系统架构分析师。\n\n# 核心原则\n1. 主流程：清晰梳理从起点到终点的核心用户交互链路。\n2. 异常分支：重点罗列网络中断、鉴权失败、取消操作等异常链路的降级体验。\n3. 状态变迁：为关键业务实体（如订单、审批）制定清晰的状态转移矩阵（Status Matrix）。'
+    content:
+      '# Role\n你是一个精通系统交互与状态演变的产品系统架构分析师。\n\n# 核心原则\n1. 主流程：清晰梳理从起点到终点的核心用户交互链路。\n2. 异常分支：重点罗列网络中断、鉴权失败、取消操作等异常链路的降级体验。\n3. 状态变迁：为关键业务实体（如订单、审批）制定清晰的状态转移矩阵（Status Matrix）。',
   },
   {
     name: '竞品分析探针',
     desc: '对比多维度优劣势，分析用户痛点与交互死角，寻找差异化切入点。',
-    content: '# Role\n你是一个洞察敏锐的商业分析与用户体验（UX）研究专家。\n\n# 核心原则\n1. 多维对比：从商业模式、功能完备度、用户交互、性能体验四个维度深度对比竞品。\n2. 优势放大：提炼出我方可实现差异化竞争的“杀手级特性”。\n3. 痛点定位：分析竞品中用户反响强烈的核心槽点，转化为我方的设计机会点。'
-  }
+    content:
+      '# Role\n你是一个洞察敏锐的商业分析与用户体验（UX）研究专家。\n\n# 核心原则\n1. 多维对比：从商业模式、功能完备度、用户交互、性能体验四个维度深度对比竞品。\n2. 优势放大：提炼出我方可实现差异化竞争的“杀手级特性”。\n3. 痛点定位：分析竞品中用户反响强烈的核心槽点，转化为我方的设计机会点。',
+  },
 ];
 
 function togglePromptsTab(tabId) {
@@ -3936,7 +4519,8 @@ function loadTemplates() {
   } catch (e) {}
 
   if (templates.length === 0) {
-    listContainer.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:11px;">暂无自定义模板。可在上方输入模版名称，将左侧 Markdown 内容保存为本地插件。</div>';
+    listContainer.innerHTML =
+      '<div style="padding:16px; text-align:center; color:var(--muted); font-size:11px;">暂无自定义模板。可在上方输入模版名称，将左侧 Markdown 内容保存为本地插件。</div>';
     return;
   }
 
@@ -3998,7 +4582,7 @@ if (saveTplBtn) {
       templates = JSON.parse(localStorage.getItem('prompt_templates') || '[]');
     } catch (e) {}
 
-    const existingIdx = templates.findIndex(t => t.name === name);
+    const existingIdx = templates.findIndex((t) => t.name === name);
     if (existingIdx >= 0) {
       if (!confirm(`已存在同名模板 "${name}"，是否覆盖？`)) return;
       templates[existingIdx].content = content;
@@ -4058,7 +4642,8 @@ async function refreshMcpHub() {
 function renderMcpServers() {
   const container = $('mcpServersList');
   if (!mcpHubConfig || !mcpHubConfig.servers || mcpHubConfig.servers.length === 0) {
-    container.innerHTML = '<div class="muted" style="padding:20px; text-align:center;">暂无已配置的 MCP 服务器。</div>';
+    container.innerHTML =
+      '<div class="muted" style="padding:20px; text-align:center;">暂无已配置的 MCP 服务器。</div>';
     return;
   }
 
@@ -4080,7 +4665,9 @@ function renderMcpServers() {
       <div class="route-table-scroll">
         <table>
           <tbody>
-            ${mcpHubConfig.servers.map((s, index) => `
+            ${mcpHubConfig.servers
+              .map(
+                (s, index) => `
               <tr>
                 <td><input type="text" value="${escapeAttr(s.id)}" class="table-input" onchange="updateMcpServer(${index}, 'id', this.value)"></td>
                 <td><input type="text" value="${escapeAttr(s.url)}" class="table-input" placeholder="http://..." onchange="updateMcpServer(${index}, 'url', this.value)"></td>
@@ -4088,7 +4675,9 @@ function renderMcpServers() {
                 <td style="text-align:center"><input type="checkbox" ${s.injectAll ? 'checked' : ''} onchange="updateMcpServer(${index}, 'injectAll', this.checked)"></td>
                 <td style="text-align:right"><button class="danger" style="padding:2px 8px; font-size:12px; margin:0;" onclick="deleteMcpServer(${index})">删除</button></td>
               </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
           </tbody>
         </table>
       </div>
@@ -4113,7 +4702,7 @@ function addMcpServer() {
     id: 'mcp-server-' + Math.random().toString(36).substring(2, 6),
     url: 'http://localhost:3000/sse',
     prefix: '',
-    injectAll: true
+    injectAll: true,
   });
   renderMcpServers();
 }
@@ -4125,11 +4714,14 @@ function renderMcpLogs(logs) {
     return;
   }
 
-  container.innerHTML = logs.map(log => {
-    const time = new Date(log.time).toLocaleTimeString();
-    const statusClass = log.status === 'error' ? 'red' : 'green';
-    const detail = log.error ? `<div style="color:#ef4444; margin-top:4px;">Error: ${escapeHtml(log.error)}</div>` : '';
-    return `
+  container.innerHTML = logs
+    .map((log) => {
+      const time = new Date(log.time).toLocaleTimeString();
+      const statusClass = log.status === 'error' ? 'red' : 'green';
+      const detail = log.error
+        ? `<div style="color:#ef4444; margin-top:4px;">Error: ${escapeHtml(log.error)}</div>`
+        : '';
+      return `
       <div class="log-entry" style="margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div>
@@ -4146,7 +4738,8 @@ function renderMcpLogs(logs) {
         </details>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 }
 
 async function saveMcpHub() {
