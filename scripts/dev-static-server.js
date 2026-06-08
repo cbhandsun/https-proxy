@@ -140,9 +140,13 @@ const server = http.createServer(async (req, res) => {
           agent: localManagementAgent,
         },
         (proxyRes) => {
-          // Ensure CORS on proxied response too
-          const responseHeaders = { ...proxyRes.headers, 'Access-Control-Allow-Origin': '*' };
-          res.writeHead(proxyRes.statusCode, responseHeaders);
+          // Pipe the management port's response back. The management port
+          // already sets its own CORS headers; if we add another set, the
+          // browser/Tauri webview ends up with duplicate
+          // Access-Control-Allow-Origin headers, which is invalid per the
+          // Fetch spec and causes the webview to reject the response.
+          // See: https://fetch.spec.whatwg.org/#cors-protocol
+          res.writeHead(proxyRes.statusCode, proxyRes.headers);
           proxyRes.pipe(res);
         }
       );
