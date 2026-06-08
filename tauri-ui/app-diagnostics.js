@@ -1,30 +1,48 @@
 function colorizeLog(text) {
   if (!text) return '';
-  return text.split('\n').slice(-LOG_RENDER_LINE_LIMIT).map(line => {
-    let className = '';
-    if (line.includes('-> ')) className = 'info arrow';
-    else if (line.includes('ok ')) className = 'info';
-    else if (line.includes('!! ')) className = 'warn';
-    else if (line.includes('xx ')) className = 'error';
-    else if (line.includes('[stdout]') || line.includes('[stderr]')) className = 'muted';
+  return text
+    .split('\n')
+    .slice(-LOG_RENDER_LINE_LIMIT)
+    .map((line) => {
+      let className = '';
+      if (line.includes('-> ')) className = 'info arrow';
+      else if (line.includes('ok ')) className = 'info';
+      else if (line.includes('!! ')) className = 'warn';
+      else if (line.includes('xx ')) className = 'error';
+      else if (line.includes('[stdout]') || line.includes('[stderr]')) className = 'muted';
 
-    return `<span class="log-line ${className}">${escapeHtml(line)}</span>`;
-  }).join('');
+      return `<span class="log-line ${className}">${escapeHtml(line)}</span>`;
+    })
+    .join('');
 }
 
 function startHeartbeat() {
   if (heartbeatTimer) clearInterval(heartbeatTimer);
-  heartbeatTimer = setInterval(async () => {
-    if (isMonitorVisible()) {
-      await Promise.allSettled([
-        refreshProxyStatus({ passive: true }),
-        refreshMonitor({ passive: true }),
-      ]);
-    } else {
-      await refreshProxyStatus({ passive: true });
-    }
-    await ensureProxyRecovered({ passive: true });
-  }, document.hidden ? 60000 : (isMonitorVisible() ? 8000 : 30000));
+  heartbeatTimer = setInterval(
+    async () => {
+      if (isMonitorVisible()) {
+        await Promise.allSettled([
+          refreshProxyStatus({ passive: true }),
+          refreshMonitor({ passive: true }),
+        ]);
+      } else {
+        await refreshProxyStatus({ passive: true });
+      }
+      await ensureProxyRecovered({ passive: true });
+      // If the initial loadConfig() raced with the bundled proxy coming
+      // up (Tauri launches the proxy on a background thread and the
+      // page can render before 3543 is listening) the config we have
+      // is still the empty fallback. Now that the heartbeat is talking
+      // to the proxy, ask for a fresh config. hydrateConfigAfterStartup
+      // no-ops once config is real, so this is safe to call every tick.
+      if (typeof hydrateConfigAfterStartup === 'function' && state && state.proxyHealth) {
+        hydrateConfigAfterStartup().catch((e) =>
+          console.error('hydrateConfigAfterStartup in heartbeat:', e)
+        );
+      }
+    },
+    document.hidden ? 60000 : isMonitorVisible() ? 8000 : 30000
+  );
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -62,15 +80,18 @@ async function refreshMonitor(options = {}) {
   try {
     const events = await window.proxyManager.readEvents({
       limit: lastEventTime ? 200 : 300,
-      after: lastEventTime || ''
+      after: lastEventTime || '',
     });
     if (!events || events.length === 0) {
-      if (monitorEvents.length === 0) $('monitorList').innerHTML = '<div class="muted">暂无请求记录...</div>';
+      if (monitorEvents.length === 0)
+        $('monitorList').innerHTML = '<div class="muted">暂无请求记录...</div>';
       return;
     }
 
     const preparedEvents = events.map(prepareMonitorEvent);
-    monitorEvents = (lastEventTime ? monitorEvents.concat(preparedEvents) : preparedEvents).slice(-500);
+    monitorEvents = (lastEventTime ? monitorEvents.concat(preparedEvents) : preparedEvents).slice(
+      -500
+    );
     lastEventTime = monitorEvents[monitorEvents.length - 1].time;
     renderMonitor();
   } catch (err) {
@@ -93,7 +114,7 @@ function prepareMonitorEvent(event) {
     event.profileName,
     event.statusCode,
     event.code,
-    event.protocol
+    event.protocol,
   ];
   if (event.body) fieldsToSearch.push(String(event.body).slice(0, MONITOR_SEARCH_BODY_LIMIT));
   event.__searchText = fieldsToSearch.filter(Boolean).join(' ').toLowerCase();
@@ -107,7 +128,9 @@ function prepareMonitorEvent(event) {
     details = `Client: ${event.clientIp}`;
   } else if (event.kind === 'route') {
     title = `Route: ${event.sourceModel} → ${event.targetModel}`;
-    const contextInfo = event.estimatedContextTokens ? ` | Context: ${event.estimatedContextTokens}tok` : '';
+    const contextInfo = event.estimatedContextTokens
+      ? ` | Context: ${event.estimatedContextTokens}tok`
+      : '';
     details = `Profile: ${event.profileName} (${event.protocol})${contextInfo}`;
     badgeClass = 'active';
   } else if (event.kind === 'request_end') {
@@ -116,7 +139,7 @@ function prepareMonitorEvent(event) {
     if (event.statusCode >= 400) levelClass = 'error';
     else if (event.statusCode >= 200) levelClass = 'success';
   } else if (event.kind === 'upstream_error' || event.kind === 'proxy_error') {
-    title = `ERROR: ${event.kind === 'proxy_error' ? event.error : (event.code + ' ' + (event.body || ''))}`;
+    title = `ERROR: ${event.kind === 'proxy_error' ? event.error : event.code + ' ' + (event.body || '')}`;
     details = `${event.method} ${event.path}`;
     levelClass = 'error';
   }
@@ -126,7 +149,7 @@ function prepareMonitorEvent(event) {
     details,
     badgeClass,
     levelClass,
-    time: new Date(event.time).toLocaleTimeString()
+    time: new Date(event.time).toLocaleTimeString(),
   };
   return event;
 }
@@ -140,10 +163,11 @@ function renderMonitor() {
   let filteredEvents = monitorEvents;
 
   if (query || statusFilter !== 'all') {
-    filteredEvents = monitorEvents.filter(event => {
+    filteredEvents = monitorEvents.filter((event) => {
       // Status filter
       if (statusFilter === 'success') {
-        if (event.kind === 'request_end' && (event.statusCode < 200 || event.statusCode >= 300)) return false;
+        if (event.kind === 'request_end' && (event.statusCode < 200 || event.statusCode >= 300))
+          return false;
         if (event.kind !== 'request_end') return false;
       } else if (statusFilter === 'error') {
         if (event.kind === 'upstream_error' || event.kind === 'proxy_error') {
@@ -171,12 +195,13 @@ function renderMonitor() {
   const summaryHtml = omittedEvents
     ? `<div class="muted" style="font-size:11px; padding:0 2px;">显示最新 ${visibleEvents.length} 条，已隐藏较早 ${omittedEvents} 条匹配记录</div>`
     : '';
-  const html = visibleEvents.map(event => {
-    const view = event.__monitorView || prepareMonitorEvent(event).__monitorView;
-    const { title, details, badgeClass, levelClass, time } = view;
+  const html = visibleEvents
+    .map((event) => {
+      const view = event.__monitorView || prepareMonitorEvent(event).__monitorView;
+      const { title, details, badgeClass, levelClass, time } = view;
 
-    return `
-      <div class="profile" style="cursor:default; padding: 10px; border-left: 4px solid ${levelClass === 'error' ? 'var(--danger)' : (levelClass === 'success' ? '#10b981' : 'var(--border)')}">
+      return `
+      <div class="profile" style="cursor:default; padding: 10px; border-left: 4px solid ${levelClass === 'error' ? 'var(--danger)' : levelClass === 'success' ? '#10b981' : 'var(--border)'}">
         <div class="profile-title">
           <strong style="font-size:13px">${escapeHtml(title)}</strong>
           <span class="badge ${badgeClass}">${time}</span>
@@ -184,9 +209,12 @@ function renderMonitor() {
         <div class="muted" style="margin-top:4px">${escapeHtml(details)}</div>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 
-  const renderedHtml = html ? summaryHtml + html : '<div class="muted">暂无符合条件的请求记录...</div>';
+  const renderedHtml = html
+    ? summaryHtml + html
+    : '<div class="muted">暂无符合条件的请求记录...</div>';
   if (renderedHtml === lastRenderedMonitorHtml) return;
   lastRenderedMonitorHtml = renderedHtml;
   container.innerHTML = renderedHtml;
@@ -210,13 +238,20 @@ function bindDiagnosticsControls() {
     };
   }
 
-  $('refreshLog').onclick = () => { showDiagnosticsTab('logPanel'); };
+  $('refreshLog').onclick = () => {
+    showDiagnosticsTab('logPanel');
+  };
   $('refreshLog').dataset.bound = 'true';
-  $('refreshDiagnostics').onclick = async () => { showDiagnosticsTab('diagnosticsPanel'); };
+  $('refreshDiagnostics').onclick = async () => {
+    showDiagnosticsTab('diagnosticsPanel');
+  };
   $('refreshDiagnostics').dataset.bound = 'true';
   $('scrollLogBottom').onclick = () => {
     if ($('diagnosticsPanel').classList.contains('active')) scrollLogToBottom('diagnosticsOutput');
-    else { showDiagnosticsTab('logPanel'); scrollLogToBottom('log'); }
+    else {
+      showDiagnosticsTab('logPanel');
+      scrollLogToBottom('log');
+    }
   };
   $('scrollLogBottom').dataset.bound = 'true';
   $('clearLog').onclick = clearLog;
@@ -228,14 +263,16 @@ function bindDiagnosticsControls() {
     setLogAutoRefresh($('autoRefreshLog').checked);
     if ($('autoRefreshLog').checked) {
       if ($('logPanel').classList.contains('active')) refreshLog({ forceScroll: true });
-      if ($('diagnosticsPanel').classList.contains('active')) refreshDiagnostics({ forceScroll: true });
+      if ($('diagnosticsPanel').classList.contains('active'))
+        refreshDiagnostics({ forceScroll: true });
     }
   };
   $('autoRefreshLog').dataset.bound = 'true';
   $('autoScrollLog').onchange = () => {
     if ($('autoScrollLog').checked) {
       if ($('logPanel').classList.contains('active')) scrollLogToBottom('log');
-      if ($('diagnosticsPanel').classList.contains('active')) scrollLogToBottom('diagnosticsOutput');
+      if ($('diagnosticsPanel').classList.contains('active'))
+        scrollLogToBottom('diagnosticsOutput');
     }
   };
   $('autoScrollLog').dataset.bound = 'true';
@@ -254,7 +291,9 @@ function bindDiagnosticsControls() {
 
 function scrollLogToBottom(targetId = 'log') {
   const log = $(targetId);
-  requestAnimationFrame(() => { log.scrollTop = log.scrollHeight; });
+  requestAnimationFrame(() => {
+    log.scrollTop = log.scrollHeight;
+  });
 }
 
 function isNearBottom(element) {
@@ -269,19 +308,24 @@ async function refreshLog(options = {}) {
   if (logRefreshInFlight) return;
   logRefreshInFlight = true;
   const log = $('log');
-  const shouldKeepBottom = options.forceScroll || ($('autoScrollLog') && $('autoScrollLog').checked) || isNearBottom(log);
+  const shouldKeepBottom =
+    options.forceScroll || ($('autoScrollLog') && $('autoScrollLog').checked) || isNearBottom(log);
   const finishPerf = perfStart('refresh.log');
   let changed = false;
   let rawLog = '';
   try {
     if (!options.passive) $('logRefreshState').textContent = '刷新中...';
-    rawLog = await window.proxyManager.readLog({ lines: LOG_RENDER_LINE_LIMIT, maxBytes: LOG_REQUEST_MAX_BYTES });
+    rawLog = await window.proxyManager.readLog({
+      lines: LOG_RENDER_LINE_LIMIT,
+      maxBytes: LOG_REQUEST_MAX_BYTES,
+    });
     if (rawLog !== lastRenderedLog || options.forceRender) {
       log.innerHTML = colorizeLog(rawLog) || '<span class="log-line muted">暂无日志</span>';
       lastRenderedLog = rawLog;
       changed = true;
     }
-    if (!options.passive || changed) $('logRefreshState').textContent = '已刷新 ' + new Date().toLocaleTimeString();
+    if (!options.passive || changed)
+      $('logRefreshState').textContent = '已刷新 ' + new Date().toLocaleTimeString();
     if (shouldKeepBottom && changed) scrollLogToBottom('log');
   } catch (err) {
     $('logRefreshState').textContent = '刷新失败';
@@ -294,7 +338,9 @@ async function refreshLog(options = {}) {
 function renderDiagnosticsStatus(status) {
   if (!status || !status.config) return '诊断状态不可用';
   const config = status.config;
-  const files = (status.files || []).map((item) => `${item.label}:${item.exists ? item.bytes + 'B' : '无'}`).join(' / ');
+  const files = (status.files || [])
+    .map((item) => `${item.label}:${item.exists ? item.bytes + 'B' : '无'}`)
+    .join(' / ');
   return `enabled=${config.enabled}，Gemini=${config.captureGemini}，OpenAI=${config.captureOpenAI}，outbound=${config.captureOutboundSse}，requestTools=${config.captureRequestToolResults}\n${files}`;
 }
 
@@ -302,7 +348,10 @@ async function refreshDiagnostics(options = {}) {
   if (diagnosticsRefreshInFlight) return;
   diagnosticsRefreshInFlight = true;
   const output = $('diagnosticsOutput');
-  const shouldKeepBottom = options.forceScroll || ($('autoScrollLog') && $('autoScrollLog').checked) || isNearBottom(output);
+  const shouldKeepBottom =
+    options.forceScroll ||
+    ($('autoScrollLog') && $('autoScrollLog').checked) ||
+    isNearBottom(output);
   const finishPerf = perfStart('refresh.diagnostics');
   let changed = false;
   let outputText = '';
@@ -321,7 +370,8 @@ async function refreshDiagnostics(options = {}) {
       lastRenderedDiagnosticsOutput = outputText;
       changed = true;
     }
-    if (!options.passive || changed) $('diagnosticsRefreshState').textContent = '已刷新 ' + new Date().toLocaleTimeString();
+    if (!options.passive || changed)
+      $('diagnosticsRefreshState').textContent = '已刷新 ' + new Date().toLocaleTimeString();
     if (shouldKeepBottom && changed) scrollLogToBottom('diagnosticsOutput');
   } catch (err) {
     $('diagnosticsRefreshState').textContent = '刷新失败';

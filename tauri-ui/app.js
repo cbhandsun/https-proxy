@@ -1750,8 +1750,15 @@ function applyLoadedConfig(nextConfig) {
 
 async function hydrateConfigAfterStartup() {
   if (!config || !config.__fallback) return;
+  // The Tauri dev manager kicks off the bundled proxy on a background
+  // thread (start_proxy_if_needed). On a cold start that proxy can
+  // take 7-10s before it begins accepting connections on 3543, so the
+  // page's initial 8-attempt retry (4s) almost always gives up and we
+  // end up stuck on the "未配置" placeholders even though the proxy is
+  // fine. Keep retrying for a long stretch; the heartbeat will cancel
+  // us early once config is no longer a fallback.
   const latest = await perfTrack('load.hydrateConfig', () =>
-    window.proxyManager.readConfig({ attempts: 8, retryDelay: 500, quiet: true })
+    window.proxyManager.readConfig({ attempts: 30, retryDelay: 500, quiet: true })
   );
   if (latest && !latest.__fallback) {
     applyLoadedConfig(latest);
