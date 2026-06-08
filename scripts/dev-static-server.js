@@ -1,5 +1,4 @@
 const http = require('http');
-const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { execFileSync, spawn } = require('child_process');
@@ -8,8 +7,6 @@ const port = Number(process.env.PORT || 1430);
 const root = path.resolve(__dirname, '..', 'tauri-ui');
 const configFile = path.resolve(__dirname, '..', 'proxy.config.json');
 const staticLogFile = path.resolve(__dirname, '..', 'dev-static.log');
-const verifyUpstreamTls = (process.env.PROXY_ALLOW_UNTRUSTED_UPSTREAM !== '1');
-const localProxyAgent = new https.Agent({ rejectUnauthorized: verifyUpstreamTls, keepAlive: true });
 const localManagementAgent = new http.Agent({ keepAlive: true });
 const serverHealthMarker = 'dev-static-management-proxy-v5';
 
@@ -27,10 +24,7 @@ function managementTokenCandidateGroups(managementPort) {
       path.join(debugDir, `.mgmt-token-${portNumber}`),
     ]);
   }
-  groups.push([
-    path.join(rootDir, '.mgmt-token'),
-    path.join(debugDir, '.mgmt-token'),
-  ]);
+  groups.push([path.join(rootDir, '.mgmt-token'), path.join(debugDir, '.mgmt-token')]);
   return groups;
 }
 
@@ -49,8 +43,8 @@ const contentTypes = {
 function send(res, statusCode, body, headers = {}) {
   res.writeHead(statusCode, {
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
+    Pragma: 'no-cache',
+    Expires: '0',
     ...headers,
   });
   res.end(body);
@@ -113,11 +107,16 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://localhost:${port}`);
     if (url.pathname === '/__dev-static-health') {
-      send(res, 200, JSON.stringify({
-        ok: true,
-        marker: serverHealthMarker,
-        root,
-      }), { 'Content-Type': 'application/json; charset=utf-8' });
+      send(
+        res,
+        200,
+        JSON.stringify({
+          ok: true,
+          marker: serverHealthMarker,
+          root,
+        }),
+        { 'Content-Type': 'application/json; charset=utf-8' }
+      );
       return;
     }
 
@@ -131,22 +130,28 @@ const server = http.createServer(async (req, res) => {
       const token = await readManagementToken(managementPort);
       if (token) headers['x-mgmt-token'] = token;
 
-      const proxyReq = http.request({
-        hostname: targetUrlObj.hostname,
-        port: targetUrlObj.port,
-        path: targetUrlObj.pathname + targetUrlObj.search,
-        method: req.method,
-        headers,
-        agent: localManagementAgent
-      }, (proxyRes) => {
-        // Ensure CORS on proxied response too
-        const responseHeaders = { ...proxyRes.headers, 'Access-Control-Allow-Origin': '*' };
-        res.writeHead(proxyRes.statusCode, responseHeaders);
-        proxyRes.pipe(res);
-      });
+      const proxyReq = http.request(
+        {
+          hostname: targetUrlObj.hostname,
+          port: targetUrlObj.port,
+          path: targetUrlObj.pathname + targetUrlObj.search,
+          method: req.method,
+          headers,
+          agent: localManagementAgent,
+        },
+        (proxyRes) => {
+          // Ensure CORS on proxied response too
+          const responseHeaders = { ...proxyRes.headers, 'Access-Control-Allow-Origin': '*' };
+          res.writeHead(proxyRes.statusCode, responseHeaders);
+          proxyRes.pipe(res);
+        }
+      );
 
       proxyReq.on('error', (err) => {
-        res.writeHead(502, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.writeHead(502, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
         res.end(JSON.stringify({ error: '静态服务中转本地代理失败: ' + err.message }));
       });
       proxyReq.setTimeout(7000, () => {
@@ -174,7 +179,9 @@ const server = http.createServer(async (req, res) => {
       send(res, 200, data, { 'Content-Type': contentTypes[ext] || 'application/octet-stream' });
     });
   } catch (err) {
-    send(res, 500, String(err && err.message ? err.message : err), { 'Content-Type': 'text/plain; charset=utf-8' });
+    send(res, 500, String(err && err.message ? err.message : err), {
+      'Content-Type': 'text/plain; charset=utf-8',
+    });
   }
 });
 
@@ -211,11 +218,11 @@ function stopStaleDevStaticServers() {
     "  if ($proc -and $proc.CommandLine -match 'scripts[\\\\/]+dev-static-server\\.js') {",
     '    Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue',
     '  }',
-    '}'
+    '}',
   ].join('; ');
   try {
     execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], {
-      stdio: 'ignore'
+      stdio: 'ignore',
     });
   } catch (err) {
     // Best effort only. The final probe below will surface a real failure.
@@ -237,7 +244,7 @@ function startDetachedServer() {
     cwd: path.resolve(__dirname, '..'),
     detached: true,
     windowsHide: true,
-    stdio: ['ignore', outFd, errFd]
+    stdio: ['ignore', outFd, errFd],
   });
   child.unref();
 }
@@ -257,11 +264,15 @@ async function ensureServer() {
 server.on('error', async (err) => {
   if (err.code === 'EADDRINUSE') {
     if (await probeExistingServer()) {
-      console.log(`Port ${port} is already in use and serving the UI. Assuming static server is already running.`);
+      console.log(
+        `Port ${port} is already in use and serving the UI. Assuming static server is already running.`
+      );
       process.exit(0);
       return;
     }
-    console.error(`Port ${port} is busy but the UI server did not respond. Stop the stale process or set PORT to another value.`);
+    console.error(
+      `Port ${port} is busy but the UI server did not respond. Stop the stale process or set PORT to another value.`
+    );
     process.exit(1);
   } else {
     console.error(err);
@@ -283,4 +294,3 @@ if (process.argv.includes('--ensure')) {
     console.log(`Serving: ${root}`);
   });
 }
-

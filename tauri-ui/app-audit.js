@@ -23,13 +23,13 @@ function formatAuditCost(cost) {
 }
 
 function auditUpstreamModel(record) {
-  const rewriteModel = String(record && record.rewriteModel || '').trim();
+  const rewriteModel = String((record && record.rewriteModel) || '').trim();
   if (rewriteModel && rewriteModel !== '-') return rewriteModel;
-  return String(record && record.originalModel || '').trim();
+  return String((record && record.originalModel) || '').trim();
 }
 
 function auditModelFlowLabel(record) {
-  const originalModel = String(record && record.originalModel || '').trim();
+  const originalModel = String((record && record.originalModel) || '').trim();
   const upstreamModel = auditUpstreamModel(record);
   if (!originalModel && !upstreamModel) return '未知模型';
   if (originalModel && upstreamModel && upstreamModel !== originalModel) {
@@ -66,8 +66,10 @@ function truncateAuditText(value, limit) {
   const text = String(value == null ? '' : value);
   if (text.length <= limit) return { text, truncated: false };
   return {
-    text: text.slice(0, limit) + `\n\n...[已截断 ${text.length - limit} 字符，导出 Markdown 可查看完整内容]`,
-    truncated: true
+    text:
+      text.slice(0, limit) +
+      `\n\n...[已截断 ${text.length - limit} 字符，导出 Markdown 可查看完整内容]`,
+    truncated: true,
   };
 }
 
@@ -75,12 +77,16 @@ function auditContentToText(content) {
   if (!content) return '';
   if (typeof content === 'string') return content;
   if (!Array.isArray(content)) return JSON.stringify(content);
-  return content.map((block) => {
-    if (!block) return '';
-    if (block.type === 'text') return block.text || '';
-    if (block.type === 'tool_result') return typeof block.content === 'string' ? block.content : JSON.stringify(block.content);
-    return '';
-  }).filter(Boolean).join('\n');
+  return content
+    .map((block) => {
+      if (!block) return '';
+      if (block.type === 'text') return block.text || '';
+      if (block.type === 'tool_result')
+        return typeof block.content === 'string' ? block.content : JSON.stringify(block.content);
+      return '';
+    })
+    .filter(Boolean)
+    .join('\n');
 }
 
 function setAuditDetailPlaceholder(message = '选择左侧记录查看详情') {
@@ -97,10 +103,7 @@ function setAuditDetailPlaceholder(message = '选择左侧记录查看详情') {
 function formatAuditMarkdown(text) {
   if (!text) return '';
   // 1. 转义HTML，防御XSS
-  let html = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   // 2. 替换三反引号代码块 ```lang\ncode\n```
   html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, (match, lang, code) => {
@@ -114,9 +117,7 @@ function formatAuditMarkdown(text) {
   const parts = html.split(/(<pre>[\s\S]*?<\/pre>)/g);
   for (let i = 0; i < parts.length; i++) {
     if (!parts[i].startsWith('<pre>')) {
-      parts[i] = parts[i]
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br>');
+      parts[i] = parts[i].replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
     }
   }
   let finalHtml = parts.join('');
@@ -137,16 +138,19 @@ async function initPromptsAuditView() {
   if (clearBtn && !clearBtn.dataset.bound) {
     clearBtn.dataset.bound = 'true';
     clearBtn.onclick = () => {
-      confirmAction('确定要清空所有的对话审计日志吗？此操作将永久清空本地的 conversations-audit.jsonl 文件。', async () => {
-        const res = await window.proxyManager.clearAuditConversations();
-        if (res && res.ok !== false) {
-          showToast('对话审计日志已清空', 'success');
-          selectedAuditRecordId = null;
-          loadAuditRecords();
-        } else {
-          showToast('清空日志失败: ' + (res.error || '未知错误'), 'error');
+      confirmAction(
+        '确定要清空所有的对话审计日志吗？此操作将永久清空本地的 conversations-audit.jsonl 文件。',
+        async () => {
+          const res = await window.proxyManager.clearAuditConversations();
+          if (res && res.ok !== false) {
+            showToast('对话审计日志已清空', 'success');
+            selectedAuditRecordId = null;
+            loadAuditRecords();
+          } else {
+            showToast('清空日志失败: ' + (res.error || '未知错误'), 'error');
+          }
         }
-      });
+      );
     };
   }
 
@@ -190,7 +194,10 @@ async function loadUsageReport() {
   recent.innerHTML = '';
   try {
     const windowValue = $('usageReportWindow') ? $('usageReportWindow').value : '';
-    const report = await window.proxyManager.readUsageReport({ limit: 300, after: usageWindowAfter(windowValue) });
+    const report = await window.proxyManager.readUsageReport({
+      limit: 300,
+      after: usageWindowAfter(windowValue),
+    });
     if (!report || report.ok === false) throw new Error((report && report.error) || '读取失败');
     renderUsageReport(report);
   } catch (err) {
@@ -201,12 +208,25 @@ async function loadUsageReport() {
 function renderUsageReport(report) {
   const total = report.total || {};
   const estimated = Number(total.estimatedRecords || 0);
-  $('usageReportMeta').textContent = `生成于 ${new Date(report.generatedAt || Date.now()).toLocaleString()} · ${estimated ? `${estimated} 条为估算 Token` : '全部使用真实 usage 或可用记录'}`;
+  $('usageReportMeta').textContent =
+    `生成于 ${new Date(report.generatedAt || Date.now()).toLocaleString()} · ${estimated ? `${estimated} 条为估算 Token` : '全部使用真实 usage 或可用记录'}`;
   $('usageReportSummary').innerHTML = [
-    renderUsageMetric('请求数', formatAuditTokens(total.requests), `${formatAuditTokens(total.successes)} 成功 / ${formatAuditTokens(total.errors)} 异常`),
-    renderUsageMetric('输入 Token', formatAuditTokens(total.inputTokens), total.cachedInputTokens ? `缓存 ${formatAuditTokens(total.cachedInputTokens)}` : ''),
+    renderUsageMetric(
+      '请求数',
+      formatAuditTokens(total.requests),
+      `${formatAuditTokens(total.successes)} 成功 / ${formatAuditTokens(total.errors)} 异常`
+    ),
+    renderUsageMetric(
+      '输入 Token',
+      formatAuditTokens(total.inputTokens),
+      total.cachedInputTokens ? `缓存 ${formatAuditTokens(total.cachedInputTokens)}` : ''
+    ),
     renderUsageMetric('输出 Token', formatAuditTokens(total.outputTokens)),
-    renderUsageMetric('估算成本', formatAuditCost({ known: total.cost > 0, amount: total.cost }), 'USD'),
+    renderUsageMetric(
+      '估算成本',
+      formatAuditCost({ known: total.cost > 0, amount: total.cost }),
+      'USD'
+    ),
   ].join('');
   $('usageByProfile').innerHTML = renderUsageTable(report.byProfile || [], 'profile');
   $('usageByModel').innerHTML = renderUsageTable(report.byModel || [], 'model');
@@ -218,9 +238,9 @@ function updateUsageChart(dayData) {
   const ctx = $('usageChart');
   if (!ctx) return;
 
-  const labels = dayData.map(d => d.key);
-  const inputTokens = dayData.map(d => d.inputTokens);
-  const outputTokens = dayData.map(d => d.outputTokens);
+  const labels = dayData.map((d) => d.key);
+  const inputTokens = dayData.map((d) => d.inputTokens);
+  const outputTokens = dayData.map((d) => d.outputTokens);
 
   if (usageChartInstance) {
     usageChartInstance.destroy();
@@ -241,29 +261,29 @@ function updateUsageChart(dayData) {
           data: inputTokens,
           backgroundColor: 'rgba(59, 130, 246, 0.6)',
           borderColor: 'rgb(59, 130, 246)',
-          borderWidth: 1
+          borderWidth: 1,
         },
         {
           label: '输出 Token',
           data: outputTokens,
           backgroundColor: 'rgba(16, 185, 129, 0.6)',
           borderColor: 'rgb(16, 185, 129)',
-          borderWidth: 1
-        }
-      ]
+          borderWidth: 1,
+        },
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
         x: { stacked: true },
-        y: { stacked: true, beginAtZero: true }
+        y: { stacked: true, beginAtZero: true },
       },
       plugins: {
         legend: { position: 'top' },
-        tooltip: { mode: 'index', intersect: false }
-      }
-    }
+        tooltip: { mode: 'index', intersect: false },
+      },
+    },
   });
 }
 
@@ -273,7 +293,9 @@ function renderUsageTable(rows, type) {
     <table class="usage-table">
       <thead><tr><th>${type === 'profile' ? '上游目标' : '模型'}</th><th>请求</th><th>输入</th><th>输出</th><th>成本</th></tr></thead>
       <tbody>
-        ${rows.map((row) => `
+        ${rows
+          .map(
+            (row) => `
           <tr>
             <td><strong>${escapeHtml(row.label || row.key)}</strong>${row.estimatedRecords ? `<div class="muted">${row.estimatedRecords} 条估算</div>` : ''}</td>
             <td>${formatAuditTokens(row.requests)}</td>
@@ -281,7 +303,9 @@ function renderUsageTable(rows, type) {
             <td>${formatAuditTokens(row.outputTokens)}</td>
             <td>${formatAuditCost({ known: row.cost > 0, amount: row.cost })}</td>
           </tr>
-        `).join('')}
+        `
+          )
+          .join('')}
       </tbody>
     </table>
   `;
@@ -293,7 +317,9 @@ function renderUsageRecent(rows) {
     <table class="usage-table usage-table-recent">
       <thead><tr><th>时间</th><th>上游</th><th>模型</th><th>Token</th><th>成本</th><th>状态</th></tr></thead>
       <tbody>
-        ${rows.map((row) => `
+        ${rows
+          .map(
+            (row) => `
           <tr>
             <td>${escapeHtml(new Date(row.time).toLocaleString())}</td>
             <td>${escapeHtml(row.profileName || '-')}</td>
@@ -302,7 +328,9 @@ function renderUsageRecent(rows) {
             <td>${formatAuditCost(row.cost)}</td>
             <td><span class="audit-badge ${row.statusCode >= 200 && row.statusCode < 300 ? 'success' : 'error'}">${escapeHtml(row.statusCode || '???')}</span></td>
           </tr>
-        `).join('')}
+        `
+          )
+          .join('')}
       </tbody>
     </table>
   `;
@@ -311,7 +339,8 @@ function renderUsageRecent(rows) {
 async function loadAuditRecords() {
   const listContainer = $('auditHistoryList');
   if (!listContainer) return;
-  listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--muted); font-size: 12px;">正在加载对话审计日志...</div>';
+  listContainer.innerHTML =
+    '<div style="padding: 20px; text-align: center; color: var(--muted); font-size: 12px;">正在加载对话审计日志...</div>';
 
   try {
     const rawRes = await window.proxyManager.readAuditConversations(AUDIT_LIST_LIMIT);
@@ -320,7 +349,10 @@ async function loadAuditRecords() {
       let errMsg = '未知错误';
       if (rawRes) {
         if (rawRes.error) {
-          errMsg = typeof rawRes.error === 'object' ? (rawRes.error.message || JSON.stringify(rawRes.error)) : rawRes.error;
+          errMsg =
+            typeof rawRes.error === 'object'
+              ? rawRes.error.message || JSON.stringify(rawRes.error)
+              : rawRes.error;
         } else {
           errMsg = JSON.stringify(rawRes);
         }
@@ -338,7 +370,7 @@ async function loadAuditRecords() {
         if (!item || !listContainer.contains(item)) return;
         const record = cachedAuditRecords[Number(item.dataset.auditIndex)];
         if (!record) return;
-        document.querySelectorAll('.audit-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.audit-item').forEach((el) => el.classList.remove('active'));
         item.classList.add('active');
         selectedAuditRecordId = item.dataset.auditId;
         setAuditDetailPlaceholder('正在渲染详情...');
@@ -347,7 +379,8 @@ async function loadAuditRecords() {
     }
 
     if (res.length === 0) {
-      listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--muted); font-size: 12px;">暂无对话审计记录</div>';
+      listContainer.innerHTML =
+        '<div style="padding: 20px; text-align: center; color: var(--muted); font-size: 12px;">暂无对话审计记录</div>';
       $('auditDetailPanel').innerHTML = `
         <div class="audit-detail-placeholder">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -369,7 +402,7 @@ async function loadAuditRecords() {
       // 提取 User 首条消息摘要
       let userSnippet = '无输入内容';
       if (record.messages && Array.isArray(record.messages)) {
-        const firstUser = record.messages.find(m => m.role === 'user');
+        const firstUser = record.messages.find((m) => m.role === 'user');
         if (firstUser && firstUser.content) {
           userSnippet = auditContentToText(firstUser.content) || '无输入内容';
         }
@@ -377,7 +410,11 @@ async function loadAuditRecords() {
       userSnippet = truncateAuditText(userSnippet, AUDIT_SNIPPET_CHARS).text;
 
       const date = new Date(record.time);
-      const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const timeStr = date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
       const latency = record.elapsed ? `${record.elapsed}ms` : '??? ms';
       const isSuccess = record.statusCode >= 200 && record.statusCode < 300;
       const usage = record.usage || {};
@@ -405,10 +442,11 @@ async function loadAuditRecords() {
 
     // 默认选中第一个或保持之前的选中项
     if (selectedAuditRecordId) {
-      const found = res.find((r, idx) => (r.time + '_' + idx) === selectedAuditRecordId);
+      const found = res.find((r, idx) => r.time + '_' + idx === selectedAuditRecordId);
       if (found) {
-        const foundIndex = res.findIndex((r, idx) => (r.time + '_' + idx) === selectedAuditRecordId);
-        if (foundIndex >= 0 && listContainer.children[foundIndex]) listContainer.children[foundIndex].classList.add('active');
+        const foundIndex = res.findIndex((r, idx) => r.time + '_' + idx === selectedAuditRecordId);
+        if (foundIndex >= 0 && listContainer.children[foundIndex])
+          listContainer.children[foundIndex].classList.add('active');
         setAuditDetailPlaceholder('正在渲染详情...');
         requestAnimationFrame(() => renderAuditDetail(found));
         return;
@@ -451,7 +489,7 @@ function formatRecordToMarkdown(record) {
       md += `### ${roleName}\n\n`;
 
       let contentStr = '';
-      let toolCalls = [];
+      const toolCalls = [];
 
       if (msg.content) {
         if (typeof msg.content === 'string') {
@@ -482,12 +520,12 @@ function formatRecordToMarkdown(record) {
         toolCalls.forEach((tc) => {
           const name = tc.name || (tc.function ? tc.function.name : '未知工具');
           let argsStr = '';
-          let inputObj = tc.input || (tc.function ? tc.function.arguments : null);
+          const inputObj = tc.input || (tc.function ? tc.function.arguments : null);
           if (inputObj) {
             if (typeof inputObj === 'string') {
               try {
                 argsStr = JSON.stringify(JSON.parse(inputObj), null, 2);
-              } catch(e) {
+              } catch (e) {
                 argsStr = inputObj;
               }
             } else {
@@ -500,17 +538,22 @@ function formatRecordToMarkdown(record) {
     });
   }
 
-  if (record.response && record.response.tool_calls && Array.isArray(record.response.tool_calls) && record.response.tool_calls.length > 0) {
+  if (
+    record.response &&
+    record.response.tool_calls &&
+    Array.isArray(record.response.tool_calls) &&
+    record.response.tool_calls.length > 0
+  ) {
     md += `### Assistant (Streaming Tool Calls)\n\n`;
     record.response.tool_calls.forEach((tc) => {
       const name = tc.name || (tc.function ? tc.function.name : '未知工具');
       let argsStr = '';
-      let inputObj = tc.input || (tc.function ? tc.function.arguments : null);
+      const inputObj = tc.input || (tc.function ? tc.function.arguments : null);
       if (inputObj) {
         if (typeof inputObj === 'string') {
           try {
             argsStr = JSON.stringify(JSON.parse(inputObj), null, 2);
-          } catch(e) {
+          } catch (e) {
             argsStr = inputObj;
           }
         } else {
@@ -538,7 +581,7 @@ function renderAuditDetail(record) {
   const usageSource = usage.source === 'provider' ? '上游 usage' : '本地估算';
 
   // 1. 详情头部
-  let headerHtml = `
+  const headerHtml = `
     <div class="audit-detail-header">
       <div class="audit-detail-title">
         <span class="audit-badge info">${escapeHtml(record.protocol === 'claude' ? 'Claude SSE' : 'OpenAI Protocol')}</span>
@@ -551,7 +594,7 @@ function renderAuditDetail(record) {
       <div class="audit-detail-meta">
         <span>请求模型: <code>${escapeHtml(record.originalModel || '未指定')}</code></span>
         <span>上游模型: <code>${escapeHtml(upstreamModel || '未指定')}</code></span>
-        ${(record.rewriteModel && record.rewriteModel !== '-') ? `<span>重写转发: <code>${escapeHtml(record.rewriteModel)}</code></span>` : ''}
+        ${record.rewriteModel && record.rewriteModel !== '-' ? `<span>重写转发: <code>${escapeHtml(record.rewriteModel)}</code></span>` : ''}
         <span>延迟耗时: <strong style="color: var(--primary);">${escapeHtml(latencyStr)}</strong></span>
       </div>
       <div class="audit-usage-strip">
@@ -587,8 +630,12 @@ function renderAuditDetail(record) {
     record.messages.forEach((msg) => {
       const isUser = msg.role === 'user';
       const isSystem = msg.role === 'system';
-      const roleClass = isUser ? 'user' : (isSystem ? 'system' : 'assistant');
-      const roleName = isUser ? 'User (IDE / CLI)' : (isSystem ? 'System Context' : 'Assistant (LLM)');
+      const roleClass = isUser ? 'user' : isSystem ? 'system' : 'assistant';
+      const roleName = isUser
+        ? 'User (IDE / CLI)'
+        : isSystem
+          ? 'System Context'
+          : 'Assistant (LLM)';
 
       let contentStr = '';
       let toolCallsHtml = '';
@@ -629,7 +676,12 @@ function renderAuditDetail(record) {
   }
 
   // 处理流式传输中单独追加的 tool_calls
-  if (record.response && record.response.tool_calls && Array.isArray(record.response.tool_calls) && record.response.tool_calls.length > 0) {
+  if (
+    record.response &&
+    record.response.tool_calls &&
+    Array.isArray(record.response.tool_calls) &&
+    record.response.tool_calls.length > 0
+  ) {
     let extraToolsHtml = '';
     record.response.tool_calls.forEach((tc) => {
       extraToolsHtml += renderSingleToolCall(tc);
@@ -697,11 +749,14 @@ function renderAuditDetail(record) {
   if (exportBtn) {
     exportBtn.onclick = () => {
       const mdText = formatRecordToMarkdown(record);
-      navigator.clipboard.writeText(mdText).then(() => {
-        showToast('已复制完整 Markdown 对话纪要到剪贴板', 'success');
-      }).catch(err => {
-        showToast('复制失败: ' + err.message, 'error');
-      });
+      navigator.clipboard
+        .writeText(mdText)
+        .then(() => {
+          showToast('已复制完整 Markdown 对话纪要到剪贴板', 'success');
+        })
+        .catch((err) => {
+          showToast('复制失败: ' + err.message, 'error');
+        });
     };
   }
 
@@ -716,7 +771,10 @@ function renderAuditDetail(record) {
         if (result && result.ok) {
           showToast(`重试完成：HTTP ${result.statusCode}`, 'success');
         } else {
-          showToast(`重试失败：${(result && (result.error || result.statusCode)) || '未知错误'}`, 'error');
+          showToast(
+            `重试失败：${(result && (result.error || result.statusCode)) || '未知错误'}`,
+            'error'
+          );
         }
         await loadAuditRecords();
       } catch (err) {
@@ -801,16 +859,19 @@ function toggleAuditToolCall(id) {
 
 // 渲染单个 Tool Call 与 Result
 function renderSingleToolCall(tc) {
-  const id = String(tc.id || Math.random().toString(36).substring(2, 9)).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const id = String(tc.id || Math.random().toString(36).substring(2, 9)).replace(
+    /[^a-zA-Z0-9_-]/g,
+    '_'
+  );
   const name = tc.name || (tc.function ? tc.function.name : '未知工具');
 
   let argsStr = '';
-  let inputObj = tc.input || (tc.function ? tc.function.arguments : null);
+  const inputObj = tc.input || (tc.function ? tc.function.arguments : null);
   if (inputObj) {
     if (typeof inputObj === 'string') {
       try {
         argsStr = JSON.stringify(JSON.parse(inputObj), null, 2);
-      } catch(e) {
+      } catch (e) {
         argsStr = inputObj;
       }
     } else {
@@ -825,20 +886,26 @@ function renderSingleToolCall(tc) {
     const currentRecord = cachedAuditRecords[Number(idx)];
     if (currentRecord && currentRecord.messages) {
       // OpenAI: 查找 role === 'tool'
-      const toolResultMsg = currentRecord.messages.find(m => m.role === 'tool' && m.tool_call_id === tc.id);
+      const toolResultMsg = currentRecord.messages.find(
+        (m) => m.role === 'tool' && m.tool_call_id === tc.id
+      );
       if (toolResultMsg) {
-        resultStr = typeof toolResultMsg.content === 'string'
-          ? toolResultMsg.content
-          : JSON.stringify(toolResultMsg.content, null, 2);
+        resultStr =
+          typeof toolResultMsg.content === 'string'
+            ? toolResultMsg.content
+            : JSON.stringify(toolResultMsg.content, null, 2);
       } else {
         // Claude: 查找 tool_result
-        currentRecord.messages.forEach(m => {
+        currentRecord.messages.forEach((m) => {
           if (Array.isArray(m.content)) {
-            const block = m.content.find(b => b.type === 'tool_result' && b.tool_use_id === tc.id);
+            const block = m.content.find(
+              (b) => b.type === 'tool_result' && b.tool_use_id === tc.id
+            );
             if (block) {
-              resultStr = typeof block.content === 'string'
-                ? block.content
-                : JSON.stringify(block.content, null, 2);
+              resultStr =
+                typeof block.content === 'string'
+                  ? block.content
+                  : JSON.stringify(block.content, null, 2);
             }
           }
         });
@@ -862,16 +929,20 @@ function renderSingleToolCall(tc) {
           <div class="audit-tool-args-label">调用参数 (Arguments)${argsPreview.truncated ? ' · 已截断显示' : ''}:</div>
           <pre><code>${escapeHtml(argsPreview.text)}</code></pre>
         </div>
-        ${resultStr ? `
+        ${
+          resultStr
+            ? `
         <div class="audit-tool-result">
           <div class="audit-tool-result-label">执行输出 (Result)${resultPreview.truncated ? ' · 已截断显示' : ''}:</div>
           <pre><code>${escapeHtml(resultPreview.text)}</code></pre>
         </div>
-        ` : `
+        `
+            : `
         <div class="audit-tool-result">
           <div class="audit-tool-result-label" style="opacity: 0.6;">(尚无输出结果，或在后续对话中呈现)</div>
         </div>
-        `}
+        `
+        }
       </div>
     </div>
   `;

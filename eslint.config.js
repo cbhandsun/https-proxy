@@ -2,6 +2,7 @@
 // https://eslint.org/docs/latest/use/configure/configuration-files
 
 const js = require('@eslint/js');
+const unusedImports = require('eslint-plugin-unused-imports');
 
 module.exports = [
   {
@@ -31,6 +32,11 @@ module.exports = [
     ],
   },
   js.configs.recommended,
+  {
+    plugins: {
+      'unused-imports': unusedImports,
+    },
+  },
   {
     files: ['**/*.js', '**/*.cjs', '**/*.mjs'],
     languageOptions: {
@@ -63,13 +69,23 @@ module.exports = [
     },
     rules: {
       // Possible errors - keep strict
-      'no-undef': 'warn', // legacy cross-file refs in openai-proxy.js
-      'no-unused-vars': [
+      'no-undef': 'error',
+      // legacy: no-unused-vars remains warn. The big monolithic files
+      // (openai-proxy.js, app.js) get a per-file off override below until
+      // they are incrementally refactored.
+      'no-unused-vars': 'off', // provided by unused-imports/no-unused-vars below
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
         'warn',
         {
+          args: 'after-used',
           argsIgnorePattern: '^_',
+          vars: 'all',
           varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
+          // Legacy common short names for unused catch params. Allow e, err,
+          // error, and `e2` / `errHttps` / `errJs` style numbered variants.
+          caughtErrors: 'all',
+          caughtErrorsIgnorePattern: '^(_|e$|err$|error$|e\\d+$|err[A-Z]\\w*|endErr$)',
         },
       ],
       'no-unused-expressions': [
@@ -85,7 +101,7 @@ module.exports = [
       'no-duplicate-case': 'error',
       'no-empty': ['error', { allowEmptyCatch: true }],
       'no-fallthrough': 'error',
-      'no-inner-declarations': 'warn', // legacy: tighten incrementally
+      'no-inner-declarations': 'error',
       'no-invalid-regexp': 'error',
       'no-obj-calls': 'error',
       'no-prototype-builtins': 'error',
@@ -101,7 +117,7 @@ module.exports = [
       'no-debugger': 'warn',
       'no-eval': 'error',
       'no-implied-eval': 'error',
-      'no-var': 'warn', // legacy: tighten incrementally
+      'no-var': 'error',
       'prefer-const': 'warn',
       'prefer-template': 'off', // too noisy on existing code
       eqeqeq: ['error', 'smart'],
@@ -268,7 +284,22 @@ module.exports = [
     rules: {
       'no-undef': 'off',
       'no-unused-vars': 'off',
+      'unused-imports/no-unused-imports': 'off',
+      'unused-imports/no-unused-vars': 'off',
       'no-unused-expressions': 'off',
+      'no-redeclare': 'off',
+    },
+  },
+  {
+    // Big legacy monoliths (openai-proxy.js: 2000+ lines, tauri-ui/app.js:
+    // 800+ lines). Full refactor is planned via the Vite + ESM migration
+    // (Phase 5) — until each module is incrementally extracted, accept the
+    // existing dead-binding noise rather than reformat 3000 lines of legacy
+    // code in a single commit.
+    files: ['openai-proxy.js', 'tauri-ui/app.js'],
+    rules: {
+      'unused-imports/no-unused-vars': 'off',
+      'prefer-const': 'off',
     },
   },
   {

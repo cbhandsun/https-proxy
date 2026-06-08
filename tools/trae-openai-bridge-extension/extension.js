@@ -25,12 +25,8 @@ const {
   sendJson,
   sendSseEvent,
   readBody,
-  listTraeBridgeCommands: listTraeBridgeCommandsPure,
 } = require('./extension-utils');
-const {
-  sanitizeRawStreamEvent,
-  makeRawEventKey,
-} = require('./extension-sanitize');
+const { sanitizeRawStreamEvent, makeRawEventKey } = require('./extension-sanitize');
 const { createBridge } = require('./extension-bridge');
 
 let outputChannel = null;
@@ -83,7 +79,9 @@ function createServer() {
       if (req.method === 'POST' && (pathname === '/v1/chat' || pathname === '/chat')) {
         const raw = await readBody(req, MAX_BODY_BYTES);
         let payload = {};
-        try { payload = raw ? JSON.parse(raw) : {}; } catch (err) {
+        try {
+          payload = raw ? JSON.parse(raw) : {};
+        } catch (err) {
           sendJson(res, 400, { ok: false, error: 'invalid json' });
           return;
         }
@@ -91,20 +89,25 @@ function createServer() {
         sendJson(res, 200, { ok: true, ...result });
         return;
       }
-      if (req.method === 'POST' && (pathname === '/v1/chat/stream' || pathname === '/chat/stream')) {
+      if (
+        req.method === 'POST' &&
+        (pathname === '/v1/chat/stream' || pathname === '/chat/stream')
+      ) {
         const raw = await readBody(req, MAX_BODY_BYTES);
         let payload = {};
-        try { payload = raw ? JSON.parse(raw) : {}; } catch (err) {
+        try {
+          payload = raw ? JSON.parse(raw) : {};
+        } catch (err) {
           sendJson(res, 400, { ok: false, error: 'invalid json' });
           return;
         }
         res.writeHead(200, {
           'Content-Type': 'text/event-stream; charset=utf-8',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          Connection: 'keep-alive',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Headers': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS'
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
         });
         await getBridge().dispatchChatStream(payload, res, {
           sanitizeRawStreamEvent,
@@ -118,7 +121,13 @@ function createServer() {
       if (!res.headersSent) {
         sendJson(res, 500, { ok: false, error: err && err.message ? err.message : String(err) });
       } else {
-        try { sendSseEvent(res, 'error', { ok: false, error: err && err.message ? err.message : String(err) }); res.end(); } catch (e) {}
+        try {
+          sendSseEvent(res, 'error', {
+            ok: false,
+            error: err && err.message ? err.message : String(err),
+          });
+          res.end();
+        } catch (e) {}
       }
     }
   };
@@ -155,7 +164,9 @@ function activate(context) {
 
 function deactivate() {
   if (server) {
-    try { server.close(); } catch (err) {}
+    try {
+      server.close();
+    } catch (err) {}
     server = null;
   }
   bridge = null;

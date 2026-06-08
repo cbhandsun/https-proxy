@@ -31,7 +31,7 @@ function setupTestConfig(profile) {
         listenPort: 4443,
         name: 'Test Claude Entry',
         protocol: 'claude',
-        tls: false
+        tls: false,
       },
       {
         basePath: '/v1',
@@ -40,17 +40,17 @@ function setupTestConfig(profile) {
         listenPort: 4445,
         name: 'Test OpenAI Entry',
         protocol: 'openai-chat',
-        tls: false
-      }
+        tls: false,
+      },
     ],
     localServer: {
       basePath: '/v1',
       host: '127.0.0.1',
       listenPort: 4443,
-      protocol: 'claude'
+      protocol: 'claude',
     },
     profiles: [profile],
-    modelRoutes: []
+    modelRoutes: [],
   };
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 }
@@ -70,19 +70,19 @@ async function runTests() {
         id: 'claude-official',
         name: 'Claude Official',
         protocol: 'claude',
-        targetUrl: `http://127.0.0.1:${upstreamPort}`
+        targetUrl: `http://127.0.0.1:${upstreamPort}`,
       },
       clientHeaders: {
-        'authorization': 'Bearer client-oauth-token',
+        authorization: 'Bearer client-oauth-token',
         'x-api-key': 'client-api-key',
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
       },
       expectedHeadersCheck: (headers) => {
         assert.strictEqual(headers['authorization'], 'Bearer client-oauth-token');
         assert.strictEqual(headers['x-api-key'], 'client-api-key');
         assert.strictEqual(headers['anthropic-version'], '2023-06-01');
       },
-      message: 'Claude Official Profile (Empty API Key) preserves client credentials'
+      message: 'Claude Official Profile (Empty API Key) preserves client credentials',
     });
 
     // 测试用例 2: Claude 官方 Profile 带 apiKey
@@ -92,19 +92,19 @@ async function runTests() {
         name: 'Claude Official with key',
         protocol: 'claude',
         targetUrl: `http://127.0.0.1:${upstreamPort}`,
-        apiKey: 'sk-ant-test-auth-key'
+        apiKey: 'sk-ant-test-auth-key',
       },
       clientHeaders: {
-        'authorization': 'Bearer client-oauth-token',
+        authorization: 'Bearer client-oauth-token',
         'x-api-key': 'client-api-key',
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
       },
       expectedHeadersCheck: (headers) => {
         assert.strictEqual(headers['x-api-key'], 'sk-ant-test-auth-key');
         assert.strictEqual(headers['authorization'], undefined);
         assert.strictEqual(headers['api-key'], undefined);
       },
-      message: 'Claude Profile overrides with x-api-key for Anthropic protocol'
+      message: 'Claude Profile overrides with x-api-key for Anthropic protocol',
     });
 
     // 测试用例 3: Google Official Profile 带 apiKey
@@ -114,16 +114,16 @@ async function runTests() {
         name: 'Google Test Profile',
         protocol: 'gemini',
         targetUrl: `http://127.0.0.1:${upstreamPort}`,
-        apiKey: 'google-api-test-key'
+        apiKey: 'google-api-test-key',
       },
       clientHeaders: {
-        'authorization': 'Bearer some-auth'
+        authorization: 'Bearer some-auth',
       },
       expectedHeadersCheck: (headers) => {
         assert.strictEqual(headers['x-goog-api-key'], 'google-api-test-key');
         assert.strictEqual(headers['authorization'], undefined);
       },
-      message: 'Google Profile overrides with x-goog-api-key for Gemini protocol'
+      message: 'Google Profile overrides with x-goog-api-key for Gemini protocol',
     });
 
     // 测试用例 4: OpenAI Profile 带 apiKey
@@ -133,16 +133,16 @@ async function runTests() {
         name: 'OpenAI Profile',
         protocol: 'openai',
         targetUrl: `http://127.0.0.1:${upstreamPort}`,
-        apiKey: 'openai-api-test-key'
+        apiKey: 'openai-api-test-key',
       },
       clientHeaders: {
-        'x-api-key': 'some-x-key'
+        'x-api-key': 'some-x-key',
       },
       expectedHeadersCheck: (headers) => {
         assert.strictEqual(headers['authorization'], 'Bearer openai-api-test-key');
         assert.strictEqual(headers['x-api-key'], undefined);
       },
-      message: 'OpenAI Profile overrides with authorization Bearer for OpenAI protocol'
+      message: 'OpenAI Profile overrides with authorization Bearer for OpenAI protocol',
     });
 
     // 测试用例 5: OpenAI 官方 Profile (不提供 apiKey，透传客户端原有密钥)
@@ -151,11 +151,11 @@ async function runTests() {
         id: 'openai-test-profile',
         name: 'OpenAI Test Profile',
         protocol: 'openai',
-        targetUrl: `http://127.0.0.1:${upstreamPort}`
+        targetUrl: `http://127.0.0.1:${upstreamPort}`,
       },
       clientHeaders: {
-        'authorization': 'Bearer client-openai-oauth-token',
-        'api-key': 'client-api-key'
+        authorization: 'Bearer client-openai-oauth-token',
+        'api-key': 'client-api-key',
       },
       clientPort: 4445,
       clientPath: '/v1/chat/completions',
@@ -164,7 +164,7 @@ async function runTests() {
         assert.strictEqual(headers['authorization'], 'Bearer client-openai-oauth-token');
         assert.strictEqual(headers['api-key'], 'client-api-key');
       },
-      message: 'OpenAI Official Profile (Empty API Key) preserves client credentials'
+      message: 'OpenAI Official Profile (Empty API Key) preserves client credentials',
     });
 
     // 测试用例 6: OpenAI 官方特权 Profile 强制忽略并擦除客户端传入的 API Key
@@ -173,11 +173,11 @@ async function runTests() {
         id: 'openai-official',
         name: 'OpenAI Official',
         protocol: 'openai',
-        targetUrl: `http://127.0.0.1:${upstreamPort}`
+        targetUrl: `http://127.0.0.1:${upstreamPort}`,
       },
       clientHeaders: {
-        'authorization': 'Bearer client-openai-oauth-token',
-        'api-key': 'client-api-key'
+        authorization: 'Bearer client-openai-oauth-token',
+        'api-key': 'client-api-key',
       },
       clientPort: 4445,
       clientPath: '/v1/chat/completions',
@@ -187,7 +187,7 @@ async function runTests() {
         assert.notStrictEqual(headers['authorization'], 'Bearer client-openai-oauth-token');
         assert.notStrictEqual(headers['api-key'], 'client-api-key');
       },
-      message: 'OpenAI Official Privilege Profile ignores and strips client credentials'
+      message: 'OpenAI Official Privilege Profile ignores and strips client credentials',
     });
 
     // 测试用例 7: Google 官方特权 Profile 强制忽略并擦除客户端传入的 API Key
@@ -196,11 +196,11 @@ async function runTests() {
         id: 'google-official',
         name: 'Google Official',
         protocol: 'gemini',
-        targetUrl: `http://127.0.0.1:${upstreamPort}`
+        targetUrl: `http://127.0.0.1:${upstreamPort}`,
       },
       clientHeaders: {
-        'authorization': 'Bearer client-google-token',
-        'x-goog-api-key': 'client-google-key'
+        authorization: 'Bearer client-google-token',
+        'x-goog-api-key': 'client-google-key',
       },
       clientPort: 4445,
       clientPath: '/v1/chat/completions',
@@ -210,7 +210,7 @@ async function runTests() {
         assert.notStrictEqual(headers['authorization'], 'Bearer client-google-token');
         assert.notStrictEqual(headers['x-goog-api-key'], 'client-google-key');
       },
-      message: 'Google Official Privilege Profile ignores and strips client credentials'
+      message: 'Google Official Privilege Profile ignores and strips client credentials',
     });
 
     // 测试新特性 1: 配置文件动态热加载 (Hot-Reload)
@@ -231,7 +231,15 @@ async function runTests() {
   }
 }
 
-function runSingleTest({ profile, clientHeaders, expectedHeadersCheck, message, clientPort = 4443, clientPath = '/v1/messages', clientBody }) {
+function runSingleTest({
+  profile,
+  clientHeaders,
+  expectedHeadersCheck,
+  message,
+  clientPort = 4443,
+  clientPath = '/v1/messages',
+  clientBody,
+}) {
   return new Promise((resolve, reject) => {
     receivedHeaders = {};
     setupTestConfig(profile);
@@ -240,8 +248,8 @@ function runSingleTest({ profile, clientHeaders, expectedHeadersCheck, message, 
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
       env: {
         ...process.env,
-        PROXY_DATA_DIR: __dirname
-      }
+        PROXY_DATA_DIR: __dirname,
+      },
     });
 
     let isStarted = false;
@@ -257,37 +265,43 @@ function runSingleTest({ profile, clientHeaders, expectedHeadersCheck, message, 
       clearTimeout(timeoutTimer);
 
       // 发送 HTTP 请求给代理服务器
-      const req = http.request({
-        hostname: '127.0.0.1',
-        port: clientPort,
-        path: clientPath,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...clientHeaders
+      const req = http.request(
+        {
+          hostname: '127.0.0.1',
+          port: clientPort,
+          path: clientPath,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...clientHeaders,
+          },
+        },
+        (res) => {
+          let body = '';
+          res.on('data', (chunk) => (body += chunk));
+          res.on('end', () => {
+            try {
+              expectedHeadersCheck(receivedHeaders);
+              console.log(`  [PASS] ${message}`);
+              proxyProc.kill();
+              resolve();
+            } catch (err) {
+              proxyProc.kill();
+              reject(err);
+            }
+          });
         }
-      }, (res) => {
-        let body = '';
-        res.on('data', chunk => body += chunk);
-        res.on('end', () => {
-          try {
-            expectedHeadersCheck(receivedHeaders);
-            console.log(`  [PASS] ${message}`);
-            proxyProc.kill();
-            resolve();
-          } catch (err) {
-            proxyProc.kill();
-            reject(err);
-          }
-        });
-      });
+      );
 
       req.on('error', (err) => {
         proxyProc.kill();
         reject(err);
       });
 
-      const bodyData = clientBody || { model: 'claude-3-5-sonnet-latest', messages: [{ role: 'user', content: 'hi' }] };
+      const bodyData = clientBody || {
+        model: 'claude-3-5-sonnet-latest',
+        messages: [{ role: 'user', content: 'hi' }],
+      };
       req.write(JSON.stringify(bodyData));
       req.end();
     };
@@ -314,86 +328,101 @@ function runHotReloadTest() {
       name: 'Claude Official 1',
       protocol: 'claude',
       targetUrl: `http://127.0.0.1:${upstreamPort}`,
-      apiKey: 'key-1'
+      apiKey: 'key-1',
     };
     const profile2 = {
       id: 'claude-official-2',
       name: 'Claude Official 2',
       protocol: 'claude',
       targetUrl: `http://127.0.0.1:${upstreamPort}`,
-      apiKey: 'key-2'
+      apiKey: 'key-2',
     };
-    
+
     setupTestConfig(profile1);
-    
+
     // 启动代理
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
       env: {
         ...process.env,
-        PROXY_DATA_DIR: __dirname
-      }
+        PROXY_DATA_DIR: __dirname,
+      },
     });
-    
+
     let isStarted = false;
     const timeoutTimer = setTimeout(() => {
       proxyProc.kill();
       reject(new Error('Hot reload test timeout (10s)'));
     }, 10000);
-    
+
     proxyProc.stdout.on('data', (data) => {
       const output = data.toString();
       if (output.includes('Listen:') && !isStarted) {
         isStarted = true;
-        
+
         // 1. 发送第一次请求，此时应该使用 key-1
-        const req1 = http.request({
-          hostname: '127.0.0.1',
-          port: 4443,
-          path: '/v1/messages',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        }, (res1) => {
-          res1.resume();
-          try {
-            assert.strictEqual(receivedHeaders['x-api-key'], 'key-1');
-            
-            // 2. 动态改写配置文件，切换为 profile2
-            setupTestConfig(profile2);
-            
-            // 稍微等待 300ms 等待 fs.watch 热加载完成
-            setTimeout(() => {
-              receivedHeaders = {};
-              
-              // 3. 发送第二次请求，此时应该热加载为了 key-2
-              const req2 = http.request({
-                hostname: '127.0.0.1',
-                port: 4443,
-                path: '/v1/messages',
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-              }, (res2) => {
-                res2.resume();
-                try {
-                  assert.strictEqual(receivedHeaders['x-api-key'], 'key-2');
-                  console.log('  [PASS] Configuration hot-reload test');
-                  clearTimeout(timeoutTimer);
-                  proxyProc.kill();
-                  resolve();
-                } catch (err) {
-                  proxyProc.kill();
-                  reject(err);
-                }
-              });
-              req2.write(JSON.stringify({ model: 'claude-3-5-sonnet-latest', messages: [{ role: 'user', content: 'hi' }] }));
-              req2.end();
-            }, 300);
-            
-          } catch (err) {
-            proxyProc.kill();
-            reject(err);
+        const req1 = http.request(
+          {
+            hostname: '127.0.0.1',
+            port: 4443,
+            path: '/v1/messages',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          },
+          (res1) => {
+            res1.resume();
+            try {
+              assert.strictEqual(receivedHeaders['x-api-key'], 'key-1');
+
+              // 2. 动态改写配置文件，切换为 profile2
+              setupTestConfig(profile2);
+
+              // 稍微等待 300ms 等待 fs.watch 热加载完成
+              setTimeout(() => {
+                receivedHeaders = {};
+
+                // 3. 发送第二次请求，此时应该热加载为了 key-2
+                const req2 = http.request(
+                  {
+                    hostname: '127.0.0.1',
+                    port: 4443,
+                    path: '/v1/messages',
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                  },
+                  (res2) => {
+                    res2.resume();
+                    try {
+                      assert.strictEqual(receivedHeaders['x-api-key'], 'key-2');
+                      console.log('  [PASS] Configuration hot-reload test');
+                      clearTimeout(timeoutTimer);
+                      proxyProc.kill();
+                      resolve();
+                    } catch (err) {
+                      proxyProc.kill();
+                      reject(err);
+                    }
+                  }
+                );
+                req2.write(
+                  JSON.stringify({
+                    model: 'claude-3-5-sonnet-latest',
+                    messages: [{ role: 'user', content: 'hi' }],
+                  })
+                );
+                req2.end();
+              }, 300);
+            } catch (err) {
+              proxyProc.kill();
+              reject(err);
+            }
           }
-        });
-        req1.write(JSON.stringify({ model: 'claude-3-5-sonnet-latest', messages: [{ role: 'user', content: 'hi' }] }));
+        );
+        req1.write(
+          JSON.stringify({
+            model: 'claude-3-5-sonnet-latest',
+            messages: [{ role: 'user', content: 'hi' }],
+          })
+        );
         req1.end();
       }
     });
@@ -406,16 +435,16 @@ function runLatencyApiTest() {
       id: 'dummy',
       name: 'Dummy',
       protocol: 'claude',
-      targetUrl: `http://127.0.0.1:${upstreamPort}`
+      targetUrl: `http://127.0.0.1:${upstreamPort}`,
     });
-    
+
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
       env: {
         ...process.env,
-        PROXY_DATA_DIR: __dirname
-      }
+        PROXY_DATA_DIR: __dirname,
+      },
     });
-    
+
     let isStarted = false;
     let managementToken = '';
     proxyProc.stdout.on('data', (data) => {
@@ -424,37 +453,42 @@ function runLatencyApiTest() {
       if (tokenMatch) managementToken = tokenMatch[1];
       if (output.includes('Listen:') && !isStarted) {
         isStarted = true;
-        
+
         // 请求本地测速 API
-        const req = http.request({
-          hostname: '127.0.0.1',
-          port: 4443,
-          path: '/v1/local/profile/latency',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken }
-        }, (res) => {
-          let body = '';
-          res.on('data', chunk => body += chunk);
-          res.on('end', () => {
-            try {
-              const result = JSON.parse(body);
-              assert.strictEqual(result.ok, true);
-              assert.ok(typeof result.latency === 'number');
-              console.log('  [PASS] Profile latency speed test API');
-              proxyProc.kill();
-              resolve();
-            } catch (err) {
-              proxyProc.kill();
-              reject(err);
-            }
-          });
-        });
-        
-        req.write(JSON.stringify({
-          protocol: 'claude',
-          targetUrl: `http://127.0.0.1:${upstreamPort}`,
-          apiKey: 'test-api-key'
-        }));
+        const req = http.request(
+          {
+            hostname: '127.0.0.1',
+            port: 4443,
+            path: '/v1/local/profile/latency',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken },
+          },
+          (res) => {
+            let body = '';
+            res.on('data', (chunk) => (body += chunk));
+            res.on('end', () => {
+              try {
+                const result = JSON.parse(body);
+                assert.strictEqual(result.ok, true);
+                assert.ok(typeof result.latency === 'number');
+                console.log('  [PASS] Profile latency speed test API');
+                proxyProc.kill();
+                resolve();
+              } catch (err) {
+                proxyProc.kill();
+                reject(err);
+              }
+            });
+          }
+        );
+
+        req.write(
+          JSON.stringify({
+            protocol: 'claude',
+            targetUrl: `http://127.0.0.1:${upstreamPort}`,
+            apiKey: 'test-api-key',
+          })
+        );
         req.end();
       }
     });
@@ -467,16 +501,16 @@ function runPromptsSyncApiTest() {
       id: 'dummy',
       name: 'Dummy',
       protocol: 'claude',
-      targetUrl: `http://127.0.0.1:${upstreamPort}`
+      targetUrl: `http://127.0.0.1:${upstreamPort}`,
     });
-    
+
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
       env: {
         ...process.env,
-        PROXY_DATA_DIR: __dirname
-      }
+        PROXY_DATA_DIR: __dirname,
+      },
     });
-    
+
     let isStarted = false;
     let managementToken = '';
     proxyProc.stdout.on('data', (data) => {
@@ -485,71 +519,89 @@ function runPromptsSyncApiTest() {
       if (tokenMatch) managementToken = tokenMatch[1];
       if (output.includes('Listen:') && !isStarted) {
         isStarted = true;
-        
+
         // 1. 请求本地同步 API 测试 claude
-        const reqClaude = http.request({
-          hostname: '127.0.0.1',
-          port: 4443,
-          path: '/v1/local/prompts/sync',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken }
-        }, (resClaude) => {
-          let bodyClaude = '';
-          resClaude.on('data', chunk => bodyClaude += chunk);
-          resClaude.on('end', () => {
-            try {
-              const resultClaude = JSON.parse(bodyClaude);
-              assert.strictEqual(resultClaude.ok, true);
-              assert.ok(resultClaude.path.includes('CLAUDE.md'));
-              assert.strictEqual(fs.readFileSync(resultClaude.path, 'utf8'), 'test-claude-prompt');
-              fs.unlinkSync(resultClaude.path);
-              
-              // 2. 接着请求本地同步 API 测试 antigravity
-              const reqAnti = http.request({
-                hostname: '127.0.0.1',
-                port: 4443,
-                path: '/v1/local/prompts/sync',
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken }
-              }, (resAnti) => {
-                let bodyAnti = '';
-                resAnti.on('data', chunk => bodyAnti += chunk);
-                resAnti.on('end', () => {
-                  try {
-                    const resultAnti = JSON.parse(bodyAnti);
-                    assert.strictEqual(resultAnti.ok, true);
-                    assert.ok(resultAnti.path.includes('CLAUDE.md'));
-                    assert.ok(resultAnti.path.includes('.antigravity'));
-                    assert.strictEqual(fs.readFileSync(resultAnti.path, 'utf8'), 'test-antigravity-prompt');
-                    fs.unlinkSync(resultAnti.path);
-                    
-                    console.log('  [PASS] Prompts Markdown sync API (Claude & Antigravity)');
-                    proxyProc.kill();
-                    resolve();
-                  } catch (err) {
-                    proxyProc.kill();
-                    reject(err);
+        const reqClaude = http.request(
+          {
+            hostname: '127.0.0.1',
+            port: 4443,
+            path: '/v1/local/prompts/sync',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken },
+          },
+          (resClaude) => {
+            let bodyClaude = '';
+            resClaude.on('data', (chunk) => (bodyClaude += chunk));
+            resClaude.on('end', () => {
+              try {
+                const resultClaude = JSON.parse(bodyClaude);
+                assert.strictEqual(resultClaude.ok, true);
+                assert.ok(resultClaude.path.includes('CLAUDE.md'));
+                assert.strictEqual(
+                  fs.readFileSync(resultClaude.path, 'utf8'),
+                  'test-claude-prompt'
+                );
+                fs.unlinkSync(resultClaude.path);
+
+                // 2. 接着请求本地同步 API 测试 antigravity
+                const reqAnti = http.request(
+                  {
+                    hostname: '127.0.0.1',
+                    port: 4443,
+                    path: '/v1/local/prompts/sync',
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'x-mgmt-token': managementToken,
+                    },
+                  },
+                  (resAnti) => {
+                    let bodyAnti = '';
+                    resAnti.on('data', (chunk) => (bodyAnti += chunk));
+                    resAnti.on('end', () => {
+                      try {
+                        const resultAnti = JSON.parse(bodyAnti);
+                        assert.strictEqual(resultAnti.ok, true);
+                        assert.ok(resultAnti.path.includes('CLAUDE.md'));
+                        assert.ok(resultAnti.path.includes('.antigravity'));
+                        assert.strictEqual(
+                          fs.readFileSync(resultAnti.path, 'utf8'),
+                          'test-antigravity-prompt'
+                        );
+                        fs.unlinkSync(resultAnti.path);
+
+                        console.log('  [PASS] Prompts Markdown sync API (Claude & Antigravity)');
+                        proxyProc.kill();
+                        resolve();
+                      } catch (err) {
+                        proxyProc.kill();
+                        reject(err);
+                      }
+                    });
                   }
-                });
-              });
-              
-              reqAnti.write(JSON.stringify({
-                type: 'antigravity',
-                content: 'test-antigravity-prompt'
-              }));
-              reqAnti.end();
-              
-            } catch (err) {
-              proxyProc.kill();
-              reject(err);
-            }
-          });
-        });
-        
-        reqClaude.write(JSON.stringify({
-          type: 'claude',
-          content: 'test-claude-prompt'
-        }));
+                );
+
+                reqAnti.write(
+                  JSON.stringify({
+                    type: 'antigravity',
+                    content: 'test-antigravity-prompt',
+                  })
+                );
+                reqAnti.end();
+              } catch (err) {
+                proxyProc.kill();
+                reject(err);
+              }
+            });
+          }
+        );
+
+        reqClaude.write(
+          JSON.stringify({
+            type: 'claude',
+            content: 'test-claude-prompt',
+          })
+        );
         reqClaude.end();
       }
     });
