@@ -3152,7 +3152,10 @@ async function refreshCertStatus(options = {}) {
       $('heroCertStatus').innerHTML =
         `<span class="status-dot ${status.trusted ? 'green' : 'amber'}"></span>${status.trusted ? '已信任' : '未信任'}`;
     } catch (err) {
-      lastCertRefresh = Date.now();
+      // 注意:这里故意不写 lastCertRefresh。代理冷启动要 7-10s,
+      // 第一次 scheduleStartupTask('load.certStatus') 几乎一定会
+      // 超时,这时必须让后续的 passive 重试(heartbeat 触发)再尝试,
+      // 否则证书卡片会被动节流锁 60s,只能靠用户手动点刷新。
       const message = err && err.message ? err.message : '未知错误';
       $('certStatus').textContent = `证书状态检查失败：${message}`;
       $('heroCertStatus').innerHTML = '<span class="status-dot red"></span>检查失败';

@@ -45,6 +45,14 @@ function startHeartbeat() {
             hydrateConfigAfterStartup().catch((e) =>
               console.error('hydrateConfigAfterStartup in heartbeat:', e)
             );
+            // 同样的冷启动问题也会让首次证书检查超时。等代理真正
+            // 起来后再被动拉一次,refreshCertStatus 的 catch 分支
+            // 不会写 lastCertRefresh,所以这次调用不会被 60s 节流。
+            if (typeof refreshCertStatus === 'function') {
+              refreshCertStatus({ passive: true }).catch((e) =>
+                console.error('refreshCertStatus in heartbeat:', e)
+              );
+            }
           }
         } catch (e) {
           console.error('heartbeat health probe for hydrate:', e);
