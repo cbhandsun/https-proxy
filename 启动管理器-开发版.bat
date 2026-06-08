@@ -48,6 +48,16 @@ REM next `cargo run` fails with os error 32 ("Another program is using
 REM this file") when copying the runtime into the bundle.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\kill-stale-tauri-dev.ps1" 2>nul
 
+REM Sync the latest openai-proxy.js into the bundled debug location so the
+REM Tauri runtime (which spawns the bundled copy, not the repo-root source)
+REM picks up the same code we just edited.
+if exist "src-tauri\target\debug\openai-proxy.js" (
+  copy /Y "openai-proxy.js" "src-tauri\target\debug\openai-proxy.js" >nul
+  if errorlevel 1 (
+    echo [warn] failed to sync openai-proxy.js into src-tauri\target\debug\
+  )
+)
+
 echo Starting frontend static server: http://localhost:1430
 node scripts\dev-static-server.js --ensure
 if not errorlevel 1 goto launch_manager
