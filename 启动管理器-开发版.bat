@@ -42,6 +42,12 @@ if not exist "scripts\dev-static-server.js" (
   exit /b 1
 )
 
+REM Clean up stale Tauri dev child node.exe processes that hold
+REM src-tauri\target\debug\runtime\node\node.exe open; otherwise the
+REM next `cargo run` fails with os error 32 ("Another program is using
+REM this file") when copying the runtime into the bundle.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\kill-stale-tauri-dev.ps1" 2>nul
+
 echo Starting frontend static server: http://localhost:1430
 node scripts\dev-static-server.js --ensure
 if not errorlevel 1 goto launch_manager
