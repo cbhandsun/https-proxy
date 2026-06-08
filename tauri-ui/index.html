@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>HTTPS Proxy Manager (Vite dev entry)</title>
+    <link rel="stylesheet" href="./app.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div id="vite-root">
+      <p>Loading HTTPS Proxy Manager…</p>
+    </div>
+
+    <!--
+      Vite entry. The legacy tauri-ui/app-*.js scripts continue to run as
+      plain <script defer> tags below; the ESM module <script type="module"
+      src="/src/main.js"> is the new bundling target. As ESM modules are
+      introduced, they replace the corresponding legacy <script> tag.
+
+      This file is the Vite dev-server entry and is processed by `vite build`
+      to produce the static bundle in tauri-ui/dist/. The Tauri shell, by
+      default, serves the canonical electron-ui.html (which has the full
+      app markup); index.html is used only when you point Tauri's
+      frontendDist at tauri-ui/dist/.
+    -->
+    <script type="module" src="/src/main.js"></script>
+
+    <script defer src="./app-bridge.js"></script>
+    <script defer src="./app-audit.js"></script>
+    <script defer src="./app-cli.js"></script>
+    <script defer src="./app-diagnostics.js"></script>
+    <script defer src="./app.js"></script>
+  </body>
+</html>
