@@ -35,10 +35,20 @@ function startHeartbeat() {
       // is still the empty fallback. Now that the heartbeat is talking
       // to the proxy, ask for a fresh config. hydrateConfigAfterStartup
       // no-ops once config is real, so this is safe to call every tick.
-      if (typeof hydrateConfigAfterStartup === 'function' && state && state.proxyHealth) {
-        hydrateConfigAfterStartup().catch((e) =>
-          console.error('hydrateConfigAfterStartup in heartbeat:', e)
-        );
+      if (
+        typeof hydrateConfigAfterStartup === 'function' &&
+        typeof checkProxyHealth === 'function'
+      ) {
+        try {
+          const health = await checkProxyHealth();
+          if (health) {
+            hydrateConfigAfterStartup().catch((e) =>
+              console.error('hydrateConfigAfterStartup in heartbeat:', e)
+            );
+          }
+        } catch (e) {
+          console.error('heartbeat health probe for hydrate:', e);
+        }
       }
     },
     document.hidden ? 60000 : isMonitorVisible() ? 8000 : 30000
