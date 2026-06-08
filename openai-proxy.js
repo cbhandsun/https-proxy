@@ -2756,6 +2756,13 @@ if (require.main === module) {
     mgmtServer.on('error', function (err) {
       handleListenError('management port 127.0.0.1:' + MGMT_PORT, err);
     });
+    // Write the management token to disk BEFORE starting to listen so
+    // dev-static-server.js (and any other reader) sees the new token the
+    // moment the port is reachable. Without this, there's a small window
+    // where the server is accepting connections but the token file still
+    // holds the previous process's token, and any forwarded management
+    // request gets 401 Unauthorized until the new token is written.
+    writeManagementTokenFile(MGMT_PORT);
     mgmtServer.listen(MGMT_PORT, '127.0.0.1', function () {
       writeManagementTokenFile(MGMT_PORT);
       log.info('  Mgmt:    http://127.0.0.1:' + MGMT_PORT + '/v1/local/*  [management-http]');
