@@ -429,6 +429,12 @@ function writeManagementTokenFile(managementPort) {
   }
 }
 
+function maskManagementToken(token) {
+  const value = String(token || '');
+  if (value.length <= 12) return '[redacted]';
+  return value.slice(0, 6) + '...' + value.slice(-4);
+}
+
 function setupFileConsoleTee() {
   if (process.env.PROXY_DISABLE_FILE_LOG === '1') return;
   try {
@@ -536,9 +542,15 @@ const {
   rebuildRouteIndex: rebuildProxyRouteIndex,
 } = require('./lib/proxy/routing');
 const {
+  PROXY_PREFIX: CLAUDE_DESKTOP_PROXY_PREFIX,
+  claudeDesktopBaseUrl,
   getClaudeDesktopRoutes,
+  getClaudeDesktopGatewayConfig,
+  getClaudeDesktopTraeProcessStyle,
+  isClaudeDesktop3pRequest,
   stripClaudeDesktopPrefix,
   isClaudeDesktopRequest,
+  isLocalClaudeDesktopGatewayUrl,
   isAuthorizedClaudeDesktopRequest,
   removeClaudeDesktopGatewayProvider,
   claudeDesktopStatusFromConfig,
@@ -685,7 +697,10 @@ const {
 const { createTraeBridgeRuntime } = require('./lib/proxy/trae-bridge-runtime');
 const { createTraeOfficialHandlers } = require('./lib/proxy/trae-official-handlers');
 const { createTraeStatusHandlers } = require('./lib/proxy/trae-status-handlers');
-const { currentTraeDebugSettings } = require('./lib/proxy/trae-debug-center');
+const {
+  currentTraeDebugSettings,
+  startNativeDeepProgress,
+} = require('./lib/proxy/trae-debug-center');
 
 let CONFIG = loadConfig();
 let PROFILES = getProfiles(CONFIG);
@@ -701,7 +716,75 @@ const makeRequest = createHttpClient({
   httpAgent: globalHttpAgent,
   httpsAgent: globalHttpsAgent,
 });
+const makeLocalClaudeSelfTestRequest = createHttpClient({
+  httpAgent: globalHttpAgent,
+  httpsAgent: new https.Agent({
+    keepAlive: false,
+    rejectUnauthorized: false,
+  }),
+});
 const mcpHub = createMcpHub({ getConfig: () => CONFIG });
+
+function getClaudeDesktopSelfTestRoute() {
+  const routes = getClaudeDesktopRoutes(CONFIG);
+  if (!Array.isArray(routes) || routes.length === 0) return null;
+  const traeRoute = routes.find((route) => {
+    const profile = PROFILES.find((item) => item && item.id === route.profileId) || {};
+    return isTraeOfficialProfile(profile) || isTraeOfficialTarget(profile.targetUrl);
+  });
+  return traeRoute || routes[0];
+}
+
+function appendClaudeMessagesPath(baseUrl) {
+  const normalized = String(baseUrl || '').replace(/\/+$/, '');
+  if (!normalized) return '';
+  return /\/v1$/i.test(normalized) ? normalized + '/messages' : normalized + '/v1/messages';
+}
+
+function getClaudeDesktopSelfTestTarget() {
+  const route = getClaudeDesktopSelfTestRoute();
+  if (!route || !route.from) return null;
+
+  const gateway = getClaudeDesktopGatewayConfig();
+  let baseUrl = '';
+  let token = '';
+  if (gateway && gateway.isLocalProxy && gateway.baseUrl) {
+    baseUrl = gateway.baseUrl;
+    token = gateway.token || '';
+  } else {
+    baseUrl = claudeDesktopBaseUrl(CONFIG) + CLAUDE_DESKTOP_PROXY_PREFIX;
+    token =
+      CONFIG && CONFIG.claudeDesktop && typeof CONFIG.claudeDesktop.token === 'string'
+        ? CONFIG.claudeDesktop.token
+        : '';
+  }
+
+  const endpoint = appendClaudeMessagesPath(baseUrl);
+  if (!endpoint) return null;
+  const headers = {
+    'Content-Type': 'application/json',
+    'anthropic-version': '2023-06-01',
+  };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const profile = PROFILES.find((item) => item && item.id === route.profileId) || {};
+  return {
+    source:
+      gateway && gateway.isLocalProxy
+        ? 'claude-desktop-gateway'
+        : 'configured-claude-desktop-gateway',
+    endpoint,
+    headers,
+    model: route.from,
+    expectedStyle: getClaudeDesktopTraeProcessStyle(CONFIG),
+    route: {
+      from: route.from,
+      profileId: route.profileId,
+      profileProtocol: profile.protocol || '',
+      targetUrl: profile.targetUrl || '',
+      isTraeOfficial: isTraeOfficialProfile(profile) || isTraeOfficialTarget(profile.targetUrl),
+    },
+  };
+}
 const {
   refreshGoogleAccessToken,
   getFreshAntigravityOfficialAccessToken,
@@ -723,9 +806,26 @@ const {
   handleLocalTraeDebugEventsRequest,
   handleLocalTraeDebugSettingsRequest,
   handleLocalTraeDebugSettingsSaveRequest,
+  handleLocalTraeDebugClaudeProcessSelfTestRequest,
   handleLocalTraeDebugNativeStatusRequest,
   handleLocalTraeDebugNativeScanRequest,
-} = createTraeStatusHandlers({ makeRequest });
+  handleLocalTraeDebugNativeDeepEventsRequest,
+  handleLocalTraeDebugNativeDeepStartRequest,
+  handleLocalTraeDebugNativeDeepStopRequest,
+} = createTraeStatusHandlers({
+  makeRequest,
+  makeClaudeSelfTestRequest: makeLocalClaudeSelfTestRequest,
+  getClaudeMessagesBaseUrl: () => {
+    const servers =
+      Array.isArray(ENTRY_SERVERS) && ENTRY_SERVERS.length ? ENTRY_SERVERS : [LOCAL_SERVER];
+    const entry = servers.find((item) => item && item.protocol === 'claude') || servers[0] || {};
+    const host = entry.host && entry.host !== '0.0.0.0' ? entry.host : 'localhost';
+    const port = entry.listenPort || PORT || 3443;
+    const basePath = entry.basePath || '/v1';
+    return `https://${host}:${port}${basePath}`;
+  },
+  getClaudeSelfTestTarget: getClaudeDesktopSelfTestTarget,
+});
 const {
   handleLocalAntigravityCliStatusRequest,
   handleLocalAntigravityCliApplyRequest,
@@ -801,8 +901,12 @@ const managementHandlers = createManagementHandlers({
   handleLocalTraeDebugEventsRequest,
   handleLocalTraeDebugSettingsRequest,
   handleLocalTraeDebugSettingsSaveRequest,
+  handleLocalTraeDebugClaudeProcessSelfTestRequest,
   handleLocalTraeDebugNativeStatusRequest,
   handleLocalTraeDebugNativeScanRequest,
+  handleLocalTraeDebugNativeDeepEventsRequest,
+  handleLocalTraeDebugNativeDeepStartRequest,
+  handleLocalTraeDebugNativeDeepStopRequest,
   handleLocalAntigravityCliStatusRequest,
   handleLocalAntigravityCliApplyRequest,
   handleLocalAntigravityCliRestoreRequest,
@@ -937,12 +1041,6 @@ function resolveClaudeDesktopRoute(model) {
     return resolveRouteForModel('claude-opus-4-1', CLAUDE_DESKTOP_ROUTES, PROFILES, ACTIVE_PROFILE);
   }
   return resolved;
-}
-
-function isClaudeDesktop3pRequest(headers) {
-  return String((headers && headers['user-agent']) || '')
-    .toLowerCase()
-    .includes('claude-desktop-3p');
 }
 
 function handleModelsRequest(clientReq, clientRes, requestInfo, forcedFormat) {
@@ -1188,6 +1286,7 @@ const {
   fallbackId,
   stableCreated,
   getTraeDebugSettings: currentTraeDebugSettings,
+  startNativeDeepProgress,
 });
 
 const {
@@ -1786,7 +1885,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
     return;
   }
 
-  if (desktopRequest && !isAuthorizedClaudeDesktopRequest(CONFIG, clientReq.headers)) {
+  if (desktopRequest && !isAuthorizedClaudeDesktopRequest(CONFIG, clientReq.headers, decryptKey)) {
     sendUnauthorizedClaudeDesktop(clientRes);
     logRequestEnd(method, urlPath, startTime, 401, { type: 'claude_desktop_auth' });
     return;
@@ -1859,7 +1958,8 @@ function handleRequestInner(clientReq, clientRes, entry) {
         originalLength: captured.originalLength,
       };
     }
-    const shouldUseDesktopRoutes = desktopRequest || isClaudeDesktop3pRequest(clientReq.headers);
+    const desktop3pRequest = isClaudeDesktop3pRequest(clientReq.headers);
+    const shouldUseDesktopRoutes = desktopRequest || desktop3pRequest;
     const initialPrepared = prepareRequestBufferWithResolver(
       requestBuffer,
       clientReq.headers['content-encoding'],
@@ -1922,7 +2022,14 @@ function handleRequestInner(clientReq, clientRes, entry) {
             requestBuffer,
             currentPrepared,
             startTime,
-            urlPath
+            urlPath,
+            {
+              claudeProcessStyle: shouldUseDesktopRoutes
+                ? getClaudeDesktopTraeProcessStyle(CONFIG, {
+                    claudeDesktop3p: desktop3pRequest,
+                  })
+                : '',
+            }
           );
           return;
         }
@@ -1972,24 +2079,104 @@ function handleRequestInner(clientReq, clientRes, entry) {
             (currentPrepared.profile.targetUrl.includes('/backend-api/codex') ||
               currentPrepared.profile.targetUrl.includes('/backend-api'))));
 
-      if (isResponsesUpstream && isOpenAIChatCompletionsPath(clientPath) && method === 'POST') {
-        if (clientReq.headers['content-encoding']) {
+      // 协议转换路由表:把 8 个 if 块(原 270 行)合并成数据驱动的调度。
+      // 每条路由包含:匹配谓词、logModelMapping 标签、压缩请求体拒绝消息、目标 handler。
+      // 第一个匹配的路由会处理并 return,后续路由不再评估(与原代码语义一致)。
+      const conversionRoutes = [
+        {
+          label: 'chat->responses',
+          match:
+            isResponsesUpstream && isOpenAIChatCompletionsPath(clientPath) && method === 'POST',
+          rejectMessage: 'Chat to Responses conversion does not support compressed request bodies',
+          handler: handleOpenAIChatToOpenAIResponses,
+        },
+        {
+          label: 'claude->responses',
+          match: isResponsesUpstream && isClaudeEntryRequest && method === 'POST',
+          rejectMessage:
+            'Claude to Responses conversion does not support compressed request bodies',
+          handler: handleClaudeMessagesToOpenAIResponses,
+        },
+        {
+          label: 'claude->openai',
+          match:
+            method === 'POST' &&
+            (shouldConvertClaudeMessagesToOpenAI(clientReq, currentPrepared.profile, clientPath) ||
+              (isClaudeEntryRequest && isOpenAIProfile(currentPrepared.profile))),
+          rejectMessage: 'Claude to OpenAI conversion does not support compressed request bodies',
+          handler: handleClaudeMessagesToOpenAIChat,
+        },
+        {
+          label: 'openai->gemini',
+          match:
+            isChatEntryRequest && isGeminiProfile(currentPrepared.profile) && method === 'POST',
+          rejectMessage: 'OpenAI to Gemini conversion does not support compressed request bodies',
+          handler: handleOpenAIChatToGeminiMessages,
+        },
+        {
+          label: 'openai->claude',
+          match:
+            isClaudeProfile(currentPrepared.profile) &&
+            method === 'POST' &&
+            isOpenAIChatCompletionsPath(clientPath),
+          rejectMessage: 'OpenAI to Claude conversion does not support compressed request bodies',
+          handler: handleOpenAIChatToClaudeMessages,
+        },
+        {
+          label: 'responses->claude',
+          match:
+            isResponsesEntryRequest &&
+            method === 'POST' &&
+            isClaudeProfile(currentPrepared.profile),
+          rejectMessage: 'OpenAI Responses conversion does not support compressed request bodies',
+          handler: handleOpenAIResponsesToClaudeMessages,
+        },
+        {
+          label: 'responses->gemini',
+          match:
+            isResponsesEntryRequest &&
+            method === 'POST' &&
+            isGeminiProfile(currentPrepared.profile),
+          rejectMessage: 'OpenAI Responses conversion does not support compressed request bodies',
+          handler: handleOpenAIResponsesToGeminiMessages,
+        },
+        {
+          label: 'responses->chat',
+          match:
+            isResponsesEntryRequest &&
+            method === 'POST' &&
+            isOpenAIProfile(currentPrepared.profile) &&
+            shouldConvertResponsesToOpenAIChat(currentPrepared.profile),
+          rejectMessage: null,
+          handler: handleOpenAIResponsesToOpenAIChat,
+        },
+        {
+          label: 'claude->gemini',
+          match:
+            isGeminiProfile(currentPrepared.profile) &&
+            method === 'POST' &&
+            isClaudeMessagesPath(clientPath),
+          rejectMessage: 'Gemini conversion does not support compressed request bodies',
+          handler: handleGeminiMessages,
+        },
+      ];
+
+      function tryConversionRoute(route) {
+        if (!route.match) return false;
+        if (route.rejectMessage && clientReq.headers['content-encoding']) {
           clientRes.writeHead(400, {
             'Content-Type': 'application/json; charset=utf-8',
             'access-control-allow-origin': '*',
           });
           clientRes.end(
             JSON.stringify({
-              error: {
-                type: 'invalid_request_error',
-                message: 'Chat to Responses conversion does not support compressed request bodies',
-              },
+              error: { type: 'invalid_request_error', message: route.rejectMessage },
             })
           );
-          return;
+          return true;
         }
-        logModelMapping('chat->responses', method, upstreamPath, currentPrepared, requestBuffer);
-        handleOpenAIChatToOpenAIResponses(
+        logModelMapping(route.label, method, upstreamPath, currentPrepared, requestBuffer);
+        route.handler(
           clientReq,
           clientRes,
           currentPrepared,
@@ -1998,242 +2185,16 @@ function handleRequestInner(clientReq, clientRes, entry) {
           upstreamPath,
           startTime
         );
-        return;
+        return true;
       }
 
-      if (isResponsesUpstream && isClaudeEntryRequest && method === 'POST') {
-        if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'access-control-allow-origin': '*',
-          });
-          clientRes.end(
-            JSON.stringify({
-              error: {
-                type: 'invalid_request_error',
-                message:
-                  'Claude to Responses conversion does not support compressed request bodies',
-              },
-            })
-          );
-          return;
-        }
-        logModelMapping('claude->responses', method, upstreamPath, currentPrepared, requestBuffer);
-        handleClaudeMessagesToOpenAIResponses(
-          clientReq,
-          clientRes,
-          currentPrepared,
-          target,
-          apiKey,
-          upstreamPath,
-          startTime
-        );
-        return;
+      for (const route of conversionRoutes) {
+        if (tryConversionRoute(route)) return;
       }
 
-      if (
-        (shouldConvertClaudeMessagesToOpenAI(clientReq, currentPrepared.profile, clientPath) ||
-          (isClaudeEntryRequest && isOpenAIProfile(currentPrepared.profile))) &&
-        method === 'POST'
-      ) {
-        if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'access-control-allow-origin': '*',
-          });
-          clientRes.end(
-            JSON.stringify({
-              error: {
-                type: 'invalid_request_error',
-                message: 'Claude to OpenAI conversion does not support compressed request bodies',
-              },
-            })
-          );
-          return;
-        }
-        logModelMapping('claude->openai', method, upstreamPath, currentPrepared, requestBuffer);
-        handleClaudeMessagesToOpenAIChat(
-          clientReq,
-          clientRes,
-          currentPrepared,
-          target,
-          apiKey,
-          upstreamPath,
-          startTime
-        );
-        return;
-      }
       if (method === 'POST' && isClaudeMessagesPath(clientPath))
         sampleRequestToolResults(currentPrepared, requestProtocol, upstreamPath);
-      if (isChatEntryRequest && isGeminiProfile(currentPrepared.profile) && method === 'POST') {
-        if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'access-control-allow-origin': '*',
-          });
-          clientRes.end(
-            JSON.stringify({
-              error: {
-                type: 'invalid_request_error',
-                message: 'OpenAI to Gemini conversion does not support compressed request bodies',
-              },
-            })
-          );
-          return;
-        }
-        logModelMapping('openai->gemini', method, upstreamPath, currentPrepared, requestBuffer);
-        handleOpenAIChatToGeminiMessages(
-          clientReq,
-          clientRes,
-          currentPrepared,
-          target,
-          apiKey,
-          upstreamPath,
-          startTime
-        );
-        return;
-      }
-      if (
-        isClaudeProfile(currentPrepared.profile) &&
-        method === 'POST' &&
-        isOpenAIChatCompletionsPath(clientPath)
-      ) {
-        if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'access-control-allow-origin': '*',
-          });
-          clientRes.end(
-            JSON.stringify({
-              error: {
-                type: 'invalid_request_error',
-                message: 'OpenAI to Claude conversion does not support compressed request bodies',
-              },
-            })
-          );
-          return;
-        }
-        logModelMapping('openai->claude', method, upstreamPath, currentPrepared, requestBuffer);
-        handleOpenAIChatToClaudeMessages(
-          clientReq,
-          clientRes,
-          currentPrepared,
-          target,
-          apiKey,
-          upstreamPath,
-          startTime
-        );
-        return;
-      }
-      if (
-        isResponsesEntryRequest &&
-        method === 'POST' &&
-        !isOpenAIProfile(currentPrepared.profile)
-      ) {
-        if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'access-control-allow-origin': '*',
-          });
-          clientRes.end(
-            JSON.stringify({
-              error: {
-                type: 'invalid_request_error',
-                message: 'OpenAI Responses conversion does not support compressed request bodies',
-              },
-            })
-          );
-          return;
-        }
-        if (isClaudeProfile(currentPrepared.profile)) {
-          logModelMapping(
-            'responses->claude',
-            method,
-            upstreamPath,
-            currentPrepared,
-            requestBuffer
-          );
-          handleOpenAIResponsesToClaudeMessages(
-            clientReq,
-            clientRes,
-            currentPrepared,
-            target,
-            apiKey,
-            upstreamPath,
-            startTime
-          );
-          return;
-        }
-        if (isGeminiProfile(currentPrepared.profile)) {
-          logModelMapping(
-            'responses->gemini',
-            method,
-            upstreamPath,
-            currentPrepared,
-            requestBuffer
-          );
-          handleOpenAIResponsesToGeminiMessages(
-            clientReq,
-            clientRes,
-            currentPrepared,
-            target,
-            apiKey,
-            upstreamPath,
-            startTime
-          );
-          return;
-        }
-      }
-      if (
-        isResponsesEntryRequest &&
-        method === 'POST' &&
-        isOpenAIProfile(currentPrepared.profile) &&
-        shouldConvertResponsesToOpenAIChat(currentPrepared.profile)
-      ) {
-        logModelMapping('responses->chat', method, upstreamPath, currentPrepared, requestBuffer);
-        handleOpenAIResponsesToOpenAIChat(
-          clientReq,
-          clientRes,
-          currentPrepared,
-          target,
-          apiKey,
-          upstreamPath,
-          startTime
-        );
-        return;
-      }
-      if (
-        isGeminiProfile(currentPrepared.profile) &&
-        method === 'POST' &&
-        isClaudeMessagesPath(clientPath)
-      ) {
-        if (clientReq.headers['content-encoding']) {
-          clientRes.writeHead(400, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'access-control-allow-origin': '*',
-          });
-          clientRes.end(
-            JSON.stringify({
-              error: {
-                type: 'invalid_request_error',
-                message: 'Gemini conversion does not support compressed request bodies',
-              },
-            })
-          );
-          return;
-        }
-        logModelMapping('claude->gemini', method, upstreamPath, currentPrepared, requestBuffer);
-        handleGeminiMessages(
-          clientReq,
-          clientRes,
-          currentPrepared,
-          target,
-          apiKey,
-          upstreamPath,
-          startTime
-        );
-        return;
-      }
+
       const outgoingHeaders = { ...fwdHeaders };
       // 协议版本透传:Claude 走 anthropic-version header,其它协议作为额外元数据记录
       if (requestProtocol === 'claude' && currentPrepared._protocolVersion) {
@@ -2789,7 +2750,8 @@ if (require.main === module) {
         );
       }
       log.info('    management: http://127.0.0.1:' + MGMT_PORT + '/v1/local/*');
-      log.info('    mgmt_token: ' + MANAGEMENT_TOKEN);
+      log.info('    mgmt_token_file: ' + path.join(DATA_DIR, `.mgmt-token-${MGMT_PORT}`));
+      log.info('    mgmt_token_hint: ' + maskManagementToken(MANAGEMENT_TOKEN));
       log.info('    openai.api_key  = "your key"');
       log.info('');
       log.info('  Ctrl+C to stop');
@@ -3013,8 +2975,12 @@ module.exports = {
   getLocalServer,
   getEntryServers,
   getClaudeDesktopRoutes,
+  getClaudeDesktopTraeProcessStyle,
+  isClaudeDesktop3pRequest,
   stripClaudeDesktopPrefix,
   isClaudeDesktopRequest,
+  isLocalClaudeDesktopGatewayUrl,
+  isAuthorizedClaudeDesktopRequest,
   removeClaudeDesktopGatewayProvider,
   claudeDesktopStatusFromConfig,
   shouldConvertResponsesToOpenAIChat,
