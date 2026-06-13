@@ -38,5 +38,6 @@ if not exist "package.json" (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'npm run tauri:dev ^> manager.log 2^>^&1' -WorkingDirectory '%SCRIPT_DIR%' -WindowStyle Hidden"
+if not exist "%SCRIPT_DIR%\.hpm-runtime" mkdir "%SCRIPT_DIR%\.hpm-runtime"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'npm run tauri:dev ^> .hpm-runtime\manager.log 2^>^&1' -WorkingDirectory '%SCRIPT_DIR%' -WindowStyle Hidden"
 exit /b 0

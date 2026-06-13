@@ -376,14 +376,14 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         try { await window.__TAURI__.core.invoke('openLog'); } catch (e) { console.error(e); }
         return;
       }
-      showToast('非 Tauri 环境限制：请直接打开项目根目录下的 proxy.log 查看日志。');
+      showToast('非 Tauri 环境限制：请直接打开项目根目录下的 .hpm-runtime/proxy.log 查看日志。');
     },
     openCertDir: async () => {
       if (window.__TAURI__ && window.__TAURI__.core) {
         try { await window.__TAURI__.core.invoke('openCertDir'); } catch (e) { console.error(e); }
         return;
       }
-      showToast('非 Tauri 环境限制：证书目录位于项目根目录的 .certs 文件夹中。');
+      showToast('非 Tauri 环境限制：证书目录位于项目根目录的 .hpm-runtime/.certs 文件夹中。');
     },
     readEvents: async (options = {}) => {
       try {

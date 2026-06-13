@@ -63,7 +63,7 @@ node scripts\dev-static-server.js --ensure
 if not errorlevel 1 goto launch_manager
 
 echo The frontend static server did not serve this project's UI.
-echo Please make sure port 1430 is not occupied by another program, then check .static-server.err.log.
+echo Please make sure port 1430 is not occupied by another program, then check .hpm-runtime\.static-server.err.log.
 echo.
 pause
 exit /b 1
@@ -78,6 +78,6 @@ npm run tauri:dev
 if errorlevel 1 (
   echo.
   echo Dev manager failed to start. Please check the error above.
-  echo If it still waits for localhost:1430, check .static-server.err.log.
+  echo If it still waits for localhost:1430, check .hpm-runtime\.static-server.err.log.
   pause
 )
