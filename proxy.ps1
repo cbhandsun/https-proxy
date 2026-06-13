@@ -18,14 +18,21 @@ param(
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PortWasSpecified = $PSBoundParameters.ContainsKey('Port')
-$DataDir = $ScriptDir
-if ($env:PROXY_DATA_DIR) { $DataDir = $env:PROXY_DATA_DIR }
-New-Item -ItemType Directory -Path $DataDir -Force | Out-Null
-$PidFile = Join-Path $DataDir '.proxy.pid'
-$LockFile = Join-Path $DataDir '.proxy.lock'
-$LogFile = Join-Path $DataDir 'proxy.log'
-$ErrLogFile = Join-Path $DataDir 'proxy.err.log'
-$ConfigFile = Join-Path $DataDir 'proxy.config.json'
+$LegacyDataDir = $env:PROXY_DATA_DIR
+$ConfigDir = $ScriptDir
+if ($env:PROXY_CONFIG_DIR) { $ConfigDir = $env:PROXY_CONFIG_DIR }
+elseif ($LegacyDataDir) { $ConfigDir = $LegacyDataDir }
+$RuntimeDir = Join-Path $ScriptDir '.hpm-runtime'
+if ($env:PROXY_RUNTIME_DIR) { $RuntimeDir = $env:PROXY_RUNTIME_DIR }
+elseif ($LegacyDataDir) { $RuntimeDir = $LegacyDataDir }
+$DataDir = $RuntimeDir
+New-Item -ItemType Directory -Path $ConfigDir -Force | Out-Null
+New-Item -ItemType Directory -Path $RuntimeDir -Force | Out-Null
+$PidFile = Join-Path $RuntimeDir '.proxy.pid'
+$LockFile = Join-Path $RuntimeDir '.proxy.lock'
+$LogFile = Join-Path $RuntimeDir 'proxy.log'
+$ErrLogFile = Join-Path $RuntimeDir 'proxy.err.log'
+$ConfigFile = Join-Path $ConfigDir 'proxy.config.json'
 $JsFile = Join-Path $ScriptDir 'openai-proxy.js'
 $BundledNode = Join-Path $ScriptDir 'runtime\node\node.exe'
 $NodeExe = (Get-Command 'node' -ErrorAction SilentlyContinue).Source
@@ -469,7 +476,8 @@ function Start-Proxy {
         }
     }
 
-    $env:PROXY_DATA_DIR = $DataDir
+    $env:PROXY_CONFIG_DIR = $ConfigDir
+    $env:PROXY_RUNTIME_DIR = $RuntimeDir
     if ($PortWasSpecified) { $env:PORT = [string]$Port } else { Remove-Item Env:PORT -ErrorAction SilentlyContinue }
     if ($Target -ne '') { $env:TARGET = $Target }
     if ($ApiKey -ne '') { $env:API_KEY = $ApiKey }
@@ -550,7 +558,11 @@ function Stop-Proxy {
     }
 
     $procs = @(Get-AllProxyProcesses)
-    if ($procs.Count -eq 0) { Write-Status '!' 'Proxy is not running'; return }
+    if ($procs.Count -eq 0) {
+        Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
+        Write-Status '!' 'Proxy is not running'
+        return
+    }
 
     foreach ($proc in $procs) {
         try {
@@ -599,6 +611,7 @@ function Get-Status {
             Write-Status ' ' "Port: $(Format-PortListener $listener)"
         }
     } else {
+        Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
         Write-Status '!' 'Proxy is not running'
         $listeners = @(Get-PortListeners)
         foreach ($listener in $listeners) {
@@ -648,7 +661,8 @@ function Trust-Cert {
     if (-not (Test-NodeInstalled)) { return }
     if (-not (Test-Path $JsFile)) { Write-Status 'x' "Not found: $JsFile"; return }
 
-    $env:PROXY_DATA_DIR = $DataDir
+    $env:PROXY_CONFIG_DIR = $ConfigDir
+    $env:PROXY_RUNTIME_DIR = $RuntimeDir
     $nodeScript = "const cert=require('./lib/proxy/cert'); cert.ensureCert(); console.log(cert.CA_CERT_FILE);"
     try {
         $output = & $NodeExe -e $nodeScript 2>&1

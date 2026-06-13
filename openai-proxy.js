@@ -409,9 +409,12 @@ const {
   getEntryServers,
   getModelRoutes,
   resolveProfileProtocolVersion,
+  migrateLegacyRuntimeFiles,
   encryptKey,
   decryptKey,
 } = require('./lib/proxy/config');
+
+migrateLegacyRuntimeFiles();
 
 function writeManagementTokenFile(managementPort) {
   try {

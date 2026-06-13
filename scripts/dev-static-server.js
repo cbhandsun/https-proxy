@@ -4,9 +4,13 @@ const path = require('path');
 const { execFileSync, spawn } = require('child_process');
 
 const port = Number(process.env.PORT || 1430);
+const rootDir = path.resolve(__dirname, '..');
+const runtimeDir = path.resolve(
+  process.env.PROXY_RUNTIME_DIR || process.env.PROXY_DATA_DIR || path.join(rootDir, '.hpm-runtime')
+);
 const root = path.resolve(__dirname, '..', 'tauri-ui');
-const configFile = path.resolve(__dirname, '..', 'proxy.config.json');
-const staticLogFile = path.resolve(__dirname, '..', 'dev-static.log');
+const configFile = path.join(rootDir, 'proxy.config.json');
+const staticLogFile = path.join(runtimeDir, 'dev-static.log');
 const localManagementAgent = new http.Agent({ keepAlive: true });
 const serverHealthMarker = 'dev-static-management-proxy-v5';
 
@@ -20,11 +24,16 @@ function managementTokenCandidateGroups(managementPort) {
   const groups = [];
   if (Number.isFinite(portNumber) && portNumber > 0) {
     groups.push([
+      path.join(runtimeDir, `.mgmt-token-${portNumber}`),
       path.join(rootDir, `.mgmt-token-${portNumber}`),
       path.join(debugDir, `.mgmt-token-${portNumber}`),
     ]);
   }
-  groups.push([path.join(rootDir, '.mgmt-token'), path.join(debugDir, '.mgmt-token')]);
+  groups.push([
+    path.join(runtimeDir, '.mgmt-token'),
+    path.join(rootDir, '.mgmt-token'),
+    path.join(debugDir, '.mgmt-token'),
+  ]);
   return groups;
 }
 
@@ -52,7 +61,10 @@ function send(res, statusCode, body, headers = {}) {
 
 function writeStaticLog(line) {
   staticLogQueue = staticLogQueue
-    .then(() => fs.promises.appendFile(staticLogFile, line, 'utf8'))
+    .then(async () => {
+      await fs.promises.mkdir(runtimeDir, { recursive: true });
+      await fs.promises.appendFile(staticLogFile, line, 'utf8');
+    })
     .catch(() => {});
 }
 
@@ -235,6 +247,7 @@ function stopStaleDevStaticServers() {
 
 function openLogFd(file) {
   try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
     return fs.openSync(file, 'a');
   } catch (err) {
     return 'ignore';
@@ -242,11 +255,12 @@ function openLogFd(file) {
 }
 
 function startDetachedServer() {
-  const outFd = openLogFd(path.resolve(__dirname, '..', '.static-server.out.log'));
-  const errFd = openLogFd(path.resolve(__dirname, '..', '.static-server.err.log'));
+  const outFd = openLogFd(path.join(runtimeDir, '.static-server.out.log'));
+  const errFd = openLogFd(path.join(runtimeDir, '.static-server.err.log'));
   const child = spawn(process.execPath, [__filename], {
-    cwd: path.resolve(__dirname, '..'),
+    cwd: rootDir,
     detached: true,
+    env: { ...process.env, PROXY_RUNTIME_DIR: runtimeDir },
     windowsHide: true,
     stdio: ['ignore', outFd, errFd],
   });

@@ -126,6 +126,10 @@ fn proxy_config_value() -> Option<serde_json::Value> {
     serde_json::from_str::<serde_json::Value>(&content).ok()
 }
 
+fn proxy_runtime_dir(root: &Path) -> PathBuf {
+    root.join(".hpm-runtime")
+}
+
 fn proxy_management_port() -> u16 {
     let Some(json) = proxy_config_value() else {
         return 3543;
@@ -195,7 +199,8 @@ fn node_proxy_command(root: &Path) -> Command {
     };
     command
         .arg(root.join("openai-proxy.js"))
-        .env("PROXY_DATA_DIR", root)
+        .env("PROXY_CONFIG_DIR", root)
+        .env("PROXY_RUNTIME_DIR", proxy_runtime_dir(root))
         .env("NO_PAUSE", "1")
         .env_remove("PORT")
         .current_dir(root)
@@ -269,7 +274,7 @@ fn stop_proxy_direct() -> Result<serde_json::Value, String> {
         .ok_or_else(|| "health endpoint did not return a pid".to_string())?;
     let kill_output = taskkill_pid(pid)?;
     if let Some(root) = find_project_root() {
-        let _ = std::fs::remove_file(root.join(".proxy.pid"));
+        let _ = std::fs::remove_file(proxy_runtime_dir(&root).join(".proxy.pid"));
     }
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(4) {
@@ -484,25 +489,40 @@ fn apply_app_menu(window: tauri::Window, show: bool) -> Result<(), String> {
     }
 }
 
-fn open_path(path: &str) {
+fn open_path(path: &Path) {
     let _ = std::process::Command::new("cmd")
-        .args(["/c", "start", "", path])
+        .arg("/c")
+        .arg("start")
+        .arg("")
+        .arg(path)
         .spawn();
 }
 
 #[tauri::command]
 fn open_config() {
-    open_path("proxy.config.json");
+    if let Some(root) = find_project_root() {
+        open_path(&root.join("proxy.config.json"));
+    } else {
+        open_path(Path::new("proxy.config.json"));
+    }
 }
 
 #[tauri::command]
 fn open_log() {
-    open_path("proxy.log");
+    if let Some(root) = find_project_root() {
+        open_path(&proxy_runtime_dir(&root).join("proxy.log"));
+    } else {
+        open_path(Path::new("proxy.log"));
+    }
 }
 
 #[tauri::command]
 fn open_cert_dir() {
-    open_path(".certs");
+    if let Some(root) = find_project_root() {
+        open_path(&proxy_runtime_dir(&root).join(".certs"));
+    } else {
+        open_path(Path::new(".certs"));
+    }
 }
 
 #[tauri::command]
@@ -621,7 +641,7 @@ fn get_cert_status_native() -> serde_json::Value {
             "error": "project root not found"
         });
     };
-    let cert_dir = root.join(".certs");
+    let cert_dir = proxy_runtime_dir(&root).join(".certs");
     let ca_path = cert_dir.join("proxy-ca-cert.pem");
     let cert_path = cert_dir.join("proxy-cert.pem");
     let key_path = cert_dir.join("proxy-key.pem");
@@ -886,11 +906,17 @@ pub fn run() {
         .on_menu_event(move |app_handle, event| {
             let id = event.id().as_ref();
             if id == "open_config" {
-                open_path("proxy.config.json");
+                if let Some(root) = find_project_root() {
+                    open_path(&root.join("proxy.config.json"));
+                }
             } else if id == "open_log" {
-                open_path("proxy.log");
+                if let Some(root) = find_project_root() {
+                    open_path(&proxy_runtime_dir(&root).join("proxy.log"));
+                }
             } else if id == "open_cert_dir" {
-                open_path(".certs");
+                if let Some(root) = find_project_root() {
+                    open_path(&proxy_runtime_dir(&root).join(".certs"));
+                }
             } else if id == "quit" {
                 app_handle.exit(0);
             } else if id == "reload" {
