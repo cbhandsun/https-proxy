@@ -33,12 +33,14 @@ assert.strictEqual(parseOptionalPort('70000'), 0);
 
 const tokenGroups = managementTokenCandidateGroups('4543');
 assert.ok(tokenGroups[0].some((filePath) => filePath.endsWith('.mgmt-token-4543')));
+assert.ok(tokenGroups[0][0].includes('src-tauri'));
+assert.ok(tokenGroups[0][0].includes('.hpm-runtime'));
 assert.ok(tokenGroups[1].some((filePath) => filePath.endsWith('.mgmt-token')));
 const fallbackGroups = managementTokenCandidateGroups('bad');
 assert.strictEqual(fallbackGroups.length, 1);
 assert.ok(fallbackGroups[0].every((filePath) => filePath.endsWith('.mgmt-token')));
 
-assert.strictEqual(serverHealthMarker, 'dev-static-management-proxy-v7');
+assert.strictEqual(serverHealthMarker, 'dev-static-management-proxy-v8');
 const baseReq = { headers: { host: '127.0.0.1:1430' } };
 assert.strictEqual(isSameOriginManagementRequest(baseReq), true);
 assert.strictEqual(
