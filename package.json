@@ -23,10 +23,10 @@
     "frontend:dev": "vite",
     "frontend:build": "vite build",
     "frontend:preview": "vite preview",
-    "dev": "npx tauri dev",
-    "build": "npx tauri build",
-    "tauri:dev": "npx tauri dev",
-    "tauri:build": "npx tauri build"
+    "dev": "npm run frontend:check && npx tauri dev",
+    "build": "npm run frontend:check && npx tauri build",
+    "tauri:dev": "npm run frontend:check && npx tauri dev",
+    "tauri:build": "npm run frontend:check && npx tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.2",
