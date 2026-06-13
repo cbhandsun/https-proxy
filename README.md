@@ -87,6 +87,8 @@ node scripts/dev-static-server.js
 
 在此页面上即可进行全部上游目标更改、延迟测速、路由映射与系统提示词同步操作，配置将自动写入本地的 `proxy.config.json` 文件中。
 
+本地运行态默认收敛在 `.hpm-runtime/` 下，包括 `proxy.log`、管理 token、诊断 JSONL 和生成证书；`proxy.config.json` 仍保留在项目根目录，便于备份和手动编辑。首次使用新布局启动时，旧版根目录运行态文件会自动迁入 `.hpm-runtime/`，且不会覆盖同名目标文件。
+
 ### 3. 证书与信任
 为了保证本地 HTTPS 请求不会因为 TLS 证书问题报错：
 1. 在 UI 页面中切换到 **“证书与信任”** 标签页。

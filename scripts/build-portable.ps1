@@ -103,7 +103,7 @@ $readme = @(
     'Notes:',
     '- First proxy start creates proxy.config.json from proxy.config.example.json.',
     '- proxy.config.json is local user state and may contain API keys; do not redistribute it.',
-    '- First run creates .certs. Install the certificate from the UI if clients need trusted HTTPS.'
+    '- First run creates .hpm-runtime/.certs. Install the certificate from the UI if clients need trusted HTTPS.'
 ) -join [Environment]::NewLine
 Set-Content -Path (Join-Path $PortableDir 'README.txt') -Value $readme -Encoding UTF8
 
