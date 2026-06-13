@@ -15,46 +15,109 @@ function getRelativeTime(timestamp) {
   return `${Math.floor(hrs / 24)}天前`;
 }
 
-function renderLimitsHtml(profileId) {
+function createLimitsTextElement(text, options = {}) {
+  const item = document.createElement('span');
+  item.textContent = text;
+  if (options.color) item.style.color = options.color;
+  item.style.opacity = options.opacity || '';
+  item.style.fontSize = options.fontSize || '11px';
+  return item;
+}
+
+function createLimitsSpinnerElement() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('animate-spin');
+  svg.setAttribute('width', '10');
+  svg.setAttribute('height', '10');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '3');
+  svg.style.animation = 'spin 1s linear infinite';
+
+  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  polyline.setAttribute('points', '23 4 23 10 17 10');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M20.49 15a9 9 0 1 1-2.12-9.36L23 10');
+  svg.append(polyline, path);
+  return svg;
+}
+
+function limitsSignature(profileId) {
+  const data = rateLimitsData[profileId];
+  return JSON.stringify({
+    profileId,
+    loading: !!(data && data.loading),
+    error: data && data.error ? String(data.error) : '',
+    limits: data && Array.isArray(data.limits) ? data.limits : [],
+  });
+}
+
+function createLimitsElement(profileId) {
   const data = rateLimitsData[profileId];
   if (!data) {
-    return '<span style="opacity: 0.6; font-size: 11px;">未同步凭证与限额</span>';
+    return createLimitsTextElement('未同步凭证与限额', { opacity: '0.6' });
   }
   if (data.loading) {
-    return '<span style="opacity: 0.8; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"><svg class="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="animation: spin 1s linear infinite;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>正在同步凭证与限额...</span>';
+    const loading = createLimitsTextElement('', { opacity: '0.8' });
+    loading.style.display = 'inline-flex';
+    loading.style.alignItems = 'center';
+    loading.style.gap = '4px';
+    loading.append(createLimitsSpinnerElement(), document.createTextNode('正在同步凭证与限额...'));
+    return loading;
   }
   if (data.error) {
-    return `<span style="color: #ef4444; font-size: 11px;">${data.error}</span>`;
+    return createLimitsTextElement(String(data.error), { color: '#ef4444' });
   }
   if (!data.limits || data.limits.length === 0) {
-    return '<span style="opacity: 0.6; font-size: 11px;">无限制数据</span>';
+    return createLimitsTextElement('无限制数据', { opacity: '0.6' });
   }
 
-  return data.limits
-    .map((limit) => {
-      let color = '#10b981';
-      const value = Number.isFinite(Number(limit.remainingPercent))
-        ? Number(limit.remainingPercent)
-        : Number(limit.percent || 0);
-      const isRemaining = Number.isFinite(Number(limit.remainingPercent));
-      if (isRemaining) {
-        if (value <= 20) color = '#ef4444';
-        else if (value <= 50) color = '#f59e0b';
-      } else {
-        if (value >= 80) color = '#ef4444';
-        else if (value >= 50) color = '#f59e0b';
-      }
+  const fragment = document.createDocumentFragment();
+  data.limits.forEach((limit, index) => {
+    let color = '#10b981';
+    const value = Number.isFinite(Number(limit.remainingPercent))
+      ? Number(limit.remainingPercent)
+      : Number(limit.percent || 0);
+    const isRemaining = Number.isFinite(Number(limit.remainingPercent));
+    if (isRemaining) {
+      if (value <= 20) color = '#ef4444';
+      else if (value <= 50) color = '#f59e0b';
+    } else {
+      if (value >= 80) color = '#ef4444';
+      else if (value >= 50) color = '#f59e0b';
+    }
 
-      const label = escapeHtml(limit.model ? limit.model : limit.window);
-      const resetValue = limit.resetDisplay || limit.resetIn || '';
-      const resetText = resetValue
-        ? `<span style="opacity: 0.6; font-size: 10px;">🕒 ${escapeHtml(resetValue)}</span>`
-        : '';
-      return `<span style="background: rgba(255, 255, 255, 0.03); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 4px;">
-      ${label}: <strong style="color: ${color}; font-weight: 700;">${value}%</strong> ${resetText}
-    </span>`;
-    })
-    .join(' ');
+    const item = document.createElement('span');
+    item.style.background = 'rgba(255, 255, 255, 0.03)';
+    item.style.padding = '2px 6px';
+    item.style.borderRadius = '4px';
+    item.style.border = '1px solid var(--border)';
+    item.style.display = 'inline-flex';
+    item.style.alignItems = 'center';
+    item.style.gap = '4px';
+    item.appendChild(document.createTextNode(`${limit.model ? limit.model : limit.window}: `));
+
+    const valueEl = document.createElement('strong');
+    valueEl.style.color = color;
+    valueEl.style.fontWeight = '700';
+    valueEl.textContent = `${value}%`;
+    item.appendChild(valueEl);
+
+    const resetValue = limit.resetDisplay || limit.resetIn || '';
+    if (resetValue) {
+      item.appendChild(document.createTextNode(' '));
+      const reset = document.createElement('span');
+      reset.style.opacity = '0.6';
+      reset.style.fontSize = '10px';
+      reset.textContent = `🕒 ${resetValue}`;
+      item.appendChild(reset);
+    }
+
+    if (index > 0) fragment.appendChild(document.createTextNode(' '));
+    fragment.appendChild(item);
+  });
+  return fragment;
 }
 
 async function refreshRateLimits(profileId) {
@@ -116,22 +179,22 @@ let lastRenderedRulesHtml = '';
 let lastRenderedOverviewSignature = '';
 let lastRenderedOverviewRoutesHtml = '';
 let lastRenderedProfilesHtml = '';
-const logRefreshTimer = null;
-const logRefreshInFlight = false;
-const lastRenderedLog = '';
-const diagnosticsRefreshInFlight = false;
-const lastRenderedDiagnosticsOutput = '';
-const lastRenderedDiagnosticsStatus = '';
-const lastLogAutoRefreshAt = 0;
-const lastRenderedMonitorHtml = null;
-const heartbeatTimer = null;
+let logRefreshTimer = null;
+let logRefreshInFlight = false;
+let lastRenderedLog = '';
+let diagnosticsRefreshInFlight = false;
+let lastRenderedDiagnosticsOutput = '';
+let lastRenderedDiagnosticsStatus = '';
+let lastLogAutoRefreshAt = 0;
+let lastRenderedMonitorHtml = null;
+let heartbeatTimer = null;
 let proxyRecoveryInFlight = false;
 let manualProxyStopSuppressed = false;
 let lastProxyRecoveryAt = 0;
 let currentTheme = 'light';
-const monitorEvents = [];
-const lastEventTime = null;
-const monitorRefreshInFlight = false;
+let monitorEvents = [];
+let lastEventTime = null;
+let monitorRefreshInFlight = false;
 let lastStatusRefresh = 0;
 let lastCertRefresh = 0;
 let certRefreshInFlight = null;
@@ -192,6 +255,7 @@ const defaultEntryServers = [
     protocol: 'openai-chat',
   },
 ];
+const ENTRY_PROTOCOL_OPTIONS = ['claude', 'openai-responses', 'openai-chat', 'claude-desktop'];
 
 function escapeHtml(value) {
   return String(value == null ? '' : value)
@@ -203,6 +267,18 @@ function escapeHtml(value) {
 
 function escapeAttr(value) {
   return escapeHtml(value).replace(/'/g, '&#39;');
+}
+
+function clearElement(el) {
+  if (el) el.textContent = '';
+}
+
+function appendOption(select, value, label = value) {
+  const option = document.createElement('option');
+  option.value = String(value == null ? '' : value);
+  option.textContent = String(label == null ? '' : label);
+  select.appendChild(option);
+  return option;
 }
 
 function debounce(fn, delay = 180) {
@@ -582,6 +658,8 @@ function ensureClaudeDesktop() {
   )
     config.claudeDesktop.baseUrl = claudeProxyBaseUrl();
   if (typeof config.claudeDesktop.token !== 'string') config.claudeDesktop.token = '';
+  if (!['text', 'thinking', 'off'].includes(config.claudeDesktop.traeProcessStyle))
+    config.claudeDesktop.traeProcessStyle = 'text';
   if (!Array.isArray(config.claudeDesktop.models) || config.claudeDesktop.models.length === 0) {
     config.claudeDesktop.models = [defaultClaudeDesktopModel()];
   }
@@ -594,6 +672,8 @@ const DEFAULT_CLAUDE_DESKTOP_ROUTE_IDS = [
   'claude-sonnet-4-5',
   'claude-opus-4-5',
 ];
+const CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT =
+  '请执行一次极短的可见过程验证：先按你的内部流程规划 2 个步骤，再只输出一行“OK”。';
 
 function isClaudeDesktopRouteId(value) {
   const routeId = String(value || '').trim();
@@ -623,9 +703,8 @@ function renderClaudeDesktopRouteOptions(selectedValue) {
   if (!select) return;
   const previous = String(selectedValue || select.value || '').trim();
   const ids = claudeDesktopRouteOptions(previous);
-  select.innerHTML = ids
-    .map((id) => `<option value="${escapeAttr(id)}">${escapeHtml(id)}</option>`)
-    .join('');
+  clearElement(select);
+  ids.forEach((id) => appendOption(select, id));
   select.value = ids.includes(previous) ? previous : ids[0] || 'claude-sonnet-4-6';
   updateClaudeDesktopRouteDetails();
 }
@@ -683,6 +762,7 @@ function fillClaudeDesktop() {
   $('claudeDesktopMode').value = config.claudeDesktop.mode;
   $('claudeDesktopBaseUrl').value = config.claudeDesktop.baseUrl;
   $('claudeDesktopToken').value = config.claudeDesktop.token || '';
+  $('claudeDesktopTraeProcessStyle').value = config.claudeDesktop.traeProcessStyle || 'text';
   $('claudeDesktopDirectBaseUrl').value = config.claudeDesktop.directBaseUrl || '';
   $('claudeDesktopDirectApiKey').value = config.claudeDesktop.directApiKey || '';
   $('claudeDesktopSupports1mDefault').checked = true;
@@ -698,18 +778,22 @@ function collectClaudeDesktop() {
   config.claudeDesktop.mode = $('claudeDesktopMode').value;
   config.claudeDesktop.baseUrl = $('claudeDesktopBaseUrl').value.trim() || claudeProxyBaseUrl();
   config.claudeDesktop.token = $('claudeDesktopToken').value.trim();
+  config.claudeDesktop.traeProcessStyle = $('claudeDesktopTraeProcessStyle').value || 'text';
   config.claudeDesktop.directBaseUrl = $('claudeDesktopDirectBaseUrl').value.trim();
   config.claudeDesktop.directApiKey = $('claudeDesktopDirectApiKey').value.trim();
 }
 
 function renderClaudeDesktopProfiles() {
-  $('cdProfileId').innerHTML = config.profiles
-    .map(
-      (profile) =>
-        `<option value="${escapeAttr(profile.id)}">${escapeHtml(profile.name || profile.id)} · ${protocolName(profile.protocol)}</option>`
-    )
-    .join('');
-  $('cdProfileId').value = config.activeProfile;
+  const select = $('cdProfileId');
+  clearElement(select);
+  config.profiles.forEach((profile) => {
+    appendOption(
+      select,
+      profile.id,
+      `${profile.name || profile.id} · ${protocolName(profile.protocol)}`
+    );
+  });
+  select.value = config.activeProfile;
   updateClaudeDesktopRouteDetails();
 }
 
@@ -722,12 +806,27 @@ function renderClaudeDesktopPreview() {
     lines.push(
       `模型数：${config.claudeDesktop.models.length}，代理运行时需要保持 Claude Desktop 入口开启。`
     );
+    const style = config.claudeDesktop.traeProcessStyle || 'text';
+    lines.push(
+      style === 'off'
+        ? 'Trae 过程显示：关闭。'
+        : style === 'thinking'
+          ? 'Trae 过程显示：Thinking 过程块。'
+          : 'Trae 过程显示：文本过程，Claude Desktop 更容易直接显示。'
+    );
   } else if (mode === 'direct') {
     lines.push('直连模式会把 Claude Desktop 指向当前上游或这里填写的直连地址。');
   } else {
     lines.push('恢复官方模式会切回 Claude Desktop 内置登录，不再使用本地代理。');
   }
-  $('claudeDesktopPreview').innerHTML = lines.map(escapeHtml).join('<br>');
+  const preview = $('claudeDesktopPreview');
+  preview.replaceChildren(
+    ...lines.map((line) => {
+      const item = document.createElement('div');
+      item.textContent = line;
+      return item;
+    })
+  );
 }
 
 let claudeDesktopPreviewFrame = 0;
@@ -740,28 +839,87 @@ function scheduleClaudeDesktopPreview() {
   });
 }
 
+function createClaudeDesktopModelsEmptyElement() {
+  const empty = document.createElement('div');
+  empty.className = 'muted';
+  empty.textContent = '暂无 Desktop 模型映射。';
+  return empty;
+}
+
+function appendClaudeDesktopCell(row, value) {
+  const cell = document.createElement('td');
+  cell.textContent = value;
+  row.appendChild(cell);
+  return cell;
+}
+
+function createClaudeDesktopModelRow(model, index) {
+  const resolved = resolveClaudeDesktopModel(model);
+  const profile = config.profiles.find((item) => item.id === resolved.profileId) || {};
+  const row = document.createElement('tr');
+
+  appendClaudeDesktopCell(row, resolved.routeId);
+  appendClaudeDesktopCell(row, resolved.labelOverride);
+  appendClaudeDesktopCell(row, profile.name || resolved.profileId || '');
+  appendClaudeDesktopCell(row, resolved.upstreamModel);
+  appendClaudeDesktopCell(row, resolved.supports1m ? '是' : '否');
+
+  const actionCell = document.createElement('td');
+  const editButton = document.createElement('button');
+  editButton.className = 'light';
+  editButton.dataset.cdEdit = String(index);
+  editButton.textContent = '编辑';
+  const deleteButton = document.createElement('button');
+  deleteButton.className = 'danger';
+  deleteButton.dataset.cdDelete = String(index);
+  deleteButton.textContent = '删除';
+  actionCell.appendChild(editButton);
+  actionCell.appendChild(deleteButton);
+  row.appendChild(actionCell);
+  return row;
+}
+
+function createClaudeDesktopModelsTableElement(models) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'route-table';
+
+  const head = document.createElement('div');
+  head.className = 'route-table-head';
+  const headTable = document.createElement('table');
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  ['Route ID', '菜单显示名', '上游', '真实模型', '1M', ''].forEach((label) => {
+    const th = document.createElement('th');
+    th.textContent = label;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  headTable.appendChild(thead);
+  head.appendChild(headTable);
+
+  const scroll = document.createElement('div');
+  scroll.className = 'route-table-scroll';
+  const table = document.createElement('table');
+  const tbody = document.createElement('tbody');
+  models.forEach((model, index) => tbody.appendChild(createClaudeDesktopModelRow(model, index)));
+  table.appendChild(tbody);
+  scroll.appendChild(table);
+
+  wrapper.appendChild(head);
+  wrapper.appendChild(scroll);
+  return wrapper;
+}
+
 function renderClaudeDesktopModels() {
   ensureClaudeDesktop();
   renderClaudeDesktopRouteOptions();
   const container = $('claudeDesktopModels');
+  container.textContent = '';
   if (!config.claudeDesktop.models.length) {
-    container.innerHTML = '<div class="muted">暂无 Desktop 模型映射。</div>';
+    container.appendChild(createClaudeDesktopModelsEmptyElement());
     return;
   }
-  container.innerHTML = `<div class="route-table"><div class="route-table-head"><table><thead><tr><th>Route ID</th><th>菜单显示名</th><th>上游</th><th>真实模型</th><th>1M</th><th></th></tr></thead></table></div><div class="route-table-scroll"><table><tbody>${config.claudeDesktop.models
-    .map((model, index) => {
-      const resolved = resolveClaudeDesktopModel(model);
-      const profile = config.profiles.find((item) => item.id === resolved.profileId) || {};
-      return `<tr>
-        <td>${escapeHtml(resolved.routeId)}</td>
-        <td>${escapeHtml(resolved.labelOverride)}</td>
-        <td>${escapeHtml(profile.name || resolved.profileId || '')}</td>
-        <td>${escapeHtml(resolved.upstreamModel)}</td>
-        <td>${resolved.supports1m ? '是' : '否'}</td>
-        <td><button class="light" data-cd-edit="${index}">编辑</button><button class="danger" data-cd-delete="${index}">删除</button></td>
-      </tr>`;
-    })
-    .join('')}</tbody></table></div></div>`;
+  container.appendChild(createClaudeDesktopModelsTableElement(config.claudeDesktop.models));
   if (!container.dataset.delegated) {
     container.dataset.delegated = 'true';
     container.onclick = (event) => {
@@ -948,49 +1106,95 @@ function scheduleEntryServersRender() {
   });
 }
 
+function entryServerUrl(entry, protocol) {
+  const scheme = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
+  return `${scheme}://${entry.host || 'localhost'}:${entry.listenPort || 3443}${entry.basePath || '/v1'}`;
+}
+
+function createEntryInput(kind, value, placeholder, type = 'text') {
+  const input = document.createElement('input');
+  input.dataset[`entry${kind}`] = '';
+  input.type = type;
+  input.value = String(value == null ? '' : value);
+  input.placeholder = placeholder;
+  return input;
+}
+
+function createEntryProtocolSelect(protocol) {
+  const select = document.createElement('select');
+  select.dataset.entryProtocol = '';
+  select.title = '入口协议';
+  ENTRY_PROTOCOL_OPTIONS.forEach((value) => appendOption(select, value, entryProtocolName(value)));
+  select.value = protocol;
+  return select;
+}
+
+function createEntryServerRow(entry, index) {
+  const protocol = normalizeEntryProtocol(entry.protocol);
+  const row = document.createElement('div');
+  row.className = 'entry-server-row';
+  row.dataset.entryIndex = String(index);
+
+  const head = document.createElement('div');
+  head.className = 'entry-server-head';
+  const title = document.createElement('div');
+  title.className = 'entry-server-title';
+  const name = document.createElement('strong');
+  name.textContent = entry.name || entryProtocolName(protocol);
+  const protocolBadge = document.createElement('span');
+  protocolBadge.className = 'badge protocol';
+  protocolBadge.textContent = entryProtocolName(protocol);
+  const urlBadge = document.createElement('span');
+  urlBadge.className = 'badge';
+  urlBadge.textContent = entryServerUrl(entry, protocol);
+  title.appendChild(name);
+  title.appendChild(protocolBadge);
+  title.appendChild(urlBadge);
+
+  const enabledLabel = document.createElement('label');
+  enabledLabel.className = 'inline-check';
+  const enabled = document.createElement('input');
+  enabled.dataset.entryEnabled = '';
+  enabled.type = 'checkbox';
+  enabled.checked = entry.enabled !== false;
+  enabledLabel.appendChild(enabled);
+  enabledLabel.appendChild(document.createTextNode(' 启用'));
+
+  head.appendChild(title);
+  head.appendChild(enabledLabel);
+
+  const fields = document.createElement('div');
+  fields.className = 'entry-server-fields';
+  fields.appendChild(
+    createEntryInput('Name', entry.name || entryProtocolName(protocol), '显示名称')
+  );
+  fields.appendChild(createEntryInput('Port', Number(entry.listenPort || 3443), '端口', 'number'));
+  fields.appendChild(createEntryInput('Host', entry.host || 'localhost', 'Host'));
+  fields.appendChild(createEntryInput('BasePath', entry.basePath || '/v1', '路径'));
+  fields.appendChild(createEntryProtocolSelect(protocol));
+
+  row.appendChild(head);
+  row.appendChild(fields);
+  return row;
+}
+
 function renderEntryServers() {
   ensureEntryServers();
-  $('entryServers').innerHTML = config.entryServers
-    .map((entry, index) => {
-      const protocol = normalizeEntryProtocol(entry.protocol);
-      const scheme = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
-      const url = `${scheme}://${entry.host || 'localhost'}:${entry.listenPort || 3443}${entry.basePath || '/v1'}`;
-      return `<div class="entry-server-row" data-entry-index="${index}">
-      <div class="entry-server-head">
-        <div class="entry-server-title">
-          <strong>${escapeHtml(entry.name || entryProtocolName(protocol))}</strong>
-          <span class="badge protocol">${entryProtocolName(protocol)}</span>
-          <span class="badge">${escapeHtml(url)}</span>
-        </div>
-        <label class="inline-check"><input data-entry-enabled type="checkbox" ${entry.enabled === false ? '' : 'checked'}> 启用</label>
-      </div>
-      <div class="entry-server-fields">
-        <input data-entry-name value="${escapeHtml(entry.name || entryProtocolName(protocol))}" placeholder="显示名称">
-        <input data-entry-port type="number" value="${Number(entry.listenPort || 3443)}" placeholder="端口">
-        <input data-entry-host value="${escapeHtml(entry.host || 'localhost')}" placeholder="Host">
-        <input data-entry-base-path value="${escapeHtml(entry.basePath || '/v1')}" placeholder="路径">
-        <select data-entry-protocol title="入口协议">
-          <option value="claude" ${protocol === 'claude' ? 'selected' : ''}>Claude Messages</option>
-          <option value="openai-responses" ${protocol === 'openai-responses' ? 'selected' : ''}>OpenAI Responses</option>
-          <option value="openai-chat" ${protocol === 'openai-chat' ? 'selected' : ''}>OpenAI Chat Completions</option>
-          <option value="claude-desktop" ${protocol === 'claude-desktop' ? 'selected' : ''}>Claude Desktop</option>
-        </select>
-      </div>
-    </div>`;
-    })
-    .join('');
-  $('entryServers')
-    .querySelectorAll('input, select')
-    .forEach((input) => {
-      input.oninput = () => {
-        collectEntryServers();
-        scheduleLocalPreview();
-      };
-      input.onchange = () => {
-        collectEntryServers();
-        scheduleEntryServersRender();
-      };
-    });
+  const container = $('entryServers');
+  clearElement(container);
+  config.entryServers.forEach((entry, index) => {
+    container.appendChild(createEntryServerRow(entry, index));
+  });
+  container.querySelectorAll('input, select').forEach((input) => {
+    input.oninput = () => {
+      collectEntryServers();
+      scheduleLocalPreview();
+    };
+    input.onchange = () => {
+      collectEntryServers();
+      scheduleEntryServersRender();
+    };
+  });
 }
 
 function renderLocalPreview() {
@@ -1006,15 +1210,21 @@ function renderLocalPreview() {
       protocol: 'claude',
     };
   baseUrl = `https://${primary.host || 'localhost'}:${primary.listenPort || 3443}${primary.basePath || '/v1'}`;
-  $('localUrlPreview').innerHTML =
-    entries
-      .map((entry) => {
-        const protocol = normalizeEntryProtocol(entry.protocol);
-        const scheme = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
-        const url = `${scheme}://${entry.host || 'localhost'}:${entry.listenPort || 3443}${entry.basePath || '/v1'}`;
-        return `<div><strong>${entryProtocolName(entry.protocol)}</strong>：${escapeHtml(url)}</div>`;
-      })
-      .join('') || `IDE Base URL：${escapeHtml(baseUrl)}`;
+  const preview = $('localUrlPreview');
+  clearElement(preview);
+  if (entries.length) {
+    entries.forEach((entry) => {
+      const protocol = normalizeEntryProtocol(entry.protocol);
+      const url = entryServerUrl(entry, protocol);
+      const row = document.createElement('div');
+      const label = document.createElement('strong');
+      label.textContent = entryProtocolName(entry.protocol);
+      row.append(label, document.createTextNode(`：${url}`));
+      preview.appendChild(row);
+    });
+  } else {
+    preview.textContent = `IDE Base URL：${baseUrl}`;
+  }
   $('heroBaseUrl').textContent = baseUrl;
 }
 
@@ -1045,41 +1255,139 @@ function currentRoutes() {
 }
 
 function renderRouteProfiles(selectedValue) {
-  $('modelRouteProfile').innerHTML = config.profiles
-    .map(
-      (profile) =>
-        `<option value="${escapeAttr(profile.id)}">${escapeHtml(profile.name || profile.id)} · ${protocolName(profile.protocol)} · ${escapeHtml(profile.targetUrl)}</option>`
-    )
-    .join('');
-  $('modelRouteProfile').value = selectedValue || selectedId || config.activeProfile;
+  const select = $('modelRouteProfile');
+  clearElement(select);
+  config.profiles.forEach((profile) => {
+    appendOption(
+      select,
+      profile.id,
+      `${profile.name || profile.id} · ${protocolName(profile.protocol)} · ${profile.targetUrl || ''}`
+    );
+  });
+  select.value = selectedValue || selectedId || config.activeProfile;
 }
 
 function renderModelOptions(selectedValue) {
-  $('availableModels').innerHTML = availableModels
-    .map((model) => `<option value="${escapeAttr(model)}"></option>`)
-    .join('');
+  const list = $('availableModels');
+  clearElement(list);
+  availableModels.forEach((model) => appendOption(list, model, ''));
   $('modelRewriteTo').value = selectedValue || '';
 }
 
-function routesTable() {
-  if (modelRoutes.length === 0)
-    return '<div class="muted">暂无模型路由，未命中的请求会使用默认上游。</div>';
-  const rows = modelRoutes
-    .map((route, index) => {
-      const profile =
-        config && Array.isArray(config.profiles)
-          ? config.profiles.find((item) => item.id === route.profileId)
-          : null;
-      const target = profile
-        ? `${escapeHtml(profile.name || profile.id)}<div class="muted">${protocolName(profile.protocol)} · ${escapeHtml(profile.targetUrl)}</div>`
-        : escapeHtml(route.profileId);
-      const label = route.labelOverride
-        ? `<div class="muted">展示名: ${escapeHtml(route.labelOverride)}</div>`
-        : '';
-      return `<tr><td><strong>${escapeHtml(route.from)}</strong>${label}</td><td>${target}</td><td><strong>${escapeHtml(route.to)}</strong></td><td><div class="route-actions"><button class="light" data-test-route="${index}">测试</button><button class="light" data-edit-route="${index}">编辑</button><button class="danger" data-delete-route="${index}">删除</button></div></td></tr>`;
-    })
-    .join('');
-  return `<div class="route-table route-table-compact"><div class="route-table-head"><table><thead><tr><th>客户端模型</th><th>转发到上游</th><th>上游模型</th><th>操作</th></tr></thead></table></div><div class="route-table-scroll"><table><tbody>${rows}</tbody></table></div></div>`;
+function routeTableSignature() {
+  const profiles = config && Array.isArray(config.profiles) ? config.profiles : [];
+  return JSON.stringify({
+    routes: modelRoutes.map((route) => ({
+      from: route.from || '',
+      to: route.to || '',
+      profileId: route.profileId || '',
+      labelOverride: route.labelOverride || '',
+    })),
+    profiles: profiles.map((profile) => ({
+      id: profile.id || '',
+      name: profile.name || '',
+      protocol: profile.protocol || '',
+      targetUrl: profile.targetUrl || '',
+    })),
+  });
+}
+
+function createRoutesEmptyElement() {
+  const empty = document.createElement('div');
+  empty.className = 'muted';
+  empty.textContent = '暂无模型路由，未命中的请求会使用默认上游。';
+  return empty;
+}
+
+function appendRouteHeaderRow(table) {
+  const thead = document.createElement('thead');
+  const row = document.createElement('tr');
+  ['客户端模型', '转发到上游', '上游模型', '操作'].forEach((label) => {
+    const cell = document.createElement('th');
+    cell.textContent = label;
+    row.appendChild(cell);
+  });
+  thead.appendChild(row);
+  table.appendChild(thead);
+}
+
+function createRouteActionButton(kind, index, label, className = 'light') {
+  const button = document.createElement('button');
+  button.className = className;
+  button.dataset[kind] = String(index);
+  button.textContent = label;
+  return button;
+}
+
+function createRouteTableRow(route, index) {
+  const row = document.createElement('tr');
+  const profile =
+    config && Array.isArray(config.profiles)
+      ? config.profiles.find((item) => item.id === route.profileId)
+      : null;
+
+  const fromCell = document.createElement('td');
+  const fromStrong = document.createElement('strong');
+  fromStrong.textContent = route.from || '';
+  fromCell.appendChild(fromStrong);
+  if (route.labelOverride) {
+    const label = document.createElement('div');
+    label.className = 'muted';
+    label.textContent = `展示名: ${route.labelOverride}`;
+    fromCell.appendChild(label);
+  }
+
+  const targetCell = document.createElement('td');
+  if (profile) {
+    targetCell.appendChild(document.createTextNode(profile.name || profile.id || ''));
+    const targetMeta = document.createElement('div');
+    targetMeta.className = 'muted';
+    targetMeta.textContent = `${protocolName(profile.protocol)} · ${profile.targetUrl || ''}`;
+    targetCell.appendChild(targetMeta);
+  } else {
+    targetCell.textContent = route.profileId || '';
+  }
+
+  const toCell = document.createElement('td');
+  const toStrong = document.createElement('strong');
+  toStrong.textContent = route.to || '';
+  toCell.appendChild(toStrong);
+
+  const actionsCell = document.createElement('td');
+  const actions = document.createElement('div');
+  actions.className = 'route-actions';
+  actions.append(
+    createRouteActionButton('testRoute', index, '测试'),
+    createRouteActionButton('editRoute', index, '编辑'),
+    createRouteActionButton('deleteRoute', index, '删除', 'danger')
+  );
+  actionsCell.appendChild(actions);
+
+  row.append(fromCell, targetCell, toCell, actionsCell);
+  return row;
+}
+
+function createRoutesTableElement() {
+  if (modelRoutes.length === 0) return createRoutesEmptyElement();
+  const wrapper = document.createElement('div');
+  wrapper.className = 'route-table route-table-compact';
+
+  const head = document.createElement('div');
+  head.className = 'route-table-head';
+  const headTable = document.createElement('table');
+  appendRouteHeaderRow(headTable);
+  head.appendChild(headTable);
+
+  const scroll = document.createElement('div');
+  scroll.className = 'route-table-scroll';
+  const bodyTable = document.createElement('table');
+  const tbody = document.createElement('tbody');
+  modelRoutes.forEach((route, index) => tbody.appendChild(createRouteTableRow(route, index)));
+  bodyTable.appendChild(tbody);
+  scroll.appendChild(bodyTable);
+
+  wrapper.append(head, scroll);
+  return wrapper;
 }
 
 function resetRouteEditor() {
@@ -1108,9 +1416,8 @@ function showView(viewId) {
   currentViewId = view && view.classList.contains('active') ? viewId : currentViewId;
 
   // 清除代码工具页面的活动轮询定时器，防止其它页面持续后台请求造成性能浪费
-  if (viewId !== 'codeToolsView' && cliSessionsTimer) {
-    clearInterval(cliSessionsTimer);
-    cliSessionsTimer = null;
+  if (viewId !== 'codeToolsView' && typeof window.stopCodeToolsPolling === 'function') {
+    window.stopCodeToolsPolling();
   }
 
   if (viewId === 'diagnostics') showDiagnosticsTab('logPanel');
@@ -1124,7 +1431,11 @@ function showView(viewId) {
   if (viewId === 'claudeDesktop') refreshAllToolStatuses({ passive: true });
   if (viewId === 'envCheckView') refreshEnvStatus({ passive: true });
   if (viewId === 'codeToolsView') {
-    initCodeToolsView();
+    if (typeof window.initCodeToolsView === 'function') {
+      window.initCodeToolsView();
+    } else {
+      console.error('代码工具模块未加载，无法初始化页面');
+    }
   }
   if (viewId === 'mcpHubView') {
     initMcpHubView();
@@ -1250,10 +1561,10 @@ function bindRouteActions(container) {
 
 function renderRules() {
   const container = $('modelRewriteRules');
-  const html = routesTable();
-  if (html === lastRenderedRulesHtml) return;
-  container.innerHTML = html;
-  lastRenderedRulesHtml = html;
+  const signature = routeTableSignature();
+  if (signature === lastRenderedRulesHtml) return;
+  container.replaceChildren(createRoutesTableElement());
+  lastRenderedRulesHtml = signature;
   bindRouteActions(container);
 }
 
@@ -1266,7 +1577,7 @@ function renderOverview() {
   const summaryText = active
     ? `本地入口：${baseUrl} · 默认上游：${active.name || active.id} · ${protocolName(active.protocol)} · ${active.targetUrl}`
     : '';
-  const routesHtml = routesTable();
+  const routesSignature = routeTableSignature();
   const nextSignature = [defaultProfileText, routeCountText, summaryText].join('\u001f');
 
   if (nextSignature !== lastRenderedOverviewSignature) {
@@ -1276,10 +1587,11 @@ function renderOverview() {
     lastRenderedOverviewSignature = nextSignature;
   }
 
-  if (routesHtml !== lastRenderedOverviewRoutesHtml) {
-    $('overviewRoutes').innerHTML = routesHtml;
-    lastRenderedOverviewRoutesHtml = routesHtml;
-    bindRouteActions($('overviewRoutes'));
+  if (routesSignature !== lastRenderedOverviewRoutesHtml) {
+    const overviewRoutes = $('overviewRoutes');
+    overviewRoutes.replaceChildren(createRoutesTableElement());
+    lastRenderedOverviewRoutesHtml = routesSignature;
+    bindRouteActions(overviewRoutes);
   }
 }
 
@@ -1339,11 +1651,11 @@ function renderDashboardLimits(profileId) {
   const timeDisplay = $('rate-limits-time-display');
   if (!container) return;
 
-  const limitsHtml = renderLimitsHtml(profileId);
-  if (profileId !== lastRenderedLimitsProfileId || limitsHtml !== lastRenderedLimitsHtml) {
-    container.innerHTML = limitsHtml;
+  const signature = limitsSignature(profileId);
+  if (profileId !== lastRenderedLimitsProfileId || signature !== lastRenderedLimitsHtml) {
+    container.replaceChildren(createLimitsElement(profileId));
     lastRenderedLimitsProfileId = profileId;
-    lastRenderedLimitsHtml = limitsHtml;
+    lastRenderedLimitsHtml = signature;
   }
 
   const data = rateLimitsData[profileId];
@@ -1446,7 +1758,7 @@ const PROVIDER_PRESETS = {
     protocol: 'openai',
     targetUrl: 'http://localhost:11434/v1',
     keyUrl: '',
-    desc: '本地部署运行的 Ollama 服务，通常用于离线运行开源大模型。<b>注：本地运行，不需要填写 API Key。</b>',
+    desc: '本地部署运行的 Ollama 服务，通常用于离线运行开源大模型。注：本地运行，不需要填写 API Key。',
   },
   openrouter: {
     name: 'OpenRouter',
@@ -1458,6 +1770,41 @@ const PROVIDER_PRESETS = {
   },
 };
 
+function clearProviderPresetHelp() {
+  const helpEl = $('providerPresetHelp');
+  if (!helpEl) return;
+  helpEl.style.display = 'none';
+  clearElement(helpEl);
+}
+
+function renderProviderPresetHelp(preset) {
+  const helpEl = $('providerPresetHelp');
+  if (!helpEl) return;
+  clearElement(helpEl);
+  if (!preset) {
+    helpEl.style.display = 'none';
+    return;
+  }
+
+  helpEl.style.display = 'block';
+  const title = document.createElement('strong');
+  title.textContent = preset.name;
+  helpEl.append(title, document.createTextNode(`：${preset.desc || ''}`));
+  if (preset.keyUrl) {
+    const link = document.createElement('a');
+    link.href = preset.keyUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.style.color = 'var(--primary)';
+    link.style.textDecoration = 'none';
+    link.style.display = 'inline-block';
+    link.style.marginTop = '5px';
+    link.style.fontWeight = '500';
+    link.textContent = '获取 API Key (访问官方申请页) ↗';
+    helpEl.append(document.createElement('br'), link);
+  }
+}
+
 // 初始化服务商预设选项绑定
 function initProviderPresets() {
   const presetSelect = $('providerPreset');
@@ -1468,10 +1815,7 @@ function initProviderPresets() {
     const helpEl = $('providerPresetHelp');
 
     if (!selectedKey) {
-      if (helpEl) {
-        helpEl.style.display = 'none';
-        helpEl.innerHTML = '';
-      }
+      clearProviderPresetHelp();
       return;
     }
 
@@ -1504,14 +1848,7 @@ function initProviderPresets() {
     }
 
     // 显示提示信息
-    if (helpEl) {
-      helpEl.style.display = 'block';
-      let html = `<strong>${preset.name}</strong>：${preset.desc}`;
-      if (preset.keyUrl) {
-        html += `<br><a href="${preset.keyUrl}" target="_blank" style="color:var(--primary); text-decoration:none; display:inline-block; margin-top:5px; font-weight:500;">获取 API Key (访问官方申请页) ↗</a>`;
-      }
-      helpEl.innerHTML = html;
-    }
+    renderProviderPresetHelp(preset);
     updateOfficialAuthSection($('id').value.trim());
   };
 }
@@ -1543,21 +1880,7 @@ function fillForm(profile) {
     presetSelect.value = matched;
 
     // 同时触发更新下方的提示指引区
-    const helpEl = $('providerPresetHelp');
-    if (helpEl) {
-      if (matched) {
-        const preset = PROVIDER_PRESETS[matched];
-        helpEl.style.display = 'block';
-        let html = `<strong>${preset.name}</strong>：${preset.desc}`;
-        if (preset.keyUrl) {
-          html += `<br><a href="${preset.keyUrl}" target="_blank" style="color:var(--primary); text-decoration:none; display:inline-block; margin-top:5px; font-weight:500;">获取 API Key (访问官方申请页) ↗</a>`;
-        }
-        helpEl.innerHTML = html;
-      } else {
-        helpEl.style.display = 'none';
-        helpEl.innerHTML = '';
-      }
-    }
+    renderProviderPresetHelp(matched ? PROVIDER_PRESETS[matched] : null);
   }
 
   modelRoutes = currentRoutes().map((route) => ({
@@ -1584,6 +1907,96 @@ function collectForm() {
   };
 }
 
+function profilesSignature() {
+  return JSON.stringify({
+    selectedId,
+    activeProfile: config && config.activeProfile,
+    profiles:
+      config && Array.isArray(config.profiles)
+        ? config.profiles.map((profile) => ({
+            id: profile.id || '',
+            name: profile.name || '',
+            protocol: profile.protocol || '',
+            targetUrl: profile.targetUrl || '',
+            latency: profileLatencies[profile.id],
+          }))
+        : [],
+  });
+}
+
+function createBadge(text, className = '') {
+  const badge = document.createElement('span');
+  badge.className = `badge${className ? ` ${className}` : ''}`;
+  badge.textContent = text;
+  return badge;
+}
+
+function applyLatencyBadgeStyle(badge, latency) {
+  if (typeof latency !== 'number') {
+    badge.style.background = 'rgba(239, 68, 68, 0.15)';
+    badge.style.color = 'rgb(239, 68, 68)';
+    badge.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+    return;
+  }
+  if (latency < 100) return;
+  if (latency < 300) {
+    badge.style.background = 'rgba(245, 158, 11, 0.15)';
+    badge.style.color = 'rgb(245, 158, 11)';
+    badge.style.borderColor = 'rgba(245, 158, 11, 0.2)';
+    badge.style.fontWeight = '600';
+    return;
+  }
+  badge.style.background = 'rgba(239, 68, 68, 0.15)';
+  badge.style.color = 'rgb(239, 68, 68)';
+  badge.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+  badge.style.fontWeight = '600';
+}
+
+function createLatencyBadge(profileId) {
+  const latency = profileLatencies[profileId];
+  if (latency === undefined) return null;
+  if (latency === 'testing') return createBadge('测试中...', 'protocol');
+  if (typeof latency === 'number' && latency < 100) return createBadge(`${latency} ms`, 'active');
+  const badge = createBadge(typeof latency === 'number' ? `${latency} ms` : String(latency));
+  applyLatencyBadgeStyle(badge, latency);
+  return badge;
+}
+
+function createProfileCardElement(profile) {
+  const card = document.createElement('div');
+  card.className = 'profile';
+  if (profile.id === selectedId) card.classList.add('selected');
+  if (profile.id === config.activeProfile) card.classList.add('active');
+  card.dataset.profileId = profile.id || '';
+
+  const isActive = profile.id === config.activeProfile;
+  const isSelected = profile.id === selectedId;
+
+  const titleRow = document.createElement('div');
+  titleRow.className = 'profile-title';
+  const title = document.createElement('strong');
+  title.textContent = profile.name || profile.id || '';
+  const badges = document.createElement('span');
+  badges.className = 'badges';
+  badges.appendChild(createBadge(protocolName(profile.protocol), 'protocol'));
+  if (isActive) badges.appendChild(createBadge('默认上游', 'active'));
+  if (isSelected && !isActive) badges.appendChild(createBadge('正在编辑'));
+  const latencyBadge = createLatencyBadge(profile.id);
+  if (latencyBadge) badges.appendChild(latencyBadge);
+  titleRow.append(title, badges);
+
+  const target = document.createElement('div');
+  target.className = 'muted';
+  target.textContent = profile.targetUrl || '';
+
+  const note = document.createElement('div');
+  note.className = 'muted';
+  note.textContent = isActive ? '未命中路由时使用该上游' : '可被模型路由选择';
+
+  card.append(titleRow, target, note);
+  return card;
+}
+
 function renderProfiles() {
   const container = $('profiles');
   if (!container) return;
@@ -1597,39 +2010,12 @@ function renderProfiles() {
       fillForm(profile);
     };
   }
-  const renderedProfilesHtml = config.profiles
-    .map((profile) => {
-      const classes = ['profile'];
-      if (profile.id === selectedId) classes.push('selected');
-      if (profile.id === config.activeProfile) classes.push('active');
-      const isActive = profile.id === config.activeProfile;
-      const isSelected = profile.id === selectedId;
-
-      const latency = profileLatencies[profile.id];
-      let latencyHtml = '';
-      if (latency !== undefined) {
-        if (latency === 'testing') {
-          latencyHtml = '<span class="badge protocol">测试中...</span>';
-        } else if (typeof latency === 'number') {
-          if (latency < 100) {
-            latencyHtml = `<span class="badge active">${latency} ms</span>`;
-          } else if (latency < 300) {
-            latencyHtml = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: rgb(245, 158, 11); border-color: rgba(245, 158, 11, 0.2); font-weight: 600;">${latency} ms</span>`;
-          } else {
-            latencyHtml = `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border-color: rgba(239, 68, 68, 0.2); font-weight: 600;">${latency} ms</span>`;
-          }
-        } else {
-          latencyHtml = `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: rgb(239, 68, 68); border-color: rgba(239, 68, 68, 0.2);">${latency}</span>`;
-        }
-      }
-
-      return `<div class="${classes.join(' ')}" data-profile-id="${escapeAttr(profile.id)}"><div class="profile-title"><strong>${escapeHtml(profile.name || profile.id)}</strong><span class="badges"><span class="badge protocol">${protocolName(profile.protocol)}</span>${isActive ? '<span class="badge active">默认上游</span>' : ''}${isSelected && !isActive ? '<span class="badge">正在编辑</span>' : ''}${latencyHtml}</span></div><div class="muted">${escapeHtml(profile.targetUrl)}</div><div class="muted">${isActive ? '未命中路由时使用该上游' : '可被模型路由选择'}</div></div>`;
-    })
-    .join('');
-
-  if (renderedProfilesHtml !== lastRenderedProfilesHtml) {
-    container.innerHTML = renderedProfilesHtml;
-    lastRenderedProfilesHtml = renderedProfilesHtml;
+  const signature = profilesSignature();
+  if (signature !== lastRenderedProfilesHtml) {
+    container.replaceChildren(
+      ...config.profiles.map((profile) => createProfileCardElement(profile))
+    );
+    lastRenderedProfilesHtml = signature;
   }
   renderOverview();
 }
@@ -1939,6 +2325,13 @@ async function load() {
   });
 }
 
+function setProxyStatusElement(element, color, text) {
+  clearElement(element);
+  const dot = document.createElement('span');
+  dot.className = `status-dot ${color}`;
+  element.append(dot, document.createTextNode(text));
+}
+
 async function refreshProxyStatus(options = {}) {
   const now = Date.now();
   const passiveTtl = isMonitorVisible() ? 7000 : 30000;
@@ -1951,7 +2344,7 @@ async function refreshProxyStatus(options = {}) {
     const health = await checkProxyHealth();
     if (health) {
       const pid = health.pid ? ` (PID: ${health.pid})` : '';
-      statusElement.innerHTML = `<span class="status-dot green"></span>运行中${pid}`;
+      setProxyStatusElement(statusElement, 'green', `运行中${pid}`);
       renderPortDiagnostics(health);
       return;
     }
@@ -1961,27 +2354,27 @@ async function refreshProxyStatus(options = {}) {
     if (/PID\s*:\s*\d+/i.test(output) || output.includes('https://')) {
       const pidMatch = output.match(/PID\s*:\s*(\d+)/i);
       const pid = pidMatch ? ` (PID: ${pidMatch[1]})` : '';
-      statusElement.innerHTML = `<span class="status-dot green"></span>运行中${pid}`;
+      setProxyStatusElement(statusElement, 'green', `运行中${pid}`);
       renderPortDiagnostics(null);
       return;
     }
     if (output.trim()) {
-      statusElement.innerHTML = '<span class="status-dot amber"></span>未运行';
+      setProxyStatusElement(statusElement, 'amber', '未运行');
       renderPortDiagnostics(null);
       return;
     }
-    statusElement.innerHTML = '<span class="status-dot red"></span>状态未知';
+    setProxyStatusElement(statusElement, 'red', '状态未知');
     renderPortDiagnostics(null);
   } catch (err) {
     // command 调用本身失败时，也用 HTTP 探活兜底
     const health = await checkProxyHealth();
     if (health) {
       const pid = health.pid ? ` (PID: ${health.pid})` : '';
-      statusElement.innerHTML = `<span class="status-dot green"></span>运行中${pid}`;
+      setProxyStatusElement(statusElement, 'green', `运行中${pid}`);
       renderPortDiagnostics(health);
       return;
     }
-    statusElement.innerHTML = '<span class="status-dot red"></span>检查失败';
+    setProxyStatusElement(statusElement, 'red', '检查失败');
     renderPortDiagnostics(null);
   } finally {
     statusRefreshInFlight = false;
@@ -2027,8 +2420,14 @@ async function refreshClaudeDesktopStatus() {
       status.profilePath || status.configPath
         ? `\nProfile：${status.profilePath || status.configPath}`
         : '';
+    const evidence = status.clientEvidence || {};
+    const activeCode = evidence.activeCodeProcess || {};
+    const latestSession = evidence.latestCodeSession || {};
+    const clientText = evidence.processCount
+      ? `\n客户端：Claude PID ${evidence.mainWindowPid || '未知'}；Code 模型：${activeCode.model || latestSession.model || '未检测'}；CLI Session：${activeCode.cliSessionId || latestSession.cliSessionId || '未检测'}`
+      : '';
     $('claudeDesktopStatus').textContent =
-      `${configured}；模式：${status.mode}${desiredMode}；当前 URL：${actual}；预期 URL：${expected}${matchText}${pathText}`;
+      `${configured}；模式：${status.mode}${desiredMode}；当前 URL：${actual}；预期 URL：${expected}${matchText}${pathText}${clientText}`;
 
     // Update badge and title dot
     if (badgeEl) {
@@ -2207,15 +2606,18 @@ let lastTraeNativeDebugCommands = [
 function renderTraeDebugEvents(events) {
   const target = $('traeDebugEvents');
   if (!target) return;
+  clearElement(target);
   if (!Array.isArray(events) || events.length === 0) {
-    target.innerHTML =
-      '<div class="muted">暂无过程事件。先发起一次 Trae 请求，或启用 Raw Stream Patch 后再刷新。</div>';
+    const empty = document.createElement('div');
+    empty.className = 'muted';
+    empty.textContent = '暂无过程事件。先发起一次 Trae 请求，或启用 Raw Stream Patch 后再刷新。';
+    target.appendChild(empty);
     return;
   }
-  target.innerHTML = events
+  events
     .slice(-40)
     .reverse()
-    .map((event) => {
+    .forEach((event) => {
       const source = event.source || 'trae';
       const kind = event.kind || event.event || 'event';
       const message =
@@ -2228,14 +2630,17 @@ function renderTraeDebugEvents(events) {
         ]
           .filter(Boolean)
           .join(' ');
-      return `
-      <div class="trae-debug-event">
-        <div class="trae-debug-event-source">${escapeHtml(source)}</div>
-        <div class="trae-debug-event-message">${escapeHtml(message)}</div>
-      </div>
-    `;
-    })
-    .join('');
+      const item = document.createElement('div');
+      item.className = 'trae-debug-event';
+      const sourceEl = document.createElement('div');
+      sourceEl.className = 'trae-debug-event-source';
+      sourceEl.textContent = source;
+      const messageEl = document.createElement('div');
+      messageEl.className = 'trae-debug-event-message';
+      messageEl.textContent = message;
+      item.append(sourceEl, messageEl);
+      target.appendChild(item);
+    });
 }
 
 function formatTraeNativeCommandBlock(status, scanSummary) {
@@ -2295,9 +2700,15 @@ async function refreshTraeDebugEvents() {
 function applyTraeDebugSettingsToUi(settings) {
   const rawEl = $('traeRawCommentsEnabled');
   const visibleEl = $('traeApiVisibleProgressEnabled');
+  const claudeProcessStyleEl = $('traeClaudeProcessStyle');
   const logEl = $('traeLogProgressEnabled');
   if (rawEl) rawEl.checked = Boolean(settings && settings.rawCommentsEnabled);
   if (visibleEl) visibleEl.checked = Boolean(settings && settings.apiVisibleProgressEnabled);
+  if (claudeProcessStyleEl)
+    claudeProcessStyleEl.value =
+      settings && settings.claudeProcessProgressEnabled
+        ? settings.claudeProcessStyle || 'thinking'
+        : '';
   if (logEl) logEl.checked = settings ? settings.liveLogProgress !== false : true;
 }
 
@@ -2309,6 +2720,10 @@ function collectTraeDebugSettingsFromUi() {
     rawCommentsEnabled:
       visible || Boolean($('traeRawCommentsEnabled') && $('traeRawCommentsEnabled').checked),
     apiVisibleProgressEnabled: visible,
+    claudeProcessStyle:
+      $('traeClaudeProcessStyle') && $('traeClaudeProcessStyle').value
+        ? $('traeClaudeProcessStyle').value
+        : '',
     liveLogProgress: !(
       $('traeLogProgressEnabled') && $('traeLogProgressEnabled').checked === false
     ),
@@ -2339,12 +2754,19 @@ async function saveTraeDebugSettingsFromUi() {
     if (!settings || settings.ok === false)
       throw new Error((settings && settings.error) || '保存失败');
     applyTraeDebugSettingsToUi(settings);
-    const msg = settings.apiVisibleProgressEnabled
-      ? 'Trae API 可见过程已开启；后续流式 API 会把安全过程摘要写入 assistant 正文。'
-      : 'Trae Debug 开关已保存；API 正文不再注入可见过程摘要。';
+    const msg = settings.claudeProcessProgressEnabled
+      ? settings.claudeProcessStyle === 'text'
+        ? 'Trae Claude 文本备用过程块已开启；后续 Claude 流式 API 会把 Trae 过程写成独立文本块。'
+        : 'Trae Claude Thinking 过程块已开启；后续 Claude 流式 API 会尝试把 Trae 过程写入 thinking 区域。'
+      : settings.apiVisibleProgressEnabled
+        ? 'Trae API 可见过程已开启；后续流式 API 会把安全过程摘要写入 assistant 正文。'
+        : 'Trae Debug 开关已保存；API 正文不再注入可见过程摘要。';
     if (summaryEl) {
       summaryEl.textContent = msg;
-      summaryEl.className = settings.apiVisibleProgressEnabled ? 'notice green' : 'notice';
+      summaryEl.className =
+        settings.apiVisibleProgressEnabled || settings.claudeProcessProgressEnabled
+          ? 'notice green'
+          : 'notice';
     }
     $('output').textContent = msg;
     showToast(msg, 'success');
@@ -2353,6 +2775,125 @@ async function saveTraeDebugSettingsFromUi() {
     if (summaryEl) summaryEl.textContent = msg;
     showToast(msg, 'error');
   }
+}
+
+function formatTraeClaudeProcessSelfTest(result) {
+  if (!result || result.ok === false) {
+    return `Claude 过程输出自检失败：${result && result.error ? result.error : '未知错误'}`;
+  }
+  const summary = result.summary || {};
+  const lines = [
+    `pass=${Boolean(result.pass)} status=${result.statusCode || ''} source=${result.source || ''}`,
+    `model=${(result.request && result.request.model) || ''} expectedStyle=${result.expectedStyle || ''}`,
+    `debugMode=${(result.settings && result.settings.rawProgressMode) || ''} debugStyle=${(result.settings && result.settings.claudeProcessStyle) || ''}`,
+    `endpoint=${result.endpoint || ''}`,
+    `thinking_delta=${summary.thinkingDeltaCount || 0} signature_delta=${summary.signatureDeltaCount || 0} text_delta=${summary.textDeltaCount || 0}`,
+    `hasTraeProcess=${Boolean(summary.hasTraeProcessText)} planItem=${Boolean(summary.hasTraePlanItem)} timing=${Boolean(summary.hasTraeTiming)} messageStop=${Boolean(summary.hasDone)}`,
+    result.hint || '',
+  ];
+  return lines.filter(Boolean).join('\n');
+}
+
+async function runClaudeDesktopProcessSelfTest({
+  summaryEl,
+  outputEl,
+  runningText,
+  successText,
+} = {}) {
+  if (!window.proxyManager.traeDebugClaudeProcessSelfTest) return;
+  if (summaryEl) {
+    summaryEl.textContent =
+      runningText ||
+      '正在验证 Claude Desktop 过程输出；会通过 Desktop Gateway 发起一条短 Trae 流式请求...';
+    summaryEl.className = 'notice';
+  }
+  if (outputEl) outputEl.textContent = 'Claude 过程输出自检运行中...';
+  try {
+    const result = await window.proxyManager.traeDebugClaudeProcessSelfTest({
+      useClaudeDesktopGateway: true,
+      prompt: '请只回复 OK。',
+      timeoutMs: 90000,
+    });
+    const text = formatTraeClaudeProcessSelfTest(result);
+    if (outputEl) outputEl.textContent = text;
+    if (summaryEl) {
+      summaryEl.textContent =
+        result && result.pass
+          ? successText ||
+            'Claude Desktop 过程输出自检通过；Desktop Gateway SSE 已包含 Trae 过程事件。'
+          : text;
+      summaryEl.className = result && result.pass ? 'notice green' : 'notice';
+    }
+    showToast(
+      result && result.pass ? 'Claude 过程输出自检通过。' : 'Claude 过程输出自检未通过。',
+      result && result.pass ? 'success' : 'error'
+    );
+  } catch (err) {
+    const msg = `Claude 过程输出自检失败：${err && err.message ? err.message : err}`;
+    if (summaryEl) summaryEl.textContent = msg;
+    if (outputEl) outputEl.textContent = msg;
+    showToast(msg, 'error');
+  }
+}
+
+async function testTraeClaudeProcessOutput() {
+  await runClaudeDesktopProcessSelfTest({
+    summaryEl: $('traeDebugSummary'),
+    outputEl: $('traeNativeDeepDebugOutput') || $('traeNativeDebugOutput'),
+  });
+}
+
+async function testClaudeDesktopProcessOutput() {
+  await runClaudeDesktopProcessSelfTest({
+    summaryEl: $('claudeDesktopStatus'),
+    outputEl: $('output'),
+    runningText:
+      '正在验证 Claude Desktop 过程显示；会通过当前 Desktop Gateway 跑一条短 Trae 流式请求...',
+    successText: '过程显示自检通过；Claude Desktop Gateway SSE 已包含 Trae 过程文本。',
+  });
+}
+
+function firstClaudeDesktopTraeRouteId() {
+  ensureClaudeDesktop();
+  for (const model of config.claudeDesktop.models || []) {
+    const resolved = resolveClaudeDesktopModel(model);
+    const profile = config.profiles.find((item) => item.id === resolved.profileId) || {};
+    const target = String(profile.targetUrl || '').toLowerCase();
+    if (
+      profile.protocol === 'trae' ||
+      resolved.profileId === 'trae-official' ||
+      target.includes('coresg-normal.trae.ai')
+    ) {
+      return resolved.routeId;
+    }
+  }
+  const first = config.claudeDesktop.models && config.claudeDesktop.models[0];
+  return first ? routeIdOfClaudeDesktopModel(first) : '';
+}
+
+async function copyClaudeDesktopProcessPrompt() {
+  let copied = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT);
+      copied = true;
+    }
+  } catch (err) {
+    copied = false;
+  }
+  const routeId = firstClaudeDesktopTraeRouteId();
+  const msg = [
+    copied ? 'Claude Desktop 验证提示已复制。' : 'Claude Desktop 验证提示如下。',
+    routeId ? `在 Claude Desktop 里选择模型 ${routeId}，粘贴后发送。` : '',
+    '如果窗口里出现 [Trae plan_item]、[Trae timing] 或类似过程文本，就说明客户端可见链路已打通。',
+    '',
+    CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  $('output').textContent = msg;
+  showDiagnosticsView('outputPanel');
+  showToast(copied ? 'Claude Desktop 验证提示已复制' : '已显示 Claude Desktop 验证提示', 'success');
 }
 
 async function scanTraeNativeDebug() {
@@ -2374,6 +2915,22 @@ async function scanTraeNativeDebug() {
     const scanSummary = scan && scan.summary ? scan.summary : {};
     if (status && status.commands) {
       lastTraeNativeDebugCommands = formatTraeNativeCommandBlock(status, scanSummary);
+    }
+    if (scan && scan.running) {
+      outputEl.textContent = [
+        'Native 扫描已启动，后台运行中。',
+        scan.summary && scan.summary.ahaNetPid
+          ? `已缓存 aha_net PID: ${scan.summary.ahaNetPid}`
+          : '等待扫描结果...',
+        '',
+        scan.output || '',
+      ].join('\n');
+      if (summaryEl) {
+        summaryEl.textContent = 'Native PID 扫描后台运行中；稍后会自动刷新。';
+        summaryEl.className = 'notice';
+      }
+      setTimeout(scanTraeNativeDebug, 13000);
+      return;
     }
     const lines = [
       scan && scan.ok
@@ -2401,6 +2958,183 @@ async function scanTraeNativeDebug() {
   } catch (err) {
     outputEl.textContent = `Native 扫描失败：${err && err.message ? err.message : err}`;
     if (summaryEl) summaryEl.textContent = outputEl.textContent;
+  }
+}
+
+function formatTraeNativeDeepOutput(result) {
+  if (!result || result.ok === false) {
+    return `Native 深入事件读取失败：${result && result.error ? result.error : '未知错误'}`;
+  }
+  const counts = result.counts && typeof result.counts === 'object' ? result.counts : {};
+  const countLines = Object.keys(counts)
+    .sort()
+    .map((key) => `- ${key}: ${counts[key]}`);
+  const events = Array.isArray(result.events) ? result.events : [];
+  const eventLines = events.slice(-36).map((event) => {
+    const keys =
+      Array.isArray(event.keys) && event.keys.length ? ` keys=${event.keys.join(',')}` : '';
+    const sse =
+      Array.isArray(event.sseEventNames) && event.sseEventNames.length
+        ? ` sse=${event.sseEventNames.join(',')}`
+        : '';
+    const claude =
+      Array.isArray(event.sseSemantics) && event.sseSemantics.length
+        ? ` claude=${event.sseSemantics
+            .map((item) => item.claudeCandidate)
+            .filter(Boolean)
+            .filter((item, index, arr) => arr.indexOf(item) === index)
+            .join(',')}`
+        : '';
+    const signals =
+      event.contains && typeof event.contains === 'object'
+        ? Object.keys(event.contains)
+            .filter((key) => event.contains[key])
+            .join(',')
+        : '';
+    return [
+      `- ${event.kind || event.event || 'event'}`,
+      event.urlPath ? ` url=${event.urlPath}` : '',
+      event.bytesRead == null ? '' : ` bytes=${event.bytesRead}`,
+      sse,
+      claude,
+      signals ? ` signals=${signals}` : '',
+      keys,
+    ]
+      .filter(Boolean)
+      .join('');
+  });
+  return [
+    `状态: ${result.status || 'unknown'}${result.running ? ' (running)' : ''}`,
+    `PID: ${result.pid || '未选择'}，模式: ${result.mode || '未启动'}，事件: ${result.eventCount || 0}`,
+    result.error ? `错误: ${result.error}` : '',
+    result.warning ? `提示: ${result.warning}` : '',
+    '',
+    '计数:',
+    ...(countLines.length ? countLines : ['- 暂无']),
+    '',
+    '最近事件:',
+    ...(eventLines.length ? eventLines : ['- 暂无；启动后发起一次 Trae API 请求再刷新。']),
+  ]
+    .filter((line) => line !== '')
+    .join('\n');
+}
+
+function waitMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getTraeAhaPidFromScan(scan) {
+  if (scan && scan.summary && scan.summary.ahaNetPid) return Number(scan.summary.ahaNetPid);
+  const candidates =
+    scan && scan.summary && Array.isArray(scan.summary.candidates) ? scan.summary.candidates : [];
+  const candidate = candidates.find(
+    (item) => Array.isArray(item.modules) && item.modules.includes('aha_net.dll')
+  );
+  return candidate ? Number(candidate.pid) : 0;
+}
+
+async function ensureTraeNativePidReady(outputEl, summaryEl) {
+  if (!window.proxyManager.traeDebugNativeScan) {
+    throw new Error('Trae Native PID 扫描接口不可用');
+  }
+  let lastScan = null;
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    lastScan = await window.proxyManager.traeDebugNativeScan();
+    const pid = getTraeAhaPidFromScan(lastScan);
+    if (pid) return { pid, scan: lastScan };
+    const running = lastScan && lastScan.running;
+    const line = running
+      ? `正在自动扫描 Native PID... ${attempt + 1}/16`
+      : `正在准备 Native PID... ${attempt + 1}/16`;
+    if (outputEl) {
+      outputEl.textContent = [
+        line,
+        lastScan && lastScan.output ? lastScan.output : '等待扫描结果...',
+      ].join('\n\n');
+    }
+    if (summaryEl) {
+      summaryEl.textContent = line;
+      summaryEl.className = 'notice';
+    }
+    await waitMs(attempt < 2 ? 1800 : 2500);
+  }
+  const error = lastScan && (lastScan.error || lastScan.status);
+  throw new Error(
+    error ? `Native PID 扫描未完成：${error}` : '未发现 Trae aha_net PID，请确认 Trae 正在运行'
+  );
+}
+
+async function refreshTraeNativeDeepDebug() {
+  const outputEl = $('traeNativeDeepDebugOutput');
+  const summaryEl = $('traeDebugSummary');
+  if (!outputEl || !window.proxyManager.traeDebugNativeDeepEvents) return null;
+  try {
+    const result = await window.proxyManager.traeDebugNativeDeepEvents();
+    outputEl.textContent = formatTraeNativeDeepOutput(result);
+    if (summaryEl && result && result.ok !== false) {
+      summaryEl.textContent = result.running
+        ? `Native 深入探针运行中；已捕获 ${result.eventCount || 0} 条脱敏结构事件。`
+        : `Native 深入探针状态：${result.status || 'idle'}；已捕获 ${result.eventCount || 0} 条脱敏结构事件。`;
+      summaryEl.className = result.eventCount ? 'notice green' : 'notice';
+    }
+    return result;
+  } catch (err) {
+    outputEl.textContent = `Native 深入事件读取失败：${err && err.message ? err.message : err}`;
+    if (summaryEl) summaryEl.textContent = outputEl.textContent;
+    return null;
+  }
+}
+
+async function startTraeNativeDeepDebug() {
+  const outputEl = $('traeNativeDeepDebugOutput');
+  const summaryEl = $('traeDebugSummary');
+  if (!window.proxyManager.startTraeDebugNativeDeep) return;
+  if (outputEl) outputEl.textContent = '正在一键启用 Native 深入探针...';
+  if (summaryEl) {
+    summaryEl.textContent =
+      '正在自动扫描 PID 并启动深入探针；这是短时 Frida attach，只用于本机诊断。';
+    summaryEl.className = 'notice';
+  }
+  try {
+    const ready = await ensureTraeNativePidReady(outputEl, summaryEl);
+    if (outputEl) outputEl.textContent = `已找到 aha_net PID ${ready.pid}，正在启动深入探针...`;
+    const result = await window.proxyManager.startTraeDebugNativeDeep({
+      pid: ready.pid,
+      durationSeconds: 60,
+      maxPreview: 360,
+    });
+    if (!result || result.ok === false) {
+      const msg = `Native 深入探针启动失败：${result && result.error ? result.error : '未知错误'}`;
+      if (outputEl) outputEl.textContent = msg;
+      if (summaryEl) summaryEl.textContent = msg;
+      showToast(msg, 'error');
+      return;
+    }
+    if (outputEl) outputEl.textContent = formatTraeNativeDeepOutput(result);
+    const msg = 'Native 深入探针已启动；现在发起一次 Trae API 请求，然后刷新深入事件。';
+    if (summaryEl) {
+      summaryEl.textContent = msg;
+      summaryEl.className = 'notice green';
+    }
+    showToast(msg, 'success');
+    setTimeout(refreshTraeNativeDeepDebug, 2500);
+  } catch (err) {
+    const msg = `Native 深入探针启动失败：${err && err.message ? err.message : err}`;
+    if (outputEl) outputEl.textContent = msg;
+    if (summaryEl) summaryEl.textContent = msg;
+    showToast(msg, 'error');
+  }
+}
+
+async function stopTraeNativeDeepDebug() {
+  if (!window.proxyManager.stopTraeDebugNativeDeep) return;
+  try {
+    const result = await window.proxyManager.stopTraeDebugNativeDeep();
+    const outputEl = $('traeNativeDeepDebugOutput');
+    if (outputEl) outputEl.textContent = formatTraeNativeDeepOutput(result);
+    showToast('Native 深入探针停止请求已发送。', 'success');
+  } catch (err) {
+    showToast(`Native 深入探针停止失败：${err && err.message ? err.message : err}`, 'error');
   }
 }
 
@@ -2723,6 +3457,85 @@ function envJobStatusLabel(status) {
   return '执行中';
 }
 
+function envDataSignature(tools = []) {
+  return JSON.stringify({
+    tools: tools.map((tool) => ({
+      id: tool && tool.id,
+      name: tool && tool.name,
+      current: tool && tool.current,
+      latest: tool && tool.latest,
+      hasUpdate: !!(tool && tool.hasUpdate),
+    })),
+    jobs: Array.from(envInstallJobsByTool.values()).map((job) => ({
+      toolId: job && job.toolId,
+      status: job && job.status,
+      lastLine: job && job.lastLine,
+      outputTail: job && job.outputTail,
+      installCommand: job && job.installCommand,
+      usesIrm: !!(job && job.usesIrm),
+    })),
+  });
+}
+
+function setGridNotice(element) {
+  if (!element) return;
+  element.style.gridColumn = '1 / -1';
+}
+
+function createEnvCodeBlock(text, maxHeight = '42px') {
+  const code = document.createElement('code');
+  code.style.display = 'block';
+  code.style.maxHeight = maxHeight;
+  code.style.overflow = 'auto';
+  code.style.whiteSpace = 'pre-wrap';
+  code.style.wordBreak = 'break-word';
+  code.style.color = 'var(--text)';
+  code.style.fontFamily = 'var(--font-mono)';
+  code.style.fontSize = '11.5px';
+  code.style.lineHeight = '1.35';
+  code.textContent = text;
+  return code;
+}
+
+function createEnvProgressItem(job) {
+  const failed = job.status === 'failed';
+  const succeeded = job.status === 'succeeded';
+  const item = document.createElement('div');
+  item.style.display = 'grid';
+  item.style.gridTemplateColumns = 'minmax(120px, 180px) minmax(100px, 140px) 1fr';
+  item.style.gap = '10px';
+  item.style.alignItems = 'start';
+  item.style.padding = '8px 10px';
+  item.style.border = `1px solid ${failed ? 'rgba(239, 68, 68, 0.35)' : 'var(--border)'}`;
+  item.style.borderRadius = '6px';
+  item.style.background = succeeded ? 'rgba(16, 185, 129, 0.08)' : 'var(--card-bg)';
+
+  const info = document.createElement('div');
+  const name = document.createElement('div');
+  name.style.fontWeight = '700';
+  name.style.color = 'var(--text)';
+  name.textContent = job.name || job.toolId || '';
+  const method = document.createElement('div');
+  method.className = 'muted';
+  method.style.fontSize = '12px';
+  method.textContent = job.usesIrm ? '官方 irm 安装脚本' : 'npm 全局安装';
+  info.append(name, method);
+
+  const status = document.createElement('strong');
+  status.style.color = failed ? '#ef4444' : 'var(--text)';
+  status.textContent = envJobStatusLabel(job.status);
+
+  item.append(
+    info,
+    status,
+    createEnvCodeBlock(
+      job.lastLine || job.outputTail || job.installCommand || '等待输出...',
+      '48px'
+    )
+  );
+  return item;
+}
+
 function updateEnvInstallProgressPanel() {
   const panel = $('envInstallProgressPanel');
   if (!panel) return;
@@ -2731,35 +3544,33 @@ function updateEnvInstallProgressPanel() {
   );
   if (jobs.length === 0) {
     panel.style.display = 'none';
-    panel.innerHTML = '';
+    clearElement(panel);
     return;
   }
 
   panel.style.display = 'block';
-  panel.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
-      <strong style="font-size: 13px; color: var(--text);">安装/升级进度</strong>
-      <span class="muted" style="font-size: 12px;">显示最近任务输出，完成后会自动刷新版本状态</span>
-    </div>
-    <div style="display: grid; gap: 8px;">
-      ${jobs
-        .map((job) => {
-          const failed = job.status === 'failed';
-          const succeeded = job.status === 'succeeded';
-          return `
-          <div style="display: grid; grid-template-columns: minmax(120px, 180px) minmax(100px, 140px) 1fr; gap: 10px; align-items: start; padding: 8px 10px; border: 1px solid ${failed ? 'rgba(239, 68, 68, 0.35)' : 'var(--border)'}; border-radius: 6px; background: ${succeeded ? 'rgba(16, 185, 129, 0.08)' : 'var(--card-bg)'};">
-            <div>
-              <div style="font-weight: 700; color: var(--text);">${escapeHtml(job.name || job.toolId || '')}</div>
-              <div class="muted" style="font-size: 12px;">${job.usesIrm ? '官方 irm 安装脚本' : 'npm 全局安装'}</div>
-            </div>
-            <strong style="color: ${failed ? '#ef4444' : 'var(--text)'};">${escapeHtml(envJobStatusLabel(job.status))}</strong>
-            <code style="display: block; max-height: 48px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--text); font-family: var(--font-mono); font-size: 11.5px; line-height: 1.35;">${escapeHtml(job.lastLine || job.outputTail || job.installCommand || '等待输出...')}</code>
-          </div>
-        `;
-        })
-        .join('')}
-    </div>
-  `;
+  clearElement(panel);
+  const header = document.createElement('div');
+  header.style.display = 'flex';
+  header.style.alignItems = 'center';
+  header.style.justifyContent = 'space-between';
+  header.style.gap = '12px';
+  header.style.marginBottom = '8px';
+  const title = document.createElement('strong');
+  title.style.fontSize = '13px';
+  title.style.color = 'var(--text)';
+  title.textContent = '安装/升级进度';
+  const hint = document.createElement('span');
+  hint.className = 'muted';
+  hint.style.fontSize = '12px';
+  hint.textContent = '显示最近任务输出，完成后会自动刷新版本状态';
+  header.append(title, hint);
+
+  const list = document.createElement('div');
+  list.style.display = 'grid';
+  list.style.gap = '8px';
+  jobs.forEach((job) => list.appendChild(createEnvProgressItem(job)));
+  panel.append(header, list);
 }
 
 function markEnvInstallSubmitting(toolIds = []) {
@@ -2845,6 +3656,214 @@ function startEnvInstallPolling() {
   pollEnvInstallJobs().catch((err) => console.error('环境安装进度轮询失败:', err));
 }
 
+function createEnvSkeletonCard() {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.style.padding = '16px';
+  card.style.display = 'flex';
+  card.style.flexDirection = 'column';
+  card.style.minHeight = '120px';
+  card.style.opacity = '0.7';
+
+  const top = document.createElement('div');
+  top.style.display = 'flex';
+  top.style.justifyContent = 'space-between';
+  top.style.alignItems = 'flex-start';
+  top.style.marginBottom = '12px';
+  const identity = document.createElement('div');
+  identity.style.display = 'flex';
+  identity.style.alignItems = 'center';
+  identity.style.gap = '8px';
+  const dot = document.createElement('span');
+  dot.className = 'status-dot';
+  dot.style.margin = '0';
+  dot.style.background = 'var(--border)';
+  const title = document.createElement('strong');
+  title.style.width = '80px';
+  title.style.height = '16px';
+  title.style.background = 'var(--border)';
+  title.style.borderRadius = '2px';
+  identity.append(dot, title);
+  top.appendChild(identity);
+
+  const rows = document.createElement('div');
+  rows.style.display = 'flex';
+  rows.style.flexDirection = 'column';
+  rows.style.gap = '8px';
+  ['60%', '80%'].forEach((width) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.height = '14px';
+    row.style.background = 'var(--border)';
+    row.style.borderRadius = '2px';
+    row.style.width = width;
+    rows.appendChild(row);
+  });
+  card.append(top, rows);
+  return card;
+}
+
+function renderEnvSkeleton(grid) {
+  clearElement(grid);
+  for (let i = 0; i < 6; i++) grid.appendChild(createEnvSkeletonCard());
+}
+
+function createEnvActionButton(tool, isInstalled, isJobRunning) {
+  const button = document.createElement('button');
+  button.style.margin = '0';
+  button.style.padding = '4px 8px';
+  button.style.fontSize = '12px';
+  button.style.height = '26px';
+  button.style.lineHeight = '1';
+  if (isJobRunning) {
+    button.className = 'light';
+    button.disabled = true;
+    button.style.opacity = '0.7';
+    button.textContent = '执行中';
+    return button;
+  }
+  if (!isInstalled || tool.hasUpdate) {
+    button.className = 'primary';
+    button.dataset.upgradeTool = tool.id || '';
+    button.dataset.upgradeAction = isInstalled ? 'upgrade' : 'install';
+    button.textContent = isInstalled ? '升级' : '安装';
+    return button;
+  }
+  button.className = 'light';
+  button.disabled = true;
+  button.style.opacity = '0.5';
+  button.textContent = '最新';
+  return button;
+}
+
+function createEnvProgressBlock(installJob) {
+  if (!installJob) return null;
+  const failed = installJob.status === 'failed';
+  const block = document.createElement('div');
+  block.style.display = 'flex';
+  block.style.flexDirection = 'column';
+  block.style.gap = '4px';
+  block.style.marginTop = '4px';
+  block.style.padding = '8px 10px';
+  block.style.border = `1px solid ${failed ? 'rgba(239, 68, 68, 0.35)' : 'var(--border)'}`;
+  block.style.borderRadius = '6px';
+  block.style.background =
+    installJob.status === 'succeeded' ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-hover)';
+
+  const line = document.createElement('div');
+  line.style.display = 'flex';
+  line.style.justifyContent = 'space-between';
+  line.style.gap = '8px';
+  line.style.alignItems = 'center';
+  const label = document.createElement('span');
+  label.className = 'muted';
+  label.textContent = '安装进度';
+  const status = document.createElement('strong');
+  status.style.color = failed ? '#ef4444' : 'var(--text)';
+  status.textContent = envJobStatusLabel(installJob.status);
+  line.append(label, status);
+
+  const method = document.createElement('div');
+  method.className = 'muted';
+  method.style.fontSize = '12px';
+  method.textContent = installJob.usesIrm ? '官方 irm 安装脚本' : 'npm 全局安装';
+  block.append(
+    line,
+    method,
+    createEnvCodeBlock(installJob.lastLine || installJob.outputTail || '等待输出...')
+  );
+  return block;
+}
+
+function createEnvInfoRow(labelText, valueText) {
+  const row = document.createElement('div');
+  row.style.display = 'flex';
+  row.style.justifyContent = 'space-between';
+  const label = document.createElement('span');
+  label.className = 'muted';
+  label.textContent = labelText;
+  const value = document.createElement('strong');
+  value.style.color = 'var(--text)';
+  value.textContent = valueText;
+  row.append(label, value);
+  return row;
+}
+
+function createEnvToolCard(tool) {
+  const isInstalled = !!tool.current;
+  const installJob = envInstallJobsByTool.get(tool.id);
+  const isJobRunning =
+    installJob && installJob.status !== 'succeeded' && installJob.status !== 'failed';
+  const card = document.createElement('div');
+  card.className = 'card env-card';
+  card.style.padding = '16px';
+  card.style.display = 'flex';
+  card.style.flexDirection = 'column';
+  card.style.minHeight = '142px';
+  card.style.border = `1px solid ${!isInstalled || tool.hasUpdate ? 'var(--primary)' : 'var(--border)'}`;
+  card.style.background =
+    !isInstalled || tool.hasUpdate ? 'rgba(var(--primary-rgb), 0.05)' : 'var(--card-bg)';
+
+  const header = document.createElement('div');
+  header.style.display = 'flex';
+  header.style.justifyContent = 'space-between';
+  header.style.alignItems = 'flex-start';
+  header.style.marginBottom = '12px';
+  const identity = document.createElement('div');
+  identity.style.display = 'flex';
+  identity.style.alignItems = 'center';
+  identity.style.gap = '8px';
+  const dot = document.createElement('span');
+  dot.className = `status-dot ${isInstalled ? 'green' : 'amber'}`;
+  dot.style.margin = '0';
+  const name = document.createElement('strong');
+  name.style.fontSize = '15px';
+  name.style.color = 'var(--text)';
+  name.textContent = tool.name || tool.id || '';
+  identity.append(dot, name);
+  header.append(identity, createEnvActionButton(tool, isInstalled, isJobRunning));
+
+  const body = document.createElement('div');
+  body.style.display = 'flex';
+  body.style.flexDirection = 'column';
+  body.style.gap = '6px';
+  body.style.fontSize = '13px';
+  body.style.flex = '1';
+  body.append(
+    createEnvInfoRow('当前版本', tool.current || '未安装'),
+    createEnvInfoRow('最新版本', tool.latest || '加载中...')
+  );
+
+  const commandBlock = document.createElement('div');
+  commandBlock.style.display = 'flex';
+  commandBlock.style.flexDirection = 'column';
+  commandBlock.style.gap = '4px';
+  commandBlock.style.marginTop = '4px';
+  const commandLabel = document.createElement('span');
+  commandLabel.className = 'muted';
+  commandLabel.textContent = '安装命令';
+  const command = document.createElement('code');
+  command.style.display = 'block';
+  command.style.padding = '6px 8px';
+  command.style.border = '1px solid var(--border)';
+  command.style.borderRadius = '4px';
+  command.style.background = 'var(--bg-hover)';
+  command.style.color = 'var(--text)';
+  command.style.fontFamily = 'var(--font-mono)';
+  command.style.fontSize = '12px';
+  command.style.lineHeight = '1.35';
+  command.style.overflowX = 'auto';
+  command.style.whiteSpace = 'nowrap';
+  command.textContent = getPreferredEnvInstallCommand(tool);
+  commandBlock.append(commandLabel, command);
+  body.appendChild(commandBlock);
+  const progress = createEnvProgressBlock(installJob);
+  if (progress) body.appendChild(progress);
+  card.append(header, body);
+  return card;
+}
+
 async function refreshEnvStatus(options = {}) {
   const now = Date.now();
   if (
@@ -2868,25 +3887,7 @@ async function refreshEnvStatus(options = {}) {
 
   // 预渲染加载骨架；被动刷新已有结果时不闪烁列表。
   if (!options.passive || !lastRenderedEnvHtml) {
-    grid.innerHTML = Array(6)
-      .fill(0)
-      .map(
-        () => `
-    <div class="card" style="padding: 16px; display: flex; flex-direction: column; min-height: 120px; opacity: 0.7;">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="status-dot" style="margin: 0; background: var(--border);"></span>
-          <strong style="width: 80px; height: 16px; background: var(--border); border-radius: 2px;"></strong>
-        </div>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <div style="display: flex; justify-content: space-between; height: 14px; background: var(--border); border-radius: 2px; width: 60%;"></div>
-        <div style="display: flex; justify-content: space-between; height: 14px; background: var(--border); border-radius: 2px; width: 80%;"></div>
-      </div>
-    </div>
-  `
-      )
-      .join('');
+    renderEnvSkeleton(grid);
   }
 
   try {
@@ -2896,74 +3897,19 @@ async function refreshEnvStatus(options = {}) {
     let updateCount = 0;
     let installCount = 0;
     const actionToolIds = [];
-    const envHtml = res.tools
-      .map((tool) => {
-        if (tool && tool.id) lastEnvToolsById.set(tool.id, tool);
-        const isInstalled = !!tool.current;
-        if (!isInstalled) installCount++;
-        if (tool.hasUpdate) updateCount++;
-        if (!isInstalled || tool.hasUpdate) actionToolIds.push(tool.id);
-
-        const statusClass = isInstalled ? 'green' : 'amber';
-        const toolId = escapeHtml(tool.id || '');
-        const toolName = escapeHtml(tool.name || tool.id || '');
-        const currentVersion = escapeHtml(tool.current || '未安装');
-        const latestVersion = escapeHtml(tool.latest || '加载中...');
-        const installCommand = escapeHtml(getPreferredEnvInstallCommand(tool));
-        const installJob = envInstallJobsByTool.get(tool.id);
-        const progressHtml = installJob
-          ? `
-            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px; padding: 8px 10px; border: 1px solid ${installJob.status === 'failed' ? 'rgba(239, 68, 68, 0.35)' : 'var(--border)'}; border-radius: 6px; background: ${installJob.status === 'succeeded' ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-hover)'};">
-              <div style="display: flex; justify-content: space-between; gap: 8px; align-items: center;">
-                <span class="muted">安装进度</span>
-                <strong style="color: ${installJob.status === 'failed' ? '#ef4444' : 'var(--text)'};">${escapeHtml(envJobStatusLabel(installJob.status))}</strong>
-              </div>
-              <div class="muted" style="font-size: 12px;">${installJob.usesIrm ? '官方 irm 安装脚本' : 'npm 全局安装'}</div>
-              <code style="display: block; max-height: 42px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--text); font-family: var(--font-mono); font-size: 11.5px; line-height: 1.35;">${escapeHtml(installJob.lastLine || installJob.outputTail || '等待输出...')}</code>
-            </div>`
-          : '';
-        const isJobRunning =
-          installJob && installJob.status !== 'succeeded' && installJob.status !== 'failed';
-        const actionButton = isJobRunning
-          ? `<button class="light" disabled style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1; opacity: 0.7;">执行中</button>`
-          : !isInstalled
-            ? `<button class="primary" data-upgrade-tool="${toolId}" data-upgrade-action="install" style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1;">安装</button>`
-            : tool.hasUpdate
-              ? `<button class="primary" data-upgrade-tool="${toolId}" data-upgrade-action="upgrade" style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1;">升级</button>`
-              : `<button class="light" disabled style="margin: 0; padding: 4px 8px; font-size: 12px; height: 26px; line-height: 1; opacity: 0.5;">最新</button>`;
-
-        return `
-        <div class="card env-card" style="padding: 16px; display: flex; flex-direction: column; min-height: 142px; border: 1px solid ${!isInstalled || tool.hasUpdate ? 'var(--primary)' : 'var(--border)'}; background: ${!isInstalled || tool.hasUpdate ? 'rgba(var(--primary-rgb), 0.05)' : 'var(--card-bg)'};">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="status-dot ${statusClass}" style="margin: 0;"></span>
-              <strong style="font-size: 15px; color: var(--text);">${toolName}</strong>
-            </div>
-            ${actionButton}
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; flex: 1;">
-            <div style="display: flex; justify-content: space-between;">
-              <span class="muted">当前版本</span>
-              <strong style="color: var(--text);">${currentVersion}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span class="muted">最新版本</span>
-              <strong style="color: var(--text);">${latestVersion}</strong>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
-              <span class="muted">安装命令</span>
-              <code style="display: block; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-hover); color: var(--text); font-family: var(--font-mono); font-size: 12px; line-height: 1.35; overflow-x: auto; white-space: nowrap;">${installCommand}</code>
-            </div>
-            ${progressHtml}
-          </div>
-        </div>
-      `;
-      })
-      .join('');
+    const tools = Array.isArray(res.tools) ? res.tools : [];
+    tools.forEach((tool) => {
+      if (tool && tool.id) lastEnvToolsById.set(tool.id, tool);
+      const isInstalled = !!(tool && tool.current);
+      if (!isInstalled) installCount++;
+      if (tool && tool.hasUpdate) updateCount++;
+      if (tool && (!isInstalled || tool.hasUpdate)) actionToolIds.push(tool.id);
+    });
     lastEnvActionToolIds = actionToolIds.filter(Boolean);
-    if (envHtml !== lastRenderedEnvHtml) {
-      grid.innerHTML = envHtml;
-      lastRenderedEnvHtml = envHtml;
+    const envSignature = envDataSignature(tools);
+    if (envSignature !== lastRenderedEnvHtml) {
+      grid.replaceChildren(...tools.map((tool) => createEnvToolCard(tool || {})));
+      lastRenderedEnvHtml = envSignature;
     }
 
     const actionCount = updateCount + installCount;
@@ -2976,7 +3922,11 @@ async function refreshEnvStatus(options = {}) {
     }
   } catch (err) {
     showToast('环境检查刷新失败: ' + err.message, 'error');
-    grid.innerHTML = `<div class="notice" style="grid-column: 1 / -1;">刷新失败，请检查网络或代理服务器运行状态：${escapeHtml(err.message)}</div>`;
+    const notice = document.createElement('div');
+    notice.className = 'notice';
+    setGridNotice(notice);
+    notice.textContent = `刷新失败，请检查网络或代理服务器运行状态：${err.message}`;
+    grid.replaceChildren(notice);
   } finally {
     isRefreshingEnv = false;
     if (btnRefresh) btnRefresh.disabled = false;
@@ -3125,6 +4075,14 @@ function bindCriticalFrontendControls(stage = 'critical') {
 
 bindCriticalFrontendControls('early');
 
+function setStatusDotText(elementId, color, text) {
+  const element = $(elementId);
+  clearElement(element);
+  const dot = document.createElement('span');
+  dot.className = `status-dot ${color}`;
+  element.append(dot, document.createTextNode(text));
+}
+
 async function refreshCertStatus(options = {}) {
   const now = Date.now();
   if (options.passive && now - lastCertRefresh < 60000) return;
@@ -3141,7 +4099,7 @@ async function refreshCertStatus(options = {}) {
       if (!status || !status.ok) {
         $('certStatus').textContent =
           `证书状态检查失败：${status && status.error ? status.error : '未知错误'}；目录：${status && status.certDir ? status.certDir : ''}`;
-        $('heroCertStatus').innerHTML = '<span class="status-dot red"></span>检查失败';
+        setStatusDotText('heroCertStatus', 'red', '检查失败');
         return;
       }
       const trustText = status.trusted ? '已信任到系统/当前用户证书库' : '未信任';
@@ -3149,8 +4107,11 @@ async function refreshCertStatus(options = {}) {
       const expiresText = status.notAfter ? `；有效期至：${status.notAfter}` : '';
       $('certStatus').textContent =
         `${existsText}；${trustText}${expiresText}；目录：${status.certDir || ''}`;
-      $('heroCertStatus').innerHTML =
-        `<span class="status-dot ${status.trusted ? 'green' : 'amber'}"></span>${status.trusted ? '已信任' : '未信任'}`;
+      setStatusDotText(
+        'heroCertStatus',
+        status.trusted ? 'green' : 'amber',
+        status.trusted ? '已信任' : '未信任'
+      );
     } catch (err) {
       // 注意:这里故意不写 lastCertRefresh。代理冷启动要 7-10s,
       // 第一次 scheduleStartupTask('load.certStatus') 几乎一定会
@@ -3158,7 +4119,7 @@ async function refreshCertStatus(options = {}) {
       // 否则证书卡片会被动节流锁 60s,只能靠用户手动点刷新。
       const message = err && err.message ? err.message : '未知错误';
       $('certStatus').textContent = `证书状态检查失败：${message}`;
-      $('heroCertStatus').innerHTML = '<span class="status-dot red"></span>检查失败';
+      setStatusDotText('heroCertStatus', 'red', '检查失败');
     } finally {
       certRefreshInFlight = null;
       finishPerf();
@@ -3592,11 +4553,18 @@ $('saveAppSettings').onclick = () => saveConfig('应用设置已保存');
 $('saveRoutes').onclick = () => saveConfig('模型路由已保存');
 $('saveClaudeDesktop').onclick = () => saveConfig('Claude Desktop 配置已保存');
 $('refreshClaudeDesktop').onclick = refreshClaudeDesktopStatus;
+const testClaudeDesktopProcessButton = $('testClaudeDesktopProcess');
+if (testClaudeDesktopProcessButton)
+  testClaudeDesktopProcessButton.onclick = testClaudeDesktopProcessOutput;
+const copyClaudeDesktopProcessPromptButton = $('copyClaudeDesktopProcessPrompt');
+if (copyClaudeDesktopProcessPromptButton)
+  copyClaudeDesktopProcessPromptButton.onclick = copyClaudeDesktopProcessPrompt;
 [
   'claudeDesktopEnabled',
   'claudeDesktopMode',
   'claudeDesktopBaseUrl',
   'claudeDesktopToken',
+  'claudeDesktopTraeProcessStyle',
   'claudeDesktopDirectBaseUrl',
   'claudeDesktopDirectApiKey',
 ].forEach((id) => {
@@ -3718,17 +4686,39 @@ const refreshTraeBridgeButton = $('refreshTraeBridge');
 if (refreshTraeBridgeButton) refreshTraeBridgeButton.onclick = refreshTraeBridgeStatus;
 
 const refreshTraeDebugEventsButton = $('refreshTraeDebugEvents');
-if (refreshTraeDebugEventsButton) refreshTraeDebugEventsButton.onclick = refreshTraeDebugEvents;
+if (refreshTraeDebugEventsButton) {
+  refreshTraeDebugEventsButton.onclick = async () => {
+    await refreshTraeDebugEvents();
+    await refreshTraeNativeDeepDebug();
+  };
+}
+
+const testTraeClaudeProcessButton = $('testTraeClaudeProcess');
+if (testTraeClaudeProcessButton) testTraeClaudeProcessButton.onclick = testTraeClaudeProcessOutput;
 
 const scanTraeNativeDebugButton = $('scanTraeNativeDebug');
 if (scanTraeNativeDebugButton) scanTraeNativeDebugButton.onclick = scanTraeNativeDebug;
 
-['traeRawCommentsEnabled', 'traeApiVisibleProgressEnabled', 'traeLogProgressEnabled'].forEach(
-  (id) => {
-    const input = $(id);
-    if (input) input.onchange = saveTraeDebugSettingsFromUi;
-  }
-);
+const startTraeNativeDeepDebugButton = $('startTraeNativeDeepDebug');
+if (startTraeNativeDeepDebugButton)
+  startTraeNativeDeepDebugButton.onclick = startTraeNativeDeepDebug;
+
+const stopTraeNativeDeepDebugButton = $('stopTraeNativeDeepDebug');
+if (stopTraeNativeDeepDebugButton) stopTraeNativeDeepDebugButton.onclick = stopTraeNativeDeepDebug;
+
+const refreshTraeNativeDeepDebugButton = $('refreshTraeNativeDeepDebug');
+if (refreshTraeNativeDeepDebugButton)
+  refreshTraeNativeDeepDebugButton.onclick = refreshTraeNativeDeepDebug;
+
+[
+  'traeRawCommentsEnabled',
+  'traeClaudeProcessStyle',
+  'traeApiVisibleProgressEnabled',
+  'traeLogProgressEnabled',
+].forEach((id) => {
+  const input = $(id);
+  if (input) input.onchange = saveTraeDebugSettingsFromUi;
+});
 
 const copyTraeNativeDebugCommandsButton = $('copyTraeNativeDebugCommands');
 if (copyTraeNativeDebugCommandsButton) {
@@ -4453,10 +5443,64 @@ function initPromptsTabSwitching() {
   }
 }
 
+function createPresetPromptItemElement(tpl, index) {
+  const item = document.createElement('div');
+  item.className = 'profile';
+  item.dataset.presetIndex = String(index);
+  item.style.padding = '12px 14px';
+  item.style.marginBottom = '0';
+  item.style.display = 'flex';
+  item.style.flexDirection = 'column';
+  item.style.gap = '6px';
+  item.style.cursor = 'pointer';
+  item.style.transition = 'all 0.2s';
+
+  const header = document.createElement('div');
+  header.style.display = 'flex';
+  header.style.justifyContent = 'space-between';
+  header.style.alignItems = 'center';
+
+  const name = document.createElement('span');
+  name.style.fontWeight = '700';
+  name.style.fontSize = '12.5px';
+  name.style.color = 'var(--text)';
+  name.textContent = tpl.name;
+
+  const badge = document.createElement('span');
+  badge.className = 'audit-badge info';
+  badge.style.fontSize = '9px';
+  badge.style.padding = '1px 4px';
+  badge.style.fontWeight = '600';
+  badge.style.textTransform = 'uppercase';
+  badge.textContent = '官方插件';
+
+  const desc = document.createElement('div');
+  desc.style.fontSize = '11px';
+  desc.style.color = 'var(--muted)';
+  desc.style.lineHeight = '1.4';
+  desc.textContent = tpl.desc;
+
+  header.appendChild(name);
+  header.appendChild(badge);
+  item.appendChild(header);
+  item.appendChild(desc);
+  return item;
+}
+
+function createTemplateEmptyElement() {
+  const empty = document.createElement('div');
+  empty.style.padding = '16px';
+  empty.style.textAlign = 'center';
+  empty.style.color = 'var(--muted)';
+  empty.style.fontSize = '11px';
+  empty.textContent = '暂无自定义模板。可在上方输入模版名称，将左侧 Markdown 内容保存为本地插件。';
+  return empty;
+}
+
 function loadPresetPrompts() {
   const listContainer = $('presetPromptsPanel');
   if (!listContainer) return;
-  listContainer.innerHTML = '';
+  listContainer.textContent = '';
   if (!listContainer.dataset.delegated) {
     listContainer.dataset.delegated = 'true';
     listContainer.onclick = (event) => {
@@ -4472,33 +5516,14 @@ function loadPresetPrompts() {
   }
 
   SYSTEM_PRESET_PROMPTS.forEach((tpl, index) => {
-    const item = document.createElement('div');
-    item.className = 'profile';
-    item.dataset.presetIndex = String(index);
-    item.style.padding = '12px 14px';
-    item.style.marginBottom = '0';
-    item.style.display = 'flex';
-    item.style.flexDirection = 'column';
-    item.style.gap = '6px';
-    item.style.cursor = 'pointer';
-    item.style.transition = 'all 0.2s';
-
-    item.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-weight:700; font-size:12.5px; color:var(--text);">${escapeHtml(tpl.name)}</span>
-        <span class="audit-badge info" style="font-size:9px; padding:1px 4px; font-weight:600; text-transform:uppercase;">官方插件</span>
-      </div>
-      <div style="font-size:11px; color:var(--muted); line-height:1.4;">${escapeHtml(tpl.desc)}</div>
-    `;
-
-    listContainer.appendChild(item);
+    listContainer.appendChild(createPresetPromptItemElement(tpl, index));
   });
 }
 
 function loadTemplates() {
   const listContainer = $('templateList');
   if (!listContainer) return;
-  listContainer.innerHTML = '';
+  listContainer.textContent = '';
   if (!listContainer.dataset.delegated) {
     listContainer.dataset.delegated = 'true';
     listContainer.onclick = (event) => {
@@ -4534,8 +5559,7 @@ function loadTemplates() {
   } catch (e) {}
 
   if (templates.length === 0) {
-    listContainer.innerHTML =
-      '<div style="padding:16px; text-align:center; color:var(--muted); font-size:11px;">暂无自定义模板。可在上方输入模版名称，将左侧 Markdown 内容保存为本地插件。</div>';
+    listContainer.appendChild(createTemplateEmptyElement());
     return;
   }
 
@@ -4656,60 +5680,120 @@ async function refreshMcpHub() {
 
 function renderMcpServers() {
   const container = $('mcpServersList');
+  clearElement(container);
   if (!mcpHubConfig || !mcpHubConfig.servers || mcpHubConfig.servers.length === 0) {
-    container.innerHTML =
-      '<div class="muted" style="padding:20px; text-align:center;">暂无已配置的 MCP 服务器。</div>';
+    container.appendChild(createMcpServersEmptyElement());
     return;
   }
 
-  container.innerHTML = `
-    <div class="route-table">
-      <div class="route-table-head">
-        <table>
-          <thead>
-            <tr>
-              <th>服务器 ID</th>
-              <th>URL (SSE)</th>
-              <th>前缀</th>
-              <th style="width:60px">注入</th>
-              <th style="width:80px">操作</th>
-            </tr>
-          </thead>
-        </table>
-      </div>
-      <div class="route-table-scroll">
-        <table>
-          <tbody>
-            ${mcpHubConfig.servers
-              .map(
-                (s, index) => `
-              <tr>
-                <td><input type="text" value="${escapeAttr(s.id)}" class="table-input" onchange="updateMcpServer(${index}, 'id', this.value)"></td>
-                <td><input type="text" value="${escapeAttr(s.url)}" class="table-input" placeholder="http://..." onchange="updateMcpServer(${index}, 'url', this.value)"></td>
-                <td><input type="text" value="${escapeAttr(s.prefix || '')}" class="table-input" placeholder="可选" onchange="updateMcpServer(${index}, 'prefix', this.value)"></td>
-                <td style="text-align:center"><input type="checkbox" ${s.injectAll ? 'checked' : ''} onchange="updateMcpServer(${index}, 'injectAll', this.checked)"></td>
-                <td style="text-align:right"><button class="danger" style="padding:2px 8px; font-size:12px; margin:0;" onclick="deleteMcpServer(${index})">删除</button></td>
-              </tr>
-            `
-              )
-              .join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
+  container.appendChild(createMcpServersTableElement(mcpHubConfig.servers));
 }
 
-window.updateMcpServer = (index, field, value) => {
+function createMcpServersEmptyElement() {
+  const empty = document.createElement('div');
+  empty.className = 'muted';
+  empty.style.padding = '20px';
+  empty.style.textAlign = 'center';
+  empty.textContent = '暂无已配置的 MCP 服务器。';
+  return empty;
+}
+
+function createMcpServersTableElement(servers) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'route-table';
+  const head = document.createElement('div');
+  head.className = 'route-table-head';
+  const headTable = document.createElement('table');
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  [
+    ['服务器 ID', ''],
+    ['URL (SSE)', ''],
+    ['前缀', ''],
+    ['注入', '60px'],
+    ['操作', '80px'],
+  ].forEach(([label, width]) => {
+    const th = document.createElement('th');
+    th.textContent = label;
+    if (width) th.style.width = width;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  headTable.appendChild(thead);
+  head.appendChild(headTable);
+
+  const scroll = document.createElement('div');
+  scroll.className = 'route-table-scroll';
+  const bodyTable = document.createElement('table');
+  const tbody = document.createElement('tbody');
+  servers.forEach((server, index) => tbody.appendChild(createMcpServerRow(server, index)));
+  bodyTable.appendChild(tbody);
+  scroll.appendChild(bodyTable);
+  wrapper.append(head, scroll);
+  return wrapper;
+}
+
+function createMcpServerInput(server, index, field, placeholder = '') {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = String(server[field] || '');
+  input.className = 'table-input';
+  if (placeholder) input.placeholder = placeholder;
+  input.addEventListener('change', () => updateMcpServer(index, field, input.value));
+  return input;
+}
+
+function createMcpServerRow(server, index) {
+  const row = document.createElement('tr');
+
+  const idCell = document.createElement('td');
+  idCell.appendChild(createMcpServerInput(server, index, 'id'));
+  row.appendChild(idCell);
+
+  const urlCell = document.createElement('td');
+  urlCell.appendChild(createMcpServerInput(server, index, 'url', 'http://...'));
+  row.appendChild(urlCell);
+
+  const prefixCell = document.createElement('td');
+  prefixCell.appendChild(createMcpServerInput(server, index, 'prefix', '可选'));
+  row.appendChild(prefixCell);
+
+  const injectCell = document.createElement('td');
+  injectCell.style.textAlign = 'center';
+  const injectCheckbox = document.createElement('input');
+  injectCheckbox.type = 'checkbox';
+  injectCheckbox.checked = Boolean(server.injectAll);
+  injectCheckbox.addEventListener('change', () =>
+    updateMcpServer(index, 'injectAll', injectCheckbox.checked)
+  );
+  injectCell.appendChild(injectCheckbox);
+  row.appendChild(injectCell);
+
+  const actionCell = document.createElement('td');
+  actionCell.style.textAlign = 'right';
+  const deleteButton = document.createElement('button');
+  deleteButton.className = 'danger';
+  deleteButton.style.padding = '2px 8px';
+  deleteButton.style.fontSize = '12px';
+  deleteButton.style.margin = '0';
+  deleteButton.textContent = '删除';
+  deleteButton.addEventListener('click', () => deleteMcpServer(index));
+  actionCell.appendChild(deleteButton);
+  row.appendChild(actionCell);
+
+  return row;
+}
+
+function updateMcpServer(index, field, value) {
   if (mcpHubConfig.servers[index]) {
     mcpHubConfig.servers[index][field] = value;
   }
-};
+}
 
-window.deleteMcpServer = (index) => {
+function deleteMcpServer(index) {
   mcpHubConfig.servers.splice(index, 1);
   renderMcpServers();
-};
+}
 
 function addMcpServer() {
   if (!mcpHubConfig.servers) mcpHubConfig.servers = [];
@@ -4722,39 +5806,93 @@ function addMcpServer() {
   renderMcpServers();
 }
 
+function createMcpLogsEmptyElement() {
+  const empty = document.createElement('div');
+  empty.className = 'muted';
+  empty.textContent = '暂无执行记录...';
+  return empty;
+}
+
+function createMcpLogEntryElement(log) {
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.style.marginBottom = '12px';
+  entry.style.borderBottom = '1px solid var(--border)';
+  entry.style.paddingBottom = '8px';
+
+  const header = document.createElement('div');
+  header.style.display = 'flex';
+  header.style.justifyContent = 'space-between';
+  header.style.alignItems = 'center';
+
+  const title = document.createElement('div');
+  const time = document.createElement('span');
+  time.className = 'muted';
+  time.textContent = `[${new Date(log.time).toLocaleTimeString()}] `;
+  title.appendChild(time);
+
+  const server = document.createElement('strong');
+  server.style.color = 'var(--text)';
+  server.textContent = log.serverId || '-';
+  title.appendChild(server);
+  title.appendChild(document.createTextNode(': '));
+
+  const tool = document.createElement('code');
+  tool.style.color = 'var(--primary)';
+  tool.style.fontWeight = '600';
+  tool.textContent = log.toolName || '-';
+  title.appendChild(tool);
+
+  const badge = document.createElement('span');
+  badge.className = `badge ${log.status === 'error' ? 'red' : 'green'}`;
+  badge.textContent = `${log.status === 'error' ? '失败' : '成功'} (${log.elapsed || 0}ms)`;
+
+  header.appendChild(title);
+  header.appendChild(badge);
+  entry.appendChild(header);
+
+  if (log.error) {
+    const error = document.createElement('div');
+    error.style.color = '#ef4444';
+    error.style.marginTop = '4px';
+    error.textContent = `Error: ${log.error}`;
+    entry.appendChild(error);
+  }
+
+  const details = document.createElement('details');
+  details.style.marginTop = '6px';
+  const summary = document.createElement('summary');
+  summary.style.cursor = 'pointer';
+  summary.style.color = 'var(--primary)';
+  summary.style.fontSize = '11px';
+  summary.style.userSelect = 'none';
+  summary.textContent = '查看参数/结果';
+
+  const pre = document.createElement('pre');
+  pre.style.background = 'rgba(0,0,0,0.05)';
+  pre.style.padding = '8px';
+  pre.style.marginTop = '4px';
+  pre.style.borderRadius = '4px';
+  pre.style.fontSize = '11.5px';
+  pre.style.whiteSpace = 'pre-wrap';
+  pre.style.wordBreak = 'break-all';
+  pre.textContent = JSON.stringify({ input: log.input, result: log.result }, null, 2);
+
+  details.appendChild(summary);
+  details.appendChild(pre);
+  entry.appendChild(details);
+  return entry;
+}
+
 function renderMcpLogs(logs) {
   const container = $('mcpExecutionLogs');
+  container.textContent = '';
   if (!logs || logs.length === 0) {
-    container.innerHTML = '<div class="muted">暂无执行记录...</div>';
+    container.appendChild(createMcpLogsEmptyElement());
     return;
   }
 
-  container.innerHTML = logs
-    .map((log) => {
-      const time = new Date(log.time).toLocaleTimeString();
-      const statusClass = log.status === 'error' ? 'red' : 'green';
-      const detail = log.error
-        ? `<div style="color:#ef4444; margin-top:4px;">Error: ${escapeHtml(log.error)}</div>`
-        : '';
-      return `
-      <div class="log-entry" style="margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <span class="muted">[${time}]</span>
-            <strong style="color:var(--text)">${escapeHtml(log.serverId)}</strong>:
-            <code style="color:var(--primary); font-weight:600;">${escapeHtml(log.toolName)}</code>
-          </div>
-          <span class="badge ${statusClass}">${log.status === 'error' ? '失败' : '成功'} (${log.elapsed}ms)</span>
-        </div>
-        ${detail}
-        <details style="margin-top:6px;">
-          <summary style="cursor:pointer; color:var(--primary); font-size:11px; user-select:none;">查看参数/结果</summary>
-          <pre style="background:rgba(0,0,0,0.05); padding:8px; margin-top:4px; border-radius:4px; font-size:11.5px; white-space:pre-wrap; word-break:break-all;">${escapeHtml(JSON.stringify({ input: log.input, result: log.result }, null, 2))}</pre>
-        </details>
-      </div>
-    `;
-    })
-    .join('');
+  logs.forEach((log) => container.appendChild(createMcpLogEntryElement(log)));
 }
 
 async function saveMcpHub() {

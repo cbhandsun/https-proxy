@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
+use tauri_plugin_dialog::DialogExt;
 
 static ZOOM_LEVEL: AtomicU32 = AtomicU32::new(100);
 static PROXY_STOPPED_FOR_EXIT: AtomicBool = AtomicBool::new(false);
@@ -298,20 +299,22 @@ fn stop_proxy_direct() -> Result<serde_json::Value, String> {
 
 fn proxy_command_direct(command: &str) -> Option<Result<serde_json::Value, String>> {
     match command {
-        "status" => Some(Ok(match read_proxy_health_direct(Duration::from_millis(300)) {
-            Some(health) => serde_json::json!({
-                "code": 0,
-                "timedOut": false,
-                "direct": true,
-                "output": format_proxy_status(&health)
-            }),
-            None => serde_json::json!({
-                "code": 0,
-                "timedOut": false,
-                "direct": true,
-                "output": "Proxy Status:\n  State: Stopped\n  Source: rust-direct\n"
-            }),
-        })),
+        "status" => Some(Ok(
+            match read_proxy_health_direct(Duration::from_millis(300)) {
+                Some(health) => serde_json::json!({
+                    "code": 0,
+                    "timedOut": false,
+                    "direct": true,
+                    "output": format_proxy_status(&health)
+                }),
+                None => serde_json::json!({
+                    "code": 0,
+                    "timedOut": false,
+                    "direct": true,
+                    "output": "Proxy Status:\n  State: Stopped\n  Source: rust-direct\n"
+                }),
+            },
+        )),
         "stop" => Some(stop_proxy_direct()),
         "start" => Some(start_proxy_direct()),
         "restart" => Some((|| {
@@ -320,6 +323,17 @@ fn proxy_command_direct(command: &str) -> Option<Result<serde_json::Value, Strin
             start_proxy_direct()
         })()),
         _ => None,
+    }
+}
+
+fn normalize_proxy_command(command: &str) -> Result<&'static str, String> {
+    match command.trim().to_ascii_lowercase().as_str() {
+        "status" => Ok("status"),
+        "stop" => Ok("stop"),
+        "start" => Ok("start"),
+        "restart" => Ok("restart"),
+        "" => Err("proxy command is required".into()),
+        other => Err(format!("unsupported proxy command: {other}")),
     }
 }
 
@@ -560,6 +574,48 @@ fn launch_codex_login_script(script_path: String) -> Result<serde_json::Value, S
 }
 
 #[tauri::command]
+async fn select_directory_native(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let selected = app
+            .dialog()
+            .file()
+            .set_title("选择工作目录")
+            .blocking_pick_folder();
+
+        match selected {
+            Some(folder_path) => {
+                let path = folder_path
+                    .simplified()
+                    .into_path()
+                    .map_err(|err| format!("Failed to resolve selected directory: {}", err))?;
+                if !path.exists() {
+                    return Err(format!(
+                        "Selected directory does not exist: {}",
+                        path.display()
+                    ));
+                }
+                if !path.is_dir() {
+                    return Err(format!(
+                        "Selected path is not a directory: {}",
+                        path.display()
+                    ));
+                }
+                Ok(serde_json::json!({
+                    "ok": true,
+                    "path": path.display().to_string()
+                }))
+            }
+            None => Ok(serde_json::json!({
+                "ok": true,
+                "cancelled": true
+            })),
+        }
+    })
+    .await
+    .map_err(|err| err.to_string())?
+}
+
+#[tauri::command]
 fn get_proxy_debug() -> serde_json::Value {
     let cwd = std::env::current_dir().unwrap_or_default();
     let exe = std::env::current_exe().unwrap_or_default();
@@ -611,7 +667,9 @@ fn registry_cert_thumbprint_exists(thumbprint: &str) -> bool {
         r"SOFTWARE\Microsoft\SystemCertificates\ROOT\Certificates\{}",
         thumbprint
     );
-    RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey(&path).is_ok()
+    RegKey::predef(HKEY_LOCAL_MACHINE)
+        .open_subkey(&path)
+        .is_ok()
         || RegKey::predef(HKEY_CURRENT_USER).open_subkey(&path).is_ok()
 }
 
@@ -674,13 +732,14 @@ async fn execute_proxy_command(command: String) -> Result<serde_json::Value, Str
 }
 
 fn execute_proxy_command_blocking(command: String) -> Result<serde_json::Value, String> {
-    if let Some(result) = proxy_command_direct(command.as_str()) {
+    let command = normalize_proxy_command(command.as_str())?;
+    if let Some(result) = proxy_command_direct(command) {
         if result.is_ok() {
             return result;
         }
     }
 
-    let timeout = match command.as_str() {
+    let timeout = match command {
         "status" => Duration::from_secs(8),
         "stop" => Duration::from_secs(12),
         "start" => Duration::from_secs(25),
@@ -688,7 +747,7 @@ fn execute_proxy_command_blocking(command: String) -> Result<serde_json::Value, 
         _ => Duration::from_secs(20),
     };
 
-    match run_proxy_bat_with_timeout(&[command.as_str()], timeout) {
+    match run_proxy_bat_with_timeout(&[command], timeout) {
         Some((out, timed_out)) => {
             let stdout = String::from_utf8_lossy(&out.stdout).to_string();
             let stderr = String::from_utf8_lossy(&out.stderr).to_string();
@@ -711,10 +770,37 @@ fn execute_proxy_command_blocking(command: String) -> Result<serde_json::Value, 
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::normalize_proxy_command;
+
+    #[test]
+    fn normalizes_allowed_proxy_commands() {
+        assert_eq!(normalize_proxy_command("status").unwrap(), "status");
+        assert_eq!(normalize_proxy_command(" START ").unwrap(), "start");
+        assert_eq!(normalize_proxy_command("Stop").unwrap(), "stop");
+        assert_eq!(normalize_proxy_command("restart").unwrap(), "restart");
+    }
+
+    #[test]
+    fn rejects_unsupported_proxy_commands() {
+        assert!(normalize_proxy_command("")
+            .unwrap_err()
+            .contains("required"));
+        assert!(normalize_proxy_command("health")
+            .unwrap_err()
+            .contains("unsupported"));
+        assert!(normalize_proxy_command("status & calc")
+            .unwrap_err()
+            .contains("unsupported"));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         // ── 单例启动 ──────────────────────────────────────
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // 第二个实例启动时 → 聚焦已有窗口
             if let Some(w) = app.get_webview_window("main") {
@@ -921,11 +1007,11 @@ pub fn run() {
                 app_handle.exit(0);
             } else if id == "reload" {
                 if let Some(window) = app_handle.get_webview_window("main") {
-                    let _ = window.eval("window.location.reload()");
+                    let _ = window.emit("reload-requested", false);
                 }
             } else if id == "force_reload" {
                 if let Some(window) = app_handle.get_webview_window("main") {
-                    let _ = window.eval("window.location.reload(true)");
+                    let _ = window.emit("reload-requested", true);
                 }
             } else if id == "zoom_in" {
                 if let Some(window) = app_handle.get_webview_window("main") {
@@ -963,6 +1049,7 @@ pub fn run() {
             open_log,
             open_cert_dir,
             launch_codex_login_script,
+            select_directory_native,
             get_proxy_debug,
             get_cert_status_native,
             execute_proxy_command

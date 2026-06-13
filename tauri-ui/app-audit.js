@@ -62,6 +62,22 @@ function renderUsageMetric(label, value, sub = '') {
   `;
 }
 
+function createUsageMetricElement(label, value, sub = '') {
+  const metric = document.createElement('div');
+  metric.className = 'usage-metric';
+  appendAuditText(metric, label, 'div', 'usage-metric-label');
+  appendAuditText(metric, value, 'div', 'usage-metric-value');
+  if (sub) appendAuditText(metric, sub, 'div', 'usage-metric-sub');
+  return metric;
+}
+
+function createUsageEmptyElement(message = '暂无记录') {
+  const empty = document.createElement('div');
+  empty.className = 'usage-empty';
+  empty.textContent = message;
+  return empty;
+}
+
 function truncateAuditText(value, limit) {
   const text = String(value == null ? '' : value);
   if (text.length <= limit) return { text, truncated: false };
@@ -89,42 +105,333 @@ function auditContentToText(content) {
     .join('\n');
 }
 
+function createAuditNoticeElement(message, options = {}) {
+  const box = document.createElement('div');
+  box.style.padding = '20px';
+  box.style.textAlign = 'center';
+  box.style.color = options.danger ? 'var(--danger)' : 'var(--muted)';
+  box.style.fontSize = '12px';
+  if (options.breakAll) box.style.wordBreak = 'break-all';
+  if (options.prefix) {
+    const prefix = document.createElement('div');
+    prefix.textContent = options.prefix;
+    box.appendChild(prefix);
+  }
+  const text = document.createElement('div');
+  text.textContent = message;
+  box.appendChild(text);
+  return box;
+}
+
+function createAuditSvgElement(attributes = {}, children = []) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  Object.entries(attributes).forEach(([key, value]) => svg.setAttribute(key, value));
+  children.forEach((child) => {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', child.tag);
+    Object.entries(child.attributes || {}).forEach(([key, value]) => node.setAttribute(key, value));
+    svg.appendChild(node);
+  });
+  return svg;
+}
+
+function createAuditMessageIcon() {
+  return createAuditSvgElement(
+    {
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': '1.5',
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    },
+    [
+      {
+        tag: 'path',
+        attributes: {
+          d: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+        },
+      },
+    ]
+  );
+}
+
+function createAuditChevronIcon(size = 12) {
+  return createAuditSvgElement(
+    {
+      width: String(size),
+      height: String(size),
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': '2',
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    },
+    [{ tag: 'polyline', attributes: { points: '6 9 12 15 18 9' } }]
+  );
+}
+
+function createAuditToolIcon() {
+  return createAuditSvgElement(
+    {
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': '2',
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    },
+    [
+      { tag: 'circle', attributes: { cx: '12', cy: '12', r: '3' } },
+      {
+        tag: 'path',
+        attributes: {
+          d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+        },
+      },
+    ]
+  );
+}
+
+function createAuditDetailPlaceholderElement(message = '选择左侧记录查看详情') {
+  const placeholder = document.createElement('div');
+  placeholder.className = 'audit-detail-placeholder';
+  placeholder.appendChild(createAuditMessageIcon());
+  const text = document.createElement('p');
+  text.textContent = message;
+  placeholder.appendChild(text);
+  return placeholder;
+}
+
+function appendAuditText(parent, text, tagName = 'span', className = '') {
+  const el = document.createElement(tagName);
+  if (className) el.className = className;
+  el.textContent = text;
+  parent.appendChild(el);
+  return el;
+}
+
+function createAuditCodeTextElement(text) {
+  const code = document.createElement('code');
+  code.textContent = text;
+  return code;
+}
+
 function setAuditDetailPlaceholder(message = '选择左侧记录查看详情') {
   const panel = $('auditDetailPanel');
   if (!panel) return;
-  panel.innerHTML = `
-    <div class="audit-detail-placeholder">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <p>${escapeHtml(message)}</p>
-    </div>`;
+  panel.textContent = '';
+  panel.appendChild(createAuditDetailPlaceholderElement(message));
 }
 
 // 简易 Markdown 解析逻辑
-function formatAuditMarkdown(text) {
-  if (!text) return '';
-  // 1. 转义HTML，防御XSS
-  let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function safeAuditCodeLanguage(value) {
+  const lang = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (!/^[a-z0-9_-]{1,32}$/.test(lang)) return '';
+  return lang;
+}
 
-  // 2. 替换三反引号代码块 ```lang\ncode\n```
-  html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, (match, lang, code) => {
-    return `<pre><code class="language-${lang}">${code}</code></pre>`;
+function appendAuditInlineMarkdown(parent, text) {
+  String(text || '')
+    .split(/(`[^`]+`)/g)
+    .forEach((part) => {
+      if (!part) return;
+      if (part.length >= 2 && part.startsWith('`') && part.endsWith('`')) {
+        const code = document.createElement('code');
+        code.textContent = part.slice(1, -1);
+        parent.appendChild(code);
+      } else {
+        parent.appendChild(document.createTextNode(part));
+      }
+    });
+}
+
+function appendAuditMarkdownParagraph(container, lines) {
+  if (!lines.length) return;
+  const p = document.createElement('p');
+  lines.forEach((line, index) => {
+    if (index > 0) p.appendChild(document.createElement('br'));
+    appendAuditInlineMarkdown(p, line);
+  });
+  container.appendChild(p);
+}
+
+function renderAuditMarkdown(text) {
+  const container = document.createElement('div');
+  container.className = 'audit-markdown-content';
+  const lines = String(text || '').split('\n');
+  let paragraphLines = [];
+  let inCodeBlock = false;
+  let codeLanguage = '';
+  let codeLines = [];
+
+  const flushParagraph = () => {
+    appendAuditMarkdownParagraph(container, paragraphLines);
+    paragraphLines = [];
+  };
+  const flushCodeBlock = () => {
+    const pre = document.createElement('pre');
+    const code = document.createElement('code');
+    const safeLang = safeAuditCodeLanguage(codeLanguage);
+    if (safeLang) code.className = `language-${safeLang}`;
+    code.textContent = codeLines.join('\n');
+    pre.appendChild(code);
+    container.appendChild(pre);
+    codeLines = [];
+    codeLanguage = '';
+  };
+
+  lines.forEach((line) => {
+    if (inCodeBlock) {
+      if (line === '```') {
+        flushCodeBlock();
+        inCodeBlock = false;
+      } else {
+        codeLines.push(line);
+      }
+      return;
+    }
+    if (line.startsWith('```')) {
+      flushParagraph();
+      inCodeBlock = true;
+      codeLanguage = line.slice(3);
+      codeLines = [];
+      return;
+    }
+    if (line.trim() === '') {
+      flushParagraph();
+      return;
+    }
+    paragraphLines.push(line);
   });
 
-  // 3. 替换行内代码 `code`
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  if (inCodeBlock) flushCodeBlock();
+  flushParagraph();
+  return container;
+}
 
-  // 4. 分离段落与换行，但跳过 <pre> 块
-  const parts = html.split(/(<pre>[\s\S]*?<\/pre>)/g);
-  for (let i = 0; i < parts.length; i++) {
-    if (!parts[i].startsWith('<pre>')) {
-      parts[i] = parts[i].replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+if (typeof window !== 'undefined') {
+  window.__auditTest = {
+    createAuditDetailHeaderElement,
+    createAuditDetailPlaceholderElement,
+    createAuditHistoryItemElement,
+    createAuditInspectorElement,
+    createAuditMessageElement,
+    createAuditNoticeElement,
+    createAuditSystemPanelElement,
+    createAuditToolCallElement,
+    createUsageEmptyElement,
+    createUsageMetricElement,
+    createUsageRecentElement,
+    createUsageTableElement,
+    renderAuditMarkdown,
+    safeAuditCodeLanguage,
+  };
+}
+
+function auditHistoryRecordView(record) {
+  let userSnippet = '无输入内容';
+  if (record.messages && Array.isArray(record.messages)) {
+    const firstUser = record.messages.find((m) => m.role === 'user');
+    if (firstUser && firstUser.content) {
+      userSnippet = auditContentToText(firstUser.content) || '无输入内容';
     }
   }
-  let finalHtml = parts.join('');
-  if (!finalHtml.startsWith('<pre>') && !finalHtml.startsWith('<p>')) {
-    finalHtml = '<p>' + finalHtml + '</p>';
-  }
-  return finalHtml;
+  userSnippet = truncateAuditText(userSnippet, AUDIT_SNIPPET_CHARS).text;
+
+  const date = new Date(record.time);
+  const timeStr = date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const latency = record.elapsed ? `${record.elapsed}ms` : '??? ms';
+  const isSuccess = record.statusCode >= 200 && record.statusCode < 300;
+  const usage = record.usage || {};
+  const modelFlow = auditModelFlowLabel(record);
+  const upstreamModel = auditUpstreamModel(record);
+  return {
+    timeStr,
+    statusCode: record.statusCode || '???',
+    isSuccess,
+    protocolLabel: record.protocol === 'claude' ? 'Claude' : 'OpenAI',
+    modelFlow,
+    userSnippet,
+    upstreamLine: `上游: ${upstreamModel || '未指定'} · ${record.profileName || '默认'}`,
+    metricsLine: `${formatAuditTokens(usage.totalTokens || 0)} tok · ${latency}`,
+  };
+}
+
+function createAuditHistoryItemElement(record, index, recordId, isActive) {
+  const view = auditHistoryRecordView(record);
+  const item = document.createElement('div');
+  item.className = 'audit-item';
+  item.dataset.auditId = recordId;
+  item.dataset.auditIndex = String(index);
+  if (isActive) item.classList.add('active');
+
+  const meta = document.createElement('div');
+  meta.className = 'audit-item-meta';
+  const time = document.createElement('span');
+  time.textContent = view.timeStr;
+  const badge = document.createElement('span');
+  badge.className = `audit-badge ${view.isSuccess ? 'success' : 'error'}`;
+  badge.textContent = String(view.statusCode);
+  meta.appendChild(time);
+  meta.appendChild(badge);
+
+  const info = document.createElement('div');
+  info.className = 'audit-item-info';
+  const protocol = document.createElement('span');
+  protocol.style.fontWeight = '600';
+  protocol.style.color = 'var(--primary)';
+  protocol.textContent = view.protocolLabel;
+  const model = document.createElement('span');
+  model.style.color = 'var(--muted)';
+  model.style.fontSize = '11px';
+  model.style.maxWidth = '190px';
+  model.style.overflow = 'hidden';
+  model.style.textOverflow = 'ellipsis';
+  model.style.whiteSpace = 'nowrap';
+  model.textContent = view.modelFlow;
+  info.appendChild(protocol);
+  info.appendChild(model);
+
+  const snippet = document.createElement('div');
+  snippet.className = 'audit-item-snippet';
+  snippet.textContent = view.userSnippet;
+
+  const footer = document.createElement('div');
+  footer.style.fontSize = '10px';
+  footer.style.color = 'var(--muted)';
+  footer.style.marginTop = '2px';
+  footer.style.display = 'flex';
+  footer.style.justifyContent = 'space-between';
+  const upstream = document.createElement('span');
+  upstream.textContent = view.upstreamLine;
+  const metrics = document.createElement('span');
+  metrics.textContent = view.metricsLine;
+  footer.appendChild(upstream);
+  footer.appendChild(metrics);
+
+  item.appendChild(meta);
+  item.appendChild(info);
+  item.appendChild(snippet);
+  item.appendChild(footer);
+  return item;
+}
+
+function createAuditMetricElement(label, value, sub = '') {
+  const metric = document.createElement('div');
+  metric.className = 'audit-usage-metric';
+
+  appendAuditText(metric, label, 'span');
+  appendAuditText(metric, value, 'strong');
+  if (sub) appendAuditText(metric, sub, 'small');
+
+  return metric;
 }
 
 async function initPromptsAuditView() {
@@ -188,10 +495,11 @@ async function loadUsageReport() {
   const byModel = $('usageByModel');
   const recent = $('usageRecent');
   if (!summary || !byProfile || !byModel || !recent) return;
-  summary.innerHTML = '<div class="muted">正在加载...</div>';
-  byProfile.innerHTML = '';
-  byModel.innerHTML = '';
-  recent.innerHTML = '';
+  summary.textContent = '';
+  summary.appendChild(createAuditNoticeElement('正在加载...'));
+  byProfile.textContent = '';
+  byModel.textContent = '';
+  recent.textContent = '';
   try {
     const windowValue = $('usageReportWindow') ? $('usageReportWindow').value : '';
     const report = await window.proxyManager.readUsageReport({
@@ -201,36 +509,56 @@ async function loadUsageReport() {
     if (!report || report.ok === false) throw new Error((report && report.error) || '读取失败');
     renderUsageReport(report);
   } catch (err) {
-    summary.innerHTML = `<div class="usage-empty">读取使用报告失败：${escapeHtml(err.message)}</div>`;
+    summary.textContent = '';
+    summary.appendChild(createUsageEmptyElement(`读取使用报告失败：${err.message}`));
   }
 }
 
 function renderUsageReport(report) {
   const total = report.total || {};
   const estimated = Number(total.estimatedRecords || 0);
-  $('usageReportMeta').textContent =
-    `生成于 ${new Date(report.generatedAt || Date.now()).toLocaleString()} · ${estimated ? `${estimated} 条为估算 Token` : '全部使用真实 usage 或可用记录'}`;
-  $('usageReportSummary').innerHTML = [
-    renderUsageMetric(
-      '请求数',
-      formatAuditTokens(total.requests),
-      `${formatAuditTokens(total.successes)} 成功 / ${formatAuditTokens(total.errors)} 异常`
-    ),
-    renderUsageMetric(
-      '输入 Token',
-      formatAuditTokens(total.inputTokens),
-      total.cachedInputTokens ? `缓存 ${formatAuditTokens(total.cachedInputTokens)}` : ''
-    ),
-    renderUsageMetric('输出 Token', formatAuditTokens(total.outputTokens)),
-    renderUsageMetric(
-      '估算成本',
-      formatAuditCost({ known: total.cost > 0, amount: total.cost }),
-      'USD'
-    ),
-  ].join('');
-  $('usageByProfile').innerHTML = renderUsageTable(report.byProfile || [], 'profile');
-  $('usageByModel').innerHTML = renderUsageTable(report.byModel || [], 'model');
-  $('usageRecent').innerHTML = renderUsageRecent(report.recent || []);
+  const meta = $('usageReportMeta');
+  if (meta) {
+    meta.textContent = `生成于 ${new Date(report.generatedAt || Date.now()).toLocaleString()} · ${estimated ? `${estimated} 条为估算 Token` : '全部使用真实 usage 或可用记录'}`;
+  }
+
+  const summary = $('usageReportSummary');
+  const byProfile = $('usageByProfile');
+  const byModel = $('usageByModel');
+  const recent = $('usageRecent');
+  if (summary) {
+    summary.textContent = '';
+    [
+      createUsageMetricElement(
+        '请求数',
+        formatAuditTokens(total.requests),
+        `${formatAuditTokens(total.successes)} 成功 / ${formatAuditTokens(total.errors)} 异常`
+      ),
+      createUsageMetricElement(
+        '输入 Token',
+        formatAuditTokens(total.inputTokens),
+        total.cachedInputTokens ? `缓存 ${formatAuditTokens(total.cachedInputTokens)}` : ''
+      ),
+      createUsageMetricElement('输出 Token', formatAuditTokens(total.outputTokens)),
+      createUsageMetricElement(
+        '估算成本',
+        formatAuditCost({ known: total.cost > 0, amount: total.cost }),
+        'USD'
+      ),
+    ].forEach((node) => summary.appendChild(node));
+  }
+  if (byProfile) {
+    byProfile.textContent = '';
+    byProfile.appendChild(createUsageTableElement(report.byProfile || [], 'profile'));
+  }
+  if (byModel) {
+    byModel.textContent = '';
+    byModel.appendChild(createUsageTableElement(report.byModel || [], 'model'));
+  }
+  if (recent) {
+    recent.textContent = '';
+    recent.appendChild(createUsageRecentElement(report.recent || []));
+  }
   updateUsageChart(report.byDay || []);
 }
 
@@ -287,60 +615,91 @@ function updateUsageChart(dayData) {
   });
 }
 
-function renderUsageTable(rows, type) {
-  if (!rows.length) return '<div class="usage-empty">暂无记录</div>';
-  return `
-    <table class="usage-table">
-      <thead><tr><th>${type === 'profile' ? '上游目标' : '模型'}</th><th>请求</th><th>输入</th><th>输出</th><th>成本</th></tr></thead>
-      <tbody>
-        ${rows
-          .map(
-            (row) => `
-          <tr>
-            <td><strong>${escapeHtml(row.label || row.key)}</strong>${row.estimatedRecords ? `<div class="muted">${row.estimatedRecords} 条估算</div>` : ''}</td>
-            <td>${formatAuditTokens(row.requests)}</td>
-            <td>${formatAuditTokens(row.inputTokens)}</td>
-            <td>${formatAuditTokens(row.outputTokens)}</td>
-            <td>${formatAuditCost({ known: row.cost > 0, amount: row.cost })}</td>
-          </tr>
-        `
-          )
-          .join('')}
-      </tbody>
-    </table>
-  `;
+function appendUsageHeaderRow(thead, labels) {
+  const tr = document.createElement('tr');
+  labels.forEach((label) => appendAuditText(tr, label, 'th'));
+  thead.appendChild(tr);
 }
 
-function renderUsageRecent(rows) {
-  if (!rows.length) return '<div class="usage-empty">暂无记录</div>';
-  return `
-    <table class="usage-table usage-table-recent">
-      <thead><tr><th>时间</th><th>上游</th><th>模型</th><th>Token</th><th>成本</th><th>状态</th></tr></thead>
-      <tbody>
-        ${rows
-          .map(
-            (row) => `
-          <tr>
-            <td>${escapeHtml(new Date(row.time).toLocaleString())}</td>
-            <td>${escapeHtml(row.profileName || '-')}</td>
-            <td><code>${escapeHtml(row.model || '-')}</code></td>
-            <td>${formatAuditTokens((row.usage && row.usage.totalTokens) || 0)}</td>
-            <td>${formatAuditCost(row.cost)}</td>
-            <td><span class="audit-badge ${row.statusCode >= 200 && row.statusCode < 300 ? 'success' : 'error'}">${escapeHtml(row.statusCode || '???')}</span></td>
-          </tr>
-        `
-          )
-          .join('')}
-      </tbody>
-    </table>
-  `;
+function appendUsageCell(row, value, options = {}) {
+  const td = document.createElement('td');
+  if (options.code) {
+    td.appendChild(createAuditCodeTextElement(value));
+  } else if (options.strong) {
+    appendAuditText(td, value, 'strong');
+  } else {
+    td.textContent = value;
+  }
+  row.appendChild(td);
+  return td;
+}
+
+function createUsageTableElement(rows, type) {
+  if (!rows.length) return createUsageEmptyElement('暂无记录');
+
+  const table = document.createElement('table');
+  table.className = 'usage-table';
+  const thead = document.createElement('thead');
+  appendUsageHeaderRow(thead, [
+    type === 'profile' ? '上游目标' : '模型',
+    '请求',
+    '输入',
+    '输出',
+    '成本',
+  ]);
+  const tbody = document.createElement('tbody');
+  rows.forEach((row) => {
+    const tr = document.createElement('tr');
+    const labelCell = appendUsageCell(tr, row.label || row.key || '-', { strong: true });
+    if (row.estimatedRecords) {
+      appendAuditText(labelCell, `${row.estimatedRecords} 条估算`, 'div', 'muted');
+    }
+    appendUsageCell(tr, formatAuditTokens(row.requests));
+    appendUsageCell(tr, formatAuditTokens(row.inputTokens));
+    appendUsageCell(tr, formatAuditTokens(row.outputTokens));
+    appendUsageCell(tr, formatAuditCost({ known: row.cost > 0, amount: row.cost }));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  return table;
+}
+
+function createUsageRecentElement(rows) {
+  if (!rows.length) return createUsageEmptyElement('暂无记录');
+
+  const table = document.createElement('table');
+  table.className = 'usage-table usage-table-recent';
+  const thead = document.createElement('thead');
+  appendUsageHeaderRow(thead, ['时间', '上游', '模型', 'Token', '成本', '状态']);
+  const tbody = document.createElement('tbody');
+  rows.forEach((row) => {
+    const tr = document.createElement('tr');
+    appendUsageCell(tr, new Date(row.time).toLocaleString());
+    appendUsageCell(tr, row.profileName || '-');
+    appendUsageCell(tr, row.model || '-', { code: true });
+    appendUsageCell(tr, formatAuditTokens((row.usage && row.usage.totalTokens) || 0));
+    appendUsageCell(tr, formatAuditCost(row.cost));
+    const statusCell = document.createElement('td');
+    appendAuditText(
+      statusCell,
+      String(row.statusCode || '???'),
+      'span',
+      `audit-badge ${row.statusCode >= 200 && row.statusCode < 300 ? 'success' : 'error'}`
+    );
+    tr.appendChild(statusCell);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  return table;
 }
 
 async function loadAuditRecords() {
   const listContainer = $('auditHistoryList');
   if (!listContainer) return;
-  listContainer.innerHTML =
-    '<div style="padding: 20px; text-align: center; color: var(--muted); font-size: 12px;">正在加载对话审计日志...</div>';
+  listContainer.textContent = '';
+  listContainer.appendChild(createAuditNoticeElement('正在加载对话审计日志...'));
 
   try {
     const rawRes = await window.proxyManager.readAuditConversations(AUDIT_LIST_LIMIT);
@@ -357,12 +716,19 @@ async function loadAuditRecords() {
           errMsg = JSON.stringify(rawRes);
         }
       }
-      listContainer.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--danger); font-size: 12px; word-break: break-all;">读取审计日志失败：<br>${escapeHtml(errMsg)}</div>`;
+      listContainer.textContent = '';
+      listContainer.appendChild(
+        createAuditNoticeElement(errMsg, {
+          danger: true,
+          breakAll: true,
+          prefix: '读取审计日志失败：',
+        })
+      );
       return;
     }
 
     cachedAuditRecords = res;
-    listContainer.innerHTML = '';
+    listContainer.textContent = '';
     if (!listContainer.dataset.delegated) {
       listContainer.dataset.delegated = 'true';
       listContainer.onclick = (event) => {
@@ -379,64 +745,23 @@ async function loadAuditRecords() {
     }
 
     if (res.length === 0) {
-      listContainer.innerHTML =
-        '<div style="padding: 20px; text-align: center; color: var(--muted); font-size: 12px;">暂无对话审计记录</div>';
-      $('auditDetailPanel').innerHTML = `
-        <div class="audit-detail-placeholder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <p>暂无对话记录</p>
-        </div>`;
+      listContainer.appendChild(createAuditNoticeElement('暂无对话审计记录'));
+      const detailPanel = $('auditDetailPanel');
+      if (detailPanel) {
+        detailPanel.textContent = '';
+        detailPanel.appendChild(createAuditDetailPlaceholderElement('暂无对话记录'));
+      }
       return;
     }
 
     res.forEach((record, index) => {
       const recordId = record.time + '_' + index;
-      const item = document.createElement('div');
-      item.className = 'audit-item';
-      item.dataset.auditId = recordId;
-      item.dataset.auditIndex = String(index);
-      if (selectedAuditRecordId === recordId) {
-        item.classList.add('active');
-      }
-
-      // 提取 User 首条消息摘要
-      let userSnippet = '无输入内容';
-      if (record.messages && Array.isArray(record.messages)) {
-        const firstUser = record.messages.find((m) => m.role === 'user');
-        if (firstUser && firstUser.content) {
-          userSnippet = auditContentToText(firstUser.content) || '无输入内容';
-        }
-      }
-      userSnippet = truncateAuditText(userSnippet, AUDIT_SNIPPET_CHARS).text;
-
-      const date = new Date(record.time);
-      const timeStr = date.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      });
-      const latency = record.elapsed ? `${record.elapsed}ms` : '??? ms';
-      const isSuccess = record.statusCode >= 200 && record.statusCode < 300;
-      const usage = record.usage || {};
-      const modelFlow = auditModelFlowLabel(record);
-      const upstreamModel = auditUpstreamModel(record);
-
-      item.innerHTML = `
-        <div class="audit-item-meta">
-          <span>${timeStr}</span>
-          <span class="audit-badge ${isSuccess ? 'success' : 'error'}">${record.statusCode || '???'}</span>
-        </div>
-        <div class="audit-item-info">
-          <span style="font-weight: 600; color: var(--primary);">${escapeHtml(record.protocol === 'claude' ? 'Claude' : 'OpenAI')}</span>
-          <span style="color: var(--muted); font-size: 11px; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(modelFlow)}</span>
-        </div>
-        <div class="audit-item-snippet">${escapeHtml(userSnippet)}</div>
-        <div style="font-size: 10px; color: var(--muted); margin-top: 2px; display: flex; justify-content: space-between;">
-          <span>上游: ${escapeHtml(upstreamModel || '未指定')} · ${escapeHtml(record.profileName || '默认')}</span>
-          <span>${formatAuditTokens(usage.totalTokens || 0)} tok · ${escapeHtml(latency)}</span>
-        </div>
-      `;
-
+      const item = createAuditHistoryItemElement(
+        record,
+        index,
+        recordId,
+        selectedAuditRecordId === recordId
+      );
       listContainer.appendChild(item);
     });
 
@@ -456,7 +781,14 @@ async function loadAuditRecords() {
     selectedAuditRecordId = null;
     setAuditDetailPlaceholder(`已加载最近 ${res.length} 条记录，选择一条查看详情`);
   } catch (err) {
-    listContainer.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--danger); font-size: 12px; word-break: break-all;">渲染审计日志失败：<br>${escapeHtml(err.message)}</div>`;
+    listContainer.textContent = '';
+    listContainer.appendChild(
+      createAuditNoticeElement(err.message, {
+        danger: true,
+        breakAll: true,
+        prefix: '渲染审计日志失败：',
+      })
+    );
   }
 }
 
@@ -567,10 +899,7 @@ function formatRecordToMarkdown(record) {
   return md;
 }
 
-function renderAuditDetail(record) {
-  const panel = $('auditDetailPanel');
-  if (!panel) return;
-
+function createAuditDetailHeaderElement(record) {
   const date = new Date(record.time);
   const fullTimeStr = date.toLocaleString();
   const latencyStr = record.elapsed ? `${record.elapsed}ms` : '未知耗时';
@@ -580,123 +909,179 @@ function renderAuditDetail(record) {
   const upstreamModel = auditUpstreamModel(record);
   const usageSource = usage.source === 'provider' ? '上游 usage' : '本地估算';
 
-  // 1. 详情头部
-  const headerHtml = `
-    <div class="audit-detail-header">
-      <div class="audit-detail-title">
-        <span class="audit-badge info">${escapeHtml(record.protocol === 'claude' ? 'Claude SSE' : 'OpenAI Protocol')}</span>
-        <span>目标上游: <strong>${escapeHtml(record.profileName || '默认')}</strong></span>
-        <span class="audit-badge ${isSuccess ? 'success' : 'error'}">${record.statusCode || '???'}</span>
-        <button id="retryAuditRequestBtn" class="secondary" style="margin-left: 12px; font-size: 11px; padding: 2px 8px; min-height: 24px; border-radius: var(--radius-sm);" ${record.id ? '' : 'disabled'}>重试</button>
-        <button id="exportAuditMarkdownBtn" class="secondary" style="margin-left: 12px; font-size: 11px; padding: 2px 8px; min-height: 24px; border-radius: var(--radius-sm);">导出 Markdown</button>
-        <span style="font-size: 12px; color: var(--muted); font-weight: normal; margin-left: auto;">${escapeHtml(fullTimeStr)}</span>
-      </div>
-      <div class="audit-detail-meta">
-        <span>请求模型: <code>${escapeHtml(record.originalModel || '未指定')}</code></span>
-        <span>上游模型: <code>${escapeHtml(upstreamModel || '未指定')}</code></span>
-        ${record.rewriteModel && record.rewriteModel !== '-' ? `<span>重写转发: <code>${escapeHtml(record.rewriteModel)}</code></span>` : ''}
-        <span>延迟耗时: <strong style="color: var(--primary);">${escapeHtml(latencyStr)}</strong></span>
-      </div>
-      <div class="audit-usage-strip">
-        ${renderUsageMetric('输入 Token', formatAuditTokens(usage.inputTokens), usage.cachedInputTokens ? `缓存 ${formatAuditTokens(usage.cachedInputTokens)}` : usageSource)}
-        ${renderUsageMetric('输出 Token', formatAuditTokens(usage.outputTokens), usageSource)}
-        ${renderUsageMetric('总 Token', formatAuditTokens(usage.totalTokens), usageSource)}
-        ${renderUsageMetric('估算成本', formatAuditCost(cost), cost && cost.pricing ? `${cost.pricing.match} · ${cost.currency || 'USD'}` : '可在 modelPricing 覆盖')}
-      </div>
-    </div>
-  `;
+  const header = document.createElement('div');
+  header.className = 'audit-detail-header';
 
-  // 2. System Prompt 折叠面板
-  let systemHtml = '';
-  if (record.system) {
-    const systemPreview = truncateAuditText(record.system, AUDIT_SYSTEM_PREVIEW_CHARS);
-    systemHtml = `
-      <div class="audit-system-panel collapsed" id="auditSystemPanel">
-        <div class="audit-system-header" data-audit-toggle-system>
-          <span>System Prompt (系统预设背景指令)${systemPreview.truncated ? ' · 已截断显示' : ''}</span>
-          <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
-            <button id="saveSystemPromptToTemplatesBtn" class="secondary" style="font-size: 11px; padding: 2px 8px; min-height: 24px; border-radius: var(--radius-sm); pointer-events: auto;">另存为模板</button>
-            <svg class="audit-system-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
-        </div>
-        <div class="audit-system-content">${escapeHtml(systemPreview.text)}</div>
-      </div>
-    `;
+  const title = document.createElement('div');
+  title.className = 'audit-detail-title';
+
+  appendAuditText(
+    title,
+    record.protocol === 'claude' ? 'Claude SSE' : 'OpenAI Protocol',
+    'span',
+    'audit-badge info'
+  );
+  const upstream = appendAuditText(title, '目标上游: ', 'span');
+  upstream.appendChild(createAuditCodeTextElement(record.profileName || '默认'));
+  appendAuditText(
+    title,
+    String(record.statusCode || '???'),
+    'span',
+    `audit-badge ${isSuccess ? 'success' : 'error'}`
+  );
+
+  const retry = document.createElement('button');
+  retry.id = 'retryAuditRequestBtn';
+  retry.className = 'secondary';
+  retry.style.marginLeft = '12px';
+  retry.style.fontSize = '11px';
+  retry.style.padding = '2px 8px';
+  retry.style.minHeight = '24px';
+  retry.style.borderRadius = 'var(--radius-sm)';
+  retry.disabled = !record.id;
+  retry.textContent = '重试';
+  title.appendChild(retry);
+
+  const exportBtn = document.createElement('button');
+  exportBtn.id = 'exportAuditMarkdownBtn';
+  exportBtn.className = 'secondary';
+  exportBtn.style.marginLeft = '12px';
+  exportBtn.style.fontSize = '11px';
+  exportBtn.style.padding = '2px 8px';
+  exportBtn.style.minHeight = '24px';
+  exportBtn.style.borderRadius = 'var(--radius-sm)';
+  exportBtn.textContent = '导出 Markdown';
+  title.appendChild(exportBtn);
+
+  const time = appendAuditText(title, fullTimeStr, 'span');
+  time.style.fontSize = '12px';
+  time.style.color = 'var(--muted)';
+  time.style.fontWeight = 'normal';
+  time.style.marginLeft = 'auto';
+
+  const meta = document.createElement('div');
+  meta.className = 'audit-detail-meta';
+
+  const original = appendAuditText(meta, '请求模型: ', 'span');
+  original.appendChild(createAuditCodeTextElement(record.originalModel || '未指定'));
+  const upstreamModelEl = appendAuditText(meta, '上游模型: ', 'span');
+  upstreamModelEl.appendChild(createAuditCodeTextElement(upstreamModel || '未指定'));
+  if (record.rewriteModel && record.rewriteModel !== '-') {
+    const rewrite = appendAuditText(meta, '重写转发: ', 'span');
+    rewrite.appendChild(createAuditCodeTextElement(record.rewriteModel));
   }
+  const latency = appendAuditText(meta, '延迟耗时: ', 'span');
+  const latencyValue = appendAuditText(latency, latencyStr, 'strong');
+  latencyValue.style.color = 'var(--primary)';
 
-  // 3. 对话流渲染
-  let chatFlowHtml = '<div class="audit-chat-flow">';
-  if (record.messages && Array.isArray(record.messages)) {
-    record.messages.forEach((msg) => {
-      const isUser = msg.role === 'user';
-      const isSystem = msg.role === 'system';
-      const roleClass = isUser ? 'user' : isSystem ? 'system' : 'assistant';
-      const roleName = isUser
-        ? 'User (IDE / CLI)'
-        : isSystem
-          ? 'System Context'
-          : 'Assistant (LLM)';
+  const metrics = document.createElement('div');
+  metrics.className = 'audit-usage-strip';
+  metrics.appendChild(
+    createAuditMetricElement(
+      '输入 Token',
+      formatAuditTokens(usage.inputTokens),
+      usage.cachedInputTokens ? `缓存 ${formatAuditTokens(usage.cachedInputTokens)}` : usageSource
+    )
+  );
+  metrics.appendChild(
+    createAuditMetricElement('输出 Token', formatAuditTokens(usage.outputTokens), usageSource)
+  );
+  metrics.appendChild(
+    createAuditMetricElement('总 Token', formatAuditTokens(usage.totalTokens), usageSource)
+  );
+  metrics.appendChild(
+    createAuditMetricElement(
+      '估算成本',
+      formatAuditCost(cost),
+      cost && cost.pricing
+        ? `${cost.pricing.match} · ${cost.currency || 'USD'}`
+        : '可在 modelPricing 覆盖'
+    )
+  );
 
-      let contentStr = '';
-      let toolCallsHtml = '';
+  header.appendChild(title);
+  header.appendChild(meta);
+  header.appendChild(metrics);
+  return header;
+}
 
-      // 处理复合 content
-      if (msg.content) {
-        if (typeof msg.content === 'string') {
-          contentStr = msg.content;
-        } else if (Array.isArray(msg.content)) {
-          msg.content.forEach((block) => {
-            if (block.type === 'text') {
-              contentStr += block.text || '';
-            } else if (block.type === 'tool_use') {
-              toolCallsHtml += renderSingleToolCall(block);
-            }
-          });
-        }
-      }
+function createAuditSystemPanelElement(system) {
+  const systemPreview = truncateAuditText(system, AUDIT_SYSTEM_PREVIEW_CHARS);
+  const panel = document.createElement('div');
+  panel.className = 'audit-system-panel collapsed';
+  panel.id = 'auditSystemPanel';
 
-      // 处理 OpenAI tool_calls
-      if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
-        msg.tool_calls.forEach((tc) => {
-          toolCallsHtml += renderSingleToolCall(tc);
-        });
-      }
+  const header = document.createElement('div');
+  header.className = 'audit-system-header';
+  header.dataset.auditToggleSystem = '';
+  appendAuditText(
+    header,
+    `System Prompt (系统预设背景指令)${systemPreview.truncated ? ' · 已截断显示' : ''}`,
+    'span'
+  );
 
-      const contentPreview = truncateAuditText(contentStr.trim(), AUDIT_MESSAGE_PREVIEW_CHARS);
-      if (contentPreview.text.trim() || toolCallsHtml) {
-        chatFlowHtml += `
-          <div class="audit-bubble-container ${roleClass}">
-            <div class="audit-bubble-meta">${roleName}</div>
-            ${contentPreview.text.trim() ? `<div class="audit-bubble">${formatAuditMarkdown(contentPreview.text)}</div>` : ''}
-            ${toolCallsHtml}
-          </div>
-        `;
-      }
-    });
-  }
+  const actions = document.createElement('div');
+  actions.style.marginLeft = 'auto';
+  actions.style.display = 'flex';
+  actions.style.gap = '8px';
+  actions.style.alignItems = 'center';
 
-  // 处理流式传输中单独追加的 tool_calls
-  if (
-    record.response &&
-    record.response.tool_calls &&
-    Array.isArray(record.response.tool_calls) &&
-    record.response.tool_calls.length > 0
-  ) {
-    let extraToolsHtml = '';
-    record.response.tool_calls.forEach((tc) => {
-      extraToolsHtml += renderSingleToolCall(tc);
-    });
-    if (extraToolsHtml) {
-      chatFlowHtml += `
-        <div class="audit-bubble-container assistant">
-          <div class="audit-bubble-meta">Assistant (Streaming Tool Calls)</div>
-          ${extraToolsHtml}
-        </div>
-      `;
-    }
-  }
+  const save = document.createElement('button');
+  save.id = 'saveSystemPromptToTemplatesBtn';
+  save.className = 'secondary';
+  save.style.fontSize = '11px';
+  save.style.padding = '2px 8px';
+  save.style.minHeight = '24px';
+  save.style.borderRadius = 'var(--radius-sm)';
+  save.style.pointerEvents = 'auto';
+  save.textContent = '另存为模板';
+  actions.appendChild(save);
 
-  chatFlowHtml += '</div>';
+  const arrow = document.createElement('span');
+  arrow.className = 'audit-system-arrow';
+  arrow.appendChild(createAuditChevronIcon(12));
+  actions.appendChild(arrow);
+  header.appendChild(actions);
+
+  const content = document.createElement('div');
+  content.className = 'audit-system-content';
+  content.textContent = systemPreview.text;
+
+  panel.appendChild(header);
+  panel.appendChild(content);
+  return panel;
+}
+
+function createAuditInspectorPanelElement(id, preview, active) {
+  const panel = document.createElement('div');
+  panel.className = `audit-inspector-panel${active ? ' active' : ''}`;
+  panel.dataset.auditInspectorPanel = id;
+
+  const pre = document.createElement('pre');
+  pre.appendChild(createAuditCodeTextElement(preview.text));
+  panel.appendChild(pre);
+  if (preview.truncated) appendAuditText(panel, '内容已截断显示', 'div', 'muted');
+  return panel;
+}
+
+function createAuditInspectorElement(record) {
+  const inspector = document.createElement('div');
+  inspector.className = 'audit-inspector';
+
+  const tabs = document.createElement('div');
+  tabs.className = 'audit-inspector-tabs';
+  [
+    ['request', 'Request'],
+    ['upstream', 'Upstream'],
+    ['response', 'Response'],
+  ].forEach(([id, label], index) => {
+    const tab = document.createElement('button');
+    tab.className = `audit-inspector-tab${index === 0 ? ' active' : ''}`;
+    tab.dataset.auditInspectorTab = id;
+    tab.textContent = label;
+    tabs.appendChild(tab);
+  });
+
   const requestPreview = formatAuditJson({
     method: record.method,
     path: record.path,
@@ -712,36 +1097,222 @@ function renderAuditDetail(record) {
     cost: record.cost || null,
     response: record.response || {},
   });
-  const inspectorHtml = `
-    <div class="audit-inspector">
-      <div class="audit-inspector-tabs">
-        <button class="audit-inspector-tab active" data-audit-inspector-tab="request">Request</button>
-        <button class="audit-inspector-tab" data-audit-inspector-tab="upstream">Upstream</button>
-        <button class="audit-inspector-tab" data-audit-inspector-tab="response">Response</button>
-      </div>
-      <div class="audit-inspector-panel active" data-audit-inspector-panel="request">
-        <pre><code>${escapeHtml(requestPreview.text)}</code></pre>
-        ${requestPreview.truncated ? '<div class="muted">内容已截断显示</div>' : ''}
-      </div>
-      <div class="audit-inspector-panel" data-audit-inspector-panel="upstream">
-        <pre><code>${escapeHtml(upstreamPreview.text)}</code></pre>
-        ${upstreamPreview.truncated ? '<div class="muted">内容已截断显示</div>' : ''}
-      </div>
-      <div class="audit-inspector-panel" data-audit-inspector-panel="response">
-        <pre><code>${escapeHtml(responsePreview.text)}</code></pre>
-        ${responsePreview.truncated ? '<div class="muted">内容已截断显示</div>' : ''}
-      </div>
-    </div>
-  `;
 
-  panel.innerHTML = `
-    ${headerHtml}
-    <div class="audit-detail-body">
-      ${systemHtml}
-      ${inspectorHtml}
-      ${chatFlowHtml}
-    </div>
-  `;
+  inspector.appendChild(tabs);
+  inspector.appendChild(createAuditInspectorPanelElement('request', requestPreview, true));
+  inspector.appendChild(createAuditInspectorPanelElement('upstream', upstreamPreview, false));
+  inspector.appendChild(createAuditInspectorPanelElement('response', responsePreview, false));
+  return inspector;
+}
+
+function collectAuditMessageView(msg) {
+  const isUser = msg.role === 'user';
+  const isSystem = msg.role === 'system';
+  const roleClass = isUser ? 'user' : isSystem ? 'system' : 'assistant';
+  const roleName = isUser ? 'User (IDE / CLI)' : isSystem ? 'System Context' : 'Assistant (LLM)';
+  let contentStr = '';
+  const toolCalls = [];
+
+  if (msg.content) {
+    if (typeof msg.content === 'string') {
+      contentStr = msg.content;
+    } else if (Array.isArray(msg.content)) {
+      msg.content.forEach((block) => {
+        if (block.type === 'text') {
+          contentStr += block.text || '';
+        } else if (block.type === 'tool_use') {
+          toolCalls.push(block);
+        }
+      });
+    }
+  }
+
+  if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+    msg.tool_calls.forEach((tc) => toolCalls.push(tc));
+  }
+
+  return {
+    contentPreview: truncateAuditText(contentStr.trim(), AUDIT_MESSAGE_PREVIEW_CHARS),
+    roleClass,
+    roleName,
+    toolCalls,
+  };
+}
+
+function createAuditMessageElement(msg) {
+  const view = collectAuditMessageView(msg);
+  if (!view.contentPreview.text.trim() && view.toolCalls.length === 0) return null;
+
+  const container = document.createElement('div');
+  container.className = `audit-bubble-container ${view.roleClass}`;
+  appendAuditText(container, view.roleName, 'div', 'audit-bubble-meta');
+
+  if (view.contentPreview.text.trim()) {
+    const bubble = document.createElement('div');
+    bubble.className = 'audit-bubble';
+    bubble.appendChild(renderAuditMarkdown(view.contentPreview.text));
+    container.appendChild(bubble);
+  }
+
+  view.toolCalls.forEach((tc) => container.appendChild(createAuditToolCallElement(tc)));
+  return container;
+}
+
+function createAuditToolCallElement(tc) {
+  const id = String(tc.id || Math.random().toString(36).substring(2, 9)).replace(
+    /[^a-zA-Z0-9_-]/g,
+    '_'
+  );
+  const name = tc.name || (tc.function ? tc.function.name : '未知工具');
+
+  let argsStr = '';
+  const inputObj = tc.input || (tc.function ? tc.function.arguments : null);
+  if (inputObj) {
+    if (typeof inputObj === 'string') {
+      try {
+        argsStr = JSON.stringify(JSON.parse(inputObj), null, 2);
+      } catch (e) {
+        argsStr = inputObj;
+      }
+    } else {
+      argsStr = JSON.stringify(inputObj, null, 2);
+    }
+  }
+
+  let resultStr = '';
+  if (selectedAuditRecordId && cachedAuditRecords && cachedAuditRecords.length > 0) {
+    const idx = selectedAuditRecordId.split('_').pop();
+    const currentRecord = cachedAuditRecords[Number(idx)];
+    if (currentRecord && currentRecord.messages) {
+      const toolResultMsg = currentRecord.messages.find(
+        (m) => m.role === 'tool' && m.tool_call_id === tc.id
+      );
+      if (toolResultMsg) {
+        resultStr =
+          typeof toolResultMsg.content === 'string'
+            ? toolResultMsg.content
+            : JSON.stringify(toolResultMsg.content, null, 2);
+      } else {
+        currentRecord.messages.forEach((m) => {
+          if (Array.isArray(m.content)) {
+            const block = m.content.find(
+              (b) => b.type === 'tool_result' && b.tool_use_id === tc.id
+            );
+            if (block) {
+              resultStr =
+                typeof block.content === 'string'
+                  ? block.content
+                  : JSON.stringify(block.content, null, 2);
+            }
+          }
+        });
+      }
+    }
+  }
+
+  const argsPreview = truncateAuditText(argsStr || '{}', AUDIT_TOOL_PREVIEW_CHARS);
+  const resultPreview = truncateAuditText(resultStr, AUDIT_TOOL_PREVIEW_CHARS);
+  const tool = document.createElement('div');
+  tool.className = 'audit-tool-call collapsed';
+  tool.id = `tool_call_${id}`;
+
+  const header = document.createElement('div');
+  header.className = 'audit-tool-header';
+  header.dataset.auditToggleTool = id;
+  const title = document.createElement('span');
+  title.className = 'audit-tool-title';
+  title.appendChild(createAuditToolIcon());
+  title.appendChild(document.createTextNode(`Tool Call: ${name}`));
+  header.appendChild(title);
+  const arrow = document.createElement('span');
+  arrow.appendChild(createAuditChevronIcon(10));
+  header.appendChild(arrow);
+
+  const body = document.createElement('div');
+  body.className = 'audit-tool-body';
+  const args = document.createElement('div');
+  args.className = 'audit-tool-args';
+  appendAuditText(
+    args,
+    `调用参数 (Arguments)${argsPreview.truncated ? ' · 已截断显示' : ''}:`,
+    'div',
+    'audit-tool-args-label'
+  );
+  const argsPre = document.createElement('pre');
+  argsPre.appendChild(createAuditCodeTextElement(argsPreview.text));
+  args.appendChild(argsPre);
+  body.appendChild(args);
+
+  const result = document.createElement('div');
+  result.className = 'audit-tool-result';
+  if (resultStr) {
+    appendAuditText(
+      result,
+      `执行输出 (Result)${resultPreview.truncated ? ' · 已截断显示' : ''}:`,
+      'div',
+      'audit-tool-result-label'
+    );
+    const resultPre = document.createElement('pre');
+    resultPre.appendChild(createAuditCodeTextElement(resultPreview.text));
+    result.appendChild(resultPre);
+  } else {
+    const label = appendAuditText(
+      result,
+      '(尚无输出结果，或在后续对话中呈现)',
+      'div',
+      'audit-tool-result-label'
+    );
+    label.style.opacity = '0.6';
+  }
+  body.appendChild(result);
+
+  tool.appendChild(header);
+  tool.appendChild(body);
+  return tool;
+}
+
+function createAuditChatFlowElement(record) {
+  const flow = document.createElement('div');
+  flow.className = 'audit-chat-flow';
+
+  if (record.messages && Array.isArray(record.messages)) {
+    record.messages.forEach((msg) => {
+      const message = createAuditMessageElement(msg);
+      if (message) flow.appendChild(message);
+    });
+  }
+
+  if (
+    record.response &&
+    record.response.tool_calls &&
+    Array.isArray(record.response.tool_calls) &&
+    record.response.tool_calls.length > 0
+  ) {
+    const container = document.createElement('div');
+    container.className = 'audit-bubble-container assistant';
+    appendAuditText(container, 'Assistant (Streaming Tool Calls)', 'div', 'audit-bubble-meta');
+    record.response.tool_calls.forEach((tc) =>
+      container.appendChild(createAuditToolCallElement(tc))
+    );
+    flow.appendChild(container);
+  }
+
+  return flow;
+}
+
+function renderAuditDetail(record) {
+  const panel = $('auditDetailPanel');
+  if (!panel) return;
+
+  panel.textContent = '';
+  panel.appendChild(createAuditDetailHeaderElement(record));
+
+  const body = document.createElement('div');
+  body.className = 'audit-detail-body';
+  if (record.system) body.appendChild(createAuditSystemPanelElement(record.system));
+  body.appendChild(createAuditInspectorElement(record));
+  body.appendChild(createAuditChatFlowElement(record));
+  panel.appendChild(body);
   bindAuditDetailDelegates(panel);
 
   // 绑定导出按钮事件

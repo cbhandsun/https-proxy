@@ -392,9 +392,10 @@ tr:hover td { background: var(--hover-bg); }
 
 .row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; align-items: center; margin-bottom: 10px; }
 #claudeDesktop.view-fill.active { display: flex; flex-direction: column; }
-#claudeDesktop .status-strip { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
-#claudeDesktop .status-strip .notice { margin: 0; padding: 8px 12px; line-height: 1.45; }
-#claudeDesktop .status-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+#claudeDesktop .status-strip { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+#claudeDesktop .status-strip .notice { margin: 0; padding: 8px 12px; line-height: 1.45; min-width: 0; overflow-wrap: anywhere; }
+#claudeDesktop .status-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start; min-width: 0; }
+#claudeDesktop .status-actions button { white-space: nowrap; }
 #claudeDesktop .advanced-card details { padding: 0; }
 #claudeDesktop .advanced-card summary { padding: 12px 16px; cursor: pointer; font-weight: 700; color: var(--text); list-style: none; display: flex; align-items: center; justify-content: space-between; }
 #claudeDesktop .advanced-card summary::after { content: '展开'; color: var(--muted); font-size: 12px; font-weight: 600; }

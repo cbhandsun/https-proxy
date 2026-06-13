@@ -2,8 +2,25 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { execFileSync, spawn } = require('child_process');
+const { parsePortOrDefault } = require('../lib/proxy/management-utils');
 
-const port = Number(process.env.PORT || 1430);
+function parseDevStaticPort(value) {
+  return parsePortOrDefault(value, 1430);
+}
+
+function parseLocalProxyPort(value) {
+  return parsePortOrDefault(value, 3443);
+}
+
+function parseOptionalPort(value) {
+  const parsed =
+    typeof value === 'number' ? value : Number.parseInt(String(value == null ? '' : value), 10);
+  if (!Number.isFinite(parsed)) return 0;
+  const integer = Math.trunc(parsed);
+  return integer >= 1 && integer <= 65535 ? integer : 0;
+}
+
+const port = parseDevStaticPort(process.env.PORT);
 const rootDir = path.resolve(__dirname, '..');
 const runtimeDir = path.resolve(
   process.env.PROXY_RUNTIME_DIR || process.env.PROXY_DATA_DIR || path.join(rootDir, '.hpm-runtime')
@@ -12,17 +29,62 @@ const root = path.resolve(__dirname, '..', 'tauri-ui');
 const configFile = path.join(rootDir, 'proxy.config.json');
 const staticLogFile = path.join(runtimeDir, 'dev-static.log');
 const localManagementAgent = new http.Agent({ keepAlive: true });
-const serverHealthMarker = 'dev-static-management-proxy-v5';
+const serverHealthMarker = 'dev-static-management-proxy-v7';
 
 let cachedConfigMtimeMs = -1;
 let cachedLocalPort = 3443;
 let staticLogQueue = Promise.resolve();
+
+function staticServerOrigins(req) {
+  const host = req.headers.host || `localhost:${port}`;
+  return new Set([
+    `http://${host}`,
+    `https://${host}`,
+    `http://localhost:${port}`,
+    `http://127.0.0.1:${port}`,
+  ]);
+}
+
+function isSameOriginManagementRequest(req) {
+  const allowed = staticServerOrigins(req);
+  const origin = req.headers.origin ? String(req.headers.origin) : '';
+  if (origin && !allowed.has(origin)) return false;
+
+  const fetchSite = req.headers['sec-fetch-site']
+    ? String(req.headers['sec-fetch-site']).toLowerCase()
+    : '';
+  if (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none') return false;
+
+  const referer = req.headers.referer ? String(req.headers.referer) : '';
+  if (referer) {
+    try {
+      const parsed = new URL(referer);
+      if (!allowed.has(parsed.origin)) return false;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function sendForbiddenManagementProxy(res) {
+  send(
+    res,
+    403,
+    JSON.stringify({ error: 'Dev static management proxy only accepts same-origin UI requests' }),
+    {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': 'http://127.0.0.1',
+    }
+  );
+}
+
 function managementTokenCandidateGroups(managementPort) {
-  const rootDir = path.resolve(__dirname, '..');
   const debugDir = path.join(rootDir, 'src-tauri', 'target', 'debug');
-  const portNumber = Number(managementPort);
+  const portNumber = parseOptionalPort(managementPort);
   const groups = [];
-  if (Number.isFinite(portNumber) && portNumber > 0) {
+  if (portNumber > 0) {
     groups.push([
       path.join(runtimeDir, `.mgmt-token-${portNumber}`),
       path.join(rootDir, `.mgmt-token-${portNumber}`),
@@ -48,6 +110,11 @@ const contentTypes = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
 };
+
+function isPathInsideRoot(requestedPath, rootPath) {
+  const relative = path.relative(rootPath, requestedPath);
+  return relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+}
 
 function send(res, statusCode, body, headers = {}) {
   res.writeHead(statusCode, {
@@ -75,7 +142,7 @@ async function getLocalProxyPort() {
 
     const config = JSON.parse(await fs.promises.readFile(configFile, 'utf8'));
     cachedConfigMtimeMs = stat.mtimeMs;
-    cachedLocalPort = Number((config.localServer && config.localServer.listenPort) || 3443);
+    cachedLocalPort = parseLocalProxyPort(config.localServer && config.localServer.listenPort);
     return cachedLocalPort;
   } catch (err) {
     cachedConfigMtimeMs = -1;
@@ -107,11 +174,21 @@ const server = http.createServer(async (req, res) => {
   writeStaticLog(`[${new Date().toISOString()}] ${req.method} ${req.url}\n`);
   // CORS support for development APIs
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
+    const headers = {
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': '*',
-    });
+    };
+    if (req.url && (req.url.startsWith('/v1/local/') || req.url.startsWith('/local/'))) {
+      if (!isSameOriginManagementRequest(req)) {
+        sendForbiddenManagementProxy(res);
+        return;
+      }
+      const origin = req.headers.origin ? String(req.headers.origin) : '';
+      headers['Access-Control-Allow-Origin'] = origin || `http://localhost:${port}`;
+    } else {
+      headers['Access-Control-Allow-Origin'] = '*';
+    }
+    res.writeHead(204, headers);
     res.end();
     return;
   }
@@ -133,6 +210,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname.startsWith('/v1/local/') || url.pathname.startsWith('/local/')) {
+      if (!isSameOriginManagementRequest(req)) {
+        sendForbiddenManagementProxy(res);
+        return;
+      }
       const localPort = await getLocalProxyPort();
       const managementPort = localPort + 100;
       const targetUrl = `http://127.0.0.1:${managementPort}${url.pathname}${url.search}`;
@@ -170,8 +251,19 @@ const server = http.createServer(async (req, res) => {
         });
         res.end(JSON.stringify({ error: '静态服务中转本地代理失败: ' + err.message }));
       });
-      proxyReq.setTimeout(7000, () => {
-        proxyReq.destroy(new Error(`HTTP 管理端口 ${managementPort} 请求超时，请确认代理已启动`));
+      const proxyTimeoutMs =
+        url.pathname === '/v1/local/trae/debug/claude-process/self-test' ||
+        url.pathname === '/local/trae/debug/claude-process/self-test'
+          ? 180000
+          : 7000;
+      proxyReq.setTimeout(proxyTimeoutMs, () => {
+        proxyReq.destroy(
+          new Error(
+            `HTTP 管理端口 ${managementPort} 请求超时(${Math.round(
+              proxyTimeoutMs / 1000
+            )}s)，请确认代理已启动`
+          )
+        );
       });
 
       req.pipe(proxyReq);
@@ -179,9 +271,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     const pathname = decodeURIComponent(url.pathname === '/' ? '/electron-ui.html' : url.pathname);
-    const requested = path.normalize(path.join(root, pathname));
+    const requested = path.resolve(root, `.${pathname}`);
 
-    if (!requested.startsWith(root)) {
+    if (!isPathInsideRoot(requested, root)) {
       send(res, 403, 'Forbidden', { 'Content-Type': 'text/plain; charset=utf-8' });
       return;
     }
@@ -203,25 +295,38 @@ const server = http.createServer(async (req, res) => {
 
 function probeExistingServer() {
   return new Promise((resolve) => {
+    let finished = false;
+    const finish = (result) => {
+      if (finished) return;
+      finished = true;
+      resolve(result);
+    };
     const req = http.get(`http://127.0.0.1:${port}/__dev-static-health`, (res) => {
-      let body = '';
-      res.setEncoding('utf8');
+      const chunks = [];
+      let bytes = 0;
       res.on('data', (chunk) => {
-        body += chunk;
-        if (body.length > 1024 * 1024) {
+        if (finished) return;
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), 'utf8');
+        bytes += buffer.length;
+        if (bytes > 1024 * 1024) {
+          chunks.length = 0;
           req.destroy();
-          resolve(false);
+          finish(false);
+          return;
         }
+        chunks.push(buffer);
       });
       res.on('end', () => {
-        resolve(res.statusCode >= 200 && res.statusCode < 300 && body.includes(serverHealthMarker));
+        if (finished) return;
+        const body = Buffer.concat(chunks, bytes).toString('utf8');
+        finish(res.statusCode >= 200 && res.statusCode < 300 && body.includes(serverHealthMarker));
       });
     });
     req.setTimeout(1000, () => {
       req.destroy();
-      resolve(false);
+      finish(false);
     });
-    req.on('error', () => resolve(false));
+    req.on('error', () => finish(false));
   });
 }
 
@@ -298,17 +403,30 @@ server.on('error', async (err) => {
   }
 });
 
-if (process.argv.includes('--ensure')) {
-  ensureServer()
-    .then((ok) => process.exit(ok ? 0 : 1))
-    .catch(() => process.exit(1));
-} else if (process.argv.includes('--probe')) {
-  probeExistingServer()
-    .then((ok) => process.exit(ok ? 0 : 1))
-    .catch(() => process.exit(1));
-} else {
-  server.listen(port, '127.0.0.1', () => {
-    console.log(`HTTPS Proxy Manager dev static server listening at http://localhost:${port}`);
-    console.log(`Serving: ${root}`);
-  });
+if (require.main === module) {
+  if (process.argv.includes('--ensure')) {
+    ensureServer()
+      .then((ok) => process.exit(ok ? 0 : 1))
+      .catch(() => process.exit(1));
+  } else if (process.argv.includes('--probe')) {
+    probeExistingServer()
+      .then((ok) => process.exit(ok ? 0 : 1))
+      .catch(() => process.exit(1));
+  } else {
+    server.listen(port, '127.0.0.1', () => {
+      console.log(`HTTPS Proxy Manager dev static server listening at http://localhost:${port}`);
+      console.log(`Serving: ${root}`);
+    });
+  }
 }
+
+module.exports = {
+  parseDevStaticPort,
+  parseLocalProxyPort,
+  parseOptionalPort,
+  isSameOriginManagementRequest,
+  isPathInsideRoot,
+  managementTokenCandidateGroups,
+  staticServerOrigins,
+  serverHealthMarker,
+};

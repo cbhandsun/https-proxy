@@ -437,6 +437,8 @@
                   <div id="claudeDesktopStatus" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">尚未检查 Claude Desktop 配置。</div>
                   <div class="status-actions" style="display: flex; gap: 8px; justify-content: flex-start;">
                     <button id="applyClaudeDesktop" class="secondary" style="margin: 0;">写入 Claude Desktop</button>
+                    <button id="testClaudeDesktopProcess" class="light" style="margin: 0;">验证过程显示</button>
+                    <button id="copyClaudeDesktopProcessPrompt" class="light" style="margin: 0;">复制验证提示</button>
                     <button id="restoreClaudeDesktop" class="danger" style="margin: 0;">恢复官方模式</button>
                     <button id="refreshClaudeDesktop" class="light" style="margin: 0;">刷新状态</button>
                   </div>
@@ -474,6 +476,7 @@
                       <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>模式</label><select id="claudeDesktopMode"><option value="proxy">本地映射</option><option value="direct">直连上游</option><option value="official">恢复官方</option></select></div>
                       <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>本地网关 URL</label><input id="claudeDesktopBaseUrl" placeholder="https://localhost:3443"></div>
                       <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>Bearer Token</label><input id="claudeDesktopToken" type="password" placeholder="留空则应用时自动生成"></div>
+                      <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>Trae 过程</label><select id="claudeDesktopTraeProcessStyle"><option value="text">文本过程（推荐）</option><option value="thinking">Thinking 过程块</option><option value="off">关闭</option></select></div>
                       <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>直连 Base URL</label><input id="claudeDesktopDirectBaseUrl" placeholder="默认使用当前上游 URL"></div>
                       <div class="row" style="grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center;"><label>直连 API Key</label><input id="claudeDesktopDirectApiKey" type="password" placeholder="默认使用当前上游 API Key"></div>
                       <div class="notice" id="claudeDesktopPreview" style="grid-column: 1 / -1; margin-top: 10px;"></div>
@@ -560,17 +563,23 @@
                     <h3 style="margin: 0; font-size: 14px;">Trae Debug Center</h3>
                     <div class="status-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
                       <button id="refreshTraeDebugEvents" class="light" style="margin: 0;">刷新过程事件</button>
+                      <button id="testTraeClaudeProcess" class="light" style="margin: 0;">验证 Claude 输出</button>
                       <button id="scanTraeNativeDebug" class="light" style="margin: 0;">扫描 Native PID</button>
+                      <button id="startTraeNativeDeepDebug" class="light" style="margin: 0;">一键启用深入探针</button>
+                      <button id="stopTraeNativeDeepDebug" class="light" style="margin: 0;">停止深入探针</button>
+                      <button id="refreshTraeNativeDeepDebug" class="light" style="margin: 0;">刷新深入事件</button>
                       <button id="copyTraeNativeDebugCommands" class="light" style="margin: 0;">复制 Hook 命令</button>
                     </div>
                   </div>
                   <div class="settings-grid trae-debug-switches" style="margin: 0 0 10px 0;">
                     <label><input id="traeRawCommentsEnabled" type="checkbox"><span><span class="setting-title">Raw SSE 注释</span><span class="setting-desc">把 Raw Stream Patch 安全摘要写成 SSE comment，普通 SDK 可能忽略。</span></span></label>
+                    <label><select id="traeClaudeProcessStyle"><option value="">关闭</option><option value="thinking">Thinking 过程块</option><option value="text">文本备用过程块</option></select><span><span class="setting-title">Claude 过程显示</span><span class="setting-desc">优先用 Thinking；若 Claude Desktop 不展示，可切到文本备用。</span></span></label>
                     <label><input id="traeApiVisibleProgressEnabled" type="checkbox"><span><span class="setting-title">API 可见过程</span><span class="setting-desc">把安全摘要写入 assistant 正文，普通流式客户端可见，会改变输出内容。</span></span></label>
                     <label><input id="traeLogProgressEnabled" type="checkbox" checked><span><span class="setting-title">日志旁路过程</span><span class="setting-desc">读取 Trae 本地日志里的工具/模型阶段摘要，关闭后 API 不再输出日志旁路进度。</span></span></label>
                   </div>
                   <div id="traeDebugSummary" class="notice" style="margin: 0 0 10px 0; font-size: 13px;">等待刷新 Debug 事件。</div>
                   <div id="traeDebugEvents" class="trae-debug-events"></div>
+                  <pre id="traeNativeDeepDebugOutput" class="trae-debug-output">Native 深入探针未启动。</pre>
                   <pre id="traeNativeDebugOutput" class="trae-debug-output">Native Debug 未扫描。</pre>
                 </div>
               </div>

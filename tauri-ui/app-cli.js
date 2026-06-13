@@ -5,6 +5,37 @@ let lastCliSessionsSignature = '';
 let lastCliSessionsPollAt = 0;
 let codeToolsInitialized = false;
 
+function clearCliElement(element) {
+  if (element) element.replaceChildren();
+}
+
+function createCliLaunchIcon() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2.5');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  polyline.setAttribute('points', '4 17 10 11 4 5');
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', '12');
+  line.setAttribute('x2', '20');
+  line.setAttribute('y1', '19');
+  line.setAttribute('y2', '19');
+  svg.append(polyline, line);
+  return svg;
+}
+
+function setCliLaunchButtonReady() {
+  const button = $('cliLaunchBtn');
+  button.disabled = false;
+  button.replaceChildren(createCliLaunchIcon(), document.createTextNode(' 启动 CLI 助手'));
+}
+
 function isCodeToolsVisible() {
   return currentViewId === 'codeToolsView' && $('codeToolsView').classList.contains('active');
 }
@@ -39,22 +70,24 @@ async function initCodeToolsView() {
   } catch (e) {}
 
   if (!Array.isArray(profiles) || profiles.length === 0) {
-    profiles = [{
-      id: 'cli-prof-default',
-      name: '默认配置预设',
-      toolId: 'claude-code',
-      model: 'default',
-      customArgs: '',
-      cwd: '',
-      envs: '',
-      terminal: 'PowerShell',
-      upgrade: false
-    }];
+    profiles = [
+      {
+        id: 'cli-prof-default',
+        name: '默认配置预设',
+        toolId: 'claude-code',
+        model: 'default',
+        customArgs: '',
+        cwd: '',
+        envs: '',
+        terminal: 'PowerShell',
+        upgrade: false,
+      },
+    ];
     localStorage.setItem('hpm_cli_profiles', JSON.stringify(profiles));
   }
 
   let activeId = localStorage.getItem('hpm_cli_active_profile_id');
-  if (!activeId || !profiles.some(p => p.id === activeId)) {
+  if (!activeId || !profiles.some((p) => p.id === activeId)) {
     activeId = profiles[0].id;
     localStorage.setItem('hpm_cli_active_profile_id', activeId);
   }
@@ -102,8 +135,8 @@ async function initCodeToolsView() {
         loadActiveProfileToForm();
       };
     }
-    listContainer.innerHTML = '';
-    profiles.forEach(p => {
+    clearCliElement(listContainer);
+    profiles.forEach((p) => {
       const item = document.createElement('div');
       item.className = 'tool-item' + (p.id === activeId ? ' selected' : '');
       item.dataset.profileId = p.id;
@@ -116,19 +149,24 @@ async function initCodeToolsView() {
       else if (p.toolId === 'openclaw') toolName = 'OpenClaw';
       else if (p.toolId === 'hermes') toolName = 'Hermes';
 
-      item.innerHTML = `
-        <div class="tool-item-info">
-          <span class="tool-item-title">${escapeHtml(p.name)}</span>
-          <span class="tool-item-desc">${escapeHtml(toolName)} · ${escapeHtml(p.model)}</span>
-        </div>
-      `;
+      const info = document.createElement('div');
+      info.className = 'tool-item-info';
+      const title = document.createElement('span');
+      title.className = 'tool-item-title';
+      title.textContent = p.name || '';
+      const desc = document.createElement('span');
+      desc.className = 'tool-item-desc';
+      desc.textContent = `${toolName} · ${p.model || ''}`;
+      info.appendChild(title);
+      info.appendChild(desc);
+      item.appendChild(info);
       listContainer.appendChild(item);
     });
   }
 
   // 3. 将当前选中预设填充进表单
   function loadActiveProfileToForm() {
-    const p = profiles.find(x => x.id === activeId);
+    const p = profiles.find((x) => x.id === activeId);
     if (!p) return;
     $('cliProfileNameInput').value = p.name || '';
     $('cliToolSelect').value = p.toolId || 'claude-code';
@@ -144,7 +182,7 @@ async function initCodeToolsView() {
 
   // 4. 从表单实时同步回预设并持久化保存
   function saveCurrentProfileFromForm(options = {}) {
-    const p = profiles.find(x => x.id === activeId);
+    const p = profiles.find((x) => x.id === activeId);
     if (!p) return;
     p.name = $('cliProfileNameInput').value.trim() || '未命名预设';
     p.toolId = $('cliToolSelect').value;
@@ -166,7 +204,10 @@ async function initCodeToolsView() {
 
   // 绑定表单输入事件以实现即时修改即时保存
   $('cliProfileNameInput').oninput = saveCurrentProfileFromForm;
-  $('cliToolSelect').onchange = () => { saveCurrentProfileFromForm(); updateUpgradeCheckboxState(); };
+  $('cliToolSelect').onchange = () => {
+    saveCurrentProfileFromForm();
+    updateUpgradeCheckboxState();
+  };
   $('cliModelSelect').onchange = saveCurrentProfileFromForm;
   $('cliCustomArgsInput').oninput = saveCurrentProfileFromForm;
   $('cliCwdInput').oninput = saveCurrentProfileFromForm;
@@ -186,7 +227,7 @@ async function initCodeToolsView() {
       cwd: '',
       envs: '',
       terminal: 'PowerShell',
-      upgrade: false
+      upgrade: false,
     };
     profiles.push(newProfile);
     activeId = newId;
@@ -199,7 +240,7 @@ async function initCodeToolsView() {
   };
 
   $('cliCopyProfileBtn').onclick = () => {
-    const current = profiles.find(x => x.id === activeId);
+    const current = profiles.find((x) => x.id === activeId);
     if (!current) return;
     const newId = 'cli-prof-' + Math.random().toString(36).substring(2, 10);
     const copy = JSON.parse(JSON.stringify(current));
@@ -219,12 +260,12 @@ async function initCodeToolsView() {
       showToast('必须要保留至少一个配置预设', 'error');
       return;
     }
-    const idx = profiles.findIndex(x => x.id === activeId);
+    const idx = profiles.findIndex((x) => x.id === activeId);
     if (idx < 0) return;
     const confirmed = await confirmAction({
       title: '确认删除',
       message: `您确定要删除配置预设“${profiles[idx].name}”吗？`,
-      confirmText: '删除'
+      confirmText: '删除',
     });
     if (!confirmed) return;
     profiles.splice(idx, 1);
@@ -238,15 +279,32 @@ async function initCodeToolsView() {
 
   // 6. 绑定文件夹选择与启动 CLI 按钮事件
   $('cliSelectFolderBtn').onclick = async () => {
+    const button = $('cliSelectFolderBtn');
+    button.disabled = true;
     try {
-      const res = await fetch(getApiBase() + '/v1/local/select-directory', { method: 'POST' });
-      const data = await res.json();
-      if (data.ok && data.path) {
+      let data;
+      if (window.proxyManager && typeof window.proxyManager.selectDirectory === 'function') {
+        data = await window.proxyManager.selectDirectory();
+      } else {
+        const res = await fetch(getApiBase() + '/v1/local/select-directory', { method: 'POST' });
+        data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+      }
+      if (!data || !data.ok) {
+        throw new Error((data && data.error) || '未能打开文件夹选择器');
+      }
+      if (data.path) {
         $('cliCwdInput').value = data.path;
         saveCurrentProfileFromForm({ persistNow: true });
+      } else if (data.cancelled) {
+        showToast('已取消选择文件夹', 'info');
       }
     } catch (err) {
       showToast('选择文件夹出错: ' + err.message, 'error');
+    } finally {
+      button.disabled = false;
     }
   };
 
@@ -254,7 +312,7 @@ async function initCodeToolsView() {
     if (isLaunchingCli) return;
 
     saveCurrentProfileFromForm({ persistNow: true });
-    const current = profiles.find(x => x.id === activeId);
+    const current = profiles.find((x) => x.id === activeId);
     if (!current) return;
 
     isLaunchingCli = true;
@@ -272,8 +330,8 @@ async function initCodeToolsView() {
           envs: current.envs,
           terminal: current.terminal,
           upgrade: current.upgrade,
-          customArgs: current.customArgs
-        })
+          customArgs: current.customArgs,
+        }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -286,8 +344,7 @@ async function initCodeToolsView() {
       showToast('启动出错: ' + err.message, 'error');
     } finally {
       isLaunchingCli = false;
-      $('cliLaunchBtn').disabled = false;
-      $('cliLaunchBtn').innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg> 启动 CLI 助手`;
+      setCliLaunchButtonReady();
     }
   };
 
@@ -300,8 +357,8 @@ async function initCodeToolsView() {
       const data = await res.json();
       if (data.ok && Array.isArray(data.tools)) {
         const select = $('cliToolSelect');
-        select.innerHTML = '';
-        data.tools.forEach(t => {
+        clearCliElement(select);
+        data.tools.forEach((t) => {
           const opt = document.createElement('option');
           opt.value = t.id;
           const isInstalled = !!t.current;
@@ -327,29 +384,28 @@ async function initCodeToolsView() {
         // Always ensure 'default' is present
         modelsSet.add('default');
 
-
-
         const routesSource = (data && data.modelRoutes) || (config && config.modelRoutes) || [];
         if (Array.isArray(routesSource)) {
-          routesSource.forEach(r => {
+          routesSource.forEach((r) => {
             if (r && r.from) modelsSet.add(r.from);
           });
         }
 
-        select.innerHTML = '';
-        modelsSet.forEach(m => {
+        clearCliElement(select);
+        modelsSet.forEach((m) => {
           const opt = document.createElement('option');
           opt.value = m;
 
           if (m === 'default') {
             opt.textContent = 'default | 默认上游 (不重定向)';
           } else {
-            const route = routesSource.find(r => r && r.from === m);
+            const route = routesSource.find((r) => r && r.from === m);
             if (route) {
-              const profile = data.profiles && Array.isArray(data.profiles)
-                ? data.profiles.find(p => p.id === route.profileId)
-                : null;
-              const profileName = profile ? (profile.name || profile.id) : route.profileId;
+              const profile =
+                data.profiles && Array.isArray(data.profiles)
+                  ? data.profiles.find((p) => p.id === route.profileId)
+                  : null;
+              const profileName = profile ? profile.name || profile.id : route.profileId;
               opt.textContent = `${m} | 路由到 ${profileName} -> ${route.to}`;
             } else {
               if (m === 'deepseek-v4-flash') {
@@ -413,15 +469,16 @@ async function refreshCliSessions(options = {}) {
           const sessionToken = button.dataset.token;
           const confirmed = await confirmAction({
             title: '销毁会话',
-            message: '您确定要注销此 CLI 会话吗？注销后该客户端发送的请求将不再被代理信任并被拒绝接管。',
-            confirmText: '销毁'
+            message:
+              '您确定要注销此 CLI 会话吗？注销后该客户端发送的请求将不再被代理信任并被拒绝接管。',
+            confirmText: '销毁',
           });
           if (!confirmed) return;
           try {
             const deleteRes = await fetch(getApiBase() + '/v1/local/cli/sessions/delete', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sessionToken })
+              body: JSON.stringify({ sessionToken }),
             });
             const deleteData = await deleteRes.json();
             if (deleteData.ok) {
@@ -431,14 +488,14 @@ async function refreshCliSessions(options = {}) {
             } else {
               showToast('销毁失败', 'error');
             }
-          } catch(e) {
+          } catch (e) {
             showToast('注销请求出错: ' + e.message, 'error');
           }
         };
       }
       if (data.sessions.length === 0) {
         if (lastCliSessionsSignature !== 'empty') {
-          tbody.innerHTML = '';
+          clearCliElement(tbody);
           lastCliSessionsSignature = 'empty';
           changed = true;
         }
@@ -448,7 +505,7 @@ async function refreshCliSessions(options = {}) {
       $('cliNoSessionsTip').style.display = 'none';
 
       const now = Date.now();
-      const rows = data.sessions.map(s => {
+      const rows = data.sessions.map((s) => {
         let relativeTime = '未活跃';
         if (s.lastUsedAt > 0) {
           const diffSec = Math.floor((now - s.lastUsedAt) / 1000);
@@ -461,33 +518,88 @@ async function refreshCliSessions(options = {}) {
         const token = String(s.sessionToken || '');
         const requestCount = Number(s.requestCount || 0);
         return {
-          signature: [token, s.toolName || '', s.modelOverride || '', requestCount, relativeTime].join('\u001f'),
+          signature: [
+            token,
+            s.toolName || '',
+            s.modelOverride || '',
+            requestCount,
+            relativeTime,
+          ].join('\u001f'),
           token,
-          html: `
-          <tr>
-          <td><strong>${escapeHtml(s.toolName || '')}</strong><div class="muted" style="font-size: 10px;">Token: ${escapeHtml(token.substring(0, 15))}...</div></td>
-          <td><span class="badge" style="background: var(--primary-soft); color: var(--primary); font-weight: 500; border-color: var(--border);">${escapeHtml(s.modelOverride || '')}</span></td>
-          <td><span class="badge" style="font-weight: 600; border-color: var(--border);">${requestCount}</span></td>
-          <td class="muted">${relativeTime}</td>
-          <td style="text-align: right; padding-right: 8px;">
-            <button class="delete-btn-soft" data-token="${escapeAttr(token)}">销毁</button>
-          </td>
-          </tr>
-        `
+          toolName: s.toolName || '',
+          modelOverride: s.modelOverride || '',
+          requestCount,
+          relativeTime,
         };
       });
-      const nextSignature = rows.map(row => row.signature).join('\u001e');
+      const nextSignature = rows.map((row) => row.signature).join('\u001e');
       if (nextSignature === lastCliSessionsSignature) return;
 
       lastCliSessionsSignature = nextSignature;
       changed = true;
-      tbody.innerHTML = rows.map(row => row.html).join('');
+      clearCliElement(tbody);
+      rows.forEach((row) => {
+        const tr = document.createElement('tr');
+
+        const toolCell = document.createElement('td');
+        const toolName = document.createElement('strong');
+        toolName.textContent = row.toolName;
+        const tokenHint = document.createElement('div');
+        tokenHint.className = 'muted';
+        tokenHint.style.fontSize = '10px';
+        tokenHint.textContent = `Token: ${row.token.substring(0, 15)}...`;
+        toolCell.appendChild(toolName);
+        toolCell.appendChild(tokenHint);
+
+        const modelCell = document.createElement('td');
+        const modelBadge = document.createElement('span');
+        modelBadge.className = 'badge';
+        modelBadge.style.background = 'var(--primary-soft)';
+        modelBadge.style.color = 'var(--primary)';
+        modelBadge.style.fontWeight = '500';
+        modelBadge.style.borderColor = 'var(--border)';
+        modelBadge.textContent = row.modelOverride;
+        modelCell.appendChild(modelBadge);
+
+        const countCell = document.createElement('td');
+        const countBadge = document.createElement('span');
+        countBadge.className = 'badge';
+        countBadge.style.fontWeight = '600';
+        countBadge.style.borderColor = 'var(--border)';
+        countBadge.textContent = String(row.requestCount);
+        countCell.appendChild(countBadge);
+
+        const timeCell = document.createElement('td');
+        timeCell.className = 'muted';
+        timeCell.textContent = row.relativeTime;
+
+        const actionCell = document.createElement('td');
+        actionCell.style.textAlign = 'right';
+        actionCell.style.paddingRight = '8px';
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete-btn-soft';
+        deleteButton.dataset.token = row.token;
+        deleteButton.textContent = '销毁';
+        actionCell.appendChild(deleteButton);
+
+        tr.appendChild(toolCell);
+        tr.appendChild(modelCell);
+        tr.appendChild(countCell);
+        tr.appendChild(timeCell);
+        tr.appendChild(actionCell);
+        tbody.appendChild(tr);
+      });
     }
   } catch (err) {
     console.error('刷新活动会话失败:', err);
   } finally {
     cliSessionsRefreshInFlight = false;
-    finishPerf({ passive: !!options.passive, force: !!options.force, changed, sessions: sessionCount });
+    finishPerf({
+      passive: !!options.passive,
+      force: !!options.force,
+      changed,
+      sessions: sessionCount,
+    });
   }
 }
 
@@ -506,3 +618,13 @@ function updateUpgradeCheckboxState() {
     $('cliUpgradeCheck').checked = true;
   }
 }
+
+function stopCodeToolsPolling() {
+  if (cliSessionsTimer) {
+    clearInterval(cliSessionsTimer);
+    cliSessionsTimer = null;
+  }
+}
+
+window.initCodeToolsView = initCodeToolsView;
+window.stopCodeToolsPolling = stopCodeToolsPolling;

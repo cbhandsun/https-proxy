@@ -1,0 +1,90 @@
+const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-management-diagnostics-'));
+process.env.PROXY_DATA_DIR = tmpDir;
+
+const {
+  clearTextFileIfExists,
+  createManagementDiagnosticsHandlers,
+  readBoundedFullLog,
+  readTailText,
+} = require('../lib/proxy/handlers/management-diagnostics');
+
+function createJsonRes() {
+  const res = {
+    statusCode: 0,
+    headers: null,
+    body: '',
+    writeHead(statusCode, headers) {
+      this.statusCode = statusCode;
+      this.headers = headers;
+    },
+    end(body) {
+      this.body = body == null ? '' : String(body);
+    },
+  };
+  return res;
+}
+
+try {
+  const missingFile = path.join(tmpDir, 'missing.log');
+  assert.strictEqual(readTailText(missingFile), '暂无日志记录');
+
+  const logFile = path.join(tmpDir, 'proxy.log');
+  fs.writeFileSync(logFile, ['one', 'two', 'three', 'four'].join('\n'), 'utf8');
+  assert.strictEqual(readTailText(logFile, 2, 1024), 'three\nfour');
+
+  fs.writeFileSync(logFile, 'head\n' + 'x'.repeat(80 * 1024) + '\ntail', 'utf8');
+  const bounded = readBoundedFullLog(logFile, 1);
+  assert.ok(bounded.startsWith('[log truncated:'), 'full log reads should report truncation');
+  assert.ok(bounded.endsWith('tail'), 'full log reads should preserve the tail');
+
+  assert.strictEqual(clearTextFileIfExists(missingFile), false);
+  assert.strictEqual(clearTextFileIfExists(logFile), true);
+  assert.strictEqual(fs.readFileSync(logFile, 'utf8'), '');
+
+  const eventsFile = path.join(tmpDir, 'proxy-events.jsonl');
+  fs.writeFileSync(
+    eventsFile,
+    [
+      JSON.stringify({ time: '2026-01-01T00:00:00.000Z', kind: 'request_start', path: '/old' }),
+      'not json',
+      JSON.stringify({ time: '2026-01-01T00:00:02.000Z', kind: 'request_end', path: '/new' }),
+    ].join('\n') + '\n',
+    'utf8'
+  );
+
+  const handlers = createManagementDiagnosticsHandlers({
+    sendJson(res, statusCode, data) {
+      res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(data));
+    },
+  });
+
+  const eventsRes = createJsonRes();
+  handlers.handleLocalEventsRequest(
+    {
+      url: '/v1/local/events?limit=5&after=2026-01-01T00:00:01.000Z',
+      headers: { host: 'localhost' },
+    },
+    eventsRes
+  );
+  assert.strictEqual(eventsRes.statusCode, 200);
+  assert.deepStrictEqual(
+    JSON.parse(eventsRes.body).map((event) => event.path),
+    ['/new']
+  );
+
+  const clearRes = createJsonRes();
+  handlers.handleLocalEventsClearRequest({ url: '/v1/local/events/clear', headers: {} }, clearRes);
+  assert.strictEqual(clearRes.statusCode, 200);
+  assert.deepStrictEqual(JSON.parse(clearRes.body), { ok: true });
+  assert.strictEqual(fs.readFileSync(eventsFile, 'utf8'), '');
+} finally {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+}
+
+console.log('[management-diagnostics.test] ok');

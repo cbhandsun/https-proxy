@@ -25,6 +25,111 @@ async function run() {
   assert.equal(typeof mcpHubModule.createMcpHub, 'function', 'createMcpHub exported');
   assert.equal(typeof mcpHubModule.normalizeMcpTool, 'function', 'normalizeMcpTool exported');
   assert.equal(typeof mcpHubModule.mergeClaudeTools, 'function', 'mergeClaudeTools exported');
+  assert.equal(
+    typeof mcpHubModule._test.compactMcpLogValue,
+    'function',
+    'compactMcpLogValue exported for tests'
+  );
+
+  const compacted = mcpHubModule._test.compactMcpLogValue({
+    input: {
+      apiKey: 'sk-secret',
+      nested: {
+        authorization: 'Bearer token',
+        text: 'x'.repeat(13000),
+      },
+    },
+  });
+  assert.equal(compacted.input.apiKey, '[redacted]', 'apiKey redacted in MCP logs');
+  assert.equal(
+    compacted.input.nested.authorization,
+    '[redacted]',
+    'authorization redacted in MCP logs'
+  );
+  assert.ok(compacted.input.nested.text.endsWith('...[truncated]'), 'large MCP log text truncated');
+
+  const normalizedTool = normalizeMcpTool(
+    {
+      name: 'read_file',
+      description: 'Read a file',
+      inputSchema: { type: 'object', required: ['path'], properties: { path: { type: 'string' } } },
+    },
+    { id: 'local', prefix: 'fs' }
+  );
+  assert.deepEqual(normalizedTool, {
+    name: 'fs_read_file',
+    description: 'Read a file',
+    input_schema: { type: 'object', required: ['path'], properties: { path: { type: 'string' } } },
+  });
+
+  const mergedTools = mergeClaudeTools(
+    [{ name: 'Read', input_schema: { type: 'object', properties: {} } }],
+    [
+      {
+        name: 'Read',
+        input_schema: { type: 'object', properties: { duplicate: { type: 'string' } } },
+      },
+      normalizedTool,
+    ]
+  );
+  assert.equal(mergedTools.length, 2);
+  assert.equal(mergedTools[1].name, 'fs_read_file');
+
+  const injectServer = await startStubServer((req, res) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
+    req.on('end', () => {
+      const parsed = JSON.parse(body || '{}');
+      assert.equal(parsed.method, 'tools/list');
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: parsed.id,
+          result: {
+            tools: [
+              {
+                name: 'search_docs',
+                description: 'Search docs',
+                input_schema: { type: 'object', properties: { q: { type: 'string' } } },
+              },
+            ],
+          },
+        })
+      );
+    });
+  });
+
+  try {
+    const injectHub = createMcpHub({
+      getConfig: () => ({
+        mcpHub: {
+          servers: [
+            {
+              id: 'docs',
+              url: `http://127.0.0.1:${injectServer.port}`,
+              injectAll: true,
+              prefix: 'docs',
+            },
+          ],
+          routing: [],
+        },
+      }),
+    });
+    assert.equal(typeof injectHub.augmentRequestTools, 'function');
+    const augmented = await injectHub.augmentRequestTools({ model: 'claude-sonnet', tools: [] });
+    assert.deepEqual(augmented.tools, [
+      {
+        name: 'docs_search_docs',
+        description: 'Search docs',
+        input_schema: { type: 'object', properties: { q: { type: 'string' } } },
+      },
+    ]);
+  } finally {
+    injectServer.server.close();
+  }
 
   // ─── 2. retry-after-failure actually waits and retries ────────
   let attempts = 0;
@@ -43,18 +148,20 @@ async function run() {
   });
 
   const hub = createMcpHub({
-    fetchMcpConfig: () => ({
-      enabled: true,
-      servers: [
-        {
-          id: 's1',
-          url: `http://127.0.0.1:${port}/mcp`,
-          maxRetries: 2,
-          retryDelayMs: 30,
-          timeoutMs: 1000,
-        },
-      ],
-      routing: [{ toolName: 'ping', serverId: 's1' }],
+    getConfig: () => ({
+      mcpHub: {
+        enabled: true,
+        servers: [
+          {
+            id: 's1',
+            url: `http://127.0.0.1:${port}/mcp`,
+            maxRetries: 2,
+            retryDelayMs: 30,
+            timeoutMs: 1000,
+          },
+        ],
+        routing: [{ toolName: 'ping', serverId: 's1' }],
+      },
     }),
     normalizeMcpTool,
     mergeClaudeTools,
@@ -69,14 +176,24 @@ async function run() {
   };
 
   try {
-    // Use a low-level entry into the hub by going through its tool-call
-    // resolution. We need to call the function that wires `callRemoteMcp`.
-    // Since callRemoteMcp is not exported, we drive it through the hub's
-    // public surface (the run() entry) — but that requires a real Claude
-    // request shape. For this regression test we instead verify the
-    // Promise/timeout pattern by constructing a tiny inline mirror.
-    //
-    // Inline mirror of the fix:
+    const result = await hub.callRemoteMcp(
+      {
+        id: 's1',
+        url: `http://127.0.0.1:${port}/mcp`,
+        maxRetries: '2',
+        retryDelayMs: '-10',
+        timeoutMs: '0',
+      },
+      'ping',
+      { ok: true }
+    );
+    assert.deepEqual(result, { ok: true, payload: 'success-on-third' });
+    assert.equal(attempts, 3, 'callRemoteMcp retries until configured maxRetries');
+    assert.ok(
+      warnings.some((line) => line.includes('attempt 2/3')),
+      'retry warning includes bounded attempt count'
+    );
+
     const fixedDelay = 50;
     const t0 = Date.now();
     await new Promise((resolve) => setTimeout(resolve, fixedDelay));
@@ -119,7 +236,77 @@ async function run() {
     server.close();
   }
 
-  console.log('mcp-hub.test.js ok (3 assertions)');
+  let cappedAttempts = 0;
+  const capped = await startStubServer((req, res) => {
+    cappedAttempts += 1;
+    req.on('data', () => {});
+    req.on('end', () => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: { message: 'always down' } }));
+    });
+  });
+  try {
+    const cappedWarnings = [];
+    const origWarn = console.warn;
+    console.warn = (...args) => {
+      cappedWarnings.push(args.join(' '));
+    };
+    const cappedHub = createMcpHub({ getConfig: () => ({ mcpHub: { servers: [], routing: [] } }) });
+    try {
+      await assert.rejects(
+        () =>
+          cappedHub.callRemoteMcp(
+            {
+              id: 'bounded',
+              url: `http://127.0.0.1:${capped.port}/mcp`,
+              maxRetries: '999',
+              retryDelayMs: '-100',
+              timeoutMs: 'Infinity',
+            },
+            'fail',
+            {}
+          ),
+        /always down/
+      );
+      assert.equal(cappedAttempts, 11, 'maxRetries is capped to 10 retries plus initial call');
+      assert.equal(cappedWarnings.length, 10, 'capped retry path emits one warning per retry');
+    } finally {
+      console.warn = origWarn;
+    }
+  } finally {
+    capped.server.close();
+  }
+
+  let hugeRequestSeen = false;
+  const huge = await startStubServer((req, res) => {
+    hugeRequestSeen = true;
+    req.on('data', () => {});
+    req.on('end', () => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.write('{"jsonrpc":"2.0","result":"');
+      res.write('x'.repeat(1024 * 1024 + 1));
+      res.end('"}');
+    });
+  });
+  try {
+    const response = await mcpHubModule._test.sendJsonRpc(
+      { url: `http://127.0.0.1:${huge.port}/mcp` },
+      'tools/list',
+      {},
+      1000
+    );
+    assert.equal(hugeRequestSeen, true, 'oversized MCP server was contacted');
+    assert.equal(response.ok, false, 'oversized MCP response is rejected');
+    assert.match(
+      response.error,
+      /MCP response too large/,
+      'oversized MCP response reports size error'
+    );
+  } finally {
+    huge.server.close();
+  }
+
+  console.log('mcp-hub.test.js ok');
 }
 
 run().catch((err) => {

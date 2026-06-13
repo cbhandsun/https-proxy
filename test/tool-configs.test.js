@@ -16,20 +16,30 @@ const chatGptAuth = {
   },
 };
 fs.writeFileSync(authPath, JSON.stringify(chatGptAuth, null, 2), 'utf8');
-fs.writeFileSync(path.join(tempHome, '.codex', 'models_cache.json'), JSON.stringify({
-  models: [{
-    slug: 'gpt-5.5',
-    display_name: 'GPT-5.5',
-    description: 'Template model',
-    default_reasoning_level: 'medium',
-    supported_reasoning_levels: [{ effort: 'medium', description: 'Balanced' }],
-    shell_type: 'shell_command',
-    visibility: 'list',
-    supported_in_api: true,
-    priority: 0,
-    base_instructions: 'You are Codex.',
-  }],
-}, null, 2), 'utf8');
+fs.writeFileSync(
+  path.join(tempHome, '.codex', 'models_cache.json'),
+  JSON.stringify(
+    {
+      models: [
+        {
+          slug: 'gpt-5.5',
+          display_name: 'GPT-5.5',
+          description: 'Template model',
+          default_reasoning_level: 'medium',
+          supported_reasoning_levels: [{ effort: 'medium', description: 'Balanced' }],
+          shell_type: 'shell_command',
+          visibility: 'list',
+          supported_in_api: true,
+          priority: 0,
+          base_instructions: 'You are Codex.',
+        },
+      ],
+    },
+    null,
+    2
+  ),
+  'utf8'
+);
 
 const {
   applyCodexProxy,
@@ -41,8 +51,27 @@ const {
   applyCodexApiLogin,
   backupCurrentCodexAuth,
   buildCodexOfficialLoginLaunchArgs,
+  deleteEnvValue,
+  deleteTomlValue,
+  setEnvValue,
+  setTomlValue,
   switchCodexMode,
 } = require('../lib/proxy/tool-configs');
+
+const toml = 'theme = "dark"\nbase_url = "https://old.example"\n';
+const updatedToml = setTomlValue(toml, 'base_url', 'https://localhost:3447');
+assert.strictEqual(updatedToml, 'theme = "dark"\nbase_url = "https://localhost:3447"\n');
+assert.strictEqual(setTomlValue('', 'model_provider', 'custom'), '\nmodel_provider = "custom"\n');
+assert.strictEqual(deleteTomlValue(updatedToml, 'base_url'), 'theme = "dark"\n');
+
+const env = 'KEEP=yes\nGOOGLE_GEMINI_BASE_URL=https://old.example\n';
+const updatedEnv = setEnvValue(env, 'GOOGLE_GEMINI_BASE_URL', 'https://localhost:3443');
+assert.strictEqual(updatedEnv, 'KEEP=yes\nGOOGLE_GEMINI_BASE_URL=https://localhost:3443\n');
+assert.strictEqual(
+  setEnvValue('', 'ANTHROPIC_BASE_URL', 'https://localhost:3443'),
+  '\nANTHROPIC_BASE_URL=https://localhost:3443\n'
+);
+assert.strictEqual(deleteEnvValue(updatedEnv, 'GOOGLE_GEMINI_BASE_URL'), 'KEEP=yes\n');
 
 assert.deepStrictEqual(readCodexAuthStatus(), {
   authPath,
@@ -69,11 +98,19 @@ const apiLoginResult = applyCodexApiLogin();
 assert.strictEqual(apiLoginResult.auth.authMode, 'api');
 assert.strictEqual(apiLoginResult.auth.hasProxyManagedApiKey, true);
 assert.strictEqual(apiLoginResult.apiKeySource, 'proxy-managed');
-assert.strictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')).OPENAI_API_KEY, 'sk-proxy-managed');
+assert.strictEqual(
+  JSON.parse(fs.readFileSync(authPath, 'utf8')).OPENAI_API_KEY,
+  'sk-proxy-managed'
+);
 fs.writeFileSync(authPath, JSON.stringify(chatGptAuth, null, 2), 'utf8');
 
 const officialLoginArgs = buildCodexOfficialLoginLaunchArgs();
-assert.deepStrictEqual(officialLoginArgs.slice(0, 4), ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command']);
+assert.deepStrictEqual(officialLoginArgs.slice(0, 4), [
+  '-NoProfile',
+  '-ExecutionPolicy',
+  'Bypass',
+  '-Command',
+]);
 assert.match(officialLoginArgs[4], /Start-Process -FilePath /);
 assert.match(officialLoginArgs[4], /hpm-codex-official-login\.vbs/);
 assert.ok(!officialLoginArgs.includes('/c'));
@@ -82,8 +119,18 @@ assert.ok(!officialLoginArgs.includes('Official'));
 
 const applyResult = applyCodexProxy({
   modelRoutes: [
-    { from: 'codex/deepseek-v4-flash', profileId: 'deepseek', to: 'deepseek-v4-flash', labelOverride: 'DeepSeek V4 Flash' },
-    { from: 'gpt-5.5', profileId: 'openai-official', to: 'gpt-5.5', labelOverride: 'GPT-5.5 Routed' },
+    {
+      from: 'codex/deepseek-v4-flash',
+      profileId: 'deepseek',
+      to: 'deepseek-v4-flash',
+      labelOverride: 'DeepSeek V4 Flash',
+    },
+    {
+      from: 'gpt-5.5',
+      profileId: 'openai-official',
+      to: 'gpt-5.5',
+      labelOverride: 'GPT-5.5 Routed',
+    },
   ],
 });
 assert.strictEqual(applyResult.modelCatalog.routeCount, 2);
@@ -112,7 +159,10 @@ assert.doesNotMatch(content, /^model_provider\s*=/m);
 
 const catalogPath = getCodexModelCatalogPath();
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
-assert.deepStrictEqual(catalog.models.map((model) => model.slug), ['codex/deepseek-v4-flash', 'gpt-5.5']);
+assert.deepStrictEqual(
+  catalog.models.map((model) => model.slug),
+  ['codex/deepseek-v4-flash', 'gpt-5.5']
+);
 assert.strictEqual(catalog.models[0].display_name, 'DeepSeek V4 Flash');
 assert.strictEqual(catalog.models[1].display_name, 'GPT-5.5 Routed');
 
@@ -120,7 +170,12 @@ const proxyApiResult = switchCodexMode({
   connection: 'proxy',
   auth: 'api',
   modelRoutes: [
-    { from: 'codex/deepseek-v4-flash', profileId: 'deepseek', to: 'deepseek-v4-flash', labelOverride: 'DeepSeek V4 Flash' },
+    {
+      from: 'codex/deepseek-v4-flash',
+      profileId: 'deepseek',
+      to: 'deepseek-v4-flash',
+      labelOverride: 'DeepSeek V4 Flash',
+    },
   ],
 });
 assert.strictEqual(proxyApiResult.connectionMode, 'proxy');
@@ -128,7 +183,10 @@ assert.strictEqual(proxyApiResult.authMode, 'api');
 assert.strictEqual(proxyApiResult.auth.authMode, 'api');
 assert.strictEqual(proxyApiResult.auth.hasProxyManagedApiKey, true);
 assert.strictEqual(proxyApiResult.auth.chatGptBackupExists, true);
-assert.strictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')).OPENAI_API_KEY, 'sk-proxy-managed');
+assert.strictEqual(
+  JSON.parse(fs.readFileSync(authPath, 'utf8')).OPENAI_API_KEY,
+  'sk-proxy-managed'
+);
 assert.throws(() => switchCodexMode({ connection: 'direct', auth: 'api' }), /真实 OpenAI API Key/);
 
 fs.rmSync(path.join(tempHome, '.codex', 'auth.chatgpt.backup.json'), { force: true });
@@ -156,18 +214,34 @@ assert.doesNotMatch(restored, /^model_catalog_json\s*=/m);
 assert.strictEqual(fs.existsSync(catalogPath), false);
 assert.deepStrictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')), chatGptAuth);
 
-fs.writeFileSync(authPath, JSON.stringify({
-  tokens: chatGptAuth.tokens,
-  OPENAI_API_KEY: 'PROXY_MANAGED',
-}, null, 2), 'utf8');
+fs.writeFileSync(
+  authPath,
+  JSON.stringify(
+    {
+      tokens: chatGptAuth.tokens,
+      OPENAI_API_KEY: 'PROXY_MANAGED',
+    },
+    null,
+    2
+  ),
+  'utf8'
+);
 const cleanupResult = restoreCodexProxy();
 assert.strictEqual(cleanupResult.legacyManagedApiKeyRemoved, true);
 assert.deepStrictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')), chatGptAuth);
 
-fs.writeFileSync(authPath, JSON.stringify({
-  auth_mode: 'apikey',
-  OPENAI_API_KEY: 'sk-user-owned',
-}, null, 2), 'utf8');
+fs.writeFileSync(
+  authPath,
+  JSON.stringify(
+    {
+      auth_mode: 'apikey',
+      OPENAI_API_KEY: 'sk-user-owned',
+    },
+    null,
+    2
+  ),
+  'utf8'
+);
 const userApiKeyCleanupResult = restoreCodexProxy();
 assert.strictEqual(userApiKeyCleanupResult.legacyManagedApiKeyRemoved, false);
 assert.strictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')).OPENAI_API_KEY, 'sk-user-owned');
@@ -177,11 +251,19 @@ assert.strictEqual(directApiResult.connectionMode, 'direct');
 assert.strictEqual(directApiResult.auth.authMode, 'api');
 assert.strictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')).OPENAI_API_KEY, 'sk-user-owned');
 
-fs.writeFileSync(authPath, JSON.stringify({
-  auth_mode: 'apikey',
-  tokens: chatGptAuth.tokens,
-  OPENAI_API_KEY: 'sk-user-owned',
-}, null, 2), 'utf8');
+fs.writeFileSync(
+  authPath,
+  JSON.stringify(
+    {
+      auth_mode: 'apikey',
+      tokens: chatGptAuth.tokens,
+      OPENAI_API_KEY: 'sk-user-owned',
+    },
+    null,
+    2
+  ),
+  'utf8'
+);
 const explicitApiStatus = readCodexAuthStatus();
 assert.strictEqual(explicitApiStatus.rawAuthMode, 'apikey');
 assert.strictEqual(explicitApiStatus.authMode, 'api');

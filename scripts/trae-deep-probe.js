@@ -9,6 +9,7 @@ const { spawnSync } = require('child_process');
 
 const WANT_JSON = process.argv.includes('--json');
 const WANT_LAUNCH_CMD = process.argv.includes('--launch-cmd');
+const HTTP_MAX_RESPONSE_BYTES = 1024 * 1024;
 
 const NEEDLES = [
   'api/agent/v3/create_agent_task',
@@ -65,7 +66,9 @@ function statSafe(filePath) {
 }
 
 function truncate(text, max = 240) {
-  const value = String(text || '').replace(/\s+/g, ' ').trim();
+  const value = String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim();
   return value.length > max ? value.slice(0, max) + '...' : value;
 }
 
@@ -89,13 +92,19 @@ function commandExists(command) {
   return {
     command,
     available: res.ok,
-    path: res.ok ? res.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)[0] : '',
+    path: res.ok
+      ? res.stdout
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)[0]
+      : '',
   };
 }
 
 function latestSessionLogRoots(logRoot) {
   if (!exists(logRoot)) return [];
-  return fs.readdirSync(logRoot, { withFileTypes: true })
+  return fs
+    .readdirSync(logRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && /^\d{8}T\d{6}$/.test(entry.name))
     .map((entry) => {
       const fullPath = path.join(logRoot, entry.name);
@@ -133,14 +142,11 @@ function scanLogs(logRoot) {
   const pattern = LOG_PATTERNS.join('|');
   const hits = [];
   for (const root of roots) {
-    const res = run('rg', [
-      '-n',
-      '--glob', '*.log',
-      '--glob', '*.alaudalog',
-      '--max-count', '40',
-      pattern,
-      root,
-    ], { maxBuffer: 2 * 1024 * 1024 });
+    const res = run(
+      'rg',
+      ['-n', '--glob', '*.log', '--glob', '*.alaudalog', '--max-count', '40', pattern, root],
+      { maxBuffer: 2 * 1024 * 1024 }
+    );
     const lines = (res.stdout || '').split(/\r?\n/).filter(Boolean).slice(0, 80);
     for (const line of lines) {
       hits.push(truncate(line, 360));
@@ -149,31 +155,65 @@ function scanLogs(logRoot) {
   return { exists: true, roots, hits };
 }
 
-function getJson(url, timeoutMs = 4000) {
+function getJson(url, timeoutMs = 4000, maxBytes = HTTP_MAX_RESPONSE_BYTES) {
   return new Promise((resolve) => {
+    let finished = false;
+    const finish = (payload) => {
+      if (finished) return;
+      finished = true;
+      resolve(payload);
+    };
     const req = http.get(url, { timeout: timeoutMs }, (res) => {
       const chunks = [];
-      res.on('data', (chunk) => chunks.push(chunk));
+      let bytes = 0;
+      res.on('data', (chunk) => {
+        if (finished) return;
+        bytes += chunk.length;
+        if (bytes > maxBytes) {
+          chunks.length = 0;
+          finish({
+            ok: false,
+            statusCode: res.statusCode,
+            error: `response too large; max ${maxBytes} bytes`,
+          });
+          req.destroy();
+          return;
+        }
+        chunks.push(chunk);
+      });
       res.on('end', () => {
-        const body = Buffer.concat(chunks).toString('utf8');
+        if (finished) return;
+        const body = Buffer.concat(chunks, bytes).toString('utf8');
         try {
-          resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, statusCode: res.statusCode, body: JSON.parse(body) });
+          finish({
+            ok: res.statusCode >= 200 && res.statusCode < 300,
+            statusCode: res.statusCode,
+            body: JSON.parse(body),
+          });
         } catch {
-          resolve({ ok: false, statusCode: res.statusCode, error: 'non-json response', body: truncate(body) });
+          finish({
+            ok: false,
+            statusCode: res.statusCode,
+            error: 'non-json response',
+            body: truncate(body),
+          });
         }
       });
     });
     req.on('timeout', () => {
       req.destroy();
-      resolve({ ok: false, error: 'timeout' });
+      finish({ ok: false, error: 'timeout' });
     });
-    req.on('error', (err) => resolve({ ok: false, error: err.message }));
+    req.on('error', (err) => finish({ ok: false, error: err.message }));
   });
 }
 
 function summarizeRawEvent(event) {
   const payload = event && event.payload && typeof event.payload === 'object' ? event.payload : {};
-  const tool = payload.tool_call_info && typeof payload.tool_call_info === 'object' ? payload.tool_call_info : {};
+  const tool =
+    payload.tool_call_info && typeof payload.tool_call_info === 'object'
+      ? payload.tool_call_info
+      : {};
   const result = tool.result && typeof tool.result === 'object' ? tool.result : {};
   const data = result.data && typeof result.data === 'object' ? result.data : {};
   return {
@@ -197,8 +237,10 @@ async function probeRawBridge() {
   if (!res.ok || !res.body) return res;
   const events = Array.isArray(res.body.events) ? res.body.events : [];
   const counts = {};
-  for (const event of events) counts[event.event || 'unknown'] = (counts[event.event || 'unknown'] || 0) + 1;
-  const samples = events.map(summarizeRawEvent)
+  for (const event of events)
+    counts[event.event || 'unknown'] = (counts[event.event || 'unknown'] || 0) + 1;
+  const samples = events
+    .map(summarizeRawEvent)
     .filter((item) => item.event)
     .slice(0, 12);
   return {
@@ -217,7 +259,10 @@ async function probeRawBridge() {
         const rc = event.payload && event.payload.reasoning_content;
         return rc && rc.redacted === true;
       }),
-      hasNativeLlmMessages: events.some((event) => event.payload && (event.payload.messages || event.payload.model || event.payload.tools)),
+      hasNativeLlmMessages: events.some(
+        (event) =>
+          event.payload && (event.payload.messages || event.payload.model || event.payload.tools)
+      ),
     },
     samples,
   };
@@ -230,7 +275,7 @@ function buildLaunchCommand(traeExe) {
     "$env:ICUBE_MODULE_LOG_TO_FILE = 'true'",
   ];
   if (traeExe) lines.push(`Start-Process -FilePath '${traeExe.replace(/'/g, "''")}'`);
-  else lines.push("Start-Process -FilePath \"$env:LOCALAPPDATA\\Programs\\Trae\\Trae.exe\"");
+  else lines.push('Start-Process -FilePath "$env:LOCALAPPDATA\\Programs\\Trae\\Trae.exe"');
   return lines.join(os.EOL);
 }
 
@@ -238,7 +283,10 @@ async function main() {
   const traeRoot = envPath('LOCALAPPDATA', 'Programs\\Trae\\resources\\app');
   const paths = {
     workbenchBundle: path.join(traeRoot, 'out\\vs\\workbench\\workbench.desktop.main.js'),
-    aiModulesChatBundle: path.join(traeRoot, 'node_modules\\@byted-icube\\ai-modules-chat\\dist\\index.mjs'),
+    aiModulesChatBundle: path.join(
+      traeRoot,
+      'node_modules\\@byted-icube\\ai-modules-chat\\dist\\index.mjs'
+    ),
     aiAgentDll: path.join(traeRoot, 'modules\\ai-agent\\ai_agent.dll'),
     logsRoot: envPath('APPDATA', 'Trae\\logs'),
     traeExe: envPath('LOCALAPPDATA', 'Programs\\Trae\\Trae.exe'),
@@ -246,7 +294,9 @@ async function main() {
 
   const report = {
     generatedAt: new Date().toISOString(),
-    paths: Object.fromEntries(Object.entries(paths).map(([key, value]) => [key, { path: value, ...statSafe(value) }])),
+    paths: Object.fromEntries(
+      Object.entries(paths).map(([key, value]) => [key, { path: value, ...statSafe(value) }])
+    ),
     tools: {
       frida: commandExists('frida.exe'),
       fridaTrace: commandExists('frida-trace.exe'),
@@ -300,7 +350,9 @@ async function main() {
     console.log(`- counts: ${JSON.stringify(report.rawBridge.counts)}`);
     console.log(`- capability: ${JSON.stringify(report.rawBridge.capability)}`);
   } else {
-    console.log(`- unavailable: ${report.rawBridge.error || report.rawBridge.statusCode || 'unknown'}`);
+    console.log(
+      `- unavailable: ${report.rawBridge.error || report.rawBridge.statusCode || 'unknown'}`
+    );
   }
   console.log('');
   console.log('Latest log hits:');

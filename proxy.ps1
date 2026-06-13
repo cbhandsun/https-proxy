@@ -598,6 +598,14 @@ function Get-Status {
 
     $procs = @(Get-AllProxyProcesses)
     if ($procs.Count -gt 0) {
+        $listeners = @(Get-PortListeners)
+        if ($listeners.Count -eq 0) {
+            Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
+            foreach ($proc in $procs) {
+                Write-Status '!' "Proxy process found but no configured ports are listening (PID: $($proc.Id)). Use 'proxy.bat restart' if the UI cannot connect."
+            }
+            return
+        }
         $procs[0].Id | Out-File $PidFile -Encoding ASCII
         foreach ($proc in $procs) {
             $up = (Get-Date) - $proc.StartTime
@@ -607,7 +615,7 @@ function Get-Status {
             Write-Status '!' "Multiple proxy processes detected: $($procs.Count). Use 'proxy.bat restart' to collapse to a single instance."
         }
         foreach ($address in Get-EntryAddresses) { Write-Status ' ' "Address: $address" }
-        foreach ($listener in Get-PortListeners) {
+        foreach ($listener in $listeners) {
             Write-Status ' ' "Port: $(Format-PortListener $listener)"
         }
     } else {

@@ -19,40 +19,44 @@ const noopAudit = () => {};
 const noopRemember = () => {};
 const noopUsage = (_u) => ({ input_tokens: 0, output_tokens: 0 });
 
-const stream = createClaudeStream({
-  cleanToolArgs,
-  stripEmptyOptionalToolArgs: (a) => a,
-  sanitizeGeminiToolCall: noopSanitize,
-  sampleGeminiToolEvent: noopSample,
-  auditToolCall: noopAudit,
-  sampleOutboundSse: noopSample,
-  parseClaudeSseEvent: (raw) => {
-    const text = String(raw || '').trim();
-    const lines = text.split('\n');
-    let eventName = '';
-    let dataText = '';
-    for (const line of lines) {
-      if (line.startsWith('event: ')) eventName = line.substring(7).trim();
-      else if (line.startsWith('data: ')) dataText += line.substring(6);
-    }
-    let data = null;
-    if (dataText && dataText !== '[DONE]') {
-      try {
-        data = JSON.parse(dataText);
-      } catch (e) {}
-    }
-    return { eventName, dataText, data };
-  },
-  resolveSseBlockIndex: () => 0,
-  deltaPartialJson: (d) => (d && typeof d.partial_json === 'string' ? d.partial_json : ''),
-  geminiFunctionCallArgs: (a) => a,
-  geminiClaudeToolId: (i) => 'tool_' + i,
-  rememberGeminiToolCall: noopRemember,
-  claudeStopReasonFromGemini: (r) => r,
-  geminiUsageToClaude: noopUsage,
-  fallbackId: (p) => p + '_mock',
-  protocolOptions: {},
-});
+function createTestStream(protocolOptions = {}) {
+  return createClaudeStream({
+    cleanToolArgs,
+    stripEmptyOptionalToolArgs: (a) => a,
+    sanitizeGeminiToolCall: noopSanitize,
+    sampleGeminiToolEvent: noopSample,
+    auditToolCall: noopAudit,
+    sampleOutboundSse: noopSample,
+    parseClaudeSseEvent: (raw) => {
+      const text = String(raw || '').trim();
+      const lines = text.split('\n');
+      let eventName = '';
+      let dataText = '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) eventName = line.substring(7).trim();
+        else if (line.startsWith('data: ')) dataText += line.substring(6);
+      }
+      let data = null;
+      if (dataText && dataText !== '[DONE]') {
+        try {
+          data = JSON.parse(dataText);
+        } catch (e) {}
+      }
+      return { eventName, dataText, data };
+    },
+    resolveSseBlockIndex: () => 0,
+    deltaPartialJson: (d) => (d && typeof d.partial_json === 'string' ? d.partial_json : ''),
+    geminiFunctionCallArgs: (a) => a,
+    geminiClaudeToolId: (i) => 'tool_' + i,
+    rememberGeminiToolCall: noopRemember,
+    claudeStopReasonFromGemini: (r) => r,
+    geminiUsageToClaude: noopUsage,
+    fallbackId: (p) => p + '_mock',
+    protocolOptions,
+  });
+}
+
+const stream = createTestStream();
 
 let pass = 0,
   fail = 0;
@@ -236,6 +240,17 @@ t('partial chunk: split inside content delta still emits text', () => {
   const text = res.full();
   assert.ok(text.includes('content_block_start'), 'should emit start');
   assert.ok(text.includes('hello'), 'should emit text delta');
+});
+
+t('oversized incomplete OpenAI SSE event is rejected', () => {
+  const cappedStream = createTestStream({ maxSseBufferChars: 8 });
+  const res = makeRes();
+  const state = makeState();
+  assert.throws(
+    () => cappedStream.processOpenAISseChunkToClaude(res, 'data: {"choices":[', state),
+    /OpenAI SSE event too large/
+  );
+  assert.strictEqual(state.buffer, '');
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);
