@@ -10,6 +10,7 @@ proxy.config.json
 # Generated certificates and local tool state
 .certs/
 .claude/
+.hpm-runtime/
 
 # Runtime files and logs
 *.log
@@ -37,6 +38,7 @@ tauri-ui/dist/
 /app-audit.js
 /app-cli.js
 /app-diagnostics.js
+/app-ux.js
 /electron-ui.html
 
 # Test runtime artifacts
@@ -53,11 +55,3 @@ test/*.jsonl.*
 /400
 /prev_electron_ui.html
 /eslint-stats.json
-
-# Tauri mirror files (synced from tauri-ui/ by scripts/sync-frontend.js)
-/app-ux.js
-/app-audit.js
-/app-bridge.js
-/app-cli.js
-/app-diagnostics.js
-/app.js
