@@ -27,17 +27,25 @@ where npm >nul 2>&1
 if errorlevel 1 (
   echo 未检测到 npm，请先安装 Node.js。
   echo.
-  pause
+  if not defined NO_PAUSE pause
   exit /b 1
 )
 
 if not exist "package.json" (
   echo 未找到 package.json，当前目录不是管理器目录：%CD%
   echo.
-  pause
+  if not defined NO_PAUSE pause
   exit /b 1
 )
 
-if not exist "%SCRIPT_DIR%\.hpm-runtime" mkdir "%SCRIPT_DIR%\.hpm-runtime"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'npm run tauri:dev ^> .hpm-runtime\manager.log 2^>^&1' -WorkingDirectory '%SCRIPT_DIR%' -WindowStyle Hidden"
-exit /b 0
+if exist "%SCRIPT_DIR%启动管理器-开发版.bat" (
+  echo 未找到已构建的管理器，将启动开发版。
+  echo.
+  call "%SCRIPT_DIR%启动管理器-开发版.bat"
+  exit /b %ERRORLEVEL%
+)
+
+echo 未找到可启动的管理器程序，也未找到 启动管理器-开发版.bat。
+echo.
+if not defined NO_PAUSE pause
+exit /b 1
