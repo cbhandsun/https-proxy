@@ -1,19 +1,31 @@
-function colorizeLog(text) {
-  if (!text) return '';
-  return text
-    .split('\n')
-    .slice(-LOG_RENDER_LINE_LIMIT)
-    .map((line) => {
-      let className = '';
-      if (line.includes('-> ')) className = 'info arrow';
-      else if (line.includes('ok ')) className = 'info';
-      else if (line.includes('!! ')) className = 'warn';
-      else if (line.includes('xx ')) className = 'error';
-      else if (line.includes('[stdout]') || line.includes('[stderr]')) className = 'muted';
+function logLineClassName(line) {
+  if (line.includes('-> ')) return 'info arrow';
+  if (line.includes('ok ')) return 'info';
+  if (line.includes('!! ')) return 'warn';
+  if (line.includes('xx ')) return 'error';
+  if (line.includes('[stdout]') || line.includes('[stderr]')) return 'muted';
+  return '';
+}
 
-      return `<span class="log-line ${className}">${escapeHtml(line)}</span>`;
-    })
-    .join('');
+function createLogLineElement(line, className = logLineClassName(line)) {
+  const span = document.createElement('span');
+  span.className = `log-line ${className}`.trim();
+  span.textContent = line;
+  return span;
+}
+
+function createLogEmptyElement() {
+  return createLogLineElement('暂无日志', 'muted');
+}
+
+function renderLogLines(target, text) {
+  target.textContent = '';
+  const lines = text ? text.split('\n').slice(-LOG_RENDER_LINE_LIMIT) : [];
+  if (!lines.length) {
+    target.appendChild(createLogEmptyElement());
+    return;
+  }
+  lines.forEach((line) => target.appendChild(createLogLineElement(line)));
 }
 
 function startHeartbeat() {
@@ -101,8 +113,11 @@ async function refreshMonitor(options = {}) {
       after: lastEventTime || '',
     });
     if (!events || events.length === 0) {
-      if (monitorEvents.length === 0)
-        $('monitorList').innerHTML = '<div class="muted">暂无请求记录...</div>';
+      if (monitorEvents.length === 0) {
+        const container = $('monitorList');
+        container.textContent = '';
+        container.appendChild(createMonitorEmptyElement('暂无请求记录...'));
+      }
       return;
     }
 
@@ -172,6 +187,58 @@ function prepareMonitorEvent(event) {
   return event;
 }
 
+function monitorBorderColor(levelClass) {
+  if (levelClass === 'error') return 'var(--danger)';
+  if (levelClass === 'success') return '#10b981';
+  return 'var(--border)';
+}
+
+function createMonitorEmptyElement(text) {
+  const empty = document.createElement('div');
+  empty.className = 'muted';
+  empty.textContent = text;
+  return empty;
+}
+
+function createMonitorSummaryElement(visibleCount, omittedCount) {
+  const summary = document.createElement('div');
+  summary.className = 'muted';
+  summary.style.fontSize = '11px';
+  summary.style.padding = '0 2px';
+  summary.textContent = `显示最新 ${visibleCount} 条，已隐藏较早 ${omittedCount} 条匹配记录`;
+  return summary;
+}
+
+function createMonitorEventElement(event) {
+  const view = event.__monitorView || prepareMonitorEvent(event).__monitorView;
+  const { title, details, badgeClass, levelClass, time } = view;
+  const item = document.createElement('div');
+  item.className = 'profile';
+  item.style.cursor = 'default';
+  item.style.padding = '10px';
+  item.style.borderLeft = `4px solid ${monitorBorderColor(levelClass)}`;
+
+  const header = document.createElement('div');
+  header.className = 'profile-title';
+  const strong = document.createElement('strong');
+  strong.style.fontSize = '13px';
+  strong.textContent = title;
+  const badge = document.createElement('span');
+  badge.className = `badge ${badgeClass}`;
+  badge.textContent = time;
+  header.appendChild(strong);
+  header.appendChild(badge);
+
+  const detail = document.createElement('div');
+  detail.className = 'muted';
+  detail.style.marginTop = '4px';
+  detail.textContent = details;
+
+  item.appendChild(header);
+  item.appendChild(detail);
+  return item;
+}
+
 function renderMonitor() {
   const container = $('monitorList');
   const shouldScroll = $('autoScrollMonitor').checked;
@@ -210,36 +277,38 @@ function renderMonitor() {
 
   const visibleEvents = filteredEvents.slice(-MONITOR_RENDER_WINDOW).reverse();
   const omittedEvents = Math.max(0, filteredEvents.length - visibleEvents.length);
-  const summaryHtml = omittedEvents
-    ? `<div class="muted" style="font-size:11px; padding:0 2px;">显示最新 ${visibleEvents.length} 条，已隐藏较早 ${omittedEvents} 条匹配记录</div>`
-    : '';
-  const html = visibleEvents
-    .map((event) => {
-      const view = event.__monitorView || prepareMonitorEvent(event).__monitorView;
-      const { title, details, badgeClass, levelClass, time } = view;
-
-      return `
-      <div class="profile" style="cursor:default; padding: 10px; border-left: 4px solid ${levelClass === 'error' ? 'var(--danger)' : levelClass === 'success' ? '#10b981' : 'var(--border)'}">
-        <div class="profile-title">
-          <strong style="font-size:13px">${escapeHtml(title)}</strong>
-          <span class="badge ${badgeClass}">${time}</span>
-        </div>
-        <div class="muted" style="margin-top:4px">${escapeHtml(details)}</div>
-      </div>
-    `;
-    })
-    .join('');
-
-  const renderedHtml = html
-    ? summaryHtml + html
-    : '<div class="muted">暂无符合条件的请求记录...</div>';
-  if (renderedHtml === lastRenderedMonitorHtml) return;
-  lastRenderedMonitorHtml = renderedHtml;
-  container.innerHTML = renderedHtml;
+  const viewModels = visibleEvents.map(
+    (event) => event.__monitorView || prepareMonitorEvent(event).__monitorView
+  );
+  const renderSignature = JSON.stringify({
+    omittedEvents,
+    visibleEvents: viewModels,
+  });
+  if (renderSignature === lastRenderedMonitorHtml) return;
+  lastRenderedMonitorHtml = renderSignature;
+  container.textContent = '';
+  if (omittedEvents)
+    container.appendChild(createMonitorSummaryElement(visibleEvents.length, omittedEvents));
+  if (visibleEvents.length) {
+    visibleEvents.forEach((event) => container.appendChild(createMonitorEventElement(event)));
+  } else {
+    container.appendChild(createMonitorEmptyElement('暂无符合条件的请求记录...'));
+  }
 
   if (shouldScroll) {
     container.scrollTop = container.scrollHeight;
   }
+}
+
+if (typeof window !== 'undefined') {
+  window.__diagnosticsTest = {
+    createLogLineElement,
+    logLineClassName,
+    renderLogLines,
+    createMonitorEventElement,
+    prepareMonitorEvent,
+    renderMonitor,
+  };
 }
 
 function bindDiagnosticsControls() {
@@ -338,7 +407,7 @@ async function refreshLog(options = {}) {
       maxBytes: LOG_REQUEST_MAX_BYTES,
     });
     if (rawLog !== lastRenderedLog || options.forceRender) {
-      log.innerHTML = colorizeLog(rawLog) || '<span class="log-line muted">暂无日志</span>';
+      renderLogLines(log, rawLog);
       lastRenderedLog = rawLog;
       changed = true;
     }

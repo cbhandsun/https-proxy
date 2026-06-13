@@ -1,5 +1,5 @@
 // 全局错误监控 Banner，第一性原理快速定位前端崩溃
-window.onerror = function(message, source, lineno, colno, error) {
+window.onerror = function (message, source, lineno, colno, error) {
   const errorMsg = `${message} at ${source}:${lineno}:${colno}`;
   console.error(errorMsg);
   let errorDiv = document.getElementById('global-js-error-banner');
@@ -20,15 +20,20 @@ window.onerror = function(message, source, lineno, colno, error) {
     errorDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
     document.body.appendChild(errorDiv);
   }
-  errorDiv.textContent = '【前端错误诊断】' + errorMsg + (error && error.stack ? ' | ' + error.stack : '');
+  errorDiv.textContent =
+    '【前端错误诊断】' + errorMsg + (error && error.stack ? ' | ' + error.stack : '');
 };
 
 // 拦截全局 fetch，使得在 Tauri 等非同一 origin 下运行时，能够正确访问本地代理的 REST API
 const originalFetch = window.fetch;
-window.fetch = function(url, options) {
+window.fetch = function (url, options) {
   if (typeof url === 'string' && (url.startsWith('/v1/local/') || url.startsWith('/local/'))) {
     const origin = window.location.origin;
-    if (!origin.startsWith('http://localhost:') && !origin.startsWith('http://127.0.0.1:') && !origin.startsWith('https://localhost:')) {
+    if (
+      !origin.startsWith('http://localhost:') &&
+      !origin.startsWith('http://127.0.0.1:') &&
+      !origin.startsWith('https://localhost:')
+    ) {
       const cachedPort = localStorage.getItem('last_local_proxy_port') || '3443';
       const mgmtPort = Number(cachedPort) + 100;
       url = `http://127.0.0.1:${mgmtPort}${url}`;
@@ -56,15 +61,20 @@ const getListenPort = () => {
 };
 const getManagementPort = () => {
   // 管理端口 = HTTPS 端口 + 100（如 3443 → 3543）
-  const cachedPort = typeof localStorage !== 'undefined' ? localStorage.getItem('last_local_proxy_port') : null;
+  const cachedPort =
+    typeof localStorage !== 'undefined' ? localStorage.getItem('last_local_proxy_port') : null;
   const port = getListenPort();
-  const activePort = document.getElementById('localPort')?.value ? port : (cachedPort || 3443);
+  const activePort = document.getElementById('localPort')?.value ? port : cachedPort || 3443;
   return Number(activePort) + 100;
 };
 const getApiBase = () => {
   const origin = window.location.origin;
   // 在 localhost 上时，相对路径即可（开发服务器会代理转发到 HTTPS 代理）
-  if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:') || origin.startsWith('https://localhost:')) {
+  if (
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('http://127.0.0.1:') ||
+    origin.startsWith('https://localhost:')
+  ) {
     return '';
   }
   // 非 localhost（生产环境 Tauri），使用纯 HTTP 管理端口，避免自签名证书被 webview 拒绝
@@ -103,12 +113,14 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     },
     readConfig: async (options = {}) => {
       const attempts = Number.isFinite(options.attempts) ? Math.max(1, options.attempts) : 8;
-      const retryDelay = Number.isFinite(options.retryDelay) ? Math.max(0, options.retryDelay) : 1000;
+      const retryDelay = Number.isFinite(options.retryDelay)
+        ? Math.max(0, options.retryDelay)
+        : 1000;
       const quiet = options.quiet === true;
       for (let attempt = 0; attempt < attempts; attempt++) {
         try {
           const res = await fetch(`${getApiBase()}/v1/local/config`, {
-            headers: { 'x-mgmt-token': localStorage.getItem('hpm_mgmt_token') || '' }
+            headers: { 'x-mgmt-token': localStorage.getItem('hpm_mgmt_token') || '' },
           });
           const data = await res.json();
           if (!res.ok || data.error) throw new Error(data.error || 'Failed to fetch config');
@@ -118,11 +130,18 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           return data;
         } catch (err) {
           if (attempt < attempts - 1) {
-            await new Promise(r => setTimeout(r, retryDelay));
+            await new Promise((r) => setTimeout(r, retryDelay));
             continue;
           }
           if (!quiet) showToast('无法连接本地代理管理端口', 'error');
-          return { profiles: [], modelRoutes: [], localServer: {}, appSettings: {}, claudeDesktop: { models: [] }, __fallback: true };
+          return {
+            profiles: [],
+            modelRoutes: [],
+            localServer: {},
+            appSettings: {},
+            claudeDesktop: { models: [] },
+            __fallback: true,
+          };
         }
       }
     },
@@ -134,7 +153,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         const res = await fetch(`${getApiBase()}/v1/local/config`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(config)
+          body: JSON.stringify(config),
         });
         const data = await res.json();
         return data.ok ? config : config;
@@ -148,7 +167,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         const res = await fetch(`${getApiBase()}/v1/local/profile/test-auth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         });
         return await res.json();
       } catch (err) {
@@ -160,7 +179,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         const res = await fetch(getApiBase() + '/v1/local/active', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profileId })
+          body: JSON.stringify({ profileId }),
         });
         const data = await res.json();
         if (data.ok) {
@@ -188,7 +207,10 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         const res = await fetch(`${getApiBase()}/v1/local/diagnostics`);
         return await res.json();
       } catch (err) {
-        return { status: { ok: false, config: null }, output: '读取诊断事件失败，请确认代理在运行中' };
+        return {
+          status: { ok: false, config: null },
+          output: '读取诊断事件失败，请确认代理在运行中',
+        };
       }
     },
     clearDiagnostics: async () => {
@@ -210,67 +232,180 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     },
     claudeDesktopStatus: async () => {
       try {
-        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/claude-desktop/status`, {}, 7000);
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/claude-desktop/status`,
+          {},
+          7000
+        );
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Claude Desktop 状态检查超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Claude Desktop 状态检查超时' : err.message,
+        };
       }
     },
     traeBridgeStatus: async () => {
       try {
         return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/bridge/status`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Bridge 状态检查超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Trae Bridge 状态检查超时' : err.message,
+        };
+      }
+    },
+    traeDebugClaudeProcessSelfTest: async (payload) => {
+      try {
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/trae/debug/claude-process/self-test`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload || {}),
+          },
+          120000
+        );
+      } catch (err) {
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Claude 过程输出自检超时' : err.message,
+        };
       }
     },
     traeDebugEvents: async () => {
       try {
-        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/events?limit=80`, {}, 7000);
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/trae/debug/events?limit=80`,
+          {},
+          7000
+        );
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Debug 事件读取超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Trae Debug 事件读取超时' : err.message,
+        };
+      }
+    },
+    traeDebugNativeDeepEvents: async () => {
+      try {
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/trae/debug/native/deep/events?limit=120`,
+          {},
+          7000
+        );
+      } catch (err) {
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Trae 深入事件读取超时' : err.message,
+        };
+      }
+    },
+    startTraeDebugNativeDeep: async (payload) => {
+      try {
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/trae/debug/native/deep/start`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload || {}),
+          },
+          35000
+        );
+      } catch (err) {
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Trae 深入探针启动超时' : err.message,
+        };
+      }
+    },
+    stopTraeDebugNativeDeep: async () => {
+      try {
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/trae/debug/native/deep/stop`,
+          { method: 'POST' },
+          7000
+        );
+      } catch (err) {
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Trae 深入探针停止超时' : err.message,
+        };
       }
     },
     traeDebugSettings: async () => {
       try {
         return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/settings`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Debug 开关读取超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Trae Debug 开关读取超时' : err.message,
+        };
       }
     },
     saveTraeDebugSettings: async (payload) => {
       try {
-        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/settings`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload || {})
-        }, 7000);
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/trae/debug/settings`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload || {}),
+          },
+          7000
+        );
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Debug 开关保存超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Trae Debug 开关保存超时' : err.message,
+        };
       }
     },
     traeDebugNativeStatus: async () => {
       try {
-        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/native/status`, {}, 7000);
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/trae/debug/native/status`,
+          {},
+          7000
+        );
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Native Debug 状态读取超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Trae Native Debug 状态读取超时' : err.message,
+        };
       }
     },
     traeDebugNativeScan: async () => {
       try {
-        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/trae/debug/native/scan`, { method: 'POST' }, 30000);
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/trae/debug/native/scan`,
+          { method: 'POST' },
+          30000
+        );
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Trae Native 扫描超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Trae Native 扫描超时' : err.message,
+        };
       }
     },
     applyClaudeDesktop: async () => {
       try {
-        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/claude-desktop/apply`, { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/claude-desktop/apply`,
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreClaudeDesktop: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/claude-desktop/restore', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/claude-desktop/restore',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
@@ -292,7 +427,15 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         return await fetchJsonWithTimeout(getApiBase() + '/v1/local/cert', {}, 7000);
       } catch (err) {
         const isAbort = err && err.name === 'AbortError';
-        return { ok: false, exists: false, error: isAbort ? '证书状态请求超时' : (err && err.message ? err.message : '证书状态请求失败') };
+        return {
+          ok: false,
+          exists: false,
+          error: isAbort
+            ? '证书状态请求超时'
+            : err && err.message
+              ? err.message
+              : '证书状态请求失败',
+        };
       }
     },
     listModels: async (profile) => {
@@ -303,11 +446,17 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
-          body: JSON.stringify(profile)
+          body: JSON.stringify(profile),
         });
         return await res.json();
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? '获取上游模型超时，请检查上游地址、代理网络或官方登录凭证。' : err.message };
+        return {
+          ok: false,
+          error:
+            err && err.name === 'AbortError'
+              ? '获取上游模型超时，请检查上游地址、代理网络或官方登录凭证。'
+              : err.message,
+        };
       } finally {
         clearTimeout(timeoutId);
       }
@@ -317,7 +466,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         const res = await fetch(getApiBase() + '/v1/local/route/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
         });
         return await res.json();
       } catch (err) {
@@ -353,34 +502,57 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           return { code: -1, output: `健康检查失败：${err.message}` };
         }
       }
-      return { output: `非 Tauri 环境限制：无法直接通过网页控制代理进程。请在命令行手动执行：npm run start 或者是 node openai-proxy.js 启动/停止代理。` };
+      return {
+        output: `非 Tauri 环境限制：无法直接通过网页控制代理进程。请在命令行手动执行：npm run start 或者是 node openai-proxy.js 启动/停止代理。`,
+      };
     },
     testConnectivity: async () => {
       try {
         const res = await fetch(getApiBase() + '/v1/local/health');
         const data = await res.json();
-        return { ok: data.ok, output: data.ok ? '代理服务器健康且连通！' : '代理服务器未处于健康状态。' };
+        return {
+          ok: data.ok,
+          output: data.ok ? '代理服务器健康且连通！' : '代理服务器未处于健康状态。',
+        };
       } catch (err) {
-        return { ok: false, error: err.message, output: '无法连通本地代理服务，请确保代理服务已启动。' };
+        return {
+          ok: false,
+          error: err.message,
+          output: '无法连通本地代理服务，请确保代理服务已启动。',
+        };
       }
     },
     openConfig: async () => {
       if (window.__TAURI__ && window.__TAURI__.core) {
-        try { await window.__TAURI__.core.invoke('openConfig'); } catch (e) { console.error(e); }
+        try {
+          await window.__TAURI__.core.invoke('openConfig');
+        } catch (e) {
+          console.error(e);
+        }
         return;
       }
-      showToast('非 Tauri 环境限制：请手动使用文本编辑器打开项目根目录下的 proxy.config.json 进行编辑。');
+      showToast(
+        '非 Tauri 环境限制：请手动使用文本编辑器打开项目根目录下的 proxy.config.json 进行编辑。'
+      );
     },
     openLog: async () => {
       if (window.__TAURI__ && window.__TAURI__.core) {
-        try { await window.__TAURI__.core.invoke('openLog'); } catch (e) { console.error(e); }
+        try {
+          await window.__TAURI__.core.invoke('openLog');
+        } catch (e) {
+          console.error(e);
+        }
         return;
       }
       showToast('非 Tauri 环境限制：请直接打开项目根目录下的 .hpm-runtime/proxy.log 查看日志。');
     },
     openCertDir: async () => {
       if (window.__TAURI__ && window.__TAURI__.core) {
-        try { await window.__TAURI__.core.invoke('openCertDir'); } catch (e) { console.error(e); }
+        try {
+          await window.__TAURI__.core.invoke('openCertDir');
+        } catch (e) {
+          console.error(e);
+        }
         return;
       }
       showToast('非 Tauri 环境限制：证书目录位于项目根目录的 .hpm-runtime/.certs 文件夹中。');
@@ -427,40 +599,66 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       try {
         return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/claude-code/status`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Claude Code 状态检查超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Claude Code 状态检查超时' : err.message,
+        };
       }
     },
     applyClaudeCode: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/claude-code/apply', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/claude-code/apply',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreClaudeCode: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/claude-code/restore', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/claude-code/restore',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     antigravityCliStatus: async () => {
       try {
-        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/antigravity-cli/status`, {}, 7000);
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/antigravity-cli/status`,
+          {},
+          7000
+        );
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Antigravity CLI 状态检查超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Antigravity CLI 状态检查超时' : err.message,
+        };
       }
     },
     applyAntigravityCli: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/antigravity-cli/apply', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/antigravity-cli/apply',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreAntigravityCli: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/antigravity-cli/restore', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/antigravity-cli/restore',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
@@ -477,11 +675,13 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       try {
         const body = Array.isArray(payload)
           ? { toolIds: payload }
-          : (payload && typeof payload === 'object' ? payload : { toolId: payload });
+          : payload && typeof payload === 'object'
+            ? payload
+            : { toolId: payload };
         const res = await fetch(getApiBase() + '/v1/local/env/upgrade', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify(body),
         });
         return await res.json();
       } catch (err) {
@@ -495,7 +695,9 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           params.set('ids', jobIds.join(','));
         }
         const query = params.toString();
-        const res = await fetch(getApiBase() + '/v1/local/env/install-jobs' + (query ? `?${query}` : ''));
+        const res = await fetch(
+          getApiBase() + '/v1/local/env/install-jobs' + (query ? `?${query}` : '')
+        );
         return await res.json();
       } catch (err) {
         return { ok: false, error: err.message };
@@ -505,120 +707,178 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       try {
         return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/codex/status`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Codex CLI 状态检查超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Codex CLI 状态检查超时' : err.message,
+        };
       }
     },
     codexDesktopStatus: async () => {
       try {
-        return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/codex-desktop/status`, {}, 7000);
+        return await fetchJsonWithTimeout(
+          `${getApiBase()}/v1/local/codex-desktop/status`,
+          {},
+          7000
+        );
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Codex Desktop 状态检查超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Codex Desktop 状态检查超时' : err.message,
+        };
       }
     },
     applyCodex: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/apply', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex/apply',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     switchCodex: async (payload = {}) => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/switch', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex/switch',
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     codexApiLogin: async (payload = {}) => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/auth/api-login', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex/auth/api-login',
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     codexOfficialLogin: async (payload = {}) => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/auth/official-login', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex/auth/official-login',
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     codexAuthBackup: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/auth/backup', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex/auth/backup',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     applyCodexDesktop: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/apply', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex-desktop/apply',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     codexDesktopApiLogin: async (payload = {}) => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/auth/api-login', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex-desktop/auth/api-login',
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     codexDesktopOfficialLogin: async (payload = {}) => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/auth/official-login', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex-desktop/auth/official-login',
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     codexDesktopAuthBackup: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/auth/backup', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex-desktop/auth/backup',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     switchCodexDesktop: async (payload = {}) => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/switch', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex-desktop/switch',
+          {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreCodex: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex/restore', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex/restore',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreCodexDesktop: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/codex-desktop/restore', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/codex-desktop/restore',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
@@ -627,19 +887,30 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       try {
         return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/gemini-cli/status`, {}, 7000);
       } catch (err) {
-        return { ok: false, error: err && err.name === 'AbortError' ? 'Gemini CLI 状态检查超时' : err.message };
+        return {
+          ok: false,
+          error: err && err.name === 'AbortError' ? 'Gemini CLI 状态检查超时' : err.message,
+        };
       }
     },
     applyGeminiCli: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/gemini-cli/apply', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/gemini-cli/apply',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     restoreGeminiCli: async () => {
       try {
-        return await fetchJsonWithTimeout(getApiBase() + '/v1/local/gemini-cli/restore', { method: 'POST' }, 10000);
+        return await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/gemini-cli/restore',
+          { method: 'POST' },
+          10000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
@@ -654,7 +925,9 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     },
     getRateLimits: async (profileId) => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/auth/rate-limits?profileId=' + encodeURIComponent(profileId));
+        const res = await fetch(
+          getApiBase() + '/v1/local/auth/rate-limits?profileId=' + encodeURIComponent(profileId)
+        );
         return await res.json();
       } catch (err) {
         return { ok: false, error: err.message };
@@ -684,7 +957,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         const res = await fetch(getApiBase() + '/v1/local/audit/retry', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id })
+          body: JSON.stringify({ id }),
         });
         return await res.json();
       } catch (err) {
@@ -693,7 +966,9 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     },
     clearAuditConversations: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/audit/conversations/clear', { method: 'POST' });
+        const res = await fetch(getApiBase() + '/v1/local/audit/conversations/clear', {
+          method: 'POST',
+        });
         return await res.json();
       } catch (err) {
         return { ok: false, error: err.message };
@@ -720,11 +995,18 @@ if (window.__TAURI__ && window.__TAURI__.core) {
         output: res.output || '',
         ok: res.code === 0,
         message: res.output || '',
-        running: out.includes('running') && !out.includes('not running')
+        running: out.includes('running') && !out.includes('not running'),
       };
     } catch (e) {
       console.error('Proxy command failed:', e);
-      return { code: -1, output: String(e), ok: false, error: String(e), message: String(e), running: false };
+      return {
+        code: -1,
+        output: String(e),
+        ok: false,
+        error: String(e),
+        message: String(e),
+        running: false,
+      };
     }
   };
   window.proxyManager.launchCodexLoginScript = async (scriptPath) => {
@@ -736,6 +1018,14 @@ if (window.__TAURI__ && window.__TAURI__.core) {
       return { ok: false, error: String(e) };
     }
   };
+  window.proxyManager.selectDirectory = async () => {
+    try {
+      return await invoke('select_directory_native');
+    } catch (e) {
+      console.error('Native directory selection failed:', e);
+      return { ok: false, error: String(e) };
+    }
+  };
   window.proxyManager.onTrayCommand = (handler) => {
     if (!window.__TAURI__.event) return Promise.resolve(() => {});
     return window.__TAURI__.event.listen('tray-command', (event) => handler(event.payload));
@@ -744,4 +1034,15 @@ if (window.__TAURI__ && window.__TAURI__.core) {
     if (!window.__TAURI__.event) return Promise.resolve(() => {});
     return window.__TAURI__.event.listen('open-view', (event) => handler(event.payload));
   };
+  if (window.__TAURI__.event) {
+    window.__TAURI__.event
+      .listen('reload-requested', (event) => {
+        if (event && event.payload === true) {
+          window.location.reload(true);
+          return;
+        }
+        window.location.reload();
+      })
+      .catch((e) => console.error('Failed to listen for reload requests:', e));
+  }
 }

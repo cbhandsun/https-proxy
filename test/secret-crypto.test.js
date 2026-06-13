@@ -9,6 +9,7 @@ const {
   _encryptAes,
   _decryptAes,
 } = require('../lib/proxy/secret-crypto');
+const { encryptConfigSecretsForStorage } = require('../lib/proxy/config');
 
 clearDecryptCache();
 
@@ -28,7 +29,11 @@ console.log('[secret-crypto.test] decryptKey passthrough ok');
 
 // 3. encryptKey on already-encrypted returns unchanged
 const alreadyEnc = _encryptAes('foo');
-assert.strictEqual(encryptKey(alreadyEnc), alreadyEnc, 'encryptKey must skip already-encrypted values');
+assert.strictEqual(
+  encryptKey(alreadyEnc),
+  alreadyEnc,
+  'encryptKey must skip already-encrypted values'
+);
 console.log('[secret-crypto.test] encryptKey idempotent ok');
 
 // 4. encryptKey on empty / non-string
@@ -53,8 +58,10 @@ clearDecryptCache();
 const apiKey = 'sk-end-to-end-' + Date.now();
 const cipher = encryptKey(apiKey);
 assert.ok(cipher !== apiKey, 'encryption must mutate');
-assert.ok(cipher.startsWith(DPAPI_PREFIX) || cipher.startsWith(AES_PREFIX),
-  'cipher must use known prefix: ' + cipher.substring(0, 16));
+assert.ok(
+  cipher.startsWith(DPAPI_PREFIX) || cipher.startsWith(AES_PREFIX),
+  'cipher must use known prefix: ' + cipher.substring(0, 16)
+);
 const plain = decryptKey(cipher);
 assert.strictEqual(plain, apiKey, 'end-to-end round-trip must match');
 console.log('[secret-crypto.test] end-to-end round-trip ok prefix=' + cipher.substring(0, 9));
@@ -73,7 +80,35 @@ assert.strictEqual(decryptKey('hpm-enc:'), 'hpm-enc:');
 assert.strictEqual(decryptKey('hpm-dpapi:invalid'), 'hpm-dpapi:invalid');
 console.log('[secret-crypto.test] bad ciphertext graceful ok');
 
-// 9. getCryptoBackend reports status
+// 9. Config storage encrypts nested secrets and is idempotent.
+const storedConfig = encryptConfigSecretsForStorage({
+  profiles: [{ id: 'main', apiKey: 'profile-secret' }],
+  claudeDesktop: {
+    token: 'desktop-token',
+    directApiKey: 'direct-secret',
+  },
+});
+
+assert.match(storedConfig.profiles[0].apiKey, /^hpm-(dpapi|enc):/);
+assert.match(storedConfig.claudeDesktop.token, /^hpm-(dpapi|enc):/);
+assert.match(storedConfig.claudeDesktop.directApiKey, /^hpm-(dpapi|enc):/);
+assert.notStrictEqual(storedConfig.profiles[0].apiKey, 'profile-secret');
+assert.notStrictEqual(storedConfig.claudeDesktop.token, 'desktop-token');
+assert.notStrictEqual(storedConfig.claudeDesktop.directApiKey, 'direct-secret');
+assert.ok(!JSON.stringify(storedConfig).includes('profile-secret'));
+assert.ok(!JSON.stringify(storedConfig).includes('desktop-token'));
+assert.ok(!JSON.stringify(storedConfig).includes('direct-secret'));
+
+const storedConfigAgain = encryptConfigSecretsForStorage(storedConfig);
+assert.strictEqual(storedConfigAgain.profiles[0].apiKey, storedConfig.profiles[0].apiKey);
+assert.strictEqual(storedConfigAgain.claudeDesktop.token, storedConfig.claudeDesktop.token);
+assert.strictEqual(
+  storedConfigAgain.claudeDesktop.directApiKey,
+  storedConfig.claudeDesktop.directApiKey
+);
+console.log('[secret-crypto.test] config storage encryption ok');
+
+// 10. getCryptoBackend reports status
 const backend = getCryptoBackend();
 assert.ok(typeof backend === 'object' && backend !== null);
 assert.ok('isWindows' in backend);

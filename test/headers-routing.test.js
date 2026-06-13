@@ -55,6 +55,84 @@ function setupTestConfig(profile) {
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 }
 
+function readManagementToken() {
+  const candidates = [
+    path.join(__dirname, '.mgmt-token-4543'),
+    path.join(__dirname, '.mgmt-token'),
+  ];
+  for (const file of candidates) {
+    try {
+      const token = fs.readFileSync(file, 'utf8').trim();
+      if (token) return token;
+    } catch (err) {}
+  }
+  return '';
+}
+
+function stopProxyProcess(proxyProc, done) {
+  let settled = false;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    done();
+  };
+  const timer = setTimeout(finish, 1500);
+  if (typeof timer.unref === 'function') timer.unref();
+  if (!proxyProc || proxyProc.exitCode != null || proxyProc.signalCode != null) {
+    finish();
+    return;
+  }
+  proxyProc.once('exit', finish);
+  proxyProc.once('close', finish);
+  if (!proxyProc.killed) {
+    proxyProc.kill();
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function sendClaudeMessageRequest() {
+  return new Promise((resolve, reject) => {
+    receivedHeaders = {};
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: 4443,
+        path: '/v1/messages',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      },
+      (res) => {
+        res.resume();
+        res.on('end', () => resolve({ ...receivedHeaders }));
+      }
+    );
+    req.on('error', reject);
+    req.write(
+      JSON.stringify({
+        model: 'claude-3-5-sonnet-latest',
+        messages: [{ role: 'user', content: 'hi' }],
+      })
+    );
+    req.end();
+  });
+}
+
+async function waitForForwardedApiKey(expectedKey, { timeoutMs = 5000, intervalMs = 100 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastHeaders = {};
+  while (Date.now() < deadline) {
+    lastHeaders = await sendClaudeMessageRequest();
+    if (lastHeaders['x-api-key'] === expectedKey) return lastHeaders;
+    await delay(intervalMs);
+  }
+  assert.strictEqual(lastHeaders['x-api-key'], expectedKey);
+  return lastHeaders;
+}
+
 function cleanUp() {
   if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
   mockUpstream.close();
@@ -253,10 +331,16 @@ function runSingleTest({
     });
 
     let isStarted = false;
+    let done = false;
+    const finish = (err) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timeoutTimer);
+      stopProxyProcess(proxyProc, () => (err ? reject(err) : resolve()));
+    };
     const timeoutTimer = setTimeout(() => {
       if (!isStarted) {
-        proxyProc.kill();
-        reject(new Error('Timeout waiting for proxy to start (10s)'));
+        finish(new Error('Timeout waiting for proxy to start (10s)'));
       }
     }, 10000);
 
@@ -283,19 +367,16 @@ function runSingleTest({
             try {
               expectedHeadersCheck(receivedHeaders);
               console.log(`  [PASS] ${message}`);
-              proxyProc.kill();
-              resolve();
+              finish();
             } catch (err) {
-              proxyProc.kill();
-              reject(err);
+              finish(err);
             }
           });
         }
       );
 
       req.on('error', (err) => {
-        proxyProc.kill();
-        reject(err);
+        finish(err);
       });
 
       const bodyData = clientBody || {
@@ -309,7 +390,7 @@ function runSingleTest({
     proxyProc.stdout.on('data', (data) => {
       const output = data.toString();
       console.log(`[PROXY OUT] ${output.trim()}`);
-      if (output.includes('Listen:') && !isStarted) {
+      if (output.includes('Mgmt:') && !isStarted) {
         startClient();
       }
     });
@@ -349,14 +430,20 @@ function runHotReloadTest() {
     });
 
     let isStarted = false;
+    let done = false;
+    const finish = (err) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timeoutTimer);
+      stopProxyProcess(proxyProc, () => (err ? reject(err) : resolve()));
+    };
     const timeoutTimer = setTimeout(() => {
-      proxyProc.kill();
-      reject(new Error('Hot reload test timeout (10s)'));
+      finish(new Error('Hot reload test timeout (10s)'));
     }, 10000);
 
     proxyProc.stdout.on('data', (data) => {
       const output = data.toString();
-      if (output.includes('Listen:') && !isStarted) {
+      if (output.includes('Mgmt:') && !isStarted) {
         isStarted = true;
 
         // 1. 发送第一次请求，此时应该使用 key-1
@@ -376,44 +463,14 @@ function runHotReloadTest() {
               // 2. 动态改写配置文件，切换为 profile2
               setupTestConfig(profile2);
 
-              // 稍微等待 300ms 等待 fs.watch 热加载完成
-              setTimeout(() => {
-                receivedHeaders = {};
-
-                // 3. 发送第二次请求，此时应该热加载为了 key-2
-                const req2 = http.request(
-                  {
-                    hostname: '127.0.0.1',
-                    port: 4443,
-                    path: '/v1/messages',
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                  },
-                  (res2) => {
-                    res2.resume();
-                    try {
-                      assert.strictEqual(receivedHeaders['x-api-key'], 'key-2');
-                      console.log('  [PASS] Configuration hot-reload test');
-                      clearTimeout(timeoutTimer);
-                      proxyProc.kill();
-                      resolve();
-                    } catch (err) {
-                      proxyProc.kill();
-                      reject(err);
-                    }
-                  }
-                );
-                req2.write(
-                  JSON.stringify({
-                    model: 'claude-3-5-sonnet-latest',
-                    messages: [{ role: 'user', content: 'hi' }],
-                  })
-                );
-                req2.end();
-              }, 300);
+              waitForForwardedApiKey('key-2')
+                .then(() => {
+                  console.log('  [PASS] Configuration hot-reload test');
+                  finish();
+                })
+                .catch(finish);
             } catch (err) {
-              proxyProc.kill();
-              reject(err);
+              finish(err);
             }
           }
         );
@@ -446,13 +503,17 @@ function runLatencyApiTest() {
     });
 
     let isStarted = false;
-    let managementToken = '';
+    let done = false;
+    const finish = (err) => {
+      if (done) return;
+      done = true;
+      stopProxyProcess(proxyProc, () => (err ? reject(err) : resolve()));
+    };
     proxyProc.stdout.on('data', (data) => {
       const output = data.toString();
-      const tokenMatch = output.match(/mgmt_token:\s*([a-f0-9]+)/i);
-      if (tokenMatch) managementToken = tokenMatch[1];
-      if (output.includes('Listen:') && !isStarted) {
+      if (output.includes('Mgmt:') && !isStarted) {
         isStarted = true;
+        const managementToken = readManagementToken();
 
         // 请求本地测速 API
         const req = http.request(
@@ -472,15 +533,15 @@ function runLatencyApiTest() {
                 assert.strictEqual(result.ok, true);
                 assert.ok(typeof result.latency === 'number');
                 console.log('  [PASS] Profile latency speed test API');
-                proxyProc.kill();
-                resolve();
+                finish();
               } catch (err) {
-                proxyProc.kill();
-                reject(err);
+                finish(err);
               }
             });
           }
         );
+
+        req.on('error', finish);
 
         req.write(
           JSON.stringify({
@@ -512,13 +573,17 @@ function runPromptsSyncApiTest() {
     });
 
     let isStarted = false;
-    let managementToken = '';
+    let done = false;
+    const finish = (err) => {
+      if (done) return;
+      done = true;
+      stopProxyProcess(proxyProc, () => (err ? reject(err) : resolve()));
+    };
     proxyProc.stdout.on('data', (data) => {
       const output = data.toString();
-      const tokenMatch = output.match(/mgmt_token:\s*([a-f0-9]+)/i);
-      if (tokenMatch) managementToken = tokenMatch[1];
-      if (output.includes('Listen:') && !isStarted) {
+      if (output.includes('Mgmt:') && !isStarted) {
         isStarted = true;
+        const managementToken = readManagementToken();
 
         // 1. 请求本地同步 API 测试 claude
         const reqClaude = http.request(
@@ -571,15 +636,15 @@ function runPromptsSyncApiTest() {
                         fs.unlinkSync(resultAnti.path);
 
                         console.log('  [PASS] Prompts Markdown sync API (Claude & Antigravity)');
-                        proxyProc.kill();
-                        resolve();
+                        finish();
                       } catch (err) {
-                        proxyProc.kill();
-                        reject(err);
+                        finish(err);
                       }
                     });
                   }
                 );
+
+                reqAnti.on('error', finish);
 
                 reqAnti.write(
                   JSON.stringify({
@@ -589,12 +654,13 @@ function runPromptsSyncApiTest() {
                 );
                 reqAnti.end();
               } catch (err) {
-                proxyProc.kill();
-                reject(err);
+                finish(err);
               }
             });
           }
         );
+
+        reqClaude.on('error', finish);
 
         reqClaude.write(
           JSON.stringify({

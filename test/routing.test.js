@@ -85,5 +85,36 @@ clearCaches();
   assert.equal(after.route.to, 'gemini-1.5-pro', 'reset + new routes work');
 }
 
+// ─── 6. parseTargetUrl normalizes ports and provider base paths ───
+{
+  const explicit = routing.parseTargetUrl('https://example.com:8443/v1/');
+  assert.deepEqual(explicit, {
+    protocol: 'https:',
+    hostname: 'example.com',
+    port: 8443,
+    path: '/v1',
+  });
+
+  assert.equal(
+    routing.parseTargetUrl('https://example.com/custom').port,
+    443,
+    'https default port'
+  );
+  assert.equal(routing.parseTargetUrl('http://example.com/custom').port, 80, 'http default port');
+  assert.equal(
+    routing.parseTargetUrl('https://api.openai.com').path,
+    '/v1',
+    'known OpenAI host defaults to /v1'
+  );
+}
+
+// ─── 7. parseTargetUrl returns cache copies, not shared objects ───
+{
+  const first = routing.parseTargetUrl('https://cache-copy.example/v1');
+  first.port = 1;
+  const second = routing.parseTargetUrl('https://cache-copy.example/v1');
+  assert.equal(second.port, 443, 'cached target URL result is cloned on read');
+}
+
 clearCaches();
-console.log('routing.test.js ok (5 scenarios)');
+console.log('routing.test.js ok (7 scenarios)');

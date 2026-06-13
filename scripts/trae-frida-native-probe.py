@@ -23,9 +23,10 @@ except Exception as exc:
     sys.exit(1)
 
 
-def build_js(capture_preview, max_preview):
+def build_js(capture_preview, capture_matched_preview, max_preview):
     return r"""
 const capturePreview = __CAPTURE_PREVIEW__;
+const captureMatchedPreview = __CAPTURE_MATCHED_PREVIEW__;
 const maxPreview = __MAX_PREVIEW__;
 const protocolNeedles = [
   "api/agent/v3/create_agent_task",
@@ -45,6 +46,14 @@ const protocolNeedles = [
 
 const connectMeta = {};
 const requestMeta = {};
+const cronetParamsMeta = {};
+const cronetRequestMeta = {};
+const cronetParamsProviders = {};
+const cronetCallbackMeta = {};
+const uploadProviderMeta = {};
+const cronetBufferMeta = {};
+const cronetResponseBufferMeta = {};
+const hookedCallbacks = {};
 
 function lower(value) {
   return String(value || "").toLowerCase();
@@ -153,6 +162,171 @@ function redactPreview(text) {
   return value.length > maxPreview ? value.slice(0, maxPreview) + "..." : value;
 }
 
+function valueType(value) {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  return typeof value;
+}
+
+function summarizeJsonShape(value, depth) {
+  const type = valueType(value);
+  if (depth <= 0 || (type !== "object" && type !== "array")) return { type };
+  if (type === "array") {
+    const first = value.length ? summarizeJsonShape(value[0], depth - 1) : null;
+    return { type, length: value.length, first };
+  }
+  const keys = Object.keys(value || {}).slice(0, 36);
+  const fieldTypes = {};
+  for (const key of keys.slice(0, 24)) fieldTypes[key] = valueType(value[key]);
+  return { type, keys, fieldTypes };
+}
+
+function summarizeTraeSseSemantic(eventName, value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const event = String(eventName || "");
+  if (event === "thought") {
+    return {
+      claudeCandidate: "thinking_delta",
+      reasoningChars: typeof value.reasoning_content === "string" ? value.reasoning_content.length : 0,
+      thoughtChars: typeof value.thought === "string" ? value.thought.length : 0,
+      firstData: value.first_data === true,
+      agentName: typeof value.agent_name === "string" ? redactPreview(value.agent_name) : undefined,
+    };
+  }
+  if (event === "tool_call") {
+    return {
+      claudeCandidate: "tool_use",
+      toolName: typeof value.tool_name === "string" ? redactPreview(value.tool_name) : undefined,
+      argumentsChars: typeof value.arguments === "string" ? value.arguments.length : 0,
+      argumentsStartsLikeJson: typeof value.arguments === "string" && value.arguments.trim().startsWith("{"),
+      requireLocalExecution: value.require_local_execution === true,
+      firstData: value.first_data === true,
+    };
+  }
+  if (event === "token_usage") {
+    return {
+      claudeCandidate: "message_delta_usage",
+      inputTokens: Number(value.prompt_tokens || value.prompt_tokens_total || 0),
+      outputTokens: Number(value.completion_tokens || value.completion_tokens_total || 0),
+      totalTokens: Number(value.total_tokens || value.total_tokens_total || 0),
+      reasoningTokens: Number(value.reasoning_tokens || value.reasoning_tokens_total || 0),
+    };
+  }
+  if (event === "turn_completion") {
+    return {
+      claudeCandidate: "message_delta_stop",
+      taskCompletion: value.task_completion === true,
+      agentName: typeof value.agent_name === "string" ? redactPreview(value.agent_name) : undefined,
+    };
+  }
+  if (event === "model_config") {
+    return {
+      claudeCandidate: "message_metadata",
+      modelName: typeof value.model_name === "string" ? redactPreview(value.model_name) : undefined,
+      configName: typeof value.config_name === "string" ? redactPreview(value.config_name) : undefined,
+      maxTokens: Number(value.max_tokens || 0),
+      promptMaxTokens: Number(value.prompt_max_tokens || 0),
+    };
+  }
+  if (event === "task_created") {
+    return {
+      claudeCandidate: "message_metadata",
+      hasTaskId: typeof value.task_id === "string" && value.task_id.length > 0,
+      hasAgentRunId: typeof value.agent_run_id === "string" && value.agent_run_id.length > 0,
+    };
+  }
+  if (event === "metadata") {
+    return {
+      claudeCandidate: "message_metadata",
+      model: typeof value.model === "string" ? redactPreview(value.model) : undefined,
+      hasSessionId: typeof value.session_id === "string" && value.session_id.length > 0,
+    };
+  }
+  if (event === "timing_cost") {
+    return {
+      claudeCandidate: "debug_metadata",
+      firstSseMs: Number(value.first_sse_event_time || value.platform_first_token_timing || 0),
+      serverMs: Number(value.server_processing_time || value.gateway_server_processing_time || 0),
+      queueMs: Number(value.queue_timing || 0),
+    };
+  }
+  if (event === "history" || event === "required_context" || event === "progress_notice") {
+    return {
+      claudeCandidate: "debug_metadata",
+      hasHistoryData: Boolean(value.history_data),
+      hasContexts: Array.isArray(value.contexts),
+      hasMessages: Array.isArray(value.messages),
+    };
+  }
+  return null;
+}
+
+function summarizeProtocolSignals(text) {
+  const value = String(text || "").toLowerCase();
+  return {
+    reasoning: /reasoning_content|thought/.test(value),
+    token: /token_usage|prompt_tokens|completion_tokens|total_tokens/.test(value),
+    task: /task_id|agent_run_id|session_id|conversation_id/.test(value),
+    model: /model_name|config_name|"model"/.test(value),
+    tool: /tool_call|toolcall|tool_call_info|native_function_call|function_call/.test(value),
+    plan: /plan_item|chatplanitem|start_agent_gen_plan/.test(value),
+    metadata: /metadata|trace_id|logid|timing_events/.test(value),
+    text: /text_delta|content_delta|reasoning_delta/.test(value),
+  };
+}
+
+function hasAnySignal(signals) {
+  return Object.keys(signals || {}).some((key) => signals[key]);
+}
+
+function summarizeSseText(text) {
+  const raw = String(text || "");
+  if (!/(^|\n)\s*(event|data):/m.test(raw)) return null;
+  const blocks = raw.split(/\r?\n\s*\r?\n/);
+  const events = [];
+  for (const block of blocks) {
+    if (events.length >= 10) break;
+    if (!/(^|\n)\s*(event|data):/m.test(block)) continue;
+    let eventName = "message";
+    const dataLines = [];
+    for (const line of block.split(/\r?\n/)) {
+      const eventMatch = line.match(/^\s*event:\s*(.*)$/);
+      if (eventMatch) {
+        eventName = eventMatch[1].trim() || "message";
+        continue;
+      }
+      const dataMatch = line.match(/^\s*data:\s?(.*)$/);
+      if (dataMatch) dataLines.push(dataMatch[1]);
+    }
+    const dataText = dataLines.join("\n").trim();
+    const item = {
+      event: eventName,
+      dataLength: dataText.length,
+      dataStartsLikeJson: dataText.startsWith("{") || dataText.startsWith("["),
+      signals: summarizeProtocolSignals(eventName + " " + dataText),
+    };
+    if (item.dataStartsLikeJson) {
+      try {
+        const parsed = JSON.parse(dataText);
+        item.dataShape = summarizeJsonShape(parsed, 2);
+        const semantic = summarizeTraeSseSemantic(eventName, parsed);
+        if (semantic) item.semantic = semantic;
+      } catch (_) {
+        item.dataJsonParseError = true;
+      }
+    }
+    events.push(item);
+  }
+  if (!events.length) return null;
+  const signals = summarizeProtocolSignals(raw);
+  return {
+    count: events.length,
+    events,
+    signals,
+    hasUsefulSignal: hasAnySignal(signals),
+  };
+}
+
 function inspectBuffer(bufferPtr, length) {
   const len = Number(length) || 0;
   const result = {
@@ -183,11 +357,46 @@ function inspectBuffer(bufferPtr, length) {
     result.startsLikeJson = compact.startsWith("{") || compact.startsWith("[");
     result.hasUrl = /https?:\/\//i.test(compact);
     result.hasProtocolNeedle = protocolNeedles.some((needle) => compact.includes(needle));
-    if (capturePreview) result.preview = redactPreview(compact);
+    const sse = summarizeSseText(text);
+    if (sse) {
+      result.hasSse = true;
+      result.sse = sse;
+      result.hasProtocolNeedle = result.hasProtocolNeedle || sse.hasUsefulSignal;
+    }
+    if (capturePreview || (captureMatchedPreview && (result.startsLikeJson || result.hasUrl || result.hasProtocolNeedle))) {
+      result.preview = redactPreview(compact);
+    }
   } catch (_) {
     return result;
   }
   return result;
+}
+
+function inspectUnknownBuffer(bufferPtr, maxLength) {
+  const len = Math.max(0, Math.min(Number(maxLength) || 4096, 64 * 1024));
+  return inspectBuffer(bufferPtr, len);
+}
+
+function inspectCronetBuffer(bufferPtr, fallbackLength) {
+  if (!bufferPtr || bufferPtr.isNull()) return inspectUnknownBuffer(bufferPtr, fallbackLength || 0);
+  let dataPtr = ptr("0");
+  let length = Number(fallbackLength) || 4096;
+  try {
+    const sizeExport = findExport("sscronet.dll", "Cronet_Buffer_GetSize");
+    if (sizeExport) {
+      const getSize = new NativeFunction(sizeExport, "uint64", ["pointer"]);
+      const actual = Number(getSize(bufferPtr));
+      if (actual > 0) length = actual;
+    }
+  } catch (_) {}
+  try {
+    const dataExport = findExport("sscronet.dll", "Cronet_Buffer_GetData");
+    if (dataExport) {
+      const getData = new NativeFunction(dataExport, "pointer", ["pointer"]);
+      dataPtr = getData(bufferPtr);
+    }
+  } catch (_) {}
+  return inspectUnknownBuffer(dataPtr, length);
 }
 
 function inspectPossibleString(ptrValue) {
@@ -339,29 +548,55 @@ function hookAhaNet() {
   })) count += 1;
   if (attach("sscronet.dll", "Cronet_UrlRequestParams_http_method_set", {
     onEnter(args) {
+      const params = String(args[0]);
+      const method = cstr(args[1]);
+      cronetParamsMeta[params] = Object.assign({}, cronetParamsMeta[params] || {}, { method });
       emit({
         event: "Cronet_UrlRequestParams_http_method_set",
-        params: String(args[0]),
-        text: summarizeText(cstr(args[1])),
+        params,
+        text: summarizeText(method),
       });
     }
   })) count += 1;
   if (attach("sscronet.dll", "Cronet_UrlRequestParams_upload_data_provider_set", {
     onEnter(args) {
+      const params = String(args[0]);
+      const provider = String(args[1]);
+      cronetParamsProviders[params] = cronetParamsProviders[params] || [];
+      cronetParamsProviders[params].push(provider);
+      uploadProviderMeta[provider] = Object.assign({}, uploadProviderMeta[provider] || {}, { params });
       emit({
         event: "Cronet_UrlRequestParams_upload_data_provider_set",
-        params: String(args[0]),
-        provider: String(args[1]),
+        params,
+        provider,
       });
     }
   })) count += 1;
   if (attach("sscronet.dll", "Cronet_UrlRequest_InitWithParams", {
     onEnter(args) {
+      const request = String(args[0]);
+      const params = String(args[3]);
+      const callback = String(args[4]);
+      const url = cstr(args[2]);
+      const safeUrl = safePath(url);
+      const meta = Object.assign({}, cronetParamsMeta[params] || {}, {
+        params,
+        callback,
+        url: safeUrl,
+        hasProtocolNeedle: protocolNeedles.some((needle) => url.includes(needle)),
+      });
+      cronetParamsMeta[params] = meta;
+      cronetRequestMeta[request] = meta;
+      cronetCallbackMeta[callback] = meta;
+      (cronetParamsProviders[params] || []).forEach((provider) => {
+        uploadProviderMeta[provider] = Object.assign({}, uploadProviderMeta[provider] || {}, meta);
+      });
       emit({
         event: "Cronet_UrlRequest_InitWithParams",
-        request: String(args[0]),
-        url: summarizeText(cstr(args[2])),
-        params: String(args[3]),
+        request,
+        url: summarizeText(url),
+        params,
+        meta,
       });
     }
   })) count += 1;
@@ -370,6 +605,65 @@ function hookAhaNet() {
       emit({
         event: "Cronet_UrlRequest_Start",
         request: String(args[0]),
+        meta: cronetRequestMeta[String(args[0])] || {},
+      });
+    }
+  })) count += 1;
+  if (attach("sscronet.dll", "Cronet_UrlRequest_Read", {
+    onEnter(args) {
+      const request = String(args[0]);
+      const buffer = String(args[1]);
+      const meta = cronetRequestMeta[request] || {};
+      cronetResponseBufferMeta[buffer] = { request, meta };
+      emit({
+        event: "Cronet_UrlRequest_Read",
+        request,
+        buffer,
+        meta,
+      });
+    }
+  })) count += 1;
+  if (attach("sscronet.dll", "Cronet_UrlRequestCallback_OnResponseStarted", {
+    onEnter(args) {
+      const callback = String(args[0]);
+      const request = String(args[1]);
+      const meta = cronetRequestMeta[request] || cronetCallbackMeta[callback] || {};
+      emit({
+        event: "Cronet_UrlRequestCallback_OnResponseStarted",
+        callback,
+        request,
+        meta,
+      });
+    }
+  })) count += 1;
+  if (attach("sscronet.dll", "Cronet_UrlRequestCallback_OnReadCompleted", {
+    onEnter(args) {
+      const callback = String(args[0]);
+      const request = String(args[1]);
+      const buffer = String(args[3]);
+      const bytesRead = Number(args[4].toInt32 ? args[4].toInt32() : 0);
+      const meta = cronetRequestMeta[request] || cronetCallbackMeta[callback] || (cronetResponseBufferMeta[buffer] && cronetResponseBufferMeta[buffer].meta) || {};
+      cronetResponseBufferMeta[buffer] = { request, meta };
+      emit({
+        event: "Cronet_UrlRequestCallback_OnReadCompleted",
+        callback,
+        request,
+        buffer,
+        bytesRead,
+        meta,
+        data: inspectCronetBuffer(args[3], bytesRead || 4096),
+      });
+    }
+  })) count += 1;
+  if (attach("sscronet.dll", "Cronet_UrlRequestCallback_OnSucceeded", {
+    onEnter(args) {
+      const callback = String(args[0]);
+      const request = String(args[1]);
+      emit({
+        event: "Cronet_UrlRequestCallback_OnSucceeded",
+        callback,
+        request,
+        meta: cronetRequestMeta[request] || cronetCallbackMeta[callback] || {},
       });
     }
   })) count += 1;
@@ -381,6 +675,89 @@ function hookAhaNet() {
         arg1: inspectPossibleString(args[1]),
         arg2: inspectPossibleString(args[2]),
         arg3: inspectPossibleString(args[3]),
+      });
+    }
+  })) count += 1;
+  if (attach("sscronet.dll", "Cronet_UploadDataProvider_CreateWith", {
+    onEnter(args) {
+      this.callbacks = {
+        getLength: String(args[0]),
+        read: String(args[1]),
+        rewind: String(args[2]),
+        close: String(args[3]),
+      };
+      const readPtr = args[1];
+      if (!readPtr.isNull() && !hookedCallbacks[String(readPtr)]) {
+        hookedCallbacks[String(readPtr)] = true;
+        try {
+          Interceptor.attach(readPtr, {
+            onEnter(cbArgs) {
+              const provider = String(cbArgs[0]);
+              const buffer = String(cbArgs[2]);
+              const meta = uploadProviderMeta[provider] || {};
+              cronetBufferMeta[buffer] = { provider, meta };
+              emit({
+                event: "Cronet_UploadDataProvider_ReadCallback",
+                callback: String(readPtr),
+                provider,
+                sink: String(cbArgs[1]),
+                buffer,
+                meta,
+              });
+            }
+          });
+          emit({ event: "hooked_callback", callback: "Cronet_UploadDataProvider_ReadFunc", address: String(readPtr) });
+        } catch (err) {
+          emit({ event: "hook_callback_error", callback: "Cronet_UploadDataProvider_ReadFunc", address: String(readPtr), error: String(err) });
+        }
+      }
+    },
+    onLeave(retval) {
+      if (!retval.isNull()) uploadProviderMeta[String(retval)] = Object.assign({}, uploadProviderMeta[String(retval)] || {}, this.callbacks);
+      emit({
+        event: "Cronet_UploadDataProvider_CreateWith",
+        provider: String(retval),
+        callbacks: this.callbacks,
+      });
+    }
+  })) count += 1;
+  if (attach("sscronet.dll", "Cronet_UploadDataProvider_Read", {
+    onEnter(args) {
+      const provider = String(args[0]);
+      const buffer = String(args[2]);
+      const meta = uploadProviderMeta[provider] || {};
+      cronetBufferMeta[buffer] = { provider, meta };
+      emit({
+        event: "Cronet_UploadDataProvider_Read",
+        provider,
+        sink: String(args[1]),
+        buffer,
+        callbacks: uploadProviderMeta[provider] || {},
+        meta,
+      });
+    }
+  })) count += 1;
+  if (attach("sscronet.dll", "Cronet_Buffer_InitWithDataAndCallback", {
+    onEnter(args) {
+      emit({
+        event: "Cronet_Buffer_InitWithDataAndCallback",
+        buffer: String(args[0]),
+        data: inspectUnknownBuffer(args[1], args[2].toInt32 ? args[2].toInt32() : 4096),
+      });
+    }
+  })) count += 1;
+  if (attach("sscronet.dll", "Cronet_Buffer_GetData", {
+    onEnter(args) {
+      this.buffer = String(args[0]);
+    },
+    onLeave(retval) {
+      const meta = cronetBufferMeta[this.buffer] || cronetResponseBufferMeta[this.buffer] || {};
+      emit({
+        event: "Cronet_Buffer_GetData",
+        buffer: this.buffer,
+        dataPointer: String(retval),
+        meta,
+        data: inspectUnknownBuffer(retval, 4096),
       });
     }
   })) count += 1;
@@ -397,7 +774,7 @@ emit({
     .filter((m) => lower(m.name).includes("ai_agent") || lower(m.name).includes("aha") || lower(m.name).includes("winhttp"))
     .map((m) => ({ name: m.name, path: m.path, base: String(m.base), size: m.size })),
 });
-""".replace("__CAPTURE_PREVIEW__", "true" if capture_preview else "false").replace("__MAX_PREVIEW__", str(max_preview))
+""".replace("__CAPTURE_PREVIEW__", "true" if capture_preview else "false").replace("__CAPTURE_MATCHED_PREVIEW__", "true" if capture_matched_preview else "false").replace("__MAX_PREVIEW__", str(max_preview))
 
 
 def parse_args():
@@ -406,6 +783,7 @@ def parse_args():
     parser.add_argument("--all", action="store_true", help="Attach to every Trae.exe process. This can hang if a process refuses injection.")
     parser.add_argument("--duration", type=float, default=45.0, help="Seconds to keep hooks active.")
     parser.add_argument("--capture-preview", action="store_true", help="Print redacted string/body previews. May still contain sensitive data.")
+    parser.add_argument("--capture-matched-preview", action="store_true", help="Print redacted previews only for buffers that look like JSON, URLs, or Trae protocol payloads.")
     parser.add_argument("--max-preview", type=int, default=240, help="Maximum preview characters when --capture-preview is enabled.")
     return parser.parse_args()
 
@@ -432,7 +810,7 @@ def main():
 
     print(json.dumps({
         "ok": True,
-        "mode": "preview" if args.capture_preview else "redacted",
+        "mode": "preview" if args.capture_preview else "matched-preview" if args.capture_matched_preview else "redacted",
         "durationSeconds": args.duration,
         "processes": [{"pid": p.pid, "name": p.name} for p in processes],
     }, ensure_ascii=False), flush=True)
@@ -445,7 +823,7 @@ def main():
         else:
             print(json.dumps(message, ensure_ascii=False), flush=True)
 
-    source = build_js(args.capture_preview, args.max_preview)
+    source = build_js(args.capture_preview, args.capture_matched_preview, args.max_preview)
     for process in processes:
         try:
             session = device.attach(process.pid)

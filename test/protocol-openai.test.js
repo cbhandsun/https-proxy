@@ -39,44 +39,64 @@ const parseClaudeSseEvent = (raw) => {
   }
   let data = null;
   if (dataText && dataText !== '[DONE]') {
-    try { data = JSON.parse(dataText); } catch (e) {}
+    try {
+      data = JSON.parse(dataText);
+    } catch (e) {}
   }
   return { eventName, dataText, data };
 };
 
-const protocol = createOpenAIProtocol({
-  cleanToolArgs,
-  fallbackId,
-  stableCreated,
-  isClaudeThinkingBlock,
-  filterClaudeCompatibleBlocks: noopBlocks,
-  normalizeClaudeContent: (content) => {
-    // Mirror real behavior: string -> [{type:text}], array -> pass through, null -> []
-    if (content == null) return [];
-    if (typeof content === 'string') return [{ type: 'text', text: content }];
-    if (Array.isArray(content)) return content;
-    return [{ type: 'text', text: String(content) }];
-  },
-  normalizeClaudeSystem: (sys) => {
-    if (!sys) return null;
-    if (typeof sys === 'string') return { parts: [{ type: 'text', text: sys }] };
-    if (Array.isArray(sys)) return { parts: sys.map(s => ({ type: 'text', text: typeof s === 'string' ? s : (s.text || '') })) };
-    if (sys.parts) return sys;
-    return { parts: [{ type: 'text', text: String(sys) }] };
-  },
-  geminiToolResponseText: passthroughText,
-  parseClaudeSseEvent,
-  deltaPartialJson,
-  protocolOptions: { thinkingPolicy: 'passthrough' },
-});
+function createTestProtocol(protocolOptions = {}) {
+  return createOpenAIProtocol({
+    cleanToolArgs,
+    fallbackId,
+    stableCreated,
+    isClaudeThinkingBlock,
+    filterClaudeCompatibleBlocks: noopBlocks,
+    normalizeClaudeContent: (content) => {
+      // Mirror real behavior: string -> [{type:text}], array -> pass through, null -> []
+      if (content == null) return [];
+      if (typeof content === 'string') return [{ type: 'text', text: content }];
+      if (Array.isArray(content)) return content;
+      return [{ type: 'text', text: String(content) }];
+    },
+    normalizeClaudeSystem: (sys) => {
+      if (!sys) return null;
+      if (typeof sys === 'string') return { parts: [{ type: 'text', text: sys }] };
+      if (Array.isArray(sys))
+        return {
+          parts: sys.map((s) => ({ type: 'text', text: typeof s === 'string' ? s : s.text || '' })),
+        };
+      if (sys.parts) return sys;
+      return { parts: [{ type: 'text', text: String(sys) }] };
+    },
+    geminiToolResponseText: passthroughText,
+    parseClaudeSseEvent,
+    deltaPartialJson,
+    protocolOptions: { thinkingPolicy: 'passthrough', ...protocolOptions },
+  });
+}
 
-let pass = 0, fail = 0;
+const protocol = createTestProtocol();
+
+let pass = 0,
+  fail = 0;
 function t(name, fn) {
-  try { fn(); pass += 1; console.log('  ok -', name); }
-  catch (err) { fail += 1; console.error('  FAIL -', name, '\n   ', err.message); }
+  try {
+    fn();
+    pass += 1;
+    console.log('  ok -', name);
+  } catch (err) {
+    fail += 1;
+    console.error('  FAIL -', name, '\n   ', err.message);
+  }
 }
 function eq(actual, expected, msg) {
-  assert.deepStrictEqual(actual, expected, msg || `expected ${JSON.stringify(actual)} === ${JSON.stringify(expected)}`);
+  assert.deepStrictEqual(
+    actual,
+    expected,
+    msg || `expected ${JSON.stringify(actual)} === ${JSON.stringify(expected)}`
+  );
 }
 
 console.log('protocol-openai golden fixture tests');
@@ -116,8 +136,10 @@ t('claudeToolChoiceToOpenAI any -> "required"', () => {
   assert.strictEqual(protocol.claudeToolChoiceToOpenAI({ type: 'any' }), 'required');
 });
 t('claudeToolChoiceToOpenAI tool -> {type:function, function:{name}}', () => {
-  eq(protocol.claudeToolChoiceToOpenAI({ type: 'tool', name: 'Bash' }),
-     { type: 'function', function: { name: 'Bash' } });
+  eq(protocol.claudeToolChoiceToOpenAI({ type: 'tool', name: 'Bash' }), {
+    type: 'function',
+    function: { name: 'Bash' },
+  });
 });
 
 // 3. openAIContentToClaudeContent
@@ -128,15 +150,22 @@ t('openAIContentToClaudeContent string passthrough', () => {
   assert.strictEqual(protocol.openAIContentToClaudeContent('hi'), 'hi');
 });
 t('openAIContentToClaudeContent text block', () => {
-  eq(protocol.openAIContentToClaudeContent([{ type: 'text', text: 'hello' }]),
-     [{ type: 'text', text: 'hello' }]);
+  eq(protocol.openAIContentToClaudeContent([{ type: 'text', text: 'hello' }]), [
+    { type: 'text', text: 'hello' },
+  ]);
 });
 t('openAIContentToClaudeContent data URL image -> base64 source', () => {
-  eq(protocol.openAIContentToClaudeContent([{ type: 'image_url', image_url: { url: 'data:image/png;base64,ABCD' } }]),
-     [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'ABCD' } }]);
+  eq(
+    protocol.openAIContentToClaudeContent([
+      { type: 'image_url', image_url: { url: 'data:image/png;base64,ABCD' } },
+    ]),
+    [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'ABCD' } }]
+  );
 });
 t('openAIContentToClaudeContent non-data URL image -> text fallback', () => {
-  const out = protocol.openAIContentToClaudeContent([{ type: 'image_url', image_url: { url: 'https://example.com/x.png' } }]);
+  const out = protocol.openAIContentToClaudeContent([
+    { type: 'image_url', image_url: { url: 'https://example.com/x.png' } },
+  ]);
   eq(out, [{ type: 'text', text: 'https://example.com/x.png' }]);
 });
 
@@ -159,16 +188,19 @@ t('openAIToolCallToClaudeBlock falls back to {arguments} on bad JSON', () => {
 
 // 5. claudeMessagesToOpenAIChat
 t('claudeMessagesToOpenAIChat basic text request', () => {
-  const out = protocol.claudeMessagesToOpenAIChat({
-    model: 'gpt-4',
-    system: 'You are helpful',
-    max_tokens: 1024,
-    temperature: 0.5,
-    messages: [
-      { role: 'user', content: 'Hi' },
-      { role: 'assistant', content: 'Hello!' },
-    ],
-  }, 'gpt-4');
+  const out = protocol.claudeMessagesToOpenAIChat(
+    {
+      model: 'gpt-4',
+      system: 'You are helpful',
+      max_tokens: 1024,
+      temperature: 0.5,
+      messages: [
+        { role: 'user', content: 'Hi' },
+        { role: 'assistant', content: 'Hello!' },
+      ],
+    },
+    'gpt-4'
+  );
   eq(out.messages, [
     { role: 'system', content: 'You are helpful' },
     { role: 'user', content: 'Hi' },
@@ -179,36 +211,44 @@ t('claudeMessagesToOpenAIChat basic text request', () => {
 });
 
 t('claudeMessagesToOpenAIChat user tool_result -> tool message', () => {
-  const out = protocol.claudeMessagesToOpenAIChat({
-    messages: [
-      { role: 'user', content: [
-        { type: 'tool_result', tool_use_id: 'call_1', content: 'sunny' },
-      ] },
-    ],
-  }, 'gpt-4');
+  const out = protocol.claudeMessagesToOpenAIChat(
+    {
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: 'call_1', content: 'sunny' }],
+        },
+      ],
+    },
+    'gpt-4'
+  );
   eq(out.messages, [{ role: 'tool', content: 'sunny', tool_call_id: 'call_1' }]);
 });
 
 // 6. claudeResponseToOpenAIChat with thinking
 t('claudeResponseToOpenAIChat maps text + thinking', () => {
-  const out = protocol.claudeResponseToOpenAIChat({
-    id: 'msg_1',
-    content: [
-      { type: 'thinking', thinking: 'reasoning...' },
-      { type: 'text', text: 'final' },
-    ],
-  }, 'gpt-4');
+  const out = protocol.claudeResponseToOpenAIChat(
+    {
+      id: 'msg_1',
+      content: [
+        { type: 'thinking', thinking: 'reasoning...' },
+        { type: 'text', text: 'final' },
+      ],
+    },
+    'gpt-4'
+  );
   assert.strictEqual(out.choices[0].message.content, 'final');
   assert.strictEqual(out.choices[0].message.reasoning_content, 'reasoning...');
 });
 
 t('claudeResponseToOpenAIChat tool_use -> tool_calls', () => {
-  const out = protocol.claudeResponseToOpenAIChat({
-    id: 'msg_2',
-    content: [
-      { type: 'tool_use', id: 'call_1', name: 'Bash', input: { command: 'ls' } },
-    ],
-  }, 'gpt-4');
+  const out = protocol.claudeResponseToOpenAIChat(
+    {
+      id: 'msg_2',
+      content: [{ type: 'tool_use', id: 'call_1', name: 'Bash', input: { command: 'ls' } }],
+    },
+    'gpt-4'
+  );
   const tc = out.choices[0].message.tool_calls[0];
   assert.strictEqual(tc.id, 'call_1');
   assert.strictEqual(tc.function.name, 'Bash');
@@ -220,7 +260,11 @@ t('processClaudeSseEventToOpenAI message_start -> role chunk', () => {
   const events = [];
   const fakeRes = { write: (chunk) => events.push(chunk) };
   const state = { id: 'x', created: 1, model: 'gpt-4', toolCallIndex: 0 };
-  protocol.processClaudeSseEventToOpenAI(fakeRes, 'event: message_start\ndata: {"type":"message_start"}', state);
+  protocol.processClaudeSseEventToOpenAI(
+    fakeRes,
+    'event: message_start\ndata: {"type":"message_start"}',
+    state
+  );
   assert.strictEqual(events.length, 1);
   const data = JSON.parse(events[0].replace('data: ', '').trim());
   assert.strictEqual(data.choices[0].delta.role, 'assistant');
@@ -230,9 +274,11 @@ t('processClaudeSseEventToOpenAI text delta -> content chunk', () => {
   const events = [];
   const fakeRes = { write: (chunk) => events.push(chunk) };
   const state = { id: 'x', created: 1, model: 'gpt-4', toolCallIndex: 0 };
-  protocol.processClaudeSseEventToOpenAI(fakeRes,
+  protocol.processClaudeSseEventToOpenAI(
+    fakeRes,
     'event: content_block_delta\ndata: {"delta":{"type":"text_delta","text":"hi"}}',
-    state);
+    state
+  );
   const data = JSON.parse(events[0].replace('data: ', '').trim());
   assert.strictEqual(data.choices[0].delta.content, 'hi');
 });
@@ -241,9 +287,11 @@ t('processClaudeSseEventToOpenAI thinking delta -> reasoning_content chunk', () 
   const events = [];
   const fakeRes = { write: (chunk) => events.push(chunk) };
   const state = { id: 'x', created: 1, model: 'gpt-4', toolCallIndex: 0 };
-  protocol.processClaudeSseEventToOpenAI(fakeRes,
+  protocol.processClaudeSseEventToOpenAI(
+    fakeRes,
     'event: content_block_delta\ndata: {"delta":{"type":"thinking_delta","thinking":"think..."}}',
-    state);
+    state
+  );
   const data = JSON.parse(events[0].replace('data: ', '').trim());
   assert.strictEqual(data.choices[0].delta.reasoning_content, 'think...');
 });
@@ -260,6 +308,42 @@ t('processClaudeSseEventToOpenAI [DONE] is a no-op', () => {
 t('processOpenAISseEventToClaude is in stream-claude.js (skipped here)', () => {
   // Stream-claude.js covers the OpenAI -> Claude SSE path. See test/stream-claude.test.js.
   assert.strictEqual(typeof protocol.processOpenAISseEventToClaude, 'undefined');
+});
+
+t('SSE chunk processors reject oversized incomplete events', () => {
+  const capped = createTestProtocol({ maxSseBufferChars: 8 });
+  const fakeRes = { write: () => {} };
+
+  const claudeState = { buffer: '', id: 'x', created: 1, model: 'gpt-4', toolCallIndex: 0 };
+  assert.throws(
+    () => capped.processClaudeSseChunkToOpenAI(fakeRes, 'event: content_block_delta', claudeState),
+    /Claude SSE event too large/
+  );
+  assert.strictEqual(claudeState.buffer, '');
+
+  const chatToResponsesState = { buffer: '' };
+  assert.throws(
+    () =>
+      capped.processOpenAIChatSseChunkToResponses(
+        fakeRes,
+        'data: {"choices":[',
+        chatToResponsesState
+      ),
+    /OpenAI Chat SSE event too large/
+  );
+  assert.strictEqual(chatToResponsesState.buffer, '');
+
+  const responsesToChatState = { buffer: '' };
+  assert.throws(
+    () =>
+      capped.processOpenAIResponsesSseChunkToChat(
+        fakeRes,
+        'event: response.',
+        responsesToChatState
+      ),
+    /OpenAI Responses SSE event too large/
+  );
+  assert.strictEqual(responsesToChatState.buffer, '');
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);
