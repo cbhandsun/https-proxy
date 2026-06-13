@@ -29,7 +29,7 @@ const root = path.resolve(__dirname, '..', 'tauri-ui');
 const configFile = path.join(rootDir, 'proxy.config.json');
 const staticLogFile = path.join(runtimeDir, 'dev-static.log');
 const localManagementAgent = new http.Agent({ keepAlive: true });
-const serverHealthMarker = 'dev-static-management-proxy-v7';
+const serverHealthMarker = 'dev-static-management-proxy-v8';
 
 let cachedConfigMtimeMs = -1;
 let cachedLocalPort = 3443;
@@ -82,16 +82,19 @@ function sendForbiddenManagementProxy(res) {
 
 function managementTokenCandidateGroups(managementPort) {
   const debugDir = path.join(rootDir, 'src-tauri', 'target', 'debug');
+  const debugRuntimeDir = path.join(debugDir, '.hpm-runtime');
   const portNumber = parseOptionalPort(managementPort);
   const groups = [];
   if (portNumber > 0) {
     groups.push([
+      path.join(debugRuntimeDir, `.mgmt-token-${portNumber}`),
       path.join(runtimeDir, `.mgmt-token-${portNumber}`),
       path.join(rootDir, `.mgmt-token-${portNumber}`),
       path.join(debugDir, `.mgmt-token-${portNumber}`),
     ]);
   }
   groups.push([
+    path.join(debugRuntimeDir, '.mgmt-token'),
     path.join(runtimeDir, '.mgmt-token'),
     path.join(rootDir, '.mgmt-token'),
     path.join(debugDir, '.mgmt-token'),

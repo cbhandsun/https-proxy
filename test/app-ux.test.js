@@ -680,7 +680,7 @@ function tick(ms = 0) {
       'force reload emits a frontend event'
     );
     assert.ok(
-      bridge.includes("event.listen('reload-requested'"),
+      /event\s*\.\s*listen\('reload-requested'/.test(bridge),
       'frontend listens for reload events'
     );
   }
