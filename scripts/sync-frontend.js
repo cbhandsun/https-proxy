@@ -19,6 +19,11 @@ function sha256(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
+function normalizedSha256(file) {
+  const text = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+  return crypto.createHash('sha256').update(text).digest('hex');
+}
+
 function fail(message) {
   console.error(`[frontend-sync] ${message}`);
   process.exit(1);
@@ -104,7 +109,10 @@ for (const [canonicalRel, mirrorRel] of filePairs) {
     continue;
   }
 
-  if (sha256(canonical) === sha256(mirror)) {
+  if (
+    sha256(canonical) === sha256(mirror) ||
+    normalizedSha256(canonical) === normalizedSha256(mirror)
+  ) {
     checked += 1;
     continue;
   }
