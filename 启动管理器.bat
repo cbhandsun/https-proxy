@@ -4,22 +4,27 @@ title HTTPS Proxy Manager
 
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
+set "NO_PAUSE=1"
+
+if exist "%SCRIPT_DIR%proxy.bat" (
+  call "%SCRIPT_DIR%proxy.bat" start
+)
 
 set "PORTABLE_EXE=%SCRIPT_DIR%https-proxy-manager.exe"
 if exist "%PORTABLE_EXE%" (
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%PORTABLE_EXE%' -WorkingDirectory '%SCRIPT_DIR%'"
+  start "" /D "%SCRIPT_DIR%" "%PORTABLE_EXE%"
   exit /b 0
 )
 
 set "RELEASE_EXE=%SCRIPT_DIR%src-tauri\target\release\https-proxy-manager.exe"
 if exist "%RELEASE_EXE%" (
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%RELEASE_EXE%' -WorkingDirectory '%SCRIPT_DIR%'"
+  start "" /D "%SCRIPT_DIR%" "%RELEASE_EXE%"
   exit /b 0
 )
 
 set "RELEASE_EXE=%SCRIPT_DIR%src-tauri\target\release\app.exe"
 if exist "%RELEASE_EXE%" (
-  powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%RELEASE_EXE%' -WorkingDirectory '%SCRIPT_DIR%'"
+  start "" /D "%SCRIPT_DIR%" "%RELEASE_EXE%"
   exit /b 0
 )
 

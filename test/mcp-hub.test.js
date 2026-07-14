@@ -47,6 +47,12 @@ async function run() {
     'authorization redacted in MCP logs'
   );
   assert.ok(compacted.input.nested.text.endsWith('...[truncated]'), 'large MCP log text truncated');
+  assert.equal(mcpHubModule._test.normalizeBearerToken('Bearer glm-key'), 'glm-key');
+  assert.deepEqual(
+    mcpHubModule._test.mcpRequestHeaders({ bearerToken: 'glm-key' }, '{}').Authorization,
+    'Bearer glm-key',
+    'MCP request headers include bearer token'
+  );
 
   const normalizedTool = normalizeMcpTool(
     {
@@ -61,6 +67,11 @@ async function run() {
     description: 'Read a file',
     input_schema: { type: 'object', required: ['path'], properties: { path: { type: 'string' } } },
   });
+  assert.equal(
+    mcpHubModule.upstreamMcpToolName({ prefix: 'fs' }, 'fs_read_file'),
+    'read_file',
+    'prefixed MCP tool names are stripped before upstream tools/call'
+  );
 
   const mergedTools = mergeClaudeTools(
     [{ name: 'Read', input_schema: { type: 'object', properties: {} } }],
@@ -83,6 +94,7 @@ async function run() {
     req.on('end', () => {
       const parsed = JSON.parse(body || '{}');
       assert.equal(parsed.method, 'tools/list');
+      assert.equal(req.headers.authorization, 'Bearer glm-secret');
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(
         JSON.stringify({
@@ -112,6 +124,7 @@ async function run() {
               url: `http://127.0.0.1:${injectServer.port}`,
               injectAll: true,
               prefix: 'docs',
+              bearerToken: 'glm-secret',
             },
           ],
           routing: [],
@@ -135,8 +148,13 @@ async function run() {
   let attempts = 0;
   const { server, port } = await startStubServer((req, res) => {
     attempts += 1;
-    req.on('data', () => {});
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
     req.on('end', () => {
+      const parsed = JSON.parse(body || '{}');
+      assert.equal(parsed.params.name, 'ping');
       if (attempts < 3) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'server boom' }));
@@ -180,11 +198,12 @@ async function run() {
       {
         id: 's1',
         url: `http://127.0.0.1:${port}/mcp`,
+        prefix: 'glm',
         maxRetries: '2',
         retryDelayMs: '-10',
         timeoutMs: '0',
       },
-      'ping',
+      'glm_ping',
       { ok: true }
     );
     assert.deepEqual(result, { ok: true, payload: 'success-on-third' });

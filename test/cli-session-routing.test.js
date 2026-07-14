@@ -152,6 +152,24 @@ function testApplyCliSessionModelOverrideNoSessionIsNoop() {
   assert.strictEqual(prepared.model, 'old-model');
 }
 
+function testApplyCliSessionModelOverrideDefaultIsNoop() {
+  const prepared = createPrepared();
+  const originalBuffer = prepared.buffer;
+
+  const result = applyCliSessionModelOverride(prepared, {
+    cliSession: { modelOverride: 'default' },
+    requestBuffer: originalBuffer,
+    resolveRoute() {
+      throw new Error('default should not resolve route');
+    },
+  });
+
+  assert.strictEqual(result, prepared);
+  assert.strictEqual(prepared.buffer, originalBuffer);
+  assert.strictEqual(prepared.model, 'old-model');
+  assert.strictEqual(prepared.rewriteTo, 'old-model');
+}
+
 testResolveCliSessionFromBearerToken();
 testResolveCliSessionFromApiKeyHeader();
 testResolveCliSessionMissingSessionDoesNotMutate();
@@ -160,5 +178,6 @@ testApplyCliSessionModelOverrideUpdatesRouteAndJsonBody();
 testApplyCliSessionModelOverrideKeepsBodyForEncodedRequests();
 testApplyCliSessionModelOverrideIgnoresInvalidJsonBody();
 testApplyCliSessionModelOverrideNoSessionIsNoop();
+testApplyCliSessionModelOverrideDefaultIsNoop();
 
 console.log('cli-session-routing tests passed');

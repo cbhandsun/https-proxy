@@ -418,10 +418,10 @@ async function initCodeToolsView() {
                 opt.textContent = 'gpt-4o | OpenAI';
               } else if (m === 'gpt-4o-mini') {
                 opt.textContent = 'gpt-4o-mini | OpenAI';
-              } else if (m === 'claude-3-5-sonnet') {
-                opt.textContent = 'claude-3-5-sonnet | Anthropic';
-              } else if (m === 'claude-3-5-haiku') {
-                opt.textContent = 'claude-3-5-haiku | Anthropic';
+              } else if (m === 'claude-sonnet-4-6') {
+                opt.textContent = 'claude-sonnet-4-6 | Anthropic';
+              } else if (m === 'claude-haiku-4-5') {
+                opt.textContent = 'claude-haiku-4-5 | Anthropic';
               } else if (m === 'gemini-2.5-flash') {
                 opt.textContent = 'gemini-2.5-flash | Google';
               } else if (m === 'gemini-2.5-pro') {

@@ -9,7 +9,10 @@ const {
   processClaudeSseChunk,
   flushClaudeSseFilter,
   prepareRequestBufferWithResolver,
+  openAIChatToClaudeMessages,
+  openAIResponsesToChat,
 } = require('../openai-proxy');
+const { applyToolLoopGuardToOpenAIChat } = require('../lib/proxy/tool-loop-guard');
 
 const tests = [];
 
@@ -230,6 +233,168 @@ test('restores Gemini thought signatures for tool history', () => {
   });
 });
 
+test('forces final Gemini answer after bounded OpenAI tool results', () => {
+  const body = {
+    model: 'gemini-3.5-flash',
+    messages: [
+      { role: 'user', content: '北京天气' },
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'call_1',
+            type: 'function',
+            function: { name: 'web_search', arguments: '{"query":"北京天气"}' },
+          },
+        ],
+      },
+      { role: 'tool', tool_call_id: 'call_1', content: '北京今天有雷阵雨。' },
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'call_2',
+            type: 'function',
+            function: { name: 'web_search', arguments: '{"query":"北京今日天气预警"}' },
+          },
+        ],
+      },
+      { role: 'tool', tool_call_id: 'call_2', content: '北京今日最高温 31°C，出门建议带伞。' },
+    ],
+    tools: [
+      {
+        type: 'function',
+        function: {
+          name: 'web_search',
+          description: 'Search the web',
+          parameters: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+          },
+        },
+      },
+    ],
+  };
+
+  const guarded = applyToolLoopGuardToOpenAIChat(body).body;
+  const claudeBody = openAIChatToClaudeMessages(guarded, 'gemini-3.5-flash');
+  const geminiBody = claudeMessagesToGemini(claudeBody, 'gemini-3.5-flash');
+
+  assert.strictEqual(geminiBody.toolConfig, undefined);
+  assert.strictEqual(geminiBody.tools, undefined);
+  const serializedContents = JSON.stringify(geminiBody.contents);
+  assert.ok(!serializedContents.includes('functionResponse'));
+  assert.ok(serializedContents.includes('Tool results are already available'));
+  assert.ok(serializedContents.includes('北京今日最高温'));
+});
+
+test('maps OpenAI Responses native web search to Gemini Google Search grounding', () => {
+  const chatBody = openAIResponsesToChat({
+    model: 'gemini-3.5-flash',
+    input: '今天美股和A股有什么重要新闻？',
+    tools: [
+      { type: 'web_search_preview' },
+      {
+        type: 'function',
+        name: 'lookup',
+        description: 'Lookup private data',
+        parameters: { type: 'object', properties: { q: { type: 'string' } } },
+      },
+    ],
+  });
+
+  assert.strictEqual(chatBody.__nativeWebSearch, 'gemini-google-search');
+  assert.strictEqual(chatBody.tools.length, 1);
+  assert.strictEqual(chatBody.tools[0].function.name, 'lookup');
+
+  const claudeBody = openAIChatToClaudeMessages(chatBody, 'gemini-3.5-flash');
+  const geminiBody = claudeMessagesToGemini(claudeBody, 'gemini-3.5-flash');
+
+  assert.ok(geminiBody.tools.some((tool) => tool.googleSearch));
+  assert.strictEqual(geminiBody.toolConfig.includeServerSideToolInvocations, true);
+  const functionDeclarations = geminiBody.tools
+    .flatMap((tool) => tool.functionDeclarations || [])
+    .map((tool) => tool.name);
+  assert.deepStrictEqual(functionDeclarations, ['lookup']);
+});
+
+test('promotes OpenClaw search function tools to Gemini Google Search grounding', () => {
+  const chatBody = openAIResponsesToChat({
+    model: 'gemini-3.5-flash',
+    input: '搜索今天A股要闻',
+    tools: [
+      {
+        type: 'function',
+        name: 'web_search',
+        description: 'Search the web',
+        parameters: { type: 'object', properties: { query: { type: 'string' } } },
+      },
+    ],
+  });
+
+  assert.strictEqual(chatBody.__nativeWebSearch, 'gemini-google-search');
+  assert.strictEqual(chatBody.tools, undefined);
+
+  const claudeBody = openAIChatToClaudeMessages(chatBody, 'gemini-3.5-flash');
+  const geminiBody = claudeMessagesToGemini(claudeBody, 'gemini-3.5-flash');
+
+  assert.deepStrictEqual(geminiBody.tools, [{ googleSearch: {} }]);
+});
+
+test('keeps OpenClaw tool catalog search separate from Gemini Google Search grounding', () => {
+  const chatBody = openAIResponsesToChat({
+    model: 'gemini-3.5-flash',
+    input: '搜索今天A股要闻',
+    tools: [
+      {
+        type: 'function',
+        name: 'tool_search',
+        description: 'Search tools',
+        parameters: { type: 'object', properties: { query: { type: 'string' } } },
+      },
+      {
+        type: 'function',
+        name: 'tool_call',
+        description: 'Call a tool',
+        parameters: { type: 'object', properties: { id: { type: 'string' } } },
+      },
+    ],
+  });
+
+  assert.strictEqual(chatBody.__nativeWebSearch, undefined);
+  assert.strictEqual(chatBody.tools.length, 2);
+  assert.deepStrictEqual(
+    chatBody.tools.map((tool) => tool.function.name),
+    ['tool_search', 'tool_call']
+  );
+});
+
+test('keeps a generic search function separate from Gemini Google Search grounding', () => {
+  const chatBody = openAIResponsesToChat({
+    model: 'gemini-3.5-flash',
+    input: '搜索内部知识库',
+    tools: [
+      {
+        type: 'function',
+        name: 'search',
+        description: 'Search a private knowledge base',
+        parameters: {
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        },
+      },
+    ],
+  });
+
+  assert.strictEqual(chatBody.__nativeWebSearch, undefined);
+  assert.strictEqual(chatBody.tools.length, 1);
+  assert.strictEqual(chatBody.tools[0].function.name, 'search');
+});
+
 test('keeps Gemini tool result names when thought signature is absent', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
@@ -266,6 +431,77 @@ test('keeps Gemini tool result names when thought signature is absent', () => {
   );
   assert.strictEqual(next.contents[0].parts[0].functionResponse.name, 'Read');
 });
+
+test('accepts Gemini Read tool path aliases when schema requires file_path', () => {
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                functionCall: { name: 'Read', args: { path: 'D:/tmp/screenshot.png' } },
+                thoughtSignature: 'sig-read-path',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3-flash-preview',
+    [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }]
+  );
+
+  assert.strictEqual(result.content[0].type, 'tool_use');
+  assert.strictEqual(result.content[0].name, 'Read');
+  assert.deepStrictEqual(result.content[0].input, {
+    path: 'D:/tmp/screenshot.png',
+    file_path: 'D:/tmp/screenshot.png',
+  });
+});
+
+test('repairs a uniquely mismatched compact tool name from its declared schema', () => {
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                functionCall: { name: 'tool_call', args: { query: '航天电子 股价' } },
+                thoughtSignature: 'sig-tool-search',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3.5-flash',
+    [
+      {
+        name: 'tool_call',
+        input_schema: {
+          type: 'object',
+          properties: { id: { type: 'string' } },
+          required: ['id'],
+        },
+      },
+      {
+        name: 'tool_search',
+        input_schema: {
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        },
+      },
+    ]
+  );
+
+  assert.strictEqual(result.content[0].type, 'tool_use');
+  assert.strictEqual(result.content[0].name, 'tool_search');
+  assert.deepStrictEqual(result.content[0].input, { query: '航天电子 股价' });
+});
+
 test('skips Gemini tool calls missing required args', () => {
   const result = geminiResponseToClaude(
     {

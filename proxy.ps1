@@ -318,6 +318,23 @@ function Get-ManagementPort {
     return ($Port + 100)
 }
 
+function Get-ManagementToken {
+    param([int]$ManagementPort)
+    $candidates = @(
+        (Join-Path $RuntimeDir ".mgmt-token-$ManagementPort"),
+        (Join-Path $RuntimeDir '.mgmt-token')
+    )
+    foreach ($candidate in $candidates) {
+        try {
+            if (Test-Path $candidate) {
+                $token = (Get-Content $candidate -Raw -ErrorAction Stop).Trim()
+                if ($token) { return $token }
+            }
+        } catch {}
+    }
+    return ''
+}
+
 function Test-LocalTcpPort {
     param(
         [int]$ListenPort,
@@ -342,7 +359,10 @@ function Get-ProxyHealth {
     if (-not (Test-LocalTcpPort -ListenPort $managementPort)) { return $null }
     try {
         $uri = "http://127.0.0.1:$managementPort/v1/local/health"
-        $health = Invoke-RestMethod -UseBasicParsing -Uri $uri -TimeoutSec 2 -ErrorAction Stop
+        $headers = @{}
+        $token = Get-ManagementToken -ManagementPort $managementPort
+        if ($token) { $headers['x-mgmt-token'] = $token }
+        $health = Invoke-RestMethod -UseBasicParsing -Uri $uri -Headers $headers -TimeoutSec 2 -ErrorAction Stop
         if ($health -and $health.appId -eq 'https-proxy-manager') { return $health }
     } catch {}
     return $null
@@ -478,6 +498,7 @@ function Start-Proxy {
 
     $env:PROXY_CONFIG_DIR = $ConfigDir
     $env:PROXY_RUNTIME_DIR = $RuntimeDir
+    $env:NODE_COMPILE_CACHE = Join-Path $RuntimeDir '.node-compile-cache'
     if ($PortWasSpecified) { $env:PORT = [string]$Port } else { Remove-Item Env:PORT -ErrorAction SilentlyContinue }
     if ($Target -ne '') { $env:TARGET = $Target }
     if ($ApiKey -ne '') { $env:API_KEY = $ApiKey }
@@ -493,13 +514,21 @@ function Start-Proxy {
         $health = $null
         $startedProc = $null
         $managementPort = Get-ManagementPort
-        for ($i = 0; $i -lt 20; $i++) {
+        for ($i = 0; $i -lt 40; $i++) {
             Start-Sleep -Milliseconds 250
-            if (Test-LocalTcpPort -ListenPort $managementPort) {
-                $startedProc = $launcher
+            $health = Get-ProxyHealth
+            if ($health -and $health.pid) {
+                $startedProc = Get-Process -Id ([int]$health.pid) -ErrorAction SilentlyContinue
+                if (-not $startedProc) { $startedProc = $launcher }
                 break
             }
-            if ($launcher -and $launcher.HasExited -and $i -ge 3) { break }
+            if ($launcher -and $launcher.HasExited -and $i -ge 12) {
+                $found = @(Get-AllProxyProcesses)
+                if ($found.Count -gt 0) {
+                    $startedProc = $found[0]
+                    break
+                }
+            }
         }
         Write-DebugTiming 'ready-wait' $startTick
 

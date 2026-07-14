@@ -175,6 +175,29 @@ function rmrf() {
   watcher7.close();
   console.log('[config-watcher.test] missing file error ok');
 
+  // 8. Optional loadConfigFn lets production reload apply normalized/decrypted config.
+  writeJson({ activeProfile: 'raw-encrypted' });
+  let normalizedConfig = null;
+  const watcher8 = debounceReload(
+    CFG_FILE,
+    (cfg) => {
+      normalizedConfig = cfg;
+    },
+    {
+      debounceMs: 30,
+      loadConfigFn: () => ({
+        activeProfile: 'normalized',
+        entryAuth: { keys: [{ key: 'plain' }] },
+      }),
+    }
+  );
+  watcher8.scheduleNow();
+  await waitFor(() => normalizedConfig, 500);
+  assert.strictEqual(normalizedConfig.activeProfile, 'normalized');
+  assert.strictEqual(normalizedConfig.entryAuth.keys[0].key, 'plain');
+  watcher8.close();
+  console.log('[config-watcher.test] loadConfigFn normalization ok');
+
   rmrf();
   console.log('[config-watcher.test] ok');
   process.exit(0);

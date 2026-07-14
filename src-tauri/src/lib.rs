@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
@@ -10,66 +11,117 @@ use tauri_plugin_dialog::DialogExt;
 
 static ZOOM_LEVEL: AtomicU32 = AtomicU32::new(100);
 static PROXY_STOPPED_FOR_EXIT: AtomicBool = AtomicBool::new(false);
+static PROXY_AUTOSTART_IN_FLIGHT: AtomicBool = AtomicBool::new(false);
 const APP_ID: &str = "https-proxy-manager";
+const WINDOWS_RUN_VALUE_NAME: &str = "HTTPS Proxy Manager";
 
 /// Cached project root (the directory containing proxy.bat).
 static PROJECT_ROOT: OnceLock<Option<PathBuf>> = OnceLock::new();
 static RESOURCE_ROOT: OnceLock<PathBuf> = OnceLock::new();
 
-/// Find the project root reliably.
-/// Primary: use CARGO_MANIFEST_DIR (baked at compile time → src-tauri/), go up one level.
-/// Fallback: walk up from current_dir and current_exe.
+fn is_proxy_runtime_root(path: &Path) -> bool {
+    path.join("proxy.bat").exists()
+        && path.join("proxy.ps1").exists()
+        && path.join("openai-proxy.js").exists()
+        && path.join("lib").is_dir()
+}
+
+fn manifest_project_root() -> Option<PathBuf> {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(|p| {
+            if is_proxy_runtime_root(p) {
+                Some(p.to_path_buf())
+            } else {
+                None
+            }
+        })
+}
+
+fn path_is_under(path: &Path, parent: &Path) -> bool {
+    let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let parent = parent
+        .canonicalize()
+        .unwrap_or_else(|_| parent.to_path_buf());
+    path.starts_with(parent)
+}
+
+fn local_target_release_root() -> Option<PathBuf> {
+    let manifest_root = manifest_project_root()?;
+    let exe = std::env::current_exe().ok()?;
+    let target_dir = manifest_root.join("src-tauri").join("target");
+    if path_is_under(&exe, &target_dir) {
+        Some(manifest_root)
+    } else {
+        None
+    }
+}
+
+fn push_proxy_root_ancestors(candidates: &mut Vec<PathBuf>, start: PathBuf) {
+    let mut search = start;
+    for _ in 0..6 {
+        let candidate = if search.is_file() {
+            search.parent().map(Path::to_path_buf)
+        } else {
+            Some(search.clone())
+        };
+        if let Some(path) = candidate {
+            if is_proxy_runtime_root(&path) {
+                candidates.push(path);
+            }
+        }
+        if let Some(parent) = search.parent() {
+            search = parent.to_path_buf();
+        } else {
+            break;
+        }
+    }
+}
+
+fn first_unique_existing_root(candidates: Vec<PathBuf>) -> Option<PathBuf> {
+    let mut seen = HashSet::new();
+    for candidate in candidates {
+        let key = candidate
+            .canonicalize()
+            .unwrap_or_else(|_| candidate.clone())
+            .to_string_lossy()
+            .to_ascii_lowercase();
+        if seen.insert(key) && is_proxy_runtime_root(&candidate) {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+/// Find the runtime root reliably.
+/// Debug builds always bind to the source checkout so stale target/debug copies
+/// cannot steal config, tokens, or certs. Release and portable builds prefer
+/// the launch/exe runtime before falling back to bundled resources.
 fn find_project_root() -> Option<PathBuf> {
     PROJECT_ROOT
         .get_or_init(|| {
-            if let Some(resource_root) = RESOURCE_ROOT.get() {
-                if resource_root.join("proxy.bat").exists() {
-                    return Some(resource_root.to_path_buf());
-                }
+            if cfg!(debug_assertions) {
+                return manifest_project_root();
+            }
+            if let Some(local_root) = local_target_release_root() {
+                return Some(local_root);
             }
 
-            // Strategy 1: compile-time path (most reliable in dev mode)
-            let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-            if let Some(parent) = manifest.parent() {
-                if parent.join("proxy.bat").exists() {
-                    return Some(parent.to_path_buf());
-                }
-            }
-
-            // Strategy 2: walk up from current working directory
+            let mut candidates = Vec::new();
             if let Ok(start) = std::env::current_dir() {
-                if start.join("proxy.bat").exists() {
-                    return Some(start);
-                }
-                let mut search = start;
-                for _ in 0..6 {
-                    if let Some(p) = search.parent() {
-                        if p.join("proxy.bat").exists() {
-                            return Some(p.to_path_buf());
-                        }
-                        search = p.to_path_buf();
-                    } else {
-                        break;
-                    }
-                }
+                push_proxy_root_ancestors(&mut candidates, start);
             }
-
-            // Strategy 3: walk up from executable location
             if let Ok(exe) = std::env::current_exe() {
-                let mut search = exe;
-                for _ in 0..6 {
-                    if let Some(p) = search.parent() {
-                        if p.join("proxy.bat").exists() {
-                            return Some(p.to_path_buf());
-                        }
-                        search = p.to_path_buf();
-                    } else {
-                        break;
-                    }
-                }
+                push_proxy_root_ancestors(&mut candidates, exe);
+            }
+            if let Some(resource_root) = RESOURCE_ROOT.get() {
+                push_proxy_root_ancestors(&mut candidates, resource_root.to_path_buf());
+            }
+            if let Some(manifest_root) = manifest_project_root() {
+                candidates.push(manifest_root);
             }
 
-            None
+            first_unique_existing_root(candidates)
         })
         .clone()
 }
@@ -77,16 +129,17 @@ fn find_project_root() -> Option<PathBuf> {
 /// Run `proxy.bat <args>` in the project root directory.
 fn run_proxy_bat_with_timeout(args: &[&str], timeout: Duration) -> Option<(Output, bool)> {
     let root = find_project_root()?;
-    let mut child = std::process::Command::new("cmd")
+    let mut command = std::process::Command::new("cmd");
+    command
         .arg("/c")
         .arg("proxy.bat")
         .args(args)
         .env("NO_PAUSE", "1")
         .current_dir(&root)
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .ok()?;
+        .stderr(Stdio::piped());
+    hide_console_window(&mut command);
+    let mut child = command.spawn().ok()?;
 
     let deadline = Instant::now() + timeout;
     loop {
@@ -131,6 +184,31 @@ fn proxy_runtime_dir(root: &Path) -> PathBuf {
     root.join(".hpm-runtime")
 }
 
+fn portable_runtime_dir(root: &Path) -> PathBuf {
+    root.join("dist")
+        .join("portable")
+        .join("HTTPS Proxy Manager Portable")
+        .join(".hpm-runtime")
+}
+
+fn management_token_candidates(root: &Path, port: u16) -> Vec<PathBuf> {
+    let runtime_dir = proxy_runtime_dir(root);
+    let debug_runtime_dir = root
+        .join("src-tauri")
+        .join("target")
+        .join("debug")
+        .join(".hpm-runtime");
+    let portable_runtime_dir = portable_runtime_dir(root);
+    vec![
+        runtime_dir.join(format!(".mgmt-token-{port}")),
+        debug_runtime_dir.join(format!(".mgmt-token-{port}")),
+        portable_runtime_dir.join(format!(".mgmt-token-{port}")),
+        runtime_dir.join(".mgmt-token"),
+        debug_runtime_dir.join(".mgmt-token"),
+        portable_runtime_dir.join(".mgmt-token"),
+    ]
+}
+
 fn proxy_management_port() -> u16 {
     let Some(json) = proxy_config_value() else {
         return 3543;
@@ -150,11 +228,169 @@ fn proxy_management_port() -> u16 {
         .unwrap_or(3543)
 }
 
-fn read_proxy_health_direct(timeout: Duration) -> Option<serde_json::Value> {
-    let addr = SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-        proxy_management_port(),
+fn management_token_is_accepted(port: u16, token: &str, timeout: Duration) -> Option<bool> {
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
+    let mut stream = TcpStream::connect_timeout(&addr, timeout).ok()?;
+    let _ = stream.set_read_timeout(Some(timeout));
+    let _ = stream.set_write_timeout(Some(timeout));
+    let request = format!(
+        "GET /v1/local/config HTTP/1.1\r\nHost: 127.0.0.1\r\nx-mgmt-token: {}\r\nConnection: close\r\n\r\n",
+        token
     );
+    stream.write_all(request.as_bytes()).ok()?;
+    let mut response = String::new();
+    stream.read_to_string(&mut response).ok()?;
+    let status_line = response.lines().next().unwrap_or_default();
+    if status_line.contains(" 200 ") {
+        Some(true)
+    } else if status_line.contains(" 401 ") || status_line.contains(" 403 ") {
+        Some(false)
+    } else {
+        None
+    }
+}
+
+fn find_management_token_for_port(root: &Path, port: u16, timeout: Duration) -> Option<String> {
+    let management_is_running = read_proxy_health_direct_on_port(port, timeout).is_some();
+    let mut seen_tokens = HashSet::new();
+    let mut fallback: Option<String> = None;
+
+    for path in management_token_candidates(root, port) {
+        if let Ok(token) = std::fs::read_to_string(&path) {
+            let token = token.trim().to_string();
+            if token.is_empty() || !seen_tokens.insert(token.clone()) {
+                continue;
+            }
+            if fallback.is_none() {
+                fallback = Some(token.clone());
+            }
+            if management_is_running {
+                if management_token_is_accepted(port, &token, timeout) == Some(true) {
+                    return Some(token);
+                }
+            } else {
+                return Some(token);
+            }
+        }
+    }
+
+    if management_is_running {
+        None
+    } else {
+        fallback
+    }
+}
+
+fn post_management_json(
+    port: u16,
+    path: &str,
+    token: &str,
+    timeout: Duration,
+) -> Result<String, String> {
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
+    let mut stream = TcpStream::connect_timeout(&addr, timeout)
+        .map_err(|err| format!("connect management port {port} failed: {err}"))?;
+    let _ = stream.set_read_timeout(Some(timeout));
+    let _ = stream.set_write_timeout(Some(timeout));
+    let request = format!(
+        "POST {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nx-mgmt-token: {token}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    );
+    stream
+        .write_all(request.as_bytes())
+        .map_err(|err| format!("write management request failed: {err}"))?;
+    let mut response = String::new();
+    stream
+        .read_to_string(&mut response)
+        .map_err(|err| format!("read management response failed: {err}"))?;
+    let status_line = response.lines().next().unwrap_or_default();
+    if !status_line.contains(" 200 ") {
+        return Err(format!("management request failed: {status_line}"));
+    }
+    let body = response
+        .split("\r\n\r\n")
+        .nth(1)
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    Ok(body)
+}
+
+#[tauri::command]
+fn get_management_token_native(management_port: Option<u16>) -> serde_json::Value {
+    let Some(root) = find_project_root() else {
+        return serde_json::json!({
+            "ok": false,
+            "source": "rust-native",
+            "error": "project root not found"
+        });
+    };
+
+    let port = management_port.unwrap_or_else(proxy_management_port);
+    let runtime_dir = proxy_runtime_dir(&root);
+    let management_is_running =
+        read_proxy_health_direct_on_port(port, Duration::from_millis(120)).is_some();
+    let mut seen_tokens = HashSet::new();
+    let mut fallback: Option<(String, PathBuf)> = None;
+
+    for path in management_token_candidates(&root, port) {
+        if let Ok(token) = std::fs::read_to_string(&path) {
+            let token = token.trim().to_string();
+            if token.is_empty() || !seen_tokens.insert(token.clone()) {
+                continue;
+            }
+            if fallback.is_none() {
+                fallback = Some((token.clone(), path.clone()));
+            }
+            if management_is_running {
+                if management_token_is_accepted(port, &token, Duration::from_millis(350))
+                    == Some(true)
+                {
+                    return serde_json::json!({
+                        "ok": true,
+                        "source": "rust-native",
+                        "token": token,
+                        "path": path.display().to_string(),
+                        "verified": true
+                    });
+                }
+            } else {
+                return serde_json::json!({
+                    "ok": true,
+                    "source": "rust-native",
+                    "token": token,
+                    "path": path.display().to_string(),
+                    "verified": false
+                });
+            }
+        }
+    }
+
+    if !management_is_running {
+        if let Some((token, path)) = fallback {
+            return serde_json::json!({
+                "ok": true,
+                "source": "rust-native",
+                "token": token,
+                "path": path.display().to_string(),
+                "verified": false
+            });
+        }
+    }
+
+    serde_json::json!({
+        "ok": false,
+        "source": "rust-native",
+        "error": if management_is_running {
+            "management token file not found or all candidate tokens were rejected"
+        } else {
+            "management token file not found"
+        },
+        "runtimeDir": runtime_dir.display().to_string()
+    })
+}
+
+fn read_proxy_health_direct_on_port(port: u16, timeout: Duration) -> Option<serde_json::Value> {
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
     let mut stream = TcpStream::connect_timeout(&addr, timeout).ok()?;
     let _ = stream.set_read_timeout(Some(timeout));
     let _ = stream.set_write_timeout(Some(timeout));
@@ -170,6 +406,10 @@ fn read_proxy_health_direct(timeout: Duration) -> Option<serde_json::Value> {
     } else {
         None
     }
+}
+
+fn read_proxy_health_direct(timeout: Duration) -> Option<serde_json::Value> {
+    read_proxy_health_direct_on_port(proxy_management_port(), timeout)
 }
 
 fn format_proxy_status(health: &serde_json::Value) -> String {
@@ -193,6 +433,7 @@ fn format_proxy_status(health: &serde_json::Value) -> String {
 
 fn node_proxy_command(root: &Path) -> Command {
     let bundled_node = root.join("runtime").join("node").join("node.exe");
+    let runtime_dir = proxy_runtime_dir(root);
     let mut command = if bundled_node.exists() {
         Command::new(bundled_node)
     } else {
@@ -201,7 +442,11 @@ fn node_proxy_command(root: &Path) -> Command {
     command
         .arg(root.join("openai-proxy.js"))
         .env("PROXY_CONFIG_DIR", root)
-        .env("PROXY_RUNTIME_DIR", proxy_runtime_dir(root))
+        .env("PROXY_RUNTIME_DIR", &runtime_dir)
+        .env(
+            "NODE_COMPILE_CACHE",
+            runtime_dir.join(".node-compile-cache"),
+        )
         .env("NO_PAUSE", "1")
         .env_remove("PORT")
         .current_dir(root)
@@ -210,6 +455,17 @@ fn node_proxy_command(root: &Path) -> Command {
         .stderr(Stdio::null());
     hide_console_window(&mut command);
     command
+}
+
+fn ensure_proxy_config_file(root: &Path) {
+    let config = root.join("proxy.config.json");
+    if config.exists() {
+        return;
+    }
+    let example = root.join("proxy.config.example.json");
+    if example.exists() {
+        let _ = std::fs::copy(example, config);
+    }
 }
 
 fn start_proxy_direct() -> Result<serde_json::Value, String> {
@@ -223,6 +479,7 @@ fn start_proxy_direct() -> Result<serde_json::Value, String> {
     }
 
     let root = find_project_root().ok_or_else(|| "project root not found".to_string())?;
+    ensure_proxy_config_file(&root);
     let mut child = node_proxy_command(&root)
         .spawn()
         .map_err(|e| format!("failed to start node proxy directly: {e}"))?;
@@ -243,7 +500,54 @@ fn start_proxy_direct() -> Result<serde_json::Value, String> {
         std::thread::sleep(Duration::from_millis(120));
     }
 
-    Err("direct proxy start did not become healthy before timeout".into())
+    Ok(serde_json::json!({
+        "code": 0,
+        "timedOut": true,
+        "direct": true,
+        "output": "Proxy process launched directly; health endpoint is still warming up.\n"
+    }))
+}
+
+#[tauri::command]
+fn clear_audit_conversations_native(management_port: Option<u16>) -> serde_json::Value {
+    let Some(root) = find_project_root() else {
+        return serde_json::json!({
+            "ok": false,
+            "source": "rust-native",
+            "error": "project root not found"
+        });
+    };
+
+    let port = management_port.unwrap_or_else(proxy_management_port);
+    let Some(token) = find_management_token_for_port(&root, port, Duration::from_millis(500))
+    else {
+        return serde_json::json!({
+            "ok": false,
+            "source": "rust-native",
+            "error": "management token not found or rejected",
+            "port": port
+        });
+    };
+
+    match post_management_json(
+        port,
+        "/v1/local/audit/conversations/clear",
+        &token,
+        Duration::from_secs(3),
+    ) {
+        Ok(body) => serde_json::json!({
+            "ok": true,
+            "source": "rust-native",
+            "body": body,
+            "port": port
+        }),
+        Err(error) => serde_json::json!({
+            "ok": false,
+            "source": "rust-native",
+            "error": error,
+            "port": port
+        }),
+    }
 }
 
 fn taskkill_pid(pid: u64) -> Result<String, String> {
@@ -337,34 +641,24 @@ fn normalize_proxy_command(command: &str) -> Result<&'static str, String> {
     }
 }
 
-fn proxy_status_text() -> Option<String> {
-    if let Some(health) = read_proxy_health_direct(Duration::from_millis(250)) {
-        return Some(format_proxy_status(&health));
-    }
-    let out = run_proxy_bat(&["status"])?;
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    let stderr = String::from_utf8_lossy(&out.stderr);
-    Some(format!("{}{}", stdout, stderr))
-}
-
-fn proxy_is_running() -> bool {
-    if read_proxy_health_direct(Duration::from_millis(250)).is_some() {
-        return true;
-    }
-    let Some(text) = proxy_status_text() else {
-        return false;
-    };
-    text.contains("Running (PID")
-        || text.contains("Proxy already running")
-        || text.contains("Address:")
-}
-
 fn start_proxy_if_needed() {
-    if proxy_is_running() {
+    if read_proxy_health_direct(Duration::from_millis(250)).is_some() {
         return;
     }
     if start_proxy_direct().is_err() {
         let _ = run_proxy_bat(&["start"]);
+    }
+}
+
+pub fn request_proxy_autostart() {
+    if read_app_setting("autoStartProxy", true) {
+        if PROXY_AUTOSTART_IN_FLIGHT.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        std::thread::spawn(|| {
+            start_proxy_if_needed();
+            PROXY_AUTOSTART_IN_FLIGHT.store(false, Ordering::SeqCst);
+        });
     }
 }
 
@@ -503,13 +797,92 @@ fn apply_app_menu(window: tauri::Window, show: bool) -> Result<(), String> {
     }
 }
 
+fn windows_launch_command(exe: &Path) -> String {
+    format!("\"{}\"", exe.display())
+}
+
+fn launch_command_matches_exe(value: &str, exe: &Path) -> bool {
+    value
+        .trim()
+        .eq_ignore_ascii_case(&windows_launch_command(exe))
+}
+
+#[cfg(windows)]
+fn read_launch_on_login() -> Result<bool, String> {
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
+    use winreg::RegKey;
+
+    let exe =
+        std::env::current_exe().map_err(|err| format!("current executable unavailable: {err}"))?;
+    let current_user = RegKey::predef(HKEY_CURRENT_USER);
+    let run_key = match current_user
+        .open_subkey_with_flags(r"Software\Microsoft\Windows\CurrentVersion\Run", KEY_READ)
+    {
+        Ok(key) => key,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(err) => return Err(format!("cannot read Windows startup settings: {err}")),
+    };
+    match run_key.get_value::<String, _>(WINDOWS_RUN_VALUE_NAME) {
+        Ok(value) => Ok(launch_command_matches_exe(&value, &exe)),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(err) => Err(format!("cannot read Windows startup entry: {err}")),
+    }
+}
+
+#[cfg(not(windows))]
+fn read_launch_on_login() -> Result<bool, String> {
+    Err("launch on login is only supported on Windows".to_string())
+}
+
+#[cfg(windows)]
+fn write_launch_on_login(enabled: bool) -> Result<bool, String> {
+    use winreg::enums::HKEY_CURRENT_USER;
+    use winreg::RegKey;
+
+    let exe =
+        std::env::current_exe().map_err(|err| format!("current executable unavailable: {err}"))?;
+    let current_user = RegKey::predef(HKEY_CURRENT_USER);
+    let (run_key, _) = current_user
+        .create_subkey(r"Software\Microsoft\Windows\CurrentVersion\Run")
+        .map_err(|err| format!("cannot open Windows startup settings: {err}"))?;
+    if enabled {
+        run_key
+            .set_value(WINDOWS_RUN_VALUE_NAME, &windows_launch_command(&exe))
+            .map_err(|err| format!("cannot enable launch on login: {err}"))?;
+    } else {
+        match run_key.delete_value(WINDOWS_RUN_VALUE_NAME) {
+            Ok(()) => {}
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => return Err(format!("cannot disable launch on login: {err}")),
+        }
+    }
+    read_launch_on_login()
+}
+
+#[cfg(not(windows))]
+fn write_launch_on_login(_enabled: bool) -> Result<bool, String> {
+    Err("launch on login is only supported on Windows".to_string())
+}
+
+#[tauri::command]
+fn get_launch_on_login() -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({
+        "supported": cfg!(windows),
+        "enabled": read_launch_on_login()?
+    }))
+}
+
+#[tauri::command]
+fn set_launch_on_login(enabled: bool) -> Result<serde_json::Value, String> {
+    let enabled = write_launch_on_login(enabled)?;
+    Ok(serde_json::json!({ "supported": cfg!(windows), "enabled": enabled }))
+}
+
 fn open_path(path: &Path) {
-    let _ = std::process::Command::new("cmd")
-        .arg("/c")
-        .arg("start")
-        .arg("")
-        .arg(path)
-        .spawn();
+    let mut command = std::process::Command::new("cmd");
+    command.arg("/c").arg("start").arg("").arg(path);
+    hide_console_window(&mut command);
+    let _ = command.spawn();
 }
 
 #[tauri::command]
@@ -711,7 +1084,9 @@ fn get_cert_status_native() -> serde_json::Value {
             "exists": exists,
             "trusted": trusted,
             "thumbprint": thumbprint,
-            "certDir": cert_dir.display().to_string()
+            "certDir": cert_dir.display().to_string(),
+            "caCertFile": ca_path.display().to_string(),
+            "nodeExtraCaCertsEnv": format!("NODE_EXTRA_CA_CERTS={}", ca_path.display())
         }),
         Err(error) => serde_json::json!({
             "ok": false,
@@ -719,6 +1094,8 @@ fn get_cert_status_native() -> serde_json::Value {
             "exists": exists,
             "trusted": false,
             "certDir": cert_dir.display().to_string(),
+            "caCertFile": ca_path.display().to_string(),
+            "nodeExtraCaCertsEnv": format!("NODE_EXTRA_CA_CERTS={}", ca_path.display()),
             "error": error
         }),
     }
@@ -772,7 +1149,23 @@ fn execute_proxy_command_blocking(command: String) -> Result<serde_json::Value, 
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_proxy_command;
+    use super::*;
+    use std::fs;
+
+    fn unique_temp_dir(name: &str) -> PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("hpm-tauri-root-test-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn make_runtime_root(path: &Path) {
+        fs::create_dir_all(path.join("lib")).unwrap();
+        fs::write(path.join("proxy.bat"), "@echo off\r\n").unwrap();
+        fs::write(path.join("proxy.ps1"), "").unwrap();
+        fs::write(path.join("openai-proxy.js"), "").unwrap();
+    }
 
     #[test]
     fn normalizes_allowed_proxy_commands() {
@@ -794,10 +1187,75 @@ mod tests {
             .unwrap_err()
             .contains("unsupported"));
     }
+
+    #[test]
+    fn runtime_root_requires_backend_files() {
+        let root = unique_temp_dir("incomplete");
+        fs::write(root.join("proxy.bat"), "@echo off\r\n").unwrap();
+        assert!(!is_proxy_runtime_root(&root));
+
+        make_runtime_root(&root);
+        assert!(is_proxy_runtime_root(&root));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn root_candidate_selection_deduplicates_and_preserves_order() {
+        let first = unique_temp_dir("first");
+        let second = unique_temp_dir("second");
+        make_runtime_root(&first);
+        make_runtime_root(&second);
+
+        let selected =
+            first_unique_existing_root(vec![first.clone(), first.clone(), second.clone()]);
+        assert_eq!(selected, Some(first.clone()));
+
+        let _ = fs::remove_dir_all(first);
+        let _ = fs::remove_dir_all(second);
+    }
+
+    #[test]
+    fn startup_command_quotes_executable_paths_and_matches_case_insensitively() {
+        let exe = Path::new(r"C:\Program Files\HTTPS Proxy Manager\app.exe");
+        assert_eq!(
+            windows_launch_command(exe),
+            r#""C:\Program Files\HTTPS Proxy Manager\app.exe""#
+        );
+        assert!(launch_command_matches_exe(
+            r#"  "c:\program files\https proxy manager\APP.EXE"  "#,
+            exe
+        ));
+        assert!(!launch_command_matches_exe(r#""C:\Other\app.exe""#, exe));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn startup_registry_read_handles_a_missing_value() {
+        use winreg::enums::HKEY_CURRENT_USER;
+        use winreg::RegKey;
+
+        let current_user = RegKey::predef(HKEY_CURRENT_USER);
+        let (run_key, _) = current_user
+            .create_subkey(r"Software\Microsoft\Windows\CurrentVersion\Run")
+            .unwrap();
+        let previous = run_key.get_raw_value(WINDOWS_RUN_VALUE_NAME).ok();
+        let _ = run_key.delete_value(WINDOWS_RUN_VALUE_NAME);
+
+        let result = read_launch_on_login();
+
+        if let Some(value) = previous {
+            run_key
+                .set_raw_value(WINDOWS_RUN_VALUE_NAME, &value)
+                .unwrap();
+        }
+        assert_eq!(result.unwrap(), false);
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    request_proxy_autostart();
+
     tauri::Builder::default()
         // ── 单例启动 ──────────────────────────────────────
         .plugin(tauri_plugin_dialog::init())
@@ -820,6 +1278,14 @@ pub fn run() {
 
             if let Ok(resource_dir) = app.path().resource_dir() {
                 let _ = RESOURCE_ROOT.set(resource_dir);
+            }
+
+            // Start the proxy near the beginning of setup so release/portable startup
+            // does not wait for menu and tray initialization before health is available.
+            if read_app_setting("autoStartProxy", true) {
+                std::thread::spawn(|| {
+                    start_proxy_if_needed();
+                });
             }
 
             // 读取配置并设置菜单的初始显示状态
@@ -979,14 +1445,6 @@ pub fn run() {
                 }
             }
 
-            // 自动启动代理（后台线程，不阻塞 UI 加载）
-            if read_app_setting("autoStartProxy", true) {
-                std::thread::spawn(|| {
-                    std::thread::sleep(std::time::Duration::from_millis(1200));
-                    start_proxy_if_needed();
-                });
-            }
-
             Ok(())
         })
         .on_menu_event(move |app_handle, event| {
@@ -1052,7 +1510,11 @@ pub fn run() {
             select_directory_native,
             get_proxy_debug,
             get_cert_status_native,
-            execute_proxy_command
+            get_management_token_native,
+            clear_audit_conversations_native,
+            execute_proxy_command,
+            get_launch_on_login,
+            set_launch_on_login
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

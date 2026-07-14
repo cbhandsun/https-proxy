@@ -43,11 +43,21 @@ fs.writeFileSync(
 
 const {
   applyCodexProxy,
+  applyAntigravityCliProxy,
+  applyClaudeCodeProxy,
+  applyGeminiCliProxy,
+  CA_CERT_FILE,
   getCodexDesktopStatus,
   readCodexAuthStatus,
+  getAntigravityCliConfigPath,
+  getClaudeCodeConfigPath,
   getCodexModelCatalogPath,
   getCodexStatus,
+  getGeminiEnvPath,
   restoreCodexProxy,
+  restoreAntigravityCliProxy,
+  restoreClaudeCodeProxy,
+  restoreGeminiCliProxy,
   applyCodexApiLogin,
   backupCurrentCodexAuth,
   buildCodexOfficialLoginLaunchArgs,
@@ -72,6 +82,37 @@ assert.strictEqual(
   '\nANTHROPIC_BASE_URL=https://localhost:3443\n'
 );
 assert.strictEqual(deleteEnvValue(updatedEnv, 'GOOGLE_GEMINI_BASE_URL'), 'KEEP=yes\n');
+
+applyClaudeCodeProxy();
+const claudeCodeConfig = JSON.parse(fs.readFileSync(getClaudeCodeConfigPath(), 'utf8'));
+assert.strictEqual(claudeCodeConfig.env.ANTHROPIC_BASE_URL, 'https://localhost:3443');
+assert.strictEqual(claudeCodeConfig.env.NODE_EXTRA_CA_CERTS, CA_CERT_FILE);
+restoreClaudeCodeProxy();
+const restoredClaudeCodeConfig = JSON.parse(fs.readFileSync(getClaudeCodeConfigPath(), 'utf8'));
+assert.strictEqual(restoredClaudeCodeConfig.env.NODE_EXTRA_CA_CERTS, undefined);
+
+applyAntigravityCliProxy();
+const antigravityConfig = JSON.parse(fs.readFileSync(getAntigravityCliConfigPath(), 'utf8'));
+assert.strictEqual(antigravityConfig.env.ANTIGRAVITY_BASE_URL, 'https://localhost:3443');
+assert.strictEqual(antigravityConfig.env.NODE_EXTRA_CA_CERTS, CA_CERT_FILE);
+restoreAntigravityCliProxy();
+const restoredAntigravityConfig = JSON.parse(
+  fs.readFileSync(getAntigravityCliConfigPath(), 'utf8')
+);
+assert.strictEqual(restoredAntigravityConfig.env.NODE_EXTRA_CA_CERTS, undefined);
+
+applyGeminiCliProxy();
+const geminiEnv = fs.readFileSync(getGeminiEnvPath(), 'utf8');
+assert.match(geminiEnv, /^GOOGLE_GEMINI_BASE_URL=https:\/\/localhost:3443$/m);
+assert.match(
+  geminiEnv,
+  new RegExp(
+    '^NODE_EXTRA_CA_CERTS=' + CA_CERT_FILE.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&') + '$',
+    'm'
+  )
+);
+restoreGeminiCliProxy();
+assert.doesNotMatch(fs.readFileSync(getGeminiEnvPath(), 'utf8'), /^NODE_EXTRA_CA_CERTS=/m);
 
 assert.deepStrictEqual(readCodexAuthStatus(), {
   authPath,

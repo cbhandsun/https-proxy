@@ -52,7 +52,15 @@ try {
     [
       JSON.stringify({ time: '2026-01-01T00:00:00.000Z', kind: 'request_start', path: '/old' }),
       'not json',
-      JSON.stringify({ time: '2026-01-01T00:00:02.000Z', kind: 'request_end', path: '/new' }),
+      JSON.stringify({
+        time: '2026-01-01T00:00:02.000Z',
+        kind: 'request_end',
+        method: 'GET',
+        path: '/new',
+        statusCode: 500,
+        elapsed: 12,
+        type: 'local_management',
+      }),
     ].join('\n') + '\n',
     'utf8'
   );
@@ -83,6 +91,32 @@ try {
   assert.strictEqual(clearRes.statusCode, 200);
   assert.deepStrictEqual(JSON.parse(clearRes.body), { ok: true });
   assert.strictEqual(fs.readFileSync(eventsFile, 'utf8'), '');
+
+  fs.writeFileSync(
+    eventsFile,
+    JSON.stringify({
+      time: '2026-01-01T00:00:03.000Z',
+      kind: 'request_end',
+      method: 'GET',
+      path: '/v1/local/diagnostics',
+      statusCode: 500,
+      elapsed: 1,
+      type: 'local_management',
+    }) + '\n',
+    'utf8'
+  );
+  const diagnosticsRes = createJsonRes();
+  handlers.handleLocalDiagnosticsGetRequest(
+    { url: '/v1/local/diagnostics', headers: { host: 'localhost' } },
+    diagnosticsRes
+  );
+  assert.strictEqual(diagnosticsRes.statusCode, 200);
+  const diagnosticsBody = JSON.parse(diagnosticsRes.body);
+  assert.strictEqual(diagnosticsBody.ok, true);
+  assert.ok(
+    diagnosticsBody.output.includes('type: local_management'),
+    'diagnostics output should show top-level request_end type'
+  );
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }

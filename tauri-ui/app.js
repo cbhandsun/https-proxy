@@ -151,6 +151,19 @@ async function refreshRateLimits(profileId) {
   }
 }
 
+const deferredRateLimitTimers = new Map();
+
+function scheduleRateLimitsRefresh(profileId) {
+  if (!profileId || rateLimitsData[profileId] || deferredRateLimitTimers.has(profileId)) return;
+  const timer = setTimeout(() => {
+    deferredRateLimitTimers.delete(profileId);
+    if (!rateLimitsData[profileId]) {
+      refreshRateLimits(profileId).catch((err) => console.error('refreshRateLimits error:', err));
+    }
+  }, 2500);
+  deferredRateLimitTimers.set(profileId, timer);
+}
+
 function updateLimitsTimeDisplay() {
   const dashboard = $('limitsDashboard');
   if (dashboard && dashboard.style.display === 'none') return;
@@ -199,7 +212,16 @@ let lastStatusRefresh = 0;
 let lastCertRefresh = 0;
 let certRefreshInFlight = null;
 let statusRefreshInFlight = false;
+let startupProxyRetryTimer = null;
+let startupCertRetryTimer = null;
+const startupStatusStartedAt = performance.now();
+const STARTUP_STATUS_GRACE_MS = 12000;
+const STARTUP_STATUS_RETRY_MS = 180;
 let currentViewId = 'overview';
+let routeFilterText = '';
+let routeFilterProtocol = '';
+let routeSortBy = 'from';
+let routeSortDirection = 'asc';
 // Declared with let (not const) so getViewDomCache() in
 // app-diagnostics.js can lazy-initialise the cache the first time
 // a view switch happens. With const this throws
@@ -253,6 +275,30 @@ const defaultEntryServers = [
     listenPort: 3447,
     basePath: '/v1',
     protocol: 'openai-chat',
+  },
+  {
+    name: 'Claude Messages HTTP',
+    host: 'localhost',
+    listenPort: 3080,
+    basePath: '/v1',
+    protocol: 'claude',
+    tls: false,
+  },
+  {
+    name: 'OpenAI Responses HTTP',
+    host: 'localhost',
+    listenPort: 3082,
+    basePath: '/v1',
+    protocol: 'openai-responses',
+    tls: false,
+  },
+  {
+    name: 'OpenAI Chat Completions HTTP',
+    host: 'localhost',
+    listenPort: 3084,
+    basePath: '/v1',
+    protocol: 'openai-chat',
+    tls: false,
   },
 ];
 const ENTRY_PROTOCOL_OPTIONS = ['claude', 'openai-responses', 'openai-chat', 'claude-desktop'];
@@ -350,13 +396,20 @@ function promiseWithTimeout(promise, timeoutMs, message) {
 function scheduleStartupTask(label, task, options = {}) {
   const timeout = Number.isFinite(options.timeout) ? options.timeout : 1500;
   const delay = Number.isFinite(options.delay) ? options.delay : 80;
+  let started = false;
   const run = () => {
+    if (started) return;
+    started = true;
     const finish = perfStart(label);
     Promise.resolve()
       .then(task)
       .catch((err) => console.error(`${label} error:`, err))
       .finally(() => finish());
   };
+  if (options.eager === true) {
+    setTimeout(run, delay);
+    return;
+  }
   const scheduleIdle = () => {
     if (window.requestIdleCallback) {
       window.requestIdleCallback(run, { timeout });
@@ -415,6 +468,34 @@ function showToast(message, type = 'success') {
     toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
   }, 3000);
+}
+
+async function copyTextToClipboard(text, successMessage = '已复制到剪贴板') {
+  const value = String(text || '');
+  if (!value) {
+    showToast('没有可复制的内容', 'error');
+    return false;
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(value);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+    }
+    showToast(successMessage, 'success');
+    return true;
+  } catch (err) {
+    showToast('复制失败: ' + (err && err.message ? err.message : err), 'error');
+    return false;
+  }
 }
 
 function confirmAction({ title, message, confirmText = '确认', danger = true }) {
@@ -477,6 +558,114 @@ function entryProtocolName(value) {
   return protocolName(value);
 }
 
+const routeClientProtocolOptions = [
+  { id: 'claude', label: 'Claude' },
+  { id: 'openai-chat', label: 'OpenAI Chat' },
+  { id: 'openai-responses', label: 'OpenAI Responses' },
+];
+
+const recommendedClaudeClientModels = [
+  'claude-fable-5',
+  'claude-opus-4-8',
+  'claude-sonnet-4-6',
+  'claude-haiku-4-5',
+  'claude-haiku-4-5-20251001',
+  'claude-opus-4-7',
+  'claude-opus-4-6',
+  'claude-opus-4-5-20251101',
+  'claude-sonnet-4-5-20250929',
+];
+
+function normalizeRouteClientProtocol(value) {
+  const protocol = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (protocol === 'openai' || protocol === 'chat' || protocol === 'chat-completions')
+    return 'openai-chat';
+  if (protocol === 'responses' || protocol === 'response' || protocol === 'openai-response')
+    return 'openai-responses';
+  return routeClientProtocolOptions.some((item) => item.id === protocol) ? protocol : '';
+}
+
+function normalizeRouteClientProtocols(value) {
+  const values = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
+  return Array.from(new Set(values.map(normalizeRouteClientProtocol).filter(Boolean)));
+}
+
+function inferRouteClientProtocols(modelId) {
+  const lower = String(modelId || '')
+    .trim()
+    .toLowerCase();
+  if (!lower) return [];
+  if (lower.startsWith('claude-')) return ['claude'];
+  if (
+    lower.startsWith('gpt-') ||
+    lower.startsWith('o') ||
+    lower.startsWith('codex/') ||
+    lower.startsWith('deepseek') ||
+    lower.startsWith('kimi') ||
+    lower.startsWith('minimax') ||
+    lower.startsWith('gemini-') ||
+    lower.startsWith('trae/') ||
+    lower === 'default'
+  ) {
+    return ['openai-chat', 'openai-responses'];
+  }
+  return ['openai-chat', 'openai-responses'];
+}
+
+function routeClientProtocols(route) {
+  const explicit = normalizeRouteClientProtocols(route && route.clientProtocols);
+  return explicit.length ? explicit : inferRouteClientProtocols(route && route.from);
+}
+
+function routeClientProtocolText(route) {
+  const protocols = routeClientProtocols(route);
+  const labels = protocols
+    .map((id) => routeClientProtocolOptions.find((item) => item.id === id)?.label || id)
+    .join(' / ');
+  return labels || '未指定';
+}
+
+function routeClientProtocolModeText(route) {
+  return normalizeRouteClientProtocols(route && route.clientProtocols).length ? '显式' : '推断';
+}
+
+function renderRecommendedClientModels() {
+  const container = $('modelAutocompleteContainer');
+  if (!container) return;
+  clearElement(container);
+  const label = document.createElement('span');
+  label.className = 'route-suggestion-label';
+  label.textContent = '推荐客户端模型';
+  container.appendChild(label);
+
+  recommendedClaudeClientModels.forEach((model) => {
+    const tag = document.createElement('span');
+    tag.className = 'autocomplete-tag';
+    tag.textContent = model;
+    tag.onclick = () => {
+      $('modelRewriteFrom').value = model;
+      showToast('已选择客户端模型：' + model, 'success');
+    };
+    container.appendChild(tag);
+  });
+}
+
+function selectedRouteClientProtocols() {
+  return Array.from(document.querySelectorAll('[data-route-client-protocol]'))
+    .filter((input) => input.checked)
+    .map((input) => normalizeRouteClientProtocol(input.dataset.routeClientProtocol))
+    .filter(Boolean);
+}
+
+function setSelectedRouteClientProtocols(protocols) {
+  const selected = new Set(normalizeRouteClientProtocols(protocols));
+  document.querySelectorAll('[data-route-client-protocol]').forEach((input) => {
+    input.checked = selected.has(normalizeRouteClientProtocol(input.dataset.routeClientProtocol));
+  });
+}
+
 function normalizeEntryProtocol(value) {
   const protocol = String(value || '')
     .trim()
@@ -513,6 +702,10 @@ function defaultEntriesForLocal() {
   }));
 }
 
+function entryServerKey(entry) {
+  return `${normalizeEntryProtocol(entry && entry.protocol)}:${entry && entry.tls === false ? 'http' : 'https'}`;
+}
+
 function selectedProfile() {
   if (!config || !Array.isArray(config.profiles)) return null;
   return config.profiles.find((profile) => profile.id === selectedId) || config.profiles[0];
@@ -541,11 +734,9 @@ function ensureEntryServers() {
   ensureLocalServer();
   const defaults = defaultEntriesForLocal();
   const source = Array.isArray(config.entryServers) ? config.entryServers.filter(Boolean) : [];
-  const byProtocol = new Map(
-    source.map((entry) => [normalizeEntryProtocol(entry.protocol), entry])
-  );
-  config.entryServers = defaults.map((fallback) => {
-    const existing = byProtocol.get(fallback.protocol);
+  const byProtocolAndTls = new Map(source.map((entry) => [entryServerKey(entry), entry]));
+  const nextEntries = defaults.map((fallback) => {
+    const existing = byProtocolAndTls.get(entryServerKey(fallback));
     return {
       name: existing && existing.name ? existing.name : fallback.name,
       host: existing && existing.host ? existing.host : fallback.host,
@@ -554,9 +745,99 @@ function ensureEntryServers() {
       ),
       basePath: existing && existing.basePath ? existing.basePath : fallback.basePath,
       protocol: fallback.protocol,
+      tls: existing && existing.tls === false ? false : fallback.tls !== false,
       enabled: existing && existing.enabled === false ? false : true,
     };
   });
+  const defaultKeys = new Set(defaults.map(entryServerKey));
+  for (const entry of source) {
+    const key = entryServerKey(entry);
+    if (defaultKeys.has(key)) continue;
+    nextEntries.push({
+      name: entry.name || 'Custom Entry',
+      host: entry.host || 'localhost',
+      listenPort: Number(entry.listenPort || entry.port),
+      basePath: entry.basePath || '/v1',
+      protocol: normalizeEntryProtocol(entry.protocol),
+      tls: entry.tls === false ? false : true,
+      enabled: entry.enabled === false ? false : true,
+    });
+  }
+  config.entryServers = nextEntries.filter(
+    (entry) =>
+      Number.isInteger(entry.listenPort) && entry.listenPort >= 1 && entry.listenPort <= 65535
+  );
+}
+
+function splitEntryAuthList(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeEntryAuthKey(record, index) {
+  const item = record && typeof record === 'object' ? record : {};
+  return {
+    id: String(item.id || `entry-key-${index + 1}`).trim(),
+    name: String(item.name || `Entry key ${index + 1}`).trim(),
+    key: String(item.key || '').trim(),
+    enabled: item.enabled !== false,
+    allowedEntryProtocols: Array.isArray(item.allowedEntryProtocols)
+      ? item.allowedEntryProtocols.map((value) => normalizeEntryProtocol(value)).filter(Boolean)
+      : [],
+    allowedEntryPorts: Array.isArray(item.allowedEntryPorts)
+      ? item.allowedEntryPorts
+          .map((value) => Number(value))
+          .filter((value) => Number.isInteger(value) && value >= 1 && value <= 65535)
+      : [],
+    allowedProfileIds: Array.isArray(item.allowedProfileIds)
+      ? item.allowedProfileIds.map((value) => String(value || '').trim()).filter(Boolean)
+      : [],
+  };
+}
+
+function defaultEntryAuthKey() {
+  ensureEntryServers();
+  const ports = Array.from(
+    new Set(
+      (config.entryServers || [])
+        .filter((entry) => entry && entry.enabled !== false)
+        .map((entry) => Number(entry.listenPort))
+        .filter((port) => Number.isInteger(port) && port >= 1 && port <= 65535)
+    )
+  );
+  const protocols = Array.from(
+    new Set(
+      (config.entryServers || [])
+        .filter((entry) => entry && entry.enabled !== false)
+        .map((entry) => normalizeEntryProtocol(entry.protocol))
+        .filter(Boolean)
+    )
+  );
+  return {
+    id: 'local-default',
+    name: '本地默认入口',
+    key: randomEntryAuthSecret(),
+    enabled: true,
+    allowedEntryProtocols: protocols,
+    allowedEntryPorts: ports,
+    allowedProfileIds: [],
+  };
+}
+
+function ensureEntryAuth() {
+  if (!config) config = {};
+  if (!config.entryAuth || typeof config.entryAuth !== 'object') {
+    config.entryAuth = { enabled: true, keys: [defaultEntryAuthKey()] };
+  }
+  if (typeof config.entryAuth.enabled !== 'boolean') config.entryAuth.enabled = true;
+  const source = Array.isArray(config.entryAuth.keys) ? config.entryAuth.keys : [];
+  config.entryAuth.keys = source.map(normalizeEntryAuthKey).filter((item) => item.id);
+  if (config.entryAuth.keys.length === 0) {
+    config.entryAuth.enabled = true;
+    config.entryAuth.keys = [defaultEntryAuthKey()];
+  }
 }
 
 function ensureAppSettings() {
@@ -566,6 +847,8 @@ function ensureAppSettings() {
     config.appSettings.stopProxyOnExit = true;
   if (typeof config.appSettings.autoStartProxy !== 'boolean')
     config.appSettings.autoStartProxy = true;
+  if (typeof config.appSettings.launchOnLogin !== 'boolean')
+    config.appSettings.launchOnLogin = false;
   if (typeof config.appSettings.showTopMenu !== 'boolean') config.appSettings.showTopMenu = true;
   if (typeof config.appSettings.showTrayMenu !== 'boolean') config.appSettings.showTrayMenu = true;
   if (typeof config.appSettings.showWindowOnTrayCommand !== 'boolean')
@@ -577,6 +860,8 @@ function ensureAppSettings() {
   }
   if (typeof config.appSettings.disableLocalProxy !== 'boolean')
     config.appSettings.disableLocalProxy = false;
+  if (typeof config.appSettings.verifyUpstreamTls !== 'boolean')
+    config.appSettings.verifyUpstreamTls = true;
   if (typeof config.appSettings.conversationAuditEnabled !== 'boolean')
     config.appSettings.conversationAuditEnabled = true;
   if (typeof config.appSettings.performanceMode !== 'boolean') {
@@ -606,14 +891,66 @@ function fillAppSettings() {
   $('closeToTray').checked = config.appSettings.closeToTray;
   $('stopProxyOnExit').checked = config.appSettings.stopProxyOnExit;
   $('autoStartProxy').checked = config.appSettings.autoStartProxy;
+  $('launchOnLogin').checked = config.appSettings.launchOnLogin;
   $('showTopMenu').checked = config.appSettings.showTopMenu;
   $('showTrayMenu').checked = config.appSettings.showTrayMenu;
   $('showWindowOnTrayCommand').checked = config.appSettings.showWindowOnTrayCommand;
   $('desktopNotifications').checked = config.appSettings.desktopNotifications;
   $('disableLocalProxy').checked = config.appSettings.disableLocalProxy;
+  $('verifyUpstreamTls').checked = config.appSettings.verifyUpstreamTls;
   $('conversationAuditEnabled').checked = config.appSettings.conversationAuditEnabled;
   $('performanceMode').checked = config.appSettings.performanceMode;
   applyPerformanceMode(config.appSettings.performanceMode);
+  void refreshLaunchOnLogin();
+}
+
+async function refreshLaunchOnLogin() {
+  const input = $('launchOnLogin');
+  const description = $('launchOnLoginDesc');
+  if (!window.proxyManager || typeof window.proxyManager.getLaunchOnLogin !== 'function') {
+    input.disabled = true;
+    input.checked = false;
+    description.textContent = '仅 Windows 桌面管理器支持此功能。';
+    return;
+  }
+  input.disabled = true;
+  try {
+    const result = await window.proxyManager.getLaunchOnLogin();
+    if (!result || result.supported !== true || typeof result.enabled !== 'boolean') {
+      throw new Error('系统启动项返回了无效状态');
+    }
+    input.checked = result.enabled;
+    config.appSettings.launchOnLogin = result.enabled;
+    description.textContent = '使用当前用户启动项，不需要管理员权限。';
+    input.disabled = false;
+  } catch (err) {
+    input.checked = false;
+    const detail = err && err.message ? err.message : String(err || '未知错误');
+    description.textContent = `无法读取 Windows 启动项：${detail}`;
+  }
+}
+
+async function applyLaunchOnLogin() {
+  const input = $('launchOnLogin');
+  if (typeof window.proxyManager.setLaunchOnLogin !== 'function') {
+    input.checked = false;
+    config.appSettings.launchOnLogin = false;
+    return;
+  }
+  const requested = input.checked === true;
+  input.disabled = true;
+  try {
+    const result = await window.proxyManager.setLaunchOnLogin(requested);
+    if (!result || result.supported !== true || result.enabled !== requested) {
+      throw new Error('Windows 启动项状态校验失败');
+    }
+    config.appSettings.launchOnLogin = result.enabled;
+  } catch (err) {
+    input.checked = config.appSettings.launchOnLogin === true;
+    throw err;
+  } finally {
+    input.disabled = false;
+  }
 }
 
 function collectAppSettings() {
@@ -622,11 +959,13 @@ function collectAppSettings() {
     closeToTray: $('closeToTray').checked,
     stopProxyOnExit: $('stopProxyOnExit').checked,
     autoStartProxy: $('autoStartProxy').checked,
+    launchOnLogin: $('launchOnLogin').checked,
     showTopMenu: $('showTopMenu').checked,
     showTrayMenu: $('showTrayMenu').checked,
     showWindowOnTrayCommand: $('showWindowOnTrayCommand').checked,
     desktopNotifications: $('desktopNotifications').checked,
     disableLocalProxy: $('disableLocalProxy').checked,
+    verifyUpstreamTls: $('verifyUpstreamTls').checked,
     conversationAuditEnabled: $('conversationAuditEnabled').checked,
     performanceMode: $('performanceMode').checked,
   };
@@ -667,10 +1006,14 @@ function ensureClaudeDesktop() {
 
 const DEFAULT_CLAUDE_DESKTOP_ROUTE_IDS = [
   'claude-sonnet-4-6',
-  'claude-opus-4-7',
+  'claude-opus-4-8',
   'claude-haiku-4-5',
-  'claude-sonnet-4-5',
-  'claude-opus-4-5',
+  'claude-fable-5',
+  'claude-opus-4-7',
+  'claude-opus-4-6',
+  'claude-haiku-4-5-20251001',
+  'claude-sonnet-4-5-20250929',
+  'claude-opus-4-5-20251101',
 ];
 const CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT =
   '请执行一次极短的可见过程验证：先按你的内部流程规划 2 个步骤，再只输出一行“OK”。';
@@ -980,6 +1323,8 @@ function routeForConfig(route) {
   const next = { from: route.from, profileId: route.profileId, to: route.to };
   if (route.labelOverride) next.labelOverride = route.labelOverride;
   if (route.supports1m !== undefined) next.supports1m = route.supports1m !== false;
+  const clientProtocols = normalizeRouteClientProtocols(route.clientProtocols);
+  if (clientProtocols.length) next.clientProtocols = clientProtocols;
   return next;
 }
 
@@ -1035,10 +1380,12 @@ function removeClaudeDesktopModelForRoute(routeId) {
 function fillLocalServer() {
   ensureLocalServer();
   ensureEntryServers();
+  ensureEntryAuth();
   $('localHost').value = config.localServer.host;
   $('localPort').value = config.localServer.listenPort;
   $('localBasePath').value = config.localServer.basePath;
   renderEntryServers();
+  renderEntryAuth();
   renderLocalPreview();
 }
 
@@ -1050,6 +1397,7 @@ function collectLocalServer() {
     protocol: 'claude',
   };
   collectEntryServers();
+  collectEntryAuth();
 }
 
 function collectEntryServers() {
@@ -1058,20 +1406,19 @@ function collectEntryServers() {
     ensureEntryServers();
     return;
   }
-  config.entryServers = rows.map((row) => ({
-    name:
-      row.querySelector('[data-entry-name]').value.trim() ||
-      entryProtocolName(row.querySelector('[data-entry-protocol]').value),
-    host: row.querySelector('[data-entry-host]').value.trim() || 'localhost',
-    listenPort: Number(row.querySelector('[data-entry-port]').value || 3443),
-    basePath: row.querySelector('[data-entry-base-path]').value.trim() || '/v1',
-    protocol: normalizeEntryProtocol(row.querySelector('[data-entry-protocol]').value),
-    enabled: row.querySelector('[data-entry-enabled]').checked,
-    tls:
-      normalizeEntryProtocol(row.querySelector('[data-entry-protocol]').value) === 'claude-desktop'
-        ? false
-        : true,
-  }));
+  config.entryServers = rows.map((row) => {
+    const protocol = normalizeEntryProtocol(row.querySelector('[data-entry-protocol]').value);
+    const transport = row.querySelector('[data-entry-transport]').value;
+    return {
+      name: row.querySelector('[data-entry-name]').value.trim() || entryProtocolName(protocol),
+      host: row.querySelector('[data-entry-host]').value.trim() || 'localhost',
+      listenPort: Number(row.querySelector('[data-entry-port]').value || 3443),
+      basePath: row.querySelector('[data-entry-base-path]').value.trim() || '/v1',
+      protocol,
+      enabled: row.querySelector('[data-entry-enabled]').checked,
+      tls: protocol === 'claude-desktop' ? false : transport === 'https',
+    };
+  });
   const claudeEntry =
     config.entryServers.find((entry) => entry.protocol === 'claude') || config.entryServers[0];
   if (claudeEntry) {
@@ -1084,6 +1431,182 @@ function collectEntryServers() {
     if (document.activeElement !== $('localBasePath'))
       $('localBasePath').value = claudeEntry.basePath;
   }
+}
+
+function collectEntryAuth() {
+  ensureEntryAuth();
+  const enabledInput = $('entryAuthEnabled');
+  if (enabledInput) config.entryAuth.enabled = enabledInput.checked;
+  const rows = Array.from(document.querySelectorAll('[data-entry-auth-index]'));
+  if (rows.length === 0) return;
+  config.entryAuth.keys = rows
+    .map((row, index) => {
+      const id = row.querySelector('[data-entry-auth-id]').value.trim();
+      const key = row.querySelector('[data-entry-auth-key]').value.trim();
+      const ports = splitEntryAuthList(row.querySelector('[data-entry-auth-ports]').value)
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value >= 1 && value <= 65535);
+      return {
+        id: id || `entry-key-${index + 1}`,
+        name:
+          row.querySelector('[data-entry-auth-name]').value.trim() ||
+          id ||
+          `Entry key ${index + 1}`,
+        key,
+        enabled: row.querySelector('[data-entry-auth-enabled]').checked,
+        allowedEntryProtocols: splitEntryAuthList(
+          row.querySelector('[data-entry-auth-protocols]').value
+        ).map((value) => normalizeEntryProtocol(value)),
+        allowedEntryPorts: ports,
+        allowedProfileIds: splitEntryAuthList(
+          row.querySelector('[data-entry-auth-profiles]').value
+        ),
+      };
+    })
+    .filter((item) => item.id && item.key);
+}
+
+function randomEntryAuthSecret() {
+  const bytes = new Uint8Array(24);
+  if (window.crypto && window.crypto.getRandomValues) {
+    window.crypto.getRandomValues(bytes);
+    return (
+      'hpm_' +
+      Array.from(bytes)
+        .map((value) => value.toString(16).padStart(2, '0'))
+        .join('')
+    );
+  }
+  return 'hpm_' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function createEntryAuthInput(dataName, value, placeholder, type = 'text') {
+  const input = document.createElement('input');
+  input.dataset[dataName] = '';
+  input.type = type;
+  input.value = String(value == null ? '' : value);
+  input.placeholder = placeholder;
+  return input;
+}
+
+async function copyEntryAuthKeyValue(keyInput, row) {
+  let value = String((keyInput && keyInput.value) || '').trim();
+  if (value === '[redacted]' || value === '***') {
+    const idInput = row && row.querySelector('[data-entry-auth-id]');
+    const keyId = String((idInput && idInput.value) || '').trim();
+    if (!keyId) {
+      showToast('缺少 Key ID，无法取回真实入口 key', 'error');
+      return;
+    }
+    const result =
+      window.proxyManager && window.proxyManager.revealEntryAuthKey
+        ? await window.proxyManager.revealEntryAuthKey(keyId)
+        : { ok: false, error: '当前环境不支持取回入口 key' };
+    if (!result || !result.ok || !result.key) {
+      showToast('取回入口 key 失败: ' + ((result && result.error) || '未知错误'), 'error');
+      return;
+    }
+    value = result.key;
+  }
+  await copyTextToClipboard(value, '入口 key 已复制');
+}
+
+function createEntryAuthRow(entryKey, index) {
+  const row = document.createElement('div');
+  row.className = 'entry-server-row';
+  row.dataset.entryAuthIndex = String(index);
+
+  const head = document.createElement('div');
+  head.className = 'entry-server-head';
+  const title = document.createElement('div');
+  title.className = 'entry-server-title';
+  const name = document.createElement('strong');
+  name.textContent = entryKey.name || entryKey.id || `入口 key ${index + 1}`;
+  const scope = document.createElement('span');
+  scope.className = 'badge protocol';
+  scope.textContent = entryKey.enabled === false ? '已停用' : '已启用';
+  title.append(name, scope);
+
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+  const enabledLabel = document.createElement('label');
+  enabledLabel.className = 'inline-check';
+  const enabled = document.createElement('input');
+  enabled.dataset.entryAuthEnabled = '';
+  enabled.type = 'checkbox';
+  enabled.checked = entryKey.enabled !== false;
+  enabledLabel.append(enabled, document.createTextNode(' 启用'));
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'danger-soft';
+  remove.textContent = '删除';
+  remove.onclick = () => {
+    collectEntryAuth();
+    config.entryAuth.keys.splice(index, 1);
+    renderEntryAuth();
+  };
+  actions.append(enabledLabel, remove);
+  head.append(title, actions);
+
+  const fields = document.createElement('div');
+  fields.className = 'entry-server-fields';
+  fields.appendChild(createEntryAuthInput('entryAuthName', entryKey.name, '名称'));
+  fields.appendChild(createEntryAuthInput('entryAuthId', entryKey.id, 'Key ID'));
+  const keyInput = createEntryAuthInput('entryAuthKey', entryKey.key, '入口 API key', 'password');
+  fields.appendChild(keyInput);
+  const copyKey = document.createElement('button');
+  copyKey.type = 'button';
+  copyKey.className = 'light';
+  copyKey.textContent = '复制 key';
+  copyKey.onclick = () => copyEntryAuthKeyValue(keyInput, row);
+  fields.appendChild(copyKey);
+  fields.appendChild(
+    createEntryAuthInput(
+      'entryAuthProtocols',
+      (entryKey.allowedEntryProtocols || []).join(','),
+      '允许协议：openai-chat,claude'
+    )
+  );
+  fields.appendChild(
+    createEntryAuthInput(
+      'entryAuthPorts',
+      (entryKey.allowedEntryPorts || []).join(','),
+      '允许端口：3447,3443'
+    )
+  );
+  fields.appendChild(
+    createEntryAuthInput(
+      'entryAuthProfiles',
+      (entryKey.allowedProfileIds || []).join(','),
+      '允许 Profile ID，留空表示全部'
+    )
+  );
+
+  row.append(head, fields);
+  return row;
+}
+
+function renderEntryAuth() {
+  ensureEntryAuth();
+  const enabled = $('entryAuthEnabled');
+  if (enabled) enabled.checked = config.entryAuth.enabled;
+  const container = $('entryAuthKeys');
+  if (!container) return;
+  clearElement(container);
+  if (config.entryAuth.keys.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'muted';
+    empty.textContent = '暂无入口 key。保存前会自动生成一个默认 key。';
+    container.appendChild(empty);
+  } else {
+    config.entryAuth.keys.forEach((entryKey, index) => {
+      container.appendChild(createEntryAuthRow(entryKey, index));
+    });
+  }
+  container.querySelectorAll('input').forEach((input) => {
+    input.oninput = collectEntryAuth;
+    input.onchange = collectEntryAuth;
+  });
 }
 
 let localPreviewFrame = 0;
@@ -1129,6 +1652,18 @@ function createEntryProtocolSelect(protocol) {
   return select;
 }
 
+function createEntryTransportSelect(entry, protocol) {
+  const select = document.createElement('select');
+  select.dataset.entryTransport = '';
+  select.title = '传输协议';
+  select.setAttribute('aria-label', '传输协议');
+  appendOption(select, 'https', 'HTTPS（TLS）');
+  appendOption(select, 'http', 'HTTP（明文）');
+  select.value = entry.tls === false || protocol === 'claude-desktop' ? 'http' : 'https';
+  select.disabled = protocol === 'claude-desktop';
+  return select;
+}
+
 function createEntryServerRow(entry, index) {
   const protocol = normalizeEntryProtocol(entry.protocol);
   const row = document.createElement('div');
@@ -1144,10 +1679,15 @@ function createEntryServerRow(entry, index) {
   const protocolBadge = document.createElement('span');
   protocolBadge.className = 'badge protocol';
   protocolBadge.textContent = entryProtocolName(protocol);
+  const usesTls = entry.tls !== false && protocol !== 'claude-desktop';
+  const transportBadge = document.createElement('span');
+  transportBadge.className = `badge transport ${usesTls ? 'https' : 'http'}`;
+  transportBadge.textContent = usesTls ? 'HTTPS · TLS' : 'HTTP · 明文';
   const urlBadge = document.createElement('span');
-  urlBadge.className = 'badge';
+  urlBadge.className = `badge entry-server-url ${usesTls ? 'https' : 'http'}`;
   urlBadge.textContent = entryServerUrl(entry, protocol);
   title.appendChild(name);
+  title.appendChild(transportBadge);
   title.appendChild(protocolBadge);
   title.appendChild(urlBadge);
 
@@ -1171,6 +1711,7 @@ function createEntryServerRow(entry, index) {
   fields.appendChild(createEntryInput('Port', Number(entry.listenPort || 3443), '端口', 'number'));
   fields.appendChild(createEntryInput('Host', entry.host || 'localhost', 'Host'));
   fields.appendChild(createEntryInput('BasePath', entry.basePath || '/v1', '路径'));
+  fields.appendChild(createEntryTransportSelect(entry, protocol));
   fields.appendChild(createEntryProtocolSelect(protocol));
 
   row.appendChild(head);
@@ -1178,13 +1719,46 @@ function createEntryServerRow(entry, index) {
   return row;
 }
 
+function createEntryTransportGroup(transport, entries) {
+  const usesTls = transport === 'https';
+  const group = document.createElement('section');
+  group.className = `entry-transport-group ${transport}`;
+  group.setAttribute('aria-label', usesTls ? 'HTTPS 加密入口' : 'HTTP 明文入口');
+
+  const header = document.createElement('div');
+  header.className = 'entry-transport-group-head';
+  const title = document.createElement('strong');
+  title.textContent = usesTls ? 'HTTPS 入口' : 'HTTP 入口';
+  const description = document.createElement('span');
+  description.className = 'muted';
+  description.textContent = usesTls ? 'TLS 加密，推荐客户端使用' : '明文传输，仅用于本机或可信网络';
+  const count = document.createElement('span');
+  count.className = `badge transport ${transport}`;
+  count.textContent = `${entries.length} 个端口`;
+  header.append(title, description, count);
+  group.appendChild(header);
+
+  entries.forEach(({ entry, index }) => {
+    group.appendChild(createEntryServerRow(entry, index));
+  });
+  return group;
+}
+
 function renderEntryServers() {
   ensureEntryServers();
   const container = $('entryServers');
   clearElement(container);
+  const groupedEntries = { https: [], http: [] };
   config.entryServers.forEach((entry, index) => {
-    container.appendChild(createEntryServerRow(entry, index));
+    const transport = entry.tls === false || entry.protocol === 'claude-desktop' ? 'http' : 'https';
+    groupedEntries[transport].push({ entry, index });
   });
+  if (groupedEntries.https.length) {
+    container.appendChild(createEntryTransportGroup('https', groupedEntries.https));
+  }
+  if (groupedEntries.http.length) {
+    container.appendChild(createEntryTransportGroup('http', groupedEntries.http));
+  }
   container.querySelectorAll('input, select').forEach((input) => {
     input.oninput = () => {
       collectEntryServers();
@@ -1209,7 +1783,7 @@ function renderLocalPreview() {
       basePath: $('localBasePath').value.trim() || '/v1',
       protocol: 'claude',
     };
-  baseUrl = `https://${primary.host || 'localhost'}:${primary.listenPort || 3443}${primary.basePath || '/v1'}`;
+  baseUrl = entryServerUrl(primary, normalizeEntryProtocol(primary.protocol));
   const preview = $('localUrlPreview');
   clearElement(preview);
   if (entries.length) {
@@ -1237,6 +1811,31 @@ function claudeProxyBaseUrl() {
   const host = entry.host === '0.0.0.0' ? '127.0.0.1' : entry.host || 'localhost';
   const basePath = entry.basePath === '/v1' ? '' : entry.basePath || '';
   return `${scheme}://${host}:${entry.listenPort || 3443}${basePath}`.replace(/\/+$/, '');
+}
+
+function preferredEntryProtocolForProfile(profile) {
+  const protocol = String((profile && profile.protocol) || '')
+    .trim()
+    .toLowerCase();
+  if (protocol === 'claude' || protocol === 'anthropic') return 'claude';
+  if (protocol === 'openai-responses' || protocol === 'responses') return 'openai-responses';
+  return 'openai-chat';
+}
+
+function preferredHttpsEntryForProfile(profile) {
+  ensureEntryServers();
+  const entries = Array.isArray(config.entryServers)
+    ? config.entryServers.filter((entry) => entry && entry.enabled !== false)
+    : [];
+  const targetProtocol = preferredEntryProtocolForProfile(profile);
+  return (
+    entries.find(
+      (entry) => normalizeEntryProtocol(entry.protocol) === targetProtocol && entry.tls !== false
+    ) ||
+    entries.find((entry) => normalizeEntryProtocol(entry.protocol) === targetProtocol) ||
+    entries.find((entry) => entry && entry.tls !== false) ||
+    entries[0] || { host: 'localhost', listenPort: 3443, basePath: '/v1' }
+  );
 }
 
 function currentRoutes() {
@@ -1282,6 +1881,7 @@ function routeTableSignature() {
       to: route.to || '',
       profileId: route.profileId || '',
       labelOverride: route.labelOverride || '',
+      clientProtocols: normalizeRouteClientProtocols(route.clientProtocols),
     })),
     profiles: profiles.map((profile) => ({
       id: profile.id || '',
@@ -1289,20 +1889,84 @@ function routeTableSignature() {
       protocol: profile.protocol || '',
       targetUrl: profile.targetUrl || '',
     })),
+    filterText: routeFilterText,
+    filterProtocol: routeFilterProtocol,
+    sortBy: routeSortBy,
+    sortDirection: routeSortDirection,
   });
 }
 
-function createRoutesEmptyElement() {
+function routeSearchText(route, profile) {
+  return [
+    route.from,
+    route.to,
+    route.labelOverride,
+    routeClientProtocolText(route),
+    routeClientProtocolModeText(route),
+    profile && profile.name,
+    profile && profile.id,
+    profile && profile.protocol,
+    profile && profile.targetUrl,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function routeSortValue(route, profile) {
+  if (routeSortBy === 'profile') return `${profile?.name || ''} ${profile?.id || ''}`;
+  if (routeSortBy === 'to') return route.to || '';
+  if (routeSortBy === 'protocol') return routeClientProtocolText(route);
+  return route.from || '';
+}
+
+function filteredSortedRouteEntries(options = {}) {
+  const useFilters = options.filter !== false;
+  const profiles = config && Array.isArray(config.profiles) ? config.profiles : [];
+  const query = String(routeFilterText || '')
+    .trim()
+    .toLowerCase();
+  const protocol = normalizeRouteClientProtocol(routeFilterProtocol);
+  const entries = modelRoutes.map((route, index) => ({
+    route,
+    index,
+    profile: profiles.find((item) => item.id === route.profileId) || null,
+  }));
+  const filtered = entries.filter((entry) => {
+    if (!useFilters) return true;
+    if (protocol && !routeClientProtocols(entry.route).includes(protocol)) return false;
+    if (!query) return true;
+    return routeSearchText(entry.route, entry.profile).includes(query);
+  });
+  const direction = routeSortDirection === 'desc' ? -1 : 1;
+  return filtered.sort((left, right) => {
+    const result = String(routeSortValue(left.route, left.profile)).localeCompare(
+      String(routeSortValue(right.route, right.profile)),
+      'zh-CN',
+      { numeric: true, sensitivity: 'base' }
+    );
+    return result === 0 ? (left.index - right.index) * direction : result * direction;
+  });
+}
+
+function updateRouteFilterSummary(count) {
+  const el = $('routeFilterSummary');
+  if (!el) return;
+  el.textContent =
+    count === modelRoutes.length ? `${count} 条` : `${count} / ${modelRoutes.length} 条`;
+}
+
+function createRoutesEmptyElement(message = '暂无模型路由，未命中的请求会使用默认上游。') {
   const empty = document.createElement('div');
   empty.className = 'muted';
-  empty.textContent = '暂无模型路由，未命中的请求会使用默认上游。';
+  empty.textContent = message;
   return empty;
 }
 
 function appendRouteHeaderRow(table) {
   const thead = document.createElement('thead');
   const row = document.createElement('tr');
-  ['客户端模型', '转发到上游', '上游模型', '操作'].forEach((label) => {
+  ['客户端模型', '转发到上游', '上游模型', '客户端协议', '操作'].forEach((label) => {
     const cell = document.createElement('th');
     cell.textContent = label;
     row.appendChild(cell);
@@ -1353,6 +2017,15 @@ function createRouteTableRow(route, index) {
   toStrong.textContent = route.to || '';
   toCell.appendChild(toStrong);
 
+  const protocolCell = document.createElement('td');
+  const protocolStrong = document.createElement('strong');
+  protocolStrong.textContent = routeClientProtocolText(route);
+  protocolCell.appendChild(protocolStrong);
+  const protocolMeta = document.createElement('div');
+  protocolMeta.className = 'muted';
+  protocolMeta.textContent = routeClientProtocolModeText(route);
+  protocolCell.appendChild(protocolMeta);
+
   const actionsCell = document.createElement('td');
   const actions = document.createElement('div');
   actions.className = 'route-actions';
@@ -1363,12 +2036,19 @@ function createRouteTableRow(route, index) {
   );
   actionsCell.appendChild(actions);
 
-  row.append(fromCell, targetCell, toCell, actionsCell);
+  row.append(fromCell, targetCell, toCell, protocolCell, actionsCell);
   return row;
 }
 
-function createRoutesTableElement() {
-  if (modelRoutes.length === 0) return createRoutesEmptyElement();
+function createRoutesTableElement(options = {}) {
+  const useFilters = options.filters !== false;
+  if (modelRoutes.length === 0) {
+    if (useFilters) updateRouteFilterSummary(0);
+    return createRoutesEmptyElement();
+  }
+  const entries = filteredSortedRouteEntries({ filter: useFilters });
+  if (useFilters) updateRouteFilterSummary(entries.length);
+  if (entries.length === 0) return createRoutesEmptyElement('没有匹配当前筛选条件的模型路由。');
   const wrapper = document.createElement('div');
   wrapper.className = 'route-table route-table-compact';
 
@@ -1382,7 +2062,7 @@ function createRoutesTableElement() {
   scroll.className = 'route-table-scroll';
   const bodyTable = document.createElement('table');
   const tbody = document.createElement('tbody');
-  modelRoutes.forEach((route, index) => tbody.appendChild(createRouteTableRow(route, index)));
+  entries.forEach((entry) => tbody.appendChild(createRouteTableRow(entry.route, entry.index)));
   bodyTable.appendChild(tbody);
   scroll.appendChild(bodyTable);
 
@@ -1394,6 +2074,7 @@ function resetRouteEditor() {
   editingRouteIndex = null;
   $('modelRewriteFrom').value = '';
   $('modelRewriteLabel').value = '';
+  setSelectedRouteClientProtocols([]);
   renderModelOptions('');
   $('modelStatus').textContent = '';
   $('addRule').textContent = '添加路由';
@@ -1533,6 +2214,7 @@ function bindRouteActions(container) {
       $('modelRewriteFrom').value = route.from;
       $('modelRewriteLabel').value = route.labelOverride || '';
       $('modelRouteProfile').value = route.profileId;
+      setSelectedRouteClientProtocols(route.clientProtocols || []);
       availableModels = [];
       renderModelOptions(route.to);
       $('modelStatus').textContent = '正在编辑已保存路由';
@@ -1568,6 +2250,61 @@ function renderRules() {
   bindRouteActions(container);
 }
 
+function bindRouteTableToolbar() {
+  const filterText = $('routeFilterText');
+  const filterProtocol = $('routeFilterProtocol');
+  const sortBy = $('routeSortBy');
+  const sortDirection = $('routeSortDirection');
+  const reset = $('routeFilterReset');
+  if (filterText) {
+    filterText.value = routeFilterText;
+    filterText.oninput = () => {
+      routeFilterText = filterText.value;
+      lastRenderedRulesHtml = '';
+      renderRules();
+    };
+  }
+  if (filterProtocol) {
+    filterProtocol.value = routeFilterProtocol;
+    filterProtocol.onchange = () => {
+      routeFilterProtocol = filterProtocol.value;
+      lastRenderedRulesHtml = '';
+      renderRules();
+    };
+  }
+  if (sortBy) {
+    sortBy.value = routeSortBy;
+    sortBy.onchange = () => {
+      routeSortBy = sortBy.value || 'from';
+      lastRenderedRulesHtml = '';
+      renderRules();
+    };
+  }
+  if (sortDirection) {
+    sortDirection.textContent = routeSortDirection === 'desc' ? '降序' : '升序';
+    sortDirection.onclick = () => {
+      routeSortDirection = routeSortDirection === 'desc' ? 'asc' : 'desc';
+      sortDirection.textContent = routeSortDirection === 'desc' ? '降序' : '升序';
+      lastRenderedRulesHtml = '';
+      renderRules();
+    };
+  }
+  if (reset) {
+    reset.onclick = () => {
+      routeFilterText = '';
+      routeFilterProtocol = '';
+      routeSortBy = 'from';
+      routeSortDirection = 'asc';
+      if (filterText) filterText.value = '';
+      if (filterProtocol) filterProtocol.value = '';
+      if (sortBy) sortBy.value = 'from';
+      if (sortDirection) sortDirection.textContent = '升序';
+      lastRenderedRulesHtml = '';
+      renderRules();
+    };
+  }
+}
+
 function renderOverview() {
   const active = activeProfile();
   const defaultProfileText = active
@@ -1589,7 +2326,7 @@ function renderOverview() {
 
   if (routesSignature !== lastRenderedOverviewRoutesHtml) {
     const overviewRoutes = $('overviewRoutes');
-    overviewRoutes.replaceChildren(createRoutesTableElement());
+    overviewRoutes.replaceChildren(createRoutesTableElement({ filters: false }));
     lastRenderedOverviewRoutesHtml = routesSignature;
     bindRouteActions(overviewRoutes);
   }
@@ -1618,7 +2355,7 @@ function updateOfficialAuthSection(profileId) {
 
     renderDashboardLimits(profileId);
     if (!rateLimitsData[profileId]) {
-      refreshRateLimits(profileId);
+      scheduleRateLimitsRefresh(profileId);
     }
   } else if (profileId === 'openai-official') {
     section.style.display = 'block';
@@ -1631,7 +2368,7 @@ function updateOfficialAuthSection(profileId) {
 
     renderDashboardLimits(profileId);
     if (!rateLimitsData[profileId]) {
-      refreshRateLimits(profileId);
+      scheduleRateLimitsRefresh(profileId);
     }
   } else if (profileId === 'claude-official') {
     section.style.display = 'block';
@@ -1719,6 +2456,38 @@ const PROVIDER_PRESETS = {
     targetUrl: 'https://api.openai.com/v1',
     keyUrl: 'https://platform.openai.com/api-keys',
     desc: '官方 OpenAI 接口。适用于 GPT-4o, GPT-4o-mini 等官方模型。',
+  },
+  'glm-coding-anthropic': {
+    name: 'GLM Coding Plan (Anthropic)',
+    defaultId: 'glm-coding-anthropic',
+    protocol: 'claude',
+    targetUrl: 'https://open.bigmodel.cn/api/anthropic',
+    keyUrl: 'https://bigmodel.cn/coding-plan',
+    desc: '智谱 GLM Coding Plan 的 Anthropic Messages 兼容入口，适合 Claude Code、Roo Code 等 Claude 协议客户端通过本地代理使用套餐模型。',
+  },
+  'glm-coding-openai': {
+    name: 'GLM Coding Plan (OpenAI)',
+    defaultId: 'glm-coding-openai',
+    protocol: 'openai',
+    targetUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
+    keyUrl: 'https://bigmodel.cn/coding-plan',
+    desc: '智谱 GLM Coding Plan 的 OpenAI Chat Completions 兼容入口，适合 OpenAI 兼容客户端通过本地代理使用套餐模型。',
+  },
+  'minimax-anthropic': {
+    name: 'MiniMax (Anthropic)',
+    defaultId: 'minimax-anthropic',
+    protocol: 'claude',
+    targetUrl: 'https://api.minimaxi.com/anthropic',
+    keyUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
+    desc: 'MiniMax 官方 Anthropic Messages 兼容入口，官方快速开始文档推荐用于 Claude Code 等 Anthropic 协议客户端。',
+  },
+  'minimax-openai': {
+    name: 'MiniMax (OpenAI)',
+    defaultId: 'minimax-openai',
+    protocol: 'openai',
+    targetUrl: 'https://api.minimaxi.com/v1',
+    keyUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
+    desc: 'MiniMax 官方 OpenAI Chat Completions 兼容入口，适合 OpenAI 兼容客户端通过本地代理调用 MiniMax 模型。',
   },
   claude: {
     name: 'Claude Official',
@@ -1858,6 +2627,10 @@ function matchPresetByUrl(targetUrl) {
   if (!targetUrl) return '';
   const url = targetUrl.toLowerCase().trim();
   if (url.includes('api.openai.com')) return 'openai';
+  if (url.includes('open.bigmodel.cn/api/anthropic')) return 'glm-coding-anthropic';
+  if (url.includes('open.bigmodel.cn/api/coding/paas')) return 'glm-coding-openai';
+  if (url.includes('api.minimaxi.com/anthropic')) return 'minimax-anthropic';
+  if (url.includes('api.minimaxi.com/v1')) return 'minimax-openai';
   if (url.includes('api.anthropic.com')) return 'claude';
   if (url.includes('generativelanguage.googleapis.com')) return 'gemini';
   if (url.includes('api.deepseek.com')) return 'deepseek';
@@ -2051,7 +2824,7 @@ function initToolsTabSwitching() {
       refreshAllToolStatuses({ force: true }).catch((err) =>
         console.error('refreshAllToolStatuses startup error:', err)
       );
-    }, 250);
+    }, 2500);
   }
 
   const refreshAllBtn = $('refreshAllTools');
@@ -2101,6 +2874,11 @@ function applyLoadedConfig(nextConfig) {
     ensureClaudeDesktop();
   } catch (e) {
     console.error('ensureClaudeDesktop error:', e);
+  }
+  try {
+    ensureEntryAuth();
+  } catch (e) {
+    console.error('ensureEntryAuth error:', e);
   }
 
   if (config && !Array.isArray(config.modelRoutes)) {
@@ -2176,9 +2954,7 @@ async function ensureProxyStartedFromUi() {
     if (!alreadyRunning) {
       const statusRes = await window.proxyManager.command('status');
       const output = statusRes.output || statusRes.message || '';
-      if (/PID\s*:\s*\d+/i.test(output) || output.includes('https://')) {
-        alreadyRunning = true;
-      }
+      if (proxyStatusOutputLooksRunning(output)) alreadyRunning = true;
     }
     if (!alreadyRunning) {
       console.log('[auto-start] Proxy is not running. Starting automatically...');
@@ -2224,12 +3000,39 @@ async function ensureProxyRecovered(options = {}) {
 }
 
 async function runStartupProxyWork() {
-  await hydrateConfigAfterStartup();
+  hydrateConfigAfterStartup().catch((e) => console.error('hydrateConfigAfterStartup error:', e));
   await ensureProxyStartedFromUi();
   await perfTrack('load.initialRefresh', () =>
-    refreshProxyStatus().catch((e) => console.error('refreshProxyStatus error:', e))
+    refreshProxyStatus({ startup: true }).catch((e) =>
+      console.error('refreshProxyStatus error:', e)
+    )
   );
   schedulePassiveCertRefresh();
+}
+
+function kickstartHeroStatusChecks() {
+  setTimeout(() => {
+    refreshProxyStatus({ startup: true }).catch((err) =>
+      console.error('startup refreshProxyStatus kickstart error:', err)
+    );
+  }, 0);
+  setTimeout(() => {
+    refreshCertStatus({ startup: true }).catch((err) =>
+      console.error('startup refreshCertStatus kickstart error:', err)
+    );
+  }, 0);
+}
+
+function scheduleDeferredFontLoad() {
+  const href =
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap';
+  setTimeout(() => {
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }, 2500);
 }
 
 function schedulePromptStartupWork() {
@@ -2252,6 +3055,8 @@ async function load() {
   recordPerf('load.start', 0);
   initTheme();
   initProviderPresets();
+  kickstartHeroStatusChecks();
+  scheduleDeferredFontLoad();
   if (window.proxyManager.onTrayCommand) {
     try {
       Promise.resolve(
@@ -2289,12 +3094,22 @@ async function load() {
   }
 
   applyLoadedConfig(config);
+  bindRouteTableToolbar();
 
-  scheduleStartupTask('load.certStatus', () => refreshCertStatus({ passive: true }), {
-    timeout: 1200,
-    delay: 80,
+  scheduleStartupTask(
+    'load.certStatus',
+    () => refreshCertStatus({ passive: true, startup: true }),
+    {
+      timeout: 1200,
+      delay: 20,
+      eager: true,
+    }
+  );
+  scheduleStartupTask('load.startupProxyWork', runStartupProxyWork, {
+    timeout: 1800,
+    delay: 30,
+    eager: true,
   });
-  scheduleStartupTask('load.startupProxyWork', runStartupProxyWork, { timeout: 1800, delay: 120 });
 
   try {
     initToolsTabSwitching();
@@ -2332,6 +3147,50 @@ function setProxyStatusElement(element, color, text) {
   element.append(dot, document.createTextNode(text));
 }
 
+function isStartupStatusSettling(options = {}) {
+  if (options.startup === false) return false;
+  if (config && config.appSettings && config.appSettings.autoStartProxy === false) return false;
+  return performance.now() - startupStatusStartedAt < STARTUP_STATUS_GRACE_MS;
+}
+
+function renderStartupPortDiagnostics() {
+  const target = $('heroPortDiagnostics');
+  if (target) target.textContent = '端口诊断：等待管理端口启动...';
+}
+
+function proxyStatusOutputLooksRunning(output) {
+  const text = String(output || '');
+  return (
+    /\bRunning\b/i.test(text) ||
+    /\bPID\s*:?\s*\d+\b/i.test(text) ||
+    /Proxy already running/i.test(text) ||
+    /Address:\s*https?:\/\//i.test(text)
+  );
+}
+
+function proxyStatusPidFromOutput(output) {
+  const match = String(output || '').match(/\bPID\s*:?\s*(\d+)\b/i);
+  return match ? match[1] : '';
+}
+
+function scheduleStartupProxyRetry() {
+  if (startupProxyRetryTimer) return;
+  startupProxyRetryTimer = setTimeout(() => {
+    startupProxyRetryTimer = null;
+    if (!isStartupStatusSettling({ startup: true })) return;
+    lastStatusRefresh = 0;
+    refreshProxyStatus({ startup: true }).catch((err) =>
+      console.error('startup refreshProxyStatus retry error:', err)
+    );
+  }, STARTUP_STATUS_RETRY_MS);
+}
+
+function deferStartupProxyFailure(statusElement) {
+  setProxyStatusElement(statusElement, 'amber', '启动中...');
+  renderStartupPortDiagnostics();
+  scheduleStartupProxyRetry();
+}
+
 async function refreshProxyStatus(options = {}) {
   const now = Date.now();
   const passiveTtl = isMonitorVisible() ? 7000 : 30000;
@@ -2346,21 +3205,31 @@ async function refreshProxyStatus(options = {}) {
       const pid = health.pid ? ` (PID: ${health.pid})` : '';
       setProxyStatusElement(statusElement, 'green', `运行中${pid}`);
       renderPortDiagnostics(health);
+      refreshCertStatusAfterProxyOnline(options);
       return;
     }
 
     const result = await window.proxyManager.command('status');
     const output = result.output || '';
-    if (/PID\s*:\s*\d+/i.test(output) || output.includes('https://')) {
-      const pidMatch = output.match(/PID\s*:\s*(\d+)/i);
-      const pid = pidMatch ? ` (PID: ${pidMatch[1]})` : '';
+    if (proxyStatusOutputLooksRunning(output)) {
+      const pidValue = proxyStatusPidFromOutput(output);
+      const pid = pidValue ? ` (PID: ${pidValue})` : '';
       setProxyStatusElement(statusElement, 'green', `运行中${pid}`);
       renderPortDiagnostics(null);
+      refreshCertStatusAfterProxyOnline(options);
       return;
     }
     if (output.trim()) {
+      if (isStartupStatusSettling(options)) {
+        deferStartupProxyFailure(statusElement);
+        return;
+      }
       setProxyStatusElement(statusElement, 'amber', '未运行');
       renderPortDiagnostics(null);
+      return;
+    }
+    if (isStartupStatusSettling(options)) {
+      deferStartupProxyFailure(statusElement);
       return;
     }
     setProxyStatusElement(statusElement, 'red', '状态未知');
@@ -2372,6 +3241,11 @@ async function refreshProxyStatus(options = {}) {
       const pid = health.pid ? ` (PID: ${health.pid})` : '';
       setProxyStatusElement(statusElement, 'green', `运行中${pid}`);
       renderPortDiagnostics(health);
+      refreshCertStatusAfterProxyOnline(options);
+      return;
+    }
+    if (isStartupStatusSettling(options)) {
+      deferStartupProxyFailure(statusElement);
       return;
     }
     setProxyStatusElement(statusElement, 'red', '检查失败');
@@ -2390,9 +3264,14 @@ function renderPortDiagnostics(health) {
     return;
   }
   const entries = Array.isArray(health.ports.entries) ? health.ports.entries : [];
-  const entryCount = entries.length;
+  const httpsCount = entries.filter((entry) => entry && entry.tls !== false).length;
+  const httpCount = entries.filter((entry) => entry && entry.tls === false).length;
+  const entryText =
+    httpCount > 0
+      ? `${httpsCount} 个 HTTPS 入口 + ${httpCount} 个 HTTP 备用入口在线`
+      : `${httpsCount} 个入口在线`;
   const management = health.ports.management ? ` · 管理 ${health.ports.management}` : '';
-  target.textContent = `端口诊断：${entryCount} 个入口在线${management}`;
+  target.textContent = `端口诊断：${entryText}${management}`;
 }
 
 async function refreshClaudeDesktopStatus() {
@@ -3453,6 +4332,7 @@ function rememberEnvInstallJobs(results = []) {
 function envJobStatusLabel(status) {
   if (status === 'succeeded') return '完成';
   if (status === 'failed') return '失败';
+  if (status === 'verifying') return '复检中';
   if (status === 'submitting') return '提交中';
   return '执行中';
 }
@@ -4083,6 +4963,37 @@ function setStatusDotText(elementId, color, text) {
   element.append(dot, document.createTextNode(text));
 }
 
+function scheduleStartupCertRetry() {
+  if (startupCertRetryTimer) return;
+  startupCertRetryTimer = setTimeout(() => {
+    startupCertRetryTimer = null;
+    const startup = isStartupStatusSettling({ startup: true });
+    refreshCertStatus({ startup }).catch((err) =>
+      console.error('startup refreshCertStatus retry error:', err)
+    );
+  }, STARTUP_STATUS_RETRY_MS);
+}
+
+function deferStartupCertFailure(message) {
+  const suffix = message ? `（${message}）` : '';
+  $('certStatus').textContent = `证书状态：等待代理管理端口启动${suffix}`;
+  setStatusDotText('heroCertStatus', 'amber', '检查中...');
+  scheduleStartupCertRetry();
+}
+
+function refreshCertStatusAfterProxyOnline(options = {}) {
+  const heroText = ($('heroCertStatus') && $('heroCertStatus').textContent) || '';
+  const shouldRefresh =
+    !lastCertRefresh ||
+    heroText.includes('检查失败') ||
+    heroText.includes('检查中') ||
+    options.startup;
+  if (!shouldRefresh) return;
+  refreshCertStatus({ startup: options.startup }).catch((err) =>
+    console.error('refreshCertStatus after proxy online error:', err)
+  );
+}
+
 async function refreshCertStatus(options = {}) {
   const now = Date.now();
   if (options.passive && now - lastCertRefresh < 60000) return;
@@ -4095,18 +5006,46 @@ async function refreshCertStatus(options = {}) {
         9000,
         '证书状态检查超时'
       );
-      lastCertRefresh = Date.now();
       if (!status || !status.ok) {
+        if (isStartupStatusSettling(options)) {
+          deferStartupCertFailure(status && status.error ? status.error : '');
+          return;
+        }
         $('certStatus').textContent =
           `证书状态检查失败：${status && status.error ? status.error : '未知错误'}；目录：${status && status.certDir ? status.certDir : ''}`;
         setStatusDotText('heroCertStatus', 'red', '检查失败');
         return;
       }
-      const trustText = status.trusted ? '已信任到系统/当前用户证书库' : '未信任';
+      lastCertRefresh = Date.now();
+      const staleCaCount = Array.isArray(status.staleCaThumbprints)
+        ? status.staleCaThumbprints.length
+        : 0;
+      const trustText = status.trusted
+        ? '当前 CA 已信任到系统/当前用户证书库'
+        : staleCaCount > 0
+          ? `检测到 ${staleCaCount} 张同名旧 CA 残留，HTTPS 客户端可能选错证书并报 CERT_SIGNATURE_FAILURE；点击安装证书会清理并重装`
+          : status.caTrusted === false
+            ? '当前 CA 未导入 Windows 信任库，HTTPS 客户端会报证书错误；可先使用 HTTP 备用入口'
+            : '当前 CA 未通过完整 Windows 链校验，HTTPS 客户端可能报证书错误；可先使用 HTTP 备用入口';
       const existsText = status.exists ? '证书文件已生成' : '证书文件未生成';
       const expiresText = status.notAfter ? `；有效期至：${status.notAfter}` : '';
+      const thumbprint = status.caThumbprint || status.thumbprint || '';
+      const thumbprintText = thumbprint ? `；CA 指纹：${String(thumbprint).slice(0, 16)}...` : '';
+      const chainText =
+        status.windowsChainVerified === false && status.windowsChainError
+          ? '；Windows 链校验失败'
+          : '';
+      const servedTlsText =
+        status.servedTls && status.servedTls.checked
+          ? status.servedTls.verified
+            ? `；本地 HTTPS ${status.servedTls.port || 3443} 实际校验通过`
+            : `；本地 HTTPS ${status.servedTls.port || 3443} 实际校验失败：${status.servedTls.code || status.servedTls.error || status.servedTls.authorizationError || '未知错误'}`
+          : '';
+      const nodeTrustText = status.nodeExtraCaCertsEnv
+        ? `；Node/Electron 客户端需使用：${status.nodeExtraCaCertsEnv}`
+        : '';
       $('certStatus').textContent =
-        `${existsText}；${trustText}${expiresText}；目录：${status.certDir || ''}`;
+        `${existsText}；${trustText}${chainText}${servedTlsText}${expiresText}${thumbprintText}；目录：${status.certDir || ''}${nodeTrustText}`;
       setStatusDotText(
         'heroCertStatus',
         status.trusted ? 'green' : 'amber',
@@ -4118,6 +5057,10 @@ async function refreshCertStatus(options = {}) {
       // 超时,这时必须让后续的 passive 重试(heartbeat 触发)再尝试,
       // 否则证书卡片会被动节流锁 60s,只能靠用户手动点刷新。
       const message = err && err.message ? err.message : '未知错误';
+      if (isStartupStatusSettling(options)) {
+        deferStartupCertFailure(message);
+        return;
+      }
       $('certStatus').textContent = `证书状态检查失败：${message}`;
       setStatusDotText('heroCertStatus', 'red', '检查失败');
     } finally {
@@ -4142,9 +5085,15 @@ function schedulePassiveCertRefresh() {
 
 async function installCert() {
   const result = await window.proxyManager.installCert();
-  const msg = result.output || (result.ok ? '证书已安装' : '证书安装失败');
+  const msg =
+    result.output ||
+    (result.pending
+      ? '已打开系统证书导入向导，请完成信任确认'
+      : result.ok
+        ? '证书已安装'
+        : '证书安装失败');
   $('output').textContent = msg;
-  showToast(msg, result.ok ? 'success' : 'error');
+  showToast(msg, result.ok || result.pending ? 'success' : 'error');
   await refreshCertStatus();
 }
 
@@ -4268,6 +5217,7 @@ async function fetchModels() {
 
 async function saveConfig(message) {
   collectLocalServer();
+  collectEntryAuth();
   collectAppSettings();
   collectClaudeDesktop();
   syncClaudeDesktopRoutesToModelRoutes();
@@ -4279,7 +5229,10 @@ async function saveConfig(message) {
   fillClaudeDesktop();
   renderRouteProfiles($('modelRouteProfile').value);
   scheduleDashboardRender({ rules: true, profiles: true });
-  const msg = message || '配置已保存';
+  const msg =
+    message === '应用设置已保存'
+      ? '应用设置已保存；顶部菜单/性能模式已即时应用，代理侧设置会热重载，托盘/关闭/退出行为需重启管理器完全生效'
+      : message || '配置已保存';
   $('output').textContent = msg;
   showToast(msg);
 }
@@ -4298,9 +5251,11 @@ $('addRule').onclick = () => {
       ? editingRouteIndex
       : modelRoutes.findIndex((route) => route.from === from);
   const nextRoute = { from, profileId, to };
+  const clientProtocols = selectedRouteClientProtocols();
   const isEditing = editingRouteIndex !== null && modelRoutes[editingRouteIndex];
   const previousRoute = index >= 0 ? modelRoutes[index] : null;
   if (labelOverride) nextRoute.labelOverride = labelOverride;
+  if (clientProtocols.length) nextRoute.clientProtocols = clientProtocols;
   if (previousRoute && previousRoute.supports1m !== undefined)
     nextRoute.supports1m = previousRoute.supports1m;
   if (index >= 0) modelRoutes[index] = nextRoute;
@@ -4365,12 +5320,7 @@ $('testModelRoute').onclick = async () => {
   }
 };
 
-document.querySelectorAll('#modelAutocompleteContainer .autocomplete-tag').forEach((tag) => {
-  tag.onclick = () => {
-    $('modelRewriteFrom').value = tag.textContent.trim();
-    showToast('已选择客户端模型：' + tag.textContent.trim(), 'success');
-  };
-});
+renderRecommendedClientModels();
 
 $('modelRouteProfile').onchange = () => {
   availableModels = [];
@@ -4481,16 +5431,23 @@ $('activateProfile').onclick = async () => {
   }
 };
 
-$('copyIdeConfigBtn').onclick = () => {
+$('copyIdeConfigBtn').onclick = async () => {
   const profile = collectForm();
-  const entries = config.entryServers || [];
-  const primaryEntry = entries.find(
-    (e) => e.protocol === (profile.protocol === 'claude' ? 'claude' : 'openai')
-  ) ||
-    entries[0] || { host: 'localhost', listenPort: 3443, basePath: '/v1' };
+  const primaryEntry = preferredHttpsEntryForProfile(profile);
   const scheme = primaryEntry.tls === false ? 'http' : 'https';
   const host = primaryEntry.host === '0.0.0.0' ? '127.0.0.1' : primaryEntry.host;
   const baseUrl = `${scheme}://${host || 'localhost'}:${primaryEntry.listenPort || 3443}${primaryEntry.basePath || '/v1'}`;
+  let nodeExtraCaCerts = '';
+  try {
+    const status = await promiseWithTimeout(
+      window.proxyManager.certStatus(),
+      2500,
+      '证书状态检查超时'
+    );
+    nodeExtraCaCerts = status && status.caCertFile ? status.caCertFile : '';
+  } catch (err) {
+    nodeExtraCaCerts = '';
+  }
 
   const envs = [
     `# Environment variables for ${profile.name || profile.id}`,
@@ -4503,6 +5460,7 @@ $('copyIdeConfigBtn').onclick = () => {
     '# or the actual key if you want to bypass the proxy authentication layer.',
     'ANTHROPIC_API_KEY="sk-ant-proxy-managed"',
     'OPENAI_API_KEY="sk-proxy-managed"',
+    nodeExtraCaCerts ? `NODE_EXTRA_CA_CERTS="${nodeExtraCaCerts}"` : '',
   ].join('\n');
 
   navigator.clipboard
@@ -4539,6 +5497,31 @@ $('resetEntryServers').onclick = () => {
   fillLocalServer();
   $('output').textContent = '已恢复默认入口，保存后生效';
 };
+const addEntryAuthKeyButton = $('addEntryAuthKey');
+if (addEntryAuthKeyButton) {
+  addEntryAuthKeyButton.onclick = () => {
+    ensureEntryAuth();
+    collectEntryAuth();
+    const index = config.entryAuth.keys.length + 1;
+    const defaults = defaultEntryAuthKey();
+    config.entryAuth.enabled = true;
+    config.entryAuth.keys.push({
+      id: `entry-key-${index}`,
+      name: `入口 key ${index}`,
+      key: randomEntryAuthSecret(),
+      enabled: true,
+      allowedEntryProtocols: defaults.allowedEntryProtocols,
+      allowedEntryPorts: defaults.allowedEntryPorts,
+      allowedProfileIds: [],
+    });
+    renderEntryAuth();
+  };
+}
+const entryAuthEnabledInput = $('entryAuthEnabled');
+if (entryAuthEnabledInput) {
+  entryAuthEnabledInput.onchange = collectEntryAuth;
+}
+
 $('showTopMenu').onchange = async () => {
   ensureAppSettings();
   config.appSettings.showTopMenu = $('showTopMenu').checked;
@@ -4549,7 +5532,16 @@ $('performanceMode').onchange = () => {
   config.appSettings.performanceMode = $('performanceMode').checked;
   applyPerformanceMode(config.appSettings.performanceMode);
 };
-$('saveAppSettings').onclick = () => saveConfig('应用设置已保存');
+$('saveAppSettings').onclick = async () => {
+  try {
+    await applyLaunchOnLogin();
+    await saveConfig('应用设置已保存');
+  } catch (err) {
+    const message = err && err.message ? err.message : 'Windows 启动项设置失败';
+    $('output').textContent = message;
+    showToast(message, 'error');
+  }
+};
 $('saveRoutes').onclick = () => saveConfig('模型路由已保存');
 $('saveClaudeDesktop').onclick = () => saveConfig('Claude Desktop 配置已保存');
 $('refreshClaudeDesktop').onclick = refreshClaudeDesktopStatus;
@@ -5640,6 +6632,15 @@ if (saveTplBtn) {
 
 let mcpHubConfig = { servers: [], routing: [] };
 
+const GLM_MCP_TEMPLATES = {
+  webSearchPrime: {
+    id: 'glm-web-search',
+    url: 'https://open.bigmodel.cn/api/mcp/web_search_prime/mcp',
+    prefix: 'glm_search',
+    injectAll: true,
+  },
+};
+
 async function initMcpHubView() {
   const container = $('mcpHubView');
   if (!container || container.dataset.initialized) {
@@ -5650,6 +6651,8 @@ async function initMcpHubView() {
 
   $('refreshMcpHub').onclick = () => refreshMcpHub();
   $('addMcpServer').onclick = () => addMcpServer();
+  const addGlmSearchButton = $('addGlmSearchMcpServer');
+  if (addGlmSearchButton) addGlmSearchButton.onclick = () => addGlmSearchMcpServer();
   $('saveMcpHub').onclick = () => saveMcpHub();
 
   refreshMcpHub();
@@ -5708,8 +6711,9 @@ function createMcpServersTableElement(servers) {
   const headerRow = document.createElement('tr');
   [
     ['服务器 ID', ''],
-    ['URL (SSE)', ''],
+    ['URL (HTTP/SSE)', ''],
     ['前缀', ''],
+    ['Bearer Token', '180px'],
     ['注入', '60px'],
     ['操作', '80px'],
   ].forEach(([label, width]) => {
@@ -5735,7 +6739,7 @@ function createMcpServersTableElement(servers) {
 
 function createMcpServerInput(server, index, field, placeholder = '') {
   const input = document.createElement('input');
-  input.type = 'text';
+  input.type = field === 'bearerToken' ? 'password' : 'text';
   input.value = String(server[field] || '');
   input.className = 'table-input';
   if (placeholder) input.placeholder = placeholder;
@@ -5757,6 +6761,10 @@ function createMcpServerRow(server, index) {
   const prefixCell = document.createElement('td');
   prefixCell.appendChild(createMcpServerInput(server, index, 'prefix', '可选'));
   row.appendChild(prefixCell);
+
+  const tokenCell = document.createElement('td');
+  tokenCell.appendChild(createMcpServerInput(server, index, 'bearerToken', 'GLM Coding Plan Key'));
+  row.appendChild(tokenCell);
 
   const injectCell = document.createElement('td');
   injectCell.style.textAlign = 'center';
@@ -5804,6 +6812,39 @@ function addMcpServer() {
     injectAll: true,
   });
   renderMcpServers();
+}
+
+function addGlmSearchMcpServer() {
+  if (!mcpHubConfig.servers) mcpHubConfig.servers = [];
+  if (!mcpHubConfig.routing) mcpHubConfig.routing = [];
+
+  const template = GLM_MCP_TEMPLATES.webSearchPrime;
+  const existing = mcpHubConfig.servers.find((server) => server && server.id === template.id);
+  if (existing) {
+    Object.assign(existing, {
+      url: template.url,
+      prefix: existing.prefix || template.prefix,
+      injectAll: true,
+    });
+  } else {
+    mcpHubConfig.servers.push({
+      ...template,
+      bearerToken: '',
+    });
+  }
+
+  const hasRoute = mcpHubConfig.routing.some(
+    (route) => route && route.serverId === template.id && route.pattern === '^glm_search_'
+  );
+  if (!hasRoute) {
+    mcpHubConfig.routing.push({ pattern: '^glm_search_', serverId: template.id });
+  }
+  renderMcpServers();
+  const status = $('mcpHubStatus');
+  if (status) {
+    status.textContent =
+      '已添加 GLM 联网搜索 MCP 模板。请在 Bearer Token 中填入 GLM Coding Plan API Key 后保存。';
+  }
 }
 
 function createMcpLogsEmptyElement() {

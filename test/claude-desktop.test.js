@@ -29,7 +29,7 @@ const {
           supports1m: true,
         },
         {
-          routeId: 'claude-opus-4-7',
+          routeId: 'claude-opus-4-8',
           profileId: 'yhrouter',
           upstreamModel: 'gpt-5.4',
           supports1m: false,
@@ -46,7 +46,7 @@ const {
 
   assert.deepStrictEqual(
     routes.map((route) => route.from),
-    ['claude-sonnet-4-6', 'claude-opus-4-7', 'claude-opus-4-6-thinking']
+    ['claude-sonnet-4-6', 'claude-opus-4-8', 'claude-opus-4-6-thinking']
   );
   assert.strictEqual(routes[0].to, 'gpt-5.5');
   assert.strictEqual(routes[0].labelOverride, 'GPT-5.5');

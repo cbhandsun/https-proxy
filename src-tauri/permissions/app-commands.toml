@@ -19,5 +19,7 @@ allow = [
   "get_proxy_debug",
   "getProxyDebug",
   "execute_proxy_command",
-  "executeProxyCommand"
+  "executeProxyCommand",
+  "get_launch_on_login",
+  "set_launch_on_login"
 ]

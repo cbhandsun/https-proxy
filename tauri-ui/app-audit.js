@@ -224,6 +224,17 @@ function setAuditDetailPlaceholder(message = '选择左侧记录查看详情') {
   panel.appendChild(createAuditDetailPlaceholderElement(message));
 }
 
+function renderEmptyAuditState(listMessage = '暂无对话审计记录', detailMessage = '暂无对话记录') {
+  cachedAuditRecords = [];
+  selectedAuditRecordId = null;
+  const listContainer = $('auditHistoryList');
+  if (listContainer) {
+    listContainer.textContent = '';
+    listContainer.appendChild(createAuditNoticeElement(listMessage));
+  }
+  setAuditDetailPlaceholder(detailMessage);
+}
+
 // 简易 Markdown 解析逻辑
 function safeAuditCodeLanguage(value) {
   const lang = String(value || '')
@@ -326,6 +337,7 @@ if (typeof window !== 'undefined') {
     createUsageMetricElement,
     createUsageRecentElement,
     createUsageTableElement,
+    renderEmptyAuditState,
     renderAuditMarkdown,
     safeAuditCodeLanguage,
   };
@@ -448,13 +460,18 @@ async function initPromptsAuditView() {
       confirmAction(
         '确定要清空所有的对话审计日志吗？此操作将永久清空本地的 conversations-audit.jsonl 文件。',
         async () => {
-          const res = await window.proxyManager.clearAuditConversations();
-          if (res && res.ok !== false) {
-            showToast('对话审计日志已清空', 'success');
-            selectedAuditRecordId = null;
-            loadAuditRecords();
-          } else {
-            showToast('清空日志失败: ' + (res.error || '未知错误'), 'error');
+          clearBtn.disabled = true;
+          try {
+            const res = await window.proxyManager.clearAuditConversations();
+            if (res && res.ok !== false) {
+              showToast('对话审计日志已清空', 'success');
+              renderEmptyAuditState();
+              await loadAuditRecords();
+            } else {
+              showToast('清空日志失败: ' + ((res && res.error) || '未知错误'), 'error');
+            }
+          } finally {
+            clearBtn.disabled = false;
           }
         }
       );
@@ -745,12 +762,7 @@ async function loadAuditRecords() {
     }
 
     if (res.length === 0) {
-      listContainer.appendChild(createAuditNoticeElement('暂无对话审计记录'));
-      const detailPanel = $('auditDetailPanel');
-      if (detailPanel) {
-        detailPanel.textContent = '';
-        detailPanel.appendChild(createAuditDetailPlaceholderElement('暂无对话记录'));
-      }
+      renderEmptyAuditState();
       return;
     }
 

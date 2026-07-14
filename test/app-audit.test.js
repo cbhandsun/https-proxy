@@ -145,7 +145,20 @@ assert.equal(
   'function',
   'createUsageTableElement exported for tests'
 );
+assert.equal(
+  typeof helpers.renderEmptyAuditState,
+  'function',
+  'renderEmptyAuditState exported for tests'
+);
 assert.ok(!/\.innerHTML\s*=/.test(src), 'audit module should not assign innerHTML');
+assert.ok(
+  /renderEmptyAuditState\(\);\s*await loadAuditRecords\(\);/.test(src),
+  'clearing audit history immediately clears UI state before reloading records'
+);
+assert.ok(
+  /clearBtn\.disabled = true;[\s\S]*clearBtn\.disabled = false;/.test(src),
+  'clear audit button is disabled while the clear request is in flight'
+);
 
 assert.equal(helpers.safeAuditCodeLanguage('JavaScript'), 'javascript');
 assert.equal(helpers.safeAuditCodeLanguage('ts-node_20'), 'ts-node_20');

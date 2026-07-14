@@ -13,6 +13,7 @@ $Exe = if (Test-Path $PreferredExe) { $PreferredExe } elseif (Test-Path $Fallbac
 $PortableName = 'HTTPS Proxy Manager Portable'
 $PortableDir = Join-Path $Root (Join-Path $OutputRoot $PortableName)
 $RuntimeDir = Join-Path $PortableDir 'runtime'
+$StateBackupDir = Join-Path ([System.IO.Path]::GetTempPath()) ("hpm-portable-state-" + [guid]::NewGuid().ToString('N'))
 
 function Copy-RequiredFile {
     param([string]$Source, [string]$Destination)
@@ -54,6 +55,99 @@ function Write-RuntimePackageJson {
     $runtimePackage | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $PortableDir 'package.json') -Encoding UTF8
 }
 
+function Assert-PortableFileMatches {
+    param([string]$RelativePath)
+    $source = Join-Path $Root $RelativePath
+    $destination = Join-Path $PortableDir $RelativePath
+    if (-not (Test-Path $source)) { throw "Missing source file for portable verification: $source" }
+    if (-not (Test-Path $destination)) { throw "Missing portable file after copy: $destination" }
+    $sourceHash = (Get-FileHash $source -Algorithm SHA256).Hash
+    $destinationHash = (Get-FileHash $destination -Algorithm SHA256).Hash
+    if ($sourceHash -ne $destinationHash) {
+        throw "Portable backend mismatch: $RelativePath"
+    }
+}
+
+function Test-ExampleProxyConfig {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return $false }
+    try {
+        $json = Get-Content $Path -Raw | ConvertFrom-Json
+        if ($json.activeProfile -and ([string]$json.activeProfile).StartsWith('example-', [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $true
+        }
+        if ($json.profiles) {
+            foreach ($profile in @($json.profiles)) {
+                if ($profile.id -eq 'example-openai' -or ([string]$profile.targetUrl) -like '*api.example.com*') {
+                    return $true
+                }
+            }
+        }
+    } catch {}
+    return $false
+}
+
+function Get-JsonConfig {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return $null }
+    try {
+        return Get-Content $Path -Raw | ConvertFrom-Json
+    } catch {
+        return $null
+    }
+}
+
+function Test-ConfigHasEntryAuth {
+    param([object]$Config)
+    if (-not $Config -or -not $Config.entryAuth) { return $false }
+    if ($Config.entryAuth.enabled -ne $true) { return $false }
+    return @($Config.entryAuth.keys).Count -gt 0
+}
+
+function Copy-EntryAuthFromRootConfig {
+    param([string]$TargetConfig)
+    $RootConfigPath = Join-Path $Root 'proxy.config.json'
+    $RootConfig = Get-JsonConfig $RootConfigPath
+    if (-not (Test-ConfigHasEntryAuth $RootConfig)) { return $false }
+
+    $Target = Get-JsonConfig $TargetConfig
+    if (-not $Target) {
+        Copy-Item $RootConfigPath $TargetConfig -Force
+        return $true
+    }
+    if (Test-ConfigHasEntryAuth $Target) { return $false }
+
+    $Target | Add-Member -NotePropertyName 'entryAuth' -NotePropertyValue $RootConfig.entryAuth -Force
+    $Target | ConvertTo-Json -Depth 20 | Set-Content -Path $TargetConfig -Encoding UTF8
+    return $true
+}
+
+function Copy-PortableConfigBackup {
+    param(
+        [string]$ExistingConfig,
+        [string]$BackupConfig
+    )
+    $RootConfig = Join-Path $Root 'proxy.config.json'
+    if ((Test-ExampleProxyConfig $ExistingConfig) -and (Test-Path $RootConfig) -and -not (Test-ExampleProxyConfig $RootConfig)) {
+        Copy-Item $RootConfig $BackupConfig -Force
+        return
+    }
+    if (Test-Path $ExistingConfig) {
+        Copy-Item $ExistingConfig $BackupConfig -Force
+        Copy-EntryAuthFromRootConfig $BackupConfig | Out-Null
+    }
+}
+
+function Clear-PortableGeneratedFiles {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return }
+    $stateNames = @('.hpm-runtime', 'proxy.config.json')
+    Get-ChildItem -LiteralPath $Path -Force | ForEach-Object {
+        if ($stateNames -contains $_.Name) { return }
+        Remove-Item -LiteralPath $_.FullName -Recurse -Force
+    }
+}
+
 if (-not $SkipBuild) {
     Push-Location $Root
     try {
@@ -67,7 +161,17 @@ if (-not (Test-Path $Exe)) {
     throw "Release exe not found: $Exe. Run npm run tauri:build first, or remove -SkipBuild."
 }
 
-if (Test-Path $PortableDir) { Remove-Item $PortableDir -Recurse -Force }
+New-Item -ItemType Directory -Path $StateBackupDir -Force | Out-Null
+$ExistingConfig = Join-Path $PortableDir 'proxy.config.json'
+$ExistingCertDir = Join-Path $PortableDir '.hpm-runtime\.certs'
+Copy-PortableConfigBackup $ExistingConfig (Join-Path $StateBackupDir 'proxy.config.json')
+if (Test-Path $ExistingCertDir) {
+    Copy-Item $ExistingCertDir (Join-Path $StateBackupDir '.certs') -Recurse -Force
+    $NestedCertBackup = Join-Path $StateBackupDir '.certs\.certs'
+    if (Test-Path $NestedCertBackup) { Remove-Item $NestedCertBackup -Recurse -Force }
+}
+
+Clear-PortableGeneratedFiles $PortableDir
 New-Item -ItemType Directory -Path $PortableDir -Force | Out-Null
 New-Item -ItemType Directory -Path $RuntimeDir -Force | Out-Null
 
@@ -79,7 +183,26 @@ Copy-NodeRuntimeModule 'node-forge'
 Copy-RequiredFile (Join-Path $Root 'proxy.ps1') (Join-Path $PortableDir 'proxy.ps1')
 Copy-RequiredFile (Join-Path $Root 'proxy.config.example.json') (Join-Path $PortableDir 'proxy.config.example.json')
 Copy-RequiredFile (Join-Path $Root 'tray-icon.ico') (Join-Path $PortableDir 'tray-icon.ico')
-Copy-Item (Join-Path $Root '*.bat') $PortableDir -Force
+Copy-RequiredFile (Join-Path $Root 'proxy.bat') (Join-Path $PortableDir 'proxy.bat')
+
+Assert-PortableFileMatches 'openai-proxy.js'
+Assert-PortableFileMatches 'lib\proxy\cert.js'
+Assert-PortableFileMatches 'lib\proxy\cert-management.js'
+
+$BackedUpConfig = Join-Path $StateBackupDir 'proxy.config.json'
+$BackedUpCertDir = Join-Path $StateBackupDir '.certs'
+if (Test-Path $BackedUpConfig) {
+    Copy-Item $BackedUpConfig (Join-Path $PortableDir 'proxy.config.json') -Force
+} else {
+    Copy-Item (Join-Path $PortableDir 'proxy.config.example.json') (Join-Path $PortableDir 'proxy.config.json') -Force
+}
+if (Test-Path $BackedUpCertDir) {
+    $PortableRuntimeDir = Join-Path $PortableDir '.hpm-runtime'
+    $PortableCertDir = Join-Path $PortableRuntimeDir '.certs'
+    New-Item -ItemType Directory -Path $PortableRuntimeDir -Force | Out-Null
+    if (Test-Path $PortableCertDir) { Remove-Item $PortableCertDir -Recurse -Force }
+    Copy-Item $BackedUpCertDir $PortableCertDir -Recurse -Force
+}
 
 $nodeCopied = Copy-CommandBinary 'node' (Join-Path $RuntimeDir 'node')
 
@@ -90,9 +213,9 @@ $readme = @(
     'HTTPS Proxy Manager Portable',
     '',
     'Usage:',
-    '1. Double-click the manager launcher .bat, or run https-proxy-manager.exe directly.',
+    '1. Double-click https-proxy-manager.exe to start the manager and local proxy.',
     '2. Config, logs, and certificates are stored in this portable folder.',
-    '3. CLI management: proxy.bat start|stop|restart|status|logs.',
+    '3. Optional CLI maintenance: proxy.bat start|stop|restart|status|logs.',
     '',
     'Runtime:',
     "- Node.js: $nodeStatus",
@@ -118,3 +241,5 @@ if (-not $NoZip) {
 }
 
 if (-not $nodeCopied) { Write-Warning 'Node.js was not bundled; target machine must install Node.js.' }
+
+Remove-Item $StateBackupDir -Recurse -Force -ErrorAction SilentlyContinue

@@ -24,34 +24,147 @@ window.onerror = function (message, source, lineno, colno, error) {
     '【前端错误诊断】' + errorMsg + (error && error.stack ? ' | ' + error.stack : '');
 };
 
+function localManagementPathFromUrl(url) {
+  if (typeof url !== 'string') return '';
+  if (url.startsWith('/v1/local/') || url.startsWith('/local/')) return url.split('?')[0];
+  try {
+    const parsed = new URL(url);
+    const isLoopback =
+      parsed.hostname === '127.0.0.1' ||
+      parsed.hostname === 'localhost' ||
+      parsed.hostname === '[::1]' ||
+      parsed.hostname === '::1';
+    if (
+      isLoopback &&
+      (parsed.pathname.startsWith('/v1/local/') || parsed.pathname.startsWith('/local/'))
+    ) {
+      return parsed.pathname;
+    }
+  } catch (err) {}
+  return '';
+}
+
+let nativeManagementTokenCache = { port: 0, token: '', checkedAt: 0 };
+
+function clearManagementTokenCache() {
+  nativeManagementTokenCache = { port: 0, token: '', checkedAt: 0 };
+  if (typeof localStorage !== 'undefined') localStorage.removeItem('hpm_mgmt_token');
+}
+
+function rememberLocalServerPorts(config) {
+  if (!config || !config.localServer || typeof localStorage === 'undefined') return;
+  const listenPort = Number(config.localServer.listenPort);
+  if (Number.isFinite(listenPort) && listenPort > 0) {
+    localStorage.setItem('last_local_proxy_port', String(listenPort));
+  }
+  const managementPort = Number(config.localServer.managementPort);
+  if (Number.isFinite(managementPort) && managementPort > 0) {
+    localStorage.setItem('last_local_management_port', String(managementPort));
+  } else if (Number.isFinite(listenPort) && listenPort > 0) {
+    localStorage.removeItem('last_local_management_port');
+  }
+}
+
+async function resolveManagementToken(options = {}) {
+  if (options.forceRefresh) clearManagementTokenCache();
+  const localToken =
+    typeof localStorage !== 'undefined' ? localStorage.getItem('hpm_mgmt_token') || '' : '';
+  const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+  if (!invoke) return localToken;
+
+  const managementPort = getManagementPort();
+  const now = Date.now();
+  if (
+    nativeManagementTokenCache.token &&
+    nativeManagementTokenCache.port === managementPort &&
+    now - nativeManagementTokenCache.checkedAt < 2000
+  ) {
+    return nativeManagementTokenCache.token;
+  }
+
+  try {
+    const result = await invoke('get_management_token_native', { managementPort });
+    if (result && result.ok && result.token) {
+      nativeManagementTokenCache = {
+        port: managementPort,
+        token: String(result.token),
+        checkedAt: now,
+      };
+      localStorage.setItem('hpm_mgmt_token', nativeManagementTokenCache.token);
+      return nativeManagementTokenCache.token;
+    }
+  } catch (err) {
+    console.debug('Native management token unavailable:', err);
+  }
+
+  return localToken;
+}
+
+function setManagementTokenHeader(options, token) {
+  if (!token) return;
+  options.headers = options.headers || {};
+  if (options.headers instanceof Headers) {
+    const existing = options.headers.get('x-mgmt-token');
+    if (!existing || existing.trim() !== token) options.headers.set('x-mgmt-token', token);
+    return;
+  }
+  const headerKey =
+    Object.keys(options.headers).find((key) => key.toLowerCase() === 'x-mgmt-token') ||
+    'x-mgmt-token';
+  if (!options.headers[headerKey] || String(options.headers[headerKey]).trim() !== token) {
+    options.headers[headerKey] = token;
+  }
+}
+
 // 拦截全局 fetch，使得在 Tauri 等非同一 origin 下运行时，能够正确访问本地代理的 REST API
 const originalFetch = window.fetch;
-window.fetch = function (url, options) {
-  if (typeof url === 'string' && (url.startsWith('/v1/local/') || url.startsWith('/local/'))) {
+window.fetch = async function (url, options) {
+  const localManagementPath = localManagementPathFromUrl(url);
+  let needsManagementToken = false;
+  let canRetryWithDirectManagement = false;
+  if (localManagementPathFromUrl(url)) {
     const origin = window.location.origin;
+    const isRelativeManagementUrl =
+      typeof url === 'string' && (url.startsWith('/v1/local/') || url.startsWith('/local/'));
+    const isLocalDevOrigin =
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      origin.startsWith('https://localhost:');
+    needsManagementToken = !isRelativeManagementUrl;
+    if (isRelativeManagementUrl && !isLocalDevOrigin) {
+      needsManagementToken = true;
+      url = `http://127.0.0.1:${getManagementPort()}${url}`;
+    } else if (isRelativeManagementUrl && isLocalDevOrigin) {
+      canRetryWithDirectManagement = true;
+    }
+
     if (
+      needsManagementToken &&
       !origin.startsWith('http://localhost:') &&
       !origin.startsWith('http://127.0.0.1:') &&
       !origin.startsWith('https://localhost:')
     ) {
-      const cachedPort = localStorage.getItem('last_local_proxy_port') || '3443';
-      const mgmtPort = Number(cachedPort) + 100;
-      url = `http://127.0.0.1:${mgmtPort}${url}`;
-    }
-
-    // 自动注入管理 Token
-    options = options || {};
-    options.headers = options.headers || {};
-    const token = localStorage.getItem('hpm_mgmt_token');
-    if (token && !options.headers['x-mgmt-token']) {
-      if (options.headers instanceof Headers) {
-        options.headers.set('x-mgmt-token', token);
-      } else {
-        options.headers['x-mgmt-token'] = token;
-      }
+      // 自动注入管理 Token。localhost:1430 的开发静态中转会在服务端
+      // 注入当前 token，这里不能等待 Tauri invoke，否则 WebView 启动
+      // 时会把配置、证书、健康检查全部阻塞在初始态。
+      options = options || {};
+      setManagementTokenHeader(options, await resolveManagementToken());
+    } else if (needsManagementToken) {
+      options = options || {};
+      setManagementTokenHeader(options, await resolveManagementToken());
     }
   }
-  return originalFetch.call(this, url, options);
+  const response = await originalFetch.call(this, url, options);
+  if (localManagementPath && response && response.status === 401) {
+    const retryOptions = { ...(options || {}) };
+    setManagementTokenHeader(retryOptions, await resolveManagementToken({ forceRefresh: true }));
+    const retryUrl =
+      canRetryWithDirectManagement && typeof localManagementPath === 'string'
+        ? `http://127.0.0.1:${getManagementPort()}${localManagementPath}`
+        : url;
+    return originalFetch.call(this, retryUrl, retryOptions);
+  }
+  return response;
 };
 
 // 提供基础的 Mock 并在非 Tauri 环境下桥接到本地代理的 REST API
@@ -60,7 +173,13 @@ const getListenPort = () => {
   return portEl ? Number(portEl.value || 3443) : 3443;
 };
 const getManagementPort = () => {
-  // 管理端口 = HTTPS 端口 + 100（如 3443 → 3543）
+  // 默认管理端口 = HTTPS 端口 + 100；如果配置显式指定 managementPort，则优先使用缓存值。
+  const cachedManagementPort =
+    typeof localStorage !== 'undefined' ? localStorage.getItem('last_local_management_port') : null;
+  const explicitManagementPort = Number(cachedManagementPort);
+  if (Number.isFinite(explicitManagementPort) && explicitManagementPort > 0) {
+    return explicitManagementPort;
+  }
   const cachedPort =
     typeof localStorage !== 'undefined' ? localStorage.getItem('last_local_proxy_port') : null;
   const port = getListenPort();
@@ -79,6 +198,15 @@ const getApiBase = () => {
   }
   // 非 localhost（生产环境 Tauri），使用纯 HTTP 管理端口，避免自签名证书被 webview 拒绝
   return `http://127.0.0.1:${getManagementPort()}`;
+};
+
+const isLocalDevOrigin = () => {
+  const origin = window.location.origin;
+  return (
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('http://127.0.0.1:') ||
+    origin.startsWith('https://localhost:')
+  );
 };
 
 const withTimeout = (promise, timeoutMs, message) => {
@@ -106,6 +234,33 @@ const fetchJsonWithTimeout = async (url, options = {}, timeoutMs = 7000) => {
   }
 };
 
+const fetchLocalJsonWithAuth = async (path, options = {}, timeoutMs = 7000) => {
+  const requestOptions = { ...options, headers: { ...(options.headers || {}) } };
+  setManagementTokenHeader(requestOptions, await resolveManagementToken());
+  const first = await fetchJsonWithTimeout(`${getApiBase()}${path}`, requestOptions, timeoutMs);
+  if (first && first.statusCode === 401) {
+    const retryOptions = { ...options, headers: { ...(options.headers || {}) } };
+    setManagementTokenHeader(retryOptions, await resolveManagementToken({ forceRefresh: true }));
+    return fetchJsonWithTimeout(`${getApiBase()}${path}`, retryOptions, timeoutMs);
+  }
+  return first;
+};
+
+async function clearAuditConversationsNative() {
+  const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+  if (!invoke) return null;
+  try {
+    const result = await invoke('clear_audit_conversations_native', {
+      managementPort: getManagementPort(),
+    });
+    if (result && result.ok !== false) return result;
+    return result || null;
+  } catch (err) {
+    console.debug('Native audit clear unavailable:', err);
+    return null;
+  }
+}
+
 if (!window.proxyManager || !window.proxyManager.setActive) {
   window.proxyManager = {
     applyAppMenu: async (show) => {
@@ -124,9 +279,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           });
           const data = await res.json();
           if (!res.ok || data.error) throw new Error(data.error || 'Failed to fetch config');
-          if (data && data.localServer && data.localServer.listenPort) {
-            localStorage.setItem('last_local_proxy_port', String(data.localServer.listenPort));
-          }
+          rememberLocalServerPorts(data);
           return data;
         } catch (err) {
           if (attempt < attempts - 1) {
@@ -147,9 +300,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     },
     saveConfig: async (config) => {
       try {
-        if (config && config.localServer && config.localServer.listenPort) {
-          localStorage.setItem('last_local_proxy_port', String(config.localServer.listenPort));
-        }
+        rememberLocalServerPorts(config);
         const res = await fetch(`${getApiBase()}/v1/local/config`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -160,6 +311,21 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       } catch (err) {
         showToast('保存配置失败，请确认静态中转及代理在运行中', 'error');
         return config;
+      }
+    },
+    revealEntryAuthKey: async (keyId) => {
+      try {
+        const res = await fetch(`${getApiBase()}/v1/local/config/entry-auth-key/reveal`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-mgmt-token': localStorage.getItem('hpm_mgmt_token') || '',
+          },
+          body: JSON.stringify({ keyId }),
+        });
+        return await res.json();
+      } catch (err) {
+        return { ok: false, error: err.message };
       }
     },
     testProfileAuth: async (payload) => {
@@ -184,7 +350,9 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         const data = await res.json();
         if (data.ok) {
           const confRes = await fetch(getApiBase() + '/v1/local/config');
-          return await confRes.json();
+          const nextConfig = await confRes.json();
+          rememberLocalServerPorts(nextConfig);
+          return nextConfig;
         }
       } catch (err) {
         showToast('切换默认上游失败', 'error');
@@ -411,11 +579,33 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       }
     },
     certStatus: async () => {
+      if (window.__TAURI__ && window.__TAURI__.core && !isLocalDevOrigin()) {
+        try {
+          const nativeStatus = await withTimeout(
+            window.__TAURI__.core.invoke('get_cert_status_native'),
+            900,
+            'Tauri native certificate status timed out'
+          );
+          if (nativeStatus && nativeStatus.ok) return nativeStatus;
+        } catch (err) {
+          console.debug('Native certificate status unavailable:', err);
+        }
+      }
+      try {
+        const httpStatus = await fetchJsonWithTimeout(
+          getApiBase() + '/v1/local/cert',
+          {},
+          isLocalDevOrigin() ? 1200 : 2500
+        );
+        if (httpStatus && httpStatus.ok) return httpStatus;
+      } catch (err) {
+        console.debug('Local certificate status unavailable:', err);
+      }
       if (window.__TAURI__ && window.__TAURI__.core) {
         try {
           const nativeStatus = await withTimeout(
             window.__TAURI__.core.invoke('get_cert_status_native'),
-            3500,
+            isLocalDevOrigin() ? 800 : 3500,
             'Tauri native certificate status timed out'
           );
           if (nativeStatus && nativeStatus.ok) return nativeStatus;
@@ -935,8 +1125,11 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     },
     readAuditConversations: async (limit = 50) => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/audit/conversations?limit=' + limit);
-        return await res.json();
+        return await fetchLocalJsonWithAuth(
+          '/v1/local/audit/conversations?limit=' + encodeURIComponent(String(limit)),
+          {},
+          7000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
@@ -946,30 +1139,41 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         const params = new URLSearchParams();
         params.set('limit', String(options.limit || 300));
         if (options.after) params.set('after', options.after);
-        const res = await fetch(getApiBase() + '/v1/local/usage/report?' + params.toString());
-        return await res.json();
+        return await fetchLocalJsonWithAuth(
+          '/v1/local/usage/report?' + params.toString(),
+          {},
+          7000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     retryAuditRequest: async (id) => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/audit/retry', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id }),
-        });
-        return await res.json();
+        return await fetchLocalJsonWithAuth(
+          '/v1/local/audit/retry',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+          },
+          15000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
     },
     clearAuditConversations: async () => {
       try {
-        const res = await fetch(getApiBase() + '/v1/local/audit/conversations/clear', {
-          method: 'POST',
-        });
-        return await res.json();
+        const nativeResult = await clearAuditConversationsNative();
+        if (nativeResult && nativeResult.ok !== false) return nativeResult;
+        return await fetchLocalJsonWithAuth(
+          '/v1/local/audit/conversations/clear',
+          {
+            method: 'POST',
+          },
+          7000
+        );
       } catch (err) {
         return { ok: false, error: err.message };
       }
@@ -985,6 +1189,13 @@ if (window.__TAURI__ && window.__TAURI__.core) {
     } catch (e) {
       console.error('Failed to apply app menu:', e);
     }
+  };
+  window.proxyManager.getLaunchOnLogin = async () => {
+    return await invoke('get_launch_on_login');
+  };
+  window.proxyManager.setLaunchOnLogin = async (enabled) => {
+    if (typeof enabled !== 'boolean') throw new TypeError('enabled must be a boolean');
+    return await invoke('set_launch_on_login', { enabled });
   };
   window.proxyManager.command = async (command) => {
     try {

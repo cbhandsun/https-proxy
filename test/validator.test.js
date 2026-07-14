@@ -1,6 +1,10 @@
 const assert = require('assert');
 
-const { validateConfig, validateMcpHubConfig } = require('../lib/proxy/validator');
+const {
+  validateConfig,
+  validateEntryAuthConfig,
+  validateMcpHubConfig,
+} = require('../lib/proxy/validator');
 
 {
   const valid = validateConfig({
@@ -9,6 +13,18 @@ const { validateConfig, validateMcpHubConfig } = require('../lib/proxy/validator
     localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
     entryServers: [{ host: '127.0.0.1', listenPort: 3445, basePath: '/v1' }],
     mcpHub: { servers: [{ id: 'filesystem', url: 'http://127.0.0.1:3001' }], routing: [] },
+    entryAuth: {
+      enabled: true,
+      keys: [
+        {
+          id: 'team-a',
+          key: 'entry-key',
+          allowedEntryProtocols: ['openai-chat'],
+          allowedEntryPorts: [3447],
+          allowedProfileIds: ['main'],
+        },
+      ],
+    },
   });
   assert.strictEqual(valid.valid, true);
 
@@ -29,6 +45,29 @@ const { validateConfig, validateMcpHubConfig } = require('../lib/proxy/validator
   assert.ok(invalid.errors.some((error) => error.includes('listenPort')));
   assert.ok(invalid.errors.some((error) => error.includes('basePath')));
   assert.ok(invalid.errors.some((error) => error.includes('mcpHub.servers')));
+}
+
+{
+  const valid = validateEntryAuthConfig({
+    enabled: true,
+    keys: [{ id: 'team-a', key: 'entry-key', allowedEntryProtocols: ['openai-chat'] }],
+  });
+  assert.strictEqual(valid.valid, true);
+
+  const invalid = validateEntryAuthConfig({
+    enabled: 'yes',
+    keys: [
+      { id: 'dup', key: 'bad\nkey', allowedEntryProtocols: ['bad'], allowedEntryPorts: [70000] },
+      { id: 'dup', allowedProfileIds: 'main' },
+    ],
+  });
+  assert.strictEqual(invalid.valid, false);
+  assert.ok(invalid.errors.some((error) => error.includes('enabled')));
+  assert.ok(invalid.errors.some((error) => error.includes('duplicated')));
+  assert.ok(invalid.errors.some((error) => error.includes('key is invalid')));
+  assert.ok(invalid.errors.some((error) => error.includes('unsupported protocol')));
+  assert.ok(invalid.errors.some((error) => error.includes('invalid port')));
+  assert.ok(invalid.errors.some((error) => error.includes('allowedProfileIds')));
 }
 
 {
