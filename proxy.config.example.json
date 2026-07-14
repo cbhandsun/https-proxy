@@ -7,6 +7,8 @@
     "showTrayMenu": true,
     "showWindowOnTrayCommand": true,
     "stopProxyOnExit": true,
+    "disableLocalProxy": false,
+    "verifyUpstreamTls": true,
     "conversationAuditEnabled": true
   },
   "diagnostics": {
@@ -42,6 +44,33 @@
       "listenPort": 3447,
       "name": "OpenAI Chat Completions",
       "protocol": "openai-chat"
+    },
+    {
+      "basePath": "/v1",
+      "enabled": true,
+      "host": "localhost",
+      "listenPort": 3080,
+      "name": "Claude Messages HTTP",
+      "protocol": "claude",
+      "tls": false
+    },
+    {
+      "basePath": "/v1",
+      "enabled": true,
+      "host": "localhost",
+      "listenPort": 3082,
+      "name": "OpenAI Responses HTTP",
+      "protocol": "openai-responses",
+      "tls": false
+    },
+    {
+      "basePath": "/v1",
+      "enabled": true,
+      "host": "localhost",
+      "listenPort": 3084,
+      "name": "OpenAI Chat Completions HTTP",
+      "protocol": "openai-chat",
+      "tls": false
     }
   ],
   "claudeDesktop": {
@@ -83,6 +112,34 @@
     },
     {
       "apiKey": "",
+      "id": "glm-coding-anthropic",
+      "name": "GLM Coding Plan (Anthropic)",
+      "protocol": "claude",
+      "targetUrl": "https://open.bigmodel.cn/api/anthropic"
+    },
+    {
+      "apiKey": "",
+      "id": "glm-coding-openai",
+      "name": "GLM Coding Plan (OpenAI)",
+      "protocol": "openai",
+      "targetUrl": "https://open.bigmodel.cn/api/coding/paas/v4"
+    },
+    {
+      "apiKey": "",
+      "id": "minimax-anthropic",
+      "name": "MiniMax (Anthropic)",
+      "protocol": "claude",
+      "targetUrl": "https://api.minimaxi.com/anthropic"
+    },
+    {
+      "apiKey": "",
+      "id": "minimax-openai",
+      "name": "MiniMax (OpenAI)",
+      "protocol": "openai",
+      "targetUrl": "https://api.minimaxi.com/v1"
+    },
+    {
+      "apiKey": "",
       "id": "claude-official",
       "name": "Claude Official",
       "protocol": "claude",
@@ -104,6 +161,23 @@
       "targetUrl": "https://api.openai.com/v1"
     }
   ],
+  "mcpHub": {
+    "servers": [
+      {
+        "bearerToken": "",
+        "id": "glm-web-search",
+        "injectAll": true,
+        "prefix": "glm_search",
+        "url": "https://open.bigmodel.cn/api/mcp/web_search_prime/mcp"
+      }
+    ],
+    "routing": [
+      {
+        "pattern": "^glm_search_",
+        "serverId": "glm-web-search"
+      }
+    ]
+  },
   "protocolOptions": {
     "preserveClaudeMessageShape": true,
     "stableToolUseIds": true,

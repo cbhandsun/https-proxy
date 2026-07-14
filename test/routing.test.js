@@ -116,5 +116,29 @@ clearCaches();
   assert.equal(second.port, 443, 'cached target URL result is cloned on read');
 }
 
+// ─── 8. conversation audit paths exclude local token counters ────
+{
+  assert.equal(
+    routing.isConversationRequestPath('POST', '/v1/messages'),
+    true,
+    'Claude messages are conversation requests'
+  );
+  assert.equal(
+    routing.isConversationRequestPath('POST', '/v1/messages?beta=true'),
+    true,
+    'Claude messages with query are conversation requests'
+  );
+  assert.equal(
+    routing.isConversationRequestPath('POST', '/v1/messages/count_tokens?beta=true'),
+    false,
+    'count_tokens is a local helper request, not a conversation'
+  );
+  assert.equal(
+    routing.isConversationRequestPath('GET', '/v1/messages'),
+    false,
+    'non-POST messages requests are not conversations'
+  );
+}
+
 clearCaches();
-console.log('routing.test.js ok (7 scenarios)');
+console.log('routing.test.js ok (8 scenarios)');

@@ -101,9 +101,20 @@ const {
 
   assert.deepStrictEqual(
     entries.map((entry) => entry.listenPort + ':' + entry.protocol),
-    ['3443:claude', '3445:openai-responses', '3447:openai-chat', '15721:claude-desktop']
+    [
+      '3443:claude',
+      '3445:openai-responses',
+      '3447:openai-chat',
+      '15721:claude-desktop',
+      '3080:claude',
+      '3082:openai-responses',
+      '3084:openai-chat',
+    ]
   );
   assert.strictEqual(entries[3].tls, false);
+  assert.strictEqual(entries[4].tls, false);
+  assert.strictEqual(entries[5].tls, false);
+  assert.strictEqual(entries[6].tls, false);
 }
 
 {
@@ -164,6 +175,8 @@ const {
   assert.strictEqual(isAllowedEntryPath(claudeEntry, 'POST', '/v1/messages/count_tokens'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/v1/chat/completions'), true);
   assert.strictEqual(isAllowedEntryPath(responsesEntry, 'POST', '/v1/responses'), true);
+  assert.strictEqual(isAllowedEntryPath(chatEntry, 'GET', '/v1/models'), true);
+  assert.strictEqual(isAllowedEntryPath(chatEntry, 'HEAD', '/v1/models/gpt-5'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'GET', '/v1/chat/completions'), false);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/v1/messages'), false);
 }

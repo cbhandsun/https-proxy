@@ -120,6 +120,35 @@ function event(payload) {
 }
 
 {
+  const result = openAIResponsesToChat({
+    model: 'client-model',
+    input: 'latest market news',
+    tools: [{ type: 'web_search_preview' }],
+  });
+
+  assert.strictEqual(result.__nativeWebSearch, 'gemini-google-search');
+  assert.strictEqual(result.tools, undefined);
+}
+
+{
+  const result = openAIResponsesToChat({
+    model: 'client-model',
+    input: 'latest market news',
+    tools: [
+      {
+        type: 'function',
+        name: 'web_search',
+        description: 'Search web',
+        parameters: { type: 'object', properties: { query: { type: 'string' } } },
+      },
+    ],
+  });
+
+  assert.strictEqual(result.__nativeWebSearch, 'gemini-google-search');
+  assert.strictEqual(result.tools, undefined);
+}
+
+{
   const result = openAIChatToResponsesRequest({
     model: 'client-model',
     messages: [

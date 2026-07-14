@@ -83,7 +83,8 @@ function baseConfig(overrides = {}) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-management-config-'));
   const configFile = path.join(tmpDir, 'config.json');
   let reloads = 0;
-  const loadConfigFn = () => baseConfig();
+  let loadedConfig = baseConfig();
+  const loadConfigFn = () => loadedConfig;
 
   fs.writeFileSync(
     configFile,
@@ -92,6 +93,10 @@ function baseConfig(overrides = {}) {
       claudeDesktop: {
         token: 'old-token',
         directApiKey: 'old-direct-key',
+      },
+      entryAuth: {
+        enabled: true,
+        keys: [{ id: 'team-a', name: 'Team A', key: 'old-entry-key', enabled: true }],
       },
     })
   );
@@ -126,14 +131,37 @@ function baseConfig(overrides = {}) {
     redactConfigSecrets({
       profiles: [{ apiKey: 'sk-secret', nested: { authorization: 'Bearer token' } }],
       claudeDesktop: { token: 'hpm-token', directApiKey: '' },
+      entryAuth: { keys: [{ id: 'team-a', key: 'entry-secret' }] },
       safe: 'visible',
     }),
     {
       profiles: [{ apiKey: '[redacted]', nested: { authorization: '[redacted]' } }],
       claudeDesktop: { token: '[redacted]', directApiKey: '' },
+      entryAuth: { keys: [{ id: 'team-a', key: '[redacted]' }] },
       safe: 'visible',
     }
   );
+
+  loadedConfig = {
+    ...baseConfig(),
+    entryAuth: {
+      enabled: true,
+      keys: [{ id: 'team-a', name: 'Team A', key: 'old-entry-key', enabled: true }],
+    },
+  };
+  const revealRes = await invoke(handlers.handleLocalEntryAuthKeyRevealRequest, {
+    keyId: 'team-a',
+  });
+  assert.strictEqual(revealRes.statusCode, 200);
+  assert.deepStrictEqual(JSON.parse(revealRes.body), {
+    ok: true,
+    keyId: 'team-a',
+    key: 'old-entry-key',
+  });
+  const missingRevealRes = await invoke(handlers.handleLocalEntryAuthKeyRevealRequest, {
+    keyId: 'missing',
+  });
+  assert.strictEqual(missingRevealRes.statusCode, 404);
 
   const nullSave = await invoke(handlers.handleLocalSaveConfigRequest, null);
   assert.strictEqual(nullSave.statusCode, 400);
@@ -152,6 +180,10 @@ function baseConfig(overrides = {}) {
       token: '[redacted]',
       directApiKey: '***',
     },
+    entryAuth: {
+      enabled: true,
+      keys: [{ id: 'team-a', name: 'Team A', key: '[redacted]', enabled: true }],
+    },
   });
   const saveRes = await invoke(handlers.handleLocalSaveConfigRequest, saveConfig);
   assert.strictEqual(saveRes.statusCode, 200);
@@ -161,6 +193,7 @@ function baseConfig(overrides = {}) {
   assert.strictEqual(saved.profiles[0].apiKey, 'hpm-enc:old-main');
   assert.strictEqual(saved.claudeDesktop.token, 'old-token');
   assert.strictEqual(saved.claudeDesktop.directApiKey, 'old-direct-key');
+  assert.strictEqual(saved.entryAuth.keys[0].key, 'old-entry-key');
 
   const arraySetActive = await invoke(handlers.handleLocalSetActiveRequest, []);
   assert.strictEqual(arraySetActive.statusCode, 400);

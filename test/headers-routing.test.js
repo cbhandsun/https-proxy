@@ -113,7 +113,7 @@ function sendClaudeMessageRequest() {
     req.on('error', reject);
     req.write(
       JSON.stringify({
-        model: 'claude-3-5-sonnet-latest',
+        model: 'claude-sonnet-4-6',
         messages: [{ role: 'user', content: 'hi' }],
       })
     );
@@ -380,7 +380,7 @@ function runSingleTest({
       });
 
       const bodyData = clientBody || {
-        model: 'claude-3-5-sonnet-latest',
+        model: 'claude-sonnet-4-6',
         messages: [{ role: 'user', content: 'hi' }],
       };
       req.write(JSON.stringify(bodyData));
@@ -476,7 +476,7 @@ function runHotReloadTest() {
         );
         req1.write(
           JSON.stringify({
-            model: 'claude-3-5-sonnet-latest',
+            model: 'claude-sonnet-4-6',
             messages: [{ role: 'user', content: 'hi' }],
           })
         );

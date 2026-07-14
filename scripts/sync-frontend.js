@@ -77,7 +77,7 @@ function validateCanonicalHtml() {
   }
   const inlineScripts =
     html.match(
-      /<script(?!\s+defer\s+src=["']\.\/app-(?:ux|bridge|audit|cli|diagnostics)\.js(?:\?[^"']*)?["']><\/script>)(?!\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>)(?!\s+src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js["']><\/script>)[\s>]/gi
+      /<script(?!\s+defer\s+src=["']\.\/app-(?:ux|bridge|audit|cli|diagnostics)\.js(?:\?[^"']*)?["']><\/script>)(?!\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>)(?!\s+(?:async\s+)?src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js["']><\/script>)[\s>]/gi
     ) || [];
   if (inlineScripts.length > 0) {
     fail(

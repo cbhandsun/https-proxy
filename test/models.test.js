@@ -4,6 +4,9 @@ const { getModelRoutes } = require('../lib/proxy/config');
 const {
   buildLocalClaudeModelObject,
   buildLocalModelsResponse,
+  clientProtocolsForRoute,
+  handleModelsRequest,
+  localModelRoutesForClientProtocol,
   parseModelsRequestPath,
 } = require('../lib/proxy/models');
 
@@ -95,21 +98,100 @@ assert.strictEqual(
 assert.strictEqual(buildLocalModelsResponse(explicitRoutes, 'openai').object, 'list');
 assert.strictEqual(buildLocalModelsResponse(explicitRoutes, 'openai').data[0].object, 'model');
 
+assert.deepStrictEqual(clientProtocolsForRoute({ from: 'claude-sonnet-4-6' }), ['claude']);
+assert.deepStrictEqual(clientProtocolsForRoute({ from: 'codex/gpt-5.5' }), [
+  'openai-chat',
+  'openai-responses',
+]);
+assert.deepStrictEqual(clientProtocolsForRoute({ from: 'Dola-Seed-2.0-Code' }), [
+  'openai-chat',
+  'openai-responses',
+]);
+assert.deepStrictEqual(
+  clientProtocolsForRoute({
+    from: 'custom-router',
+    clientProtocols: ['claude', 'responses', 'openai-chat', 'claude'],
+  }),
+  ['claude', 'openai-responses', 'openai-chat']
+);
+
+const mixedRoutes = [
+  { from: 'claude-sonnet-4-6', profileId: 'p1', to: 'gpt-5.4' },
+  { from: 'codex/gpt-5.5', profileId: 'p2', to: 'gpt-5.5' },
+  { from: 'custom-claude', profileId: 'p3', to: 'custom', clientProtocols: ['claude'] },
+  {
+    from: 'custom-openai',
+    profileId: 'p4',
+    to: 'custom',
+    clientProtocols: ['openai-chat', 'openai-responses'],
+  },
+];
+assert.deepStrictEqual(
+  localModelRoutesForClientProtocol(mixedRoutes, 'claude').map((route) => route.from),
+  ['claude-sonnet-4-6', 'custom-claude']
+);
+assert.deepStrictEqual(
+  localModelRoutesForClientProtocol(mixedRoutes, 'openai-chat').map((route) => route.from),
+  ['codex/gpt-5.5', 'custom-openai']
+);
+assert.deepStrictEqual(
+  buildLocalModelsResponse(mixedRoutes, 'openai', 'openai-responses').data.map((item) => item.id),
+  ['codex/gpt-5.5', 'custom-openai']
+);
+
 const desktopRoutes = getModelRoutes({
-  modelRoutes: [{ from: 'claude-opus-4-7', profileId: 'openai-official', to: 'gpt-5.5' }],
+  modelRoutes: [{ from: 'claude-opus-4-8', profileId: 'openai-official', to: 'gpt-5.5' }],
   claudeDesktop: {
-    models: [{ routeId: 'claude-opus-4-7', labelOverride: 'GPT-5.5', supports1m: true }],
+    models: [{ routeId: 'claude-opus-4-8', labelOverride: 'GPT-5.5', supports1m: true }],
   },
 });
 
 assert.strictEqual(desktopRoutes[0].labelOverride, 'GPT-5.5');
 assert.strictEqual(desktopRoutes[0].supports1m, true);
 assert.deepStrictEqual(buildLocalModelsResponse(desktopRoutes, 'claude').data[0], {
-  id: 'claude-opus-4-7',
+  id: 'claude-opus-4-8',
   type: 'model',
   display_name: 'GPT-5.5',
   created_at: '1970-01-01T00:00:00.000Z',
   supports1m: true,
 });
+
+function createModelResponse() {
+  return {
+    statusCode: 0,
+    headers: null,
+    body: '',
+    writeHead(statusCode, headers) {
+      this.statusCode = statusCode;
+      this.headers = headers;
+    },
+    end(body) {
+      this.body = body == null ? '' : String(body);
+    },
+  };
+}
+
+const listRes = createModelResponse();
+const listResult = handleModelsRequest(
+  { method: 'GET', url: '/v1/models', headers: {} },
+  listRes,
+  { kind: 'list' },
+  mixedRoutes,
+  'openai',
+  'openai-chat'
+);
+assert.deepStrictEqual(listResult, { status: 200, format: 'openai', modelCount: 2 });
+
+const missingRes = createModelResponse();
+const missingResult = handleModelsRequest(
+  { method: 'GET', url: '/v1/models/missing', headers: {} },
+  missingRes,
+  { kind: 'retrieve', id: 'missing' },
+  mixedRoutes,
+  'openai',
+  'openai-chat'
+);
+assert.strictEqual(missingResult.status, 404);
+assert.strictEqual(JSON.parse(missingRes.body).error.code, 'model_not_found');
 
 console.log('[models.test] ok');

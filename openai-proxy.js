@@ -17,6 +17,7 @@ const {
   createLogger,
   withRequest,
   newRequestId,
+  getReqId,
   installReqIdMiddleware,
 } = require('./lib/proxy/logger');
 const { createMetrics, collectDefaultProcessMetrics } = require('./lib/proxy/metrics');
@@ -39,7 +40,7 @@ metricsInstance.gauge(
 );
 
 const APP_ID = 'https-proxy-manager';
-const MANAGEMENT_TOKEN = process.env.MGMT_TOKEN || crypto.randomBytes(16).toString('hex');
+let MANAGEMENT_TOKEN = process.env.MGMT_TOKEN || '';
 let PACKAGE_VERSION = '0.1.0';
 try {
   PACKAGE_VERSION = require('./package.json').version || PACKAGE_VERSION;
@@ -79,6 +80,13 @@ let detectedProxyUrl = null;
 let detectedProxyType = 'http'; // 'http' 或 'socks5'
 let lastDetectTime = 0;
 let proxyDetectCached = false;
+
+function resetLocalProxyDetectionCache() {
+  detectedProxyUrl = null;
+  detectedProxyType = 'http';
+  lastDetectTime = 0;
+  proxyDetectCached = false;
+}
 
 function detectLocalProxy(callback) {
   try {
@@ -416,8 +424,28 @@ const {
 
 migrateLegacyRuntimeFiles();
 
+function readExistingManagementToken(managementPort) {
+  if (MANAGEMENT_TOKEN) return MANAGEMENT_TOKEN;
+  const candidates = [];
+  const portNumber = Number(managementPort);
+  if (Number.isFinite(portNumber) && portNumber > 0) {
+    candidates.push(path.join(DATA_DIR, `.mgmt-token-${portNumber}`));
+  }
+  candidates.push(path.join(DATA_DIR, '.mgmt-token'));
+  for (const tokenFile of candidates) {
+    try {
+      if (!fs.existsSync(tokenFile)) continue;
+      const token = fs.readFileSync(tokenFile, 'utf8').trim();
+      if (/^[0-9a-f]{32}$/i.test(token)) return token;
+    } catch (err) {}
+  }
+  return '';
+}
+
 function writeManagementTokenFile(managementPort) {
   try {
+    MANAGEMENT_TOKEN =
+      readExistingManagementToken(managementPort) || crypto.randomBytes(16).toString('hex');
     fs.mkdirSync(DATA_DIR, { recursive: true });
     const tokenFiles = [path.join(DATA_DIR, '.mgmt-token')];
     const portNumber = Number(managementPort);
@@ -436,6 +464,15 @@ function maskManagementToken(token) {
   const value = String(token || '');
   if (value.length <= 12) return '[redacted]';
   return value.slice(0, 6) + '...' + value.slice(-4);
+}
+
+function isTauriManagementOrigin(req) {
+  const origin = req && req.headers && req.headers.origin ? String(req.headers.origin) : '';
+  return (
+    origin === 'tauri://localhost' ||
+    origin === 'http://tauri.localhost' ||
+    origin === 'https://tauri.localhost'
+  );
 }
 
 function setupFileConsoleTee() {
@@ -504,6 +541,19 @@ const {
   stableCreated,
 } = require('./lib/proxy/ids');
 const { CERT_DIR, CERT_FILE, KEY_FILE, ensureCert } = require('./lib/proxy/cert');
+const ACTIVE_HTTPS_SERVERS = [];
+
+function refreshLocalTlsServers() {
+  const tlsConfig = ensureCert();
+  let refreshed = 0;
+  for (const server of ACTIVE_HTTPS_SERVERS) {
+    if (!server || typeof server.setSecureContext !== 'function') continue;
+    server.setSecureContext(tlsConfig);
+    refreshed += 1;
+  }
+  return { refreshed };
+}
+
 const {
   localModelIds,
   buildLocalOpenAIModelObject,
@@ -536,6 +586,7 @@ const {
   isClaudeProfile,
   shouldConvertResponsesToOpenAIChat,
   isClaudeMessagesPath,
+  isConversationRequestPath,
   shouldConvertClaudeMessagesToOpenAI,
   isOpenAIChatCompletionsPath,
   isOpenAIResponsesPath,
@@ -613,6 +664,11 @@ const {
   applyCliSessionModelOverride,
 } = require('./lib/proxy/cli-session-routing');
 const { buildOutgoingHeaders } = require('./lib/proxy/upstream-request');
+const {
+  authorizeEntryRequest,
+  profileMatchesEntryKey,
+  stripEntryAuthHeaders,
+} = require('./lib/proxy/entry-auth');
 const {
   retryDelayMs,
   shouldRetryUpstreamStatus,
@@ -839,7 +895,11 @@ const {
   buildGoogleOfficialLoadCodeAssistRequest,
 });
 const { handleLocalCertStatusRequest, handleLocalCertTrustRequest, handleLocalCertUntrustRequest } =
-  createCertManagement();
+  createCertManagement({
+    getEntryServersSnapshot: () =>
+      Array.isArray(ENTRY_SERVERS) && ENTRY_SERVERS.length ? ENTRY_SERVERS : [LOCAL_SERVER],
+    refreshTlsServers: refreshLocalTlsServers,
+  });
 const {
   handleLocalTraeStatusRequest,
   handleLocalTraeBridgeStatusRequest,
@@ -1036,6 +1096,7 @@ try {
         const newAgent = createHttpsAgent();
         globalHttpsAgent = newAgent;
         https.globalAgent = newAgent;
+        resetLocalProxyDetectionCache();
 
         log.info(
           '[config] Configuration hot-reloaded successfully. Active profile:',
@@ -1058,6 +1119,7 @@ try {
     },
     {
       onError: (err) => log.warn('[config] Hot-reload error:', err && err.message),
+      loadConfigFn: () => loadConfig(),
     }
   );
 } catch (err) {
@@ -1075,12 +1137,7 @@ function resolveRoute(model) {
 }
 
 function resolveClaudeDesktopRoute(model) {
-  const resolved = resolveRouteForModel(model, CLAUDE_DESKTOP_ROUTES, PROFILES, ACTIVE_PROFILE);
-  if (resolved.route) return resolved;
-  if (String(model || '').trim() === 'claude-opus-4-8') {
-    return resolveRouteForModel('claude-opus-4-1', CLAUDE_DESKTOP_ROUTES, PROFILES, ACTIVE_PROFILE);
-  }
-  return resolved;
+  return resolveRouteForModel(model, CLAUDE_DESKTOP_ROUTES, PROFILES, ACTIVE_PROFILE);
 }
 
 function handleModelsRequest(clientReq, clientRes, requestInfo, forcedFormat) {
@@ -1154,6 +1211,7 @@ function logProxyEvent(kind, payload) {
 function logRequestEnd(method, path, startTime, statusCode, extra) {
   const elapsed = Date.now() - startTime;
   logProxyEvent('request_end', {
+    reqId: getReqId(),
     method,
     path,
     elapsed,
@@ -1472,11 +1530,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
   const effectiveUrlPathname = effectiveUrlPath.split('?')[0];
   const localManagementRequest = isLocalManagementPath(effectiveUrlPathname);
   // 指标埋点:每个非本地管理请求递增
-  const isApiRequest =
-    urlPath.indexOf('/chat/completions') >= 0 ||
-    urlPath.indexOf('/messages') >= 0 ||
-    urlPath.indexOf('/v1/chat/completions') >= 0 ||
-    urlPath.indexOf('/v1/messages') >= 0;
+  const isApiRequest = isConversationRequestPath(method, effectiveUrlPath);
   if (!localManagementRequest) {
     metricsInstance.counter('proxy_requests_total').inc();
   }
@@ -1523,6 +1577,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
   if (!localPollRequest) {
     log.info('-> ' + method + ' ' + urlPath + '  [' + clientIp + '] entry=' + entryLabel(entry));
     logProxyEvent('request_start', {
+      reqId: clientReq.reqId,
       method,
       path: urlPath,
       clientIp,
@@ -1556,7 +1611,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
     const clientToken =
       clientReq.headers['x-mgmt-token'] ||
       new URL(clientReq.url, 'http://localhost').searchParams.get('token');
-    if (clientToken !== MANAGEMENT_TOKEN) {
+    if (clientToken !== MANAGEMENT_TOKEN && !isTauriManagementOrigin(clientReq)) {
       console.warn(`[mgmt] Unauthorized management request from ${clientIp}: ${method} ${urlPath}`);
       clientRes.writeHead(401, { 'Content-Type': 'application/json' });
       clientRes.end(JSON.stringify({ error: 'Unauthorized management access' }));
@@ -1590,30 +1645,26 @@ function handleRequestInner(clientReq, clientRes, entry) {
     return;
   }
 
-  if (desktopRequest && !isAuthorizedClaudeDesktopRequest(CONFIG, clientReq.headers, decryptKey)) {
-    sendUnauthorizedClaudeDesktop(clientRes);
-    logRequestEnd(method, urlPath, startTime, 401, { type: 'claude_desktop_auth' });
-    return;
-  }
-
-  const modelRequest = parseModelsRequestPath(effectiveUrlPath);
-  if ((method === 'GET' || method === 'HEAD') && modelRequest) {
-    handleLocalModelsRequest(
-      clientReq,
-      clientRes,
-      modelRequest,
-      routesForEntry(entry, desktopRequest, {
-        modelRoutes: MODEL_ROUTES,
-        claudeDesktopRoutes: CLAUDE_DESKTOP_ROUTES,
-      }),
-      desktopRequest ? 'claude' : modelsFormatForEntry(entry)
-    );
-    return;
-  }
   const clientPath =
     effectiveUrlPath.indexOf('/v1') === 0 ? effectiveUrlPath : '/v1' + effectiveUrlPath;
+  const entryAuth = authorizeEntryRequest(clientReq, entry, CONFIG);
+  if (!entryAuth.ok) {
+    sendJsonError(clientRes, 401, {
+      error: {
+        type: 'authentication_error',
+        message: 'Invalid or missing proxy entry API key.',
+      },
+    });
+    logRequestEnd(method, urlPath, startTime, 401, { type: 'entry_auth' });
+    return;
+  }
+  clientReq.entryAuth = entryAuth;
   if (isEntryHealthPath(entry, method, clientPath)) {
     sendEntryHealth(clientRes, entry, method, clientPath);
+    logRequestEnd(method, urlPath, startTime, 200, {
+      type: 'entry_health',
+      entryProtocol: entryLabel(entry),
+    });
     return;
   }
   if (!isAllowedEntryPath(entry, method, clientPath)) {
@@ -1624,8 +1675,40 @@ function handleRequestInner(clientReq, clientRes, entry) {
     });
     return;
   }
+
+  if (desktopRequest && !isAuthorizedClaudeDesktopRequest(CONFIG, clientReq.headers, decryptKey)) {
+    sendUnauthorizedClaudeDesktop(clientRes);
+    logRequestEnd(method, urlPath, startTime, 401, { type: 'claude_desktop_auth' });
+    return;
+  }
+
+  const modelRequest = parseModelsRequestPath(effectiveUrlPath);
+  if ((method === 'GET' || method === 'HEAD') && modelRequest) {
+    const entryRoutes = routesForEntry(entry, desktopRequest, {
+      modelRoutes: MODEL_ROUTES,
+      claudeDesktopRoutes: CLAUDE_DESKTOP_ROUTES,
+    }).filter(
+      (route) =>
+        !entryAuth.enabled || profileMatchesEntryKey(entryAuth, { id: route && route.profileId })
+    );
+    const modelsResult = handleLocalModelsRequest(
+      clientReq,
+      clientRes,
+      modelRequest,
+      entryRoutes,
+      desktopRequest ? 'claude' : modelsFormatForEntry(entry),
+      desktopRequest ? 'claude' : entry && entry.protocol
+    );
+    logRequestEnd(method, urlPath, startTime, modelsResult && modelsResult.status, {
+      type: 'local_models',
+      format: modelsResult && modelsResult.format,
+      modelCount: modelsResult && modelsResult.modelCount,
+    });
+    return;
+  }
   const fwdHeaders = { ...clientReq.headers };
   delete fwdHeaders['host'];
+  if (entryAuth.enabled) stripEntryAuthHeaders(fwdHeaders);
 
   collectLimitedRequestBody(clientReq, {
     limit: MAX_REQUEST_BODY_BYTES,
@@ -1685,6 +1768,20 @@ function handleRequestInner(clientReq, clientRes, entry) {
 
         if (clientRes.__auditData) {
           populateAuditDataFromPrepared(clientRes, currentPrepared, requestBuffer);
+        }
+        if (
+          clientReq.entryAuth &&
+          clientReq.entryAuth.enabled &&
+          !profileMatchesEntryKey(clientReq.entryAuth, currentPrepared.profile)
+        ) {
+          sendJsonError(clientRes, 403, {
+            error: {
+              type: 'permission_denied',
+              message: 'Proxy entry API key is not allowed to use this route.',
+            },
+          });
+          logRequestEnd(method, urlPath, startTime, 403, { type: 'entry_auth_profile' });
+          return;
         }
 
         if (
@@ -2363,6 +2460,7 @@ if (require.main === module) {
               handleRequest(req, res, entry);
             });
       servers.push(server);
+      if (entry.tls !== false) ACTIVE_HTTPS_SERVERS.push(server);
       const listenHost = entry.host === 'localhost' ? '127.0.0.1' : entry.host;
       server.on('error', function (err) {
         handleListenError('port ' + listenHost + ':' + entry.listenPort, err);

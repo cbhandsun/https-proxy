@@ -5,8 +5,10 @@ const os = require('os');
 const { Readable } = require('stream');
 const {
   createManagementCliEnvHandlers,
+  buildToolCliArgs,
   buildCliLaunchCommand,
   buildCliLaunchSpec,
+  normalizeCliModelOverride,
   normalizeCliTerminal,
   parseCliArgs,
   requireJsonObjectBody,
@@ -23,6 +25,7 @@ const {
 } = require('../lib/proxy/env-tools');
 const fs = require('fs');
 const path = require('path');
+const asyncChecks = [];
 
 assert.strictEqual(parseVersionText('2.1.159 (Claude Code)'), '2.1.159');
 assert.strictEqual(
@@ -89,10 +92,80 @@ assert.deepStrictEqual(requireJsonObjectBody({ ok: true }), { ok: true });
 assert.deepStrictEqual(parseCliArgs('--model "gpt 5" --flag'), ['--model', 'gpt 5', '--flag']);
 assert.throws(() => parseCliArgs('"unterminated'), /unterminated/);
 assert.throws(() => parseCliArgs('ok\nbad'), /control characters/);
+assert.strictEqual(normalizeCliModelOverride('default'), '');
+assert.strictEqual(normalizeCliModelOverride(' Default '), '');
+assert.strictEqual(normalizeCliModelOverride('codex/deepseek-v4-flash'), 'codex/deepseek-v4-flash');
+assert.throws(() => normalizeCliModelOverride('bad\nmodel'), /control characters/);
+assert.deepStrictEqual(
+  buildToolCliArgs({
+    toolId: 'claude-code',
+    args: ['--dangerously-skip-permissions'],
+    model: 'claude/sonnet',
+  }),
+  ['--dangerously-skip-permissions', '--model', 'claude/sonnet']
+);
+assert.deepStrictEqual(
+  buildToolCliArgs({
+    toolId: 'antigravity-cli',
+    args: [],
+    model: 'gemini-3.5-flash',
+  }),
+  ['--model', 'gemini-3.5-flash']
+);
+assert.deepStrictEqual(
+  buildToolCliArgs({
+    toolId: 'codex',
+    args: ['--sandbox', 'workspace-write'],
+    model: 'codex/deepseek-v4-flash',
+  }),
+  ['--sandbox', 'workspace-write', '--model', 'codex/deepseek-v4-flash']
+);
+assert.deepStrictEqual(
+  buildToolCliArgs({
+    toolId: 'codex',
+    args: ['-m', 'manual-model'],
+    model: 'ui-model',
+  }),
+  ['-m', 'manual-model']
+);
+assert.deepStrictEqual(
+  buildToolCliArgs({
+    toolId: 'codex',
+    args: ['-c', 'model="manual-model"'],
+    model: 'ui-model',
+  }),
+  ['-c', 'model="manual-model"']
+);
+assert.deepStrictEqual(
+  buildToolCliArgs({
+    toolId: 'claude-code',
+    args: ['--model=manual-model'],
+    model: 'ui-model',
+  }),
+  ['--model=manual-model']
+);
+assert.deepStrictEqual(
+  buildToolCliArgs({
+    toolId: 'opencode',
+    args: [],
+    model: 'ui-model',
+  }),
+  []
+);
+assert.deepStrictEqual(
+  buildToolCliArgs({
+    toolId: 'codex',
+    args: [],
+    model: 'default',
+  }),
+  []
+);
 assert.strictEqual(normalizeCliTerminal(''), 'cmd');
 assert.strictEqual(normalizeCliTerminal('cmd'), 'cmd');
 assert.strictEqual(normalizeCliTerminal('CommandPrompt'), 'cmd');
 assert.strictEqual(normalizeCliTerminal('powershell'), 'PowerShell');
+assert.strictEqual(normalizeCliTerminal('pwsh'), 'PowerShell 7');
+assert.strictEqual(normalizeCliTerminal('PowerShell 7'), 'PowerShell 7');
 assert.throws(() => normalizeCliTerminal('pwsh; calc'), /Unsupported terminal/);
 
 const psLaunch = buildCliLaunchCommand({
@@ -163,6 +236,28 @@ const innerPsLaunch = Buffer.from(innerEncodedPsLaunch[1], 'base64').toString('u
 assert.ok(innerPsLaunch.includes("'--model' 'gpt 5' 'user''s' 'quote\"arg'"));
 assert.ok(!outerPsLaunch.includes('quote"arg'));
 assert.ok(!psLaunchSpec.args.join(' ').includes('gpt&5'));
+
+const pwshLaunch = buildCliLaunchCommand({
+  terminal: 'PowerShell 7',
+  command: 'codex',
+  args: ['--model', 'gpt 5'],
+  workDir: 'E:\\DEV\\Work Space',
+  model: 'gpt-5',
+});
+assert.ok(pwshLaunch.startsWith('start pwsh '));
+
+const pwshLaunchSpec = buildCliLaunchSpec({
+  terminal: 'pwsh',
+  command: 'codex',
+  args: ['--model', 'gpt 5'],
+  workDir: 'E:\\DEV\\Work Space',
+  model: 'gpt-5',
+});
+assert.strictEqual(pwshLaunchSpec.file, 'powershell.exe');
+const outerPwshLaunch = Buffer.from(pwshLaunchSpec.args[4], 'base64').toString('utf16le');
+assert.ok(outerPwshLaunch.includes("'pwsh.exe'"));
+assert.ok(!outerPwshLaunch.includes("'powershell.exe'"));
+
 const managementSource = fs.readFileSync(
   path.join(__dirname, '..', 'lib', 'proxy', 'handlers', 'management.js'),
   'utf8'
@@ -300,6 +395,26 @@ if (process.platform === 'win32') {
 assert.strictEqual(_test.parseInstallJobTimeoutMs('not-a-number'), 15 * 60 * 1000);
 assert.strictEqual(_test.parseInstallJobTimeoutMs('1'), 30 * 1000);
 assert.strictEqual(_test.parseInstallJobTimeoutMs(String(2 * 60 * 60 * 1000)), 60 * 60 * 1000);
+assert.strictEqual(
+  _test.evaluateInstallVerificationStatus({
+    current: '1.0.13',
+    latest: '1.0.13',
+    hasUpdate: false,
+  }).ok,
+  true
+);
+assert.match(
+  _test.evaluateInstallVerificationStatus({
+    current: '1.0.8',
+    latest: '1.0.13',
+    hasUpdate: true,
+  }).error,
+  /当前版本仍为 1\.0\.8，最新版本为 1\.0\.13/
+);
+assert.match(
+  _test.evaluateInstallVerificationStatus({ latest: '1.0.13' }).error,
+  /未检测到本地版本/
+);
 
 {
   const originalSpawn = cp.spawn;
@@ -353,7 +468,41 @@ assert.strictEqual(_test.parseInstallJobTimeoutMs(String(2 * 60 * 60 * 1000)), 6
   }
 }
 
+asyncChecks.push(
+  (async () => {
+    const originalSpawn = cp.spawn;
+    const fakeChild = new EventEmitter();
+    fakeChild.stdout = new EventEmitter();
+    fakeChild.stderr = new EventEmitter();
+    fakeChild.pid = 54321;
+    try {
+      cp.spawn = () => fakeChild;
+      const job = startToolInstallJob(
+        ENV_CHECK_TOOLS.find((tool) => tool.id === 'antigravity-cli'),
+        {
+          verifyInstalledTool: async () =>
+            _test.evaluateInstallVerificationStatus({
+              current: '1.0.8',
+              latest: '1.0.13',
+              hasUpdate: true,
+            }),
+        }
+      );
+      fakeChild.emit('close', 0);
+      assert.strictEqual(job.status, 'verifying');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      assert.strictEqual(job.status, 'failed');
+      assert.strictEqual(job.ok, false);
+      assert.match(job.error, /当前版本仍为 1\.0\.8，最新版本为 1\.0\.13/);
+      assert.match(listInstallJobs([job.jobId])[0].lastLine, /版本复检失败/);
+    } finally {
+      cp.spawn = originalSpawn;
+    }
+  })()
+);
+
 Promise.all(pendingManagementChecks)
+  .then(() => Promise.all(asyncChecks))
   .then(() => {
     console.log('[env-tools.test] ok');
   })

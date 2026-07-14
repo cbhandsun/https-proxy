@@ -85,7 +85,7 @@ function estimateTokens(value) {
     res,
     Buffer.from(
       JSON.stringify({
-        model: 'claude-sonnet-4-0',
+        model: 'claude-sonnet-4-6',
         messages: [{ role: 'user', content: 'hello world' }],
       })
     ),
@@ -94,7 +94,7 @@ function estimateTokens(value) {
     Date.now()
   );
 
-  assert.strictEqual(res.__auditData.originalModel, 'claude-sonnet-4-0');
+  assert.strictEqual(res.__auditData.originalModel, 'claude-sonnet-4-6');
   assert.strictEqual(res.__auditData.protocol, 'claude');
 }
 

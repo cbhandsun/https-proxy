@@ -29,7 +29,8 @@ const root = path.resolve(__dirname, '..', 'tauri-ui');
 const configFile = path.join(rootDir, 'proxy.config.json');
 const staticLogFile = path.join(runtimeDir, 'dev-static.log');
 const localManagementAgent = new http.Agent({ keepAlive: true });
-const serverHealthMarker = 'dev-static-management-proxy-v8';
+const serverHealthMarker = 'dev-static-management-proxy-v9';
+const verifiedManagementTokenCache = new Map();
 
 let cachedConfigMtimeMs = -1;
 let cachedLocalPort = 3443;
@@ -83,19 +84,28 @@ function sendForbiddenManagementProxy(res) {
 function managementTokenCandidateGroups(managementPort) {
   const debugDir = path.join(rootDir, 'src-tauri', 'target', 'debug');
   const debugRuntimeDir = path.join(debugDir, '.hpm-runtime');
+  const portableRuntimeDir = path.join(
+    rootDir,
+    'dist',
+    'portable',
+    'HTTPS Proxy Manager Portable',
+    '.hpm-runtime'
+  );
   const portNumber = parseOptionalPort(managementPort);
   const groups = [];
   if (portNumber > 0) {
     groups.push([
-      path.join(debugRuntimeDir, `.mgmt-token-${portNumber}`),
       path.join(runtimeDir, `.mgmt-token-${portNumber}`),
+      path.join(debugRuntimeDir, `.mgmt-token-${portNumber}`),
+      path.join(portableRuntimeDir, `.mgmt-token-${portNumber}`),
       path.join(rootDir, `.mgmt-token-${portNumber}`),
       path.join(debugDir, `.mgmt-token-${portNumber}`),
     ]);
   }
   groups.push([
-    path.join(debugRuntimeDir, '.mgmt-token'),
     path.join(runtimeDir, '.mgmt-token'),
+    path.join(debugRuntimeDir, '.mgmt-token'),
+    path.join(portableRuntimeDir, '.mgmt-token'),
     path.join(rootDir, '.mgmt-token'),
     path.join(debugDir, '.mgmt-token'),
   ]);
@@ -154,7 +164,16 @@ async function getLocalProxyPort() {
   }
 }
 
-async function readManagementToken(managementPort) {
+function invalidateManagementTokenCache(managementPort) {
+  verifiedManagementTokenCache.delete(managementPort);
+}
+
+async function readManagementToken(managementPort, options = {}) {
+  const cache = verifiedManagementTokenCache.get(managementPort);
+  if (!options.forceRefresh && cache && Date.now() - cache.checkedAt < 2000) return cache.token;
+
+  let firstReadableToken = '';
+  let sawIndeterminateProbe = false;
   for (const group of managementTokenCandidateGroups(managementPort)) {
     const candidates = [];
     for (const filePath of group) {
@@ -165,9 +184,49 @@ async function readManagementToken(managementPort) {
       } catch (err) {}
     }
     candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
-    if (candidates[0]) return candidates[0].value;
+    for (const candidate of candidates) {
+      if (!firstReadableToken) firstReadableToken = candidate.value;
+      const accepted = await managementTokenAccepted(managementPort, candidate.value);
+      if (accepted === true) {
+        verifiedManagementTokenCache.set(managementPort, {
+          token: candidate.value,
+          checkedAt: Date.now(),
+        });
+        return candidate.value;
+      }
+      if (accepted === null) sawIndeterminateProbe = true;
+    }
   }
-  return '';
+  if (sawIndeterminateProbe) return firstReadableToken;
+  return firstReadableToken;
+}
+
+function managementTokenAccepted(managementPort, token) {
+  return new Promise((resolve) => {
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: managementPort,
+        path: '/v1/local/config',
+        method: 'GET',
+        headers: { 'x-mgmt-token': token, Connection: 'close' },
+        agent: false,
+        timeout: 500,
+      },
+      (res) => {
+        res.resume();
+        if (res.statusCode === 200) resolve(true);
+        else if (res.statusCode === 401 || res.statusCode === 403) resolve(false);
+        else resolve(null);
+      }
+    );
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
+    req.on('error', () => resolve(null));
+    req.end();
+  });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -226,50 +285,86 @@ const server = http.createServer(async (req, res) => {
       const token = await readManagementToken(managementPort);
       if (token) headers['x-mgmt-token'] = token;
 
-      const proxyReq = http.request(
-        {
-          hostname: targetUrlObj.hostname,
-          port: targetUrlObj.port,
-          path: targetUrlObj.pathname + targetUrlObj.search,
-          method: req.method,
-          headers,
-          agent: localManagementAgent,
-        },
-        (proxyRes) => {
-          // Pipe the management port's response back. The management port
-          // already sets its own CORS headers; if we add another set, the
-          // browser/Tauri webview ends up with duplicate
-          // Access-Control-Allow-Origin headers, which is invalid per the
-          // Fetch spec and causes the webview to reject the response.
-          // See: https://fetch.spec.whatwg.org/#cors-protocol
-          res.writeHead(proxyRes.statusCode, proxyRes.headers);
-          proxyRes.pipe(res);
-        }
-      );
-
-      proxyReq.on('error', (err) => {
-        res.writeHead(502, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        });
-        res.end(JSON.stringify({ error: '静态服务中转本地代理失败: ' + err.message }));
-      });
-      const proxyTimeoutMs =
-        url.pathname === '/v1/local/trae/debug/claude-process/self-test' ||
-        url.pathname === '/local/trae/debug/claude-process/self-test'
-          ? 180000
-          : 7000;
-      proxyReq.setTimeout(proxyTimeoutMs, () => {
-        proxyReq.destroy(
-          new Error(
-            `HTTP 管理端口 ${managementPort} 请求超时(${Math.round(
-              proxyTimeoutMs / 1000
-            )}s)，请确认代理已启动`
-          )
+      const forwardManagementRequest = (retrying = false) => {
+        const requestHeaders = { ...headers };
+        const retryToken = requestHeaders['x-mgmt-token'];
+        const proxyReq = http.request(
+          {
+            hostname: targetUrlObj.hostname,
+            port: targetUrlObj.port,
+            path: targetUrlObj.pathname + targetUrlObj.search,
+            method: req.method,
+            headers: requestHeaders,
+            agent: localManagementAgent,
+          },
+          (proxyRes) => {
+            if (
+              proxyRes.statusCode === 401 &&
+              !retrying &&
+              (req.method === 'GET' || req.method === 'HEAD')
+            ) {
+              proxyRes.resume();
+              invalidateManagementTokenCache(managementPort);
+              readManagementToken(managementPort, { forceRefresh: true })
+                .then((freshToken) => {
+                  if (!freshToken || freshToken === retryToken) {
+                    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+                    res.end(JSON.stringify({ error: 'Unauthorized management access' }));
+                    return;
+                  }
+                  headers['x-mgmt-token'] = freshToken;
+                  forwardManagementRequest(true);
+                })
+                .catch((err) => {
+                  res.writeHead(502, {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                  });
+                  res.end(JSON.stringify({ error: '静态服务刷新管理 Token 失败: ' + err.message }));
+                });
+              return;
+            }
+            // Pipe the management port's response back. The management port
+            // already sets its own CORS headers; if we add another set, the
+            // browser/Tauri webview ends up with duplicate
+            // Access-Control-Allow-Origin headers, which is invalid per the
+            // Fetch spec and causes the webview to reject the response.
+            // See: https://fetch.spec.whatwg.org/#cors-protocol
+            res.writeHead(proxyRes.statusCode, proxyRes.headers);
+            proxyRes.pipe(res);
+          }
         );
-      });
 
-      req.pipe(proxyReq);
+        proxyReq.on('error', (err) => {
+          res.writeHead(502, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          });
+          res.end(JSON.stringify({ error: '静态服务中转本地代理失败: ' + err.message }));
+        });
+        const proxyTimeoutMs =
+          url.pathname === '/v1/local/trae/debug/claude-process/self-test' ||
+          url.pathname === '/local/trae/debug/claude-process/self-test'
+            ? 180000
+            : 7000;
+        proxyReq.setTimeout(proxyTimeoutMs, () => {
+          proxyReq.destroy(
+            new Error(
+              `HTTP 管理端口 ${managementPort} 请求超时(${Math.round(
+                proxyTimeoutMs / 1000
+              )}s)，请确认代理已启动`
+            )
+          );
+        });
+
+        if (req.method === 'GET' || req.method === 'HEAD') {
+          proxyReq.end();
+        } else {
+          req.pipe(proxyReq);
+        }
+      };
+
+      forwardManagementRequest(false);
       return;
     }
 
@@ -430,6 +525,8 @@ module.exports = {
   isSameOriginManagementRequest,
   isPathInsideRoot,
   managementTokenCandidateGroups,
+  readManagementToken,
+  invalidateManagementTokenCache,
   staticServerOrigins,
   serverHealthMarker,
 };

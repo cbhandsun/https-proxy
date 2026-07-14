@@ -1,0 +1,184 @@
+const assert = require('assert');
+const fs = require('fs');
+const http = require('http');
+const os = require('os');
+const path = require('path');
+const { spawn } = require('child_process');
+
+let receivedHeaders = {};
+let upstreamHits = 0;
+
+const upstream = http.createServer((req, res) => {
+  upstreamHits += 1;
+  receivedHeaders = req.headers;
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ ok: true }));
+});
+
+function stopProcess(proc) {
+  return new Promise((resolve) => {
+    if (!proc || proc.exitCode != null || proc.signalCode != null) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(resolve, 1500);
+    if (typeof timer.unref === 'function') timer.unref();
+    proc.once('exit', () => {
+      clearTimeout(timer);
+      resolve();
+    });
+    proc.kill();
+  });
+}
+
+function requestProxy(port, headers = {}, options = {}) {
+  return new Promise((resolve, reject) => {
+    const method = options.method || 'POST';
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: '/v1/chat/completions',
+        method,
+        headers: {
+          ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
+          ...headers,
+        },
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk) => {
+          body += chunk;
+        });
+        res.on('end', () => resolve({ statusCode: res.statusCode, body }));
+      }
+    );
+    req.on('error', reject);
+    if (method === 'POST') {
+      req.end(JSON.stringify({ model: 'gpt-test', messages: [{ role: 'user', content: 'hi' }] }));
+      return;
+    }
+    req.end();
+  });
+}
+
+function waitForProxy(proc) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Timeout waiting for proxy start')), 15000);
+    proc.stdout.on('data', (data) => {
+      const text = data.toString();
+      if (text.includes('Mgmt:')) {
+        clearTimeout(timer);
+        resolve();
+      }
+    });
+    proc.stderr.on('data', (data) => {
+      process.stderr.write(data);
+    });
+    proc.once('exit', (code) => {
+      clearTimeout(timer);
+      reject(new Error(`Proxy exited before start: ${code}`));
+    });
+  });
+}
+
+(async () => {
+  await new Promise((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+  const upstreamPort = upstream.address().port;
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-entry-auth-'));
+  const entryPort = 4557;
+  const config = {
+    activeProfile: 'openai-upstream',
+    localServer: {
+      host: '127.0.0.1',
+      listenPort: entryPort,
+      basePath: '/v1',
+      protocol: 'openai-chat',
+    },
+    entryServers: [
+      {
+        name: 'OpenAI Chat Test',
+        host: '127.0.0.1',
+        listenPort: entryPort,
+        basePath: '/v1',
+        protocol: 'openai-chat',
+        tls: false,
+      },
+    ],
+    profiles: [
+      {
+        id: 'openai-upstream',
+        name: 'OpenAI Upstream',
+        protocol: 'openai',
+        targetUrl: `http://127.0.0.1:${upstreamPort}/v1`,
+        apiKey: 'real-upstream-key',
+      },
+    ],
+    modelRoutes: [],
+    entryAuth: {
+      enabled: true,
+      keys: [
+        {
+          id: 'team-a',
+          name: 'Team A',
+          key: 'entry-secret',
+          enabled: true,
+          allowedEntryProtocols: ['openai-chat'],
+          allowedEntryPorts: [entryPort],
+          allowedProfileIds: ['openai-upstream'],
+        },
+      ],
+    },
+  };
+  fs.writeFileSync(path.join(dataDir, 'proxy.config.json'), JSON.stringify(config, null, 2));
+
+  const proxyProc = spawn(process.execPath, [path.join(__dirname, '..', 'openai-proxy.js')], {
+    cwd: path.join(__dirname, '..'),
+    env: {
+      ...process.env,
+      PROXY_DATA_DIR: dataDir,
+      PROXY_DISABLE_CONVERSATION_AUDIT: '1',
+    },
+  });
+
+  try {
+    await waitForProxy(proxyProc);
+
+    upstreamHits = 0;
+    const missing = await requestProxy(entryPort);
+    assert.strictEqual(missing.statusCode, 401);
+    assert.strictEqual(upstreamHits, 0);
+
+    const missingHealth = await requestProxy(entryPort, {}, { method: 'GET' });
+    assert.strictEqual(missingHealth.statusCode, 401);
+    assert.strictEqual(upstreamHits, 0);
+
+    const wrong = await requestProxy(entryPort, { authorization: 'Bearer wrong-entry-key' });
+    assert.strictEqual(wrong.statusCode, 401);
+    assert.strictEqual(upstreamHits, 0);
+
+    const okHealth = await requestProxy(
+      entryPort,
+      { authorization: 'Bearer entry-secret' },
+      { method: 'GET' }
+    );
+    assert.strictEqual(okHealth.statusCode, 200);
+    assert.strictEqual(upstreamHits, 0);
+
+    const ok = await requestProxy(entryPort, { authorization: 'Bearer entry-secret' });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.strictEqual(upstreamHits, 1);
+    assert.strictEqual(receivedHeaders.authorization, 'Bearer real-upstream-key');
+    assert.notStrictEqual(receivedHeaders.authorization, 'Bearer entry-secret');
+    assert.strictEqual(receivedHeaders['x-api-key'], undefined);
+
+    console.log('[entry-auth-integration.test] ok');
+  } finally {
+    await stopProcess(proxyProc);
+    upstream.close();
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

@@ -7,7 +7,10 @@ const { Readable } = require('stream');
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-management-mcp-'));
 process.env.PROXY_DATA_DIR = tmpDir;
 
-const { createManagementMcpHandlers } = require('../lib/proxy/handlers/management-mcp');
+const {
+  createManagementMcpHandlers,
+  redactMcpHubSecrets,
+} = require('../lib/proxy/handlers/management-mcp');
 
 function jsonReq(url, body) {
   const req = Readable.from([Buffer.from(JSON.stringify(body), 'utf8')]);
@@ -58,7 +61,7 @@ function waitForEnd(req, invoke) {
 (async () => {
   const initialConfig = {
     mcpHub: {
-      servers: [{ id: 'old', url: 'http://127.0.0.1:3001/mcp' }],
+      servers: [{ id: 'old', url: 'http://127.0.0.1:3001/mcp', bearerToken: 'old-secret' }],
       routing: [],
     },
   };
@@ -76,6 +79,7 @@ function waitForEnd(req, invoke) {
   handlers.handleLocalMcpHubGetRequest(emptyReq('/v1/local/mcp-hub'), getRes);
   assert.strictEqual(getRes.statusCode, 200);
   assert.deepStrictEqual(JSON.parse(getRes.body).mcpHub.servers[0].id, 'old');
+  assert.strictEqual(JSON.parse(getRes.body).mcpHub.servers[0].bearerToken, '[redacted]');
 
   const invalidShape = await waitForEnd(
     jsonReq('/v1/local/mcp-hub', { mcpHub: { servers: {}, routing: [] } }),
@@ -98,6 +102,18 @@ function waitForEnd(req, invoke) {
   assert.match(JSON.parse(invalidUrl.body).error, /must be http/);
   assert.strictEqual(savedConfig, null, 'invalid server URL must not write config');
 
+  const invalidToken = await waitForEnd(
+    jsonReq('/v1/local/mcp-hub', {
+      mcpHub: {
+        servers: [{ id: 'bad-token', url: 'http://127.0.0.1:3002/mcp', bearerToken: 'a\nb' }],
+        routing: [],
+      },
+    }),
+    handlers.handleLocalMcpHubSaveRequest
+  );
+  assert.strictEqual(invalidToken.statusCode, 400);
+  assert.match(JSON.parse(invalidToken.body).error, /bearerToken is invalid/);
+
   const valid = await waitForEnd(
     jsonReq('/v1/local/mcp-hub', {
       mcpHub: {
@@ -109,6 +125,51 @@ function waitForEnd(req, invoke) {
   );
   assert.strictEqual(valid.statusCode, 200);
   assert.deepStrictEqual(savedConfig.mcpHub.routing, [{ toolName: 'search', serverId: 'ok' }]);
+
+  const tokenSave = await waitForEnd(
+    jsonReq('/v1/local/mcp-hub', {
+      mcpHub: {
+        servers: [
+          {
+            id: 'ok',
+            url: 'http://127.0.0.1:3002/mcp',
+            bearerToken: 'glm-secret',
+          },
+        ],
+        routing: [{ toolName: 'search', serverId: 'ok' }],
+      },
+    }),
+    handlers.handleLocalMcpHubSaveRequest
+  );
+  assert.strictEqual(tokenSave.statusCode, 200);
+  assert.match(savedConfig.mcpHub.servers[0].bearerToken, /^hpm-/);
+  assert.notStrictEqual(savedConfig.mcpHub.servers[0].bearerToken, 'glm-secret');
+
+  const previousEncrypted = savedConfig.mcpHub.servers[0].bearerToken;
+  initialConfig.mcpHub.servers = [
+    { id: 'ok', url: 'http://127.0.0.1:3002/mcp', bearerToken: previousEncrypted },
+  ];
+  const redactedSave = await waitForEnd(
+    jsonReq('/v1/local/mcp-hub', {
+      mcpHub: {
+        servers: [
+          {
+            id: 'ok',
+            url: 'http://127.0.0.1:3002/mcp',
+            bearerToken: '[redacted]',
+          },
+        ],
+        routing: [{ toolName: 'search', serverId: 'ok' }],
+      },
+    }),
+    handlers.handleLocalMcpHubSaveRequest
+  );
+  assert.strictEqual(redactedSave.statusCode, 200);
+  assert.strictEqual(savedConfig.mcpHub.servers[0].bearerToken, previousEncrypted);
+  assert.strictEqual(
+    redactMcpHubSecrets({ servers: [{ bearerToken: 'x' }], routing: [] }).servers[0].bearerToken,
+    '[redacted]'
+  );
 
   fs.writeFileSync(
     path.join(tmpDir, 'mcp-execution.jsonl'),

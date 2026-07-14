@@ -405,8 +405,9 @@ function tick(ms = 0) {
       'entry server DOM helper exists'
     );
     assert.ok(
-      section.includes('createEntryServerRow(entry, index)'),
-      'entry servers render through DOM helper'
+      app.includes('group.appendChild(createEntryServerRow(entry, index))') &&
+        section.includes("createEntryTransportGroup('https', groupedEntries.https)"),
+      'entry servers render through grouped DOM helpers'
     );
     assert.ok(!section.includes('.innerHTML'), 'entry server render does not use innerHTML');
     assert.ok(!section.includes('<input'), 'entry server render does not build input HTML strings');
@@ -446,7 +447,10 @@ function tick(ms = 0) {
   // ─── 15. Route tables render through DOM helpers ───────────────
   {
     const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
-    assert.ok(app.includes('function createRoutesTableElement()'), 'route table DOM helper exists');
+    assert.ok(
+      /function createRoutesTableElement\([^)]*\)/.test(app),
+      'route table DOM helper exists'
+    );
     assert.ok(
       app.includes('function createRouteTableRow(route, index)'),
       'route table row DOM helper exists'
@@ -460,13 +464,13 @@ function tick(ms = 0) {
       assert.ok(start > 0 && end > start, `${fnName} section found`);
       const section = app.slice(start, end);
       assert.ok(
-        section.includes('createRoutesTableElement()'),
+        section.includes('createRoutesTableElement('),
         `${fnName} uses route table DOM helper`
       );
       assert.ok(!section.includes('.innerHTML'), `${fnName} does not use innerHTML`);
       assert.ok(!section.includes('routesTable()'), `${fnName} does not render table HTML strings`);
     });
-    const start = app.indexOf('function createRoutesTableElement()');
+    const start = app.search(/function createRoutesTableElement\([^)]*\)/);
     const end = app.indexOf('function resetRouteEditor()', start);
     assert.ok(start > 0 && end > start, 'route table helper section found');
     const section = app.slice(start, end);
@@ -685,7 +689,197 @@ function tick(ms = 0) {
     );
   }
 
-  console.log('app-ux.test.js ok (22 scenarios)');
+  // ─── 23. Recommended Claude model chips exclude retired IDs ─────
+  {
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
+      'utf8'
+    );
+    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const retiredModels = [
+      'claude-3-5-sonnet-20241022',
+      'claude-3-5-haiku-latest',
+      'claude-3-5-haiku-20241022',
+      'claude-3-opus-latest',
+      'claude-3-opus-20240229',
+      'claude-3-haiku-20240307',
+      'claude-3-7-sonnet-latest',
+      'claude-3-7-sonnet-20250219',
+      'claude-opus-4-1',
+      'claude-sonnet-4-0',
+      'claude-opus-4-0',
+      'claude-sonnet-4-20250514',
+      'claude-opus-4-20250514',
+    ];
+    retiredModels.forEach((model) => {
+      assert.ok(!html.includes(model), `${model} should not be present in route chips HTML`);
+      assert.ok(!app.includes(model), `${model} should not be present in route chip runtime`);
+    });
+    assert.ok(
+      app.includes('function renderRecommendedClientModels()'),
+      'route chips are rebuilt from the runtime allowlist'
+    );
+  }
+
+  // ─── 24. Tauri runtime root selection keeps dev/prod state separate ─
+  {
+    const rust = fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', 'lib.rs'), 'utf8');
+    assert.ok(
+      rust.includes('fn is_proxy_runtime_root(path: &Path) -> bool'),
+      'Tauri root detection validates complete proxy runtime roots'
+    );
+    assert.ok(
+      rust.includes('if cfg!(debug_assertions)') &&
+        rust.includes('return manifest_project_root();'),
+      'Tauri dev builds bind to the source checkout instead of stale target/debug copies'
+    );
+    assert.ok(
+      rust.includes('push_proxy_root_ancestors(&mut candidates, start)') &&
+        rust.includes('push_proxy_root_ancestors(&mut candidates, exe)') &&
+        rust.includes('first_unique_existing_root(candidates)'),
+      'Tauri release builds select a verified launch/exe runtime root deterministically'
+    );
+    assert.ok(
+      rust.includes('fn ensure_proxy_config_file(root: &Path)') &&
+        rust.includes('ensure_proxy_config_file(&root);'),
+      'Tauri direct startup creates proxy.config.json before launching packaged proxy'
+    );
+    const proxyScript = fs.readFileSync(path.join(__dirname, '..', 'proxy.ps1'), 'utf8');
+    assert.ok(
+      proxyScript.includes('function Get-ManagementToken') &&
+        proxyScript.includes("$headers['x-mgmt-token'] = $token"),
+      'proxy.ps1 status health checks use the management token'
+    );
+    const portableScript = fs.readFileSync(
+      path.join(__dirname, '..', 'scripts', 'build-portable.ps1'),
+      'utf8'
+    );
+    assert.ok(
+      portableScript.includes("(Join-Path $PortableDir 'proxy.config.json')"),
+      'portable packages include an explicit proxy.config.json on first build'
+    );
+  }
+
+  // ─── 25. Audit management calls use authenticated local helper ───
+  {
+    const bridge = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-bridge.js'), 'utf8');
+    assert.ok(
+      bridge.includes('const fetchLocalJsonWithAuth = async'),
+      'bridge provides an authenticated local management JSON helper'
+    );
+    assert.ok(
+      bridge.includes("invoke('clear_audit_conversations_native'"),
+      'clear audit can use the native Tauri management-token path before HTTP fallback'
+    );
+    const rust = fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', 'lib.rs'), 'utf8');
+    assert.ok(
+      rust.includes('fn clear_audit_conversations_native(') &&
+        rust.includes('clear_audit_conversations_native,'),
+      'native clear-audit command is registered'
+    );
+    const auditBridgeStart = bridge.indexOf('readAuditConversations: async');
+    const auditBridgeEnd = bridge.indexOf('  };', auditBridgeStart);
+    assert.ok(
+      auditBridgeStart > 0 && auditBridgeEnd > auditBridgeStart,
+      'audit bridge methods found'
+    );
+    const auditBridgeSection = bridge.slice(auditBridgeStart, auditBridgeEnd);
+    assert.ok(
+      /fetchLocalJsonWithAuth\(\s*'\/v1\/local\/audit\/conversations\/clear'/.test(
+        auditBridgeSection
+      ),
+      'clear audit calls the authenticated helper'
+    );
+    assert.ok(
+      /fetchLocalJsonWithAuth\(\s*'\/v1\/local\/audit\/retry'/.test(auditBridgeSection),
+      'audit retry calls the authenticated helper'
+    );
+    assert.ok(
+      /fetchLocalJsonWithAuth\(\s*'\/v1\/local\/usage\/report\?/.test(auditBridgeSection),
+      'usage report calls the authenticated helper'
+    );
+  }
+
+  // ─── 26. Windows launch-on-login uses typed native commands ─────
+  {
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
+      'utf8'
+    );
+    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const bridge = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-bridge.js'), 'utf8');
+    const rust = fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', 'lib.rs'), 'utf8');
+    const permissions = fs.readFileSync(
+      path.join(__dirname, '..', 'src-tauri', 'permissions', 'app-commands.toml'),
+      'utf8'
+    );
+    assert.ok(html.includes('id="launchOnLogin"'), 'settings page exposes launch-on-login');
+    assert.ok(app.includes('async function refreshLaunchOnLogin()'), 'native state is queried');
+    assert.ok(app.includes('async function applyLaunchOnLogin()'), 'requested state is verified');
+    assert.ok(
+      app.includes("typeof window.proxyManager.setLaunchOnLogin !== 'function'") &&
+        app.includes('config.appSettings.launchOnLogin = false;'),
+      'browser fallback can still save unrelated application settings'
+    );
+    assert.ok(
+      bridge.includes("invoke('get_launch_on_login')") &&
+        bridge.includes("invoke('set_launch_on_login', { enabled })"),
+      'bridge uses dedicated typed Tauri commands'
+    );
+    assert.ok(
+      rust.includes('HKEY_CURRENT_USER') && rust.includes('WINDOWS_RUN_VALUE_NAME'),
+      'startup entry is scoped to the current Windows user'
+    );
+    assert.ok(
+      permissions.includes('"get_launch_on_login"') &&
+        permissions.includes('"set_launch_on_login"'),
+      'Tauri ACL permits both launch-on-login commands'
+    );
+  }
+
+  // ─── 27. Entry server transport is explicit and round-trips TLS state ─
+  {
+    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    assert.ok(
+      app.includes("select.dataset.entryTransport = ''"),
+      'entry rows expose a dedicated HTTP/HTTPS transport selector'
+    );
+    assert.ok(
+      app.includes("appendOption(select, 'https', 'HTTPS（TLS）')") &&
+        app.includes("appendOption(select, 'http', 'HTTP（明文）')"),
+      'transport choices identify encrypted and plaintext modes'
+    );
+    assert.ok(
+      app.includes("const transport = row.querySelector('[data-entry-transport]').value") &&
+        app.includes("tls: protocol === 'claude-desktop' ? false : transport === 'https'"),
+      'saving entry rows preserves the selected transport instead of forcing HTTPS'
+    );
+    assert.ok(
+      app.includes("usesTls ? 'HTTPS · TLS' : 'HTTP · 明文'"),
+      'entry headers show an unambiguous transport badge'
+    );
+    assert.ok(
+      app.includes("createEntryTransportGroup('https', groupedEntries.https)") &&
+        app.includes("createEntryTransportGroup('http', groupedEntries.http)"),
+      'entry rows are visibly grouped into HTTPS and HTTP sections'
+    );
+    assert.ok(
+      app.includes('listenPort: 3080') &&
+        app.includes('listenPort: 3082') &&
+        app.includes('listenPort: 3084'),
+      'frontend defaults include all plaintext HTTP entry ports'
+    );
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
+      'utf8'
+    );
+    assert.ok(
+      html.includes('HTTPS 与 HTTP 入口') && html.includes('HTTP 为明文传输'),
+      'entry guidance describes both transports and the HTTP safety boundary'
+    );
+  }
+
+  console.log('app-ux.test.js ok (27 scenarios)');
 })().catch((err) => {
   console.error('app-ux.test.js FAILED:', err);
   process.exit(1);

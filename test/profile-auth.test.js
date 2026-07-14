@@ -109,7 +109,7 @@ const claudeResult = evaluateClaudeProfileAuthResponse(
     headers: {},
     body: JSON.stringify({ error: { message: 'model not found' } }),
   },
-  { testModel: 'claude-3-5-sonnet-20241022' }
+  { testModel: 'claude-sonnet-4-6' }
 );
 assert.deepStrictEqual(claudeResult, {
   ok: false,

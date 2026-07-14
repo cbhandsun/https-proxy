@@ -144,6 +144,7 @@ function prepareMonitorEvent(event) {
     event.sourceModel,
     event.targetModel,
     event.error,
+    event.reqId,
     event.profileName,
     event.statusCode,
     event.code,
@@ -158,7 +159,7 @@ function prepareMonitorEvent(event) {
 
   if (event.kind === 'request_start') {
     title = `${event.method} ${event.path}`;
-    details = `Client: ${event.clientIp}`;
+    details = `Client: ${event.clientIp}${event.reqId ? ` | Req: ${event.reqId}` : ''}`;
   } else if (event.kind === 'route') {
     title = `Route: ${event.sourceModel} → ${event.targetModel}`;
     const contextInfo = event.estimatedContextTokens
@@ -168,7 +169,7 @@ function prepareMonitorEvent(event) {
     badgeClass = 'active';
   } else if (event.kind === 'request_end') {
     title = `${event.method} ${event.path} -> ${event.statusCode}`;
-    details = `Elapsed: ${event.elapsed}ms${event.usage ? ` | Tokens: ${event.usage.input_tokens}+${event.usage.output_tokens}` : ''}`;
+    details = `Elapsed: ${event.elapsed}ms${event.reqId ? ` | Req: ${event.reqId}` : ''}${event.type ? ` | Type: ${event.type}` : ''}${event.usage ? ` | Tokens: ${event.usage.input_tokens}+${event.usage.output_tokens}` : ''}`;
     if (event.statusCode >= 400) levelClass = 'error';
     else if (event.statusCode >= 200) levelClass = 'success';
   } else if (event.kind === 'upstream_error' || event.kind === 'proxy_error') {
