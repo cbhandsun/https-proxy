@@ -18,8 +18,10 @@ function parseArgs(argv) {
   return result;
 }
 
-function defaultRuntimeDir(env = process.env, platform = process.platform) {
+function defaultRuntimeDir(env = process.env, platform = process.platform, cwd = process.cwd()) {
   if (env.HTTPS_PROXY_RUNTIME_DIR) return path.resolve(env.HTTPS_PROXY_RUNTIME_DIR);
+  const workspaceRuntime = path.join(path.resolve(cwd), '.hpm-runtime');
+  if (fs.existsSync(workspaceRuntime)) return workspaceRuntime;
   if (platform === 'win32' && env.LOCALAPPDATA) {
     const installedRuntime = path.join(env.LOCALAPPDATA, 'HTTPS Proxy Manager', '.hpm-runtime');
     if (fs.existsSync(installedRuntime)) return installedRuntime;

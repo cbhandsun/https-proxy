@@ -7,7 +7,7 @@
     "frontendDist": "../dist/tauri-ui",
     "devUrl": "http://localhost:1430",
     "beforeDevCommand": "node scripts/sync-frontend.js --check && node scripts/dev-static-server.js",
-    "beforeBuildCommand": "node scripts/sync-frontend.js --check && node scripts/prepare-tauri-dist.js"
+    "beforeBuildCommand": "node scripts/sync-frontend.js --check && node scripts/prepare-tauri-dist.js && node scripts/prepare-release-runtime.js"
   },
   "app": {
     "withGlobalTauri": true,
@@ -40,12 +40,11 @@
       "../proxy.bat": "proxy.bat",
       "../proxy.ps1": "proxy.ps1",
       "../proxy.config.example.json": "proxy.config.example.json",
-      "../package.json": "package.json",
+      "../dist/release-runtime/package.json": "package.json",
       "../lib": "lib",
-      "../node_modules/node-forge/package.json": "node_modules/node-forge/package.json",
-      "../node_modules/node-forge/LICENSE": "node_modules/node-forge/LICENSE",
-      "../node_modules/node-forge/lib": "node_modules/node-forge/lib",
-      "../dist/portable/HTTPS Proxy Manager Portable/runtime": "runtime"
+      "../dist/release-runtime/node_modules": "node_modules",
+      "../dist/release-runtime/runtime": "runtime",
+      "../dist/release-runtime/release-runtime-manifest.json": "release-runtime-manifest.json"
     },
     "windows": {
       "nsis": {

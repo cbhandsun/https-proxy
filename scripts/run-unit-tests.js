@@ -23,6 +23,7 @@ const unitTests = [
   'test/config-watcher.test.js',
   'test/eslint-config.test.js',
   'test/runtime-migration.test.js',
+  'test/release-governance.test.js',
   'test/conversation-audit-utils.test.js',
   'test/cli-session-routing.test.js',
   'test/upstream-request.test.js',

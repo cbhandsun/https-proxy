@@ -3,19 +3,16 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const repoRoot = path.resolve(__dirname, '..');
-const skippedDirs = new Set([
-  '.git',
-  'node_modules',
-  'dist',
-  'build',
-  'out',
-  'target',
-]);
+const skippedDirs = new Set(['.git', 'node_modules', 'dist', 'build', 'out', 'target']);
+
+function shouldSkipDirectory(name) {
+  return skippedDirs.has(name) || name.startsWith('target-');
+}
 
 function collectJsFiles(dir, output) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
-      if (skippedDirs.has(entry.name)) continue;
+      if (shouldSkipDirectory(entry.name)) continue;
       collectJsFiles(path.join(dir, entry.name), output);
     } else if (entry.isFile() && entry.name.endsWith('.js')) {
       output.push(path.join(dir, entry.name));

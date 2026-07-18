@@ -788,8 +788,10 @@ function tick(ms = 0) {
       'utf8'
     );
     assert.ok(
-      portableScript.includes("(Join-Path $PortableDir 'proxy.config.json')"),
-      'portable packages include an explicit proxy.config.json on first build'
+      !portableScript.includes("(Join-Path $PortableDir 'proxy.config.json')") &&
+        portableScript.includes("'proxy.config.example.json'") &&
+        portableScript.includes('scripts/validate-release-package.js'),
+      'portable packages are stateless and validated before distribution'
     );
   }
 
