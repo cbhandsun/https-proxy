@@ -27,6 +27,7 @@ const {
     },
   });
   assert.strictEqual(valid.valid, true);
+  assert.deepStrictEqual(valid.warnings, []);
 
   const invalid = validateConfig({
     activeProfile: 'missing',
@@ -45,6 +46,32 @@ const {
   assert.ok(invalid.errors.some((error) => error.includes('listenPort')));
   assert.ok(invalid.errors.some((error) => error.includes('basePath')));
   assert.ok(invalid.errors.some((error) => error.includes('mcpHub.servers')));
+}
+
+{
+  const insecureUpstream = validateConfig({
+    activeProfile: 'main',
+    profiles: [
+      {
+        id: 'main',
+        protocol: 'openai',
+        targetUrl: 'http://api.example.test/v1',
+        apiKey: 'encrypted-or-plain',
+      },
+    ],
+    localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
+  });
+  assert.strictEqual(insecureUpstream.valid, true);
+  assert.ok(insecureUpstream.warnings.some((warning) => warning.includes('non-loopback HTTP')));
+
+  const exposedWithoutAuth = validateConfig({
+    activeProfile: 'main',
+    profiles: [{ id: 'main', protocol: 'openai', targetUrl: 'https://api.example.test/v1' }],
+    localServer: { host: '0.0.0.0', listenPort: 3443, basePath: '/v1' },
+    entryAuth: { enabled: false, keys: [] },
+  });
+  assert.strictEqual(exposedWithoutAuth.valid, false);
+  assert.ok(exposedWithoutAuth.errors.some((error) => error.includes('entryAuth.enabled')));
 }
 
 {

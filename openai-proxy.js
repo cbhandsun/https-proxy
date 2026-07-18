@@ -1119,7 +1119,7 @@ try {
     },
     {
       onError: (err) => log.warn('[config] Hot-reload error:', err && err.message),
-      loadConfigFn: () => loadConfig(),
+      loadConfigFn: () => loadConfig({ throwOnError: true }),
     }
   );
 } catch (err) {
