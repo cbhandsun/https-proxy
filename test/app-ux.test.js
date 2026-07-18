@@ -256,6 +256,39 @@ function tick(ms = 0) {
 
   // ─── 7. Claude Desktop process verification controls exist ────
   {
+    const { sandbox } = buildSandbox();
+    const UX = loadUx(sandbox);
+    assert.deepEqual(Array.from(UX.storage.parsePromptTemplates('invalid')), []);
+    assert.deepEqual(Array.from(UX.storage.parsePromptTemplates('{"name":"not-array"}')), []);
+    assert.deepEqual(
+      JSON.parse(
+        JSON.stringify(
+          UX.storage.parsePromptTemplates(
+            JSON.stringify([
+              { name: ' valid ', content: 'content' },
+              { name: '', content: 'drop' },
+              { name: 'wrong', content: 42 },
+            ])
+          )
+        )
+      ),
+      [{ name: 'valid', content: 'content' }]
+    );
+    const cliProfiles = UX.storage.parseCliProfiles(
+      JSON.stringify([
+        { id: 'valid', name: 'CLI', toolId: 'codex', model: 'm', upgrade: true },
+        { id: 'valid', name: 'duplicate', toolId: 'codex' },
+        { id: 'bad id', toolId: 'codex' },
+      ])
+    );
+    assert.equal(cliProfiles.length, 1);
+    assert.equal(cliProfiles[0].id, 'valid');
+    assert.equal(cliProfiles[0].upgrade, true);
+    assert.equal(UX.storage.parsePromptTemplates('x'.repeat(5 * 1024 * 1024 + 1)).length, 0);
+  }
+
+  // ─── 8. Claude Desktop process verification controls exist ────
+  {
     const html = fs.readFileSync(
       path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
       'utf8'
