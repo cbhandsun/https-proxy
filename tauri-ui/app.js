@@ -6512,6 +6512,10 @@ function loadPresetPrompts() {
   });
 }
 
+function readStoredPromptTemplates() {
+  return window.UX.storage.parsePromptTemplates(localStorage.getItem('prompt_templates') || '[]');
+}
+
 function loadTemplates() {
   const listContainer = $('templateList');
   if (!listContainer) return;
@@ -6523,10 +6527,7 @@ function loadTemplates() {
       const item = event.target.closest('[data-template-index]');
       if (!item || !listContainer.contains(item)) return;
       const index = Number(item.dataset.templateIndex);
-      let templates = [];
-      try {
-        templates = JSON.parse(localStorage.getItem('prompt_templates') || '[]');
-      } catch (e) {}
+      const templates = readStoredPromptTemplates();
       const tpl = templates[index];
       if (!tpl) return;
       if (deleteButton && listContainer.contains(deleteButton)) {
@@ -6545,10 +6546,7 @@ function loadTemplates() {
     };
   }
 
-  let templates = [];
-  try {
-    templates = JSON.parse(localStorage.getItem('prompt_templates') || '[]');
-  } catch (e) {}
+  const templates = readStoredPromptTemplates();
 
   if (templates.length === 0) {
     listContainer.appendChild(createTemplateEmptyElement());
@@ -6607,11 +6605,17 @@ if (saveTplBtn) {
       showToast('提示词内容不能为空', 'error');
       return;
     }
+    const storageLimits = window.UX.storage.limits;
+    if (name.length > storageLimits.promptNameChars) {
+      showToast(`模板名称不能超过 ${storageLimits.promptNameChars} 个字符`, 'error');
+      return;
+    }
+    if (content.length > storageLimits.promptContentChars) {
+      showToast(`模板内容不能超过 ${storageLimits.promptContentChars} 个字符`, 'error');
+      return;
+    }
 
-    let templates = [];
-    try {
-      templates = JSON.parse(localStorage.getItem('prompt_templates') || '[]');
-    } catch (e) {}
+    const templates = readStoredPromptTemplates();
 
     const existingIdx = templates.findIndex((t) => t.name === name);
     if (existingIdx >= 0) {

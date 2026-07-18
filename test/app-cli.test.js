@@ -35,5 +35,13 @@ assert.ok(
   source.includes('setCliLaunchButtonReady()'),
   'CLI launch button should reset through DOM helper'
 );
+assert.ok(
+  source.includes('window.UX.storage.parseCliProfiles('),
+  'CLI profiles should pass through the shared localStorage boundary parser'
+);
+assert.ok(
+  source.includes('window.UX.storage.normalizeCliProfiles(profiles)'),
+  'CLI profiles should be normalized again before persistence'
+);
 
 console.log('app-cli.test.js ok');

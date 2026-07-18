@@ -157,6 +157,76 @@
     return currentThemeMode;
   }
 
+  // ─── localStorage 边界 ─────────────────────────────────────────
+  const MAX_STORED_JSON_CHARS = 5 * 1024 * 1024;
+  const MAX_PROMPT_TEMPLATES = 100;
+  const MAX_PROMPT_NAME_CHARS = 128;
+  const MAX_PROMPT_CONTENT_CHARS = 200000;
+  const MAX_CLI_PROFILES = 50;
+
+  function parseStoredArray(raw) {
+    if (typeof raw !== 'string' || raw.length === 0 || raw.length > MAX_STORED_JSON_CHARS)
+      return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_err) {
+      return [];
+    }
+  }
+
+  function boundedString(value, maxChars, fallback = '') {
+    if (typeof value !== 'string') return fallback;
+    return value.slice(0, maxChars);
+  }
+
+  function normalizePromptTemplates(value) {
+    if (!Array.isArray(value)) return [];
+    return value.slice(0, MAX_PROMPT_TEMPLATES).flatMap((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+      const name = boundedString(item.name, MAX_PROMPT_NAME_CHARS).trim();
+      const content = boundedString(item.content, MAX_PROMPT_CONTENT_CHARS);
+      if (!name || !content.trim()) return [];
+      return [{ name, content }];
+    });
+  }
+
+  function parsePromptTemplates(raw) {
+    return normalizePromptTemplates(parseStoredArray(raw));
+  }
+
+  function normalizeCliProfiles(value) {
+    if (!Array.isArray(value)) return [];
+    const ids = new Set();
+    const profiles = [];
+    for (const item of value.slice(0, MAX_CLI_PROFILES)) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const id = boundedString(item.id, 128).trim();
+      const toolId = boundedString(item.toolId, 64, 'claude-code').trim();
+      if (!/^[A-Za-z0-9_.:-]{1,128}$/.test(id) || !/^[A-Za-z0-9_.:-]{1,64}$/.test(toolId)) {
+        continue;
+      }
+      if (ids.has(id)) continue;
+      ids.add(id);
+      profiles.push({
+        id,
+        name: boundedString(item.name, 128, '未命名预设').trim() || '未命名预设',
+        toolId,
+        model: boundedString(item.model, 256, 'default').trim() || 'default',
+        customArgs: boundedString(item.customArgs, 4096),
+        cwd: boundedString(item.cwd, 2048),
+        envs: boundedString(item.envs, 16384),
+        terminal: boundedString(item.terminal, 64, 'PowerShell').trim() || 'PowerShell',
+        upgrade: item.upgrade === true,
+      });
+    }
+    return profiles;
+  }
+
+  function parseCliProfiles(raw) {
+    return normalizeCliProfiles(parseStoredArray(raw));
+  }
+
   // ─── 延迟加载：IntersectionObserver 包装 ─────────────────────────
   // - 元素进入视口时调用 loader()，执行后取消观察。
   // - 若浏览器不支持 IntersectionObserver，则在 requestIdleCallback 中
@@ -262,5 +332,15 @@
     lazyOnVisible,
     loadScript,
     whenIdle,
+    storage: {
+      parsePromptTemplates,
+      normalizePromptTemplates,
+      parseCliProfiles,
+      normalizeCliProfiles,
+      limits: {
+        promptNameChars: MAX_PROMPT_NAME_CHARS,
+        promptContentChars: MAX_PROMPT_CONTENT_CHARS,
+      },
+    },
   };
 })();
