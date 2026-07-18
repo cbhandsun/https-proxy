@@ -5,6 +5,7 @@ const {
   decodeBodyBuffer,
   estimateTokens,
   collectLimitedRequestBody,
+  normalizeByteLimit,
 } = require('../lib/proxy/request-utils');
 
 function createReq() {
@@ -14,6 +15,20 @@ function createReq() {
 function testDecodeBodyBufferFallsBackOnBadCompressedBody() {
   const body = Buffer.from('plain');
   assert.strictEqual(decodeBodyBuffer(body, 'gzip'), 'plain');
+}
+
+function testDecodeBodyBufferLimitsDecompressedOutput() {
+  const zlib = require('zlib');
+  const compressed = zlib.gzipSync(Buffer.alloc(4096, 'a'));
+  const decoded = decodeBodyBuffer(compressed, 'gzip', { maxOutputLength: 128 });
+  assert.strictEqual(decoded, compressed.toString('utf8'));
+}
+
+function testNormalizeByteLimitRejectsNonFiniteValues() {
+  assert.strictEqual(normalizeByteLimit(NaN, 10, 1, 100), 10);
+  assert.strictEqual(normalizeByteLimit(Infinity, 10, 1, 100), 10);
+  assert.strictEqual(normalizeByteLimit(-5, 10, 1, 100), 1);
+  assert.strictEqual(normalizeByteLimit(500, 10, 1, 100), 100);
 }
 
 function testEstimateTokensHandlesNestedValues() {
@@ -111,11 +126,31 @@ function testCollectLimitedRequestBodyAbortedCallback() {
   assert.strictEqual(aborted, 1);
 }
 
+function testCollectLimitedRequestBodyFailsClosedForInvalidLimit() {
+  for (const limit of [NaN, Infinity, 'invalid']) {
+    const req = createReq();
+    let result = null;
+    collectLimitedRequestBody(req, {
+      limit,
+      onComplete(nextResult) {
+        result = nextResult;
+      },
+    });
+    req.emit('data', Buffer.from('x'));
+    req.emit('end');
+    assert.strictEqual(result.tooLarge, true);
+    assert.strictEqual(result.limit, 0);
+  }
+}
+
 testDecodeBodyBufferFallsBackOnBadCompressedBody();
+testDecodeBodyBufferLimitsDecompressedOutput();
+testNormalizeByteLimitRejectsNonFiniteValues();
 testEstimateTokensHandlesNestedValues();
 testCollectLimitedRequestBodyCombinesChunks();
 testCollectLimitedRequestBodyReportsTooLargeOnce();
 testCollectLimitedRequestBodyAllowsExactLimit();
 testCollectLimitedRequestBodyAbortedCallback();
+testCollectLimitedRequestBodyFailsClosedForInvalidLimit();
 
 console.log('[request-utils.test] ok');

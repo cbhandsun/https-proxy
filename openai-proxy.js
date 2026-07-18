@@ -12,6 +12,7 @@ const url = require('url');
 const net = require('net');
 const util = require('util');
 const crypto = require('crypto');
+const { parseBoundedInteger } = require('./lib/proxy/management-utils');
 
 const {
   createLogger,
@@ -277,7 +278,6 @@ function requestWithProxy(targetUrl, options, callback) {
               console.warn(
                 `[proxy] SOCKS5 via ${proxyUrl} failed (${e.message}), falling back to direct connection...`
               );
-              fallbackTriggered = true;
               executeDirect();
             } else {
               emitter.emit('error', e);
@@ -481,7 +481,12 @@ function setupFileConsoleTee() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     const maxLogBytes = Math.max(
       256 * 1024,
-      Number(process.env.PROXY_LOG_MAX_BYTES || 5 * 1024 * 1024)
+      parseBoundedInteger(
+        process.env.PROXY_LOG_MAX_BYTES,
+        5 * 1024 * 1024,
+        256 * 1024,
+        128 * 1024 * 1024
+      )
     );
     const rotateIfOversized = (filePath) => {
       try {
@@ -669,13 +674,7 @@ const {
   profileMatchesEntryKey,
   stripEntryAuthHeaders,
 } = require('./lib/proxy/entry-auth');
-const {
-  retryDelayMs,
-  shouldRetryUpstreamStatus,
-  shouldFailoverOnStatus,
-  shouldRetryAttempt,
-  shouldFailoverOnError,
-} = require('./lib/proxy/upstream-retry');
+const { resolveUpstreamRecovery } = require('./lib/proxy/upstream-retry');
 const {
   redactHeaders,
   headersForReplay,
@@ -1241,21 +1240,29 @@ function installLocalManagementRequestEndLogger(clientRes, method, path, startTi
   });
 }
 
-const AUDIT_MAX_CAPTURE_BYTES = Math.max(
+const AUDIT_MAX_CAPTURE_BYTES = parseBoundedInteger(
+  process.env.PROXY_AUDIT_MAX_CAPTURE_BYTES,
+  256 * 1024,
   16 * 1024,
-  Number(process.env.PROXY_AUDIT_MAX_CAPTURE_BYTES || 256 * 1024)
+  4 * 1024 * 1024
 );
-const AUDIT_MAX_TEXT_CHARS = Math.max(
+const AUDIT_MAX_TEXT_CHARS = parseBoundedInteger(
+  process.env.PROXY_AUDIT_MAX_TEXT_CHARS,
+  120000,
   1024,
-  Number(process.env.PROXY_AUDIT_MAX_TEXT_CHARS || 120000)
+  1024 * 1024
 );
-const MAX_REQUEST_BODY_BYTES = Math.max(
+const MAX_REQUEST_BODY_BYTES = parseBoundedInteger(
+  process.env.PROXY_MAX_REQUEST_BODY_BYTES,
+  32 * 1024 * 1024,
   1024 * 1024,
-  Number(process.env.PROXY_MAX_REQUEST_BODY_BYTES || 32 * 1024 * 1024)
+  256 * 1024 * 1024
 );
-const MAX_CONVERSION_RESPONSE_BYTES = Math.max(
+const MAX_CONVERSION_RESPONSE_BYTES = parseBoundedInteger(
+  process.env.PROXY_MAX_CONVERSION_RESPONSE_BYTES,
+  16 * 1024 * 1024,
   1024 * 1024,
-  Number(process.env.PROXY_MAX_CONVERSION_RESPONSE_BYTES || 16 * 1024 * 1024)
+  256 * 1024 * 1024
 );
 
 function appendAuditText(current, addition) {
@@ -2037,30 +2044,32 @@ function handleRequestInner(clientReq, clientRes, entry) {
           },
           (proxyRes) => {
             const code = proxyRes.statusCode;
+            const recovery = resolveUpstreamRecovery({
+              kind: 'status',
+              statusCode: code,
+              attempt,
+              maxRetries: MAX_RETRIES,
+              prepared: currentPrepared,
+              profiles: getProfiles(loadConfig()) || [],
+              retryAfter: proxyRes.headers['retry-after'],
+            });
 
-            if (shouldRetryUpstreamStatus(code, attempt, MAX_RETRIES)) {
-              const delay = retryDelayMs(attempt);
+            if (recovery.type === 'failover') {
               console.warn(
-                `[Retry] Upstream returned ${code}, retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
+                `[Failover] Upstream returned status ${code}, falling back to backup profile: ${recovery.profile.id}`
               );
+              const backupPrepared = { ...currentPrepared, profile: recovery.profile };
               proxyRes.destroy();
-              setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
+              doForward(backupPrepared, 2);
               return;
             }
 
-            const backupProfile = shouldFailoverOnStatus(
-              code,
-              attempt,
-              currentPrepared,
-              getProfiles(loadConfig()) || []
-            );
-            if (backupProfile) {
+            if (recovery.type === 'retry') {
               console.warn(
-                `[Failover] Upstream returned status ${code}, falling back to backup profile: ${backupProfile.id}`
+                `[Retry] Upstream returned ${code}, retrying in ${Math.round(recovery.delayMs)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
               );
-              const backupPrepared = { ...currentPrepared, profile: backupProfile };
               proxyRes.destroy();
-              doForward(backupPrepared, 2);
+              setTimeout(() => doForward(currentPrepared, attempt + 1), recovery.delayMs);
               return;
             }
 
@@ -2253,39 +2262,52 @@ function handleRequestInner(clientReq, clientRes, entry) {
         );
 
         proxyReq.on('timeout', function () {
-          if (shouldRetryAttempt(attempt, MAX_RETRIES)) {
-            const delay = retryDelayMs(attempt);
+          const recovery = resolveUpstreamRecovery({
+            kind: 'error',
+            attempt,
+            maxRetries: MAX_RETRIES,
+            prepared: currentPrepared,
+            profiles: getProfiles(loadConfig()) || [],
+          });
+          if (recovery.type === 'failover') {
             console.warn(
-              `[Retry] Upstream timeout, retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
+              `[Failover] Upstream timed out, falling back to backup profile: ${recovery.profile.id}`
             );
             proxyReq.destroy();
-            setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
+            doForward({ ...currentPrepared, profile: recovery.profile }, 2);
+            return;
+          }
+          if (recovery.type === 'retry') {
+            console.warn(
+              `[Retry] Upstream timeout, retrying in ${Math.round(recovery.delayMs)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
+            );
+            proxyReq.destroy();
+            setTimeout(() => doForward(currentPrepared, attempt + 1), recovery.delayMs);
             return;
           }
           proxyReq.destroy(new Error('Gateway Timeout (Upstream request timed out)'));
         });
 
         proxyReq.on('error', function (err) {
-          if (shouldRetryAttempt(attempt, MAX_RETRIES)) {
-            const delay = retryDelayMs(attempt);
+          const recovery = resolveUpstreamRecovery({
+            kind: 'error',
+            attempt,
+            maxRetries: MAX_RETRIES,
+            prepared: currentPrepared,
+            profiles: getProfiles(loadConfig()) || [],
+          });
+          if (recovery.type === 'failover') {
             console.warn(
-              `[Retry] Upstream error (${err.message}), retrying in ${Math.round(delay)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
+              `[Failover] Upstream request failed (${err.message}), falling back to backup profile: ${recovery.profile.id}`
             );
-            proxyReq.destroy();
-            setTimeout(() => doForward(currentPrepared, attempt + 1), delay);
+            doForward({ ...currentPrepared, profile: recovery.profile }, 2);
             return;
           }
-          const backupProfile = shouldFailoverOnError(
-            attempt,
-            currentPrepared,
-            getProfiles(loadConfig()) || []
-          );
-          if (backupProfile) {
+          if (recovery.type === 'retry') {
             console.warn(
-              `[Failover] Upstream request failed (${err.message}), falling back to backup profile: ${backupProfile.id}`
+              `[Retry] Upstream error (${err.message}), retrying in ${Math.round(recovery.delayMs)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
             );
-            const backupPrepared = { ...currentPrepared, profile: backupProfile };
-            doForward(backupPrepared, 2);
+            setTimeout(() => doForward(currentPrepared, attempt + 1), recovery.delayMs);
             return;
           }
 
