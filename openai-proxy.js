@@ -20,6 +20,7 @@ const {
   newRequestId,
   getReqId,
   installReqIdMiddleware,
+  sanitizeLogArgs,
 } = require('./lib/proxy/logger');
 const { createMetrics, collectDefaultProcessMetrics } = require('./lib/proxy/metrics');
 const log = createLogger('proxy');
@@ -515,19 +516,19 @@ function setupFileConsoleTee() {
     const originalError = console.error.bind(console);
     const writeLine = (stream, args) => {
       try {
-        stream.write(util.format(...args) + '\n');
+        stream.write(util.format(...sanitizeLogArgs(args)) + '\n');
       } catch (_) {}
     };
     console.log = (...args) => {
-      originalLog(...args);
+      originalLog(...sanitizeLogArgs(args));
       writeLine(out, args);
     };
     console.warn = (...args) => {
-      originalWarn(...args);
+      originalWarn(...sanitizeLogArgs(args));
       writeLine(err, args);
     };
     console.error = (...args) => {
-      originalError(...args);
+      originalError(...sanitizeLogArgs(args));
       writeLine(err, args);
     };
   } catch (e) {
@@ -1547,6 +1548,8 @@ function handleRequestInner(clientReq, clientRes, entry) {
     !(CONFIG.appSettings && CONFIG.appSettings.conversationAuditEnabled === false);
 
   if (auditEnabled) {
+    const auditCaptureContent =
+      CONFIG.appSettings && CONFIG.appSettings.conversationAuditCaptureContent === true;
     const requestId = 'req-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
     clientRes.__auditId = requestId;
     clientRes.__auditData = createConversationAuditData({
@@ -1559,6 +1562,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
       entryProtocol: entryLabel(entry),
       requestHeaders: clientReq.headers,
       redactHeaders,
+      captureContent: auditCaptureContent,
     });
 
     installConversationAuditResponseCapture(clientRes, {
@@ -1574,6 +1578,7 @@ function handleRequestInner(clientReq, clientRes, entry) {
       appendAuditRecord,
       config: CONFIG,
       log,
+      captureContent: auditCaptureContent,
     });
   }
 

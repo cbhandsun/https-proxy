@@ -7,6 +7,9 @@ const {
   setLevel,
   getLevel,
   serializeError,
+  sanitizeLogText,
+  sanitizeLogValue,
+  normalizeRequestId,
   LEVELS,
   _als,
 } = require('../lib/proxy/logger');
@@ -50,7 +53,7 @@ console.log('[logger.test] withRequest scoping ok');
 
 // 5. withRequest async propagation
 async function asyncCheck() {
-  await new Promise(r => setImmediate(r));
+  await new Promise((r) => setImmediate(r));
   return getReqId();
 }
 (async () => {
@@ -73,7 +76,27 @@ async function asyncCheck() {
   assert.strictEqual(serializeError(undefined), null);
   console.log('[logger.test] serializeError string/null ok');
 
-  // 8. setLevel / getLevel
+  // 8. secret redaction and request-id boundary
+  assert.strictEqual(
+    sanitizeLogText('Authorization: Bearer super-secret'),
+    'Authorization: Bearer [redacted]'
+  );
+  assert.strictEqual(
+    sanitizeLogText('https://user:pass@example.test/v1?apiKey=secret&safe=1'),
+    'https://[redacted]@example.test/v1?apiKey=[redacted]&safe=1'
+  );
+  assert.deepStrictEqual(
+    sanitizeLogValue({ authorization: 'Bearer secret', nested: { apiKey: 'sk-test', safe: 1 } }),
+    { authorization: '[redacted]', nested: { apiKey: '[redacted]', safe: 1 } }
+  );
+  const serializedSecretError = serializeError(new Error('request failed: Bearer secret-token'));
+  assert.ok(!serializedSecretError.message.includes('secret-token'));
+  assert.strictEqual(normalizeRequestId('safe-id:123'), 'safe-id:123');
+  assert.match(normalizeRequestId('bad\nrequest-id'), /^[a-f0-9]{12}$/);
+  assert.match(normalizeRequestId('x'.repeat(129)), /^[a-f0-9]{12}$/);
+  console.log('[logger.test] redaction/request-id boundary ok');
+
+  // 9. setLevel / getLevel
   const before = getLevel();
   setLevel('warn');
   assert.strictEqual(getLevel(), 'warn');
@@ -83,12 +106,12 @@ async function asyncCheck() {
   setLevel(before);
   console.log('[logger.test] setLevel/getLevel ok');
 
-  // 9. LEVELS export
+  // 10. LEVELS export
   assert.ok(LEVELS.INFO < LEVELS.WARN);
   assert.ok(LEVELS.WARN < LEVELS.ERROR);
   console.log('[logger.test] LEVELS ordering ok');
 
-  // 10. emit logs (no throw)
+  // 11. emit logs (no throw)
   log.info('hello world');
   log.info({ event: 'test' }, 'structured log');
   log.warn('warn msg', { extra: 1 });
@@ -96,7 +119,7 @@ async function asyncCheck() {
   console.log('[logger.test] emit logs ok');
 
   console.log('[logger.test] ok');
-})().catch(err => {
+})().catch((err) => {
   console.error('logger.test FAILED:', err);
   process.exit(1);
 });
