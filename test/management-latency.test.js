@@ -94,6 +94,7 @@ function makeRequestWithProxy({ fail = false, calls }) {
   assert.ok(typeof JSON.parse(success.body).latency === 'number');
   assert.strictEqual(calls[0].requestUrl, 'https://api.openai.test/v1/models?limit=1000');
   assert.strictEqual(calls[0].options.headers.authorization, 'Bearer sk-resolved');
+  assert.strictEqual(calls[0].options.timeout, 8000);
 
   calls = [];
   const errorHandlers = createManagementLatencyHandlers({
@@ -110,6 +111,21 @@ function makeRequestWithProxy({ fail = false, calls }) {
   assert.strictEqual(failed.statusCode, 200);
   assert.deepStrictEqual(JSON.parse(failed.body), { ok: false, error: 'network down' });
   assert.strictEqual(calls[0].options.headers['x-goog-api-key'], 'gemini-key');
+
+  const invalidTimeoutCalls = [];
+  const invalidTimeoutHandlers = createManagementLatencyHandlers({
+    sendJson,
+    requestWithProxy: makeRequestWithProxy({ calls: invalidTimeoutCalls }),
+    resolveConfiguredProfile: (profile) => profile,
+    resolveOfficialCredentials: async ({ profile }) => ({ profile }),
+  });
+  const invalidTimeout = await invoke(invalidTimeoutHandlers.handleLocalLatencyRequest, {
+    protocol: 'openai',
+    targetUrl: 'https://api.openai.test/v1',
+    timeoutMs: 'Infinity',
+  });
+  assert.strictEqual(invalidTimeout.statusCode, 200);
+  assert.strictEqual(invalidTimeoutCalls[0].options.timeout, 8000);
 
   console.log('[management-latency.test] ok');
 })().catch((err) => {
