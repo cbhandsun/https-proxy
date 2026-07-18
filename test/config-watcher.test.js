@@ -198,6 +198,30 @@ function rmrf() {
   watcher8.close();
   console.log('[config-watcher.test] loadConfigFn normalization ok');
 
+  // 9. Invalid normalized config must not replace the last valid runtime config.
+  writeJson({ activeProfile: 'invalid' });
+  let invalidApplied = 0;
+  let invalidErrors = 0;
+  const watcher9 = debounceReload(
+    CFG_FILE,
+    () => {
+      invalidApplied += 1;
+    },
+    {
+      loadConfigFn: () => {
+        throw new Error('Invalid proxy configuration');
+      },
+      onError: () => {
+        invalidErrors += 1;
+      },
+    }
+  );
+  watcher9.scheduleNow();
+  await waitFor(() => invalidErrors === 1, 500);
+  assert.strictEqual(invalidApplied, 0);
+  watcher9.close();
+  console.log('[config-watcher.test] invalid normalized config rejected');
+
   rmrf();
   console.log('[config-watcher.test] ok');
   process.exit(0);
