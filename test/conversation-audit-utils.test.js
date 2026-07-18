@@ -45,7 +45,32 @@ function createAuditCaptureDeps(records, usageLogs) {
     appendAuditRecord: (record) => records.push(record),
     config: {},
     log: { error: (message) => records.push({ error: message }) },
+    captureContent: true,
   };
+}
+
+{
+  const auditData = createConversationAuditData({
+    id: 'metadata-only',
+    captureContent: false,
+  });
+  const auditRes = { __auditData: auditData };
+  populateAuditDataFromPrepared(
+    auditRes,
+    {
+      profile: { id: 'p1', protocol: 'openai' },
+      model: 'm1',
+      buffer: Buffer.from(JSON.stringify({ messages: [{ role: 'user', content: 'private' }] })),
+    },
+    Buffer.alloc(0),
+    {
+      isGeminiProfile: () => false,
+      isClaudeProfile: () => false,
+    }
+  );
+  assert.deepStrictEqual(auditData.messages, []);
+  assert.strictEqual(auditData.system, '');
+  assert.ok(auditData.request.bodyBytes > 0);
 }
 
 {

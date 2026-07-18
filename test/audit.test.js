@@ -12,6 +12,16 @@ const { _test } = require('../lib/proxy/audit');
   });
   assert.ok(compacted.text.endsWith('...[truncated]'));
   assert.strictEqual(compacted.nested.keep, '<script>alert(1)</script>');
+  assert.deepStrictEqual(
+    _test.compactAuditValue({
+      authorization: 'Bearer secret',
+      nested: { apiKey: 'sk-secret', 'x-api-key': 'x-secret', safe: 'visible' },
+    }),
+    {
+      authorization: '[redacted]',
+      nested: { apiKey: '[redacted]', 'x-api-key': '[redacted]', safe: 'visible' },
+    }
+  );
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-audit-jsonl-'));
   try {
