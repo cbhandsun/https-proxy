@@ -97,6 +97,29 @@ const cli = require('../scripts/install-gateway-ca');
       cli.defaultRuntimeDir({ HTTPS_PROXY_RUNTIME_DIR: temp }, 'linux'),
       path.resolve(temp)
     );
+
+    const workspace = path.join(temp, 'workspace');
+    const workspaceRuntime = path.join(workspace, '.hpm-runtime');
+    const localAppData = path.join(temp, 'local-app-data');
+    const installedRuntime = path.join(localAppData, 'HTTPS Proxy Manager', '.hpm-runtime');
+    fs.mkdirSync(workspaceRuntime, { recursive: true });
+    fs.mkdirSync(installedRuntime, { recursive: true });
+    assert.strictEqual(
+      cli.defaultRuntimeDir({ LOCALAPPDATA: localAppData }, 'win32', workspace),
+      workspaceRuntime,
+      'a source checkout must use its own active runtime before an unrelated installed runtime'
+    );
+
+    const explicitRuntime = path.join(temp, 'explicit-runtime');
+    assert.strictEqual(
+      cli.defaultRuntimeDir(
+        { HTTPS_PROXY_RUNTIME_DIR: explicitRuntime, LOCALAPPDATA: localAppData },
+        'win32',
+        workspace
+      ),
+      path.resolve(explicitRuntime),
+      'an explicit runtime remains the highest-priority source'
+    );
   } finally {
     fs.rmSync(temp, { recursive: true, force: true });
   }
