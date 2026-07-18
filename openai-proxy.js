@@ -77,8 +77,18 @@ https.globalAgent = globalHttpsAgent;
 http.globalAgent = globalHttpAgent;
 
 const { createAuthResolver } = require('./lib/proxy/auth-resolver');
+const { createClaudeSelfTestTargetResolver } = require('./lib/proxy/claude-self-test-target');
+const { createCoreRequestHandler } = require('./lib/proxy/core-request-handler');
 const { createManagementHandlers } = require('./lib/proxy/handlers/management');
 const { createProxyTransport } = require('./lib/proxy/proxy-transport');
+const { createRequestObservability } = require('./lib/proxy/request-observability');
+const { createRuntimeConfigController } = require('./lib/proxy/runtime-config-controller');
+const {
+  createRuntimeSupport,
+  isTauriManagementOrigin,
+  maskManagementToken,
+} = require('./lib/proxy/runtime-support');
+const { startProxyServers } = require('./lib/proxy/server-lifecycle');
 
 const {
   DATA_DIR,
@@ -103,120 +113,16 @@ const { requestWithProxy, resetLocalProxyDetectionCache } = createProxyTransport
   shouldVerifyUpstreamTls,
 });
 
-function readExistingManagementToken(managementPort) {
-  if (MANAGEMENT_TOKEN) return MANAGEMENT_TOKEN;
-  const candidates = [];
-  const portNumber = Number(managementPort);
-  if (Number.isFinite(portNumber) && portNumber > 0) {
-    candidates.push(path.join(DATA_DIR, `.mgmt-token-${portNumber}`));
-  }
-  candidates.push(path.join(DATA_DIR, '.mgmt-token'));
-  for (const tokenFile of candidates) {
-    try {
-      if (!fs.existsSync(tokenFile)) continue;
-      const token = fs.readFileSync(tokenFile, 'utf8').trim();
-      if (/^[0-9a-f]{32}$/i.test(token)) return token;
-    } catch (err) {}
-  }
-  return '';
-}
-
+const runtimeSupport = createRuntimeSupport({
+  dataDir: DATA_DIR,
+  initialToken: MANAGEMENT_TOKEN,
+  logger: log,
+});
 function writeManagementTokenFile(managementPort) {
-  try {
-    MANAGEMENT_TOKEN =
-      readExistingManagementToken(managementPort) || crypto.randomBytes(16).toString('hex');
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    const tokenFiles = [path.join(DATA_DIR, '.mgmt-token')];
-    const portNumber = Number(managementPort);
-    if (Number.isFinite(portNumber) && portNumber > 0) {
-      tokenFiles.unshift(path.join(DATA_DIR, `.mgmt-token-${portNumber}`));
-    }
-    for (const tokenFile of tokenFiles) {
-      fs.writeFileSync(tokenFile, MANAGEMENT_TOKEN, { encoding: 'utf8', mode: 0o600 });
-    }
-  } catch (err) {
-    log.warn('[mgmt] Failed to write management token file:', err.message);
-  }
+  MANAGEMENT_TOKEN = runtimeSupport.writeManagementTokenFile(managementPort);
+  return MANAGEMENT_TOKEN;
 }
-
-function maskManagementToken(token) {
-  const value = String(token || '');
-  if (value.length <= 12) return '[redacted]';
-  return value.slice(0, 6) + '...' + value.slice(-4);
-}
-
-function isTauriManagementOrigin(req) {
-  const origin = req && req.headers && req.headers.origin ? String(req.headers.origin) : '';
-  return (
-    origin === 'tauri://localhost' ||
-    origin === 'http://tauri.localhost' ||
-    origin === 'https://tauri.localhost'
-  );
-}
-
-function setupFileConsoleTee() {
-  if (process.env.PROXY_DISABLE_FILE_LOG === '1') return;
-  try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    const maxLogBytes = Math.max(
-      256 * 1024,
-      parseBoundedInteger(
-        process.env.PROXY_LOG_MAX_BYTES,
-        5 * 1024 * 1024,
-        256 * 1024,
-        128 * 1024 * 1024
-      )
-    );
-    const rotateIfOversized = (filePath) => {
-      try {
-        if (!fs.existsSync(filePath)) return;
-        const stat = fs.statSync(filePath);
-        if (stat.size <= maxLogBytes) return;
-        const rotated = filePath + '.1';
-        try {
-          fs.unlinkSync(rotated);
-        } catch (_) {}
-        try {
-          fs.renameSync(filePath, rotated);
-        } catch (_) {
-          fs.writeFileSync(filePath, '', 'utf8');
-        }
-      } catch (_) {}
-    };
-    const logPath = path.join(DATA_DIR, 'proxy.log');
-    const errPath = path.join(DATA_DIR, 'proxy.err.log');
-    rotateIfOversized(logPath);
-    rotateIfOversized(errPath);
-    const out = fs.createWriteStream(logPath, { flags: 'a', encoding: 'utf8' });
-    const err = fs.createWriteStream(errPath, { flags: 'a', encoding: 'utf8' });
-    const originalLog = console.log.bind(console);
-    const originalWarn = console.warn.bind(console);
-    const originalError = console.error.bind(console);
-    const writeLine = (stream, args) => {
-      try {
-        stream.write(util.format(...sanitizeLogArgs(args)) + '\n');
-      } catch (_) {}
-    };
-    console.log = (...args) => {
-      originalLog(...sanitizeLogArgs(args));
-      writeLine(out, args);
-    };
-    console.warn = (...args) => {
-      originalWarn(...sanitizeLogArgs(args));
-      writeLine(err, args);
-    };
-    console.error = (...args) => {
-      originalError(...sanitizeLogArgs(args));
-      writeLine(err, args);
-    };
-  } catch (e) {
-    try {
-      log.error('[log] Failed to initialize file logging:', e.message);
-    } catch (_) {}
-  }
-}
-
-setupFileConsoleTee();
+runtimeSupport.setupFileConsoleTee();
 
 const {
   stableHash,
@@ -499,66 +405,17 @@ const makeLocalClaudeSelfTestRequest = createHttpClient({
 });
 const mcpHub = createMcpHub({ getConfig: () => CONFIG });
 
-function getClaudeDesktopSelfTestRoute() {
-  const routes = getClaudeDesktopRoutes(CONFIG);
-  if (!Array.isArray(routes) || routes.length === 0) return null;
-  const traeRoute = routes.find((route) => {
-    const profile = PROFILES.find((item) => item && item.id === route.profileId) || {};
-    return isTraeOfficialProfile(profile) || isTraeOfficialTarget(profile.targetUrl);
-  });
-  return traeRoute || routes[0];
-}
-
-function appendClaudeMessagesPath(baseUrl) {
-  const normalized = String(baseUrl || '').replace(/\/+$/, '');
-  if (!normalized) return '';
-  return /\/v1$/i.test(normalized) ? normalized + '/messages' : normalized + '/v1/messages';
-}
-
-function getClaudeDesktopSelfTestTarget() {
-  const route = getClaudeDesktopSelfTestRoute();
-  if (!route || !route.from) return null;
-
-  const gateway = getClaudeDesktopGatewayConfig();
-  let baseUrl = '';
-  let token = '';
-  if (gateway && gateway.isLocalProxy && gateway.baseUrl) {
-    baseUrl = gateway.baseUrl;
-    token = gateway.token || '';
-  } else {
-    baseUrl = claudeDesktopBaseUrl(CONFIG) + CLAUDE_DESKTOP_PROXY_PREFIX;
-    token =
-      CONFIG && CONFIG.claudeDesktop && typeof CONFIG.claudeDesktop.token === 'string'
-        ? CONFIG.claudeDesktop.token
-        : '';
-  }
-
-  const endpoint = appendClaudeMessagesPath(baseUrl);
-  if (!endpoint) return null;
-  const headers = {
-    'Content-Type': 'application/json',
-    'anthropic-version': '2023-06-01',
-  };
-  if (token) headers.Authorization = 'Bearer ' + token;
-  const profile = PROFILES.find((item) => item && item.id === route.profileId) || {};
-  return {
-    source:
-      gateway && gateway.isLocalProxy
-        ? 'claude-desktop-gateway'
-        : 'configured-claude-desktop-gateway',
-    endpoint,
-    headers,
-    model: route.from,
-    expectedStyle: getClaudeDesktopTraeProcessStyle(CONFIG),
-    route: {
-      from: route.from,
-      profileId: route.profileId,
-      profileProtocol: profile.protocol || '',
-      targetUrl: profile.targetUrl || '',
-      isTraeOfficial: isTraeOfficialProfile(profile) || isTraeOfficialTarget(profile.targetUrl),
-    },
-  };
-}
+const getClaudeDesktopSelfTestTarget = createClaudeSelfTestTargetResolver({
+  claudeDesktopBaseUrl,
+  claudeDesktopProxyPrefix: CLAUDE_DESKTOP_PROXY_PREFIX,
+  getClaudeDesktopGatewayConfig,
+  getClaudeDesktopRoutes,
+  getClaudeDesktopTraeProcessStyle,
+  getConfig: () => CONFIG,
+  getProfiles: () => PROFILES,
+  isTraeOfficialProfile,
+  isTraeOfficialTarget,
+});
 const {
   refreshGoogleAccessToken,
   getFreshAntigravityOfficialAccessToken,
@@ -650,6 +507,87 @@ const { resolveOfficialCredentials, resolveConfiguredProfile } = createAuthResol
   PROFILES: () => PROFILES, // Use a getter if PROFILES is re-assigned
 });
 
+const {
+  AUDIT_MAX_CAPTURE_BYTES,
+  AUDIT_MAX_TEXT_CHARS,
+  MAX_CONVERSION_RESPONSE_BYTES,
+  MAX_REQUEST_BODY_BYTES,
+  appendAuditText,
+  auditClaudeSseToolCalls,
+  auditToolCall,
+  compactDiagnosticsValue,
+  contentLengthForDiagnostics,
+  diagnosticsMetaFromResponse,
+  extractDiagnosticsSsePayload,
+  filterClaudeCompatibleBlocks,
+  flushJsonlWrites,
+  getDiagnosticsConfig,
+  inputKeys,
+  installLocalManagementRequestEndLogger,
+  isClaudeThinkingBlock,
+  logModelMapping,
+  logProxyEvent,
+  logRequestEnd,
+  normalizeClaudeContent,
+  populateAuditDataFromPrepared,
+  redactDiagnosticsValue,
+  sampleDiagnostics,
+  sampleGeminiToolEvent,
+  sampleOutboundSse,
+  sampleRequestToolResults,
+  sampleResponseChunk,
+  shouldCaptureDiagnostics,
+  summarizeClaudeToolHistory,
+  truncateDiagnosticsText,
+  writeJsonlBounded,
+} = createRequestObservability({
+  appendAuditTextBounded,
+  captureRequestBody,
+  createClaudeFilters,
+  createDiagnostics,
+  estimateTokens,
+  getReqId,
+  isClaudeProfile,
+  isGeminiProfile,
+  isQuietLocalPollRequest,
+  logRouteModelMapping,
+  metricsInstance,
+  parseBoundedInteger,
+  populateAuditDataFromPreparedWithDeps,
+  sanitizeGeminiToolCall,
+  getConfig: () => CONFIG,
+  protocolOptions: PROTOCOL_OPTIONS,
+});
+
+const { reloadProxyConfig } = createRuntimeConfigController({
+  configFile: CONFIG_FILE,
+  createHttpsAgent,
+  defaultProtocolOptions: DEFAULT_CONFIG.protocolOptions,
+  getActiveProfile,
+  getClaudeDesktopRoutes,
+  getLocalServer,
+  getModelRoutes,
+  getProfiles,
+  loadConfig,
+  log,
+  metricsInstance,
+  protocolOptions: PROTOCOL_OPTIONS,
+  rebuildProxyRouteIndex,
+  resetLocalProxyDetectionCache,
+  setHttpsAgent: (agent) => {
+    globalHttpsAgent = agent;
+    https.globalAgent = agent;
+  },
+  setRuntimeState: (state) => {
+    CONFIG = state.config;
+    PROFILES = state.profiles;
+    ACTIVE_PROFILE = state.activeProfile;
+    LOCAL_SERVER = state.localServer;
+    MODEL_ROUTES = state.modelRoutes;
+    CLAUDE_DESKTOP_ROUTES = state.claudeDesktopRoutes;
+  },
+});
+
 const managementHandlers = createManagementHandlers({
   CONFIG: () => CONFIG,
   PROFILES: () => PROFILES,
@@ -711,99 +649,6 @@ const managementHandlers = createManagementHandlers({
   globalHttpsAgent,
 });
 
-// 配置文件热重载：debounce + lock + 重试
-let _configWatcher = null;
-function reloadProxyConfig() {
-  // 兼容旧 API: 立刻调度一次重载
-  if (_configWatcher && typeof _configWatcher.scheduleNow === 'function') {
-    _configWatcher.scheduleNow();
-  } else {
-    // 没有装上 watcher 时退化为旧实现
-    try {
-      const nextConfig = loadConfig();
-      CONFIG = nextConfig;
-      PROFILES = getProfiles(nextConfig);
-      ACTIVE_PROFILE = getActiveProfile(nextConfig);
-      LOCAL_SERVER = getLocalServer(nextConfig);
-      MODEL_ROUTES = getModelRoutes(nextConfig);
-      CLAUDE_DESKTOP_ROUTES = getClaudeDesktopRoutes(nextConfig);
-
-      const nextOptions = {
-        ...DEFAULT_CONFIG.protocolOptions,
-        ...(nextConfig.protocolOptions || {}),
-      };
-      for (const key of Object.keys(PROTOCOL_OPTIONS)) {
-        delete PROTOCOL_OPTIONS[key];
-      }
-      Object.assign(PROTOCOL_OPTIONS, nextOptions);
-
-      const newAgent = createHttpsAgent();
-      globalHttpsAgent = newAgent;
-      https.globalAgent = newAgent;
-
-      log.info('[config] Configuration reloaded (legacy). Active profile:', ACTIVE_PROFILE.id);
-    } catch (err) {
-      log.error('[config] Failed to reload configuration:', err.message);
-    }
-  }
-}
-
-try {
-  const { debounceReload } = require('./lib/proxy/config-watcher');
-  _configWatcher = debounceReload(
-    CONFIG_FILE,
-    (nextConfig) => {
-      try {
-        CONFIG = nextConfig;
-        PROFILES = getProfiles(nextConfig);
-        ACTIVE_PROFILE = getActiveProfile(nextConfig);
-        LOCAL_SERVER = getLocalServer(nextConfig);
-        MODEL_ROUTES = getModelRoutes(nextConfig);
-        CLAUDE_DESKTOP_ROUTES = getClaudeDesktopRoutes(nextConfig);
-
-        const nextOptions = {
-          ...DEFAULT_CONFIG.protocolOptions,
-          ...(nextConfig.protocolOptions || {}),
-        };
-        for (const key of Object.keys(PROTOCOL_OPTIONS)) {
-          delete PROTOCOL_OPTIONS[key];
-        }
-        Object.assign(PROTOCOL_OPTIONS, nextOptions);
-
-        // Recreate HTTPS agent when TLS verification setting changes
-        const newAgent = createHttpsAgent();
-        globalHttpsAgent = newAgent;
-        https.globalAgent = newAgent;
-        resetLocalProxyDetectionCache();
-
-        log.info(
-          '[config] Configuration hot-reloaded successfully. Active profile:',
-          ACTIVE_PROFILE.id
-        );
-        // 指标埋点
-        try {
-          metricsInstance.counter('proxy_config_reloads_total').inc();
-          metricsInstance.gauge('proxy_active_profile_id').set(1, { id: ACTIVE_PROFILE.id });
-          if (rebuildProxyRouteIndex(MODEL_ROUTES)) {
-            metricsInstance.counter('proxy_route_cache_total').inc(1, { event: 'rebuild' });
-          }
-        } catch (e) {
-          /* never break on metrics */
-        }
-      } catch (err) {
-        log.error('[config] Failed to apply hot-reload configuration:', err.message);
-        throw err;
-      }
-    },
-    {
-      onError: (err) => log.warn('[config] Hot-reload error:', err && err.message),
-      loadConfigFn: () => loadConfig({ throwOnError: true }),
-    }
-  );
-} catch (err) {
-  log.warn('[config] Failed to watch config file:', err.message);
-}
-
 function fallbackId(prefix, value) {
   return fallbackIdWithOptions(prefix, value, PROTOCOL_OPTIONS);
 }
@@ -828,131 +673,6 @@ function prepareRequestBuffer(buffer, encoding) {
 
 function prepareRequestBufferWithResolver(buffer, encoding, resolver) {
   return prepareRequestBufferForRoute(buffer, encoding, ACTIVE_PROFILE, resolver || resolveRoute);
-}
-
-function logModelMapping(kind, method, upstreamPath, prepared, requestBuffer) {
-  const estimatedContextTokens = estimateTokens(
-    captureRequestBody(prepared.buffer || requestBuffer).body
-  );
-  return logRouteModelMapping(
-    kind,
-    method,
-    upstreamPath,
-    { ...prepared, estimatedContextTokens },
-    logProxyEvent
-  );
-}
-
-const { normalizeClaudeContent, isClaudeThinkingBlock, filterClaudeCompatibleBlocks } =
-  createClaudeFilters({
-    protocolOptions: PROTOCOL_OPTIONS,
-    makeSafeClaudeToolUseContentBlock: () => ({ type: 'text', text: '' }),
-  });
-
-const {
-  getDiagnosticsConfig,
-  shouldCaptureDiagnostics,
-  redactDiagnosticsValue,
-  truncateDiagnosticsText,
-  compactDiagnosticsValue,
-  writeJsonlBounded,
-  flushJsonlWrites,
-  diagnosticsMetaFromResponse,
-  sampleDiagnostics,
-  extractDiagnosticsSsePayload,
-  sampleOutboundSse,
-  inputKeys,
-  contentLengthForDiagnostics,
-  summarizeClaudeToolHistory,
-  sampleRequestToolResults,
-  sampleGeminiToolEvent,
-  logProxyEvent: writeProxyEvent,
-  auditToolCall,
-  auditClaudeSseToolCalls,
-  sampleResponseChunk,
-} = createDiagnostics({ getConfig: () => CONFIG, normalizeClaudeContent, sanitizeGeminiToolCall });
-
-function shouldLogProxyEvent(kind, payload) {
-  if (!payload) return true;
-  if (kind !== 'request_start' && kind !== 'request_end') return true;
-  const statusCode = Number(payload.statusCode || 0);
-  if (statusCode >= 400) return true;
-  return !isQuietLocalPollRequest(payload.method, payload.path);
-}
-
-function logProxyEvent(kind, payload) {
-  if (!shouldLogProxyEvent(kind, payload)) return false;
-  writeProxyEvent(kind, payload);
-  return true;
-}
-
-function logRequestEnd(method, path, startTime, statusCode, extra) {
-  const elapsed = Date.now() - startTime;
-  logProxyEvent('request_end', {
-    reqId: getReqId(),
-    method,
-    path,
-    elapsed,
-    statusCode,
-    ...(extra || {}),
-  });
-  // 指标埋点:观察直方图 + 错误计数
-  try {
-    metricsInstance.histogram('proxy_request_duration_seconds').observe(elapsed / 1000);
-    if (statusCode && statusCode >= 500) {
-      metricsInstance
-        .counter('proxy_errors_total')
-        .inc(1, { type: (extra && extra.type) || 'unknown' });
-    }
-  } catch (e) {
-    /* never break on metrics */
-  }
-}
-
-function installLocalManagementRequestEndLogger(clientRes, method, path, startTime) {
-  if (!clientRes || clientRes.__localManagementRequestEndLogger) return;
-  clientRes.__localManagementRequestEndLogger = true;
-  clientRes.once('finish', () => {
-    logRequestEnd(method, path, startTime, clientRes.statusCode || 200, {
-      type: 'local_management',
-    });
-  });
-}
-
-const AUDIT_MAX_CAPTURE_BYTES = parseBoundedInteger(
-  process.env.PROXY_AUDIT_MAX_CAPTURE_BYTES,
-  256 * 1024,
-  16 * 1024,
-  4 * 1024 * 1024
-);
-const AUDIT_MAX_TEXT_CHARS = parseBoundedInteger(
-  process.env.PROXY_AUDIT_MAX_TEXT_CHARS,
-  120000,
-  1024,
-  1024 * 1024
-);
-const MAX_REQUEST_BODY_BYTES = parseBoundedInteger(
-  process.env.PROXY_MAX_REQUEST_BODY_BYTES,
-  32 * 1024 * 1024,
-  1024 * 1024,
-  256 * 1024 * 1024
-);
-const MAX_CONVERSION_RESPONSE_BYTES = parseBoundedInteger(
-  process.env.PROXY_MAX_CONVERSION_RESPONSE_BYTES,
-  16 * 1024 * 1024,
-  1024 * 1024,
-  256 * 1024 * 1024
-);
-
-function appendAuditText(current, addition) {
-  return appendAuditTextBounded(current, addition, AUDIT_MAX_TEXT_CHARS);
-}
-
-function populateAuditDataFromPrepared(clientRes, prepared, requestBuffer) {
-  return populateAuditDataFromPreparedWithDeps(clientRes, prepared, requestBuffer, {
-    isGeminiProfile,
-    isClaudeProfile,
-  });
 }
 
 // 全局异常处理，避免进程意外崩溃
@@ -1206,1079 +926,139 @@ function handleRequest(clientReq, clientRes, entry) {
   return withRequest({ reqId }, () => handleRequestInner(clientReq, clientRes, entry));
 }
 
-function handleRequestInner(clientReq, clientRes, entry) {
-  const startTime = Date.now();
-  const clientIp = getClientIp(clientReq);
-  const urlPath = clientReq.url;
-  const method = clientReq.method;
-  const desktopRequest = isClaudeDesktopRequest(entry, urlPath);
-  const effectiveUrlPath = desktopRequest ? stripClaudeDesktopPrefix(urlPath) : urlPath;
-  const effectiveUrlPathname = effectiveUrlPath.split('?')[0];
-  const localManagementRequest = isLocalManagementPath(effectiveUrlPathname);
-  // 指标埋点:每个非本地管理请求递增
-  const isApiRequest = isConversationRequestPath(method, effectiveUrlPath);
-  if (!localManagementRequest) {
-    metricsInstance.counter('proxy_requests_total').inc();
-  }
-  const auditEnabled =
-    isApiRequest &&
-    process.env.PROXY_DISABLE_CONVERSATION_AUDIT !== '1' &&
-    !(CONFIG.appSettings && CONFIG.appSettings.conversationAuditEnabled === false);
-
-  if (auditEnabled) {
-    const auditCaptureContent =
-      CONFIG.appSettings && CONFIG.appSettings.conversationAuditCaptureContent === true;
-    const requestId = 'req-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
-    clientRes.__auditId = requestId;
-    clientRes.__auditData = createConversationAuditData({
-      id: requestId,
-      startTime: Date.now(),
-      method,
-      path: urlPath,
-      clientIp,
-      entryPort: entry && entry.listenPort,
-      entryProtocol: entryLabel(entry),
-      requestHeaders: clientReq.headers,
-      redactHeaders,
-      captureContent: auditCaptureContent,
-    });
-
-    installConversationAuditResponseCapture(clientRes, {
-      maxCaptureBytes: AUDIT_MAX_CAPTURE_BYTES,
-      maxTextChars: AUDIT_MAX_TEXT_CHARS,
-      redactHeaders,
-      mergeUsage,
-      usageFromSsePayload,
-      extractUsageFromJsonPayload,
-      estimateUsageForRecord,
-      logUsage,
-      estimateCost,
-      appendAuditRecord,
-      config: CONFIG,
-      log,
-      captureContent: auditCaptureContent,
-    });
-  }
-
-  const { cliSession } = resolveCliSession(clientReq.headers, CLI_SESSIONS);
-  if (cliSession) applyManagedAuthHeaders(clientReq.headers);
-
-  const localPollRequest = isQuietLocalPollRequest(method, effectiveUrlPathname);
-  if (!localPollRequest) {
-    log.info('-> ' + method + ' ' + urlPath + '  [' + clientIp + '] entry=' + entryLabel(entry));
-    logProxyEvent('request_start', {
-      reqId: clientReq.reqId,
-      method,
-      path: urlPath,
-      clientIp,
-      entryProtocol: entryLabel(entry),
-      entryPort: entry && entry.listenPort,
-      claudeDesktop: desktopRequest,
-    });
-  }
-
-  if (localManagementRequest && !installManagementCorsGuard(clientReq, clientRes)) {
-    logRequestEnd(method, urlPath, startTime, 403, { type: 'management_origin' });
-    return;
-  }
-
-  // CORS preflight
-  if (method === 'OPTIONS') {
-    clientRes.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': '*',
-      'Access-Control-Max-Age': '86400',
-    });
-    clientRes.end();
-    return;
-  }
-
-  // Local Admin APIs
-  if (localManagementRequest && !isPublicLocalManagementPath(effectiveUrlPathname)) {
-    installLocalManagementRequestEndLogger(clientRes, method, urlPath, startTime);
-
-    const clientToken =
-      clientReq.headers['x-mgmt-token'] ||
-      new URL(clientReq.url, 'http://localhost').searchParams.get('token');
-    if (clientToken !== MANAGEMENT_TOKEN && !isTauriManagementOrigin(clientReq)) {
-      console.warn(`[mgmt] Unauthorized management request from ${clientIp}: ${method} ${urlPath}`);
-      clientRes.writeHead(401, { 'Content-Type': 'application/json' });
-      clientRes.end(JSON.stringify({ error: 'Unauthorized management access' }));
-      logRequestEnd(method, urlPath, startTime, 401, { type: 'management_unauthorized' });
-      return;
-    }
-  }
-  if (
-    dispatchLocalManagementRoute({
-      method,
-      pathname: effectiveUrlPathname,
-      req: clientReq,
-      res: clientRes,
-      handlers: managementHandlers,
-    })
-  ) {
-    return;
-  }
-
-  // Forward request - pass path as-is (SDK already includes /v1 from base_url)
-  // Normalize path: tools may or may not include /v1 prefix
-  if (
-    (method === 'GET' || method === 'HEAD') &&
-    (effectiveUrlPathname === '/favicon.ico' || effectiveUrlPathname === '/v1/favicon.ico')
-  ) {
-    clientRes.writeHead(204, {
-      'Cache-Control': 'public, max-age=86400',
-      'access-control-allow-origin': '*',
-    });
-    clientRes.end();
-    return;
-  }
-
-  const clientPath =
-    effectiveUrlPath.indexOf('/v1') === 0 ? effectiveUrlPath : '/v1' + effectiveUrlPath;
-  const entryAuth = authorizeEntryRequest(clientReq, entry, CONFIG);
-  if (!entryAuth.ok) {
-    sendJsonError(clientRes, 401, {
-      error: {
-        type: 'authentication_error',
-        message: 'Invalid or missing proxy entry API key.',
-      },
-    });
-    logRequestEnd(method, urlPath, startTime, 401, { type: 'entry_auth' });
-    return;
-  }
-  clientReq.entryAuth = entryAuth;
-  if (isEntryHealthPath(entry, method, clientPath)) {
-    sendEntryHealth(clientRes, entry, method, clientPath);
-    logRequestEnd(method, urlPath, startTime, 200, {
-      type: 'entry_health',
-      entryProtocol: entryLabel(entry),
-    });
-    return;
-  }
-  if (!isAllowedEntryPath(entry, method, clientPath)) {
-    sendEntryPathError(clientRes, entry, method, clientPath);
-    logRequestEnd(method, urlPath, startTime, 404, {
-      type: 'entry_path_mismatch',
-      entryProtocol: entryLabel(entry),
-    });
-    return;
-  }
-
-  if (desktopRequest && !isAuthorizedClaudeDesktopRequest(CONFIG, clientReq.headers, decryptKey)) {
-    sendUnauthorizedClaudeDesktop(clientRes);
-    logRequestEnd(method, urlPath, startTime, 401, { type: 'claude_desktop_auth' });
-    return;
-  }
-
-  const modelRequest = parseModelsRequestPath(effectiveUrlPath);
-  if ((method === 'GET' || method === 'HEAD') && modelRequest) {
-    const entryRoutes = routesForEntry(entry, desktopRequest, {
-      modelRoutes: MODEL_ROUTES,
-      claudeDesktopRoutes: CLAUDE_DESKTOP_ROUTES,
-    }).filter(
-      (route) =>
-        !entryAuth.enabled || profileMatchesEntryKey(entryAuth, { id: route && route.profileId })
-    );
-    const modelsResult = handleLocalModelsRequest(
-      clientReq,
-      clientRes,
-      modelRequest,
-      entryRoutes,
-      desktopRequest ? 'claude' : modelsFormatForEntry(entry),
-      desktopRequest ? 'claude' : entry && entry.protocol
-    );
-    logRequestEnd(method, urlPath, startTime, modelsResult && modelsResult.status, {
-      type: 'local_models',
-      format: modelsResult && modelsResult.format,
-      modelCount: modelsResult && modelsResult.modelCount,
-    });
-    return;
-  }
-  const fwdHeaders = { ...clientReq.headers };
-  delete fwdHeaders['host'];
-  if (entryAuth.enabled) stripEntryAuthHeaders(fwdHeaders);
-
-  collectLimitedRequestBody(clientReq, {
-    limit: MAX_REQUEST_BODY_BYTES,
-    onTooLarge({ bytes, limit }) {
-      logProxyEvent('request_too_large', {
-        method,
-        path: urlPath,
-        bytes,
-        limit,
-      });
-    },
-    onComplete({ tooLarge, bytes, buffer: requestBuffer }) {
-      if (tooLarge) {
-        sendRequestTooLarge(clientReq, clientRes, MAX_REQUEST_BODY_BYTES);
-        logRequestEnd(method, urlPath, startTime, 413, {
-          type: 'request_too_large',
-          bytes,
-          limit: MAX_REQUEST_BODY_BYTES,
-        });
-        return;
-      }
-      if (clientRes.__auditData) {
-        const captured = captureRequestBody(requestBuffer, clientReq.headers['content-encoding']);
-        clientRes.__auditData.request = {
-          ...clientRes.__auditData.request,
-          body: captured.body,
-          truncated: captured.truncated,
-          originalLength: captured.originalLength,
-        };
-      }
-      const desktop3pRequest = isClaudeDesktop3pRequest(clientReq.headers);
-      const shouldUseDesktopRoutes = desktopRequest || desktop3pRequest;
-      const initialPrepared = prepareRequestBufferWithResolver(
-        requestBuffer,
-        clientReq.headers['content-encoding'],
-        shouldUseDesktopRoutes ? resolveClaudeDesktopRoute : resolveRoute
-      );
-      if (method === 'POST' && clientPath.indexOf('/v1/messages/count_tokens') === 0) {
-        populateAuditDataFromPrepared(clientRes, initialPrepared, requestBuffer);
-        handleCountTokens(clientReq, clientRes, requestBuffer, logRequestEnd, startTime);
-        return;
-      }
-
-      function doForward(currentPrepared, attempt = 1) {
-        const MAX_RETRIES = 2; // Up to 3 total attempts
-        const requestProtocol = isGeminiProfile(currentPrepared.profile)
-          ? 'gemini'
-          : isClaudeProfile(currentPrepared.profile)
-            ? 'claude'
-            : 'openai';
-        // 协议版本透传:Claude 走 anthropic-version header
-        const protocolVersion = resolveProfileProtocolVersion(currentPrepared.profile);
-        if (protocolVersion) {
-          // 通过 out-of-band 变量携带,稍后在 outgoingHeaders 合并
-          currentPrepared._protocolVersion = protocolVersion;
-        }
-
-        if (clientRes.__auditData) {
-          populateAuditDataFromPrepared(clientRes, currentPrepared, requestBuffer);
-        }
-        if (
-          clientReq.entryAuth &&
-          clientReq.entryAuth.enabled &&
-          !profileMatchesEntryKey(clientReq.entryAuth, currentPrepared.profile)
-        ) {
-          sendJsonError(clientRes, 403, {
-            error: {
-              type: 'permission_denied',
-              message: 'Proxy entry API key is not allowed to use this route.',
-            },
-          });
-          logRequestEnd(method, urlPath, startTime, 403, { type: 'entry_auth_profile' });
-          return;
-        }
-
-        if (
-          currentPrepared.authMode === 'official-login' &&
-          currentPrepared.authProvider === 'trae'
-        ) {
-          if (method === 'POST' && isOpenAIChatCompletionsPath(clientPath)) {
-            handleTraeOfficialChatCompletion(
-              clientReq,
-              clientRes,
-              requestBuffer,
-              currentPrepared,
-              startTime,
-              urlPath
-            );
-            return;
-          }
-          if (method === 'POST' && isOpenAIResponsesPath(clientPath)) {
-            handleTraeOfficialResponses(
-              clientReq,
-              clientRes,
-              requestBuffer,
-              currentPrepared,
-              startTime,
-              urlPath
-            );
-            return;
-          }
-          if (method === 'POST' && isClaudeMessagesPath(clientPath)) {
-            handleTraeOfficialClaudeMessages(
-              clientReq,
-              clientRes,
-              requestBuffer,
-              currentPrepared,
-              startTime,
-              urlPath,
-              {
-                claudeProcessStyle: shouldUseDesktopRoutes
-                  ? getClaudeDesktopTraeProcessStyle(CONFIG, {
-                      claudeDesktop3p: desktop3pRequest,
-                    })
-                  : '',
-              }
-            );
-            return;
-          }
-          sendJsonError(clientRes, 501, {
-            error: {
-              type: 'not_implemented',
-              message:
-                'Trae 官方登录桥接目前支持 OpenAI /v1/chat/completions、OpenAI /v1/responses 和 Claude /v1/messages。',
-            },
-          });
-          logRequestEnd(method, urlPath, startTime, 501, {
-            type: 'trae_official_unsupported_path',
-          });
-          return;
-        }
-
-        const target = parseTargetUrl(currentPrepared.profile.targetUrl);
-        const upstreamPath = target.path + clientPath.replace(/^\/v1/, '');
-        const apiKey =
-          currentPrepared.authMode === 'official-login'
-            ? currentPrepared.profile.apiKey || null
-            : process.env.API_KEY || currentPrepared.profile.apiKey || null;
-        const isClaudeEntryRequest = forceClaudeEntry(entry) && isClaudeMessagesPath(clientPath);
-        const isChatEntryRequest = forceChatEntry(entry) && isOpenAIChatCompletionsPath(clientPath);
-        const isResponsesEntryRequest =
-          forceResponsesEntry(entry) && isOpenAIResponsesPath(clientPath);
-
-        if (
-          currentPrepared.authMode === 'official-login' &&
-          currentPrepared.authProvider === 'google' &&
-          isGeminiProfile(currentPrepared.profile) &&
-          !(typeof apiKey === 'string' && apiKey.startsWith('ya29.'))
-        ) {
-          sendJsonError(clientRes, 401, {
-            error: {
-              type: 'authentication_error',
-              message:
-                'Google official-login credentials are unavailable or expired. Please sign in again before using this route.',
-            },
-          });
-          logRequestEnd(method, urlPath, startTime, 401, { type: 'google_official_auth_missing' });
-          return;
-        }
-
-        const isResponsesUpstream =
-          currentPrepared.profile &&
-          (currentPrepared.profile.api === 'openai-codex-responses' ||
-            (currentPrepared.profile.targetUrl &&
-              (currentPrepared.profile.targetUrl.includes('/backend-api/codex') ||
-                currentPrepared.profile.targetUrl.includes('/backend-api'))));
-
-        // 协议转换路由表:把 8 个 if 块(原 270 行)合并成数据驱动的调度。
-        // 每条路由包含:匹配谓词、logModelMapping 标签、压缩请求体拒绝消息、目标 handler。
-        // 第一个匹配的路由会处理并 return,后续路由不再评估(与原代码语义一致)。
-        const conversionRoutes = [
-          {
-            label: 'chat->responses',
-            match:
-              isResponsesUpstream && isOpenAIChatCompletionsPath(clientPath) && method === 'POST',
-            rejectMessage:
-              'Chat to Responses conversion does not support compressed request bodies',
-            handler: handleOpenAIChatToOpenAIResponses,
-          },
-          {
-            label: 'claude->responses',
-            match: isResponsesUpstream && isClaudeEntryRequest && method === 'POST',
-            rejectMessage:
-              'Claude to Responses conversion does not support compressed request bodies',
-            handler: handleClaudeMessagesToOpenAIResponses,
-          },
-          {
-            label: 'claude->openai',
-            match:
-              method === 'POST' &&
-              (shouldConvertClaudeMessagesToOpenAI(
-                clientReq,
-                currentPrepared.profile,
-                clientPath
-              ) ||
-                (isClaudeEntryRequest && isOpenAIProfile(currentPrepared.profile))),
-            rejectMessage: 'Claude to OpenAI conversion does not support compressed request bodies',
-            handler: handleClaudeMessagesToOpenAIChat,
-          },
-          {
-            label: 'openai->gemini',
-            match:
-              isChatEntryRequest && isGeminiProfile(currentPrepared.profile) && method === 'POST',
-            rejectMessage: 'OpenAI to Gemini conversion does not support compressed request bodies',
-            handler: handleOpenAIChatToGeminiMessages,
-          },
-          {
-            label: 'openai->claude',
-            match:
-              isClaudeProfile(currentPrepared.profile) &&
-              method === 'POST' &&
-              isOpenAIChatCompletionsPath(clientPath),
-            rejectMessage: 'OpenAI to Claude conversion does not support compressed request bodies',
-            handler: handleOpenAIChatToClaudeMessages,
-          },
-          {
-            label: 'responses->claude',
-            match:
-              isResponsesEntryRequest &&
-              method === 'POST' &&
-              isClaudeProfile(currentPrepared.profile),
-            rejectMessage: 'OpenAI Responses conversion does not support compressed request bodies',
-            handler: handleOpenAIResponsesToClaudeMessages,
-          },
-          {
-            label: 'responses->gemini',
-            match:
-              isResponsesEntryRequest &&
-              method === 'POST' &&
-              isGeminiProfile(currentPrepared.profile),
-            rejectMessage: 'OpenAI Responses conversion does not support compressed request bodies',
-            handler: handleOpenAIResponsesToGeminiMessages,
-          },
-          {
-            label: 'responses->chat',
-            match:
-              isResponsesEntryRequest &&
-              method === 'POST' &&
-              isOpenAIProfile(currentPrepared.profile) &&
-              shouldConvertResponsesToOpenAIChat(currentPrepared.profile),
-            rejectMessage: null,
-            handler: handleOpenAIResponsesToOpenAIChat,
-          },
-          {
-            label: 'claude->gemini',
-            match:
-              isGeminiProfile(currentPrepared.profile) &&
-              method === 'POST' &&
-              isClaudeMessagesPath(clientPath),
-            rejectMessage: 'Gemini conversion does not support compressed request bodies',
-            handler: handleGeminiMessages,
-          },
-        ];
-
-        function tryConversionRoute(route) {
-          if (!route.match) return false;
-          if (route.rejectMessage && clientReq.headers['content-encoding']) {
-            clientRes.writeHead(400, {
-              'Content-Type': 'application/json; charset=utf-8',
-              'access-control-allow-origin': '*',
-            });
-            clientRes.end(
-              JSON.stringify({
-                error: { type: 'invalid_request_error', message: route.rejectMessage },
-              })
-            );
-            return true;
-          }
-          logModelMapping(route.label, method, upstreamPath, currentPrepared, requestBuffer);
-          route.handler(
-            clientReq,
-            clientRes,
-            currentPrepared,
-            target,
-            apiKey,
-            upstreamPath,
-            startTime
-          );
-          return true;
-        }
-
-        for (const route of conversionRoutes) {
-          if (tryConversionRoute(route)) return;
-        }
-
-        if (method === 'POST' && isClaudeMessagesPath(clientPath))
-          sampleRequestToolResults(currentPrepared, requestProtocol, upstreamPath);
-
-        const outgoingHeaders = buildOutgoingHeaders(fwdHeaders, {
-          requestProtocol,
-          protocolVersion: currentPrepared._protocolVersion,
-          authMode: currentPrepared.authMode,
-          apiKey,
-          routed: currentPrepared.routed,
-          bodyBuffer: currentPrepared.buffer,
-        });
-        if (currentPrepared.routed) {
-          logModelMapping('route', method, upstreamPath, currentPrepared, requestBuffer);
-        }
-
-        if (clientRes.__auditData) {
-          clientRes.__auditData.upstream = {
-            method,
-            path: upstreamPath,
-            targetHost: target.hostname,
-            targetProtocol: target.protocol,
-            headers: redactHeaders(outgoingHeaders),
-            body: captureRequestBody(currentPrepared.buffer, outgoingHeaders['content-encoding'])
-              .body,
-          };
-        }
-
-        const transport = target.protocol === 'https:' ? https : http;
-        const proxyReq = transport.request(
-          {
-            hostname: process.env.TARGET || target.hostname,
-            port: parsePortOrDefault(
-              process.env.TARGET_PORT || target.port,
-              target.protocol === 'https:' ? 443 : 80
-            ),
-            path: upstreamPath,
-            method: method,
-            headers: outgoingHeaders,
-            timeout: 45000,
-            agent: target.protocol === 'https:' ? globalHttpsAgent : globalHttpAgent,
-          },
-          (proxyRes) => {
-            const code = proxyRes.statusCode;
-            const recovery = resolveUpstreamRecovery({
-              kind: 'status',
-              statusCode: code,
-              attempt,
-              maxRetries: MAX_RETRIES,
-              prepared: currentPrepared,
-              profiles: getProfiles(loadConfig()) || [],
-              retryAfter: proxyRes.headers['retry-after'],
-            });
-
-            if (recovery.type === 'failover') {
-              console.warn(
-                `[Failover] Upstream returned status ${code}, falling back to backup profile: ${recovery.profile.id}`
-              );
-              const backupPrepared = { ...currentPrepared, profile: recovery.profile };
-              proxyRes.destroy();
-              doForward(backupPrepared, 2);
-              return;
-            }
-
-            if (recovery.type === 'retry') {
-              console.warn(
-                `[Retry] Upstream returned ${code}, retrying in ${Math.round(recovery.delayMs)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
-              );
-              proxyRes.destroy();
-              setTimeout(() => doForward(currentPrepared, attempt + 1), recovery.delayMs);
-              return;
-            }
-
-            const headers = {
-              ...proxyRes.headers,
-              'access-control-allow-origin': '*',
-              'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-              'access-control-allow-headers': '*',
-            };
-
-            const isStream =
-              (proxyRes.headers['content-type'] || '').indexOf('text/event-stream') >= 0;
-            const shouldSanitizeOpenAIStream =
-              code >= 200 &&
-              code < 300 &&
-              isStream &&
-              isClaudeMessagesPath(clientPath) &&
-              isOpenAIProfile(currentPrepared.profile);
-            const shouldProtectStream =
-              code >= 200 &&
-              code < 300 &&
-              isStream &&
-              isClaudeMessagesPath(clientPath) &&
-              !isOpenAIProfile(currentPrepared.profile);
-            if (shouldProtectStream || shouldSanitizeOpenAIStream) delete headers['content-length'];
-            clientRes.writeHead(code, headers);
-            const errorChunks = [];
-            let errorBytes = 0;
-            let logged = false;
-
-            if (shouldSanitizeOpenAIStream) {
-              clientRes.__diagnostics = {
-                protocol: 'openai',
-                route: currentPrepared.model,
-                target: currentPrepared.rewriteTo,
-                upstreamPath,
-                profile: currentPrepared.profile && currentPrepared.profile.id,
-              };
-              const sseState = {
-                buffer: '',
-                pendingClaudeTool: null,
-                mode: 'strip-empty-optionals',
-              };
-              proxyRes.on('data', function (chunk) {
-                const chunkText = chunk.toString('utf8');
-                if (!logged) logged = true;
-                sampleResponseChunk('openai-upstream', chunkText, {
-                  route: currentPrepared.model,
-                  target: currentPrepared.rewriteTo,
-                  upstreamPath,
-                });
-                processClaudeSseChunk(clientRes, chunkText, sseState);
-              });
-              proxyRes.on('end', function () {
-                flushClaudeSseFilter(clientRes, sseState);
-                log.info(
-                  'ok ' +
-                    method +
-                    ' ' +
-                    urlPath +
-                    '  -> ' +
-                    code +
-                    ' (streaming sanitized, ' +
-                    (Date.now() - startTime) +
-                    'ms)'
-                );
-                clientRes.end();
-                logRequestEnd(method, urlPath, startTime, code, {
-                  type: 'openai_stream_sanitized',
-                });
-              });
-              return;
-            }
-
-            if (shouldProtectStream) {
-              clientRes.__diagnostics = {
-                protocol: 'openai',
-                route: currentPrepared.model,
-                target: currentPrepared.rewriteTo,
-                upstreamPath,
-                profile: currentPrepared.profile && currentPrepared.profile.id,
-              };
-              const sseState = { buffer: '', pendingClaudeTool: null };
-              proxyRes.on('data', function (chunk) {
-                const chunkText = chunk.toString('utf8');
-                if (!logged) logged = true;
-                sampleResponseChunk('openai-upstream', chunkText, {
-                  route: currentPrepared.model,
-                  target: currentPrepared.rewriteTo,
-                  upstreamPath,
-                });
-                processClaudeSseChunk(clientRes, chunkText, sseState);
-              });
-              proxyRes.on('end', function () {
-                flushClaudeSseFilter(clientRes, sseState);
-                log.info(
-                  'ok ' +
-                    method +
-                    ' ' +
-                    urlPath +
-                    '  -> ' +
-                    code +
-                    ' (protected streaming, ' +
-                    (Date.now() - startTime) +
-                    'ms)'
-                );
-                clientRes.end();
-                logRequestEnd(method, urlPath, startTime, code, {
-                  type: 'openai_stream_protected',
-                });
-              });
-              return;
-            }
-
-            proxyRes.on('data', function (chunk) {
-              if (!logged) {
-                const elapsed = Date.now() - startTime;
-                if (!isStream)
-                  log.info(
-                    'ok ' + method + ' ' + urlPath + '  -> ' + code + ' (' + elapsed + 'ms)'
-                  );
-                logged = true;
-              }
-
-              if (code >= 400 && !isStream && errorBytes < 4096) {
-                const remaining = 4096 - errorBytes;
-                const part = chunk.length > remaining ? chunk.subarray(0, remaining) : chunk;
-                errorChunks.push(part);
-                errorBytes += part.length;
-              }
-            });
-
-            proxyRes.on('end', function () {
-              if (isStream)
-                log.info(
-                  'ok ' +
-                    method +
-                    ' ' +
-                    urlPath +
-                    '  -> ' +
-                    code +
-                    ' (streaming, ' +
-                    (Date.now() - startTime) +
-                    'ms)'
-                );
-              logRequestEnd(method, urlPath, startTime, code, {
-                type: isStream ? 'openai_stream' : 'openai',
-              });
-
-              if (code >= 400 && errorChunks.length > 0) {
-                const requestId =
-                  proxyRes.headers['x-request-id'] ||
-                  proxyRes.headers['request-id'] ||
-                  proxyRes.headers['anthropic-request-id'] ||
-                  '-';
-                const retryAfter = proxyRes.headers['retry-after'] || '-';
-                const body = Buffer.concat(errorChunks)
-                  .toString('utf8')
-                  .replace(/\s+/g, ' ')
-                  .trim();
-                const requestedModel = currentPrepared.model || '';
-                log.warn(
-                  '!! upstream error ' +
-                    method +
-                    ' ' +
-                    upstreamPath +
-                    ' -> ' +
-                    code +
-                    ' model=' +
-                    requestedModel +
-                    ' request-id=' +
-                    requestId +
-                    ' retry-after=' +
-                    retryAfter +
-                    ' body=' +
-                    body
-                );
-                logProxyEvent('upstream_error', {
-                  method,
-                  path: upstreamPath,
-                  code,
-                  model: requestedModel,
-                  body,
-                });
-              }
-            });
-
-            proxyRes.pipe(clientRes);
-          }
-        );
-
-        proxyReq.on('timeout', function () {
-          const recovery = resolveUpstreamRecovery({
-            kind: 'error',
-            attempt,
-            maxRetries: MAX_RETRIES,
-            prepared: currentPrepared,
-            profiles: getProfiles(loadConfig()) || [],
-          });
-          if (recovery.type === 'failover') {
-            console.warn(
-              `[Failover] Upstream timed out, falling back to backup profile: ${recovery.profile.id}`
-            );
-            proxyReq.destroy();
-            doForward({ ...currentPrepared, profile: recovery.profile }, 2);
-            return;
-          }
-          if (recovery.type === 'retry') {
-            console.warn(
-              `[Retry] Upstream timeout, retrying in ${Math.round(recovery.delayMs)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
-            );
-            proxyReq.destroy();
-            setTimeout(() => doForward(currentPrepared, attempt + 1), recovery.delayMs);
-            return;
-          }
-          proxyReq.destroy(new Error('Gateway Timeout (Upstream request timed out)'));
-        });
-
-        proxyReq.on('error', function (err) {
-          const recovery = resolveUpstreamRecovery({
-            kind: 'error',
-            attempt,
-            maxRetries: MAX_RETRIES,
-            prepared: currentPrepared,
-            profiles: getProfiles(loadConfig()) || [],
-          });
-          if (recovery.type === 'failover') {
-            console.warn(
-              `[Failover] Upstream request failed (${err.message}), falling back to backup profile: ${recovery.profile.id}`
-            );
-            doForward({ ...currentPrepared, profile: recovery.profile }, 2);
-            return;
-          }
-          if (recovery.type === 'retry') {
-            console.warn(
-              `[Retry] Upstream error (${err.message}), retrying in ${Math.round(recovery.delayMs)}ms... (Attempt ${attempt}/${MAX_RETRIES})`
-            );
-            setTimeout(() => doForward(currentPrepared, attempt + 1), recovery.delayMs);
-            return;
-          }
-
-          log.error('xx ' + method + ' ' + urlPath + '  ' + (err.code || err.message));
-          logProxyEvent('proxy_error', {
-            method,
-            path: urlPath,
-            error: err.message,
-            code: err.code,
-          });
-          if (!clientRes.headersSent) {
-            clientRes.writeHead(502, {
-              'Content-Type': 'application/json; charset=utf-8',
-              'access-control-allow-origin': '*',
-            });
-            clientRes.end(
-              JSON.stringify({
-                error: { message: 'Proxy error: ' + err.message, type: 'proxy_error' },
-              })
-            );
-          }
-        });
-
-        proxyReq.end(currentPrepared.buffer);
-      }
-
-      applyCliSessionModelOverride(initialPrepared, {
-        cliSession,
-        requestBuffer,
-        requestEncoding: clientReq.headers['content-encoding'],
-        resolveRoute,
-        modelRoutes: MODEL_ROUTES,
-        profiles: PROFILES,
-        activeProfile: ACTIVE_PROFILE,
-      });
-
-      resolveOfficialCredentials(initialPrepared, clientReq.headers)
-        .then(async function (prepared) {
-          if (
-            isClaudeMessagesPath(clientPath) &&
-            prepared.buffer &&
-            !clientReq.headers['content-encoding']
-          ) {
-            try {
-              const parsed = JSON.parse(prepared.buffer.toString('utf8'));
-              const augmented = await mcpHub.augmentRequestTools(parsed);
-              prepared.buffer = Buffer.from(JSON.stringify(augmented));
-            } catch (e) {}
-          }
-          doForward(prepared, 1);
-        })
-        .catch(function (err) {
-          log.error('[auth] Failed to resolve credentials:', err.message);
-          doForward(initialPrepared, 1);
-        });
-    },
-    onAborted() {
-      clientRes.destroy();
-    },
-  });
-}
+const handleRequestInner = createCoreRequestHandler({
+  AUDIT_MAX_CAPTURE_BYTES,
+  AUDIT_MAX_TEXT_CHARS,
+  MAX_REQUEST_BODY_BYTES,
+  appendAuditRecord,
+  applyCliSessionModelOverride,
+  applyManagedAuthHeaders,
+  authorizeEntryRequest,
+  buildOutgoingHeaders,
+  captureRequestBody,
+  collectLimitedRequestBody,
+  createConversationAuditData,
+  decryptKey,
+  dispatchLocalManagementRoute,
+  entryLabel,
+  estimateCost,
+  estimateUsageForRecord,
+  extractUsageFromJsonPayload,
+  flushClaudeSseFilter,
+  forceChatEntry,
+  forceClaudeEntry,
+  forceResponsesEntry,
+  getClaudeDesktopTraeProcessStyle,
+  getClientIp,
+  getProfiles,
+  handleClaudeMessagesToOpenAIChat,
+  handleClaudeMessagesToOpenAIResponses,
+  handleCountTokens,
+  handleGeminiMessages,
+  handleLocalModelsRequest,
+  handleOpenAIChatToClaudeMessages,
+  handleOpenAIChatToGeminiMessages,
+  handleOpenAIChatToOpenAIResponses,
+  handleOpenAIResponsesToClaudeMessages,
+  handleOpenAIResponsesToGeminiMessages,
+  handleOpenAIResponsesToOpenAIChat,
+  handleTraeOfficialChatCompletion,
+  handleTraeOfficialClaudeMessages,
+  handleTraeOfficialResponses,
+  installConversationAuditResponseCapture,
+  installLocalManagementRequestEndLogger,
+  installManagementCorsGuard,
+  isAllowedEntryPath,
+  isAuthorizedClaudeDesktopRequest,
+  isClaudeDesktop3pRequest,
+  isClaudeDesktopRequest,
+  isClaudeMessagesPath,
+  isClaudeProfile,
+  isConversationRequestPath,
+  isEntryHealthPath,
+  isGeminiProfile,
+  isLocalManagementPath,
+  isOpenAIChatCompletionsPath,
+  isOpenAIProfile,
+  isOpenAIResponsesPath,
+  isPublicLocalManagementPath,
+  isQuietLocalPollRequest,
+  isTauriManagementOrigin,
+  loadConfig,
+  log,
+  logModelMapping,
+  logProxyEvent,
+  logRequestEnd,
+  logUsage,
+  managementHandlers,
+  mcpHub,
+  mergeUsage,
+  metricsInstance,
+  modelsFormatForEntry,
+  parseModelsRequestPath,
+  parsePortOrDefault,
+  parseTargetUrl,
+  populateAuditDataFromPrepared,
+  prepareRequestBufferWithResolver,
+  processClaudeSseChunk,
+  profileMatchesEntryKey,
+  redactHeaders,
+  resolveClaudeDesktopRoute,
+  resolveCliSession,
+  resolveOfficialCredentials,
+  resolveProfileProtocolVersion,
+  resolveRoute,
+  resolveUpstreamRecovery,
+  routesForEntry,
+  sampleRequestToolResults,
+  sampleResponseChunk,
+  sendEntryHealth,
+  sendEntryPathError,
+  sendJsonError,
+  sendRequestTooLarge,
+  sendUnauthorizedClaudeDesktop,
+  shouldConvertClaudeMessagesToOpenAI,
+  shouldConvertResponsesToOpenAIChat,
+  stripClaudeDesktopPrefix,
+  stripEntryAuthHeaders,
+  usageFromSsePayload,
+  getRuntimeState: () => ({
+    ACTIVE_PROFILE,
+    CLAUDE_DESKTOP_ROUTES,
+    CLI_SESSIONS,
+    CONFIG,
+    MANAGEMENT_TOKEN,
+    MODEL_ROUTES,
+    PROFILES,
+    globalHttpAgent,
+    globalHttpsAgent,
+  }),
+});
 
 /* ========== 启动 ========== */
 
 if (require.main === module) {
-  const MGMT_PORT = parsePortOrDefault(
-    process.env.MGMT_PORT || CONFIG.localServer?.managementPort,
-    PORT <= 65435 ? PORT + 100 : 3543
-  );
-
-  const checkExistingManagementServer = function (callback) {
-    let settled = false;
-    function finish(isProxy) {
-      if (settled) return;
-      settled = true;
-      callback(isProxy);
-    }
-    const req = http.request(
-      {
-        host: '127.0.0.1',
-        port: MGMT_PORT,
-        path: '/v1/local/health',
-        method: 'GET',
-        timeout: 500,
-      },
-      function (res) {
-        const chunks = [];
-        let bytes = 0;
-        res.on('data', function (chunk) {
-          if (settled) return;
-          const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), 'utf8');
-          bytes += buffer.length;
-          if (bytes > 4096) {
-            chunks.length = 0;
-            req.destroy();
-            finish(false);
-            return;
-          }
-          chunks.push(buffer);
-        });
-        res.on('end', function () {
-          if (settled) return;
-          try {
-            const body = Buffer.concat(chunks, bytes).toString('utf8');
-            const parsed = JSON.parse(body || '{}');
-            finish(res.statusCode >= 200 && res.statusCode < 300 && parsed.appId === APP_ID);
-          } catch (err) {
-            finish(false);
-          }
-        });
-      }
-    );
-    req.on('timeout', function () {
-      req.destroy();
-      finish(false);
-    });
-    req.on('error', function () {
-      finish(false);
-    });
-    req.end();
-  };
-
-  const startServers = function () {
-    const tlsConfig = ensureCert();
-    const servers = [];
-
-    // Wire safety-module shutdown hook to our local shutdown
-    try {
-      exceptionHandlers.setShutdownHook(function (reason) {
-        shutdown();
-      });
-    } catch (e) {}
-
-    function shutdown() {
-      let remaining = servers.length;
-      if (!remaining) process.exit(0);
-      for (const server of servers) {
-        try {
-          server.close(function () {
-            remaining -= 1;
-            if (remaining === 0) process.exit(0);
-          });
-        } catch (err) {
-          remaining -= 1;
-          if (remaining === 0) process.exit(0);
-        }
-      }
-    }
-
-    function handleListenError(serverName, err) {
-      if (err && err.code === 'EADDRINUSE') {
-        log.error(
-          '[startup] ' +
-            serverName +
-            ' is already in use. Stop the owning process or change the configured port.'
-        );
-        process.exit(1);
-        return;
-      }
-      log.error('[startup] ' + serverName + ' failed: ' + (err && err.message ? err.message : err));
-      process.exit(1);
-    }
-
-    function listenEntry(entry) {
-      const factory = entry.tls === false ? http : https;
-      const server =
-        entry.tls === false
-          ? factory.createServer(function (req, res) {
-              handleRequest(req, res, entry);
-            })
-          : factory.createServer(tlsConfig, function (req, res) {
-              handleRequest(req, res, entry);
-            });
-      servers.push(server);
-      if (entry.tls !== false) ACTIVE_HTTPS_SERVERS.push(server);
-      const listenHost = entry.host === 'localhost' ? '127.0.0.1' : entry.host;
-      server.on('error', function (err) {
-        handleListenError('port ' + listenHost + ':' + entry.listenPort, err);
-      });
-      server.listen(entry.listenPort, listenHost, function () {
-        log.info(
-          '  Listen:  ' +
-            (entry.tls === false ? 'http' : 'https') +
-            '://' +
-            entry.host +
-            ':' +
-            entry.listenPort +
-            entry.basePath +
-            '  [' +
-            entry.protocol +
-            ']'
-        );
-      });
-      return server;
-    }
-
-    log.info('');
-    log.info('+-----------------------------------------------+');
-    log.info('|        OpenAI HTTPS Proxy                      |');
-    log.info('+-----------------------------------------------+');
-    log.info('');
-
-    const envEntry = process.env.PORT ? [{ ...LOCAL_SERVER, listenPort: PORT }] : ENTRY_SERVERS;
-    for (const entry of envEntry) listenEntry(entry);
-
-    // ── HTTP 管理端口 ──────────────────────────────────
-    // 纯 HTTP 服务器，仅处理 /v1/local/* 管理 API，不转发代理请求。
-    // 解决 Tauri 生产模式下 webview 无法访问自签名 HTTPS 的问题。
-    const mgmtServer = http.createServer(function (req, res) {
-      const urlPath = req.url || '';
-      if (!installManagementCorsGuard(req, res)) return;
-      if (req.method === 'OPTIONS') {
-        res.writeHead(204);
-        res.end();
-        return;
-      }
-      // 只允许 /v1/local/* 管理端点
-      if (urlPath.startsWith('/v1/local/') || urlPath.startsWith('/local/')) {
-        handleRequest(req, res, envEntry[0] || LOCAL_SERVER);
-        return;
-      }
-      // 拒绝其他所有请求（不允许通过 HTTP 管理端口做代理转发）
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Management port only accepts /v1/local/* requests' }));
-    });
-    servers.push(mgmtServer);
-    mgmtServer.on('error', function (err) {
-      handleListenError('management port 127.0.0.1:' + MGMT_PORT, err);
-    });
-    // Write the management token to disk BEFORE starting to listen so
-    // dev-static-server.js (and any other reader) sees the new token the
-    // moment the port is reachable. Without this, there's a small window
-    // where the server is accepting connections but the token file still
-    // holds the previous process's token, and any forwarded management
-    // request gets 401 Unauthorized until the new token is written.
-    writeManagementTokenFile(MGMT_PORT);
-    mgmtServer.listen(MGMT_PORT, '127.0.0.1', function () {
-      writeManagementTokenFile(MGMT_PORT);
-      log.info('  Mgmt:    http://127.0.0.1:' + MGMT_PORT + '/v1/local/*  [management-http]');
-    });
-
-    process.nextTick(function () {
-      log.info('');
-      log.info('  Profile: ' + (ACTIVE_PROFILE.name || ACTIVE_PROFILE.id || 'default'));
-      log.info('  Target:  ' + ACTIVE_PROFILE.targetUrl);
-      log.info('  Routes:  ' + MODEL_ROUTES.length);
-      log.info('');
-      log.info('  SDK Config:');
-      for (const entry of envEntry) {
-        log.info(
-          '    ' +
-            entry.protocol +
-            ': ' +
-            (entry.tls === false ? 'http' : 'https') +
-            '://' +
-            entry.host +
-            ':' +
-            entry.listenPort +
-            entry.basePath
-        );
-      }
-      log.info('    management: http://127.0.0.1:' + MGMT_PORT + '/v1/local/*');
-      log.info('    mgmt_token_file: ' + path.join(DATA_DIR, `.mgmt-token-${MGMT_PORT}`));
-      log.info('    mgmt_token_hint: ' + maskManagementToken(MANAGEMENT_TOKEN));
-      log.info('    openai.api_key  = "your key"');
-      log.info('');
-      log.info('  Ctrl+C to stop');
-      log.info('');
-    });
-
-    process.on('SIGINT', function () {
-      log.info('\nStopping...');
-      shutdown();
-    });
-    process.on('SIGTERM', shutdown);
-  };
-
-  checkExistingManagementServer(function (isRunning) {
-    if (isRunning) {
-      log.info(
-        '[single-instance] Existing proxy management endpoint detected on 127.0.0.1:' +
-          MGMT_PORT +
-          '; exiting duplicate process.'
-      );
-      process.exit(0);
-      return;
-    }
-    startServers();
+  startProxyServers({
+    ACTIVE_HTTPS_SERVERS,
+    APP_ID,
+    DATA_DIR,
+    ensureCert,
+    exceptionHandlers,
+    handleRequest,
+    installManagementCorsGuard,
+    log,
+    maskManagementToken,
+    parsePortOrDefault,
+    writeManagementTokenFile,
+    getRuntimeState: () => ({
+      ACTIVE_PROFILE,
+      CONFIG,
+      ENTRY_SERVERS,
+      LOCAL_SERVER,
+      MANAGEMENT_TOKEN,
+      MODEL_ROUTES,
+      PORT,
+    }),
   });
 }
 
