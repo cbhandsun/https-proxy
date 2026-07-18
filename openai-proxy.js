@@ -8,8 +8,6 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const url = require('url');
-const net = require('net');
 const util = require('util');
 const crypto = require('crypto');
 const { parseBoundedInteger } = require('./lib/proxy/management-utils');
@@ -51,7 +49,7 @@ try {
 function shouldVerifyUpstreamTls() {
   if (process.env.PROXY_ALLOW_UNTRUSTED_UPSTREAM === '1') return false;
   try {
-    const cfg = loadConfig();
+    const cfg = require('./lib/proxy/config').loadConfig();
     return cfg.appSettings && cfg.appSettings.verifyUpstreamTls !== false;
   } catch (e) {
     return true;
@@ -78,334 +76,9 @@ const globalHttpAgent = new http.Agent({
 https.globalAgent = globalHttpsAgent;
 http.globalAgent = globalHttpAgent;
 
-let detectedProxyUrl = null;
-let detectedProxyType = 'http'; // 'http' 或 'socks5'
-let lastDetectTime = 0;
-let proxyDetectCached = false;
-
-function resetLocalProxyDetectionCache() {
-  detectedProxyUrl = null;
-  detectedProxyType = 'http';
-  lastDetectTime = 0;
-  proxyDetectCached = false;
-}
-
-function detectLocalProxy(callback) {
-  try {
-    const { loadConfig } = require('./lib/proxy/config');
-    const cfg = loadConfig();
-    if (cfg && cfg.appSettings && cfg.appSettings.disableLocalProxy) {
-      if (callback) callback(null, 'http');
-      return;
-    }
-  } catch (e) {}
-
-  if (proxyDetectCached && Date.now() - lastDetectTime < 15000) {
-    if (callback) callback(detectedProxyUrl, detectedProxyType);
-    return;
-  }
-
-  const envProxy =
-    process.env.HTTPS_PROXY ||
-    process.env.HTTP_PROXY ||
-    process.env.https_proxy ||
-    process.env.http_proxy;
-  if (envProxy) {
-    detectedProxyUrl = envProxy;
-    detectedProxyType = envProxy.startsWith('socks') ? 'socks5' : 'http';
-    lastDetectTime = Date.now();
-    proxyDetectCached = true;
-    if (callback) callback(detectedProxyUrl, detectedProxyType);
-    return;
-  }
-
-  const ports = [7890, 10809, 7893, 10808];
-  let finished = 0;
-  let found = false;
-
-  for (const port of ports) {
-    const socket = new net.Socket();
-    socket.setTimeout(250); // 250ms timeout for robustness
-
-    socket.on('connect', () => {
-      if (found) {
-        socket.destroy();
-        return;
-      }
-
-      socket.write(Buffer.from([0x05, 0x01, 0x00]));
-
-      const onProxyFound = (type) => {
-        if (found) return;
-        found = true;
-        detectedProxyType = type;
-        detectedProxyUrl = `${type}://127.0.0.1:${port}`;
-        console.log(
-          `[proxy] Auto-detected local ${type} proxy on port ${port}: ${detectedProxyUrl}`
-        );
-        lastDetectTime = Date.now();
-        proxyDetectCached = true;
-        socket.destroy();
-        if (callback) callback(detectedProxyUrl, detectedProxyType);
-      };
-
-      socket.once('data', (chunk) => {
-        if (chunk.length >= 2 && chunk[0] === 0x05) {
-          onProxyFound('socks5');
-        } else {
-          onProxyFound('http');
-        }
-      });
-
-      socket.on('end', () => onProxyFound('http'));
-      socket.on('close', () => {
-        if (!found) onProxyFound('http');
-      });
-      socket.on('error', () => {
-        if (!found) onProxyFound('http');
-      });
-    });
-
-    const onFail = () => {
-      if (!found && !socket.destroyed) {
-        socket.destroy();
-        checkFinished();
-      }
-    };
-
-    socket.on('timeout', onFail);
-    socket.on('error', onFail);
-
-    socket.connect(port, '127.0.0.1');
-  }
-
-  function checkFinished() {
-    finished++;
-    if (finished === ports.length && !found) {
-      detectedProxyUrl = null;
-      lastDetectTime = Date.now();
-      proxyDetectCached = true;
-      if (callback) callback(null, 'http');
-    }
-  }
-}
-
-// 供连接测试使用的通用请求函数，支持多协议代理检测与无缝自愈隧道
-function requestWithProxy(targetUrl, options, callback) {
-  const EventEmitter = require('events');
-  const { SocksProxyAgent } = require('socks-proxy-agent');
-  const emitter = new EventEmitter();
-  const requestTimeout = Number(options && options.timeout) || 0;
-
-  function attachRequestTimeout(req) {
-    if (requestTimeout > 0 && req && typeof req.setTimeout === 'function') {
-      req.setTimeout(requestTimeout, () => {
-        req.destroy(new Error(`Request timeout (${requestTimeout}ms)`));
-      });
-    }
-    return req;
-  }
-
-  emitter.write = function (chunk) {
-    if (emitter.activeReq) emitter.activeReq.write(chunk);
-    else emitter.pendingBody = (emitter.pendingBody || '') + chunk;
-  };
-  emitter.end = function () {
-    if (emitter.activeReq) emitter.activeReq.end();
-    else emitter.ended = true;
-  };
-  emitter.destroy = function (err) {
-    if (emitter.activeReq && typeof emitter.activeReq.destroy === 'function') {
-      emitter.activeReq.destroy(err);
-    }
-  };
-
-  detectLocalProxy((proxyUrl, proxyType) => {
-    const target = url.parse(targetUrl);
-    let fallbackTriggered = false;
-
-    function executeDirect() {
-      if (fallbackTriggered) return;
-      fallbackTriggered = true;
-
-      const transport = target.protocol === 'https:' ? https : http;
-      const req = attachRequestTimeout(transport.request(targetUrl, options, callback));
-      emitter.activeReq = req;
-
-      req.on('error', (e) => {
-        emitter.emit('error', e);
-      });
-
-      if (emitter.pendingBody) {
-        req.write(emitter.pendingBody);
-      }
-      req.end();
-    }
-
-    if (proxyUrl) {
-      const proxy = url.parse(proxyUrl);
-
-      if (target.protocol === 'https:') {
-        if (proxyType === 'socks5') {
-          // SOCKS5 tunnel via socks-proxy-agent (handles handshake + CONNECT)
-          let socksAgent;
-          try {
-            socksAgent = new SocksProxyAgent(proxyUrl, {
-              timeout: requestTimeout || 5000,
-            });
-          } catch (agentErr) {
-            console.warn(
-              `[proxy] SOCKS5 agent init failed (${agentErr.message}), falling back to direct connection...`
-            );
-            executeDirect();
-            return;
-          }
-          const req = attachRequestTimeout(
-            https.request(
-              {
-                agent: socksAgent,
-                hostname: target.hostname,
-                port: target.port || 443,
-                path: target.path,
-                method: options.method || 'GET',
-                headers: { ...(options.headers || {}), host: target.hostname },
-              },
-              callback
-            )
-          );
-          emitter.activeReq = req;
-          req.on('error', (e) => {
-            if (!fallbackTriggered) {
-              console.warn(
-                `[proxy] SOCKS5 via ${proxyUrl} failed (${e.message}), falling back to direct connection...`
-              );
-              executeDirect();
-            } else {
-              emitter.emit('error', e);
-            }
-          });
-          if (emitter.pendingBody) {
-            req.write(emitter.pendingBody);
-          }
-          req.end();
-        } else {
-          // HTTP CONNECT tunnel
-          const connectReq = attachRequestTimeout(
-            http.request({
-              hostname: proxy.hostname,
-              port: proxy.port,
-              method: 'CONNECT',
-              path: target.hostname + ':' + (target.port || 443),
-              headers: proxy.auth
-                ? {
-                    'Proxy-Authorization': 'Basic ' + Buffer.from(proxy.auth).toString('base64'),
-                  }
-                : {},
-            })
-          );
-          emitter.activeReq = connectReq;
-
-          connectReq.on('connect', (res, socket, head) => {
-            socket.on('error', (e) => {
-              emitter.emit('error', e);
-            });
-
-            if (fallbackTriggered) {
-              socket.destroy();
-              return;
-            }
-            fallbackTriggered = true;
-
-            if (res.statusCode !== 200) {
-              emitter.emit('error', new Error('Tunnel connection failed: ' + res.statusCode));
-              socket.destroy();
-              return;
-            }
-
-            const tls = require('tls');
-            const tlsSocket = tls.connect(
-              {
-                socket: socket,
-                servername: target.hostname,
-                rejectUnauthorized: shouldVerifyUpstreamTls(),
-              },
-              () => {
-                const headers = { ...options.headers, host: target.hostname };
-                const req = attachRequestTimeout(
-                  http.request(
-                    {
-                      createConnection: () => tlsSocket,
-                      method: options.method || 'GET',
-                      path: target.path,
-                      headers: headers,
-                    },
-                    callback
-                  )
-                );
-
-                emitter.activeReq = req;
-                req.on('error', (e) => emitter.emit('error', e));
-
-                if (emitter.pendingBody) {
-                  req.write(emitter.pendingBody);
-                }
-                req.end();
-              }
-            );
-
-            tlsSocket.on('error', (e) => {
-              emitter.emit('error', e);
-            });
-          });
-
-          connectReq.on('error', (e) => {
-            if (!fallbackTriggered) {
-              console.warn(
-                `[proxy] HTTP proxy via ${proxyUrl} failed (${e.message}), falling back to direct connection...`
-              );
-              executeDirect();
-            }
-          });
-
-          connectReq.end();
-        }
-      } else {
-        // HTTP target through HTTP proxy
-        const headers = { ...options.headers, host: target.hostname };
-        if (proxy.auth) {
-          headers['Proxy-Authorization'] = 'Basic ' + Buffer.from(proxy.auth).toString('base64');
-        }
-        const req = attachRequestTimeout(
-          http.request(
-            {
-              hostname: proxy.hostname,
-              port: proxy.port,
-              path: targetUrl,
-              method: options.method || 'GET',
-              headers: headers,
-            },
-            callback
-          )
-        );
-
-        emitter.activeReq = req;
-        req.on('error', (e) => emitter.emit('error', e));
-
-        if (emitter.pendingBody) {
-          req.write(emitter.pendingBody);
-        }
-        req.end();
-      }
-    } else {
-      executeDirect();
-    }
-  });
-
-  return emitter;
-}
-
 const { createAuthResolver } = require('./lib/proxy/auth-resolver');
 const { createManagementHandlers } = require('./lib/proxy/handlers/management');
+const { createProxyTransport } = require('./lib/proxy/proxy-transport');
 
 const {
   DATA_DIR,
@@ -424,6 +97,11 @@ const {
 } = require('./lib/proxy/config');
 
 migrateLegacyRuntimeFiles();
+
+const { requestWithProxy, resetLocalProxyDetectionCache } = createProxyTransport({
+  loadConfig,
+  shouldVerifyUpstreamTls,
+});
 
 function readExistingManagementToken(managementPort) {
   if (MANAGEMENT_TOKEN) return MANAGEMENT_TOKEN;

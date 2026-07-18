@@ -50,15 +50,17 @@ function makeRequestWithProxy({ fail = false, calls }) {
   return (requestUrl, options, callback) => {
     calls.push({ requestUrl, options });
     const req = new EventEmitter();
-    process.nextTick(() => {
-      if (fail) {
-        req.emit('error', new Error('network down'));
-        return;
-      }
-      const res = Readable.from([]);
-      res.statusCode = 200;
-      callback(res);
-    });
+    req.end = () => {
+      process.nextTick(() => {
+        if (fail) {
+          req.emit('error', new Error('network down'));
+          return;
+        }
+        const res = Readable.from([]);
+        res.statusCode = 200;
+        callback(res);
+      });
+    };
     return req;
   };
 }

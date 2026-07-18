@@ -28,6 +28,7 @@ const unitTests = [
   'test/upstream-request.test.js',
   'test/upstream-retry.test.js',
   'test/test-sharding.test.js',
+  'test/proxy-transport.test.js',
   'test/route-index.test.js',
   'test/route-gemini-utils.test.js',
   'test/responses-gemini-code-assist.test.js',
