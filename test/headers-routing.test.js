@@ -13,9 +13,33 @@ const mockUpstream = http.createServer((req, res) => {
 });
 
 let upstreamPort = 0;
-mockUpstream.listen(0, '127.0.0.1', () => {
+let claudeEntryPort = 0;
+let openAiEntryPort = 0;
+let managementPort = 0;
+
+function findAvailablePort() {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer();
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      server.close((error) => (error ? reject(error) : resolve(port)));
+    });
+  });
+}
+
+mockUpstream.listen(0, '127.0.0.1', async () => {
   upstreamPort = mockUpstream.address().port;
-  runTests();
+  try {
+    claudeEntryPort = await findAvailablePort();
+    openAiEntryPort = await findAvailablePort();
+    managementPort = await findAvailablePort();
+    await runTests();
+  } catch (error) {
+    console.error('\nTest failed:', error);
+    process.exitCode = 1;
+    cleanUp();
+  }
 });
 
 // 2. 准备测试配置文件
@@ -28,7 +52,7 @@ function setupTestConfig(profile) {
         basePath: '/v1',
         enabled: true,
         host: '127.0.0.1',
-        listenPort: 4443,
+        listenPort: claudeEntryPort,
         name: 'Test Claude Entry',
         protocol: 'claude',
         tls: false,
@@ -37,7 +61,7 @@ function setupTestConfig(profile) {
         basePath: '/v1',
         enabled: true,
         host: '127.0.0.1',
-        listenPort: 4445,
+        listenPort: openAiEntryPort,
         name: 'Test OpenAI Entry',
         protocol: 'openai-chat',
         tls: false,
@@ -46,7 +70,8 @@ function setupTestConfig(profile) {
     localServer: {
       basePath: '/v1',
       host: '127.0.0.1',
-      listenPort: 4443,
+      listenPort: claudeEntryPort,
+      managementPort,
       protocol: 'claude',
     },
     profiles: [profile],
@@ -57,7 +82,7 @@ function setupTestConfig(profile) {
 
 function readManagementToken() {
   const candidates = [
-    path.join(__dirname, '.mgmt-token-4543'),
+    path.join(__dirname, `.mgmt-token-${managementPort}`),
     path.join(__dirname, '.mgmt-token'),
   ];
   for (const file of candidates) {
@@ -100,7 +125,7 @@ function sendClaudeMessageRequest() {
     const req = http.request(
       {
         hostname: '127.0.0.1',
-        port: 4443,
+        port: claudeEntryPort,
         path: '/v1/messages',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -235,7 +260,7 @@ async function runTests() {
         authorization: 'Bearer client-openai-oauth-token',
         'api-key': 'client-api-key',
       },
-      clientPort: 4445,
+      clientPort: openAiEntryPort,
       clientPath: '/v1/chat/completions',
       clientBody: { model: 'gpt-4', messages: [{ role: 'user', content: 'hi' }] },
       expectedHeadersCheck: (headers) => {
@@ -257,7 +282,7 @@ async function runTests() {
         authorization: 'Bearer client-openai-oauth-token',
         'api-key': 'client-api-key',
       },
-      clientPort: 4445,
+      clientPort: openAiEntryPort,
       clientPath: '/v1/chat/completions',
       clientBody: { model: 'gpt-4', messages: [{ role: 'user', content: 'hi' }] },
       expectedHeadersCheck: (headers) => {
@@ -280,7 +305,7 @@ async function runTests() {
         authorization: 'Bearer client-google-token',
         'x-goog-api-key': 'client-google-key',
       },
-      clientPort: 4445,
+      clientPort: openAiEntryPort,
       clientPath: '/v1/chat/completions',
       clientBody: { model: 'gpt-4', messages: [{ role: 'user', content: 'hi' }] },
       expectedHeadersCheck: (headers) => {
@@ -314,7 +339,7 @@ function runSingleTest({
   clientHeaders,
   expectedHeadersCheck,
   message,
-  clientPort = 4443,
+  clientPort = claudeEntryPort,
   clientPath = '/v1/messages',
   clientBody,
 }) {
@@ -326,6 +351,7 @@ function runSingleTest({
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
       env: {
         ...process.env,
+        MGMT_PORT: String(managementPort),
         PROXY_DATA_DIR: __dirname,
       },
     });
@@ -425,6 +451,7 @@ function runHotReloadTest() {
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
       env: {
         ...process.env,
+        MGMT_PORT: String(managementPort),
         PROXY_DATA_DIR: __dirname,
       },
     });
@@ -450,7 +477,7 @@ function runHotReloadTest() {
         const req1 = http.request(
           {
             hostname: '127.0.0.1',
-            port: 4443,
+            port: claudeEntryPort,
             path: '/v1/messages',
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -498,6 +525,7 @@ function runLatencyApiTest() {
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
       env: {
         ...process.env,
+        MGMT_PORT: String(managementPort),
         PROXY_DATA_DIR: __dirname,
       },
     });
@@ -519,7 +547,7 @@ function runLatencyApiTest() {
         const req = http.request(
           {
             hostname: '127.0.0.1',
-            port: 4443,
+            port: claudeEntryPort,
             path: '/v1/local/profile/latency',
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken },
@@ -568,6 +596,7 @@ function runPromptsSyncApiTest() {
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
       env: {
         ...process.env,
+        MGMT_PORT: String(managementPort),
         PROXY_DATA_DIR: __dirname,
       },
     });
@@ -589,7 +618,7 @@ function runPromptsSyncApiTest() {
         const reqClaude = http.request(
           {
             hostname: '127.0.0.1',
-            port: 4443,
+            port: claudeEntryPort,
             path: '/v1/local/prompts/sync',
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-mgmt-token': managementToken },
@@ -612,7 +641,7 @@ function runPromptsSyncApiTest() {
                 const reqAnti = http.request(
                   {
                     hostname: '127.0.0.1',
-                    port: 4443,
+                    port: claudeEntryPort,
                     path: '/v1/local/prompts/sync',
                     method: 'POST',
                     headers: {

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { selectTestShard } = require('../lib/test-sharding');
 
 const repoRoot = path.resolve(__dirname, '..');
 const testDir = path.join(repoRoot, 'test');
@@ -26,6 +27,7 @@ const unitTests = [
   'test/cli-session-routing.test.js',
   'test/upstream-request.test.js',
   'test/upstream-retry.test.js',
+  'test/test-sharding.test.js',
   'test/route-index.test.js',
   'test/route-gemini-utils.test.js',
   'test/responses-gemini-code-assist.test.js',
@@ -137,7 +139,15 @@ function assertUnitTestList() {
 
 assertUnitTestList();
 
-for (const testFile of unitTests) {
+let shard;
+try {
+  shard = selectTestShard(unitTests, process.env);
+} catch (error) {
+  console.error(`[unit] ${error.message}`);
+  process.exit(1);
+}
+
+for (const testFile of shard.tests) {
   const result = spawnSync(process.execPath, [testFile], {
     cwd: repoRoot,
     stdio: 'inherit',
@@ -148,4 +158,6 @@ for (const testFile of unitTests) {
   }
 }
 
-console.log(`[unit] ok: ${unitTests.length} test files`);
+console.log(
+  `[unit] ok: ${shard.tests.length}/${unitTests.length} test files (shard ${shard.index + 1}/${shard.count})`
+);

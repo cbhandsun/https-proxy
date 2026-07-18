@@ -1,0 +1,65 @@
+name: Verify
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node-quality:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check:syntax
+      - run: npm run lint
+      - run: npm run frontend:check
+      - run: npm run test:frontend
+      - run: npm run frontend:build
+
+  unit-tests:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    env:
+      TEST_SHARD_COUNT: 4
+      TEST_SHARD_INDEX: ${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+
+  integration-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:thinking
+      - run: npm run test:env
+      - run: npm run test:integration
+
+  rust-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
