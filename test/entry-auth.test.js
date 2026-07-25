@@ -7,7 +7,11 @@ const {
   profileMatchesEntryKey,
   stripEntryAuthHeaders,
 } = require('../lib/proxy/entry-auth');
-const { decryptKey, encryptConfigSecretsForStorage } = require('../lib/proxy/config');
+const {
+  decryptConfigSecretsInPlace,
+  decryptKey,
+  encryptConfigSecretsForStorage,
+} = require('../lib/proxy/config');
 
 const entry = { protocol: 'openai-chat', listenPort: 3447 };
 
@@ -121,6 +125,7 @@ const entry = { protocol: 'openai-chat', listenPort: 3447 };
   });
   assert.notStrictEqual(stored.entryAuth.keys[0].key, 'entry-secret');
   assert.strictEqual(decryptKey(stored.entryAuth.keys[0].key), 'entry-secret');
+  assert.strictEqual(decryptConfigSecretsInPlace(stored).entryAuth.keys[0].key, 'entry-secret');
 }
 
 console.log('[entry-auth.test] ok');

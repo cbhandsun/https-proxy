@@ -100,6 +100,21 @@
       "from": "default",
       "profileId": "example-openai",
       "to": "gpt-5.4"
+    },
+    {
+      "from": "gpt-5.6-sol",
+      "profileId": "example-openai",
+      "to": "gpt-5.6-sol"
+    },
+    {
+      "from": "gpt-5.6-terra",
+      "profileId": "example-openai",
+      "to": "gpt-5.6-terra"
+    },
+    {
+      "from": "gpt-5.6-luna",
+      "profileId": "example-openai",
+      "to": "gpt-5.6-luna"
     }
   ],
   "profiles": [

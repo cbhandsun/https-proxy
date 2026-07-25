@@ -2,7 +2,36 @@ const assert = require('assert');
 const http = require('http');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+
+const testHomeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'https-proxy-headers-routing-'));
+const testAppDataDir = path.join(testHomeDir, 'AppData', 'Roaming');
+
+fs.mkdirSync(path.join(testHomeDir, '.codex'), { recursive: true });
+fs.writeFileSync(
+  path.join(testHomeDir, '.codex', 'auth.json'),
+  JSON.stringify({ tokens: { access_token: 'eyJ.test-openai-oauth-token' } })
+);
+fs.mkdirSync(path.join(testHomeDir, '.gemini'), { recursive: true });
+fs.writeFileSync(
+  path.join(testHomeDir, '.gemini', 'oauth_creds.json'),
+  JSON.stringify({ access_token: 'ya29.test-google-oauth-token' })
+);
+
+function createProxyEnv() {
+  return {
+    ...process.env,
+    APPDATA: testAppDataDir,
+    CODE_ASSIST_ENDPOINT: `http://127.0.0.1:${upstreamPort}`,
+    GOOGLE_CLOUD_PROJECT: 'test-project',
+    HOME: testHomeDir,
+    LOCALAPPDATA: path.join(testHomeDir, 'AppData', 'Local'),
+    USERPROFILE: testHomeDir,
+    MGMT_PORT: String(managementPort),
+    PROXY_DATA_DIR: __dirname,
+  };
+}
 
 // 1. 创建一个 Mock 下游服务器 (Upstream)
 let receivedHeaders = {};
@@ -160,6 +189,7 @@ async function waitForForwardedApiKey(expectedKey, { timeoutMs = 5000, intervalM
 
 function cleanUp() {
   if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
+  fs.rmSync(testHomeDir, { recursive: true, force: true });
   mockUpstream.close();
 }
 
@@ -349,11 +379,7 @@ function runSingleTest({
 
     // 启动代理子进程，通过环境变量加载测试配置
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
-      env: {
-        ...process.env,
-        MGMT_PORT: String(managementPort),
-        PROXY_DATA_DIR: __dirname,
-      },
+      env: createProxyEnv(),
     });
 
     let isStarted = false;
@@ -449,11 +475,7 @@ function runHotReloadTest() {
 
     // 启动代理
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
-      env: {
-        ...process.env,
-        MGMT_PORT: String(managementPort),
-        PROXY_DATA_DIR: __dirname,
-      },
+      env: createProxyEnv(),
     });
 
     let isStarted = false;
@@ -523,11 +545,7 @@ function runLatencyApiTest() {
     });
 
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
-      env: {
-        ...process.env,
-        MGMT_PORT: String(managementPort),
-        PROXY_DATA_DIR: __dirname,
-      },
+      env: createProxyEnv(),
     });
 
     let isStarted = false;
@@ -594,11 +612,7 @@ function runPromptsSyncApiTest() {
     });
 
     const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
-      env: {
-        ...process.env,
-        MGMT_PORT: String(managementPort),
-        PROXY_DATA_DIR: __dirname,
-      },
+      env: createProxyEnv(),
     });
 
     let isStarted = false;

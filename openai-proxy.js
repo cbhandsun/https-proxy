@@ -382,7 +382,7 @@ const {
   startNativeDeepProgress,
 } = require('./lib/proxy/trae-debug-center');
 
-let CONFIG = loadConfig();
+let CONFIG = loadConfig({ throwOnError: true });
 let PROFILES = getProfiles(CONFIG);
 let ACTIVE_PROFILE = getActiveProfile(CONFIG);
 let LOCAL_SERVER = getLocalServer(CONFIG);

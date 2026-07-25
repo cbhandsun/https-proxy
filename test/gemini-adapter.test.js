@@ -48,6 +48,30 @@ test('converts Claude text request to Gemini generateContent body', () => {
   ]);
 });
 
+test('removes deprecated sampling parameters for Gemini 3.6+', () => {
+  const body = {
+    max_tokens: 256,
+    temperature: 0.2,
+    top_p: 0.9,
+    top_k: 20,
+    messages: [{ role: 'user', content: 'hello' }],
+  };
+
+  const current = claudeMessagesToGemini(body, 'gemini-3.6-flash');
+  assert.deepStrictEqual(current.generationConfig, { maxOutputTokens: 256 });
+
+  const future = claudeMessagesToGemini(body, 'models/gemini-4.0-flash');
+  assert.deepStrictEqual(future.generationConfig, { maxOutputTokens: 256 });
+
+  const legacy = claudeMessagesToGemini(body, 'gemini-3.5-flash');
+  assert.deepStrictEqual(legacy.generationConfig, {
+    maxOutputTokens: 256,
+    temperature: 0.2,
+    topP: 0.9,
+    topK: 20,
+  });
+});
+
 test('converts images and tool declarations', () => {
   const result = claudeMessagesToGemini(
     {

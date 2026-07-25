@@ -650,7 +650,7 @@ fn start_proxy_if_needed() {
     }
 }
 
-pub fn request_proxy_autostart() {
+fn request_proxy_autostart() {
     if read_app_setting("autoStartProxy", true) {
         if PROXY_AUTOSTART_IN_FLIGHT.swap(true, Ordering::SeqCst) {
             return;
@@ -1254,8 +1254,6 @@ mod tests {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    request_proxy_autostart();
-
     tauri::Builder::default()
         // ── 单例启动 ──────────────────────────────────────
         .plugin(tauri_plugin_dialog::init())
@@ -1280,13 +1278,9 @@ pub fn run() {
                 let _ = RESOURCE_ROOT.set(resource_dir);
             }
 
-            // Start the proxy near the beginning of setup so release/portable startup
-            // does not wait for menu and tray initialization before health is available.
-            if read_app_setting("autoStartProxy", true) {
-                std::thread::spawn(|| {
-                    start_proxy_if_needed();
-                });
-            }
+            // Start once, after RESOURCE_ROOT is available, through the guarded
+            // autostart entry point shared by every build mode.
+            request_proxy_autostart();
 
             // 读取配置并设置菜单的初始显示状态
             let show_menu = read_app_setting("showTopMenu", true);
