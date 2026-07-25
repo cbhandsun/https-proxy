@@ -20,3 +20,13 @@ Published packages must never contain:
 - npm lifecycle scripts or development dependencies.
 
 The portable build is intentionally stateless. It ships only `proxy.config.example.json`; the application creates local state on first run. Existing portable state is never copied into a new release.
+
+## Windows NSIS process-cleanup rules
+
+The current-user NSIS installer runs `src-tauri/nsis/stop-installed-processes.ps1` before install and uninstall. Keep these constraints in place:
+
+- Do not pass `$INSTDIR` or another path containing spaces through an `nsExec` command-line argument. NSIS and PowerShell quoting can split or shift the arguments. The cleanup script derives the fixed current-user location from `LOCALAPPDATA`.
+- Never normalize a filesystem root from `C:\` to `C:`. On Windows, `C:` is drive-relative and resolves against that drive's current directory. Because NSIS sets its working directory to the install directory, this can make a normal installation path compare equal to the filesystem root.
+- Preserve the filesystem-root safety check so cleanup can never scan, stop processes from, or perform lock checks against a whole drive.
+- `test/installer-process-cleanup.test.js` must run the cleanup script with its working directory set to the installation directory. It must verify both that a real root is rejected and that the normal installation directory is accepted.
+- Before publishing an installer change, run `npm run verify`, build the NSIS package, and perform one end-to-end current-user install. A successful source-level test alone is not sufficient for command-line and installer-host behavior.

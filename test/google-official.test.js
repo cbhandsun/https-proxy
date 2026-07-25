@@ -13,6 +13,7 @@ const {
   decodeAntigravityOAuthStateValue,
 } = require('../lib/proxy/google-official');
 const { createGoogleOfficialRuntime } = require('../lib/proxy/google-official-runtime');
+const { createCodeAssist } = require('../lib/proxy/handlers/code-assist');
 
 function toBase64Url(value) {
   return Buffer.from(value)
@@ -27,6 +28,10 @@ async function main() {
   assert.strictEqual(response.ok, true);
   assert.strictEqual(response.authMode, 'official-login');
   assert.strictEqual(response.source, 'official-model-config');
+  assert.ok(response.models.includes('Gemini 3.6 Flash (Medium)'));
+  assert.ok(response.models.includes('Gemini 3.6 Flash (High)'));
+  assert.ok(response.models.includes('Gemini 3.6 Flash (Low)'));
+  assert.ok(response.models.includes('gemini-3.6-flash'));
   assert.ok(response.models.includes('Gemini 3.5 Flash (Medium)'));
   assert.ok(response.models.includes('gemini-3.5-flash-low'));
   assert.ok(response.models.includes('gemini-3-flash-agent'));
@@ -45,6 +50,18 @@ async function main() {
   assert.ok(models.includes('gemini-3.5-flash-low'));
   assert.ok(models.includes('gemini-3-flash-agent'));
   assert.ok(models.includes('gemini-3.5-flash-extra-low'));
+
+  const codeAssist = createCodeAssist({ fallbackId: () => 'test-id' });
+  for (const name of [
+    'Gemini 3.6 Flash (Medium)',
+    'Gemini 3.6 Flash (High)',
+    'Gemini 3.6 Flash (Low)',
+    'gemini-3.6-flash-medium',
+    'gemini-3.6-flash-high',
+    'gemini-3.6-flash-low',
+  ]) {
+    assert.strictEqual(codeAssist.codeAssistModelSelection(name).model, 'gemini-3.6-flash');
+  }
 
   const inner = toBase64Url(
     'token ya29.test-access Bearer refresh 1//test-refresh ' + 'x'.repeat(96)

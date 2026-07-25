@@ -15,7 +15,7 @@
     "test:integration": "node test/headers-routing.test.js && node test/entry-auth-integration.test.js",
     "test:all": "npm test && npm run test:integration",
     "check:syntax": "node scripts/check-syntax-parallel.js",
-    "verify": "npm run check:syntax && npm run lint && npm run release:check && npm run test:all && npm run frontend:build && npm run test:rust",
+    "verify": "npm run check:syntax && npm run lint && npm run release:check && npm run test:all && npm run frontend:build && npm run release:prepare && npm run test:rust",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,cjs,mjs,json,md}\" --ignore-path .prettierignore",

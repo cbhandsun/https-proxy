@@ -40,6 +40,13 @@ for (const scriptName of [
   }
 }
 
+const verifyScript = String((packageJson.scripts && packageJson.scripts.verify) || '');
+const releasePrepareIndex = verifyScript.indexOf('npm run release:prepare');
+const rustTestIndex = verifyScript.indexOf('npm run test:rust');
+if (releasePrepareIndex < 0 || rustTestIndex < 0 || releasePrepareIndex > rustTestIndex) {
+  errors.push('verify must prepare release runtime before running Rust tests');
+}
+
 if (errors.length > 0) {
   for (const error of errors) console.error(`[release-governance] ${error}`);
   process.exit(1);

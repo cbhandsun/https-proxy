@@ -3,6 +3,7 @@ node_modules/
 
 # Local config and secrets
 proxy.config.json
+proxy.config.before-*.json
 .env
 .env.*
 !.env.example
