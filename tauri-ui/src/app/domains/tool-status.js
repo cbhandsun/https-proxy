@@ -1,27 +1,33 @@
-import {
-  $,
-  CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT,
-  STARTUP_STATUS_GRACE_MS,
-  STARTUP_STATUS_RETRY_MS,
-  checkProxyHealth,
-  clearElement,
-  config,
-  ensureClaudeDesktop,
-  perfStart,
-  refreshCertStatusAfterProxyOnline,
-  resolveClaudeDesktopModel,
-  routeIdOfClaudeDesktopModel,
-  sharedAppState,
-  showDiagnosticsView,
-  showToast,
-  startupStatusStartedAt,
-} from './app.js';
-import { isMonitorVisible } from './app-diagnostics.js';
+import { bindDomainDependencies } from '../runtime/dependencies.js';
+
+let toolStatusDependencies;
+
+export function configureToolStatus(dependencies) {
+  toolStatusDependencies = bindDomainDependencies('tool-status', dependencies, [
+    '$',
+    'CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT',
+    'STARTUP_STATUS_GRACE_MS',
+    'STARTUP_STATUS_RETRY_MS',
+    'checkProxyHealth',
+    'clearElement',
+    'config',
+    'ensureClaudeDesktop',
+    'isMonitorVisible',
+    'perfStart',
+    'refreshCertStatusAfterProxyOnline',
+    'resolveClaudeDesktopModel',
+    'routeIdOfClaudeDesktopModel',
+    'sharedAppState',
+    'showDiagnosticsView',
+    'showToast',
+    'startupStatusStartedAt',
+  ]);
+}
 
 // Tool integration status and diagnostics UI.
 
 function setProxyStatusElement(element, color, text) {
-  clearElement(element);
+  toolStatusDependencies.clearElement(element);
   const dot = document.createElement('span');
   dot.className = `status-dot ${color}`;
   element.append(dot, document.createTextNode(text));
@@ -29,12 +35,20 @@ function setProxyStatusElement(element, color, text) {
 
 function isStartupStatusSettling(options = {}) {
   if (options.startup === false) return false;
-  if (config && config.appSettings && config.appSettings.autoStartProxy === false) return false;
-  return performance.now() - startupStatusStartedAt < STARTUP_STATUS_GRACE_MS;
+  if (
+    toolStatusDependencies.config &&
+    toolStatusDependencies.config.appSettings &&
+    toolStatusDependencies.config.appSettings.autoStartProxy === false
+  )
+    return false;
+  return (
+    performance.now() - toolStatusDependencies.startupStatusStartedAt <
+    toolStatusDependencies.STARTUP_STATUS_GRACE_MS
+  );
 }
 
 function renderStartupPortDiagnostics() {
-  const target = $('heroPortDiagnostics');
+  const target = toolStatusDependencies.$('heroPortDiagnostics');
   if (target) target.textContent = '端口诊断：等待管理端口启动...';
 }
 
@@ -54,15 +68,15 @@ function proxyStatusPidFromOutput(output) {
 }
 
 function scheduleStartupProxyRetry() {
-  if (sharedAppState.startupProxyRetryTimer) return;
-  sharedAppState.startupProxyRetryTimer = setTimeout(() => {
-    sharedAppState.startupProxyRetryTimer = null;
+  if (toolStatusDependencies.sharedAppState.startupProxyRetryTimer) return;
+  toolStatusDependencies.sharedAppState.startupProxyRetryTimer = setTimeout(() => {
+    toolStatusDependencies.sharedAppState.startupProxyRetryTimer = null;
     if (!isStartupStatusSettling({ startup: true })) return;
-    sharedAppState.lastStatusRefresh = 0;
+    toolStatusDependencies.sharedAppState.lastStatusRefresh = 0;
     refreshProxyStatus({ startup: true }).catch((err) =>
       console.error('startup refreshProxyStatus retry error:', err)
     );
-  }, STARTUP_STATUS_RETRY_MS);
+  }, toolStatusDependencies.STARTUP_STATUS_RETRY_MS);
 }
 
 function deferStartupProxyFailure(statusElement) {
@@ -73,23 +87,23 @@ function deferStartupProxyFailure(statusElement) {
 
 async function refreshProxyStatus(options = {}) {
   const now = Date.now();
-  const passiveTtl = isMonitorVisible() ? 7000 : 30000;
+  const passiveTtl = toolStatusDependencies.isMonitorVisible() ? 7000 : 30000;
   if (
-    sharedAppState.statusRefreshInFlight ||
-    (options.passive && now - sharedAppState.lastStatusRefresh < passiveTtl)
+    toolStatusDependencies.sharedAppState.statusRefreshInFlight ||
+    (options.passive && now - toolStatusDependencies.sharedAppState.lastStatusRefresh < passiveTtl)
   )
     return;
-  const finishPerf = perfStart('refresh.proxyStatus');
-  sharedAppState.statusRefreshInFlight = true;
-  sharedAppState.lastStatusRefresh = now;
-  const statusElement = $('heroProxyStatus');
+  const finishPerf = toolStatusDependencies.perfStart('refresh.proxyStatus');
+  toolStatusDependencies.sharedAppState.statusRefreshInFlight = true;
+  toolStatusDependencies.sharedAppState.lastStatusRefresh = now;
+  const statusElement = toolStatusDependencies.$('heroProxyStatus');
   try {
-    const health = await checkProxyHealth();
+    const health = await toolStatusDependencies.checkProxyHealth();
     if (health) {
       const pid = health.pid ? ` (PID: ${health.pid})` : '';
       setProxyStatusElement(statusElement, 'green', `运行中${pid}`);
       renderPortDiagnostics(health);
-      refreshCertStatusAfterProxyOnline(options);
+      toolStatusDependencies.refreshCertStatusAfterProxyOnline(options);
       return;
     }
 
@@ -100,7 +114,7 @@ async function refreshProxyStatus(options = {}) {
       const pid = pidValue ? ` (PID: ${pidValue})` : '';
       setProxyStatusElement(statusElement, 'green', `运行中${pid}`);
       renderPortDiagnostics(null);
-      refreshCertStatusAfterProxyOnline(options);
+      toolStatusDependencies.refreshCertStatusAfterProxyOnline(options);
       return;
     }
     if (output.trim()) {
@@ -120,12 +134,12 @@ async function refreshProxyStatus(options = {}) {
     renderPortDiagnostics(null);
   } catch (err) {
     // command 调用本身失败时，也用 HTTP 探活兜底
-    const health = await checkProxyHealth();
+    const health = await toolStatusDependencies.checkProxyHealth();
     if (health) {
       const pid = health.pid ? ` (PID: ${health.pid})` : '';
       setProxyStatusElement(statusElement, 'green', `运行中${pid}`);
       renderPortDiagnostics(health);
-      refreshCertStatusAfterProxyOnline(options);
+      toolStatusDependencies.refreshCertStatusAfterProxyOnline(options);
       return;
     }
     if (isStartupStatusSettling(options)) {
@@ -135,13 +149,13 @@ async function refreshProxyStatus(options = {}) {
     setProxyStatusElement(statusElement, 'red', '检查失败');
     renderPortDiagnostics(null);
   } finally {
-    sharedAppState.statusRefreshInFlight = false;
+    toolStatusDependencies.sharedAppState.statusRefreshInFlight = false;
     finishPerf();
   }
 }
 
 function renderPortDiagnostics(health) {
-  const target = $('heroPortDiagnostics');
+  const target = toolStatusDependencies.$('heroPortDiagnostics');
   if (!target) return;
   if (!health || health.appId !== 'https-proxy-manager' || !health.ports) {
     target.textContent = '端口诊断：代理未运行或管理端口不可用';
@@ -160,12 +174,12 @@ function renderPortDiagnostics(health) {
 
 async function refreshClaudeDesktopStatus() {
   if (!window.proxyManager.claudeDesktopStatus) return;
-  const badgeEl = $('toolBadge-claude-desktop');
-  const dotEl = $('claudeDesktopTitleDot');
+  const badgeEl = toolStatusDependencies.$('toolBadge-claude-desktop');
+  const dotEl = toolStatusDependencies.$('claudeDesktopTitleDot');
   try {
     const status = await window.proxyManager.claudeDesktopStatus();
     if (!status.supported) {
-      $('claudeDesktopStatus').textContent =
+      toolStatusDependencies.$('claudeDesktopStatus').textContent =
         `当前平台不可写入 Claude Desktop 配置：${status.error || ''}`;
       if (badgeEl) {
         badgeEl.textContent = '不支持';
@@ -189,7 +203,7 @@ async function refreshClaudeDesktopStatus() {
     const clientText = evidence.processCount
       ? `\n客户端：Claude PID ${evidence.mainWindowPid || '未知'}；Code 模型：${activeCode.model || latestSession.model || '未检测'}；CLI Session：${activeCode.cliSessionId || latestSession.cliSessionId || '未检测'}`
       : '';
-    $('claudeDesktopStatus').textContent =
+    toolStatusDependencies.$('claudeDesktopStatus').textContent =
       `${configured}；模式：${status.mode}${desiredMode}；当前 URL：${actual}；预期 URL：${expected}${matchText}${pathText}${clientText}`;
 
     // Update badge and title dot
@@ -220,7 +234,7 @@ async function refreshClaudeDesktopStatus() {
       }
     }
   } catch (err) {
-    $('claudeDesktopStatus').textContent =
+    toolStatusDependencies.$('claudeDesktopStatus').textContent =
       `Claude Desktop 状态检查失败：${err && err.message ? err.message : err}`;
     if (badgeEl) {
       badgeEl.textContent = '失败';
@@ -232,14 +246,14 @@ async function refreshClaudeDesktopStatus() {
 
 async function refreshClaudeCodeStatus() {
   if (!window.proxyManager.claudeCodeStatus) return;
-  const badgeEl = $('toolBadge-claude-code');
-  const dotEl = $('claudeCodeTitleDot');
+  const badgeEl = toolStatusDependencies.$('toolBadge-claude-code');
+  const dotEl = toolStatusDependencies.$('claudeCodeTitleDot');
   try {
     const status = await window.proxyManager.claudeCodeStatus();
     if (!status.exists) {
-      $('claudeCodeStatus').textContent =
+      toolStatusDependencies.$('claudeCodeStatus').textContent =
         `未检测到 Claude Code 配置文件 (路径: ${status.configPath || ''})`;
-      $('claudeCodeStatus').className = 'notice';
+      toolStatusDependencies.$('claudeCodeStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '未检测';
         badgeEl.className = 'badge official';
@@ -248,17 +262,18 @@ async function refreshClaudeCodeStatus() {
       return;
     }
     if (status.baseUrl) {
-      $('claudeCodeStatus').textContent =
+      toolStatusDependencies.$('claudeCodeStatus').textContent =
         `已配置本地代理；网关地址: ${status.baseUrl}，配置路径: ${status.configPath}`;
-      $('claudeCodeStatus').className = 'notice green';
+      toolStatusDependencies.$('claudeCodeStatus').className = 'notice green';
       if (badgeEl) {
         badgeEl.textContent = '已代理';
         badgeEl.className = 'badge active';
       }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
-      $('claudeCodeStatus').textContent = `官方直连/已启用登录；配置路径: ${status.configPath}`;
-      $('claudeCodeStatus').className = 'notice';
+      toolStatusDependencies.$('claudeCodeStatus').textContent =
+        `官方直连/已启用登录；配置路径: ${status.configPath}`;
+      toolStatusDependencies.$('claudeCodeStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '直连';
         badgeEl.className = 'badge direct';
@@ -266,9 +281,9 @@ async function refreshClaudeCodeStatus() {
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('claudeCodeStatus').textContent =
+    toolStatusDependencies.$('claudeCodeStatus').textContent =
       `Claude Code 状态检查失败：${err && err.message ? err.message : err}`;
-    $('claudeCodeStatus').className = 'notice';
+    toolStatusDependencies.$('claudeCodeStatus').className = 'notice';
     if (badgeEl) {
       badgeEl.textContent = '失败';
       badgeEl.className = 'badge error';
@@ -289,9 +304,9 @@ function formatTraeCommand(status, key, fallback = '未发现') {
 }
 
 async function refreshTraeBridgeStatus() {
-  const badgeEl = $('toolBadge-trae-bridge');
-  const dotEl = $('traeBridgeTitleDot');
-  const statusEl = $('traeBridgeStatus');
+  const badgeEl = toolStatusDependencies.$('toolBadge-trae-bridge');
+  const dotEl = toolStatusDependencies.$('traeBridgeTitleDot');
+  const statusEl = toolStatusDependencies.$('traeBridgeStatus');
   if (!statusEl) return;
   if (!window.proxyManager.traeBridgeStatus) {
     statusEl.textContent = '当前版本缺少 Trae Bridge 状态接口。';
@@ -367,9 +382,9 @@ let lastTraeNativeDebugCommands = [
 ].join('\n');
 
 function renderTraeDebugEvents(events) {
-  const target = $('traeDebugEvents');
+  const target = toolStatusDependencies.$('traeDebugEvents');
   if (!target) return;
-  clearElement(target);
+  toolStatusDependencies.clearElement(target);
   if (!Array.isArray(events) || events.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'muted';
@@ -425,7 +440,7 @@ function formatTraeNativeCommandBlock(status, scanSummary) {
 }
 
 async function refreshTraeDebugEvents() {
-  const summaryEl = $('traeDebugSummary');
+  const summaryEl = toolStatusDependencies.$('traeDebugSummary');
   if (!summaryEl || !window.proxyManager.traeDebugEvents) return;
   summaryEl.textContent = '正在读取 Trae 过程事件...';
   summaryEl.className = 'notice';
@@ -461,10 +476,10 @@ async function refreshTraeDebugEvents() {
 }
 
 function applyTraeDebugSettingsToUi(settings) {
-  const rawEl = $('traeRawCommentsEnabled');
-  const visibleEl = $('traeApiVisibleProgressEnabled');
-  const claudeProcessStyleEl = $('traeClaudeProcessStyle');
-  const logEl = $('traeLogProgressEnabled');
+  const rawEl = toolStatusDependencies.$('traeRawCommentsEnabled');
+  const visibleEl = toolStatusDependencies.$('traeApiVisibleProgressEnabled');
+  const claudeProcessStyleEl = toolStatusDependencies.$('traeClaudeProcessStyle');
+  const logEl = toolStatusDependencies.$('traeLogProgressEnabled');
   if (rawEl) rawEl.checked = Boolean(settings && settings.rawCommentsEnabled);
   if (visibleEl) visibleEl.checked = Boolean(settings && settings.apiVisibleProgressEnabled);
   if (claudeProcessStyleEl)
@@ -477,18 +492,25 @@ function applyTraeDebugSettingsToUi(settings) {
 
 function collectTraeDebugSettingsFromUi() {
   const visible = Boolean(
-    $('traeApiVisibleProgressEnabled') && $('traeApiVisibleProgressEnabled').checked
+    toolStatusDependencies.$('traeApiVisibleProgressEnabled') &&
+    toolStatusDependencies.$('traeApiVisibleProgressEnabled').checked
   );
   return {
     rawCommentsEnabled:
-      visible || Boolean($('traeRawCommentsEnabled') && $('traeRawCommentsEnabled').checked),
+      visible ||
+      Boolean(
+        toolStatusDependencies.$('traeRawCommentsEnabled') &&
+        toolStatusDependencies.$('traeRawCommentsEnabled').checked
+      ),
     apiVisibleProgressEnabled: visible,
     claudeProcessStyle:
-      $('traeClaudeProcessStyle') && $('traeClaudeProcessStyle').value
-        ? $('traeClaudeProcessStyle').value
+      toolStatusDependencies.$('traeClaudeProcessStyle') &&
+      toolStatusDependencies.$('traeClaudeProcessStyle').value
+        ? toolStatusDependencies.$('traeClaudeProcessStyle').value
         : '',
     liveLogProgress: !(
-      $('traeLogProgressEnabled') && $('traeLogProgressEnabled').checked === false
+      toolStatusDependencies.$('traeLogProgressEnabled') &&
+      toolStatusDependencies.$('traeLogProgressEnabled').checked === false
     ),
   };
 }
@@ -504,10 +526,11 @@ async function refreshTraeDebugSettings() {
 }
 
 async function saveTraeDebugSettingsFromUi() {
-  const summaryEl = $('traeDebugSummary');
+  const summaryEl = toolStatusDependencies.$('traeDebugSummary');
   if (!window.proxyManager.saveTraeDebugSettings) return;
   const payload = collectTraeDebugSettingsFromUi();
-  if ($('traeRawCommentsEnabled')) $('traeRawCommentsEnabled').checked = payload.rawCommentsEnabled;
+  if (toolStatusDependencies.$('traeRawCommentsEnabled'))
+    toolStatusDependencies.$('traeRawCommentsEnabled').checked = payload.rawCommentsEnabled;
   if (summaryEl) {
     summaryEl.textContent = '正在保存 Trae Debug 开关...';
     summaryEl.className = 'notice';
@@ -531,12 +554,12 @@ async function saveTraeDebugSettingsFromUi() {
           ? 'notice green'
           : 'notice';
     }
-    $('output').textContent = msg;
-    showToast(msg, 'success');
+    toolStatusDependencies.$('output').textContent = msg;
+    toolStatusDependencies.showToast(msg, 'success');
   } catch (err) {
     const msg = `保存 Trae Debug 开关失败：${err && err.message ? err.message : err}`;
     if (summaryEl) summaryEl.textContent = msg;
-    showToast(msg, 'error');
+    toolStatusDependencies.showToast(msg, 'error');
   }
 }
 
@@ -587,7 +610,7 @@ async function runClaudeDesktopProcessSelfTest({
           : text;
       summaryEl.className = result && result.pass ? 'notice green' : 'notice';
     }
-    showToast(
+    toolStatusDependencies.showToast(
       result && result.pass ? 'Claude 过程输出自检通过。' : 'Claude 过程输出自检未通过。',
       result && result.pass ? 'success' : 'error'
     );
@@ -595,21 +618,23 @@ async function runClaudeDesktopProcessSelfTest({
     const msg = `Claude 过程输出自检失败：${err && err.message ? err.message : err}`;
     if (summaryEl) summaryEl.textContent = msg;
     if (outputEl) outputEl.textContent = msg;
-    showToast(msg, 'error');
+    toolStatusDependencies.showToast(msg, 'error');
   }
 }
 
 async function testTraeClaudeProcessOutput() {
   await runClaudeDesktopProcessSelfTest({
-    summaryEl: $('traeDebugSummary'),
-    outputEl: $('traeNativeDeepDebugOutput') || $('traeNativeDebugOutput'),
+    summaryEl: toolStatusDependencies.$('traeDebugSummary'),
+    outputEl:
+      toolStatusDependencies.$('traeNativeDeepDebugOutput') ||
+      toolStatusDependencies.$('traeNativeDebugOutput'),
   });
 }
 
 async function testClaudeDesktopProcessOutput() {
   await runClaudeDesktopProcessSelfTest({
-    summaryEl: $('claudeDesktopStatus'),
-    outputEl: $('output'),
+    summaryEl: toolStatusDependencies.$('claudeDesktopStatus'),
+    outputEl: toolStatusDependencies.$('output'),
     runningText:
       '正在验证 Claude Desktop 过程显示；会通过当前 Desktop Gateway 跑一条短 Trae 流式请求...',
     successText: '过程显示自检通过；Claude Desktop Gateway SSE 已包含 Trae 过程文本。',
@@ -617,10 +642,11 @@ async function testClaudeDesktopProcessOutput() {
 }
 
 function firstClaudeDesktopTraeRouteId() {
-  ensureClaudeDesktop();
-  for (const model of config.claudeDesktop.models || []) {
-    const resolved = resolveClaudeDesktopModel(model);
-    const profile = config.profiles.find((item) => item.id === resolved.profileId) || {};
+  toolStatusDependencies.ensureClaudeDesktop();
+  for (const model of toolStatusDependencies.config.claudeDesktop.models || []) {
+    const resolved = toolStatusDependencies.resolveClaudeDesktopModel(model);
+    const profile =
+      toolStatusDependencies.config.profiles.find((item) => item.id === resolved.profileId) || {};
     const target = String(profile.targetUrl || '').toLowerCase();
     if (
       profile.protocol === 'trae' ||
@@ -630,15 +656,19 @@ function firstClaudeDesktopTraeRouteId() {
       return resolved.routeId;
     }
   }
-  const first = config.claudeDesktop.models && config.claudeDesktop.models[0];
-  return first ? routeIdOfClaudeDesktopModel(first) : '';
+  const first =
+    toolStatusDependencies.config.claudeDesktop.models &&
+    toolStatusDependencies.config.claudeDesktop.models[0];
+  return first ? toolStatusDependencies.routeIdOfClaudeDesktopModel(first) : '';
 }
 
 async function copyClaudeDesktopProcessPrompt() {
   let copied = false;
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT);
+      await navigator.clipboard.writeText(
+        toolStatusDependencies.CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT
+      );
       copied = true;
     }
   } catch (err) {
@@ -650,18 +680,21 @@ async function copyClaudeDesktopProcessPrompt() {
     routeId ? `在 Claude Desktop 里选择模型 ${routeId}，粘贴后发送。` : '',
     '如果窗口里出现 [Trae plan_item]、[Trae timing] 或类似过程文本，就说明客户端可见链路已打通。',
     '',
-    CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT,
+    toolStatusDependencies.CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT,
   ]
     .filter(Boolean)
     .join('\n');
-  $('output').textContent = msg;
-  showDiagnosticsView('outputPanel');
-  showToast(copied ? 'Claude Desktop 验证提示已复制' : '已显示 Claude Desktop 验证提示', 'success');
+  toolStatusDependencies.$('output').textContent = msg;
+  toolStatusDependencies.showDiagnosticsView('outputPanel');
+  toolStatusDependencies.showToast(
+    copied ? 'Claude Desktop 验证提示已复制' : '已显示 Claude Desktop 验证提示',
+    'success'
+  );
 }
 
 async function scanTraeNativeDebug() {
-  const outputEl = $('traeNativeDebugOutput');
-  const summaryEl = $('traeDebugSummary');
+  const outputEl = toolStatusDependencies.$('traeNativeDebugOutput');
+  const summaryEl = toolStatusDependencies.$('traeDebugSummary');
   if (!outputEl || !window.proxyManager.traeDebugNativeScan) return;
   outputEl.textContent = '正在扫描 Trae Native PID...';
   if (summaryEl) {
@@ -828,8 +861,8 @@ async function ensureTraeNativePidReady(outputEl, summaryEl) {
 }
 
 async function refreshTraeNativeDeepDebug() {
-  const outputEl = $('traeNativeDeepDebugOutput');
-  const summaryEl = $('traeDebugSummary');
+  const outputEl = toolStatusDependencies.$('traeNativeDeepDebugOutput');
+  const summaryEl = toolStatusDependencies.$('traeDebugSummary');
   if (!outputEl || !window.proxyManager.traeDebugNativeDeepEvents) return null;
   try {
     const result = await window.proxyManager.traeDebugNativeDeepEvents();
@@ -849,8 +882,8 @@ async function refreshTraeNativeDeepDebug() {
 }
 
 async function startTraeNativeDeepDebug() {
-  const outputEl = $('traeNativeDeepDebugOutput');
-  const summaryEl = $('traeDebugSummary');
+  const outputEl = toolStatusDependencies.$('traeNativeDeepDebugOutput');
+  const summaryEl = toolStatusDependencies.$('traeDebugSummary');
   if (!window.proxyManager.startTraeDebugNativeDeep) return;
   if (outputEl) outputEl.textContent = '正在一键启用 Native 深入探针...';
   if (summaryEl) {
@@ -870,7 +903,7 @@ async function startTraeNativeDeepDebug() {
       const msg = `Native 深入探针启动失败：${result && result.error ? result.error : '未知错误'}`;
       if (outputEl) outputEl.textContent = msg;
       if (summaryEl) summaryEl.textContent = msg;
-      showToast(msg, 'error');
+      toolStatusDependencies.showToast(msg, 'error');
       return;
     }
     if (outputEl) outputEl.textContent = formatTraeNativeDeepOutput(result);
@@ -879,13 +912,13 @@ async function startTraeNativeDeepDebug() {
       summaryEl.textContent = msg;
       summaryEl.className = 'notice green';
     }
-    showToast(msg, 'success');
+    toolStatusDependencies.showToast(msg, 'success');
     setTimeout(refreshTraeNativeDeepDebug, 2500);
   } catch (err) {
     const msg = `Native 深入探针启动失败：${err && err.message ? err.message : err}`;
     if (outputEl) outputEl.textContent = msg;
     if (summaryEl) summaryEl.textContent = msg;
-    showToast(msg, 'error');
+    toolStatusDependencies.showToast(msg, 'error');
   }
 }
 
@@ -893,24 +926,27 @@ async function stopTraeNativeDeepDebug() {
   if (!window.proxyManager.stopTraeDebugNativeDeep) return;
   try {
     const result = await window.proxyManager.stopTraeDebugNativeDeep();
-    const outputEl = $('traeNativeDeepDebugOutput');
+    const outputEl = toolStatusDependencies.$('traeNativeDeepDebugOutput');
     if (outputEl) outputEl.textContent = formatTraeNativeDeepOutput(result);
-    showToast('Native 深入探针停止请求已发送。', 'success');
+    toolStatusDependencies.showToast('Native 深入探针停止请求已发送。', 'success');
   } catch (err) {
-    showToast(`Native 深入探针停止失败：${err && err.message ? err.message : err}`, 'error');
+    toolStatusDependencies.showToast(
+      `Native 深入探针停止失败：${err && err.message ? err.message : err}`,
+      'error'
+    );
   }
 }
 
 async function refreshAntigravityCliStatus() {
   if (!window.proxyManager.antigravityCliStatus) return;
-  const badgeEl = $('toolBadge-antigravity-cli');
-  const dotEl = $('antigravityCliTitleDot');
+  const badgeEl = toolStatusDependencies.$('toolBadge-antigravity-cli');
+  const dotEl = toolStatusDependencies.$('antigravityCliTitleDot');
   try {
     const status = await window.proxyManager.antigravityCliStatus();
     if (!status.exists) {
-      $('antigravityCliStatus').textContent =
+      toolStatusDependencies.$('antigravityCliStatus').textContent =
         `未检测到 Antigravity CLI 配置文件 (路径: ${status.configPath || ''})`;
-      $('antigravityCliStatus').className = 'notice';
+      toolStatusDependencies.$('antigravityCliStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '未检测';
         badgeEl.className = 'badge official';
@@ -919,17 +955,18 @@ async function refreshAntigravityCliStatus() {
       return;
     }
     if (status.baseUrl) {
-      $('antigravityCliStatus').textContent =
+      toolStatusDependencies.$('antigravityCliStatus').textContent =
         `已配置本地代理；网关地址: ${status.baseUrl}，配置路径: ${status.configPath}`;
-      $('antigravityCliStatus').className = 'notice green';
+      toolStatusDependencies.$('antigravityCliStatus').className = 'notice green';
       if (badgeEl) {
         badgeEl.textContent = '已代理';
         badgeEl.className = 'badge active';
       }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
-      $('antigravityCliStatus').textContent = `官方直连/未配置；配置路径: ${status.configPath}`;
-      $('antigravityCliStatus').className = 'notice';
+      toolStatusDependencies.$('antigravityCliStatus').textContent =
+        `官方直连/未配置；配置路径: ${status.configPath}`;
+      toolStatusDependencies.$('antigravityCliStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '直连';
         badgeEl.className = 'badge direct';
@@ -937,9 +974,9 @@ async function refreshAntigravityCliStatus() {
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('antigravityCliStatus').textContent =
+    toolStatusDependencies.$('antigravityCliStatus').textContent =
       `Antigravity CLI 状态检查失败：${err && err.message ? err.message : err}`;
-    $('antigravityCliStatus').className = 'notice';
+    toolStatusDependencies.$('antigravityCliStatus').className = 'notice';
     if (badgeEl) {
       badgeEl.textContent = '失败';
       badgeEl.className = 'badge error';
@@ -950,14 +987,14 @@ async function refreshAntigravityCliStatus() {
 
 async function refreshGeminiCliStatus() {
   if (!window.proxyManager.geminiCliStatus) return;
-  const badgeEl = $('toolBadge-gemini-cli');
-  const dotEl = $('geminiCliTitleDot');
+  const badgeEl = toolStatusDependencies.$('toolBadge-gemini-cli');
+  const dotEl = toolStatusDependencies.$('geminiCliTitleDot');
   try {
     const status = await window.proxyManager.geminiCliStatus();
     if (!status.exists) {
-      $('geminiCliStatus').textContent =
+      toolStatusDependencies.$('geminiCliStatus').textContent =
         `未检测到 Google Gemini CLI 配置文件 (路径: ${status.configPath || ''})`;
-      $('geminiCliStatus').className = 'notice';
+      toolStatusDependencies.$('geminiCliStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '未检测';
         badgeEl.className = 'badge official';
@@ -967,17 +1004,18 @@ async function refreshGeminiCliStatus() {
     }
     if (status.apiEndpoint || status.envBaseUrl) {
       const ep = status.apiEndpoint || status.envBaseUrl;
-      $('geminiCliStatus').textContent =
+      toolStatusDependencies.$('geminiCliStatus').textContent =
         `已配置本地代理；网关地址: ${ep}，配置路径: ${status.configPath}`;
-      $('geminiCliStatus').className = 'notice green';
+      toolStatusDependencies.$('geminiCliStatus').className = 'notice green';
       if (badgeEl) {
         badgeEl.textContent = '已代理';
         badgeEl.className = 'badge active';
       }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
-      $('geminiCliStatus').textContent = `官方直连/已启用认证；配置路径: ${status.configPath}`;
-      $('geminiCliStatus').className = 'notice';
+      toolStatusDependencies.$('geminiCliStatus').textContent =
+        `官方直连/已启用认证；配置路径: ${status.configPath}`;
+      toolStatusDependencies.$('geminiCliStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '直连';
         badgeEl.className = 'badge direct';
@@ -985,9 +1023,9 @@ async function refreshGeminiCliStatus() {
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('geminiCliStatus').textContent =
+    toolStatusDependencies.$('geminiCliStatus').textContent =
       `Google Gemini CLI 状态检查失败：${err && err.message ? err.message : err}`;
-    $('geminiCliStatus').className = 'notice';
+    toolStatusDependencies.$('geminiCliStatus').className = 'notice';
     if (badgeEl) {
       badgeEl.textContent = '失败';
       badgeEl.className = 'badge error';
@@ -1026,15 +1064,15 @@ function formatCodexAuthSummary(status) {
 
 async function refreshCodexStatus() {
   if (!window.proxyManager.codexStatus) return;
-  const badgeEl = $('toolBadge-codex-cli');
-  const dotEl = $('codexTitleDot');
+  const badgeEl = toolStatusDependencies.$('toolBadge-codex-cli');
+  const dotEl = toolStatusDependencies.$('codexTitleDot');
   try {
     const status = await window.proxyManager.codexStatus();
     if (status && status.ok === false && status.error) throw new Error(status.error);
     if (!status.exists) {
-      $('codexStatus').textContent =
+      toolStatusDependencies.$('codexStatus').textContent =
         `未检测到 Codex CLI 配置文件 (路径: ${status.configPath || ''})`;
-      $('codexStatus').className = 'notice';
+      toolStatusDependencies.$('codexStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '未检测';
         badgeEl.className = 'badge official';
@@ -1045,17 +1083,18 @@ async function refreshCodexStatus() {
     const auth = formatCodexAuthSummary(status);
     if (status.baseUrl) {
       const legacy = status.legacyBaseUrl && !status.openaiBaseUrl ? '（旧 base_url 写法）' : '';
-      $('codexStatus').textContent =
+      toolStatusDependencies.$('codexStatus').textContent =
         `已配置本地代理；网关地址: ${status.baseUrl}${legacy}${auth}，配置路径: ${status.configPath}`;
-      $('codexStatus').className = 'notice green';
+      toolStatusDependencies.$('codexStatus').className = 'notice green';
       if (badgeEl) {
         badgeEl.textContent = '已代理';
         badgeEl.className = 'badge active';
       }
       if (dotEl) dotEl.className = 'status-dot green';
     } else {
-      $('codexStatus').textContent = `官方直连${auth}；配置路径: ${status.configPath}`;
-      $('codexStatus').className = 'notice';
+      toolStatusDependencies.$('codexStatus').textContent =
+        `官方直连${auth}；配置路径: ${status.configPath}`;
+      toolStatusDependencies.$('codexStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '直连';
         badgeEl.className = 'badge direct';
@@ -1063,9 +1102,9 @@ async function refreshCodexStatus() {
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('codexStatus').textContent =
+    toolStatusDependencies.$('codexStatus').textContent =
       `Codex CLI 状态检查失败：${err && err.message ? err.message : err}`;
-    $('codexStatus').className = 'notice';
+    toolStatusDependencies.$('codexStatus').className = 'notice';
     if (badgeEl) {
       badgeEl.textContent = '失败';
       badgeEl.className = 'badge error';
@@ -1076,16 +1115,16 @@ async function refreshCodexStatus() {
 
 async function refreshCodexDesktopStatus() {
   if (!window.proxyManager.codexDesktopStatus) return;
-  const badgeEl = $('toolBadge-codex-desktop');
-  const dotEl = $('codexDesktopTitleDot');
+  const badgeEl = toolStatusDependencies.$('toolBadge-codex-desktop');
+  const dotEl = toolStatusDependencies.$('codexDesktopTitleDot');
   try {
     const status = await window.proxyManager.codexDesktopStatus();
     if (status && status.ok === false && status.error) throw new Error(status.error);
     if (!status.exists) {
       const auth = formatCodexAuthSummary(status);
-      $('codexDesktopStatus').textContent =
+      toolStatusDependencies.$('codexDesktopStatus').textContent =
         `未检测到 Codex 用户配置 (路径: ${status.configPath || ''})${auth}；应用代理会自动创建共享配置。`;
-      $('codexDesktopStatus').className = 'notice';
+      toolStatusDependencies.$('codexDesktopStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '未检测';
         badgeEl.className = 'badge official';
@@ -1102,9 +1141,9 @@ async function refreshCodexDesktopStatus() {
         status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
           ? `；模型目录 ${status.modelCatalog.modelCount || 0} 个模型 / ${status.modelCatalog.routeCount || 0} 条路由`
           : '';
-      $('codexDesktopStatus').textContent =
+      toolStatusDependencies.$('codexDesktopStatus').textContent =
         `已接入共享 Codex 配置；网关地址: ${status.baseUrl}${legacy}${catalog}${auth}，配置路径: ${status.configPath}${restartText}`;
-      $('codexDesktopStatus').className = 'notice green';
+      toolStatusDependencies.$('codexDesktopStatus').className = 'notice green';
       if (badgeEl) {
         badgeEl.textContent = '已代理';
         badgeEl.className = 'badge active';
@@ -1115,9 +1154,9 @@ async function refreshCodexDesktopStatus() {
         status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
           ? `；已生成模型目录 ${status.modelCatalog.modelCount || 0} 个模型`
           : '';
-      $('codexDesktopStatus').textContent =
+      toolStatusDependencies.$('codexDesktopStatus').textContent =
         `官方直连${catalog}${auth}；配置路径: ${status.configPath}。Codex Desktop 通过共享 config.toml 和启动时模型目录接管。`;
-      $('codexDesktopStatus').className = 'notice';
+      toolStatusDependencies.$('codexDesktopStatus').className = 'notice';
       if (badgeEl) {
         badgeEl.textContent = '直连';
         badgeEl.className = 'badge direct';
@@ -1125,9 +1164,9 @@ async function refreshCodexDesktopStatus() {
       if (dotEl) dotEl.className = 'status-dot amber';
     }
   } catch (err) {
-    $('codexDesktopStatus').textContent =
+    toolStatusDependencies.$('codexDesktopStatus').textContent =
       `Codex Desktop 状态检查失败：${err && err.message ? err.message : err}`;
-    $('codexDesktopStatus').className = 'notice';
+    toolStatusDependencies.$('codexDesktopStatus').className = 'notice';
     if (badgeEl) {
       badgeEl.textContent = '失败';
       badgeEl.className = 'badge error';
@@ -1144,7 +1183,7 @@ async function refreshAllToolStatuses(options = {}) {
   if (!options.force && toolStatusRefreshInFlight) return toolStatusRefreshInFlight;
   if (options.passive && now - lastToolStatusRefresh < 15000) return;
 
-  const finishPerf = perfStart('refresh.toolStatuses');
+  const finishPerf = toolStatusDependencies.perfStart('refresh.toolStatuses');
   toolStatusRefreshInFlight = Promise.allSettled([
     refreshClaudeDesktopStatus(),
     refreshClaudeCodeStatus(),

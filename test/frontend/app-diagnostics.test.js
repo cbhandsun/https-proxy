@@ -58,6 +58,7 @@ function loadDiagnosticsHelpers() {
       },
     },
     console,
+    bindDomainDependencies: (...args) => args[1],
     setInterval() {
       return 0;
     },
@@ -126,10 +127,11 @@ function loadDiagnosticsHelpers() {
   getElement('monitorStatusFilter').value = 'all';
   vm.createContext(sandbox);
   const src = fs.readFileSync(
-    path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-diagnostics.js'),
+    path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'diagnostics.js'),
     'utf8'
   );
   vm.runInContext(stripEsmSyntax(src), sandbox);
+  sandbox.configureDiagnostics(sandbox);
   return { helpers: sandbox.window.__diagnosticsTest, sandbox, elements, src };
 }
 

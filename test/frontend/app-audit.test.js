@@ -81,15 +81,17 @@ function loadAuditHelpers() {
       },
     },
     console,
+    bindDomainDependencies: (...args) => args[1],
     escapeHtml,
     escapeAttr,
   };
   vm.createContext(sandbox);
   const src = fs.readFileSync(
-    path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-audit.js'),
+    path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'audit.js'),
     'utf8'
   );
   vm.runInContext(stripEsmSyntax(src), sandbox);
+  sandbox.configureAudit(sandbox);
   return { helpers: sandbox.window.__auditTest, src };
 }
 

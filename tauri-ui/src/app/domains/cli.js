@@ -1,13 +1,19 @@
-import {
-  $,
-  CLI_SESSIONS_VISIBLE_MS,
-  config,
-  confirmAction,
-  currentViewId,
-  perfStart,
-  showToast,
-} from './app.js';
-import { getApiBase } from './app-bridge.js';
+import { bindDomainDependencies } from '../runtime/dependencies.js';
+
+let cliDependencies;
+
+export function configureCli(dependencies) {
+  cliDependencies = bindDomainDependencies('cli', dependencies, [
+    '$',
+    'CLI_SESSIONS_VISIBLE_MS',
+    'config',
+    'confirmAction',
+    'currentViewId',
+    'getApiBase',
+    'perfStart',
+    'showToast',
+  ]);
+}
 
 let isLaunchingCli = false;
 let cliSessionsTimer = null;
@@ -42,20 +48,23 @@ function createCliLaunchIcon() {
 }
 
 function setCliLaunchButtonReady() {
-  const button = $('cliLaunchBtn');
+  const button = cliDependencies.$('cliLaunchBtn');
   button.disabled = false;
   button.replaceChildren(createCliLaunchIcon(), document.createTextNode(' 启动 CLI 助手'));
 }
 
 function isCodeToolsVisible() {
-  return currentViewId === 'codeToolsView' && $('codeToolsView').classList.contains('active');
+  return (
+    cliDependencies.currentViewId === 'codeToolsView' &&
+    cliDependencies.$('codeToolsView').classList.contains('active')
+  );
 }
 
 function pollCliSessions() {
   if (!isCodeToolsVisible()) return;
   if (document.hidden) return;
   const now = Date.now();
-  if (now - lastCliSessionsPollAt < CLI_SESSIONS_VISIBLE_MS) return;
+  if (now - lastCliSessionsPollAt < cliDependencies.CLI_SESSIONS_VISIBLE_MS) return;
   lastCliSessionsPollAt = now;
   refreshCliSessions({ passive: true });
 }
@@ -64,7 +73,7 @@ function startCliSessionsPolling() {
   refreshCliSessions({ force: true });
   if (cliSessionsTimer) clearInterval(cliSessionsTimer);
   lastCliSessionsPollAt = Date.now();
-  cliSessionsTimer = setInterval(pollCliSessions, CLI_SESSIONS_VISIBLE_MS);
+  cliSessionsTimer = setInterval(pollCliSessions, cliDependencies.CLI_SESSIONS_VISIBLE_MS);
 }
 
 async function initCodeToolsView() {
@@ -132,7 +141,7 @@ async function initCodeToolsView() {
 
   // 2. 左侧配置预设列表渲染
   function renderCliProfilesList() {
-    const listContainer = $('cliProfilesList');
+    const listContainer = cliDependencies.$('cliProfilesList');
     if (!listContainer.dataset.delegated) {
       listContainer.dataset.delegated = 'true';
       listContainer.onclick = (event) => {
@@ -180,14 +189,14 @@ async function initCodeToolsView() {
   function loadActiveProfileToForm() {
     const p = profiles.find((x) => x.id === activeId);
     if (!p) return;
-    $('cliProfileNameInput').value = p.name || '';
-    $('cliToolSelect').value = p.toolId || 'claude-code';
-    $('cliModelSelect').value = p.model || 'default';
-    $('cliCustomArgsInput').value = p.customArgs || '';
-    $('cliCwdInput').value = p.cwd || '';
-    $('cliEnvsInput').value = p.envs || '';
-    $('cliTerminalSelect').value = p.terminal || 'PowerShell';
-    $('cliUpgradeCheck').checked = !!p.upgrade;
+    cliDependencies.$('cliProfileNameInput').value = p.name || '';
+    cliDependencies.$('cliToolSelect').value = p.toolId || 'claude-code';
+    cliDependencies.$('cliModelSelect').value = p.model || 'default';
+    cliDependencies.$('cliCustomArgsInput').value = p.customArgs || '';
+    cliDependencies.$('cliCwdInput').value = p.cwd || '';
+    cliDependencies.$('cliEnvsInput').value = p.envs || '';
+    cliDependencies.$('cliTerminalSelect').value = p.terminal || 'PowerShell';
+    cliDependencies.$('cliUpgradeCheck').checked = !!p.upgrade;
 
     updateUpgradeCheckboxState();
   }
@@ -196,14 +205,14 @@ async function initCodeToolsView() {
   function saveCurrentProfileFromForm(options = {}) {
     const p = profiles.find((x) => x.id === activeId);
     if (!p) return;
-    p.name = $('cliProfileNameInput').value.trim() || '未命名预设';
-    p.toolId = $('cliToolSelect').value;
-    p.model = $('cliModelSelect').value;
-    p.customArgs = $('cliCustomArgsInput').value.trim();
-    p.cwd = $('cliCwdInput').value.trim();
-    p.envs = $('cliEnvsInput').value;
-    p.terminal = $('cliTerminalSelect').value;
-    p.upgrade = $('cliUpgradeCheck').checked;
+    p.name = cliDependencies.$('cliProfileNameInput').value.trim() || '未命名预设';
+    p.toolId = cliDependencies.$('cliToolSelect').value;
+    p.model = cliDependencies.$('cliModelSelect').value;
+    p.customArgs = cliDependencies.$('cliCustomArgsInput').value.trim();
+    p.cwd = cliDependencies.$('cliCwdInput').value.trim();
+    p.envs = cliDependencies.$('cliEnvsInput').value;
+    p.terminal = cliDependencies.$('cliTerminalSelect').value;
+    p.upgrade = cliDependencies.$('cliUpgradeCheck').checked;
 
     if (options.persistNow) {
       persistCliProfilesNow();
@@ -215,20 +224,20 @@ async function initCodeToolsView() {
   }
 
   // 绑定表单输入事件以实现即时修改即时保存
-  $('cliProfileNameInput').oninput = saveCurrentProfileFromForm;
-  $('cliToolSelect').onchange = () => {
+  cliDependencies.$('cliProfileNameInput').oninput = saveCurrentProfileFromForm;
+  cliDependencies.$('cliToolSelect').onchange = () => {
     saveCurrentProfileFromForm();
     updateUpgradeCheckboxState();
   };
-  $('cliModelSelect').onchange = saveCurrentProfileFromForm;
-  $('cliCustomArgsInput').oninput = saveCurrentProfileFromForm;
-  $('cliCwdInput').oninput = saveCurrentProfileFromForm;
-  $('cliEnvsInput').oninput = saveCurrentProfileFromForm;
-  $('cliTerminalSelect').onchange = saveCurrentProfileFromForm;
-  $('cliUpgradeCheck').onchange = saveCurrentProfileFromForm;
+  cliDependencies.$('cliModelSelect').onchange = saveCurrentProfileFromForm;
+  cliDependencies.$('cliCustomArgsInput').oninput = saveCurrentProfileFromForm;
+  cliDependencies.$('cliCwdInput').oninput = saveCurrentProfileFromForm;
+  cliDependencies.$('cliEnvsInput').oninput = saveCurrentProfileFromForm;
+  cliDependencies.$('cliTerminalSelect').onchange = saveCurrentProfileFromForm;
+  cliDependencies.$('cliUpgradeCheck').onchange = saveCurrentProfileFromForm;
 
   // 5. 绑定左侧管理按钮事件
-  $('cliAddProfileBtn').onclick = () => {
+  cliDependencies.$('cliAddProfileBtn').onclick = () => {
     const newId = 'cli-prof-' + Math.random().toString(36).substring(2, 10);
     const newProfile = {
       id: newId,
@@ -247,11 +256,11 @@ async function initCodeToolsView() {
     localStorage.setItem('hpm_cli_active_profile_id', activeId);
     renderCliProfilesList();
     loadActiveProfileToForm();
-    $('cliProfileNameInput').focus();
-    showToast('已创建新预设', 'success');
+    cliDependencies.$('cliProfileNameInput').focus();
+    cliDependencies.showToast('已创建新预设', 'success');
   };
 
-  $('cliCopyProfileBtn').onclick = () => {
+  cliDependencies.$('cliCopyProfileBtn').onclick = () => {
     const current = profiles.find((x) => x.id === activeId);
     if (!current) return;
     const newId = 'cli-prof-' + Math.random().toString(36).substring(2, 10);
@@ -264,17 +273,17 @@ async function initCodeToolsView() {
     localStorage.setItem('hpm_cli_active_profile_id', activeId);
     renderCliProfilesList();
     loadActiveProfileToForm();
-    showToast('已复制预设', 'success');
+    cliDependencies.showToast('已复制预设', 'success');
   };
 
-  $('cliDeleteProfileBtn').onclick = async () => {
+  cliDependencies.$('cliDeleteProfileBtn').onclick = async () => {
     if (profiles.length <= 1) {
-      showToast('必须要保留至少一个配置预设', 'error');
+      cliDependencies.showToast('必须要保留至少一个配置预设', 'error');
       return;
     }
     const idx = profiles.findIndex((x) => x.id === activeId);
     if (idx < 0) return;
-    const confirmed = await confirmAction({
+    const confirmed = await cliDependencies.confirmAction({
       title: '确认删除',
       message: `您确定要删除配置预设“${profiles[idx].name}”吗？`,
       confirmText: '删除',
@@ -286,19 +295,21 @@ async function initCodeToolsView() {
     localStorage.setItem('hpm_cli_active_profile_id', activeId);
     renderCliProfilesList();
     loadActiveProfileToForm();
-    showToast('已删除配置预设', 'success');
+    cliDependencies.showToast('已删除配置预设', 'success');
   };
 
   // 6. 绑定文件夹选择与启动 CLI 按钮事件
-  $('cliSelectFolderBtn').onclick = async () => {
-    const button = $('cliSelectFolderBtn');
+  cliDependencies.$('cliSelectFolderBtn').onclick = async () => {
+    const button = cliDependencies.$('cliSelectFolderBtn');
     button.disabled = true;
     try {
       let data;
       if (window.proxyManager && typeof window.proxyManager.selectDirectory === 'function') {
         data = await window.proxyManager.selectDirectory();
       } else {
-        const res = await fetch(getApiBase() + '/v1/local/select-directory', { method: 'POST' });
+        const res = await fetch(cliDependencies.getApiBase() + '/v1/local/select-directory', {
+          method: 'POST',
+        });
         data = await res.json();
         if (!res.ok) {
           throw new Error(data.error || `HTTP ${res.status}`);
@@ -308,19 +319,19 @@ async function initCodeToolsView() {
         throw new Error((data && data.error) || '未能打开文件夹选择器');
       }
       if (data.path) {
-        $('cliCwdInput').value = data.path;
+        cliDependencies.$('cliCwdInput').value = data.path;
         saveCurrentProfileFromForm({ persistNow: true });
       } else if (data.cancelled) {
-        showToast('已取消选择文件夹', 'info');
+        cliDependencies.showToast('已取消选择文件夹', 'info');
       }
     } catch (err) {
-      showToast('选择文件夹出错: ' + err.message, 'error');
+      cliDependencies.showToast('选择文件夹出错: ' + err.message, 'error');
     } finally {
       button.disabled = false;
     }
   };
 
-  $('cliLaunchBtn').onclick = async () => {
+  cliDependencies.$('cliLaunchBtn').onclick = async () => {
     if (isLaunchingCli) return;
 
     saveCurrentProfileFromForm({ persistNow: true });
@@ -328,11 +339,11 @@ async function initCodeToolsView() {
     if (!current) return;
 
     isLaunchingCli = true;
-    $('cliLaunchBtn').disabled = true;
-    $('cliLaunchBtn').textContent = '正在启动...';
+    cliDependencies.$('cliLaunchBtn').disabled = true;
+    cliDependencies.$('cliLaunchBtn').textContent = '正在启动...';
 
     try {
-      const res = await fetch(getApiBase() + '/v1/local/cli/launch', {
+      const res = await fetch(cliDependencies.getApiBase() + '/v1/local/cli/launch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -347,13 +358,13 @@ async function initCodeToolsView() {
       });
       const data = await res.json();
       if (data.ok) {
-        showToast('启动指令已下发，新控制台窗口已拉起！', 'success');
+        cliDependencies.showToast('启动指令已下发，新控制台窗口已拉起！', 'success');
         setTimeout(() => refreshCliSessions({ force: true }), 800);
       } else {
-        showToast('启动失败: ' + (data.error || '未知错误'), 'error');
+        cliDependencies.showToast('启动失败: ' + (data.error || '未知错误'), 'error');
       }
     } catch (err) {
-      showToast('启动出错: ' + err.message, 'error');
+      cliDependencies.showToast('启动出错: ' + err.message, 'error');
     } finally {
       isLaunchingCli = false;
       setCliLaunchButtonReady();
@@ -365,10 +376,10 @@ async function initCodeToolsView() {
 
   const checkEnvPromise = (async () => {
     try {
-      const res = await fetch(getApiBase() + '/v1/local/env/check');
+      const res = await fetch(cliDependencies.getApiBase() + '/v1/local/env/check');
       const data = await res.json();
       if (data.ok && Array.isArray(data.tools)) {
-        const select = $('cliToolSelect');
+        const select = cliDependencies.$('cliToolSelect');
         clearCliElement(select);
         data.tools.forEach((t) => {
           const opt = document.createElement('option');
@@ -387,16 +398,19 @@ async function initCodeToolsView() {
 
   const loadConfigPromise = (async () => {
     try {
-      const res = await fetch(getApiBase() + '/v1/local/config');
+      const res = await fetch(cliDependencies.getApiBase() + '/v1/local/config');
       const data = await res.json();
       if (data.ok || data.profiles) {
-        const select = $('cliModelSelect');
+        const select = cliDependencies.$('cliModelSelect');
         const modelsSet = new Set();
 
         // Always ensure 'default' is present
         modelsSet.add('default');
 
-        const routesSource = (data && data.modelRoutes) || (config && config.modelRoutes) || [];
+        const routesSource =
+          (data && data.modelRoutes) ||
+          (cliDependencies.config && cliDependencies.config.modelRoutes) ||
+          [];
         if (Array.isArray(routesSource)) {
           routesSource.forEach((r) => {
             if (r && r.from) modelsSet.add(r.from);
@@ -464,22 +478,22 @@ async function refreshCliSessions(options = {}) {
   if (cliSessionsRefreshInFlight) return;
   if (!options.force && !isCodeToolsVisible()) return;
   cliSessionsRefreshInFlight = true;
-  const finishPerf = perfStart('refresh.cliSessions');
+  const finishPerf = cliDependencies.perfStart('refresh.cliSessions');
   let changed = false;
   let sessionCount = 0;
   try {
-    const res = await fetch(getApiBase() + '/v1/local/cli/sessions');
+    const res = await fetch(cliDependencies.getApiBase() + '/v1/local/cli/sessions');
     const data = await res.json();
     if (data.ok && Array.isArray(data.sessions)) {
       sessionCount = data.sessions.length;
-      const tbody = $('cliSessionsTableBody');
+      const tbody = cliDependencies.$('cliSessionsTableBody');
       if (!tbody.dataset.delegated) {
         tbody.dataset.delegated = 'true';
         tbody.onclick = async (event) => {
           const button = event.target.closest('.delete-btn-soft[data-token]');
           if (!button || !tbody.contains(button)) return;
           const sessionToken = button.dataset.token;
-          const confirmed = await confirmAction({
+          const confirmed = await cliDependencies.confirmAction({
             title: '销毁会话',
             message:
               '您确定要注销此 CLI 会话吗？注销后该客户端发送的请求将不再被代理信任并被拒绝接管。',
@@ -487,21 +501,24 @@ async function refreshCliSessions(options = {}) {
           });
           if (!confirmed) return;
           try {
-            const deleteRes = await fetch(getApiBase() + '/v1/local/cli/sessions/delete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sessionToken }),
-            });
+            const deleteRes = await fetch(
+              cliDependencies.getApiBase() + '/v1/local/cli/sessions/delete',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionToken }),
+              }
+            );
             const deleteData = await deleteRes.json();
             if (deleteData.ok) {
-              showToast('会话已成功销毁', 'success');
+              cliDependencies.showToast('会话已成功销毁', 'success');
               lastCliSessionsSignature = '';
               refreshCliSessions({ force: true });
             } else {
-              showToast('销毁失败', 'error');
+              cliDependencies.showToast('销毁失败', 'error');
             }
           } catch (e) {
-            showToast('注销请求出错: ' + e.message, 'error');
+            cliDependencies.showToast('注销请求出错: ' + e.message, 'error');
           }
         };
       }
@@ -511,10 +528,10 @@ async function refreshCliSessions(options = {}) {
           lastCliSessionsSignature = 'empty';
           changed = true;
         }
-        $('cliNoSessionsTip').style.display = 'block';
+        cliDependencies.$('cliNoSessionsTip').style.display = 'block';
         return;
       }
-      $('cliNoSessionsTip').style.display = 'none';
+      cliDependencies.$('cliNoSessionsTip').style.display = 'none';
 
       const now = Date.now();
       const rows = data.sessions.map((s) => {
@@ -616,7 +633,7 @@ async function refreshCliSessions(options = {}) {
 }
 
 function bindCliSessionControls() {
-  const refreshBtn = $('cliRefreshSessionsBtn');
+  const refreshBtn = cliDependencies.$('cliRefreshSessionsBtn');
   if (refreshBtn && refreshBtn.dataset.cliBound !== 'true') {
     refreshBtn.dataset.cliBound = 'true';
     refreshBtn.onclick = () => refreshCliSessions({ force: true });
@@ -624,10 +641,10 @@ function bindCliSessionControls() {
 }
 
 function updateUpgradeCheckboxState() {
-  const select = $('cliToolSelect');
+  const select = cliDependencies.$('cliToolSelect');
   const selectedOpt = select.options[select.selectedIndex];
   if (selectedOpt && selectedOpt.dataset.installed === 'false') {
-    $('cliUpgradeCheck').checked = true;
+    cliDependencies.$('cliUpgradeCheck').checked = true;
   }
 }
 

@@ -1,5 +1,5 @@
 // Tests for the frontend UX module — P3 体验增强 (通知/主题/延迟加载)
-// 在 Node 中以 vm 沙箱执行 app-ux.js，注入最小 window/Notification/localStorage。
+// 在 Node 中以 vm 沙箱执行 ux.js，注入最小 window/Notification/localStorage。
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -7,10 +7,19 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 function readAppSource() {
-  return ['app-tool-status.js', 'app-environment.js', 'app-mcp.js', 'app.js']
-    .map((file) =>
-      fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', file), 'utf8')
-    )
+  const appRoot = path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app');
+  const files = [];
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.isFile() && entry.name.endsWith('.js')) files.push(absolute);
+    }
+  };
+  visit(appRoot);
+  return files
+    .sort()
+    .map((file) => fs.readFileSync(file, 'utf8'))
     .join('\n');
 }
 
@@ -156,7 +165,7 @@ function buildSandbox() {
 
 function loadUx(sandbox) {
   const src = fs.readFileSync(
-    path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-ux.js'),
+    path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'ux.js'),
     'utf8'
   );
   vm.createContext(sandbox);
@@ -300,7 +309,10 @@ function tick(ms = 0) {
 
   // ─── 8. Claude Desktop process verification controls exist ────
   {
-    const html = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'index.html'), 'utf8');
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'tauri-ui', 'index.html'),
+      'utf8'
+    );
     const app = readAppSource();
     assert.ok(
       html.includes('id="testClaudeDesktopProcess"'),
@@ -319,7 +331,7 @@ function tick(ms = 0) {
   // ─── 8. MCP Hub uses delegated DOM handlers, not inline JS ─────
   {
     const mcpModule = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-mcp.js'),
+      path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'mcp.js'),
       'utf8'
     );
     const start = mcpModule.indexOf('function renderMcpServers()');
@@ -370,7 +382,7 @@ function tick(ms = 0) {
   // ─── 10. MCP execution logs avoid dynamic HTML strings ─────────
   {
     const mcpModule = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-mcp.js'),
+      path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'mcp.js'),
       'utf8'
     );
     const start = mcpModule.indexOf('function renderMcpLogs(logs)');
@@ -726,10 +738,12 @@ function tick(ms = 0) {
   // ─── 22. Tauri reload menu uses events instead of eval ─────────
   {
     const rust = ['lib.rs', 'launch_on_login.rs']
-      .map((file) => fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', file), 'utf8'))
+      .map((file) =>
+        fs.readFileSync(path.join(__dirname, '..', '..', 'src-tauri', 'src', file), 'utf8')
+      )
       .join('\n');
     const bridge = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-bridge.js'),
+      path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'bridge.js'),
       'utf8'
     );
     assert.ok(!rust.includes('window.eval'), 'Tauri menu reload should not eval JavaScript');
@@ -749,7 +763,10 @@ function tick(ms = 0) {
 
   // ─── 23. Recommended Claude model chips exclude retired IDs ─────
   {
-    const html = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'index.html'), 'utf8');
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'tauri-ui', 'index.html'),
+      'utf8'
+    );
     const app = readAppSource();
     const retiredModels = [
       'claude-3-5-sonnet-20241022',
@@ -778,7 +795,10 @@ function tick(ms = 0) {
 
   // ─── 24. Tauri runtime root selection keeps dev/prod state separate ─
   {
-    const rust = fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', 'lib.rs'), 'utf8');
+    const rust = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'src-tauri', 'src', 'lib.rs'),
+      'utf8'
+    );
     assert.ok(
       rust.includes('fn is_proxy_runtime_root(path: &Path) -> bool'),
       'Tauri root detection validates complete proxy runtime roots'
@@ -799,14 +819,14 @@ function tick(ms = 0) {
         rust.includes('ensure_proxy_config_file(&root);'),
       'Tauri direct startup creates proxy.config.json before launching packaged proxy'
     );
-    const proxyScript = fs.readFileSync(path.join(__dirname, '..', 'proxy.ps1'), 'utf8');
+    const proxyScript = fs.readFileSync(path.join(__dirname, '..', '..', 'proxy.ps1'), 'utf8');
     assert.ok(
       proxyScript.includes('function Get-ManagementToken') &&
         proxyScript.includes("$headers['x-mgmt-token'] = $token"),
       'proxy.ps1 status health checks use the management token'
     );
     const portableScript = fs.readFileSync(
-      path.join(__dirname, '..', 'scripts', 'build-portable.ps1'),
+      path.join(__dirname, '..', '..', 'scripts', 'build-portable.ps1'),
       'utf8'
     );
     assert.ok(
@@ -820,7 +840,7 @@ function tick(ms = 0) {
   // ─── 25. Audit management calls use authenticated local helper ───
   {
     const bridge = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-bridge.js'),
+      path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'bridge.js'),
       'utf8'
     );
     assert.ok(
@@ -831,7 +851,10 @@ function tick(ms = 0) {
       bridge.includes("invoke('clear_audit_conversations_native'"),
       'clear audit can use the native Tauri management-token path before HTTP fallback'
     );
-    const rust = fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', 'lib.rs'), 'utf8');
+    const rust = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'src-tauri', 'src', 'lib.rs'),
+      'utf8'
+    );
     assert.ok(
       rust.includes('fn clear_audit_conversations_native(') &&
         rust.includes('clear_audit_conversations_native,'),
@@ -862,17 +885,22 @@ function tick(ms = 0) {
 
   // ─── 26. Windows launch-on-login uses typed native commands ─────
   {
-    const html = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'index.html'), 'utf8');
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'tauri-ui', 'index.html'),
+      'utf8'
+    );
     const app = readAppSource();
     const bridge = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-bridge.js'),
+      path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'bridge.js'),
       'utf8'
     );
     const rust = ['lib.rs', 'launch_on_login.rs']
-      .map((file) => fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', file), 'utf8'))
+      .map((file) =>
+        fs.readFileSync(path.join(__dirname, '..', '..', 'src-tauri', 'src', file), 'utf8')
+      )
       .join('\n');
     const permissions = fs.readFileSync(
-      path.join(__dirname, '..', 'src-tauri', 'permissions', 'app-commands.toml'),
+      path.join(__dirname, '..', '..', 'src-tauri', 'permissions', 'app-commands.toml'),
       'utf8'
     );
     assert.ok(html.includes('id="launchOnLogin"'), 'settings page exposes launch-on-login');
@@ -931,7 +959,10 @@ function tick(ms = 0) {
         app.includes('listenPort: 3084'),
       'frontend defaults include all plaintext HTTP entry ports'
     );
-    const html = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'index.html'), 'utf8');
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'tauri-ui', 'index.html'),
+      'utf8'
+    );
     assert.ok(
       html.includes('HTTPS 与 HTTP 入口') && html.includes('HTTP 为明文传输'),
       'entry guidance describes both transports and the HTTP safety boundary'

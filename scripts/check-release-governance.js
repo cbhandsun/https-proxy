@@ -36,6 +36,7 @@ if (!preparesReleaseRuntimeDirectly && !preparesReleaseRuntimeViaPackageScript) 
 }
 
 for (const scriptName of [
+  'clean:frontend',
   'clean:release',
   'clean:release:cache',
   'release:prepare',

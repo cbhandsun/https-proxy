@@ -9,10 +9,14 @@ const {
   findSensitiveReleaseEntries,
   isPathInside,
   validateReleaseDirectory,
-} = require('../lib/release/governance');
-const { isInstallerFile, resolveCargoTargetDir } = require('../scripts/collect-tauri-artifacts');
+} = require('../../lib/release/governance');
+const { isInstallerFile, resolveCargoTargetDir } = require('../../scripts/collect-tauri-artifacts');
+const {
+  assertCleanCandidate,
+  resolveCleanCandidates,
+} = require('../../scripts/clean-generated-artifacts');
 
-const repoRoot = path.resolve(__dirname, '..');
+const repoRoot = path.resolve(__dirname, '..', '..');
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-release-governance-'));
 const dependencies = { alpha: '1.0.0', beta: '^2.0.0' };
 
@@ -39,6 +43,21 @@ try {
     resolveCargoTargetDir(repoRoot, 'src-tauri/target-release'),
     path.join(repoRoot, 'src-tauri', 'target-release')
   );
+  assert.deepStrictEqual(resolveCleanCandidates(tempRoot), [
+    path.join(tempRoot, 'dist'),
+    path.join(tempRoot, 'tauri-ui', 'dist'),
+  ]);
+  assert.deepStrictEqual(resolveCleanCandidates(tempRoot, { cargoOnly: true }), []);
+  assert.deepStrictEqual(resolveCleanCandidates(tempRoot, { frontendOnly: true }), [
+    path.join(tempRoot, 'tauri-ui', 'dist'),
+    path.join(tempRoot, 'dist', 'tauri-ui'),
+  ]);
+  assert.throws(
+    () => resolveCleanCandidates(tempRoot, { cargoOnly: true, frontendOnly: true }),
+    /cannot be combined/
+  );
+  assert.throws(() => assertCleanCandidate(tempRoot, tempRoot), /outside workspace/);
+  assert.throws(() => assertCleanCandidate(tempRoot, path.dirname(tempRoot)), /outside workspace/);
 
   write('openai-proxy.js');
   write('lib/proxy/config.js');

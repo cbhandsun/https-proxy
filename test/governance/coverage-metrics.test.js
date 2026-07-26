@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const { collectCoverageMetrics, percentage } = require('../lib/coverage-metrics');
+const { collectCoverageMetrics, percentage } = require('../../lib/coverage-metrics');
 
 assert.strictEqual(percentage(0, 0), 100);
 assert.strictEqual(percentage(2, 3), 66.66);

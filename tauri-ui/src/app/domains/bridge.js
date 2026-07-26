@@ -1,4 +1,10 @@
-import { config, showToast } from './app.js';
+import { bindDomainDependencies } from '../runtime/dependencies.js';
+
+let bridgeDependencies;
+
+export function configureBridge(dependencies) {
+  bridgeDependencies = bindDomainDependencies('bridge', dependencies, ['config', 'showToast']);
+}
 
 // 全局错误监控 Banner，第一性原理快速定位前端崩溃
 window.onerror = function (message, source, lineno, colno, error) {
@@ -287,7 +293,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
             await new Promise((r) => setTimeout(r, retryDelay));
             continue;
           }
-          if (!quiet) showToast('无法连接本地代理管理端口', 'error');
+          if (!quiet) bridgeDependencies.showToast('无法连接本地代理管理端口', 'error');
           return {
             profiles: [],
             modelRoutes: [],
@@ -310,7 +316,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         const data = await res.json();
         return data.ok ? config : config;
       } catch (err) {
-        showToast('保存配置失败，请确认静态中转及代理在运行中', 'error');
+        bridgeDependencies.showToast('保存配置失败，请确认静态中转及代理在运行中', 'error');
         return config;
       }
     },
@@ -355,9 +361,9 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           return nextConfig;
         }
       } catch (err) {
-        showToast('切换默认上游失败', 'error');
+        bridgeDependencies.showToast('切换默认上游失败', 'error');
       }
-      return config;
+      return bridgeDependencies.config;
     },
     readLog: async (options = {}) => {
       try {
@@ -721,7 +727,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         }
         return;
       }
-      showToast(
+      bridgeDependencies.showToast(
         '非 Tauri 环境限制：请手动使用文本编辑器打开项目根目录下的 proxy.config.json 进行编辑。'
       );
     },
@@ -734,7 +740,9 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         }
         return;
       }
-      showToast('非 Tauri 环境限制：请直接打开项目根目录下的 .hpm-runtime/proxy.log 查看日志。');
+      bridgeDependencies.showToast(
+        '非 Tauri 环境限制：请直接打开项目根目录下的 .hpm-runtime/proxy.log 查看日志。'
+      );
     },
     openCertDir: async () => {
       if (window.__TAURI__ && window.__TAURI__.core) {
@@ -745,7 +753,9 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         }
         return;
       }
-      showToast('非 Tauri 环境限制：证书目录位于项目根目录的 .hpm-runtime/.certs 文件夹中。');
+      bridgeDependencies.showToast(
+        '非 Tauri 环境限制：证书目录位于项目根目录的 .hpm-runtime/.certs 文件夹中。'
+      );
     },
     readEvents: async (options = {}) => {
       try {

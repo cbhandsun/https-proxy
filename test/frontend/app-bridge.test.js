@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const source = fs.readFileSync(
-  path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-bridge.js'),
+  path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'bridge.js'),
   'utf8'
 );
 
