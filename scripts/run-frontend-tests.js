@@ -8,6 +8,7 @@ const testFiles = [
   'test/frontend/frontend-build-governance.test.js',
   'test/frontend/dependencies.test.js',
   'test/frontend/domain-boundaries.test.js',
+  'test/frontend/configuration-model.test.js',
   'test/frontend/runtime.test.js',
   'test/frontend/app-ux.test.js',
   'test/frontend/app-bridge.test.js',

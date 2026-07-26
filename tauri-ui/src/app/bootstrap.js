@@ -59,6 +59,22 @@ import {
   scheduleRateLimitsRefresh,
   startRateLimitsTimeDisplay,
 } from './domains/rate-limits.js';
+import {
+  buildDefaultEntryServers,
+  createDefaultEntryAuthKey,
+  createEntryAuthSecret,
+  normalizeAppSettings,
+  normalizeEntryAuth,
+  normalizeEntryProtocol,
+  normalizeEntryServers,
+  normalizeLocalServer,
+  normalizeRouteClientProtocol,
+  normalizeRouteClientProtocols,
+  recommendedClaudeClientModels,
+  routeClientProtocolOptions,
+  routeClientProtocols,
+  splitEntryAuthList,
+} from './models/configuration.js';
 import { appendOption, clearElement, debounce, escapeAttr, escapeHtml } from './runtime/dom.js';
 import {
   initPerformanceRuntime,
@@ -125,53 +141,6 @@ const CLI_SESSIONS_VISIBLE_MS = 3000;
 const CLI_SESSIONS_HIDDEN_MS = 15000;
 const MONITOR_SEARCH_BODY_LIMIT = 600;
 const MONITOR_RENDER_WINDOW = 30;
-const defaultEntryServers = [
-  {
-    name: 'Claude Messages',
-    host: 'localhost',
-    listenPort: 3443,
-    basePath: '/v1',
-    protocol: 'claude',
-  },
-  {
-    name: 'OpenAI Responses',
-    host: 'localhost',
-    listenPort: 3445,
-    basePath: '/v1',
-    protocol: 'openai-responses',
-  },
-  {
-    name: 'OpenAI Chat Completions',
-    host: 'localhost',
-    listenPort: 3447,
-    basePath: '/v1',
-    protocol: 'openai-chat',
-  },
-  {
-    name: 'Claude Messages HTTP',
-    host: 'localhost',
-    listenPort: 3080,
-    basePath: '/v1',
-    protocol: 'claude',
-    tls: false,
-  },
-  {
-    name: 'OpenAI Responses HTTP',
-    host: 'localhost',
-    listenPort: 3082,
-    basePath: '/v1',
-    protocol: 'openai-responses',
-    tls: false,
-  },
-  {
-    name: 'OpenAI Chat Completions HTTP',
-    host: 'localhost',
-    listenPort: 3084,
-    basePath: '/v1',
-    protocol: 'openai-chat',
-    tls: false,
-  },
-];
 const ENTRY_PROTOCOL_OPTIONS = ['claude', 'openai-responses', 'openai-chat', 'claude-desktop'];
 
 function initTheme() {
@@ -292,67 +261,6 @@ function entryProtocolName(value) {
   return protocolName(value);
 }
 
-const routeClientProtocolOptions = [
-  { id: 'claude', label: 'Claude' },
-  { id: 'openai-chat', label: 'OpenAI Chat' },
-  { id: 'openai-responses', label: 'OpenAI Responses' },
-];
-
-const recommendedClaudeClientModels = [
-  'claude-fable-5',
-  'claude-opus-4-8',
-  'claude-sonnet-4-6',
-  'claude-haiku-4-5',
-  'claude-haiku-4-5-20251001',
-  'claude-opus-4-7',
-  'claude-opus-4-6',
-  'claude-opus-4-5-20251101',
-  'claude-sonnet-4-5-20250929',
-];
-
-function normalizeRouteClientProtocol(value) {
-  const protocol = String(value || '')
-    .trim()
-    .toLowerCase();
-  if (protocol === 'openai' || protocol === 'chat' || protocol === 'chat-completions')
-    return 'openai-chat';
-  if (protocol === 'responses' || protocol === 'response' || protocol === 'openai-response')
-    return 'openai-responses';
-  return routeClientProtocolOptions.some((item) => item.id === protocol) ? protocol : '';
-}
-
-function normalizeRouteClientProtocols(value) {
-  const values = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
-  return Array.from(new Set(values.map(normalizeRouteClientProtocol).filter(Boolean)));
-}
-
-function inferRouteClientProtocols(modelId) {
-  const lower = String(modelId || '')
-    .trim()
-    .toLowerCase();
-  if (!lower) return [];
-  if (lower.startsWith('claude-')) return ['claude'];
-  if (
-    lower.startsWith('gpt-') ||
-    lower.startsWith('o') ||
-    lower.startsWith('codex/') ||
-    lower.startsWith('deepseek') ||
-    lower.startsWith('kimi') ||
-    lower.startsWith('minimax') ||
-    lower.startsWith('gemini-') ||
-    lower.startsWith('trae/') ||
-    lower === 'default'
-  ) {
-    return ['openai-chat', 'openai-responses'];
-  }
-  return ['openai-chat', 'openai-responses'];
-}
-
-function routeClientProtocols(route) {
-  const explicit = normalizeRouteClientProtocols(route && route.clientProtocols);
-  return explicit.length ? explicit : inferRouteClientProtocols(route && route.from);
-}
-
 function routeClientProtocolText(route) {
   const protocols = routeClientProtocols(route);
   const labels = protocols
@@ -400,44 +308,8 @@ function setSelectedRouteClientProtocols(protocols) {
   });
 }
 
-function normalizeEntryProtocol(value) {
-  const protocol = String(value || '')
-    .trim()
-    .toLowerCase();
-  if (protocol === 'responses' || protocol === 'response' || protocol === 'openai-response')
-    return 'openai-responses';
-  if (
-    protocol === 'chat' ||
-    protocol === 'chat-completions' ||
-    protocol === 'openai-chat-completions' ||
-    protocol === 'openai'
-  )
-    return 'openai-chat';
-  if (protocol === 'desktop' || protocol === 'claude-desktop') return 'claude-desktop';
-  if (
-    protocol === 'claude' ||
-    protocol === 'openai-responses' ||
-    protocol === 'openai-chat' ||
-    protocol === 'claude-desktop'
-  )
-    return protocol;
-  return 'claude';
-}
-
 function defaultEntriesForLocal() {
-  const host = (config.localServer && config.localServer.host) || 'localhost';
-  const basePath = (config.localServer && config.localServer.basePath) || '/v1';
-  const localPort = Number((config.localServer && config.localServer.listenPort) || 3443);
-  return defaultEntryServers.map((entry, index) => ({
-    ...entry,
-    host: entry.protocol === 'claude-desktop' ? entry.host : host,
-    basePath: entry.protocol === 'claude-desktop' ? entry.basePath : basePath,
-    listenPort: index === 0 ? localPort : entry.listenPort,
-  }));
-}
-
-function entryServerKey(entry) {
-  return `${normalizeEntryProtocol(entry && entry.protocol)}:${entry && entry.tls === false ? 'http' : 'https'}`;
+  return buildDefaultEntryServers(config && config.localServer);
 }
 
 function selectedProfile() {
@@ -454,154 +326,34 @@ function activeProfile() {
 
 function ensureLocalServer() {
   if (!config) config = {};
-  const active = activeProfile() || {};
-  if (!config.localServer) config.localServer = {};
-  config.localServer.host = config.localServer.host || 'localhost';
-  config.localServer.listenPort = Number(
-    config.localServer.listenPort || (active && active.listenPort) || 3443
-  );
-  config.localServer.basePath = config.localServer.basePath || '/v1';
-  config.localServer.protocol = normalizeEntryProtocol(config.localServer.protocol || 'claude');
+  config.localServer = normalizeLocalServer(config.localServer, activeProfile());
 }
 
 function ensureEntryServers() {
   ensureLocalServer();
-  const defaults = defaultEntriesForLocal();
-  const source = Array.isArray(config.entryServers) ? config.entryServers.filter(Boolean) : [];
-  const byProtocolAndTls = new Map(source.map((entry) => [entryServerKey(entry), entry]));
-  const nextEntries = defaults.map((fallback) => {
-    const existing = byProtocolAndTls.get(entryServerKey(fallback));
-    return {
-      name: existing && existing.name ? existing.name : fallback.name,
-      host: existing && existing.host ? existing.host : fallback.host,
-      listenPort: Number(
-        (existing && (existing.listenPort || existing.port)) || fallback.listenPort
-      ),
-      basePath: existing && existing.basePath ? existing.basePath : fallback.basePath,
-      protocol: fallback.protocol,
-      tls: existing && existing.tls === false ? false : fallback.tls !== false,
-      enabled: existing && existing.enabled === false ? false : true,
-    };
-  });
-  const defaultKeys = new Set(defaults.map(entryServerKey));
-  for (const entry of source) {
-    const key = entryServerKey(entry);
-    if (defaultKeys.has(key)) continue;
-    nextEntries.push({
-      name: entry.name || 'Custom Entry',
-      host: entry.host || 'localhost',
-      listenPort: Number(entry.listenPort || entry.port),
-      basePath: entry.basePath || '/v1',
-      protocol: normalizeEntryProtocol(entry.protocol),
-      tls: entry.tls === false ? false : true,
-      enabled: entry.enabled === false ? false : true,
-    });
-  }
-  config.entryServers = nextEntries.filter(
-    (entry) =>
-      Number.isInteger(entry.listenPort) && entry.listenPort >= 1 && entry.listenPort <= 65535
-  );
-}
-
-function splitEntryAuthList(value) {
-  return String(value || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function normalizeEntryAuthKey(record, index) {
-  const item = record && typeof record === 'object' ? record : {};
-  return {
-    id: String(item.id || `entry-key-${index + 1}`).trim(),
-    name: String(item.name || `Entry key ${index + 1}`).trim(),
-    key: String(item.key || '').trim(),
-    enabled: item.enabled !== false,
-    allowedEntryProtocols: Array.isArray(item.allowedEntryProtocols)
-      ? item.allowedEntryProtocols.map((value) => normalizeEntryProtocol(value)).filter(Boolean)
-      : [],
-    allowedEntryPorts: Array.isArray(item.allowedEntryPorts)
-      ? item.allowedEntryPorts
-          .map((value) => Number(value))
-          .filter((value) => Number.isInteger(value) && value >= 1 && value <= 65535)
-      : [],
-    allowedProfileIds: Array.isArray(item.allowedProfileIds)
-      ? item.allowedProfileIds.map((value) => String(value || '').trim()).filter(Boolean)
-      : [],
-  };
+  config.entryServers = normalizeEntryServers(config.entryServers, config.localServer);
 }
 
 function defaultEntryAuthKey() {
   ensureEntryServers();
-  const ports = Array.from(
-    new Set(
-      (config.entryServers || [])
-        .filter((entry) => entry && entry.enabled !== false)
-        .map((entry) => Number(entry.listenPort))
-        .filter((port) => Number.isInteger(port) && port >= 1 && port <= 65535)
-    )
-  );
-  const protocols = Array.from(
-    new Set(
-      (config.entryServers || [])
-        .filter((entry) => entry && entry.enabled !== false)
-        .map((entry) => normalizeEntryProtocol(entry.protocol))
-        .filter(Boolean)
-    )
-  );
-  return {
-    id: 'local-default',
-    name: '本地默认入口',
-    key: randomEntryAuthSecret(),
-    enabled: true,
-    allowedEntryProtocols: protocols,
-    allowedEntryPorts: ports,
-    allowedProfileIds: [],
-  };
+  return createDefaultEntryAuthKey(config.entryServers, randomEntryAuthSecret);
 }
 
 function ensureEntryAuth() {
   if (!config) config = {};
-  if (!config.entryAuth || typeof config.entryAuth !== 'object') {
-    config.entryAuth = { enabled: true, keys: [defaultEntryAuthKey()] };
-  }
-  if (typeof config.entryAuth.enabled !== 'boolean') config.entryAuth.enabled = true;
-  const source = Array.isArray(config.entryAuth.keys) ? config.entryAuth.keys : [];
-  config.entryAuth.keys = source.map(normalizeEntryAuthKey).filter((item) => item.id);
-  if (config.entryAuth.keys.length === 0) {
-    config.entryAuth.enabled = true;
-    config.entryAuth.keys = [defaultEntryAuthKey()];
-  }
+  ensureEntryServers();
+  config.entryAuth = normalizeEntryAuth(
+    config.entryAuth,
+    config.entryServers,
+    randomEntryAuthSecret
+  );
 }
 
 function ensureAppSettings() {
-  if (!config.appSettings) config.appSettings = {};
-  if (typeof config.appSettings.closeToTray !== 'boolean') config.appSettings.closeToTray = true;
-  if (typeof config.appSettings.stopProxyOnExit !== 'boolean')
-    config.appSettings.stopProxyOnExit = true;
-  if (typeof config.appSettings.autoStartProxy !== 'boolean')
-    config.appSettings.autoStartProxy = true;
-  if (typeof config.appSettings.launchOnLogin !== 'boolean')
-    config.appSettings.launchOnLogin = false;
-  if (typeof config.appSettings.showTopMenu !== 'boolean') config.appSettings.showTopMenu = true;
-  if (typeof config.appSettings.showTrayMenu !== 'boolean') config.appSettings.showTrayMenu = true;
-  if (typeof config.appSettings.showWindowOnTrayCommand !== 'boolean')
-    config.appSettings.showWindowOnTrayCommand = true;
-  if (typeof config.appSettings.desktopNotifications !== 'boolean') {
-    // Default to enabled if the browser says Notification is usable; otherwise
-    // off so the toggle does not dangle a "supported" promise.
-    config.appSettings.desktopNotifications = canNotify();
-  }
-  if (typeof config.appSettings.disableLocalProxy !== 'boolean')
-    config.appSettings.disableLocalProxy = false;
-  if (typeof config.appSettings.verifyUpstreamTls !== 'boolean')
-    config.appSettings.verifyUpstreamTls = true;
-  if (typeof config.appSettings.conversationAuditEnabled !== 'boolean')
-    config.appSettings.conversationAuditEnabled = true;
-  if (typeof config.appSettings.performanceMode !== 'boolean') {
-    const cachedPerfMode = localStorage.getItem('hpm_performance_mode');
-    config.appSettings.performanceMode = cachedPerfMode == null ? true : cachedPerfMode !== 'false';
-  }
+  config.appSettings = normalizeAppSettings(config.appSettings, {
+    notificationsSupported: canNotify(),
+    cachedPerformanceMode: localStorage.getItem('hpm_performance_mode'),
+  });
 }
 
 function applyPerformanceMode(enabled) {
@@ -1201,17 +953,7 @@ function collectEntryAuth() {
 }
 
 function randomEntryAuthSecret() {
-  const bytes = new Uint8Array(24);
-  if (window.crypto && window.crypto.getRandomValues) {
-    window.crypto.getRandomValues(bytes);
-    return (
-      'hpm_' +
-      Array.from(bytes)
-        .map((value) => value.toString(16).padStart(2, '0'))
-        .join('')
-    );
-  }
-  return 'hpm_' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+  return createEntryAuthSecret(window.crypto);
 }
 
 function createEntryAuthInput(dataName, value, placeholder, type = 'text') {

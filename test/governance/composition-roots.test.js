@@ -10,7 +10,7 @@ const lineBudgets = {
   'src-tauri/src/desktop_shell.rs': 414,
   'src-tauri/src/lib.rs': 803,
   'src-tauri/src/main.rs': 10,
-  'tauri-ui/src/app/bootstrap.js': 4215,
+  'tauri-ui/src/app/bootstrap.js': 3957,
   'tauri-ui/src/main.js': 5,
 };
 
@@ -45,5 +45,11 @@ assert.equal(
   frontendEntry.trim().replaceAll('\r\n', '\n'),
   "import './styles/app.css';\nimport './app/bootstrap.js';"
 );
+const frontendBootstrap = fs.readFileSync(
+  path.join(repoRoot, 'tauri-ui', 'src', 'app', 'bootstrap.js'),
+  'utf8'
+);
+assert.match(frontendBootstrap, /from '\.\/models\/configuration\.js';/);
+assert.doesNotMatch(frontendBootstrap, /function normalizeEntryProtocol\(/);
 
 console.log('[composition-roots.test] ok');

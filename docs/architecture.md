@@ -24,6 +24,7 @@ HTTPS-Proxy/
 │  │  │  ├─ bootstrap.js       Frontend composition and application coordinator
 │  │  │  ├─ ux.js              Shared browser UX boundary
 │  │  │  ├─ domains/           Independently configured UI domains
+│  │  │  ├─ models/            Dependency-free config parsing and normalization
 │  │  │  └─ runtime/           Dependency-free state, DOM and timing primitives
 │  │  └─ styles/
 │  └─ dist/                    Vite output; generated and ignored
@@ -77,11 +78,13 @@ The dependency rules are:
    `configure*()` boundary.
 4. `domains/prompts.js` owns prompt storage, synchronization and template DOM
    bindings. `domains/rate-limits.js` owns limit state, polling and rendering.
-5. Runtime modules have no project-relative imports. They expose small,
+5. `models/configuration.js` parses and normalizes untrusted persisted settings,
+   protocols, entry servers and entry authentication without browser dependencies.
+6. Runtime and model modules have no project-relative imports. They expose small,
    independently tested primitives for shared state, DOM operations,
    dependency binding and performance scheduling.
-6. The frontend ESM graph must remain acyclic.
-7. `tauri-ui/dist/` is generated only by Vite. The removed
+7. The frontend ESM graph must remain acyclic.
+8. `tauri-ui/dist/` is generated only by Vite. The removed
    `dist/tauri-ui/` path must never return.
 
 These rules are enforced by `npm run check:architecture` and therefore run
