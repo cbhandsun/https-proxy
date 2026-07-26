@@ -1,5 +1,6 @@
 import Chart from 'chart.js/auto';
 import { bindDomainDependencies } from '../runtime/dependencies.js';
+import { reportFrontendError } from '../runtime/frontend-errors.js';
 
 let auditDependencies;
 
@@ -613,7 +614,7 @@ function updateUsageChart(dayData) {
   }
 
   if (typeof Chart === 'undefined') {
-    console.warn('Chart.js not loaded');
+    reportFrontendError('audit.chart_unavailable', new Error('Chart.js not loaded'));
     return;
   }
 

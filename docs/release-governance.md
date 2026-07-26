@@ -21,8 +21,12 @@ manifest. Frontend-only packages such as `chart.js` are excluded.
 - `npm run tauri:build` normalizes `CARGO_TARGET_DIR` to an absolute path,
   builds the Tauri installers, then copies final installers and a SHA-256
   manifest to `dist/artifacts/installers`.
-- `npm run release:portable` builds a clean portable directory, validates it,
-  creates the zip archive, and writes a portable SHA-256 manifest.
+- `npm run release:portable` builds a clean portable directory under
+  `dist/staging/portable`, validates it, then writes only the ZIP and its
+  SHA-256 manifests to `dist/artifacts/portable`.
+- `npm run release:portable:from-build` creates the portable archive from an
+  already-built Tauri executable; release CI uses this to avoid a second native
+  build.
 
 ## Security rules
 
@@ -37,6 +41,17 @@ The portable build is intentionally stateless. It ships only `proxy.config.examp
 `dist/archive` is local-only and exists solely to retain pre-governance or
 manually produced files. CI, checksums, attestations and GitHub releases operate
 only on `dist/artifacts`, so archived files cannot be published accidentally.
+
+GitHub release publication uses an explicit asset list: installers, the single
+portable ZIP, distinct checksum manifests, and validated CycloneDX SBOM JSON.
+Expanded portable files are staging-only and can never be uploaded as release
+assets.
+
+The Windows Rust audit gate fails on vulnerabilities, unsound crates and yanked
+crates that are present in the Windows target dependency tree. It prints
+upstream unmaintained notices after the dependency graph is upgraded to its
+latest compatible releases; those notices are visible for follow-up but are not
+equivalent to a published vulnerability.
 
 `.hpm-runtime` is local application state rather than a build artifact and is
 never removed by release cleanup.

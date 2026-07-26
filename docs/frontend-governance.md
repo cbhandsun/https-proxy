@@ -8,7 +8,7 @@ The frontend has one source tree and one build pipeline:
 - `tauri-ui/src/app/domains/` contains independently configured ESM domain
   modules.
 - `tauri-ui/src/app/runtime/` contains dependency-free state, DOM, dependency
-  binding and performance primitives.
+  binding, error reporting and performance primitives.
 - `tauri-ui/src/app/ux.js` owns the shared browser UX boundary.
 - `tauri-ui/src/styles/` contains styles imported by the JavaScript entry.
 - `tauri-ui/dist/` is generated exclusively by Vite and is never committed.
@@ -23,6 +23,11 @@ the architecture gate rejects ESM cycles. Runtime modules may not import project
 modules. The bootstrap has a test-enforced, non-increasing line budget so new
 features must live in a domain or runtime module.
 
+The UI uses the operating system font stack. Remote font requests are forbidden
+in both source and Tauri CSP, so packaged operation remains offline and does not
+leak startup metadata to a font provider. Runtime errors are recorded in a
+bounded, redacted in-memory buffer instead of writing browser console output.
+
 Use these commands:
 
 - `npm run frontend:dev` starts the browser development server.
@@ -32,4 +37,6 @@ Use these commands:
 - `npm run frontend:build` validates, cleans and creates the exact frontend
   consumed by Tauri.
 - `npm run test:frontend` verifies the source and Tauri/Vite wiring.
+- `npm run test:frontend:coverage` enforces quantitative coverage for the
+  independently testable runtime and configuration-model boundary.
 - `npm run dev` starts Tauri and lets its `beforeDevCommand` start Vite.

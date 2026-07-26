@@ -1,4 +1,5 @@
 import { bindDomainDependencies } from '../runtime/dependencies.js';
+import { reportFrontendError } from '../runtime/frontend-errors.js';
 
 let toolStatusDependencies;
 
@@ -74,7 +75,7 @@ function scheduleStartupProxyRetry() {
     if (!isStartupStatusSettling({ startup: true })) return;
     toolStatusDependencies.sharedAppState.lastStatusRefresh = 0;
     refreshProxyStatus({ startup: true }).catch((err) =>
-      console.error('startup refreshProxyStatus retry error:', err)
+      reportFrontendError('proxy.retry_startup_status', err)
     );
   }, toolStatusDependencies.STARTUP_STATUS_RETRY_MS);
 }

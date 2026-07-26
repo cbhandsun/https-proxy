@@ -29,6 +29,14 @@ assert.equal(
 assert.match(html, /<script\s+type="module"\s+src="\/src\/main\.js"><\/script>/);
 assert.doesNotMatch(html, /<script[^>]+app(?:-[^"]+)?\.js/);
 assert.doesNotMatch(html, /cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com/);
+assert.doesNotMatch(
+  read('tauri-ui/src/app/bootstrap.js'),
+  /fonts\.googleapis\.com|fonts\.gstatic\.com/
+);
+assert.doesNotMatch(
+  JSON.stringify(tauriConfig.app.security.csp),
+  /fonts\.googleapis\.com|fonts\.gstatic\.com/
+);
 assert.match(main, /import '\.\/styles\/app\.css';/);
 assert.match(main, /import '\.\/app\/bootstrap\.js';/);
 assert.doesNotMatch(main, /import '\.\/app\/ux\.js';/);
@@ -90,12 +98,22 @@ for (const domainName of [
   assert.equal(
     imports
       .filter((specifier) => specifier.startsWith('.'))
-      .every((specifier) => specifier === '../runtime/dependencies.js'),
+      .every(
+        (specifier) =>
+          specifier === '../runtime/dependencies.js' ||
+          specifier === '../runtime/frontend-errors.js'
+      ),
     true,
     `${domainName} may import runtime boundaries but not bootstrap or other domains`
   );
 }
-for (const runtimeName of ['app-state.js', 'dependencies.js', 'dom.js', 'performance.js']) {
+for (const runtimeName of [
+  'app-state.js',
+  'dependencies.js',
+  'dom.js',
+  'frontend-errors.js',
+  'performance.js',
+]) {
   const runtimePath = path.join(frontendSourceRoot, 'app', 'runtime', runtimeName);
   assert.equal(
     fs.existsSync(runtimePath),
@@ -127,6 +145,7 @@ assert.equal(packageJson.scripts.postinstall, undefined);
 assert.equal(packageJson.dependencies['chart.js'] != null, true);
 assert.match(packageJson.scripts['frontend:build'], /check:architecture/);
 assert.match(packageJson.scripts['frontend:build'], /clean:frontend/);
+assert.match(packageJson.scripts['test:frontend:coverage'], /c8/);
 assert.match(packageJson.scripts['clean:frontend'], /--frontend-only/);
 assert.match(packageJson.scripts['clean:coverage'], /--coverage-only/);
 assert.match(packageJson.scripts['clean:test-runtime'], /--test-only/);

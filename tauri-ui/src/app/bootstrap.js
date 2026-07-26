@@ -75,7 +75,7 @@ import {
   routeClientProtocols,
   splitEntryAuthList,
 } from './models/configuration.js';
-import { appendOption, clearElement, debounce, escapeAttr, escapeHtml } from './runtime/dom.js';
+import { appendOption, clearElement, debounce, escapeHtml } from './runtime/dom.js';
 import {
   initPerformanceRuntime,
   perfStart,
@@ -85,6 +85,7 @@ import {
   scheduleStartupTask,
 } from './runtime/performance.js';
 import { createSharedAppState } from './runtime/app-state.js';
+import { reportFrontendError } from './runtime/frontend-errors.js';
 import { canNotify, notify, storage, theme } from './ux.js';
 
 let config;
@@ -361,14 +362,16 @@ function applyPerformanceMode(enabled) {
   document.documentElement.setAttribute('data-performance-mode', value);
   try {
     localStorage.setItem('hpm_performance_mode', value);
-  } catch (e) {}
+  } catch (e) {
+    reportFrontendError('settings.persist_performance_mode', e);
+  }
 }
 
 async function applyTopMenuVisibility(show) {
   try {
     if (window.proxyManager.applyAppMenu) await window.proxyManager.applyAppMenu(show);
   } catch (err) {
-    console.error('Failed to apply top menu visibility:', err);
+    reportFrontendError('app_menu.apply', err);
   }
 }
 
@@ -1591,7 +1594,7 @@ function showView(viewId) {
     if (typeof window.initCodeToolsView === 'function') {
       window.initCodeToolsView();
     } else {
-      console.error('代码工具模块未加载，无法初始化页面');
+      reportFrontendError('tools.initialize', new Error('代码工具模块未加载，无法初始化页面'));
     }
   }
   if (viewId === 'mcpHubView') {
@@ -2221,7 +2224,7 @@ function initToolsTabSwitching() {
       const activePanel = $(`toolPanel-${toolId}`);
       if (activePanel) activePanel.classList.add('active');
       refreshAllToolStatuses({ force: true }).catch((err) =>
-        console.error('refreshAllToolStatuses error:', err)
+        reportFrontendError('tool_status.refresh_all', err)
       );
     };
   }
@@ -2230,7 +2233,7 @@ function initToolsTabSwitching() {
     toolsList.dataset.statusRefreshScheduled = 'true';
     setTimeout(() => {
       refreshAllToolStatuses({ force: true }).catch((err) =>
-        console.error('refreshAllToolStatuses startup error:', err)
+        reportFrontendError('tool_status.refresh_startup', err)
       );
     }, 2500);
   }
@@ -2271,22 +2274,22 @@ function applyLoadedConfig(nextConfig) {
   try {
     ensureLocalServer();
   } catch (e) {
-    console.error('ensureLocalServer error:', e);
+    reportFrontendError('config.ensure_local_server', e);
   }
   try {
     ensureAppSettings();
   } catch (e) {
-    console.error('ensureAppSettings error:', e);
+    reportFrontendError('config.ensure_app_settings', e);
   }
   try {
     ensureClaudeDesktop();
   } catch (e) {
-    console.error('ensureClaudeDesktop error:', e);
+    reportFrontendError('config.ensure_claude_desktop', e);
   }
   try {
     ensureEntryAuth();
   } catch (e) {
-    console.error('ensureEntryAuth error:', e);
+    reportFrontendError('config.ensure_entry_auth', e);
   }
 
   if (config && !Array.isArray(config.modelRoutes)) {
@@ -2300,27 +2303,27 @@ function applyLoadedConfig(nextConfig) {
   try {
     fillLocalServer();
   } catch (e) {
-    console.error('fillLocalServer error:', e);
+    reportFrontendError('config.fill_local_server', e);
   }
   try {
     fillAppSettings();
   } catch (e) {
-    console.error('fillAppSettings error:', e);
+    reportFrontendError('config.fill_app_settings', e);
   }
   try {
     fillClaudeDesktop();
   } catch (e) {
-    console.error('fillClaudeDesktop error:', e);
+    reportFrontendError('config.fill_claude_desktop', e);
   }
   try {
     fillForm(selectedProfile());
   } catch (e) {
-    console.error('fillForm error:', e);
+    reportFrontendError('config.fill_profile_form', e);
   }
   try {
     renderOverview();
   } catch (e) {
-    console.error('renderOverview error:', e);
+    reportFrontendError('overview.render', e);
   }
   return config;
 }
@@ -2365,14 +2368,13 @@ async function ensureProxyStartedFromUi() {
       if (proxyStatusOutputLooksRunning(output)) alreadyRunning = true;
     }
     if (!alreadyRunning) {
-      console.log('[auto-start] Proxy is not running. Starting automatically...');
       const startRes = await window.proxyManager.command('start');
       if (startRes && startRes.code !== 0 && startRes.output) {
         showToast(`自动启动代理失败：${startRes.output}`, 'error');
       }
     }
   } catch (e) {
-    console.error('[auto-start] Error:', e);
+    reportFrontendError('proxy.auto_start', e);
   }
 }
 
@@ -2408,11 +2410,11 @@ async function ensureProxyRecovered(options = {}) {
 }
 
 async function runStartupProxyWork() {
-  hydrateConfigAfterStartup().catch((e) => console.error('hydrateConfigAfterStartup error:', e));
+  hydrateConfigAfterStartup().catch((e) => reportFrontendError('config.hydrate', e));
   await ensureProxyStartedFromUi();
   await perfTrack('load.initialRefresh', () =>
     refreshProxyStatus({ startup: true }).catch((e) =>
-      console.error('refreshProxyStatus error:', e)
+      reportFrontendError('proxy.refresh_startup', e)
     )
   );
   schedulePassiveCertRefresh();
@@ -2421,26 +2423,14 @@ async function runStartupProxyWork() {
 function kickstartHeroStatusChecks() {
   setTimeout(() => {
     refreshProxyStatus({ startup: true }).catch((err) =>
-      console.error('startup refreshProxyStatus kickstart error:', err)
+      reportFrontendError('proxy.kickstart_status', err)
     );
   }, 0);
   setTimeout(() => {
     refreshCertStatus({ startup: true }).catch((err) =>
-      console.error('startup refreshCertStatus kickstart error:', err)
+      reportFrontendError('certificate.kickstart_status', err)
     );
   }, 0);
-}
-
-function scheduleDeferredFontLoad() {
-  const href =
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap';
-  setTimeout(() => {
-    if (document.querySelector(`link[href="${href}"]`)) return;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    document.head.appendChild(link);
-  }, 2500);
 }
 
 function schedulePromptStartupWork() {
@@ -2464,7 +2454,6 @@ async function load() {
   initTheme();
   initProviderPresets();
   kickstartHeroStatusChecks();
-  scheduleDeferredFontLoad();
   if (window.proxyManager.onTrayCommand) {
     try {
       Promise.resolve(
@@ -2483,12 +2472,12 @@ async function load() {
             title + (result.code === 0 ? '成功' : '失败'),
             result.code === 0 ? 'success' : 'error'
           );
-          await refreshLog().catch((e) => console.error(e));
-          await refreshProxyStatus().catch((e) => console.error(e));
+          await refreshLog().catch((e) => reportFrontendError('tray.refresh_log', e));
+          await refreshProxyStatus().catch((e) => reportFrontendError('tray.refresh_proxy', e));
         })
-      ).catch((err) => console.error('onTrayCommand setup failed:', err));
+      ).catch((err) => reportFrontendError('tray.listen', err));
     } catch (err) {
-      console.error('onTrayCommand setup failed:', err);
+      reportFrontendError('tray.listen', err);
     }
   }
 
@@ -2497,7 +2486,7 @@ async function load() {
       window.proxyManager.readConfig({ attempts: 2, retryDelay: 250, quiet: true })
     );
   } catch (err) {
-    console.error('Failed to read config:', err);
+    reportFrontendError('config.read', err);
     config = fallbackConfig();
   }
 
@@ -2522,18 +2511,18 @@ async function load() {
   try {
     initToolsTabSwitching();
   } catch (e) {
-    console.error('initToolsTabSwitching error:', e);
+    reportFrontendError('tools.initialize_tabs', e);
   }
   try {
     startHeartbeat();
   } catch (e) {
-    console.error('startHeartbeat error:', e);
+    reportFrontendError('heartbeat.start', e);
   }
 
   try {
     schedulePromptStartupWork();
   } catch (e) {
-    console.error('prompt setup error:', e);
+    reportFrontendError('prompts.initialize', e);
   }
 
   startRateLimitsTimeDisplay();
@@ -2588,7 +2577,7 @@ function scheduleStartupCertRetry() {
     startupCertRetryTimer = null;
     const startup = isStartupStatusSettling({ startup: true });
     refreshCertStatus({ startup }).catch((err) =>
-      console.error('startup refreshCertStatus retry error:', err)
+      reportFrontendError('certificate.retry_startup', err)
     );
   }, STARTUP_STATUS_RETRY_MS);
 }
@@ -2609,7 +2598,7 @@ function refreshCertStatusAfterProxyOnline(options = {}) {
     options.startup;
   if (!shouldRefresh) return;
   refreshCertStatus({ startup: options.startup }).catch((err) =>
-    console.error('refreshCertStatus after proxy online error:', err)
+    reportFrontendError('certificate.refresh_after_proxy', err)
   );
 }
 
@@ -2693,7 +2682,7 @@ async function refreshCertStatus(options = {}) {
 function schedulePassiveCertRefresh() {
   const run = () =>
     refreshCertStatus({ passive: true }).catch((err) =>
-      console.error('refreshCertStatus error:', err)
+      reportFrontendError('certificate.refresh', err)
     );
   if (window.requestIdleCallback) {
     window.requestIdleCallback(run, { timeout: 2500 });
@@ -3039,7 +3028,9 @@ $('activateProfile').onclick = async () => {
     const result = await window.proxyManager.command('status');
     const output = result.output || '';
     isRunning = /PID\s*:\s*\d+/i.test(output) || output.includes('https://');
-  } catch (err) {}
+  } catch (err) {
+    reportFrontendError('proxy.status_after_profile_activation', err);
+  }
 
   if (isRunning) {
     showToast('默认上游已热切换生效，无须重启');
@@ -3548,7 +3539,9 @@ function startCodexOfficialLoginPolling(surface) {
         $('output').textContent = msg;
         showToast(msg, 'warning');
       }
-    } catch (err) {}
+    } catch (err) {
+      reportFrontendError('codex.poll_official_login', err);
+    }
   }, 3000);
 }
 
@@ -3873,7 +3866,7 @@ $('testAllLatencies').onclick = async () => {
   try {
     await Promise.all(testPromises);
   } catch (err) {
-    console.error(err);
+    reportFrontendError('profiles.test_latency', err);
   } finally {
     isTestingLatency = false;
     $('testAllLatencies').disabled = false;

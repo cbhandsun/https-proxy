@@ -252,8 +252,9 @@ async function main() {
           `[${new Date(l.time).toLocaleTimeString()}] ${statusColor}${l.status.toUpperCase()}${colors.reset} ${colors.bold}${l.toolName}${colors.reset} (${l.elapsed}ms)`
         );
         console.log(`  Server: ${l.serverId}`);
-        console.log(`  Input:  ${JSON.stringify(l.input)}`);
-        if (l.error) console.log(`  Error:  ${colors.red}${l.error}${colors.reset}`);
+        const inputBytes = Number.isSafeInteger(l.inputBytes) ? `, ${l.inputBytes} bytes` : '';
+        console.log(`  Input:  [redacted${inputBytes}]`);
+        if (l.error) console.log(`  Error:  ${colors.red}[redacted]${colors.reset}`);
         console.log('');
       });
     } catch (e) {

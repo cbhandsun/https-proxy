@@ -1,4 +1,5 @@
 import { bindDomainDependencies } from '../runtime/dependencies.js';
+import { reportFrontendError } from '../runtime/frontend-errors.js';
 
 let bridgeDependencies;
 
@@ -9,7 +10,7 @@ export function configureBridge(dependencies) {
 // 全局错误监控 Banner，第一性原理快速定位前端崩溃
 window.onerror = function (message, source, lineno, colno, error) {
   const errorMsg = `${message} at ${source}:${lineno}:${colno}`;
-  console.error(errorMsg);
+  reportFrontendError('window.onerror', error || new Error(errorMsg));
   let errorDiv = document.getElementById('global-js-error-banner');
   if (!errorDiv) {
     errorDiv = document.createElement('div');
@@ -48,7 +49,9 @@ function localManagementPathFromUrl(url) {
     ) {
       return parsed.pathname;
     }
-  } catch (err) {}
+  } catch (err) {
+    reportFrontendError('management.parse_local_url', err);
+  }
   return '';
 }
 
@@ -102,7 +105,7 @@ async function resolveManagementToken(options = {}) {
       return nativeManagementTokenCache.token;
     }
   } catch (err) {
-    console.debug('Native management token unavailable:', err);
+    reportFrontendError('management_token.native_unavailable', err);
   }
 
   return '';
@@ -265,7 +268,7 @@ async function clearAuditConversationsNative() {
     if (result && result.ok !== false) return result;
     return result || null;
   } catch (err) {
-    console.debug('Native audit clear unavailable:', err);
+    reportFrontendError('audit.native_clear_unavailable', err);
     return null;
   }
 }
@@ -594,7 +597,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           );
           if (nativeStatus && nativeStatus.ok) return nativeStatus;
         } catch (err) {
-          console.debug('Native certificate status unavailable:', err);
+          reportFrontendError('certificate.native_status_unavailable', err);
         }
       }
       try {
@@ -605,7 +608,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         );
         if (httpStatus && httpStatus.ok) return httpStatus;
       } catch (err) {
-        console.debug('Local certificate status unavailable:', err);
+        reportFrontendError('certificate.local_status_unavailable', err);
       }
       if (window.__TAURI__ && window.__TAURI__.core) {
         try {
@@ -616,7 +619,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           );
           if (nativeStatus && nativeStatus.ok) return nativeStatus;
         } catch (err) {
-          console.debug('Native certificate status unavailable:', err);
+          reportFrontendError('certificate.native_status_unavailable', err);
         }
       }
       try {
@@ -684,7 +687,9 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           if (data.ok) {
             return { output: `PID: 9999\n运行中，接口正常（非 Tauri 桥接）。` };
           }
-        } catch (err) {}
+        } catch (err) {
+          reportFrontendError('proxy.browser_status', err);
+        }
         return { output: '' };
       }
       if (cmd === 'health') {
@@ -723,7 +728,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         try {
           await window.__TAURI__.core.invoke('openConfig');
         } catch (e) {
-          console.error(e);
+          reportFrontendError('bridge.read_config', e);
         }
         return;
       }
@@ -736,7 +741,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         try {
           await window.__TAURI__.core.invoke('openLog');
         } catch (e) {
-          console.error(e);
+          reportFrontendError('bridge.save_config', e);
         }
         return;
       }
@@ -749,7 +754,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         try {
           await window.__TAURI__.core.invoke('openCertDir');
         } catch (e) {
-          console.error(e);
+          reportFrontendError('bridge.get_runtime_info', e);
         }
         return;
       }
@@ -1197,7 +1202,7 @@ if (window.__TAURI__ && window.__TAURI__.core) {
     try {
       await invoke('applyAppMenu', { show });
     } catch (e) {
-      console.error('Failed to apply app menu:', e);
+      reportFrontendError('app_menu.apply', e);
     }
   };
   window.proxyManager.getLaunchOnLogin = async () => {
@@ -1219,7 +1224,7 @@ if (window.__TAURI__ && window.__TAURI__.core) {
         running: out.includes('running') && !out.includes('not running'),
       };
     } catch (e) {
-      console.error('Proxy command failed:', e);
+      reportFrontendError('proxy.command', e);
       return {
         code: -1,
         output: String(e),
@@ -1235,7 +1240,7 @@ if (window.__TAURI__ && window.__TAURI__.core) {
       const res = await invoke('launch_codex_login_script');
       return { ok: true, ...res };
     } catch (e) {
-      console.error('Codex login script launch failed:', e);
+      reportFrontendError('codex_login.launch', e);
       return { ok: false, error: String(e) };
     }
   };
@@ -1243,7 +1248,7 @@ if (window.__TAURI__ && window.__TAURI__.core) {
     try {
       return await invoke('select_directory_native');
     } catch (e) {
-      console.error('Native directory selection failed:', e);
+      reportFrontendError('directory.select', e);
       return { ok: false, error: String(e) };
     }
   };
@@ -1264,6 +1269,6 @@ if (window.__TAURI__ && window.__TAURI__.core) {
         }
         window.location.reload();
       })
-      .catch((e) => console.error('Failed to listen for reload requests:', e));
+      .catch((e) => reportFrontendError('reload.listen', e));
   }
 }

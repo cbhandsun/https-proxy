@@ -42,7 +42,7 @@ function verifyReleaseArtifacts(repoRoot) {
       layout.portableRoot,
       (fileName) => fileName.toLowerCase().endsWith('.zip'),
       'Portable',
-      false
+      true
     ),
   };
 }
