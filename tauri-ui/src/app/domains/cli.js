@@ -12,6 +12,7 @@ export function configureCli(dependencies) {
     'getApiBase',
     'perfStart',
     'showToast',
+    'storage',
   ]);
 }
 
@@ -84,7 +85,7 @@ async function initCodeToolsView() {
   codeToolsInitialized = true;
 
   // 1. 从 localStorage 加载配置预设
-  let profiles = window.UX.storage.parseCliProfiles(
+  let profiles = cliDependencies.storage.parseCliProfiles(
     localStorage.getItem('hpm_cli_profiles') || '[]'
   );
 
@@ -118,7 +119,7 @@ async function initCodeToolsView() {
       clearTimeout(cliProfilesSaveTimer);
       cliProfilesSaveTimer = null;
     }
-    profiles = window.UX.storage.normalizeCliProfiles(profiles);
+    profiles = cliDependencies.storage.normalizeCliProfiles(profiles);
     localStorage.setItem('hpm_cli_profiles', JSON.stringify(profiles));
   }
 
@@ -126,7 +127,7 @@ async function initCodeToolsView() {
     if (cliProfilesSaveTimer) clearTimeout(cliProfilesSaveTimer);
     cliProfilesSaveTimer = setTimeout(() => {
       cliProfilesSaveTimer = null;
-      profiles = window.UX.storage.normalizeCliProfiles(profiles);
+      profiles = cliDependencies.storage.normalizeCliProfiles(profiles);
       localStorage.setItem('hpm_cli_profiles', JSON.stringify(profiles));
     }, 300);
   }

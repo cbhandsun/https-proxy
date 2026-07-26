@@ -46,36 +46,6 @@ try {
   PACKAGE_VERSION = require('./package.json').version || PACKAGE_VERSION;
 } catch (err) {}
 
-function shouldVerifyUpstreamTls() {
-  if (process.env.PROXY_ALLOW_UNTRUSTED_UPSTREAM === '1') return false;
-  try {
-    const cfg = require('./lib/proxy/config').loadConfig();
-    return cfg.appSettings && cfg.appSettings.verifyUpstreamTls !== false;
-  } catch (e) {
-    return true;
-  }
-}
-
-function createHttpsAgent() {
-  return new https.Agent({
-    keepAlive: true,
-    maxSockets: 100,
-    maxFreeSockets: 10,
-    timeout: 60000,
-    rejectUnauthorized: shouldVerifyUpstreamTls(),
-  });
-}
-
-let globalHttpsAgent = createHttpsAgent();
-const globalHttpAgent = new http.Agent({
-  keepAlive: true,
-  maxSockets: 100,
-  maxFreeSockets: 10,
-  timeout: 60000,
-});
-https.globalAgent = globalHttpsAgent;
-http.globalAgent = globalHttpAgent;
-
 const { createAuthResolver } = require('./lib/proxy/auth-resolver');
 const { createClaudeSelfTestTargetResolver } = require('./lib/proxy/claude-self-test-target');
 const { createCoreRequestHandler } = require('./lib/proxy/core-request-handler');
@@ -84,6 +54,7 @@ const { createProxyTransport } = require('./lib/proxy/proxy-transport');
 const { createRequestObservability } = require('./lib/proxy/request-observability');
 const { createRuntimeConfigController } = require('./lib/proxy/runtime-config-controller');
 const { createRuntimeSupport } = require('./lib/proxy/runtime-support');
+const { createRuntimeHttpAgents } = require('./lib/proxy/runtime/http-agents');
 const { authorizeManagementRequest } = require('./lib/proxy/management-auth');
 const { startProxyServers } = require('./lib/proxy/server-lifecycle');
 
@@ -104,6 +75,16 @@ const {
 } = require('./lib/proxy/config');
 
 migrateLegacyRuntimeFiles();
+
+const {
+  createHttpsAgent,
+  httpAgent: globalHttpAgent,
+  httpsAgent: initialHttpsAgent,
+  shouldVerifyUpstreamTls,
+} = createRuntimeHttpAgents({ loadConfig });
+let globalHttpsAgent = initialHttpsAgent;
+https.globalAgent = globalHttpsAgent;
+http.globalAgent = globalHttpAgent;
 
 const { requestWithProxy, resetLocalProxyDetectionCache } = createProxyTransport({
   loadConfig,

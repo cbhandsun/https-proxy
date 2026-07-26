@@ -7,8 +7,13 @@ Source code must not depend on generated directories.
 HTTPS-Proxy/
 ├─ openai-proxy.js             Node proxy process entry
 ├─ hpm-cli.js                  Command-line entry
+├─ proxy.{bat,ps1}             Cross-shell proxy control entry points
+├─ 启动*.bat                    User-facing Windows launchers
+├─ proxy.config.json           Local editable config; generated and ignored
 ├─ lib/
 │  ├─ proxy/                   Proxy application and protocol modules
+│  │  ├─ handlers/            Management and protocol request handlers
+│  │  └─ runtime/             Process-level runtime boundaries
 │  ├─ release/                 Release validation and safety rules
 │  └─ governance/              Repository architecture rules
 ├─ tauri-ui/
@@ -23,11 +28,17 @@ HTTPS-Proxy/
 │  │  └─ styles/
 │  └─ dist/                    Vite output; generated and ignored
 ├─ src-tauri/                  Native shell, commands, permissions and bundling
+│  ├─ src/
+│  │  ├─ lib.rs               Tauri application composition
+│  │  └─ proxy_root.rs        Runtime/resource root discovery
+│  └─ icons/                  Canonical desktop and tray icon assets
 ├─ scripts/                    Build, verification and operational entry scripts
+├─ docs/                       Architecture, governance and historical QA records
 ├─ coverage/                   Disposable test coverage reports
 ├─ test/
 │  ├─ frontend/                Frontend behavior and architecture tests
-│  └─ *.test.js                Proxy, release and integration tests
+│  ├─ governance/              Repository and release policy tests
+│  └─ *.test.js                Recursively discovered proxy/runtime tests
 └─ dist/
    ├─ staging/runtime/         Disposable Node runtime for Tauri packaging
    ├─ artifacts/
@@ -43,8 +54,8 @@ HTTPS-Proxy/
 flowchart LR
   HTML["index.html"] --> Main["src/main.js"]
   Main --> Styles["styles/app.css"]
-  Main --> UX["app/ux.js"]
   Main --> Bootstrap["app/bootstrap.js"]
+  Bootstrap --> UX["app/ux.js"]
   Bootstrap --> Domains["app/domains/*"]
   Bootstrap --> Runtime["app/runtime/*"]
   Runtime --> Domains
@@ -55,8 +66,11 @@ flowchart LR
 The dependency rules are:
 
 1. `main.js` is the only Vite entry and contains no business logic.
+   UX services use ESM exports; `window.UX` and side-effect compatibility
+   globals are forbidden.
 2. `bootstrap.js` owns application startup and domain composition. Its current
-   size budget is 4,250 lines and may only decrease.
+   size budget is enforced by the composition-root governance test and may only
+   decrease.
 3. Domain modules do not import `bootstrap.js` or other domain modules. They
    receive browser, state and service dependencies through their
    `configure*()` boundary.
@@ -77,6 +91,8 @@ before every production frontend build.
 - `npm run clean:frontend` removes only `tauri-ui/dist/` and the obsolete
   `dist/tauri-ui/` path.
 - `npm run clean:coverage` removes only coverage reports.
+- `npm run clean:test-runtime` removes only ignored runtime files accidentally
+  left under `test/`.
 - `npm run clean:staging` removes only disposable release staging.
 - `npm run clean:artifacts` removes only final release deliverables.
 - `npm run frontend:build` runs architecture checks, cleans frontend output,
@@ -87,7 +103,9 @@ before every production frontend build.
 
 Generated output is ignored by Git and must not be used as an editable source.
 Release automation reads and uploads only `dist/artifacts/`; it never reads
-`dist/archive/`.
+`dist/archive/`. Both installed and portable packages contain only the
+production `lib/proxy/` tree; repository governance, coverage and test-support
+modules are excluded from releases.
 
 `src-tauri/target/` is a disposable Cargo compilation cache and can be large.
 `.hpm-runtime/` is different: it contains local application state and may
@@ -101,3 +119,8 @@ it.
 - `npm run verify`: syntax, lint, architecture, CI/release governance,
   coverage, integration, frontend build and Rust tests.
 - `npm run tauri:build`: production Tauri build and installer collection.
+
+All composition roots have non-increasing line budgets in
+`test/governance/composition-roots.test.js`. Network policy, runtime-root
+discovery and other independently testable logic must live in dedicated
+modules rather than being added back to those entries.

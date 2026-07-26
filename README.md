@@ -6,7 +6,8 @@ CLI、Cursor、VS Code Copilot 等）设计的本地高性能 HTTPS 代理管理
 它提供了多协议转发、官方直连 OAuth 透传、配置无缝热加载、节点首包延迟测速以及系统级提示词（Markdown）一键同步等进阶生产力特性。
 
 工程目录、模块边界与发布产物约定见
-[`docs/architecture.md`](docs/architecture.md)。
+[`docs/architecture.md`](docs/architecture.md)。前端源码边界和构建约束见
+[`docs/frontend-governance.md`](docs/frontend-governance.md)。
 
 ---
 

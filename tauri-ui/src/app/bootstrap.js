@@ -69,6 +69,7 @@ import {
   scheduleStartupTask,
 } from './runtime/performance.js';
 import { createSharedAppState } from './runtime/app-state.js';
+import { canNotify, notify, storage, theme } from './ux.js';
 
 let config;
 let selectedId;
@@ -85,7 +86,6 @@ let lastRenderedProfilesHtml = '';
 let proxyRecoveryInFlight = false;
 let manualProxyStopSuppressed = false;
 let lastProxyRecoveryAt = 0;
-let currentTheme = 'light';
 let lastCertRefresh = 0;
 let certRefreshInFlight = null;
 let startupCertRetryTimer = null;
@@ -175,39 +175,19 @@ const defaultEntryServers = [
 const ENTRY_PROTOCOL_OPTIONS = ['claude', 'openai-responses', 'openai-chat', 'claude-desktop'];
 
 function initTheme() {
-  if (window.UX && window.UX.theme) {
-    window.UX.theme.init();
-    return;
-  }
-  // Fallback: legacy light/dark toggle
-  currentTheme =
-    localStorage.getItem('theme') ||
-    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  applyTheme(currentTheme);
+  theme.init();
 }
 
-function applyTheme(theme) {
-  if (window.UX && window.UX.theme) {
-    window.UX.theme.apply(theme);
-    return;
-  }
-  document.documentElement.setAttribute('data-theme', theme);
-  $('themeIconSun').style.display = theme === 'dark' ? 'block' : 'none';
-  $('themeIconMoon').style.display = theme === 'dark' ? 'none' : 'block';
-  localStorage.setItem('theme', theme);
-  currentTheme = theme;
+function applyTheme(nextTheme) {
+  theme.apply(nextTheme);
 }
 
 const themeBtn = $('themeToggle');
 if (themeBtn) {
   themeBtn.onclick = () => {
-    if (window.UX && window.UX.theme) {
-      const next = window.UX.theme.cycle();
-      const labels = { light: '已切换为浅色', dark: '已切换为深色', auto: '已切换为跟随系统' };
-      showToast(labels[next] || '主题已切换', 'success');
-      return;
-    }
-    applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+    const next = theme.cycle();
+    const labels = { light: '已切换为浅色', dark: '已切换为深色', auto: '已切换为跟随系统' };
+    showToast(labels[next] || '主题已切换', 'success');
   };
 }
 
@@ -610,7 +590,7 @@ function ensureAppSettings() {
   if (typeof config.appSettings.desktopNotifications !== 'boolean') {
     // Default to enabled if the browser says Notification is usable; otherwise
     // off so the toggle does not dangle a "supported" promise.
-    config.appSettings.desktopNotifications = window.UX ? window.UX.canNotify() : false;
+    config.appSettings.desktopNotifications = canNotify();
   }
   if (typeof config.appSettings.disableLocalProxy !== 'boolean')
     config.appSettings.disableLocalProxy = false;
@@ -3054,14 +3034,13 @@ async function run(command) {
   showDiagnosticsTab('outputPanel');
   showToast(proxyCommandToastMessage(command, result), result.code === 0 ? 'success' : 'error');
   if (
-    window.UX &&
     result.code === 0 &&
     ['start', 'stop', 'restart'].includes(command) &&
     config.appSettings &&
     config.appSettings.desktopNotifications
   ) {
     const titles = { start: '代理已启动', stop: '代理已停止', restart: '代理已重启' };
-    window.UX.notify(titles[command], {
+    notify(titles[command], {
       body: msg.split('\n').slice(0, 2).join(' / '),
       tag: `proxy:${command}`,
     });
@@ -4197,6 +4176,7 @@ function configureDomainModules() {
     showDiagnosticsTab,
     showDiagnosticsView,
     showToast,
+    storage,
     showView,
     startupStatusStartedAt,
     togglePromptsTab,

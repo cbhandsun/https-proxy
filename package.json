@@ -41,6 +41,7 @@
     "tauri:build": "node scripts/build-tauri-release.js",
     "clean:frontend": "node scripts/clean-generated-artifacts.js --frontend-only",
     "clean:coverage": "node scripts/clean-generated-artifacts.js --coverage-only",
+    "clean:test-runtime": "node scripts/clean-generated-artifacts.js --test-only",
     "clean:staging": "node scripts/clean-generated-artifacts.js --staging-only",
     "clean:artifacts": "node scripts/clean-generated-artifacts.js --artifacts-only",
     "clean:release": "node scripts/clean-generated-artifacts.js",

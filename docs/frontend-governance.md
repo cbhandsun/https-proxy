@@ -20,8 +20,8 @@ packaged builds.
 Domain modules must not import the bootstrap or each other. The bootstrap passes
 explicit runtime dependencies through each domain's `configure*()` boundary, and
 the architecture gate rejects ESM cycles. Runtime modules may not import project
-modules. The bootstrap has a non-increasing 4,250-line budget so new features
-must live in a domain or runtime module.
+modules. The bootstrap has a test-enforced, non-increasing line budget so new
+features must live in a domain or runtime module.
 
 Use these commands:
 

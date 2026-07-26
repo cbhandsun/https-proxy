@@ -47,6 +47,15 @@ const assert = require('node:assert/strict');
       return undefined;
     },
     showToast() {},
+    storage: {
+      parsePromptTemplates() {
+        return [];
+      },
+      limits: {
+        promptNameChars: 128,
+        promptContentChars: 200000,
+      },
+    },
   });
   prompts.bindPromptControls();
   promptClientType.value = 'codex';

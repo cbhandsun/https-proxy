@@ -8,7 +8,12 @@ let promptContentSaveTimer = null;
 let activePromptClientType = 'claude';
 
 export function configurePrompts(runtime) {
-  promptDependencies = bindDomainDependencies('prompts', runtime, ['$', 'config', 'showToast']);
+  promptDependencies = bindDomainDependencies('prompts', runtime, [
+    '$',
+    'config',
+    'showToast',
+    'storage',
+  ]);
 }
 
 function dependencies() {
@@ -292,7 +297,9 @@ export function loadPresetPrompts() {
 }
 
 export function readStoredPromptTemplates() {
-  return window.UX.storage.parsePromptTemplates(localStorage.getItem('prompt_templates') || '[]');
+  return dependencies().storage.parsePromptTemplates(
+    localStorage.getItem('prompt_templates') || '[]'
+  );
 }
 
 export function loadTemplates() {
@@ -381,7 +388,7 @@ function saveTemplate() {
     showToast('提示词内容不能为空', 'error');
     return;
   }
-  const storageLimits = window.UX.storage.limits;
+  const storageLimits = dependencies().storage.limits;
   if (name.length > storageLimits.promptNameChars) {
     showToast(`模板名称不能超过 ${storageLimits.promptNameChars} 个字符`, 'error');
     return;

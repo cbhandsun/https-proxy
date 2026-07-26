@@ -4,10 +4,15 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { createIsolatedTestEnv } = require('../lib/test-runtime');
 
 const testHomeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'https-proxy-headers-routing-'));
 const testAppDataDir = path.join(testHomeDir, 'AppData', 'Roaming');
+const testConfigDir = path.join(testHomeDir, 'config');
+const testRuntimeDir = path.join(testHomeDir, 'runtime');
 
+fs.mkdirSync(testConfigDir, { recursive: true });
+fs.mkdirSync(testRuntimeDir, { recursive: true });
 fs.mkdirSync(path.join(testHomeDir, '.codex'), { recursive: true });
 fs.writeFileSync(
   path.join(testHomeDir, '.codex', 'auth.json'),
@@ -21,7 +26,7 @@ fs.writeFileSync(
 
 function createProxyEnv() {
   return {
-    ...process.env,
+    ...createIsolatedTestEnv(process.env, testHomeDir),
     APPDATA: testAppDataDir,
     CODE_ASSIST_ENDPOINT: `http://127.0.0.1:${upstreamPort}`,
     GOOGLE_CLOUD_PROJECT: 'test-project',
@@ -29,7 +34,6 @@ function createProxyEnv() {
     LOCALAPPDATA: path.join(testHomeDir, 'AppData', 'Local'),
     USERPROFILE: testHomeDir,
     MGMT_PORT: String(managementPort),
-    PROXY_DATA_DIR: __dirname,
   };
 }
 
@@ -72,7 +76,7 @@ mockUpstream.listen(0, '127.0.0.1', async () => {
 });
 
 // 2. 准备测试配置文件
-const configPath = path.join(__dirname, 'proxy.config.json');
+const configPath = path.join(testConfigDir, 'proxy.config.json');
 function setupTestConfig(profile) {
   const config = {
     activeProfile: profile.id,
@@ -111,8 +115,8 @@ function setupTestConfig(profile) {
 
 function readManagementToken() {
   const candidates = [
-    path.join(__dirname, `.mgmt-token-${managementPort}`),
-    path.join(__dirname, '.mgmt-token'),
+    path.join(testRuntimeDir, `.mgmt-token-${managementPort}`),
+    path.join(testRuntimeDir, '.mgmt-token'),
   ];
   for (const file of candidates) {
     try {

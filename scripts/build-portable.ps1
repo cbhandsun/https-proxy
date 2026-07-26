@@ -91,11 +91,11 @@ New-Item -ItemType Directory -Path $PortableDir -Force | Out-Null
 
 Copy-RequiredFile $Exe (Join-Path $PortableDir 'https-proxy-manager.exe')
 Copy-RequiredFile (Join-Path $Root 'openai-proxy.js') (Join-Path $PortableDir 'openai-proxy.js')
-Copy-Item -LiteralPath (Join-Path $Root 'lib') -Destination (Join-Path $PortableDir 'lib') -Recurse -Force
+New-Item -ItemType Directory -Path (Join-Path $PortableDir 'lib') -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $Root 'lib\proxy') -Destination (Join-Path $PortableDir 'lib\proxy') -Recurse -Force
 Copy-RequiredFile (Join-Path $Root 'proxy.ps1') (Join-Path $PortableDir 'proxy.ps1')
 Copy-RequiredFile (Join-Path $Root 'proxy.bat') (Join-Path $PortableDir 'proxy.bat')
 Copy-RequiredFile (Join-Path $Root 'proxy.config.example.json') (Join-Path $PortableDir 'proxy.config.example.json')
-Copy-RequiredFile (Join-Path $Root 'tray-icon.ico') (Join-Path $PortableDir 'tray-icon.ico')
 Copy-RequiredFile (Join-Path $ReleaseRuntimeDir 'package.json') (Join-Path $PortableDir 'package.json')
 Copy-RequiredFile (Join-Path $ReleaseRuntimeDir 'release-runtime-manifest.json') (Join-Path $PortableDir 'release-runtime-manifest.json')
 Copy-Item -LiteralPath (Join-Path $ReleaseRuntimeDir 'runtime') -Destination (Join-Path $PortableDir 'runtime') -Recurse -Force
