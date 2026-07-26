@@ -19,11 +19,13 @@ const workflow = [
   `- uses: ${pinned}`,
   '- run: npm ci',
   '- run: npm run format:check',
+  '- run: npm run check:ci',
   '- run: npm audit --audit-level=high',
   '- run: npm run test:coverage',
+  '- run: npm run test:frontend:coverage',
   '- run: npm run release:check',
   '- run: cargo clippy',
-  '- run: cargo audit --file src-tauri/Cargo.lock',
+  '- run: node scripts/check-windows-rust-audit.js',
 ].join('\n');
 const dependabot = [
   'package-ecosystem: npm',
@@ -43,6 +45,9 @@ const releaseWorkflow = [
   'npm sbom --sbom-format cyclonedx',
   'cargo-cyclonedx --version 0.5.9',
   'smoke-test-nsis.ps1',
+  'npm run release:portable:from-build',
+  'scripts/list-release-assets.js',
+  'Release asset selection failed',
   'actions/attest@' + 'a'.repeat(40),
   'gh release create',
 ].join('\n');

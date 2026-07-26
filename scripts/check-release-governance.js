@@ -71,6 +71,7 @@ for (const scriptName of [
   'release:prepare',
   'release:check',
   'release:portable',
+  'release:portable:from-build',
 ]) {
   if (!packageJson.scripts || !packageJson.scripts[scriptName]) {
     errors.push(`Missing package script: ${scriptName}`);
@@ -81,6 +82,9 @@ const verifyScript = String((packageJson.scripts && packageJson.scripts.verify) 
 const rustTestScript = String((packageJson.scripts && packageJson.scripts['test:rust']) || '');
 if (!verifyScript.includes('npm run test:rust')) {
   errors.push('verify must run the self-contained Rust test gate');
+}
+if (!verifyScript.includes('npm run test:frontend:coverage')) {
+  errors.push('verify must run the frontend runtime/model coverage gate');
 }
 if (!rustTestScript.includes('npm run release:prepare')) {
   errors.push('test:rust must prepare release runtime before invoking cargo');

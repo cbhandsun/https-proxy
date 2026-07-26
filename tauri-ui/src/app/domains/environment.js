@@ -1,4 +1,5 @@
 import { bindDomainDependencies } from '../runtime/dependencies.js';
+import { reportFrontendError } from '../runtime/frontend-errors.js';
 
 let environmentDependencies;
 
@@ -268,9 +269,9 @@ async function pollEnvInstallJobs() {
 function startEnvInstallPolling() {
   if (envInstallPollTimer) return;
   envInstallPollTimer = setInterval(() => {
-    pollEnvInstallJobs().catch((err) => console.error('环境安装进度轮询失败:', err));
+    pollEnvInstallJobs().catch((err) => reportFrontendError('environment.poll_install_jobs', err));
   }, 1200);
-  pollEnvInstallJobs().catch((err) => console.error('环境安装进度轮询失败:', err));
+  pollEnvInstallJobs().catch((err) => reportFrontendError('environment.poll_install_jobs', err));
 }
 
 function createEnvSkeletonCard() {

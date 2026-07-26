@@ -1,4 +1,5 @@
 import { bindDomainDependencies } from '../runtime/dependencies.js';
+import { reportFrontendError } from '../runtime/frontend-errors.js';
 
 let cliDependencies;
 
@@ -393,7 +394,7 @@ async function initCodeToolsView() {
         updateUpgradeCheckboxState();
       }
     } catch (err) {
-      console.error('加载 CLI 状态失败:', err);
+      reportFrontendError('cli.load_status', err);
     }
   })();
 
@@ -462,7 +463,7 @@ async function initCodeToolsView() {
         });
       }
     } catch (err) {
-      console.error('加载模型配置失败:', err);
+      reportFrontendError('cli.load_models', err);
     }
   })();
 
@@ -621,7 +622,7 @@ async function refreshCliSessions(options = {}) {
       });
     }
   } catch (err) {
-    console.error('刷新活动会话失败:', err);
+    reportFrontendError('cli.refresh_sessions', err);
   } finally {
     cliSessionsRefreshInFlight = false;
     finishPerf({

@@ -31,6 +31,21 @@ const { _test } = require('../lib/proxy/audit');
     assert.strictEqual(await _test.rotateAuditFileIfNeeded(auditFile, 100, 64), true);
     assert.strictEqual(fs.existsSync(rotated), true);
     assert.strictEqual(fs.existsSync(auditFile), false);
+    if (process.platform !== 'win32') {
+      fs.chmodSync(tmpDir, 0o755);
+      await _test.ensurePrivateAuditDirectory(tmpDir);
+      assert.strictEqual(fs.statSync(tmpDir).mode & 0o777, 0o700);
+      assert.strictEqual(fs.statSync(rotated).mode & 0o777, 0o600);
+      fs.writeFileSync(auditFile, 'audit', { mode: 0o644 });
+      await _test.ensurePrivateAuditFile(auditFile);
+      assert.strictEqual(fs.statSync(auditFile).mode & 0o777, 0o600);
+      fs.chmodSync(auditFile, 0o644);
+      _test.ensurePrivateAuditFileSync(auditFile);
+      assert.strictEqual(fs.statSync(auditFile).mode & 0o777, 0o600);
+      fs.chmodSync(tmpDir, 0o755);
+      _test.ensurePrivateAuditDirectorySync(tmpDir);
+      assert.strictEqual(fs.statSync(tmpDir).mode & 0o777, 0o700);
+    }
 
     fs.writeFileSync(
       auditFile,

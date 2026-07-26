@@ -17,7 +17,27 @@ const assert = require('node:assert/strict');
 
   const dom = await import('../../tauri-ui/src/app/runtime/dom.js');
   const performanceRuntime = await import('../../tauri-ui/src/app/runtime/performance.js');
+  const frontendErrors = await import('../../tauri-ui/src/app/runtime/frontend-errors.js');
   const { createSharedAppState } = await import('../../tauri-ui/src/app/runtime/app-state.js');
+
+  delete global.__hpmFrontendErrors;
+  const recordedError = frontendErrors.reportFrontendError(
+    'request failed',
+    new Error('Bearer secret-token')
+  );
+  assert.equal(recordedError.context, 'request failed');
+  assert.doesNotMatch(recordedError.message, /secret-token/);
+  for (let index = 0; index < 105; index += 1) {
+    frontendErrors.reportFrontendError('bounded', `error ${index}`);
+  }
+  assert.equal(frontendErrors.getFrontendErrors().length, 100);
+  const reportedErrors = frontendErrors.getFrontendErrors();
+  reportedErrors[0].message = 'mutated';
+  assert.notEqual(frontendErrors.getFrontendErrors()[0].message, 'mutated');
+  assert.equal(
+    frontendErrors._test.sanitizeErrorText('token=private&ok=yes').includes('private'),
+    false
+  );
 
   const firstState = createSharedAppState();
   const secondState = createSharedAppState();

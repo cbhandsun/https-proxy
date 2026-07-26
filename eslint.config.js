@@ -277,9 +277,10 @@ module.exports = [
     },
     rules: {
       'no-unused-vars': 'off',
-      'unused-imports/no-unused-imports': 'off',
       'unused-imports/no-unused-vars': 'off',
       'no-unused-expressions': 'off',
+      'no-console': 'error',
+      'no-empty': ['error', { allowEmptyCatch: false }],
     },
   },
   {

@@ -57,10 +57,17 @@ try {
   const releaseLayout = resolveReleaseLayout(repoRoot);
   assert.strictEqual(releaseLayout.runtimeDir, path.join(repoRoot, 'dist', 'staging', 'runtime'));
   assert.strictEqual(
+    releaseLayout.portableStagingDir,
+    path.join(repoRoot, 'dist', 'staging', 'portable')
+  );
+  assert.strictEqual(
     releaseLayout.installersDir,
     path.join(repoRoot, 'dist', 'artifacts', 'installers')
   );
   fs.mkdirSync(path.join(layoutTempRoot, 'dist', 'staging', 'runtime'), {
+    recursive: true,
+  });
+  fs.mkdirSync(path.join(layoutTempRoot, 'dist', 'staging', 'portable'), {
     recursive: true,
   });
   fs.mkdirSync(path.join(layoutTempRoot, 'dist', 'artifacts', 'installers'), {
@@ -132,6 +139,10 @@ try {
   assert.match(portableBuildSource, /Join-Path \$Root 'lib\\proxy'/);
   assert.doesNotMatch(portableBuildSource, /Join-Path \$Root 'lib'\)/);
   assert.match(portableBuildSource, /write-portable-artifact-manifest\.js/);
+  assert.match(portableBuildSource, /dist\\staging\\portable/);
+  assert.match(portableBuildSource, /artifacts\\portable/);
+  assert.match(portableBuildSource, /function Get-Sha256/);
+  assert.doesNotMatch(portableBuildSource, /Get-FileHash/);
   assert.match(portableBuildSource, /PortableManifestJson/);
   assert.match(portableBuildSource, /PortableManifestText/);
 

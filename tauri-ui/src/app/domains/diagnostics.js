@@ -1,4 +1,5 @@
 import { bindDomainDependencies } from '../runtime/dependencies.js';
+import { reportFrontendError } from '../runtime/frontend-errors.js';
 
 let diagnosticsDependencies;
 
@@ -87,18 +88,18 @@ function startHeartbeat() {
           if (health) {
             diagnosticsDependencies
               .hydrateConfigAfterStartup()
-              .catch((e) => console.error('hydrateConfigAfterStartup in heartbeat:', e));
+              .catch((e) => reportFrontendError('heartbeat.hydrate_config', e));
             // 同样的冷启动问题也会让首次证书检查超时。等代理真正
             // 起来后再被动拉一次,refreshCertStatus 的 catch 分支
             // 不会写 lastCertRefresh,所以这次调用不会被 60s 节流。
             if (typeof diagnosticsDependencies.refreshCertStatus === 'function') {
               diagnosticsDependencies
                 .refreshCertStatus({ passive: true })
-                .catch((e) => console.error('refreshCertStatus in heartbeat:', e));
+                .catch((e) => reportFrontendError('heartbeat.refresh_certificate', e));
             }
           }
         } catch (e) {
-          console.error('heartbeat health probe for hydrate:', e);
+          reportFrontendError('heartbeat.health_probe', e);
         }
       }
     },
@@ -167,7 +168,7 @@ async function refreshMonitor(options = {}) {
       ].time;
     renderMonitor();
   } catch (err) {
-    console.error('Failed to refresh monitor:', err);
+    reportFrontendError('monitor.refresh', err);
   } finally {
     diagnosticsDependencies.sharedAppState.monitorRefreshInFlight = false;
     finishPerf({

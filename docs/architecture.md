@@ -42,10 +42,12 @@ HTTPS-Proxy/
 │  ├─ governance/              Repository and release policy tests
 │  └─ *.test.js                Recursively discovered proxy/runtime tests
 └─ dist/
-   ├─ staging/runtime/         Disposable Node runtime for Tauri packaging
+   ├─ staging/
+   │  ├─ runtime/              Disposable Node runtime for Tauri packaging
+   │  └─ portable/             Expanded portable package; never published
    ├─ artifacts/
    │  ├─ installers/           Collected installers and checksums
-   │  ├─ portable/             Portable directory, zip and checksums
+   │  ├─ portable/             Portable ZIP and checksums only
    │  └─ sbom/                 Release software bills of materials
    └─ archive/                 Local-only legacy artifacts; never uploaded
 ```
@@ -121,10 +123,11 @@ it.
 - `npm test`: unit, frontend, thinking persistence and environment tests.
 - `npm run test:all`: `npm test` plus integration tests.
 - `npm run verify`: formatting, syntax, lint, architecture, CI/release governance,
-  coverage, integration, frontend build and Rust tests.
+  backend and frontend-boundary coverage, integration, frontend build and Rust tests.
 - `npm run tauri:build`: production Tauri build and installer collection.
 
-All composition roots have non-increasing line budgets in
-`test/governance/composition-roots.test.js`. Network policy, runtime-root
+All composition roots and high-churn protocol/UI modules have non-increasing
+line budgets in `test/governance/composition-roots.test.js` and
+`test/governance/module-size-budgets.test.js`. Network policy, runtime-root
 discovery and other independently testable logic must live in dedicated
 modules rather than being added back to those entries.

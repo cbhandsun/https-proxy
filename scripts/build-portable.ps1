@@ -1,13 +1,15 @@
 param(
     [switch]$SkipBuild,
     [switch]$NoZip,
-    [string]$OutputRoot = "dist\artifacts\portable",
+    [string]$OutputRoot = "dist\staging\portable",
     [string]$CargoTargetDir = $env:CARGO_TARGET_DIR
 )
 
 $ErrorActionPreference = 'Stop'
 $Root = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 $DistRoot = [System.IO.Path]::GetFullPath((Join-Path $Root 'dist'))
+$StagingRoot = [System.IO.Path]::GetFullPath((Join-Path $DistRoot 'staging'))
+$ArtifactPortableRoot = [System.IO.Path]::GetFullPath((Join-Path $DistRoot 'artifacts\portable'))
 $ResolvedOutputRoot = [System.IO.Path]::GetFullPath((Join-Path $Root $OutputRoot))
 $PortableName = 'HTTPS Proxy Manager Portable'
 $PortableDir = Join-Path $ResolvedOutputRoot $PortableName
@@ -35,19 +37,32 @@ function Copy-RequiredFile {
     Copy-Item -LiteralPath $Source -Destination $Destination -Force
 }
 
+function Get-Sha256 {
+    param([string]$FilePath)
+    $stream = [System.IO.File]::OpenRead($FilePath)
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return ([System.BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '')
+    } finally {
+        $algorithm.Dispose()
+        $stream.Dispose()
+    }
+}
+
 function Assert-PortableFileMatches {
     param([string]$RelativePath)
     $source = Join-Path $Root $RelativePath
     $destination = Join-Path $PortableDir $RelativePath
     if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing source file: $source" }
     if (-not (Test-Path -LiteralPath $destination -PathType Leaf)) { throw "Missing portable file: $destination" }
-    if ((Get-FileHash $source -Algorithm SHA256).Hash -ne (Get-FileHash $destination -Algorithm SHA256).Hash) {
+    if ((Get-Sha256 $source) -ne (Get-Sha256 $destination)) {
         throw "Portable backend mismatch: $RelativePath"
     }
 }
 
-$ResolvedOutputRoot = Assert-PathInside $DistRoot $ResolvedOutputRoot 'Portable output root'
+$ResolvedOutputRoot = Assert-PathInside $StagingRoot $ResolvedOutputRoot 'Portable staging output root'
 $PortableDir = Assert-PathInside $ResolvedOutputRoot $PortableDir 'Portable directory'
+$ArtifactPortableRoot = Assert-PathInside $DistRoot $ArtifactPortableRoot 'Portable artifact root'
 
 Push-Location $Root
 try {
@@ -132,9 +147,10 @@ try {
     Pop-Location
 }
 
-$ZipPath = Assert-PathInside $DistRoot (Join-Path $ResolvedOutputRoot 'HTTPS-Proxy-Manager-Portable.zip') 'Portable zip path'
-$PortableManifestJson = Assert-PathInside $DistRoot (Join-Path $ResolvedOutputRoot 'SHA256SUMS.json') 'Portable manifest path'
-$PortableManifestText = Assert-PathInside $DistRoot (Join-Path $ResolvedOutputRoot 'SHA256SUMS.txt') 'Portable manifest path'
+$ZipPath = Assert-PathInside $ArtifactPortableRoot (Join-Path $ArtifactPortableRoot 'HTTPS-Proxy-Manager-Portable.zip') 'Portable zip path'
+$PortableManifestJson = Assert-PathInside $ArtifactPortableRoot (Join-Path $ArtifactPortableRoot 'SHA256SUMS.json') 'Portable manifest path'
+$PortableManifestText = Assert-PathInside $ArtifactPortableRoot (Join-Path $ArtifactPortableRoot 'SHA256SUMS.txt') 'Portable manifest path'
+New-Item -ItemType Directory -Path $ArtifactPortableRoot -Force | Out-Null
 foreach ($StaleArtifact in @($ZipPath, $PortableManifestJson, $PortableManifestText)) {
     if (Test-Path -LiteralPath $StaleArtifact) { Remove-Item -LiteralPath $StaleArtifact -Force }
 }

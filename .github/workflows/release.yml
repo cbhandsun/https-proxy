@@ -66,6 +66,7 @@ jobs:
           "HPM_SIGNING_THUMBPRINT=$($certificate.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "HPM_SIGNING_PFX=$pfxPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - run: npm run tauri:build
+      - run: npm run release:portable:from-build
       - name: Verify Authenticode signatures
         shell: pwsh
         run: |
@@ -125,10 +126,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $assets = @(
-            Get-ChildItem -LiteralPath 'dist\artifacts' -Recurse -File |
-              ForEach-Object { $_.FullName }
-          )
+          $assets = @(node scripts/list-release-assets.js)
+          if ($LASTEXITCODE -ne 0) { throw 'Release asset selection failed.' }
           if ($assets.Count -eq 0) { throw 'No release assets were produced.' }
           gh release create $env:GITHUB_REF_NAME --verify-tag --generate-notes @assets
       - name: Remove signing material
