@@ -26,27 +26,35 @@ async function run() {
   assert.equal(typeof mcpHubModule.normalizeMcpTool, 'function', 'normalizeMcpTool exported');
   assert.equal(typeof mcpHubModule.mergeClaudeTools, 'function', 'mergeClaudeTools exported');
   assert.equal(
-    typeof mcpHubModule._test.compactMcpLogValue,
+    typeof mcpHubModule._test.buildMcpExecutionRecord,
     'function',
-    'compactMcpLogValue exported for tests'
+    'buildMcpExecutionRecord exported for tests'
   );
 
-  const compacted = mcpHubModule._test.compactMcpLogValue({
-    input: {
-      apiKey: 'sk-secret',
-      nested: {
-        authorization: 'Bearer token',
-        text: 'x'.repeat(13000),
-      },
+  const metadataRecord = mcpHubModule._test.buildMcpExecutionRecord(
+    {
+      serverId: 'docs',
+      toolName: 'search_docs',
+      input: { apiKey: 'sk-secret', prompt: 'private user content' },
+      result: { authorization: 'Bearer secret', content: 'private result' },
+      error: new Error('private failure body'),
+      elapsed: 17,
+      status: 'error',
     },
-  });
-  assert.equal(compacted.input.apiKey, '[redacted]', 'apiKey redacted in MCP logs');
-  assert.equal(
-    compacted.input.nested.authorization,
-    '[redacted]',
-    'authorization redacted in MCP logs'
+    new Date('2026-01-01T00:00:00.000Z')
   );
-  assert.ok(compacted.input.nested.text.endsWith('...[truncated]'), 'large MCP log text truncated');
+  assert.deepEqual(metadataRecord, {
+    time: '2026-01-01T00:00:00.000Z',
+    serverId: 'docs',
+    toolName: 'search_docs',
+    status: 'error',
+    elapsedMs: 17,
+    inputBytes: 54,
+    resultBytes: 60,
+    errorType: 'Error',
+  });
+  assert.ok(!JSON.stringify(metadataRecord).includes('private'), 'MCP logs omit content');
+  assert.ok(!JSON.stringify(metadataRecord).includes('secret'), 'MCP logs omit secrets');
   assert.equal(mcpHubModule._test.normalizeBearerToken('Bearer glm-key'), 'glm-key');
   assert.deepEqual(
     mcpHubModule._test.mcpRequestHeaders({ bearerToken: 'glm-key' }, '{}').Authorization,
@@ -165,6 +173,7 @@ async function run() {
     });
   });
 
+  const warnings = [];
   const hub = createMcpHub({
     getConfig: () => ({
       mcpHub: {
@@ -184,14 +193,12 @@ async function run() {
     normalizeMcpTool,
     mergeClaudeTools,
     logMcpExecution: () => {},
+    logger: {
+      warn(fields, message) {
+        warnings.push(`${message} ${fields.attempt}/${fields.maxAttempts}`);
+      },
+    },
   });
-
-  // capture warnings to detect retry messages
-  const warnings = [];
-  const origWarn = console.warn;
-  console.warn = (...args) => {
-    warnings.push(args.join(' '));
-  };
 
   try {
     const result = await hub.callRemoteMcp(
@@ -209,7 +216,7 @@ async function run() {
     assert.deepEqual(result, { ok: true, payload: 'success-on-third' });
     assert.equal(attempts, 3, 'callRemoteMcp retries until configured maxRetries');
     assert.ok(
-      warnings.some((line) => line.includes('attempt 2/3')),
+      warnings.some((line) => line.includes('2/3')),
       'retry warning includes bounded attempt count'
     );
 
@@ -251,7 +258,6 @@ async function run() {
     // Sanity: hub is callable and has the expected methods
     assert.equal(typeof hub.resolveToolRoute, 'function', 'hub.resolveToolRoute exists');
   } finally {
-    console.warn = origWarn;
     server.close();
   }
 
@@ -266,32 +272,31 @@ async function run() {
   });
   try {
     const cappedWarnings = [];
-    const origWarn = console.warn;
-    console.warn = (...args) => {
-      cappedWarnings.push(args.join(' '));
-    };
-    const cappedHub = createMcpHub({ getConfig: () => ({ mcpHub: { servers: [], routing: [] } }) });
-    try {
-      await assert.rejects(
-        () =>
-          cappedHub.callRemoteMcp(
-            {
-              id: 'bounded',
-              url: `http://127.0.0.1:${capped.port}/mcp`,
-              maxRetries: '999',
-              retryDelayMs: '-100',
-              timeoutMs: 'Infinity',
-            },
-            'fail',
-            {}
-          ),
-        /always down/
-      );
-      assert.equal(cappedAttempts, 11, 'maxRetries is capped to 10 retries plus initial call');
-      assert.equal(cappedWarnings.length, 10, 'capped retry path emits one warning per retry');
-    } finally {
-      console.warn = origWarn;
-    }
+    const cappedHub = createMcpHub({
+      getConfig: () => ({ mcpHub: { servers: [], routing: [] } }),
+      logger: {
+        warn(fields, message) {
+          cappedWarnings.push(`${message} ${fields.attempt}/${fields.maxAttempts}`);
+        },
+      },
+    });
+    await assert.rejects(
+      () =>
+        cappedHub.callRemoteMcp(
+          {
+            id: 'bounded',
+            url: `http://127.0.0.1:${capped.port}/mcp`,
+            maxRetries: '999',
+            retryDelayMs: '-100',
+            timeoutMs: 'Infinity',
+          },
+          'fail',
+          {}
+        ),
+      /always down/
+    );
+    assert.equal(cappedAttempts, 11, 'maxRetries is capped to 10 retries plus initial call');
+    assert.equal(cappedWarnings.length, 10, 'capped retry path emits one warning per retry');
   } finally {
     capped.server.close();
   }

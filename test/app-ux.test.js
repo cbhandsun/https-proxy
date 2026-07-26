@@ -6,6 +6,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
+function readAppSource() {
+  return ['app-tool-status.js', 'app-environment.js', 'app-mcp.js', 'app.js']
+    .map((file) => fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', file), 'utf8'))
+    .join('\n');
+}
+
 function buildSandbox() {
   const listeners = new Map();
   const localStorage = {
@@ -293,7 +299,7 @@ function tick(ms = 0) {
       path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
       'utf8'
     );
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     assert.ok(
       html.includes('id="testClaudeDesktopProcess"'),
       'Claude Desktop process self-test button exists'
@@ -310,11 +316,14 @@ function tick(ms = 0) {
 
   // ─── 8. MCP Hub uses delegated DOM handlers, not inline JS ─────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
-    const start = app.indexOf('function renderMcpServers()');
-    const end = app.indexOf('function renderMcpLogs(', start);
+    const mcpModule = fs.readFileSync(
+      path.join(__dirname, '..', 'tauri-ui', 'app-mcp.js'),
+      'utf8'
+    );
+    const start = mcpModule.indexOf('function renderMcpServers()');
+    const end = mcpModule.indexOf('function renderMcpLogs(', start);
     assert.ok(start > 0 && end > start, 'MCP Hub render section found');
-    const mcpSection = app.slice(start, end);
+    const mcpSection = mcpModule.slice(start, end);
     assert.ok(
       !/\son(?:click|change|input|load)=/i.test(mcpSection),
       'MCP Hub has no inline event handlers'
@@ -325,7 +334,7 @@ function tick(ms = 0) {
 
   // ─── 9. Prompt template lists avoid dynamic HTML strings ───────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     const presetStart = app.indexOf('function loadPresetPrompts()');
     const presetEnd = app.indexOf('function loadTemplates()', presetStart);
     assert.ok(presetStart > 0 && presetEnd > presetStart, 'preset prompt render section found');
@@ -358,13 +367,16 @@ function tick(ms = 0) {
 
   // ─── 10. MCP execution logs avoid dynamic HTML strings ─────────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
-    const start = app.indexOf('function renderMcpLogs(logs)');
-    const end = app.indexOf('async function saveMcpHub()', start);
+    const mcpModule = fs.readFileSync(
+      path.join(__dirname, '..', 'tauri-ui', 'app-mcp.js'),
+      'utf8'
+    );
+    const start = mcpModule.indexOf('function renderMcpLogs(logs)');
+    const end = mcpModule.indexOf('async function saveMcpHub()', start);
     assert.ok(start > 0 && end > start, 'MCP log render section found');
-    const logsSection = app.slice(start, end);
+    const logsSection = mcpModule.slice(start, end);
     assert.ok(
-      app.includes('function createMcpLogEntryElement(log)'),
+      mcpModule.includes('function createMcpLogEntryElement(log)'),
       'MCP log entry DOM helper exists'
     );
     assert.ok(
@@ -376,11 +388,17 @@ function tick(ms = 0) {
       !logsSection.includes('escapeHtml(log.'),
       'MCP logs do not build escaped HTML strings'
     );
+    assert.ok(
+      !/\blog\.input\b/.test(mcpModule) &&
+        !/\blog\.result\b/.test(mcpModule) &&
+        !/\blog\.error\b/.test(mcpModule),
+      'MCP log UI consumes metadata only and cannot render captured content'
+    );
   }
 
   // ─── 11. Claude Desktop model table avoids dynamic HTML strings ─
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     const start = app.indexOf('function renderClaudeDesktopModels()');
     const end = app.indexOf('function syncClaudeDesktopRoutesToModelRoutes()', start);
     assert.ok(start > 0 && end > start, 'Claude Desktop model render section found');
@@ -405,7 +423,7 @@ function tick(ms = 0) {
 
   // ─── 12. Dynamic select/datalist options use DOM APIs ──────────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     assert.ok(
       app.includes('function appendOption(select, value, label = value)'),
       'shared option DOM helper exists'
@@ -428,7 +446,7 @@ function tick(ms = 0) {
 
   // ─── 13. Entry server rows avoid dynamic HTML strings ──────────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     const start = app.indexOf('function renderEntryServers()');
     const end = app.indexOf('function renderLocalPreview()', start);
     assert.ok(start > 0 && end > start, 'entry server render section found');
@@ -456,7 +474,7 @@ function tick(ms = 0) {
 
   // ─── 14. Preview and proxy status widgets avoid dynamic HTML strings ─
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     [
       ['renderClaudeDesktopPreview', 'let claudeDesktopPreviewFrame'],
       ['renderLocalPreview', 'claudeProxyBaseUrl'],
@@ -479,7 +497,7 @@ function tick(ms = 0) {
 
   // ─── 15. Route tables render through DOM helpers ───────────────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     assert.ok(
       /function createRoutesTableElement\([^)]*\)/.test(app),
       'route table DOM helper exists'
@@ -516,7 +534,7 @@ function tick(ms = 0) {
 
   // ─── 16. Rate limit dashboard renders through DOM helpers ──────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     assert.ok(
       app.includes('function createLimitsElement(profileId)'),
       'rate limit DOM helper exists'
@@ -552,7 +570,7 @@ function tick(ms = 0) {
 
   // ─── 17. Provider help and profile cards avoid dynamic HTML ────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     assert.ok(
       app.includes('function renderProviderPresetHelp(preset)'),
       'provider preset help DOM helper exists'
@@ -596,7 +614,7 @@ function tick(ms = 0) {
 
   // ─── 18. Trae debug event list avoids dynamic HTML ─────────────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     const start = app.indexOf('function renderTraeDebugEvents(events)');
     const end = app.indexOf('function formatTraeNativeCommandBlock', start);
     assert.ok(start > 0 && end > start, 'Trae debug event section found');
@@ -613,7 +631,7 @@ function tick(ms = 0) {
 
   // ─── 19. Environment tools render through DOM helpers ──────────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     [
       'createEnvProgressItem(job)',
       'createEnvSkeletonCard()',
@@ -653,7 +671,7 @@ function tick(ms = 0) {
 
   // ─── 20. Certificate status badge avoids dynamic HTML ──────────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     assert.ok(
       app.includes('function setStatusDotText(elementId, color, text)'),
       'status dot text helper exists'
@@ -672,7 +690,7 @@ function tick(ms = 0) {
 
   // ─── 21. MCP server table renders through DOM helpers ──────────
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     assert.ok(
       app.includes('function createMcpServersEmptyElement()'),
       'MCP empty DOM helper exists'
@@ -705,7 +723,11 @@ function tick(ms = 0) {
 
   // ─── 22. Tauri reload menu uses events instead of eval ─────────
   {
-    const rust = fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', 'lib.rs'), 'utf8');
+    const rust = ['lib.rs', 'launch_on_login.rs']
+      .map((file) =>
+        fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', file), 'utf8')
+      )
+      .join('\n');
     const bridge = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-bridge.js'), 'utf8');
     assert.ok(!rust.includes('window.eval'), 'Tauri menu reload should not eval JavaScript');
     assert.ok(
@@ -728,7 +750,7 @@ function tick(ms = 0) {
       path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
       'utf8'
     );
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     const retiredModels = [
       'claude-3-5-sonnet-20241022',
       'claude-3-5-haiku-latest',
@@ -841,9 +863,13 @@ function tick(ms = 0) {
       path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
       'utf8'
     );
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     const bridge = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-bridge.js'), 'utf8');
-    const rust = fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', 'lib.rs'), 'utf8');
+    const rust = ['lib.rs', 'launch_on_login.rs']
+      .map((file) =>
+        fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', file), 'utf8')
+      )
+      .join('\n');
     const permissions = fs.readFileSync(
       path.join(__dirname, '..', 'src-tauri', 'permissions', 'app-commands.toml'),
       'utf8'
@@ -874,7 +900,7 @@ function tick(ms = 0) {
 
   // ─── 27. Entry server transport is explicit and round-trips TLS state ─
   {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app.js'), 'utf8');
+    const app = readAppSource();
     assert.ok(
       app.includes("select.dataset.entryTransport = ''"),
       'entry rows expose a dedicated HTTP/HTTPS transport selector'

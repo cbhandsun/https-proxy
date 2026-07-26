@@ -35,6 +35,25 @@ function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
+function writeArtifactManifest(outputDir, artifactPaths) {
+  const manifest = artifactPaths
+    .map((artifactPath) => ({
+      file: path.basename(artifactPath),
+      bytes: fs.statSync(artifactPath).size,
+      sha256: sha256(artifactPath),
+    }))
+    .sort((left, right) => left.file.localeCompare(right.file));
+  fs.writeFileSync(
+    path.join(outputDir, 'SHA256SUMS.json'),
+    JSON.stringify(manifest, null, 2) + '\n'
+  );
+  fs.writeFileSync(
+    path.join(outputDir, 'SHA256SUMS.txt'),
+    manifest.map((entry) => `${entry.sha256} *${entry.file}`).join('\n') + '\n'
+  );
+  return manifest;
+}
+
 function collectTauriArtifacts(repoRoot, cargoTargetDir) {
   const outputDir = assertSafeReleasePath(
     repoRoot,
@@ -46,20 +65,13 @@ function collectTauriArtifacts(repoRoot, cargoTargetDir) {
 
   fs.rmSync(outputDir, { recursive: true, force: true });
   fs.mkdirSync(outputDir, { recursive: true });
-  const manifest = [];
+  const collectedPaths = [];
   for (const source of installers) {
     const target = path.join(outputDir, path.basename(source));
     fs.copyFileSync(source, target);
-    manifest.push({
-      file: path.basename(target),
-      bytes: fs.statSync(target).size,
-      sha256: sha256(target),
-    });
+    collectedPaths.push(target);
   }
-  fs.writeFileSync(
-    path.join(outputDir, 'SHA256SUMS.json'),
-    JSON.stringify(manifest, null, 2) + '\n'
-  );
+  const manifest = writeArtifactManifest(outputDir, collectedPaths);
   return { outputDir, manifest };
 }
 
@@ -77,4 +89,6 @@ module.exports = {
   collectTauriArtifacts,
   isInstallerFile,
   resolveCargoTargetDir,
+  sha256,
+  writeArtifactManifest,
 };

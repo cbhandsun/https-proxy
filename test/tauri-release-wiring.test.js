@@ -6,6 +6,10 @@ const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..');
 const rustLib = fs.readFileSync(path.join(repoRoot, 'src-tauri', 'src', 'lib.rs'), 'utf8');
+const rustCodexLogin = fs.readFileSync(
+  path.join(repoRoot, 'src-tauri', 'src', 'codex_login.rs'),
+  'utf8'
+);
 const rustMain = fs.readFileSync(path.join(repoRoot, 'src-tauri', 'src', 'main.rs'), 'utf8');
 const permissions = fs.readFileSync(
   path.join(repoRoot, 'src-tauri', 'permissions', 'app-commands.toml'),
@@ -97,13 +101,28 @@ assert.match(
 );
 
 const verifyScript = String((packageJson.scripts && packageJson.scripts.verify) || '');
+const rustTestScript = String((packageJson.scripts && packageJson.scripts['test:rust']) || '');
 assert.ok(
-  verifyScript.indexOf('npm run release:prepare') >= 0,
-  'the unified verification gate must prepare Tauri release resources'
+  verifyScript.includes('npm run test:rust'),
+  'the unified verification gate must run the self-contained Rust test gate'
 );
 assert.ok(
-  verifyScript.indexOf('npm run release:prepare') < verifyScript.indexOf('npm run test:rust'),
-  'release resources must be prepared before Rust tests compile the Tauri context'
+  rustTestScript.indexOf('npm run release:prepare') <
+    rustTestScript.indexOf('cargo test --manifest-path src-tauri/Cargo.toml'),
+  'the Rust test gate must prepare release resources before compiling the Tauri context'
+);
+assert.match(
+  rustCodexLogin,
+  /fn launch_codex_login_script\(\) -> Result<serde_json::Value, String>/,
+  'the native login launcher must not accept an executable path from the renderer'
+);
+assert.ok(
+  rustCodexLogin.includes('CODEX_LOGIN_SCRIPT_FILE_NAME'),
+  'the native login launcher must use the fixed managed Codex login script'
+);
+assert.ok(
+  !rustCodexLogin.includes('"Bypass"'),
+  'the native login launcher must not bypass the PowerShell execution policy'
 );
 
 console.log('[tauri-release-wiring.test] ok');

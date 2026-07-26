@@ -39,7 +39,7 @@ function auditModelFlowLabel(record) {
 }
 
 function formatAuditJson(value, limit = AUDIT_INSPECTOR_PREVIEW_CHARS) {
-  let text = '';
+  let text;
   if (typeof value === 'string') {
     text = value;
   } else {

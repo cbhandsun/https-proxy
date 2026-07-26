@@ -12,6 +12,7 @@ const {
   isQuietLocalPollRequest,
   parseBoundedInteger,
   parsePortOrDefault,
+  PRIVATE_FILE_MODE,
   readJsonBodyFromRequest,
   readLastLinesOfJsonl,
   readTextBodyFromResponse,
@@ -84,6 +85,9 @@ async function readTextErrorFromChunks(chunks, options) {
     const textTarget = path.join(tmpDir, 'nested', 'notes.txt');
     writeTextFileAtomically(textTarget, 'first');
     assert.strictEqual(fs.readFileSync(textTarget, 'utf8'), 'first');
+    if (process.platform !== 'win32') {
+      assert.strictEqual(fs.statSync(textTarget).mode & 0o777, PRIVATE_FILE_MODE);
+    }
     writeTextFileAtomically(textTarget, 'second');
     assert.strictEqual(fs.readFileSync(textTarget, 'utf8'), 'second');
 
@@ -93,6 +97,9 @@ async function readTextErrorFromChunks(chunks, options) {
       ok: true,
       count: 2,
     });
+    if (process.platform !== 'win32') {
+      assert.strictEqual(fs.statSync(jsonTarget).mode & 0o777, PRIVATE_FILE_MODE);
+    }
 
     assert.deepStrictEqual(
       normalizePromptPresets([{ id: ' daily ', name: 'Daily', content: 'hello {{cwd}}' }]),

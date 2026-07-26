@@ -83,11 +83,8 @@ const { createManagementHandlers } = require('./lib/proxy/handlers/management');
 const { createProxyTransport } = require('./lib/proxy/proxy-transport');
 const { createRequestObservability } = require('./lib/proxy/request-observability');
 const { createRuntimeConfigController } = require('./lib/proxy/runtime-config-controller');
-const {
-  createRuntimeSupport,
-  isTauriManagementOrigin,
-  maskManagementToken,
-} = require('./lib/proxy/runtime-support');
+const { createRuntimeSupport } = require('./lib/proxy/runtime-support');
+const { authorizeManagementRequest } = require('./lib/proxy/management-auth');
 const { startProxyServers } = require('./lib/proxy/server-lifecycle');
 
 const {
@@ -933,6 +930,7 @@ const handleRequestInner = createCoreRequestHandler({
   appendAuditRecord,
   applyCliSessionModelOverride,
   applyManagedAuthHeaders,
+  authorizeManagementRequest,
   authorizeEntryRequest,
   buildOutgoingHeaders,
   captureRequestBody,
@@ -983,7 +981,6 @@ const handleRequestInner = createCoreRequestHandler({
   isOpenAIResponsesPath,
   isPublicLocalManagementPath,
   isQuietLocalPollRequest,
-  isTauriManagementOrigin,
   loadConfig,
   log,
   logModelMapping,
@@ -1047,7 +1044,6 @@ if (require.main === module) {
     handleRequest,
     installManagementCorsGuard,
     log,
-    maskManagementToken,
     parsePortOrDefault,
     writeManagementTokenFile,
     getRuntimeState: () => ({

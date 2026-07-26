@@ -11,6 +11,9 @@ const assets = [
   'app-audit.js',
   'app-cli.js',
   'app-diagnostics.js',
+  'app-tool-status.js',
+  'app-environment.js',
+  'app-mcp.js',
   'app.js',
 ];
 
