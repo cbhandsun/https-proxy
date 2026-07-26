@@ -12,6 +12,35 @@ const {
     profiles: [{ id: 'main', protocol: 'openai', targetUrl: 'https://api.example.test/v1' }],
     localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
     entryServers: [{ host: '127.0.0.1', listenPort: 3445, basePath: '/v1' }],
+    modelRoutes: [
+      {
+        from: 'default',
+        to: 'gpt-5.6-sol',
+        profileId: 'main',
+        clientProtocols: ['openai-chat'],
+      },
+    ],
+    claudeDesktop: {
+      enabled: false,
+      mode: 'proxy',
+      baseUrl: 'https://localhost:3443',
+      token: '',
+      models: [
+        {
+          routeId: 'claude-sonnet-4-6',
+          upstreamModel: 'gpt-5.6-sol',
+          profileId: 'main',
+          supports1m: true,
+        },
+      ],
+    },
+    appSettings: { verifyUpstreamTls: true, conversationAuditEnabled: false },
+    protocolOptions: {
+      thinkingPolicy: 'drop',
+      contextWindowPolicy: 'overflow-drop-oldest',
+      maxContextTokens: 0,
+      maxSseBufferChars: 1024 * 1024,
+    },
     mcpHub: { servers: [{ id: 'filesystem', url: 'http://127.0.0.1:3001' }], routing: [] },
     entryAuth: {
       enabled: true,
@@ -46,6 +75,54 @@ const {
   assert.ok(invalid.errors.some((error) => error.includes('listenPort')));
   assert.ok(invalid.errors.some((error) => error.includes('basePath')));
   assert.ok(invalid.errors.some((error) => error.includes('mcpHub.servers')));
+}
+
+{
+  const invalidBoundaries = validateConfig({
+    activeProfile: 'main',
+    profiles: [{ id: 'main', protocol: 'openai', targetUrl: 'https://api.example.test/v1' }],
+    localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
+    entryServers: {},
+    modelRoutes: [
+      { from: '', profileId: 'missing', clientProtocols: ['smtp'] },
+      'not-an-object',
+    ],
+    claudeDesktop: {
+      enabled: 'yes',
+      mode: 'shell',
+      baseUrl: 'https://user:pass@example.test',
+      token: 'bad\nsecret',
+      models: [{ routeId: 42, profileId: 'missing', supports1m: 'yes' }],
+    },
+    appSettings: { verifyUpstreamTls: 'yes' },
+    protocolOptions: {
+      thinkingPolicy: 'execute',
+      contextWindowPolicy: 'unbounded',
+      maxContextTokens: Number.POSITIVE_INFINITY,
+      maxSseBufferChars: 8 * 1024 * 1024,
+    },
+  });
+  assert.strictEqual(invalidBoundaries.valid, false);
+  for (const fragment of [
+    'entryServers must be an array',
+    'modelRoutes[0].from is required',
+    'profileId does not match any profile',
+    'clientProtocols contains unsupported protocol',
+    'claudeDesktop.enabled must be a boolean',
+    'claudeDesktop.mode is unsupported',
+    'must not include credentials',
+    'token must not contain line breaks',
+    'appSettings.verifyUpstreamTls must be a boolean',
+    'protocolOptions.thinkingPolicy is unsupported',
+    'protocolOptions.contextWindowPolicy is unsupported',
+    'protocolOptions.maxContextTokens',
+    'protocolOptions.maxSseBufferChars',
+  ]) {
+    assert.ok(
+      invalidBoundaries.errors.some((error) => error.includes(fragment)),
+      `missing validation error containing: ${fragment}`
+    );
+  }
 }
 
 {
@@ -112,6 +189,7 @@ const {
     routing: [
       { toolName: 'bad tool', serverId: 'missing' },
       { pattern: '(', serverId: 'dup' },
+      { pattern: '(a+)+$', serverId: 'dup' },
       { serverId: 'dup' },
     ],
   });
@@ -122,6 +200,7 @@ const {
   assert.ok(invalid.errors.some((error) => error.includes('must be http(s)')));
   assert.ok(invalid.errors.some((error) => error.includes('does not match any server')));
   assert.ok(invalid.errors.some((error) => error.includes('pattern is invalid')));
+  assert.ok(invalid.errors.some((error) => error.includes('unsafe backtracking')));
   assert.ok(invalid.errors.some((error) => error.includes('toolName or pattern is required')));
 }
 

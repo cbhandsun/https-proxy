@@ -1,7 +1,9 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { selectTestShard } = require('../lib/test-sharding');
+const { createIsolatedTestEnv } = require('../lib/test-runtime');
 
 const repoRoot = path.resolve(__dirname, '..');
 const testDir = path.join(repoRoot, 'test');
@@ -24,13 +26,17 @@ const unitTests = [
   'test/eslint-config.test.js',
   'test/runtime-migration.test.js',
   'test/release-governance.test.js',
+  'test/release-artifact-manifest.test.js',
   'test/tauri-release-wiring.test.js',
   'test/installer-process-cleanup.test.js',
   'test/conversation-audit-utils.test.js',
+  'test/coverage-metrics.test.js',
+  'test/ci-governance.test.js',
   'test/cli-session-routing.test.js',
   'test/upstream-request.test.js',
   'test/upstream-retry.test.js',
   'test/test-sharding.test.js',
+  'test/test-runtime.test.js',
   'test/proxy-transport.test.js',
   'test/core-request-handler.test.js',
   'test/server-lifecycle.test.js',
@@ -40,6 +46,7 @@ const unitTests = [
   'test/claude-self-test-target.test.js',
   'test/route-index.test.js',
   'test/route-gemini-utils.test.js',
+  'test/route-response-helpers.test.js',
   'test/responses-gemini-code-assist.test.js',
   'test/route-error-utils.test.js',
   'test/errors.test.js',
@@ -56,6 +63,7 @@ const unitTests = [
   'test/gateway-ca-trust.test.js',
   'test/claude-desktop.test.js',
   'test/management-utils.test.js',
+  'test/management-auth.test.js',
   'test/management-router.test.js',
   'test/diagnostics.test.js',
   'test/models.test.js',
@@ -64,7 +72,9 @@ const unitTests = [
   'test/responses-state.test.js',
   'test/responses-protocol.test.js',
   'test/routing.test.js',
+  'test/safe-routing-pattern.test.js',
   'test/protocol-openai.test.js',
+  'test/sse-buffer.test.js',
   'test/stream-claude.test.js',
   'test/tool-loop-guard.test.js',
   'test/tools.test.js',
@@ -74,6 +84,7 @@ const unitTests = [
   'test/extension-utils.test.js',
   'test/extension-sanitize.test.js',
   'test/app-ux.test.js',
+  'test/app-bridge.test.js',
   'test/app-audit.test.js',
   'test/app-diagnostics.test.js',
   'test/app-cli.test.js',
@@ -159,10 +170,17 @@ try {
 }
 
 for (const testFile of shard.tests) {
-  const result = spawnSync(process.execPath, [testFile], {
-    cwd: repoRoot,
-    stdio: 'inherit',
-  });
+  const testRuntimeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-unit-runtime-'));
+  let result;
+  try {
+    result = spawnSync(process.execPath, [testFile], {
+      cwd: repoRoot,
+      env: createIsolatedTestEnv(process.env, testRuntimeDir),
+      stdio: 'inherit',
+    });
+  } finally {
+    fs.rmSync(testRuntimeDir, { recursive: true, force: true });
+  }
   if (result.status !== 0) {
     console.error(`[unit] failed: ${testFile}`);
     process.exit(result.status || 1);

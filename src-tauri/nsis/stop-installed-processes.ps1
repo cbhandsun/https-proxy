@@ -153,10 +153,19 @@ function Get-OwnedProcesses {
             }
         }
     } catch {
-        Write-Output "CIM process lookup unavailable; using process-path lookup: $($_.Exception.Message)"
+        # This function's success pipeline is its return value. Diagnostics on
+        # that pipeline are interpreted as owned-process records by callers.
+        Write-Verbose "CIM process lookup unavailable; using process-path lookup: $($_.Exception.Message)"
     }
 
-    return @($ownedByPid.Values | Sort-Object ProcessId)
+    # An empty Hashtable.Values collection can surface as a single $null item
+    # through Windows PowerShell's pipeline. Filter it explicitly so callers do
+    # not treat "no owned process" as a phantom process with an empty PID/path.
+    return @(
+        $ownedByPid.Values |
+            Where-Object { $_ -and $_.ProcessId } |
+            Sort-Object ProcessId
+    )
 }
 
 function Get-OwnedProcessById {

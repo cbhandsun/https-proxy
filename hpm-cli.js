@@ -81,7 +81,7 @@ async function main() {
       return;
     }
 
-    let profiles = [];
+    let profiles;
     try {
       const res = await request('/config');
       profiles = res.profiles || [];
@@ -136,7 +136,7 @@ async function main() {
       }
     }
   } else if (cmd === 'list') {
-    let profiles = [];
+    let profiles;
     let activeId = '';
     try {
       const res = await request('/config');

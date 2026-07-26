@@ -41,10 +41,15 @@ for (const scriptName of [
 }
 
 const verifyScript = String((packageJson.scripts && packageJson.scripts.verify) || '');
-const releasePrepareIndex = verifyScript.indexOf('npm run release:prepare');
-const rustTestIndex = verifyScript.indexOf('npm run test:rust');
-if (releasePrepareIndex < 0 || rustTestIndex < 0 || releasePrepareIndex > rustTestIndex) {
-  errors.push('verify must prepare release runtime before running Rust tests');
+const rustTestScript = String((packageJson.scripts && packageJson.scripts['test:rust']) || '');
+if (!verifyScript.includes('npm run test:rust')) {
+  errors.push('verify must run the self-contained Rust test gate');
+}
+if (!rustTestScript.includes('npm run release:prepare')) {
+  errors.push('test:rust must prepare release runtime before invoking cargo');
+}
+if (!rustTestScript.includes('cargo test --manifest-path src-tauri/Cargo.toml')) {
+  errors.push('test:rust must run the Tauri Rust test suite');
 }
 
 if (errors.length > 0) {

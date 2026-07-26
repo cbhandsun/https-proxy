@@ -1,4 +1,4 @@
-// ESLint 9 flat config for HTTPS-Proxy
+// ESLint 10 flat config for HTTPS-Proxy
 // https://eslint.org/docs/latest/use/configure/configuration-files
 
 const js = require('@eslint/js');
@@ -26,6 +26,9 @@ module.exports = [
       'app-audit.js',
       'app-cli.js',
       'app-diagnostics.js',
+      'app-tool-status.js',
+      'app-environment.js',
+      'app-mcp.js',
       'electron-ui.html',
       'test.json',
       '400',
@@ -140,6 +143,13 @@ module.exports = [
     },
   },
   {
+    files: ['lib/proxy/**/*.js', 'openai-proxy.js'],
+    ignores: ['lib/proxy/logger.js', 'lib/proxy/runtime-support.js'],
+    rules: {
+      'no-console': 'error',
+    },
+  },
+  {
     // Tests get a slightly looser rule set
     files: ['test/**/*.js', '**/*.test.js'],
     languageOptions: {
@@ -210,8 +220,8 @@ module.exports = [
     },
   },
   {
-    // Browser-side scripts get concatenated at runtime by sync-frontend.js,
-    // so cross-file references are valid in production. Loosen rules.
+    // Browser-side classic scripts share one global lexical environment and
+    // are loaded in a validated order, so cross-file references are valid.
     files: [
       'tauri-ui/app.js',
       'tauri-ui/app-ux.js',
@@ -219,6 +229,9 @@ module.exports = [
       'tauri-ui/app-cli.js',
       'tauri-ui/app-diagnostics.js',
       'tauri-ui/app-audit.js',
+      'tauri-ui/app-tool-status.js',
+      'tauri-ui/app-environment.js',
+      'tauri-ui/app-mcp.js',
     ],
     languageOptions: {
       sourceType: 'script',
