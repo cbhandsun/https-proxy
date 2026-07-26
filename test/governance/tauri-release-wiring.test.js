@@ -23,6 +23,16 @@ const installerHooks = fs.readFileSync(
   path.join(repoRoot, 'src-tauri', 'nsis', 'installer-hooks.nsh'),
   'utf8'
 );
+const bundledResources = JSON.stringify(tauriConfig.bundle.resources);
+
+assert.match(bundledResources, /dist\/staging\/runtime\/runtime/);
+assert.match(bundledResources, /dist\/staging\/runtime\/node_modules/);
+assert.doesNotMatch(bundledResources, /dist\/release-runtime|dist\/release\//);
+assert.doesNotMatch(
+  bundledResources,
+  /dist\/artifacts/,
+  'Tauri resources must not consume final release artifacts'
+);
 
 function registeredTauriCommands(source) {
   const match = source.match(/\.invoke_handler\(tauri::generate_handler!\[([\s\S]*?)\]\)/);

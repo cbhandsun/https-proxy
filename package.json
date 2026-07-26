@@ -2,6 +2,14 @@
   "name": "https-proxy-manager",
   "version": "0.1.0",
   "private": true,
+  "hpm": {
+    "releaseRuntimeDependencies": [
+      "node-forge",
+      "pino",
+      "safe-regex2",
+      "socks-proxy-agent"
+    ]
+  },
   "scripts": {
     "start": "node openai-proxy.js",
     "test": "npm run test:unit && npm run test:frontend && npm run test:thinking && npm run test:env",
@@ -32,6 +40,9 @@
     "tauri:dev": "npx tauri dev",
     "tauri:build": "node scripts/build-tauri-release.js",
     "clean:frontend": "node scripts/clean-generated-artifacts.js --frontend-only",
+    "clean:coverage": "node scripts/clean-generated-artifacts.js --coverage-only",
+    "clean:staging": "node scripts/clean-generated-artifacts.js --staging-only",
+    "clean:artifacts": "node scripts/clean-generated-artifacts.js --artifacts-only",
     "clean:release": "node scripts/clean-generated-artifacts.js",
     "clean:release:cache": "node scripts/clean-generated-artifacts.js --cargo-only",
     "release:prepare": "node scripts/prepare-release-runtime.js",

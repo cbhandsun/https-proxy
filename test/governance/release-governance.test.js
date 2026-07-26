@@ -10,6 +10,13 @@ const {
   isPathInside,
   validateReleaseDirectory,
 } = require('../../lib/release/governance');
+const {
+  createRuntimePackage,
+  createRuntimePackageLock,
+  resolveReleaseLayout,
+  selectRuntimeDependencies,
+  validateGeneratedLayout,
+} = require('../../lib/release/layout');
 const { isInstallerFile, resolveCargoTargetDir } = require('../../scripts/collect-tauri-artifacts');
 const {
   assertCleanCandidate,
@@ -18,7 +25,12 @@ const {
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-release-governance-'));
+const layoutTempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-release-layout-'));
 const dependencies = { alpha: '1.0.0', beta: '^2.0.0' };
+const releaseRuntimeSource = fs.readFileSync(
+  path.join(repoRoot, 'scripts', 'prepare-release-runtime.js'),
+  'utf8'
+);
 
 function write(relative, content = '') {
   const target = path.join(tempRoot, ...relative.split('/'));
@@ -28,15 +40,42 @@ function write(relative, content = '') {
 
 try {
   assert.strictEqual(
-    isPathInside(path.join(repoRoot, 'dist'), path.join(repoRoot, 'dist', 'portable')),
+    isPathInside(path.join(repoRoot, 'dist'), path.join(repoRoot, 'dist', 'artifacts', 'portable')),
     true
   );
   assert.strictEqual(isPathInside(path.join(repoRoot, 'dist'), repoRoot), false);
   assert.throws(() => assertSafeReleasePath(repoRoot, repoRoot), /must stay inside/);
   assert.strictEqual(
-    assertSafeReleasePath(repoRoot, path.join(repoRoot, 'dist', 'portable')),
-    path.join(repoRoot, 'dist', 'portable')
+    assertSafeReleasePath(repoRoot, path.join(repoRoot, 'dist', 'artifacts', 'portable')),
+    path.join(repoRoot, 'dist', 'artifacts', 'portable')
   );
+  const releaseLayout = resolveReleaseLayout(repoRoot);
+  assert.strictEqual(releaseLayout.runtimeDir, path.join(repoRoot, 'dist', 'staging', 'runtime'));
+  assert.strictEqual(
+    releaseLayout.installersDir,
+    path.join(repoRoot, 'dist', 'artifacts', 'installers')
+  );
+  fs.mkdirSync(path.join(layoutTempRoot, 'dist', 'staging', 'runtime'), {
+    recursive: true,
+  });
+  fs.mkdirSync(path.join(layoutTempRoot, 'dist', 'artifacts', 'installers'), {
+    recursive: true,
+  });
+  fs.mkdirSync(path.join(layoutTempRoot, 'dist', 'archive', 'legacy'), {
+    recursive: true,
+  });
+  assert.deepStrictEqual(validateGeneratedLayout(layoutTempRoot), []);
+  fs.mkdirSync(path.join(layoutTempRoot, 'dist', 'release-runtime'), {
+    recursive: true,
+  });
+  fs.mkdirSync(path.join(layoutTempRoot, 'dist', 'artifacts', 'installers-next'), {
+    recursive: true,
+  });
+  fs.writeFileSync(path.join(layoutTempRoot, 'dist', 'loose.zip'), '');
+  const layoutErrors = validateGeneratedLayout(layoutTempRoot);
+  assert.ok(layoutErrors.some((error) => error.includes('release-runtime')));
+  assert.ok(layoutErrors.some((error) => error.includes('installers-next')));
+  assert.ok(layoutErrors.some((error) => error.includes('loose.zip')));
   assert.strictEqual(isInstallerFile('HTTPS Proxy Manager_0.1.0_x64-setup.exe'), true);
   assert.strictEqual(isInstallerFile('debug.pdb'), false);
   assert.strictEqual(
@@ -44,7 +83,8 @@ try {
     path.join(repoRoot, 'src-tauri', 'target-release')
   );
   assert.deepStrictEqual(resolveCleanCandidates(tempRoot), [
-    path.join(tempRoot, 'dist'),
+    path.join(tempRoot, 'dist', 'staging'),
+    path.join(tempRoot, 'dist', 'artifacts'),
     path.join(tempRoot, 'tauri-ui', 'dist'),
   ]);
   assert.deepStrictEqual(resolveCleanCandidates(tempRoot, { cargoOnly: true }), []);
@@ -52,12 +92,74 @@ try {
     path.join(tempRoot, 'tauri-ui', 'dist'),
     path.join(tempRoot, 'dist', 'tauri-ui'),
   ]);
+  assert.deepStrictEqual(resolveCleanCandidates(tempRoot, { stagingOnly: true }), [
+    path.join(tempRoot, 'dist', 'staging'),
+  ]);
+  assert.deepStrictEqual(resolveCleanCandidates(tempRoot, { artifactsOnly: true }), [
+    path.join(tempRoot, 'dist', 'artifacts'),
+  ]);
+  assert.deepStrictEqual(resolveCleanCandidates(tempRoot, { coverageOnly: true }), [
+    path.join(tempRoot, 'coverage'),
+  ]);
   assert.throws(
     () => resolveCleanCandidates(tempRoot, { cargoOnly: true, frontendOnly: true }),
-    /cannot be combined/
+    /cannot be combined/i
   );
   assert.throws(() => assertCleanCandidate(tempRoot, tempRoot), /outside workspace/);
   assert.throws(() => assertCleanCandidate(tempRoot, path.dirname(tempRoot)), /outside workspace/);
+  assert.match(releaseRuntimeSource, /'--package-lock-only'/);
+  assert.match(releaseRuntimeSource, /'--omit=dev'/);
+  assert.match(releaseRuntimeSource, /'--ignore-scripts'/);
+
+  const packageDocument = {
+    name: 'example',
+    version: '1.0.0',
+    hpm: {
+      releaseRuntimeDependencies: ['pino', 'node-forge', 'pino'],
+    },
+    dependencies: {
+      'chart.js': '^4.0.0',
+      'node-forge': '^1.0.0',
+      pino: '^10.0.0',
+    },
+  };
+  assert.deepStrictEqual(selectRuntimeDependencies(packageDocument), {
+    'node-forge': '^1.0.0',
+    pino: '^10.0.0',
+  });
+  assert.throws(() => selectRuntimeDependencies({ dependencies: {} }), /must be a non-empty array/);
+  assert.throws(
+    () =>
+      selectRuntimeDependencies({
+        hpm: { releaseRuntimeDependencies: ['missing'] },
+        dependencies: {},
+      }),
+    /not declared: missing/
+  );
+  const runtimePackage = createRuntimePackage(packageDocument);
+  const runtimeLock = createRuntimePackageLock(
+    {
+      name: 'example',
+      version: '1.0.0',
+      lockfileVersion: 3,
+      packages: {
+        '': {
+          dependencies: packageDocument.dependencies,
+          devDependencies: { eslint: '1.0.0' },
+          hasInstallScript: true,
+        },
+        'node_modules/chart.js': { version: '4.0.0' },
+        'node_modules/pino': { version: '10.0.0' },
+      },
+    },
+    runtimePackage
+  );
+  assert.deepStrictEqual(runtimeLock.packages[''], {
+    name: runtimePackage.name,
+    version: runtimePackage.version,
+    dependencies: runtimePackage.dependencies,
+  });
+  assert.strictEqual(runtimeLock.packages['node_modules/chart.js'].version, '4.0.0');
 
   write('openai-proxy.js');
   write('lib/proxy/config.js');
@@ -102,4 +204,5 @@ try {
   console.log('[release-governance.test] ok');
 } finally {
   fs.rmSync(tempRoot, { recursive: true, force: true });
+  fs.rmSync(layoutTempRoot, { recursive: true, force: true });
 }

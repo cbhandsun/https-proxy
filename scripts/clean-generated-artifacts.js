@@ -2,18 +2,33 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { resolveReleaseLayout } = require('../lib/release/layout');
+
+const CLEAN_MODE_FLAGS = [
+  'artifactsOnly',
+  'cargoOnly',
+  'coverageOnly',
+  'frontendOnly',
+  'stagingOnly',
+];
 
 function resolveCleanCandidates(repoRoot, options = {}) {
+  const layout = resolveReleaseLayout(repoRoot);
   const tauriRoot = path.join(repoRoot, 'src-tauri');
-  if (options.cargoOnly && options.frontendOnly) {
-    throw new Error('cargoOnly and frontendOnly cannot be combined');
+  const selectedModes = CLEAN_MODE_FLAGS.filter((name) => options[name]);
+  if (selectedModes.length > 1) {
+    throw new Error(`Clean modes cannot be combined: ${selectedModes.join(', ')}`);
   }
   if (options.frontendOnly) {
     return [path.join(repoRoot, 'tauri-ui', 'dist'), path.join(repoRoot, 'dist', 'tauri-ui')];
   }
+  if (options.stagingOnly) return [layout.stagingRoot];
+  if (options.artifactsOnly) return [layout.artifactsRoot];
+  if (options.coverageOnly) return [path.join(repoRoot, 'coverage')];
+
   const candidates = options.cargoOnly
     ? []
-    : [path.join(repoRoot, 'dist'), path.join(repoRoot, 'tauri-ui', 'dist')];
+    : [layout.stagingRoot, layout.artifactsRoot, path.join(repoRoot, 'tauri-ui', 'dist')];
 
   if (fs.existsSync(tauriRoot)) {
     for (const entry of fs.readdirSync(tauriRoot, { withFileTypes: true })) {
@@ -71,6 +86,9 @@ if (require.main === module) {
   const failures = cleanGeneratedArtifacts(repoRoot, {
     cargoOnly: process.argv.includes('--cargo-only'),
     frontendOnly: process.argv.includes('--frontend-only'),
+    stagingOnly: process.argv.includes('--staging-only'),
+    artifactsOnly: process.argv.includes('--artifacts-only'),
+    coverageOnly: process.argv.includes('--coverage-only'),
   });
   if (failures.length > 0) {
     console.error(

@@ -9,7 +9,8 @@ their role:
 - `build-*`, `collect-*`, `prepare-*`, `validate-*`, `verify-*`, `smoke-test-*`:
   release pipeline.
 - `clean-generated-artifacts.js`: bounded cleanup for frontend, release and
-  Cargo output.
+  Cargo output. Release paths are split between disposable `dist/staging` and
+  publishable `dist/artifacts`; `dist/archive` is preserved.
 - `install-*`, `kill-*`: local operational helpers.
 - `patch-trae-*`, `unpatch-trae-*`, `trae-*`: Trae diagnostics documented in
   `docs/trae-official-bridge*.md`.

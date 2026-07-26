@@ -3,7 +3,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { assertSafeReleasePath } = require('../lib/release/governance');
+const { resolveReleaseLayout } = require('../lib/release/layout');
 
 const INSTALLER_SUFFIXES = ['.exe', '.msi', '.dmg', '.appimage', '.deb', '.rpm', '.tar.gz'];
 
@@ -55,10 +55,7 @@ function writeArtifactManifest(outputDir, artifactPaths) {
 }
 
 function collectTauriArtifacts(repoRoot, cargoTargetDir) {
-  const outputDir = assertSafeReleasePath(
-    repoRoot,
-    path.join(repoRoot, 'dist', 'release', 'installers')
-  );
+  const outputDir = resolveReleaseLayout(repoRoot).installersDir;
   const bundleDir = path.join(cargoTargetDir, 'release', 'bundle');
   const installers = collectInstallerFiles(bundleDir);
   if (installers.length === 0) throw new Error(`No Tauri installers found under ${bundleDir}`);
