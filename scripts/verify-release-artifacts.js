@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { sha256, isInstallerFile } = require('./collect-tauri-artifacts');
 const { validateArtifactManifest } = require('../lib/release/artifact-manifest');
-const { resolveReleaseLayout } = require('../lib/release/layout');
+const { resolveReleaseLayout, validateGeneratedLayout } = require('../lib/release/layout');
 
 function validateArtifactDirectory(directory, predicate, label, required) {
   const filesByName = {};
@@ -30,7 +30,12 @@ function validateArtifactDirectory(directory, predicate, label, required) {
 }
 
 function verifyReleaseArtifacts(repoRoot) {
-  const layout = resolveReleaseLayout(repoRoot);
+  const root = path.resolve(repoRoot);
+  const layoutErrors = validateGeneratedLayout(root);
+  if (layoutErrors.length > 0) {
+    throw new Error(`Generated release layout is invalid: ${layoutErrors.join(', ')}`);
+  }
+  const layout = resolveReleaseLayout(root);
   return {
     installerCount: validateArtifactDirectory(
       layout.installersDir,

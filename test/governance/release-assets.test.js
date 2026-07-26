@@ -23,6 +23,7 @@ try {
   writeArtifactManifest(installers, [installer]);
   writeArtifactManifest(portable, [archive]);
   fs.writeFileSync(path.join(sbom, 'npm-sbom.cdx.json'), '{"bomFormat":"CycloneDX"}\n');
+  fs.writeFileSync(path.join(sbom, 'rust-sbom.cdx.json'), '{"bomFormat":"CycloneDX"}\n');
 
   const assets = collectReleaseAssets(root);
   assert.deepEqual(
@@ -35,6 +36,7 @@ try {
       'HTTPS-Proxy-Manager-portable-SHA256SUMS.json',
       'HTTPS-Proxy-Manager-portable-SHA256SUMS.txt',
       'HTTPS-Proxy-Manager-npm-sbom.cdx.json',
+      'HTTPS-Proxy-Manager-rust-sbom.cdx.json',
     ]
   );
   assert.equal(new Set(assets.map((asset) => asset.assetName)).size, assets.length);
@@ -53,6 +55,12 @@ try {
   writeArtifactManifest(portable, [archive]);
   fs.rmSync(path.join(sbom, 'npm-sbom.cdx.json'));
   assert.throws(() => collectReleaseAssets(root), /Release SBOM is missing/);
+  fs.writeFileSync(path.join(sbom, 'npm-sbom.cdx.json'), '{"bomFormat":"CycloneDX"}\n');
+  fs.writeFileSync(path.join(sbom, 'unexpected.cdx.json'), '{"bomFormat":"CycloneDX"}\n');
+  assert.throws(() => collectReleaseAssets(root), /Release SBOM is unsupported/);
+  fs.rmSync(path.join(sbom, 'unexpected.cdx.json'));
+  fs.writeFileSync(path.join(installers, 'unexpected.txt'), 'unexpected');
+  assert.throws(() => collectReleaseAssets(root), /Generated release layout is invalid/);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }

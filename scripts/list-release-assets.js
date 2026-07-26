@@ -7,6 +7,7 @@ const { verifyReleaseArtifacts } = require('./verify-release-artifacts');
 const { resolveReleaseLayout } = require('../lib/release/layout');
 
 const CHECKSUM_FILE_NAMES = ['SHA256SUMS.json', 'SHA256SUMS.txt'];
+const REQUIRED_SBOM_FILE_NAMES = ['npm-sbom.cdx.json', 'rust-sbom.cdx.json'];
 
 function regularFiles(directory, predicate) {
   if (!fs.existsSync(directory)) return [];
@@ -29,8 +30,17 @@ function requiredChecksumFiles(directory, prefix) {
 
 function requiredSbomFiles(directory) {
   const files = regularFiles(directory, (fileName) => fileName.toLowerCase().endsWith('.json'));
-  if (files.length === 0) {
-    throw new Error(`Release SBOM is missing: ${directory}`);
+  const fileNames = new Set(files.map((filePath) => path.basename(filePath)));
+  for (const fileName of REQUIRED_SBOM_FILE_NAMES) {
+    if (!fileNames.has(fileName)) {
+      throw new Error(`Release SBOM is missing: ${path.join(directory, fileName)}`);
+    }
+  }
+  const unexpected = [...fileNames].filter(
+    (fileName) => !REQUIRED_SBOM_FILE_NAMES.includes(fileName)
+  );
+  if (unexpected.length > 0) {
+    throw new Error(`Release SBOM is unsupported: ${unexpected.join(', ')}`);
   }
   return files.map((filePath) => ({
     filePath,
@@ -80,6 +90,7 @@ if (require.main === module) {
 
 module.exports = {
   CHECKSUM_FILE_NAMES,
+  REQUIRED_SBOM_FILE_NAMES,
   collectReleaseAssets,
   regularFiles,
   requiredChecksumFiles,

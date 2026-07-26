@@ -28,12 +28,15 @@ manifest. Frontend-only packages such as `chart.js` are excluded.
   already-built Tauri executable; release CI uses this to avoid a second native
   build.
 
+Release tags must exactly equal `v` plus the shared `package.json` and Tauri
+version. Release automation validates the tag before it builds any artifacts.
+
 ## Security rules
 
 Published packages must never contain:
 
 - `proxy.config.json`, `.env*`, management tokens, logs, JSONL audit files, or PID/lock files;
-- `.hpm-runtime`, `.certs`, `.claude`, private keys, or symbolic links;
+- `.hpm-runtime`, `.certs`, `.claude`, `.github`, private keys, or symbolic links;
 - npm lifecycle scripts or development dependencies.
 
 The portable build is intentionally stateless. It ships only `proxy.config.example.json`; the application creates local state on first run. Existing portable state is never copied into a new release.
@@ -43,9 +46,10 @@ manually produced files. CI, checksums, attestations and GitHub releases operate
 only on `dist/artifacts`, so archived files cannot be published accidentally.
 
 GitHub release publication uses an explicit asset list: installers, the single
-portable ZIP, distinct checksum manifests, and validated CycloneDX SBOM JSON.
-Expanded portable files are staging-only and can never be uploaded as release
-assets.
+portable ZIP, distinct checksum manifests, and exactly the npm and Rust
+CycloneDX SBOM JSON files. The generated layout is revalidated after packaging
+and before attestation, artifact upload, and release publication. Expanded
+portable files are staging-only and can never be uploaded as release assets.
 
 The Windows Rust audit gate fails on vulnerabilities, unsound crates and yanked
 crates that are present in the Windows target dependency tree. It prints

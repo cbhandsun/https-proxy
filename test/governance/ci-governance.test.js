@@ -45,13 +45,27 @@ const releaseWorkflow = [
   'npm sbom --sbom-format cyclonedx',
   'cargo-cyclonedx --version 0.5.9',
   'smoke-test-nsis.ps1',
+  'scripts/validate-release-version.js',
   'npm run release:portable:from-build',
   'scripts/list-release-assets.js',
+  'Verify final release asset selection',
   'Release asset selection failed',
   'actions/attest@' + 'a'.repeat(40),
+  'actions/upload-artifact@' + 'a'.repeat(40),
   'gh release create',
 ].join('\n');
 assert.deepStrictEqual(validateReleaseWorkflow(releaseWorkflow), []);
+const lateAssetCheckWorkflow = releaseWorkflow
+  .replace('Verify final release asset selection\n', '')
+  .replace(
+    'actions/upload-artifact@' + 'a'.repeat(40),
+    `actions/upload-artifact@${'a'.repeat(40)}\nVerify final release asset selection`
+  );
+assert.ok(
+  validateReleaseWorkflow(lateAssetCheckWorkflow).some((error) =>
+    error.includes('before attestation and artifact upload')
+  )
+);
 assert.ok(validateReleaseWorkflow('').length >= 7);
 
 console.log('[ci-governance.test] ok');

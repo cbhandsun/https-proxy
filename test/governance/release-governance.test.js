@@ -143,6 +143,8 @@ try {
   assert.match(portableBuildSource, /artifacts\\portable/);
   assert.match(portableBuildSource, /function Get-Sha256/);
   assert.doesNotMatch(portableBuildSource, /Get-FileHash/);
+  assert.match(portableBuildSource, /function Remove-PortableMetadataDirectories/);
+  assert.match(portableBuildSource, /\.claude', '\.github/);
   assert.match(portableBuildSource, /PortableManifestJson/);
   assert.match(portableBuildSource, /PortableManifestText/);
 
@@ -205,12 +207,19 @@ try {
   write('https-proxy-manager.exe');
   write('node_modules/alpha/package.json', '{}');
   write('node_modules/beta/package.json', '{}');
-  write('node_modules/alpha/.claude/settings.json', '{}');
   write('package.json', JSON.stringify({ private: true, dependencies }));
 
   let result = validateReleaseDirectory(tempRoot, dependencies);
   assert.deepStrictEqual(result.errors, []);
   assert.strictEqual(result.ok, true);
+
+  write('node_modules/alpha/.claude/settings.json', '{}');
+  result = validateReleaseDirectory(tempRoot, dependencies);
+  assert.ok(result.errors.some((error) => error.includes('node_modules/alpha/.claude')));
+  fs.rmSync(path.join(tempRoot, 'node_modules', 'alpha', '.claude'), {
+    recursive: true,
+    force: true,
+  });
 
   write('lib/test-runtime.js');
   result = validateReleaseDirectory(tempRoot, dependencies);

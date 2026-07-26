@@ -49,6 +49,20 @@ function Get-Sha256 {
     }
 }
 
+function Remove-PortableMetadataDirectories {
+    $nodeModulesDir = Join-Path $PortableDir 'node_modules'
+    if (-not (Test-Path -LiteralPath $nodeModulesDir -PathType Container)) { return }
+    $metadataDirectories = @(
+        Get-ChildItem -LiteralPath $nodeModulesDir -Recurse -Force -Directory |
+            Where-Object { $_.Name -in @('.claude', '.github') }
+    )
+    foreach ($directory in $metadataDirectories) {
+        if (-not (Test-Path -LiteralPath $directory.FullName -PathType Container)) { continue }
+        $safeDirectory = Assert-PathInside $PortableDir $directory.FullName 'Portable dependency metadata cleanup target'
+        Remove-Item -LiteralPath $safeDirectory -Recurse -Force
+    }
+}
+
 function Assert-PortableFileMatches {
     param([string]$RelativePath)
     $source = Join-Path $Root $RelativePath
@@ -115,6 +129,7 @@ Copy-RequiredFile (Join-Path $ReleaseRuntimeDir 'package.json') (Join-Path $Port
 Copy-RequiredFile (Join-Path $ReleaseRuntimeDir 'release-runtime-manifest.json') (Join-Path $PortableDir 'release-runtime-manifest.json')
 Copy-Item -LiteralPath (Join-Path $ReleaseRuntimeDir 'runtime') -Destination (Join-Path $PortableDir 'runtime') -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $ReleaseRuntimeDir 'node_modules') -Destination (Join-Path $PortableDir 'node_modules') -Recurse -Force
+Remove-PortableMetadataDirectories
 
 Assert-PortableFileMatches 'openai-proxy.js'
 Assert-PortableFileMatches 'lib\proxy\cert.js'

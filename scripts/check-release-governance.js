@@ -42,6 +42,11 @@ try {
 }
 
 const beforeBuild = String((tauriConfig.build && tauriConfig.build.beforeBuildCommand) || '');
+if (packageJson.version !== tauriConfig.version) {
+  errors.push(
+    `package.json and Tauri versions must match: ${packageJson.version} != ${tauriConfig.version}`
+  );
+}
 const releasePrepareScript = String(
   (packageJson.scripts && packageJson.scripts['release:prepare']) || ''
 );
