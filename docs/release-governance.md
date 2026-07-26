@@ -21,7 +21,8 @@ manifest. Frontend-only packages such as `chart.js` are excluded.
 - `npm run tauri:build` normalizes `CARGO_TARGET_DIR` to an absolute path,
   builds the Tauri installers, then copies final installers and a SHA-256
   manifest to `dist/artifacts/installers`.
-- `npm run release:portable` builds a clean portable directory, validates it, and creates the zip archive.
+- `npm run release:portable` builds a clean portable directory, validates it,
+  creates the zip archive, and writes a portable SHA-256 manifest.
 
 ## Security rules
 

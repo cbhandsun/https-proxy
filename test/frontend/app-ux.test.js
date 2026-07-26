@@ -736,7 +736,7 @@ function tick(ms = 0) {
 
   // ─── 22. Tauri reload menu uses events instead of eval ─────────
   {
-    const rust = ['lib.rs', 'launch_on_login.rs']
+    const rust = ['lib.rs', 'desktop_shell.rs', 'launch_on_login.rs']
       .map((file) =>
         fs.readFileSync(path.join(__dirname, '..', '..', 'src-tauri', 'src', file), 'utf8')
       )

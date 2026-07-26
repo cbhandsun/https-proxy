@@ -132,10 +132,22 @@ try {
     Pop-Location
 }
 
+$ZipPath = Assert-PathInside $DistRoot (Join-Path $ResolvedOutputRoot 'HTTPS-Proxy-Manager-Portable.zip') 'Portable zip path'
+$PortableManifestJson = Assert-PathInside $DistRoot (Join-Path $ResolvedOutputRoot 'SHA256SUMS.json') 'Portable manifest path'
+$PortableManifestText = Assert-PathInside $DistRoot (Join-Path $ResolvedOutputRoot 'SHA256SUMS.txt') 'Portable manifest path'
+foreach ($StaleArtifact in @($ZipPath, $PortableManifestJson, $PortableManifestText)) {
+    if (Test-Path -LiteralPath $StaleArtifact) { Remove-Item -LiteralPath $StaleArtifact -Force }
+}
+
 if (-not $NoZip) {
-    $ZipPath = Assert-PathInside $DistRoot (Join-Path $ResolvedOutputRoot 'HTTPS-Proxy-Manager-Portable.zip') 'Portable zip path'
-    if (Test-Path -LiteralPath $ZipPath) { Remove-Item -LiteralPath $ZipPath -Force }
     Compress-Archive -Path $PortableDir -DestinationPath $ZipPath -Force
+    Push-Location $Root
+    try {
+        node scripts/write-portable-artifact-manifest.js
+        if ($LASTEXITCODE -ne 0) { throw "Portable manifest generation failed with exit code $LASTEXITCODE" }
+    } finally {
+        Pop-Location
+    }
     Write-Host "Portable package generated: $PortableDir"
     Write-Host "Zip generated: $ZipPath"
 } else {
