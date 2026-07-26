@@ -6,6 +6,10 @@ const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const rustLib = fs.readFileSync(path.join(repoRoot, 'src-tauri', 'src', 'lib.rs'), 'utf8');
+const rustProxyRoot = fs.readFileSync(
+  path.join(repoRoot, 'src-tauri', 'src', 'proxy_root.rs'),
+  'utf8'
+);
 const rustCodexLogin = fs.readFileSync(
   path.join(repoRoot, 'src-tauri', 'src', 'codex_login.rs'),
   'utf8'
@@ -27,6 +31,16 @@ const bundledResources = JSON.stringify(tauriConfig.bundle.resources);
 
 assert.match(bundledResources, /dist\/staging\/runtime\/runtime/);
 assert.match(bundledResources, /dist\/staging\/runtime\/node_modules/);
+assert.strictEqual(
+  tauriConfig.bundle.resources['../lib/proxy'],
+  'lib/proxy',
+  'Tauri must bundle only production proxy libraries'
+);
+assert.strictEqual(
+  Object.hasOwn(tauriConfig.bundle.resources, '../lib'),
+  false,
+  'Tauri must not bundle repository governance and test support libraries'
+);
 assert.doesNotMatch(bundledResources, /dist\/release-runtime|dist\/release\//);
 assert.doesNotMatch(
   bundledResources,
@@ -70,10 +84,15 @@ assert.ok(
 );
 
 const setupIndex = rustLib.indexOf('.setup(|app|');
-const resourceRootIndex = rustLib.indexOf('RESOURCE_ROOT.set(resource_dir)', setupIndex);
+const resourceRootIndex = rustLib.indexOf('set_resource_root(resource_dir)', setupIndex);
 const autostartIndex = rustLib.indexOf('request_proxy_autostart();', setupIndex);
 assert.ok(setupIndex >= 0, 'Tauri setup hook must be present');
 assert.ok(resourceRootIndex > setupIndex, 'setup must resolve the bundled resource root');
+assert.match(
+  rustProxyRoot,
+  /RESOURCE_ROOT\.set\(path\)/,
+  'proxy root module must cache the resolved bundled resource directory'
+);
 assert.ok(
   autostartIndex > resourceRootIndex,
   'proxy autostart must run after the bundled resource root is available'

@@ -10,7 +10,32 @@ const CLEAN_MODE_FLAGS = [
   'coverageOnly',
   'frontendOnly',
   'stagingOnly',
+  'testOnly',
 ];
+const TEST_RUNTIME_FILE_NAMES = new Set([
+  'conversations-audit.jsonl',
+  'proxy-events.jsonl',
+  'proxy.err.log',
+  'proxy.log',
+  'usage-stats.jsonl',
+]);
+
+function resolveTestRuntimeCandidates(repoRoot) {
+  const testRoot = path.join(repoRoot, 'test');
+  if (!fs.existsSync(testRoot)) return [];
+  return fs
+    .readdirSync(testRoot, { withFileTypes: true })
+    .filter((entry) => {
+      if (entry.isDirectory()) return entry.name === '.certs';
+      if (!entry.isFile()) return false;
+      if (entry.name === '.mgmt-token' || entry.name.startsWith('.mgmt-token-')) return true;
+      return [...TEST_RUNTIME_FILE_NAMES].some(
+        (name) => entry.name === name || entry.name.startsWith(`${name}.`)
+      );
+    })
+    .map((entry) => path.join(testRoot, entry.name))
+    .sort();
+}
 
 function resolveCleanCandidates(repoRoot, options = {}) {
   const layout = resolveReleaseLayout(repoRoot);
@@ -25,6 +50,7 @@ function resolveCleanCandidates(repoRoot, options = {}) {
   if (options.stagingOnly) return [layout.stagingRoot];
   if (options.artifactsOnly) return [layout.artifactsRoot];
   if (options.coverageOnly) return [path.join(repoRoot, 'coverage')];
+  if (options.testOnly) return resolveTestRuntimeCandidates(repoRoot);
 
   const candidates = options.cargoOnly
     ? []
@@ -89,6 +115,7 @@ if (require.main === module) {
     stagingOnly: process.argv.includes('--staging-only'),
     artifactsOnly: process.argv.includes('--artifacts-only'),
     coverageOnly: process.argv.includes('--coverage-only'),
+    testOnly: process.argv.includes('--test-only'),
   });
   if (failures.length > 0) {
     console.error(
@@ -102,4 +129,5 @@ module.exports = {
   assertCleanCandidate,
   cleanGeneratedArtifacts,
   resolveCleanCandidates,
+  resolveTestRuntimeCandidates,
 };

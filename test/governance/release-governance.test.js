@@ -20,6 +20,7 @@ const {
 const { isInstallerFile, resolveCargoTargetDir } = require('../../scripts/collect-tauri-artifacts');
 const {
   assertCleanCandidate,
+  cleanGeneratedArtifacts,
   resolveCleanCandidates,
 } = require('../../scripts/clean-generated-artifacts');
 
@@ -29,6 +30,10 @@ const layoutTempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-release-layout
 const dependencies = { alpha: '1.0.0', beta: '^2.0.0' };
 const releaseRuntimeSource = fs.readFileSync(
   path.join(repoRoot, 'scripts', 'prepare-release-runtime.js'),
+  'utf8'
+);
+const portableBuildSource = fs.readFileSync(
+  path.join(repoRoot, 'scripts', 'build-portable.ps1'),
   'utf8'
 );
 
@@ -101,6 +106,17 @@ try {
   assert.deepStrictEqual(resolveCleanCandidates(tempRoot, { coverageOnly: true }), [
     path.join(tempRoot, 'coverage'),
   ]);
+  write('test/.mgmt-token-123');
+  write('test/proxy.log.1');
+  write('test/fixture.txt');
+  fs.mkdirSync(path.join(tempRoot, 'test', '.certs'), { recursive: true });
+  assert.deepStrictEqual(resolveCleanCandidates(tempRoot, { testOnly: true }), [
+    path.join(tempRoot, 'test', '.certs'),
+    path.join(tempRoot, 'test', '.mgmt-token-123'),
+    path.join(tempRoot, 'test', 'proxy.log.1'),
+  ]);
+  assert.deepStrictEqual(cleanGeneratedArtifacts(tempRoot, { testOnly: true }), []);
+  assert.strictEqual(fs.existsSync(path.join(tempRoot, 'test', 'fixture.txt')), true);
   assert.throws(
     () => resolveCleanCandidates(tempRoot, { cargoOnly: true, frontendOnly: true }),
     /cannot be combined/i
@@ -110,6 +126,11 @@ try {
   assert.match(releaseRuntimeSource, /'--package-lock-only'/);
   assert.match(releaseRuntimeSource, /'--omit=dev'/);
   assert.match(releaseRuntimeSource, /'--ignore-scripts'/);
+  assert.strictEqual(fs.existsSync(path.join(repoRoot, 'tray-icon.ico')), false);
+  assert.strictEqual(fs.existsSync(path.join(repoRoot, 'lib', 'proxy', 'README.md')), false);
+  assert.doesNotMatch(portableBuildSource, /tray-icon\.ico/);
+  assert.match(portableBuildSource, /Join-Path \$Root 'lib\\proxy'/);
+  assert.doesNotMatch(portableBuildSource, /Join-Path \$Root 'lib'\)/);
 
   const packageDocument = {
     name: 'example',
@@ -176,6 +197,15 @@ try {
   let result = validateReleaseDirectory(tempRoot, dependencies);
   assert.deepStrictEqual(result.errors, []);
   assert.strictEqual(result.ok, true);
+
+  write('lib/test-runtime.js');
+  result = validateReleaseDirectory(tempRoot, dependencies);
+  assert.ok(
+    result.errors.some((error) =>
+      error.includes('Unexpected development library in release: lib/test-runtime.js')
+    )
+  );
+  fs.rmSync(path.join(tempRoot, 'lib', 'test-runtime.js'));
 
   write('proxy.config.json', JSON.stringify({ profiles: [{ apiKey: 'secret' }] }));
   write('.hpm-runtime/.certs/proxy-key.pem', '-----BEGIN PRIVATE KEY-----\nsecret');

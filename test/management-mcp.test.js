@@ -5,7 +5,9 @@ const path = require('path');
 const { Readable } = require('stream');
 
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-management-mcp-'));
-process.env.PROXY_DATA_DIR = tmpDir;
+delete process.env.PROXY_DATA_DIR;
+process.env.PROXY_CONFIG_DIR = tmpDir;
+process.env.PROXY_RUNTIME_DIR = tmpDir;
 
 const {
   createManagementMcpHandlers,

@@ -1,11 +1,8 @@
 # Entry Protocol Design QA
 
-- Source visual truth:
-  `C:\Users\juhon\AppData\Local\Temp\codex-clipboard-eacf9e87-82c0-4057-954d-1ee540441f31.png`
-- Implementation screenshot:
-  `C:\Users\juhon\.codex\visualizations\2026\07\13\019f5b14-b0a7-7782-8809-a990fa5118a3\entry-protocols-focused.png`
-- Combined comparison:
-  `C:\Users\juhon\.codex\visualizations\2026\07\13\019f5b14-b0a7-7782-8809-a990fa5118a3\entry-protocols-comparison.png`
+- Scope: historical verification record for the entry protocol settings UI.
+- Evidence: the original screenshots were local review artifacts and are not
+  part of the repository.
 - Viewport: 2048 × 1024 desktop capture
 - State: local entry settings open with default HTTPS and HTTP listeners enabled
 

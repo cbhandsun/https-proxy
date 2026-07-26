@@ -10,7 +10,7 @@ fn unique_temp_dir(name: &str) -> PathBuf {
 }
 
 fn make_runtime_root(path: &Path) {
-    fs::create_dir_all(path.join("lib")).unwrap();
+    fs::create_dir_all(path.join("lib").join("proxy")).unwrap();
     fs::write(path.join("proxy.bat"), "@echo off\r\n").unwrap();
     fs::write(path.join("proxy.ps1"), "").unwrap();
     fs::write(path.join("openai-proxy.js"), "").unwrap();
@@ -75,6 +75,11 @@ fn rejects_unsupported_proxy_commands() {
 fn runtime_root_requires_backend_files() {
     let root = unique_temp_dir("incomplete");
     fs::write(root.join("proxy.bat"), "@echo off\r\n").unwrap();
+    assert!(!is_proxy_runtime_root(&root));
+
+    fs::write(root.join("proxy.ps1"), "").unwrap();
+    fs::write(root.join("openai-proxy.js"), "").unwrap();
+    fs::create_dir_all(root.join("lib")).unwrap();
     assert!(!is_proxy_runtime_root(&root));
 
     make_runtime_root(&root);

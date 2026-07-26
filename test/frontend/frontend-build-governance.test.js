@@ -30,8 +30,17 @@ assert.match(html, /<script\s+type="module"\s+src="\/src\/main\.js"><\/script>/)
 assert.doesNotMatch(html, /<script[^>]+app(?:-[^"]+)?\.js/);
 assert.doesNotMatch(html, /cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com/);
 assert.match(main, /import '\.\/styles\/app\.css';/);
-assert.match(main, /import '\.\/app\/ux\.js';/);
 assert.match(main, /import '\.\/app\/bootstrap\.js';/);
+assert.doesNotMatch(main, /import '\.\/app\/ux\.js';/);
+assert.match(read('tauri-ui/src/app/bootstrap.js'), /from '\.\/ux\.js';/);
+assert.doesNotMatch(
+  read('tauri-ui/src/app/ux.js') +
+    read('tauri-ui/src/app/bootstrap.js') +
+    read('tauri-ui/src/app/domains/cli.js') +
+    read('tauri-ui/src/app/domains/prompts.js'),
+  /window\.UX/,
+  'frontend UX dependencies must use ESM imports and injection'
+);
 assert.match(viteConfig, /base:\s*'\.\/'/);
 assert.match(viteConfig, /sourcemap:\s*false/);
 assert.deepEqual(
@@ -108,6 +117,7 @@ assert.match(packageJson.scripts['frontend:build'], /check:architecture/);
 assert.match(packageJson.scripts['frontend:build'], /clean:frontend/);
 assert.match(packageJson.scripts['clean:frontend'], /--frontend-only/);
 assert.match(packageJson.scripts['clean:coverage'], /--coverage-only/);
+assert.match(packageJson.scripts['clean:test-runtime'], /--test-only/);
 assert.match(packageJson.scripts['clean:staging'], /--staging-only/);
 assert.match(packageJson.scripts['clean:artifacts'], /--artifacts-only/);
 assert.match(packageJson.scripts['release:prepare'], /prepare-release-runtime\.js/);

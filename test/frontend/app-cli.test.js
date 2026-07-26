@@ -39,11 +39,11 @@ assert.ok(
   'CLI launch button should reset through DOM helper'
 );
 assert.ok(
-  source.includes('window.UX.storage.parseCliProfiles('),
+  source.includes('cliDependencies.storage.parseCliProfiles('),
   'CLI profiles should pass through the shared localStorage boundary parser'
 );
 assert.ok(
-  source.includes('window.UX.storage.normalizeCliProfiles(profiles)'),
+  source.includes('cliDependencies.storage.normalizeCliProfiles(profiles)'),
   'CLI profiles should be normalized again before persistence'
 );
 

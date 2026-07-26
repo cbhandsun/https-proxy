@@ -1,10 +1,9 @@
-// Tests for the frontend UX module — P3 体验增强 (通知/主题/延迟加载)
-// 在 Node 中以 vm 沙箱执行 ux.js，注入最小 window/Notification/localStorage。
+// Tests for the frontend ESM UX module with minimal browser globals.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
+const { pathToFileURL } = require('node:url');
 
 function readAppSource() {
   const appRoot = path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app');
@@ -163,14 +162,14 @@ function buildSandbox() {
   };
 }
 
-function loadUx(sandbox) {
-  const src = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'ux.js'),
-    'utf8'
+let uxImportSequence = 0;
+async function loadUx(sandbox) {
+  Object.assign(globalThis, sandbox);
+  const moduleUrl = pathToFileURL(
+    path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'ux.js')
   );
-  vm.createContext(sandbox);
-  vm.runInContext(src, sandbox);
-  return sandbox.window.UX;
+  moduleUrl.searchParams.set('test', String(uxImportSequence++));
+  return import(moduleUrl.href);
 }
 
 function tick(ms = 0) {
@@ -181,7 +180,7 @@ function tick(ms = 0) {
   // ─── 1. notify() requires & uses Notification API ──────────────
   {
     const { sandbox, calls } = buildSandbox();
-    const UX = loadUx(sandbox);
+    const UX = await loadUx(sandbox);
     assert.equal(typeof UX.notify, 'function', 'notify() exists');
     assert.equal(UX.canNotify(), true, 'canNotify true when Notification available');
     UX.notify('代理已启动', { body: '端口 3543', tag: 'proxy:start' });
@@ -194,7 +193,7 @@ function tick(ms = 0) {
   // ─── 2. notify() de-dupes within 1.5s window ──────────────────
   {
     const { sandbox, calls } = buildSandbox();
-    const UX = loadUx(sandbox);
+    const UX = await loadUx(sandbox);
     UX.notify('hello', { tag: 'dup' });
     UX.notify('hello', { tag: 'dup' });
     await tick(5);
@@ -204,7 +203,7 @@ function tick(ms = 0) {
   // ─── 3. theme: light/dark/auto cycle ──────────────────────────
   {
     const { sandbox, root } = buildSandbox();
-    const UX = loadUx(sandbox);
+    const UX = await loadUx(sandbox);
     UX.theme.init();
     assert.equal(UX.theme.getMode(), 'auto', 'default mode is auto');
     assert.equal(root.getAttribute('data-theme-mode'), 'auto', 'data-theme-mode set');
@@ -220,7 +219,7 @@ function tick(ms = 0) {
   {
     const { sandbox, root } = buildSandbox();
     sandbox.window.localStorage.setItem('theme', 'dark');
-    const UX = loadUx(sandbox);
+    const UX = await loadUx(sandbox);
     UX.theme.init();
     assert.equal(UX.theme.getMode(), 'dark', 'reads stored dark');
     assert.equal(root.getAttribute('data-theme-mode'), 'dark', 'mode applied to root');
@@ -229,7 +228,7 @@ function tick(ms = 0) {
   // ─── 5. lazyOnVisible: triggers loader when intersecting ──────
   {
     const { sandbox, calls } = buildSandbox();
-    const UX = loadUx(sandbox);
+    const UX = await loadUx(sandbox);
     let loaded = false;
     // JSDOM not available; pass a sentinel that has classList
     const fakeEl = {
@@ -257,7 +256,7 @@ function tick(ms = 0) {
   // ─── 6. loadScript: inserts <script> tag, idempotent ──────────
   {
     const { sandbox } = buildSandbox();
-    const UX = loadUx(sandbox);
+    const UX = await loadUx(sandbox);
     const headChildren = sandbox.document.head.children;
     const p1 = UX.loadScript('https://example.com/foo.js');
     const p2 = UX.loadScript('https://example.com/foo.js');
@@ -277,7 +276,7 @@ function tick(ms = 0) {
   // ─── 7. Claude Desktop process verification controls exist ────
   {
     const { sandbox } = buildSandbox();
-    const UX = loadUx(sandbox);
+    const UX = await loadUx(sandbox);
     assert.deepEqual(Array.from(UX.storage.parsePromptTemplates('invalid')), []);
     assert.deepEqual(Array.from(UX.storage.parsePromptTemplates('{"name":"not-array"}')), []);
     assert.deepEqual(
@@ -795,10 +794,11 @@ function tick(ms = 0) {
 
   // ─── 24. Tauri runtime root selection keeps dev/prod state separate ─
   {
-    const rust = fs.readFileSync(
-      path.join(__dirname, '..', '..', 'src-tauri', 'src', 'lib.rs'),
-      'utf8'
-    );
+    const rust = ['lib.rs', 'proxy_root.rs']
+      .map((file) =>
+        fs.readFileSync(path.join(__dirname, '..', '..', 'src-tauri', 'src', file), 'utf8')
+      )
+      .join('\n');
     assert.ok(
       rust.includes('fn is_proxy_runtime_root(path: &Path) -> bool'),
       'Tauri root detection validates complete proxy runtime roots'
@@ -810,7 +810,7 @@ function tick(ms = 0) {
     );
     assert.ok(
       rust.includes('push_proxy_root_ancestors(&mut candidates, start)') &&
-        rust.includes('push_proxy_root_ancestors(&mut candidates, exe)') &&
+        rust.includes('push_proxy_root_ancestors(&mut candidates, executable)') &&
         rust.includes('first_unique_existing_root(candidates)'),
       'Tauri release builds select a verified launch/exe runtime root deterministically'
     );
