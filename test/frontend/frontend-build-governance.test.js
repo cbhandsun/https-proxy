@@ -45,6 +45,10 @@ assert.equal(fs.existsSync(path.join(repoRoot, 'tauri-ui/src/styles/app.css')), 
 assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'app', 'bootstrap.js')), true);
 assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'app', 'ux.js')), true);
 assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'modules')), false);
+assert.ok(
+  read('tauri-ui/src/app/bootstrap.js').split(/\r?\n/).length <= 4250,
+  'bootstrap must stay below the current composition-layer size budget'
+);
 for (const domainName of [
   'audit.js',
   'bridge.js',
@@ -53,6 +57,8 @@ for (const domainName of [
   'tool-status.js',
   'environment.js',
   'mcp.js',
+  'prompts.js',
+  'rate-limits.js',
 ]) {
   const domainPath = path.join(frontendSourceRoot, 'app', 'domains', domainName);
   assert.equal(
@@ -67,6 +73,21 @@ for (const domainName of [
       .every((specifier) => specifier === '../runtime/dependencies.js'),
     true,
     `${domainName} may import runtime boundaries but not bootstrap or other domains`
+  );
+}
+for (const runtimeName of ['app-state.js', 'dependencies.js', 'dom.js', 'performance.js']) {
+  const runtimePath = path.join(frontendSourceRoot, 'app', 'runtime', runtimeName);
+  assert.equal(
+    fs.existsSync(runtimePath),
+    true,
+    `${runtimeName} must live under tauri-ui/src/app/runtime`
+  );
+  assert.deepEqual(
+    extractStaticImports(fs.readFileSync(runtimePath, 'utf8')).filter((specifier) =>
+      specifier.startsWith('.')
+    ),
+    [],
+    `${runtimeName} must remain dependency-free`
   );
 }
 

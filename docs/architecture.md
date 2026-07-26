@@ -16,9 +16,10 @@ HTTPS-Proxy/
 │  ├─ src/
 │  │  ├─ main.js               Vite entry
 │  │  ├─ app/
-│  │  │  ├─ bootstrap.js       Frontend composition root
+│  │  │  ├─ bootstrap.js       Frontend composition and application coordinator
 │  │  │  ├─ ux.js              Shared browser UX boundary
-│  │  │  └─ domains/           Independently configured UI domains
+│  │  │  ├─ domains/           Independently configured UI domains
+│  │  │  └─ runtime/           Dependency-free state, DOM and timing primitives
 │  │  └─ styles/
 │  └─ dist/                    Vite output; generated and ignored
 ├─ src-tauri/                  Native shell, commands, permissions and bundling
@@ -41,7 +42,7 @@ flowchart LR
   Main --> UX["app/ux.js"]
   Main --> Bootstrap["app/bootstrap.js"]
   Bootstrap --> Domains["app/domains/*"]
-  Bootstrap --> Runtime["explicit runtime dependencies"]
+  Bootstrap --> Runtime["app/runtime/*"]
   Runtime --> Domains
   Bootstrap --> Vite["Vite bundle"]
   Vite --> Tauri["Tauri frontendDist"]
@@ -50,12 +51,18 @@ flowchart LR
 The dependency rules are:
 
 1. `main.js` is the only Vite entry and contains no business logic.
-2. `bootstrap.js` owns application startup and domain composition.
+2. `bootstrap.js` owns application startup and domain composition. Its current
+   size budget is 4,250 lines and may only decrease.
 3. Domain modules do not import `bootstrap.js` or other domain modules. They
    receive browser, state and service dependencies through their
    `configure*()` boundary.
-4. The frontend ESM graph must remain acyclic.
-5. `tauri-ui/dist/` is generated only by Vite. The removed
+4. `domains/prompts.js` owns prompt storage, synchronization and template DOM
+   bindings. `domains/rate-limits.js` owns limit state, polling and rendering.
+5. Runtime modules have no project-relative imports. They expose small,
+   independently tested primitives for shared state, DOM operations,
+   dependency binding and performance scheduling.
+6. The frontend ESM graph must remain acyclic.
+7. `tauri-ui/dist/` is generated only by Vite. The removed
    `dist/tauri-ui/` path must never return.
 
 These rules are enforced by `npm run check:architecture` and therefore run
