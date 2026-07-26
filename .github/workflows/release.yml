@@ -40,6 +40,8 @@ jobs:
             throw 'WINDOWS_SIGNING_CERTIFICATE_PASSWORD is required; unsigned releases are forbidden.'
           }
       - run: npm ci
+      - name: Verify release tag version
+        run: node scripts/validate-release-version.js
       - run: npm run verify
       - name: Import signing certificate and configure Tauri
         shell: pwsh
@@ -110,6 +112,8 @@ jobs:
             $parsed = Get-Content -LiteralPath $sbom.FullName -Raw | ConvertFrom-Json
             if ($parsed.bomFormat -ne 'CycloneDX') { throw "Invalid CycloneDX SBOM: $($sbom.FullName)" }
           }
+      - name: Verify final release asset selection
+        run: node scripts/list-release-assets.js
       - name: Installer smoke test
         shell: pwsh
         run: ./scripts/smoke-test-nsis.ps1 -InstallerDirectory 'dist\artifacts\installers'
