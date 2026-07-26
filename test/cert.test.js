@@ -35,7 +35,8 @@ try {
   const jsonLine = result.stdout
     .trim()
     .split(/\r?\n/)
-    .find((line) => line.startsWith('{'));
+    .find((line) => line.startsWith('{') && line.includes('"commonName"'));
+  assert.ok(jsonLine, `certificate payload missing from child output: ${result.stdout}`);
   const payload = JSON.parse(jsonLine);
 
   assert.match(payload.commonName, /^HTTPS Proxy Local Root CA [0-9A-F]{10}$/);
@@ -84,7 +85,7 @@ try {
     staleResult.stdout
       .trim()
       .split(/\r?\n/)
-      .find((line) => line.startsWith('{'))
+      .find((line) => line.startsWith('{') && line.includes('"staleValid"'))
   );
   assert.strictEqual(stalePayload.staleValid, false);
   assert.strictEqual(stalePayload.repairedValid, true);

@@ -9,11 +9,24 @@ use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
+mod codex_login;
+mod launch_on_login;
+
+use codex_login::launch_codex_login_script;
+#[cfg(test)]
+use codex_login::{
+    codex_login_script_path, validate_codex_login_script_file, CODEX_LOGIN_SCRIPT_FILE_NAME,
+};
+use launch_on_login::{get_launch_on_login, set_launch_on_login};
+#[cfg(test)]
+use launch_on_login::{
+    launch_command_matches_exe, startup_value_matches_exe, windows_launch_command,
+};
+
 static ZOOM_LEVEL: AtomicU32 = AtomicU32::new(100);
 static PROXY_STOPPED_FOR_EXIT: AtomicBool = AtomicBool::new(false);
 static PROXY_AUTOSTART_IN_FLIGHT: AtomicBool = AtomicBool::new(false);
 const APP_ID: &str = "https-proxy-manager";
-const WINDOWS_RUN_VALUE_NAME: &str = "HTTPS Proxy Manager";
 
 /// Cached project root (the directory containing proxy.bat).
 static PROJECT_ROOT: OnceLock<Option<PathBuf>> = OnceLock::new();
@@ -621,11 +634,11 @@ fn proxy_command_direct(command: &str) -> Option<Result<serde_json::Value, Strin
         )),
         "stop" => Some(stop_proxy_direct()),
         "start" => Some(start_proxy_direct()),
-        "restart" => Some((|| {
+        "restart" => Some({
             let _ = stop_proxy_direct();
             std::thread::sleep(Duration::from_millis(250));
             start_proxy_direct()
-        })()),
+        }),
         _ => None,
     }
 }
@@ -797,87 +810,6 @@ fn apply_app_menu(window: tauri::Window, show: bool) -> Result<(), String> {
     }
 }
 
-fn windows_launch_command(exe: &Path) -> String {
-    format!("\"{}\"", exe.display())
-}
-
-fn launch_command_matches_exe(value: &str, exe: &Path) -> bool {
-    value
-        .trim()
-        .eq_ignore_ascii_case(&windows_launch_command(exe))
-}
-
-#[cfg(windows)]
-fn read_launch_on_login() -> Result<bool, String> {
-    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
-    use winreg::RegKey;
-
-    let exe =
-        std::env::current_exe().map_err(|err| format!("current executable unavailable: {err}"))?;
-    let current_user = RegKey::predef(HKEY_CURRENT_USER);
-    let run_key = match current_user
-        .open_subkey_with_flags(r"Software\Microsoft\Windows\CurrentVersion\Run", KEY_READ)
-    {
-        Ok(key) => key,
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(false),
-        Err(err) => return Err(format!("cannot read Windows startup settings: {err}")),
-    };
-    match run_key.get_value::<String, _>(WINDOWS_RUN_VALUE_NAME) {
-        Ok(value) => Ok(launch_command_matches_exe(&value, &exe)),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(err) => Err(format!("cannot read Windows startup entry: {err}")),
-    }
-}
-
-#[cfg(not(windows))]
-fn read_launch_on_login() -> Result<bool, String> {
-    Err("launch on login is only supported on Windows".to_string())
-}
-
-#[cfg(windows)]
-fn write_launch_on_login(enabled: bool) -> Result<bool, String> {
-    use winreg::enums::HKEY_CURRENT_USER;
-    use winreg::RegKey;
-
-    let exe =
-        std::env::current_exe().map_err(|err| format!("current executable unavailable: {err}"))?;
-    let current_user = RegKey::predef(HKEY_CURRENT_USER);
-    let (run_key, _) = current_user
-        .create_subkey(r"Software\Microsoft\Windows\CurrentVersion\Run")
-        .map_err(|err| format!("cannot open Windows startup settings: {err}"))?;
-    if enabled {
-        run_key
-            .set_value(WINDOWS_RUN_VALUE_NAME, &windows_launch_command(&exe))
-            .map_err(|err| format!("cannot enable launch on login: {err}"))?;
-    } else {
-        match run_key.delete_value(WINDOWS_RUN_VALUE_NAME) {
-            Ok(()) => {}
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
-            Err(err) => return Err(format!("cannot disable launch on login: {err}")),
-        }
-    }
-    read_launch_on_login()
-}
-
-#[cfg(not(windows))]
-fn write_launch_on_login(_enabled: bool) -> Result<bool, String> {
-    Err("launch on login is only supported on Windows".to_string())
-}
-
-#[tauri::command]
-fn get_launch_on_login() -> Result<serde_json::Value, String> {
-    Ok(serde_json::json!({
-        "supported": cfg!(windows),
-        "enabled": read_launch_on_login()?
-    }))
-}
-
-#[tauri::command]
-fn set_launch_on_login(enabled: bool) -> Result<serde_json::Value, String> {
-    let enabled = write_launch_on_login(enabled)?;
-    Ok(serde_json::json!({ "supported": cfg!(windows), "enabled": enabled }))
-}
-
 fn open_path(path: &Path) {
     let mut command = std::process::Command::new("cmd");
     command.arg("/c").arg("start").arg("").arg(path);
@@ -910,40 +842,6 @@ fn open_cert_dir() {
     } else {
         open_path(Path::new(".certs"));
     }
-}
-
-#[tauri::command]
-fn launch_codex_login_script(script_path: String) -> Result<serde_json::Value, String> {
-    let path = PathBuf::from(&script_path);
-    if !path.exists() {
-        return Err(format!("Codex login script not found: {}", script_path));
-    }
-    if path.extension().and_then(|ext| ext.to_str()).unwrap_or("") != "ps1" {
-        return Err("Codex login script must be a .ps1 file".to_string());
-    }
-
-    let mut command = Command::new("powershell.exe");
-    command
-        .args(["-NoExit", "-ExecutionPolicy", "Bypass", "-File"])
-        .arg(&path)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
-
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NEW_CONSOLE: u32 = 0x00000010;
-        command.creation_flags(CREATE_NEW_CONSOLE);
-    }
-
-    let child = command
-        .spawn()
-        .map_err(|err| format!("Failed to launch Codex login script: {}", err))?;
-    Ok(serde_json::json!({
-        "pid": child.id(),
-        "scriptPath": script_path
-    }))
 }
 
 #[tauri::command]
@@ -1144,111 +1042,6 @@ fn execute_proxy_command_blocking(command: String) -> Result<serde_json::Value, 
             }))
         }
         None => Err("proxy.bat not found in project directory hierarchy".into()),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-
-    fn unique_temp_dir(name: &str) -> PathBuf {
-        let dir =
-            std::env::temp_dir().join(format!("hpm-tauri-root-test-{name}-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        dir
-    }
-
-    fn make_runtime_root(path: &Path) {
-        fs::create_dir_all(path.join("lib")).unwrap();
-        fs::write(path.join("proxy.bat"), "@echo off\r\n").unwrap();
-        fs::write(path.join("proxy.ps1"), "").unwrap();
-        fs::write(path.join("openai-proxy.js"), "").unwrap();
-    }
-
-    #[test]
-    fn normalizes_allowed_proxy_commands() {
-        assert_eq!(normalize_proxy_command("status").unwrap(), "status");
-        assert_eq!(normalize_proxy_command(" START ").unwrap(), "start");
-        assert_eq!(normalize_proxy_command("Stop").unwrap(), "stop");
-        assert_eq!(normalize_proxy_command("restart").unwrap(), "restart");
-    }
-
-    #[test]
-    fn rejects_unsupported_proxy_commands() {
-        assert!(normalize_proxy_command("")
-            .unwrap_err()
-            .contains("required"));
-        assert!(normalize_proxy_command("health")
-            .unwrap_err()
-            .contains("unsupported"));
-        assert!(normalize_proxy_command("status & calc")
-            .unwrap_err()
-            .contains("unsupported"));
-    }
-
-    #[test]
-    fn runtime_root_requires_backend_files() {
-        let root = unique_temp_dir("incomplete");
-        fs::write(root.join("proxy.bat"), "@echo off\r\n").unwrap();
-        assert!(!is_proxy_runtime_root(&root));
-
-        make_runtime_root(&root);
-        assert!(is_proxy_runtime_root(&root));
-        let _ = fs::remove_dir_all(root);
-    }
-
-    #[test]
-    fn root_candidate_selection_deduplicates_and_preserves_order() {
-        let first = unique_temp_dir("first");
-        let second = unique_temp_dir("second");
-        make_runtime_root(&first);
-        make_runtime_root(&second);
-
-        let selected =
-            first_unique_existing_root(vec![first.clone(), first.clone(), second.clone()]);
-        assert_eq!(selected, Some(first.clone()));
-
-        let _ = fs::remove_dir_all(first);
-        let _ = fs::remove_dir_all(second);
-    }
-
-    #[test]
-    fn startup_command_quotes_executable_paths_and_matches_case_insensitively() {
-        let exe = Path::new(r"C:\Program Files\HTTPS Proxy Manager\app.exe");
-        assert_eq!(
-            windows_launch_command(exe),
-            r#""C:\Program Files\HTTPS Proxy Manager\app.exe""#
-        );
-        assert!(launch_command_matches_exe(
-            r#"  "c:\program files\https proxy manager\APP.EXE"  "#,
-            exe
-        ));
-        assert!(!launch_command_matches_exe(r#""C:\Other\app.exe""#, exe));
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn startup_registry_read_handles_a_missing_value() {
-        use winreg::enums::HKEY_CURRENT_USER;
-        use winreg::RegKey;
-
-        let current_user = RegKey::predef(HKEY_CURRENT_USER);
-        let (run_key, _) = current_user
-            .create_subkey(r"Software\Microsoft\Windows\CurrentVersion\Run")
-            .unwrap();
-        let previous = run_key.get_raw_value(WINDOWS_RUN_VALUE_NAME).ok();
-        let _ = run_key.delete_value(WINDOWS_RUN_VALUE_NAME);
-
-        let result = read_launch_on_login();
-
-        if let Some(value) = previous {
-            run_key
-                .set_raw_value(WINDOWS_RUN_VALUE_NAME, &value)
-                .unwrap();
-        }
-        assert_eq!(result.unwrap(), false);
     }
 }
 
@@ -1488,9 +1281,9 @@ pub fn run() {
                 #[cfg(debug_assertions)]
                 if let Some(window) = app_handle.get_webview_window("main") {
                     if window.is_devtools_open() {
-                        let _ = window.close_devtools();
+                        window.close_devtools();
                     } else {
-                        let _ = window.open_devtools();
+                        window.open_devtools();
                     }
                 }
             }
@@ -1521,3 +1314,6 @@ pub fn run() {
             }
         });
 }
+
+#[cfg(test)]
+mod tests;
