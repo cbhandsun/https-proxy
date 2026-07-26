@@ -32,7 +32,9 @@ console.log('[exception-handlers.test] getStats shape ok');
 // 4. Install + collect events
 let eventReceived = null;
 exceptionHandlers.install({
-  onEvent: (kind, payload) => { eventReceived = { kind, payload }; },
+  onEvent: (kind, payload) => {
+    eventReceived = { kind, payload };
+  },
 });
 const stats1 = exceptionHandlers.getStats();
 assert.strictEqual(stats1.installed, true);

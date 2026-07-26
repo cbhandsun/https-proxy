@@ -11,7 +11,9 @@ const {
 
 // 1. LruCache basic ops
 const c = new LruCache(3);
-c.set('a', 1); c.set('b', 2); c.set('c', 3);
+c.set('a', 1);
+c.set('b', 2);
+c.set('c', 3);
 assert.strictEqual(c.get('a'), 1);
 c.set('d', 4); // evicts 'b'
 assert.strictEqual(c.has('a'), true);
@@ -22,7 +24,9 @@ console.log('[route-index.test] LruCache eviction ok');
 
 // 2. LruCache refreshes recency
 c.clear();
-c.set('x', 1); c.set('y', 2); c.set('z', 3);
+c.set('x', 1);
+c.set('y', 2);
+c.set('z', 3);
 c.get('x'); // touch
 c.set('w', 4);
 assert.strictEqual(c.has('x'), true);
@@ -50,14 +54,14 @@ const routes = [r1, r2, r3];
 const idx = buildRouteIndex(routes);
 let m = lookupInIndex(idx, 'gpt-4o');
 assert.strictEqual(m.length, 3, 'gpt-4o should match 3 routes');
-const scores = m.map(x => x.score).sort((a, b) => b - a);
+const scores = m.map((x) => x.score).sort((a, b) => b - a);
 assert.strictEqual(scores[0], 10006, 'gpt-4o exact match should have highest score');
 console.log('[route-index.test] exact > wildcard > global ok');
 
 // 6. gpt-4-turbo matches gpt-4* and *
 m = lookupInIndex(idx, 'gpt-4-turbo');
 assert.strictEqual(m.length, 2);
-assert.ok(m.find(x => x.route === r2));
+assert.ok(m.find((x) => x.route === r2));
 console.log('[route-index.test] prefix wildcard ok');
 
 // 7. claude-3-opus matches only *

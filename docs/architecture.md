@@ -116,7 +116,7 @@ it.
 
 - `npm test`: unit, frontend, thinking persistence and environment tests.
 - `npm run test:all`: `npm test` plus integration tests.
-- `npm run verify`: syntax, lint, architecture, CI/release governance,
+- `npm run verify`: formatting, syntax, lint, architecture, CI/release governance,
   coverage, integration, frontend build and Rust tests.
 - `npm run tauri:build`: production Tauri build and installer collection.
 

@@ -10,6 +10,9 @@ src-tauri/gen/
 **/*.lock
 package-lock.json
 .traegit/
+.claude/
+.hpm-runtime/
 .git/
 docs/
+proxy.config.json
 proxy.config.example.json

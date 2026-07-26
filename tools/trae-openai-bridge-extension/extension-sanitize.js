@@ -9,7 +9,8 @@
  * 纯函数,不依赖 vscode,可独立单测。
  */
 
-const SENSITIVE_RAW_KEY_PATTERN = /authorization|bearer|token|api[_-]?key|secret|password|credential|access[_-]?key|refresh|session[_-]?key|(?:^|[_-])(ak|sk)(?:$|[_-])/i;
+const SENSITIVE_RAW_KEY_PATTERN =
+  /authorization|bearer|token|api[_-]?key|secret|password|credential|access[_-]?key|refresh|session[_-]?key|(?:^|[_-])(ak|sk)(?:$|[_-])/i;
 const TEXT_RAW_KEY_PATTERN = /reasoning|thought|prompt|content|text|markdown|delta|answer|reply/i;
 const SAFE_RAW_TEXT_KEYS = new Set([
   'event',
@@ -33,11 +34,13 @@ const SAFE_RAW_TEXT_KEYS = new Set([
   'model_name',
   'modelname',
   'config_name',
-  'configname'
+  'configname',
 ]);
 
 function normalizeRawKey(key) {
-  return String(key || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  return String(key || '')
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase();
 }
 
 function sanitizeRawValue(value, key, depth = 0) {
@@ -50,13 +53,17 @@ function sanitizeRawValue(value, key, depth = 0) {
     if (TEXT_RAW_KEY_PATTERN.test(keyText) && !SAFE_RAW_TEXT_KEYS.has(normalizedKey)) {
       return { redacted: true, chars: value.length };
     }
-    return value.length > 500 ? `${value.slice(0, 500)}...[truncated ${value.length - 500} chars]` : value;
+    return value.length > 500
+      ? `${value.slice(0, 500)}...[truncated ${value.length - 500} chars]`
+      : value;
   }
   if (typeof value === 'number' || typeof value === 'boolean') return value;
   if (typeof value !== 'object') return String(value);
   if (depth >= 4) return '[max-depth]';
   if (Array.isArray(value)) {
-    const items = value.slice(0, 20).map((item, index) => sanitizeRawValue(item, `${keyText}.${index}`, depth + 1));
+    const items = value
+      .slice(0, 20)
+      .map((item, index) => sanitizeRawValue(item, `${keyText}.${index}`, depth + 1));
     if (value.length > items.length) items.push(`[truncated ${value.length - items.length} items]`);
     return items;
   }
@@ -81,7 +88,7 @@ function sanitizeRawStreamEvent(event) {
     sessionId: typeof payload.sessionId === 'string' ? payload.sessionId : undefined,
     agentMessageId: typeof payload.agentMessageId === 'string' ? payload.agentMessageId : undefined,
     event: typeof payload.event === 'string' ? payload.event : String(payload.event || ''),
-    payload: sanitizeRawValue(payload.payload, 'payload')
+    payload: sanitizeRawValue(payload.payload, 'payload'),
   };
 }
 
@@ -99,8 +106,10 @@ function makeRawEventKey(event) {
     payload.message_id,
     payload.id,
     payload.task_id,
-    payload.tool_call_info && payload.tool_call_info.id
-  ].filter(Boolean).join('|');
+    payload.tool_call_info && payload.tool_call_info.id,
+  ]
+    .filter(Boolean)
+    .join('|');
 }
 
 module.exports = {

@@ -1,20 +1,28 @@
 const assert = require('assert');
-const {
-  DEFAULT_CONFIG,
-  resolveProfileProtocolVersion,
-} = require('../lib/proxy/config');
+const { DEFAULT_CONFIG, resolveProfileProtocolVersion } = require('../lib/proxy/config');
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 function t(name, fn) {
-  try { fn(); pass += 1; console.log('  ok -', name); }
-  catch (err) { fail += 1; console.error('  FAIL -', name, '\n   ', err.message); }
+  try {
+    fn();
+    pass += 1;
+    console.log('  ok -', name);
+  } catch (err) {
+    fail += 1;
+    console.error('  FAIL -', name, '\n   ', err.message);
+  }
 }
 
 console.log('config protocolVersion tests');
 
 // 1. Default profile has empty protocolVersion
 const def = DEFAULT_CONFIG.profiles[0];
-assert.strictEqual(typeof def.protocolVersion, 'string', 'default profile should have protocolVersion field');
+assert.strictEqual(
+  typeof def.protocolVersion,
+  'string',
+  'default profile should have protocolVersion field'
+);
 
 // 2. Explicit value wins
 t('explicit protocolVersion is used', () => {
@@ -24,7 +32,10 @@ t('explicit protocolVersion is used', () => {
 
 // 3. Whitespace is trimmed
 t('whitespace trimmed', () => {
-  const r = resolveProfileProtocolVersion({ protocol: 'claude', protocolVersion: '  2024-01-01  ' });
+  const r = resolveProfileProtocolVersion({
+    protocol: 'claude',
+    protocolVersion: '  2024-01-01  ',
+  });
   assert.strictEqual(r, '2024-01-01');
 });
 
@@ -68,8 +79,14 @@ t('null profile -> empty', () => {
 
 // 11. Custom string passes through
 t('custom version string passes through', () => {
-  assert.strictEqual(resolveProfileProtocolVersion({ protocol: 'claude', protocolVersion: 'beta-2024-12' }), 'beta-2024-12');
-  assert.strictEqual(resolveProfileProtocolVersion({ protocol: 'openai', protocolVersion: 'gpt-4-0613' }), 'gpt-4-0613');
+  assert.strictEqual(
+    resolveProfileProtocolVersion({ protocol: 'claude', protocolVersion: 'beta-2024-12' }),
+    'beta-2024-12'
+  );
+  assert.strictEqual(
+    resolveProfileProtocolVersion({ protocol: 'openai', protocolVersion: 'gpt-4-0613' }),
+    'gpt-4-0613'
+  );
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

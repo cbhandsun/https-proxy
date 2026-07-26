@@ -14,10 +14,17 @@ const {
   listTraeBridgeCommands: listTraeBridgeCommandsPure,
 } = require('../tools/trae-openai-bridge-extension/extension-utils');
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 function t(name, fn) {
-  try { fn(); pass += 1; console.log('  ok -', name); }
-  catch (err) { fail += 1; console.error('  FAIL -', name, '\n   ', err.message); }
+  try {
+    fn();
+    pass += 1;
+    console.log('  ok -', name);
+  } catch (err) {
+    fail += 1;
+    console.error('  FAIL -', name, '\n   ', err.message);
+  }
 }
 
 console.log('extension-utils golden tests');
@@ -51,8 +58,13 @@ t('createLogger writes lines to output channel', () => {
 t('sendJson writes JSON response', () => {
   const headers = {};
   const res = {
-    writeHead(status, h) { headers.status = status; Object.assign(headers, h); },
-    end(body) { headers.body = body; },
+    writeHead(status, h) {
+      headers.status = status;
+      Object.assign(headers, h);
+    },
+    end(body) {
+      headers.body = body;
+    },
   };
   sendJson(res, 200, { ok: true });
   assert.strictEqual(headers.status, 200);
@@ -64,7 +76,11 @@ t('sendJson writes JSON response', () => {
 // 5. sendSseEvent emits proper SSE format
 t('sendSseEvent formats as SSE', () => {
   const writes = [];
-  const res = { write(s) { writes.push(s); } };
+  const res = {
+    write(s) {
+      writes.push(s);
+    },
+  };
   sendSseEvent(res, 'progress', { phase: 'running' });
   assert.strictEqual(writes.length, 2);
   assert.strictEqual(writes[0], 'event: progress\n');
@@ -93,8 +109,12 @@ t('readBody rejects when body exceeds maxBytes', async () => {
     req.emit('data', Buffer.alloc(100));
     req.emit('error', new Error('size exceeded'));
   });
-  try { await readBody(req, 50); assert.fail('should reject'); }
-  catch (e) { assert.ok(e); }
+  try {
+    await readBody(req, 50);
+    assert.fail('should reject');
+  } catch (e) {
+    assert.ok(e);
+  }
 });
 
 // 8. isBusyTraeError matches busy-like errors
@@ -128,9 +148,14 @@ t('normalizeResult null -> empty', () => {
 
 // 10. pickTraeCommandPure picks the first available
 t('pickTraeCommandPure picks first match', () => {
-  assert.strictEqual(pickTraeCommandPure(['foo', 'feishu.bridge.sendAndWaitResponse', 'bar']),
-    'feishu.bridge.sendAndWaitResponse');
-  assert.strictEqual(pickTraeCommandPure(['wx.bridge.sendAndWaitResponse']), 'wx.bridge.sendAndWaitResponse');
+  assert.strictEqual(
+    pickTraeCommandPure(['foo', 'feishu.bridge.sendAndWaitResponse', 'bar']),
+    'feishu.bridge.sendAndWaitResponse'
+  );
+  assert.strictEqual(
+    pickTraeCommandPure(['wx.bridge.sendAndWaitResponse']),
+    'wx.bridge.sendAndWaitResponse'
+  );
   assert.strictEqual(pickTraeCommandPure(['none.of.these']), null);
   assert.strictEqual(pickTraeCommandPure(null), null);
 });

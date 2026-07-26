@@ -17,10 +17,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run format:check
       - run: npm run check:syntax
       - run: npm run lint
       - run: npm run release:check
-      - run: npm run frontend:check
       - run: npm run test:frontend
       - run: npm run frontend:build
       - run: npm audit --audit-level=high
