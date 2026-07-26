@@ -131,6 +131,9 @@ try {
   assert.doesNotMatch(portableBuildSource, /tray-icon\.ico/);
   assert.match(portableBuildSource, /Join-Path \$Root 'lib\\proxy'/);
   assert.doesNotMatch(portableBuildSource, /Join-Path \$Root 'lib'\)/);
+  assert.match(portableBuildSource, /write-portable-artifact-manifest\.js/);
+  assert.match(portableBuildSource, /PortableManifestJson/);
+  assert.match(portableBuildSource, /PortableManifestText/);
 
   const packageDocument = {
     name: 'example',

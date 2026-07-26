@@ -30,6 +30,7 @@ HTTPS-Proxy/
 ├─ src-tauri/                  Native shell, commands, permissions and bundling
 │  ├─ src/
 │  │  ├─ lib.rs               Tauri application composition
+│  │  ├─ desktop_shell.rs     Menu, tray, window and native path UX
 │  │  └─ proxy_root.rs        Runtime/resource root discovery
 │  └─ icons/                  Canonical desktop and tray icon assets
 ├─ scripts/                    Build, verification and operational entry scripts
@@ -43,7 +44,7 @@ HTTPS-Proxy/
    ├─ staging/runtime/         Disposable Node runtime for Tauri packaging
    ├─ artifacts/
    │  ├─ installers/           Collected installers and checksums
-   │  ├─ portable/             Portable directory and zip
+   │  ├─ portable/             Portable directory, zip and checksums
    │  └─ sbom/                 Release software bills of materials
    └─ archive/                 Local-only legacy artifacts; never uploaded
 ```
