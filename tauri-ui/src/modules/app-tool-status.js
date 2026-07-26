@@ -1,4 +1,24 @@
-// Extracted domain module. Loaded before app.js; functions resolve shared globals at call time.
+import {
+  $,
+  CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT,
+  STARTUP_STATUS_GRACE_MS,
+  STARTUP_STATUS_RETRY_MS,
+  checkProxyHealth,
+  clearElement,
+  config,
+  ensureClaudeDesktop,
+  perfStart,
+  refreshCertStatusAfterProxyOnline,
+  resolveClaudeDesktopModel,
+  routeIdOfClaudeDesktopModel,
+  sharedAppState,
+  showDiagnosticsView,
+  showToast,
+  startupStatusStartedAt,
+} from './app.js';
+import { isMonitorVisible } from './app-diagnostics.js';
+
+// Tool integration status and diagnostics UI.
 
 function setProxyStatusElement(element, color, text) {
   clearElement(element);
@@ -34,11 +54,11 @@ function proxyStatusPidFromOutput(output) {
 }
 
 function scheduleStartupProxyRetry() {
-  if (startupProxyRetryTimer) return;
-  startupProxyRetryTimer = setTimeout(() => {
-    startupProxyRetryTimer = null;
+  if (sharedAppState.startupProxyRetryTimer) return;
+  sharedAppState.startupProxyRetryTimer = setTimeout(() => {
+    sharedAppState.startupProxyRetryTimer = null;
     if (!isStartupStatusSettling({ startup: true })) return;
-    lastStatusRefresh = 0;
+    sharedAppState.lastStatusRefresh = 0;
     refreshProxyStatus({ startup: true }).catch((err) =>
       console.error('startup refreshProxyStatus retry error:', err)
     );
@@ -54,10 +74,14 @@ function deferStartupProxyFailure(statusElement) {
 async function refreshProxyStatus(options = {}) {
   const now = Date.now();
   const passiveTtl = isMonitorVisible() ? 7000 : 30000;
-  if (statusRefreshInFlight || (options.passive && now - lastStatusRefresh < passiveTtl)) return;
+  if (
+    sharedAppState.statusRefreshInFlight ||
+    (options.passive && now - sharedAppState.lastStatusRefresh < passiveTtl)
+  )
+    return;
   const finishPerf = perfStart('refresh.proxyStatus');
-  statusRefreshInFlight = true;
-  lastStatusRefresh = now;
+  sharedAppState.statusRefreshInFlight = true;
+  sharedAppState.lastStatusRefresh = now;
   const statusElement = $('heroProxyStatus');
   try {
     const health = await checkProxyHealth();
@@ -111,7 +135,7 @@ async function refreshProxyStatus(options = {}) {
     setProxyStatusElement(statusElement, 'red', '检查失败');
     renderPortDiagnostics(null);
   } finally {
-    statusRefreshInFlight = false;
+    sharedAppState.statusRefreshInFlight = false;
     finishPerf();
   }
 }
@@ -1136,3 +1160,27 @@ async function refreshAllToolStatuses(options = {}) {
   });
   return toolStatusRefreshInFlight;
 }
+
+export {
+  copyClaudeDesktopProcessPrompt,
+  isStartupStatusSettling,
+  lastTraeNativeDebugCommands,
+  proxyStatusOutputLooksRunning,
+  refreshAllToolStatuses,
+  refreshAntigravityCliStatus,
+  refreshClaudeCodeStatus,
+  refreshClaudeDesktopStatus,
+  refreshCodexDesktopStatus,
+  refreshCodexStatus,
+  refreshGeminiCliStatus,
+  refreshProxyStatus,
+  refreshTraeBridgeStatus,
+  refreshTraeDebugEvents,
+  refreshTraeNativeDeepDebug,
+  saveTraeDebugSettingsFromUi,
+  scanTraeNativeDebug,
+  startTraeNativeDeepDebug,
+  stopTraeNativeDeepDebug,
+  testClaudeDesktopProcessOutput,
+  testTraeClaudeProcessOutput,
+};

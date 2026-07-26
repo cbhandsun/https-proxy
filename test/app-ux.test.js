@@ -1,4 +1,4 @@
-// Tests for tauri-ui/app-ux.js — P3 体验增强 (通知/主题/延迟加载)
+// Tests for the frontend UX module — P3 体验增强 (通知/主题/延迟加载)
 // 在 Node 中以 vm 沙箱执行 app-ux.js，注入最小 window/Notification/localStorage。
 
 const assert = require('node:assert/strict');
@@ -8,7 +8,9 @@ const vm = require('node:vm');
 
 function readAppSource() {
   return ['app-tool-status.js', 'app-environment.js', 'app-mcp.js', 'app.js']
-    .map((file) => fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', file), 'utf8'))
+    .map((file) =>
+      fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', file), 'utf8')
+    )
     .join('\n');
 }
 
@@ -153,7 +155,10 @@ function buildSandbox() {
 }
 
 function loadUx(sandbox) {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-ux.js'), 'utf8');
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-ux.js'),
+    'utf8'
+  );
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox);
   return sandbox.window.UX;
@@ -295,10 +300,7 @@ function tick(ms = 0) {
 
   // ─── 8. Claude Desktop process verification controls exist ────
   {
-    const html = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
-      'utf8'
-    );
+    const html = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'index.html'), 'utf8');
     const app = readAppSource();
     assert.ok(
       html.includes('id="testClaudeDesktopProcess"'),
@@ -317,7 +319,7 @@ function tick(ms = 0) {
   // ─── 8. MCP Hub uses delegated DOM handlers, not inline JS ─────
   {
     const mcpModule = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'app-mcp.js'),
+      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-mcp.js'),
       'utf8'
     );
     const start = mcpModule.indexOf('function renderMcpServers()');
@@ -368,7 +370,7 @@ function tick(ms = 0) {
   // ─── 10. MCP execution logs avoid dynamic HTML strings ─────────
   {
     const mcpModule = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'app-mcp.js'),
+      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-mcp.js'),
       'utf8'
     );
     const start = mcpModule.indexOf('function renderMcpLogs(logs)');
@@ -724,11 +726,12 @@ function tick(ms = 0) {
   // ─── 22. Tauri reload menu uses events instead of eval ─────────
   {
     const rust = ['lib.rs', 'launch_on_login.rs']
-      .map((file) =>
-        fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', file), 'utf8')
-      )
+      .map((file) => fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', file), 'utf8'))
       .join('\n');
-    const bridge = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-bridge.js'), 'utf8');
+    const bridge = fs.readFileSync(
+      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-bridge.js'),
+      'utf8'
+    );
     assert.ok(!rust.includes('window.eval'), 'Tauri menu reload should not eval JavaScript');
     assert.ok(
       rust.includes('window.emit("reload-requested", false)'),
@@ -746,10 +749,7 @@ function tick(ms = 0) {
 
   // ─── 23. Recommended Claude model chips exclude retired IDs ─────
   {
-    const html = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
-      'utf8'
-    );
+    const html = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'index.html'), 'utf8');
     const app = readAppSource();
     const retiredModels = [
       'claude-3-5-sonnet-20241022',
@@ -819,7 +819,10 @@ function tick(ms = 0) {
 
   // ─── 25. Audit management calls use authenticated local helper ───
   {
-    const bridge = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-bridge.js'), 'utf8');
+    const bridge = fs.readFileSync(
+      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-bridge.js'),
+      'utf8'
+    );
     assert.ok(
       bridge.includes('const fetchLocalJsonWithAuth = async'),
       'bridge provides an authenticated local management JSON helper'
@@ -859,16 +862,14 @@ function tick(ms = 0) {
 
   // ─── 26. Windows launch-on-login uses typed native commands ─────
   {
-    const html = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
+    const html = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'index.html'), 'utf8');
+    const app = readAppSource();
+    const bridge = fs.readFileSync(
+      path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-bridge.js'),
       'utf8'
     );
-    const app = readAppSource();
-    const bridge = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-bridge.js'), 'utf8');
     const rust = ['lib.rs', 'launch_on_login.rs']
-      .map((file) =>
-        fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', file), 'utf8')
-      )
+      .map((file) => fs.readFileSync(path.join(__dirname, '..', 'src-tauri', 'src', file), 'utf8'))
       .join('\n');
     const permissions = fs.readFileSync(
       path.join(__dirname, '..', 'src-tauri', 'permissions', 'app-commands.toml'),
@@ -930,10 +931,7 @@ function tick(ms = 0) {
         app.includes('listenPort: 3084'),
       'frontend defaults include all plaintext HTTP entry ports'
     );
-    const html = fs.readFileSync(
-      path.join(__dirname, '..', 'tauri-ui', 'electron-ui.html'),
-      'utf8'
-    );
+    const html = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'index.html'), 'utf8');
     assert.ok(
       html.includes('HTTPS 与 HTTP 入口') && html.includes('HTTP 为明文传输'),
       'entry guidance describes both transports and the HTTP safety boundary'

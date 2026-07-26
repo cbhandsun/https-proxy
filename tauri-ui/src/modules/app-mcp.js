@@ -1,6 +1,6 @@
-// Extracted domain module. Loaded before app.js; functions resolve shared globals at call time.
+import { $, clearElement, showToast } from './app.js';
 
-// --- MCP Hub UI Logic ---
+// MCP Hub UI logic.
 
 let mcpHubConfig = { servers: [], routing: [] };
 
@@ -307,3 +307,5 @@ async function saveMcpHub() {
     btn.textContent = origText;
   }
 }
+
+export { initMcpHubView };

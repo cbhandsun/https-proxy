@@ -1,3 +1,29 @@
+import {
+  $,
+  LOG_AUTO_REFRESH_VISIBLE_MS,
+  LOG_RENDER_LINE_LIMIT,
+  LOG_REQUEST_MAX_BYTES,
+  MONITOR_RENDER_WINDOW,
+  MONITOR_SEARCH_BODY_LIMIT,
+  checkProxyHealth,
+  confirmAction,
+  debounce,
+  ensureProxyRecovered,
+  hydrateConfigAfterStartup,
+  perfStart,
+  refreshCertStatus,
+  sharedAppState,
+  showDiagnosticsTab,
+  showToast,
+} from './app.js';
+import {
+  cliSessionsTimer,
+  isCodeToolsVisible,
+  refreshCliSessions,
+  sharedCliState,
+} from './app-cli.js';
+import { refreshProxyStatus } from './app-tool-status.js';
+
 function logLineClassName(line) {
   if (line.includes('-> ')) return 'info arrow';
   if (line.includes('ok ')) return 'info';
@@ -29,8 +55,8 @@ function renderLogLines(target, text) {
 }
 
 function startHeartbeat() {
-  if (heartbeatTimer) clearInterval(heartbeatTimer);
-  heartbeatTimer = setInterval(
+  if (sharedAppState.heartbeatTimer) clearInterval(sharedAppState.heartbeatTimer);
+  sharedAppState.heartbeatTimer = setInterval(
     async () => {
       if (isMonitorVisible()) {
         await Promise.allSettled([
@@ -80,11 +106,11 @@ document.addEventListener('visibilitychange', () => {
   startHeartbeat();
   if (document.hidden) return;
   if ($('autoRefreshLog') && $('autoRefreshLog').checked) {
-    lastLogAutoRefreshAt = 0;
+    sharedAppState.lastLogAutoRefreshAt = 0;
     refreshActiveDiagnosticsPanel({ passive: true, forceScroll: true });
   }
   if (cliSessionsTimer && isCodeToolsVisible()) {
-    lastCliSessionsPollAt = 0;
+    sharedCliState.lastCliSessionsPollAt = 0;
     refreshCliSessions({ passive: true, force: true });
   }
 });
@@ -94,26 +120,26 @@ function isMonitorVisible() {
 }
 
 function getViewDomCache() {
-  if (!viewDomCache) {
-    viewDomCache = {
+  if (!sharedAppState.viewDomCache) {
+    sharedAppState.viewDomCache = {
       buttons: Array.from(document.querySelectorAll('[data-view-button]')),
       views: Array.from(document.querySelectorAll('.view')),
     };
   }
-  return viewDomCache;
+  return sharedAppState.viewDomCache;
 }
 
 async function refreshMonitor(options = {}) {
-  if (monitorRefreshInFlight) return;
-  monitorRefreshInFlight = true;
+  if (sharedAppState.monitorRefreshInFlight) return;
+  sharedAppState.monitorRefreshInFlight = true;
   const finishPerf = perfStart('refresh.monitor');
   try {
     const events = await window.proxyManager.readEvents({
-      limit: lastEventTime ? 200 : 300,
-      after: lastEventTime || '',
+      limit: sharedAppState.lastEventTime ? 200 : 300,
+      after: sharedAppState.lastEventTime || '',
     });
     if (!events || events.length === 0) {
-      if (monitorEvents.length === 0) {
+      if (sharedAppState.monitorEvents.length === 0) {
         const container = $('monitorList');
         container.textContent = '';
         container.appendChild(createMonitorEmptyElement('暂无请求记录...'));
@@ -122,16 +148,19 @@ async function refreshMonitor(options = {}) {
     }
 
     const preparedEvents = events.map(prepareMonitorEvent);
-    monitorEvents = (lastEventTime ? monitorEvents.concat(preparedEvents) : preparedEvents).slice(
-      -500
-    );
-    lastEventTime = monitorEvents[monitorEvents.length - 1].time;
+    sharedAppState.monitorEvents = (
+      sharedAppState.lastEventTime
+        ? sharedAppState.monitorEvents.concat(preparedEvents)
+        : preparedEvents
+    ).slice(-500);
+    sharedAppState.lastEventTime =
+      sharedAppState.monitorEvents[sharedAppState.monitorEvents.length - 1].time;
     renderMonitor();
   } catch (err) {
     console.error('Failed to refresh monitor:', err);
   } finally {
-    monitorRefreshInFlight = false;
-    finishPerf({ passive: !!options.passive, events: monitorEvents.length });
+    sharedAppState.monitorRefreshInFlight = false;
+    finishPerf({ passive: !!options.passive, events: sharedAppState.monitorEvents.length });
   }
 }
 
@@ -246,10 +275,10 @@ function renderMonitor() {
   const query = ($('monitorSearch').value || '').toLowerCase().trim();
   const statusFilter = $('monitorStatusFilter').value;
 
-  let filteredEvents = monitorEvents;
+  let filteredEvents = sharedAppState.monitorEvents;
 
   if (query || statusFilter !== 'all') {
-    filteredEvents = monitorEvents.filter((event) => {
+    filteredEvents = sharedAppState.monitorEvents.filter((event) => {
       // Status filter
       if (statusFilter === 'success') {
         if (event.kind === 'request_end' && (event.statusCode < 200 || event.statusCode >= 300))
@@ -285,8 +314,8 @@ function renderMonitor() {
     omittedEvents,
     visibleEvents: viewModels,
   });
-  if (renderSignature === lastRenderedMonitorHtml) return;
-  lastRenderedMonitorHtml = renderSignature;
+  if (renderSignature === sharedAppState.lastRenderedMonitorHtml) return;
+  sharedAppState.lastRenderedMonitorHtml = renderSignature;
   container.textContent = '';
   if (omittedEvents)
     container.appendChild(createMonitorSummaryElement(visibleEvents.length, omittedEvents));
@@ -318,9 +347,9 @@ function bindDiagnosticsControls() {
     clearMonBtn.dataset.monitorBound = 'true';
     clearMonBtn.onclick = async () => {
       await window.proxyManager.clearEvents();
-      monitorEvents = [];
-      lastEventTime = null;
-      lastRenderedMonitorHtml = null;
+      sharedAppState.monitorEvents = [];
+      sharedAppState.lastEventTime = null;
+      sharedAppState.lastRenderedMonitorHtml = null;
       renderMonitor();
       showToast('监控已清空');
     };
@@ -393,8 +422,8 @@ function isDiagnosticsVisible() {
 }
 
 async function refreshLog(options = {}) {
-  if (logRefreshInFlight) return;
-  logRefreshInFlight = true;
+  if (sharedAppState.logRefreshInFlight) return;
+  sharedAppState.logRefreshInFlight = true;
   const log = $('log');
   const shouldKeepBottom =
     options.forceScroll || ($('autoScrollLog') && $('autoScrollLog').checked) || isNearBottom(log);
@@ -407,9 +436,9 @@ async function refreshLog(options = {}) {
       lines: LOG_RENDER_LINE_LIMIT,
       maxBytes: LOG_REQUEST_MAX_BYTES,
     });
-    if (rawLog !== lastRenderedLog || options.forceRender) {
+    if (rawLog !== sharedAppState.lastRenderedLog || options.forceRender) {
       renderLogLines(log, rawLog);
-      lastRenderedLog = rawLog;
+      sharedAppState.lastRenderedLog = rawLog;
       changed = true;
     }
     if (!options.passive || changed)
@@ -418,7 +447,7 @@ async function refreshLog(options = {}) {
   } catch (err) {
     $('logRefreshState').textContent = '刷新失败';
   } finally {
-    logRefreshInFlight = false;
+    sharedAppState.logRefreshInFlight = false;
     finishPerf({ passive: !!options.passive, changed, bytes: rawLog.length });
   }
 }
@@ -433,8 +462,8 @@ function renderDiagnosticsStatus(status) {
 }
 
 async function refreshDiagnostics(options = {}) {
-  if (diagnosticsRefreshInFlight) return;
-  diagnosticsRefreshInFlight = true;
+  if (sharedAppState.diagnosticsRefreshInFlight) return;
+  sharedAppState.diagnosticsRefreshInFlight = true;
   const output = $('diagnosticsOutput');
   const shouldKeepBottom =
     options.forceScroll ||
@@ -448,14 +477,14 @@ async function refreshDiagnostics(options = {}) {
     const result = await window.proxyManager.readDiagnostics();
     const statusText = renderDiagnosticsStatus(result.status);
     outputText = result.output || '暂无诊断事件';
-    if (statusText !== lastRenderedDiagnosticsStatus || options.forceRender) {
+    if (statusText !== sharedAppState.lastRenderedDiagnosticsStatus || options.forceRender) {
       $('diagnosticsStatus').textContent = statusText;
-      lastRenderedDiagnosticsStatus = statusText;
+      sharedAppState.lastRenderedDiagnosticsStatus = statusText;
       changed = true;
     }
-    if (outputText !== lastRenderedDiagnosticsOutput || options.forceRender) {
+    if (outputText !== sharedAppState.lastRenderedDiagnosticsOutput || options.forceRender) {
       output.textContent = outputText;
-      lastRenderedDiagnosticsOutput = outputText;
+      sharedAppState.lastRenderedDiagnosticsOutput = outputText;
       changed = true;
     }
     if (!options.passive || changed)
@@ -464,7 +493,7 @@ async function refreshDiagnostics(options = {}) {
   } catch (err) {
     $('diagnosticsRefreshState').textContent = '刷新失败';
   } finally {
-    diagnosticsRefreshInFlight = false;
+    sharedAppState.diagnosticsRefreshInFlight = false;
     finishPerf({ passive: !!options.passive, changed, bytes: outputText.length });
   }
 }
@@ -474,18 +503,18 @@ function refreshActiveDiagnosticsPanel(options = {}) {
   if ($('diagnosticsPanel').classList.contains('active')) refreshDiagnostics(options);
 }
 function setLogAutoRefresh(enabled) {
-  if (logRefreshTimer) {
-    clearInterval(logRefreshTimer);
-    logRefreshTimer = null;
+  if (sharedAppState.logRefreshTimer) {
+    clearInterval(sharedAppState.logRefreshTimer);
+    sharedAppState.logRefreshTimer = null;
   }
   if (!enabled) return;
-  lastLogAutoRefreshAt = 0;
-  logRefreshTimer = setInterval(() => {
+  sharedAppState.lastLogAutoRefreshAt = 0;
+  sharedAppState.logRefreshTimer = setInterval(() => {
     if (!isDiagnosticsVisible()) return;
     if (document.hidden) return;
     const now = Date.now();
-    if (now - lastLogAutoRefreshAt < LOG_AUTO_REFRESH_VISIBLE_MS) return;
-    lastLogAutoRefreshAt = now;
+    if (now - sharedAppState.lastLogAutoRefreshAt < LOG_AUTO_REFRESH_VISIBLE_MS) return;
+    sharedAppState.lastLogAutoRefreshAt = now;
     refreshActiveDiagnosticsPanel({ passive: true });
   }, LOG_AUTO_REFRESH_VISIBLE_MS);
 }
@@ -518,3 +547,13 @@ async function clearDiagnostics() {
   showToast(msg, result.ok ? 'success' : 'error');
   await refreshDiagnostics({ forceScroll: true });
 }
+
+export {
+  bindDiagnosticsControls,
+  getViewDomCache,
+  isMonitorVisible,
+  refreshDiagnostics,
+  refreshLog,
+  refreshMonitor,
+  startHeartbeat,
+};

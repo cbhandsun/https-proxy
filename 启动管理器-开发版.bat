@@ -28,15 +28,15 @@ if not exist "package.json" (
   exit /b 1
 )
 
-if not exist "tauri-ui\electron-ui.html" (
-  echo tauri-ui\electron-ui.html was not found.
+if not exist "tauri-ui\index.html" (
+  echo tauri-ui\index.html was not found.
   echo.
   if not defined NO_PAUSE pause
   exit /b 1
 )
 
-if not exist "scripts\dev-static-server.js" (
-  echo scripts\dev-static-server.js was not found.
+if not exist "vite.config.mjs" (
+  echo vite.config.mjs was not found.
   echo.
   if not defined NO_PAUSE pause
   exit /b 1
@@ -70,26 +70,14 @@ if exist "src-tauri\target\debug\proxy.bat" (
   copy /Y "proxy.bat" "src-tauri\target\debug\proxy.bat" >nul
 )
 
-echo Starting frontend static server: http://localhost:1430
-node scripts\dev-static-server.js --ensure
-if not errorlevel 1 goto launch_manager
-
-echo The frontend static server did not serve this project's UI.
-echo Please make sure port 1430 is not occupied by another program, then check .hpm-runtime\.static-server.err.log.
-echo.
-if not defined NO_PAUSE pause
-exit /b 1
-
-:launch_manager
-
 echo Starting dev manager...
-echo This mode loads tauri-ui\electron-ui.html for the latest UI changes.
+echo Tauri will start Vite and load tauri-ui\index.html.
 echo.
 npm run tauri:dev
 
 if errorlevel 1 (
   echo.
   echo Dev manager failed to start. Please check the error above.
-  echo If it still waits for localhost:1430, check .hpm-runtime\.static-server.err.log.
+  echo If it still waits for localhost:1430, make sure the port is available.
   if not defined NO_PAUSE pause
 )

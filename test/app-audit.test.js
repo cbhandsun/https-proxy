@@ -1,9 +1,10 @@
-// Tests for tauri-ui/app-audit.js rendering helpers.
+// Tests for the frontend audit module rendering helpers.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { stripEsmSyntax } = require('./helpers/strip-esm-syntax');
 
 function escapeHtml(value) {
   return String(value == null ? '' : value)
@@ -84,8 +85,11 @@ function loadAuditHelpers() {
     escapeAttr,
   };
   vm.createContext(sandbox);
-  const src = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-audit.js'), 'utf8');
-  vm.runInContext(src, sandbox);
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-audit.js'),
+    'utf8'
+  );
+  vm.runInContext(stripEsmSyntax(src), sandbox);
   return { helpers: sandbox.window.__auditTest, src };
 }
 

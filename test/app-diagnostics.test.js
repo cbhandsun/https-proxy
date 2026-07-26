@@ -1,9 +1,10 @@
-// Tests for tauri-ui/app-diagnostics.js rendering helpers.
+// Tests for the frontend diagnostics module rendering helpers.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { stripEsmSyntax } = require('./helpers/strip-esm-syntax');
 
 function escapeHtml(value) {
   return String(value == null ? '' : value)
@@ -75,6 +76,7 @@ function loadDiagnosticsHelpers() {
     viewDomCache: null,
     cliSessionsTimer: null,
     lastLogAutoRefreshAt: 0,
+    lastCliSessionsPollAt: 0,
     refreshActiveDiagnosticsPanel() {},
     refreshCliSessions() {},
     isCodeToolsVisible() {
@@ -86,12 +88,48 @@ function loadDiagnosticsHelpers() {
       return element;
     },
   };
+  sandbox.sharedAppState = {};
+  for (const name of [
+    'diagnosticsRefreshInFlight',
+    'heartbeatTimer',
+    'lastEventTime',
+    'lastLogAutoRefreshAt',
+    'lastRenderedDiagnosticsOutput',
+    'lastRenderedDiagnosticsStatus',
+    'lastRenderedLog',
+    'lastRenderedMonitorHtml',
+    'lastStatusRefresh',
+    'logRefreshInFlight',
+    'logRefreshTimer',
+    'monitorEvents',
+    'monitorRefreshInFlight',
+    'startupProxyRetryTimer',
+    'statusRefreshInFlight',
+    'viewDomCache',
+  ]) {
+    Object.defineProperty(sandbox.sharedAppState, name, {
+      get: () => sandbox[name],
+      set: (value) => {
+        sandbox[name] = value;
+      },
+    });
+  }
+  sandbox.sharedCliState = {};
+  Object.defineProperty(sandbox.sharedCliState, 'lastCliSessionsPollAt', {
+    get: () => sandbox.lastCliSessionsPollAt,
+    set: (value) => {
+      sandbox.lastCliSessionsPollAt = value;
+    },
+  });
   getElement('autoScrollMonitor').checked = false;
   getElement('monitorSearch').value = '';
   getElement('monitorStatusFilter').value = 'all';
   vm.createContext(sandbox);
-  const src = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-diagnostics.js'), 'utf8');
-  vm.runInContext(src, sandbox);
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-diagnostics.js'),
+    'utf8'
+  );
+  vm.runInContext(stripEsmSyntax(src), sandbox);
   return { helpers: sandbox.window.__diagnosticsTest, sandbox, elements, src };
 }
 

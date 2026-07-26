@@ -1,3 +1,6 @@
+import Chart from 'chart.js/auto';
+import { $, confirmAction, escapeHtml, showToast, showView, togglePromptsTab } from './app.js';
+
 let selectedAuditRecordId = null;
 let cachedAuditRecords = [];
 let usageChartInstance = null;
@@ -1530,3 +1533,4 @@ function renderSingleToolCall(tc) {
     </div>
   `;
 }
+export { initPromptsAuditView, initUsageReportView };

@@ -1,21 +1,20 @@
 # Frontend Source Governance
 
-The canonical UI entry is:
+The frontend has one source tree and one build pipeline:
 
-- `tauri-ui/electron-ui.html`
-- `tauri-ui/app.css`
-- `tauri-ui/app-ux.js`
-- `tauri-ui/app-bridge.js`
-- `tauri-ui/app-audit.js`
-- `tauri-ui/app-cli.js`
-- `tauri-ui/app-diagnostics.js`
-- `tauri-ui/app.js`
+- `tauri-ui/index.html` is the only document entry.
+- `tauri-ui/src/main.js` is the only JavaScript entry.
+- `tauri-ui/src/modules/` contains the ESM domain modules.
+- `tauri-ui/src/styles/` contains styles imported by the JavaScript entry.
+- `tauri-ui/dist/` is generated exclusively by Vite and is never committed.
 
-The root `electron-ui.html`, `app.css`, `app-ux.js`, `app-bridge.js`, `app-audit.js`, `app-cli.js`, `app-diagnostics.js`, and `app.js` files are kept as compatibility mirrors for older launch paths and quick local inspection. Do not edit the mirror files directly.
+There are no root-level compatibility mirrors and no static copy step. Tauri
+starts the Vite dev server for development and serves `tauri-ui/dist/` in
+packaged builds.
 
 Use these commands:
 
-- `npm run frontend:check` verifies the mirrors match the canonical Tauri UI files.
-- `npm run frontend:sync` updates root mirror files from `tauri-ui/`.
-
-`npm run dev`, `npm run build`, `npm run tauri:dev`, and `npm run tauri:build` run the check first so UI changes cannot silently ship from the wrong file. Tauri's own `beforeDevCommand` and `beforeBuildCommand` also run the same check for direct `npx tauri ...` usage.
+- `npm run frontend:dev` starts the browser development server.
+- `npm run frontend:build` creates the exact frontend consumed by Tauri.
+- `npm run test:frontend` verifies the source and Tauri/Vite wiring.
+- `npm run dev` starts Tauri and lets its `beforeDevCommand` start Vite.

@@ -1,10 +1,13 @@
-// Static safety checks for tauri-ui/app-cli.js dynamic list rendering.
+// Static safety checks for the frontend CLI module dynamic list rendering.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const source = fs.readFileSync(path.join(__dirname, '..', 'tauri-ui', 'app-cli.js'), 'utf8');
+const source = fs.readFileSync(
+  path.join(__dirname, '..', 'tauri-ui', 'src', 'modules', 'app-cli.js'),
+  'utf8'
+);
 
 assert.ok(
   !/item\.innerHTML\s*=/.test(source),

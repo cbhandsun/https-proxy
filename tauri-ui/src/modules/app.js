@@ -1,3 +1,40 @@
+import { getApiBase } from './app-bridge.js';
+import { initPromptsAuditView, initUsageReportView } from './app-audit.js';
+import { bindCliSessionControls } from './app-cli.js';
+import {
+  bindDiagnosticsControls,
+  getViewDomCache,
+  refreshDiagnostics,
+  refreshLog,
+  refreshMonitor,
+  startHeartbeat,
+} from './app-diagnostics.js';
+import {
+  copyClaudeDesktopProcessPrompt,
+  isStartupStatusSettling,
+  lastTraeNativeDebugCommands,
+  proxyStatusOutputLooksRunning,
+  refreshAllToolStatuses,
+  refreshAntigravityCliStatus,
+  refreshClaudeCodeStatus,
+  refreshClaudeDesktopStatus,
+  refreshCodexDesktopStatus,
+  refreshCodexStatus,
+  refreshGeminiCliStatus,
+  refreshProxyStatus,
+  refreshTraeBridgeStatus,
+  refreshTraeDebugEvents,
+  refreshTraeNativeDeepDebug,
+  saveTraeDebugSettingsFromUi,
+  scanTraeNativeDebug,
+  startTraeNativeDeepDebug,
+  stopTraeNativeDeepDebug,
+  testClaudeDesktopProcessOutput,
+  testTraeClaudeProcessOutput,
+} from './app-tool-status.js';
+import { bindEnvControls, refreshEnvStatus } from './app-environment.js';
+import { initMcpHubView } from './app-mcp.js';
+
 const rateLimitsData = {};
 let limitsTimeDisplayTimer = null;
 let lastRenderedLimitsProfileId = '';
@@ -228,6 +265,105 @@ let routeSortDirection = 'asc';
 // "Assignment to constant variable" the moment the user clicks any
 // [data-view-button] tab.
 let viewDomCache = null;
+
+const sharedAppState = {
+  get diagnosticsRefreshInFlight() {
+    return diagnosticsRefreshInFlight;
+  },
+  set diagnosticsRefreshInFlight(value) {
+    diagnosticsRefreshInFlight = value;
+  },
+  get heartbeatTimer() {
+    return heartbeatTimer;
+  },
+  set heartbeatTimer(value) {
+    heartbeatTimer = value;
+  },
+  get lastEventTime() {
+    return lastEventTime;
+  },
+  set lastEventTime(value) {
+    lastEventTime = value;
+  },
+  get lastLogAutoRefreshAt() {
+    return lastLogAutoRefreshAt;
+  },
+  set lastLogAutoRefreshAt(value) {
+    lastLogAutoRefreshAt = value;
+  },
+  get lastRenderedDiagnosticsOutput() {
+    return lastRenderedDiagnosticsOutput;
+  },
+  set lastRenderedDiagnosticsOutput(value) {
+    lastRenderedDiagnosticsOutput = value;
+  },
+  get lastRenderedDiagnosticsStatus() {
+    return lastRenderedDiagnosticsStatus;
+  },
+  set lastRenderedDiagnosticsStatus(value) {
+    lastRenderedDiagnosticsStatus = value;
+  },
+  get lastRenderedLog() {
+    return lastRenderedLog;
+  },
+  set lastRenderedLog(value) {
+    lastRenderedLog = value;
+  },
+  get lastRenderedMonitorHtml() {
+    return lastRenderedMonitorHtml;
+  },
+  set lastRenderedMonitorHtml(value) {
+    lastRenderedMonitorHtml = value;
+  },
+  get lastStatusRefresh() {
+    return lastStatusRefresh;
+  },
+  set lastStatusRefresh(value) {
+    lastStatusRefresh = value;
+  },
+  get logRefreshInFlight() {
+    return logRefreshInFlight;
+  },
+  set logRefreshInFlight(value) {
+    logRefreshInFlight = value;
+  },
+  get logRefreshTimer() {
+    return logRefreshTimer;
+  },
+  set logRefreshTimer(value) {
+    logRefreshTimer = value;
+  },
+  get monitorEvents() {
+    return monitorEvents;
+  },
+  set monitorEvents(value) {
+    monitorEvents = value;
+  },
+  get monitorRefreshInFlight() {
+    return monitorRefreshInFlight;
+  },
+  set monitorRefreshInFlight(value) {
+    monitorRefreshInFlight = value;
+  },
+  get startupProxyRetryTimer() {
+    return startupProxyRetryTimer;
+  },
+  set startupProxyRetryTimer(value) {
+    startupProxyRetryTimer = value;
+  },
+  get statusRefreshInFlight() {
+    return statusRefreshInFlight;
+  },
+  set statusRefreshInFlight(value) {
+    statusRefreshInFlight = value;
+  },
+  get viewDomCache() {
+    return viewDomCache;
+  },
+  set viewDomCache(value) {
+    viewDomCache = value;
+  },
+};
 
 const fields = ['id', 'name', 'targetUrl', 'protocol', 'apiKey'];
 const $ = (id) => document.getElementById(id);
@@ -4856,3 +4992,38 @@ markFrontendInit('load:start');
 load()
   .then(() => markFrontendInit('load:complete'))
   .catch((error) => recordFrontendInitError('load', error));
+
+export {
+  $,
+  CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT,
+  CLI_SESSIONS_VISIBLE_MS,
+  LOG_AUTO_REFRESH_VISIBLE_MS,
+  LOG_RENDER_LINE_LIMIT,
+  LOG_REQUEST_MAX_BYTES,
+  MONITOR_RENDER_WINDOW,
+  MONITOR_SEARCH_BODY_LIMIT,
+  STARTUP_STATUS_GRACE_MS,
+  STARTUP_STATUS_RETRY_MS,
+  checkProxyHealth,
+  clearElement,
+  config,
+  confirmAction,
+  currentViewId,
+  debounce,
+  ensureClaudeDesktop,
+  ensureProxyRecovered,
+  escapeHtml,
+  hydrateConfigAfterStartup,
+  perfStart,
+  refreshCertStatus,
+  refreshCertStatusAfterProxyOnline,
+  resolveClaudeDesktopModel,
+  routeIdOfClaudeDesktopModel,
+  sharedAppState,
+  showDiagnosticsTab,
+  showDiagnosticsView,
+  showToast,
+  showView,
+  startupStatusStartedAt,
+  togglePromptsTab,
+};

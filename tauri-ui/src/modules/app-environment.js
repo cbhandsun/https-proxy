@@ -1,4 +1,6 @@
-// Extracted domain module. Loaded before app.js; functions resolve shared globals at call time.
+import { $, clearElement, confirmAction, perfStart, showToast } from './app.js';
+
+// Environment inspection and tool upgrade UI.
 
 let isRefreshingEnv = false;
 let lastEnvStatusRefresh = 0;
@@ -649,3 +651,5 @@ function bindEnvControls() {
     grid.dataset.bound = 'true';
   }
 }
+
+export { bindEnvControls, refreshEnvStatus };

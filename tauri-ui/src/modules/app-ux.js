@@ -1,4 +1,4 @@
-// tauri-ui/app-ux.js
+// Shared UX boundary for the Tauri UI module graph.
 // P3 体验增强：桌面通知、深色主题自动模式、IntersectionObserver 延迟加载。
 // 旧式全局脚本：window.* 形式暴露给 app.js 与其它模块调用。
 

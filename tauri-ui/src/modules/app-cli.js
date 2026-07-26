@@ -1,3 +1,14 @@
+import {
+  $,
+  CLI_SESSIONS_VISIBLE_MS,
+  config,
+  confirmAction,
+  currentViewId,
+  perfStart,
+  showToast,
+} from './app.js';
+import { getApiBase } from './app-bridge.js';
+
 let isLaunchingCli = false;
 let cliSessionsTimer = null;
 let cliSessionsRefreshInFlight = false;
@@ -629,3 +640,20 @@ function stopCodeToolsPolling() {
 
 window.initCodeToolsView = initCodeToolsView;
 window.stopCodeToolsPolling = stopCodeToolsPolling;
+
+const sharedCliState = {
+  get lastCliSessionsPollAt() {
+    return lastCliSessionsPollAt;
+  },
+  set lastCliSessionsPollAt(value) {
+    lastCliSessionsPollAt = value;
+  },
+};
+
+export {
+  bindCliSessionControls,
+  cliSessionsTimer,
+  isCodeToolsVisible,
+  refreshCliSessions,
+  sharedCliState,
+};
