@@ -1,5 +1,10 @@
 const assert = require('assert');
-const { createMetrics, collectDefaultProcessMetrics, formatLabels, labelKey } = require('../lib/proxy/metrics');
+const {
+  createMetrics,
+  collectDefaultProcessMetrics,
+  formatLabels,
+  labelKey,
+} = require('../lib/proxy/metrics');
 
 // 1. Module exports
 assert.strictEqual(typeof createMetrics, 'function');

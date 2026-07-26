@@ -111,6 +111,7 @@ assert.doesNotMatch(
 
 assert.equal(packageJson.scripts['frontend:sync'], undefined);
 assert.equal(packageJson.scripts['frontend:check'], undefined);
+assert.match(packageJson.scripts.verify, /npm run format:check/);
 assert.equal(packageJson.scripts.postinstall, undefined);
 assert.equal(packageJson.dependencies['chart.js'] != null, true);
 assert.match(packageJson.scripts['frontend:build'], /check:architecture/);

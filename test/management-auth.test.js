@@ -10,10 +10,7 @@ const {
 
 const token = '0123456789abcdef0123456789abcdef';
 
-assert.strictEqual(
-  authorizeManagementRequest({ headers: { 'x-mgmt-token': token } }, token),
-  true
-);
+assert.strictEqual(authorizeManagementRequest({ headers: { 'x-mgmt-token': token } }, token), true);
 assert.strictEqual(
   authorizeManagementRequest(
     { headers: { origin: 'tauri://localhost', 'x-mgmt-token': 'wrong-token' } },
@@ -31,7 +28,10 @@ assert.strictEqual(
   'a URL token must not authenticate management requests'
 );
 assert.strictEqual(authorizeManagementRequest({ headers: {} }, token), false);
-assert.strictEqual(authorizeManagementRequest({ headers: { 'x-mgmt-token': [token] } }, token), false);
+assert.strictEqual(
+  authorizeManagementRequest({ headers: { 'x-mgmt-token': [token] } }, token),
+  false
+);
 assert.strictEqual(managementTokenMatches(token, token), true);
 assert.strictEqual(managementTokenMatches(token, `${token}0`), false);
 assert.strictEqual(managementTokenMatches('', ''), false);

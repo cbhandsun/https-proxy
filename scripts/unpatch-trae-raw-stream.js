@@ -1,11 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const TRAE_ROOT = process.env.TRAE_INSTALL_ROOT || path.join(
-  process.env.LOCALAPPDATA || '',
-  'Programs',
-  'Trae'
-);
+const TRAE_ROOT =
+  process.env.TRAE_INSTALL_ROOT || path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Trae');
 
 const TARGETS = [
   path.join(
@@ -18,21 +15,14 @@ const TARGETS = [
     'dist',
     'index.mjs'
   ),
-  path.join(
-    TRAE_ROOT,
-    'resources',
-    'app',
-    'out',
-    'vs',
-    'workbench',
-    'workbench.desktop.main.js'
-  )
+  path.join(TRAE_ROOT, 'resources', 'app', 'out', 'vs', 'workbench', 'workbench.desktop.main.js'),
 ];
 
 function findLatestBackup(file) {
   const dir = path.dirname(file);
   const base = path.basename(file);
-  const backups = fs.readdirSync(dir)
+  const backups = fs
+    .readdirSync(dir)
     .filter((name) => name.startsWith(`${base}.bak-https-proxy-raw-stream-`))
     .map((name) => path.join(dir, name))
     .sort();

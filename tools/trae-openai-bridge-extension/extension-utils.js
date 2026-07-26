@@ -12,18 +12,16 @@ const PORT = Number(process.env.TRAE_OPENAI_BRIDGE_PORT || process.env.TRAE_BRID
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 const WAIT_COMMAND_CANDIDATES = [
   'wx.bridge.sendAndWaitResponse',
-  'feishu.bridge.sendAndWaitResponse'
+  'feishu.bridge.sendAndWaitResponse',
 ];
-const STREAMING_COMMAND_CANDIDATES = [
-  'im.bridge.sendPromptStreaming'
-];
+const STREAMING_COMMAND_CANDIDATES = ['im.bridge.sendPromptStreaming'];
 const RAW_STREAM_COMMAND = 'im.bridge.subscribeRawStream';
 const DISCOVERY_PATTERNS = [
   /bridge\.(send|chat|prompt)/i,
   /bridge\.subscribeRawStream/i,
   /sendPrompt/i,
   /sendAndWait/i,
-  /agent.*chat/i
+  /agent.*chat/i,
 ];
 
 function parsePositiveInt(value, fallback) {
@@ -50,7 +48,7 @@ function sendJson(res, statusCode, payload) {
     'Content-Length': Buffer.byteLength(body),
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   });
   res.end(body);
 }
@@ -90,7 +88,8 @@ function normalizeResult(result) {
   if (result == null) return { text: '' };
   if (typeof result === 'string') return { text: result };
   if (typeof result.text === 'string') return { ...result, text: result.text };
-  if (result.response && typeof result.response.text === 'string') return { ...result, text: result.response.text };
+  if (result.response && typeof result.response.text === 'string')
+    return { ...result, text: result.response.text };
   return { text: JSON.stringify(result), raw: result };
 }
 
@@ -107,20 +106,30 @@ function listTraeBridgeCommands(allCommands) {
   const commandSet = new Set(commands);
   const discovered = commands
     .filter((command) => {
-      return WAIT_COMMAND_CANDIDATES.includes(command)
-        || STREAMING_COMMAND_CANDIDATES.includes(command)
-        || DISCOVERY_PATTERNS.some((pattern) => pattern.test(command));
+      return (
+        WAIT_COMMAND_CANDIDATES.includes(command) ||
+        STREAMING_COMMAND_CANDIDATES.includes(command) ||
+        DISCOVERY_PATTERNS.some((pattern) => pattern.test(command))
+      );
     })
     .sort();
   return {
     waitCommand: pickTraeCommand(commands),
     streamCommand: STREAMING_COMMAND_CANDIDATES.find((command) => commandSet.has(command)) || null,
     rawStreamCommand: commandSet.has(RAW_STREAM_COMMAND) ? RAW_STREAM_COMMAND : null,
-    waitCommands: WAIT_COMMAND_CANDIDATES.map((command) => ({ command, available: commandSet.has(command) })),
-    streamingCommands: STREAMING_COMMAND_CANDIDATES.map((command) => ({ command, available: commandSet.has(command) })),
-    rawStreamingCommands: [{ command: RAW_STREAM_COMMAND, available: commandSet.has(RAW_STREAM_COMMAND) }],
+    waitCommands: WAIT_COMMAND_CANDIDATES.map((command) => ({
+      command,
+      available: commandSet.has(command),
+    })),
+    streamingCommands: STREAMING_COMMAND_CANDIDATES.map((command) => ({
+      command,
+      available: commandSet.has(command),
+    })),
+    rawStreamingCommands: [
+      { command: RAW_STREAM_COMMAND, available: commandSet.has(RAW_STREAM_COMMAND) },
+    ],
     discoveredCommands: discovered.slice(0, 100),
-    discoveredCommandCount: discovered.length
+    discoveredCommandCount: discovered.length,
   };
 }
 

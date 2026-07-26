@@ -18,6 +18,7 @@ assert.deepStrictEqual(unpinnedActionReferences('- uses: actions/checkout@v6'), 
 const workflow = [
   `- uses: ${pinned}`,
   '- run: npm ci',
+  '- run: npm run format:check',
   '- run: npm audit --audit-level=high',
   '- run: npm run test:coverage',
   '- run: npm run release:check',
@@ -30,7 +31,12 @@ const dependabot = [
   'package-ecosystem: github-actions',
 ].join('\n');
 assert.deepStrictEqual(validateCiGovernance(workflow, dependabot), []);
-assert.ok(validateCiGovernance('- uses: actions/checkout@v6', '').length >= 7);
+assert.ok(validateCiGovernance('- uses: actions/checkout@v6', '').length >= 8);
+assert.ok(
+  validateCiGovernance(`${workflow}\n- run: npm run frontend:check`, dependabot).some((error) =>
+    error.includes('removed frontend:check')
+  )
+);
 const releaseWorkflow = [
   'WINDOWS_SIGNING_CERTIFICATE_BASE64 is required',
   'Get-AuthenticodeSignature',

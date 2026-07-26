@@ -83,10 +83,7 @@ const {
     profiles: [{ id: 'main', protocol: 'openai', targetUrl: 'https://api.example.test/v1' }],
     localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
     entryServers: {},
-    modelRoutes: [
-      { from: '', profileId: 'missing', clientProtocols: ['smtp'] },
-      'not-an-object',
-    ],
+    modelRoutes: [{ from: '', profileId: 'missing', clientProtocols: ['smtp'] }, 'not-an-object'],
     claudeDesktop: {
       enabled: 'yes',
       mode: 'shell',

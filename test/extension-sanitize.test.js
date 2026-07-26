@@ -6,10 +6,17 @@ const {
   normalizeRawKey,
 } = require('../tools/trae-openai-bridge-extension/extension-sanitize');
 
-let pass = 0, fail = 0;
+let pass = 0,
+  fail = 0;
 function t(name, fn) {
-  try { fn(); pass += 1; console.log('  ok -', name); }
-  catch (err) { fail += 1; console.error('  FAIL -', name, '\n   ', err.message); }
+  try {
+    fn();
+    pass += 1;
+    console.log('  ok -', name);
+  } catch (err) {
+    fail += 1;
+    console.error('  FAIL -', name, '\n   ', err.message);
+  }
 }
 
 console.log('extension-sanitize golden tests');
@@ -54,7 +61,10 @@ t('medium string not truncated when in text field', () => {
 t('500+ char string truncated', () => {
   const long = 'a'.repeat(1000);
   const out = sanitizeRawValue(long, 'status_msg');
-  assert.ok(out.endsWith('[truncated 500 chars]'), 'should end with truncation marker, got: ' + out.slice(-50));
+  assert.ok(
+    out.endsWith('[truncated 500 chars]'),
+    'should end with truncation marker, got: ' + out.slice(-50)
+  );
   assert.ok(out.length < 600, 'should be shorter than original');
 });
 

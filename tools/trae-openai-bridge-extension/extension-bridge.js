@@ -25,9 +25,9 @@ const {
 } = require('./extension-utils');
 
 function createBridge({
-  executeCommand,           // async (command, ...args) => result
-  getAllCommands,           // async () => [string]
-  log = () => {},           // optional logger
+  executeCommand, // async (command, ...args) => result
+  getAllCommands, // async () => [string]
+  log = () => {}, // optional logger
 }) {
   async function pickTraeCommand() {
     const commands = await getAllCommands();
@@ -51,7 +51,9 @@ function createBridge({
         throw new Error(`Trae bridge command not found: ${WAIT_COMMAND_CANDIDATES.join(', ')}`);
       }
       try {
-        log(`execute ${command}, prompt_chars=${prompt.length}, images=${images ? images.length : 0}`);
+        log(
+          `execute ${command}, prompt_chars=${prompt.length}, images=${images ? images.length : 0}`
+        );
         const result = await executeCommand(command, prompt, images);
         return { ok: true, command, ...normalizeResult(result) };
       } catch (err) {
@@ -66,7 +68,7 @@ function createBridge({
             attempt: attempt + 1,
             maxAttempts: BUSY_RETRY_ATTEMPTS,
             retryInMs: BUSY_RETRY_DELAY_MS,
-            message
+            message,
           });
         }
         await delay(BUSY_RETRY_DELAY_MS);
@@ -83,7 +85,9 @@ function createBridge({
     const commands = await listTraeBridgeCommands();
     const command = commands.streamCommand;
     if (!command) {
-      throw new Error(`Trae streaming bridge command not found: ${STREAMING_COMMAND_CANDIDATES.join(', ')}`);
+      throw new Error(
+        `Trae streaming bridge command not found: ${STREAMING_COMMAND_CANDIDATES.join(', ')}`
+      );
     }
     const { sanitizeRawStreamEvent, makeRawEventKey } = context;
 
@@ -118,7 +122,7 @@ function createBridge({
       if (closed) return;
       sendSseEvent(res, 'progress', {
         phase: 'running',
-        elapsedMs: Date.now() - progressStarted
+        elapsedMs: Date.now() - progressStarted,
       });
     }, 2000);
 
@@ -132,7 +136,12 @@ function createBridge({
       if (!closed) sendSseEvent(res, 'interaction', { interaction });
     };
     const emitRawEvent = (event) => {
-      if (!closed) sendSseEvent(res, 'raw_event', sanitizeRawStreamEvent ? sanitizeRawStreamEvent(event) : event);
+      if (!closed)
+        sendSseEvent(
+          res,
+          'raw_event',
+          sanitizeRawStreamEvent ? sanitizeRawStreamEvent(event) : event
+        );
     };
     const emitRawSnapshot = async () => {
       if (closed || !commands.rawStreamCommand) return;
@@ -161,21 +170,21 @@ function createBridge({
         }, 250);
         sendSseEvent(res, 'progress', {
           phase: 'raw_stream_subscribed',
-          elapsedMs: Date.now() - progressStarted
+          elapsedMs: Date.now() - progressStarted,
         });
       } catch (err) {
         log(`raw stream subscribe failed: ${err && err.message ? err.message : String(err)}`);
         sendSseEvent(res, 'progress', {
           phase: 'raw_stream_unavailable',
           elapsedMs: Date.now() - progressStarted,
-          message: err && err.message ? err.message : String(err)
+          message: err && err.message ? err.message : String(err),
         });
       }
     } else {
       sendSseEvent(res, 'progress', {
         phase: 'raw_stream_unavailable',
         elapsedMs: Date.now() - progressStarted,
-        message: `${RAW_STREAM_COMMAND} is not registered`
+        message: `${RAW_STREAM_COMMAND} is not registered`,
       });
     }
 
@@ -199,21 +208,23 @@ function createBridge({
           maxAttempts: BUSY_RETRY_ATTEMPTS,
           retryInMs: BUSY_RETRY_DELAY_MS,
           elapsedMs: Date.now() - progressStarted,
-          message
+          message,
         });
         await delay(BUSY_RETRY_DELAY_MS);
       }
     }
     await emitRawSnapshot();
     if (lastError) {
-      log(`fallback wait command, prompt_chars=${prompt.length}, images=${images ? images.length : 0}`);
+      log(
+        `fallback wait command, prompt_chars=${prompt.length}, images=${images ? images.length : 0}`
+      );
       result = await dispatchChat(payload, (progress) => {
         if (!closed) {
           sendSseEvent(res, 'progress', {
             ...progress,
             phase: progress.phase || 'busy',
             fallback: true,
-            elapsedMs: Date.now() - progressStarted
+            elapsedMs: Date.now() - progressStarted,
           });
         }
       });
@@ -224,7 +235,12 @@ function createBridge({
     }
     await emitRawSnapshot();
     if (!closed) {
-      sendSseEvent(res, 'done', { ok: true, command, text: fullText || normalized.text || '', files: normalized.files });
+      sendSseEvent(res, 'done', {
+        ok: true,
+        command,
+        text: fullText || normalized.text || '',
+        files: normalized.files,
+      });
       res.end();
     }
     cleanupRawStream();

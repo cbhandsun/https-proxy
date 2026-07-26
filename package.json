@@ -25,7 +25,7 @@
     "check:syntax": "node scripts/check-syntax-parallel.js",
     "check:architecture": "node test/frontend/frontend-build-governance.test.js",
     "check:ci": "node scripts/check-ci-governance.js",
-    "verify": "npm run check:syntax && npm run lint && npm run check:ci && npm run release:check && npm run test:coverage && npm run test:frontend && npm run test:thinking && npm run test:env && npm run test:integration && npm run frontend:build && npm run test:rust",
+    "verify": "npm run format:check && npm run check:syntax && npm run lint && npm run check:ci && npm run release:check && npm run test:coverage && npm run test:frontend && npm run test:thinking && npm run test:env && npm run test:integration && npm run frontend:build && npm run test:rust",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,cjs,mjs,json,md}\" --ignore-path .prettierignore",
