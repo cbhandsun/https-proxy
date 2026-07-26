@@ -74,6 +74,6 @@
     "node-forge": "^1.4.0",
     "pino": "^10.3.1",
     "safe-regex2": "^5.1.1",
-    "socks-proxy-agent": "^10.0.0"
+    "socks-proxy-agent": "^10.1.0"
   }
 }
