@@ -1,0 +1,312 @@
+const MAX_ID_LENGTH = 200;
+const MAX_LABEL_LENGTH = 200;
+const MAX_HOST_LENGTH = 253;
+const MAX_PATH_LENGTH = 512;
+const MAX_SECRET_LENGTH = 4096;
+const DEFAULT_LOCAL_PORT = 3443;
+
+export const routeClientProtocolOptions = Object.freeze([
+  Object.freeze({ id: 'claude', label: 'Claude' }),
+  Object.freeze({ id: 'openai-chat', label: 'OpenAI Chat' }),
+  Object.freeze({ id: 'openai-responses', label: 'OpenAI Responses' }),
+]);
+
+export const recommendedClaudeClientModels = Object.freeze([
+  'claude-fable-5',
+  'claude-opus-4-8',
+  'claude-sonnet-4-6',
+  'claude-haiku-4-5',
+  'claude-haiku-4-5-20251001',
+  'claude-opus-4-7',
+  'claude-opus-4-6',
+  'claude-opus-4-5-20251101',
+  'claude-sonnet-4-5-20250929',
+]);
+
+const defaultEntryServers = Object.freeze([
+  Object.freeze({
+    name: 'Claude Messages',
+    host: 'localhost',
+    listenPort: 3443,
+    basePath: '/v1',
+    protocol: 'claude',
+  }),
+  Object.freeze({
+    name: 'OpenAI Responses',
+    host: 'localhost',
+    listenPort: 3445,
+    basePath: '/v1',
+    protocol: 'openai-responses',
+  }),
+  Object.freeze({
+    name: 'OpenAI Chat Completions',
+    host: 'localhost',
+    listenPort: 3447,
+    basePath: '/v1',
+    protocol: 'openai-chat',
+  }),
+  Object.freeze({
+    name: 'Claude Messages HTTP',
+    host: 'localhost',
+    listenPort: 3080,
+    basePath: '/v1',
+    protocol: 'claude',
+    tls: false,
+  }),
+  Object.freeze({
+    name: 'OpenAI Responses HTTP',
+    host: 'localhost',
+    listenPort: 3082,
+    basePath: '/v1',
+    protocol: 'openai-responses',
+    tls: false,
+  }),
+  Object.freeze({
+    name: 'OpenAI Chat Completions HTTP',
+    host: 'localhost',
+    listenPort: 3084,
+    basePath: '/v1',
+    protocol: 'openai-chat',
+    tls: false,
+  }),
+]);
+
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizedString(value, fallback, maxLength) {
+  const candidate =
+    typeof value === 'string' || typeof value === 'number' ? String(value).trim() : '';
+  return (candidate || fallback).slice(0, maxLength);
+}
+
+function normalizedPort(value, fallback) {
+  const candidate = Number(value);
+  return Number.isInteger(candidate) && candidate >= 1 && candidate <= 65535 ? candidate : fallback;
+}
+
+function unique(values) {
+  return Array.from(new Set(values));
+}
+
+export function normalizeRouteClientProtocol(value) {
+  const protocol = normalizedString(value, '', MAX_ID_LENGTH).toLowerCase();
+  if (protocol === 'openai' || protocol === 'chat' || protocol === 'chat-completions') {
+    return 'openai-chat';
+  }
+  if (protocol === 'responses' || protocol === 'response' || protocol === 'openai-response') {
+    return 'openai-responses';
+  }
+  return routeClientProtocolOptions.some((item) => item.id === protocol) ? protocol : '';
+}
+
+export function normalizeRouteClientProtocols(value) {
+  const values = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
+  return unique(values.map(normalizeRouteClientProtocol).filter(Boolean));
+}
+
+export function inferRouteClientProtocols(modelId) {
+  const model = normalizedString(modelId, '', MAX_ID_LENGTH).toLowerCase();
+  if (!model) return [];
+  if (model.startsWith('claude-')) return ['claude'];
+  return ['openai-chat', 'openai-responses'];
+}
+
+export function routeClientProtocols(route) {
+  const candidate = isRecord(route) ? route : {};
+  const explicit = normalizeRouteClientProtocols(candidate.clientProtocols);
+  return explicit.length ? explicit : inferRouteClientProtocols(candidate.from);
+}
+
+export function normalizeEntryProtocol(value) {
+  const protocol = normalizedString(value, '', MAX_ID_LENGTH).toLowerCase();
+  if (protocol === 'responses' || protocol === 'response' || protocol === 'openai-response') {
+    return 'openai-responses';
+  }
+  if (
+    protocol === 'chat' ||
+    protocol === 'chat-completions' ||
+    protocol === 'openai-chat-completions' ||
+    protocol === 'openai'
+  ) {
+    return 'openai-chat';
+  }
+  if (protocol === 'desktop' || protocol === 'claude-desktop') return 'claude-desktop';
+  if (protocol === 'claude' || protocol === 'openai-responses' || protocol === 'openai-chat') {
+    return protocol;
+  }
+  return 'claude';
+}
+
+export function normalizeLocalServer(localServer, activeProfile) {
+  const source = isRecord(localServer) ? localServer : {};
+  const active = isRecord(activeProfile) ? activeProfile : {};
+  return {
+    ...source,
+    host: normalizedString(source.host, 'localhost', MAX_HOST_LENGTH),
+    listenPort: normalizedPort(
+      source.listenPort,
+      normalizedPort(active.listenPort, DEFAULT_LOCAL_PORT)
+    ),
+    basePath: normalizedString(source.basePath, '/v1', MAX_PATH_LENGTH),
+    protocol: normalizeEntryProtocol(source.protocol || 'claude'),
+  };
+}
+
+export function buildDefaultEntryServers(localServer) {
+  const local = normalizeLocalServer(localServer);
+  return defaultEntryServers.map((entry, index) => ({
+    ...entry,
+    host: local.host,
+    basePath: local.basePath,
+    listenPort: index === 0 ? local.listenPort : entry.listenPort,
+  }));
+}
+
+function entryServerKey(entry) {
+  return `${normalizeEntryProtocol(entry && entry.protocol)}:${entry && entry.tls === false ? 'http' : 'https'}`;
+}
+
+function normalizeEntryServer(entry, fallback) {
+  const source = isRecord(entry) ? entry : {};
+  return {
+    name: normalizedString(source.name, fallback.name, MAX_LABEL_LENGTH),
+    host: normalizedString(source.host, fallback.host, MAX_HOST_LENGTH),
+    listenPort: normalizedPort(source.listenPort ?? source.port, fallback.listenPort),
+    basePath: normalizedString(source.basePath, fallback.basePath, MAX_PATH_LENGTH),
+    protocol: fallback.protocol,
+    tls: source.tls === false ? false : fallback.tls !== false,
+    enabled: source.enabled !== false,
+  };
+}
+
+export function normalizeEntryServers(value, localServer) {
+  const defaults = buildDefaultEntryServers(localServer);
+  const source = Array.isArray(value) ? value.filter(isRecord) : [];
+  const byProtocolAndTls = new Map(source.map((entry) => [entryServerKey(entry), entry]));
+  const entries = defaults.map((fallback) =>
+    normalizeEntryServer(byProtocolAndTls.get(entryServerKey(fallback)), fallback)
+  );
+  const defaultKeys = new Set(defaults.map(entryServerKey));
+
+  for (const entry of source) {
+    if (defaultKeys.has(entryServerKey(entry))) continue;
+    const fallback = {
+      name: 'Custom Entry',
+      host: 'localhost',
+      listenPort: 0,
+      basePath: '/v1',
+      protocol: normalizeEntryProtocol(entry.protocol),
+      tls: entry.tls !== false,
+    };
+    const normalized = normalizeEntryServer(entry, fallback);
+    if (normalized.listenPort >= 1) entries.push(normalized);
+  }
+  return entries;
+}
+
+export function splitEntryAuthList(value) {
+  return normalizedString(value, '', MAX_SECRET_LENGTH)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function normalizeEntryAuthKey(record, index) {
+  const item = isRecord(record) ? record : {};
+  const keyIndex = Number.isSafeInteger(index) && index >= 0 ? index + 1 : 1;
+  return {
+    id: normalizedString(item.id, `entry-key-${keyIndex}`, MAX_ID_LENGTH),
+    name: normalizedString(item.name, `Entry key ${keyIndex}`, MAX_LABEL_LENGTH),
+    key: normalizedString(item.key, '', MAX_SECRET_LENGTH),
+    enabled: item.enabled !== false,
+    allowedEntryProtocols: unique(
+      (Array.isArray(item.allowedEntryProtocols) ? item.allowedEntryProtocols : []).map(
+        normalizeEntryProtocol
+      )
+    ),
+    allowedEntryPorts: unique(
+      (Array.isArray(item.allowedEntryPorts) ? item.allowedEntryPorts : [])
+        .map((port) => normalizedPort(port, 0))
+        .filter(Boolean)
+    ),
+    allowedProfileIds: unique(
+      (Array.isArray(item.allowedProfileIds) ? item.allowedProfileIds : [])
+        .map((profileId) => normalizedString(profileId, '', MAX_ID_LENGTH))
+        .filter(Boolean)
+    ),
+  };
+}
+
+export function createEntryAuthSecret(randomSource) {
+  if (!randomSource || typeof randomSource.getRandomValues !== 'function') {
+    throw new Error('secure random source is unavailable');
+  }
+  const bytes = new Uint8Array(24);
+  randomSource.getRandomValues(bytes);
+  return `hpm_${Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')}`;
+}
+
+export function createDefaultEntryAuthKey(entryServers, createSecret) {
+  if (typeof createSecret !== 'function') {
+    throw new TypeError('createSecret must be a function');
+  }
+  const enabledEntries = (Array.isArray(entryServers) ? entryServers : []).filter(
+    (entry) => isRecord(entry) && entry.enabled !== false
+  );
+  return {
+    id: 'local-default',
+    name: '本地默认入口',
+    key: createSecret(),
+    enabled: true,
+    allowedEntryProtocols: unique(
+      enabledEntries.map((entry) => normalizeEntryProtocol(entry.protocol))
+    ),
+    allowedEntryPorts: unique(
+      enabledEntries.map((entry) => normalizedPort(entry.listenPort, 0)).filter(Boolean)
+    ),
+    allowedProfileIds: [],
+  };
+}
+
+export function normalizeEntryAuth(value, entryServers, createSecret) {
+  const source = isRecord(value) ? value : {};
+  const keys = (Array.isArray(source.keys) ? source.keys : [])
+    .map(normalizeEntryAuthKey)
+    .filter((item) => item.id);
+  if (keys.length === 0) {
+    return {
+      enabled: true,
+      keys: [createDefaultEntryAuthKey(entryServers, createSecret)],
+    };
+  }
+  return {
+    enabled: typeof source.enabled === 'boolean' ? source.enabled : true,
+    keys,
+  };
+}
+
+export function normalizeAppSettings(value, options = {}) {
+  const source = isRecord(value) ? value : {};
+  const settings = { ...source };
+  const defaults = {
+    closeToTray: true,
+    stopProxyOnExit: true,
+    autoStartProxy: true,
+    launchOnLogin: false,
+    showTopMenu: true,
+    showTrayMenu: true,
+    showWindowOnTrayCommand: true,
+    desktopNotifications: options.notificationsSupported === true,
+    disableLocalProxy: false,
+    verifyUpstreamTls: true,
+    conversationAuditEnabled: true,
+    performanceMode:
+      options.cachedPerformanceMode == null ? true : options.cachedPerformanceMode !== 'false',
+  };
+  for (const [name, fallback] of Object.entries(defaults)) {
+    settings[name] = typeof source[name] === 'boolean' ? source[name] : fallback;
+  }
+  return settings;
+}

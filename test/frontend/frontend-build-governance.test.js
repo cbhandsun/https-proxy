@@ -53,10 +53,21 @@ assert.deepEqual(
 assert.equal(fs.existsSync(path.join(repoRoot, 'tauri-ui/src/styles/app.css')), true);
 assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'app', 'bootstrap.js')), true);
 assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'app', 'ux.js')), true);
+assert.equal(
+  fs.existsSync(path.join(frontendSourceRoot, 'app', 'models', 'configuration.js')),
+  true
+);
 assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'modules')), false);
 assert.ok(
-  read('tauri-ui/src/app/bootstrap.js').split(/\r?\n/).length <= 4250,
+  read('tauri-ui/src/app/bootstrap.js').split(/\r?\n/).length <= 3957,
   'bootstrap must stay below the current composition-layer size budget'
+);
+assert.deepEqual(
+  extractStaticImports(read('tauri-ui/src/app/models/configuration.js')).filter((specifier) =>
+    specifier.startsWith('.')
+  ),
+  [],
+  'configuration model must remain dependency-free'
 );
 for (const domainName of [
   'audit.js',
