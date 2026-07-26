@@ -1,4 +1,16 @@
-import { $, clearElement, confirmAction, perfStart, showToast } from './app.js';
+import { bindDomainDependencies } from '../runtime/dependencies.js';
+
+let environmentDependencies;
+
+export function configureEnvironment(dependencies) {
+  environmentDependencies = bindDomainDependencies('environment', dependencies, [
+    '$',
+    'clearElement',
+    'confirmAction',
+    'perfStart',
+    'showToast',
+  ]);
+}
 
 // Environment inspection and tool upgrade UI.
 
@@ -142,19 +154,19 @@ function createEnvProgressItem(job) {
 }
 
 function updateEnvInstallProgressPanel() {
-  const panel = $('envInstallProgressPanel');
+  const panel = environmentDependencies.$('envInstallProgressPanel');
   if (!panel) return;
   const jobs = Array.from(envInstallJobsByTool.values()).sort(
     (a, b) => (b.startedAt || 0) - (a.startedAt || 0)
   );
   if (jobs.length === 0) {
     panel.style.display = 'none';
-    clearElement(panel);
+    environmentDependencies.clearElement(panel);
     return;
   }
 
   panel.style.display = 'block';
-  clearElement(panel);
+  environmentDependencies.clearElement(panel);
   const header = document.createElement('div');
   header.style.display = 'flex';
   header.style.alignItems = 'center';
@@ -310,7 +322,7 @@ function createEnvSkeletonCard() {
 }
 
 function renderEnvSkeleton(grid) {
-  clearElement(grid);
+  environmentDependencies.clearElement(grid);
   for (let i = 0; i < 6; i++) grid.appendChild(createEnvSkeletonCard());
 }
 
@@ -480,12 +492,12 @@ async function refreshEnvStatus(options = {}) {
     return;
   if (isRefreshingEnv) return;
   isRefreshingEnv = true;
-  const finishPerf = perfStart('refresh.envStatus');
+  const finishPerf = environmentDependencies.perfStart('refresh.envStatus');
 
-  const grid = $('envGrid');
-  const btnRefresh = $('btnRefreshEnv');
-  const svgRefresh = $('svgRefreshEnv');
-  const btnUpgradeAll = $('btnUpgradeAllEnv');
+  const grid = environmentDependencies.$('envGrid');
+  const btnRefresh = environmentDependencies.$('btnRefreshEnv');
+  const svgRefresh = environmentDependencies.$('svgRefreshEnv');
+  const btnUpgradeAll = environmentDependencies.$('btnUpgradeAllEnv');
 
   if (btnRefresh) btnRefresh.disabled = true;
   if (svgRefresh) svgRefresh.style.animation = 'spin 1s linear infinite';
@@ -526,7 +538,7 @@ async function refreshEnvStatus(options = {}) {
       scheduleEnvPendingRefresh();
     }
   } catch (err) {
-    showToast('环境检查刷新失败: ' + err.message, 'error');
+    environmentDependencies.showToast('环境检查刷新失败: ' + err.message, 'error');
     const notice = document.createElement('div');
     notice.className = 'notice';
     setGridNotice(notice);
@@ -545,7 +557,7 @@ async function refreshEnvStatus(options = {}) {
 
 window.upgradeSingleTool = async function (toolId, action = 'upgrade') {
   const isInstall = action === 'install';
-  const confirmed = await confirmAction({
+  const confirmed = await environmentDependencies.confirmAction({
     title: isInstall ? '安装助手工具' : '升级助手工具',
     message: `确认要${isInstall ? '安装' : '升级'}该 AI 命令行工具吗？这将在后台执行全局安装命令，耗时可能较长。`,
     confirmText: isInstall ? '确定安装' : '确定升级',
@@ -555,7 +567,10 @@ window.upgradeSingleTool = async function (toolId, action = 'upgrade') {
   markEnvInstallSubmitting([toolId]);
   lastRenderedEnvHtml = '';
   refreshEnvStatus({ passive: true, force: true });
-  showToast(isInstall ? '正在安装工具，请稍候...' : '正在升级工具，请稍候...', 'success');
+  environmentDependencies.showToast(
+    isInstall ? '正在安装工具，请稍候...' : '正在升级工具，请稍候...',
+    'success'
+  );
   try {
     const res = await window.proxyManager.envUpgrade(toolId);
     if (!res.ok) throw new Error(res.error || (isInstall ? '安装失败' : '升级失败'));
@@ -567,19 +582,22 @@ window.upgradeSingleTool = async function (toolId, action = 'upgrade') {
 
     rememberEnvInstallJobs(res.results || []);
     finalizeEnvInstallSubmission([toolId], res.results || []);
-    showToast(
+    environmentDependencies.showToast(
       isInstall ? '安装任务已启动，正在显示进度...' : '升级任务已启动，正在显示进度...',
       'success'
     );
     refreshEnvStatus({ passive: true, force: true });
   } catch (err) {
     finalizeEnvInstallSubmission([toolId], [], err.message);
-    showToast((isInstall ? '工具安装失败：' : '工具升级失败：') + err.message, 'error');
+    environmentDependencies.showToast(
+      (isInstall ? '工具安装失败：' : '工具升级失败：') + err.message,
+      'error'
+    );
   }
 };
 
 async function upgradeAllEnv() {
-  const confirmed = await confirmAction({
+  const confirmed = await environmentDependencies.confirmAction({
     title: '全部安装/升级',
     message:
       '确认要安装缺失工具并升级有更新的 AI 命令行工具吗？这将在后台依次串行执行全局安装命令，需要数分钟时间。',
@@ -587,8 +605,11 @@ async function upgradeAllEnv() {
   });
   if (!confirmed) return;
 
-  showToast('正在执行全部升级，可能需要几分钟时间，请勿关闭本管理器...', 'success');
-  const btnUpgradeAll = $('btnUpgradeAllEnv');
+  environmentDependencies.showToast(
+    '正在执行全部升级，可能需要几分钟时间，请勿关闭本管理器...',
+    'success'
+  );
+  const btnUpgradeAll = environmentDependencies.$('btnUpgradeAllEnv');
   if (btnUpgradeAll) {
     btnUpgradeAll.disabled = true;
     btnUpgradeAll.textContent = '正在安装/升级...';
@@ -606,24 +627,27 @@ async function upgradeAllEnv() {
     finalizeEnvInstallSubmission(batchToolIds, res.results || []);
     const failed = res.results.filter((r) => !r.ok);
     if (failed.length > 0) {
-      showToast(`部分包升级失败: ${failed.map((f) => f.name).join(', ')}`, 'error');
+      environmentDependencies.showToast(
+        `部分包升级失败: ${failed.map((f) => f.name).join(', ')}`,
+        'error'
+      );
     } else {
-      showToast('安装/升级任务已启动，正在显示进度...', 'success');
+      environmentDependencies.showToast('安装/升级任务已启动，正在显示进度...', 'success');
     }
     refreshEnvStatus({ passive: true, force: true });
   } catch (err) {
     finalizeEnvInstallSubmission(batchToolIds, [], err.message);
-    showToast('全部升级失败：' + err.message, 'error');
+    environmentDependencies.showToast('全部升级失败：' + err.message, 'error');
   } finally {
     if (btnUpgradeAll) btnUpgradeAll.disabled = false;
   }
 }
 
 function bindEnvControls() {
-  const refreshButton = $('btnRefreshEnv');
-  const upgradeAllButton = $('btnUpgradeAllEnv');
-  const diagnosticsButton = $('btnDiagnosticsConflicts');
-  const grid = $('envGrid');
+  const refreshButton = environmentDependencies.$('btnRefreshEnv');
+  const upgradeAllButton = environmentDependencies.$('btnUpgradeAllEnv');
+  const diagnosticsButton = environmentDependencies.$('btnDiagnosticsConflicts');
+  const grid = environmentDependencies.$('envGrid');
 
   if (refreshButton) {
     refreshButton.onclick = () => refreshEnvStatus();
@@ -635,9 +659,12 @@ function bindEnvControls() {
   }
   if (diagnosticsButton) {
     diagnosticsButton.onclick = async () => {
-      showToast('正在诊断安装冲突与分析包依赖...', 'success');
+      environmentDependencies.showToast('正在诊断安装冲突与分析包依赖...', 'success');
       setTimeout(() => {
-        showToast('依赖分析完毕，未检测到包冲突！所有 CLI 工具全局运行环境良好。', 'success');
+        environmentDependencies.showToast(
+          '依赖分析完毕，未检测到包冲突！所有 CLI 工具全局运行环境良好。',
+          'success'
+        );
       }, 1000);
     };
   }

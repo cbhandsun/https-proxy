@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
-const repoRoot = path.resolve(__dirname, '..');
+const repoRoot = path.resolve(__dirname, '..', '..');
 const cleanupScript = path.join(repoRoot, 'src-tauri', 'nsis', 'stop-installed-processes.ps1');
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-installer-cleanup-'));
 const installDir = path.join(tempRoot, 'HTTPS Proxy Manager');

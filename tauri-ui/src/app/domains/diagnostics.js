@@ -1,28 +1,32 @@
-import {
-  $,
-  LOG_AUTO_REFRESH_VISIBLE_MS,
-  LOG_RENDER_LINE_LIMIT,
-  LOG_REQUEST_MAX_BYTES,
-  MONITOR_RENDER_WINDOW,
-  MONITOR_SEARCH_BODY_LIMIT,
-  checkProxyHealth,
-  confirmAction,
-  debounce,
-  ensureProxyRecovered,
-  hydrateConfigAfterStartup,
-  perfStart,
-  refreshCertStatus,
-  sharedAppState,
-  showDiagnosticsTab,
-  showToast,
-} from './app.js';
-import {
-  cliSessionsTimer,
-  isCodeToolsVisible,
-  refreshCliSessions,
-  sharedCliState,
-} from './app-cli.js';
-import { refreshProxyStatus } from './app-tool-status.js';
+import { bindDomainDependencies } from '../runtime/dependencies.js';
+
+let diagnosticsDependencies;
+
+export function configureDiagnostics(dependencies) {
+  diagnosticsDependencies = bindDomainDependencies('diagnostics', dependencies, [
+    '$',
+    'LOG_AUTO_REFRESH_VISIBLE_MS',
+    'LOG_RENDER_LINE_LIMIT',
+    'LOG_REQUEST_MAX_BYTES',
+    'MONITOR_RENDER_WINDOW',
+    'MONITOR_SEARCH_BODY_LIMIT',
+    'checkProxyHealth',
+    'cliSessionsTimer',
+    'confirmAction',
+    'debounce',
+    'ensureProxyRecovered',
+    'hydrateConfigAfterStartup',
+    'isCodeToolsVisible',
+    'perfStart',
+    'refreshCertStatus',
+    'refreshCliSessions',
+    'refreshProxyStatus',
+    'sharedAppState',
+    'sharedCliState',
+    'showDiagnosticsTab',
+    'showToast',
+  ]);
+}
 
 function logLineClassName(line) {
   if (line.includes('-> ')) return 'info arrow';
@@ -46,7 +50,7 @@ function createLogEmptyElement() {
 
 function renderLogLines(target, text) {
   target.textContent = '';
-  const lines = text ? text.split('\n').slice(-LOG_RENDER_LINE_LIMIT) : [];
+  const lines = text ? text.split('\n').slice(-diagnosticsDependencies.LOG_RENDER_LINE_LIMIT) : [];
   if (!lines.length) {
     target.appendChild(createLogEmptyElement());
     return;
@@ -55,18 +59,19 @@ function renderLogLines(target, text) {
 }
 
 function startHeartbeat() {
-  if (sharedAppState.heartbeatTimer) clearInterval(sharedAppState.heartbeatTimer);
-  sharedAppState.heartbeatTimer = setInterval(
+  if (diagnosticsDependencies.sharedAppState.heartbeatTimer)
+    clearInterval(diagnosticsDependencies.sharedAppState.heartbeatTimer);
+  diagnosticsDependencies.sharedAppState.heartbeatTimer = setInterval(
     async () => {
       if (isMonitorVisible()) {
         await Promise.allSettled([
-          refreshProxyStatus({ passive: true }),
+          diagnosticsDependencies.refreshProxyStatus({ passive: true }),
           refreshMonitor({ passive: true }),
         ]);
       } else {
-        await refreshProxyStatus({ passive: true });
+        await diagnosticsDependencies.refreshProxyStatus({ passive: true });
       }
-      await ensureProxyRecovered({ passive: true });
+      await diagnosticsDependencies.ensureProxyRecovered({ passive: true });
       // If the initial loadConfig() raced with the bundled proxy coming
       // up (Tauri launches the proxy on a background thread and the
       // page can render before 3543 is listening) the config we have
@@ -74,22 +79,22 @@ function startHeartbeat() {
       // to the proxy, ask for a fresh config. hydrateConfigAfterStartup
       // no-ops once config is real, so this is safe to call every tick.
       if (
-        typeof hydrateConfigAfterStartup === 'function' &&
-        typeof checkProxyHealth === 'function'
+        typeof diagnosticsDependencies.hydrateConfigAfterStartup === 'function' &&
+        typeof diagnosticsDependencies.checkProxyHealth === 'function'
       ) {
         try {
-          const health = await checkProxyHealth();
+          const health = await diagnosticsDependencies.checkProxyHealth();
           if (health) {
-            hydrateConfigAfterStartup().catch((e) =>
-              console.error('hydrateConfigAfterStartup in heartbeat:', e)
-            );
+            diagnosticsDependencies
+              .hydrateConfigAfterStartup()
+              .catch((e) => console.error('hydrateConfigAfterStartup in heartbeat:', e));
             // 同样的冷启动问题也会让首次证书检查超时。等代理真正
             // 起来后再被动拉一次,refreshCertStatus 的 catch 分支
             // 不会写 lastCertRefresh,所以这次调用不会被 60s 节流。
-            if (typeof refreshCertStatus === 'function') {
-              refreshCertStatus({ passive: true }).catch((e) =>
-                console.error('refreshCertStatus in heartbeat:', e)
-              );
+            if (typeof diagnosticsDependencies.refreshCertStatus === 'function') {
+              diagnosticsDependencies
+                .refreshCertStatus({ passive: true })
+                .catch((e) => console.error('refreshCertStatus in heartbeat:', e));
             }
           }
         } catch (e) {
@@ -102,45 +107,48 @@ function startHeartbeat() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (typeof $ !== 'function') return;
+  if (typeof diagnosticsDependencies.$ !== 'function') return;
   startHeartbeat();
   if (document.hidden) return;
-  if ($('autoRefreshLog') && $('autoRefreshLog').checked) {
-    sharedAppState.lastLogAutoRefreshAt = 0;
+  if (
+    diagnosticsDependencies.$('autoRefreshLog') &&
+    diagnosticsDependencies.$('autoRefreshLog').checked
+  ) {
+    diagnosticsDependencies.sharedAppState.lastLogAutoRefreshAt = 0;
     refreshActiveDiagnosticsPanel({ passive: true, forceScroll: true });
   }
-  if (cliSessionsTimer && isCodeToolsVisible()) {
-    sharedCliState.lastCliSessionsPollAt = 0;
-    refreshCliSessions({ passive: true, force: true });
+  if (diagnosticsDependencies.cliSessionsTimer && diagnosticsDependencies.isCodeToolsVisible()) {
+    diagnosticsDependencies.sharedCliState.lastCliSessionsPollAt = 0;
+    diagnosticsDependencies.refreshCliSessions({ passive: true, force: true });
   }
 });
 
 function isMonitorVisible() {
-  return $('monitor').classList.contains('active');
+  return diagnosticsDependencies.$('monitor').classList.contains('active');
 }
 
 function getViewDomCache() {
-  if (!sharedAppState.viewDomCache) {
-    sharedAppState.viewDomCache = {
+  if (!diagnosticsDependencies.sharedAppState.viewDomCache) {
+    diagnosticsDependencies.sharedAppState.viewDomCache = {
       buttons: Array.from(document.querySelectorAll('[data-view-button]')),
       views: Array.from(document.querySelectorAll('.view')),
     };
   }
-  return sharedAppState.viewDomCache;
+  return diagnosticsDependencies.sharedAppState.viewDomCache;
 }
 
 async function refreshMonitor(options = {}) {
-  if (sharedAppState.monitorRefreshInFlight) return;
-  sharedAppState.monitorRefreshInFlight = true;
-  const finishPerf = perfStart('refresh.monitor');
+  if (diagnosticsDependencies.sharedAppState.monitorRefreshInFlight) return;
+  diagnosticsDependencies.sharedAppState.monitorRefreshInFlight = true;
+  const finishPerf = diagnosticsDependencies.perfStart('refresh.monitor');
   try {
     const events = await window.proxyManager.readEvents({
-      limit: sharedAppState.lastEventTime ? 200 : 300,
-      after: sharedAppState.lastEventTime || '',
+      limit: diagnosticsDependencies.sharedAppState.lastEventTime ? 200 : 300,
+      after: diagnosticsDependencies.sharedAppState.lastEventTime || '',
     });
     if (!events || events.length === 0) {
-      if (sharedAppState.monitorEvents.length === 0) {
-        const container = $('monitorList');
+      if (diagnosticsDependencies.sharedAppState.monitorEvents.length === 0) {
+        const container = diagnosticsDependencies.$('monitorList');
         container.textContent = '';
         container.appendChild(createMonitorEmptyElement('暂无请求记录...'));
       }
@@ -148,19 +156,24 @@ async function refreshMonitor(options = {}) {
     }
 
     const preparedEvents = events.map(prepareMonitorEvent);
-    sharedAppState.monitorEvents = (
-      sharedAppState.lastEventTime
-        ? sharedAppState.monitorEvents.concat(preparedEvents)
+    diagnosticsDependencies.sharedAppState.monitorEvents = (
+      diagnosticsDependencies.sharedAppState.lastEventTime
+        ? diagnosticsDependencies.sharedAppState.monitorEvents.concat(preparedEvents)
         : preparedEvents
     ).slice(-500);
-    sharedAppState.lastEventTime =
-      sharedAppState.monitorEvents[sharedAppState.monitorEvents.length - 1].time;
+    diagnosticsDependencies.sharedAppState.lastEventTime =
+      diagnosticsDependencies.sharedAppState.monitorEvents[
+        diagnosticsDependencies.sharedAppState.monitorEvents.length - 1
+      ].time;
     renderMonitor();
   } catch (err) {
     console.error('Failed to refresh monitor:', err);
   } finally {
-    sharedAppState.monitorRefreshInFlight = false;
-    finishPerf({ passive: !!options.passive, events: sharedAppState.monitorEvents.length });
+    diagnosticsDependencies.sharedAppState.monitorRefreshInFlight = false;
+    finishPerf({
+      passive: !!options.passive,
+      events: diagnosticsDependencies.sharedAppState.monitorEvents.length,
+    });
   }
 }
 
@@ -179,7 +192,10 @@ function prepareMonitorEvent(event) {
     event.code,
     event.protocol,
   ];
-  if (event.body) fieldsToSearch.push(String(event.body).slice(0, MONITOR_SEARCH_BODY_LIMIT));
+  if (event.body)
+    fieldsToSearch.push(
+      String(event.body).slice(0, diagnosticsDependencies.MONITOR_SEARCH_BODY_LIMIT)
+    );
   event.__searchText = fieldsToSearch.filter(Boolean).join(' ').toLowerCase();
   let title = '';
   let details = '';
@@ -270,15 +286,15 @@ function createMonitorEventElement(event) {
 }
 
 function renderMonitor() {
-  const container = $('monitorList');
-  const shouldScroll = $('autoScrollMonitor').checked;
-  const query = ($('monitorSearch').value || '').toLowerCase().trim();
-  const statusFilter = $('monitorStatusFilter').value;
+  const container = diagnosticsDependencies.$('monitorList');
+  const shouldScroll = diagnosticsDependencies.$('autoScrollMonitor').checked;
+  const query = (diagnosticsDependencies.$('monitorSearch').value || '').toLowerCase().trim();
+  const statusFilter = diagnosticsDependencies.$('monitorStatusFilter').value;
 
-  let filteredEvents = sharedAppState.monitorEvents;
+  let filteredEvents = diagnosticsDependencies.sharedAppState.monitorEvents;
 
   if (query || statusFilter !== 'all') {
-    filteredEvents = sharedAppState.monitorEvents.filter((event) => {
+    filteredEvents = diagnosticsDependencies.sharedAppState.monitorEvents.filter((event) => {
       // Status filter
       if (statusFilter === 'success') {
         if (event.kind === 'request_end' && (event.statusCode < 200 || event.statusCode >= 300))
@@ -305,7 +321,9 @@ function renderMonitor() {
     });
   }
 
-  const visibleEvents = filteredEvents.slice(-MONITOR_RENDER_WINDOW).reverse();
+  const visibleEvents = filteredEvents
+    .slice(-diagnosticsDependencies.MONITOR_RENDER_WINDOW)
+    .reverse();
   const omittedEvents = Math.max(0, filteredEvents.length - visibleEvents.length);
   const viewModels = visibleEvents.map(
     (event) => event.__monitorView || prepareMonitorEvent(event).__monitorView
@@ -314,8 +332,8 @@ function renderMonitor() {
     omittedEvents,
     visibleEvents: viewModels,
   });
-  if (renderSignature === sharedAppState.lastRenderedMonitorHtml) return;
-  sharedAppState.lastRenderedMonitorHtml = renderSignature;
+  if (renderSignature === diagnosticsDependencies.sharedAppState.lastRenderedMonitorHtml) return;
+  diagnosticsDependencies.sharedAppState.lastRenderedMonitorHtml = renderSignature;
   container.textContent = '';
   if (omittedEvents)
     container.appendChild(createMonitorSummaryElement(visibleEvents.length, omittedEvents));
@@ -342,72 +360,79 @@ if (typeof window !== 'undefined') {
 }
 
 function bindDiagnosticsControls() {
-  const clearMonBtn = $('clearMonitor');
+  const clearMonBtn = diagnosticsDependencies.$('clearMonitor');
   if (clearMonBtn && clearMonBtn.dataset.monitorBound !== 'true') {
     clearMonBtn.dataset.monitorBound = 'true';
     clearMonBtn.onclick = async () => {
       await window.proxyManager.clearEvents();
-      sharedAppState.monitorEvents = [];
-      sharedAppState.lastEventTime = null;
-      sharedAppState.lastRenderedMonitorHtml = null;
+      diagnosticsDependencies.sharedAppState.monitorEvents = [];
+      diagnosticsDependencies.sharedAppState.lastEventTime = null;
+      diagnosticsDependencies.sharedAppState.lastRenderedMonitorHtml = null;
       renderMonitor();
-      showToast('监控已清空');
+      diagnosticsDependencies.showToast('监控已清空');
     };
   }
 
-  $('refreshLog').onclick = () => {
-    showDiagnosticsTab('logPanel');
+  diagnosticsDependencies.$('refreshLog').onclick = () => {
+    diagnosticsDependencies.showDiagnosticsTab('logPanel');
   };
-  $('refreshLog').dataset.bound = 'true';
-  $('refreshDiagnostics').onclick = async () => {
-    showDiagnosticsTab('diagnosticsPanel');
+  diagnosticsDependencies.$('refreshLog').dataset.bound = 'true';
+  diagnosticsDependencies.$('refreshDiagnostics').onclick = async () => {
+    diagnosticsDependencies.showDiagnosticsTab('diagnosticsPanel');
   };
-  $('refreshDiagnostics').dataset.bound = 'true';
-  $('scrollLogBottom').onclick = () => {
-    if ($('diagnosticsPanel').classList.contains('active')) scrollLogToBottom('diagnosticsOutput');
+  diagnosticsDependencies.$('refreshDiagnostics').dataset.bound = 'true';
+  diagnosticsDependencies.$('scrollLogBottom').onclick = () => {
+    if (diagnosticsDependencies.$('diagnosticsPanel').classList.contains('active'))
+      scrollLogToBottom('diagnosticsOutput');
     else {
-      showDiagnosticsTab('logPanel');
+      diagnosticsDependencies.showDiagnosticsTab('logPanel');
       scrollLogToBottom('log');
     }
   };
-  $('scrollLogBottom').dataset.bound = 'true';
-  $('clearLog').onclick = clearLog;
-  $('clearLog').dataset.bound = 'true';
-  $('clearDiagnostics').onclick = clearDiagnostics;
-  $('clearDiagnostics').dataset.bound = 'true';
+  diagnosticsDependencies.$('scrollLogBottom').dataset.bound = 'true';
+  diagnosticsDependencies.$('clearLog').onclick = clearLog;
+  diagnosticsDependencies.$('clearLog').dataset.bound = 'true';
+  diagnosticsDependencies.$('clearDiagnostics').onclick = clearDiagnostics;
+  diagnosticsDependencies.$('clearDiagnostics').dataset.bound = 'true';
 
-  $('autoRefreshLog').onchange = () => {
-    setLogAutoRefresh($('autoRefreshLog').checked);
-    if ($('autoRefreshLog').checked) {
-      if ($('logPanel').classList.contains('active')) refreshLog({ forceScroll: true });
-      if ($('diagnosticsPanel').classList.contains('active'))
+  diagnosticsDependencies.$('autoRefreshLog').onchange = () => {
+    setLogAutoRefresh(diagnosticsDependencies.$('autoRefreshLog').checked);
+    if (diagnosticsDependencies.$('autoRefreshLog').checked) {
+      if (diagnosticsDependencies.$('logPanel').classList.contains('active'))
+        refreshLog({ forceScroll: true });
+      if (diagnosticsDependencies.$('diagnosticsPanel').classList.contains('active'))
         refreshDiagnostics({ forceScroll: true });
     }
   };
-  $('autoRefreshLog').dataset.bound = 'true';
-  $('autoScrollLog').onchange = () => {
-    if ($('autoScrollLog').checked) {
-      if ($('logPanel').classList.contains('active')) scrollLogToBottom('log');
-      if ($('diagnosticsPanel').classList.contains('active'))
+  diagnosticsDependencies.$('autoRefreshLog').dataset.bound = 'true';
+  diagnosticsDependencies.$('autoScrollLog').onchange = () => {
+    if (diagnosticsDependencies.$('autoScrollLog').checked) {
+      if (diagnosticsDependencies.$('logPanel').classList.contains('active'))
+        scrollLogToBottom('log');
+      if (diagnosticsDependencies.$('diagnosticsPanel').classList.contains('active'))
         scrollLogToBottom('diagnosticsOutput');
     }
   };
-  $('autoScrollLog').dataset.bound = 'true';
-  setLogAutoRefresh($('autoRefreshLog').checked);
+  diagnosticsDependencies.$('autoScrollLog').dataset.bound = 'true';
+  setLogAutoRefresh(diagnosticsDependencies.$('autoRefreshLog').checked);
 
   document.querySelectorAll('[data-diagnostics-tab]').forEach((button) => {
-    button.onclick = () => showDiagnosticsTab(button.dataset.diagnosticsTab);
+    button.onclick = () =>
+      diagnosticsDependencies.showDiagnosticsTab(button.dataset.diagnosticsTab);
     button.dataset.bound = 'true';
   });
 
-  $('monitorSearch').oninput = debounce(renderMonitor, 180);
-  $('monitorSearch').dataset.bound = 'true';
-  $('monitorStatusFilter').onchange = renderMonitor;
-  $('monitorStatusFilter').dataset.bound = 'true';
+  diagnosticsDependencies.$('monitorSearch').oninput = diagnosticsDependencies.debounce(
+    renderMonitor,
+    180
+  );
+  diagnosticsDependencies.$('monitorSearch').dataset.bound = 'true';
+  diagnosticsDependencies.$('monitorStatusFilter').onchange = renderMonitor;
+  diagnosticsDependencies.$('monitorStatusFilter').dataset.bound = 'true';
 }
 
 function scrollLogToBottom(targetId = 'log') {
-  const log = $(targetId);
+  const log = diagnosticsDependencies.$(targetId);
   requestAnimationFrame(() => {
     log.scrollTop = log.scrollHeight;
   });
@@ -418,36 +443,40 @@ function isNearBottom(element) {
 }
 
 function isDiagnosticsVisible() {
-  return $('diagnostics').classList.contains('active');
+  return diagnosticsDependencies.$('diagnostics').classList.contains('active');
 }
 
 async function refreshLog(options = {}) {
-  if (sharedAppState.logRefreshInFlight) return;
-  sharedAppState.logRefreshInFlight = true;
-  const log = $('log');
+  if (diagnosticsDependencies.sharedAppState.logRefreshInFlight) return;
+  diagnosticsDependencies.sharedAppState.logRefreshInFlight = true;
+  const log = diagnosticsDependencies.$('log');
   const shouldKeepBottom =
-    options.forceScroll || ($('autoScrollLog') && $('autoScrollLog').checked) || isNearBottom(log);
-  const finishPerf = perfStart('refresh.log');
+    options.forceScroll ||
+    (diagnosticsDependencies.$('autoScrollLog') &&
+      diagnosticsDependencies.$('autoScrollLog').checked) ||
+    isNearBottom(log);
+  const finishPerf = diagnosticsDependencies.perfStart('refresh.log');
   let changed = false;
   let rawLog = '';
   try {
-    if (!options.passive) $('logRefreshState').textContent = '刷新中...';
+    if (!options.passive) diagnosticsDependencies.$('logRefreshState').textContent = '刷新中...';
     rawLog = await window.proxyManager.readLog({
-      lines: LOG_RENDER_LINE_LIMIT,
-      maxBytes: LOG_REQUEST_MAX_BYTES,
+      lines: diagnosticsDependencies.LOG_RENDER_LINE_LIMIT,
+      maxBytes: diagnosticsDependencies.LOG_REQUEST_MAX_BYTES,
     });
-    if (rawLog !== sharedAppState.lastRenderedLog || options.forceRender) {
+    if (rawLog !== diagnosticsDependencies.sharedAppState.lastRenderedLog || options.forceRender) {
       renderLogLines(log, rawLog);
-      sharedAppState.lastRenderedLog = rawLog;
+      diagnosticsDependencies.sharedAppState.lastRenderedLog = rawLog;
       changed = true;
     }
     if (!options.passive || changed)
-      $('logRefreshState').textContent = '已刷新 ' + new Date().toLocaleTimeString();
+      diagnosticsDependencies.$('logRefreshState').textContent =
+        '已刷新 ' + new Date().toLocaleTimeString();
     if (shouldKeepBottom && changed) scrollLogToBottom('log');
   } catch (err) {
-    $('logRefreshState').textContent = '刷新失败';
+    diagnosticsDependencies.$('logRefreshState').textContent = '刷新失败';
   } finally {
-    sharedAppState.logRefreshInFlight = false;
+    diagnosticsDependencies.sharedAppState.logRefreshInFlight = false;
     finishPerf({ passive: !!options.passive, changed, bytes: rawLog.length });
   }
 }
@@ -462,79 +491,97 @@ function renderDiagnosticsStatus(status) {
 }
 
 async function refreshDiagnostics(options = {}) {
-  if (sharedAppState.diagnosticsRefreshInFlight) return;
-  sharedAppState.diagnosticsRefreshInFlight = true;
-  const output = $('diagnosticsOutput');
+  if (diagnosticsDependencies.sharedAppState.diagnosticsRefreshInFlight) return;
+  diagnosticsDependencies.sharedAppState.diagnosticsRefreshInFlight = true;
+  const output = diagnosticsDependencies.$('diagnosticsOutput');
   const shouldKeepBottom =
     options.forceScroll ||
-    ($('autoScrollLog') && $('autoScrollLog').checked) ||
+    (diagnosticsDependencies.$('autoScrollLog') &&
+      diagnosticsDependencies.$('autoScrollLog').checked) ||
     isNearBottom(output);
-  const finishPerf = perfStart('refresh.diagnostics');
+  const finishPerf = diagnosticsDependencies.perfStart('refresh.diagnostics');
   let changed = false;
   let outputText = '';
   try {
-    if (!options.passive) $('diagnosticsRefreshState').textContent = '刷新中...';
+    if (!options.passive)
+      diagnosticsDependencies.$('diagnosticsRefreshState').textContent = '刷新中...';
     const result = await window.proxyManager.readDiagnostics();
     const statusText = renderDiagnosticsStatus(result.status);
     outputText = result.output || '暂无诊断事件';
-    if (statusText !== sharedAppState.lastRenderedDiagnosticsStatus || options.forceRender) {
-      $('diagnosticsStatus').textContent = statusText;
-      sharedAppState.lastRenderedDiagnosticsStatus = statusText;
+    if (
+      statusText !== diagnosticsDependencies.sharedAppState.lastRenderedDiagnosticsStatus ||
+      options.forceRender
+    ) {
+      diagnosticsDependencies.$('diagnosticsStatus').textContent = statusText;
+      diagnosticsDependencies.sharedAppState.lastRenderedDiagnosticsStatus = statusText;
       changed = true;
     }
-    if (outputText !== sharedAppState.lastRenderedDiagnosticsOutput || options.forceRender) {
+    if (
+      outputText !== diagnosticsDependencies.sharedAppState.lastRenderedDiagnosticsOutput ||
+      options.forceRender
+    ) {
       output.textContent = outputText;
-      sharedAppState.lastRenderedDiagnosticsOutput = outputText;
+      diagnosticsDependencies.sharedAppState.lastRenderedDiagnosticsOutput = outputText;
       changed = true;
     }
     if (!options.passive || changed)
-      $('diagnosticsRefreshState').textContent = '已刷新 ' + new Date().toLocaleTimeString();
+      diagnosticsDependencies.$('diagnosticsRefreshState').textContent =
+        '已刷新 ' + new Date().toLocaleTimeString();
     if (shouldKeepBottom && changed) scrollLogToBottom('diagnosticsOutput');
   } catch (err) {
-    $('diagnosticsRefreshState').textContent = '刷新失败';
+    diagnosticsDependencies.$('diagnosticsRefreshState').textContent = '刷新失败';
   } finally {
-    sharedAppState.diagnosticsRefreshInFlight = false;
+    diagnosticsDependencies.sharedAppState.diagnosticsRefreshInFlight = false;
     finishPerf({ passive: !!options.passive, changed, bytes: outputText.length });
   }
 }
 function refreshActiveDiagnosticsPanel(options = {}) {
   if (!isDiagnosticsVisible()) return;
-  if ($('logPanel').classList.contains('active')) refreshLog(options);
-  if ($('diagnosticsPanel').classList.contains('active')) refreshDiagnostics(options);
+  if (diagnosticsDependencies.$('logPanel').classList.contains('active')) refreshLog(options);
+  if (diagnosticsDependencies.$('diagnosticsPanel').classList.contains('active'))
+    refreshDiagnostics(options);
 }
 function setLogAutoRefresh(enabled) {
-  if (sharedAppState.logRefreshTimer) {
-    clearInterval(sharedAppState.logRefreshTimer);
-    sharedAppState.logRefreshTimer = null;
+  if (diagnosticsDependencies.sharedAppState.logRefreshTimer) {
+    clearInterval(diagnosticsDependencies.sharedAppState.logRefreshTimer);
+    diagnosticsDependencies.sharedAppState.logRefreshTimer = null;
   }
   if (!enabled) return;
-  sharedAppState.lastLogAutoRefreshAt = 0;
-  sharedAppState.logRefreshTimer = setInterval(() => {
+  diagnosticsDependencies.sharedAppState.lastLogAutoRefreshAt = 0;
+  diagnosticsDependencies.sharedAppState.logRefreshTimer = setInterval(() => {
     if (!isDiagnosticsVisible()) return;
     if (document.hidden) return;
     const now = Date.now();
-    if (now - sharedAppState.lastLogAutoRefreshAt < LOG_AUTO_REFRESH_VISIBLE_MS) return;
-    sharedAppState.lastLogAutoRefreshAt = now;
+    if (
+      now - diagnosticsDependencies.sharedAppState.lastLogAutoRefreshAt <
+      diagnosticsDependencies.LOG_AUTO_REFRESH_VISIBLE_MS
+    )
+      return;
+    diagnosticsDependencies.sharedAppState.lastLogAutoRefreshAt = now;
     refreshActiveDiagnosticsPanel({ passive: true });
-  }, LOG_AUTO_REFRESH_VISIBLE_MS);
+  }, diagnosticsDependencies.LOG_AUTO_REFRESH_VISIBLE_MS);
 }
 
 async function clearLog() {
-  const confirmed = await confirmAction({
+  const confirmed = await diagnosticsDependencies.confirmAction({
     title: '清理日志？',
     message: '这会直接清空当前代理日志文件，不再生成备份。',
     confirmText: '清理日志',
   });
   if (!confirmed) return;
   const result = await window.proxyManager.clearLog();
-  $('output').textContent = result.output || (result.ok ? '日志已清理' : '日志清理失败');
-  showDiagnosticsTab('logPanel');
-  showToast($('output').textContent, result.ok ? 'success' : 'error');
+  diagnosticsDependencies.$('output').textContent =
+    result.output || (result.ok ? '日志已清理' : '日志清理失败');
+  diagnosticsDependencies.showDiagnosticsTab('logPanel');
+  diagnosticsDependencies.showToast(
+    diagnosticsDependencies.$('output').textContent,
+    result.ok ? 'success' : 'error'
+  );
   await refreshLog({ forceScroll: true });
 }
 
 async function clearDiagnostics() {
-  const confirmed = await confirmAction({
+  const confirmed = await diagnosticsDependencies.confirmAction({
     title: '清理诊断事件？',
     message: '这会直接清空当前诊断采样文件，不再生成备份。',
     confirmText: '清理诊断',
@@ -542,9 +589,9 @@ async function clearDiagnostics() {
   if (!confirmed) return;
   const result = await window.proxyManager.clearDiagnostics();
   const msg = result.output || (result.ok ? '诊断事件已清理' : '诊断事件清理失败');
-  $('output').textContent = msg;
-  showDiagnosticsTab('diagnosticsPanel');
-  showToast(msg, result.ok ? 'success' : 'error');
+  diagnosticsDependencies.$('output').textContent = msg;
+  diagnosticsDependencies.showDiagnosticsTab('diagnosticsPanel');
+  diagnosticsDependencies.showToast(msg, result.ok ? 'success' : 'error');
   await refreshDiagnostics({ forceScroll: true });
 }
 

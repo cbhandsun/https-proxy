@@ -3,8 +3,14 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const {
+  buildModuleGraph,
+  extractStaticImports,
+  findCycles,
+} = require('../../lib/governance/module-graph');
+const { stripEsmSyntax } = require('./helpers/strip-esm-syntax');
 
-const repoRoot = path.resolve(__dirname, '..');
+const repoRoot = path.resolve(__dirname, '..', '..');
 const read = (relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 
 const html = read('tauri-ui/index.html');
@@ -12,36 +18,55 @@ const main = read('tauri-ui/src/main.js');
 const viteConfig = read('vite.config.mjs');
 const tauriConfig = JSON.parse(read('src-tauri/tauri.conf.json'));
 const packageJson = JSON.parse(read('package.json'));
+const frontendSourceRoot = path.join(repoRoot, 'tauri-ui', 'src');
+const moduleGraph = buildModuleGraph(frontendSourceRoot);
+
+assert.equal(
+  stripEsmSyntax("import value from './value.js';\nexport function example() { return value; }"),
+  'function example() { return value; }'
+);
 
 assert.match(html, /<script\s+type="module"\s+src="\/src\/main\.js"><\/script>/);
 assert.doesNotMatch(html, /<script[^>]+app(?:-[^"]+)?\.js/);
 assert.doesNotMatch(html, /cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com/);
 assert.match(main, /import '\.\/styles\/app\.css';/);
-assert.match(main, /import '\.\/modules\/app-ux\.js';/);
-assert.match(main, /import '\.\/modules\/app\.js';/);
+assert.match(main, /import '\.\/app\/ux\.js';/);
+assert.match(main, /import '\.\/app\/bootstrap\.js';/);
 assert.match(viteConfig, /base:\s*'\.\/'/);
 assert.match(viteConfig, /sourcemap:\s*false/);
+assert.deepEqual(
+  findCycles(moduleGraph).map((cycle) =>
+    cycle.map((file) => path.relative(frontendSourceRoot, file).replaceAll('\\', '/'))
+  ),
+  [],
+  'frontend ESM graph must stay acyclic'
+);
 assert.equal(fs.existsSync(path.join(repoRoot, 'tauri-ui/src/styles/app.css')), true);
-for (const moduleName of [
-  'app-ux.js',
-  'app-bridge.js',
-  'app-audit.js',
-  'app-cli.js',
-  'app-diagnostics.js',
-  'app-tool-status.js',
-  'app-environment.js',
-  'app-mcp.js',
-  'app.js',
+assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'app', 'bootstrap.js')), true);
+assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'app', 'ux.js')), true);
+assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'modules')), false);
+for (const domainName of [
+  'audit.js',
+  'bridge.js',
+  'cli.js',
+  'diagnostics.js',
+  'tool-status.js',
+  'environment.js',
+  'mcp.js',
 ]) {
+  const domainPath = path.join(frontendSourceRoot, 'app', 'domains', domainName);
   assert.equal(
-    fs.existsSync(path.join(repoRoot, 'tauri-ui', 'src', 'modules', moduleName)),
+    fs.existsSync(domainPath),
     true,
-    `${moduleName} must live under tauri-ui/src/modules`
+    `${domainName} must live under tauri-ui/src/app/domains`
   );
+  const imports = extractStaticImports(fs.readFileSync(domainPath, 'utf8'));
   assert.equal(
-    fs.existsSync(path.join(repoRoot, 'tauri-ui', moduleName)),
-    false,
-    `${moduleName} must not return to the tauri-ui root`
+    imports
+      .filter((specifier) => specifier.startsWith('.'))
+      .every((specifier) => specifier === '../runtime/dependencies.js'),
+    true,
+    `${domainName} may import runtime boundaries but not bootstrap or other domains`
   );
 }
 
@@ -58,7 +83,15 @@ assert.equal(packageJson.scripts['frontend:sync'], undefined);
 assert.equal(packageJson.scripts['frontend:check'], undefined);
 assert.equal(packageJson.scripts.postinstall, undefined);
 assert.equal(packageJson.dependencies['chart.js'] != null, true);
+assert.match(packageJson.scripts['frontend:build'], /check:architecture/);
+assert.match(packageJson.scripts['frontend:build'], /clean:frontend/);
+assert.match(packageJson.scripts['clean:frontend'], /--frontend-only/);
 assert.match(packageJson.scripts['release:prepare'], /prepare-release-runtime\.js/);
+assert.equal(
+  fs.existsSync(path.join(repoRoot, 'dist', 'tauri-ui')),
+  false,
+  'obsolete dist/tauri-ui output must not return'
+);
 
 for (const removedPath of [
   'electron-ui.html',
@@ -75,6 +108,12 @@ for (const removedPath of [
   'tauri-ui/electron-ui.html',
   'scripts/sync-frontend.js',
   'scripts/prepare-tauri-dist.js',
+  'test/app-audit.test.js',
+  'test/app-bridge.test.js',
+  'test/app-cli.test.js',
+  'test/app-diagnostics.test.js',
+  'test/app-ux.test.js',
+  'test/frontend-build-governance.test.js',
 ]) {
   assert.equal(
     fs.existsSync(path.join(repoRoot, removedPath)),

@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const eslintConfig = require('../eslint.config');
+const eslintConfig = require('../../eslint.config');
 
 const ignores = eslintConfig.find((entry) => Array.isArray(entry.ignores))?.ignores || [];
 

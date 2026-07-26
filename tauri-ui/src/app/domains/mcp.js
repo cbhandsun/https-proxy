@@ -1,4 +1,10 @@
-import { $, clearElement, showToast } from './app.js';
+import { bindDomainDependencies } from '../runtime/dependencies.js';
+
+let mcpDependencies;
+
+export function configureMcp(dependencies) {
+  mcpDependencies = bindDomainDependencies('mcp', dependencies, ['$', 'clearElement', 'showToast']);
+}
 
 // MCP Hub UI logic.
 
@@ -14,24 +20,24 @@ const GLM_MCP_TEMPLATES = {
 };
 
 async function initMcpHubView() {
-  const container = $('mcpHubView');
+  const container = mcpDependencies.$('mcpHubView');
   if (!container || container.dataset.initialized) {
     refreshMcpHub();
     return;
   }
   container.dataset.initialized = 'true';
 
-  $('refreshMcpHub').onclick = () => refreshMcpHub();
-  $('addMcpServer').onclick = () => addMcpServer();
-  const addGlmSearchButton = $('addGlmSearchMcpServer');
+  mcpDependencies.$('refreshMcpHub').onclick = () => refreshMcpHub();
+  mcpDependencies.$('addMcpServer').onclick = () => addMcpServer();
+  const addGlmSearchButton = mcpDependencies.$('addGlmSearchMcpServer');
   if (addGlmSearchButton) addGlmSearchButton.onclick = () => addGlmSearchMcpServer();
-  $('saveMcpHub').onclick = () => saveMcpHub();
+  mcpDependencies.$('saveMcpHub').onclick = () => saveMcpHub();
 
   refreshMcpHub();
 }
 
 async function refreshMcpHub() {
-  const status = $('mcpHubStatus');
+  const status = mcpDependencies.$('mcpHubStatus');
   status.textContent = '正在加载 MCP 配置...';
 
   try {
@@ -54,8 +60,8 @@ async function refreshMcpHub() {
 }
 
 function renderMcpServers() {
-  const container = $('mcpServersList');
-  clearElement(container);
+  const container = mcpDependencies.$('mcpServersList');
+  mcpDependencies.clearElement(container);
   if (!mcpHubConfig || !mcpHubConfig.servers || mcpHubConfig.servers.length === 0) {
     container.appendChild(createMcpServersEmptyElement());
     return;
@@ -212,7 +218,7 @@ function addGlmSearchMcpServer() {
     mcpHubConfig.routing.push({ pattern: '^glm_search_', serverId: template.id });
   }
   renderMcpServers();
-  const status = $('mcpHubStatus');
+  const status = mcpDependencies.$('mcpHubStatus');
   if (status) {
     status.textContent =
       '已添加 GLM 联网搜索 MCP 模板。请在 Bearer Token 中填入 GLM Coding Plan API Key 后保存。';
@@ -276,7 +282,7 @@ function createMcpLogEntryElement(log) {
 }
 
 function renderMcpLogs(logs) {
-  const container = $('mcpExecutionLogs');
+  const container = mcpDependencies.$('mcpExecutionLogs');
   container.textContent = '';
   if (!logs || logs.length === 0) {
     container.appendChild(createMcpLogsEmptyElement());
@@ -287,7 +293,7 @@ function renderMcpLogs(logs) {
 }
 
 async function saveMcpHub() {
-  const btn = $('saveMcpHub');
+  const btn = mcpDependencies.$('saveMcpHub');
   const origText = btn.textContent;
   btn.disabled = true;
   btn.textContent = '正在保存...';
@@ -295,13 +301,13 @@ async function saveMcpHub() {
   try {
     const res = await window.proxyManager.mcpHubSave({ mcpHub: mcpHubConfig });
     if (res.ok) {
-      showToast('MCP 配置已保存', 'success');
+      mcpDependencies.showToast('MCP 配置已保存', 'success');
       refreshMcpHub();
     } else {
-      showToast('保存失败：' + (res.error || '未知错误'), 'error');
+      mcpDependencies.showToast('保存失败：' + (res.error || '未知错误'), 'error');
     }
   } catch (err) {
-    showToast('保存出错：' + err.message, 'error');
+    mcpDependencies.showToast('保存出错：' + err.message, 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = origText;

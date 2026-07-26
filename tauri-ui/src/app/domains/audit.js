@@ -1,5 +1,18 @@
 import Chart from 'chart.js/auto';
-import { $, confirmAction, escapeHtml, showToast, showView, togglePromptsTab } from './app.js';
+import { bindDomainDependencies } from '../runtime/dependencies.js';
+
+let auditDependencies;
+
+export function configureAudit(dependencies) {
+  auditDependencies = bindDomainDependencies('audit', dependencies, [
+    '$',
+    'confirmAction',
+    'escapeHtml',
+    'showToast',
+    'showView',
+    'togglePromptsTab',
+  ]);
+}
 
 let selectedAuditRecordId = null;
 let cachedAuditRecords = [];
@@ -58,9 +71,9 @@ function formatAuditJson(value, limit = AUDIT_INSPECTOR_PREVIEW_CHARS) {
 function renderUsageMetric(label, value, sub = '') {
   return `
     <div class="usage-metric">
-      <div class="usage-metric-label">${escapeHtml(label)}</div>
-      <div class="usage-metric-value">${escapeHtml(value)}</div>
-      ${sub ? `<div class="usage-metric-sub">${escapeHtml(sub)}</div>` : ''}
+      <div class="usage-metric-label">${auditDependencies.escapeHtml(label)}</div>
+      <div class="usage-metric-value">${auditDependencies.escapeHtml(value)}</div>
+      ${sub ? `<div class="usage-metric-sub">${auditDependencies.escapeHtml(sub)}</div>` : ''}
     </div>
   `;
 }
@@ -221,7 +234,7 @@ function createAuditCodeTextElement(text) {
 }
 
 function setAuditDetailPlaceholder(message = '选择左侧记录查看详情') {
-  const panel = $('auditDetailPanel');
+  const panel = auditDependencies.$('auditDetailPanel');
   if (!panel) return;
   panel.textContent = '';
   panel.appendChild(createAuditDetailPlaceholderElement(message));
@@ -230,7 +243,7 @@ function setAuditDetailPlaceholder(message = '选择左侧记录查看详情') {
 function renderEmptyAuditState(listMessage = '暂无对话审计记录', detailMessage = '暂无对话记录') {
   cachedAuditRecords = [];
   selectedAuditRecordId = null;
-  const listContainer = $('auditHistoryList');
+  const listContainer = auditDependencies.$('auditHistoryList');
   if (listContainer) {
     listContainer.textContent = '';
     listContainer.appendChild(createAuditNoticeElement(listMessage));
@@ -451,8 +464,8 @@ function createAuditMetricElement(label, value, sub = '') {
 
 async function initPromptsAuditView() {
   // 绑定动作（如果尚未绑定）
-  const refreshBtn = $('refreshAudit');
-  const clearBtn = $('clearAudit');
+  const refreshBtn = auditDependencies.$('refreshAudit');
+  const clearBtn = auditDependencies.$('clearAudit');
   if (refreshBtn && !refreshBtn.dataset.bound) {
     refreshBtn.dataset.bound = 'true';
     refreshBtn.onclick = () => loadAuditRecords();
@@ -460,18 +473,21 @@ async function initPromptsAuditView() {
   if (clearBtn && !clearBtn.dataset.bound) {
     clearBtn.dataset.bound = 'true';
     clearBtn.onclick = () => {
-      confirmAction(
+      auditDependencies.confirmAction(
         '确定要清空所有的对话审计日志吗？此操作将永久清空本地的 conversations-audit.jsonl 文件。',
         async () => {
           clearBtn.disabled = true;
           try {
             const res = await window.proxyManager.clearAuditConversations();
             if (res && res.ok !== false) {
-              showToast('对话审计日志已清空', 'success');
+              auditDependencies.showToast('对话审计日志已清空', 'success');
               renderEmptyAuditState();
               await loadAuditRecords();
             } else {
-              showToast('清空日志失败: ' + ((res && res.error) || '未知错误'), 'error');
+              auditDependencies.showToast(
+                '清空日志失败: ' + ((res && res.error) || '未知错误'),
+                'error'
+              );
             }
           } finally {
             clearBtn.disabled = false;
@@ -485,8 +501,8 @@ async function initPromptsAuditView() {
 }
 
 async function initUsageReportView() {
-  const refreshBtn = $('refreshUsageReport');
-  const windowSelect = $('usageReportWindow');
+  const refreshBtn = auditDependencies.$('refreshUsageReport');
+  const windowSelect = auditDependencies.$('usageReportWindow');
   if (refreshBtn && !refreshBtn.dataset.bound) {
     refreshBtn.dataset.bound = 'true';
     refreshBtn.onclick = () => loadUsageReport();
@@ -510,10 +526,10 @@ function usageWindowAfter(value) {
 }
 
 async function loadUsageReport() {
-  const summary = $('usageReportSummary');
-  const byProfile = $('usageByProfile');
-  const byModel = $('usageByModel');
-  const recent = $('usageRecent');
+  const summary = auditDependencies.$('usageReportSummary');
+  const byProfile = auditDependencies.$('usageByProfile');
+  const byModel = auditDependencies.$('usageByModel');
+  const recent = auditDependencies.$('usageRecent');
   if (!summary || !byProfile || !byModel || !recent) return;
   summary.textContent = '';
   summary.appendChild(createAuditNoticeElement('正在加载...'));
@@ -521,7 +537,9 @@ async function loadUsageReport() {
   byModel.textContent = '';
   recent.textContent = '';
   try {
-    const windowValue = $('usageReportWindow') ? $('usageReportWindow').value : '';
+    const windowValue = auditDependencies.$('usageReportWindow')
+      ? auditDependencies.$('usageReportWindow').value
+      : '';
     const report = await window.proxyManager.readUsageReport({
       limit: 300,
       after: usageWindowAfter(windowValue),
@@ -537,15 +555,15 @@ async function loadUsageReport() {
 function renderUsageReport(report) {
   const total = report.total || {};
   const estimated = Number(total.estimatedRecords || 0);
-  const meta = $('usageReportMeta');
+  const meta = auditDependencies.$('usageReportMeta');
   if (meta) {
     meta.textContent = `生成于 ${new Date(report.generatedAt || Date.now()).toLocaleString()} · ${estimated ? `${estimated} 条为估算 Token` : '全部使用真实 usage 或可用记录'}`;
   }
 
-  const summary = $('usageReportSummary');
-  const byProfile = $('usageByProfile');
-  const byModel = $('usageByModel');
-  const recent = $('usageRecent');
+  const summary = auditDependencies.$('usageReportSummary');
+  const byProfile = auditDependencies.$('usageByProfile');
+  const byModel = auditDependencies.$('usageByModel');
+  const recent = auditDependencies.$('usageRecent');
   if (summary) {
     summary.textContent = '';
     [
@@ -583,7 +601,7 @@ function renderUsageReport(report) {
 }
 
 function updateUsageChart(dayData) {
-  const ctx = $('usageChart');
+  const ctx = auditDependencies.$('usageChart');
   if (!ctx) return;
 
   const labels = dayData.map((d) => d.key);
@@ -716,7 +734,7 @@ function createUsageRecentElement(rows) {
 }
 
 async function loadAuditRecords() {
-  const listContainer = $('auditHistoryList');
+  const listContainer = auditDependencies.$('auditHistoryList');
   if (!listContainer) return;
   listContainer.textContent = '';
   listContainer.appendChild(createAuditNoticeElement('正在加载对话审计日志...'));
@@ -1316,7 +1334,7 @@ function createAuditChatFlowElement(record) {
 }
 
 function renderAuditDetail(record) {
-  const panel = $('auditDetailPanel');
+  const panel = auditDependencies.$('auditDetailPanel');
   if (!panel) return;
 
   panel.textContent = '';
@@ -1331,22 +1349,22 @@ function renderAuditDetail(record) {
   bindAuditDetailDelegates(panel);
 
   // 绑定导出按钮事件
-  const exportBtn = $('exportAuditMarkdownBtn');
+  const exportBtn = auditDependencies.$('exportAuditMarkdownBtn');
   if (exportBtn) {
     exportBtn.onclick = () => {
       const mdText = formatRecordToMarkdown(record);
       navigator.clipboard
         .writeText(mdText)
         .then(() => {
-          showToast('已复制完整 Markdown 对话纪要到剪贴板', 'success');
+          auditDependencies.showToast('已复制完整 Markdown 对话纪要到剪贴板', 'success');
         })
         .catch((err) => {
-          showToast('复制失败: ' + err.message, 'error');
+          auditDependencies.showToast('复制失败: ' + err.message, 'error');
         });
     };
   }
 
-  const retryBtn = $('retryAuditRequestBtn');
+  const retryBtn = auditDependencies.$('retryAuditRequestBtn');
   if (retryBtn) {
     retryBtn.onclick = async () => {
       if (!record.id) return;
@@ -1355,16 +1373,16 @@ function renderAuditDetail(record) {
       try {
         const result = await window.proxyManager.retryAuditRequest(record.id);
         if (result && result.ok) {
-          showToast(`重试完成：HTTP ${result.statusCode}`, 'success');
+          auditDependencies.showToast(`重试完成：HTTP ${result.statusCode}`, 'success');
         } else {
-          showToast(
+          auditDependencies.showToast(
             `重试失败：${(result && (result.error || result.statusCode)) || '未知错误'}`,
             'error'
           );
         }
         await loadAuditRecords();
       } catch (err) {
-        showToast('重试失败: ' + err.message, 'error');
+        auditDependencies.showToast('重试失败: ' + err.message, 'error');
       } finally {
         retryBtn.disabled = false;
         retryBtn.textContent = '重试';
@@ -1373,19 +1391,19 @@ function renderAuditDetail(record) {
   }
 
   // 绑定另存为模板按钮事件
-  const saveSysBtn = $('saveSystemPromptToTemplatesBtn');
+  const saveSysBtn = auditDependencies.$('saveSystemPromptToTemplatesBtn');
   if (saveSysBtn) {
     saveSysBtn.onclick = (e) => {
       e.stopPropagation();
       const systemText = record.system;
-      showView('promptsView');
+      auditDependencies.showView('promptsView');
 
-      const promptContent = $('promptContent');
+      const promptContent = auditDependencies.$('promptContent');
       if (promptContent) {
         promptContent.value = systemText;
       }
 
-      const templateNameInput = $('templateNameInput');
+      const templateNameInput = auditDependencies.$('templateNameInput');
       if (templateNameInput) {
         const now = new Date();
         const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
@@ -1394,8 +1412,11 @@ function renderAuditDetail(record) {
         templateNameInput.select();
       }
 
-      togglePromptsTab('tabCustomPrompts');
-      showToast('已成功逆向提纯该系统提示词并载入编辑器，可输入名称保存为本地插件。', 'success');
+      auditDependencies.togglePromptsTab('tabCustomPrompts');
+      auditDependencies.showToast(
+        '已成功逆向提纯该系统提示词并载入编辑器，可输入名称保存为本地插件。',
+        'success'
+      );
     };
   }
 }
@@ -1430,14 +1451,14 @@ function switchAuditInspectorTab(tabId) {
 }
 
 function toggleAuditSystemPanel() {
-  const panel = $('auditSystemPanel');
+  const panel = auditDependencies.$('auditSystemPanel');
   if (panel) {
     panel.classList.toggle('collapsed');
   }
 }
 
 function toggleAuditToolCall(id) {
-  const el = $('tool_call_' + id);
+  const el = auditDependencies.$('tool_call_' + id);
   if (el) {
     el.classList.toggle('collapsed');
   }
@@ -1506,21 +1527,21 @@ function renderSingleToolCall(tc) {
       <div class="audit-tool-header" data-audit-toggle-tool="${id}">
         <span class="audit-tool-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Tool Call: ${escapeHtml(name)}
+          Tool Call: ${auditDependencies.escapeHtml(name)}
         </span>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <div class="audit-tool-body">
         <div class="audit-tool-args">
           <div class="audit-tool-args-label">调用参数 (Arguments)${argsPreview.truncated ? ' · 已截断显示' : ''}:</div>
-          <pre><code>${escapeHtml(argsPreview.text)}</code></pre>
+          <pre><code>${auditDependencies.escapeHtml(argsPreview.text)}</code></pre>
         </div>
         ${
           resultStr
             ? `
         <div class="audit-tool-result">
           <div class="audit-tool-result-label">执行输出 (Result)${resultPreview.truncated ? ' · 已截断显示' : ''}:</div>
-          <pre><code>${escapeHtml(resultPreview.text)}</code></pre>
+          <pre><code>${auditDependencies.escapeHtml(resultPreview.text)}</code></pre>
         </div>
         `
             : `

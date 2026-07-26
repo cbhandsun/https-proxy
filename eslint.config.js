@@ -210,17 +210,7 @@ module.exports = [
   },
   {
     // Browser-side ESM modules are bundled by Vite and share explicit imports.
-    files: [
-      'tauri-ui/src/modules/app.js',
-      'tauri-ui/src/modules/app-ux.js',
-      'tauri-ui/src/modules/app-bridge.js',
-      'tauri-ui/src/modules/app-cli.js',
-      'tauri-ui/src/modules/app-diagnostics.js',
-      'tauri-ui/src/modules/app-audit.js',
-      'tauri-ui/src/modules/app-tool-status.js',
-      'tauri-ui/src/modules/app-environment.js',
-      'tauri-ui/src/modules/app-mcp.js',
-    ],
+    files: ['tauri-ui/src/app/**/*.js'],
     languageOptions: {
       sourceType: 'module',
       globals: {
@@ -294,7 +284,7 @@ module.exports = [
   },
   {
     // Big monoliths retain existing dead-binding noise until domain extraction.
-    files: ['openai-proxy.js', 'tauri-ui/src/modules/app.js'],
+    files: ['openai-proxy.js', 'tauri-ui/src/app/bootstrap.js'],
     rules: {
       'unused-imports/no-unused-vars': 'off',
       'prefer-const': 'off',

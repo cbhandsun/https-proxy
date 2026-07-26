@@ -6,7 +6,7 @@ const {
   unpinnedActionReferences,
   validateCiGovernance,
   validateReleaseWorkflow,
-} = require('../lib/ci-governance');
+} = require('../../lib/ci-governance');
 
 const pinned = 'actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd';
 assert.deepStrictEqual(actionReferences(`- uses: ${pinned} # v6`), [pinned]);

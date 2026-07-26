@@ -1,16 +1,26 @@
-import { getApiBase } from './app-bridge.js';
-import { initPromptsAuditView, initUsageReportView } from './app-audit.js';
-import { bindCliSessionControls } from './app-cli.js';
+import { configureBridge, getApiBase } from './domains/bridge.js';
+import { configureAudit, initPromptsAuditView, initUsageReportView } from './domains/audit.js';
+import {
+  bindCliSessionControls,
+  cliSessionsTimer,
+  configureCli,
+  isCodeToolsVisible,
+  refreshCliSessions,
+  sharedCliState,
+} from './domains/cli.js';
 import {
   bindDiagnosticsControls,
+  configureDiagnostics,
   getViewDomCache,
+  isMonitorVisible,
   refreshDiagnostics,
   refreshLog,
   refreshMonitor,
   startHeartbeat,
-} from './app-diagnostics.js';
+} from './domains/diagnostics.js';
 import {
   copyClaudeDesktopProcessPrompt,
+  configureToolStatus,
   isStartupStatusSettling,
   lastTraeNativeDebugCommands,
   proxyStatusOutputLooksRunning,
@@ -31,9 +41,9 @@ import {
   stopTraeNativeDeepDebug,
   testClaudeDesktopProcessOutput,
   testTraeClaudeProcessOutput,
-} from './app-tool-status.js';
-import { bindEnvControls, refreshEnvStatus } from './app-environment.js';
-import { initMcpHubView } from './app-mcp.js';
+} from './domains/tool-status.js';
+import { bindEnvControls, configureEnvironment, refreshEnvStatus } from './domains/environment.js';
+import { configureMcp, initMcpHubView } from './domains/mcp.js';
 
 const rateLimitsData = {};
 let limitsTimeDisplayTimer = null;
@@ -4987,43 +4997,67 @@ if (saveTplBtn) {
 
 // app-mcp.js owns this domain.
 
+function configureDomainModules() {
+  const runtime = {
+    $,
+    CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT,
+    CLI_SESSIONS_VISIBLE_MS,
+    LOG_AUTO_REFRESH_VISIBLE_MS,
+    LOG_RENDER_LINE_LIMIT,
+    LOG_REQUEST_MAX_BYTES,
+    MONITOR_RENDER_WINDOW,
+    MONITOR_SEARCH_BODY_LIMIT,
+    STARTUP_STATUS_GRACE_MS,
+    STARTUP_STATUS_RETRY_MS,
+    checkProxyHealth,
+    clearElement,
+    confirmAction,
+    debounce,
+    ensureClaudeDesktop,
+    ensureProxyRecovered,
+    escapeHtml,
+    getApiBase,
+    hydrateConfigAfterStartup,
+    isCodeToolsVisible,
+    isMonitorVisible,
+    perfStart,
+    refreshCertStatus,
+    refreshCertStatusAfterProxyOnline,
+    refreshCliSessions,
+    refreshProxyStatus,
+    resolveClaudeDesktopModel,
+    routeIdOfClaudeDesktopModel,
+    sharedAppState,
+    sharedCliState,
+    showDiagnosticsTab,
+    showDiagnosticsView,
+    showToast,
+    showView,
+    startupStatusStartedAt,
+    togglePromptsTab,
+    get cliSessionsTimer() {
+      return cliSessionsTimer;
+    },
+    get config() {
+      return config;
+    },
+    get currentViewId() {
+      return currentViewId;
+    },
+  };
+
+  configureBridge(runtime);
+  configureAudit(runtime);
+  configureCli(runtime);
+  configureDiagnostics(runtime);
+  configureToolStatus(runtime);
+  configureEnvironment(runtime);
+  configureMcp(runtime);
+}
+
+configureDomainModules();
 bindCriticalFrontendControls('final');
 markFrontendInit('load:start');
 load()
   .then(() => markFrontendInit('load:complete'))
   .catch((error) => recordFrontendInitError('load', error));
-
-export {
-  $,
-  CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT,
-  CLI_SESSIONS_VISIBLE_MS,
-  LOG_AUTO_REFRESH_VISIBLE_MS,
-  LOG_RENDER_LINE_LIMIT,
-  LOG_REQUEST_MAX_BYTES,
-  MONITOR_RENDER_WINDOW,
-  MONITOR_SEARCH_BODY_LIMIT,
-  STARTUP_STATUS_GRACE_MS,
-  STARTUP_STATUS_RETRY_MS,
-  checkProxyHealth,
-  clearElement,
-  config,
-  confirmAction,
-  currentViewId,
-  debounce,
-  ensureClaudeDesktop,
-  ensureProxyRecovered,
-  escapeHtml,
-  hydrateConfigAfterStartup,
-  perfStart,
-  refreshCertStatus,
-  refreshCertStatusAfterProxyOnline,
-  resolveClaudeDesktopModel,
-  routeIdOfClaudeDesktopModel,
-  sharedAppState,
-  showDiagnosticsTab,
-  showDiagnosticsView,
-  showToast,
-  showView,
-  startupStatusStartedAt,
-  togglePromptsTab,
-};
