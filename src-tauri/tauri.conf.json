@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.efficiency.https-proxy-manager",
   "build": {
-    "frontendDist": "../dist/tauri-ui",
+    "frontendDist": "../tauri-ui/dist",
     "devUrl": "http://localhost:1430",
-    "beforeDevCommand": "node scripts/sync-frontend.js --check && node scripts/dev-static-server.js",
-    "beforeBuildCommand": "node scripts/sync-frontend.js --check && node scripts/prepare-tauri-dist.js && node scripts/prepare-release-runtime.js"
+    "beforeDevCommand": "npm run frontend:dev -- --host 127.0.0.1",
+    "beforeBuildCommand": "npm run frontend:build && npm run release:prepare"
   },
   "app": {
     "withGlobalTauri": true,

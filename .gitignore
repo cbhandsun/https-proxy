@@ -24,7 +24,6 @@ proxy.config.before-*.json
 *.jsonl
 *.jsonl.*
 *.jsonl.*.bak
-.static-server.*.log
 
 # Build outputs
 dist/
@@ -33,16 +32,6 @@ out/
 *.zip
 tauri-ui/dist/
 /src-tauri/target*/
-
-# Frontend mirrors (canonical source: tauri-ui/)
-/app.js
-/app.css
-/app-bridge.js
-/app-audit.js
-/app-cli.js
-/app-diagnostics.js
-/app-ux.js
-/electron-ui.html
 
 # Test runtime artifacts
 test/*.log

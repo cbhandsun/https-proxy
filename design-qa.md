@@ -43,7 +43,7 @@ URLs and warning styling.
 - Entry settings rendered two groups with three rows each.
 - URLs rendered: HTTPS 3443/3445/3447 and HTTP 3080/3082/3084.
 - Transport selectors and enabled checkboxes remained interactive.
-- Browser console errors: none on `electron-ui.html`.
+- Browser console errors: none on the Vite `index.html` entry.
 
 ## Comparison History
 

@@ -1,3 +1,5 @@
+import { config, showToast } from './app.js';
+
 // 全局错误监控 Banner，第一性原理快速定位前端崩溃
 window.onerror = function (message, source, lineno, colno, error) {
   const errorMsg = `${message} at ${source}:${lineno}:${colno}`;
@@ -65,6 +67,8 @@ function rememberLocalServerPorts(config) {
     localStorage.removeItem('last_local_management_port');
   }
 }
+
+export { getApiBase };
 
 async function resolveManagementToken(options = {}) {
   if (options.forceRefresh) clearManagementTokenCache();

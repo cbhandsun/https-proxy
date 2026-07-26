@@ -24,7 +24,14 @@ if (!resources || typeof resources !== 'object' || Array.isArray(resources)) {
 }
 
 const beforeBuild = String((tauriConfig.build && tauriConfig.build.beforeBuildCommand) || '');
-if (!beforeBuild.includes('prepare-release-runtime.js')) {
+const releasePrepareScript = String(
+  (packageJson.scripts && packageJson.scripts['release:prepare']) || ''
+);
+const preparesReleaseRuntimeDirectly = beforeBuild.includes('prepare-release-runtime.js');
+const preparesReleaseRuntimeViaPackageScript =
+  beforeBuild.includes('npm run release:prepare') &&
+  releasePrepareScript.includes('prepare-release-runtime.js');
+if (!preparesReleaseRuntimeDirectly && !preparesReleaseRuntimeViaPackageScript) {
   errors.push('Tauri beforeBuildCommand must prepare a clean release runtime');
 }
 

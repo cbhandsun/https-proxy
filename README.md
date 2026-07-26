@@ -1,6 +1,7 @@
 # HTTPS Proxy Manager (HTTPS 代理管理器)
 
-这是一个专为 AI 辅助开发助手（如 Claude Code、Antigravity CLI、Google Gemini CLI、Cursor、VS Code Copilot 等）设计的本地高性能 HTTPS 代理管理器。
+这是一个专为 AI 辅助开发助手（如 Claude Code、Antigravity CLI、Google Gemini
+CLI、Cursor、VS Code Copilot 等）设计的本地高性能 HTTPS 代理管理器。
 
 它提供了多协议转发、官方直连 OAuth 透传、配置无缝热加载、节点首包延迟测速以及系统级提示词（Markdown）一键同步等进阶生产力特性。
 
@@ -10,9 +11,15 @@
 
 1. **官方直连与 OAuth 凭证透传 (Official Direct Auth)**
    - 针对官方大模型和助手（Claude、Gemini、OpenAI、Codex）提供官方预设。
-   - 当 `apiKey` 配置留空时，代理自动转为**凭证透传模式**，原样向游上游转发客户端发送的 OAuth 令牌（如 `Authorization: Bearer client-oauth-token`）或特定鉴权头部，完美支持官方 CLI 登录流程。
-   - 当配置 `apiKey` 时，自动根据协议重写首部（Anthropic 写入 `x-api-key`，Google 写入 `x-goog-api-key`，OpenAI 写入 `authorization: Bearer`）。
-   - Trae International 官方登录通过本地 Trae 扩展桥接复用客户端登录态，详见 [`docs/trae-official-bridge.md`](docs/trae-official-bridge.md) / [`中文版`](docs/trae-official-bridge.zh-CN.md)。
+   - 当 `apiKey`
+     配置留空时，代理自动转为**凭证透传模式**，原样向游上游转发客户端发送的 OAuth 令牌（如
+     `Authorization: Bearer client-oauth-token`）或特定鉴权头部，完美支持官方 CLI 登录流程。
+   - 当配置 `apiKey` 时，自动根据协议重写首部（Anthropic 写入
+     `x-api-key`，Google 写入 `x-goog-api-key`，OpenAI 写入
+     `authorization: Bearer`）。
+   - Trae International 官方登录通过本地 Trae 扩展桥接复用客户端登录态，详见
+     [`docs/trae-official-bridge.md`](docs/trae-official-bridge.md) /
+     [`中文版`](docs/trae-official-bridge.zh-CN.md)。
 
 2. **配置动态热重载 (Configuration Hot-Reload)**
    - 代理层引入基于 `fs.watch` 监听配置文件的机制。
@@ -34,9 +41,13 @@
      - **Gemini CLI** (`~/.gemini/GEMINI.md`)
    - 拥有 `localStorage` 草稿防丢锁，自动为各平台独立记忆编辑草稿。
 
-5. **全平台浏览器直接访问与 REST API 降级桥接 (Cross-Platform Browser Administration)**
-   - 即使在不包含 Rust (`src-tauri`) 编译外壳的环境中，前端管理器与代理核心依然可以**完美活过来**。
-   - 在非 Tauri 容器（如常规浏览器 Chrome/Edge 等）下运行时，前端 `window.proxyManager` 会自动触发**降级桥接机制**，直接通过 HTTP REST API 向本地代理服务器读写本地配置、获取真实日志、测试模型列表以及控制 Active 节点，保持体验的完全一致。
+5. **全平台浏览器直接访问与 REST API 降级桥接 (Cross-Platform Browser
+   Administration)**
+   - 即使在不包含 Rust
+     (`src-tauri`) 编译外壳的环境中，前端管理器与代理核心依然可以**完美活过来**。
+   - 在非 Tauri 容器（如常规浏览器 Chrome/Edge 等）下运行时，前端
+     `window.proxyManager` 会自动触发**降级桥接机制**，直接通过 HTTP REST
+     API 向本地代理服务器读写本地配置、获取真实日志、测试模型列表以及控制 Active 节点，保持体验的完全一致。
 
 ---
 
@@ -68,6 +79,7 @@ graph TD
 ## 快速开始 (Quick Start)
 
 ### 1. 准备依赖与启动
+
 在终端中进入项目根目录：
 
 ```bash
@@ -77,25 +89,39 @@ npm install
 # 启动本地代理服务器
 node openai-proxy.js
 
-# 启动前端静态 web 服务
-node scripts/dev-static-server.js
+# 启动 Vite 前端开发服务
+npm run frontend:dev
+```
+
+也可以直接启动 Tauri 桌面开发模式（会自动启动 Vite）：
+
+```bash
+npm run dev
 ```
 
 ### 2. 访问图形管理器
-服务启动后，在您的浏览器（Chrome、Edge 等）中打开：
-👉 **[http://localhost:1430](http://localhost:1430)**
 
-在此页面上即可进行全部上游目标更改、延迟测速、路由映射与系统提示词同步操作，配置将自动写入本地的 `proxy.config.json` 文件中。
+服务启动后，在您的浏览器（Chrome、Edge 等）中打开：👉
+**[http://localhost:1430](http://localhost:1430)**
 
-本地运行态默认收敛在 `.hpm-runtime/` 下，包括 `proxy.log`、管理 token、诊断 JSONL 和生成证书；`proxy.config.json` 仍保留在项目根目录，便于备份和手动编辑。首次使用新布局启动时，旧版根目录运行态文件会自动迁入 `.hpm-runtime/`，且不会覆盖同名目标文件。
+在此页面上即可进行全部上游目标更改、延迟测速、路由映射与系统提示词同步操作，配置将自动写入本地的
+`proxy.config.json` 文件中。
+
+本地运行态默认收敛在 `.hpm-runtime/` 下，包括
+`proxy.log`、管理 token、诊断 JSONL 和生成证书；`proxy.config.json`
+仍保留在项目根目录，便于备份和手动编辑。首次使用新布局启动时，旧版根目录运行态文件会自动迁入
+`.hpm-runtime/`，且不会覆盖同名目标文件。
 
 ### 3. 证书与信任
+
 为了保证本地 HTTPS 请求不会因为 TLS 证书问题报错：
+
 1. 在 UI 页面中切换到 **“证书与信任”** 标签页。
 2. 点击 **“安装到当前用户证书库”**。
 3. 重启您的开发终端或客户端，代理即可正常拦截解密 HTTPS 数据流。
 
 ### 4. 本地助手环境变量对接
+
 要在命令行助手（如 `claude`）中应用代理，只需在终端中声明环境变量：
 
 ```bash
@@ -121,7 +147,10 @@ node test/headers-routing.test.js
 ```
 
 运行后将验证如下测试点：
+
 - [x] **Claude/OpenAI Official (空 Key)**：透传客户端原有 OAuth 头。
-- [x] **Claude/Google/OpenAI Profile (带 Key)**：将 Key 转换成对应协议特有的 Auth 头部。
+- [x] **Claude/Google/OpenAI Profile
+      (带 Key)**：将 Key 转换成对应协议特有的 Auth 头部。
 - [x] **热加载检测**：运行时更新配置文件，断言新参数秒级在代理中生效。
-- [x] **本地延迟与提示词同步 API**：发送测速并断言首包耗时，以及将 Markdown 提示词分别同步至 `.claude` 与 `.antigravity` 的正确性。
+- [x] **本地延迟与提示词同步 API**：发送测速并断言首包耗时，以及将 Markdown 提示词分别同步至
+      `.claude` 与 `.antigravity` 的正确性。

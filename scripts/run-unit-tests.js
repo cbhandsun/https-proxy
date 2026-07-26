@@ -11,6 +11,7 @@ const testDir = path.join(repoRoot, 'test');
 const nonUnitTests = new Set([
   'test/env-tools.test.js',
   'test/entry-auth-integration.test.js',
+  'test/frontend-build-governance.test.js',
   'test/headers-routing.test.js',
   'test/thinking-persistence.test.js',
   'test/tool-configs.test.js',
@@ -88,7 +89,6 @@ const unitTests = [
   'test/app-audit.test.js',
   'test/app-diagnostics.test.js',
   'test/app-cli.test.js',
-  'test/dev-static-server.test.js',
   'test/usage.test.js',
   'test/audit.test.js',
   'test/management-config.test.js',
