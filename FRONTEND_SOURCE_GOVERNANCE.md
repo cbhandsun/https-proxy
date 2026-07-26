@@ -7,6 +7,8 @@ The frontend has one source tree and one build pipeline:
 - `tauri-ui/src/app/bootstrap.js` is the application composition root.
 - `tauri-ui/src/app/domains/` contains independently configured ESM domain
   modules.
+- `tauri-ui/src/app/runtime/` contains dependency-free state, DOM, dependency
+  binding and performance primitives.
 - `tauri-ui/src/app/ux.js` owns the shared browser UX boundary.
 - `tauri-ui/src/styles/` contains styles imported by the JavaScript entry.
 - `tauri-ui/dist/` is generated exclusively by Vite and is never committed.
@@ -17,7 +19,9 @@ packaged builds.
 
 Domain modules must not import the bootstrap or each other. The bootstrap passes
 explicit runtime dependencies through each domain's `configure*()` boundary, and
-the architecture gate rejects ESM cycles.
+the architecture gate rejects ESM cycles. Runtime modules may not import project
+modules. The bootstrap has a non-increasing 4,250-line budget so new features
+must live in a domain or runtime module.
 
 Use these commands:
 

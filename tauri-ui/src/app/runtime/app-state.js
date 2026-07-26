@@ -1,0 +1,20 @@
+export function createSharedAppState() {
+  return Object.seal({
+    diagnosticsRefreshInFlight: false,
+    heartbeatTimer: null,
+    lastEventTime: null,
+    lastLogAutoRefreshAt: 0,
+    lastRenderedDiagnosticsOutput: '',
+    lastRenderedDiagnosticsStatus: '',
+    lastRenderedLog: '',
+    lastRenderedMonitorHtml: null,
+    lastStatusRefresh: 0,
+    logRefreshInFlight: false,
+    logRefreshTimer: null,
+    monitorEvents: [],
+    monitorRefreshInFlight: false,
+    startupProxyRetryTimer: null,
+    statusRefreshInFlight: false,
+    viewDomCache: null,
+  });
+}

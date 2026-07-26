@@ -1,7 +1,7 @@
 # Test Layout
 
-- `frontend/`: frontend architecture, dependency-boundary and DOM rendering
-  tests. Run with `npm run test:frontend`.
+- `frontend/`: frontend architecture, dependency-boundary, external-response,
+  runtime-primitive and DOM rendering tests. Run with `npm run test:frontend`.
 - `governance/`: CI, lint, architecture and release-policy tests.
 - Root `*.test.js`: proxy, protocol, security, release and runtime unit tests
   selected by `scripts/run-unit-tests.js`.

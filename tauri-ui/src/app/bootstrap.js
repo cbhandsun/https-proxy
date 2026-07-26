@@ -44,188 +44,31 @@ import {
 } from './domains/tool-status.js';
 import { bindEnvControls, configureEnvironment, refreshEnvStatus } from './domains/environment.js';
 import { configureMcp, initMcpHubView } from './domains/mcp.js';
-
-const rateLimitsData = {};
-let limitsTimeDisplayTimer = null;
-let lastRenderedLimitsProfileId = '';
-let lastRenderedLimitsHtml = '';
-let lastRenderedLimitsTimeText = '';
-
-function getRelativeTime(timestamp) {
-  if (!timestamp) return '';
-  const diff = Date.now() - timestamp;
-  if (diff < 60000) return '刚刚';
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}分钟前`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}小时前`;
-  return `${Math.floor(hrs / 24)}天前`;
-}
-
-function createLimitsTextElement(text, options = {}) {
-  const item = document.createElement('span');
-  item.textContent = text;
-  if (options.color) item.style.color = options.color;
-  item.style.opacity = options.opacity || '';
-  item.style.fontSize = options.fontSize || '11px';
-  return item;
-}
-
-function createLimitsSpinnerElement() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.classList.add('animate-spin');
-  svg.setAttribute('width', '10');
-  svg.setAttribute('height', '10');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('stroke', 'currentColor');
-  svg.setAttribute('stroke-width', '3');
-  svg.style.animation = 'spin 1s linear infinite';
-
-  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-  polyline.setAttribute('points', '23 4 23 10 17 10');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M20.49 15a9 9 0 1 1-2.12-9.36L23 10');
-  svg.append(polyline, path);
-  return svg;
-}
-
-function limitsSignature(profileId) {
-  const data = rateLimitsData[profileId];
-  return JSON.stringify({
-    profileId,
-    loading: !!(data && data.loading),
-    error: data && data.error ? String(data.error) : '',
-    limits: data && Array.isArray(data.limits) ? data.limits : [],
-  });
-}
-
-function createLimitsElement(profileId) {
-  const data = rateLimitsData[profileId];
-  if (!data) {
-    return createLimitsTextElement('未同步凭证与限额', { opacity: '0.6' });
-  }
-  if (data.loading) {
-    const loading = createLimitsTextElement('', { opacity: '0.8' });
-    loading.style.display = 'inline-flex';
-    loading.style.alignItems = 'center';
-    loading.style.gap = '4px';
-    loading.append(createLimitsSpinnerElement(), document.createTextNode('正在同步凭证与限额...'));
-    return loading;
-  }
-  if (data.error) {
-    return createLimitsTextElement(String(data.error), { color: '#ef4444' });
-  }
-  if (!data.limits || data.limits.length === 0) {
-    return createLimitsTextElement('无限制数据', { opacity: '0.6' });
-  }
-
-  const fragment = document.createDocumentFragment();
-  data.limits.forEach((limit, index) => {
-    let color = '#10b981';
-    const value = Number.isFinite(Number(limit.remainingPercent))
-      ? Number(limit.remainingPercent)
-      : Number(limit.percent || 0);
-    const isRemaining = Number.isFinite(Number(limit.remainingPercent));
-    if (isRemaining) {
-      if (value <= 20) color = '#ef4444';
-      else if (value <= 50) color = '#f59e0b';
-    } else {
-      if (value >= 80) color = '#ef4444';
-      else if (value >= 50) color = '#f59e0b';
-    }
-
-    const item = document.createElement('span');
-    item.style.background = 'rgba(255, 255, 255, 0.03)';
-    item.style.padding = '2px 6px';
-    item.style.borderRadius = '4px';
-    item.style.border = '1px solid var(--border)';
-    item.style.display = 'inline-flex';
-    item.style.alignItems = 'center';
-    item.style.gap = '4px';
-    item.appendChild(document.createTextNode(`${limit.model ? limit.model : limit.window}: `));
-
-    const valueEl = document.createElement('strong');
-    valueEl.style.color = color;
-    valueEl.style.fontWeight = '700';
-    valueEl.textContent = `${value}%`;
-    item.appendChild(valueEl);
-
-    const resetValue = limit.resetDisplay || limit.resetIn || '';
-    if (resetValue) {
-      item.appendChild(document.createTextNode(' '));
-      const reset = document.createElement('span');
-      reset.style.opacity = '0.6';
-      reset.style.fontSize = '10px';
-      reset.textContent = `🕒 ${resetValue}`;
-      item.appendChild(reset);
-    }
-
-    if (index > 0) fragment.appendChild(document.createTextNode(' '));
-    fragment.appendChild(item);
-  });
-  return fragment;
-}
-
-async function refreshRateLimits(profileId) {
-  rateLimitsData[profileId] = { loading: true, refreshedAt: Date.now() };
-  if (profileId === selectedId) {
-    renderDashboardLimits(profileId);
-  }
-
-  try {
-    const result = await window.proxyManager.getRateLimits(profileId);
-    if (result.ok) {
-      rateLimitsData[profileId] = {
-        limits: result.limits || [],
-        refreshedAt: Date.now(),
-      };
-    } else {
-      rateLimitsData[profileId] = {
-        error: result.error || '获取失败',
-        refreshedAt: Date.now(),
-      };
-    }
-  } catch (err) {
-    rateLimitsData[profileId] = {
-      error: err.message,
-      refreshedAt: Date.now(),
-    };
-  }
-
-  if (profileId === selectedId) {
-    renderDashboardLimits(profileId);
-  }
-}
-
-const deferredRateLimitTimers = new Map();
-
-function scheduleRateLimitsRefresh(profileId) {
-  if (!profileId || rateLimitsData[profileId] || deferredRateLimitTimers.has(profileId)) return;
-  const timer = setTimeout(() => {
-    deferredRateLimitTimers.delete(profileId);
-    if (!rateLimitsData[profileId]) {
-      refreshRateLimits(profileId).catch((err) => console.error('refreshRateLimits error:', err));
-    }
-  }, 2500);
-  deferredRateLimitTimers.set(profileId, timer);
-}
-
-function updateLimitsTimeDisplay() {
-  const dashboard = $('limitsDashboard');
-  if (dashboard && dashboard.style.display === 'none') return;
-  if (selectedId && rateLimitsData[selectedId]) {
-    const data = rateLimitsData[selectedId];
-    const timeDisplay = $('rate-limits-time-display');
-    if (timeDisplay && data && !data.loading) {
-      const nextText = `🕒 ${getRelativeTime(data.refreshedAt)}`;
-      if (nextText !== lastRenderedLimitsTimeText) {
-        timeDisplay.textContent = nextText;
-        lastRenderedLimitsTimeText = nextText;
-      }
-    }
-  }
-}
+import {
+  bindPromptControls,
+  configurePrompts,
+  initPromptsTabSwitching,
+  loadPresetPrompts,
+  loadTemplates,
+  togglePromptsTab,
+} from './domains/prompts.js';
+import {
+  configureRateLimits,
+  refreshRateLimitsFromUI,
+  renderDashboardLimits,
+  scheduleRateLimitsRefresh,
+  startRateLimitsTimeDisplay,
+} from './domains/rate-limits.js';
+import { appendOption, clearElement, debounce, escapeAttr, escapeHtml } from './runtime/dom.js';
+import {
+  initPerformanceRuntime,
+  perfStart,
+  perfTrack,
+  promiseWithTimeout,
+  recordPerf,
+  scheduleStartupTask,
+} from './runtime/performance.js';
+import { createSharedAppState } from './runtime/app-state.js';
 
 let config;
 let selectedId;
@@ -239,27 +82,12 @@ let lastRenderedRulesHtml = '';
 let lastRenderedOverviewSignature = '';
 let lastRenderedOverviewRoutesHtml = '';
 let lastRenderedProfilesHtml = '';
-let logRefreshTimer = null;
-let logRefreshInFlight = false;
-let lastRenderedLog = '';
-let diagnosticsRefreshInFlight = false;
-let lastRenderedDiagnosticsOutput = '';
-let lastRenderedDiagnosticsStatus = '';
-let lastLogAutoRefreshAt = 0;
-let lastRenderedMonitorHtml = null;
-let heartbeatTimer = null;
 let proxyRecoveryInFlight = false;
 let manualProxyStopSuppressed = false;
 let lastProxyRecoveryAt = 0;
 let currentTheme = 'light';
-let monitorEvents = [];
-let lastEventTime = null;
-let monitorRefreshInFlight = false;
-let lastStatusRefresh = 0;
 let lastCertRefresh = 0;
 let certRefreshInFlight = null;
-let statusRefreshInFlight = false;
-let startupProxyRetryTimer = null;
 let startupCertRetryTimer = null;
 const startupStatusStartedAt = performance.now();
 const STARTUP_STATUS_GRACE_MS = 12000;
@@ -269,111 +97,7 @@ let routeFilterText = '';
 let routeFilterProtocol = '';
 let routeSortBy = 'from';
 let routeSortDirection = 'asc';
-// Declared with let (not const) so getViewDomCache() in
-// app-diagnostics.js can lazy-initialise the cache the first time
-// a view switch happens. With const this throws
-// "Assignment to constant variable" the moment the user clicks any
-// [data-view-button] tab.
-let viewDomCache = null;
-
-const sharedAppState = {
-  get diagnosticsRefreshInFlight() {
-    return diagnosticsRefreshInFlight;
-  },
-  set diagnosticsRefreshInFlight(value) {
-    diagnosticsRefreshInFlight = value;
-  },
-  get heartbeatTimer() {
-    return heartbeatTimer;
-  },
-  set heartbeatTimer(value) {
-    heartbeatTimer = value;
-  },
-  get lastEventTime() {
-    return lastEventTime;
-  },
-  set lastEventTime(value) {
-    lastEventTime = value;
-  },
-  get lastLogAutoRefreshAt() {
-    return lastLogAutoRefreshAt;
-  },
-  set lastLogAutoRefreshAt(value) {
-    lastLogAutoRefreshAt = value;
-  },
-  get lastRenderedDiagnosticsOutput() {
-    return lastRenderedDiagnosticsOutput;
-  },
-  set lastRenderedDiagnosticsOutput(value) {
-    lastRenderedDiagnosticsOutput = value;
-  },
-  get lastRenderedDiagnosticsStatus() {
-    return lastRenderedDiagnosticsStatus;
-  },
-  set lastRenderedDiagnosticsStatus(value) {
-    lastRenderedDiagnosticsStatus = value;
-  },
-  get lastRenderedLog() {
-    return lastRenderedLog;
-  },
-  set lastRenderedLog(value) {
-    lastRenderedLog = value;
-  },
-  get lastRenderedMonitorHtml() {
-    return lastRenderedMonitorHtml;
-  },
-  set lastRenderedMonitorHtml(value) {
-    lastRenderedMonitorHtml = value;
-  },
-  get lastStatusRefresh() {
-    return lastStatusRefresh;
-  },
-  set lastStatusRefresh(value) {
-    lastStatusRefresh = value;
-  },
-  get logRefreshInFlight() {
-    return logRefreshInFlight;
-  },
-  set logRefreshInFlight(value) {
-    logRefreshInFlight = value;
-  },
-  get logRefreshTimer() {
-    return logRefreshTimer;
-  },
-  set logRefreshTimer(value) {
-    logRefreshTimer = value;
-  },
-  get monitorEvents() {
-    return monitorEvents;
-  },
-  set monitorEvents(value) {
-    monitorEvents = value;
-  },
-  get monitorRefreshInFlight() {
-    return monitorRefreshInFlight;
-  },
-  set monitorRefreshInFlight(value) {
-    monitorRefreshInFlight = value;
-  },
-  get startupProxyRetryTimer() {
-    return startupProxyRetryTimer;
-  },
-  set startupProxyRetryTimer(value) {
-    startupProxyRetryTimer = value;
-  },
-  get statusRefreshInFlight() {
-    return statusRefreshInFlight;
-  },
-  set statusRefreshInFlight(value) {
-    statusRefreshInFlight = value;
-  },
-  get viewDomCache() {
-    return viewDomCache;
-  },
-  set viewDomCache(value) {
-    viewDomCache = value;
-  },
-};
+const sharedAppState = createSharedAppState();
 
 const fields = ['id', 'name', 'targetUrl', 'protocol', 'apiKey'];
 const $ = (id) => document.getElementById(id);
@@ -387,11 +111,12 @@ function markFrontendInit(stage, payload = {}) {
 function recordFrontendInitError(stage, error) {
   window.__frontendInit.errors.push({
     stage,
-    message: error && error.message ? error.message : String(error),
-    stack: error && error.stack ? error.stack : '',
+    type: error instanceof Error ? error.name : typeof error,
   });
-  console.error(`[frontend-init] ${stage}`, error);
 }
+initPerformanceRuntime({
+  onTaskError: (label, error) => recordFrontendInitError(label, error),
+});
 const LOG_RENDER_LINE_LIMIT = 320;
 const LOG_REQUEST_MAX_BYTES = 256 * 1024;
 const LOG_AUTO_REFRESH_VISIBLE_MS = 3000;
@@ -448,123 +173,6 @@ const defaultEntryServers = [
   },
 ];
 const ENTRY_PROTOCOL_OPTIONS = ['claude', 'openai-responses', 'openai-chat', 'claude-desktop'];
-
-function escapeHtml(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function escapeAttr(value) {
-  return escapeHtml(value).replace(/'/g, '&#39;');
-}
-
-function clearElement(el) {
-  if (el) el.textContent = '';
-}
-
-function appendOption(select, value, label = value) {
-  const option = document.createElement('option');
-  option.value = String(value == null ? '' : value);
-  option.textContent = String(label == null ? '' : label);
-  select.appendChild(option);
-  return option;
-}
-
-function debounce(fn, delay = 180) {
-  let timer = null;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
-}
-
-const perfRecords = [];
-
-function exposePerfRecords() {
-  window.__hpmPerf = {
-    records: perfRecords,
-    report: () => perfRecords.slice(-50),
-    clear: () => {
-      perfRecords.length = 0;
-    },
-  };
-  document.documentElement.dataset.perfRecords = JSON.stringify(perfRecords.slice(-20));
-}
-exposePerfRecords();
-
-function perfDebugEnabled() {
-  try {
-    return localStorage.getItem('hpm_perf_debug') === '1';
-  } catch (err) {
-    return false;
-  }
-}
-
-function recordPerf(label, duration, meta = {}) {
-  const entry = {
-    label,
-    duration: Math.round(duration * 10) / 10,
-    at: new Date().toISOString(),
-    ...meta,
-  };
-  perfRecords.push(entry);
-  if (perfRecords.length > 200) perfRecords.shift();
-  exposePerfRecords();
-  if (perfDebugEnabled()) console.info('[perf]', entry);
-}
-
-function perfStart(label) {
-  const start = performance.now();
-  return (meta) => recordPerf(label, performance.now() - start, meta);
-}
-
-async function perfTrack(label, task) {
-  recordPerf(`${label}.start`, 0);
-  const finish = perfStart(label);
-  try {
-    return await task();
-  } finally {
-    finish();
-  }
-}
-
-function promiseWithTimeout(promise, timeoutMs, message) {
-  let timerId;
-  const timeout = new Promise((_, reject) => {
-    timerId = setTimeout(() => reject(new Error(message)), timeoutMs);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timerId));
-}
-
-function scheduleStartupTask(label, task, options = {}) {
-  const timeout = Number.isFinite(options.timeout) ? options.timeout : 1500;
-  const delay = Number.isFinite(options.delay) ? options.delay : 80;
-  let started = false;
-  const run = () => {
-    if (started) return;
-    started = true;
-    const finish = perfStart(label);
-    Promise.resolve()
-      .then(task)
-      .catch((err) => console.error(`${label} error:`, err))
-      .finally(() => finish());
-  };
-  if (options.eager === true) {
-    setTimeout(run, delay);
-    return;
-  }
-  const scheduleIdle = () => {
-    if (window.requestIdleCallback) {
-      window.requestIdleCallback(run, { timeout });
-    } else {
-      setTimeout(run, delay);
-    }
-  };
-  requestAnimationFrame(() => requestAnimationFrame(scheduleIdle));
-}
 
 function initTheme() {
   if (window.UX && window.UX.theme) {
@@ -2500,9 +2108,7 @@ function updateOfficialAuthSection(profileId) {
     dashboard.style.display = 'block';
 
     renderDashboardLimits(profileId);
-    if (!rateLimitsData[profileId]) {
-      scheduleRateLimitsRefresh(profileId);
-    }
+    scheduleRateLimitsRefresh(profileId);
   } else if (profileId === 'openai-official') {
     section.style.display = 'block';
     importControl.style.display = 'block';
@@ -2513,9 +2119,7 @@ function updateOfficialAuthSection(profileId) {
     dashboard.style.display = 'block';
 
     renderDashboardLimits(profileId);
-    if (!rateLimitsData[profileId]) {
-      scheduleRateLimitsRefresh(profileId);
-    }
+    scheduleRateLimitsRefresh(profileId);
   } else if (profileId === 'claude-official') {
     section.style.display = 'block';
     importControl.style.display = 'block';
@@ -2527,70 +2131,6 @@ function updateOfficialAuthSection(profileId) {
   } else {
     section.style.display = 'none';
   }
-}
-
-function renderDashboardLimits(profileId) {
-  const container = $('rate-limits-container');
-  const timeDisplay = $('rate-limits-time-display');
-  if (!container) return;
-
-  const signature = limitsSignature(profileId);
-  if (profileId !== lastRenderedLimitsProfileId || signature !== lastRenderedLimitsHtml) {
-    container.replaceChildren(createLimitsElement(profileId));
-    lastRenderedLimitsProfileId = profileId;
-    lastRenderedLimitsHtml = signature;
-  }
-
-  const data = rateLimitsData[profileId];
-  if (timeDisplay) {
-    const nextText =
-      data && !data.loading ? `🕒 ${getRelativeTime(data.refreshedAt)}` : '🕒 未同步';
-    if (nextText !== lastRenderedLimitsTimeText) {
-      timeDisplay.textContent = nextText;
-      lastRenderedLimitsTimeText = nextText;
-    }
-  }
-}
-
-async function refreshRateLimitsFromUI() {
-  if (!selectedId) return;
-  const btn = $('refresh-limits-action');
-  if (btn) {
-    btn.disabled = true;
-    btn.querySelector('svg').style.animation = 'spin 1s linear infinite';
-  }
-
-  rateLimitsData[selectedId] = { loading: true, refreshedAt: Date.now() };
-  renderDashboardLimits(selectedId);
-
-  try {
-    const result = await window.proxyManager.getRateLimits(selectedId);
-    if (result.ok) {
-      rateLimitsData[selectedId] = {
-        limits: result.limits || [],
-        refreshedAt: Date.now(),
-      };
-      showToast('官方凭证与使用限额同步成功', 'success');
-    } else {
-      rateLimitsData[selectedId] = {
-        error: result.error || '获取失败',
-        refreshedAt: Date.now(),
-      };
-      showToast('同步限额失败：' + (result.error || '未知错误'), 'error');
-    }
-  } catch (err) {
-    rateLimitsData[selectedId] = {
-      error: err.message,
-      refreshedAt: Date.now(),
-    };
-    showToast('同步限额出错：' + err.message, 'error');
-  }
-
-  if (btn) {
-    btn.disabled = false;
-    btn.querySelector('svg').style.animation = 'none';
-  }
-  renderDashboardLimits(selectedId);
 }
 
 // 静态服务商预设字典
@@ -3135,7 +2675,7 @@ async function ensureProxyRecovered(options = {}) {
       showToast('代理已恢复运行', 'success');
     }
     if (!startRes || startRes.code === 0) {
-      lastStatusRefresh = 0;
+      sharedAppState.lastStatusRefresh = 0;
       await refreshProxyStatus({ passive: true });
     }
   } catch (e) {
@@ -3274,13 +2814,7 @@ async function load() {
     console.error('prompt setup error:', e);
   }
 
-  try {
-    if (!limitsTimeDisplayTimer) {
-      limitsTimeDisplayTimer = setInterval(updateLimitsTimeDisplay, 15000);
-    }
-  } catch (e) {
-    console.error('updateLimitsTimeDisplay setup error:', e);
-  }
+  startRateLimitsTimeDisplay();
   finishLoadPerf({
     profiles: Array.isArray(config && config.profiles) ? config.profiles.length : 0,
   });
@@ -4626,375 +4160,6 @@ $('testAllLatencies').onclick = async () => {
   }
 };
 
-let promptContentSaveTimer = null;
-
-function persistPromptContentNow(
-  type = $('promptClientType').value,
-  content = $('promptContent').value
-) {
-  if (promptContentSaveTimer) {
-    clearTimeout(promptContentSaveTimer);
-    promptContentSaveTimer = null;
-  }
-  localStorage.setItem(`prompt_content_${type}`, content);
-}
-
-function schedulePromptContentPersist() {
-  const type = $('promptClientType').value;
-  const content = $('promptContent').value;
-  if (promptContentSaveTimer) clearTimeout(promptContentSaveTimer);
-  promptContentSaveTimer = setTimeout(() => {
-    promptContentSaveTimer = null;
-    localStorage.setItem(`prompt_content_${type}`, content);
-  }, 400);
-}
-
-$('promptClientType').onchange = () => {
-  persistPromptContentNow();
-  const type = $('promptClientType').value;
-  $('promptContent').value = localStorage.getItem(`prompt_content_${type}`) || '';
-};
-
-$('promptContent').oninput = () => {
-  schedulePromptContentPersist();
-};
-
-$('syncPromptBtn').onclick = async () => {
-  persistPromptContentNow();
-  const type = $('promptClientType').value;
-  const content = $('promptContent').value;
-
-  $('syncPromptBtn').disabled = true;
-  $('syncPromptBtn').textContent = '同步中...';
-
-  const port = Number((config.localServer && config.localServer.listenPort) || 3443);
-  const baseUrl = !window.__TAURI__ ? '' : 'http://127.0.0.1:' + port;
-  try {
-    const res = await fetch(`${baseUrl}/v1/local/prompts/sync`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ type, content }),
-    });
-    const data = await res.json();
-    if (data.ok) {
-      showToast(`提示词已成功同步到：${data.path}`);
-      $('output').textContent = `提示词同步成功！路径：${data.path}`;
-    } else {
-      showToast(`同步失败：${data.error}`, 'error');
-      $('output').textContent = `同步失败：${data.error}`;
-    }
-  } catch (err) {
-    showToast(`请求失败：${err.message}`, 'error');
-    $('output').textContent = `请求失败：${err.message}`;
-  } finally {
-    $('syncPromptBtn').disabled = false;
-    $('syncPromptBtn').textContent = '一键同步到本地助手';
-  }
-};
-
-// 系统预置提示词插件列表
-const SYSTEM_PRESET_PROMPTS = [
-  {
-    name: '简约开发助手 (KISS)',
-    desc: '倡导模块化与避免过度设计，严格遵守简约至上原则。',
-    content:
-      '# Role\n你是一个追求极简设计与高可维护性的代码重构和软件开发专家。\n\n# 核心原则 (KISS)\n1. 简洁至上：不写不需要的代码，拒绝过度工程与不必要的防御性设计。\n2. 模块化：保持方法短小精悍，职责单一。\n3. 良好文档：为复杂的非直观逻辑编写清晰的内联注释。',
-  },
-  {
-    name: '代码重构大师',
-    desc: '渐进式重构代码，消除条件嵌套，保持 API 签名完全兼容。',
-    content:
-      '# Role\n你是一个严谨的资深系统架构师，擅长发现既有代码库中的瓶颈并进行渐进式重构。\n\n# 核心原则\n1. 兼容性：严禁破坏原有的公共 API 或公共方法签名。\n2. 可读性：通过引入清晰的中间变量、消除嵌套条件分支来提升代码表现力。\n3. 性能：定位高频热循环，并在必要时提供优化和 Benchmark 建议。',
-  },
-  {
-    name: 'Bug 诊断侦探',
-    desc: '追踪异常还原诱因，细致搜查空引用溢出，以最小改动解决缺陷。',
-    content:
-      '# Role\n你是一个逻辑严密的软件调试专家，擅长从异常栈和日志中顺藤摸瓜定位问题根本。\n\n# 核心原则\n1. 溯源分析：不要只修复表象，深入推导问题的根本诱因。\n2. 边界检查：重点检查空指针（NPE）、越界、并发竞争和类型转换异常。\n3. 最小改动：用最少、最优雅的代码修改来解决问题，严防引入新缺陷。',
-  },
-  {
-    name: 'Git 提交规范器',
-    desc: '一键将近期变更整理并格式化为 Angular Git Commit 统一规范。',
-    content:
-      '# Role\n你是一个专业的 Git 工作流管理专家，协助开发者生成完美遵循 Angular 规范的提交日志。\n\n# 核心原则\n提交日志格式应为：\n`<type>(<scope>): <subject>`\n\n常见 `<type>`:\n- feat: 新功能\n- fix: 修复 Bug\n- docs: 文档变更\n- style: 代码格式调整（不影响逻辑）\n- refactor: 重构（既非新增也非修复）\n- test: 添加或修改测试\n- chore: 构建工具或辅助工具的变动',
-  },
-  {
-    name: '单元测试大师',
-    desc: '编写高可靠单元测试，包含全边界模拟，隔离外部依赖及网络。',
-    content:
-      '# Role\n你是一个追求高覆盖率与防御性测试的软件测试工程专家。\n\n# 核心原则\n1. 边界覆盖：为目标方法编写包含正常参数、最大/最小边界值、空值与异常输入的测试用例。\n2. 单一断言：尽量保持单元测试紧凑，每次重点验证一个逻辑分支。\n3. Mock 隔离：合理使用 Mock 框架隔离第三方依赖或数据库网络调用。',
-  },
-  {
-    name: 'PRD 需求撰写专家',
-    desc: '梳理业务核心价值、痛点及细分功能，建立清晰验收标准（AC）。',
-    content:
-      '# Role\n你是一个具备严密逻辑与同理心的资深产品经理，擅长将零散的想法转化为结构清晰、逻辑严谨的产品需求文档（PRD）。\n\n# 核心原则\n1. 业务价值：清晰界定目标用户痛点、用户画像及此功能能带来的商业/体验价值。\n2. 需求拆解：将大功能拆分为细粒度的功能点列表。\n3. 规则细节：详细梳理输入限制、状态变迁、网络异常等边界规则。\n4. 验收标准：为每一个功能点编写清晰的测试用例与验收条件 (AC)。',
-  },
-  {
-    name: '业务流程梳理师',
-    desc: '分析复杂的业务流转链路，设计异常降级与状态演变矩阵。',
-    content:
-      '# Role\n你是一个精通系统交互与状态演变的产品系统架构分析师。\n\n# 核心原则\n1. 主流程：清晰梳理从起点到终点的核心用户交互链路。\n2. 异常分支：重点罗列网络中断、鉴权失败、取消操作等异常链路的降级体验。\n3. 状态变迁：为关键业务实体（如订单、审批）制定清晰的状态转移矩阵（Status Matrix）。',
-  },
-  {
-    name: '竞品分析探针',
-    desc: '对比多维度优劣势，分析用户痛点与交互死角，寻找差异化切入点。',
-    content:
-      '# Role\n你是一个洞察敏锐的商业分析与用户体验（UX）研究专家。\n\n# 核心原则\n1. 多维对比：从商业模式、功能完备度、用户交互、性能体验四个维度深度对比竞品。\n2. 优势放大：提炼出我方可实现差异化竞争的“杀手级特性”。\n3. 痛点定位：分析竞品中用户反响强烈的核心槽点，转化为我方的设计机会点。',
-  },
-];
-
-function togglePromptsTab(tabId) {
-  const isPreset = tabId === 'tabPresetPrompts';
-  const presetTab = $('tabPresetPrompts');
-  const customTab = $('tabCustomPrompts');
-  const presetPanel = $('presetPromptsPanel');
-  const customPanel = $('customPromptsPanel');
-
-  if (!presetTab || !customTab || !presetPanel || !customPanel) return;
-
-  if (isPreset) {
-    presetTab.classList.add('active');
-    presetTab.style.border = '1px solid var(--border)';
-    presetTab.style.background = 'var(--light-bg)';
-    presetTab.style.color = 'var(--text)';
-
-    customTab.classList.remove('active');
-    customTab.style.border = '1px solid transparent';
-    customTab.style.background = 'transparent';
-    customTab.style.color = 'var(--muted)';
-
-    presetPanel.style.display = 'flex';
-    customPanel.style.display = 'none';
-  } else {
-    customTab.classList.add('active');
-    customTab.style.border = '1px solid var(--border)';
-    customTab.style.background = 'var(--light-bg)';
-    customTab.style.color = 'var(--text)';
-
-    presetTab.classList.remove('active');
-    presetTab.style.border = '1px solid transparent';
-    presetTab.style.background = 'transparent';
-    presetTab.style.color = 'var(--muted)';
-
-    presetPanel.style.display = 'none';
-    customPanel.style.display = 'flex';
-  }
-}
-
-function initPromptsTabSwitching() {
-  const presetTab = $('tabPresetPrompts');
-  const customTab = $('tabCustomPrompts');
-
-  if (presetTab && !presetTab.dataset.bound) {
-    presetTab.dataset.bound = 'true';
-    presetTab.onclick = () => togglePromptsTab('tabPresetPrompts');
-  }
-  if (customTab && !customTab.dataset.bound) {
-    customTab.dataset.bound = 'true';
-    customTab.onclick = () => togglePromptsTab('tabCustomPrompts');
-  }
-}
-
-function createPresetPromptItemElement(tpl, index) {
-  const item = document.createElement('div');
-  item.className = 'profile';
-  item.dataset.presetIndex = String(index);
-  item.style.padding = '12px 14px';
-  item.style.marginBottom = '0';
-  item.style.display = 'flex';
-  item.style.flexDirection = 'column';
-  item.style.gap = '6px';
-  item.style.cursor = 'pointer';
-  item.style.transition = 'all 0.2s';
-
-  const header = document.createElement('div');
-  header.style.display = 'flex';
-  header.style.justifyContent = 'space-between';
-  header.style.alignItems = 'center';
-
-  const name = document.createElement('span');
-  name.style.fontWeight = '700';
-  name.style.fontSize = '12.5px';
-  name.style.color = 'var(--text)';
-  name.textContent = tpl.name;
-
-  const badge = document.createElement('span');
-  badge.className = 'audit-badge info';
-  badge.style.fontSize = '9px';
-  badge.style.padding = '1px 4px';
-  badge.style.fontWeight = '600';
-  badge.style.textTransform = 'uppercase';
-  badge.textContent = '官方插件';
-
-  const desc = document.createElement('div');
-  desc.style.fontSize = '11px';
-  desc.style.color = 'var(--muted)';
-  desc.style.lineHeight = '1.4';
-  desc.textContent = tpl.desc;
-
-  header.appendChild(name);
-  header.appendChild(badge);
-  item.appendChild(header);
-  item.appendChild(desc);
-  return item;
-}
-
-function createTemplateEmptyElement() {
-  const empty = document.createElement('div');
-  empty.style.padding = '16px';
-  empty.style.textAlign = 'center';
-  empty.style.color = 'var(--muted)';
-  empty.style.fontSize = '11px';
-  empty.textContent = '暂无自定义模板。可在上方输入模版名称，将左侧 Markdown 内容保存为本地插件。';
-  return empty;
-}
-
-function loadPresetPrompts() {
-  const listContainer = $('presetPromptsPanel');
-  if (!listContainer) return;
-  listContainer.textContent = '';
-  if (!listContainer.dataset.delegated) {
-    listContainer.dataset.delegated = 'true';
-    listContainer.onclick = (event) => {
-      const item = event.target.closest('[data-preset-index]');
-      if (!item || !listContainer.contains(item)) return;
-      const tpl = SYSTEM_PRESET_PROMPTS[Number(item.dataset.presetIndex)];
-      if (!tpl) return;
-      $('promptContent').value = tpl.content;
-      const type = $('promptClientType').value;
-      persistPromptContentNow(type, tpl.content);
-      showToast(`已加载插件: ${tpl.name}`);
-    };
-  }
-
-  SYSTEM_PRESET_PROMPTS.forEach((tpl, index) => {
-    listContainer.appendChild(createPresetPromptItemElement(tpl, index));
-  });
-}
-
-function readStoredPromptTemplates() {
-  return window.UX.storage.parsePromptTemplates(localStorage.getItem('prompt_templates') || '[]');
-}
-
-function loadTemplates() {
-  const listContainer = $('templateList');
-  if (!listContainer) return;
-  listContainer.textContent = '';
-  if (!listContainer.dataset.delegated) {
-    listContainer.dataset.delegated = 'true';
-    listContainer.onclick = (event) => {
-      const deleteButton = event.target.closest('[data-template-delete]');
-      const item = event.target.closest('[data-template-index]');
-      if (!item || !listContainer.contains(item)) return;
-      const index = Number(item.dataset.templateIndex);
-      const templates = readStoredPromptTemplates();
-      const tpl = templates[index];
-      if (!tpl) return;
-      if (deleteButton && listContainer.contains(deleteButton)) {
-        if (confirm(`确认要删除模板 "${tpl.name}" 吗？`)) {
-          templates.splice(index, 1);
-          localStorage.setItem('prompt_templates', JSON.stringify(templates));
-          loadTemplates();
-          showToast('模板已删除');
-        }
-        return;
-      }
-      $('promptContent').value = tpl.content;
-      const type = $('promptClientType').value;
-      persistPromptContentNow(type, tpl.content);
-      showToast(`已加载模板: ${tpl.name}`);
-    };
-  }
-
-  const templates = readStoredPromptTemplates();
-
-  if (templates.length === 0) {
-    listContainer.appendChild(createTemplateEmptyElement());
-    return;
-  }
-
-  templates.forEach((tpl, idx) => {
-    const item = document.createElement('div');
-    item.className = 'profile';
-    item.dataset.templateIndex = String(idx);
-    item.style.padding = '8px 10px';
-    item.style.marginBottom = '0';
-    item.style.display = 'flex';
-    item.style.justifyContent = 'space-between';
-    item.style.alignItems = 'center';
-    item.style.gap = '8px';
-
-    const titleSpan = document.createElement('span');
-    titleSpan.style.cursor = 'pointer';
-    titleSpan.style.fontWeight = '600';
-    titleSpan.style.fontSize = '12.5px';
-    titleSpan.style.flex = '1';
-    titleSpan.style.overflow = 'hidden';
-    titleSpan.style.textOverflow = 'ellipsis';
-    titleSpan.style.whiteSpace = 'nowrap';
-    titleSpan.textContent = tpl.name;
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'danger';
-    delBtn.dataset.templateDelete = String(idx);
-    delBtn.style.padding = '2px 6px';
-    delBtn.style.margin = '0';
-    delBtn.style.minHeight = '22px';
-    delBtn.style.fontSize = '10px';
-    delBtn.style.borderRadius = '4px';
-    delBtn.style.boxShadow = 'none';
-    delBtn.textContent = '删除';
-
-    item.appendChild(titleSpan);
-    item.appendChild(delBtn);
-    listContainer.appendChild(item);
-  });
-}
-
-const saveTplBtn = $('saveTemplateBtn');
-if (saveTplBtn) {
-  saveTplBtn.onclick = () => {
-    persistPromptContentNow();
-    const name = $('templateNameInput').value.trim();
-    const content = $('promptContent').value;
-    if (!name) {
-      showToast('请输入模板名称', 'error');
-      return;
-    }
-    if (!content.trim()) {
-      showToast('提示词内容不能为空', 'error');
-      return;
-    }
-    const storageLimits = window.UX.storage.limits;
-    if (name.length > storageLimits.promptNameChars) {
-      showToast(`模板名称不能超过 ${storageLimits.promptNameChars} 个字符`, 'error');
-      return;
-    }
-    if (content.length > storageLimits.promptContentChars) {
-      showToast(`模板内容不能超过 ${storageLimits.promptContentChars} 个字符`, 'error');
-      return;
-    }
-
-    const templates = readStoredPromptTemplates();
-
-    const existingIdx = templates.findIndex((t) => t.name === name);
-    if (existingIdx >= 0) {
-      if (!confirm(`已存在同名模板 "${name}"，是否覆盖？`)) return;
-      templates[existingIdx].content = content;
-    } else {
-      templates.push({ name, content });
-    }
-
-    localStorage.setItem('prompt_templates', JSON.stringify(templates));
-    $('templateNameInput').value = '';
-    loadTemplates();
-    showToast('模板保存成功');
-  };
-}
-
 // app-mcp.js owns this domain.
 
 function configureDomainModules() {
@@ -5044,6 +4209,9 @@ function configureDomainModules() {
     get currentViewId() {
       return currentViewId;
     },
+    get selectedId() {
+      return selectedId;
+    },
   };
 
   configureBridge(runtime);
@@ -5053,6 +4221,9 @@ function configureDomainModules() {
   configureToolStatus(runtime);
   configureEnvironment(runtime);
   configureMcp(runtime);
+  configurePrompts(runtime);
+  configureRateLimits(runtime);
+  bindPromptControls();
 }
 
 configureDomainModules();

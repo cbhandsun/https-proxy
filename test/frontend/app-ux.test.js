@@ -354,7 +354,7 @@ function tick(ms = 0) {
     assert.ok(presetStart > 0 && presetEnd > presetStart, 'preset prompt render section found');
     const presetSection = app.slice(presetStart, presetEnd);
     assert.ok(
-      presetSection.includes('createPresetPromptItemElement(tpl, index)'),
+      presetSection.includes('createPresetPromptItemElement(template, index)'),
       'preset prompts render through DOM helper'
     );
     assert.ok(
@@ -363,7 +363,7 @@ function tick(ms = 0) {
     );
 
     const templateStart = app.indexOf('function loadTemplates()');
-    const templateEnd = app.indexOf('const saveTplBtn', templateStart);
+    const templateEnd = app.indexOf('function saveTemplate()', templateStart);
     assert.ok(
       templateStart > 0 && templateEnd > templateStart,
       'custom template render section found'
