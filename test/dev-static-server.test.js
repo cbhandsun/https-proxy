@@ -32,8 +32,13 @@ assert.strictEqual(parseOptionalPort('bad'), 0);
 assert.strictEqual(parseOptionalPort('70000'), 0);
 
 const tokenGroups = managementTokenCandidateGroups('4543');
+const expectedRuntimeDir = path.resolve(
+  process.env.PROXY_RUNTIME_DIR ||
+    process.env.PROXY_DATA_DIR ||
+    path.join(path.resolve(__dirname, '..'), '.hpm-runtime')
+);
 assert.ok(tokenGroups[0].some((filePath) => filePath.endsWith('.mgmt-token-4543')));
-assert.ok(tokenGroups[0][0].includes('.hpm-runtime'));
+assert.strictEqual(path.dirname(tokenGroups[0][0]), expectedRuntimeDir);
 assert.ok(tokenGroups[0].some((filePath) => filePath.includes('src-tauri')));
 assert.ok(tokenGroups[0].some((filePath) => filePath.includes('HTTPS Proxy Manager Portable')));
 assert.ok(tokenGroups[1].some((filePath) => filePath.endsWith('.mgmt-token')));

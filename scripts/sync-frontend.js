@@ -11,6 +11,9 @@ const filePairs = [
   ['tauri-ui/app-audit.js', 'app-audit.js'],
   ['tauri-ui/app-cli.js', 'app-cli.js'],
   ['tauri-ui/app-diagnostics.js', 'app-diagnostics.js'],
+  ['tauri-ui/app-tool-status.js', 'app-tool-status.js'],
+  ['tauri-ui/app-environment.js', 'app-environment.js'],
+  ['tauri-ui/app-mcp.js', 'app-mcp.js'],
   ['tauri-ui/app.js', 'app.js'],
 ];
 const checkOnly = process.argv.includes('--check');
@@ -48,11 +51,23 @@ function validateCanonicalHtml() {
   const diagnosticsMatch = html.match(
     /<script\s+defer\s+src=["']\.\/app-diagnostics\.js(?:\?[^"']*)?["']><\/script>/
   );
+  const toolStatusMatch = html.match(
+    /<script\s+defer\s+src=["']\.\/app-tool-status\.js(?:\?[^"']*)?["']><\/script>/
+  );
+  const environmentMatch = html.match(
+    /<script\s+defer\s+src=["']\.\/app-environment\.js(?:\?[^"']*)?["']><\/script>/
+  );
+  const mcpMatch = html.match(
+    /<script\s+defer\s+src=["']\.\/app-mcp\.js(?:\?[^"']*)?["']><\/script>/
+  );
   const appMatch = html.match(/<script\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>/);
   const bridgeIndex = bridgeMatch ? bridgeMatch.index : -1;
   const auditIndex = auditMatch ? auditMatch.index : -1;
   const cliIndex = cliMatch ? cliMatch.index : -1;
   const diagnosticsIndex = diagnosticsMatch ? diagnosticsMatch.index : -1;
+  const toolStatusIndex = toolStatusMatch ? toolStatusMatch.index : -1;
+  const environmentIndex = environmentMatch ? environmentMatch.index : -1;
+  const mcpIndex = mcpMatch ? mcpMatch.index : -1;
   const appIndex = appMatch ? appMatch.index : -1;
   if (
     !hasCss ||
@@ -60,14 +75,20 @@ function validateCanonicalHtml() {
     auditIndex < 0 ||
     cliIndex < 0 ||
     diagnosticsIndex < 0 ||
+    toolStatusIndex < 0 ||
+    environmentIndex < 0 ||
+    mcpIndex < 0 ||
     appIndex < 0 ||
     bridgeIndex > auditIndex ||
     auditIndex > cliIndex ||
     cliIndex > diagnosticsIndex ||
-    diagnosticsIndex > appIndex
+    diagnosticsIndex > toolStatusIndex ||
+    toolStatusIndex > environmentIndex ||
+    environmentIndex > mcpIndex ||
+    mcpIndex > appIndex
   ) {
     fail(
-      'tauri-ui/electron-ui.html must reference ./app.css, then ./app-bridge.js, then ./app-audit.js, then ./app-cli.js, then ./app-diagnostics.js, then ./app.js'
+      'tauri-ui/electron-ui.html must reference ./app.css, then ./app-bridge.js, then ./app-audit.js, then ./app-cli.js, then ./app-diagnostics.js, then ./app-tool-status.js, then ./app-environment.js, then ./app-mcp.js, then ./app.js'
     );
   }
   if (/<style[\s>]/i.test(html)) {
@@ -77,7 +98,7 @@ function validateCanonicalHtml() {
   }
   const inlineScripts =
     html.match(
-      /<script(?!\s+defer\s+src=["']\.\/app-(?:ux|bridge|audit|cli|diagnostics)\.js(?:\?[^"']*)?["']><\/script>)(?!\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>)(?!\s+(?:async\s+)?src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js["']><\/script>)[\s>]/gi
+      /<script(?!\s+defer\s+src=["']\.\/app-(?:ux|bridge|audit|cli|diagnostics|tool-status|environment|mcp)\.js(?:\?[^"']*)?["']><\/script>)(?!\s+defer\s+src=["']\.\/app\.js(?:\?[^"']*)?["']><\/script>)(?!\s+(?:async\s+)?src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js["']><\/script>)[\s>]/gi
     ) || [];
   if (inlineScripts.length > 0) {
     fail(

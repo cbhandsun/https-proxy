@@ -48,6 +48,7 @@ let nativeManagementTokenCache = { port: 0, token: '', checkedAt: 0 };
 
 function clearManagementTokenCache() {
   nativeManagementTokenCache = { port: 0, token: '', checkedAt: 0 };
+  // Remove legacy persisted credentials. Management tokens stay in memory only.
   if (typeof localStorage !== 'undefined') localStorage.removeItem('hpm_mgmt_token');
 }
 
@@ -67,10 +68,8 @@ function rememberLocalServerPorts(config) {
 
 async function resolveManagementToken(options = {}) {
   if (options.forceRefresh) clearManagementTokenCache();
-  const localToken =
-    typeof localStorage !== 'undefined' ? localStorage.getItem('hpm_mgmt_token') || '' : '';
   const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
-  if (!invoke) return localToken;
+  if (!invoke) return '';
 
   const managementPort = getManagementPort();
   const now = Date.now();
@@ -90,15 +89,16 @@ async function resolveManagementToken(options = {}) {
         token: String(result.token),
         checkedAt: now,
       };
-      localStorage.setItem('hpm_mgmt_token', nativeManagementTokenCache.token);
       return nativeManagementTokenCache.token;
     }
   } catch (err) {
     console.debug('Native management token unavailable:', err);
   }
 
-  return localToken;
+  return '';
 }
+
+clearManagementTokenCache();
 
 function setManagementTokenHeader(options, token) {
   if (!token) return;
@@ -120,9 +120,8 @@ function setManagementTokenHeader(options, token) {
 const originalFetch = window.fetch;
 window.fetch = async function (url, options) {
   const localManagementPath = localManagementPathFromUrl(url);
-  let needsManagementToken = false;
   let canRetryWithDirectManagement = false;
-  if (localManagementPathFromUrl(url)) {
+  if (localManagementPath) {
     const origin = window.location.origin;
     const isRelativeManagementUrl =
       typeof url === 'string' && (url.startsWith('/v1/local/') || url.startsWith('/local/'));
@@ -130,7 +129,7 @@ window.fetch = async function (url, options) {
       origin.startsWith('http://localhost:') ||
       origin.startsWith('http://127.0.0.1:') ||
       origin.startsWith('https://localhost:');
-    needsManagementToken = !isRelativeManagementUrl;
+    let needsManagementToken = !isRelativeManagementUrl;
     if (isRelativeManagementUrl && !isLocalDevOrigin) {
       needsManagementToken = true;
       url = `http://127.0.0.1:${getManagementPort()}${url}`;
@@ -274,9 +273,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       const quiet = options.quiet === true;
       for (let attempt = 0; attempt < attempts; attempt++) {
         try {
-          const res = await fetch(`${getApiBase()}/v1/local/config`, {
-            headers: { 'x-mgmt-token': localStorage.getItem('hpm_mgmt_token') || '' },
-          });
+          const res = await fetch(`${getApiBase()}/v1/local/config`);
           const data = await res.json();
           if (!res.ok || data.error) throw new Error(data.error || 'Failed to fetch config');
           rememberLocalServerPorts(data);
@@ -319,7 +316,6 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-mgmt-token': localStorage.getItem('hpm_mgmt_token') || '',
           },
           body: JSON.stringify({ keyId }),
         });
@@ -1220,9 +1216,9 @@ if (window.__TAURI__ && window.__TAURI__.core) {
       };
     }
   };
-  window.proxyManager.launchCodexLoginScript = async (scriptPath) => {
+  window.proxyManager.launchCodexLoginScript = async () => {
     try {
-      const res = await invoke('launch_codex_login_script', { scriptPath });
+      const res = await invoke('launch_codex_login_script');
       return { ok: true, ...res };
     } catch (e) {
       console.error('Codex login script launch failed:', e);

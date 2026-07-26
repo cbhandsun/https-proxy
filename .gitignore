@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+coverage/
 
 # Local config and secrets
 proxy.config.json
