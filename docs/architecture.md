@@ -24,13 +24,17 @@ HTTPS-Proxy/
 │  └─ dist/                    Vite output; generated and ignored
 ├─ src-tauri/                  Native shell, commands, permissions and bundling
 ├─ scripts/                    Build, verification and operational entry scripts
+├─ coverage/                   Disposable test coverage reports
 ├─ test/
 │  ├─ frontend/                Frontend behavior and architecture tests
 │  └─ *.test.js                Proxy, release and integration tests
 └─ dist/
-   ├─ release-runtime/         Staged Node runtime for Tauri packaging
-   ├─ release/installers/      Collected installers and checksums
-   └─ portable/                Portable package output
+   ├─ staging/runtime/         Disposable Node runtime for Tauri packaging
+   ├─ artifacts/
+   │  ├─ installers/           Collected installers and checksums
+   │  ├─ portable/             Portable directory and zip
+   │  └─ sbom/                 Release software bills of materials
+   └─ archive/                 Local-only legacy artifacts; never uploaded
 ```
 
 ## Frontend dependency direction
@@ -72,14 +76,23 @@ before every production frontend build.
 
 - `npm run clean:frontend` removes only `tauri-ui/dist/` and the obsolete
   `dist/tauri-ui/` path.
+- `npm run clean:coverage` removes only coverage reports.
+- `npm run clean:staging` removes only disposable release staging.
+- `npm run clean:artifacts` removes only final release deliverables.
 - `npm run frontend:build` runs architecture checks, cleans frontend output,
   and creates a fresh Vite bundle.
-- `npm run clean:release` removes all generated release, frontend and Cargo
-  output. It does not remove source or local configuration, but it does remove
-  existing installers.
+- `npm run clean:release` removes staging, final artifacts, frontend output and
+  Cargo output. It preserves `dist/archive/` and local application state.
 - `npm run clean:release:cache` removes only Cargo target directories.
 
 Generated output is ignored by Git and must not be used as an editable source.
+Release automation reads and uploads only `dist/artifacts/`; it never reads
+`dist/archive/`.
+
+`src-tauri/target/` is a disposable Cargo compilation cache and can be large.
+`.hpm-runtime/` is different: it contains local application state and may
+include generated certificates, so cleanup commands deliberately never remove
+it.
 
 ## Verification entry points
 

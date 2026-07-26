@@ -107,6 +107,9 @@ assert.equal(packageJson.dependencies['chart.js'] != null, true);
 assert.match(packageJson.scripts['frontend:build'], /check:architecture/);
 assert.match(packageJson.scripts['frontend:build'], /clean:frontend/);
 assert.match(packageJson.scripts['clean:frontend'], /--frontend-only/);
+assert.match(packageJson.scripts['clean:coverage'], /--coverage-only/);
+assert.match(packageJson.scripts['clean:staging'], /--staging-only/);
+assert.match(packageJson.scripts['clean:artifacts'], /--artifacts-only/);
 assert.match(packageJson.scripts['release:prepare'], /prepare-release-runtime\.js/);
 assert.equal(
   fs.existsSync(path.join(repoRoot, 'dist', 'tauri-ui')),

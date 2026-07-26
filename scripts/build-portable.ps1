@@ -1,7 +1,7 @@
 param(
     [switch]$SkipBuild,
     [switch]$NoZip,
-    [string]$OutputRoot = "dist\portable",
+    [string]$OutputRoot = "dist\artifacts\portable",
     [string]$CargoTargetDir = $env:CARGO_TARGET_DIR
 )
 
@@ -11,7 +11,7 @@ $DistRoot = [System.IO.Path]::GetFullPath((Join-Path $Root 'dist'))
 $ResolvedOutputRoot = [System.IO.Path]::GetFullPath((Join-Path $Root $OutputRoot))
 $PortableName = 'HTTPS Proxy Manager Portable'
 $PortableDir = Join-Path $ResolvedOutputRoot $PortableName
-$ReleaseRuntimeDir = Join-Path $DistRoot 'release-runtime'
+$ReleaseRuntimeDir = Join-Path $DistRoot 'staging\runtime'
 
 function Assert-PathInside {
     param(

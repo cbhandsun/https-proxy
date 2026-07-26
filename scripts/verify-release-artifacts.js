@@ -4,9 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const { sha256, isInstallerFile } = require('./collect-tauri-artifacts');
 const { validateArtifactManifest } = require('../lib/release/artifact-manifest');
+const { resolveReleaseLayout } = require('../lib/release/layout');
 
 const repoRoot = path.resolve(__dirname, '..');
-const installerDir = path.join(repoRoot, 'dist', 'release', 'installers');
+const installerDir = resolveReleaseLayout(repoRoot).installersDir;
 const manifestPath = path.join(installerDir, 'SHA256SUMS.json');
 if (!fs.existsSync(manifestPath)) throw new Error(`Release manifest is missing: ${manifestPath}`);
 

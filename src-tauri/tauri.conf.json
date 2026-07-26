@@ -40,11 +40,11 @@
       "../proxy.bat": "proxy.bat",
       "../proxy.ps1": "proxy.ps1",
       "../proxy.config.example.json": "proxy.config.example.json",
-      "../dist/release-runtime/package.json": "package.json",
+      "../dist/staging/runtime/package.json": "package.json",
       "../lib": "lib",
-      "../dist/release-runtime/node_modules": "node_modules",
-      "../dist/release-runtime/runtime": "runtime",
-      "../dist/release-runtime/release-runtime-manifest.json": "release-runtime-manifest.json"
+      "../dist/staging/runtime/node_modules": "node_modules",
+      "../dist/staging/runtime/runtime": "runtime",
+      "../dist/staging/runtime/release-runtime-manifest.json": "release-runtime-manifest.json"
     },
     "windows": {
       "nsis": {

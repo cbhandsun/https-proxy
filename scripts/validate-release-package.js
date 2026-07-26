@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { assertSafeReleasePath, validateReleaseDirectory } = require('../lib/release/governance');
+const { selectRuntimeDependencies } = require('../lib/release/layout');
 
 const repoRoot = path.resolve(__dirname, '..');
 const argumentIndex = process.argv.indexOf('--dir');
@@ -15,7 +16,7 @@ const releaseDir = assertSafeReleasePath(
   path.resolve(repoRoot, process.argv[argumentIndex + 1])
 );
 const sourcePackage = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
-const result = validateReleaseDirectory(releaseDir, sourcePackage.dependencies, {
+const result = validateReleaseDirectory(releaseDir, selectRuntimeDependencies(sourcePackage), {
   requireExecutable: process.argv.includes('--runtime-only') === false,
 });
 
