@@ -17,6 +17,7 @@ const {
 const {
   ENV_CHECK_TOOLS,
   _test,
+  getToolInstallCommand,
   getToolInstallProcessSpec,
   isVersionNewer,
   parseVersionText,
@@ -384,13 +385,53 @@ assert.strictEqual(tooLarge.text, '');
 assert.strictEqual(tooLarge.resDestroyed, true);
 assert.strictEqual(tooLarge.reqDestroyed, true);
 
-const codexSpec = getToolInstallProcessSpec(ENV_CHECK_TOOLS.find((tool) => tool.id === 'codex'));
+const toolsById = new Map(ENV_CHECK_TOOLS.map((tool) => [tool.id, tool]));
+const codexSpec = getToolInstallProcessSpec(toolsById.get('codex'));
+assert.strictEqual(codexSpec.file, 'powershell.exe');
+assert.ok(codexSpec.args.includes('-NonInteractive'));
+assert.match(codexSpec.displayCommand, /CODEX_NON_INTERACTIVE='1'/);
+assert.match(codexSpec.displayCommand, /irm https:\/\/chatgpt\.com\/codex\/install\.ps1 \| iex/);
+
+const openCodeSpec = getToolInstallProcessSpec(toolsById.get('opencode'));
 if (process.platform === 'win32') {
-  assert.strictEqual(codexSpec.file, 'cmd.exe');
-  assert.deepStrictEqual(codexSpec.args.slice(0, 5), ['/d', '/s', '/c', 'npm.cmd', 'install']);
+  assert.strictEqual(openCodeSpec.file, 'cmd.exe');
+  assert.deepStrictEqual(openCodeSpec.args.slice(0, 5), ['/d', '/s', '/c', 'npm.cmd', 'install']);
 } else {
-  assert.strictEqual(codexSpec.file, 'npm');
+  assert.strictEqual(openCodeSpec.file, 'npm');
 }
+assert.match(getToolInstallCommand(toolsById.get('claude-code')), /^irm https:\/\/claude\.ai/);
+assert.match(
+  getToolInstallCommand(toolsById.get('antigravity-cli')),
+  /^irm https:\/\/antigravity\.google/
+);
+assert.match(
+  getToolInstallCommand(toolsById.get('openclaw')),
+  /\(\(irm https:\/\/openclaw\.ai\/install\.ps1\)\)\) -NoOnboard$/
+);
+assert.match(getToolInstallCommand(toolsById.get('hermes')), /-SkipSetup$/);
+
+const windowsCandidateDirs = _test.getWindowsCommandCandidateDirs(
+  toolsById.get('codex'),
+  'C:\\Users\\tester',
+  'C:\\Users\\tester\\AppData\\Local',
+  'C:\\Users\\tester\\AppData\\Roaming',
+  'codex'
+);
+assert.ok(
+  windowsCandidateDirs.includes(
+    path.join('C:\\Users\\tester\\AppData\\Local', 'Programs', 'OpenAI', 'Codex', 'bin')
+  )
+);
+const hermesCandidateDirs = _test.getWindowsCommandCandidateDirs(
+  toolsById.get('hermes'),
+  'C:\\Users\\tester',
+  'C:\\Users\\tester\\AppData\\Local',
+  'C:\\Users\\tester\\AppData\\Roaming',
+  'hermes'
+);
+assert.ok(
+  hermesCandidateDirs.includes(path.join('C:\\Users\\tester\\AppData\\Local', 'hermes', 'bin'))
+);
 
 assert.strictEqual(_test.parseInstallJobTimeoutMs('not-a-number'), 15 * 60 * 1000);
 assert.strictEqual(_test.parseInstallJobTimeoutMs('1'), 30 * 1000);
@@ -470,6 +511,42 @@ assert.match(
 
 asyncChecks.push(
   (async () => {
+    let verificationChecks = 0;
+    let cacheClears = 0;
+    const retryDelays = [];
+    const retryVerification = await _test.verifyInstalledToolAfterInstall(
+      toolsById.get('claude-code'),
+      {
+        attempts: 3,
+        clearCaches: () => {
+          cacheClears++;
+        },
+        refreshLatest: async () => ({}),
+        checkEnvironment: async () => {
+          verificationChecks++;
+          return {
+            tools: [
+              verificationChecks === 1
+                ? { id: 'claude-code', current: null, latest: '2.1.220' }
+                : {
+                    id: 'claude-code',
+                    current: '2.1.220',
+                    latest: '2.1.220',
+                    hasUpdate: false,
+                  },
+            ],
+          };
+        },
+        wait: async (delay) => {
+          retryDelays.push(delay);
+        },
+      }
+    );
+    assert.strictEqual(retryVerification.ok, true);
+    assert.strictEqual(verificationChecks, 2);
+    assert.strictEqual(cacheClears, 2);
+    assert.deepStrictEqual(retryDelays, [1000]);
+
     const originalSpawn = cp.spawn;
     const fakeChild = new EventEmitter();
     fakeChild.stdout = new EventEmitter();
@@ -495,6 +572,41 @@ asyncChecks.push(
       assert.strictEqual(job.ok, false);
       assert.match(job.error, /当前版本仍为 1\.0\.8，最新版本为 1\.0\.13/);
       assert.match(listInstallJobs([job.jobId])[0].lastLine, /版本复检失败/);
+    } finally {
+      cp.spawn = originalSpawn;
+    }
+
+    const queuedChildren = [];
+    try {
+      cp.spawn = () => {
+        const child = new EventEmitter();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        child.pid = 60000 + queuedChildren.length;
+        child.kill = () => true;
+        queuedChildren.push(child);
+        return child;
+      };
+      const verifyOk = async () => ({ ok: true, lastLine: '安装/升级完成，当前版本 1.0.0' });
+      const firstJob = startToolInstallJob(toolsById.get('opencode'), {
+        verifyInstalledTool: verifyOk,
+      });
+      const secondJob = startToolInstallJob(toolsById.get('openclaw'), {
+        verifyInstalledTool: verifyOk,
+      });
+      assert.strictEqual(firstJob.status, 'running');
+      assert.strictEqual(secondJob.status, 'queued');
+      assert.strictEqual(queuedChildren.length, 1);
+
+      queuedChildren[0].emit('close', 0);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      assert.strictEqual(firstJob.status, 'succeeded');
+      assert.strictEqual(secondJob.status, 'running');
+      assert.strictEqual(queuedChildren.length, 2);
+
+      queuedChildren[1].emit('close', 0);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      assert.strictEqual(secondJob.status, 'succeeded');
     } finally {
       cp.spawn = originalSpawn;
     }

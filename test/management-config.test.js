@@ -6,6 +6,7 @@ const { Readable } = require('stream');
 
 const {
   createManagementConfigHandlers,
+  configRevisionFromText,
   redactConfigSecrets,
   requireConfigObjectBody,
 } = require('../lib/proxy/handlers/management-config');
@@ -123,6 +124,8 @@ function baseConfig(overrides = {}) {
     ok: false,
     error: 'JSON body must be an object',
   });
+  assert.match(configRevisionFromText('config'), /^[a-f0-9]{64}$/);
+  assert.notStrictEqual(configRevisionFromText('config'), configRevisionFromText('Config'));
   assert.deepStrictEqual(redactConfigSecrets({ apiKey: 'sk', nested: { accessToken: 'tok' } }), {
     apiKey: '[redacted]',
     nested: { accessToken: '[redacted]' },
@@ -187,7 +190,8 @@ function baseConfig(overrides = {}) {
   });
   const saveRes = await invoke(handlers.handleLocalSaveConfigRequest, saveConfig);
   assert.strictEqual(saveRes.statusCode, 200);
-  assert.deepStrictEqual(JSON.parse(saveRes.body), { ok: true });
+  assert.strictEqual(JSON.parse(saveRes.body).ok, true);
+  assert.match(JSON.parse(saveRes.body).revision, /^[a-f0-9]{64}$/);
   assert.strictEqual(reloads, 1);
   const saved = JSON.parse(fs.readFileSync(configFile, 'utf8'));
   assert.strictEqual(saved.profiles[0].apiKey, 'hpm-enc:old-main');
@@ -202,13 +206,47 @@ function baseConfig(overrides = {}) {
   fs.writeFileSync(configFile, JSON.stringify(baseConfig()));
   const setActive = await invoke(handlers.handleLocalSetActiveRequest, { profileId: 'backup' });
   assert.strictEqual(setActive.statusCode, 200);
-  assert.deepStrictEqual(JSON.parse(setActive.body), { ok: true, activeProfile: 'backup' });
+  assert.strictEqual(JSON.parse(setActive.body).ok, true);
+  assert.strictEqual(JSON.parse(setActive.body).activeProfile, 'backup');
+  assert.match(JSON.parse(setActive.body).revision, /^[a-f0-9]{64}$/);
   assert.strictEqual(JSON.parse(fs.readFileSync(configFile, 'utf8')).activeProfile, 'backup');
   assert.strictEqual(reloads, 2);
 
   const missing = await invoke(handlers.handleLocalSetActiveRequest, { profileId: 'missing' });
   assert.strictEqual(missing.statusCode, 404);
   assert.match(JSON.parse(missing.body).error, /Profile not found: missing/);
+
+  const getConfigRes = await invoke(handlers.handleLocalGetConfigRequest, {});
+  assert.strictEqual(getConfigRes.statusCode, 200);
+  const fetchedConfig = JSON.parse(getConfigRes.body);
+  assert.match(fetchedConfig._revision, /^[a-f0-9]{64}$/);
+  fs.writeFileSync(configFile, JSON.stringify(baseConfig({ activeProfile: 'backup' })), 'utf8');
+  const conflictingSave = await invoke(handlers.handleLocalSaveConfigRequest, {
+    ...baseConfig(),
+    _revision: fetchedConfig._revision,
+  });
+  assert.strictEqual(conflictingSave.statusCode, 409);
+  assert.match(JSON.parse(conflictingSave.body).error, /changed since it was loaded/);
+  assert.strictEqual(JSON.parse(fs.readFileSync(configFile, 'utf8')).activeProfile, 'backup');
+
+  const operationOrder = [];
+  let releaseFirst;
+  const firstGate = new Promise((resolve) => {
+    releaseFirst = resolve;
+  });
+  const firstMutation = handlers.enqueueConfigMutation(async () => {
+    operationOrder.push('first-start');
+    await firstGate;
+    operationOrder.push('first-end');
+  });
+  const secondMutation = handlers.enqueueConfigMutation(async () => {
+    operationOrder.push('second');
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepStrictEqual(operationOrder, ['first-start']);
+  releaseFirst();
+  await Promise.all([firstMutation, secondMutation]);
+  assert.deepStrictEqual(operationOrder, ['first-start', 'first-end', 'second']);
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
   console.log('[management-config.test] ok');

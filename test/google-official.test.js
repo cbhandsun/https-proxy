@@ -52,15 +52,15 @@ async function main() {
   assert.ok(models.includes('gemini-3.5-flash-extra-low'));
 
   const codeAssist = createCodeAssist({ fallbackId: () => 'test-id' });
-  for (const name of [
-    'Gemini 3.6 Flash (Medium)',
-    'Gemini 3.6 Flash (High)',
-    'Gemini 3.6 Flash (Low)',
-    'gemini-3.6-flash-medium',
-    'gemini-3.6-flash-high',
-    'gemini-3.6-flash-low',
+  for (const [name, expectedModel] of [
+    ['Gemini 3.6 Flash (Medium)', 'gemini-3.6-flash-medium'],
+    ['Gemini 3.6 Flash (High)', 'gemini-3.6-flash-high'],
+    ['Gemini 3.6 Flash (Low)', 'gemini-3.6-flash-low'],
+    ['gemini-3.6-flash-medium', 'gemini-3.6-flash-medium'],
+    ['gemini-3.6-flash-high', 'gemini-3.6-flash-high'],
+    ['gemini-3.6-flash-low', 'gemini-3.6-flash-low'],
   ]) {
-    assert.strictEqual(codeAssist.codeAssistModelSelection(name).model, 'gemini-3.6-flash');
+    assert.strictEqual(codeAssist.codeAssistModelSelection(name).model, expectedModel);
   }
 
   const inner = toBase64Url(

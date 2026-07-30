@@ -79,6 +79,7 @@ function invoke(handler, url) {
     let refreshCalls = 0;
     const handlers = createManagementCredentialsHandlers({
       sendJson,
+      protectToken: (token) => `protected:${token}`,
       homeDir: () => tmpHome,
       readAntigravityState: () => ({
         content: {
@@ -103,7 +104,7 @@ function invoke(handler, url) {
     assert.strictEqual(google.statusCode, 200);
     assert.deepStrictEqual(JSON.parse(google.body), {
       ok: true,
-      token: 'google-access',
+      protectedToken: 'protected:google-access',
       expiry: 123,
       hasRefreshToken: true,
     });
@@ -115,7 +116,7 @@ function invoke(handler, url) {
     assert.strictEqual(codex.statusCode, 200);
     assert.deepStrictEqual(JSON.parse(codex.body), {
       ok: true,
-      token: 'codex-access',
+      protectedToken: 'protected:codex-access',
       hasRefreshToken: true,
     });
 
@@ -126,7 +127,7 @@ function invoke(handler, url) {
     assert.strictEqual(agy.statusCode, 200);
     assert.deepStrictEqual(JSON.parse(agy.body), {
       ok: true,
-      token: 'agy-refreshed',
+      protectedToken: 'protected:agy-refreshed',
       expiry: 456,
       hasRefreshToken: true,
       source: 'antigravity-state',
@@ -135,6 +136,7 @@ function invoke(handler, url) {
 
     const fallbackHandlers = createManagementCredentialsHandlers({
       sendJson,
+      protectToken: (token) => `protected:${token}`,
       homeDir: () => tmpHome,
       readAntigravityState: () => ({
         content: {
@@ -152,7 +154,7 @@ function invoke(handler, url) {
       '/v1/local/auth/cli-credentials?type=antigravity'
     );
     assert.strictEqual(fallback.statusCode, 200);
-    assert.strictEqual(JSON.parse(fallback.body).token, 'agy-stale');
+    assert.strictEqual(JSON.parse(fallback.body).protectedToken, 'protected:agy-stale');
 
     const missing = await invoke(
       handlers.handleLocalCliCredentialsRequest,

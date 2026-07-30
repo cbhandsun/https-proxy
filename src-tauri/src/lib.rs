@@ -10,8 +10,8 @@ use tauri::Manager;
 mod codex_login;
 mod desktop_shell;
 mod launch_on_login;
+mod management_bridge;
 mod proxy_root;
-
 use codex_login::launch_codex_login_script;
 #[cfg(test)]
 use codex_login::{
@@ -26,6 +26,7 @@ use launch_on_login::{get_launch_on_login, set_launch_on_login};
 use launch_on_login::{
     launch_command_matches_exe, startup_value_matches_exe, windows_launch_command,
 };
+use management_bridge::{management_fetch_native, reveal_entry_auth_key_native};
 use proxy_root::{find_project_root, set_resource_root};
 #[cfg(test)]
 use proxy_root::{first_unique_existing_root, is_proxy_runtime_root};
@@ -223,7 +224,6 @@ fn post_management_json(
     Ok(body)
 }
 
-#[tauri::command]
 fn get_management_token_native(management_port: Option<u16>) -> serde_json::Value {
     let Some(root) = find_project_root() else {
         return serde_json::json!({
@@ -765,8 +765,7 @@ pub fn run() {
                 set_resource_root(resource_dir);
             }
 
-            // Start once, after RESOURCE_ROOT is available, through the guarded
-            // autostart entry point shared by every build mode.
+            // Start once after RESOURCE_ROOT is available through the guarded autostart path.
             request_proxy_autostart();
             Ok(configure_desktop_shell(app)?)
         })
@@ -780,7 +779,8 @@ pub fn run() {
             select_directory_native,
             get_proxy_debug,
             get_cert_status_native,
-            get_management_token_native,
+            management_fetch_native,
+            reveal_entry_auth_key_native,
             clear_audit_conversations_native,
             execute_proxy_command,
             get_launch_on_login,

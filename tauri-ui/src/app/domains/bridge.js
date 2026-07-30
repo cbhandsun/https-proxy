@@ -35,7 +35,7 @@ window.onerror = function (message, source, lineno, colno, error) {
 
 function localManagementPathFromUrl(url) {
   if (typeof url !== 'string') return '';
-  if (url.startsWith('/v1/local/') || url.startsWith('/local/')) return url.split('?')[0];
+  if (url.startsWith('/v1/local/') || url.startsWith('/local/')) return url;
   try {
     const parsed = new URL(url);
     const isLoopback =
@@ -47,20 +47,12 @@ function localManagementPathFromUrl(url) {
       isLoopback &&
       (parsed.pathname.startsWith('/v1/local/') || parsed.pathname.startsWith('/local/'))
     ) {
-      return parsed.pathname;
+      return `${parsed.pathname}${parsed.search}`;
     }
   } catch (err) {
     reportFrontendError('management.parse_local_url', err);
   }
   return '';
-}
-
-let nativeManagementTokenCache = { port: 0, token: '', checkedAt: 0 };
-
-function clearManagementTokenCache() {
-  nativeManagementTokenCache = { port: 0, token: '', checkedAt: 0 };
-  // Remove legacy persisted credentials. Management tokens stay in memory only.
-  if (typeof localStorage !== 'undefined') localStorage.removeItem('hpm_mgmt_token');
 }
 
 function rememberLocalServerPorts(config) {
@@ -79,61 +71,40 @@ function rememberLocalServerPorts(config) {
 
 export { getApiBase };
 
-async function resolveManagementToken(options = {}) {
-  if (options.forceRefresh) clearManagementTokenCache();
+function requestContentType(options = {}) {
+  const headers = options.headers;
+  if (headers instanceof Headers) return headers.get('content-type') || 'application/json';
+  if (!headers || typeof headers !== 'object') return 'application/json';
+  const key = Object.keys(headers).find((name) => name.toLowerCase() === 'content-type');
+  return key ? String(headers[key]) : 'application/json';
+}
+
+async function nativeManagementFetch(path, options = {}) {
   const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
-  if (!invoke) return '';
-
-  const managementPort = getManagementPort();
-  const now = Date.now();
-  if (
-    nativeManagementTokenCache.token &&
-    nativeManagementTokenCache.port === managementPort &&
-    now - nativeManagementTokenCache.checkedAt < 2000
-  ) {
-    return nativeManagementTokenCache.token;
+  if (!invoke) throw new Error('Native management bridge is unavailable');
+  const body = options.body == null ? '' : options.body;
+  if (typeof body !== 'string') {
+    throw new TypeError('Native management request body must be a string');
   }
-
-  try {
-    const result = await invoke('get_management_token_native', { managementPort });
-    if (result && result.ok && result.token) {
-      nativeManagementTokenCache = {
-        port: managementPort,
-        token: String(result.token),
-        checkedAt: now,
-      };
-      return nativeManagementTokenCache.token;
-    }
-  } catch (err) {
-    reportFrontendError('management_token.native_unavailable', err);
-  }
-
-  return '';
+  const result = await invoke('management_fetch_native', {
+    managementPort: getManagementPort(),
+    path,
+    method: String(options.method || 'GET').toUpperCase(),
+    contentType: requestContentType(options),
+    body,
+  });
+  return new window.Response(result.body || '', {
+    status: result.status,
+    headers: result.headers || {},
+  });
 }
 
-clearManagementTokenCache();
-
-function setManagementTokenHeader(options, token) {
-  if (!token) return;
-  options.headers = options.headers || {};
-  if (options.headers instanceof Headers) {
-    const existing = options.headers.get('x-mgmt-token');
-    if (!existing || existing.trim() !== token) options.headers.set('x-mgmt-token', token);
-    return;
-  }
-  const headerKey =
-    Object.keys(options.headers).find((key) => key.toLowerCase() === 'x-mgmt-token') ||
-    'x-mgmt-token';
-  if (!options.headers[headerKey] || String(options.headers[headerKey]).trim() !== token) {
-    options.headers[headerKey] = token;
-  }
-}
+if (typeof localStorage !== 'undefined') localStorage.removeItem('hpm_mgmt_token');
 
 // 拦截全局 fetch，使得在 Tauri 等非同一 origin 下运行时，能够正确访问本地代理的 REST API
 const originalFetch = window.fetch;
 window.fetch = async function (url, options) {
   const localManagementPath = localManagementPathFromUrl(url);
-  let canRetryWithDirectManagement = false;
   if (localManagementPath) {
     const origin = window.location.origin;
     const isRelativeManagementUrl =
@@ -142,39 +113,18 @@ window.fetch = async function (url, options) {
       origin.startsWith('http://localhost:') ||
       origin.startsWith('http://127.0.0.1:') ||
       origin.startsWith('https://localhost:');
-    let needsManagementToken = !isRelativeManagementUrl;
-    if (isRelativeManagementUrl && !isLocalDevOrigin) {
-      needsManagementToken = true;
-      url = `http://127.0.0.1:${getManagementPort()}${url}`;
-    } else if (isRelativeManagementUrl && isLocalDevOrigin) {
-      canRetryWithDirectManagement = true;
+    const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+    if (invoke && !isLocalDevOrigin) {
+      return nativeManagementFetch(localManagementPath, options || {});
     }
-
-    if (
-      needsManagementToken &&
-      !origin.startsWith('http://localhost:') &&
-      !origin.startsWith('http://127.0.0.1:') &&
-      !origin.startsWith('https://localhost:')
-    ) {
-      // 自动注入管理 Token。localhost:1430 的开发静态中转会在服务端
-      // 注入当前 token，这里不能等待 Tauri invoke，否则 WebView 启动
-      // 时会把配置、证书、健康检查全部阻塞在初始态。
-      options = options || {};
-      setManagementTokenHeader(options, await resolveManagementToken());
-    } else if (needsManagementToken) {
-      options = options || {};
-      setManagementTokenHeader(options, await resolveManagementToken());
+    if (isRelativeManagementUrl && !isLocalDevOrigin) {
+      url = `http://127.0.0.1:${getManagementPort()}${url}`;
     }
   }
   const response = await originalFetch.call(this, url, options);
   if (localManagementPath && response && response.status === 401) {
-    const retryOptions = { ...(options || {}) };
-    setManagementTokenHeader(retryOptions, await resolveManagementToken({ forceRefresh: true }));
-    const retryUrl =
-      canRetryWithDirectManagement && typeof localManagementPath === 'string'
-        ? `http://127.0.0.1:${getManagementPort()}${localManagementPath}`
-        : url;
-    return originalFetch.call(this, retryUrl, retryOptions);
+    const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+    if (invoke) return nativeManagementFetch(localManagementPath, options || {});
   }
   return response;
 };
@@ -247,15 +197,7 @@ const fetchJsonWithTimeout = async (url, options = {}, timeoutMs = 7000) => {
 };
 
 const fetchLocalJsonWithAuth = async (path, options = {}, timeoutMs = 7000) => {
-  const requestOptions = { ...options, headers: { ...(options.headers || {}) } };
-  setManagementTokenHeader(requestOptions, await resolveManagementToken());
-  const first = await fetchJsonWithTimeout(`${getApiBase()}${path}`, requestOptions, timeoutMs);
-  if (first && first.statusCode === 401) {
-    const retryOptions = { ...options, headers: { ...(options.headers || {}) } };
-    setManagementTokenHeader(retryOptions, await resolveManagementToken({ forceRefresh: true }));
-    return fetchJsonWithTimeout(`${getApiBase()}${path}`, retryOptions, timeoutMs);
-  }
-  return first;
+  return fetchJsonWithTimeout(`${getApiBase()}${path}`, options, timeoutMs);
 };
 
 async function clearAuditConversationsNative() {
@@ -317,14 +259,32 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           body: JSON.stringify(config),
         });
         const data = await res.json();
-        return data.ok ? config : config;
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Failed to save configuration');
+        }
+        return {
+          ...config,
+          _revision: data.revision || config._revision,
+        };
       } catch (err) {
-        bridgeDependencies.showToast('保存配置失败，请确认静态中转及代理在运行中', 'error');
-        return config;
+        const message =
+          err && err.message
+            ? `保存配置失败：${err.message}`
+            : '保存配置失败，请确认静态中转及代理在运行中';
+        bridgeDependencies.showToast(message, 'error');
+        throw err;
       }
     },
     revealEntryAuthKey: async (keyId) => {
       try {
+        const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
+        if (invoke && !isLocalDevOrigin()) {
+          const result = await invoke('reveal_entry_auth_key_native', {
+            managementPort: getManagementPort(),
+            keyId,
+          });
+          return JSON.parse(result.body || '{}');
+        }
         const res = await fetch(`${getApiBase()}/v1/local/config/entry-auth-key/reveal`, {
           method: 'POST',
           headers: {

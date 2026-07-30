@@ -11,6 +11,11 @@
     "verifyUpstreamTls": true,
     "conversationAuditEnabled": true
   },
+  "entryAuth": {
+    "enabled": true,
+    "keys": [],
+    "allowedOrigins": []
+  },
   "diagnostics": {
     "captureGemini": true,
     "captureOpenAI": false,

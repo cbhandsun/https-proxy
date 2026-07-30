@@ -85,6 +85,10 @@ async function asyncCheck() {
     sanitizeLogText('https://user:pass@example.test/v1?apiKey=secret&safe=1'),
     'https://[redacted]@example.test/v1?apiKey=[redacted]&safe=1'
   );
+  assert.strictEqual(
+    sanitizeLogText('safe\r\nforged-entry\tvalue\u0000'),
+    'safe\\r\\nforged-entry\\tvalue\\u0000'
+  );
   assert.deepStrictEqual(
     sanitizeLogValue({ authorization: 'Bearer secret', nested: { apiKey: 'sk-test', safe: 1 } }),
     { authorization: '[redacted]', nested: { apiKey: '[redacted]', safe: 1 } }

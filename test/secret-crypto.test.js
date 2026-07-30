@@ -11,13 +11,19 @@ const {
   getCryptoBackend,
   DPAPI_PREFIX,
   AES_PREFIX,
+  AES_V2_PREFIX,
   SECRET_DECRYPTION_ERROR_CODE,
   _encryptAes,
   _decryptAes,
+  _encryptAesV2,
+  _decryptAesV2,
+  _getAesV2Key,
+  _parseMasterKey,
 } = require('../lib/proxy/secret-crypto');
 const {
   decryptConfigSecretsInPlace,
   encryptConfigSecretsForStorage,
+  migratePlaintextConfigSecrets,
 } = require('../lib/proxy/config');
 
 clearDecryptCache();
@@ -28,6 +34,43 @@ const aesEnc = _encryptAes(sampleAes);
 assert.ok(aesEnc.startsWith(AES_PREFIX), 'AES encryption must use hpm-enc: prefix: ' + aesEnc);
 assert.strictEqual(_decryptAes(aesEnc), sampleAes, 'AES round-trip must succeed');
 console.log('[secret-crypto.test] AES round-trip ok');
+
+const strongFallbackKey = Buffer.alloc(32, 7);
+const aesV2Cipher = _encryptAesV2('strong-fallback-secret', strongFallbackKey);
+assert.ok(aesV2Cipher.startsWith(AES_V2_PREFIX));
+assert.strictEqual(_decryptAesV2(aesV2Cipher, strongFallbackKey), 'strong-fallback-secret');
+assert.strictEqual(_decryptAesV2(aesV2Cipher, Buffer.alloc(32, 8)), aesV2Cipher);
+assert.strictEqual(_parseMasterKey(Buffer.alloc(32, 9).toString('base64')).length, 32);
+assert.strictEqual(_parseMasterKey('predictable-or-invalid'), null);
+
+const masterKeyRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-master-key-'));
+try {
+  const masterKeyFile = path.join(masterKeyRoot, 'nested', 'master.key');
+  const generatedKey = _getAesV2Key({
+    disableCache: true,
+    environment: { ...process.env, HPM_MASTER_KEY_FILE: masterKeyFile },
+  });
+  assert.strictEqual(generatedKey.length, 32);
+  assert.strictEqual(fs.existsSync(masterKeyFile), true);
+  assert.deepStrictEqual(
+    _getAesV2Key({
+      disableCache: true,
+      environment: { ...process.env, HPM_MASTER_KEY_FILE: masterKeyFile },
+    }),
+    generatedKey
+  );
+  assert.throws(
+    () =>
+      _getAesV2Key({
+        disableCache: true,
+        environment: { HPM_MASTER_KEY_BASE64: 'invalid' },
+      }),
+    /must encode exactly 32 bytes/
+  );
+} finally {
+  fs.rmSync(masterKeyRoot, { recursive: true, force: true });
+}
+console.log('[secret-crypto.test] strong AES fallback key ok');
 
 // 2. Decrypt of plaintext (non-encrypted) returns as-is
 assert.strictEqual(decryptKey('plain-text-api-key'), 'plain-text-api-key');
@@ -68,7 +111,9 @@ const apiKey = 'sk-end-to-end-' + Date.now();
 const cipher = encryptKey(apiKey);
 assert.ok(cipher !== apiKey, 'encryption must mutate');
 assert.ok(
-  cipher.startsWith(DPAPI_PREFIX) || cipher.startsWith(AES_PREFIX),
+  cipher.startsWith(DPAPI_PREFIX) ||
+    cipher.startsWith(AES_PREFIX) ||
+    cipher.startsWith(AES_V2_PREFIX),
   'cipher must use known prefix: ' + cipher.substring(0, 16)
 );
 const [plain, duplicatePlain] = decryptKeysStrict([cipher, cipher]);
@@ -108,10 +153,10 @@ const storedConfig = encryptConfigSecretsForStorage({
   },
 });
 
-assert.match(storedConfig.profiles[0].apiKey, /^hpm-(dpapi|enc):/);
-assert.match(storedConfig.claudeDesktop.token, /^hpm-(dpapi|enc):/);
-assert.match(storedConfig.claudeDesktop.directApiKey, /^hpm-(dpapi|enc):/);
-assert.match(storedConfig.entryAuth.keys[0].key, /^hpm-(dpapi|enc):/);
+assert.match(storedConfig.profiles[0].apiKey, /^hpm-(dpapi|enc|aes-v2):/);
+assert.match(storedConfig.claudeDesktop.token, /^hpm-(dpapi|enc|aes-v2):/);
+assert.match(storedConfig.claudeDesktop.directApiKey, /^hpm-(dpapi|enc|aes-v2):/);
+assert.match(storedConfig.entryAuth.keys[0].key, /^hpm-(dpapi|enc|aes-v2):/);
 assert.notStrictEqual(storedConfig.profiles[0].apiKey, 'profile-secret');
 assert.notStrictEqual(storedConfig.claudeDesktop.token, 'desktop-token');
 assert.notStrictEqual(storedConfig.claudeDesktop.directApiKey, 'direct-secret');
@@ -134,6 +179,24 @@ assert.strictEqual(loadedConfig.claudeDesktop.token, 'desktop-token');
 assert.strictEqual(loadedConfig.claudeDesktop.directApiKey, 'direct-secret');
 assert.strictEqual(loadedConfig.entryAuth.keys[0].key, 'entry-secret');
 console.log('[secret-crypto.test] config storage encryption ok');
+
+const migrationRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-secret-migration-'));
+try {
+  const migrationFile = path.join(migrationRoot, 'proxy.config.json');
+  const plaintextConfig = {
+    profiles: [{ id: 'main', apiKey: 'plaintext-migration-secret' }],
+    entryAuth: { keys: [{ id: 'client', key: 'plaintext-entry-secret' }] },
+  };
+  fs.writeFileSync(migrationFile, JSON.stringify(plaintextConfig), 'utf8');
+  assert.strictEqual(migratePlaintextConfigSecrets(plaintextConfig, migrationFile), true);
+  const migratedText = fs.readFileSync(migrationFile, 'utf8');
+  assert.ok(!migratedText.includes('plaintext-migration-secret'));
+  assert.ok(!migratedText.includes('plaintext-entry-secret'));
+  assert.strictEqual(migratePlaintextConfigSecrets(JSON.parse(migratedText), migrationFile), false);
+} finally {
+  fs.rmSync(migrationRoot, { recursive: true, force: true });
+}
+console.log('[secret-crypto.test] plaintext config migration ok');
 
 // 10. Protected config failures must never fall back to the unauthenticated defaults.
 const badConfigRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-bad-secret-'));

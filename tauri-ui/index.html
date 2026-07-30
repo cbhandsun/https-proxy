@@ -797,27 +797,23 @@
                   <button id="btnCopyInstallCommands" class="light" style="margin: 0; padding: 4px 8px; font-size: 12px;">复制</button>
                 </div>
                 <pre id="installCommandsText" style="margin: 0; padding: 12px; background: var(--bg-hover); border-radius: 4px; overflow-x: auto; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; color: var(--text-muted); text-align: left;">
-# Claude Code (Windows Native Recommended)
+# Claude Code (官方 PowerShell 安装器)
 irm https://claude.ai/install.ps1 | iex
-# Claude Code (NPM Alternative)
-npm i -g @anthropic-ai/claude-code@latest
 
-# Antigravity CLI (Windows Native Recommended)
+# Antigravity CLI (官方 PowerShell 安装器)
 irm https://antigravity.google/cli/install.ps1 | iex
-# Antigravity CLI (NPM Alternative)
-npm i -g antigravity-cli@latest
 
-# Codex (NPM)
-npm i -g @openai/codex@latest
+# Codex (官方 PowerShell 安装器，非交互)
+$env:CODEX_NON_INTERACTIVE='1'; irm https://chatgpt.com/codex/install.ps1 | iex
 
-# OpenCode (NPM)
+# OpenCode (官方 Windows 文档提供的 NPM 方式)
 npm i -g opencode-ai@latest
 
-# OpenClaw (NPM)
-npm i -g openclaw@latest
+# OpenClaw (官方 PowerShell 安装器，跳过后台不可见的引导)
+& ([scriptblock]::Create((irm https://openclaw.ai/install.ps1))) -NoOnboard
 
-# Hermes (NPM)
-npm i -g hermes-agent@latest</pre>
+# Hermes (官方 PowerShell 安装器，跳过后台不可见的设置向导)
+& ([scriptblock]::Create((irm https://hermes-agent.nousresearch.com/install.ps1))) -SkipSetup</pre>
               </div>
             </div>
           </div>

@@ -157,6 +157,13 @@ function waitForProxy(proc) {
     assert.strictEqual(wrong.statusCode, 401);
     assert.strictEqual(upstreamHits, 0);
 
+    const browserOrigin = await requestProxy(entryPort, {
+      authorization: 'Bearer entry-secret',
+      origin: 'https://evil.example',
+    });
+    assert.strictEqual(browserOrigin.statusCode, 403);
+    assert.strictEqual(upstreamHits, 0);
+
     const okHealth = await requestProxy(
       entryPort,
       { authorization: 'Bearer entry-secret' },
