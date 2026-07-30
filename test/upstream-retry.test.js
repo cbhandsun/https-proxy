@@ -8,6 +8,8 @@ const {
   shouldRetryUpstreamStatus,
   shouldFailoverOnStatus,
   shouldFailoverOnError,
+  isValidIdempotencyKey,
+  canReplayRequest,
   resolveUpstreamRecovery,
 } = require('../lib/proxy/upstream-retry');
 
@@ -110,6 +112,7 @@ function testRecoveryPrefersFailoverBeforeRetry() {
       maxRetries: 2,
       prepared,
       profiles,
+      method: 'GET',
     }),
     { type: 'failover', profile: backup }
   );
@@ -120,6 +123,7 @@ function testRecoveryPrefersFailoverBeforeRetry() {
       maxRetries: 2,
       prepared,
       profiles,
+      method: 'HEAD',
     }),
     { type: 'failover', profile: backup }
   );
@@ -135,6 +139,7 @@ function testRecoveryRetriesWhenNoBackupExists() {
     profiles: [],
     retryAfter: '5',
     random: () => 0,
+    method: 'GET',
   });
   assert.deepStrictEqual(statusRecovery, { type: 'retry', delayMs: 5000 });
 
@@ -145,6 +150,7 @@ function testRecoveryRetriesWhenNoBackupExists() {
     prepared: { profile: {} },
     profiles: [],
     random: () => 0,
+    method: 'OPTIONS',
   });
   assert.deepStrictEqual(errorRecovery, { type: 'retry', delayMs: 4000 });
   assert.deepStrictEqual(
@@ -154,9 +160,76 @@ function testRecoveryRetriesWhenNoBackupExists() {
       maxRetries: 2,
       prepared: { profile: {} },
       profiles: [],
+      method: 'GET',
     }),
     { type: 'none' }
   );
+}
+
+function testUnsafeRequestsRequireExplicitIdempotencyContract() {
+  const backup = { id: 'backup' };
+  const baseOptions = {
+    kind: 'status',
+    statusCode: 503,
+    attempt: 1,
+    maxRetries: 2,
+    profiles: [backup],
+    method: 'POST',
+  };
+
+  assert.strictEqual(canReplayRequest({ method: 'POST' }), false);
+  assert.strictEqual(
+    canReplayRequest({
+      method: 'POST',
+      headers: { 'idempotency-key': 'request-123' },
+      prepared: { profile: {} },
+    }),
+    false
+  );
+  assert.deepStrictEqual(
+    resolveUpstreamRecovery({
+      ...baseOptions,
+      prepared: { profile: { backupProfileId: 'backup' } },
+    }),
+    { type: 'none' }
+  );
+  assert.deepStrictEqual(
+    resolveUpstreamRecovery({
+      ...baseOptions,
+      headers: { 'Idempotency-Key': 'request-123' },
+      prepared: {
+        profile: {
+          backupProfileId: 'backup',
+          retryUnsafeRequests: true,
+        },
+      },
+      random: () => 0,
+    }),
+    { type: 'retry', delayMs: 2000 }
+  );
+}
+
+function testReplayValidationRejectsMalformedBoundaryValues() {
+  assert.strictEqual(isValidIdempotencyKey(''), false);
+  assert.strictEqual(isValidIdempotencyKey('x'.repeat(256)), true);
+  assert.strictEqual(isValidIdempotencyKey('x'.repeat(257)), false);
+  assert.strictEqual(isValidIdempotencyKey('unsafe\r\nheader'), false);
+  assert.strictEqual(
+    canReplayRequest({
+      method: 'POST',
+      headers: { 'idempotency-key': ['one', 'two'] },
+      prepared: { profile: { retryUnsafeRequests: true } },
+    }),
+    false
+  );
+  assert.strictEqual(
+    canReplayRequest({
+      method: 'GET',
+      responseStarted: true,
+    }),
+    false
+  );
+  assert.strictEqual(canReplayRequest({ method: 'TRACE' }), false);
 }
 
 testRetryableStatusCodes();
@@ -168,5 +241,7 @@ testStatusFailoverOnlyFirstRetryableAttempt();
 testErrorFailoverOnlyFirstAttempt();
 testRecoveryPrefersFailoverBeforeRetry();
 testRecoveryRetriesWhenNoBackupExists();
+testUnsafeRequestsRequireExplicitIdempotencyContract();
+testReplayValidationRejectsMalformedBoundaryValues();
 
 console.log('[upstream-retry.test] ok');

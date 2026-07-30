@@ -11,6 +11,8 @@ const {
 } = require('../lib/release/layout');
 
 const repoRoot = path.resolve(__dirname, '..');
+const proxySourceManifestPath = path.join(__dirname, 'release-proxy-sources.json');
+const proxySourceFiles = JSON.parse(fs.readFileSync(proxySourceManifestPath, 'utf8'));
 const outputDir = resolveReleaseLayout(repoRoot).runtimeDir;
 const sourcePackage = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
 const sourcePackageLock = JSON.parse(
@@ -40,8 +42,70 @@ function runNpmCommand(args, failureLabel) {
   }
 }
 
+function copyReleaseFile(sourceRelativePath, targetRelativePath = sourceRelativePath) {
+  const sourcePath = path.join(repoRoot, sourceRelativePath);
+  const targetPath = path.join(outputDir, targetRelativePath);
+  const stat = fs.lstatSync(sourcePath);
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new Error(`Release source must be a regular file: ${sourceRelativePath}`);
+  }
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+  fs.copyFileSync(sourcePath, targetPath);
+}
+
+function copyProxySourceTree() {
+  const sourceRoot = path.join(repoRoot, 'lib', 'proxy');
+  if (!Array.isArray(proxySourceFiles) || proxySourceFiles.length === 0) {
+    throw new Error('Release proxy source manifest must be a non-empty array');
+  }
+  const declared = new Set();
+  for (const relativePath of proxySourceFiles) {
+    const normalized = String(relativePath || '').replaceAll('\\', '/');
+    if (
+      normalized !== relativePath ||
+      !normalized.startsWith('lib/proxy/') ||
+      !normalized.endsWith('.js') ||
+      normalized.includes('/../') ||
+      declared.has(normalized)
+    ) {
+      throw new Error(`Invalid release proxy source declaration: ${relativePath}`);
+    }
+    declared.add(normalized);
+    copyReleaseFile(normalized);
+  }
+
+  const discovered = [];
+  function inspectSourceDirectory(directoryPath) {
+    for (const entry of fs.readdirSync(directoryPath, { withFileTypes: true })) {
+      const absolutePath = path.join(directoryPath, entry.name);
+      if (entry.isSymbolicLink()) {
+        throw new Error(`Release proxy source must not contain symbolic links: ${absolutePath}`);
+      }
+      if (entry.isDirectory()) {
+        inspectSourceDirectory(absolutePath);
+      } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.js') {
+        discovered.push(path.relative(repoRoot, absolutePath).replaceAll('\\', '/'));
+      }
+    }
+  }
+  inspectSourceDirectory(sourceRoot);
+  const undeclared = discovered.filter((relativePath) => !declared.has(relativePath));
+  if (undeclared.length > 0) {
+    throw new Error(`Undeclared release proxy sources: ${undeclared.join(', ')}`);
+  }
+}
+
 fs.rmSync(outputDir, { recursive: true, force: true });
 fs.mkdirSync(path.join(outputDir, 'runtime', 'node'), { recursive: true });
+for (const releaseFile of [
+  'openai-proxy.js',
+  'proxy.bat',
+  'proxy.ps1',
+  'proxy.config.example.json',
+]) {
+  copyReleaseFile(releaseFile);
+}
+copyProxySourceTree();
 fs.writeFileSync(
   path.join(outputDir, 'package.json'),
   JSON.stringify(runtimePackage, null, 2) + '\n'
@@ -74,6 +138,18 @@ const manifest = {
   nodeVersion: process.version,
   nodeSha256: sha256(nodeTarget),
   packageLockSha256: sha256(path.join(outputDir, 'package-lock.json')),
+  sourceSha256: Object.fromEntries(
+    [
+      'openai-proxy.js',
+      'proxy.bat',
+      'proxy.ps1',
+      'proxy.config.example.json',
+      ...proxySourceFiles,
+    ].map((relativePath) => [
+      relativePath,
+      sha256(path.join(outputDir, relativePath.replaceAll('/', path.sep))),
+    ])
+  ),
   dependencies: runtimePackage.dependencies,
 };
 fs.writeFileSync(

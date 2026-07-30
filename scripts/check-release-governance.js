@@ -13,9 +13,43 @@ const releaseRuntimeSource = fs.readFileSync(
   path.join(repoRoot, 'scripts', 'prepare-release-runtime.js'),
   'utf8'
 );
+const declaredProxySources = JSON.parse(
+  fs.readFileSync(path.join(repoRoot, 'scripts', 'release-proxy-sources.json'), 'utf8')
+);
 const resources = tauriConfig.bundle && tauriConfig.bundle.resources;
 const errors = [];
 errors.push(...validateGeneratedLayout(repoRoot));
+
+function discoverProxySources(directoryPath, result = []) {
+  for (const entry of fs.readdirSync(directoryPath, { withFileTypes: true })) {
+    const absolutePath = path.join(directoryPath, entry.name);
+    if (entry.isSymbolicLink()) {
+      errors.push(`Proxy source tree must not contain symbolic links: ${absolutePath}`);
+    } else if (entry.isDirectory()) {
+      discoverProxySources(absolutePath, result);
+    } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.js') {
+      result.push(path.relative(repoRoot, absolutePath).replaceAll('\\', '/'));
+    }
+  }
+  return result;
+}
+
+if (
+  !Array.isArray(declaredProxySources) ||
+  declaredProxySources.some((entry) => typeof entry !== 'string')
+) {
+  errors.push('scripts/release-proxy-sources.json must contain a string array');
+} else {
+  const declared = [...new Set(declaredProxySources)].sort();
+  const discovered = discoverProxySources(path.join(repoRoot, 'lib', 'proxy')).sort();
+  if (declared.length !== declaredProxySources.length) {
+    errors.push('Release proxy source manifest must not contain duplicate entries');
+  }
+  const missing = discovered.filter((entry) => !declared.includes(entry));
+  const stale = declared.filter((entry) => !discovered.includes(entry));
+  if (missing.length > 0) errors.push(`Undeclared proxy runtime sources: ${missing.join(', ')}`);
+  if (stale.length > 0) errors.push(`Missing declared proxy runtime sources: ${stale.join(', ')}`);
+}
 
 if (!resources || typeof resources !== 'object' || Array.isArray(resources)) {
   errors.push('Tauri bundle.resources must use an explicit source-to-target map');
@@ -30,6 +64,10 @@ if (!resources || typeof resources !== 'object' || Array.isArray(resources)) {
     errors.push('Tauri resources must include staged Node runtime');
   if (!serialized.includes('dist/staging/runtime/node_modules'))
     errors.push('Tauri resources must include staged production dependencies');
+  if (!serialized.includes('dist/staging/runtime/lib/proxy'))
+    errors.push('Tauri resources must include staged proxy sources');
+  if (serialized.includes('../lib/proxy'))
+    errors.push('Tauri resources must not bundle proxy sources directly from the working tree');
 }
 
 try {
@@ -64,6 +102,12 @@ for (const requiredFlag of ["'--omit=dev'", "'--ignore-scripts'"]) {
   if (!releaseRuntimeSource.includes(requiredFlag)) {
     errors.push(`Release runtime preparation must use ${requiredFlag}`);
   }
+}
+if (
+  !releaseRuntimeSource.includes('release-proxy-sources.json') ||
+  !releaseRuntimeSource.includes('sourceSha256')
+) {
+  errors.push('Release runtime preparation must use and hash the exact proxy source manifest');
 }
 
 for (const scriptName of [

@@ -25,12 +25,13 @@ const lastEnvToolsById = new Map();
 let envInstallPollTimer = null;
 
 function getPreferredEnvInstallCommand(tool) {
-  const toolId = tool && tool.id;
-  if (toolId === 'claude-code') return 'irm https://claude.ai/install.ps1 | iex';
-  if (toolId === 'antigravity-cli') return 'irm https://antigravity.google/cli/install.ps1 | iex';
   if (tool && tool.installCommand) return tool.installCommand;
   if (tool && tool.packageName) return `npm i -g ${tool.packageName}@latest`;
   return '';
+}
+
+function getEnvInstallMethodLabel(job) {
+  return job && job.installMethod === 'powershell' ? '官方 PowerShell 安装器' : 'npm 全局安装';
 }
 
 function scheduleEnvPendingRefresh(delayMs = 2500) {
@@ -55,6 +56,7 @@ function rememberEnvInstallJobs(results = []) {
       startedAt: result.startedAt || Date.now(),
       endedAt: result.endedAt || null,
       installCommand: result.installCommand || '',
+      installMethod: result.installMethod || (result.usesIrm ? 'powershell' : 'npm'),
       usesIrm: !!result.usesIrm,
       lastLine: result.lastLine || result.error || result.outputTail || '任务已启动',
       outputTail: result.outputTail || '',
@@ -72,6 +74,7 @@ function envJobStatusLabel(status) {
   if (status === 'failed') return '失败';
   if (status === 'verifying') return '复检中';
   if (status === 'submitting') return '提交中';
+  if (status === 'queued') return '等待中';
   return '执行中';
 }
 
@@ -83,6 +86,8 @@ function envDataSignature(tools = []) {
       current: tool && tool.current,
       latest: tool && tool.latest,
       hasUpdate: !!(tool && tool.hasUpdate),
+      installCommand: tool && tool.installCommand,
+      installMethod: tool && tool.installMethod,
     })),
     jobs: Array.from(envInstallJobsByTool.values()).map((job) => ({
       toolId: job && job.toolId,
@@ -90,6 +95,7 @@ function envDataSignature(tools = []) {
       lastLine: job && job.lastLine,
       outputTail: job && job.outputTail,
       installCommand: job && job.installCommand,
+      installMethod: job && job.installMethod,
       usesIrm: !!(job && job.usesIrm),
     })),
   });
@@ -136,7 +142,7 @@ function createEnvProgressItem(job) {
   const method = document.createElement('div');
   method.className = 'muted';
   method.style.fontSize = '12px';
-  method.textContent = job.usesIrm ? '官方 irm 安装脚本' : 'npm 全局安装';
+  method.textContent = getEnvInstallMethodLabel(job);
   info.append(name, method);
 
   const status = document.createElement('strong');
@@ -202,7 +208,8 @@ function markEnvInstallSubmitting(toolIds = []) {
       name: tool.name || toolId,
       status: 'submitting',
       installCommand,
-      usesIrm: installCommand.startsWith('irm '),
+      installMethod: tool.installMethod || 'npm',
+      usesIrm: tool.installMethod === 'powershell',
       startedAt: now,
       lastLine: '正在提交安装任务...',
       outputTail: '',
@@ -385,7 +392,7 @@ function createEnvProgressBlock(installJob) {
   const method = document.createElement('div');
   method.className = 'muted';
   method.style.fontSize = '12px';
-  method.textContent = installJob.usesIrm ? '官方 irm 安装脚本' : 'npm 全局安装';
+  method.textContent = getEnvInstallMethodLabel(installJob);
   block.append(
     line,
     method,

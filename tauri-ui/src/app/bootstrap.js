@@ -2829,7 +2829,14 @@ async function saveConfig(message) {
   collectClaudeDesktop();
   syncClaudeDesktopRoutesToModelRoutes();
   config.modelRoutes = modelRoutesForConfig();
-  config = await window.proxyManager.saveConfig(config);
+  try {
+    config = await window.proxyManager.saveConfig(config);
+  } catch (err) {
+    const errorMessage = err && err.message ? err.message : '保存配置失败';
+    $('output').textContent = errorMessage;
+    reportFrontendError('config.save', err);
+    return false;
+  }
   if (message === '应用设置已保存') await applyTopMenuVisibility(config.appSettings.showTopMenu);
   fillLocalServer();
   fillAppSettings();
@@ -2952,8 +2959,8 @@ $('importCliCreds').onclick = async () => {
   $('importCredsStatus').textContent = '正在获取本地凭证...';
 
   const result = await window.proxyManager.cliCredentials(type);
-  if (result.ok && result.token) {
-    $('apiKey').value = result.token;
+  if (result.ok && result.protectedToken) {
+    $('apiKey').value = result.protectedToken;
     $('importCredsStatus').textContent =
       '本地凭证导入成功！请点击下方【保存上游目标】按钮保存修改。';
     showToast('本地凭证导入成功！', 'success');

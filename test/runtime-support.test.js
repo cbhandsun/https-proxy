@@ -18,4 +18,24 @@ assert.strictEqual(fs.readFileSync(path.join(dataDir, '.mgmt-token-45678'), 'utf
 assert.strictEqual(support.readExistingManagementToken(45678), token);
 assert.strictEqual(support.writeManagementTokenFile(45678), token);
 
+const deniedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-runtime-support-denied-'));
+const deniedSupport = createRuntimeSupport({
+  dataDir: deniedDir,
+  secureDirectory() {
+    throw new Error('ACL denied');
+  },
+});
+assert.throws(() => deniedSupport.writeManagementTokenFile(45679), /ACL denied/);
+assert.strictEqual(fs.existsSync(path.join(deniedDir, '.mgmt-token-45679')), false);
+
+const unreadableTokenPath = path.join(deniedDir, '.mgmt-token');
+fs.writeFileSync(unreadableTokenPath, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+const unreadableSupport = createRuntimeSupport({
+  dataDir: deniedDir,
+  secureFile() {
+    throw new Error('Token ACL is unsafe');
+  },
+});
+assert.throws(() => unreadableSupport.readExistingManagementToken(45680), /Token ACL is unsafe/);
+
 console.log('[runtime-support.test] ok');

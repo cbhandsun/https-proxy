@@ -9,7 +9,14 @@ const {
 {
   const valid = validateConfig({
     activeProfile: 'main',
-    profiles: [{ id: 'main', protocol: 'openai', targetUrl: 'https://api.example.test/v1' }],
+    profiles: [
+      {
+        id: 'main',
+        protocol: 'openai',
+        targetUrl: 'https://api.example.test/v1',
+        retryUnsafeRequests: true,
+      },
+    ],
     localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
     entryServers: [{ host: '127.0.0.1', listenPort: 3445, basePath: '/v1' }],
     modelRoutes: [
@@ -80,7 +87,14 @@ const {
 {
   const invalidBoundaries = validateConfig({
     activeProfile: 'main',
-    profiles: [{ id: 'main', protocol: 'openai', targetUrl: 'https://api.example.test/v1' }],
+    profiles: [
+      {
+        id: 'main',
+        protocol: 'openai',
+        targetUrl: 'https://api.example.test/v1',
+        retryUnsafeRequests: 'yes',
+      },
+    ],
     localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
     entryServers: {},
     modelRoutes: [{ from: '', profileId: 'missing', clientProtocols: ['smtp'] }, 'not-an-object'],
@@ -102,6 +116,7 @@ const {
   assert.strictEqual(invalidBoundaries.valid, false);
   for (const fragment of [
     'entryServers must be an array',
+    'retryUnsafeRequests must be a boolean',
     'modelRoutes[0].from is required',
     'profileId does not match any profile',
     'clientProtocols contains unsupported protocol',
@@ -151,18 +166,26 @@ const {
 {
   const valid = validateEntryAuthConfig({
     enabled: true,
+    allowedOrigins: ['https://trusted.example'],
     keys: [{ id: 'team-a', key: 'entry-key', allowedEntryProtocols: ['openai-chat'] }],
   });
   assert.strictEqual(valid.valid, true);
 
   const invalid = validateEntryAuthConfig({
     enabled: 'yes',
+    allowedOrigins: [
+      'https://trusted.example/path',
+      'javascript:alert(1)',
+      'https://duplicate.example',
+      'https://duplicate.example',
+    ],
     keys: [
       { id: 'dup', key: 'bad\nkey', allowedEntryProtocols: ['bad'], allowedEntryPorts: [70000] },
       { id: 'dup', allowedProfileIds: 'main' },
     ],
   });
   assert.strictEqual(invalid.valid, false);
+  assert.ok(invalid.errors.some((error) => error.includes('allowedOrigins')));
   assert.ok(invalid.errors.some((error) => error.includes('enabled')));
   assert.ok(invalid.errors.some((error) => error.includes('duplicated')));
   assert.ok(invalid.errors.some((error) => error.includes('key is invalid')));

@@ -32,14 +32,14 @@ const bundledResources = JSON.stringify(tauriConfig.bundle.resources);
 assert.match(bundledResources, /dist\/staging\/runtime\/runtime/);
 assert.match(bundledResources, /dist\/staging\/runtime\/node_modules/);
 assert.strictEqual(
-  tauriConfig.bundle.resources['../lib/proxy'],
+  tauriConfig.bundle.resources['../dist/staging/runtime/lib/proxy'],
   'lib/proxy',
-  'Tauri must bundle only production proxy libraries'
+  'Tauri must bundle only the allow-listed staged production proxy libraries'
 );
 assert.strictEqual(
-  Object.hasOwn(tauriConfig.bundle.resources, '../lib'),
+  Object.hasOwn(tauriConfig.bundle.resources, '../lib/proxy'),
   false,
-  'Tauri must not bundle repository governance and test support libraries'
+  'Tauri must not bundle proxy sources directly from the working tree'
 );
 assert.doesNotMatch(bundledResources, /dist\/release-runtime|dist\/release\//);
 assert.doesNotMatch(

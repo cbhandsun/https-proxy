@@ -272,6 +272,19 @@ export function createDefaultEntryAuthKey(entryServers, createSecret) {
 
 export function normalizeEntryAuth(value, entryServers, createSecret) {
   const source = isRecord(value) ? value : {};
+  const allowedOrigins = unique(
+    (Array.isArray(source.allowedOrigins) ? source.allowedOrigins : [])
+      .map((origin) => normalizedString(origin, '', 2048))
+      .filter((origin) => {
+        try {
+          const parsed = new URL(origin);
+          return ['http:', 'https:'].includes(parsed.protocol) && parsed.origin === origin;
+        } catch (error) {
+          return false;
+        }
+      })
+      .slice(0, 32)
+  );
   const keys = (Array.isArray(source.keys) ? source.keys : [])
     .map(normalizeEntryAuthKey)
     .filter((item) => item.id);
@@ -279,11 +292,13 @@ export function normalizeEntryAuth(value, entryServers, createSecret) {
     return {
       enabled: true,
       keys: [createDefaultEntryAuthKey(entryServers, createSecret)],
+      allowedOrigins,
     };
   }
   return {
     enabled: typeof source.enabled === 'boolean' ? source.enabled : true,
     keys,
+    allowedOrigins,
   };
 }
 

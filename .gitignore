@@ -24,6 +24,7 @@ proxy.config.before-*.json
 *.jsonl
 *.jsonl.*
 *.jsonl.*.bak
+*.backup-*
 
 # Build outputs
 dist/

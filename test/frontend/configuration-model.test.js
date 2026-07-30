@@ -185,12 +185,21 @@ const assert = require('node:assert/strict');
     true
   );
   const existingAuth = normalizeEntryAuth(
-    { enabled: false, keys: [{ id: 'existing', key: 'secret' }] },
+    {
+      enabled: false,
+      keys: [{ id: 'existing', key: 'secret' }],
+      allowedOrigins: [
+        'https://trusted.example',
+        'https://trusted.example/path',
+        'javascript:alert(1)',
+      ],
+    },
     defaults,
     () => {
       throw new Error('must not generate');
     }
   );
+  assert.deepEqual(existingAuth.allowedOrigins, ['https://trusted.example']);
   assert.equal(existingAuth.enabled, false);
   assert.equal(existingAuth.keys[0].id, 'existing');
 

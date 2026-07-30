@@ -5,7 +5,9 @@ const {
   decodeBodyBuffer,
   estimateTokens,
   collectLimitedRequestBody,
+  inspectContentLength,
   normalizeByteLimit,
+  pathForLogging,
 } = require('../lib/proxy/request-utils');
 
 function createReq() {
@@ -31,6 +33,13 @@ function testNormalizeByteLimitRejectsNonFiniteValues() {
   assert.strictEqual(normalizeByteLimit(500, 10, 1, 100), 100);
 }
 
+function testPathForLoggingDropsUserControlledQueryData() {
+  assert.strictEqual(pathForLogging('/v1/messages?prompt=secret&token=value'), '/v1/messages');
+  assert.strictEqual(pathForLogging('/v1/models#private'), '/v1/models');
+  assert.strictEqual(pathForLogging(''), '/');
+  assert.strictEqual(pathForLogging(null), '/');
+}
+
 function testEstimateTokensHandlesNestedValues() {
   assert.strictEqual(
     estimateTokens({
@@ -40,6 +49,30 @@ function testEstimateTokensHandlesNestedValues() {
     }),
     4
   );
+}
+
+function testInspectContentLengthValidatesAndBoundsInput() {
+  assert.deepStrictEqual(inspectContentLength({}, 5), {
+    present: false,
+    valid: true,
+    exceeds: false,
+    value: 0,
+    limit: 5,
+  });
+  assert.strictEqual(inspectContentLength({ 'content-length': '5' }, 5).exceeds, false);
+  assert.strictEqual(inspectContentLength({ 'Content-Length': '6' }, 5).exceeds, true);
+  assert.strictEqual(inspectContentLength({ 'content-length': '0' }, 5).valid, true);
+  assert.strictEqual(inspectContentLength({ 'content-length': '-1' }, 5).valid, false);
+  assert.strictEqual(inspectContentLength({ 'content-length': '1e3' }, 5).valid, false);
+  assert.strictEqual(inspectContentLength({ 'content-length': ['1', '2'] }, 5).valid, false);
+  const extreme = inspectContentLength(
+    { 'content-length': '999999999999999999999999999999999' },
+    5
+  );
+  assert.strictEqual(extreme.valid, true);
+  assert.strictEqual(extreme.exceeds, true);
+  assert.strictEqual(extreme.value, Number.MAX_SAFE_INTEGER);
+  assert.strictEqual(inspectContentLength({ 'content-length': '5\r\nx: y' }, 5).valid, false);
 }
 
 function testCollectLimitedRequestBodyCombinesChunks() {
@@ -146,7 +179,9 @@ function testCollectLimitedRequestBodyFailsClosedForInvalidLimit() {
 testDecodeBodyBufferFallsBackOnBadCompressedBody();
 testDecodeBodyBufferLimitsDecompressedOutput();
 testNormalizeByteLimitRejectsNonFiniteValues();
+testPathForLoggingDropsUserControlledQueryData();
 testEstimateTokensHandlesNestedValues();
+testInspectContentLengthValidatesAndBoundsInput();
 testCollectLimitedRequestBodyCombinesChunks();
 testCollectLimitedRequestBodyReportsTooLargeOnce();
 testCollectLimitedRequestBodyAllowsExactLimit();

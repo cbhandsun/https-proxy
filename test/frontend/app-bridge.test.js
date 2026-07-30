@@ -10,8 +10,16 @@ const source = fs.readFileSync(
 );
 
 assert.ok(
-  source.includes("invoke('get_management_token_native'"),
-  'Tauri management requests must resolve the token through the native command'
+  source.includes("invoke('management_fetch_native'"),
+  'Tauri management requests must stay inside the native authenticated bridge'
+);
+assert.ok(
+  !source.includes("invoke('get_management_token_native'"),
+  'the renderer must never receive the raw management token'
+);
+assert.ok(
+  !source.includes('x-mgmt-token'),
+  'the renderer must never construct management authentication headers'
 );
 assert.ok(
   source.includes("localStorage.removeItem('hpm_mgmt_token')"),

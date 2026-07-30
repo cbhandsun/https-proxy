@@ -3,7 +3,9 @@ const assert = require('assert');
 const {
   authorizeEntryRequest,
   extractEntryCredential,
+  installEntryCorsGuard,
   normalizeEntryAuthConfig,
+  normalizeEntryOrigins,
   profileMatchesEntryKey,
   stripEntryAuthHeaders,
 } = require('../lib/proxy/entry-auth');
@@ -23,6 +25,80 @@ const entry = { protocol: 'openai-chat', listenPort: 3447 };
   assert.strictEqual(
     extractEntryCredential({ 'proxy-authorization': 'Bearer proxy-header-key' }),
     'proxy-header-key'
+  );
+}
+
+{
+  assert.deepStrictEqual(
+    normalizeEntryOrigins(
+      {
+        entryAuth: {
+          allowedOrigins: [
+            'https://trusted.example',
+            'https://trusted.example/path',
+            'javascript:alert(1)',
+          ],
+        },
+      },
+      { PROXY_ENTRY_ALLOWED_ORIGINS: 'http://localhost:5173, invalid' }
+    ),
+    ['https://trusted.example', 'http://localhost:5173']
+  );
+
+  function createResponse() {
+    return {
+      headers: {},
+      statusCode: null,
+      body: '',
+      setHeader(name, value) {
+        this.headers[name] = value;
+      },
+      writeHead(statusCode, headers) {
+        this.statusCode = statusCode;
+        Object.assign(this.headers, headers);
+      },
+      end(body = '') {
+        this.body = String(body);
+      },
+    };
+  }
+
+  const noOriginResponse = createResponse();
+  assert.strictEqual(
+    installEntryCorsGuard({ headers: {} }, noOriginResponse, { entryAuth: {} }, {}),
+    true
+  );
+
+  const deniedResponse = createResponse();
+  assert.strictEqual(
+    installEntryCorsGuard(
+      { headers: { origin: 'https://evil.example' } },
+      deniedResponse,
+      { entryAuth: { allowedOrigins: ['https://trusted.example'] } },
+      {}
+    ),
+    false
+  );
+  assert.strictEqual(deniedResponse.statusCode, 403);
+
+  const allowedResponse = createResponse();
+  assert.strictEqual(
+    installEntryCorsGuard(
+      { headers: { origin: 'https://trusted.example' } },
+      allowedResponse,
+      { entryAuth: { allowedOrigins: ['https://trusted.example'] } },
+      {}
+    ),
+    true
+  );
+  assert.strictEqual(
+    allowedResponse.headers['Access-Control-Allow-Origin'],
+    'https://trusted.example'
+  );
+  allowedResponse.writeHead(200, { 'Access-Control-Allow-Origin': '*' });
+  assert.strictEqual(
+    allowedResponse.headers['Access-Control-Allow-Origin'],
+    'https://trusted.example'
   );
 }
 
