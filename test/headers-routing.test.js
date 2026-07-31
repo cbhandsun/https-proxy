@@ -5,6 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { createIsolatedTestEnv } = require('../lib/test-runtime');
+const { findAvailablePorts } = require('./helpers/test-ports');
 
 const testHomeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'https-proxy-headers-routing-'));
 const testAppDataDir = path.join(testHomeDir, 'AppData', 'Roaming');
@@ -50,23 +51,10 @@ let claudeEntryPort = 0;
 let openAiEntryPort = 0;
 let managementPort = 0;
 
-function findAvailablePort() {
-  return new Promise((resolve, reject) => {
-    const server = http.createServer();
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const { port } = server.address();
-      server.close((error) => (error ? reject(error) : resolve(port)));
-    });
-  });
-}
-
 mockUpstream.listen(0, '127.0.0.1', async () => {
   upstreamPort = mockUpstream.address().port;
   try {
-    claudeEntryPort = await findAvailablePort();
-    openAiEntryPort = await findAvailablePort();
-    managementPort = await findAvailablePort();
+    [claudeEntryPort, openAiEntryPort, managementPort] = await findAvailablePorts(3);
     await runTests();
   } catch (error) {
     console.error('\nTest failed:', error);
