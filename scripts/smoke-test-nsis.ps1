@@ -13,6 +13,11 @@ if ([string]::IsNullOrWhiteSpace($mainBinaryName)) {
     throw "Tauri mainBinaryName must be configured: $tauriConfigPath"
 }
 $mainExecutable = "$mainBinaryName.exe"
+$uninstallRegistryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\HTTPS Proxy Manager'
+if (Test-Path -LiteralPath $uninstallRegistryPath) {
+    $existingInstall = Get-ItemProperty -LiteralPath $uninstallRegistryPath -ErrorAction Stop
+    throw "NSIS smoke test requires a clean disposable Windows environment. Existing installation: $($existingInstall.InstallLocation)"
+}
 
 $installerRoot = [System.IO.Path]::GetFullPath($InstallerDirectory)
 $installer = Get-ChildItem -LiteralPath $installerRoot -File |
@@ -41,12 +46,12 @@ function Invoke-HiddenProcess {
     }
 }
 
-function Stop-ProcessesUnderDirectory {
+function Get-ProcessesUnderDirectory {
     param([string]$Directory)
 
     $processRoot = [System.IO.Path]::GetFullPath($Directory).TrimEnd('\') + '\'
-    for ($attempt = 0; $attempt -lt 20; $attempt++) {
-        $processes = Get-CimInstance Win32_Process |
+    return @(
+        Get-CimInstance Win32_Process |
             Where-Object {
                 if ([string]::IsNullOrWhiteSpace($_.ExecutablePath)) { return $false }
                 try {
@@ -58,32 +63,82 @@ function Stop-ProcessesUnderDirectory {
                     return $false
                 }
             }
+    )
+}
+
+function Stop-ProcessesUnderDirectory {
+    param(
+        [string]$Directory,
+        [ValidateRange(0, 60)]
+        [int]$MinimumObservationSeconds = 0,
+        [ValidateRange(5, 90)]
+        [int]$TimeoutSeconds = 45
+    )
+
+    $startedAt = [DateTime]::UtcNow
+    $minimumObservationEndsAt = $startedAt.AddSeconds($MinimumObservationSeconds)
+    $deadline = $startedAt.AddSeconds($TimeoutSeconds)
+    do {
+        $processes = @(Get-ProcessesUnderDirectory $Directory)
         foreach ($process in $processes) {
             Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
         }
-        Start-Sleep -Milliseconds 100
-    }
+        $remaining = @(Get-ProcessesUnderDirectory $Directory)
+        if ($remaining.Count -eq 0 -and [DateTime]::UtcNow -ge $minimumObservationEndsAt) {
+            return
+        }
+        Start-Sleep -Milliseconds 250
+    } while ([DateTime]::UtcNow -lt $deadline)
 
-    $remaining = Get-CimInstance Win32_Process |
-        Where-Object {
-            if ([string]::IsNullOrWhiteSpace($_.ExecutablePath)) { return $false }
-            try {
-                return [System.IO.Path]::GetFullPath($_.ExecutablePath).StartsWith(
-                    $processRoot,
+    $remaining = @(Get-ProcessesUnderDirectory $Directory)
+    $details = ($remaining | ForEach-Object {
+        "PID=$($_.ProcessId) path=$($_.ExecutablePath)"
+    }) -join '; '
+    throw "Smoke-test process cleanup timed out under $Directory. Remaining: [$details]"
+}
+
+function Wait-ForUninstallRegistration {
+    param(
+        [bool]$ShouldExist,
+        [string]$ExpectedInstallDirectory,
+        [ValidateRange(5, 60)]
+        [int]$TimeoutSeconds = 30
+    )
+
+    $expected = [System.IO.Path]::GetFullPath($ExpectedInstallDirectory).TrimEnd('\')
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    do {
+        $exists = Test-Path -LiteralPath $uninstallRegistryPath
+        if (-not $ShouldExist -and -not $exists) { return }
+        if ($ShouldExist -and $exists) {
+            $registration = Get-ItemProperty -LiteralPath $uninstallRegistryPath -ErrorAction Stop
+            $registered = [string]$registration.InstallLocation
+            $registered = $registered.Trim().Trim('"')
+            if (
+                $registered -and
+                [string]::Equals(
+                    [System.IO.Path]::GetFullPath($registered).TrimEnd('\'),
+                    $expected,
                     [System.StringComparison]::OrdinalIgnoreCase
                 )
-            } catch {
-                return $false
+            ) {
+                return
             }
         }
-    if ($remaining) {
-        throw "Smoke-test processes are still running under $Directory"
+        Start-Sleep -Milliseconds 250
+    } while ([DateTime]::UtcNow -lt $deadline)
+
+    if ($ShouldExist) {
+        throw "NSIS installation registration did not settle at $ExpectedInstallDirectory"
     }
+    throw "NSIS uninstall registration was not removed: $uninstallRegistryPath"
 }
 
 try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
     Invoke-HiddenProcess $installer.FullName @('/S', "/D=$installDir")
+    Stop-ProcessesUnderDirectory $installDir -MinimumObservationSeconds 30 -TimeoutSeconds 45
+    Wait-ForUninstallRegistration $true $installDir
 
     foreach ($relativePath in @(
         $mainExecutable,
@@ -102,11 +157,12 @@ try {
     if (-not (Test-Path -LiteralPath $uninstaller -PathType Leaf)) {
         throw "Installed release is missing uninstaller: $uninstaller"
     }
-    Stop-ProcessesUnderDirectory $installDir
     Invoke-HiddenProcess $uninstaller @('/S') 120
+    Stop-ProcessesUnderDirectory $installDir -MinimumObservationSeconds 10 -TimeoutSeconds 30
+    Wait-ForUninstallRegistration $false $installDir
     Write-Output "NSIS install/uninstall smoke test passed: $($installer.Name)"
 } finally {
-    Stop-ProcessesUnderDirectory $installDir
+    Stop-ProcessesUnderDirectory $installDir -TimeoutSeconds 10
     if (Test-Path -LiteralPath $tempRoot) {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force
     }

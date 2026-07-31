@@ -155,6 +155,21 @@ assert.ok(
   (installerSmokeTest.match(/Stop-ProcessesUnderDirectory \$installDir/g) || []).length >= 2,
   'the NSIS smoke test must stop temporary app processes before uninstall and final cleanup'
 );
+assert.match(
+  installerSmokeTest,
+  /NSIS smoke test requires a clean disposable Windows environment/,
+  'the NSIS smoke test must refuse to overwrite an existing user installation'
+);
+assert.match(
+  installerSmokeTest,
+  /MinimumObservationSeconds 30/,
+  'the NSIS smoke test must observe delayed installer activity before uninstalling'
+);
+assert.match(
+  installerSmokeTest,
+  /Wait-ForUninstallRegistration \$false \$installDir/,
+  'the NSIS smoke test must verify that uninstall registration is removed'
+);
 
 const verifyScript = String((packageJson.scripts && packageJson.scripts.verify) || '');
 const rustTestScript = String((packageJson.scripts && packageJson.scripts['test:rust']) || '');
