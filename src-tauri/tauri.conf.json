@@ -1,6 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "HTTPS Proxy Manager",
+  "mainBinaryName": "https-proxy-manager",
   "version": "0.1.0",
   "identifier": "com.efficiency.https-proxy-manager",
   "build": {
