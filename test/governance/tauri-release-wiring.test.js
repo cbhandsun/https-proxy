@@ -146,6 +146,15 @@ assert.ok(
   !installerSmokeTest.includes("'HTTPS Proxy Manager.exe'"),
   'the NSIS smoke test must not hard-code a binary name that can drift from Tauri configuration'
 );
+assert.match(
+  installerSmokeTest,
+  /function Stop-ProcessesUnderDirectory/,
+  'the NSIS smoke test must contain automatic app process cleanup'
+);
+assert.ok(
+  (installerSmokeTest.match(/Stop-ProcessesUnderDirectory \$installDir/g) || []).length >= 2,
+  'the NSIS smoke test must stop temporary app processes before uninstall and final cleanup'
+);
 
 const verifyScript = String((packageJson.scripts && packageJson.scripts.verify) || '');
 const rustTestScript = String((packageJson.scripts && packageJson.scripts['test:rust']) || '');

@@ -83,12 +83,34 @@ pub(crate) fn first_unique_existing_root(candidates: Vec<PathBuf>) -> Option<Pat
     None
 }
 
+pub(crate) fn select_release_root(
+    executable: Option<PathBuf>,
+    resource_root: Option<PathBuf>,
+    current_dir: Option<PathBuf>,
+    manifest_root: Option<PathBuf>,
+) -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(executable) = executable {
+        push_proxy_root_ancestors(&mut candidates, executable);
+    }
+    if let Some(resource_root) = resource_root {
+        push_proxy_root_ancestors(&mut candidates, resource_root);
+    }
+    if let Some(current_dir) = current_dir {
+        push_proxy_root_ancestors(&mut candidates, current_dir);
+    }
+    if let Some(manifest_root) = manifest_root {
+        candidates.push(manifest_root);
+    }
+    first_unique_existing_root(candidates)
+}
+
 /// Find the runtime root reliably.
 ///
 /// Debug builds always bind to the source checkout so stale target/debug
 /// copies cannot steal config, tokens, or certs. Release and portable builds
-/// prefer the launch/executable runtime before falling back to bundled
-/// resources.
+/// bind to the executable runtime before considering bundled resources or the
+/// process working directory.
 pub(crate) fn find_project_root() -> Option<PathBuf> {
     PROJECT_ROOT
         .get_or_init(|| {
@@ -99,21 +121,12 @@ pub(crate) fn find_project_root() -> Option<PathBuf> {
                 return Some(local_root);
             }
 
-            let mut candidates = Vec::new();
-            if let Ok(start) = std::env::current_dir() {
-                push_proxy_root_ancestors(&mut candidates, start);
-            }
-            if let Ok(executable) = std::env::current_exe() {
-                push_proxy_root_ancestors(&mut candidates, executable);
-            }
-            if let Some(resource_root) = RESOURCE_ROOT.get() {
-                push_proxy_root_ancestors(&mut candidates, resource_root.to_path_buf());
-            }
-            if let Some(manifest_root) = manifest_project_root() {
-                candidates.push(manifest_root);
-            }
-
-            first_unique_existing_root(candidates)
+            select_release_root(
+                std::env::current_exe().ok(),
+                RESOURCE_ROOT.get().cloned(),
+                std::env::current_dir().ok(),
+                manifest_project_root(),
+            )
         })
         .clone()
 }
