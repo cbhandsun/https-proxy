@@ -27,8 +27,17 @@ const installerHooks = fs.readFileSync(
   path.join(repoRoot, 'src-tauri', 'nsis', 'installer-hooks.nsh'),
   'utf8'
 );
+const installerSmokeTest = fs.readFileSync(
+  path.join(repoRoot, 'scripts', 'smoke-test-nsis.ps1'),
+  'utf8'
+);
 const bundledResources = JSON.stringify(tauriConfig.bundle.resources);
 
+assert.strictEqual(
+  tauriConfig.mainBinaryName,
+  'https-proxy-manager',
+  'installed and portable packages must use the stable product executable name'
+);
 assert.match(bundledResources, /dist\/staging\/runtime\/runtime/);
 assert.match(bundledResources, /dist\/staging\/runtime\/node_modules/);
 assert.strictEqual(
@@ -127,6 +136,15 @@ assert.match(
   installerHooks,
   /"\$\{HTTPS_PROXY_INSTALLER_HOOK_DIR\}\\stop-installed-processes\.ps1"/,
   'embedded cleanup script must resolve relative to the source hook directory'
+);
+assert.match(
+  installerSmokeTest,
+  /tauriConfig\.mainBinaryName/,
+  'the NSIS smoke test must derive the installed executable from Tauri configuration'
+);
+assert.ok(
+  !installerSmokeTest.includes("'HTTPS Proxy Manager.exe'"),
+  'the NSIS smoke test must not hard-code a binary name that can drift from Tauri configuration'
 );
 
 const verifyScript = String((packageJson.scripts && packageJson.scripts.verify) || '');

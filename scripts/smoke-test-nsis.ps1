@@ -5,6 +5,15 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$tauriConfigPath = Join-Path $repoRoot 'src-tauri\tauri.conf.json'
+$tauriConfig = Get-Content -LiteralPath $tauriConfigPath -Raw | ConvertFrom-Json
+$mainBinaryName = [string]$tauriConfig.mainBinaryName
+if ([string]::IsNullOrWhiteSpace($mainBinaryName)) {
+    throw "Tauri mainBinaryName must be configured: $tauriConfigPath"
+}
+$mainExecutable = "$mainBinaryName.exe"
+
 $installerRoot = [System.IO.Path]::GetFullPath($InstallerDirectory)
 $installer = Get-ChildItem -LiteralPath $installerRoot -File |
     Where-Object { $_.Name -match '-setup\.exe$' } |
@@ -37,7 +46,7 @@ try {
     Invoke-HiddenProcess $installer.FullName @('/S', "/D=$installDir")
 
     foreach ($relativePath in @(
-        'HTTPS Proxy Manager.exe',
+        $mainExecutable,
         'openai-proxy.js',
         'lib\proxy\cert.js',
         'runtime\node\node.exe',
