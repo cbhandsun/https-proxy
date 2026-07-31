@@ -102,6 +102,22 @@ fn root_candidate_selection_deduplicates_and_preserves_order() {
 }
 
 #[test]
+fn release_root_selection_prefers_executable_over_working_directory() {
+    let executable_root = unique_temp_dir("release-executable");
+    let working_root = unique_temp_dir("release-working-directory");
+    make_runtime_root(&executable_root);
+    make_runtime_root(&working_root);
+    let executable = executable_root.join("https-proxy-manager.exe");
+    fs::write(&executable, "").unwrap();
+
+    let selected = select_release_root(Some(executable), None, Some(working_root.clone()), None);
+    assert_eq!(selected, Some(executable_root.clone()));
+
+    let _ = fs::remove_dir_all(executable_root);
+    let _ = fs::remove_dir_all(working_root);
+}
+
+#[test]
 fn startup_command_quotes_executable_paths_and_matches_case_insensitively() {
     let exe = Path::new(r"C:\Program Files\HTTPS Proxy Manager\app.exe");
     assert_eq!(

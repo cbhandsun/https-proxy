@@ -41,6 +41,46 @@ function Invoke-HiddenProcess {
     }
 }
 
+function Stop-ProcessesUnderDirectory {
+    param([string]$Directory)
+
+    $processRoot = [System.IO.Path]::GetFullPath($Directory).TrimEnd('\') + '\'
+    for ($attempt = 0; $attempt -lt 20; $attempt++) {
+        $processes = Get-CimInstance Win32_Process |
+            Where-Object {
+                if ([string]::IsNullOrWhiteSpace($_.ExecutablePath)) { return $false }
+                try {
+                    return [System.IO.Path]::GetFullPath($_.ExecutablePath).StartsWith(
+                        $processRoot,
+                        [System.StringComparison]::OrdinalIgnoreCase
+                    )
+                } catch {
+                    return $false
+                }
+            }
+        foreach ($process in $processes) {
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+        }
+        Start-Sleep -Milliseconds 100
+    }
+
+    $remaining = Get-CimInstance Win32_Process |
+        Where-Object {
+            if ([string]::IsNullOrWhiteSpace($_.ExecutablePath)) { return $false }
+            try {
+                return [System.IO.Path]::GetFullPath($_.ExecutablePath).StartsWith(
+                    $processRoot,
+                    [System.StringComparison]::OrdinalIgnoreCase
+                )
+            } catch {
+                return $false
+            }
+        }
+    if ($remaining) {
+        throw "Smoke-test processes are still running under $Directory"
+    }
+}
+
 try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
     Invoke-HiddenProcess $installer.FullName @('/S', "/D=$installDir")
@@ -62,9 +102,11 @@ try {
     if (-not (Test-Path -LiteralPath $uninstaller -PathType Leaf)) {
         throw "Installed release is missing uninstaller: $uninstaller"
     }
+    Stop-ProcessesUnderDirectory $installDir
     Invoke-HiddenProcess $uninstaller @('/S') 120
     Write-Output "NSIS install/uninstall smoke test passed: $($installer.Name)"
 } finally {
+    Stop-ProcessesUnderDirectory $installDir
     if (Test-Path -LiteralPath $tempRoot) {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force
     }

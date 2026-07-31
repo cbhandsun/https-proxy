@@ -29,7 +29,7 @@ use launch_on_login::{
 use management_bridge::{management_fetch_native, reveal_entry_auth_key_native};
 use proxy_root::{find_project_root, set_resource_root};
 #[cfg(test)]
-use proxy_root::{first_unique_existing_root, is_proxy_runtime_root};
+use proxy_root::{first_unique_existing_root, is_proxy_runtime_root, select_release_root};
 
 static PROXY_STOPPED_FOR_EXIT: AtomicBool = AtomicBool::new(false);
 static PROXY_AUTOSTART_IN_FLIGHT: AtomicBool = AtomicBool::new(false);

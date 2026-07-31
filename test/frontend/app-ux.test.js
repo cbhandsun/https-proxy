@@ -809,10 +809,11 @@ function tick(ms = 0) {
       'Tauri dev builds bind to the source checkout instead of stale target/debug copies'
     );
     assert.ok(
-      rust.includes('push_proxy_root_ancestors(&mut candidates, start)') &&
-        rust.includes('push_proxy_root_ancestors(&mut candidates, executable)') &&
+      rust.includes('fn select_release_root(') &&
+        rust.indexOf('push_proxy_root_ancestors(&mut candidates, executable)') <
+          rust.indexOf('push_proxy_root_ancestors(&mut candidates, current_dir)') &&
         rust.includes('first_unique_existing_root(candidates)'),
-      'Tauri release builds select a verified launch/exe runtime root deterministically'
+      'Tauri release builds select the executable runtime before the working directory'
     );
     assert.ok(
       rust.includes('fn ensure_proxy_config_file(root: &Path)') &&
