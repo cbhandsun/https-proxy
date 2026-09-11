@@ -2,6 +2,8 @@ const assert = require('assert');
 
 const {
   buildGoogleOfficialModelsResponse,
+  googleOfficialAudioTranscriptionModelNames,
+  googleOfficialImageGenerationModelNames,
   googleOfficialModelsFromAvailableModels,
   googleOfficialCodeAssistUrl,
   isGoogleOfficialLoginToken,
@@ -28,6 +30,19 @@ async function main() {
   assert.strictEqual(response.ok, true);
   assert.strictEqual(response.authMode, 'official-login');
   assert.strictEqual(response.source, 'official-model-config');
+  assert.ok(response.models.includes('Gemini 3.8 Flash'));
+  assert.ok(response.models.includes('Gemini 3.8 Flash Low'));
+  assert.ok(response.models.includes('Gemini 3.8 Flash Medium'));
+  assert.ok(response.models.includes('Gemini 3.8 Flash High'));
+  assert.ok(response.models.includes('gemini-3.8-flash'));
+  assert.ok(response.models.includes('gemini-3.8-flash-medium'));
+  assert.ok(response.models.includes('Gemini 3.7 Flash'));
+  assert.ok(response.models.includes('Gemini 3.7 Flash Low'));
+  assert.ok(response.models.includes('Gemini 3.7 Flash Medium'));
+  assert.ok(response.models.includes('Gemini 3.7 Flash High'));
+  assert.ok(response.models.includes('gemini-3.7-flash'));
+  assert.ok(response.models.includes('gemini-3.7-flash-tiered'));
+  assert.ok(response.models.includes('gemini-3.7-flash-medium'));
   assert.ok(response.models.includes('Gemini 3.6 Flash (Medium)'));
   assert.ok(response.models.includes('Gemini 3.6 Flash (High)'));
   assert.ok(response.models.includes('Gemini 3.6 Flash (Low)'));
@@ -38,30 +53,215 @@ async function main() {
   assert.ok(response.models.includes('gemini-3.5-flash-extra-low'));
   assert.ok(response.models.includes('gemini-3.1'));
   assert.ok(response.models.includes('gemini-3.1-pro-low'));
+  assert.ok(response.models.includes('Gemini 3.5 Transcribe'));
+  assert.ok(response.models.includes('gemini-3.5-transcribe'));
+  assert.ok(response.models.includes('gemini-3.1-flash-image'));
+  assert.ok(response.models.includes('Gemini 3.1 Flash Image'));
 
   const models = googleOfficialModelsFromAvailableModels({
     models: {
+      'gemini-3.8-flash-tiered': {},
+      'gemini-3.7-flash-tiered': {},
       'gemini-3.5-flash-low': { displayName: 'Gemini 3.5 Flash (Medium)' },
       'gemini-3-flash-agent': { displayName: 'Gemini 3.5 Flash (High)' },
       'gemini-3.5-flash-extra-low': { displayName: 'Gemini 3.5 Flash (Low)' },
     },
+    audioTranscriptionModelIds: [
+      'models/proactive-observer-v10',
+      'models/proactive-observer-v10',
+      '',
+      null,
+      42,
+      'javascript:alert(1)',
+      'models/../../secret',
+    ],
+    imageGenerationModelIds: [
+      'gemini-3.1-flash-image',
+      'gemini-3.1-flash-image',
+      '',
+      null,
+      42,
+      'javascript:alert(1)',
+      '../../secret',
+    ],
   });
+  assert.ok(models.includes('gemini-3.8-flash'));
+  assert.ok(models.includes('Gemini 3.8 Flash Low'));
+  assert.ok(models.includes('Gemini 3.8 Flash Medium'));
+  assert.ok(models.includes('Gemini 3.8 Flash High'));
+  assert.ok(models.includes('gemini-3.8-flash-medium'));
+  assert.ok(models.includes('gemini-3.7-flash-tiered'));
+  assert.ok(models.includes('Gemini 3.7 Flash Low'));
+  assert.ok(models.includes('Gemini 3.7 Flash Medium'));
+  assert.ok(models.includes('Gemini 3.7 Flash High'));
+  assert.ok(models.includes('gemini-3.7-flash-medium'));
   assert.ok(models.includes('Gemini 3.5 Flash (Medium)'));
   assert.ok(models.includes('gemini-3.5-flash-low'));
   assert.ok(models.includes('gemini-3-flash-agent'));
   assert.ok(models.includes('gemini-3.5-flash-extra-low'));
+  assert.ok(models.includes('Gemini 3.5 Transcribe'));
+  assert.ok(models.includes('gemini-3.5-transcribe'));
+  assert.ok(models.includes('gemini-3.1-flash-image'));
+  assert.ok(models.includes('Gemini 3.1 Flash Image'));
+  assert.ok(models.includes('proactive-observer-v10'));
+  assert.strictEqual(models.filter((name) => name === 'proactive-observer-v10').length, 1);
+  assert.ok(!models.includes('javascript:alert(1)'));
+  assert.ok(!models.includes('../../secret'));
+  assert.deepStrictEqual(googleOfficialAudioTranscriptionModelNames(null), []);
+  assert.deepStrictEqual(googleOfficialAudioTranscriptionModelNames({}), []);
+  assert.deepStrictEqual(
+    googleOfficialAudioTranscriptionModelNames({ audioTranscriptionModelIds: 'invalid' }),
+    []
+  );
+  assert.deepStrictEqual(googleOfficialImageGenerationModelNames(null), []);
+  assert.deepStrictEqual(googleOfficialImageGenerationModelNames({}), []);
+  assert.deepStrictEqual(
+    googleOfficialImageGenerationModelNames({ imageGenerationModelIds: 'invalid' }),
+    []
+  );
+  assert.deepStrictEqual(
+    googleOfficialImageGenerationModelNames({
+      imageGenerationModelIds: ['models/gemini-3.1-flash-image', '../../secret'],
+    }),
+    ['models/gemini-3.1-flash-image', 'Gemini 3.1 Flash Image']
+  );
 
   const codeAssist = createCodeAssist({ fallbackId: () => 'test-id' });
-  for (const [name, expectedModel] of [
-    ['Gemini 3.6 Flash (Medium)', 'gemini-3.6-flash-medium'],
-    ['Gemini 3.6 Flash (High)', 'gemini-3.6-flash-high'],
-    ['Gemini 3.6 Flash (Low)', 'gemini-3.6-flash-low'],
-    ['gemini-3.6-flash-medium', 'gemini-3.6-flash-medium'],
-    ['gemini-3.6-flash-high', 'gemini-3.6-flash-high'],
-    ['gemini-3.6-flash-low', 'gemini-3.6-flash-low'],
+  for (const [name, expectedModel, expectedThinkingLevel] of [
+    ['Gemini 3.8 Flash', 'gemini-3.8-flash-tiered', undefined],
+    ['Gemini 3.8 Flash Medium', 'gemini-3.8-flash-tiered', 'MEDIUM'],
+    ['Gemini 3.8 Flash High', 'gemini-3.8-flash-tiered', 'HIGH'],
+    ['Gemini 3.8 Flash Low', 'gemini-3.8-flash-tiered', 'LOW'],
+    ['Gemini 3.8 Flash (Medium)', 'gemini-3.8-flash-tiered', 'MEDIUM'],
+    ['Gemini 3.8 Flash (High)', 'gemini-3.8-flash-tiered', 'HIGH'],
+    ['Gemini 3.8 Flash (Low)', 'gemini-3.8-flash-tiered', 'LOW'],
+    ['gemini-3.8-flash', 'gemini-3.8-flash-tiered', undefined],
+    ['gemini-3.8-flash-tiered', 'gemini-3.8-flash-tiered', undefined],
+    ['gemini-3.8-flash-medium', 'gemini-3.8-flash-tiered', 'MEDIUM'],
+    ['gemini-3.8-flash-high', 'gemini-3.8-flash-tiered', 'HIGH'],
+    ['gemini-3.8-flash-low', 'gemini-3.8-flash-tiered', 'LOW'],
+    ['Gemini 3.7 Flash', 'gemini-3.7-flash-tiered', undefined],
+    ['Gemini 3.7 Flash Medium', 'gemini-3.7-flash-tiered', 'MEDIUM'],
+    ['Gemini 3.7 Flash High', 'gemini-3.7-flash-tiered', 'HIGH'],
+    ['Gemini 3.7 Flash Low', 'gemini-3.7-flash-tiered', 'LOW'],
+    ['Gemini 3.7 Flash (Medium)', 'gemini-3.7-flash-tiered', 'MEDIUM'],
+    ['Gemini 3.7 Flash (High)', 'gemini-3.7-flash-tiered', 'HIGH'],
+    ['Gemini 3.7 Flash (Low)', 'gemini-3.7-flash-tiered', 'LOW'],
+    ['gemini-3.7-flash', 'gemini-3.7-flash-tiered', undefined],
+    ['gemini-3.7-flash-tiered', 'gemini-3.7-flash-tiered', undefined],
+    ['gemini-3.7-flash-medium', 'gemini-3.7-flash-tiered', 'MEDIUM'],
+    ['gemini-3.7-flash-high', 'gemini-3.7-flash-tiered', 'HIGH'],
+    ['gemini-3.7-flash-low', 'gemini-3.7-flash-tiered', 'LOW'],
+    ['Gemini 3.6 Flash (Medium)', 'gemini-3.6-flash-medium', undefined],
+    ['Gemini 3.6 Flash (High)', 'gemini-3.6-flash-high', undefined],
+    ['Gemini 3.6 Flash (Low)', 'gemini-3.6-flash-low', undefined],
+    ['gemini-3.6-flash-medium', 'gemini-3.6-flash-medium', undefined],
+    ['gemini-3.6-flash-high', 'gemini-3.6-flash-high', undefined],
+    ['gemini-3.6-flash-low', 'gemini-3.6-flash-low', undefined],
+    ['Gemini 3.5 Transcribe', 'models/proactive-observer-v10', undefined],
+    ['gemini-3.5-transcribe', 'models/proactive-observer-v10', undefined],
+    ['proactive-observer-v10', 'models/proactive-observer-v10', undefined],
+    ['models/proactive-observer-v10', 'models/proactive-observer-v10', undefined],
+    ['Gemini 3.1 Flash Image', 'gemini-3.1-flash-image', undefined],
+    ['gemini-3.1-flash-image', 'gemini-3.1-flash-image', undefined],
+    ['models/gemini-3.1-flash-image', 'gemini-3.1-flash-image', undefined],
   ]) {
-    assert.strictEqual(codeAssist.codeAssistModelSelection(name).model, expectedModel);
+    const selection = codeAssist.codeAssistModelSelection(name);
+    assert.strictEqual(selection.model, expectedModel);
+    assert.strictEqual(selection.thinkingLevel, expectedThinkingLevel);
   }
+
+  const geminiBody = { contents: [{ role: 'user', parts: [{ text: 'hello' }] }] };
+  for (const [route, thinkingLevel] of [
+    ['Gemini 3.8 Flash Low', 'LOW'],
+    ['Gemini 3.8 Flash Medium', 'MEDIUM'],
+    ['Gemini 3.8 Flash High', 'HIGH'],
+  ]) {
+    const request = codeAssist.codeAssistGenerateRequest(
+      { model: route, googleOfficialProjectId: 'project-1' },
+      geminiBody,
+      'gemini-3.8-flash-tiered',
+      false
+    );
+    assert.strictEqual(request.body.model, 'gemini-3.8-flash-tiered');
+    assert.deepStrictEqual(request.body.request.generationConfig, {
+      thinkingConfig: { thinkingLevel },
+    });
+  }
+  for (const [route, thinkingLevel] of [
+    ['Gemini 3.7 Flash Low', 'LOW'],
+    ['Gemini 3.7 Flash Medium', 'MEDIUM'],
+    ['Gemini 3.7 Flash High', 'HIGH'],
+  ]) {
+    const request = codeAssist.codeAssistGenerateRequest(
+      { model: route, googleOfficialProjectId: 'project-1' },
+      geminiBody,
+      'gemini-3.7-flash-tiered',
+      false
+    );
+    assert.strictEqual(request.body.model, 'gemini-3.7-flash-tiered');
+    assert.deepStrictEqual(request.body.request.generationConfig, {
+      thinkingConfig: { thinkingLevel },
+    });
+  }
+  assert.strictEqual(geminiBody.generationConfig, undefined, 'input body must not be mutated');
+
+  const explicitThinking = codeAssist.codeAssistGenerateRequest(
+    { model: 'Gemini 3.7 Flash High', googleOfficialProjectId: 'project-1' },
+    {
+      ...geminiBody,
+      generationConfig: { thinkingConfig: { thinkingLevel: 'LOW' } },
+    },
+    'gemini-3.7-flash-tiered',
+    false
+  );
+  assert.deepStrictEqual(explicitThinking.body.request.generationConfig, {
+    thinkingConfig: { thinkingLevel: 'LOW' },
+  });
+
+  const defaultThinking = codeAssist.codeAssistGenerateRequest(
+    { model: 'Gemini 3.7 Flash', googleOfficialProjectId: 'project-1' },
+    geminiBody,
+    'gemini-3.7-flash-tiered',
+    false
+  );
+  assert.strictEqual(defaultThinking.body.request.generationConfig, undefined);
+
+  const transcription = codeAssist.codeAssistGenerateRequest(
+    { model: 'Gemini 3.5 Transcribe', googleOfficialProjectId: 'project-1' },
+    {
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: 'Transcribe this audio.' },
+            { inlineData: { mimeType: 'audio/wav', data: 'YXVkaW8=' } },
+          ],
+        },
+      ],
+    },
+    'models/proactive-observer-v10',
+    false
+  );
+  assert.strictEqual(transcription.body.model, 'models/proactive-observer-v10');
+  assert.strictEqual(transcription.body.request.generationConfig, undefined);
+  assert.deepStrictEqual(transcription.body.request.contents[0].parts[1], {
+    inlineData: { mimeType: 'audio/wav', data: 'YXVkaW8=' },
+  });
+
+  const imageGeneration = codeAssist.codeAssistGenerateRequest(
+    { model: 'gemini-3.1-flash-image', googleOfficialProjectId: 'project-1' },
+    {
+      contents: [{ role: 'user', parts: [{ text: 'Draw a small red circle.' }] }],
+      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+    },
+    'gemini-3.1-flash-image',
+    true
+  );
+  assert.strictEqual(imageGeneration.body.model, 'gemini-3.1-flash-image');
+  assert.deepStrictEqual(imageGeneration.body.request.generationConfig, {
+    responseModalities: ['TEXT', 'IMAGE'],
+  });
 
   const inner = toBase64Url(
     'token ya29.test-access Bearer refresh 1//test-refresh ' + 'x'.repeat(96)

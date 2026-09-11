@@ -162,11 +162,26 @@ t('openAIContentToClaudeContent data URL image -> base64 source', () => {
     [{ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'ABCD' } }]
   );
 });
-t('openAIContentToClaudeContent non-data URL image -> text fallback', () => {
-  const out = protocol.openAIContentToClaudeContent([
-    { type: 'image_url', image_url: { url: 'https://example.com/x.png' } },
-  ]);
-  eq(out, [{ type: 'text', text: 'https://example.com/x.png' }]);
+t('openAIContentToClaudeContent audio and video -> base64 sources', () => {
+  eq(
+    protocol.openAIContentToClaudeContent([
+      { type: 'input_audio', input_audio: { data: 'c291bmQ=', format: 'wav' } },
+      { type: 'video_url', video_url: { url: 'data:video/mp4;base64,dmlkZW8=' } },
+    ]),
+    [
+      { type: 'audio', source: { type: 'base64', media_type: 'audio/wav', data: 'c291bmQ=' } },
+      { type: 'video', source: { type: 'base64', media_type: 'video/mp4', data: 'dmlkZW8=' } },
+    ]
+  );
+});
+t('openAIContentToClaudeContent rejects remote media instead of degrading it to text', () => {
+  assert.throws(
+    () =>
+      protocol.openAIContentToClaudeContent([
+        { type: 'image_url', image_url: { url: 'https://example.com/x.png' } },
+      ]),
+    /base64 data URL|matching MIME type/
+  );
 });
 
 // 4. openAIToolCallToClaudeBlock
@@ -253,6 +268,27 @@ t('claudeResponseToOpenAIChat tool_use -> tool_calls', () => {
   assert.strictEqual(tc.id, 'call_1');
   assert.strictEqual(tc.function.name, 'Bash');
   assert.deepStrictEqual(JSON.parse(tc.function.arguments), { command: 'ls' });
+});
+
+t('claudeResponseToOpenAIChat renders generated image blocks as data-image markdown', () => {
+  const out = protocol.claudeResponseToOpenAIChat(
+    {
+      id: 'msg_image',
+      content: [
+        {
+          type: 'image',
+          source: { type: 'base64', media_type: 'image/png', data: 'aW1hZ2U=' },
+        },
+      ],
+      stop_reason: 'end_turn',
+      usage: {},
+    },
+    'gemini-3.1-flash-image'
+  );
+  assert.strictEqual(
+    out.choices[0].message.content,
+    '![generated image](data:image/png;base64,aW1hZ2U=)'
+  );
 });
 
 // 7. processClaudeSseEventToOpenAI

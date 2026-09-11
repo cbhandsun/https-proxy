@@ -23,7 +23,14 @@ Google official routes are implemented as Antigravity / Code Assist routes.
 
 Credential handling:
 
-- Prefer Antigravity official login state over public Gemini API key files.
+- Read Antigravity IDE login state directly using the bundled Node runtime's
+  `node:sqlite` in read-only mode. Python is not required.
+- Official-login routes do not fall back to Gemini CLI OAuth files. Missing,
+  invalid or unreadable IDE state, or a failed refresh, returns a safe local 503
+  with an `ANTIGRAVITY_*` error code before generation reaches the upstream.
+  Sign in to Antigravity IDE again, check access to its user data directory, or
+  update the proxy runtime when SQLite is unavailable. Explicit API-key mode
+  remains separate and does not read IDE login state.
 - Treat `ya29.` tokens as official OAuth access tokens, not Gemini API keys.
 - Refresh expired AGY tokens with the AGY OAuth client when a refresh token is
   available.
@@ -53,12 +60,75 @@ Important mappings:
 
 | Public route label | Backend model |
 | --- | --- |
+| `Gemini 3.8 Flash` / `gemini-3.8-flash` | `gemini-3.8-flash-tiered` (service default: `MEDIUM`) |
+| `Gemini 3.8 Flash Low` / `gemini-3.8-flash-low` | `gemini-3.8-flash-tiered` + `thinkingLevel: LOW` |
+| `Gemini 3.8 Flash Medium` / `gemini-3.8-flash-medium` | `gemini-3.8-flash-tiered` + `thinkingLevel: MEDIUM` |
+| `Gemini 3.8 Flash High` / `gemini-3.8-flash-high` | `gemini-3.8-flash-tiered` + `thinkingLevel: HIGH` |
+| `Gemini 3.7 Flash` / `gemini-3.7-flash` | `gemini-3.7-flash-tiered` (service default) |
+| `Gemini 3.7 Flash Low` / `gemini-3.7-flash-low` | `gemini-3.7-flash-tiered` + `thinkingLevel: LOW` |
+| `Gemini 3.7 Flash Medium` / `gemini-3.7-flash-medium` | `gemini-3.7-flash-tiered` + `thinkingLevel: MEDIUM` |
+| `Gemini 3.7 Flash High` / `gemini-3.7-flash-high` | `gemini-3.7-flash-tiered` + `thinkingLevel: HIGH` |
+| `Gemini 3.5 Transcribe` / `gemini-3.5-transcribe` | `models/proactive-observer-v10` |
+| `Gemini 3.1 Flash Image` / `gemini-3.1-flash-image` | `gemini-3.1-flash-image` |
 | `Gemini 3.5 Flash (Medium)` | `gemini-3.5-flash-low` |
 | `Gemini 3.5 Flash (High)` | `gemini-3-flash-agent` |
 | `Gemini 3.5 Flash (Low)` | `gemini-3.5-flash-extra-low` |
 | `Claude Sonnet 4.6 (Thinking)` | `claude-sonnet-4-6` |
 | `Claude Opus 4.6 (Thinking)` | `claude-opus-4-6-thinking` |
 | `GPT-OSS 120B (Medium)` | `gpt-oss-120b-medium` |
+
+Multimodal compatibility:
+
+- Gemini 3.6 Flash, Gemini 3.7 Flash, and Gemini 3.8 Flash routes advertise text, image, audio,
+  and video input capabilities in the local OpenAI-compatible `/v1/models`
+  response. Tool calling, reasoning, and streaming are advertised separately.
+- OpenAI Chat and Responses image/audio/video parts are converted to Gemini
+  `inlineData`. Supported inputs must contain inline base64 data with a matching
+  MIME type (or a recognized format such as `wav`, `mp3`, `mp4`, or `webm`).
+- Each decoded media part is limited to 7 MiB. Empty, malformed, mismatched,
+  inherited-only, remote-URL, and oversized payloads are rejected before an
+  upstream request is made; request errors never echo media data.
+- Client applications may maintain their own model registry and ignore extra
+  `/v1/models` metadata. For example, the locally inspected Cherry Studio
+  registry contains Gemini 3.6 but no Gemini 3.7 entry, so an older Cherry
+  build may still omit 3.7 capability icons. In that case the server-side
+  capability is available, but the icons require a Cherry registry update or a
+  manual model capability setting.
+
+The Code Assist model inventory is authoritative. In the 2026-08-27 inventory,
+Gemini 3.7 has one backend ID, `gemini-3.7-flash-tiered`, while Antigravity
+exposes Low, Medium, and High as thinking-level choices. The local public model
+names are aliases: they always send the tiered backend ID and encode the chosen
+tier in `generationConfig.thinkingConfig.thinkingLevel`. The synthetic
+`-medium`, `-high`, and `-low` strings must never be sent as backend model IDs.
+
+The same inventory reports `supportsImages: true`, `supportsVideo: true`, and
+audio MIME types such as WAV and Opus/WebM for Gemini 3.7. The local model
+metadata therefore advertises image, audio, and video input support for every
+3.7 tier.
+
+Antigravity advertises its dedicated audio transcription model separately in
+`audioTranscriptionModelIds`, rather than in the normal `models` object. The
+known internal ID `models/proactive-observer-v10` is exposed locally as
+`Gemini 3.5 Transcribe`, with audio input and text output metadata. The current
+compatibility path accepts inline audio through multimodal chat content; it does
+not claim support for an OpenAI `/v1/audio/transcriptions` endpoint.
+
+Antigravity also advertises its dedicated image model separately in
+`imageGenerationModelIds`. The current local inventory contains the backend ID
+`gemini-3.1-flash-image` and the UI label `Gemini 3.1 Flash Image`; the enum-like
+`MODEL_PLACEHOLDER_M21` found on the model record is not sent as the request
+model. The proxy requests `TEXT` and `IMAGE` response modalities, exposes text
+and image input/output metadata, converts non-streaming Gemini `inlineData`
+images to a safe base64 image block, and emits streaming image output as a data
+image Markdown block. Only PNG, JPEG, WebP, and GIF output MIME types are
+accepted; malformed, empty, SVG, and oversized image payloads are replaced with
+a safe diagnostic string. The OpenAI-compatible `POST /v1/images/generations`
+endpoint is also supported on the `openai-chat` entry: it accepts one image per
+request, converts the prompt to a non-streaming Code Assist request, and returns
+OpenAI Images API `data[].b64_json` or a data URL according to
+`response_format`. Supported portrait, landscape, and square OpenAI sizes are
+mapped to Gemini aspect ratios rather than silently discarded.
 
 ## OpenAI Official / Codex
 
@@ -91,9 +161,10 @@ Model discovery:
 
 Current expected Codex API models from the local cache:
 
-- `gpt-5.5`
-- `gpt-5.4`
-- `gpt-5.4-mini`
+- `gpt-6-astra`
+- `gpt-5.6-sol`
+- `gpt-5.6-terra`
+- `gpt-5.6-luna`
 
 Known non-routable examples:
 
@@ -204,6 +275,31 @@ Important generation constraints:
 - Current streaming mode is compatibility streaming: the bridge waits for
   Trae's final response and emits protocol-compatible SSE chunks. It is not
   token-level AhaNet streaming yet.
+
+## WorkBuddy / CodeBuddy Official
+
+WorkBuddy official routes use the direct-credential pattern (pure Codex mode):
+
+Credential source:
+
+- Read WorkBuddy login state from:
+  `%LOCALAPPDATA%/CodeBuddyExtension/Data/Public/auth/workbuddy-desktop.info`
+- `auth.accessToken` contains the standard OAuth2 JWT Bearer token.
+- `account.uin` / `account.uid` provides the user identity for upstream requests.
+
+Proxy provider shape:
+
+- Use a dedicated profile:
+  - `id`: `workbuddy-official`
+  - `protocol`: `workbuddy`
+  - `authMode`: `official-login`
+  - `targetUrl`: `https://copilot.tencent.com`
+
+Model discovery:
+
+- Read models from:
+  `%LOCALAPPDATA%/Programs/WorkBuddy/resources/app.asar.unpacked/cli/product.json`
+- Supports DeepSeek-V4 (`deepseek-v4-pro`, `deepseek-v4-flash`), MiniMax-M3 (`minimax-m3`, `minimax-m2.7`), GLM-5 (`glm-5.2`, `glm-5.1`, `glm-5.0`, `glm-5v-turbo`), Kimi (`kimi-k2.6`, `kimi-k2.5`).
 
 ## Route-List Hygiene
 

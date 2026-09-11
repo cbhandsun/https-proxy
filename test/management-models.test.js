@@ -158,6 +158,37 @@ function makeRequestWithProxy({ statusCode = 200, responseBody = '{}' } = {}) {
   });
   assert.strictEqual(invalidBodyRequestCount, 0);
 
+  let googleDiscoveryArgs = null;
+  const googleHandlers = createManagementModelsHandlers({
+    ...baseDeps,
+    requestWithProxy: makeRequestWithProxy(),
+    resolveOfficialCredentials: async ({ profile }) => ({
+      profile: { ...profile, apiKey: 'ya29.token' },
+      authMode: 'official-login',
+      authProvider: 'google',
+      googleOfficialProjectId: 'project-1',
+    }),
+    fetchGoogleOfficialAvailableModels: async (...args) => {
+      googleDiscoveryArgs = args;
+      return {
+        ok: true,
+        models: ['gemini-3.7-flash-tiered'],
+        source: 'code-assist-fetchAvailableModels',
+      };
+    },
+  });
+  const google = await invoke(googleHandlers.handleLocalModelsListRequest, {
+    protocol: 'gemini',
+    targetUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    apiKey: 'ignored-client-key',
+  });
+  assert.deepStrictEqual(googleDiscoveryArgs, ['ya29.token', 'project-1']);
+  assert.deepStrictEqual(JSON.parse(google.body), {
+    ok: true,
+    models: ['gemini-3.7-flash-tiered'],
+    source: 'code-assist-fetchAvailableModels',
+  });
+
   const googleFallbackHandlers = createManagementModelsHandlers({
     ...baseDeps,
     requestWithProxy: makeRequestWithProxy(),

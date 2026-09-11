@@ -19,6 +19,7 @@ const {
   _decryptAesV2,
   _getAesV2Key,
   _parseMasterKey,
+  _runNativeDpapiHelper,
 } = require('../lib/proxy/secret-crypto');
 const {
   decryptConfigSecretsInPlace,
@@ -240,5 +241,29 @@ assert.ok(typeof backend === 'object' && backend !== null);
 assert.ok('isWindows' in backend);
 assert.ok('prefersDpapi' in backend);
 console.log('[secret-crypto.test] backend status:', JSON.stringify(backend));
+
+// 12. Native helper transports protected values over stdin, never argv.
+let helperInvocation = null;
+const helperOutput = _runNativeDpapiHelper('["protected-value"]', {
+  platform: 'win32',
+  helperPath: 'C:\\Program Files\\HTTPS Proxy Manager\\HTTPS Proxy Manager.exe',
+  fileExists: () => true,
+  execFileSync(executable, args, options) {
+    helperInvocation = { executable, args, options };
+    return '{"values":["cGxhaW4="]}';
+  },
+});
+assert.strictEqual(helperOutput, '{"values":["cGxhaW4="]}');
+assert.deepStrictEqual(helperInvocation.args, ['--hpm-dpapi-unprotect-stdin']);
+assert.strictEqual(helperInvocation.options.input, '["protected-value"]');
+assert.ok(!helperInvocation.args.join(' ').includes('protected-value'));
+assert.strictEqual(
+  _runNativeDpapiHelper('[]', {
+    platform: 'win32',
+    helperPath: 'relative-helper.exe',
+    fileExists: () => true,
+  }),
+  null
+);
 
 console.log('[secret-crypto.test] ok');

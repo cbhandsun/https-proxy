@@ -158,6 +158,25 @@ function prepareModelRequest(requestUrl, headers, apiKey) {
 }
 
 {
+  assert.strictEqual(
+    getModelsUrl('https://api.deepseek.com/anthropic', 'claude'),
+    'https://api.deepseek.com/models?limit=1000'
+  );
+
+  const request = buildModelListRequest('https://api.deepseek.com/anthropic', 'claude', 'test-key');
+  assert.strictEqual(request.method, 'GET');
+  assert.strictEqual(request.requestUrl, 'https://api.deepseek.com/models?limit=1000');
+  assert.strictEqual(request.headers['x-api-key'], 'test-key');
+  assert.strictEqual(request.headers['anthropic-version'], '2023-06-01');
+  assert.strictEqual(request.requestUrl.includes('test-key'), false);
+
+  assert.strictEqual(
+    getModelsUrl('https://claude.example/anthropic', 'claude'),
+    'https://claude.example/anthropic/v1/models?limit=1000'
+  );
+}
+
+{
   const request = buildModelListRequest(
     'https://chatgpt.com/backend-api/codex',
     'openai',
@@ -227,6 +246,17 @@ function prepareModelRequest(requestUrl, headers, apiKey) {
     }),
     'trae'
   );
+  assert.strictEqual(
+    officialLoginProvider({ protocol: 'workbuddy', authMode: 'official-login' }),
+    'workbuddy'
+  );
+  assert.strictEqual(
+    officialLoginProvider({
+      targetUrl: 'https://copilot.tencent.com',
+      authMode: 'official-login',
+    }),
+    'workbuddy'
+  );
   assert.strictEqual(officialLoginProvider({ protocol: 'gemini', authMode: 'api-key' }), '');
 }
 
@@ -290,6 +320,7 @@ function prepareModelRequest(requestUrl, headers, apiKey) {
     supportedInApi: true,
   });
   assert.strictEqual(openAIOfficialCodexModelSupport('gpt-5-5', cache).known, false);
+  assert.strictEqual(openAIOfficialCodexModelSupport('gpt-image-2.5-sunburst', cache).known, false);
   assert.strictEqual(
     openAIOfficialCodexModelSupport('gpt-5.3-codex-spark', cache).supported,
     false

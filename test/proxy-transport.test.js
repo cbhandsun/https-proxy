@@ -1,6 +1,7 @@
 const assert = require('assert');
 const http = require('http');
 const {
+  createSocksProxyAgentFactory,
   createProxyTransport,
   normalizeTimeout,
   shouldBypassProxy,
@@ -32,6 +33,29 @@ function performRequest(requestWithProxy, targetUrl, options, body) {
 }
 
 async function main() {
+  let socksModuleLoads = 0;
+  class FakeSocksProxyAgent {
+    constructor(url, options) {
+      this.url = url;
+      this.options = options;
+    }
+  }
+  const createFakeSocksAgent = createSocksProxyAgentFactory(() => {
+    socksModuleLoads += 1;
+    return { SocksProxyAgent: FakeSocksProxyAgent };
+  });
+  const firstSocksAgent = createFakeSocksAgent('socks5://127.0.0.1:1080', { timeout: 10 });
+  const secondSocksAgent = createFakeSocksAgent('socks5://127.0.0.1:1081', { timeout: 20 });
+  assert.ok(firstSocksAgent instanceof FakeSocksProxyAgent);
+  assert.ok(secondSocksAgent instanceof FakeSocksProxyAgent);
+  assert.strictEqual(socksModuleLoads, 1);
+  assert.ok(createSocksProxyAgentFactory()('socks5://127.0.0.1:1080'));
+  assert.throws(() => createSocksProxyAgentFactory('invalid'), /loader must be a function/);
+  assert.throws(
+    () => createSocksProxyAgentFactory(() => ({}))('socks5://127.0.0.1:1080'),
+    /must export SocksProxyAgent/
+  );
+
   assert.strictEqual(normalizeTimeout(undefined), 0);
   assert.strictEqual(normalizeTimeout('invalid'), 0);
   assert.strictEqual(normalizeTimeout(-1), 0);
@@ -57,6 +81,9 @@ async function main() {
     environment: {},
     loadConfig: () => ({ appSettings: { disableLocalProxy: true } }),
     proxyPorts: [],
+    loadSocksProxyAgentModule: () => {
+      throw new Error('SOCKS dependency must remain lazy for direct requests');
+    },
   });
   const directResult = await performRequest(
     directTransport.requestWithProxy,

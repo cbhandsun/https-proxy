@@ -138,6 +138,25 @@ clearCaches();
     false,
     'non-POST messages requests are not conversations'
   );
+  assert.equal(
+    routing.isConversationRequestPath('POST', '/v1/images/generations'),
+    true,
+    'OpenAI image generations are audited requests'
+  );
+  assert.equal(routing.isOpenAIImagesGenerationsPath('/images/generations?x=1'), true);
+  assert.equal(routing.isOpenAIImageJobsCollectionPath('/v1/image-jobs?x=1'), true);
+  assert.equal(
+    routing.parseOpenAIImageJobId('/v1/image-jobs/imgjob_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?x=1'),
+    'imgjob_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  );
+  assert.equal(routing.parseOpenAIImageJobId('/v1/image-jobs/not-a-job'), null);
+  assert.equal(routing.isOpenAIImageJobsPath('/image-jobs'), true);
+  assert.equal(
+    routing.isConversationRequestPath('POST', '/v1/image-jobs'),
+    true,
+    'Image job creation is audited without auditing result polling'
+  );
+  assert.equal(routing.isConversationRequestPath('GET', '/v1/image-jobs'), false);
 }
 
 clearCaches();

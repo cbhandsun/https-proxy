@@ -9,6 +9,8 @@ const {
   forceChatEntry,
   forceResponsesEntry,
   isPublicLocalManagementPath,
+  isPublicEntryHealthPath,
+  sendPublicEntryHealth,
   isEntryHealthPath,
   isAllowedEntryPath,
 } = require('../lib/proxy/entry-routing');
@@ -167,6 +169,9 @@ const {
 
   assert.strictEqual(isPublicLocalManagementPath('/v1/local/health?x=1'), true);
   assert.strictEqual(isPublicLocalManagementPath('/v1/local/config'), false);
+  assert.strictEqual(isPublicEntryHealthPath('GET', '/v1/.well-known/hpm-health?x=1'), true);
+  assert.strictEqual(isPublicEntryHealthPath('HEAD', '/v1/.well-known/hpm-health'), true);
+  assert.strictEqual(isPublicEntryHealthPath('POST', '/v1/.well-known/hpm-health'), false);
   assert.strictEqual(isEntryHealthPath(claudeEntry, 'GET', '/v1/messages'), true);
   assert.strictEqual(isEntryHealthPath(chatEntry, 'HEAD', '/v1/chat/completions'), true);
   assert.strictEqual(isEntryHealthPath(responsesEntry, 'GET', '/v1/responses'), true);
@@ -174,11 +179,52 @@ const {
   assert.strictEqual(isAllowedEntryPath(null, 'GET', '/anything'), true);
   assert.strictEqual(isAllowedEntryPath(claudeEntry, 'POST', '/v1/messages/count_tokens'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/v1/chat/completions'), true);
+  assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/v1/images/generations'), true);
+  assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/images/generations?format=png'), true);
+  assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/v1/image-jobs'), true);
+  assert.strictEqual(
+    isAllowedEntryPath(chatEntry, 'GET', '/v1/image-jobs/imgjob_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),
+    true
+  );
+  assert.strictEqual(
+    isAllowedEntryPath(
+      chatEntry,
+      'DELETE',
+      '/v1/image-jobs/imgjob_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    ),
+    true
+  );
   assert.strictEqual(isAllowedEntryPath(responsesEntry, 'POST', '/v1/responses'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'GET', '/v1/models'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'HEAD', '/v1/models/gpt-5'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'GET', '/v1/chat/completions'), false);
+  assert.strictEqual(isAllowedEntryPath(chatEntry, 'GET', '/v1/images/generations'), false);
+  assert.strictEqual(isAllowedEntryPath(chatEntry, 'GET', '/v1/image-jobs'), false);
+  assert.strictEqual(isAllowedEntryPath(chatEntry, 'GET', '/v1/image-jobs/bad-id'), false);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/v1/messages'), false);
+
+  const response = {
+    statusCode: 0,
+    headers: {},
+    body: '',
+    writeHead(statusCode, headers) {
+      this.statusCode = statusCode;
+      this.headers = headers;
+    },
+    end(body) {
+      this.body = body == null ? '' : String(body);
+    },
+  };
+  sendPublicEntryHealth(response, chatEntry, 'GET');
+  assert.strictEqual(response.statusCode, 200);
+  assert.strictEqual(response.headers['X-HPM-Proxy'], 'https-proxy-manager');
+  assert.strictEqual(response.headers['Cache-Control'], 'no-store');
+  assert.deepStrictEqual(JSON.parse(response.body), {
+    ok: true,
+    appId: 'https-proxy-manager',
+    ready: true,
+    entryProtocol: 'openai-chat',
+  });
 }
 
 console.log('[entry-servers.test] ok');

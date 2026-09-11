@@ -5,6 +5,8 @@ const { createRouteHandlers } = require('../lib/proxy/handlers/route-handlers');
 
 let capturedOptions = null;
 let capturedBody = null;
+let parsedStream = false;
+let requestedStream = null;
 const request = {
   on() {
     return this;
@@ -42,7 +44,7 @@ const handlers = createRouteHandlers({
   parseProxyBody: () => ({
     model: 'gemini-3.5-flash',
     input: 'hello',
-    stream: false,
+    stream: parsedStream,
   }),
   upstreamRequestOptions: () => {
     throw new Error('legacy direct request options must not be used for Code Assist');
@@ -52,21 +54,27 @@ const handlers = createRouteHandlers({
   parseJsonOrSseJson: JSON.parse,
   shouldUseCodeAssistUpstream: () => true,
   codeAssistUserAgent: () => 'antigravity-cli/test',
-  codeAssistGenerateRequest: () => ({
-    target: new URL('https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent'),
-    body: {
-      model: 'gemini-3.5-flash-low',
-      project: 'test-project',
-      request: { contents: [{ role: 'user', parts: [{ text: 'hello' }] }] },
-    },
-  }),
+  codeAssistGenerateRequest: (_prepared, _body, _model, stream) => {
+    requestedStream = stream;
+    return {
+      target: new URL(
+        'https://daily-cloudcode-pa.googleapis.com/v1internal:' +
+          (stream ? 'streamGenerateContent?alt=sse' : 'generateContent')
+      ),
+      body: {
+        model: 'gemini-3.5-flash-low',
+        project: 'test-project',
+        request: { contents: [{ role: 'user', parts: [{ text: 'hello' }] }] },
+      },
+    };
+  },
   unwrapCodeAssistResponse: (payload) => (payload && payload.response ? payload.response : payload),
   unwrapCodeAssistSseEvent: (event) => event,
   collectBoundedResponse: noop,
   responsesToChatWithHistory: () => ({
     model: 'gemini-3.5-flash',
     messages: [],
-    stream: false,
+    stream: parsedStream,
   }),
   rememberResponsesFromChatResponse: noop,
   rememberResponsesFromBridge: noop,
@@ -105,5 +113,31 @@ assert.deepStrictEqual(JSON.parse(capturedBody.toString('utf8')), {
   project: 'test-project',
   request: { contents: [{ role: 'user', parts: [{ text: 'hello' }] }] },
 });
+assert.strictEqual(requestedStream, false);
+
+parsedStream = true;
+handlers.handleOpenAIResponsesToGeminiMessages(
+  { method: 'POST', url: '/v1/responses' },
+  {},
+  {
+    model: 'gemini-3.5-flash',
+    rewriteTo: 'gemini-3.5-flash',
+    profile: { id: 'google-official', protocol: 'gemini' },
+    authMode: 'official-login',
+    authProvider: 'google',
+    buffer: Buffer.from('{"stream":true}'),
+  },
+  {
+    protocol: 'https:',
+    hostname: 'generativelanguage.googleapis.com',
+    port: '443',
+    path: '/v1beta',
+  },
+  'ya29.test-token',
+  '/v1beta/responses',
+  Date.now()
+);
+assert.strictEqual(requestedStream, true);
+assert.strictEqual(capturedOptions.path, '/v1internal:streamGenerateContent?alt=sse');
 
 console.log('[responses-gemini-code-assist.test] ok');

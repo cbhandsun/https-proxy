@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { pruneDependencyMetadata } = require('../lib/release/dependency-metadata');
+const { validateReleaseDirectory } = require('../lib/release/governance');
 const {
   createRuntimePackage,
   createRuntimePackageLock,
@@ -125,6 +127,13 @@ runNpmCommand(
   ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'],
   'Production dependency staging'
 );
+pruneDependencyMetadata(repoRoot, outputDir);
+const releaseValidation = validateReleaseDirectory(outputDir, runtimePackage.dependencies, {
+  requireExecutable: false,
+});
+if (!releaseValidation.ok) {
+  throw new Error(`Release runtime validation failed: ${releaseValidation.errors.join('; ')}`);
+}
 
 for (const dependency of Object.keys(runtimePackage.dependencies)) {
   const packageFile = path.join(outputDir, 'node_modules', dependency, 'package.json');

@@ -4,6 +4,9 @@ const http = require('http');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
+const { createIsolatedTestEnv } = require('../lib/test-runtime');
+const { encryptConfigSecretsForStorage } = require('../lib/proxy/config');
+const { findAvailablePorts } = require('./helpers/test-ports');
 
 let receivedHeaders = {};
 let upstreamHits = 0;
@@ -86,7 +89,9 @@ function waitForProxy(proc) {
   await new Promise((resolve) => upstream.listen(0, '127.0.0.1', resolve));
   const upstreamPort = upstream.address().port;
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-entry-auth-'));
-  const entryPort = 4557;
+  const [entryPort, managementPort] = await findAvailablePorts(2);
+  const testEnv = createIsolatedTestEnv(process.env, dataDir);
+  fs.mkdirSync(testEnv.PROXY_CONFIG_DIR, { recursive: true });
   const config = {
     activeProfile: 'openai-upstream',
     localServer: {
@@ -130,13 +135,18 @@ function waitForProxy(proc) {
       ],
     },
   };
-  fs.writeFileSync(path.join(dataDir, 'proxy.config.json'), JSON.stringify(config, null, 2));
+  // Prepare persisted credentials before timing listener startup. Plaintext
+  // migration is covered by config tests and can launch several DPAPI helpers.
+  fs.writeFileSync(
+    path.join(testEnv.PROXY_CONFIG_DIR, 'proxy.config.json'),
+    JSON.stringify(encryptConfigSecretsForStorage(config), null, 2)
+  );
 
   const proxyProc = spawn(process.execPath, [path.join(__dirname, '..', 'openai-proxy.js')], {
     cwd: path.join(__dirname, '..'),
     env: {
-      ...process.env,
-      PROXY_DATA_DIR: dataDir,
+      ...testEnv,
+      MGMT_PORT: String(managementPort),
       PROXY_DISABLE_CONVERSATION_AUDIT: '1',
     },
   });
