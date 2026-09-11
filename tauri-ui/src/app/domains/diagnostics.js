@@ -14,6 +14,7 @@ export function configureDiagnostics(dependencies) {
     'checkProxyHealth',
     'cliSessionsTimer',
     'confirmAction',
+    'config',
     'debounce',
     'ensureProxyRecovered',
     'hydrateConfigAfterStartup',
@@ -26,7 +27,21 @@ export function configureDiagnostics(dependencies) {
     'sharedCliState',
     'showDiagnosticsTab',
     'showToast',
+    'storage',
   ]);
+}
+
+const EXTERNAL_INGRESS_STORAGE_KEY = 'hpm_external_ingress_url';
+
+function syncExternalIngressUrl() {
+  const input = diagnosticsDependencies.$('externalIngressUrl');
+  if (!input || input.value) return;
+  const stored = diagnosticsDependencies.storage.getItem(EXTERNAL_INGRESS_STORAGE_KEY);
+  const configured =
+    diagnosticsDependencies.config && diagnosticsDependencies.config.diagnostics
+      ? diagnosticsDependencies.config.diagnostics.externalIngressUrl
+      : '';
+  input.value = String(stored || configured || '');
 }
 
 function logLineClassName(line) {
@@ -64,6 +79,13 @@ function startHeartbeat() {
     clearInterval(diagnosticsDependencies.sharedAppState.heartbeatTimer);
   diagnosticsDependencies.sharedAppState.heartbeatTimer = setInterval(
     async () => {
+      // Configuration recovery must not depend on a successful health probe.
+      // The controller deduplicates requests from heartbeat and manual retry.
+      if (typeof diagnosticsDependencies.hydrateConfigAfterStartup === 'function') {
+        diagnosticsDependencies
+          .hydrateConfigAfterStartup()
+          .catch((error) => reportFrontendError('heartbeat.hydrate_config', error));
+      }
       if (isMonitorVisible()) {
         await Promise.allSettled([
           diagnosticsDependencies.refreshProxyStatus({ passive: true }),
@@ -73,22 +95,10 @@ function startHeartbeat() {
         await diagnosticsDependencies.refreshProxyStatus({ passive: true });
       }
       await diagnosticsDependencies.ensureProxyRecovered({ passive: true });
-      // If the initial loadConfig() raced with the bundled proxy coming
-      // up (Tauri launches the proxy on a background thread and the
-      // page can render before 3543 is listening) the config we have
-      // is still the empty fallback. Now that the heartbeat is talking
-      // to the proxy, ask for a fresh config. hydrateConfigAfterStartup
-      // no-ops once config is real, so this is safe to call every tick.
-      if (
-        typeof diagnosticsDependencies.hydrateConfigAfterStartup === 'function' &&
-        typeof diagnosticsDependencies.checkProxyHealth === 'function'
-      ) {
+      if (typeof diagnosticsDependencies.checkProxyHealth === 'function') {
         try {
           const health = await diagnosticsDependencies.checkProxyHealth();
           if (health) {
-            diagnosticsDependencies
-              .hydrateConfigAfterStartup()
-              .catch((e) => reportFrontendError('heartbeat.hydrate_config', e));
             // 同样的冷启动问题也会让首次证书检查超时。等代理真正
             // 起来后再被动拉一次,refreshCertStatus 的 catch 分支
             // 不会写 lastCertRefresh,所以这次调用不会被 60s 节流。
@@ -357,10 +367,17 @@ if (typeof window !== 'undefined') {
     createMonitorEventElement,
     prepareMonitorEvent,
     renderMonitor,
+    formatExternalIngressProbe,
   };
 }
 
 function bindDiagnosticsControls() {
+  syncExternalIngressUrl();
+  const ingressProbeButton = diagnosticsDependencies.$('probeExternalIngress');
+  if (ingressProbeButton && ingressProbeButton.dataset.bound !== 'true') {
+    ingressProbeButton.onclick = probeExternalIngressFromUi;
+    ingressProbeButton.dataset.bound = 'true';
+  }
   const clearMonBtn = diagnosticsDependencies.$('clearMonitor');
   if (clearMonBtn && clearMonBtn.dataset.monitorBound !== 'true') {
     clearMonBtn.dataset.monitorBound = 'true';
@@ -488,12 +505,53 @@ function renderDiagnosticsStatus(status) {
   const files = (status.files || [])
     .map((item) => `${item.label}:${item.exists ? item.bytes + 'B' : '无'}`)
     .join(' / ');
-  return `enabled=${config.enabled}，Gemini=${config.captureGemini}，OpenAI=${config.captureOpenAI}，outbound=${config.captureOutboundSse}，requestTools=${config.captureRequestToolResults}\n${files}`;
+  const ingress = status.externalIngress
+    ? `\n外部入口：${formatExternalIngressProbe(status.externalIngress)}`
+    : '';
+  return `enabled=${config.enabled}，Gemini=${config.captureGemini}，OpenAI=${config.captureOpenAI}，outbound=${config.captureOutboundSse}，requestTools=${config.captureRequestToolResults}\n${files}${ingress}`;
+}
+
+function formatExternalIngressProbe(result) {
+  if (!result) return '尚未探测';
+  const state = result.ok ? '正常' : '异常';
+  const status = result.statusCode ? `HTTP ${result.statusCode}` : result.errorCode || '';
+  const elapsed = Number.isFinite(result.elapsedMs) ? `${result.elapsedMs}ms` : '';
+  const details = [status, elapsed, result.classification].filter(Boolean).join(' · ');
+  const message = result.message || result.error || '无详细信息';
+  return `${state}：${message}${details ? `（${details}）` : ''}`;
+}
+
+async function probeExternalIngressFromUi() {
+  const input = diagnosticsDependencies.$('externalIngressUrl');
+  const button = diagnosticsDependencies.$('probeExternalIngress');
+  const status = diagnosticsDependencies.$('externalIngressStatus');
+  if (!input || !button || !status) return;
+  const url = String(input.value || '').trim();
+  button.disabled = true;
+  status.textContent = '正在进行安全探测...';
+  try {
+    const result = await window.proxyManager.probeExternalIngress(url);
+    if (result && result.classification !== 'invalid_target' && url) {
+      diagnosticsDependencies.storage.setItem(EXTERNAL_INGRESS_STORAGE_KEY, url);
+    }
+    status.textContent = formatExternalIngressProbe(result);
+    status.className = `notice ${result && result.ok ? 'success' : 'error'}`;
+    diagnosticsDependencies.showToast(
+      result && result.ok ? '外部入口正常' : '外部入口异常',
+      result && result.ok ? 'success' : 'error'
+    );
+  } catch (error) {
+    status.textContent = `探测失败：${error && error.message ? error.message : '未知错误'}`;
+    status.className = 'notice error';
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function refreshDiagnostics(options = {}) {
   if (diagnosticsDependencies.sharedAppState.diagnosticsRefreshInFlight) return;
   diagnosticsDependencies.sharedAppState.diagnosticsRefreshInFlight = true;
+  syncExternalIngressUrl();
   const output = diagnosticsDependencies.$('diagnosticsOutput');
   const shouldKeepBottom =
     options.forceScroll ||

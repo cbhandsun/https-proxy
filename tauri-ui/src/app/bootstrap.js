@@ -1,4 +1,4 @@
-import { configureBridge, getApiBase } from './domains/bridge.js';
+import { configureBridge, getApiBase, checkProxyHealth } from './domains/bridge.js';
 import { configureAudit, initPromptsAuditView, initUsageReportView } from './domains/audit.js';
 import {
   bindCliSessionControls,
@@ -86,6 +86,14 @@ import {
 } from './runtime/performance.js';
 import { createSharedAppState } from './runtime/app-state.js';
 import { reportFrontendError } from './runtime/frontend-errors.js';
+import {
+  createConfigurationRecovery,
+  createConfigurationRecoveryView,
+} from './runtime/configuration-recovery.js';
+import {
+  configurationLoadNotice,
+  assertConfigurationLoaded,
+} from './runtime/configuration-load-state.js';
 import { canNotify, notify, storage, theme } from './ux.js';
 
 let config;
@@ -246,6 +254,7 @@ function showDiagnosticsTab(panelId) {
 }
 
 function protocolName(value) {
+  if (value === 'workbuddy') return 'WorkBuddy';
   if (value === 'gemini') return 'Gemini';
   if (value === 'claude') return 'Claude';
   if (value === 'claude-desktop') return 'Claude Desktop';
@@ -1785,6 +1794,16 @@ function bindRouteTableToolbar() {
 }
 
 function renderOverview() {
+  const loadNotice = configurationLoadNotice(config);
+  if (loadNotice) {
+    $('heroDefaultProfile').textContent = '配置未加载';
+    $('heroRouteCount').textContent = '—';
+    $('summary').textContent = loadNotice;
+    $('overviewRoutes').textContent = loadNotice;
+    lastRenderedOverviewSignature = '';
+    lastRenderedOverviewRoutesHtml = '';
+    return;
+  }
   const active = activeProfile();
   const defaultProfileText = active
     ? `${active.name || active.id} · ${protocolName(active.protocol)}`
@@ -1834,6 +1853,14 @@ function updateOfficialAuthSection(profileId) {
 
     renderDashboardLimits(profileId);
     scheduleRateLimitsRefresh(profileId);
+  } else if (profileId === 'workbuddy-official') {
+    section.style.display = 'block';
+    importControl.style.display = 'block';
+    importBtn.style.display = 'inline-block';
+    importBtn.textContent = '导入本地 WorkBuddy 凭证';
+    link.href = 'https://www.workbuddy.cn';
+    link.textContent = '访问 WorkBuddy 官网';
+    dashboard.style.display = 'none';
   } else if (profileId === 'openai-official') {
     section.style.display = 'block';
     importControl.style.display = 'block';
@@ -1860,6 +1887,14 @@ function updateOfficialAuthSection(profileId) {
 
 // 静态服务商预设字典
 const PROVIDER_PRESETS = {
+  workbuddy: {
+    name: 'WorkBuddy Official',
+    defaultId: 'workbuddy-official',
+    protocol: 'workbuddy',
+    targetUrl: 'https://copilot.tencent.com',
+    keyUrl: 'https://www.workbuddy.cn',
+    desc: '腾讯 WorkBuddy 官方登录接口。直接复用本地客户端登录态，支持 DeepSeek-V4、MiniMax-M3、GLM-5.1/5.2、Kimi、混元等全系列大模型。',
+  },
   openai: {
     name: 'OpenAI Official',
     defaultId: 'openai-official',
@@ -2037,6 +2072,12 @@ function initProviderPresets() {
 function matchPresetByUrl(targetUrl) {
   if (!targetUrl) return '';
   const url = targetUrl.toLowerCase().trim();
+  if (
+    url.includes('copilot.tencent.com') ||
+    url.includes('workbuddy.cn') ||
+    url.includes('codebuddy')
+  )
+    return 'workbuddy';
   if (url.includes('api.openai.com')) return 'openai';
   if (url.includes('open.bigmodel.cn/api/anthropic')) return 'glm-coding-anthropic';
   if (url.includes('open.bigmodel.cn/api/coding/paas')) return 'glm-coding-openai';
@@ -2328,32 +2369,20 @@ function applyLoadedConfig(nextConfig) {
   return config;
 }
 
-async function hydrateConfigAfterStartup() {
-  if (!config || !config.__fallback) return;
-  // The Tauri dev manager kicks off the bundled proxy on a background
-  // thread (start_proxy_if_needed). On a cold start that proxy can
-  // take 7-10s before it begins accepting connections on 3543, so the
-  // page's initial 8-attempt retry (4s) almost always gives up and we
-  // end up stuck on the "未配置" placeholders even though the proxy is
-  // fine. Keep retrying for a long stretch; the heartbeat will cancel
-  // us early once config is no longer a fallback.
-  const latest = await perfTrack('load.hydrateConfig', () =>
-    window.proxyManager.readConfig({ attempts: 30, retryDelay: 500, quiet: true })
-  );
-  if (latest && !latest.__fallback) {
-    applyLoadedConfig(latest);
-  }
-}
-
-async function checkProxyHealth() {
-  try {
-    const healthRes = await fetch(getApiBase() + '/v1/local/health');
-    if (!healthRes.ok) return null;
-    const health = await healthRes.json().catch(() => null);
-    return health && health.appId === 'https-proxy-manager' ? health : null;
-  } catch (_) {
-    return null;
-  }
+const configurationRecovery = createConfigurationRecovery({
+  read: () => window.proxyManager.readConfig({ attempts: 1, quiet: true }),
+  isLoaded: () => Boolean(config && !config.__fallback),
+  apply: applyLoadedConfig,
+  onState: createConfigurationRecoveryView(
+    document,
+    () => void configurationRecovery.run(),
+    () =>
+      refreshProxyStatus().catch((error) => reportFrontendError('config.recovered_status', error))
+  ),
+});
+window.addEventListener('pagehide', () => configurationRecovery.stop());
+function hydrateConfigAfterStartup() {
+  return configurationRecovery.run();
 }
 
 async function ensureProxyStartedFromUi() {
@@ -2951,6 +2980,8 @@ $('importCliCreds').onclick = async () => {
   let type = '';
   if (profileId === 'google-official') {
     type = 'google';
+  } else if (profileId === 'workbuddy-official') {
+    type = 'workbuddy';
   } else if (profileId === 'openai-official') {
     type = 'codex';
   }
@@ -3915,6 +3946,7 @@ function configureDomainModules() {
     routeIdOfClaudeDesktopModel,
     sharedAppState,
     sharedCliState,
+    assertConfigurationLoaded,
     showDiagnosticsTab,
     showDiagnosticsView,
     showToast,

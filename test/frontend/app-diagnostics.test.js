@@ -65,6 +65,13 @@ function loadDiagnosticsHelpers() {
     clearInterval() {},
     Promise,
     Date,
+    config: { diagnostics: { externalIngressUrl: '' } },
+    storage: {
+      getItem() {
+        return null;
+      },
+      setItem() {},
+    },
     escapeHtml,
     LOG_RENDER_LINE_LIMIT: 200,
     MONITOR_SEARCH_BODY_LIMIT: 512,
@@ -154,6 +161,11 @@ assert.equal(
   'function',
   'createMonitorEventElement exported for tests'
 );
+assert.equal(
+  typeof helpers.formatExternalIngressProbe,
+  'function',
+  'external ingress probe formatter exported for tests'
+);
 assert.ok(!/\.innerHTML\s*=/.test(src), 'diagnostics module should not assign innerHTML');
 
 const logTarget = sandbox.$('log');
@@ -225,6 +237,17 @@ assert.equal(
   monitorList.textContent.includes('&lt;img'),
   false,
   'monitor DOM stores text, not escaped markup'
+);
+
+assert.equal(
+  helpers.formatExternalIngressProbe({
+    ok: false,
+    statusCode: 404,
+    elapsedMs: 12,
+    classification: 'ingress_route_missing',
+    message: '<img src=x onerror=alert(6)>',
+  }),
+  '异常：<img src=x onerror=alert(6)>（HTTP 404 · 12ms · ingress_route_missing）'
 );
 
 console.log('app-diagnostics.test.js ok');

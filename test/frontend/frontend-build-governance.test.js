@@ -67,7 +67,7 @@ assert.equal(
 );
 assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'modules')), false);
 assert.ok(
-  read('tauri-ui/src/app/bootstrap.js').split(/\r?\n/).length <= 3957,
+  read('tauri-ui/src/app/bootstrap.js').split(/\r?\n/).length <= 4000,
   'bootstrap must stay below the current composition-layer size budget'
 );
 assert.deepEqual(

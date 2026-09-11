@@ -4,7 +4,11 @@ import { reportFrontendError } from '../runtime/frontend-errors.js';
 let bridgeDependencies;
 
 export function configureBridge(dependencies) {
-  bridgeDependencies = bindDomainDependencies('bridge', dependencies, ['config', 'showToast']);
+  bridgeDependencies = bindDomainDependencies('bridge', dependencies, [
+    'config',
+    'showToast',
+    'assertConfigurationLoaded',
+  ]);
 }
 
 // 全局错误监控 Banner，第一性原理快速定位前端崩溃
@@ -87,7 +91,9 @@ async function nativeManagementFetch(path, options = {}) {
     throw new TypeError('Native management request body must be a string');
   }
   const result = await invoke('management_fetch_native', {
-    managementPort: getManagementPort(),
+    // The native host reads the installed configuration; renderer caches may
+    // belong to an older port and must not redirect recovery requests.
+    managementPort: null,
     path,
     method: String(options.method || 'GET').toUpperCase(),
     contentType: requestContentType(options),
@@ -179,6 +185,23 @@ const withTimeout = (promise, timeoutMs, message) => {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timerId));
 };
 
+export async function checkProxyHealth() {
+  try {
+    return await withTimeout(
+      (async () => {
+        const response = await fetch(getApiBase() + '/v1/local/health');
+        if (!response.ok) return null;
+        const health = await response.json();
+        return health && health.appId === 'https-proxy-manager' ? health : null;
+      })(),
+      12000,
+      'Health check timed out'
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
 const fetchJsonWithTimeout = async (url, options = {}, timeoutMs = 7000) => {
   const controller = new AbortController();
   const timerId = setTimeout(() => controller.abort(), timeoutMs);
@@ -221,16 +244,37 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       // 非 Tauri 环境下无需操作
     },
     readConfig: async (options = {}) => {
-      const attempts = Number.isFinite(options.attempts) ? Math.max(1, options.attempts) : 8;
+      options = options && typeof options === 'object' && !Array.isArray(options) ? options : {};
+      const attempts = Number.isFinite(options.attempts)
+        ? Math.min(30, Math.max(1, Math.floor(options.attempts)))
+        : 8;
       const retryDelay = Number.isFinite(options.retryDelay)
-        ? Math.max(0, options.retryDelay)
+        ? Math.min(30000, Math.max(0, options.retryDelay))
         : 1000;
+      const timeoutMs = Number.isFinite(options.timeoutMs)
+        ? Math.min(15000, Math.max(100, options.timeoutMs))
+        : 12000;
       const quiet = options.quiet === true;
       for (let attempt = 0; attempt < attempts; attempt++) {
         try {
-          const res = await fetch(`${getApiBase()}/v1/local/config`);
-          const data = await res.json();
-          if (!res.ok || data.error) throw new Error(data.error || 'Failed to fetch config');
+          const data = await withTimeout(
+            (async () => {
+              const res = await fetch(`${getApiBase()}/v1/local/config`);
+              const value = await res.json();
+              if (
+                !res.ok ||
+                !value ||
+                value.error ||
+                !Array.isArray(value.profiles) ||
+                !Array.isArray(value.modelRoutes)
+              ) {
+                throw new Error('Failed to fetch valid configuration');
+              }
+              return value;
+            })(),
+            timeoutMs,
+            'Configuration request timed out'
+          );
           rememberLocalServerPorts(data);
           return data;
         } catch (err) {
@@ -239,6 +283,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
             continue;
           }
           if (!quiet) bridgeDependencies.showToast('无法连接本地代理管理端口', 'error');
+          reportFrontendError('config.read_unavailable', err);
           return {
             profiles: [],
             modelRoutes: [],
@@ -252,6 +297,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     },
     saveConfig: async (config) => {
       try {
+        bridgeDependencies.assertConfigurationLoaded(config);
         rememberLocalServerPorts(config);
         const res = await fetch(`${getApiBase()}/v1/local/config`, {
           method: 'POST',
@@ -348,6 +394,18 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           status: { ok: false, config: null },
           output: '读取诊断事件失败，请确认代理在运行中',
         };
+      }
+    },
+    probeExternalIngress: async (url) => {
+      try {
+        const res = await fetch(`${getApiBase()}/v1/local/diagnostics/ingress-probe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        return await res.json();
+      } catch (err) {
+        return { ok: false, classification: 'request_error', error: err.message };
       }
     },
     clearDiagnostics: async () => {
