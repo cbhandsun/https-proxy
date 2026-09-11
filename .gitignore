@@ -48,3 +48,5 @@ test/*.jsonl.*
 /400
 /prev_electron_ui.html
 /eslint-stats.json
+/.tmp*
+/.codex-remote-attachments/
