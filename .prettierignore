@@ -16,3 +16,4 @@ package-lock.json
 docs/
 proxy.config.json
 proxy.config.example.json
+.tmp*
