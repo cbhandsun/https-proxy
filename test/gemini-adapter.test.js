@@ -48,6 +48,58 @@ test('converts Claude text request to Gemini generateContent body', () => {
   ]);
 });
 
+test('requests text and image output for Gemini 3.1 Flash Image only', () => {
+  const imageRequest = claudeMessagesToGemini(
+    { messages: [{ role: 'user', content: 'draw a red circle' }] },
+    'gemini-3.1-flash-image'
+  );
+  assert.deepStrictEqual(imageRequest.generationConfig.responseModalities, ['TEXT', 'IMAGE']);
+
+  const regularRequest = claudeMessagesToGemini(
+    { messages: [{ role: 'user', content: 'hello' }] },
+    'gemini-3.7-flash-tiered'
+  );
+  assert.strictEqual(regularRequest.generationConfig, undefined);
+});
+
+test('converts safe Gemini inline image output to a Claude image block', () => {
+  const response = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [{ inlineData: { mimeType: 'image/png', data: 'aW1hZ2U=' } }],
+          },
+          finishReason: 'STOP',
+        },
+      ],
+    },
+    'gemini-3.1-flash-image'
+  );
+  assert.deepStrictEqual(response.content, [
+    {
+      type: 'image',
+      source: { type: 'base64', media_type: 'image/png', data: 'aW1hZ2U=' },
+    },
+  ]);
+});
+
+test('replaces malformed or unsafe Gemini inline image output with safe text', () => {
+  for (const inlineData of [
+    { mimeType: 'image/svg+xml', data: 'PHN2Zz4=' },
+    { mimeType: 'image/png', data: '' },
+    { mimeType: 'image/png', data: 'not base64!' },
+  ]) {
+    const response = geminiResponseToClaude(
+      { candidates: [{ content: { parts: [{ inlineData }] } }] },
+      'gemini-3.1-flash-image'
+    );
+    assert.strictEqual(response.content[0].type, 'text');
+    assert.ok(response.content[0].text.includes('invalid or unsupported image'));
+    assert.ok(!response.content[0].text.includes(String(inlineData.data || 'PHN2Zz4=')));
+  }
+});
+
 test('removes deprecated sampling parameters for Gemini 3.6+', () => {
   const body = {
     max_tokens: 256,
@@ -72,7 +124,21 @@ test('removes deprecated sampling parameters for Gemini 3.6+', () => {
   });
 });
 
-test('converts images and tool declarations', () => {
+test('maps normalized OpenAI reasoning effort to Gemini 3 thinking config', () => {
+  const result = claudeMessagesToGemini(
+    {
+      reasoning_effort: 'xhigh',
+      messages: [{ role: 'user', content: 'hello' }],
+    },
+    'gemini-3.6-flash'
+  );
+
+  assert.deepStrictEqual(result.generationConfig, {
+    thinkingConfig: { thinkingLevel: 'high' },
+  });
+});
+
+test('converts image, audio, video, and tool declarations', () => {
   const result = claudeMessagesToGemini(
     {
       messages: [
@@ -80,7 +146,18 @@ test('converts images and tool declarations', () => {
           role: 'user',
           content: [
             { type: 'text', text: 'describe' },
-            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'abc123' } },
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/png', data: 'aW1hZ2U=' },
+            },
+            {
+              type: 'audio',
+              source: { type: 'base64', media_type: 'audio/wav', data: 'YXVkaW8=' },
+            },
+            {
+              type: 'video',
+              source: { type: 'base64', media_type: 'video/mp4', data: 'dmlkZW8=' },
+            },
           ],
         },
       ],
@@ -125,9 +202,11 @@ test('converts images and tool declarations', () => {
   );
 
   assert.strictEqual(result.contents[0].parts[0].text, 'describe');
-  assert.deepStrictEqual(result.contents[0].parts[1], {
-    inlineData: { mimeType: 'image/png', data: 'abc123' },
-  });
+  assert.deepStrictEqual(result.contents[0].parts.slice(1), [
+    { inlineData: { mimeType: 'image/png', data: 'aW1hZ2U=' } },
+    { inlineData: { mimeType: 'audio/wav', data: 'YXVkaW8=' } },
+    { inlineData: { mimeType: 'video/mp4', data: 'dmlkZW8=' } },
+  ]);
   assert.strictEqual(result.tools[0].functionDeclarations[0].name, 'lookup');
   assert.strictEqual(result.tools[0].functionDeclarations[0].parameters.$schema, undefined);
   assert.strictEqual(
@@ -910,6 +989,27 @@ test('parses Gemini streaming SSE events with CRLF separators', () => {
   assert.strictEqual(state.textOpen, true);
   assert.deepStrictEqual(state.usage, { input_tokens: 2, output_tokens: 1 });
   assert.ok(writes.join('').includes('hi'));
+});
+
+test('streams Gemini inline image output as a renderable data-image markdown block', () => {
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(chunk) };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+  };
+
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"inlineData":{"mimeType":"image/png","data":"aW1hZ2U="}}]}}]}\r\n',
+    state,
+    'gemini-3.1-flash-image'
+  );
+
+  assert.strictEqual(state.textOpen, true);
+  assert.ok(writes.join('').includes('![generated image](data:image/png;base64,aW1hZ2U=)'));
 });
 
 test('buffers streaming Gemini tool calls until args are complete', () => {

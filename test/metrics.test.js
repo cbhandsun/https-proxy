@@ -36,6 +36,10 @@ c.inc(5);
 c.inc(2, { kind: 'a' });
 assert.strictEqual(c.values.get('').count, 6);
 assert.strictEqual(c.values.get('kind=a').count, 2);
+const sameCounter = m.counter('foo_total');
+assert.strictEqual(sameCounter, c);
+sameCounter.inc();
+assert.strictEqual(c.values.get('').count, 7);
 console.log('[metrics.test] counter inc ok');
 
 // 5. Gauge set/inc/dec
@@ -60,17 +64,21 @@ const entry = h.values.get('');
 assert.ok(entry);
 assert.strictEqual(entry.count, 4);
 assert.ok(entry.sum > 0);
+const sameHistogram = m.histogram('latency_seconds');
+assert.strictEqual(sameHistogram, h);
+sameHistogram.observe(0.4);
+assert.strictEqual(entry.count, 5);
 console.log('[metrics.test] histogram observe ok');
 
 // 7. Render output
 const out = m.render();
 assert.ok(out.includes('# HELP foo_total foo help'));
 assert.ok(out.includes('# TYPE foo_total counter'));
-assert.ok(out.includes('foo_total 6'));
+assert.ok(out.includes('foo_total 7'));
 assert.ok(out.includes('foo_total{kind="a"} 2'));
 assert.ok(out.includes('# TYPE bar_size gauge'));
 assert.ok(out.includes('# TYPE latency_seconds histogram'));
-assert.ok(out.includes('latency_seconds_count 4'));
+assert.ok(out.includes('latency_seconds_count 5'));
 assert.ok(out.includes('latency_seconds_sum'));
 assert.ok(out.includes('latency_seconds_bucket{le="0.01"}'));
 assert.ok(out.includes('latency_seconds_bucket{le="+Inf"}'));
@@ -111,6 +119,11 @@ console.log('[metrics.test] custom buckets cumulative ok');
 // 11. Invalid name throws
 assert.throws(() => m.counter('1invalid', ''), /Invalid metric name/);
 assert.throws(() => m.counter('has space', ''), /Invalid metric name/);
+assert.throws(() => m.gauge('foo_total', ''), /Metric type mismatch/);
+assert.throws(
+  () => m.histogram('custom', 'x', { buckets: [1, 2, 8] }),
+  /Histogram bucket mismatch/
+);
 console.log('[metrics.test] invalid name rejected ok');
 
 // 12. collectDefaultProcessMetrics injects process_* and nodejs_*

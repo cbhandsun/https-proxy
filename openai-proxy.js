@@ -10,6 +10,8 @@ const path = require('path');
 const os = require('os');
 const util = require('util');
 const crypto = require('crypto');
+const { createStartupTiming } = require('./lib/proxy/startup-timing');
+const startupTiming = createStartupTiming();
 const { parseBoundedInteger } = require('./lib/proxy/management-utils');
 
 const {
@@ -20,24 +22,10 @@ const {
   installReqIdMiddleware,
   sanitizeLogArgs,
 } = require('./lib/proxy/logger');
-const { createMetrics, collectDefaultProcessMetrics } = require('./lib/proxy/metrics');
+const { createRuntimeMetrics } = require('./lib/proxy/runtime-metrics');
 const log = createLogger('proxy');
 
-// 初始化指标 (process_* 注入 5s 周期)
-const metricsInstance = createMetrics();
-collectDefaultProcessMetrics(metricsInstance);
-// 应用级指标声明
-metricsInstance.counter('proxy_requests_total', 'Total number of proxy requests received');
-metricsInstance.counter('proxy_errors_total', 'Total number of proxy request errors');
-metricsInstance.counter('proxy_config_reloads_total', 'Total number of config hot-reloads');
-metricsInstance.counter('proxy_route_cache_total', 'Route resolution cache events');
-metricsInstance.histogram('proxy_request_duration_seconds', 'Proxy request duration in seconds', {
-  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30],
-});
-metricsInstance.gauge(
-  'proxy_active_profile_id',
-  'Currently active profile id (set to 1 for whichever is active)'
-);
+const { metricsInstance, startupPhaseGauge } = createRuntimeMetrics();
 
 const APP_ID = 'https-proxy-manager';
 let MANAGEMENT_TOKEN = process.env.MGMT_TOKEN || '';
@@ -49,12 +37,14 @@ try {
 const { createAuthResolver } = require('./lib/proxy/auth-resolver');
 const { createClaudeSelfTestTargetResolver } = require('./lib/proxy/claude-self-test-target');
 const { createCoreRequestHandler } = require('./lib/proxy/core-request-handler');
-const { createManagementHandlers } = require('./lib/proxy/handlers/management');
+const { createLazyManagementHandlers } = require('./lib/proxy/lazy-management-handlers');
+const lazyFeatures = require('./lib/proxy/lazy-feature-handlers');
 const { createProxyTransport } = require('./lib/proxy/proxy-transport');
 const { createRequestObservability } = require('./lib/proxy/request-observability');
 const { createRuntimeConfigController } = require('./lib/proxy/runtime-config-controller');
 const { createRuntimeSupport } = require('./lib/proxy/runtime-support');
 const { createRuntimeHttpAgents } = require('./lib/proxy/runtime/http-agents');
+const { createUpstreamWarmup } = require('./lib/proxy/upstream-warmup');
 const { authorizeManagementRequest } = require('./lib/proxy/management-auth');
 const { startProxyServers } = require('./lib/proxy/server-lifecycle');
 
@@ -100,7 +90,6 @@ function writeManagementTokenFile(managementPort) {
   MANAGEMENT_TOKEN = runtimeSupport.writeManagementTokenFile(managementPort);
   return MANAGEMENT_TOKEN;
 }
-runtimeSupport.setupFileConsoleTee();
 
 const {
   stableHash,
@@ -157,8 +146,12 @@ const {
   isConversationRequestPath,
   shouldConvertClaudeMessagesToOpenAI,
   isOpenAIChatCompletionsPath,
+  isOpenAIImageJobsCollectionPath,
+  isOpenAIImagesGenerationsPath,
   isOpenAIResponsesPath,
+  parseOpenAIImageJobId,
   prepareRequestBuffer: prepareRequestBufferForRoute,
+  createRuntimeRouting,
   logModelMapping: logRouteModelMapping,
   resetRouteIndex: resetProxyRouteIndex,
   rebuildRouteIndex: rebuildProxyRouteIndex,
@@ -259,7 +252,6 @@ const {
   checkEnvironmentTools,
   clearEnvCaches,
 } = require('./lib/proxy/env-tools');
-const { createToolConfigHandlers } = require('./lib/proxy/tool-config-handlers');
 const {
   fileSignature,
   readLastLinesOfJsonl,
@@ -314,11 +306,8 @@ const {
 } = require('./lib/proxy/profile-auth');
 const { createHttpClient } = require('./lib/proxy/http-client');
 const { validateConfig } = require('./lib/proxy/validator');
-const { createCertManagement } = require('./lib/proxy/cert-management');
-const {
-  handleLocalPromptsSyncRequest,
-  handleLocalPromptsPresetsRequest,
-} = require('./lib/proxy/prompts-sync');
+const { handleLocalPromptsSyncRequest, handleLocalPromptsPresetsRequest } =
+  lazyFeatures.createLazyPromptsHandlers();
 const { logUsage, getUsageSummary } = require('./lib/proxy/usage');
 const { createGoogleOfficialRuntime } = require('./lib/proxy/google-official-runtime');
 const { createMcpHub } = require('./lib/proxy/mcp-hub');
@@ -338,9 +327,17 @@ const {
   buildOpenAIOfficialCodexModelsResponse,
   openAIOfficialCodexModelSupport,
 } = require('./lib/proxy/openai-official');
-const { createTraeBridgeRuntime } = require('./lib/proxy/trae-bridge-runtime');
-const { createTraeOfficialHandlers } = require('./lib/proxy/trae-official-handlers');
-const { createTraeStatusHandlers } = require('./lib/proxy/trae-status-handlers');
+const {
+  isWorkBuddyOfficialLoginToken,
+  isWorkBuddyOfficialTarget,
+  isWorkBuddyOfficialProfile,
+  readWorkBuddyAuthInfo,
+  readWorkBuddyModelsCache,
+  normalizeWorkBuddyOfficialModelName,
+  workBuddyOfficialModelsFromCache,
+  buildWorkBuddyOfficialModelsResponse,
+  workBuddyOfficialModelSupport,
+} = require('./lib/proxy/workbuddy-official');
 const {
   entryLabel,
   modelsFormatForEntry,
@@ -359,12 +356,30 @@ const {
   currentTraeDebugSettings,
   startNativeDeepProgress,
 } = require('./lib/proxy/trae-debug-center');
-
+startupTiming.mark('module_graph_ready');
+startupTiming.mark('config_load_started');
 let CONFIG = loadConfig({ throwOnError: true });
+startupTiming.mark('config_loaded');
 let PROFILES = getProfiles(CONFIG);
 let ACTIVE_PROFILE = getActiveProfile(CONFIG);
+const upstreamWarmup = createUpstreamWarmup({
+  getRuntimeState: () => ({
+    ACTIVE_PROFILE,
+    CLAUDE_DESKTOP_ROUTES,
+    CONFIG,
+    MODEL_ROUTES,
+    PROFILES,
+    globalHttpAgent,
+    globalHttpsAgent,
+  }),
+  decryptKey,
+  getModelsUrl,
+  parseTargetUrl,
+  http,
+  https,
+  metricsInstance,
+});
 let LOCAL_SERVER = getLocalServer(CONFIG);
-
 const PORT = parsePortOrDefault(process.env.PORT || LOCAL_SERVER.listenPort, 3443);
 const CLI_SESSIONS = new Map();
 let MODEL_ROUTES = getModelRoutes(CONFIG);
@@ -408,7 +423,7 @@ const {
   buildGoogleOfficialLoadCodeAssistRequest,
 });
 const { handleLocalCertStatusRequest, handleLocalCertTrustRequest, handleLocalCertUntrustRequest } =
-  createCertManagement({
+  lazyFeatures.createLazyCertHandlers({
     getEntryServersSnapshot: () =>
       Array.isArray(ENTRY_SERVERS) && ENTRY_SERVERS.length ? ENTRY_SERVERS : [LOCAL_SERVER],
     refreshTlsServers: refreshLocalTlsServers,
@@ -425,7 +440,7 @@ const {
   handleLocalTraeDebugNativeDeepEventsRequest,
   handleLocalTraeDebugNativeDeepStartRequest,
   handleLocalTraeDebugNativeDeepStopRequest,
-} = createTraeStatusHandlers({
+} = lazyFeatures.createLazyTraeStatusHandlers({
   makeRequest,
   makeClaudeSelfTestRequest: makeLocalClaudeSelfTestRequest,
   getClaudeMessagesBaseUrl: () => {
@@ -463,7 +478,7 @@ const {
   handleLocalGeminiCliStatusRequest,
   handleLocalGeminiCliApplyRequest,
   handleLocalGeminiCliRestoreRequest,
-} = createToolConfigHandlers();
+} = lazyFeatures.createLazyToolConfigHandlers();
 
 const { resolveOfficialCredentials, resolveConfiguredProfile } = createAuthResolver({
   loadConfig,
@@ -563,10 +578,11 @@ const { reloadProxyConfig } = createRuntimeConfigController({
     LOCAL_SERVER = state.localServer;
     MODEL_ROUTES = state.modelRoutes;
     CLAUDE_DESKTOP_ROUTES = state.claudeDesktopRoutes;
+    upstreamWarmup.refresh();
   },
 });
-
-const managementHandlers = createManagementHandlers({
+upstreamWarmup.refresh();
+const managementHandlers = createLazyManagementHandlers({
   CONFIG: () => CONFIG,
   PROFILES: () => PROFILES,
   ACTIVE_PROFILE: () => ACTIVE_PROFILE,
@@ -587,6 +603,7 @@ const managementHandlers = createManagementHandlers({
   decryptKey,
   resolveOfficialCredentials,
   resolveConfiguredProfile,
+  fetchGoogleOfficialAvailableModels,
   handleLocalCertStatusRequest,
   handleLocalCertTrustRequest,
   handleLocalCertUntrustRequest,
@@ -630,30 +647,19 @@ const managementHandlers = createManagementHandlers({
 function fallbackId(prefix, value) {
   return fallbackIdWithOptions(prefix, value, PROTOCOL_OPTIONS);
 }
+const {
+  handleModelsRequest,
+  prepareRequestBuffer,
+  prepareRequestBufferWithResolver,
+  resolveClaudeDesktopRoute,
+  resolveRoute,
+} = createRuntimeRouting({
+  getState: () => ({ ACTIVE_PROFILE, CLAUDE_DESKTOP_ROUTES, MODEL_ROUTES, PROFILES }),
+  handleLocalModelsRequest,
+  prepareRequestBufferForRoute,
+  resolveRouteForModel,
+});
 
-/* ========== 代理逻辑 ========== */
-
-function resolveRoute(model) {
-  return resolveRouteForModel(model, MODEL_ROUTES, PROFILES, ACTIVE_PROFILE);
-}
-
-function resolveClaudeDesktopRoute(model) {
-  return resolveRouteForModel(model, CLAUDE_DESKTOP_ROUTES, PROFILES, ACTIVE_PROFILE);
-}
-
-function handleModelsRequest(clientReq, clientRes, requestInfo, forcedFormat) {
-  return handleLocalModelsRequest(clientReq, clientRes, requestInfo, MODEL_ROUTES, forcedFormat);
-}
-
-function prepareRequestBuffer(buffer, encoding) {
-  return prepareRequestBufferForRoute(buffer, encoding, ACTIVE_PROFILE, resolveRoute);
-}
-
-function prepareRequestBufferWithResolver(buffer, encoding, resolver) {
-  return prepareRequestBufferForRoute(buffer, encoding, ACTIVE_PROFILE, resolver || resolveRoute);
-}
-
-// 全局异常处理，避免进程意外崩溃
 const exceptionHandlers = require('./lib/proxy/exception-handlers');
 exceptionHandlers.install({
   onEvent: (kind, payload) => {
@@ -673,6 +679,7 @@ const {
   geminiToolResponseText,
   normalizeClaudeSystem,
   claudeMessagesToGemini,
+  geminiInlineImageToClaudeBlock,
   claudeStopReasonFromGemini,
   geminiUsageToClaude,
   geminiResponseToClaude,
@@ -747,6 +754,7 @@ const {
   rememberGeminiToolCall,
   claudeStopReasonFromGemini,
   geminiUsageToClaude,
+  geminiInlineImageToClaudeBlock,
   fallbackId,
   protocolOptions: PROTOCOL_OPTIONS,
 });
@@ -767,7 +775,7 @@ const {
   buildTraeBridgeClaudeMessageResponse,
   writeTraeBridgeClaudeStream,
   writeTraeBridgeClaudeLiveStream,
-} = createTraeBridgeRuntime({
+} = lazyFeatures.createLazyTraeBridgeRuntime({
   makeRequest,
   getTraeOfficialBridgeUrl,
   normalizeTraeBridgeText,
@@ -786,7 +794,7 @@ const {
   handleTraeOfficialChatCompletion,
   handleTraeOfficialResponses,
   handleTraeOfficialClaudeMessages,
-} = createTraeOfficialHandlers({
+} = lazyFeatures.createLazyTraeOfficialHandlers({
   sendJsonError,
   logRequestEnd,
   normalizeTraeOfficialModelName,
@@ -850,6 +858,10 @@ const {
   handleOpenAIResponsesToClaudeMessages,
   handleOpenAIResponsesToGeminiMessages,
   handleOpenAIChatToGeminiMessages,
+  handleOpenAIImageJobControl,
+  handleOpenAIImageJobCreate,
+  handleOpenAIImagesToGemini,
+  handleOpenAIImagesToOpenAIOfficialResponses,
   handleGeminiMessages,
 } = createProxyHandlers({
   claudeMessagesToOpenAIChat,
@@ -865,6 +877,7 @@ const {
   processOpenAIResponsesSseChunkToChat,
   flushOpenAIResponsesSseToChat,
   claudeMessagesToGemini,
+  geminiInlineImageToClaudeBlock,
   geminiGeneratePath,
   geminiResponseToClaude,
   parseGeminiError,
@@ -894,7 +907,6 @@ const {
 const ENTRY_SERVERS = getEntryServers(CONFIG);
 
 function handleRequest(clientReq, clientRes, entry) {
-  // 绑定 reqId 到本请求的异步作用域，日志自动附加
   const reqId = clientReq.reqId || clientReq.headers['x-request-id'] || newRequestId();
   clientReq.reqId = reqId;
   if (!clientRes.headersSent)
@@ -907,6 +919,7 @@ function handleRequest(clientReq, clientRes, entry) {
 const handleRequestInner = createCoreRequestHandler({
   AUDIT_MAX_CAPTURE_BYTES,
   AUDIT_MAX_TEXT_CHARS,
+  MAX_CONVERSION_RESPONSE_BYTES,
   MAX_REQUEST_BODY_BYTES,
   appendAuditRecord,
   applyCliSessionModelOverride,
@@ -937,6 +950,10 @@ const handleRequestInner = createCoreRequestHandler({
   handleLocalModelsRequest,
   handleOpenAIChatToClaudeMessages,
   handleOpenAIChatToGeminiMessages,
+  handleOpenAIImageJobControl,
+  handleOpenAIImageJobCreate,
+  handleOpenAIImagesToGemini,
+  handleOpenAIImagesToOpenAIOfficialResponses,
   handleOpenAIChatToOpenAIResponses,
   handleOpenAIResponsesToClaudeMessages,
   handleOpenAIResponsesToGeminiMessages,
@@ -958,6 +975,8 @@ const handleRequestInner = createCoreRequestHandler({
   isGeminiProfile,
   isLocalManagementPath,
   isOpenAIChatCompletionsPath,
+  isOpenAIImageJobsCollectionPath,
+  isOpenAIImagesGenerationsPath,
   isOpenAIProfile,
   isOpenAIResponsesPath,
   isPublicLocalManagementPath,
@@ -973,7 +992,9 @@ const handleRequestInner = createCoreRequestHandler({
   mergeUsage,
   metricsInstance,
   modelsFormatForEntry,
+  noteUpstreamProfileUsed: upstreamWarmup.noteProfileUsed,
   parseModelsRequestPath,
+  parseOpenAIImageJobId,
   parsePortOrDefault,
   parseTargetUrl,
   populateAuditDataFromPrepared,
@@ -1013,7 +1034,7 @@ const handleRequestInner = createCoreRequestHandler({
   }),
 });
 
-/* ========== 启动 ========== */
+startupTiming.mark('composition_ready');
 
 if (require.main === module) {
   startProxyServers({
@@ -1027,6 +1048,13 @@ if (require.main === module) {
     log,
     parsePortOrDefault,
     writeManagementTokenFile,
+    onPhase: (phase) => {
+      startupTiming.mark(phase);
+      startupTiming.observe(startupPhaseGauge);
+    },
+    onReady: () => {
+      runtimeSupport.setupFileConsoleTee();
+    },
     getRuntimeState: () => ({
       ACTIVE_PROFILE,
       CONFIG,
@@ -1126,6 +1154,15 @@ module.exports = {
   buildTraeBridgePromptFromOpenAIChat,
   buildTraeBridgeOpenAIChatCompletion,
   normalizeTraeBridgeText,
+  isWorkBuddyOfficialLoginToken,
+  isWorkBuddyOfficialTarget,
+  isWorkBuddyOfficialProfile,
+  readWorkBuddyAuthInfo,
+  readWorkBuddyModelsCache,
+  normalizeWorkBuddyOfficialModelName,
+  workBuddyOfficialModelsFromCache,
+  buildWorkBuddyOfficialModelsResponse,
+  workBuddyOfficialModelSupport,
   googleOfficialCodeAssistUrl,
   buildGoogleOfficialModelsResponse,
   googleOfficialModelsFromAvailableModels,

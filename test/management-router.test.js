@@ -56,6 +56,25 @@ const { dispatchLocalManagementRoute, routeMatches } = require('../lib/proxy/man
 }
 
 {
+  let called = false;
+  assert.strictEqual(
+    dispatchLocalManagementRoute({
+      method: 'POST',
+      pathname: '/v1/local/diagnostics/ingress-probe',
+      req: {},
+      res: {},
+      handlers: {
+        ingressProbe() {
+          called = true;
+        },
+      },
+    }),
+    true
+  );
+  assert.strictEqual(called, true);
+}
+
+{
   const calls = [];
   const req = {};
   const res = {};

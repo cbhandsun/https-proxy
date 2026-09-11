@@ -9,6 +9,7 @@ const {
   populateAuditDataFromPrepared,
   extractPromptFromBuffer,
 } = require('../lib/proxy/conversation-audit-utils');
+const { createRequestTiming, markRequestTiming } = require('../lib/proxy/request-timing');
 
 function createWritableResponse() {
   return {
@@ -246,8 +247,12 @@ function createAuditCaptureDeps(records, usageLogs) {
   const records = [];
   const usageLogs = [];
   const res = createWritableResponse();
+  const startedAt = Date.now();
+  res.__requestTiming = createRequestTiming(startedAt);
+  markRequestTiming(res.__requestTiming, 'upstreamHeaders', startedAt + 1);
+  markRequestTiming(res.__requestTiming, 'firstUpstreamChunk', startedAt + 2);
   res.__auditData = {
-    startTime: Date.now(),
+    startTime: startedAt,
     profileId: 'p1',
     originalModel: 'gpt-client',
     rewriteModel: 'gpt-target',
@@ -281,14 +286,22 @@ function createAuditCaptureDeps(records, usageLogs) {
     inputTokens: 3,
     outputTokens: 4,
   });
+  assert.strictEqual(records[0].timings.upstreamHeadersMs, 1);
+  assert.strictEqual(records[0].timings.firstUpstreamChunkMs, 2);
+  assert.ok(records[0].timings.firstClientByteMs >= 0);
+  assert.strictEqual(records[0].timings.firstVisibleTextMs, null);
 }
 
 {
   const records = [];
   const usageLogs = [];
   const res = createWritableResponse();
+  const startedAt = Date.now();
+  res.__requestTiming = createRequestTiming(startedAt);
+  markRequestTiming(res.__requestTiming, 'upstreamHeaders', startedAt + 1);
+  markRequestTiming(res.__requestTiming, 'firstUpstreamChunk', startedAt + 2);
   res.__auditData = {
-    startTime: Date.now(),
+    startTime: startedAt,
     profileId: 'p1',
     originalModel: 'claude-client',
     rewriteModel: 'claude-target',
@@ -316,6 +329,7 @@ function createAuditCaptureDeps(records, usageLogs) {
   ]);
   assert.strictEqual(records[0].usage.input_tokens, 5);
   assert.strictEqual(usageLogs[0].outputTokens, 6);
+  assert.ok(records[0].timings.firstVisibleTextMs >= 0);
 }
 
 console.log('[conversation-audit-utils.test] ok');

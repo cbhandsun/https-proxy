@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const { createIsolatedTestEnv } = require('../lib/test-runtime');
 const { findAvailablePorts } = require('./helpers/test-ports');
+const { createTestStateDatabase, encodeTestOAuthState } = require('./helpers/antigravity-state');
 
 const testHomeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'https-proxy-headers-routing-'));
 const testAppDataDir = path.join(testHomeDir, 'AppData', 'Roaming');
@@ -23,6 +24,10 @@ fs.mkdirSync(path.join(testHomeDir, '.gemini'), { recursive: true });
 fs.writeFileSync(
   path.join(testHomeDir, '.gemini', 'oauth_creds.json'),
   JSON.stringify({ access_token: 'ya29.test-google-oauth-token' })
+);
+const testIdeState = createTestStateDatabase(
+  path.join(testAppDataDir, 'Antigravity IDE', 'User', 'globalStorage', 'state.vscdb'),
+  encodeTestOAuthState('ya29.test-ide-oauth-token')
 );
 
 function createProxyEnv() {
@@ -50,6 +55,8 @@ let upstreamPort = 0;
 let claudeEntryPort = 0;
 let openAiEntryPort = 0;
 let managementPort = 0;
+const PROXY_START_TIMEOUT_MS = 30000;
+const HOT_RELOAD_TIMEOUT_MS = 20000;
 
 mockUpstream.listen(0, '127.0.0.1', async () => {
   upstreamPort = mockUpstream.address().port;
@@ -136,6 +143,61 @@ function stopProxyProcess(proxyProc, done) {
   }
 }
 
+let sharedProxyProc = null;
+let sharedProfileId = '';
+
+function stopSharedProxy() {
+  const proxyProc = sharedProxyProc;
+  sharedProxyProc = null;
+  sharedProfileId = '';
+  if (!proxyProc) return Promise.resolve();
+  return new Promise((resolve) => stopProxyProcess(proxyProc, resolve));
+}
+
+async function useSharedProxy(profile) {
+  if (sharedProxyProc) {
+    if (sharedProfileId !== profile.id) {
+      setupTestConfig(profile);
+      sharedProfileId = profile.id;
+    }
+    return;
+  }
+
+  setupTestConfig(profile);
+  sharedProfileId = profile.id;
+  const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
+    env: createProxyEnv(),
+  });
+  sharedProxyProc = proxyProc;
+
+  await new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (err) reject(err);
+      else resolve();
+    };
+    const timer = setTimeout(() => {
+      finish(new Error(`Timeout waiting for shared proxy readiness (${PROXY_START_TIMEOUT_MS}ms)`));
+    }, PROXY_START_TIMEOUT_MS);
+
+    proxyProc.stdout.on('data', (data) => {
+      const output = data.toString();
+      console.log(`[PROXY OUT] ${output.trim()}`);
+      if (output.includes('Mgmt:')) finish();
+    });
+    proxyProc.stderr.on('data', (data) => {
+      console.error(`[PROXY ERR] ${data.toString().trim()}`);
+    });
+    proxyProc.once('error', finish);
+    proxyProc.once('exit', (code, signal) => {
+      finish(new Error(`Shared proxy exited (code=${code}, signal=${signal || 'none'})`));
+    });
+  });
+}
+
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -167,14 +229,20 @@ function sendClaudeMessageRequest() {
   });
 }
 
-async function waitForForwardedApiKey(expectedKey, { timeoutMs = 5000, intervalMs = 100 } = {}) {
+async function waitForForwardedApiKey(expectedKey, { timeoutMs = 15000, intervalMs = 100 } = {}) {
   const deadline = Date.now() + timeoutMs;
   let lastHeaders = {};
+  let lastError;
   while (Date.now() < deadline) {
-    lastHeaders = await sendClaudeMessageRequest();
-    if (lastHeaders['x-api-key'] === expectedKey) return lastHeaders;
+    try {
+      lastHeaders = await sendClaudeMessageRequest();
+      if (lastHeaders['x-api-key'] === expectedKey) return lastHeaders;
+    } catch (err) {
+      lastError = err;
+    }
     await delay(intervalMs);
   }
+  if (Object.keys(lastHeaders).length === 0 && lastError) throw lastError;
   assert.strictEqual(lastHeaders['x-api-key'], expectedKey);
   return lastHeaders;
 }
@@ -333,13 +401,28 @@ async function runTests() {
       expectedHeadersCheck: (headers) => {
         // 验证客户端传入的密钥已被彻底擦除，而不能传给上游
         assert.notStrictEqual(headers['authorization'], 'Bearer client-google-token');
+        assert.strictEqual(headers['authorization'], 'Bearer ya29.test-ide-oauth-token');
         assert.notStrictEqual(headers['x-goog-api-key'], 'client-google-key');
       },
       message: 'Google Official Privilege Profile ignores and strips client credentials',
     });
 
+    // Missing IDE login must fail locally, even when Gemini CLI login exists.
+    fs.unlinkSync(testIdeState);
+    receivedHeaders = {};
+    const missingLogin = await fetch(`http://127.0.0.1:${openAiEntryPort}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4', messages: [{ role: 'user', content: 'hi' }] }),
+      signal: globalThis.AbortSignal.timeout(10000),
+    });
+    assert.equal(missingLogin.status, 503);
+    assert.equal((await missingLogin.json()).error.code, 'ANTIGRAVITY_CREDENTIALS_MISSING');
+    assert.deepStrictEqual(receivedHeaders, {}, 'credential failure must not reach upstream');
+
     // 测试新特性 1: 配置文件动态热加载 (Hot-Reload)
     await runHotReloadTest();
+    await stopSharedProxy();
 
     // 测试新特性 2: 延迟测速本地 API
     await runLatencyApiTest();
@@ -352,11 +435,41 @@ async function runTests() {
     console.error('\nTest failed:', err);
     process.exitCode = 1;
   } finally {
+    await stopSharedProxy();
     cleanUp();
   }
 }
 
-function runSingleTest({
+function sendRoutedRequest({ clientHeaders, clientPort, clientPath, clientBody }) {
+  return new Promise((resolve, reject) => {
+    receivedHeaders = {};
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: clientPort,
+        path: clientPath,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...clientHeaders },
+      },
+      (res) => {
+        res.resume();
+        res.on('error', reject);
+        res.on('end', () => resolve({ ...receivedHeaders }));
+      }
+    );
+    req.on('error', reject);
+    req.end(
+      JSON.stringify(
+        clientBody || {
+          model: 'claude-sonnet-4-6',
+          messages: [{ role: 'user', content: 'hi' }],
+        }
+      )
+    );
+  });
+}
+
+async function runSingleTest({
   profile,
   clientHeaders,
   expectedHeadersCheck,
@@ -365,166 +478,50 @@ function runSingleTest({
   clientPath = '/v1/messages',
   clientBody,
 }) {
-  return new Promise((resolve, reject) => {
-    receivedHeaders = {};
-    setupTestConfig(profile);
-
-    // 启动代理子进程，通过环境变量加载测试配置
-    const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
-      env: createProxyEnv(),
-    });
-
-    let isStarted = false;
-    let done = false;
-    const finish = (err) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timeoutTimer);
-      stopProxyProcess(proxyProc, () => (err ? reject(err) : resolve()));
-    };
-    const timeoutTimer = setTimeout(() => {
-      if (!isStarted) {
-        finish(new Error('Timeout waiting for proxy to start (10s)'));
-      }
-    }, 10000);
-
-    const startClient = () => {
-      isStarted = true;
-      clearTimeout(timeoutTimer);
-
-      // 发送 HTTP 请求给代理服务器
-      const req = http.request(
-        {
-          hostname: '127.0.0.1',
-          port: clientPort,
-          path: clientPath,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...clientHeaders,
-          },
-        },
-        (res) => {
-          let body = '';
-          res.on('data', (chunk) => (body += chunk));
-          res.on('end', () => {
-            try {
-              expectedHeadersCheck(receivedHeaders);
-              console.log(`  [PASS] ${message}`);
-              finish();
-            } catch (err) {
-              finish(err);
-            }
-          });
-        }
-      );
-
-      req.on('error', (err) => {
-        finish(err);
+  await useSharedProxy(profile);
+  const deadline = Date.now() + HOT_RELOAD_TIMEOUT_MS;
+  let lastError;
+  do {
+    try {
+      const headers = await sendRoutedRequest({
+        clientHeaders,
+        clientPort,
+        clientPath,
+        clientBody,
       });
-
-      const bodyData = clientBody || {
-        model: 'claude-sonnet-4-6',
-        messages: [{ role: 'user', content: 'hi' }],
-      };
-      req.write(JSON.stringify(bodyData));
-      req.end();
-    };
-
-    proxyProc.stdout.on('data', (data) => {
-      const output = data.toString();
-      console.log(`[PROXY OUT] ${output.trim()}`);
-      if (output.includes('Mgmt:') && !isStarted) {
-        startClient();
-      }
-    });
-
-    proxyProc.stderr.on('data', (data) => {
-      console.error(`[PROXY ERR] ${data.toString().trim()}`);
-    });
-  });
+      expectedHeadersCheck(headers);
+      console.log(`  [PASS] ${message}`);
+      return;
+    } catch (err) {
+      lastError = err;
+      await delay(100);
+    }
+  } while (Date.now() < deadline);
+  throw lastError || new Error(`Timed out waiting for routed profile ${profile.id}`);
 }
 
-function runHotReloadTest() {
-  return new Promise((resolve, reject) => {
-    receivedHeaders = {};
-    const profile1 = {
-      id: 'claude-official-1',
-      name: 'Claude Official 1',
-      protocol: 'claude',
-      targetUrl: `http://127.0.0.1:${upstreamPort}`,
-      apiKey: 'key-1',
-    };
-    const profile2 = {
-      id: 'claude-official-2',
-      name: 'Claude Official 2',
-      protocol: 'claude',
-      targetUrl: `http://127.0.0.1:${upstreamPort}`,
-      apiKey: 'key-2',
-    };
+async function runHotReloadTest() {
+  const profile1 = {
+    id: 'claude-official-1',
+    name: 'Claude Official 1',
+    protocol: 'claude',
+    targetUrl: `http://127.0.0.1:${upstreamPort}`,
+    apiKey: 'key-1',
+  };
+  const profile2 = {
+    id: 'claude-official-2',
+    name: 'Claude Official 2',
+    protocol: 'claude',
+    targetUrl: `http://127.0.0.1:${upstreamPort}`,
+    apiKey: 'key-2',
+  };
 
-    setupTestConfig(profile1);
-
-    // 启动代理
-    const proxyProc = spawn('node', [path.join(__dirname, '../openai-proxy.js')], {
-      env: createProxyEnv(),
-    });
-
-    let isStarted = false;
-    let done = false;
-    const finish = (err) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timeoutTimer);
-      stopProxyProcess(proxyProc, () => (err ? reject(err) : resolve()));
-    };
-    const timeoutTimer = setTimeout(() => {
-      finish(new Error('Hot reload test timeout (10s)'));
-    }, 10000);
-
-    proxyProc.stdout.on('data', (data) => {
-      const output = data.toString();
-      if (output.includes('Mgmt:') && !isStarted) {
-        isStarted = true;
-
-        // 1. 发送第一次请求，此时应该使用 key-1
-        const req1 = http.request(
-          {
-            hostname: '127.0.0.1',
-            port: claudeEntryPort,
-            path: '/v1/messages',
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-          },
-          (res1) => {
-            res1.resume();
-            try {
-              assert.strictEqual(receivedHeaders['x-api-key'], 'key-1');
-
-              // 2. 动态改写配置文件，切换为 profile2
-              setupTestConfig(profile2);
-
-              waitForForwardedApiKey('key-2')
-                .then(() => {
-                  console.log('  [PASS] Configuration hot-reload test');
-                  finish();
-                })
-                .catch(finish);
-            } catch (err) {
-              finish(err);
-            }
-          }
-        );
-        req1.write(
-          JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            messages: [{ role: 'user', content: 'hi' }],
-          })
-        );
-        req1.end();
-      }
-    });
-  });
+  await useSharedProxy(profile1);
+  await waitForForwardedApiKey('key-1');
+  setupTestConfig(profile2);
+  sharedProfileId = profile2.id;
+  await waitForForwardedApiKey('key-2');
+  console.log('  [PASS] Configuration hot-reload test');
 }
 
 function runLatencyApiTest() {

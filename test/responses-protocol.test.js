@@ -1,4 +1,9 @@
 const assert = require('assert');
+const { EventEmitter } = require('events');
+const {
+  createChatToResponsesStreamFinalizer,
+  createResponsesChatStreamHandler,
+} = require('../lib/proxy/handlers/responses-chat-stream');
 
 const {
   openAIResponsesToChat,
@@ -7,6 +12,7 @@ const {
   processOpenAIChatSseChunkToResponses,
   flushOpenAIChatSseToResponses,
   processOpenAIResponsesSseChunkToChat,
+  flushOpenAIResponsesSseToChat,
   shouldConvertResponsesToOpenAIChat,
 } = require('../openai-proxy');
 
@@ -33,6 +39,48 @@ function createResponsesStreamState(overrides = {}) {
 
 function event(payload) {
   return 'data: ' + JSON.stringify(payload) + '\n\n';
+}
+
+function createChatStreamState(overrides = {}) {
+  return {
+    id: 'chatcmpl_test',
+    created: 1,
+    model: 'client-model',
+    buffer: '',
+    started: false,
+    toolCalls: [],
+    usage: null,
+    done: false,
+    ...overrides,
+  };
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createResponsesStreamState({ id: 'chatcmpl_before_created' });
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    event({
+      type: 'response.created',
+      response: { id: 'resp_created', created_at: 123, status: 'in_progress' },
+    }),
+    state
+  );
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    event({ type: 'response.in_progress', response: { id: 'resp_created' } }),
+    state
+  );
+  const output = writes.join('');
+  assert.ok(output.includes('"role":"assistant"'));
+  assert.strictEqual(
+    (output.match(/"role":"assistant"/g) || []).length,
+    1,
+    'metadata events must emit exactly one early role chunk'
+  );
+  assert.strictEqual(state.id, 'chatcmpl_created');
+  assert.strictEqual(state.created, 123);
 }
 
 {
@@ -105,7 +153,7 @@ function event(payload) {
         role: 'user',
         content: [
           { type: 'input_text', text: 'describe' },
-          { type: 'input_image', image_url: 'data:image/png;base64,abc123' },
+          { type: 'input_image', image_url: 'data:image/png;base64,aW1hZ2U=' },
         ],
       },
     ],
@@ -114,9 +162,25 @@ function event(payload) {
 
   assert.deepStrictEqual(result.messages[0].content, [
     { type: 'text', text: 'describe' },
-    { type: 'image_url', image_url: { url: 'data:image/png;base64,abc123' } },
+    { type: 'image_url', image_url: { url: 'data:image/png;base64,aW1hZ2U=' } },
   ]);
   assert.deepStrictEqual(result.response_format, { type: 'json_object' });
+}
+
+{
+  const result = openAIResponsesToChat({
+    model: 'client-model',
+    input: [
+      {
+        role: 'user',
+        content: [{ type: 'input_image', image_url: 'https://example.com/image.png' }],
+      },
+    ],
+  });
+
+  assert.deepStrictEqual(result.messages[0].content, [
+    { type: 'image_url', image_url: { url: 'https://example.com/image.png' } },
+  ]);
 }
 
 {
@@ -156,7 +220,7 @@ function event(payload) {
         role: 'user',
         content: [
           { type: 'text', text: 'describe' },
-          { type: 'image_url', image_url: { url: 'data:image/png;base64,abc123' } },
+          { type: 'image_url', image_url: { url: 'data:image/png;base64,aW1hZ2U=' } },
         ],
       },
     ],
@@ -164,7 +228,7 @@ function event(payload) {
 
   assert.deepStrictEqual(result.input[0].content, [
     { type: 'input_text', text: 'describe' },
-    { type: 'input_image', image_url: 'data:image/png;base64,abc123' },
+    { type: 'input_image', image_url: 'data:image/png;base64,aW1hZ2U=' },
   ]);
 }
 
@@ -315,16 +379,7 @@ function event(payload) {
 {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(String(chunk)) };
-  const state = {
-    id: 'chatcmpl_test',
-    created: 1,
-    model: 'client-model',
-    buffer: '',
-    started: false,
-    toolCalls: [],
-    usage: null,
-    done: false,
-  };
+  const state = createChatStreamState();
   const responseEvent = (payload) =>
     'event: ' + payload.type + '\ndata: ' + JSON.stringify(payload) + '\n\n';
   const args = JSON.stringify({
@@ -359,6 +414,323 @@ function event(payload) {
   const output = writes.join('');
   assert.ok(output.includes('"name":"Read"'));
   assert.strictEqual(output.includes('"name":"tool"'), false);
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createChatStreamState();
+
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    event({
+      type: 'response.failed',
+      response: {
+        status: 'failed',
+        error: {
+          code: 'context length exceeded\r\nunsafe',
+          type: 'invalid request error',
+          message: 'Context limit exceeded\r\n' + 'x'.repeat(600),
+        },
+      },
+    }),
+    state
+  );
+  const outcome = flushOpenAIResponsesSseToChat(clientRes, state);
+  const output = writes.join('');
+
+  assert.strictEqual(outcome.ok, false);
+  assert.strictEqual(outcome.failed, true);
+  assert.strictEqual(outcome.terminalType, 'response.failed');
+  assert.strictEqual(outcome.failure.code, 'context_length_exceeded__unsafe');
+  assert.strictEqual(outcome.failure.type, 'invalid_request_error');
+  assert.ok(outcome.failure.message.length <= 512);
+  assert.strictEqual(/[\r\n]/.test(outcome.failure.message), false);
+  assert.ok(output.includes('"error"'));
+  assert.strictEqual(output.includes('data: [DONE]'), false);
+  assert.strictEqual(output.includes('"finish_reason":"stop"'), false);
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createChatStreamState();
+
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    event({
+      type: 'response.incomplete',
+      response: {
+        status: 'incomplete',
+        incomplete_details: { reason: 'max_output_tokens' },
+        usage: { input_tokens: 120, output_tokens: 8, total_tokens: 128 },
+      },
+    }),
+    state
+  );
+  const outcome = flushOpenAIResponsesSseToChat(clientRes, state);
+  const output = writes.join('');
+
+  assert.strictEqual(outcome.ok, true);
+  assert.strictEqual(outcome.incomplete, true);
+  assert.strictEqual(outcome.terminalType, 'response.incomplete');
+  assert.ok(output.includes('"finish_reason":"length"'));
+  assert.ok(output.includes('"completion_tokens":8'));
+  assert.ok(output.includes('data: [DONE]'));
+  assert.strictEqual(output.includes('"error"'), false);
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createChatStreamState({ started: true });
+  const outcome = flushOpenAIResponsesSseToChat(clientRes, state);
+  const output = writes.join('');
+
+  assert.strictEqual(outcome.ok, false);
+  assert.strictEqual(outcome.failure.code, 'upstream_stream_incomplete');
+  assert.ok(output.includes('upstream_stream_incomplete'));
+  assert.strictEqual(output.includes('data: [DONE]'), false);
+  assert.strictEqual(output.includes('"finish_reason":"stop"'), false);
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createChatStreamState({ buffer: 'data: {not-json}\n\n' });
+  const outcome = flushOpenAIResponsesSseToChat(clientRes, state);
+
+  assert.strictEqual(outcome.ok, false);
+  assert.strictEqual(outcome.failure.code, 'upstream_stream_invalid_event');
+  assert.ok(writes.join('').includes('upstream_stream_invalid_event'));
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createChatStreamState();
+
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    event({
+      type: 'error',
+      code: 'rate_limit_exceeded',
+      message: 'Request rate limit exceeded',
+    }),
+    state
+  );
+  const firstOutput = writes.join('');
+  const outcome = flushOpenAIResponsesSseToChat(clientRes, state);
+
+  assert.strictEqual(outcome.ok, false);
+  assert.strictEqual(outcome.failure.code, 'rate_limit_exceeded');
+  assert.ok(firstOutput.includes('Request rate limit exceeded'));
+  assert.strictEqual(writes.join(''), firstOutput, 'terminal errors must be emitted once');
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createChatStreamState({ buffer: 'data: [DONE]' });
+  const outcome = flushOpenAIResponsesSseToChat(clientRes, state);
+
+  assert.strictEqual(outcome.ok, false);
+  assert.strictEqual(outcome.failure.code, 'upstream_stream_incomplete');
+  assert.strictEqual(writes.join('').includes('data: [DONE]'), false);
+}
+
+{
+  assert.throws(
+    () => createChatToResponsesStreamFinalizer(),
+    /requires clientRes/,
+    'stream finalizer validates required boundaries'
+  );
+  const requestEnds = [];
+  let endCalls = 0;
+  const failureOptions = { code: 'upstream_stream_aborted' };
+  const finalize = createChatToResponsesStreamFinalizer({
+    clientRes: { end: () => endCalls++ },
+    state: {},
+    flushOpenAIResponsesSseToChat(_clientRes, _state, options) {
+      assert.strictEqual(options, failureOptions);
+      return {
+        failed: true,
+        incomplete: false,
+        terminalType: 'upstream_stream_aborted',
+        failure: { code: 'upstream_stream_aborted' },
+      };
+    },
+    logRequestEnd(method, path, startTime, statusCode, extra) {
+      requestEnds.push({ method, path, startTime, statusCode, extra });
+    },
+    method: 'POST',
+    upstreamPath: '/responses',
+    startTime: 10,
+  });
+
+  assert.strictEqual(finalize(failureOptions), true);
+  assert.strictEqual(finalize(failureOptions), false, 'stream finalization must be idempotent');
+  assert.strictEqual(endCalls, 1);
+  assert.strictEqual(requestEnds.length, 1);
+  assert.strictEqual(requestEnds[0].statusCode, 502);
+  assert.strictEqual(requestEnds[0].extra.type, 'chat_to_responses_stream_error');
+  assert.strictEqual(requestEnds[0].extra.errorCode, 'upstream_stream_aborted');
+}
+
+{
+  const requestEnds = [];
+  const finalize = createChatToResponsesStreamFinalizer({
+    clientRes: { end() {} },
+    state: {},
+    flushOpenAIResponsesSseToChat() {
+      return {
+        failed: false,
+        incomplete: true,
+        terminalType: 'response.incomplete',
+        failure: null,
+      };
+    },
+    logRequestEnd(_method, _path, _startTime, statusCode, extra) {
+      requestEnds.push({ statusCode, extra });
+    },
+    method: 'POST',
+    upstreamPath: '/responses',
+    startTime: 10,
+  });
+
+  finalize();
+  assert.strictEqual(requestEnds[0].statusCode, 200);
+  assert.strictEqual(requestEnds[0].extra.type, 'chat_to_responses_stream_incomplete');
+  assert.strictEqual(requestEnds[0].extra.errorCode, undefined);
+}
+
+{
+  const requestEnds = [];
+  let endCalls = 0;
+  const finalize = createChatToResponsesStreamFinalizer({
+    clientRes: { end: () => endCalls++ },
+    state: {},
+    flushOpenAIResponsesSseToChat() {
+      throw new Error('sensitive upstream detail');
+    },
+    logRequestEnd(_method, _path, _startTime, statusCode, extra) {
+      requestEnds.push({ statusCode, extra });
+    },
+    method: 'POST',
+    upstreamPath: '/responses',
+    startTime: 10,
+  });
+
+  assert.doesNotThrow(() => finalize());
+  assert.strictEqual(endCalls, 1);
+  assert.deepStrictEqual(requestEnds, [
+    {
+      statusCode: 502,
+      extra: {
+        type: 'chat_to_responses_stream_error',
+        upstreamEvent: 'stream_finalization_error',
+        errorCode: 'stream_finalization_error',
+      },
+    },
+  ]);
+}
+
+{
+  const writes = [];
+  const requestEnds = [];
+  const proxyRes = new EventEmitter();
+  proxyRes.complete = true;
+  const clientRes = {
+    headers: null,
+    statusCode: 0,
+    ended: false,
+    writeHead(statusCode, headers) {
+      this.statusCode = statusCode;
+      this.headers = headers;
+    },
+    write(chunk) {
+      writes.push(String(chunk));
+      return true;
+    },
+    end() {
+      this.ended = true;
+    },
+  };
+  const handleStream = createResponsesChatStreamHandler({
+    CORS_HEADERS: { 'access-control-allow-origin': '*' },
+    fallbackId: () => 'chatcmpl_route_test',
+    stableCreated: () => 10,
+    processOpenAIResponsesSseChunkToChat,
+    flushOpenAIResponsesSseToChat,
+    logRequestEnd(method, path, startTime, statusCode, extra) {
+      requestEnds.push({ method, path, startTime, statusCode, extra });
+    },
+  });
+
+  handleStream({
+    clientReq: { method: 'POST' },
+    clientRes,
+    parsed: { model: 'client-model', messages: [], stream: true },
+    proxyRes,
+    startTime: 5,
+    targetModel: 'target-model',
+    upstreamPath: '/responses',
+  });
+  proxyRes.emit(
+    'data',
+    Buffer.from(
+      event({
+        type: 'response.failed',
+        response: { error: { code: 'model_error', message: 'Generation failed' } },
+      })
+    )
+  );
+  proxyRes.emit('end');
+
+  assert.strictEqual(clientRes.statusCode, 200, 'SSE headers are committed before terminal events');
+  assert.strictEqual(clientRes.headers['access-control-allow-origin'], '*');
+  assert.strictEqual(clientRes.ended, true);
+  assert.ok(writes.join('').includes('model_error'));
+  assert.strictEqual(requestEnds.length, 1);
+  assert.strictEqual(requestEnds[0].statusCode, 502);
+  assert.strictEqual(requestEnds[0].extra.type, 'chat_to_responses_stream_error');
+  assert.strictEqual(requestEnds[0].extra.errorCode, 'model_error');
+}
+
+{
+  const writes = [];
+  const requestEnds = [];
+  const proxyRes = new EventEmitter();
+  proxyRes.complete = false;
+  const clientRes = {
+    writeHead() {},
+    write: (chunk) => writes.push(String(chunk)),
+    end() {},
+  };
+  const handleStream = createResponsesChatStreamHandler({
+    fallbackId: () => 'chatcmpl_closed',
+    stableCreated: () => 10,
+    processOpenAIResponsesSseChunkToChat,
+    flushOpenAIResponsesSseToChat,
+    logRequestEnd(_method, _path, _startTime, statusCode, extra) {
+      requestEnds.push({ statusCode, extra });
+    },
+  });
+
+  handleStream({
+    clientReq: { method: 'POST' },
+    clientRes,
+    parsed: { model: 'client-model', messages: [] },
+    proxyRes,
+    startTime: 5,
+    targetModel: 'target-model',
+    upstreamPath: '/responses',
+  });
+  proxyRes.emit('close');
+
+  assert.ok(writes.join('').includes('upstream_stream_closed'));
+  assert.strictEqual(requestEnds[0].statusCode, 502);
+  assert.strictEqual(requestEnds[0].extra.errorCode, 'upstream_stream_closed');
 }
 
 {

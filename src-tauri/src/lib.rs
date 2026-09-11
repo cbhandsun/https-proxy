@@ -11,6 +11,7 @@ mod codex_login;
 mod desktop_shell;
 mod launch_on_login;
 mod management_bridge;
+mod proxy_process;
 mod proxy_root;
 use codex_login::launch_codex_login_script;
 #[cfg(test)]
@@ -347,14 +348,9 @@ fn node_proxy_command(root: &Path) -> Command {
     } else {
         Command::new("node")
     };
+    proxy_process::configure_node_environment(&mut command, root, &runtime_dir);
     command
         .arg(root.join("openai-proxy.js"))
-        .env("PROXY_CONFIG_DIR", root)
-        .env("PROXY_RUNTIME_DIR", &runtime_dir)
-        .env(
-            "NODE_COMPILE_CACHE",
-            runtime_dir.join(".node-compile-cache"),
-        )
         .env("NO_PAUSE", "1")
         .env_remove("PORT")
         .current_dir(root)

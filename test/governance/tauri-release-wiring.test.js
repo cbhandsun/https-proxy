@@ -121,12 +121,11 @@ assert.match(installerHooks, /!macro NSIS_HOOK_PREINSTALL/);
 assert.match(installerHooks, /!macro NSIS_HOOK_PREUNINSTALL/);
 assert.match(installerHooks, /stop-installed-processes\.ps1/);
 assert.match(installerHooks, /Process cleanup diagnostics/);
+assert.match(installerHooks, /-InstallDir "\$R9"/);
+assert.match(installerHooks, /-FallbackInstallDir "\$R8"/);
 assert.match(installerHooks, /\$1 != ""/);
-assert.match(installerHooks, /StrCpy \$R9 "\$LOCALAPPDATA\\HTTPS Proxy Manager"/);
-assert.ok(
-  !installerHooks.includes('-InstallDir'),
-  'NSIS must derive the current-user install directory inside PowerShell instead of quoting it on the command line'
-);
+assert.match(installerHooks, /StrCpy \$R9 "\$INSTDIR"/);
+assert.match(installerHooks, /StrCpy \$R8 "\$LOCALAPPDATA\\HTTPS Proxy Manager"/);
 assert.match(
   installerHooks,
   /!define HTTPS_PROXY_INSTALLER_HOOK_DIR "\$\{__FILEDIR__\}"/,

@@ -1,7 +1,7 @@
 {
   "activeProfile": "example-openai",
   "appSettings": {
-    "autoStartProxy": false,
+    "autoStartProxy": true,
     "closeToTray": true,
     "showTopMenu": true,
     "showTrayMenu": true,
@@ -9,7 +9,15 @@
     "stopProxyOnExit": true,
     "disableLocalProxy": false,
     "verifyUpstreamTls": true,
-    "conversationAuditEnabled": true
+    "conversationAuditEnabled": true,
+    "forceResponseStreaming": false,
+    "responseStreamingRolloutPercent": 0,
+    "forceChatStreaming": false,
+    "upstreamWarmupEnabled": false,
+    "upstreamWarmupIntervalMs": 45000,
+    "upstreamWarmupMaxTargets": 4,
+    "upstreamWarmupStaggerMs": 200,
+    "streamDirectRequestBodies": false
   },
   "entryAuth": {
     "enabled": true,
@@ -22,6 +30,8 @@
     "captureOutboundSse": true,
     "captureRequestToolResults": true,
     "enabled": false,
+    "externalIngressTimeoutMs": 5000,
+    "externalIngressUrl": "",
     "maxFileBytes": 5242880,
     "maxTextBytes": 12000
   },
@@ -179,6 +189,14 @@
       "name": "OpenAI Official",
       "protocol": "openai",
       "targetUrl": "https://api.openai.com/v1"
+    },
+    {
+      "apiKey": null,
+      "authMode": "official-login",
+      "id": "workbuddy-official",
+      "name": "WorkBuddy Official",
+      "protocol": "workbuddy",
+      "targetUrl": "https://copilot.tencent.com"
     }
   ],
   "mcpHub": {

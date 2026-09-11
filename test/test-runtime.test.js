@@ -17,6 +17,10 @@ const isolatedRoot = path.resolve('isolated-test-runtime');
 assert.strictEqual(isolated.PATH, 'safe-path');
 assert.strictEqual(isolated.PROXY_CONFIG_DIR, path.join(isolatedRoot, 'config'));
 assert.strictEqual(isolated.PROXY_RUNTIME_DIR, path.join(isolatedRoot, 'runtime'));
+assert.strictEqual(
+  isolated.NODE_COMPILE_CACHE,
+  path.join(isolatedRoot, 'runtime', '.node-compile-cache')
+);
 assert.strictEqual(isolated.PROXY_DATA_DIR, undefined);
 assert.strictEqual(isolated.NODE_ENV, 'test');
 assert.strictEqual(

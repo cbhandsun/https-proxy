@@ -24,6 +24,7 @@ const {
         from: 'default',
         to: 'gpt-5.6-sol',
         profileId: 'main',
+        group: 'gpt',
         clientProtocols: ['openai-chat'],
       },
     ],
@@ -97,7 +98,15 @@ const {
     ],
     localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
     entryServers: {},
-    modelRoutes: [{ from: '', profileId: 'missing', clientProtocols: ['smtp'] }, 'not-an-object'],
+    modelRoutes: [
+      {
+        from: '',
+        profileId: 'missing',
+        group: '<script>',
+        clientProtocols: ['smtp'],
+      },
+      'not-an-object',
+    ],
     claudeDesktop: {
       enabled: 'yes',
       mode: 'shell',
@@ -118,6 +127,7 @@ const {
     'entryServers must be an array',
     'retryUnsafeRequests must be a boolean',
     'modelRoutes[0].from is required',
+    'modelRoutes[0].group is invalid',
     'profileId does not match any profile',
     'clientProtocols contains unsupported protocol',
     'claudeDesktop.enabled must be a boolean',

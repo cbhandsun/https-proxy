@@ -12,6 +12,8 @@
   },
   "scripts": {
     "start": "node openai-proxy.js",
+    "agy:bridge": "node scripts/start-agy-bridge.js",
+    "agy:verify": "node scripts/verify-agy-bridge.js --live",
     "test": "npm run test:unit && npm run test:frontend && npm run test:thinking && npm run test:env",
     "test:unit": "node scripts/run-unit-test-shards.js",
     "test:unit:serial": "node scripts/run-unit-tests.js",

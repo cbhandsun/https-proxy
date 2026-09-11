@@ -4,9 +4,10 @@
   InitPluginsDir
   File /oname=$PLUGINSDIR\stop-installed-processes.ps1 "${HTTPS_PROXY_INSTALLER_HOOK_DIR}\stop-installed-processes.ps1"
   DetailPrint "Stopping existing HTTPS Proxy Manager processes..."
-  StrCpy $R9 "$LOCALAPPDATA\HTTPS Proxy Manager"
+  StrCpy $R9 "$INSTDIR"
+  StrCpy $R8 "$LOCALAPPDATA\HTTPS Proxy Manager"
   DetailPrint "Process cleanup directory: $R9"
-  nsExec::ExecToStack '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\stop-installed-processes.ps1"'
+  nsExec::ExecToStack '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\stop-installed-processes.ps1" -InstallDir "$R9" -FallbackInstallDir "$R8"'
   Pop $0
   Pop $1
   ${If} $1 != ""

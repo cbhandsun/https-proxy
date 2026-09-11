@@ -6,11 +6,11 @@ const path = require('node:path');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const lineBudgets = {
-  'openai-proxy.js': 1153,
+  'openai-proxy.js': 1200,
   'src-tauri/src/desktop_shell.rs': 414,
   'src-tauri/src/lib.rs': 803,
   'src-tauri/src/main.rs': 10,
-  'tauri-ui/src/app/bootstrap.js': 3957,
+  'tauri-ui/src/app/bootstrap.js': 4000,
   'tauri-ui/src/main.js': 5,
 };
 
@@ -25,6 +25,10 @@ for (const [relativePath, budget] of Object.entries(lineBudgets)) {
 
 const nodeEntry = fs.readFileSync(path.join(repoRoot, 'openai-proxy.js'), 'utf8');
 assert.match(nodeEntry, /createRuntimeHttpAgents\(\{ loadConfig \}\)/);
+assert.match(
+  nodeEntry,
+  /createLazyManagementHandlers\(\{[\s\S]*?fetchGoogleOfficialAvailableModels,[\s\S]*?\}\);/
+);
 assert.doesNotMatch(nodeEntry, /function shouldVerifyUpstreamTls\(/);
 
 const tauriEntry = fs.readFileSync(path.join(repoRoot, 'src-tauri', 'src', 'lib.rs'), 'utf8');

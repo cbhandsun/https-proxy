@@ -36,7 +36,7 @@ function runCleanup(installPath, fallbackInstallPath = '') {
 
 function runCleanupFromLocalAppData(localAppData, cwd) {
   return runPowerShell(
-    ['-ExecutionPolicy', 'Bypass', '-File', cleanupScript],
+    ['-ExecutionPolicy', 'Bypass', '-File', cleanupScript, '-Verbose'],
     {
       ...process.env,
       LOCALAPPDATA: localAppData,
@@ -54,6 +54,28 @@ function waitForExit(child, timeoutMs) {
       resolve(true);
     });
   });
+}
+
+async function removeTempRoot() {
+  const resolvedTempRoot = path.resolve(tempRoot);
+  const systemTempRoot = path.resolve(os.tmpdir()) + path.sep;
+  assert.ok(
+    resolvedTempRoot.startsWith(systemTempRoot),
+    'cleanup fixture must remain inside the system temp directory'
+  );
+
+  let lastError;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      fs.rmSync(resolvedTempRoot, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if (!error || !['EBUSY', 'EPERM', 'ENOTEMPTY'].includes(error.code)) throw error;
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+  throw lastError;
 }
 
 async function main() {
@@ -109,6 +131,7 @@ async function main() {
 
     const result = runCleanupFromLocalAppData(tempRoot, installDir);
     assert.strictEqual(result.status, 0, result.stderr || result.stdout);
+    assert.doesNotMatch(result.stdout, /Using CIM process lookup fallback/i);
     assert.match(result.stdout, /Process cleanup install directory:/i);
     assert.strictEqual(await waitForExit(target, 3000), true, 'owned proxy must be stopped');
     assert.strictEqual(
@@ -143,7 +166,7 @@ async function main() {
       waitForExit(control, 3000),
       waitForExit(appControl, 3000),
     ]);
-    fs.rmSync(tempRoot, { recursive: true, force: true });
+    await removeTempRoot();
   }
 }
 

@@ -120,6 +120,7 @@ function Get-ProcessExecutablePath {
 function Get-OwnedProcesses {
     $ownedByPid = @{}
     $candidateNames = @('app', 'HTTPS Proxy Manager', 'https-proxy-manager', 'node')
+    $needsCimFallback = $false
 
     foreach ($process in @(Get-Process -Name $candidateNames -ErrorAction SilentlyContinue)) {
         $executablePath = Get-ProcessExecutablePath $process
@@ -130,32 +131,56 @@ function Get-OwnedProcesses {
                 ExecutablePath = Resolve-NormalizedPath $executablePath
                 Process = $process
             }
+        } elseif (-not $executablePath) {
+            # Process.Path can be unavailable for an exiting process or when a
+            # 32-bit installer inspects a 64-bit process. Only those unresolved
+            # candidates need the substantially slower CIM fallback.
+            $needsCimFallback = $true
         }
     }
 
-    # Process.Path can be unavailable for a process that is exiting or when a
-    # 32-bit installer inspects a 64-bit process. A narrow CIM query is a safe
-    # fallback and never makes cleanup depend on enumerating unrelated processes.
-    try {
-        $filter = "Name='app.exe' OR Name='HTTPS Proxy Manager.exe' OR Name='https-proxy-manager.exe' OR Name='node.exe'"
-        foreach ($process in @(Get-CimInstance Win32_Process -Filter $filter -ErrorAction Stop)) {
-            $executablePath = [string]$process.ExecutablePath
-            if (Test-OwnedExecutablePath $executablePath) {
-                $pidValue = [int]$process.ProcessId
-                if (-not $ownedByPid.ContainsKey($pidValue)) {
-                    $ownedByPid[$pidValue] = [pscustomobject]@{
-                        ProcessId = $pidValue
-                        Name = [string]$process.Name
-                        ExecutablePath = Resolve-NormalizedPath $executablePath
-                        Process = $null
+    if ($needsCimFallback) {
+        $resolvedOwnedPaths = [System.Collections.Generic.HashSet[string]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase
+        )
+        foreach ($ownedProcess in $ownedByPid.Values) {
+            if ($ownedProcess.ExecutablePath) {
+                [void]$resolvedOwnedPaths.Add($ownedProcess.ExecutablePath)
+            }
+        }
+        $unmatchedLocks = @(
+            Get-LockedInstalledExecutables |
+                Where-Object { -not $resolvedOwnedPaths.Contains($_) }
+        )
+        # An unrelated Node process can disappear while Get-Process reads its
+        # path. That race must not trigger the expensive CIM query unless an
+        # installed executable lock remains unexplained by a resolved owner.
+        $needsCimFallback = $unmatchedLocks.Count -gt 0
+    }
+
+    if ($needsCimFallback) {
+        Write-Verbose 'Using CIM process lookup fallback.'
+        try {
+            $filter = "Name='app.exe' OR Name='HTTPS Proxy Manager.exe' OR Name='https-proxy-manager.exe' OR Name='node.exe'"
+            foreach ($process in @(Get-CimInstance Win32_Process -Filter $filter -ErrorAction Stop)) {
+                $executablePath = [string]$process.ExecutablePath
+                if (Test-OwnedExecutablePath $executablePath) {
+                    $pidValue = [int]$process.ProcessId
+                    if (-not $ownedByPid.ContainsKey($pidValue)) {
+                        $ownedByPid[$pidValue] = [pscustomobject]@{
+                            ProcessId = $pidValue
+                            Name = [string]$process.Name
+                            ExecutablePath = Resolve-NormalizedPath $executablePath
+                            Process = $null
+                        }
                     }
                 }
             }
+        } catch {
+            # This function's success pipeline is its return value. Diagnostics
+            # on that pipeline are interpreted as process records by callers.
+            Write-Verbose "CIM process lookup unavailable; using process-path lookup: $($_.Exception.Message)"
         }
-    } catch {
-        # This function's success pipeline is its return value. Diagnostics on
-        # that pipeline are interpreted as owned-process records by callers.
-        Write-Verbose "CIM process lookup unavailable; using process-path lookup: $($_.Exception.Message)"
     }
 
     # An empty Hashtable.Values collection can surface as a single $null item
@@ -271,6 +296,10 @@ do {
 
 $remainingProcesses = @(Get-OwnedProcesses)
 $remainingLocks = @(Get-LockedInstalledExecutables)
+if ($remainingProcesses.Count -eq 0 -and $remainingLocks.Count -eq 0) {
+    Write-Output 'Installed HTTPS Proxy Manager processes stopped and executable locks released.'
+    exit 0
+}
 $processDetails = ($remainingProcesses | ForEach-Object {
     "PID=$($_.ProcessId) path=$($_.ExecutablePath)"
 }) -join '; '

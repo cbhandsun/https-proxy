@@ -6,6 +6,12 @@ The staging step installs only the backend dependencies explicitly listed in
 executable, writes a pruned lockfile, and records its checksum in the runtime
 manifest. Frontend-only packages such as `chart.js` are excluded.
 
+After installing production dependencies, staging removes dependency-only
+`.github` and `.claude` metadata directories and validates the runtime before
+native packaging. Cleanup rejects symlinks/junctions and paths outside staging;
+other forbidden content remains a validation error rather than being silently
+removed. The cleanup regression tests run through normal unit-test discovery.
+
 ## Commands
 
 - `npm run clean:staging` removes only `dist/staging`.
