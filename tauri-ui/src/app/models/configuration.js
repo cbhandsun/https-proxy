@@ -317,11 +317,35 @@ export function normalizeAppSettings(value, options = {}) {
     disableLocalProxy: false,
     verifyUpstreamTls: true,
     conversationAuditEnabled: true,
+    forceResponseStreaming: false,
+    forceChatStreaming: false,
+    upstreamWarmupEnabled: false,
+    streamDirectRequestBodies: false,
     performanceMode:
       options.cachedPerformanceMode == null ? true : options.cachedPerformanceMode !== 'false',
   };
   for (const [name, fallback] of Object.entries(defaults)) {
     settings[name] = typeof source[name] === 'boolean' ? source[name] : fallback;
   }
+  const warmupInterval = Number(source.upstreamWarmupIntervalMs);
+  settings.upstreamWarmupIntervalMs =
+    Number.isFinite(warmupInterval) && warmupInterval >= 10_000 && warmupInterval <= 600_000
+      ? Math.trunc(warmupInterval)
+      : 45_000;
+  const warmupMaxTargets = Number(source.upstreamWarmupMaxTargets);
+  settings.upstreamWarmupMaxTargets =
+    Number.isFinite(warmupMaxTargets) && warmupMaxTargets >= 1 && warmupMaxTargets <= 16
+      ? Math.trunc(warmupMaxTargets)
+      : 4;
+  const warmupStaggerMs = Number(source.upstreamWarmupStaggerMs);
+  settings.upstreamWarmupStaggerMs =
+    Number.isFinite(warmupStaggerMs) && warmupStaggerMs >= 0 && warmupStaggerMs <= 5000
+      ? Math.trunc(warmupStaggerMs)
+      : 200;
+  const rolloutPercent = Number(source.responseStreamingRolloutPercent);
+  settings.responseStreamingRolloutPercent =
+    Number.isFinite(rolloutPercent) && rolloutPercent >= 0 && rolloutPercent <= 100
+      ? rolloutPercent
+      : 0;
   return settings;
 }

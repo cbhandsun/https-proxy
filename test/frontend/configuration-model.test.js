@@ -210,6 +210,14 @@ const assert = require('node:assert/strict');
   assert.equal(defaultSettings.closeToTray, true);
   assert.equal(defaultSettings.desktopNotifications, true);
   assert.equal(defaultSettings.performanceMode, false);
+  assert.equal(defaultSettings.forceResponseStreaming, false);
+  assert.equal(defaultSettings.forceChatStreaming, false);
+  assert.equal(defaultSettings.upstreamWarmupEnabled, false);
+  assert.equal(defaultSettings.streamDirectRequestBodies, false);
+  assert.equal(defaultSettings.upstreamWarmupIntervalMs, 45000);
+  assert.equal(defaultSettings.upstreamWarmupMaxTargets, 4);
+  assert.equal(defaultSettings.upstreamWarmupStaggerMs, 200);
+  assert.equal(defaultSettings.responseStreamingRolloutPercent, 0);
   const customSettings = normalizeAppSettings(
     {
       closeToTray: false,
@@ -222,6 +230,10 @@ const assert = require('node:assert/strict');
   assert.equal(customSettings.autoStartProxy, true);
   assert.equal(customSettings.desktopNotifications, false);
   assert.equal(customSettings.extensionSetting, 'preserved');
+  assert.equal(customSettings.upstreamWarmupIntervalMs, 45000);
+  assert.equal(customSettings.upstreamWarmupMaxTargets, 4);
+  assert.equal(customSettings.upstreamWarmupStaggerMs, 200);
+  assert.equal(customSettings.responseStreamingRolloutPercent, 0);
 
   console.log('[configuration-model.test] ok');
 })().catch((error) => {
