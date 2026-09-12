@@ -31,7 +31,7 @@ fs.writeFileSync(
           visibility: 'list',
           supported_in_api: true,
           priority: 0,
-          base_instructions: 'You are Codex.',
+          model_messages: { persistent_instructions: 'You are Codex.' },
         },
       ],
     },
@@ -178,7 +178,7 @@ assert.strictEqual(applyResult.modelCatalog.routeCount, 2);
 
 const cliStatus = getCodexStatus();
 const desktopStatus = getCodexDesktopStatus();
-assert.strictEqual(cliStatus.baseUrl, 'https://localhost:3445/v1');
+assert.strictEqual(cliStatus.baseUrl, 'http://localhost:3085/v1');
 assert.strictEqual(cliStatus.openaiBaseUrl, 'https://localhost:3445/v1');
 assert.strictEqual(cliStatus.legacyBaseUrl, '');
 assert.strictEqual(cliStatus.managedModelCatalog, true);
@@ -193,10 +193,16 @@ assert.deepStrictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')), chatGptAut
 
 const configPath = path.join(tempHome, '.codex', 'config.toml');
 const content = fs.readFileSync(configPath, 'utf8');
+assert.match(content, /^model_provider = "custom"$/m);
+assert.match(content, /^model = "codex\/deepseek-v4-flash"$/m);
+assert.match(content, /^model_reasoning_effort = "medium"$/m);
+assert.match(content, /^\[model_providers\.custom\]/m);
+assert.match(content, /wire_api = "responses"/);
+assert.match(content, /base_url = "http:\/\/localhost:3085\/v1"/);
 assert.match(content, /^openai_base_url = "https:\/\/localhost:3445\/v1"$/m);
 assert.match(content, /^model_catalog_json = ".+hpm-model-catalog\.json"$/m);
-assert.doesNotMatch(content, /^base_url\s*=/m);
-assert.doesNotMatch(content, /^model_provider\s*=/m);
+const topLevel = content.split(/^\[/m)[0] || '';
+assert.doesNotMatch(topLevel, /^base_url\s*=/m);
 
 const catalogPath = getCodexModelCatalogPath();
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
@@ -206,6 +212,8 @@ assert.deepStrictEqual(
 );
 assert.strictEqual(catalog.models[0].display_name, 'DeepSeek V4 Flash');
 assert.strictEqual(catalog.models[1].display_name, 'GPT-5.5 Routed');
+assert.strictEqual(catalog.models[0].supported_reasoning_levels.length, 4);
+assert.strictEqual(catalog.models[0].default_reasoning_level, 'medium');
 
 const proxyApiResult = switchCodexMode({
   connection: 'proxy',

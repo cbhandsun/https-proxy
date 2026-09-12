@@ -5,11 +5,8 @@ use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::proxy_root::find_project_root;
-use crate::{
-    hide_console_window, proxy_runtime_dir, read_app_setting, run_proxy_bat, start_proxy_direct,
-    stop_proxy_direct,
-};
-
+use crate::{hide_console_window, proxy_runtime_dir, read_app_setting, run_proxy_bat};
+use crate::{start_proxy_direct, stop_proxy_direct, stop_proxy_for_exit};
 static ZOOM_LEVEL: AtomicU32 = AtomicU32::new(100);
 
 fn show_main_window(app: &tauri::AppHandle) {
@@ -313,6 +310,7 @@ pub(crate) fn configure_desktop_shell(app: &mut tauri::App) -> Result<(), tauri:
                         let _ = window.emit("tray-command", "status");
                     }
                 } else if id == "tray_quit" {
+                    stop_proxy_for_exit();
                     app_handle.exit(0);
                 }
             })
@@ -372,6 +370,7 @@ pub(crate) fn handle_app_menu_event(app_handle: &tauri::AppHandle, event: tauri:
             open_path(&proxy_runtime_dir(&root).join(".certs"));
         }
     } else if id == "quit" {
+        stop_proxy_for_exit();
         app_handle.exit(0);
     } else if id == "reload" {
         if let Some(window) = app_handle.get_webview_window("main") {

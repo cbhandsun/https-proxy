@@ -571,7 +571,8 @@
                       <option value="minimax-openai">MiniMax (OpenAI 协议)</option>
                       <option value="claude">Anthropic Claude Official (官方接口)</option>
                       <option value="gemini">Google Gemini Official (官方接口)</option>
-                      <option value="deepseek">DeepSeek Official (官方接口)</option>
+                      <option value="deepseek-openai">DeepSeek (OpenAI 协议)</option>
+                      <option value="deepseek-anthropic">DeepSeek (Anthropic 协议)</option>
                       <option value="siliconflow">SiliconFlow (硅基流动托管)</option>
                       <option value="ollama">Ollama (本地部署运行)</option>
                       <option value="openrouter">OpenRouter (多模聚合网关)</option>
@@ -643,6 +644,13 @@
                     />
                   </div>
                   <div class="row"><label>API Key</label><input id="apiKey" type="password" /></div>
+                  <label class="inline-check"
+                    ><input id="allowInsecureHttpUpstream" type="checkbox" /> 明确允许非本机 HTTP
+                    上游</label
+                  >
+                  <div class="muted hint">
+                    非本机 HTTP 会明文传输请求和凭证，默认拒绝；仅在确认网络可信时启用。
+                  </div>
                   <div
                     id="officialAuthSection"
                     style="
@@ -869,7 +877,10 @@
               <div class="route-assist-row">
                 <div id="modelAutocompleteContainer" class="route-suggestion-strip">
                   <span class="route-suggestion-label">推荐客户端模型</span>
+                  <span class="autocomplete-tag">claude-fable-5-1</span>
                   <span class="autocomplete-tag">claude-fable-5</span>
+                  <span class="autocomplete-tag">claude-opus-5</span>
+                  <span class="autocomplete-tag">claude-sonnet-5</span>
                   <span class="autocomplete-tag">claude-opus-4-8</span>
                   <span class="autocomplete-tag">claude-sonnet-4-6</span>
                   <span class="autocomplete-tag">claude-haiku-4-5</span>
@@ -1089,10 +1100,13 @@
                     </div>
                     <div class="rule-editor" style="margin-bottom: 12px">
                       <select id="cdRouteId" title="选择 Claude Desktop 路由 ID">
+                        <option value="claude-sonnet-5">claude-sonnet-5</option>
+                        <option value="claude-opus-5">claude-opus-5</option>
+                        <option value="claude-fable-5-1">claude-fable-5-1</option>
+                        <option value="claude-fable-5">claude-fable-5</option>
                         <option value="claude-sonnet-4-6">claude-sonnet-4-6</option>
                         <option value="claude-opus-4-8">claude-opus-4-8</option>
                         <option value="claude-haiku-4-5">claude-haiku-4-5</option>
-                        <option value="claude-fable-5">claude-fable-5</option>
                         <option value="claude-opus-4-7">claude-opus-4-7</option>
                         <option value="claude-opus-4-6">claude-opus-4-6</option>
                         <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001</option>
@@ -1317,14 +1331,83 @@
                       正在检查 Codex Desktop 状态...
                     </div>
                     <div
-                      class="status-actions"
-                      style="display: flex; gap: 8px; justify-content: flex-start"
+                      style="
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 12px;
+                        margin-bottom: 12px;
+                      "
                     >
+                      <div>
+                        <label
+                          for="codexDesktopModel"
+                          style="
+                            display: block;
+                            font-size: 12px;
+                            font-weight: 500;
+                            margin-bottom: 4px;
+                            color: var(--text-muted);
+                          "
+                          >默认启动模型</label
+                        >
+                        <select
+                          id="codexDesktopModel"
+                          style="
+                            width: 100%;
+                            padding: 6px 10px;
+                            border-radius: var(--radius-sm);
+                            border: 1px solid var(--border);
+                            background: var(--bg);
+                            color: var(--text);
+                            font-size: 13px;
+                          "
+                        >
+                          <option value="">跟随当前选择</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label
+                          for="codexDesktopReasoningEffort"
+                          style="
+                            display: block;
+                            font-size: 12px;
+                            font-weight: 500;
+                            margin-bottom: 4px;
+                            color: var(--text-muted);
+                          "
+                          >默认思考深度 (Thinking Depth)</label
+                        >
+                        <select
+                          id="codexDesktopReasoningEffort"
+                          style="
+                            width: 100%;
+                            padding: 6px 10px;
+                            border-radius: var(--radius-sm);
+                            border: 1px solid var(--border);
+                            background: var(--bg);
+                            color: var(--text);
+                            font-size: 13px;
+                          "
+                        >
+                          <option value="low">Low (快速响应，轻度思考)</option>
+                          <option value="medium" selected>Medium (平衡速度与深度思考)</option>
+                          <option value="high">High (深度推理，适合复杂任务)</option>
+                          <option value="xhigh">XHigh (极致思考，适合最困难任务)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div
+                      class="status-actions"
+                      style="display: flex; gap: 8px; justify-content: flex-start; flex-wrap: wrap"
+                    >
+                      <button id="applyCodexDesktopProxyOfficial" class="primary" style="margin: 0">
+                        代理 + 官方登录 (推荐: 保留自己账号)
+                      </button>
                       <button id="applyCodexDesktop" class="secondary" style="margin: 0">
-                        使用本地代理(API)
+                        代理 + API 登录
                       </button>
                       <button id="restoreCodexDesktop" class="danger" style="margin: 0">
-                        恢复官方直连(官方登录)
+                        恢复官方直连
                       </button>
                       <button id="refreshCodexDesktop" class="light" style="margin: 0">
                         刷新状态
@@ -2908,8 +2991,9 @@ npm i -g opencode-ai@latest
               <div class="card" style="margin-bottom: 12px">
                 <h3>外部入口探测</h3>
                 <div class="muted hint">
-                  不发送 API Key 或对话内容，仅访问公开健康路径；用于区分 nginx、隧道和本地代理故障。
-                  地址仅保存在当前管理界面，也可通过 diagnostics.externalIngressUrl 配置。
+                  不发送 API Key 或对话内容，仅访问公开健康路径；用于区分
+                  nginx、隧道和本地代理故障。 地址仅保存在当前管理界面，也可通过
+                  diagnostics.externalIngressUrl 配置。
                 </div>
                 <div class="form-grid" style="margin-top: 10px">
                   <label class="field wide">

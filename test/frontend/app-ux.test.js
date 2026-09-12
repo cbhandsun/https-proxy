@@ -623,6 +623,30 @@ function tick(ms = 0) {
       'Ollama preset description is plain text'
     );
     assert.ok(!app.includes('<b>注：本地运行'), 'Ollama preset description does not embed HTML');
+
+    const index = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'tauri-ui', 'index.html'),
+      'utf8'
+    );
+    assert.match(index, /id="allowInsecureHttpUpstream"[^>]*type="checkbox"/);
+    const fillFormSection = app.slice(
+      app.indexOf('function fillForm(profile)'),
+      app.indexOf('function collectForm()')
+    );
+    assert.ok(
+      fillFormSection.includes('profile.allowInsecureHttpUpstream === true'),
+      'profile form restores the insecure HTTP opt-in only for explicit true'
+    );
+    const collectFormSection = app.slice(
+      app.indexOf('function collectForm()'),
+      app.indexOf('function renderProfiles()')
+    );
+    assert.ok(
+      collectFormSection.includes(
+        "allowInsecureHttpUpstream: $('allowInsecureHttpUpstream').checked"
+      ),
+      'profile form persists the insecure HTTP opt-in'
+    );
   }
 
   // ─── 18. Trae debug event list avoids dynamic HTML ─────────────

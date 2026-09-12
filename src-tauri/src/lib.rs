@@ -28,7 +28,9 @@ use launch_on_login::{
     launch_command_matches_exe, startup_value_matches_exe, windows_launch_command,
 };
 use management_bridge::{management_fetch_native, reveal_entry_auth_key_native};
-use proxy_root::{find_project_root, set_resource_root};
+use proxy_root::{
+    find_project_root, management_token_candidates, proxy_runtime_dir, set_resource_root,
+};
 #[cfg(test)]
 use proxy_root::{first_unique_existing_root, is_proxy_runtime_root, select_release_root};
 
@@ -88,35 +90,6 @@ fn proxy_config_value() -> Option<serde_json::Value> {
     let config_path = find_project_root()?.join("proxy.config.json");
     let content = std::fs::read_to_string(&config_path).ok()?;
     serde_json::from_str::<serde_json::Value>(&content).ok()
-}
-
-fn proxy_runtime_dir(root: &Path) -> PathBuf {
-    root.join(".hpm-runtime")
-}
-
-fn portable_runtime_dir(root: &Path) -> PathBuf {
-    root.join("dist")
-        .join("portable")
-        .join("HTTPS Proxy Manager Portable")
-        .join(".hpm-runtime")
-}
-
-fn management_token_candidates(root: &Path, port: u16) -> Vec<PathBuf> {
-    let runtime_dir = proxy_runtime_dir(root);
-    let debug_runtime_dir = root
-        .join("src-tauri")
-        .join("target")
-        .join("debug")
-        .join(".hpm-runtime");
-    let portable_runtime_dir = portable_runtime_dir(root);
-    vec![
-        runtime_dir.join(format!(".mgmt-token-{port}")),
-        debug_runtime_dir.join(format!(".mgmt-token-{port}")),
-        portable_runtime_dir.join(format!(".mgmt-token-{port}")),
-        runtime_dir.join(".mgmt-token"),
-        debug_runtime_dir.join(".mgmt-token"),
-        portable_runtime_dir.join(".mgmt-token"),
-    ]
 }
 
 fn proxy_management_port() -> u16 {
@@ -469,7 +442,24 @@ fn taskkill_pid(pid: u64) -> Result<String, String> {
 }
 
 fn stop_proxy_direct() -> Result<serde_json::Value, String> {
-    let Some(health) = read_proxy_health_direct(Duration::from_millis(300)) else {
+    let health = read_proxy_health_direct(Duration::from_millis(300));
+    let mut target_pid: Option<u64> = health
+        .as_ref()
+        .and_then(|h| h.get("pid"))
+        .and_then(|v| v.as_u64());
+
+    if target_pid.is_none() {
+        if let Some(root) = find_project_root() {
+            let pid_file = proxy_runtime_dir(&root).join(".proxy.pid");
+            if let Ok(content) = std::fs::read_to_string(&pid_file) {
+                if let Ok(parsed_pid) = content.trim().parse::<u64>() {
+                    target_pid = Some(parsed_pid);
+                }
+            }
+        }
+    }
+
+    let Some(pid) = target_pid else {
         return Ok(serde_json::json!({
             "code": 0,
             "timedOut": false,
@@ -477,10 +467,6 @@ fn stop_proxy_direct() -> Result<serde_json::Value, String> {
             "output": "Proxy is not running.\n"
         }));
     };
-    let pid = health
-        .get("pid")
-        .and_then(|v| v.as_u64())
-        .ok_or_else(|| "health endpoint did not return a pid".to_string())?;
     let kill_output = taskkill_pid(pid)?;
     if let Some(root) = find_project_root() {
         let _ = std::fs::remove_file(proxy_runtime_dir(&root).join(".proxy.pid"));
@@ -546,8 +532,15 @@ fn normalize_proxy_command(command: &str) -> Result<&'static str, String> {
 }
 
 fn start_proxy_if_needed() {
-    if read_proxy_health_direct(Duration::from_millis(250)).is_some() {
-        return;
+    let port = proxy_management_port();
+    if read_proxy_health_direct_on_port(port, Duration::from_millis(250)).is_some() {
+        if let Some(root) = find_project_root() {
+            if find_management_token_for_port(&root, port, Duration::from_millis(350)).is_some() {
+                return;
+            }
+        }
+        let _ = stop_proxy_direct();
+        std::thread::sleep(Duration::from_millis(300));
     }
     if start_proxy_direct().is_err() {
         let _ = run_proxy_bat(&["start"]);
@@ -566,14 +559,15 @@ fn request_proxy_autostart() {
     }
 }
 
-fn stop_proxy_for_exit() {
+pub(crate) fn stop_proxy_for_exit() {
     if !read_app_setting("stopProxyOnExit", true) {
         return;
     }
     if PROXY_STOPPED_FOR_EXIT.swap(true, Ordering::SeqCst) {
         return;
     }
-    if stop_proxy_direct().is_err() {
+    let direct_res = stop_proxy_direct();
+    if direct_res.is_err() || read_proxy_health_direct(Duration::from_millis(150)).is_some() {
         let _ = run_proxy_bat(&["stop"]);
     }
 }

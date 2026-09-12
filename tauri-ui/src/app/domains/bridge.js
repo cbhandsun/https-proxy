@@ -152,7 +152,10 @@ const getManagementPort = () => {
     typeof localStorage !== 'undefined' ? localStorage.getItem('last_local_proxy_port') : null;
   const port = getListenPort();
   const activePort = document.getElementById('localPort')?.value ? port : cachedPort || 3443;
-  return Number(activePort) + 100;
+  const derivedPort = Number(activePort) + 100;
+  return Number.isInteger(derivedPort) && derivedPort > 0 && derivedPort <= 65535
+    ? derivedPort
+    : 3543;
 };
 const getApiBase = () => {
   const origin = window.location.origin;
@@ -693,7 +696,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     command: async (cmd) => {
       if (window.__TAURI__ && window.__TAURI__.core) {
         try {
-          return await window.__TAURI__.core.invoke('executeProxyCommand', { command: cmd });
+          return await window.__TAURI__.core.invoke('execute_proxy_command', { command: cmd });
         } catch (e) {
           return { code: -1, output: '执行命令失败: ' + e };
         }
@@ -744,7 +747,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     openConfig: async () => {
       if (window.__TAURI__ && window.__TAURI__.core) {
         try {
-          await window.__TAURI__.core.invoke('openConfig');
+          await window.__TAURI__.core.invoke('open_config');
         } catch (e) {
           reportFrontendError('bridge.read_config', e);
         }
@@ -757,7 +760,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     openLog: async () => {
       if (window.__TAURI__ && window.__TAURI__.core) {
         try {
-          await window.__TAURI__.core.invoke('openLog');
+          await window.__TAURI__.core.invoke('open_log');
         } catch (e) {
           reportFrontendError('bridge.save_config', e);
         }
@@ -770,7 +773,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     openCertDir: async () => {
       if (window.__TAURI__ && window.__TAURI__.core) {
         try {
-          await window.__TAURI__.core.invoke('openCertDir');
+          await window.__TAURI__.core.invoke('open_cert_dir');
         } catch (e) {
           reportFrontendError('bridge.get_runtime_info', e);
         }
@@ -1218,7 +1221,7 @@ if (window.__TAURI__ && window.__TAURI__.core) {
   const invoke = window.__TAURI__.core.invoke;
   window.proxyManager.applyAppMenu = async (show) => {
     try {
-      await invoke('applyAppMenu', { show });
+      await invoke('apply_app_menu', { show });
     } catch (e) {
       reportFrontendError('app_menu.apply', e);
     }

@@ -160,8 +160,67 @@ const {
     ],
     localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
   });
-  assert.strictEqual(insecureUpstream.valid, true);
-  assert.ok(insecureUpstream.warnings.some((warning) => warning.includes('non-loopback HTTP')));
+  assert.strictEqual(insecureUpstream.valid, false);
+  assert.ok(insecureUpstream.errors.some((error) => error.includes('allowInsecureHttpUpstream')));
+  const legacyInsecureUpstream = validateConfig(
+    {
+      activeProfile: 'main',
+      profiles: [
+        {
+          id: 'main',
+          protocol: 'openai',
+          targetUrl: 'http://api.example.test/v1',
+          apiKey: 'encrypted-or-plain',
+        },
+      ],
+      localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
+    },
+    { allowLegacyInsecureHttpUpstream: true }
+  );
+  assert.strictEqual(legacyInsecureUpstream.valid, true);
+  assert.ok(
+    legacyInsecureUpstream.warnings.some((warning) => warning.includes('exposed in transit'))
+  );
+
+  const explicitlyAllowedInsecureUpstream = validateConfig({
+    activeProfile: 'main',
+    profiles: [
+      {
+        id: 'main',
+        protocol: 'openai',
+        targetUrl: 'http://api.example.test/v1',
+        apiKey: 'encrypted-or-plain',
+        allowInsecureHttpUpstream: true,
+      },
+    ],
+    localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
+  });
+  assert.strictEqual(explicitlyAllowedInsecureUpstream.valid, true);
+  assert.ok(
+    explicitlyAllowedInsecureUpstream.warnings.some((warning) =>
+      warning.includes('credentials may be exposed')
+    )
+  );
+
+  const loopbackHttpUpstream = validateConfig({
+    activeProfile: 'main',
+    profiles: [
+      { id: 'main', protocol: 'openai', targetUrl: 'http://127.0.0.1:8080/v1', apiKey: 'x' },
+    ],
+    localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
+  });
+  assert.strictEqual(loopbackHttpUpstream.valid, true);
+  assert.deepStrictEqual(loopbackHttpUpstream.warnings, []);
+
+  const invalidManagementPort = validateConfig({
+    activeProfile: 'main',
+    profiles: [{ id: 'main', protocol: 'openai', targetUrl: 'https://api.example.test/v1' }],
+    localServer: { host: 'localhost', listenPort: 65500, managementPort: 70000, basePath: '/v1' },
+  });
+  assert.strictEqual(invalidManagementPort.valid, false);
+  assert.ok(
+    invalidManagementPort.errors.some((error) => error.includes('localServer.managementPort'))
+  );
 
   const exposedWithoutAuth = validateConfig({
     activeProfile: 'main',

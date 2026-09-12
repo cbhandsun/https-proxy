@@ -48,4 +48,38 @@ assert.deepStrictEqual(classifyResponsesWebSearchTools([nativeSearch, ordinaryFu
   functionTools: [ordinaryFunction],
 });
 
+// Namespace tools support:
+// 1. Empty namespace should be dropped safely
+assert.deepStrictEqual(classifyResponsesWebSearchTools([{ type: 'namespace', name: 'empty_ns' }]), {
+  useNativeSearch: false,
+  managedFallback: null,
+  functionTools: [],
+});
+
+// 2. Namespace containing functions should be unwrapped
+const namespaceWithTools = {
+  type: 'namespace',
+  name: 'system',
+  tools: [ordinaryFunction],
+};
+assert.deepStrictEqual(classifyResponsesWebSearchTools([namespaceWithTools]), {
+  useNativeSearch: false,
+  managedFallback: null,
+  functionTools: [ordinaryFunction],
+});
+
+// 3. Namespace containing raw functions without type='function' should be normalized
+const namespaceWithRawFunctions = {
+  type: 'namespace',
+  name: 'tools',
+  functions: [{ name: 'custom_action', description: 'custom', parameters: {} }],
+};
+assert.deepStrictEqual(classifyResponsesWebSearchTools([namespaceWithRawFunctions]), {
+  useNativeSearch: false,
+  managedFallback: null,
+  functionTools: [
+    { type: 'function', name: 'custom_action', description: 'custom', parameters: {} },
+  ],
+});
+
 console.log('[openai-web-search-tools.test] ok');

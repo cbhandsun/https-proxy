@@ -132,12 +132,13 @@ assert.strictEqual(
 assert.strictEqual(response.statusCode, 400);
 assert.doesNotMatch(response.payload.error.message, /script|alert/i);
 assert.strictEqual(
-  validators.rejectUnsupportedOpenAIChatNonOpenAIConversion(
+  validators.rejectUnsupportedResponsesTools(
     {},
-    { reasoning_effort: 'high' },
-    'Claude'
+    {
+      tools: [{ type: 'namespace', name: 'chat' }],
+    }
   ),
-  true
+  false
 );
 
 console.log('[gemini-reasoning.test] ok');

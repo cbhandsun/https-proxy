@@ -41,5 +41,21 @@ assert.ok(
   !source.includes("invoke('launch_codex_login_script',"),
   'the renderer must not provide an executable script path to the native launcher'
 );
+for (const command of ['apply_app_menu', 'open_config', 'open_log', 'open_cert_dir']) {
+  assert.ok(
+    source.includes(`invoke('${command}'`),
+    `native command must use Rust name: ${command}`
+  );
+}
+for (const legacyCommand of ['applyAppMenu', 'openConfig', 'openLog', 'openCertDir']) {
+  assert.ok(
+    !source.includes(`invoke('${legacyCommand}'`),
+    `legacy camelCase Tauri command must stay removed: ${legacyCommand}`
+  );
+}
+assert.ok(
+  source.includes('derivedPort <= 65535') && source.includes(': 3543'),
+  'browser management-port fallback must reject derived ports outside the TCP range'
+);
 
 console.log('[app-bridge.test] ok');

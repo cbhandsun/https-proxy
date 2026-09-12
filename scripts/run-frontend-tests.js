@@ -11,6 +11,8 @@ const testFiles = [
   'test/frontend/configuration-model.test.js',
   'test/frontend/configuration-load-state.test.js',
   'test/frontend/configuration-recovery.test.js',
+  'test/frontend/codex-desktop-controls.test.js',
+  'test/frontend/tool-status-presentation.test.js',
   'test/frontend/runtime.test.js',
   'test/frontend/app-ux.test.js',
   'test/frontend/app-bridge.test.js',
