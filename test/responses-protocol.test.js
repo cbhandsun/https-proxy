@@ -213,6 +213,37 @@ function createChatStreamState(overrides = {}) {
 }
 
 {
+  // Test that namespace tools are unwrapped/cleaned up when converting Responses to Chat
+  const result = openAIResponsesToChat({
+    model: 'client-model',
+    input: 'hello',
+    tools: [
+      {
+        type: 'namespace',
+        name: 'chat',
+      },
+      {
+        type: 'namespace',
+        name: 'custom',
+        tools: [
+          {
+            type: 'function',
+            name: 'calculate',
+            description: 'do math',
+            parameters: { type: 'object', properties: {} },
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.strictEqual(result.tools.length, 1);
+  assert.strictEqual(result.tools[0].type, 'function');
+  assert.strictEqual(result.tools[0].function.name, 'calculate');
+  assert.strictEqual(result.tools[0].function.description, 'do math');
+}
+
+{
   const result = openAIChatToResponsesRequest({
     model: 'client-model',
     messages: [
@@ -298,6 +329,7 @@ function createChatStreamState(overrides = {}) {
 
 {
   assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'openai-chat' }), true);
+  assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'workbuddy' }), true);
   assert.strictEqual(
     shouldConvertResponsesToOpenAIChat({ protocol: 'openai', supportsResponses: false }),
     true

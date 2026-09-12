@@ -418,6 +418,8 @@ test('maps OpenAI Responses native web search to Gemini Google Search grounding'
 
   assert.ok(geminiBody.tools.some((tool) => tool.googleSearch));
   assert.strictEqual(geminiBody.toolConfig.includeServerSideToolInvocations, true);
+  assert.strictEqual(geminiBody.toolConfig.include_server_side_tool_invocations, true);
+  assert.strictEqual(geminiBody.tool_config.include_server_side_tool_invocations, true);
   const functionDeclarations = geminiBody.tools
     .flatMap((tool) => tool.functionDeclarations || [])
     .map((tool) => tool.name);
@@ -1397,6 +1399,73 @@ test('Gemini converted large tool args are split across input_json_delta chunks'
   assert.ok(deltas.length > 1);
   const parsed = JSON.parse(deltas.map((event) => event.delta.partial_json).join(''));
   assert.deepStrictEqual(parsed, { file_path: 'E:/tmp/large.txt', content });
+});
+
+test('sanitizes loose tool array schemas to satisfy Gemini $type == Type.ARRAY constraint', () => {
+  const result = claudeMessagesToGemini(
+    {
+      messages: [{ role: 'user', content: 'test' }],
+      tools: [
+        {
+          name: 'notes_search',
+          description: 'Search notes and collections',
+          input_schema: {
+            type: 'object',
+            properties: {
+              collection_titles: {
+                description: 'List of collection titles',
+                items: { type: 'string' },
+              },
+              collection_ids: {
+                description: 'Optional collection IDs',
+                anyOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
+              },
+              exclude_note_ids: {
+                description: 'Exclude note IDs',
+                anyOf: [{ type: 'array' }, { type: 'null' }],
+                items: { type: 'string' },
+              },
+              filter_by_collection_ids: {
+                description: 'Filter collection IDs',
+                type: 'string',
+                items: { type: 'string' },
+              },
+              bare_array: {
+                type: 'array',
+              },
+            },
+          },
+        },
+      ],
+    },
+    'gemini-3.7-flash-tiered'
+  );
+
+  const decl = result.tools[0].functionDeclarations[0];
+  assert.strictEqual(decl.name, 'notes_search');
+  const props = decl.parameters.properties;
+
+  // 1. collection_titles (missing type, has items) -> type: 'ARRAY'
+  assert.strictEqual(props.collection_titles.type, 'ARRAY');
+  assert.deepStrictEqual(props.collection_titles.items, { type: 'STRING' });
+
+  // 2. collection_ids (anyOf with array and null) -> type: 'ARRAY', nullable: true
+  assert.strictEqual(props.collection_ids.type, 'ARRAY');
+  assert.strictEqual(props.collection_ids.nullable, true);
+  assert.deepStrictEqual(props.collection_ids.items, { type: 'STRING' });
+  assert.strictEqual(props.collection_ids.anyOf, undefined);
+
+  // 3. exclude_note_ids (anyOf without items inside, but items at parent) -> type: 'ARRAY'
+  assert.strictEqual(props.exclude_note_ids.type, 'ARRAY');
+  assert.deepStrictEqual(props.exclude_note_ids.items, { type: 'STRING' });
+
+  // 4. filter_by_collection_ids (type: 'string' conflicting with items) -> corrected to 'ARRAY'
+  assert.strictEqual(props.filter_by_collection_ids.type, 'ARRAY');
+  assert.deepStrictEqual(props.filter_by_collection_ids.items, { type: 'STRING' });
+
+  // 5. bare_array (type: 'array' without items) -> items auto-completed
+  assert.strictEqual(props.bare_array.type, 'ARRAY');
+  assert.deepStrictEqual(props.bare_array.items, { type: 'STRING' });
 });
 
 (async () => {

@@ -124,6 +124,27 @@ function testRoutedRequestUpdatesContentLength() {
   assert.strictEqual(headers['content-length'], 5);
 }
 
+function testWorkBuddyDesktopSimulationHeaders() {
+  const headers = buildOutgoingHeaders(
+    {},
+    {
+      requestProtocol: 'openai',
+      authProvider: 'workbuddy',
+      uid: 'user-12345',
+    }
+  );
+
+  assert.strictEqual(headers['x-user-id'], 'user-12345');
+  assert.strictEqual(headers['x-ide-type'], 'WorkBuddy');
+  assert.strictEqual(headers['x-ide-name'], 'WorkBuddy');
+  assert.strictEqual(headers['x-product'], 'SaaS');
+  assert.strictEqual(headers['x-agent-type'], 'normal');
+  assert.strictEqual(headers['x-agent-intent'], 'craft');
+  assert.ok(headers['x-conversation-id']);
+  assert.ok(headers['x-request-id']);
+  assert.ok(headers['user-agent'].startsWith('WorkBuddy/'));
+}
+
 testOpenAIApiKeyOverridesClientCredentials();
 testClaudeApiKeyAndProtocolVersion();
 testGeminiApiKeyUsesGoogleHeader();
@@ -131,5 +152,6 @@ testGeminiOauthUsesAuthorizationBearer();
 testOfficialLoginWithoutApiKeyStripsClientCredentials();
 testWithoutManagedAuthPreservesClientCredentials();
 testRoutedRequestUpdatesContentLength();
+testWorkBuddyDesktopSimulationHeaders();
 
 console.log('[upstream-request.test] ok');

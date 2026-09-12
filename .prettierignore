@@ -12,6 +12,8 @@ package-lock.json
 .traegit/
 .claude/
 .hpm-runtime/
+.common-tools/
+.common-tools-audit/
 .git/
 docs/
 proxy.config.json

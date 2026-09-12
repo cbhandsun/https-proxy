@@ -436,8 +436,8 @@ async function initCodeToolsView() {
               const profileName = profile ? profile.name || profile.id : route.profileId;
               opt.textContent = `${m} | 路由到 ${profileName} -> ${route.to}`;
             } else {
-              if (m === 'deepseek-v4-flash') {
-                opt.textContent = 'deepseek-v4-flash | 深度求索 (推荐)';
+              if (m === 'deepseek-v4.1-flash' || m === 'deepseek-v4-flash') {
+                opt.textContent = `${m} | 深度求索 (推荐)`;
               } else if (m === 'deepseek-chat') {
                 opt.textContent = 'deepseek-chat | 深度求索';
               } else if (m === 'deepseek-reasoner') {

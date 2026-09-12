@@ -73,6 +73,11 @@ assert.strictEqual(normalizeWorkBuddyOfficialModelName('codebuddy/minimax-m3'), 
 assert.strictEqual(normalizeWorkBuddyOfficialModelName('workbuddy/minimax-m3-play'), 'minimax-m3');
 assert.strictEqual(normalizeWorkBuddyOfficialModelName('workbuddy/glm-5.1'), 'glm-5.1');
 assert.strictEqual(normalizeWorkBuddyOfficialModelName('deepseek-v4-pro'), 'deepseek-v4-pro');
+assert.strictEqual(
+  normalizeWorkBuddyOfficialModelName('workbuddy/deepseek-v4.1-flash'),
+  'deepseek-v4.1-flash'
+);
+assert.strictEqual(normalizeWorkBuddyOfficialModelName('deepseek-v4.1'), 'deepseek-v4.1-flash');
 
 // 7. Test models cache and discovery
 const cache = readWorkBuddyModelsCache();
@@ -83,6 +88,8 @@ assert.ok(cache.models.length > 0, 'Models count should be > 0');
 const response = buildWorkBuddyOfficialModelsResponse(cache);
 assert.strictEqual(response.ok, true);
 assert.strictEqual(response.authMode, 'official-login');
+assert.ok(response.models.includes('deepseek-v4.1-flash'));
+assert.ok(response.models.includes('glm-5.3'));
 assert.ok(
   response.models.includes('deepseek-v4-pro') ||
     response.models.includes('minimax-m3') ||
@@ -93,6 +100,11 @@ assert.ok(
 const dsSupport = workBuddyOfficialModelSupport('workbuddy/deepseek-v4-pro', cache);
 assert.strictEqual(dsSupport.known, true);
 assert.strictEqual(dsSupport.supported, true);
+
+const ds41Support = workBuddyOfficialModelSupport('workbuddy/deepseek-v4.1-flash', cache);
+assert.strictEqual(ds41Support.known, true);
+assert.strictEqual(ds41Support.supported, true);
+assert.strictEqual(ds41Support.model, 'deepseek-v4.1-flash');
 
 const mmSupport = workBuddyOfficialModelSupport('workbuddy/minimax-m3', cache);
 assert.strictEqual(mmSupport.known, true);
@@ -109,6 +121,8 @@ const testConfig = {
 };
 const merged = mergeBuiltinModelRoutes(testConfig);
 const routeKeys = merged.modelRoutes.map((r) => r.from);
+assert.ok(routeKeys.includes('workbuddy/deepseek-v4.1-flash'));
+assert.ok(routeKeys.includes('workbuddy/glm-5.3'));
 assert.ok(routeKeys.includes('workbuddy/deepseek-v4-pro'));
 assert.ok(routeKeys.includes('workbuddy/minimax-m3'));
 assert.ok(routeKeys.includes('workbuddy/glm-5.1'));

@@ -101,6 +101,7 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
                 | "/active"
                 | "/env/upgrade"
                 | "/diagnostics/clear"
+                | "/diagnostics/ingress-probe"
                 | "/cert/trust"
                 | "/cert/untrust"
                 | "/models/list"
@@ -417,6 +418,7 @@ mod tests {
         assert!(validate_path("GET", "/v1/local/config\r\nx: injected").is_err());
         assert!(validate_path("GET", &format!("/v1/local/{}", "x".repeat(4096))).is_err());
         assert!(validate_path("POST", "/v1/local/config").is_ok());
+        assert!(validate_path("POST", "/v1/local/diagnostics/ingress-probe").is_ok());
         assert!(validate_path("GET", "/v1/local/config/entry-auth-key/reveal").is_err());
         assert!(validate_path("GET", "/v1/local/future-ambient-capability").is_err());
         assert!(is_sensitive_management_path(

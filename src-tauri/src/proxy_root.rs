@@ -16,7 +16,7 @@ pub(crate) fn is_proxy_runtime_root(path: &Path) -> bool {
         && path.join("lib").join("proxy").is_dir()
 }
 
-fn manifest_project_root() -> Option<PathBuf> {
+pub(crate) fn manifest_project_root() -> Option<PathBuf> {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(|path| {
@@ -129,4 +129,51 @@ pub(crate) fn find_project_root() -> Option<PathBuf> {
             )
         })
         .clone()
+}
+pub(crate) fn proxy_runtime_dir(root: &Path) -> PathBuf {
+    root.join(".hpm-runtime")
+}
+
+pub(crate) fn portable_runtime_dir(root: &Path) -> PathBuf {
+    root.join("dist")
+        .join("portable")
+        .join("HTTPS Proxy Manager Portable")
+        .join(".hpm-runtime")
+}
+
+pub(crate) fn management_token_candidates(root: &Path, port: u16) -> Vec<PathBuf> {
+    let mut runtime_dirs = vec![
+        proxy_runtime_dir(root),
+        root.join("src-tauri")
+            .join("target")
+            .join("debug")
+            .join(".hpm-runtime"),
+        portable_runtime_dir(root),
+    ];
+
+    #[cfg(windows)]
+    if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA").map(PathBuf::from) {
+        let installed_runtime = local_app_data
+            .join("HTTPS Proxy Manager")
+            .join(".hpm-runtime");
+        if !runtime_dirs.iter().any(|d| d == &installed_runtime) {
+            runtime_dirs.push(installed_runtime);
+        }
+    }
+
+    if let Some(manifest_root) = manifest_project_root() {
+        let manifest_runtime = proxy_runtime_dir(&manifest_root);
+        if !runtime_dirs.iter().any(|d| d == &manifest_runtime) {
+            runtime_dirs.push(manifest_runtime);
+        }
+    }
+
+    let mut candidates = Vec::with_capacity(runtime_dirs.len() * 2);
+    for dir in &runtime_dirs {
+        candidates.push(dir.join(format!(".mgmt-token-{port}")));
+    }
+    for dir in &runtime_dirs {
+        candidates.push(dir.join(".mgmt-token"));
+    }
+    candidates
 }

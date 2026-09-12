@@ -271,12 +271,15 @@ async function main() {
   assert.strictEqual(creds.access_token, 'ya29.test-access');
   assert.strictEqual(creds.refresh_token, '1//test-refresh');
   assert.ok(creds.client_id.includes('apps.googleusercontent.com'));
+  assert.strictEqual(Object.hasOwn(creds, 'client_secret'), false);
   assert.strictEqual(creds.__readOnly, true);
 
   let refreshCalls = 0;
+  let refreshRequestBody = '';
   const runtime = createGoogleOfficialRuntime({
-    makeRequest: async () => {
+    makeRequest: async (_url, _options, requestBody) => {
       refreshCalls += 1;
+      refreshRequestBody = requestBody;
       return {
         statusCode: 200,
         body: JSON.stringify({ access_token: 'ya29.fresh-' + refreshCalls, expires_in: 3600 }),
@@ -298,11 +301,34 @@ async function main() {
     }),
     isGoogleOfficialLoginToken,
     buildGoogleOfficialLoadCodeAssistRequest,
+    env: {},
   });
 
   assert.strictEqual(await runtime.getFreshAntigravityOfficialAccessToken(), 'ya29.fresh-1');
   assert.strictEqual(await runtime.getFreshAntigravityOfficialAccessToken(), 'ya29.fresh-1');
   assert.strictEqual(refreshCalls, 1);
+  assert.strictEqual(new URLSearchParams(refreshRequestBody).has('client_secret'), false);
+
+  let explicitSecretBody = '';
+  const explicitSecretRuntime = createGoogleOfficialRuntime({
+    makeRequest: async (_url, _options, requestBody) => {
+      explicitSecretBody = requestBody;
+      return { statusCode: 200, body: JSON.stringify({ access_token: 'ya29.explicit' }) };
+    },
+    env: { GOOGLE_OAUTH_CLIENT_SECRET: 'test-client-secret' },
+  });
+  assert.strictEqual(
+    await explicitSecretRuntime.refreshGoogleAccessToken(null, {
+      client_id: 'test-client-id.apps.googleusercontent.com',
+      refresh_token: '1//explicit-refresh',
+      __readOnly: true,
+    }),
+    'ya29.explicit'
+  );
+  assert.strictEqual(
+    new URLSearchParams(explicitSecretBody).get('client_secret'),
+    'test-client-secret'
+  );
 
   const probe = buildGoogleOfficialLoadCodeAssistRequest('ya29.google-token');
   assert.strictEqual(

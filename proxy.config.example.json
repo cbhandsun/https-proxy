@@ -170,6 +170,20 @@
     },
     {
       "apiKey": "",
+      "id": "deepseek-openai",
+      "name": "DeepSeek (OpenAI)",
+      "protocol": "openai",
+      "targetUrl": "https://api.deepseek.com/v1"
+    },
+    {
+      "apiKey": "",
+      "id": "deepseek",
+      "name": "DeepSeek (Anthropic)",
+      "protocol": "claude",
+      "targetUrl": "https://api.deepseek.com/anthropic"
+    },
+    {
+      "apiKey": "",
       "id": "claude-official",
       "name": "Claude Official",
       "protocol": "claude",

@@ -1,6 +1,10 @@
 import { configureBridge, getApiBase, checkProxyHealth } from './domains/bridge.js';
 import { configureAudit, initPromptsAuditView, initUsageReportView } from './domains/audit.js';
 import {
+  codexDesktopModePayload,
+  renderCodexDesktopModelOptions as renderCodexDesktopModelOptionsControl,
+} from './domains/codex-desktop-controls.js';
+import {
   bindCliSessionControls,
   cliSessionsTimer,
   configureCli,
@@ -75,6 +79,7 @@ import {
   routeClientProtocols,
   splitEntryAuthList,
 } from './models/configuration.js';
+import { codexDesktopConnectionDetails } from './models/tool-status-presentation.js';
 import { appendOption, clearElement, debounce, escapeHtml } from './runtime/dom.js';
 import {
   initPerformanceRuntime,
@@ -502,17 +507,7 @@ function ensureClaudeDesktop() {
   }
 }
 
-const DEFAULT_CLAUDE_DESKTOP_ROUTE_IDS = [
-  'claude-sonnet-4-6',
-  'claude-opus-4-8',
-  'claude-haiku-4-5',
-  'claude-fable-5',
-  'claude-opus-4-7',
-  'claude-opus-4-6',
-  'claude-haiku-4-5-20251001',
-  'claude-sonnet-4-5-20250929',
-  'claude-opus-4-5-20251101',
-];
+const DEFAULT_CLAUDE_DESKTOP_ROUTE_IDS = recommendedClaudeClientModels;
 const CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT =
   '请执行一次极短的可见过程验证：先按你的内部流程规划 2 个步骤，再只输出一行“OK”。';
 
@@ -597,6 +592,15 @@ function updateClaudeDesktopRouteDetails() {
   }
 }
 
+function renderCodexDesktopModelOptions() {
+  renderCodexDesktopModelOptionsControl({
+    select: $('codexDesktopModel'),
+    routes: currentRoutes(),
+    clearElement,
+    appendOption,
+  });
+}
+
 function fillClaudeDesktop() {
   ensureClaudeDesktop();
   $('claudeDesktopEnabled').checked = config.claudeDesktop.enabled;
@@ -611,6 +615,7 @@ function fillClaudeDesktop() {
   renderClaudeDesktopRouteOptions();
   renderClaudeDesktopModels();
   renderClaudeDesktopPreview();
+  renderCodexDesktopModelOptions();
 }
 
 function collectClaudeDesktop() {
@@ -698,13 +703,13 @@ function createClaudeDesktopModelRow(model, index) {
   const resolved = resolveClaudeDesktopModel(model);
   const profile = config.profiles.find((item) => item.id === resolved.profileId) || {};
   const row = document.createElement('tr');
-
-  appendClaudeDesktopCell(row, resolved.routeId);
-  appendClaudeDesktopCell(row, resolved.labelOverride);
-  appendClaudeDesktopCell(row, profile.name || resolved.profileId || '');
-  appendClaudeDesktopCell(row, resolved.upstreamModel);
-  appendClaudeDesktopCell(row, resolved.supports1m ? '是' : '否');
-
+  [
+    resolved.routeId,
+    resolved.labelOverride,
+    profile.name || resolved.profileId || '',
+    resolved.upstreamModel,
+    resolved.supports1m ? '是' : '否',
+  ].forEach((v) => appendClaudeDesktopCell(row, v));
   const actionCell = document.createElement('td');
   const editButton = document.createElement('button');
   editButton.className = 'light';
@@ -714,8 +719,7 @@ function createClaudeDesktopModelRow(model, index) {
   deleteButton.className = 'danger';
   deleteButton.dataset.cdDelete = String(index);
   deleteButton.textContent = '删除';
-  actionCell.appendChild(editButton);
-  actionCell.appendChild(deleteButton);
+  actionCell.append(editButton, deleteButton);
   row.appendChild(actionCell);
   return row;
 }
@@ -723,7 +727,6 @@ function createClaudeDesktopModelRow(model, index) {
 function createClaudeDesktopModelsTableElement(models) {
   const wrapper = document.createElement('div');
   wrapper.className = 'route-table';
-
   const head = document.createElement('div');
   head.className = 'route-table-head';
   const headTable = document.createElement('table');
@@ -737,7 +740,6 @@ function createClaudeDesktopModelsTableElement(models) {
   thead.appendChild(headerRow);
   headTable.appendChild(thead);
   head.appendChild(headTable);
-
   const scroll = document.createElement('div');
   scroll.className = 'route-table-scroll';
   const table = document.createElement('table');
@@ -745,9 +747,7 @@ function createClaudeDesktopModelsTableElement(models) {
   models.forEach((model, index) => tbody.appendChild(createClaudeDesktopModelRow(model, index)));
   table.appendChild(tbody);
   scroll.appendChild(table);
-
-  wrapper.appendChild(head);
-  wrapper.appendChild(scroll);
+  wrapper.append(head, scroll);
   return wrapper;
 }
 
@@ -1951,6 +1951,14 @@ const PROVIDER_PRESETS = {
     keyUrl: 'https://aistudio.google.com/app/apikey',
     desc: '官方 Google Gemini 开发者接口（通过 Google AI Studio 服务）。',
   },
+  'deepseek-anthropic': {
+    name: 'DeepSeek (Anthropic)',
+    defaultId: 'deepseek-anthropic',
+    protocol: 'claude',
+    targetUrl: 'https://api.deepseek.com/anthropic',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    desc: 'DeepSeek 兼容的 Anthropic Messages 接口，适合 Claude Code 等 Anthropic 协议客户端调用。',
+  },
   deepseek: {
     name: 'DeepSeek Official',
     defaultId: 'deepseek-official',
@@ -2085,6 +2093,7 @@ function matchPresetByUrl(targetUrl) {
   if (url.includes('api.minimaxi.com/v1')) return 'minimax-openai';
   if (url.includes('api.anthropic.com')) return 'claude';
   if (url.includes('generativelanguage.googleapis.com')) return 'gemini';
+  if (url.includes('api.deepseek.com/anthropic')) return 'deepseek-anthropic';
   if (url.includes('api.deepseek.com')) return 'deepseek';
   if (url.includes('api.siliconflow.cn')) return 'siliconflow';
   if (url.includes('11434')) return 'ollama';
@@ -2097,7 +2106,7 @@ function fillForm(profile) {
   selectedId = profile.id;
   for (const field of fields) $(field).value = profile[field] || '';
   $('protocol').value = profile.protocol || 'openai';
-
+  $('allowInsecureHttpUpstream').checked = profile.allowInsecureHttpUpstream === true;
   // 反向匹配定位服务商模板下拉框
   const presetSelect = $('providerPreset');
   if (presetSelect) {
@@ -2129,6 +2138,7 @@ function collectForm() {
     targetUrl: $('targetUrl').value.trim(),
     protocol: $('protocol').value,
     apiKey: $('apiKey').value.trim(),
+    allowInsecureHttpUpstream: $('allowInsecureHttpUpstream').checked,
   };
 }
 
@@ -3467,16 +3477,23 @@ async function switchCodexMode(surface, payload, options = {}) {
 }
 
 // Codex Desktop
+const applyCodexDesktopOfficialHandler = async () => {
+  await switchCodexMode('desktop', codexDesktopModePayload('proxy', 'chatgpt', $), {
+    savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + 官方登录...',
+    successText: '已切换到 Codex Desktop 本地代理 + 官方登录',
+    errorPrefix: '切换到本地代理 + 官方登录失败',
+  });
+};
+if ($('applyCodexDesktopProxyOfficial')) {
+  $('applyCodexDesktopProxyOfficial').onclick = applyCodexDesktopOfficialHandler;
+}
+
 $('applyCodexDesktop').onclick = async () => {
-  await switchCodexMode(
-    'desktop',
-    { connection: 'proxy', auth: 'api' },
-    {
-      savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + API 登录...',
-      successText: '已切换到 Codex Desktop 本地代理 + API 登录',
-      errorPrefix: '切换到本地代理 + API 登录失败',
-    }
-  );
+  await switchCodexMode('desktop', codexDesktopModePayload('proxy', 'api', $), {
+    savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + API 登录...',
+    successText: '已切换到 Codex Desktop 本地代理 + API 登录',
+    errorPrefix: '切换到本地代理 + API 登录失败',
+  });
 };
 $('restoreCodexDesktop').onclick = async () => {
   const confirmed = await confirmAction({
@@ -3664,17 +3681,7 @@ bindCodexOfficialLoginButton('codexDesktopOfficialLogin', 'desktop');
 bindCodexBackupButton('codexDesktopBackupAuth', 'desktop');
 const switchCodexDesktopProxyOfficial = $('switchCodexDesktopProxyOfficial');
 if (switchCodexDesktopProxyOfficial) {
-  switchCodexDesktopProxyOfficial.onclick = async () => {
-    await switchCodexMode(
-      'desktop',
-      { connection: 'proxy', auth: 'chatgpt' },
-      {
-        savingText: '模型路由已保存，正在切换到 Codex Desktop 本地代理 + 官方登录...',
-        successText: '已切换到 Codex Desktop 本地代理 + 官方登录',
-        errorPrefix: '切换到代理 + 官方登录失败',
-      }
-    );
-  };
+  switchCodexDesktopProxyOfficial.onclick = applyCodexDesktopOfficialHandler;
 }
 const switchCodexDesktopDirectApi = $('switchCodexDesktopDirectApi');
 if (switchCodexDesktopDirectApi) {
@@ -3928,6 +3935,7 @@ function configureDomainModules() {
     STARTUP_STATUS_RETRY_MS,
     checkProxyHealth,
     clearElement,
+    codexDesktopConnectionDetails,
     confirmAction,
     debounce,
     ensureClaudeDesktop,

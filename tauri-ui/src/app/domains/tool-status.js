@@ -1,8 +1,6 @@
 import { bindDomainDependencies } from '../runtime/dependencies.js';
 import { reportFrontendError } from '../runtime/frontend-errors.js';
-
 let toolStatusDependencies;
-
 export function configureToolStatus(dependencies) {
   toolStatusDependencies = bindDomainDependencies('tool-status', dependencies, [
     '$',
@@ -11,6 +9,7 @@ export function configureToolStatus(dependencies) {
     'STARTUP_STATUS_RETRY_MS',
     'checkProxyHealth',
     'clearElement',
+    'codexDesktopConnectionDetails',
     'config',
     'ensureClaudeDesktop',
     'isMonitorVisible',
@@ -24,7 +23,6 @@ export function configureToolStatus(dependencies) {
     'startupStatusStartedAt',
   ]);
 }
-
 // Tool integration status and diagnostics UI.
 
 function setProxyStatusElement(element, color, text) {
@@ -1136,14 +1134,16 @@ async function refreshCodexDesktopStatus() {
     const auth = formatCodexAuthSummary(status);
     if (status.baseUrl) {
       const restartText = status.requiresRestart ? '；重启 Codex Desktop 或新开会话后生效' : '';
-      const legacy =
-        status.legacyBaseUrl && !status.openaiBaseUrl ? '；当前为旧 base_url 写法' : '';
+      const { legacy, modelInfo } = toolStatusDependencies.codexDesktopConnectionDetails(
+        status,
+        toolStatusDependencies.$
+      );
       const catalog =
         status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
           ? `；模型目录 ${status.modelCatalog.modelCount || 0} 个模型 / ${status.modelCatalog.routeCount || 0} 条路由`
           : '';
       toolStatusDependencies.$('codexDesktopStatus').textContent =
-        `已接入共享 Codex 配置；网关地址: ${status.baseUrl}${legacy}${catalog}${auth}，配置路径: ${status.configPath}${restartText}`;
+        `已接入共享 Codex 配置；网关地址: ${status.baseUrl}${legacy}${modelInfo}${catalog}${auth}，配置路径: ${status.configPath}${restartText}`;
       toolStatusDependencies.$('codexDesktopStatus').className = 'notice green';
       if (badgeEl) {
         badgeEl.textContent = '已代理';
