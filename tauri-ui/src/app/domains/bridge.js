@@ -227,6 +227,18 @@ const fetchLocalJsonWithAuth = async (path, options = {}, timeoutMs = 7000) => {
   return fetchJsonWithTimeout(`${getApiBase()}${path}`, options, timeoutMs);
 };
 
+const fetchLocalPostJson = (path, body = null, timeoutMs = 10000) => {
+  const options = { method: 'POST' };
+  if (body !== null && body !== undefined) {
+    options.headers = { 'content-type': 'application/json' };
+    options.body = JSON.stringify(body);
+  }
+  return fetchJsonWithTimeout(`${getApiBase()}${path}`, options, timeoutMs).catch((err) => ({
+    ok: false,
+    error: err.message,
+  }));
+};
+
 const runHealthCommand = () =>
   executeHealthCommand(() => fetchJsonWithTimeout(`${getApiBase()}/v1/local/health`, {}, 7000));
 
@@ -990,162 +1002,23 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         };
       }
     },
-    applyCodex: async () => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex/apply',
-          { method: 'POST' },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    switchCodex: async (payload = {}) => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex/switch',
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(payload),
-          },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    codexApiLogin: async (payload = {}) => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex/auth/api-login',
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(payload),
-          },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    codexOfficialLogin: async (payload = {}) => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex/auth/official-login',
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(payload),
-          },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    codexAuthBackup: async () => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex/auth/backup',
-          { method: 'POST' },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    applyCodexDesktop: async () => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex-desktop/apply',
-          { method: 'POST' },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    codexDesktopApiLogin: async (payload = {}) => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex-desktop/auth/api-login',
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(payload),
-          },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    codexDesktopOfficialLogin: async (payload = {}) => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex-desktop/auth/official-login',
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(payload),
-          },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    codexDesktopAuthBackup: async () => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex-desktop/auth/backup',
-          { method: 'POST' },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    switchCodexDesktop: async (payload = {}) => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex-desktop/switch',
-          {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(payload),
-          },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    restoreCodex: async () => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex/restore',
-          { method: 'POST' },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    restoreCodexDesktop: async () => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/codex-desktop/restore',
-          { method: 'POST' },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
+
+    applyCodex: (payload = {}) => fetchLocalPostJson('/v1/local/codex/apply', payload),
+    switchCodex: (payload = {}) => fetchLocalPostJson('/v1/local/codex/switch', payload),
+    codexApiLogin: (payload = {}) => fetchLocalPostJson('/v1/local/codex/auth/api-login', payload),
+    codexOfficialLogin: (payload = {}) =>
+      fetchLocalPostJson('/v1/local/codex/auth/official-login', payload),
+    codexAuthBackup: () => fetchLocalPostJson('/v1/local/codex/auth/backup'),
+    applyCodexDesktop: () => fetchLocalPostJson('/v1/local/codex-desktop/apply'),
+    codexDesktopApiLogin: (payload = {}) =>
+      fetchLocalPostJson('/v1/local/codex-desktop/auth/api-login', payload),
+    codexDesktopOfficialLogin: (payload = {}) =>
+      fetchLocalPostJson('/v1/local/codex-desktop/auth/official-login', payload),
+    codexDesktopAuthBackup: () => fetchLocalPostJson('/v1/local/codex-desktop/auth/backup'),
+    switchCodexDesktop: (payload = {}) =>
+      fetchLocalPostJson('/v1/local/codex-desktop/switch', payload),
+    restoreCodex: () => fetchLocalPostJson('/v1/local/codex/restore'),
+    restoreCodexDesktop: () => fetchLocalPostJson('/v1/local/codex-desktop/restore'),
     geminiCliStatus: async () => {
       try {
         return await fetchJsonWithTimeout(`${getApiBase()}/v1/local/gemini-cli/status`, {}, 7000);
@@ -1156,28 +1029,8 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         };
       }
     },
-    applyGeminiCli: async () => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/gemini-cli/apply',
-          { method: 'POST' },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
-    restoreGeminiCli: async () => {
-      try {
-        return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/gemini-cli/restore',
-          { method: 'POST' },
-          10000
-        );
-      } catch (err) {
-        return { ok: false, error: err.message };
-      }
-    },
+    applyGeminiCli: () => fetchLocalPostJson('/v1/local/gemini-cli/apply'),
+    restoreGeminiCli: () => fetchLocalPostJson('/v1/local/gemini-cli/restore'),
     cliCredentials: async (type) => {
       try {
         const res = await fetch(getApiBase() + '/v1/local/auth/cli-credentials?type=' + type);

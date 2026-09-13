@@ -72,4 +72,62 @@ assert.strictEqual(declaredToolMatchForArgs('tool_call', null, wrapperTools), nu
 assert.strictEqual(declaredToolMatchForArgs('tool_call', 'query=x', wrapperTools), null);
 assert.strictEqual(declaredToolMatchForArgs('tool_call', {}, wrapperTools), null);
 
+// Test exec wrapping for Codex/OpenClaw nested tools
+const codexTools = [
+  {
+    name: 'exec',
+    input_schema: {
+      type: 'object',
+      properties: { input: { type: 'string' } },
+    },
+  },
+  {
+    name: 'request_user_input',
+    input_schema: {
+      type: 'object',
+      properties: { prompt: { type: 'string' } },
+    },
+  },
+];
+
+assert.deepStrictEqual(
+  sanitizeGeminiToolCall({ name: 'update_goal', args: { status: 'blocked' } }, codexTools),
+  {
+    name: 'exec',
+    args: {
+      input: 'await tools.update_goal({"status":"blocked"});',
+      code: 'await tools.update_goal({"status":"blocked"});',
+    },
+    repairedFrom: 'update_goal',
+  }
+);
+
+assert.deepStrictEqual(sanitizeGeminiToolCall({ name: 'clock__curr_time', args: {} }, codexTools), {
+  name: 'exec',
+  args: {
+    input: 'await tools.clock__curr_time();',
+    code: 'await tools.clock__curr_time();',
+  },
+  repairedFrom: 'clock__curr_time',
+});
+
+// Test anti-loop error message when exec is not available
+const nonExecTools = [
+  {
+    name: 'read_file',
+    input_schema: {
+      type: 'object',
+      properties: { file_path: { type: 'string' } },
+    },
+  },
+];
+
+const unavailResult = sanitizeGeminiToolCall(
+  { name: 'update_goal', args: { status: 'blocked' } },
+  nonExecTools
+);
+assert.strictEqual(unavailResult.error, 'undeclared tool update_goal');
+assert.match(unavailResult.text, /Do NOT call update_goal again/);
+assert.match(unavailResult.text, /Available tools: read_file/);
+
 console.log('[tools.test] ok');
