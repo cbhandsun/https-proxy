@@ -94,6 +94,7 @@
   "lib/proxy/request-observability.js",
   "lib/proxy/request-timing.js",
   "lib/proxy/request-utils.js",
+  "lib/proxy/responses-custom-tools.js",
   "lib/proxy/route-index.js",
   "lib/proxy/routing.js",
   "lib/proxy/runtime-config-controller.js",

@@ -333,6 +333,85 @@ function createChatStreamState(overrides = {}) {
 }
 
 {
+  const result = openAIChatToResponses(
+    {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'call_exec',
+                type: 'function',
+                function: { name: 'exec', arguments: '{"input":"return 1;"}' },
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-3.8-flash',
+    {
+      responsesRequest: {
+        tools: [{ type: 'custom', name: 'exec', description: 'Run code' }],
+      },
+    }
+  );
+
+  assert.strictEqual(result.output.length, 1);
+  assert.strictEqual(result.output[0].type, 'custom_tool_call');
+  assert.strictEqual(result.output[0].call_id, 'call_exec');
+  assert.strictEqual(result.output[0].name, 'exec');
+  assert.strictEqual(result.output[0].input, 'return 1;');
+}
+
+{
+  const responsesRequest = {
+    input: [
+      {
+        type: 'additional_tools',
+        tools: [
+          {
+            type: 'namespace',
+            name: 'functions',
+            tools: [{ type: 'custom', name: 'exec', description: 'Run code' }],
+          },
+        ],
+      },
+    ],
+  };
+  const result = openAIChatToResponses(
+    {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'call_exec_workbuddy',
+                type: 'function',
+                function: { name: 'exec', arguments: '{"input":"return 2;"}' },
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'workbuddy/deepseek-v4.1-flash',
+    { responsesRequest }
+  );
+
+  assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'workbuddy' }), true);
+  assert.strictEqual(result.output.length, 1);
+  assert.strictEqual(result.output[0].type, 'custom_tool_call');
+  assert.strictEqual(result.output[0].call_id, 'call_exec_workbuddy');
+  assert.strictEqual(result.output[0].name, 'exec');
+  assert.strictEqual(result.output[0].input, 'return 2;');
+}
+
+{
   assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'openai-chat' }), true);
   assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'workbuddy' }), true);
   assert.strictEqual(
@@ -411,6 +490,43 @@ function createChatStreamState(overrides = {}) {
     ['function_call']
   );
   assert.ok(writes.join('').includes('response.function_call_arguments.done'));
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createResponsesStreamState({ customToolNames: new Set(['exec']) });
+
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    event({
+      choices: [
+        {
+          delta: {
+            tool_calls: [
+              {
+                index: 0,
+                id: 'call_exec',
+                type: 'function',
+                function: { name: 'exec', arguments: '{"input":"return 1;"}' },
+              },
+            ],
+          },
+          finish_reason: 'tool_calls',
+        },
+      ],
+    }),
+    state
+  );
+
+  assert.strictEqual(state.completedOutputItems.length, 1);
+  assert.strictEqual(state.completedOutputItems[0].type, 'custom_tool_call');
+  assert.strictEqual(state.completedOutputItems[0].call_id, 'call_exec');
+  assert.strictEqual(state.completedOutputItems[0].name, 'exec');
+  assert.strictEqual(state.completedOutputItems[0].input, 'return 1;');
+  const text = writes.join('');
+  assert.ok(text.includes('"type":"custom_tool_call"'));
+  assert.ok(!text.includes('response.function_call_arguments.delta'));
 }
 
 {
@@ -897,6 +1013,34 @@ function createChatStreamState(overrides = {}) {
   assert.ok(execTool.function.parameters);
   assert.strictEqual(execTool.function.parameters.type, 'object');
   assert.ok(execTool.function.parameters.properties.input);
+}
+
+{
+  const result = openAIResponsesToChat({
+    model: 'gemini-3.8-flash',
+    input: [
+      {
+        type: 'custom_tool_call',
+        call_id: 'call_exec',
+        name: 'exec',
+        input: 'return 1;',
+      },
+      {
+        type: 'custom_tool_call_output',
+        call_id: 'call_exec',
+        output: '1',
+      },
+    ],
+  });
+
+  assert.strictEqual(result.messages.length, 2);
+  assert.strictEqual(result.messages[0].role, 'assistant');
+  assert.strictEqual(result.messages[0].tool_calls[0].id, 'call_exec');
+  assert.strictEqual(result.messages[0].tool_calls[0].function.name, 'exec');
+  assert.strictEqual(result.messages[0].tool_calls[0].function.arguments, '{"input":"return 1;"}');
+  assert.strictEqual(result.messages[1].role, 'tool');
+  assert.strictEqual(result.messages[1].tool_call_id, 'call_exec');
+  assert.strictEqual(result.messages[1].content, '1');
 }
 
 {
