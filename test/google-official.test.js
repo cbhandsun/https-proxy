@@ -309,6 +309,37 @@ async function main() {
   assert.strictEqual(refreshCalls, 1);
   assert.strictEqual(new URLSearchParams(refreshRequestBody).has('client_secret'), false);
 
+  let freshCredentialRefreshCalls = 0;
+  const freshCredentialRuntime = createGoogleOfficialRuntime({
+    makeRequest: async () => {
+      freshCredentialRefreshCalls += 1;
+      return { statusCode: 200, body: JSON.stringify({ access_token: 'ya29.unused-refresh' }) };
+    },
+    googleOfficialCodeAssistUrl,
+    googleOfficialModelsFromAvailableModels,
+    readAntigravityOfficialCredentialState: () => ({
+      credsPath: null,
+      source: 'antigravity-credential-manager',
+      content: {
+        access_token: 'ya29.credential-access',
+        refresh_token: '1//credential-refresh',
+        token_type: 'Bearer',
+        __readOnly: true,
+        __source: 'antigravity-credential-manager',
+        expiry_date: Date.now() + 3600 * 1000,
+      },
+    }),
+    isGoogleOfficialLoginToken,
+    buildGoogleOfficialLoadCodeAssistRequest,
+    env: {},
+  });
+
+  assert.strictEqual(
+    await freshCredentialRuntime.getFreshAntigravityOfficialAccessToken(),
+    'ya29.credential-access'
+  );
+  assert.strictEqual(freshCredentialRefreshCalls, 0);
+
   let explicitSecretBody = '';
   const explicitSecretRuntime = createGoogleOfficialRuntime({
     makeRequest: async (_url, _options, requestBody) => {

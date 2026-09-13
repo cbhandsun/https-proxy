@@ -12,6 +12,7 @@ export function configureToolStatus(dependencies) {
     'clearElement',
     'codexDesktopConnectionDetails',
     'config',
+    'formatCodexDesktopDrift',
     'ensureClaudeDesktop',
     'formatClaudeDesktopStatus',
     'isMonitorVisible',
@@ -1108,14 +1109,18 @@ async function refreshCodexDesktopStatus() {
         status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists
           ? `；模型目录 ${status.modelCatalog.modelCount || 0} 个模型 / ${status.modelCatalog.routeCount || 0} 条路由`
           : '';
+      const codexDrift = toolStatusDependencies.formatCodexDesktopDrift(status.drift);
+      const codexDrifted = Boolean(status.drift && status.drift.inSync === false);
       toolStatusDependencies.$('codexDesktopStatus').textContent =
-        `已接入共享 Codex 配置；网关地址: ${status.baseUrl}${legacy}${modelInfo}${catalog}${auth}，配置路径: ${status.configPath}${restartText}`;
-      toolStatusDependencies.$('codexDesktopStatus').className = 'notice green';
+        `已接入共享 Codex 配置；网关地址: ${status.baseUrl}${legacy}${modelInfo}${catalog}${codexDrift}${auth}，配置路径: ${status.configPath}${restartText}`;
+      toolStatusDependencies.$('codexDesktopStatus').className = codexDrifted
+        ? 'notice'
+        : 'notice green';
       if (badgeEl) {
-        badgeEl.textContent = '已代理';
-        badgeEl.className = 'badge active';
+        badgeEl.textContent = codexDrifted ? '已代理·配置已过期' : '已代理';
+        badgeEl.className = codexDrifted ? 'badge warn' : 'badge active';
       }
-      if (dotEl) dotEl.className = 'status-dot green';
+      if (dotEl) dotEl.className = codexDrifted ? 'status-dot amber' : 'status-dot green';
     } else {
       const catalog =
         status.managedModelCatalog && status.modelCatalog && status.modelCatalog.exists

@@ -836,6 +836,11 @@ tr:hover td {
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.2);
 }
+.badge.warn {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.28);
+}
 .two-col {
   display: grid;
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
