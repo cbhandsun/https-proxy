@@ -17,6 +17,30 @@ export function codexDesktopConnectionDetails(status, getElement) {
   };
 }
 
+export function formatDriftSummary(drift) {
+  if (!drift || drift.inSync !== false) return '';
+  const parts = [];
+  if (drift.baseUrlMatches === false) parts.push('入口地址不一致');
+  if (drift.tokenMatches === false) parts.push('网关 Token 已变更');
+  if (drift.missingModelCount > 0) parts.push(`缺少 ${drift.missingModelCount} 个模型`);
+  if (drift.staleModelCount > 0) parts.push(`${drift.staleModelCount} 个条目已废弃`);
+  if (parts.length === 0 && Array.isArray(drift.missingModels) && drift.missingModels.length) {
+    parts.push(`缺少 ${drift.missingModels.length} 个模型`);
+  }
+  return parts.length ? `；配置漂移：${parts.join('，')}（需重新写入）` : '；配置漂移：需重新写入';
+}
+
+export function formatCodexDesktopDrift(drift) {
+  if (!drift || drift.inSync !== false) return '';
+  const parts = [];
+  if (drift.baseUrlMatches === false) parts.push('入口地址与预期不符');
+  const missing = Array.isArray(drift.missingCatalogSlugs) ? drift.missingCatalogSlugs.length : 0;
+  const stale = Array.isArray(drift.staleCatalogSlugs) ? drift.staleCatalogSlugs.length : 0;
+  if (missing > 0) parts.push(`模型目录缺少 ${missing} 条路由`);
+  if (stale > 0) parts.push(`模型目录多出 ${stale} 条路由`);
+  return parts.length ? `；配置漂移：${parts.join('，')}` : '；配置漂移：需重新写入';
+}
+
 export function formatClaudeDesktopStatus(status) {
   if (!status.supported) {
     return `当前平台不可写入 Claude Desktop 配置：${status.error || ''}`;
@@ -40,14 +64,19 @@ export function formatClaudeDesktopStatus(status) {
     status.mcpServersManagedCount !== undefined
       ? `；网关托管 MCP: ${status.mcpServersManagedCount} 个 (总数 ${status.mcpServersCount || 0})`
       : '';
-  return `${configured}；模式：${status.mode}${desiredMode}；当前 URL：${actual}；预期 URL：${expected}${matchText}${pathText}${clientText}${mcpInfo}`;
+  const driftText = formatDriftSummary(status.drift);
+  return `${configured}；模式：${status.mode}${desiredMode}；当前 URL：${actual}；预期 URL：${expected}${matchText}${driftText}${pathText}${clientText}${mcpInfo}`;
 }
 
 export function applyClaudeDesktopBadges(status, badgeEl, dotEl) {
+  const drifted = Boolean(status && status.drift && status.drift.inSync === false);
   if (badgeEl) {
     if (!status.supported) {
       badgeEl.textContent = '不支持';
       badgeEl.className = 'badge error';
+    } else if (status.configured && drifted) {
+      badgeEl.textContent = '已代理·配置已过期';
+      badgeEl.className = 'badge warn';
     } else if (status.configured) {
       if (status.mode === 'proxy') {
         badgeEl.textContent = '已代理';
@@ -67,6 +96,8 @@ export function applyClaudeDesktopBadges(status, badgeEl, dotEl) {
   if (dotEl) {
     if (!status.supported) {
       dotEl.className = 'status-dot red';
+    } else if (status.configured && drifted) {
+      dotEl.className = 'status-dot amber';
     } else if (status.configured && status.mode === 'proxy') {
       dotEl.className = 'status-dot green';
     } else if (status.configured && status.mode === 'direct') {

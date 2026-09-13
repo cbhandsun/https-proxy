@@ -37,6 +37,7 @@ function createProxyEnv() {
     CODE_ASSIST_ENDPOINT: `http://127.0.0.1:${upstreamPort}`,
     GOOGLE_CLOUD_PROJECT: 'test-project',
     HOME: testHomeDir,
+    HPM_DISABLE_WINDOWS_CREDENTIAL_MANAGER: '1',
     LOCALAPPDATA: path.join(testHomeDir, 'AppData', 'Local'),
     USERPROFILE: testHomeDir,
     MGMT_PORT: String(managementPort),

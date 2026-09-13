@@ -109,6 +109,7 @@
   "lib/proxy/startup-timing.js",
   "lib/proxy/stream-claude.js",
   "lib/proxy/tool-config-handlers.js",
+  "lib/proxy/tool-config-drift.js",
   "lib/proxy/tool-configs.js",
   "lib/proxy/tool-loop-guard.js",
   "lib/proxy/tools.js",
@@ -126,5 +127,6 @@
   "lib/proxy/usage-report.js",
   "lib/proxy/usage.js",
   "lib/proxy/validator.js",
+  "lib/proxy/windows-credential-manager.js",
   "lib/proxy/workbuddy-official.js"
 ]

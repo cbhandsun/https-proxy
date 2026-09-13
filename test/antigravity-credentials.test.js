@@ -10,6 +10,7 @@ const {
   AntigravityCredentialError,
   antigravityCredentialFailure,
   createAntigravityCredentialReader,
+  decodeAntigravityCredentialManagerValue,
   MAX_STATE_VALUE_BYTES,
   STATE_KEY,
 } = require('../lib/proxy/antigravity-credentials');
@@ -31,6 +32,7 @@ function reader(dbPath, overrides = {}) {
   return createAntigravityCredentialReader({
     databasePaths: () => [dbPath],
     decode: decodeAntigravityOAuthStateValue,
+    credentialTargets: () => [],
     ...overrides,
   });
 }
@@ -70,6 +72,81 @@ test('missing state fails explicitly; an unused variant allows the next IDE data
   assert.throws(reader(dbPath), { code: 'ANTIGRAVITY_CREDENTIALS_MISSING' });
   const second = createTestStateDatabase(dbPath + '.second');
   assert.equal(reader(dbPath, { databasePaths: () => [dbPath, second] })().dbPath, second);
+});
+
+test('prefers Antigravity Windows credential manager login over SQLite state', (t) => {
+  const dbPath = createTestStateDatabase(fixture(t), encodeTestOAuthState('ya29.sqlite-stale'));
+  const expiresAt = Date.now() + 3600 * 1000;
+  const read = reader(dbPath, {
+    credentialTargets: () => ['gemini:antigravity'],
+    readWindowsCredential: (target) => {
+      assert.equal(target, 'gemini:antigravity');
+      return JSON.stringify({
+        token: {
+          access_token: 'ya29.credential-fresh',
+          refresh_token: '1//credential-refresh',
+          token_type: 'Bearer',
+          expiry: new Date(expiresAt).toISOString(),
+        },
+        auth_method: 'consumer',
+      });
+    },
+  });
+  const result = read();
+  assert.equal(result.source, 'antigravity-credential-manager');
+  assert.equal(result.credentialTarget, 'gemini:antigravity');
+  assert.equal(result.content.access_token, 'ya29.credential-fresh');
+  assert.equal(result.content.refresh_token, '1//credential-refresh');
+  assert.equal(result.content.__source, 'antigravity-credential-manager');
+  assert.equal(result.content.__readOnly, true);
+  assert.ok(result.content.expiry_date >= expiresAt - 1000);
+});
+
+test('falls back to SQLite when Windows credential manager has no usable token', (t) => {
+  const dbPath = createTestStateDatabase(fixture(t), encodeTestOAuthState('ya29.sqlite-login'));
+  const read = reader(dbPath, {
+    credentialTargets: () => ['gemini:antigravity'],
+    readWindowsCredential: () => JSON.stringify({ token: {}, auth_method: 'consumer' }),
+  });
+  const result = read();
+  assert.equal(result.source, 'antigravity-state');
+  assert.equal(result.content.access_token, 'ya29.sqlite-login');
+});
+
+test('decodes Antigravity credential manager OAuth shapes safely', () => {
+  const iso = '2999-01-01T00:00:00.000Z';
+  assert.deepEqual(
+    decodeAntigravityCredentialManagerValue(
+      JSON.stringify({
+        token: {
+          access_token: 'ya29.manager-access',
+          refresh_token: '1//manager-refresh',
+          expiry: iso,
+        },
+        auth_method: 'consumer',
+      })
+    ),
+    {
+      access_token: 'ya29.manager-access',
+      refresh_token: '1//manager-refresh',
+      token_type: 'Bearer',
+      client_id: '',
+      expiry_date: Date.parse(iso),
+      __readOnly: true,
+      __source: 'antigravity-credential-manager',
+    }
+  );
+  assert.equal(decodeAntigravityCredentialManagerValue('not-json'), null);
+  assert.equal(
+    decodeAntigravityCredentialManagerValue(JSON.stringify({ token: { access_token: 'bad' } })),
+    null
+  );
+  assert.equal(
+    decodeAntigravityCredentialManagerValue(
+      JSON.stringify({ token: { access_token: 'ya29.' + 'x'.repeat(20000) } })
+    ),
+    null
+  );
 });
 
 for (const [name, value] of [
@@ -192,6 +269,31 @@ test('refresh succeeds or fails closed without stale/configured token fallback',
       },
     }).resolveOfficialCredentials(prepared(), {}),
     { code: 'ANTIGRAVITY_CREDENTIALS_MISSING' }
+  );
+});
+
+test('expired credential-manager token fails closed without stale fallback', async () => {
+  const prepared = () => ({
+    profile: { id: 'google-official', protocol: 'gemini', apiKey: 'ya29.configured' },
+  });
+  await assert.rejects(
+    resolver({
+      readGoogleOfficialCredentialFile: () => ({
+        credsPath: null,
+        content: {
+          __readOnly: true,
+          __source: 'antigravity-credential-manager',
+          access_token: 'ya29.expired',
+          refresh_token: '1//expired-refresh',
+          expiry_date: 1,
+        },
+      }),
+      getFreshAntigravityOfficialAccessToken: async () => {
+        throw Error('private-refresh-token');
+      },
+    }).resolveOfficialCredentials(prepared(), {}),
+    (error) =>
+      error.code === 'ANTIGRAVITY_TOKEN_REFRESH_FAILED' && !error.message.includes('private')
   );
 });
 

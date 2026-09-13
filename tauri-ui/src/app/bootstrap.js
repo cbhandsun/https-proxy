@@ -86,6 +86,7 @@ import {
   bindToolIntegrationActions,
   codexDesktopConnectionDetails,
   formatClaudeDesktopStatus,
+  formatCodexDesktopDrift,
   populatePromptPresetsDropdown,
   renderClientActivity,
 } from './models/tool-status-presentation.js';
@@ -110,32 +111,31 @@ import {
 } from './runtime/configuration-load-state.js';
 import { canNotify, notify, storage, theme } from './ux.js';
 
-let config;
-let selectedId;
+let config, selectedId;
 const profileLatencies = {};
-let isTestingLatency = false;
-let modelRoutes = [];
-let availableModels = [];
+let isTestingLatency = false,
+  modelRoutes = [],
+  availableModels = [];
 let baseUrl = '';
-let editingRouteIndex = null;
-let lastRenderedRulesHtml = '';
-let lastRenderedOverviewSignature = '';
-let lastRenderedOverviewRoutesHtml = '';
-let lastRenderedProfilesHtml = '';
-let proxyRecoveryInFlight = false;
-let manualProxyStopSuppressed = false;
-let lastProxyRecoveryAt = 0;
-let lastCertRefresh = 0;
-let certRefreshInFlight = null;
-let startupCertRetryTimer = null;
+let editingRouteIndex = null,
+  lastRenderedRulesHtml = '',
+  lastRenderedOverviewSignature = '',
+  lastRenderedOverviewRoutesHtml = '',
+  lastRenderedProfilesHtml = '';
+let proxyRecoveryInFlight = false,
+  manualProxyStopSuppressed = false,
+  lastProxyRecoveryAt = 0,
+  lastCertRefresh = 0;
+let certRefreshInFlight = null,
+  startupCertRetryTimer = null;
 const startupStatusStartedAt = performance.now();
 const STARTUP_STATUS_GRACE_MS = 12000;
 const STARTUP_STATUS_RETRY_MS = 180;
-let currentViewId = 'overview';
-let routeFilterText = '';
-let routeFilterProtocol = '';
-let routeSortBy = 'from';
-let routeSortDirection = 'asc';
+let currentViewId = 'overview',
+  routeFilterText = '',
+  routeFilterProtocol = '',
+  routeSortBy = 'from',
+  routeSortDirection = 'asc';
 const sharedAppState = createSharedAppState();
 
 const fields = ['id', 'name', 'targetUrl', 'protocol', 'apiKey'];
@@ -165,15 +165,12 @@ const CLI_SESSIONS_HIDDEN_MS = 15000;
 const MONITOR_SEARCH_BODY_LIMIT = 600;
 const MONITOR_RENDER_WINDOW = 30;
 const ENTRY_PROTOCOL_OPTIONS = ['claude', 'openai-responses', 'openai-chat', 'claude-desktop'];
-
 function initTheme() {
   theme.init();
 }
-
 function applyTheme(nextTheme) {
   theme.apply(nextTheme);
 }
-
 const themeBtn = $('themeToggle');
 if (themeBtn) {
   themeBtn.onclick = () => {
@@ -182,7 +179,6 @@ if (themeBtn) {
     showToast(labels[next] || '主题已切换', 'success');
   };
 }
-
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
@@ -195,7 +191,6 @@ function showToast(message, type = 'success') {
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
-
 async function copyTextToClipboard(text, successMessage = '已复制到剪贴板') {
   const value = String(text || '');
   if (!value) {
@@ -223,7 +218,6 @@ async function copyTextToClipboard(text, successMessage = '已复制到剪贴板
     return false;
   }
 }
-
 function confirmAction({ title, message, confirmText = '确认', danger = true }) {
   return new Promise((resolve) => {
     const modal = $('confirmModal');
@@ -255,7 +249,6 @@ function confirmAction({ title, message, confirmText = '确认', danger = true }
     cancel.focus();
   });
 }
-
 function showDiagnosticsTab(panelId) {
   document.querySelectorAll('[data-diagnostics-tab]').forEach((button) => {
     button.classList.toggle('active', button.dataset.diagnosticsTab === panelId);
@@ -266,7 +259,6 @@ function showDiagnosticsTab(panelId) {
   if (panelId === 'logPanel') refreshLog({ forceScroll: true });
   if (panelId === 'diagnosticsPanel') refreshDiagnostics({ forceScroll: true });
 }
-
 function protocolName(value) {
   if (value === 'workbuddy') return 'WorkBuddy';
   if (value === 'gemini') return 'Gemini';
@@ -276,7 +268,6 @@ function protocolName(value) {
   if (value === 'openai-chat') return 'OpenAI Chat';
   return 'OpenAI';
 }
-
 function entryProtocolName(value) {
   if (value === 'claude') return 'Claude Messages';
   if (value === 'claude-desktop') return 'Claude Desktop';
@@ -284,7 +275,6 @@ function entryProtocolName(value) {
   if (value === 'openai-chat') return 'OpenAI Chat Completions';
   return protocolName(value);
 }
-
 function routeClientProtocolText(route) {
   const protocols = routeClientProtocols(route);
   const labels = protocols
@@ -292,11 +282,9 @@ function routeClientProtocolText(route) {
     .join(' / ');
   return labels || '未指定';
 }
-
 function routeClientProtocolModeText(route) {
   return normalizeRouteClientProtocols(route && route.clientProtocols).length ? '显式' : '推断';
 }
-
 function renderRecommendedClientModels() {
   const container = $('modelAutocompleteContainer');
   if (!container) return;
@@ -305,7 +293,6 @@ function renderRecommendedClientModels() {
   label.className = 'route-suggestion-label';
   label.textContent = '推荐客户端模型';
   container.appendChild(label);
-
   recommendedClaudeClientModels.forEach((model) => {
     const tag = document.createElement('span');
     tag.className = 'autocomplete-tag';
@@ -317,42 +304,35 @@ function renderRecommendedClientModels() {
     container.appendChild(tag);
   });
 }
-
 function selectedRouteClientProtocols() {
   return Array.from(document.querySelectorAll('[data-route-client-protocol]'))
     .filter((input) => input.checked)
     .map((input) => normalizeRouteClientProtocol(input.dataset.routeClientProtocol))
     .filter(Boolean);
 }
-
 function setSelectedRouteClientProtocols(protocols) {
   const selected = new Set(normalizeRouteClientProtocols(protocols));
   document.querySelectorAll('[data-route-client-protocol]').forEach((input) => {
     input.checked = selected.has(normalizeRouteClientProtocol(input.dataset.routeClientProtocol));
   });
 }
-
 function defaultEntriesForLocal() {
   return buildDefaultEntryServers(config && config.localServer);
 }
-
 function selectedProfile() {
   if (!config || !Array.isArray(config.profiles)) return null;
   return config.profiles.find((profile) => profile.id === selectedId) || config.profiles[0];
 }
-
 function activeProfile() {
   if (!config || !Array.isArray(config.profiles)) return null;
   return (
     config.profiles.find((profile) => profile.id === config.activeProfile) || config.profiles[0]
   );
 }
-
 function ensureLocalServer() {
   if (!config) config = {};
   config.localServer = normalizeLocalServer(config.localServer, activeProfile());
 }
-
 function ensureEntryServers() {
   ensureLocalServer();
   config.entryServers = normalizeEntryServers(config.entryServers, config.localServer);
@@ -3951,6 +3931,7 @@ function configureDomainModules() {
     checkProxyHealth,
     clearElement,
     codexDesktopConnectionDetails,
+    formatCodexDesktopDrift,
     confirmAction,
     debounce,
     ensureClaudeDesktop,

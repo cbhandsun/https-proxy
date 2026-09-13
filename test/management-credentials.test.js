@@ -7,6 +7,7 @@ const { Readable } = require('stream');
 const {
   createManagementCredentialsHandlers,
   credentialTypeFromRequest,
+  hasFreshAccessToken,
 } = require('../lib/proxy/handlers/management-credentials');
 
 function emptyReq(url) {
@@ -53,6 +54,15 @@ function invoke(handler, url) {
     credentialTypeFromRequest(emptyReq('/v1/local/auth/cli-credentials?type= Google ')),
     'google'
   );
+  assert.strictEqual(
+    hasFreshAccessToken({ access_token: 'ya29.fresh', expiry_date: 1000000 }, 1),
+    true
+  );
+  assert.strictEqual(
+    hasFreshAccessToken({ access_token: 'ya29.expiring', expiry_date: 1000 }, 800),
+    false
+  );
+  assert.strictEqual(hasFreshAccessToken({ access_token: '', expiry_date: 1000 }, 1), false);
 
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-credentials-home-'));
   try {
@@ -155,6 +165,32 @@ function invoke(handler, url) {
     );
     assert.strictEqual(fallback.statusCode, 200);
     assert.strictEqual(JSON.parse(fallback.body).protectedToken, 'protected:agy-stale');
+
+    let freshRefreshCalls = 0;
+    const freshHandlers = createManagementCredentialsHandlers({
+      sendJson,
+      protectToken: (token) => `protected:${token}`,
+      homeDir: () => tmpHome,
+      readAntigravityState: () => ({
+        content: {
+          access_token: 'agy-fresh',
+          refresh_token: 'agy-refresh',
+          expiry_date: Date.now() + 3600 * 1000,
+        },
+        source: 'antigravity-credential-manager',
+      }),
+      refreshGoogleToken: async () => {
+        freshRefreshCalls += 1;
+        throw new Error('should not refresh');
+      },
+    });
+    const fresh = await invoke(
+      freshHandlers.handleLocalCliCredentialsRequest,
+      '/v1/local/auth/cli-credentials?type=agy'
+    );
+    assert.strictEqual(fresh.statusCode, 200);
+    assert.strictEqual(JSON.parse(fresh.body).protectedToken, 'protected:agy-fresh');
+    assert.strictEqual(freshRefreshCalls, 0);
 
     const missing = await invoke(
       handlers.handleLocalCliCredentialsRequest,
