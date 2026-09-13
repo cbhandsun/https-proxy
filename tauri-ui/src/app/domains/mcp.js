@@ -93,7 +93,7 @@ function createMcpServersTableElement(servers) {
     ['前缀', ''],
     ['Bearer Token', '180px'],
     ['注入', '60px'],
-    ['操作', '80px'],
+    ['操作', '150px'],
   ].forEach(([label, width]) => {
     const th = document.createElement('th');
     th.textContent = label;
@@ -108,7 +108,10 @@ function createMcpServersTableElement(servers) {
   scroll.className = 'route-table-scroll';
   const bodyTable = document.createElement('table');
   const tbody = document.createElement('tbody');
-  servers.forEach((server, index) => tbody.appendChild(createMcpServerRow(server, index)));
+  servers.forEach((server, index) => {
+    tbody.appendChild(createMcpServerRow(server, index));
+    tbody.appendChild(createMcpServerToolsRow(server, index));
+  });
   bodyTable.appendChild(tbody);
   scroll.appendChild(bodyTable);
   wrapper.append(head, scroll);
@@ -157,6 +160,36 @@ function createMcpServerRow(server, index) {
 
   const actionCell = document.createElement('td');
   actionCell.style.textAlign = 'right';
+  actionCell.style.whiteSpace = 'nowrap';
+
+  const probeButton = document.createElement('button');
+  probeButton.className = 'light';
+  probeButton.style.padding = '2px 8px';
+  probeButton.style.fontSize = '12px';
+  probeButton.style.margin = '0 4px 0 0';
+  probeButton.textContent = '探测工具';
+  probeButton.addEventListener('click', async () => {
+    probeButton.disabled = true;
+    probeButton.textContent = '探测中...';
+    try {
+      const res = await window.proxyManager.mcpToolsList(server.id);
+      if (res && res.ok) {
+        serverToolsCache.set(server.id, res.tools || []);
+        mcpDependencies.showToast(`成功拉取 ${res.tools?.length || 0} 个 MCP 工具`, 'success');
+      } else {
+        serverToolsCache.set(server.id, []);
+        mcpDependencies.showToast(`探测工具失败: ${res?.error || '未知错误'}`, 'error');
+      }
+      renderMcpServers();
+    } catch (err) {
+      mcpDependencies.showToast(`探测异常: ${err.message}`, 'error');
+    } finally {
+      probeButton.disabled = false;
+      probeButton.textContent = '探测工具';
+    }
+  });
+  actionCell.appendChild(probeButton);
+
   const deleteButton = document.createElement('button');
   deleteButton.className = 'danger';
   deleteButton.style.padding = '2px 8px';
@@ -168,6 +201,221 @@ function createMcpServerRow(server, index) {
   row.appendChild(actionCell);
 
   return row;
+}
+
+const serverToolsCache = new Map();
+
+function createMcpServerToolsRow(server, index) {
+  const tr = document.createElement('tr');
+  tr.id = `mcp-tools-row-${server.id || index}`;
+  tr.className = 'mcp-tools-expand-row';
+  const td = document.createElement('td');
+  td.colSpan = 6;
+  td.style.padding = '8px 14px';
+  td.style.background = 'var(--card-highlight, rgba(0, 0, 0, 0.02))';
+  td.style.borderBottom = '1px solid var(--border)';
+  td.style.fontSize = '12px';
+
+  const tools = serverToolsCache.get(server.id);
+  if (!tools) {
+    td.className = 'muted';
+    td.textContent = '点击“探测工具”以获取此服务器的可用 Tools 与 Schema。';
+  } else if (tools.length === 0) {
+    td.className = 'muted';
+    td.textContent = '未探测到可用工具。';
+  } else {
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.flexWrap = 'wrap';
+    container.style.gap = '6px';
+
+    const label = document.createElement('span');
+    label.style.fontWeight = '600';
+    label.style.color = 'var(--text)';
+    label.textContent = `可用工具 (${tools.length})：`;
+    container.appendChild(label);
+
+    tools.forEach((tool) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'light';
+      btn.style.padding = '2px 8px';
+      btn.style.fontSize = '11px';
+      btn.style.margin = '0';
+      btn.style.borderRadius = '4px';
+      btn.style.fontFamily = 'var(--font-mono)';
+      btn.title = tool.description || '点击在线测试此工具';
+      const iconSpan = document.createElement('span');
+      iconSpan.textContent = '⚡ ';
+      const strongName = document.createElement('strong');
+      strongName.textContent = tool.name;
+      btn.append(iconSpan, strongName);
+      btn.onclick = () => openMcpToolRunnerModal(server, tool);
+      container.appendChild(btn);
+    });
+    td.appendChild(container);
+  }
+  tr.appendChild(td);
+  return tr;
+}
+
+function generateSampleArgs(schema) {
+  if (!schema || typeof schema !== 'object' || !schema.properties) {
+    return {};
+  }
+  const sample = {};
+  for (const [key, prop] of Object.entries(schema.properties)) {
+    if (prop.default !== undefined) {
+      sample[key] = prop.default;
+    } else if (prop.type === 'string') {
+      sample[key] = prop.description ? '<' + prop.description + '>' : '';
+    } else if (prop.type === 'number' || prop.type === 'integer') {
+      sample[key] = 0;
+    } else if (prop.type === 'boolean') {
+      sample[key] = false;
+    } else if (prop.type === 'array') {
+      sample[key] = [];
+    } else if (prop.type === 'object') {
+      sample[key] = {};
+    } else {
+      sample[key] = '';
+    }
+  }
+  return sample;
+}
+
+function openMcpToolRunnerModal(server, tool) {
+  let modalBackdrop = document.getElementById('mcpToolRunnerModalBackdrop');
+  if (!modalBackdrop) {
+    modalBackdrop = document.createElement('div');
+    modalBackdrop.id = 'mcpToolRunnerModalBackdrop';
+    modalBackdrop.className = 'modal-backdrop';
+    document.body.appendChild(modalBackdrop);
+  }
+  mcpDependencies.clearElement(modalBackdrop);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style.width = 'min(580px, 94%)';
+  modal.style.maxHeight = '85vh';
+  modal.style.overflowY = 'auto';
+
+  const title = document.createElement('h3');
+  title.textContent = `⚡ MCP 工具试运行 · ${tool.name}`;
+  modal.appendChild(title);
+
+  const serverInfo = document.createElement('p');
+  serverInfo.style.fontSize = '12px';
+  serverInfo.style.marginBottom = '6px';
+  const serverCode = document.createElement('code');
+  serverCode.textContent = server.id;
+  serverInfo.append('所属服务：', serverCode, server.url ? ` (${server.url})` : '');
+  modal.appendChild(serverInfo);
+
+  if (tool.description) {
+    const desc = document.createElement('p');
+    desc.style.fontSize = '12.5px';
+    desc.style.color = 'var(--text)';
+    desc.style.marginBottom = '12px';
+    desc.style.padding = '8px 10px';
+    desc.style.background = 'var(--card-highlight, rgba(0,0,0,0.03))';
+    desc.style.borderRadius = '6px';
+    desc.textContent = tool.description;
+    modal.appendChild(desc);
+  }
+
+  const labelArgs = document.createElement('label');
+  labelArgs.style.display = 'block';
+  labelArgs.style.fontSize = '12px';
+  labelArgs.style.fontWeight = '600';
+  labelArgs.style.marginBottom = '4px';
+  labelArgs.textContent = '工具输入参数 (JSON Arguments):';
+  modal.appendChild(labelArgs);
+
+  const argsInput = document.createElement('textarea');
+  argsInput.className = 'table-input';
+  argsInput.style.width = '100%';
+  argsInput.style.minHeight = '110px';
+  argsInput.style.fontFamily = 'var(--font-mono)';
+  argsInput.style.fontSize = '12px';
+  argsInput.style.padding = '8px';
+  argsInput.style.boxSizing = 'border-box';
+  argsInput.value = JSON.stringify(generateSampleArgs(tool.inputSchema), null, 2);
+  modal.appendChild(argsInput);
+
+  const resultBox = document.createElement('div');
+  resultBox.style.display = 'none';
+  resultBox.style.marginTop = '12px';
+  resultBox.style.padding = '10px';
+  resultBox.style.borderRadius = '6px';
+  resultBox.style.background = '#0f172a';
+  resultBox.style.color = '#e2e8f0';
+  resultBox.style.fontFamily = 'var(--font-mono)';
+  resultBox.style.fontSize = '12px';
+  resultBox.style.maxHeight = '200px';
+  resultBox.style.overflowY = 'auto';
+  resultBox.style.whiteSpace = 'pre-wrap';
+  resultBox.style.wordBreak = 'break-all';
+  modal.appendChild(resultBox);
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'light';
+  closeBtn.textContent = '关闭';
+  closeBtn.onclick = () => {
+    modalBackdrop.classList.remove('active');
+  };
+
+  const runBtn = document.createElement('button');
+  runBtn.type = 'button';
+  runBtn.textContent = '执行调用';
+  runBtn.onclick = async () => {
+    let parsedArgs = {};
+    try {
+      const trimmed = argsInput.value.trim();
+      if (trimmed) parsedArgs = JSON.parse(trimmed);
+    } catch (err) {
+      mcpDependencies.showToast('参数不是合法的 JSON 格式：' + err.message, 'error');
+      return;
+    }
+    runBtn.disabled = true;
+    runBtn.textContent = '调用中...';
+    resultBox.style.display = 'block';
+    resultBox.textContent = '正在发送请求到 MCP 远端服务...';
+
+    try {
+      const res = await window.proxyManager.mcpExecuteTool({
+        serverId: server.id,
+        toolName: tool.name,
+        arguments: parsedArgs,
+      });
+      if (res && res.ok) {
+        resultBox.textContent =
+          `[执行成功 - 耗时 ${res.elapsedMs || 0}ms]\n` + JSON.stringify(res.result, null, 2);
+        mcpDependencies.showToast(`执行成功 (${res.elapsedMs}ms)`, 'success');
+      } else {
+        resultBox.textContent =
+          `[执行失败 - 耗时 ${res?.elapsedMs || 0}ms]\n错误：` + (res?.error || '未知错误');
+        mcpDependencies.showToast(`执行失败: ${res?.error || '未知错误'}`, 'error');
+      }
+      refreshMcpHub();
+    } catch (err) {
+      resultBox.textContent = `[请求异常]\n${err.message}`;
+      mcpDependencies.showToast(`请求异常: ${err.message}`, 'error');
+    } finally {
+      runBtn.disabled = false;
+      runBtn.textContent = '再次执行';
+    }
+  };
+
+  actions.append(closeBtn, runBtn);
+  modal.appendChild(actions);
+  modalBackdrop.appendChild(modal);
+  modalBackdrop.classList.add('active');
 }
 
 function updateMcpServer(index, field, value) {

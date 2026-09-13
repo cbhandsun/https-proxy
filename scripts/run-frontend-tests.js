@@ -9,6 +9,8 @@ const testFiles = [
   'test/frontend/dependencies.test.js',
   'test/frontend/domain-boundaries.test.js',
   'test/frontend/configuration-model.test.js',
+  'test/frontend/profile-save.test.js',
+  'test/frontend/proxy-command.test.js',
   'test/frontend/configuration-load-state.test.js',
   'test/frontend/configuration-recovery.test.js',
   'test/frontend/codex-desktop-controls.test.js',
@@ -16,9 +18,11 @@ const testFiles = [
   'test/frontend/runtime.test.js',
   'test/frontend/app-ux.test.js',
   'test/frontend/app-bridge.test.js',
+  'test/frontend/bridge-health-command.test.js',
   'test/frontend/app-audit.test.js',
   'test/frontend/app-diagnostics.test.js',
   'test/frontend/app-cli.test.js',
+  'test/frontend/playground.test.js',
 ];
 
 for (const testFile of testFiles) {

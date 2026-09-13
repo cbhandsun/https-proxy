@@ -7,14 +7,18 @@ export function configureToolStatus(dependencies) {
     'CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT',
     'STARTUP_STATUS_GRACE_MS',
     'STARTUP_STATUS_RETRY_MS',
+    'applyClaudeDesktopBadges',
     'checkProxyHealth',
     'clearElement',
     'codexDesktopConnectionDetails',
     'config',
     'ensureClaudeDesktop',
+    'formatClaudeDesktopStatus',
     'isMonitorVisible',
     'perfStart',
+    'populatePromptPresetsDropdown',
     'refreshCertStatusAfterProxyOnline',
+    'renderClientActivity',
     'resolveClaudeDesktopModel',
     'routeIdOfClaudeDesktopModel',
     'sharedAppState',
@@ -177,60 +181,22 @@ async function refreshClaudeDesktopStatus() {
   const dotEl = toolStatusDependencies.$('claudeDesktopTitleDot');
   try {
     const status = await window.proxyManager.claudeDesktopStatus();
-    if (!status.supported) {
-      toolStatusDependencies.$('claudeDesktopStatus').textContent =
-        `当前平台不可写入 Claude Desktop 配置：${status.error || ''}`;
-      if (badgeEl) {
-        badgeEl.textContent = '不支持';
-        badgeEl.className = 'badge error';
-      }
-      if (dotEl) dotEl.className = 'status-dot red';
-      return;
-    }
-    const configured = status.configured ? '已写入 3P profile' : '未写入';
-    const actual = status.actualBaseUrl || status.gatewayUrl || '无';
-    const expected = status.expectedBaseUrl || '无';
-    const desiredMode = status.desiredMode ? `；选择模式：${status.desiredMode}` : '';
-    const matchText = status.matchesExpected === false ? '；状态：需重新写入' : '';
-    const pathText =
-      status.profilePath || status.configPath
-        ? `\nProfile：${status.profilePath || status.configPath}`
-        : '';
-    const evidence = status.clientEvidence || {};
-    const activeCode = evidence.activeCodeProcess || {};
-    const latestSession = evidence.latestCodeSession || {};
-    const clientText = evidence.processCount
-      ? `\n客户端：Claude PID ${evidence.mainWindowPid || '未知'}；Code 模型：${activeCode.model || latestSession.model || '未检测'}；CLI Session：${activeCode.cliSessionId || latestSession.cliSessionId || '未检测'}`
-      : '';
     toolStatusDependencies.$('claudeDesktopStatus').textContent =
-      `${configured}；模式：${status.mode}${desiredMode}；当前 URL：${actual}；预期 URL：${expected}${matchText}${pathText}${clientText}`;
-
-    // Update badge and title dot
-    if (badgeEl) {
-      if (status.configured) {
-        if (status.mode === 'proxy') {
-          badgeEl.textContent = '已代理';
-          badgeEl.className = 'badge active';
-        } else if (status.mode === 'direct') {
-          badgeEl.textContent = '直连';
-          badgeEl.className = 'badge direct';
-        } else {
-          badgeEl.textContent = '官方';
-          badgeEl.className = 'badge official';
-        }
-      } else {
-        badgeEl.textContent = '未接管';
-        badgeEl.className = 'badge official';
-      }
+      toolStatusDependencies.formatClaudeDesktopStatus(status);
+    toolStatusDependencies.applyClaudeDesktopBadges(status, badgeEl, dotEl);
+    if (toolStatusDependencies.config && toolStatusDependencies.config.promptPresets) {
+      toolStatusDependencies.populatePromptPresetsDropdown(
+        toolStatusDependencies.$('claudeDesktopPromptPreset'),
+        toolStatusDependencies.config.promptPresets
+      );
     }
-    if (dotEl) {
-      if (status.configured && status.mode === 'proxy') {
-        dotEl.className = 'status-dot green';
-      } else if (status.configured && status.mode === 'direct') {
-        dotEl.className = 'status-dot amber';
-      } else {
-        dotEl.className = 'status-dot';
-      }
+    const actContainer = toolStatusDependencies.$('claudeDesktopActivity');
+    if (actContainer && window.proxyManager.clientActivity) {
+      const res = await window.proxyManager.clientActivity('claude', 5);
+      toolStatusDependencies.renderClientActivity(
+        actContainer,
+        (res && (res.records || res.activities)) || []
+      );
     }
   } catch (err) {
     toolStatusDependencies.$('claudeDesktopStatus').textContent =
@@ -1163,6 +1129,20 @@ async function refreshCodexDesktopStatus() {
         badgeEl.className = 'badge direct';
       }
       if (dotEl) dotEl.className = 'status-dot amber';
+    }
+    if (toolStatusDependencies.config && toolStatusDependencies.config.promptPresets) {
+      toolStatusDependencies.populatePromptPresetsDropdown(
+        toolStatusDependencies.$('codexDesktopPromptPreset'),
+        toolStatusDependencies.config.promptPresets
+      );
+    }
+    const codexActContainer = toolStatusDependencies.$('codexDesktopActivity');
+    if (codexActContainer && window.proxyManager.clientActivity) {
+      const res = await window.proxyManager.clientActivity('codex', 5);
+      toolStatusDependencies.renderClientActivity(
+        codexActContainer,
+        (res && (res.records || res.activities)) || []
+      );
     }
   } catch (err) {
     toolStatusDependencies.$('codexDesktopStatus').textContent =

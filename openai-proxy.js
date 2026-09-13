@@ -1091,6 +1091,7 @@ module.exports = {
   openAIResponsesToChat,
   openAIChatToResponses,
   openAIChatToResponsesRequest,
+  openAIResponsesToChatResponse,
   processOpenAIChatSseChunkToResponses,
   flushOpenAIChatSseToResponses,
   processOpenAIResponsesSseChunkToChat,

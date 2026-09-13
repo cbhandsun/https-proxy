@@ -50,3 +50,5 @@ test/*.jsonl.*
 /eslint-stats.json
 /.tmp*
 /.codex-remote-attachments/
+/.common-tools/
+/.common-tools-audit/

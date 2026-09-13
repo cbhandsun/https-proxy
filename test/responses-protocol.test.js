@@ -9,10 +9,15 @@ const {
   openAIResponsesToChat,
   openAIChatToResponses,
   openAIChatToResponsesRequest,
+  openAIResponsesToChatResponse,
+  openAIChatToClaudeMessages,
+  openAIResponseToClaudeMessage,
+  geminiResponseToClaude,
   processOpenAIChatSseChunkToResponses,
   flushOpenAIChatSseToResponses,
   processOpenAIResponsesSseChunkToChat,
   flushOpenAIResponsesSseToChat,
+  flushOpenAISseToClaude,
   shouldConvertResponsesToOpenAIChat,
 } = require('../openai-proxy');
 
@@ -809,6 +814,460 @@ function createChatStreamState(overrides = {}) {
   );
   assert.strictEqual(state.completedOutputItems[0].content[0].text, 'before');
   assert.strictEqual(state.completedOutputItems[2].content[0].text, 'after');
+}
+
+{
+  const result = openAIResponsesToChat({
+    model: 'deepseek-v4.1-flash',
+    input: [
+      {
+        type: 'additional_tools',
+        tools: [
+          {
+            type: 'function',
+            name: 'dynamic_tool_1',
+            description: 'A dynamically injected tool',
+            parameters: { type: 'object', properties: { p: { type: 'string' } } },
+          },
+        ],
+      },
+      { role: 'user', content: 'hello with dynamic tools' },
+    ],
+    tools: [
+      {
+        type: 'function',
+        name: 'static_tool',
+        description: 'A static tool',
+        parameters: { type: 'object', properties: {} },
+      },
+    ],
+  });
+
+  // 1. additional_tools must not pollute chat messages
+  assert.strictEqual(result.messages.length, 1);
+  assert.strictEqual(result.messages[0].role, 'user');
+  assert.strictEqual(result.messages[0].content, 'hello with dynamic tools');
+
+  // 2. additional_tools must be merged into result.tools alongside static tools
+  assert.strictEqual(result.tools.length, 2);
+  const toolNames = result.tools.map((t) => t.function.name);
+  assert.ok(toolNames.includes('static_tool'));
+  assert.ok(toolNames.includes('dynamic_tool_1'));
+  const dynamicTool = result.tools.find((t) => t.function.name === 'dynamic_tool_1');
+  assert.strictEqual(dynamicTool.function.description, 'A dynamically injected tool');
+}
+
+{
+  const result = openAIResponsesToChat({
+    model: 'deepseek-v4.1-flash',
+    input: [
+      {
+        type: 'additional_tools',
+        tools: [
+          {
+            type: 'namespace',
+            name: 'functions',
+            description: '',
+            tools: [
+              {
+                type: 'custom',
+                name: 'exec',
+                description: 'Run JavaScript code to orchestrate tool calls',
+              },
+              {
+                type: 'function',
+                name: 'mcp__cua_repl',
+                description: 'Computer use repl tool',
+                parameters: { type: 'object', properties: { cmd: { type: 'string' } } },
+              },
+            ],
+          },
+        ],
+      },
+      { role: 'user', content: 'run something' },
+    ],
+  });
+
+  assert.strictEqual(result.tools.length, 2);
+  const names = result.tools.map((t) => t.function.name);
+  assert.ok(names.includes('exec'), 'exec tool should be preserved and extracted from namespace');
+  assert.ok(names.includes('mcp__cua_repl'), 'mcp__cua_repl should be extracted from namespace');
+  const execTool = result.tools.find((t) => t.function.name === 'exec');
+  assert.strictEqual(execTool.type, 'function');
+  assert.ok(execTool.function.parameters);
+  assert.strictEqual(execTool.function.parameters.type, 'object');
+  assert.ok(execTool.function.parameters.properties.input);
+}
+
+{
+  // Test non-streaming reasoning_content mapping
+  const res = openAIChatToResponses(
+    {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            reasoning_content: 'Let me analyze the problem deeply...',
+            content: 'Here is the answer.',
+          },
+        },
+      ],
+    },
+    'deepseek-v4.1-flash'
+  );
+
+  assert.strictEqual(res.output.length, 2);
+  assert.strictEqual(res.output[0].type, 'reasoning');
+  assert.strictEqual(res.output[0].summary, 'Let me analyze the problem deeply...');
+  assert.strictEqual(res.output[1].type, 'message');
+  assert.strictEqual(res.output[1].content[0].text, 'Here is the answer.');
+}
+
+{
+  // Test streaming reasoning_content SSE conversion
+  const events = [];
+  const clientRes = {
+    writeHead() {},
+    write(str) {
+      events.push(str);
+    },
+  };
+  const state = createResponsesStreamState({ model: 'deepseek-v4.1-flash' }, 'deepseek-v4.1-flash');
+
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    'data: {"choices":[{"delta":{"reasoning_content":"step 1 "}}]}\n\n' +
+      'data: {"choices":[{"delta":{"reasoning_content":"step 2"}}]}\n\n' +
+      'data: {"choices":[{"delta":{"content":"final "}}]}\n\n' +
+      'data: {"choices":[{"delta":{"content":"output"}}]}\n\n' +
+      'data: {"choices":[{"finish_reason":"stop"}]}\n\n',
+    state
+  );
+  flushOpenAIChatSseToResponses(clientRes, state);
+
+  // Check reasoning deltas emitted
+  const reasoningDeltas = events.filter(
+    (e) => e.startsWith('data:') && e.includes('response.reasoning.delta')
+  );
+  assert.strictEqual(reasoningDeltas.length, 2);
+  assert.ok(reasoningDeltas[0].includes('step 1 '));
+  assert.ok(reasoningDeltas[1].includes('step 2'));
+
+  // Check output text deltas emitted
+  const textDeltas = events.filter(
+    (e) => e.startsWith('data:') && e.includes('response.output_text.delta')
+  );
+  assert.strictEqual(textDeltas.length, 2);
+  assert.ok(textDeltas[0].includes('final '));
+  assert.ok(textDeltas[1].includes('output'));
+
+  // Check completed items
+  assert.strictEqual(state.completedOutputItems.length, 2);
+  assert.strictEqual(state.completedOutputItems[0].type, 'reasoning');
+  assert.strictEqual(state.completedOutputItems[0].summary, 'step 1 step 2');
+  assert.strictEqual(state.completedOutputItems[1].type, 'message');
+  assert.strictEqual(state.completedOutputItems[1].content[0].text, 'final output');
+}
+
+// ==================== Audit Tests: 10 Protocol Conversion Fixes ====================
+
+// Test 1: Developer role preservation across protocols
+{
+  // 1a: Responses -> Chat keeps role: developer
+  const chat = openAIResponsesToChat({
+    model: 'gpt-4o',
+    input: [
+      { role: 'developer', content: 'You are an expert coder.' },
+      { role: 'user', content: 'Hello' },
+    ],
+  });
+  assert.strictEqual(chat.messages.length, 2);
+  assert.strictEqual(chat.messages[0].role, 'developer');
+  assert.strictEqual(chat.messages[0].content, 'You are an expert coder.');
+
+  // 1b: Chat -> Responses merges developer role into instructions
+  const resp = openAIChatToResponsesRequest({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'developer', content: 'Developer guidelines.' },
+      { role: 'user', content: 'Hello' },
+    ],
+  });
+  assert.ok(resp.instructions.includes('Developer guidelines.'));
+  assert.strictEqual(resp.input.length, 1);
+  assert.strictEqual(resp.input[0].role, 'user');
+
+  // 1c: Chat -> Claude merges developer role into system parameter
+  const claude = openAIChatToClaudeMessages(
+    {
+      messages: [
+        { role: 'developer', content: 'Developer prompt.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    },
+    'claude-3-7-sonnet'
+  );
+  assert.strictEqual(claude.system, 'Developer prompt.');
+  assert.strictEqual(claude.messages.length, 1);
+  assert.strictEqual(claude.messages[0].role, 'user');
+}
+
+// Test 2: Remote HTTP/HTTPS image URLs in Responses -> Chat
+{
+  const chat = openAIResponsesToChat({
+    model: 'gpt-4o',
+    input: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Analyze this image' },
+          {
+            type: 'input_image',
+            image_url: { url: 'https://example.com/cat.jpg', detail: 'high' },
+          },
+          {
+            type: 'image_url',
+            image_url: 'https://example.com/dog.png',
+          },
+        ],
+      },
+    ],
+  });
+  assert.strictEqual(chat.messages.length, 1);
+  const parts = chat.messages[0].content;
+  assert.strictEqual(parts.length, 3);
+  assert.strictEqual(parts[1].type, 'image_url');
+  assert.strictEqual(parts[1].image_url.url, 'https://example.com/cat.jpg');
+  assert.strictEqual(parts[1].image_url.detail, 'high');
+  assert.strictEqual(parts[2].type, 'image_url');
+  assert.strictEqual(parts[2].image_url.url, 'https://example.com/dog.png');
+}
+
+// Test 3: Tool is_error / status: 'error' preservation
+{
+  // Responses -> Chat: error status is preserved
+  const chatFromResp = openAIResponsesToChat({
+    model: 'gpt-4o',
+    input: [
+      {
+        type: 'function_call_output',
+        call_id: 'call_123',
+        output: 'Command failed: file not found',
+        status: 'error',
+      },
+    ],
+  });
+  assert.strictEqual(chatFromResp.messages.length, 1);
+  assert.strictEqual(chatFromResp.messages[0].role, 'tool');
+  assert.strictEqual(chatFromResp.messages[0].is_error, true);
+
+  // Chat -> Claude: is_error is preserved on tool_result
+  const claudeMsg = openAIChatToClaudeMessages(
+    {
+      messages: [
+        {
+          role: 'tool',
+          tool_call_id: 'call_123',
+          content: 'File not found',
+          is_error: true,
+        },
+      ],
+    },
+    'claude-3-7-sonnet'
+  );
+  assert.strictEqual(claudeMsg.messages.length, 1);
+  assert.strictEqual(claudeMsg.messages[0].content[0].type, 'tool_result');
+  assert.strictEqual(claudeMsg.messages[0].content[0].is_error, true);
+
+  // Chat -> Responses: is_error is preserved as status: 'error'
+  const respFromChat = openAIChatToResponsesRequest({
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'tool',
+        tool_call_id: 'call_123',
+        content: 'File not found',
+        is_error: true,
+      },
+    ],
+  });
+  assert.strictEqual(respFromChat.input[0].type, 'function_call_output');
+  assert.strictEqual(respFromChat.input[0].status, 'error');
+}
+
+// Test 4: Merging adjacent assistant messages retains reasoning_content
+{
+  const chat = openAIResponsesToChat({
+    model: 'gpt-4o',
+    input: [
+      { type: 'reasoning', text: 'Step 1: thinking' },
+      { role: 'assistant', content: 'Here is the result.' },
+    ],
+  });
+  assert.strictEqual(chat.messages.length, 1);
+  assert.strictEqual(chat.messages[0].role, 'assistant');
+  assert.strictEqual(chat.messages[0].content, 'Here is the result.');
+  assert.strictEqual(chat.messages[0].reasoning_content, 'Step 1: thinking');
+}
+
+// Test 5: max_completion_tokens for reasoning models (o1, o3, gpt-5)
+{
+  const chatO1 = openAIResponsesToChat({
+    model: 'o1-preview',
+    max_output_tokens: 16000,
+    input: 'hello',
+  });
+  assert.strictEqual(chatO1.max_completion_tokens, 16000);
+  assert.strictEqual(chatO1.max_tokens, undefined);
+
+  const chatGpt5 = openAIResponsesToChat({
+    model: 'gpt-5-preview',
+    max_output_tokens: 8000,
+    input: 'hello',
+  });
+  assert.strictEqual(chatGpt5.max_completion_tokens, 8000);
+  assert.strictEqual(chatGpt5.max_tokens, undefined);
+
+  const chatGpt4o = openAIResponsesToChat({
+    model: 'gpt-4o',
+    max_output_tokens: 4000,
+    input: 'hello',
+  });
+  assert.strictEqual(chatGpt4o.max_tokens, 4000);
+}
+
+// Test 6: json_schema response_format wrapper normalization
+{
+  const chat = openAIResponsesToChat({
+    model: 'gpt-4o',
+    input: 'Give JSON',
+    response_format: {
+      type: 'json_schema',
+      schema: { type: 'object', properties: { answer: { type: 'string' } } },
+    },
+  });
+  assert.strictEqual(chat.response_format.type, 'json_schema');
+  assert.ok(chat.response_format.json_schema);
+  assert.strictEqual(chat.response_format.json_schema.schema.type, 'object');
+}
+
+// Test 7: Responses -> Chat SSE streaming reasoning delta
+{
+  const events = [];
+  const clientRes = {
+    write(str) {
+      events.push(str);
+    },
+  };
+  const state = createChatStreamState();
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    'data: {"type":"response.reasoning.delta","delta":"thinking step 1"}\n\n' +
+      'data: {"type":"response.output_text.delta","delta":"Hello world"}\n\n' +
+      'data: {"type":"response.completed"}\n\n',
+    state
+  );
+  flushOpenAIResponsesSseToChat(clientRes, state);
+
+  const reasoningChunks = events
+    .filter((e) => e.startsWith('data:') && !e.includes('[DONE]'))
+    .map((e) => JSON.parse(e.replace(/^data:\s*/, '')))
+    .filter((chunk) => chunk.choices && chunk.choices[0].delta.reasoning_content);
+
+  assert.strictEqual(reasoningChunks.length, 1);
+  assert.strictEqual(reasoningChunks[0].choices[0].delta.reasoning_content, 'thinking step 1');
+}
+
+// Test 8: Responses -> Chat non-streaming reasoning extraction
+{
+  const chatResponse = openAIResponsesToChatResponse(
+    {
+      output: [
+        { type: 'reasoning', summary: 'I pondered deeply' },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'The answer is 42.' }],
+        },
+      ],
+    },
+    'gpt-4o'
+  );
+  assert.strictEqual(chatResponse.choices.length, 1);
+  assert.strictEqual(chatResponse.choices[0].message.content, 'The answer is 42.');
+  assert.strictEqual(chatResponse.choices[0].message.reasoning_content, 'I pondered deeply');
+}
+
+// Test 9: OpenAI -> Claude tool call stop_reason: 'tool_use'
+{
+  // 9a: Non-streaming OpenAI response to Claude message
+  const claudeRes = openAIResponseToClaudeMessage(
+    {
+      choices: [
+        {
+          finish_reason: 'tool_calls',
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'call_abc',
+                type: 'function',
+                function: { name: 'Read', arguments: '{"file_path":"foo.txt"}' },
+              },
+            ],
+          },
+        },
+      ],
+    },
+    'claude-3-7-sonnet'
+  );
+  assert.strictEqual(claudeRes.stop_reason, 'tool_use');
+
+  // 9b: Streaming OpenAI response to Claude
+  const sseEvents = [];
+  const sseRes = {
+    write(str) {
+      sseEvents.push(str);
+    },
+  };
+  const streamState = {
+    buffer: '',
+    textIndex: 0,
+    toolCalls: [{ id: 'call_1', name: 'Read', arguments: '{}', flushed: true }],
+    finishReason: 'tool_calls',
+    usage: { input_tokens: 10, output_tokens: 20 },
+  };
+  flushOpenAISseToClaude(sseRes, streamState);
+  const messageDeltaEvent = sseEvents.find((e) => e.includes('"type":"message_delta"'));
+  assert.ok(messageDeltaEvent);
+  assert.ok(messageDeltaEvent.includes('"stop_reason":"tool_use"'));
+}
+
+// Test 10: Gemini thought: true mapping to Claude thinking block
+{
+  const claudeFromGemini = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          finishReason: 'STOP',
+          content: {
+            parts: [
+              { text: 'Thinking about physics...', thought: true },
+              { text: 'E=mc^2 is the mass-energy equivalence.' },
+            ],
+          },
+        },
+      ],
+    },
+    'gemini-2.5-flash',
+    []
+  );
+  assert.strictEqual(claudeFromGemini.content.length, 2);
+  assert.strictEqual(claudeFromGemini.content[0].type, 'thinking');
+  assert.strictEqual(claudeFromGemini.content[0].thinking, 'Thinking about physics...');
+  assert.strictEqual(claudeFromGemini.content[1].type, 'text');
+  assert.strictEqual(claudeFromGemini.content[1].text, 'E=mc^2 is the mass-energy equivalence.');
 }
 
 console.log('[responses-protocol.test] ok');

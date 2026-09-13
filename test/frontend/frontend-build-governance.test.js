@@ -65,6 +65,17 @@ assert.equal(
   fs.existsSync(path.join(frontendSourceRoot, 'app', 'models', 'configuration.js')),
   true
 );
+for (const modelName of ['profile-save.js', 'proxy-command.js']) {
+  const modelPath = path.join(frontendSourceRoot, 'app', 'models', modelName);
+  assert.equal(fs.existsSync(modelPath), true, `${modelName} must live under app/models`);
+  assert.deepEqual(
+    extractStaticImports(fs.readFileSync(modelPath, 'utf8')).filter((specifier) =>
+      specifier.startsWith('.')
+    ),
+    [],
+    `${modelName} must remain dependency-free`
+  );
+}
 assert.equal(fs.existsSync(path.join(frontendSourceRoot, 'modules')), false);
 assert.ok(
   read('tauri-ui/src/app/bootstrap.js').split(/\r?\n/).length <= 4000,
@@ -101,7 +112,8 @@ for (const domainName of [
       .every(
         (specifier) =>
           specifier === '../runtime/dependencies.js' ||
-          specifier === '../runtime/frontend-errors.js'
+          specifier === '../runtime/frontend-errors.js' ||
+          (domainName === 'bridge.js' && specifier === '../models/proxy-command.js')
       ),
     true,
     `${domainName} may import runtime boundaries but not bootstrap or other domains`

@@ -183,6 +183,27 @@ function waitForEnd(req, invoke) {
   assert.strictEqual(logsRes.statusCode, 200);
   assert.strictEqual(JSON.parse(logsRes.body).logs, 'second\nthird');
 
+  // Test handleLocalMcpHubToolsRequest
+  const toolsRes = createRes();
+  await handlers.handleLocalMcpHubToolsRequest(emptyReq('/v1/local/mcp-hub/tools'), toolsRes);
+  assert.strictEqual(toolsRes.statusCode, 200);
+  const toolsJson = JSON.parse(toolsRes.body);
+  assert.strictEqual(toolsJson.ok, true);
+
+  // Test handleLocalMcpHubToolsRequest 404 on missing server
+  const missingToolsRes = createRes();
+  await handlers.handleLocalMcpHubToolsRequest(
+    emptyReq('/v1/local/mcp-hub/tools?serverId=non-existent'),
+    missingToolsRes
+  );
+  assert.strictEqual(missingToolsRes.statusCode, 404);
+
+  // Test handleLocalMcpHubExecuteRequest validation
+  const execBadRes = await waitForEnd(jsonReq('/v1/local/mcp-hub/execute', {}), (req, res) => {
+    handlers.handleLocalMcpHubExecuteRequest(req, res);
+  });
+  assert.strictEqual(execBadRes.statusCode, 400);
+
   console.log('[management-mcp.test] ok');
 })()
   .catch((err) => {

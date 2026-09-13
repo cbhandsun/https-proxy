@@ -1,5 +1,6 @@
 import { bindDomainDependencies } from '../runtime/dependencies.js';
 import { reportFrontendError } from '../runtime/frontend-errors.js';
+import { executeHealthCommand } from '../models/proxy-command.js';
 
 let bridgeDependencies;
 
@@ -226,6 +227,9 @@ const fetchLocalJsonWithAuth = async (path, options = {}, timeoutMs = 7000) => {
   return fetchJsonWithTimeout(`${getApiBase()}${path}`, options, timeoutMs);
 };
 
+const runHealthCommand = () =>
+  executeHealthCommand(() => fetchJsonWithTimeout(`${getApiBase()}/v1/local/health`, {}, 7000));
+
 async function clearAuditConversationsNative() {
   const invoke = window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke;
   if (!invoke) return null;
@@ -320,8 +324,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           err && err.message
             ? `保存配置失败：${err.message}`
             : '保存配置失败，请确认静态中转及代理在运行中';
-        bridgeDependencies.showToast(message, 'error');
-        throw err;
+        throw new Error(message, { cause: err });
       }
     },
     revealEntryAuthKey: async (keyId) => {
@@ -600,7 +603,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
     restoreClaudeDesktop: async () => {
       try {
         return await fetchJsonWithTimeout(
-          getApiBase() + '/v1/local/claude-desktop/restore',
+          `${getApiBase()}/v1/local/claude-desktop/restore`,
           { method: 'POST' },
           10000
         );
@@ -608,6 +611,50 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         return { ok: false, error: err.message };
       }
     },
+    claudeDesktopSyncMcp: () =>
+      fetchJsonWithTimeout(
+        `${getApiBase()}/v1/local/claude-desktop/sync-mcp`,
+        { method: 'POST' },
+        10000
+      ).catch((err) => ({ ok: false, error: err.message })),
+    claudeDesktopRestoreBackup: () =>
+      fetchJsonWithTimeout(
+        `${getApiBase()}/v1/local/claude-desktop/restore-backup`,
+        { method: 'POST' },
+        10000
+      ).catch((err) => ({ ok: false, error: err.message })),
+    clientActivity: (client, limit = 5) =>
+      fetchJsonWithTimeout(
+        `${getApiBase()}/v1/local/client-activity?client=${encodeURIComponent(client || '')}&limit=${limit}`,
+        {},
+        7000
+      ).catch((err) => ({ ok: false, error: err.message, activities: [] })),
+    applyPromptPresetToClient: (presetId, client) =>
+      fetchJsonWithTimeout(
+        `${getApiBase()}/v1/local/prompts/presets`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'apply', presetId, client }),
+        },
+        10000
+      ).catch((err) => ({ ok: false, error: err.message })),
+    mcpToolsList: (serverId) =>
+      fetchJsonWithTimeout(
+        `${getApiBase()}/v1/local/mcp-hub/tools${serverId ? `?serverId=${encodeURIComponent(serverId)}` : ''}`,
+        {},
+        10000
+      ).catch((err) => ({ ok: false, error: err.message, results: {} })),
+    mcpExecuteTool: (serverId, toolName, args) =>
+      fetchJsonWithTimeout(
+        `${getApiBase()}/v1/local/mcp-hub/execute`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serverId, toolName, arguments: args || {} }),
+        },
+        20000
+      ).catch((err) => ({ ok: false, error: err.message })),
     certStatus: async () => {
       if (window.__TAURI__ && window.__TAURI__.core && !isLocalDevOrigin()) {
         try {
@@ -694,6 +741,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
       }
     },
     command: async (cmd) => {
+      if (cmd === 'health') return runHealthCommand();
       if (window.__TAURI__ && window.__TAURI__.core) {
         try {
           return await window.__TAURI__.core.invoke('execute_proxy_command', { command: cmd });
@@ -712,17 +760,6 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
           reportFrontendError('proxy.browser_status', err);
         }
         return { output: '' };
-      }
-      if (cmd === 'health') {
-        try {
-          const res = await fetch(getApiBase() + '/v1/local/health');
-          const data = await res.json();
-          if (data.ok) {
-            return { code: 0, output: `代理服务健康检查：\n状态: ${data.status}\n一切正常！` };
-          }
-        } catch (err) {
-          return { code: -1, output: `健康检查失败：${err.message}` };
-        }
       }
       return {
         output: `非 Tauri 环境限制：无法直接通过网页控制代理进程。请在命令行手动执行：npm run start 或者是 node openai-proxy.js 启动/停止代理。`,
@@ -1234,6 +1271,7 @@ if (window.__TAURI__ && window.__TAURI__.core) {
     return await invoke('set_launch_on_login', { enabled });
   };
   window.proxyManager.command = async (command) => {
+    if (command === 'health') return runHealthCommand();
     try {
       const res = await invoke('execute_proxy_command', { command });
       const out = (res.output || '').toLowerCase();
