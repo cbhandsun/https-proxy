@@ -55,6 +55,39 @@ function wait(ms) {
 }
 
 (() => {
+  let capturedState = null;
+  const { state } = createState({
+    processOpenAIChatSseChunkToResponses(_res, _chunk, responseState) {
+      capturedState = responseState;
+    },
+  });
+  const bridge = state.createChatToResponsesBridge(
+    { write() {} },
+    {
+      model: 'gemini-3.8-flash',
+      input: [
+        {
+          type: 'additional_tools',
+          tools: [
+            {
+              type: 'namespace',
+              name: 'functions',
+              tools: [{ type: 'custom', name: 'exec', description: 'Run code' }],
+            },
+          ],
+        },
+        { role: 'user', content: 'hello' },
+      ],
+    },
+    'gemini-3.8-flash-tiered'
+  );
+
+  bridge.chatRes.write('data: {}\n\n');
+  assert.ok(capturedState.customToolNames.has('exec'));
+  assert.ok(bridge.responseState.customToolNames.has('exec'));
+})();
+
+(() => {
   const { state, calls } = createState();
   const proxyRes = createProxyRes();
   const clientRes = { headersSent: false };
