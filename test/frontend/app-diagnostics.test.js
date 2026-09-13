@@ -27,6 +27,25 @@ function loadDiagnosticsHelpers() {
       innerHTML: '',
       scrollTop: 0,
       scrollHeight: 0,
+      dataset: {},
+      classList: {
+        values: new Set(),
+        add(value) {
+          this.values.add(value);
+        },
+        remove(value) {
+          this.values.delete(value);
+        },
+        contains(value) {
+          return this.values.has(value);
+        },
+      },
+      setAttribute(name, value) {
+        this.attributes = this.attributes || {};
+        this.attributes[name] = String(value);
+      },
+      remove() {},
+      click() {},
       appendChild(child) {
         this.children.push(child);
         return child;
@@ -133,6 +152,11 @@ function loadDiagnosticsHelpers() {
   getElement('monitorSearch').value = '';
   getElement('monitorStatusFilter').value = 'all';
   vm.createContext(sandbox);
+  const modelSrc = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'models', 'inspection-view.js'),
+    'utf8'
+  );
+  vm.runInContext(stripEsmSyntax(modelSrc), sandbox);
   const src = fs.readFileSync(
     path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'diagnostics.js'),
     'utf8'
@@ -229,15 +253,61 @@ assert.ok(escapedDetails.includes('&lt;script'), 'monitor details are escapable 
 sandbox.monitorEvents = [event];
 helpers.renderMonitor();
 const monitorList = elements.get('monitorList');
-assert.equal(monitorList.children.length, 1, 'one monitor event is rendered');
-assert.equal(monitorList.children[0].children[0].children[0].textContent.includes('<img'), true);
-assert.equal(monitorList.children[0].children[1].textContent.includes('<script>'), true);
+assert.equal(monitorList.children.length, 1, 'one aggregated monitor request is rendered');
+const monitorCard = monitorList.children[0];
+assert.equal(monitorCard.className.includes('monitor-request'), true);
+assert.equal(
+  monitorCard.children[0].children[0].textContent.includes('/v1/messages'),
+  true,
+  'request title stays a plain text path'
+);
+assert.equal(
+  monitorCard.children[0].children[0].textContent.includes('<script>'),
+  true,
+  'unsafe path text is kept as plain text in the request title'
+);
+assert.equal(
+  monitorCard.children[1].textContent.includes('Error'),
+  true,
+  'error detail is surfaced on the aggregated request card'
+);
+assert.equal(
+  monitorCard.children[2].className,
+  'monitor-lifecycle',
+  'lifecycle detail is collapsed under the request card'
+);
+assert.equal(monitorCard.children[2].hidden, true);
 assert.equal(monitorList.innerHTML, '', 'monitor render does not assign HTML strings in test DOM');
 assert.equal(
   monitorList.textContent.includes('&lt;img'),
   false,
   'monitor DOM stores text, not escaped markup'
 );
+
+// Aggregation must keep one card per request and expose latency grading.
+const aggregated = sandbox.aggregateMonitorEvents([
+  {
+    kind: 'request_start',
+    reqId: 'r1',
+    time: '2026-06-12T00:00:00.000Z',
+    method: 'POST',
+    path: '/v1/messages',
+  },
+  {
+    kind: 'request_end',
+    reqId: 'r1',
+    time: '2026-06-12T00:00:07.000Z',
+    method: 'POST',
+    path: '/v1/messages',
+    elapsed: 7000,
+    statusCode: 200,
+  },
+]);
+assert.equal(aggregated.length, 1, 'start and end collapse into one request');
+assert.equal(aggregated[0].level, 'success');
+assert.equal(sandbox.classifyLatency(aggregated[0].elapsed), 'slow');
+assert.equal(sandbox.formatElapsedMs(aggregated[0].elapsed), '7.0s');
+assert.ok(helpers.createMonitorGroupElement(aggregated[0]));
 
 assert.equal(
   helpers.formatExternalIngressProbe({

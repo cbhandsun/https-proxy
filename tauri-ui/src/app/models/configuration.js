@@ -6,9 +6,9 @@ const MAX_SECRET_LENGTH = 4096;
 const DEFAULT_LOCAL_PORT = 3443;
 
 export const routeClientProtocolOptions = Object.freeze([
-  Object.freeze({ id: 'claude', label: 'Claude' }),
-  Object.freeze({ id: 'openai-chat', label: 'OpenAI Chat' }),
-  Object.freeze({ id: 'openai-responses', label: 'OpenAI Responses' }),
+  Object.freeze({ id: 'claude', label: 'Claude (3443/3080)' }),
+  Object.freeze({ id: 'openai-chat', label: 'OpenAI Chat (3447/3084)' }),
+  Object.freeze({ id: 'openai-responses', label: 'OpenAI Responses (3445/3085)' }),
 ]);
 
 export const recommendedClaudeClientModels = Object.freeze([
@@ -320,6 +320,7 @@ export function normalizeAppSettings(value, options = {}) {
     disableLocalProxy: false,
     verifyUpstreamTls: true,
     conversationAuditEnabled: true,
+    conversationAuditCaptureContent: false,
     forceResponseStreaming: false,
     forceChatStreaming: false,
     upstreamWarmupEnabled: false,

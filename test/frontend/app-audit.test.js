@@ -86,6 +86,11 @@ function loadAuditHelpers() {
     escapeAttr,
   };
   vm.createContext(sandbox);
+  const modelSrc = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'models', 'inspection-view.js'),
+    'utf8'
+  );
+  vm.runInContext(stripEsmSyntax(modelSrc), sandbox);
   const src = fs.readFileSync(
     path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'audit.js'),
     'utf8'
@@ -340,5 +345,71 @@ assert.ok(
   'recent model is text content'
 );
 assert.equal(recentTable.innerHTML, '', 'recent usage table does not use HTML strings');
+
+// The retry control must be disabled whenever a safe replay is impossible.
+function findElement(node, predicate) {
+  if (!node) return null;
+  if (predicate(node)) return node;
+  for (const child of node.children || []) {
+    const found = findElement(child, predicate);
+    if (found) return found;
+  }
+  return null;
+}
+
+const retryHeader = helpers.createAuditDetailHeaderElement({
+  id: 'audit-retry-1',
+  time: '2026-06-12T00:00:00.000Z',
+  protocol: 'claude',
+  statusCode: 200,
+  elapsed: 120,
+  request: { body: '', truncated: false },
+});
+const retryButton = findElement(retryHeader, (node) => node.id === 'retryAuditRequestBtn');
+assert.ok(retryButton, 'retry button is rendered on the audit detail header');
+assert.equal(
+  retryButton.disabled,
+  true,
+  'retry is disabled when the request body was not captured'
+);
+assert.ok(retryButton.title.includes('未保留请求体'), 'retry tooltip explains the disabled reason');
+
+const truncatedRetryHeader = helpers.createAuditDetailHeaderElement({
+  id: 'audit-retry-2',
+  time: '2026-06-12T00:00:00.000Z',
+  protocol: 'openai',
+  statusCode: 200,
+  elapsed: 120,
+  request: { body: '{}', truncated: true },
+});
+const truncatedRetryButton = findElement(
+  truncatedRetryHeader,
+  (node) => node.id === 'retryAuditRequestBtn'
+);
+assert.equal(truncatedRetryButton.disabled, true, 'retry is disabled for truncated request bodies');
+
+const replayableHeader = helpers.createAuditDetailHeaderElement({
+  id: 'audit-retry-3',
+  time: '2026-06-12T00:00:00.000Z',
+  protocol: 'claude',
+  statusCode: 200,
+  elapsed: 120,
+  request: { body: '{"model":"claude-opus-4"}', truncated: false },
+});
+const replayableButton = findElement(
+  replayableHeader,
+  (node) => node.id === 'retryAuditRequestBtn'
+);
+assert.equal(replayableButton.disabled, false, 'retry stays enabled for captured request bodies');
+assert.equal(replayableButton.title, '通过本地入口重放该请求');
+
+assert.ok(
+  /newestIndexedWindow/.test(src),
+  'audit list resolves clicked rows through the indexed paging window'
+);
+assert.ok(
+  !/record = filteredAuditRecords\(\)\[Number\(item\.dataset\.auditIndex\)\]/.test(src),
+  'audit list must not recompute the filter before resolving a clicked row'
+);
 
 console.log('app-audit.test.js ok');

@@ -7,8 +7,17 @@ let auditDependencies;
 export function configureAudit(dependencies) {
   auditDependencies = bindDomainDependencies('audit', dependencies, [
     '$',
+    'auditRetryAvailability',
+    'buildAuditExportCsv',
     'confirmAction',
     'escapeHtml',
+    'exportTimestamp',
+    'filterAuditRecords',
+    'formatElapsedMs',
+    'newestWindow',
+    'newestIndexedWindow',
+    'pageSize',
+    'sanitizeExportFileName',
     'showToast',
     'showView',
     'togglePromptsTab',
@@ -17,8 +26,13 @@ export function configureAudit(dependencies) {
 
 let selectedAuditRecordId = null;
 let cachedAuditRecords = [];
+let cachedFilteredAuditRecords = [];
+let auditVisibleCount = 0;
 let usageChartInstance = null;
 const AUDIT_LIST_LIMIT = 30;
+const AUDIT_LOAD_MORE_STEP = 50;
+const AUDIT_MAX_LIST_LIMIT = 500;
+const AUDIT_EXPORT_LIMIT = 500;
 const AUDIT_SNIPPET_CHARS = 180;
 const AUDIT_SYSTEM_PREVIEW_CHARS = 6000;
 const AUDIT_MESSAGE_PREVIEW_CHARS = 5000;
@@ -471,6 +485,61 @@ async function initPromptsAuditView() {
     refreshBtn.dataset.bound = 'true';
     refreshBtn.onclick = () => loadAuditRecords();
   }
+  const searchInput = auditDependencies.$('auditSearch');
+  if (searchInput && !searchInput.dataset.bound) {
+    searchInput.dataset.bound = 'true';
+    searchInput.oninput = () => {
+      auditVisibleCount = AUDIT_LIST_LIMIT;
+      renderAuditList();
+    };
+  }
+  for (const id of ['auditRangeFilter', 'auditStatusFilter']) {
+    const select = auditDependencies.$(id);
+    if (select && !select.dataset.bound) {
+      select.dataset.bound = 'true';
+      select.onchange = () => {
+        auditVisibleCount = AUDIT_LIST_LIMIT;
+        renderAuditList();
+      };
+    }
+  }
+  const loadMoreBtn = auditDependencies.$('auditLoadMore');
+  if (loadMoreBtn && !loadMoreBtn.dataset.bound) {
+    loadMoreBtn.dataset.bound = 'true';
+    loadMoreBtn.onclick = () => {
+      const filtered = filteredAuditRecords();
+      auditVisibleCount = Math.min(
+        (auditVisibleCount || AUDIT_LIST_LIMIT) + AUDIT_LOAD_MORE_STEP,
+        AUDIT_MAX_LIST_LIMIT
+      );
+      if (
+        auditVisibleCount > cachedAuditRecords.length &&
+        cachedAuditRecords.length < AUDIT_MAX_LIST_LIMIT
+      ) {
+        loadAuditRecords({ limit: auditVisibleCount, keepVisible: true });
+        return;
+      }
+      if (filtered.length === 0) return;
+      renderAuditList();
+    };
+  }
+  for (const [id, format] of [
+    ['exportAuditJson', 'json'],
+    ['exportAuditCsv', 'csv'],
+  ]) {
+    const btn = auditDependencies.$(id);
+    if (btn && !btn.dataset.bound) {
+      btn.dataset.bound = 'true';
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+          await exportAuditRecords(format);
+        } finally {
+          btn.disabled = false;
+        }
+      };
+    }
+  }
   if (clearBtn && !clearBtn.dataset.bound) {
     clearBtn.dataset.bound = 'true';
     clearBtn.onclick = () => {
@@ -734,30 +803,129 @@ function createUsageRecentElement(rows) {
   return table;
 }
 
-async function loadAuditRecords() {
+function auditFilterValue(id, fallback) {
+  const element = auditDependencies.$(id);
+  return element && typeof element.value === 'string' ? element.value : fallback;
+}
+
+// Filters are applied to the records already in memory, so typing or moving a
+// range never triggers another disk read.
+function filteredAuditRecords() {
+  return auditDependencies.filterAuditRecords(cachedAuditRecords, {
+    query: auditFilterValue('auditSearch', ''),
+    range: auditFilterValue('auditRangeFilter', 'all'),
+    status: auditFilterValue('auditStatusFilter', 'all'),
+  });
+}
+
+function auditRecordKey(record, index) {
+  return `${String(record.time || '')}_${index}`;
+}
+
+function syncAuditToolbar(filteredCount, visibleCount) {
+  const summary = auditDependencies.$('auditStatusSummary');
+  if (summary)
+    summary.textContent =
+      filteredCount === 0
+        ? '没有符合条件的记录'
+        : `共 ${filteredCount} 条记录，显示 ${visibleCount} 条`;
+  const loadMore = auditDependencies.$('auditLoadMore');
+  if (loadMore) loadMore.hidden = visibleCount >= filteredCount;
+}
+
+function renderAuditList() {
   const listContainer = auditDependencies.$('auditHistoryList');
   if (!listContainer) return;
+  const filtered = filteredAuditRecords();
+  cachedFilteredAuditRecords = filtered;
+  const limit = auditDependencies.pageSize(
+    auditVisibleCount || AUDIT_LIST_LIMIT,
+    AUDIT_LIST_LIMIT,
+    AUDIT_MAX_LIST_LIMIT
+  );
+  const visible = auditDependencies.newestIndexedWindow(filtered, limit);
+  syncAuditToolbar(filtered.length, visible.length);
+
+  listContainer.textContent = '';
+  if (!listContainer.dataset.delegated) {
+    listContainer.dataset.delegated = 'true';
+    listContainer.onclick = (event) => {
+      const item = event.target.closest('.audit-item[data-audit-index]');
+      if (!item || !listContainer.contains(item)) return;
+      const record = cachedFilteredAuditRecords[Number(item.dataset.auditIndex)];
+      if (!record) return;
+      document.querySelectorAll('.audit-item').forEach((el) => el.classList.remove('active'));
+      item.classList.add('active');
+      selectedAuditRecordId = item.dataset.auditId;
+      setAuditDetailPlaceholder('正在渲染详情...');
+      requestAnimationFrame(() => renderAuditDetail(record));
+    };
+  }
+
+  if (visible.length === 0) {
+    const hasAny = cachedAuditRecords.length > 0;
+    listContainer.appendChild(
+      createAuditNoticeElement(
+        hasAny ? '没有符合条件的审计记录，试试放宽筛选条件。' : '暂无对话审计记录'
+      )
+    );
+    setAuditDetailPlaceholder(hasAny ? '当前筛选没有匹配记录' : '选择左侧记录查看详情');
+    return;
+  }
+
+  visible.forEach(({ item: record, index }) => {
+    const recordId = auditRecordKey(record, index);
+    listContainer.appendChild(
+      createAuditHistoryItemElement(record, index, recordId, selectedAuditRecordId === recordId)
+    );
+  });
+
+  if (selectedAuditRecordId) {
+    const foundIndex = visible.findIndex(
+      ({ item: record, index }) => auditRecordKey(record, index) === selectedAuditRecordId
+    );
+    if (foundIndex >= 0) {
+      if (listContainer.children[foundIndex])
+        listContainer.children[foundIndex].classList.add('active');
+      setAuditDetailPlaceholder('正在渲染详情...');
+      requestAnimationFrame(() => renderAuditDetail(visible[foundIndex].item));
+      return;
+    }
+  }
+
+  selectedAuditRecordId = null;
+  setAuditDetailPlaceholder(`已加载 ${visible.length} 条记录，选择一条查看详情`);
+}
+
+function auditReadErrorMessage(rawRes) {
+  if (!rawRes) return '未知错误';
+  if (rawRes.error) {
+    return typeof rawRes.error === 'object'
+      ? rawRes.error.message || JSON.stringify(rawRes.error)
+      : String(rawRes.error);
+  }
+  return JSON.stringify(rawRes);
+}
+
+async function loadAuditRecords(options = {}) {
+  const listContainer = auditDependencies.$('auditHistoryList');
+  if (!listContainer) return;
+  const limit = auditDependencies.pageSize(
+    options.limit != null ? options.limit : AUDIT_LIST_LIMIT,
+    AUDIT_LIST_LIMIT,
+    AUDIT_MAX_LIST_LIMIT
+  );
+  if (!options.keepVisible) auditVisibleCount = limit;
   listContainer.textContent = '';
   listContainer.appendChild(createAuditNoticeElement('正在加载对话审计日志...'));
 
   try {
-    const rawRes = await window.proxyManager.readAuditConversations(AUDIT_LIST_LIMIT);
+    const rawRes = await window.proxyManager.readAuditConversations(limit);
     const res = rawRes && Array.isArray(rawRes.conversations) ? rawRes.conversations : rawRes;
     if (!res || !Array.isArray(res)) {
-      let errMsg = '未知错误';
-      if (rawRes) {
-        if (rawRes.error) {
-          errMsg =
-            typeof rawRes.error === 'object'
-              ? rawRes.error.message || JSON.stringify(rawRes.error)
-              : rawRes.error;
-        } else {
-          errMsg = JSON.stringify(rawRes);
-        }
-      }
       listContainer.textContent = '';
       listContainer.appendChild(
-        createAuditNoticeElement(errMsg, {
+        createAuditNoticeElement(auditReadErrorMessage(rawRes), {
           danger: true,
           breakAll: true,
           prefix: '读取审计日志失败：',
@@ -767,53 +935,7 @@ async function loadAuditRecords() {
     }
 
     cachedAuditRecords = res;
-    listContainer.textContent = '';
-    if (!listContainer.dataset.delegated) {
-      listContainer.dataset.delegated = 'true';
-      listContainer.onclick = (event) => {
-        const item = event.target.closest('.audit-item[data-audit-index]');
-        if (!item || !listContainer.contains(item)) return;
-        const record = cachedAuditRecords[Number(item.dataset.auditIndex)];
-        if (!record) return;
-        document.querySelectorAll('.audit-item').forEach((el) => el.classList.remove('active'));
-        item.classList.add('active');
-        selectedAuditRecordId = item.dataset.auditId;
-        setAuditDetailPlaceholder('正在渲染详情...');
-        requestAnimationFrame(() => renderAuditDetail(record));
-      };
-    }
-
-    if (res.length === 0) {
-      renderEmptyAuditState();
-      return;
-    }
-
-    res.forEach((record, index) => {
-      const recordId = record.time + '_' + index;
-      const item = createAuditHistoryItemElement(
-        record,
-        index,
-        recordId,
-        selectedAuditRecordId === recordId
-      );
-      listContainer.appendChild(item);
-    });
-
-    // 默认选中第一个或保持之前的选中项
-    if (selectedAuditRecordId) {
-      const found = res.find((r, idx) => r.time + '_' + idx === selectedAuditRecordId);
-      if (found) {
-        const foundIndex = res.findIndex((r, idx) => r.time + '_' + idx === selectedAuditRecordId);
-        if (foundIndex >= 0 && listContainer.children[foundIndex])
-          listContainer.children[foundIndex].classList.add('active');
-        setAuditDetailPlaceholder('正在渲染详情...');
-        requestAnimationFrame(() => renderAuditDetail(found));
-        return;
-      }
-    }
-
-    selectedAuditRecordId = null;
-    setAuditDetailPlaceholder(`已加载最近 ${res.length} 条记录，选择一条查看详情`);
+    renderAuditList();
   } catch (err) {
     listContainer.textContent = '';
     listContainer.appendChild(
@@ -824,6 +946,54 @@ async function loadAuditRecords() {
       })
     );
   }
+}
+
+function downloadAuditExport(fileName, text, mimeType) {
+  const blob = new Blob([text], { type: `${mimeType};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function auditExportFileName(extension) {
+  const stamp = auditDependencies.exportTimestamp(new Date());
+  return `${auditDependencies.sanitizeExportFileName('audit-' + stamp, 'audit')}.${extension}`;
+}
+
+async function exportAuditRecords(format) {
+  const rawRes = await window.proxyManager.readAuditConversations(AUDIT_EXPORT_LIMIT);
+  const res = rawRes && Array.isArray(rawRes.conversations) ? rawRes.conversations : rawRes;
+  if (!res || !Array.isArray(res)) {
+    auditDependencies.showToast('导出失败：' + auditReadErrorMessage(rawRes), 'error');
+    return;
+  }
+  if (res.length === 0) {
+    auditDependencies.showToast('当前没有可导出的审计记录', 'error');
+    return;
+  }
+  if (format === 'csv') {
+    const csv = auditDependencies.buildAuditExportCsv(res);
+    downloadAuditExport(auditExportFileName('csv'), csv, 'text/csv');
+  } else {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      source: 'https-proxy-manager/audit',
+      recordCount: res.length,
+      records: res,
+    };
+    downloadAuditExport(
+      auditExportFileName('json'),
+      JSON.stringify(payload, null, 2),
+      'application/json'
+    );
+  }
+  auditDependencies.showToast(`已导出 ${res.length} 条审计记录`);
 }
 
 function formatRecordToMarkdown(record) {
@@ -972,8 +1142,11 @@ function createAuditDetailHeaderElement(record) {
   retry.style.padding = '2px 8px';
   retry.style.minHeight = '24px';
   retry.style.borderRadius = 'var(--radius-sm)';
-  retry.disabled = !record.id;
   retry.textContent = '重试';
+  const retryAvailability = auditDependencies.auditRetryAvailability(record);
+  retry.disabled = !retryAvailability.available;
+  if (!retryAvailability.available) retry.title = retryAvailability.reason;
+  else retry.title = '通过本地入口重放该请求';
   title.appendChild(retry);
 
   const exportBtn = document.createElement('button');

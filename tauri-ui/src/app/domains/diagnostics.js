@@ -11,18 +11,28 @@ export function configureDiagnostics(dependencies) {
     'LOG_REQUEST_MAX_BYTES',
     'MONITOR_RENDER_WINDOW',
     'MONITOR_SEARCH_BODY_LIMIT',
+    'aggregateMonitorEvents',
+    'buildMonitorExportPayload',
     'checkProxyHealth',
+    'classifyLatency',
     'cliSessionsTimer',
     'confirmAction',
     'config',
     'debounce',
+    'exportTimestamp',
     'ensureProxyRecovered',
+    'filterMonitorGroups',
+    'formatElapsedMs',
     'hydrateConfigAfterStartup',
     'isCodeToolsVisible',
+    'monitorGroupStatusLabel',
+    'newestWindow',
+    'pageSize',
     'perfStart',
     'refreshCertStatus',
     'refreshCliSessions',
     'refreshProxyStatus',
+    'sanitizeExportFileName',
     'sharedAppState',
     'sharedCliState',
     'showDiagnosticsTab',
@@ -150,6 +160,7 @@ function getViewDomCache() {
 
 async function refreshMonitor(options = {}) {
   if (diagnosticsDependencies.sharedAppState.monitorRefreshInFlight) return;
+  if (diagnosticsDependencies.sharedAppState.monitorPaused) return;
   diagnosticsDependencies.sharedAppState.monitorRefreshInFlight = true;
   const finishPerf = diagnosticsDependencies.perfStart('refresh.monitor');
   try {
@@ -296,60 +307,150 @@ function createMonitorEventElement(event) {
   return item;
 }
 
-function renderMonitor() {
-  const container = diagnosticsDependencies.$('monitorList');
-  const shouldScroll = diagnosticsDependencies.$('autoScrollMonitor').checked;
-  const query = (diagnosticsDependencies.$('monitorSearch').value || '').toLowerCase().trim();
-  const statusFilter = diagnosticsDependencies.$('monitorStatusFilter').value;
+function monitorGroupTitle(group) {
+  const method = String(group.method || 'REQUEST').trim();
+  const path = String(group.path || '').trim() || '(unknown path)';
+  const status = group.statusCode == null ? '' : ` -> ${group.statusCode}`;
+  return `${method} ${path}${status}`;
+}
 
-  let filteredEvents = diagnosticsDependencies.sharedAppState.monitorEvents;
+function monitorGroupDetails(group) {
+  const parts = [];
+  if (group.profileName) parts.push(`Profile: ${group.profileName}`);
+  if (group.protocol) parts.push(`Protocol: ${group.protocol}`);
+  if (group.elapsed != null)
+    parts.push(`Elapsed: ${diagnosticsDependencies.formatElapsedMs(group.elapsed)}`);
+  if (group.sourceModel || group.targetModel) {
+    parts.push(`Model: ${group.sourceModel || '-'} -> ${group.targetModel || '-'}`);
+  }
+  if (group.reqId) parts.push(`Req: ${group.reqId}`);
+  if (group.clientIp) parts.push(`Client: ${group.clientIp}`);
+  if (group.error) parts.push(`Error: ${group.error}`);
+  if (group.events.length > 1) parts.push(`${group.events.length} 条 lifecycle 事件`);
+  return parts.join(' | ');
+}
 
-  if (query || statusFilter !== 'all') {
-    filteredEvents = diagnosticsDependencies.sharedAppState.monitorEvents.filter((event) => {
-      // Status filter
-      if (statusFilter === 'success') {
-        if (event.kind === 'request_end' && (event.statusCode < 200 || event.statusCode >= 300))
-          return false;
-        if (event.kind !== 'request_end') return false;
-      } else if (statusFilter === 'error') {
-        if (event.kind === 'upstream_error' || event.kind === 'proxy_error') {
-          // matched
-        } else if (event.kind === 'request_end' && event.statusCode >= 400) {
-          // matched
-        } else {
-          return false;
-        }
-      } else if (statusFilter === 'route') {
-        if (event.kind !== 'route') return false;
-      }
+function monitorGroupBorderColor(group) {
+  if (group.level === 'error') return 'var(--danger)';
+  if (group.level === 'success') return '#10b981';
+  return 'var(--border)';
+}
 
-      if (query) {
-        const searchText = event.__searchText || prepareMonitorEvent(event).__searchText || '';
-        if (!searchText.includes(query)) return false;
-      }
+function createMonitorGroupElement(group) {
+  const item = document.createElement('div');
+  item.className = 'profile monitor-request';
+  item.style.cursor = 'pointer';
+  item.style.padding = '10px';
+  item.style.borderLeft = `4px solid ${monitorGroupBorderColor(group)}`;
+  if (group.groupKey) item.dataset.monitorGroup = group.groupKey;
 
-      return true;
-    });
+  const header = document.createElement('div');
+  header.className = 'profile-title';
+  const strong = document.createElement('strong');
+  strong.style.fontSize = '13px';
+  strong.textContent = monitorGroupTitle(group);
+  header.appendChild(strong);
+
+  const badge = document.createElement('span');
+  badge.className = `badge ${group.level === 'error' ? 'error' : group.level === 'success' ? 'active' : 'protocol'}`;
+  badge.textContent = diagnosticsDependencies.monitorGroupStatusLabel(group);
+  header.appendChild(badge);
+
+  if (group.elapsed != null) {
+    const latency = document.createElement('span');
+    latency.className = 'badge';
+    const level = diagnosticsDependencies.classifyLatency(group.elapsed);
+    latency.textContent = `${diagnosticsDependencies.formatElapsedMs(group.elapsed)}${latencySuffix(level)}`;
+    if (level === 'slow' || level === 'very-slow') latency.classList.add('error');
+    header.appendChild(latency);
   }
 
-  const visibleEvents = filteredEvents
-    .slice(-diagnosticsDependencies.MONITOR_RENDER_WINDOW)
-    .reverse();
-  const omittedEvents = Math.max(0, filteredEvents.length - visibleEvents.length);
-  const viewModels = visibleEvents.map(
-    (event) => event.__monitorView || prepareMonitorEvent(event).__monitorView
+  const detail = document.createElement('div');
+  detail.className = 'muted';
+  detail.style.marginTop = '4px';
+  detail.textContent = monitorGroupDetails(group);
+
+  item.appendChild(header);
+  item.appendChild(detail);
+
+  const lifecycle = document.createElement('div');
+  lifecycle.className = 'monitor-lifecycle';
+  lifecycle.hidden = true;
+  group.events.forEach((event) => lifecycle.appendChild(createMonitorEventElement(event)));
+  item.appendChild(lifecycle);
+
+  item.onclick = () => {
+    lifecycle.hidden = !lifecycle.hidden;
+  };
+  return item;
+}
+
+function latencySuffix(level) {
+  if (level === 'very-slow') return ' 极慢';
+  if (level === 'slow') return ' 偏慢';
+  return '';
+}
+
+function currentMonitorGroups() {
+  const query = diagnosticsDependencies.$('monitorSearch').value || '';
+  const status = diagnosticsDependencies.$('monitorStatusFilter').value || 'all';
+  const range = diagnosticsDependencies.$('monitorRangeFilter')
+    ? diagnosticsDependencies.$('monitorRangeFilter').value
+    : 'all';
+  const groups = diagnosticsDependencies.aggregateMonitorEvents(
+    diagnosticsDependencies.sharedAppState.monitorEvents
   );
+  return diagnosticsDependencies.filterMonitorGroups(groups, { query, status, range });
+}
+
+function monitorVisibleLimit() {
+  return diagnosticsDependencies.pageSize(
+    diagnosticsDependencies.sharedAppState.monitorVisibleCount,
+    diagnosticsDependencies.MONITOR_RENDER_WINDOW,
+    diagnosticsDependencies.MONITOR_RENDER_WINDOW * 10
+  );
+}
+
+function syncMonitorToolbar(summary, omitted) {
+  const summaryEl = diagnosticsDependencies.$('monitorStatusSummary');
+  if (summaryEl) summaryEl.textContent = summary;
+  const loadMore = diagnosticsDependencies.$('monitorLoadMore');
+  if (loadMore) loadMore.hidden = omitted <= 0;
+}
+
+function renderMonitor() {
+  const container = diagnosticsDependencies.$('monitorList');
+  if (!container) return;
+  const shouldScroll = diagnosticsDependencies.$('autoScrollMonitor').checked;
+  const filteredGroups = currentMonitorGroups();
+  const limit = monitorVisibleLimit();
+  const windowed = diagnosticsDependencies.newestWindow(filteredGroups, limit).reverse();
+  const omitted = Math.max(0, filteredGroups.length - windowed.length);
+  syncMonitorToolbar(
+    filteredGroups.length === 0
+      ? '暂无符合条件的请求'
+      : `共 ${filteredGroups.length} 个请求，显示最新 ${windowed.length} 个`,
+    omitted
+  );
+
   const renderSignature = JSON.stringify({
-    omittedEvents,
-    visibleEvents: viewModels,
+    omitted,
+    groups: windowed.map((group) => ({
+      id: group.id,
+      title: monitorGroupTitle(group),
+      details: monitorGroupDetails(group),
+      status: diagnosticsDependencies.monitorGroupStatusLabel(group),
+      level: group.level,
+      elapsed: group.elapsed,
+      count: group.events.length,
+    })),
   });
   if (renderSignature === diagnosticsDependencies.sharedAppState.lastRenderedMonitorHtml) return;
   diagnosticsDependencies.sharedAppState.lastRenderedMonitorHtml = renderSignature;
   container.textContent = '';
-  if (omittedEvents)
-    container.appendChild(createMonitorSummaryElement(visibleEvents.length, omittedEvents));
-  if (visibleEvents.length) {
-    visibleEvents.forEach((event) => container.appendChild(createMonitorEventElement(event)));
+  if (omitted > 0) container.appendChild(createMonitorSummaryElement(windowed.length, omitted));
+  if (windowed.length) {
+    windowed.forEach((group) => container.appendChild(createMonitorGroupElement(group)));
   } else {
     container.appendChild(createMonitorEmptyElement('暂无符合条件的请求记录...'));
   }
@@ -365,8 +466,11 @@ if (typeof window !== 'undefined') {
     logLineClassName,
     renderLogLines,
     createMonitorEventElement,
+    createMonitorGroupElement,
     prepareMonitorEvent,
     renderMonitor,
+    monitorGroupTitle,
+    monitorGroupDetails,
     formatExternalIngressProbe,
   };
 }
@@ -447,6 +551,80 @@ function bindDiagnosticsControls() {
   diagnosticsDependencies.$('monitorSearch').dataset.bound = 'true';
   diagnosticsDependencies.$('monitorStatusFilter').onchange = renderMonitor;
   diagnosticsDependencies.$('monitorStatusFilter').dataset.bound = 'true';
+  const monitorRangeFilter = diagnosticsDependencies.$('monitorRangeFilter');
+  if (monitorRangeFilter) {
+    monitorRangeFilter.onchange = renderMonitor;
+    monitorRangeFilter.dataset.bound = 'true';
+  }
+  const monitorLoadMore = diagnosticsDependencies.$('monitorLoadMore');
+  if (monitorLoadMore && monitorLoadMore.dataset.monitorBound !== 'true') {
+    monitorLoadMore.dataset.monitorBound = 'true';
+    monitorLoadMore.onclick = () => {
+      const next = monitorVisibleLimit() + diagnosticsDependencies.MONITOR_RENDER_WINDOW * 3;
+      diagnosticsDependencies.sharedAppState.monitorVisibleCount = next;
+      diagnosticsDependencies.sharedAppState.lastRenderedMonitorHtml = null;
+      renderMonitor();
+    };
+  }
+  const pauseMonitorBtn = diagnosticsDependencies.$('pauseMonitor');
+  if (pauseMonitorBtn && pauseMonitorBtn.dataset.monitorBound !== 'true') {
+    pauseMonitorBtn.dataset.monitorBound = 'true';
+    pauseMonitorBtn.onclick = () => {
+      const paused = !diagnosticsDependencies.sharedAppState.monitorPaused;
+      diagnosticsDependencies.sharedAppState.monitorPaused = paused;
+      pauseMonitorBtn.textContent = paused ? '继续直播' : '暂停直播';
+      pauseMonitorBtn.classList.toggle('active', paused);
+      if (!paused) {
+        diagnosticsDependencies.sharedAppState.lastEventTime = null;
+        diagnosticsDependencies.sharedAppState.monitorEvents = [];
+        refreshMonitor();
+      } else {
+        diagnosticsDependencies.showToast('已暂停实时监控，新事件将在恢复后加载');
+      }
+    };
+  }
+  const exportMonitorBtn = diagnosticsDependencies.$('exportMonitorJson');
+  if (exportMonitorBtn && exportMonitorBtn.dataset.monitorBound !== 'true') {
+    exportMonitorBtn.dataset.monitorBound = 'true';
+    exportMonitorBtn.onclick = () => {
+      const groups = currentMonitorGroups();
+      if (groups.length === 0) {
+        diagnosticsDependencies.showToast('当前没有可导出的监控记录', 'error');
+        return;
+      }
+      const payload = diagnosticsDependencies.buildMonitorExportPayload(groups, {
+        range: diagnosticsDependencies.$('monitorRangeFilter')
+          ? diagnosticsDependencies.$('monitorRangeFilter').value
+          : 'all',
+        status: diagnosticsDependencies.$('monitorStatusFilter').value,
+        query: diagnosticsDependencies.$('monitorSearch').value,
+      });
+      const fileName = diagnosticExportFileName('monitor', 'json');
+      downloadTextFile(fileName, JSON.stringify(payload, null, 2), 'application/json');
+      diagnosticsDependencies.showToast(`已导出 ${payload.requestCount} 个请求到 ${fileName}`);
+    };
+  }
+}
+
+function diagnosticExportFileName(prefix, extension) {
+  const stamp = diagnosticsDependencies.exportTimestamp(new Date());
+  const safePrefix = diagnosticsDependencies.sanitizeExportFileName(`${prefix}-${stamp}`, prefix);
+  return `${safePrefix}.${extension}`;
+}
+
+// The monitor lives in the WebView, so a Blob download keeps the export local
+// to the user's machine without adding a native round trip.
+function downloadTextFile(fileName, text, mimeType) {
+  const blob = new Blob([text], { type: `${mimeType};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function scrollLogToBottom(targetId = 'log') {

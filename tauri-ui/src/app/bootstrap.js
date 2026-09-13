@@ -1,5 +1,6 @@
 import { configureBridge, getApiBase, checkProxyHealth } from './domains/bridge.js';
 import { configureAudit, initPromptsAuditView, initUsageReportView } from './domains/audit.js';
+import { createAppSettingsForm } from './domains/app-settings-form.js';
 import {
   codexDesktopModePayload,
   renderCodexDesktopModelOptions as renderCodexDesktopModelOptionsControl,
@@ -81,6 +82,7 @@ import {
   splitEntryAuthList,
 } from './models/configuration.js';
 import { buildProfileSaveCandidate } from './models/profile-save.js';
+import * as inspectionView from './models/inspection-view.js';
 import {
   applyClaudeDesktopBadges,
   bindToolIntegrationActions,
@@ -378,23 +380,14 @@ async function applyTopMenuVisibility(show) {
   }
 }
 
-function fillAppSettings() {
-  ensureAppSettings();
-  $('closeToTray').checked = config.appSettings.closeToTray;
-  $('stopProxyOnExit').checked = config.appSettings.stopProxyOnExit;
-  $('autoStartProxy').checked = config.appSettings.autoStartProxy;
-  $('launchOnLogin').checked = config.appSettings.launchOnLogin;
-  $('showTopMenu').checked = config.appSettings.showTopMenu;
-  $('showTrayMenu').checked = config.appSettings.showTrayMenu;
-  $('showWindowOnTrayCommand').checked = config.appSettings.showWindowOnTrayCommand;
-  $('desktopNotifications').checked = config.appSettings.desktopNotifications;
-  $('disableLocalProxy').checked = config.appSettings.disableLocalProxy;
-  $('verifyUpstreamTls').checked = config.appSettings.verifyUpstreamTls;
-  $('conversationAuditEnabled').checked = config.appSettings.conversationAuditEnabled;
-  $('performanceMode').checked = config.appSettings.performanceMode;
-  applyPerformanceMode(config.appSettings.performanceMode);
-  void refreshLaunchOnLogin();
-}
+const appSettingsForm = createAppSettingsForm({
+  applyPerformanceMode,
+  ensureAppSettings,
+  getConfig: () => config,
+  getElement: $,
+  refreshLaunchOnLogin,
+});
+const fillAppSettings = appSettingsForm.fillAppSettings;
 
 async function refreshLaunchOnLogin() {
   const input = $('launchOnLogin');
@@ -445,23 +438,7 @@ async function applyLaunchOnLogin() {
   }
 }
 
-function collectAppSettings() {
-  config.appSettings = {
-    ...(config.appSettings || {}),
-    closeToTray: $('closeToTray').checked,
-    stopProxyOnExit: $('stopProxyOnExit').checked,
-    autoStartProxy: $('autoStartProxy').checked,
-    launchOnLogin: $('launchOnLogin').checked,
-    showTopMenu: $('showTopMenu').checked,
-    showTrayMenu: $('showTrayMenu').checked,
-    showWindowOnTrayCommand: $('showWindowOnTrayCommand').checked,
-    desktopNotifications: $('desktopNotifications').checked,
-    disableLocalProxy: $('disableLocalProxy').checked,
-    verifyUpstreamTls: $('verifyUpstreamTls').checked,
-    conversationAuditEnabled: $('conversationAuditEnabled').checked,
-    performanceMode: $('performanceMode').checked,
-  };
-}
+const collectAppSettings = appSettingsForm.collectAppSettings;
 
 function defaultClaudeDesktopModel() {
   const route = currentRoutes()[0] || {};
@@ -3917,6 +3894,7 @@ $('testAllLatencies').onclick = async () => {
 
 function configureDomainModules() {
   const runtime = {
+    ...inspectionView,
     $,
     CLAUDE_DESKTOP_PROCESS_VERIFICATION_PROMPT,
     CLI_SESSIONS_VISIBLE_MS,

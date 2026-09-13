@@ -52,3 +52,6 @@ test/*.jsonl.*
 /.codex-remote-attachments/
 /.common-tools/
 /.common-tools-audit/
+*.exe
+*.bak
+tmp/
