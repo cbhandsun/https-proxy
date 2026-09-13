@@ -65,6 +65,7 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
                 | "/prompts/presets"
                 | "/mcp-hub"
                 | "/mcp-hub/logs"
+                | "/mcp-hub/tools"
                 | "/claude-code/status"
                 | "/antigravity-cli/status"
                 | "/trae/status"
@@ -86,6 +87,7 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
                 | "/usage/report"
                 | "/metrics"
                 | "/cli/sessions"
+                | "/client-activity"
         ),
         "POST" => matches!(
             route,
@@ -110,6 +112,7 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
                 | "/prompts/presets"
                 | "/prompts/presets/apply"
                 | "/mcp-hub"
+                | "/mcp-hub/execute"
                 | "/claude-code/apply"
                 | "/claude-code/restore"
                 | "/antigravity-cli/apply"
@@ -121,6 +124,8 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
                 | "/trae/debug/native/deep/stop"
                 | "/claude-desktop/apply"
                 | "/claude-desktop/restore"
+                | "/claude-desktop/sync-mcp"
+                | "/claude-desktop/restore-backup"
                 | "/codex/apply"
                 | "/codex/restore"
                 | "/codex/switch"

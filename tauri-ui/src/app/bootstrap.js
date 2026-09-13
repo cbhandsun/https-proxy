@@ -48,6 +48,7 @@ import {
 } from './domains/tool-status.js';
 import { bindEnvControls, configureEnvironment, refreshEnvStatus } from './domains/environment.js';
 import { configureMcp, initMcpHubView } from './domains/mcp.js';
+import { configurePlayground, initPlaygroundView } from './domains/playground.js';
 import {
   bindPromptControls,
   configurePrompts,
@@ -79,7 +80,15 @@ import {
   routeClientProtocols,
   splitEntryAuthList,
 } from './models/configuration.js';
-import { codexDesktopConnectionDetails } from './models/tool-status-presentation.js';
+import { buildProfileSaveCandidate } from './models/profile-save.js';
+import {
+  applyClaudeDesktopBadges,
+  bindToolIntegrationActions,
+  codexDesktopConnectionDetails,
+  formatClaudeDesktopStatus,
+  populatePromptPresetsDropdown,
+  renderClientActivity,
+} from './models/tool-status-presentation.js';
 import { appendOption, clearElement, debounce, escapeHtml } from './runtime/dom.js';
 import {
   initPerformanceRuntime,
@@ -1609,6 +1618,9 @@ function showView(viewId) {
   if (viewId === 'mcpHubView') {
     initMcpHubView();
   }
+  if (viewId === 'playgroundView') {
+    initPlaygroundView();
+  }
   startHeartbeat();
   finishViewPerf();
 }
@@ -2860,8 +2872,7 @@ async function fetchModels() {
     $('fetchModels').disabled = false;
   }
 }
-
-async function saveConfig(message) {
+async function saveConfig(message, createCandidate) {
   collectLocalServer();
   collectEntryAuth();
   collectAppSettings();
@@ -2869,10 +2880,12 @@ async function saveConfig(message) {
   syncClaudeDesktopRoutesToModelRoutes();
   config.modelRoutes = modelRoutesForConfig();
   try {
-    config = await window.proxyManager.saveConfig(config);
+    const candidate = typeof createCandidate === 'function' ? createCandidate(config) : config;
+    config = await window.proxyManager.saveConfig(candidate);
   } catch (err) {
     const errorMessage = err && err.message ? err.message : '保存配置失败';
     $('output').textContent = errorMessage;
+    showToast(errorMessage, 'error');
     reportFrontendError('config.save', err);
     return false;
   }
@@ -2888,6 +2901,7 @@ async function saveConfig(message) {
       : message || '配置已保存';
   $('output').textContent = msg;
   showToast(msg);
+  return true;
 }
 
 $('addRule').onclick = () => {
@@ -3011,22 +3025,21 @@ $('importCliCreds').onclick = async () => {
     showToast('导入本地凭证失败', 'error');
   }
 };
-
 $('saveProfile').onclick = async () => {
   const profile = collectForm();
   if (!profile.id || !profile.targetUrl) {
     $('output').textContent = 'ID 和目标 URL 必填';
+    showToast('ID 和目标 URL 必填', 'error');
     return;
   }
-  const index = config.profiles.findIndex(
-    (item) => item.id === selectedId || item.id === profile.id
-  );
-  if (index >= 0) config.profiles[index] = profile;
-  else config.profiles.push(profile);
-  selectedId = profile.id;
-  await saveConfig('上游目标已保存');
+  let nextState;
+  const saved = await saveConfig('上游目标已保存', (currentConfig) => {
+    nextState = buildProfileSaveCandidate(currentConfig, selectedId, profile);
+    return nextState.configuration;
+  });
+  if (!saved) return;
+  fillForm(config.profiles.find((item) => item.id === nextState.selectedId));
 };
-
 $('testProfileAuthBtn').onclick = async () => {
   const profile = collectForm();
   if (!profile.targetUrl) {
@@ -3296,6 +3309,8 @@ $('restoreClaudeDesktop').onclick = async () => {
   showToast(msg, status.ok ? 'success' : 'error');
 };
 
+bindToolIntegrationActions({ $, showToast, confirmAction, refreshClaudeDesktopStatus });
+
 $('applyClaudeCode').onclick = async () => {
   const status = await window.proxyManager.applyClaudeCode();
   await refreshClaudeCodeStatus();
@@ -3324,7 +3339,6 @@ const TRAE_RAW_PROGRESS_ENV_COMMAND = [
   "$env:TRAE_BRIDGE_RAW_PROGRESS = 'comment'",
   '.\\proxy.bat restart',
 ].join('\n');
-
 const TRAE_VISIBLE_PROGRESS_ENV_COMMAND = [
   "$env:TRAE_BRIDGE_RAW_PROGRESS = 'visible'",
   "$env:TRAE_BRIDGE_LOG_PROGRESS = 'visible'",
@@ -3933,6 +3947,7 @@ function configureDomainModules() {
     MONITOR_SEARCH_BODY_LIMIT,
     STARTUP_STATUS_GRACE_MS,
     STARTUP_STATUS_RETRY_MS,
+    applyClaudeDesktopBadges,
     checkProxyHealth,
     clearElement,
     codexDesktopConnectionDetails,
@@ -3941,15 +3956,18 @@ function configureDomainModules() {
     ensureClaudeDesktop,
     ensureProxyRecovered,
     escapeHtml,
+    formatClaudeDesktopStatus,
     getApiBase,
     hydrateConfigAfterStartup,
     isCodeToolsVisible,
     isMonitorVisible,
     perfStart,
+    populatePromptPresetsDropdown,
     refreshCertStatus,
     refreshCertStatusAfterProxyOnline,
     refreshCliSessions,
     refreshProxyStatus,
+    renderClientActivity,
     resolveClaudeDesktopModel,
     routeIdOfClaudeDesktopModel,
     sharedAppState,
@@ -3983,6 +4001,7 @@ function configureDomainModules() {
   configureToolStatus(runtime);
   configureEnvironment(runtime);
   configureMcp(runtime);
+  configurePlayground(runtime);
   configurePrompts(runtime);
   configureRateLimits(runtime);
   bindPromptControls();

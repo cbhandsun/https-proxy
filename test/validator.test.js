@@ -293,4 +293,37 @@ const {
   assert.ok(invalid.errors.some((error) => error.includes('toolName or pattern is required')));
 }
 
+{
+  const invalidTimeout = validateConfig({
+    activeProfile: 'main',
+    profiles: [
+      {
+        id: 'main',
+        protocol: 'openai',
+        targetUrl: 'https://api.example.test/v1',
+        timeoutMs: 500, // min is 1000
+      },
+    ],
+    localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
+  });
+  assert.strictEqual(invalidTimeout.valid, false);
+  assert.ok(
+    invalidTimeout.errors.some((err) => err.includes('timeoutMs must be between 1000 and 1800000'))
+  );
+
+  const validTimeout = validateConfig({
+    activeProfile: 'main',
+    profiles: [
+      {
+        id: 'main',
+        protocol: 'openai',
+        targetUrl: 'https://api.example.test/v1',
+        timeoutMs: 300000,
+      },
+    ],
+    localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
+  });
+  assert.strictEqual(validTimeout.valid, true);
+}
+
 console.log('[validator.test] ok');

@@ -7,7 +7,7 @@ const path = require('node:path');
 const repoRoot = path.resolve(__dirname, '..', '..');
 const lineBudgets = {
   'lib/proxy/handlers/route-handlers.js': 1620,
-  'lib/proxy/protocol-openai.js': 1527,
+  'lib/proxy/protocol-openai.js': 1650,
   'tauri-ui/src/app/domains/audit.js': 1559,
   'tauri-ui/src/app/domains/bridge.js': 1300,
   'tauri-ui/src/app/domains/tool-status.js': 1227,

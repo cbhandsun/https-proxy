@@ -11,6 +11,7 @@ const {
   normalizeWorkBuddyOfficialModelName,
   buildWorkBuddyOfficialModelsResponse,
   workBuddyOfficialModelSupport,
+  sanitizeWorkBuddyChatBody,
 } = require('../lib/proxy/workbuddy-official');
 
 const { officialLoginProvider, inferOfficialProfileAuthMode } = require('../lib/proxy/auth-mode');
@@ -127,7 +128,58 @@ assert.ok(routeKeys.includes('workbuddy/deepseek-v4-pro'));
 assert.ok(routeKeys.includes('workbuddy/minimax-m3'));
 assert.ok(routeKeys.includes('workbuddy/glm-5.1'));
 
-// 10. Test live credentials if local file exists
+// 10. Test sanitizeWorkBuddyChatBody (converts developer -> system, handles unsupported images)
+{
+  const input = {
+    model: 'deepseek-v4.1-flash',
+    messages: [
+      { role: 'developer', content: 'You are an expert coder.' },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Analyze this code' },
+          { type: 'image_url', image_url: { url: 'data:image/png;base64,123' } },
+        ],
+      },
+    ],
+  };
+
+  const output = sanitizeWorkBuddyChatBody(JSON.parse(JSON.stringify(input)), {
+    targetModel: 'deepseek-v4.1-flash',
+  });
+
+  assert.strictEqual(output.messages[0].role, 'system', 'developer role should become system');
+  assert.strictEqual(output.messages[0].content, 'You are an expert coder.');
+  assert.strictEqual(output.messages[1].role, 'user');
+  assert.ok(
+    typeof output.messages[1].content === 'string',
+    'all-text content array should be flattened to string'
+  );
+  assert.ok(
+    output.messages[1].content.includes('[附件图片已转为文本占位'),
+    'unsupported image should be converted to text placeholder'
+  );
+
+  // For multimodal model like glm-5v-turbo, images should be preserved
+  const multiInput = {
+    model: 'glm-5v-turbo',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Look at image' },
+          { type: 'image_url', image_url: { url: 'https://example.com/a.png' } },
+        ],
+      },
+    ],
+  };
+  const multiOutput = sanitizeWorkBuddyChatBody(JSON.parse(JSON.stringify(multiInput)), {
+    targetModel: 'glm-5v-turbo',
+  });
+  assert.strictEqual(multiOutput.messages[0].content[1].type, 'image_url');
+}
+
+// 11. Test live credentials if local file exists
 const authPath = getWorkBuddyAuthInfoPath();
 if (fs.existsSync(authPath)) {
   const authInfo = readWorkBuddyAuthInfo(authPath);

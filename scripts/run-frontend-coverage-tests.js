@@ -4,7 +4,12 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const repoRoot = path.resolve(__dirname, '..');
-const testFiles = ['test/frontend/configuration-model.test.js', 'test/frontend/runtime.test.js'];
+const testFiles = [
+  'test/frontend/configuration-model.test.js',
+  'test/frontend/profile-save.test.js',
+  'test/frontend/proxy-command.test.js',
+  'test/frontend/runtime.test.js',
+];
 
 for (const testFile of testFiles) {
   const result = spawnSync(process.execPath, [testFile], {
