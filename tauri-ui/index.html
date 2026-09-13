@@ -378,8 +378,39 @@
                     </button>
                   </div>
                 </div>
+                <div class="audit-sidebar-filters">
+                  <input
+                    id="auditSearch"
+                    type="search"
+                    placeholder="搜索模型、上游或内容..."
+                    autocomplete="off"
+                  />
+                  <div class="audit-sidebar-filter-row">
+                    <select id="auditRangeFilter" title="时间范围">
+                      <option value="all">全部时间</option>
+                      <option value="15m">最近 15 分钟</option>
+                      <option value="1h">最近 1 小时</option>
+                      <option value="24h">最近 24 小时</option>
+                      <option value="7d">最近 7 天</option>
+                    </select>
+                    <select id="auditStatusFilter" title="状态">
+                      <option value="all">所有状态</option>
+                      <option value="success">成功 (2xx)</option>
+                      <option value="error">异常 (非 2xx)</option>
+                      <option value="slow">慢请求 (≥5s)</option>
+                    </select>
+                  </div>
+                  <div class="audit-sidebar-filter-row">
+                    <button id="exportAuditJson" class="light">导出 JSON</button>
+                    <button id="exportAuditCsv" class="light">导出 CSV</button>
+                  </div>
+                </div>
                 <div id="auditHistoryList" class="audit-history-list">
                   <!-- 历史请求项目将在此动态插入 -->
+                </div>
+                <div class="audit-sidebar-footer">
+                  <span id="auditStatusSummary" class="muted"></span>
+                  <button id="auditLoadMore" class="light" hidden>加载更多</button>
                 </div>
               </div>
               <div class="audit-detail" id="auditDetailPanel">
@@ -456,6 +487,8 @@
                 "
               >
                 <button id="clearMonitor" class="danger" style="margin: 0">清空监控</button>
+                <button id="pauseMonitor" class="light" style="margin: 0">暂停直播</button>
+                <button id="exportMonitorJson" class="light" style="margin: 0">导出 JSON</button>
                 <label class="inline-check" style="margin: 0"
                   ><input id="autoScrollMonitor" type="checkbox" checked /> 自动滚动</label
                 >
@@ -494,8 +527,28 @@
                     <option value="success">成功 (2xx)</option>
                     <option value="error">异常 (4xx, 5xx)</option>
                     <option value="route">仅映射路由</option>
+                    <option value="slow">慢请求 (≥5s)</option>
+                  </select>
+                  <select
+                    id="monitorRangeFilter"
+                    style="
+                      max-width: 140px;
+                      min-height: 32px;
+                      padding: 4px 10px;
+                      border-radius: var(--radius-sm);
+                    "
+                  >
+                    <option value="all">全部时间</option>
+                    <option value="15m">最近 15 分钟</option>
+                    <option value="1h">最近 1 小时</option>
+                    <option value="24h">最近 24 小时</option>
+                    <option value="7d">最近 7 天</option>
                   </select>
                 </div>
+              </div>
+              <div class="monitor-toolbar-footer">
+                <span id="monitorStatusSummary" class="muted hint"></span>
+                <button id="monitorLoadMore" class="light" hidden>加载更多</button>
               </div>
               <div id="monitorList" class="monitor-list">
                 <div class="muted">暂无请求记录...</div>
@@ -932,10 +985,10 @@
               <div class="route-table-toolbar">
                 <input id="routeFilterText" placeholder="筛选客户端 / 上游 / 目标模型 / 协议" />
                 <select id="routeFilterProtocol" title="客户端协议">
-                  <option value="">全部协议</option>
-                  <option value="claude">Claude</option>
-                  <option value="openai-chat">OpenAI Chat</option>
-                  <option value="openai-responses">OpenAI Responses</option>
+                  <option value="">全部端口/协议</option>
+                  <option value="claude">Claude (3443/3080)</option>
+                  <option value="openai-chat">OpenAI Chat (3447/3084)</option>
+                  <option value="openai-responses">OpenAI Responses (3445/3085)</option>
                 </select>
                 <select id="routeSortBy" title="排序字段">
                   <option value="from">按客户端模型</option>
@@ -3235,6 +3288,17 @@ npm i -g opencode-ai@latest
                       ><span class="setting-title">记录对话审计日志</span
                       ><span class="setting-desc"
                         >关闭后减少请求响应捕获和本地审计写入开销。</span
+                      ></span
+                    ></label
+                  >
+                </div>
+                <div class="setting-item">
+                  <label
+                    ><input id="conversationAuditCaptureContent" type="checkbox" /><span
+                      ><span class="setting-title">审计日志保存对话内容</span
+                      ><span class="setting-desc"
+                        >默认仅记录请求元数据；开启后会把请求体与响应正文写入本地
+                        conversations-audit.jsonl，请自行评估隐私风险。</span
                       ></span
                     ></label
                   >

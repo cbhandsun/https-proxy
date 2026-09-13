@@ -143,6 +143,15 @@ console.log('[route-index.test] stats ok');
 ri.rebuild([r1, r3]);
 assert.strictEqual(ri.findBest('gpt-4-turbo').entry.route, r3);
 assert.strictEqual(ri.findBest('gpt-4o').entry.route, r1);
-console.log('[route-index.test] rebuild ok');
+// 17. Normalized matching (space/brackets/casing)
+const rNorm = { from: 'gemini-3.8-flash', profileId: 'p-gemini', to: 'gemini-3.8-flash-tiered' };
+const riNorm = createRouteIndex([rNorm], { cacheLimit: 10 });
+const bestNorm1 = riNorm.findBest('Gemini 3.8 Flash');
+assert.ok(bestNorm1, 'Gemini 3.8 Flash should match gemini-3.8-flash');
+assert.strictEqual(bestNorm1.entry.route, rNorm);
+const bestNorm2 = riNorm.findBest('Gemini-3.8-Flash');
+assert.ok(bestNorm2);
+assert.strictEqual(bestNorm2.entry.route, rNorm);
+console.log('[route-index.test] normalized matching ok');
 
 console.log('[route-index.test] ok');

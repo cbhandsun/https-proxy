@@ -1,0 +1,116 @@
+// Regression tests for the application settings form round trip.
+
+'use strict';
+
+const assert = require('node:assert/strict');
+
+(async () => {
+  const { createAppSettingsForm } =
+    await import('../../tauri-ui/src/app/domains/app-settings-form.js');
+
+  const checkboxNames = [
+    'closeToTray',
+    'stopProxyOnExit',
+    'autoStartProxy',
+    'launchOnLogin',
+    'showTopMenu',
+    'showTrayMenu',
+    'showWindowOnTrayCommand',
+    'desktopNotifications',
+    'disableLocalProxy',
+    'verifyUpstreamTls',
+    'conversationAuditEnabled',
+    'conversationAuditCaptureContent',
+    'forceResponseStreaming',
+    'forceChatStreaming',
+    'upstreamWarmupEnabled',
+    'streamDirectRequestBodies',
+    'performanceMode',
+  ];
+  const elements = Object.fromEntries(checkboxNames.map((name) => [name, { checked: false }]));
+  const config = {
+    appSettings: {
+      closeToTray: true,
+      stopProxyOnExit: false,
+      autoStartProxy: true,
+      launchOnLogin: false,
+      showTopMenu: true,
+      showTrayMenu: false,
+      showWindowOnTrayCommand: true,
+      desktopNotifications: false,
+      disableLocalProxy: false,
+      verifyUpstreamTls: true,
+      conversationAuditEnabled: true,
+      conversationAuditCaptureContent: false,
+      forceResponseStreaming: true,
+      forceChatStreaming: false,
+      upstreamWarmupEnabled: true,
+      streamDirectRequestBodies: false,
+      performanceMode: true,
+      unknownSetting: 'preserved',
+    },
+  };
+  const applied = [];
+  let loginRefreshes = 0;
+
+  const form = createAppSettingsForm({
+    applyPerformanceMode: (value) => applied.push(value),
+    ensureAppSettings: () => {},
+    getConfig: () => config,
+    getElement: (name) => {
+      if (!elements[name]) elements[name] = { checked: false };
+      return elements[name];
+    },
+    refreshLaunchOnLogin: async () => {
+      loginRefreshes += 1;
+    },
+  });
+
+  form.fillAppSettings();
+  for (const name of checkboxNames) {
+    assert.equal(
+      elements[name].checked,
+      config.appSettings[name],
+      `${name} is reflected from configuration into the form`
+    );
+  }
+  assert.deepEqual(applied, [true], 'performance mode is applied from the loaded settings');
+  assert.equal(loginRefreshes, 1, 'launch-on-login state is refreshed once');
+
+  // Toggle every field so the collect path cannot silently keep stale values.
+  for (const name of checkboxNames) elements[name].checked = !elements[name].checked;
+  form.collectAppSettings();
+  for (const name of checkboxNames) {
+    assert.equal(
+      config.appSettings[name],
+      elements[name].checked,
+      `${name} is persisted from the form`
+    );
+  }
+  // Migration-critical settings must survive the spread-based collect.
+  assert.equal(config.appSettings.conversationAuditCaptureContent, true);
+  assert.equal(config.appSettings.forceResponseStreaming, false);
+  assert.equal(config.appSettings.forceChatStreaming, true);
+  assert.equal(config.appSettings.upstreamWarmupEnabled, false);
+  assert.equal(config.appSettings.streamDirectRequestBodies, true);
+  assert.equal(config.appSettings.unknownSetting, 'preserved');
+
+  // Missing DOM nodes must fail loudly instead of writing `undefined` into config.
+  assert.throws(() => {
+    const broken = createAppSettingsForm({
+      applyPerformanceMode: () => {},
+      ensureAppSettings: () => {},
+      getConfig: () => ({ appSettings: {} }),
+      getElement: () => {
+        throw new Error('missing element');
+      },
+      refreshLaunchOnLogin: async () => {},
+    });
+    broken.fillAppSettings();
+  }, /missing element/);
+
+  console.log('[app-settings-form.test] ok');
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

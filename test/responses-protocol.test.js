@@ -18,6 +18,8 @@ const {
   processOpenAIResponsesSseChunkToChat,
   flushOpenAIResponsesSseToChat,
   flushOpenAISseToClaude,
+  processClaudeSseChunkToOpenAI,
+  flushClaudeSseToOpenAI,
   shouldConvertResponsesToOpenAIChat,
 } = require('../openai-proxy');
 
@@ -1412,6 +1414,149 @@ function createChatStreamState(overrides = {}) {
   assert.strictEqual(claudeFromGemini.content[0].thinking, 'Thinking about physics...');
   assert.strictEqual(claudeFromGemini.content[1].type, 'text');
   assert.strictEqual(claudeFromGemini.content[1].text, 'E=mc^2 is the mass-energy equivalence.');
+}
+
+// Test 11: Gemini streaming thought: true converted through Claude SSE bridge to Responses reasoning delta
+{
+  const { createClaudeStream } = require('../lib/proxy/stream-claude');
+  const claudeStream = createClaudeStream({
+    cleanToolArgs: (name, args) => args,
+    stripEmptyOptionalToolArgs: (a) => a,
+    sanitizeGeminiToolCall: (c) => c,
+    sampleGeminiToolEvent: () => {},
+    auditToolCall: () => {},
+    sampleOutboundSse: () => {},
+    parseClaudeSseEvent: (raw) => {
+      const text = String(raw || '').trim();
+      const lines = text.split('\n');
+      let eventName = '';
+      let dataText = '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) eventName = line.substring(7).trim();
+        else if (line.startsWith('data: ')) dataText += line.substring(6);
+      }
+      let data = null;
+      if (dataText && dataText !== '[DONE]') {
+        try {
+          data = JSON.parse(dataText);
+        } catch (e) {}
+      }
+      return { eventName, dataText, data };
+    },
+    resolveSseBlockIndex: () => 0,
+    deltaPartialJson: (d) => (d && d.partial_json ? d.partial_json : ''),
+    geminiFunctionCallArgs: (a) => a,
+    geminiClaudeToolId: (i) => 'tool_' + i,
+    rememberGeminiToolCall: () => {},
+    claudeStopReasonFromGemini: (r) => r,
+    geminiUsageToClaude: () => ({ input_tokens: 0, output_tokens: 0 }),
+    fallbackId: (p) => p + '_mock',
+    protocolOptions: { thinkingPolicy: 'passthrough' },
+  });
+
+  const events = [];
+  const clientRes = {
+    writeHead() {},
+    write(chunk) {
+      events.push(String(chunk));
+    },
+    end() {},
+  };
+
+  const targetModel = 'gemini-3.8-flash-tiered';
+  const responseState = createResponsesStreamState({ model: targetModel });
+  const chatRes = {
+    write: (chunk) => processOpenAIChatSseChunkToResponses(clientRes, String(chunk), responseState),
+  };
+  const chatState = {
+    id: 'chatcmpl_test',
+    created: 12345,
+    model: targetModel,
+    buffer: '',
+    pendingToolCall: null,
+    toolCallIndex: 0,
+    hasToolCalls: false,
+    stopReason: 'end_turn',
+    done: false,
+    thinkingPolicy: 'passthrough',
+  };
+  const claudeBridge = {
+    write: (chunk) => processClaudeSseChunkToOpenAI(chatRes, String(chunk), chatState),
+  };
+  const geminiState = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    buffer: '',
+    tools: [],
+    pendingToolCall: null,
+  };
+
+  // 1. Thinking chunk
+  claudeStream.streamGeminiChunkToClaude(
+    claudeBridge,
+    {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                thought: true,
+                text: 'Analyzing the user codebase to run script...',
+                thoughtSignature: 'sig-test',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    geminiState,
+    targetModel,
+    []
+  );
+
+  // 2. Tool call chunk
+  claudeStream.streamGeminiChunkToClaude(
+    claudeBridge,
+    {
+      candidates: [
+        {
+          content: {
+            parts: [{ functionCall: { name: 'Bash', args: { command: 'node test.js' } } }],
+          },
+          finishReason: 'STOP',
+        },
+      ],
+    },
+    geminiState,
+    targetModel,
+    []
+  );
+
+  claudeStream.flushPendingGeminiToolCall(claudeBridge, geminiState, []);
+  flushClaudeSseToOpenAI(chatRes, chatState);
+  flushOpenAIChatSseToResponses(clientRes, responseState);
+
+  // Verify response.reasoning.delta was emitted
+  const reasoningDeltas = events.filter(
+    (e) => e.startsWith('data:') && e.includes('response.reasoning.delta')
+  );
+  assert.strictEqual(reasoningDeltas.length, 1);
+  assert.ok(reasoningDeltas[0].includes('Analyzing the user codebase to run script...'));
+
+  // Verify response.reasoning.done was emitted before tool call
+  const reasoningDone = events.filter(
+    (e) => e.startsWith('data:') && e.includes('response.reasoning.done')
+  );
+  assert.strictEqual(reasoningDone.length, 1);
+
+  // Verify tool call argument delta was emitted
+  const toolCallDeltas = events.filter(
+    (e) => e.startsWith('data:') && e.includes('response.function_call_arguments.delta')
+  );
+  assert.strictEqual(toolCallDeltas.length, 1);
+  assert.ok(toolCallDeltas[0].includes('node test.js'));
 }
 
 console.log('[responses-protocol.test] ok');

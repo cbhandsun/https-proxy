@@ -1570,6 +1570,36 @@ tr:hover td {
   padding-right: 4px;
 }
 
+.monitor-toolbar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 11px;
+}
+.monitor-toolbar-footer button {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 4px 10px;
+  min-height: 28px;
+}
+.monitor-request {
+  cursor: pointer;
+}
+.monitor-lifecycle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.monitor-lifecycle[hidden] {
+  display: none;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -2119,6 +2149,52 @@ tr:hover td {
 .audit-sidebar-actions {
   display: flex;
   gap: 8px;
+}
+.audit-sidebar-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.audit-sidebar-filters input,
+.audit-sidebar-filters select {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+.audit-sidebar-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.audit-sidebar-filter-row > * {
+  flex: 1;
+  min-width: 0;
+}
+.audit-sidebar-filter-row button {
+  margin: 0;
+  font-size: 11px;
+  padding: 4px 8px;
+  min-height: 28px;
+}
+.audit-sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+.audit-sidebar-footer .muted {
+  flex: 1;
+  min-width: 0;
+}
+.audit-sidebar-footer button {
+  margin: 0;
+  flex-shrink: 0;
 }
 .btn-icon-only {
   width: 28px;
