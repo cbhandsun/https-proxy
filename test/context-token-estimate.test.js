@@ -101,5 +101,49 @@ assert.ok(
   'context estimate must grow with request size instead of saturating'
 );
 
+// Inline media: an oversized request that embeds a screenshot must be billed as an
+// image, not as its base64 characters. This is the exact incident shape (a Codex turn
+// whose history carried repeated tool-output screenshots). Before the fix the route
+// log reported ~1.09M tokens for a body whose real text cost was a few thousand.
+{
+  const screenshot = Buffer.alloc(700000, 0xab).toString('base64');
+  const mediaBody = Buffer.from(
+    JSON.stringify({
+      model: 'gpt-6-astra',
+      input: [
+        { role: 'user', content: [{ type: 'input_text', text: 'look at this' }] },
+        {
+          type: 'function_call_output',
+          call_id: 'c1',
+          output: [{ type: 'input_image', image_url: 'data:image/png;base64,' + screenshot }],
+        },
+      ],
+    })
+  );
+  const media = route({ model: 'gpt-6-astra', rewriteTo: '-', profile, buffer: mediaBody }, null);
+  assert.ok(
+    media.estimatedContextTokens < 10000,
+    'media-bearing oversized body must not be billed as base64 text, got ' +
+      media.estimatedContextTokens
+  );
+  assert.ok(
+    media.estimatedContextTokens < Math.ceil(mediaBody.length / 4),
+    'media estimate must be far below the naive character-based estimate'
+  );
+  assert.equal(
+    media.contextEstimateTruncated,
+    false,
+    'a structured estimate covers the whole body, so it is not a lower bound'
+  );
+
+  // Same body without media keeps the character-based lower bound.
+  const textBody = Buffer.from(
+    JSON.stringify({ model: 'gpt-6-astra', input: [{ role: 'user', content: 'x'.repeat(200000) }] })
+  );
+  const textOnly = route({ model: 'gpt-6-astra', rewriteTo: '-', profile, buffer: textBody }, null);
+  assert.equal(textOnly.estimatedContextTokens, Math.ceil(textBody.length / 4));
+  assert.equal(textOnly.contextEstimateTruncated, true);
+}
+
 fs.rmSync(runtimeDir, { recursive: true, force: true });
 console.log('[context-token-estimate.test] ok');

@@ -65,6 +65,7 @@
   "lib/proxy/image-job-executor.js",
   "lib/proxy/image-jobs.js",
   "lib/proxy/inbound-controls.js",
+  "lib/proxy/inline-media.js",
   "lib/proxy/lazy-feature-handlers.js",
   "lib/proxy/lazy-handler-group.js",
   "lib/proxy/lazy-management-handlers.js",
