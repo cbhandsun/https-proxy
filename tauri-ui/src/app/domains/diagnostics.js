@@ -230,7 +230,7 @@ function prepareMonitorEvent(event) {
   } else if (event.kind === 'route') {
     title = `Route: ${event.sourceModel} → ${event.targetModel}`;
     const contextInfo = event.estimatedContextTokens
-      ? ` | Context: ${event.estimatedContextTokens}tok`
+      ? ` | Context: ${event.contextEstimateTruncated ? '≥' : ''}${event.estimatedContextTokens}tok`
       : '';
     details = `Profile: ${event.profileName} (${event.protocol})${contextInfo}`;
     badgeClass = 'active';
