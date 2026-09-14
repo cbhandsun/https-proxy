@@ -10,6 +10,7 @@
     "disableLocalProxy": false,
     "verifyUpstreamTls": true,
     "conversationAuditEnabled": true,
+    "conversationAuditCaptureContent": false,
     "forceResponseStreaming": false,
     "responseStreamingRolloutPercent": 0,
     "forceChatStreaming": false,

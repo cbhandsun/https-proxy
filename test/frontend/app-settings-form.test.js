@@ -27,7 +27,9 @@ const assert = require('node:assert/strict');
     'streamDirectRequestBodies',
     'performanceMode',
   ];
-  const elements = Object.fromEntries(checkboxNames.map((name) => [name, { checked: false }]));
+  const elements = Object.fromEntries(
+    checkboxNames.map((name) => [name, { checked: false, disabled: false, title: '' }])
+  );
   const config = {
     appSettings: {
       closeToTray: true,
@@ -76,6 +78,22 @@ const assert = require('node:assert/strict');
   }
   assert.deepEqual(applied, [true], 'performance mode is applied from the loaded settings');
   assert.equal(loginRefreshes, 1, 'launch-on-login state is refreshed once');
+  assert.equal(
+    elements.conversationAuditCaptureContent.disabled,
+    false,
+    'content capture stays interactive while the audit log is enabled'
+  );
+
+  // Turning off the audit log must disable content capture without losing the
+  // stored preference, so re-enabling the log restores the previous choice.
+  elements.conversationAuditEnabled.checked = false;
+  form.syncCaptureContentAvailability();
+  assert.equal(elements.conversationAuditCaptureContent.disabled, true);
+  assert.ok(elements.conversationAuditCaptureContent.title.includes('记录对话审计日志'));
+  elements.conversationAuditEnabled.checked = true;
+  form.syncCaptureContentAvailability();
+  assert.equal(elements.conversationAuditCaptureContent.disabled, false);
+  assert.ok(elements.conversationAuditCaptureContent.title.includes('请求体'));
 
   // Toggle every field so the collect path cannot silently keep stale values.
   for (const name of checkboxNames) elements[name].checked = !elements[name].checked;

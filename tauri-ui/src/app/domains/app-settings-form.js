@@ -5,6 +5,17 @@ export function createAppSettingsForm({
   getElement,
   refreshLaunchOnLogin,
 }) {
+  // Content capture only has meaning while the audit log itself is enabled.
+  // Keep the stored value untouched but make the dependency visible in the UI.
+  function syncCaptureContentAvailability() {
+    const auditEnabled = getElement('conversationAuditEnabled').checked === true;
+    const captureContent = getElement('conversationAuditCaptureContent');
+    captureContent.disabled = !auditEnabled;
+    captureContent.title = auditEnabled
+      ? '开启后会把请求体与响应正文写入本地审计日志'
+      : '请先开启“记录对话审计日志”';
+  }
+
   function fillAppSettings() {
     ensureAppSettings();
     const settings = getConfig().appSettings;
@@ -30,6 +41,7 @@ export function createAppSettingsForm({
       getElement(name).checked = settings[name];
     }
     applyPerformanceMode(settings.performanceMode);
+    syncCaptureContentAvailability();
     void refreshLaunchOnLogin();
   }
 
@@ -57,5 +69,5 @@ export function createAppSettingsForm({
     };
   }
 
-  return { collectAppSettings, fillAppSettings };
+  return { collectAppSettings, fillAppSettings, syncCaptureContentAvailability };
 }

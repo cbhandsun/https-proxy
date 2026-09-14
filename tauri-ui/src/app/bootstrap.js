@@ -440,6 +440,11 @@ async function applyLaunchOnLogin() {
 
 const collectAppSettings = appSettingsForm.collectAppSettings;
 
+const conversationAuditEnabledInput = $('conversationAuditEnabled');
+if (conversationAuditEnabledInput) {
+  conversationAuditEnabledInput.onchange = () => appSettingsForm.syncCaptureContentAvailability();
+}
+
 function defaultClaudeDesktopModel() {
   const route = currentRoutes()[0] || {};
   const active = activeProfile() || {};
