@@ -34,6 +34,7 @@
   "lib/proxy/handlers.js",
   "lib/proxy/handlers/code-assist.js",
   "lib/proxy/handlers/converted-chat-request.js",
+  "lib/proxy/handlers/converted-rate-limit.js",
   "lib/proxy/handlers/http-utils.js",
   "lib/proxy/handlers/managed-web-search-fallback.js",
   "lib/proxy/handlers/management-audit.js",

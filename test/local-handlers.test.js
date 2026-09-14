@@ -1,6 +1,10 @@
 const assert = require('assert');
 
-const { handleCountTokens, sendGeminiRateLimit } = require('../lib/proxy/local-handlers');
+const {
+  handleCountTokens,
+  sendGeminiRateLimit,
+  sendRateLimit,
+} = require('../lib/proxy/local-handlers');
 
 function estimateTokens(value) {
   return String(value || '')
@@ -38,6 +42,39 @@ function estimateTokens(value) {
   assert.strictEqual(res.headers['Retry-After'], '120');
   assert.strictEqual(logMeta.retryAfterSeconds, 120);
   assert.strictEqual(writes.length, 1);
+}
+
+{
+  let logMeta = null;
+  const res = {
+    writeHead(statusCode, headers) {
+      this.statusCode = statusCode;
+      this.headers = headers;
+    },
+    end(body) {
+      this.body = body;
+    },
+  };
+  sendRateLimit(
+    { method: 'POST' },
+    res,
+    '/v2/responses',
+    10,
+    'deepseek-v4.1-flash',
+    45,
+    'cooling down',
+    { source: 'local_cooldown', profileId: 'workbuddy-official' },
+    (_method, _path, _start, _status, meta) => {
+      logMeta = meta;
+    },
+    { type: 'upstream_rate_limit' }
+  );
+  assert.strictEqual(res.statusCode, 429);
+  assert.strictEqual(res.headers['Retry-After'], '45');
+  assert.strictEqual(JSON.parse(res.body).error.type, 'rate_limit_error');
+  assert.strictEqual(logMeta.type, 'upstream_rate_limit');
+  assert.strictEqual(logMeta.source, 'local_cooldown');
+  assert.strictEqual(logMeta.profileId, 'workbuddy-official');
 }
 
 {
