@@ -72,6 +72,10 @@ function sendJson(res, statusCode, data) {
     handlers.handleLocalHealthRequest(emptyReq(), healthRes);
     const health = JSON.parse(healthRes.body);
     assert.strictEqual(healthRes.statusCode, 200);
+    assert.ok(path.isAbsolute(health.runtime.configDir));
+    assert.ok(path.isAbsolute(health.runtime.runtimeDir));
+    assert.ok(health.runtime.entrypoint);
+    assert.strictEqual(typeof health.runtime.cwd, 'string');
     assert.strictEqual(health.ports.management, 4543);
     assert.deepStrictEqual(health.ports.entries[0], {
       protocol: 'claude',

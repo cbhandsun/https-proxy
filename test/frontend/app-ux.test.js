@@ -818,7 +818,7 @@ function tick(ms = 0) {
 
   // ─── 24. Tauri runtime root selection keeps dev/prod state separate ─
   {
-    const rust = ['lib.rs', 'proxy_root.rs']
+    const rust = ['lib.rs', 'proxy_root.rs', 'proxy_process.rs']
       .map((file) =>
         fs.readFileSync(path.join(__dirname, '..', '..', 'src-tauri', 'src', file), 'utf8')
       )
@@ -840,8 +840,8 @@ function tick(ms = 0) {
       'Tauri release builds select the executable runtime before the working directory'
     );
     assert.ok(
-      rust.includes('fn ensure_proxy_config_file(root: &Path)') &&
-        rust.includes('ensure_proxy_config_file(&root);'),
+      rust.includes('pub(crate) fn ensure_proxy_config_file(root: &Path)') &&
+        rust.includes('proxy_process::ensure_proxy_config_file(&root);'),
       'Tauri direct startup creates proxy.config.json before launching packaged proxy'
     );
     const proxyScript = fs.readFileSync(path.join(__dirname, '..', '..', 'proxy.ps1'), 'utf8');
