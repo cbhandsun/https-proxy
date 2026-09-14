@@ -15,11 +15,18 @@ const helpers = createRouteResponseHelpers({
   parseGeminiError() {
     return { type: 'rate_limit', retryAfterSeconds: 3 };
   },
+  parseRetryAfterHeaderSeconds(value) {
+    return value === '12' ? 12 : null;
+  },
   sendJsonError() {},
-  sendUpstreamError(_res, status, _headers, _body, provider) {
-    events.push({ status, provider });
+  sendUpstreamError(_res, status, headers, _body, provider) {
+    events.push({ status, headers, provider });
   },
   setGeminiCooldown() {},
+  setUpstreamCooldown(profileId, targetModel, seconds) {
+    events.push({ profileId, targetModel, seconds });
+    return { key: profileId + ':' + targetModel, retryAfterSeconds: seconds };
+  },
   writeJsonResponse(_res, status, body) {
     events.push({ status, body });
   },
@@ -70,5 +77,48 @@ helpers.handleConvertedJsonResponse({
   convert: JSON.parse,
 });
 assert.ok(events.some((event) => event.status === 503 && event.provider === 'openai'));
+
+helpers.handleConvertedJsonResponse({
+  proxyRes: { statusCode: 429, headers: {} },
+  clientReq: { method: 'POST' },
+  clientRes: {},
+  upstreamPath: '/v2/responses',
+  startTime: 20,
+  responseBody: '{"error":{"message":"rate limited"}}',
+  upstreamProvider: 'workbuddy',
+  upstreamErrorType: 'responses_to_chat_error',
+  rateLimitCooldown: {
+    profileId: 'workbuddy-official',
+    targetModel: 'deepseek-v4.1-flash',
+    fallbackSeconds: 45,
+  },
+  convert: JSON.parse,
+});
+assert.ok(
+  events.some(
+    (event) =>
+      event.profileId === 'workbuddy-official' &&
+      event.targetModel === 'deepseek-v4.1-flash' &&
+      event.seconds === 45
+  )
+);
+assert.ok(events.some((event) => event.status === 429 && event.headers['retry-after'] === '45'));
+assert.ok(
+  events.some(
+    (event) =>
+      event.type === 'upstream_rate_limit' &&
+      event.payload.retryAfterSeconds === 45 &&
+      event.payload.source === 'local_fallback'
+  )
+);
+assert.ok(
+  events.some(
+    (event) =>
+      event.status === 429 &&
+      event.meta &&
+      event.meta.type === 'responses_to_chat_error' &&
+      event.meta.cooldownSource === 'local_fallback'
+  )
+);
 
 console.log('[route-response-helpers.test] ok');

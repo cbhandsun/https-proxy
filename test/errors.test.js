@@ -1,8 +1,11 @@
 const assert = require('assert');
 
 const {
+  parseRetryAfterHeaderSeconds,
   parseGeminiError,
   geminiErrorToClaude,
+  getUpstreamCooldown,
+  setUpstreamCooldown,
   getGeminiCooldown,
   setGeminiCooldown,
 } = require('../lib/proxy/errors');
@@ -42,5 +45,15 @@ assert.strictEqual(
   setGeminiCooldown('google-gemini', 'gemini-3-flash-preview', Infinity).retryAfterSeconds,
   120
 );
+
+assert.strictEqual(parseRetryAfterHeaderSeconds('2.2'), 3);
+assert.strictEqual(parseRetryAfterHeaderSeconds('Please retry in 4.1s.'), 5);
+assert.strictEqual(parseRetryAfterHeaderSeconds(new Date(Date.now() + 160000).toUTCString()), 120);
+
+const upstreamCooldown = setUpstreamCooldown('workbuddy-official', 'deepseek-v4.1-flash', 7);
+assert.strictEqual(upstreamCooldown.retryAfterSeconds, 7);
+const activeUpstreamCooldown = getUpstreamCooldown('workbuddy-official', 'deepseek-v4.1-flash');
+assert.ok(activeUpstreamCooldown.retryAfterSeconds > 0);
+assert.strictEqual(getUpstreamCooldown('workbuddy-official', 'glm-5.3'), null);
 
 console.log('[errors.test] ok');

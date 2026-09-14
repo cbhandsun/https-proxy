@@ -125,6 +125,7 @@ const {
   sendJsonError,
   sendUpstreamError,
   geminiErrorToClaude,
+  getUpstreamCooldown,
   getGeminiCooldown,
   setGeminiCooldown,
 } = require('./lib/proxy/errors');
@@ -883,6 +884,7 @@ const {
   geminiGeneratePath,
   geminiResponseToClaude,
   parseGeminiError,
+  getUpstreamCooldown,
   getGeminiCooldown,
   setGeminiCooldown,
   sendGeminiRateLimit,
