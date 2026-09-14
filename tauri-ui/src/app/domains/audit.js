@@ -9,6 +9,7 @@ export function configureAudit(dependencies) {
     '$',
     'auditRetryAvailability',
     'buildAuditExportCsv',
+    'classifyLatency',
     'confirmAction',
     'escapeHtml',
     'exportTimestamp',
@@ -391,6 +392,9 @@ function auditHistoryRecordView(record) {
     second: '2-digit',
   });
   const latency = record.elapsed ? `${record.elapsed}ms` : '??? ms';
+  const latencyLevel = auditDependencies.classifyLatency(record.elapsed);
+  const latencySuffix =
+    latencyLevel === 'very-slow' ? ' 极慢' : latencyLevel === 'slow' ? ' 偏慢' : '';
   const isSuccess = record.statusCode >= 200 && record.statusCode < 300;
   const usage = record.usage || {};
   const modelFlow = auditModelFlowLabel(record);
@@ -403,7 +407,7 @@ function auditHistoryRecordView(record) {
     modelFlow,
     userSnippet,
     upstreamLine: `上游: ${upstreamModel || '未指定'} · ${record.profileName || '默认'}`,
-    metricsLine: `${formatAuditTokens(usage.totalTokens || 0)} tok · ${latency}`,
+    metricsLine: `${formatAuditTokens(usage.totalTokens || 0)} tok · ${latency}${latencySuffix}`,
   };
 }
 

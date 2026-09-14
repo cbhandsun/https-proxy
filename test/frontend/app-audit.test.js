@@ -237,6 +237,24 @@ assert.ok(
 );
 assert.equal(item.innerHTML, '', 'history item does not use HTML strings');
 
+const slowItem = helpers.createAuditHistoryItemElement(
+  {
+    time: '2026-06-12T00:00:00.000Z',
+    protocol: 'claude',
+    statusCode: 200,
+    elapsed: 8000,
+    messages: [{ role: 'user', content: 'slow request' }],
+  },
+  8,
+  'audit-8',
+  false
+);
+assert.ok(
+  slowItem.textContent.includes('偏慢'),
+  'slow rows are labelled so the filter is explainable'
+);
+assert.equal(slowItem.innerHTML, '', 'slow label is rendered as text');
+
 const notice = helpers.createAuditNoticeElement('<script>alert(5)</script>', {
   danger: true,
   prefix: '失败：',
