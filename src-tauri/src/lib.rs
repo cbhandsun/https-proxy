@@ -334,29 +334,22 @@ fn node_proxy_command(root: &Path) -> Command {
     command
 }
 
-fn ensure_proxy_config_file(root: &Path) {
-    let config = root.join("proxy.config.json");
-    if config.exists() {
-        return;
-    }
-    let example = root.join("proxy.config.example.json");
-    if example.exists() {
-        let _ = std::fs::copy(example, config);
-    }
-}
-
 fn start_proxy_direct() -> Result<serde_json::Value, String> {
+    let root = find_project_root().ok_or_else(|| "project root not found".to_string())?;
     if let Some(health) = read_proxy_health_direct(Duration::from_millis(300)) {
-        return Ok(serde_json::json!({
-            "code": 0,
-            "timedOut": false,
-            "direct": true,
-            "output": format!("Proxy already running.\n{}", format_proxy_status(&health))
-        }));
+        if proxy_process::proxy_health_matches_root(&health, &root) {
+            return Ok(serde_json::json!({
+                "code": 0,
+                "timedOut": false,
+                "direct": true,
+                "output": format!("Proxy already running.\n{}", format_proxy_status(&health))
+            }));
+        }
+        let _ = stop_proxy_direct();
+        std::thread::sleep(Duration::from_millis(300));
     }
 
-    let root = find_project_root().ok_or_else(|| "project root not found".to_string())?;
-    ensure_proxy_config_file(&root);
+    proxy_process::ensure_proxy_config_file(&root);
     let mut child = node_proxy_command(&root)
         .spawn()
         .map_err(|e| format!("failed to start node proxy directly: {e}"))?;
@@ -429,7 +422,7 @@ fn clear_audit_conversations_native(management_port: Option<u16>) -> serde_json:
 
 fn taskkill_pid(pid: u64) -> Result<String, String> {
     let mut command = Command::new("taskkill");
-    command.args(["/PID", &pid.to_string(), "/F"]);
+    command.args(["/PID", &pid.to_string(), "/T", "/F"]);
     hide_console_window(&mut command);
     let output = command.output().map_err(|e| e.to_string())?;
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -460,6 +453,7 @@ fn stop_proxy_direct() -> Result<serde_json::Value, String> {
     }
 
     let Some(pid) = target_pid else {
+        let _ = run_proxy_bat(&["stop"]);
         return Ok(serde_json::json!({
             "code": 0,
             "timedOut": false,
@@ -471,6 +465,7 @@ fn stop_proxy_direct() -> Result<serde_json::Value, String> {
     if let Some(root) = find_project_root() {
         let _ = std::fs::remove_file(proxy_runtime_dir(&root).join(".proxy.pid"));
     }
+    let _ = run_proxy_bat(&["stop"]);
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(4) {
         if read_proxy_health_direct(Duration::from_millis(200)).is_none() {
@@ -535,7 +530,13 @@ fn start_proxy_if_needed() {
     let port = proxy_management_port();
     if read_proxy_health_direct_on_port(port, Duration::from_millis(250)).is_some() {
         if let Some(root) = find_project_root() {
-            if find_management_token_for_port(&root, port, Duration::from_millis(350)).is_some() {
+            let health = read_proxy_health_direct_on_port(port, Duration::from_millis(250));
+            if health
+                .as_ref()
+                .map(|h| proxy_process::proxy_health_matches_root(h, &root))
+                .unwrap_or(false)
+                && find_management_token_for_port(&root, port, Duration::from_millis(350)).is_some()
+            {
                 return;
             }
         }
@@ -560,14 +561,14 @@ fn request_proxy_autostart() {
 }
 
 pub(crate) fn stop_proxy_for_exit() {
-    if !read_app_setting("stopProxyOnExit", true) {
+    if !read_app_setting("stopProxyOnExit", true)
+        || PROXY_STOPPED_FOR_EXIT.swap(true, Ordering::SeqCst)
+    {
         return;
     }
-    if PROXY_STOPPED_FOR_EXIT.swap(true, Ordering::SeqCst) {
-        return;
-    }
-    let direct_res = stop_proxy_direct();
-    if direct_res.is_err() || read_proxy_health_direct(Duration::from_millis(150)).is_some() {
+    if stop_proxy_direct().is_err()
+        || read_proxy_health_direct(Duration::from_millis(150)).is_some()
+    {
         let _ = run_proxy_bat(&["stop"]);
     }
 }
