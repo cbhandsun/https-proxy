@@ -274,6 +274,49 @@ function wait(ms) {
     fs.rmSync(tmpDirFailure, { recursive: true, force: true });
   }
 
+  // Regression: trimming the cache to its byte budget used to re-stringify the
+  // whole history on every dropped entry (O(n^2)), which blocked the event loop
+  // for seconds on large contexts. Keep the trim cost near-linear.
+  const tmpDirPerf = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-responses-cache-perf-'));
+  const perfCacheFile = path.join(tmpDirPerf, 'responses-history.json');
+  try {
+    const bigPayload = 'x'.repeat(180 * 1024);
+    let stringifyCalls = 0;
+    const originalStringify = JSON.stringify;
+    const { state } = createState({
+      cacheFile: perfCacheFile,
+      cacheSaveDelayMs: 0,
+      limit: 200,
+    });
+    JSON.stringify = function stringifyWithCount(...args) {
+      stringifyCalls += 1;
+      return originalStringify.apply(this, args);
+    };
+    try {
+      for (let i = 0; i < 80; i += 1) {
+        state.rememberResponsesHistory('resp_big_' + i, [{ role: 'user', content: bigPayload }]);
+      }
+      state.rememberResponsesHistory('resp_final', [{ role: 'user', content: 'z'.repeat(1024) }]);
+      await wait(60);
+    } finally {
+      JSON.stringify = originalStringify;
+    }
+    const raw = fs.readFileSync(perfCacheFile, 'utf8');
+    const parsed = JSON.parse(raw);
+    assert.ok(parsed.length > 0, 'large history cache should keep at least one entry');
+    assert.strictEqual(parsed[parsed.length - 1][0], 'resp_final');
+    assert.ok(
+      Buffer.byteLength(raw, 'utf8') <= 4 * 1024 * 1024,
+      'serialized cache must stay within the byte budget'
+    );
+    assert.ok(
+      stringifyCalls <= 90,
+      'cache trim should serialize each entry once, stringify calls=' + stringifyCalls
+    );
+  } finally {
+    fs.rmSync(tmpDirPerf, { recursive: true, force: true });
+  }
+
   console.log('[responses-state.test] ok');
 })().catch((err) => {
   console.error(err);

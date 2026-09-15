@@ -8,6 +8,7 @@ const {
   buildUsageReport,
   extractUsageFromJsonPayload,
   estimateCost,
+  estimateUsageForRecord,
 } = require('../lib/proxy/usage-report');
 const usageSource = fs.readFileSync(path.join(__dirname, '..', 'lib', 'proxy', 'usage.js'), 'utf8');
 
@@ -91,6 +92,61 @@ assert.deepStrictEqual(providerUsage, {
   source: 'provider',
 });
 
+// Regression: cache hits were always reported as 0 because the reader looked for
+// singular `input_token_details.cache_read`, which is not a field any upstream sends.
+// OpenAI Responses reports input_tokens_details.cached_tokens; Anthropic-compatible
+// providers report cache_read_input_tokens; DeepSeek uses prompt_cache_hit_tokens.
+assert.strictEqual(
+  extractUsageFromJsonPayload({
+    usage: {
+      input_tokens: 1234,
+      output_tokens: 56,
+      input_tokens_details: { cached_tokens: 900 },
+      total_tokens: 1290,
+    },
+  }).cachedInputTokens,
+  900,
+  'OpenAI Responses input_tokens_details.cached_tokens must be captured'
+);
+assert.strictEqual(
+  extractUsageFromJsonPayload({
+    usage: { prompt_tokens: 1000, completion_tokens: 10, prompt_cache_hit_tokens: 800 },
+  }).cachedInputTokens,
+  800,
+  'DeepSeek prompt_cache_hit_tokens must be captured'
+);
+
+{
+  // Claude reports cache reads outside input_tokens, so inputTokens must be folded up
+  // to the real prompt size. Otherwise estimateCost() subtracts the cached portion from
+  // a prompt that never contained it and the cached tokens vanish from cost entirely.
+  const claudeUsage = extractUsageFromJsonPayload({
+    usage: {
+      input_tokens: 117,
+      output_tokens: 222,
+      cache_read_input_tokens: 174848,
+      cache_creation_input_tokens: 0,
+    },
+  });
+  assert.strictEqual(claudeUsage.cachedInputTokens, 174848);
+  assert.strictEqual(claudeUsage.inputTokens, 174965);
+  assert.strictEqual(claudeUsage.totalTokens, 175187);
+}
+
+{
+  // Providers that already fold cache hits into the prompt total must not be summed
+  // twice, or the reported prompt would exceed what the upstream actually billed.
+  const folded = extractUsageFromJsonPayload({
+    usage: {
+      prompt_tokens: 1000,
+      completion_tokens: 10,
+      prompt_cache_hit_tokens: 800,
+      total_tokens: 1010,
+    },
+  });
+  assert.strictEqual(folded.inputTokens, 1000, 'folded cache hits must not double-count');
+}
+
 const cost = estimateCost(providerUsage, 'gpt-5-mini', {});
 assert.strictEqual(cost.known, true);
 assert.ok(cost.amount > 0);
@@ -156,5 +212,54 @@ assert.ok(report.byProfile.some((item) => item.key === 'openai-main'));
 assert.ok(report.total.inputTokens >= 1000);
 assert.strictEqual(report.byProfile.find((item) => item.key === 'bad-usage').inputTokens, 0);
 assert.ok(report.total.cost > 0);
+
+// Regression: the captured request body is truncated for storage (120000 chars by
+// default), so estimating from it reported 30000 input tokens for a live 2.6 MB
+// request. When the body is truncated the true serialized byte count must be used.
+{
+  const truncated = estimateUsageForRecord({
+    system: '',
+    messages: [],
+    request: { body: 'x'.repeat(120000), truncated: true, bodyBytes: 2630287 },
+    response: { content: 'short' },
+  });
+  assert.strictEqual(truncated.source, 'estimated');
+  assert.strictEqual(truncated.inputTokens, Math.ceil(2630287 / 4));
+  assert.ok(
+    truncated.inputTokens > 120000 / 4,
+    'a truncated body must not cap the estimate at the stored character count'
+  );
+}
+
+// An untruncated body keeps the character-based estimate.
+{
+  const full = estimateUsageForRecord({
+    system: 'sys',
+    messages: [{ role: 'user', content: 'hello world' }],
+    request: { body: '{"alpha":1}', truncated: false, bodyBytes: 11 },
+    response: { content: '' },
+  });
+  // Character-based path: the stored body plus system/messages, ~4 chars per token.
+  assert.strictEqual(full.inputTokens, 8);
+  assert.ok(full.inputTokens < 1000, 'a small untruncated body must not be inflated');
+}
+
+// Missing bodyBytes falls back to the stored body rather than throwing.
+{
+  const fallback = estimateUsageForRecord({
+    system: '',
+    messages: [],
+    request: { body: 'y'.repeat(1000), truncated: true },
+    response: {},
+  });
+  assert.strictEqual(fallback.inputTokens, 250);
+}
+
+// A record with no request at all must not throw.
+{
+  const empty = estimateUsageForRecord({ system: '', messages: [], response: {} });
+  assert.strictEqual(empty.inputTokens, 0);
+  assert.strictEqual(empty.source, 'estimated');
+}
 
 console.log('[usage.test] ok');

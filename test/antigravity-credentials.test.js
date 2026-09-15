@@ -8,13 +8,17 @@ const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const {
   AntigravityCredentialError,
+  AUTH_STATUS_KEY,
   antigravityCredentialFailure,
   createAntigravityCredentialReader,
   decodeAntigravityCredentialManagerValue,
   MAX_STATE_VALUE_BYTES,
   STATE_KEY,
 } = require('../lib/proxy/antigravity-credentials');
-const { decodeAntigravityOAuthStateValue } = require('../lib/proxy/google-official');
+const {
+  decodeAntigravityAuthStatusValue,
+  decodeAntigravityOAuthStateValue,
+} = require('../lib/proxy/google-official');
 const { createAuthResolver } = require('../lib/proxy/auth-resolver');
 const { createTestStateDatabase, encodeTestOAuthState } = require('./helpers/antigravity-state');
 
@@ -35,6 +39,23 @@ function reader(dbPath, overrides = {}) {
     credentialTargets: () => [],
     ...overrides,
   });
+}
+
+function addAntigravityAuthStatus(dbPath, apiKey = 'ya29.auth-status-token') {
+  const db = new DatabaseSync(dbPath);
+  try {
+    db.prepare('INSERT OR REPLACE INTO ItemTable VALUES (?, ?)').run(
+      AUTH_STATUS_KEY,
+      JSON.stringify({
+        name: 'test-user',
+        email: 'test@example.test',
+        apiKey,
+        userStatusProtoBinaryBase64: 'opaque',
+      })
+    );
+  } finally {
+    db.close();
+  }
 }
 
 test('reads live WAL login changes without Python and leaves IDE state untouched', (t) => {
@@ -113,6 +134,92 @@ test('falls back to SQLite when Windows credential manager has no usable token',
   assert.equal(result.content.access_token, 'ya29.sqlite-login');
 });
 
+test('uses Antigravity auth status when credential manager token needs an unowned secret', (t) => {
+  const dbPath = createTestStateDatabase(fixture(t), encodeTestOAuthState('ya29.sqlite-stale'));
+  addAntigravityAuthStatus(dbPath);
+  const read = reader(dbPath, {
+    credentialTargets: () => ['gemini:antigravity'],
+    databaseStateKeys: () => [
+      { key: AUTH_STATUS_KEY, decode: decodeAntigravityAuthStatusValue, optional: true },
+      { key: STATE_KEY, decode: decodeAntigravityOAuthStateValue },
+    ],
+    readWindowsCredential: () =>
+      JSON.stringify({
+        token: {
+          access_token: 'ya29.credential-expired',
+          refresh_token: '1//credential-refresh',
+          token_type: 'Bearer',
+          expiry: '2001-01-01T00:00:00.000Z',
+        },
+        auth_method: 'consumer',
+      }),
+  });
+  const result = read();
+  assert.equal(result.source, 'antigravity-auth-status');
+  assert.equal(result.content.access_token, 'ya29.auth-status-token');
+  assert.equal(result.content.refresh_token, '');
+  assert.equal(result.content.__readOnly, true);
+});
+
+test('searches all IDE databases for auth status before falling back to legacy OAuth state', (t) => {
+  const oldDbPath = createTestStateDatabase(fixture(t), encodeTestOAuthState('ya29.old-legacy'));
+  const newDbPath = createTestStateDatabase(
+    fixture(t) + '.new',
+    encodeTestOAuthState('ya29.new-legacy')
+  );
+  addAntigravityAuthStatus(newDbPath, 'ya29.new-auth-status');
+  const read = reader(oldDbPath, {
+    databasePaths: () => [oldDbPath, newDbPath],
+    credentialTargets: () => ['gemini:antigravity'],
+    databaseStateKeys: () => [
+      { key: AUTH_STATUS_KEY, decode: decodeAntigravityAuthStatusValue, optional: true },
+      { key: STATE_KEY, decode: decodeAntigravityOAuthStateValue },
+    ],
+    readWindowsCredential: () =>
+      JSON.stringify({
+        token: {
+          access_token: 'ya29.credential-expired',
+          refresh_token: '1//credential-refresh',
+          token_type: 'Bearer',
+          expiry: '2001-01-01T00:00:00.000Z',
+        },
+        auth_method: 'consumer',
+      }),
+  });
+  const result = read();
+  assert.equal(result.dbPath, newDbPath);
+  assert.equal(result.source, 'antigravity-auth-status');
+  assert.equal(result.content.access_token, 'ya29.new-auth-status');
+});
+
+test('can prefer credential manager when auth status is rejected by upstream', (t) => {
+  const dbPath = createTestStateDatabase(fixture(t), encodeTestOAuthState('ya29.sqlite-stale'));
+  addAntigravityAuthStatus(dbPath);
+  const read = reader(dbPath, {
+    credentialTargets: () => ['gemini:antigravity'],
+    databaseStateKeys: () => [
+      { key: AUTH_STATUS_KEY, decode: decodeAntigravityAuthStatusValue, optional: true },
+      { key: STATE_KEY, decode: decodeAntigravityOAuthStateValue },
+    ],
+    readWindowsCredential: () =>
+      JSON.stringify({
+        token: {
+          access_token: 'ya29.credential-expiring',
+          refresh_token: '1//credential-refresh',
+          token_type: 'Bearer',
+          expiry: '2001-01-01T00:00:00.000Z',
+        },
+        auth_method: 'consumer',
+      }),
+  });
+  const normalResult = read();
+  assert.equal(normalResult.source, 'antigravity-auth-status');
+  const preferredResult = read({ preferCredentialManager: true });
+  assert.equal(preferredResult.source, 'antigravity-credential-manager');
+  assert.equal(preferredResult.credentialTarget, 'gemini:antigravity');
+  assert.equal(preferredResult.content.access_token, 'ya29.credential-expiring');
+});
+
 test('decodes Antigravity credential manager OAuth shapes safely', () => {
   const iso = '2999-01-01T00:00:00.000Z';
   assert.deepEqual(
@@ -145,6 +252,32 @@ test('decodes Antigravity credential manager OAuth shapes safely', () => {
     decodeAntigravityCredentialManagerValue(
       JSON.stringify({ token: { access_token: 'ya29.' + 'x'.repeat(20000) } })
     ),
+    null
+  );
+});
+
+test('decodes Antigravity auth status API key safely', () => {
+  assert.deepEqual(
+    decodeAntigravityAuthStatusValue(
+      JSON.stringify({
+        name: 'private-name',
+        email: 'private-email',
+        apiKey: 'ya29.auth-status-access',
+      })
+    ),
+    {
+      access_token: 'ya29.auth-status-access',
+      refresh_token: '',
+      token_type: 'Bearer',
+      expiry_date: 0,
+      __readOnly: true,
+      __source: 'antigravity-auth-status',
+    }
+  );
+  assert.equal(decodeAntigravityAuthStatusValue('not-json'), null);
+  assert.equal(decodeAntigravityAuthStatusValue(JSON.stringify({ apiKey: 'bad' })), null);
+  assert.equal(
+    decodeAntigravityAuthStatusValue(JSON.stringify({ email: 'user@example.test' })),
     null
   );
 });

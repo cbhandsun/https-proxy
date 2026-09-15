@@ -4,11 +4,22 @@ const {
   parseRetryAfterHeaderSeconds,
   parseGeminiError,
   geminiErrorToClaude,
+  normalizeUpstreamError,
   getUpstreamCooldown,
   setUpstreamCooldown,
+  listUpstreamCooldowns,
+  configureUpstreamCooldownPersistence,
   getGeminiCooldown,
   setGeminiCooldown,
 } = require('../lib/proxy/errors');
+
+const memoryCooldownWrites = [];
+configureUpstreamCooldownPersistence({
+  readPersistedCooldowns: () => [],
+  writePersistedCooldowns: (records) => {
+    memoryCooldownWrites.push(records);
+  },
+});
 
 const body = JSON.stringify({
   error: {
@@ -55,5 +66,74 @@ assert.strictEqual(upstreamCooldown.retryAfterSeconds, 7);
 const activeUpstreamCooldown = getUpstreamCooldown('workbuddy-official', 'deepseek-v4.1-flash');
 assert.ok(activeUpstreamCooldown.retryAfterSeconds > 0);
 assert.strictEqual(getUpstreamCooldown('workbuddy-official', 'glm-5.3'), null);
+assert.strictEqual(
+  setUpstreamCooldown('workbuddy-official', 'deepseek-v4.1-flash-long-reset', 3600, {
+    maxSeconds: 86400,
+    source: 'upstream_reset_time',
+  }).retryAfterSeconds,
+  3600
+);
+const workbuddyCooldowns = listUpstreamCooldowns({ profileId: 'workbuddy-official' });
+assert.ok(workbuddyCooldowns.some((item) => item.targetModel === 'deepseek-v4.1-flash'));
+assert.ok(
+  workbuddyCooldowns.some(
+    (item) =>
+      item.targetModel === 'deepseek-v4.1-flash-long-reset' &&
+      item.source === 'upstream_reset_time' &&
+      item.resetAt > 0
+  )
+);
+
+configureUpstreamCooldownPersistence({
+  readPersistedCooldowns: () => [
+    {
+      profileId: 'persisted-profile',
+      targetModel: 'persisted-model',
+      until: Date.now() + 5000,
+      source: 'upstream_reset_time',
+    },
+  ],
+  writePersistedCooldowns: (records) => {
+    memoryCooldownWrites.push(records);
+  },
+});
+const restoredCooldown = getUpstreamCooldown('persisted-profile', 'persisted-model');
+assert.ok(restoredCooldown.retryAfterSeconds > 0);
+assert.strictEqual(restoredCooldown.source, 'upstream_reset_time');
+setUpstreamCooldown('persisted-profile', 'new-model', 30, { source: 'local_fallback' });
+assert.ok(
+  memoryCooldownWrites.some((records) =>
+    records.some(
+      (record) =>
+        record.profileId === 'persisted-profile' &&
+        record.targetModel === 'new-model' &&
+        record.until > Date.now()
+    )
+  )
+);
+
+assert.deepStrictEqual(
+  normalizeUpstreamError(
+    429,
+    { 'retry-after': '1307' },
+    JSON.stringify({
+      code: 6004,
+      msg: '您的使用量已超出频率限制，将在 2026-09-15 16:21:47 UTC+8 重置。',
+      requestId: 'upstream-workbuddy-request',
+    }),
+    'workbuddy'
+  ),
+  {
+    error: {
+      type: 'rate_limit_error',
+      message: '您的使用量已超出频率限制，将在 2026-09-15 16:21:47 UTC+8 重置。',
+      code: 6004,
+      status: 429,
+      upstream: 'workbuddy',
+      request_id: 'upstream-workbuddy-request',
+      retry_after: '1307',
+    },
+  }
+);
 
 console.log('[errors.test] ok');

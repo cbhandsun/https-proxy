@@ -3,6 +3,7 @@ const path = require('path');
 
 const {
   formatCodexLocalRateLimits,
+  formatUpstreamCooldowns,
   prioritizeCodexSessionFiles,
 } = require('../lib/proxy/rate-limits');
 
@@ -47,6 +48,26 @@ const bounded = formatCodexLocalRateLimits(
 assert.strictEqual(bounded.length, 1);
 assert.strictEqual(bounded[0].usedPercent, 100);
 assert.strictEqual(bounded[0].remainingPercent, 0);
+
+const cooldownResetAt = Math.round((nowMs + 3661 * 1000) / 1000);
+const cooldowns = formatUpstreamCooldowns(
+  [
+    {
+      profileId: 'workbuddy-official',
+      targetModel: 'deepseek-v4.1-flash',
+      retryAfterSeconds: 3661,
+      resetAt: cooldownResetAt,
+      source: 'upstream_reset_time',
+    },
+    { profileId: 'missing-model', retryAfterSeconds: 10 },
+  ],
+  nowMs
+);
+assert.strictEqual(cooldowns.length, 1);
+assert.strictEqual(cooldowns[0].profileId, 'workbuddy-official');
+assert.strictEqual(cooldowns[0].model, 'deepseek-v4.1-flash');
+assert.strictEqual(cooldowns[0].resetIn, '1h2m');
+assert.strictEqual(cooldowns[0].source, 'upstream_reset_time');
 
 const current = path.join(
   'sessions',

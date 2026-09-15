@@ -61,6 +61,36 @@ function estimateTokens(value) {
     '/v2/responses',
     10,
     'deepseek-v4.1-flash',
+    3600,
+    'cooling down',
+    {},
+    (_method, _path, _start, _status, meta) => {
+      logMeta = meta;
+    },
+    { type: 'upstream_rate_limit', maxRetryAfterSeconds: 86400 }
+  );
+  assert.strictEqual(res.statusCode, 429);
+  assert.strictEqual(res.headers['Retry-After'], '3600');
+  assert.strictEqual(logMeta.retryAfterSeconds, 3600);
+}
+
+{
+  let logMeta = null;
+  const res = {
+    writeHead(statusCode, headers) {
+      this.statusCode = statusCode;
+      this.headers = headers;
+    },
+    end(body) {
+      this.body = body;
+    },
+  };
+  sendRateLimit(
+    { method: 'POST' },
+    res,
+    '/v2/responses',
+    10,
+    'deepseek-v4.1-flash',
     45,
     'cooling down',
     { source: 'local_cooldown', profileId: 'workbuddy-official' },

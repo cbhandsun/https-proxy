@@ -81,6 +81,7 @@ function httpsRequestMock({ statusCode = 200, body = '{}', fail = false, calls =
   const profiles = [
     { id: 'openai-official', protocol: 'openai', apiKey: '' },
     { id: 'google-official', protocol: 'gemini', apiKey: 'hpm-enc:google' },
+    { id: 'workbuddy-official', protocol: 'workbuddy', apiKey: 'PROXY_MANAGED' },
   ];
   const baseDeps = {
     sendJson,
@@ -93,6 +94,18 @@ function httpsRequestMock({ statusCode = 200, body = '{}', fail = false, calls =
       limits: [{ window: '5小时', remainingPercent: 80 }],
       source: 'codex-local-session',
     }),
+    listLocalUpstreamCooldowns: ({ profileId }) =>
+      profileId === 'workbuddy-official'
+        ? [
+            {
+              profileId,
+              targetModel: 'deepseek-v4.1-flash',
+              retryAfterSeconds: 3661,
+              resetAt: Math.ceil((Date.now() + 3661 * 1000) / 1000),
+              source: 'upstream_reset_time',
+            },
+          ]
+        : [],
   };
 
   const fallbackHandlers = createManagementRateLimitHandlers(baseDeps);
@@ -112,6 +125,30 @@ function httpsRequestMock({ statusCode = 200, body = '{}', fail = false, calls =
   assert.strictEqual(localFallbackBody.ok, true);
   assert.strictEqual(localFallbackBody.source, 'codex-local-session');
   assert.match(localFallbackBody.warning, /未检测到 OpenAI 官方登录凭证/);
+  assert.deepStrictEqual(localFallbackBody.cooldowns, []);
+
+  const workBuddyCalls = [];
+  const workBuddyHandlers = createManagementRateLimitHandlers({
+    ...baseDeps,
+    resolveOfficialCredentials: async ({ profile }) => ({
+      profile: { ...profile, apiKey: 'workbuddy-access' },
+    }),
+    httpsRequest: httpsRequestMock({
+      fail: true,
+      calls: workBuddyCalls,
+    }),
+  });
+  const workBuddy = await invoke(
+    workBuddyHandlers.handleLocalRateLimitsRequest,
+    '/v1/local/auth/rate-limits?profileId=workbuddy-official'
+  );
+  const workBuddyBody = JSON.parse(workBuddy.body);
+  assert.strictEqual(workBuddy.statusCode, 200);
+  assert.strictEqual(workBuddyBody.ok, true);
+  assert.strictEqual(workBuddyBody.source, 'local-upstream-cooldowns');
+  assert.strictEqual(workBuddyBody.cooldowns[0].targetModel, 'deepseek-v4.1-flash');
+  assert.strictEqual(workBuddyBody.cooldowns[0].source, 'upstream_reset_time');
+  assert.strictEqual(workBuddyCalls.length, 0);
 
   const googleCalls = [];
   const googleHandlers = createManagementRateLimitHandlers({

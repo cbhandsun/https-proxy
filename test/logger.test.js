@@ -3,6 +3,7 @@ const {
   createLogger,
   newRequestId,
   withRequest,
+  enterRequest,
   getReqId,
   setLevel,
   getLevel,
@@ -50,6 +51,31 @@ withRequest({ reqId: 'test-req-123' }, () => {
 });
 assert.strictEqual(getReqId(), undefined, 'no reqId after withRequest exits');
 console.log('[logger.test] withRequest scoping ok');
+
+// 4b. enterRequest restores the scope from a callback that escaped withRequest
+// (socket-driven callbacks: req 'end', collectLimitedRequestBody onComplete, ...).
+{
+  const emitter = new (require('events').EventEmitter)();
+  let observedInCallback;
+  emitter.once('restore', () => {
+    enterRequest({ reqId: 'callback-req-789' });
+    observedInCallback = getReqId();
+  });
+  emitter.emit('restore');
+  assert.strictEqual(
+    observedInCallback,
+    'callback-req-789',
+    'enterRequest must install the scope inside the callback'
+  );
+  assert.strictEqual(
+    getReqId(),
+    'callback-req-789',
+    'enterRequest scope persists for the rest of the callback chain'
+  );
+  // Leave no scope behind for the following async section assertions.
+  _als.enterWith({ reqId: undefined });
+}
+console.log('[logger.test] enterRequest scope restore ok');
 
 // 5. withRequest async propagation
 async function asyncCheck() {

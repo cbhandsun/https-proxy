@@ -1129,6 +1129,130 @@ test('Gemini SSE write guard rejects empty common tool inputs', () => {
   assert.ok(!output.includes('"type":"tool_use"'));
 });
 
+test('keeps parallel same-name Gemini tool calls as separate tool_use blocks', () => {
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(chunk) };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }],
+    pendingToolCall: null,
+  };
+
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","args":{"command":"echo A"}}}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","args":{"command":"echo B"}}}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
+  const { flushPendingGeminiToolCall, geminiClaudeStopReason } = require('../openai-proxy');
+  flushPendingGeminiToolCall(clientRes, state, state.tools);
+
+  const output = writes.join('');
+  const blocks = output
+    .split(/\n/)
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => JSON.parse(line.replace(/^data:\s*/, '')))
+    .filter(
+      (event) =>
+        event.type === 'content_block_delta' &&
+        event.delta &&
+        event.delta.type === 'input_json_delta'
+    );
+  const commands = blocks.map((event) => JSON.parse(event.delta.partial_json).command);
+  assert.deepStrictEqual(commands, ['echo A', 'echo B']);
+  assert.strictEqual(geminiClaudeStopReason(state), 'tool_use');
+
+  // Different ids always mean different calls, even with identical args.
+  const idWrites = [];
+  const idRes = { write: (chunk) => idWrites.push(chunk) };
+  const idState = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }],
+    pendingToolCall: null,
+  };
+  processGeminiSseEvent(
+    idRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","id":"call_1","args":{"command":"pwd"}}}]}}]}\r\n',
+    idState,
+    'gemini-3-flash-preview'
+  );
+  processGeminiSseEvent(
+    idRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","id":"call_2","args":{"command":"pwd"}}}]}}]}\r\n',
+    idState,
+    'gemini-3-flash-preview'
+  );
+  flushPendingGeminiToolCall(idRes, idState, idState.tools);
+  const idBlockIds = idWrites
+    .join('')
+    .split(/\n/)
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => JSON.parse(line.replace(/^data:\s*/, '')))
+    .filter(
+      (event) =>
+        event.type === 'content_block_start' &&
+        event.content_block &&
+        event.content_block.type === 'tool_use'
+    )
+    .map((event) => event.content_block.id);
+  assert.strictEqual(idBlockIds.length, 2);
+  assert.notStrictEqual(idBlockIds[0], idBlockIds[1]);
+});
+
+test('still merges id-less Gemini argument continuation parts', () => {
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(chunk) };
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'Bash', input_schema: { type: 'object', required: ['command'] } }],
+    pendingToolCall: null,
+  };
+
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"Bash","args":{}}}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
+  processGeminiSseEvent(
+    clientRes,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"args":{"command":"ls -la"}}}]}}]}\r\n',
+    state,
+    'gemini-3-flash-preview'
+  );
+  const { flushPendingGeminiToolCall } = require('../openai-proxy');
+  flushPendingGeminiToolCall(clientRes, state, state.tools);
+
+  const output = writes.join('');
+  const deltas = output
+    .split(/\n/)
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => JSON.parse(line.replace(/^data:\s*/, '')))
+    .filter(
+      (event) =>
+        event.type === 'content_block_delta' &&
+        event.delta &&
+        event.delta.type === 'input_json_delta'
+    );
+  assert.strictEqual(deltas.length, 1, 'continuation parts must accumulate into one call');
+  assert.deepStrictEqual(JSON.parse(deltas[0].delta.partial_json), { command: 'ls -la' });
+});
+
 test('unified stream protection rewrites invalid tool_use blocks', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
