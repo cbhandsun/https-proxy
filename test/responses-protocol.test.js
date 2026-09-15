@@ -337,6 +337,28 @@ function createChatStreamState(overrides = {}) {
 {
   const result = openAIChatToResponses(
     {
+      id: 'chatcmpl_length',
+      created: 123457,
+      choices: [
+        {
+          message: { role: 'assistant', content: null },
+          finish_reason: 'length',
+        },
+      ],
+      usage: { prompt_tokens: 5, completion_tokens: 0, total_tokens: 5 },
+    },
+    'gemini-3.8-flash'
+  );
+
+  assert.strictEqual(result.status, 'incomplete');
+  assert.deepStrictEqual(result.incomplete_details, { reason: 'max_output_tokens' });
+  assert.deepStrictEqual(result.output, []);
+  assert.deepStrictEqual(result.usage, { input_tokens: 5, output_tokens: 0, total_tokens: 5 });
+}
+
+{
+  const result = openAIChatToResponses(
+    {
       choices: [
         {
           message: {

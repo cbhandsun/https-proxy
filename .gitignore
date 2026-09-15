@@ -13,6 +13,7 @@ proxy.config.before-*.json
 .certs/
 .claude/
 .hpm-runtime/
+.hpm-runtime-probe/
 
 # Runtime files and logs
 *.log

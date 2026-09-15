@@ -24,16 +24,13 @@ const {
 } = require('./lib/proxy/logger');
 const { createRuntimeMetrics } = require('./lib/proxy/runtime-metrics');
 const log = createLogger('proxy');
-
 const { metricsInstance, startupPhaseGauge } = createRuntimeMetrics();
-
 const APP_ID = 'https-proxy-manager';
 let MANAGEMENT_TOKEN = process.env.MGMT_TOKEN || '';
 let PACKAGE_VERSION = '0.1.0';
 try {
   PACKAGE_VERSION = require('./package.json').version || PACKAGE_VERSION;
 } catch (err) {}
-
 const { createAuthResolver } = require('./lib/proxy/auth-resolver');
 const { createClaudeSelfTestTargetResolver } = require('./lib/proxy/claude-self-test-target');
 const { createCoreRequestHandler } = require('./lib/proxy/core-request-handler');
@@ -47,7 +44,6 @@ const { createRuntimeHttpAgents } = require('./lib/proxy/runtime/http-agents');
 const { createUpstreamWarmup } = require('./lib/proxy/upstream-warmup');
 const { authorizeManagementRequest } = require('./lib/proxy/management-auth');
 const { startProxyServers } = require('./lib/proxy/server-lifecycle');
-
 const {
   DATA_DIR,
   CONFIG_FILE,
@@ -63,9 +59,7 @@ const {
   encryptKey,
   decryptKey,
 } = require('./lib/proxy/config');
-
 migrateLegacyRuntimeFiles();
-
 const {
   createHttpsAgent,
   httpAgent: globalHttpAgent,
@@ -75,7 +69,6 @@ const {
 let globalHttpsAgent = initialHttpsAgent;
 https.globalAgent = globalHttpsAgent;
 http.globalAgent = globalHttpAgent;
-
 const { requestWithProxy, resetLocalProxyDetectionCache } = createProxyTransport({
   loadConfig,
   shouldVerifyUpstreamTls,
@@ -219,6 +212,7 @@ const {
   createConversationAuditData,
   installConversationAuditResponseCapture,
   populateAuditDataFromPrepared: populateAuditDataFromPreparedWithDeps,
+  recordAuditUpstreamFailure,
 } = require('./lib/proxy/conversation-audit-utils');
 const {
   resolveCliSession,
@@ -411,8 +405,10 @@ const getClaudeDesktopSelfTestTarget = createClaudeSelfTestTargetResolver({
   isTraeOfficialTarget,
 });
 const {
+  createAntigravityCredentialWatchdog,
   refreshGoogleAccessToken,
   getFreshAntigravityOfficialAccessToken,
+  refreshAntigravityOfficialAccessToken,
   fetchGoogleOfficialAvailableModels,
   resolveGoogleOfficialLoginPrepared,
 } = createGoogleOfficialRuntime({
@@ -553,6 +549,11 @@ const {
   protocolOptions: PROTOCOL_OPTIONS,
 });
 
+const antigravityCredentialWatchdog = createAntigravityCredentialWatchdog({
+  getRuntimeState: () => ({ CONFIG, MODEL_ROUTES, PROFILES }),
+  logProxyEvent,
+});
+
 const { reloadProxyConfig } = createRuntimeConfigController({
   configFile: CONFIG_FILE,
   createHttpsAgent,
@@ -580,9 +581,11 @@ const { reloadProxyConfig } = createRuntimeConfigController({
     MODEL_ROUTES = state.modelRoutes;
     CLAUDE_DESKTOP_ROUTES = state.claudeDesktopRoutes;
     upstreamWarmup.refresh();
+    antigravityCredentialWatchdog.refresh();
   },
 });
 upstreamWarmup.refresh();
+antigravityCredentialWatchdog.refresh();
 const managementHandlers = createLazyManagementHandlers({
   CONFIG: () => CONFIG,
   PROFILES: () => PROFILES,
@@ -905,6 +908,7 @@ const {
   stableCreated,
   extractSseDataPayloads,
   mcpHub,
+  refreshAntigravityOfficialAccessToken,
   maxConversionResponseBytes: MAX_CONVERSION_RESPONSE_BYTES,
 });
 
@@ -966,6 +970,7 @@ const handleRequestInner = createCoreRequestHandler({
   handleTraeOfficialClaudeMessages,
   handleTraeOfficialResponses,
   installConversationAuditResponseCapture,
+  recordAuditUpstreamFailure,
   installLocalManagementRequestEndLogger,
   installManagementCorsGuard,
   isAllowedEntryPath,

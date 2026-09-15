@@ -2,6 +2,10 @@ const assert = require('assert');
 
 const { extractSseDataPayloads } = require('../lib/proxy/sse');
 const { createHttpUtils } = require('../lib/proxy/handlers/http-utils');
+const {
+  terminateClientAfterUpstreamFailure,
+  writeSseFailureComment,
+} = require('../lib/proxy/handlers/failure-terminal');
 
 const errors = [];
 let jsonErrorCall = null;
@@ -71,8 +75,76 @@ assert.deepStrictEqual(requestEndCall, {
 });
 
 jsonErrorCall = null;
-onProxyError({ headersSent: true }, 'OpenAI')({ code: 'ETIMEDOUT' });
-assert.strictEqual(jsonErrorCall, null);
+// Regression: when headers were already sent the error path used to do nothing at
+// all, leaving the client connection open forever with no request_end event.
+let terminatedAfterHeaders = null;
+const streamedRes = {
+  headersSent: true,
+  writableEnded: false,
+  chunks: [],
+  getHeader(name) {
+    return name === 'content-type' ? 'text/event-stream; charset=utf-8' : undefined;
+  },
+  write(chunk) {
+    this.chunks.push(String(chunk));
+    return true;
+  },
+  end() {
+    this.writableEnded = true;
+    terminatedAfterHeaders = this;
+  },
+};
+requestEndCall = null;
+onProxyError(streamedRes, 'OpenAI', {
+  method: 'POST',
+  path: '/v1/responses',
+  upstreamPath: '/v1/responses',
+  startTime: 123,
+  type: 'openai',
+  logProxyEvent() {},
+  logRequestEnd(method, path, startTime, statusCode, meta) {
+    requestEndCall = { method, path, startTime, statusCode, meta };
+  },
+})({ code: 'ETIMEDOUT', message: 'socket hang up' });
+assert.strictEqual(jsonErrorCall, null, 'must not write a second status line');
+assert.ok(terminatedAfterHeaders, 'client connection must be terminated after headers were sent');
+assert.ok(
+  terminatedAfterHeaders.chunks.join('').includes('socket hang up'),
+  'SSE clients need a terminal error event describing the failure'
+);
+assert.strictEqual(requestEndCall.statusCode, 502);
+assert.strictEqual(requestEndCall.meta.type, 'openai_proxy_error');
+
+// Already-ended responses must not be written to again.
+{
+  let endCalls = 0;
+  const ended = {
+    writableEnded: true,
+    end() {
+      endCalls += 1;
+    },
+  };
+  assert.deepStrictEqual(terminateClientAfterUpstreamFailure(ended), {
+    terminated: false,
+    reason: 'already_ended',
+  });
+  assert.strictEqual(endCalls, 0);
+  assert.deepStrictEqual(terminateClientAfterUpstreamFailure(null), {
+    terminated: false,
+    reason: 'no_response',
+  });
+  assert.strictEqual(
+    writeSseFailureComment(
+      {
+        write() {
+          throw new Error('closed');
+        },
+      },
+      {}
+    ),
+    false
+  );
+}
 
 assert.deepStrictEqual(parseJsonOrSseJson('{"ok":true}'), { ok: true });
 assert.strictEqual(parseJsonOrSseJson(''), null);
@@ -164,6 +236,55 @@ assert.throws(
         {}
       ).port,
       9443
+    );
+
+    // Regression: converted routes hardcoded 600s, so a profile timeoutMs had no
+    // effect on them while the main forward path honoured it.
+    assert.strictEqual(
+      utils.upstreamRequestOptions(
+        { protocol: 'https:', hostname: 'api.example.test' },
+        '/v1/messages',
+        {},
+        { profile: { timeoutMs: 300000 } }
+      ).timeout,
+      300000
+    );
+    assert.strictEqual(
+      utils.upstreamRequestOptions(
+        { protocol: 'https:', hostname: 'api.example.test' },
+        '/v1/messages',
+        {},
+        { profile: {} }
+      ).timeout,
+      120000,
+      'profile without timeoutMs must fall back to the documented default'
+    );
+    assert.strictEqual(
+      utils.upstreamRequestOptions(
+        { protocol: 'https:', hostname: 'api.example.test' },
+        '/v1/messages',
+        {}
+      ).timeout,
+      120000
+    );
+    // Out-of-range and non-numeric values must be bounded, not passed through.
+    assert.strictEqual(
+      utils.upstreamRequestOptions(
+        { protocol: 'https:', hostname: 'api.example.test' },
+        '/v1/messages',
+        {},
+        { profile: { timeoutMs: 99999999 } }
+      ).timeout,
+      1800000
+    );
+    assert.strictEqual(
+      utils.upstreamRequestOptions(
+        { protocol: 'https:', hostname: 'api.example.test' },
+        '/v1/messages',
+        {},
+        { profile: { timeoutMs: 'not-a-number' } }
+      ).timeout,
+      120000
     );
   } finally {
     if (previousTargetPort === undefined) delete process.env.TARGET_PORT;

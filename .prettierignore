@@ -12,6 +12,7 @@ package-lock.json
 .traegit/
 .claude/
 .hpm-runtime/
+.hpm-runtime-probe/
 .common-tools/
 .common-tools-audit/
 .git/

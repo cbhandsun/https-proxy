@@ -2,10 +2,13 @@ import { bindDomainDependencies } from '../runtime/dependencies.js';
 
 const RATE_LIMIT_REFRESH_DELAY_MS = 2500;
 const RATE_LIMIT_CLOCK_INTERVAL_MS = 15000;
+const RATE_LIMIT_COOLDOWN_REFRESH_MAX_DELAY_MS = 60000;
 const MAX_RATE_LIMIT_ROWS = 100;
+const MAX_RATE_LIMIT_COOLDOWNS = 100;
 
 const rateLimitsData = Object.create(null);
 const deferredRateLimitTimers = new Map();
+const cooldownRateLimitTimers = new Map();
 let rateLimitDependencies;
 let limitsTimeDisplayTimer = null;
 let lastRenderedLimitsProfileId = '';
@@ -47,18 +50,51 @@ function normalizeLimit(limit) {
   };
 }
 
+function normalizeCooldown(cooldown) {
+  if (!cooldown || typeof cooldown !== 'object' || Array.isArray(cooldown)) return null;
+  const retryAfterSeconds = Math.ceil(Number(cooldown.retryAfterSeconds));
+  if (!Number.isFinite(retryAfterSeconds) || retryAfterSeconds <= 0) return null;
+  const targetModel =
+    typeof cooldown.targetModel === 'string'
+      ? cooldown.targetModel.slice(0, 200)
+      : typeof cooldown.model === 'string'
+        ? cooldown.model.slice(0, 200)
+        : '';
+  if (!targetModel) return null;
+  return {
+    profileId: typeof cooldown.profileId === 'string' ? cooldown.profileId.slice(0, 200) : '',
+    targetModel,
+    retryAfterSeconds,
+    resetDisplay:
+      typeof cooldown.resetDisplay === 'string' ? cooldown.resetDisplay.slice(0, 200) : '',
+    resetIn: typeof cooldown.resetIn === 'string' ? cooldown.resetIn.slice(0, 200) : '',
+    source: typeof cooldown.source === 'string' ? cooldown.source.slice(0, 100) : '',
+  };
+}
+
 export function parseRateLimitsResponse(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return { ok: false, error: '服务返回了无效响应' };
   }
   if (value.ok !== true) {
-    return { ok: false, error: errorMessage(value.error) };
+    return {
+      ok: false,
+      error: errorMessage(value.error),
+      cooldowns: (Array.isArray(value.cooldowns) ? value.cooldowns : [])
+        .slice(0, MAX_RATE_LIMIT_COOLDOWNS)
+        .map(normalizeCooldown)
+        .filter(Boolean),
+    };
   }
   return {
     ok: true,
     limits: (Array.isArray(value.limits) ? value.limits : [])
       .slice(0, MAX_RATE_LIMIT_ROWS)
       .map(normalizeLimit)
+      .filter(Boolean),
+    cooldowns: (Array.isArray(value.cooldowns) ? value.cooldowns : [])
+      .slice(0, MAX_RATE_LIMIT_COOLDOWNS)
+      .map(normalizeCooldown)
       .filter(Boolean),
   };
 }
@@ -72,6 +108,33 @@ function getRelativeTime(timestamp) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}小时前`;
   return `${Math.floor(hours / 24)}天前`;
+}
+
+export function nextCooldownRefreshDelay(cooldowns) {
+  const retryAfterSeconds = (Array.isArray(cooldowns) ? cooldowns : [])
+    .map((cooldown) => Math.ceil(Number(cooldown && cooldown.retryAfterSeconds)))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  if (!retryAfterSeconds.length) return null;
+  const seconds = Math.min(...retryAfterSeconds);
+  return Math.max(1000, Math.min(seconds * 1000, RATE_LIMIT_COOLDOWN_REFRESH_MAX_DELAY_MS));
+}
+
+function clearCooldownRateLimitTimer(profileId) {
+  const timer = cooldownRateLimitTimers.get(profileId);
+  if (!timer) return;
+  clearTimeout(timer);
+  cooldownRateLimitTimers.delete(profileId);
+}
+
+function scheduleCooldownRateLimitRefresh(profileId, cooldowns) {
+  clearCooldownRateLimitTimer(profileId);
+  const delay = nextCooldownRefreshDelay(cooldowns);
+  if (!profileId || !delay) return;
+  const timer = setTimeout(() => {
+    cooldownRateLimitTimers.delete(profileId);
+    void refreshRateLimits(profileId);
+  }, delay);
+  cooldownRateLimitTimers.set(profileId, timer);
 }
 
 function createLimitsTextElement(text, options = {}) {
@@ -102,6 +165,57 @@ function createLimitsSpinnerElement() {
   return svg;
 }
 
+function cooldownSourceLabel(source) {
+  if (source === 'upstream_reset_time') return '上游重置时间';
+  if (source === 'upstream_retry_after') return '上游 Retry-After';
+  if (source === 'local_fallback') return '本地保护';
+  return '本地冷却';
+}
+
+function createCooldownElement(cooldown) {
+  const item = document.createElement('span');
+  item.style.background = 'rgba(239, 68, 68, 0.08)';
+  item.style.padding = '2px 6px';
+  item.style.borderRadius = '4px';
+  item.style.border = '1px solid rgba(239, 68, 68, 0.28)';
+  item.style.display = 'inline-flex';
+  item.style.alignItems = 'center';
+  item.style.gap = '4px';
+
+  const label = document.createElement('strong');
+  label.style.color = '#ef4444';
+  label.style.fontWeight = '700';
+  label.textContent = '本地冷却中';
+  item.appendChild(label);
+  item.appendChild(document.createTextNode(` ${cooldown.targetModel}`));
+
+  const retry = cooldown.resetIn || `${cooldown.retryAfterSeconds}s`;
+  if (retry) {
+    const retryElement = document.createElement('span');
+    retryElement.style.opacity = '0.72';
+    retryElement.style.fontSize = '10px';
+    retryElement.textContent = `⏳ ${retry}`;
+    item.appendChild(retryElement);
+  }
+
+  const resetDisplay = cooldown.resetDisplay;
+  if (resetDisplay) {
+    const reset = document.createElement('span');
+    reset.style.opacity = '0.62';
+    reset.style.fontSize = '10px';
+    reset.textContent = `🕒 ${resetDisplay}`;
+    item.appendChild(reset);
+  }
+
+  const source = document.createElement('span');
+  source.style.opacity = '0.5';
+  source.style.fontSize = '10px';
+  source.textContent = cooldownSourceLabel(cooldown.source);
+  item.appendChild(source);
+
+  return item;
+}
+
 function limitsSignature(profileId) {
   const data = rateLimitsData[profileId];
   return JSON.stringify({
@@ -109,6 +223,7 @@ function limitsSignature(profileId) {
     loading: Boolean(data && data.loading),
     error: data && data.error ? String(data.error) : '',
     limits: data && Array.isArray(data.limits) ? data.limits : [],
+    cooldowns: data && Array.isArray(data.cooldowns) ? data.cooldowns : [],
   });
 }
 
@@ -125,15 +240,27 @@ function createLimitsElement(profileId) {
     loading.append(createLimitsSpinnerElement(), document.createTextNode('正在同步凭证与限额...'));
     return loading;
   }
-  if (data.error) {
+  const cooldowns = Array.isArray(data.cooldowns) ? data.cooldowns : [];
+  const hasCooldowns = cooldowns.length > 0;
+  if (data.error && !hasCooldowns) {
     return createLimitsTextElement(data.error, { color: '#ef4444' });
   }
-  if (!data.limits || data.limits.length === 0) {
+  const limits = Array.isArray(data.limits) ? data.limits : [];
+  const hasLimits = limits.length > 0;
+  if (!hasLimits && !hasCooldowns) {
     return createLimitsTextElement('无限制数据', { opacity: '0.6' });
   }
 
   const fragment = document.createDocumentFragment();
-  data.limits.forEach((limit, index) => {
+  cooldowns.forEach((cooldown, index) => {
+    if (index > 0) fragment.appendChild(document.createTextNode(' '));
+    fragment.appendChild(createCooldownElement(cooldown));
+  });
+  if (data.error) {
+    if (hasCooldowns) fragment.appendChild(document.createTextNode(' '));
+    fragment.appendChild(createLimitsTextElement(data.error, { color: '#ef4444' }));
+  }
+  limits.forEach((limit, index) => {
     const value = Number.isFinite(limit.remainingPercent) ? limit.remainingPercent : limit.percent;
     const isRemaining = Number.isFinite(limit.remainingPercent);
     let color = '#10b981';
@@ -165,7 +292,7 @@ function createLimitsElement(profileId) {
       reset.textContent = `🕒 ${resetValue}`;
       item.appendChild(reset);
     }
-    if (index > 0) fragment.appendChild(document.createTextNode(' '));
+    if (hasCooldowns || data.error || index > 0) fragment.appendChild(document.createTextNode(' '));
     fragment.appendChild(item);
   });
   return fragment;
@@ -198,13 +325,16 @@ export function renderDashboardLimits(profileId) {
 async function requestRateLimits(profileId) {
   try {
     const result = parseRateLimitsResponse(await window.proxyManager.getRateLimits(profileId));
-    rateLimitsData[profileId] = result.ok
-      ? { limits: result.limits, refreshedAt: Date.now() }
-      : { error: result.error, refreshedAt: Date.now() };
+    const nextData = result.ok
+      ? { limits: result.limits, cooldowns: result.cooldowns, refreshedAt: Date.now() }
+      : { error: result.error, cooldowns: result.cooldowns, refreshedAt: Date.now() };
+    rateLimitsData[profileId] = nextData;
+    scheduleCooldownRateLimitRefresh(profileId, nextData.cooldowns);
     return result;
   } catch (error) {
     const result = { ok: false, error: errorMessage(error) };
     rateLimitsData[profileId] = { error: result.error, refreshedAt: Date.now() };
+    clearCooldownRateLimitTimer(profileId);
     return result;
   }
 }
@@ -212,6 +342,7 @@ async function requestRateLimits(profileId) {
 export async function refreshRateLimits(profileId) {
   if (!profileId) return;
   const { selectedId } = dependencies();
+  clearCooldownRateLimitTimer(profileId);
   rateLimitsData[profileId] = { loading: true, refreshedAt: Date.now() };
   if (profileId === selectedId) renderDashboardLimits(profileId);
   await requestRateLimits(profileId);

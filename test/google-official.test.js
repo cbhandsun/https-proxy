@@ -14,7 +14,10 @@ const {
   formatGoogleOfficialUserQuota,
   decodeAntigravityOAuthStateValue,
 } = require('../lib/proxy/google-official');
-const { createGoogleOfficialRuntime } = require('../lib/proxy/google-official-runtime');
+const {
+  antigravityWatchdogSettings,
+  createGoogleOfficialRuntime,
+} = require('../lib/proxy/google-official-runtime');
 const { createCodeAssist } = require('../lib/proxy/handlers/code-assist');
 
 function toBase64Url(value) {
@@ -447,6 +450,133 @@ async function main() {
   assert.strictEqual(quotaLimits[0].model, 'gemini-3-flash');
   assert.strictEqual(quotaLimits[0].remainingPercent, 25);
   assert.strictEqual(quotaLimits[0].remainingAmount, '25');
+
+  assert.deepStrictEqual(antigravityWatchdogSettings({ appSettings: {} }), {
+    enabled: true,
+    intervalMs: 60000,
+  });
+  assert.deepStrictEqual(
+    antigravityWatchdogSettings({
+      appSettings: {
+        antigravityCredentialWatchdogEnabled: false,
+        antigravityCredentialWatchdogIntervalMs: 1,
+      },
+    }),
+    { enabled: false, intervalMs: 15000 }
+  );
+
+  const probeAuthHeaders = [];
+  let probeCredentialRead = 0;
+  const probeRuntime = createGoogleOfficialRuntime({
+    makeRequest: async (_url, options) => {
+      probeAuthHeaders.push(options.headers.authorization);
+      return probeAuthHeaders.length === 1
+        ? { statusCode: 401, body: JSON.stringify({ error: { message: 'invalid token' } }) }
+        : { statusCode: 200, body: JSON.stringify({ cloudaicompanionProject: { id: 'p1' } }) };
+    },
+    googleOfficialCodeAssistUrl,
+    googleOfficialModelsFromAvailableModels,
+    readAntigravityOfficialCredentialState: () => {
+      probeCredentialRead += 1;
+      return {
+        credsPath: null,
+        source: 'antigravity-auth-status',
+        dbPath: probeCredentialRead === 1 ? 'old-state.vscdb' : 'new-state.vscdb',
+        content: {
+          access_token: probeCredentialRead === 1 ? 'ya29.old-probe' : 'ya29.new-probe',
+          refresh_token: '',
+          token_type: 'Bearer',
+          __readOnly: true,
+          __source: 'antigravity-auth-status',
+          expiry_date: 0,
+        },
+      };
+    },
+    isGoogleOfficialLoginToken,
+    buildGoogleOfficialLoadCodeAssistRequest,
+    env: {},
+  });
+  const probeResult = await probeRuntime.probeAntigravityOfficialCredentials({
+    reason: 'test',
+    forceReload: true,
+  });
+  assert.strictEqual(probeResult.ok, true);
+  assert.strictEqual(probeResult.statusCode, 200);
+  assert.strictEqual(probeResult.retried, true);
+  assert.deepStrictEqual(probeAuthHeaders, ['Bearer ya29.old-probe', 'Bearer ya29.new-probe']);
+  assert.strictEqual(probeResult.source, 'antigravity-auth-status');
+  assert.strictEqual(probeResult.dbPath, 'new-state.vscdb');
+
+  const fallbackProbeAuthHeaders = [];
+  const fallbackCredentialOptions = [];
+  const fallbackRuntime = createGoogleOfficialRuntime({
+    makeRequest: async (_url, options) => {
+      fallbackProbeAuthHeaders.push(options.headers.authorization);
+      return fallbackProbeAuthHeaders.length === 1
+        ? { statusCode: 401, body: JSON.stringify({ error: { message: 'invalid token' } }) }
+        : { statusCode: 200, body: JSON.stringify({ cloudaicompanionProject: { id: 'p1' } }) };
+    },
+    googleOfficialCodeAssistUrl,
+    googleOfficialModelsFromAvailableModels,
+    readAntigravityOfficialCredentialState: (options) => {
+      fallbackCredentialOptions.push(options || {});
+      const preferCredentialManager = options && options.preferCredentialManager === true;
+      return {
+        credsPath: null,
+        source: preferCredentialManager
+          ? 'antigravity-credential-manager'
+          : 'antigravity-auth-status',
+        credentialTarget: preferCredentialManager ? 'gemini:antigravity' : '',
+        dbPath: preferCredentialManager ? '' : 'state.vscdb',
+        content: {
+          access_token: preferCredentialManager
+            ? 'ya29.credential-manager-probe'
+            : 'ya29.stale-auth-status',
+          refresh_token: '',
+          token_type: 'Bearer',
+          __readOnly: true,
+          __source: preferCredentialManager
+            ? 'antigravity-credential-manager'
+            : 'antigravity-auth-status',
+          expiry_date: 0,
+        },
+      };
+    },
+    isGoogleOfficialLoginToken,
+    buildGoogleOfficialLoadCodeAssistRequest,
+    env: {},
+  });
+  const fallbackProbeResult = await fallbackRuntime.probeAntigravityOfficialCredentials({
+    reason: 'test',
+    forceReload: true,
+  });
+  assert.strictEqual(fallbackProbeResult.ok, true);
+  assert.strictEqual(fallbackProbeResult.retried, true);
+  assert.deepStrictEqual(fallbackProbeAuthHeaders, [
+    'Bearer ya29.stale-auth-status',
+    'Bearer ya29.credential-manager-probe',
+  ]);
+  assert.ok(fallbackCredentialOptions.some((options) => options.preferCredentialManager === true));
+  assert.strictEqual(fallbackProbeResult.source, 'antigravity-credential-manager');
+  assert.strictEqual(fallbackProbeResult.credentialTarget, 'gemini:antigravity');
+
+  const watchdogEvents = [];
+  const watchdog = probeRuntime.createAntigravityCredentialWatchdog({
+    getRuntimeState: () => ({
+      CONFIG: { appSettings: { antigravityCredentialWatchdogIntervalMs: 15000 } },
+      PROFILES: [{ id: 'google-official', protocol: 'gemini', authMode: 'official-login' }],
+      MODEL_ROUTES: [],
+    }),
+    logProxyEvent: (kind, payload) => watchdogEvents.push({ kind, payload }),
+    setIntervalFn: () => ({ unref() {} }),
+    clearIntervalFn: () => {},
+  });
+  watchdog.refresh();
+  await new Promise((resolve) => setImmediate(resolve));
+  watchdog.stop();
+  assert.strictEqual(watchdogEvents[0].kind, 'antigravity_credential_watchdog');
+  assert.strictEqual(watchdogEvents[0].payload.ok, true);
+  assert.ok(!JSON.stringify(watchdogEvents).includes('ya29.'));
 }
 
 main()

@@ -22,6 +22,7 @@ module.exports = [
       '400',
       'prev_electron_ui.html',
       '.hpm-runtime/**',
+      '.hpm-runtime-probe/**',
       '.tmp*/**',
       '.tmp*',
     ],

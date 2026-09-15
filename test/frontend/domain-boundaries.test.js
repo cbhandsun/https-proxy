@@ -70,11 +70,22 @@ const assert = require('node:assert/strict');
   assert.deepEqual(rateLimits.parseRateLimitsResponse({ ok: false, error: ' denied ' }), {
     ok: false,
     error: 'denied',
+    cooldowns: [],
   });
   assert.deepEqual(rateLimits.parseRateLimitsResponse({ ok: true }), {
     ok: true,
     limits: [],
+    cooldowns: [],
   });
+  assert.equal(rateLimits.nextCooldownRefreshDelay(undefined), null);
+  assert.equal(rateLimits.nextCooldownRefreshDelay([{ retryAfterSeconds: -1 }]), null);
+  assert.equal(rateLimits.nextCooldownRefreshDelay([{ retryAfterSeconds: 0.1 }]), 1000);
+  assert.equal(rateLimits.nextCooldownRefreshDelay([{ retryAfterSeconds: 30 }]), 30000);
+  assert.equal(rateLimits.nextCooldownRefreshDelay([{ retryAfterSeconds: 3600 }]), 60000);
+  assert.equal(
+    rateLimits.nextCooldownRefreshDelay([{ retryAfterSeconds: 120 }, { retryAfterSeconds: 2 }]),
+    2000
+  );
   assert.deepEqual(
     rateLimits.parseRateLimitsResponse({
       ok: true,
@@ -99,6 +110,38 @@ const assert = require('node:assert/strict');
           remainingPercent: 19,
           resetDisplay: 'tomorrow',
           resetIn: '',
+        },
+      ],
+      cooldowns: [],
+    }
+  );
+  assert.deepEqual(
+    rateLimits.parseRateLimitsResponse({
+      ok: false,
+      error: 'upstream unavailable',
+      cooldowns: [
+        {
+          profileId: 'workbuddy-official',
+          targetModel: 'deepseek-v4.1-flash',
+          retryAfterSeconds: '3661',
+          resetIn: '1h2m',
+          resetDisplay: '16:21',
+          source: 'upstream_reset_time',
+        },
+        { targetModel: 'broken', retryAfterSeconds: -1 },
+      ],
+    }),
+    {
+      ok: false,
+      error: 'upstream unavailable',
+      cooldowns: [
+        {
+          profileId: 'workbuddy-official',
+          targetModel: 'deepseek-v4.1-flash',
+          retryAfterSeconds: 3661,
+          resetDisplay: '16:21',
+          resetIn: '1h2m',
+          source: 'upstream_reset_time',
         },
       ],
     }

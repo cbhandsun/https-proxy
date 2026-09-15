@@ -2,7 +2,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { EventEmitter } = require('events');
-const { createCoreRequestHandler } = require('../lib/proxy/core-request-handler');
+const { createCoreRequestHandler, _test } = require('../lib/proxy/core-request-handler');
 
 assert.throws(() => createCoreRequestHandler(), /requires getRuntimeState/);
 
@@ -113,5 +113,143 @@ assert.ok(
   !routeBlock('responses->chat').includes('isRoutedResponsesConversionRequest'),
   'OpenAI Responses-to-chat conversion should remain entry-protocol gated'
 );
+
+{
+  const calls = [];
+  const cooldown = _test.applyPassthroughRateLimitCooldown({
+    statusCode: 429,
+    headers: { 'retry-after': '90' },
+    responseBody: '{"error":{"message":"rate limited"}}',
+    prepared: {
+      model: 'workbuddy/deepseek-v4.1-flash',
+      rewriteTo: 'deepseek-v4.1-flash',
+      profile: { id: 'workbuddy-official', protocol: 'workbuddy' },
+    },
+    setUpstreamCooldown(profileId, targetModel, retryAfterSeconds, options) {
+      calls.push({ profileId, targetModel, retryAfterSeconds, options });
+      return { retryAfterSeconds };
+    },
+  });
+  assert.deepStrictEqual(cooldown, {
+    profileId: 'workbuddy-official',
+    targetModel: 'deepseek-v4.1-flash',
+    retryAfterSeconds: 90,
+    source: 'upstream_retry_after',
+  });
+  assert.deepStrictEqual(calls, [
+    {
+      profileId: 'workbuddy-official',
+      targetModel: 'deepseek-v4.1-flash',
+      retryAfterSeconds: 90,
+      options: { source: 'upstream_retry_after' },
+    },
+  ]);
+}
+
+{
+  const calls = [];
+  const cooldown = _test.applyPassthroughRateLimitCooldown({
+    statusCode: 429,
+    headers: {},
+    responseBody: '{"error":{"message":"rate limited"}}',
+    prepared: {
+      model: 'workbuddy/deepseek-v4.1-flash',
+      rewriteTo: '-',
+      profile: { id: 'workbuddy-official', protocol: 'workbuddy' },
+    },
+    setUpstreamCooldown(profileId, targetModel, retryAfterSeconds, options) {
+      calls.push({ profileId, targetModel, retryAfterSeconds, options });
+      return { retryAfterSeconds };
+    },
+  });
+  assert.deepStrictEqual(cooldown, {
+    profileId: 'workbuddy-official',
+    targetModel: 'deepseek-v4.1-flash',
+    retryAfterSeconds: 45,
+    source: 'local_fallback',
+  });
+  assert.strictEqual(calls[0].targetModel, 'deepseek-v4.1-flash');
+  assert.deepStrictEqual(calls[0].options, { source: 'local_fallback' });
+}
+
+{
+  const cooldown = _test.applyPassthroughRateLimitCooldown({
+    statusCode: 429,
+    headers: { 'retry-after': '90' },
+    responseBody: '{}',
+    prepared: {
+      model: 'gpt-5',
+      rewriteTo: 'gpt-5',
+      profile: { id: 'openai-official', protocol: 'openai' },
+    },
+    setUpstreamCooldown() {
+      throw new Error('non-WorkBuddy 429 must not set upstream cooldown');
+    },
+  });
+  assert.strictEqual(cooldown, null);
+}
+
+{
+  const requestEnds = [];
+  const warnings = [];
+  const response = {
+    statusCode: null,
+    headers: null,
+    body: '',
+    writeHead(statusCode, headers) {
+      this.statusCode = statusCode;
+      this.headers = headers;
+    },
+    end(body) {
+      this.body = String(body || '');
+    },
+  };
+  const handled = _test.sendPassthroughLocalCooldown(
+    { method: 'POST', url: '/v1/chat/completions' },
+    response,
+    {
+      model: 'workbuddy/deepseek-v4.1-flash',
+      rewriteTo: 'deepseek-v4.1-flash',
+      profile: { id: 'workbuddy-official', protocol: 'workbuddy' },
+    },
+    '/v2/chat/completions',
+    789,
+    {
+      getUpstreamCooldown(profileId, targetModel) {
+        assert.strictEqual(profileId, 'workbuddy-official');
+        assert.strictEqual(targetModel, 'deepseek-v4.1-flash');
+        return { retryAfterSeconds: 31 };
+      },
+      log: {
+        warn(message) {
+          warnings.push(message);
+        },
+      },
+      logRequestEnd(method, requestPath, startTime, statusCode, meta) {
+        requestEnds.push({ method, requestPath, startTime, statusCode, meta });
+      },
+    }
+  );
+  assert.strictEqual(handled, true);
+  assert.strictEqual(response.statusCode, 429);
+  assert.strictEqual(response.headers['Retry-After'], '31');
+  assert.strictEqual(JSON.parse(response.body).error.type, 'rate_limit_error');
+  assert.ok(warnings[0].includes('source=local_cooldown target=deepseek-v4.1-flash'));
+  assert.deepStrictEqual(requestEnds, [
+    {
+      method: 'POST',
+      requestPath: '/v2/chat/completions',
+      startTime: 789,
+      statusCode: 429,
+      meta: {
+        type: 'upstream_rate_limit',
+        targetModel: 'deepseek-v4.1-flash',
+        retryAfterSeconds: 31,
+        source: 'local_cooldown',
+        profileId: 'workbuddy-official',
+      },
+    },
+  ]);
+}
 
 console.log('[core-request-handler.test] ok');

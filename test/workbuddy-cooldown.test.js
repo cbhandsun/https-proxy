@@ -90,7 +90,7 @@ const handlers = createRouteHandlers({
   getUpstreamCooldown(profileId, targetModel) {
     assert.strictEqual(profileId, 'workbuddy-official');
     assert.strictEqual(targetModel, 'deepseek-v4.1-flash');
-    return { retryAfterSeconds: 31 };
+    return { retryAfterSeconds: 3661 };
   },
   setUpstreamCooldown: noop,
   writeJsonResponse: noop,
@@ -130,6 +130,12 @@ const clientRes = {
   },
 };
 
+function resetClientRes(res) {
+  res.statusCode = null;
+  res.headers = null;
+  res.body = '';
+}
+
 handlers.handleOpenAIResponsesToOpenAIChat(
   { method: 'POST', url: '/v1/responses' },
   clientRes,
@@ -146,8 +152,9 @@ handlers.handleOpenAIResponsesToOpenAIChat(
 
 assert.strictEqual(upstreamRequested, false);
 assert.strictEqual(clientRes.statusCode, 429);
-assert.strictEqual(clientRes.headers['Retry-After'], '31');
+assert.strictEqual(clientRes.headers['Retry-After'], '3661');
 assert.strictEqual(JSON.parse(clientRes.body).error.type, 'rate_limit_error');
+assert.ok(JSON.parse(clientRes.body).error.message.includes('1h1m'));
 assert.ok(warnings[0].includes('source=local_cooldown target=deepseek-v4.1-flash'));
 assert.deepStrictEqual(requestEnds, [
   {
@@ -158,7 +165,48 @@ assert.deepStrictEqual(requestEnds, [
     meta: {
       type: 'upstream_rate_limit',
       targetModel: 'deepseek-v4.1-flash',
-      retryAfterSeconds: 31,
+      retryAfterSeconds: 3661,
+      source: 'local_cooldown',
+      profileId: 'workbuddy-official',
+    },
+  },
+]);
+
+requestEnds.length = 0;
+warnings.length = 0;
+upstreamRequested = false;
+resetClientRes(clientRes);
+
+handlers.handleOpenAIChatToOpenAIResponses(
+  { method: 'POST', url: '/v1/chat/completions' },
+  clientRes,
+  {
+    buffer: Buffer.from('{}'),
+    rewriteTo: 'deepseek-v4.1-flash',
+    profile: { id: 'workbuddy-official', protocol: 'workbuddy' },
+  },
+  { protocol: 'https:', path: '/v2' },
+  'token',
+  '/v2/chat/completions',
+  456
+);
+
+assert.strictEqual(upstreamRequested, false);
+assert.strictEqual(clientRes.statusCode, 429);
+assert.strictEqual(clientRes.headers['Retry-After'], '3661');
+assert.strictEqual(JSON.parse(clientRes.body).error.type, 'rate_limit_error');
+assert.ok(JSON.parse(clientRes.body).error.message.includes('1h1m'));
+assert.ok(warnings[0].includes('source=local_cooldown target=deepseek-v4.1-flash'));
+assert.deepStrictEqual(requestEnds, [
+  {
+    method: 'POST',
+    path: '/v2/chat/completions',
+    startTime: 456,
+    statusCode: 429,
+    meta: {
+      type: 'upstream_rate_limit',
+      targetModel: 'deepseek-v4.1-flash',
+      retryAfterSeconds: 3661,
       source: 'local_cooldown',
       profileId: 'workbuddy-official',
     },
