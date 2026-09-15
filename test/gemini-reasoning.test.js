@@ -66,9 +66,13 @@ assert.deepStrictEqual(parseOpenAIReasoningEffort(inherited), {
 assert.strictEqual(supportsGeminiThinkingLevel('gemini-2.5-pro'), false);
 assert.strictEqual(supportsGeminiThinkingLevel('models/gemini-3.6-flash'), true);
 assert.strictEqual(supportsGeminiThinkingLevel('gemini-4.0-flash'), true);
-assert.deepStrictEqual(
+assert.strictEqual(
   geminiThinkingConfigFromOpenAI({ reasoning_effort: 'none' }, 'gemini-3.6-flash'),
-  { thinkingLevel: 'minimal' }
+  null
+);
+assert.strictEqual(
+  geminiThinkingConfigFromOpenAI({ thinking: { type: 'disabled' } }, 'gemini-3.6-flash'),
+  null
 );
 assert.deepStrictEqual(
   geminiThinkingConfigFromOpenAI({ reasoning_effort: 'xhigh' }, 'gemini-3.6-flash'),

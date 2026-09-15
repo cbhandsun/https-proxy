@@ -2,11 +2,15 @@
 
 const assert = require('assert');
 const { createRouteHandlers } = require('../lib/proxy/handlers/route-handlers');
+const { createCodeAssist } = require('../lib/proxy/handlers/code-assist');
 
 let capturedOptions = null;
 let capturedBody = null;
 let parsedStream = false;
 let requestedStream = null;
+let convertedClaudeBody = null;
+const fallbackId = () => 'test-id';
+const codeAssist = createCodeAssist({ fallbackId });
 const request = {
   on() {
     return this;
@@ -31,12 +35,33 @@ const handlers = createRouteHandlers({
   sendUpstreamError: noop,
   logRequestEnd: noop,
   logProxyEvent: noop,
-  fallbackId: () => 'test-id',
+  fallbackId,
   stableCreated: () => 0,
   sendGeminiRateLimit: noop,
   writeClaudeSseEvent: noop,
   openAIChatToClaudeMessages: () => ({ messages: [], tools: [] }),
-  claudeMessagesToGemini: () => ({ contents: [{ role: 'user', parts: [{ text: 'hello' }] }] }),
+  claudeMessagesToGemini: (body) => {
+    convertedClaudeBody = body;
+    return {
+      contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+      ...(body.__responsesToolPreamble === true
+        ? {
+            systemInstruction: { parts: [{ text: 'preamble before functionCall' }] },
+            tools: [
+              {
+                functionDeclarations: [
+                  {
+                    name: 'exec',
+                    description: 'Run code',
+                    parameters: { type: 'OBJECT', properties: { input: { type: 'STRING' } } },
+                  },
+                ],
+              },
+            ],
+          }
+        : {}),
+    };
+  },
   geminiGeneratePath: () => {
     throw new Error('direct Gemini path must not be used for Google official login');
   },
@@ -53,20 +78,10 @@ const handlers = createRouteHandlers({
   onProxyError: () => noop,
   parseJsonOrSseJson: JSON.parse,
   shouldUseCodeAssistUpstream: () => true,
-  codeAssistUserAgent: () => 'antigravity-cli/test',
-  codeAssistGenerateRequest: (_prepared, _body, _model, stream) => {
+  codeAssistUserAgent: codeAssist.codeAssistUserAgent,
+  codeAssistGenerateRequest: (prepared, body, model, stream) => {
     requestedStream = stream;
-    return {
-      target: new URL(
-        'https://daily-cloudcode-pa.googleapis.com/v1internal:' +
-          (stream ? 'streamGenerateContent?alt=sse' : 'generateContent')
-      ),
-      body: {
-        model: 'gemini-3.5-flash-low',
-        project: 'test-project',
-        request: { contents: [{ role: 'user', parts: [{ text: 'hello' }] }] },
-      },
-    };
+    return codeAssist.codeAssistGenerateRequest(prepared, body, model, stream);
   },
   unwrapCodeAssistResponse: (payload) => (payload && payload.response ? payload.response : payload),
   unwrapCodeAssistSseEvent: (event) => event,
@@ -91,6 +106,7 @@ handlers.handleOpenAIResponsesToGeminiMessages(
     profile: { id: 'google-official', protocol: 'gemini' },
     authMode: 'official-login',
     authProvider: 'google',
+    googleOfficialProjectId: 'test-project',
     buffer: Buffer.from('{}'),
   },
   {
@@ -107,13 +123,29 @@ handlers.handleOpenAIResponsesToGeminiMessages(
 assert.strictEqual(capturedOptions.hostname, 'daily-cloudcode-pa.googleapis.com');
 assert.strictEqual(capturedOptions.path, '/v1internal:generateContent');
 assert.strictEqual(capturedOptions.headers.authorization, 'Bearer ya29.test-token');
-assert.strictEqual(capturedOptions.headers['user-agent'], 'antigravity-cli/test');
+assert.strictEqual(capturedOptions.headers['user-agent'], 'antigravity-cli/diagnostic');
 assert.deepStrictEqual(JSON.parse(capturedBody.toString('utf8')), {
   model: 'gemini-3.5-flash-low',
   project: 'test-project',
-  request: { contents: [{ role: 'user', parts: [{ text: 'hello' }] }] },
+  user_prompt_id: 'test-id',
+  request: {
+    contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+    systemInstruction: { parts: [{ text: 'preamble before functionCall' }] },
+    tools: [
+      {
+        functionDeclarations: [
+          {
+            name: 'exec',
+            description: 'Run code',
+            parameters: { type: 'OBJECT', properties: { input: { type: 'STRING' } } },
+          },
+        ],
+      },
+    ],
+  },
 });
 assert.strictEqual(requestedStream, false);
+assert.strictEqual(convertedClaudeBody.__responsesToolPreamble, true);
 
 parsedStream = true;
 handlers.handleOpenAIResponsesToGeminiMessages(
@@ -125,6 +157,7 @@ handlers.handleOpenAIResponsesToGeminiMessages(
     profile: { id: 'google-official', protocol: 'gemini' },
     authMode: 'official-login',
     authProvider: 'google',
+    googleOfficialProjectId: 'test-project',
     buffer: Buffer.from('{"stream":true}'),
   },
   {

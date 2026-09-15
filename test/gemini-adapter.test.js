@@ -48,6 +48,59 @@ test('converts Claude text request to Gemini generateContent body', () => {
   ]);
 });
 
+test('adds Responses tool preamble only when tool calling is available', () => {
+  const body = {
+    system: 'You are concise.',
+    __responsesToolPreamble: true,
+    messages: [{ role: 'user', content: 'inspect the repo' }],
+    tools: [
+      {
+        name: 'Bash',
+        description: 'Run a command',
+        input_schema: { type: 'object', properties: { command: { type: 'string' } } },
+      },
+    ],
+  };
+
+  const result = claudeMessagesToGemini(body, 'gemini-3.8-flash-tiered');
+  assert.strictEqual(result.systemInstruction.parts[0].text, 'You are concise.');
+  assert.match(result.systemInstruction.parts[1].text, /first emit one concise user-visible text/);
+  assert.match(result.systemInstruction.parts[1].text, /normal text part/);
+
+  const withoutTools = claudeMessagesToGemini(
+    {
+      system: 'You are concise.',
+      __responsesToolPreamble: true,
+      messages: [{ role: 'user', content: 'hello' }],
+    },
+    'gemini-3.8-flash-tiered'
+  );
+  assert.deepStrictEqual(withoutTools.systemInstruction, { parts: [{ text: 'You are concise.' }] });
+
+  const withoutSystem = claudeMessagesToGemini(
+    {
+      __responsesToolPreamble: true,
+      messages: [{ role: 'user', content: 'inspect the repo' }],
+      tools: body.tools,
+    },
+    'gemini-3.8-flash-tiered'
+  );
+  assert.match(withoutSystem.systemInstruction.parts[0].text, /functionCall part/);
+
+  const nativeSearchOnly = claudeMessagesToGemini(
+    {
+      system: 'You are concise.',
+      __responsesToolPreamble: true,
+      __nativeWebSearch: 'gemini-google-search',
+      messages: [{ role: 'user', content: 'search the web' }],
+    },
+    'gemini-3.8-flash-tiered'
+  );
+  assert.deepStrictEqual(nativeSearchOnly.systemInstruction, {
+    parts: [{ text: 'You are concise.' }],
+  });
+});
+
 test('requests text and image output for Gemini 3.1 Flash Image only', () => {
   const imageRequest = claudeMessagesToGemini(
     { messages: [{ role: 'user', content: 'draw a red circle' }] },
@@ -136,6 +189,18 @@ test('maps normalized OpenAI reasoning effort to Gemini 3 thinking config', () =
   assert.deepStrictEqual(result.generationConfig, {
     thinkingConfig: { thinkingLevel: 'high' },
   });
+});
+
+test('omits Gemini thinking config when OpenAI reasoning effort is none', () => {
+  const result = claudeMessagesToGemini(
+    {
+      reasoning_effort: 'none',
+      messages: [{ role: 'user', content: 'hello' }],
+    },
+    'gemini-3.6-flash'
+  );
+
+  assert.strictEqual(result.generationConfig, undefined);
 });
 
 test('converts image, audio, video, and tool declarations', () => {
@@ -535,6 +600,29 @@ test('keeps Gemini tool result names when thought signature is absent', () => {
     'gemini-3-flash-preview'
   );
   assert.strictEqual(next.contents[0].parts[0].functionResponse.name, 'Read');
+});
+
+test('adds Responses fallback preamble before a non-stream Gemini tool call', () => {
+  const result = geminiResponseToClaude(
+    {
+      candidates: [
+        {
+          content: {
+            parts: [{ functionCall: { name: 'exec', args: { input: 'return 1;' } } }],
+          },
+          finishReason: 'STOP',
+        },
+      ],
+    },
+    'gemini-3.8-flash-tiered',
+    [{ name: 'exec', input_schema: { type: 'object', required: ['input'] } }],
+    { responsesToolPreambleText: '我先看一下。' }
+  );
+
+  assert.strictEqual(result.content[0].type, 'text');
+  assert.strictEqual(result.content[0].text, '我先看一下。');
+  assert.strictEqual(result.content[1].type, 'tool_use');
+  assert.strictEqual(result.content[1].name, 'exec');
 });
 
 test('accepts Gemini Read tool path aliases when schema requires file_path', () => {
@@ -1590,6 +1678,49 @@ test('sanitizes loose tool array schemas to satisfy Gemini $type == Type.ARRAY c
   // 5. bare_array (type: 'array' without items) -> items auto-completed
   assert.strictEqual(props.bare_array.type, 'ARRAY');
   assert.deepStrictEqual(props.bare_array.items, { type: 'STRING' });
+});
+
+test('drops invalid tool schema enum and properties shapes for Gemini', () => {
+  const result = claudeMessagesToGemini(
+    {
+      messages: [{ role: 'user', content: 'test' }],
+      tools: [
+        {
+          name: 'memory_get',
+          description: 'Read memory',
+          input_schema: {
+            type: 'object',
+            properties: {
+              corpus: {
+                type: 'string',
+                enum: { truncated: true, reason: 'depth-limit' },
+              },
+              optional: {
+                type: 'boolean',
+                enum: [true, false, { invalid: true }],
+              },
+              nested: {
+                type: 'object',
+                properties: '[Truncated]',
+                required: ['missing'],
+              },
+            },
+            required: ['corpus', 3, null],
+            propertyOrdering: ['corpus', 'missing', { invalid: true }],
+          },
+        },
+      ],
+    },
+    'gemini-3.7-flash-tiered'
+  );
+
+  const params = result.tools[0].functionDeclarations[0].parameters;
+  assert.strictEqual(params.properties.corpus.enum, undefined);
+  assert.deepStrictEqual(params.properties.optional.enum, ['true', 'false']);
+  assert.deepStrictEqual(params.properties.nested.properties, {});
+  assert.strictEqual(params.properties.nested.required, undefined);
+  assert.deepStrictEqual(params.required, ['corpus']);
+  assert.deepStrictEqual(params.propertyOrdering, ['corpus']);
 });
 
 (async () => {

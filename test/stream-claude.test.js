@@ -253,6 +253,34 @@ t('oversized incomplete OpenAI SSE event is rejected', () => {
   assert.strictEqual(state.buffer, '');
 });
 
+t('Gemini Responses stream emits fallback text before first tool call', () => {
+  const res = makeRes();
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    thinkingOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    tools: [{ name: 'exec', input_schema: { type: 'object', required: ['input'] } }],
+    pendingToolCall: null,
+    responsesToolPreambleText: '我先看一下。',
+  };
+
+  stream.processGeminiSseEvent(
+    res,
+    'data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"exec","args":{"input":"return 1;"}}}]}}]}\n\n',
+    state,
+    'gemini-3.8-flash-tiered'
+  );
+  stream.flushPendingGeminiToolCall(res, state, state.tools);
+  const text = res.full();
+  const preambleIndex = text.indexOf('我先看一下。');
+  const toolIndex = text.indexOf('"type":"tool_use"');
+  assert.ok(preambleIndex >= 0, 'fallback preamble should be emitted');
+  assert.ok(toolIndex >= 0, 'tool_use should still be emitted');
+  assert.ok(preambleIndex < toolIndex, 'fallback preamble must precede the tool call');
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);
 console.log('stream-claude tests ok');
