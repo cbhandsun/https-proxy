@@ -42,6 +42,26 @@ assert.deepStrictEqual(classifyResponsesWebSearchTools([managedSearch, ordinaryF
   managedFallback: null,
   functionTools: [managedSearch, ordinaryFunction],
 });
+assert.deepStrictEqual(
+  classifyResponsesWebSearchTools([managedSearch, ordinaryFunction], false, {
+    input: '上海天气',
+  }),
+  {
+    useNativeSearch: true,
+    managedFallback: [managedSearch],
+    functionTools: [],
+  }
+);
+assert.deepStrictEqual(
+  classifyResponsesWebSearchTools([managedSearch, ordinaryFunction], true, {
+    input: '上海天气',
+  }),
+  {
+    useNativeSearch: false,
+    managedFallback: null,
+    functionTools: [managedSearch, ordinaryFunction],
+  }
+);
 assert.deepStrictEqual(classifyResponsesWebSearchTools([nativeSearch, ordinaryFunction]), {
   useNativeSearch: true,
   managedFallback: null,
