@@ -1583,3 +1583,90 @@ function createChatStreamState(overrides = {}) {
 
 console.log('[responses-protocol.test] ok');
 process.exit(0);
+
+// --- Regression: Responses reasoning summary shapes (array form was lost) ---
+{
+  // Newer Responses payloads ship summary as an array of {type:'summary_text'}.
+  // Reading it as a string produced "[object Object]" and destroyed the reasoning.
+  const arraySummary = openAIResponsesToChatResponse(
+    {
+      output: [
+        { type: 'reasoning', summary: [{ type: 'summary_text', text: 'I weighed the tradeoffs' }] },
+        { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'done' }] },
+      ],
+    },
+    'gpt-4o'
+  );
+  assert.strictEqual(
+    arraySummary.choices[0].message.reasoning_content,
+    'I weighed the tradeoffs',
+    'array-form reasoning summary must not degrade to [object Object]'
+  );
+  assert.ok(!String(arraySummary.choices[0].message.reasoning_content).includes('[object Object]'));
+
+  // Legacy string form must keep working.
+  const stringSummary = openAIResponsesToChatResponse(
+    { output: [{ type: 'reasoning', summary: 'legacy summary' }] },
+    'gpt-4o'
+  );
+  assert.strictEqual(stringSummary.choices[0].message.reasoning_content, 'legacy summary');
+
+  // Multi-part summary arrays are joined, not truncated to the first part.
+  const multiPart = openAIResponsesToChatResponse(
+    {
+      output: [
+        {
+          type: 'reasoning',
+          summary: [
+            { type: 'summary_text', text: 'step one' },
+            { type: 'summary_text', text: 'step two' },
+          ],
+        },
+      ],
+    },
+    'gpt-4o'
+  );
+  assert.strictEqual(multiPart.choices[0].message.reasoning_content, 'step one\nstep two');
+
+  // Empty / malformed summaries must not throw or invent content.
+  for (const empty of [
+    { type: 'reasoning' },
+    { type: 'reasoning', summary: [] },
+    { type: 'reasoning', summary: null },
+    { type: 'reasoning', summary: [{}] },
+  ]) {
+    const res = openAIResponsesToChatResponse({ output: [empty] }, 'gpt-4o');
+    assert.strictEqual(
+      res.choices[0].message.reasoning_content,
+      undefined,
+      'empty reasoning must stay absent'
+    );
+  }
+}
+
+// --- Regression: Responses -> Chat stream tool-call buffers are released ---
+{
+  const written = [];
+  const fakeRes = { write: (chunk) => written.push(String(chunk)) };
+  const state = createResponsesStreamState();
+  for (let i = 0; i < 500; i += 1) {
+    processOpenAIResponsesSseChunkToChat(
+      fakeRes,
+      'event: response.function_call_arguments.delta\ndata: ' +
+        JSON.stringify({
+          type: 'response.function_call_arguments.delta',
+          item_id: 'item_' + i,
+          delta: '{}',
+        }) +
+        '\n\n',
+      state
+    );
+  }
+  assert.ok(state.responseToolCallBuffers.size > 0, 'buffers accumulate while the stream is open');
+  flushOpenAIResponsesSseToChat(fakeRes, state);
+  assert.strictEqual(
+    state.responseToolCallBuffers.size,
+    0,
+    'per-request tool-call buffers must be cleared after flush'
+  );
+}
