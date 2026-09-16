@@ -13,6 +13,9 @@ const {
   openAIResponsesToChat,
 } = require('../openai-proxy');
 const { applyToolLoopGuardToOpenAIChat } = require('../lib/proxy/tool-loop-guard');
+const {
+  summarizeGeminiRequestForDiagnostics,
+} = require('../lib/proxy/handlers/route-response-helpers');
 
 const tests = [];
 
@@ -113,6 +116,15 @@ test('requests text and image output for Gemini 3.1 Flash Image only', () => {
     'gemini-3.7-flash-tiered'
   );
   assert.strictEqual(regularRequest.generationConfig, undefined);
+});
+
+test('caps Gemini max output tokens to provider-safe bound', () => {
+  const result = claudeMessagesToGemini(
+    { max_tokens: 200000, messages: [{ role: 'user', content: 'hello' }] },
+    'gemini-3.7-flash-tiered'
+  );
+
+  assert.strictEqual(result.generationConfig.maxOutputTokens, 8192);
 });
 
 test('converts safe Gemini inline image output to a Claude image block', () => {
@@ -315,7 +327,27 @@ test('converts image, audio, video, and tool declarations', () => {
   });
 });
 
-test('omits Claude tool history when Gemini tools are present', () => {
+test('merges adjacent text parts before sending content to Gemini', () => {
+  const result = claudeMessagesToGemini(
+    {
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'channel context' },
+            { type: 'text', text: '上海天气' },
+          ],
+        },
+      ],
+      tools: [{ name: 'web_search', input_schema: { type: 'object', properties: {} } }],
+    },
+    'gemini-3.7-flash'
+  );
+
+  assert.deepStrictEqual(result.contents[0].parts, [{ text: 'channel context\n上海天气' }]);
+});
+
+test('keeps declared Gemini tool history and textualizes unsupported history blocks', () => {
   const result = claudeMessagesToGemini(
     {
       messages: [
@@ -344,7 +376,7 @@ test('omits Claude tool history when Gemini tools are present', () => {
     'gemini-2.5-pro'
   );
 
-  assert.strictEqual(result.contents.length, 3);
+  assert.strictEqual(result.contents.length, 4);
   assert.deepStrictEqual(result.contents[0], {
     role: 'model',
     parts: [
@@ -358,7 +390,50 @@ test('omits Claude tool history when Gemini tools are present', () => {
     role: 'user',
     parts: [{ functionResponse: { name: 'lookup', response: { content: '42' } } }],
   });
-  assert.deepStrictEqual(result.contents[2], { role: 'user', parts: [{ text: 'continue' }] });
+  assert.deepStrictEqual(result.contents[2], {
+    role: 'model',
+    parts: [
+      {
+        text: 'nested\n{"type":"server_tool_use","payload":{"functionCall":{"name":"Grep","args":{"pattern":"x"}}}}',
+      },
+    ],
+  });
+  assert.deepStrictEqual(result.contents[3], { role: 'user', parts: [{ text: 'continue' }] });
+});
+
+test('maps history tool results to the preceding tool name when result name is absent', () => {
+  const result = claudeMessagesToGemini(
+    {
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'call_toolu_call_178471_fc_b308a39678ddbbf7_63dda4f87d',
+              name: 'web_search',
+              input: { query: '上海天气' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call_toolu_call_178471_fc_b308a39678ddbbf7_63dda4f87d',
+              content: 'search result',
+            },
+          ],
+        },
+      ],
+      tools: [{ name: 'web_search', input_schema: { type: 'object', properties: {} } }],
+    },
+    'gemini-3.7-flash'
+  );
+
+  assert.strictEqual(result.contents[0].parts[0].functionCall.name, 'web_search');
+  assert.strictEqual(result.contents[1].parts[0].functionResponse.name, 'web_search');
 });
 
 test('restores Gemini thought signatures for tool history', () => {
@@ -512,6 +587,139 @@ test('promotes OpenClaw search function tools to Gemini Google Search grounding'
   const geminiBody = claudeMessagesToGemini(claudeBody, 'gemini-3.5-flash');
 
   assert.deepStrictEqual(geminiBody.tools, [{ googleSearch: {} }]);
+});
+
+test('promotes weather requests with an OpenClaw search function to Gemini Google Search grounding', () => {
+  const chatBody = openAIResponsesToChat({
+    model: 'gemini-3.5-flash',
+    input: '上海天气',
+    tools: [
+      {
+        type: 'function',
+        name: 'web_search',
+        description: 'Search the web',
+        parameters: { type: 'object', properties: { query: { type: 'string' } } },
+      },
+      {
+        type: 'function',
+        name: 'read',
+        description: 'Read a file',
+        parameters: { type: 'object', properties: { path: { type: 'string' } } },
+      },
+    ],
+  });
+
+  assert.strictEqual(chatBody.__nativeWebSearch, 'gemini-google-search');
+  assert.deepStrictEqual(
+    chatBody.__managedWebSearchFallback.map((tool) => tool.name),
+    ['web_search']
+  );
+  assert.strictEqual(chatBody.tools, undefined);
+
+  const claudeBody = openAIChatToClaudeMessages(chatBody, 'gemini-3.5-flash');
+  const geminiBody = claudeMessagesToGemini(claudeBody, 'gemini-3.5-flash');
+
+  assert.deepStrictEqual(geminiBody.tools, [{ googleSearch: {} }]);
+});
+
+test('textualizes managed web search history for Gemini native weather grounding', () => {
+  const request = {
+    model: 'gemini-3.7-flash',
+    input: [
+      { role: 'user', content: '上海天气' },
+      {
+        type: 'function_call',
+        call_id: 'call_search_1',
+        name: 'web_search',
+        arguments: '{"query":"上海天气"}',
+      },
+      {
+        type: 'function_call_output',
+        call_id: 'call_search_1',
+        output: '上海今天多云，气温 24 到 29 摄氏度。',
+      },
+      { role: 'user', content: '上海天气' },
+    ],
+    tools: [
+      {
+        type: 'function',
+        name: 'web_search',
+        description: 'Search the web',
+        parameters: { type: 'object', properties: { query: { type: 'string' } } },
+      },
+      {
+        type: 'function',
+        name: 'read',
+        description: 'Read a file',
+        parameters: { type: 'object', properties: { path: { type: 'string' } } },
+      },
+    ],
+  };
+
+  const chatBody = openAIResponsesToChat(request);
+  assert.strictEqual(chatBody.__nativeWebSearch, 'gemini-google-search');
+  assert.strictEqual(chatBody.__managedWebSearchHistoryAsText, true);
+  assert.strictEqual(chatBody.tools, undefined);
+
+  const claudeBody = openAIChatToClaudeMessages(chatBody, 'gemini-3.7-flash');
+  const geminiBody = claudeMessagesToGemini(claudeBody, 'gemini-3.7-flash');
+
+  assert.deepStrictEqual(geminiBody.tools, [{ googleSearch: {} }]);
+  const serializedContents = JSON.stringify(geminiBody.contents);
+  assert.ok(!serializedContents.includes('functionCall'));
+  assert.ok(!serializedContents.includes('functionResponse'));
+  assert.ok(serializedContents.includes('Previous tool call'));
+  assert.ok(serializedContents.includes('Previous tool result'));
+  assert.ok(serializedContents.includes('上海今天多云'));
+});
+
+test('textualizes managed web search history for Gemini fallback function requests', () => {
+  const chatBody = openAIResponsesToChat({
+    model: 'gemini-3.7-flash',
+    input: [
+      { role: 'user', content: '上海天气' },
+      {
+        type: 'function_call',
+        call_id: 'call_search_1',
+        name: 'web_search',
+        arguments: '{"query":"上海天气"}',
+      },
+      {
+        type: 'function_call_output',
+        call_id: 'call_search_1',
+        output: '上海今天多云，气温 24 到 29 摄氏度。',
+      },
+      { role: 'user', content: '上海天气' },
+    ],
+    tools: [
+      {
+        type: 'function',
+        name: 'web_search',
+        description: 'Search the web',
+        parameters: { type: 'object', properties: { query: { type: 'string' } } },
+      },
+    ],
+    __disableManagedWebSearchPromotion: true,
+  });
+
+  assert.strictEqual(chatBody.__nativeWebSearch, undefined);
+  assert.strictEqual(chatBody.__managedWebSearchHistoryAsText, true);
+  assert.strictEqual(chatBody.tools.length, 1);
+  assert.strictEqual(chatBody.tools[0].function.name, 'web_search');
+
+  const claudeBody = openAIChatToClaudeMessages(chatBody, 'gemini-3.7-flash');
+  const geminiBody = claudeMessagesToGemini(claudeBody, 'gemini-3.7-flash');
+  const functionDeclarations = geminiBody.tools
+    .flatMap((tool) => tool.functionDeclarations || [])
+    .map((tool) => tool.name);
+
+  assert.deepStrictEqual(functionDeclarations, ['web_search']);
+  const serializedContents = JSON.stringify(geminiBody.contents);
+  assert.ok(!serializedContents.includes('functionCall'));
+  assert.ok(!serializedContents.includes('functionResponse'));
+  assert.ok(serializedContents.includes('Previous tool call'));
+  assert.ok(serializedContents.includes('Previous tool result'));
+  assert.ok(serializedContents.includes('上海今天多云'));
 });
 
 test('keeps OpenClaw tool catalog search separate from Gemini Google Search grounding', () => {
@@ -1737,6 +1945,45 @@ test('drops invalid tool schema enum and properties shapes for Gemini', () => {
   assert.deepStrictEqual(params.properties.truncatedValue, { type: 'STRING' });
   assert.deepStrictEqual(params.required, ['corpus']);
   assert.deepStrictEqual(params.propertyOrdering, ['corpus']);
+});
+
+test('summarizes Gemini request shape without retaining prompt text', () => {
+  const summary = summarizeGeminiRequestForDiagnostics({
+    contents: [
+      { role: 'user', parts: [{ text: '上海天气' }, { text: '' }] },
+      {
+        role: 'model',
+        parts: [{ functionCall: { name: 'memory_get', args: { corpus: 'main' } } }],
+      },
+    ],
+    systemInstruction: { parts: [{ text: 'secret prompt' }] },
+    generationConfig: { maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: 'minimal' } },
+    tools: [
+      {
+        functionDeclarations: [
+          {
+            name: 'memory_get',
+            parameters: {
+              type: 'OBJECT',
+              properties: { corpus: { type: 'STRING' } },
+              required: ['corpus'],
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.deepStrictEqual(summary.generationConfigKeys, ['maxOutputTokens', 'thinkingConfig']);
+  assert.strictEqual(summary.generationConfigMaxOutputTokens, 4096);
+  assert.strictEqual(summary.systemInstructionPartCount, 1);
+  assert.strictEqual(summary.contents.count, 2);
+  assert.strictEqual(summary.contents.emptyTextParts, 1);
+  assert.strictEqual(summary.contents.firstParts[0][0].textLength, 4);
+  assert.deepStrictEqual(summary.tools[0].functionNames, ['memory_get']);
+  assert.deepStrictEqual(summary.tools[0].functionSchemas[0].propertyNames, ['corpus']);
+  assert.ok(!JSON.stringify(summary).includes('上海天气'));
+  assert.ok(!JSON.stringify(summary).includes('secret prompt'));
 });
 
 test('caps deeply nested tool schema recursion instead of overflowing the stack', () => {
