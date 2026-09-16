@@ -99,6 +99,7 @@
   "lib/proxy/prompts-sync.js",
   "lib/proxy/protocol-gemini.js",
   "lib/proxy/protocol-openai-message-normalization.js",
+  "lib/proxy/protocol-openai-responses-request.js",
   "lib/proxy/protocol-openai-responses-stream.js",
   "lib/proxy/protocol-openai.js",
   "lib/proxy/proxy-transport.js",

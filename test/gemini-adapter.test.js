@@ -1021,13 +1021,18 @@ test('converts Gemini response to Claude message', () => {
   assert.strictEqual(result.content[1].name, 'lookup');
   assert.deepStrictEqual(result.content[1].input, { q: 'x' });
   assert.strictEqual(result.stop_reason, 'max_tokens');
-  assert.deepStrictEqual(result.usage, { input_tokens: 10, output_tokens: 3 });
+  assert.deepStrictEqual(result.usage, {
+    input_tokens: 10,
+    output_tokens: 3,
+    cached_input_tokens: 0,
+  });
 });
 
 test('maps Gemini usage and stop reasons', () => {
   assert.deepStrictEqual(geminiUsageToClaude({ promptTokenCount: 1, candidatesTokenCount: 2 }), {
     input_tokens: 1,
     output_tokens: 2,
+    cached_input_tokens: 0,
   });
   assert.strictEqual(claudeStopReasonFromGemini('STOP'), 'end_turn');
   assert.strictEqual(claudeStopReasonFromGemini('SAFETY'), 'stop_sequence');
@@ -1077,7 +1082,11 @@ test('parses Gemini streaming SSE events with CRLF separators', () => {
   );
 
   assert.strictEqual(state.textOpen, true);
-  assert.deepStrictEqual(state.usage, { input_tokens: 2, output_tokens: 1 });
+  assert.deepStrictEqual(state.usage, {
+    input_tokens: 2,
+    output_tokens: 1,
+    cached_input_tokens: 0,
+  });
   assert.ok(writes.join('').includes('hi'));
 });
 
@@ -1699,11 +1708,16 @@ test('drops invalid tool schema enum and properties shapes for Gemini', () => {
                 type: 'boolean',
                 enum: [true, false, { invalid: true }],
               },
+              attempts: {
+                type: 'number',
+                enum: [1, 2],
+              },
               nested: {
                 type: 'object',
                 properties: '[Truncated]',
                 required: ['missing'],
               },
+              truncatedValue: '[Truncated]',
             },
             required: ['corpus', 3, null],
             propertyOrdering: ['corpus', 'missing', { invalid: true }],
@@ -1716,11 +1730,70 @@ test('drops invalid tool schema enum and properties shapes for Gemini', () => {
 
   const params = result.tools[0].functionDeclarations[0].parameters;
   assert.strictEqual(params.properties.corpus.enum, undefined);
-  assert.deepStrictEqual(params.properties.optional.enum, ['true', 'false']);
+  assert.strictEqual(params.properties.optional.enum, undefined);
+  assert.strictEqual(params.properties.attempts.enum, undefined);
   assert.deepStrictEqual(params.properties.nested.properties, {});
   assert.strictEqual(params.properties.nested.required, undefined);
+  assert.deepStrictEqual(params.properties.truncatedValue, { type: 'STRING' });
   assert.deepStrictEqual(params.required, ['corpus']);
   assert.deepStrictEqual(params.propertyOrdering, ['corpus']);
+});
+
+test('caps deeply nested tool schema recursion instead of overflowing the stack', () => {
+  // Tool schemas arrive from the client. A deeply nested `properties` chain used to
+  // throw RangeError: Maximum call stack size exceeded and kill the proxy process.
+  let deep = { type: 'string' };
+  for (let i = 0; i < 20000; i += 1) {
+    deep = { type: 'object', properties: { nested: deep } };
+  }
+  const body = claudeMessagesToGemini(
+    {
+      model: 'gemini-3-pro-preview',
+      max_tokens: 64,
+      messages: [{ role: 'user', content: 'hi' }],
+      tools: [{ name: 'Deep', description: '', input_schema: deep }],
+    },
+    'gemini-3-pro-preview'
+  );
+  const declaration = body.tools[0].functionDeclarations[0];
+  assert.strictEqual(declaration.name, 'Deep');
+  assert.strictEqual(declaration.parameters.type, 'OBJECT');
+  assert.ok(declaration.parameters.properties, 'deep tail degrades to an object schema');
+  assert.ok(JSON.stringify(body).length < 200000, 'degraded schema stays bounded in size');
+});
+
+test('still sanitizes ordinary tool schemas after depth guard', () => {
+  const body = claudeMessagesToGemini(
+    {
+      model: 'gemini-3-pro-preview',
+      max_tokens: 64,
+      messages: [{ role: 'user', content: 'hi' }],
+      tools: [
+        {
+          name: 'Bash',
+          description: 'run',
+          input_schema: {
+            type: 'object',
+            properties: {
+              command: { type: 'string', description: 'shell command' },
+              count: { type: 'integer' },
+              bad: '[Truncated]',
+            },
+            required: ['command'],
+          },
+        },
+      ],
+    },
+    'gemini-3-pro-preview'
+  );
+  const params = body.tools[0].functionDeclarations[0].parameters;
+  assert.deepStrictEqual(params.properties.command, {
+    type: 'STRING',
+    description: 'shell command',
+  });
+  assert.deepStrictEqual(params.properties.count, { type: 'INTEGER' });
+  assert.deepStrictEqual(params.properties.bad, { type: 'STRING' });
+  assert.deepStrictEqual(params.required, ['command']);
 });
 
 (async () => {
