@@ -1,6 +1,9 @@
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { createRouteHandlers } = require('../lib/proxy/handlers/route-handlers');
+const {
+  createGoogleOfficialAuthRetry,
+} = require('../lib/proxy/handlers/google-official-auth-retry');
 
 const noop = () => {};
 
@@ -211,9 +214,73 @@ async function assertRetriesWithFreshToken(kind) {
   );
 }
 
+async function assertDelayedCredentialManagerFallback() {
+  const proxyEvents = [];
+  const refreshOptions = [];
+  let delayed = false;
+  let handlerToken = '';
+  let jsonError = null;
+  const retryGoogleOfficialAuthOnce = createGoogleOfficialAuthRetry({
+    logProxyEvent: (kind, payload) => proxyEvents.push({ kind, payload }),
+    refreshAntigravityOfficialAccessToken: async (options) => {
+      refreshOptions.push(options);
+      return refreshOptions.length === 1 ? 'ya29.old-route-token' : 'ya29.new-route-token';
+    },
+    secondaryRefreshDelayMs: 10,
+    setTimeoutFn: (callback, ms) => {
+      delayed = ms === 10;
+      callback();
+      return null;
+    },
+  });
+  const done = new Promise((resolve) => {
+    const handled = retryGoogleOfficialAuthOnce({
+      clientReq: { method: 'POST', url: '/v1/responses' },
+      clientRes: {},
+      prepared: officialPrepared(),
+      apiKey: 'ya29.old-route-token',
+      useCodeAssist: true,
+      proxyRes: { statusCode: 401 },
+      routeType: 'responses_to_gemini',
+      upstreamPath: '/responses',
+      startTime: Date.now(),
+      sendJsonError: (_clientRes, statusCode, payload) => {
+        jsonError = { statusCode, payload };
+        resolve();
+      },
+      logRequestEnd: noop,
+      target: {},
+      handler: (_clientReq, _clientRes, _prepared, _target, apiKey) => {
+        handlerToken = apiKey;
+        resolve();
+      },
+    });
+    assert.equal(handled, true);
+  });
+  await done;
+
+  assert.equal(delayed, true);
+  assert.equal(handlerToken, 'ya29.new-route-token');
+  assert.equal(jsonError, null);
+  assert.deepEqual(refreshOptions, [
+    { reason: 'upstream_auth_failure', routeType: 'responses_to_gemini' },
+    {
+      reason: 'upstream_auth_failure_secondary',
+      routeType: 'responses_to_gemini',
+      preferCredentialManager: true,
+    },
+  ]);
+  assert.deepEqual(
+    proxyEvents.map((event) => event.payload.action),
+    ['refresh_antigravity_token', 'delayed_credential_manager_refresh']
+  );
+  assert.ok(!JSON.stringify(proxyEvents).includes('ya29.'));
+}
+
 (async () => {
   await assertRetriesWithFreshToken('chat');
   await assertRetriesWithFreshToken('responses');
+  await assertDelayedCredentialManagerFallback();
   console.log('[google-official-auth-retry.test] ok');
 })().catch((error) => {
   console.error(error);

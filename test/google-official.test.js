@@ -312,6 +312,105 @@ async function main() {
   assert.strictEqual(refreshCalls, 1);
   assert.strictEqual(new URLSearchParams(refreshRequestBody).has('client_secret'), false);
 
+  let releaseSingleFlightRefresh;
+  let singleFlightReads = 0;
+  let singleFlightRefreshCalls = 0;
+  const singleFlightRefreshStarted = new Promise((resolve) => {
+    releaseSingleFlightRefresh = resolve;
+  });
+  const singleFlightRuntime = createGoogleOfficialRuntime({
+    makeRequest: async () => {
+      singleFlightRefreshCalls += 1;
+      await singleFlightRefreshStarted;
+      return { statusCode: 200, body: JSON.stringify({ access_token: 'ya29.single-flight' }) };
+    },
+    googleOfficialCodeAssistUrl,
+    googleOfficialModelsFromAvailableModels,
+    readAntigravityOfficialCredentialState: () => {
+      singleFlightReads += 1;
+      return {
+        credsPath: null,
+        source: 'antigravity-state',
+        content: {
+          access_token: 'ya29.expired-single-flight',
+          refresh_token: '1//single-flight',
+          token_type: 'Bearer',
+          __readOnly: true,
+          __source: 'antigravity-state',
+          expiry_date: 1,
+        },
+      };
+    },
+    isGoogleOfficialLoginToken,
+    buildGoogleOfficialLoadCodeAssistRequest,
+    env: {},
+  });
+  const firstSingleFlight = singleFlightRuntime.refreshAntigravityOfficialAccessToken({
+    reason: 'test',
+  });
+  const secondSingleFlight = singleFlightRuntime.refreshAntigravityOfficialAccessToken({
+    reason: 'test',
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.strictEqual(singleFlightReads, 1);
+  assert.strictEqual(singleFlightRefreshCalls, 1);
+  releaseSingleFlightRefresh();
+  assert.deepStrictEqual(await Promise.all([firstSingleFlight, secondSingleFlight]), [
+    'ya29.single-flight',
+    'ya29.single-flight',
+  ]);
+
+  const runtimeFallbackReads = [];
+  let runtimeFallbackDelayed = false;
+  const runtimeFallback = createGoogleOfficialRuntime({
+    makeRequest: async () => {
+      throw new Error('OAuth refresh should not be needed for a fresh fallback token');
+    },
+    googleOfficialCodeAssistUrl,
+    googleOfficialModelsFromAvailableModels,
+    readAntigravityOfficialCredentialState: (options) => {
+      runtimeFallbackReads.push(options || {});
+      const preferCredentialManager = options && options.preferCredentialManager === true;
+      return {
+        credsPath: null,
+        source: preferCredentialManager
+          ? 'antigravity-credential-manager'
+          : 'antigravity-auth-status',
+        credentialTarget: preferCredentialManager ? 'gemini:antigravity' : '',
+        content: {
+          access_token: preferCredentialManager ? 'ya29.runtime-fallback' : '',
+          refresh_token: '',
+          token_type: 'Bearer',
+          __readOnly: true,
+          __source: preferCredentialManager
+            ? 'antigravity-credential-manager'
+            : 'antigravity-auth-status',
+          expiry_date: preferCredentialManager ? Date.now() + 3600 * 1000 : 0,
+        },
+      };
+    },
+    isGoogleOfficialLoginToken,
+    buildGoogleOfficialLoadCodeAssistRequest,
+    env: {},
+    setTimeoutFn: (callback, ms) => {
+      runtimeFallbackDelayed = ms === 10;
+      callback();
+      return null;
+    },
+  });
+  assert.strictEqual(
+    await runtimeFallback.refreshAntigravityOfficialAccessToken({
+      reason: 'test',
+      secondaryRefreshDelayMs: 10,
+    }),
+    'ya29.runtime-fallback'
+  );
+  assert.strictEqual(runtimeFallbackDelayed, true);
+  assert.deepStrictEqual(
+    runtimeFallbackReads.map((options) => options.preferCredentialManager === true),
+    [false, true]
+  );
+
   let freshCredentialRefreshCalls = 0;
   const freshCredentialRuntime = createGoogleOfficialRuntime({
     makeRequest: async () => {
