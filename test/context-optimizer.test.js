@@ -90,6 +90,24 @@ const {
   const disabledResult = optimizeContextMessages(messages, { enabled: false });
   assert.equal(disabledResult.prunedCount, 0);
   assert.equal(disabledResult.savedChars, 0);
+
+  const longHistoryMessages = [
+    { role: 'system', content: 'System instructions.' },
+    { role: 'user', content: 'Old context ' + 'A'.repeat(2000) },
+    { role: 'assistant', content: 'Old answer ' + 'B'.repeat(2000) },
+    { role: 'user', content: 'Current status?' },
+  ];
+  const foldedMessages = optimizeContextMessages(longHistoryMessages, {
+    keepRecentTurns: 1,
+    maxHistoricalToolChars: 500,
+    maxHistoricalMessageChars: 500,
+    foldHistoricalMessages: true,
+    headChars: 100,
+    tailChars: 100,
+  });
+  assert.ok(foldedMessages.messages[1].content.includes('代理已折叠历史执行回显'));
+  assert.ok(foldedMessages.messages[2].content.includes('代理已折叠历史执行回显'));
+  assert.equal(foldedMessages.messages[3].content, 'Current status?');
 }
 
 console.log('[context-optimizer.test] ok');

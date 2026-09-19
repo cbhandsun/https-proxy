@@ -142,7 +142,9 @@
   "lib/proxy/upstream-warmup.js",
   "lib/proxy/usage-report.js",
   "lib/proxy/usage.js",
+  "lib/proxy/utf8-stream.js",
   "lib/proxy/validator.js",
   "lib/proxy/windows-credential-manager.js",
-  "lib/proxy/workbuddy-official.js"
+  "lib/proxy/workbuddy-official.js",
+  "lib/proxy/context-budget-manager.js"
 ]

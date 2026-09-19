@@ -1670,3 +1670,83 @@ process.exit(0);
     'per-request tool-call buffers must be cleared after flush'
   );
 }
+
+// Chat -> Responses waits for the terminal frame so trailing usage is retained.
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createResponsesStreamState();
+  processOpenAIChatSseChunkToResponses(
+    clientRes,
+    event({ choices: [{ delta: { content: 'done' }, finish_reason: 'stop' }] }) +
+      event({
+        choices: [],
+        usage: { prompt_tokens: 10, completion_tokens: 2, total_tokens: 12 },
+      }) +
+      'data: [DONE]\n\n',
+    state
+  );
+  const output = writes.join('');
+  assert.equal(state.done, true);
+  assert.equal(state.failed, undefined);
+  assert.match(output, /"input_tokens":10/);
+  assert.match(output, /"output_tokens":2/);
+  assert.equal((output.match(/response\.completed/g) || []).length >= 1, true);
+}
+
+// Missing, malformed, and structurally unsafe terminal data fail closed once.
+for (const [chunk, expectedCode] of [
+  [
+    event({ choices: [{ delta: { content: 'partial' }, finish_reason: null }] }),
+    'upstream_stream_incomplete',
+  ],
+  ['data: {bad json}\n\n', 'upstream_stream_invalid_event'],
+  [
+    event({
+      choices: [
+        {
+          delta: {
+            tool_calls: [
+              {
+                index: 999999,
+                function: { name: 'unsafe', arguments: '{}' },
+              },
+            ],
+          },
+          finish_reason: null,
+        },
+      ],
+    }),
+    'upstream_stream_invalid_tool_index',
+  ],
+]) {
+  const writes = [];
+  const clientRes = { write: (value) => writes.push(String(value)) };
+  const state = createResponsesStreamState();
+  processOpenAIChatSseChunkToResponses(clientRes, chunk, state);
+  flushOpenAIChatSseToResponses(clientRes, state);
+  flushOpenAIChatSseToResponses(clientRes, state);
+  const output = writes.join('');
+  assert.equal(state.failed, true);
+  assert.equal(state.failure.code, expectedCode);
+  assert.equal((output.match(/event: response\.failed/g) || []).length, 1);
+  assert.equal(output.includes('data: [DONE]'), false);
+}
+
+// Length/content filtering preserve the Responses incomplete contract.
+for (const [finishReason, incompleteReason] of [
+  ['length', 'max_output_tokens'],
+  ['content_filter', 'content_filter'],
+]) {
+  const writes = [];
+  const state = createResponsesStreamState();
+  processOpenAIChatSseChunkToResponses(
+    { write: (value) => writes.push(String(value)) },
+    event({ choices: [{ delta: { content: 'partial' }, finish_reason: finishReason }] }) +
+      'data: [DONE]\n\n',
+    state
+  );
+  const output = writes.join('');
+  assert.match(output, /event: response\.incomplete/);
+  assert.ok(output.includes(`"reason":"${incompleteReason}"`));
+}

@@ -4,7 +4,11 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { createResponsesState } = require('../lib/proxy/handlers/responses-state');
+const {
+  createResponsesState,
+  isEmptyAssistantHistoryMessage,
+  sanitizeResponsesHistoryMessages,
+} = require('../lib/proxy/handlers/responses-state');
 
 function createProxyRes() {
   const proxyRes = new EventEmitter();
@@ -55,6 +59,33 @@ function wait(ms) {
 }
 
 (() => {
+  assert.strictEqual(isEmptyAssistantHistoryMessage({ role: 'assistant', content: '' }), true);
+  assert.strictEqual(isEmptyAssistantHistoryMessage({ role: 'assistant', content: null }), true);
+  assert.strictEqual(
+    isEmptyAssistantHistoryMessage({
+      role: 'assistant',
+      content: null,
+      tool_calls: [{ id: 'call_1', type: 'function' }],
+    }),
+    false
+  );
+  assert.strictEqual(
+    isEmptyAssistantHistoryMessage({ role: 'assistant', content: 'visible' }),
+    false
+  );
+  const sanitized = sanitizeResponsesHistoryMessages([
+    { role: 'user', content: 'hello' },
+    { role: 'assistant', content: '' },
+    { role: 'assistant', content: 'ok' },
+  ]);
+  assert.strictEqual(sanitized.removedCount, 1);
+  assert.deepStrictEqual(sanitized.messages, [
+    { role: 'user', content: 'hello' },
+    { role: 'assistant', content: 'ok' },
+  ]);
+})();
+
+(() => {
   let capturedState = null;
   const { state } = createState({
     processOpenAIChatSseChunkToResponses(_res, _chunk, responseState) {
@@ -85,6 +116,95 @@ function wait(ms) {
   bridge.chatRes.write('data: {}\n\n');
   assert.ok(capturedState.customToolNames.has('exec'));
   assert.ok(bridge.responseState.customToolNames.has('exec'));
+})();
+
+(() => {
+  const { state, calls } = createState({
+    openAIResponsesToChat: () => ({ messages: [{ role: 'user', content: 'next' }] }),
+    mergeAdjacentAssistantMessages: (messages) => messages,
+  });
+  state.rememberResponsesHistory('resp_bad', [
+    { role: 'user', content: 'original' },
+    { role: 'assistant', content: '' },
+  ]);
+
+  assert.deepStrictEqual(state.responsesHistory.get('resp_bad'), [
+    { role: 'user', content: 'original' },
+  ]);
+  assert.ok(
+    calls.warnings.some((warning) =>
+      warning.includes('Dropped empty assistant messages before saving responses history')
+    )
+  );
+
+  const chatBody = state.responsesToChatWithHistory(
+    {},
+    { previous_response_id: 'resp_bad' },
+    'gemini-3.8-flash-tiered'
+  );
+  assert.deepStrictEqual(chatBody.messages, [
+    { role: 'user', content: 'original' },
+    { role: 'user', content: 'next' },
+  ]);
+})();
+
+(() => {
+  const { state } = createState();
+  const messages = state.responseOutputItemsToChatMessages([
+    {
+      type: 'custom_tool_call',
+      call_id: 'call_exec',
+      name: 'exec',
+      input: 'return 1;',
+    },
+  ]);
+  assert.deepStrictEqual(messages, [
+    {
+      role: 'assistant',
+      content: null,
+      tool_calls: [
+        {
+          id: 'call_exec',
+          type: 'function',
+          function: { name: 'exec', arguments: '{"input":"return 1;"}' },
+        },
+      ],
+    },
+  ]);
+})();
+
+(() => {
+  const { state } = createState({
+    openAIResponsesToChat: () => ({
+      messages: [{ role: 'tool', tool_call_id: 'call_exec', content: '1' }],
+    }),
+    mergeAdjacentAssistantMessages: (messages) => messages,
+  });
+  state.rememberResponsesFromBridge(
+    {
+      responseState: {
+        id: 'resp_custom_tool',
+        completedOutputItems: [
+          {
+            type: 'custom_tool_call',
+            call_id: 'call_exec',
+            name: 'exec',
+            input: 'return 1;',
+          },
+        ],
+      },
+    },
+    { messages: [{ role: 'user', content: 'run code' }] }
+  );
+  const chatBody = state.responsesToChatWithHistory(
+    {},
+    { previous_response_id: 'resp_custom_tool' },
+    'gemini-3.8-flash-tiered'
+  );
+  assert.strictEqual(chatBody.messages[1].role, 'assistant');
+  assert.strictEqual(chatBody.messages[1].tool_calls[0].id, 'call_exec');
+  assert.strictEqual(chatBody.messages[2].role, 'tool');
+  assert.strictEqual(chatBody.messages[2].tool_call_id, 'call_exec');
 })();
 
 (() => {
@@ -247,6 +367,37 @@ function wait(ms) {
     assert.deepStrictEqual(leftovers, []);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+
+  const tmpDirLoad = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-responses-cache-load-'));
+  const loadCacheFile = path.join(tmpDirLoad, 'responses-history.json');
+  try {
+    fs.writeFileSync(
+      loadCacheFile,
+      JSON.stringify([
+        [
+          'resp_loaded_bad',
+          [
+            { role: 'user', content: 'kept' },
+            { role: 'assistant', content: '' },
+            { role: 'assistant', content: null, tool_calls: [{ id: 'call_1', type: 'function' }] },
+          ],
+        ],
+      ]),
+      'utf8'
+    );
+    const { state, calls } = createState({ cacheFile: loadCacheFile });
+    assert.deepStrictEqual(state.responsesHistory.get('resp_loaded_bad'), [
+      { role: 'user', content: 'kept' },
+      { role: 'assistant', content: null, tool_calls: [{ id: 'call_1', type: 'function' }] },
+    ]);
+    assert.ok(
+      calls.warnings.some((warning) =>
+        warning.includes('Dropped empty assistant messages from responses history cache entry')
+      )
+    );
+  } finally {
+    fs.rmSync(tmpDirLoad, { recursive: true, force: true });
   }
 
   const tmpDirFailure = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-responses-cache-fail-'));

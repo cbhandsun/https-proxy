@@ -357,17 +357,15 @@ t('SSE chunk processors reject oversized incomplete events', () => {
   );
   assert.strictEqual(claudeState.buffer, '');
 
-  const chatToResponsesState = { buffer: '' };
-  assert.throws(
-    () =>
-      capped.processOpenAIChatSseChunkToResponses(
-        fakeRes,
-        'data: {"choices":[',
-        chatToResponsesState
-      ),
-    /OpenAI Chat SSE event too large/
-  );
+  const chatToResponsesState = {
+    buffer: '',
+    pendingToolCalls: [],
+    completedOutputItems: [],
+  };
+  capped.processOpenAIChatSseChunkToResponses(fakeRes, 'data: {"choices":[', chatToResponsesState);
   assert.strictEqual(chatToResponsesState.buffer, '');
+  assert.strictEqual(chatToResponsesState.failed, true);
+  assert.strictEqual(chatToResponsesState.failure.code, 'upstream_stream_event_too_large');
 
   const responsesToChatState = { buffer: '' };
   assert.throws(
