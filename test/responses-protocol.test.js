@@ -111,6 +111,7 @@ function createChatStreamState(overrides = {}) {
     parallel_tool_calls: false,
     seed: 123,
     user: 'user-1',
+    service_tier: 'priority',
     frequency_penalty: 0.1,
     presence_penalty: 0.2,
     text: {
@@ -139,6 +140,7 @@ function createChatStreamState(overrides = {}) {
   assert.strictEqual(result.parallel_tool_calls, false);
   assert.strictEqual(result.seed, 123);
   assert.strictEqual(result.user, 'user-1');
+  assert.strictEqual(result.service_tier, 'priority');
   assert.strictEqual(result.frequency_penalty, 0.1);
   assert.strictEqual(result.presence_penalty, 0.2);
   assert.strictEqual(result.reasoning_effort, 'medium');
