@@ -700,6 +700,7 @@
                       <option value="claude">Claude Messages</option>
                       <option value="gemini">Gemini generateContent</option>
                       <option value="workbuddy">WorkBuddy / CodeBuddy</option>
+                      <option value="tianxi">Tianxi 超能模式</option>
                     </select>
                   </div>
                   <div class="row">
@@ -933,6 +934,9 @@
                     ><input type="checkbox" data-route-client-protocol="openai-responses" />OpenAI
                     Responses</label
                   >
+                </div>
+                <div id="routeProtocolHint" class="route-protocol-hint empty">
+                  输入客户端模型后会显示将暴露的入口协议；不勾选时按模型名推断。
                 </div>
                 <datalist id="availableModels"></datalist>
                 <div class="route-action-row">

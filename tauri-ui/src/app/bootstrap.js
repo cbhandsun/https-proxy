@@ -69,6 +69,7 @@ import {
   buildDefaultEntryServers,
   createDefaultEntryAuthKey,
   createEntryAuthSecret,
+  entryProtocolName,
   normalizeAppSettings,
   normalizeEntryAuth,
   normalizeEntryProtocol,
@@ -76,9 +77,13 @@ import {
   normalizeLocalServer,
   normalizeRouteClientProtocol,
   normalizeRouteClientProtocols,
+  preferredEntryProtocolForProfile,
+  protocolName,
   recommendedClaudeClientModels,
-  routeClientProtocolOptions,
+  routeClientProtocolModeText,
+  routeClientProtocolText,
   routeClientProtocols,
+  routeProtocolHintState,
   splitEntryAuthList,
 } from './models/configuration.js';
 import { buildProfileSaveCandidate } from './models/profile-save.js';
@@ -261,32 +266,6 @@ function showDiagnosticsTab(panelId) {
   if (panelId === 'logPanel') refreshLog({ forceScroll: true });
   if (panelId === 'diagnosticsPanel') refreshDiagnostics({ forceScroll: true });
 }
-function protocolName(value) {
-  if (value === 'workbuddy') return 'WorkBuddy';
-  if (value === 'gemini') return 'Gemini';
-  if (value === 'claude') return 'Claude';
-  if (value === 'claude-desktop') return 'Claude Desktop';
-  if (value === 'openai-responses') return 'OpenAI Responses';
-  if (value === 'openai-chat') return 'OpenAI Chat';
-  return 'OpenAI';
-}
-function entryProtocolName(value) {
-  if (value === 'claude') return 'Claude Messages';
-  if (value === 'claude-desktop') return 'Claude Desktop';
-  if (value === 'openai-responses') return 'OpenAI Responses';
-  if (value === 'openai-chat') return 'OpenAI Chat Completions';
-  return protocolName(value);
-}
-function routeClientProtocolText(route) {
-  const protocols = routeClientProtocols(route);
-  const labels = protocols
-    .map((id) => routeClientProtocolOptions.find((item) => item.id === id)?.label || id)
-    .join(' / ');
-  return labels || '未指定';
-}
-function routeClientProtocolModeText(route) {
-  return normalizeRouteClientProtocols(route && route.clientProtocols).length ? '显式' : '推断';
-}
 function renderRecommendedClientModels() {
   const container = $('modelAutocompleteContainer');
   if (!container) return;
@@ -301,6 +280,7 @@ function renderRecommendedClientModels() {
     tag.textContent = model;
     tag.onclick = () => {
       $('modelRewriteFrom').value = model;
+      updateRouteProtocolHint();
       showToast('已选择客户端模型：' + model, 'success');
     };
     container.appendChild(tag);
@@ -317,6 +297,15 @@ function setSelectedRouteClientProtocols(protocols) {
   document.querySelectorAll('[data-route-client-protocol]').forEach((input) => {
     input.checked = selected.has(normalizeRouteClientProtocol(input.dataset.routeClientProtocol));
   });
+  updateRouteProtocolHint();
+}
+function updateRouteProtocolHint() {
+  const hint = $('routeProtocolHint'),
+    fromInput = $('modelRewriteFrom');
+  if (!hint || !fromInput) return;
+  const { mode, text } = routeProtocolHintState(fromInput.value, selectedRouteClientProtocols());
+  hint.className = `route-protocol-hint ${mode}`;
+  hint.textContent = text;
 }
 function defaultEntriesForLocal() {
   return buildDefaultEntryServers(config && config.localServer);
@@ -790,8 +779,14 @@ function syncClaudeDesktopRoutesToModelRoutes() {
 
 function routeForConfig(route) {
   const next = { from: route.from, profileId: route.profileId, to: route.to };
+  if (route.group) next.group = route.group;
   if (route.labelOverride) next.labelOverride = route.labelOverride;
   if (route.supports1m !== undefined) next.supports1m = route.supports1m !== false;
+  if (route.supportsStreaming !== undefined)
+    next.supportsStreaming = route.supportsStreaming !== false;
+  if (Array.isArray(route.capabilities)) next.capabilities = [...route.capabilities];
+  if (Array.isArray(route.inputModalities)) next.inputModalities = [...route.inputModalities];
+  if (Array.isArray(route.outputModalities)) next.outputModalities = [...route.outputModalities];
   const clientProtocols = normalizeRouteClientProtocols(route.clientProtocols);
   if (clientProtocols.length) next.clientProtocols = clientProtocols;
   return next;
@@ -1270,15 +1265,6 @@ function claudeProxyBaseUrl() {
   const host = entry.host === '0.0.0.0' ? '127.0.0.1' : entry.host || 'localhost';
   const basePath = entry.basePath === '/v1' ? '' : entry.basePath || '';
   return `${scheme}://${host}:${entry.listenPort || 3443}${basePath}`.replace(/\/+$/, '');
-}
-
-function preferredEntryProtocolForProfile(profile) {
-  const protocol = String((profile && profile.protocol) || '')
-    .trim()
-    .toLowerCase();
-  if (protocol === 'claude' || protocol === 'anthropic') return 'claude';
-  if (protocol === 'openai-responses' || protocol === 'responses') return 'openai-responses';
-  return 'openai-chat';
 }
 
 function preferredHttpsEntryForProfile(profile) {
@@ -1859,7 +1845,6 @@ function updateOfficialAuthSection(profileId) {
   }
 }
 
-// 静态服务商预设字典
 const PROVIDER_PRESETS = {
   workbuddy: {
     name: 'WorkBuddy Official',
@@ -1868,6 +1853,14 @@ const PROVIDER_PRESETS = {
     targetUrl: 'https://copilot.tencent.com',
     keyUrl: 'https://www.workbuddy.cn',
     desc: '腾讯 WorkBuddy 官方登录接口。直接复用本地客户端登录态，支持 DeepSeek-V4、MiniMax-M3、GLM-5.1/5.2、Kimi、混元等全系列大模型。',
+  },
+  tianxi: {
+    name: 'Tianxi Official',
+    defaultId: 'tianxi-official',
+    protocol: 'tianxi',
+    targetUrl: 'http://127.0.0.1:49305',
+    keyUrl: '',
+    desc: '联想天禧 AI 本机模式。通过本地登录态自动直连 tac-server，提供 tianxi/chat 普通文本模型和 tianxi/super 超能模式，均通过 OpenAI Responses 调用。',
   },
   openai: {
     name: 'OpenAI Official',
@@ -2002,7 +1995,6 @@ function renderProviderPresetHelp(preset) {
   }
 }
 
-// 初始化服务商预设选项绑定
 function initProviderPresets() {
   const presetSelect = $('providerPreset');
   if (!presetSelect) return;
@@ -2050,7 +2042,6 @@ function initProviderPresets() {
   };
 }
 
-// 根据 URL 反向匹配，定位预设下拉菜单的值
 function matchPresetByUrl(targetUrl) {
   if (!targetUrl) return '';
   const url = targetUrl.toLowerCase().trim();
@@ -2060,6 +2051,7 @@ function matchPresetByUrl(targetUrl) {
     url.includes('codebuddy')
   )
     return 'workbuddy';
+  if (url.includes('127.0.0.1:49305') || url.includes('tianxi')) return 'tianxi';
   if (url.includes('api.openai.com')) return 'openai';
   if (url.includes('open.bigmodel.cn/api/anthropic')) return 'glm-coding-anthropic';
   if (url.includes('open.bigmodel.cn/api/coding/paas')) return 'glm-coding-openai';
@@ -2091,11 +2083,7 @@ function fillForm(profile) {
     renderProviderPresetHelp(matched ? PROVIDER_PRESETS[matched] : null);
   }
 
-  modelRoutes = currentRoutes().map((route) => ({
-    from: route.from,
-    profileId: route.profileId,
-    to: route.to,
-  }));
+  modelRoutes = currentRoutes().map((route) => routeForConfig(route));
   availableModels = [];
   resetRouteEditor();
   renderRouteProfiles(selectedId);
@@ -2885,8 +2873,18 @@ $('addRule').onclick = () => {
   const previousRoute = index >= 0 ? modelRoutes[index] : null;
   if (labelOverride) nextRoute.labelOverride = labelOverride;
   if (clientProtocols.length) nextRoute.clientProtocols = clientProtocols;
-  if (previousRoute && previousRoute.supports1m !== undefined)
-    nextRoute.supports1m = previousRoute.supports1m;
+  if (previousRoute) {
+    if (previousRoute.group) nextRoute.group = previousRoute.group;
+    if (previousRoute.supports1m !== undefined) nextRoute.supports1m = previousRoute.supports1m;
+    if (previousRoute.supportsStreaming !== undefined)
+      nextRoute.supportsStreaming = previousRoute.supportsStreaming;
+    if (Array.isArray(previousRoute.capabilities))
+      nextRoute.capabilities = [...previousRoute.capabilities];
+    if (Array.isArray(previousRoute.inputModalities))
+      nextRoute.inputModalities = [...previousRoute.inputModalities];
+    if (Array.isArray(previousRoute.outputModalities))
+      nextRoute.outputModalities = [...previousRoute.outputModalities];
+  }
   if (index >= 0) modelRoutes[index] = nextRoute;
   else modelRoutes.push(nextRoute);
   syncClaudeDesktopModelFromRoute(previousRoute ? previousRoute.from : from, nextRoute);
@@ -2956,7 +2954,10 @@ $('modelRouteProfile').onchange = () => {
   renderModelOptions($('modelRewriteTo').value);
   $('modelStatus').textContent = editingRouteIndex === null ? '' : '正在编辑已保存路由';
 };
-
+$('modelRewriteFrom').oninput = updateRouteProtocolHint;
+document
+  .querySelectorAll('[data-route-client-protocol]')
+  .forEach((input) => (input.onchange = updateRouteProtocolHint));
 $('id').oninput = () => {
   updateOfficialAuthSection($('id').value.trim());
 };

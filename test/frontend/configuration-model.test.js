@@ -8,6 +8,7 @@ const assert = require('node:assert/strict');
     buildDefaultEntryServers,
     createDefaultEntryAuthKey,
     createEntryAuthSecret,
+    entryProtocolName,
     inferRouteClientProtocols,
     normalizeAppSettings,
     normalizeEntryAuth,
@@ -17,6 +18,9 @@ const assert = require('node:assert/strict');
     normalizeLocalServer,
     normalizeRouteClientProtocol,
     normalizeRouteClientProtocols,
+    preferredEntryProtocolForProfile,
+    protocolName,
+    routeProtocolHintState,
     routeClientProtocols,
     splitEntryAuthList,
   } = configuration;
@@ -31,6 +35,9 @@ const assert = require('node:assert/strict');
   ]);
   assert.deepEqual(normalizeRouteClientProtocols(null), []);
   assert.deepEqual(inferRouteClientProtocols(' claude-sonnet-4-6 '), ['claude']);
+  assert.deepEqual(inferRouteClientProtocols('Claude 4 Sonnet'), ['claude']);
+  assert.deepEqual(inferRouteClientProtocols('claude/opus-5'), ['claude']);
+  assert.deepEqual(inferRouteClientProtocols('anthropic/claude-opus-5'), ['claude']);
   assert.deepEqual(inferRouteClientProtocols('gpt-5.4'), ['openai-chat', 'openai-responses']);
   assert.deepEqual(inferRouteClientProtocols(''), []);
   assert.deepEqual(
@@ -41,6 +48,23 @@ const assert = require('node:assert/strict');
     'claude',
   ]);
   assert.deepEqual(routeClientProtocols(null), []);
+  assert.deepEqual(routeProtocolHintState('', []), {
+    mode: 'empty',
+    text: '输入客户端模型后会显示将暴露的入口协议；不勾选时按模型名推断。',
+  });
+  assert.deepEqual(routeProtocolHintState('Claude 4 Sonnet', []), {
+    mode: 'inferred',
+    text: '按模型名推断：Claude (3443/3080)',
+  });
+  assert.deepEqual(routeProtocolHintState('Claude 4 Sonnet', ['openai-chat']), {
+    mode: 'explicit',
+    text: '显式暴露到：OpenAI Chat (3447/3084)',
+  });
+  assert.equal(protocolName('tianxi'), 'Tianxi');
+  assert.equal(entryProtocolName('openai-responses'), 'OpenAI Responses');
+  assert.equal(preferredEntryProtocolForProfile({ protocol: 'tianxi' }), 'openai-responses');
+  assert.equal(preferredEntryProtocolForProfile({ protocol: 'claude' }), 'claude');
+  assert.equal(preferredEntryProtocolForProfile(null), 'openai-chat');
 
   for (const alias of ['responses', 'response', 'openai-response']) {
     assert.equal(normalizeEntryProtocol(alias), 'openai-responses');

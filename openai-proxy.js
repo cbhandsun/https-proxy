@@ -1,8 +1,3 @@
-/**
- * OpenAI 兼容 API → HTTP 反向代理
- * 把 HTTP 包装成 HTTPS，支持流式补全、CORS
- */
-
 const https = require('https');
 const http = require('http');
 const fs = require('fs');
@@ -13,7 +8,6 @@ const crypto = require('crypto');
 const { createStartupTiming } = require('./lib/proxy/startup-timing');
 const startupTiming = createStartupTiming();
 const { parseBoundedInteger } = require('./lib/proxy/management-utils');
-
 const {
   createLogger,
   withRequest,
@@ -73,7 +67,6 @@ const { requestWithProxy, resetLocalProxyDetectionCache } = createProxyTransport
   loadConfig,
   shouldVerifyUpstreamTls,
 });
-
 const runtimeSupport = createRuntimeSupport({
   dataDir: DATA_DIR,
   initialToken: MANAGEMENT_TOKEN,
@@ -83,7 +76,6 @@ function writeManagementTokenFile(managementPort) {
   MANAGEMENT_TOKEN = runtimeSupport.writeManagementTokenFile(managementPort);
   return MANAGEMENT_TOKEN;
 }
-
 const {
   stableHash,
   stableId,
@@ -92,7 +84,6 @@ const {
 } = require('./lib/proxy/ids');
 const { CERT_DIR, CERT_FILE, KEY_FILE, ensureCert } = require('./lib/proxy/cert');
 const ACTIVE_HTTPS_SERVERS = [];
-
 function refreshLocalTlsServers() {
   const tlsConfig = ensureCert();
   let refreshed = 0;
@@ -103,7 +94,6 @@ function refreshLocalTlsServers() {
   }
   return { refreshed };
 }
-
 const {
   localModelIds,
   buildLocalOpenAIModelObject,
@@ -820,6 +810,15 @@ const {
   writeTraeBridgeClaudeLiveStream,
 });
 
+const { handleTianxiOfficialResponses } = lazyFeatures.createLazyTianxiOfficialHandlers({
+  sendJsonError,
+  logRequestEnd,
+  openAIResponsesToChat,
+  makeRequest,
+  fallbackId,
+  stableCreated,
+});
+
 function sendGeminiRateLimit(
   clientReq,
   clientRes,
@@ -969,6 +968,7 @@ const handleRequestInner = createCoreRequestHandler({
   handleTraeOfficialChatCompletion,
   handleTraeOfficialClaudeMessages,
   handleTraeOfficialResponses,
+  handleTianxiOfficialResponses,
   installConversationAuditResponseCapture,
   recordAuditUpstreamFailure,
   installLocalManagementRequestEndLogger,

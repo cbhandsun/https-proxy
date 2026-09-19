@@ -240,6 +240,9 @@ assert.deepStrictEqual(imageGenerationModel.input_modalities, ['text', 'image'])
 assert.deepStrictEqual(imageGenerationModel.output_modalities, ['text', 'image']);
 
 assert.deepStrictEqual(clientProtocolsForRoute({ from: 'claude-sonnet-4-6' }), ['claude']);
+assert.deepStrictEqual(clientProtocolsForRoute({ from: 'Claude 4 Sonnet' }), ['claude']);
+assert.deepStrictEqual(clientProtocolsForRoute({ from: 'claude/opus-5' }), ['claude']);
+assert.deepStrictEqual(clientProtocolsForRoute({ from: 'anthropic/claude-opus-5' }), ['claude']);
 assert.deepStrictEqual(clientProtocolsForRoute({ from: 'codex/gpt-5.5' }), [
   'openai-chat',
   'openai-responses',
@@ -258,6 +261,8 @@ assert.deepStrictEqual(
 
 const mixedRoutes = [
   { from: 'claude-sonnet-4-6', profileId: 'p1', to: 'gpt-5.4' },
+  { from: 'Claude 4 Sonnet', profileId: 'p1', to: 'gpt-5.4' },
+  { from: 'anthropic/claude-opus-5', profileId: 'p1', to: 'gpt-5.5' },
   { from: 'codex/gpt-5.5', profileId: 'p2', to: 'gpt-5.5' },
   { from: 'custom-claude', profileId: 'p3', to: 'custom', clientProtocols: ['claude'] },
   {
@@ -269,7 +274,7 @@ const mixedRoutes = [
 ];
 assert.deepStrictEqual(
   localModelRoutesForClientProtocol(mixedRoutes, 'claude').map((route) => route.from),
-  ['claude-sonnet-4-6', 'custom-claude']
+  ['anthropic/claude-opus-5', 'claude-sonnet-4-6', 'custom-claude']
 );
 assert.deepStrictEqual(
   localModelRoutesForClientProtocol(mixedRoutes, 'openai-chat').map((route) => route.from),

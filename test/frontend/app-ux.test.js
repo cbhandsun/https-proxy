@@ -994,7 +994,74 @@ function tick(ms = 0) {
     );
   }
 
-  console.log('app-ux.test.js ok (27 scenarios)');
+  // ─── 28. Tianxi routes are visible and preserve Responses metadata ─
+  {
+    const app = readAppSource();
+    const configuration = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'models', 'configuration.js'),
+      'utf8'
+    );
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'tauri-ui', 'index.html'),
+      'utf8'
+    );
+    assert.ok(
+      html.includes('<option value="tianxi">Tianxi 超能模式</option>'),
+      'profile protocol selector exposes Tianxi'
+    );
+    assert.ok(
+      configuration.includes("if (value === 'tianxi') return 'Tianxi'") &&
+        configuration.includes("if (protocol === 'tianxi') return 'openai-responses'"),
+      'Tianxi profiles prefer the OpenAI Responses entry'
+    );
+    assert.ok(
+      app.includes("defaultId: 'tianxi-official'") &&
+        app.includes("targetUrl: 'http://127.0.0.1:49305'"),
+      'Tianxi preset can recreate the official local profile'
+    );
+    assert.ok(
+      app.includes('tianxi/chat 普通文本模型') && app.includes('tianxi/super 超能模式'),
+      'Tianxi preset describes both chat and super Responses models'
+    );
+    assert.ok(
+      app.includes('next.supportsStreaming = route.supportsStreaming !== false') &&
+        app.includes('next.capabilities = [...route.capabilities]') &&
+        app.includes('next.inputModalities = [...route.inputModalities]') &&
+        app.includes('next.outputModalities = [...route.outputModalities]'),
+      'route saving preserves model-list metadata for Tianxi'
+    );
+  }
+
+  // ─── 29. Route editor previews entry protocol exposure ───────
+  {
+    const app = readAppSource();
+    const configuration = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'models', 'configuration.js'),
+      'utf8'
+    );
+    const html = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'tauri-ui', 'index.html'),
+      'utf8'
+    );
+    assert.ok(
+      html.includes('id="routeProtocolHint"') && html.includes('不勾选时按模型名推断'),
+      'route editor shows the inferred client protocol boundary'
+    );
+    assert.ok(
+      app.includes('function updateRouteProtocolHint()') &&
+        app.includes('routeProtocolHintState(fromInput.value, selectedRouteClientProtocols())') &&
+        configuration.includes('显式暴露到：') &&
+        configuration.includes('按模型名推断：'),
+      'route editor has explicit and inferred protocol preview states'
+    );
+    assert.ok(
+      app.includes("$('modelRewriteFrom').oninput = updateRouteProtocolHint") &&
+        app.includes("document.querySelectorAll('[data-route-client-protocol]')"),
+      'route protocol preview updates when the model name or protocol checks change'
+    );
+  }
+
+  console.log('app-ux.test.js ok (29 scenarios)');
 })().catch((err) => {
   console.error('app-ux.test.js FAILED:', err);
   process.exit(1);

@@ -47,6 +47,7 @@ function invoke(handler, body) {
 
 (async () => {
   let makeRequestCalls = [];
+  const tianxiBridgePayloads = [];
   const profiles = [
     {
       id: 'trae-profile',
@@ -65,6 +66,12 @@ function invoke(handler, body) {
       id: 'trae-official',
       protocol: 'trae',
       targetUrl: 'https://coresg-normal.trae.ai',
+      authMode: 'official-login',
+    },
+    {
+      id: 'tianxi-official',
+      protocol: 'tianxi',
+      targetUrl: 'http://127.0.0.1:49305',
       authMode: 'official-login',
     },
   ];
@@ -98,6 +105,44 @@ function invoke(handler, body) {
       model: model === 'trae/minimax-m3' ? 'minimax-m3' : model,
     }),
     getTraeOfficialBridgeUrl: (pathname) => `http://127.0.0.1:17861${pathname}`,
+    callTianxiOfficialBridge: async (payload) => {
+      tianxiBridgePayloads.push(payload);
+      if (payload.model === 'expired') {
+        return {
+          mode: 'direct',
+          bridgeUrl: 'tianxi://tac-server',
+          frames: [
+            {
+              type: 'task_status',
+              data: {
+                status: 'FAILED',
+                error_code: 'INVALID_CREDENTIALS',
+                error_detail: 'Service Account token has expired',
+                credential_state: {
+                  qoderExpired: true,
+                  txExpired: true,
+                  refreshPossibleWithTx: false,
+                },
+                registry_credential_state: {
+                  qoderExpired: true,
+                  loginExpired: false,
+                  refreshPossibleWithLogin: true,
+                },
+              },
+            },
+          ],
+        };
+      }
+      return {
+        mode: 'direct',
+        bridgeUrl: 'tianxi://tac-server',
+        frames: [
+          { type: 'task_output', data: { content: `ok ${payload.model}` } },
+          { type: 'task_status', data: { status: 'COMPLETED' } },
+        ],
+      };
+    },
+    readLatestAgentCoreHeader: () => null,
   });
 
   assert.deepStrictEqual(profileRequestBody(null), {});
@@ -150,6 +195,46 @@ function invoke(handler, body) {
   assert.strictEqual(badTraeBody.ok, false);
   assert.strictEqual(badTraeBody.source, 'trae-state-cache');
   assert.strictEqual(makeRequestCalls.length, 0, 'unsupported Trae model must not probe bridge');
+
+  const tianxiRoute = await invoke(handlers.handleLocalRouteTestRequest, {
+    profileId: 'tianxi-official',
+    to: 'tianxi/super',
+  });
+  const tianxiBody = JSON.parse(tianxiRoute.body);
+  assert.strictEqual(tianxiRoute.statusCode, 200);
+  assert.strictEqual(tianxiBody.ok, true);
+  assert.strictEqual(tianxiBody.source, 'tianxi-tac-server');
+  assert.strictEqual(tianxiBody.bridgeUrl, 'tianxi://tac-server');
+  assert.strictEqual(tianxiBody.model, 'super');
+  assert.strictEqual(tianxiBody.message.includes('Tianxi 本机模式可达'), true);
+  assert.strictEqual(tianxiBridgePayloads.at(-1).metadata.tianxi.agent_id, 'super');
+
+  const tianxiChatRoute = await invoke(handlers.handleLocalRouteTestRequest, {
+    profileId: 'tianxi-official',
+    to: 'tianxi/chat',
+  });
+  const tianxiChatBody = JSON.parse(tianxiChatRoute.body);
+  assert.strictEqual(tianxiChatRoute.statusCode, 200);
+  assert.strictEqual(tianxiChatBody.ok, true);
+  assert.strictEqual(tianxiChatBody.model, 'chat');
+  assert.strictEqual(tianxiBridgePayloads.at(-1).metadata.tianxi.agent_id, 'chat');
+
+  const tianxiExpiredRoute = await invoke(handlers.handleLocalRouteTestRequest, {
+    profileId: 'tianxi-official',
+    to: 'tianxi/expired',
+  });
+  const tianxiExpiredBody = JSON.parse(tianxiExpiredRoute.body);
+  assert.strictEqual(tianxiExpiredRoute.statusCode, 200);
+  assert.strictEqual(tianxiExpiredBody.ok, false);
+  assert.strictEqual(tianxiExpiredBody.source, 'tianxi-tac-server');
+  assert.strictEqual(tianxiExpiredBody.terminalStatus, 'FAILED');
+  assert.deepStrictEqual(tianxiExpiredBody.credentialState, {
+    qoderExpired: true,
+    txExpired: true,
+    refreshPossibleWithTx: false,
+  });
+  assert.match(tianxiExpiredBody.error, /registry login cache is still valid/);
+  assert.equal(JSON.stringify(tianxiExpiredBody).includes('sat-'), false);
 
   const noProfile = await invoke(handlers.handleLocalRouteTestRequest, {
     profileId: 'missing-profile',
