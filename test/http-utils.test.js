@@ -112,6 +112,17 @@ assert.ok(
   terminatedAfterHeaders.chunks.join('').includes('socket hang up'),
   'SSE clients need a terminal error event describing the failure'
 );
+{
+  const failureEvent = terminatedAfterHeaders.chunks.join('');
+  assert.match(failureEvent, /^event: error\ndata: /);
+  const failurePayload = JSON.parse(failureEvent.split('data: ')[1].trim());
+  assert.deepStrictEqual(failurePayload, {
+    type: 'error',
+    code: 'proxy_error',
+    message: 'OpenAI proxy error: socket hang up',
+    param: null,
+  });
+}
 assert.strictEqual(requestEndCall.statusCode, 502);
 assert.strictEqual(requestEndCall.meta.type, 'openai_proxy_error');
 
