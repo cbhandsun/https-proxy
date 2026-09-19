@@ -9,6 +9,7 @@ const {
   sanitizeWorkBuddyChatBody,
   WORKBUDDY_FALLBACK_MODELS,
 } = require('../lib/proxy/workbuddy-official');
+const { rejectContextOverflow } = require('../lib/proxy/context-budget-manager');
 const { createConvertedChatRequest } = require('../lib/proxy/handlers/converted-chat-request');
 const { createGeminiProtocol } = require('../lib/proxy/protocol-gemini');
 const { normalizeUsage } = require('../lib/proxy/usage-report');
@@ -101,6 +102,39 @@ const { normalizeUsage } = require('../lib/proxy/usage-report');
     optimizerOptions: { maxHistoricalToolChars: 300, keepRecentTurns: 1 },
   });
   assert.ok(sanitized.messages[2].content.includes('代理已折叠历史执行回显'));
+}
+
+// 4b. WorkBuddy uses the model context window and rejects an indivisible latest exchange.
+{
+  const body = {
+    model: 'deepseek-v3-2-volc',
+    max_tokens: 32000,
+    messages: [
+      {
+        role: 'assistant',
+        tool_calls: [
+          { id: 'call_large', type: 'function', function: { name: 'read', arguments: '{}' } },
+        ],
+      },
+      { role: 'tool', tool_call_id: 'call_large', content: 'x'.repeat(300000) },
+    ],
+  };
+  sanitizeWorkBuddyChatBody(body, {
+    protocolOptions: { contextWindowPolicy: 'overflow-drop-oldest', clientContextTokens: 200000 },
+    optimizerOptions: { keepRecentTurns: 2 },
+  });
+  assert.equal(body.__hpmDiagnostics.contextBudget.contextWindowTokens, 96000);
+  assert.ok(body.__hpmDiagnostics.contextBudget.overBudgetTokens > 0);
+  let failure;
+  assert.equal(
+    rejectContextOverflow({}, body, (_res, status, payload) => {
+      failure = { status, payload };
+    }),
+    true
+  );
+  assert.equal(failure.status, 400);
+  assert.equal(failure.payload.error.code, 'context_length_exceeded');
+  assert.ok(!JSON.stringify(failure).includes('x'.repeat(100)));
 }
 
 // 5. Gemini cachedContentTokenCount support in usage and protocol

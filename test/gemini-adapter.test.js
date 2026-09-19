@@ -401,6 +401,34 @@ test('keeps declared Gemini tool history and textualizes unsupported history blo
   assert.deepStrictEqual(result.contents[3], { role: 'user', parts: [{ text: 'continue' }] });
 });
 
+test('textualizes orphaned Gemini tool results before upstream conversion', () => {
+  const result = claudeMessagesToGemini(
+    {
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'missing_call',
+              name: 'lookup',
+              content: 'historical result',
+            },
+          ],
+        },
+        { role: 'user', content: 'continue' },
+      ],
+      tools: [{ name: 'lookup', input_schema: { type: 'object', properties: {} } }],
+    },
+    'gemini-3.8-flash-tiered'
+  );
+
+  assert.equal(result.contents[0].parts[0].functionResponse, undefined);
+  assert.match(result.contents[0].parts[0].text, /Previous tool result \(lookup\)/);
+  assert.match(result.contents[0].parts[0].text, /historical result/);
+  assert.equal(result.__hpmDiagnostics.repairedOrphanToolResults, 1);
+});
+
 test('maps history tool results to the preceding tool name when result name is absent', () => {
   const result = claudeMessagesToGemini(
     {
@@ -773,7 +801,7 @@ test('keeps a generic search function separate from Gemini Google Search groundi
   assert.strictEqual(chatBody.tools[0].function.name, 'search');
 });
 
-test('keeps Gemini tool result names when thought signature is absent', () => {
+test('keeps Gemini tool result names when textualizing an orphaned result', () => {
   const writes = [];
   const clientRes = { write: (chunk) => writes.push(chunk) };
   const state = {
@@ -807,7 +835,8 @@ test('keeps Gemini tool result names when thought signature is absent', () => {
     },
     'gemini-3-flash-preview'
   );
-  assert.strictEqual(next.contents[0].parts[0].functionResponse.name, 'Read');
+  assert.equal(next.contents[0].parts[0].functionResponse, undefined);
+  assert.match(next.contents[0].parts[0].text, /Previous tool result \(Read\)/);
 });
 
 test('adds Responses fallback preamble before a non-stream Gemini tool call', () => {
@@ -1984,6 +2013,29 @@ test('summarizes Gemini request shape without retaining prompt text', () => {
   assert.deepStrictEqual(summary.tools[0].functionSchemas[0].propertyNames, ['corpus']);
   assert.ok(!JSON.stringify(summary).includes('上海天气'));
   assert.ok(!JSON.stringify(summary).includes('secret prompt'));
+});
+
+test('summarizes Gemini context budget without retaining prompt text', () => {
+  const body = claudeMessagesToGemini(
+    {
+      model: 'gemini-3.8-flash-tiered',
+      max_tokens: 8192,
+      reasoning_effort: 'high',
+      messages: [
+        { role: 'user', content: 'sensitive old prompt ' + 'A'.repeat(20000) },
+        { role: 'assistant', content: 'sensitive old answer ' + 'B'.repeat(20000) },
+        { role: 'user', content: 'sensitive current prompt' },
+      ],
+      tools: [{ name: 'Read', description: '', input_schema: { type: 'object' } }],
+    },
+    'gemini-3.8-flash-tiered'
+  );
+  const summary = summarizeGeminiRequestForDiagnostics(body);
+  assert.ok(summary.hpmDiagnostics.contextBudget);
+  assert.strictEqual(summary.hpmDiagnostics.contextBudget.contextWindowTokens, 200000);
+  assert.ok(summary.hpmDiagnostics.contextBudget.inputBudgetTokens < 200000);
+  assert.ok(!JSON.stringify(summary).includes('sensitive old prompt'));
+  assert.ok(!JSON.stringify(summary).includes('sensitive current prompt'));
 });
 
 test('caps deeply nested tool schema recursion instead of overflowing the stack', () => {

@@ -11,13 +11,17 @@
 
 const assert = require('assert');
 const { createClaudeStream } = require('../lib/proxy/stream-claude');
+const { finishGeminiClaudeStream } = require('../lib/proxy/handlers/route-gemini-utils');
 
 const cleanToolArgs = (name, args) => args;
 const noopSanitize = (call) => ({ name: call && call.name, args: call && call.args });
 const noopSample = () => {};
 const noopAudit = () => {};
 const noopRemember = () => {};
-const noopUsage = (_u) => ({ input_tokens: 0, output_tokens: 0 });
+const noopUsage = (usage) => ({
+  input_tokens: usage && usage.promptTokenCount ? usage.promptTokenCount : 0,
+  output_tokens: usage && usage.candidatesTokenCount ? usage.candidatesTokenCount : 0,
+});
 
 function createTestStream(protocolOptions = {}) {
   return createClaudeStream({
@@ -49,7 +53,7 @@ function createTestStream(protocolOptions = {}) {
     geminiFunctionCallArgs: (a) => a,
     geminiClaudeToolId: (i) => 'tool_' + i,
     rememberGeminiToolCall: noopRemember,
-    claudeStopReasonFromGemini: (r) => r,
+    claudeStopReasonFromGemini: (r) => (r === 'MAX_TOKENS' ? 'max_tokens' : r),
     geminiUsageToClaude: noopUsage,
     fallbackId: (p) => p + '_mock',
     protocolOptions,
@@ -279,6 +283,40 @@ t('Gemini Responses stream emits fallback text before first tool call', () => {
   assert.ok(preambleIndex >= 0, 'fallback preamble should be emitted');
   assert.ok(toolIndex >= 0, 'tool_use should still be emitted');
   assert.ok(preambleIndex < toolIndex, 'fallback preamble must precede the tool call');
+});
+
+t('Gemini max_tokens with no visible content emits diagnostic text', () => {
+  const res = makeRes();
+  const state = {
+    textIndex: -1,
+    textOpen: false,
+    thinkingOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 10, output_tokens: 1 },
+    tools: [],
+    pendingToolCall: null,
+  };
+
+  stream.processGeminiSseEvent(
+    res,
+    'data: {"candidates":[{"finishReason":"MAX_TOKENS","content":{"parts":[]}}],"usageMetadata":{"promptTokenCount":10,"candidatesTokenCount":1}}\n\n',
+    state,
+    'gemini-3.8-flash-tiered'
+  );
+  finishGeminiClaudeStream({
+    sink: res,
+    state,
+    targetModel: 'gemini-3.8-flash-tiered',
+    processGeminiSseEvent: stream.processGeminiSseEvent,
+    flushPendingGeminiToolCall: stream.flushPendingGeminiToolCall,
+    writeClaudeSseEvent: stream.writeClaudeSseEvent,
+    geminiClaudeStopReason: stream.geminiClaudeStopReason,
+  });
+
+  const text = res.full();
+  assert.ok(text.includes('Gemini stopped after reaching its output token budget'));
+  assert.ok(text.includes('"stop_reason":"max_tokens"'));
+  assert.ok(text.includes('"output_tokens":1'));
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -23,6 +23,11 @@ assert.strictEqual(
   'string',
   'default profile should have protocolVersion field'
 );
+assert.strictEqual(
+  DEFAULT_CONFIG.protocolOptions.clientContextTokens,
+  200000,
+  'default client context window should leave room for Codex tools and output'
+);
 
 // 2. Explicit value wins
 t('explicit protocolVersion is used', () => {
