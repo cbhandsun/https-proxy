@@ -8,7 +8,7 @@ const {
 const { buildLocalModelsResponse } = require('../lib/proxy/models');
 
 const source = {
-  profiles: [{ id: 'openai-official' }, { id: 'google-official' }],
+  profiles: [{ id: 'openai-official' }, { id: 'google-official' }, { id: 'tianxi-official' }],
   modelRoutes: [
     { from: 'gpt-5.6-sol', profileId: 'custom-openai', to: 'custom-sol' },
     { from: 'existing', profileId: 'openai-official', to: 'gpt-5.5' },
@@ -71,6 +71,47 @@ for (const [id, name] of [
     false
   );
 }
+const tianxiSuperRoute = merged.modelRoutes.find((route) => route.from === 'tianxi/super');
+assert.strictEqual(tianxiSuperRoute.profileId, 'tianxi-official');
+assert.strictEqual(tianxiSuperRoute.to, 'super');
+assert.strictEqual(tianxiSuperRoute.group, 'tianxi');
+assert.strictEqual(tianxiSuperRoute.labelOverride, 'Tianxi Super');
+assert.deepStrictEqual(tianxiSuperRoute.clientProtocols, ['openai-responses']);
+assert.strictEqual(tianxiSuperRoute.supportsStreaming, true);
+assert.strictEqual(tianxiSuperRoute.tianxiAgentId, 'super');
+const publicTianxiSuper = buildLocalModelsResponse(
+  merged.modelRoutes,
+  'openai',
+  'openai-responses'
+).data.find((model) => model.id === 'tianxi/super');
+assert.strictEqual(publicTianxiSuper.name, 'Tianxi Super');
+assert.strictEqual(publicTianxiSuper.group, 'tianxi');
+assert.strictEqual(publicTianxiSuper.supports_streaming, true);
+assert.deepStrictEqual(publicTianxiSuper.input_modalities, ['text']);
+assert.deepStrictEqual(publicTianxiSuper.output_modalities, ['text']);
+assert.strictEqual(
+  buildLocalModelsResponse(merged.modelRoutes, 'openai', 'openai-chat').data.some(
+    (model) => model.id === 'tianxi/super'
+  ),
+  false
+);
+const tianxiChatRoute = merged.modelRoutes.find((route) => route.from === 'tianxi/chat');
+assert.strictEqual(tianxiChatRoute.profileId, 'tianxi-official');
+assert.strictEqual(tianxiChatRoute.to, 'chat');
+assert.strictEqual(tianxiChatRoute.group, 'tianxi');
+assert.strictEqual(tianxiChatRoute.labelOverride, 'Tianxi Chat');
+assert.deepStrictEqual(tianxiChatRoute.clientProtocols, ['openai-responses']);
+assert.strictEqual(tianxiChatRoute.tianxiAgentId, 'chat');
+const publicTianxiChat = buildLocalModelsResponse(
+  merged.modelRoutes,
+  'openai',
+  'openai-responses'
+).data.find((model) => model.id === 'tianxi/chat');
+assert.strictEqual(publicTianxiChat.name, 'Tianxi Chat');
+assert.strictEqual(publicTianxiChat.group, 'tianxi');
+assert.strictEqual(publicTianxiChat.supports_streaming, true);
+assert.deepStrictEqual(publicTianxiChat.input_modalities, ['text']);
+assert.deepStrictEqual(publicTianxiChat.output_modalities, ['text']);
 const gemini37High = merged.modelRoutes.find((route) => route.from === 'Gemini 3.7 Flash High');
 assert.strictEqual(gemini37High.to, 'gemini-3.7-flash-tiered');
 assert.strictEqual(gemini37High.exposeInModels, false);
@@ -238,6 +279,6 @@ assert.strictEqual(
 const missingProfiles = mergeBuiltinModelRoutes({ profiles: [], modelRoutes: [] });
 assert.deepStrictEqual(missingProfiles.modelRoutes, []);
 assert.strictEqual(mergeBuiltinModelRoutes(null), null);
-assert.ok(BUILTIN_MODEL_ROUTES.length >= 28);
+assert.ok(BUILTIN_MODEL_ROUTES.length >= 29);
 
 console.log('[builtin-model-routes.test] ok');

@@ -112,7 +112,15 @@ export function normalizeRouteClientProtocols(value) {
 export function inferRouteClientProtocols(modelId) {
   const model = normalizedString(modelId, '', MAX_ID_LENGTH).toLowerCase();
   if (!model) return [];
-  if (model.startsWith('claude-')) return ['claude'];
+  if (
+    model.startsWith('claude-') ||
+    model.startsWith('claude/') ||
+    /^claude(?:\s|_|:)/.test(model) ||
+    model.startsWith('anthropic/claude-') ||
+    model.startsWith('anthropic/claude/')
+  ) {
+    return ['claude'];
+  }
   return ['openai-chat', 'openai-responses'];
 }
 
@@ -120,6 +128,57 @@ export function routeClientProtocols(route) {
   const candidate = isRecord(route) ? route : {};
   const explicit = normalizeRouteClientProtocols(candidate.clientProtocols);
   return explicit.length ? explicit : inferRouteClientProtocols(candidate.from);
+}
+
+export function routeClientProtocolText(route) {
+  const labels = routeClientProtocols(route)
+    .map((id) => routeClientProtocolOptions.find((item) => item.id === id)?.label || id)
+    .join(' / ');
+  return labels || '未指定';
+}
+
+export function routeClientProtocolModeText(route) {
+  return normalizeRouteClientProtocols(route && route.clientProtocols).length ? '显式' : '推断';
+}
+
+export function routeProtocolHintState(from, clientProtocols) {
+  const route = { from: normalizedString(from, '', MAX_ID_LENGTH) };
+  const explicit = normalizeRouteClientProtocols(clientProtocols);
+  if (explicit.length) route.clientProtocols = explicit;
+  const text = routeClientProtocolText(route);
+  if (explicit.length) return { mode: 'explicit', text: `显式暴露到：${text}` };
+  if (route.from) return { mode: 'inferred', text: `按模型名推断：${text}` };
+  return {
+    mode: 'empty',
+    text: '输入客户端模型后会显示将暴露的入口协议；不勾选时按模型名推断。',
+  };
+}
+
+export function protocolName(value) {
+  if (value === 'tianxi') return 'Tianxi';
+  if (value === 'workbuddy') return 'WorkBuddy';
+  if (value === 'gemini') return 'Gemini';
+  if (value === 'claude') return 'Claude';
+  if (value === 'claude-desktop') return 'Claude Desktop';
+  if (value === 'openai-responses') return 'OpenAI Responses';
+  if (value === 'openai-chat') return 'OpenAI Chat';
+  return 'OpenAI';
+}
+
+export function entryProtocolName(value) {
+  if (value === 'claude') return 'Claude Messages';
+  if (value === 'claude-desktop') return 'Claude Desktop';
+  if (value === 'openai-responses') return 'OpenAI Responses';
+  if (value === 'openai-chat') return 'OpenAI Chat Completions';
+  return protocolName(value);
+}
+
+export function preferredEntryProtocolForProfile(profile) {
+  const protocol = normalizedString(profile && profile.protocol, '', MAX_ID_LENGTH).toLowerCase();
+  if (protocol === 'claude' || protocol === 'anthropic') return 'claude';
+  if (protocol === 'tianxi') return 'openai-responses';
+  if (protocol === 'openai-responses' || protocol === 'responses') return 'openai-responses';
+  return 'openai-chat';
 }
 
 export function normalizeEntryProtocol(value) {

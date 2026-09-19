@@ -1,0 +1,117 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const {
+  DEFAULT_TIANXI_AGENT_ID,
+  DEFAULT_TIANXI_CHANNEL_NAME,
+  DEFAULT_TIANXI_QODER_MODEL,
+  buildTianxiAgentCoreFrames,
+  buildTianxiNativeApiQueryFrame,
+  extractTianxiPromptText,
+  parseTianxiAgentCoreNotify,
+} = require('../lib/proxy/tianxi-agentcore-protocol');
+
+assert.equal(extractTianxiPromptText('hello'), 'hello');
+assert.equal(
+  extractTianxiPromptText([
+    { role: 'system', content: [{ type: 'input_text', text: 'ignore-system-for-prompt' }] },
+    { role: 'user', content: [{ type: 'input_text', text: 'first' }] },
+    { role: 'user', content: [{ type: 'text', text: 'second' }] },
+  ]),
+  'first\nsecond'
+);
+
+const built = buildTianxiAgentCoreFrames(
+  {
+    model: 'super',
+    instructions: 'system context',
+    input: [{ role: 'user', content: [{ type: 'input_text', text: 'write this' }] }],
+    metadata: {
+      tianxi: {
+        user_id: 'user-1',
+        device_id: 'device-1',
+        app_id: 'app-1',
+        credentials: { type: 'official-login' },
+        role: 'user',
+        channel: 'agentCore',
+        llm: 'cloud',
+        nickname: 'tester',
+        selected_pkb_files: [{ id: 'kb1' }],
+      },
+    },
+  },
+  {
+    now: () => 123,
+    uuid: (() => {
+      const values = ['session-1', 'request-1', 'sync-1', 'query-1'];
+      return () => values.shift();
+    })(),
+  }
+);
+
+assert.equal(built.sessionId, 'session-1');
+assert.equal(built.requestId, 'request-1');
+assert.equal(built.frames.length, 2);
+assert.equal(built.frames[0].type, 'mcp_server_sync');
+assert.equal(built.frames[0].header.session_id, 'session-1');
+assert.equal(built.frames[0].header.user_id, 'user-1');
+assert.equal(built.frames[0].header.device_id, 'device-1');
+assert.equal(built.frames[0].header.app_id, 'app-1');
+assert.deepEqual(built.frames[0].header.credentials, { type: 'official-login' });
+assert.equal(built.frames[0].header.role, 'user');
+assert.equal(built.frames[1].type, 'query');
+assert.equal(built.frames[1].data.text, 'write this');
+assert.equal(built.frames[1].data.options.model, 'cloud');
+assert.equal(built.frames[1].data.options.agentcore_backend, 'qoder');
+assert.equal(built.frames[1].source.id, 'user-1');
+assert.equal(built.frames[1].target.id, DEFAULT_TIANXI_AGENT_ID);
+assert.equal(built.frames[1].extend.channel, 'agentCore');
+assert.equal(built.frames[1].extend.gateway_channel, 'agentCore');
+assert.equal(built.frames[1].extend.gatewayChannel, 'agentCore');
+assert.equal(built.frames[1].extend.llm, 'cloud');
+assert.equal(built.frames[1].extend.raw_query, 'write this');
+assert.equal(built.frames[1].extend.custom_context, 'system context');
+assert.deepEqual(built.frames[1].extend.selected_pkb_files, [{ id: 'kb1' }]);
+
+const channel = buildTianxiNativeApiQueryFrame(
+  {
+    model: 'super',
+    instructions: 'context',
+    input: [{ role: 'user', content: [{ type: 'input_text', text: 'channel prompt' }] }],
+    metadata: { tianxi: { agent_id: 'super' } },
+  },
+  {
+    now: () => 456,
+    uuid: (() => {
+      const values = ['channel-session', 'channel-request', 'channel-query'];
+      return () => values.shift();
+    })(),
+  }
+);
+assert.equal(channel.channelName, DEFAULT_TIANXI_CHANNEL_NAME);
+assert.equal(channel.frame.type, 'query');
+assert.equal(channel.frame.header.session_id, 'channel-session');
+assert.equal(channel.frame.header.user_id, undefined);
+assert.equal(channel.frame.header.device_id, undefined);
+assert.equal(channel.frame.data.text, 'channel prompt');
+assert.equal(channel.frame.data.fromChannel, true);
+assert.equal(channel.frame.data.options.model, DEFAULT_TIANXI_QODER_MODEL);
+assert.equal(channel.frame.data.options.cwd, 'C:\\Users\\juhon\\Tianxi');
+assert.equal(channel.frame.data.options.permissionMode, 'bypassPermissions');
+assert.equal(channel.frame.extend.channel, 'agentCore');
+assert.equal(channel.frame.extend.gateway_channel, 'agentCore');
+assert.equal(channel.frame.extend.gatewayChannel, 'agentCore');
+assert.equal(channel.frame.extend.raw_query, 'channel prompt');
+assert.equal(channel.frame.extend.workMode, 'super');
+assert.equal(channel.frame.extend.custom_context, 'context');
+
+const parsed = parseTianxiAgentCoreNotify({
+  data: JSON.stringify({
+    type: 'task_output',
+    data: { content: 'ok' },
+  }),
+});
+assert.equal(parsed[0].type, 'task_output');
+assert.equal(parsed[0].data.content, 'ok');
+
+console.log('[tianxi-agentcore-protocol.test] ok');

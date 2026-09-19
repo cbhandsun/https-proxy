@@ -1149,6 +1149,30 @@ tr:hover td {
   font-weight: 700;
   margin-right: 4px;
 }
+.route-protocol-hint {
+  grid-column: 1 / 4;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card-highlight);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.route-protocol-hint.inferred {
+  border-color: rgba(59, 130, 246, 0.18);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.route-protocol-hint.explicit {
+  border-color: rgba(16, 185, 129, 0.2);
+  background: var(--success-soft);
+  color: var(--success);
+}
 .route-action-row {
   grid-column: 4 / -1;
   display: flex;

@@ -148,6 +148,7 @@ const {
   assert.strictEqual(entryLabel(null), 'claude');
   assert.strictEqual(entryLabel(chatEntry), 'openai-chat');
   assert.strictEqual(modelsFormatForEntry(claudeEntry), 'claude');
+  assert.strictEqual(modelsFormatForEntry(desktopEntry), 'claude');
   assert.strictEqual(modelsFormatForEntry(chatEntry), 'openai');
   assert.strictEqual(
     routesForEntry(chatEntry, false, { modelRoutes, claudeDesktopRoutes }),

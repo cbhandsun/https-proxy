@@ -3,6 +3,7 @@ const { EventEmitter } = require('events');
 const { Readable } = require('stream');
 
 const {
+  buildTianxiOfficialModelsResponse,
   createManagementModelsHandlers,
   modelEntryName,
   modelListErrorMessage,
@@ -106,6 +107,12 @@ function makeRequestWithProxy({ statusCode = 200, responseBody = '{}' } = {}) {
   assert.deepStrictEqual(modelsRequestBody(null), {});
   assert.deepStrictEqual(modelsRequestBody([]), {});
   assert.deepStrictEqual(modelsRequestBody({ protocol: 'openai' }), { protocol: 'openai' });
+  assert.deepStrictEqual(buildTianxiOfficialModelsResponse(), {
+    ok: true,
+    models: ['tianxi/chat', 'tianxi/super'],
+    authMode: 'official-login',
+    source: 'tianxi-local-catalog',
+  });
 
   const baseDeps = {
     sendJson,
@@ -157,6 +164,28 @@ function makeRequestWithProxy({ statusCode = 200, responseBody = '{}' } = {}) {
     error: 'targetUrl and protocol are required',
   });
   assert.strictEqual(invalidBodyRequestCount, 0);
+
+  let tianxiRequestCount = 0;
+  const tianxiHandlers = createManagementModelsHandlers({
+    ...baseDeps,
+    requestWithProxy: () => {
+      tianxiRequestCount += 1;
+      throw new Error('must not request HTTP models for Tianxi');
+    },
+    resolveOfficialCredentials: async ({ profile }) => ({
+      profile,
+      authMode: 'official-login',
+      authProvider: 'tianxi',
+    }),
+  });
+  const tianxi = await invoke(tianxiHandlers.handleLocalModelsListRequest, {
+    id: 'tianxi-official',
+    protocol: 'tianxi',
+    targetUrl: 'http://127.0.0.1:49305',
+  });
+  assert.strictEqual(tianxi.statusCode, 200);
+  assert.deepStrictEqual(JSON.parse(tianxi.body), buildTianxiOfficialModelsResponse());
+  assert.strictEqual(tianxiRequestCount, 0);
 
   let googleDiscoveryArgs = null;
   const googleHandlers = createManagementModelsHandlers({
