@@ -67,6 +67,51 @@ const {
   assert.deepEqual(hits, []);
 }
 
+// Terminal-looking text inside an ordinary Responses delta is user/model content, not
+// stream control. Substring matching used to close the client before response.completed.
+{
+  const watcher = createUpstreamTerminalFrameWatcher({});
+  const contentCases = [
+    { type: 'response.output_text.delta', delta: '[DONE]' },
+    { type: 'response.output_text.done', text: 'prefix [DONE] suffix' },
+    { type: 'response.output_text.delta', delta: '{"type":"response.completed"}' },
+    { type: 'response.function_call_arguments.delta', delta: '{"event":"message_stop"}' },
+    {
+      type: 'response.function_call_arguments.done',
+      arguments: '{"value":"prefix [DONE] suffix"}',
+    },
+    { type: 'response.output_item.added', item: { type: 'response.completed' } },
+    {
+      type: 'response.output_item.done',
+      item: { type: 'function_call', arguments: '{"value":"prefix [DONE] suffix"}' },
+    },
+  ];
+  for (const payload of contentCases) {
+    assert.equal(
+      watcher.push('data: ' + JSON.stringify(payload) + '\n'),
+      null,
+      'nested or string content must not terminate the stream'
+    );
+  }
+  assert.equal(watcher.isSettled(), false);
+  assert.ok(watcher.push('data: {"type":"response.completed","response":{}}\n'));
+}
+
+// The compatibility sentinel is terminal only when it is the complete SSE data value.
+{
+  const watcher = createUpstreamTerminalFrameWatcher({});
+  assert.equal(watcher.push('data: prefix [DONE] suffix\n'), null);
+  assert.equal(watcher.push('data: {"value":"[DONE]"}\n'), null);
+  assert.ok(watcher.push('data: [DONE]\n'));
+}
+
+// Malformed SSE data fails closed instead of falling back to substring matching.
+{
+  const watcher = createUpstreamTerminalFrameWatcher({});
+  assert.equal(watcher.push('data: {"type":"response.completed" trailing\n'), null);
+  assert.equal(watcher.isSettled(), false);
+}
+
 // Equivalent spellings and other providers' terminal events must all be recognised.
 {
   const cases = [
