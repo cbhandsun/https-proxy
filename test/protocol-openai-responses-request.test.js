@@ -12,6 +12,7 @@ const assert = require('node:assert/strict');
 const {
   createResponsesRequestConverter,
   inferToolNameFromArguments,
+  normalizeServiceTier,
 } = require('../lib/proxy/protocol-openai-responses-request');
 
 const { openAIChatToResponsesRequest } = createResponsesRequestConverter({
@@ -118,6 +119,7 @@ assert.strictEqual(
     model: 'm',
     messages: [],
     reasoning_effort: 'high',
+    service_tier: 'priority',
     tools: [
       { type: 'function', function: { name: 'Bash', parameters: { type: 'object' } } },
       { type: 'not_function' },
@@ -126,10 +128,26 @@ assert.strictEqual(
     tool_choice: { type: 'function', function: { name: 'Bash' } },
   });
   assert.deepStrictEqual(result.reasoning, { effort: 'high' });
+  assert.strictEqual(result.service_tier, 'priority');
   assert.strictEqual(result.tools.length, 1, 'only well-formed function tools survive');
   assert.strictEqual(result.tools[0].description, '');
   assert.deepStrictEqual(result.tool_choice, { type: 'function', name: 'Bash' });
 }
+
+assert.strictEqual(
+  openAIChatToResponsesRequest({ model: 'm', messages: [], service_tier: ' priority ' })
+    .service_tier,
+  'priority'
+);
+for (const badTier of ['', 'bad tier', '../priority', { id: 'priority' }, 'x'.repeat(65)]) {
+  assert.strictEqual(
+    openAIChatToResponsesRequest({ model: 'm', messages: [], service_tier: badTier }).service_tier,
+    undefined
+  );
+}
+assert.strictEqual(normalizeServiceTier('default'), 'default');
+assert.strictEqual(normalizeServiceTier('priority'), 'priority');
+assert.strictEqual(normalizeServiceTier('bad tier'), null);
 
 assert.strictEqual(
   openAIChatToResponsesRequest({ model: 'm', messages: [], tool_choice: 'auto' }).tool_choice,
