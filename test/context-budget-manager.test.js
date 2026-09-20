@@ -48,6 +48,9 @@ const {
   assert.equal(result.diagnostics.enabled, true);
   assert.ok(result.diagnostics.optimizedCount >= 2);
   assert.ok(result.diagnostics.estimatedInputTokens <= result.diagnostics.inputBudgetTokens);
+  assert.ok(result.diagnostics.contextCache);
+  assert.equal(result.diagnostics.contextCache.stablePrefixMessageCount, 1);
+  assert.match(result.diagnostics.contextCache.stablePrefixHash, /^[a-f0-9]{16}$/);
   assert.equal(result.messages[0].role, 'system');
   assert.equal(result.messages[result.messages.length - 1].content, 'current request');
   assert.ok(!JSON.stringify(result.diagnostics).includes('current request'));

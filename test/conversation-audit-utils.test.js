@@ -8,6 +8,7 @@ const {
   installConversationAuditResponseCapture,
   recordAuditUpstreamFailure,
   applyAuditUpstreamFailure,
+  sanitizeContextDiagnostics,
   populateAuditDataFromPrepared,
   extractPromptFromBuffer,
 } = require('../lib/proxy/conversation-audit-utils');
@@ -679,5 +680,52 @@ assert.strictEqual(recordAuditUpstreamFailure({}, { statusCode: 502 }), false);
 // applyAuditUpstreamFailure is a no-op without a recorded failure.
 assert.strictEqual(applyAuditUpstreamFailure(null), false);
 assert.strictEqual(applyAuditUpstreamFailure({ statusCode: 200 }), false);
+
+{
+  const diagnostics = sanitizeContextDiagnostics({
+    contextBudget: {
+      enabled: true,
+      policy: 'overflow-drop-oldest',
+      source: 'configured',
+      inputBudgetTokens: 1000,
+      estimatedBeforeTokens: 1200,
+      estimatedInputTokens: 900,
+      fixedInputTokens: 100,
+      overBudgetTokens: 0,
+      optimizedCount: 2,
+      droppedCount: 1,
+      savedChars: 5000,
+      prompt: 'private prompt must not appear',
+      contextCache: {
+        candidate: true,
+        stablePrefixHash: 'abc123',
+        stablePrefixTokens: 800,
+        dynamicTokens: 100,
+        privateText: 'secret',
+      },
+    },
+    providerCache: {
+      enabled: true,
+      policy: 'diagnostics-only',
+      provider: 'gemini',
+      strategy: 'cached-content-resource',
+      candidate: true,
+      applied: false,
+      reason: 'diagnostics-only',
+      stablePrefixHash: 'abc123',
+      stablePrefixTokens: 800,
+      prompt: 'private provider prompt must not appear',
+    },
+    repairedOrphanToolResults: 1,
+  });
+  assert.strictEqual(diagnostics.contextBudget.enabled, true);
+  assert.strictEqual(diagnostics.contextBudget.contextCache.stablePrefixHash, 'abc123');
+  assert.strictEqual(diagnostics.providerCache.provider, 'gemini');
+  assert.strictEqual(diagnostics.providerCache.strategy, 'cached-content-resource');
+  assert.strictEqual(diagnostics.repairedOrphanToolResults, 1);
+  assert.ok(!JSON.stringify(diagnostics).includes('private prompt'));
+  assert.ok(!JSON.stringify(diagnostics).includes('private provider prompt'));
+  assert.ok(!JSON.stringify(diagnostics).includes('secret'));
+}
 
 console.log('[conversation-audit-utils.test] ok');

@@ -91,6 +91,11 @@ function loadAuditHelpers() {
     'utf8'
   );
   vm.runInContext(stripEsmSyntax(modelSrc), sandbox);
+  const formatSrc = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'runtime', 'audit-format.js'),
+    'utf8'
+  );
+  vm.runInContext(stripEsmSyntax(formatSrc), sandbox);
   const src = fs.readFileSync(
     path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'audit.js'),
     'utf8'
@@ -327,6 +332,8 @@ const usageTable = helpers.createUsageTableElement(
       key: 'fallback',
       requests: 1,
       inputTokens: 2,
+      cachedInputTokens: 1,
+      cacheHitRate: 0.5,
       outputTokens: 3,
       cost: 0.01,
       estimatedRecords: '<script>alert(21)</script>',
@@ -342,6 +349,7 @@ assert.ok(
   usageTable.textContent.includes('<script>alert(21)</script> 条估算'),
   'usage table estimate is text content'
 );
+assert.ok(usageTable.textContent.includes('50% · 1'), 'usage table renders cache hit rate');
 assert.equal(usageTable.innerHTML, '', 'usage table does not use HTML strings');
 
 const recentTable = helpers.createUsageRecentElement([
@@ -349,7 +357,7 @@ const recentTable = helpers.createUsageRecentElement([
     time: '2026-06-12T00:00:00.000Z',
     profileName: 'profile<svg onload=alert(22)>',
     model: 'model<img src=x onerror=alert(23)>',
-    usage: { totalTokens: 123 },
+    usage: { totalTokens: 123, cachedInputTokens: 12, cacheHitRate: 0.25 },
     cost: { known: true, amount: 0.02 },
     statusCode: '<script>alert(24)</script>',
   },
@@ -362,6 +370,7 @@ assert.ok(
   recentTable.textContent.includes('model<img src=x onerror=alert(23)>'),
   'recent model is text content'
 );
+assert.ok(recentTable.textContent.includes('25%'), 'recent table renders cache hit percentage');
 assert.equal(recentTable.innerHTML, '', 'recent usage table does not use HTML strings');
 
 // The retry control must be disabled whenever a safe replay is impossible.
@@ -391,6 +400,42 @@ assert.equal(
   'retry is disabled when the request body was not captured'
 );
 assert.ok(retryButton.title.includes('未保留请求体'), 'retry tooltip explains the disabled reason');
+
+const contextHeader = helpers.createAuditDetailHeaderElement({
+  id: 'audit-context-1',
+  time: '2026-06-12T00:00:00.000Z',
+  protocol: 'gemini',
+  statusCode: 200,
+  elapsed: 120,
+  usage: { inputTokens: 100, cachedInputTokens: 40, cacheHitRate: 0.4, totalTokens: 120 },
+  contextDiagnostics: {
+    contextBudget: {
+      estimatedInputTokens: 90,
+      optimizedCount: 2,
+      droppedCount: 0,
+      contextCache: {
+        candidate: true,
+        stablePrefixTokens: 80,
+        stablePrefixHash: 'abc123',
+      },
+    },
+    providerCache: {
+      provider: 'gemini',
+      policy: 'diagnostics-only',
+      candidate: true,
+      applied: false,
+    },
+  },
+  request: { body: '', truncated: false },
+});
+assert.ok(contextHeader.textContent.includes('40%'), 'detail header renders cache hit rate');
+assert.ok(contextHeader.textContent.includes('上下文预算'), 'detail header renders context budget');
+assert.ok(contextHeader.textContent.includes('abc123'), 'detail header renders prefix hash only');
+assert.ok(contextHeader.textContent.includes('缓存策略'), 'detail header renders cache policy');
+assert.ok(
+  contextHeader.textContent.includes('diagnostics-only'),
+  'detail header renders cache mode'
+);
 
 const truncatedRetryHeader = helpers.createAuditDetailHeaderElement({
   id: 'audit-retry-2',

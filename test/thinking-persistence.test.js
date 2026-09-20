@@ -297,7 +297,10 @@ function runPersistenceTests() {
       assert.ok(fs.existsSync(cachePath), 'Cache file should be created');
       const raw = fs.readFileSync(cachePath, 'utf8');
       const loaded = JSON.parse(raw);
-      assert.deepStrictEqual(loaded, [[testId, testMessages]]);
+      assert.strictEqual(loaded[0][0], testId);
+      assert.deepStrictEqual(loaded[0][1].messages, testMessages);
+      assert.strictEqual(loaded[0][1].summary.messageCount, 1);
+      assert.match(loaded[0][1].summary.sourceHash, /^[a-f0-9]{16}$/);
       console.log('  [PASS] Responses history persisted to disk cache successfully');
 
       // 3. Load from disk simulation
