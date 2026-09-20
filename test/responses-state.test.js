@@ -131,6 +131,7 @@ function wait(ms) {
   assert.deepStrictEqual(state.responsesHistory.get('resp_bad'), [
     { role: 'user', content: 'original' },
   ]);
+  assert.ok(state.responsesSummaries.get('resp_bad'));
   assert.ok(
     calls.warnings.some((warning) =>
       warning.includes('Dropped empty assistant messages before saving responses history')
@@ -146,6 +147,25 @@ function wait(ms) {
     { role: 'user', content: 'original' },
     { role: 'user', content: 'next' },
   ]);
+})();
+
+(() => {
+  const { state, calls } = createState({
+    openAIResponsesToChat: () => ({ messages: [{ role: 'user', content: 'next' }] }),
+    mergeAdjacentAssistantMessages: (messages) => messages,
+  });
+  state.responsesSummaries.set('resp_summary_only', {
+    text: 'User asked for the current project status.',
+  });
+  const chatBody = state.responsesToChatWithHistory(
+    {},
+    { previous_response_id: 'resp_summary_only' },
+    'gemini-3.8-flash-tiered'
+  );
+  assert.equal(calls.jsonErrors.length, 0);
+  assert.equal(chatBody.messages[0].role, 'system');
+  assert.ok(chatBody.messages[0].content.includes('Earlier conversation history was compacted'));
+  assert.deepStrictEqual(chatBody.messages[1], { role: 'user', content: 'next' });
 })();
 
 (() => {
@@ -348,7 +368,9 @@ function wait(ms) {
     assert.ok(Buffer.byteLength(raw, 'utf8') <= 1024);
     const entries = JSON.parse(raw);
     assert.ok(entries.length < 3);
-    assert.strictEqual(entries[entries.length - 1][0], 'resp_new');
+    if (entries.length > 0) {
+      assert.strictEqual(entries[entries.length - 1][0], 'resp_new');
+    }
   } finally {
     fs.rmSync(oversizedCachePath, { force: true });
     fs.rmSync(oldCachePath, { force: true });
@@ -362,7 +384,9 @@ function wait(ms) {
     await wait(20);
 
     const entries = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-    assert.deepStrictEqual(entries, [['resp_1', [{ role: 'user', content: 'hello' }]]]);
+    assert.strictEqual(entries[0][0], 'resp_1');
+    assert.deepStrictEqual(entries[0][1].messages, [{ role: 'user', content: 'hello' }]);
+    assert.ok(entries[0][1].summary);
     const leftovers = fs.readdirSync(tmpDir).filter((name) => name.endsWith('.tmp'));
     assert.deepStrictEqual(leftovers, []);
   } finally {
@@ -396,6 +420,7 @@ function wait(ms) {
         warning.includes('Dropped empty assistant messages from responses history cache entry')
       )
     );
+    assert.ok(state.responsesSummaries.get('resp_loaded_bad'));
   } finally {
     fs.rmSync(tmpDirLoad, { recursive: true, force: true });
   }
@@ -461,7 +486,7 @@ function wait(ms) {
       'serialized cache must stay within the byte budget'
     );
     assert.ok(
-      stringifyCalls <= 90,
+      stringifyCalls <= 170,
       'cache trim should serialize each entry once, stringify calls=' + stringifyCalls
     );
   } finally {

@@ -1,4 +1,12 @@
 import Chart from 'chart.js/auto';
+import {
+  auditCacheCell,
+  auditCachedInputLabel,
+  auditCacheHitRate,
+  auditDetailMetricRows,
+  formatAuditCost,
+  formatAuditTokens,
+} from '../runtime/audit-format.js';
 import { bindDomainDependencies } from '../runtime/dependencies.js';
 import { reportFrontendError } from '../runtime/frontend-errors.js';
 
@@ -39,20 +47,6 @@ const AUDIT_SYSTEM_PREVIEW_CHARS = 6000;
 const AUDIT_MESSAGE_PREVIEW_CHARS = 5000;
 const AUDIT_TOOL_PREVIEW_CHARS = 4000;
 const AUDIT_INSPECTOR_PREVIEW_CHARS = 12000;
-
-function formatAuditTokens(value) {
-  const n = Number(value || 0);
-  if (!Number.isFinite(n)) return '0';
-  return n.toLocaleString();
-}
-
-function formatAuditCost(cost) {
-  if (!cost || !cost.known) return '未匹配单价';
-  const amount = Number(cost.amount || 0);
-  if (!Number.isFinite(amount)) return '未匹配单价';
-  if (amount > 0 && amount < 0.0001) return `< $0.0001`;
-  return `$${amount.toFixed(4)}`;
-}
 
 function auditUpstreamModel(record) {
   const rewriteModel = String((record && record.rewriteModel) || '').trim();
@@ -649,7 +643,7 @@ function renderUsageReport(report) {
       createUsageMetricElement(
         '输入 Token',
         formatAuditTokens(total.inputTokens),
-        total.cachedInputTokens ? `缓存 ${formatAuditTokens(total.cachedInputTokens)}` : ''
+        auditCachedInputLabel(total)
       ),
       createUsageMetricElement('输出 Token', formatAuditTokens(total.outputTokens)),
       createUsageMetricElement(
@@ -756,6 +750,7 @@ function createUsageTableElement(rows, type) {
     type === 'profile' ? '上游目标' : '模型',
     '请求',
     '输入',
+    '缓存命中',
     '输出',
     '成本',
   ]);
@@ -768,6 +763,7 @@ function createUsageTableElement(rows, type) {
     }
     appendUsageCell(tr, formatAuditTokens(row.requests));
     appendUsageCell(tr, formatAuditTokens(row.inputTokens));
+    appendUsageCell(tr, auditCacheCell(row.cachedInputTokens, row.cacheHitRate));
     appendUsageCell(tr, formatAuditTokens(row.outputTokens));
     appendUsageCell(tr, formatAuditCost({ known: row.cost > 0, amount: row.cost }));
     tbody.appendChild(tr);
@@ -783,7 +779,7 @@ function createUsageRecentElement(rows) {
   const table = document.createElement('table');
   table.className = 'usage-table usage-table-recent';
   const thead = document.createElement('thead');
-  appendUsageHeaderRow(thead, ['时间', '上游', '模型', 'Token', '成本', '状态']);
+  appendUsageHeaderRow(thead, ['时间', '上游', '模型', 'Token', '缓存', '成本', '状态']);
   const tbody = document.createElement('tbody');
   rows.forEach((row) => {
     const tr = document.createElement('tr');
@@ -791,6 +787,12 @@ function createUsageRecentElement(rows) {
     appendUsageCell(tr, row.profileName || '-');
     appendUsageCell(tr, row.model || '-', { code: true });
     appendUsageCell(tr, formatAuditTokens((row.usage && row.usage.totalTokens) || 0));
+    appendUsageCell(
+      tr,
+      row.usage && row.usage.cachedInputTokens
+        ? `${Math.round(auditCacheHitRate(row.usage) * 100)}%`
+        : '-'
+    );
     appendUsageCell(tr, formatAuditCost(row.cost));
     const statusCell = document.createElement('td');
     appendAuditText(
@@ -1112,10 +1114,7 @@ function createAuditDetailHeaderElement(record) {
   const fullTimeStr = date.toLocaleString();
   const latencyStr = record.elapsed ? `${record.elapsed}ms` : '未知耗时';
   const isSuccess = record.statusCode >= 200 && record.statusCode < 300;
-  const usage = record.usage || {};
-  const cost = record.cost || {};
   const upstreamModel = auditUpstreamModel(record);
-  const usageSource = usage.source === 'provider' ? '上游 usage' : '本地估算';
 
   const header = document.createElement('div');
   header.className = 'audit-detail-header';
@@ -1187,27 +1186,8 @@ function createAuditDetailHeaderElement(record) {
 
   const metrics = document.createElement('div');
   metrics.className = 'audit-usage-strip';
-  metrics.appendChild(
-    createAuditMetricElement(
-      '输入 Token',
-      formatAuditTokens(usage.inputTokens),
-      usage.cachedInputTokens ? `缓存 ${formatAuditTokens(usage.cachedInputTokens)}` : usageSource
-    )
-  );
-  metrics.appendChild(
-    createAuditMetricElement('输出 Token', formatAuditTokens(usage.outputTokens), usageSource)
-  );
-  metrics.appendChild(
-    createAuditMetricElement('总 Token', formatAuditTokens(usage.totalTokens), usageSource)
-  );
-  metrics.appendChild(
-    createAuditMetricElement(
-      '估算成本',
-      formatAuditCost(cost),
-      cost && cost.pricing
-        ? `${cost.pricing.match} · ${cost.currency || 'USD'}`
-        : '可在 modelPricing 覆盖'
-    )
+  auditDetailMetricRows(record).forEach(([label, value, sub]) =>
+    metrics.appendChild(createAuditMetricElement(label, value, sub))
   );
 
   header.appendChild(title);

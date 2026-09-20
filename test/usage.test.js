@@ -236,10 +236,12 @@ const report = buildUsageReport(
 assert.strictEqual(report.total.requests, 3);
 assert.strictEqual(report.total.successes, 2);
 assert.strictEqual(report.total.errors, 1);
+assert.strictEqual(report.total.providerRecords, 1);
 assert.ok(report.byProfile.some((item) => item.key === 'openai-main'));
 assert.ok(report.total.inputTokens >= 1000);
 assert.strictEqual(report.byProfile.find((item) => item.key === 'bad-usage').inputTokens, 0);
 assert.ok(report.total.cost > 0);
+assert.ok(report.recent[0].usageCalibration);
 
 // Regression: the captured request body is truncated for storage (120000 chars by
 // default), so estimating from it reported 30000 input tokens for a live 2.6 MB

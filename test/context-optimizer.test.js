@@ -19,6 +19,26 @@ const {
   assert.ok(truncated.startsWith('A'.repeat(100)));
   assert.ok(truncated.endsWith('B'.repeat(100)));
   assert.ok(truncated.includes('代理已折叠历史执行回显'));
+
+  const jsonOutput = JSON.stringify({
+    ok: true,
+    rows: Array.from({ length: 20 }, (_, index) => ({ index, value: 'x'.repeat(40) })),
+  });
+  const jsonTruncated = truncateToolOutputText(jsonOutput, 260, 100, 100);
+  assert.ok(jsonTruncated.includes('historical JSON tool output compacted'));
+  assert.ok(jsonTruncated.includes('"keys"'));
+  assert.ok(jsonTruncated.length <= 260);
+
+  const errorOutput = [
+    'line '.repeat(40),
+    'Error: command failed',
+    '    at main.js:12:5',
+    'noise '.repeat(80),
+  ].join('\n');
+  const errorTruncated = truncateToolOutputText(errorOutput, 220, 100, 100);
+  assert.ok(errorTruncated.includes('historical tool error summary'));
+  assert.ok(errorTruncated.includes('Error: command failed'));
+  assert.ok(errorTruncated.length <= 220);
 }
 
 // 2. isToolResponseMessage tests

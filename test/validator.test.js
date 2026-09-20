@@ -55,6 +55,8 @@ const {
       contextKeepRecentTurns: 2,
       maxHistoricalToolChars: 800,
       maxHistoricalMessageChars: 4000,
+      contextCacheCandidateMinTokens: 1024,
+      providerCacheHintsPolicy: 'diagnostics-only',
       maxSseBufferChars: 1024 * 1024,
     },
     mcpHub: { servers: [{ id: 'filesystem', url: 'http://127.0.0.1:3001' }], routing: [] },
@@ -135,6 +137,8 @@ const {
       contextKeepRecentTurns: 0,
       maxHistoricalToolChars: 99,
       maxHistoricalMessageChars: 99,
+      contextCacheCandidateMinTokens: Number.POSITIVE_INFINITY,
+      providerCacheHintsPolicy: 'write-everything',
       maxSseBufferChars: 8 * 1024 * 1024,
     },
   });
@@ -153,6 +157,7 @@ const {
     'appSettings.verifyUpstreamTls must be a boolean',
     'protocolOptions.thinkingPolicy is unsupported',
     'protocolOptions.contextWindowPolicy is unsupported',
+    'protocolOptions.providerCacheHintsPolicy is unsupported',
     'protocolOptions.maxContextTokens',
     'protocolOptions.clientContextTokens',
     'protocolOptions.outputReserveTokens',
@@ -162,6 +167,7 @@ const {
     'protocolOptions.contextKeepRecentTurns',
     'protocolOptions.maxHistoricalToolChars',
     'protocolOptions.maxHistoricalMessageChars',
+    'protocolOptions.contextCacheCandidateMinTokens',
     'protocolOptions.maxSseBufferChars',
   ]) {
     assert.ok(

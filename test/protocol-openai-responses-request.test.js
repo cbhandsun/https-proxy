@@ -20,6 +20,16 @@ const { openAIChatToResponsesRequest } = createResponsesRequestConverter({
   chatToolContentToResponsesOutput: (content) =>
     typeof content === 'string' ? content : JSON.stringify(content),
 });
+const { openAIChatToResponsesRequest: openAIChatToResponsesRequestWithCacheKey } =
+  createResponsesRequestConverter({
+    fallbackId: (prefix) => prefix + '_test',
+    chatToolContentToResponsesOutput: (content) =>
+      typeof content === 'string' ? content : JSON.stringify(content),
+    protocolOptions: {
+      providerCacheHintsPolicy: 'experimental-openai-prompt-cache-key',
+      contextCacheCandidateMinTokens: 1,
+    },
+  });
 
 // --- happy path ---
 {
@@ -37,6 +47,22 @@ const { openAIChatToResponsesRequest } = createResponsesRequestConverter({
   assert.deepStrictEqual(result.input, [
     { type: 'message', role: 'user', content: [{ type: 'input_text', text: 'hello' }] },
   ]);
+  assert.equal(result.prompt_cache_key, undefined);
+  assert.equal(result.__hpmDiagnostics.providerCache.provider, 'openai');
+  assert.equal(result.__hpmDiagnostics.providerCache.applied, false);
+  assert.ok(!JSON.stringify(result.__hpmDiagnostics).includes('be terse'));
+}
+
+{
+  const result = openAIChatToResponsesRequestWithCacheKey({
+    model: 'gpt-5',
+    messages: [
+      { role: 'system', content: 'stable system prefix' },
+      { role: 'user', content: 'hello' },
+    ],
+  });
+  assert.match(result.prompt_cache_key, /^[a-f0-9]{16}$/);
+  assert.equal(result.__hpmDiagnostics.providerCache.applied, true);
 }
 
 // --- default instructions when no system message ---
