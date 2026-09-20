@@ -179,7 +179,45 @@ assert.ok(routeKeys.includes('workbuddy/glm-5.1'));
   assert.strictEqual(multiOutput.messages[0].content[1].type, 'image_url');
 }
 
-// 11. Test live credentials if local file exists
+// 11. WorkBuddy context diagnostics stay local and are not serialized upstream
+{
+  const marker = 'private-user-marker';
+  const input = {
+    model: 'deepseek-v4.1-flash',
+    messages: [
+      { role: 'system', content: 'stable policy' },
+      { role: 'user', content: 'stable request ' + marker },
+      { role: 'assistant', content: 'stable answer' },
+      { role: 'user', content: 'current request ' + marker },
+    ],
+  };
+
+  const output = sanitizeWorkBuddyChatBody(JSON.parse(JSON.stringify(input)), {
+    targetModel: 'deepseek-v4.1-flash',
+  });
+
+  assert.ok(output.__hpmDiagnostics, 'diagnostics should be available to local audit');
+  assert.ok(output.__hpmDiagnostics.contextBudget, 'context budget diagnostics should be present');
+  assert.ok(
+    output.__hpmDiagnostics.contextBudget.contextCache,
+    'context cache diagnostics should be present'
+  );
+  assert.strictEqual(
+    Object.prototype.propertyIsEnumerable.call(output, '__hpmDiagnostics'),
+    false,
+    'diagnostics must not be serialized to upstream JSON'
+  );
+  assert.ok(
+    !JSON.stringify(output.__hpmDiagnostics).includes(marker),
+    'diagnostics must not include prompt content'
+  );
+  assert.ok(
+    !JSON.stringify(output).includes('__hpmDiagnostics'),
+    'upstream JSON must not contain diagnostics'
+  );
+}
+
+// 12. Test live credentials if local file exists
 const authPath = getWorkBuddyAuthInfoPath();
 if (fs.existsSync(authPath)) {
   const authInfo = readWorkBuddyAuthInfo(authPath);
