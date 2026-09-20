@@ -300,6 +300,7 @@ function createAuditCaptureDeps(records, usageLogs) {
     model: 'gpt-target',
     inputTokens: 3,
     outputTokens: 4,
+    cachedInputTokens: 0,
   });
   assert.strictEqual(records[0].timings.upstreamHeadersMs, 1);
   assert.strictEqual(records[0].timings.firstUpstreamChunkMs, 2);
@@ -372,6 +373,7 @@ function createAuditCaptureDeps(records, usageLogs) {
     model: 'gpt-target',
     inputTokens: 1,
     outputTokens: 2,
+    cachedInputTokens: 0,
   });
 }
 
@@ -413,6 +415,48 @@ function createAuditCaptureDeps(records, usageLogs) {
     model: 'gpt-5.5',
     inputTokens: 222222,
     outputTokens: 33,
+    cachedInputTokens: 0,
+  });
+}
+
+// Regression: provider cache-hit tokens must flow into the lightweight usage
+// log, otherwise usage-stats summaries hide large Gemini/Responses cache hits.
+{
+  const records = [];
+  const usageLogs = [];
+  const res = createWritableResponse();
+  res.__auditData = {
+    startTime: Date.now(),
+    profileId: 'gemini-official',
+    originalModel: 'gemini-client',
+    rewriteModel: 'gemini-3.8-flash-tiered',
+    response: { role: 'assistant', content: '', tool_calls: [] },
+  };
+  installConversationAuditResponseCapture(res, createAuditCaptureDeps(records, usageLogs));
+  res.writeHead(200, { 'content-type': 'text/event-stream' });
+  res.write(
+    [
+      'data: {"type":"response.output_text.delta","delta":"hi"}',
+      '',
+      'data: {"type":"response.completed","response":{"usage":{"input_tokens":140000,"output_tokens":25,"cached_input_tokens":130000,"total_tokens":140025}}}',
+      '',
+    ].join('\n')
+  );
+  res.end('data: [DONE]\n\n');
+
+  assert.deepStrictEqual(records[0].usage, {
+    inputTokens: 140000,
+    outputTokens: 25,
+    cachedInputTokens: 130000,
+    totalTokens: 140025,
+    source: 'provider',
+  });
+  assert.deepStrictEqual(usageLogs[0], {
+    profileId: 'gemini-official',
+    model: 'gemini-3.8-flash-tiered',
+    inputTokens: 140000,
+    outputTokens: 25,
+    cachedInputTokens: 130000,
   });
 }
 
@@ -470,6 +514,7 @@ function createAuditCaptureDeps(records, usageLogs) {
     model: 'gpt-5.5',
     inputTokens: 231502,
     outputTokens: 129,
+    cachedInputTokens: 0,
   });
 }
 
@@ -539,6 +584,7 @@ function createAuditCaptureDeps(records, usageLogs) {
     model: 'gpt-5.5',
     inputTokens: 98765,
     outputTokens: 432,
+    cachedInputTokens: 0,
   });
 }
 

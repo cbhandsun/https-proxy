@@ -1581,10 +1581,83 @@ function createChatStreamState(overrides = {}) {
   );
   assert.strictEqual(toolCallDeltas.length, 1);
   assert.ok(toolCallDeltas[0].includes('node test.js'));
-}
 
-console.log('[responses-protocol.test] ok');
-process.exit(0);
+  const preambleEvents = [];
+  const preambleClientRes = {
+    writeHead() {},
+    write(chunk) {
+      preambleEvents.push(String(chunk));
+    },
+    end() {},
+  };
+  const preambleResponseState = createResponsesStreamState({ model: targetModel });
+  const preambleChatRes = {
+    write: (chunk) =>
+      processOpenAIChatSseChunkToResponses(preambleClientRes, String(chunk), preambleResponseState),
+  };
+  const preambleChatState = {
+    id: 'chatcmpl_preamble',
+    created: 12345,
+    model: targetModel,
+    buffer: '',
+    pendingToolCall: null,
+    toolCallIndex: 0,
+    hasToolCalls: false,
+    stopReason: 'end_turn',
+    done: false,
+    thinkingPolicy: 'passthrough',
+  };
+  const preambleClaudeBridge = {
+    write: (chunk) =>
+      processClaudeSseChunkToOpenAI(preambleChatRes, String(chunk), preambleChatState),
+  };
+  const preambleGeminiState = {
+    textIndex: -1,
+    textOpen: false,
+    stopReason: 'end_turn',
+    usage: { input_tokens: 0, output_tokens: 0 },
+    buffer: '',
+    tools: [{ name: 'exec', input_schema: { type: 'object', required: ['input'] } }],
+    pendingToolCall: null,
+    responsesToolPreambleText: '我先看一下。',
+  };
+
+  claudeStream.streamGeminiChunkToClaude(
+    preambleClaudeBridge,
+    {
+      candidates: [
+        {
+          content: {
+            parts: [{ functionCall: { name: 'exec', args: { input: 'return 1;' } } }],
+          },
+          finishReason: 'STOP',
+        },
+      ],
+    },
+    preambleGeminiState,
+    targetModel,
+    preambleGeminiState.tools
+  );
+
+  claudeStream.flushPendingGeminiToolCall(
+    preambleClaudeBridge,
+    preambleGeminiState,
+    preambleGeminiState.tools
+  );
+  flushClaudeSseToOpenAI(preambleChatRes, preambleChatState);
+  flushOpenAIChatSseToResponses(preambleClientRes, preambleResponseState);
+
+  const preambleOutput = preambleEvents.join('');
+  const preambleIndex = preambleOutput.indexOf('response.output_text.delta');
+  const toolCallIndex = preambleOutput.indexOf('"type":"function_call"');
+  assert.ok(
+    preambleOutput.includes('我先看一下。'),
+    'Responses stream should expose fallback text'
+  );
+  assert.ok(preambleIndex >= 0, 'fallback text should be emitted as Responses text delta');
+  assert.ok(toolCallIndex >= 0, 'tool call should still be emitted');
+  assert.ok(preambleIndex < toolCallIndex, 'fallback text must precede the tool call item');
+}
 
 // --- Regression: Responses reasoning summary shapes (array form was lost) ---
 {
@@ -1752,3 +1825,6 @@ for (const [finishReason, incompleteReason] of [
   assert.match(output, /event: response\.incomplete/);
   assert.ok(output.includes(`"reason":"${incompleteReason}"`));
 }
+
+console.log('[responses-protocol.test] ok');
+process.exit(0);
