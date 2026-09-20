@@ -1443,6 +1443,7 @@ function createChatStreamState(overrides = {}) {
 // Test 11: Gemini streaming thought: true converted through Claude SSE bridge to Responses reasoning delta
 {
   const { createClaudeStream } = require('../lib/proxy/stream-claude');
+  const { finishGeminiClaudeStream } = require('../lib/proxy/handlers/route-gemini-utils');
   const claudeStream = createClaudeStream({
     cleanToolArgs: (name, args) => args,
     stripEmptyOptionalToolArgs: (a) => a,
@@ -1473,7 +1474,12 @@ function createChatStreamState(overrides = {}) {
     geminiClaudeToolId: (i) => 'tool_' + i,
     rememberGeminiToolCall: () => {},
     claudeStopReasonFromGemini: (r) => r,
-    geminiUsageToClaude: () => ({ input_tokens: 0, output_tokens: 0 }),
+    geminiUsageToClaude: (usage) => ({
+      input_tokens: usage && usage.promptTokenCount ? usage.promptTokenCount : 0,
+      output_tokens: usage && usage.candidatesTokenCount ? usage.candidatesTokenCount : 0,
+      cached_input_tokens:
+        usage && usage.cachedContentTokenCount ? usage.cachedContentTokenCount : 0,
+    }),
     fallbackId: (p) => p + '_mock',
     protocolOptions: { thinkingPolicy: 'passthrough' },
   });
@@ -1633,17 +1639,26 @@ function createChatStreamState(overrides = {}) {
           finishReason: 'STOP',
         },
       ],
+      usageMetadata: {
+        promptTokenCount: 120,
+        candidatesTokenCount: 8,
+        cachedContentTokenCount: 99,
+      },
     },
     preambleGeminiState,
     targetModel,
     preambleGeminiState.tools
   );
 
-  claudeStream.flushPendingGeminiToolCall(
-    preambleClaudeBridge,
-    preambleGeminiState,
-    preambleGeminiState.tools
-  );
+  finishGeminiClaudeStream({
+    sink: preambleClaudeBridge,
+    state: preambleGeminiState,
+    targetModel,
+    processGeminiSseEvent: claudeStream.processGeminiSseEvent,
+    flushPendingGeminiToolCall: claudeStream.flushPendingGeminiToolCall,
+    writeClaudeSseEvent: claudeStream.writeClaudeSseEvent,
+    geminiClaudeStopReason: claudeStream.geminiClaudeStopReason,
+  });
   flushClaudeSseToOpenAI(preambleChatRes, preambleChatState);
   flushOpenAIChatSseToResponses(preambleClientRes, preambleResponseState);
 
@@ -1657,6 +1672,10 @@ function createChatStreamState(overrides = {}) {
   assert.ok(preambleIndex >= 0, 'fallback text should be emitted as Responses text delta');
   assert.ok(toolCallIndex >= 0, 'tool call should still be emitted');
   assert.ok(preambleIndex < toolCallIndex, 'fallback text must precede the tool call item');
+  assert.ok(
+    preambleOutput.includes('"cached_input_tokens":99'),
+    'Gemini cached input usage must survive Gemini -> Claude -> Chat -> Responses streaming'
+  );
 }
 
 // --- Regression: Responses reasoning summary shapes (array form was lost) ---
