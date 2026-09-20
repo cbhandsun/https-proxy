@@ -398,6 +398,8 @@
                       <option value="success">成功 (2xx)</option>
                       <option value="error">异常 (非 2xx)</option>
                       <option value="slow">慢请求 (≥5s)</option>
+                      <option value="context-attention">上下文异常/裁剪</option>
+                      <option value="context-missing">缺少上下文诊断</option>
                     </select>
                   </div>
                   <div class="audit-sidebar-filter-row">
@@ -446,6 +448,7 @@
                     <option value="30d">最近 30 天</option>
                   </select>
                   <button id="refreshUsageReport" class="light">刷新</button>
+                  <button id="exportUsageReportCsv" class="light">导出 CSV</button>
                 </div>
               </div>
               <div id="usageReportSummary" class="usage-summary-grid"></div>

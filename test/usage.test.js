@@ -203,6 +203,27 @@ const report = buildUsageReport(
       protocol: 'openai',
       statusCode: 200,
       usage: providerUsage,
+      contextDiagnostics: {
+        contextBudget: {
+          optimizedCount: 2,
+          droppedCount: 1,
+          overBudgetTokens: 0,
+          savedChars: 3000,
+          prompt: 'private prompt must not appear',
+          contextCache: {
+            candidate: true,
+            stablePrefixHash: 'prefix-hash-only',
+            privateText: 'secret context must not appear',
+          },
+        },
+        providerCache: {
+          enabled: true,
+          candidate: true,
+          applied: false,
+          provider: 'openai',
+          prompt: 'private provider prompt must not appear',
+        },
+      },
     },
     {
       id: 'req-2',
@@ -228,6 +249,18 @@ const report = buildUsageReport(
         totalTokens: 999999999999,
       },
       cost: { known: true, amount: Infinity },
+      contextDiagnostics: {
+        contextBudget: {
+          overBudgetTokens: 12,
+          savedChars: Infinity,
+          contextCache: { candidate: false },
+        },
+        providerCache: {
+          enabled: true,
+          candidate: true,
+          applied: true,
+        },
+      },
     },
   ],
   {}
@@ -242,6 +275,29 @@ assert.ok(report.total.inputTokens >= 1000);
 assert.strictEqual(report.byProfile.find((item) => item.key === 'bad-usage').inputTokens, 0);
 assert.ok(report.total.cost > 0);
 assert.ok(report.recent[0].usageCalibration);
+assert.deepStrictEqual(report.total.context, {
+  records: 2,
+  missingDiagnostics: 1,
+  attentionRecords: 2,
+  overBudgetRecords: 1,
+  optimizedRecords: 1,
+  droppedRecords: 1,
+  optimizedMessages: 2,
+  droppedMessages: 1,
+  overBudgetTokens: 12,
+  savedChars: 3000,
+  stablePrefixCandidates: 1,
+  providerCacheEnabled: 2,
+  providerCacheCandidates: 2,
+  providerCacheApplied: 1,
+});
+assert.strictEqual(
+  report.byProfile.find((item) => item.key === 'openai-main').context.missingDiagnostics,
+  1
+);
+assert.strictEqual(report.byModel.find((item) => item.key === 'gpt-5-mini').context.records, 2);
+assert.ok(!JSON.stringify(report.total.context).includes('private prompt'));
+assert.ok(!JSON.stringify(report.total.context).includes('secret context'));
 
 // Regression: the captured request body is truncated for storage (120000 chars by
 // default), so estimating from it reported 30000 input tokens for a live 2.6 MB

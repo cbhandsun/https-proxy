@@ -96,6 +96,11 @@ function loadAuditHelpers() {
     'utf8'
   );
   vm.runInContext(stripEsmSyntax(formatSrc), sandbox);
+  const usageSrc = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'runtime', 'audit-usage-report.js'),
+    'utf8'
+  );
+  vm.runInContext(stripEsmSyntax(usageSrc), sandbox);
   const src = fs.readFileSync(
     path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'audit.js'),
     'utf8'
@@ -106,6 +111,10 @@ function loadAuditHelpers() {
 }
 
 const { helpers, src } = loadAuditHelpers();
+const indexHtml = fs.readFileSync(
+  path.join(__dirname, '..', '..', 'tauri-ui', 'index.html'),
+  'utf8'
+);
 assert.equal(
   typeof helpers.safeAuditCodeLanguage,
   'function',
@@ -174,6 +183,18 @@ assert.ok(
 assert.ok(
   /clearBtn\.disabled = true;[\s\S]*clearBtn\.disabled = false;/.test(src),
   'clear audit button is disabled while the clear request is in flight'
+);
+assert.ok(
+  indexHtml.includes('id="exportUsageReportCsv"'),
+  'usage report view exposes a CSV export button'
+);
+assert.ok(
+  /exportBtn\.onclick = \(\) => exportUsageReportCsv\(\);/.test(src),
+  'usage report CSV export button is bound'
+);
+assert.ok(
+  src.includes("'buildUsageReportExportCsv'"),
+  'usage report CSV export dependency is required'
 );
 
 assert.equal(helpers.safeAuditCodeLanguage('JavaScript'), 'javascript');
@@ -258,7 +279,31 @@ assert.ok(
   slowItem.textContent.includes('偏慢'),
   'slow rows are labelled so the filter is explainable'
 );
+assert.ok(slowItem.textContent.includes('缺诊断'), 'rows without diagnostics are labelled');
 assert.equal(slowItem.innerHTML, '', 'slow label is rendered as text');
+
+const contextAttentionItem = helpers.createAuditHistoryItemElement(
+  {
+    time: '2026-06-12T00:00:00.000Z',
+    protocol: 'gemini',
+    statusCode: 200,
+    elapsed: 120,
+    messages: [{ role: 'user', content: 'context request' }],
+    contextDiagnostics: {
+      contextBudget: {
+        estimatedInputTokens: 90,
+        droppedCount: 1,
+      },
+    },
+  },
+  9,
+  'audit-9',
+  false
+);
+assert.ok(
+  contextAttentionItem.textContent.includes('上下文注意'),
+  'rows with context budget changes are labelled'
+);
 
 const notice = helpers.createAuditNoticeElement('<script>alert(5)</script>', {
   danger: true,
@@ -273,6 +318,9 @@ assert.equal(notice.innerHTML, '', 'notice does not use HTML strings');
 const inspector = helpers.createAuditInspectorElement({
   method: 'POST',
   path: '/v1/messages?<img src=x onerror=alert(6)>',
+  contextDiagnostics: {
+    contextBudget: { policy: '<script>alert(30)</script>', droppedCount: 1 },
+  },
   request: {
     headers: { authorization: 'Bearer secret' },
     body: { prompt: '<script>alert(7)</script>' },
@@ -284,6 +332,10 @@ const inspector = helpers.createAuditInspectorElement({
 assert.ok(
   inspector.textContent.includes('<script>alert(7)</script>'),
   'inspector JSON is text content'
+);
+assert.ok(
+  inspector.textContent.includes('<script>alert(30)</script>'),
+  'diagnostics inspector tab renders diagnostics as text content'
 );
 assert.equal(inspector.innerHTML, '', 'inspector container does not use HTML strings');
 
@@ -325,6 +377,29 @@ assert.ok(
 );
 assert.equal(usageMetric.innerHTML, '', 'usage metric does not use HTML strings');
 
+const usageSummary = helpers.createUsageSummaryElements({
+  requests: 3,
+  successes: 2,
+  errors: 1,
+  inputTokens: 100,
+  cachedInputTokens: 40,
+  cacheHitRate: 0.4,
+  outputTokens: 20,
+  cost: 0.03,
+  context: {
+    attentionRecords: 2,
+    missingDiagnostics: 1,
+    optimizedMessages: 4,
+    droppedMessages: 1,
+    providerCacheApplied: 1,
+    providerCacheCandidates: 2,
+  },
+});
+assert.equal(usageSummary.length, 5, 'usage summary renders context metric');
+assert.ok(usageSummary[4].textContent.includes('上下文'), 'context metric has a label');
+assert.ok(usageSummary[4].textContent.includes('2 注意'), 'context metric shows attention count');
+assert.ok(usageSummary[4].textContent.includes('Provider Cache 1/2'));
+
 const usageTable = helpers.createUsageTableElement(
   [
     {
@@ -337,6 +412,7 @@ const usageTable = helpers.createUsageTableElement(
       outputTokens: 3,
       cost: 0.01,
       estimatedRecords: '<script>alert(21)</script>',
+      context: { missingDiagnostics: 1 },
     },
   ],
   'profile'
@@ -350,6 +426,7 @@ assert.ok(
   'usage table estimate is text content'
 );
 assert.ok(usageTable.textContent.includes('50% · 1'), 'usage table renders cache hit rate');
+assert.ok(usageTable.textContent.includes('1 缺诊断'), 'usage table renders context state');
 assert.equal(usageTable.innerHTML, '', 'usage table does not use HTML strings');
 
 const recentTable = helpers.createUsageRecentElement([

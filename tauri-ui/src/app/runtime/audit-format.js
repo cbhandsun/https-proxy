@@ -42,6 +42,100 @@ export function auditProviderCacheState(providerCache) {
   return providerCache.candidate ? '可复用' : '未应用';
 }
 
+export function auditContextHealthSummary(record) {
+  const diagnostics = record && record.contextDiagnostics;
+  const contextBudget = diagnostics && diagnostics.contextBudget;
+  if (!contextBudget) {
+    return {
+      state: 'missing',
+      title: '未记录上下文诊断',
+      detail: '该请求没有可用于排查的上下文预算数据',
+      severity: 'warn',
+      badges: ['no-context-diagnostics'],
+    };
+  }
+
+  const providerCache = diagnostics.providerCache;
+  const contextCache = contextBudget.contextCache;
+  const droppedCount = Number(contextBudget.droppedCount || 0);
+  const optimizedCount = Number(contextBudget.optimizedCount || 0);
+  const overBudgetTokens = Number(contextBudget.overBudgetTokens || 0);
+  const badges = [];
+  if (droppedCount > 0) badges.push(`drop:${droppedCount}`);
+  if (optimizedCount > 0) badges.push(`fold:${optimizedCount}`);
+  if (overBudgetTokens > 0) badges.push(`over:${overBudgetTokens}`);
+  if (contextCache && contextCache.candidate) badges.push('stable-prefix');
+  if (providerCache && providerCache.applied) badges.push('provider-cache-applied');
+  else if (providerCache && providerCache.candidate) badges.push('provider-cache-candidate');
+
+  let title = '上下文未触发裁剪';
+  let severity = 'ok';
+  if (droppedCount > 0) {
+    title = '上下文已丢弃历史消息';
+    severity = 'danger';
+  } else if (optimizedCount > 0 || overBudgetTokens > 0) {
+    title = '上下文已折叠或接近预算';
+    severity = 'warn';
+  }
+
+  const before = Number(contextBudget.estimatedBeforeTokens || 0);
+  const after = Number(contextBudget.estimatedInputTokens || 0);
+  const budget = Number(contextBudget.inputBudgetTokens || 0);
+  const detailParts = [];
+  if (before || after)
+    detailParts.push(`${formatAuditTokens(before)} -> ${formatAuditTokens(after)} tok`);
+  if (budget) detailParts.push(`预算 ${formatAuditTokens(budget)} tok`);
+  if (contextBudget.policy) detailParts.push(contextBudget.policy);
+
+  return {
+    state: severity === 'ok' ? 'healthy' : 'attention',
+    title,
+    detail: detailParts.join(' · ') || '已记录上下文预算数据',
+    severity,
+    badges,
+  };
+}
+
+export function auditContextDiagnosticRows(record) {
+  const diagnostics = record && record.contextDiagnostics;
+  const contextBudget = diagnostics && diagnostics.contextBudget;
+  if (!contextBudget) return [];
+  const contextCache = contextBudget.contextCache;
+  const providerCache = diagnostics.providerCache;
+  const rows = [
+    ['策略', contextBudget.policy || '未指定'],
+    ['来源', contextBudget.source || 'unknown'],
+    ['预算 Token', formatAuditTokens(contextBudget.inputBudgetTokens || 0)],
+    ['裁剪前估算', formatAuditTokens(contextBudget.estimatedBeforeTokens || 0)],
+    ['裁剪后估算', formatAuditTokens(contextBudget.estimatedInputTokens || 0)],
+    ['固定输入 Token', formatAuditTokens(contextBudget.fixedInputTokens || 0)],
+    ['超预算 Token', formatAuditTokens(contextBudget.overBudgetTokens || 0)],
+    ['折叠条数', formatAuditTokens(contextBudget.optimizedCount || 0)],
+    ['丢弃条数', formatAuditTokens(contextBudget.droppedCount || 0)],
+    ['节省字符', formatAuditTokens(contextBudget.savedChars || 0)],
+  ];
+  if (contextCache) {
+    rows.push(
+      ['稳定前缀', contextCache.candidate ? '候选' : '未达阈值'],
+      ['前缀 Token', formatAuditTokens(contextCache.stablePrefixTokens || 0)],
+      ['动态 Token', formatAuditTokens(contextCache.dynamicTokens || 0)],
+      ['前缀 Hash', contextCache.stablePrefixHash || '无']
+    );
+  }
+  if (providerCache) {
+    rows.push(
+      ['Provider Cache', auditProviderCacheState(providerCache)],
+      ['Provider', providerCache.provider || 'unknown'],
+      ['Cache Policy', providerCache.policy || 'diagnostics-only'],
+      ['Cache Reason', providerCache.reason || '']
+    );
+  }
+  if (diagnostics.repairedOrphanToolResults) {
+    rows.push(['修复孤立工具结果', formatAuditTokens(diagnostics.repairedOrphanToolResults)]);
+  }
+  return rows;
+}
+
 export function auditDetailMetricRows(record) {
   const usage = (record && record.usage) || {};
   const cost = (record && record.cost) || {};

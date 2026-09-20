@@ -1,22 +1,28 @@
 import Chart from 'chart.js/auto';
 import {
-  auditCacheCell,
-  auditCachedInputLabel,
-  auditCacheHitRate,
+  auditContextDiagnosticRows,
+  auditContextHealthSummary,
   auditDetailMetricRows,
-  formatAuditCost,
   formatAuditTokens,
 } from '../runtime/audit-format.js';
+import {
+  createUsageEmptyElement,
+  createUsageMetricElement,
+  createUsageRecentElement,
+  createUsageSummaryElements,
+  createUsageTableElement,
+} from '../runtime/audit-usage-report.js';
 import { bindDomainDependencies } from '../runtime/dependencies.js';
 import { reportFrontendError } from '../runtime/frontend-errors.js';
-
 let auditDependencies;
 
 export function configureAudit(dependencies) {
   auditDependencies = bindDomainDependencies('audit', dependencies, [
     '$',
+    'auditContextListLabel',
     'auditRetryAvailability',
     'buildAuditExportCsv',
+    'buildUsageReportExportCsv',
     'classifyLatency',
     'confirmAction',
     'escapeHtml',
@@ -36,6 +42,7 @@ export function configureAudit(dependencies) {
 let selectedAuditRecordId = null;
 let cachedAuditRecords = [];
 let cachedFilteredAuditRecords = [];
+let cachedUsageReport = null;
 let auditVisibleCount = 0;
 let usageChartInstance = null;
 const AUDIT_LIST_LIMIT = 30;
@@ -76,32 +83,6 @@ function formatAuditJson(value, limit = AUDIT_INSPECTOR_PREVIEW_CHARS) {
     }
   }
   return truncateAuditText(text, limit);
-}
-
-function renderUsageMetric(label, value, sub = '') {
-  return `
-    <div class="usage-metric">
-      <div class="usage-metric-label">${auditDependencies.escapeHtml(label)}</div>
-      <div class="usage-metric-value">${auditDependencies.escapeHtml(value)}</div>
-      ${sub ? `<div class="usage-metric-sub">${auditDependencies.escapeHtml(sub)}</div>` : ''}
-    </div>
-  `;
-}
-
-function createUsageMetricElement(label, value, sub = '') {
-  const metric = document.createElement('div');
-  metric.className = 'usage-metric';
-  appendAuditText(metric, label, 'div', 'usage-metric-label');
-  appendAuditText(metric, value, 'div', 'usage-metric-value');
-  if (sub) appendAuditText(metric, sub, 'div', 'usage-metric-sub');
-  return metric;
-}
-
-function createUsageEmptyElement(message = '暂无记录') {
-  const empty = document.createElement('div');
-  empty.className = 'usage-empty';
-  empty.textContent = message;
-  return empty;
 }
 
 function truncateAuditText(value, limit) {
@@ -362,6 +343,7 @@ if (typeof window !== 'undefined') {
     createUsageEmptyElement,
     createUsageMetricElement,
     createUsageRecentElement,
+    createUsageSummaryElements,
     createUsageTableElement,
     renderEmptyAuditState,
     renderAuditMarkdown,
@@ -393,6 +375,8 @@ function auditHistoryRecordView(record) {
   const usage = record.usage || {};
   const modelFlow = auditModelFlowLabel(record);
   const upstreamModel = auditUpstreamModel(record);
+  const contextLabel = auditDependencies.auditContextListLabel(record);
+  const contextSuffix = contextLabel ? ` · ${contextLabel}` : '';
   return {
     timeStr,
     statusCode: record.statusCode || '???',
@@ -401,7 +385,7 @@ function auditHistoryRecordView(record) {
     modelFlow,
     userSnippet,
     upstreamLine: `上游: ${upstreamModel || '未指定'} · ${record.profileName || '默认'}`,
-    metricsLine: `${formatAuditTokens(usage.totalTokens || 0)} tok · ${latency}${latencySuffix}`,
+    metricsLine: `${formatAuditTokens(usage.totalTokens || 0)} tok · ${latency}${latencySuffix}${contextSuffix}`,
   };
 }
 
@@ -473,6 +457,29 @@ function createAuditMetricElement(label, value, sub = '') {
   if (sub) appendAuditText(metric, sub, 'small');
 
   return metric;
+}
+function createAuditContextSummaryElement(record) {
+  const summary = auditContextHealthSummary(record);
+  const box = document.createElement('div');
+  box.className = `audit-context-summary ${summary.severity}`;
+  const head = appendAuditText(box, '', 'div', 'audit-context-summary-head');
+  appendAuditText(head, summary.title, 'strong');
+  appendAuditText(head, summary.state, 'span', 'audit-context-state');
+  appendAuditText(box, summary.detail, 'div', 'audit-context-detail');
+  if (summary.badges && summary.badges.length) {
+    const badges = appendAuditText(box, '', 'div', 'audit-context-badges');
+    summary.badges.forEach((badge) => appendAuditText(badges, badge, 'span'));
+  }
+  const rows = auditContextDiagnosticRows(record);
+  if (!rows.length) return box;
+  const grid = appendAuditText(box, '', 'div', 'audit-context-grid');
+  rows.forEach(([label, value]) => {
+    const cell = document.createElement('div');
+    appendAuditText(cell, label, 'span');
+    appendAuditText(cell, value, 'strong');
+    grid.appendChild(cell);
+  });
+  return box;
 }
 
 async function initPromptsAuditView() {
@@ -570,10 +577,15 @@ async function initPromptsAuditView() {
 
 async function initUsageReportView() {
   const refreshBtn = auditDependencies.$('refreshUsageReport');
+  const exportBtn = auditDependencies.$('exportUsageReportCsv');
   const windowSelect = auditDependencies.$('usageReportWindow');
   if (refreshBtn && !refreshBtn.dataset.bound) {
     refreshBtn.dataset.bound = 'true';
     refreshBtn.onclick = () => loadUsageReport();
+  }
+  if (exportBtn && !exportBtn.dataset.bound) {
+    exportBtn.dataset.bound = 'true';
+    exportBtn.onclick = () => exportUsageReportCsv();
   }
   if (windowSelect && !windowSelect.dataset.bound) {
     windowSelect.dataset.bound = 'true';
@@ -604,6 +616,7 @@ async function loadUsageReport() {
   byProfile.textContent = '';
   byModel.textContent = '';
   recent.textContent = '';
+  cachedUsageReport = null;
   try {
     const windowValue = auditDependencies.$('usageReportWindow')
       ? auditDependencies.$('usageReportWindow').value
@@ -621,6 +634,7 @@ async function loadUsageReport() {
 }
 
 function renderUsageReport(report) {
+  cachedUsageReport = report && typeof report === 'object' ? report : null;
   const total = report.total || {};
   const estimated = Number(total.estimatedRecords || 0);
   const meta = auditDependencies.$('usageReportMeta');
@@ -634,24 +648,7 @@ function renderUsageReport(report) {
   const recent = auditDependencies.$('usageRecent');
   if (summary) {
     summary.textContent = '';
-    [
-      createUsageMetricElement(
-        '请求数',
-        formatAuditTokens(total.requests),
-        `${formatAuditTokens(total.successes)} 成功 / ${formatAuditTokens(total.errors)} 异常`
-      ),
-      createUsageMetricElement(
-        '输入 Token',
-        formatAuditTokens(total.inputTokens),
-        auditCachedInputLabel(total)
-      ),
-      createUsageMetricElement('输出 Token', formatAuditTokens(total.outputTokens)),
-      createUsageMetricElement(
-        '估算成本',
-        formatAuditCost({ known: total.cost > 0, amount: total.cost }),
-        'USD'
-      ),
-    ].forEach((node) => summary.appendChild(node));
+    createUsageSummaryElements(total).forEach((node) => summary.appendChild(node));
   }
   if (byProfile) {
     byProfile.textContent = '';
@@ -666,6 +663,25 @@ function renderUsageReport(report) {
     recent.appendChild(createUsageRecentElement(report.recent || []));
   }
   updateUsageChart(report.byDay || []);
+}
+
+function usageReportExportFileName() {
+  const stamp = auditDependencies.exportTimestamp(new Date());
+  return `${auditDependencies.sanitizeExportFileName('usage-report-' + stamp, 'usage-report')}.csv`;
+}
+
+function exportUsageReportCsv() {
+  if (!cachedUsageReport || !cachedUsageReport.total) {
+    auditDependencies.showToast('当前没有可导出的使用报告', 'error');
+    return;
+  }
+  const csv = auditDependencies.buildUsageReportExportCsv(cachedUsageReport);
+  if (!csv) {
+    auditDependencies.showToast('当前使用报告为空', 'error');
+    return;
+  }
+  downloadAuditExport(usageReportExportFileName(), csv, 'text/csv');
+  auditDependencies.showToast('已导出使用报告 CSV');
 }
 
 function updateUsageChart(dayData) {
@@ -719,94 +735,6 @@ function updateUsageChart(dayData) {
       },
     },
   });
-}
-
-function appendUsageHeaderRow(thead, labels) {
-  const tr = document.createElement('tr');
-  labels.forEach((label) => appendAuditText(tr, label, 'th'));
-  thead.appendChild(tr);
-}
-
-function appendUsageCell(row, value, options = {}) {
-  const td = document.createElement('td');
-  if (options.code) {
-    td.appendChild(createAuditCodeTextElement(value));
-  } else if (options.strong) {
-    appendAuditText(td, value, 'strong');
-  } else {
-    td.textContent = value;
-  }
-  row.appendChild(td);
-  return td;
-}
-
-function createUsageTableElement(rows, type) {
-  if (!rows.length) return createUsageEmptyElement('暂无记录');
-
-  const table = document.createElement('table');
-  table.className = 'usage-table';
-  const thead = document.createElement('thead');
-  appendUsageHeaderRow(thead, [
-    type === 'profile' ? '上游目标' : '模型',
-    '请求',
-    '输入',
-    '缓存命中',
-    '输出',
-    '成本',
-  ]);
-  const tbody = document.createElement('tbody');
-  rows.forEach((row) => {
-    const tr = document.createElement('tr');
-    const labelCell = appendUsageCell(tr, row.label || row.key || '-', { strong: true });
-    if (row.estimatedRecords) {
-      appendAuditText(labelCell, `${row.estimatedRecords} 条估算`, 'div', 'muted');
-    }
-    appendUsageCell(tr, formatAuditTokens(row.requests));
-    appendUsageCell(tr, formatAuditTokens(row.inputTokens));
-    appendUsageCell(tr, auditCacheCell(row.cachedInputTokens, row.cacheHitRate));
-    appendUsageCell(tr, formatAuditTokens(row.outputTokens));
-    appendUsageCell(tr, formatAuditCost({ known: row.cost > 0, amount: row.cost }));
-    tbody.appendChild(tr);
-  });
-  table.appendChild(thead);
-  table.appendChild(tbody);
-  return table;
-}
-
-function createUsageRecentElement(rows) {
-  if (!rows.length) return createUsageEmptyElement('暂无记录');
-
-  const table = document.createElement('table');
-  table.className = 'usage-table usage-table-recent';
-  const thead = document.createElement('thead');
-  appendUsageHeaderRow(thead, ['时间', '上游', '模型', 'Token', '缓存', '成本', '状态']);
-  const tbody = document.createElement('tbody');
-  rows.forEach((row) => {
-    const tr = document.createElement('tr');
-    appendUsageCell(tr, new Date(row.time).toLocaleString());
-    appendUsageCell(tr, row.profileName || '-');
-    appendUsageCell(tr, row.model || '-', { code: true });
-    appendUsageCell(tr, formatAuditTokens((row.usage && row.usage.totalTokens) || 0));
-    appendUsageCell(
-      tr,
-      row.usage && row.usage.cachedInputTokens
-        ? `${Math.round(auditCacheHitRate(row.usage) * 100)}%`
-        : '-'
-    );
-    appendUsageCell(tr, formatAuditCost(row.cost));
-    const statusCell = document.createElement('td');
-    appendAuditText(
-      statusCell,
-      String(row.statusCode || '???'),
-      'span',
-      `audit-badge ${row.statusCode >= 200 && row.statusCode < 300 ? 'success' : 'error'}`
-    );
-    tr.appendChild(statusCell);
-    tbody.appendChild(tr);
-  });
-  table.appendChild(thead);
-  table.appendChild(tbody);
-  return table;
 }
 
 function auditFilterValue(id, fallback) {
@@ -1264,6 +1192,7 @@ function createAuditInspectorElement(record) {
   [
     ['request', 'Request'],
     ['upstream', 'Upstream'],
+    ['diagnostics', 'Diagnostics'],
     ['response', 'Response'],
   ].forEach(([id, label], index) => {
     const tab = document.createElement('button');
@@ -1281,6 +1210,10 @@ function createAuditInspectorElement(record) {
     truncated: record.request && record.request.truncated,
   });
   const upstreamPreview = formatAuditJson(record.upstream || {});
+  const diagnosticsPreview = formatAuditJson({
+    contextDiagnostics: record.contextDiagnostics || null,
+    timings: record.timings || null,
+  });
   const responsePreview = formatAuditJson({
     statusCode: record.statusCode,
     headers: record.responseHeaders || {},
@@ -1292,6 +1225,7 @@ function createAuditInspectorElement(record) {
   inspector.appendChild(tabs);
   inspector.appendChild(createAuditInspectorPanelElement('request', requestPreview, true));
   inspector.appendChild(createAuditInspectorPanelElement('upstream', upstreamPreview, false));
+  inspector.appendChild(createAuditInspectorPanelElement('diagnostics', diagnosticsPreview, false));
   inspector.appendChild(createAuditInspectorPanelElement('response', responsePreview, false));
   return inspector;
 }
@@ -1501,6 +1435,7 @@ function renderAuditDetail(record) {
   const body = document.createElement('div');
   body.className = 'audit-detail-body';
   if (record.system) body.appendChild(createAuditSystemPanelElement(record.system));
+  body.appendChild(createAuditContextSummaryElement(record));
   body.appendChild(createAuditInspectorElement(record));
   body.appendChild(createAuditChatFlowElement(record));
   panel.appendChild(body);
