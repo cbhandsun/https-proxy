@@ -13,7 +13,13 @@ const {
 const usageSource = fs.readFileSync(path.join(__dirname, '..', 'lib', 'proxy', 'usage.js'), 'utf8');
 
 const summary = _test.summarizeUsageLines([
-  JSON.stringify({ profileId: 'deepseek', model: 'v4', inputTokens: '10', outputTokens: 5 }),
+  JSON.stringify({
+    profileId: 'deepseek',
+    model: 'v4',
+    inputTokens: '10',
+    outputTokens: 5,
+    cachedInputTokens: 7,
+  }),
   JSON.stringify({ profileId: 'deepseek', model: 'v4', inputTokens: 2, outputTokens: '3' }),
   JSON.stringify({ inputTokens: 1, outputTokens: 1 }),
   JSON.stringify({ profileId: 'bad', model: 'negative', inputTokens: -10, outputTokens: 'nope' }),
@@ -28,13 +34,28 @@ const summary = _test.summarizeUsageLines([
 
 assert.strictEqual(summary.totalInput, 1000000013);
 assert.strictEqual(summary.totalOutput, 1000000009);
-assert.deepStrictEqual(summary.byProfile.deepseek.models.v4, { input: 12, output: 8 });
-assert.deepStrictEqual(summary.byProfile.unknown.models.unknown, { input: 1, output: 1 });
-assert.deepStrictEqual(summary.byProfile.bad.models.negative, { input: 0, output: 0 });
+assert.strictEqual(summary.totalCachedInput, 7);
+assert.deepStrictEqual(summary.byProfile.deepseek.models.v4, {
+  input: 12,
+  output: 8,
+  cachedInput: 7,
+});
+assert.deepStrictEqual(summary.byProfile.unknown.models.unknown, {
+  input: 1,
+  output: 1,
+  cachedInput: 0,
+});
+assert.deepStrictEqual(summary.byProfile.bad.models.negative, {
+  input: 0,
+  output: 0,
+  cachedInput: 0,
+});
 assert.deepStrictEqual(summary.byProfile.huge.models.cap, {
   input: 1000000000,
   output: 1000000000,
+  cachedInput: 0,
 });
+assert.strictEqual(summary.byProfile.deepseek.cachedInput, 7);
 
 assert.strictEqual(_test.compactUsageString('x'.repeat(600)).length, 526);
 assert.strictEqual(_test.compactUsageString('', 'fallback'), 'fallback');
@@ -48,12 +69,14 @@ const normalized = _test.normalizeUsageRecord({
   model: '',
   inputTokens: -10,
   outputTokens: 2000000001,
+  cachedInputTokens: 900,
   type: 't'.repeat(100),
 });
 assert.ok(normalized.profileId.endsWith('...[truncated]'));
 assert.strictEqual(normalized.model, 'unknown');
 assert.strictEqual(normalized.inputTokens, 0);
 assert.strictEqual(normalized.outputTokens, 1000000000);
+assert.strictEqual(normalized.cachedInputTokens, 900);
 assert.strictEqual(normalized.type.length, 78);
 
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-usage-jsonl-'));
@@ -70,13 +93,18 @@ try {
     model: 'model',
     inputTokens: 1,
     outputTokens: 2,
+    cachedInputTokens: 1,
   });
   assert.ok(recordLine.endsWith('\n'));
   fs.writeFileSync(usageFile, recordLine + 'not json\n', 'utf8');
   const fileSummary = _test.summarizeUsageLines(
     fs.readFileSync(usageFile, 'utf8').split('\n').filter(Boolean)
   );
-  assert.deepStrictEqual(fileSummary.byProfile.profile.models.model, { input: 1, output: 2 });
+  assert.deepStrictEqual(fileSummary.byProfile.profile.models.model, {
+    input: 1,
+    output: 2,
+    cachedInput: 1,
+  });
 } finally {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
