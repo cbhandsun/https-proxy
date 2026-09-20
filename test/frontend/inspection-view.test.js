@@ -44,6 +44,8 @@ const modelPath = path.join(
   assert.equal(view.normalizeMonitorStatus('slow'), 'slow');
   assert.equal(view.normalizeMonitorStatus('nope'), 'all');
   assert.equal(view.normalizeAuditStatus('error'), 'error');
+  assert.equal(view.normalizeAuditStatus('context-attention'), 'context-attention');
+  assert.equal(view.normalizeAuditStatus('context-missing'), 'context-missing');
   assert.equal(view.normalizeAuditStatus(123), 'all');
 
   // ---- range boundaries ----
@@ -270,12 +272,29 @@ const modelPath = path.join(
       elapsed: 6000,
       request: { body: '', truncated: false },
     },
+    {
+      id: 'a4',
+      time: '2026-06-12T11:56:00.000Z',
+      method: 'POST',
+      path: '/v1/responses',
+      protocol: 'gemini',
+      statusCode: 200,
+      elapsed: 100,
+      contextDiagnostics: {
+        contextBudget: {
+          policy: 'overflow-drop-oldest',
+          droppedCount: 1,
+          contextCache: { stablePrefixHash: 'hash-filter' },
+        },
+        providerCache: { provider: 'gemini', policy: 'diagnostics-only' },
+      },
+    },
   ];
 
-  assert.equal(view.filterAuditRecords(auditRecords, { range: 'all', status: 'all' }).length, 3);
+  assert.equal(view.filterAuditRecords(auditRecords, { range: 'all', status: 'all' }).length, 4);
   assert.equal(
     view.filterAuditRecords(auditRecords, { range: 'all', status: 'success' }).length,
-    2
+    3
   );
   assert.equal(
     view.filterAuditRecords(auditRecords, { range: 'all', status: 'error' })[0].id,
@@ -285,6 +304,16 @@ const modelPath = path.join(
     view.filterAuditRecords(auditRecords, { range: 'all', status: 'slow' }).length,
     2,
     'slow audit filter keeps requests at or above the slow threshold'
+  );
+  assert.equal(
+    view.filterAuditRecords(auditRecords, { range: 'all', status: 'context-attention' })[0].id,
+    'a4',
+    'context-attention filter matches records with dropped/optimized context'
+  );
+  assert.equal(
+    view.filterAuditRecords(auditRecords, { range: 'all', status: 'context-missing' }).length,
+    3,
+    'context-missing filter finds requests without context diagnostics'
   );
   assert.equal(
     view.filterAuditRecords(
@@ -304,6 +333,14 @@ const modelPath = path.join(
     'a2',
     'audit search covers structured content blocks'
   );
+  assert.equal(
+    view.filterAuditRecords(auditRecords, { range: 'all', status: 'all', query: 'hash-filter' })[0]
+      .id,
+    'a4',
+    'audit search covers context diagnostic fields'
+  );
+  assert.equal(view.auditContextFilterState(auditRecords[3]), 'attention');
+  assert.equal(view.auditContextFilterState(auditRecords[0]), 'missing');
   const longRecord = {
     id: 'a4',
     time: '2026-06-12T11:59:00.000Z',
@@ -385,14 +422,69 @@ const modelPath = path.join(
       elapsed: 120,
       usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
       cost: { amount: 0.01 },
+      contextDiagnostics: {
+        contextBudget: {
+          policy: 'overflow-drop-oldest',
+          droppedCount: 1,
+          optimizedCount: 2,
+          contextCache: { stablePrefixTokens: 3 },
+        },
+        providerCache: { enabled: true, candidate: true },
+      },
     },
   ]);
   assert.ok(csv.startsWith('time,method,path,protocol'));
   assert.ok(csv.includes('claude-opus-4'));
   assert.ok(csv.includes('0.01'));
+  assert.ok(csv.includes('contextDiagnostics'), 'audit CSV exports context diagnostic columns');
+  assert.ok(csv.includes('overflow-drop-oldest'), 'audit CSV exports context budget policy');
+  assert.ok(csv.includes('candidate'), 'audit CSV exports provider cache state');
   assert.equal(csv.split('\r\n').length, 2);
   const rows = view.buildAuditExportRows(null);
   assert.deepEqual(rows, []);
+
+  const usageCsv = view.buildUsageReportExportCsv({
+    total: {
+      key: 'total',
+      label: '=SUM(1)',
+      requests: 2,
+      successes: 1,
+      errors: 1,
+      inputTokens: 10,
+      cachedInputTokens: 4,
+      outputTokens: 5,
+      totalTokens: 15,
+      estimatedRecords: 1,
+      providerRecords: 1,
+      cacheHitRate: 0.4,
+      cost: 0.02,
+      context: {
+        records: 1,
+        missingDiagnostics: 1,
+        attentionRecords: 1,
+        overBudgetRecords: 1,
+        optimizedRecords: 1,
+        droppedRecords: 1,
+        optimizedMessages: 3,
+        droppedMessages: 2,
+        overBudgetTokens: 9,
+        savedChars: 100,
+        stablePrefixCandidates: 1,
+        providerCacheEnabled: 1,
+        providerCacheCandidates: 1,
+        providerCacheApplied: 1,
+      },
+    },
+    byProfile: [{ key: 'p1', label: 'Profile 1', requests: 1, context: { records: 1 } }],
+    byModel: [{ key: 'm1', label: 'Model 1', requests: 1 }],
+    byDay: [{ key: '2026-06-12', label: '2026-06-12', requests: 1 }],
+  });
+  assert.ok(usageCsv.startsWith('groupType,key,label,requests'));
+  assert.ok(usageCsv.includes('contextAttentionRecords'));
+  assert.ok(usageCsv.includes('providerCacheApplied'));
+  assert.ok(usageCsv.includes("total,total,'=SUM(1)"), 'usage CSV neutralises formulas');
+  assert.equal(usageCsv.split('\r\n').length, 5, 'usage CSV exports total/profile/model/day rows');
+  assert.deepEqual(view.buildUsageReportExportRows(null), []);
 
   // ---- export payload + file naming ----
   const payload = view.buildMonitorExportPayload(groups, {

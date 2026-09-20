@@ -9,6 +9,7 @@ const testFiles = [
   'test/frontend/dependencies.test.js',
   'test/frontend/domain-boundaries.test.js',
   'test/frontend/configuration-model.test.js',
+  'test/frontend/audit-format.test.js',
   'test/frontend/inspection-view.test.js',
   'test/frontend/app-settings-form.test.js',
   'test/frontend/profile-save.test.js',

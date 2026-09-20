@@ -114,6 +114,7 @@ for (const domainName of [
           specifier === '../runtime/dependencies.js' ||
           specifier === '../runtime/frontend-errors.js' ||
           (domainName === 'audit.js' && specifier === '../runtime/audit-format.js') ||
+          (domainName === 'audit.js' && specifier === '../runtime/audit-usage-report.js') ||
           (domainName === 'bridge.js' && specifier === '../models/proxy-command.js')
       ),
     true,

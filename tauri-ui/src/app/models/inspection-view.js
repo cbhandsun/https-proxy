@@ -32,6 +32,8 @@ export const AUDIT_STATUS_OPTIONS = Object.freeze([
   Object.freeze({ id: 'success', label: '成功 (2xx)' }),
   Object.freeze({ id: 'error', label: '异常 (非 2xx)' }),
   Object.freeze({ id: 'slow', label: '慢请求 (≥5s)' }),
+  Object.freeze({ id: 'context-attention', label: '上下文异常/裁剪' }),
+  Object.freeze({ id: 'context-missing', label: '缺少上下文诊断' }),
 ]);
 
 function isRecord(value) {
@@ -314,6 +316,10 @@ export function auditMessageSearchText(record) {
 
 export function auditRecordSearchText(record) {
   if (!isRecord(record)) return '';
+  const diagnostics = isRecord(record.contextDiagnostics) ? record.contextDiagnostics : {};
+  const contextBudget = isRecord(diagnostics.contextBudget) ? diagnostics.contextBudget : {};
+  const providerCache = isRecord(diagnostics.providerCache) ? diagnostics.providerCache : {};
+  const contextCache = isRecord(contextBudget.contextCache) ? contextBudget.contextCache : {};
   const parts = [
     record.id,
     record.method,
@@ -324,10 +330,33 @@ export function auditRecordSearchText(record) {
     record.rewriteModel,
     record.statusCode == null ? '' : record.statusCode,
     record.error,
+    contextBudget.policy,
+    contextBudget.source,
+    contextCache.stablePrefixHash,
+    providerCache.provider,
+    providerCache.policy,
     boundedSlice(record.system, 4000),
     auditMessageSearchText(record),
   ];
   return parts.filter(Boolean).join(' ').toLowerCase();
+}
+
+export function auditContextFilterState(record) {
+  if (!isRecord(record) || !isRecord(record.contextDiagnostics)) return 'missing';
+  const diagnostics = record.contextDiagnostics;
+  const contextBudget = isRecord(diagnostics.contextBudget) ? diagnostics.contextBudget : null;
+  if (!contextBudget) return 'missing';
+  const dropped = toFiniteNumber(contextBudget.droppedCount) || 0;
+  const optimized = toFiniteNumber(contextBudget.optimizedCount) || 0;
+  const overBudget = toFiniteNumber(contextBudget.overBudgetTokens) || 0;
+  const repaired = toFiniteNumber(diagnostics.repairedOrphanToolResults) || 0;
+  return dropped > 0 || optimized > 0 || overBudget > 0 || repaired > 0 ? 'attention' : 'healthy';
+}
+
+export function auditContextListLabel(record) {
+  const state = auditContextFilterState(record);
+  if (state === 'missing') return '缺诊断';
+  return state === 'attention' ? '上下文注意' : '';
 }
 
 export function filterAuditRecords(records, options = {}) {
@@ -345,6 +374,12 @@ export function filterAuditRecords(records, options = {}) {
     if (status === 'slow') {
       const level = classifyLatency(record.elapsed);
       if (level !== 'slow' && level !== 'very-slow') return false;
+    }
+    if (status === 'context-attention' && auditContextFilterState(record) !== 'attention') {
+      return false;
+    }
+    if (status === 'context-missing' && auditContextFilterState(record) !== 'missing') {
+      return false;
     }
     if (!query) return true;
     return auditRecordSearchText(record).includes(query);
@@ -430,6 +465,10 @@ export function buildAuditExportRows(records) {
     const source = isRecord(record) ? record : {};
     const usage = isRecord(source.usage) ? source.usage : {};
     const cost = isRecord(source.cost) ? source.cost : {};
+    const diagnostics = isRecord(source.contextDiagnostics) ? source.contextDiagnostics : {};
+    const contextBudget = isRecord(diagnostics.contextBudget) ? diagnostics.contextBudget : {};
+    const providerCache = isRecord(diagnostics.providerCache) ? diagnostics.providerCache : {};
+    const contextCache = isRecord(contextBudget.contextCache) ? contextBudget.contextCache : {};
     return {
       time: toSearchableText(source.time),
       method: toSearchableText(source.method),
@@ -444,6 +483,23 @@ export function buildAuditExportRows(records) {
       outputTokens: usage.outputTokens == null ? '' : toSearchableText(usage.outputTokens),
       totalTokens: usage.totalTokens == null ? '' : toSearchableText(usage.totalTokens),
       cost: cost.amount == null ? '' : toSearchableText(cost.amount),
+      contextDiagnostics: isRecord(source.contextDiagnostics) ? 'yes' : 'no',
+      contextBudgetPolicy: toSearchableText(contextBudget.policy),
+      contextDroppedCount:
+        contextBudget.droppedCount == null ? '' : toSearchableText(contextBudget.droppedCount),
+      contextOptimizedCount:
+        contextBudget.optimizedCount == null ? '' : toSearchableText(contextBudget.optimizedCount),
+      contextStablePrefixTokens:
+        contextCache.stablePrefixTokens == null
+          ? ''
+          : toSearchableText(contextCache.stablePrefixTokens),
+      providerCacheState: providerCache.applied
+        ? 'applied'
+        : providerCache.candidate
+          ? 'candidate'
+          : providerCache.enabled
+            ? 'enabled'
+            : '',
     };
   });
 }
@@ -462,10 +518,99 @@ export const AUDIT_EXPORT_COLUMNS = Object.freeze([
   Object.freeze({ id: 'outputTokens', label: 'outputTokens' }),
   Object.freeze({ id: 'totalTokens', label: 'totalTokens' }),
   Object.freeze({ id: 'cost', label: 'estimatedCost' }),
+  Object.freeze({ id: 'contextDiagnostics', label: 'contextDiagnostics' }),
+  Object.freeze({ id: 'contextBudgetPolicy', label: 'contextBudgetPolicy' }),
+  Object.freeze({ id: 'contextDroppedCount', label: 'contextDroppedCount' }),
+  Object.freeze({ id: 'contextOptimizedCount', label: 'contextOptimizedCount' }),
+  Object.freeze({ id: 'contextStablePrefixTokens', label: 'contextStablePrefixTokens' }),
+  Object.freeze({ id: 'providerCacheState', label: 'providerCacheState' }),
 ]);
 
 export function buildAuditExportCsv(records) {
   return buildCsv(AUDIT_EXPORT_COLUMNS, buildAuditExportRows(records));
+}
+
+function usageContextExportFields(context) {
+  const source = isRecord(context) ? context : {};
+  return {
+    contextRecords: toSearchableText(source.records || 0),
+    contextMissingDiagnostics: toSearchableText(source.missingDiagnostics || 0),
+    contextAttentionRecords: toSearchableText(source.attentionRecords || 0),
+    contextOverBudgetRecords: toSearchableText(source.overBudgetRecords || 0),
+    contextOptimizedRecords: toSearchableText(source.optimizedRecords || 0),
+    contextDroppedRecords: toSearchableText(source.droppedRecords || 0),
+    contextOptimizedMessages: toSearchableText(source.optimizedMessages || 0),
+    contextDroppedMessages: toSearchableText(source.droppedMessages || 0),
+    contextOverBudgetTokens: toSearchableText(source.overBudgetTokens || 0),
+    contextSavedChars: toSearchableText(source.savedChars || 0),
+    contextStablePrefixCandidates: toSearchableText(source.stablePrefixCandidates || 0),
+    providerCacheEnabled: toSearchableText(source.providerCacheEnabled || 0),
+    providerCacheCandidates: toSearchableText(source.providerCacheCandidates || 0),
+    providerCacheApplied: toSearchableText(source.providerCacheApplied || 0),
+  };
+}
+
+export function buildUsageReportExportRows(report) {
+  const groups = [
+    ['total', [isRecord(report) ? report.total : null]],
+    ['profile', isRecord(report) && Array.isArray(report.byProfile) ? report.byProfile : []],
+    ['model', isRecord(report) && Array.isArray(report.byModel) ? report.byModel : []],
+    ['day', isRecord(report) && Array.isArray(report.byDay) ? report.byDay : []],
+  ];
+  return groups.flatMap(([groupType, rows]) =>
+    rows.filter(isRecord).map((row) => ({
+      groupType,
+      key: toSearchableText(row.key),
+      label: toSearchableText(row.label),
+      requests: toSearchableText(row.requests || 0),
+      successes: toSearchableText(row.successes || 0),
+      errors: toSearchableText(row.errors || 0),
+      inputTokens: toSearchableText(row.inputTokens || 0),
+      cachedInputTokens: toSearchableText(row.cachedInputTokens || 0),
+      outputTokens: toSearchableText(row.outputTokens || 0),
+      totalTokens: toSearchableText(row.totalTokens || 0),
+      estimatedRecords: toSearchableText(row.estimatedRecords || 0),
+      providerRecords: toSearchableText(row.providerRecords || 0),
+      cacheHitRate: toSearchableText(row.cacheHitRate || 0),
+      estimatedCost: toSearchableText(row.cost || 0),
+      ...usageContextExportFields(row.context),
+    }))
+  );
+}
+
+export const USAGE_REPORT_EXPORT_COLUMNS = Object.freeze([
+  Object.freeze({ id: 'groupType', label: 'groupType' }),
+  Object.freeze({ id: 'key', label: 'key' }),
+  Object.freeze({ id: 'label', label: 'label' }),
+  Object.freeze({ id: 'requests', label: 'requests' }),
+  Object.freeze({ id: 'successes', label: 'successes' }),
+  Object.freeze({ id: 'errors', label: 'errors' }),
+  Object.freeze({ id: 'inputTokens', label: 'inputTokens' }),
+  Object.freeze({ id: 'cachedInputTokens', label: 'cachedInputTokens' }),
+  Object.freeze({ id: 'outputTokens', label: 'outputTokens' }),
+  Object.freeze({ id: 'totalTokens', label: 'totalTokens' }),
+  Object.freeze({ id: 'estimatedRecords', label: 'estimatedRecords' }),
+  Object.freeze({ id: 'providerRecords', label: 'providerRecords' }),
+  Object.freeze({ id: 'cacheHitRate', label: 'cacheHitRate' }),
+  Object.freeze({ id: 'estimatedCost', label: 'estimatedCost' }),
+  Object.freeze({ id: 'contextRecords', label: 'contextRecords' }),
+  Object.freeze({ id: 'contextMissingDiagnostics', label: 'contextMissingDiagnostics' }),
+  Object.freeze({ id: 'contextAttentionRecords', label: 'contextAttentionRecords' }),
+  Object.freeze({ id: 'contextOverBudgetRecords', label: 'contextOverBudgetRecords' }),
+  Object.freeze({ id: 'contextOptimizedRecords', label: 'contextOptimizedRecords' }),
+  Object.freeze({ id: 'contextDroppedRecords', label: 'contextDroppedRecords' }),
+  Object.freeze({ id: 'contextOptimizedMessages', label: 'contextOptimizedMessages' }),
+  Object.freeze({ id: 'contextDroppedMessages', label: 'contextDroppedMessages' }),
+  Object.freeze({ id: 'contextOverBudgetTokens', label: 'contextOverBudgetTokens' }),
+  Object.freeze({ id: 'contextSavedChars', label: 'contextSavedChars' }),
+  Object.freeze({ id: 'contextStablePrefixCandidates', label: 'contextStablePrefixCandidates' }),
+  Object.freeze({ id: 'providerCacheEnabled', label: 'providerCacheEnabled' }),
+  Object.freeze({ id: 'providerCacheCandidates', label: 'providerCacheCandidates' }),
+  Object.freeze({ id: 'providerCacheApplied', label: 'providerCacheApplied' }),
+]);
+
+export function buildUsageReportExportCsv(report) {
+  return buildCsv(USAGE_REPORT_EXPORT_COLUMNS, buildUsageReportExportRows(report));
 }
 
 export function buildMonitorExportPayload(groups, options = {}) {
