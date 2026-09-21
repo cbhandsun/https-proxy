@@ -382,7 +382,6 @@ const makeLocalClaudeSelfTestRequest = createHttpClient({
   }),
 });
 const mcpHub = createMcpHub({ getConfig: () => CONFIG });
-
 const getClaudeDesktopSelfTestTarget = createClaudeSelfTestTargetResolver({
   claudeDesktopBaseUrl,
   claudeDesktopProxyPrefix: CLAUDE_DESKTOP_PROXY_PREFIX,
@@ -408,6 +407,7 @@ const {
   readAntigravityOfficialCredentialState,
   isGoogleOfficialLoginToken,
   buildGoogleOfficialLoadCodeAssistRequest,
+  getConfig: () => CONFIG,
 });
 const { handleLocalCertStatusRequest, handleLocalCertTrustRequest, handleLocalCertUntrustRequest } =
   lazyFeatures.createLazyCertHandlers({

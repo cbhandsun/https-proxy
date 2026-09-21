@@ -195,14 +195,16 @@ test('searches all IDE databases for auth status before falling back to legacy O
 test('can prefer credential manager when auth status is rejected by upstream', (t) => {
   const dbPath = createTestStateDatabase(fixture(t), encodeTestOAuthState('ya29.sqlite-stale'));
   addAntigravityAuthStatus(dbPath);
+  const credentialReadOptions = [];
   const read = reader(dbPath, {
     credentialTargets: () => ['gemini:antigravity'],
     databaseStateKeys: () => [
       { key: AUTH_STATUS_KEY, decode: decodeAntigravityAuthStatusValue, optional: true },
       { key: STATE_KEY, decode: decodeAntigravityOAuthStateValue },
     ],
-    readWindowsCredential: () =>
-      JSON.stringify({
+    readWindowsCredential: (_target, options) => {
+      credentialReadOptions.push(options);
+      return JSON.stringify({
         token: {
           access_token: 'ya29.credential-expiring',
           refresh_token: '1//credential-refresh',
@@ -210,7 +212,8 @@ test('can prefer credential manager when auth status is rejected by upstream', (
           expiry: '2001-01-01T00:00:00.000Z',
         },
         auth_method: 'consumer',
-      }),
+      });
+    },
   });
   const normalResult = read();
   assert.equal(normalResult.source, 'antigravity-auth-status');
@@ -218,6 +221,10 @@ test('can prefer credential manager when auth status is rejected by upstream', (
   assert.equal(preferredResult.source, 'antigravity-credential-manager');
   assert.equal(preferredResult.credentialTarget, 'gemini:antigravity');
   assert.equal(preferredResult.content.access_token, 'ya29.credential-expiring');
+  assert.deepEqual(credentialReadOptions, [{ forceReload: false }, { forceReload: false }]);
+  const forcedResult = read({ preferCredentialManager: true, forceCredentialManagerReload: true });
+  assert.equal(forcedResult.source, 'antigravity-credential-manager');
+  assert.deepEqual(credentialReadOptions.at(-1), { forceReload: true });
 });
 
 test('decodes Antigravity credential manager OAuth shapes safely', () => {

@@ -214,23 +214,16 @@ async function assertRetriesWithFreshToken(kind) {
   );
 }
 
-async function assertDelayedCredentialManagerFallback() {
+async function assertRefreshPassesRejectedToken() {
   const proxyEvents = [];
   const refreshOptions = [];
-  let delayed = false;
   let handlerToken = '';
   let jsonError = null;
   const retryGoogleOfficialAuthOnce = createGoogleOfficialAuthRetry({
     logProxyEvent: (kind, payload) => proxyEvents.push({ kind, payload }),
     refreshAntigravityOfficialAccessToken: async (options) => {
       refreshOptions.push(options);
-      return refreshOptions.length === 1 ? 'ya29.old-route-token' : 'ya29.new-route-token';
-    },
-    secondaryRefreshDelayMs: 10,
-    setTimeoutFn: (callback, ms) => {
-      delayed = ms === 10;
-      callback();
-      return null;
+      return 'ya29.new-route-token';
     },
   });
   const done = new Promise((resolve) => {
@@ -259,20 +252,18 @@ async function assertDelayedCredentialManagerFallback() {
   });
   await done;
 
-  assert.equal(delayed, true);
   assert.equal(handlerToken, 'ya29.new-route-token');
   assert.equal(jsonError, null);
   assert.deepEqual(refreshOptions, [
-    { reason: 'upstream_auth_failure', routeType: 'responses_to_gemini' },
     {
-      reason: 'upstream_auth_failure_secondary',
+      reason: 'upstream_auth_failure',
       routeType: 'responses_to_gemini',
-      preferCredentialManager: true,
+      rejectedToken: 'ya29.old-route-token',
     },
   ]);
   assert.deepEqual(
     proxyEvents.map((event) => event.payload.action),
-    ['refresh_antigravity_token', 'delayed_credential_manager_refresh']
+    ['refresh_antigravity_token']
   );
   assert.ok(!JSON.stringify(proxyEvents).includes('ya29.'));
 }
@@ -280,7 +271,7 @@ async function assertDelayedCredentialManagerFallback() {
 (async () => {
   await assertRetriesWithFreshToken('chat');
   await assertRetriesWithFreshToken('responses');
-  await assertDelayedCredentialManagerFallback();
+  await assertRefreshPassesRejectedToken();
   console.log('[google-official-auth-retry.test] ok');
 })().catch((error) => {
   console.error(error);
