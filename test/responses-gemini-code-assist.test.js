@@ -1,12 +1,16 @@
 'use strict';
 
 const assert = require('assert');
-const { createRouteHandlers } = require('../lib/proxy/handlers/route-handlers');
+const {
+  createRouteHandlers,
+  _internal: routeHandlerInternals,
+} = require('../lib/proxy/handlers/route-handlers');
 const { createCodeAssist } = require('../lib/proxy/handlers/code-assist');
 
 let capturedOptions = null;
 let capturedBody = null;
 let parsedStream = false;
+let parsedInput = 'hello';
 let requestedStream = null;
 let convertedClaudeBody = null;
 const fallbackId = () => 'test-id';
@@ -68,7 +72,7 @@ const handlers = createRouteHandlers({
   writeJsonResponse: noop,
   parseProxyBody: () => ({
     model: 'gemini-3.5-flash',
-    input: 'hello',
+    input: parsedInput,
     stream: parsedStream,
   }),
   upstreamRequestOptions: () => {
@@ -172,5 +176,49 @@ handlers.handleOpenAIResponsesToGeminiMessages(
 );
 assert.strictEqual(requestedStream, true);
 assert.strictEqual(capturedOptions.path, '/v1internal:streamGenerateContent?alt=sse');
+
+parsedInput = [{ type: 'function_call_output', call_id: 'call_1', output: 'ok' }];
+parsedStream = false;
+convertedClaudeBody = null;
+capturedBody = null;
+handlers.handleOpenAIResponsesToGeminiMessages(
+  { method: 'POST', url: '/v1/responses' },
+  {},
+  {
+    model: 'gemini-3.5-flash',
+    rewriteTo: 'gemini-3.5-flash',
+    profile: { id: 'google-official', protocol: 'gemini' },
+    authMode: 'official-login',
+    authProvider: 'google',
+    googleOfficialProjectId: 'test-project',
+    buffer: Buffer.from(
+      '{"input":[{"type":"function_call_output","call_id":"call_1","output":"ok"}]}'
+    ),
+  },
+  {
+    protocol: 'https:',
+    hostname: 'generativelanguage.googleapis.com',
+    port: '443',
+    path: '/v1beta',
+  },
+  'ya29.test-token',
+  '/v1beta/responses',
+  Date.now()
+);
+assert.notStrictEqual(convertedClaudeBody.__responsesToolPreamble, true);
+assert.deepStrictEqual(JSON.parse(capturedBody.toString('utf8')).request, {
+  contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+});
+
+const longEnglishPrefix = 'a'.repeat(25000);
+assert.strictEqual(
+  routeHandlerInternals.responsesToolPreambleText({
+    input: [
+      { type: 'message', role: 'user', content: [{ type: 'input_text', text: longEnglishPrefix }] },
+      { type: 'message', role: 'user', content: [{ type: 'input_text', text: '继续看看' }] },
+    ],
+  }),
+  '我先看一下。'
+);
 
 console.log('[responses-gemini-code-assist.test] ok');
