@@ -356,4 +356,70 @@ const {
   assert.strictEqual(validTimeout.valid, true);
 }
 
+/**
+ * 回归：DNS 配置写错时必须报错。
+ *
+ * 这些项如果被静默忽略，代理会退回系统解析，正是本次 chatgpt.com 被投毒导致
+ * 502 的成因，所以非法 IP、错误类型、超长列表都要显式失败。
+ */
+function testUpstreamDnsServersValidation() {
+  const baseConfig = (upstreamDnsServers) => ({
+    activeProfile: 'main',
+    profiles: [
+      {
+        id: 'main',
+        protocol: 'openai',
+        targetUrl: 'https://api.example.test/v1',
+      },
+    ],
+    localServer: { host: 'localhost', listenPort: 3443, basePath: '/v1' },
+    appSettings: { upstreamDnsServers },
+  });
+
+  // 正常：数组、逗号分隔字符串、IPv6 都合法。
+  assert.strictEqual(validateConfig(baseConfig(['1.1.1.1', '8.8.8.8', '223.5.5.5'])).valid, true);
+  assert.strictEqual(validateConfig(baseConfig('1.1.1.1,8.8.8.8')).valid, true);
+  assert.strictEqual(validateConfig(baseConfig(['2606:4700:4700::1111'])).valid, true);
+  // 空值表示退回系统解析，属于合法配置。
+  assert.strictEqual(validateConfig(baseConfig([])).valid, true);
+  assert.strictEqual(validateConfig(baseConfig('')).valid, true);
+  assert.strictEqual(validateConfig(baseConfig(null)).valid, true);
+  assert.strictEqual(validateConfig(baseConfig(undefined)).valid, true);
+
+  // 非法：错误类型、非法 IP、超长列表。
+  const wrongType = validateConfig(baseConfig({ servers: ['1.1.1.1'] }));
+  assert.strictEqual(wrongType.valid, false);
+  assert.ok(
+    wrongType.errors.some((err) =>
+      err.includes('appSettings.upstreamDnsServers must be an array of IP addresses')
+    )
+  );
+
+  const invalidIp = validateConfig(baseConfig(['1.1.1.1', 'not-an-ip']));
+  assert.strictEqual(invalidIp.valid, false);
+  assert.ok(
+    invalidIp.errors.some((err) =>
+      err.includes('appSettings.upstreamDnsServers contains an invalid IP address: not-an-ip')
+    )
+  );
+
+  const tooMany = validateConfig(
+    baseConfig(Array.from({ length: 9 }, (_value, index) => `10.0.0.${index + 1}`))
+  );
+  assert.strictEqual(tooMany.valid, false);
+  assert.ok(
+    tooMany.errors.some((err) =>
+      err.includes('appSettings.upstreamDnsServers must contain at most 8 servers')
+    )
+  );
+
+  // 超长列表即使内容合法也要拒绝，避免为一个错误配置反复失败。
+  const boundary = validateConfig(
+    baseConfig(Array.from({ length: 8 }, (_value, index) => `10.0.0.${index + 1}`))
+  );
+  assert.strictEqual(boundary.valid, true);
+}
+
+testUpstreamDnsServersValidation();
+
 console.log('[validator.test] ok');

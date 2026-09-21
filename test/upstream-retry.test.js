@@ -11,6 +11,8 @@ const {
   isValidIdempotencyKey,
   canReplayRequest,
   resolveUpstreamRecovery,
+  isPreTransmissionFailure,
+  readPreTransmissionContext,
 } = require('../lib/proxy/upstream-retry');
 
 function testRetryableStatusCodes() {
@@ -209,6 +211,157 @@ function testUnsafeRequestsRequireExplicitIdempotencyContract() {
   );
 }
 
+/**
+ * 回归：DNS 被投毒时 chatgpt.com 会连到持有别人证书的服务器，TLS 校验以
+ * ERR_TLS_CERT_ALTNAME_INVALID 失败。请求体从未发出，重放没有副作用，因此不
+ * 带 Idempotency-Key 的 POST 也必须能重试，否则一次投毒就会让整段对话 502。
+ */
+function testPreTransmissionTlsFailuresAreRetryableForUnsafeMethods() {
+  assert.strictEqual(isPreTransmissionFailure('ERR_TLS_CERT_ALTNAME_INVALID'), true);
+  assert.strictEqual(isPreTransmissionFailure('err_tls_cert_altname_invalid'), true);
+  assert.strictEqual(isPreTransmissionFailure('  UNABLE_TO_VERIFY_LEAF_SIGNATURE '), true);
+  assert.strictEqual(isPreTransmissionFailure('ERR_SSL_WRONG_VERSION_NUMBER'), true);
+  assert.strictEqual(isPreTransmissionFailure('ECONNRESET'), false);
+  assert.strictEqual(isPreTransmissionFailure('EPIPE'), false);
+  assert.strictEqual(isPreTransmissionFailure('ETIMEDOUT'), false);
+  assert.strictEqual(isPreTransmissionFailure(undefined), false);
+  assert.strictEqual(isPreTransmissionFailure(null), false);
+
+  const poisoned = {
+    kind: 'error',
+    attempt: 1,
+    maxRetries: 2,
+    prepared: { profile: {} },
+    profiles: [],
+    method: 'POST',
+    headers: {},
+    errorCode: 'ERR_TLS_CERT_ALTNAME_INVALID',
+    random: () => 0,
+  };
+  assert.deepStrictEqual(resolveUpstreamRecovery(poisoned), { type: 'retry', delayMs: 2000 });
+
+  // 重试次数用尽后必须停下，不能无限重放。
+  assert.deepStrictEqual(resolveUpstreamRecovery({ ...poisoned, attempt: 3 }), { type: 'none' });
+
+  // 响应已经开始时不得重试，避免客户端收到重复内容。
+  assert.deepStrictEqual(resolveUpstreamRecovery({ ...poisoned, responseStarted: true }), {
+    type: 'none',
+  });
+
+  // 普通连接中断仍需依赖显式幂等契约，不能借 TLS 豁免通道。
+  assert.deepStrictEqual(resolveUpstreamRecovery({ ...poisoned, errorCode: 'ECONNRESET' }), {
+    type: 'none',
+  });
+}
+
+/**
+ * 回归：DNS 投毒除了让证书不匹配，还可能让握手阶段直接被重置，错误是
+ * ECONNRESET + "disconnected before secure TLS connection was established"。
+ * TLS 握手未完成时应用层字节从未送出，重放同样安全，因此不能因为错误码是
+ * ECONNRESET 就整体放行——只认"握手未完成"这一结构性证据。
+ */
+function testHandshakePhaseResetsAreReplayableWithoutWeakeningResetsInGeneral() {
+  // 握手未完成：可重放，即使是不带幂等键的 POST。
+  assert.strictEqual(
+    isPreTransmissionFailure('ECONNRESET', { tlsHandshakeIncomplete: true, reusedSocket: false }),
+    true
+  );
+  // 握手已完成（或复用连接）：ECONNRESET 不享受豁免。
+  assert.strictEqual(
+    isPreTransmissionFailure('ECONNRESET', { tlsHandshakeIncomplete: false, reusedSocket: false }),
+    false
+  );
+  assert.strictEqual(
+    isPreTransmissionFailure('ECONNRESET', { tlsHandshakeIncomplete: true, reusedSocket: true }),
+    false
+  );
+  // 没有上下文时保持原有保守行为。
+  assert.strictEqual(isPreTransmissionFailure('ECONNRESET'), false);
+  assert.strictEqual(isPreTransmissionFailure('ECONNRESET', null), false);
+  assert.strictEqual(isPreTransmissionFailure('ECONNRESET', 'nope'), false);
+  assert.strictEqual(isPreTransmissionFailure('EPIPE', { tlsHandshakeIncomplete: false }), false);
+  // 错误码本身足够时，不需要任何上下文。
+  assert.strictEqual(
+    isPreTransmissionFailure('ERR_TLS_CERT_ALTNAME_INVALID', { reusedSocket: true }),
+    true
+  );
+
+  const baseOptions = {
+    kind: 'error',
+    attempt: 1,
+    maxRetries: 2,
+    prepared: { profile: {} },
+    profiles: [],
+    method: 'POST',
+    headers: {},
+    errorCode: 'ECONNRESET',
+    random: () => 0,
+  };
+  assert.deepStrictEqual(
+    resolveUpstreamRecovery({
+      ...baseOptions,
+      preTransmissionContext: { tlsHandshakeIncomplete: true, reusedSocket: false },
+    }),
+    { type: 'retry', delayMs: 2000 }
+  );
+  assert.deepStrictEqual(
+    resolveUpstreamRecovery({
+      ...baseOptions,
+      preTransmissionContext: { tlsHandshakeIncomplete: false, reusedSocket: false },
+    }),
+    { type: 'none' }
+  );
+  // 重试次数用尽后必须停下。
+  assert.deepStrictEqual(
+    resolveUpstreamRecovery({
+      ...baseOptions,
+      attempt: 3,
+      preTransmissionContext: { tlsHandshakeIncomplete: true, reusedSocket: false },
+    }),
+    { type: 'none' }
+  );
+  // 响应已经开始时不得重放。
+  assert.deepStrictEqual(
+    resolveUpstreamRecovery({
+      ...baseOptions,
+      responseStarted: true,
+      preTransmissionContext: { tlsHandshakeIncomplete: true, reusedSocket: false },
+    }),
+    { type: 'none' }
+  );
+}
+
+/**
+ * 上下文读取必须只依赖连接的真实状态，不能把普通 socket 误判成握手中的 TLS。
+ */
+function testPreTransmissionContextReadsSocketState() {
+  assert.deepStrictEqual(readPreTransmissionContext(null), {
+    tlsHandshakeIncomplete: false,
+    reusedSocket: false,
+  });
+  assert.deepStrictEqual(readPreTransmissionContext(undefined), {
+    tlsHandshakeIncomplete: false,
+    reusedSocket: false,
+  });
+  assert.deepStrictEqual(readPreTransmissionContext({}), {
+    tlsHandshakeIncomplete: false,
+    reusedSocket: false,
+  });
+  // 普通 HTTP socket 没有 secureConnecting，必须判为握手中=false。
+  assert.deepStrictEqual(readPreTransmissionContext({ socket: { encrypted: false } }), {
+    tlsHandshakeIncomplete: false,
+    reusedSocket: false,
+  });
+  assert.deepStrictEqual(
+    readPreTransmissionContext({ socket: { secureConnecting: true }, reusedSocket: true }),
+    { tlsHandshakeIncomplete: true, reusedSocket: true }
+  );
+  assert.deepStrictEqual(
+    readPreTransmissionContext({ socket: { secureConnecting: false }, reusedSocket: false }),
+    { tlsHandshakeIncomplete: false, reusedSocket: false }
+  );
+}
+
 function testReplayValidationRejectsMalformedBoundaryValues() {
   assert.strictEqual(isValidIdempotencyKey(''), false);
   assert.strictEqual(isValidIdempotencyKey('x'.repeat(256)), true);
@@ -242,6 +395,9 @@ testErrorFailoverOnlyFirstAttempt();
 testRecoveryPrefersFailoverBeforeRetry();
 testRecoveryRetriesWhenNoBackupExists();
 testUnsafeRequestsRequireExplicitIdempotencyContract();
+testPreTransmissionTlsFailuresAreRetryableForUnsafeMethods();
+testHandshakePhaseResetsAreReplayableWithoutWeakeningResetsInGeneral();
+testPreTransmissionContextReadsSocketState();
 testReplayValidationRejectsMalformedBoundaryValues();
 
 console.log('[upstream-retry.test] ok');
