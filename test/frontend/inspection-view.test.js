@@ -422,6 +422,7 @@ const modelPath = path.join(
       elapsed: 120,
       usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
       cost: { amount: 0.01 },
+      contextDiagnosticsMissingReason: 'direct-responses-passthrough',
       contextDiagnostics: {
         contextBudget: {
           policy: 'overflow-drop-oldest',
@@ -437,6 +438,14 @@ const modelPath = path.join(
   assert.ok(csv.includes('claude-opus-4'));
   assert.ok(csv.includes('0.01'));
   assert.ok(csv.includes('contextDiagnostics'), 'audit CSV exports context diagnostic columns');
+  assert.ok(
+    csv.includes('contextDiagnosticsMissingReason'),
+    'audit CSV exports missing diagnostic reason column'
+  );
+  assert.ok(
+    csv.includes('direct-responses-passthrough'),
+    'audit CSV exports missing diagnostic reason values'
+  );
   assert.ok(csv.includes('overflow-drop-oldest'), 'audit CSV exports context budget policy');
   assert.ok(csv.includes('candidate'), 'audit CSV exports provider cache state');
   assert.equal(csv.split('\r\n').length, 2);

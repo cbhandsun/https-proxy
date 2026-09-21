@@ -41,7 +41,7 @@ function requestProxy(port, headers = {}, options = {}) {
       {
         hostname: '127.0.0.1',
         port,
-        path: '/v1/chat/completions',
+        path: options.path || '/v1/chat/completions',
         method,
         headers: {
           ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
@@ -53,12 +53,16 @@ function requestProxy(port, headers = {}, options = {}) {
         res.on('data', (chunk) => {
           body += chunk;
         });
-        res.on('end', () => resolve({ statusCode: res.statusCode, body }));
+        res.on('end', () => resolve({ statusCode: res.statusCode, body, headers: res.headers }));
       }
     );
     req.on('error', reject);
     if (method === 'POST') {
-      req.end(JSON.stringify({ model: 'gpt-test', messages: [{ role: 'user', content: 'hi' }] }));
+      req.end(
+        options.body === undefined
+          ? JSON.stringify({ model: 'gpt-test', messages: [{ role: 'user', content: 'hi' }] })
+          : options.body
+      );
       return;
     }
     req.end();
@@ -173,6 +177,43 @@ function waitForProxy(proc) {
     });
     assert.strictEqual(browserOrigin.statusCode, 403);
     assert.strictEqual(upstreamHits, 0);
+
+    // Regression: a bare '/metrics' route used to be dispatched by the local
+    // management router before entry authentication, so any entry listener
+    // answered it with unauthenticated, CORS-open process metrics.
+    const bareMetrics = await requestProxy(entryPort, {}, { method: 'GET', path: '/metrics' });
+    assert.strictEqual(
+      bareMetrics.statusCode,
+      401,
+      'bare /metrics must require entry authentication'
+    );
+    assert.doesNotMatch(bareMetrics.body, /process_resident_memory_bytes|proxy_requests_total/);
+    // The old bug answered with Prometheus text/plain; the fixed path returns a
+    // normal JSON entry-auth error instead of the metrics payload.
+    assert.match(String(bareMetrics.headers['content-type'] || ''), /application\/json/);
+    assert.match(bareMetrics.body, /authentication_error/);
+
+    const tokenProtectedMetrics = await requestProxy(
+      entryPort,
+      {},
+      { method: 'GET', path: '/v1/local/metrics' }
+    );
+    assert.strictEqual(
+      tokenProtectedMetrics.statusCode,
+      401,
+      'management metrics must require the management token'
+    );
+
+    const publicHealth = await requestProxy(
+      entryPort,
+      {},
+      { method: 'GET', path: '/v1/local/health' }
+    );
+    assert.strictEqual(
+      publicHealth.statusCode,
+      200,
+      'the local health probe must stay publicly reachable for the UI'
+    );
 
     const okHealth = await requestProxy(
       entryPort,

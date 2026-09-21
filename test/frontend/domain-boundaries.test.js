@@ -63,6 +63,50 @@ const assert = require('node:assert/strict');
   assert.equal(storedPrompts.get('prompt_content_claude'), 'current claude prompt');
   assert.equal(promptContent.value, 'saved codex prompt');
 
+  // Prompt tab switching must expose tab semantics, not just visual styling.
+  {
+    const makeTab = () => {
+      const attrs = new Map();
+      return {
+        classList: { add() {}, remove() {} },
+        style: {},
+        setAttribute: (name, value) => attrs.set(name, String(value)),
+        removeAttribute: (name) => attrs.delete(name),
+        getAttribute: (name) => (attrs.has(name) ? attrs.get(name) : null),
+      };
+    };
+    const presetTab = makeTab();
+    const customTab = makeTab();
+    const presetPanel = makeTab();
+    const customPanel = makeTab();
+    const tabElements = {
+      tabPresetPrompts: presetTab,
+      tabCustomPrompts: customTab,
+      presetPromptsPanel: presetPanel,
+      customPromptsPanel: customPanel,
+    };
+    prompts.configurePrompts({
+      $: (id) => tabElements[id] || null,
+      get config() {
+        return undefined;
+      },
+      showToast() {},
+      storage: { parsePromptTemplates: () => [], limits: {} },
+    });
+
+    prompts.togglePromptsTab('tabCustomPrompts');
+    assert.equal(customTab.getAttribute('aria-selected'), 'true');
+    assert.equal(presetTab.getAttribute('aria-selected'), 'false');
+    assert.equal(customPanel.getAttribute('aria-hidden'), null);
+    assert.equal(presetPanel.getAttribute('aria-hidden'), 'true');
+
+    prompts.togglePromptsTab('tabPresetPrompts');
+    assert.equal(presetTab.getAttribute('aria-selected'), 'true');
+    assert.equal(customTab.getAttribute('aria-selected'), 'false');
+    assert.equal(presetPanel.getAttribute('aria-hidden'), null);
+    assert.equal(customPanel.getAttribute('aria-hidden'), 'true');
+  }
+
   assert.deepEqual(rateLimits.parseRateLimitsResponse(undefined), {
     ok: false,
     error: '服务返回了无效响应',

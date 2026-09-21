@@ -2598,7 +2598,7 @@ tr:hover td {
 .audit-usage-strip,
 .usage-summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
 }
 .usage-metric {
@@ -2783,6 +2783,30 @@ tr:hover td {
   min-height: 32px;
   padding: 4px 10px;
   border-radius: var(--radius-sm);
+}
+.usage-chart-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  overflow: hidden;
+  min-height: 0;
+}
+.usage-chart-panel h3 {
+  margin: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  background: var(--light-bg);
+}
+.usage-chart-frame {
+  height: 260px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.usage-chart-frame canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
 }
 .usage-report-body {
   display: grid;

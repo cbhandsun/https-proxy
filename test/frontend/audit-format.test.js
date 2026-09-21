@@ -45,6 +45,12 @@ const assert = require('node:assert/strict');
   const missing = format.auditContextHealthSummary({});
   assert.equal(missing.state, 'missing');
   assert.ok(missing.badges.includes('no-context-diagnostics'));
+  const missingWithReason = format.auditContextHealthSummary({
+    contextDiagnosticsMissingReason: 'direct-responses-passthrough',
+  });
+  assert.equal(missingWithReason.state, 'missing');
+  assert.ok(missingWithReason.detail.includes('direct-responses-passthrough'));
+  assert.ok(missingWithReason.badges.includes('direct-responses-passthrough'));
 
   console.log('audit-format.test.js ok');
 })().catch((error) => {

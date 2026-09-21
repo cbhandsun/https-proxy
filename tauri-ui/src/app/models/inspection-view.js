@@ -484,6 +484,7 @@ export function buildAuditExportRows(records) {
       totalTokens: usage.totalTokens == null ? '' : toSearchableText(usage.totalTokens),
       cost: cost.amount == null ? '' : toSearchableText(cost.amount),
       contextDiagnostics: isRecord(source.contextDiagnostics) ? 'yes' : 'no',
+      contextDiagnosticsMissingReason: toSearchableText(source.contextDiagnosticsMissingReason),
       contextBudgetPolicy: toSearchableText(contextBudget.policy),
       contextDroppedCount:
         contextBudget.droppedCount == null ? '' : toSearchableText(contextBudget.droppedCount),
@@ -519,6 +520,10 @@ export const AUDIT_EXPORT_COLUMNS = Object.freeze([
   Object.freeze({ id: 'totalTokens', label: 'totalTokens' }),
   Object.freeze({ id: 'cost', label: 'estimatedCost' }),
   Object.freeze({ id: 'contextDiagnostics', label: 'contextDiagnostics' }),
+  Object.freeze({
+    id: 'contextDiagnosticsMissingReason',
+    label: 'contextDiagnosticsMissingReason',
+  }),
   Object.freeze({ id: 'contextBudgetPolicy', label: 'contextBudgetPolicy' }),
   Object.freeze({ id: 'contextDroppedCount', label: 'contextDroppedCount' }),
   Object.freeze({ id: 'contextOptimizedCount', label: 'contextOptimizedCount' }),

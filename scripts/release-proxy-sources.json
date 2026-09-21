@@ -67,6 +67,7 @@
   "lib/proxy/handlers/responses-chat-stream.js",
   "lib/proxy/handlers/responses-state.js",
   "lib/proxy/handlers/responses-to-chat-handler.js",
+  "lib/proxy/handlers/responses-tool-preamble.js",
   "lib/proxy/handlers/route-error-utils.js",
   "lib/proxy/handlers/route-gemini-utils.js",
   "lib/proxy/handlers/route-handlers.js",

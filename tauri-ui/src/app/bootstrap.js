@@ -48,6 +48,7 @@ import {
   testTraeClaudeProcessOutput,
 } from './domains/tool-status.js';
 import { bindEnvControls, configureEnvironment, refreshEnvStatus } from './domains/environment.js';
+import { configureFeedback, confirmAction, showToast } from './domains/feedback.js';
 import { configureMcp, initMcpHubView } from './domains/mcp.js';
 import { configurePlayground, initPlaygroundView } from './domains/playground.js';
 import {
@@ -186,18 +187,6 @@ if (themeBtn) {
     showToast(labels[next] || '主题已切换', 'success');
   };
 }
-function showToast(message, type = 'success') {
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-  $('toastContainer').appendChild(toast);
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(20px)';
-    toast.style.transition = 'all 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
 async function copyTextToClipboard(text, successMessage = '已复制到剪贴板') {
   const value = String(text || '');
   if (!value) {
@@ -225,43 +214,19 @@ async function copyTextToClipboard(text, successMessage = '已复制到剪贴板
     return false;
   }
 }
-function confirmAction({ title, message, confirmText = '确认', danger = true }) {
-  return new Promise((resolve) => {
-    const modal = $('confirmModal');
-    const ok = $('confirmOk');
-    const cancel = $('confirmCancel');
-    $('confirmTitle').textContent = title;
-    $('confirmMessage').textContent = message;
-    ok.textContent = confirmText;
-    ok.className = danger ? 'danger' : 'secondary';
-    modal.classList.add('active');
-    modal.setAttribute('aria-hidden', 'false');
-    const finish = (confirmed) => {
-      modal.classList.remove('active');
-      modal.setAttribute('aria-hidden', 'true');
-      ok.onclick = null;
-      cancel.onclick = null;
-      modal.onclick = null;
-      document.onkeydown = null;
-      resolve(confirmed);
-    };
-    ok.onclick = () => finish(true);
-    cancel.onclick = () => finish(false);
-    modal.onclick = (event) => {
-      if (event.target === modal) finish(false);
-    };
-    document.onkeydown = (event) => {
-      if (event.key === 'Escape') finish(false);
-    };
-    cancel.focus();
-  });
-}
 function showDiagnosticsTab(panelId) {
   document.querySelectorAll('[data-diagnostics-tab]').forEach((button) => {
-    button.classList.toggle('active', button.dataset.diagnosticsTab === panelId);
+    const isActive = button.dataset.diagnosticsTab === panelId;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
   document.querySelectorAll('.diagnostics-panel').forEach((panel) => {
-    panel.classList.toggle('active', panel.id === panelId);
+    const isActive = panel.id === panelId;
+    panel.classList.toggle('active', isActive);
+    panel.setAttribute('role', 'tabpanel');
+    if (isActive) panel.removeAttribute('aria-hidden');
+    else panel.setAttribute('aria-hidden', 'true');
   });
   if (panelId === 'logPanel') refreshLog({ forceScroll: true });
   if (panelId === 'diagnosticsPanel') refreshDiagnostics({ forceScroll: true });
@@ -1528,17 +1493,21 @@ function resetRouteEditor() {
 // 对话审计逻辑
 
 function showView(viewId) {
+  const actualViewId = viewId === 'contextDiagnosticsView' ? 'usageReportView' : viewId;
   const finishViewPerf = perfStart(`view.${viewId}`);
   if (currentViewId === viewId) {
     finishViewPerf({ skipped: true });
     return;
   }
   const cache = getViewDomCache();
-  cache.buttons.forEach((item) =>
-    item.classList.toggle('active', item.dataset.viewButton === viewId)
-  );
-  cache.views.forEach((view) => view.classList.toggle('active', view.id === viewId));
-  const view = $(viewId);
+  cache.buttons.forEach((item) => {
+    const isActive = item.dataset.viewButton === viewId;
+    item.classList.toggle('active', isActive);
+    if (isActive) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
+  });
+  cache.views.forEach((view) => view.classList.toggle('active', view.id === actualViewId));
+  const view = $(actualViewId);
   currentViewId = view && view.classList.contains('active') ? viewId : currentViewId;
 
   // 清除代码工具页面的活动轮询定时器，防止其它页面持续后台请求造成性能浪费
@@ -1546,27 +1515,27 @@ function showView(viewId) {
     window.stopCodeToolsPolling();
   }
 
-  if (viewId === 'diagnostics') showDiagnosticsTab('logPanel');
-  if (viewId === 'monitor') refreshMonitor();
-  if (viewId === 'promptsAuditView') {
+  if (actualViewId === 'diagnostics') showDiagnosticsTab('logPanel');
+  if (actualViewId === 'monitor') refreshMonitor();
+  if (actualViewId === 'promptsAuditView') {
     initPromptsAuditView();
   }
-  if (viewId === 'usageReportView') {
-    initUsageReportView();
+  if (actualViewId === 'usageReportView') {
+    initUsageReportView({ focus: viewId === 'contextDiagnosticsView' ? 'context' : '' });
   }
-  if (viewId === 'claudeDesktop') refreshAllToolStatuses({ passive: true });
-  if (viewId === 'envCheckView') refreshEnvStatus({ passive: true });
-  if (viewId === 'codeToolsView') {
+  if (actualViewId === 'claudeDesktop') refreshAllToolStatuses({ passive: true });
+  if (actualViewId === 'envCheckView') refreshEnvStatus({ passive: true });
+  if (actualViewId === 'codeToolsView') {
     if (typeof window.initCodeToolsView === 'function') {
       window.initCodeToolsView();
     } else {
       reportFrontendError('tools.initialize', new Error('代码工具模块未加载，无法初始化页面'));
     }
   }
-  if (viewId === 'mcpHubView') {
+  if (actualViewId === 'mcpHubView') {
     initMcpHubView();
   }
-  if (viewId === 'playgroundView') {
+  if (actualViewId === 'playgroundView') {
     initPlaygroundView();
   }
   startHeartbeat();
@@ -3743,26 +3712,6 @@ if (switchCodexDirectApi) {
   };
 }
 
-// 折叠与展开手动安装命令
-$('manualInstallHeader').onclick = () => {
-  const body = $('manualInstallBody');
-  const arrow = $('manualInstallArrow');
-  const isHidden = body.style.display === 'none';
-  if (isHidden) {
-    body.style.display = 'block';
-    arrow.style.transform = 'rotate(0deg)';
-  } else {
-    body.style.display = 'none';
-    arrow.style.transform = 'rotate(-90deg)';
-  }
-};
-
-$('btnCopyInstallCommands').onclick = async () => {
-  const txt = $('installCommandsText').textContent;
-  await navigator.clipboard.writeText(txt);
-  showToast('已复制手动安装命令到剪贴板！', 'success');
-};
-
 $('addProfile').onclick = () => {
   const id = `profile-${Date.now()}`;
   fillForm({
@@ -3963,6 +3912,7 @@ function configureDomainModules() {
   configureAudit(runtime);
   configureCli(runtime);
   configureDiagnostics(runtime);
+  configureFeedback(runtime);
   configureToolStatus(runtime);
   configureEnvironment(runtime);
   configureMcp(runtime);

@@ -189,6 +189,11 @@ assert.ok(
   'usage report view exposes a CSV export button'
 );
 assert.ok(
+  indexHtml.includes('data-view-button="contextDiagnosticsView"') &&
+    indexHtml.includes('上下文诊断'),
+  'sidebar exposes a direct context diagnostics entry'
+);
+assert.ok(
   /exportBtn\.onclick = \(\) => exportUsageReportCsv\(\);/.test(src),
   'usage report CSV export button is bound'
 );

@@ -9,6 +9,8 @@ const {
   recordAuditUpstreamFailure,
   applyAuditUpstreamFailure,
   sanitizeContextDiagnostics,
+  contextDiagnosticsUsageSummary,
+  sanitizeDiagnosticsMissingReason,
   populateAuditDataFromPrepared,
   extractPromptFromBuffer,
 } = require('../lib/proxy/conversation-audit-utils');
@@ -727,5 +729,98 @@ assert.strictEqual(applyAuditUpstreamFailure({ statusCode: 200 }), false);
   assert.ok(!JSON.stringify(diagnostics).includes('private provider prompt'));
   assert.ok(!JSON.stringify(diagnostics).includes('secret'));
 }
+
+{
+  const records = [];
+  const usageLogs = [];
+  const res = createWritableResponse();
+  res.__auditData = {
+    startTime: Date.now(),
+    profileId: 'openai-official',
+    originalModel: 'gpt-5.5',
+    rewriteModel: 'gpt-5.5',
+    response: { role: 'assistant', content: '', tool_calls: [] },
+  };
+  res.__diagnostics = {
+    hpmDiagnostics: {
+      contextBudget: {
+        enabled: true,
+        policy: 'overflow-drop-oldest',
+        droppedCount: 3,
+        optimizedCount: 2,
+        overBudgetTokens: 1,
+        prompt: 'private prompt must not appear',
+        contextCache: { candidate: true, stablePrefixHash: 'hash-only' },
+      },
+      providerCache: {
+        enabled: true,
+        candidate: true,
+        applied: true,
+        prompt: 'private provider prompt must not appear',
+      },
+    },
+  };
+  installConversationAuditResponseCapture(res, createAuditCaptureDeps(records, usageLogs));
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ choices: [{ message: { content: 'hello' } }] }));
+
+  assert.strictEqual(records[0].contextDiagnostics.contextBudget.droppedCount, 3);
+  assert.deepStrictEqual(usageLogs[0].context, {
+    contextDiagnostics: true,
+    contextDroppedCount: 3,
+    contextOptimizedCount: 2,
+    contextOverBudgetTokens: 1,
+    contextStablePrefixCandidate: true,
+    providerCacheCandidate: true,
+    providerCacheApplied: true,
+  });
+  assert.ok(!JSON.stringify(usageLogs[0]).includes('private prompt'));
+  assert.ok(!JSON.stringify(usageLogs[0]).includes('hash-only'));
+}
+
+{
+  const records = [];
+  const usageLogs = [];
+  const res = createWritableResponse();
+  res.__auditData = {
+    startTime: Date.now(),
+    profileId: 'openai-official',
+    originalModel: 'gpt-5.5',
+    rewriteModel: 'gpt-5.5',
+    response: { role: 'assistant', content: '', tool_calls: [] },
+  };
+  res.__diagnostics = { contextDiagnosticsMissingReason: 'direct-responses-passthrough' };
+  installConversationAuditResponseCapture(res, createAuditCaptureDeps(records, usageLogs));
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ choices: [{ message: { content: 'hello' } }] }));
+
+  assert.strictEqual(records[0].contextDiagnostics, null);
+  assert.strictEqual(records[0].contextDiagnosticsMissingReason, 'direct-responses-passthrough');
+  assert.deepStrictEqual(usageLogs[0].context, {
+    contextDiagnostics: false,
+    contextDroppedCount: 0,
+    contextOptimizedCount: 0,
+    contextOverBudgetTokens: 0,
+    contextStablePrefixCandidate: false,
+    providerCacheCandidate: false,
+    providerCacheApplied: false,
+  });
+  assert.strictEqual(usageLogs[0].contextDiagnosticsMissingReason, 'direct-responses-passthrough');
+}
+
+assert.deepStrictEqual(contextDiagnosticsUsageSummary(null), {
+  contextDiagnostics: false,
+  contextDroppedCount: 0,
+  contextOptimizedCount: 0,
+  contextOverBudgetTokens: 0,
+  contextStablePrefixCandidate: false,
+  providerCacheCandidate: false,
+  providerCacheApplied: false,
+});
+assert.strictEqual(
+  sanitizeDiagnosticsMissingReason('direct-responses-passthrough'),
+  'direct-responses-passthrough'
+);
+assert.strictEqual(sanitizeDiagnosticsMissingReason('private prompt'), 'unknown');
 
 console.log('[conversation-audit-utils.test] ok');
