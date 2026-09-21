@@ -4,6 +4,7 @@
   "lib/proxy/agy-events.js",
   "lib/proxy/agy-runtime.js",
   "lib/proxy/antigravity-credentials.js",
+  "lib/proxy/antigravity-session.js",
   "lib/proxy/audit.js",
   "lib/proxy/auth-mode.js",
   "lib/proxy/auth-resolver.js",

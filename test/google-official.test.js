@@ -410,6 +410,102 @@ async function main() {
     runtimeFallbackReads.map((options) => options.preferCredentialManager === true),
     [false, true]
   );
+  assert.deepStrictEqual(
+    runtimeFallbackReads.map((options) => options.forceCredentialManagerReload === true),
+    [false, true]
+  );
+
+  let sessionLaunchCalls = 0;
+  let sessionCredentialReads = 0;
+  let sessionRecoveryDelays = 0;
+  const sessionRecoveryRuntime = createGoogleOfficialRuntime({
+    makeRequest: async () => {
+      throw new Error('OAuth refresh should not be attempted without a refresh token');
+    },
+    googleOfficialCodeAssistUrl,
+    googleOfficialModelsFromAvailableModels,
+    readAntigravityOfficialCredentialState: () => {
+      sessionCredentialReads += 1;
+      return {
+        credsPath: null,
+        source: 'antigravity-credential-manager',
+        credentialTarget: 'gemini:antigravity',
+        content: {
+          access_token:
+            sessionCredentialReads < 4 ? 'ya29.rejected-session' : 'ya29.recovered-session',
+          refresh_token: '',
+          token_type: 'Bearer',
+          __readOnly: true,
+          __source: 'antigravity-credential-manager',
+          expiry_date: Date.now() + 3600 * 1000,
+        },
+      };
+    },
+    isGoogleOfficialLoginToken,
+    buildGoogleOfficialLoadCodeAssistRequest,
+    startAntigravitySession: async () => {
+      sessionLaunchCalls += 1;
+      return { ok: true, launched: true, reason: 'started' };
+    },
+    env: {},
+    setTimeoutFn: (callback) => {
+      sessionRecoveryDelays += 1;
+      callback();
+      return null;
+    },
+  });
+  assert.equal(
+    await sessionRecoveryRuntime.refreshAntigravityOfficialAccessToken({
+      rejectedToken: 'ya29.rejected-session',
+      secondaryRefreshDelayMs: 0,
+      sessionRecoveryDelayMs: 1,
+      sessionRecoveryMaxAttempts: 3,
+    }),
+    'ya29.recovered-session'
+  );
+  assert.equal(sessionLaunchCalls, 1);
+  assert.equal(sessionCredentialReads, 4);
+  assert.equal(sessionRecoveryDelays, 2);
+
+  let exhaustedLaunchCalls = 0;
+  const exhaustedRecoveryRuntime = createGoogleOfficialRuntime({
+    makeRequest: async () => {
+      throw new Error('OAuth refresh should not be attempted without a refresh token');
+    },
+    googleOfficialCodeAssistUrl,
+    googleOfficialModelsFromAvailableModels,
+    readAntigravityOfficialCredentialState: () => ({
+      credsPath: null,
+      source: 'antigravity-credential-manager',
+      content: {
+        access_token: 'ya29.rejected-session',
+        refresh_token: '',
+        __readOnly: true,
+        expiry_date: Date.now() + 3600 * 1000,
+      },
+    }),
+    isGoogleOfficialLoginToken,
+    buildGoogleOfficialLoadCodeAssistRequest,
+    startAntigravitySession: async () => {
+      exhaustedLaunchCalls += 1;
+      return { ok: true, launched: false, reason: 'cooldown' };
+    },
+    env: {},
+    setTimeoutFn: (callback) => {
+      callback();
+      return null;
+    },
+  });
+  assert.equal(
+    await exhaustedRecoveryRuntime.refreshAntigravityOfficialAccessToken({
+      rejectedToken: 'ya29.rejected-session',
+      secondaryRefreshDelayMs: 0,
+      sessionRecoveryDelayMs: 0,
+      sessionRecoveryMaxAttempts: 2,
+    }),
+    ''
+  );
+  assert.equal(exhaustedLaunchCalls, 1);
 
   let freshCredentialRefreshCalls = 0;
   const freshCredentialRuntime = createGoogleOfficialRuntime({
