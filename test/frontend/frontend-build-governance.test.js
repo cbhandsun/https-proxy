@@ -93,6 +93,7 @@ for (const domainName of [
   'bridge.js',
   'cli.js',
   'diagnostics.js',
+  'feedback.js',
   'tool-status.js',
   'environment.js',
   'mcp.js',
@@ -113,6 +114,7 @@ for (const domainName of [
         (specifier) =>
           specifier === '../runtime/dependencies.js' ||
           specifier === '../runtime/frontend-errors.js' ||
+          (domainName === 'feedback.js' && specifier === '../runtime/modal-focus.js') ||
           (domainName === 'audit.js' && specifier === '../runtime/audit-format.js') ||
           (domainName === 'audit.js' && specifier === '../runtime/audit-usage-report.js') ||
           (domainName === 'bridge.js' && specifier === '../models/proxy-command.js')
@@ -126,6 +128,7 @@ for (const runtimeName of [
   'dependencies.js',
   'dom.js',
   'frontend-errors.js',
+  'modal-focus.js',
   'performance.js',
 ]) {
   const runtimePath = path.join(frontendSourceRoot, 'app', 'runtime', runtimeName);

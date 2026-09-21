@@ -195,15 +195,21 @@ export function togglePromptsTab(tabId) {
   const activeTab = isPreset ? presetTab : customTab;
   const inactiveTab = isPreset ? customTab : presetTab;
   activeTab.classList.add('active');
+  activeTab.setAttribute('aria-selected', 'true');
   activeTab.style.border = '1px solid var(--border)';
   activeTab.style.background = 'var(--light-bg)';
   activeTab.style.color = 'var(--text)';
   inactiveTab.classList.remove('active');
+  inactiveTab.setAttribute('aria-selected', 'false');
   inactiveTab.style.border = '1px solid transparent';
   inactiveTab.style.background = 'transparent';
   inactiveTab.style.color = 'var(--muted)';
   presetPanel.style.display = isPreset ? 'flex' : 'none';
   customPanel.style.display = isPreset ? 'none' : 'flex';
+  if (isPreset) presetPanel.removeAttribute('aria-hidden');
+  else presetPanel.setAttribute('aria-hidden', 'true');
+  if (isPreset) customPanel.setAttribute('aria-hidden', 'true');
+  else customPanel.removeAttribute('aria-hidden');
 }
 
 export function initPromptsTabSwitching() {

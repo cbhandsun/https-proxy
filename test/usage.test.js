@@ -79,6 +79,37 @@ assert.strictEqual(normalized.outputTokens, 1000000000);
 assert.strictEqual(normalized.cachedInputTokens, 900);
 assert.strictEqual(normalized.type.length, 78);
 
+const contextNormalized = _test.normalizeUsageRecord({
+  profileId: 'p1',
+  model: 'gpt-5.5',
+  inputTokens: 10,
+  outputTokens: 2,
+  cachedInputTokens: 8,
+  context: {
+    contextDiagnostics: true,
+    contextDroppedCount: 3,
+    contextOptimizedCount: 2,
+    contextOverBudgetTokens: 1,
+    contextStablePrefixCandidate: true,
+    providerCacheCandidate: true,
+    providerCacheApplied: false,
+    prompt: 'private prompt must not appear',
+  },
+  contextDiagnosticsMissingReason: 'direct-responses-passthrough',
+});
+assert.strictEqual(contextNormalized.contextDiagnostics, true);
+assert.strictEqual(contextNormalized.contextDroppedCount, 3);
+assert.strictEqual(contextNormalized.contextOptimizedCount, 2);
+assert.strictEqual(contextNormalized.contextOverBudgetTokens, 1);
+assert.strictEqual(contextNormalized.contextStablePrefixCandidate, true);
+assert.strictEqual(contextNormalized.providerCacheCandidate, true);
+assert.strictEqual(contextNormalized.providerCacheApplied, false);
+assert.strictEqual(
+  contextNormalized.contextDiagnosticsMissingReason,
+  'direct-responses-passthrough'
+);
+assert.ok(!JSON.stringify(contextNormalized).includes('private prompt'));
+
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-usage-jsonl-'));
 try {
   const usageFile = path.join(tmpDir, 'usage.jsonl');

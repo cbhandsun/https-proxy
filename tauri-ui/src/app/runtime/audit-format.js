@@ -46,12 +46,15 @@ export function auditContextHealthSummary(record) {
   const diagnostics = record && record.contextDiagnostics;
   const contextBudget = diagnostics && diagnostics.contextBudget;
   if (!contextBudget) {
+    const reason = record && record.contextDiagnosticsMissingReason;
     return {
       state: 'missing',
       title: '未记录上下文诊断',
-      detail: '该请求没有可用于排查的上下文预算数据',
+      detail: reason
+        ? `该请求没有上下文预算数据 · ${reason}`
+        : '该请求没有可用于排查的上下文预算数据',
       severity: 'warn',
-      badges: ['no-context-diagnostics'],
+      badges: reason ? ['no-context-diagnostics', reason] : ['no-context-diagnostics'],
     };
   }
 

@@ -45,6 +45,7 @@ let cachedFilteredAuditRecords = [];
 let cachedUsageReport = null;
 let auditVisibleCount = 0;
 let usageChartInstance = null;
+let usageReportFocus = '';
 const AUDIT_LIST_LIMIT = 30;
 const AUDIT_LOAD_MORE_STEP = 50;
 const AUDIT_MAX_LIST_LIMIT = 500;
@@ -575,7 +576,20 @@ async function initPromptsAuditView() {
   await loadAuditRecords();
 }
 
-async function initUsageReportView() {
+function updateUsageReportHeading() {
+  const view = auditDependencies.$('usageReportView');
+  const heading = view ? view.querySelector('h2') : null;
+  const meta = auditDependencies.$('usageReportMeta');
+  if (heading) heading.textContent = usageReportFocus === 'context' ? '上下文诊断' : '使用报告';
+  if (meta && !cachedUsageReport) {
+    meta.textContent =
+      usageReportFocus === 'context' ? '等待刷新 · 汇总上下文诊断、裁剪和缓存候选' : '等待刷新';
+  }
+}
+
+async function initUsageReportView(options = {}) {
+  usageReportFocus = options.focus === 'context' ? 'context' : '';
+  updateUsageReportHeading();
   const refreshBtn = auditDependencies.$('refreshUsageReport');
   const exportBtn = auditDependencies.$('exportUsageReportCsv');
   const windowSelect = auditDependencies.$('usageReportWindow');
@@ -635,6 +649,7 @@ async function loadUsageReport() {
 
 function renderUsageReport(report) {
   cachedUsageReport = report && typeof report === 'object' ? report : null;
+  updateUsageReportHeading();
   const total = report.total || {};
   const estimated = Number(total.estimatedRecords || 0);
   const meta = auditDependencies.$('usageReportMeta');

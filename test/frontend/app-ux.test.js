@@ -325,6 +325,16 @@ function tick(ms = 0) {
       app.includes('copyClaudeDesktopProcessPrompt'),
       'Claude Desktop prompt copy handler is bound'
     );
+    assert.ok(
+      app.includes("viewId === 'contextDiagnosticsView' ? 'usageReportView' : viewId"),
+      'context diagnostics navigation opens the usage report view'
+    );
+    assert.ok(
+      app.includes(
+        "initUsageReportView({ focus: viewId === 'contextDiagnosticsView' ? 'context' : '' })"
+      ),
+      'context diagnostics navigation focuses the context report'
+    );
   }
 
   // ─── 8. MCP Hub uses delegated DOM handlers, not inline JS ─────
