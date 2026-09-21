@@ -153,6 +153,7 @@
   "lib/proxy/trae-official.js",
   "lib/proxy/trae-status-handlers.js",
   "lib/proxy/upstream-cooldown-store.js",
+  "lib/proxy/upstream-dns.js",
   "lib/proxy/upstream-request.js",
   "lib/proxy/upstream-retry.js",
   "lib/proxy/upstream-warmup.js",
