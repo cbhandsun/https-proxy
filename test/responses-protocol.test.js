@@ -438,6 +438,69 @@ function createChatStreamState(overrides = {}) {
 }
 
 {
+  const result = openAIResponsesToChatResponse(
+    {
+      id: 'resp_custom',
+      status: 'completed',
+      output: [
+        {
+          type: 'custom_tool_call',
+          id: 'ctc_1',
+          call_id: 'call_exec',
+          name: 'exec',
+          input: 'return 1;',
+        },
+      ],
+    },
+    'gemini-3.8-flash'
+  );
+  const message = result.choices[0].message;
+  assert.strictEqual(result.choices[0].finish_reason, 'tool_calls');
+  assert.strictEqual(message.content, null);
+  assert.strictEqual(message.tool_calls[0].id, 'call_exec');
+  assert.strictEqual(message.tool_calls[0].function.name, 'exec');
+  assert.strictEqual(message.tool_calls[0].function.arguments, '{"input":"return 1;"}');
+}
+
+{
+  const result = openAIResponsesToChatResponse(
+    {
+      output: [
+        {
+          type: 'custom_tool_call',
+          name: 'exec',
+          input: 'return 2;',
+        },
+      ],
+    },
+    'gemini-3.8-flash'
+  );
+  const toolCall = result.choices[0].message.tool_calls[0];
+  assert.ok(toolCall.id);
+  assert.strictEqual(toolCall.function.name, 'exec');
+  assert.strictEqual(toolCall.function.arguments, '{"input":"return 2;"}');
+}
+
+{
+  const result = openAIResponsesToChatResponse(
+    {
+      output: [
+        {
+          type: 'custom_tool_call',
+          name: 'exec',
+          input: { language: 'js', code: 'return 3;' },
+        },
+      ],
+    },
+    'gemini-3.8-flash'
+  );
+  assert.strictEqual(
+    result.choices[0].message.tool_calls[0].function.arguments,
+    '{"language":"js","code":"return 3;"}'
+  );
+}
+
+{
   assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'openai-chat' }), true);
   assert.strictEqual(shouldConvertResponsesToOpenAIChat({ protocol: 'workbuddy' }), true);
   assert.strictEqual(
@@ -593,6 +656,106 @@ function createChatStreamState(overrides = {}) {
   const output = writes.join('');
   assert.ok(output.includes('"name":"Read"'));
   assert.strictEqual(output.includes('"name":"tool"'), false);
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createChatStreamState();
+  const responseEvent = (payload) =>
+    'event: ' + payload.type + '\ndata: ' + JSON.stringify(payload) + '\n\n';
+
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    responseEvent({
+      type: 'response.output_item.added',
+      output_index: 2,
+      item: { type: 'function_call', id: 'fc_2', call_id: 'call_2', name: 'lookup' },
+    }),
+    state
+  );
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    responseEvent({
+      type: 'response.function_call_arguments.delta',
+      output_index: 2,
+      delta: '{"q"',
+    }),
+    state
+  );
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    responseEvent({
+      type: 'response.function_call_arguments.delta',
+      output_index: 2,
+      delta: ':"x"}',
+    }),
+    state
+  );
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    responseEvent({
+      type: 'response.output_item.done',
+      output_index: 2,
+      item: { type: 'function_call', id: 'fc_2', call_id: 'call_2', name: 'lookup' },
+    }),
+    state
+  );
+
+  const output = writes.join('');
+  assert.ok(output.includes('"name":"lookup"'));
+  assert.ok(output.includes('"{\\"q\\":\\"x\\"}"'));
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createChatStreamState();
+  const responseEvent = (payload) =>
+    'event: ' + payload.type + '\ndata: ' + JSON.stringify(payload) + '\n\n';
+
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    responseEvent({
+      type: 'response.output_item.done',
+      item: {
+        type: 'custom_tool_call',
+        id: 'ctc_1',
+        call_id: 'call_exec',
+        name: 'exec',
+        input: 'return 1;',
+      },
+    }),
+    state
+  );
+
+  const output = writes.join('');
+  assert.ok(output.includes('"tool_calls"'));
+  assert.ok(output.includes('"name":"exec"'));
+  assert.ok(output.includes('"{\\"input\\":\\"return 1;\\"}"'));
+}
+
+{
+  const writes = [];
+  const clientRes = { write: (chunk) => writes.push(String(chunk)) };
+  const state = createChatStreamState();
+  const responseEvent = (payload) =>
+    'event: ' + payload.type + '\ndata: ' + JSON.stringify(payload) + '\n\n';
+
+  processOpenAIResponsesSseChunkToChat(
+    clientRes,
+    responseEvent({
+      type: 'response.output_item.done',
+      item: {
+        type: 'custom_tool_call',
+        name: 'exec',
+        input: { language: 'js', code: 'return 4;' },
+      },
+    }),
+    state
+  );
+
+  assert.ok(writes.join('').includes('"{\\"language\\":\\"js\\",\\"code\\":\\"return 4;\\"}"'));
 }
 
 {
@@ -1067,6 +1230,25 @@ function createChatStreamState(overrides = {}) {
   assert.strictEqual(result.messages[1].role, 'tool');
   assert.strictEqual(result.messages[1].tool_call_id, 'call_exec');
   assert.strictEqual(result.messages[1].content, '1');
+}
+
+{
+  const result = openAIResponsesToChat({
+    model: 'gemini-3.8-flash',
+    input: [
+      {
+        type: 'custom_tool_call',
+        call_id: 'call_exec_object',
+        name: 'exec',
+        input: { language: 'js', code: 'return 5;' },
+      },
+    ],
+  });
+
+  assert.strictEqual(
+    result.messages[0].tool_calls[0].function.arguments,
+    '{"language":"js","code":"return 5;"}'
+  );
 }
 
 {

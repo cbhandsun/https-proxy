@@ -3,6 +3,7 @@
 const assert = require('assert');
 const {
   buildTianxiResponsesResponse,
+  createTianxiResponsesStream,
   writeTianxiResponsesStream,
 } = require('../lib/proxy/tianxi-responses');
 const { officialLoginProvider } = require('../lib/proxy/auth-mode');
@@ -49,6 +50,7 @@ const frames = [
   {
     type: 'act_exec',
     data: {
+      exec_mode: 'local',
       actions: [
         {
           id: 'act_1',
@@ -87,9 +89,14 @@ const response = buildTianxiResponsesResponse(
 );
 
 assert.strictEqual(response.id, 'resp_test');
-assert.strictEqual(response.status, 'completed');
+assert.strictEqual(response.status, 'incomplete');
+assert.deepStrictEqual(response.incomplete_details, {
+  reason: 'tianxi_tool_calls_pending',
+});
 assert.strictEqual(response.output[0].type, 'reasoning');
-assert.strictEqual(response.output[0].summary, '先判断路径。');
+assert.deepStrictEqual(response.output[0].summary, [
+  { type: 'summary_text', text: '先判断路径。' },
+]);
 assert.strictEqual(response.output[1].type, 'message');
 assert.strictEqual(response.output[1].content[0].text, '可以接入。');
 assert.strictEqual(response.output[2].type, 'function_call');
@@ -122,8 +129,98 @@ assert.ok(stream.includes('可以接入。'));
 assert.ok(stream.includes('response.function_call_arguments.delta'));
 assert.ok(stream.includes('read_file'));
 assert.ok(stream.includes('tianxi_permission_request'));
-assert.ok(stream.includes('event: response.completed'));
+assert.ok(stream.includes('event: response.incomplete'));
+assert.ok(!stream.includes('event: response.completed'));
+assert.ok(stream.includes('event: response.content_part.added'));
+assert.ok(stream.includes('event: response.content_part.done'));
+assert.ok(stream.includes('event: response.output_item.done'));
+assert.ok(stream.endsWith('data: [DONE]\n\n'));
+const streamPayloads = stream
+  .split('\n')
+  .filter((line) => line.startsWith('data: '))
+  .map((line) => {
+    try {
+      return JSON.parse(line.slice(6));
+    } catch (_error) {
+      return null;
+    }
+  })
+  .filter(Boolean);
+for (const payload of streamPayloads) {
+  if (payload.type && payload.type !== 'response.created') {
+    assert.ok(payload.response_id || payload.response, payload.type + ' is missing response_id');
+  }
+}
+const incompleteRiskEvent = stream
+  .split('\n')
+  .filter((line) => line.startsWith('data: '))
+  .map((line) => {
+    try {
+      return JSON.parse(line.slice(6));
+    } catch (_error) {
+      return null;
+    }
+  })
+  .find((item) => item?.type === 'response.incomplete');
+assert.equal(incompleteRiskEvent.response.output[1].type, 'message');
+assert.equal(incompleteRiskEvent.response.output[1].content[0].text, '可以接入。');
+assert.deepStrictEqual(incompleteRiskEvent.response.output, response.output);
 assert.strictEqual(streamRes.ended, true);
+
+const partialCallbackRes = fakeRes();
+const partialCallbackStream = createTianxiResponsesStream(
+  partialCallbackRes,
+  { model: 'tianxi/super', input: 'ping' },
+  'super',
+  fakeDeps()
+);
+partialCallbackStream.writeFrame(frames[0]);
+partialCallbackStream.finish(frames);
+partialCallbackStream.finish(frames);
+assert.equal((partialCallbackRes.text().match(/event: response.incomplete/g) || []).length, 1);
+assert.equal((partialCallbackRes.text().match(/event: response.completed/g) || []).length, 0);
+assert.ok(partialCallbackRes.text().includes('可以接入。'));
+assert.equal((partialCallbackRes.text().match(/event: response.reasoning.delta/g) || []).length, 1);
+
+const disconnectedRes = fakeRes();
+const disconnectedStream = createTianxiResponsesStream(
+  disconnectedRes,
+  { model: 'tianxi/super', input: 'ping' },
+  'super',
+  fakeDeps()
+);
+const beforeDisconnect = disconnectedRes.text();
+disconnectedRes.destroyed = true;
+disconnectedStream.writeFrame(frames[0]);
+disconnectedStream.finish(frames);
+assert.equal(disconnectedRes.text(), beforeDisconnect);
+assert.equal(disconnectedRes.ended, false);
+
+const lateReasoningRes = fakeRes();
+writeTianxiResponsesStream(
+  lateReasoningRes,
+  { model: 'tianxi/super', input: 'ping' },
+  [
+    { type: 'task_output', data: { content_type: 'text', content: 'Answer' } },
+    { type: 'task_output', data: { reasoning_content: 'Reason' } },
+    { type: 'task_status', data: { status: 'COMPLETED' } },
+  ],
+  'super',
+  fakeDeps()
+);
+const lateReasoningDelta = lateReasoningRes
+  .text()
+  .split('\n')
+  .filter((line) => line.startsWith('data: '))
+  .map((line) => {
+    try {
+      return JSON.parse(line.slice(6));
+    } catch (_error) {
+      return null;
+    }
+  })
+  .find((item) => item?.type === 'response.reasoning.delta');
+assert.strictEqual(lateReasoningDelta.output_index, 1);
 
 const pendingToolFrames = [
   { type: 'task_output', data: { content_type: 'text', content: '先搜索资料。' } },
@@ -179,6 +276,99 @@ assert.ok(incompleteStream.includes('tianxi_tool_calls_pending'));
 assert.ok(!incompleteStream.includes('event: response.completed'));
 assert.ok(incompleteStream.includes('WebSearch'));
 assert.ok(!incompleteStream.includes('do-not-leak'));
+const incompleteEvent = incompleteStream
+  .split('\n')
+  .filter((line) => line.startsWith('data: '))
+  .map((line) => {
+    try {
+      return JSON.parse(line.slice(6));
+    } catch (_error) {
+      return null;
+    }
+  })
+  .find((item) => item?.type === 'response.incomplete');
+assert.deepStrictEqual(incompleteEvent.response, incomplete);
+
+const workingOnly = [{ type: 'task_status', data: { status: 'WORKING' } }];
+const missingTerminal = buildTianxiResponsesResponse(
+  { model: 'tianxi/super', input: 'ping' },
+  workingOnly,
+  'super',
+  fakeDeps()
+);
+assert.equal(missingTerminal.status, 'incomplete');
+assert.equal(missingTerminal.incomplete_details.reason, 'tianxi_terminal_status_missing');
+const missingTerminalStreamRes = fakeRes();
+writeTianxiResponsesStream(
+  missingTerminalStreamRes,
+  { model: 'tianxi/super', input: 'ping' },
+  workingOnly,
+  'super',
+  fakeDeps()
+);
+assert.ok(missingTerminalStreamRes.text().includes('event: response.incomplete'));
+assert.ok(!missingTerminalStreamRes.text().includes('event: response.completed'));
+
+const emptyCompletion = buildTianxiResponsesResponse(
+  { model: 'tianxi/super', input: 'ping' },
+  [{ type: 'task_status', data: { status: 'COMPLETED' } }],
+  'super',
+  fakeDeps()
+);
+assert.equal(emptyCompletion.status, 'incomplete');
+assert.equal(emptyCompletion.incomplete_details.reason, 'tianxi_empty_completion');
+
+const completedWithPendingPermission = buildTianxiResponsesResponse(
+  { model: 'tianxi/super', input: 'approve?' },
+  [
+    {
+      type: 'risk_exec',
+      data: {
+        action_id: 'approval_1',
+        action_name: 'run_command',
+        args: { command: 'dir' },
+      },
+    },
+    { type: 'task_status', data: { status: 'COMPLETED' } },
+  ],
+  'super',
+  fakeDeps()
+);
+assert.equal(completedWithPendingPermission.status, 'incomplete');
+assert.equal(completedWithPendingPermission.incomplete_details.reason, 'tianxi_tool_calls_pending');
+
+const nativeInternalFrames = [
+  { type: 'act_exec', data: { exec_mode: 'cli', actions: [{ id: 'read_1', name: 'Read' }] } },
+  { type: 'act_resp', data: { actions: [{ id: 'read_1', result: 'private source text' }] } },
+  { type: 'task_output', data: { content_type: 'text', content: 'Project summary' } },
+  { type: 'task_status', data: { status: 'COMPLETED' } },
+];
+const nativeInternal = buildTianxiResponsesResponse(
+  { model: 'tianxi/super', input: 'inspect' },
+  nativeInternalFrames,
+  'super',
+  fakeDeps()
+);
+assert.equal(nativeInternal.status, 'completed');
+assert.deepEqual(
+  nativeInternal.output.map((item) => item.type),
+  ['reasoning', 'message']
+);
+assert.equal(nativeInternal.output[0].summary[0].text, 'Using Read.\nRead completed.\n');
+assert.ok(!JSON.stringify(nativeInternal).includes('private source text'));
+const nativeInternalStreamRes = fakeRes();
+writeTianxiResponsesStream(
+  nativeInternalStreamRes,
+  { model: 'tianxi/super', input: 'inspect' },
+  nativeInternalFrames,
+  'super',
+  fakeDeps()
+);
+assert.ok(nativeInternalStreamRes.text().includes('event: response.completed'));
+assert.ok(nativeInternalStreamRes.text().includes('Using Read.'));
+assert.ok(nativeInternalStreamRes.text().includes('Read completed.'));
+assert.ok(!nativeInternalStreamRes.text().includes('response.function_call_arguments'));
+assert.ok(!nativeInternalStreamRes.text().includes('private source text'));
 
 const failed = buildTianxiResponsesResponse(
   { model: 'tianxi/super', input: 'ping' },
@@ -188,6 +378,27 @@ const failed = buildTianxiResponsesResponse(
 );
 assert.strictEqual(failed.status, 'failed');
 assert.strictEqual(failed.error.message, 'boom');
+const failedStreamRes = fakeRes();
+writeTianxiResponsesStream(
+  failedStreamRes,
+  { model: 'tianxi/super', input: 'ping' },
+  [{ type: 'task_status', data: { status: 'FAILED', error_detail: 'boom' } }],
+  'super',
+  fakeDeps()
+);
+const failedEvent = failedStreamRes
+  .text()
+  .split('\n')
+  .filter((line) => line.startsWith('data: '))
+  .map((line) => {
+    try {
+      return JSON.parse(line.slice(6));
+    } catch (_error) {
+      return null;
+    }
+  })
+  .find((item) => item?.type === 'response.failed');
+assert.deepStrictEqual(failedEvent.response, failed);
 
 const objectFailedFrame = {
   type: 'task_status',

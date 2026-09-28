@@ -191,6 +191,19 @@ function wait(ms) {
       ],
     },
   ]);
+
+  const objectInputMessages = state.responseOutputItemsToChatMessages([
+    {
+      type: 'custom_tool_call',
+      name: 'exec',
+      input: { language: 'js', code: 'return 2;' },
+    },
+  ]);
+  assert.strictEqual(objectInputMessages[0].tool_calls[0].id, 'id');
+  assert.strictEqual(
+    objectInputMessages[0].tool_calls[0].function.arguments,
+    '{"language":"js","code":"return 2;"}'
+  );
 })();
 
 (() => {

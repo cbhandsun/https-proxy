@@ -5,6 +5,7 @@ const {
   sendRequestTooLarge,
   appendAuditText,
   createConversationAuditData,
+  captureAuditBody,
   installConversationAuditResponseCapture,
   recordAuditUpstreamFailure,
   applyAuditUpstreamFailure,
@@ -73,6 +74,19 @@ function createAuditCaptureDeps(records, usageLogs) {
     id: 'metadata-only',
     captureContent: false,
   });
+  const privateBody = Buffer.from('private request text');
+  const shouldNeverCapture = () => {
+    throw new Error('disabled capture was called');
+  };
+  assert.deepStrictEqual(captureAuditBody(auditData, privateBody, null, shouldNeverCapture), {
+    body: '',
+    truncated: false,
+  });
+  assert.ok(
+    !JSON.stringify(captureAuditBody(auditData, privateBody, null, shouldNeverCapture)).includes(
+      'private'
+    )
+  );
   const auditRes = { __auditData: auditData };
   populateAuditDataFromPrepared(
     auditRes,
@@ -90,6 +104,46 @@ function createAuditCaptureDeps(records, usageLogs) {
   assert.deepStrictEqual(auditData.messages, []);
   assert.strictEqual(auditData.system, '');
   assert.ok(auditData.request.bodyBytes > 0);
+}
+
+{
+  const auditData = createConversationAuditData({ id: 'content-enabled', captureContent: true });
+  const body = Buffer.from('allowed audit text');
+  assert.deepStrictEqual(
+    captureAuditBody(auditData, body, 'utf8', (buffer, encoding) => ({
+      body: buffer.toString(encoding),
+      truncated: false,
+      originalLength: buffer.length,
+    })),
+    { body: 'allowed audit text', truncated: false, originalLength: body.length }
+  );
+  assert.deepStrictEqual(
+    captureAuditBody(auditData, Buffer.alloc(0), null, () => ({ body: '' })),
+    {
+      body: '',
+      truncated: false,
+    }
+  );
+  assert.deepStrictEqual(
+    captureAuditBody(auditData, 'invalid buffer', null, () => ({})),
+    {
+      body: '',
+      truncated: false,
+    }
+  );
+  assert.deepStrictEqual(
+    captureAuditBody(auditData, Buffer.alloc(0), null, () => ({})),
+    {
+      body: '',
+      truncated: false,
+    }
+  );
+  assert.deepStrictEqual(
+    captureAuditBody(auditData, Buffer.alloc(1024 * 1024), null, () => {
+      throw new Error('capture failure');
+    }),
+    { body: '', truncated: false }
+  );
 }
 
 {
@@ -349,6 +403,113 @@ function createAuditCaptureDeps(records, usageLogs) {
   assert.strictEqual(records[0].usage.inputTokens, 5);
   assert.strictEqual(usageLogs[0].outputTokens, 6);
   assert.ok(records[0].timings.firstVisibleTextMs >= 0);
+}
+
+// Regression: Responses custom tools are emitted as custom_tool_call items, and
+// some upstreams attach argument deltas by item_id only. The audit capture must
+// preserve the custom input shape and avoid appending deltas to call index 0.
+{
+  const records = [];
+  const usageLogs = [];
+  const res = createWritableResponse();
+  res.__auditData = {
+    startTime: Date.now(),
+    profileId: 'gemini-official',
+    originalModel: 'gemini-client',
+    rewriteModel: 'gemini-3.8-flash-tiered',
+    response: { role: 'assistant', content: '', tool_calls: [] },
+  };
+  installConversationAuditResponseCapture(res, createAuditCaptureDeps(records, usageLogs));
+  res.writeHead(200, { 'content-type': 'text/event-stream' });
+  res.write(
+    [
+      'data: {"type":"response.output_item.added","item":{"id":"call_a","type":"custom_tool_call","name":"exec","input":{"language":"js","code":"return 1;"}}}',
+      '',
+      'data: {"type":"response.output_item.added","item":{"id":"call_b","type":"function_call","name":"lookup","arguments":""}}',
+      '',
+      'data: {"type":"response.function_call_arguments.delta","item_id":"call_b","delta":"{\\"q\\":\\"x\\"}"}',
+      '',
+    ].join('\n')
+  );
+  res.end('data: [DONE]\n\n');
+
+  assert.deepStrictEqual(records[0].response.tool_calls, [
+    {
+      id: 'call_a',
+      name: 'exec',
+      args: { language: 'js', code: 'return 1;' },
+      truncated: false,
+    },
+    { id: 'call_b', name: 'lookup', args: { q: 'x' }, truncated: false },
+  ]);
+}
+
+// Regression: stream providers may send only output_item.done for a completed
+// custom call. Auditing should still retain the call instead of losing it.
+{
+  const records = [];
+  const usageLogs = [];
+  const res = createWritableResponse();
+  res.__auditData = {
+    startTime: Date.now(),
+    profileId: 'gemini-official',
+    originalModel: 'gemini-client',
+    rewriteModel: 'gemini-3.8-flash-tiered',
+    response: { role: 'assistant', content: '', tool_calls: [] },
+  };
+  installConversationAuditResponseCapture(res, createAuditCaptureDeps(records, usageLogs));
+  res.writeHead(200, { 'content-type': 'text/event-stream' });
+  res.end(
+    [
+      'data: {"type":"response.output_item.done","item":{"id":"call_done","type":"custom_tool_call","name":"exec","input":"console.log(1)"}}',
+      '',
+      'data: [DONE]',
+      '',
+    ].join('\n')
+  );
+
+  assert.deepStrictEqual(records[0].response.tool_calls, [
+    { id: 'call_done', name: 'exec', args: { input: 'console.log(1)' }, truncated: false },
+  ]);
+}
+
+// Regression: non-stream Responses JSON stores assistant text and tool calls in
+// output[], not choices[].message. Capture both ordinary and custom tool calls.
+{
+  const records = [];
+  const usageLogs = [];
+  const res = createWritableResponse();
+  res.__auditData = {
+    startTime: Date.now(),
+    profileId: 'openai-official',
+    originalModel: 'gpt-client',
+    rewriteModel: 'gpt-target',
+    response: { role: 'assistant', content: '', tool_calls: [] },
+  };
+  installConversationAuditResponseCapture(res, createAuditCaptureDeps(records, usageLogs));
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(
+    JSON.stringify({
+      output: [
+        { type: 'message', content: [{ type: 'output_text', text: 'done' }] },
+        { id: 'call_1', type: 'function_call', name: 'lookup', arguments: '{"q":"x"}' },
+        {
+          id: 'call_2',
+          type: 'custom_tool_call',
+          name: 'exec',
+          input: { language: 'js', code: 'return 5;' },
+        },
+      ],
+      usage: { input_tokens: 7, output_tokens: 8 },
+    })
+  );
+
+  assert.strictEqual(records[0].response.content, 'done');
+  assert.deepStrictEqual(records[0].response.tool_calls, [
+    { id: 'call_1', name: 'lookup', args: { q: 'x' } },
+    { id: 'call_2', name: 'exec', args: { language: 'js', code: 'return 5;' } },
+  ]);
+  assert.strictEqual(records[0].usage.inputTokens, 7);
 }
 
 // Regression: usage-stats.jsonl recorded 0/0 for every request because logUsage()

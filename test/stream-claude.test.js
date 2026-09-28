@@ -218,6 +218,37 @@ t('malformed JSON does not throw', () => {
   assert.strictEqual(state.finishReason, null);
 });
 
+t('malformed Gemini SSE log omits raw frame content', () => {
+  const res = makeRes();
+  const state = makeState();
+  let captured = '';
+  const originalStdoutWrite = process.stdout.write;
+  const originalStderrWrite = process.stderr.write;
+  process.stdout.write = function write(chunk, ...args) {
+    captured += String(chunk);
+    return originalStdoutWrite.call(this, chunk, ...args);
+  };
+  process.stderr.write = function write(chunk, ...args) {
+    captured += String(chunk);
+    return originalStderrWrite.call(this, chunk, ...args);
+  };
+  try {
+    stream.processGeminiSseEvent(
+      res,
+      'data: {"secret_prompt":"do not log me"\n\n',
+      state,
+      'gemini-3.8-flash-tiered'
+    );
+  } finally {
+    process.stdout.write = originalStdoutWrite;
+    process.stderr.write = originalStderrWrite;
+  }
+  assert.ok(captured.includes('gemini stream parse skipped'));
+  assert.ok(captured.includes('data_bytes='));
+  assert.ok(!captured.includes('secret_prompt'));
+  assert.ok(!captured.includes('do not log me'));
+});
+
 // 9. Splits buffer across chunks
 t('buffer is split correctly across chunk boundaries', () => {
   const res = makeRes();
