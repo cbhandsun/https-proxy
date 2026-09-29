@@ -79,6 +79,25 @@ test('Tianxi bridge validates Responses payload and returns frames without loggi
       assert.equal(body.frames[0].data.content, 'ok');
       assert.equal(received.model, 'super');
       assert.equal(received.stream, true);
+      const unsupported = await fetch(url + '/v1/responses', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'super', input: 'x', tools: [{ type: 'function' }] }),
+      });
+      assert.equal(unsupported.status, 422);
+      assert.equal((await unsupported.json()).error.code, 'tianxi_tool_bridge_unsupported');
+      const unsupportedMedia = await fetch(url + '/v1/responses', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'super',
+          input: [{ role: 'user', content: [{ type: 'input_image', image_url: 'SECRET' }] }],
+        }),
+      });
+      assert.equal(unsupportedMedia.status, 422);
+      const mediaError = await unsupportedMedia.json();
+      assert.equal(mediaError.error.code, 'tianxi_input_media_unsupported');
+      assert.ok(!JSON.stringify(mediaError).includes('SECRET'));
       assert.ok(!JSON.stringify(records).includes('SECRET user prompt'));
       assert.equal(
         (

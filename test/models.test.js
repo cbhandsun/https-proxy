@@ -13,6 +13,7 @@ const {
   normalizeModelGroup,
   parseModelsRequestPath,
 } = require('../lib/proxy/models');
+const { codexModelRoutesForConfig } = require('../lib/proxy/tool-config-handlers');
 
 assert.deepStrictEqual(
   buildLocalModelsResponse([
@@ -153,6 +154,26 @@ assert.deepStrictEqual(
     { from: 'hidden-alias', profileId: 'custom', to: 'hidden', exposeInModels: false },
   ]).map((route) => route.from),
   ['gemini-3.7-flash', 'Friendly Only']
+);
+
+assert.deepStrictEqual(
+  codexModelRoutesForConfig({
+    modelRoutes: [
+      {
+        from: 'workbuddy/deepseek-v4.1-flash',
+        profileId: 'workbuddy-official',
+        to: 'deepseek-v4.1-flash',
+        clientProtocols: ['openai-chat'],
+      },
+      {
+        from: 'chat-only-custom',
+        profileId: 'custom-openai',
+        to: 'chat-only-custom',
+        clientProtocols: ['openai-chat'],
+      },
+    ],
+  }).map((route) => route.from),
+  ['workbuddy/deepseek-v4.1-flash']
 );
 
 const groupedFriendlyModel = buildLocalModelsResponse([

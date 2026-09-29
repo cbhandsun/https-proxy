@@ -1,6 +1,7 @@
 const assert = require('assert');
 const http = require('http');
 const { EventEmitter } = require('events');
+const { AbortController } = globalThis;
 
 const { createHttpClient } = require('../lib/proxy/http-client');
 
@@ -35,6 +36,10 @@ const { createHttpClient } = require('../lib/proxy/http-client');
     assert.strictEqual(response.body, 'ok');
     assert.strictEqual(capturedOptions.port, 1234);
     assert.strictEqual(capturedOptions.timeout, 10000);
+
+    const controller = new AbortController();
+    await makeRequest('http://example.test/path', { signal: controller.signal });
+    assert.strictEqual(capturedOptions.signal, controller.signal);
 
     response = await makeRequest('http://example.test/path', {
       timeout: 0,

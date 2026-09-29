@@ -185,6 +185,7 @@ async function main() {
     setTimeout,
     clearTimeout,
     bindDomainDependencies: (_name, dependencies) => dependencies,
+    installAppShortcutHandler() {},
     reportFrontendError() {},
   };
   vm.runInNewContext(

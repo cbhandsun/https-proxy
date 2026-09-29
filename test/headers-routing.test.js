@@ -46,8 +46,15 @@ function createProxyEnv() {
 
 // 1. 创建一个 Mock 下游服务器 (Upstream)
 let receivedHeaders = {};
+let observeCancellation = null;
 const mockUpstream = http.createServer((req, res) => {
   receivedHeaders = req.headers;
+  if (req.headers['x-hpm-cancel-test'] === '1') {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+    res.write('data: first\n\n');
+    res.once('close', () => observeCancellation?.());
+    return;
+  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ ok: true }));
 });
@@ -105,6 +112,7 @@ function setupTestConfig(profile) {
     },
     profiles: [profile],
     modelRoutes: [],
+    appSettings: { conversationAuditEnabled: true, conversationAuditCaptureContent: false },
   };
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 }
@@ -279,6 +287,8 @@ async function runTests() {
       message: 'Claude Official Profile (Empty API Key) preserves client credentials',
     });
 
+    await runMetadataOnlyAuditTest();
+
     // 测试用例 2: Claude 官方 Profile 带 apiKey
     await runSingleTest({
       profile: {
@@ -431,6 +441,8 @@ async function runTests() {
     // 测试新特性 3: 提示词同步本地 API
     await runPromptsSyncApiTest();
 
+    await runDownstreamCancellationTest();
+
     console.log('\nAll integration tests passed successfully!');
   } catch (err) {
     console.error('\nTest failed:', err);
@@ -438,6 +450,74 @@ async function runTests() {
   } finally {
     await stopSharedProxy();
     cleanUp();
+  }
+}
+
+async function runDownstreamCancellationTest() {
+  await useSharedProxy({
+    id: 'openai-cancellation-test',
+    name: 'OpenAI cancellation test',
+    protocol: 'openai',
+    targetUrl: `http://127.0.0.1:${upstreamPort}`,
+  });
+  const upstreamClosed = new Promise((resolve) => {
+    observeCancellation = resolve;
+  });
+  const eventsPath = path.join(testRuntimeDir, 'proxy-events.jsonl');
+  const countTerminals = (type) => {
+    if (!fs.existsSync(eventsPath)) return 0;
+    return fs
+      .readFileSync(eventsPath, 'utf8')
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line))
+      .filter((event) => event.kind === 'request_end' && event.type === type).length;
+  };
+  const previousCancellations = countTerminals('client_disconnected');
+  const previousProxyErrors = countTerminals('proxy_error');
+  const previousCompletions = countTerminals('openai_stream_terminal');
+  try {
+    await new Promise((resolve, reject) => {
+      const request = http.request(
+        {
+          hostname: '127.0.0.1',
+          port: openAiEntryPort,
+          path: '/v1/chat/completions',
+          method: 'POST',
+          headers: {
+            accept: 'text/event-stream',
+            'content-type': 'application/json',
+            'x-hpm-cancel-test': '1',
+          },
+        },
+        (response) => {
+          response.on('error', () => {});
+          response.once('data', () => {
+            response.destroy();
+            resolve();
+          });
+        }
+      );
+      request.once('error', reject);
+      request.end(JSON.stringify({ model: 'gpt-4', stream: true, messages: [] }));
+    });
+    await Promise.race([
+      upstreamClosed,
+      delay(2000).then(() => {
+        throw new Error('upstream request remained open after the client disconnected');
+      }),
+    ]);
+    const recordDeadline = Date.now() + 2000;
+    while (countTerminals('client_disconnected') < previousCancellations + 1) {
+      if (Date.now() >= recordDeadline) break;
+      await delay(20);
+    }
+    assert.equal(countTerminals('client_disconnected'), previousCancellations + 1);
+    assert.equal(countTerminals('proxy_error'), previousProxyErrors);
+    assert.equal(countTerminals('openai_stream_terminal'), previousCompletions);
+    console.log('  [PASS] Downstream disconnect cancels the active upstream stream');
+  } finally {
+    observeCancellation = null;
   }
 }
 
@@ -468,6 +548,57 @@ function sendRoutedRequest({ clientHeaders, clientPort, clientPath, clientBody }
       )
     );
   });
+}
+
+async function runMetadataOnlyAuditTest() {
+  const privateText = 'audit-private-metadata-only-' + 'x'.repeat(73);
+  const clientBody = {
+    model: 'claude-sonnet-4-6',
+    messages: [{ role: 'user', content: privateText }],
+  };
+  const expectedBytes = Buffer.byteLength(JSON.stringify(clientBody));
+  const startedAt = Date.now();
+  await sendRoutedRequest({
+    clientBody,
+    clientPort: claudeEntryPort,
+    clientPath: '/v1/messages',
+    clientHeaders: {
+      authorization: 'Bearer client-oauth-token',
+      'x-api-key': 'client-api-key',
+      'anthropic-version': '2023-06-01',
+    },
+  });
+  const auditPath = path.join(testRuntimeDir, 'conversations-audit.jsonl');
+  const deadline = Date.now() + 3000;
+  let record;
+  while (!record && Date.now() < deadline) {
+    if (fs.existsSync(auditPath)) {
+      const lines = fs.readFileSync(auditPath, 'utf8').split(/\r?\n/);
+      for (const line of lines) {
+        if (!line) continue;
+        let entry;
+        try {
+          entry = JSON.parse(line);
+        } catch (_error) {
+          continue;
+        }
+        if (
+          entry.startTime >= startedAt &&
+          entry.profileId === 'claude-official' &&
+          entry.request?.bodyBytes === expectedBytes
+        ) {
+          record = entry;
+          break;
+        }
+      }
+    }
+    if (!record) await delay(20);
+  }
+  assert.ok(record, 'metadata-only audit record should be written');
+  assert.strictEqual(record.request.body, '');
+  assert.strictEqual(record.upstream.body, '');
+  assert.ok(!JSON.stringify(record).includes(privateText));
+  console.log('  [PASS] Metadata-only audit omits request and upstream body content');
 }
 
 async function runSingleTest({

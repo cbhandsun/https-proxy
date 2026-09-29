@@ -54,3 +54,31 @@ Operational notes:
   handshake guarantees no HTTP bytes reached the upstream. This is detected
   from the connection state, not the error code, so a reset on an established
   or reused connection still requires the normal idempotency contract.
+
+## Upstream stream failure diagnostics
+
+`upstream_stream_aborted` means the upstream response ended before a protocol
+terminal frame or normal response end. It is emitted from the upstream
+`IncomingMessage`; it must not be interpreted as a downstream client cancel.
+
+Failure records contain only bounded transport metadata: response status and
+completion flags, safe socket error code, connection reuse state, TLS state,
+remote IP/port, and the number of socket bytes observed after response headers.
+They never copy headers, request/response bodies, SSE chunks, cookies, tokens,
+or raw socket error messages. The guard also destroys an incomplete upstream
+socket that is still open so the HTTP agent cannot return it to the keep-alive
+pool.
+
+Request-side connection failures record the observed DNS, TCP, and TLS milestones,
+whether Node emitted `ClientRequest.finish`, and a validated peer IP/port captured
+before socket teardown. A missing response is classified as TCP connect, TLS
+handshake, or awaiting response using those milestones even if Node has already
+cleared the socket reference. Only allowlisted error codes and fixed error text
+are emitted on this path; a peer address or DNS result is included only when it
+parses as an IP address. `finish` does not prove the remote service received the
+request body.
+
+Do not automatically replay a Responses request after headers or streamed
+content reached the client. A replay can duplicate model output or tool calls.
+Only pre-transmission failures and requests satisfying the existing
+idempotency policy are retryable.

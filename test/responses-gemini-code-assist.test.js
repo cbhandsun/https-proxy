@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('assert');
+const { EventEmitter } = require('node:events');
 const {
   createRouteHandlers,
   _internal: routeHandlerInternals,
@@ -13,15 +14,12 @@ let parsedStream = false;
 let parsedInput = 'hello';
 let requestedStream = null;
 let convertedClaudeBody = null;
+let capturedErrorContext = null;
 const fallbackId = () => 'test-id';
 const codeAssist = createCodeAssist({ fallbackId });
-const request = {
-  on() {
-    return this;
-  },
-  end(body) {
-    capturedBody = body;
-  },
+const request = new EventEmitter();
+request.end = (body) => {
+  capturedBody = body;
 };
 const https = {
   request(options) {
@@ -79,7 +77,10 @@ const handlers = createRouteHandlers({
     throw new Error('legacy direct request options must not be used for Code Assist');
   },
   onProxyTimeout: () => noop,
-  onProxyError: () => noop,
+  onProxyError: (_clientRes, _label, context) => {
+    capturedErrorContext = context;
+    return noop;
+  },
   parseJsonOrSseJson: JSON.parse,
   shouldUseCodeAssistUpstream: () => true,
   codeAssistUserAgent: codeAssist.codeAssistUserAgent,
@@ -150,6 +151,24 @@ assert.deepStrictEqual(JSON.parse(capturedBody.toString('utf8')), {
 });
 assert.strictEqual(requestedStream, false);
 assert.strictEqual(convertedClaudeBody.__responsesToolPreamble, true);
+assert.equal(typeof capturedErrorContext.getFailureDiagnostics, 'function');
+const socket = new EventEmitter();
+Object.assign(socket, { connecting: true, encrypted: true, secureConnecting: true });
+request.socket = socket;
+request.emit('socket', socket);
+socket.emit('lookup', null, '104.18.32.47');
+socket.connecting = false;
+socket.remoteAddress = '104.18.32.47';
+socket.remotePort = 443;
+socket.emit('connect');
+request.socket = null;
+socket.remoteAddress = undefined;
+const connectionFailure = capturedErrorContext.getFailureDiagnostics({ code: 'ECONNRESET' });
+assert.equal(connectionFailure.upstreamFailurePhase, 'tls_handshake');
+assert.equal(connectionFailure.upstreamRemoteAddress, '104.18.32.47');
+assert.equal(connectionFailure.upstreamDnsAddress, '104.18.32.47');
+assert.equal(connectionFailure.upstreamRequestBodyBytes, capturedBody.length);
+assert.equal(connectionFailure.upstreamContentLengthMatches, true);
 
 parsedStream = true;
 handlers.handleOpenAIResponsesToGeminiMessages(

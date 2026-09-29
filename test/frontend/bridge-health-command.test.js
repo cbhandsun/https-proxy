@@ -61,6 +61,7 @@ const source = fs.readFileSync(
       setTimeout,
       clearTimeout,
       bindDomainDependencies: (_name, dependencies) => dependencies,
+      installAppShortcutHandler() {},
       reportFrontendError() {},
       executeHealthCommand,
     };

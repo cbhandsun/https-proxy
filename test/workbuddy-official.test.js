@@ -1,10 +1,18 @@
 const assert = require('assert');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 const {
   getWorkBuddyAuthInfoPath,
   readWorkBuddyAuthInfo,
   isWorkBuddyOfficialLoginToken,
+  isUsableWorkBuddyAccessToken,
+  isWorkBuddyEncryptedSecret,
+  coerceWorkBuddySecret,
+  coerceWorkBuddyPublicString,
+  workBuddyTargetUrlFromAuth,
+  resolveWorkBuddyOfficialTargetUrl,
   isWorkBuddyOfficialTarget,
   isWorkBuddyOfficialProfile,
   readWorkBuddyModelsCache,
@@ -23,6 +31,35 @@ assert.strictEqual(isWorkBuddyOfficialLoginToken('eyJhbGciOiJSUzI1NiIsInR5cCI6Ik
 assert.strictEqual(isWorkBuddyOfficialLoginToken('sk-proj-12345'), false);
 assert.strictEqual(isWorkBuddyOfficialLoginToken(null), false);
 assert.strictEqual(isWorkBuddyOfficialLoginToken(''), false);
+assert.strictEqual(isUsableWorkBuddyAccessToken('opaque-workbuddy-token'), true);
+assert.strictEqual(isUsableWorkBuddyAccessToken('eyJhbGciOiJSUzI1NiJ9'), true);
+assert.strictEqual(isUsableWorkBuddyAccessToken('short'), true);
+assert.strictEqual(isUsableWorkBuddyAccessToken('   '), false);
+assert.strictEqual(isUsableWorkBuddyAccessToken(null), false);
+assert.strictEqual(coerceWorkBuddySecret('token-value'), 'token-value');
+assert.strictEqual(coerceWorkBuddySecret({ token: 'must-not-coerce-object' }), null);
+assert.strictEqual(coerceWorkBuddyPublicString('public-id'), 'public-id');
+assert.strictEqual(coerceWorkBuddyPublicString({ $wbEncrypted: 1, envelope: 'private' }), '');
+assert.strictEqual(
+  isWorkBuddyEncryptedSecret({ $wbEncrypted: 1, envelope: 'encrypted-envelope' }),
+  true
+);
+assert.strictEqual(
+  isWorkBuddyEncryptedSecret({
+    $wbEncrypted: 1,
+    envelope: 'encrypted-envelope',
+    scheme: 'asym-v1',
+  }),
+  true
+);
+assert.strictEqual(
+  isWorkBuddyEncryptedSecret({
+    $wbEncrypted: 1,
+    envelope: 'encrypted-envelope',
+    extra: 'unexpected',
+  }),
+  false
+);
 
 // 2. Test target URL recognition
 assert.strictEqual(isWorkBuddyOfficialTarget('https://copilot.tencent.com'), true);
@@ -31,6 +68,30 @@ assert.strictEqual(isWorkBuddyOfficialTarget('https://www.workbuddy.cn'), true);
 assert.strictEqual(isWorkBuddyOfficialTarget('https://www.codebuddy.ai'), true);
 assert.strictEqual(isWorkBuddyOfficialTarget('https://api.openai.com/v1'), false);
 assert.strictEqual(isWorkBuddyOfficialTarget('https://coresg-normal.trae.ai'), false);
+assert.strictEqual(
+  workBuddyTargetUrlFromAuth({ domain: 'www.workbuddy.cn' }),
+  'https://www.workbuddy.cn/v2'
+);
+assert.strictEqual(
+  workBuddyTargetUrlFromAuth({ domain: 'https://copilot.tencent.com/path' }),
+  'https://copilot.tencent.com/v2'
+);
+assert.strictEqual(
+  workBuddyTargetUrlFromAuth({ domain: 'www.workbuddy.cn.evil.test' }),
+  'https://copilot.tencent.com/v2'
+);
+assert.strictEqual(
+  resolveWorkBuddyOfficialTargetUrl('https://copilot.tencent.com', {
+    domain: 'www.workbuddy.cn',
+  }),
+  'https://www.workbuddy.cn/v2'
+);
+assert.strictEqual(
+  resolveWorkBuddyOfficialTargetUrl('https://custom-workbuddy.example.test/v2', {
+    domain: 'www.workbuddy.cn',
+  }),
+  'https://custom-workbuddy.example.test/v2'
+);
 
 // 3. Test profile recognition
 assert.strictEqual(isWorkBuddyOfficialProfile('workbuddy-official'), true);
@@ -222,9 +283,42 @@ const authPath = getWorkBuddyAuthInfoPath();
 if (fs.existsSync(authPath)) {
   const authInfo = readWorkBuddyAuthInfo(authPath);
   assert.ok(authInfo, 'Should parse live workbuddy-desktop.info');
-  assert.ok(authInfo.accessToken, 'Access token should be present');
-  assert.strictEqual(isWorkBuddyOfficialLoginToken(authInfo.accessToken), true);
-  console.log('[TEST] Live WorkBuddy credentials verified for:', authInfo.nickname || authInfo.uin);
+  assert.ok(
+    authInfo.accessToken || authInfo.accessTokenEncrypted,
+    'Access token should be present as plaintext or encrypted'
+  );
+  if (authInfo.accessToken) {
+    assert.strictEqual(isUsableWorkBuddyAccessToken(authInfo.accessToken), true);
+  }
+  console.log('[TEST] Live WorkBuddy credential shape verified');
+}
+
+// 13. Encrypted WorkBuddy credentials are detected but never coerced into token strings
+{
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-workbuddy-official-'));
+  try {
+    const authFile = path.join(tempDir, 'workbuddy-desktop.info');
+    fs.writeFileSync(
+      authFile,
+      JSON.stringify({
+        auth: {
+          accessToken: { $wbEncrypted: 1, envelope: 'encrypted-access-token' },
+          refreshToken: { $wbEncrypted: 1, envelope: 'encrypted-refresh-token' },
+          tokenType: 'Bearer',
+          domain: 'www.workbuddy.cn',
+        },
+        account: { uid: 'uid-encrypted', uin: 'uin-encrypted' },
+      })
+    );
+    const authInfo = readWorkBuddyAuthInfo(authFile);
+    assert.strictEqual(authInfo.accessToken, null);
+    assert.strictEqual(authInfo.refreshToken, null);
+    assert.strictEqual(authInfo.accessTokenEncrypted, true);
+    assert.strictEqual(authInfo.refreshTokenEncrypted, true);
+    assert.strictEqual(authInfo.domain, 'www.workbuddy.cn');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 }
 
 console.log('All WorkBuddy official login tests passed successfully!');

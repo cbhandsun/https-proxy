@@ -136,4 +136,24 @@ assert.deepStrictEqual(
   }
 );
 
+assert.deepStrictEqual(
+  normalizeUpstreamError(
+    401,
+    { 'x-request-id': '90becc2354cb' },
+    '<html><head><title>401 Authorization Required</title></head><body><center><h1>401 Authorization Required</h1></center><hr><center>openresty</center><p><em>Powered by <a href="https://apisix.apache.org/">APISIX</a>.</em></p></body></html>',
+    'workbuddy'
+  ),
+  {
+    error: {
+      type: 'api_error',
+      message: '401 Authorization Required',
+      code: undefined,
+      status: 401,
+      upstream: 'workbuddy',
+      request_id: '90becc2354cb',
+      retry_after: undefined,
+    },
+  }
+);
+
 console.log('[errors.test] ok');

@@ -19,6 +19,7 @@ const testFiles = [
   'test/frontend/codex-desktop-controls.test.js',
   'test/frontend/tool-status-presentation.test.js',
   'test/frontend/runtime.test.js',
+  'test/frontend/app-shortcuts.test.js',
   'test/frontend/modal-focus.test.js',
   'test/frontend/feedback.test.js',
   'test/frontend/app-ux.test.js',

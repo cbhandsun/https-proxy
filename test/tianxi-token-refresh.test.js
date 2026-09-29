@@ -149,6 +149,97 @@ test('Tianxi token refresh can force native refresh despite fresh encrypted cach
   assert.ok(reads >= 2);
 });
 
+test('Tianxi forced refresh rejects an unchanged encrypted registry cache', async () => {
+  const result = await refreshTianxiQoderToken(
+    {
+      userId: 'user',
+      force: true,
+      attempts: 1,
+      readCache: () => ({
+        hasQoderToken: true,
+        credentials: {},
+        credentialExpiry: { qoder_token: { expiresAtMs: 300000, expired: false } },
+      }),
+      async triggerNativeRefresh() {},
+    },
+    { now: () => 150000 }
+  );
+  assert.equal(result.status, 'refresh_no_fresh_token');
+});
+
+test('Tianxi refresh waits for AgentCore when registry holds only encrypted bytes', async () => {
+  const result = await refreshTianxiQoderToken(
+    {
+      userId: 'user',
+      attempts: 1,
+      readCache: () => ({
+        hasQoderToken: true,
+        credentials: {},
+        credentialExpiry: { qoder_token: { expiresAtMs: 300000, expired: false } },
+      }),
+      readHeader: () => ({
+        user_id: 'user',
+        credentials: { qoder_token: fakeJwt(100) },
+      }),
+      async triggerNativeRefresh() {},
+    },
+    { now: () => 150000 }
+  );
+  assert.equal(result.status, 'refresh_no_fresh_token');
+});
+
+test('Tianxi token refresh accepts a new same-user AgentCore token when registry stays stale', async () => {
+  let refreshed = false;
+  const stale = {
+    hasQoderToken: true,
+    credentialExpiry: { qoder_token: { expired: true } },
+  };
+  const freshToken = fakeJwt(300);
+  const result = await refreshTianxiQoderToken(
+    {
+      userId: 'user',
+      readCache: () => stale,
+      readHeader: () => ({
+        user_id: 'user',
+        credentials: { qoder_token: fakeJwt(refreshed ? 300 : 100) },
+      }),
+      async triggerNativeRefresh() {
+        refreshed = true;
+      },
+    },
+    { now: () => 150000 }
+  );
+  assert.equal(result.status, 'refreshed_agentcore');
+  assert.equal(result.source, 'agentcore');
+  assert.equal(result.token, freshToken);
+  assert.equal(result.header.user_id, 'user');
+  assert.equal(result.cache, stale);
+  assert.ok(!JSON.stringify(sanitizeRefreshState(result)).includes(freshToken));
+});
+
+test('Tianxi token refresh ignores another user and unchanged forced AgentCore token', async () => {
+  const freshToken = fakeJwt(300);
+  for (const [userId, token] of [
+    ['another-user', freshToken],
+    ['user', freshToken],
+  ]) {
+    const result = await refreshTianxiQoderToken(
+      {
+        userId: 'user',
+        force: true,
+        previousToken: freshToken,
+        attempts: 1,
+        readCache: () => ({ credentialExpiry: { qoder_token: { expired: true } } }),
+        readHeader: () => ({ user_id: userId, credentials: { qoder_token: token } }),
+        async triggerNativeRefresh() {},
+      },
+      { now: () => 150000 }
+    );
+    assert.equal(result.status, 'refresh_no_fresh_token');
+    assert.equal(result.token, undefined);
+  }
+});
+
 test('Tianxi super mode UI refresh builds official OpenTab command safely', async () => {
   const message = JSON.parse(buildTianxiSuperModeOpenTabMessage({ source: 'Codex' }));
   assert.equal(message.type, 'OpenTab');
@@ -156,10 +247,17 @@ test('Tianxi super mode UI refresh builds official OpenTab command safely', asyn
   assert.equal(message.data.id, 'XT_SuperMode');
   assert.deepEqual(JSON.parse(message.data.data), {
     handleType: 2,
-    content: 'refresh super mode',
+    content: '只回答OK',
     source: 'Codex',
     tabRouter: 'AIConversationIndex',
   });
+
+  const spacedMessage = buildTianxiSuperModeOpenTabMessage({
+    source: 'Codex',
+    content: 'short warmup',
+  });
+  assert.equal(/\s/.test(spacedMessage), false);
+  assert.equal(JSON.parse(JSON.parse(spacedMessage).data.data).content, 'short warmup');
 
   let spawned;
   const result = await triggerTianxiSuperModeRefresh({
@@ -181,6 +279,32 @@ test('Tianxi super mode UI refresh builds official OpenTab command safely', asyn
   assert.equal(JSON.stringify(spawned).includes('sat-'), false);
   assert.equal(spawned.options.detached, true);
   assert.equal(spawned.options.windowsHide, true);
+  assert.equal(spawned.options.windowsVerbatimArguments, true);
+});
+
+test('Tianxi native refresh coalesces concurrent warmups and sanitizes CLI source', async () => {
+  let starts = 0;
+  let nowMs = 1000;
+  const options = {
+    forceWindows: true,
+    exePath: 'C:\\Program Files\\Lenovo\\AIAgent\\XLSmartUI.exe',
+    existsSync: () => true,
+    source: 'bad source"',
+    userId: 'coalesce-test-user',
+    now: () => nowMs,
+    spawn(_file, args) {
+      starts += 1;
+      const message = JSON.parse(args[2].slice('--xlmessage='.length));
+      assert.equal(message.source, 'Codex');
+      return { pid: starts, unref() {} };
+    },
+  };
+  assert.equal((await triggerTianxiSuperModeRefresh(options)).status, 'started');
+  assert.equal((await triggerTianxiSuperModeRefresh(options)).status, 'already_started');
+  assert.equal(starts, 1);
+  nowMs += 20001;
+  assert.equal((await triggerTianxiSuperModeRefresh(options)).status, 'started');
+  assert.equal(starts, 2);
 });
 
 test('Tianxi set_token injection sends control command but sanitizes failures', async () => {

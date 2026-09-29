@@ -79,6 +79,19 @@ const responsePolicyIndex = source.indexOf(
 const chatPolicyIndex = source.indexOf(
   'currentPrepared = applyChatStreamingPolicy(currentPrepared'
 );
+const workBuddySanitizeIndex = source.indexOf('sanitizedBody = sanitizeWorkBuddyChatBody(');
+const workBuddyOverflowGuardIndex = source.indexOf(
+  'if (sanitizedBody && rejectContextOverflow(clientRes, sanitizedBody, sendJsonError)) {'
+);
+const workBuddySerializeIndex = source.indexOf(
+  'currentPrepared.buffer = Buffer.from(JSON.stringify(sanitizedBody));'
+);
+assert.ok(
+  workBuddySanitizeIndex >= 0 &&
+    workBuddyOverflowGuardIndex > workBuddySanitizeIndex &&
+    workBuddyOverflowGuardIndex > workBuddySerializeIndex,
+  'WorkBuddy passthrough must reject overflow before forwarding the request'
+);
 const conversionDispatchIndex = source.indexOf('for (const route of conversionRoutes)');
 const conversionStreamMarkerIndex = source.indexOf('forceUpstreamChatStreaming: true');
 assert.ok(responsePolicyIndex > conversionDispatchIndex);

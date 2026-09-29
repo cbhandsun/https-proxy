@@ -117,13 +117,15 @@ for (const domainName of [
           (domainName === 'feedback.js' && specifier === '../runtime/modal-focus.js') ||
           (domainName === 'audit.js' && specifier === '../runtime/audit-format.js') ||
           (domainName === 'audit.js' && specifier === '../runtime/audit-usage-report.js') ||
-          (domainName === 'bridge.js' && specifier === '../models/proxy-command.js')
+          (domainName === 'bridge.js' && specifier === '../models/proxy-command.js') ||
+          (domainName === 'bridge.js' && specifier === '../runtime/app-shortcuts.js')
       ),
     true,
     `${domainName} may import runtime boundaries but not bootstrap or other domains`
   );
 }
 for (const runtimeName of [
+  'app-shortcuts.js',
   'app-state.js',
   'dependencies.js',
   'dom.js',

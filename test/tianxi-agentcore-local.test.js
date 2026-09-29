@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
+const { AbortController } = globalThis;
 const {
   createTacServerTransport,
   decodeLogdatBuffer,
@@ -81,12 +82,87 @@ test('Tianxi tac-server transport sends a frame and resolves terminal frames', a
     url: 'ws://unit',
     autoStart: false,
   });
-  const frames = await transport.sendQuery({ type: 'query', data: { text: 'hello' } });
+  const streamed = [];
+  const frames = await transport.sendQuery(
+    { type: 'query', data: { text: 'hello' } },
+    { onFrame: (frame) => streamed.push(frame.type) }
+  );
   assert.equal(frames[0].data.content, 'ok');
   assert.equal(frames[1].data.status, 'COMPLETED');
+  assert.deepEqual(streamed, ['task_output', 'task_status']);
 });
 
-test('Tianxi tac-server transport returns partial frames after content idle', async () => {
+test('Tianxi tac-server transport resolves terminal frames wrapped in notify envelopes', async () => {
+  class FakeWebSocket {
+    constructor(url) {
+      this.url = url;
+      this.listeners = {};
+      setImmediate(() => this.listeners.open?.({}));
+    }
+    addEventListener(type, listener) {
+      this.listeners[type] = listener;
+    }
+    send() {
+      this.listeners.message?.({
+        data: JSON.stringify({
+          type: 'notify',
+          data: { type: 'task_output', data: { content: 'wrapped-ok' } },
+        }),
+      });
+      this.listeners.message?.({
+        data: JSON.stringify({
+          type: 'notify',
+          data: { type: 'task_status', data: { status: 'COMPLETED' } },
+        }),
+      });
+    }
+    close() {
+      this.closed = true;
+    }
+  }
+  const transport = createTacServerTransport({
+    WebSocketImpl: FakeWebSocket,
+    url: 'ws://unit',
+    autoStart: false,
+  });
+  const frames = await transport.sendQuery(
+    { type: 'query', data: { text: 'hello' } },
+    { idleTimeoutMs: 10 }
+  );
+  assert.equal(frames.length, 2);
+  assert.equal(frames[0].type, 'notify');
+  assert.equal(frames[1].data.type, 'task_status');
+});
+
+test('Tianxi tac-server transport closes its socket when cancelled', async () => {
+  let socket;
+  class FakeWebSocket {
+    constructor() {
+      socket = this;
+      this.listeners = {};
+      setImmediate(() => this.listeners.open?.({}));
+    }
+    addEventListener(type, listener) {
+      this.listeners[type] = listener;
+    }
+    send() {}
+    close() {
+      this.closed = true;
+    }
+  }
+  const transport = createTacServerTransport({
+    WebSocketImpl: FakeWebSocket,
+    url: 'ws://unit',
+    autoStart: false,
+  });
+  const controller = new AbortController();
+  const pending = transport.sendQuery({ type: 'query' }, { signal: controller.signal });
+  controller.abort();
+  await assert.rejects(pending, /tianxi_tac_server_aborted/);
+  assert.equal(socket.closed, true);
+});
+
+test('Tianxi tac-server query rejects partial frames after content idle', async () => {
   class FakeWebSocket {
     constructor(url) {
       this.url = url;
@@ -110,12 +186,45 @@ test('Tianxi tac-server transport returns partial frames after content idle', as
     url: 'ws://unit',
     autoStart: false,
   });
-  const frames = await transport.sendQuery(
+  await assert.rejects(
+    transport.sendQuery({ type: 'query', data: { text: 'hello' } }, { idleTimeoutMs: 10 }),
+    /tianxi_tac_server_idle_timeout/
+  );
+  const partialFrames = await transport.sendQuery(
     { type: 'query', data: { text: 'hello' } },
+    { allowPartialOnIdle: true, idleTimeoutMs: 10 }
+  );
+  assert.equal(partialFrames[0].data.content, 'partial-ok');
+  const controlFrames = await transport.sendControlCommand(
+    { type: 'control' },
     { idleTimeoutMs: 10 }
   );
-  assert.equal(frames.length, 1);
-  assert.equal(frames[0].data.content, 'partial-ok');
+  assert.equal(controlFrames[0].data.content, 'partial-ok');
+});
+
+test('Tianxi tac-server query rejects a socket close before terminal status', async () => {
+  class FakeWebSocket {
+    constructor() {
+      this.listeners = {};
+      setImmediate(() => this.listeners.open?.({}));
+    }
+    addEventListener(type, listener) {
+      this.listeners[type] = listener;
+    }
+    send() {
+      this.listeners.message?.({
+        data: JSON.stringify({ type: 'task_status', data: { status: 'WORKING' } }),
+      });
+      this.listeners.close?.({});
+    }
+    close() {}
+  }
+  const transport = createTacServerTransport({
+    WebSocketImpl: FakeWebSocket,
+    url: 'ws://unit',
+    autoStart: false,
+  });
+  await assert.rejects(transport.sendQuery({ type: 'query' }), /tianxi_tac_server_incomplete/);
 });
 
 test('Tianxi tac-server transport prefers discovered active tac-server port', async () => {

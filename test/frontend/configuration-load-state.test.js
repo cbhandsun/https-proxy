@@ -58,6 +58,7 @@ const bridgeSource = fs.readFileSync(
     setTimeout,
     clearTimeout,
     bindDomainDependencies: (_name, dependencies) => dependencies,
+    installAppShortcutHandler() {},
     reportFrontendError() {},
     assertConfigurationLoaded,
   };

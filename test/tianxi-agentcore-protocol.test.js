@@ -20,6 +20,14 @@ assert.equal(
   ]),
   'first\nsecond'
 );
+assert.equal(
+  extractTianxiPromptText([
+    { role: 'user', content: [{ type: 'input_text', text: '', content: 'SECRET' }] },
+    { role: 'user', content: '', output: 'SECRET output' },
+    { role: 'user', type: 'function_call_output', output: '', content: 'SECRET tool' },
+  ]),
+  ''
+);
 
 const built = buildTianxiAgentCoreFrames(
   {
@@ -113,5 +121,25 @@ const parsed = parseTianxiAgentCoreNotify({
 });
 assert.equal(parsed[0].type, 'task_output');
 assert.equal(parsed[0].data.content, 'ok');
+
+const wrappedNotify = parseTianxiAgentCoreNotify({
+  type: 'notify',
+  data: {
+    type: 'task_output',
+    data: { content: 'wrapped ok' },
+  },
+});
+assert.deepEqual(wrappedNotify, [{ type: 'task_output', data: { content: 'wrapped ok' } }]);
+
+const stringWrappedNotify = parseTianxiAgentCoreNotify(
+  JSON.stringify({
+    type: 'notify',
+    data: JSON.stringify({
+      type: 'task_status',
+      data: { status: 'COMPLETED' },
+    }),
+  })
+);
+assert.deepEqual(stringWrappedNotify, [{ type: 'task_status', data: { status: 'COMPLETED' } }]);
 
 console.log('[tianxi-agentcore-protocol.test] ok');

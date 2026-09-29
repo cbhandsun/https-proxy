@@ -6,6 +6,8 @@ description = "Allow executing all custom Rust commands for this app"
 allow = [
   "apply_app_menu",
   "applyAppMenu",
+  "execute_app_shortcut",
+  "executeAppShortcut",
   "open_config",
   "openConfig",
   "open_log",

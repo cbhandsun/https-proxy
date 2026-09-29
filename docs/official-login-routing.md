@@ -159,12 +159,25 @@ Model discovery:
   `supported_in_api: true`
   and not hidden (`visibility != "hide"`).
 
-Current expected Codex API models from the local cache:
+Current expected Codex API models from the local cache and verified official
+release guidance:
 
 - `gpt-6-astra`
+- `gpt-6-sol`
+- `gpt-6-luna`
 - `gpt-5.6-sol`
 - `gpt-5.6-terra`
 - `gpt-5.6-luna`
+
+The GPT-6 Sol and Luna routes are also exposed through the compatibility aliases
+`codex/gpt-6-sol` and `codex/gpt-6-luna`. The official OpenAI model guide is the
+source of truth for these newly released IDs when a local Codex model cache has
+not refreshed yet.
+
+The managed Codex catalog uses the same `openai-responses` route filter as the
+3085 `/v1/models` entry. Claude-only routes are therefore excluded from the
+Codex model picker unless a route explicitly declares `openai-responses` in its
+`clientProtocols`.
 
 Known non-routable examples:
 

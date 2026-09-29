@@ -25,8 +25,8 @@ assert.strictEqual(
 );
 assert.strictEqual(
   DEFAULT_CONFIG.protocolOptions.clientContextTokens,
-  200000,
-  'default client context window should leave room for Codex tools and output'
+  0,
+  'default client context cap should defer to the routed model window'
 );
 
 // 2. Explicit value wins

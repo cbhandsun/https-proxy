@@ -45,17 +45,17 @@ const err = new Error('connect ECONNRESET');
 err.code = 'ECONNRESET';
 handler(err);
 
-assert.deepStrictEqual(errors, ['Gemini connect ECONNRESET']);
+assert.deepStrictEqual(errors, ['Gemini ECONNRESET']);
 assert.strictEqual(jsonErrorCall.statusCode, 502);
 assert.strictEqual(jsonErrorCall.body.error.type, 'proxy_error');
-assert.strictEqual(jsonErrorCall.body.error.message, 'Gemini proxy error: connect ECONNRESET');
+assert.strictEqual(jsonErrorCall.body.error.message, 'Gemini proxy error: ECONNRESET');
 assert.deepStrictEqual(proxyEventCall, {
   eventName: 'proxy_error',
   payload: {
     method: 'POST',
     path: '/v1/chat/completions',
     upstreamPath: '/v1beta/models/gemini:generateContent',
-    error: 'connect ECONNRESET',
+    error: 'Upstream request failed',
     code: 'ECONNRESET',
     type: 'gemini',
     entryProtocol: 'openai-chat',
@@ -69,7 +69,7 @@ assert.deepStrictEqual(requestEndCall, {
   meta: {
     type: 'openai_to_gemini_proxy_error',
     errorType: 'proxy_error',
-    error: 'connect ECONNRESET',
+    error: 'Upstream request failed',
     code: 'ECONNRESET',
   },
 });
@@ -109,7 +109,7 @@ onProxyError(streamedRes, 'OpenAI', {
 assert.strictEqual(jsonErrorCall, null, 'must not write a second status line');
 assert.ok(terminatedAfterHeaders, 'client connection must be terminated after headers were sent');
 assert.ok(
-  terminatedAfterHeaders.chunks.join('').includes('socket hang up'),
+  terminatedAfterHeaders.chunks.join('').includes('ETIMEDOUT'),
   'SSE clients need a terminal error event describing the failure'
 );
 {
@@ -119,12 +119,44 @@ assert.ok(
   assert.deepStrictEqual(failurePayload, {
     type: 'error',
     code: 'proxy_error',
-    message: 'OpenAI proxy error: socket hang up',
+    message: 'OpenAI proxy error: ETIMEDOUT',
     param: null,
   });
 }
 assert.strictEqual(requestEndCall.statusCode, 502);
 assert.strictEqual(requestEndCall.meta.type, 'openai_proxy_error');
+
+// Raw transport messages and malformed error codes must never enter logs,
+// terminal events, or the downstream response. Safe diagnostics are retained.
+{
+  const secret = 'Bearer secret-token';
+  const clientRes = { headersSent: false };
+  onProxyError(clientRes, 'Gemini', {
+    method: 'POST',
+    path: '/v1/responses',
+    upstreamPath: '/v1beta/models/test:generateContent',
+    startTime: 123,
+    getFailureDiagnostics: () => ({
+      upstreamFailurePhase: 'tls_handshake',
+      upstreamRequestBodyBytes: 1024,
+      upstreamContentLengthMatches: true,
+    }),
+    logProxyEvent(eventName, payload) {
+      proxyEventCall = { eventName, payload };
+    },
+    logRequestEnd(method, path, startTime, statusCode, meta) {
+      requestEndCall = { method, path, startTime, statusCode, meta };
+    },
+  })({ code: 'ECONNRESET\r\nAuthorization: ' + secret, message: secret });
+  assert.equal(proxyEventCall.payload.code, 'UPSTREAM_ERROR');
+  assert.equal(proxyEventCall.payload.upstreamFailurePhase, 'tls_handshake');
+  assert.equal(requestEndCall.meta.upstreamRequestBodyBytes, 1024);
+  assert.equal(requestEndCall.meta.upstreamContentLengthMatches, true);
+  assert.doesNotMatch(
+    JSON.stringify({ errors, jsonErrorCall, proxyEventCall, requestEndCall }),
+    /secret-token|Authorization|Bearer/i
+  );
+}
 
 // Already-ended responses must not be written to again.
 {

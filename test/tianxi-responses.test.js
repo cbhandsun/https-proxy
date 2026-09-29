@@ -122,7 +122,12 @@ writeTianxiResponsesStream(
 );
 const stream = streamRes.text();
 assert.ok(stream.includes('event: response.created'));
+assert.ok(stream.includes('event: response.in_progress'));
 assert.ok(stream.includes('response.reasoning.delta'));
+assert.ok(stream.includes('response.reasoning_summary_part.added'));
+assert.ok(stream.includes('response.reasoning_summary_text.delta'));
+assert.ok(stream.includes('response.reasoning_summary_text.done'));
+assert.ok(stream.includes('response.reasoning_summary_part.done'));
 assert.ok(stream.includes('先判断路径。'));
 assert.ok(stream.includes('response.output_text.delta'));
 assert.ok(stream.includes('可以接入。'));
@@ -162,6 +167,42 @@ const incompleteRiskEvent = stream
     }
   })
   .find((item) => item?.type === 'response.incomplete');
+const reasoningAddedEvent = streamPayloads.find(
+  (item) => item?.type === 'response.output_item.added' && item.item?.type === 'reasoning'
+);
+assert.equal(reasoningAddedEvent.item.status, 'in_progress');
+assert.deepStrictEqual(reasoningAddedEvent.item.content, []);
+const reasoningDoneEvent = streamPayloads.find(
+  (item) => item?.type === 'response.output_item.done' && item.item?.type === 'reasoning'
+);
+assert.equal(reasoningDoneEvent.item.status, 'completed');
+assert.deepStrictEqual(reasoningDoneEvent.item.summary, [
+  { type: 'summary_text', text: '先判断路径。' },
+]);
+const reasoningSummaryPartAddedEvent = streamPayloads.find(
+  (item) => item?.type === 'response.reasoning_summary_part.added'
+);
+assert.equal(reasoningSummaryPartAddedEvent.output_index, reasoningAddedEvent.output_index);
+assert.deepStrictEqual(reasoningSummaryPartAddedEvent.part, {
+  type: 'summary_text',
+  text: '',
+});
+const reasoningSummaryDeltaEvent = streamPayloads.find(
+  (item) => item?.type === 'response.reasoning_summary_text.delta'
+);
+assert.equal(reasoningSummaryDeltaEvent.delta, '先判断路径。');
+assert.equal(reasoningSummaryDeltaEvent.summary_index, 0);
+const reasoningSummaryTextDoneEvent = streamPayloads.find(
+  (item) => item?.type === 'response.reasoning_summary_text.done'
+);
+assert.equal(reasoningSummaryTextDoneEvent.text, '先判断路径。');
+const reasoningSummaryPartDoneEvent = streamPayloads.find(
+  (item) => item?.type === 'response.reasoning_summary_part.done'
+);
+assert.deepStrictEqual(reasoningSummaryPartDoneEvent.part, {
+  type: 'summary_text',
+  text: '先判断路径。',
+});
 assert.equal(incompleteRiskEvent.response.output[1].type, 'message');
 assert.equal(incompleteRiskEvent.response.output[1].content[0].text, '可以接入。');
 assert.deepStrictEqual(incompleteRiskEvent.response.output, response.output);
@@ -289,6 +330,48 @@ const incompleteEvent = incompleteStream
   .find((item) => item?.type === 'response.incomplete');
 assert.deepStrictEqual(incompleteEvent.response, incomplete);
 
+const falsyToolOutputFrames = [
+  {
+    type: 'act_exec',
+    data: { exec_mode: 'local', actions: [{ id: 'empty_output', name: 'Tool' }] },
+  },
+  { type: 'act_resp', data: { action_id: 'empty_output', output: '', secret: 'SECRET' } },
+  {
+    type: 'act_exec',
+    data: { exec_mode: 'local', actions: [{ id: 'false_output', name: 'Tool' }] },
+  },
+  { type: 'act_resp', data: { action_id: 'false_output', output: false, secret: 'SECRET' } },
+  {
+    type: 'act_exec',
+    data: { exec_mode: 'local', actions: [{ id: 'zero_output', name: 'Tool' }] },
+  },
+  { type: 'act_resp', data: { action_id: 'zero_output', output: 0, secret: 'SECRET' } },
+  { type: 'task_status', data: { status: 'COMPLETED' } },
+];
+const falsyToolOutput = buildTianxiResponsesResponse(
+  { model: 'tianxi/super', input: 'ping' },
+  falsyToolOutputFrames,
+  'super',
+  fakeDeps()
+);
+assert.equal(falsyToolOutput.status, 'completed');
+assert.deepStrictEqual(
+  falsyToolOutput.output
+    .filter((item) => item.type === 'function_call_output')
+    .map((item) => item.output),
+  ['', 'false', '0']
+);
+assert.ok(!JSON.stringify(falsyToolOutput).includes('SECRET'));
+const falsyToolOutputStreamRes = fakeRes();
+writeTianxiResponsesStream(
+  falsyToolOutputStreamRes,
+  { model: 'tianxi/super', input: 'ping' },
+  falsyToolOutputFrames,
+  'super',
+  fakeDeps()
+);
+assert.ok(!falsyToolOutputStreamRes.text().includes('SECRET'));
+
 const workingOnly = [{ type: 'task_status', data: { status: 'WORKING' } }];
 const missingTerminal = buildTianxiResponsesResponse(
   { model: 'tianxi/super', input: 'ping' },
@@ -399,6 +482,70 @@ const failedEvent = failedStreamRes
   })
   .find((item) => item?.type === 'response.failed');
 assert.deepStrictEqual(failedEvent.response, failed);
+
+const failedWithPendingPermissionFrames = [
+  {
+    type: 'risk_exec',
+    data: {
+      action_id: 'approval_failed',
+      action_name: 'run_command',
+      args: { command: 'dir' },
+    },
+  },
+  { type: 'task_status', data: { status: 'FAILED', error_detail: 'denied' } },
+];
+const failedWithPendingPermission = buildTianxiResponsesResponse(
+  { model: 'tianxi/super', input: 'approve?' },
+  failedWithPendingPermissionFrames,
+  'super',
+  fakeDeps()
+);
+assert.equal(failedWithPendingPermission.status, 'failed');
+assert.equal(failedWithPendingPermission.error.message, 'denied');
+assert.equal(Object.hasOwn(failedWithPendingPermission, 'incomplete_details'), false);
+const failedWithPendingPermissionStreamRes = fakeRes();
+writeTianxiResponsesStream(
+  failedWithPendingPermissionStreamRes,
+  { model: 'tianxi/super', input: 'approve?' },
+  failedWithPendingPermissionFrames,
+  'super',
+  fakeDeps()
+);
+const failedWithPendingPermissionStream = failedWithPendingPermissionStreamRes.text();
+assert.ok(failedWithPendingPermissionStream.includes('event: response.failed'));
+assert.ok(!failedWithPendingPermissionStream.includes('event: response.incomplete'));
+
+const sensitiveFailedFrame = {
+  type: 'task_status',
+  data: {
+    status: 'FAILED',
+    error_detail: 'Authorization: Bearer sat-secret-token ' + 'a'.repeat(140),
+  },
+};
+const sensitiveFailed = buildTianxiResponsesResponse(
+  { model: 'tianxi/super', input: 'ping' },
+  [sensitiveFailedFrame],
+  'super',
+  fakeDeps()
+);
+const serializedSensitiveFailed = JSON.stringify(sensitiveFailed);
+assert.strictEqual(sensitiveFailed.status, 'failed');
+assert.ok(!serializedSensitiveFailed.includes('Authorization: Bearer'));
+assert.ok(!serializedSensitiveFailed.includes('sat-secret-token'));
+assert.ok(!serializedSensitiveFailed.includes('a'.repeat(140)));
+const sensitiveFailedStreamRes = fakeRes();
+writeTianxiResponsesStream(
+  sensitiveFailedStreamRes,
+  { model: 'tianxi/super', input: 'ping' },
+  [sensitiveFailedFrame],
+  'super',
+  fakeDeps()
+);
+const serializedSensitiveFailedStream = sensitiveFailedStreamRes.text();
+assert.ok(serializedSensitiveFailedStream.includes('event: response.failed'));
+assert.ok(!serializedSensitiveFailedStream.includes('Authorization: Bearer'));
+assert.ok(!serializedSensitiveFailedStream.includes('sat-secret-token'));
+assert.ok(!serializedSensitiveFailedStream.includes('a'.repeat(140)));
 
 const objectFailedFrame = {
   type: 'task_status',
@@ -556,6 +703,76 @@ assert.deepStrictEqual(catalogNotReadyFailed.error.param.qoder_runtime_state, {
 assert.ok(!Object.hasOwn(catalogNotReadyFailed.error.param.refresh_state, 'token'));
 assert.ok(!Object.hasOwn(catalogNotReadyFailed.error.param.qoder_runtime_state, 'token'));
 assert.ok(!JSON.stringify(catalogNotReadyFailed).includes('must-not-leak'));
+
+const explicitEmptyFields = buildTianxiResponsesResponse(
+  { model: 'tianxi/super', input: 'ping' },
+  [
+    { type: 'task_output', data: { content_type: 'text', content: '', delta: 'SECRET delta' } },
+    {
+      type: 'task_output',
+      data: { reasoning_content: '', reasoning: 'SECRET reasoning' },
+    },
+    { type: 'task_status', data: { status: 'COMPLETED' } },
+  ],
+  'super',
+  fakeDeps()
+);
+assert.equal(explicitEmptyFields.status, 'incomplete');
+assert.equal(explicitEmptyFields.incomplete_details.reason, 'tianxi_empty_completion');
+assert.ok(!JSON.stringify(explicitEmptyFields).includes('SECRET'));
+
+const alternateReasoningFields = buildTianxiResponsesResponse(
+  { model: 'tianxi/super', input: 'ping' },
+  [
+    { type: 'task_output', data: { thought: 'thought field. ' } },
+    {
+      type: 'task_output',
+      data: { content_type: 'reasoning', content: 'reasoning content type. ' },
+    },
+    {
+      type: 'task_output',
+      data: { content_stage: 'thinking', content: 'thinking stage. ' },
+    },
+    { type: 'task_output', data: { content_type: 'text', content: 'Final.' } },
+    { type: 'task_status', data: { status: 'COMPLETED' } },
+  ],
+  'super',
+  fakeDeps()
+);
+assert.equal(alternateReasoningFields.status, 'completed');
+assert.deepStrictEqual(alternateReasoningFields.output[0].summary, [
+  {
+    type: 'summary_text',
+    text: 'thought field. reasoning content type. thinking stage. ',
+  },
+]);
+assert.equal(alternateReasoningFields.output[1].content[0].text, 'Final.');
+const alternateReasoningStreamRes = fakeRes();
+writeTianxiResponsesStream(
+  alternateReasoningStreamRes,
+  { model: 'tianxi/super', input: 'ping' },
+  [
+    { type: 'task_output', data: { thought: 'thought field. ' } },
+    {
+      type: 'task_output',
+      data: { content_type: 'reasoning', content: 'reasoning content type. ' },
+    },
+    {
+      type: 'task_output',
+      data: { content_stage: 'thinking', content: 'thinking stage. ' },
+    },
+    { type: 'task_output', data: { content_type: 'text', content: 'Final.' } },
+    { type: 'task_status', data: { status: 'COMPLETED' } },
+  ],
+  'super',
+  fakeDeps()
+);
+const alternateReasoningStream = alternateReasoningStreamRes.text();
+assert.equal((alternateReasoningStream.match(/event: response.reasoning.delta/g) || []).length, 3);
+assert.equal(
+  (alternateReasoningStream.match(/event: response.output_text.delta/g) || []).length,
+  1
+);
 
 const objectFailedStreamRes = fakeRes();
 writeTianxiResponsesStream(

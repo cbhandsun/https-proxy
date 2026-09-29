@@ -768,9 +768,9 @@ function tick(ms = 0) {
     );
   }
 
-  // ─── 22. Tauri reload menu uses events instead of eval ─────────
+  // ─── 22. Tauri view shortcuts use a validated native bridge ─────
   {
-    const rust = ['lib.rs', 'desktop_shell.rs', 'launch_on_login.rs']
+    const rust = ['lib.rs', 'desktop_shell.rs', 'app_shortcuts.rs', 'launch_on_login.rs']
       .map((file) =>
         fs.readFileSync(path.join(__dirname, '..', '..', 'src-tauri', 'src', file), 'utf8')
       )
@@ -779,19 +779,34 @@ function tick(ms = 0) {
       path.join(__dirname, '..', '..', 'tauri-ui', 'src', 'app', 'domains', 'bridge.js'),
       'utf8'
     );
+    const cargo = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'src-tauri', 'Cargo.toml'),
+      'utf8'
+    );
     assert.ok(!rust.includes('window.eval'), 'Tauri menu reload should not eval JavaScript');
-    assert.ok(
-      rust.includes('window.emit("reload-requested", false)'),
+    assert.match(
+      rust,
+      /window\s*\.\s*emit\(\s*"reload-requested"\s*,\s*false\s*\)/,
       'regular reload emits a frontend event'
     );
-    assert.ok(
-      rust.includes('window.emit("reload-requested", true)'),
+    assert.match(
+      rust,
+      /window\s*\.\s*emit\(\s*"reload-requested"\s*,\s*true\s*\)/,
       'force reload emits a frontend event'
     );
     assert.ok(
       /event\s*\.\s*listen\('reload-requested'/.test(bridge),
       'frontend listens for reload events'
     );
+    assert.ok(
+      bridge.includes("invoke('execute_app_shortcut'"),
+      'renderer shortcuts dispatch through the validated native command'
+    );
+    assert.ok(
+      bridge.includes('installAppShortcutHandler({'),
+      'renderer installs a capture-phase shortcut fallback for Windows WebView'
+    );
+    assert.match(cargo, /features\s*=\s*\[[^\]]*"devtools"/);
   }
 
   // ─── 23. Recommended Claude model chips exclude retired IDs ─────

@@ -7,12 +7,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tauri::Manager;
 
+mod app_shortcuts;
 mod codex_login;
 mod desktop_shell;
 mod launch_on_login;
 mod management_bridge;
 mod proxy_process;
 mod proxy_root;
+use app_shortcuts::execute_app_shortcut;
 use codex_login::launch_codex_login_script;
 #[cfg(test)]
 use codex_login::{
@@ -763,6 +765,7 @@ pub fn run() {
         .on_menu_event(handle_app_menu_event)
         .invoke_handler(tauri::generate_handler![
             apply_app_menu,
+            execute_app_shortcut,
             open_config,
             open_log,
             open_cert_dir,

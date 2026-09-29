@@ -1,6 +1,7 @@
 import { bindDomainDependencies } from '../runtime/dependencies.js';
 import { reportFrontendError } from '../runtime/frontend-errors.js';
 import { executeHealthCommand } from '../models/proxy-command.js';
+import { installAppShortcutHandler } from '../runtime/app-shortcuts.js';
 
 let bridgeDependencies;
 
@@ -1109,6 +1110,15 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
 
 if (window.__TAURI__ && window.__TAURI__.core) {
   const invoke = window.__TAURI__.core.invoke;
+  window.proxyManager.executeAppShortcut = async (action) => {
+    if (typeof action !== 'string') throw new TypeError('action must be a string');
+    await invoke('execute_app_shortcut', { action });
+  };
+  installAppShortcutHandler({
+    target: window,
+    executeShortcut: window.proxyManager.executeAppShortcut,
+    onError: (error, action) => reportFrontendError(`app_shortcut.${action}`, error),
+  });
   window.proxyManager.applyAppMenu = async (show) => {
     try {
       await invoke('apply_app_menu', { show });

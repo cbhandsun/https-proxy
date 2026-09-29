@@ -2032,8 +2032,10 @@ test('summarizes Gemini context budget without retaining prompt text', () => {
   );
   const summary = summarizeGeminiRequestForDiagnostics(body);
   assert.ok(summary.hpmDiagnostics.contextBudget);
-  assert.strictEqual(summary.hpmDiagnostics.contextBudget.contextWindowTokens, 200000);
-  assert.ok(summary.hpmDiagnostics.contextBudget.inputBudgetTokens < 200000);
+  assert.strictEqual(summary.hpmDiagnostics.contextBudget.source, 'model-default');
+  assert.strictEqual(summary.hpmDiagnostics.contextBudget.contextWindowTokens, 1000000);
+  assert.strictEqual(summary.hpmDiagnostics.contextBudget.clientContextTokens, 0);
+  assert.ok(summary.hpmDiagnostics.contextBudget.inputBudgetTokens < 1000000);
   assert.ok(!JSON.stringify(summary).includes('sensitive old prompt'));
   assert.ok(!JSON.stringify(summary).includes('sensitive current prompt'));
 });

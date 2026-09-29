@@ -7,6 +7,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 const { AbortController } = globalThis;
 const {
+  DEFAULT_TIANXI_NATIVE_IDLE_TIMEOUT_MS,
   createFileTianxiNativeRuntime,
   createAgentCoreTianxiNativeRuntime,
   createFixtureTianxiNativeRuntime,
@@ -101,6 +102,70 @@ test('Tianxi tac-server runtime injects local header and returns native frames',
   assert.equal(sent.data.options.configPath, 'C:\\ProgramData\\Lenovo\\AIAgent\\xlagent\\');
   assert.equal(contextSeen.idleTimeoutMs, 2345);
   assert.equal(result.frames[0].data.content, 'real-ok');
+});
+
+test('Tianxi tac-server keeps the bounded default idle window and accepts an override', async () => {
+  assert.equal(DEFAULT_TIANXI_NATIVE_IDLE_TIMEOUT_MS, 120000);
+  const observed = [];
+  const options = {
+    mode: 'tac-server',
+    header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
+    readTianxiRegistryCredentialCache: () => ({ available: false, credentialExpiry: {} }),
+    transport: {
+      async sendQuery(_frame, context) {
+        observed.push(context.idleTimeoutMs);
+        return [{ type: 'task_status', data: { status: 'COMPLETED' } }];
+      },
+    },
+  };
+  await createTianxiNativeRuntime(options).sendResponses({ model: 'chat', input: 'hello' });
+  await createTianxiNativeRuntime({ ...options, idleTimeoutMs: 45000 }).sendResponses({
+    model: 'chat',
+    input: 'hello',
+  });
+  assert.deepEqual(observed, [120000, 45000]);
+});
+
+test('Tianxi tac-server streams normalized frames and releases terminal status last', async () => {
+  const streamed = [];
+  const runtime = createTacServerTianxiNativeRuntime({
+    header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
+    readTianxiRegistryCredentialCache: () => ({ available: false, credentialExpiry: {} }),
+    transport: {
+      async sendQuery(_frame, context) {
+        const output = { type: 'task_output', data: { content: 'live' } };
+        const terminal = { type: 'task_status', data: { status: 'COMPLETED' } };
+        context.onFrame(output);
+        context.onFrame(terminal);
+        assert.deepEqual(streamed, ['task_output']);
+        return [output, terminal];
+      },
+    },
+  });
+  const result = await runtime.sendResponses(
+    { model: 'chat', input: 'hello' },
+    { onFrame: (frame) => streamed.push(frame.type) }
+  );
+  assert.deepEqual(streamed, ['task_output', 'task_status']);
+  assert.equal(result.frames.at(-1).data.status, 'COMPLETED');
+});
+
+test('Tianxi tac-server runtime allows visible partial frames to close after idle', async () => {
+  let queryContext;
+  const runtime = createTacServerTianxiNativeRuntime({
+    header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
+    readTianxiRegistryCredentialCache: () => ({ available: false, credentialExpiry: {} }),
+    transport: {
+      async sendQuery(_frame, context) {
+        queryContext = context;
+        return [{ type: 'task_output', data: { content: 'partial answer' } }];
+      },
+    },
+  });
+  const result = await runtime.sendResponses({ model: 'chat', input: 'hello' });
+  assert.equal(queryContext.allowPartialOnIdle, true);
+  assert.equal(result.frames.length, 1);
+  assert.equal(result.frames[0].data.content, 'partial answer');
 });
 
 test('Tianxi tac-server runtime fails fast when qoder service account token is expired', async () => {
@@ -335,6 +400,49 @@ test('Tianxi tac-server runtime refreshes and injects qoder token before super q
   assert.equal(result.frames[0].data.content, 'refresh-ok');
 });
 
+test('Tianxi runtime uses refreshed AgentCore header while registry cache remains expired', async () => {
+  let refreshed = false;
+  let sent;
+  const runtime = createTacServerTianxiNativeRuntime({
+    header: {
+      app_id: 'app',
+      credentials: { qoder_token: fakeJwt(100), tx_token: fakeJwt(100) },
+      device_id: 'device',
+      user_id: 'user',
+    },
+    readLatestAgentCoreHeader: () => ({
+      app_id: 'app',
+      credentials: {
+        qoder_token: fakeJwt(refreshed ? 300 : 100),
+        tx_token: fakeJwt(refreshed ? 300 : 100),
+      },
+      device_id: 'device',
+      user_id: 'user',
+    }),
+    readTianxiRegistryCredentialCache: () => ({
+      available: true,
+      hasQoderToken: true,
+      credentialExpiry: { qoder_token: { expired: true } },
+    }),
+    async triggerTianxiQoderRefresh() {
+      refreshed = true;
+    },
+    transport: {
+      async sendQuery(frame) {
+        sent = frame;
+        return [
+          { type: 'task_output', data: { content: 'agentcore-refresh-ok' } },
+          { type: 'task_status', data: { status: 'COMPLETED' } },
+        ];
+      },
+    },
+  });
+  const result = await runtime.sendResponses({ model: 'super' }, { now: () => 150000 });
+  assert.equal(sent.header.credentials.qoder_token, fakeJwt(300));
+  assert.equal(sent.header.credentials.tx_token, fakeJwt(300));
+  assert.equal(result.frames[0].data.content, 'agentcore-refresh-ok');
+});
+
 test('Tianxi tac-server runtime does not send unsupported set_token by default', async () => {
   let injected = false;
   let sent;
@@ -397,8 +505,15 @@ test('Tianxi tac-server runtime forces native refresh and retries catalog auth f
       refreshReason = reason;
       return {
         attempted: true,
-        status: 'refreshed_encrypted_cache',
-        source: 'native',
+        status: 'refreshed_agentcore',
+        source: 'agentcore',
+        token: fakeJwt(400),
+        header: {
+          app_id: 'app',
+          credentials: { qoder_token: fakeJwt(400), tx_token: fakeJwt(300) },
+          device_id: 'device',
+          user_id: 'user',
+        },
         cache: {
           available: true,
           hasQoderToken: true,
@@ -439,6 +554,59 @@ test('Tianxi tac-server runtime forces native refresh and retries catalog auth f
   assert.equal(result.frames[0].data.content, 'retry-ok');
 });
 
+test('Tianxi runtime retries auth failure with new AgentCore header rather than stale token', async () => {
+  let queries = 0;
+  let refreshed = false;
+  const sentTokens = [];
+  const runtime = createTacServerTianxiNativeRuntime({
+    header: {
+      app_id: 'app',
+      credentials: { qoder_token: fakeJwt(300) },
+      device_id: 'device',
+      user_id: 'user',
+    },
+    readLatestAgentCoreHeader: () => ({
+      app_id: 'app',
+      credentials: { qoder_token: fakeJwt(refreshed ? 400 : 300) },
+      device_id: 'device',
+      user_id: 'user',
+    }),
+    readTianxiRegistryCredentialCache: () => ({
+      available: true,
+      hasQoderToken: true,
+      credentialExpiry: { qoder_token: { expired: true } },
+    }),
+    async triggerTianxiQoderRefresh() {
+      refreshed = true;
+    },
+    transport: {
+      async sendQuery(frame) {
+        queries += 1;
+        sentTokens.push(frame.header.credentials.qoder_token);
+        if (queries === 1) {
+          return [
+            {
+              type: 'task_status',
+              data: {
+                status: 'FAILED',
+                error_code: 'INVALID_CREDENTIALS',
+                error_detail: 'catalog not ready after authentication',
+              },
+            },
+          ];
+        }
+        return [
+          { type: 'task_output', data: { content: 'retry-new-header-ok' } },
+          { type: 'task_status', data: { status: 'COMPLETED' } },
+        ];
+      },
+    },
+  });
+  const result = await runtime.sendResponses({ model: 'super' }, { now: () => 150000 });
+  assert.deepEqual(sentTokens, [fakeJwt(300), fakeJwt(400)]);
+  assert.equal(result.frames[0].data.content, 'retry-new-header-ok');
+});
+
 test('Tianxi tac-server runtime triggers SuperMode UI refresh by default on catalog auth failure', async () => {
   let queries = 0;
   let uiTriggered = false;
@@ -452,6 +620,12 @@ test('Tianxi tac-server runtime triggers SuperMode UI refresh by default on cata
       spawned = { file, args, options };
       return { pid: 1234, unref() {} };
     },
+    readLatestAgentCoreHeader: () => ({
+      app_id: 'app',
+      credentials: { qoder_token: fakeJwt(uiTriggered ? 400 : 300) },
+      device_id: 'device',
+      user_id: 'user',
+    }),
     header: {
       app_id: 'app',
       credentials: {
@@ -611,8 +785,8 @@ test('Tianxi tac-server runtime reports sanitized refresh state when refresh can
   assert.ok(!JSON.stringify(status).includes('expired-registry-token'));
 });
 
-test('Tianxi tac-server runtime continues after native refresh exposes only encrypted qoder cache', async () => {
-  let sent;
+test('Tianxi tac-server runtime rejects encrypted cache without a fresh usable token', async () => {
+  let sent = false;
   const runtime = createTacServerTianxiNativeRuntime({
     header: {
       app_id: 'app',
@@ -649,8 +823,8 @@ test('Tianxi tac-server runtime continues after native refresh exposes only encr
       };
     },
     transport: {
-      async sendQuery(frame) {
-        sent = frame;
+      async sendQuery() {
+        sent = true;
         return [
           { type: 'task_output', data: { content: 'encrypted-cache-ok' } },
           { type: 'task_status', data: { status: 'COMPLETED' } },
@@ -661,8 +835,9 @@ test('Tianxi tac-server runtime continues after native refresh exposes only encr
 
   const result = await runtime.sendResponses({ model: 'super' }, { now: () => 150000 });
 
-  assert.equal(sent.header.credentials.qoder_token, fakeJwt(100));
-  assert.equal(result.frames[0].data.content, 'encrypted-cache-ok');
+  assert.equal(sent, false);
+  assert.equal(result.frames[0].data.status, 'FAILED');
+  assert.equal(result.frames[0].data.error_code, 'INVALID_CREDENTIALS');
 });
 
 test('Tianxi tac-server runtime does not apply super qoder preflight to chat route', async () => {
@@ -778,29 +953,152 @@ test('Tianxi native runtime factory selects safe modes from env', async () => {
   );
 });
 
+test('Tianxi tac-server runtime retries auth only before visible output', async () => {
+  let queries = 0;
+  const emitted = [];
+  const runtime = createTacServerTianxiNativeRuntime({
+    header: {
+      app_id: 'app',
+      credentials: { qoder_token: fakeJwt(300) },
+      device_id: 'device',
+      user_id: 'user',
+    },
+    readTianxiRegistryCredentialCache: () => ({
+      available: true,
+      hasQoderToken: true,
+      credentialExpiry: { qoder_token: { expired: false } },
+    }),
+    async refreshQoderToken() {
+      return {
+        attempted: true,
+        status: 'refreshed_agentcore',
+        source: 'agentcore',
+        token: fakeJwt(400),
+        header: {
+          app_id: 'app',
+          credentials: { qoder_token: fakeJwt(400) },
+          device_id: 'device',
+          user_id: 'user',
+        },
+      };
+    },
+    transport: {
+      async sendQuery(_frame, context) {
+        queries += 1;
+        if (queries === 1) {
+          const failed = {
+            type: 'task_status',
+            data: {
+              status: 'FAILED',
+              error_code: 'INVALID_CREDENTIALS',
+              error_detail: 'authentication failed',
+            },
+          };
+          context.onFrame({ type: 'task_status', data: { status: 'WORKING' } });
+          context.onFrame(failed);
+          return [{ type: 'task_status', data: { status: 'WORKING' } }, failed];
+        }
+        const output = { type: 'task_output', data: { content: 'retry-ok' } };
+        const completed = { type: 'task_status', data: { status: 'COMPLETED' } };
+        context.onFrame(output);
+        context.onFrame(completed);
+        return [output, completed];
+      },
+    },
+  });
+
+  const result = await runtime.sendResponses(
+    { model: 'super' },
+    { now: () => 150000, onFrame: (frame) => emitted.push(frame) }
+  );
+  assert.equal(queries, 2);
+  assert.equal(result.frames[0].data.content, 'retry-ok');
+  assert.deepEqual(
+    emitted.map((frame) => frame.type),
+    ['task_output', 'task_status']
+  );
+  assert.ok(!JSON.stringify(emitted).includes('authentication failed'));
+
+  queries = 0;
+  emitted.length = 0;
+  const visibleFailureRuntime = createTacServerTianxiNativeRuntime({
+    header: {
+      app_id: 'app',
+      credentials: { qoder_token: fakeJwt(300) },
+      device_id: 'device',
+      user_id: 'user',
+    },
+    readTianxiRegistryCredentialCache: () => ({
+      available: true,
+      credentialExpiry: { qoder_token: { expired: false } },
+    }),
+    async refreshQoderToken() {
+      throw new Error('must not retry after visible output');
+    },
+    transport: {
+      async sendQuery(_frame, context) {
+        queries += 1;
+        const output = { type: 'task_output', data: { content: 'partial' } };
+        const failed = {
+          type: 'task_status',
+          data: {
+            status: 'FAILED',
+            error_code: 'INVALID_CREDENTIALS',
+            error_detail: 'authentication failed',
+          },
+        };
+        context.onFrame(output);
+        context.onFrame(failed);
+        return [output, failed];
+      },
+    },
+  });
+  const failed = await visibleFailureRuntime.sendResponses(
+    { model: 'super' },
+    { now: () => 150000, onFrame: (frame) => emitted.push(frame) }
+  );
+  assert.equal(queries, 1);
+  assert.equal(failed.frames[1].data.status, 'FAILED');
+  assert.deepEqual(
+    emitted.map((frame) => frame.type),
+    ['task_output', 'task_status']
+  );
+});
+
 test('Tianxi native transport enforces timeout, cancel and sanitized failures', async () => {
+  let timeoutSignal;
   const timeoutRuntime = createTransportTianxiNativeRuntime({
     timeoutMs: 10,
-    send: () => new Promise(() => {}),
+    send: (_payload, context) => {
+      timeoutSignal = context.signal;
+      return new Promise(() => {});
+    },
   });
   await assert.rejects(timeoutRuntime.sendResponses({ model: 'super' }), (error) => {
     assert.equal(error.code, 'tianxi_native_runtime_timeout');
     assert.equal(error.status, 504);
     return true;
   });
+  assert.equal(timeoutSignal.aborted, true);
 
   const controller = new AbortController();
+  let transportSignal;
   const abortRuntime = createTransportTianxiNativeRuntime({
     timeoutMs: 1000,
-    send: () => new Promise(() => {}),
+    send: (_payload, context) => {
+      transportSignal = context.signal;
+      return new Promise(() => {});
+    },
   });
   const aborted = abortRuntime.sendResponses({ model: 'super' }, { signal: controller.signal });
+  await Promise.resolve();
   controller.abort();
   await assert.rejects(aborted, (error) => {
     assert.equal(error.code, 'tianxi_native_runtime_aborted');
     assert.equal(error.status, 499);
     return true;
   });
+  assert.equal(transportSignal.aborted, true);
 
   const brokenRuntime = createTransportTianxiNativeRuntime({
     send: async () => {

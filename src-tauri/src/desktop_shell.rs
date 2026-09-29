@@ -1,13 +1,12 @@
 use std::path::Path;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
+use crate::app_shortcuts::maybe_execute_app_shortcut;
 use crate::proxy_root::find_project_root;
 use crate::{hide_console_window, proxy_runtime_dir, read_app_setting, run_proxy_bat};
 use crate::{start_proxy_direct, stop_proxy_direct, stop_proxy_for_exit};
-static ZOOM_LEVEL: AtomicU32 = AtomicU32::new(100);
 
 fn show_main_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
@@ -372,41 +371,7 @@ pub(crate) fn handle_app_menu_event(app_handle: &tauri::AppHandle, event: tauri:
     } else if id == "quit" {
         stop_proxy_for_exit();
         app_handle.exit(0);
-    } else if id == "reload" {
-        if let Some(window) = app_handle.get_webview_window("main") {
-            let _ = window.emit("reload-requested", false);
-        }
-    } else if id == "force_reload" {
-        if let Some(window) = app_handle.get_webview_window("main") {
-            let _ = window.emit("reload-requested", true);
-        }
-    } else if id == "zoom_in" {
-        if let Some(window) = app_handle.get_webview_window("main") {
-            let current = ZOOM_LEVEL.load(Ordering::Relaxed);
-            let next = std::cmp::min(300, current + 10);
-            ZOOM_LEVEL.store(next, Ordering::Relaxed);
-            let _ = window.set_zoom(next as f64 / 100.0);
-        }
-    } else if id == "zoom_out" {
-        if let Some(window) = app_handle.get_webview_window("main") {
-            let current = ZOOM_LEVEL.load(Ordering::Relaxed);
-            let next = std::cmp::max(50, current - 10);
-            ZOOM_LEVEL.store(next, Ordering::Relaxed);
-            let _ = window.set_zoom(next as f64 / 100.0);
-        }
-    } else if id == "zoom_reset" {
-        if let Some(window) = app_handle.get_webview_window("main") {
-            ZOOM_LEVEL.store(100, Ordering::Relaxed);
-            let _ = window.set_zoom(1.0);
-        }
-    } else if id == "toggle_devtools" {
-        #[cfg(debug_assertions)]
-        if let Some(window) = app_handle.get_webview_window("main") {
-            if window.is_devtools_open() {
-                window.close_devtools();
-            } else {
-                window.open_devtools();
-            }
-        }
+    } else {
+        maybe_execute_app_shortcut(app_handle, id);
     }
 }

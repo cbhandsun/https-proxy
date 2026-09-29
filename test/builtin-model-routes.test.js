@@ -36,6 +36,29 @@ assert.deepStrictEqual(
   merged.modelRoutes.find((route) => route.from === 'codex/gpt-6-astra'),
   { from: 'codex/gpt-6-astra', profileId: 'openai-official', to: 'gpt-6-astra' }
 );
+for (const model of ['gpt-6-sol', 'gpt-6-luna']) {
+  assert.deepStrictEqual(
+    merged.modelRoutes.find((route) => route.from === model),
+    { from: model, profileId: 'openai-official', to: model }
+  );
+  assert.deepStrictEqual(
+    merged.modelRoutes.find((route) => route.from === `codex/${model}`),
+    { from: `codex/${model}`, profileId: 'openai-official', to: model }
+  );
+}
+assert.deepStrictEqual(
+  buildLocalModelsResponse(merged.modelRoutes, 'openai', 'openai-responses')
+    .data.map((model) => model.id)
+    .filter((id) => /^codex\/gpt-6-(?:astra|sol|luna)$|^gpt-6-(?:astra|sol|luna)$/.test(id)),
+  [
+    'codex/gpt-6-astra',
+    'codex/gpt-6-luna',
+    'codex/gpt-6-sol',
+    'gpt-6-astra',
+    'gpt-6-luna',
+    'gpt-6-sol',
+  ]
+);
 for (const [id, name] of [
   ['gpt-image-2.5-flare', 'GPT Image 2.5 Flare'],
   ['gpt-image-2.5-sunburst', 'GPT Image 2.5 Sunburst'],
@@ -87,6 +110,21 @@ const publicTianxiSuper = buildLocalModelsResponse(
 assert.strictEqual(publicTianxiSuper.name, 'Tianxi Super');
 assert.strictEqual(publicTianxiSuper.group, 'tianxi');
 assert.strictEqual(publicTianxiSuper.supports_streaming, true);
+assert.deepStrictEqual(tianxiSuperRoute.capabilities, []);
+const staleTianxi = mergeBuiltinModelRoutes({
+  profiles: [{ id: 'tianxi-official' }],
+  modelRoutes: [
+    {
+      from: 'tianxi/super',
+      profileId: 'tianxi-official',
+      to: 'super',
+      capabilities: ['function-call'],
+      labelOverride: 'Custom Tianxi',
+    },
+  ],
+}).modelRoutes[0];
+assert.deepStrictEqual(staleTianxi.capabilities, []);
+assert.strictEqual(staleTianxi.labelOverride, 'Custom Tianxi');
 assert.deepStrictEqual(publicTianxiSuper.input_modalities, ['text']);
 assert.deepStrictEqual(publicTianxiSuper.output_modalities, ['text']);
 assert.strictEqual(

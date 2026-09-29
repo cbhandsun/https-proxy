@@ -63,8 +63,10 @@ const {
   buildCodexOfficialLoginLaunchArgs,
   deleteEnvValue,
   deleteTomlValue,
+  deleteTomlSection,
   setEnvValue,
   setTomlValue,
+  stripOrphanedManagedProviderLines,
   switchCodexMode,
 } = require('../lib/proxy/tool-configs');
 
@@ -73,6 +75,94 @@ const updatedToml = setTomlValue(toml, 'base_url', 'https://localhost:3447');
 assert.strictEqual(updatedToml, 'theme = "dark"\nbase_url = "https://localhost:3447"\n');
 assert.strictEqual(setTomlValue('', 'model_provider', 'custom'), '\nmodel_provider = "custom"\n');
 assert.strictEqual(deleteTomlValue(updatedToml, 'base_url'), 'theme = "dark"\n');
+
+// Regression: deleteTomlSection must remove the whole table, not just the
+// header. The previous regex anchor stopped after the header at line ends and
+// stranded the body inside the preceding table, which made Codex report the
+// provider keys as unrecognized settings.
+const sectionSource = [
+  '[features]',
+  'memories = true',
+  '',
+  '[memories]',
+  'generate_memories = true',
+  '',
+  '[model_providers.custom]',
+  'name = "HTTPS Proxy"',
+  'wire_api = "responses"',
+  'requires_openai_auth = true',
+  'base_url = "http://localhost:3085/v1"',
+  '',
+  '[desktop]',
+  'appearanceTheme = "dark"',
+  '',
+].join('\n');
+const sectionRemoved = deleteTomlSection(sectionSource, 'model_providers.custom');
+assert.ok(!sectionRemoved.includes('[model_providers.custom]'));
+assert.ok(!sectionRemoved.includes('requires_openai_auth = true'));
+assert.ok(!sectionRemoved.includes('http://localhost:3085/v1'));
+assert.match(sectionRemoved, /^\[memories\]$/m);
+assert.match(sectionRemoved, /^generate_memories = true$/m);
+assert.match(sectionRemoved, /^\[desktop\]$/m);
+assert.match(sectionRemoved, /^appearanceTheme = "dark"$/m);
+
+// The middle-of-file case used to leave the provider body behind as well.
+const sectionRemovedMid = deleteTomlSection(sectionSource, 'memories');
+assert.ok(!sectionRemovedMid.includes('generate_memories = true'));
+assert.match(sectionRemovedMid, /^\[model_providers\.custom\]$/m);
+assert.match(sectionRemovedMid, /^requires_openai_auth = true$/m);
+
+// Unknown tables must be left byte-identical.
+assert.strictEqual(deleteTomlSection(sectionSource, 'no.such.section'), sectionSource);
+
+// A config damaged by the old bug is healed: the stranded provider lines are
+// dropped while unrelated tables stay intact.
+const damaged = [
+  '[memories]',
+  'generate_memories = true',
+  '',
+  'name = "HTTPS Proxy"',
+  'wire_api = "responses"',
+  'requires_openai_auth = true',
+  'base_url = "http://localhost:3085/v1"',
+  '[model_providers.custom]',
+  'name = "HTTPS Proxy"',
+  'wire_api = "responses"',
+  'requires_openai_auth = true',
+  'base_url = "http://localhost:3085/v1"',
+  '',
+].join('\n');
+const healed = stripOrphanedManagedProviderLines(damaged);
+assert.match(healed, /^generate_memories = true$/m);
+const healedProviderSection = healed.slice(healed.indexOf('[model_providers.custom]'));
+assert.strictEqual((healedProviderSection.match(/^name = "HTTPS Proxy"$/gm) || []).length, 1);
+assert.strictEqual(
+  (healedProviderSection.match(/^requires_openai_auth = true$/gm) || []).length,
+  1
+);
+assert.ok(!/^name = "HTTPS Proxy"\nwire_api/m.test(healed.split('[model_providers.custom]')[0]));
+
+// User-authored providers and lookalike values must never be stripped.
+const foreignProvider = [
+  '[model_providers.mine]',
+  'name = "My Own Provider"',
+  'wire_api = "responses"',
+  'base_url = "https://api.example.com"',
+  '',
+].join('\n');
+assert.strictEqual(stripOrphanedManagedProviderLines(foreignProvider), foreignProvider);
+assert.strictEqual(stripOrphanedManagedProviderLines(''), '');
+
+// A short scattered run (fewer than three managed lines) is not treated as an
+// orphaned provider block, which keeps the heal conservative.
+const scattered = [
+  '[features]',
+  'memories = true',
+  'wire_api = "responses"',
+  'requires_openai_auth = true',
+  '',
+].join('\n');
+assert.strictEqual(stripOrphanedManagedProviderLines(scattered), scattered);
 
 const env = 'KEEP=yes\nGOOGLE_GEMINI_BASE_URL=https://old.example\n';
 const updatedEnv = setEnvValue(env, 'GOOGLE_GEMINI_BASE_URL', 'https://localhost:3443');

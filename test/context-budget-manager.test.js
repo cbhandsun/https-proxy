@@ -4,8 +4,26 @@ const assert = require('node:assert/strict');
 const {
   applyContextBudgetToMessages,
   pruneMessagesToTokenBudget,
+  rejectContextOverflow,
   resolveContextBudget,
 } = require('../lib/proxy/context-budget-manager');
+
+{
+  const budget = resolveContextBudget(
+    {
+      max_tokens: 8192,
+      reasoning_effort: 'high',
+      tools: [{ name: 'read_file' }],
+    },
+    'gemini-3.8-flash-tiered',
+    { clientContextTokens: 0 }
+  );
+  assert.equal(budget.enabled, true);
+  assert.equal(budget.contextWindowTokens, 1000000);
+  assert.equal(budget.source, 'model-default');
+  assert.equal(budget.inputBudgetTokens, 975424);
+  assert.equal(budget.clientContextTokens, 0);
+}
 
 {
   const budget = resolveContextBudget(
@@ -58,6 +76,45 @@ const {
 
 {
   const messages = [
+    { role: 'user', content: 'continue the current task' },
+    {
+      role: 'assistant',
+      content: null,
+      tool_calls: [{ id: 'call_large', type: 'function', function: { name: 'exec' } }],
+    },
+    { role: 'tool', tool_call_id: 'call_large', content: 'large but indivisible result' },
+  ];
+  const estimateMessageTokens = (message) => (message.role === 'tool' ? 180000 : 1000);
+  const body = {
+    max_tokens: 8192,
+    reasoning_effort: 'high',
+    tools: [{ name: 'exec' }],
+  };
+  const modelDefault = applyContextBudgetToMessages(
+    messages,
+    body,
+    'gemini-3.8-flash-tiered',
+    { contextWindowPolicy: 'overflow-drop-oldest', clientContextTokens: 0 },
+    { fixedInputTokens: 40000, estimateMessageTokens }
+  );
+  assert.equal(modelDefault.diagnostics.contextWindowTokens, 1000000);
+  assert.equal(modelDefault.diagnostics.overBudgetTokens, 0);
+  assert.deepStrictEqual(modelDefault.messages, messages);
+
+  const explicitClientCap = applyContextBudgetToMessages(
+    messages,
+    body,
+    'gemini-3.8-flash-tiered',
+    { contextWindowPolicy: 'overflow-drop-oldest', clientContextTokens: 200000 },
+    { fixedInputTokens: 40000, estimateMessageTokens }
+  );
+  assert.equal(explicitClientCap.diagnostics.contextWindowTokens, 200000);
+  assert.ok(explicitClientCap.diagnostics.overBudgetTokens > 0);
+  assert.deepStrictEqual(explicitClientCap.messages, messages);
+}
+
+{
+  const messages = [
     {
       role: 'assistant',
       content: [{ type: 'tool_use', id: 'call_exec', name: 'exec', input: { input: '1' } }],
@@ -75,6 +132,143 @@ const {
   const tight = pruneMessagesToTokenBudget(messages, 2, () => 1);
   assert.deepStrictEqual(tight.messages, [{ role: 'user', content: 'next' }]);
   assert.equal(tight.droppedCount, 2);
+}
+
+{
+  const toolCall = (id) => ({
+    role: 'assistant',
+    content: null,
+    tool_calls: [{ id, type: 'function', function: { name: 'exec', arguments: '{}' } }],
+  });
+  const toolResult = (id) => ({ role: 'tool', tool_call_id: id, content: 'ok' });
+  const messages = [
+    { role: 'user', content: 'old completed request' },
+    { role: 'assistant', content: 'old completed answer' },
+    { role: 'user', content: 'run the chained task' },
+    toolCall('call_a'),
+    toolResult('call_a'),
+    toolCall('call_b'),
+    toolResult('call_b'),
+  ];
+  const result = pruneMessagesToTokenBudget(messages, 5, () => 1);
+  assert.deepStrictEqual(result.messages, messages.slice(2));
+  assert.equal(result.droppedCount, 2);
+  assert.equal(result.messages[0].role, 'user');
+
+  const overBudget = pruneMessagesToTokenBudget(messages, 4, () => 1);
+  assert.deepStrictEqual(overBudget.messages, messages.slice(2));
+  assert.equal(overBudget.estimatedInputTokens, 5);
+}
+
+{
+  const messages = [
+    { role: 'user', content: 'discard me' },
+    { role: 'assistant', content: 'done' },
+    { role: 'user', content: 'run both tools' },
+    {
+      role: 'assistant',
+      content: null,
+      tool_calls: [
+        { id: 'call_a', type: 'function', function: { name: 'a', arguments: '{}' } },
+        { id: 'call_b', type: 'function', function: { name: 'b', arguments: '{}' } },
+      ],
+    },
+    { role: 'tool', tool_call_id: 'call_a', content: 'a' },
+    { role: 'tool', tool_call_id: 'call_b', content: 'b' },
+  ];
+  const result = pruneMessagesToTokenBudget(messages, 4, () => 1);
+  assert.deepStrictEqual(result.messages, messages.slice(2));
+  assert.equal(result.droppedCount, 2);
+}
+
+{
+  const toolUse = (id) => ({
+    role: 'assistant',
+    content: [{ type: 'tool_use', id, name: 'exec', input: { input: '1' } }],
+  });
+  const toolResult = (id) => ({
+    role: 'user',
+    content: [{ type: 'tool_result', tool_use_id: id, content: 'ok' }],
+  });
+  const messages = [
+    { role: 'user', content: 'discard this older request' },
+    { role: 'assistant', content: 'older answer' },
+    { role: 'user', content: 'run the Gemini tool chain' },
+    toolUse('toolu_a'),
+    toolResult('toolu_a'),
+    toolUse('toolu_b'),
+    toolResult('toolu_b'),
+  ];
+  const result = pruneMessagesToTokenBudget(messages, 5, () => 1);
+  assert.deepStrictEqual(result.messages, messages.slice(2));
+  assert.equal(result.droppedCount, 2);
+  assert.equal(result.messages[0].role, 'user');
+}
+
+{
+  const messages = [
+    { role: 'user', content: 'legacy request' },
+    { role: 'assistant', function_call: { name: 'lookup', arguments: '{}' } },
+    { role: 'function', name: 'lookup', content: 'legacy result' },
+  ];
+  const result = pruneMessagesToTokenBudget(messages, 2, () => 1);
+  assert.deepStrictEqual(result.messages, messages);
+  assert.equal(result.estimatedInputTokens, 3);
+}
+
+{
+  const messages = [
+    { role: 'assistant', content: null, tool_calls: [null] },
+    { role: 'tool', content: 'malformed result without an id' },
+    { role: 'user', content: 'safe latest request' },
+  ];
+  const result = pruneMessagesToTokenBudget(messages, 1, () => 1);
+  assert.deepStrictEqual(result.messages, [{ role: 'user', content: 'safe latest request' }]);
+  assert.equal(result.droppedCount, 2);
+  assert.deepStrictEqual(pruneMessagesToTokenBudget(null, 1, () => 1).messages, null);
+}
+
+{
+  const messages = [
+    { role: 'user', content: 'run an oversized tool chain' },
+    {
+      role: 'assistant',
+      content: [{ type: 'tool_use', id: 'call_big', name: 'exec', input: { input: '1' } }],
+    },
+    {
+      role: 'user',
+      content: [{ type: 'tool_result', tool_use_id: 'call_big', content: 'result' }],
+    },
+  ];
+  const result = applyContextBudgetToMessages(
+    messages,
+    { max_tokens: 1, tools: [{ name: 'exec' }] },
+    'gemini-3.8-flash-tiered',
+    {
+      clientContextTokens: 5,
+      outputReserveTokens: 1,
+      toolReserveTokens: 1,
+      safetyMarginTokens: 1,
+    },
+    { estimateMessageTokens: () => 1 }
+  );
+  assert.deepStrictEqual(result.messages, messages);
+  assert.equal(result.diagnostics.overBudgetTokens, 1);
+
+  let rejected = null;
+  assert.equal(
+    rejectContextOverflow(
+      {},
+      { __hpmDiagnostics: { contextBudget: result.diagnostics } },
+      (_response, status, payload) => {
+        rejected = { status, payload };
+      }
+    ),
+    true
+  );
+  assert.equal(rejected.status, 400);
+  assert.equal(rejected.payload.error.code, 'context_length_exceeded');
+  assert.ok(!JSON.stringify(result.diagnostics).includes('oversized tool chain'));
 }
 
 console.log('[context-budget-manager.test] ok');
