@@ -69,6 +69,16 @@ test('Tianxi official profiles use local tac-server runtime automatically', asyn
   assert.equal(calls.http.length, 0);
 });
 
+test('Tianxi direct bridge forwards environment timeout with profile override precedence', async () => {
+  const { calls, runtime } = createRuntime({ env: { HPM_TIANXI_RUNTIME_TIMEOUT_MS: '45000' } });
+  await runtime.callTianxiOfficialBridge({}, { protocol: 'tianxi' });
+  await runtime.callTianxiOfficialBridge({}, { protocol: 'tianxi', timeoutMs: 1234 });
+  assert.deepEqual(
+    calls.direct.map((call) => call.directOptions.timeoutMs),
+    ['45000', 1234]
+  );
+});
+
 test('Tianxi runtime honors explicit bridgeUrl unless direct is requested', async () => {
   const { calls, runtime } = createRuntime({
     getTianxiOfficialBridgeUrl: () => 'http://127.0.0.1:49306/v1/responses',

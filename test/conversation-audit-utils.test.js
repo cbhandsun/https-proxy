@@ -473,6 +473,41 @@ function createAuditCaptureDeps(records, usageLogs) {
   ]);
 }
 
+// Regression: OpenAI Responses custom tools stream input through
+// response.custom_tool_call_input.* events, not function_call_arguments.*.
+{
+  const records = [];
+  const usageLogs = [];
+  const res = createWritableResponse();
+  res.__auditData = {
+    startTime: Date.now(),
+    profileId: 'tianxi-official',
+    originalModel: 'tianxi/super',
+    rewriteModel: 'super',
+    response: { role: 'assistant', content: '', tool_calls: [] },
+  };
+  installConversationAuditResponseCapture(res, createAuditCaptureDeps(records, usageLogs));
+  res.writeHead(200, { 'content-type': 'text/event-stream' });
+  res.end(
+    [
+      'data: {"type":"response.output_item.added","output_index":0,"item":{"id":"ctc_a","call_id":"call_a","type":"custom_tool_call","name":"exec","input":""}}',
+      '',
+      'data: {"type":"response.custom_tool_call_input.delta","item_id":"ctc_a","output_index":0,"delta":"{\\"input\\":"}',
+      '',
+      'data: {"type":"response.custom_tool_call_input.delta","item_id":"ctc_a","output_index":0,"delta":"\\"return 1;\\"}"}',
+      '',
+      'data: {"type":"response.custom_tool_call_input.done","item_id":"ctc_a","output_index":0,"input":"{\\"input\\":\\"return 1;\\"}"}',
+      '',
+      'data: [DONE]',
+      '',
+    ].join('\n')
+  );
+
+  assert.deepStrictEqual(records[0].response.tool_calls, [
+    { id: 'call_a', name: 'exec', args: { input: 'return 1;' }, truncated: false },
+  ]);
+}
+
 // Regression: non-stream Responses JSON stores assistant text and tool calls in
 // output[], not choices[].message. Capture both ordinary and custom tool calls.
 {

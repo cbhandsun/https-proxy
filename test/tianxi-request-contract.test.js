@@ -23,7 +23,8 @@ test('Tianxi rejects unsupported and malformed tool requests without inspecting 
     [{ tools: [], tool_choice: { type: 'function', name: 'read_file' } }, 'tool_choice'],
     [{ tool_choice: 'required' }, 'tool_choice'],
     [{ previous_response_id: 'resp_1' }, 'previous_response_id'],
-    [{ input: [{ type: 'function_call_output', output: 'SECRET' }] }, 'function_call_output'],
+    [{ input: [{ type: 'function_call_output', output: 'SECRET' }] }, 'tool_history'],
+    [{ input: [{ type: 'custom_tool_call_output', output: 'SECRET' }] }, 'tool_history'],
     [
       { input: [{ role: 'user', content: [{ type: 'input_image', image_url: 'SECRET' }] }] },
       'input',
@@ -39,7 +40,16 @@ test('Tianxi rejects unsupported and malformed tool requests without inspecting 
           content: [{ type: 'function_call_output', call_id: 'call_1', output: 'SECRET' }],
         },
       },
-      'function_call_output',
+      'tool_history',
+    ],
+    [
+      {
+        input: {
+          role: 'user',
+          content: [{ type: 'custom_tool_call_output', call_id: 'call_1', output: 'SECRET' }],
+        },
+      },
+      'tool_history',
     ],
   ]) {
     assert.equal(unsupportedTianxiResponsesFeature(body), feature);
@@ -71,6 +81,19 @@ test('Tianxi native read mode accepts auto tool declarations but not forced call
     unsupportedTianxiResponsesFeature(
       { previous_response_id: 'resp_1' },
       { ...mode, responseHistory: true }
+    ),
+    null
+  );
+  assert.equal(
+    unsupportedTianxiResponsesFeature(
+      {
+        input: [
+          { type: 'function_call', call_id: 'call_1', name: 'Read', arguments: '{}' },
+          { type: 'function_call_output', call_id: 'call_1', output: 'SECRET' },
+          { role: 'user', content: 'continue' },
+        ],
+      },
+      { ...mode, toolHistory: true }
     ),
     null
   );

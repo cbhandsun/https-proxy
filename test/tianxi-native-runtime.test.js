@@ -8,6 +8,7 @@ const { test } = require('node:test');
 const { AbortController } = globalThis;
 const {
   DEFAULT_TIANXI_NATIVE_IDLE_TIMEOUT_MS,
+  DEFAULT_TIANXI_TAC_SERVER_TIMEOUT_MS,
   createFileTianxiNativeRuntime,
   createAgentCoreTianxiNativeRuntime,
   createFixtureTianxiNativeRuntime,
@@ -22,6 +23,130 @@ function fakeJwt(exp) {
   const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
   return `sat-${encode({ alg: 'none' })}.${encode({ exp })}.signature`;
 }
+
+test('Tianxi native long tasks survive five minutes but retain a hard deadline', async (t) => {
+  assert.equal(DEFAULT_TIANXI_TAC_SERVER_TIMEOUT_MS, 1800000);
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  for (const scenario of [
+    { factory: createTacServerTianxiNativeRuntime, timeout: 1800000 },
+    { factory: createTianxiNativeRuntime, timeout: 1800000 },
+    { factory: createTianxiNativeRuntime, timeout: 10, timeoutMs: 10 },
+    {
+      factory: createTianxiNativeRuntime,
+      timeout: 20,
+      env: { HPM_TIANXI_RUNTIME_TIMEOUT_MS: '20' },
+    },
+    { factory: createTianxiNativeRuntime, timeout: 1800000, timeoutMs: -1 },
+    ...[true, [], {}, 2147483648, Number.MAX_SAFE_INTEGER, '2147483648', '10ms', ''].map(
+      (timeoutMs) => ({
+        factory: createTianxiNativeRuntime,
+        timeout: 1800000,
+        timeoutMs,
+      })
+    ),
+    {
+      factory: createTianxiNativeRuntime,
+      timeout: 1800000,
+      env: { HPM_TIANXI_RUNTIME_TIMEOUT_MS: 'invalid' },
+    },
+  ]) {
+    let ready;
+    let signal;
+    const started = new Promise((resolve) => {
+      ready = resolve;
+    });
+    const runtime = scenario.factory({
+      mode: 'tac-server',
+      env: scenario.env || {},
+      timeoutMs: scenario.timeoutMs,
+      header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
+      readTianxiRegistryCredentialCache: () => ({ available: false, credentialExpiry: {} }),
+      transport: {
+        sendQuery(_frame, context) {
+          signal = context.signal;
+          ready();
+          return new Promise(() => {});
+        },
+      },
+    });
+    const result = runtime.sendResponses({ model: 'chat', input: 'hello' });
+    const rejected = assert.rejects(result, { code: 'tianxi_native_runtime_timeout' });
+    await started;
+    t.mock.timers.tick(scenario.timeout - 1);
+    assert.equal(signal.aborted, false);
+    t.mock.timers.tick(1);
+    await rejected;
+    assert.equal(signal.aborted, true);
+  }
+});
+
+test('Tianxi active native task can complete beyond the old five minute deadline', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let ready;
+  let complete;
+  const started = new Promise((resolve) => {
+    ready = resolve;
+  });
+  const runtime = createTianxiNativeRuntime({
+    mode: 'tac-server',
+    env: {},
+    header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
+    readTianxiRegistryCredentialCache: () => ({ available: false, credentialExpiry: {} }),
+    transport: {
+      sendQuery(_frame, context) {
+        ready(context);
+        return new Promise((resolve) => {
+          complete = resolve;
+        });
+      },
+    },
+  });
+  const result = runtime.sendResponses({ model: 'chat', input: 'hello' });
+  const context = await started;
+  t.mock.timers.tick(1799999);
+  context.onActivity();
+  t.mock.timers.tick(2);
+  assert.equal(context.signal.aborted, false);
+  complete([{ type: 'task_status', data: { status: 'COMPLETED' } }]);
+  assert.equal((await result).frames.at(-1).data.status, 'COMPLETED');
+  context.onActivity();
+  t.mock.timers.tick(1800001);
+  assert.equal(context.signal.aborted, false);
+});
+
+test('Explicit total budgets do not renew, while inactivity budgets expire after last progress', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  for (const timeoutMode of ['total', 'inactivity']) {
+    let ready;
+    const started = new Promise((resolve) => {
+      ready = resolve;
+    });
+    const runtime = createTransportTianxiNativeRuntime({
+      timeoutMs: 10,
+      timeoutMode,
+      send(_payload, context) {
+        ready(context);
+        return new Promise(() => {});
+      },
+    });
+    const pending = runtime.sendResponses({ model: 'super' });
+    const rejected = assert.rejects(pending, { code: 'tianxi_native_runtime_timeout' });
+    const context = await started;
+    t.mock.timers.tick(9);
+    context.onActivity();
+    t.mock.timers.tick(1);
+    assert.equal(context.signal.aborted, timeoutMode === 'total');
+    if (timeoutMode === 'inactivity') {
+      t.mock.timers.tick(8);
+      assert.equal(context.signal.aborted, false);
+      t.mock.timers.tick(1);
+    }
+    await rejected;
+    context.onActivity();
+    t.mock.timers.tick(100);
+    assert.equal(context.signal.aborted, true);
+  }
+});
 
 function fakeExpiredQoderRuntimeRuns() {
   return [
@@ -150,7 +275,7 @@ test('Tianxi tac-server streams normalized frames and releases terminal status l
   assert.equal(result.frames.at(-1).data.status, 'COMPLETED');
 });
 
-test('Tianxi tac-server runtime allows visible partial frames to close after idle', async () => {
+test('Tianxi tac-server runtime requires terminal status even with visible output', async () => {
   let queryContext;
   const runtime = createTacServerTianxiNativeRuntime({
     header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
@@ -163,7 +288,8 @@ test('Tianxi tac-server runtime allows visible partial frames to close after idl
     },
   });
   const result = await runtime.sendResponses({ model: 'chat', input: 'hello' });
-  assert.equal(queryContext.allowPartialOnIdle, true);
+  assert.equal(queryContext.allowPartialOnIdle, false);
+  assert.equal(queryContext.waitForTerminalOnIdle, true);
   assert.equal(result.frames.length, 1);
   assert.equal(result.frames[0].data.content, 'partial answer');
 });
@@ -953,6 +1079,113 @@ test('Tianxi native runtime factory selects safe modes from env', async () => {
   );
 });
 
+test('Native WORKING progress streams before content, is sanitized and matches final Responses output', async () => {
+  const { createTianxiResponsesStream } = require('../lib/proxy/tianxi-responses');
+  let ready;
+  let complete;
+  const started = new Promise((resolve) => {
+    ready = resolve;
+  });
+  const emitted = [];
+  const writes = [];
+  const responseStream = createTianxiResponsesStream(
+    {
+      writeHead() {
+        this.headersSent = true;
+      },
+      write(chunk) {
+        writes.push(String(chunk));
+      },
+      end() {},
+    },
+    { model: 'tianxi/chat' },
+    'chat'
+  );
+  const working = {
+    type: 'task_status',
+    data: { status: 'WORKING', token: 'secret-unit', message: 'private-unit' },
+  };
+  const runtime = createTacServerTianxiNativeRuntime({
+    header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
+    readTianxiRegistryCredentialCache: () => ({ available: false, credentialExpiry: {} }),
+    transport: {
+      sendQuery(_frame, context) {
+        context.onFrame({ type: 'task_status', data: {} });
+        context.onFrame({ type: 'task_status', data: { status: true } });
+        context.onFrame({ type: 'notify', data: working });
+        context.onFrame(working);
+        ready(context);
+        return new Promise((resolve) => {
+          complete = resolve;
+        });
+      },
+    },
+  });
+  const pending = runtime.sendResponses(
+    { model: 'chat' },
+    {
+      onFrame(frame) {
+        emitted.push(frame);
+        responseStream.writeFrame(frame);
+      },
+    }
+  );
+  const context = await started;
+  assert.deepEqual(emitted, [{ type: 'task_status', data: { status: 'WORKING' } }]);
+  assert.ok(writes.join('').includes('response.reasoning_summary_text.delta'));
+  assert.ok(!writes.join('').includes('response.completed'));
+  const output = {
+    type: 'task_output',
+    data: { content_type: 'text', content_schema: 'final', content: 'unit-ok' },
+  };
+  const terminal = { type: 'task_status', data: { status: 'COMPLETED' } };
+  context.onFrame(output);
+  context.onFrame(terminal);
+  complete([working, working, output, terminal]);
+  const result = await pending;
+  const final = responseStream.finish(result.frames);
+  assert.equal(result.frames.filter((frame) => frame.data.status === 'WORKING').length, 1);
+  assert.equal(final.status, 'completed');
+  assert.equal(final.output[0].summary[0].text, 'Tianxi native task is working.\n');
+  assert.equal(final.output_text, 'unit-ok');
+  assert.ok(!JSON.stringify(result.frames).includes('secret-unit'));
+  assert.ok(!writes.join('').includes('private-unit'));
+});
+
+test('Early native status does not hide failure/cancellation or swallow observer errors', async () => {
+  for (const status of ['FAILED', 'CANCELED', 'observer_error']) {
+    const emitted = [];
+    const runtime = createTacServerTianxiNativeRuntime({
+      header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
+      readTianxiRegistryCredentialCache: () => ({ available: false, credentialExpiry: {} }),
+      transport: {
+        async sendQuery(_frame, context) {
+          const working = { type: 'task_status', data: { status: 'WORKING' } };
+          context.onFrame(working);
+          return [working, { type: 'task_status', data: { status } }];
+        },
+      },
+    });
+    const pending = runtime.sendResponses(
+      { model: 'chat' },
+      {
+        onFrame(frame) {
+          if (status === 'observer_error') throw new Error('observer_failed');
+          emitted.push(frame);
+        },
+      }
+    );
+    if (status === 'observer_error') {
+      await assert.rejects(pending, { code: 'tianxi_native_runtime_failed' });
+    } else {
+      const result = await pending;
+      assert.equal(result.frames.at(-1).data.status, status);
+      assert.equal(emitted.at(-1).data.status, status);
+      assert.equal(emitted.filter((frame) => frame.data.status === 'WORKING').length, 1);
+    }
+  }
+});
+
 test('Tianxi tac-server runtime retries auth only before visible output', async () => {
   let queries = 0;
   const emitted = [];
@@ -998,6 +1231,7 @@ test('Tianxi tac-server runtime retries auth only before visible output', async 
           context.onFrame(failed);
           return [{ type: 'task_status', data: { status: 'WORKING' } }, failed];
         }
+        context.onFrame({ type: 'task_status', data: { status: 'WORKING' } });
         const output = { type: 'task_output', data: { content: 'retry-ok' } };
         const completed = { type: 'task_status', data: { status: 'COMPLETED' } };
         context.onFrame(output);
@@ -1012,12 +1246,14 @@ test('Tianxi tac-server runtime retries auth only before visible output', async 
     { now: () => 150000, onFrame: (frame) => emitted.push(frame) }
   );
   assert.equal(queries, 2);
-  assert.equal(result.frames[0].data.content, 'retry-ok');
+  assert.equal(result.frames[0].data.status, 'WORKING');
+  assert.equal(result.frames[1].data.content, 'retry-ok');
   assert.deepEqual(
     emitted.map((frame) => frame.type),
-    ['task_output', 'task_status']
+    ['task_status', 'task_output', 'task_status']
   );
   assert.ok(!JSON.stringify(emitted).includes('authentication failed'));
+  assert.equal(emitted.filter((frame) => frame.data.status === 'WORKING').length, 1);
 
   queries = 0;
   emitted.length = 0;

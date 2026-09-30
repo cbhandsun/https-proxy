@@ -18,15 +18,24 @@ assert.equal(
     { role: 'user', content: [{ type: 'input_text', text: 'first' }] },
     { role: 'user', content: [{ type: 'text', text: 'second' }] },
   ]),
-  'first\nsecond'
+  'second'
 );
 assert.equal(
   extractTianxiPromptText([
     { role: 'user', content: [{ type: 'input_text', text: '', content: 'SECRET' }] },
     { role: 'user', content: '', output: 'SECRET output' },
-    { role: 'user', type: 'function_call_output', output: '', content: 'SECRET tool' },
+    { role: 'user', type: 'function_call_output', output: 'SECRET output', content: 'SECRET tool' },
+    { type: 'custom_tool_call_output', output: 'SECRET custom output' },
   ]),
   ''
+);
+assert.equal(
+  extractTianxiPromptText([
+    { type: 'function_call', name: 'Read', arguments: '{"path":"SECRET"}' },
+    { type: 'function_call_output', output: 'SECRET tool output' },
+    { role: 'user', content: [{ type: 'input_text', text: 'continue audit' }] },
+  ]),
+  'continue audit'
 );
 
 const built = buildTianxiAgentCoreFrames(
@@ -112,6 +121,29 @@ assert.equal(channel.frame.extend.gatewayChannel, 'agentCore');
 assert.equal(channel.frame.extend.raw_query, 'channel prompt');
 assert.equal(channel.frame.extend.workMode, 'super');
 assert.equal(channel.frame.extend.custom_context, 'context');
+
+const longPrompt = 'x'.repeat(12000);
+const longChannel = buildTianxiNativeApiQueryFrame(
+  {
+    model: 'super',
+    input: longPrompt,
+    metadata: { tianxi: { agent_id: 'super' } },
+  },
+  {
+    now: () => 789,
+    uuid: (() => {
+      const values = ['long-session', 'long-request', 'long-query'];
+      return () => values.shift();
+    })(),
+  }
+);
+assert.equal(longChannel.frame.data.text, longPrompt);
+assert.equal(longChannel.frame.data.display_text.length, 4096);
+assert.equal(longChannel.frame.extend.raw_query.length, 4096);
+assert.ok(
+  Buffer.byteLength(JSON.stringify(longChannel.frame)) < Buffer.byteLength(longPrompt) * 2,
+  'long native query frames should not duplicate the full prompt into preview fields'
+);
 
 const parsed = parseTianxiAgentCoreNotify({
   data: JSON.stringify({

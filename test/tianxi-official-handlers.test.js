@@ -158,7 +158,6 @@ function fakeRes() {
   for (const input of [
     { tools: [{ type: 'function', name: 'read_file' }], tool_choice: 'required' },
     { tools: [], tool_choice: 'required' },
-    { input: [{ type: 'function_call_output', call_id: 'call_1', output: 'private' }] },
   ]) {
     unsupportedError = null;
     await unsupportedHandlers.handleTianxiOfficialResponses(
@@ -174,6 +173,58 @@ function fakeRes() {
     assert.ok(!JSON.stringify(unsupportedError).includes('private'));
   }
   assert.equal(unsupportedBridgeCalled, false);
+
+  let toolHistoryPayload = null;
+  const toolHistoryHandlers = createTianxiOfficialHandlers({
+    sendJsonError() {
+      throw new Error('tool history should not be rejected');
+    },
+    logRequestEnd() {},
+    openAIResponsesToChat(body) {
+      return { messages: [{ role: 'user', content: body.input?.[0]?.content || '' }] };
+    },
+    callTianxiOfficialBridge(payload) {
+      toolHistoryPayload = payload;
+      return Promise.resolve({
+        bridgeUrl: 'tianxi://test',
+        frames: [
+          { type: 'task_output', data: { content_type: 'text', content: 'ok' } },
+          { type: 'task_status', data: { status: 'COMPLETED' } },
+        ],
+      });
+    },
+    fallbackId: () => 'resp_test',
+    stableCreated: () => 123,
+  });
+  const toolHistoryRes = fakeRes();
+  await toolHistoryHandlers.handleTianxiOfficialResponses(
+    { headers: {}, method: 'POST' },
+    toolHistoryRes,
+    Buffer.from(
+      JSON.stringify({
+        model: 'tianxi/super',
+        input: [
+          {
+            type: 'function_call',
+            call_id: 'call_1',
+            name: 'Read',
+            arguments: '{"path":"SECRET"}',
+          },
+          { type: 'function_call_output', call_id: 'call_1', output: 'private source text' },
+          { role: 'user', content: 'continue audit' },
+        ],
+      })
+    ),
+    { model: 'tianxi/super', rewriteTo: 'super', profile: { id: 'tianxi-official' } },
+    Date.now(),
+    '/v1/responses'
+  );
+  assert.equal(toolHistoryRes.statusCode, 200);
+  assert.equal(JSON.parse(toolHistoryRes.body).status, 'completed');
+  assert.equal(toolHistoryPayload.input.length, 1);
+  assert.equal(toolHistoryPayload.input[0].content, 'continue audit');
+  assert.ok(!JSON.stringify(toolHistoryPayload).includes('SECRET'));
+  assert.ok(!JSON.stringify(toolHistoryPayload).includes('private source text'));
 
   const unsupportedMediaStream = fakeRes();
   await unsupportedHandlers.handleTianxiOfficialResponses(
@@ -389,6 +440,8 @@ function fakeRes() {
     ['reasoning', 'message']
   );
   assert.ok(!nativeReadRes.body.includes('private'));
+  assert.ok(!nativeReadRes.body.includes('Using Read.'));
+  assert.ok(nativeReadRes.body.includes('Tianxi native tool Read'));
 
   const nativeReadStream = fakeRes();
   await nativeReadHandlers.handleTianxiOfficialResponses(
@@ -546,7 +599,7 @@ function fakeRes() {
   assert.equal(partialFailedStream.statusCode, 200);
   assert.equal((partialFailedStream.body.match(/event: response.incomplete/g) || []).length, 1);
   assert.equal((partialFailedStream.body.match(/event: response.failed/g) || []).length, 0);
-  assert.ok(partialFailedStream.body.includes('response.reasoning.delta'));
+  assert.ok(partialFailedStream.body.includes('response.reasoning_summary_text.delta'));
   assert.ok(!partialFailedStream.body.includes('Tianxi native request failed'));
   assert.ok(partialFailedStream.body.endsWith('data: [DONE]\n\n'));
   assert.equal(
@@ -554,6 +607,71 @@ function fakeRes() {
     'tianxi_official_responses_bridge_stream_incomplete'
   );
   assert.equal(partialFailureLogs[0].details.causeCode, 'tianxi_native_runtime_timeout');
+  assert.equal(partialFailureLogs[0].details.tianxi.responseStatus, 'incomplete');
+  assert.equal(
+    partialFailureLogs[0].details.tianxi.incompleteReason,
+    'tianxi_native_stream_interrupted'
+  );
+
+  const partialCompletedLogs = [];
+  const partialCompletedHandlers = createTianxiOfficialHandlers({
+    responseHistory: {
+      get: () => [],
+      save() {
+        throw new Error('interrupted output must not become successful response history');
+      },
+    },
+    sendJsonError() {
+      throw new Error('partial completed stream must remain SSE');
+    },
+    logRequestEnd(_method, _path, _start, status, details) {
+      partialCompletedLogs.push({ status, details });
+    },
+    openAIResponsesToChat: () => ({ messages: [] }),
+    callTianxiOfficialBridge(_payload, _profile, context) {
+      context.onFrame({
+        type: 'act_exec',
+        data: { exec_mode: 'cli', actions: [{ id: 'read_timeout', name: 'Read' }] },
+      });
+      context.onFrame({
+        type: 'act_resp',
+        data: { actions: [{ id: 'read_timeout', result: 'private source text' }] },
+      });
+      context.onFrame({
+        type: 'task_output',
+        data: { content_type: 'text', content: 'Read completed.' },
+      });
+      const error = new Error('tianxi_native_runtime_timeout');
+      error.code = 'tianxi_native_runtime_timeout';
+      return Promise.reject(error);
+    },
+  });
+  const partialCompletedStream = fakeRes();
+  await partialCompletedHandlers.handleTianxiOfficialResponses(
+    ownerReq,
+    partialCompletedStream,
+    Buffer.from(JSON.stringify({ model: 'tianxi/super', input: 'hello', stream: true })),
+    prepared,
+    Date.now(),
+    '/v1/responses'
+  );
+  assert.equal(partialCompletedStream.statusCode, 200);
+  assert.equal((partialCompletedStream.body.match(/event: response.completed/g) || []).length, 0);
+  assert.equal((partialCompletedStream.body.match(/event: response.incomplete/g) || []).length, 1);
+  assert.ok(partialCompletedStream.body.includes('Read completed.'));
+  assert.ok(!partialCompletedStream.body.includes('custom_tool_call'));
+  assert.ok(partialCompletedStream.body.includes('Tianxi native tool Read'));
+  assert.ok(!partialCompletedStream.body.includes('private source text'));
+  assert.equal(
+    partialCompletedLogs[0].details.type,
+    'tianxi_official_responses_bridge_stream_incomplete'
+  );
+  assert.equal(partialCompletedLogs[0].details.causeCode, 'tianxi_native_runtime_timeout');
+  assert.equal(partialCompletedLogs[0].details.tianxi.responseStatus, 'incomplete');
+  assert.equal(
+    partialCompletedLogs[0].details.tianxi.incompleteReason,
+    'tianxi_native_stream_interrupted'
+  );
 
   const successStream = fakeRes();
   await handlers.handleTianxiOfficialResponses(
@@ -626,11 +744,15 @@ function fakeRes() {
   await Promise.resolve();
   assert.equal(liveProgressObserved, true);
   assert.ok(liveRes.body.includes('Inspecting project structure.'));
-  assert.ok(liveRes.body.includes('Using Read.'));
+  assert.ok(!liveRes.body.includes('Using Read.'));
+  assert.ok(!liveRes.body.includes('custom_tool_call'));
+  assert.ok(liveRes.body.includes('Tianxi native tool Read'));
   assert.equal(liveRes.ended, false);
   releaseLiveBridge();
   await liveCall;
   assert.ok(liveRes.body.includes('event: response.completed'));
+  assert.ok(!liveRes.body.includes('Read completed.'));
+  assert.ok(!liveRes.body.includes('private'));
   assert.ok(!liveRes.body.includes('private'));
 
   console.log('[tianxi-official-handlers.test] ok');
