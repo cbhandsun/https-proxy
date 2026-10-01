@@ -57,6 +57,10 @@ const {
       maxHistoricalMessageChars: 4000,
       contextCacheCandidateMinTokens: 1024,
       providerCacheHintsPolicy: 'diagnostics-only',
+      workbuddyOperationalInputTokens: 96 * 1024,
+      workbuddyPreflightBodyBytes: 680 * 1024,
+      workbuddyTargetBodyBytes: 384 * 1024,
+      workbuddyMaxSelectedTools: 24,
       maxSseBufferChars: 1024 * 1024,
     },
     mcpHub: { servers: [{ id: 'filesystem', url: 'http://127.0.0.1:3001' }], routing: [] },
@@ -139,6 +143,10 @@ const {
       maxHistoricalMessageChars: 99,
       contextCacheCandidateMinTokens: Number.POSITIVE_INFINITY,
       providerCacheHintsPolicy: 'write-everything',
+      workbuddyOperationalInputTokens: 4095,
+      workbuddyPreflightBodyBytes: 65535,
+      workbuddyTargetBodyBytes: 16 * 1024 * 1024 + 1,
+      workbuddyMaxSelectedTools: 0,
       maxSseBufferChars: 8 * 1024 * 1024,
     },
   });
@@ -168,6 +176,11 @@ const {
     'protocolOptions.maxHistoricalToolChars',
     'protocolOptions.maxHistoricalMessageChars',
     'protocolOptions.contextCacheCandidateMinTokens',
+    'protocolOptions.workbuddyOperationalInputTokens',
+    'protocolOptions.workbuddyPreflightBodyBytes',
+    'protocolOptions.workbuddyTargetBodyBytes',
+    'protocolOptions.workbuddyTargetBodyBytes must not exceed workbuddyPreflightBodyBytes',
+    'protocolOptions.workbuddyMaxSelectedTools',
     'protocolOptions.maxSseBufferChars',
   ]) {
     assert.ok(

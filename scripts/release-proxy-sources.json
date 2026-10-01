@@ -168,6 +168,9 @@
   "lib/proxy/validator.js",
   "lib/proxy/windows-credential-manager.js",
   "lib/proxy/workbuddy-auth-refresh.js",
+  "lib/proxy/workbuddy-context-planner.js",
+  "lib/proxy/workbuddy-context-summary.js",
+  "lib/proxy/workbuddy-wbipc-payload.js",
   "lib/proxy/workbuddy-official.js",
   "lib/proxy/workbuddy-wbipc-client.js",
   "lib/proxy/context-budget-manager.js"

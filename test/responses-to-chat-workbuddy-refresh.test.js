@@ -248,6 +248,8 @@ async function main() {
 
   let wbipcConverted = null;
   let encryptedTransportCalled = false;
+  const wbipcBodies = [];
+  const wbipcEvents = [];
   const encryptedWbipcHandler = createOpenAIResponsesToChatHandler(
     {
       http: {
@@ -265,9 +267,15 @@ async function main() {
       CORS_HEADERS: {},
       collectBoundedResponse() {},
       createChatToResponsesBridge() {},
-      logProxyEvent() {},
+      logProxyEvent(type, payload) {
+        wbipcEvents.push({ type, payload });
+      },
       logRequestEnd() {},
       maxConversionResponseBytes: 1024 * 1024,
+      workbuddyOperationalInputTokens: 2048,
+      workbuddyPreflightBodyBytes: 8192,
+      workbuddyTargetBodyBytes: 8192,
+      workbuddyWbipcRetryBodyBytes: 4096,
       onProxyError() {
         return () => {};
       },
@@ -289,6 +297,10 @@ async function main() {
           assert.strictEqual(params.headers.authorization, undefined);
           assert.strictEqual(params.headers['content-type'], 'application/json');
           assert.ok(Buffer.isBuffer(params.body));
+          wbipcBodies.push(JSON.parse(params.body.toString('utf8')));
+          if (wbipcBodies.length === 1) {
+            return Promise.resolve({ ok: false, status: 'E_PAYLOAD_TOO_LARGE' });
+          }
           return Promise.resolve({
             ok: true,
             status: 200,
@@ -305,7 +317,32 @@ async function main() {
       },
       rememberResponsesFromChatResponse() {},
       responsesToChatWithHistory() {
-        return { model: 'deepseek-v4.1-flash', messages: [{ role: 'user', content: 'ping' }] };
+        return {
+          model: 'deepseek-v4.1-flash',
+          messages: [
+            { role: 'system', content: 'keep-system' },
+            { role: 'user', content: 'old-' + 'x'.repeat(2500) },
+            { role: 'assistant', content: 'old-answer-' + 'y'.repeat(2500) },
+            { role: 'user', content: 'keep-latest' },
+          ],
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'read_workspace_file',
+                description: 'tool-doc-'.repeat(1000),
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    path: { type: 'string', description: 'parameter-doc-'.repeat(1000) },
+                  },
+                  required: ['path'],
+                  examples: [{ path: 'example.txt' }],
+                },
+              },
+            },
+          ],
+        };
       },
       sendJsonError(_clientRes, status, payload) {
         throw new Error(`sendJsonError should not be used: ${status} ${JSON.stringify(payload)}`);
@@ -351,12 +388,31 @@ async function main() {
 
   await new Promise((resolve) => setTimeout(resolve, 25));
   assert.strictEqual(encryptedTransportCalled, false);
+  assert.strictEqual(wbipcBodies.length, 2);
+  assert.ok(JSON.stringify(wbipcBodies[1]).length < JSON.stringify(wbipcBodies[0]).length);
+  assert.ok(
+    JSON.stringify(wbipcBodies[1].tools).length <= JSON.stringify(wbipcBodies[0].tools).length
+  );
+  assert.strictEqual(wbipcBodies[1].tools[0].function.name, 'read_workspace_file');
+  assert.deepStrictEqual(wbipcBodies[1].tools[0].function.parameters.required, ['path']);
+  assert.strictEqual(wbipcBodies[1].messages[0].content, 'keep-system');
+  assert.strictEqual(wbipcBodies[1].messages.at(-1).content, 'keep-latest');
+  const fallbackEvent = wbipcEvents.find(
+    (event) => event.type === 'workbuddy_wbipc_payload_fallback'
+  );
+  const contextPlanEvent = wbipcEvents.find((event) => event.type === 'workbuddy_context_plan');
+  assert.strictEqual(contextPlanEvent.payload.preflightApplied, true);
+  assert.ok(contextPlanEvent.payload.originalEstimatedTokens > 2048);
+  assert.ok(contextPlanEvent.payload.finalEstimatedTokens <= 2048);
+  assert.strictEqual(fallbackEvent.payload.retrying, true);
+  assert.ok(fallbackEvent.payload.retryBodyBytes < fallbackEvent.payload.originalBodyBytes);
   assert.deepStrictEqual(wbipcConverted, {
     status: 200,
     body: { id: 'resp-ok', output_text: 'wbipc-ok' },
   });
 
   let encryptedLocalError = null;
+  let encryptedFailureStatus = 'not_available';
   const encryptedUnavailableHandler = createOpenAIResponsesToChatHandler(
     {
       http: {
@@ -389,7 +445,7 @@ async function main() {
       processOpenAIChatSseChunkToResponses() {},
       workBuddyWbipcClient: {
         request() {
-          return Promise.resolve({ ok: false, status: 'not_available' });
+          return Promise.resolve({ ok: false, status: encryptedFailureStatus });
         },
       },
       rejectUnsupportedResponsesConversion() {
@@ -443,6 +499,30 @@ async function main() {
     'workbuddy_encrypted_credentials_unsupported'
   );
   assert.strictEqual(encryptedLocalError.payload.error.wbipc_status, 'not_available');
+  assert.ok(!JSON.stringify(encryptedLocalError).includes('uid-encrypted'));
+
+  encryptedFailureStatus = 'E_PAYLOAD_TOO_LARGE';
+  encryptedLocalError = null;
+  encryptedUnavailableHandler(
+    { method: 'POST', headers: {} },
+    { headersSent: false },
+    {
+      authProvider: 'workbuddy',
+      buffer: Buffer.from('{}'),
+      profile: { protocol: 'workbuddy' },
+      rewriteTo: 'deepseek-v4.1-flash',
+      workbuddyAuth: { accessToken: null, accessTokenEncrypted: true, uid: 'uid-encrypted' },
+    },
+    { protocol: 'http:', path: '/v2', hostname: 'www.workbuddy.cn' },
+    '',
+    '/v1/responses',
+    Date.now()
+  );
+
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  assert.strictEqual(encryptedLocalError.status, 413);
+  assert.strictEqual(encryptedLocalError.payload.error.code, 'workbuddy_request_too_large');
+  assert.strictEqual(encryptedLocalError.payload.error.wbipc_status, 'E_PAYLOAD_TOO_LARGE');
   assert.ok(!JSON.stringify(encryptedLocalError).includes('uid-encrypted'));
 
   console.log('[responses-to-chat-workbuddy-refresh.test] ok');

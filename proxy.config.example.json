@@ -235,6 +235,10 @@
   "protocolOptions": {
     "preserveClaudeMessageShape": true,
     "stableToolUseIds": true,
-    "thinkingPolicy": "drop"
+    "thinkingPolicy": "drop",
+    "workbuddyOperationalInputTokens": 98304,
+    "workbuddyPreflightBodyBytes": 696320,
+    "workbuddyTargetBodyBytes": 393216,
+    "workbuddyMaxSelectedTools": 24
   }
 }

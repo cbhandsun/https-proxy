@@ -291,13 +291,18 @@ Important generation constraints:
 
 ## WorkBuddy / CodeBuddy Official
 
-WorkBuddy official routes use the direct-credential pattern (pure Codex mode):
+WorkBuddy official routes use host-mediated WBIPC when the desktop stores an
+encrypted credential envelope. The proxy never extracts or logs the plaintext
+credential. Legacy plaintext official-login records continue to use the direct
+credential path.
 
 Credential source:
 
 - Read WorkBuddy login state from:
   `%LOCALAPPDATA%/CodeBuddyExtension/Data/Public/auth/workbuddy-desktop.info`
-- `auth.accessToken` contains the standard OAuth2 JWT Bearer token.
+- `auth.accessToken` may contain a standard OAuth2 JWT Bearer token or an
+  encrypted WorkBuddy envelope. Encrypted values are sent through the local
+  `wb.request` / `http.fetch` bridge so the WorkBuddy host can inject auth.
 - `account.uin` / `account.uid` provides the user identity for upstream requests.
 
 Proxy provider shape:
@@ -313,6 +318,23 @@ Model discovery:
 - Read models from:
   `%LOCALAPPDATA%/Programs/WorkBuddy/resources/app.asar.unpacked/cli/product.json`
 - Supports DeepSeek-V4 (`deepseek-v4-pro`, `deepseek-v4-flash`), MiniMax-M3 (`minimax-m3`, `minimax-m2.7`), GLM-5 (`glm-5.2`, `glm-5.1`, `glm-5.0`, `glm-5v-turbo`), Kimi (`kimi-k2.6`, `kimi-k2.5`).
+
+Large-context request planning:
+
+- Keep the model-advertised context window separate from the practical
+  WorkBuddy WBIPC/upstream operating envelope.
+- Before sending, enforce both token and serialized-byte budgets. The default
+  operational input budget is 96 Ki tokens and the target serialized request is
+  384 KiB.
+- When planning is required, compact documentation-only schema fields, retain
+  recently referenced and task-relevant tools, extractively compact oversized
+  protected instructions, fold historical tool results, and preserve a bounded
+  continuation summary.
+- `workbuddyOperationalInputTokens`, `workbuddyPreflightBodyBytes`,
+  `workbuddyTargetBodyBytes`, and `workbuddyMaxSelectedTools` can tune the
+  operating envelope without changing advertised model metadata.
+- Diagnostics are numeric only; they must not contain prompts, tool output,
+  credentials, cookies, headers, or user content.
 
 ## Route-List Hygiene
 
