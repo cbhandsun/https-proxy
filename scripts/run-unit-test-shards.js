@@ -1,6 +1,7 @@
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
+const { testShardExitStatus } = require('../lib/test-sharding');
 
 const repoRoot = path.resolve(__dirname, '..');
 const runner = path.join(__dirname, 'run-unit-tests.js');
@@ -22,7 +23,7 @@ function runShard(index, count) {
       console.error(`[unit] shard ${index + 1}/${count} failed to start: ${error.message}`);
       resolve(1);
     });
-    child.once('close', (code) => resolve(code || 0));
+    child.once('close', (code, signal) => resolve(testShardExitStatus(code, signal)));
   });
 }
 

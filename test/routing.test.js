@@ -133,6 +133,8 @@ clearCaches();
     false,
     'count_tokens is a local helper request, not a conversation'
   );
+  assert.equal(routing.isOpenAIInputTokensPath('/v1/responses/input_tokens'), true);
+  assert.equal(routing.isOpenAIInputTokensPath('/v1/responses/input_tokens_extra'), false);
   assert.equal(
     routing.isConversationRequestPath('GET', '/v1/messages'),
     false,

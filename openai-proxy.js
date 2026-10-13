@@ -180,7 +180,7 @@ const { createClaudeFilters } = require('./lib/proxy/claude-filters');
 const {
   logFilteredToolBody,
   sendGeminiRateLimit: sendGeminiRateLimitResponse,
-  handleCountTokens: handleLocalCountTokens,
+  createLocalTokenHandlers,
 } = require('./lib/proxy/local-handlers');
 const {
   getClientIp,
@@ -667,18 +667,7 @@ exceptionHandlers.install({
   },
 });
 
-const {
-  geminiClaudeToolId,
-  rememberGeminiToolCall,
-  geminiToolResponseText,
-  normalizeClaudeSystem,
-  claudeMessagesToGemini,
-  geminiInlineImageToClaudeBlock,
-  claudeStopReasonFromGemini,
-  geminiUsageToClaude,
-  geminiResponseToClaude,
-  geminiGeneratePath,
-} = createGeminiProtocol({
+const geminiProtocol = createGeminiProtocol({
   stableHash,
   fallbackId,
   cleanToolArgs,
@@ -690,24 +679,20 @@ const {
   sampleGeminiToolEvent,
   protocolOptions: PROTOCOL_OPTIONS,
 });
-
 const {
-  openAIChatToClaudeMessages,
-  claudeResponseToOpenAIChat,
-  processClaudeSseChunkToOpenAI,
-  flushClaudeSseToOpenAI,
-  claudeMessagesToOpenAIChat,
-  openAIResponseToClaudeMessage,
-  openAIResponsesToChat,
-  mergeAdjacentAssistantMessages,
-  openAIChatToResponses,
-  processOpenAIChatSseChunkToResponses,
-  flushOpenAIChatSseToResponses,
-  openAIChatToResponsesRequest,
-  openAIResponsesToChatResponse,
-  processOpenAIResponsesSseChunkToChat,
-  flushOpenAIResponsesSseToChat,
-} = createOpenAIProtocol({
+  geminiClaudeToolId,
+  rememberGeminiToolCall,
+  geminiToolResponseText,
+  normalizeClaudeSystem,
+  claudeMessagesToGemini,
+  geminiInlineImageToClaudeBlock,
+  claudeStopReasonFromGemini,
+  geminiUsageToClaude,
+  geminiResponseToClaude,
+  geminiGeneratePath,
+} = geminiProtocol;
+
+const openAIProtocol = createOpenAIProtocol({
   cleanToolArgs,
   fallbackId,
   stableCreated,
@@ -720,11 +705,28 @@ const {
   deltaPartialJson,
   protocolOptions: PROTOCOL_OPTIONS,
 });
-
-let filterClaudeToolUseBlocks;
-let filterClaudeJsonBody;
-
 const {
+  openAIChatToClaudeMessages,
+  claudeResponseToOpenAIChat,
+  processClaudeSseChunkToOpenAI,
+  flushClaudeSseToOpenAI,
+  claudeMessagesToOpenAIChat,
+  openAIResponseToClaudeMessage,
+  openAIResponsesToChat,
+  openAIChatToResponses,
+  processOpenAIChatSseChunkToResponses,
+  flushOpenAIChatSseToResponses,
+  openAIChatToResponsesRequest,
+  openAIResponsesToChatResponse,
+  processOpenAIResponsesSseChunkToChat,
+  flushOpenAIResponsesSseToChat,
+} = openAIProtocol;
+
+let filterClaudeToolUseBlocks, filterClaudeJsonBody;
+const {
+  createGeminiResponsesStream,
+  createGeminiClaudeStream,
+  createGeminiChatStream,
   makeSafeClaudeToolUseContentBlock,
   writeClaudeSseEvent,
   flushPendingGeminiToolCall,
@@ -733,8 +735,10 @@ const {
   processClaudeSseChunk,
   flushClaudeSseFilter,
   processOpenAISseChunkToClaude,
+  writeClaudeFromOpenAIStreamChunk,
   flushOpenAISseToClaude,
 } = createClaudeStream({
+  createResponsesStreamEmitter: openAIProtocol.createResponsesStreamEmitter,
   cleanToolArgs,
   stripEmptyOptionalToolArgs,
   sanitizeGeminiToolCall,
@@ -813,6 +817,7 @@ const {
 const { handleTianxiOfficialResponses } = lazyFeatures.createLazyTianxiOfficialHandlers({
   sendJsonError,
   logRequestEnd,
+  logProxyEvent,
   openAIResponsesToChat,
   makeRequest,
   fallbackId,
@@ -842,16 +847,9 @@ function sendGeminiRateLimit(
   );
 }
 
-function handleCountTokens(clientReq, clientRes, requestBuffer, requestEndLogger, startTime) {
-  return handleLocalCountTokens(
-    clientReq,
-    clientRes,
-    requestBuffer,
-    estimateTokens,
-    requestEndLogger,
-    startTime
-  );
-}
+const { handleCountTokens, handleResponsesInputTokens } = createLocalTokenHandlers({
+  estimateTokens,
+});
 
 const {
   handleClaudeMessagesToOpenAIChat,
@@ -861,6 +859,7 @@ const {
   handleOpenAIResponsesToOpenAIChat,
   handleOpenAIResponsesToClaudeMessages,
   handleOpenAIResponsesToGeminiMessages,
+  handleGeminiResponsesInputTokens,
   handleOpenAIChatToGeminiMessages,
   handleOpenAIImageJobControl,
   handleOpenAIImageJobCreate,
@@ -868,23 +867,11 @@ const {
   handleOpenAIImagesToOpenAIOfficialResponses,
   handleGeminiMessages,
 } = createProxyHandlers({
-  claudeMessagesToOpenAIChat,
-  openAIResponseToClaudeMessage,
-  openAIChatToClaudeMessages,
-  claudeResponseToOpenAIChat,
-  openAIResponsesToChat,
-  mergeAdjacentAssistantMessages,
-  openAIChatToResponses,
-  processOpenAIChatSseChunkToResponses,
-  flushOpenAIChatSseToResponses,
-  openAIChatToResponsesRequest,
-  openAIResponsesToChatResponse,
-  processOpenAIResponsesSseChunkToChat,
-  flushOpenAIResponsesSseToChat,
-  claudeMessagesToGemini,
-  geminiInlineImageToClaudeBlock,
-  geminiGeneratePath,
-  geminiResponseToClaude,
+  ...openAIProtocol,
+  ...geminiProtocol,
+  createGeminiResponsesStream,
+  createGeminiChatStream,
+  createGeminiClaudeStream,
   parseGeminiError,
   getUpstreamCooldown,
   getGeminiCooldown,
@@ -894,9 +881,8 @@ const {
   sendJsonError,
   writeClaudeSseEvent,
   processOpenAISseChunkToClaude,
+  writeClaudeFromOpenAIStreamChunk,
   flushOpenAISseToClaude,
-  processClaudeSseChunkToOpenAI,
-  flushClaudeSseToOpenAI,
   processGeminiSseEvent,
   flushPendingGeminiToolCall,
   geminiClaudeStopReason,
@@ -908,11 +894,11 @@ const {
   extractSseDataPayloads,
   mcpHub,
   refreshAntigravityOfficialAccessToken,
+  estimateTokens,
   maxConversionResponseBytes: MAX_CONVERSION_RESPONSE_BYTES,
 });
 
 const ENTRY_SERVERS = getEntryServers(CONFIG);
-
 function handleRequest(clientReq, clientRes, entry) {
   const reqId = clientReq.reqId || clientReq.headers['x-request-id'] || newRequestId();
   clientReq.reqId = reqId;
@@ -953,6 +939,8 @@ const handleRequestInner = createCoreRequestHandler({
   handleClaudeMessagesToOpenAIChat,
   handleClaudeMessagesToOpenAIResponses,
   handleCountTokens,
+  handleResponsesInputTokens,
+  handleGeminiResponsesInputTokens,
   handleGeminiMessages,
   handleLocalModelsRequest,
   handleOpenAIChatToClaudeMessages,
@@ -1104,6 +1092,7 @@ module.exports = {
   processOpenAIResponsesSseChunkToChat,
   flushOpenAIResponsesSseToChat,
   processOpenAISseChunkToClaude,
+  writeClaudeFromOpenAIStreamChunk,
   flushOpenAISseToClaude,
   flushPendingGeminiToolCall,
   getLocalServer,

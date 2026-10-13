@@ -13,6 +13,9 @@ const dedicatedTestFiles = [
   'test/headers-routing.test.js',
   'test/thinking-persistence.test.js',
   'test/tool-configs.test.js',
+  // Real Git + third-party CLI integration runs serially through test:hooks,
+  // also required by npm test, verify and the CI node-quality job.
+  'test/lint-staged-security.test.js',
 ];
 const unitTests = selectUnitTestFiles(discoverTestFiles(repoRoot), {
   excludedFiles: dedicatedTestFiles,

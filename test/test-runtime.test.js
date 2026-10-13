@@ -9,6 +9,7 @@ const source = {
   PROXY_CONFIG_DIR: 'developer-config',
   PROXY_RUNTIME_DIR: 'developer-runtime',
   PROXY_DATA_DIR: 'developer-data',
+  PROXY_CERT_DIR: 'developer-certificates',
   NODE_ENV: 'production',
 };
 const isolated = createIsolatedTestEnv(source, 'isolated-test-runtime');
@@ -22,6 +23,8 @@ assert.strictEqual(
   path.join(isolatedRoot, 'runtime', '.node-compile-cache')
 );
 assert.strictEqual(isolated.PROXY_DATA_DIR, undefined);
+assert.strictEqual(isolated.PROXY_CERT_DIR, undefined);
+assert.strictEqual(source.PROXY_CERT_DIR, 'developer-certificates');
 assert.strictEqual(isolated.NODE_ENV, 'test');
 assert.strictEqual(
   source.PROXY_CONFIG_DIR,

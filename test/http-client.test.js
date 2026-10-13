@@ -52,8 +52,58 @@ const { createHttpClient } = require('../lib/proxy/http-client');
       () => makeRequest('http://example.test/path', { maxResponseBytes: 1 }),
       /Response body too large/
     );
+    for (const url of [undefined, null, '', 'invalid-private-marker', 'ftp://example.test']) {
+      await assert.rejects(
+        () => makeRequest(url),
+        (error) => error.code === 'ERR_INVALID_URL' && !error.message.includes('private-marker')
+      );
+    }
+    for (const event of ['timeout', 'aborted', 'close', 'error']) {
+      http.request = (_options, callback) => {
+        const req = new EventEmitter();
+        req.write = () => {};
+        req.destroy = () => {};
+        req.end = () =>
+          process.nextTick(() => {
+            if (event === 'timeout') return req.emit('timeout');
+            const res = new EventEmitter();
+            callback(res);
+            res.emit('data', Buffer.from('partial'));
+            res.emit(
+              event,
+              Object.assign(new Error('Response transport failed'), { code: 'ECONNRESET' })
+            );
+          });
+        return req;
+      };
+      await assert.rejects(
+        () => makeRequest('http://example.test'),
+        (error) =>
+          error.code ===
+          (event === 'timeout'
+            ? 'ETIMEDOUT'
+            : event === 'error'
+              ? 'ECONNRESET'
+              : 'ERR_RESPONSE_ABORTED')
+      );
+    }
   } finally {
     http.request = originalRequest;
+  }
+
+  const server = http.createServer((_request, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.write('{"partial":');
+    setImmediate(() => res.destroy());
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    await assert.rejects(
+      () => createHttpClient()('http://127.0.0.1:' + server.address().port, { timeout: 1000 }),
+      (error) => ['ERR_RESPONSE_ABORTED', 'ECONNRESET'].includes(error.code)
+    );
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
   }
 
   console.log('[http-client.test] ok');

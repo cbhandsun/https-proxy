@@ -98,3 +98,15 @@ test('Tianxi native read mode accepts auto tool declarations but not forced call
     null
   );
 });
+
+test('parallel tool policy accepts optional booleans and rejects ambiguous external values', () => {
+  for (const value of [undefined, null, true, false]) {
+    assert.equal(unsupportedTianxiResponsesFeature({ parallel_tool_calls: value }), null);
+  }
+  for (const value of ['false', '', 0, 1, [], {}, 'x'.repeat(10000)]) {
+    assert.equal(
+      unsupportedTianxiResponsesFeature({ parallel_tool_calls: value }),
+      'parallel_tool_calls'
+    );
+  }
+});

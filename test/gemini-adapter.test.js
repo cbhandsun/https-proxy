@@ -18,10 +18,56 @@ const {
 } = require('../lib/proxy/handlers/route-response-helpers');
 
 const tests = [];
+const { GEMINI_CONTINUATION_TEXT } = require('../lib/proxy/gemini-continuation');
 
 function test(name, fn) {
   tests.push({ name, fn });
 }
+
+test('Responses retry ending with assistant output gets a budgeted Gemini user turn', () => {
+  const chat = openAIResponsesToChat({
+    model: 'gemini-3.8-flash',
+    input: [
+      { role: 'user', content: 'Inspect the project' },
+      { role: 'assistant', content: 'Partial findings' },
+    ],
+  });
+  const body = openAIChatToClaudeMessages(chat, 'gemini-3.8-flash-tiered');
+  const snapshot = JSON.stringify(body.messages);
+  const result = claudeMessagesToGemini(body, 'gemini-3.8-flash-tiered');
+  assert.strictEqual(JSON.stringify(body.messages), snapshot);
+  assert.deepStrictEqual(result.contents.slice(-2), [
+    { role: 'model', parts: [{ text: 'Partial findings' }] },
+    { role: 'user', parts: [{ text: GEMINI_CONTINUATION_TEXT }] },
+  ]);
+  assert.strictEqual(result.__hpmDiagnostics.appendedContinuationTurn, true);
+  assert.ok(result.__hpmDiagnostics.contextBudget.estimatedInputTokens > 0);
+  const explicit = claudeMessagesToGemini(
+    { ...body, messages: [...body.messages, { role: 'user', content: GEMINI_CONTINUATION_TEXT }] },
+    'gemini-3.8-flash-tiered'
+  );
+  assert.deepStrictEqual(result.contents, explicit.contents);
+  assert.strictEqual(
+    result.__hpmDiagnostics.contextBudget.estimatedInputTokens,
+    explicit.__hpmDiagnostics.contextBudget.estimatedInputTokens
+  );
+  assert.strictEqual(explicit.__hpmDiagnostics.appendedContinuationTurn, false);
+});
+
+test('empty trailing user output cannot mask an assistant continuation', () => {
+  const result = claudeMessagesToGemini(
+    {
+      messages: [
+        { role: 'user', content: 'Inspect' },
+        { role: 'assistant', content: 'Partial' },
+        { role: 'user', content: [] },
+      ],
+    },
+    'gemini-3.8-flash-tiered'
+  );
+  assert.strictEqual(result.contents.length, 3);
+  assert.strictEqual(result.contents.at(-1).parts[0].text, GEMINI_CONTINUATION_TEXT);
+});
 
 test('converts Claude text request to Gemini generateContent body', () => {
   const body = {
@@ -156,7 +202,14 @@ test('replaces malformed or unsafe Gemini inline image output with safe text', (
     { mimeType: 'image/png', data: 'not base64!' },
   ]) {
     const response = geminiResponseToClaude(
-      { candidates: [{ content: { parts: [{ inlineData }] } }] },
+      {
+        candidates: [
+          {
+            finishReason: 'STOP',
+            content: { parts: [{ inlineData }] },
+          },
+        ],
+      },
       'gemini-3.1-flash-image'
     );
     assert.strictEqual(response.content[0].type, 'text');
@@ -203,16 +256,18 @@ test('maps normalized OpenAI reasoning effort to Gemini 3 thinking config', () =
   });
 });
 
-test('omits Gemini thinking config when OpenAI reasoning effort is none', () => {
-  const result = claudeMessagesToGemini(
-    {
-      reasoning_effort: 'none',
-      messages: [{ role: 'user', content: 'hello' }],
-    },
-    'gemini-3.6-flash'
+test('rejects disabling reasoning when Gemini only supports thinking levels', () => {
+  assert.throws(
+    () =>
+      claudeMessagesToGemini(
+        {
+          reasoning_effort: 'none',
+          messages: [{ role: 'user', content: 'hello' }],
+        },
+        'gemini-3.6-flash'
+      ),
+    (error) => error.code === 'invalid_request_error'
   );
-
-  assert.strictEqual(result.generationConfig, undefined);
 });
 
 test('converts image, audio, video, and tool declarations', () => {
@@ -469,6 +524,7 @@ test('restores Gemini thought signatures for tool history', () => {
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               { functionCall: { name: 'lookup', args: { q: 'x' } }, thoughtSignature: 'sig-1' },
@@ -821,14 +877,18 @@ test('keeps Gemini tool result names when textualizing an orphaned result', () =
   );
   const { flushPendingGeminiToolCall } = require('../openai-proxy');
   flushPendingGeminiToolCall(clientRes, state, state.tools);
+  const emittedCall = writes
+    .flatMap((wire) => String(wire).split('\n'))
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => JSON.parse(line.slice(6)))
+    .find((event) => event.content_block?.type === 'tool_use').content_block;
+  assert.equal(emittedCall.name, 'Read');
   const next = claudeMessagesToGemini(
     {
       messages: [
         {
           role: 'user',
-          content: [
-            { type: 'tool_result', tool_use_id: 'toolu_read_abc', content: 'file contents' },
-          ],
+          content: [{ type: 'tool_result', tool_use_id: emittedCall.id, content: 'file contents' }],
         },
       ],
       tools: [{ name: 'Read', input_schema: { type: 'object', required: ['file_path'] } }],
@@ -867,6 +927,7 @@ test('accepts Gemini Read tool path aliases when schema requires file_path', () 
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               {
@@ -895,6 +956,7 @@ test('repairs a uniquely mismatched compact tool name from its declared schema',
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               {
@@ -937,6 +999,7 @@ test('skips Gemini tool calls missing required args', () => {
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [{ functionCall: { name: 'Glob', args: {} }, thoughtSignature: 'sig-missing' }],
           },
@@ -968,6 +1031,7 @@ test('skips common tool calls missing fallback required args', () => {
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               {
@@ -992,6 +1056,7 @@ test('normalizes prefixed Gemini tool names and rejects empty common tool args',
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               {
@@ -1016,6 +1081,7 @@ test('normalizes prefixed Gemini tool names and rejects empty common tool args',
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [{ functionCall: { name: 'Write', args: { file_path: 'a', content: 'b' } } }],
           },
@@ -1032,6 +1098,7 @@ test('normalizes prefixed Gemini tool names and rejects empty common tool args',
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               {
@@ -1056,6 +1123,7 @@ test('recovers Gemini tool args from wrappers and JSON strings', () => {
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               {
@@ -1078,6 +1146,7 @@ test('recovers Gemini tool args from wrappers and JSON strings', () => {
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               {
@@ -1099,6 +1168,7 @@ test('recovers Gemini tool args from wrappers and JSON strings', () => {
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               {
@@ -1122,6 +1192,7 @@ test('normalizes unsafe Gemini asset listing command', () => {
     {
       candidates: [
         {
+          finishReason: 'STOP',
           content: {
             parts: [
               {
@@ -1254,9 +1325,7 @@ test('converts Gemini response to Claude message', () => {
   assert.strictEqual(result.role, 'assistant');
   assert.strictEqual(result.model, 'gemini-2.5-pro');
   assert.deepStrictEqual(result.content[0], { type: 'text', text: 'hello' });
-  assert.strictEqual(result.content[1].type, 'tool_use');
-  assert.strictEqual(result.content[1].name, 'lookup');
-  assert.deepStrictEqual(result.content[1].input, { q: 'x' });
+  assert.deepStrictEqual(result.content, [{ type: 'text', text: 'hello' }]);
   assert.strictEqual(result.stop_reason, 'max_tokens');
   assert.deepStrictEqual(result.usage, {
     input_tokens: 10,

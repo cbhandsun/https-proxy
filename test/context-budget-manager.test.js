@@ -75,6 +75,77 @@ const {
 }
 
 {
+  const historicalTool = {
+    role: 'tool',
+    tool_call_id: 'old_call',
+    content: 'historical output that must stay byte-for-byte stable while under budget',
+  };
+  const messages = [
+    { role: 'system', content: 'stable policy' },
+    { role: 'user', content: 'old request' },
+    {
+      role: 'assistant',
+      content: null,
+      tool_calls: [{ id: 'old_call', function: { name: 'read', arguments: '{}' } }],
+    },
+    historicalTool,
+    { role: 'user', content: 'latest request' },
+  ];
+  const underBudget = applyContextBudgetToMessages(
+    messages,
+    { max_tokens: 100 },
+    'synthetic',
+    {
+      clientContextTokens: 10_000,
+      outputReserveTokens: 100,
+      safetyMarginTokens: 100,
+      contextKeepRecentTurns: 1,
+      maxHistoricalToolChars: 100,
+    },
+    { estimateMessageTokens: () => 100 }
+  );
+  assert.strictEqual(underBudget.messages, messages);
+  assert.strictEqual(underBudget.messages[3], historicalTool);
+  assert.equal(underBudget.diagnostics.compactionTriggered, false);
+  assert.equal(underBudget.diagnostics.compactionApplied, false);
+}
+
+{
+  const messages = [
+    { role: 'system', content: 'stable policy' },
+    { role: 'user', content: 'oldest request' },
+    { role: 'assistant', content: 'oldest response' },
+    { role: 'user', content: 'older request' },
+    { role: 'assistant', content: 'older response' },
+    { role: 'user', content: 'recent request' },
+    { role: 'assistant', content: 'recent response' },
+    { role: 'user', content: 'latest request' },
+  ];
+  const batched = applyContextBudgetToMessages(
+    messages,
+    { max_tokens: 500 },
+    'synthetic',
+    {
+      clientContextTokens: 7000,
+      outputReserveTokens: 500,
+      safetyMarginTokens: 500,
+      contextKeepRecentTurns: 1,
+      contextCompactionMinSavingsTokens: 2000,
+      contextCompactionTargetRatio: 0.8,
+    },
+    { estimateMessageTokens: () => 1000 }
+  );
+  assert.equal(batched.diagnostics.compactionTriggered, true);
+  assert.equal(batched.diagnostics.compactionApplied, true);
+  assert.equal(batched.diagnostics.compactionTargetTokens, 4800);
+  assert.ok(batched.diagnostics.batchSavingsTokens >= 2000);
+  assert.ok(batched.diagnostics.estimatedInputTokens <= 4800);
+  assert.equal(batched.diagnostics.stablePrefixPreserved, true);
+  assert.equal(batched.messages[0].content, 'stable policy');
+  assert.equal(batched.messages.at(-1).content, 'latest request');
+}
+
+{
   const messages = [
     { role: 'user', content: 'continue the current task' },
     {

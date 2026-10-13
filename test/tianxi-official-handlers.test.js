@@ -104,6 +104,23 @@ function fakeRes() {
   assert.equal(bridgePayload.model, 'super');
   assert.deepEqual(bridgePayload.metadata.tianxi, { agent_id: 'super' });
 
+  const sdkRes = fakeRes();
+  await handlers.handleTianxiOfficialResponses(
+    { headers: {}, method: 'POST' },
+    sdkRes,
+    Buffer.from(JSON.stringify({ model: 'tianxi/qwen3.8-flash', input: 'hello' })),
+    {
+      model: 'tianxi/qwen3.8-flash',
+      rewriteTo: 'qfmodel',
+      profile: { id: 'tianxi-official', tianxiClientReadTools: true },
+      route: { from: 'tianxi/qwen3.8-flash', to: 'qfmodel', tianxiSdkModel: 'qfmodel' },
+    },
+    Date.now(),
+    '/v1/responses'
+  );
+  assert.equal(sdkRes.statusCode, 200);
+  assert.equal(bridgePayload.metadata.tianxi.sdk_model, 'qfmodel');
+
   let invalidBodyBridgeCalled = false;
   let invalidBodyError;
   const invalidBodyHandlers = createTianxiOfficialHandlers({
@@ -170,6 +187,31 @@ function fakeRes() {
     );
     assert.equal(unsupportedError.statusCode, 422);
     assert.equal(unsupportedError.payload.error.code, 'tianxi_tool_bridge_unsupported');
+    assert.ok(!JSON.stringify(unsupportedError).includes('private'));
+  }
+  assert.equal(unsupportedBridgeCalled, false);
+
+  for (const extra of [
+    { tools: [{ type: 'function', name: 'read_file' }] },
+    { input: [{ type: 'function_call_output', call_id: 'call_private', output: 'private' }] },
+    { input: [{ role: 'user', content: [{ type: 'input_image', image_url: 'private' }] }] },
+  ]) {
+    unsupportedError = null;
+    await unsupportedHandlers.handleTianxiOfficialResponses(
+      { headers: {}, method: 'POST' },
+      fakeRes(),
+      Buffer.from(JSON.stringify({ model: 'tianxi/qwen3.8-flash', input: 'hello', ...extra })),
+      {
+        model: 'tianxi/qwen3.8-flash',
+        rewriteTo: 'qfmodel',
+        profile: { id: 'tianxi-official', tianxiClientReadTools: true },
+        route: { tianxiSdkModel: 'qfmodel' },
+      },
+      Date.now(),
+      '/v1/responses'
+    );
+    assert.equal(unsupportedError.statusCode, 400);
+    assert.equal(unsupportedError.payload.error.code, 'tianxi_sdk_feature_unsupported');
     assert.ok(!JSON.stringify(unsupportedError).includes('private'));
   }
   assert.equal(unsupportedBridgeCalled, false);
@@ -281,6 +323,7 @@ function fakeRes() {
       return Promise.resolve({
         bridgeUrl: 'tianxi://test',
         frames: [
+          { type: 'task_status', data: { status: 'WORKING' } },
           {
             type: 'task_output',
             data: {
@@ -330,6 +373,8 @@ function fakeRes() {
   assert.notEqual(JSON.parse(secondRes.body).id, firstId);
   assert.ok(previousInputs[1].includes('remember ALPHA7382'));
   assert.ok(previousInputs[1].includes('remembered'));
+  assert.ok(!previousInputs[1].includes('Tianxi native task'));
+  assert.ok(!previousInputs[1].includes('\u4efb\u52a1\u5df2\u5f00\u59cb'));
   assert.ok(previousInputs[1].includes('what was it?'));
   assert.equal(JSON.parse(secondRes.body).usage, null);
 
@@ -437,11 +482,17 @@ function fakeRes() {
   assert.deepEqual(nativeReadPayload.metadata.tianxi.allowedTools, ['Read', 'Glob', 'Grep']);
   assert.deepEqual(
     JSON.parse(nativeReadRes.body).output.map((item) => item.type),
-    ['reasoning', 'message']
+    ['message', 'message', 'message']
+  );
+  assert.deepEqual(
+    JSON.parse(nativeReadRes.body).output.map((item) => item.phase),
+    ['commentary', 'commentary', 'final_answer']
   );
   assert.ok(!nativeReadRes.body.includes('private'));
   assert.ok(!nativeReadRes.body.includes('Using Read.'));
-  assert.ok(nativeReadRes.body.includes('Tianxi native tool Read'));
+  assert.ok(nativeReadRes.body.includes('Read #1'));
+  assert.ok(nativeReadRes.body.includes('\u5df2\u5b8c\u6210'));
+  assert.ok(!nativeReadRes.body.includes('Tianxi native tool'));
 
   const nativeReadStream = fakeRes();
   await nativeReadHandlers.handleTianxiOfficialResponses(
@@ -458,17 +509,80 @@ function fakeRes() {
   );
   assert.equal(nativeReadStream.extraHeaders['X-Tianxi-Tool-Mode'], 'native-read-only');
   assert.ok(nativeReadStream.body.includes('event: response.completed'));
+  assert.ok(nativeReadPayload.instructions.includes('only Read, Glob and Grep'));
+
+  for (const stream of [false, true]) {
+    for (const live of [false, true]) {
+      const permissionRes = fakeRes();
+      const logs = [];
+      let upstreamSignal;
+      const permissionHandlers = createTianxiOfficialHandlers({
+        sendJsonError(response, status, payload) {
+          response.writeHead(status, {});
+          response.end(JSON.stringify(payload));
+        },
+        logRequestEnd(...args) {
+          logs.push(args);
+        },
+        openAIResponsesToChat: () => ({ messages: [] }),
+        async callTianxiOfficialBridge(_payload, _profile, context) {
+          upstreamSignal = context.signal;
+          const working = { type: 'task_status', data: { status: 'WORKING' } };
+          const risk = {
+            type: 'risk_exec',
+            data: { token: 'secret-unit', content: 'private-unit' },
+          };
+          if (live) {
+            context.onFrame(working);
+            context.onFrame(risk);
+            assert.fail('unsupported permission continued executing');
+          }
+          return { frames: [working, risk] };
+        },
+      });
+      const began = Date.now() - 360000;
+      await permissionHandlers.handleTianxiOfficialResponses(
+        { headers: {}, method: 'POST' },
+        permissionRes,
+        Buffer.from(JSON.stringify({ model: 'tianxi/super', input: 'Audit', stream })),
+        { model: 'tianxi/super', rewriteTo: 'super', profile: { id: 'tianxi-official' } },
+        began,
+        '/v1/responses'
+      );
+      assert.equal(permissionRes.ended, true);
+      assert.equal(upstreamSignal.aborted, true);
+      assert.equal(logs.length, 1);
+      assert.equal(logs[0][2], began);
+      assert.equal(logs[0][4].causeCode, 'tianxi_native_permission_required');
+      assert.ok(!JSON.stringify(logs).includes('secret-unit'));
+      assert.ok(!permissionRes.body.includes('private-unit'));
+      assert.ok(permissionRes.body.includes('没有授权回传通道'));
+      if (stream) {
+        assert.ok(permissionRes.body.includes('event: response.failed'));
+        assert.ok(!permissionRes.body.includes('event: response.completed'));
+        const failed = permissionRes.body
+          .split('\n')
+          .filter((line) => line.startsWith('data: {'))
+          .map((line) => JSON.parse(line.slice(6)))
+          .find((event) => event.type === 'response.failed');
+        assert.equal(failed.response.error.code, 'invalid_prompt');
+      } else assert.equal(permissionRes.statusCode, 403);
+    }
+  }
 
   const cancellation = new EventEmitter();
   const cancelledRes = fakeRes();
   cancelledRes.on = cancellation.on.bind(cancellation);
   cancelledRes.off = cancellation.off.bind(cancellation);
   let upstreamCancelled = false;
+  const canceledLogs = [];
   const cancellationHandlers = createTianxiOfficialHandlers({
     sendJsonError() {
       throw new Error('closed client received an error response');
     },
-    logRequestEnd() {},
+    logRequestEnd(...args) {
+      canceledLogs.push(args);
+    },
     openAIResponsesToChat: () => ({ messages: [] }),
     callTianxiOfficialBridge(_payload, _profile, context) {
       return new Promise((_resolve, reject) => {
@@ -492,6 +606,9 @@ function fakeRes() {
   await cancelledCall;
   assert.equal(upstreamCancelled, true);
   assert.equal(cancelledRes.ended, false);
+  assert.equal(canceledLogs.length, 1);
+  assert.equal(canceledLogs[0][3], 499);
+  assert.equal(canceledLogs[0][4].causeCode, 'client_disconnected');
 
   let capturedError = null;
   const errorHandlers = createTianxiOfficialHandlers({
@@ -508,7 +625,7 @@ function fakeRes() {
       const err = new Error('Authorization: Bearer sat-secret-token ' + 'a'.repeat(140));
       err.diagnostics = {
         cause_code: 'PIPE_FAILED',
-        cause_message: 'Authorization: Bearer sat-secret-token ' + 'a'.repeat(140),
+        cause_message: 'Authorization: Bearer short-private-credential',
       };
       return Promise.reject(err);
     },
@@ -534,6 +651,7 @@ function fakeRes() {
   assert.equal(capturedError.payload.error.message, 'Tianxi bridge request failed.');
   assert.equal(capturedError.payload.error.diagnostics.cause_code, 'PIPE_FAILED');
   assert.equal(serializedError.includes('sat-secret-token'), false);
+  assert.equal(serializedError.includes('short-private-credential'), false);
   assert.equal(serializedError.includes('Authorization: Bearer'), false);
   assert.equal(serializedError.includes('a'.repeat(140)), false);
 
@@ -660,7 +778,7 @@ function fakeRes() {
   assert.equal((partialCompletedStream.body.match(/event: response.incomplete/g) || []).length, 1);
   assert.ok(partialCompletedStream.body.includes('Read completed.'));
   assert.ok(!partialCompletedStream.body.includes('custom_tool_call'));
-  assert.ok(partialCompletedStream.body.includes('Tianxi native tool Read'));
+  assert.ok(partialCompletedStream.body.includes('Read #1'));
   assert.ok(!partialCompletedStream.body.includes('private source text'));
   assert.equal(
     partialCompletedLogs[0].details.type,
@@ -746,7 +864,7 @@ function fakeRes() {
   assert.ok(liveRes.body.includes('Inspecting project structure.'));
   assert.ok(!liveRes.body.includes('Using Read.'));
   assert.ok(!liveRes.body.includes('custom_tool_call'));
-  assert.ok(liveRes.body.includes('Tianxi native tool Read'));
+  assert.ok(liveRes.body.includes('Read #1'));
   assert.equal(liveRes.ended, false);
   releaseLiveBridge();
   await liveCall;

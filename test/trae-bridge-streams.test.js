@@ -757,9 +757,7 @@ test('finishes OpenAI live stream with visible Trae bridge error after headers a
       const output = chunks.join('');
       assert.strictEqual(clientRes.statusCode, 200);
       assert.ok(output.includes(': trae-progress {"phase":"error"'));
-      assert.ok(
-        output.includes('[Trae bridge busy: Now session is not waiting input, sessionId: test]')
-      );
+      assert.ok(output.includes('[Trae bridge busy: Trae bridge is busy]'));
       assert.ok(output.includes('data: [DONE]'));
       assert.strictEqual(clientRes.ended, true);
     }

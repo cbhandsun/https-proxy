@@ -29,6 +29,14 @@ assert.deepStrictEqual(
   { from: 'gpt-5.6-terra', profileId: 'openai-official', to: 'gpt-5.6-terra' }
 );
 assert.deepStrictEqual(
+  merged.modelRoutes.find((route) => route.from === 'gpt-6.1-sol'),
+  { from: 'gpt-6.1-sol', profileId: 'openai-official', to: 'gpt-6.1-sol' }
+);
+assert.deepStrictEqual(
+  merged.modelRoutes.find((route) => route.from === 'codex/gpt-6.1-sol'),
+  { from: 'codex/gpt-6.1-sol', profileId: 'openai-official', to: 'gpt-6.1-sol' }
+);
+assert.deepStrictEqual(
   merged.modelRoutes.find((route) => route.from === 'gpt-6-astra'),
   { from: 'gpt-6-astra', profileId: 'openai-official', to: 'gpt-6-astra' }
 );
@@ -49,14 +57,16 @@ for (const model of ['gpt-6-sol', 'gpt-6-luna']) {
 assert.deepStrictEqual(
   buildLocalModelsResponse(merged.modelRoutes, 'openai', 'openai-responses')
     .data.map((model) => model.id)
-    .filter((id) => /^codex\/gpt-6-(?:astra|sol|luna)$|^gpt-6-(?:astra|sol|luna)$/.test(id)),
+    .filter((id) => /^(?:codex\/)?gpt-6(?:\.1-sol|-(?:astra|sol|luna))$/.test(id)),
   [
     'codex/gpt-6-astra',
     'codex/gpt-6-luna',
     'codex/gpt-6-sol',
+    'codex/gpt-6.1-sol',
     'gpt-6-astra',
     'gpt-6-luna',
     'gpt-6-sol',
+    'gpt-6.1-sol',
   ]
 );
 for (const [id, name] of [
@@ -140,6 +150,21 @@ assert.strictEqual(tianxiChatRoute.group, 'tianxi');
 assert.strictEqual(tianxiChatRoute.labelOverride, 'Tianxi Chat');
 assert.deepStrictEqual(tianxiChatRoute.clientProtocols, ['openai-responses']);
 assert.strictEqual(tianxiChatRoute.tianxiAgentId, 'chat');
+assert.strictEqual(tianxiChatRoute.tianxiLlm, 'dfmodel');
+const customChatRoute = {
+  from: 'tianxi/chat',
+  profileId: 'tianxi-official',
+  to: 'chat',
+  tianxiAgentId: 'chat',
+  tianxiLlm: 'custom-model',
+};
+assert.deepStrictEqual(
+  mergeBuiltinModelRoutes({
+    profiles: [{ id: 'tianxi-official' }],
+    modelRoutes: [customChatRoute],
+  }).modelRoutes[0],
+  customChatRoute
+);
 const publicTianxiChat = buildLocalModelsResponse(
   merged.modelRoutes,
   'openai',

@@ -7,6 +7,7 @@ const { spawn } = require('child_process');
 const { createIsolatedTestEnv } = require('../lib/test-runtime');
 const { encryptConfigSecretsForStorage } = require('../lib/proxy/config');
 const { findAvailablePorts } = require('./helpers/test-ports');
+const { waitForProxyFixtureReady } = require('./helpers/proxy-fixture-ready');
 
 let receivedHeaders = {};
 let upstreamHits = 0;
@@ -70,23 +71,8 @@ function requestProxy(port, headers = {}, options = {}) {
 }
 
 function waitForProxy(proc) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Timeout waiting for proxy start')), 15000);
-    proc.stdout.on('data', (data) => {
-      const text = data.toString();
-      if (text.includes('Mgmt:')) {
-        clearTimeout(timer);
-        resolve();
-      }
-    });
-    proc.stderr.on('data', (data) => {
-      process.stderr.write(data);
-    });
-    proc.once('exit', (code) => {
-      clearTimeout(timer);
-      reject(new Error(`Proxy exited before start: ${code}`));
-    });
-  });
+  proc.stderr.on('data', (data) => process.stderr.write(data));
+  return waitForProxyFixtureReady(proc);
 }
 
 (async () => {

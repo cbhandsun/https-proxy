@@ -914,12 +914,25 @@ assert.strictEqual(applyAuditUpstreamFailure({ statusCode: 200 }), false);
       stablePrefixTokens: 800,
       prompt: 'private provider prompt must not appear',
     },
+    providerContext: {
+      provider: 'anthropic',
+      applied: true,
+      explicit: false,
+      reason: 'native-compaction',
+      prompt: 'private compaction prompt must not appear',
+    },
     repairedOrphanToolResults: 1,
   });
   assert.strictEqual(diagnostics.contextBudget.enabled, true);
   assert.strictEqual(diagnostics.contextBudget.contextCache.stablePrefixHash, 'abc123');
   assert.strictEqual(diagnostics.providerCache.provider, 'gemini');
   assert.strictEqual(diagnostics.providerCache.strategy, 'cached-content-resource');
+  assert.deepStrictEqual(diagnostics.providerContext, {
+    provider: 'anthropic',
+    applied: true,
+    explicit: false,
+    reason: 'native-compaction',
+  });
   assert.strictEqual(diagnostics.repairedOrphanToolResults, 1);
   assert.ok(!JSON.stringify(diagnostics).includes('private prompt'));
   assert.ok(!JSON.stringify(diagnostics).includes('private provider prompt'));
@@ -969,6 +982,8 @@ assert.strictEqual(applyAuditUpstreamFailure({ statusCode: 200 }), false);
     contextStablePrefixCandidate: true,
     providerCacheCandidate: true,
     providerCacheApplied: true,
+    providerContextApplied: false,
+    providerContextExplicit: false,
   });
   assert.ok(!JSON.stringify(usageLogs[0]).includes('private prompt'));
   assert.ok(!JSON.stringify(usageLogs[0]).includes('hash-only'));
@@ -1000,6 +1015,8 @@ assert.strictEqual(applyAuditUpstreamFailure({ statusCode: 200 }), false);
     contextStablePrefixCandidate: false,
     providerCacheCandidate: false,
     providerCacheApplied: false,
+    providerContextApplied: false,
+    providerContextExplicit: false,
   });
   assert.strictEqual(usageLogs[0].contextDiagnosticsMissingReason, 'direct-responses-passthrough');
 }
@@ -1012,7 +1029,32 @@ assert.deepStrictEqual(contextDiagnosticsUsageSummary(null), {
   contextStablePrefixCandidate: false,
   providerCacheCandidate: false,
   providerCacheApplied: false,
+  providerContextApplied: false,
+  providerContextExplicit: false,
 });
+
+assert.deepStrictEqual(
+  sanitizeContextDiagnostics({
+    providerContext: {
+      provider: 'anthropic',
+      applied: true,
+      explicit: false,
+      reason: 'native-compaction',
+      content: 'private content',
+    },
+  }),
+  {
+    contextBudget: null,
+    providerContext: {
+      provider: 'anthropic',
+      applied: true,
+      explicit: false,
+      reason: 'native-compaction',
+    },
+    providerCache: null,
+    repairedOrphanToolResults: 0,
+  }
+);
 assert.strictEqual(
   sanitizeDiagnosticsMissingReason('direct-responses-passthrough'),
   'direct-responses-passthrough'

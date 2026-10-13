@@ -733,22 +733,28 @@ test('Tianxi runtime retries auth failure with new AgentCore header rather than 
   assert.equal(result.frames[0].data.content, 'retry-new-header-ok');
 });
 
-test('Tianxi tac-server runtime triggers SuperMode UI refresh by default on catalog auth failure', async () => {
+test('Tianxi tac-server runtime uses no-chat refresh by default on catalog auth failure', async () => {
   let queries = 0;
-  let uiTriggered = false;
-  let spawned;
+  let refreshed = false;
+  let spawned = false;
+  const sentTokens = [];
   const runtime = createTacServerTianxiNativeRuntime({
     forceWindows: true,
     tianxiSmartUiExePath: 'C:\\Program Files\\Lenovo\\AIAgent\\XLSmartUI.exe',
     existsSync: () => true,
-    spawn(file, args, options) {
-      uiTriggered = true;
-      spawned = { file, args, options };
-      return { pid: 1234, unref() {} };
+    spawn() {
+      spawned = true;
+      throw new Error('unexpected UI refresh');
+    },
+    async refreshTianxiWithoutChat(options) {
+      assert.equal(options.force, true);
+      refreshed = true;
+      const header = options.readHeader();
+      return { status: 'refreshed', source: 'native-exchange', token: fakeJwt(400), header };
     },
     readLatestAgentCoreHeader: () => ({
       app_id: 'app',
-      credentials: { qoder_token: fakeJwt(uiTriggered ? 400 : 300) },
+      credentials: { qoder_token: fakeJwt(refreshed ? 400 : 300) },
       device_id: 'device',
       user_id: 'user',
     }),
@@ -766,11 +772,12 @@ test('Tianxi tac-server runtime triggers SuperMode UI refresh by default on cata
       hasQoderToken: true,
       credentials: {},
       credentialExpiry: {
-        qoder_token: { expiresAtMs: uiTriggered ? 400000 : 300000, expired: false },
+        qoder_token: { expiresAtMs: refreshed ? 400000 : 300000, expired: false },
       },
     }),
     transport: {
-      async sendQuery() {
+      async sendQuery(payload) {
+        sentTokens.push(payload.header.credentials.qoder_token);
         queries += 1;
         if (queries === 1) {
           return [
@@ -785,7 +792,7 @@ test('Tianxi tac-server runtime triggers SuperMode UI refresh by default on cata
           ];
         }
         return [
-          { type: 'task_output', data: { content: 'ui-refresh-retry-ok' } },
+          { type: 'task_output', data: { content: 'no-chat-refresh-retry-ok' } },
           { type: 'task_status', data: { status: 'COMPLETED' } },
         ];
       },
@@ -795,13 +802,58 @@ test('Tianxi tac-server runtime triggers SuperMode UI refresh by default on cata
   const result = await runtime.sendResponses({ model: 'super' }, { now: () => 150000 });
 
   assert.equal(queries, 2);
-  assert.equal(result.frames[0].data.content, 'ui-refresh-retry-ok');
-  assert.equal(spawned.file, 'C:\\Program Files\\Lenovo\\AIAgent\\XLSmartUI.exe');
-  assert.equal(spawned.args[0], '--xlcommunicationdata');
-  assert.equal(spawned.args[1], '--xlsource=Codex');
-  assert.equal(spawned.args[2].startsWith('--xlmessage='), true);
-  assert.equal(spawned.options.detached, true);
-  assert.equal(JSON.stringify(spawned).includes(fakeJwt(300)), false);
+  assert.equal(result.frames[0].data.content, 'no-chat-refresh-retry-ok');
+  assert.equal(spawned, false);
+  assert.deepEqual(sentTokens, [fakeJwt(300), fakeJwt(400)]);
+});
+
+test('Tianxi tac-server preflight uses no-chat candidate without changing native header', async () => {
+  const header = {
+    app_id: 'app',
+    user_id: 'user',
+    device_id: 'device',
+    credentials: { qoder_token: fakeJwt(1) },
+  };
+  let spawned = false;
+  let sent;
+  let refreshed = 0;
+  const runtime = createTacServerTianxiNativeRuntime({
+    header,
+    readLatestAgentCoreHeader: () => header,
+    readTianxiRegistryCredentialCache: () => ({
+      credentials: {},
+      credentialExpiry: { qoder_token: { expired: true, expiresAtMs: 1000 } },
+    }),
+    spawn() {
+      spawned = true;
+      throw new Error('unexpected UI');
+    },
+    async refreshTianxiWithoutChat(options) {
+      assert.equal(options.userId, 'user');
+      refreshed++;
+      return {
+        status: 'refreshed',
+        source: 'native-exchange',
+        token: fakeJwt(400),
+        header: { ...header, credentials: { qoder_token: fakeJwt(400) } },
+      };
+    },
+    transport: {
+      async sendQuery(payload) {
+        sent = payload;
+        return [
+          { type: 'task_output', data: { content: 'preflight-ok' } },
+          { type: 'task_status', data: { status: 'COMPLETED' } },
+        ];
+      },
+    },
+  });
+  const result = await runtime.sendResponses({ model: 'super' }, { now: () => 150000 });
+  assert.equal(refreshed, 1);
+  assert.equal(spawned, false);
+  assert.equal(sent.header.credentials.qoder_token, fakeJwt(400));
+  assert.equal(header.credentials.qoder_token, fakeJwt(1));
+  assert.equal(result.frames[0].data.content, 'preflight-ok');
 });
 
 test('Tianxi tac-server runtime annotates catalog auth failure when native refresh is unavailable', async () => {

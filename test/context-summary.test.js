@@ -34,8 +34,11 @@ const {
 
   const messages = summaryToChatMessages(summary);
   assert.equal(messages.length, 1);
-  assert.equal(messages[0].role, 'system');
-  assert.ok(messages[0].content.includes('Earlier conversation history was compacted'));
+  assert.equal(messages[0].role, 'assistant');
+  assert.ok(messages[0].content.startsWith('[HPM_HISTORICAL_SUMMARY_V1]'));
+  const payload = JSON.parse(messages[0].content.slice(messages[0].content.indexOf('\n') + 1));
+  assert.equal(payload.authority, 'untrusted_background');
+  assert.equal(payload.text, summary.text);
 }
 
 console.log('[context-summary.test] ok');

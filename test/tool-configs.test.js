@@ -295,6 +295,27 @@ const topLevel = content.split(/^\[/m)[0] || '';
 assert.doesNotMatch(topLevel, /^base_url\s*=/m);
 
 const catalogPath = getCodexModelCatalogPath();
+const discoveryEnabled = applyCodexProxy({ toolDiscovery: true });
+assert.strictEqual(discoveryEnabled.toolDiscoveryEnabled, true);
+assert.strictEqual(getCodexStatus().toolDiscoveryEnabled, true);
+assert.strictEqual(getCodexDesktopStatus().toolDiscoveryEnabled, true);
+assert.strictEqual(applyCodexProxy().toolDiscoveryEnabled, true, 'Ordinary reapply retains opt-in');
+assert.deepStrictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')), chatGptAuth);
+assert.match(
+  fs.readFileSync(configPath, 'utf8'),
+  /"x-hpm-tool-discovery" = "hpm-function-discovery-v1"/
+);
+const beforeInvalidDiscovery = fs.readFileSync(configPath, 'utf8');
+for (const toolDiscovery of ['true', null, 1, {}, 'SECRET\ntrue']) {
+  assert.throws(() => switchCodexMode({ connection: 'proxy', auth: 'keep', toolDiscovery }), {
+    code: 'invalid_codex_tool_discovery',
+  });
+  assert.strictEqual(fs.readFileSync(configPath, 'utf8'), beforeInvalidDiscovery);
+  assert.deepStrictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')), chatGptAuth);
+}
+switchCodexMode({ connection: 'proxy', auth: 'keep', toolDiscovery: false });
+assert.strictEqual(getCodexStatus().toolDiscoveryEnabled, false);
+assert.doesNotMatch(fs.readFileSync(configPath, 'utf8'), /"x-hpm-tool-discovery"\s*=/);
 const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
 assert.deepStrictEqual(
   catalog.models.map((model) => model.slug),
@@ -346,8 +367,11 @@ const proxyOfficialResult = switchCodexMode({
 assert.strictEqual(proxyOfficialResult.auth.authMode, 'chatgpt');
 assert.deepStrictEqual(JSON.parse(fs.readFileSync(authPath, 'utf8')), chatGptAuth);
 
+applyCodexProxy({ toolDiscovery: true });
 restoreCodexProxy();
 const restored = fs.readFileSync(configPath, 'utf8');
+assert.doesNotMatch(restored, /\[model_providers\.custom\.http_headers\]/);
+assert.strictEqual(getCodexStatus().toolDiscoveryEnabled, false);
 assert.doesNotMatch(restored, /^openai_base_url\s*=/m);
 assert.doesNotMatch(restored, /^model_catalog_json\s*=/m);
 assert.strictEqual(fs.existsSync(catalogPath), false);

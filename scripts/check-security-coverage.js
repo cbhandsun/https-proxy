@@ -5,7 +5,7 @@ const path = require('path');
 const { collectCoverageMetrics } = require('../lib/coverage-metrics');
 
 const repoRoot = path.resolve(__dirname, '..');
-const coverageFile = path.join(repoRoot, 'coverage', 'coverage-final.json');
+const coverageFile = path.join(repoRoot, 'coverage', 'proxy', 'coverage-final.json');
 const securityModules = new Set([
   'logger.js',
   'management-auth.js',

@@ -66,14 +66,11 @@ assert.deepStrictEqual(parseOpenAIReasoningEffort(inherited), {
 assert.strictEqual(supportsGeminiThinkingLevel('gemini-2.5-pro'), false);
 assert.strictEqual(supportsGeminiThinkingLevel('models/gemini-3.6-flash'), true);
 assert.strictEqual(supportsGeminiThinkingLevel('gemini-4.0-flash'), true);
-assert.strictEqual(
-  geminiThinkingConfigFromOpenAI({ reasoning_effort: 'none' }, 'gemini-3.6-flash'),
-  null
-);
-assert.strictEqual(
-  geminiThinkingConfigFromOpenAI({ thinking: { type: 'disabled' } }, 'gemini-3.6-flash'),
-  null
-);
+for (const body of [{ reasoning_effort: 'none' }, { thinking: { type: 'disabled' } }])
+  assert.throws(
+    () => geminiThinkingConfigFromOpenAI(body, 'gemini-3.6-flash'),
+    (error) => error.code === 'invalid_request_error'
+  );
 assert.deepStrictEqual(
   geminiThinkingConfigFromOpenAI({ reasoning_effort: 'xhigh' }, 'gemini-3.6-flash'),
   { thinkingLevel: 'high' }
@@ -93,16 +90,31 @@ assert.deepStrictEqual(
   ),
   { thinkingLevel: 'minimal' }
 );
-assert.strictEqual(
+assert.deepStrictEqual(
   geminiThinkingConfigFromOpenAI({ reasoning_effort: 'high' }, 'gemini-2.5-pro'),
-  null
+  { thinkingBudget: 16384 }
 );
-assert.strictEqual(
-  geminiThinkingConfigFromOpenAI({ reasoning_effort: 'unsafe-value' }, 'gemini-3.6-flash'),
-  null
+assert.throws(
+  () => geminiThinkingConfigFromOpenAI({ reasoning_effort: 'unsafe-value' }, 'gemini-3.6-flash'),
+  (error) => error.code === 'invalid_request_error'
 );
 
 let response = null;
+for (const model of [
+  'gemini-3.7-flash-tiered',
+  'gemini-3.8-flash-tiered',
+  'models/gemini-3.8-flash-tiered',
+]) {
+  assert.deepStrictEqual(geminiThinkingConfigFromOpenAI({ reasoning_effort: 'minimal' }, model), {
+    thinkingLevel: 'low',
+  });
+  assert.deepStrictEqual(geminiThinkingConfigFromOpenAI({ reasoning_effort: 'medium' }, model), {
+    thinkingLevel: 'medium',
+  });
+  assert.deepStrictEqual(geminiThinkingConfigFromOpenAI({ reasoning_effort: 'xhigh' }, model), {
+    thinkingLevel: 'high',
+  });
+}
 const validators = createRequestValidators({
   sendJsonError(_clientRes, statusCode, payload) {
     response = { statusCode, payload };

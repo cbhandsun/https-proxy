@@ -81,6 +81,7 @@ test('Tianxi tac-server transport sends a frame and resolves terminal frames', a
     WebSocketImpl: FakeWebSocket,
     url: 'ws://unit',
     autoStart: false,
+    discoverWsUrls: () => [],
   });
   const streamed = [];
   const frames = await transport.sendQuery(
@@ -124,6 +125,7 @@ test('Tianxi tac-server transport resolves terminal frames wrapped in notify env
     WebSocketImpl: FakeWebSocket,
     url: 'ws://unit',
     autoStart: false,
+    discoverWsUrls: () => [],
   });
   const frames = await transport.sendQuery(
     { type: 'query', data: { text: 'hello' } },
@@ -163,6 +165,7 @@ test('Tianxi query ACK acknowledges acceptance, not completion; control ACK stil
     WebSocketImpl: FakeWebSocket,
     url: 'ws://unit',
     autoStart: false,
+    discoverWsUrls: () => [],
   });
   const frames = await transport.sendQuery({ type: 'query' }, { idleTimeoutMs: 100 });
   assert.equal(closedOnAck, false);
@@ -490,6 +493,7 @@ test('Tianxi tac-server transport closes its socket when cancelled', async () =>
     WebSocketImpl: FakeWebSocket,
     url: 'ws://unit',
     autoStart: false,
+    discoverWsUrls: () => [],
   });
   const controller = new AbortController();
   const pending = transport.sendQuery({ type: 'query' }, { signal: controller.signal });
@@ -521,6 +525,7 @@ test('Tianxi tac-server query rejects partial frames after content idle', async 
     WebSocketImpl: FakeWebSocket,
     url: 'ws://unit',
     autoStart: false,
+    discoverWsUrls: () => [],
   });
   await assert.rejects(
     transport.sendQuery({ type: 'query', data: { text: 'hello' } }, { idleTimeoutMs: 10 }),
@@ -561,6 +566,7 @@ test('Tianxi tac-server query rejects a socket close before terminal status', as
     WebSocketImpl: FakeWebSocket,
     url: 'ws://unit',
     autoStart: false,
+    discoverWsUrls: () => [],
   });
   await assert.rejects(transport.sendQuery({ type: 'query' }), /tianxi_tac_server_incomplete/);
 });

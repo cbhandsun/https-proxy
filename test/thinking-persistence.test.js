@@ -1,6 +1,25 @@
 const assert = require('assert');
 const fs = require('fs');
+const os = require('node:os');
 const path = require('path');
+const { createIsolatedTestEnv } = require('../lib/test-runtime');
+
+// This dedicated npm/CI entry is also safe when invoked directly. Isolate
+// before loading any production module, which may resolve paths at import time.
+const testRuntimeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-thinking-runtime-'));
+const isolatedEnv = createIsolatedTestEnv(process.env, testRuntimeDir);
+for (const key of [
+  'PROXY_DATA_DIR',
+  'PROXY_CONFIG_DIR',
+  'PROXY_RUNTIME_DIR',
+  'PROXY_CERT_DIR',
+  'NODE_COMPILE_CACHE',
+]) {
+  delete process.env[key];
+}
+Object.assign(process.env, isolatedEnv);
+process.once('exit', () => fs.rmSync(testRuntimeDir, { recursive: true, force: true }));
+
 const { createOpenAIProtocol } = require('../lib/proxy/protocol-openai');
 const { createClaudeFilters } = require('../lib/proxy/claude-filters');
 const { createProxyHandlers } = require('../lib/proxy/handlers');

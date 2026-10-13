@@ -1,5 +1,10 @@
 const assert = require('assert');
 const { EventEmitter } = require('events');
+// Importing the composition root installs a production exception handler. An
+// unexpected exception must still fail this regression suite, rather than exit 0.
+process.on('uncaughtExceptionMonitor', () => {
+  process.exitCode = 1;
+});
 const {
   createChatToResponsesStreamFinalizer,
   createResponsesChatStreamHandler,
@@ -42,6 +47,13 @@ function createResponsesStreamState(overrides = {}) {
     done: false,
     ...overrides,
   };
+}
+
+function sseDataLines(chunks) {
+  return chunks
+    .join('')
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith('data:'));
 }
 
 function event(payload) {
@@ -1298,7 +1310,7 @@ function createChatStreamState(overrides = {}) {
   flushOpenAIChatSseToResponses(clientRes, state);
 
   // Check reasoning deltas emitted
-  const reasoningDeltas = events.filter(
+  const reasoningDeltas = sseDataLines(events).filter(
     (e) => e.startsWith('data:') && e.includes('response.reasoning.delta')
   );
   assert.strictEqual(reasoningDeltas.length, 2);
@@ -1306,7 +1318,7 @@ function createChatStreamState(overrides = {}) {
   assert.ok(reasoningDeltas[1].includes('step 2'));
 
   // Check output text deltas emitted
-  const textDeltas = events.filter(
+  const textDeltas = sseDataLines(events).filter(
     (e) => e.startsWith('data:') && e.includes('response.output_text.delta')
   );
   assert.strictEqual(textDeltas.length, 2);
@@ -1495,12 +1507,26 @@ function createChatStreamState(overrides = {}) {
     input: 'Give JSON',
     response_format: {
       type: 'json_schema',
-      schema: { type: 'object', properties: { answer: { type: 'string' } } },
+      json_schema: {
+        name: 'answer',
+        schema: { type: 'object', properties: { answer: { type: 'string' } } },
+      },
     },
   });
   assert.strictEqual(chat.response_format.type, 'json_schema');
   assert.ok(chat.response_format.json_schema);
   assert.strictEqual(chat.response_format.json_schema.schema.type, 'object');
+  assert.throws(
+    () =>
+      openAIResponsesToChat({
+        input: 'Give JSON',
+        response_format: {
+          type: 'json_schema',
+          schema: { type: 'object' },
+        },
+      }),
+    (error) => error.code === 'invalid_request_error'
+  );
 }
 
 // Test 7: Responses -> Chat SSE streaming reasoning delta
@@ -1746,25 +1772,33 @@ function createChatStreamState(overrides = {}) {
     []
   );
 
-  claudeStream.flushPendingGeminiToolCall(claudeBridge, geminiState, []);
+  finishGeminiClaudeStream({
+    sink: claudeBridge,
+    state: geminiState,
+    targetModel,
+    processGeminiSseEvent: claudeStream.processGeminiSseEvent,
+    flushPendingGeminiToolCall: claudeStream.flushPendingGeminiToolCall,
+    writeClaudeSseEvent: claudeStream.writeClaudeSseEvent,
+    geminiClaudeStopReason: claudeStream.geminiClaudeStopReason,
+  });
   flushClaudeSseToOpenAI(chatRes, chatState);
   flushOpenAIChatSseToResponses(clientRes, responseState);
 
   // Verify response.reasoning.delta was emitted
-  const reasoningDeltas = events.filter(
+  const reasoningDeltas = sseDataLines(events).filter(
     (e) => e.startsWith('data:') && e.includes('response.reasoning.delta')
   );
   assert.strictEqual(reasoningDeltas.length, 1);
   assert.ok(reasoningDeltas[0].includes('Analyzing the user codebase to run script...'));
 
   // Verify response.reasoning.done was emitted before tool call
-  const reasoningDone = events.filter(
+  const reasoningDone = sseDataLines(events).filter(
     (e) => e.startsWith('data:') && e.includes('response.reasoning.done')
   );
   assert.strictEqual(reasoningDone.length, 1);
 
   // Verify tool call argument delta was emitted
-  const toolCallDeltas = events.filter(
+  const toolCallDeltas = sseDataLines(events).filter(
     (e) => e.startsWith('data:') && e.includes('response.function_call_arguments.delta')
   );
   assert.strictEqual(toolCallDeltas.length, 1);
@@ -1925,7 +1959,8 @@ function createChatStreamState(overrides = {}) {
   const written = [];
   const fakeRes = { write: (chunk) => written.push(String(chunk)) };
   const state = createResponsesStreamState();
-  for (let i = 0; i < 500; i += 1) {
+  // Normal accumulation below the new per-response tool-count limit.
+  for (let i = 0; i < 128; i += 1) {
     processOpenAIResponsesSseChunkToChat(
       fakeRes,
       'event: response.function_call_arguments.delta\ndata: ' +
@@ -1939,6 +1974,7 @@ function createChatStreamState(overrides = {}) {
     );
   }
   assert.ok(state.responseToolCallBuffers.size > 0, 'buffers accumulate while the stream is open');
+  assert.notStrictEqual(state.done, true, 'cleanup test must reach an ordinary open stream');
   flushOpenAIResponsesSseToChat(fakeRes, state);
   assert.strictEqual(
     state.responseToolCallBuffers.size,

@@ -25,7 +25,10 @@ test('Tianxi native read tools require explicit profile opt-in and a local direc
   assert.deepEqual(config.allowedTools, ['Read', 'Glob', 'Grep']);
   assert.ok(config.disallowedTools.includes('Write'));
   assert.ok(config.disallowedTools.includes('Bash'));
-  assert.equal(config.permissionMode, 'default');
+  assert.equal(config.permissionMode, 'dontAsk');
+  assert.ok(config.disallowedTools.includes('Edit'));
+  assert.ok(config.disallowedTools.includes('Task'));
+  assert.ok(config.disallowedTools.includes('Agent'));
 });
 
 test('Tianxi native read tools reject invalid, remote, missing and non-directory workspaces', () => {

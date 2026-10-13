@@ -321,6 +321,16 @@ assert.deepStrictEqual(report.total.context, {
   providerCacheEnabled: 2,
   providerCacheCandidates: 2,
   providerCacheApplied: 1,
+  providerCacheConfirmedHits: 0,
+  stablePrefixChanges: 0,
+  providerContextRecords: 0,
+  providerCompactionApplied: 0,
+  providerContextExplicit: 0,
+  compactionTriggeredRecords: 0,
+  compactionAppliedRecords: 0,
+  batchSavingsTokens: 0,
+  stablePrefixPreservedRecords: 0,
+  stablePrefixInvalidatedRecords: 0,
 });
 assert.strictEqual(
   report.byProfile.find((item) => item.key === 'openai-main').context.missingDiagnostics,

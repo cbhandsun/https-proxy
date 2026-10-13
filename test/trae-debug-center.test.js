@@ -48,6 +48,40 @@ function withFakeProcess(callback) {
   }
 }
 
+withFakeProcess(({ timers }) => {
+  cp.spawn = () => {
+    throw new Error('SECRET-token-cookie-user-content');
+  };
+  const result = traeDebugCenter.runNativeScan();
+  assert.strictEqual(result.ok, false);
+  assert.strictEqual(result.running, false);
+  assert.strictEqual(result.scan.running, false);
+  assert.strictEqual(traeDebugCenter._test.nativeScanState.child, null);
+  assert.ok(result.scan.endedAt >= result.scan.startedAt);
+  assert.strictEqual(timers.length, 0);
+  assert.ok(!JSON.stringify(result).includes('SECRET'));
+  assert.strictEqual(traeDebugCenter.runNativeScan().running, false);
+});
+
+withFakeProcess(({ timers, spawned }) => {
+  traeDebugCenter.runNativeScan();
+  spawned[0].emit('error', new Error('SECRET-token-cookie-user-content'));
+  const state = traeDebugCenter._test.nativeScanState;
+  assert.strictEqual(state.running, false);
+  assert.strictEqual(state.child, null);
+  assert.strictEqual(state.result.ok, false);
+  assert.strictEqual(timers[0].cleared, true);
+  assert.ok(!JSON.stringify(state.result).includes('SECRET'));
+  const failed = JSON.stringify(state.result);
+  spawned[0].emit('exit', 0);
+  assert.strictEqual(JSON.stringify(state.result), failed);
+  traeDebugCenter._test.resetNativeDebugState();
+  assert.strictEqual(traeDebugCenter.runNativeScan().running, true);
+  assert.strictEqual(spawned.length, 2);
+  spawned[1].emit('exit', 0);
+  assert.strictEqual(state.result.ok, true);
+});
+
 withFakeProcess(({ timers, spawned }) => {
   const result = traeDebugCenter.runNativeScan();
   assert.strictEqual(result.running, true);
@@ -73,9 +107,10 @@ withFakeProcess(({ timers, spawned }) => {
   assert.strictEqual(timers[0].delay, 15000);
 
   const child = spawned[0];
-  child.stderr.emit('data', Buffer.from('frida attach warning'));
+  child.stderr.emit('data', Buffer.from('SECRET-token-cookie-user-content'));
   let snapshot = traeDebugCenter.getNativeDeepEvents({ limit: 10 });
   assert.ok(snapshot.events.some((event) => event.kind === 'native_probe_stderr'));
+  assert.ok(!JSON.stringify(snapshot).includes('SECRET-token-cookie-user-content'));
 
   timers[0].fn();
   assert.strictEqual(child.killed, true);
@@ -91,4 +126,32 @@ withFakeProcess(({ timers, spawned }) => {
   assert.match(snapshot.error, /timed out/);
 });
 
+withFakeProcess(({ spawned }) => {
+  traeDebugCenter._test.nativeScanState.result = null;
+  traeDebugCenter.runNativeScan();
+  const child = spawned[0];
+  child.stdout.emit(
+    'data',
+    Buffer.from(
+      '--- attach 1234\n{"module": "ai_agent.dll"}\nSECRET cookie=private user content\n--- attach 999999999999999999999999999999\n{"module": "aha_net.dll"}'
+    )
+  );
+  child.emit('exit', 0);
+  const result = traeDebugCenter._test.nativeScanState.result;
+  assert.strictEqual(result.summary.aiAgentPid, 1234);
+  assert.strictEqual(result.summary.ahaNetPid, null);
+  assert.strictEqual(result.output.includes('SECRET'), false);
+  assert.deepStrictEqual(JSON.parse(result.output), result.summary);
+});
+const originalSpawnSync = cp.spawnSync;
+try {
+  cp.spawnSync = () => ({ status: 0, stdout: 'SECRET token=user-content', stderr: 'SECRET' });
+  assert.strictEqual(traeDebugCenter.nativeDebugStatus().tools.node.output, '');
+  cp.spawnSync = () => ({ status: 0, stdout: 'v22.22.3\n' });
+  assert.strictEqual(traeDebugCenter.nativeDebugStatus().tools.node.output, 'v22.22.3');
+  cp.spawnSync = () => ({ status: 1, stdout: 'v22.22.3', stderr: 'SECRET' });
+  assert.strictEqual(traeDebugCenter.nativeDebugStatus().tools.node.output, '');
+} finally {
+  cp.spawnSync = originalSpawnSync;
+}
 console.log('[trae-debug-center.test] ok');

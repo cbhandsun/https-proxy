@@ -43,6 +43,13 @@ async function main() {
   await withTraeSseServer(
     (req, res) => {
       assert.strictEqual(req.url, '/v1/chat/stream');
+      let requestBody = '';
+      req.on('data', (chunk) => {
+        requestBody += chunk;
+      });
+      req.on('end', () => {
+        assert.strictEqual(JSON.parse(requestBody).streamTextMode, 'delta');
+      });
       res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
       res.write('event: text_delta\ndata: {"text":"abcdef"}\n\n');
       res.end('event: done\ndata: {"ok":true,"text":"done-text-too-long"}\n\n');

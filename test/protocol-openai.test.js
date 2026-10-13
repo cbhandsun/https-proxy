@@ -351,10 +351,11 @@ t('SSE chunk processors reject oversized incomplete events', () => {
   const fakeRes = { write: () => {} };
 
   const claudeState = { buffer: '', id: 'x', created: 1, model: 'gpt-4', toolCallIndex: 0 };
-  assert.throws(
-    () => capped.processClaudeSseChunkToOpenAI(fakeRes, 'event: content_block_delta', claudeState),
-    /Claude SSE event too large/
+  assert.doesNotThrow(() =>
+    capped.processClaudeSseChunkToOpenAI(fakeRes, 'event: content_block_delta', claudeState)
   );
+  assert.strictEqual(claudeState.failed, true);
+  assert.strictEqual(claudeState.failureCode, 'upstream_stream_event_too_large');
   assert.strictEqual(claudeState.buffer, '');
 
   const chatToResponsesState = {
@@ -367,16 +368,12 @@ t('SSE chunk processors reject oversized incomplete events', () => {
   assert.strictEqual(chatToResponsesState.failed, true);
   assert.strictEqual(chatToResponsesState.failure.code, 'upstream_stream_event_too_large');
 
-  const responsesToChatState = { buffer: '' };
-  assert.throws(
-    () =>
-      capped.processOpenAIResponsesSseChunkToChat(
-        fakeRes,
-        'event: response.',
-        responsesToChatState
-      ),
-    /OpenAI Responses SSE event too large/
+  const responsesToChatState = { buffer: '', toolCalls: [] };
+  assert.doesNotThrow(() =>
+    capped.processOpenAIResponsesSseChunkToChat(fakeRes, 'event: response.', responsesToChatState)
   );
+  assert.strictEqual(responsesToChatState.failed, true);
+  assert.strictEqual(responsesToChatState.failure.code, 'upstream_stream_event_too_large');
   assert.strictEqual(responsesToChatState.buffer, '');
 });
 

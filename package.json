@@ -4,7 +4,7 @@
   "private": true,
   "hpm": {
     "releaseRuntimeDependencies": [
-      "node-forge",
+      "@modelcontextprotocol/sdk",
       "pino",
       "safe-regex2",
       "socks-proxy-agent"
@@ -12,25 +12,30 @@
   },
   "scripts": {
     "start": "node openai-proxy.js",
+    "evidence:gateway": "node scripts/start-evidence-mcp-gateway.js",
     "agy:bridge": "node scripts/start-agy-bridge.js",
     "agy:verify": "node scripts/verify-agy-bridge.js --live",
     "tianxi:bridge": "node scripts/start-tianxi-bridge.js",
     "tianxi:probe": "node scripts/tianxi-super-probe.js",
-    "test": "npm run test:unit && npm run test:frontend && npm run test:thinking && npm run test:env",
+    "test": "npm run test:unit && npm run test:frontend && npm run test:thinking && npm run test:env && npm run test:hooks",
     "test:unit": "node scripts/run-unit-test-shards.js",
     "test:unit:serial": "node scripts/run-unit-tests.js",
-    "test:coverage": "c8 --clean --all --include \"lib/proxy/**/*.js\" --exclude \"lib/proxy/trae-*.js\" --exclude \"lib/proxy/handlers.js\" --reporter=json --reporter=text-summary --check-coverage --statements 58 --branches 65 --functions 62 --lines 58 node scripts/run-unit-tests.js && node scripts/check-security-coverage.js",
+    "test:client:coverage": "c8 --clean --all --include \"lib/client/**/*.js\" --include \"lib/proxy/context-evidence-*.js\" --include \"lib/proxy/context-api-evidence-*.js\" --include \"lib/proxy/client-context-target.js\" --include \"scripts/lib/evidence-gateway-*.js\" --reports-dir coverage/client --temp-directory coverage/client/tmp --reporter=json --reporter=text-summary --check-coverage --statements 85 --branches 80 --functions 90 --lines 85 node --test test/client-context-recovery.test.js test/client-context-target.test.js test/client-context-evidence.test.js test/client-context-evidence-output.test.js test/client-context-evidence-delivery.test.js test/client-context-evidence-errors.test.js test/client-context-evidence-hook.test.js test/client-context-evidence-mcp.test.js test/client-context-evidence-source.test.js test/client-context-execution-ledger.test.js test/client-context-evidence-gateway.test.js test/client-context-evidence-offload-budget.test.js test/client-context-evidence-gateway-mcp.test.js test/client-context-evidence-gateway-lifecycle.test.js test/evidence-gateway-environment.test.js test/evidence-gateway-runtime.test.js test/context-api-evidence.test.js test/context-api-evidence-http.test.js test/context-api-evidence-routes.test.js",
+    "bench:protocol": "node scripts/benchmark-protocol-conversion.js",
+    "bench:context": "node scripts/replay-context-compaction.js",
+    "test:coverage": "c8 --clean --all --include \"lib/proxy/**/*.js\" --exclude \"lib/proxy/trae-*.js\" --exclude \"lib/proxy/handlers.js\" --reports-dir coverage/proxy --temp-directory coverage/proxy/tmp --reporter=json --reporter=text-summary --check-coverage --statements 58 --branches 65 --functions 62 --lines 58 node scripts/run-unit-test-shards.js && node scripts/check-security-coverage.js",
     "test:frontend": "node scripts/run-frontend-tests.js",
-    "test:frontend:coverage": "c8 --clean --include \"tauri-ui/src/app/models/configuration.js\" --include \"tauri-ui/src/app/models/profile-save.js\" --include \"tauri-ui/src/app/models/proxy-command.js\" --include \"tauri-ui/src/app/runtime/app-state.js\" --include \"tauri-ui/src/app/runtime/dom.js\" --include \"tauri-ui/src/app/runtime/frontend-errors.js\" --include \"tauri-ui/src/app/runtime/performance.js\" --reporter=text-summary --check-coverage --statements 50 --branches 40 --functions 50 --lines 50 node scripts/run-frontend-coverage-tests.js",
+    "test:frontend:coverage": "c8 --clean --include \"tauri-ui/src/app/models/configuration.js\" --include \"tauri-ui/src/app/models/profile-save.js\" --include \"tauri-ui/src/app/models/proxy-command.js\" --include \"tauri-ui/src/app/runtime/app-state.js\" --include \"tauri-ui/src/app/runtime/dom.js\" --include \"tauri-ui/src/app/runtime/frontend-errors.js\" --include \"tauri-ui/src/app/runtime/performance.js\" --reports-dir coverage/frontend --temp-directory coverage/frontend/tmp --reporter=text-summary --check-coverage --statements 50 --branches 40 --functions 50 --lines 50 node scripts/run-frontend-coverage-tests.js",
     "test:rust": "npm run release:prepare && cargo test --manifest-path src-tauri/Cargo.toml",
     "test:thinking": "node test/thinking-persistence.test.js",
     "test:env": "node test/env-tools.test.js && node test/tool-configs.test.js",
     "test:integration": "node test/headers-routing.test.js && node test/entry-auth-integration.test.js",
+    "test:hooks": "node test/lint-staged-security.test.js",
     "test:all": "npm test && npm run test:integration",
     "check:syntax": "node scripts/check-syntax-parallel.js",
     "check:architecture": "node test/frontend/frontend-build-governance.test.js",
     "check:ci": "node scripts/check-ci-governance.js",
-    "verify": "npm run format:check && npm run check:syntax && npm run lint && npm run check:ci && npm run release:check && npm run test:coverage && npm run test:frontend:coverage && npm run test:frontend && npm run test:thinking && npm run test:env && npm run test:integration && npm run frontend:build && npm run test:rust",
+    "verify": "npm run format:check && npm run check:syntax && npm run lint && npm run check:ci && npm run release:check && npm run test:coverage && npm run test:client:coverage && npm run test:frontend:coverage && npm run test:frontend && npm run test:thinking && npm run test:env && npm run test:integration && npm run test:hooks && npm run frontend:build && npm run test:rust",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,cjs,mjs,json,md}\" --ignore-path .prettierignore",
@@ -63,7 +68,7 @@
     "eslint": "^10.8.0",
     "eslint-plugin-unused-imports": "^4.4.1",
     "husky": "^9.1.7",
-    "lint-staged": "^15.5.2",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.8.3",
     "vite": "^6.4.3"
   },
@@ -77,8 +82,8 @@
     ]
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "chart.js": "^4.5.1",
-    "node-forge": "^1.4.0",
     "pino": "^10.3.1",
     "safe-regex2": "^5.1.1",
     "socks-proxy-agent": "^10.0.0"

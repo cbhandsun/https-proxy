@@ -23,5 +23,19 @@ assert.strictEqual(
   false
 );
 assert.strictEqual(isDirectStreamingEligible({ ...eligible, entryPath: 'responses' }), false);
+assert.strictEqual(
+  isDirectStreamingEligible({
+    ...eligible,
+    profile: { protocol: 'openai', targetUrl: 'https://api.deepseek.com/v1' },
+  }),
+  false
+);
+assert.strictEqual(
+  isDirectStreamingEligible({
+    ...eligible,
+    profile: { protocol: 'openai', targetUrl: 'https://api.deepseek.com.evil.test/v1' },
+  }),
+  true
+);
 
 console.log('[direct-request-streaming.test] ok');

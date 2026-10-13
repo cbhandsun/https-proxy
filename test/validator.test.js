@@ -55,11 +55,14 @@ const {
       contextKeepRecentTurns: 2,
       maxHistoricalToolChars: 800,
       maxHistoricalMessageChars: 4000,
+      contextCompactionMinSavingsTokens: 2048,
+      contextCompactionTargetRatio: 0.9,
       contextCacheCandidateMinTokens: 1024,
       providerCacheHintsPolicy: 'diagnostics-only',
       workbuddyOperationalInputTokens: 96 * 1024,
       workbuddyPreflightBodyBytes: 680 * 1024,
       workbuddyTargetBodyBytes: 384 * 1024,
+      workbuddyMinCleanupBytes: 64 * 1024,
       workbuddyMaxSelectedTools: 24,
       maxSseBufferChars: 1024 * 1024,
     },
@@ -141,11 +144,14 @@ const {
       contextKeepRecentTurns: 0,
       maxHistoricalToolChars: 99,
       maxHistoricalMessageChars: 99,
+      contextCompactionMinSavingsTokens: 0,
+      contextCompactionTargetRatio: 1.1,
       contextCacheCandidateMinTokens: Number.POSITIVE_INFINITY,
       providerCacheHintsPolicy: 'write-everything',
       workbuddyOperationalInputTokens: 4095,
       workbuddyPreflightBodyBytes: 65535,
       workbuddyTargetBodyBytes: 16 * 1024 * 1024 + 1,
+      workbuddyMinCleanupBytes: 0,
       workbuddyMaxSelectedTools: 0,
       maxSseBufferChars: 8 * 1024 * 1024,
     },
@@ -175,11 +181,14 @@ const {
     'protocolOptions.contextKeepRecentTurns',
     'protocolOptions.maxHistoricalToolChars',
     'protocolOptions.maxHistoricalMessageChars',
+    'protocolOptions.contextCompactionMinSavingsTokens',
+    'protocolOptions.contextCompactionTargetRatio',
     'protocolOptions.contextCacheCandidateMinTokens',
     'protocolOptions.workbuddyOperationalInputTokens',
     'protocolOptions.workbuddyPreflightBodyBytes',
     'protocolOptions.workbuddyTargetBodyBytes',
     'protocolOptions.workbuddyTargetBodyBytes must not exceed workbuddyPreflightBodyBytes',
+    'protocolOptions.workbuddyMinCleanupBytes',
     'protocolOptions.workbuddyMaxSelectedTools',
     'protocolOptions.maxSseBufferChars',
   ]) {
@@ -434,5 +443,44 @@ function testUpstreamDnsServersValidation() {
 }
 
 testUpstreamDnsServersValidation();
+
+// A release health fixture must not confuse provider families with entry wire
+// protocols; invalid fixtures cannot establish a packaged-runtime defect.
+{
+  const config = {
+    activeProfile: 'isolated-health',
+    profiles: [
+      {
+        id: 'isolated-health',
+        protocol: 'openai',
+        api: 'responses',
+        targetUrl: 'http://127.0.0.1:9',
+        apiKey: '',
+      },
+    ],
+    localServer: {
+      host: '127.0.0.1',
+      listenPort: 14101,
+      managementPort: 13503,
+      protocol: 'openai-responses',
+    },
+    entryServers: [
+      { host: '127.0.0.1', listenPort: 14101, protocol: 'openai-responses', tls: false },
+    ],
+    modelRoutes: [],
+    entryAuth: { enabled: false, keys: [] },
+    appSettings: { upstreamWarmupEnabled: false },
+  };
+  assert.strictEqual(validateConfig(config).valid, true);
+  for (const protocol of ['openai-responses', 'openai-chat']) {
+    const invalid = validateConfig({
+      ...config,
+      profiles: [{ ...config.profiles[0], protocol }],
+    });
+    assert.strictEqual(invalid.valid, false);
+    assert.deepStrictEqual(invalid.errors, ['Profile [isolated-health] has unsupported protocol']);
+  }
+  assert.strictEqual(validateConfig(config).valid, true);
+}
 
 console.log('[validator.test] ok');

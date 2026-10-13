@@ -109,7 +109,11 @@ function makeRequestWithProxy({ statusCode = 200, responseBody = '{}' } = {}) {
   assert.deepStrictEqual(modelsRequestBody({ protocol: 'openai' }), { protocol: 'openai' });
   assert.deepStrictEqual(buildTianxiOfficialModelsResponse(), {
     ok: true,
-    models: ['tianxi/chat', 'tianxi/super'],
+    models: [
+      'tianxi/chat',
+      'tianxi/super',
+      ...require('../lib/proxy/tianxi-sdk-models').TIANXI_SDK_MODELS.map((m) => m.alias),
+    ],
     authMode: 'official-login',
     source: 'tianxi-local-catalog',
   });

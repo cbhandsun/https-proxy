@@ -32,6 +32,33 @@ const prepared = {
   const res = {};
   attachPreparedDiagnostics(
     res,
+    {
+      ...prepared,
+      contextManagement: {
+        provider: 'anthropic',
+        applied: true,
+        explicit: false,
+        reason: 'native-compaction',
+        privateContent: 'must not be copied',
+      },
+    },
+    '/messages',
+    {},
+    {}
+  );
+  assert.deepStrictEqual(res.__diagnostics.hpmDiagnostics.providerContext, {
+    provider: 'anthropic',
+    applied: true,
+    explicit: false,
+    reason: 'native-compaction',
+  });
+  assert.equal(JSON.stringify(res.__diagnostics).includes('must not be copied'), false);
+}
+
+{
+  const res = {};
+  attachPreparedDiagnostics(
+    res,
     prepared,
     '/responses',
     {},

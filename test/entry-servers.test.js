@@ -179,6 +179,14 @@ const {
   assert.strictEqual(isEntryHealthPath(responsesEntry, 'POST', '/v1/responses'), false);
   assert.strictEqual(isAllowedEntryPath(null, 'GET', '/anything'), true);
   assert.strictEqual(isAllowedEntryPath(claudeEntry, 'POST', '/v1/messages/count_tokens'), true);
+  assert.strictEqual(
+    isAllowedEntryPath(claudeEntry, 'POST', '/v1/messages/count_tokens?beta=true'),
+    true
+  );
+  assert.strictEqual(
+    isAllowedEntryPath(claudeEntry, 'POST', '/v1/messages/count_tokens_extra'),
+    false
+  );
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/v1/chat/completions'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/v1/images/generations'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'POST', '/images/generations?format=png'), true);
@@ -196,6 +204,10 @@ const {
     true
   );
   assert.strictEqual(isAllowedEntryPath(responsesEntry, 'POST', '/v1/responses'), true);
+  assert.strictEqual(
+    isAllowedEntryPath(responsesEntry, 'POST', '/v1/responses/input_tokens'),
+    true
+  );
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'GET', '/v1/models'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'HEAD', '/v1/models/gpt-5'), true);
   assert.strictEqual(isAllowedEntryPath(chatEntry, 'GET', '/v1/chat/completions'), false);

@@ -113,6 +113,25 @@ assert.equal(channel.frame.header.device_id, undefined);
 assert.equal(channel.frame.data.text, 'channel prompt');
 assert.equal(channel.frame.data.fromChannel, true);
 assert.equal(channel.frame.data.options.model, DEFAULT_TIANXI_QODER_MODEL);
+for (const override of [{}, { llm: 'explicit-llm' }, { model: 'explicit-model' }]) {
+  const chat = buildTianxiNativeApiQueryFrame({
+    model: 'chat',
+    input: 'ping',
+    metadata: { tianxi: { agent_id: 'chat', ...override } },
+  });
+  assert.equal(
+    chat.frame.data.options.model,
+    override.model || override.llm || DEFAULT_TIANXI_QODER_MODEL
+  );
+}
+assert.equal(
+  buildTianxiNativeApiQueryFrame({
+    model: 'custom-model',
+    input: 'ping',
+    metadata: { tianxi: { agent_id: 'chat' } },
+  }).frame.data.options.model,
+  'custom-model'
+);
 assert.equal(channel.frame.data.options.cwd, 'C:\\Users\\juhon\\Tianxi');
 assert.equal(channel.frame.data.options.permissionMode, 'bypassPermissions');
 assert.equal(channel.frame.extend.channel, 'agentCore');

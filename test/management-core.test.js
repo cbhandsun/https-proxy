@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { Readable } = require('stream');
+const { trackTianxiNativeTask } = require('../lib/proxy/tianxi-live-result-wait');
 
 const {
   createManagementCoreHandlers,
@@ -72,6 +73,15 @@ function sendJson(res, statusCode, data) {
     handlers.handleLocalHealthRequest(emptyReq(), healthRes);
     const health = JSON.parse(healthRes.body);
     assert.strictEqual(healthRes.statusCode, 200);
+    assert.deepStrictEqual(health.tianxi, { activeNativeTasks: 0 });
+    const endNativeTask = trackTianxiNativeTask();
+    try {
+      const busyHealth = createRes();
+      handlers.handleLocalHealthRequest(emptyReq(), busyHealth);
+      assert.deepStrictEqual(JSON.parse(busyHealth.body).tianxi, { activeNativeTasks: 1 });
+    } finally {
+      endNativeTask();
+    }
     assert.ok(path.isAbsolute(health.runtime.configDir));
     assert.ok(path.isAbsolute(health.runtime.runtimeDir));
     assert.ok(health.runtime.entrypoint);

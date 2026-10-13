@@ -26,7 +26,7 @@ assert.strictEqual(jsonErrorCall.statusCode, 502);
 assert.deepStrictEqual(jsonErrorCall.body, {
   error: {
     type: 'api_error',
-    message: 'Gemini response conversion failed: bad json',
+    message: 'Gemini response conversion failed',
   },
 });
 assert.deepStrictEqual(logEndCall, {
@@ -37,7 +37,7 @@ assert.deepStrictEqual(logEndCall, {
   meta: {
     type: 'gemini_conversion_error',
     errorType: 'conversion_failed',
-    error: 'bad json',
+    errorCode: null,
   },
 });
 
@@ -77,9 +77,34 @@ assert.deepStrictEqual(logEndCall, {
   });
   assert.strictEqual(jsonCalls, 0, 'must not attempt a second status line');
   assert.strictEqual(endCalls, 1);
-  assert.ok(chunks.join('').includes('stream broke'));
+  assert.ok(chunks.join('').includes('Gemini response conversion failed'));
+  assert.ok(!chunks.join('').includes('stream broke'));
   assert.strictEqual(logEndCall.statusCode, 502);
   assert.strictEqual(logEndCall.meta.type, 'gemini_conversion_error');
+}
+
+// A fixed local failure code remains diagnosable without leaking exception data.
+for (const code of ['invalid_context_history', 'PRIVATE_TOKEN_VALUE']) {
+  const err = Object.assign(new TypeError('PRIVATE_USER_CONTENT'), { code });
+  sendConversionError({
+    clientReq: { method: 'POST' },
+    clientRes: {},
+    upstreamPath: '/v1/responses',
+    startTime: 123,
+    err,
+    label: 'WorkBuddy context preparation',
+    logType: 'workbuddy_context_preparation_error',
+    sendJsonError(_res, status, payload) {
+      jsonErrorCall = { status, payload };
+    },
+    logRequestEnd(_method, _path, _start, _status, meta) {
+      logEndCall = meta;
+    },
+  });
+  assert.equal(logEndCall.errorCode, code === 'invalid_context_history' ? code : null);
+  const diagnostics = JSON.stringify({ jsonErrorCall, logEndCall });
+  assert.ok(!diagnostics.includes('PRIVATE_USER_CONTENT'));
+  assert.ok(!diagnostics.includes('PRIVATE_TOKEN_VALUE'));
 }
 
 console.log('[route-error-utils.test] ok');
