@@ -3,7 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const { PassThrough } = require('node:stream');
@@ -19,7 +20,7 @@ const { verifyInstallationParallel } = require('../scripts/lib/nsis-installation
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 function fixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-parallel-'));
+  const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-parallel-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const files = [
     'lib/source.js',

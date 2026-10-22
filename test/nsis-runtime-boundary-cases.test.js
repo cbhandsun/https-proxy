@@ -3,7 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const path = require('node:path');
 const { discoverTestFiles } = require('../lib/test-discovery');
 const runtimeApi = require('../lib/proxy/context-recovery-runtime');
@@ -11,7 +12,7 @@ const { createContextRecoveryLifecycle } = require('../lib/proxy/context-recover
 const { runRuntimeBoundaryCase } = require('../scripts/lib/nsis-runtime-boundary-cases');
 
 function fixture(t) {
-  const caseRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-runtime-case-'));
+  const caseRoot = fs.mkdtempSync(path.join(testTempRoot, 'hpm-runtime-case-'));
   const configDirectory = path.join(caseRoot, 'config');
   const dataDirectory = path.join(caseRoot, 'data');
   fs.mkdirSync(configDirectory);

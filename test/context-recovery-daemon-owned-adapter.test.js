@@ -4,7 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const { EventEmitter } = require('node:events');
 const { PassThrough } = require('node:stream');
 const { response } = require('../scripts/lib/context-recovery-daemon-owned-protocol');
@@ -25,7 +26,7 @@ const {
 } = require('../scripts/lib/context-recovery-daemon-http-matrix');
 
 function fixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-daemon-owned-'));
+  const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-daemon-owned-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const install = path.join(root, 'install');
   fs.mkdirSync(install);
@@ -402,7 +403,7 @@ function fakeController() {
 }
 
 function controllerOptions(t) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-controller-wire-'));
+  const directory = fs.mkdtempSync(path.join(testTempRoot, 'hpm-controller-wire-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const executable = path.join(directory, 'pwsh.exe');
   fs.writeFileSync(executable, '');

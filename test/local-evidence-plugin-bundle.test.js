@@ -3,7 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
@@ -21,9 +22,9 @@ test(
   { timeout: 60000 },
   async (t) => {
     const artifact = await prepare();
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-bundle-contract-'));
+    const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-bundle-contract-'));
     t.after(() => {
-      assert.equal(path.dirname(root), path.resolve(os.tmpdir()));
+      assert.equal(path.dirname(root), path.resolve(testTempRoot));
       assert.ok(path.basename(root).startsWith('hpm-bundle-contract-'));
       fs.rmSync(root, { recursive: true, force: true });
     });
@@ -64,9 +65,9 @@ test(
   { timeout: 60000 },
   async (t) => {
     const artifact = await prepare();
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-bundle-invalid-'));
+    const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-bundle-invalid-'));
     t.after(() => {
-      assert.equal(path.dirname(root), path.resolve(os.tmpdir()));
+      assert.equal(path.dirname(root), path.resolve(testTempRoot));
       assert.ok(path.basename(root).startsWith('hpm-bundle-invalid-'));
       fs.rmSync(root, { recursive: true, force: true });
     });
@@ -162,9 +163,9 @@ test(
 );
 
 test('bundle file reads reject invalid limits, traversal, links and oversized files', (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-bundle-files-'));
+  const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-bundle-files-'));
   t.after(() => {
-    assert.equal(path.dirname(root), path.resolve(os.tmpdir()));
+    assert.equal(path.dirname(root), path.resolve(testTempRoot));
     assert.ok(path.basename(root).startsWith('hpm-bundle-files-'));
     fs.rmSync(root, { recursive: true, force: true });
   });
@@ -203,9 +204,9 @@ test('bundle preparation rejects missing and invalid roots before publication', 
 });
 
 function buildFixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-bundle-build-'));
+  const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-bundle-build-'));
   t.after(() => {
-    assert.equal(path.dirname(root), path.resolve(os.tmpdir()));
+    assert.equal(path.dirname(root), path.resolve(testTempRoot));
     assert.ok(path.basename(root).startsWith('hpm-bundle-build-'));
     fs.rmSync(root, { recursive: true, force: true });
   });
