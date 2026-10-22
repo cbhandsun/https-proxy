@@ -1,0 +1,26 @@
+{
+  "description": "Prospective completed tool capture; no transcript reads, no tool-result rewriting, no additionalContext. Raw retained data is memory-only with 30-minute TTL and bounded quotas.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "mcp_tool",
+            "server": "evidence",
+            "tool": "hpm_capture_completed_hook",
+            "input": {
+              "hook_event_name": "${hook_event_name}",
+              "session_id": "${session_id}",
+              "tool_use_id": "${tool_use_id}",
+              "tool_name": "${tool_name}",
+              "tool_input": "${tool_input}",
+              "tool_response": "${tool_response}"
+            },
+            "timeout": 3,
+            "statusMessage": "Retaining completed tool evidence"
+          }
+        ]
+      }
+    ]
+  }
+}

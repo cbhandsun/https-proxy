@@ -3,6 +3,7 @@
 const { isDeepStrictEqual } = require('node:util');
 const { normalizeCompactionData } = require('../../lib/proxy/context-compaction-envelope');
 const { createNativeBenchmarkRequestBudget } = require('./native-benchmark-request-budget');
+const { genericAcceptanceToolDiagnostic } = require('./generic-acceptance-tool-diagnostics');
 
 const SOURCE = 'emit_fresh_report';
 const LIST = 'hpm_list_retained_evidence';
@@ -57,7 +58,19 @@ async function runGenericEvidenceAcceptance({
     passed: false,
     offloadingEnabled: true,
     nativeDetailLossClaimed: false,
+    toolObservations: [],
   });
+  async function observedTool(name, args, phase) {
+    let reply;
+    try {
+      reply = parse(await callTool(name, args));
+    } catch {
+      report.toolObservations.push(genericAcceptanceToolDiagnostic(name, phase, null, true));
+      throw fail('generic_acceptance_tool_failed');
+    }
+    report.toolObservations.push(genericAcceptanceToolDiagnostic(name, phase, reply));
+    return reply;
+  }
   async function model(compact, toolChoice) {
     if (!budget.admit().ok) throw fail('generic_acceptance_request_limit');
     report.modelRequests = budget.inspect().reservedRequests;
@@ -107,7 +120,7 @@ async function runGenericEvidenceAcceptance({
           throw fail('generic_acceptance_arguments_invalid');
         }
         if (call.name === SOURCE) report.sourceDispatches++;
-        const reply = parse(await callTool(call.name, args));
+        const reply = await observedTool(call.name, args, phase);
         const value = decode(reply);
         if (call.name === LIST) observation.listCalls++;
         if (call.name === READ) {
@@ -135,11 +148,15 @@ async function runGenericEvidenceAcceptance({
     { type: 'function', name: SOURCE }
   );
   if (report.sourceDispatches !== 1) throw fail('generic_acceptance_source_missing');
-  const index = decode(await callTool(LIST, {}));
+  const index = decode(await observedTool(LIST, {}, 'source_verification'));
   const receipt = index.sources?.find((source) => source.toolName === SOURCE);
   if (!receipt) throw fail('generic_acceptance_retention_missing');
   const originalPage = decode(
-    await callTool(READ, { sourceId: receipt.sourceId, digest: receipt.digest, limitBytes: 16384 })
+    await observedTool(
+      READ,
+      { sourceId: receipt.sourceId, digest: receipt.digest, limitBytes: 16384 },
+      'source_verification'
+    )
   );
   if (!originalPage.ok || originalPage.page?.nextOffsetBytes !== null)
     throw fail('generic_acceptance_source_page_incomplete');
@@ -167,6 +184,7 @@ async function runGenericEvidenceAcceptance({
     input = parse(window); // Entire returned window is canonical; never prune it.
     const result = await turn(
       'After compaction, use the retained index and exact reader to retrieve emit_fresh_report. ' +
+        'First call hpm_list_retained_evidence in this turn for a fresh index, even if a prior receipt survived compaction. Then read using that fresh receipt. ' +
         'Request limitBytes 16384 and follow all pages until nextOffsetBytes is null. ' +
         'Return only the original row ' +
         rowIndex +
@@ -200,7 +218,7 @@ async function runGenericEvidenceAcceptance({
   report.missingEvidencePassed =
     missing.observation.listCalls > 0 &&
     isDeepStrictEqual(answer, parse({ status: 'unavailable', replayed: false }));
-  const executions = decode(await callTool(EXECUTIONS, {}));
+  const executions = decode(await observedTool(EXECUTIONS, {}, 'execution_verification'));
   report.sourceExecutionCount =
     executions.records?.filter((record) => record.toolName === SOURCE).length ?? 0;
   report.passed =

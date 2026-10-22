@@ -122,6 +122,7 @@ function Get-PortListeners {
     try {
         $connections = @(Get-NetTCPConnection -LocalPort $listenPorts -State Listen -ErrorAction SilentlyContinue)
         foreach ($conn in $connections) {
+            if (-not $conn.OwningProcess -or $conn.OwningProcess -le 0) { continue }
             $proc = Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue
             $commandLine = ''
             if ($IncludeCommandLine -and $proc -and $proc.ProcessName -eq 'node') { $commandLine = Get-ProxyCommandLine -ProcessId $proc.Id }
@@ -356,7 +357,6 @@ function Test-LocalTcpPort {
 
 function Get-ProxyHealth {
     $managementPort = Get-ManagementPort
-    if (-not (Test-LocalTcpPort -ListenPort $managementPort)) { return $null }
     try {
         $uri = "http://127.0.0.1:$managementPort/v1/local/health"
         $headers = @{}
@@ -545,6 +545,11 @@ function Start-Proxy {
                 $found[0].Id | Out-File $PidFile -Encoding ASCII
                 Write-Status '+' "Proxy started (PID: $($found[0].Id))"
             } else {
+                if ($launcher -and -not $launcher.HasExited) {
+                    $launcher.Id | Out-File $PidFile -Encoding ASCII
+                    Write-Status 'x' "Proxy process is running but management health is not ready (PID: $($launcher.Id)); use status to check readiness."
+                    return
+                }
                 $exitCode = 'unknown'
                 if ($launcher -and $launcher.HasExited) { $exitCode = $launcher.ExitCode }
                 Write-Status 'x' "Exited immediately (ExitCode: $exitCode)"

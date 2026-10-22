@@ -232,6 +232,12 @@
       }
     ]
   },
+  "appSettings": {
+    "contextPolicyVersion": 2,
+    "contextEvidenceEnabled": false,
+    "contextRecoveryEnabled": false,
+    "contextRecoveryPersistenceEnabled": false
+  },
   "protocolOptions": {
     "preserveClaudeMessageShape": true,
     "stableToolUseIds": true,

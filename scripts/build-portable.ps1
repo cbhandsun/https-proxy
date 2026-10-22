@@ -37,18 +37,6 @@ function Copy-RequiredFile {
     Copy-Item -LiteralPath $Source -Destination $Destination -Force
 }
 
-function Get-Sha256 {
-    param([string]$FilePath)
-    $stream = [System.IO.File]::OpenRead($FilePath)
-    $algorithm = [System.Security.Cryptography.SHA256]::Create()
-    try {
-        return ([System.BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '')
-    } finally {
-        $algorithm.Dispose()
-        $stream.Dispose()
-    }
-}
-
 function Remove-PortableMetadataDirectories {
     $nodeModulesDir = Join-Path $PortableDir 'node_modules'
     if (-not (Test-Path -LiteralPath $nodeModulesDir -PathType Container)) { return }
@@ -60,17 +48,6 @@ function Remove-PortableMetadataDirectories {
         if (-not (Test-Path -LiteralPath $directory.FullName -PathType Container)) { continue }
         $safeDirectory = Assert-PathInside $PortableDir $directory.FullName 'Portable dependency metadata cleanup target'
         Remove-Item -LiteralPath $safeDirectory -Recurse -Force
-    }
-}
-
-function Assert-PortableFileMatches {
-    param([string]$RelativePath)
-    $source = Join-Path $Root $RelativePath
-    $destination = Join-Path $PortableDir $RelativePath
-    if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing source file: $source" }
-    if (-not (Test-Path -LiteralPath $destination -PathType Leaf)) { throw "Missing portable file: $destination" }
-    if ((Get-Sha256 $source) -ne (Get-Sha256 $destination)) {
-        throw "Portable backend mismatch: $RelativePath"
     }
 }
 
@@ -118,22 +95,12 @@ if (Test-Path -LiteralPath $PortableDir) {
 }
 New-Item -ItemType Directory -Path $PortableDir -Force | Out-Null
 
+# Use the exact staged closure, including gateway scripts and its lockfile.
+# The helper verifies all recorded source/binary hashes before and after copying.
+node (Join-Path $Root 'lib\release\portable-runtime.js') $ReleaseRuntimeDir $PortableDir
+if ($LASTEXITCODE -ne 0) { throw 'Portable runtime integrity or copy failed' }
 Copy-RequiredFile $Exe (Join-Path $PortableDir 'https-proxy-manager.exe')
-Copy-RequiredFile (Join-Path $Root 'openai-proxy.js') (Join-Path $PortableDir 'openai-proxy.js')
-New-Item -ItemType Directory -Path (Join-Path $PortableDir 'lib') -Force | Out-Null
-Copy-Item -LiteralPath (Join-Path $Root 'lib\proxy') -Destination (Join-Path $PortableDir 'lib\proxy') -Recurse -Force
-Copy-RequiredFile (Join-Path $Root 'proxy.ps1') (Join-Path $PortableDir 'proxy.ps1')
-Copy-RequiredFile (Join-Path $Root 'proxy.bat') (Join-Path $PortableDir 'proxy.bat')
-Copy-RequiredFile (Join-Path $Root 'proxy.config.example.json') (Join-Path $PortableDir 'proxy.config.example.json')
-Copy-RequiredFile (Join-Path $ReleaseRuntimeDir 'package.json') (Join-Path $PortableDir 'package.json')
-Copy-RequiredFile (Join-Path $ReleaseRuntimeDir 'release-runtime-manifest.json') (Join-Path $PortableDir 'release-runtime-manifest.json')
-Copy-Item -LiteralPath (Join-Path $ReleaseRuntimeDir 'runtime') -Destination (Join-Path $PortableDir 'runtime') -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $ReleaseRuntimeDir 'node_modules') -Destination (Join-Path $PortableDir 'node_modules') -Recurse -Force
 Remove-PortableMetadataDirectories
-
-Assert-PortableFileMatches 'openai-proxy.js'
-Assert-PortableFileMatches 'lib\proxy\cert.js'
-Assert-PortableFileMatches 'lib\proxy\cert-management.js'
 
 $readme = @(
     'HTTPS Proxy Manager Portable',

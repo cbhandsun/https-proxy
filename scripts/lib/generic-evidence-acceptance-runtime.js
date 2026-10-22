@@ -11,11 +11,13 @@ const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio
 const { createResponsesCollector } = require('../../lib/proxy/forced-stream-collector');
 const { createIsolatedTestEnv } = require('../../lib/test-runtime');
 const { waitForProxyFixtureReady } = require('../../test/helpers/proxy-fixture-ready');
+const { createProxyFixtureHealthProbe } = require('../../test/helpers/proxy-fixture-health');
 const { findAvailablePorts } = require('../../test/helpers/test-ports');
 const { prepareProxyFixtureSecret } = require('../../test/helpers/proxy-fixture-secret');
 const { approvedNativeEvidenceRoute } = require('./native-evidence-v2-preflight');
 const { stopNativeEvidenceChild, nativeEvidenceV2Routes } = require('./native-evidence-v2-runtime');
 const { runGenericEvidenceAcceptance } = require('./generic-evidence-acceptance');
+const { summarizeGenericAcceptanceGuards } = require('./generic-acceptance-guards');
 
 const NAME = 'context-generic-model-acceptance-20261013-run1';
 const sha = (file) => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
@@ -52,7 +54,7 @@ function genericAcceptanceAuthority(value) {
     throw fail('generic_acceptance_authority_unconfirmed');
 }
 
-function genericAcceptancePreload(root) {
+function genericAcceptancePreload(root, guards) {
   // Test-process-only enforcement: no production configuration or retry policy changes.
   return (
     'require(' +
@@ -60,7 +62,14 @@ function genericAcceptancePreload(root) {
     ').mergeBuiltinModelRoutes = (config) => config;\n' +
     'require(' +
     JSON.stringify(path.join(root, 'lib/proxy/upstream-retry.js')) +
-    ').resolveUpstreamRecovery = () => ({ type: "none" });\n'
+    ').resolveUpstreamRecovery = () => ({ type: "none" });\n' +
+    (guards
+      ? 'require(' +
+        JSON.stringify(path.join(root, 'scripts/lib/generic-acceptance-guards.js')) +
+        ').installGenericAcceptanceGuards(' +
+        JSON.stringify(guards) +
+        ');\n'
+      : '')
   );
 }
 
@@ -84,6 +93,9 @@ function requestGenericAcceptanceModel({
       input: compact ? [...input, { type: 'compaction_trigger' }] : input,
       tools: definitions.map((tool) => ({
         type: 'function',
+        // Preserve MCP optional-argument semantics. Responses may normalize an
+        // omitted strict flag; local MCP parse/validation remains unchanged.
+        strict: false,
         name: tool.name,
         description: tool.description,
         parameters: tool.inputSchema,
@@ -151,12 +163,19 @@ function requestGenericAcceptanceModel({
   });
 }
 
-async function runGenericModelAcceptance(root, progress = () => {}) {
+function genericAcceptanceRunName(name = NAME) {
+  if (typeof name !== 'string' || !/^context-generic-model-acceptance-[a-z0-9-]{8,80}$/.test(name))
+    throw fail('generic_acceptance_run_name_invalid');
+  return name;
+}
+
+async function runGenericModelAcceptance(root, progress = () => {}, options = {}) {
+  const name = genericAcceptanceRunName(options.name);
   const directoryPath = path.join(root, '.hpm-acceptance');
-  const authorityPath = path.join(directoryPath, NAME + '-authorization.json');
+  const authorityPath = path.join(directoryPath, name + '-authorization.json');
   genericAcceptanceAuthority(JSON.parse(fs.readFileSync(authorityPath, 'utf8')));
-  const resultPath = path.join(directoryPath, NAME + '-result.json');
-  const attemptPath = path.join(directoryPath, NAME + '-attempt.json');
+  const resultPath = path.join(directoryPath, name + '-result.json');
+  const attemptPath = path.join(directoryPath, name + '-attempt.json');
   if (fs.existsSync(resultPath) || fs.existsSync(attemptPath))
     throw fail('generic_acceptance_already_attempted');
   const route = approvedNativeEvidenceRoute(
@@ -166,6 +185,7 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
     path.join(root, 'proxy.config.json'),
     path.join(root, '.codex/config.toml'),
     path.join(os.homedir(), '.codex/config.toml'),
+    path.join(os.homedir(), '.codex/auth.json'),
     path.join(process.env.APPDATA || os.homedir(), 'Claude/claude_desktop_config.json'),
   ].map((file) => ({
     path: file,
@@ -201,6 +221,8 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
     sourceFiles: [
       'scripts/lib/generic-evidence-acceptance.js',
       'scripts/lib/generic-evidence-acceptance-runtime.js',
+      'scripts/lib/generic-acceptance-guards.js',
+      'scripts/lib/generic-acceptance-tool-diagnostics.js',
       'scripts/start-evidence-mcp-gateway.js',
       'test/fixtures/generic-evidence-source-mcp.js',
     ].map((file) => ({ file, sha256: sha(path.join(root, file)) })),
@@ -209,6 +231,8 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
   let child;
   let client;
   let eventFile;
+  let permitFile;
+  let receiptFile;
   const prefix = 'hpm-v2-' + randomBytes(6).toString('hex');
   try {
     directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-generic-model-'));
@@ -236,7 +260,10 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
     );
     const [port, managementPort] = await findAvailablePorts(2);
     env.MGMT_PORT = String(managementPort);
+    env.MGMT_TOKEN = randomBytes(24).toString('hex');
     env.PROXY_DISABLE_CONVERSATION_AUDIT = '1';
+    env.PROXY_DISABLE_FILE_LOG = '1';
+    env.PROXY_LOG_LEVEL = 'error';
     eventFile = path.join(env.PROXY_RUNTIME_DIR, 'proxy-events.jsonl');
     const ingress = randomBytes(24).toString('hex');
     const secret = prepareProxyFixtureSecret(env, ingress);
@@ -263,13 +290,31 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
             { id: 'isolated', key: secret, enabled: true, allowedProfileIds: [route.profile.id] },
           ],
         },
-        appSettings: { conversationAuditEnabled: false, conversationAuditCaptureContent: false },
+        appSettings: {
+          conversationAuditEnabled: false,
+          conversationAuditCaptureContent: false,
+          upstreamWarmupEnabled: false,
+          antigravityCredentialWatchdogEnabled: false,
+        },
         diagnostics: { enabled: false },
       }),
       { flag: 'wx' }
     );
     const preload = path.join(directory, 'no-retry.cjs');
-    fs.writeFileSync(preload, genericAcceptancePreload(root), { flag: 'wx' });
+    permitFile = path.join(directory, 'model-permit');
+    receiptFile = path.join(directory, 'capability-receipt.jsonl');
+    fs.writeFileSync(permitFile, '0', { flag: 'wx' });
+    fs.writeFileSync(receiptFile, '', { flag: 'wx' });
+    fs.writeFileSync(
+      preload,
+      genericAcceptancePreload(root, {
+        authFile: path.join(os.homedir(), '.codex/auth.json'),
+        isolatedHome: env.HOME,
+        permitFile,
+        receiptFile,
+      }),
+      { flag: 'wx' }
+    );
     report.phase = 'isolated_proxy_starting';
     progress({ phase: report.phase });
     child = spawn(process.execPath, ['--require', preload, path.join(root, 'openai-proxy.js')], {
@@ -279,7 +324,14 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     child.stderr.resume();
-    await waitForProxyFixtureReady(child);
+    await waitForProxyFixtureReady(child, {
+      probeReady: createProxyFixtureHealthProbe({
+        port: managementPort,
+        entryPort: port,
+        pid: child.pid,
+        token: env.MGMT_TOKEN,
+      }),
+    });
     child.stdout.on('data', () => {});
     client = new Client({ name: 'generic-evidence-model-host', version: '1' });
     const transport = new StdioClientTransport({
@@ -319,6 +371,7 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
           completed: false,
         };
         report.transport.push(row);
+        fs.writeFileSync(permitFile, String(row.index));
         progress({
           phase: report.phase,
           modelRequests: report.modelRequests,
@@ -349,6 +402,7 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
       }
     }
     report.isolatedProxyTerminal = await stopNativeEvidenceChild(child);
+    report.upstreamGuard = summarizeGenericAcceptanceGuards(receiptFile, report.modelRequests);
     report.providerRoute = nativeEvidenceV2Routes(eventFile, prefix, report.modelRequests);
     try {
       report.protectedFilesUnchanged = guarded.every(
@@ -374,6 +428,7 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
       report.isolatedProxyTerminal &&
       report.gatewayClosed &&
       report.providerRoute.providerRouteVerified &&
+      report.upstreamGuard.verified &&
       report.temporaryDirectoryRemoved;
     if (!report.passed) report.failureCode ??= 'generic_acceptance_receipt_incomplete';
     report.phase = 'terminal';
@@ -385,6 +440,7 @@ async function runGenericModelAcceptance(root, progress = () => {}) {
 
 module.exports = {
   genericAcceptanceAuthority,
+  genericAcceptanceRunName,
   genericAcceptancePreload,
   requestGenericAcceptanceModel,
   runGenericModelAcceptance,
