@@ -2,7 +2,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
@@ -54,7 +55,7 @@ function syntheticRuntime({ dataDirectory }) {
   };
 }
 function fixture() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-settings-unit-'));
+  const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-settings-unit-'));
   for (const name of ['config', 'data']) fs.mkdirSync(path.join(root, name));
   return root;
 }
@@ -63,7 +64,7 @@ async function withFixture(work) {
   try {
     await work(root);
   } finally {
-    assert.ok(path.resolve(root).startsWith(path.resolve(os.tmpdir()) + path.sep));
+    assert.ok(path.resolve(root).startsWith(path.resolve(testTempRoot) + path.sep));
     fs.rmSync(root, { recursive: true, force: true });
   }
 }
@@ -228,7 +229,7 @@ test(
   'PowerShell controller runs four isolated synthetic payload children and refuses identity/schema failures',
   { timeout: 540000 },
   () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-settings-composition-'));
+    const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-settings-composition-'));
     try {
       const install = path.join(root, 'installed');
       fs.mkdirSync(path.join(install, 'runtime/node'), { recursive: true });
@@ -288,7 +289,7 @@ test(
         4
       );
     } finally {
-      assert.ok(path.resolve(root).startsWith(path.resolve(os.tmpdir()) + path.sep));
+      assert.ok(path.resolve(root).startsWith(path.resolve(testTempRoot) + path.sep));
       fs.rmSync(root, { recursive: true, force: true });
     }
   }

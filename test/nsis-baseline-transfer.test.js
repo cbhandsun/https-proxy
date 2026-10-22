@@ -3,7 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { discoverTestFiles } = require('../lib/test-discovery');
@@ -14,7 +15,7 @@ const sha = 'a'.repeat(40);
 const remoteInstaller = 'HTTPS.Proxy.Manager_0.1.0_x64-setup.exe';
 const repo = { full_name: transfer.REPOSITORY, private: true, permissions: { push: true } };
 function temporary(t) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-transfer-test-'));
+  const directory = fs.mkdtempSync(path.join(testTempRoot, 'hpm-transfer-test-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   return directory;
 }

@@ -4,7 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const { discoverTestFiles } = require('../lib/test-discovery');
@@ -29,9 +30,9 @@ const expected = {
 };
 
 function caseFixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-runtime-reopen-test-'));
+  const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-runtime-reopen-test-'));
   t.after(() => {
-    assert.equal(path.dirname(root), path.resolve(os.tmpdir()));
+    assert.equal(path.dirname(root), path.resolve(testTempRoot));
     assert.ok(path.basename(root).startsWith('hpm-runtime-reopen-test-'));
     fs.rmSync(root, { recursive: true, force: true });
   });

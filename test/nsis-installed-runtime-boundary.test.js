@@ -3,7 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
@@ -67,7 +68,7 @@ function failed(result) {
 }
 
 test.before(() => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-installed-boundary-'));
+  root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-installed-boundary-'));
   install = path.join(root, 'installed');
   fs.mkdirSync(path.join(install, 'runtime/node'), { recursive: true });
   fs.mkdirSync(path.join(install, 'runtime/native'), { recursive: true });

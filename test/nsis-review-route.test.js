@@ -4,7 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const { spawnSync } = require('node:child_process');
 const {
   parseReviewRoute,
@@ -40,7 +41,7 @@ function fixture(lane = 'bridge', suffix = lane === 'bridge' ? `41-42-43-${uuid}
   };
 }
 function temporary(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-route-test-'));
+  const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-route-test-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return root;
 }

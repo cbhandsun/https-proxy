@@ -1,10 +1,9 @@
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { discoverTestFiles, selectUnitTestFiles } = require('../lib/test-discovery');
 const { selectTestShard, testShardExitStatus } = require('../lib/test-sharding');
-const { createIsolatedTestEnv } = require('../lib/test-runtime');
+const { createIsolatedTestEnv, resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
 
 const repoRoot = path.resolve(__dirname, '..');
 const dedicatedTestFiles = [
@@ -32,7 +31,9 @@ try {
 
 let failedFiles = 0;
 for (const testFile of shard.tests) {
-  const testRuntimeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-unit-runtime-'));
+  const testRuntimeDir = fs.mkdtempSync(
+    path.join(resolvePhysicalTestTempDirectory(), 'hpm-unit-runtime-')
+  );
   let result;
   try {
     result = spawnSync(process.execPath, [testFile], {

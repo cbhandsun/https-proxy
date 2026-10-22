@@ -3,7 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const vm = require('node:vm');
@@ -23,7 +24,7 @@ const safe = (error) => {
   return true;
 };
 function fixture(t) {
-  const owned = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-boundary-contract-'));
+  const owned = fs.mkdtempSync(path.join(testTempRoot, 'hpm-boundary-contract-'));
   const install = path.join(owned, 'installed');
   const caseRoot = path.join(owned, 'case');
   fs.mkdirSync(caseRoot);
@@ -127,7 +128,7 @@ test('lightweight: fixed parallel API keeps original request, ownership, overlap
     { ...input, caseRoot: f.install },
     { ...input, caseRoot: path.join(f.install, 'runtime') },
     { ...input, install: f.owned },
-    { ...input, caseRoot: os.tmpdir() },
+    { ...input, caseRoot: testTempRoot },
     { ...input, caseRoot: path.join(f.owned, 'missing') },
   ])
     assert.throws(() => verify(bad, f.owned), safe);
@@ -318,7 +319,7 @@ test('installation verifier rejects missing identity, foreign root, overlap and 
     { ...parsed, caseRoot: f.install },
     { ...parsed, caseRoot: path.join(f.install, 'runtime') },
     { ...parsed, install: f.owned },
-    { ...parsed, caseRoot: os.tmpdir() },
+    { ...parsed, caseRoot: testTempRoot },
     { ...parsed, caseRoot: path.join(f.owned, 'missing') },
     { ...parsed, pid: 12345 },
     { ...parsed, caseId: '../script.cjs' },

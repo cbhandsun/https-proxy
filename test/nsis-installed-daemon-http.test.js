@@ -3,7 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
@@ -16,7 +17,7 @@ const {
 } = require('../scripts/lib/nsis-installed-daemon-http');
 
 const sha = 'a'.repeat(64);
-const root = path.resolve(os.tmpdir(), 'hpm-installed-http-unit');
+const root = path.resolve(testTempRoot, 'hpm-installed-http-unit');
 const args = [
   root,
   path.join(root, 'install'),
@@ -158,7 +159,7 @@ test('installed HTTP arguments reject empty, extra, traversal, overlaps and exec
 });
 
 test('installed HTTP identity verifies all manifest bytes, fixed node, paths and injected runtime flags', (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-http-identity-'));
+  const directory = fs.mkdtempSync(path.join(testTempRoot, 'hpm-http-identity-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const install = path.join(directory, 'install');
   const caseRoot = path.join(directory, 'case');

@@ -3,7 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
+const testTempRoot = resolvePhysicalTestTempDirectory();
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { createHash } = require('node:crypto');
@@ -55,7 +56,7 @@ test('synthetic session driver saves and reads real checkpoint bytes without ext
   }
 });
 function fakeInstallation() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-encrypted-unit-'));
+  const root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-encrypted-unit-'));
   for (const directory of ['lib/proxy', 'runtime/node', 'runtime/native', 'store'])
     fs.mkdirSync(path.join(root, directory), { recursive: true });
   for (const file of [
@@ -140,7 +141,7 @@ test('installed closure and argument boundaries reject missing, invalid, hostile
 function digestFixture(t) {
   const fixture = fakeInstallation();
   t.after(() => {
-    assert.equal(path.dirname(fixture.root), path.resolve(os.tmpdir()));
+    assert.equal(path.dirname(fixture.root), path.resolve(testTempRoot));
     assert.ok(path.basename(fixture.root).startsWith('hpm-encrypted-unit-'));
     fixture.cleanup();
   });
