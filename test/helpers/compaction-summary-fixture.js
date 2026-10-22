@@ -35,6 +35,18 @@ function summaryFixture(request, summary = '历史证据与未验证进展🙂')
           files: [],
         }
       : null);
+  for (const source of payload.sources) {
+    if (!state || source.role !== 'user' || !payload.archivedUserSourceIds?.includes(source.id))
+      continue;
+    const id = 'fixture_' + source.id;
+    if (state.requirements.some((entry) => entry.id === id)) continue;
+    const citation = payload.citations.find((entry) => entry.sourceId === source.id);
+    state.requirements.push({
+      id,
+      status: 'active',
+      sources: [{ citationId: citation.citationId }],
+    });
+  }
   return JSON.stringify({ summary, state });
 }
 

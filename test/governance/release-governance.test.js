@@ -4,6 +4,11 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { createHash } = require('node:crypto');
+const {
+  PACKAGED_GATEWAY_FILES,
+  PACKAGED_GATEWAY_INPUTS,
+} = require('../../scripts/lib/evidence-gateway-release-artifact');
 const {
   assertSafeReleasePath,
   findSensitiveReleaseEntries,
@@ -136,12 +141,15 @@ try {
   assert.strictEqual(fs.existsSync(path.join(repoRoot, 'tray-icon.ico')), false);
   assert.strictEqual(fs.existsSync(path.join(repoRoot, 'lib', 'proxy', 'README.md')), false);
   assert.doesNotMatch(portableBuildSource, /tray-icon\.ico/);
-  assert.match(portableBuildSource, /Join-Path \$Root 'lib\\proxy'/);
+  assert.doesNotMatch(portableBuildSource, /Join-Path \$Root 'lib\\proxy'/);
+  assert.match(
+    portableBuildSource,
+    /lib\\release\\portable-runtime\.js'\) \$ReleaseRuntimeDir \$PortableDir/
+  );
   assert.doesNotMatch(portableBuildSource, /Join-Path \$Root 'lib'\)/);
   assert.match(portableBuildSource, /write-portable-artifact-manifest\.js/);
   assert.match(portableBuildSource, /dist\\staging\\portable/);
   assert.match(portableBuildSource, /artifacts\\portable/);
-  assert.match(portableBuildSource, /function Get-Sha256/);
   assert.doesNotMatch(portableBuildSource, /Get-FileHash/);
   assert.match(portableBuildSource, /function Remove-PortableMetadataDirectories/);
   assert.match(portableBuildSource, /\.claude', '\.github/);
@@ -204,14 +212,56 @@ try {
   write('proxy.ps1');
   write('proxy.config.example.json', '{}');
   write('runtime/node/node.exe');
+  write('runtime/native/hpm-context-recovery-key.exe');
   write('https-proxy-manager.exe');
   write('node_modules/alpha/package.json', '{}');
   write('node_modules/beta/package.json', '{}');
   write('package.json', JSON.stringify({ private: true, dependencies }));
+  write('package-lock.json', '{}');
+  for (const file of [
+    ...PACKAGED_GATEWAY_FILES,
+    'lib/proxy/context-compaction-envelope.js',
+    'lib/proxy/context-call-id-lineage.js',
+    'lib/proxy/context-compaction-lease.js',
+  ])
+    write(file);
+  const gatewayBytes = 'synthetic-gateway';
+  const gatewaySha = createHash('sha256').update(gatewayBytes).digest('hex');
+  const gatewayRelative = `runtime/evidence-gateway/gateway-${gatewaySha}.cjs`;
+  write(gatewayRelative, gatewayBytes);
+  const gatewayManifest = JSON.stringify({
+    schemaVersion: 1,
+    nodeMajor: Number(process.versions.node.split('.')[0]),
+    bundleSha256: gatewaySha,
+    files: PACKAGED_GATEWAY_INPUTS.map((file) => ({
+      file,
+      sha256: createHash('sha256')
+        .update(fs.readFileSync(path.join(tempRoot, file)))
+        .digest('hex'),
+    })),
+  });
+  write('runtime/evidence-gateway/release-manifest.json', gatewayManifest);
 
   let result = validateReleaseDirectory(tempRoot, dependencies);
   assert.deepStrictEqual(result.errors, []);
   assert.strictEqual(result.ok, true);
+
+  write(gatewayRelative, 'corrupt');
+  assert.ok(
+    validateReleaseDirectory(tempRoot, dependencies).errors.includes(
+      'Invalid or unavailable packaged evidence gateway'
+    )
+  );
+  write(gatewayRelative, gatewayBytes);
+
+  fs.rmSync(path.join(tempRoot, 'runtime/native/hpm-context-recovery-key.exe'));
+  result = validateReleaseDirectory(tempRoot, dependencies);
+  assert.ok(
+    result.errors.some((error) =>
+      error.includes('Missing required release file: runtime/native/hpm-context-recovery-key.exe')
+    )
+  );
+  write('runtime/native/hpm-context-recovery-key.exe');
 
   write('node_modules/alpha/.claude/settings.json', '{}');
   result = validateReleaseDirectory(tempRoot, dependencies);

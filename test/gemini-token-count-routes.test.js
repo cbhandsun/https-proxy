@@ -13,6 +13,7 @@ const { findAvailablePorts } = require('./helpers/test-ports');
 const { waitForProxyFixtureReady } = require('./helpers/proxy-fixture-ready');
 const { prepareProxyFixtureSecret } = require('./helpers/proxy-fixture-secret');
 const { createProxyFixtureHealthProbe } = require('./helpers/proxy-fixture-health');
+const { waitForFixtureEventFlush } = require('./helpers/proxy-fixture-events');
 
 function request(port, model) {
   return new Promise((resolve, reject) => {
@@ -87,6 +88,11 @@ async function main() {
         ').readAntigravityOfficialCredentialState = () => { require("node:fs").writeFileSync(' +
         JSON.stringify(credentialReadMarker) +
         ', "unexpected"); throw new Error("Fixture must not read real credentials"); };',
+      'require(' +
+        JSON.stringify(path.resolve('test/helpers/proxy-fixture-events.js')) +
+        ').installFixtureEventFlush(require(' +
+        JSON.stringify(path.resolve('lib/proxy/diagnostics.js')) +
+        '));',
     ].join('\n')
   );
   fs.writeFileSync(
@@ -152,7 +158,7 @@ async function main() {
       PROXY_LOG_LEVEL: 'error',
       PROXY_DISABLE_CONVERSATION_AUDIT: '1',
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   });
   child.stderr.resume();
   try {
@@ -190,6 +196,7 @@ async function main() {
     assert.equal(codeAssist.body.input_tokens > 0, true);
     assert.equal(upstreamRequests.length, 2, 'Code Assist must not call Developer API countTokens');
 
+    await waitForFixtureEventFlush(child);
     const events = fs
       .readFileSync(path.join(env.PROXY_RUNTIME_DIR, 'proxy-events.jsonl'), 'utf8')
       .trim()

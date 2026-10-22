@@ -7,6 +7,7 @@ const path = require('path');
 const { createIsolatedTestEnv } = require('../lib/test-runtime');
 const { findAvailablePorts } = require('./helpers/test-ports');
 const { createTestStateDatabase, encodeTestOAuthState } = require('./helpers/antigravity-state');
+const { protocolUpstreamResponse } = require('./helpers/protocol-upstream-response.cjs');
 
 const testHomeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'https-proxy-headers-routing-'));
 const testAppDataDir = path.join(testHomeDir, 'AppData', 'Roaming');
@@ -56,7 +57,7 @@ const mockUpstream = http.createServer((req, res) => {
     return;
   }
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ ok: true }));
+  res.end(JSON.stringify(protocolUpstreamResponse(req.url)));
 });
 
 let upstreamPort = 0;
@@ -224,7 +225,11 @@ function sendClaudeMessageRequest() {
       },
       (res) => {
         res.resume();
-        res.on('end', () => resolve({ ...receivedHeaders }));
+        res.on('error', reject);
+        res.on('end', () => {
+          if (res.statusCode !== 200) return reject(new Error('Routed fixture response failed'));
+          resolve({ ...receivedHeaders });
+        });
       }
     );
     req.on('error', reject);
@@ -535,7 +540,10 @@ function sendRoutedRequest({ clientHeaders, clientPort, clientPath, clientBody }
       (res) => {
         res.resume();
         res.on('error', reject);
-        res.on('end', () => resolve({ ...receivedHeaders }));
+        res.on('end', () => {
+          if (res.statusCode !== 200) return reject(new Error('Routed fixture response failed'));
+          resolve({ ...receivedHeaders });
+        });
       }
     );
     req.on('error', reject);

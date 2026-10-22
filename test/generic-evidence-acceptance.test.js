@@ -107,6 +107,7 @@ function setup(mode) {
       if (requests === 9) return source(LIST);
       return output(JSON.stringify({ status: 'unavailable', replayed: false }));
     }
+    if (mode === 'invalid-index' && requests === 4) return source(LIST, { afterSourceId: null });
     if ([4, 8, 11].includes(requests)) return source(LIST);
     if ([5, 9].includes(requests)) {
       const reply = JSON.parse(input.at(-1).output);
@@ -141,7 +142,11 @@ function setup(mode) {
         request,
         report,
         definitions: gateway.definitions,
-        callTool: (name, args) => gateway.call(name, args),
+        callTool: (name, args) => {
+          if (mode === 'tool-transport' && name === LIST)
+            throw new Error('private transport detail must not be retained');
+          return gateway.call(name, args);
+        },
       }),
   };
 }
@@ -239,6 +244,40 @@ test('correct direct reads using a retained receipt do not satisfy the unchanged
   assert.equal(result.automaticRetries, 0);
 });
 
+test('invalid model index arguments stop with safe contract diagnostics and no retry or source replay', async (t) => {
+  const fixture = setup('invalid-index');
+  t.after(() => fixture.gateway.close());
+  await assert.rejects(fixture.run(), { code: 'generic_acceptance_tool_failed' });
+  assert.equal(fixture.report.modelRequests, 4);
+  assert.equal(fixture.executions(), 1);
+  assert.deepEqual(fixture.report.toolObservations.at(-1), {
+    tool: 'index',
+    phase: 'recovery_1',
+    outcome: 'tool_failed',
+    failure: {
+      ok: false,
+      error: 'invalid_evidence_arguments',
+      field: 'afterSourceId',
+      reason: 'wrong_type',
+    },
+  });
+  assert.ok(!JSON.stringify(fixture.report.toolObservations).includes('hce_'));
+});
+
+test('tool transport failure is distinguished without retaining exception text or retrying', async (t) => {
+  const fixture = setup('tool-transport');
+  t.after(() => fixture.gateway.close());
+  await assert.rejects(fixture.run(), { code: 'generic_acceptance_tool_failed' });
+  assert.equal(fixture.report.modelRequests, 2);
+  assert.equal(fixture.executions(), 1);
+  assert.deepEqual(fixture.report.toolObservations.at(-1), {
+    tool: 'index',
+    phase: 'source_verification',
+    outcome: 'transport_failed',
+  });
+  assert.ok(!JSON.stringify(fixture.report.toolObservations).includes('private'));
+});
+
 test('authority is exact and test-process preload disables retry/failover without altering production modules', () => {
   const authority = {
     schema: 'hpm.context.generic-model-acceptance-authorization',
@@ -316,11 +355,23 @@ test('generic raw HTTP sender preserves canonical items and counts no hidden ret
     ingress: 'synthetic',
     compact: false,
     input: canonical,
-    definitions: [],
+    definitions: [
+      {
+        name: LIST,
+        description: 'optional cursor',
+        inputSchema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: { afterSourceId: { type: 'string', pattern: '^hce_[a-f0-9]{32}$' } },
+        },
+      },
+    ],
     row: {},
   };
   await requestGenericAcceptanceModel(args);
   assert.deepEqual(lastInput.input, canonical);
+  assert.equal(lastInput.tools[0].strict, false);
+  assert.deepEqual(lastInput.tools[0].parameters, args.definitions[0].inputSchema);
   await requestGenericAcceptanceModel({ ...args, compact: true, row: {} });
   assert.deepEqual(lastInput.input, [...canonical, { type: 'compaction_trigger' }]);
   server.removeAllListeners('request');
