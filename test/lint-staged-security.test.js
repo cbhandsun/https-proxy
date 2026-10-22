@@ -7,6 +7,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 const { runOwnedFixtureCommand, cleanupHookFixture } = require('./helpers/owned-fixture-command');
+const { createHookFixtureTools } = require('./helpers/hook-fixture-path');
 
 const root = path.resolve(__dirname, '..');
 const packageJson = require('../package.json');
@@ -27,10 +28,15 @@ test('certificate and hook security dependency batches are declared and locked w
   assert.equal(installed.version, lock.packages['node_modules/lint-staged'].version);
 });
 
-test('upgraded lint-staged runs the actual ESLint/Prettier hook and rejects invalid code in isolated Git fixture', async () => {
+test('upgraded lint-staged runs the actual ESLint/Prettier hook and rejects invalid code in isolated Git fixture', async (t) => {
+  const tools = createHookFixtureTools({
+    binDirectory: path.join(root, 'node_modules', '.bin'),
+    nodeExecutable: process.execPath,
+    environment: { ...process.env },
+  });
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-lint-staged-fixture-'));
   const env = {
-    ...process.env,
+    ...tools.env,
     HUSKY: '0',
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null',
@@ -44,15 +50,9 @@ test('upgraded lint-staged runs the actual ESLint/Prettier hook and rejects inva
   }
   env.GIT_CONFIG_NOSYSTEM = '1';
   env.GIT_CONFIG_GLOBAL = process.platform === 'win32' ? 'NUL' : '/dev/null';
-  const inheritedPath =
-    Object.entries(env).find(([key]) => key.toLowerCase() === 'path')?.[1] || '';
-  for (const key of Object.keys(env)) {
-    if (key.toLowerCase() === 'path') delete env[key];
-  }
-  env.PATH = path.join(root, 'node_modules', '.bin') + path.delimiter + inheritedPath;
   // All writes, staging and commits below are confined to this generated fixture.
   function git(...args) {
-    const result = spawnSync('git', args, {
+    const result = spawnSync(tools.gitExecutable, args, {
       cwd: directory,
       env,
       encoding: 'utf8',
@@ -78,6 +78,7 @@ test('upgraded lint-staged runs the actual ESLint/Prettier hook and rejects inva
     return result;
   }
   let primaryFailure;
+  let stage = 'setup';
   try {
     git('init', '--quiet');
     git('config', 'user.name', 'Synthetic Hook Fixture');
@@ -97,7 +98,9 @@ test('upgraded lint-staged runs the actual ESLint/Prettier hook and rejects inva
     // Use the exact user-facing hook commands, resolving their tools locally.
     fs.writeFileSync(path.join(directory, 'fixture.js'), 'module.exports={value:2}\n');
     git('add', 'fixture.js');
+    stage = 'good_run';
     const good = await hook();
+    stage = 'good_assert';
     assert.equal(good.failure, null, 'valid hook command failed: ' + good.failure);
     assert.equal(
       good.status,
@@ -109,17 +112,20 @@ test('upgraded lint-staged runs the actual ESLint/Prettier hook and rejects inva
       'module.exports = { value: 2 };\n'
     );
     assert.equal(git('show', ':fixture.js'), 'module.exports = { value: 2 };\n');
+    stage = 'bad_run';
     fs.writeFileSync(
       path.join(directory, 'fixture.js'),
       'module.exports = UNKNOWN_FIXTURE_IDENTIFIER;\n'
     );
     git('add', 'fixture.js');
     const bad = await hook();
+    stage = 'bad_assert';
     assert.equal(bad.failure, null, 'invalid hook command failed: ' + bad.failure);
     assert.equal(bad.status, 1, 'upgraded hook must propagate ESLint failure');
     assert.match(bad.stdout + bad.stderr, /no-undef/);
     assert.equal(git('show', ':fixture.js'), 'module.exports = UNKNOWN_FIXTURE_IDENTIFIER;\n');
   } catch (error) {
+    t.diagnostic('hook_failure_stage=' + stage);
     primaryFailure = error;
   }
   cleanupHookFixture(directory, primaryFailure, cleanupSafe);
