@@ -12,6 +12,8 @@ module.exports = [
       'dist/**',
       'build/**',
       'coverage/**',
+      'runtime/evidence-gateway/**',
+      'runtime/local-evidence-plugin/**',
       'tauri-ui/dist/**',
       'tauri-ui/node_modules/**',
       'src-tauri/target/**',
@@ -23,6 +25,11 @@ module.exports = [
       'prev_electron_ui.html',
       '.hpm-runtime/**',
       '.hpm-runtime-probe/**',
+      // Generated probes and frozen acceptance copies are evidence, not source.
+      // Source/test boundaries remain enforced by governance/lint-scope.test.js.
+      '**/.hpm-acceptance/**',
+      '.codex-tmp/**',
+      'tmp/**',
       '.tmp*/**',
       '.tmp*',
     ],

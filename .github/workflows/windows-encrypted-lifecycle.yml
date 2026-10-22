@@ -1,0 +1,96 @@
+name: Disposable Windows encrypted lifecycle
+
+on:
+  workflow_call:
+    inputs:
+      baseline_artifact_id:
+        description: Explicit private same-repository hpm-old-nsis-e7dc2ec Actions artifact ID
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      baseline_artifact_id:
+        description: Explicit private same-repository hpm-old-nsis-e7dc2ec Actions artifact ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  encrypted-lifecycle:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: current
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+      - name: Verify complete current checkout
+        env:
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:CURRENT_SHA -cnotmatch '\A[a-f0-9]{40}\z') { throw 'Current identity refused.' }
+          $actual = git -C current rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $actual -cne $env:CURRENT_SHA) { throw 'Current checkout identity failed.' }
+          foreach ($file in @('lib/proxy/context-recovery-storage-owner.js', 'scripts/lib/nsis-installed-recovery-fixture.cjs')) {
+            if (-not (Test-Path -LiteralPath (Join-Path current $file) -PathType Leaf)) { throw 'Complete candidate is required.' }
+          }
+      - name: Acquire immutable private old installer
+        env:
+          ARTIFACT_ID: ${{ inputs.baseline_artifact_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module ./current/scripts/lib/nsis-private-artifact.psm1 -Force
+          Receive-HpmPrivateBaselineArtifact $env:ARTIFACT_ID (Join-Path $env:GITHUB_WORKSPACE 'old-baseline')
+      - run: rustup default stable
+      - name: Require all current candidate gates
+        working-directory: current
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate dependencies failed.' }
+          npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate local evidence plugin dependencies failed.' }
+          npm run verify
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate verification failed; installation qualification will not run.' }
+          npm audit --audit-level=high
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate dependency audit failed.' }
+      - name: Build current test installer without publishing
+        working-directory: current
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $config = Get-Content -LiteralPath src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          if ($config.identifier -cne 'com.efficiency.https-proxy-manager' -or $config.bundle.windows.nsis.installMode -cne 'currentUser' -or (Test-Path -LiteralPath src-tauri/tauri.windows.conf.json)) { throw 'Candidate installer scope refused.' }
+          @{ version = '0.1.1' } | ConvertTo-Json | Set-Content -LiteralPath encrypted-lifecycle.config.json -Encoding utf8
+          node node_modules/@tauri-apps/cli/tauri.js build --bundles nsis --config encrypted-lifecycle.config.json
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate NSIS build failed.' }
+      - name: Qualify installed same-format readers and runner-local DPAPI
+        env:
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./current/scripts/qualify-nsis-lifecycle.ps1 -BaselineDirectory './old-baseline' -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentSha $env:CURRENT_SHA -EncryptedRecovery -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json'
+      - name: Record bounded scope
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          @(
+            'Encrypted same-format hosted lifecycle job result: ' + $env:JOB_STATUS
+            'Current complete checkout: ' + $env:CURRENT_SHA + '; test installer version 0.1.1'
+            'Immutable old NSIS: e7dc2ec976df82c2679eb45b336312253caec2f7cf8e7629cc4940e147b85ce6; old version 0.1.0'
+            'Synthetic originals and DPAPI keys are generated only on the disposable runner. No keys, DBs or installers are uploaded.'
+            'Not qualified: 582-reader old-layout migration, failure-injection matrix, real users, cross-device keys, 24-hour capacity, providers, signing or production activation.'
+          ) >> $env:GITHUB_STEP_SUMMARY

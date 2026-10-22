@@ -14,6 +14,7 @@ proxy.config.before-*.json
 .claude/
 .hpm-runtime/
 .hpm-runtime-probe/
+.hpm-acceptance/
 
 # Runtime files and logs
 *.log
@@ -34,6 +35,9 @@ out/
 *.zip
 tauri-ui/dist/
 /src-tauri/target*/
+/runtime/native/
+/runtime/evidence-gateway/
+/runtime/local-evidence-plugin/
 
 # Test runtime artifacts
 test/*.log

@@ -43,6 +43,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+      - run: rustup default stable
       - run: npm run test:unit
 
   coverage:
@@ -54,6 +56,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+      - run: rustup default stable
       - run: npm run test:coverage
       - run: npm run test:client:coverage
       - run: npm run test:frontend:coverage
@@ -85,8 +89,10 @@ jobs:
           workspaces: src-tauri
       - run: npm ci
       - run: npm run release:prepare
+      - run: npm run test:recovery-native
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
       - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - run: npm run test:rust
       - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: node scripts/check-windows-rust-audit.js
+      - run: cargo audit --file native/context-recovery-key/Cargo.lock

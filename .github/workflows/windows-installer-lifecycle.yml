@@ -1,0 +1,105 @@
+name: Disposable Windows installer lifecycle
+
+on:
+  workflow_call:
+    inputs:
+      baseline_sha:
+        description: Full 40-character repository commit SHA to build as the baseline
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      baseline_sha:
+        description: Full 40-character repository commit SHA to build as the baseline
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  installer-lifecycle:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: current
+          persist-credentials: false
+      - name: Validate explicit baseline before checkout
+        id: commits
+        env:
+          BASELINE_SHA: ${{ inputs.baseline_sha }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module ./current/scripts/lib/nsis-lifecycle.psm1 -Force
+          Assert-HpmLifecycleCommitPair $env:BASELINE_SHA $env:CURRENT_SHA
+          $actual = git -C current rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $actual -ine $env:CURRENT_SHA) { throw 'Current checkout identity mismatch.' }
+          "baseline=$($env:BASELINE_SHA.ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "current=$($env:CURRENT_SHA.ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ steps.commits.outputs.baseline }}
+          path: baseline
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+      - run: rustup default stable
+      - name: Verify source identities and create synthetic version overlays
+        env:
+          BASELINE_SHA: ${{ steps.commits.outputs.baseline }}
+          CURRENT_SHA: ${{ steps.commits.outputs.current }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($entry in @(@('baseline', '0.0.1', $env:BASELINE_SHA), @('current', '0.0.2', $env:CURRENT_SHA))) {
+            $actual = git -C $entry[0] rev-parse HEAD
+            if ($LASTEXITCODE -ne 0 -or $actual -ine $entry[2]) { throw 'Lifecycle checkout identity mismatch.' }
+            $config = Get-Content -LiteralPath (Join-Path $entry[0] 'src-tauri/tauri.conf.json') -Raw | ConvertFrom-Json
+            if ($config.productName -cne 'HTTPS Proxy Manager' -or $config.mainBinaryName -cne 'https-proxy-manager' -or $config.identifier -cne 'com.efficiency.https-proxy-manager' -or $config.bundle.windows.nsis.installMode -cne 'currentUser') {
+              throw 'Lifecycle source has an unsupported installer identity or installation scope.'
+            }
+            if (Test-Path -LiteralPath (Join-Path $entry[0] 'src-tauri/tauri.windows.conf.json')) { throw 'Lifecycle builds refuse a signing/platform override.' }
+            @{ version = $entry[1] } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $entry[0] 'lifecycle.config.json') -Encoding utf8
+          }
+      - name: Build baseline locally on runner (never publish)
+        working-directory: baseline
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Baseline dependency installation failed.' }
+          node node_modules/@tauri-apps/cli/tauri.js build --bundles nsis --config lifecycle.config.json
+          if ($LASTEXITCODE -ne 0) { throw 'Baseline NSIS build failed.' }
+      - name: Build current locally on runner (never publish)
+        working-directory: current
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Current dependency installation failed.' }
+          node node_modules/@tauri-apps/cli/tauri.js build --bundles nsis --config lifecycle.config.json
+          if ($LASTEXITCODE -ne 0) { throw 'Current NSIS build failed.' }
+      - name: Install, upgrade, roll back and uninstall
+        env:
+          BASELINE_SHA: ${{ steps.commits.outputs.baseline }}
+          CURRENT_SHA: ${{ steps.commits.outputs.current }}
+        run: |
+          ./current/scripts/qualify-nsis-lifecycle.ps1 -BaselineDirectory './baseline/src-tauri/target/release/bundle/nsis' -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -BaselineSha $env:BASELINE_SHA -CurrentSha $env:CURRENT_SHA
+      - name: Record qualification scope
+        if: always()
+        env:
+          BASELINE_SHA: ${{ steps.commits.outputs.baseline }}
+          CURRENT_SHA: ${{ steps.commits.outputs.current }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          @(
+            'Disposable installer lifecycle result: ' + $env:JOB_STATUS
+            'Baseline code SHA: ' + $env:BASELINE_SHA + '; synthetic installer version: 0.0.1'
+            'Current code SHA: ' + $env:CURRENT_SHA + '; synthetic installer version: 0.0.2'
+            'Scope: installation mechanics and fixed synthetic config/data hashes, including expiry bytes.'
+            'Different installed application hashes are required; synthetic version changes also affect those hashes.'
+            'Not qualified: release signing, real user configuration migration, encrypted recovery, DPAPI migration, 24-hour capacity or provider behavior.'
+            'No installer artifacts are uploaded or released. Existing signed release gates are separate.'
+          ) >> $env:GITHUB_STEP_SUMMARY
