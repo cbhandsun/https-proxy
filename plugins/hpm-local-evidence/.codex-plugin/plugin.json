@@ -1,0 +1,12 @@
+{
+  "name": "hpm-local-evidence",
+  "version": "0.1.1",
+  "description": "Memory-only, session-isolated prospective tool evidence.",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "HPM Local Evidence",
+    "shortDescription": "Read retained tool evidence after compaction",
+    "capabilities": ["Read"]
+  }
+}
