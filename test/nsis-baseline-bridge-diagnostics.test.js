@@ -26,7 +26,15 @@ const stages = [
 ];
 const sha = 'a'.repeat(40);
 
-function fixture(t, failureStage) {
+function fixture(
+  t,
+  failureStage,
+  repository = {
+    full_name: transfer.REPOSITORY,
+    private: true,
+    permissions: { push: true },
+  }
+) {
   const parent = resolvePhysicalTestTempDirectory();
   const root = fs.mkdtempSync(path.join(parent, 'hpm-bridge-diagnostics-'));
   t.after(() => {
@@ -116,7 +124,7 @@ function fixture(t, failureStage) {
       const route = args[1];
       if (route === `repos/${transfer.REPOSITORY}`) {
         if (failureStage === 'repository') throw hostile;
-        return { full_name: transfer.REPOSITORY, private: true, permissions: { push: true } };
+        return repository;
       }
       if (route.endsWith('/assets')) {
         if (failureStage === 'assets') throw hostile;
@@ -166,6 +174,44 @@ test('bridge diagnostics preserve a successful synthetic flow and original local
   assert.equal(directory, path.join(current.root, 'hpm-baseline-bridge'));
   assert.deepEqual(fs.readdirSync(directory).sort(), [transfer.INSTALLER, 'identity.json'].sort());
   assert.equal(current.inspectedErrors(), 0);
+});
+
+test('private read bridge accepts missing or false user push fields and still enforces the asset boundary', async (t) => {
+  for (const repository of [
+    { full_name: transfer.REPOSITORY, private: true },
+    { full_name: transfer.REPOSITORY, private: true, permissions: { push: false } },
+  ]) {
+    const accepted = fixture(t, undefined, repository);
+    const directory = await accepted.api.runBridge(accepted.env, accepted.dependencies);
+    assert.equal(directory, path.join(accepted.root, 'hpm-baseline-bridge'));
+    const rejected = fixture(t, 'assets', repository);
+    await assert.rejects(rejected.api.runBridge(rejected.env, rejected.dependencies), {
+      message: 'baseline_bridge_assets_refused',
+    });
+    assert.equal(fs.existsSync(path.join(rejected.root, 'hpm-baseline-bridge')), false);
+  }
+});
+
+test('private read bridge still rejects foreign or public repositories before assets and masks API refusal', async (t) => {
+  for (const repository of [
+    { full_name: 'foreign/repository', private: true },
+    { full_name: transfer.REPOSITORY, private: false },
+    { full_name: transfer.REPOSITORY, private: 'true' },
+    {},
+    null,
+  ]) {
+    const rejected = fixture(t, undefined, repository);
+    await assert.rejects(rejected.api.runBridge(rejected.env, rejected.dependencies), {
+      message: 'baseline_bridge_repository_refused',
+    });
+    assert.equal(fs.existsSync(path.join(rejected.root, 'hpm-baseline-bridge')), false);
+  }
+  const denied = fixture(t, 'repository');
+  await assert.rejects(denied.api.runBridge(denied.env, denied.dependencies), (error) => {
+    assert.equal(denied.api.formatBridgeError(error), 'baseline_bridge_repository_refused');
+    return true;
+  });
+  assert.equal(denied.inspectedErrors(), 0);
 });
 
 test('every bridge stage wraps failures in its exact fixed code without inspecting the caught error', async (t) => {

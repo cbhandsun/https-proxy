@@ -78,6 +78,7 @@ test('strict identity, private repository, release ownership and exact assets re
     {},
     { ...repo, private: false },
     { ...repo, permissions: { push: false } },
+    { full_name: transfer.REPOSITORY, private: true },
     { ...repo, full_name: 'attacker/repo' },
   ])
     assert.throws(() => transfer.assertRepository(value));
@@ -168,6 +169,36 @@ function remoteMock(calls, failure) {
     return repo;
   };
 }
+
+test('local writer refuses missing or false push permission before creating or uploading any release', (t) => {
+  for (const repository of [
+    { full_name: transfer.REPOSITORY, private: true },
+    { full_name: transfer.REPOSITORY, private: true, permissions: { push: false } },
+  ]) {
+    const archive = temporary(t);
+    let requests = 0;
+    assert.throws(
+      () =>
+        transfer.prepareTransfer(
+          { archive, target: sha, execute: true },
+          {
+            validateArchive: () => ({
+              installer: path.join(archive, transfer.INSTALLER),
+              receiptSha256: 'b'.repeat(64),
+            }),
+            gh(args) {
+              requests++;
+              assert.deepEqual(args, ['api', `repos/${transfer.REPOSITORY}`]);
+              return repository;
+            },
+          }
+        ),
+      /^Error: baseline_transfer_refused$/
+    );
+    assert.equal(requests, 1);
+    assert.deepEqual(fs.readdirSync(archive), []);
+  }
+});
 test('execute lifecycle is mock-only, pins target and draft, uploads only two files; failure preserves remote resources', (t) => {
   for (const failure of [false, true]) {
     const archive = temporary(t);

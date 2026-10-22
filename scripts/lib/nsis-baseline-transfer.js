@@ -163,14 +163,12 @@ function assertRelease(release, expected) {
   )
     throw fail();
 }
+function assertPrivateRepository(value) {
+  if (!value || value.full_name !== REPOSITORY || value.private !== true) throw fail();
+}
 function assertRepository(value) {
-  if (
-    !value ||
-    value.full_name !== REPOSITORY ||
-    value.private !== true ||
-    value.permissions?.push !== true
-  )
-    throw fail();
+  assertPrivateRepository(value);
+  if (value.permissions?.push !== true) throw fail();
 }
 function assertAssets(assets, ids) {
   if (
@@ -391,7 +389,11 @@ async function runBridge(env, dependencies = {}) {
     if ((dependencies.checkoutCommit || checkoutCommit)(env.GITHUB_WORKSPACE) !== env.TARGET_SHA)
       throw fail();
   });
-  await bridgeStage('repository', () => assertRepository(api(['api', `repos/${REPOSITORY}`])));
+  // The bridge only reads. GitHub authorizes private draft/asset access server-side;
+  // installation tokens need not expose a user repository permissions.push field.
+  await bridgeStage('repository', () =>
+    assertPrivateRepository(api(['api', `repos/${REPOSITORY}`]))
+  );
   const expected = {
     id: Number(env.RELEASE_ID),
     tag: env.TRANSFER_TAG,
