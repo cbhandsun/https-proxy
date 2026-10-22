@@ -100,7 +100,10 @@ function executeUnitRunner(outcomes) {
       selectUnitTestFiles: (files) => files,
     },
     '../lib/test-sharding': { selectTestShard, testShardExitStatus },
-    '../lib/test-runtime': { createIsolatedTestEnv: () => ({}) },
+    '../lib/test-runtime': {
+      createIsolatedTestEnv: () => ({}),
+      resolvePhysicalTestTempDirectory: () => 'synthetic-physical-temp',
+    },
   };
   const filename = path.resolve(__dirname, '../scripts/run-unit-tests.js');
   try {
