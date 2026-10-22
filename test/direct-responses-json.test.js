@@ -14,7 +14,7 @@ const rootSource = fs.readFileSync(
 );
 assert.match(
   rootSource,
-  /createProxyHandlers\(\{\s*\.\.\.openAIProtocol,\s*\.\.\.geminiProtocol,\s*createGeminiResponsesStream,/
+  /createProxyHandlers\(\{\s*\.\.\.openAIProtocol,\s*\.\.\.geminiProtocol,\s*protocolOptions: PROTOCOL_OPTIONS,\s*createGeminiResponsesStream,/
 );
 assert.match(rootSource, /const geminiProtocol = createGeminiProtocol\(\{/);
 const { createHash } = require('node:crypto');

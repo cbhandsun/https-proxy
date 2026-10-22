@@ -21,6 +21,8 @@ const assert = require('node:assert/strict');
     'verifyUpstreamTls',
     'conversationAuditEnabled',
     'conversationAuditCaptureContent',
+    'contextRecoveryEnabled',
+    'contextRecoveryPersistenceEnabled',
     'forceResponseStreaming',
     'forceChatStreaming',
     'upstreamWarmupEnabled',
@@ -44,12 +46,15 @@ const assert = require('node:assert/strict');
       verifyUpstreamTls: true,
       conversationAuditEnabled: true,
       conversationAuditCaptureContent: false,
+      contextRecoveryEnabled: false,
+      contextRecoveryPersistenceEnabled: true,
       forceResponseStreaming: true,
       forceChatStreaming: false,
       upstreamWarmupEnabled: true,
       streamDirectRequestBodies: false,
       performanceMode: true,
       unknownSetting: 'preserved',
+      contextPolicyVersion: 2,
     },
   };
   const applied = [];
@@ -107,11 +112,14 @@ const assert = require('node:assert/strict');
   }
   // Migration-critical settings must survive the spread-based collect.
   assert.equal(config.appSettings.conversationAuditCaptureContent, true);
+  assert.equal(config.appSettings.contextRecoveryEnabled, true);
+  assert.equal(config.appSettings.contextRecoveryPersistenceEnabled, false);
   assert.equal(config.appSettings.forceResponseStreaming, false);
   assert.equal(config.appSettings.forceChatStreaming, true);
   assert.equal(config.appSettings.upstreamWarmupEnabled, false);
   assert.equal(config.appSettings.streamDirectRequestBodies, true);
   assert.equal(config.appSettings.unknownSetting, 'preserved');
+  assert.equal(config.appSettings.contextPolicyVersion, 2);
 
   // Missing DOM nodes must fail loudly instead of writing `undefined` into config.
   assert.throws(() => {

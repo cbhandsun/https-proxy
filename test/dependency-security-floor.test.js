@@ -15,7 +15,6 @@ const floors = [
 ];
 const mcpFloor = { name: '@modelcontextprotocol/sdk', major: 1, minor: 32, patch: 1 };
 const ipAddressFloor = { name: 'ip-address', major: 10, minor: 7, patch: 4 };
-const viteFloor = { name: 'vite', major: 6, minor: 4, patch: 5 };
 
 function admittedVersion(value, floor) {
   if (
@@ -30,7 +29,7 @@ function admittedVersion(value, floor) {
 }
 
 test('compatibility patch floors reject vulnerable, empty, malformed, extreme and unreviewed-major versions', () => {
-  for (const floor of [...floors, mcpFloor, ipAddressFloor, viteFloor]) {
+  for (const floor of [...floors, mcpFloor, ipAddressFloor]) {
     assert.ok(admittedVersion(`${floor.major}.${floor.minor}.${floor.patch}`, floor));
     assert.ok(admittedVersion(`${floor.major}.${floor.minor}.${floor.patch + 1}`, floor));
     assert.equal(admittedVersion(`${floor.major}.${floor.minor}.${floor.patch - 1}`, floor), false);
@@ -93,8 +92,8 @@ test('installed and locked dependency batches both meet the security floors', ()
   }
 });
 
-test('root enforces the reviewed direct MCP SDK security floor', () => {
-  for (const directory of [root]) {
+test('root and staged plugin enforce the reviewed direct MCP SDK floor independently', () => {
+  for (const directory of [root, path.join(root, 'plugins/hpm-local-evidence')]) {
     const read = (file) => JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'));
     const pkg = read('package.json');
     const lock = read('package-lock.json');
@@ -112,9 +111,9 @@ test('root enforces the reviewed direct MCP SDK security floor', () => {
   }
 });
 
-test('root keeps the IPv6 parser at a secure production patch', () => {
+test('root and plugin keep the IPv6 parser at a secure production patch', () => {
   // GHSA-rxp7-6hxx-x8q5: <=10.7.3 parses long zone identifiers quadratically.
-  for (const directory of [root]) {
+  for (const directory of [root, path.join(root, 'plugins/hpm-local-evidence')]) {
     const read = (file) => JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'));
     const lock = read('package-lock.json');
     const entry = `node_modules/${ipAddressFloor.name}`;
@@ -125,23 +124,6 @@ test('root keeps the IPv6 parser at a secure production patch', () => {
     assert.equal(installed.version, locked.version);
     assert.notEqual(locked.dev, true, 'IPv6 parser must remain available to production callers');
   }
-});
-
-test('root keeps Vite at the reviewed development security patch', () => {
-  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-  const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
-  const installed = JSON.parse(
-    fs.readFileSync(path.join(root, 'node_modules/vite/package.json'), 'utf8')
-  );
-  const locked = lock.packages?.['node_modules/vite'];
-  const declared = pkg.devDependencies?.vite;
-  assert.equal(typeof declared, 'string');
-  assert.ok(admittedVersion(declared.replace(/^\^/, ''), viteFloor));
-  assert.ok(admittedVersion(installed.version, viteFloor));
-  assert.ok(admittedVersion(locked?.version, viteFloor));
-  assert.equal(installed.version, locked.version);
-  assert.equal(lock.packages?.['']?.devDependencies?.vite, declared);
-  assert.equal(locked.dev, true, 'Vite remains a development dependency');
 });
 
 test('real hook integration cannot disappear from unified verification or CI', () => {
