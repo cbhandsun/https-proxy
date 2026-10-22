@@ -1,0 +1,206 @@
+'use strict';
+
+// Acceptance-only observer. Never imports an owner, writer, original blob or
+// live authorization capability. Dependencies below are trusted test seams.
+const { createReadonlyFiles, optionsData, failure } = require('./readonly-files.js');
+const {
+  recoveryStorageSchemaState,
+} = require('../../../lib/proxy/context-recovery-storage-schema');
+const { createStorageCipher } = require('../../../lib/proxy/context-recovery-storage-cipher');
+const { parseReferenceState } = require('../../../lib/proxy/context-recovery-reference-state');
+const { storageContext } = require('../../../lib/proxy/context-recovery-storage-contract');
+const { protectWithCurrentUser } = require('../../../lib/proxy/context-recovery-key-dpapi');
+
+const META = Object.freeze({ evidenceLevel: 'committed-metadata-only', hostDurableAck: false });
+const ROW_SQL =
+  'SELECT scope,revision,created_at,expires_at,kind,CASE WHEN length(envelope)<=16781340 THEN envelope END AS envelope FROM recovery_state LIMIT 2';
+const HEADER_SQL =
+  'SELECT store_id,CASE WHEN length(envelope)<=4096 THEN envelope END AS envelope FROM recovery_header WHERE singleton=1';
+
+function createDurableSnapshotReader(input, trusted = {}) {
+  let files;
+  try {
+    optionsData(input);
+    files = (trusted.createFiles ?? createReadonlyFiles)(input);
+  } catch {
+    throw failure();
+  }
+  let closed = false,
+    binding,
+    storePin,
+    lastRevision = 0;
+  const open =
+    trusted.openReadonly ??
+    ((file) => {
+      const { DatabaseSync } = require('node:sqlite');
+      return new DatabaseSync(file, { readOnly: true, allowExtension: false });
+    });
+  function read() {
+    let database,
+      cipher,
+      begun = false,
+      result,
+      failed = false;
+    try {
+      if (closed) throw failure();
+      files.verify();
+      const wrapped = files.readKey();
+      const key = (trusted.unprotect ?? protectWithCurrentUser)({
+        operation: 'unprotect',
+        value: wrapped,
+      });
+      cipher = createStorageCipher(key);
+      files.verify();
+      database = open(files.databaseFile);
+      database.exec('PRAGMA busy_timeout=0; PRAGMA query_only=ON; BEGIN');
+      begun = true;
+      if (
+        recoveryStorageSchemaState(database) !== 'ready' ||
+        database.prepare('PRAGMA user_version').get().user_version !== 2
+      )
+        throw failure();
+      const header = database.prepare(HEADER_SQL).get();
+      if (
+        !header ||
+        typeof header.store_id !== 'string' ||
+        !/^[a-f0-9]{32}$/.test(header.store_id) ||
+        (storePin !== undefined && storePin !== header.store_id)
+      )
+        throw failure();
+      const clock = cipher.open(
+        {
+          storeId: header.store_id,
+          scope: '0'.repeat(64),
+          revision: 1,
+          createdAt: 0,
+          expiresAt: 1,
+          kind: 'header',
+          version: 1,
+        },
+        header.envelope
+      );
+      if (
+        Object.keys(clock).sort().join(',') !== 'lastTime,schema' ||
+        clock.schema !== 2 ||
+        !Number.isSafeInteger(clock.lastTime) ||
+        clock.lastTime < 0
+      )
+        throw failure();
+      const rows = database.prepare(ROW_SQL).all();
+      if (rows.length > 1) throw failure();
+      if (rows.length === 0) {
+        result = {
+          ...META,
+          present: false,
+          reason: binding ? 'absent' : 'empty',
+          ...(binding ? { rootId: binding.rootId } : {}),
+        };
+      } else {
+        const row = rows[0];
+        const context = storageContext({
+          storeId: header.store_id,
+          scope: row.scope,
+          revision: row.revision,
+          createdAt: row.created_at,
+          expiresAt: row.expires_at,
+          kind: row.kind,
+          version: 1,
+        });
+        const state = cipher.open(context, row.envelope);
+        if (binding && (binding.scope !== row.scope || context.revision < lastRevision))
+          throw failure();
+        if (row.kind === 'revoked') {
+          // Authenticate the tombstone; do not invent budget zeroes or bind an
+          // unauthenticated root identity from caller arguments.
+          if (
+            !binding ||
+            Object.keys(state).sort().join(',') !== 'revoked' ||
+            state.revoked !== true
+          )
+            throw failure();
+          result = {
+            ...META,
+            present: false,
+            reason: 'revoked',
+            rootId: binding.rootId,
+            revision: context.revision,
+          };
+        } else {
+          if (
+            Object.keys(state).sort().join(',') !== 'kind,reference,version' ||
+            state.kind !== 'recovery-referenced-checkpoint' ||
+            state.version !== 3
+          )
+            throw failure();
+          const reference = parseReferenceState(state.reference);
+          const metadata = reference.metadata;
+          if (
+            metadata.createdAt !== context.createdAt ||
+            metadata.expiresAt !== context.expiresAt ||
+            (binding && binding.rootId !== metadata.rootId)
+          )
+            throw failure();
+          result = {
+            ...META,
+            present: true,
+            rootId: metadata.rootId,
+            expiresAt: metadata.expiresAt,
+            calls: metadata.budget.calls,
+            returnedBytes: metadata.budget.returnedBytes,
+            revision: context.revision,
+          };
+          // Binding is staged and published only after rollback/close/pins pass.
+          result.binding = { rootId: metadata.rootId, scope: context.scope };
+        }
+      }
+      result.storeId = header.store_id;
+    } catch {
+      failed = true;
+    } finally {
+      if (begun) {
+        try {
+          database.exec('ROLLBACK');
+        } catch {
+          failed = true;
+        }
+      }
+      if (database) {
+        try {
+          database.close();
+        } catch {
+          failed = true;
+        }
+      }
+      if (cipher) {
+        try {
+          cipher.close();
+        } catch {
+          failed = true;
+        }
+      }
+      try {
+        files.verify();
+      } catch {
+        failed = true;
+      }
+    }
+    if (failed) throw failure();
+    storePin = result.storeId;
+    delete result.storeId;
+    if (result.binding) {
+      binding = result.binding;
+      delete result.binding;
+    }
+    if (result.revision !== undefined) lastRevision = result.revision;
+    return Object.freeze(result);
+  }
+  return Object.freeze({
+    read,
+    close() {
+      closed = true;
+      binding = undefined;
+      storePin = undefined;
+    },
+  });
+}
+module.exports = { createDurableSnapshotReader };

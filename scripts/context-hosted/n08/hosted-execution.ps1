@@ -1,0 +1,55 @@
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+# Review-only library. No side effect until the fixed function is invoked in the
+# disposable hosted runner. No arbitrary scriptblock/module/URL enters this API.
+function Invoke-HpmN08HostedExecution {
+    param(
+        [Parameter(Mandatory)][string]$OwnedRoot,
+        [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$ReviewPlanSha256,
+        [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$BuildReceiptSha256
+    )
+    try {
+        $OwnedRoot = [IO.Path]::GetFullPath($OwnedRoot)
+        $reviewFile = Join-Path $OwnedRoot 'n08-hosted-review-plan.json'
+        if ((Get-Item -LiteralPath $reviewFile).Length -gt 131072 -or
+            (Get-FileHash -LiteralPath $reviewFile -Algorithm SHA256).Hash.ToLowerInvariant() -cne $ReviewPlanSha256) { throw 'invalid' }
+        $review = [IO.File]::ReadAllText($reviewFile, [Text.UTF8Encoding]::new($false, $true)) | ConvertFrom-Json -AsHashtable
+        $expected = @('candidate', 'manifestSha256', 'sourcePins', 'controllerPins', 'loadedPins', 'negativeAddress', 'jobSourcePins', 'libraryPins')
+        if ($review.Count -ne $expected.Count -or @($expected | Where-Object { -not $review.ContainsKey($_) }).Count -ne 0) { throw 'invalid' }
+        $network = Join-Path $PSScriptRoot '../shared/hosted-network.ps1'
+        $materials = Join-Path $PSScriptRoot '../shared/hosted-materials.ps1'
+        $job = Join-Path $PSScriptRoot 'owned-job.ps1'
+        foreach ($file in @($network, $materials, $job)) {
+            $file = [IO.Path]::GetFullPath($file)
+            if (-not $review.libraryPins.ContainsKey($file) -or $review.libraryPins[$file] -cnotmatch '\A[a-f0-9]{64}\z' -or
+                (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $review.libraryPins[$file]) { throw 'invalid' }
+        }
+        . $network
+        . $job
+        $state = @{ invoked = $false; closed = $false }
+        $run = {
+            param($networkDescriptor)
+            if ($state.invoked) { throw 'n08_hosted_execution_rejected' }
+            $state.invoked = $true
+            if ($networkDescriptor.node -cne (Join-Path $OwnedRoot 'payload/runtime/node/node.exe') -or
+                $networkDescriptor.networkRoot -cne (Join-Path $OwnedRoot 'n08-hosted-network') -or
+                $networkDescriptor.manifestSha256 -cne $review.manifestSha256) { throw 'n08_hosted_execution_rejected' }
+            $plan = [ordered]@{ candidate = $review.candidate; ownedRoot = $OwnedRoot; manifestSha256 = $review.manifestSha256;
+                powershellExecutable = 'C:/Program Files/PowerShell/7/pwsh.exe'; sourcePins = $review.sourcePins;
+                controllerPins = $review.controllerPins; loadedPins = $review.loadedPins; networkRoot = $networkDescriptor.networkRoot;
+                caSha256 = $networkDescriptor.caSha256; leafSha256 = $networkDescriptor.leafSha256; negativeAddress = $review.negativeAddress }
+            $planPath = Join-Path $OwnedRoot 'n08-hosted-plan.json'
+            $planBytes = [Text.UTF8Encoding]::new($false).GetBytes(($plan | ConvertTo-Json -Depth 8 -Compress))
+            $file = [IO.File]::Open($planPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+            try { $file.Write($planBytes); $file.Flush($true) } finally { $file.Dispose() }
+            $planHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($planBytes)).ToLowerInvariant()
+            $result = Invoke-HpmN08OwnedScenario -OwnedRoot $OwnedRoot -Candidate $review.candidate -PlanSha256 $planHash -SourcePins $review.jobSourcePins
+            # Original Job helper and fixed result parser have both succeeded.
+            $state.closed = $result.ownedTreeEmpty -eq $true
+            return $result
+        }.GetNewClosure()
+        $stop = { return $state.invoked -and $state.closed }.GetNewClosure()
+        return Invoke-HpmN08HostedNetwork -OwnedRoot $OwnedRoot -BuildReceiptSha256 $BuildReceiptSha256 -RunOwnedScenario $run -StopOwnedScenario $stop
+    } catch { throw 'n08_hosted_execution_rejected' }
+}

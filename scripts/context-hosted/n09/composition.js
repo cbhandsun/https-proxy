@@ -1,0 +1,214 @@
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const { exact, snapshotOwnData } = require('../shared/boundary.js');
+const { createHostedListener } = require('../shared/hosted-listener.js');
+const { runHostedProbes } = require('../shared/hosted-probes.js');
+const {
+  buildHostedController,
+  verifyPhysicalPath,
+} = require('../shared/build-hosted-controller.js');
+const { createN09BusinessAdapter } = require('../n09-business/business-adapter.js');
+const { runCommittedObservedKill } = require('../n09-snapshot/committed-observed-driver.js');
+const { runClearAfterAck } = require('../n09-ipc/driver.js');
+const { buildHostedLifecycle, createHostedLifecycleSpawn } = require('./hosted-lifecycle.js');
+const fail = () => new Error('n09_hosted_composition_rejected');
+const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
+const hex = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+async function closeResources(adapters, listener) {
+  let failed = false,
+    adaptersClosed = 0,
+    listenerClosed = false;
+  for (const adapter of adapters) {
+    try {
+      await adapter.close();
+      adaptersClosed++;
+    } catch {
+      failed = true;
+    }
+  }
+  if (listener) {
+    try {
+      listenerClosed = (await listener.close()) === true;
+      if (!listenerClosed) failed = true;
+    } catch {
+      failed = true;
+    }
+  }
+  if (failed) throw fail();
+  return Object.freeze({ adaptersClosed, listenerClosed });
+}
+// Called only from the existing original outer HpmRuntimeBoundaryJob, after its
+// stdin grant and full literal/lazy closure hash check. No controller replacement.
+async function composeHostedN09(input) {
+  let listener, active, result, cleanup;
+  const adapters = [];
+  try {
+    const options = exact(input, [
+      'candidate',
+      'ownedRoot',
+      'manifestSha256',
+      'controllerPins',
+      'lifecyclePins',
+      'loadedPins',
+      'networkRoot',
+      'caSha256',
+      'leafSha256',
+      'negativeAddress',
+    ]);
+    verifyPhysicalPath(options.candidate, true);
+    verifyPhysicalPath(options.ownedRoot, true);
+    if (
+      options.networkRoot !== path.join(options.ownedRoot, 'n08-hosted-network') ||
+      !hex(options.manifestSha256) ||
+      process.env.NODE_OPTIONS ||
+      process.env.NODE_PATH ||
+      process.execArgv.length !== 0 ||
+      fs.realpathSync.native(process.execPath).toLowerCase() !==
+        fs.realpathSync
+          .native(path.join(options.ownedRoot, 'payload/runtime/node/node.exe'))
+          .toLowerCase()
+    )
+      throw fail();
+    const pins = snapshotOwnData(options.loadedPins),
+      normalized = new Map();
+    if (Object.keys(pins).length < 1 || Object.keys(pins).length > 512) throw fail();
+    for (const [file, expected] of Object.entries(pins)) {
+      if (
+        !path.isAbsolute(file) ||
+        /^[\\/]{2}/.test(file) ||
+        !hex(expected) ||
+        normalized.has(path.resolve(file).toLowerCase())
+      )
+        throw fail();
+      normalized.set(path.resolve(file).toLowerCase(), expected);
+    }
+    const verify = () => {
+      for (const file of Object.keys(require.cache)) {
+        verifyPhysicalPath(file, false);
+        if (normalized.get(path.resolve(file).toLowerCase()) !== sha(fs.readFileSync(file)))
+          throw fail();
+      }
+    };
+    verify();
+    const adapter = createN09BusinessAdapter(
+      {
+        ownedRoot: options.ownedRoot,
+        install: path.join(options.ownedRoot, 'payload'),
+        manifestSha256: options.manifestSha256,
+      },
+      {
+        spawn: createHostedLifecycleSpawn({
+          ownedRoot: options.ownedRoot,
+          manifestSha256: options.manifestSha256,
+        }),
+      }
+    );
+    adapters.push(adapter);
+    active = adapter;
+    listener = await createHostedListener({
+      networkRoot: options.networkRoot,
+      ownedNode: process.execPath,
+      negativeAddress: options.negativeAddress,
+      onBusinessRequest: (input) => {
+        if (!active) throw fail();
+        return active.onBusinessRequest(input);
+      },
+    });
+    const state = listener.inspect();
+    const proof = await runHostedProbes(
+      {
+        ownedNode: process.execPath,
+        networkRoot: options.networkRoot,
+        caSha256: options.caSha256,
+        leafSha256: options.leafSha256,
+        negativeAddress: state.negativeAddress,
+        negativePort: state.negativePort,
+      },
+      listener
+    );
+    const controller = buildHostedController({
+      candidate: options.candidate,
+      ownedRoot: options.ownedRoot,
+      sourcePins: options.controllerPins,
+      caSha256: options.caSha256,
+    });
+    const lifecycle = buildHostedLifecycle({
+      ownedRoot: options.ownedRoot,
+      sourcePins: options.lifecyclePins,
+      controllerCopySha256: controller.copyPins['context-recovery-daemon-owned-controller.psm1'],
+    });
+    const verifyCopies = () => {
+      for (const copies of [controller, lifecycle])
+        for (const [name, expected] of Object.entries(copies.copyPins)) {
+          const file = path.join(copies.outputRoot, name);
+          verifyPhysicalPath(file, false);
+          if (sha(fs.readFileSync(file)) !== expected) throw fail();
+        }
+      verify();
+    };
+    verifyCopies();
+    adapter.bindVerifiedNetworkProof(proof);
+    const committed = await runCommittedObservedKill(adapter);
+    const committedEvidence = adapter.inspectBusinessEvidence();
+    if (
+      committedEvidence.seeded !== true ||
+      committedEvidence.validatedReadCount !== 1 ||
+      committedEvidence.publicGenerationCount !== 1 ||
+      committedEvidence.clearAckCount !== 0 ||
+      committedEvidence.externalToolExecutions !== 1
+    )
+      throw fail();
+    active = undefined;
+    // Each driver closes its adapter. A fresh closure owns the next synthetic
+    // credential and lifecycle; the same listener stays under the original Job.
+    const clearAdapter = createN09BusinessAdapter(
+      {
+        ownedRoot: options.ownedRoot,
+        install: path.join(options.ownedRoot, 'payload'),
+        manifestSha256: options.manifestSha256,
+      },
+      {
+        spawn: createHostedLifecycleSpawn({
+          ownedRoot: options.ownedRoot,
+          manifestSha256: options.manifestSha256,
+        }),
+      }
+    );
+    adapters.push(clearAdapter);
+    active = clearAdapter;
+    verifyCopies();
+    clearAdapter.bindVerifiedNetworkProof(proof);
+    const clear = await runClearAfterAck(clearAdapter);
+    const clearEvidence = clearAdapter.inspectBusinessEvidence();
+    if (
+      clearEvidence.seeded !== true ||
+      clearEvidence.validatedReadCount !== 1 ||
+      clearEvidence.publicGenerationCount !== 1 ||
+      clearEvidence.clearAckCount !== 1 ||
+      clearEvidence.externalToolExecutions !== 1
+    )
+      throw fail();
+    active = undefined;
+    verifyCopies();
+    result = {
+      committed,
+      clear,
+      businessEvidence: { committed: committedEvidence, clear: clearEvidence },
+      networkProof: proof,
+      originalControllerReused: true,
+      tlsValidationDisabled: false,
+      remoteModelRequests: 0,
+      n09Complete: false,
+    };
+  } catch {
+    throw fail();
+  } finally {
+    active = undefined;
+    cleanup = await closeResources(adapters, listener);
+  }
+  if (cleanup.adaptersClosed !== 2 || cleanup.listenerClosed !== true) throw fail();
+  return Object.freeze({ ...result, cleanup });
+}
+module.exports = { composeHostedN09, closeResources };
