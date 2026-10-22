@@ -15,6 +15,37 @@ const INSTALLER = 'HTTPS Proxy Manager_0.1.0_x64-setup.exe';
 // GitHub canonicalizes spaces in uploaded release asset names to periods.
 const REMOTE_INSTALLER = 'HTTPS.Proxy.Manager_0.1.0_x64-setup.exe';
 const fail = () => new Error('baseline_transfer_refused');
+const bridgeFailureCodes = Object.freeze({
+  input: 'baseline_bridge_input_refused',
+  checkout: 'baseline_bridge_checkout_refused',
+  repository: 'baseline_bridge_repository_refused',
+  release: 'baseline_bridge_release_refused',
+  assets: 'baseline_bridge_assets_refused',
+  temp: 'baseline_bridge_temp_refused',
+  download_installer: 'baseline_bridge_download_installer_refused',
+  download_identity: 'baseline_bridge_download_identity_refused',
+  installer_digest: 'baseline_bridge_installer_digest_refused',
+  identity: 'baseline_bridge_identity_refused',
+  release_recheck: 'baseline_bridge_release_recheck_refused',
+});
+const bridgeFailures = new WeakMap();
+async function bridgeStage(stage, operation) {
+  try {
+    return await operation();
+  } catch {
+    const code = bridgeFailureCodes[stage];
+    const error = new Error(code);
+    bridgeFailures.set(error, code);
+    throw error;
+  }
+}
+function formatBridgeError(error) {
+  // Do not inspect untrusted errors, including their message, cause or Proxy traps.
+  return (
+    (error !== null && typeof error === 'object' && bridgeFailures.get(error)) ||
+    'baseline_transfer_refused'
+  );
+}
 const identity = () => ({
   installerSha256: BASELINE_INSTALLER_SHA256,
   manifestSha256: BASELINE_MANIFEST_SHA256,
@@ -340,51 +371,66 @@ async function runBridge(env, dependencies = {}) {
     typeof value === 'string' &&
     /^[1-9][0-9]{0,14}$/.test(value) &&
     Number.isSafeInteger(Number(value));
-  if (
-    env.GITHUB_ACTIONS !== 'true' ||
-    env.RUNNER_ENVIRONMENT !== 'github-hosted' ||
-    env.GITHUB_REPOSITORY !== REPOSITORY ||
-    env.GITHUB_API_URL !== 'https://api.github.com' ||
-    !env.GH_TOKEN ||
-    !positive(env.RELEASE_ID) ||
-    !positive(env.INSTALLER_ASSET_ID) ||
-    !positive(env.IDENTITY_ASSET_ID) ||
-    !/^[a-f0-9]{40}$/.test(env.TARGET_SHA || '') ||
-    env.GITHUB_SHA !== env.TARGET_SHA ||
-    !/^hpm-baseline-transfer-[a-f0-9-]{36}$/.test(env.TRANSFER_TAG || '')
-  )
-    throw fail();
-  if ((dependencies.checkoutCommit || checkoutCommit)(env.GITHUB_WORKSPACE) !== env.TARGET_SHA)
-    throw fail();
-  assertRepository(api(['api', `repos/${REPOSITORY}`]));
+  await bridgeStage('input', () => {
+    if (
+      env.GITHUB_ACTIONS !== 'true' ||
+      env.RUNNER_ENVIRONMENT !== 'github-hosted' ||
+      env.GITHUB_REPOSITORY !== REPOSITORY ||
+      env.GITHUB_API_URL !== 'https://api.github.com' ||
+      !env.GH_TOKEN ||
+      !positive(env.RELEASE_ID) ||
+      !positive(env.INSTALLER_ASSET_ID) ||
+      !positive(env.IDENTITY_ASSET_ID) ||
+      !/^[a-f0-9]{40}$/.test(env.TARGET_SHA || '') ||
+      env.GITHUB_SHA !== env.TARGET_SHA ||
+      !/^hpm-baseline-transfer-[a-f0-9-]{36}$/.test(env.TRANSFER_TAG || '')
+    )
+      throw fail();
+  });
+  await bridgeStage('checkout', () => {
+    if ((dependencies.checkoutCommit || checkoutCommit)(env.GITHUB_WORKSPACE) !== env.TARGET_SHA)
+      throw fail();
+  });
+  await bridgeStage('repository', () => assertRepository(api(['api', `repos/${REPOSITORY}`])));
   const expected = {
     id: Number(env.RELEASE_ID),
     tag: env.TRANSFER_TAG,
     target: env.TARGET_SHA,
     marker: `hpm-private-baseline-v1:${env.TRANSFER_TAG}`,
   };
-  assertRelease(api(['api', `repos/${REPOSITORY}/releases/${expected.id}`]), expected);
+  await bridgeStage('release', () =>
+    assertRelease(api(['api', `repos/${REPOSITORY}/releases/${expected.id}`]), expected)
+  );
   const ids = [Number(env.INSTALLER_ASSET_ID), Number(env.IDENTITY_ASSET_ID)];
-  assertAssets(api(['api', `repos/${REPOSITORY}/releases/${expected.id}/assets`]), ids);
-  const directory = path.join(safePath(env.RUNNER_TEMP, true), 'hpm-baseline-bridge');
-  fs.mkdirSync(directory); // Existing output is refused; never reuse stale files.
-  try {
-    for (const [index, name] of [INSTALLER, 'identity.json'].entries())
-      await fetchAsset(
+  await bridgeStage('assets', () =>
+    assertAssets(api(['api', `repos/${REPOSITORY}/releases/${expected.id}/assets`]), ids)
+  );
+  const directory = await bridgeStage('temp', () => {
+    const output = path.join(safePath(env.RUNNER_TEMP, true), 'hpm-baseline-bridge');
+    fs.mkdirSync(output); // Existing output is refused; never reuse stale files.
+    return output;
+  });
+  for (const [index, name] of [INSTALLER, 'identity.json'].entries())
+    await bridgeStage(index === 0 ? 'download_installer' : 'download_identity', () =>
+      fetchAsset(
         ids[index],
         env.GH_TOKEN,
         path.join(directory, name),
         [28541417, 4096][index],
         dependencies.fetch || fetch
-      );
+      )
+    );
+  await bridgeStage('installer_digest', () => {
     if (digest(path.join(directory, INSTALLER)) !== BASELINE_INSTALLER_SHA256) throw fail();
-    assertIdentity(JSON.parse(fs.readFileSync(path.join(directory, 'identity.json'), 'utf8')));
-    assertRelease(api(['api', `repos/${REPOSITORY}/releases/${expected.id}`]), expected);
-    return directory;
-  } catch {
-    // Upload step only runs on success. Keep partial files isolated for disposal.
-    throw fail();
-  }
+  });
+  await bridgeStage('identity', () =>
+    assertIdentity(JSON.parse(fs.readFileSync(path.join(directory, 'identity.json'), 'utf8')))
+  );
+  await bridgeStage('release_recheck', () =>
+    assertRelease(api(['api', `repos/${REPOSITORY}/releases/${expected.id}`]), expected)
+  );
+  // Upload only runs after success; failed partial files stay isolated for disposal.
+  return directory;
 }
 module.exports = {
   REPOSITORY,
@@ -401,6 +447,7 @@ module.exports = {
   readBounded,
   fetchAsset,
   runBridge,
+  formatBridgeError,
   ghInvocation,
   checkoutCommit,
   gitInvocation,
