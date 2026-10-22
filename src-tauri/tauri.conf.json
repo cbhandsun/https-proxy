@@ -42,7 +42,9 @@
       "../dist/staging/runtime/proxy.ps1": "proxy.ps1",
       "../dist/staging/runtime/proxy.config.example.json": "proxy.config.example.json",
       "../dist/staging/runtime/package.json": "package.json",
+      "../dist/staging/runtime/package-lock.json": "package-lock.json",
       "../dist/staging/runtime/lib/proxy": "lib/proxy",
+      "../dist/staging/runtime/scripts": "scripts",
       "../dist/staging/runtime/node_modules": "node_modules",
       "../dist/staging/runtime/runtime": "runtime",
       "../dist/staging/runtime/release-runtime-manifest.json": "release-runtime-manifest.json"

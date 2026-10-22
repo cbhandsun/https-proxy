@@ -1,12 +1,102 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const { composeContextProtocolOptions } = require('../lib/proxy/context-recovery-policy');
+const { applyResponsesHistoryPolicy } = require('../lib/proxy/responses-history-policy');
 const {
   applyContextBudgetToMessages,
   pruneMessagesToTokenBudget,
   rejectContextOverflow,
   resolveContextBudget,
 } = require('../lib/proxy/context-budget-manager');
+
+{
+  for (const enabled of [false, true]) {
+    const options = composeContextProtocolOptions(
+      {
+        maxContextTokens: 1000,
+        outputReserveTokens: 1,
+        safetyMarginTokens: 1,
+        maxHistoricalToolChars: 1,
+        contextKeepRecentTurns: 0,
+      },
+      { appSettings: { contextPolicyVersion: 2, contextRecoveryEnabled: enabled } }
+    );
+    const messages = Object.freeze([
+      Object.freeze({ role: 'user', content: 'PRIVATE_INPUT'.repeat(1000) }),
+      Object.freeze({
+        role: 'assistant',
+        tool_calls: [{ id: 'call', function: { name: 'read', arguments: '{}' } }],
+      }),
+      Object.freeze({ role: 'tool', tool_call_id: 'call', content: 'PRIVATE_TOOL'.repeat(1000) }),
+      Object.freeze({ role: 'user', content: 'latest' }),
+    ]);
+    for (const truncation of [undefined, 'auto', 'disabled']) {
+      const body = applyResponsesHistoryPolicy({}, { truncation });
+      const snapshot = JSON.stringify(messages);
+      const result = applyContextBudgetToMessages(messages, body, 'synthetic', options, {
+        fixedInputTokens: 2000,
+        deferPlanning: true,
+      });
+      assert.equal(result.messages, messages);
+      assert.equal(JSON.stringify(messages), snapshot);
+      assert.equal(result.diagnostics.policy, 'preserve-window');
+      assert.equal(result.diagnostics.enabled, true);
+      assert.equal(result.diagnostics.planningDeferred, false);
+      assert.equal(result.diagnostics.droppedCount, 0);
+      assert.equal(result.diagnostics.optimizedCount, 0);
+      assert.ok(result.diagnostics.overBudgetTokens > 0);
+      let failure;
+      assert.equal(
+        rejectContextOverflow(
+          {},
+          { __hpmDiagnostics: { contextBudget: result.diagnostics } },
+          (_res, status, payload) => {
+            failure = { status, payload };
+          }
+        ),
+        true
+      );
+      assert.equal(failure.status, 400);
+      assert.equal(failure.payload.error.code, 'context_length_exceeded');
+      assert.doesNotMatch(
+        JSON.stringify([result.diagnostics, failure]),
+        /PRIVATE_INPUT|PRIVATE_TOOL/
+      );
+      for (const policy of ['disabled', 'none']) {
+        const bypass = applyContextBudgetToMessages(messages, body, 'synthetic', {
+          ...options,
+          contextWindowPolicy: policy,
+        });
+        assert.equal(bypass.messages, messages);
+        assert.equal(bypass.diagnostics.enabled, false);
+        assert.equal(bypass.diagnostics.source, 'disabled');
+      }
+    }
+    for (const input of [[], null, [{ role: 'user', content: 'small' }]]) {
+      const result = applyContextBudgetToMessages(input, {}, 'synthetic', options);
+      assert.equal(result.messages, input);
+      assert.equal(result.diagnostics.droppedCount, 0);
+      assert.equal(result.diagnostics.overBudgetTokens || 0, 0);
+    }
+    const unknown = applyContextBudgetToMessages(
+      messages,
+      {},
+      'unknown',
+      composeContextProtocolOptions({}, { appSettings: { contextPolicyVersion: 2 } })
+    );
+    assert.equal(unknown.messages, messages);
+    assert.equal(unknown.diagnostics.source, 'unknown');
+    assert.equal(unknown.diagnostics.enabled, false);
+  }
+  assert.equal(
+    resolveContextBudget({}, 'synthetic', {
+      contextPlanningPolicy: 'preserve-window',
+      maxContextTokens: 1000,
+    }).policy,
+    'overflow-drop-oldest'
+  );
+}
 
 {
   const budget = resolveContextBudget(

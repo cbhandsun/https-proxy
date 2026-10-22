@@ -1,6 +1,10 @@
 import { configureBridge, getApiBase, checkProxyHealth } from './domains/bridge.js';
 import { configureAudit, initPromptsAuditView, initUsageReportView } from './domains/audit.js';
 import { createAppSettingsForm } from './domains/app-settings-form.js';
+import { bindContextRecoveryControls } from './domains/context-recovery-controls.js';
+import { createContextRecoveryClearClient } from './domains/context-recovery-clear-client.js';
+import { bindContextPolicyControls } from './domains/context-policy-controls.js';
+import { formatContextRecoveryStatus } from './models/context-recovery-status.js';
 import {
   codexDesktopModePayload,
   renderCodexDesktopModelOptions as renderCodexDesktopModelOptionsControl,
@@ -342,6 +346,31 @@ const appSettingsForm = createAppSettingsForm({
   refreshLaunchOnLogin,
 });
 const fillAppSettings = appSettingsForm.fillAppSettings;
+bindContextPolicyControls({
+  getElement: $,
+  getConfig: () => config,
+  confirmAction,
+  fetchRequest: window.fetch.bind(window),
+  getApiBase,
+});
+const contextRecoveryClearClient = createContextRecoveryClearClient({
+  fetchRequest: window.fetch.bind(window),
+  getApiBase,
+  storage: {
+    getItem: (key) => window.sessionStorage.getItem(key),
+    setItem: (key, value) => window.sessionStorage.setItem(key, value),
+    removeItem: (key) => window.sessionStorage.removeItem(key),
+  },
+});
+bindContextRecoveryControls({
+  getElement: $,
+  confirmAction,
+  requestClear: contextRecoveryClearClient.requestClear,
+  readClearStatus: contextRecoveryClearClient.readStatus,
+  hasPending: contextRecoveryClearClient.hasPending,
+  cancelPending: contextRecoveryClearClient.cancelPending,
+  dismissPending: contextRecoveryClearClient.dismissPending,
+});
 
 async function refreshLaunchOnLogin() {
   const input = $('launchOnLogin');
@@ -3865,6 +3894,7 @@ function configureDomainModules() {
     clearElement,
     codexDesktopConnectionDetails,
     formatCodexDesktopDrift,
+    formatContextRecoveryStatus,
     confirmAction,
     debounce,
     ensureClaudeDesktop,

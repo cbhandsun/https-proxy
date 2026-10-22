@@ -5,6 +5,7 @@ const test = require('node:test');
 const {
   createContextCompactionCoordinator,
 } = require('../lib/proxy/context-compaction-coordinator');
+const { createCompactionFailure } = require('../lib/proxy/context-compaction-failure');
 
 function deferred() {
   let resolve;
@@ -24,6 +25,51 @@ const request = (extra = {}) => ({
   produce: async () => 'valid',
   validate: (value) => value === 'valid',
   ...extra,
+});
+
+test('safe summary rejection details survive coalescing without caching failures or swallowing foreign errors', async () => {
+  const coordinator = createContextCompactionCoordinator();
+  const pending = deferred();
+  let calls = 0;
+  const input = request({
+    produce: async () => {
+      calls++;
+      await pending.promise;
+      throw createCompactionFailure('summary_reference_invalid');
+    },
+  });
+  try {
+    const first = coordinator.run(input);
+    const second = coordinator.run(input);
+    pending.resolve();
+    const results = await Promise.all([first, second]);
+    assert.equal(calls, 1);
+    assert.deepEqual(
+      results,
+      Array(2).fill({
+        ok: false,
+        reason: 'invalid_compaction_candidate',
+        failureReason: 'summary_reference_invalid',
+      })
+    );
+    assert.equal(coordinator.stats().entries, 0);
+    assert.equal((await coordinator.run(request())).ok, true);
+    const foreign = new Error('SECRET provider error');
+    foreign.reason = 'summary_reference_invalid';
+    await assert.rejects(
+      coordinator.run(
+        request({
+          operationId: 'foreign',
+          produce: async () => {
+            throw foreign;
+          },
+        })
+      ),
+      (error) => error === foreign
+    );
+  } finally {
+    coordinator.close();
+  }
 });
 
 test('single-flight, exact retries and caller revalidation never mix owners or snapshots', async () => {

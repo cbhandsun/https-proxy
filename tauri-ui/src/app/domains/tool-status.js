@@ -13,6 +13,7 @@ export function configureToolStatus(dependencies) {
     'codexDesktopConnectionDetails',
     'config',
     'formatCodexDesktopDrift',
+    'formatContextRecoveryStatus',
     'ensureClaudeDesktop',
     'formatClaudeDesktopStatus',
     'isMonitorVisible',
@@ -159,6 +160,14 @@ async function refreshProxyStatus(options = {}) {
 }
 
 function renderPortDiagnostics(health) {
+  const recoveryText = toolStatusDependencies.formatContextRecoveryStatus(
+    health?.contextRecovery,
+    health?.runtime
+  );
+  const recovery = toolStatusDependencies.$('heroContextRecoveryDiagnostics');
+  if (recovery) recovery.textContent = recoveryText;
+  const recoverySettings = toolStatusDependencies.$('contextRecoveryRuntimeStatus');
+  if (recoverySettings) recoverySettings.textContent = recoveryText;
   const target = toolStatusDependencies.$('heroPortDiagnostics');
   if (!target) return;
   if (!health || health.appId !== 'https-proxy-manager' || !health.ports) {

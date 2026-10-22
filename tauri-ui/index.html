@@ -161,6 +161,7 @@
             <span class="status-dot"></span>检查中...
           </div>
           <div id="heroPortDiagnostics" class="muted">端口诊断：检查中...</div>
+          <div id="heroContextRecoveryDiagnostics" class="muted">上下文恢复：检查中...</div>
           <div class="metric-actions">
             <button id="refreshProxyStatus" class="light">刷新状态</button>
           </div>
@@ -3612,6 +3613,74 @@ npm i -g opencode-ai@latest
                       ></span
                     ></label
                   >
+                </div>
+                <div class="setting-item">
+                  <label
+                    ><input
+                      id="contextRecoveryEnabled"
+                      type="checkbox"
+                      aria-describedby="contextRecoveryDescription"
+                    /><span
+                      ><span class="setting-title">精确上下文恢复增强（可选）</span
+                      ><span id="contextRecoveryDescription" class="setting-desc"
+                        >新策略默认由客户端原生压缩；开启增强后，为受支持路径保留已完成工具结果并按需读回。恢复在内部完成，再独立生成公开答案，会增加模型调用和等待。默认仅内存保存；WebSocket
+                        恢复为实验路径，完整兼容未验收。保存后按实际请求条件生效。</span
+                      ></span
+                    ></label
+                  >
+                </div>
+                <div class="setting-item">
+                  <label
+                    ><input
+                      id="contextRecoveryPersistenceEnabled"
+                      type="checkbox"
+                      aria-describedby="contextRecoveryPersistenceDescription"
+                    /><span
+                      ><span class="setting-title">上下文原文加密留存（实验）</span
+                      ><span id="contextRecoveryPersistenceDescription" class="setting-desc"
+                        >留存偏好独立保存；仅开启留存不会开启恢复或授予原文读取权限。增强恢复生效后在代理运行主机加密留存，期限以运行状态为准，已有记录不续期；跨重启读回尚未完成验收。保存设置后按运行状态生效。</span
+                      ></span
+                    ></label
+                  >
+                </div>
+                <div class="setting-item">
+                  <div>
+                    <p id="contextRecoveryRuntimeStatus" class="setting-desc" role="status">
+                      上下文恢复：等待代理运行状态，开启设置不代表实际客户端已完成验收。
+                    </p>
+                    <span class="setting-title">上下文策略迁移</span>
+                    <button id="applyContextPolicy" type="button" class="light">
+                      核对并应用新上下文策略…
+                    </button>
+                    <p
+                      id="contextPolicyMigrationStatus"
+                      class="setting-desc"
+                      role="status"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    ></p>
+                    <span class="setting-title">清除代理上下文恢复数据</span>
+                    <p class="setting-desc">仅清除代理恢复原文；新的捕获继续遵循已保存设置。</p>
+                    <button id="clearContextRecovery" type="button" class="danger">
+                      清除恢复数据…
+                    </button>
+                    <button id="refreshContextRecoveryClear" type="button" class="light" hidden>
+                      查询清除结果
+                    </button>
+                    <button id="cancelContextRecoveryClear" type="button" class="light" hidden>
+                      撤销未启动操作
+                    </button>
+                    <button id="dismissContextRecoveryClear" type="button" class="light" hidden>
+                      结束结果查询
+                    </button>
+                    <p
+                      id="contextRecoveryClearStatus"
+                      class="setting-desc"
+                      role="status"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    ></p>
+                  </div>
                 </div>
                 <div class="setting-item">
                   <label

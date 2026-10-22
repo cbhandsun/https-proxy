@@ -19,6 +19,61 @@ const window = [
 ];
 const invalid = (fn, code = 'invalid_local_compaction') => assert.throws(fn, { code });
 
+test('normalized records preserve own data descriptors without invoking inherited setters', () => {
+  const input = JSON.parse(
+    '{"__proto__":{"exact":"原文🙂"},"constructor":null,"prototype":false,"nested":{"value":42}}'
+  );
+  const array = Array.from({ length: 1025 }, (_, index) => index);
+  const name = 'normalizer_inherited_setter_fixture';
+  Object.defineProperty(input, name, { value: 'exact', enumerable: true });
+  let invoked = 0;
+  assert.equal(Object.hasOwn(Object.prototype, name), false);
+  assert.equal(Object.hasOwn(Array.prototype, '1024'), false);
+  Object.defineProperty(Object.prototype, name, {
+    configurable: true,
+    set() {
+      invoked++;
+    },
+  });
+  Object.defineProperty(Array.prototype, '1024', {
+    configurable: true,
+    set() {
+      invoked++;
+    },
+  });
+  let result, copiedArray;
+  try {
+    result = normalizeCompactionData(input, 16384);
+    copiedArray = normalizeCompactionData(array, 16384);
+  } finally {
+    delete Object.prototype[name];
+    delete Array.prototype[1024];
+  }
+  assert.equal(invoked, 0);
+  assert.equal(JSON.stringify(result), JSON.stringify(input));
+  assert.equal(Object.getPrototypeOf(result), null);
+  assert.equal(Object.getPrototypeOf(result.__proto__), null);
+  assert.equal(Object.getPrototypeOf(result.nested), null);
+  for (const key of Object.keys(result))
+    assert.deepEqual(Object.getOwnPropertyDescriptor(result, key), {
+      value: result[key],
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+  assert.deepEqual(Object.getOwnPropertyDescriptor(copiedArray, '1024'), {
+    value: 1024,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
+  result.__proto__.exact = 'changed';
+  result.nested.value = 0;
+  assert.equal(input.__proto__.exact, '原文🙂');
+  assert.equal(input.nested.value, 42);
+  assert.deepEqual(copiedArray, array);
+});
+
 test('server-issued evidence metadata is privately bound, cloned, quota-accounted and never derived from a window marker', () => {
   const store = createContextCompactionEnvelopeStore({ now: () => 1000 });
   const receipt = {

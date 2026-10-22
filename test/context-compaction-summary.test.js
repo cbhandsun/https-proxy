@@ -349,7 +349,16 @@ test('cross-chunk revocation retains original user source and cannot forget or r
     prepareSummary() {},
   });
   assert.equal(plan.chunks.length, 3);
-  for (const mode of ['valid', 'citation', 'forget', 'resurrect', 'role']) {
+  for (const mode of [
+    'valid',
+    'citation',
+    'forget',
+    'resurrect',
+    'role',
+    'revision-source',
+    'revision-quote',
+    'certainty',
+  ]) {
     const coordinator = createContextCompactionCoordinator();
     let calls = 0;
     try {
@@ -364,11 +373,11 @@ test('cross-chunk revocation retains original user source and cannot forget or r
               {
                 id: 'restart',
                 text: '禁止重启。',
-                status: 'active',
+                status: mode === 'certainty' ? 'uncertain' : 'active',
                 sources: [{ sourceId: 'm_1', quote: '禁止重启。' }],
               },
             ];
-          if (calls === 2) {
+          if (calls === 2 && mode !== 'certainty') {
             response.state.requirements[0].status = 'revoked';
             response.state.requirements[0].revision = { sourceId: 'm_5', quote: '撤销禁止重启。' };
           }
@@ -395,6 +404,14 @@ test('cross-chunk revocation retains original user source and cannot forget or r
           }
           if (calls === 3 && mode === 'role')
             response.state.requirements[0].sources[0].sourceRole = 'system';
+          if (calls === 3 && mode === 'revision-source')
+            response.state.requirements[0].revision = { sourceId: 'm_9', quote: '继续验证。' };
+          if (calls === 3 && mode === 'revision-quote')
+            response.state.requirements[0].revision = {
+              sourceId: 'm_5',
+              quote: '仍须保留修改。',
+            };
+          if (calls === 3 && mode === 'certainty') response.state.requirements[0].status = 'active';
           return upstream(JSON.stringify(response));
         },
       });

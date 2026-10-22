@@ -179,7 +179,7 @@ for (const options of [
     }
   );
   assert.equal(denied.locator, undefined);
-  assert.equal(denied.recovery, 'rerun_or_reread_original_tool');
+  assert.equal(denied.recovery, 'missing_no_guess_no_replay');
   assert.equal(store.read('a', 's', a.locator).value, 'aaaa');
   assert.equal(store.read('b', 's', b.locator).value, 'bbbb');
   assert.equal(store.discardSession('wrong', 's'), 0);

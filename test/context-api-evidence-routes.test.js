@@ -8,10 +8,16 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
+const { performance, monitorEventLoopDelay } = require('node:perf_hooks');
 const { createIsolatedTestEnv } = require('../lib/test-runtime');
 const { prepareProxyFixtureSecret } = require('./helpers/proxy-fixture-secret');
 const { findAvailablePorts } = require('./helpers/test-ports');
 const { waitForProxyFixtureReady } = require('./helpers/proxy-fixture-ready');
+const {
+  STARTUP_IMPORTS,
+  STARTUP_CALLS,
+  STARTUP_NESTED_IMPORTS,
+} = require('./helpers/proxy-startup-imports.cjs');
 const { decodeApiEvidenceResponse } = require('../lib/proxy/context-api-evidence-protocol');
 const LIST = 'hpm_list_retained_evidence';
 const READ = 'hpm_read_retained_evidence';
@@ -152,18 +158,20 @@ async function fixture(t, direct = false) {
   const preload = path.join(directory, 'fixture.cjs');
   fs.writeFileSync(
     preload,
-    'require(' +
+    'process.stderr.write("fixture_preload_started\\n");\nrequire(' +
+      JSON.stringify(path.resolve('test/helpers/proxy-startup-timing.cjs')) +
+      ');\nrequire(' +
       JSON.stringify(path.resolve('lib/proxy/builtin-model-routes.js')) +
-      ').mergeBuiltinModelRoutes = (config) => config;\n' +
+      ').mergeBuiltinModelRoutes = (config) => config;\nprocess.stderr.write("fixture_catalog_loaded\\n");\n' +
       'const secrets = require(' +
       JSON.stringify(path.resolve('lib/proxy/secret-crypto.js')) +
-      '); const encrypt = secrets.encryptKey; secrets.encryptKey = (...args) => {' +
+      '); process.stderr.write("fixture_crypto_loaded\\n"); const encrypt = secrets.encryptKey; secrets.encryptKey = (...args) => {' +
       'process.stderr.write("fixture_secret_migration_started\\n");' +
       'try { return encrypt(...args); } finally {' +
       'process.stderr.write("fixture_secret_migration_finished\\n"); }};\n' +
       'const lifecycle = require(' +
       JSON.stringify(path.resolve('lib/proxy/server-lifecycle.js')) +
-      '); const start = lifecycle.startProxyServers; lifecycle.startProxyServers = (deps) => start({' +
+      '); process.stderr.write("fixture_lifecycle_loaded\\n"); const start = lifecycle.startProxyServers; lifecycle.startProxyServers = (deps) => start({' +
       '...deps, onPhase: (phase) => { process.stderr.write("fixture_phase_" + phase + "\\n"); deps.onPhase?.(phase); }});'
   );
   fs.writeFileSync(
@@ -239,11 +247,67 @@ async function fixture(t, direct = false) {
   });
   const migrationPhases = new Set();
   const startupPhases = new Set();
+  const started = performance.now();
+  const timeline = [];
+  const imports = new Map();
+  const pendingImports = new Set();
+  const calls = new Map();
+  const pendingCalls = new Set();
+  const importLabels = new Set([
+    ...Object.values(STARTUP_IMPORTS),
+    ...Object.values(STARTUP_NESTED_IMPORTS).flatMap(Object.values),
+  ]);
+  const callLabels = new Set(Object.values(STARTUP_CALLS).flatMap((value) => Object.values(value)));
+  const loop = monitorEventLoopDelay({ resolution: 20 });
+  loop.enable();
+  let stderrTail = '';
   child.stderr.on('data', (chunk) => {
+    const text = stderrTail + chunk.toString();
+    for (const match of text.matchAll(
+      /fixture_import_started_([a-z_]+)\n|fixture_import_([a-z_]+)=(\d+)\n/g
+    )) {
+      if (match[1] && importLabels.has(match[1])) pendingImports.add(match[1]);
+      if (match[2] && importLabels.has(match[2])) {
+        imports.set(match[2], Number(match[3]));
+        pendingImports.delete(match[2]);
+      }
+    }
+    for (const match of text.matchAll(
+      /fixture_call_started_([a-z_]+)\n|fixture_call_([a-z_]+)=(\d+)\n/g
+    )) {
+      if (match[1] && callLabels.has(match[1])) pendingCalls.add(match[1]);
+      if (match[2] && callLabels.has(match[2])) {
+        calls.set(match[2], Number(match[3]));
+        pendingCalls.delete(match[2]);
+      }
+    }
     for (const phase of ['fixture_secret_migration_started', 'fixture_secret_migration_finished'])
-      if (chunk.toString().includes(phase)) migrationPhases.add(phase);
-    for (const phase of ['server_start_requested', 'certificate_ready', 'ports_listening'])
-      if (chunk.toString().includes('fixture_phase_' + phase)) startupPhases.add(phase);
+      if (text.includes(phase)) migrationPhases.add(phase);
+    for (const phase of [
+      'preload_started',
+      'catalog_loaded',
+      'crypto_loaded',
+      'lifecycle_loaded',
+      'module_graph_ready',
+      'config_load_started',
+      'config_loaded',
+      'composition_ready',
+      'server_start_requested',
+      'certificate_ready',
+      'servers_created',
+      'management_token_ready',
+      'management_listening',
+      'ports_listening',
+    ]) {
+      if (
+        (text.includes('fixture_phase_' + phase) || text.includes('fixture_' + phase + '\n')) &&
+        !startupPhases.has(phase)
+      ) {
+        startupPhases.add(phase);
+        timeline.push({ phase, elapsedMs: Math.floor(performance.now() - started) });
+      }
+    }
+    stderrTail = text.slice(-96);
   });
   child.stdout.on('data', (chunk) => {
     if (chunk.toString().includes('already in use')) startupPhases.add('port_conflict');
@@ -251,6 +315,17 @@ async function fixture(t, direct = false) {
       startupPhases.add('invalid_config');
   });
   t.after(async () => {
+    loop.disable();
+    t.diagnostic(
+      JSON.stringify({
+        startup: timeline,
+        imports: Object.fromEntries(imports),
+        pendingImports: [...pendingImports],
+        calls: Object.fromEntries(calls),
+        pendingCalls: [...pendingCalls],
+        eventLoopMaxMs: Math.floor(loop.max / 1e6),
+      })
+    );
     if (child.exitCode === null && child.signalCode === null) {
       const exited = once(child, 'exit');
       child.kill();
@@ -293,8 +368,21 @@ async function fixture(t, direct = false) {
       body: result.headers.get('content-type')?.includes('event-stream') ? null : JSON.parse(wire),
     };
   }
+  const firstRequestStarted = performance.now();
   const created = await request(chat, '/v1/context-evidence/session', {});
+  t.diagnostic(
+    JSON.stringify({ firstRequestMs: Math.floor(performance.now() - firstRequestStarted) })
+  );
   assert.equal(created.status, 201);
+  for (const phase of [
+    'module_graph_ready',
+    'config_load_started',
+    'config_loaded',
+    'composition_ready',
+  ])
+    assert.ok(startupPhases.has(phase), phase);
+  assert.ok(Number.isSafeInteger(imports.get('lazy_core')));
+  assert.ok(Number.isSafeInteger(imports.get('core_lazy_implementation')));
   async function read(name, args = {}, token = created.body.token, extra) {
     const result = await request(chat, '/v1/context-evidence/mcp', rpc(name, args), token, extra);
     assert.equal(result.status, 200);

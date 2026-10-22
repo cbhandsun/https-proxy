@@ -88,6 +88,68 @@ test('empty, invalid, extreme and unauthorized transaction inputs fail without p
   }
 });
 
+test('live and pending evidence share every admission boundary through rollback and publication', () => {
+  for (const boundary of [
+    { maxEntries: 2 },
+    { maxBytes: 8 },
+    { maxOwnerEntries: 2 },
+    { maxOwnerBytes: 8 },
+    { maxSessionEntries: 2 },
+    { maxSessionBytes: 8 },
+  ]) {
+    const store = createContextArtifactStore({
+      maxArtifactBytes: 4,
+      maxEntries: 16,
+      maxBytes: 64,
+      maxOwnerEntries: 8,
+      maxOwnerBytes: 32,
+      maxSessionEntries: 4,
+      maxSessionBytes: 16,
+      ...boundary,
+    });
+    try {
+      const live = store.put('owner', 'scope', 'live');
+      const first = store.beginTransaction('owner', 'scope');
+      const staged = first.put('owner', 'scope', 'hold');
+      assert.ok(live && staged);
+      const second = store.beginTransaction('owner', 'scope');
+      assert.equal(second.put('owner', 'scope', 'deny'), null);
+      assert.equal(store.put('owner', 'scope', 'deny'), null);
+      assert.equal(store.read('other', 'scope', live.locator).ok, false);
+      assert.equal(first.rollback(), true);
+      const admitted = second.put('owner', 'scope', 'next');
+      assert.ok(admitted);
+      assert.equal(second.commit([reference(admitted)]).ok, true);
+      assert.equal(store.put('owner', 'scope', 'deny'), null, 'publication must not free quota');
+      assert.equal(store.discard('owner', 'scope', live.locator), true);
+      assert.ok(store.put('owner', 'scope', 'fits'), 'committed reservation must count only once');
+      assert.equal(store.read('owner', 'scope', admitted.locator).value, 'next');
+    } finally {
+      store.close();
+    }
+  }
+});
+
+test('pending expiry releases admission independently of committed evidence expiry', () => {
+  let time = 1000;
+  const store = createContextArtifactStore({ now: () => time, ttlMs: 10, maxEntries: 1 });
+  try {
+    const live = store.put('owner', 'scope', 'live');
+    time = 1010;
+    const transaction = store.beginTransaction('owner', 'scope');
+    const staged = transaction.put('owner', 'scope', 'pending');
+    assert.ok(staged);
+    assert.equal(store.read('owner', 'scope', live.locator).ok, false);
+    time = 1019;
+    assert.equal(store.put('other', 'scope', 'denied'), null);
+    time = 1020;
+    assert.ok(store.put('other', 'scope', 'admitted'));
+    assert.equal(transaction.commit([reference(staged)]).ok, false);
+  } finally {
+    store.close();
+  }
+});
+
 test('expired, cancelled, closed and clock-skewed reservations cannot publish', () => {
   for (const action of ['expired', 'cancelled', 'closed', 'skewed']) {
     let time = 1000;
