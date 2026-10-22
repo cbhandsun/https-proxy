@@ -1,0 +1,15 @@
+name: Review branch Windows installer lifecycle
+
+on:
+  push:
+    branches:
+      - acceptance/windows-lifecycle-20261022
+
+permissions:
+  contents: read
+
+jobs:
+  installer-lifecycle:
+    uses: ./.github/workflows/windows-installer-lifecycle.yml
+    with:
+      baseline_sha: 1a127de1aeccc81789f78c570ea44782091c2133

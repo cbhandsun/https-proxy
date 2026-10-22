@@ -1,0 +1,27 @@
+# Disposable Windows installer lifecycle
+
+The manually dispatched `Disposable Windows installer lifecycle` workflow builds two explicit repository snapshots on a GitHub-hosted Windows runner, installs the baseline, upgrades to the current build, rolls back to the baseline and uninstalls. It never uploads or publishes the unsigned installers, reads no signing/API secrets and does not change the signed release workflow.
+
+Choose a trusted, compatible baseline commit from this repository and supply its full 40-character SHA as `baseline_sha`. The current snapshot is the workflow's selected ref. Missing, malformed or identical SHAs fail; missing build output also fails. Both source snapshots must use the existing product identity, binary name and `currentUser` installation scope. Run the workflow manually in GitHub Actions only after reviewing the code; no remote run is started by adding these files.
+
+GitHub requires a manually dispatched workflow to exist on the default branch before it can receive `workflow_dispatch` events. The private `cbhandsun/https-proxy` repository currently uses `master`; the new workflow has not been added there. A separate, explicit review route avoids changing the default branch: `windows-installer-lifecycle-review.yml` responds only to a push to `acceptance/windows-lifecycle-20261022`, then calls the reusable lifecycle workflow from the same commit with fixed baseline `1a127de1aeccc81789f78c570ea44782091c2133`. The reusable interface requires `baseline_sha`; no secrets are inherited. Pushing that branch would start the lifecycle build and any existing repository push workflows. No branch is pushed by creating or testing these local files.
+
+The smallest review candidate consists of the existing committed HEAD product plus the nine lifecycle workflow, script, fixture, test and documentation files listed below. Its product code matches the baseline; synthetic installer versions make the artifacts distinct. Such a run qualifies the committed HEAD product's installation mechanics only. It does not qualify the larger uncommitted context-recovery candidate or the current locally built artifacts. Including current recovery functionality requires a separately reviewed, self-contained product source/test dependency closure; the large working tree must not be staged wholesale.
+
+- `.github/workflows/windows-installer-lifecycle.yml`
+- `.github/workflows/windows-installer-lifecycle-review.yml`
+- `scripts/qualify-nsis-lifecycle.ps1`
+- `scripts/lib/nsis-lifecycle.psm1`
+- `scripts/lib/nsis-lifecycle-runner.psm1`
+- `scripts/fixtures/nsis-lifecycle-offline-config.json`
+- `test/fixtures/nsis-lifecycle-mocks.ps1`
+- `test/governance/nsis-lifecycle.test.js`
+- `docs/windows-installer-lifecycle.md`
+
+The tracked package versions may match. Temporary Tauri config overlays therefore give the baseline installer version `0.0.1` and current installer version `0.0.2`. The overlays change only version and preserve each snapshot's downgrade policy; if that policy blocks rollback, qualification fails. The receipt records the code SHAs and synthetic versions. Installer hashes must differ, the installed application hash must change on upgrade, and rollback must restore the original installed application hash. These hashes compare installed NSIS payloads; they do not compare the unbundled executable in `target/release`. Synthetic versions themselves can change application hashes, so this check proves distinct installer behavior rather than a particular functional change.
+
+The script seeds a credential-free configuration with automatic proxy startup disabled and an explicitly synthetic runtime JSON file with fixed creation/expiry timestamps. It checks the complete SHA256 of both files after upgrade, rollback and uninstall. Uninstall must remove the application executable and registration while retaining these user-created files. The fixture is not an encrypted recovery database and its fixed expiry is never refreshed by the test. This qualifies installation mechanics and byte preservation only; it does not qualify real user configuration migration, encrypted recovery, DPAPI migration, 24-hour retention/capacity, signing or provider behavior.
+
+`scripts/qualify-nsis-lifecycle.ps1` refuses any environment other than a GitHub-hosted Windows runner, existing per-user or machine installation registration, a running application, or known application data directories. Installer directories and candidates must remain strictly inside `GITHUB_WORKSPACE`; UNC/device paths, reparse points and hard-linked candidates are refused before execution. Its writes and process cleanup are restricted to a fresh directory strictly inside `RUNNER_TEMP`. Cleanup checks registration ownership before invoking the uninstaller, validates the deletion root and propagates failures. Installation phases observe process shutdown for 30 seconds; final cleanup observes for 10 seconds. Do not run it on a workstation or self-hosted runner. No production process needs to stop.
+
+`test/governance/nsis-lifecycle.test.js` is discovered by the existing unit-test CI entry point. It parses production PowerShell without executing it, tests pure guards and lifecycle order with synthetic callbacks, and checks workflow credential/publication boundaries. These local tests execute no installers, registry writes or process termination. A passing local test is not evidence that the remote lifecycle workflow has run.
