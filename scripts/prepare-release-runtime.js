@@ -4,6 +4,10 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { prepareContextRecoveryNative } = require('./prepare-context-recovery-native');
+const { prepareEvidenceGateway } = require('./prepare-evidence-gateway');
+const { stagePackagedEvidenceGateway } = require('../lib/release/evidence-gateway');
+const { PACKAGED_GATEWAY_FILES } = require('./lib/evidence-gateway-release-artifact');
 const { pruneDependencyMetadata } = require('../lib/release/dependency-metadata');
 const { validateReleaseDirectory } = require('../lib/release/governance');
 const {
@@ -97,73 +101,93 @@ function copyProxySourceTree() {
   }
 }
 
-fs.rmSync(outputDir, { recursive: true, force: true });
-fs.mkdirSync(path.join(outputDir, 'runtime', 'node'), { recursive: true });
-for (const releaseFile of [
-  'openai-proxy.js',
-  'proxy.bat',
-  'proxy.ps1',
-  'proxy.config.example.json',
-]) {
-  copyReleaseFile(releaseFile);
+async function prepareReleaseRuntime() {
+  await prepareEvidenceGateway();
+  fs.rmSync(outputDir, { recursive: true, force: true });
+  fs.mkdirSync(path.join(outputDir, 'runtime', 'node'), { recursive: true });
+  for (const releaseFile of [
+    'openai-proxy.js',
+    'proxy.bat',
+    'proxy.ps1',
+    'proxy.config.example.json',
+  ]) {
+    copyReleaseFile(releaseFile);
+  }
+  copyProxySourceTree();
+  fs.writeFileSync(
+    path.join(outputDir, 'package.json'),
+    JSON.stringify(runtimePackage, null, 2) + '\n'
+  );
+  fs.writeFileSync(
+    path.join(outputDir, 'package-lock.json'),
+    JSON.stringify(runtimePackageLock, null, 2) + '\n'
+  );
+
+  const nodeTarget = path.join(outputDir, 'runtime', 'node', 'node.exe');
+  fs.copyFileSync(process.execPath, nodeTarget);
+  const recoveryNative = prepareContextRecoveryNative();
+  const recoveryNativeTarget = path.join(outputDir, 'runtime/native/hpm-context-recovery-key.exe');
+  if (recoveryNative) {
+    fs.mkdirSync(path.dirname(recoveryNativeTarget), { recursive: true });
+    fs.copyFileSync(recoveryNative, recoveryNativeTarget);
+  }
+  runNpmCommand(
+    ['install', '--package-lock-only', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'],
+    'Production lockfile pruning'
+  );
+  runNpmCommand(
+    ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'],
+    'Production dependency staging'
+  );
+  pruneDependencyMetadata(repoRoot, outputDir);
+  const gatewayArtifact = stagePackagedEvidenceGateway(repoRoot, outputDir);
+  const releaseValidation = validateReleaseDirectory(outputDir, runtimePackage.dependencies, {
+    requireExecutable: false,
+  });
+  if (!releaseValidation.ok) {
+    throw new Error(`Release runtime validation failed: ${releaseValidation.errors.join('; ')}`);
+  }
+
+  for (const dependency of Object.keys(runtimePackage.dependencies)) {
+    const packageFile = path.join(outputDir, 'node_modules', dependency, 'package.json');
+    if (!fs.existsSync(packageFile))
+      throw new Error(`Missing staged production dependency: ${dependency}`);
+  }
+
+  const manifest = {
+    schemaVersion: 2,
+    applicationVersion: sourcePackage.version,
+    nodeVersion: process.version,
+    nodeSha256: sha256(nodeTarget),
+    contextRecoveryNativeSha256: recoveryNative ? sha256(recoveryNativeTarget) : null,
+    evidenceGatewayBundleSha256: gatewayArtifact.manifest.bundleSha256,
+    packageLockSha256: sha256(path.join(outputDir, 'package-lock.json')),
+    sourceSha256: Object.fromEntries(
+      [
+        'openai-proxy.js',
+        'proxy.bat',
+        'proxy.ps1',
+        'proxy.config.example.json',
+        ...PACKAGED_GATEWAY_FILES,
+        ...proxySourceFiles,
+      ].map((relativePath) => [
+        relativePath,
+        sha256(path.join(outputDir, relativePath.replaceAll('/', path.sep))),
+      ])
+    ),
+    dependencies: runtimePackage.dependencies,
+  };
+  fs.writeFileSync(
+    path.join(outputDir, 'release-runtime-manifest.json'),
+    JSON.stringify(manifest, null, 2) + '\n'
+  );
+
+  console.log(`[release-runtime] prepared ${path.relative(repoRoot, outputDir)}`);
 }
-copyProxySourceTree();
-fs.writeFileSync(
-  path.join(outputDir, 'package.json'),
-  JSON.stringify(runtimePackage, null, 2) + '\n'
-);
-fs.writeFileSync(
-  path.join(outputDir, 'package-lock.json'),
-  JSON.stringify(runtimePackageLock, null, 2) + '\n'
-);
 
-const nodeTarget = path.join(outputDir, 'runtime', 'node', 'node.exe');
-fs.copyFileSync(process.execPath, nodeTarget);
-runNpmCommand(
-  ['install', '--package-lock-only', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'],
-  'Production lockfile pruning'
-);
-runNpmCommand(
-  ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'],
-  'Production dependency staging'
-);
-pruneDependencyMetadata(repoRoot, outputDir);
-const releaseValidation = validateReleaseDirectory(outputDir, runtimePackage.dependencies, {
-  requireExecutable: false,
-});
-if (!releaseValidation.ok) {
-  throw new Error(`Release runtime validation failed: ${releaseValidation.errors.join('; ')}`);
+if (require.main === module) {
+  prepareReleaseRuntime().catch(() => {
+    process.stderr.write('release_runtime_prepare_failed\n');
+    process.exitCode = 1;
+  });
 }
-
-for (const dependency of Object.keys(runtimePackage.dependencies)) {
-  const packageFile = path.join(outputDir, 'node_modules', dependency, 'package.json');
-  if (!fs.existsSync(packageFile))
-    throw new Error(`Missing staged production dependency: ${dependency}`);
-}
-
-const manifest = {
-  schemaVersion: 2,
-  applicationVersion: sourcePackage.version,
-  nodeVersion: process.version,
-  nodeSha256: sha256(nodeTarget),
-  packageLockSha256: sha256(path.join(outputDir, 'package-lock.json')),
-  sourceSha256: Object.fromEntries(
-    [
-      'openai-proxy.js',
-      'proxy.bat',
-      'proxy.ps1',
-      'proxy.config.example.json',
-      ...proxySourceFiles,
-    ].map((relativePath) => [
-      relativePath,
-      sha256(path.join(outputDir, relativePath.replaceAll('/', path.sep))),
-    ])
-  ),
-  dependencies: runtimePackage.dependencies,
-};
-fs.writeFileSync(
-  path.join(outputDir, 'release-runtime-manifest.json'),
-  JSON.stringify(manifest, null, 2) + '\n'
-);
-
-console.log(`[release-runtime] prepared ${path.relative(repoRoot, outputDir)}`);

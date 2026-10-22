@@ -6,6 +6,10 @@ const { spawnSync } = require('node:child_process');
 const repoRoot = path.resolve(__dirname, '..');
 const testFiles = [
   'test/frontend/configuration-model.test.js',
+  'test/frontend/context-recovery-status.test.js',
+  'test/frontend/context-policy-controls.test.js',
+  'test/frontend/context-recovery-controls.test.js',
+  'test/frontend/context-recovery-clear-client.test.js',
   'test/frontend/profile-save.test.js',
   'test/frontend/proxy-command.test.js',
   'test/frontend/runtime.test.js',
