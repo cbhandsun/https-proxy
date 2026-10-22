@@ -22,8 +22,18 @@ assert.strictEqual(
   'the management token and its ACL must be prepared exactly once by the port owner'
 );
 assert.ok(
-  source.includes('writeProxyPidFile(DATA_DIR)'),
+  source.includes('void pidPersistence.start()'),
   'proxy pid should be written after all ports listen'
+);
+assert.ok(source.includes('createProxyShutdown({'), 'server exit must use the drain coordinator');
+assert.ok(
+  source.includes('contextRecoveryLifecycle.shutdownAsync()'),
+  'server exit drains the shared recovery owner'
+);
+assert.strictEqual(
+  (source.match(/shutdown\(1\)/g) || []).length,
+  3,
+  'listen and credential initialization failures must drain resources before failed exit'
 );
 
 const phases = [];

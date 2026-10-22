@@ -3,6 +3,9 @@ const { selectTestShard, testShardExitStatus } = require('../lib/test-sharding')
 const test = require('node:test');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 
 const tests = ['a', 'b', 'c', 'd', 'e'];
 
@@ -61,6 +64,110 @@ test('only explicit normal zero exit qualifies a test shard as successful', () =
     [{ valueOf: () => 0 }, null],
   ])
     assert.strictEqual(testShardExitStatus(code, signal), 1);
+});
+
+function executeUnitRunner(outcomes) {
+  const selected = outcomes.map((_, index) => 'test/fixture-' + index + '.test.js');
+  const executed = [],
+    removed = [],
+    messages = [];
+  const runtimeProcess = {
+    env: {},
+    execPath: process.execPath,
+    exitCode: undefined,
+    exit(code) {
+      this.exitCode = code;
+      throw stopped;
+    },
+  };
+  const stopped = new Error('runner_stopped');
+  const dependencies = {
+    fs: {
+      mkdtempSync: () => 'synthetic-runtime-' + executed.length,
+      rmSync: (directory) => removed.push(directory),
+    },
+    os: { tmpdir: () => 'synthetic-temp' },
+    path,
+    child_process: {
+      spawnSync(executable, [file]) {
+        assert.strictEqual(executable, process.execPath);
+        const index = executed.push(file) - 1;
+        return outcomes[index];
+      },
+    },
+    '../lib/test-discovery': {
+      discoverTestFiles: () => selected,
+      selectUnitTestFiles: (files) => files,
+    },
+    '../lib/test-sharding': { selectTestShard, testShardExitStatus },
+    '../lib/test-runtime': { createIsolatedTestEnv: () => ({}) },
+  };
+  const filename = path.resolve(__dirname, '../scripts/run-unit-tests.js');
+  try {
+    vm.runInNewContext(fs.readFileSync(filename, 'utf8'), {
+      __dirname: path.dirname(filename),
+      require(name) {
+        assert.ok(Object.hasOwn(dependencies, name));
+        return dependencies[name];
+      },
+      process: runtimeProcess,
+      console: {
+        log: (message) => messages.push(message),
+        error: (message) => messages.push(message),
+      },
+    });
+  } catch (error) {
+    if (error !== stopped) throw error;
+  }
+  return { executed, removed, messages, exitCode: runtimeProcess.exitCode ?? 0, selected };
+}
+
+test('unit runner completes every selected file and cleanup after multiple child failures', () => {
+  const outcome = executeUnitRunner([
+    { status: 2, signal: null },
+    { status: 0, signal: null },
+    { status: null, signal: 'SIGTERM' },
+    { status: 0, signal: null },
+  ]);
+  assert.deepStrictEqual(outcome.executed, outcome.selected);
+  assert.strictEqual(outcome.removed.length, 4);
+  assert.strictEqual(outcome.exitCode, 1);
+  assert.ok(outcome.messages.some((message) => message.includes('failed: test/fixture-0.test.js')));
+  assert.ok(outcome.messages.some((message) => message.includes('failed: test/fixture-2.test.js')));
+  assert.ok(outcome.messages.some((message) => message.includes('completed: 4/4')));
+  assert.ok(outcome.messages.some((message) => message.includes('failed: 2')));
+  assert.ok(outcome.messages.every((message) => !message.includes('[unit] ok:')));
+});
+
+test('unit runner keeps empty and entirely successful shards green', () => {
+  for (const outcomes of [
+    [],
+    [
+      { status: 0, signal: null },
+      { status: 0, signal: null },
+    ],
+  ]) {
+    const outcome = executeUnitRunner(outcomes);
+    assert.deepStrictEqual(outcome.executed, outcome.selected);
+    assert.strictEqual(outcome.removed.length, outcomes.length);
+    assert.strictEqual(outcome.exitCode, 0);
+    assert.ok(outcome.messages.some((message) => message.includes('[unit] ok:')));
+  }
+});
+
+test('unit runner preserves abnormal and spawn failures without printing error content', () => {
+  for (const result of [
+    { status: null, signal: null, error: new Error('synthetic-private-error') },
+    { status: 0, signal: 'SIGTERM' },
+    { status: undefined, signal: undefined },
+    { status: NaN, signal: null },
+  ]) {
+    const outcome = executeUnitRunner([result, { status: 0, signal: null }]);
+    assert.strictEqual(outcome.executed.length, 2);
+    assert.strictEqual(outcome.removed.length, 2);
+    assert.strictEqual(outcome.exitCode, 1);
+    assert.ok(outcome.messages.every((message) => !message.includes('synthetic-private-error')));
+  }
 });
 
 test(

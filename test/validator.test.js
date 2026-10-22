@@ -483,4 +483,46 @@ testUpstreamDnsServersValidation();
   assert.strictEqual(validateConfig(config).valid, true);
 }
 
+{
+  const base = {
+    profiles: [{ id: 'main', protocol: 'openai', targetUrl: 'https://api.example.test/v1' }],
+    activeProfile: 'main',
+    appSettings: { contextRecoveryPersistenceEnabled: false },
+  };
+  for (const value of [false, true])
+    assert.strictEqual(
+      validateConfig({ ...base, appSettings: { contextRecoveryPersistenceEnabled: value } }).valid,
+      true
+    );
+  for (const value of ['true', 1, [], {}]) {
+    const result = validateConfig({
+      ...base,
+      appSettings: { contextRecoveryPersistenceEnabled: value },
+    });
+    assert.strictEqual(result.valid, false);
+    assert.ok(result.errors.some((error) => error.includes('contextRecoveryPersistenceEnabled')));
+  }
+}
+
+{
+  const { spawnSync } = require('node:child_process');
+  const script = [
+    "const assert = require('node:assert/strict');",
+    "const Module = require('node:module'); const load = Module._load;",
+    "Module._load = function (request) { if (['dns','node:dns','https','node:https'].includes(request) || request.includes('external-ingress-probe')) throw new Error('Network probe loaded during validation'); return load.apply(this, arguments); };",
+    'const { validateConfig } = require(' +
+      JSON.stringify(require.resolve('../lib/proxy/validator')) +
+      ');',
+    "const result = validateConfig({ activeProfile:'main', profiles:[{id:'main',protocol:'openai',targetUrl:'https://api.example.test/v1'}], localServer:{host:'127.0.0.1',listenPort:3443,basePath:'/v1'} });",
+    'assert.equal(result.valid, true, JSON.stringify(result.errors));',
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['-e', script], {
+    encoding: 'utf8',
+    timeout: 10000,
+    maxBuffer: 4096,
+    windowsHide: true,
+  });
+  assert.equal(result.status, 0, result.stderr);
+}
+
 console.log('[validator.test] ok');
