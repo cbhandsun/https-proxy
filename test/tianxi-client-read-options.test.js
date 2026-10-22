@@ -209,7 +209,22 @@ test('new safe argument mistakes can be corrected in the same task without execu
 test(
   'real PowerShell/rg read and discovery cover hidden, ignored, empty, malformed and failure paths',
   { skip: process.platform !== 'win32' },
-  () => {
+  async () => {
+    const { rgPath } = await import('@vscode/ripgrep');
+    const commandEnv = Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => key.toUpperCase() !== 'PATH')
+    );
+    commandEnv.PATH = path.dirname(rgPath);
+    const version = spawnSync(rgPath, ['--version'], {
+      env: commandEnv,
+      windowsHide: true,
+      encoding: 'utf8',
+      timeout: 15000,
+    });
+    assert.ifError(version.error);
+    assert.equal(version.status, 0, version.stderr);
+    assert.match(version.stdout, /^ripgrep /);
+    commandEnv.PATH += path.delimiter + (process.env.PATH || process.env.Path || '');
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tianxi-read-options-'));
     const write = (relative, value) => {
       const file = path.join(root, relative);
@@ -223,6 +238,7 @@ test(
         ['-NoProfile', '-NonInteractive', '-Command', compiled.cmd],
         {
           cwd: compiled.workdir,
+          env: commandEnv,
           windowsHide: true,
           encoding: 'utf8',
           timeout: 15000,
