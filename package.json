@@ -82,7 +82,7 @@
     ]
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "chart.js": "^4.5.1",
     "pino": "^10.3.1",
     "safe-regex2": "^5.1.1",
