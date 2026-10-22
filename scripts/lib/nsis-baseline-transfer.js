@@ -12,6 +12,8 @@ const {
 } = require('./nsis-encrypted-contract');
 const REPOSITORY = 'cbhandsun/https-proxy';
 const INSTALLER = 'HTTPS Proxy Manager_0.1.0_x64-setup.exe';
+// GitHub canonicalizes spaces in uploaded release asset names to periods.
+const REMOTE_INSTALLER = 'HTTPS.Proxy.Manager_0.1.0_x64-setup.exe';
 const fail = () => new Error('baseline_transfer_refused');
 const identity = () => ({
   installerSha256: BASELINE_INSTALLER_SHA256,
@@ -155,7 +157,7 @@ function assertAssets(assets, ids) {
       !Number.isSafeInteger(asset.id) ||
       asset.id < 1 ||
       asset.state !== 'uploaded' ||
-      asset.name !== [INSTALLER, 'identity.json'][index] ||
+      asset.name !== [REMOTE_INSTALLER, 'identity.json'][index] ||
       !Number.isSafeInteger(asset.size) ||
       asset.size < 1 ||
       asset.size > [28541417, 4096][index] ||
@@ -236,7 +238,7 @@ function prepareTransfer(options, dependencies = {}) {
     ]);
     assertRelease(api(['api', `repos/${REPOSITORY}/releases/${state.id}`]), state);
     const assets = api(['api', `repos/${REPOSITORY}/releases/${state.id}/assets`]);
-    const ids = [INSTALLER, 'identity.json'].map(
+    const ids = [REMOTE_INSTALLER, 'identity.json'].map(
       (name) => assets.find((asset) => asset.name === name)?.id
     );
     assertAssets(assets, ids);
@@ -387,6 +389,7 @@ async function runBridge(env, dependencies = {}) {
 module.exports = {
   REPOSITORY,
   INSTALLER,
+  REMOTE_INSTALLER,
   identity,
   assertIdentity,
   parseOptions,

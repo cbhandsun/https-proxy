@@ -11,6 +11,7 @@ const { unpinnedActionReferences } = require('../lib/ci-governance');
 const transfer = require('../scripts/lib/nsis-baseline-transfer');
 const { Response, ReadableStream } = globalThis;
 const sha = 'a'.repeat(40);
+const remoteInstaller = 'HTTPS.Proxy.Manager_0.1.0_x64-setup.exe';
 const repo = { full_name: transfer.REPOSITORY, private: true, permissions: { push: true } };
 function temporary(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-transfer-test-'));
@@ -98,7 +99,7 @@ test('strict identity, private repository, release ownership and exact assets re
   ])
     assert.throws(() => transfer.assertRelease({ ...release, ...patch }, expected));
   const assets = [
-    { id: 2, name: transfer.INSTALLER, state: 'uploaded', size: 28541417 },
+    { id: 2, name: remoteInstaller, state: 'uploaded', size: 28541417 },
     { id: 3, name: 'identity.json', state: 'uploaded', size: 250 },
   ];
   transfer.assertAssets(assets, [2, 3]);
@@ -111,6 +112,27 @@ test('strict identity, private repository, release ownership and exact assets re
   ])
     assert.throws(() => transfer.assertAssets(value, [2, 3]));
   assert.throws(() => transfer.assertAssets(assets, [2, 2]));
+});
+test('GitHub canonical asset name is exact and distinct from the unchanged local installer name', () => {
+  assert.equal(transfer.INSTALLER, 'HTTPS Proxy Manager_0.1.0_x64-setup.exe');
+  assert.equal(transfer.REMOTE_INSTALLER, remoteInstaller);
+  assert.notEqual(transfer.INSTALLER, transfer.REMOTE_INSTALLER);
+  const installer = { id: 2, name: remoteInstaller, state: 'uploaded', size: 28541417 };
+  const identity = { id: 3, name: 'identity.json', state: 'uploaded', size: 250 };
+  assert.deepEqual(transfer.assertAssets([identity, installer], [2, 3]), [installer, identity]);
+  for (const name of [
+    transfer.INSTALLER,
+    '',
+    null,
+    undefined,
+    'HTTPS_Proxy_Manager_0.1.0_x64-setup.exe',
+    'https.proxy.manager_0.1.0_x64-setup.exe',
+    'HTTPS%20Proxy%20Manager_0.1.0_x64-setup.exe',
+    `../${remoteInstaller}`,
+    `${remoteInstaller}.exe`,
+    `${remoteInstaller}\n`,
+  ])
+    assert.throws(() => transfer.assertAssets([{ ...installer, name }, identity], [2, 3]));
 });
 function remoteMock(calls, failure) {
   let release;
@@ -136,7 +158,7 @@ function remoteMock(calls, failure) {
     if (args.includes('DELETE')) return null;
     if (route.endsWith('/assets'))
       return [
-        { id: 2, name: transfer.INSTALLER, state: 'uploaded', size: 28541417 },
+        { id: 2, name: remoteInstaller, state: 'uploaded', size: 28541417 },
         { id: 3, name: 'identity.json', state: 'uploaded', size: 250 },
       ];
     if (route.includes('/releases/')) return release;
@@ -184,6 +206,7 @@ test('execute lifecycle is mock-only, pins target and draft, uploads only two fi
     const upload = calls.find((args) => args[0] === 'release');
     assert.equal(upload.length, 7);
     assert.equal(upload[3], path.join(archive, transfer.INSTALLER));
+    assert.equal(path.basename(upload[3]), 'HTTPS Proxy Manager_0.1.0_x64-setup.exe');
     const folder = fs.readdirSync(archive)[0];
     const state = JSON.parse(fs.readFileSync(path.join(archive, folder, 'transfer-state.json')));
     assert.equal(state.target, sha);
@@ -331,7 +354,7 @@ test('bridge validates every runtime input before remote access and rejects chan
     const route = args.find((value) => value.startsWith('repos/'));
     if (route.endsWith('/assets'))
       return [
-        { id: 2, name: transfer.INSTALLER, state: 'uploaded', size: 28541417 },
+        { id: 2, name: remoteInstaller, state: 'uploaded', size: 28541417 },
         { id: 3, name: 'identity.json', state: 'uploaded', size: 250 },
       ];
     if (route.includes('/releases/'))
@@ -362,6 +385,7 @@ test('bridge validates every runtime input before remote access and rejects chan
     fs.readFileSync(path.join(root, 'hpm-baseline-bridge', transfer.INSTALLER), 'utf8'),
     'tampered-exe'
   );
+  assert.equal(fs.existsSync(path.join(root, 'hpm-baseline-bridge', remoteInstaller)), false);
   await assert.rejects(
     transfer.runBridge(env, {
       checkoutCommit: () => sha,
