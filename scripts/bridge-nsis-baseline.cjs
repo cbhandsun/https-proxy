@@ -1,11 +1,11 @@
 'use strict';
 
-const { runBridge } = require('./lib/nsis-baseline-transfer');
+const { runBridge, formatBridgeError } = require('./lib/nsis-baseline-transfer');
 runBridge(process.env)
   .then(() => {
     process.stdout.write('baseline_bridge_verified\n');
   })
-  .catch(() => {
-    process.stderr.write('baseline_transfer_refused\n');
+  .catch((error) => {
+    process.stderr.write(`${formatBridgeError(error)}\n`);
     process.exitCode = 1;
   });
