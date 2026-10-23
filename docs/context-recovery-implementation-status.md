@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：hydration 候选托管终态，发布确认仍超时
+
+`bdc7bbe13cc2cfbd319c09869e3d26d97c125444` 的 Verify `39908900710` 已 failure，七个其他 job success，coverage `120267081278` 唯一失败为 Claude long-persistent 第 0 轮：正文 4361ms 收完，但 publication_wait_failed 在 5001ms 触发原期限。普通 unit job `120267081254` 中三协议两轮正文约 1291–1548ms，不能替代覆盖率资格。disposable `39908900514` 也已 failure：source-gates `120267080232` 的覆盖率阶段三协议失败，Chat 正文 4522ms 后最终发布等待在 5002ms 超时，Responses／Claude 请求分别在 5005／5016ms 失败；业务跳过。日志均按 job ID 私有封存，不取消或重启原任务。
+
+新的纯内存 SQLite 80 次候选快照 CPU 剖析确认规范化、指纹编码和哈希仍占明显成本，证据 `hydration-candidate-bdc7bbe1-v1.cpuprofile`、`hydration-checkpoint-profile-bdc7bbe1-v1.json`。该诊断没有本机持久 worker、DPAPI、注册表锚点，不证明磁盘或完整期限已经修复；原期限、独立锚点落盘与 exact CAS 确认保持。
+
+检查同一规范化边界时补充引用版本探测的 Proxy 回归：输入及 metadata 的 descriptor trap 在旧实现先执行，测试失败；候选先拒绝 Proxy，普通对象、v9/v10、大小和指纹规则保持。扩大两文件 69 pass／4 skip，显式排除 encrypted worker 并保留私有原生入口 guard；首次未筛选运行的四项均被 guard 立即阻断，69 pass／4 fail 日志保留，未授予真实持久资格。证据 `reference-proxy-before-v1.log`、`reference-proxy-expanded-v1.log`、`reference-proxy-expanded-pure-v1.log`。此安全增量未推送，不解决发布确认超时。全部 I0–I5/H1、N01–N11、当前包重建、私有迁移、全天和生产资格仍未完成。
+
 ## 2026-10-22：恢复 hydration 重复解析候选，原持久请求期限仍待复验
 
 `ef1ee580` 的 disposable `39906224760` 已 failure：source-gates `120258696172` 的 Responses long-persistent 第 0 轮约 5009ms 触发原 5 秒期限，业务 job 跳过。独立 Verify `39906224764` 也已 failure，其他七个 job success，coverage `120258696297` 的 chat long-persistent 第 0 轮约 5011ms 失败。两路均记录四次合成上游请求；终态日志按 job ID 私有封存。已通过的 `ff05b521` 安装 mechanics 不因此撤销，也不能替代当前持久请求门禁。

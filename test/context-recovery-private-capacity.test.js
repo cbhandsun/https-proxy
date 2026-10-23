@@ -61,6 +61,27 @@ test('reference size capability is v10-only and preserves small equality admissi
   assert.equal(touched, 0);
 });
 
+test('reference capability detection rejects proxies without executing descriptor traps', () => {
+  for (const location of ['input', 'metadata']) {
+    for (const sourceVersion of [9, 10]) {
+      let touched = 0;
+      const metadata = { kind: 'recovery-root-metadata', sourceVersion };
+      const wrap = (value) =>
+        new Proxy(value, {
+          getOwnPropertyDescriptor() {
+            touched++;
+            throw new Error('untrusted_descriptor_trap');
+          },
+        });
+      const input = location === 'input' ? wrap({ metadata }) : { metadata: wrap(metadata) };
+      for (const normalize of [normalizeRecoveryReferenceData, fingerprintRecoveryReference]) {
+        assert.throws(() => normalize(input));
+        assert.equal(touched, 0);
+      }
+    }
+  }
+});
+
 test('v10 reference load, scan and worker replies carry large private metadata', () => {
   const reference = {
     kind: 'recovery-reference-state',
