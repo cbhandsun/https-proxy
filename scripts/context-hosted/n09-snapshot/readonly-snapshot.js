@@ -163,7 +163,9 @@ function createDurableSnapshotReader(input, trusted = {}) {
           const reference = parseReferenceState(state.reference);
           const metadata = reference.metadata;
           if (
-            metadata.createdAt !== context.createdAt ||
+            // The root exists before its first durable save. The row pins
+            // that first save time; absolute root expiry must still match.
+            metadata.createdAt > context.createdAt ||
             metadata.expiresAt !== context.expiresAt ||
             (binding && binding.rootId !== metadata.rootId)
           )

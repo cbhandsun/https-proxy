@@ -157,6 +157,35 @@ function fixture() {
   return f;
 }
 
+test('snapshot accepts first persistence after root creation without extending expiry', () => {
+  const f = fixture();
+  const metadata = f.state.reference.metadata;
+  f.rows = [f.seal(f.state, { createdAt: metadata.createdAt + 25 })];
+  const reader = f.reader();
+  const result = reader.read();
+  assert.equal(result.present, true);
+  assert.equal(result.rootId, metadata.rootId);
+  assert.equal(result.expiresAt, metadata.expiresAt);
+  f.rows = [f.seal(f.state, { createdAt: metadata.createdAt + 25, revision: 2 })];
+  assert.equal(reader.read().revision, 2);
+  reader.close();
+});
+
+test('snapshot rejects authenticated rows predating root creation or changing absolute expiry', () => {
+  for (const override of [
+    { createdAt: 99, expiresAt: reference().metadata.expiresAt - 1 },
+    { expiresAt: reference().metadata.expiresAt - 1 },
+    { createdAt: 125, expiresAt: reference().metadata.expiresAt + 1 },
+  ]) {
+    const f = fixture();
+    f.rows = [f.seal(f.state, override)];
+    const reader = f.reader();
+    assert.throws(() => reader.read(), bad);
+    assert.equal(f.closed, 1);
+    reader.close();
+  }
+});
+
 test('authenticated committed metadata only, revision update and pinned root', () => {
   const f = fixture(),
     reader = f.reader();
@@ -439,7 +468,7 @@ test('snapshot SQL reads authenticated metadata from actual in-memory SQLite wit
   database
     .prepare('INSERT INTO recovery_header(singleton,store_id,envelope) VALUES(1,?,?)')
     .run(f.header.store_id, f.header.envelope);
-  const row = f.rows[0];
+  const row = f.seal(f.state, { createdAt: f.state.reference.metadata.createdAt + 25 });
   database
     .prepare(
       'INSERT INTO recovery_state(scope,revision,created_at,expires_at,kind,envelope) VALUES(?,?,?,?,?,?)'

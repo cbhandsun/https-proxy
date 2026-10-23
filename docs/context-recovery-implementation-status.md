@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：两端快照阶段 183，修正首次落盘时间与根创建时间的契约差异
+
+eb4c9cc6 独立诊断 39984308079 已 failure：N08 job 120519393318、N09 job 120519393928 均返回 183。两端均已越过 pins、密钥解封、schema、时钟及状态解密，当前失败范围是 reference 解析及元数据校验，未输出任何状态或原始异常。核对生产 context-recovery-storage-sqlite 的首次 row.created_at=time，以及 storage-record／storage-contract 的 root.createdAt<=row.created_at 契约，发现只读验收观察器错误要求两者相等。根先创建、首次异步持久化后完成是合法生产路径。
+
+新增纯回归先在旧观察器复现正常延迟落盘被拒绝；修正观察器后，保持严格绝对到期一致、拒绝根晚于落盘和到期错配，且后续 revision 读取正常。真实内存 SQLite 回归同样改用首次落盘晚于根创建的认证 envelope。快照及两端相关测试 61/61 通过，统一 unit 自动发现；首次负例夹具因其 AAD 自身超过 24 小时被 cipher 提前拒绝，已修为合法 AAD 后重新执行 RED→GREEN。没有修改生产存储、TTL、期限、请求、负载、读取权限或 ACK，也未读取原文 blob。此修正是否解除真实托管阶段 183 仍待新候选验证，不能把契约回归当成两端通过。
+
+补正旧终态：9c9462ed Verify 39982513085 已 failure，coverage 的 actual core responses WBIPC recovery has exclusive ownership and live credential revocation 失败，其余七项 job success；其完整 disposable 39982513196 的 32 MiB 四根重开测试返回固定 context_recovery_storage_unavailable，尚未证实超时。a20cfd4d 完整 disposable 39980129782 已 failure，source-gates/egress success、两端业务 failure。当前 eb4c9cc6 Verify 39984308056 与完整 disposable 39984308033 最近仍 in_progress，继续原句柄，不重启。完整 I0–I5/H1、N01–N11、24 小时容量、安装迁移和生产交付保持未完成。本轮真实模型请求新增 0；本机未执行产品持久 worker、DPAPI、安装器、注册表或防火墙操作。
+
 ## 2026-10-23：observed ACK 修复让两端越过 503，业务推进至恢复／快照边界
 
 9c9462ed 的独立诊断 39982568481 已终态 failure：N08 job 120513375453 返回 154，已越过三次种入与摘要请求，进入 waitUpstreamHold（包括随后快照读取）；N09 job 120513375876 返回 137，已越过工具结果回传和摘要回执校验，进入快照创建／读取。原工具结果 503 在该次两端执行中已越过，但后续尚未通过，不能宣称 N08/N09 完成。
