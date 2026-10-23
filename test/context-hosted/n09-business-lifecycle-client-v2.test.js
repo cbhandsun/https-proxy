@@ -287,7 +287,7 @@ test('initial health diagnostics separate original deadline, transport, HTTP, sh
   for (const [kind, expected] of [
     ['deadline', 185],
     ['transport', 186],
-    ['http', 187],
+    ['http', 170],
     ['shape', 188],
     ['identity', 190],
     ['reset', 192],
@@ -316,7 +316,7 @@ test('initial health diagnostics separate original deadline, transport, HTTP, sh
         f.client.configureSyntheticBusiness(identity, synthetic()),
         /^Error: n09_lifecycle_client_failed$/
       );
-      assert.deepEqual(phases, [112, 113, 114, 115, expected]);
+      assert.deepEqual(phases, [112, 113, 114, 115, ...(kind === 'http' ? [187] : []), expected]);
       assert.equal(f.state.requests.length, 1);
     } finally {
       await f.client.close();
@@ -362,6 +362,30 @@ test('private preload may finish before management listen without rejecting a he
     const configured = await f.client.configureSyntheticBusiness(identity, synthetic());
     assert.equal(configured.configured, true);
     assert.equal(attempts, 4); // Three startup probes and the original final application check.
+    assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 1);
+  } finally {
+    await f.client.close();
+  }
+});
+
+test('owned startup waits for management credential publication without repeating a config write', async (t) => {
+  let attempts = 0;
+  const f = fixture(t, (stage, value, state) => {
+    if (stage !== 'http' || state.requests.at(-1)?.path !== '/v1/local/health') return;
+    attempts++;
+    state.statusCode = attempts <= 2 ? 503 : 200;
+    if (attempts <= 2) {
+      for (const name of Object.keys(value)) delete value[name];
+      value.error = 'Management initialization unavailable';
+    }
+  });
+  try {
+    const identity = await f.client.startLifecycle();
+    assert.equal(
+      (await f.client.configureSyntheticBusiness(identity, synthetic())).configured,
+      true
+    );
+    assert.equal(attempts, 4);
     assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 1);
   } finally {
     await f.client.close();

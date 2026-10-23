@@ -4,8 +4,24 @@ const { snapshot } = require('../n09-ipc/lifecycle-channel.js');
 const { managementFailurePhase } = require('../shared/management-failure-phase.js');
 const failure = (phase) => Object.assign(new Error('n09_management_http_not_ready'), { phase });
 
-// Preload completion precedes listen(). Only a refused connection to the fixed
-// management health endpoint is a startup probe; no business call is retried.
+function initializationPending(response) {
+  try {
+    const value = snapshot(response);
+    const body = snapshot(value.body);
+    return (
+      Object.keys(value).sort().join(',') === 'body,status' &&
+      value.status === 503 &&
+      Object.keys(body).join(',') === 'error' &&
+      body.error === 'Management initialization unavailable'
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Preload precedes listen and asynchronous credential publication. Only refused
+// connections and the exact pending health reply are startup probes; no business
+// call is retried. Other HTTP replies retain the caller's failure attestation.
 async function waitForManagementHttp(read, deadline, dependencies = {}) {
   let now, sleep;
   try {
@@ -45,8 +61,8 @@ async function waitForManagementHttp(read, deadline, dependencies = {}) {
       rejectedPhase = managementFailurePhase(error);
     }
     clock();
-    if (rejectedPhase === undefined) return response;
-    if (rejectedPhase !== 191) throw failure(rejectedPhase);
+    if (rejectedPhase === undefined && !initializationPending(response)) return response;
+    if (rejectedPhase !== undefined && rejectedPhase !== 191) throw failure(rejectedPhase);
     try {
       await sleep(Math.min(50, deadline - previous));
     } catch {

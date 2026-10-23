@@ -301,6 +301,54 @@ test('N08 config save distinguishes deadline, transport, HTTP and receipt failur
   }
 });
 
+test('N08 mutation save remains valid after config load adds official profiles and built-in routes', async () => {
+  const { validateConfig } = require('../../lib/proxy/validator');
+  const { mergeBuiltinModelRoutes } = require('../../lib/proxy/builtin-model-routes');
+  for (const mutation of ['disable', 'target-change', 'permission-change']) {
+    const f = scenarioFixture();
+    const { state } = await f.scenario.configureAndSeed(f.value);
+    f.value.caseOptions = { barrier: 'read-tool-response', mutation };
+    state.phase = 'recovering';
+    let acknowledged = false;
+    state.held = {
+      mutationApplied() {
+        acknowledged = true;
+      },
+    };
+    const request = f.value.owner.request;
+    let checked = 0;
+    f.value.owner.request = async (input) => {
+      if (input.method === 'POST') {
+        const validation = validateConfig(input.body);
+        assert.equal(validation.valid, true, validation.errors.join(','));
+        checked++;
+      }
+      const result = await request(input);
+      if (input.method === 'GET' && input.route === '/v1/local/config') {
+        result.body = mergeBuiltinModelRoutes({
+          ...result.body,
+          profiles: [
+            ...result.body.profiles,
+            { id: 'tianxi-official', protocol: 'tianxi', targetUrl: 'https://example.com' },
+          ],
+        });
+        assert.equal(validateConfig(result.body).valid, true);
+        assert.ok(result.body.modelRoutes.length > 0);
+      }
+      if (input.route === '/v1/local/health')
+        result.body.contextRecovery.appliedEnabled = mutation !== 'disable';
+      if (input.route === '/v1/local/health' && mutation === 'disable')
+        result.body.contextRecovery.storage = 'memory';
+      return result;
+    };
+    await f.scenario.applyMutation(f.value);
+    assert.equal(checked, 1);
+    assert.equal(acknowledged, true);
+    assert.equal(state.phase, 'mutated');
+    assert.equal(f.requests.filter((value) => value === 'POST /v1/local/config').length, 2);
+  }
+});
+
 test('N08 observer failure at every seed stage prevents later phases and stays fixed', async () => {
   for (let failed = 145; failed <= 152; failed++) {
     const phases = [],

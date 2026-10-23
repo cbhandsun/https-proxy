@@ -113,6 +113,9 @@ function createBusinessScenario(input, observer) {
     const cfg = update({
       ...before,
       profiles: state.profiles.map((profile) => ({ ...profile })),
+      // loadConfig adds official profiles and built-in routes on every read.
+      // Every synthetic save replaces those profiles; retain no dangling routes.
+      modelRoutes: [],
       entryAuth: {
         enabled: true,
         keys: [{ ...state.key, allowedProfileIds: [...state.key.allowedProfileIds] }],

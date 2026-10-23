@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：N08 读回内置路由导致变更保存失效，N09 等待管理凭据发布
+
+f825158e独立业务诊断39994647455已failure：N08 job120554897361阶段196，确认是配置校验拒绝；N09 job120554896871阶段187，已越过连接拒绝但健康回复非200，具体状态仍待新增固定状态分类验证。完整Verify39994647438八项job全部success；完整disposable39994647499最近source-gates仍运行、egress success，沿用原句柄。
+
+纯回归复现N08后续变更保存的悬空路由：生产loadConfig会重新添加官方profile及其内置modelRoutes，验收save以两个合成profile覆盖读取结果，却保留引用被移除profile的modelRoutes，真实validateConfig拒绝。候选在每次合成save显式清空modelRoutes，保持两条合成profile、所有原变更和回读断言。disable、target-change、permission-change三种场景分别使用真实mergeBuiltinModelRoutes/validateConfig验证，旧代码RED、修正后GREEN；是否解除托管196仍待业务复验，不改生产加载行为。
+
+生产server-lifecycle在listen回调异步发布管理凭据，credentialStartup.ready之前固定返回503及单字段初始化回复。N09候选仅把该严格匹配回复视为健康就绪探测，沿用原15秒总期限、300次上限及原HTTP两秒期限；未知503、401、额外字段、非法结构、getter/Proxy不成为可重试的初始化回复。永久初始化未完成仍期限失败。新增两次初始化探测后成功及一次配置POST的纯生命周期回归；其他HTTP拒绝复用既有162..173固定状态码，未扩大外层白名单。该窗口已在纯测试RED→GREEN，尚不能将托管187直接认定为503。
+
+相关两端业务、生命周期、输入边界和闭包回归51/51通过，新增对抗性用例修正Promise自身then查找的夹具后独立通过；ESLint、格式、CI/release治理与diff检查通过。未增加真实模型请求，未执行本机产品持久worker、DPAPI、安装器、注册表或防火墙。原五档、两个worker的纯合成容量命令本轮退出0、五档全部功能通过，父命令耗时73076.3038ms：满足原180秒执行预算，未满足原60秒性能目标。证据capacity-f825158e-current-report.json与capacity-f825158e-current-receipt.redacted.json保存在既有私有验收目录；仅是synthetic-session-capacity，transportQualified和durableStorageQualified仍false，不授予24小时持久容量或客户端资格。完整I0–I5/H1、N01–N11、24小时持久容量、安装迁移回滚与生产资格未完成。
+
 ## 2026-10-23：N09 监听启动竞态修复候选，N08 配置 400 安全分类
 
 99667aaf 的完整 disposable 39990378959 已 failure：源码与 egress 门禁 success，N08 job 120547932460 固定阶段162（配置保存 HTTP400），N09 job 120547932588 固定阶段191（首次管理连接拒绝）；独立诊断39990378864同样分别162/191。Verify39990378935八项 job 中七项success，unit1的纯模拟 WFP setup 测试因原25秒期限超时失败，不能称完整 Verify 通过。前一版本1d3b97a5的完整disposable39988709269亦已failure。

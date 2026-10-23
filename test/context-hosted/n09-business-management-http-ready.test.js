@@ -76,6 +76,93 @@ test('management listen readiness never retries other transport or HTTP applicat
     assert.deepEqual(f.sleeps, []);
   }
 });
+
+test('management readiness waits for the fixed credential initialization response only within the original deadline', async () => {
+  const f = fixture();
+  let reads = 0;
+  const ready = { status: 200, body: { ok: true } };
+  const pending = { status: 503, body: { error: 'Management initialization unavailable' } };
+  assert.equal(
+    await waitForManagementHttp(async () => (++reads < 3 ? pending : ready), 15000, f.dependencies),
+    ready
+  );
+  assert.equal(reads, 3);
+  assert.deepEqual(f.sleeps, [50, 50]);
+  const expired = fixture();
+  await assert.rejects(
+    waitForManagementHttp(async () => pending, 125, expired.dependencies),
+    rejected(189)
+  );
+  assert.deepEqual(expired.sleeps, [50, 50, 25]);
+});
+
+test('management initialization detection never retries other bodies or invokes getters and proxies', async () => {
+  let traps = 0;
+  // A top-level async result must allow the language's Promise then lookup.
+  // Keep ownership/prototype traps armed; nested bodies also arm get traps.
+  const opaqueProxy = new Proxy(
+    {},
+    {
+      getPrototypeOf() {
+        traps++;
+        throw new Error('PRIVATE');
+      },
+      ownKeys() {
+        traps++;
+        throw new Error('PRIVATE');
+      },
+      getOwnPropertyDescriptor() {
+        traps++;
+        throw new Error('PRIVATE');
+      },
+    }
+  );
+  const getter = Object.defineProperty({}, 'error', {
+    get() {
+      traps++;
+      throw new Error('PRIVATE');
+    },
+  });
+  const proxy = new Proxy(
+    {},
+    {
+      get() {
+        traps++;
+        throw new Error('PRIVATE');
+      },
+      ownKeys() {
+        traps++;
+        throw new Error('PRIVATE');
+      },
+    }
+  );
+  for (const response of [
+    { status: 503, body: { error: 'other' } },
+    { status: 401, body: { error: 'Management initialization unavailable' } },
+    { status: 503, body: { error: 'Management initialization unavailable', extra: true } },
+    { status: 503, body: getter },
+    { status: 503, body: proxy },
+    opaqueProxy,
+    null,
+  ]) {
+    const f = fixture();
+    let calls = 0;
+    assert.equal(
+      await waitForManagementHttp(
+        async () => {
+          calls++;
+          return response;
+        },
+        15000,
+        f.dependencies
+      ),
+      response
+    );
+    assert.equal(calls, 1);
+    assert.deepEqual(f.sleeps, []);
+  }
+  assert.equal(traps, 0);
+});
 test('management listen readiness retains the original total deadline and bounded frozen-clock polls', async () => {
   const f = fixture();
   let reads = 0;

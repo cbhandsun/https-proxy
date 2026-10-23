@@ -12,6 +12,7 @@ const { createN09HostAckClient } = require('../n09-ack/bootstrap-client.js');
 const { fields, discardN09PromiseRejection } = require('../n09-ack/contract.js');
 const { waitForPrivatePreload } = require('./management-status-ready.js');
 const { waitForManagementHttp } = require('./management-http-ready.js');
+const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
 const { assertSyntheticProfileReadback } = require('./synthetic-profile-readback.js');
 const {
   createDaemonManagementHttpClient,
@@ -149,6 +150,7 @@ function createClientUnsafe(input, dependencies) {
     }
     if (response.status !== 200) {
       onPhase(187);
+      onPhase(seedReplyFailurePhase(response.status));
       throw fail();
     }
     let body, runtime;
