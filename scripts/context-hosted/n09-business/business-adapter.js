@@ -127,6 +127,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     externalToolExecutions = 0,
     upstreamRequests = 0;
   let pendingSave;
+  let upstreamFailurePhase;
   let validatedReadCount = 0,
     publicGenerationCount = 0,
     clearAckCount = 0,
@@ -196,6 +197,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     readObserved = false;
     publicObserved = false;
     source = undefined;
+    upstreamFailurePhase = undefined;
     const tracked = { failed: false, completion: undefined };
     pendingSave = tracked;
     // Both handlers are installed immediately. Forced Job termination may reject
@@ -370,9 +372,12 @@ function createN09BusinessAdapter(input, trusted = {}) {
       readObserved = false;
       publicObserved = false;
       source = undefined;
+      upstreamFailurePhase = undefined;
       const response = await send(continuation);
       const recoveryFailurePhase = seedReplyFailurePhase(response.status);
       if (recoveryFailurePhase !== null) onPhase(recoveryFailurePhase);
+      if (recoveryFailurePhase !== null && upstreamFailurePhase !== undefined)
+        onPhase(upstreamFailurePhase);
       const reply = parseReply(response);
       if (
         publicText(reply) !== 'N09_RECOVERY_OK ' + nonce ||
@@ -482,129 +487,146 @@ function createN09BusinessAdapter(input, trusted = {}) {
       });
     },
     async onBusinessRequest(input) {
-      gate();
-      const incoming = exact(input, ['path', 'authorization', 'bytes', 'response']);
-      if (
-        incoming.path !== '/v1/responses' ||
-        incoming.authorization !== 'Bearer ' + upstreamKey ||
-        !Buffer.isBuffer(incoming.bytes) ||
-        incoming.bytes.length > 262144
-      )
-        throw fail();
-      const bodyText = new TextDecoder('utf-8', { fatal: true }).decode(incoming.bytes);
-      const body = JSON.parse(bodyText);
-      if (
-        !Array.isArray(body.input) ||
-        body.instructions !== 'Synthetic N09 owner ' + nonce ||
-        body.model !== MODEL ||
-        body.stream !== false
-      )
-        throw fail();
-      upstreamRequests++;
-      const privateTools =
-        Array.isArray(body.tools) && body.tools.some((tool) => [LIST, READ].includes(tool?.name));
-      if (privateTools) privateRequests++;
-      const reply = (output) => {
-        if (incoming.response.destroyed || incoming.response.headersSent) throw fail();
-        incoming.response.writeHead(200, {
-          'content-type': 'application/json',
-          connection: 'close',
+      let failurePhase = 196;
+      try {
+        gate();
+        const incoming = exact(input, ['path', 'authorization', 'bytes', 'response']);
+        if (
+          incoming.path !== '/v1/responses' ||
+          incoming.authorization !== 'Bearer ' + upstreamKey ||
+          !Buffer.isBuffer(incoming.bytes) ||
+          incoming.bytes.length > 262144
+        )
+          throw fail();
+        const bodyText = new TextDecoder('utf-8', { fatal: true }).decode(incoming.bytes);
+        const body = JSON.parse(bodyText);
+        if (
+          !Array.isArray(body.input) ||
+          body.instructions !== 'Synthetic N09 owner ' + nonce ||
+          body.model !== MODEL ||
+          body.stream !== false
+        )
+          throw fail();
+        upstreamRequests++;
+        const privateTools =
+          Array.isArray(body.tools) && body.tools.some((tool) => [LIST, READ].includes(tool?.name));
+        if (privateTools) privateRequests++;
+        const reply = (output) => {
+          if (incoming.response.destroyed || incoming.response.headersSent) throw fail();
+          incoming.response.writeHead(200, {
+            'content-type': 'application/json',
+            connection: 'close',
+          });
+          incoming.response.end(wire(output));
+        };
+        const call = (name, args, callId) => ({
+          ...textReply('n09-private-' + nonce, ''),
+          output: [
+            {
+              type: 'function_call',
+              id: 'fc_' + callId,
+              call_id: callId,
+              name,
+              arguments: JSON.stringify(args),
+            },
+          ],
         });
-        incoming.response.end(wire(output));
-      };
-      const call = (name, args, callId) => ({
-        ...textReply('n09-private-' + nonce, ''),
-        output: [
-          {
-            type: 'function_call',
-            id: 'fc_' + callId,
-            call_id: callId,
-            name,
-            arguments: JSON.stringify(args),
-          },
-        ],
-      });
-      if (phase === 'seed-call') {
-        if (privateTools) throw fail();
-        phase = 'seed-call-seen';
-        return reply(call(ORIGINAL, {}, 'n09_original_' + nonce));
-      }
-      if (phase === 'seed-output') {
-        const tool = body.input.filter(
-          (item) =>
-            item?.type === 'function_call_output' && item.call_id === 'n09_original_' + nonce
-        );
-        if (tool.length !== 1 || tool[0].output !== original) throw fail();
-        return reply(textReply('n09-seeded-' + nonce, 'N09_SEEDED ' + nonce));
-      }
-      if (phase === 'summary')
-        return reply(
-          textReply(
-            'n09-summary-' + nonce,
-            'Retain the original evidence pointer for owner ' + nonce + '.'
+        if (phase === 'seed-call') {
+          if (privateTools) throw fail();
+          phase = 'seed-call-seen';
+          return reply(call(ORIGINAL, {}, 'n09_original_' + nonce));
+        }
+        if (phase === 'seed-output') {
+          const tool = body.input.filter(
+            (item) =>
+              item?.type === 'function_call_output' && item.call_id === 'n09_original_' + nonce
+          );
+          if (tool.length !== 1 || tool[0].output !== original) throw fail();
+          return reply(textReply('n09-seeded-' + nonce, 'N09_SEEDED ' + nonce));
+        }
+        if (phase === 'summary')
+          return reply(
+            textReply(
+              'n09-summary-' + nonce,
+              'Retain the original evidence pointer for owner ' + nonce + '.'
+            )
+          );
+        if (phase === 'denied') {
+          if (privateTools || bodyText.includes(original)) throw fail();
+          return reply(textReply('n09-denied-' + nonce, 'N09_OLD_RECEIPT_DENIED ' + nonce));
+        }
+        if (phase !== 'recovering') throw fail();
+        const listId = 'n09_list_' + nonce,
+          readId = 'n09_read_' + nonce;
+        if (privateTools && !body.input.some((item) => item?.call_id === listId))
+          return reply(call(LIST, { limit: 1 }, listId));
+        failurePhase = 197;
+        if (privateTools && !body.input.some((item) => item?.call_id === readId)) {
+          const index = resultFor(body, listId);
+          if (index.ok !== true || !Array.isArray(index.sources) || index.sources.length !== 1)
+            throw fail();
+          source = parseStoredEvidenceSource(index.sources[0]);
+          if (
+            !/^hce_[a-f0-9]{32}$/.test(source?.sourceId) ||
+            source.digest !== originalSha256 ||
+            source.toolName !== ORIGINAL ||
+            source.callId !== 'n09_original_' + nonce ||
+            source.argumentsDigest !== sha('{}') ||
+            source.bytes !== Buffer.byteLength(original) ||
+            !originalBaseline ||
+            source.expiresAt > originalBaseline.expiresAt
           )
-        );
-      if (phase === 'denied') {
-        if (privateTools || bodyText.includes(original)) throw fail();
-        return reply(textReply('n09-denied-' + nonce, 'N09_OLD_RECEIPT_DENIED ' + nonce));
-      }
-      if (phase !== 'recovering') throw fail();
-      const listId = 'n09_list_' + nonce,
-        readId = 'n09_read_' + nonce;
-      if (privateTools && !body.input.some((item) => item?.call_id === listId))
-        return reply(call(LIST, { limit: 1 }, listId));
-      if (privateTools && !body.input.some((item) => item?.call_id === readId)) {
-        const index = resultFor(body, listId);
-        if (index.ok !== true || !Array.isArray(index.sources) || index.sources.length !== 1)
-          throw fail();
-        source = parseStoredEvidenceSource(index.sources[0]);
-        if (
-          !/^hce_[a-f0-9]{32}$/.test(source?.sourceId) ||
-          source.digest !== originalSha256 ||
-          source.toolName !== ORIGINAL ||
-          source.callId !== 'n09_original_' + nonce ||
-          source.argumentsDigest !== sha('{}') ||
-          source.bytes !== Buffer.byteLength(original) ||
-          !originalBaseline ||
-          source.expiresAt > originalBaseline.expiresAt
-        )
-          throw fail();
-        return reply(
-          call(
-            READ,
-            { sourceId: source.sourceId, digest: source.digest, offsetBytes: 0, limitBytes: 8192 },
-            readId
+            throw fail();
+          return reply(
+            call(
+              READ,
+              {
+                sourceId: source.sourceId,
+                digest: source.digest,
+                offsetBytes: 0,
+                limitBytes: 8192,
+              },
+              readId
+            )
+          );
+        }
+        failurePhase = 198;
+        if (privateTools) {
+          const read = parseStoredEvidencePage(resultFor(body, readId), source, {
+              offsetBytes: 0,
+              limitBytes: 8192,
+            }),
+            page = read.page;
+          if (
+            read.ok !== true ||
+            !source ||
+            read.source?.sourceId !== source.sourceId ||
+            read.source?.digest !== originalSha256 ||
+            typeof page?.text !== 'string' ||
+            sha(page.text) !== originalSha256 ||
+            page.digest !== originalSha256 ||
+            page.offsetBytes !== 0 ||
+            page.endOffsetBytes !== Buffer.byteLength(original) ||
+            page.totalBytes !== Buffer.byteLength(original) ||
+            page.nextOffsetBytes !== null
           )
-        );
+            throw fail();
+          readObserved = true;
+          validatedReadCount++;
+          return reply(textReply('n09-private-done-' + nonce, 'RECOVERED'));
+        }
+        failurePhase = 199;
+        if (!readObserved || !bodyText.includes(original)) throw fail();
+        publicObserved = true;
+        publicGenerationCount++;
+        return reply(textReply('n09-public-' + nonce, 'N09_RECOVERY_OK ' + nonce));
+      } catch {
+        // Only this finite local boundary code survives a synthetic upstream
+        // socket refusal. Never retain the exception, request or tool output.
+        upstreamFailurePhase = failurePhase;
+        onPhase(failurePhase);
+        throw fail();
       }
-      if (privateTools) {
-        const read = parseStoredEvidencePage(resultFor(body, readId), source, {
-            offsetBytes: 0,
-            limitBytes: 8192,
-          }),
-          page = read.page;
-        if (
-          read.ok !== true ||
-          !source ||
-          read.source?.sourceId !== source.sourceId ||
-          read.source?.digest !== originalSha256 ||
-          typeof page?.text !== 'string' ||
-          sha(page.text) !== originalSha256 ||
-          page.digest !== originalSha256 ||
-          page.offsetBytes !== 0 ||
-          page.endOffsetBytes !== Buffer.byteLength(original) ||
-          page.totalBytes !== Buffer.byteLength(original) ||
-          page.nextOffsetBytes !== null
-        )
-          throw fail();
-        readObserved = true;
-        validatedReadCount++;
-        return reply(textReply('n09-private-done-' + nonce, 'RECOVERED'));
-      }
-      if (!readObserved || !bodyText.includes(original)) throw fail();
-      publicObserved = true;
-      publicGenerationCount++;
-      return reply(textReply('n09-public-' + nonce, 'N09_RECOVERY_OK ' + nonce));
     },
     inspectBusinessEvidence() {
       if (!proof || !networkCheck(proof)) throw fail();

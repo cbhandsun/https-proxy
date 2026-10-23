@@ -19,6 +19,7 @@ const { protectWithCurrentUser } = require('../lib/proxy/context-recovery-key-dp
 const { createContextRecoveryKeyProtector } = require('../lib/proxy/context-recovery-key');
 const { secureRecoveryStoragePath } = require('../lib/proxy/context-recovery-private-path');
 const { securePrivatePathSync } = require('../lib/proxy/secure-files');
+const { verifyIndependentAcl } = require('./helpers/independent-acl-readback.cjs');
 const {
   installContextRecoveryNativeArtifact,
 } = require('../scripts/prepare-context-recovery-native');
@@ -278,39 +279,12 @@ test(
     fs.writeFileSync(generalFile, 'synthetic-general');
     securePrivatePathSync(generalDirectory, 'directory', { force: true });
     securePrivatePathSync(generalFile, 'file', { force: true });
-    const script = `$ErrorActionPreference='Stop';[Console]::InputEncoding=[Text.UTF8Encoding]::new($false);
-      $data=[Console]::In.ReadToEnd()|ConvertFrom-Json;
-      $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;
-      $expected=@($sid,'S-1-5-18','S-1-5-32-544')|Sort-Object -Unique;
-      foreach($item in $data){$acl=if($item.kind -eq 'directory'){
-          [IO.Directory]::GetAccessControl($item.path)
-        }else{[IO.File]::GetAccessControl($item.path)};
-        if(-not $acl.AreAccessRulesProtected){exit 1};
-        $rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));
-        if($rules.Count -ne $expected.Count){exit 1};
-        $found=@();foreach($rule in $rules){
-          $found+=$rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value;
-          if($rule.AccessControlType -ne 'Allow' -or [int]$rule.FileSystemRights -ne 2032127 -or $rule.IsInherited){exit 1};
-          $flags=if($item.kind -eq 'directory'){3}else{0};
-          if([int]$rule.InheritanceFlags -ne $flags){exit 1}
-        };if(Compare-Object ($found|Sort-Object -Unique) $expected){exit 1}
-      };[Console]::Out.Write('verified')`;
-    const result = execFileSync(
-      path.win32.join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe'),
-      ['-NoProfile', '-NonInteractive', '-Command', script],
-      {
-        input: JSON.stringify([
-          { path: directory, kind: 'directory' },
-          { path: file, kind: 'file' },
-          { path: generalDirectory, kind: 'directory' },
-          { path: generalFile, kind: 'file' },
-        ]),
-        encoding: 'utf8',
-        timeout: 10000,
-        maxBuffer: 1024,
-        windowsHide: true,
-      }
-    );
+    const result = verifyIndependentAcl([
+      { path: directory, kind: 'directory' },
+      { path: file, kind: 'file' },
+      { path: generalDirectory, kind: 'directory' },
+      { path: generalFile, kind: 'file' },
+    ]);
     assert.equal(result, 'verified');
     assert.equal(fs.readFileSync(file, 'utf8'), 'synthetic');
     assert.equal(fs.readFileSync(generalFile, 'utf8'), 'synthetic-general');

@@ -29,9 +29,9 @@ function ConvertFrom-HpmOwnedFailurePhase {
     # the caller still rejects the failed child regardless of this result.
     if ($null -eq $Bytes -or $Bytes.Length -gt 80) { return $null }
     try { $text = [Text.UTF8Encoding]::new($false, $true).GetString($Bytes) } catch { return $null }
-    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-9]|13[0-8]|16[2-9]|17[0-9]|18[0-9]|19[0-5])\n\z') { return $null }
+    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-9]|13[0-8]|16[2-9]|17[0-9]|18[0-9]|19[0-9])\n\z') { return $null }
     $phase = [int]$Matches[1]
-    if (($phase -ge 73 -and $phase -le 84) -or ($phase -ge 86 -and $phase -le 96) -or ($phase -ge 101 -and $phase -le 138) -or ($phase -ge 162 -and $phase -le 195)) { return $phase }
+    if (($phase -ge 73 -and $phase -le 84) -or ($phase -ge 86 -and $phase -le 96) -or ($phase -ge 101 -and $phase -le 138) -or ($phase -ge 162 -and $phase -le 199)) { return $phase }
     return $null
 }
 
