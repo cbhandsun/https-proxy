@@ -34,6 +34,7 @@ function run(script) {
 test('failure diagnostics accept only fixed stage literals and never interpolate caught errors', () => {
   const files = [
     ['scripts/qualify-context-hosted.ps1', 'qualificationStage'],
+    ['scripts/lib/nsis-runtime-boundary.psm1', 'boundaryStage'],
     ['scripts/context-hosted/shared/hosted-network.ps1', 'networkStage'],
     ...['n08', 'n09'].flatMap((name) => [
       [`scripts/context-hosted/${name}/hosted-execution.ps1`, 'state.stage'],

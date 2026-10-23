@@ -74,7 +74,9 @@ function Invoke-Child {
     $start.ArgumentList.Add('-e')
     $start.ArgumentList.Add("let gate='';process.stdin.on('data',b=>gate+=b);process.stdin.on('end',()=>{if(gate!=='1')process.exit(2);" + $Code + '});')
     $checks.children++
-    return & $module { param($info, $deadline) Invoke-HpmBoundedRuntimeChild $info $deadline } $start $TimeoutMilliseconds
+    # Use the same exported API as the hosted N08/N09 callers, rather than
+    # reaching into module-private scope and hiding a missing export.
+    return Invoke-HpmBoundedRuntimeChild $start $TimeoutMilliseconds
 }
 try {
     $install = Join-Path $temporary 'installed'

@@ -46,6 +46,12 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
     /runtimeExpectedFailures=\d+; safeChildProcesses=\d+; installerExecutions=0; networkRequests=0/
   );
   assert.doesNotMatch(result.stdout + result.stderr, /PRIVATE_CHILD_SENTINEL/);
+  assert.deepEqual(
+    [...result.stdout.matchAll(/hpm_runtime_child_failed_stage=([a-z_]+)/g)].map(
+      (match) => match[1]
+    ),
+    ['output_limit', 'output_limit', 'child_exit', 'stdout_decode', 'deadline', 'deadline']
+  );
 });
 
 test('runtime boundary hook preserves encrypted receipt order before rollback', () => {

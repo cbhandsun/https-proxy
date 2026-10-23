@@ -31,28 +31,40 @@ function Invoke-HpmBoundedRuntimeChild {
     $started = $false
     $failure = $false
     $memory = [IO.MemoryStream]::new()
+    $boundaryStage = 'job_type'
     try {
         if (-not ('HpmRuntimeBoundaryJob' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'nsis-runtime-boundary-job.cs') -ErrorAction Stop }
+        $boundaryStage = 'job_create'
         $job = [HpmRuntimeBoundaryJob]::new()
         $clock = [Diagnostics.Stopwatch]::StartNew()
+        $boundaryStage = 'process_start'
         if (-not $process.Start()) { throw 'invalid' }
         $started = $true
+        $boundaryStage = 'job_assign'
         $job.Assign($process)
         # The child must not execute product code or spawn before job assignment.
+        $boundaryStage = 'stdin_grant'
         $process.StandardInput.Write('1')
         $process.StandardInput.Close()
+        $boundaryStage = 'pipe_drain'
         $streams = @(
             @{ stream = $process.StandardOutput.BaseStream; buffer = [byte[]]::new(1024); count = 0; ended = $false; task = $null; output = $true },
             @{ stream = $process.StandardError.BaseStream; buffer = [byte[]]::new(1024); count = 0; ended = $false; task = $null; output = $false }
         )
         foreach ($item in $streams) { $item.task = $item.stream.ReadAsync($item.buffer, 0, $item.buffer.Length) }
         do {
-            if ($clock.ElapsedMilliseconds -ge $TimeoutMilliseconds) { throw 'invalid' }
+            if ($clock.ElapsedMilliseconds -ge $TimeoutMilliseconds) {
+                $boundaryStage = 'deadline'
+                throw 'invalid'
+            }
             foreach ($item in $streams) {
                 if (-not $item.ended -and $item.task.IsCompleted) {
                     $count = $item.task.GetAwaiter().GetResult()
                     $item.count += $count
-                    if ($item.count -gt 4096) { throw 'invalid' }
+                    if ($item.count -gt 4096) {
+                        $boundaryStage = 'output_limit'
+                        throw 'invalid'
+                    }
                     if ($count -eq 0) { $item.ended = $true } else {
                         if ($item.output) { $memory.Write($item.buffer, 0, $count) }
                         $item.task = $item.stream.ReadAsync($item.buffer, 0, $item.buffer.Length)
@@ -62,9 +74,14 @@ function Invoke-HpmBoundedRuntimeChild {
             if ($process.HasExited -and $streams[0].ended -and $streams[1].ended) { break }
             [Threading.Thread]::Sleep(10)
         } while ($true)
+        $boundaryStage = 'child_exit'
         if ($process.ExitCode -ne 0) { throw 'invalid' }
+        $boundaryStage = 'stdout_decode'
         $result = [Text.UTF8Encoding]::new($false, $true).GetString($memory.ToArray())
-    } catch { $failure = $true } finally {
+    } catch {
+        $failure = $true
+        Write-Information ('hpm_runtime_child_failed_stage=' + $boundaryStage) -InformationAction Continue
+    } finally {
         # Job closure kills the entire owned tree even when the parent exited
         # while a descendant retained a pipe. No arbitrary PID is ever killed.
         if ($null -ne $job) {
