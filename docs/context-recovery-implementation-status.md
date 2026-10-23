@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：c7a7d1aa 托管终态与快照重复准入修复
+
+Verify `39888650504` 已终态失败：coverage、源码质量、Rust、集成及 unit 0／1／3 通过，unit 2 的材料夹具仍触发原 25000ms 期限。Disposable `39888650440` 的 source-gates 也失败，N08／N09 未运行；其失败为 chat WBIPC long-persistent 在原 5000ms 请求期限到期（5003ms），不是完整验收通过。该 job 的 499 条 owner-stage 记录均通过严格解析；包含多次运行，不混作单次请求。失败前可见 engine execute 的最高记录 1210ms，其他阶段仍有开销，不能据此把根因单独归到锚点或快照。
+
+已修复 metadata snapshot 对同一 v3 reference 的重复解析与库存核对：完整 hydrate 仍验证库存、全部原文密文、摘要与根状态，再从该次验证结果核对绝对到期时间；无跨事务缓存。新回归修改前明确失败（库存核对 2 次），修改后确认每次 snapshot 只核对 1 次，并继续拒绝重新认证后的到期错配、损坏密文与缺失库存。统一单元入口已包含该文件。
+
+本地限定内存的该文件 **48/48** 通过，明确排除两项真实 encrypted-worker 测试；此前误跑全文件的结果是 48 通过、两项原生存储不可用失败，不作为原生或完整验收证据。内存 SQLite 每样本 20 次快照、三组基线／候选为 241.20／221.85、237.25／195.68、231.17／212.66ms，仅证明本机该微基准有收益，不证明托管 5 秒期限或整体验收已修复。证据为 `snapshot-single-admission-before-v1.log`、`snapshot-single-admission-memory-v1.log` 与 `benchmark-snapshot-single-admission-v2.json`。原有期限、负载、CI、认证与 ACK 条件保持；材料阶段诊断与本候选仍待同源码托管复验。
+
 ## 2026-10-22：c7a7d1aa 托管中间证据与材料夹具超时诊断
 
 候选已推送，Verify `39888650504` 与 disposable Windows `39888650440` 使用同一源码。当前 Verify 源码质量、Rust、集成及 unit 0／1／3 通过；unit 2 失败，不能授予完整 Verify。失败仅定位到 `shared-hosted-materials.test.js` 的 PowerShell 文件系统夹具触发原 25000ms 子进程期限，尚无内部阶段，不能归因于 Add-Type、启动或清理。该夹具不执行网络、证书、注册表或持久存储操作。覆盖率与 disposable source-gates 仍在运行；运行矩阵尚无资格。

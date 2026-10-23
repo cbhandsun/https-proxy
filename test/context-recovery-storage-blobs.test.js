@@ -130,6 +130,7 @@ function fixture(afterWrite = () => {}, rootScope) {
     cipher,
     context,
     execute: (request) => store.execute(request),
+    snapshot: () => store.snapshot(),
     save: (state, revision = 0, target = scope) =>
       store.execute({
         operation: 'save',
@@ -191,6 +192,48 @@ const checkpointPayloads = (state) =>
     sourceId,
     output,
   }));
+
+test('snapshots authenticate each reference inventory once and recheck expiry and ciphertext', (t) => {
+  const f = fixture();
+  try {
+    assert.equal(f.snapshot().scopes.length, 0);
+    const state = checkpoint();
+    f.execute(stateRequest(f, referenceStateFromCheckpoint(state), checkpointPayloads(state)));
+    const prepare = f.database.prepare.bind(f.database);
+    let inventories = 0;
+    t.mock.method(f.database, 'prepare', (sql) => {
+      if (sql.startsWith('SELECT blob_id,created_at,expires_at,length(envelope)')) inventories++;
+      return prepare(sql);
+    });
+    for (let index = 0; index < 2; index++) {
+      inventories = 0;
+      assert.equal(f.snapshot().scopes[0].expiresAt, state.root.expiresAt);
+      assert.equal(inventories, 1, 'one authenticated inventory per snapshot; no cross-call cache');
+    }
+    const row = f.row();
+    const opened = f.cipher.open(f.context(row), row.envelope);
+    const changed = { ...row, expires_at: row.expires_at - 1 };
+    f.database
+      .prepare('UPDATE recovery_state SET expires_at=?,envelope=? WHERE scope=?')
+      .run(changed.expires_at, f.cipher.seal(f.context(changed), opened), f.scope);
+    assert.throws(() => f.snapshot(), unavailable);
+    f.database
+      .prepare('UPDATE recovery_state SET expires_at=?,envelope=? WHERE scope=?')
+      .run(row.expires_at, row.envelope, f.scope);
+    assert.equal(f.snapshot().scopes.length, 1);
+    const blob = f.database.prepare('SELECT * FROM recovery_blob WHERE scope=?').get(f.scope);
+    const corrupt = Buffer.from(blob.envelope);
+    corrupt[corrupt.length - 1] ^= 1;
+    f.database
+      .prepare('UPDATE recovery_blob SET envelope=? WHERE scope=? AND blob_id=?')
+      .run(corrupt, f.scope, blob.blob_id);
+    for (let index = 0; index < 2; index++) assert.throws(() => f.snapshot(), unavailable);
+    f.database.prepare('DELETE FROM recovery_blob WHERE scope=?').run(f.scope);
+    assert.throws(() => f.snapshot(), unavailable);
+  } finally {
+    f.close();
+  }
+});
 
 test('reader settlement normalizes reserved reference input once while preserving complete validation', () => {
   const state = checkpoint();
