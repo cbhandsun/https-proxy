@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：完整 Verify 七项通过，单独更新 Tokio 修复审计阻塞
+
+`d2e6fe05` 的 Verify `39971570468` 终态 failure，coverage、四个 unit 分片、integration 和 node-quality 七个 job 全部 success；Rust job `120475330106` 失败于 Windows Rust audit，固定诊断为 `unsound:RUSTSEC-2026-0386:tokio@1.52.3`。该次实际存储原有回归和覆盖率通过，但不据此宣称此前所有长尾永久消除；完整 disposable `39971570600` 最近仍运行。
+
+核对 RustSec 官方公告，修复分支包含 Tokio >=1.53.3。候选只将 Cargo.lock 的 Tokio 更新为 1.53.3 及对应 registry 校验和，保留其他版本与依赖边；初次隔离解析产生的无关 windows-sys 边变化未采用，最小锁文件在隔离 HEAD manifest 上 cargo tree --locked 成功。用户 Cargo.toml 未改动或暂存。cargo audit 返回 0、漏洞列表为空、Tokio 警告为空；仓库原 Windows 审计入口通过，252 个目标包、5 项原有信息提示、锁文件摘要前后不变；既有审计治理回归通过。实际构建、Clippy 和 Rust 测试仍须新候选托管验证，没有禁用门禁、调整 baseline 或在本机启动产品／DPAPI／安装器／注册表／防火墙。整体目标未完成。
+
 ## 2026-10-23：细分管理读回失败，保持原两秒请求期限
 
 规范 profiles 修复后的托管 N09 仍返回 118，尚不能区分 GET 传输、解密耗时或返回内容。候选只将该阶段失败分为固定 127（原管理 HTTP 定时器期限）、128（其他传输／解码）、129（非 200）、130（返回内容或一致性拒绝）；原一次 POST、两次配置 GET、所有配置／身份／隔离断言与期限保持，不披露配置、异常或响应。父边界及 primary-phase parser 只接受完整固定格式和有限阶段码，131 及附加文本继续拒绝。
