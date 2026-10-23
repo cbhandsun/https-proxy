@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：资源实验源码独立 Verify 全绿，业务诊断解耦准备
+
+`41fb9a9c5a67a878f821456fdaf6dbd318f40239` 的独立 Verify `39920379670` 八个 job 全部成功，包括 coverage `120303911855`。同一源码 disposable `39920379860` 的 source-gates `120303911764` 仍在 unit 阶段因 Claude long-persistent 第 0 轮请求 5002ms 失败，N08／N09 跳过。两路结果分别保留，不从独立成功认定稳定性或完整资格。终态日志已按 job ID 私有封存。资源对照 `39920379859` 两组完整实验仍在运行，未给出并发影响结论。
+
+新增独立 N08／N09 业务边界诊断工作流，复用原源码 SHA、payload／plan pin、网络保护、bounded Job 及业务断言；仅将定位任务与完整源码门禁解耦，不改动正式工作流的 `needs: source-gates`、完整 verify 或安全审计。该诊断不会授予发布或业务资格，当前仅完成工作流与治理回归，真实托管结果待收集；本地不执行真实 worker、DPAPI、注册表或业务原生环境。完整 I0–I5/H1、N01–N11 和交付边界保持。
+
 ## 2026-10-23：编码候选仍受持久请求期限阻塞，准备资源对照
 
 `1e5b0f103c6b0eff4ac9c0ff003950066bb1eecf` 的 Verify `39918613152` 七个 job 成功，coverage `120298099314` 失败于 Chat long-persistent 第 0 轮的发布等待，5014ms 触发原 5000ms 期限。disposable `39918613280` source-gates `120298099656` 在 unit 阶段失败于 Chat long-persistent 第 1 轮请求，5000ms；N08／N09 跳过，因此 stdin 编码修复尚无托管业务效果结论。标准暂存已按此提交重建，536 份源码和关键程序摘要一致，回执 `current-1e5b0f10-staging-v1.json`。日志按 job ID 私有封存。
