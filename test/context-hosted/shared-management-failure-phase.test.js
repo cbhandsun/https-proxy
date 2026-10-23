@@ -7,6 +7,14 @@ const {
 
 test('management failure classifier emits fixed codes without reading supplied error content', () => {
   assert.equal(managementFailurePhase({ code: 'HPM_DAEMON_HTTP_DEADLINE' }), 185);
+  for (const [suffix, expected] of [
+    ['CONNECTION_REFUSED', 191],
+    ['CONNECTION_RESET', 192],
+    ['ABORTED', 193],
+    ['INVALID_REPLY', 194],
+    ['REPLY_LIMIT', 195],
+  ])
+    assert.equal(managementFailurePhase({ code: 'HPM_DAEMON_HTTP_' + suffix }), expected);
   let traps = 0;
   const getter = {
     get code() {

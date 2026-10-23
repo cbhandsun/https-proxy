@@ -78,7 +78,7 @@ function fixture() {
 test('N08 observer accepts only fixed phase codes and discloses no supplied failure details', () => {
   const phases = [],
     observe = createN08PhaseObserver((value) => phases.push(value));
-  for (const value of [71, 86, 96, ...Array.from({ length: 51 }, (_, i) => i + 140)])
+  for (const value of [71, 86, 96, ...Array.from({ length: 56 }, (_, i) => i + 140)])
     observe(value);
   for (const value of [
     undefined,
@@ -94,11 +94,11 @@ test('N08 observer accepts only fixed phase codes and discloses no supplied fail
     97,
     130,
     139,
-    191,
+    196,
     Number.MAX_SAFE_INTEGER,
   ])
     assert.throws(() => observe(value), /^Error: n08_phase_observer_rejected$/);
-  assert.equal(phases.length, 54);
+  assert.equal(phases.length, 59);
   assert.throws(
     () =>
       createN08PhaseObserver(() => {
@@ -259,7 +259,7 @@ test('N08 config save distinguishes deadline, transport, HTTP and receipt failur
   for (const [kind, expected] of [
     ['deadline', 185],
     ['transport', 186],
-    ['http', 187],
+    ['http', 170],
     ['body', 188],
   ]) {
     const phases = [];
@@ -277,7 +277,7 @@ test('N08 config save distinguishes deadline, transport, HTTP and receipt failur
       f.scenario.configureAndSeed(f.value),
       /^Error: n08_business_scenario_rejected$/
     );
-    assert.deepEqual(phases, [145, 146, expected]);
+    assert.deepEqual(phases, [145, 146, ...(kind === 'http' ? [187] : []), expected]);
   }
 });
 

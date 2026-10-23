@@ -131,6 +131,7 @@ function createBusinessScenario(input, observer) {
     }
     if (saved.status !== 200) {
       onPhase(187);
+      onPhase(seedReplyFailurePhase(saved.status));
       throw fail();
     }
     if (saved.body?.ok !== true || typeof saved.body.revision !== 'string') {

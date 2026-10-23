@@ -2,6 +2,7 @@
 
 const http = require('node:http');
 const { own, callable, dataSnapshot } = require('./context-recovery-daemon-http-boundary');
+const { nativeHttpFailureCode } = require('./context-recovery-daemon-http-failure');
 
 const ROUTES = new Set(['GET /v1/local/health', 'GET /v1/local/config', 'POST /v1/local/config']);
 const MAX_BYTES = 256 * 1024;
@@ -41,19 +42,19 @@ function createDaemonManagementHttpClient(options, httpRequest = http.request) {
     return new Promise((resolve, reject) => {
       let finished = false;
       let request;
-      const finish = (result, deadline = false) => {
+      const finish = (result, failureCode) => {
         if (finished) return;
         finished = true;
         clearTimeout(timer);
         if (result) resolve(result);
         else {
           const failure = new Error('daemon_http_request_failed');
-          if (deadline) failure.code = 'HPM_DAEMON_HTTP_DEADLINE';
+          if (failureCode) failure.code = failureCode;
           reject(failure);
         }
       };
       const timer = setTimeout(() => {
-        finish(null, true);
+        finish(null, 'HPM_DAEMON_HTTP_DEADLINE');
         request?.destroy();
       }, 2000);
       try {
@@ -73,14 +74,14 @@ function createDaemonManagementHttpClient(options, httpRequest = http.request) {
           (response) => {
             const chunks = [];
             let size = 0;
-            response.on('error', () => finish(null));
-            response.on('aborted', () => finish(null));
+            response.on('error', (error) => finish(null, nativeHttpFailureCode(error)));
+            response.on('aborted', () => finish(null, 'HPM_DAEMON_HTTP_ABORTED'));
             response.on('data', (chunk) => {
               if (finished) return;
               const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
               size += buffer.length;
               if (size > MAX_BYTES) {
-                finish(null);
+                finish(null, 'HPM_DAEMON_HTTP_REPLY_LIMIT');
                 request?.destroy();
               } else chunks.push(buffer);
             });
@@ -89,18 +90,18 @@ function createDaemonManagementHttpClient(options, httpRequest = http.request) {
               try {
                 const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
                 if (!value || typeof value !== 'object' || Array.isArray(value))
-                  return finish(null);
+                  return finish(null, 'HPM_DAEMON_HTTP_INVALID_REPLY');
                 finish({ status: response.statusCode, body: value });
               } catch {
-                finish(null);
+                finish(null, 'HPM_DAEMON_HTTP_INVALID_REPLY');
               }
             });
           }
         );
-        request.on('error', () => finish(null));
+        request.on('error', (error) => finish(null, nativeHttpFailureCode(error)));
         request.end(body);
-      } catch {
-        finish(null);
+      } catch (error) {
+        finish(null, nativeHttpFailureCode(error));
         request?.destroy();
       }
     });

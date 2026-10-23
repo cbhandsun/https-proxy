@@ -174,7 +174,10 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase) {
         mutation('http', value, state);
         if (state.holdManagementReply) return;
         if (state.transportFailure) {
-          request.emit('error', new Error('PRIVATE_TRANSPORT_SENTINEL'));
+          request.emit(
+            'error',
+            Object.assign(new Error('PRIVATE_TRANSPORT_SENTINEL'), { code: state.transportCode })
+          );
           return;
         }
         const response = new EventEmitter();
@@ -287,6 +290,8 @@ test('initial health diagnostics separate original deadline, transport, HTTP, sh
     ['http', 187],
     ['shape', 188],
     ['identity', 190],
+    ['refused', 191],
+    ['reset', 192],
   ]) {
     const phases = [];
     const f = fixture(
@@ -295,6 +300,10 @@ test('initial health diagnostics separate original deadline, transport, HTTP, sh
         if (stage !== 'http' || state.requests.at(-1)?.path !== '/v1/local/health') return;
         if (kind === 'deadline') state.holdManagementReply = true;
         if (kind === 'transport') state.transportFailure = true;
+        if (kind === 'refused' || kind === 'reset') {
+          state.transportFailure = true;
+          state.transportCode = kind === 'refused' ? 'ECONNREFUSED' : 'ECONNRESET';
+        }
         if (kind === 'http') state.statusCode = 503;
         if (kind === 'shape') delete value.runtime;
         if (kind === 'identity') value.pid++;
