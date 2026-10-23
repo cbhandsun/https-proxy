@@ -239,12 +239,48 @@ async function runDurableSaveOrRevokeAfterAck(adapter, operation) {
     // No further adapter I/O intervenes between ACK validation and forced kill.
     await forceKill(adapter, old);
     active = undefined;
+    let stopped;
+    if (operation === 'save') {
+      // The killed process may have durably settled its read reservation before
+      // termination. Observe only after kill; restart must preserve that exact
+      // durable baseline rather than treating a reservation as consumed bytes.
+      stopped = data(invoke(adapter, 'readCommittedSnapshotAfterKill', old));
+      const ackRevision = ack.accounting.revision;
+      if (
+        stopped.present !== true ||
+        stopped.evidenceLevel !== 'committed-metadata-only' ||
+        stopped.hostDurableAck !== false ||
+        !Number.isSafeInteger(ackRevision) ||
+        ackRevision < 1 ||
+        !Number.isSafeInteger(stopped.revision) ||
+        stopped.revision < ackRevision
+      )
+        throw fail();
+      accounting(consumed, { ...consumed, ...stopped });
+      if (stopped.calls < acknowledged.calls) throw fail();
+      // One durable settlement can refund at most one 16 KiB reservation.
+      // A revision equal to the signed ACK cannot contain any counter change.
+      const revisionGap = stopped.revision - ackRevision;
+      if (
+        stopped.returnedBytes < Math.max(0, acknowledged.returnedBytes - revisionGap * 16384) ||
+        (revisionGap === 0 &&
+          (stopped.calls !== acknowledged.calls ||
+            stopped.returnedBytes !== acknowledged.returnedBytes))
+      )
+        throw fail();
+    }
     active = identity(await invoke(adapter, 'restartSameBusinessHost', old));
     sameDirectory(old, active);
     if (operation === 'save') {
       const read = data(await invoke(adapter, 'readThroughBusinessHttp', active));
       if (read.exactRead !== true || read.externalToolReplays !== 0) throw fail();
-      accounting(acknowledged, read.accounting);
+      accounting({ ...acknowledged, returnedBytes: stopped.returnedBytes }, read.accounting);
+      if (
+        read.accounting.calls < stopped.calls ||
+        !Number.isSafeInteger(read.accounting.revision) ||
+        read.accounting.revision < stopped.revision
+      )
+        throw fail();
     } else {
       const denied = async () => {
         const value = data(await invoke(adapter, 'readOldReceiptThroughBusinessHttp', active));

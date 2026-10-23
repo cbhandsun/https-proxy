@@ -740,6 +740,38 @@ test('constructor and identity getters/proxies do not run', async () => {
   assert.equal(traps, 0);
   await f.adapter.close();
 });
+test('snapshot after kill is bound to a stopped owner and is unavailable before kill or after restart', async () => {
+  const f = fixture();
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  const owner = await f.adapter.startFreshBusinessHost();
+  await f.adapter.seedThroughBusinessHttp(owner);
+  assert.throws(() => f.adapter.readCommittedSnapshotAfterKill(owner), bad);
+  await f.adapter.killOwnedJob(owner);
+  assert.throws(
+    () => f.adapter.readCommittedSnapshotAfterKill({ ...owner, pid: owner.pid + 1 }),
+    bad
+  );
+  let traps = 0;
+  assert.throws(
+    () =>
+      f.adapter.readCommittedSnapshotAfterKill(
+        new Proxy(owner, {
+          ownKeys() {
+            traps++;
+            throw Error('PRIVATE_SENTINEL');
+          },
+        })
+      ),
+    bad
+  );
+  assert.equal(traps, 0);
+  assert.equal(f.adapter.readCommittedSnapshotAfterKill(owner).rootId, f.state.rootId);
+  await f.adapter.restartSameBusinessHost(owner);
+  assert.throws(() => f.adapter.readCommittedSnapshotAfterKill(owner), bad);
+  await f.adapter.close();
+  assert.throws(() => f.adapter.readCommittedSnapshotAfterKill(owner), bad);
+});
+
 test('upstream oversized, invalid UTF8 and invalid JSON fail without response writes', async () => {
   const f = fixture();
   f.adapter.bindVerifiedNetworkProof(f.proof);

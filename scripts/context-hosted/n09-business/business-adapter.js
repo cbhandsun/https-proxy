@@ -111,6 +111,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
   let proof,
     lifecycle,
     current,
+    stoppedOwner,
     snapshots,
     seeded = false,
     closed = false,
@@ -193,7 +194,12 @@ function createN09BusinessAdapter(input, trusted = {}) {
       snapshot.expiresAt !== originalBaseline.expiresAt
     )
       throw fail();
-    return { ...originalBaseline, calls: snapshot.calls, returnedBytes: snapshot.returnedBytes };
+    return {
+      ...originalBaseline,
+      calls: snapshot.calls,
+      returnedBytes: snapshot.returnedBytes,
+      revision: snapshot.revision,
+    };
   }
   function startSave() {
     if (pendingSave || phase !== 'ready') throw fail();
@@ -366,13 +372,36 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async killOwnedJob(identity) {
       gate(identity);
       const result = await client().stopLifecycle(current);
+      stoppedOwner = undefined;
+      if (
+        result?.pid === current.pid &&
+        result.treeEmpty === true &&
+        result.shutdownInvoked === false &&
+        result.semantics === 'forced_cleanup'
+      )
+        stoppedOwner = current;
       current = undefined;
       await drainSave();
       return result;
     },
+    readCommittedSnapshotAfterKill(identity) {
+      gate();
+      identity = snapshotOwnData(identity);
+      if (
+        current ||
+        !stoppedOwner ||
+        !snapshots ||
+        ['pid', 'configDir', 'runtimeDir', 'manifestSha256'].some(
+          (key) => identity[key] !== stoppedOwner[key]
+        )
+      )
+        throw fail();
+      return snapshots.read();
+    },
     async restartSameBusinessHost(previous) {
       gate();
       if (current || !seeded) throw fail();
+      stoppedOwner = undefined;
       current = await client().restartLifecycle(previous);
       const ready = await client().attestSyntheticBusiness(current);
       if (ready.ready !== true || ready.syntheticBusinessConfigured !== true) throw fail();
@@ -495,6 +524,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
               ...originalBaseline,
               calls: receipt.calls,
               returnedBytes: receipt.returnedBytes,
+              revision: receipt.revision,
             },
           });
         } catch {

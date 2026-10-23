@@ -14,6 +14,7 @@ function fixture(operation, change = () => {}) {
     expiresAt: 123456789,
     calls: 3,
     returnedBytes: 100,
+    revision: 1,
   };
   const host = (pid) => ({
     pid,
@@ -50,6 +51,13 @@ function fixture(operation, change = () => {}) {
         semantics: 'forced_cleanup',
       }),
     restartSameBusinessHost: () => result('restart', host(101)),
+    readCommittedSnapshotAfterKill: () =>
+      result('stopped', {
+        ...state,
+        present: true,
+        evidenceLevel: 'committed-metadata-only',
+        hostDurableAck: false,
+      }),
     setCombinationThroughManagement: (_owner, combination) => result('toggle-' + combination),
     readOldReceiptThroughBusinessHttp: () =>
       result('denied', { oldReceiptDenied: true, originalExposed: false, externalToolReplays: 0 }),
@@ -57,6 +65,145 @@ function fixture(operation, change = () => {}) {
   };
   return { adapter, events, state };
 }
+
+function settledSaveFixture(change = () => {}) {
+  let reads = 0;
+  return fixture('save', (name, packet) => {
+    if (name === 'ack')
+      Object.assign(packet.accounting, {
+        calls: 4,
+        returnedBytes: 16484,
+        revision: 2,
+      });
+    if (name === 'stopped')
+      Object.assign(packet, {
+        calls: 4,
+        returnedBytes: 200,
+        revision: 3,
+      });
+    if (name === 'read' && ++reads === 2)
+      Object.assign(packet.accounting, {
+        calls: 6,
+        returnedBytes: 300,
+        revision: 7,
+      });
+    change(name, packet, reads);
+  });
+}
+
+test('save preserves the authenticated state after kill when a reserved read settled before termination', async () => {
+  const f = settledSaveFixture();
+  assert.equal(
+    (await runDurableSaveOrRevokeAfterAck(f.adapter, 'save')).adapterDurableAckObserved,
+    true
+  );
+  const index = f.events.indexOf('ack');
+  assert.deepEqual(f.events.slice(index, index + 4), ['ack', 'kill-100', 'stopped', 'restart']);
+});
+
+for (const [field, value] of [
+  ['present', false],
+  ['evidenceLevel', 'unverified'],
+  ['hostDurableAck', true],
+  ['rootId', 'hbs_' + 'e'.repeat(32)],
+  ['expiresAt', 123456790],
+  ['revision', 1],
+  ['revision', Number.MAX_SAFE_INTEGER + 1],
+  ['calls', 3],
+  ['returnedBytes', 99],
+  ['returnedBytes', -1],
+])
+  test(`save rejects invalid state after kill: ${field}=${value}`, async () => {
+    const f = settledSaveFixture((name, packet) => {
+      if (name === 'stopped') packet[field] = value;
+    });
+    await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'), /n09_ack_kill_failed/);
+    assert.equal(f.events.includes('restart'), false);
+    assert.equal(f.events.at(-1), 'close');
+  });
+
+for (const [field, value] of [
+  ['calls', 3],
+  ['returnedBytes', 199],
+  ['revision', 2],
+])
+  test(`save rejects restarted ${field} rollback below the durable state after kill`, async () => {
+    const f = settledSaveFixture((name, packet, reads) => {
+      if (name === 'read' && reads === 2) packet.accounting[field] = value;
+    });
+    await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'), /n09_ack_kill_failed/);
+    assert.deepEqual(f.events.slice(-2), ['kill-101', 'close']);
+  });
+
+test('save requires an independent snapshot after kill and never accepts a missing observer', async () => {
+  const f = settledSaveFixture();
+  delete f.adapter.readCommittedSnapshotAfterKill;
+  await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'), /n09_ack_kill_failed/);
+  assert.equal(f.events.includes('restart'), false);
+  assert.equal(f.events.at(-1), 'close');
+});
+
+test('save rejects counter changes at the signed ACK revision and refunds exceeding durable settlement bounds', async () => {
+  for (const adjustment of [
+    { revision: 2 },
+    { revision: 2, calls: 5, returnedBytes: 16484 },
+    { revision: 3, returnedBytes: 100 },
+  ]) {
+    const f = settledSaveFixture((name, packet) => {
+      if (name === 'ack' && adjustment.revision === 3) packet.accounting.returnedBytes = 20000;
+      if (name === 'stopped') Object.assign(packet, adjustment);
+    });
+    await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'), /n09_ack_kill_failed/);
+    assert.equal(f.events.includes('restart'), false);
+    assert.equal(f.events.at(-1), 'close');
+  }
+});
+
+test('empty, executable and failing snapshot observations reject without native content or restart', async () => {
+  let traps = 0;
+  const proxy = new Proxy(
+    {},
+    {
+      ownKeys() {
+        traps++;
+        throw Error('PRIVATE_SENTINEL');
+      },
+    }
+  );
+  const getter = {
+    get present() {
+      traps++;
+      throw Error('PRIVATE_SENTINEL');
+    },
+  };
+  const thenGetter = {
+    get then() {
+      traps++;
+      throw Error('PRIVATE_SENTINEL');
+    },
+  };
+  for (const observation of [
+    null,
+    {},
+    proxy,
+    getter,
+    thenGetter,
+    () => {
+      throw Error('PRIVATE_SENTINEL');
+    },
+  ]) {
+    const f = settledSaveFixture();
+    f.adapter.readCommittedSnapshotAfterKill =
+      typeof observation === 'function' ? observation : () => observation;
+    await assert.rejects(
+      runDurableSaveOrRevokeAfterAck(f.adapter, 'save'),
+      /^Error: n09_ack_kill_failed$/
+    );
+    assert.equal(f.events.includes('restart'), false);
+    assert.equal(f.events.at(-1), 'close');
+  }
+  assert.equal(traps, 0);
+});
 
 for (const operation of ['save', 'revoke']) {
   test(`${operation} orchestration validates host ACK before forced kill without granting live qualification`, async () => {
@@ -72,6 +219,7 @@ for (const operation of ['save', 'revoke']) {
       'read',
       'ack',
       'kill-100',
+      ...(operation === 'save' ? ['stopped'] : []),
       'restart',
       ...after,
       'kill-101',
