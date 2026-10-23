@@ -50,6 +50,16 @@ function fixture(mutation = () => {}, onPhase) {
     configDir: path.join(ownedRoot, 'config'),
     runtimeDir: path.join(ownedRoot, 'runtime'),
   });
+  const sourceReceipt = () => ({
+    sourceId: 'hce_' + 'c'.repeat(32),
+    digest: sha(state.original),
+    bytes: Buffer.byteLength(state.original),
+    callId: 'hpa_' + sha('synthetic-capture-snapshot\0' + state.originalCallId),
+    toolName: 'n09_original',
+    argumentsDigest: sha('{}'),
+    expiresAt: state.expiresAt + 1,
+    trust: 'tool_data_not_instructions',
+  });
   const trusted = {
     isVerifiedNetworkProof: (value) => value === proof,
     createLifecycle: () => {
@@ -139,6 +149,9 @@ function fixture(mutation = () => {}, onPhase) {
           calls: state.calls,
           returnedBytes: state.returnedBytes,
           revision: state.revision,
+          capturedEvidence: state.original
+            ? [{ capturedCallId: state.originalCallId, source: sourceReceipt() }]
+            : [],
         };
       },
       close() {},
@@ -182,16 +195,7 @@ function fixture(mutation = () => {}, onPhase) {
         let request = { ...body, tools };
         result = await native(request);
         assert.equal(result.output[0].name, 'hpm_list_retained_evidence');
-        const source = {
-          sourceId: 'hce_' + 'c'.repeat(32),
-          digest: sha(state.original),
-          bytes: Buffer.byteLength(state.original),
-          callId: state.originalCallId,
-          toolName: 'n09_original',
-          argumentsDigest: sha('{}'),
-          expiresAt: state.expiresAt,
-          trust: 'tool_data_not_instructions',
-        };
+        const source = sourceReceipt();
         request = {
           ...request,
           input: [
@@ -684,5 +688,48 @@ test('synthetic upstream failures expose only their fixed request, index, page o
     assert.equal(f.state.stopped, 2);
     assert.equal(f.state.closed, 1);
     assert.equal(JSON.stringify(phases).includes('PRIVATE'), false);
+  }
+});
+
+test('restart index must preserve the exact authenticated source receipt, including scoped call ID and expiry', async () => {
+  for (const key of [
+    'sourceId',
+    'callId',
+    'expiresAt',
+    'argumentsDigest',
+    'digest',
+    'bytes',
+    'toolName',
+  ]) {
+    const phases = [];
+    const f = fixture(
+      (kind, incoming, state) => {
+        if (kind !== 'upstream' || state.sent !== 4) return;
+        const body = JSON.parse(incoming.bytes);
+        const item = body.input.find(
+          (value) => value.type === 'function_call_output' && value.call_id.startsWith('n09_list_')
+        );
+        if (!item) return;
+        const value = JSON.parse(item.output);
+        const source = value.sources[0];
+        if (key === 'expiresAt' || key === 'bytes') source[key]++;
+        else if (key === 'callId') source[key] = state.originalCallId;
+        else if (key === 'sourceId') source[key] = 'hce_' + 'd'.repeat(32);
+        else if (key === 'toolName') source[key] = 'other';
+        else source[key] = 'd'.repeat(64);
+        item.output = JSON.stringify(value);
+        incoming.bytes = Buffer.from(JSON.stringify(body));
+      },
+      (phase) => phases.push(phase)
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(
+      runCommittedObservedKill(f.adapter),
+      /^Error: n09_committed_observed_kill_failed$/
+    );
+    assert.equal(phases.at(-1), 197, key);
+    assert.equal(f.state.sent, 4);
+    assert.equal(f.state.stopped, 2);
+    assert.equal(f.state.closed, 1);
   }
 });

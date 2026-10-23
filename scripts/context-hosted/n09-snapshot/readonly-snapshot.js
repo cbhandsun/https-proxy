@@ -9,6 +9,7 @@ const {
 } = require('../../../lib/proxy/context-recovery-storage-schema');
 const { createStorageCipher } = require('../../../lib/proxy/context-recovery-storage-cipher');
 const { parseReferenceState } = require('../../../lib/proxy/context-recovery-reference-state');
+const { parseStoredEvidenceSource } = require('../../../lib/proxy/context-evidence-stored-page');
 const { storageContext } = require('../../../lib/proxy/context-recovery-storage-contract');
 const { protectWithCurrentUser } = require('../../../lib/proxy/context-recovery-key-dpapi');
 
@@ -178,6 +179,29 @@ function createDurableSnapshotReader(input, trusted = {}) {
             calls: metadata.budget.calls,
             returnedBytes: metadata.budget.returnedBytes,
             revision: context.revision,
+            capturedEvidence: metadata.snapshots.flatMap((snapshot) =>
+              snapshot.captured.map((capture) => {
+                const source = metadata.ledger.sources.find(
+                  (item) => item.sourceId === capture.sourceId
+                );
+                if (!source) throw failure();
+                const { sourceId, callId, toolName, argumentsDigest, digest, bytes, expiresAt } =
+                  source;
+                return {
+                  capturedCallId: capture.callId,
+                  source: parseStoredEvidenceSource({
+                    sourceId,
+                    callId,
+                    toolName,
+                    argumentsDigest,
+                    digest,
+                    bytes,
+                    expiresAt,
+                    trust: 'tool_data_not_instructions',
+                  }),
+                };
+              })
+            ),
           };
           // Binding is staged and published only after rollback/close/pins pass.
           result.binding = { rootId: metadata.rootId, scope: context.scope };

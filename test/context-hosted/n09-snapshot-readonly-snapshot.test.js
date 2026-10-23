@@ -26,8 +26,9 @@ const bad = { message: 'n09_readonly_snapshot_unavailable' };
 const ownedRoot = path.resolve(os.tmpdir(), 'hpm-snapshot-pure-owned');
 const options = { ownedRoot, runtimeDir: path.join(ownedRoot, 'runtime') };
 
-function reference() {
-  const runtime = createContextRecoverySessions({ now: () => 100 });
+function reference(withEvidence = false) {
+  let time = 100;
+  const runtime = createContextRecoverySessions({ now: () => time });
   try {
     runtime.configure(true);
     const session = runtime.begin({
@@ -36,11 +37,62 @@ function reference() {
       target: 'fixture',
       history: [{ role: 'user', content: 'synthetic question' }],
     });
-    assert.equal(
-      session.complete([{ role: 'assistant', content: 'synthetic answer' }], [], 'fixture-response')
-        .ok,
-      true
-    );
+    if (withEvidence) {
+      const output = {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'original-call',
+            type: 'function',
+            function: { name: 'n09_original', arguments: '{}' },
+          },
+        ],
+      };
+      assert.equal(
+        session.complete(
+          [output],
+          [
+            {
+              callId: 'original-call',
+              toolName: 'n09_original',
+              arguments: {},
+              completed: true,
+              output: '',
+            },
+          ],
+          'fixture-call'
+        ).ok,
+        true
+      );
+      time++;
+      const next = runtime.begin(
+        {
+          principal: 'fixture-owner',
+          protocol: 'chat',
+          target: 'fixture',
+          history: [
+            { role: 'user', content: 'synthetic question' },
+            output,
+            { role: 'tool', tool_call_id: 'original-call', content: 'synthetic original' },
+          ],
+        },
+        [{ callId: 'original-call', output: 'synthetic original' }]
+      );
+      assert.equal(next.ok, true);
+      assert.equal(
+        next.complete([{ role: 'assistant', content: 'done' }], [], 'fixture-done').ok,
+        true
+      );
+    } else
+      assert.equal(
+        session.complete(
+          [{ role: 'assistant', content: 'synthetic answer' }],
+          [],
+          'fixture-response'
+        ).ok,
+        true
+      );
     return referenceStateFromCheckpoint(
       createRootCheckpoint(exportContextRecoveryRoot(runtime, session.snapshotId), [])
     );
@@ -48,10 +100,14 @@ function reference() {
     runtime.close();
   }
 }
-function fixture() {
+function fixture(withEvidence = false) {
   const key = Buffer.alloc(32, 7).toString('base64');
   const cipher = createStorageCipher(key);
-  const state = { reference: reference(), version: 3, kind: 'recovery-referenced-checkpoint' };
+  const state = {
+    reference: reference(withEvidence),
+    version: 3,
+    kind: 'recovery-referenced-checkpoint',
+  };
   const storeId = 'a'.repeat(32),
     scope = 'b'.repeat(64);
   const context = {
@@ -157,6 +213,34 @@ function fixture() {
   return f;
 }
 
+test('snapshot projects authenticated captured receipts with branch-scoped identities and original source expiry', () => {
+  const f = fixture(true);
+  const reader = f.reader();
+  const result = reader.read();
+  assert.equal(result.capturedEvidence.length, 1);
+  const receipt = result.capturedEvidence[0];
+  assert.equal(receipt.capturedCallId, 'original-call');
+  assert.match(receipt.source.callId, /^hpa_[a-f0-9]{64}$/);
+  assert.notEqual(receipt.source.callId, receipt.capturedCallId);
+  assert.equal(receipt.source.expiresAt, result.expiresAt + 1);
+  assert.equal(
+    receipt.source.digest,
+    require('node:crypto').createHash('sha256').update('synthetic original').digest('hex')
+  );
+  assert.equal(JSON.stringify(receipt).includes('synthetic original'), false);
+  assert.deepEqual(Object.keys(receipt.source).sort(), [
+    'argumentsDigest',
+    'bytes',
+    'callId',
+    'digest',
+    'expiresAt',
+    'sourceId',
+    'toolName',
+    'trust',
+  ]);
+  reader.close();
+});
+
 test('snapshot accepts first persistence after root creation without extending expiry', () => {
   const f = fixture();
   const metadata = f.state.reference.metadata;
@@ -194,6 +278,7 @@ test('authenticated committed metadata only, revision update and pinned root', (
     Object.keys(first).sort(),
     [
       'calls',
+      'capturedEvidence',
       'evidenceLevel',
       'expiresAt',
       'hostDurableAck',
@@ -204,6 +289,7 @@ test('authenticated committed metadata only, revision update and pinned root', (
     ].sort()
   );
   assert.equal(first.hostDurableAck, false);
+  assert.deepEqual(first.capturedEvidence, []);
   assert.equal(first.evidenceLevel, 'committed-metadata-only');
   assert.equal(first.rootId, f.state.reference.metadata.rootId);
   assert.equal(first.calls, f.state.reference.metadata.budget.calls);

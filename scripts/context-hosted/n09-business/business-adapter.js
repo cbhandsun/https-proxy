@@ -128,6 +128,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     upstreamRequests = 0;
   let pendingSave;
   let upstreamFailurePhase;
+  let baselineSource;
   let validatedReadCount = 0,
     publicGenerationCount = 0,
     clearAckCount = 0,
@@ -318,7 +319,18 @@ function createN09BusinessAdapter(input, trusted = {}) {
       if (
         snapshot.present !== true ||
         snapshot.evidenceLevel !== 'committed-metadata-only' ||
-        snapshot.hostDurableAck !== false
+        snapshot.hostDurableAck !== false ||
+        !Array.isArray(snapshot.capturedEvidence) ||
+        snapshot.capturedEvidence.length !== 1 ||
+        snapshot.capturedEvidence[0].capturedCallId !== 'n09_original_' + nonce
+      )
+        throw fail();
+      baselineSource = parseStoredEvidenceSource(snapshot.capturedEvidence[0].source);
+      if (
+        baselineSource.digest !== originalSha256 ||
+        baselineSource.toolName !== ORIGINAL ||
+        baselineSource.argumentsDigest !== sha('{}') ||
+        baselineSource.bytes !== Buffer.byteLength(original)
       )
         throw fail();
       originalBaseline = Object.freeze({
@@ -570,11 +582,11 @@ function createN09BusinessAdapter(input, trusted = {}) {
             !/^hce_[a-f0-9]{32}$/.test(source?.sourceId) ||
             source.digest !== originalSha256 ||
             source.toolName !== ORIGINAL ||
-            source.callId !== 'n09_original_' + nonce ||
             source.argumentsDigest !== sha('{}') ||
             source.bytes !== Buffer.byteLength(original) ||
             !originalBaseline ||
-            source.expiresAt > originalBaseline.expiresAt
+            !baselineSource ||
+            Object.keys(baselineSource).some((key) => source[key] !== baselineSource[key])
           )
             throw fail();
           return reply(
