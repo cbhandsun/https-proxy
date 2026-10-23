@@ -53,6 +53,12 @@ const reviewWorkflow = fs
   .readFileSync(path.join(root, '.github/workflows/windows-installer-lifecycle-review.yml'), 'utf8')
   .replaceAll('\r\n', '\n');
 assert.match(reviewWorkflow, /push:\n {4}branches:\n {6}- acceptance\/windows-lifecycle-20261022/);
+assert.match(reviewWorkflow, /\n {6}- acceptance\/windows-lifecycle\/\*\*\n/);
+assert.match(reviewWorkflow, /github\.event\.created == true/);
+assert.match(reviewWorkflow, /github\.event\.forced == false/);
+assert.match(reviewWorkflow, /github\.event\.deleted == false/);
+assert.match(reviewWorkflow, /github\.event\.before == '0{40}'/);
+assert.match(reviewWorkflow, /github\.repository == 'cbhandsun\/https-proxy'/);
 assert.match(reviewWorkflow, /contents: read/);
 assert.match(reviewWorkflow, /uses: \.\/\.github\/workflows\/windows-installer-lifecycle.yml/);
 assert.match(reviewWorkflow, /baseline_sha: 2295c452888449e9728b3ddcc2f80f31e9433e69/);

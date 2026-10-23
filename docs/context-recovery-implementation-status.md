@@ -1,5 +1,9 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：安装 mechanics 改用新建专用验收分支
+
+安装 review workflow 保留旧精确分支，并接受 `acceptance/windows-lifecycle/**` 的普通新分支创建事件；限定本仓库、created、非 forced/deleted 和全零 before。不覆盖已有旧分支，不改默认分支，也不上传私有旧 installer。固定基线仍为清理后的 `2295c452888449e9728b3ddcc2f80f31e9433e69`。此路由验证源码重建的安装／升级／回滚 mechanics，不能替代原始旧安装包及加密迁移资格。扩大回归包括全部托管基础设施及安装 wrapper，共 301/301，零失败、取消或跳过，证据 `hosted-diagnostics-expanded-v1.log`；真实 disposable Windows 新分支验收待启动。
+
 ## 2026-10-22：修复 N09 启动 gate 的固定路径不一致
 
 hosted controller 使用 candidate 中经过哈希校验的原始启动 gate，但 lifecycle 将 controller 路径改为临时复制件后，重启捕获检查仍按该复制目录推导 gate，期待了一个未复制的路径。现在 lifecycle 明确接收 candidate 和 gate 摘要，在构造前后验证该固定文件，并且只将复制脚本中的单一 gate 路径表达式替换为它；原启动 gate、argv/env、Job、网络及期限不变，未放宽成多路径白名单。回归旧代码 1 失败／3 通过，修复后 composition、closure、hosted boundary 与 source identity 四文件 18/18，零失败、取消或跳过。证据 `n09-gate-path-before-v1.log`、`n09-gate-path-after-v1.log`；尚待新源码的真实 hosted N09。
