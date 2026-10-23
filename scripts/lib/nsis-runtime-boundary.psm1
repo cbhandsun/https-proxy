@@ -38,6 +38,9 @@ function Invoke-HpmBoundedRuntimeChild {
         $job = [HpmRuntimeBoundaryJob]::new()
         $clock = [Diagnostics.Stopwatch]::StartNew()
         $boundaryStage = 'process_start'
+        # The assignment grant is exactly one ASCII byte. Do not inherit a
+        # caller/console UTF-8 preamble that the fixed child must reject.
+        $StartInfo.StandardInputEncoding = [Text.UTF8Encoding]::new($false)
         if (-not $process.Start()) { throw 'invalid' }
         $started = $true
         $boundaryStage = 'job_assign'

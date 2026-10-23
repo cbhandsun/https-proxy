@@ -67,7 +67,9 @@ function Invoke-Child {
     $start.RedirectStandardInput = $true
     $start.RedirectStandardOutput = $true
     $start.RedirectStandardError = $true
-    $start.StandardInputEncoding = [Text.UTF8Encoding]::new($false)
+    # Simulate a caller inheriting a UTF-8 console encoding with a BOM. The
+    # shared Job boundary owns the exact one-byte grant and must override it.
+    $start.StandardInputEncoding = [Text.UTF8Encoding]::new($true)
     $start.Environment.Remove('NODE_OPTIONS') | Out-Null
     $start.Environment.Remove('NODE_PATH') | Out-Null
     $start.Environment['HPM_CHILD_PID_FILE'] = $pidFile
