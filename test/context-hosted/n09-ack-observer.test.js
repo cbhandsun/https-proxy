@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createN09HostAckObserver } = require('../../scripts/context-hosted/n09-ack/observer');
+const { validateN09SettledBudget } = require('../../scripts/context-hosted/n09-ack/settled-budget');
 const { createRecoveryDurableAck } = require('../../lib/proxy/context-recovery-durable-ack');
 const {
   createContextRecoverySessions,
@@ -349,4 +350,79 @@ test('unknown or regressing ACK metadata cannot grant another root or restore bu
   );
   budget.observer.createRecoveryDurableAck(larger, 2);
   assert.throws(() => budget.observer.createRecoveryDurableAck(budget.state, 3), safe);
+});
+
+test('a durable reservation may settle its bounded unused bytes before the next publication ACK', async (t) => {
+  const f = setup(t);
+  const withBudget = (budget) =>
+    createReferenceState(
+      { ...f.state.metadata, budget: { ...f.state.metadata.budget, ...budget } },
+      f.state.stagedSources,
+      f.state.publications
+    );
+  const reserved = withBudget({ calls: 1, returnedBytes: 16384 });
+  f.observer.createRecoveryDurableAck(reserved, 2);
+  const pending = f.observer.armSave(f.command('arm-save', { minRevision: 2 }));
+  void pending.catch(() => {});
+  const settled = withBudget({ calls: 1, returnedBytes: 512 });
+  f.observer.createRecoveryDurableAck(settled, 4);
+  const ack = await pending;
+  assert.equal(ack.revision, 4);
+  assert.equal(ack.calls, 1);
+  assert.equal(ack.returnedBytes, 512);
+});
+
+test('byte refunds require a skipped settlement revision and the canonical settlement bounds', (t) => {
+  for (const invalid of ['no-settlement-revision', 'excessive-refund', 'calls-changed']) {
+    const f = setup(t);
+    const state = (budget) =>
+      createReferenceState(
+        { ...f.state.metadata, budget: { ...f.state.metadata.budget, ...budget } },
+        f.state.stagedSources,
+        f.state.publications
+      );
+    f.observer.createRecoveryDurableAck(state({ calls: 2, returnedBytes: 20000 }), 2);
+    const budget = {
+      calls: invalid === 'calls-changed' ? 3 : 2,
+      returnedBytes: invalid === 'excessive-refund' ? 1 : 4000,
+      successfulReads: 0,
+    };
+    assert.throws(
+      () =>
+        f.observer.createRecoveryDurableAck(
+          state(budget),
+          invalid === 'no-settlement-revision' ? 3 : 4
+        ),
+      safe,
+      invalid
+    );
+  }
+});
+
+test('settlement observation rejects unknown inputs and executable metadata without inspecting it', () => {
+  const state = reference();
+  let touched = 0;
+  const hostile = Object.defineProperty({}, 'metadata', {
+    enumerable: true,
+    get() {
+      touched++;
+      throw new Error('private sentinel');
+    },
+  });
+  const proxy = new Proxy(
+    {},
+    {
+      ownKeys() {
+        touched++;
+        throw new Error('private proxy');
+      },
+    }
+  );
+  for (const input of [null, {}, hostile, proxy]) {
+    assert.throws(() => validateN09SettledBudget(input, state, 2), safe);
+    assert.throws(() => validateN09SettledBudget(state, input, 2), safe);
+  }
+  for (const gap of [undefined, 0, 1, -1, 2.5, Infinity, Number.MAX_SAFE_INTEGER + 1])
+    assert.throws(() => validateN09SettledBudget(state, state, gap), safe);
+  assert.equal(touched, 0);
 });

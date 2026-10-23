@@ -2,6 +2,7 @@
 
 const { types } = require('node:util');
 const { parseReferenceState } = require('../../../lib/proxy/context-recovery-reference-state');
+const { validateN09SettledBudget } = require('./settled-budget');
 const {
   fields,
   fail,
@@ -28,7 +29,7 @@ function createN09HostAckObserver(input) {
       types.isAsyncFunction(original)
     )
       throw fail();
-    let sessions, revoke, observed, pending, cancelRevoke;
+    let sessions, revoke, observed, observedReference, pending, cancelRevoke;
     let closed = false,
       failed = false,
       revoked = false,
@@ -52,6 +53,7 @@ function createN09HostAckObserver(input) {
     function abort() {
       failed = true;
       observed = undefined;
+      observedReference = undefined;
       rejectPending();
     }
     function command(input, operation) {
@@ -143,15 +145,19 @@ function createN09HostAckObserver(input) {
               state.expiresAt !== observed.expiresAt ||
               revision <= observed.revision ||
               state.calls < observed.calls ||
-              state.returnedBytes < observed.returnedBytes)
+              metadata.budget.successfulReads < observedReference.metadata.budget.successfulReads ||
+              metadata.ledger.readCount < observedReference.metadata.ledger.readCount)
           )
             throw fail();
+          if (observed && state.returnedBytes < observed.returnedBytes)
+            validateN09SettledBudget(observedReference, reference, revision - observed.revision);
           // The exact trusted producer runs first. No observation is published on failure.
           const token = Reflect.apply(original, undefined, [reference, revision]);
           fields(token, []);
           if (!Object.isFrozen(token)) throw fail();
           available();
           observed = state;
+          observedReference = reference;
           if (pending && revision > pending.command.minRevision) {
             const completed = pending;
             const result = receipt(completed.command, 'host-save-completed', state);
@@ -221,7 +227,7 @@ function createN09HostAckObserver(input) {
       close() {
         closed = true;
         rejectPending();
-        observed = sessions = revoke = undefined;
+        observed = observedReference = sessions = revoke = undefined;
       },
     });
   } catch {
