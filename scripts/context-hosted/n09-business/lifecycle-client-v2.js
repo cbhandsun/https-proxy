@@ -8,6 +8,8 @@ const {
 } = require('../n09-ipc/lifecycle-channel.js');
 const { createSameDirectoryLease } = require('../n09-ipc/same-directory-lease.js');
 const { createClearClient } = require('../n09-ipc/clear-client.js');
+const { createN09HostAckClient } = require('../n09-ack/bootstrap-client.js');
+const { fields, discardN09PromiseRejection } = require('../n09-ack/contract.js');
 const {
   createDaemonManagementHttpClient,
 } = require('../../../scripts/lib/context-recovery-daemon-http-client.js');
@@ -18,9 +20,10 @@ function createClientUnsafe(input, dependencies) {
   dependencies = snapshot(dependencies);
   for (const key of Object.keys(dependencies))
     if (
-      !['spawn', 'httpRequest'].includes(key) ||
+      !['spawn', 'httpRequest', 'createHostAckClient'].includes(key) ||
       typeof dependencies[key] !== 'function' ||
-      types.isProxy(dependencies[key])
+      types.isProxy(dependencies[key]) ||
+      (key === 'createHostAckClient' && types.isAsyncFunction(dependencies[key]))
     )
       throw fail();
   // Dedicated synthetic-only token: no daily credentials and no receipt/API getter.
@@ -31,6 +34,12 @@ function createClientUnsafe(input, dependencies) {
   let current;
   let currentLeaseId;
   let syntheticBusiness;
+  let hostAck;
+  function closeHostAck() {
+    const resource = hostAck;
+    hostAck = undefined;
+    if (resource) resource.close();
+  }
   const handles = new WeakMap();
   const removed = new Set();
   const getChannel = () => {
@@ -148,6 +157,8 @@ function createClientUnsafe(input, dependencies) {
       const identity = owner(input);
       const result = await lease.killOwnedJob(identity);
       current = undefined;
+      // Never insert mailbox or management I/O before the original forced kill.
+      closeHostAck();
       return result;
     },
     async restartLifecycle(input) {
@@ -332,6 +343,65 @@ function createClientUnsafe(input, dependencies) {
         }
       };
     },
+    getHostAckClient(input) {
+      const identity = owner(input);
+      if (hostAck) return hostAck.facade;
+      const resource = (dependencies.createHostAckClient ?? createN09HostAckClient)({
+        runtimeDir: identity.runtimeDir,
+        pid: identity.pid,
+        manifestSha256: identity.manifestSha256,
+        token,
+      });
+      if (types.isPromise(resource)) {
+        discardN09PromiseRejection(resource);
+        throw fail();
+      }
+      const methods = fields(resource, ['submit', 'readArmed', 'readReceipt', 'close']);
+      for (const method of Object.values(methods))
+        if (typeof method !== 'function' || types.isProxy(method) || types.isAsyncFunction(method))
+          throw fail();
+      let resourceClosed = false,
+        resourceCloseFailed = false;
+      function invoke(name, args) {
+        const value = Reflect.apply(methods[name], resource, args);
+        if (types.isPromise(value)) {
+          discardN09PromiseRejection(value);
+          throw fail();
+        }
+        return value;
+      }
+      function close() {
+        if (resourceClosed) {
+          if (resourceCloseFailed) throw fail();
+          return;
+        }
+        resourceClosed = true;
+        try {
+          if (invoke('close', []) !== undefined) throw fail();
+        } catch {
+          resourceCloseFailed = true;
+          throw fail();
+        }
+      }
+      const facade = Object.freeze(
+        Object.fromEntries(
+          Object.keys(methods).map((name) => [
+            name,
+            (...args) => {
+              try {
+                owner(identity);
+                if (resourceClosed || hostAck?.facade !== facade) throw fail();
+                return name === 'close' ? close() : invoke(name, args);
+              } catch {
+                throw fail();
+              }
+            },
+          ])
+        )
+      );
+      hostAck = { facade, close };
+      return facade;
+    },
     async setCombination(input, combination) {
       const identity = owner(input);
       if (!['00', '01', '10', '11'].includes(combination)) throw fail();
@@ -426,6 +496,11 @@ function createClientUnsafe(input, dependencies) {
       }
       try {
         if (channel && (await channel.close()) !== true) failed = true;
+      } catch {
+        failed = true;
+      }
+      try {
+        closeHostAck();
       } catch {
         failed = true;
       }

@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：保存／撤销 ACK 已接入业务与四场景托管入口，真实运行待验
+
+lifecycle client 通过私有合成 token 验证当前 PID 的 bootstrap，延迟创建签名 mailbox client，不公开 token／派生密钥。旧 PID 句柄在停止后失效；只有原强制退出完成后才关闭通道。同目录新 PID 使用新的 bootstrap 和客户端。业务能力获取保持被动；启动、播种并精确读回之后，以只读快照作为命令前置条件，保存必须先收到 signed armed，再发起真实业务请求，最终确认只接受原生产者签名回执，撤销调用原 sessions 的 revokeAsync，不发送替代 HTTP。
+
+最终 ACK 后不读取快照或管理接口，直接进入原 Job 强杀。保存 HTTP 的成功／失败处理器立即安装，ACK 前已知业务失败会拒绝；强杀之后才回收尚未结束的请求，避免等待响应完成冒充保存边界。armed 与最终回执共用原 15 秒预算。托管入口现在依次运行 committed、clear、save、revoke 四个独立适配器场景，原 120 秒外层期限保持；保存／撤销的结果仍为 adapter-orchestration-only，不能授予真实宿主或完整 N09 资格。
+
+本地合成证据：托管基础设施及原控制器回归 366/366（`n09-ack-full-wiring-v2.log`）；随后补充被动能力闭包的错误脱敏及回归，业务文件 18/18（`n09-ack-callable-sanitization-v1.log`），两组不能累加为一次完整测试。新测试已进入统一 unit discovery，完整候选闭包 99 文件离线核验通过。未运行本机持久存储 worker、DPAPI、注册表、真实 daemon 或真实模型，也没有生产启用。真实 Windows 托管验证、持久存储延迟与清理 EBUSY 根因、全天容量、私有原安装包迁移及 N01–N11 完整交付仍未完成，原 I0–I5/H1 范围保持。
+
 ## 2026-10-22：启动门与重启控制器已接入宿主观察器，业务确认消费仍待接入
 
 新增 bootstrap 合约、固定宿主安装器与纯控制器转换器。专用托管 N09 控制器在原 Job.Assign 成功后、原 stdin grant 前写入不可覆盖的 `bootstrap-<pid>.json`；同目录重启在同一位置按新 PID 写新 epoch。文件只包含源码 pins、身份与 HMAC，不写 token 或派生通道密钥。PowerShell 使用原合成 management token 签名，Node 按独立域派生 mailbox key；真实 PowerShell 的模拟文件用例验证了双方 JSON 顺序、UTF8／ASCII、签名及派生结果一致。重放写入失败且原计划不变。
@@ -8,7 +16,7 @@
 
 全部托管基础设施、原控制器与安装 PowerShell wrapper 扩大回归 **351/351**，零失败／取消／跳过，证据 `n09-bootstrap-expanded-v1.log`。随后补充的 hardlink／字节边界及提前导入路径按两文件复验 **6/6**，证据 `n09-bootstrap-extra-boundaries-v1.log`；两组计数不累加冒充一次完整运行。完整候选闭包离线核验 97 文件；ESLint、格式及 CI／release governance 通过。没有运行本机原生存储、DPAPI、注册表、真实 daemon 或真实模型。源码尚未取得新 hosted 运行资格。
 
-剩余接线是 lifecycle client 私下验证 bootstrap 并创建 mailbox client、业务适配器 arm → 实际恢复请求 → 签名 ACK、确认后立即强杀及同目录新 PID 复验、原始 revokeAsync 的最终确认消费。现有 committed/clear 场景不被替换成保存／撤权证明，N09 完整资格、全天容量、私有迁移及生产启用继续为未完成。
+当时尚缺 lifecycle client 私下验证 bootstrap 并创建 mailbox client、业务适配器 arm → 实际恢复请求 → 签名 ACK、确认后立即强杀及同目录新 PID 复验、原始 revokeAsync 的最终确认消费；上述接线的后续进展见本文顶部。现有 committed/clear 场景不被替换成保存／撤权证明，N09 完整资格、全天容量、私有迁移及生产启用继续为未完成。
 
 ## 2026-10-22：签名私有通道与生命周期适配已回归，安装 mechanics 托管通过
 

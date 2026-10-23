@@ -200,7 +200,7 @@ async function runClearAfterAck(adapter) {
 }
 
 // Existing-ACK-dependent orchestration, distinct from committed-file observation.
-// No current real daemon adapter supplies this callable capability. A boolean
+// The hosted business adapter supplies a passive callable capability. A boolean
 // advertisement still fails before seeding; pure adapters grant no live proof.
 async function runDurableSaveOrRevokeAfterAck(adapter, operation) {
   if (!['save', 'revoke'].includes(operation)) throw fail();

@@ -10,7 +10,7 @@ const {
   createN09LifecycleClient,
 } = require('../../scripts/context-hosted/n09-business/lifecycle-client-v2.js');
 const synthetic = () => ({ entryKey: '1'.repeat(48), upstreamKey: '2'.repeat(48) });
-function fixture(t, mutation = () => {}) {
+function fixture(t, mutation = () => {}, ackFactory) {
   const ownedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'n09-channel-pure-'));
   t.after(() => fs.rmSync(ownedRoot, { force: true, recursive: true }));
   const install = path.join(ownedRoot, 'installed');
@@ -147,7 +147,11 @@ function fixture(t, mutation = () => {}) {
       });
     return request;
   };
-  const client = createN09LifecycleClient(input, { spawn: start, httpRequest });
+  const client = createN09LifecycleClient(input, {
+    spawn: start,
+    httpRequest,
+    ...(ackFactory ? { createHostAckClient: (options) => ackFactory(options, state) } : {}),
+  });
   return { client, state, input, runtimeDir };
 }
 test('actual lifecycle composition uses fixed entry, private bootstrap token, physical pins, fixed config/clear', async (t) => {
@@ -342,4 +346,125 @@ test('unexpected management application or revision fails with fixed error', asy
     /^Error: n09_lifecycle_client_failed$/
   );
   await f.client.close();
+});
+
+test('ACK client is lazy, private, PID-bound and closed only after forced stop', async (t) => {
+  const created = [],
+    events = [];
+  const f = fixture(
+    t,
+    () => {},
+    (options, state) => {
+      assert.equal(options.token === state.token, true);
+      assert.equal(options.pid, state.pid);
+      assert.equal(options.manifestSha256, 'a'.repeat(64));
+      created.push(options.pid);
+      return {
+        submit(value) {
+          events.push(value);
+        },
+        readArmed() {
+          return true;
+        },
+        readReceipt() {
+          return null;
+        },
+        close() {
+          assert.equal(state.commands.at(-1).op, 'stop');
+          events.push('closed');
+        },
+      };
+    }
+  );
+  const first = await f.client.startLifecycle();
+  assert.equal(created.length, 0);
+  const ack = f.client.getHostAckClient(first);
+  assert.equal(ack, f.client.getHostAckClient(first));
+  assert.equal(Object.isFrozen(ack), true);
+  assert.equal(JSON.stringify(ack).includes(f.state.token), false);
+  assert.equal(ack.readArmed(), true);
+  assert.equal(ack.readReceipt(), null);
+  ack.submit('synthetic');
+  await f.client.stopLifecycle(first);
+  for (const method of Object.values(ack))
+    assert.throws(() => method(), /^Error: n09_lifecycle_client_failed$/);
+  assert.deepEqual(events, ['synthetic', 'closed']);
+  const next = await f.client.restartLifecycle(first);
+  assert.notEqual(f.client.getHostAckClient(next), ack);
+  assert.deepEqual(created, [101, 102]);
+  await f.client.stopLifecycle(next);
+  await f.client.close();
+});
+
+test('ACK close failure preserves forced kill and independent owner cleanup', async (t) => {
+  let closes = 0;
+  const f = fixture(
+    t,
+    () => {},
+    () => ({
+      submit() {},
+      readArmed() {
+        return false;
+      },
+      readReceipt() {
+        return null;
+      },
+      close() {
+        assert.equal(f.state.commands.at(-1).op, 'remove');
+        closes++;
+        throw new Error('PRIVATE');
+      },
+    })
+  );
+  const first = await f.client.startLifecycle();
+  f.client.getHostAckClient(first);
+  await assert.rejects(f.client.close(), /^Error: n09_lifecycle_client_failed$/);
+  await assert.rejects(f.client.close(), /^Error: n09_lifecycle_client_failed$/);
+  assert.equal(closes, 1);
+  assert.equal(f.state.commands.at(-1).op, 'remove');
+});
+
+test('ACK factory rejects malformed, asynchronous and executable property boundaries safely', async (t) => {
+  let traps = 0;
+  const cases = [
+    null,
+    {},
+    {
+      get submit() {
+        traps++;
+        return () => {};
+      },
+    },
+    new Proxy(
+      {},
+      {
+        ownKeys() {
+          traps++;
+          return [];
+        },
+      }
+    ),
+    {
+      submit: async () => {
+        traps++;
+      },
+      readArmed() {},
+      readReceipt() {},
+      close() {},
+    },
+    Promise.reject(new Error('PRIVATE')),
+  ];
+  // Attach rejection immediately; the factory admission must also consume safely.
+  cases.at(-1).catch(() => {});
+  for (const value of cases) {
+    const f = fixture(
+      t,
+      () => {},
+      () => value
+    );
+    const first = await f.client.startLifecycle();
+    assert.throws(() => f.client.getHostAckClient(first), /^Error: n09_lifecycle_client_failed$/);
+    await f.client.close();
+  }
+  assert.equal(traps, 0);
 });

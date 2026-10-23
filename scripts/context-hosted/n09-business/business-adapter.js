@@ -8,6 +8,7 @@ const { createBusinessClient } = require('../shared/business-client.js');
 const { exact, snapshotOwnData } = require('../shared/boundary.js');
 const { launchOptions } = require('../n09-ipc/lifecycle-channel.js');
 const { isVerifiedNetworkProof } = require('../shared/hosted-probes.js');
+const { performN09DurableCommand } = require('../n09-ack/durable-command.js');
 const {
   parseStoredEvidenceSource,
   parseStoredEvidencePage,
@@ -123,9 +124,12 @@ function createN09BusinessAdapter(input, trusted = {}) {
     privateRequests = 0,
     externalToolExecutions = 0,
     upstreamRequests = 0;
+  let pendingSave;
   let validatedReadCount = 0,
     publicGenerationCount = 0,
-    clearAckCount = 0;
+    clearAckCount = 0,
+    saveAckCount = 0,
+    revokeAckCount = 0;
   const networkCheck = trusted.isVerifiedNetworkProof ?? isVerifiedNetworkProof;
   function gate(identity) {
     if (closed || !proof || !networkCheck(proof)) throw fail();
@@ -182,6 +186,41 @@ function createN09BusinessAdapter(input, trusted = {}) {
     )
       throw fail();
     return { ...originalBaseline, calls: snapshot.calls, returnedBytes: snapshot.returnedBytes };
+  }
+  function startSave() {
+    if (pendingSave || phase !== 'ready') throw fail();
+    phase = 'recovering';
+    readObserved = false;
+    publicObserved = false;
+    source = undefined;
+    const tracked = { failed: false, completion: undefined };
+    pendingSave = tracked;
+    // Both handlers are installed immediately. Forced Job termination may reject
+    // this HTTP request; that expected rejection must never escape unobserved.
+    tracked.completion = send(continuation).then(
+      (value) => {
+        try {
+          if (
+            publicText(parseReply(value)) !== 'N09_RECOVERY_OK ' + nonce ||
+            !readObserved ||
+            !publicObserved ||
+            externalToolExecutions !== 1
+          )
+            throw fail();
+        } catch {
+          tracked.failed = true;
+        }
+      },
+      () => {
+        tracked.failed = true;
+      }
+    );
+  }
+  async function drainSave() {
+    if (!pendingSave) return;
+    await pendingSave.completion;
+    pendingSave = undefined;
+    if (!closed) phase = 'ready';
   }
   const api = {
     bindVerifiedNetworkProof(value) {
@@ -289,6 +328,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
       gate(identity);
       const result = await client().stopLifecycle(current);
       current = undefined;
+      await drainSave();
       return result;
     },
     async restartSameBusinessHost(previous) {
@@ -341,6 +381,56 @@ function createN09BusinessAdapter(input, trusted = {}) {
             throw fail();
           clearAckCount++;
           return value;
+        } catch {
+          throw fail();
+        }
+      };
+    },
+    existingHostDurableAckCapability(operation) {
+      // Acquiring a capability is passive, even before proof binding/startup.
+      if (closed || !['save', 'revoke'].includes(operation)) throw fail();
+      return async (identity) => {
+        try {
+          gate(identity);
+          if (!seeded || phase !== 'ready' || pendingSave) throw fail();
+          const before = committed();
+          accounting(before);
+          const host = client().getHostAckClient(current);
+          const receipt = await performN09DurableCommand(
+            {
+              pid: current.pid,
+              operation,
+              rootId: before.rootId,
+              expiresAt: before.expiresAt,
+              minRevision: before.revision,
+            },
+            {
+              client: {
+                submit: (value) => host.submit(value),
+                readArmed: () => host.readArmed(),
+                readReceipt: () => {
+                  if (pendingSave?.failed) throw fail();
+                  return host.readReceipt();
+                },
+                close: () => host.close(),
+              },
+              startSave,
+            }
+          );
+          // Snapshot is only a precondition. Final accounting comes from the
+          // signed original-producer receipt; no post-ACK storage/management I/O.
+          if (operation === 'save') saveAckCount++;
+          else revokeAckCount++;
+          return Object.freeze({
+            kind: receipt.kind,
+            durableBoundary: receipt.durableBoundary,
+            pid: receipt.pid,
+            accounting: {
+              ...originalBaseline,
+              calls: receipt.calls,
+              returnedBytes: receipt.returnedBytes,
+            },
+          });
         } catch {
           throw fail();
         }
@@ -500,6 +590,8 @@ function createN09BusinessAdapter(input, trusted = {}) {
         validatedReadCount,
         publicGenerationCount,
         clearAckCount,
+        saveAckCount,
+        revokeAckCount,
         upstreamRequests,
         privateRequests,
         externalToolExecutions,
@@ -528,6 +620,11 @@ function createN09BusinessAdapter(input, trusted = {}) {
       }
       try {
         if (lifecycle) await lifecycle.close();
+      } catch {
+        failed = true;
+      }
+      try {
+        await drainSave();
       } catch {
         failed = true;
       }

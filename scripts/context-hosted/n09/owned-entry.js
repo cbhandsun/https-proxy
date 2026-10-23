@@ -190,8 +190,15 @@ async function main() {
     result.committed.hostDurableAckObserved !== false ||
     result.clear?.adapterClearBoundaryObserved !== true ||
     result.clear.oldReceiptDeniedAfterToggle !== true ||
+    ['save', 'revoke'].some(
+      (operation) =>
+        result[operation]?.operation !== operation ||
+        result[operation].adapterDurableAckObserved !== true ||
+        result[operation].sameDirectoryNewPid !== true ||
+        result[operation].n09Complete !== false
+    ) ||
     result.n09Complete !== false ||
-    result.cleanup?.adaptersClosed !== 2 ||
+    result.cleanup?.adaptersClosed !== 4 ||
     result.cleanup.listenerClosed !== true
   )
     throw fail();
@@ -204,7 +211,7 @@ async function main() {
       nonLoopbackBlocked: true,
       listenerOwned: true,
       syntheticSocketsClosed: result.cleanup.listenerClosed,
-      cases: 2,
+      cases: 4,
       n09Complete: false,
     }) + '\n'
   );

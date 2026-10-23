@@ -11,7 +11,7 @@ const {
 } = require('../shared/build-hosted-controller.js');
 const { createN09BusinessAdapter } = require('../n09-business/business-adapter.js');
 const { runCommittedObservedKill } = require('../n09-snapshot/committed-observed-driver.js');
-const { runClearAfterAck } = require('../n09-ipc/driver.js');
+const { runClearAfterAck, runDurableSaveOrRevokeAfterAck } = require('../n09-ipc/driver.js');
 const { buildHostedLifecycle, createHostedLifecycleSpawn } = require('./hosted-lifecycle.js');
 const { buildN09AckController } = require('../n09-ack/bootstrap-controller');
 const fail = () => new Error('n09_hosted_composition_rejected');
@@ -200,10 +200,48 @@ async function composeHostedN09(input) {
       throw fail();
     active = undefined;
     verifyCopies();
+    const durable = {},
+      durableEvidence = {};
+    for (const operation of ['save', 'revoke']) {
+      const ownedAdapter = createN09BusinessAdapter(
+        {
+          ownedRoot: options.ownedRoot,
+          install: path.join(options.ownedRoot, 'payload'),
+          manifestSha256: options.manifestSha256,
+        },
+        {
+          spawn: createHostedLifecycleSpawn({
+            ownedRoot: options.ownedRoot,
+            manifestSha256: options.manifestSha256,
+          }),
+        }
+      );
+      adapters.push(ownedAdapter);
+      active = ownedAdapter;
+      verifyCopies();
+      ownedAdapter.bindVerifiedNetworkProof(proof);
+      durable[operation] = await runDurableSaveOrRevokeAfterAck(ownedAdapter, operation);
+      const evidence = ownedAdapter.inspectBusinessEvidence();
+      if (
+        evidence.seeded !== true ||
+        evidence.externalToolExecutions !== 1 ||
+        evidence.clearAckCount !== 0 ||
+        evidence.saveAckCount !== (operation === 'save' ? 1 : 0) ||
+        evidence.revokeAckCount !== (operation === 'revoke' ? 1 : 0) ||
+        (operation === 'save'
+          ? evidence.validatedReadCount < 2 || evidence.publicGenerationCount < 2
+          : evidence.validatedReadCount !== 1 || evidence.publicGenerationCount !== 1)
+      )
+        throw fail();
+      durableEvidence[operation] = evidence;
+      active = undefined;
+      verifyCopies();
+    }
     result = {
       committed,
       clear,
-      businessEvidence: { committed: committedEvidence, clear: clearEvidence },
+      ...durable,
+      businessEvidence: { committed: committedEvidence, clear: clearEvidence, ...durableEvidence },
       networkProof: proof,
       originalControllerReused: true,
       tlsValidationDisabled: false,
@@ -216,7 +254,7 @@ async function composeHostedN09(input) {
     active = undefined;
     cleanup = await closeResources(adapters, listener);
   }
-  if (cleanup.adaptersClosed !== 2 || cleanup.listenerClosed !== true) throw fail();
+  if (cleanup.adaptersClosed !== 4 || cleanup.listenerClosed !== true) throw fail();
   return Object.freeze({ ...result, cleanup });
 }
 module.exports = { composeHostedN09, closeResources };

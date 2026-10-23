@@ -11,7 +11,10 @@ const {
 const {
   runCommittedObservedKill,
 } = require('../../scripts/context-hosted/n09-snapshot/committed-observed-driver.js');
-const { runClearAfterAck } = require('../../scripts/context-hosted/n09-ipc/driver.js');
+const {
+  runClearAfterAck,
+  runDurableSaveOrRevokeAfterAck,
+} = require('../../scripts/context-hosted/n09-ipc/driver.js');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const bad = { message: 'n09_business_adapter_failed' };
 function fixture(mutation = () => {}) {
@@ -36,6 +39,7 @@ function fixture(mutation = () => {}) {
     returnedBytes: 0,
     revision: 1,
     cleared: false,
+    events: [],
     config: undefined,
     original: undefined,
   };
@@ -59,6 +63,9 @@ function fixture(mutation = () => {}) {
         },
         attestSyntheticBusiness: async () => ({ ready: true, syntheticBusinessConfigured: true }),
         stopLifecycle: async (owner) => {
+          state.events.push('kill');
+          state.rejectPending?.(new Error('synthetic_forced_kill'));
+          state.ackCommand = undefined;
           state.stopped++;
           return {
             pid: owner.pid,
@@ -75,23 +82,65 @@ function fixture(mutation = () => {}) {
           state.cleared = true;
           return { kind: 'host-clear-completed', durableBoundary: 'await-clearAsync' };
         },
+        getHostAckClient: () => ({
+          submit(command) {
+            state.events.push('submit');
+            state.ackCommand = command;
+            if (command.operation === 'revoke-bound-root') state.cleared = true;
+          },
+          readArmed() {
+            state.events.push('armed');
+            return true;
+          },
+          readReceipt() {
+            const command = state.ackCommand;
+            if (command.operation === 'arm-save' && state.revision <= command.minRevision)
+              return null;
+            const saving = command.operation === 'arm-save';
+            const receipt = {
+              version: 1,
+              pid: state.pid,
+              epoch: 'f'.repeat(32),
+              sequence: 1,
+              kind: saving ? 'host-save-completed' : 'host-revoke-completed',
+              durableBoundary: saving ? 'await-reference-save' : 'await-revokeAsync',
+              rootId: state.rootId,
+              expiresAt: state.expiresAt,
+              revision: state.revision,
+              calls: state.calls,
+              returnedBytes: state.returnedBytes,
+              revisionSource: 'validated-reference-save',
+              evidenceLevel: 'observer-boundary-only',
+              liveDaemonProved: false,
+            };
+            mutation('ack', receipt, state);
+            state.events.push('ack');
+            return receipt;
+          },
+          close() {},
+        }),
         setCombination: async () => ({ savedConfigVerified: true }),
         close: async () => {
+          state.rejectPending?.(new Error('synthetic_owner_close'));
           state.closed++;
         },
       };
     },
     createSnapshots: () => ({
-      read: () => ({
-        present: true,
-        evidenceLevel: 'committed-metadata-only',
-        hostDurableAck: false,
-        rootId: state.rootId,
-        expiresAt: state.expiresAt,
-        calls: state.calls,
-        returnedBytes: state.returnedBytes,
-        revision: state.revision,
-      }),
+      read: () => {
+        state.events.push('snapshot');
+        mutation('snapshot', undefined, state);
+        return {
+          present: true,
+          evidenceLevel: 'committed-metadata-only',
+          hostDurableAck: false,
+          rootId: state.rootId,
+          expiresAt: state.expiresAt,
+          calls: state.calls,
+          returnedBytes: state.returnedBytes,
+          revision: state.revision,
+        };
+      },
       close() {},
     }),
     createBusinessClient: (input) => async () => {
@@ -213,6 +262,12 @@ function fixture(mutation = () => {}) {
         }
       }
       mutation('reply', result, state);
+      if (state.ackCommand?.operation === 'arm-save' && state.holdSave) {
+        state.events.push('http-pending');
+        await new Promise((_resolve, reject) => {
+          state.rejectPending = reject;
+        });
+      }
       return { status: 200, bytes: Buffer.from(JSON.stringify(result)) };
     },
   };
@@ -227,6 +282,78 @@ test('passive construction and branded proof gate prevent premature spawn/HTTP',
   assert.throws(() => f.adapter.bindVerifiedNetworkProof({ pure: true }), bad);
   f.adapter.bindVerifiedNetworkProof(f.proof);
   assert.throws(() => f.adapter.bindVerifiedNetworkProof(f.proof), bad);
+  await f.adapter.close();
+});
+
+for (const operation of ['save', 'revoke']) {
+  test(`signed ${operation} path integrates business driver and kills before draining pending HTTP`, async () => {
+    const f = fixture();
+    assert.equal(typeof f.adapter.existingHostDurableAckCapability(operation), 'function');
+    assert.equal(f.state.created, 0);
+    assert.equal(f.state.sent, 0);
+    f.state.holdSave = operation === 'save';
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    const result = await runDurableSaveOrRevokeAfterAck(f.adapter, operation);
+    assert.equal(result.adapterDurableAckObserved, true);
+    assert.equal(result.liveDaemonProved, false);
+    assert.equal(result.n09Complete, false);
+    assert.equal(f.state.closed, 1);
+    assert.equal(f.state.stopped, 2);
+    const ackIndex = f.state.events.indexOf('ack');
+    assert.equal(f.state.events[ackIndex + 1], 'kill');
+    assert.equal(f.state.nativeReadObserved, operation === 'save' ? 3 : 1);
+    if (operation === 'save') {
+      assert.ok(f.state.events.indexOf('armed') < f.state.events.indexOf('http-pending'));
+    } else {
+      assert.equal(f.state.sent, 9); // seed 3 + initial read 1 + denied 5; no revoke HTTP
+      assert.equal(f.state.events.includes('armed'), false);
+    }
+  });
+}
+
+test('invalid final durable ACK fails driver and still terminates pending business work', async () => {
+  const f = fixture((at, receipt) => {
+    if (at === 'ack') receipt.pid = 999;
+  });
+  f.state.holdSave = true;
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'), {
+    message: 'n09_ack_kill_failed',
+  });
+  assert.equal(f.state.closed, 1);
+  assert.equal(f.state.stopped, 1);
+});
+
+test('business response failure before final ACK cannot be hidden by receipt polling', async () => {
+  const f = fixture((at, value, state) => {
+    if (
+      at === 'reply' &&
+      state.ackCommand &&
+      value.output[0]?.content?.[0]?.text?.startsWith('N09_RECOVERY_OK')
+    )
+      value.status = 'failed';
+  });
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'), {
+    message: 'n09_ack_kill_failed',
+  });
+  assert.equal(f.state.events.includes('ack'), false);
+  assert.equal(f.state.stopped, 1);
+  assert.equal(f.state.closed, 1);
+});
+
+test('passively acquired ACK callable sanitizes late precondition failures', async () => {
+  const f = fixture((at, _value, state) => {
+    if (at === 'snapshot' && state.rejectSnapshot) throw new Error('PRIVATE_precondition');
+  });
+  const capability = f.adapter.existingHostDurableAckCapability('save');
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  const owner = await f.adapter.startFreshBusinessHost();
+  await f.adapter.seedThroughBusinessHttp(owner);
+  await f.adapter.readThroughBusinessHttp(owner);
+  f.state.rejectSnapshot = true;
+  await assert.rejects(capability(owner), bad);
+  assert.equal(f.state.events.includes('submit'), false);
   await f.adapter.close();
 });
 test('full pure committed-observed orchestration verifies READ sha, receipt binding and no original replay', async () => {

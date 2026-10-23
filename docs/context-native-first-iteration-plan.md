@@ -1,5 +1,9 @@
 # 客户端原生优先与可选精确恢复：方案及迭代计划
 
+## 2026-10-22：四场景保存／撤销确认消费已接线，真实托管验证待完成
+
+N09 lifecycle client 已私下验证当前 PID bootstrap 并连接签名 mailbox；业务适配器接入 arm → 实际恢复请求 → 原生产者最终 ACK，以及原 revokeAsync 最终 ACK。确认后不再读快照／管理接口，先强杀再回收未完成 HTTP。托管入口保留 committed／clear，并增加独立 save／revoke 场景；原命令与外层期限不变。扩大合成回归 366/366，后续错误脱敏回归 18/18 分开记录，不替代真实 Windows 验收。完整 N09、全天容量、私有迁移及生产启用仍未完成，I0–I5/H1、N01–N11 原范围不缩减。详见[实施状态](context-recovery-implementation-status.md)。
+
 ## 2026-10-22：真实宿主启动接线的合成回归通过
 
 N09 专用控制器已接入首次启动／同目录重启的签名 bootstrap，Job 分配后才写当前 PID 计划并放行；启动门核验全闭包后才安装实际 ACK／lifecycle exports 的观察器。扩大回归 351/351，另补边界按受影响文件复验，尚未获得新 hosted 资格。业务适配器的签名确认消费、确认后立即强杀、真实撤权与重开验收仍待完成。原 I0–I5/H1、N01–N11、性能／全天容量、私有迁移和生产启用范围不缩减，详见[实施状态](context-recovery-implementation-status.md)。
