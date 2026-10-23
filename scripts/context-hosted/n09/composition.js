@@ -18,7 +18,8 @@ const fail = () => new Error('n09_hosted_composition_rejected');
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const hex = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 async function closeResources(adapters, listener, onFailure = () => {}) {
-  let failed = false,
+  let adaptersFailed = false,
+    listenerFailed = false,
     adaptersClosed = 0,
     listenerClosed = false;
   for (const adapter of adapters) {
@@ -26,19 +27,20 @@ async function closeResources(adapters, listener, onFailure = () => {}) {
       await adapter.close();
       adaptersClosed++;
     } catch {
-      failed = true;
+      adaptersFailed = true;
     }
   }
   if (listener) {
     try {
       listenerClosed = (await listener.close()) === true;
-      if (!listenerClosed) failed = true;
+      if (!listenerClosed) listenerFailed = true;
     } catch {
-      failed = true;
+      listenerFailed = true;
     }
   }
-  if (failed) {
-    onFailure();
+  if (adaptersFailed || listenerFailed) {
+    // Fixed resource classes only; no caught errors or resource identities.
+    onFailure(adaptersFailed ? (listenerFailed ? 100 : 98) : 99);
     throw fail();
   }
   return Object.freeze({ adaptersClosed, listenerClosed });
@@ -268,8 +270,8 @@ async function composeHostedN09(input, onPhase = () => {}) {
     throw fail();
   } finally {
     active = undefined;
-    cleanup = await closeResources(adapters, listener, () => {
-      if (typeof onPhase === 'function') onPhase(84);
+    cleanup = await closeResources(adapters, listener, (phase) => {
+      if (typeof onPhase === 'function') onPhase(phase);
     });
   }
   onPhase(84);

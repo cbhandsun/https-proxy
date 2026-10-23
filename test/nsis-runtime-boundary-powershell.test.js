@@ -53,7 +53,7 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
     [
       'output_limit',
       'output_limit',
-      ...Array(12).fill('child_exit'),
+      ...Array(16).fill('child_exit'),
       'stdout_decode',
       'deadline',
       'deadline',
@@ -63,7 +63,24 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
     [...result.stdout.matchAll(/hpm_runtime_child_exit_code=([a-z0-9]+)/g)].map(
       (match) => match[1]
     ),
-    ['other', '64', '69', '72', '73', '84', 'other', '86', '94', '95', '96', 'other']
+    [
+      'other',
+      '64',
+      '69',
+      '72',
+      '73',
+      '84',
+      'other',
+      '86',
+      '94',
+      '95',
+      '96',
+      'other',
+      '98',
+      '99',
+      '100',
+      'other',
+    ]
   );
 });
 

@@ -6,11 +6,11 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 // Pure composition fixtures: never load a native worker, listener or controller.
-function fixture(cleanupFails = false) {
+function fixture(cleanupFails = false, listenerFails = false) {
   const root = path.resolve('synthetic-owned-root');
   let created = 0;
   let closed = 0;
-  const listener = { inspect: () => ({}), close: async () => true };
+  const listener = { inspect: () => ({}), close: async () => !listenerFails };
   const adapter = () => {
     const index = created++;
     return {
@@ -122,15 +122,21 @@ test('N09 phase failures retain their stage, sanitize errors and close acquired 
   }
 });
 
-test('N09 cleanup failures report only the cleanup phase and attempt every adapter', async () => {
-  const f = fixture(true);
-  const phases = [];
-  await assert.rejects(
-    f.run(f.options, (phase) => phases.push(phase)),
-    /^Error: n09_hosted_composition_rejected$/
-  );
-  assert.equal(phases.at(-1), 84);
-  assert.equal(f.closed(), 4);
+test('N09 cleanup failures distinguish fixed resource classes and attempt every adapter', async () => {
+  for (const [adapterFails, listenerFails, expected] of [
+    [true, false, 98],
+    [false, true, 99],
+    [true, true, 100],
+  ]) {
+    const f = fixture(adapterFails, listenerFails);
+    const phases = [];
+    await assert.rejects(
+      f.run(f.options, (phase) => phases.push(phase)),
+      /^Error: n09_hosted_composition_rejected$/
+    );
+    assert.equal(phases.at(-1), expected);
+    assert.equal(f.closed(), 4);
+  }
 });
 
 test('N09 rejects invalid phase observers before acquiring resources', async () => {

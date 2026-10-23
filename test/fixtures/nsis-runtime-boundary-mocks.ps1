@@ -100,7 +100,7 @@ try {
     Refuses { Invoke-Child "process.stdout.write('PRIVATE_CHILD_SENTINEL'.repeat(512));setInterval(()=>{},1000);" }
     Refuses { Invoke-Child "process.stderr.write('PRIVATE_CHILD_SENTINEL'.repeat(512));setInterval(()=>{},1000);" }
     Refuses { Invoke-Child "process.stderr.write('PRIVATE_CHILD_SENTINEL');process.exit(3);" }
-    foreach ($phaseCode in @(64, 69, 72, 73, 84, 85, 86, 94, 95, 96, 97)) {
+    foreach ($phaseCode in @(64, 69, 72, 73, 84, 85, 86, 94, 95, 96, 97, 98, 99, 100, 101)) {
         Refuses { Invoke-Child ("process.stderr.write('PRIVATE_CHILD_SENTINEL');process.exit(" + $phaseCode + ');') }
     }
     Refuses { Invoke-Child "process.stdout.write(Buffer.from([255]));" }
