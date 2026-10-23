@@ -6,6 +6,7 @@ const {
   createN09AckContract,
   parseN09AckCommand,
   parseN09AckReceipt,
+  isN09NativePromise,
 } = require('../../scripts/context-hosted/n09-ack/contract');
 const config = { pid: 123, epoch: 'a'.repeat(32), signingKey: 'b'.repeat(64) };
 const command = (extra = {}) => ({
@@ -42,6 +43,35 @@ function safe(error) {
   assert.equal(error.cause, undefined);
   return true;
 }
+
+test('native promise observation accepts async-hooks data without invoking hostile properties', () => {
+  const normal = Promise.resolve();
+  Object.defineProperty(normal, Symbol('async_id_symbol'), { value: 123 });
+  assert.equal(isN09NativePromise(normal), true);
+  let invoked = 0;
+  const getter = () => {
+    invoked++;
+    throw new Error('must not execute');
+  };
+  for (const key of ['constructor', 'then', Symbol('accessor')]) {
+    const pending = Promise.resolve();
+    Object.defineProperty(pending, key, { get: getter });
+    assert.equal(isN09NativePromise(pending), false);
+  }
+  for (const key of ['constructor', 'then', 'extra']) {
+    const pending = Promise.resolve();
+    Object.defineProperty(pending, key, { value: null });
+    assert.equal(isN09NativePromise(pending), false);
+  }
+  class Derived extends Promise {}
+  const proxy = new Proxy(normal, { getPrototypeOf: getter, ownKeys: getter, get: getter });
+  for (const value of [proxy, Derived.resolve(), null, undefined, {}, { then: getter }])
+    assert.equal(isN09NativePromise(value), false);
+  const revoked = Proxy.revocable(normal, {});
+  revoked.revoke();
+  assert.equal(isN09NativePromise(revoked.proxy), false);
+  assert.equal(invoked, 0);
+});
 
 test('signed commands and receipts are canonical, detached and never claim runtime qualification', () => {
   const contract = createN09AckContract(config);

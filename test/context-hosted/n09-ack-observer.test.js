@@ -115,6 +115,35 @@ test('revoke invokes the same bound sessions and awaits strict success without i
   assert.equal(f.calls.length, 1);
 });
 
+test('revoke rejects a native promise with a hostile species getter without evaluating it', async (t) => {
+  const observer = createN09HostAckObserver({ ...config, createRecoveryDurableAck });
+  t.after(() => observer.close());
+  let getters = 0;
+  const pending = Promise.resolve({ ok: true });
+  Object.defineProperty(pending, 'constructor', {
+    get() {
+      getters++;
+      throw new Error('private-species');
+    },
+  });
+  observer.bindSessions({ revokeAsync: () => pending });
+  const state = reference();
+  observer.createRecoveryDurableAck(state, 1);
+  await assert.rejects(
+    observer.revokeBoundRoot({
+      version: 1,
+      operation: 'revoke-bound-root',
+      ...config,
+      sequence: 1,
+      rootId: state.metadata.rootId,
+      expiresAt: state.metadata.expiresAt,
+      minRevision: 1,
+    }),
+    safe
+  );
+  assert.equal(getters, 0);
+});
+
 test('unknown roots, old epochs, stale sequence/revision and concurrent operations are rejected', async (t) => {
   const f = setup(t);
   for (const change of [

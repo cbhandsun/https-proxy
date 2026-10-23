@@ -8,6 +8,36 @@ const integer = (value, minimum = 0) => Number.isSafeInteger(value) && value >= 
 const hex = (value, length) =>
   typeof value === 'string' && value.length === length && /^[a-f0-9]+$/.test(value);
 
+// Native promises may carry async_hooks' own symbol data slots. They are never
+// read by Promise.prototype.then. Reject own constructor/then and accessors so
+// observing completion cannot execute an unknown getter or species factory.
+function isN09NativePromise(value) {
+  if (
+    !types.isPromise(value) ||
+    types.isProxy(value) ||
+    Object.getPrototypeOf(value) !== Promise.prototype
+  )
+    return false;
+  return Reflect.ownKeys(value).every(
+    (name) =>
+      typeof name === 'symbol' &&
+      Object.hasOwn(Object.getOwnPropertyDescriptor(value, name), 'value')
+  );
+}
+
+// Rejection cleanup is possible for a base native promise even when unrelated
+// own properties made the strict contract fail. Never inspect a constructor
+// accessor or subclass species while rejecting an invalid capability result.
+function discardN09PromiseRejection(value) {
+  if (
+    types.isPromise(value) &&
+    !types.isProxy(value) &&
+    Object.getPrototypeOf(value) === Promise.prototype &&
+    !Object.hasOwn(value, 'constructor')
+  )
+    Reflect.apply(Promise.prototype.then, value, [undefined, () => {}]);
+}
+
 function fields(input, names) {
   if (
     !input ||
@@ -163,4 +193,12 @@ function createN09AckContract(input) {
   }
 }
 
-module.exports = { createN09AckContract, parseN09AckCommand, parseN09AckReceipt, fields, fail };
+module.exports = {
+  createN09AckContract,
+  parseN09AckCommand,
+  parseN09AckReceipt,
+  isN09NativePromise,
+  discardN09PromiseRejection,
+  fields,
+  fail,
+};

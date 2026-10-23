@@ -2,7 +2,14 @@
 
 const { types } = require('node:util');
 const { parseReferenceState } = require('../../../lib/proxy/context-recovery-reference-state');
-const { fields, fail, parseN09AckCommand, parseN09AckReceipt } = require('./contract');
+const {
+  fields,
+  fail,
+  parseN09AckCommand,
+  parseN09AckReceipt,
+  isN09NativePromise,
+  discardN09PromiseRejection,
+} = require('./contract');
 
 // No transport, filesystem, timer, model or execution capability is provided.
 // Installation must bind the actual runtime sessions instance before any ACK.
@@ -176,7 +183,10 @@ function createN09HostAckObserver(input) {
           started = true;
           const result = Reflect.apply(revoke, sessions, [state.principal]);
           // Await only a native promise; never evaluate a then getter from an unknown result.
-          if (!types.isPromise(result) || types.isProxy(result)) throw fail();
+          if (!isN09NativePromise(result)) {
+            discardN09PromiseRejection(result);
+            throw fail();
+          }
           available();
           const completed = new Promise((resolve, reject) => {
             Reflect.apply(Promise.prototype.then, result, [

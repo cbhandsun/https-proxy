@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：签名私有通道与生命周期适配已回归，安装 mechanics 托管通过
+
+新增固定文件名的 N09 mailbox：命令、armed 控制信号、最终回执与失败信号分域签名，绑定 PID／epoch／递增序号；完整 JSON 写入并 fsync 后才发布空 ready 标记。拒绝路径选择、硬链接、目录替换、未知 getter、重放、覆盖与非法完成结果。armed 仅表示已开始观察，不能作为持久化确认。runtime-hooks 先包原始 ACK producer，再包 lifecycle factory；仅绑定目标持久目录的真实 sessions，原 shutdownAsync 严格成功后才允许替换生命周期，全进程序号不重置。close 恢复自有描述符，不代替真实生命周期关闭。
+
+Node test runner 的 async_hooks 会为原生 Promise 附加符号数据属性，初版过严校验导致 10 项失败，已接受该属性并继续拒绝自有 constructor／then、访问器和子类。观察器撤权等待也改用同一校验，回归确认不会触发 species getter。只读审查另外发现非法返回的普通原生 Promise 拒绝可能未消费、异步 close 可能被当成功；现已消费可安全观察的拒绝、拒绝 async close，并将意外 Promise close 标为粘滞失败。不会为消费不可信 constructor／species 而执行它们。
+
+最终扩大回归包含全部 `test/context-hosted/*.test.js` 与安装 PowerShell wrapper，**332/332**、零失败／取消／跳过，证据 `n09-mailbox-expanded-v2.log`。组合用例经过原始 ACK factory、真实内存 sessions、runtime hook 与实际临时文件 mailbox，确认撤权发生在同一 sessions、文件不含 principal 或签名密钥。ESLint、Prettier、CI／release governance 及统一测试发现核验通过。这些仍是纯／合成证据，**gate／controller／已安装模块的来源校验与真实 daemon adapter 接线尚未完成**，`liveDaemonProved:false` 与 N09 未完成状态保留。
+
+精确源码 `0a6934b1` 的安装 mechanics run `39883291573` 已 **success**：托管 Windows 完成基线安装、当前升级、回滚、卸载及合成文件保留。该结果仅针对 runner 源码重建的安装器；不授予私有旧安装包、真实用户迁移、加密恢复／DPAPI、签名或 24 小时容量资格。
+
+同源码的独立 Verify `39883237256` 已 failure，仅 Responses WBIPC long-persistent 的 turn 0 在 5 秒内未收到 headers，Chat／Claude 此轮均通过；request 内 begin 与两次 reply 共约 4691ms，尚不能归因具体原生操作。disposable run `39883237225` 则已因完整 source-gates 失败终止，运行矩阵跳过：安装 runtime-boundary 的 11 个子测试通过，after 清理复制的 Node 可执行文件收到 EBUSY，尚无证据证明子进程泄漏；Claude WBIPC 在 4964ms 已返回响应，5003ms 等待 publication 确认超时，finishPublicationAsync 312ms 跨过期限。两次运行不能混用结论。下一诊断需区分 engine.execute、完整 snapshot 与 anchor.persist 耗时，期限、负载和断言均未放宽。本轮真实模型请求为零。
+
 ## 2026-10-22：保存／撤权观察器纯模块已验证，真实接线仍未完成
 
 新增 `scripts/context-hosted/n09-ack/` 的严格 HMAC command/receipt 合约与宿主观察器。命令绑定 PID、epoch、单调 sequence、已观察 root／expiry／revision；save 仅在原始 ACK factory 成功后观察修订，revoke 调用同一绑定 sessions 的原始 `revokeAsync` 并等待严格成功。principal 仅留内存；撤权回执标注最后有效保存 revision，不能冒充 tombstone revision。close、失败、并发、迟到确认、预算回退和未知 getter 路径均有纯测试。首轮扩大专项 23/24，一项夹具只改 rootId 导致 reference codec 先拒绝，已改用真实 sessions 产生另一合法 root 后再验证观察器拒绝；getter 补显式返回以通过原 ESLint 规则。修正后专项 17/17，全部托管／安装回归 301/301，零失败、取消或跳过；新测试已核对进入统一 discovery。

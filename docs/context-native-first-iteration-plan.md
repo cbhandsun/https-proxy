@@ -1,5 +1,9 @@
 # 客户端原生优先与可选精确恢复：方案及迭代计划
 
+## 2026-10-22：安装 mechanics 托管通过，真实宿主确认通道仍在接线
+
+`0a6934b1` 的托管 Windows 安装／升级／回滚／卸载与合成文件保留已通过（run `39883291573`），范围限 runner 源码重建安装器。新增 N09 签名私有文件通道与 lifecycle hook 的扩大回归 332/332，通过且零失败／取消／跳过；gate／controller／实际安装模块来源校验与 daemon adapter 仍未接通，不能授予完整 N09。该源码独立 Verify 与 disposable source-gates 均失败，分别存在 Responses 请求期限、Claude 发布确认期限及临时复制可执行文件清理 EBUSY，运行矩阵未获得资格。I0–I5/H1、N01–N11、私有旧安装包迁移、全天容量及生产启用原范围保留，详见[实施状态](context-recovery-implementation-status.md)。
+
 ## 2026-10-22：托管失败终态与安装验收修复
 
 `1a745a7f` 的完整 Verify 和 N08/N09 source gates 均已失败终止，后者运行矩阵跳过，未取得新资格。安装验收已拆为旧无锚点库拒绝且字节保留、新锚点库连续性两条检查；合成九文件 63/63。客户端覆盖率新增与 unit 相同的物理临时目录准备，保留生产路径校验、并发、阈值与期限；实际 preload 子进程及 wrapper 等三文件 21/21，真实 hosted 复验待完成。I0–I5/H1、N01–N11、私有旧安装包迁移、全天容量及生产启用原范围保留，详见[实施状态](context-recovery-implementation-status.md)。
