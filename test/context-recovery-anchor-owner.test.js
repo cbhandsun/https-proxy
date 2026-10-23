@@ -141,3 +141,54 @@ test('an existing nonempty database with lost independent enrollment never silen
     database.close();
   }
 });
+
+test('rejected stale SQLite writes preserve live owner and independent anchor until a later valid request', (t) => {
+  const f = fixture(t),
+    owner = f.open();
+  const expiresAt = Date.now() + 60000;
+  save(owner, 0, expiresAt);
+  const writes = f.writes();
+  assert.throws(() => save(owner, 0, expiresAt), safe);
+  assert.equal(f.writes(), writes, 'rejected transaction must not acknowledge or advance anchor');
+  const loaded = owner.execute({ operation: 'load', scope });
+  assert.equal(loaded.revision, 1);
+  assert.equal(loaded.state.calls, 4);
+  assert.equal(loaded.expiresAt, expiresAt);
+  assert.deepEqual(owner.execute({ operation: 'sweep' }), { removedRecords: 0, removedBytes: 0 });
+  assert.equal(save(owner, 1, expiresAt).revision, 2);
+});
+
+test('capacity rejection preserves all four acknowledged states and permits a later valid update', (t) => {
+  const f = fixture(t),
+    owner = f.open();
+  const expiresAt = Date.now() + 60000;
+  const requests = ['a', 'b', 'c', 'd'].map((letter, index) => ({
+    operation: 'save',
+    scope: letter.repeat(64),
+    expectedRevision: 0,
+    expiresAt,
+    state: { synthetic: index },
+  }));
+  for (const request of requests) assert.equal(owner.execute(request).revision, 1);
+  const retained = globalThis.structuredClone([...f.rows]);
+  const writes = f.writes();
+  assert.throws(() => owner.execute({ ...requests[0], scope: 'e'.repeat(64) }), safe);
+  assert.equal(f.writes(), writes);
+  assert.deepEqual(
+    [...f.rows],
+    retained,
+    'rejected transaction must leave retained anchor unchanged'
+  );
+  assert.equal(owner.execute({ operation: 'inspect' }).records, 4);
+  for (const request of requests) {
+    const loaded = owner.execute({ operation: 'load', scope: request.scope });
+    assert.equal(loaded.revision, 1);
+    assert.equal(loaded.expiresAt, expiresAt);
+    assert.deepEqual({ ...loaded.state }, request.state);
+  }
+  assert.equal(owner.execute({ ...requests[0], expectedRevision: 1 }).revision, 2);
+  owner.close();
+  const reopened = f.open();
+  assert.equal(reopened.execute({ operation: 'inspect' }).records, 4);
+  assert.equal(reopened.execute({ operation: 'load', scope: requests[0].scope }).revision, 2);
+});
