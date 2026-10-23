@@ -249,8 +249,13 @@ function createClientUnsafe(input, dependencies) {
       let saved;
       try {
         saved = await request({ method: 'POST', route: '/v1/local/config', body: next });
-      } catch {
-        onPhase(121); // Transport/decode failure only; never forward its error.
+      } catch (error) {
+        const deadline =
+          error &&
+          typeof error === 'object' &&
+          !types.isProxy(error) &&
+          Object.getOwnPropertyDescriptor(error, 'code')?.value === 'HPM_DAEMON_HTTP_DEADLINE';
+        onPhase(deadline ? 126 : 121); // Fixed category only; never forward its error.
         throw fail();
       }
       if (saved.status !== 200) {

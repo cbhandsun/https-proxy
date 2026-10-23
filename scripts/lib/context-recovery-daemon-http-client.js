@@ -41,15 +41,19 @@ function createDaemonManagementHttpClient(options, httpRequest = http.request) {
     return new Promise((resolve, reject) => {
       let finished = false;
       let request;
-      const finish = (result) => {
+      const finish = (result, deadline = false) => {
         if (finished) return;
         finished = true;
         clearTimeout(timer);
         if (result) resolve(result);
-        else reject(new Error('daemon_http_request_failed'));
+        else {
+          const failure = new Error('daemon_http_request_failed');
+          if (deadline) failure.code = 'HPM_DAEMON_HTTP_DEADLINE';
+          reject(failure);
+        }
       };
       const timer = setTimeout(() => {
-        finish(null);
+        finish(null, true);
         request?.destroy();
       }, 2000);
       try {

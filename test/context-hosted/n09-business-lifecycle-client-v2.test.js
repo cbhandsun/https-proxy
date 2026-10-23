@@ -137,6 +137,7 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase) {
           value = { ok: true, scope: 'proxy_context_recovery' };
         } else throw new Error('unexpected_test_route');
         mutation('http', value, state);
+        if (state.holdManagementReply) return;
         if (state.transportFailure) {
           request.emit('error', new Error('PRIVATE_TRANSPORT_SENTINEL'));
           return;
@@ -213,6 +214,7 @@ test('cold lifecycle waits for private credentials and preload before the first 
 test('configuration save diagnostics disclose only fixed failure categories and preserve cleanup', async (t) => {
   for (const [kind, phase] of [
     ['transport', 121],
+    ['deadline', 126],
     [400, 122],
     [409, 123],
     [503, 124],
@@ -224,6 +226,7 @@ test('configuration save diagnostics disclose only fixed failure categories and 
       (at, value, state) => {
         if (at !== 'http' || state.requests.at(-1).method !== 'POST') return;
         if (kind === 'transport') state.transportFailure = true;
+        else if (kind === 'deadline') state.holdManagementReply = true;
         else if (kind === 'shape') value.ok = false;
         else state.statusCode = kind;
       },
@@ -379,6 +382,7 @@ test('fixed synthetic configuration uses private management and owner port with 
   assert.deepEqual(f.state.config.entryAuth.keys[0].allowedEntryPorts, [12346]);
   assert.equal(f.state.config.appSettings.contextRecoveryPersistenceEnabled, true);
   assert.equal(f.state.config.appSettings.verifyUpstreamTls, true);
+  assert.equal(require('../../lib/proxy/validator').validateConfig(f.state.config).valid, true);
   assert.deepEqual(await f.client.attestSyntheticBusiness(first), {
     ready: true,
     syntheticBusinessConfigured: true,
