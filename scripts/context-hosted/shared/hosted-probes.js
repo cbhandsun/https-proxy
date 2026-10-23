@@ -25,8 +25,11 @@ function isBlockedSocketError(error) {
 
 // Run only in an owned payload-Node child held behind stdin until its original
 // HpmRuntimeBoundaryJob assignment succeeds. No arbitrary URL or HTTP proxy.
-async function runHostedProbes(input, listenerLease) {
+async function runHostedProbes(input, listenerLease, onPhase = () => {}) {
   try {
+    if (typeof onPhase !== 'function') throw fail();
+    // Fixed internal phase protocol only; no input, errors or native replies.
+    onPhase(86);
     const options = exact(input, [
       'ownedNode',
       'networkRoot',
@@ -53,6 +56,7 @@ async function runHostedProbes(input, listenerLease) {
       !/^[a-f0-9]{64}$/.test(options.leafSha256)
     )
       throw fail();
+    onPhase(87);
     const listener = checkHostedListener(listenerLease, options.ownedNode, options.networkRoot);
     if (
       listener.pid !== process.pid ||
@@ -61,15 +65,18 @@ async function runHostedProbes(input, listenerLease) {
       listener.negativeConnections !== 0
     )
       throw fail();
+    onPhase(88);
     const ca = fs.readFileSync(path.join(options.networkRoot, 'ca.pem'));
     if (
       ca.length > 16384 ||
       crypto.createHash('sha256').update(ca).digest('hex') !== options.caSha256
     )
       throw fail();
+    onPhase(89);
     const addresses = await dns.lookup('api.openai.com', { all: true });
     if (addresses.length !== 1 || addresses[0].family !== 4 || addresses[0].address !== '127.0.0.1')
       throw fail();
+    onPhase(90);
     await new Promise((resolve, reject) => {
       let complete = false;
       const done = (ok) => {
@@ -131,6 +138,7 @@ async function runHostedProbes(input, listenerLease) {
     // from an unblocked fixed OS verifier before interpreting the Node failure.
     // This child inherits the enclosing original Job; no remote destination or
     // caller-provided script is available, and it carries no fixture credentials.
+    onPhase(91);
     const baselineScript = `$ErrorActionPreference='Stop';$c=[Net.Sockets.TcpClient]::new();try{$c.Connect('${options.negativeAddress}',${options.negativePort});[Console]::Out.Write('1')}finally{$c.Dispose()}`;
     const baselineEnvironment = {};
     for (const name of ['SystemRoot', 'WINDIR'])
@@ -152,6 +160,7 @@ async function runHostedProbes(input, listenerLease) {
         }
       );
     });
+    onPhase(92);
     await new Promise((resolve) => setImmediate(resolve));
     if (
       checkHostedListener(listenerLease, options.ownedNode, options.networkRoot)
@@ -160,6 +169,7 @@ async function runHostedProbes(input, listenerLease) {
       throw fail();
     // Target is a controlled listener on this hosted VM's own non-loopback RFC1918
     // address, not an Internet endpoint. A connect proves the rule ineffective.
+    onPhase(93);
     const blocked = await new Promise((resolve) => {
       let done = false;
       const finish = (value) => {
@@ -175,6 +185,7 @@ async function runHostedProbes(input, listenerLease) {
       socket.once('error', (error) => finish(isBlockedSocketError(error)));
     });
     if (!blocked) throw fail();
+    onPhase(94);
     if (
       checkHostedListener(listenerLease, options.ownedNode, options.networkRoot)
         .negativeConnections !== 1

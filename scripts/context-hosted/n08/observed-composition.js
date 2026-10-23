@@ -19,7 +19,7 @@ const fail = () => new Error('n08_hosted_composition_rejected');
 
 // Trusted caller is the reviewed hosted harness, itself assigned to the existing
 // HpmRuntimeBoundaryJob before its stdin grant. No Core imports or injected roots.
-async function composeHostedN08(input) {
+async function composeHostedN08(input, onProbePhase) {
   const options = exact(input, [
     'candidate',
     'ownedRoot',
@@ -116,8 +116,11 @@ async function composeHostedN08(input) {
         negativeAddress: listenerState.negativeAddress,
         negativePort: listenerState.negativePort,
       },
-      listener
+      listener,
+      onProbePhase
     );
+    // A later controller/business failure must not retain the last probe code.
+    if (typeof onProbePhase === 'function') onProbePhase(71);
     // No daemon process is created before real TLS and negative-egress probes.
     const copies = buildHostedController({
       candidate: options.candidate,

@@ -136,7 +136,8 @@ async function composeHostedN09(input, onPhase = () => {}) {
         negativeAddress: state.negativeAddress,
         negativePort: state.negativePort,
       },
-      listener
+      listener,
+      onPhase
     );
     onPhase(77);
     const controller = buildN09AckController({

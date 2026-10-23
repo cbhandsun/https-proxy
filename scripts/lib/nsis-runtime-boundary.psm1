@@ -82,7 +82,7 @@ function Invoke-HpmBoundedRuntimeChild {
             # Only the fixed hosted entry phase codes are disclosed. Other
             # exits and all stderr remain opaque; no child data is forwarded.
             $childExitCode = 'other'
-            if ($process.ExitCode -ge 64 -and $process.ExitCode -le 84) {
+            if (($process.ExitCode -ge 64 -and $process.ExitCode -le 84) -or ($process.ExitCode -ge 86 -and $process.ExitCode -le 94)) {
                 $childExitCode = [string]$process.ExitCode
             }
             Write-Information ('hpm_runtime_child_exit_code=' + $childExitCode) -InformationAction Continue
