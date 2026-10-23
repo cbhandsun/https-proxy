@@ -323,7 +323,7 @@ test('initial health diagnostics separate original deadline, transport, HTTP, sh
     ['transport', 186],
     ['http', 170],
     ['shape', 188],
-    ['identity', 190],
+    ['identity', 240],
     ['reset', 192],
   ]) {
     const phases = [];
@@ -350,11 +350,82 @@ test('initial health diagnostics separate original deadline, transport, HTTP, sh
         f.client.configureSyntheticBusiness(identity, synthetic()),
         /^Error: n09_lifecycle_client_failed$/
       );
-      assert.deepEqual(phases, [112, 113, 114, 115, ...(kind === 'http' ? [187] : []), expected]);
+      assert.deepEqual(phases, [
+        112,
+        113,
+        114,
+        115,
+        ...(kind === 'http' ? [187] : kind === 'identity' ? [190] : []),
+        expected,
+      ]);
       assert.equal(f.state.requests.length, 1);
     } finally {
       await f.client.close();
     }
+  }
+});
+
+test('health identity failures distinguish fixed product, physical owner and port fields without disclosing values', async (t) => {
+  for (const [expected, change] of [
+    [
+      241,
+      (body) => {
+        body.appId = 'PRIVATE';
+      },
+    ],
+    [
+      242,
+      (body) => {
+        body.runtime.entrypoint = 'PRIVATE';
+      },
+    ],
+    [
+      243,
+      (body) => {
+        body.runtime.cwd = 'PRIVATE';
+      },
+    ],
+    [
+      244,
+      (body) => {
+        body.runtime.configDir = 'PRIVATE';
+      },
+    ],
+    [
+      245,
+      (body) => {
+        body.runtime.runtimeDir = 'PRIVATE';
+      },
+    ],
+    [
+      246,
+      (body) => {
+        body.ports.management = 0;
+      },
+    ],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      t,
+      (stage, body, state) => {
+        if (stage === 'http' && state.requests.at(-1)?.path === '/v1/local/health') change(body);
+      },
+      undefined,
+      (phase) => phases.push(phase)
+    );
+    try {
+      const identity = await f.client.startLifecycle();
+      await assert.rejects(
+        f.client.configureSyntheticBusiness(identity, synthetic()),
+        /^Error: n09_lifecycle_client_failed$/
+      );
+      assert.deepEqual(phases.slice(-2), [190, expected]);
+      assert.equal(f.state.requests.length, 1);
+      assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+    } finally {
+      await f.client.close();
+    }
+    assert.equal(f.state.commands.at(-1).op, 'remove');
   }
 });
 
@@ -611,7 +682,7 @@ test('post-startup failures identify config read, save, readback or health inste
     ['combination', 'save', 117],
     ['combination', 'readback', 130],
     ['attest', 'read', 116],
-    ['attest', 'health', 190],
+    ['attest', 'health', 232],
   ]) {
     const phases = [];
     let armed = false,

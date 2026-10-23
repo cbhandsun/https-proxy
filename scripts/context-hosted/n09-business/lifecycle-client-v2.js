@@ -33,6 +33,12 @@ function createClientUnsafe(input, dependencies) {
     )
       throw fail();
   const onPhase = dependencies.onPhase ?? (() => {});
+  function reportAppliedFailure(error) {
+    const phase = Object.getOwnPropertyDescriptor(error, 'phase')?.value;
+    onPhase(Number.isInteger(phase) && phase >= 162 && phase <= 195 ? phase : 188);
+    const detail = Object.getOwnPropertyDescriptor(error, 'detailPhase')?.value;
+    if (Number.isInteger(detail) && detail >= 232 && detail <= 239) onPhase(detail);
+  }
   // Dedicated synthetic-only token: no daily credentials and no receipt/API getter.
   let token = randomBytes(32).toString('hex');
   let channel;
@@ -163,17 +169,19 @@ function createClientUnsafe(input, dependencies) {
       onPhase(188);
       throw fail();
     }
-    if (
-      body.ok !== true ||
-      body.appId !== 'https-proxy-manager' ||
-      body.status !== 'running' ||
-      body.pid !== identity.pid ||
-      ['entrypoint', 'cwd', 'configDir', 'runtimeDir'].some(
-        (key) => runtime[key] !== identity[key]
-      ) ||
-      body.ports?.management !== identity.managementPort
-    ) {
+    let identityFailure;
+    if (body.pid !== identity.pid) identityFailure = 240;
+    else if (body.ok !== true || body.appId !== 'https-proxy-manager' || body.status !== 'running')
+      identityFailure = 241;
+    else {
+      const fields = ['entrypoint', 'cwd', 'configDir', 'runtimeDir'];
+      const mismatch = fields.findIndex((key) => runtime[key] !== identity[key]);
+      if (mismatch >= 0) identityFailure = 242 + mismatch;
+      else if (body.ports?.management !== identity.managementPort) identityFailure = 246;
+    }
+    if (identityFailure !== undefined) {
       onPhase(190);
+      onPhase(identityFailure);
       throw fail();
     }
     return true;
@@ -409,8 +417,7 @@ function createClientUnsafe(input, dependencies) {
           deadline
         );
       } catch (error) {
-        const phase = Object.getOwnPropertyDescriptor(error, 'phase')?.value;
-        onPhase(Number.isInteger(phase) && phase >= 162 && phase <= 195 ? phase : 188);
+        reportAppliedFailure(error);
         throw fail();
       }
       return Object.freeze({ ready: true, syntheticBusinessConfigured: true });
@@ -598,8 +605,7 @@ function createClientUnsafe(input, dependencies) {
           { enabled, persistent: persistence }
         );
       } catch (error) {
-        const phase = Object.getOwnPropertyDescriptor(error, 'phase')?.value;
-        onPhase(Number.isInteger(phase) && phase >= 162 && phase <= 195 ? phase : 188);
+        reportAppliedFailure(error);
         throw fail();
       }
       return Object.freeze({

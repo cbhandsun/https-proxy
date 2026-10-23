@@ -3,7 +3,11 @@ const { types } = require('node:util');
 const { snapshot } = require('../n09-ipc/lifecycle-channel.js');
 const { managementFailurePhase } = require('../shared/management-failure-phase.js');
 const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
-const failure = (phase) => Object.assign(new Error('n09_applied_recovery_not_ready'), { phase });
+const failure = (phase, detailPhase) =>
+  Object.assign(new Error('n09_applied_recovery_not_ready'), {
+    phase,
+    ...(detailPhase === undefined ? {} : { detailPhase }),
+  });
 
 // Listening and private credential publication do not attest asynchronous store
 // startup. Only the product's explicit pending_application state is a probe.
@@ -78,7 +82,7 @@ async function waitForAppliedRecovery(
     } catch {
       throw failure(188);
     }
-    if (body.pid !== pid) throw failure(190);
+    if (body.pid !== pid) throw failure(190, 232);
     if (
       recovery.configValid === true &&
       recovery.requestedEnabled === expected.enabled &&
@@ -88,22 +92,25 @@ async function waitForAppliedRecovery(
       (!expected.enabled || recovery.storage === (expected.persistent ? 'persistent' : 'memory'))
     )
       return true;
-    if (
-      recovery.configValid !== true ||
-      recovery.requestedEnabled !== expected.enabled ||
-      recovery.state !== 'pending_application' ||
-      ![false, true, null].includes(recovery.appliedEnabled) ||
-      !['memory', 'persistent'].includes(recovery.storage)
-    )
-      throw failure(190);
+    if (recovery.configValid !== true) throw failure(190, 233);
+    if (recovery.requestedEnabled !== expected.enabled) throw failure(190, 234);
+    if (['unavailable', 'failed'].includes(recovery.state)) throw failure(190, 235);
+    if (!['memory', 'persistent'].includes(recovery.storage)) throw failure(190, 237);
+    if (recovery.state !== 'pending_application') {
+      if (recovery.appliedEnabled !== expected.enabled) throw failure(190, 236);
+      if (expected.enabled && recovery.storage !== (expected.persistent ? 'persistent' : 'memory'))
+        throw failure(190, 237);
+      throw failure(190, 238);
+    }
+    if (![false, true, null].includes(recovery.appliedEnabled)) throw failure(190, 236);
     let alive;
     try {
       alive = await isAlive();
     } catch {
-      throw failure(190);
+      throw failure(190, 239);
     }
     clock();
-    if (alive !== true) throw failure(190);
+    if (alive !== true) throw failure(190, 239);
     try {
       await sleep(Math.min(100, deadline - previous));
     } catch {

@@ -142,6 +142,86 @@ test('applied recovery rejects disabled, failed, malformed, wrong owner and HTTP
     assert.equal(reads, 1);
   }
 });
+test('terminal readiness diagnostics identify only fixed owner, config, mode and liveness classes', async () => {
+  for (const [detail, mutate, alive] of [
+    [
+      232,
+      (r) => {
+        r.body.pid = 999;
+      },
+      true,
+    ],
+    [
+      233,
+      (r) => {
+        r.body.contextRecovery.configValid = false;
+      },
+      true,
+    ],
+    [
+      234,
+      (r) => {
+        r.body.contextRecovery.requestedEnabled = false;
+      },
+      true,
+    ],
+    [
+      235,
+      (r) => {
+        r.body.contextRecovery.state = 'unavailable';
+      },
+      true,
+    ],
+    [
+      236,
+      (r) => {
+        r.body.contextRecovery.appliedEnabled = 'PRIVATE';
+      },
+      true,
+    ],
+    [
+      237,
+      (r) => {
+        r.body.contextRecovery.storage = 'PRIVATE';
+      },
+      true,
+    ],
+    [
+      238,
+      (r) => {
+        r.body.contextRecovery.state = 'PRIVATE';
+        r.body.contextRecovery.appliedEnabled = true;
+      },
+      true,
+    ],
+    [239, () => {}, false],
+  ]) {
+    const response = pending();
+    mutate(response);
+    let reads = 0;
+    await assert.rejects(
+      waitForAppliedRecovery(
+        async () => {
+          reads++;
+          return response;
+        },
+        async () => alive,
+        101,
+        15000,
+        fixture().dependencies
+      ),
+      (error) => {
+        phase(190)(error);
+        assert.equal(error.detailPhase, detail);
+        assert.deepEqual(Object.keys(error).sort(), ['detailPhase', 'phase']);
+        assert.doesNotMatch(JSON.stringify(error), /PRIVATE/);
+        return true;
+      }
+    );
+    assert.equal(reads, 1);
+  }
+});
+
 test('applied recovery retains the total deadline and rejects frozen, backward or failed clocks', async () => {
   const f = fixture();
   await assert.rejects(
