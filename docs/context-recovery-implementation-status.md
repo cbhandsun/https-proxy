@@ -1,5 +1,27 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：PERSIST 候选因已清理密文残留被否决
+
+在不改产品的直接 SQLite 引擎实验中，保持 FULL／secure_delete，分别完成撤销与到期清理；三模式都逻辑拒读。但 PERSIST 的 journal 分别保留 21032／29240 字节，原已清理 envelope 的 208 个固定 64 字节片段仍可找到 205 个；DELETE／TRUNCATE 为 0 个。不能用整段 `journal.includes(envelope)` 检测这一边界，因为 SQLite 页头会打断连续密文，先前 v1 整段查询的 false 不证明没有残留。证据 `sqlite-journal-retention-comparison-v2.json`。这些是合成密文片段，不是用户原文泄漏或权限复活；但不应为微基准收益悄悄扩大已清理密文的目录内保留。
+
+新增 `context-recovery-journal-retention.test.js`，3/3 通过（`journal-retention-regression-v2.log`）：当前产品的撤销、到期清理后 journal 不留已丢弃密文片段；PERSIST 负控确认相同检测能发现残留且逻辑拒读仍成立。该文件进入既有统一 unit 发现，没有更改生产配置、产品日志模式、期限或断言。仅直接 SQLite、临时普通文件与随机合成测试密钥；没有持久 storage worker、DPAPI、注册表或真实模型。PERSIST 不进入产品，后续须减少重复持久事务或从其他有证据的边界解决延迟，不能把此安全回归当成超时修复。
+
+## 2026-10-22：be393f0a 托管终态与 SQLite 写入停顿证据
+
+Verify `39892137258` 全部 success；独立 disposable `39892137257` 已 failure，source-gates 未通过，N08／N09 skipped。已下载 source job `120214126907` 在运行期提供的日志 `hosted-job-120214126907-observation-v1.log`：chat 与 Responses long-persistent 分别在 5024／5012ms 触发原期限。该日志为中间快照，不能把其中失败数当成最终完整失败清单。
+
+失败 chat 场景的序号 6 load-reference 中，engine execute 1101ms，内部 sqlite_clock_write 260ms、sqlite_commit 837ms，snapshot 10ms、anchor persist 86ms。前两项嵌套于 execute，合计解释该次事务约 1097ms，证明这次停顿主要出现在 SQLite 写入与提交，不能外推所有历史超时的根因。此前 TRUNCATE 比较仍在重开第二轮 5015ms 超时，见本文件 2026-10-21 的存储诊断历史；不能忘记该负证据并直接把更换日志模式称为修复。
+
+另做仅合成整数水位的独立普通文件 SQLite 对照（`sqlite-journal-io-comparison-v1.json`）：保持 FULL／secure_delete，40 次事务，DELETE／TRUNCATE／PERSIST 总计 193.30／98.58／86.62ms。未执行生产存储 worker、DPAPI、注册表或真实模型。该本机微基准没有重现托管停顿，也没有检查生产撤销、热 journal、崩溃或旧包兼容，不能作为更改产品日志模式或关闭 5 秒问题的依据。产品继续 DELETE，I5／H1 与完整目标仍未完成。
+
+## 2026-10-22：be393f0a 独立容量命令本机满足原 60 秒目标
+
+源码 `be393f0a8ceb9b9fec7382102994ea28976f17a1` 在没有其他本地重测试的情况下，原五档、两个 worker 的 CPU profile 运行功能通过，worker scope 35010.6352ms。另一次未启用 profiler 的原始 CLI 运行退出 0、五档功能全部通过；父进程从 spawn 到退出测得 `scope: capacity-command` **36088.9789ms**，worker scope 35742.9204ms，均满足原 60000ms 目标及批准的 180000ms 功能预算。没有改负载、调度、期限或断言，未执行原生持久 worker、DPAPI、注册表或真实模型请求。
+
+私有证据为 `capacity-be393f0a-command-v1.json`、`capacity-be393f0a-command-v1-report.json` 与 `capacity-be393f0a-profile-v1/`。本次独立本机性能达标不能覆盖既往并发／覆盖率超时，不能宣称宿主环境稳定性能、持久存储、传输、真实客户端或全天容量资格；报告仍明确 `transportQualified:false`、`durableStorageQualified:false`。同源码 Verify `39892137258` 和 disposable `39892137257` 尚在运行，不因本次容量结果授予完整资格。
+
+本轮已完成的普通 unit 1 日志 `hosted-job-120214127388-final.log` 中，严格解析 741 条阶段、0 条拒绝（`owner-sqlite-stage-plain-v1.json`）。SQLite begin／水位写入／commit 最大分别 6／19／46ms；engine execute／snapshot／anchor persist 最大分别 74／60／42ms。该组是全部三协议场景的汇总，嵌套阶段不相加；它未重现先前约 2 秒的事务延迟，不能证明覆盖率或失败环境中的 SQLite 提交为根因。当前 Verify 已进入 client coverage，独立完整门禁仍在运行；不为观察日志重启任务。
+
 ## 2026-10-22：2b3040d7 Verify 全绿，独立完整门禁仍有持久事务超时
 
 同源码 Verify `39890689923` 已 success：四个单元分片、全部覆盖率、源码质量、Rust 与集成均通过。该结果不替代 disposable `39890689848` 的字面 `npm run verify`；后者已失败，N08／N09 未运行。其唯一失败文件为 `client-context-target.test.js`，chat WBIPC long-persistent 在原 5000ms 期限到期（5009ms）。失败前序号 6 的 load-reference：engine execute 1979ms、snapshot 6ms、anchor persist 368ms，父存储计时 2511ms。嵌套阶段不能重复相加。当前证据定位到事务开销，尚不能区分校验、SQLite 水位写入及 COMMIT 刷盘。
