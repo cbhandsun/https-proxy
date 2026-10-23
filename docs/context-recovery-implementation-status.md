@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：网络失败已缩小到规则创建，新增独立诊断路径
+
+`4e14f5e5` 的 disposable `39899488692` 已 failure：source-gates success，N08 `120242253238`、N09 `120242253172` 均记录 `hpm_network_failed_stage=egress_rule_create`。两者尚未启动业务场景；不能归因于 durable ACK 或宣称生命周期失败根因已修复。终态日志按各自 job ID 私有封存。`ce0ef15b` 的独立托管验收另行跟踪，不因本轮诊断变更取消或重启。
+
+增加独立、最长 5 分钟的 egress-diagnostic job，跳过源码构建依赖仅用于诊断，不替代 source-gates → N08／N09 原验收链。一次性 hosted runner 内复制临时 Node，分别测试原三地址、IPv4、IPv6 /0、IPv6 两个 /1、原 IPv4 加两个 IPv6 /1；不启动副本、不改 hosts／证书或默认规则，不授予任何资格。仅输出固定 case、阶段、布尔结果、错误类别及数字 HRESULT／native code，原始消息与路径不外泄。每个规则使用独立随机名字，部分创建后抛错仍尝试清理；碰撞不删除原规则，清理未确认则 job 失败。临时副本和空目录按确切路径非递归删除。纯 mocked PowerShell、解析与原 workflow 治理共 13/13；尚待真实 runner 结果，实际隔离地址和主验收门禁未改。
+
 ## 2026-10-22：暖态发布合并校验候选，本机回归通过，托管待验
 
 将已用于暖态 reader 的原子准入预条件用于 publication.prepare：仅当原能力、已知持久 revision／来源 ID 和发布视图条件均成立时，推迟独立 load-reference 到第一笔发布写事务内验证。新来源载荷仍由同一 save-reference-state 认证并保存；prepared、sending、transport-finished 各自原 durable ACK 不合并，读前预扣、CAS、旧发布记录、到期、时钟和锚点规则不变。未声明能力的适配器保持原先 load-before-save。此候选只减少一笔暖态发布前持久读取，不宣称已经修复 5 秒期限。

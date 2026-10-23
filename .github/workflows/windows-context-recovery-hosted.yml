@@ -97,3 +97,20 @@ jobs:
             'No private local acceptance directory or old installer artifact is an input. No payload, key, database or request body is uploaded.'
             'Not qualified: save/revoke durable ACK, commit/publication in progress, backup rollback, installation lifecycle, full N09, 24-hour capacity, real providers or production activation.'
           ) >> $env:GITHUB_STEP_SUMMARY
+
+  egress-diagnostic:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+      - name: Diagnose fixed egress rule expressions without launching payload
+        run: ./scripts/context-hosted/shared/egress-rule-diagnostic.ps1
