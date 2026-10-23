@@ -2240,14 +2240,18 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
   });
   const contract = require('../lib/proxy/context-recovery-storage-contract');
   const execute = storage.execute;
+  let combinedAdmissions = 0;
   storage.execute = async (request) => {
     const started = performance.now();
     try {
-      return await execute(request);
+      const result = await execute(request);
+      if (request.admission) combinedAdmissions++;
+      return result;
     } finally {
       diagnostic({
         phase: 'storage',
         operation: request.operation,
+        ...(request.admission ? { combinedAdmission: true } : {}),
         elapsedMs: Math.round(performance.now() - started),
       });
     }
@@ -2258,6 +2262,7 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
     'RecoveryReaderSettlement',
     'RecoveryReferenceWrites',
     'RecoveryReferenceStates',
+    'RecoveryReferenceAdmission',
     'RecoveryReferenceScan',
   ]) {
     if (contract['supports' + capability](execute))
@@ -2308,6 +2313,7 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
   return {
     sessions,
     lifecycle,
+    combinedAdmissions: () => combinedAdmissions,
     waitForPublication(index, signal) {
       if (completed.length >= index) return Promise.resolve(completed[index - 1]);
       return new Promise((resolve, reject) => {
@@ -2794,6 +2800,7 @@ for (const kind of ['chat', 'responses', 'claude']) {
             assert.equal(counters.failed, success ? 0 : 1);
           }
           if (persistent && turn === 0) {
+            assert.ok(persistent.combinedAdmissions() > 0);
             savedRoot = exportContextRecoveryRootMetadata(runtime, seed.snapshotId).metadata;
             assert.ok(Number.isSafeInteger(savedRoot.expiresAt));
             assert.ok(savedRoot.expiresAt > Date.now());
@@ -2817,6 +2824,7 @@ for (const kind of ['chat', 'responses', 'claude']) {
           }
         }
         if (persistent) {
+          assert.ok(persistent.combinedAdmissions() > 0);
           const restored = exportContextRecoveryRootMetadata(runtime, seed.snapshotId).metadata;
           assert.equal(restored.expiresAt, savedRoot.expiresAt);
           assert.equal(restored.rootId, savedRoot.rootId);

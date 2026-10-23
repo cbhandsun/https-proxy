@@ -20,8 +20,15 @@ const {
   parseRootCheckpoint,
 } = require('../lib/proxy/context-recovery-root-checkpoint');
 const { createRecoveryRootReader } = require('../lib/proxy/context-recovery-root-reader');
+const { createRecoveryRootStorage } = require('../lib/proxy/context-recovery-root-storage');
 const { openContextRecoveryStorage } = require('../lib/proxy/context-recovery-storage');
-const { createReferenceState } = require('../lib/proxy/context-recovery-reference-state');
+const {
+  createReferenceState,
+  referenceStateFromCheckpoint,
+} = require('../lib/proxy/context-recovery-reference-state');
+const {
+  assertRecoveryReferenceAdmission,
+} = require('../lib/proxy/context-recovery-reference-admission');
 const { createRecoverySqliteStore } = require('../lib/proxy/context-recovery-storage-sqlite');
 const {
   declareRecoverySourcePages,
@@ -31,6 +38,7 @@ const {
   declareRecoveryReferenceWrites,
   supportsRecoveryReferenceWrites,
   declareRecoveryReferenceStates,
+  declareRecoveryReferenceAdmission,
 } = require('../lib/proxy/context-recovery-storage-contract');
 const {
   LIST_EVIDENCE_TOOL: LIST,
@@ -222,7 +230,8 @@ function pagedStorage(
   hook = (_request, next) => next(),
   incremental = false,
   references = false,
-  referenceStates = false
+  referenceStates = false,
+  admission = false
 ) {
   const database = new DatabaseSync(':memory:');
   const store = createRecoverySqliteStore({
@@ -240,6 +249,7 @@ function pagedStorage(
   if (incremental) declareRecoveryReaderSettlement(adapter.execute);
   if (references) declareRecoveryReferenceWrites(adapter.execute);
   if (referenceStates) declareRecoveryReferenceStates(adapter.execute);
+  if (admission) declareRecoveryReferenceAdmission(adapter.execute);
   f.attach(adapter);
   return {
     operations,
@@ -306,6 +316,233 @@ test('default reference-state reader uses metadata loads and sends each original
       f.runtime.close();
       storage.close();
     }
+  }
+});
+
+test('warm reference reader combines admission with durable budget reservation across protocols', async () => {
+  for (const kind of ['chat', 'claude', 'responses']) {
+    const f = fixture({ kind });
+    const storage = pagedStorage(f, undefined, true, false, true, true);
+    try {
+      assert.equal((await f.view.replyAsync(READ, f.args)).ok, true);
+      assert.equal((await f.view.replyAsync(LIST, {})).ok, true);
+      assert.equal((await f.view.replyAsync(READ, f.args)).ok, true);
+      assert.equal(storage.operations.filter((r) => r.operation === 'load-reference').length, 1);
+      const saves = storage.operations.filter((r) => r.operation === 'save-reference-state');
+      assert.equal(saves.length, 3);
+      assert.equal(saves[0].admission, undefined);
+      for (const request of saves.slice(1)) {
+        assert.ok(request.admission);
+        assert.deepEqual(request.payloads, []);
+        assert.equal(
+          request.reference.metadata.budget.calls,
+          request.admission.metadata.budget.calls + 1
+        );
+      }
+      assert.equal(storage.operations.filter((r) => r.operation === 'settle-reader').length, 3);
+      const stored = storage.load();
+      assert.equal(stored.state.root.budget.calls, 3);
+      assert.equal(stored.state.root.ledger.readCount, 2);
+      assert.equal(stored.state.root.expiresAt, f.checkpoint.root.expiresAt);
+    } finally {
+      f.close();
+      storage.close();
+    }
+  }
+});
+
+test('combined admission failures deny source reads without retry or budget refund', async () => {
+  for (const fault of ['budget', 'publications', 'revision', 'ciphertext', 'ack']) {
+    const f = fixture();
+    let injected = false;
+    const storage = pagedStorage(
+      f,
+      (request, next) => {
+        if (!request.admission) return next();
+        injected = true;
+        if (fault === 'budget') request.admission.metadata.budget.calls = 0;
+        if (fault === 'publications') request.admission.publications[0].state = 'withdrawn';
+        if (fault === 'revision')
+          storage.database.prepare('UPDATE recovery_state SET revision=revision+1').run();
+        if (fault === 'ciphertext') {
+          const row = storage.database.prepare('SELECT envelope FROM recovery_state').get();
+          const corrupt = Buffer.from(row.envelope);
+          corrupt[corrupt.length - 1] ^= 1;
+          storage.database.prepare('UPDATE recovery_state SET envelope=?').run(corrupt);
+        }
+        const result = next();
+        return fault === 'ack' ? { revision: -1 } : result;
+      },
+      true,
+      false,
+      true,
+      true
+    );
+    try {
+      assert.equal((await f.view.replyAsync(READ, f.args)).ok, true);
+      const before = storage.operations.length;
+      assert.equal((await f.view.replyAsync(READ, f.args)).code, unavailable);
+      assert.equal(injected, true);
+      assert.deepEqual(
+        storage.operations.slice(before).map((r) => r.operation),
+        ['save-reference-state']
+      );
+      const after = storage.operations.length;
+      assert.equal((await f.view.replyAsync(READ, f.args)).code, unavailable);
+      assert.equal(storage.operations.length, after);
+      if (fault === 'ack') assert.equal(storage.load().state.root.budget.calls, 2);
+    } finally {
+      f.close();
+      storage.close();
+    }
+  }
+});
+
+test('admission guard rejects unsafe and mismatched input without executing accessors or proxies', () => {
+  const f = fixture();
+  try {
+    const reference = referenceStateFromCheckpoint(f.checkpoint);
+    const accepted = assertRecoveryReferenceAdmission(reference, reference);
+    assert.deepEqual(accepted, reference);
+    accepted.metadata.budget.calls++;
+    assert.equal(reference.metadata.budget.calls, 0);
+    let effects = 0;
+    const getter = {
+      get metadata() {
+        effects++;
+        return reference.metadata;
+      },
+    };
+    const proxy = new Proxy(
+      {},
+      {
+        getPrototypeOf() {
+          effects++;
+          throw new Error('PRIVATE');
+        },
+      }
+    );
+    const cycle = {};
+    cycle.self = cycle;
+    let deep = null;
+    for (let index = 0; index < 66; index++) deep = { child: deep };
+    const changedBudget = copy(reference.metadata);
+    changedBudget.budget.calls++;
+    const publication = createReferenceState(reference.metadata, reference.stagedSources, [
+      { snapshotId: reference.metadata.snapshots[0].id, state: 'withdrawn' },
+    ]);
+    for (const value of [
+      null,
+      {},
+      [],
+      '',
+      getter,
+      proxy,
+      cycle,
+      deep,
+      { ...reference, metadata: proxy },
+      { ...reference, extra: Array(65537).fill(null) },
+      { ...reference, version: 99 },
+      createReferenceState(changedBudget, reference.stagedSources),
+      publication,
+    ]) {
+      for (const values of [
+        [reference, value],
+        [value, reference],
+      ])
+        assert.throws(() => assertRecoveryReferenceAdmission(...values), { code: unavailable });
+    }
+    assert.equal(effects, 0);
+  } finally {
+    f.close();
+  }
+});
+
+test('revocation while combined admission is pending never releases a reader result', async () => {
+  const f = fixture();
+  const waiting = deferred();
+  const blocked = deferred();
+  const storage = pagedStorage(
+    f,
+    (request, next) => {
+      if (!request.admission) return next();
+      waiting.resolve();
+      return blocked.promise.then(next);
+    },
+    true,
+    false,
+    true,
+    true
+  );
+  try {
+    assert.equal((await f.view.replyAsync(READ, f.args)).ok, true);
+    const before = storage.operations.length;
+    const pending = f.view.replyAsync(READ, f.args);
+    await waiting.promise;
+    f.runtime.revoke('owner');
+    blocked.resolve();
+    assert.equal((await pending).code, unavailable);
+    assert.equal(
+      storage.operations.slice(before).some((r) => r.operation === 'read-source'),
+      false
+    );
+  } finally {
+    blocked.resolve();
+    f.close();
+    storage.close();
+  }
+});
+
+test('warm admission retains empty originals, invalid-call debit and exact expiry denial', async () => {
+  const f = fixture({ output: '' });
+  const storage = pagedStorage(f, undefined, true, false, true, true);
+  try {
+    for (let index = 0; index < 2; index++) {
+      const reply = await f.view.replyAsync(READ, f.args);
+      assert.equal(reply.ok, true);
+      assert.equal(JSON.parse(reply.text).page.text, '');
+    }
+    assert.equal((await f.view.replyAsync(READ, { unknown: true })).ok, false);
+    assert.equal(storage.load().state.root.budget.calls, 3);
+    assert.equal(storage.operations.filter((r) => r.operation === 'load-reference').length, 1);
+    const before = storage.operations.length;
+    f.advance(f.checkpoint.root.expiresAt);
+    assert.equal((await f.view.replyAsync(READ, f.args)).ok, false);
+    assert.equal(
+      storage.operations.slice(before).some((r) => r.operation === 'read-source'),
+      false
+    );
+  } finally {
+    f.close();
+    storage.close();
+  }
+});
+
+test('deferred admission cannot read or settle before the first durable save', async () => {
+  const f = fixture();
+  const storage = pagedStorage(f, undefined, true, false, true, true);
+  const service = createRecoveryRootStorage(storage.adapter);
+  try {
+    const reference = referenceStateFromCheckpoint(f.checkpoint);
+    const all = [...f.checkpoint.root.ledger.sources, ...f.checkpoint.stagedSources];
+    const payloads = (ids) =>
+      all
+        .filter((source) => ids.includes(source.sourceId))
+        .map(({ sourceId, output }) => ({ sourceId, output }));
+    const first = await service.begin(reference, payloads);
+    await first.save(reference);
+    const before = storage.operations.length;
+    const deferred = await service.begin(reference, payloads, true);
+    await assert.rejects(deferred.readSource(null, null, 0), { code: unavailable });
+    await assert.rejects(deferred.settleReader({}), { code: unavailable });
+    assert.equal(storage.operations.length, before);
+    await deferred.save(reference);
+    assert.equal(storage.operations.length, before + 1);
+    assert.ok(storage.operations.at(-1).admission);
+  } finally {
+    service.close();
+    f.close();
+    storage.close();
   }
 });
 

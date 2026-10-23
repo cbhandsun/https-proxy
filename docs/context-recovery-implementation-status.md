@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：暖态读前校验与预算预扣合并候选，真实期限待验
+
+未改变 DELETE journal、FULL、secure_delete、时钟持久化或锚点确认。原生适配器新增内部 reference-admission 能力：只有已经取得持久修订号和来源 ID 集合的暖态 reader 才可把旧 load-reference 校验延后到第一笔 save-reference-state；该笔写事务同时验证实际已存状态与调用前的当前预算、绑定、策略、发布记录和 CAS，再保存预扣。返回 durable ACK 前不能 readSource 或 settleReader。冷启动、未声明能力的适配器和不适用的旧发布视图继续旧路径；没有新读权来源、隐式重试或失败退款。仅保留已知来源 ID，不缓存正文或以缓存代替存储认证。
+
+新边界模块 `context-recovery-reference-admission.js` 使用有界描述符预检及原有语义解析，拒绝循环、深度／节点越界、访问器及嵌套 Proxy，发布比较在与普通关联校验同一次解析中完成。存储打开包装层及 Core 测试观察包装层都转发新标记；发行源码清单已增加新模块。原 native long-persistent 测试新增重开前后合并事务计数大于零的断言，原客户端输入、请求数、覆盖率、并发与 5000ms 期限保留；本机不运行该原生测试。
+
+本地九文件纯／直接内存与普通文件回归 **155/155**，零失败／取消／跳过计数；命令明确过滤五项真实 worker 测试，不能记作原生全量通过。证据 `combined-reader-delivery-pure-v1.log`。包含三协议暖态、旧能力回退、空原文、非法调用仍扣预算、绝对到期、挂起撤权、ACK 前拒绝读取／结算及预算／发布／revision／密文／ACK 故障，无重放或错误退款。以旧 root-storage 模块替换运行的新回归先得到 3 次 load 不等于预期 1 次，随后候选通过（`combined-reader-admission-before-v1.log`）。格式、Lint、CI／发行规则及宿主闭包专项通过。
+
+纯内存 20 次暖态 LIST 对照中，三协议操作数 60→40、load 20→0，但本轮耗时从 488–549ms 增到 901–1089ms（`reader-admission-before-benchmark-v1.json`、`reader-admission-after-benchmark-v2.json`）。减少持久事务的代价是额外校验，不隐瞒该微基准退步；尚无当前候选的托管原生净时延收益，不能宣称 5 秒问题已修复。完整 Verify、字面 verify、N08／N09、安装迁移及整体资格仍待验证。
+
 ## 2026-10-22：PERSIST 候选因已清理密文残留被否决
 
 在不改产品的直接 SQLite 引擎实验中，保持 FULL／secure_delete，分别完成撤销与到期清理；三模式都逻辑拒读。但 PERSIST 的 journal 分别保留 21032／29240 字节，原已清理 envelope 的 208 个固定 64 字节片段仍可找到 205 个；DELETE／TRUNCATE 为 0 个。不能用整段 `journal.includes(envelope)` 检测这一边界，因为 SQLite 页头会打断连续密文，先前 v1 整段查询的 false 不证明没有残留。证据 `sqlite-journal-retention-comparison-v2.json`。这些是合成密文片段，不是用户原文泄漏或权限复活；但不应为微基准收益悄悄扩大已清理密文的目录内保留。

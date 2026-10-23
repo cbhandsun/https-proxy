@@ -23,6 +23,8 @@ const {
   supportsRecoveryReferenceWrites,
   declareRecoveryReferenceStates,
   supportsRecoveryReferenceStates,
+  declareRecoveryReferenceAdmission,
+  supportsRecoveryReferenceAdmission,
   declareRecoveryReferenceScan,
   supportsRecoveryReferenceScan,
 } = require('../lib/proxy/context-recovery-storage-contract');
@@ -83,6 +85,7 @@ test('opening forwards source-page support only from the actual adapter and vali
       declareRecoveryReaderSettlement(f.storage.execute);
       declareRecoveryReferenceWrites(f.storage.execute);
       declareRecoveryReferenceStates(f.storage.execute);
+      declareRecoveryReferenceAdmission(f.storage.execute);
       declareRecoveryReferenceScan(f.storage.execute);
     }
     const opening = createContextRecoveryStorageOpening({
@@ -95,6 +98,7 @@ test('opening forwards source-page support only from the actual adapter and vali
       assert.equal(supportsRecoveryReaderSettlement(opening.execute), marked);
       assert.equal(supportsRecoveryReferenceWrites(opening.execute), marked);
       assert.equal(supportsRecoveryReferenceStates(opening.execute), marked);
+      assert.equal(supportsRecoveryReferenceAdmission(opening.execute), marked);
       assert.equal(supportsRecoveryReferenceScan(opening.execute), marked);
       if (marked) {
         const result = await opening.execute({

@@ -154,6 +154,7 @@
   "lib/proxy/context-recovery-reader-result.js",
   "lib/proxy/context-recovery-reader-settlement.js",
   "lib/proxy/context-recovery-reauthorization.js",
+  "lib/proxy/context-recovery-reference-admission.js",
   "lib/proxy/context-recovery-reference-state.js",
   "lib/proxy/context-recovery-reference-write.js",
   "lib/proxy/context-recovery-rejection.js",
