@@ -154,6 +154,82 @@ test(
 );
 
 for (const name of ['n08', 'n09']) {
+  test(`${name} closed callback can invoke the locally loaded owned Job function`, () => {
+    const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'hosted-closure-scope-'));
+    const label = name.toUpperCase();
+    try {
+      const library = path.join(temporary, name);
+      const shared = path.join(temporary, 'shared');
+      const owned = path.join(temporary, 'owned');
+      for (const directory of [library, shared, owned]) fs.mkdirSync(directory);
+      const execution = path.join(library, 'hosted-execution.ps1');
+      fs.copyFileSync(
+        path.join(root, `scripts/context-hosted/${name}/hosted-execution.ps1`),
+        execution
+      );
+      const network = path.join(shared, 'hosted-network.ps1');
+      const materials = path.join(shared, 'hosted-materials.ps1');
+      const job = path.join(library, 'owned-job.ps1');
+      fs.writeFileSync(materials, '# synthetic library with no native operations\n');
+      fs.writeFileSync(
+        job,
+        `
+        function Invoke-Hpm${label}OwnedScenario {
+          param($OwnedRoot, $Candidate, $PlanSha256, $SourcePins)
+          if ($Candidate -cne 'synthetic-candidate' -or $PlanSha256 -cnotmatch '\\A[a-f0-9]{64}\\z') { throw 'fixture_contract_failed' }
+          return [pscustomobject]@{ ownedTreeEmpty = $true }
+        }
+      `
+      );
+      fs.writeFileSync(
+        network,
+        `
+        function Invoke-HpmN08HostedNetwork {
+          param($OwnedRoot, $BuildReceiptSha256, $RunOwnedScenario, $StopOwnedScenario)
+          $result = & $RunOwnedScenario ([pscustomobject]@{
+            node = (Join-Path $OwnedRoot 'payload/runtime/node/node.exe')
+            networkRoot = (Join-Path $OwnedRoot 'n08-hosted-network')
+            manifestSha256 = ('a' * 64); caSha256 = ('b' * 64); leafSha256 = ('c' * 64)
+          })
+          if ($result.ownedTreeEmpty -ne $true -or (& $StopOwnedScenario) -cne $true) { throw 'fixture_contract_failed' }
+          Write-Output 'local_job_invoked_and_closed'
+        }
+      `
+      );
+      const libraryPins = Object.fromEntries(
+        [network, materials, job].map((file) => [
+          file,
+          createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
+        ])
+      );
+      const plan = {
+        candidate: 'synthetic-candidate',
+        manifestSha256: 'a'.repeat(64),
+        controllerPins: {},
+        loadedPins: {},
+        negativeAddress: sentinel,
+        jobSourcePins: {},
+        libraryPins,
+        [name === 'n08' ? 'sourcePins' : 'lifecyclePins']: {},
+      };
+      const bytes = JSON.stringify(plan);
+      fs.writeFileSync(path.join(owned, `${name}-hosted-review-plan.json`), bytes);
+      const digest = createHash('sha256').update(bytes).digest('hex');
+      assert.deepEqual(
+        run(`
+        $ErrorActionPreference = 'Stop'
+        . ${quote(execution)}
+        Invoke-Hpm${label}HostedExecution -OwnedRoot ${quote(owned)} -ReviewPlanSha256 ${quote(digest)} -BuildReceiptSha256 ('b' * 64)
+      `),
+        ['local_job_invoked_and_closed']
+      );
+    } finally {
+      assert.equal(path.dirname(path.resolve(temporary)), path.resolve(os.tmpdir()));
+      assert.ok(path.basename(temporary).startsWith('hosted-closure-scope-'));
+      fs.rmSync(temporary, { recursive: true, force: true });
+    }
+  });
+
   test(
     `${name} execution distinguishes review and library identity failures without leaking input`,
     {

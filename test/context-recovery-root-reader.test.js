@@ -518,6 +518,86 @@ test('warm admission retains empty originals, invalid-call debit and exact expir
   }
 });
 
+test('metadata LIST waits for maximum-debit ACK and uncertain writes never settle or refund', async () => {
+  for (const mode of ['success', 'before', 'after', 'ack', 'disable']) {
+    const f = fixture();
+    let held = false;
+    let enabled = false;
+    let listCalls = 0;
+    let finished = false;
+    const entered = deferred(),
+      resume = deferred();
+    const storage = pagedStorage(
+      f,
+      async (request, next) => {
+        if (!enabled || held || !request.admission) return next();
+        held = true;
+        const reply = mode === 'before' ? null : next();
+        entered.resolve();
+        await resume.promise;
+        if (mode === 'before' || mode === 'after') throw new Error('synthetic lost ACK');
+        return mode === 'ack' ? { revision: -1 } : reply;
+      },
+      true,
+      false,
+      true,
+      true
+    );
+    const reader = createRecoveryRootReader(storage.adapter, () => {
+      const owner = acquireContextRecoveryRoot(f.runtime, f.root.snapshotId);
+      return {
+        ...owner,
+        replyReserved(...args) {
+          if (args[2] === LIST) listCalls++;
+          return owner.replyReserved(...args);
+        },
+        replyReservedAsync(...args) {
+          if (args[2] === LIST) listCalls++;
+          return owner.replyReservedAsync(...args);
+        },
+      };
+    });
+    try {
+      assert.equal((await reader.reply(f.view, READ, f.args)).ok, true);
+      const before = storage.load().state.root.budget;
+      const operationStart = storage.operations.length;
+      enabled = true;
+      assert.equal(held, false);
+      const pending = reader.reply(f.view, LIST, {});
+      void pending.then(() => {
+        finished = true;
+      });
+      await entered.promise;
+      assert.equal(listCalls, 0);
+      assert.equal(finished, false);
+      assert.deepEqual(
+        storage.operations.slice(operationStart).map((request) => request.operation),
+        ['save-reference-state']
+      );
+      const debit = storage.operations.at(-1).reference.metadata.budget;
+      assert.equal(debit.calls, before.calls + 1);
+      assert.equal(debit.returnedBytes, before.returnedBytes + 16384);
+      if (mode === 'disable') f.runtime.configure(false);
+      resume.resolve();
+      const result = await pending;
+      assert.equal(result.ok, mode === 'success');
+      assert.equal(listCalls, mode === 'success' ? 1 : 0);
+      if (mode === 'disable') assert.equal(storage.load(), null);
+      if (mode !== 'before' && mode !== 'disable') {
+        const budget = storage.load().state.root.budget;
+        assert.equal(budget.calls, before.calls + 1);
+        if (mode !== 'success') assert.equal(budget.returnedBytes, before.returnedBytes + 16384);
+        else assert.ok(budget.returnedBytes < before.returnedBytes + 16384);
+      }
+    } finally {
+      resume.resolve();
+      reader.close();
+      f.close();
+      storage.close();
+    }
+  }
+});
+
 test('deferred admission cannot read or settle before the first durable save', async () => {
   const f = fixture();
   const storage = pagedStorage(f, undefined, true, false, true, true);

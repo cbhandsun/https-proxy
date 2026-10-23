@@ -30,6 +30,9 @@ function Invoke-HpmN09HostedExecution {
         $state.stage = 'load_libraries'
         . $network
         . $job
+        # GetNewClosure creates a dynamic module: retain the verified local
+        # function explicitly instead of resolving its name from that module.
+        $ownedScenario = Get-Command Invoke-HpmN09OwnedScenario -CommandType Function -ErrorAction Stop
         $run = {
             param($networkDescriptor)
             if ($state.invoked) { throw 'n09_hosted_execution_rejected' }
@@ -49,7 +52,7 @@ function Invoke-HpmN09HostedExecution {
             try { $file.Write($planBytes); $file.Flush($true) } finally { $file.Dispose() }
             $planHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($planBytes)).ToLowerInvariant()
             $state.stage = 'owned_job'
-            $result = Invoke-HpmN09OwnedScenario -OwnedRoot $OwnedRoot -Candidate $review.candidate -PlanSha256 $planHash -SourcePins $review.jobSourcePins
+            $result = & $ownedScenario -OwnedRoot $OwnedRoot -Candidate $review.candidate -PlanSha256 $planHash -SourcePins $review.jobSourcePins
             # Original Job helper and fixed result parser have both succeeded.
             $state.closed = $result.ownedTreeEmpty -eq $true
             return $result

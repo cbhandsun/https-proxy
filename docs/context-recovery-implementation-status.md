@@ -1,5 +1,21 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：业务入口闭包作用域回归已复现，修复候选待托管
+
+`af56e4be` 的 disposable `39902537877` 现已 failure：source-gates 与独立网络诊断 success，N08 `120251652962`、N09 `120251652989` 的载荷构建 success，固定场景 failure。两路固定诊断均为 network owned_scenario、execution owned_job，且没有进入 owned-job 函数内部的 job-stage 诊断；收尾另记录 restore failure。原终态日志按 job ID 私有封存。
+
+模拟网络与 Job 库、复制真实 execution 入口的回归在两路原代码上均失败，显式捕获局部已加载函数后均通过：GetNewClosure 创建的动态模块不能按名称解析调用方局部 dot-source 的 Job 函数。候选在原库指纹校验和加载后捕获 FunctionInfo，闭包仅调用该对象；原固定参数、Job、120 秒外层期限、内部期限、安全检查及收尾规则保持。模拟不执行本机网络、证书、注册表或原生存储；不从该回归授予真实 N08／N09 资格。更早的请求超时、存储收尾 EBUSY 与完整 I0–I5/H1、N01–N11 范围继续保留。
+
+修改前两条回归 0/2，证据 `hosted-closure-before-v1.log`；修复后的诊断、PowerShell 解析、工作流治理、来源身份、N09 组合与共享边界六文件 34/34，证据 `hosted-closure-pure-v1.log`。LIST／发布两个文件再次以私有原生阻断入口验证 70/70，证据 `list-debit-boundary-final-v2.log`；真实 worker 显式排除，不能算作持久存储资格。受影响 JS 的 ESLint 零警告、格式及 diff 检查通过。
+
+## 2026-10-22：当前完整源码门禁通过，N08／N09 已进入载荷构建
+
+当前 `af56e4beb8aa39acee449295a4b19c28a635e7ad` 的独立 Verify `39902537855` 全部 success；coverage job `120247116788` 的代理、客户端、前端覆盖率步骤分别 success。disposable `39902537877` 的完整 source-gates `120247115892` 也已 success，N08 `120251652962`、N09 `120251652989` 已进入各自 runner-local 载荷构建，业务终态仍待确认。独立网络诊断 `120247116048` 已在真实 runner 回读并确认 IPv4、两个 IPv6 /1 及完整组合的 address filter，三组均 created／verified／cleaned true；原 IPv6 /0 拒绝保持。私有固定字段证据为 `egress-ipv6-split-native-filter-v1.json`。源码门禁和防火墙诊断不替代业务、安装迁移、全天容量或生产资格。
+
+较早 `38bdd862` 的 disposable `39902047946` 已 failure，source-gates `120245585332` 失败，业务 job 跳过。终态日志 `hosted-job-120245585332-final.log` 确认 Claude WBIPC 所有权测试发生请求超时；四根／32 MiB 原生测试在 finally 删除 `.writer.sqlite` 时 EBUSY，尚不能从收尾错误推断先前业务操作成功或锁占用根因。当前一次全绿不能撤销这些稳定性问题。
+
+新增 LIST 安全回归覆盖最大预算预扣 ACK 前不得执行 LIST，以及写前失败、写后丢 ACK、非法 ACK、挂起时关闭的保守扣款边界。隔离变异实现故意提前执行 LIST，被回归拒绝；最终带私有原生入口阻断 preload 的两个文件 70/70，显式排除两项真实 worker 测试，证据分别为 `list-debit-boundary-mutant-v1.log`、`list-debit-boundary-guarded-v1.log`。不合并 LIST 计算与结算来换取延迟收益，产品读前扣款及不确定 ACK 不退款规则保持。I0–I5/H1、N01–N11 原范围不缩减。
+
 ## 2026-10-22：托管已定位 IPv6 /0 规则拒绝，等价地址修复待主验收
 
 独立 egress job `120245585579`（run `39902047946`，源码 `38bdd862`）已 success。五组固定结果：original 与 ipv6 的 `::/0` 在 create 阶段拒绝，category 5、HRESULT -2146233088、nativeCode 1；ipv4、ipv6_split、full_split 均 created／verified／cleaned true。日志 `hosted-job-120245585579-final.log` 只保留固定字段，不打印原始错误。本次独立诊断由同一 runner 上单独 IPv4 成功、IPv6 /0 失败及两半 /1 成功的对照定位到地址表达式，不能泛化为所有 Windows 版本不支持 /0。
