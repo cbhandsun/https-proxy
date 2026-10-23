@@ -86,6 +86,73 @@ test(
   }
 );
 
+test(
+  'egress substeps distinguish mocked failures without invoking native firewall commands',
+  { skip: process.platform !== 'win32', timeout: 30000 },
+  () => {
+    const source = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/shared/hosted-network.ps1'),
+      'utf8'
+    );
+    const start = source.indexOf("        $networkStage = 'egress_containment'");
+    const end = source.indexOf("        $networkStage = 'hosts_mapping'", start);
+    assert.ok(start > 0 && end > start);
+    const block = source.slice(start, end);
+    const observed = run(`
+      $ErrorActionPreference = 'Stop'
+      $body = [scriptblock]::Create(${quote(block)})
+      function Get-NetFirewallProfile {
+        if ($mode -eq 'profiles') { throw ${quote(sentinel)} }
+        [pscustomobject]@{ Name = 'Public'; Enabled = $false }
+      }
+      function Set-NetFirewallProfile {
+        param($Name, $Enabled)
+        if ($mode -eq 'enable') { throw ${quote(sentinel)} }
+      }
+      function Get-NetFirewallRule {
+        param($Name, $ErrorAction)
+        if ($ErrorAction -eq 'SilentlyContinue') {
+          if ($mode -eq 'collision') { return [pscustomobject]@{ Name = $Name } }
+          return
+        }
+        if ($mode -eq 'read') { throw ${quote(sentinel)} }
+        [pscustomobject]@{ Enabled = 'True'; Action = 'Block'; Direction = 'Outbound' }
+      }
+      function New-NetFirewallRule {
+        param($Name, $DisplayName, $Direction, $Action, $Enabled, $Profile, $Program, $RemoteAddress)
+        if ($mode -eq 'create') { throw ${quote(sentinel)} }
+        if ($RemoteAddress.Count -ne 3 -or $RemoteAddress[0] -cne '0.0.0.0-127.0.0.0' -or
+            $RemoteAddress[1] -cne '127.0.0.2-255.255.255.255' -or $RemoteAddress[2] -cne '::/0' -or
+            $Direction -cne 'Outbound' -or $Action -cne 'Block' -or $Program -cne $node) { throw 'fixture_contract_failed' }
+      }
+      function Get-NetFirewallApplicationFilter {
+        if ($mode -eq 'application') { throw ${quote(sentinel)} }
+        [pscustomobject]@{ Program = $(if ($mode -eq 'identity') { 'wrong' } else { $node }) }
+      }
+      foreach ($mode in @('profiles', 'enable', 'collision', 'create', 'read', 'application', 'identity', 'success')) {
+        $nonce = 'synthetic'
+        $node = ${quote(sentinel)}
+        $firewallCreated = $false
+        try {
+          . $body
+          if (-not $firewallCreated) { throw 'fixture_contract_failed' }
+          Write-Output 'success'
+        } catch { Write-Output $networkStage }
+      }
+    `);
+    assert.deepEqual(observed, [
+      'egress_profiles',
+      'egress_enable',
+      'egress_collision',
+      'egress_rule_create',
+      'egress_rule_read',
+      'egress_application',
+      'egress_identity',
+      'success',
+    ]);
+  }
+);
+
 for (const name of ['n08', 'n09']) {
   test(
     `${name} execution distinguishes review and library identity failures without leaking input`,

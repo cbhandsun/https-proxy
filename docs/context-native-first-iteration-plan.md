@@ -1,5 +1,9 @@
 # 客户端原生优先与可选精确恢复：方案及迭代计划
 
+## 2026-10-22：当前源码门禁通过，独立覆盖率仍失败
+
+`d1aaf83e` 的 disposable source-gates 已通过，但 N08／N09 在网络隔离初始化阶段失败，尚未进入业务场景；已补固定子阶段诊断和全 mocked 回归，网络根因待托管定位。独立 Verify 的四个 unit 分片、集成、Rust、代码质量通过，但 coverage 因 chat 长持久请求在 5070ms 触发原 5 秒期限而失败。三协议 unit 均确认实际执行合并准入，不能据此关闭覆盖率性能问题或授予完整生命周期资格。两路运行及逐阶段私有证据见[实施状态](context-recovery-implementation-status.md)。I0–I5/H1、N01–N11、当前安装包、私有迁移、全天能力与生产原范围保持未完成。
+
 ## 2026-10-22：新候选已进入真实托管，完整资格尚未取得
 
 `c7a7d1aa` 的独立 Verify 已通过源码质量、Rust、集成及三个 unit 分片，另一个分片因材料文件系统夹具的原 25 秒 PowerShell 期限失败；已补固定阶段诊断并本地 5/5，尚不宣称根因修复。普通 unit 的三协议 WBIPC 与 NSIS 模拟安装模块通过，273 条严格筛选的 worker 阶段记录已私有封存；尚不能从普通运行推导覆盖率性能。覆盖率及 disposable source-gates 仍在运行，完整 N09、全天容量、私有迁移与生产资格仍未取得，I0–I5/H1、N01–N11 原范围保持。详见[实施状态](context-recovery-implementation-status.md)。

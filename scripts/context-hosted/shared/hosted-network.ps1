@@ -113,14 +113,21 @@ function Invoke-HpmN08HostedNetwork {
 
         $networkStage = 'egress_containment'
         $firewallName = 'HPM-N08-' + $nonce
+        $networkStage = 'egress_profiles'
         $profiles = @(Get-NetFirewallProfile | Select-Object Name, Enabled)
+        $networkStage = 'egress_enable'
         foreach ($profile in $profiles) { Set-NetFirewallProfile -Name $profile.Name -Enabled True }
+        $networkStage = 'egress_collision'
         if ($null -ne (Get-NetFirewallRule -Name $firewallName -ErrorAction SilentlyContinue)) { throw 'n08_network_rejected' }
+        $networkStage = 'egress_rule_create'
         New-NetFirewallRule -Name $firewallName -DisplayName $firewallName -Direction Outbound -Action Block -Enabled True -Profile Any `
             -Program $node -RemoteAddress @('0.0.0.0-127.0.0.0', '127.0.0.2-255.255.255.255', '::/0') | Out-Null
         $firewallCreated = $true
+        $networkStage = 'egress_rule_read'
         $rule = Get-NetFirewallRule -Name $firewallName
+        $networkStage = 'egress_application'
         $application = $rule | Get-NetFirewallApplicationFilter
+        $networkStage = 'egress_identity'
         if ($rule.Enabled -ne 'True' -or $rule.Action -ne 'Block' -or $rule.Direction -ne 'Outbound' -or
             $application.Program -cne $node) { throw 'n08_network_rejected' }
 

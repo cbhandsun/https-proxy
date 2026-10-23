@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：d1aaf83e 源码门禁通过，独立覆盖率及 N08／N09 失败
+
+同一源码 `d1aaf83ebf2ce1ca796652bd4b9feb44cc2efde0` 的 disposable run `39897831691` 已 failure：source-gates `120232255162` success，N08 `120235315971` 与 N09 `120235315938` 都在实际场景步骤 failure。两者依赖安装和固定载荷构建通过，固定诊断均为 `hpm_network_failed_stage=egress_containment`，尚未进入业务场景，不能授予生命周期资格或把本次失败归于业务 ACK。各自终态日志按 job ID 私有封存。独立 Verify `39897831931` 已 failure：四个 unit 分片、集成、Rust、代码质量 success，coverage `120232256095` failure。两路结果分别保留，不以其中一路通过覆盖另一路失败。
+
+为区分网络隔离初始化中的实际失败点，候选将原粗阶段细分为读取 profiles、启用 profiles、规则冲突、创建、读取、应用过滤器和身份核对。只输出固定阶段字面量，不输出异常、路径、规则内容或凭据；原防火墙地址、启用、检查和恢复语义不变。原控制块经全 mocked PowerShell 命令运行，覆盖七种故障及成功路径；包含原有脱敏回归的文件 5/5 通过，没有调用本机真实防火墙、证书、hosts、持久存储或注册表。新诊断尚待托管执行，不能声称网络根因已修复。
+
+完成的 unit 分片 `120232256125` 中，三协议各记录 3 次 combinedAdmission，单次相关 storage 操作最大值 chat／Responses／Claude 分别为 154／147／141ms；原测试的重开前后计数断言通过。这只证明本轮接线被执行，不证明完整请求或覆盖率性能。私有证据 `hosted-job-120232256125-admission-summary-v1.json`。
+
+覆盖率中间快照确认 chat long-persistent 第 0 轮在 5070ms 触发原 5000ms 期限；该轮已执行 2 次合并准入，仍不足以消除超时。序号 5 scan-reference 的 engine execute 为 1544ms，其中 sqlite_clock_write 111ms、sqlite_commit 1422ms；后两项嵌套于 execute，不能重复累加。snapshot 9ms、anchor 296ms，父 storage 记录 1859ms。序号 4 save-reference-state 的 COMMIT 784ms；不能将这些离散停顿外推为全部失败的共同根因。原始终态日志分别封存为 `hosted-job-120232255162-final.log`、`hosted-job-120232256095-final.log`，逐操作脱敏快照为 `hosted-job-120232256095-observation-v3-sanitized.json`。原期限、负载、并发、覆盖率与安全语义未改，本轮真实模型请求 0。完整 I0–I5/H1、N01–N11、当前包、私有迁移及生产目标保持未完成。
+
 ## 2026-10-22：暖态读前校验与预算预扣合并候选，真实期限待验
 
 未改变 DELETE journal、FULL、secure_delete、时钟持久化或锚点确认。原生适配器新增内部 reference-admission 能力：只有已经取得持久修订号和来源 ID 集合的暖态 reader 才可把旧 load-reference 校验延后到第一笔 save-reference-state；该笔写事务同时验证实际已存状态与调用前的当前预算、绑定、策略、发布记录和 CAS，再保存预扣。返回 durable ACK 前不能 readSource 或 settleReader。冷启动、未声明能力的适配器和不适用的旧发布视图继续旧路径；没有新读权来源、隐式重试或失败退款。仅保留已知来源 ID，不缓存正文或以缓存代替存储认证。
