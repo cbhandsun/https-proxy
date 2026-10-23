@@ -683,7 +683,9 @@ function createN09BusinessAdapter(input, trusted = {}) {
           recoveryProgressPhase = 215;
           return reply(textReply('n09-private-done-' + nonce, 'RECOVERED'));
         }
-        failurePhase = 230;
+        // Keep the first-read class, but distinguish the ACK-triggered request
+        // from a later same-owner recovery. Counters are local synthetic proof.
+        failurePhase = pendingSave ? 251 : validatedReadCount > 0 ? 252 : 230;
         if (!readObserved) throw fail();
         failurePhase = 231;
         if (!bodyText.includes(original)) throw fail();

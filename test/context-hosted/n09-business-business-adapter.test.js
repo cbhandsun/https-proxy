@@ -386,6 +386,32 @@ test('public generation before an observed read has a separate safe failure clas
   assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
 });
 
+test('missing READ diagnostics separate ACK-triggered and post-restart recovery without accepting either', async () => {
+  for (const expected of [251, 252]) {
+    const phases = [];
+    const f = fixture(
+      (stage, incoming, state) => {
+        if (stage !== 'upstream') return;
+        const selected =
+          expected === 251 ? state.ackCommand?.operation === 'arm-save' : state.pid === 102;
+        if (!selected) return;
+        const body = JSON.parse(incoming.bytes);
+        if (!body.tools?.some((tool) => tool.name === 'hpm_list_retained_evidence')) return;
+        body.tools = [];
+        incoming.bytes = Buffer.from(JSON.stringify(body));
+      },
+      (phase) => phases.push(phase)
+    );
+    f.state.holdSave = expected === 252;
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'));
+    assert.equal(phases.at(-1), expected);
+    assert.equal(f.state.stopped, expected === 251 ? 1 : 2);
+    assert.equal(f.state.closed, 1);
+    assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+  }
+});
+
 test('synthetic public recovery output supports JSON and complete Responses SSE encoding', async () => {
   const {
     encodeContextRecoveryClientWire,
