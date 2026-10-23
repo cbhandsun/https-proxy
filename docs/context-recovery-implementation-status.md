@@ -1,10 +1,20 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：两库安装序列回归通过，托管临时目录差异待复验
+
+`1a745a7f` 的 Verify `39878291287` 已失败终止：node-quality、integration、Rust 与单元 shard 0/2/3 成功；shard 1 的 PowerShell wrapper 超过原 30 秒，coverage 中 proxy/security 通过后 client 阶段出现 38 项失败。hosted N08/N09 `39878291341` 的 source gates 失败，后续矩阵跳过，未获得 N08/N09 运行资格。已观察到 WBIPC 原 5 秒请求超时及独立 ACL cross-check 原 10 秒超时，尚无证据证明它们与 wrapper 为同一根因。原期限和断言保留。
+
+安装脚本已将单库序列改为两库：旧 baseline 种入 legacy；current 必须因缺少独立锚点拒绝，确认零锚点写入、owner 释放 SQLite 锁且全部文件字节保持；current 另建 anchored 库后读取和重存；旧 reader 回滚读取两库；current 重装后重开 anchored 并再次拒绝 legacy。旧 reader 兼容磁盘格式仍不授予防回滚资格。安装、拒绝保留、HTTP/settings mock、临时目录及 coverage 治理九文件回归 63/63，通过且零失败、取消或跳过，证据 `installer-two-store-expanded-v2.log`。这仍是合成回归；public 仓库的私有旧 installer 传输门禁保留，未创建公开安装资产。
+
+客户端覆盖率命令原来直接启动 Node，缺少 unit runner 已有的物理 TEMP 规范化；生产 anchor 会拒绝短路径别名。新增固定测试 preload 复用既有解析器，只设置当前测试进程及子进程的 TEMP/TMP/TMPDIR，保留全部生产路径校验、文件列表、并发、阈值和期限。托管快速拒绝符合这个入口差异，但日志未直接证明具体别名，仍需新 SHA 的完整托管复验。wrapper 新增固定阶段枚举及数值耗时诊断，未修改产品 wrapper 或 30 秒期限。本机未运行真实存储 worker、DPAPI 或注册表锚点。
+
+实际 Node preload 子进程通过自有 junction 别名启动，确认 `os.tmpdir()` 为物理目录、三项临时环境变量一致、无关 sentinel 保留且父进程环境不变。与既有物理目录和 wrapper 回归共 21/21，零失败、取消或跳过；证据 `temp-wrapper-regression-v2.log`。专项 ESLint、格式、PowerShell AST、CI/release governance 与 diff 检查均通过。这些本地结果不替代真实加密 worker 的 hosted 资格。
+
 ## 2026-10-22：安装验收准备中的基线与原生 helper 接线修复
 
 安装 review wrapper 改用历史清理后已在本地与 GitHub 核实存在的基线 `2295c452888449e9728b3ddcc2f80f31e9433e69`，旧运行记录保留原 SHA。安装驱动的精确 helper 白名单补齐 `--hpm-context-anchor-v1`，该命令不计为 DPAPI；额外参数、错误 helper 路径及未知版本仍拒绝。两处专项回归均先失败后修复，安装/私有路由/governance 三文件 41/41、零失败或跳过；ESLint、格式、diff 与 CI 治理通过。证据为 vault 中 `installer-sanitized-baseline-before-v1.log`、`installer-anchor-command-before-v1.log` 和 `installer-followup-after-v1.log`。
 
-以上尚非安装资格。旧无锚点恢复库必须由当前 owner 拒绝并保留数据，现有单 store 安装序列仍需拆为 legacy 拒绝保留与新 store 连续性两条检查；旧 reader 可解析相同磁盘格式不代表它具有新锚点的防回滚能力。public 仓库下，旧私有资产的 route、bridge 与 consumer 可见性门禁继续保留，未上传旧 installer 或创建公开 artifact。`1a745a7f` 的完整 Verify 与 hosted N08/N09 仍在运行，后续本地安装脚本修改不自动继承该 SHA 的资格。
+以上尚非安装资格。当时单 store 序列仍需拆为 legacy 拒绝保留与新 store 连续性两条检查，现已完成的脚本回归见本页最新状态；旧 reader 可解析相同磁盘格式不代表它具有新锚点的防回滚能力。public 仓库下，旧私有资产的 route、bridge 与 consumer 可见性门禁继续保留，未创建公开 installer artifact。`1a745a7f` 的完整 Verify 与 hosted N08/N09 当时仍在运行，现已失败终止；后续本地安装脚本修改不自动继承该 SHA 的资格。
 
 ## 2026-10-22：修复正常事务拒绝后 owner 被关闭的回归
 

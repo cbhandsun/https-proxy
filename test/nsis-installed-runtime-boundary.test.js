@@ -9,6 +9,7 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { Script } = require('node:vm');
+const { performance } = require('node:perf_hooks');
 const { discoverTestFiles } = require('../lib/test-discovery');
 const driver = path.resolve(__dirname, '../scripts/lib/nsis-installed-runtime-boundary.cjs');
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -313,15 +314,17 @@ test('explicit parent gate preserves direct calls and requires exact signal befo
   }
 });
 
-test('PowerShell exported wrapper supervises bundled Node and accepts only scoped synthetic default result', () => {
+test('PowerShell exported wrapper supervises bundled Node and accepts only scoped synthetic default result', (t) => {
   const sha = seal();
+  const phaseFile = path.join(root, 'wrapper-phase');
+  const started = performance.now();
   const result = spawnSync(
     'pwsh',
     [
       '-NoProfile',
       '-NonInteractive',
       '-Command',
-      "Import-Module $env:HPM_TEST_RUNTIME_MODULE -Force; Invoke-HpmInstalledRuntimeBoundary $env:HPM_TEST_OWNED_ROOT $env:HPM_TEST_INSTALL $env:HPM_TEST_MANIFEST 'defaults-migration' | ConvertTo-Json -Compress",
+      "Set-Content -LiteralPath $env:HPM_TEST_PHASE_FILE -Value 'before_import' -NoNewline; Import-Module $env:HPM_TEST_RUNTIME_MODULE -Force; Set-Content -LiteralPath $env:HPM_TEST_PHASE_FILE -Value 'before_invoke' -NoNewline; Invoke-HpmInstalledRuntimeBoundary $env:HPM_TEST_OWNED_ROOT $env:HPM_TEST_INSTALL $env:HPM_TEST_MANIFEST 'defaults-migration' | ConvertTo-Json -Compress; Set-Content -LiteralPath $env:HPM_TEST_PHASE_FILE -Value 'completed' -NoNewline",
     ],
     {
       encoding: 'utf8',
@@ -338,9 +341,21 @@ test('PowerShell exported wrapper supervises bundled Node and accepts only scope
         HPM_TEST_OWNED_ROOT: root,
         HPM_TEST_INSTALL: install,
         HPM_TEST_MANIFEST: sha,
+        HPM_TEST_PHASE_FILE: phaseFile,
       },
     }
   );
+  if (result.error) {
+    const observed = fs.existsSync(phaseFile) ? fs.readFileSync(phaseFile, 'utf8') : '';
+    t.diagnostic(
+      JSON.stringify({
+        wrapperPhase: ['before_import', 'before_invoke', 'completed'].includes(observed)
+          ? observed
+          : 'unobserved',
+        elapsedMs: Math.round(performance.now() - started),
+      })
+    );
+  }
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, '');
