@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：c7a7d1aa 托管中间证据与材料夹具超时诊断
+
+候选已推送，Verify `39888650504` 与 disposable Windows `39888650440` 使用同一源码。当前 Verify 源码质量、Rust、集成及 unit 0／1／3 通过；unit 2 失败，不能授予完整 Verify。失败仅定位到 `shared-hosted-materials.test.js` 的 PowerShell 文件系统夹具触发原 25000ms 子进程期限，尚无内部阶段，不能归因于 Add-Type、启动或清理。该夹具不执行网络、证书、注册表或持久存储操作。覆盖率与 disposable source-gates 仍在运行；运行矩阵尚无资格。
+
+已通过的 unit 1 包含 `nsis-installed-runtime-boundary.test.js`、`client-context-target.test.js` 及 owner-stage probe 回归。私有保存 job `120202779938` 日志，从中严格筛选 273 条固定阶段记录，0 条非法，汇总 `owner-stage-plain-v1.json`：三协议普通运行中 load/read/save/settle 等操作的快照中位数约 46–50ms，锚点约 25–28ms；各协议总计快照约 1212–1225ms、锚点约 795–812ms、事务约 742–755ms。均为整套两轮测试的 worker 阶段累计，不是单次请求延迟，也不与嵌套 storage／session 计时相加。当前普通运行通过不能抹去历史覆盖率超时，覆盖率分段数据仍待取得。
+
+材料夹具新增仅 stderr 固定枚举的顺序阶段，失败时父测试仅报告末阶段与耗时；保留原 25 秒／30 秒期限、清理和哨兵断言。两文件本地 5/5（`material-fixture-progress-v1.log`）；该结果只验证诊断接线，不代表已修复托管超时，也不重跑失败任务制造绿色。I0–I5/H1、N01–N11 原目标继续未完成。
+
 ## 2026-10-22：持久化分段诊断与安装夹具清理候选
 
 WBIPC long-persistent 测试通过现有 WorkerType seam 包装原存储 worker，只在测试进程的专用 stderr 接收固定 `engine_execute`、`engine_snapshot`、`anchor_persist` 阶段、操作枚举、序号与整数耗时。原 workerData、协议、存储实现、5 秒请求期限、负载及断言保持；未知 stderr／原生错误不进入测试输出。当前尚无这三个阶段的真实 hosted 耗时，不能宣称锚点或快照已经被证明是主要瓶颈，也没有据此改变生产持久化语义。

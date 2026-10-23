@@ -1,7 +1,9 @@
 param([Parameter(Mandatory)][string]$Helper)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+[Console]::Error.WriteLine('n08_material_phase=script_started')
 . $Helper
+[Console]::Error.WriteLine('n08_material_phase=helper_loaded')
 $root = Join-Path ([IO.Path]::GetTempPath()) ('hpm-n08-material-fixture-' + [Guid]::NewGuid().ToString('N'))
 $leases = @()
 try {
@@ -16,6 +18,7 @@ try {
     foreach ($name in $before.Keys) { if ((Get-FileHash -LiteralPath (Join-Path $existing $name) -Algorithm SHA256).Hash -cne $before[$name]) { throw 'fixture_failed' } }
 
     Initialize-HpmN08ArtifactLease
+    [Console]::Error.WriteLine('n08_material_phase=lease_compiled')
     $other = Join-Path $root 'other'
     New-Item -ItemType Directory -Path $other | Out-Null
     $wrongLease = [HpmN08ArtifactLease]::new($other, $true)
@@ -24,6 +27,8 @@ try {
     try { Remove-HpmN08CreatedMaterials $existing $true $wrongLease @{} } catch { $rejected = $true }
     if (-not $rejected) { throw 'fixture_failed' }
     foreach ($name in $before.Keys) { if ((Get-FileHash -LiteralPath (Join-Path $existing $name) -Algorithm SHA256).Hash -cne $before[$name]) { throw 'fixture_failed' } }
+
+    [Console]::Error.WriteLine('n08_material_phase=identity_checked')
 
     $owned = Join-Path $root 'owned'
     New-Item -ItemType Directory -Path $owned | Out-Null
@@ -38,6 +43,7 @@ try {
     }
     Remove-HpmN08CreatedMaterials $owned $true $directoryLease $materials
     if (@(Get-ChildItem -LiteralPath $owned -Force).Count -ne 0) { throw 'fixture_failed' }
+    [Console]::Error.WriteLine('n08_material_phase=materials_removed')
     [Console]::Out.WriteLine('{"collisionPreserved":true,"identityMismatchPreserved":true,"ownedMaterialsRemoved":true}')
 } catch {
     [Console]::Error.WriteLine('n08_material_fixture_failed')
@@ -48,4 +54,5 @@ try {
     $temp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
     if ([IO.Path]::GetDirectoryName($resolved) -cne $temp -or [IO.Path]::GetFileName($resolved) -cnotmatch '\Ahpm-n08-material-fixture-[a-f0-9]{32}\z') { throw 'fixture_cleanup_rejected' }
     if (Test-Path -LiteralPath $resolved) { Assert-HpmN08MaterialPath $resolved $true; Remove-Item -LiteralPath $resolved -Recurse -Force }
+    [Console]::Error.WriteLine('n08_material_phase=cleanup_finished')
 }
