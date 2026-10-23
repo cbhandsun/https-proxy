@@ -14,6 +14,14 @@ const {
 } = require('../lib/proxy/context-recovery-storage');
 const { createStorageOwner } = require('../lib/proxy/context-recovery-storage-owner');
 const {
+  createSyntheticRetainedAnchorFactory,
+} = require('./helpers/recovery-anchor-repository.cjs');
+// This file's synthetic owner fixtures retain anchor history across reopen.
+// Real Worker/openContextRecoveryStorage tests continue to use the real backend.
+const syntheticAnchorDependencies = Object.freeze({
+  createAnchorRepository: createSyntheticRetainedAnchorFactory(),
+});
+const {
   createStoragePaths,
   storageDirectory,
 } = require('../lib/proxy/context-recovery-storage-paths');
@@ -113,12 +121,15 @@ test('storage owner has an exclusive lifetime lock, persists a fixture key and d
   let attempt = 0;
   const open = () => {
     const current = ++attempt;
-    return createStorageOwner({
-      directory: fixture.directory,
-      protectKey: fixtureKey,
-      onStartup: (event) =>
-        t.diagnostic('storage_owner_startup ' + JSON.stringify({ attempt: current, ...event })),
-    });
+    return createStorageOwner(
+      {
+        directory: fixture.directory,
+        protectKey: fixtureKey,
+        onStartup: (event) =>
+          t.diagnostic('storage_owner_startup ' + JSON.stringify({ attempt: current, ...event })),
+      },
+      syntheticAnchorDependencies
+    );
   };
   let first, second;
   try {
@@ -139,12 +150,15 @@ test('storage owner has an exclusive lifetime lock, persists a fixture key and d
     let keyCalls = 0;
     assert.throws(
       () =>
-        createStorageOwner({
-          directory: fixture.directory,
-          protectKey() {
-            keyCalls++;
+        createStorageOwner(
+          {
+            directory: fixture.directory,
+            protectKey() {
+              keyCalls++;
+            },
           },
-        }),
+          syntheticAnchorDependencies
+        ),
       safeFailure
     );
     assert.equal(keyCalls, 0);
@@ -171,14 +185,22 @@ test('storage owner refuses unknown files, hard links, replaced files and unavai
         fs.mkdirSync(fixture.directory);
         fs.writeFileSync(path.join(fixture.directory, 'unexpected'), 'synthetic');
         assert.throws(
-          () => createStorageOwner({ directory: fixture.directory, protectKey: fixtureKey }),
+          () =>
+            createStorageOwner(
+              { directory: fixture.directory, protectKey: fixtureKey },
+              syntheticAnchorDependencies
+            ),
           safeFailure
         );
       } else if (mode === 'oversize') {
         fs.mkdirSync(fixture.directory);
         fs.writeFileSync(path.join(fixture.directory, '.data-key'), 'x'.repeat(17001));
         assert.throws(
-          () => createStorageOwner({ directory: fixture.directory, protectKey: fixtureKey }),
+          () =>
+            createStorageOwner(
+              { directory: fixture.directory, protectKey: fixtureKey },
+              syntheticAnchorDependencies
+            ),
           safeFailure
         );
       } else if (mode === 'markerHardlink') {
@@ -187,7 +209,11 @@ test('storage owner refuses unknown files, hard links, replaced files and unavai
         fs.writeFileSync(target, 'unchanged-synthetic-marker');
         fs.linkSync(target, path.join(fixture.directory, '.hpm-secured'));
         assert.throws(
-          () => createStorageOwner({ directory: fixture.directory, protectKey: fixtureKey }),
+          () =>
+            createStorageOwner(
+              { directory: fixture.directory, protectKey: fixtureKey },
+              syntheticAnchorDependencies
+            ),
           safeFailure
         );
         assert.equal(fs.readFileSync(target, 'utf8'), 'unchanged-synthetic-marker');
@@ -195,13 +221,16 @@ test('storage owner refuses unknown files, hard links, replaced files and unavai
         const phases = [];
         assert.throws(
           () =>
-            createStorageOwner({
-              directory: fixture.directory,
-              onStartup: ({ phase }) => phases.push(phase),
-              protectKey() {
-                throw new Error('secret-value');
+            createStorageOwner(
+              {
+                directory: fixture.directory,
+                onStartup: ({ phase }) => phases.push(phase),
+                protectKey() {
+                  throw new Error('secret-value');
+                },
               },
-            }),
+              syntheticAnchorDependencies
+            ),
           safeFailure
         );
         assert.equal(fs.existsSync(path.join(fixture.directory, '.data-key')), false);
@@ -214,7 +243,10 @@ test('storage owner refuses unknown files, hard links, replaced files and unavai
           'key_protect_started',
         ]);
       } else {
-        owner = createStorageOwner({ directory: fixture.directory, protectKey: fixtureKey });
+        owner = createStorageOwner(
+          { directory: fixture.directory, protectKey: fixtureKey },
+          syntheticAnchorDependencies
+        );
         if (mode === 'hardlink')
           fs.linkSync(
             path.join(fixture.directory, '.data-key'),
@@ -695,14 +727,17 @@ test('owner emits only fixed phases and observer failures preserve ownership and
   let owner;
   const phases = [];
   try {
-    owner = createStorageOwner({
-      directory: fixture.directory,
-      protectKey: fixtureKey,
-      onStartup: ({ phase }) => {
-        phases.push(phase);
-        throw new Error('secret-value');
+    owner = createStorageOwner(
+      {
+        directory: fixture.directory,
+        protectKey: fixtureKey,
+        onStartup: ({ phase }) => {
+          phases.push(phase);
+          throw new Error('secret-value');
+        },
       },
-    });
+      syntheticAnchorDependencies
+    );
     assert.deepEqual(phases, [
       'paths_started',
       'paths_ready',
@@ -723,13 +758,16 @@ test('owner emits only fixed phases and observer failures preserve ownership and
     phases.length = 0;
     assert.throws(
       () =>
-        createStorageOwner({
-          directory: fixture.directory,
-          protectKey() {
-            throw new Error('secret-value');
+        createStorageOwner(
+          {
+            directory: fixture.directory,
+            protectKey() {
+              throw new Error('secret-value');
+            },
+            onStartup: ({ phase }) => phases.push(phase),
           },
-          onStartup: ({ phase }) => phases.push(phase),
-        }),
+          syntheticAnchorDependencies
+        ),
       safeFailure
     );
     assert.deepEqual(phases, [
@@ -739,7 +777,10 @@ test('owner emits only fixed phases and observer failures preserve ownership and
       'ownership_acquired',
       'key_unprotect_started',
     ]);
-    owner = createStorageOwner({ directory: fixture.directory, protectKey: fixtureKey });
+    owner = createStorageOwner(
+      { directory: fixture.directory, protectKey: fixtureKey },
+      syntheticAnchorDependencies
+    );
     assert.equal(owner.execute({ operation: 'load', scope }).state.text, state.text);
   } finally {
     owner?.close();
@@ -756,12 +797,18 @@ test('fresh storage uses one verified protect call and reopened storage must unp
     return fixtureKey(request);
   };
   try {
-    owner = createStorageOwner({ directory: fixture.directory, protectKey });
+    owner = createStorageOwner(
+      { directory: fixture.directory, protectKey },
+      syntheticAnchorDependencies
+    );
     assert.deepEqual(operations, ['protect']);
     assert.deepEqual(owner.execute(save()), { revision: 1 });
     owner.close();
     owner = undefined;
-    owner = createStorageOwner({ directory: fixture.directory, protectKey });
+    owner = createStorageOwner(
+      { directory: fixture.directory, protectKey },
+      syntheticAnchorDependencies
+    );
     assert.deepEqual(operations, ['protect', 'unprotect']);
     assert.equal(owner.execute({ operation: 'load', scope }).state.text, state.text);
   } finally {

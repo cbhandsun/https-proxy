@@ -2,6 +2,7 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::Deserialize;
 use std::io::{Read, Write};
 
+pub mod anchor;
 pub mod private_path;
 
 const MAX_INPUT: u64 = 17000;
