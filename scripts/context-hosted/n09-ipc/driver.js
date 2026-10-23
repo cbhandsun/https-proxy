@@ -199,18 +199,101 @@ async function runClearAfterAck(adapter) {
   return result;
 }
 
-// Existing-ACK-dependent path, kept distinct from clear and module reopen.
-// No current real daemon adapter supplies this capability; fail before seeding.
+// Existing-ACK-dependent orchestration, distinct from committed-file observation.
+// No current real daemon adapter supplies this callable capability. A boolean
+// advertisement still fails before seeding; pure adapters grant no live proof.
 async function runDurableSaveOrRevokeAfterAck(adapter, operation) {
   if (!['save', 'revoke'].includes(operation)) throw fail();
   let capability;
   try {
-    capability = await invoke(adapter, 'existingHostDurableAckCapability', operation);
+    // Capability acquisition is passive and synchronous. Awaiting an unknown
+    // return value would read an untrusted then getter before Proxy admission.
+    capability = invoke(adapter, 'existingHostDurableAckCapability', operation);
   } catch {
     throw new Error('n09_host_durable_ack_unavailable');
   }
-  if (capability !== true) throw new Error('n09_host_durable_ack_unavailable');
-  throw new Error('n09_save_revoke_host_wiring_not_implemented');
+  if (capability === true) throw new Error('n09_save_revoke_host_wiring_not_implemented');
+  if (typeof capability !== 'function' || types.isProxy(capability))
+    throw new Error('n09_host_durable_ack_unavailable');
+  let active, result;
+  let failed = false;
+  try {
+    active = identity(await invoke(adapter, 'startFreshBusinessHost'));
+    const original = baseline(await invoke(adapter, 'seedThroughBusinessHttp', active));
+    const before = data(await invoke(adapter, 'readThroughBusinessHttp', active));
+    if (before.exactRead !== true || before.externalToolReplays !== 0) throw fail();
+    accounting(original, before.accounting);
+    const consumed = baseline(before.accounting);
+    const ack = data(await Reflect.apply(capability, undefined, [active]));
+    if (
+      Object.keys(ack).sort().join(',') !== 'accounting,durableBoundary,kind,pid' ||
+      ack.kind !== 'host-' + operation + '-completed' ||
+      ack.durableBoundary !==
+        (operation === 'save' ? 'await-reference-save' : 'await-revokeAsync') ||
+      ack.pid !== active.pid
+    )
+      throw fail();
+    accounting(consumed, ack.accounting);
+    const acknowledged = baseline(ack.accounting);
+    const old = active;
+    // No further adapter I/O intervenes between ACK validation and forced kill.
+    await forceKill(adapter, old);
+    active = undefined;
+    active = identity(await invoke(adapter, 'restartSameBusinessHost', old));
+    sameDirectory(old, active);
+    if (operation === 'save') {
+      const read = data(await invoke(adapter, 'readThroughBusinessHttp', active));
+      if (read.exactRead !== true || read.externalToolReplays !== 0) throw fail();
+      accounting(acknowledged, read.accounting);
+    } else {
+      const denied = async () => {
+        const value = data(await invoke(adapter, 'readOldReceiptThroughBusinessHttp', active));
+        if (
+          value.oldReceiptDenied !== true ||
+          value.originalExposed !== false ||
+          value.externalToolReplays !== 0
+        )
+          throw fail();
+      };
+      await denied();
+      for (const combination of ['00', '01', '10', '11']) {
+        await invoke(adapter, 'setCombinationThroughManagement', active, combination);
+        await denied();
+      }
+    }
+    result = Object.freeze({
+      operation,
+      evidenceLevel: 'adapter-orchestration-only',
+      adapterDurableAckObserved: true,
+      liveDaemonProved: false,
+      hostDurableAckObserved: false,
+      sameDirectoryNewPid: true,
+      saveAckKillQualified: false,
+      revokeAckKillQualified: false,
+      commitInProgressQualified: false,
+      publicationInProgressQualified: false,
+      backupRollbackQualified: false,
+      installationQualified: false,
+      n09Complete: false,
+    });
+  } catch {
+    failed = true;
+  } finally {
+    if (active) {
+      try {
+        await forceKill(adapter, active);
+      } catch {
+        failed = true;
+      }
+    }
+    try {
+      await invoke(adapter, 'close');
+    } catch {
+      failed = true;
+    }
+  }
+  if (failed) throw fail();
+  return result;
 }
 module.exports = {
   createClearClient,

@@ -61,7 +61,15 @@ containment; the disposable runner must be discarded. Only fixed receipts and
 bounded scope text are printed. No payload, key, database, request body or
 original evidence is uploaded.
 
-Committed metadata observation is not a host save/revoke durable ACK.
+Committed metadata observation is not a host save/revoke durable ACK. The
+separate `runDurableSaveOrRevokeAfterAck` pure driver now requires a passive,
+synchronous callable capability, validates its operation/PID/accounting-bound
+ACK, then force-kills without intervening adapter I/O. Save checks exact reads
+and nondecreasing accounting after same-directory restart; revoke checks denial
+before and after all four policy combinations. Its receipts explicitly remain
+`adapter-orchestration-only` with all live qualification flags false. Neither
+current hosted business adapter supplies that callable capability. A boolean
+advertisement, HTTP completion or committed-file observation cannot enable it.
 Save/revoke ACK, commit/publication in progress, backup rollback, installation
 lifecycle, full N09, 24-hour capacity, real providers and production activation
 remain outside these scenarios. Existing `n08Qualified:false` and

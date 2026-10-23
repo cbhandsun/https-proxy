@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：N09 保存／撤权确认后的编排补齐，真实宿主接线仍开放
+
+独立纯 driver 已可执行保存／撤权 ACK → 强杀 → 同目录新 PID 重启。它要求受信 adapter 同步提供 callable capability，先验证 operation、PID、原文／授权身份、期限及不回退的累计消耗，确认后不插入额外 adapter I/O 即强杀。保存重启后必须精确读取且不重放工具；撤权重启后及四开关组合下都必须拒绝旧凭据。失败、部分启动、确认拒绝及清理失败保持固定错误并走独立 finally close。新增 34 条与既有 51 条合计 85/85，零失败、取消或跳过；原占位上的新回归为 0/23，证据 `n09-durable-driver-before-v2.log`、`n09-durable-driver-after-v3.log`。capability 获取中的未知 thenable／Proxy 不再先经过 await，避免校验前触发 getter。
+
+此项只完成 adapter 编排，结果仍固定 `adapter-orchestration-only`、`hostDurableAckObserved:false`、save/revoke 资格与 N09 完整资格均为 false。当前真实宿主 adapter 尚不提供此 callable，布尔 true 仍明确拒绝；已有 committed-metadata 和 clear 路径的托管范围不变。真实接线需观察宿主实际验证过的保存／撤权 Promise 返回，不能以只读数据库快照或 HTTP finish 冒充。正在运行的 `e13c5852` 托管任务不包含此后续编排改动。
+
 ## 2026-10-22：两库安装序列回归通过，托管临时目录差异待复验
 
 `1a745a7f` 的 Verify `39878291287` 已失败终止：node-quality、integration、Rust 与单元 shard 0/2/3 成功；shard 1 的 PowerShell wrapper 超过原 30 秒，coverage 中 proxy/security 通过后 client 阶段出现 38 项失败。hosted N08/N09 `39878291341` 的 source gates 失败，后续矩阵跳过，未获得 N08/N09 运行资格。已观察到 WBIPC 原 5 秒请求超时及独立 ACL cross-check 原 10 秒超时，尚无证据证明它们与 wrapper 为同一根因。原期限和断言保留。
