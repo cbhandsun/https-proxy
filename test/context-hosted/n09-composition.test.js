@@ -34,6 +34,8 @@ test('hosted lifecycle pins the same original gate as the controller and rejects
     const gate = path.join(candidate, 'scripts/lib/context-recovery-daemon-start-gate.cjs');
     fs.mkdirSync(path.dirname(gate), { recursive: true });
     fs.writeFileSync(gate, 'synthetic original gate bytes');
+    const jobSource = path.join(candidate, 'scripts/lib/nsis-runtime-boundary-job.cs');
+    fs.writeFileSync(jobSource, 'synthetic original job source bytes');
     const pins = Object.fromEntries(
       names.map((name) => [name, sha(fs.readFileSync(path.join(source, name)))])
     );
@@ -41,11 +43,18 @@ test('hosted lifecycle pins the same original gate as the controller and rejects
       ownedRoot: root,
       candidate,
       gateSha256: sha(fs.readFileSync(gate)),
+      jobSourceSha256: sha(fs.readFileSync(jobSource)),
       sourcePins: pins,
       controllerCopySha256: sha(fs.readFileSync(controller)),
     };
     assert.throws(() => buildHostedLifecycle({ ...options, controllerCopySha256: '0'.repeat(64) }));
     assert.throws(() => buildHostedLifecycle({ ...options, gateSha256: '0'.repeat(64) }));
+    for (const hash of [undefined, null, '', '0'.repeat(64), 'a'.repeat(65), {}]) {
+      assert.throws(() => buildHostedLifecycle({ ...options, jobSourceSha256: hash }));
+    }
+    fs.unlinkSync(jobSource);
+    assert.throws(() => buildHostedLifecycle(options));
+    fs.writeFileSync(jobSource, 'synthetic original job source bytes');
     assert.throws(() =>
       buildHostedLifecycle({
         ...options,
@@ -53,6 +62,18 @@ test('hosted lifecycle pins the same original gate as the controller and rejects
       })
     );
     const result = buildHostedLifecycle(options);
+    const relocated = fs.readFileSync(
+      path.join(result.outputRoot, 'same-directory-restart.psm1'),
+      'utf8'
+    );
+    assert.ok(
+      relocated.includes("'" + jobSource.replaceAll("'", "''") + "'"),
+      'relocated lifecycle must use the existing original Job source'
+    );
+    assert.equal(
+      fs.existsSync(path.join(path.dirname(controller), 'nsis-runtime-boundary-job.cs')),
+      false
+    );
     for (const name of names) {
       const original = fs.readFileSync(path.join(source, name));
       const copy = fs.readFileSync(path.join(result.outputRoot, name));
@@ -72,6 +93,10 @@ test('hosted lifecycle pins the same original gate as the controller and rejects
             .replace(
               "(Join-Path (Split-Path $script:N09ControllerPath) 'context-recovery-daemon-start-gate.cjs')",
               "'" + gate.replaceAll("'", "''") + "'"
+            )
+            .replace(
+              "(Join-Path (Split-Path $script:N09ControllerPath) 'nsis-runtime-boundary-job.cs')",
+              "'" + jobSource.replaceAll("'", "''") + "'"
             )
             .replace(
               "Release = { param($o) $o.process.StandardInput.Write('1'); $o.process.StandardInput.Close() }",

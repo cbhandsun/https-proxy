@@ -22,6 +22,7 @@ function buildHostedLifecycle(input) {
       'ownedRoot',
       'candidate',
       'gateSha256',
+      'jobSourceSha256',
       'sourcePins',
       'controllerCopySha256',
     ]);
@@ -33,6 +34,13 @@ function buildHostedLifecycle(input) {
     const gate = path.join(options.candidate, 'scripts/lib/context-recovery-daemon-start-gate.cjs');
     verifyPhysicalPath(gate, false);
     if (!hex(options.gateSha256) || sha(fs.readFileSync(gate)) !== options.gateSha256) throw fail();
+    const jobSource = path.join(options.candidate, 'scripts/lib/nsis-runtime-boundary-job.cs');
+    verifyPhysicalPath(jobSource, false);
+    if (
+      !hex(options.jobSourceSha256) ||
+      sha(fs.readFileSync(jobSource)) !== options.jobSourceSha256
+    )
+      throw fail();
     const controller = path.join(
       options.ownedRoot,
       'n08-hosted-controller/context-recovery-daemon-owned-controller.psm1'
@@ -60,6 +68,12 @@ function buildHostedLifecycle(input) {
       "(Join-Path (Split-Path $script:N09ControllerPath) 'context-recovery-daemon-start-gate.cjs')";
     if (original.split(gateBefore).length !== 2) throw fail();
     const gateAfter = "'" + gate.replaceAll("'", "''") + "'";
+    // The controller copy contains only its two entry files. Resolve native Job
+    // compilation against the pinned candidate, just like its original gate.
+    const jobBefore =
+      "(Join-Path (Split-Path $script:N09ControllerPath) 'nsis-runtime-boundary-job.cs')";
+    if (original.split(jobBefore).length !== 2) throw fail();
+    const jobAfter = "'" + jobSource.replaceAll("'", "''") + "'";
     const releaseBefore =
       "Release = { param($o) $o.process.StandardInput.Write('1'); $o.process.StandardInput.Close() }";
     if (original.split(releaseBefore).length !== 2) throw fail();
@@ -78,6 +92,7 @@ function buildHostedLifecycle(input) {
         original
           .replace(before, after)
           .replace(gateBefore, gateAfter)
+          .replace(jobBefore, jobAfter)
           .replace(releaseBefore, releaseAfter)
           .replace(envBefore, envAfter)
       ),
@@ -94,6 +109,8 @@ function buildHostedLifecycle(input) {
       if (sha(fs.readFileSync(path.join(sourceRoot, name))) !== pins[name]) throw fail();
     verifyPhysicalPath(gate, false);
     if (sha(fs.readFileSync(gate)) !== options.gateSha256) throw fail();
+    verifyPhysicalPath(jobSource, false);
+    if (sha(fs.readFileSync(jobSource)) !== options.jobSourceSha256) throw fail();
     return Object.freeze({
       outputRoot,
       copyPins: Object.freeze(

@@ -158,6 +158,7 @@ async function composeHostedN09(input, onPhase = () => {}) {
       ownedRoot: options.ownedRoot,
       candidate: options.candidate,
       gateSha256: options.controllerPins['context-recovery-daemon-start-gate.cjs'],
+      jobSourceSha256: options.controllerPins['nsis-runtime-boundary-job.cs'],
       sourcePins: options.lifecyclePins,
       controllerCopySha256: controller.copyPins['context-recovery-daemon-owned-controller.psm1'],
     });
