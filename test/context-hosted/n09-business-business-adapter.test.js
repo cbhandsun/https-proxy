@@ -321,6 +321,22 @@ test('502 diagnostics preserve failure and cleanup while exposing only fixed sta
   }
 });
 
+test('denied-receipt HTTP failure replaces completed configuration phase and preserves forced cleanup', async () => {
+  const phases = [];
+  const f = fixture(
+    (stage, _value, state) => {
+      if (stage === 'reply' && state.cleared) state.replyStatus = 503;
+    },
+    (phase) => phases.push(phase)
+  );
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await assert.rejects(runClearAfterAck(f.adapter));
+  assert.equal(phases.at(-1), 170);
+  assert.equal(f.state.sent, 5);
+  assert.equal(f.state.stopped, 2);
+  assert.equal(f.state.closed, 1);
+});
+
 test('synthetic public recovery output supports JSON and complete Responses SSE encoding', async () => {
   const {
     encodeContextRecoveryClientWire,

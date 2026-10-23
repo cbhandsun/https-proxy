@@ -507,7 +507,11 @@ function createN09BusinessAdapter(input, trusted = {}) {
       if (!seeded) throw fail();
       phase = 'denied';
       const before = privateRequests;
-      const reply = parseReply(await send(continuation));
+      const response = await send(continuation);
+      const failurePhase = seedReplyFailurePhase(response.status);
+      if (failurePhase !== null) onPhase(failurePhase);
+      else onPhase(199);
+      const reply = parseReply(response);
       if (
         publicText(reply) !== 'N09_OLD_RECEIPT_DENIED ' + nonce ||
         privateRequests !== before ||

@@ -123,8 +123,17 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase) {
             },
             ports: { management: 12345 },
             contextRecovery: {
+              configValid: true,
+              requestedEnabled: state.config.appSettings.contextRecoveryEnabled,
+              state: state.config.appSettings.contextRecoveryEnabled
+                ? 'enabled_restricted'
+                : 'disabled',
               appliedEnabled: state.config.appSettings.contextRecoveryEnabled,
-              storage: state.config.appSettings.contextRecoveryEnabled ? 'persistent' : 'memory',
+              storage:
+                state.config.appSettings.contextRecoveryEnabled &&
+                state.config.appSettings.contextRecoveryPersistenceEnabled
+                  ? 'persistent'
+                  : 'memory',
             },
           };
         else if (options.path === '/v1/local/config' && options.method === 'GET')
@@ -564,6 +573,35 @@ test('synthetic combination changes remain valid after real config load merges b
     assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 5);
   } finally {
     await f.client.close();
+  }
+});
+
+test('every saved combination waits for explicit applied state without repeating config writes', async (t) => {
+  for (const combination of ['00', '01', '10', '11']) {
+    let pendingReads = 0;
+    const f = fixture(t, (stage, value, state) => {
+      if (
+        stage !== 'http' ||
+        state.requests.at(-1).path !== '/v1/local/health' ||
+        state.requests.filter((request) => request.method === 'POST').length !== 2
+      )
+        return;
+      pendingReads++;
+      if (pendingReads < 3) {
+        value.contextRecovery.state = 'pending_application';
+        value.contextRecovery.appliedEnabled = !state.config.appSettings.contextRecoveryEnabled;
+      }
+    });
+    try {
+      const identity = await f.client.startLifecycle();
+      await f.client.configureSyntheticBusiness(identity, synthetic());
+      const result = await f.client.setCombination(identity, combination);
+      assert.equal(result.savedConfigVerified, true);
+      assert.equal(pendingReads, 3, combination);
+      assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 2);
+    } finally {
+      await f.client.close();
+    }
   }
 });
 

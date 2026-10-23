@@ -493,7 +493,8 @@ function createClientUnsafe(input, dependencies) {
     async setCombination(input, combination) {
       const identity = owner(input);
       if (!['00', '01', '10', '11'].includes(combination)) throw fail();
-      await managementReady(identity);
+      const deadline = Date.now() + 15000;
+      await managementReady(identity, deadline);
       const request = management(identity);
       onPhase(116);
       const beforeReply = await request({ method: 'GET', route: '/v1/local/config' });
@@ -586,6 +587,21 @@ function createClientUnsafe(input, dependencies) {
         throw fail();
       }
       onPhase(119);
+      try {
+        await waitForAppliedRecovery(
+          () => request({ method: 'GET', route: '/v1/local/health' }),
+          async () =>
+            (await getChannel().exchange({ op: 'status', leaseId: liveHandle() })).status.alive,
+          identity.pid,
+          deadline,
+          {},
+          { enabled, persistent: persistence }
+        );
+      } catch (error) {
+        const phase = Object.getOwnPropertyDescriptor(error, 'phase')?.value;
+        onPhase(Number.isInteger(phase) && phase >= 162 && phase <= 195 ? phase : 188);
+        throw fail();
+      }
       return Object.freeze({
         enabled,
         persistence,

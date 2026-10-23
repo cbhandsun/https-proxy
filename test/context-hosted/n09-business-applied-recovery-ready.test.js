@@ -6,7 +6,16 @@ const {
 } = require('../../scripts/context-hosted/n09-business/applied-recovery-ready');
 const ready = () => ({
   status: 200,
-  body: { pid: 101, contextRecovery: { appliedEnabled: true, storage: 'persistent' } },
+  body: {
+    pid: 101,
+    contextRecovery: {
+      configValid: true,
+      requestedEnabled: true,
+      state: 'enabled_restricted',
+      appliedEnabled: true,
+      storage: 'persistent',
+    },
+  },
 });
 const pending = () => ({
   status: 200,
@@ -293,6 +302,78 @@ test('applied recovery rejects invalid arguments and executable inputs without e
         pid,
         15000,
         fixture().dependencies
+      ),
+      phase(188)
+    );
+  assert.equal(traps, 0);
+});
+
+test('applied combination requires matching config, terminal state and enabled storage mode', async () => {
+  for (const enabled of [false, true])
+    for (const persistent of [false, true]) {
+      const f = fixture();
+      const response = ready();
+      Object.assign(response.body.contextRecovery, {
+        requestedEnabled: enabled,
+        appliedEnabled: enabled,
+        state: enabled ? 'enabled_restricted' : 'disabled',
+        storage: enabled && persistent ? 'persistent' : 'memory',
+      });
+      assert.equal(
+        await waitForAppliedRecovery(
+          async () => response,
+          async () => true,
+          101,
+          15000,
+          f.dependencies,
+          { enabled, persistent }
+        ),
+        true
+      );
+      for (const change of [
+        { state: 'unavailable' },
+        { configValid: false },
+        { requestedEnabled: !enabled },
+        ...(enabled ? [{ storage: persistent ? 'memory' : 'persistent' }] : []),
+      ]) {
+        const bad = JSON.parse(JSON.stringify(response));
+        Object.assign(bad.body.contextRecovery, change);
+        await assert.rejects(
+          waitForAppliedRecovery(
+            async () => bad,
+            async () => true,
+            101,
+            15000,
+            fixture().dependencies,
+            { enabled, persistent }
+          ),
+          phase(190)
+        );
+      }
+    }
+  let traps = 0;
+  const getter = Object.defineProperty({}, 'enabled', {
+    enumerable: true,
+    get() {
+      traps++;
+      return true;
+    },
+  });
+  for (const expected of [
+    null,
+    {},
+    getter,
+    { enabled: true, persistent: 'yes' },
+    { enabled: true, persistent: true, extra: true },
+  ])
+    await assert.rejects(
+      waitForAppliedRecovery(
+        async () => ready(),
+        async () => true,
+        101,
+        15000,
+        fixture().dependencies,
+        expected
       ),
       phase(188)
     );

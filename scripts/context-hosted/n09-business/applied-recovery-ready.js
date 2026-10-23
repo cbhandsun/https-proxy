@@ -7,9 +7,23 @@ const failure = (phase) => Object.assign(new Error('n09_applied_recovery_not_rea
 
 // Listening and private credential publication do not attest asynchronous store
 // startup. Only the product's explicit pending_application state is a probe.
-async function waitForAppliedRecovery(read, isAlive, pid, deadline, dependencies = {}) {
-  let now, sleep;
+async function waitForAppliedRecovery(
+  read,
+  isAlive,
+  pid,
+  deadline,
+  dependencies = {},
+  expectedInput = { enabled: true, persistent: true }
+) {
+  let now, sleep, expected;
   try {
+    expected = snapshot(expectedInput);
+    if (
+      Object.keys(expected).sort().join(',') !== 'enabled,persistent' ||
+      typeof expected.enabled !== 'boolean' ||
+      typeof expected.persistent !== 'boolean'
+    )
+      throw failure(188);
     dependencies = snapshot(dependencies);
     if (Object.keys(dependencies).some((key) => !['now', 'sleep'].includes(key)))
       throw failure(188);
@@ -65,12 +79,20 @@ async function waitForAppliedRecovery(read, isAlive, pid, deadline, dependencies
       throw failure(188);
     }
     if (body.pid !== pid) throw failure(190);
-    if (recovery.appliedEnabled === true && recovery.storage === 'persistent') return true;
+    if (
+      recovery.configValid === true &&
+      recovery.requestedEnabled === expected.enabled &&
+      recovery.appliedEnabled === expected.enabled &&
+      recovery.state === (expected.enabled ? 'enabled_restricted' : 'disabled') &&
+      ['memory', 'persistent'].includes(recovery.storage) &&
+      (!expected.enabled || recovery.storage === (expected.persistent ? 'persistent' : 'memory'))
+    )
+      return true;
     if (
       recovery.configValid !== true ||
-      recovery.requestedEnabled !== true ||
+      recovery.requestedEnabled !== expected.enabled ||
       recovery.state !== 'pending_application' ||
-      ![false, null].includes(recovery.appliedEnabled) ||
+      ![false, true, null].includes(recovery.appliedEnabled) ||
       !['memory', 'persistent'].includes(recovery.storage)
     )
       throw failure(190);
