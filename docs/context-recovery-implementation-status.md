@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：编码候选仍受持久请求期限阻塞，准备资源对照
+
+`1e5b0f103c6b0eff4ac9c0ff003950066bb1eecf` 的 Verify `39918613152` 七个 job 成功，coverage `120298099314` 失败于 Chat long-persistent 第 0 轮的发布等待，5014ms 触发原 5000ms 期限。disposable `39918613280` source-gates `120298099656` 在 unit 阶段失败于 Chat long-persistent 第 1 轮请求，5000ms；N08／N09 跳过，因此 stdin 编码修复尚无托管业务效果结论。标准暂存已按此提交重建，536 份源码和关键程序摘要一致，回执 `current-1e5b0f10-staging-v1.json`。日志按 job ID 私有封存。
+
+独立资源诊断工作流准备以两组 Windows runner 分别按 1→4、4→1 的文件并发顺序运行原完整客户端覆盖率命令。测试清单、覆盖率阈值、实际持久操作和各测试原期限均保持；直接读取当前 package 脚本生成 Node/c8 argv，不经过 shell、不维护缩小的测试清单。每组观察到任一次失败后仍记录另一并发档，最终 job 保留失败。诊断不授予资格，也不修改正式 Verify、完整 source-gates 或其并发配置。参数、安全拒绝及本地执行保护 3 项回归、Lint、格式、CI／发布治理通过；实验尚待托管结果，不先认定资源竞争为根因。未在本地运行真实存储 worker 或模型请求。
+
 ## 2026-10-23：完整源码门禁通过，独立覆盖率与托管业务仍失败
 
 `9c915d26b55e9a03a5e3e33c34b4585d34cf6cc2` 的 disposable `39916258882` source-gates `120290388292` 已通过字面 `npm run verify` 和依赖安全审计；N08 `120293877914`、N09 `120293878028` 均在约 11 秒的受限子进程执行阶段失败，固定诊断为 `child_exit`。独立 Verify `39916258979` 七个 job 成功，coverage `120290387652` 失败：Claude long-persistent 第 0 轮正文 4249ms 完成，发布等待在 5004ms 触发原 5000ms 期限；附近两次 SQLite commit 分别 1288／1295ms。不能从单个源码门禁成功推导稳定性，也不能将磁盘竞争认作已证明的唯一根因。终态日志私有封存，汇总 `current-9c915d26-qualified-split-v1.json`。
