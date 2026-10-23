@@ -13,6 +13,7 @@ const {
   parseStoredEvidenceSource,
   parseStoredEvidencePage,
 } = require('../../../lib/proxy/context-evidence-stored-page');
+const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
 const fail = () => new Error('n09_business_adapter_failed');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const wire = (value) => Buffer.from(JSON.stringify(value));
@@ -275,6 +276,8 @@ function createN09BusinessAdapter(input, trusted = {}) {
       onPhase(133);
       const secondReply = await send(requestBody(history));
       onPhase(134);
+      const secondFailurePhase = seedReplyFailurePhase(secondReply.status);
+      if (secondFailurePhase !== null) onPhase(secondFailurePhase);
       const second = parseReply(secondReply);
       if (publicText(second) !== 'N09_SEEDED ' + nonce) throw fail();
       history.push(...second.output);

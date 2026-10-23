@@ -78,7 +78,7 @@ function fixture() {
 test('N08 observer accepts only fixed phase codes and discloses no supplied failure details', () => {
   const phases = [],
     observe = createN08PhaseObserver((value) => phases.push(value));
-  for (const value of [71, 86, 96, ...Array.from({ length: 22 }, (_, i) => i + 140)])
+  for (const value of [71, 86, 96, ...Array.from({ length: 34 }, (_, i) => i + 140)])
     observe(value);
   for (const value of [
     undefined,
@@ -94,11 +94,11 @@ test('N08 observer accepts only fixed phase codes and discloses no supplied fail
     97,
     130,
     139,
-    162,
+    174,
     Number.MAX_SAFE_INTEGER,
   ])
     assert.throws(() => observe(value), /^Error: n08_phase_observer_rejected$/);
-  assert.equal(phases.length, 25);
+  assert.equal(phases.length, 37);
   assert.throws(
     () =>
       createN08PhaseObserver(() => {
@@ -164,7 +164,7 @@ test('N08 failures retain their business phase while both cleanup operations sti
   assert.deepEqual(f.events, ['stop', 'close-0']);
 });
 
-function scenarioFixture(observer) {
+function scenarioFixture(observer, secondStatus = 200) {
   const filename = path.resolve(__dirname, '../../scripts/context-hosted/n08/business-scenario.js');
   const localRequire = createRequire(filename),
     loaded = { exports: {} };
@@ -196,7 +196,7 @@ function scenarioFixture(observer) {
                   arguments: '{}',
                 },
               ]);
-            if (sends === 2) return reply([text('synthetic-seeded')]);
+            if (sends === 2) return { ...reply([text('synthetic-seeded')]), status: secondStatus };
             return reply([
               text(
                 '<!-- hpm-codex-summary:hcr1_' + 'b'.repeat(48) + '_' + 'c'.repeat(64) + '_1 -->'
@@ -267,5 +267,30 @@ test('N08 observer failure at every seed stage prevents later phases and stays f
       /^Error: n08_phase_observer_rejected$/
     );
     assert.equal(phases.at(-1), failed);
+  }
+});
+
+test('N08 rejected tool-result HTTP status emits only its fixed phase and stops before summary', async () => {
+  for (const [status, expected] of [
+    [400, 162],
+    [401, 163],
+    [403, 164],
+    [409, 165],
+    [413, 166],
+    [429, 167],
+    [500, 168],
+    [502, 169],
+    [503, 170],
+    [504, 171],
+    [418, 172],
+  ]) {
+    const phases = [];
+    const f = scenarioFixture((phase) => phases.push(phase), status);
+    await assert.rejects(
+      f.scenario.configureAndSeed(f.value),
+      /^Error: n08_business_scenario_rejected$/
+    );
+    assert.equal(phases.at(-1), expected);
+    assert.equal(phases.includes(151), false);
   }
 });

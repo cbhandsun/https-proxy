@@ -53,7 +53,7 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
     [
       'output_limit',
       'output_limit',
-      ...Array(33).fill('child_exit'),
+      ...Array(35).fill('child_exit'),
       'stdout_decode',
       'deadline',
       'deadline',
@@ -94,6 +94,8 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
       'other',
       '140',
       '161',
+      '162',
+      '173',
       'other',
       '98',
       '98',

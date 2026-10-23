@@ -7,6 +7,7 @@ const { exact, ack, createResponseHold } = require('../shared/boundary.js');
 const { createBusinessClient } = require('../shared/business-client.js');
 const { startObservedContinuation } = require('./observed-client.js');
 const { createN08PhaseObserver } = require('./phase-observer.js');
+const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
 const LIST = 'hpm_list_retained_evidence';
 const READ = 'hpm_read_retained_evidence';
 const MODEL = 'n08-synthetic';
@@ -237,7 +238,10 @@ function createBusinessScenario(input, observer) {
       ];
       state.phase = 'seed-output';
       onPhase(150);
-      const second = parseReply(await send(state, requestBody(state, state.history)));
+      const secondReply = await send(state, requestBody(state, state.history));
+      const secondFailurePhase = seedReplyFailurePhase(secondReply.status);
+      if (secondFailurePhase !== null) onPhase(secondFailurePhase);
+      const second = parseReply(secondReply);
       state.history.push(...second.output);
       // Same native local-summary shape observed in v7 and codex-summary tests.
       // The daemon, not this fixture, creates the hcr1 summary receipt.

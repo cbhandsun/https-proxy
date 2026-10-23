@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：两端首失败点收敛于工具结果回传，追加固定 HTTP 分类
+
+b1a46aaf 的独立诊断 39978411930：N08 job 120499003138 返回 150，N09 job 120499003401 返回 134。两端配置、首次工具调用已越过；N09 工具结果回传已取得 HTTP 响应，但协议或最终文本校验失败，N08 同一步失败。该证据仍不能区分非 200、无效 JSON 或成功响应内容不符，不能断言已找到产品根因。旧完整 disposable 39975429867 已终态 failure，源码门禁与 egress success，N09/N08 分别仍为 102/71。
+
+候选只在工具结果回传的非 200 响应增加固定分类：162..171 分别为 400、401、403、409、413、429、500、502、503、504；172 为其他合法非 200 状态，173 为非法状态。模块只处理整数状态，不读取正文、凭据或异常；200 保持原协议校验。有限范围同步接入子进程和 primary-phase parser，139、174 及附加文本继续拒绝。新增纯分类与两端真实接线模拟，原请求数量、摘要与原文断言、期限和强制清理保持。
+
+纯分类及 N08/N09 回归 32/32、外层安全子进程 PowerShell parser 3/3 通过。新 N09 夹具初次误用不存在的方法名，已改为既有 bindVerifiedNetworkProof/startFreshBusinessHost 并重跑通过。此前提交 b1a46aaf 误绕过 hook 后，已在推送前按该提交范围补跑相同 lint-staged，全部通过且没有产生变更；后续提交恢复正常 hook。
+
+b1a46aaf 的 Verify 39978411927 已观察到 unit3 job 120499003876 失败：actual storage native ACL independently verifies protected access and rejects junction ancestors，PowerShell spawnSync ETIMEDOUT。Rust、node-quality、integration 及其余三个 unit 分片已 success，coverage 最近仍运行；本候选不调整该期限、不重跑掩盖失败。业务恢复、24 小时容量、安装生命周期及生产交付仍未完成，本机仍无产品持久 worker、DPAPI、注册表、安装器、防火墙或真实模型请求。
+
+
 ## 2026-10-23：完整 Verify 通过，业务失败推进至 seed，补有限阶段诊断
 
 原生批量解密候选 033428165b9558c96757e418244f47e70f673fef 的完整 Verify 39975430107 已 success，Rust、coverage、四个 unit 分片、integration、node-quality 全部通过。独立诊断 39975548334 的 N09 job 120489059616 返回 102，已越过配置保存、管理读回及持久应用，失败推进到 seedThroughBusinessHttp；N08 job 120489059202 仍为 71。完整 disposable 39975429867 本轮查询时源码门禁及 egress 已 success，N08/N09 仍 in_progress，继续观察原句柄，不重启。

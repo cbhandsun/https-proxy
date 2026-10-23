@@ -268,7 +268,7 @@ function fixture(mutation = () => {}, onPhase) {
           state.rejectPending = reject;
         });
       }
-      return { status: 200, bytes: Buffer.from(JSON.stringify(result)) };
+      return { status: state.replyStatus ?? 200, bytes: Buffer.from(JSON.stringify(result)) };
     },
   };
   const adapter = createN09BusinessAdapter(options, {
@@ -583,4 +583,37 @@ test('upstream oversized, invalid UTF8 and invalid JSON fail without response wr
     );
   }
   await f.adapter.close();
+});
+
+test('N09 rejected tool-result HTTP status retains fixed classification and owned cleanup', async () => {
+  for (const [status, expected] of [
+    [400, 162],
+    [401, 163],
+    [403, 164],
+    [409, 165],
+    [413, 166],
+    [429, 167],
+    [500, 168],
+    [502, 169],
+    [503, 170],
+    [504, 171],
+    [418, 172],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      (kind, _value, state) => {
+        if (kind === 'reply' && state.sent === 2) state.replyStatus = status;
+      },
+      (phase) => phases.push(phase)
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    const owner = await f.adapter.startFreshBusinessHost();
+    await assert.rejects(f.adapter.seedThroughBusinessHttp(owner), bad);
+    assert.equal(phases.at(-1), expected);
+    assert.equal(f.state.sent, 2);
+    await f.adapter.killOwnedJob(owner);
+    await f.adapter.close();
+    assert.equal(f.state.stopped, 1);
+    assert.equal(f.state.closed, 1);
+  }
 });
