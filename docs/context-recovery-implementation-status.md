@@ -1,5 +1,14 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：两端确认 503，纯回归证实 observed 持久化与下一轮准入竞态
+
+a20cfd4d 的独立诊断 39980129686 已终态 failure：N09 job 120504944221、N08 job 120504944749 均返回 170，明确为工具结果回传 HTTP 503。该轮完整 Verify 39980129735 已 success，全部 job 通过；完整 disposable 39980129782 最近 source-gates 仍运行、egress success。较早 b1a46aaf 完整 disposable 39978412033 已 failure，source-gates job 120499004023 失败于 actual core claude WBIPC recovery has exclusive ownership and live credential revocation，业务未启动；原失败保留，未重跑掩盖。
+
+独立纯内存存储夹具阻塞首次 observed publication 的 save ACK：首次响应已 completeObserved，但下一轮同 root beginAsync 立即返回 context_recovery_busy；释放 ACK 后，同一输入能够准入。三个正常／撤权／写入失败的新回归在旧代码先 RED，证实客户端已见响应、原观察写入仍持有 owner 的竞态。该缺陷可能解释实际两端 503，但尚无托管证据证明其为唯一根因。
+
+候选只跟踪真实 observed publication 的待确认 Promise；异步 loader 在选定同一 root 后等待该 ACK，再重新检查授权、代际和存活，随后执行原准入。其他 principal 的新 root 不等待；实际恢复／公开生成 owner 仍按原规则返回 busy。没有重发请求、轮询上游、延长期限、绕过 durable ACK 或提前释放 owner；失败 ACK 和等待期间撤权均拒绝。五项新增纯回归通过，另有 14 项既有纯 loader／session 回归和 32 项 hosted 协议回归通过。新的 busy 夹具初次漏导出 first 引用已修正；Lint 曾发现裸 structuredClone，改为 globalThis.structuredClone 后重新验证。新增测试由统一 unit 自动发现，完整托管与业务资格仍待候选验证。
+
+
 ## 2026-10-23：两端首失败点收敛于工具结果回传，追加固定 HTTP 分类
 
 b1a46aaf 的独立诊断 39978411930：N08 job 120499003138 返回 150，N09 job 120499003401 返回 134。两端配置、首次工具调用已越过；N09 工具结果回传已取得 HTTP 响应，但协议或最终文本校验失败，N08 同一步失败。该证据仍不能区分非 200、无效 JSON 或成功响应内容不符，不能断言已找到产品根因。旧完整 disposable 39975429867 已终态 failure，源码门禁与 egress success，N09/N08 分别仍为 102/71。
