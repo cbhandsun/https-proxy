@@ -246,13 +246,21 @@ function createClientUnsafe(input, dependencies) {
         },
       };
       onPhase(117);
-      const saved = await request({ method: 'POST', route: '/v1/local/config', body: next });
-      if (
-        saved.status !== 200 ||
-        saved.body?.ok !== true ||
-        typeof saved.body.revision !== 'string'
-      )
+      let saved;
+      try {
+        saved = await request({ method: 'POST', route: '/v1/local/config', body: next });
+      } catch {
+        onPhase(121); // Transport/decode failure only; never forward its error.
         throw fail();
+      }
+      if (saved.status !== 200) {
+        onPhase(saved.status === 400 ? 122 : saved.status === 409 ? 123 : 124);
+        throw fail();
+      }
+      if (saved.body?.ok !== true || typeof saved.body.revision !== 'string') {
+        onPhase(125);
+        throw fail();
+      }
       onPhase(118);
       const afterReply = await request({ method: 'GET', route: '/v1/local/config' });
       const after = snapshot(afterReply.body);

@@ -137,8 +137,12 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase) {
           value = { ok: true, scope: 'proxy_context_recovery' };
         } else throw new Error('unexpected_test_route');
         mutation('http', value, state);
+        if (state.transportFailure) {
+          request.emit('error', new Error('PRIVATE_TRANSPORT_SENTINEL'));
+          return;
+        }
         const response = new EventEmitter();
-        response.statusCode = 200;
+        response.statusCode = state.statusCode ?? 200;
         response.headers = { 'content-type': 'application/json' };
         response.destroy = () => {};
         accept(response);
@@ -203,6 +207,38 @@ test('cold lifecycle waits for private credentials and preload before the first 
     assert.equal(f.state.requests[0].path, '/v1/local/health');
   } finally {
     await f.client.close();
+  }
+});
+
+test('configuration save diagnostics disclose only fixed failure categories and preserve cleanup', async (t) => {
+  for (const [kind, phase] of [
+    ['transport', 121],
+    [400, 122],
+    [409, 123],
+    [503, 124],
+    ['shape', 125],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      t,
+      (at, value, state) => {
+        if (at !== 'http' || state.requests.at(-1).method !== 'POST') return;
+        if (kind === 'transport') state.transportFailure = true;
+        else if (kind === 'shape') value.ok = false;
+        else state.statusCode = kind;
+      },
+      undefined,
+      (value) => phases.push(value)
+    );
+    const identity = await f.client.startLifecycle();
+    await assert.rejects(
+      f.client.configureSyntheticBusiness(identity, synthetic()),
+      /^Error: n09_lifecycle_client_failed$/
+    );
+    assert.deepEqual(phases, [112, 113, 114, 115, 116, 117, phase]);
+    assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 1);
+    await f.client.close();
+    assert.equal(f.state.commands.at(-1).op, 'remove');
   }
 });
 
