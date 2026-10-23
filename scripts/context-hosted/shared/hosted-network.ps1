@@ -11,6 +11,7 @@ function Invoke-HpmN08HostedNetwork {
         [Parameter(Mandatory)][scriptblock]$RunOwnedScenario,
         [Parameter(Mandatory)][scriptblock]$StopOwnedScenario
     )
+    $networkStage = 'environment'
     $receipt = $null
     $hostsChanged = $false
     $hostsBefore = $null
@@ -48,8 +49,10 @@ function Invoke-HpmN08HostedNetwork {
     try {
         if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
             $env:RUNNER_OS -cne 'Windows' -or $env:CI -cne 'true' -or [string]::IsNullOrEmpty($env:RUNNER_TEMP)) { throw 'n08_network_rejected' }
+        $networkStage = 'administrator'
         $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
         if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'n08_network_rejected' }
+        $networkStage = 'build_identity'
         $OwnedRoot = [IO.Path]::GetFullPath($OwnedRoot)
         $tempRoot = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
         if (-not $OwnedRoot.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'n08_network_rejected' }
@@ -68,11 +71,13 @@ function Invoke-HpmN08HostedNetwork {
         if ((Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant() -cne $build.nodeSha256 -or
             (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant() -cne $build.manifestSha256) { throw 'n08_network_rejected' }
 
+        $networkStage = 'exclusive_port'
         # Prove port 443 is free before any hosts, certificate or firewall change.
         if (@(Get-NetTCPConnection -LocalPort 443 -State Listen -ErrorAction SilentlyContinue).Count -ne 0) { throw 'n08_network_rejected' }
         $reservation = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 443)
         try { $reservation.ExclusiveAddressUse = $true; $reservation.Start() } finally { $reservation.Stop() }
 
+        $networkStage = 'owned_materials'
         $networkRoot = Join-Path $OwnedRoot 'n08-hosted-network'
         if (Test-Path -LiteralPath $networkRoot) { throw 'n08_network_rejected' }
         New-Item -ItemType Directory -Path $networkRoot | Out-Null
@@ -87,6 +92,7 @@ function Invoke-HpmN08HostedNetwork {
             $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow'))
         }
         Set-Acl -LiteralPath $networkRoot -AclObject $acl
+        $networkStage = 'synthetic_certificates'
         $nonce = [Guid]::NewGuid().ToString('N')
         $ca = New-SelfSignedCertificate -Type Custom -Subject ('CN=HPM N08 Synthetic ' + $nonce) -CertStoreLocation 'Cert:\CurrentUser\My' `
             -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -KeyExportPolicy NonExportable -KeyUsage CertSign,CRLSign `
@@ -105,6 +111,7 @@ function Invoke-HpmN08HostedNetwork {
         $materialLeases['.pfx-password'] = [HpmN08ArtifactLease]::new((Join-Path $networkRoot '.pfx-password'), $false)
         $passwordText = $null
 
+        $networkStage = 'egress_containment'
         $firewallName = 'HPM-N08-' + $nonce
         $profiles = @(Get-NetFirewallProfile | Select-Object Name, Enabled)
         foreach ($profile in $profiles) { Set-NetFirewallProfile -Name $profile.Name -Enabled True }
@@ -117,6 +124,7 @@ function Invoke-HpmN08HostedNetwork {
         if ($rule.Enabled -ne 'True' -or $rule.Action -ne 'Block' -or $rule.Direction -ne 'Outbound' -or
             $application.Program -cne $node) { throw 'n08_network_rejected' }
 
+        $networkStage = 'hosts_mapping'
         $hostsFile = Join-Path $env:SystemRoot 'System32/drivers/etc/hosts'
         Assert-Physical $hostsFile $false
         $hostsBefore = [IO.File]::ReadAllBytes($hostsFile)
@@ -159,17 +167,22 @@ function Invoke-HpmN08HostedNetwork {
         # Trusted harness callback must first bind/prove the listener and execute
         # the fixed positive TLS + negative egress probes before launching daemon.
         # It receives no arbitrary URL, proxy, environment or module selector.
+        $networkStage = 'owned_scenario'
         $scenarioInvoked = $true
         $ownedScenarioStopped = $false
         $result = & $RunOwnedScenario ([pscustomobject]@{
             node = $node; networkRoot = $networkRoot; caSha256 = (Get-FileHash -LiteralPath $caFile -Algorithm SHA256).Hash.ToLowerInvariant()
             leafSha256 = (Hash-Bytes $leaf.RawData); manifestSha256 = $build.manifestSha256; firewallName = $firewallName; port443WasExclusive = $true
         })
+        $networkStage = 'scenario_receipt'
         if ($null -eq $result -or $result.probesPassed -ne $true -or $result.tlsVerified -ne $true -or
             $result.nonLoopbackBlocked -ne $true -or $result.listenerOwned -ne $true -or $result.ownedTreeEmpty -ne $true -or
             $result.syntheticSocketsClosed -ne $true) { throw 'n08_network_rejected' }
         $receipt = @{ phase = 'hosted_network_finished'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; ownedTreeEmpty = $true; n08Qualified = $false }
-    } catch { $primaryFailed = $true }
+    } catch {
+        $primaryFailed = $true
+        Write-Information ('hpm_network_failed_stage=' + $networkStage) -InformationAction Continue
+    }
     finally {
         # The callback must own all children in existing Jobs and close them in
         # its own finally, before global test-environment restoration starts.
@@ -200,7 +213,10 @@ function Invoke-HpmN08HostedNetwork {
         foreach ($lease in $materialLeases.Values) { try { $lease.Dispose() } catch { $restoreFailed = $true } }
         if ($null -ne $networkRootLease) { try { $networkRootLease.Dispose() } catch { $restoreFailed = $true } }
     }
-    if ($restoreFailed) { throw 'n08_network_restore_failed' }
+    if ($restoreFailed) {
+        Write-Information 'hpm_network_failed_stage=restore' -InformationAction Continue
+        throw 'n08_network_restore_failed'
+    }
     if ($primaryFailed) { throw 'n08_network_rejected' }
     return $receipt
 }

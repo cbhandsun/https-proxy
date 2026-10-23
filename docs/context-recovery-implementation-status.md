@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：记录托管终态并补充固定失败阶段
+
+`e13c5852` 的 Verify `39880563255` 已 failure 终止：quality、integration、Rust、四个 unit shard 均成功；proxy/security coverage 通过，client coverage 仅剩三协议 WBIPC `long-persistent` 的 turn 0 请求触发原 5 秒期限。此前 38 项快速存储失败未重现；chat 保存操作记录 8164ms，replyAsync 8766ms，支持继续定位保存路径耗时，不能据此断言具体原生调用根因。
+
+同 SHA 的 disposable run `39880563520` 已 failure 终止：其字面完整 verify/audit 的 source-gates 成功，但实际 N08/N09 均失败于固定场景阶段；不能以该 source-gates 覆盖独立 Verify 的失败。新增 qualification、execution、network、owned Job 的固定失败阶段枚举，仅通过 Information 流输出，不打印异常、路径或输入，也不改变成功 JSON、120 秒 Job 期限、网络隔离和 finally 清理。真实本地前置拒绝及合成错误 review/pin 测试验证阶段区分和私有 sentinel 不输出，未调用本机原生存储或系统网络修改。全部 context-hosted 文件及安装 wrapper 扩大回归 301/301、零失败／取消／跳过，证据 `hosted-diagnostics-expanded-v1.log`。新诊断须在下一源码的真实 hosted 运行定位剩余问题，尚无 N08/N09 完整资格。
+
 ## 2026-10-22：安装 mechanics 改用新建专用验收分支
 
 安装 review workflow 保留旧精确分支，并接受 `acceptance/windows-lifecycle/**` 的普通新分支创建事件；限定本仓库、created、非 forced/deleted 和全零 before。不覆盖已有旧分支，不改默认分支，也不上传私有旧 installer。固定基线仍为清理后的 `2295c452888449e9728b3ddcc2f80f31e9433e69`。此路由验证源码重建的安装／升级／回滚 mechanics，不能替代原始旧安装包及加密迁移资格。扩大回归包括全部托管基础设施及安装 wrapper，共 301/301，零失败、取消或跳过，证据 `hosted-diagnostics-expanded-v1.log`；真实 disposable Windows 新分支验收待启动。

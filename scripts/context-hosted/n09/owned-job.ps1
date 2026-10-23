@@ -10,9 +10,11 @@ function Invoke-HpmN09OwnedScenario {
         [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$PlanSha256,
         [Parameter(Mandatory)][hashtable]$SourcePins
     )
+    $jobStage = 'environment'
     try {
         if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
             $env:RUNNER_OS -cne 'Windows' -or [string]::IsNullOrEmpty($env:RUNNER_TEMP)) { throw 'invalid' }
+        $jobStage = 'source_pins'
         $OwnedRoot = [IO.Path]::GetFullPath($OwnedRoot)
         $tempPrefix = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
         if (-not $OwnedRoot.StartsWith($tempPrefix, [StringComparison]::OrdinalIgnoreCase)) { throw 'invalid' }
@@ -39,6 +41,7 @@ function Invoke-HpmN09OwnedScenario {
             if (-not $SourcePins.ContainsKey($file) -or $SourcePins[$file] -cnotmatch '\A[a-f0-9]{64}\z' -or
                 (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $SourcePins[$file]) { throw 'invalid' }
         }
+        $jobStage = 'load_job_helper'
         Import-Module $fixed[0] -Force
         $start = [Diagnostics.ProcessStartInfo]::new()
         $start.FileName = $fixed[4]
@@ -61,9 +64,11 @@ function Invoke-HpmN09OwnedScenario {
         $start.ArgumentList.Add($PlanSha256)
         # Existing 120s outer bound, never extended/reset. Each nested original
         # daemon controller retains its existing case/session deadlines.
+        $jobStage = 'bounded_child'
         $output = Invoke-HpmBoundedRuntimeChild $start 120000
         # This line is reached only AFTER the original helper's finally has
         # StopAndWait(5000)-verified its entire owned tree and drained pipes.
+        $jobStage = 'child_receipt'
         $treeEmpty = $true
         if ([string]::IsNullOrEmpty($output) -or [Text.Encoding]::UTF8.GetByteCount($output) -gt 4096) { throw 'invalid' }
         $document = [Text.Json.JsonDocument]::Parse($output)
@@ -82,5 +87,8 @@ function Invoke-HpmN09OwnedScenario {
             return [pscustomobject]@{ probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true;
                 listenerOwned = $true; ownedTreeEmpty = $treeEmpty; syntheticSocketsClosed = $true; n09Complete = $false }
         } finally { $document.Dispose() }
-    } catch { throw 'n09_owned_job_rejected' }
+    } catch {
+        Write-Information ('hpm_n09_job_failed_stage=' + $jobStage) -InformationAction Continue
+        throw 'n09_owned_job_rejected'
+    }
 }

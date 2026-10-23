@@ -1,10 +1,12 @@
 param([Parameter(Mandatory)][ValidateSet('n08', 'n09')][string]$Case)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$qualificationStage = 'environment'
 try {
     if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
         $env:RUNNER_OS -cne 'Windows' -or $env:GITHUB_SHA -cnotmatch '\A[a-f0-9]{40}\z' -or
         [string]::IsNullOrEmpty($env:RUNNER_TEMP)) { throw 'invalid' }
+    $qualificationStage = 'source_identity'
     $candidate = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
     $head = git -C $candidate rev-parse HEAD
     if ($LASTEXITCODE -ne 0 -or $head -cne $env:GITHUB_SHA) { throw 'invalid' }
@@ -12,6 +14,7 @@ try {
     $receiptFile = Join-Path $ownedRoot 'prepared-run.json'
     $reviewFile = Join-Path $ownedRoot ($Case + '-hosted-review-plan.json')
     $execution = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ('context-hosted/' + $Case + '/hosted-execution.ps1')))
+    $qualificationStage = 'physical_paths'
     foreach ($file in @($reviewFile, $receiptFile, $execution)) {
         $current = [IO.Path]::GetFullPath($file)
         if ($current.StartsWith('\\')) { throw 'invalid' }
@@ -23,6 +26,7 @@ try {
             $current = $parent
         }
     }
+    $qualificationStage = 'prepared_receipt'
     if ((Get-Item -LiteralPath $receiptFile).Length -gt 4096) { throw 'invalid' }
     $receipt = [IO.File]::ReadAllText($receiptFile, [Text.UTF8Encoding]::new($false, $true)) | ConvertFrom-Json -AsHashtable
     $expected = @('schemaVersion', 'scenario', 'sourceSha', 'planSha256', 'buildReceiptSha256')
@@ -34,7 +38,9 @@ try {
     $review = [IO.File]::ReadAllText($reviewFile, [Text.UTF8Encoding]::new($false, $true)) | ConvertFrom-Json -AsHashtable
     if (-not $review.libraryPins.ContainsKey($execution) -or
         (Get-FileHash -LiteralPath $execution -Algorithm SHA256).Hash.ToLowerInvariant() -cne $review.libraryPins[$execution]) { throw 'invalid' }
+    $qualificationStage = 'load_execution'
     . $execution
+    $qualificationStage = 'invoke_execution'
     $result = if ($Case -ceq 'n08') {
         Invoke-HpmN08HostedExecution -OwnedRoot $ownedRoot -ReviewPlanSha256 $receipt.planSha256 -BuildReceiptSha256 $receipt.buildReceiptSha256
     } else {
@@ -43,4 +49,7 @@ try {
     # Fixed network receipt only. No payload, keys, DBs, native frames or request
     # bodies are written to Actions artifacts or the job summary.
     $result | ConvertTo-Json -Depth 3 -Compress
-} catch { throw 'context_hosted_qualification_failed' }
+} catch {
+    Write-Information ('hpm_qualification_failed_stage=' + $qualificationStage) -InformationAction Continue
+    throw 'context_hosted_qualification_failed'
+}
