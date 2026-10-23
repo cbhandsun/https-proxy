@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：完整 Windows 源码门禁通过，N09 失败场景继续隔离
+
+`9b6a4fd9` 的完整 Windows `40028691580` 已终态：source-gates、egress 和正式 N08 均 success，正式 N09 `120677338277` failure230。配置异步提升修复已提交 `6fdb15ec`；独立诊断 `40030867872` 的 N08 success、N09 `120678497590` 仍为230，确认该修复没有消除当前业务故障。
+
+本地临时子进程使用实际 Core HTTP、实际加密存储、原始 N09 runtime hooks/producer ACK 和原始业务 adapter/driver，保存 ACK 后立即强杀该子进程、同目录新 PID 重开及精确读回通过；committed-observed-kill 也通过。它使用隔离合成数据和本地路由，不等同托管网络/Job、安装或生产验收。托管四场景共用230仍不足以定位；入口现在只按外层已选定的四个 driver，将该失败映射为247 committed、248 clear、249 save、250 revoke。其余失败类别不变，未知251、额外 stderr、无效 UTF8、重复字段仍不透出。子进程原45秒测试期限与原业务断言保留。
+
 ## 2026-10-23：Verify 全部通过；修复连续配置保存的 Windows 文件竞争
 
 `9b6a4fd9` 的 Verify `40028691603` 已终态 success：node-quality、四个单元 shard、Rust、integration 和 coverage 均通过。这不替代业务或安装资格；同源码独立诊断 `40028691590` 的 N08 success、N09 job `120671229324` failure230，表示公开生成前尚未观察到有效原文读取。完整 Windows `40028691580` 的 source-gates 仍在运行，egress 已通过。

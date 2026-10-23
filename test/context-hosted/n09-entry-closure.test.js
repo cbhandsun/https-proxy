@@ -5,7 +5,35 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { createHash } = require('node:crypto');
-const { verifyPinnedClosure } = require('../../scripts/context-hosted/n09/owned-entry.js');
+const {
+  verifyPinnedClosure,
+  publicReadFailurePhase,
+} = require('../../scripts/context-hosted/n09/owned-entry.js');
+test('missing READ diagnostics distinguish reviewed cases without exposing caller data', () => {
+  assert.deepEqual([80, 81, 82, 83].map(publicReadFailurePhase), [247, 248, 249, 250]);
+  let reads = 0;
+  for (const value of [
+    null,
+    undefined,
+    '',
+    '80',
+    79,
+    84,
+    80.1,
+    10000,
+    new Proxy(
+      {},
+      {
+        get() {
+          reads++;
+          throw Error('PRIVATE');
+        },
+      }
+    ),
+  ])
+    assert.equal(publicReadFailurePhase(value), 230);
+  assert.equal(reads, 0);
+});
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 test('fixed entry verifies every lazy dependency before it can execute', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'n09-entry-closure-'));

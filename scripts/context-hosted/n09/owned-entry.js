@@ -10,6 +10,12 @@ const fail = () => new Error('n09_owned_entry_rejected');
 // Fixed phases: entry/composition/probes, 98..100 cleanup, 101..138 business startup.
 let failureExitCode = 64;
 let primaryFailurePhase = 64;
+function publicReadFailurePhase(casePhase) {
+  // Only the outer reviewed driver chooses the case. No request data survives.
+  return Number.isInteger(casePhase) && casePhase >= 80 && casePhase <= 83
+    ? 247 + casePhase - 80
+    : 230;
+}
 function verifyPinnedClosure(pins, roots, dynamicTargets = []) {
   if (
     !pins ||
@@ -186,6 +192,7 @@ async function main() {
   if (path.resolve(plan.ownedRoot).toLowerCase() !== ownedRoot.toLowerCase()) throw fail();
   failureExitCode = 71;
   const { composeHostedN09 } = require('./composition.js');
+  let businessCasePhase = 0;
   const result = await composeHostedN09(plan, (phase) => {
     if (
       !Number.isInteger(phase) ||
@@ -200,8 +207,10 @@ async function main() {
       )
     )
       throw fail();
-    failureExitCode = phase;
-    if (phase < 98 || phase >= 101) primaryFailurePhase = phase;
+    if (phase >= 80 && phase <= 83) businessCasePhase = phase;
+    const reported = phase === 230 ? publicReadFailurePhase(businessCasePhase) : phase;
+    failureExitCode = reported;
+    if (phase < 98 || phase >= 101) primaryFailurePhase = reported;
   });
   failureExitCode = 72;
   if (
@@ -250,4 +259,4 @@ if (require.main === module)
       process.stderr.write('n09_primary_phase=' + primaryFailurePhase + '\n');
     process.exitCode = failureExitCode;
   });
-module.exports = { verifyPinnedClosure };
+module.exports = { verifyPinnedClosure, publicReadFailurePhase };
