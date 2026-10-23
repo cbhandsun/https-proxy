@@ -456,8 +456,12 @@ function createN09BusinessAdapter(input, trusted = {}) {
           gate(identity);
           if (!seeded || phase !== 'ready' || pendingSave) throw fail();
           const before = committed();
+          // A completed snapshot is not evidence that ACK acquisition succeeded.
+          // Keep the boundary visible without publishing root or revision data.
+          onPhase(253);
           accounting(before);
           const host = client().getHostAckClient(current);
+          onPhase(254);
           const receipt = await performN09DurableCommand(
             {
               pid: current.pid,

@@ -205,7 +205,9 @@ async function main() {
         (phase >= 203 && phase <= 209) ||
         (phase >= 211 && phase <= 246) ||
         phase === 251 ||
-        phase === 252
+        phase === 252 ||
+        phase === 253 ||
+        phase === 254
       )
     )
       throw fail();

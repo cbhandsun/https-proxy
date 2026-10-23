@@ -95,6 +95,7 @@ function fixture(mutation = () => {}, onPhase) {
         },
         getHostAckClient: () => ({
           submit(command) {
+            mutation('ack-submit', command, state);
             state.events.push('submit');
             state.ackCommand = command;
             if (command.operation === 'revoke-bound-root') state.cleared = true;
@@ -410,6 +411,22 @@ test('missing READ diagnostics separate ACK-triggered and post-restart recovery 
     assert.equal(f.state.closed, 1);
     assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
   }
+});
+
+test('ACK handshake rejection is distinguished from a completed readonly snapshot and still forces cleanup', async () => {
+  const phases = [];
+  const f = fixture(
+    (stage) => {
+      if (stage === 'ack-submit') throw Error('PRIVATE_SENTINEL');
+    },
+    (phase) => phases.push(phase)
+  );
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'));
+  assert.deepEqual(phases.slice(-2), [253, 254]);
+  assert.equal(f.state.stopped, 1);
+  assert.equal(f.state.closed, 1);
+  assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
 });
 
 test('synthetic public recovery output supports JSON and complete Responses SSE encoding', async () => {

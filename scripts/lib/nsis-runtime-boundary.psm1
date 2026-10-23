@@ -29,9 +29,9 @@ function ConvertFrom-HpmOwnedFailurePhase {
     # the caller still rejects the failed child regardless of this result.
     if ($null -eq $Bytes -or $Bytes.Length -gt 80) { return $null }
     try { $text = [Text.UTF8Encoding]::new($false, $true).GetString($Bytes) } catch { return $null }
-    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-9]|13[0-8]|16[2-9]|17[0-9]|18[0-9]|19[0-9]|201|20[3-9]|21[1-9]|22[0-9]|23[0-9]|24[0-9]|25[0-2])\n\z') { return $null }
+    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-9]|13[0-8]|16[2-9]|17[0-9]|18[0-9]|19[0-9]|201|20[3-9]|21[1-9]|22[0-9]|23[0-9]|24[0-9]|25[0-4])\n\z') { return $null }
     $phase = [int]$Matches[1]
-    if (($phase -ge 73 -and $phase -le 84) -or ($phase -ge 86 -and $phase -le 96) -or ($phase -ge 101 -and $phase -le 138) -or ($phase -ge 162 -and $phase -le 199) -or $phase -eq 201 -or ($phase -ge 203 -and $phase -le 209) -or ($phase -ge 211 -and $phase -le 252)) { return $phase }
+    if (($phase -ge 73 -and $phase -le 84) -or ($phase -ge 86 -and $phase -le 96) -or ($phase -ge 101 -and $phase -le 138) -or ($phase -ge 162 -and $phase -le 199) -or $phase -eq 201 -or ($phase -ge 203 -and $phase -le 209) -or ($phase -ge 211 -and $phase -le 254)) { return $phase }
     return $null
 }
 
@@ -96,7 +96,7 @@ function Invoke-HpmBoundedRuntimeChild {
             # Only the fixed hosted entry phase codes are disclosed. Other
             # exits and all stderr remain opaque; no child data is forwarded.
             $childExitCode = 'other'
-            if (($process.ExitCode -ge 64 -and $process.ExitCode -le 84) -or ($process.ExitCode -ge 86 -and $process.ExitCode -le 96) -or ($process.ExitCode -ge 98 -and $process.ExitCode -le 138) -or ($process.ExitCode -ge 140 -and $process.ExitCode -le 209) -or ($process.ExitCode -ge 211 -and $process.ExitCode -le 252)) {
+            if (($process.ExitCode -ge 64 -and $process.ExitCode -le 84) -or ($process.ExitCode -ge 86 -and $process.ExitCode -le 96) -or ($process.ExitCode -ge 98 -and $process.ExitCode -le 138) -or ($process.ExitCode -ge 140 -and $process.ExitCode -le 209) -or ($process.ExitCode -ge 211 -and $process.ExitCode -le 254)) {
                 $childExitCode = [string]$process.ExitCode
             }
             Write-Information ('hpm_runtime_child_exit_code=' + $childExitCode) -InformationAction Continue
