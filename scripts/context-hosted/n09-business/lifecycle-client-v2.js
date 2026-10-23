@@ -370,8 +370,10 @@ function createClientUnsafe(input, dependencies) {
       if (!syntheticBusiness) throw fail();
       await managementReady(identity);
       const request = management(identity);
+      onPhase(116);
       const configReply = await request({ method: 'GET', route: '/v1/local/config' });
       const config = snapshot(configReply.body);
+      onPhase(119);
       const health = await request({ method: 'GET', route: '/v1/local/health' });
       if (
         configReply.status !== 200 ||
@@ -474,6 +476,7 @@ function createClientUnsafe(input, dependencies) {
       if (!['00', '01', '10', '11'].includes(combination)) throw fail();
       await managementReady(identity);
       const request = management(identity);
+      onPhase(116);
       const beforeReply = await request({ method: 'GET', route: '/v1/local/config' });
       const before = snapshot(beforeReply.body);
       const settings = snapshot(before.appSettings);
@@ -486,6 +489,7 @@ function createClientUnsafe(input, dependencies) {
         throw fail();
       const enabled = combination[0] === '1';
       const persistence = combination[1] === '1';
+      onPhase(117);
       const saved = await request({
         method: 'POST',
         route: '/v1/local/config',
@@ -493,6 +497,9 @@ function createClientUnsafe(input, dependencies) {
           ...before,
           ...(syntheticBusiness
             ? {
+                // loadConfig adds built-in routes for official profiles. This
+                // save replaces those profiles with the single synthetic one.
+                modelRoutes: [],
                 profiles: [
                   {
                     id: 'n09-synthetic',
@@ -533,6 +540,7 @@ function createClientUnsafe(input, dependencies) {
         saved.body.revision.length > 256
       )
         throw fail();
+      onPhase(118);
       const afterReply = await request({ method: 'GET', route: '/v1/local/config' });
       const after = snapshot(afterReply.body);
       if (

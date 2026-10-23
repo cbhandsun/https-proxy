@@ -153,7 +153,9 @@ function createBusinessScenario(input, observer) {
         health.status === 200 &&
         health.body?.pid === state.value.owner.identity.pid &&
         health.body.contextRecovery?.appliedEnabled === enabled &&
-        health.body.contextRecovery?.storage === (enabled ? 'persistent' : 'memory')
+        // Every save retains persistence=true; disabling read admission does
+        // not replace an already-open persistent owner with a memory owner.
+        health.body.contextRecovery?.storage === 'persistent'
       )
         break;
       if (performance.now() >= deadline || (await state.value.owner.isAlive()) !== true)
@@ -172,7 +174,7 @@ function createBusinessScenario(input, observer) {
       health.body?.pid !== state.value.owner.identity.pid ||
       performance.now() >= deadline ||
       health.body.contextRecovery?.appliedEnabled !== enabled ||
-      health.body.contextRecovery?.storage !== (enabled ? 'persistent' : 'memory') ||
+      health.body.contextRecovery?.storage !== 'persistent' ||
       JSON.stringify(after.entryAuth?.keys?.[0]?.allowedProfileIds) !==
         JSON.stringify(state.key.allowedProfileIds) ||
       state.profiles.some(

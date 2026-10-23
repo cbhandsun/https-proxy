@@ -503,6 +503,101 @@ test('actual lifecycle composition uses fixed entry, private bootstrap token, ph
     ['start', 'status', 'status', 'stop', 'restart', 'remove']
   );
 });
+test('synthetic combination changes remain valid after real config load merges built-in routes', async (t) => {
+  const { mergeBuiltinModelRoutes } = require('../../lib/proxy/builtin-model-routes');
+  const { validateConfig } = require('../../lib/proxy/validator');
+  const phases = [];
+  const f = fixture(
+    t,
+    (stage, value, state) => {
+      if (stage !== 'http') return;
+      const request = state.requests.at(-1);
+      if (request.path !== '/v1/local/config') return;
+      if (request.method === 'GET') {
+        Object.assign(value, mergeBuiltinModelRoutes(value));
+        assert.ok(value.modelRoutes.length > 0);
+      } else {
+        state.validation = validateConfig(state.config);
+        if (!state.validation.valid) {
+          state.statusCode = 400;
+          value.ok = false;
+        }
+      }
+    },
+    undefined,
+    (phase) => phases.push(phase)
+  );
+  try {
+    const identity = await f.client.startLifecycle();
+    await f.client.configureSyntheticBusiness(identity, synthetic());
+    for (const combination of ['00', '01', '10', '11']) {
+      const result = await f.client.setCombination(identity, combination);
+      assert.equal(result.savedConfigVerified, true);
+      assert.equal(f.state.validation.valid, true);
+      assert.deepEqual(f.state.config.modelRoutes, []);
+    }
+    assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 5);
+  } finally {
+    await f.client.close();
+  }
+});
+
+test('post-startup failures identify config read, save, readback or health instead of the completed startup probe', async (t) => {
+  for (const [operation, boundary, expected] of [
+    ['combination', 'read', 116],
+    ['combination', 'save', 117],
+    ['combination', 'readback', 118],
+    ['attest', 'read', 116],
+    ['attest', 'health', 119],
+  ]) {
+    const phases = [];
+    let armed = false,
+      reads = 0,
+      healths = 0;
+    const f = fixture(
+      t,
+      (stage, value, state) => {
+        if (!armed || stage !== 'http') return;
+        const request = state.requests.at(-1);
+        if (request.path === '/v1/local/config' && request.method === 'GET') {
+          reads++;
+          if ((boundary === 'read' && reads === 1) || (boundary === 'readback' && reads === 2))
+            value._revision = '';
+          if (operation === 'attest' && boundary === 'read') state.transportFailure = true;
+        }
+        if (boundary === 'save' && request.method === 'POST') value.ok = false;
+        if (request.path === '/v1/local/health') {
+          healths++;
+          // The first health probe succeeds. Fail only the later attestation.
+          if (boundary === 'health' && healths === 2) value.pid = 999;
+        }
+      },
+      undefined,
+      (phase) => phases.push(phase)
+    );
+    try {
+      const identity = await f.client.startLifecycle();
+      await f.client.configureSyntheticBusiness(identity, synthetic());
+      armed = true;
+      phases.length = 0;
+      await assert.rejects(
+        operation === 'combination'
+          ? f.client.setCombination(identity, '01')
+          : f.client.attestSyntheticBusiness(identity),
+        /^Error: n09_lifecycle_client_failed$/
+      );
+      assert.equal(phases.at(-1), expected);
+      assert.equal(
+        f.state.requests.filter((request) => request.method === 'POST').length,
+        operation === 'combination' && boundary !== 'read' ? 2 : 1
+      );
+    } finally {
+      await f.client.close();
+    }
+    assert.equal(f.state.commands.at(-1).op, 'remove');
+  }
+});
+
 test('directory substitution rejects restart without a new child and finally removes owner', async (t) => {
   const f = fixture(t);
   const first = await f.client.startLifecycle();

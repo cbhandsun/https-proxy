@@ -448,6 +448,35 @@ test('disabled persistence preference opens no storage and direct enable honors 
   }
 });
 
+test('disabling an existing persistent owner denies recovery without replacing or deleting its retained store', async () => {
+  const f = fixture();
+  try {
+    f.runtime.configureSettings(settings(true, true));
+    assert.deepEqual(await f.runtime.ready(), { ok: true });
+    const owner = f.runtime.sessions;
+    const scope = 'e'.repeat(64);
+    const expiresAt = Date.now() + 60000;
+    const state = { synthetic: 'retained while recovery is disabled' };
+    f.stores[0].execute({ operation: 'save', scope, expectedRevision: 0, expiresAt, state });
+    const count = f.operations.length;
+    f.runtime.configureSettings(settings(false, true));
+    assert.equal(owner.inspect().enabled, false, 'disable stops admission synchronously');
+    assert.deepEqual(await f.runtime.ready(), { ok: true });
+    assert.equal(f.runtime.sessions, owner);
+    assert.equal(f.runtime.inspect().appliedEnabled, false);
+    assert.equal(f.runtime.inspect().requestedPersistence, true);
+    assert.equal(f.runtime.inspect().storage, 'persistent');
+    assert.equal(f.runtime.inspect().state, 'disabled');
+    assert.equal(f.owners.length, 2);
+    assert.equal(f.operations.slice(count).includes('revoke-all'), false);
+    const retained = f.stores[0].execute({ operation: 'load', scope });
+    assert.deepEqual({ ...retained.state }, state);
+    assert.equal(retained.expiresAt, expiresAt);
+  } finally {
+    await f.close();
+  }
+});
+
 test('storage settings are independent strict booleans and never execute getters or inherited policy', () => {
   assert.deepEqual(recoveryStorageSettings({}), { enabled: false, persistent: false });
   assert.deepEqual(recoveryStorageSettings(settings(false, true)), {

@@ -337,8 +337,10 @@ test('N08 mutation save remains valid after config load adds official profiles a
       }
       if (input.route === '/v1/local/health')
         result.body.contextRecovery.appliedEnabled = mutation !== 'disable';
-      if (input.route === '/v1/local/health' && mutation === 'disable')
-        result.body.contextRecovery.storage = 'memory';
+      // Disabling recovery retains the already-open persistent owner. The
+      // actual runtime/SQLite regression verifies this independent preference.
+      if (input.route === '/v1/local/health')
+        assert.equal(result.body.contextRecovery.storage, 'persistent');
       return result;
     };
     await f.scenario.applyMutation(f.value);
