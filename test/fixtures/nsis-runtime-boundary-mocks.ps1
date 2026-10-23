@@ -126,7 +126,16 @@ try {
         }
         if ($null -ne (ConvertFrom-HpmOwnedFailurePhase ([byte[]]@(255)))) { throw 'Invalid UTF8 accepted.' }
         if ($null -ne (ConvertFrom-HpmOwnedFailurePhase $null)) { throw 'Null phase accepted.' }
+        foreach ($casePhase in @(80, 81, 82, 83)) {
+            $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected`nn09_primary_phase=254`nn09_case_phase=$casePhase`n")
+            if ((ConvertFrom-HpmOwnedFailurePhase $bytes) -ne 254 -or (ConvertFrom-HpmOwnedCasePhase $bytes) -ne $casePhase) { throw 'Valid case rejected.' }
+        }
+        foreach ($suffix in @("n09_case_phase=79`n", "n09_case_phase=84`n", "n09_case_phase=82`nPRIVATE", "n09_case_phase=82`nn09_case_phase=83`n")) {
+            $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected`nn09_primary_phase=254`n$suffix")
+            if ($null -ne (ConvertFrom-HpmOwnedCasePhase $bytes) -or $null -ne (ConvertFrom-HpmOwnedFailurePhase $bytes)) { throw 'Invalid case accepted.' }
+        }
     }
+    Refuses { Invoke-Child "process.stderr.write('n09_owned_entry_rejected\nn09_primary_phase=254\nn09_case_phase=82\n');process.exit(254);" }
     Refuses { Invoke-Child "process.stdout.write(Buffer.from([255]));" }
     Refuses { Invoke-Child "setInterval(()=>{},1000);" 1500 }
     Refuses { Invoke-Child "const child=require('node:child_process').spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit',windowsHide:true});require('node:fs').writeFileSync(process.env.HPM_CHILD_PID_FILE,String(child.pid));setInterval(()=>{},1000);" 2000 }

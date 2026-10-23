@@ -809,7 +809,7 @@ function fullPrivateSessionFixture({
         messages: history,
         tools: [{ type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } }],
       });
-      assert.equal(run.ok, true);
+      assert.equal(run.ok, true, JSON.stringify({ index, code: run.code }));
       for (const suffix of ['a', 'b']) {
         const calls = [
           {

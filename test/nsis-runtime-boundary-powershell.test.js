@@ -53,7 +53,7 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
     [
       'output_limit',
       'output_limit',
-      ...Array(52).fill('child_exit'),
+      ...Array(53).fill('child_exit'),
       'stdout_decode',
       'deadline',
       'deadline',
@@ -116,6 +116,7 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
       'other',
       '98',
       '98',
+      '254',
     ]
   );
   assert.deepEqual(
@@ -123,6 +124,10 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
       (match) => match[1]
     ),
     ['80']
+  );
+  assert.deepEqual(
+    [...result.stdout.matchAll(/hpm_runtime_child_case_phase=([0-9]+)/g)].map((match) => match[1]),
+    ['82']
   );
 });
 

@@ -29,9 +29,17 @@ function ConvertFrom-HpmOwnedFailurePhase {
     # the caller still rejects the failed child regardless of this result.
     if ($null -eq $Bytes -or $Bytes.Length -gt 80) { return $null }
     try { $text = [Text.UTF8Encoding]::new($false, $true).GetString($Bytes) } catch { return $null }
-    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-9]|13[0-8]|16[2-9]|17[0-9]|18[0-9]|19[0-9]|201|20[3-9]|21[1-9]|22[0-9]|23[0-9]|24[0-9]|25[0-4])\n\z') { return $null }
+    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-9]|13[0-8]|16[2-9]|17[0-9]|18[0-9]|19[0-9]|201|20[3-9]|21[1-9]|22[0-9]|23[0-9]|24[0-9]|25[0-4])\n(?:n09_case_phase=8[0-3]\n)?\z') { return $null }
     $phase = [int]$Matches[1]
     if (($phase -ge 73 -and $phase -le 84) -or ($phase -ge 86 -and $phase -le 96) -or ($phase -ge 101 -and $phase -le 138) -or ($phase -ge 162 -and $phase -le 199) -or $phase -eq 201 -or ($phase -ge 203 -and $phase -le 209) -or ($phase -ge 211 -and $phase -le 254)) { return $phase }
+    return $null
+}
+
+function ConvertFrom-HpmOwnedCasePhase {
+    param([byte[]]$Bytes)
+    if ($null -eq (ConvertFrom-HpmOwnedFailurePhase $Bytes)) { return $null }
+    $text = [Text.UTF8Encoding]::new($false, $true).GetString($Bytes)
+    if ($text -cmatch '\nn09_case_phase=(8[0-3])\n\z') { return [int]$Matches[1] }
     return $null
 }
 
@@ -105,6 +113,10 @@ function Invoke-HpmBoundedRuntimeChild {
                 if ($null -ne $primaryPhase) {
                     Write-Information ('hpm_runtime_child_primary_phase=' + $primaryPhase) -InformationAction Continue
                 }
+            }
+            $casePhase = ConvertFrom-HpmOwnedCasePhase $diagnosticMemory.ToArray()
+            if ($null -ne $casePhase -and $childExitCode -ne 'other') {
+                Write-Information ('hpm_runtime_child_case_phase=' + $casePhase) -InformationAction Continue
             }
             throw 'invalid'
         }

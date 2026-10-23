@@ -490,7 +490,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
           onPhase(253);
           accounting(before);
           const host = client().getHostAckClient(current);
-          onPhase(254);
+          let receiptPollingStarted = false;
           const receipt = await performN09DurableCommand(
             {
               pid: current.pid,
@@ -505,6 +505,10 @@ function createN09BusinessAdapter(input, trusted = {}) {
                 readArmed: () => host.readArmed(),
                 readReceipt: () => {
                   if (pendingSave?.failed) throw fail();
+                  if (!receiptPollingStarted) {
+                    receiptPollingStarted = true;
+                    if (upstreamFailurePhase === undefined) onPhase(254);
+                  }
                   return host.readReceipt();
                 },
                 close: () => host.close(),

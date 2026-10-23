@@ -101,10 +101,12 @@ function fixture(mutation = () => {}, onPhase) {
             if (command.operation === 'revoke-bound-root') state.cleared = true;
           },
           readArmed() {
+            mutation('ack-armed', undefined, state);
             state.events.push('armed');
             return true;
           },
           readReceipt() {
+            mutation('ack-receipt', undefined, state);
             const command = state.ackCommand;
             if (command.operation === 'arm-save' && state.revision <= command.minRevision)
               return null;
@@ -423,10 +425,32 @@ test('ACK handshake rejection is distinguished from a completed readonly snapsho
   );
   f.adapter.bindVerifiedNetworkProof(f.proof);
   await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'));
-  assert.deepEqual(phases.slice(-2), [253, 254]);
+  assert.equal(phases.at(-1), 253);
+  assert.equal(phases.includes(254), false);
   assert.equal(f.state.stopped, 1);
   assert.equal(f.state.closed, 1);
   assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+});
+
+test('ACK diagnostics distinguish failure before arming from final receipt polling without relaxing either boundary', async () => {
+  for (const [stage, expected] of [
+    ['ack-armed', 253],
+    ['ack-receipt', 254],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      (at) => {
+        if (at === stage) throw Error('PRIVATE_SENTINEL');
+      },
+      (value) => phases.push(value)
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'));
+    assert.equal(phases.at(-1), expected);
+    assert.equal(f.state.closed, 1);
+    assert.equal(f.state.stopped, 1);
+    assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+  }
 });
 
 test('synthetic public recovery output supports JSON and complete Responses SSE encoding', async () => {
