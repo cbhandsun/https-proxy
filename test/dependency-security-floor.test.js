@@ -15,6 +15,7 @@ const floors = [
 ];
 const mcpFloor = { name: '@modelcontextprotocol/sdk', major: 1, minor: 32, patch: 1 };
 const ipAddressFloor = { name: 'ip-address', major: 10, minor: 7, patch: 4 };
+const zodFloor = { name: 'zod', major: 4, minor: 6, patch: 6 };
 
 function admittedVersion(value, floor) {
   if (
@@ -29,7 +30,7 @@ function admittedVersion(value, floor) {
 }
 
 test('compatibility patch floors reject vulnerable, empty, malformed, extreme and unreviewed-major versions', () => {
-  for (const floor of [...floors, mcpFloor, ipAddressFloor]) {
+  for (const floor of [...floors, mcpFloor, ipAddressFloor, zodFloor]) {
     assert.ok(admittedVersion(`${floor.major}.${floor.minor}.${floor.patch}`, floor));
     assert.ok(admittedVersion(`${floor.major}.${floor.minor}.${floor.patch + 1}`, floor));
     assert.equal(admittedVersion(`${floor.major}.${floor.minor}.${floor.patch - 1}`, floor), false);
@@ -123,6 +124,21 @@ test('root and plugin keep the IPv6 parser at a secure production patch', () => 
     assert.ok(admittedVersion(locked?.version, ipAddressFloor));
     assert.equal(installed.version, locked.version);
     assert.notEqual(locked.dev, true, 'IPv6 parser must remain available to production callers');
+  }
+});
+
+test('root and plugin keep schema validation at a secure production patch', () => {
+  // GHSA-mrhx-c7xc-m3w5: constrained oversized collections can exhaust memory.
+  for (const directory of [root, path.join(root, 'plugins/hpm-local-evidence')]) {
+    const read = (file) => JSON.parse(fs.readFileSync(path.join(directory, file), 'utf8'));
+    const lock = read('package-lock.json');
+    const entry = `node_modules/${zodFloor.name}`;
+    const installed = read(`${entry}/package.json`);
+    const locked = lock.packages?.[entry];
+    assert.ok(admittedVersion(installed.version, zodFloor));
+    assert.ok(admittedVersion(locked?.version, zodFloor));
+    assert.equal(installed.version, locked.version);
+    assert.notEqual(locked.dev, true, 'Schema validation must remain available in production');
   }
 });
 
