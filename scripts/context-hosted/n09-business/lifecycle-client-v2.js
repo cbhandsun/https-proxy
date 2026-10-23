@@ -11,6 +11,7 @@ const { createClearClient } = require('../n09-ipc/clear-client.js');
 const { createN09HostAckClient } = require('../n09-ack/bootstrap-client.js');
 const { fields, discardN09PromiseRejection } = require('../n09-ack/contract.js');
 const { waitForPrivatePreload } = require('./management-status-ready.js');
+const { assertSyntheticProfileReadback } = require('./synthetic-profile-readback.js');
 const {
   createDaemonManagementHttpClient,
 } = require('../../../scripts/lib/context-recovery-daemon-http-client.js');
@@ -281,10 +282,7 @@ function createClientUnsafe(input, dependencies) {
         after.appSettings?.conversationAuditCaptureContent !== false ||
         !Array.isArray(after.appSettings?.upstreamDnsServers) ||
         after.appSettings.upstreamDnsServers.length !== 0 ||
-        !Array.isArray(after.profiles) ||
-        after.profiles.length !== 1 ||
-        after.profiles[0].id !== 'n09-synthetic' ||
-        after.profiles[0].targetUrl !== 'https://api.openai.com/v1' ||
+        !assertSyntheticProfileReadback(after.profiles) ||
         after.entryAuth?.enabled !== true ||
         after.entryAuth.keys?.length !== 1 ||
         after.entryAuth.keys[0].id !== 'n09-synthetic' ||
@@ -332,8 +330,7 @@ function createClientUnsafe(input, dependencies) {
       if (
         configReply.status !== 200 ||
         config.activeProfile !== 'n09-synthetic' ||
-        config.profiles?.length !== 1 ||
-        config.profiles[0].targetUrl !== 'https://api.openai.com/v1' ||
+        !assertSyntheticProfileReadback(config.profiles) ||
         config.entryAuth?.enabled !== true ||
         config.entryAuth.keys?.length !== 1 ||
         config.entryAuth.keys[0].id !== 'n09-synthetic' ||

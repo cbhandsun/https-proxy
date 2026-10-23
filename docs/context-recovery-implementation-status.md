@@ -1,10 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：配置保存已越过两秒期限，修复有效配置读回契约
+
+候选 `1b2c81aa` 的独立诊断 `39965909873`，N09 job `120455614220` 返回 118，表明配置 POST 已在原两秒期限内返回成功回执，失败推进到 GET 读回或一致性校验；不能据此声称持久业务通过。N08 job `120455614930` 仍返回 71。独立 Verify `39965837043` 和完整 disposable `39965837173` 均 failure；Verify 的 unit2 为 inventory descriptor read 回归失败，coverage 仍有实际加密重开、ACL 与清理等失败，未将其归为已解决问题。
+
+纯管理 HTTP 夹具已复现确定性契约缺陷：实际 loadConfig 会向原始单合成 profile 配置补入 Tianxi／WorkBuddy 两个官方默认项，管理 GET 再遮盖合成凭据；旧 N09 configure 和 restart attest 均误要求有效配置仅一个 profile。候选增加独立纯验证模块，严格接受恰好三个固定 profile、每项恰好六个固定字段、合成 apiKey 为管理遮盖标记、两个默认项无凭据。拒绝额外／重复／缺失项、目标及协议篡改、默认项凭据、稀疏／巨大数组、getter／Proxy 及继承字段；活动 profile、entryAuth profile/port 限定、TLS、原请求期限和网络隔离断言保持。
+
+原单项回归先 RED，修复后四文件纯回归 51/51，另三文件组合回归 19/19，零失败或跳过。fixture 区分原始 POST 与有效 GET，并模拟实际凭据遮盖；不执行本机产品 worker、DPAPI、安装器、注册表、防火墙或真实模型。新测试由统一 unit 递归发现，格式、Lint、CI／release 治理通过。完整托管结果仍待验证，I0–I5/H1、N01–N11、容量、安装迁移与生产目标均保持未完成。
+
 ## 2026-10-23：实际 POST 两秒期限已确认，移除打包凭据加密的 PowerShell 启动链候选
 
 `8078fc64056c5a87d1539513bcceb098fe81a41c` 的独立诊断 `39963668334`，N09 job `120447821376` 返回 126，确认原管理 POST 两秒定时器触发。该证据证明期限失败，不单独证明所有耗时都在加密；原同步加密路径确实包含首次双进程 probe、各字段 PowerShell protect 和后续解密，候选先消除其中可确定的启动开销。
 
-候选在现有已打包 native 程序中增加独立 `--hpm-profile-secret-v1` 协议，使用与既有凭据相同的 CurrentUser、UI forbidden、无 optional entropy DPAPI，并在同进程严格回读比对后才返回。上下文数据密钥继续保留原专属 entropy 和协议。JS 只执行固定物理路径，拒绝符号链接／多硬链和父目录替换；字段只经 stdin，输出须为有界、无重复字段的规范 JSON 和规范 base64，所有失败为固定错误。打包原生路径失败不静默转后端；源码缺少程序或非 Windows 继续原兼容路径，超过 profile 协议长度的既有大 secret 也保持兼容处理，不截断。
+候选在现有已打包 native 程序中增加独立 `--hpm-profile-secret-v1` 协议，使用与既有凭据相同的 CurrentUser、UI forbidden、无 optional entropy DPAPI，并在同进程严格回读比对后才返回。上下文数据密钥继续保留原专属 entropy 和协议。JS 只执行固定物理路径，拒绝符号链接／多硬链和符号链接父目录；字段只经 stdin，输出须为有界、无重复字段的规范 JSON 和规范 base64，所有失败为固定错误。打包原生路径失败不静默转后端；源码缺少程序或非 Windows 继续原兼容路径，超过 profile 协议长度的既有大 secret 也保持兼容处理，不截断。
 
 原生 module、运行时源码清单和隔离构建快照均纳入变更及漂移拒绝回归。两项接线回归先在旧实现失败，JS 纯模拟／发布治理相关 33 项通过；Rust 三项 parse／模拟 roundtrip／固定失败测试通过，fmt、全 target clippy 通过。这里只运行纯输入与假加密回归，没有本机 DPAPI、产品 worker、安装器、注册表、防火墙或真实模型请求。实际 Windows DPAPI roundtrip 已进入既有统一原生 CI，是否解除两秒 POST、旧格式读取和完整 N08／N09 仍待新托管结果，完整目标未完成。
 

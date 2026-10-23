@@ -128,7 +128,42 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase) {
             },
           };
         else if (options.path === '/v1/local/config' && options.method === 'GET')
-          value = state.config;
+          value = {
+            ...state.config,
+            ...(state.config.entryAuth
+              ? {
+                  entryAuth: {
+                    ...state.config.entryAuth,
+                    keys: state.config.entryAuth.keys.map((entry) => ({
+                      ...entry,
+                      key: '[redacted]',
+                    })),
+                  },
+                }
+              : {}),
+            profiles: [
+              ...(state.config.profiles ?? []).map((profile) => ({
+                ...profile,
+                apiKey: profile.apiKey ? '[redacted]' : profile.apiKey,
+              })),
+              {
+                id: 'tianxi-official',
+                name: 'Tianxi Official',
+                targetUrl: 'http://127.0.0.1:49305',
+                protocol: 'tianxi',
+                authMode: 'official-login',
+                apiKey: null,
+              },
+              {
+                id: 'workbuddy-official',
+                name: 'WorkBuddy Official',
+                targetUrl: 'https://copilot.tencent.com/v2',
+                protocol: 'workbuddy',
+                authMode: 'official-login',
+                apiKey: null,
+              },
+            ],
+          };
         else if (options.path === '/v1/local/config' && options.method === 'POST') {
           state.config = { ...JSON.parse(body), _revision: 'r2' };
           value = { ok: true, revision: 'r2' };
@@ -394,13 +429,49 @@ test('fixed synthetic configuration uses private management and owner port with 
   assert.equal(f.state.requests.filter((value) => value.method === 'POST').length, writes);
   await f.client.close();
 });
+test('both configuration and restart attestation reject altered effective default profiles', async (t) => {
+  for (const stage of ['configure', 'attest']) {
+    for (const change of ['extra', 'duplicate', 'credential', 'target']) {
+      let tamper = stage === 'configure';
+      const f = fixture(t, (at, value) => {
+        if (!tamper || at !== 'http' || value._revision !== 'r2' || !value.profiles) return;
+        if (change === 'extra') value.profiles.push({ ...value.profiles[1], id: 'extra' });
+        if (change === 'duplicate') value.profiles[2] = { ...value.profiles[1] };
+        if (change === 'credential') value.profiles[1].apiKey = '[redacted]';
+        if (change === 'target') value.profiles[2].targetUrl = 'https://PRIVATE.invalid';
+      });
+      try {
+        const first = await f.client.startLifecycle();
+        if (stage === 'attest') {
+          await f.client.configureSyntheticBusiness(first, synthetic());
+          await f.client.stopLifecycle(first);
+          const next = await f.client.restartLifecycle(first);
+          tamper = true;
+          await assert.rejects(
+            f.client.attestSyntheticBusiness(next),
+            /^Error: n09_lifecycle_client_failed$/
+          );
+        } else {
+          await assert.rejects(
+            f.client.configureSyntheticBusiness(first, synthetic()),
+            /^Error: n09_lifecycle_client_failed$/
+          );
+        }
+      } finally {
+        await f.client.close();
+      }
+      assert.equal(f.state.commands.at(-1).op, 'remove');
+    }
+  }
+});
+
 test('toggle preserves private synthetic credentials rather than redacted GET values', async (t) => {
   const f = fixture(t, (at, value, state) => {
-    if (at === 'http' && value._revision && value.profiles) {
-      // The fake GET mutates its own config too; toggle must rebuild from its
-      // private synthetic closure rather than trust these redacted strings.
-      value.profiles[0].apiKey = '<redacted>';
-      value.entryAuth.keys[0].key = '<redacted>';
+    if (at === 'http' && value._revision && value.profiles && value.entryAuth) {
+      // Toggle must rebuild from its private synthetic closure rather than
+      // trust redacted strings returned by management GET.
+      value.profiles[0].apiKey = '[redacted]';
+      value.entryAuth.keys[0].key = '[redacted]';
     }
     if (at === 'http' && value.ok === true && value.revision) {
       state.lastSavedSecrets = [
