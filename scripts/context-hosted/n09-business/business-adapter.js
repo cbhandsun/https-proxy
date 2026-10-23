@@ -253,7 +253,10 @@ function createN09BusinessAdapter(input, trusted = {}) {
       if (seeded || phase !== 'idle') throw fail();
       const firstUser = user('N09_SEED ' + nonce);
       phase = 'seed-call';
-      const first = parseReply(await send(requestBody([firstUser])));
+      onPhase(131);
+      const firstReply = await send(requestBody([firstUser]));
+      onPhase(132);
+      const first = parseReply(firstReply);
       if (
         first.output.length !== 1 ||
         first.output[0].type !== 'function_call' ||
@@ -269,21 +272,25 @@ function createN09BusinessAdapter(input, trusted = {}) {
       ];
       externalToolExecutions++;
       phase = 'seed-output';
-      const second = parseReply(await send(requestBody(history)));
+      onPhase(133);
+      const secondReply = await send(requestBody(history));
+      onPhase(134);
+      const second = parseReply(secondReply);
       if (publicText(second) !== 'N09_SEEDED ' + nonce) throw fail();
       history.push(...second.output);
       phase = 'summary';
-      const summary = parseReply(
-        await send(
-          requestBody(
-            [
-              ...history,
-              user('CONTEXT CHECKPOINT COMPACTION ' + nonce + ' create a handoff summary'),
-            ],
-            { tools: [], tool_choice: 'auto' }
-          )
+      onPhase(135);
+      const summaryReply = await send(
+        requestBody(
+          [
+            ...history,
+            user('CONTEXT CHECKPOINT COMPACTION ' + nonce + ' create a handoff summary'),
+          ],
+          { tools: [], tool_choice: 'auto' }
         )
       );
+      onPhase(136);
+      const summary = parseReply(summaryReply);
       summaryText = publicText(summary);
       if (
         !/<!-- hpm-codex-summary:hcr1_[a-f0-9]{48}_[a-f0-9]{64}_[1-9][0-9]{0,6} -->/.test(
@@ -293,11 +300,13 @@ function createN09BusinessAdapter(input, trusted = {}) {
       )
         throw fail();
       continuation = requestBody([user(summaryText), user('N09_RECOVER ' + nonce)]);
+      onPhase(137);
       snapshots = (trusted.createSnapshots ?? createDurableSnapshotReader)({
         ownedRoot: options.ownedRoot,
         runtimeDir: current.runtimeDir,
       });
       const snapshot = committed();
+      onPhase(138);
       if (
         snapshot.present !== true ||
         snapshot.evidenceLevel !== 'committed-metadata-only' ||

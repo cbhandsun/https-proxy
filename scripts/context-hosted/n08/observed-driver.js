@@ -21,7 +21,9 @@ const METHODS = Object.freeze([
   'closeSession',
 ]);
 const fail = () => new Error('n08_driver_rejected');
-async function runN08Driver(input) {
+const { createN08PhaseObserver } = require('./phase-observer.js');
+async function runN08Driver(input, observer) {
+  const onPhase = createN08PhaseObserver(observer);
   let adapter;
   try {
     adapter = exact(input, METHODS);
@@ -49,6 +51,7 @@ async function runN08Driver(input) {
           );
           if (nonces.has(owner.nonce)) throw fail();
           nonces.add(owner.nonce);
+          onPhase(153);
           checkAck(
             await call('beginRecovery', owner),
             owner,
@@ -56,6 +59,7 @@ async function runN08Driver(input) {
             mutation,
             'recovery-started'
           );
+          onPhase(154);
           checkAck(
             await call('waitUpstreamHold', owner),
             owner,
@@ -63,6 +67,7 @@ async function runN08Driver(input) {
             mutation,
             'upstream-response-held'
           );
+          onPhase(155);
           checkAck(
             await call('applyMutation', owner),
             owner,
@@ -70,7 +75,9 @@ async function runN08Driver(input) {
             mutation,
             'mutation-applied'
           );
+          onPhase(156);
           checkAdmissionEvidence(await call('probeAdmissions', owner));
+          onPhase(157);
           checkAck(
             await call('releaseUpstreamHold', owner),
             owner,
@@ -78,11 +85,19 @@ async function runN08Driver(input) {
             mutation,
             'response-released'
           );
+          onPhase(158);
           checkWithdrawal(await call('observeWithdrawal', owner), owner);
         } catch {
           failed = true;
         } finally {
           if (owner) {
+            if (!failed) {
+              try {
+                onPhase(159);
+              } catch {
+                failed = true;
+              }
+            }
             try {
               checkAck(await call('stop', owner), owner, barrier, mutation, 'tree-empty');
             } catch {
@@ -104,6 +119,13 @@ async function runN08Driver(input) {
     } catch {
       sessionFailed = true;
     } finally {
+      if (!sessionFailed) {
+        try {
+          onPhase(160);
+        } catch {
+          sessionFailed = true;
+        }
+      }
       try {
         if ((await call('closeSession', session)) !== true) sessionFailed = true;
       } catch {

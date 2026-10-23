@@ -6,6 +6,7 @@ const { performance } = require('node:perf_hooks');
 const { exact, ack, createResponseHold } = require('../shared/boundary.js');
 const { createBusinessClient } = require('../shared/business-client.js');
 const { startObservedContinuation } = require('./observed-client.js');
+const { createN08PhaseObserver } = require('./phase-observer.js');
 const LIST = 'hpm_list_retained_evidence';
 const READ = 'hpm_read_retained_evidence';
 const MODEL = 'n08-synthetic';
@@ -67,7 +68,8 @@ function toolResult(body, callId) {
     throw fail();
   return JSON.parse(matching[0].output);
 }
-function createBusinessScenario(input) {
+function createBusinessScenario(input, observer) {
+  const onPhase = createN08PhaseObserver(observer);
   const options = exact(input, ['ownedRoot']);
   if (typeof options.ownedRoot !== 'string' || !require('node:path').isAbsolute(options.ownedRoot))
     throw fail();
@@ -95,7 +97,8 @@ function createBusinessScenario(input) {
     });
     return client('continuation');
   }
-  async function config(state) {
+  async function config(state, phase = 145) {
+    onPhase(phase);
     const reply = await state.value.owner.request({ method: 'GET', route: '/v1/local/config' });
     if (reply.status !== 200 || !reply.body || typeof reply.body._revision !== 'string')
       throw fail();
@@ -112,6 +115,7 @@ function createBusinessScenario(input) {
         keys: [{ ...state.key, allowedProfileIds: [...state.key.allowedProfileIds] }],
       },
     });
+    onPhase(146);
     const saved = await state.value.owner.request({
       method: 'POST',
       route: '/v1/local/config',
@@ -119,10 +123,11 @@ function createBusinessScenario(input) {
     });
     if (saved.status !== 200 || saved.body?.ok !== true || typeof saved.body.revision !== 'string')
       throw fail();
-    const after = await config(state);
+    const after = await config(state, 147);
     let health;
     const deadline = performance.now() + 15000;
     do {
+      onPhase(148);
       health = await state.value.owner.request({ method: 'GET', route: '/v1/local/health' });
       if (
         health.status === 200 &&
@@ -214,6 +219,7 @@ function createBusinessScenario(input) {
       );
       const seed = user('N08_SEED ' + nonce);
       state.phase = 'seed-call';
+      onPhase(149);
       const first = parseReply(await send(state, requestBody(state, [seed])));
       if (
         first.output.length !== 1 ||
@@ -230,11 +236,13 @@ function createBusinessScenario(input) {
         { type: 'function_call_output', call_id: first.output[0].call_id, output: original },
       ];
       state.phase = 'seed-output';
+      onPhase(150);
       const second = parseReply(await send(state, requestBody(state, state.history)));
       state.history.push(...second.output);
       // Same native local-summary shape observed in v7 and codex-summary tests.
       // The daemon, not this fixture, creates the hcr1 summary receipt.
       state.phase = 'summary';
+      onPhase(151);
       const summary = parseReply(
         await send(
           state,
@@ -261,6 +269,7 @@ function createBusinessScenario(input) {
       state.continuation = requestBody(state, [user(summaryText), user('N08_RECOVER ' + nonce)]);
       state.ordinary = requestBody(state, [user('N08_ORDINARY ' + nonce)]);
       // Metadata-only reader pins an already-created disk root; never adopts it.
+      onPhase(152);
       const { createDurableSnapshotReader } = require('../n09-snapshot/readonly-snapshot.js');
       state.snapshots = createDurableSnapshotReader({
         ownedRoot: options.ownedRoot,

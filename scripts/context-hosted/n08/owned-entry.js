@@ -191,15 +191,16 @@ async function main() {
   failureExitCode = 71;
   const { composeHostedN08 } = require('./observed-composition.js');
   const { createBusinessScenario } = require('./business-scenario.js');
+  const { createN08PhaseObserver } = require('./phase-observer.js');
+  const onPhase = createN08PhaseObserver((phase) => {
+    failureExitCode = phase;
+  });
   const result = await composeHostedN08(
     {
       ...plan,
-      scenario: createBusinessScenario({ ownedRoot }),
+      scenario: createBusinessScenario({ ownedRoot }, onPhase),
     },
-    (phase) => {
-      if (!Number.isInteger(phase) || !(phase === 71 || (phase >= 86 && phase <= 96))) throw fail();
-      failureExitCode = phase;
-    }
+    onPhase
   );
   // composeHostedN08 has completed its finally before returning here. The outer
   // original Job helper must still force/verify tree empty before PS can accept.

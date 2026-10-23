@@ -11,7 +11,8 @@ const fail = () => new Error('n08_owned_adapter_rejected');
 // original startDaemonOwnedController/createDaemonOwnedAdapter from pinned bytes.
 // Scenario capabilities only drive real management/entry HTTP + synthetic
 // upstream ownership. They may not inject Core, providers, clocks or roots.
-function createOwnedN08Adapter(input) {
+function createOwnedN08Adapter(input, observer) {
+  const onPhase = require('../n08/phase-observer.js').createN08PhaseObserver(observer);
   const options = exact(input, ['manifestSha256', 'createSession', 'scenario', 'networkProof']);
   if (
     !/^[a-f0-9]{64}$/.test(options.manifestSha256) ||
@@ -65,6 +66,7 @@ function createOwnedN08Adapter(input) {
         sessions.set(caseOptions.session, exact(session, ['launch', 'close']));
       }
       const session = sessions.get(caseOptions.session);
+      onPhase(143);
       const owner = await session.launch({
         label: caseOptions.label,
         initialEnabled: false,
@@ -78,6 +80,7 @@ function createOwnedN08Adapter(input) {
       // Retain immediately: failed seeding is still owned by session.close().
       const value = { identity, owner, caseOptions, client: undefined, scenarioState: undefined };
       active.set(identity.nonce, value);
+      onPhase(144);
       const seeded = exact(await scenario.configureAndSeed(value), [
         'entryKey',
         'templates',

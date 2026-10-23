@@ -1,5 +1,14 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：完整 Verify 通过，业务失败推进至 seed，补有限阶段诊断
+
+原生批量解密候选 033428165b9558c96757e418244f47e70f673fef 的完整 Verify 39975430107 已 success，Rust、coverage、四个 unit 分片、integration、node-quality 全部通过。独立诊断 39975548334 的 N09 job 120489059616 返回 102，已越过配置保存、管理读回及持久应用，失败推进到 seedThroughBusinessHttp；N08 job 120489059202 仍为 71。完整 disposable 39975429867 本轮查询时源码门禁及 egress 已 success，N08/N09 仍 in_progress，继续观察原句柄，不重启。
+
+候选将 N09 seed 拆为固定 131..138（首次请求、响应校验、工具输出请求及校验、摘要请求及校验、已提交快照读取及校验），N08 增加 140..161（controller、session、启动、配置、seed、恢复、mutation、withdrawal、清理、closure）。父边界仅接受明确范围，139 和 162 继续拒绝。原业务请求、六个场景、正确性断言、期限及资源清理保持；失败后的清理不覆盖原失败阶段，observer 抛错仍分别尝试 stop 和 closeSession，不输出异常或业务内容。
+
+纯模拟 N08/N09 回归 29/29、外层安全子进程 PowerShell parser 3/3、既有 plan/closure/proxy-boundary 30/30 通过。新增测试由统一 test-discovery 递归发现。最初两项新夹具错误地把 close 当作显式 stop，已按既有 killOwnedJob 后 close 的驱动契约修正并重跑；没有修改产品清理行为。未在本机运行产品持久 worker、DPAPI、安装器、注册表、防火墙或真实模型。阶段细分仍待新候选托管验证，不能据此宣称原文 seed、重启恢复、N08 mutation、24 小时容量或完整交付通过。
+
+
 ## 2026-10-23：管理 GET 原两秒期限已确认，候选接入打包原生批量解密
 
 分类诊断 `709bb803`／`39972986699` 的 N09 job `120480243527` 返回 127，确认实际配置 GET 触发原两秒请求期限，没有进入 profiles 或其他内容校验；N08 job `120480243216` 仍为 71。静态链路存在确定性启动成本：常规批量解密只有环境指定桌面主程序 helper 才免于 PowerShell。候选在已打包的轻量原生程序增加独立 `--hpm-profile-unprotect-v1`，沿用原 CurrentUser、无 optional entropy 的 profile 格式，不改变上下文数据密钥协议。该优化是否足以解除真实期限仍待托管验证。

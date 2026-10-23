@@ -17,7 +17,7 @@ const {
 } = require('../../scripts/context-hosted/n09-ipc/driver.js');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const bad = { message: 'n09_business_adapter_failed' };
-function fixture(mutation = () => {}) {
+function fixture(mutation = () => {}, onPhase) {
   const ownedRoot = path.join(os.tmpdir(), 'n09-business-pure');
   const options = {
     ownedRoot,
@@ -271,9 +271,45 @@ function fixture(mutation = () => {}) {
       return { status: 200, bytes: Buffer.from(JSON.stringify(result)) };
     },
   };
-  const adapter = createN09BusinessAdapter(options, trusted);
+  const adapter = createN09BusinessAdapter(options, {
+    ...trusted,
+    ...(onPhase ? { onPhase } : {}),
+  });
   return { adapter, options, proof, state, trusted };
 }
+test('seed observer separates HTTP completion, protocol validation and metadata snapshot without removing work', async () => {
+  const phases = [],
+    f = fixture(undefined, (phase) => phases.push(phase));
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  const owner = await f.adapter.startFreshBusinessHost();
+  const result = await f.adapter.seedThroughBusinessHttp(owner);
+  assert.deepEqual(phases, [109, 110, 111, 131, 132, 133, 134, 135, 136, 137, 138]);
+  assert.equal(f.state.sent, 3);
+  assert.equal(result.rootId, f.state.rootId);
+  await f.adapter.killOwnedJob(owner);
+  await f.adapter.close();
+  assert.equal(f.state.stopped, 1);
+  assert.equal(f.state.closed, 1);
+});
+
+test('every seed observer failure remains fixed and retains forced owned cleanup', async () => {
+  for (let rejected = 131; rejected <= 138; rejected++) {
+    const phases = [],
+      f = fixture(undefined, (phase) => {
+        phases.push(phase);
+        if (phase === rejected) throw new Error('PRIVATE_SENTINEL');
+      });
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    const owner = await f.adapter.startFreshBusinessHost();
+    await assert.rejects(f.adapter.seedThroughBusinessHttp(owner), bad);
+    assert.equal(phases.at(-1), rejected);
+    await f.adapter.killOwnedJob(owner);
+    await f.adapter.close();
+    assert.equal(f.state.stopped, 1);
+    assert.equal(f.state.closed, 1);
+  }
+});
+
 test('business startup observer reports only fixed phases and propagates to lifecycle', async () => {
   const f = fixture();
   const phases = [];

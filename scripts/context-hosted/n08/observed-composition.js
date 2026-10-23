@@ -15,11 +15,13 @@ const { createHostedControllerSpawn } = require('../shared/hosted-spawn.js');
 const { createOwnedN08Adapter } = require('../shared/owned-adapter.js');
 const { runN08Driver } = require('./observed-driver.js');
 const { closeOwnedResources } = require('./cleanup.js');
+const { createN08PhaseObserver } = require('./phase-observer.js');
 const fail = () => new Error('n08_hosted_composition_rejected');
 
 // Trusted caller is the reviewed hosted harness, itself assigned to the existing
 // HpmRuntimeBoundaryJob before its stdin grant. No Core imports or injected roots.
 async function composeHostedN08(input, onProbePhase) {
+  const onPhase = createN08PhaseObserver(onProbePhase);
   const options = exact(input, [
     'candidate',
     'ownedRoot',
@@ -117,17 +119,19 @@ async function composeHostedN08(input, onProbePhase) {
         negativePort: listenerState.negativePort,
       },
       listener,
-      onProbePhase
+      onPhase
     );
     // A later controller/business failure must not retain the last probe code.
-    if (typeof onProbePhase === 'function') onProbePhase(71);
+    onPhase(71);
     // No daemon process is created before real TLS and negative-egress probes.
+    onPhase(140);
     const copies = buildHostedController({
       candidate: options.candidate,
       ownedRoot: options.ownedRoot,
       sourcePins: options.controllerPins,
       caSha256: options.caSha256,
     });
+    onPhase(141);
     const { startDaemonOwnedController } = require(
       path.join(options.candidate, 'scripts/lib/context-recovery-daemon-owned-transport.js')
     );
@@ -136,6 +140,7 @@ async function composeHostedN08(input, onProbePhase) {
     );
     checkLoadedClosure();
     const createSession = async (index) => {
+      onPhase(142);
       if (sessions.has(index)) throw fail();
       checkLoadedClosure();
       for (const [name, expected] of Object.entries(copies.copyPins)) {
@@ -173,13 +178,17 @@ async function composeHostedN08(input, onProbePhase) {
     const scenarioMethods = Object.fromEntries(
       Object.entries(scenario).filter(([name]) => name !== 'onBusinessRequest')
     );
-    adapter = createOwnedN08Adapter({
-      manifestSha256: options.manifestSha256,
-      createSession,
-      scenario: scenarioMethods,
-      networkProof: proof,
-    });
-    const result = await runN08Driver(adapter);
+    adapter = createOwnedN08Adapter(
+      {
+        manifestSha256: options.manifestSha256,
+        createSession,
+        scenario: scenarioMethods,
+        networkProof: proof,
+      },
+      onPhase
+    );
+    const result = await runN08Driver(adapter, onPhase);
+    onPhase(161);
     checkLoadedClosure();
     output = Object.freeze({
       ...result,
