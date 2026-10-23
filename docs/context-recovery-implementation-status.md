@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：保存／撤权观察器纯模块已验证，真实接线仍未完成
+
+新增 `scripts/context-hosted/n09-ack/` 的严格 HMAC command/receipt 合约与宿主观察器。命令绑定 PID、epoch、单调 sequence、已观察 root／expiry／revision；save 仅在原始 ACK factory 成功后观察修订，revoke 调用同一绑定 sessions 的原始 `revokeAsync` 并等待严格成功。principal 仅留内存；撤权回执标注最后有效保存 revision，不能冒充 tombstone revision。close、失败、并发、迟到确认、预算回退和未知 getter 路径均有纯测试。首轮扩大专项 23/24，一项夹具只改 rootId 导致 reference codec 先拒绝，已改用真实 sessions 产生另一合法 root 后再验证观察器拒绝；getter 补显式返回以通过原 ESLint 规则。修正后专项 17/17，全部托管／安装回归 301/301，零失败、取消或跳过；新测试已核对进入统一 discovery。
+
+这些模块尚未接入启动 gate、签名私有 mailbox 或真实 daemon adapter，回执固定 `observer-boundary-only`、`liveDaemonProved:false`，不授予 N09 保存／撤权或生产资格。没有运行本机原生存储 worker、DPAPI、注册表或真实模型请求。
+
 ## 2026-10-22：记录托管终态并补充固定失败阶段
 
 `e13c5852` 的 Verify `39880563255` 已 failure 终止：quality、integration、Rust、四个 unit shard 均成功；proxy/security coverage 通过，client coverage 仅剩三协议 WBIPC `long-persistent` 的 turn 0 请求触发原 5 秒期限。此前 38 项快速存储失败未重现；chat 保存操作记录 8164ms，replyAsync 8766ms，支持继续定位保存路径耗时，不能据此断言具体原生调用根因。

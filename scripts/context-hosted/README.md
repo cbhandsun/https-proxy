@@ -70,11 +70,19 @@ before and after all four policy combinations. Its receipts explicitly remain
 `adapter-orchestration-only` with all live qualification flags false. Neither
 current hosted business adapter supplies that callable capability. A boolean
 advertisement, HTTP completion or committed-file observation cannot enable it.
-Save/revoke ACK, commit/publication in progress, backup rollback, installation
-lifecycle, full N09, 24-hour capacity, real providers and production activation
-remain outside these scenarios. Existing `n08Qualified:false` and
-`n09Complete:false` flags are preserved; a successful hosted run proves only its
-described cases. Source preparation alone proves no runtime result.
+The separate `n09-ack` contract and observer now validate signed,
+PID/epoch/sequence bound commands and receipts, observe the successful original
+save ACK factory, and await strict success from the bound sessions' original
+`revokeAsync` method. Their pure tests cover rejection, cleanup, late ACKs and
+accounting regression. They expose only `observer-boundary-only` evidence with
+`liveDaemonProved:false`. No start gate, private mailbox or actual hosted
+adapter installs them yet, so these modules do not grant live save/revoke
+qualification. Save/revoke ACK, commit/publication in progress, backup rollback,
+installation lifecycle, full N09, 24-hour capacity, real providers and
+production activation remain outside these scenarios. Existing
+`n08Qualified:false` and `n09Complete:false` flags are preserved; a successful
+hosted run proves only its described cases. Source preparation alone proves no
+runtime result.
 
 Local verification passed 251 tests across the promoted scenarios and synthetic
 OS pipe suite, with no failures or skips on Windows. Scoped ESLint, Prettier,
