@@ -23,6 +23,9 @@ test('resource probe retains the entire coverage command and changes only file c
   assert.ok(baseline.includes('lib/proxy/context-recovery-*.js'));
   assert.ok(baseline.includes('--check-coverage'));
   assert.ok(baseline.includes('test/client-context-target.test.js'));
+  const parallelCommand = command.replace('--test-concurrency=1', '--test-concurrency=4');
+  assert.deepEqual(argumentsFor(parallelCommand, 1), serial);
+  assert.deepEqual(argumentsFor(parallelCommand, 4), baseline);
 });
 
 test('resource probe refuses malformed script text and unsupported selections without coercion', () => {
@@ -42,7 +45,8 @@ test('resource probe refuses malformed script text and unsupported selections wi
     command + '\n',
     command + ' && private',
     command.replace(' --test ', ' --test-only '),
-    command.replace('--test-concurrency=4', '--test-concurrency=1'),
+    command.replace('--test-concurrency=1', '--test-concurrency=2'),
+    command.replace('--test-concurrency=1', '--test-concurrency=4 --test-concurrency=1'),
     command.replace('c8 ', 'private '),
     command + ' "unterminated',
   ])

@@ -15,10 +15,10 @@ test('client coverage bounds file workers without filtering cases or removing co
   const command = scripts['test:client:coverage'];
   const concurrency = [...command.matchAll(/--test-concurrency(?:=|\s+)(\S+)/g)];
   assert.equal(concurrency.length, 1);
-  assert.equal(concurrency[0][1], '4');
+  assert.equal(concurrency[0][1], '1');
   assert.match(
     command,
-    /node --require \.\/test\/helpers\/physical-test-temp\.cjs --test --test-concurrency=4 test\//
+    /node --require \.\/test\/helpers\/physical-test-temp\.cjs --test --test-concurrency=1 test\//
   );
   assert.doesNotMatch(command, /--test-(?:only|skip-pattern|name-pattern)(?:\s|=|$)/);
   assert.equal((command.match(/(?:^|\s)--check-coverage(?:\s|$)/g) || []).length, 1);

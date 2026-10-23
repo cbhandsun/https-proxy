@@ -14,16 +14,19 @@ function clientCoverageResourceArguments(command, concurrency) {
   if (
     args[0] !== 'c8' ||
     args.filter((word) => word === 'node').length !== 1 ||
-    args.filter((word) => word === '--test-concurrency=4').length !== 1 ||
-    args.slice(boundary, boundary + 5).join(' ') !==
-      'node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=4' ||
+    args.filter((word) => /^--test-concurrency=[14]$/.test(word)).length !== 1 ||
+    args.slice(boundary, boundary + 4).join(' ') !==
+      'node --require ./test/helpers/physical-test-temp.cjs --test' ||
+    !/^--test-concurrency=[14]$/.test(args[boundary + 4] ?? '') ||
     args.slice(boundary + 5).length === 0 ||
     args.slice(boundary + 5).some((word) => !/^test\/[a-z0-9/-]+\.test\.js$/.test(word))
   )
     throw fail();
   return args
     .slice(1)
-    .map((word) => (word === '--test-concurrency=4' ? '--test-concurrency=' + concurrency : word));
+    .map((word) =>
+      /^--test-concurrency=[14]$/.test(word) ? '--test-concurrency=' + concurrency : word
+    );
 }
 
 module.exports = { clientCoverageResourceArguments };
