@@ -181,8 +181,15 @@ async function runHostedProbes(input, listenerLease, onPhase = () => {}) {
       };
       const socket = net.connect({ host: options.negativeAddress, port: options.negativePort });
       const timer = setTimeout(() => finish(true), 1000);
-      socket.once('connect', () => finish(false));
-      socket.once('error', (error) => finish(isBlockedSocketError(error)));
+      socket.once('connect', () => {
+        onPhase(95); // A successful connect proves containment ineffective.
+        finish(false);
+      });
+      socket.once('error', (error) => {
+        const denied = isBlockedSocketError(error);
+        if (!denied) onPhase(96); // Never disclose native error data.
+        finish(denied);
+      });
     });
     if (!blocked) throw fail();
     onPhase(94);

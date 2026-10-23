@@ -197,7 +197,7 @@ async function main() {
       scenario: createBusinessScenario({ ownedRoot }),
     },
     (phase) => {
-      if (!Number.isInteger(phase) || !(phase === 71 || (phase >= 86 && phase <= 94))) throw fail();
+      if (!Number.isInteger(phase) || !(phase === 71 || (phase >= 86 && phase <= 96))) throw fail();
       failureExitCode = phase;
     }
   );

@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 const { isBuiltin } = require('node:module');
 const { types } = require('node:util');
 const fail = () => new Error('n09_owned_entry_rejected');
-// 64..72 entry, 73..84 N09 composition, 86..94 network probes. No error data.
+// 64..72 entry, 73..84 N09 composition, 86..96 network probes. No error data.
 let failureExitCode = 64;
 function verifyPinnedClosure(pins, roots, dynamicTargets = []) {
   if (
@@ -186,7 +186,7 @@ async function main() {
   failureExitCode = 71;
   const { composeHostedN09 } = require('./composition.js');
   const result = await composeHostedN09(plan, (phase) => {
-    if (!Number.isInteger(phase) || !((phase >= 73 && phase <= 84) || (phase >= 86 && phase <= 94)))
+    if (!Number.isInteger(phase) || !((phase >= 73 && phase <= 84) || (phase >= 86 && phase <= 96)))
       throw fail();
     failureExitCode = phase;
   });

@@ -39,7 +39,9 @@ function fixture(failure) {
         const socket = new EventEmitter();
         socket.destroy = () => {};
         queueMicrotask(() =>
-          failure === 'egress' ? socket.emit('connect') : socket.emit('error', { code: 'EACCES' })
+          failure === 'egress'
+            ? socket.emit('connect')
+            : socket.emit('error', { code: failure === 'socket-error' ? 'ECONNREFUSED' : 'EACCES' })
         );
         return socket;
       },
@@ -145,7 +147,8 @@ test('real probe assertion failures retain their fixed phase without exposing so
     ['tls', 90],
     ['baseline', 91],
     ['baseline-count', 92],
-    ['egress', 93],
+    ['egress', 95],
+    ['socket-error', 96],
     ['final-count', 94],
   ]) {
     const f = fixture(failure);
