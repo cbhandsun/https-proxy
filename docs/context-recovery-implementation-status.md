@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：独立 Verify 全绿；新增直接草稿下载的加密迁移入口
+
+`78bc2aea` 的 Verify `40040251437` 已终态 success，八项 job 全部通过。正式 Windows `40040251304` 则终态 failure：source-gates `120709389179` 在 `shared-hosted-materials.test.js` 的 collision/wrong-identity 合成夹具启动 PowerShell 子进程时达到原25秒期限；业务任务跳过。同轮四根2048条/32MiB实际私有恢复、512快照/8MiB及回拨诊断回归通过，不能推断此前stale根因已修复或全天容量已合格。上一候选 `0678ec8e` 的 coverage `120707978871` 单独失败于Claude long-persistent首轮5002ms超时，阶段记录含SQLite提交最高2401ms；未提高期限或忽略失败。
+
+公开仓库的原私有artifact入口仍保持拒绝。新增独立 `windows-encrypted-draft-lifecycle.yml` 与 `download-nsis-draft.cjs`：在一次性runner直接读取既有未发布草稿，分别固定旧baseline与当前checkout身份；下载前后检查草稿归属、未发布状态、精确两资产和匿名404，检查固定安装器SHA256及identity，拒绝已有输出目录，令牌仅用于同源下载，跨源重定向沿用已有剥离凭据规则。该工作流保留完整Verify、依赖审计、NSIS构建和原EncryptedRecovery验收，不上传安装器、DB、密钥或原文，不发布或修改草稿。仓库token仅在下载步骤传入；job为GitHub读取draft所需contents:write，不访问模型凭据。
+
+只读实测既有draft `421222330` 的两个资产：匿名API JSON、API二进制与浏览器下载地址全部HTTP404；另两份草稿匿名元数据也为404。这是当前可见性证据，不保证未来其他写入者不会发布。新增下载路径尚未云端执行，不计为加密迁移通过。新旧下载模块合计18项本地回归通过，含空/非法/极端/恶意输入、匿名可见或限流、网络失败、下载损坏、发布状态变化、输出目录重用、统一测试发现和工作流边界；Lint、CI治理与发布治理通过。首轮Lint发现未声明Node全局，已改为显式globalThis引用后复验通过；未降低规则。真实模型请求0，未安装或启用日常服务。
+
 ## 2026-10-23：容量夹具取得 stale 分类，继续区分时钟回拨
 
 `8250daa5` 的正式 source-gates `120705637646` 除漏同步的临时目录调度断言外，还在四根32MiB夹具失败：第430分支第二次私有轮返回 `context_recovery_stale`，约50745ms，未触及180秒外层期限。该错误只证明能力不再有效，不能直接归因为容量不足、时钟回拨或原文丢失。
