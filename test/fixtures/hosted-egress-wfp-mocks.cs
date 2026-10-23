@@ -10,6 +10,7 @@ public static class HpmHostedEgressFixture {
         private IntPtr blob, data;
         private HpmHostedEgressLease.Filter pending;
         internal HashSet<IntPtr> allocations = new HashSet<IntPtr>();
+        private Dictionary<IntPtr,IntPtr> conditionCopies = new Dictionary<IntPtr,IntPtr>();
         private static void Require(bool accepted) { if (!accepted) throw new Exception("fixture_assertion_failed"); }
         public uint Open(ref HpmHostedEgressLease.Session session, out IntPtr engine) {
             Require(session.flags == 1 && session.key != Guid.Empty);
@@ -55,10 +56,27 @@ public static class HpmHostedEgressFixture {
             HpmHostedEgressLease.Filter observed = pending;
             if (fail == "mismatch") observed.action.type = 0x1002;
             if (fail == "filter-count") observed.count = UInt32.MaxValue;
+            if (fail == "indexed") observed.flags = 0x40;
+            if (fail == "disabled") observed.flags = 0x20;
+            if (fail == "persistent") observed.flags = 1;
+            if (fail == "unknownflags") observed.flags = 0x80000000;
+            int stride = Marshal.SizeOf<HpmHostedEgressLease.Condition>();
+            IntPtr copy = Marshal.AllocHGlobal(stride * (int)pending.count); allocations.Add(copy);
+            conditionCopies[filter] = copy;
+            for (int index = 0; index < pending.count; index++) {
+                int originalIndex = fail == "reordered" && pending.count == 2 ? 1 - index : index;
+                if (fail == "duplicate") originalIndex = 0;
+                HpmHostedEgressLease.Condition condition = Marshal.PtrToStructure<HpmHostedEgressLease.Condition>(IntPtr.Add(pending.conditions,stride * originalIndex));
+                if (fail == "wrongremote" && originalIndex == 1) condition.value.value.number = 0x0100007f;
+                Marshal.StructureToPtr(condition,IntPtr.Add(copy,stride * index),false);
+            }
+            observed.conditions = copy;
             Marshal.StructureToPtr(observed, filter, false);
             return 0;
         }
         public void Free(ref IntPtr memory) {
+            IntPtr copy;
+            if (conditionCopies.TryGetValue(memory,out copy)) { Require(allocations.Remove(copy)); Marshal.FreeHGlobal(copy); conditionCopies.Remove(memory); }
             Require(allocations.Remove(memory));
             Marshal.FreeHGlobal(memory);
             if (memory == blob) { Require(allocations.Remove(data)); Marshal.FreeHGlobal(data); }
@@ -108,12 +126,18 @@ public static class HpmHostedEgressFixture {
         Require(normal.added == 2 && normal.read == 2 && normal.closed == 0 && normal.allocations.Count == 0);
         lease.Dispose(); lease.Dispose();
         Require(normal.closed == 1);
+        foreach (string canonical in new [] {"indexed", "reordered"}) {
+            var representation = new Fake {fail = canonical};
+            var canonicalLease = new HpmHostedEgressLease("synthetic-program", representation);
+            canonicalLease.Dispose();
+            Require(representation.closed == 1 && representation.allocations.Count == 0);
+        }
         int rejected = 0;
-        foreach (string stage in new [] {"open", "engine-null", "appid", "appid-null", "appid-size", "sublayer", "add1", "id-zero", "read1", "read-null", "add2", "read2", "mismatch", "filter-count"}) {
+        foreach (string stage in new [] {"open", "engine-null", "appid", "appid-null", "appid-size", "sublayer", "add1", "id-zero", "read1", "read-null", "add2", "read2", "mismatch", "filter-count", "disabled", "persistent", "unknownflags", "duplicate", "wrongremote"}) {
             var broken = new Fake {fail = stage};
             try { new HpmHostedEgressLease("synthetic-program", broken); throw new Exception("fixture_missing_rejection"); }
             catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); rejected++; }
-            Require(HpmHostedEgressLease.LastFailurePhase >= 3 && HpmHostedEgressLease.LastFailurePhase <= 10);
+            Require(HpmHostedEgressLease.LastFailurePhase >= 3 && HpmHostedEgressLease.LastFailurePhase <= 22);
             Require(broken.closed == (stage == "open" || stage == "engine-null" ? 0 : 1) && broken.allocations.Count == 0);
         }
         var close = new Fake {fail = "close"};

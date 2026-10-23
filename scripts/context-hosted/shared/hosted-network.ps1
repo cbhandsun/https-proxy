@@ -142,7 +142,7 @@ function Invoke-HpmN08HostedNetwork {
         $networkStage = 'egress_wfp_install'
         try { $wfpLease = [HpmHostedEgressLease]::new($node) } catch {
             $wfpFailurePhase = [HpmHostedEgressLease]::LastFailurePhase
-            if ($wfpFailurePhase -ge 1 -and $wfpFailurePhase -le 11) {
+            if ($wfpFailurePhase -ge 1 -and $wfpFailurePhase -le 22) {
                 Write-Information ('hpm_wfp_failed_phase=' + $wfpFailurePhase) -InformationAction Continue
             }
             throw 'n08_network_rejected'

@@ -167,20 +167,49 @@ public sealed class HpmHostedEgressLease : IDisposable {
             if (observed == IntPtr.Zero) throw Rejected();
             LastFailurePhase = 10;
             Filter actual = Marshal.PtrToStructure<Filter>(observed);
-            if (actual.id != id || actual.key != filter.key || actual.layer != layer || actual.sublayer != sublayer ||
-                actual.flags != 0 || actual.action.type != 0x1001 || actual.count != filter.count || actual.conditions == IntPtr.Zero) throw Rejected();
+            LastFailurePhase = 12;
+            if (actual.id != id || actual.key != filter.key) throw Rejected();
+            LastFailurePhase = 13;
+            if (actual.layer != layer || actual.sublayer != sublayer) throw Rejected();
+            LastFailurePhase = 14;
+            // INDEXED (SDK 0x40) changes lookup optimization, not rule semantics.
+            // Persistent, disabled, permit-if-unregistered and unknown flags fail.
+            if ((actual.flags & ~0x40u) != 0) throw Rejected();
+            LastFailurePhase = 15;
+            if (actual.action.type != 0x1001) throw Rejected();
+            LastFailurePhase = 16;
+            if (actual.count != filter.count || actual.conditions == IntPtr.Zero) throw Rejected();
+            bool sawApp = false, sawRemote = false;
             for (int index = 0; index < filter.count; index++) {
-                Condition expected = Marshal.PtrToStructure<Condition>(IntPtr.Add(conditions, stride * index));
                 Condition seen = Marshal.PtrToStructure<Condition>(IntPtr.Add(actual.conditions, stride * index));
-                if (seen.field != expected.field || seen.match != expected.match || seen.value.type != expected.value.type) throw Rejected();
-                if (index == 0) {
+                LastFailurePhase = 17;
+                // WFP owns the returned representation; condition identity is
+                // its field GUID, not the position in the submitted array.
+                if (seen.field == AppField && !sawApp) {
+                    sawApp = true;
+                    LastFailurePhase = 18;
+                    if (seen.match != 0) throw Rejected();
+                    LastFailurePhase = 19;
+                    if (seen.value.type != 12 || seen.value.value.pointer == IntPtr.Zero) throw Rejected();
+                    LastFailurePhase = 20;
                     Blob original = Marshal.PtrToStructure<Blob>(app), copy = Marshal.PtrToStructure<Blob>(seen.value.value.pointer);
                     if (copy.size != original.size || copy.data == IntPtr.Zero) throw Rejected();
                     byte[] before = new byte[original.size], after = new byte[copy.size];
                     Marshal.Copy(original.data, before, 0, before.Length); Marshal.Copy(copy.data, after, 0, after.Length);
+                    LastFailurePhase = 21;
                     for (int offset = 0; offset < before.Length; offset++) if (before[offset] != after[offset]) throw Rejected();
-                } else if (seen.value.value.number != 0x7f000001) throw Rejected();
+                } else if (ipv4 && seen.field == RemoteField && !sawRemote) {
+                    sawRemote = true;
+                    LastFailurePhase = 18;
+                    if (seen.match != 10) throw Rejected();
+                    LastFailurePhase = 19;
+                    if (seen.value.type != 3) throw Rejected();
+                    LastFailurePhase = 22;
+                    if (seen.value.value.number != 0x7f000001) throw Rejected();
+                } else throw Rejected();
             }
+            LastFailurePhase = 17;
+            if (!sawApp || (ipv4 && !sawRemote)) throw Rejected();
         } finally {
             if (observed != IntPtr.Zero) api.Free(ref observed);
             Marshal.FreeHGlobal(conditions);
