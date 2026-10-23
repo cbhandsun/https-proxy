@@ -268,30 +268,49 @@ function createClientUnsafe(input, dependencies) {
         throw fail();
       }
       onPhase(118);
-      const afterReply = await request({ method: 'GET', route: '/v1/local/config' });
-      const after = snapshot(afterReply.body);
-      if (
-        afterReply.status !== 200 ||
-        after._revision !== saved.body.revision ||
-        after.activeProfile !== 'n09-synthetic' ||
-        after.appSettings?.contextRecoveryEnabled !== true ||
-        after.appSettings?.contextRecoveryPersistenceEnabled !== true ||
-        after.appSettings?.verifyUpstreamTls !== true ||
-        after.appSettings?.upstreamWarmupEnabled !== false ||
-        after.appSettings?.conversationAuditEnabled !== false ||
-        after.appSettings?.conversationAuditCaptureContent !== false ||
-        !Array.isArray(after.appSettings?.upstreamDnsServers) ||
-        after.appSettings.upstreamDnsServers.length !== 0 ||
-        !assertSyntheticProfileReadback(after.profiles) ||
-        after.entryAuth?.enabled !== true ||
-        after.entryAuth.keys?.length !== 1 ||
-        after.entryAuth.keys[0].id !== 'n09-synthetic' ||
-        JSON.stringify(after.entryAuth.keys[0].allowedEntryPorts) !==
-          JSON.stringify([identity.entryPort]) ||
-        JSON.stringify(after.entryAuth.keys[0].allowedProfileIds) !==
-          JSON.stringify(['n09-synthetic'])
-      )
+      let afterReply;
+      try {
+        afterReply = await request({ method: 'GET', route: '/v1/local/config' });
+      } catch (error) {
+        const deadline =
+          error &&
+          typeof error === 'object' &&
+          !types.isProxy(error) &&
+          Object.getOwnPropertyDescriptor(error, 'code')?.value === 'HPM_DAEMON_HTTP_DEADLINE';
+        onPhase(deadline ? 127 : 128);
         throw fail();
+      }
+      if (afterReply.status !== 200) {
+        onPhase(129);
+        throw fail();
+      }
+      try {
+        const after = snapshot(afterReply.body);
+        if (
+          after._revision !== saved.body.revision ||
+          after.activeProfile !== 'n09-synthetic' ||
+          after.appSettings?.contextRecoveryEnabled !== true ||
+          after.appSettings?.contextRecoveryPersistenceEnabled !== true ||
+          after.appSettings?.verifyUpstreamTls !== true ||
+          after.appSettings?.upstreamWarmupEnabled !== false ||
+          after.appSettings?.conversationAuditEnabled !== false ||
+          after.appSettings?.conversationAuditCaptureContent !== false ||
+          !Array.isArray(after.appSettings?.upstreamDnsServers) ||
+          after.appSettings.upstreamDnsServers.length !== 0 ||
+          !assertSyntheticProfileReadback(after.profiles) ||
+          after.entryAuth?.enabled !== true ||
+          after.entryAuth.keys?.length !== 1 ||
+          after.entryAuth.keys[0].id !== 'n09-synthetic' ||
+          JSON.stringify(after.entryAuth.keys[0].allowedEntryPorts) !==
+            JSON.stringify([identity.entryPort]) ||
+          JSON.stringify(after.entryAuth.keys[0].allowedProfileIds) !==
+            JSON.stringify(['n09-synthetic'])
+        )
+          throw fail();
+      } catch {
+        onPhase(130);
+        throw fail();
+      }
       onPhase(119);
       while (true) {
         if (Date.now() >= deadline) throw fail();

@@ -280,6 +280,48 @@ test('configuration save diagnostics disclose only fixed failure categories and 
   }
 });
 
+test('configuration readback diagnostics separate original deadline, transport, HTTP and content failures', async (t) => {
+  for (const [kind, phase] of [
+    ['deadline', 127],
+    ['transport', 128],
+    ['http', 129],
+    ['content', 130],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      t,
+      (at, value, state) => {
+        if (at !== 'http' || state.requests.at(-1).method !== 'GET' || value._revision !== 'r2')
+          return;
+        if (kind === 'deadline') state.holdManagementReply = true;
+        if (kind === 'transport') state.transportFailure = true;
+        if (kind === 'http') state.statusCode = 500;
+        if (kind === 'content') value.activeProfile = 'PRIVATE_SENTINEL';
+      },
+      undefined,
+      (value) => phases.push(value)
+    );
+    try {
+      const identity = await f.client.startLifecycle();
+      await assert.rejects(
+        f.client.configureSyntheticBusiness(identity, synthetic()),
+        /^Error: n09_lifecycle_client_failed$/
+      );
+      assert.deepEqual(phases, [112, 113, 114, 115, 116, 117, 118, phase]);
+      assert.equal(f.state.requests.filter((value) => value.method === 'POST').length, 1);
+      assert.equal(
+        f.state.requests.filter(
+          (value) => value.path === '/v1/local/config' && value.method === 'GET'
+        ).length,
+        2
+      );
+    } finally {
+      await f.client.close();
+    }
+    assert.equal(f.state.commands.at(-1).op, 'remove');
+  }
+});
+
 test('startup observer rejects invalid values and proxies without executing traps', async (t) => {
   let traps = 0;
   const proxy = new Proxy(() => {}, {

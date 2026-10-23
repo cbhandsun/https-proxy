@@ -29,9 +29,9 @@ function ConvertFrom-HpmOwnedFailurePhase {
     # the caller still rejects the failed child regardless of this result.
     if ($null -eq $Bytes -or $Bytes.Length -gt 80) { return $null }
     try { $text = [Text.UTF8Encoding]::new($false, $true).GetString($Bytes) } catch { return $null }
-    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-6])\n\z') { return $null }
+    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-9]|130)\n\z') { return $null }
     $phase = [int]$Matches[1]
-    if (($phase -ge 73 -and $phase -le 84) -or ($phase -ge 86 -and $phase -le 96) -or ($phase -ge 101 -and $phase -le 126)) { return $phase }
+    if (($phase -ge 73 -and $phase -le 84) -or ($phase -ge 86 -and $phase -le 96) -or ($phase -ge 101 -and $phase -le 130)) { return $phase }
     return $null
 }
 
@@ -96,7 +96,7 @@ function Invoke-HpmBoundedRuntimeChild {
             # Only the fixed hosted entry phase codes are disclosed. Other
             # exits and all stderr remain opaque; no child data is forwarded.
             $childExitCode = 'other'
-            if (($process.ExitCode -ge 64 -and $process.ExitCode -le 84) -or ($process.ExitCode -ge 86 -and $process.ExitCode -le 96) -or ($process.ExitCode -ge 98 -and $process.ExitCode -le 126)) {
+            if (($process.ExitCode -ge 64 -and $process.ExitCode -le 84) -or ($process.ExitCode -ge 86 -and $process.ExitCode -le 96) -or ($process.ExitCode -ge 98 -and $process.ExitCode -le 130)) {
                 $childExitCode = [string]$process.ExitCode
             }
             Write-Information ('hpm_runtime_child_exit_code=' + $childExitCode) -InformationAction Continue
