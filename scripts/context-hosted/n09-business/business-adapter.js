@@ -35,6 +35,7 @@ function textReply(id, text) {
     output: [
       {
         type: 'message',
+        id: 'msg_' + id,
         role: 'assistant',
         status: 'completed',
         content: [{ type: 'output_text', text, annotations: [] }],

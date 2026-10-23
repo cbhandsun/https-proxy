@@ -293,6 +293,35 @@ function fixture(mutation = () => {}, onPhase) {
   });
   return { adapter, options, proof, state, trusted };
 }
+test('synthetic public recovery output supports JSON and complete Responses SSE encoding', async () => {
+  const {
+    encodeContextRecoveryClientWire,
+  } = require('../../lib/proxy/context-recovery-client-wire');
+  const { decodeContextRecoveryResponse } = require('../../lib/proxy/context-recovery-protocol');
+  let checked = 0;
+  const f = fixture((at, response) => {
+    if (at !== 'reply' || !response.output[0]?.content?.[0]?.text?.startsWith('N09_RECOVERY_OK '))
+      return;
+    for (const stream of [false, true]) {
+      const encoded = encodeContextRecoveryClientWire(
+        'responses',
+        response,
+        [response.usage],
+        stream
+      );
+      const decoded = decodeContextRecoveryResponse('responses', encoded.wire, stream);
+      assert.deepEqual(JSON.parse(JSON.stringify(decoded.output)), response.output);
+    }
+    checked++;
+  });
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  try {
+    await runCommittedObservedKill(f.adapter);
+    assert.equal(checked, 1);
+  } finally {
+    await f.adapter.close();
+  }
+});
 test('seed observer separates HTTP completion, protocol validation and metadata snapshot without removing work', async () => {
   const phases = [],
     f = fixture(undefined, (phase) => phases.push(phase));
