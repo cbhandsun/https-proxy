@@ -510,14 +510,15 @@ function createN09BusinessAdapter(input, trusted = {}) {
       const response = await send(continuation);
       const failurePhase = seedReplyFailurePhase(response.status);
       if (failurePhase !== null) onPhase(failurePhase);
-      else onPhase(199);
+      else onPhase(225);
       const reply = parseReply(response);
-      if (
-        publicText(reply) !== 'N09_OLD_RECEIPT_DENIED ' + nonce ||
-        privateRequests !== before ||
-        externalToolExecutions !== 1
-      )
-        throw fail();
+      onPhase(226);
+      if (publicText(reply) !== 'N09_OLD_RECEIPT_DENIED ' + nonce) throw fail();
+      onPhase(227);
+      if (privateRequests !== before) throw fail();
+      onPhase(228);
+      if (externalToolExecutions !== 1) throw fail();
+      onPhase(229);
       return Object.freeze({
         oldReceiptDenied: true,
         originalExposed: false,

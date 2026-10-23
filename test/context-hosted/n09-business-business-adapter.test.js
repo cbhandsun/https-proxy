@@ -337,6 +337,35 @@ test('denied-receipt HTTP failure replaces completed configuration phase and pre
   assert.equal(f.state.closed, 1);
 });
 
+test('denied receipt distinguishes malformed envelope and wrong public answer without logging content', async () => {
+  for (const expected of [225, 226]) {
+    const phases = [];
+    const f = fixture(
+      (stage, value, state) => {
+        if (stage !== 'reply' || !state.cleared) return;
+        if (expected === 225) value.status = 'incomplete';
+        else value.output[0].content[0].text = 'PRIVATE';
+      },
+      (phase) => phases.push(phase)
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runClearAfterAck(f.adapter));
+    assert.equal(phases.at(-1), expected);
+    assert.equal(f.state.sent, 5);
+    assert.equal(f.state.stopped, 2);
+    assert.equal(f.state.closed, 1);
+    assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+  }
+});
+
+test('successful denied receipt finishes all reply and no-replay assertions', async () => {
+  const phases = [];
+  const f = fixture(undefined, (phase) => phases.push(phase));
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await runClearAfterAck(f.adapter);
+  assert.deepEqual(phases.slice(-5), [225, 226, 227, 228, 229]);
+});
+
 test('synthetic public recovery output supports JSON and complete Responses SSE encoding', async () => {
   const {
     encodeContextRecoveryClientWire,
