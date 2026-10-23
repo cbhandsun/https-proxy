@@ -4,7 +4,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { ensurePrivateFileSync, renamePrivateFileSync } = require('../lib/proxy/secure-files');
+const {
+  ensurePrivateFileSync,
+  renamePrivateFileSync,
+  renamePrivateFileAsync,
+} = require('../lib/proxy/secure-files');
 
 function fixture(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-private-rename-'));
@@ -28,6 +32,149 @@ function windows(calls, extra = {}) {
     ...extra,
   };
 }
+
+test('Async private promotion yields for a pending reader without increasing Windows retry limits', async (t) => {
+  for (const code of ['EPERM', 'EBUSY']) {
+    const { source, target } = fixture(t);
+    let readerOpen = true;
+    let attempts = 0;
+    const calls = [];
+    queueMicrotask(() => {
+      readerOpen = false;
+    });
+    await renamePrivateFileAsync(
+      source,
+      target,
+      windows(calls, {
+        fsModule: {
+          statSync: fs.statSync,
+          rename(from, to, callback) {
+            attempts++;
+            if (readerOpen) callback(Object.assign(Error('fixture_reader_open'), { code }));
+            else fs.rename(from, to, callback);
+          },
+        },
+      })
+    );
+    assert.equal(attempts, 2);
+    assert.equal(calls.length, 2);
+    assert.equal(fs.readFileSync(target, 'utf8'), 'new fixture');
+    assert.equal(fs.existsSync(source), false);
+    ensurePrivateFileSync(target, windows(calls));
+    assert.equal(calls.length, 2, 'protection cache follows the verified promoted identity');
+  }
+});
+
+test('Async private rename preserves permanent failures, retry bounds and both files', async (t) => {
+  for (const [platform, code, expected] of [
+    ['win32', 'EPERM', 3],
+    ['win32', 'EBUSY', 3],
+    ['win32', 'EACCES', 1],
+    ['win32', 'EIO', 1],
+    ['linux', 'EPERM', 1],
+  ]) {
+    const { source, target } = fixture(t);
+    const error = Object.assign(Error('fixture_rename_denied'), { code });
+    let attempts = 0;
+    const waits = [];
+    await assert.rejects(
+      renamePrivateFileAsync(
+        source,
+        target,
+        windows([], {
+          platform,
+          waitForRetry: async (ms) => {
+            waits.push(ms);
+          },
+          fsModule: {
+            statSync: fs.statSync,
+            chmodSync() {},
+            rename(_from, _to, callback) {
+              attempts++;
+              callback(error);
+            },
+          },
+        })
+      ),
+      (candidate) => candidate === error
+    );
+    assert.equal(attempts, expected);
+    assert.deepEqual(waits, expected === 3 ? [10, 20] : []);
+    assert.equal(fs.readFileSync(source, 'utf8'), 'new fixture');
+    assert.equal(fs.readFileSync(target, 'utf8'), 'old fixture');
+  }
+});
+
+test('Async private rename rejects unsafe inputs and failed source protection before promotion', async (t) => {
+  const { directory, source, target } = fixture(t);
+  let promotions = 0;
+  const options = windows([], {
+    fsModule: {
+      statSync: fs.statSync,
+      rename() {
+        promotions++;
+      },
+    },
+  });
+  for (const invalid of [null, '', 1, path.join(directory, 'missing'), directory])
+    await assert.rejects(renamePrivateFileAsync(invalid, target, options));
+  for (const invalid of [
+    null,
+    '',
+    1,
+    'invalid\0path',
+    'a'.repeat(32768),
+    path.join(directory, 'nested', 'target'),
+  ])
+    await assert.rejects(renamePrivateFileAsync(source, invalid, options));
+  await assert.rejects(renamePrivateFileAsync(source, target, { ...options, waitForRetry: 1 }));
+  await assert.rejects(
+    renamePrivateFileAsync(source, target, {
+      ...options,
+      execFileSync() {
+        throw Error('fixture_acl_denied');
+      },
+    }),
+    /fixture_acl_denied/
+  );
+  assert.equal(promotions, 0);
+  assert.equal(fs.readFileSync(target, 'utf8'), 'old fixture');
+});
+
+test('Async post-promotion ACL failure is reported once and never retried as a rename failure', async (t) => {
+  const { source, target } = fixture(t);
+  let renamed = false,
+    promotions = 0,
+    protectionCalls = 0;
+  const error = Object.assign(Error('fixture_target_acl_denied'), { code: 'EPERM' });
+  const options = windows([], {
+    fsModule: {
+      statSync(file, mode) {
+        const result = fs.statSync(file, mode);
+        if (renamed && file === target) result.ino += typeof result.ino === 'bigint' ? 1n : 1;
+        return result;
+      },
+      rename(from, to, callback) {
+        promotions++;
+        fs.rename(from, to, (error) => {
+          renamed = !error;
+          callback(error);
+        });
+      },
+    },
+    execFileSync() {
+      protectionCalls++;
+      if (renamed) throw error;
+    },
+  });
+  await assert.rejects(
+    renamePrivateFileAsync(source, target, options),
+    (candidate) => candidate === error
+  );
+  assert.equal(promotions, 1);
+  assert.equal(protectionCalls, 3);
+  assert.equal(fs.readFileSync(target, 'utf8'), 'new fixture');
+});
 
 test('Same-directory private rename preserves secured identity without repeating ACL subprocesses', (t) => {
   const { source, target } = fixture(t);

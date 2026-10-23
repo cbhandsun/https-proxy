@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：Verify 全部通过；修复连续配置保存的 Windows 文件竞争
+
+`9b6a4fd9` 的 Verify `40028691603` 已终态 success：node-quality、四个单元 shard、Rust、integration 和 coverage 均通过。这不替代业务或安装资格；同源码独立诊断 `40028691590` 的 N08 success、N09 job `120671229324` failure230，表示公开生成前尚未观察到有效原文读取。完整 Windows `40028691580` 的 source-gates 仍在运行，egress 已通过。
+
+另一个临时合成探针使用真实管理 handler、加密配置、异步 watcher/controller 和加密恢复运行时，稳定在 11→00→01→10 的第四次保存复现 HTTP400；安全分类仅输出 rename/EPERM。原同步 rename 的有限等待不能让同进程异步读句柄继续完成关闭。配置保存、切换 profile 和策略迁移现在等待异步原子提升；仍先设置私有权限、写入并 fsync、关闭临时文件，提升前后保持文件身份与权限校验。Windows 仍最多三次 rename、等待 10/20ms，仅 EPERM/EBUSY 可重试；不删除旧目标、不重复 HTTP 或业务操作。保留原同步写 API 的调用约定。
+
+修复后真实合成探针 11→00→01→10→11 五次保存、修订读回和最终运行模式全部通过。新增回归覆盖事件循环中的读者释放、永久/非 Windows 错误、权限拒绝、非法路径、失败时保留原文件、提升后权限失败不重复 rename、异步策略提交等待及拒绝。十个相关测试文件共 48 项通过，原有测试和期限不变；Lint、CI/release 治理通过。另一本地实际 Core HTTP 探针通过同一摘要连续两次精确恢复和正常关闭后重开恢复，但不证明 ACK 后强杀资格。本轮没有真实模型请求或日常配置变更。
+
 ## 2026-10-23：N09 确认保存与有效配置之间的异步 reload 竞态
 
 `a6dddbea` 独立诊断 `40027143893` 的 N09 job `120666071795` 已终态 failure234，明确为健康投影的 requestedEnabled 与保存目标不一致。生产 `reloadProxyConfig` 调用 watcher.scheduleNow 后立即返回；watcher 的 fs.readFile、loadConfig 和 applyConfig 是异步链。管理接口 200 和文件修订读回正确，只能证明保存完成，不能证明健康接口已经使用新配置。此前只允许 pending_application 的等待器错误拒绝了这段仍报告旧健康终态的合法间隔。

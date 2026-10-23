@@ -17,6 +17,7 @@ const {
   readLastLinesOfJsonl,
   readTextBodyFromResponse,
   writeJsonFileAtomically,
+  writeJsonFileAtomicallyAsync,
   writeTextFileAtomically,
 } = require('../lib/proxy/management-utils');
 const {
@@ -97,6 +98,25 @@ async function readTextErrorFromChunks(chunks, options) {
       ok: true,
       count: 2,
     });
+    if (process.platform !== 'win32') {
+      assert.strictEqual(fs.statSync(jsonTarget).mode & 0o777, PRIVATE_FILE_MODE);
+    }
+
+    await writeJsonFileAtomicallyAsync(jsonTarget, { ok: true, count: 3 });
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(jsonTarget, 'utf8')), { ok: true, count: 3 });
+    assert.deepStrictEqual(fs.readdirSync(path.dirname(jsonTarget)), ['settings.json']);
+    const circular = {};
+    circular.self = circular;
+    await assert.rejects(writeJsonFileAtomicallyAsync(jsonTarget, circular), TypeError);
+    assert.deepStrictEqual(JSON.parse(fs.readFileSync(jsonTarget, 'utf8')), { ok: true, count: 3 });
+    const directoryTarget = path.join(tmpDir, 'directory-target');
+    fs.mkdirSync(directoryTarget);
+    await assert.rejects(writeJsonFileAtomicallyAsync(directoryTarget, {}));
+    assert.equal(fs.statSync(directoryTarget).isDirectory(), true);
+    assert.equal(
+      fs.readdirSync(tmpDir).some((name) => name.endsWith('.tmp')),
+      false
+    );
     if (process.platform !== 'win32') {
       assert.strictEqual(fs.statSync(jsonTarget).mode & 0o777, PRIVATE_FILE_MODE);
     }

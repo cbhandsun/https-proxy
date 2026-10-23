@@ -365,6 +365,48 @@ test('write/reload/read failures do not disclose errors or claim runtime applica
   }
 });
 
+test('policy migration awaits async durable writes and contains asynchronous write failures', async () => {
+  for (const fails of [false, true]) {
+    let settle;
+    const pendingWrite = new Promise((resolve, reject) => {
+      settle = () => (fails ? reject(Error('PRIVATE_PATH_TOKEN')) : resolve(revision));
+    });
+    let reloads = 0;
+    let writes = 0;
+    const handlers = createManagementContextPolicyHandlers({
+      readCurrent: () => ({ revision, config: config() }),
+      validateConfig: () => ({ valid: true }),
+      writeConfig() {
+        writes++;
+        return pendingWrite;
+      },
+      reloadProxyConfig() {
+        reloads++;
+      },
+      enqueueConfigMutation: (run) => Promise.resolve().then(run),
+      sendJson(res, status, value) {
+        res.finish({ status, value });
+      },
+    });
+    const operation = invoke(handlers, 'Apply', request());
+    let replied = false;
+    operation.done.then(() => {
+      replied = true;
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(writes, 1);
+    assert.equal(reloads, 0);
+    assert.equal(replied, false);
+    settle();
+    const result = await operation.done;
+    assert.equal(result.status, fails ? 503 : 200);
+    assert.equal(reloads, fails ? 0 : 1);
+    if (fails) assert.deepEqual(result.value, { ok: false, code: 'context_policy_unavailable' });
+    else assert.equal(result.value.revision, revision);
+    assert.doesNotMatch(JSON.stringify(result), /PRIVATE/);
+  }
+});
+
 test('method, abort and response failures cannot trigger duplicate mutations', async () => {
   let writes = 0;
   const handlers = createManagementContextPolicyHandlers({
