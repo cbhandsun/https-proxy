@@ -3,6 +3,7 @@
 // Acceptance-only observer. Never imports an owner, writer, original blob or
 // live authorization capability. Dependencies below are trusted test seams.
 const { createReadonlyFiles, optionsData, failure } = require('./readonly-files.js');
+const { types } = require('node:util');
 const {
   recoveryStorageSchemaState,
 } = require('../../../lib/proxy/context-recovery-storage-schema');
@@ -18,8 +19,26 @@ const HEADER_SQL =
   'SELECT store_id,CASE WHEN length(envelope)<=4096 THEN envelope END AS envelope FROM recovery_header WHERE singleton=1';
 
 function createDurableSnapshotReader(input, trusted = {}) {
-  let files;
+  let files, onPhase;
   try {
+    if (!trusted || typeof trusted !== 'object' || types.isProxy(trusted)) throw failure();
+    const slot = Object.getOwnPropertyDescriptor(trusted, 'onPhase');
+    const observer = slot ? slot.value : () => {};
+    if (
+      typeof observer !== 'function' ||
+      types.isProxy(observer) ||
+      types.isAsyncFunction(observer) ||
+      types.isGeneratorFunction(observer)
+    )
+      throw failure();
+    onPhase = (phase) => {
+      try {
+        observer(phase);
+      } catch {
+        throw failure();
+      }
+    };
+    onPhase(174);
     optionsData(input);
     files = (trusted.createFiles ?? createReadonlyFiles)(input);
   } catch {
@@ -43,22 +62,28 @@ function createDurableSnapshotReader(input, trusted = {}) {
       failed = false;
     try {
       if (closed) throw failure();
+      onPhase(175);
       files.verify();
+      onPhase(176);
       const wrapped = files.readKey();
+      onPhase(177);
       const key = (trusted.unprotect ?? protectWithCurrentUser)({
         operation: 'unprotect',
         value: wrapped,
       });
       cipher = createStorageCipher(key);
       files.verify();
+      onPhase(178);
       database = open(files.databaseFile);
       database.exec('PRAGMA busy_timeout=0; PRAGMA query_only=ON; BEGIN');
       begun = true;
+      onPhase(179);
       if (
         recoveryStorageSchemaState(database) !== 'ready' ||
         database.prepare('PRAGMA user_version').get().user_version !== 2
       )
         throw failure();
+      onPhase(180);
       const header = database.prepare(HEADER_SQL).get();
       if (
         !header ||
@@ -67,6 +92,7 @@ function createDurableSnapshotReader(input, trusted = {}) {
         (storePin !== undefined && storePin !== header.store_id)
       )
         throw failure();
+      onPhase(181);
       const clock = cipher.open(
         {
           storeId: header.store_id,
@@ -86,6 +112,7 @@ function createDurableSnapshotReader(input, trusted = {}) {
         clock.lastTime < 0
       )
         throw failure();
+      onPhase(182);
       const rows = database.prepare(ROW_SQL).all();
       if (rows.length > 1) throw failure();
       if (rows.length === 0) {
@@ -132,6 +159,7 @@ function createDurableSnapshotReader(input, trusted = {}) {
             state.version !== 3
           )
             throw failure();
+          onPhase(183);
           const reference = parseReferenceState(state.reference);
           const metadata = reference.metadata;
           if (
@@ -157,6 +185,13 @@ function createDurableSnapshotReader(input, trusted = {}) {
     } catch {
       failed = true;
     } finally {
+      if (!failed) {
+        try {
+          onPhase(184);
+        } catch {
+          failed = true;
+        }
+      }
       if (begun) {
         try {
           database.exec('ROLLBACK');

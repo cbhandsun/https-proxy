@@ -304,10 +304,13 @@ function createN09BusinessAdapter(input, trusted = {}) {
         throw fail();
       continuation = requestBody([user(summaryText), user('N09_RECOVER ' + nonce)]);
       onPhase(137);
-      snapshots = (trusted.createSnapshots ?? createDurableSnapshotReader)({
-        ownedRoot: options.ownedRoot,
-        runtimeDir: current.runtimeDir,
-      });
+      snapshots = (trusted.createSnapshots ?? createDurableSnapshotReader)(
+        {
+          ownedRoot: options.ownedRoot,
+          runtimeDir: current.runtimeDir,
+        },
+        { onPhase }
+      );
       const snapshot = committed();
       onPhase(138);
       if (

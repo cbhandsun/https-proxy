@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：observed ACK 修复让两端越过 503，业务推进至恢复／快照边界
+
+9c9462ed 的独立诊断 39982568481 已终态 failure：N08 job 120513375453 返回 154，已越过三次种入与摘要请求，进入 waitUpstreamHold（包括随后快照读取）；N09 job 120513375876 返回 137，已越过工具结果回传和摘要回执校验，进入快照创建／读取。原工具结果 503 在该次两端执行中已越过，但后续尚未通过，不能宣称 N08/N09 完成。
+
+候选给现有只读快照观察器增加固定 174..184：创建文件观察器、首次 pin、读取包裹密钥、解封／建 cipher、打开数据库与 BEGIN、schema、header、时钟、row 解密、reference 解析、清理。两端显式传递同一固定 phase observer，范围同步进入原父边界；未知 139、185 及附加文本继续拒绝。观察器异常只返回既有固定错误，既有 rollback、database/cipher close 和最终 pins 仍独立尝试；失败后的清理不覆盖首失败阶段。不读取原文 blob，不输出密钥、行、路径、错误或用户内容，不改变 SQL、断言、请求和期限。
+
+原有与新增快照纯回归 25/25，包括每一 observer 阶段失败后的资源清理、非法函数／accessor／Proxy 不执行，以及真实内存 SQLite 的既有 schema 与认证 envelope 读取通过。两端业务和外层安全 PowerShell parser 相关 58 项在新增 SQLite 单项之前通过，新 SQLite 单项与其余快照随后全部通过；统一 unit 自动发现。未在本机运行产品 worker、DPAPI、注册表、安装器、防火墙或模型请求。
+
+9c9462ed 的 Verify 39982513085 最近七个 job success、coverage 仍运行；完整 disposable 39982513196 已 failure，source-gates job 120513174856 失败项为 encrypted worker reopens four full session roots with 32 MiB of exact private history，尚未据此断言超时或具体产品根因，业务未启动。既有 a20cfd4d 完整 disposable 39980129782 的原句柄仍需核对终态。完整 I0–I5/H1、N01–N11、容量、安装迁移和生产交付保持未完成。
+
+
 ## 2026-10-23：两端确认 503，纯回归证实 observed 持久化与下一轮准入竞态
 
 a20cfd4d 的独立诊断 39980129686 已终态 failure：N09 job 120504944221、N08 job 120504944749 均返回 170，明确为工具结果回传 HTTP 503。该轮完整 Verify 39980129735 已 success，全部 job 通过；完整 disposable 39980129782 最近 source-gates 仍运行、egress success。较早 b1a46aaf 完整 disposable 39978412033 已 failure，source-gates job 120499004023 失败于 actual core claude WBIPC recovery has exclusive ownership and live credential revocation，业务未启动；原失败保留，未重跑掩盖。

@@ -275,10 +275,13 @@ function createBusinessScenario(input, observer) {
       // Metadata-only reader pins an already-created disk root; never adopts it.
       onPhase(152);
       const { createDurableSnapshotReader } = require('../n09-snapshot/readonly-snapshot.js');
-      state.snapshots = createDurableSnapshotReader({
-        ownedRoot: options.ownedRoot,
-        runtimeDir: value.owner.identity.runtimeDir,
-      });
+      state.snapshots = createDurableSnapshotReader(
+        {
+          ownedRoot: options.ownedRoot,
+          runtimeDir: value.owner.identity.runtimeDir,
+        },
+        { onPhase }
+      );
       state.phase = 'ready';
       const templates = {
         compact: bytes(state.continuation),

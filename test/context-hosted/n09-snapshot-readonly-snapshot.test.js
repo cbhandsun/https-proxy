@@ -349,3 +349,112 @@ test('symlink storage path fails closed', () =>
     fs.symlinkSync(moved, dir, process.platform === 'win32' ? 'junction' : 'dir');
     assert.throws(() => createReadonlyFiles({ ownedRoot: root, runtimeDir }).verify(), bad);
   }));
+
+test('snapshot observer emits only fixed metadata phases and preserves all resource cleanup on failure', () => {
+  const phases = [];
+  const success = fixture();
+  const reader = createDurableSnapshotReader(options, {
+    ...success.trusted,
+    onPhase: (phase) => phases.push(phase),
+  });
+  assert.equal(reader.read().present, true);
+  assert.deepEqual(
+    phases,
+    Array.from({ length: 11 }, (_, i) => 174 + i)
+  );
+  assert.equal(success.closed, 1);
+  reader.close();
+  for (let stop = 174; stop <= 184; stop++) {
+    const f = fixture(),
+      observed = [];
+    assert.throws(() => {
+      const r = createDurableSnapshotReader(options, {
+        ...f.trusted,
+        onPhase: (phase) => {
+          observed.push(phase);
+          if (phase === stop) throw Error('PRIVATE_SENTINEL');
+        },
+      });
+      try {
+        r.read();
+      } finally {
+        r.close();
+      }
+    }, bad);
+    assert.equal(observed.at(-1), stop);
+    assert.equal(f.closed, stop >= 179 ? 1 : 0);
+    if (stop >= 179) assert.equal(f.commands.at(-1), 'ROLLBACK');
+  }
+});
+test('snapshot observer rejects invalid callbacks, accessors and proxies before any callback trap runs', () => {
+  let calls = 0;
+  const proxy = new Proxy(() => {}, {
+    get() {
+      calls++;
+      throw Error('PRIVATE_SENTINEL');
+    },
+  });
+  for (const onPhase of [null, 0, {}, proxy, async () => {}, function* () {}])
+    assert.throws(() => createDurableSnapshotReader(options, { onPhase }), bad);
+  const trusted = {
+    get onPhase() {
+      calls++;
+      throw Error('PRIVATE_SENTINEL');
+    },
+  };
+  assert.throws(() => createDurableSnapshotReader(options, trusted), bad);
+  assert.throws(
+    () =>
+      createDurableSnapshotReader(
+        options,
+        new Proxy(
+          {},
+          {
+            getOwnPropertyDescriptor() {
+              calls++;
+              throw Error('PRIVATE_SENTINEL');
+            },
+          }
+        )
+      ),
+    bad
+  );
+  assert.equal(calls, 0);
+});
+
+test('snapshot SQL reads authenticated metadata from actual in-memory SQLite without native or files', () => {
+  const { DatabaseSync } = require('node:sqlite');
+  const f = fixture();
+  const database = new DatabaseSync(':memory:');
+  database.exec(
+    schema.HEADER_SQL +
+      ';' +
+      schema.STATE_SQL +
+      ';' +
+      schema.BLOB_SQL +
+      ';PRAGMA application_id=' +
+      schema.APPLICATION_ID +
+      ';PRAGMA user_version=2;'
+  );
+  database
+    .prepare('INSERT INTO recovery_header(singleton,store_id,envelope) VALUES(1,?,?)')
+    .run(f.header.store_id, f.header.envelope);
+  const row = f.rows[0];
+  database
+    .prepare(
+      'INSERT INTO recovery_state(scope,revision,created_at,expires_at,kind,envelope) VALUES(?,?,?,?,?,?)'
+    )
+    .run(row.scope, row.revision, row.created_at, row.expires_at, row.kind, row.envelope);
+  const phases = [];
+  const reader = createDurableSnapshotReader(options, {
+    ...f.trusted,
+    openReadonly: () => database,
+    onPhase: (phase) => phases.push(phase),
+  });
+  assert.equal(reader.read().rootId, f.state.reference.metadata.rootId);
+  assert.deepEqual(
+    phases,
+    Array.from({ length: 11 }, (_, i) => 174 + i)
+  );
+  reader.close();
+});

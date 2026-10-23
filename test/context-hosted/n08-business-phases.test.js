@@ -78,7 +78,7 @@ function fixture() {
 test('N08 observer accepts only fixed phase codes and discloses no supplied failure details', () => {
   const phases = [],
     observe = createN08PhaseObserver((value) => phases.push(value));
-  for (const value of [71, 86, 96, ...Array.from({ length: 34 }, (_, i) => i + 140)])
+  for (const value of [71, 86, 96, ...Array.from({ length: 45 }, (_, i) => i + 140)])
     observe(value);
   for (const value of [
     undefined,
@@ -94,11 +94,11 @@ test('N08 observer accepts only fixed phase codes and discloses no supplied fail
     97,
     130,
     139,
-    174,
+    185,
     Number.MAX_SAFE_INTEGER,
   ])
     assert.throws(() => observe(value), /^Error: n08_phase_observer_rejected$/);
-  assert.equal(phases.length, 37);
+  assert.equal(phases.length, 48);
   assert.throws(
     () =>
       createN08PhaseObserver(() => {
