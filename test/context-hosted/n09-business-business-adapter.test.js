@@ -366,6 +366,26 @@ test('successful denied receipt finishes all reply and no-replay assertions', as
   assert.deepEqual(phases.slice(-5), [225, 226, 227, 228, 229]);
 });
 
+test('public generation before an observed read has a separate safe failure class', async () => {
+  const phases = [];
+  const f = fixture(
+    (stage, incoming) => {
+      if (stage !== 'upstream') return;
+      const body = JSON.parse(incoming.bytes);
+      if (!body.tools?.some((tool) => tool.name === 'hpm_list_retained_evidence')) return;
+      body.tools = [];
+      incoming.bytes = Buffer.from(JSON.stringify(body));
+    },
+    (phase) => phases.push(phase)
+  );
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await assert.rejects(runCommittedObservedKill(f.adapter));
+  assert.equal(phases.at(-1), 230);
+  assert.equal(f.state.stopped, 2);
+  assert.equal(f.state.closed, 1);
+  assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+});
+
 test('synthetic public recovery output supports JSON and complete Responses SSE encoding', async () => {
   const {
     encodeContextRecoveryClientWire,
@@ -781,7 +801,7 @@ test('N09 502 progress distinguishes every recovery boundary without retry or co
 });
 
 test('synthetic upstream failures expose only their fixed request, index, page or public boundary and retain cleanup', async () => {
-  for (const expected of [196, 197, 203, 199]) {
+  for (const expected of [196, 197, 203, 231]) {
     const phases = [];
     const f = fixture(
       (kind, incoming, state) => {
@@ -801,7 +821,7 @@ test('synthetic upstream failures expose only their fixed request, index, page o
           }
         }
         if (
-          expected === 199 &&
+          expected === 231 &&
           !body.tools.some((tool) => tool.name === 'hpm_list_retained_evidence')
         )
           body.input = [{ role: 'user', content: 'PRIVATE_INVALID' }];

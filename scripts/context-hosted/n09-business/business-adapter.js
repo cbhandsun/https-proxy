@@ -683,8 +683,10 @@ function createN09BusinessAdapter(input, trusted = {}) {
           recoveryProgressPhase = 215;
           return reply(textReply('n09-private-done-' + nonce, 'RECOVERED'));
         }
-        failurePhase = 199;
-        if (!readObserved || !bodyText.includes(original)) throw fail();
+        failurePhase = 230;
+        if (!readObserved) throw fail();
+        failurePhase = 231;
+        if (!bodyText.includes(original)) throw fail();
         publicObserved = true;
         publicGenerationCount++;
         recoveryProgressPhase = 216;
