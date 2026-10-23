@@ -10,7 +10,7 @@ const {
   createN09LifecycleClient,
 } = require('../../scripts/context-hosted/n09-business/lifecycle-client-v2.js');
 const synthetic = () => ({ entryKey: '1'.repeat(48), upstreamKey: '2'.repeat(48) });
-function fixture(t, mutation = () => {}, ackFactory) {
+function fixture(t, mutation = () => {}, ackFactory, onPhase) {
   const ownedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'n09-channel-pure-'));
   t.after(() => fs.rmSync(ownedRoot, { force: true, recursive: true }));
   const install = path.join(ownedRoot, 'installed');
@@ -151,9 +151,80 @@ function fixture(t, mutation = () => {}, ackFactory) {
     spawn: start,
     httpRequest,
     ...(ackFactory ? { createHostAckClient: (options) => ackFactory(options, state) } : {}),
+    ...(onPhase === undefined ? {} : { onPhase }),
   });
   return { client, state, input, runtimeDir };
 }
+
+test('startup observer reports fixed lifecycle and management phases in execution order', async (t) => {
+  const phases = [];
+  const f = fixture(t, undefined, undefined, (phase) => phases.push(phase));
+  const identity = await f.client.startLifecycle();
+  await f.client.configureSyntheticBusiness(identity, synthetic());
+  assert.deepEqual(phases, [112, 113, 114, 115, 116, 117, 118, 119, 120]);
+  await f.client.close();
+  assert.equal(f.state.commands.at(-1).op, 'remove');
+});
+
+test('startup observer locates rejected status without later management requests', async (t) => {
+  const phases = [];
+  const f = fixture(
+    t,
+    (at, value) => {
+      if (at === 'reply' && value.op === 'status') value.status.alive = false;
+    },
+    undefined,
+    (phase) => phases.push(phase)
+  );
+  const identity = await f.client.startLifecycle();
+  await assert.rejects(
+    f.client.configureSyntheticBusiness(identity, synthetic()),
+    /^Error: n09_lifecycle_client_failed$/
+  );
+  assert.deepEqual(phases, [112, 113, 114]);
+  assert.equal(f.state.requests.length, 0);
+  await f.client.close();
+  assert.equal(f.state.commands.at(-1).op, 'remove');
+});
+
+test('startup observer rejects invalid values and proxies without executing traps', async (t) => {
+  let traps = 0;
+  const proxy = new Proxy(() => {}, {
+    get() {
+      traps++;
+      throw new Error('private');
+    },
+  });
+  for (const observer of [null, 0, '', {}, proxy]) {
+    assert.throws(
+      () => fixture(t, undefined, undefined, observer),
+      /^Error: n09_lifecycle_client_failed$/
+    );
+  }
+  assert.equal(traps, 0);
+});
+
+test('startup observer failures remain fixed errors and release owned lifecycle at every phase', async (t) => {
+  const expected = [112, 113, 114, 115, 116, 117, 118, 119, 120];
+  for (const rejected of expected) {
+    const phases = [];
+    const f = fixture(t, undefined, undefined, (phase) => {
+      phases.push(phase);
+      if (phase === rejected) throw new Error('PRIVATE_OBSERVER_SENTINEL');
+    });
+    await assert.rejects(async () => {
+      const identity = await f.client.startLifecycle();
+      await f.client.configureSyntheticBusiness(identity, synthetic());
+    }, /^Error: n09_lifecycle_client_failed$/);
+    assert.deepEqual(
+      phases,
+      expected.filter((phase) => phase <= rejected)
+    );
+    await f.client.close();
+    if (rejected !== 112) assert.equal(f.state.commands.at(-1).op, 'remove');
+    else assert.equal(f.state.commands.length, 0);
+  }
+});
 test('actual lifecycle composition uses fixed entry, private bootstrap token, physical pins, fixed config/clear', async (t) => {
   const f = fixture(t);
   const first = await f.client.startLifecycle();

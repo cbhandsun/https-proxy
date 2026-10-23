@@ -93,6 +93,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
           'createBusinessClient',
           'createSnapshots',
           'spawn',
+          'onPhase',
         ].includes(key) ||
         typeof value !== 'function' ||
         types.isProxy(value)
@@ -131,6 +132,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     saveAckCount = 0,
     revokeAckCount = 0;
   const networkCheck = trusted.isVerifiedNetworkProof ?? isVerifiedNetworkProof;
+  const onPhase = trusted.onPhase ?? (() => {});
   function gate(identity) {
     if (closed || !proof || !networkCheck(proof)) throw fail();
     if (identity) {
@@ -147,10 +149,10 @@ function createN09BusinessAdapter(input, trusted = {}) {
   function client() {
     gate();
     if (!lifecycle)
-      lifecycle = (trusted.createLifecycle ?? createN09LifecycleClient)(
-        options,
-        trusted.spawn ? { spawn: trusted.spawn } : {}
-      );
+      lifecycle = (trusted.createLifecycle ?? createN09LifecycleClient)(options, {
+        ...(trusted.spawn ? { spawn: trusted.spawn } : {}),
+        ...(trusted.onPhase ? { onPhase: trusted.onPhase } : {}),
+      });
     return lifecycle;
   }
   const requestBody = (input, extra = {}) => ({
@@ -231,11 +233,14 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async startFreshBusinessHost() {
       gate();
       if (current || seeded) throw fail();
+      onPhase(109);
       current = await client().startLifecycle();
+      onPhase(110);
       const configured = await client().configureSyntheticBusiness(current, {
         entryKey,
         upstreamKey,
       });
+      onPhase(111);
       if (configured.configured !== true) throw fail();
       return Object.freeze({
         ...current,

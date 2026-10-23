@@ -274,6 +274,64 @@ function fixture(mutation = () => {}) {
   const adapter = createN09BusinessAdapter(options, trusted);
   return { adapter, options, proof, state, trusted };
 }
+test('business startup observer reports only fixed phases and propagates to lifecycle', async () => {
+  const f = fixture();
+  const phases = [];
+  const onPhase = (phase) => phases.push(phase);
+  const adapter = createN09BusinessAdapter(f.options, {
+    ...f.trusted,
+    onPhase,
+    createLifecycle(input, dependencies) {
+      assert.equal(dependencies.onPhase, onPhase);
+      return f.trusted.createLifecycle(input, dependencies);
+    },
+  });
+  adapter.bindVerifiedNetworkProof(f.proof);
+  await adapter.startFreshBusinessHost();
+  assert.deepEqual(phases, [109, 110, 111]);
+  assert.equal(f.state.configured, 1);
+  await adapter.close();
+  assert.equal(f.state.closed, 1);
+});
+
+test('business startup observer rejects invalid dependencies without executing proxies', () => {
+  const f = fixture();
+  let traps = 0;
+  const proxy = new Proxy(() => {}, {
+    get() {
+      traps++;
+      throw new Error('private');
+    },
+  });
+  for (const onPhase of [null, 0, '', {}, proxy]) {
+    assert.throws(() => createN09BusinessAdapter(f.options, { ...f.trusted, onPhase }), bad);
+  }
+  assert.equal(traps, 0);
+  assert.equal(f.state.created, 0);
+});
+
+test('business startup observer failures are sanitized and retain owned cleanup at each phase', async () => {
+  for (const rejected of [109, 110, 111]) {
+    const f = fixture();
+    const phases = [];
+    const adapter = createN09BusinessAdapter(f.options, {
+      ...f.trusted,
+      onPhase(phase) {
+        phases.push(phase);
+        if (phase === rejected) throw new Error('PRIVATE_OBSERVER_SENTINEL');
+      },
+    });
+    adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(adapter.startFreshBusinessHost(), bad);
+    assert.deepEqual(
+      phases,
+      [109, 110, 111].filter((phase) => phase <= rejected)
+    );
+    await adapter.close();
+    assert.equal(f.state.closed, rejected === 109 ? 0 : 1);
+  }
+});
+
 test('passive construction and branded proof gate prevent premature spawn/HTTP', async () => {
   const f = fixture();
   assert.equal(f.state.created, 0);

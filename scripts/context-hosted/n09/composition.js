@@ -113,6 +113,7 @@ async function composeHostedN09(input, onPhase = () => {}) {
           ownedRoot: options.ownedRoot,
           manifestSha256: options.manifestSha256,
         }),
+        onPhase,
       }
     );
     adapters.push(adapter);
@@ -200,6 +201,7 @@ async function composeHostedN09(input, onPhase = () => {}) {
           ownedRoot: options.ownedRoot,
           manifestSha256: options.manifestSha256,
         }),
+        onPhase,
       }
     );
     adapters.push(clearAdapter);
@@ -233,6 +235,7 @@ async function composeHostedN09(input, onPhase = () => {}) {
             ownedRoot: options.ownedRoot,
             manifestSha256: options.manifestSha256,
           }),
+          onPhase,
         }
       );
       adapters.push(ownedAdapter);

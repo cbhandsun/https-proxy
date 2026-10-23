@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 const { isBuiltin } = require('node:module');
 const { types } = require('node:util');
 const fail = () => new Error('n09_owned_entry_rejected');
-// Fixed phases: entry/composition/probes, 98..100 cleanup, 101..108 committed driver.
+// Fixed phases: entry/composition/probes, 98..100 cleanup, 101..120 business startup.
 let failureExitCode = 64;
 let primaryFailurePhase = 64;
 function verifyPinnedClosure(pins, roots, dynamicTargets = []) {
@@ -192,7 +192,7 @@ async function main() {
       !(
         (phase >= 73 && phase <= 84) ||
         (phase >= 86 && phase <= 96) ||
-        (phase >= 98 && phase <= 108)
+        (phase >= 98 && phase <= 120)
       )
     )
       throw fail();

@@ -20,12 +20,13 @@ function createClientUnsafe(input, dependencies) {
   dependencies = snapshot(dependencies);
   for (const key of Object.keys(dependencies))
     if (
-      !['spawn', 'httpRequest', 'createHostAckClient'].includes(key) ||
+      !['spawn', 'httpRequest', 'createHostAckClient', 'onPhase'].includes(key) ||
       typeof dependencies[key] !== 'function' ||
       types.isProxy(dependencies[key]) ||
       (key === 'createHostAckClient' && types.isAsyncFunction(dependencies[key]))
     )
       throw fail();
+  const onPhase = dependencies.onPhase ?? (() => {});
   // Dedicated synthetic-only token: no daily credentials and no receipt/API getter.
   let token = randomBytes(32).toString('hex');
   let channel;
@@ -122,6 +123,7 @@ function createClientUnsafe(input, dependencies) {
       dependencies.httpRequest
     );
   async function managementReady(identity) {
+    onPhase(114);
     const status = await getChannel().exchange({ op: 'status', leaseId: liveHandle() });
     if (
       !status.status.alive ||
@@ -129,6 +131,7 @@ function createClientUnsafe(input, dependencies) {
       status.status.preloadPhase !== 'passed'
     )
       throw fail();
+    onPhase(115);
     const response = await management(identity)({ method: 'GET', route: '/v1/local/health' });
     const body = snapshot(response.body);
     const runtime = snapshot(body.runtime);
@@ -150,7 +153,9 @@ function createClientUnsafe(input, dependencies) {
   const leaseRestart = lease.restartSameBusinessHost;
   const implementation = {
     async startLifecycle() {
+      onPhase(112);
       current = await leaseStart();
+      onPhase(113);
       return current;
     },
     async stopLifecycle(input) {
@@ -192,6 +197,7 @@ function createClientUnsafe(input, dependencies) {
       });
       await managementReady(identity);
       const request = management(identity);
+      onPhase(116);
       const beforeReply = await request({ method: 'GET', route: '/v1/local/config' });
       const before = snapshot(beforeReply.body);
       if (
@@ -239,6 +245,7 @@ function createClientUnsafe(input, dependencies) {
           conversationAuditCaptureContent: false,
         },
       };
+      onPhase(117);
       const saved = await request({ method: 'POST', route: '/v1/local/config', body: next });
       if (
         saved.status !== 200 ||
@@ -246,6 +253,7 @@ function createClientUnsafe(input, dependencies) {
         typeof saved.body.revision !== 'string'
       )
         throw fail();
+      onPhase(118);
       const afterReply = await request({ method: 'GET', route: '/v1/local/config' });
       const after = snapshot(afterReply.body);
       if (
@@ -273,6 +281,7 @@ function createClientUnsafe(input, dependencies) {
           JSON.stringify(['n09-synthetic'])
       )
         throw fail();
+      onPhase(119);
       const deadline = Date.now() + 15000;
       while (true) {
         const health = await request({ method: 'GET', route: '/v1/local/health' });
@@ -291,6 +300,7 @@ function createClientUnsafe(input, dependencies) {
           throw fail();
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
+      onPhase(120);
       return Object.freeze({
         configured: true,
         evidenceLevel: 'synthetic-management-configuration',
