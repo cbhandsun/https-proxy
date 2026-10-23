@@ -193,6 +193,134 @@ const checkpointPayloads = (state) =>
     output,
   }));
 
+test('reference hydration validates its created checkpoint without a third envelope clone', () => {
+  const state = checkpoint('private synthetic output🙂'.repeat(1000));
+  const reference = referenceStateFromCheckpoint(state);
+  const payloads = checkpointPayloads(state);
+  const file = require.resolve('../lib/proxy/context-recovery-root-checkpoint');
+  const cached = require.cache[file];
+  const data = require('../lib/proxy/context-recovery-state-data');
+  const originalNormalize = data.normalizeRecoveryCheckpointData;
+  let calls = 0;
+  try {
+    data.normalizeRecoveryCheckpointData = (...args) => {
+      calls++;
+      return originalNormalize(...args);
+    };
+    delete require.cache[file];
+    const codec = require(file);
+    data.normalizeRecoveryCheckpointData = originalNormalize;
+    assert.deepEqual(hydrateReferenceState(reference, payloads), state);
+    assert.equal(calls, 2);
+    assert.deepEqual(codec.parseRootCheckpoint(state, state.root), state);
+    assert.equal(calls, 3);
+    const forged = globalThis.structuredClone(state);
+    forged.root.budget.calls++;
+    assert.throws(() => codec.parseRootCheckpoint(forged, state.root), unavailable);
+  } finally {
+    data.normalizeRecoveryCheckpointData = originalNormalize;
+    require.cache[file] = cached;
+  }
+});
+
+test('created checkpoint validation retains empty, malformed, capacity and hostile input boundaries', () => {
+  const {
+    createValidatedRootCheckpoint,
+    parseRootCheckpoint,
+  } = require('../lib/proxy/context-recovery-root-checkpoint');
+  const rejectLikeOriginal = (root, staged, publications) => {
+    let expected;
+    assert.throws(
+      () => parseRootCheckpoint(createRootCheckpoint(root, staged, publications), root),
+      (error) => {
+        expected = error;
+        return true;
+      }
+    );
+    assert.throws(
+      () => createValidatedRootCheckpoint(root, staged, publications),
+      (error) => {
+        assert.equal(error.code, expected.code);
+        assert.equal(error.message, expected.message);
+        return true;
+      }
+    );
+  };
+  for (const output of [[], '', original, 'x'.repeat(600000)]) {
+    const state = checkpoint(output);
+    const actual = createValidatedRootCheckpoint(
+      state.root,
+      state.stagedSources,
+      state.publications
+    );
+    assert.deepEqual(actual, parseRootCheckpoint(state, state.root));
+    actual.root.budget.calls++;
+    assert.notEqual(actual.root.budget.calls, state.root.budget.calls);
+  }
+  const state = checkpoint();
+  for (const change of [
+    (value) => {
+      value.root.budget.calls = -1;
+    },
+    (value) => {
+      value.root.callCount = Number.MAX_SAFE_INTEGER;
+    },
+    (value) => {
+      value.root.snapshots = [];
+    },
+    (value) => {
+      value.root.ledger.sources[0].output = 'different';
+    },
+    (value) => {
+      value.root.ledger.sources[0].output = 'x'.repeat(12 * 1024 * 1024 + 1);
+    },
+    (value) => {
+      value.stagedSources = [null];
+    },
+    (value) => {
+      value.publications = [{ snapshotId: 'hbs_' + 'a'.repeat(32), state: 'sending' }];
+    },
+  ]) {
+    const value = globalThis.structuredClone(state);
+    change(value);
+    rejectLikeOriginal(value.root, value.stagedSources, value.publications);
+  }
+  for (const root of [null, {}, undefined]) rejectLikeOriginal(root, [], []);
+  let traps = 0;
+  const hostile = globalThis.structuredClone(state.root);
+  Object.defineProperty(hostile, 'budget', {
+    enumerable: true,
+    get() {
+      traps++;
+      throw new Error('synthetic private input');
+    },
+  });
+  rejectLikeOriginal(hostile, [], []);
+  assert.equal(traps, 0);
+  const proxy = new Proxy(state.root, {
+    getOwnPropertyDescriptor() {
+      traps++;
+      throw new Error('synthetic private input');
+    },
+  });
+  rejectLikeOriginal(proxy, [], []);
+  assert.equal(traps, 0);
+  const { normalizeRecoveryCheckpointData } = require('../lib/proxy/context-recovery-state-data');
+  const inputProxy = new Proxy(
+    { root: state.root },
+    {
+      getOwnPropertyDescriptor() {
+        traps++;
+        throw new Error('synthetic private input');
+      },
+    }
+  );
+  assert.throws(() => normalizeRecoveryCheckpointData(inputProxy), {
+    message: 'invalid_context_recovery_state_data',
+  });
+  assert.equal(traps, 0);
+});
+
 test('snapshots authenticate each reference inventory once and recheck expiry and ciphertext', (t) => {
   const f = fixture();
   try {

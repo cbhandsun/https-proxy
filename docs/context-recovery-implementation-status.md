@@ -1,5 +1,27 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：恢复 hydration 重复解析候选，原持久请求期限仍待复验
+
+`ef1ee580` 的 disposable `39906224760` 已 failure：source-gates `120258696172` 的 Responses long-persistent 第 0 轮约 5009ms 触发原 5 秒期限，业务 job 跳过。独立 Verify `39906224764` 也已 failure，其他七个 job success，coverage `120258696297` 的 chat long-persistent 第 0 轮约 5011ms 失败。两路均记录四次合成上游请求；终态日志按 job ID 私有封存。已通过的 `ff05b521` 安装 mechanics 不因此撤销，也不能替代当前持久请求门禁。
+
+候选为内部 hydration 增加 createValidatedRootCheckpoint：原创建器仍执行载荷及最终信封的尺寸／结构规范化并生成摘要，随后复用外部 parser 同一个语义校验函数；外部 parser 保留原未知输入规范化、摘要验证和 expected 关联。减少对刚创建信封的重复全量解析，不缓存原文、不跳过 blob 认证、不改事务、锚点、原期限、预算或 TTL。新回归在原实现为 3 次直接信封规范化而非 2 次，先失败；候选为 2 次，外部 parser 仍再规范化并拒绝篡改摘要。空载荷、600 KB、非法预算／快照／载荷／发布、容量超限、独立副本、getter／Proxy 与原语义错误对照均验证。版本探测提前拒绝 Proxy，避免其 descriptor trap 先运行。
+
+四文件带私有原生入口 guard 的扩大回归 170/170，显式排除全部 actual encrypted worker 和 actual storage worker writes，不算实际持久资格；证据 `hydration-checkpoint-expanded-v1.log`。最终测试名称／格式小调整另按受影响项核验。600000 字节同一合成原文、同一内存 SQLite、八组正反交替各十次 snapshot 的墙钟中位数约 222.50→171.60ms、CPU 中位数 219.5→172ms；证据 `hydration-checkpoint-benchmark-v1.json`。这是局部快照微基准，不能推导磁盘／锚点或完整 5 秒请求已达标。原 I0–I5/H1、N01–N11、私有迁移、全天及生产资格保持未完成。
+
+## 2026-10-22：当前源码重建安装生命周期通过
+
+`ff05b521` 的隔离 Windows 安装 mechanics run `39905400077`／job `120256079149` 已 success。源码身份校验、基线和当前 NSIS 构建、安装／升级／回滚／卸载步骤分别 success，终态日志中精确范围回执出现一次，确认合成配置／文件及原到期字节保留。私有证据为 `hosted-job-120256079149-final.log`、`current-ff05b521-hosted-installer-v1.json`。
+
+固定基线仍为源码 `2295c452888449e9728b3ddcc2f80f31e9433e69`，两版使用合成版本覆盖；本次不上传安装器，不触碰日常安装。该成功覆盖当前源码重建的安装机制，不覆盖私有原始安装包、真实用户迁移、加密恢复／DPAPI 迁移、签名、全天任务、提供方行为或生产。`ef1ee580` 的恢复及独立 Verify 仍按原句柄跟踪；下文此前运行中描述为历史观测。完整 I0–I5/H1、N01–N11 仍未完成。
+
+## 2026-10-22：公开 Job API 的实际安全子进程回归通过，安装进入执行
+
+安装 mechanics `39905400077` 的 job `120256079149` 已完成两版 runner 源码 NSIS 构建，正在执行安装／升级／回滚／卸载；尚未取得终态。`ef1ee580` 的恢复 run `39906224760` 仍执行完整 source-gates，独立 Verify `39906224764` 另行跟踪，不重启或取消原任务。
+
+原安全子进程夹具改为直接调用导出的有界 Job API，避免模块私有作用域掩盖导出遗漏。使用实际解包 Node 执行合成子进程，原回执、输出超限、非零退出、非法 UTF-8、原期限及后代清理三项父测试通过；没有产品、持久 worker、DPAPI 或注册表调用。另补仅固定枚举的 Job 类型／创建、进程启动／分配、stdin grant、管道、期限、输出上限、退出及解码阶段诊断；不输出子进程内容、原始异常、命令或环境。六条真实合成故障严格得到 output_limit 两条、child_exit、stdout_decode、deadline 两条，私有哨兵不进入日志。最终七文件扩大回归 38/38，证据 `hosted-exported-job-expanded-v1.log`；该诊断增量尚未推送，不等同 `ef1ee580` 的托管结果。
+
+`ff05b521` 的便携 ZIP 已实际解包：清单中 536 份源码与工作树及摘要匹配，Node／原生辅助程序／锁文件匹配，便携应用 EXE 与实际构建 EXE 一致，发行目录治理和 1 NSIS／1 ZIP 摘要清单通过。证据 `current-ff05b521-portable-source-v1.json`；仍未执行本机安装器、GUI 或改动生产。全部 I0–I5/H1、N01–N11、私有迁移及全天资格继续按原范围验证。
+
 ## 2026-10-22：有界 Job 辅助函数缺少模块导出，回归修复待托管
 
 `ff05b521` 的 disposable `39904545105` 已 failure：source-gates 和网络诊断 success，两路业务失败。N08 `120256789496`、N09 `120256789510` 现均进入 owned-job 内部并记录 `bounded_child`，另有 network restore failure，不能授予业务或清理资格。日志按 job ID 私有封存。与上一源码没有 job-stage 诊断的失败不同，闭包调用已经越过函数解析边界。
