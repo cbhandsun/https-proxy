@@ -13,7 +13,7 @@ const source = fs.readFileSync(path.join(__dirname, 'helpers/physical-test-temp.
 test('client coverage canonicalizes test temp aliases before loading the original full suite', () => {
   assert.match(
     scripts['test:client:coverage'],
-    /node --require \.\/test\/helpers\/physical-test-temp\.cjs --test --test-concurrency=4 test\//
+    /node --require \.\/test\/helpers\/physical-test-temp\.cjs --test --test-concurrency=1 test\//
   );
 });
 
