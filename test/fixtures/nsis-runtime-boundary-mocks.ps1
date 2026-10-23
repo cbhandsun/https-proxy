@@ -103,6 +103,24 @@ try {
     foreach ($phaseCode in @(64, 69, 72, 73, 84, 85, 86, 94, 95, 96, 97, 98, 99, 100, 101)) {
         Refuses { Invoke-Child ("process.stderr.write('PRIVATE_CHILD_SENTINEL');process.exit(" + $phaseCode + ');') }
     }
+    foreach ($primary in @(80, 97)) {
+        Refuses { Invoke-Child ("process.stderr.write('n09_owned_entry_rejected\nn09_primary_phase=" + $primary + "\n');process.exit(98);") }
+    }
+    & $module {
+        foreach ($phase in @(73, 84, 86, 96)) {
+            $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected`nn09_primary_phase=$phase`n")
+            if ((ConvertFrom-HpmOwnedFailurePhase $bytes) -ne $phase) { throw 'Valid phase rejected.' }
+        }
+        foreach ($text in @('', 'PRIVATE_CHILD_SENTINEL', ('x' * 81),
+            "n09_owned_entry_rejected`nn09_primary_phase=85`n",
+            "n09_owned_entry_rejected`nn09_primary_phase=97`n",
+            "n09_owned_entry_rejected`nn09_primary_phase=80`nPRIVATE_CHILD_SENTINEL",
+            "n09_owned_entry_rejected`nn09_primary_phase=80`nn09_primary_phase=81`n")) {
+            if ($null -ne (ConvertFrom-HpmOwnedFailurePhase ([Text.Encoding]::UTF8.GetBytes($text)))) { throw 'Invalid phase accepted.' }
+        }
+        if ($null -ne (ConvertFrom-HpmOwnedFailurePhase ([byte[]]@(255)))) { throw 'Invalid UTF8 accepted.' }
+        if ($null -ne (ConvertFrom-HpmOwnedFailurePhase $null)) { throw 'Null phase accepted.' }
+    }
     Refuses { Invoke-Child "process.stdout.write(Buffer.from([255]));" }
     Refuses { Invoke-Child "setInterval(()=>{},1000);" 1500 }
     Refuses { Invoke-Child "const child=require('node:child_process').spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit',windowsHide:true});require('node:fs').writeFileSync(process.env.HPM_CHILD_PID_FILE,String(child.pid));setInterval(()=>{},1000);" 2000 }

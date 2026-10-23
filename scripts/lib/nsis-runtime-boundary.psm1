@@ -23,6 +23,18 @@ function ConvertFrom-HpmRuntimeBoundaryResult {
     } catch { throw 'Runtime boundary result rejected.' } finally { if ($null -ne $document) { $document.Dispose() } }
 }
 
+function ConvertFrom-HpmOwnedFailurePhase {
+    param([byte[]]$Bytes)
+    # Optional finite diagnostics only. Invalid input yields no disclosure, and
+    # the caller still rejects the failed child regardless of this result.
+    if ($null -eq $Bytes -or $Bytes.Length -gt 80) { return $null }
+    try { $text = [Text.UTF8Encoding]::new($false, $true).GetString($Bytes) } catch { return $null }
+    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2})\n\z') { return $null }
+    $phase = [int]$Matches[1]
+    if (($phase -ge 73 -and $phase -le 84) -or ($phase -ge 86 -and $phase -le 96)) { return $phase }
+    return $null
+}
+
 function Invoke-HpmBoundedRuntimeChild {
     param([Diagnostics.ProcessStartInfo]$StartInfo, [ValidateRange(100, 120000)][int]$TimeoutMilliseconds = 120000)
     $process = [Diagnostics.Process]::new()
@@ -31,6 +43,7 @@ function Invoke-HpmBoundedRuntimeChild {
     $started = $false
     $failure = $false
     $memory = [IO.MemoryStream]::new()
+    $diagnosticMemory = [IO.MemoryStream]::new()
     $boundaryStage = 'job_type'
     try {
         if (-not ('HpmRuntimeBoundaryJob' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'nsis-runtime-boundary-job.cs') -ErrorAction Stop }
@@ -70,6 +83,7 @@ function Invoke-HpmBoundedRuntimeChild {
                     }
                     if ($count -eq 0) { $item.ended = $true } else {
                         if ($item.output) { $memory.Write($item.buffer, 0, $count) }
+                        else { $diagnosticMemory.Write($item.buffer, 0, $count) }
                         $item.task = $item.stream.ReadAsync($item.buffer, 0, $item.buffer.Length)
                     }
                 }
@@ -86,6 +100,12 @@ function Invoke-HpmBoundedRuntimeChild {
                 $childExitCode = [string]$process.ExitCode
             }
             Write-Information ('hpm_runtime_child_exit_code=' + $childExitCode) -InformationAction Continue
+            if ($process.ExitCode -ge 98 -and $process.ExitCode -le 100) {
+                $primaryPhase = ConvertFrom-HpmOwnedFailurePhase $diagnosticMemory.ToArray()
+                if ($null -ne $primaryPhase) {
+                    Write-Information ('hpm_runtime_child_primary_phase=' + $primaryPhase) -InformationAction Continue
+                }
+            }
             throw 'invalid'
         }
         $boundaryStage = 'stdout_decode'
@@ -105,6 +125,7 @@ function Invoke-HpmBoundedRuntimeChild {
             } catch { $failure = $true }
         }
         $memory.Dispose()
+        $diagnosticMemory.Dispose()
         $process.Dispose()
     }
     if ($failure) { throw 'Runtime boundary child failed.' }

@@ -9,6 +9,7 @@ const { types } = require('node:util');
 const fail = () => new Error('n09_owned_entry_rejected');
 // 64..72 entry, 73..84 composition, 86..96 probes, 98..100 cleanup. No error data.
 let failureExitCode = 64;
+let primaryFailurePhase = 64;
 function verifyPinnedClosure(pins, roots, dynamicTargets = []) {
   if (
     !pins ||
@@ -196,6 +197,7 @@ async function main() {
     )
       throw fail();
     failureExitCode = phase;
+    if (phase < 98) primaryFailurePhase = phase;
   });
   failureExitCode = 72;
   if (
@@ -240,6 +242,8 @@ async function main() {
 if (require.main === module)
   main().catch(() => {
     process.stderr.write('n09_owned_entry_rejected\n');
+    if (failureExitCode >= 98 && failureExitCode <= 100)
+      process.stderr.write('n09_primary_phase=' + primaryFailurePhase + '\n');
     process.exitCode = failureExitCode;
   });
 module.exports = { verifyPinnedClosure };
