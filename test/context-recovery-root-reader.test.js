@@ -13,6 +13,7 @@ const {
   exportContextRecoveryRootMetadata,
   restoreContextRecoverySessions,
   attachContextRecoveryReaderStorage,
+  attachContextRecoveryStorage,
 } = require('../lib/proxy/context-recovery-sessions');
 const { runContextRecovery } = require('../lib/proxy/context-recovery-runner');
 const {
@@ -231,7 +232,8 @@ function pagedStorage(
   incremental = false,
   references = false,
   referenceStates = false,
-  admission = false
+  admission = false,
+  publication = false
 ) {
   const database = new DatabaseSync(':memory:');
   const store = createRecoverySqliteStore({
@@ -250,7 +252,8 @@ function pagedStorage(
   if (references) declareRecoveryReferenceWrites(adapter.execute);
   if (referenceStates) declareRecoveryReferenceStates(adapter.execute);
   if (admission) declareRecoveryReferenceAdmission(adapter.execute);
-  f.attach(adapter);
+  if (publication) attachContextRecoveryStorage(f.runtime, adapter);
+  else f.attach(adapter);
   return {
     operations,
     adapter,
@@ -317,7 +320,9 @@ test('N09 isolated generation completes actual retained reads before independent
   const original = 'N09_PRIVATE_CONTENT synthetic ' + 'synthetic-evidence '.repeat(256);
   for (const durable of [false, true]) {
     const f = fixture({ kind: 'responses', output: original });
-    const storage = durable ? pagedStorage(f, undefined, true, false, true) : undefined;
+    const storage = durable
+      ? pagedStorage(f, undefined, true, false, true, false, true)
+      : undefined;
     let dispatches = 0;
     let source;
     try {
@@ -380,6 +385,23 @@ test('N09 isolated generation completes actual retained reads before independent
       assert.equal(result.calls, 2);
       assert.equal(result.usage.length, 4);
       assert.ok(!JSON.stringify(result.response).includes(original));
+      const {
+        encodeContextRecoveryClientWire,
+      } = require('../lib/proxy/context-recovery-client-wire');
+      const { decodeContextRecoveryResponse } = require('../lib/proxy/context-recovery-protocol');
+      const encoded = encodeContextRecoveryClientWire(
+        'responses',
+        result.response,
+        result.usage,
+        false
+      );
+      const decoded = decodeContextRecoveryResponse('responses', encoded.wire, false);
+      assert.deepEqual(
+        await f.view.completeAsync(decoded.output, decoded.calls, decoded.responseId),
+        { ok: true }
+      );
+      assert.deepEqual(await f.view.startPublicationAsync(), { ok: true });
+      assert.deepEqual(await f.view.finishPublicationAsync(), { ok: true });
     } finally {
       f.close();
       storage?.close();

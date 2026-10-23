@@ -283,7 +283,12 @@ test('Codex receipt binds exact Unicode summary, rejects tampering, duplicates a
     assert.equal(sealCodexSummaryResponse(value), null);
 });
 
-function fixture(startTime = 1000, omitSummaryTools = false, inlineTools = false) {
+function fixture(
+  startTime = 1000,
+  omitSummaryTools = false,
+  inlineTools = false,
+  original = 'Exact original 中文🙂 content'
+) {
   let time = startTime;
   let runtime = createContextRecoverySessions({ now: () => time });
   runtime.configure(true);
@@ -347,7 +352,6 @@ function fixture(startTime = 1000, omitSummaryTools = false, inlineTools = false
     ).ok,
     true
   );
-  const original = 'Exact original 中文🙂 content';
   const summaryBody = wireBody(
     [
       ...initial.input,
@@ -909,5 +913,185 @@ test('actual HTTP recovery boundary publishes local-summary receipts for JSON an
     } finally {
       f.runtime.close();
     }
+  }
+});
+
+test('restored Codex summary completes isolated READ and encrypted public publication', async () => {
+  const { DatabaseSync } = require('node:sqlite');
+  const { randomBytes } = require('node:crypto');
+  const { createRecoverySqliteStore } = require('../lib/proxy/context-recovery-storage-sqlite');
+  const {
+    attachContextRecoveryStorage,
+    exportContextRecoveryRootMetadata,
+  } = require('../lib/proxy/context-recovery-sessions');
+  const { validateRecoveryRootMetadata } = require('../lib/proxy/context-recovery-root-state');
+  const { runContextRecovery } = require('../lib/proxy/context-recovery-runner');
+  const { encodeContextRecoveryClientWire } = require('../lib/proxy/context-recovery-client-wire');
+  const database = new DatabaseSync(':memory:');
+  const storage = createRecoverySqliteStore({
+    database,
+    dataKey: randomBytes(32).toString('base64'),
+    now: () => 10000,
+  });
+  const f = fixture(
+    1000,
+    false,
+    false,
+    'N09_PRIVATE_CONTENT synthetic ' + 'synthetic-evidence '.repeat(256)
+  );
+  let dispatches = 0;
+  try {
+    const compact = f.begin(f.summaryBody);
+    const summary = compact.recovery(f.summaryBody).accept(response('summary for restored owner'));
+    assert.equal(summary.mode, 'release');
+    assert.equal(compact.complete(summary.output, [], summary.response.id).ok, true);
+    f.reopen();
+    attachContextRecoveryStorage(f.runtime, storage);
+    const continuedBody = f.body(echo(summary));
+    const next = f.begin(continuedBody);
+    assert.equal(next.ok, true, next.code);
+    const run = next.recovery(continuedBody, { publicGeneration: 'isolated' });
+    const result = await runContextRecovery({
+      kind: 'responses',
+      session: { recovery: () => run },
+      dispatch(request) {
+        const output = response('private completion', 'restored-round-' + dispatches);
+        if (dispatches < 2) {
+          let args = { limit: 1 };
+          if (dispatches === 1) {
+            const index = JSON.parse(request.input.at(-1).output);
+            assert.equal(index.ok, true);
+            assert.equal(index.sources.length, 1);
+            args = {
+              sourceId: index.sources[0].sourceId,
+              digest: index.sources[0].digest,
+              offsetBytes: 0,
+              limitBytes: 8192,
+            };
+          }
+          output.output = [
+            {
+              type: 'function_call',
+              call_id: dispatches === 0 ? 'index' : 'page',
+              name: dispatches === 0 ? LIST : READ,
+              arguments: JSON.stringify(args),
+            },
+          ];
+        } else if (dispatches === 2) {
+          assert.equal(JSON.parse(request.input.at(-1).output).page.text, f.original);
+        } else {
+          assert.equal(dispatches, 3);
+          assert.ok(JSON.stringify(request).includes(f.original));
+          assert.ok(!(request.tools ?? []).some((tool) => [LIST, READ].includes(tool.name)));
+          output.output[0].content[0].text = 'public restored answer';
+        }
+        dispatches++;
+        return { statusCode: 200, wire: Buffer.from(JSON.stringify(output)), stream: false };
+      },
+    });
+    assert.equal(result.ok, true, result.code);
+    assert.equal(dispatches, 4);
+    const encoded = encodeContextRecoveryClientWire(
+      'responses',
+      result.response,
+      result.usage,
+      false
+    );
+    const decoded = decodeContextRecoveryResponse('responses', encoded.wire, false);
+    assert.deepEqual(await next.completeAsync(decoded.output, decoded.calls, decoded.responseId), {
+      ok: true,
+    });
+    assert.deepEqual(await next.startPublicationAsync(), { ok: true });
+    assert.deepEqual(await next.finishPublicationAsync(), { ok: true });
+    assert.ok(!encoded.wire.includes(Buffer.from(LIST)));
+    assert.ok(!encoded.wire.includes(Buffer.from(READ)));
+    const stream = encodeContextRecoveryClientWire(
+      'responses',
+      result.response,
+      result.usage,
+      true
+    );
+    assert.deepEqual(
+      decodeContextRecoveryResponse('responses', stream.wire, true).output,
+      decoded.output
+    );
+    assert.ok(!stream.wire.includes(Buffer.from(LIST)));
+    assert.ok(!stream.wire.includes(Buffer.from(READ)));
+    const state = exportContextRecoveryRootMetadata(f.runtime, f.first.snapshotId);
+    assert.doesNotThrow(() => validateRecoveryRootMetadata(state));
+    const answerIndex = state.metadata.snapshots.findIndex((view) => view.publicResponse);
+    const summaryIndex = state.metadata.binding.snapshots.findIndex((view) =>
+      Object.hasOwn(view, 'summaryResponseKey')
+    );
+    assert.ok(answerIndex >= 0);
+    assert.ok(summaryIndex >= 0);
+    assert.equal(state.metadata.binding.snapshots[answerIndex].window.kind, 'summary');
+    assert.equal(state.metadata.snapshots[answerIndex].pendingReady, true);
+    const mappingId = state.metadata.snapshots[answerIndex].mappingId;
+    const entryIndex = state.metadata.history.entries.findIndex((entry) => entry.id === mappingId);
+    assert.ok(entryIndex >= 0);
+    for (const mutate of [
+      (value) => {
+        value.metadata.snapshots[summaryIndex].publicResponse = true;
+      },
+      (value) => {
+        value.metadata.binding.snapshots[answerIndex].responseKey = null;
+      },
+      (value) => {
+        value.metadata.binding.snapshots[answerIndex].window.kind = 'compaction';
+      },
+      (value) => {
+        value.metadata.history.entries[entryIndex].window.scope = 'a'.repeat(64);
+      },
+      (value) => {
+        value.metadata.history.entries[entryIndex].window.frontier = 'b'.repeat(64);
+      },
+      (value) => {
+        value.metadata.history.entries[entryIndex].window.publishedFrontier = 'c'.repeat(64);
+      },
+      (value) => {
+        value.metadata.history.entries[entryIndex].window.count++;
+      },
+      (value) => {
+        value.metadata.history.entries[entryIndex].offset++;
+      },
+      (value) => {
+        value.metadata.history.entries[entryIndex].parentId =
+          value.metadata.history.entries[entryIndex].id;
+      },
+    ]) {
+      const invalid = JSON.parse(JSON.stringify(state));
+      mutate(invalid);
+      assert.throws(() => validateRecoveryRootMetadata(invalid));
+    }
+    const scope = database.prepare('SELECT scope FROM recovery_state').get().scope;
+    const saved = storage.execute({ operation: 'load', scope });
+    const reopened = restoreContextRecoverySessions({ now: () => 1002 }, [
+      { binding: f.initialRequest, state: saved.state.root },
+    ]);
+    try {
+      const followingBody = {
+        ...f.body([user('continue after public publication')]),
+        previous_response_id: result.response.id,
+      };
+      const following = beginContextRecoveryRequest(reopened, {
+        auth: f.auth,
+        prepared: f.prepared,
+        kind: 'responses',
+        buffer: Buffer.from(JSON.stringify(followingBody)),
+      });
+      assert.equal(following.ok, true, following.code);
+      assert.equal(following.recovery(followingBody, { publicGeneration: 'isolated' }).ok, true);
+      assert.equal(
+        exportContextRecoveryRoot(reopened, f.first.snapshotId).expiresAt,
+        state.metadata.expiresAt
+      );
+    } finally {
+      reopened.close();
+    }
+  } finally {
+    f.runtime.close();
+    storage.close();
+    database.close();
   }
 });
