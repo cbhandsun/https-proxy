@@ -13,6 +13,7 @@ const { createN09BusinessAdapter } = require('../n09-business/business-adapter.j
 const { runCommittedObservedKill } = require('../n09-snapshot/committed-observed-driver.js');
 const { runClearAfterAck } = require('../n09-ipc/driver.js');
 const { buildHostedLifecycle, createHostedLifecycleSpawn } = require('./hosted-lifecycle.js');
+const { buildN09AckController } = require('../n09-ack/bootstrap-controller');
 const fail = () => new Error('n09_hosted_composition_rejected');
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const hex = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -128,11 +129,16 @@ async function composeHostedN09(input) {
       },
       listener
     );
-    const controller = buildHostedController({
+    const controller = buildN09AckController({
       candidate: options.candidate,
-      ownedRoot: options.ownedRoot,
-      sourcePins: options.controllerPins,
-      caSha256: options.caSha256,
+      loadedPins: options.loadedPins,
+      manifestSha256: options.manifestSha256,
+      controller: buildHostedController({
+        candidate: options.candidate,
+        ownedRoot: options.ownedRoot,
+        sourcePins: options.controllerPins,
+        caSha256: options.caSha256,
+      }),
     });
     const lifecycle = buildHostedLifecycle({
       ownedRoot: options.ownedRoot,

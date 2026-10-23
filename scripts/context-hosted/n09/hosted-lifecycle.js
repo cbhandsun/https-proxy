@@ -60,10 +60,26 @@ function buildHostedLifecycle(input) {
       "(Join-Path (Split-Path $script:N09ControllerPath) 'context-recovery-daemon-start-gate.cjs')";
     if (original.split(gateBefore).length !== 2) throw fail();
     const gateAfter = "'" + gate.replaceAll("'", "''") + "'";
+    const releaseBefore =
+      "Release = { param($o) $o.process.StandardInput.Write('1'); $o.process.StandardInput.Close() }";
+    if (original.split(releaseBefore).length !== 2) throw fail();
+    const releaseAfter = `Release = { param($o)
+            & $Lease.controller { param($r, $c, $p, $t, $s) Initialize-HpmN09AckBootstrap $r $c $p $t $s } $Lease.root $o.process.StartInfo.Environment['HPM_DAEMON_OWNED_CASE_ROOT'] $o.process.Id $Lease.token $Lease.manifest
+            $o.process.StandardInput.Write('1'); $o.process.StandardInput.Close()
+        }`;
+    const envBefore = "    foreach ($pair in @(@('USERPROFILE', 'home')";
+    if (original.split(envBefore).length !== 2) throw fail();
+    const envAfter =
+      "    $expected['NODE_EXTRA_CA_CERTS'] = Join-Path $Lease.root 'n08-hosted-network/ca.pem'\n" +
+      envBefore;
     const copies = {
       ...originals,
       'same-directory-restart.psm1': Buffer.from(
-        original.replace(before, after).replace(gateBefore, gateAfter)
+        original
+          .replace(before, after)
+          .replace(gateBefore, gateAfter)
+          .replace(releaseBefore, releaseAfter)
+          .replace(envBefore, envAfter)
       ),
     };
     const outputRoot = path.join(options.ownedRoot, 'n09-hosted-lifecycle');

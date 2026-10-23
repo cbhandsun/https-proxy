@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：启动门与重启控制器已接入宿主观察器，业务确认消费仍待接入
+
+新增 bootstrap 合约、固定宿主安装器与纯控制器转换器。专用托管 N09 控制器在原 Job.Assign 成功后、原 stdin grant 前写入不可覆盖的 `bootstrap-<pid>.json`；同目录重启在同一位置按新 PID 写新 epoch。文件只包含源码 pins、身份与 HMAC，不写 token 或派生通道密钥。PowerShell 使用原合成 management token 签名，Node 按独立域派生 mailbox key；真实 PowerShell 的模拟文件用例验证了双方 JSON 顺序、UTF8／ASCII、签名及派生结果一致。重放写入失败且原计划不变。
+
+启动门对无计划保持原行为；有目录却缺少当前 PID 计划时拒绝。加载任何 ACK helper 前先核签名、逐文件哈希、相对路径及完整传递依赖闭包；动态加载仅允许精确 `host-install.js` 中两处固定已安装 ACK／lifecycle 模块，其他动态 require 仍拒绝。host-install 在加载前拒绝暖 cache，加载 lifecycle 后再次确认 root-storage 尚未加载，再安装观察器。缺失依赖、签名／来源变化、异身份、非法／超限字节、hardlink、恶意 getter、初始 warm cache 与 lifecycle 提前导入 root-storage 均有纯回归。合成安装模块使用真实内存 sessions 与 ACK producer，不建立持久存储或 native worker；关闭观察器不代替真实 shutdown。
+
+全部托管基础设施、原控制器与安装 PowerShell wrapper 扩大回归 **351/351**，零失败／取消／跳过，证据 `n09-bootstrap-expanded-v1.log`。随后补充的 hardlink／字节边界及提前导入路径按两文件复验 **6/6**，证据 `n09-bootstrap-extra-boundaries-v1.log`；两组计数不累加冒充一次完整运行。完整候选闭包离线核验 97 文件；ESLint、格式及 CI／release governance 通过。没有运行本机原生存储、DPAPI、注册表、真实 daemon 或真实模型。源码尚未取得新 hosted 运行资格。
+
+剩余接线是 lifecycle client 私下验证 bootstrap 并创建 mailbox client、业务适配器 arm → 实际恢复请求 → 签名 ACK、确认后立即强杀及同目录新 PID 复验、原始 revokeAsync 的最终确认消费。现有 committed/clear 场景不被替换成保存／撤权证明，N09 完整资格、全天容量、私有迁移及生产启用继续为未完成。
+
 ## 2026-10-22：签名私有通道与生命周期适配已回归，安装 mechanics 托管通过
 
 新增固定文件名的 N09 mailbox：命令、armed 控制信号、最终回执与失败信号分域签名，绑定 PID／epoch／递增序号；完整 JSON 写入并 fsync 后才发布空 ready 标记。拒绝路径选择、硬链接、目录替换、未知 getter、重放、覆盖与非法完成结果。armed 仅表示已开始观察，不能作为持久化确认。runtime-hooks 先包原始 ACK producer，再包 lifecycle factory；仅绑定目标持久目录的真实 sessions，原 shutdownAsync 严格成功后才允许替换生命周期，全进程序号不重置。close 恢复自有描述符，不代替真实生命周期关闭。

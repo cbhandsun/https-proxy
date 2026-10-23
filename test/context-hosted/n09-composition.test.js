@@ -73,6 +73,17 @@ test('hosted lifecycle pins the same original gate as the controller and rejects
               "(Join-Path (Split-Path $script:N09ControllerPath) 'context-recovery-daemon-start-gate.cjs')",
               "'" + gate.replaceAll("'", "''") + "'"
             )
+            .replace(
+              "Release = { param($o) $o.process.StandardInput.Write('1'); $o.process.StandardInput.Close() }",
+              `Release = { param($o)
+            & $Lease.controller { param($r, $c, $p, $t, $s) Initialize-HpmN09AckBootstrap $r $c $p $t $s } $Lease.root $o.process.StartInfo.Environment['HPM_DAEMON_OWNED_CASE_ROOT'] $o.process.Id $Lease.token $Lease.manifest
+            $o.process.StandardInput.Write('1'); $o.process.StandardInput.Close()
+        }`
+            )
+            .replace(
+              "    foreach ($pair in @(@('USERPROFILE', 'home')",
+              "    $expected['NODE_EXTRA_CA_CERTS'] = Join-Path $Lease.root 'n08-hosted-network/ca.pem'\n    foreach ($pair in @(@('USERPROFILE', 'home')"
+            )
         );
       }
     }

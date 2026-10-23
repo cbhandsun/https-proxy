@@ -89,8 +89,13 @@ test('preload identity guard leaves main argv and module loader intact in an off
     process: runtime,
     require(name) {
       if (name === 'node:path') return path;
+      if (name === 'node:crypto') return require('node:crypto');
+      if (name === 'node:module') return require('node:module');
       if (name === 'node:fs')
         return {
+          lstatSync() {
+            throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+          },
           writeSync(fd, marker) {
             assert.equal(fd, 2);
             markers.push(marker);
@@ -122,7 +127,11 @@ test('preload identity guard leaves main argv and module loader intact in an off
   assert.equal(verified, true);
   assert.deepEqual(markers, ['HPM_GATE_ENTERED\n', 'HPM_GATE_PASSED\n']);
   assert.deepEqual(runtime.argv, originalArgv);
-  assert.deepEqual(Object.keys(fakeModule.exports).sort(), ['readGate', 'verifyGateIdentity']);
+  assert.deepEqual(Object.keys(fakeModule.exports).sort(), [
+    'readGate',
+    'verifyGateIdentity',
+    'verifyN09Bootstrap',
+  ]);
   for (const bad of [
     { ...runtime, execArgv: [] },
     { ...runtime, argv: [] },
@@ -151,6 +160,8 @@ test('lightweight: failed parallel verification prevents main entry without seri
         process: runtime,
         require(name) {
           if (name === 'node:path') return path;
+          if (name === 'node:crypto') return require('node:crypto');
+          if (name === 'node:module') return require('node:module');
           if (name === 'node:fs')
             return {
               writeSync: (fd, marker) => markers.push(marker),

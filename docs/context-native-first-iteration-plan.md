@@ -1,5 +1,9 @@
 # 客户端原生优先与可选精确恢复：方案及迭代计划
 
+## 2026-10-22：真实宿主启动接线的合成回归通过
+
+N09 专用控制器已接入首次启动／同目录重启的签名 bootstrap，Job 分配后才写当前 PID 计划并放行；启动门核验全闭包后才安装实际 ACK／lifecycle exports 的观察器。扩大回归 351/351，另补边界按受影响文件复验，尚未获得新 hosted 资格。业务适配器的签名确认消费、确认后立即强杀、真实撤权与重开验收仍待完成。原 I0–I5/H1、N01–N11、性能／全天容量、私有迁移和生产启用范围不缩减，详见[实施状态](context-recovery-implementation-status.md)。
+
 ## 2026-10-22：安装 mechanics 托管通过，真实宿主确认通道仍在接线
 
 `0a6934b1` 的托管 Windows 安装／升级／回滚／卸载与合成文件保留已通过（run `39883291573`），范围限 runner 源码重建安装器。新增 N09 签名私有文件通道与 lifecycle hook 的扩大回归 332/332，通过且零失败／取消／跳过；gate／controller／实际安装模块来源校验与 daemon adapter 仍未接通，不能授予完整 N09。该源码独立 Verify 与 disposable source-gates 均失败，分别存在 Responses 请求期限、Claude 发布确认期限及临时复制可执行文件清理 EBUSY，运行矩阵未获得资格。I0–I5/H1、N01–N11、私有旧安装包迁移、全天容量及生产启用原范围保留，详见[实施状态](context-recovery-implementation-status.md)。

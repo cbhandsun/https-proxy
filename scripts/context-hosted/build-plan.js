@@ -106,6 +106,14 @@ function collectClosure(roots, dynamicTargets) {
     let source = data.toString('utf8');
     if (!Buffer.from(source).equals(data)) throw fail();
     source = source.replace(
+      /\brequire\s*\(\s*path\.join\s*\(\s*options\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:durable-ack|lifecycle)\.js\1\s*\)\s*\)/g,
+      () => {
+        if (file !== path.resolve(__dirname, 'n09-ack/host-install.js')) throw fail();
+        // Gate verifies the full installed manifest before these fixed imports.
+        return '';
+      }
+    );
+    source = source.replace(
       /\brequire\s*\(\s*path\.join\s*\(\s*options\.candidate\s*,\s*(['"])scripts\/lib\/context-recovery-daemon-owned-(?:transport|adapter)\.js\1\s*\)\s*\)/g,
       () => {
         if (path.basename(file) !== 'observed-composition.js' || dynamicTargets.length !== 2)
@@ -244,9 +252,19 @@ function buildHostedReviewPlan(input) {
           executionRoot,
           options.scenario === 'n08' ? 'observed-composition.js' : 'composition.js'
         ),
+        ...(options.scenario === 'n09'
+          ? [
+              path.join(__dirname, 'n09-ack/host-install.js'),
+              path.join(__dirname, 'n09-ack/bootstrap-contract.js'),
+            ]
+          : []),
       ],
       dynamicTargets
     );
+    if (options.scenario === 'n09') {
+      const writer = path.join(__dirname, 'n09-ack/write-bootstrap.psm1');
+      loadedPins[writer] = fileHash(writer);
+    }
     for (const [file, expected] of Object.entries(loadedPins)) {
       const relative = path.relative(candidate, file).split(path.sep).join('/').toLowerCase();
       if (identityPins.get(relative) !== expected) throw fail();

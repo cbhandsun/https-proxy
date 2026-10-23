@@ -48,6 +48,13 @@ function verifyPinnedClosure(pins, roots, dynamicTargets = []) {
     if (file.endsWith('.json')) continue;
     let code = source.toString('utf8');
     code = code.replace(
+      /\brequire\s*\(\s*path\.join\s*\(\s*options\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:durable-ack|lifecycle)\.js\1\s*\)\s*\)/g,
+      () => {
+        if (file !== path.resolve(__dirname, '../n09-ack/host-install.js')) throw fail();
+        return '';
+      }
+    );
+    code = code.replace(
       /\brequire\s*\(\s*path\.join\s*\(\s*options\.candidate\s*,\s*(['"])scripts\/lib\/context-recovery-daemon-owned-(?:transport|adapter)\.js\1\s*\)\s*\)/g,
       () => {
         if (path.basename(file) !== 'observed-composition.js' || dynamicTargets.length !== 2)
@@ -148,7 +155,12 @@ async function main() {
     )
       throw fail();
   }
-  verifyPinnedClosure(parsed.loadedPins, [__filename, path.join(__dirname, 'composition.js')]);
+  verifyPinnedClosure(parsed.loadedPins, [
+    __filename,
+    path.join(__dirname, 'composition.js'),
+    path.resolve(__dirname, '../n09-ack/host-install.js'),
+    path.resolve(__dirname, '../n09-ack/bootstrap-contract.js'),
+  ]);
   const { exact } = require('../shared/boundary.js');
   const plan = exact(parsed, [
     'candidate',
