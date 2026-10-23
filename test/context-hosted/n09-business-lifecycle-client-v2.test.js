@@ -548,7 +548,7 @@ test('post-startup failures identify config read, save, readback or health inste
     ['combination', 'save', 117],
     ['combination', 'readback', 118],
     ['attest', 'read', 116],
-    ['attest', 'health', 119],
+    ['attest', 'health', 190],
   ]) {
     const phases = [];
     let armed = false,
@@ -678,6 +678,36 @@ test('fixed synthetic configuration uses private management and owner port with 
   assert.equal(f.state.requests.filter((value) => value.method === 'POST').length, writes);
   await f.client.close();
 });
+test('restart attestation waits for explicit pending storage application without rewriting config', async (t) => {
+  let restarting = false,
+    probes = 0;
+  const f = fixture(t, (stage, value, state) => {
+    if (!restarting || stage !== 'http' || state.requests.at(-1).path !== '/v1/local/health')
+      return;
+    probes++;
+    if (probes <= 2)
+      Object.assign(value.contextRecovery, {
+        configValid: true,
+        requestedEnabled: true,
+        appliedEnabled: false,
+        state: 'pending_application',
+        storage: 'persistent',
+      });
+  });
+  try {
+    const first = await f.client.startLifecycle();
+    await f.client.configureSyntheticBusiness(first, synthetic());
+    await f.client.stopLifecycle(first);
+    const next = await f.client.restartLifecycle(first);
+    restarting = true;
+    assert.equal((await f.client.attestSyntheticBusiness(next)).ready, true);
+    assert.equal(probes, 3);
+    assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 1);
+  } finally {
+    await f.client.close();
+  }
+});
+
 test('both configuration and restart attestation reject altered effective default profiles', async (t) => {
   for (const stage of ['configure', 'attest']) {
     for (const change of ['extra', 'duplicate', 'credential', 'target']) {

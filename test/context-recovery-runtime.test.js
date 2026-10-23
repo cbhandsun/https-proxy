@@ -655,6 +655,34 @@ test('late enable cannot overtake disable while actual session storage discovery
   }
 });
 
+test('management projection reports pending application until actual persistent catalog startup completes', async () => {
+  const { createContextRecoveryDiagnostics } = require('../lib/proxy/context-recovery-diagnostics');
+  const opening = deferred();
+  const f = fixture({
+    beforeExecute: (request, next) =>
+      request.operation === 'catalog' ? opening.promise.then(next) : next(),
+  });
+  try {
+    const diagnostics = createContextRecoveryDiagnostics();
+    assert.equal(diagnostics.attachLifecycle(f.runtime), true);
+    const config = settings(true, true);
+    f.runtime.configureSettings(config);
+    await flush();
+    const pending = diagnostics.inspect(config);
+    assert.equal(pending.configValid, true);
+    assert.equal(pending.requestedEnabled, true);
+    assert.equal(pending.appliedEnabled, false);
+    assert.equal(pending.state, 'pending_application');
+    opening.resolve();
+    assert.deepEqual(await f.runtime.ready(), { ok: true });
+    assert.equal(diagnostics.inspect(config).appliedEnabled, true);
+    assert.equal(diagnostics.inspect(config).storage, 'persistent');
+  } finally {
+    opening.resolve();
+    await f.close();
+  }
+});
+
 test('newer retention settings win during opening and repeated requests do not create extra owners', async () => {
   const opening = deferred();
   const f = fixture({
