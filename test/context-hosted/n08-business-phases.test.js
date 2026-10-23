@@ -78,7 +78,7 @@ function fixture() {
 test('N08 observer accepts only fixed phase codes and discloses no supplied failure details', () => {
   const phases = [],
     observe = createN08PhaseObserver((value) => phases.push(value));
-  for (const value of [71, 86, 96, ...Array.from({ length: 56 }, (_, i) => i + 140)])
+  for (const value of [71, 86, 96, ...Array.from({ length: 61 }, (_, i) => i + 140)])
     observe(value);
   for (const value of [
     undefined,
@@ -94,11 +94,11 @@ test('N08 observer accepts only fixed phase codes and discloses no supplied fail
     97,
     130,
     139,
-    196,
+    201,
     Number.MAX_SAFE_INTEGER,
   ])
     assert.throws(() => observe(value), /^Error: n08_phase_observer_rejected$/);
-  assert.equal(phases.length, 59);
+  assert.equal(phases.length, 64);
   assert.throws(
     () =>
       createN08PhaseObserver(() => {
@@ -164,14 +164,16 @@ test('N08 failures retain their business phase while both cleanup operations sti
   assert.deepEqual(f.events, ['stop', 'close-0']);
 });
 
-function scenarioFixture(observer, secondStatus = 200) {
+function scenarioFixture(observer, secondStatus = 200, initialConfig) {
   const filename = path.resolve(__dirname, '../../scripts/context-hosted/n08/business-scenario.js');
   const localRequire = createRequire(filename),
     loaded = { exports: {} };
   const nonce = 'a'.repeat(32),
     requests = [];
   let sends = 0,
-    config = { _revision: 'r1', appSettings: {} };
+    config = initialConfig
+      ? { ...globalThis.structuredClone(initialConfig), _revision: 'r1' }
+      : { _revision: 'r1', appSettings: {} };
   const reply = (output) => ({
     status: 200,
     bytes: Buffer.from(JSON.stringify({ object: 'response', status: 'completed', output })),
@@ -255,6 +257,24 @@ test('N08 management, seed and snapshot phases retain all original requests and 
   assert.equal(result.state.phase, 'ready');
 });
 
+test('N08 synthetic save from product defaults satisfies the real configuration validator', async () => {
+  const { DEFAULT_CONFIG } = require('../../lib/proxy/config');
+  const { validateConfig } = require('../../lib/proxy/validator');
+  const f = scenarioFixture(undefined, 200, DEFAULT_CONFIG);
+  const request = f.value.owner.request;
+  let checked = 0;
+  f.value.owner.request = async (input) => {
+    if (input.method === 'POST') {
+      const result = validateConfig(input.body);
+      assert.equal(result.valid, true, result.errors.join(','));
+      checked++;
+    }
+    return request(input);
+  };
+  await f.scenario.configureAndSeed(f.value);
+  assert.equal(checked, 1);
+});
+
 test('N08 config save distinguishes deadline, transport, HTTP and receipt failure before readback', async () => {
   for (const [kind, expected] of [
     ['deadline', 185],
@@ -293,6 +313,33 @@ test('N08 observer failure at every seed stage prevents later phases and stays f
       /^Error: n08_phase_observer_rejected$/
     );
     assert.equal(phases.at(-1), failed);
+  }
+});
+
+test('N08 HTTP 400 save reports only a fixed cause and never continues or repeats writes', async () => {
+  for (const [body, expected] of [
+    [{ error: 'Invalid configuration: PRIVATE_SENTINEL' }, 196],
+    [{ error: 'secret_encryption_failed' }, 197],
+    [{ error: 'secret_decryption_failed' }, 198],
+    [{ error: 'PRIVATE_SENTINEL' }, 199],
+    [null, 200],
+  ]) {
+    const phases = [],
+      f = scenarioFixture((phase) => phases.push(phase));
+    const request = f.value.owner.request;
+    let writes = 0;
+    f.value.owner.request = async (input) => {
+      if (input.method !== 'POST') return request(input);
+      writes++;
+      return { status: 400, body };
+    };
+    await assert.rejects(
+      f.scenario.configureAndSeed(f.value),
+      /^Error: n08_business_scenario_rejected$/
+    );
+    assert.deepEqual(phases, [145, 146, 187, 162, expected]);
+    assert.equal(writes, 1);
+    assert.deepEqual(f.requests, ['GET /v1/local/config']);
   }
 });
 

@@ -290,7 +290,6 @@ test('initial health diagnostics separate original deadline, transport, HTTP, sh
     ['http', 187],
     ['shape', 188],
     ['identity', 190],
-    ['refused', 191],
     ['reset', 192],
   ]) {
     const phases = [];
@@ -300,9 +299,9 @@ test('initial health diagnostics separate original deadline, transport, HTTP, sh
         if (stage !== 'http' || state.requests.at(-1)?.path !== '/v1/local/health') return;
         if (kind === 'deadline') state.holdManagementReply = true;
         if (kind === 'transport') state.transportFailure = true;
-        if (kind === 'refused' || kind === 'reset') {
+        if (kind === 'reset') {
           state.transportFailure = true;
-          state.transportCode = kind === 'refused' ? 'ECONNREFUSED' : 'ECONNRESET';
+          state.transportCode = 'ECONNRESET';
         }
         if (kind === 'http') state.statusCode = 503;
         if (kind === 'shape') delete value.runtime;
@@ -346,6 +345,25 @@ test('initial health retains total startup deadline even when its response is va
     assert.deepEqual(phases, [112, 113, 114, 115, 189]);
   } finally {
     t.mock.restoreAll();
+    await f.client.close();
+  }
+});
+
+test('private preload may finish before management listen without rejecting a healthy owned startup', async (t) => {
+  let attempts = 0;
+  const f = fixture(t, (stage, _value, state) => {
+    if (stage !== 'http' || state.requests.at(-1)?.path !== '/v1/local/health') return;
+    attempts++;
+    state.transportFailure = attempts <= 2;
+    state.transportCode = 'ECONNREFUSED';
+  });
+  try {
+    const identity = await f.client.startLifecycle();
+    const configured = await f.client.configureSyntheticBusiness(identity, synthetic());
+    assert.equal(configured.configured, true);
+    assert.equal(attempts, 4); // Three startup probes and the original final application check.
+    assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 1);
+  } finally {
     await f.client.close();
   }
 });

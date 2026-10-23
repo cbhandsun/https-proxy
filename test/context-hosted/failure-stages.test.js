@@ -180,7 +180,15 @@ test('WFP setup phases use a pure fake and reject compilation or installation fa
   assert.ok(start > 0 && end > start);
   const observed = run(`
     $ErrorActionPreference = 'Stop'
-    Add-Type -TypeDefinition 'public sealed class HpmHostedEgressLease { public static bool Fail; public static int LastFailurePhase { get { return 3; } } public HpmHostedEgressLease(string p) { if (Fail || p != "synthetic-program") throw new System.InvalidOperationException("private"); } }'
+    # A PowerShell class keeps this a pure fake without invoking the C# compiler.
+    # The actual production Add-Type call below is still tested through its mock.
+    class HpmHostedEgressLease {
+      static [bool] $Fail
+      static [int] $LastFailurePhase = 3
+      HpmHostedEgressLease([string] $program) {
+        if ([HpmHostedEgressLease]::Fail -or $program -cne 'synthetic-program') { throw 'private' }
+      }
+    }
     function Add-Type { param($Path, $ErrorAction) if ($mode -eq 'compile') { throw 'private' } }
     $body = [scriptblock]::Create(${quote(source.slice(start, end).replaceAll('$PSScriptRoot', quote('synthetic-root')))})
     foreach ($mode in @('compile', 'install', 'success')) {

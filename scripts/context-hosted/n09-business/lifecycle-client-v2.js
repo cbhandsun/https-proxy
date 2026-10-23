@@ -11,8 +11,8 @@ const { createClearClient } = require('../n09-ipc/clear-client.js');
 const { createN09HostAckClient } = require('../n09-ack/bootstrap-client.js');
 const { fields, discardN09PromiseRejection } = require('../n09-ack/contract.js');
 const { waitForPrivatePreload } = require('./management-status-ready.js');
+const { waitForManagementHttp } = require('./management-http-ready.js');
 const { assertSyntheticProfileReadback } = require('./synthetic-profile-readback.js');
-const { managementFailurePhase } = require('../shared/management-failure-phase.js');
 const {
   createDaemonManagementHttpClient,
 } = require('../../../scripts/lib/context-recovery-daemon-http-client.js');
@@ -134,9 +134,13 @@ function createClientUnsafe(input, dependencies) {
     onPhase(115);
     let response;
     try {
-      response = await management(identity)({ method: 'GET', route: '/v1/local/health' });
+      response = await waitForManagementHttp(
+        () => management(identity)({ method: 'GET', route: '/v1/local/health' }),
+        deadline
+      );
     } catch (error) {
-      onPhase(managementFailurePhase(error));
+      const phase = Object.getOwnPropertyDescriptor(error, 'phase')?.value;
+      onPhase(Number.isInteger(phase) && phase >= 185 && phase <= 195 ? phase : 186);
       throw fail();
     }
     if (Date.now() >= deadline) {
