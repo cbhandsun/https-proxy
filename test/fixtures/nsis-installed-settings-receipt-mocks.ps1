@@ -60,8 +60,9 @@ $operations = @{
     Install = { param($phase) $events.Add('install:' + $phase) }
     Stop = { $events.Add('stop') }
     Inspect = { param($phase) if ($phase -eq 'baseline') { 'a' * 64 } else { 'b' * 64 } }
-    Seed = { $events.Add('seed') }
-    Read = { param($phase, $operation) $events.Add('read:' + $phase + ':' + $operation) }
+    Seed = { param($role) $events.Add('seed:' + $role) }
+    Read = { param($phase, $role, $operation) $events.Add('read:' + $phase + ':' + $role + ':' + $operation) }
+    RefuseLegacy = { $events.Add('refuse-legacy') }
     CheckFixtures = { $events.Add('fixtures') }
     RuntimeBoundaries = { $events.Add('matrix'); ConvertTo-HpmInstalledSettingsMatrixReceipt @() $sha | Out-Null }
     Uninstall = { $events.Add('uninstall') }
@@ -69,4 +70,6 @@ $operations = @{
 }
 Refuse { Invoke-HpmEncryptedLifecycleSequence $operations }
 if (@($events | Where-Object { $_ -eq 'install:baseline' }).Count -ne 1 -or $events.Contains('uninstall') -or -not $events.Contains('matrix')) { throw 'Matrix failure did not stop the lifecycle sequence.' }
+$expected = 'install:baseline,stop,seed:legacy,install:current,stop,refuse-legacy,seed:anchored,read:current:anchored:read,read:current:anchored:resave,fixtures,matrix'
+if (($events -join ',') -cne $expected) { throw 'Settings matrix lifecycle order failed.' }
 Write-Output ('installedSettingsReceiptRefusals=' + $refused + '; installerExecutions=0; helperExecutions=0; networkRequests=0')

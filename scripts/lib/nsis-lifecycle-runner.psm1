@@ -67,7 +67,10 @@ $uninstaller = Join-Path $installDir 'uninstall.exe'
 $fixturePaths = @('proxy.config.json', '.hpm-runtime\lifecycle-synthetic.json')
 $fixtureHashes = @{}
 $encryptedState = @{}
-$encryptedStore = Join-Path $root 'synthetic-encrypted-store'
+$encryptedStores = @{
+    legacy = (Join-Path $root 'synthetic-legacy-store')
+    anchored = (Join-Path $root 'synthetic-anchored-store')
+}
 
 function Invoke-LifecycleProcess {
     param([string]$FilePath, [string[]]$Arguments)
@@ -158,16 +161,25 @@ try {
     if ($EncryptedRecovery) {
         $plainSeed = $operations.Seed
         $operations.Seed = {
-            & $plainSeed
-            Assert-HpmLifecycleChildPath $env:RUNNER_TEMP $encryptedStore
-            New-Item -ItemType Directory -Path $encryptedStore -ErrorAction Stop | Out-Null
-            $encryptedState.baseline = Invoke-HpmInstalledRecoveryFixture $installDir $encryptedStore $manifestHashes.baseline 'seed'
+            param([ValidateSet('legacy', 'anchored')][string]$role)
+            if ($role -ceq 'legacy') { & $plainSeed }
+            $store = $encryptedStores[$role]
+            $phase = if ($role -ceq 'legacy') { 'baseline' } else { 'current' }
+            Assert-HpmLifecycleChildPath $root $store
+            New-Item -ItemType Directory -Path $store -ErrorAction Stop | Out-Null
+            $encryptedState[$role] = Invoke-HpmInstalledRecoveryFixture $installDir $store $manifestHashes[$phase] 'seed'
         }
         $operations.Read = {
-            param($phase, $operation)
-            Assert-HpmLifecycleChildPath $env:RUNNER_TEMP $encryptedStore
-            $next = Invoke-HpmInstalledRecoveryFixture $installDir $encryptedStore $manifestHashes[$phase] $operation
-            Compare-HpmEncryptedReceipt $encryptedState.baseline $next
+            param([ValidateSet('baseline', 'current')][string]$phase, [ValidateSet('legacy', 'anchored')][string]$role, [ValidateSet('read', 'resave')][string]$operation)
+            $store = $encryptedStores[$role]
+            Assert-HpmLifecycleChildPath $root $store
+            $next = Invoke-HpmInstalledRecoveryFixture $installDir $store $manifestHashes[$phase] $operation
+            Compare-HpmEncryptedReceipt $encryptedState[$role] $next
+        }
+        $operations.RefuseLegacy = {
+            Assert-HpmLifecycleChildPath $root $encryptedStores.legacy
+            $receipt = Invoke-HpmInstalledRecoveryFixture $installDir $encryptedStores.legacy $manifestHashes.current 'refuse-legacy'
+            Assert-HpmLegacyRefusalReceipt $receipt
         }
         $operations.RuntimeBoundaries = {
             foreach ($caseId in @('defaults-migration', 'initialization-failure', 'reopen-clear')) {
@@ -214,7 +226,7 @@ if ($EncryptedRecovery) {
     $httpReceipt = ConvertFrom-HpmInstalledDaemonHttpReceipt ($encryptedState.httpMatrix | ConvertTo-Json -Depth 8 -Compress) $manifestHashes.current
     Write-Output ('NSIS_RUNTIME_BOUNDARIES=' + ($installedMatrix | ConvertTo-Json -Depth 10 -Compress))
     Write-Output ('NSIS_DAEMON_HTTP=' + ($httpReceipt | ConvertTo-Json -Depth 8 -Compress))
-    Write-Output 'Hosted synthetic same-user DPAPI and same-format installed-reader upgrade/rollback/reopen passed. Old-layout migration, capacity, providers and production remain unqualified.'
+    Write-Output 'Hosted synthetic same-user DPAPI, legacy refusal with byte preservation, fresh anchored-store reopen and old-format reader compatibility passed. Old readers do not enforce anchors. Legacy import, old-reader antirollback, capacity, providers and production remain unqualified.'
 } else { Write-Output 'NSIS install/upgrade/rollback/uninstall and synthetic file preservation passed. Encrypted recovery and 24-hour capacity were not qualified.' }
 
 }

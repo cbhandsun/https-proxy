@@ -10,8 +10,10 @@ const {
   parseDriverArguments,
   verifyInstallation,
   nativeKeyInvocation,
+  safePath,
 } = require('./nsis-encrypted-contract');
 const { exerciseRecovery } = require('./nsis-recovery-fixture-state');
+const { inventoryStore, assertLegacyRefusal } = require('./nsis-legacy-refusal');
 function run(args) {
   if (process.platform !== 'win32') throw fail();
   const input = parseDriverArguments(args);
@@ -28,6 +30,12 @@ function run(args) {
   const execute = childProcess.execFileSync;
   let nativeCalls = 0,
     storage;
+  const observation = {
+    missingAnchorReads: 0,
+    anchorWrites: 0,
+    databaseOpened: false,
+    engineReady: false,
+  };
   Module._resolveFilename = function (...parameters) {
     const resolved = load.apply(this, parameters);
     if (
@@ -41,14 +49,60 @@ function run(args) {
   childProcess.execFileSync = function (executable, ...parameters) {
     // The same pinned helper also secures filesystem ACLs and the independent
     // anchor. Only key protect/unprotect dispatch counts as DPAPI evidence.
-    if (nativeKeyInvocation(executable, parameters[0], installed.native)) nativeCalls++;
-    return execute.call(this, executable, ...parameters);
+    const key = nativeKeyInvocation(executable, parameters[0], installed.native);
+    const anchor = parameters[0][0] === '--hpm-context-anchor-v1';
+    const request = anchor ? JSON.parse(parameters[1].input) : null;
+    if (anchor && request.operation === 'compare') observation.anchorWrites++;
+    const result = execute.call(this, executable, ...parameters);
+    if (key) nativeCalls++;
+    if (anchor && request.operation === 'read') {
+      const reply = JSON.parse(result);
+      if (reply.ok === true && reply.revision === 0 && reply.value === null)
+        observation.missingAnchorReads++;
+    }
+    return result;
   };
   try {
     const imported = (name) => require(path.join(input.install, 'lib/proxy', name));
+    const { createStorageOwner } = imported('context-recovery-storage-owner.js');
+    if (input.operation === 'refuse-legacy') {
+      const receipt = assertLegacyRefusal({
+        open: () =>
+          createStorageOwner({
+            directory: input.store,
+            onStartup({ phase }) {
+              if (phase === 'database_opened') observation.databaseOpened = true;
+              if (phase === 'engine_ready' || phase === 'ready') observation.engineReady = true;
+            },
+          }),
+        inventory: () => inventoryStore(input.store),
+        evidence: () => ({ ...observation, nativeCalls }),
+        verifyClosed() {
+          const { DatabaseSync } = require('node:sqlite');
+          // A failed owner must release both connections and the lifetime writer
+          // transaction. Probe actual locks before the after-inventory, without
+          // rewriting either database or opening an absent path.
+          for (const name of ['.writer.sqlite', 'checkpoint.sqlite']) {
+            const database = new DatabaseSync(safePath(path.join(input.store, name)), {
+              allowExtension: false,
+            });
+            try {
+              database.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE; ROLLBACK');
+            } finally {
+              database.close();
+            }
+          }
+        },
+      });
+      return {
+        receipt,
+        nativeCalls,
+        sourceCount: installed.sourceCount,
+        manifestSha256: installed.manifestSha256,
+      };
+    }
     const sessions = imported('context-recovery-sessions.js');
     const { createRootCheckpoint } = imported('context-recovery-root-checkpoint.js');
-    const { createStorageOwner } = imported('context-recovery-storage-owner.js');
     const { parseRecoveryStorageRecord } = imported('context-recovery-storage-record.js');
     const { LIST_EVIDENCE_TOOL: LIST, READ_EVIDENCE_TOOL: READ } = imported(
       'context-evidence-tools.js'

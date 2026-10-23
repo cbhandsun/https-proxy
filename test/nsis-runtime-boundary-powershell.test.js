@@ -52,7 +52,7 @@ test('runtime boundary hook preserves encrypted receipt order before rollback', 
   const sequence = fs.readFileSync('scripts/lib/nsis-encrypted-lifecycle.psm1', 'utf8');
   assert.match(
     sequence,
-    /Read 'current' 'resave';.*Read 'current' 'read';.*CheckFixtures\s+& \$Operations\.RuntimeBoundaries\s+& \$Operations\.Install 'baseline'/
+    /RefuseLegacy\s+& \$Operations\.Seed 'anchored'\s+& \$Operations\.Read 'current' 'anchored' 'read'\s+& \$Operations\.Read 'current' 'anchored' 'resave'\s+& \$Operations\.CheckFixtures\s+& \$Operations\.RuntimeBoundaries\s+& \$Operations\.Install 'baseline'/
   );
   const runner = fs.readFileSync('scripts/lib/nsis-lifecycle-runner.psm1', 'utf8');
   assert.match(runner, /\$operations\.RuntimeBoundaries\s*=/);

@@ -99,6 +99,11 @@ test('installed closure and argument boundaries reject missing, invalid, hostile
       parseDriverArguments(['read', f.root, path.join(f.root, 'store'), expected]).operation,
       'read'
     );
+    assert.equal(
+      parseDriverArguments(['refuse-legacy', f.root, path.join(f.root, 'store'), expected])
+        .operation,
+      'refuse-legacy'
+    );
     for (const value of [
       [],
       null,

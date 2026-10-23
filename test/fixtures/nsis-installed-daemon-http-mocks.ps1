@@ -31,12 +31,17 @@ $events = [Collections.Generic.List[string]]::new()
 $operations = @{
     Install = { param($phase) $events.Add('install:' + $phase) }; Stop = { $events.Add('stop') }
     Inspect = { param($phase) if ($phase -eq 'baseline') { 'a' * 64 } else { 'b' * 64 } }
-    Seed = { $events.Add('seed') }; Read = { $events.Add('read') }; CheckFixtures = { $events.Add('fixtures') }
+    Seed = { param($role) $events.Add('seed:' + $role) }
+    Read = { param($phase, $role, $operation) $events.Add('read:' + $phase + ':' + $role + ':' + $operation) }
+    RefuseLegacy = { $events.Add('refuse-legacy') }
+    CheckFixtures = { $events.Add('fixtures') }
     RuntimeBoundaries = { $events.Add('module-matrix'); $events.Add('http-matrix'); ConvertFrom-HpmInstalledDaemonHttpReceipt '{}' $sha | Out-Null }
     Uninstall = { $events.Add('uninstall') }; CheckRemoved = { $events.Add('removed') }
 }
 Refuse { Invoke-HpmEncryptedLifecycleSequence $operations }
 if (@($events | Where-Object { $_ -eq 'install:baseline' }).Count -ne 1 -or $events.Contains('uninstall') -or -not $events.Contains('http-matrix')) { throw 'sequence_failed' }
+$expected = 'install:baseline,stop,seed:legacy,install:current,stop,refuse-legacy,seed:anchored,read:current:anchored:read,read:current:anchored:resave,fixtures,module-matrix,http-matrix'
+if (($events -join ',') -cne $expected) { throw 'http_matrix_lifecycle_order_failed' }
 
 # AST checks bind fixed ownership/clock/dispatch constraints without executing an installer or daemon.
 $source = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '../../scripts/lib/nsis-installed-daemon-http.psm1'))

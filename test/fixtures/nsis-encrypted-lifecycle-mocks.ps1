@@ -15,8 +15,9 @@ function Operations {
         Install = { param($phase) $Events.Add('install:' + $phase) }.GetNewClosure()
         Stop = { $Events.Add('stop') }.GetNewClosure()
         Inspect = { param($phase) $Events.Add('inspect:' + $phase); if ($phase -eq 'baseline') { 'a' * 64 } else { 'b' * 64 } }.GetNewClosure()
-        Seed = { $Events.Add('seed') }.GetNewClosure()
-        Read = { param($phase, $operation) $Events.Add('read:' + $phase + ':' + $operation) }.GetNewClosure()
+        Seed = { param($role) $Events.Add('seed:' + $role) }.GetNewClosure()
+        Read = { param($phase, $role, $operation) $Events.Add('read:' + $phase + ':' + $role + ':' + $operation) }.GetNewClosure()
+        RefuseLegacy = { $Events.Add('refuse-legacy') }.GetNewClosure()
         CheckFixtures = { $Events.Add('fixtures') }.GetNewClosure()
         RuntimeBoundaries = { $Events.Add('runtime-boundaries') }.GetNewClosure()
         Uninstall = { $Events.Add('uninstall') }.GetNewClosure()
@@ -25,9 +26,9 @@ function Operations {
 }
 $events = [Collections.Generic.List[string]]::new()
 Invoke-HpmEncryptedLifecycleSequence (Operations $events)
-$expected = 'install:baseline,stop,inspect:baseline,seed,install:current,stop,inspect:current,read:current:resave,read:current:read,fixtures,runtime-boundaries,install:baseline,stop,inspect:baseline,read:baseline:read,fixtures,install:current,stop,inspect:current,read:current:read,fixtures,uninstall,stop,removed,fixtures'
+$expected = 'install:baseline,stop,inspect:baseline,seed:legacy,install:current,stop,inspect:current,refuse-legacy,seed:anchored,read:current:anchored:read,read:current:anchored:resave,fixtures,runtime-boundaries,install:baseline,stop,inspect:baseline,read:baseline:legacy:read,read:baseline:anchored:read,fixtures,install:current,stop,inspect:current,read:current:anchored:read,refuse-legacy,fixtures,uninstall,stop,removed,fixtures'
 if (($events -join ',') -cne $expected) { throw 'Encrypted lifecycle sequence differs.' }
-foreach ($name in @('Install', 'Stop', 'Inspect', 'Seed', 'Read', 'CheckFixtures', 'RuntimeBoundaries', 'Uninstall', 'CheckRemoved')) {
+foreach ($name in @('Install', 'Stop', 'Inspect', 'Seed', 'Read', 'RefuseLegacy', 'CheckFixtures', 'RuntimeBoundaries', 'Uninstall', 'CheckRemoved')) {
     $operations = Operations ([Collections.Generic.List[string]]::new())
     $operations.Remove($name)
     Refuses { Invoke-HpmEncryptedLifecycleSequence $operations }
@@ -42,9 +43,29 @@ Refuses { Invoke-HpmEncryptedLifecycleSequence $operations }
 if (@($events | Where-Object { $_ -eq 'install:baseline' }).Count -ne 1 -or $events.Contains('uninstall')) { throw 'Boundary failure must stop before rollback.' }
 $events = [Collections.Generic.List[string]]::new()
 $operations = Operations $events
-$operations.Read = { param($phase, $operation) $events.Add('read:' + $phase + ':' + $operation); if ($phase -eq 'baseline') { throw 'old-reader-refused' } }.GetNewClosure()
+$operations.Read = { param($phase, $role, $operation) $events.Add('read:' + $phase + ':' + $role + ':' + $operation); if ($phase -eq 'baseline') { throw 'old-reader-refused' } }.GetNewClosure()
 Refuses { Invoke-HpmEncryptedLifecycleSequence $operations }
 if ($events.Contains('uninstall') -or @($events | Where-Object { $_ -eq 'install:current' }).Count -ne 1) { throw 'Rollback refusal must fail before current reinstall.' }
+$events = [Collections.Generic.List[string]]::new()
+$operations = Operations $events
+$operations.RefuseLegacy = { $events.Add('refuse-legacy'); throw 'legacy-unexpectedly-readable' }.GetNewClosure()
+Refuses { Invoke-HpmEncryptedLifecycleSequence $operations }
+if ($events.Contains('seed:anchored') -or $events.Contains('uninstall')) { throw 'Legacy refusal failure must stop before fresh seeding.' }
+$legacyReceipt = [pscustomobject]@{ refused = $true; preserved = $true; statusCode = 503; fileCount = 3 }
+Assert-HpmLegacyRefusalReceipt $legacyReceipt
+foreach ($name in @('refused', 'preserved', 'statusCode', 'fileCount')) {
+    $copy = $legacyReceipt | ConvertTo-Json | ConvertFrom-Json
+    $copy.$name = 'invalid'
+    Refuses { Assert-HpmLegacyRefusalReceipt $copy }
+}
+foreach ($receipt in @(
+    [pscustomobject]@{ refused = $false; preserved = $true; statusCode = 503; fileCount = 3 },
+    [pscustomobject]@{ refused = $true; preserved = $false; statusCode = 503; fileCount = 3 },
+    [pscustomobject]@{ refused = $true; preserved = $true; statusCode = 500; fileCount = 3 },
+    [pscustomobject]@{ refused = $true; preserved = $true; statusCode = 503; fileCount = 2 },
+    [pscustomobject]@{ refused = $true; preserved = $true; statusCode = 503; fileCount = 17 },
+    [pscustomobject]@{ refused = $true; preserved = $true; statusCode = 503; fileCount = 3; extra = $true }
+)) { Refuses { Assert-HpmLegacyRefusalReceipt $receipt } }
 $receipt = [pscustomobject]@{ budgetSha256 = 'a' * 64; callCount = 1; expiresAt = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + 86400000; keySha256 = 'b' * 64; originalSha256 = 'c' * 64; rootId = 'hbs_' + ('d' * 32); sourceId = 'hce_' + ('e' * 32) }
 Compare-HpmEncryptedReceipt $receipt $receipt
 foreach ($name in @('budgetSha256', 'keySha256', 'originalSha256', 'rootId', 'sourceId')) {
