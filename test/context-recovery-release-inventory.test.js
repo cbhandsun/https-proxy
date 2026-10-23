@@ -11,6 +11,11 @@ const root = path.resolve(__dirname, '..');
 
 test('release inventory retains recovery helpers and dynamically loaded Worker resources', () => {
   for (const relative of [
+    'lib/proxy/context-recovery-anchor-admission.js',
+    'lib/proxy/context-recovery-anchor-contract.js',
+    'lib/proxy/context-recovery-anchor-enrollment.js',
+    'lib/proxy/context-recovery-anchor-legacy-owner.js',
+    'lib/proxy/context-recovery-anchor.js',
     'lib/proxy/context-recovery-budget-reader.js',
     'lib/proxy/context-recovery-key.js',
     'lib/proxy/context-recovery-key-worker.js',
