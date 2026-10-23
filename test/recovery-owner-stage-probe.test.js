@@ -99,6 +99,147 @@ test('probe preserves original receivers, results, throws and close; logs fixed 
   assert.equal(JSON.stringify(f.rows).includes('PRIVATE'), false);
 });
 
+test('database probe separates commit and watermark costs without exposing SQL or changing results', () => {
+  const f = fixture();
+  const cause = new Error('PRIVATE_SQL_FAILURE');
+  const actions = [];
+  let rejectCommit = false;
+  const statement = {
+    run(value) {
+      assert.equal(this, statement);
+      actions.push(value);
+      return f.result;
+    },
+    get() {
+      assert.equal(this, statement);
+      return f.result;
+    },
+    all() {
+      assert.equal(this, statement);
+      return f.result;
+    },
+  };
+  const database = {
+    exec(sql) {
+      assert.equal(this, database);
+      actions.push(sql);
+      if (sql === 'COMMIT' && rejectCommit) throw cause;
+      return f.result;
+    },
+    prepare() {
+      assert.equal(this, database);
+      return statement;
+    },
+  };
+  let observed;
+  f.engineModule.createRecoverySqliteStore = (options) => {
+    assert.equal(options.now, f.now);
+    observed = options.database;
+    return {
+      execute() {
+        observed.exec('BEGIN IMMEDIATE');
+        const clock = observed.prepare('UPDATE recovery_header SET envelope=? WHERE singleton=1');
+        assert.equal(clock.get(), f.result);
+        assert.equal(clock.all(), f.result);
+        assert.equal(clock.run('PRIVATE_CIPHERTEXT'), f.result);
+        try {
+          return observed.exec('COMMIT');
+        } catch (error) {
+          observed.exec('ROLLBACK');
+          throw error;
+        }
+      },
+      snapshot() {},
+    };
+  };
+  installOwnerStageProbe(f.load, f.emit, f.now);
+  const options = { database, now: f.now };
+  const engine = f.engineModule.createRecoverySqliteStore(options);
+  assert.equal(options.database, database);
+  assert.equal(engine.execute({ operation: 'load-reference' }), f.result);
+  rejectCommit = true;
+  assert.throws(
+    () => engine.execute({ operation: 'load-reference' }),
+    (error) => error === cause
+  );
+  const before = f.rows.length;
+  assert.equal(observed.exec('toString'), f.result);
+  assert.equal(observed.prepare('PRIVATE_SQL'), statement);
+  assert.equal(f.rows.length, before);
+  assert.deepEqual(actions.slice(0, 3), ['BEGIN IMMEDIATE', 'PRIVATE_CIPHERTEXT', 'COMMIT']);
+  assert.deepEqual(
+    f.rows.map((row) => row.stage),
+    [
+      'sqlite_begin',
+      'sqlite_clock_write',
+      'sqlite_commit',
+      'engine_execute',
+      'sqlite_begin',
+      'sqlite_clock_write',
+      'sqlite_commit',
+      'sqlite_rollback',
+      'engine_execute',
+    ]
+  );
+  for (const row of f.rows) assert.deepEqual(parseStageLine(JSON.stringify(row)), row);
+  assert.equal(JSON.stringify(f.rows).includes('PRIVATE'), false);
+});
+
+test('database probe retains actual in-memory SQLite transactions and rollback', () => {
+  const { DatabaseSync } = require('node:sqlite');
+  const { randomBytes } = require('node:crypto');
+  const sqlite = { ...require('../lib/proxy/context-recovery-storage-sqlite') };
+  const f = fixture();
+  const database = new DatabaseSync(':memory:');
+  let engine;
+  try {
+    installOwnerStageProbe(
+      (file) => (file.endsWith('context-recovery-storage-sqlite.js') ? sqlite : f.load(file)),
+      f.emit,
+      f.now
+    );
+    engine = sqlite.createRecoverySqliteStore({
+      database,
+      dataKey: randomBytes(32).toString('base64'),
+      now: () => 100,
+    });
+    const scope = 'a'.repeat(64);
+    assert.equal(engine.execute({ operation: 'load-reference', scope }), null);
+    assert.equal(
+      engine.execute({
+        operation: 'save',
+        scope,
+        expectedRevision: 0,
+        expiresAt: 1000,
+        state: { safe: 'synthetic' },
+      }).revision,
+      1
+    );
+    assert.throws(
+      () =>
+        engine.execute({
+          operation: 'save',
+          scope,
+          expectedRevision: 0,
+          expiresAt: 1000,
+          state: { safe: 'rejected' },
+        }),
+      { code: 'context_recovery_storage_unavailable' }
+    );
+    assert.equal(engine.snapshot().scopes[0].revision, 1);
+    assert.equal(engine.execute({ operation: 'load', scope }).state.safe, 'synthetic');
+    for (const stage of ['sqlite_begin', 'sqlite_clock_write', 'sqlite_commit', 'sqlite_rollback'])
+      assert.equal(
+        f.rows.some((row) => row.stage === stage),
+        true
+      );
+    assert.equal(JSON.stringify(f.rows).includes('synthetic'), false);
+  } finally {
+    engine?.close();
+    database.close();
+  }
+});
+
 test('worker bootstrap instruments actual module path before unchanged original worker entry', () => {
   const f = fixture();
   class FakeWorker {

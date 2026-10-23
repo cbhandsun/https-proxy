@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：2b3040d7 Verify 全绿，独立完整门禁仍有持久事务超时
+
+同源码 Verify `39890689923` 已 success：四个单元分片、全部覆盖率、源码质量、Rust 与集成均通过。该结果不替代 disposable `39890689848` 的字面 `npm run verify`；后者已失败，N08／N09 未运行。其唯一失败文件为 `client-context-target.test.js`，chat WBIPC long-persistent 在原 5000ms 期限到期（5009ms）。失败前序号 6 的 load-reference：engine execute 1979ms、snapshot 6ms、anchor persist 368ms，父存储计时 2511ms。嵌套阶段不能重复相加。当前证据定位到事务开销，尚不能区分校验、SQLite 水位写入及 COMMIT 刷盘。
+
+材料夹具所在 unit 2 本轮通过，夹具用时 12478.6875ms，但历史 25000ms 超时根因仍未证明已修复。快照候选不得因一次 Verify 全绿宣称稳定达到 5 秒目标。
+
+测试专用 owner probe 继续细分固定 `sqlite_begin`、`sqlite_clock_write`、`sqlite_commit`、`sqlite_rollback` 阶段；原数据库方法与 statement receiver、结果及异常保留，不输出 SQL、参数或原始错误，不改产品事务、负载、期限或断言。这些阶段嵌套于 engine execute／snapshot，仅用于区分开销。纯与真实内存 SQLite 回归 **6/6**（`owner-sqlite-stage-probe-v2.log`），覆盖提交失败后的回滚、旧 revision 保留、密文参数不出日志与未知 SQL 不进入诊断；没有创建存储 worker、DPAPI 或注册表锚点。细分计时尚待托管执行，整体资格保持未完成。
+
 ## 2026-10-22：c7a7d1aa 托管终态与快照重复准入修复
 
 Verify `39888650504` 已终态失败：coverage、源码质量、Rust、集成及 unit 0／1／3 通过，unit 2 的材料夹具仍触发原 25000ms 期限。Disposable `39888650440` 的 source-gates 也失败，N08／N09 未运行；其失败为 chat WBIPC long-persistent 在原 5000ms 请求期限到期（5003ms），不是完整验收通过。该 job 的 499 条 owner-stage 记录均通过严格解析；包含多次运行，不混作单次请求。失败前可见 engine execute 的最高记录 1210ms，其他阶段仍有开销，不能据此把根因单独归到锚点或快照。

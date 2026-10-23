@@ -23,7 +23,15 @@ const OPERATIONS = new Set([
   'revoke-scopes',
   'sweep',
 ]);
-const STAGES = new Set(['engine_execute', 'engine_snapshot', 'anchor_persist']);
+const STAGES = new Set([
+  'engine_execute',
+  'engine_snapshot',
+  'anchor_persist',
+  'sqlite_begin',
+  'sqlite_commit',
+  'sqlite_rollback',
+  'sqlite_clock_write',
+]);
 const fail = () => new Error('recovery_stage_probe_failed');
 
 function installOwnerStageProbe(load, emit, now = () => performance.now()) {
@@ -56,8 +64,36 @@ function installOwnerStageProbe(load, emit, now = () => performance.now()) {
   );
   const createEngine = engineModule.createRecoverySqliteStore;
   const createAdmission = admissionModule.createRecoveryAnchorAdmission;
+  function observedDatabase(database) {
+    return {
+      exec(...args) {
+        const stage = new Map([
+          ['BEGIN', 'sqlite_begin'],
+          ['BEGIN IMMEDIATE', 'sqlite_begin'],
+          ['COMMIT', 'sqlite_commit'],
+          ['ROLLBACK', 'sqlite_rollback'],
+        ]).get(args[0]);
+        return stage
+          ? measured(stage, database.exec, database, args)
+          : Reflect.apply(database.exec, database, args);
+      },
+      prepare(...args) {
+        const statement = Reflect.apply(database.prepare, database, args);
+        if (args[0] !== 'UPDATE recovery_header SET envelope=? WHERE singleton=1') return statement;
+        return {
+          get: (...values) => Reflect.apply(statement.get, statement, values),
+          all: (...values) => Reflect.apply(statement.all, statement, values),
+          run: (...values) => measured('sqlite_clock_write', statement.run, statement, values),
+        };
+      },
+    };
+  }
   engineModule.createRecoverySqliteStore = function (...args) {
-    const engine = Reflect.apply(createEngine, this, args);
+    const options = args[0];
+    const supplied = options?.database
+      ? [{ ...options, database: observedDatabase(options.database) }, ...args.slice(1)]
+      : args;
+    const engine = Reflect.apply(createEngine, this, supplied);
     const execute = engine.execute,
       snapshot = engine.snapshot;
     return {
