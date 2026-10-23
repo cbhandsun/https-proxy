@@ -188,12 +188,15 @@ function fixture(mutation = () => {}, onPhase) {
         body.input[0]?.role === 'user' &&
         body.input[0].content?.[0]?.text?.includes('hpm-codex-summary:');
       if (isContinuation && !state.cleared) {
+        const refusal = () => ({ status: 502, bytes: Buffer.from('{}') });
+        if (state.refuseAfter === 0) return refusal();
         const tools = [
           { type: 'function', name: 'hpm_list_retained_evidence' },
           { type: 'function', name: 'hpm_read_retained_evidence' },
         ];
         let request = { ...body, tools };
         result = await native(request);
+        if (state.refuseAfter === 1) return refusal();
         assert.equal(result.output[0].name, 'hpm_list_retained_evidence');
         const source = sourceReceipt();
         request = {
@@ -212,6 +215,7 @@ function fixture(mutation = () => {}, onPhase) {
         // Apply list mutation to the actual serialized result, too.
         request.input.at(-1).output = JSON.stringify({ ok: true, sources: [source] });
         result = await native(request);
+        if (state.refuseAfter === 2) return refusal();
         assert.equal(result.output[0].name, 'hpm_read_retained_evidence');
         const page = {
           text: state.original,
@@ -244,6 +248,7 @@ function fixture(mutation = () => {}, onPhase) {
           ],
         };
         result = await native(request);
+        if (state.refuseAfter === 3) return refusal();
         state.nativeReadObserved++;
         assert.equal(result.output[0].type, 'message');
         const publicBody = {
@@ -256,6 +261,7 @@ function fixture(mutation = () => {}, onPhase) {
         };
         mutation('public', publicBody, state);
         result = await native(publicBody);
+        if (state.refuseAfter === 4) return refusal();
         state.calls += 2;
         state.returnedBytes += source.bytes;
         state.revision++;
@@ -619,7 +625,7 @@ test('N09 rejected tool-result HTTP status retains fixed classification and owne
     f.adapter.bindVerifiedNetworkProof(f.proof);
     const owner = await f.adapter.startFreshBusinessHost();
     await assert.rejects(f.adapter.seedThroughBusinessHttp(owner), bad);
-    assert.equal(phases.at(-1), expected);
+    assert.equal(phases.at(-1), status === 502 ? 211 : expected);
     assert.equal(f.state.sent, 2);
     await f.adapter.killOwnedJob(owner);
     await f.adapter.close();
@@ -648,7 +654,24 @@ test('N09 restarted recovery HTTP refusal reports its fixed status and never ret
       runCommittedObservedKill(f.adapter),
       /^Error: n09_committed_observed_kill_failed$/
     );
-    assert.equal(phases.at(-1), expected);
+    assert.equal(phases.at(-1), status === 502 ? 216 : expected);
+    assert.equal(f.state.sent, 4);
+    assert.equal(f.state.stopped, 2);
+    assert.equal(f.state.closed, 1);
+  }
+});
+
+test('N09 502 progress distinguishes every recovery boundary without retry or content disclosure', async () => {
+  for (let after = 0; after <= 4; after++) {
+    const phases = [];
+    const f = fixture(undefined, (phase) => phases.push(phase));
+    f.state.refuseAfter = after;
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(
+      runCommittedObservedKill(f.adapter),
+      /^Error: n09_committed_observed_kill_failed$/
+    );
+    assert.deepEqual(phases.slice(-2), [169, 212 + after]);
     assert.equal(f.state.sent, 4);
     assert.equal(f.state.stopped, 2);
     assert.equal(f.state.closed, 1);

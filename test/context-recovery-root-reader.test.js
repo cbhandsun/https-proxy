@@ -312,6 +312,81 @@ test('N09 observed page contract reads the full synthetic original from real ses
   }
 });
 
+test('N09 isolated generation completes actual retained reads before independently generating the public answer', async () => {
+  const { parseObservedPage } = require('../scripts/context-hosted/n09-business/observed-page');
+  const original = 'N09_PRIVATE_CONTENT synthetic ' + 'synthetic-evidence '.repeat(256);
+  for (const durable of [false, true]) {
+    const f = fixture({ kind: 'responses', output: original });
+    const storage = durable ? pagedStorage(f, undefined, true, false, true) : undefined;
+    let dispatches = 0;
+    let source;
+    try {
+      const run = f.view.recovery(
+        { model: 'fixture', input: f.sourceHistory },
+        { publicGeneration: 'isolated' }
+      );
+      const result = await runContextRecovery({
+        kind: 'responses',
+        session: { recovery: () => run },
+        dispatch(request) {
+          let calls = [];
+          if (dispatches === 0) calls = [{ id: 'index', name: LIST, args: { limit: 1 } }];
+          else if (dispatches === 1) {
+            const index = toolResult('responses', request);
+            assert.equal(index.ok, true);
+            assert.equal(index.sources.length, 1);
+            source = index.sources[0];
+            calls = [
+              {
+                id: 'page',
+                name: READ,
+                args: {
+                  sourceId: source.sourceId,
+                  digest: source.digest,
+                  offsetBytes: 0,
+                  limitBytes: 8192,
+                },
+              },
+            ];
+          } else if (dispatches === 2) {
+            const page = parseObservedPage(toolResult('responses', request), source, {
+              offsetBytes: 0,
+              limitBytes: 8192,
+            });
+            assert.equal(page.page.text, original);
+          } else {
+            assert.equal(dispatches, 3);
+            assert.ok(JSON.stringify(request).includes(original));
+            assert.ok(!(request.tools ?? []).some((tool) => [LIST, READ].includes(tool.name)));
+            assert.ok(
+              !request.input.some((item) => item.call_id === 'index' || item.call_id === 'page')
+            );
+          }
+          dispatches++;
+          return {
+            statusCode: 200,
+            wire: Buffer.from(JSON.stringify(response('responses', calls))),
+            stream: false,
+          };
+        },
+      });
+      assert.equal(
+        result.ok,
+        true,
+        'generation failed: ' + result.code + '; dispatches=' + dispatches
+      );
+      assert.equal(result.mode, 'release');
+      assert.equal(dispatches, 4);
+      assert.equal(result.calls, 2);
+      assert.equal(result.usage.length, 4);
+      assert.ok(!JSON.stringify(result.response).includes(original));
+    } finally {
+      f.close();
+      storage?.close();
+    }
+  }
+});
+
 test('default reference-state reader uses metadata loads and sends each original only once across protocols', async () => {
   for (const kind of ['chat', 'claude', 'responses']) {
     const f = fixture({ kind });

@@ -126,6 +126,10 @@ function createN09BusinessAdapter(input, trusted = {}) {
     upstreamRequests = 0;
   let pendingSave;
   let upstreamFailurePhase;
+  // Fixed progress classes for a 502 without a synthetic-upstream rejection.
+  // 211 seed capture; 212 recovery before upstream; 213 after LIST dispatch;
+  // 214 after READ dispatch; 215 after validated READ; 216 public dispatched.
+  let recoveryProgressPhase = 212;
   let baselineSource;
   let validatedReadCount = 0,
     publicGenerationCount = 0,
@@ -197,6 +201,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     publicObserved = false;
     source = undefined;
     upstreamFailurePhase = undefined;
+    recoveryProgressPhase = 212;
     const tracked = { failed: false, completion: undefined };
     pendingSave = tracked;
     // Both handlers are installed immediately. Forced Job termination may reject
@@ -279,6 +284,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
       onPhase(134);
       const secondFailurePhase = seedReplyFailurePhase(secondReply.status);
       if (secondFailurePhase !== null) onPhase(secondFailurePhase);
+      if (secondReply.status === 502) onPhase(211);
       const second = parseReply(secondReply);
       if (publicText(second) !== 'N09_SEEDED ' + nonce) throw fail();
       history.push(...second.output);
@@ -383,11 +389,13 @@ function createN09BusinessAdapter(input, trusted = {}) {
       publicObserved = false;
       source = undefined;
       upstreamFailurePhase = undefined;
+      recoveryProgressPhase = 212;
       const response = await send(continuation);
       const recoveryFailurePhase = seedReplyFailurePhase(response.status);
       if (recoveryFailurePhase !== null) onPhase(recoveryFailurePhase);
       if (recoveryFailurePhase !== null && upstreamFailurePhase !== undefined)
         onPhase(upstreamFailurePhase);
+      else if (response.status === 502) onPhase(recoveryProgressPhase);
       const reply = parseReply(response);
       if (
         publicText(reply) !== 'N09_RECOVERY_OK ' + nonce ||
@@ -568,8 +576,10 @@ function createN09BusinessAdapter(input, trusted = {}) {
         if (phase !== 'recovering') throw fail();
         const listId = 'n09_list_' + nonce,
           readId = 'n09_read_' + nonce;
-        if (privateTools && !body.input.some((item) => item?.call_id === listId))
+        if (privateTools && !body.input.some((item) => item?.call_id === listId)) {
+          recoveryProgressPhase = 213;
           return reply(call(LIST, { limit: 1 }, listId));
+        }
         failurePhase = 197;
         if (privateTools && !body.input.some((item) => item?.call_id === readId)) {
           const index = resultFor(body, listId);
@@ -587,6 +597,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
             Object.keys(baselineSource).some((key) => source[key] !== baselineSource[key])
           )
             throw fail();
+          recoveryProgressPhase = 214;
           return reply(
             call(
               READ,
@@ -648,12 +659,14 @@ function createN09BusinessAdapter(input, trusted = {}) {
           if (sha(page.text) !== originalSha256) throw fail();
           readObserved = true;
           validatedReadCount++;
+          recoveryProgressPhase = 215;
           return reply(textReply('n09-private-done-' + nonce, 'RECOVERED'));
         }
         failurePhase = 199;
         if (!readObserved || !bodyText.includes(original)) throw fail();
         publicObserved = true;
         publicGenerationCount++;
+        recoveryProgressPhase = 216;
         return reply(textReply('n09-public-' + nonce, 'N09_RECOVERY_OK ' + nonce));
       } catch {
         // Only this finite local boundary code survives a synthetic upstream
