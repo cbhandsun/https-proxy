@@ -28,6 +28,7 @@ const {
 } = require('../lib/proxy/context-recovery-storage-contract');
 const { discoverRecoveryStorage } = require('../lib/proxy/context-recovery-storage-discovery');
 const { loadDurableRecoveryRoot } = require('./helpers/recovery-durable-state.cjs');
+const { parseLongRecoveryProgress } = require('./helpers/recovery-long-progress.cjs');
 const {
   LIST_EVIDENCE_TOOL: LIST,
   READ_EVIDENCE_TOOL: READ,
@@ -206,7 +207,7 @@ function referenceAdapter(execute, omitted) {
   return { execute };
 }
 
-test('independent processes reopen encrypted long histories and recover exact evidence without renewing expiry', () => {
+test('independent processes reopen encrypted long histories and recover exact evidence without renewing expiry', (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-long-cold-'));
   const databasePath = path.join(directory, 'checkpoint.sqlite');
   const dataKey = randomBytes(32).toString('base64');
@@ -223,6 +224,12 @@ test('independent processes reopen encrypted long histories and recover exact ev
           windowsHide: true,
           maxBuffer: 65536,
         }
+      );
+      t.diagnostic(
+        JSON.stringify({
+          longHistoryPhase: phase,
+          progress: parseLongRecoveryProgress(child.stderr),
+        })
       );
       assert.equal(child.error, undefined);
       assert.equal(child.status, 0, 'isolated long-history recovery failed');

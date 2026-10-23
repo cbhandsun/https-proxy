@@ -429,6 +429,8 @@ test(
     const counters = new Int32Array(idleDiagnostics);
     let stage = 'opening';
     let failedStage;
+    const onStartup = ({ phase, elapsedMs }) =>
+      t.diagnostic(JSON.stringify({ stage, startupPhase: phase, elapsedMs }));
     t.after(() => t.diagnostic(JSON.stringify({ stage, failedStage: failedStage ?? null })));
     class AcceleratedIdleWorker extends Worker {
       constructor(file, options) {
@@ -473,7 +475,11 @@ test(
       }
     });
     try {
-      storage = await openContextRecoveryStorage({ directory, WorkerType: AcceleratedIdleWorker });
+      storage = await openContextRecoveryStorage({
+        directory,
+        WorkerType: AcceleratedIdleWorker,
+        onStartup,
+      });
       const expiresAt = initialTime + 250;
       const expired = {
         operation: 'save',
@@ -540,7 +546,11 @@ test(
       await storage.close();
       storage = undefined;
       stage = 'reopen';
-      storage = await openContextRecoveryStorage({ directory, WorkerType: AcceleratedIdleWorker });
+      storage = await openContextRecoveryStorage({
+        directory,
+        WorkerType: AcceleratedIdleWorker,
+        onStartup,
+      });
       assert.deepEqual(await storage.execute({ operation: 'load', scope }), live);
       assert.equal(await storage.execute({ operation: 'load', scope: expired.scope }), null);
       stage = 'reject_expired_rewrite';
