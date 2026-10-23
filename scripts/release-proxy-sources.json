@@ -374,6 +374,7 @@
   "lib/proxy/performance-policy.js",
   "lib/proxy/private-path-native.js",
   "lib/proxy/profile-auth.js",
+  "lib/proxy/profile-secret-native.js",
   "lib/proxy/prompts-sync.js",
   "lib/proxy/protocol-claude-chat-stream.js",
   "lib/proxy/protocol-gemini.js",

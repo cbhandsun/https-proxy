@@ -12,7 +12,7 @@ const source = fs.readFileSync(file, 'utf8');
 const localRequire = createRequire(file);
 const probePlaintext = Buffer.from('hpm-dpapi-probe', 'utf16le').toString('base64');
 
-function cryptoFixture(responses, platform = 'win32') {
+function cryptoFixture(responses, platform = 'win32', nativeProtect = () => null) {
   const module = { exports: {} };
   let calls = 0;
   const diagnostics = [];
@@ -26,6 +26,7 @@ function cryptoFixture(responses, platform = 'win32') {
       env: { HPM_MASTER_KEY_BASE64: Buffer.alloc(32, 17).toString('base64') },
     },
     require(name) {
+      if (name === './profile-secret-native') return { protectProfileSecretNative: nativeProtect };
       if (name === 'node:perf_hooks') return { performance: { now: () => time } };
       if (name === 'child_process')
         return {
@@ -60,6 +61,43 @@ function cryptoFixture(responses, platform = 'win32') {
     },
   };
 }
+
+test('packaged profile encryption uses native CurrentUser roundtrip without PowerShell probes', () => {
+  let nativeCalls = 0;
+  const f = cryptoFixture([], 'win32', (value, options) => {
+    nativeCalls++;
+    assert.equal(value, 'profile-native-🙂');
+    assert.equal(options.platform, 'win32');
+    assert.equal(typeof options.execute, 'function');
+    return Buffer.alloc(32, 7).toString('base64');
+  });
+  assert.equal(
+    f.crypto.encryptKey('profile-native-🙂'),
+    f.crypto.DPAPI_PREFIX + Buffer.alloc(32, 7).toString('base64')
+  );
+  assert.equal(nativeCalls, 1);
+  assert.equal(f.calls(), 0);
+  assert.equal(f.crypto.getCryptoBackend().prefersDpapi, true);
+});
+
+test('native encryption failure is fixed and cannot silently downgrade to compatibility crypto', () => {
+  const f = cryptoFixture([], 'win32', () => {
+    throw new Error('PRIVATE_NATIVE_SENTINEL');
+  });
+  assert.throws(() => f.crypto.encryptKey('profile-native'), {
+    message: 'secret_encryption_failed',
+    code: 'ERR_SECRET_ENCRYPTION_FAILED',
+  });
+  assert.equal(f.calls(), 0);
+});
+
+test('large legacy secrets retain compatibility encryption without native protocol truncation', () => {
+  const f = cryptoFixture(['cHJvdGVjdGVk', probePlaintext, 'Y2lwaGVy'], 'win32', () => {
+    assert.fail('legacy secret exceeds the bounded native profile protocol');
+  });
+  assert.equal(f.crypto.encryptKey('x'.repeat(4097)), f.crypto.DPAPI_PREFIX + 'Y2lwaGVy');
+  assert.equal(f.calls(), 3);
+});
 
 for (const [name, response] of [
   [

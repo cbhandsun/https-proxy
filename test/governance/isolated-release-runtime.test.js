@@ -72,6 +72,7 @@ function fixture(t, script = SCRIPT) {
     'native/context-recovery-key/src/main.rs',
     'native/context-recovery-key/src/lib.rs',
     'native/context-recovery-key/src/private_path.rs',
+    'native/context-recovery-key/src/profile_secret.rs',
   ])
     write(file, 'synthetic');
   write('scripts/prepare-release-runtime.js', script);
@@ -159,6 +160,20 @@ test('native ACL source is copied exactly and remains bound to the isolated buil
   assert.ok(row, 'native ACL implementation must be a declared build input');
   assert.equal(hash(path.join(directory, file)), row.sha256);
   f.write(file, 'changed native ACL implementation');
+  await assert.rejects(prepareIsolatedRuntime(snapshot, directory), {
+    code: 'release_isolated_source_changed',
+  });
+  assert.equal(fs.existsSync(path.join(directory, 'isolated-user')), false);
+});
+
+test('native profile encryption source remains pinned through isolated preparation', async (t) => {
+  const f = fixture(t);
+  const file = 'native/context-recovery-key/src/profile_secret.rs';
+  const { snapshot, directory } = f.workspace();
+  const row = snapshot.files.find((entry) => entry.file === file);
+  assert.ok(row);
+  assert.equal(hash(path.join(directory, file)), row.sha256);
+  f.write(file, 'changed native profile encryption');
   await assert.rejects(prepareIsolatedRuntime(snapshot, directory), {
     code: 'release_isolated_source_changed',
   });

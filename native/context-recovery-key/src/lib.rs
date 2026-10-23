@@ -4,6 +4,7 @@ use std::io::{Read, Write};
 
 pub mod anchor;
 pub mod private_path;
+pub mod profile_secret;
 
 const MAX_INPUT: u64 = 17000;
 const MAX_VALUE: usize = 16384;
