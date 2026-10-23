@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：创建器候选独立 Verify 全绿，完整源码链仍失败
+
+`2b04bf2ee4abb8b8ad75bffaacc4a9ab9f4e182b` 的 Verify `39911220219` 已 success，八个 job 全部 success，包括 coverage `120274434852` 的代理／客户端／前端覆盖率。终态回执 `current-2b04bf2e-verify-terminal-v1.json` 和 job 日志私有封存；long-persistent 三协议两轮的最终发布等待均在原 5 秒内完成，最慢观察为 Responses 4619ms。这只证明这轮成功，不撤销此前失败或授予稳定性资格。
+
+同一源码的 disposable `39911220297` 已 failure：source-gates `120274434818` 的 Chat 第 1 轮、Responses 第 0 轮、Claude 第 1 轮分别在约 5003／5010／5029ms 请求失败，业务 job `120278725886` 跳过。日志 `hosted-job-120274434818-final.log`；egress success。两路结果分别保留，完整 N08／N09 与源码链尚未通过，不取消或重启旧任务。
+
+为精确重建资格准备，复用干净的 context-recovery-delivery 工作树切换到该源码，原 detached 提交 8a91d7f8 另以本地 codex/preserve-context-delivery-8a91d7f8 分支保留，未推送；npm ci 已退出 0，证据 `current-2b04bf2e-delivery-npm-ci-v1.log`。源码链失败后暂缓安装包重建，没有启动安装器或本机持久 worker，日常配置未改。已完成 241 项纯回归的解析器候选 c071afc9 将在安全扫描后正常推送复验；性能微基准限制仍按下节保留。完整 I0–I5/H1、N01–N11、私有迁移、全天和生产目标未完成。
+
 ## 2026-10-22：解析器规范化副本指纹候选，前一托管仍运行
 
 `2b04bf2e` 的 Verify `39911220219` 七个 job 已 success，coverage `120274434852` 仍运行；disposable `39911220297` 的 source-gates `120274434818` 仍运行，egress `120274435254` success。不取消或重启原任务，不从普通 unit 通过推导覆盖率或 N08／N09 资格。
