@@ -267,6 +267,51 @@ function pagedStorage(
   };
 }
 
+test('N09 observed page contract reads the full synthetic original from real sessions and encrypted in-memory SQLite', async () => {
+  const { parseObservedPage } = require('../scripts/context-hosted/n09-business/observed-page');
+  const { parseStoredEvidencePage } = require('../lib/proxy/context-evidence-stored-page');
+  const original = 'N09_PRIVATE_CONTENT synthetic ' + 'synthetic-evidence '.repeat(256);
+  for (const durable of [false, true]) {
+    const f = fixture({ kind: 'responses', output: original });
+    const storage = durable ? pagedStorage(f, undefined, true, false, true) : undefined;
+    try {
+      const listed = JSON.parse((await f.view.replyAsync(LIST, { limit: 1 })).text);
+      const source = listed.sources[0];
+      const args = {
+        sourceId: source.sourceId,
+        digest: source.digest,
+        offsetBytes: 0,
+        limitBytes: 8192,
+      };
+      const reply = await f.view.replyAsync(READ, args);
+      assert.equal(reply.ok, true);
+      const value = JSON.parse(reply.text);
+      assert.equal(value.observation, 'client_reported');
+      assert.equal(value.verification, 'not_verified');
+      assert.throws(
+        () => parseStoredEvidencePage(value, source, args),
+        /invalid_stored_evidence_page/
+      );
+      const read = parseObservedPage(value, source, {
+        offsetBytes: args.offsetBytes,
+        limitBytes: args.limitBytes,
+      });
+      assert.equal(read.page.text, original);
+      assert.equal(read.page.endOffsetBytes, Buffer.byteLength(original));
+      assert.equal(read.page.nextOffsetBytes, null);
+      assert.deepEqual({ ...read.source }, source);
+      if (storage)
+        assert.equal(
+          storage.operations.filter((item) => item.operation === 'read-source').length,
+          1
+        );
+    } finally {
+      f.close();
+      storage?.close();
+    }
+  }
+});
+
 test('default reference-state reader uses metadata loads and sends each original only once across protocols', async () => {
   for (const kind of ['chat', 'claude', 'responses']) {
     const f = fixture({ kind });

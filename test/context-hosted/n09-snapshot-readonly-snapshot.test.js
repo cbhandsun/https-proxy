@@ -195,9 +195,12 @@ function fixture(withEvidence = false) {
               if (sql.includes('recovery_header WHERE')) return f.header;
               throw new Error('unexpected-fixture-query');
             },
-            all() {
+            all(scope) {
               if (sql.includes('FROM sqlite_schema')) return layouts;
-              if (sql.includes('FROM recovery_state')) return f.rows;
+              if (sql.includes('FROM recovery_state'))
+                return sql.includes('WHERE scope=?')
+                  ? f.rows.filter((row) => row.scope === scope)
+                  : f.rows;
               throw new Error('unexpected-fixture-query');
             },
           };
@@ -572,4 +575,63 @@ test('snapshot SQL reads authenticated metadata from actual in-memory SQLite wit
     Array.from({ length: 11 }, (_, i) => 174 + i)
   );
   reader.close();
+});
+
+test('bound snapshot SQL tolerates a later sibling root without adopting it or hiding original corruption', () => {
+  const { DatabaseSync } = require('node:sqlite');
+  const f = fixture(),
+    sibling = fixture();
+  const database = new DatabaseSync(':memory:');
+  database.exec(
+    schema.HEADER_SQL +
+      ';' +
+      schema.STATE_SQL +
+      ';' +
+      schema.BLOB_SQL +
+      ';PRAGMA application_id=' +
+      schema.APPLICATION_ID +
+      ';PRAGMA user_version=2;'
+  );
+  database
+    .prepare('INSERT INTO recovery_header(singleton,store_id,envelope) VALUES(1,?,?)')
+    .run(f.header.store_id, f.header.envelope);
+  const put = (row) =>
+    database
+      .prepare(
+        'INSERT INTO recovery_state(scope,revision,created_at,expires_at,kind,envelope) VALUES(?,?,?,?,?,?)'
+      )
+      .run(row.scope, row.revision, row.created_at, row.expires_at, row.kind, row.envelope);
+  const original = f.seal();
+  put(original);
+  const openReadonly = () => ({
+    exec: (...args) => database.exec(...args),
+    prepare: (...args) => database.prepare(...args),
+    // Emulate disposing the read-only connection before the synthetic writer
+    // reuses this one in-memory handle. No disk database or product owner.
+    close() {
+      database.exec('PRAGMA query_only=OFF');
+    },
+  });
+  const reader = createDurableSnapshotReader(options, { ...f.trusted, openReadonly });
+  try {
+    const before = reader.read();
+    const other = f.seal(sibling.state, { scope: 'd'.repeat(64) });
+    put(other);
+    const after = reader.read();
+    assert.deepEqual(after, before);
+    assert.notEqual(after.rootId, sibling.state.reference.metadata.rootId);
+    // A first read still cannot pick an arbitrary root from two valid rows.
+    const unbound = createDurableSnapshotReader(options, { ...f.trusted, openReadonly });
+    assert.throws(() => unbound.read(), bad);
+    unbound.close();
+    database
+      .prepare('UPDATE recovery_state SET envelope=? WHERE scope=?')
+      .run(Buffer.from('synthetic-corrupt'), original.scope);
+    assert.throws(() => reader.read(), bad);
+    database.prepare('DELETE FROM recovery_state WHERE scope=?').run(original.scope);
+    assert.throws(() => reader.read(), bad);
+  } finally {
+    reader.close();
+    database.close();
+  }
 });

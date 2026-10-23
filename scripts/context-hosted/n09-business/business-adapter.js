@@ -9,10 +9,8 @@ const { exact, snapshotOwnData } = require('../shared/boundary.js');
 const { launchOptions } = require('../n09-ipc/lifecycle-channel.js');
 const { isVerifiedNetworkProof } = require('../shared/hosted-probes.js');
 const { performN09DurableCommand } = require('../n09-ack/durable-command.js');
-const {
-  parseStoredEvidenceSource,
-  parseStoredEvidencePage,
-} = require('../../../lib/proxy/context-evidence-stored-page');
+const { parseStoredEvidenceSource } = require('../../../lib/proxy/context-evidence-stored-page');
+const { parseObservedPage } = require('./observed-page');
 const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
 const fail = () => new Error('n09_business_adapter_failed');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
@@ -623,7 +621,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
             throw fail();
           }
           failurePhase = 203;
-          const read = parseStoredEvidencePage(result, source, {
+          const read = parseObservedPage(result, source, {
               offsetBytes: 0,
               limitBytes: 8192,
             }),

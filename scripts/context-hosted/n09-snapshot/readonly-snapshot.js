@@ -16,6 +16,8 @@ const { protectWithCurrentUser } = require('../../../lib/proxy/context-recovery-
 const META = Object.freeze({ evidenceLevel: 'committed-metadata-only', hostDurableAck: false });
 const ROW_SQL =
   'SELECT scope,revision,created_at,expires_at,kind,CASE WHEN length(envelope)<=16781340 THEN envelope END AS envelope FROM recovery_state LIMIT 2';
+const BOUND_ROW_SQL =
+  'SELECT scope,revision,created_at,expires_at,kind,CASE WHEN length(envelope)<=16781340 THEN envelope END AS envelope FROM recovery_state WHERE scope=? LIMIT 2';
 const HEADER_SQL =
   'SELECT store_id,CASE WHEN length(envelope)<=4096 THEN envelope END AS envelope FROM recovery_header WHERE singleton=1';
 
@@ -114,8 +116,16 @@ function createDurableSnapshotReader(input, trusted = {}) {
       )
         throw failure();
       onPhase(182);
-      const rows = database.prepare(ROW_SQL).all();
+      // The first read requires an unambiguous root. Later ordinary requests
+      // may create sibling roots; they cannot replace this authenticated scope.
+      const rows = binding
+        ? database.prepare(BOUND_ROW_SQL).all(binding.scope)
+        : database.prepare(ROW_SQL).all();
       if (rows.length > 1) throw failure();
+      // A different remaining scope cannot stand in for the bound root or
+      // manufacture a successful empty-store observation after replacement.
+      if (binding && rows.length === 0 && database.prepare(ROW_SQL).all().length !== 0)
+        throw failure();
       if (rows.length === 0) {
         result = {
           ...META,

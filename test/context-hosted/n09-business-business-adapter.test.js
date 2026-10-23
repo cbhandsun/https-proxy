@@ -223,7 +223,13 @@ function fixture(mutation = () => {}, onPhase) {
           digest: source.digest,
           chunkDigest: source.digest,
         };
-        const read = { ok: true, source, page };
+        const read = {
+          ok: true,
+          source,
+          page,
+          observation: 'client_reported',
+          verification: 'not_verified',
+        };
         mutation('read', read, state);
         request = {
           ...request,
