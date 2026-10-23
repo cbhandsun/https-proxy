@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 const { isBuiltin } = require('node:module');
 const { types } = require('node:util');
 const fail = () => new Error('n09_owned_entry_rejected');
-// Same fixed 64..72 entry-phase protocol as N08; never encode error data.
+// 64..72 entry phases; 73..84 fixed N09 composition phases. No error data.
 let failureExitCode = 64;
 function verifyPinnedClosure(pins, roots, dynamicTargets = []) {
   if (
@@ -185,7 +185,10 @@ async function main() {
   if (path.resolve(plan.ownedRoot).toLowerCase() !== ownedRoot.toLowerCase()) throw fail();
   failureExitCode = 71;
   const { composeHostedN09 } = require('./composition.js');
-  const result = await composeHostedN09(plan);
+  const result = await composeHostedN09(plan, (phase) => {
+    if (!Number.isInteger(phase) || phase < 73 || phase > 84) throw fail();
+    failureExitCode = phase;
+  });
   failureExitCode = 72;
   if (
     result.originalControllerReused !== true ||

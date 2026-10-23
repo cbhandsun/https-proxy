@@ -17,7 +17,7 @@ const { buildN09AckController } = require('../n09-ack/bootstrap-controller');
 const fail = () => new Error('n09_hosted_composition_rejected');
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const hex = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
-async function closeResources(adapters, listener) {
+async function closeResources(adapters, listener, onFailure = () => {}) {
   let failed = false,
     adaptersClosed = 0,
     listenerClosed = false;
@@ -37,15 +37,21 @@ async function closeResources(adapters, listener) {
       failed = true;
     }
   }
-  if (failed) throw fail();
+  if (failed) {
+    onFailure();
+    throw fail();
+  }
   return Object.freeze({ adaptersClosed, listenerClosed });
 }
 // Called only from the existing original outer HpmRuntimeBoundaryJob, after its
 // stdin grant and full literal/lazy closure hash check. No controller replacement.
-async function composeHostedN09(input) {
+async function composeHostedN09(input, onPhase = () => {}) {
   let listener, active, result, cleanup;
   const adapters = [];
   try {
+    if (typeof onPhase !== 'function') throw fail();
+    // Internal observer receives fixed numbers only, never runtime/error data.
+    onPhase(73);
     const options = exact(input, [
       'candidate',
       'ownedRoot',
@@ -93,6 +99,7 @@ async function composeHostedN09(input) {
       }
     };
     verify();
+    onPhase(74);
     const adapter = createN09BusinessAdapter(
       {
         ownedRoot: options.ownedRoot,
@@ -108,6 +115,7 @@ async function composeHostedN09(input) {
     );
     adapters.push(adapter);
     active = adapter;
+    onPhase(75);
     listener = await createHostedListener({
       networkRoot: options.networkRoot,
       ownedNode: process.execPath,
@@ -117,6 +125,7 @@ async function composeHostedN09(input) {
         return active.onBusinessRequest(input);
       },
     });
+    onPhase(76);
     const state = listener.inspect();
     const proof = await runHostedProbes(
       {
@@ -129,6 +138,7 @@ async function composeHostedN09(input) {
       },
       listener
     );
+    onPhase(77);
     const controller = buildN09AckController({
       candidate: options.candidate,
       loadedPins: options.loadedPins,
@@ -140,6 +150,7 @@ async function composeHostedN09(input) {
         caSha256: options.caSha256,
       }),
     });
+    onPhase(78);
     const lifecycle = buildHostedLifecycle({
       ownedRoot: options.ownedRoot,
       candidate: options.candidate,
@@ -156,8 +167,10 @@ async function composeHostedN09(input) {
         }
       verify();
     };
+    onPhase(79);
     verifyCopies();
     adapter.bindVerifiedNetworkProof(proof);
+    onPhase(80);
     const committed = await runCommittedObservedKill(adapter);
     const committedEvidence = adapter.inspectBusinessEvidence();
     if (
@@ -171,6 +184,7 @@ async function composeHostedN09(input) {
     active = undefined;
     // Each driver closes its adapter. A fresh closure owns the next synthetic
     // credential and lifecycle; the same listener stays under the original Job.
+    onPhase(81);
     const clearAdapter = createN09BusinessAdapter(
       {
         ownedRoot: options.ownedRoot,
@@ -203,6 +217,7 @@ async function composeHostedN09(input) {
     const durable = {},
       durableEvidence = {};
     for (const operation of ['save', 'revoke']) {
+      onPhase(operation === 'save' ? 82 : 83);
       const ownedAdapter = createN09BusinessAdapter(
         {
           ownedRoot: options.ownedRoot,
@@ -252,8 +267,11 @@ async function composeHostedN09(input) {
     throw fail();
   } finally {
     active = undefined;
-    cleanup = await closeResources(adapters, listener);
+    cleanup = await closeResources(adapters, listener, () => {
+      if (typeof onPhase === 'function') onPhase(84);
+    });
   }
+  onPhase(84);
   if (cleanup.adaptersClosed !== 4 || cleanup.listenerClosed !== true) throw fail();
   return Object.freeze({ ...result, cleanup });
 }
