@@ -50,7 +50,20 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
     [...result.stdout.matchAll(/hpm_runtime_child_failed_stage=([a-z_]+)/g)].map(
       (match) => match[1]
     ),
-    ['output_limit', 'output_limit', 'child_exit', 'stdout_decode', 'deadline', 'deadline']
+    [
+      'output_limit',
+      'output_limit',
+      ...Array(4).fill('child_exit'),
+      'stdout_decode',
+      'deadline',
+      'deadline',
+    ]
+  );
+  assert.deepEqual(
+    [...result.stdout.matchAll(/hpm_runtime_child_exit_code=([a-z0-9]+)/g)].map(
+      (match) => match[1]
+    ),
+    ['other', '64', '69', '72']
   );
 });
 

@@ -100,6 +100,9 @@ try {
     Refuses { Invoke-Child "process.stdout.write('PRIVATE_CHILD_SENTINEL'.repeat(512));setInterval(()=>{},1000);" }
     Refuses { Invoke-Child "process.stderr.write('PRIVATE_CHILD_SENTINEL'.repeat(512));setInterval(()=>{},1000);" }
     Refuses { Invoke-Child "process.stderr.write('PRIVATE_CHILD_SENTINEL');process.exit(3);" }
+    foreach ($phaseCode in @(64, 69, 72)) {
+        Refuses { Invoke-Child ("process.stderr.write('PRIVATE_CHILD_SENTINEL');process.exit(" + $phaseCode + ');') }
+    }
     Refuses { Invoke-Child "process.stdout.write(Buffer.from([255]));" }
     Refuses { Invoke-Child "setInterval(()=>{},1000);" 1500 }
     Refuses { Invoke-Child "const child=require('node:child_process').spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit',windowsHide:true});require('node:fs').writeFileSync(process.env.HPM_CHILD_PID_FILE,String(child.pid));setInterval(()=>{},1000);" 2000 }

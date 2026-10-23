@@ -6,6 +6,11 @@ on:
       - acceptance/context-recovery/**
     paths:
       - .github/workflows/context-business-boundary-diagnostic.yml
+      - scripts/context-hosted/**
+      - scripts/lib/nsis-runtime-boundary.psm1
+      - scripts/lib/nsis-runtime-boundary-job.cs
+      - scripts/qualify-context-hosted.ps1
+      - scripts/prepare-context-hosted-run.js
   workflow_dispatch:
 
 permissions:

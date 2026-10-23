@@ -7,6 +7,10 @@ const crypto = require('node:crypto');
 const { isBuiltin } = require('node:module');
 const { types } = require('node:util');
 const fail = () => new Error('n08_owned_entry_rejected');
+// Fixed diagnostic protocol: 64 environment, 65 grant, 66 plan path,
+// 67 plan content, 68 pin files, 69 closure, 70 plan contract,
+// 71 business composition, 72 final receipt. No exception data is encoded.
+let failureExitCode = 64;
 function verifyPinnedClosure(pins, roots, dynamicTargets = []) {
   if (
     !pins ||
@@ -91,6 +95,7 @@ async function main() {
   const ownedRoot = path.resolve(process.argv[2]);
   const expectedPlan = process.argv[3];
   if (!/^[a-f0-9]{64}$/.test(expectedPlan)) throw fail();
+  failureExitCode = 65;
   let grant = '';
   for await (const chunk of process.stdin) {
     grant += chunk.toString('utf8');
@@ -118,9 +123,11 @@ async function main() {
       current = parent;
     }
   };
+  failureExitCode = 66;
   physical(ownedRoot, true);
   const planFile = path.join(ownedRoot, 'n08-hosted-plan.json');
   physical(planFile, false);
+  failureExitCode = 67;
   if (fs.statSync(planFile).size > 65536) throw fail();
   const planBytes = fs.readFileSync(planFile);
   if (crypto.createHash('sha256').update(planBytes).digest('hex') !== expectedPlan) throw fail();
@@ -136,6 +143,7 @@ async function main() {
     Array.isArray(parsed.loadedPins)
   )
     throw fail();
+  failureExitCode = 68;
   const pins = Object.entries(parsed.loadedPins);
   if (pins.length < 1 || pins.length > 512) throw fail();
   for (const [file, expected] of pins) {
@@ -148,6 +156,7 @@ async function main() {
     )
       throw fail();
   }
+  failureExitCode = 69;
   verifyPinnedClosure(
     parsed.loadedPins,
     [
@@ -163,6 +172,7 @@ async function main() {
   );
   // Validate the whole explicit closure BEFORE executing any proposal/helper
   // module. Later composition checks additionally reject unlisted cache entries.
+  failureExitCode = 70;
   const { exact } = require('../shared/boundary.js');
   const plan = exact(parsed, [
     'candidate',
@@ -178,6 +188,7 @@ async function main() {
     'negativeAddress',
   ]);
   if (path.resolve(plan.ownedRoot).toLowerCase() !== ownedRoot.toLowerCase()) throw fail();
+  failureExitCode = 71;
   const { composeHostedN08 } = require('./observed-composition.js');
   const { createBusinessScenario } = require('./business-scenario.js');
   const result = await composeHostedN08({
@@ -186,6 +197,7 @@ async function main() {
   });
   // composeHostedN08 has completed its finally before returning here. The outer
   // original Job helper must still force/verify tree empty before PS can accept.
+  failureExitCode = 72;
   if (
     result.originalControllerReused !== true ||
     result.controllerCopiesPinned !== true ||
@@ -219,6 +231,6 @@ async function main() {
 if (require.main === module)
   main().catch(() => {
     process.stderr.write('n08_owned_entry_rejected\n');
-    process.exitCode = 1;
+    process.exitCode = failureExitCode;
   });
 module.exports = { verifyPinnedClosure };

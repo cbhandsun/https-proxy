@@ -78,7 +78,16 @@ function Invoke-HpmBoundedRuntimeChild {
             [Threading.Thread]::Sleep(10)
         } while ($true)
         $boundaryStage = 'child_exit'
-        if ($process.ExitCode -ne 0) { throw 'invalid' }
+        if ($process.ExitCode -ne 0) {
+            # Only the fixed hosted entry phase codes are disclosed. Other
+            # exits and all stderr remain opaque; no child data is forwarded.
+            $childExitCode = 'other'
+            if ($process.ExitCode -ge 64 -and $process.ExitCode -le 72) {
+                $childExitCode = [string]$process.ExitCode
+            }
+            Write-Information ('hpm_runtime_child_exit_code=' + $childExitCode) -InformationAction Continue
+            throw 'invalid'
+        }
         $boundaryStage = 'stdout_decode'
         $result = [Text.UTF8Encoding]::new($false, $true).GetString($memory.ToArray())
     } catch {
