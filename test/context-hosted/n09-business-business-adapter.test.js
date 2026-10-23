@@ -72,6 +72,7 @@ function fixture(mutation = () => {}, onPhase) {
           return { configured: true };
         },
         attestSyntheticBusiness: async () => ({ ready: true, syntheticBusinessConfigured: true }),
+        ...(state.diagnostic === undefined ? {} : { readRecoveryFailurePhase: state.diagnostic }),
         stopLifecycle: async (owner) => {
           state.events.push('kill');
           state.rejectPending?.(new Error('synthetic_forced_kill'));
@@ -293,6 +294,33 @@ function fixture(mutation = () => {}, onPhase) {
   });
   return { adapter, options, proof, state, trusted };
 }
+test('502 diagnostics preserve failure and cleanup while exposing only fixed stage numbers', async () => {
+  for (const diagnostic of [
+    async () => 220,
+    async () => 'PRIVATE',
+    async () => {
+      throw Error('PRIVATE');
+    },
+  ]) {
+    const phases = [];
+    const f = fixture(
+      (_at, _value, state) => {
+        state.refuseAfter = 4;
+      },
+      (phase) => phases.push(phase)
+    );
+    f.state.diagnostic = diagnostic;
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runCommittedObservedKill(f.adapter), {
+      message: 'n09_committed_observed_kill_failed',
+    });
+    assert.equal(phases.includes(216), true);
+    assert.ok([220, 224].includes(phases.at(-1)));
+    assert.equal(f.state.closed, 1);
+    assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+  }
+});
+
 test('synthetic public recovery output supports JSON and complete Responses SSE encoding', async () => {
   const {
     encodeContextRecoveryClientWire,

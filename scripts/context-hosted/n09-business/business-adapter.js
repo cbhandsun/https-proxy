@@ -396,7 +396,22 @@ function createN09BusinessAdapter(input, trusted = {}) {
       if (recoveryFailurePhase !== null) onPhase(recoveryFailurePhase);
       if (recoveryFailurePhase !== null && upstreamFailurePhase !== undefined)
         onPhase(upstreamFailurePhase);
-      else if (response.status === 502) onPhase(recoveryProgressPhase);
+      else if (response.status === 502) {
+        onPhase(recoveryProgressPhase);
+        if (typeof client().readRecoveryFailurePhase === 'function') {
+          let failurePhase = 224;
+          try {
+            failurePhase = await client().readRecoveryFailurePhase(current);
+          } catch {
+            // Diagnostic failure cannot change the original HTTP failure.
+          }
+          onPhase(
+            Number.isInteger(failurePhase) && failurePhase >= 217 && failurePhase <= 224
+              ? failurePhase
+              : 224
+          );
+        }
+      }
       const reply = parseReply(response);
       if (
         publicText(reply) !== 'N09_RECOVERY_OK ' + nonce ||

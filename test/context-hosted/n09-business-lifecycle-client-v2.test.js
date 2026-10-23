@@ -199,6 +199,31 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase) {
   return { client, state, input, runtimeDir };
 }
 
+test('failed recovery stage is read only from owned management health and returned as a fixed number', async (t) => {
+  const counters = {
+    httpPreparationFailed: 0,
+    httpRunFailed: 0,
+    httpEncodingFailed: 0,
+    httpPrepareFailed: 1,
+    httpSendingFailed: 0,
+    httpPublishingFailed: 0,
+    httpFinishFailed: 0,
+  };
+  const f = fixture(t, (at, value) => {
+    if (at === 'http' && value.contextRecovery)
+      value.contextRecovery.counters = { responses: counters };
+  });
+  const identity = await f.client.startLifecycle();
+  try {
+    assert.equal(await f.client.readRecoveryFailurePhase(identity), 220);
+    assert.deepEqual(f.state.requests.at(-1), { path: '/v1/local/health', method: 'GET' });
+    counters.httpRunFailed = 1;
+    assert.equal(await f.client.readRecoveryFailurePhase(identity), 224);
+  } finally {
+    await f.client.close();
+  }
+});
+
 test('startup observer reports fixed lifecycle and management phases in execution order', async (t) => {
   const phases = [];
   const f = fixture(t, undefined, undefined, (phase) => phases.push(phase));

@@ -285,6 +285,77 @@ function entryFixture(mode = 'success') {
   return { options, counts, outcome, req, res };
 }
 
+test('HTTP failure diagnostics distinguish fixed transaction stages without changing cleanup or exposing errors', async () => {
+  const {
+    contextRecoveryDiagnostics: diagnostics,
+  } = require('../lib/proxy/context-recovery-diagnostics');
+  const cases = [
+    [
+      'httpPreparationFailed',
+      'success',
+      (session) => {
+        session.recovery = () => {
+          throw Error('PRIVATE_STAGE_SENTINEL');
+        };
+      },
+    ],
+    ['httpRunFailed', 'upstream-error', () => {}],
+    [
+      'httpEncodingFailed',
+      'success',
+      (session) => {
+        const recovery = session.recovery;
+        session.recovery = () => {
+          const run = recovery();
+          const accept = run.accept;
+          run.accept = () => ({ ...accept(), usage: [] });
+          return run;
+        };
+      },
+    ],
+    ['httpPrepareFailed', 'commit-error', () => {}],
+    [
+      'httpSendingFailed',
+      'success',
+      (session) => {
+        session.startPublicationAsync = async () => {
+          throw Error('PRIVATE_STAGE_SENTINEL');
+        };
+      },
+    ],
+    ['httpPublishingFailed', 'write-error', () => {}],
+    [
+      'httpFinishFailed',
+      'success',
+      (session) => {
+        session.finishPublicationAsync = async () => {
+          throw Error('PRIVATE_STAGE_SENTINEL');
+        };
+      },
+    ],
+  ];
+  diagnostics.configure(true);
+  try {
+    for (const [event, mode, mutate] of cases) {
+      const before = diagnostics.inspect({}).counters.responses;
+      const f = entryFixture(mode);
+      mutate(f.options.session);
+      assert.equal(tryHandleContextRecoveryHttp(f.options), true);
+      assert.equal((await f.outcome).ok, false);
+      const after = diagnostics.inspect({}).counters.responses;
+      for (const [name] of cases)
+        assert.equal(after[name] - before[name], name === event ? 1 : 0, event + ':' + name);
+      assert.equal(f.counts.abort + f.counts.withdraw > 0, true);
+      assert.doesNotMatch(
+        JSON.stringify(diagnostics.inspect({})) + String(f.res.wire),
+        /PRIVATE_STAGE_SENTINEL/
+      );
+    }
+  } finally {
+    diagnostics.configure(false);
+  }
+});
+
 test('HTTP entry takes long-history admission from its session capability', async () => {
   const body = {
     input: Array.from({ length: 3 }, () => ({ role: 'user', content: 'x'.repeat(900 * 1024) })),
