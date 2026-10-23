@@ -604,25 +604,50 @@ function createN09BusinessAdapter(input, trusted = {}) {
         }
         failurePhase = 198;
         if (privateTools) {
-          const read = parseStoredEvidencePage(resultFor(body, readId), source, {
+          failurePhase = 201;
+          const result = resultFor(body, readId);
+          if (result?.ok !== true) {
+            const reason = result?.error ?? result?.code;
+            failurePhase = [
+              'context_evidence_unavailable',
+              'context_recovery_storage_unavailable',
+            ].includes(reason)
+              ? 206
+              : ['context_artifact_budget_exceeded', 'evidence_read_budget_exceeded'].includes(
+                    reason
+                  )
+                ? 207
+                : reason === 'context_artifact_invalid_range'
+                  ? 208
+                  : 209;
+            throw fail();
+          }
+          failurePhase = 203;
+          const read = parseStoredEvidencePage(result, source, {
               offsetBytes: 0,
               limitBytes: 8192,
             }),
             page = read.page;
+          failurePhase = 204;
           if (
             read.ok !== true ||
             !source ||
             read.source?.sourceId !== source.sourceId ||
             read.source?.digest !== originalSha256 ||
             typeof page?.text !== 'string' ||
-            sha(page.text) !== originalSha256 ||
-            page.digest !== originalSha256 ||
+            page.digest !== originalSha256
+          )
+            throw fail();
+          failurePhase = 205;
+          if (
             page.offsetBytes !== 0 ||
             page.endOffsetBytes !== Buffer.byteLength(original) ||
             page.totalBytes !== Buffer.byteLength(original) ||
             page.nextOffsetBytes !== null
           )
             throw fail();
+          failurePhase = 204;
+          if (sha(page.text) !== originalSha256) throw fail();
           readObserved = true;
           validatedReadCount++;
           return reply(textReply('n09-private-done-' + nonce, 'RECOVERED'));

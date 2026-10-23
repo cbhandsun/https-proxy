@@ -650,14 +650,14 @@ test('N09 restarted recovery HTTP refusal reports its fixed status and never ret
 });
 
 test('synthetic upstream failures expose only their fixed request, index, page or public boundary and retain cleanup', async () => {
-  for (const expected of [196, 197, 198, 199]) {
+  for (const expected of [196, 197, 203, 199]) {
     const phases = [];
     const f = fixture(
       (kind, incoming, state) => {
         if (kind !== 'upstream' || state.sent !== 4) return;
         const body = JSON.parse(incoming.bytes);
         if (expected === 196) body.instructions = 'PRIVATE_INVALID';
-        if (expected === 197 || expected === 198) {
+        if (expected === 197 || expected === 203) {
           const prefix = expected === 197 ? 'n09_list_' : 'n09_read_';
           const item = body.input.find(
             (value) => value.type === 'function_call_output' && value.call_id.startsWith(prefix)
@@ -731,5 +731,55 @@ test('restart index must preserve the exact authenticated source receipt, includ
     assert.equal(f.state.sent, 4);
     assert.equal(f.state.stopped, 2);
     assert.equal(f.state.closed, 1);
+  }
+});
+
+test('read refusal diagnostics distinguish fixed error categories, malformed envelopes and valid partial pages without exposing replies', async () => {
+  for (const [expected, error] of [
+    [201],
+    [203],
+    [205],
+    [206, 'context_evidence_unavailable'],
+    [206, 'context_recovery_storage_unavailable'],
+    [207, 'context_artifact_budget_exceeded'],
+    [207, 'evidence_read_budget_exceeded'],
+    [208, 'context_artifact_invalid_range'],
+    [209, 'PRIVATE_INVALID'],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      (kind, incoming, state) => {
+        if (kind !== 'upstream' || state.sent !== 4) return;
+        const body = JSON.parse(incoming.bytes);
+        const item = body.input.find(
+          (value) => value.type === 'function_call_output' && value.call_id.startsWith('n09_read_')
+        );
+        if (!item) return;
+        const value = JSON.parse(item.output);
+        if (expected === 203) delete value.page.chunkDigest;
+        if (expected === 205) {
+          value.page.text = value.page.text.slice(0, 10);
+          value.page.endOffsetBytes = 10;
+          value.page.nextOffsetBytes = 10;
+          value.page.chunkDigest = sha(value.page.text);
+        }
+        item.output =
+          expected === 201
+            ? 'PRIVATE_INVALID'
+            : JSON.stringify(error ? { ok: false, error } : value);
+        incoming.bytes = Buffer.from(JSON.stringify(body));
+      },
+      (phase) => phases.push(phase)
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(
+      runCommittedObservedKill(f.adapter),
+      /^Error: n09_committed_observed_kill_failed$/
+    );
+    assert.equal(phases.at(-1), expected);
+    assert.equal(f.state.sent, 4);
+    assert.equal(f.state.stopped, 2);
+    assert.equal(f.state.closed, 1);
+    assert.equal(JSON.stringify(phases).includes('PRIVATE'), false);
   }
 });
