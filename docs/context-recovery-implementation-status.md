@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：直接草稿迁移接通新建review分支；N09仍有clear公开读取失败
+
+新增独立 `acceptance/windows-encrypted-draft/**` review入口，固定解析release/两asset ID、v4 UUID和旧baseline SHA，并保留新建分支、零before、非删除/非强推、同仓库/同官方host、实际checkout SHA检查。只有draft lane接受公开仓库，原bridge/encrypted两lane继续只接受私有仓库。只读resolve job完成后才进入拥有draft读取权限的完整加密迁移workflow；不读取模型凭据、不上传产物。相关新旧四文件28项回归通过，统一测试发现包含新文件；Lint及CI治理通过。此处记录入口实现，不代表云端安装或加密迁移已通过。
+
+上一候选 `0678ec8e` 的正式Windows `40039814138` 已终态failure：source-gates、egress、N08成功，N09 `120712665533` 以248退出。按固定映射，这是case81（clear）的公开读取阶段；不能将先前独立N09诊断成功当作正式完成，也不能归因为强杀阶段或任意ACK失败。新候选 `3eb453fb` 的Verify和正式Windows继续观察原句柄，没有因等待重启。
+
 ## 2026-10-23：独立 Verify 全绿；新增直接草稿下载的加密迁移入口
 
 `78bc2aea` 的 Verify `40040251437` 已终态 success，八项 job 全部通过。正式 Windows `40040251304` 则终态 failure：source-gates `120709389179` 在 `shared-hosted-materials.test.js` 的 collision/wrong-identity 合成夹具启动 PowerShell 子进程时达到原25秒期限；业务任务跳过。同轮四根2048条/32MiB实际私有恢复、512快照/8MiB及回拨诊断回归通过，不能推断此前stale根因已修复或全天容量已合格。上一候选 `0678ec8e` 的 coverage `120707978871` 单独失败于Claude long-persistent首轮5002ms超时，阶段记录含SQLite提交最高2401ms；未提高期限或忽略失败。

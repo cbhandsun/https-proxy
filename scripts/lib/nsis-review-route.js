@@ -9,7 +9,7 @@ const UUID = '[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12
 const fail = () => new Error('nsis_review_route_refused');
 function parseReviewRoute(lane, env, event) {
   if (
-    !['bridge', 'encrypted'].includes(lane) ||
+    !['bridge', 'encrypted', 'draft'].includes(lane) ||
     !env ||
     !event ||
     typeof event !== 'object' ||
@@ -34,7 +34,7 @@ function parseReviewRoute(lane, env, event) {
     event.deleted !== false ||
     event.forced !== false ||
     event.repository?.full_name !== REPOSITORY ||
-    event.repository.private !== true
+    event.repository.private !== (lane !== 'draft')
   )
     throw fail();
   const pattern =
@@ -42,15 +42,28 @@ function parseReviewRoute(lane, env, event) {
       ? new RegExp(
           `^refs/heads/acceptance/windows-baseline-bridge/(${ID})-(${ID})-(${ID})-(${UUID})$`
         )
-      : new RegExp(`^refs/heads/acceptance/windows-encrypted-lifecycle/(${ID})$`);
+      : lane === 'draft'
+        ? new RegExp(
+            `^refs/heads/acceptance/windows-encrypted-draft/(${ID})-(${ID})-(${ID})-(${UUID})-([a-f0-9]{40})$`
+          )
+        : new RegExp(`^refs/heads/acceptance/windows-encrypted-lifecycle/(${ID})$`);
   const match = pattern.exec(env.GITHUB_REF);
   if (!match || match[0] !== env.GITHUB_REF) throw fail();
-  const ids = match.slice(1, lane === 'bridge' ? 4 : 2);
+  const ids = match.slice(1, lane === 'encrypted' ? 2 : 4);
   if (
     ids.some((value) => !Number.isSafeInteger(Number(value))) ||
-    (lane === 'bridge' && match[2] === match[3])
+    (lane !== 'encrypted' && match[2] === match[3]) ||
+    (lane === 'draft' && match[5] === '0'.repeat(40))
   )
     throw fail();
+  if (lane === 'draft')
+    return {
+      release_id: match[1],
+      installer_asset_id: match[2],
+      identity_asset_id: match[3],
+      baseline_target_sha: match[5],
+      transfer_tag: `hpm-baseline-transfer-${match[4]}`,
+    };
   return lane === 'bridge'
     ? {
         release_id: match[1],
