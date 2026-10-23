@@ -26,6 +26,8 @@ const {
   declareRecoveryReaderSettlement,
   declareRecoveryReferenceStates,
   supportsRecoveryReferenceStates,
+  declareRecoveryReferenceAdmission,
+  supportsRecoveryReferenceAdmission,
 } = require('../lib/proxy/context-recovery-storage-contract');
 const { invokeRecoveryPublication } = require('../lib/proxy/context-recovery-publication');
 const { tryHandleContextRecoveryHttp } = require('../lib/proxy/context-recovery-http-entry');
@@ -140,6 +142,8 @@ async function fixture(kind = 'chat', worker = null) {
     declareRecoverySourcePages(storage.execute);
     declareRecoveryReaderSettlement(storage.execute);
     declareRecoveryReferenceStates(storage.execute);
+    if (supportsRecoveryReferenceAdmission(worker.execute))
+      declareRecoveryReferenceAdmission(storage.execute);
   }
   runtime.configure(true);
   attachContextRecoveryStorage(runtime, storage);
@@ -278,6 +282,172 @@ async function fixture(kind = 'chat', worker = null) {
     close: () => runtime.close(),
   };
 }
+function observedOutput(kind) {
+  const response = completion(kind);
+  return kind === 'responses'
+    ? response.output
+    : kind === 'claude'
+      ? [{ role: 'assistant', content: response.content }]
+      : [response.choices[0].message];
+}
+
+test('warm publication authenticates new source payloads inside its first durable write', async () => {
+  for (const [kind, observed] of ['chat', 'responses', 'claude'].flatMap((kind) => [
+    [kind, false],
+    [kind, true],
+  ])) {
+    const database = new DatabaseSync(':memory:');
+    const engine = createRecoverySqliteStore({
+      database,
+      dataKey: randomBytes(32).toString('base64'),
+    });
+    const f = await fixture(kind, engine);
+    try {
+      const result = observed
+        ? await f.view.completeObservedAsync(observedOutput(kind))
+        : await f.view.completeAsync(observedOutput(kind));
+      assert.deepEqual(result, { ok: true });
+      assert.equal(
+        f.requests.filter((request) => request.operation === 'load-reference').length,
+        1
+      );
+      const saves = f.requests.filter((request) => request.operation === 'save-reference-state');
+      assert.equal(saves.length, 2);
+      assert.equal(saves[0].admission, undefined);
+      assert.ok(saves[1].admission);
+      assert.equal(saves[1].payloads.length, 1);
+      assert.equal(saves[1].payloads[0].output, original);
+      if (!observed) {
+        assert.equal((await f.view.startPublicationAsync()).ok, true);
+        assert.equal((await f.view.finishPublicationAsync()).ok, true);
+        const later = f.requests
+          .filter((request) => request.operation === 'save-reference-state')
+          .slice(2);
+        assert.equal(later.length, 2);
+        for (const request of later) {
+          assert.equal(request.admission, undefined);
+          assert.deepEqual(request.payloads, []);
+        }
+      }
+      const durable = engine.execute({ operation: 'load', scope: saves[1].scope });
+      assert.equal(durable.state.root.ledger.sources[0].output, original);
+      assert.equal(
+        durable.state.publications.find((entry) => entry.snapshotId === f.id).state,
+        'transport-finished'
+      );
+      assert.equal(durable.state.root.budget.calls, 0);
+    } finally {
+      await f.runtime.shutdownAsync();
+      engine.close();
+      database.close();
+    }
+  }
+});
+
+test('unmarked reference storage retains the publication load before save', async () => {
+  const database = new DatabaseSync(':memory:');
+  const engine = createRecoverySqliteStore({
+    database,
+    dataKey: randomBytes(32).toString('base64'),
+  });
+  const legacy = { execute: declareRecoveryReferenceStates((request) => engine.execute(request)) };
+  const f = await fixture('chat', legacy);
+  try {
+    assert.equal((await f.view.completeObservedAsync(observedOutput('chat'))).ok, true);
+    assert.equal(f.requests.filter((request) => request.operation === 'load-reference').length, 2);
+    assert.equal(
+      f.requests.some((request) => request.admission),
+      false
+    );
+  } finally {
+    await f.runtime.shutdownAsync();
+    engine.close();
+    database.close();
+  }
+});
+
+test('combined publication failures deny acknowledgement without retrying or resending payloads', async () => {
+  for (const fault of ['budget', 'publications', 'revision', 'ciphertext', 'payload', 'ack']) {
+    const database = new DatabaseSync(':memory:');
+    const engine = createRecoverySqliteStore({
+      database,
+      dataKey: randomBytes(32).toString('base64'),
+    });
+    const f = await fixture('chat', engine);
+    let attempts = 0;
+    f.hook((request, next) => {
+      if (!request.admission) return next();
+      attempts++;
+      if (fault === 'budget') request.admission.metadata.budget.calls++;
+      if (fault === 'publications') request.admission.publications[0].state = 'withdrawn';
+      if (fault === 'revision') request.expectedRevision++;
+      if (fault === 'ciphertext') {
+        const row = database.prepare('SELECT envelope FROM recovery_state').get();
+        const corrupt = Buffer.from(row.envelope);
+        corrupt[corrupt.length - 1] ^= 1;
+        database.prepare('UPDATE recovery_state SET envelope=?').run(corrupt);
+      }
+      if (fault === 'payload') request.payloads = [];
+      const result = next();
+      return fault === 'ack' ? { revision: result.revision + 1 } : result;
+    });
+    try {
+      assert.deepEqual(await f.view.completeObservedAsync(observedOutput('chat')), {
+        ok: false,
+        code: failure,
+      });
+      assert.equal(attempts, 1);
+      assert.equal(
+        f.requests.filter((request) => request.operation === 'load-reference').length,
+        1
+      );
+      assert.equal(f.requests.filter((request) => request.admission).length, 1);
+    } finally {
+      await f.runtime.shutdownAsync();
+      engine.close();
+      database.close();
+    }
+  }
+});
+
+test('combined publication waits for durable ACK and disabling while pending cannot revive it', async () => {
+  for (const disable of [false, true]) {
+    const database = new DatabaseSync(':memory:');
+    const engine = createRecoverySqliteStore({
+      database,
+      dataKey: randomBytes(32).toString('base64'),
+    });
+    const f = await fixture('chat', engine);
+    const entered = deferred(),
+      release = deferred();
+    let settled = false;
+    f.hook(async (request, next) => {
+      if (request.admission) {
+        entered.resolve();
+        await release.promise;
+      }
+      return next();
+    });
+    try {
+      const pending = f.view.completeObservedAsync(observedOutput('chat'));
+      void pending.then(() => {
+        settled = true;
+      });
+      await entered.promise;
+      assert.equal(settled, false);
+      assert.throws(() => exportContextRecoveryRoot(f.runtime, f.root.snapshotId));
+      if (disable) f.runtime.configure(false);
+      release.resolve();
+      assert.equal((await pending).ok, !disable);
+    } finally {
+      release.resolve();
+      await f.runtime.shutdownAsync();
+      engine.close();
+      database.close();
+    }
+  }
+});
+
 function hold(f, phase, afterWrite = false) {
   const entered = deferred(),
     release = deferred();

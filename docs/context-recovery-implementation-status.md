@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：暖态发布合并校验候选，本机回归通过，托管待验
+
+将已用于暖态 reader 的原子准入预条件用于 publication.prepare：仅当原能力、已知持久 revision／来源 ID 和发布视图条件均成立时，推迟独立 load-reference 到第一笔发布写事务内验证。新来源载荷仍由同一 save-reference-state 认证并保存；prepared、sending、transport-finished 各自原 durable ACK 不合并，读前预扣、CAS、旧发布记录、到期、时钟和锚点规则不变。未声明能力的适配器保持原先 load-before-save。此候选只减少一笔暖态发布前持久读取，不宣称已经修复 5 秒期限。
+
+新回归先在原实现得到 2 次 load 不等于预期 1 次（`combined-publication-before-v1.log`）。候选覆盖三协议的 observed／prepared 两种发布、新载荷只发送一次、sending／finished 不再附带原文、未声明能力回退、预算／发布记录／revision／密文／缺载荷／ACK 故障无重试，以及 ACK 前持有所有权和挂起时关闭不能复活。两文件的显式原生排除回归 69/69；最终带本机原生入口阻断 preload 的回归独立封存为 `combined-publication-reader-guarded-v1.log`。原客户端 long-persistent 新增重开前后合并发布计数大于零的断言，尚待真实 hosted 执行。
+
+第一次扩大命令的负向 name-pattern 未排除两项真实 worker 测试，结果为 69 pass／2 fail，二者均在 storage 初始化失败；该次本机误触记录保留在 `combined-publication-reader-pure-v1.log`，不能算作纯回归或原生资格。后续使用显式 skip-pattern，并用仅本机私有 preload 在 openContextRecoveryStorage 入口立即拒绝实际 worker，避免选择错误触发本机原生 owner；该 guard 不进入产品、发行或 CI，也不替代 hosted 原生测试。
+
+诊断源码 `4e14f5e5` 的 Verify `39899488698` 已 failure，四个 unit 分片、集成、Rust、代码质量 success；coverage 唯一 not-ok 位于 `context-recovery-key.test.js` 的独立原生 ACL 验证 PowerShell 子进程，原 10000ms 触发 ETIMEDOUT（测试约 10190ms），不同于前一源码的 Chat 期限失败。终态日志 `hosted-job-120237497349-final.log`；不据此关闭历史客户端性能问题。其 disposable `39899488692` 仍单独跟踪，不因本机候选变更重启。原 I0–I5/H1、N01–N11 及当前包、私有迁移、全天、生产范围保持未完成。
+
 ## 2026-10-22：d1aaf83e 源码门禁通过，独立覆盖率及 N08／N09 失败
 
 同一源码 `d1aaf83ebf2ce1ca796652bd4b9feb44cc2efde0` 的 disposable run `39897831691` 已 failure：source-gates `120232255162` success，N08 `120235315971` 与 N09 `120235315938` 都在实际场景步骤 failure。两者依赖安装和固定载荷构建通过，固定诊断均为 `hpm_network_failed_stage=egress_containment`，尚未进入业务场景，不能授予生命周期资格或把本次失败归于业务 ACK。各自终态日志按 job ID 私有封存。独立 Verify `39897831931` 已 failure：四个 unit 分片、集成、Rust、代码质量 success，coverage `120232256095` failure。两路结果分别保留，不以其中一路通过覆盖另一路失败。

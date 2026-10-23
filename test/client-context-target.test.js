@@ -2241,17 +2241,23 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
   const contract = require('../lib/proxy/context-recovery-storage-contract');
   const execute = storage.execute;
   let combinedAdmissions = 0;
+  let combinedPublications = 0;
   storage.execute = async (request) => {
     const started = performance.now();
+    const combinedPublication =
+      request.admission &&
+      request.reference.metadata.budget.calls === request.admission.metadata.budget.calls;
     try {
       const result = await execute(request);
       if (request.admission) combinedAdmissions++;
+      if (combinedPublication) combinedPublications++;
       return result;
     } finally {
       diagnostic({
         phase: 'storage',
         operation: request.operation,
         ...(request.admission ? { combinedAdmission: true } : {}),
+        ...(combinedPublication ? { combinedPublication: true } : {}),
         elapsedMs: Math.round(performance.now() - started),
       });
     }
@@ -2314,6 +2320,7 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
     sessions,
     lifecycle,
     combinedAdmissions: () => combinedAdmissions,
+    combinedPublications: () => combinedPublications,
     waitForPublication(index, signal) {
       if (completed.length >= index) return Promise.resolve(completed[index - 1]);
       return new Promise((resolve, reject) => {
@@ -2801,6 +2808,7 @@ for (const kind of ['chat', 'responses', 'claude']) {
           }
           if (persistent && turn === 0) {
             assert.ok(persistent.combinedAdmissions() > 0);
+            assert.ok(persistent.combinedPublications() > 0);
             savedRoot = exportContextRecoveryRootMetadata(runtime, seed.snapshotId).metadata;
             assert.ok(Number.isSafeInteger(savedRoot.expiresAt));
             assert.ok(savedRoot.expiresAt > Date.now());
@@ -2825,6 +2833,7 @@ for (const kind of ['chat', 'responses', 'claude']) {
         }
         if (persistent) {
           assert.ok(persistent.combinedAdmissions() > 0);
+          assert.ok(persistent.combinedPublications() > 0);
           const restored = exportContextRecoveryRootMetadata(runtime, seed.snapshotId).metadata;
           assert.equal(restored.expiresAt, savedRoot.expiresAt);
           assert.equal(restored.rootId, savedRoot.rootId);
