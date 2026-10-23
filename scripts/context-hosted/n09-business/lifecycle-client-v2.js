@@ -560,15 +560,32 @@ function createClientUnsafe(input, dependencies) {
       )
         throw fail();
       onPhase(118);
-      const afterReply = await request({ method: 'GET', route: '/v1/local/config' });
+      let afterReply;
+      try {
+        afterReply = await request({ method: 'GET', route: '/v1/local/config' });
+      } catch (error) {
+        const deadline =
+          error &&
+          typeof error === 'object' &&
+          !types.isProxy(error) &&
+          Object.getOwnPropertyDescriptor(error, 'code')?.value === 'HPM_DAEMON_HTTP_DEADLINE';
+        onPhase(deadline ? 127 : 128);
+        throw fail();
+      }
+      if (afterReply.status !== 200) {
+        onPhase(129);
+        throw fail();
+      }
       const after = snapshot(afterReply.body);
       if (
-        afterReply.status !== 200 ||
         after._revision !== saved.body.revision ||
         after.appSettings?.contextRecoveryEnabled !== enabled ||
         after.appSettings?.contextRecoveryPersistenceEnabled !== persistence
-      )
+      ) {
+        onPhase(130);
         throw fail();
+      }
+      onPhase(119);
       return Object.freeze({
         enabled,
         persistence,

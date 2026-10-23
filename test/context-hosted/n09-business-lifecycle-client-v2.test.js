@@ -571,7 +571,7 @@ test('post-startup failures identify config read, save, readback or health inste
   for (const [operation, boundary, expected] of [
     ['combination', 'read', 116],
     ['combination', 'save', 117],
-    ['combination', 'readback', 118],
+    ['combination', 'readback', 130],
     ['attest', 'read', 116],
     ['attest', 'health', 190],
   ]) {
@@ -616,6 +616,50 @@ test('post-startup failures identify config read, save, readback or health inste
         f.state.requests.filter((request) => request.method === 'POST').length,
         operation === 'combination' && boundary !== 'read' ? 2 : 1
       );
+    } finally {
+      await f.client.close();
+    }
+    assert.equal(f.state.commands.at(-1).op, 'remove');
+  }
+});
+
+test('combination readback distinguishes deadline, transport, HTTP and mismatched flags without retries', async (t) => {
+  for (const [failure, expected] of [
+    ['deadline', 127],
+    ['transport', 128],
+    ['http', 129],
+    ['flags', 130],
+  ]) {
+    const phases = [];
+    let armed = false,
+      reads = 0;
+    const f = fixture(
+      t,
+      (stage, value, state) => {
+        if (!armed || stage !== 'http') return;
+        const request = state.requests.at(-1);
+        if (request.path !== '/v1/local/config' || request.method !== 'GET' || ++reads !== 2)
+          return;
+        if (failure === 'deadline') state.holdManagementReply = true;
+        if (failure === 'transport') state.transportFailure = true;
+        if (failure === 'http') state.statusCode = 500;
+        if (failure === 'flags') value.appSettings.contextRecoveryPersistenceEnabled = false;
+      },
+      undefined,
+      (phase) => phases.push(phase)
+    );
+    try {
+      const identity = await f.client.startLifecycle();
+      await f.client.configureSyntheticBusiness(identity, synthetic());
+      armed = true;
+      phases.length = 0;
+      await assert.rejects(
+        f.client.setCombination(identity, '01'),
+        /^Error: n09_lifecycle_client_failed$/
+      );
+      assert.equal(phases.at(-1), expected, failure);
+      assert.equal(reads, 2, failure);
+      assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 2);
     } finally {
       await f.client.close();
     }
