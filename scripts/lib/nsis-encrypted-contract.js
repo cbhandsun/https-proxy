@@ -157,7 +157,9 @@ function nativeKeyInvocation(executable, args, expectedNative) {
     !equalPath(path.resolve(executable), expectedNative) ||
     !Array.isArray(args) ||
     args.length !== 1 ||
-    !['--hpm-context-key-v1', '--hpm-context-private-path-v1'].includes(args[0])
+    !['--hpm-context-key-v1', '--hpm-context-private-path-v1', '--hpm-context-anchor-v1'].includes(
+      args[0]
+    )
   )
     throw fail();
   return args[0] === '--hpm-context-key-v1';

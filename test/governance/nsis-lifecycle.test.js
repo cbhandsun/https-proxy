@@ -55,7 +55,7 @@ const reviewWorkflow = fs
 assert.match(reviewWorkflow, /push:\n {4}branches:\n {6}- acceptance\/windows-lifecycle-20261022/);
 assert.match(reviewWorkflow, /contents: read/);
 assert.match(reviewWorkflow, /uses: \.\/\.github\/workflows\/windows-installer-lifecycle.yml/);
-assert.match(reviewWorkflow, /baseline_sha: 1a127de1aeccc81789f78c570ea44782091c2133/);
+assert.match(reviewWorkflow, /baseline_sha: 2295c452888449e9728b3ddcc2f80f31e9433e69/);
 assert.doesNotMatch(
   reviewWorkflow,
   /secrets:|secrets\.|upload-artifact|gh release|contents: write|pull_request|workflow_dispatch/

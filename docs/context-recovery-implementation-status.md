@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：安装验收准备中的基线与原生 helper 接线修复
+
+安装 review wrapper 改用历史清理后已在本地与 GitHub 核实存在的基线 `2295c452888449e9728b3ddcc2f80f31e9433e69`，旧运行记录保留原 SHA。安装驱动的精确 helper 白名单补齐 `--hpm-context-anchor-v1`，该命令不计为 DPAPI；额外参数、错误 helper 路径及未知版本仍拒绝。两处专项回归均先失败后修复，安装/私有路由/governance 三文件 41/41、零失败或跳过；ESLint、格式、diff 与 CI 治理通过。证据为 vault 中 `installer-sanitized-baseline-before-v1.log`、`installer-anchor-command-before-v1.log` 和 `installer-followup-after-v1.log`。
+
+以上尚非安装资格。旧无锚点恢复库必须由当前 owner 拒绝并保留数据，现有单 store 安装序列仍需拆为 legacy 拒绝保留与新 store 连续性两条检查；旧 reader 可解析相同磁盘格式不代表它具有新锚点的防回滚能力。public 仓库下，旧私有资产的 route、bridge 与 consumer 可见性门禁继续保留，未上传旧 installer 或创建公开 artifact。`1a745a7f` 的完整 Verify 与 hosted N08/N09 仍在运行，后续本地安装脚本修改不自动继承该 SHA 的资格。
+
 ## 2026-10-22：修复正常事务拒绝后 owner 被关闭的回归
 
 独立锚点接线将 `engine.execute` 的正常事务拒绝也纳入了关闭 owner 的异常边界，导致 stale CAS 或第五条活跃状态容量拒绝后，后续合法读取失败。现在由 SQLite 引擎维持原事务回滚契约；成功执行后若锚点持久化、快照认证或路径校验失败，仍关闭 owner 且不返回成功回执。引擎自身回滚失败时的关闭逻辑保持。

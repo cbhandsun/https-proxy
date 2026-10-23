@@ -12,4 +12,4 @@ jobs:
   installer-lifecycle:
     uses: ./.github/workflows/windows-installer-lifecycle.yml
     with:
-      baseline_sha: 1a127de1aeccc81789f78c570ea44782091c2133
+      baseline_sha: 2295c452888449e9728b3ddcc2f80f31e9433e69

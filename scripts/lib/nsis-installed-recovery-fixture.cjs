@@ -39,8 +39,8 @@ function run(args) {
     return resolved;
   };
   childProcess.execFileSync = function (executable, ...parameters) {
-    // The same pinned helper also secures filesystem ACLs. Only actual key
-    // protect/unprotect dispatch counts as DPAPI evidence.
+    // The same pinned helper also secures filesystem ACLs and the independent
+    // anchor. Only key protect/unprotect dispatch counts as DPAPI evidence.
     if (nativeKeyInvocation(executable, parameters[0], installed.native)) nativeCalls++;
     return execute.call(this, executable, ...parameters);
   };
