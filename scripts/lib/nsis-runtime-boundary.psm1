@@ -133,4 +133,6 @@ function Invoke-HpmInstalledRuntimeBoundary {
     } catch { throw 'Installed runtime boundary failed.' }
 }
 
-Export-ModuleMember -Function ConvertFrom-HpmRuntimeBoundaryResult, Invoke-HpmInstalledRuntimeBoundary
+# Hosted N08/N09 callers reuse this exact bounded Job implementation after
+# authenticating their fixed executable and arguments; export that shared API.
+Export-ModuleMember -Function ConvertFrom-HpmRuntimeBoundaryResult, Invoke-HpmBoundedRuntimeChild, Invoke-HpmInstalledRuntimeBoundary

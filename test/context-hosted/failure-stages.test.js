@@ -60,6 +60,22 @@ test('failure diagnostics accept only fixed stage literals and never interpolate
   }
 });
 
+test('original bounded Job helper is exported for the hosted owned-scenario callers', () => {
+  const module = path.join(root, 'scripts/lib/nsis-runtime-boundary.psm1');
+  assert.deepEqual(
+    run(`
+    $ErrorActionPreference = 'Stop'
+    Import-Module ${quote(module)} -Force
+    Get-Command -Module nsis-runtime-boundary -CommandType Function | Sort-Object Name | ForEach-Object { $_.Name }
+  `),
+    [
+      'ConvertFrom-HpmRuntimeBoundaryResult',
+      'Invoke-HpmBoundedRuntimeChild',
+      'Invoke-HpmInstalledRuntimeBoundary',
+    ]
+  );
+});
+
 test(
   'real qualification and network preflight failures emit safe stages without running native operations',
   {

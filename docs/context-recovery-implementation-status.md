@@ -1,5 +1,23 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：有界 Job 辅助函数缺少模块导出，回归修复待托管
+
+`ff05b521` 的 disposable `39904545105` 已 failure：source-gates 和网络诊断 success，两路业务失败。N08 `120256789496`、N09 `120256789510` 现均进入 owned-job 内部并记录 `bounded_child`，另有 network restore failure，不能授予业务或清理资格。日志按 job ID 私有封存。与上一源码没有 job-stage 诊断的失败不同，闭包调用已经越过函数解析边界。
+
+后续模块导入回归在原代码上失败：原 `nsis-runtime-boundary.psm1` 定义但未导出 `Invoke-HpmBoundedRuntimeChild`，而两路 owned-job 都在模块外按名称调用它。候选显式导出原共享函数，保留全部原实现、120 秒外层和内部期限、stdin grant、Job 分配、4096 字节管道上限、StopAndWait 和清理规则。回归修改前 0/1，六文件扩大回归修复后 35/35，分别为 `hosted-job-export-before-v1.log`、`hosted-job-export-pure-v1.log`；原 receipt-only PowerShell 解析用例另通过 1/1，没有运行产品、持久 worker、DPAPI 或注册表。新真实托管结果待确认。
+
+`ff05b521` 的便携包标准构建已退出 0，`verify-release-artifacts.js` 确认 1 份 NSIS 和 1 份 ZIP 的大小与 SHA256 清单通过；该检查尚不等于 ZIP 解包源码或实际安装资格。当前包与安装 mechanics 仍绑定原 `ff05b521`，不能冒称后续辅助脚本候选已通过。I0–I5/H1、N01–N11 与生产范围保持未完成。
+
+## 2026-10-22：闭包修复源码门禁通过，当前 NSIS 构建及包内合成回归通过
+
+`ff05b521dad2cca70bd18408130b2afa2c5f33a7` 的 disposable `39904545105` 中，source-gates `120253357790` 和独立网络诊断 `120253357551` 已 success；N08 `120256789496`、N09 `120256789510` 已启动，业务终态待确认。独立 Verify `39904545131` 四个 unit 分片、质量、集成和 Rust success，客户端覆盖率仍待终态。没有取消或重启原运行，也未增加真实模型请求。
+
+当前源码本机标准 `npm run build` 退出 0，生成 GUI／NSIS；仅用 7-Zip 解包，没有运行安装器或 GUI。staging 和 NSIS 分别核对清单中 536 份源码均与当前工作树一致，Node、原生辅助程序和锁文件摘要匹配，实际 NSIS 解包目录通过发行目录治理。私有证据为 `current-ff05b521-build-v1.log`、`current-ff05b521-staging-v1.json`、`current-ff05b521-nsis-source-v1.json`。
+
+使用实际 NSIS 内 Node，并将测试代理模块解析固定映射到解包目录，reader／publication 两文件合成回归 70/70，工作区代理模块回落 0；显式排除两项真实 worker 测试，另有私有 preload 阻断实际持久存储打开，证据 `current-ff05b521-nsis-pure-v1.log`。这不证明真实 worker、安装、迁移或全天能力。便携包组装另行跟踪，不能从 NSIS 结果推导 ZIP 完整性。
+
+为并行推进当前源码安装 mechanics，正常创建精确指向 `ff05b521` 的 `acceptance/windows-lifecycle/20261022-mechanics-ff05b521`，触发 `39905400077`；job `120256079149` 已进入 runner 源码基线构建。固定基线保持 `2295c452888449e9728b3ddcc2f80f31e9433e69`，不改默认分支，不上传安装器；不授予私有原包或真实用户数据迁移资格。原 I0–I5/H1、N01–N11 与生产范围保持未完成。
+
 ## 2026-10-22：业务入口闭包作用域回归已复现，修复候选待托管
 
 `af56e4be` 的 disposable `39902537877` 现已 failure：source-gates 与独立网络诊断 success，N08 `120251652962`、N09 `120251652989` 的载荷构建 success，固定场景 failure。两路固定诊断均为 network owned_scenario、execution owned_job，且没有进入 owned-job 函数内部的 job-stage 诊断；收尾另记录 restore failure。原终态日志按 job ID 私有封存。
