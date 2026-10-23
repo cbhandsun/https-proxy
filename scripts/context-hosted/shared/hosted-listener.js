@@ -6,6 +6,7 @@ const os = require('node:os');
 const https = require('node:https');
 const net = require('node:net');
 const { exact } = require('./boundary.js');
+const { closeOwnedListeners } = require('./hosted-listener-cleanup.js');
 const leases = new WeakMap();
 const fail = () => new Error('n08_hosted_listener_rejected');
 async function createHostedListener(input) {
@@ -110,17 +111,11 @@ async function createHostedListener(input) {
       listener.once('listening', ready);
       listener.listen({ host, port, exclusive: true });
     });
-  const close = (listener) =>
-    new Promise((resolve) => {
-      if (!listener.listening) return resolve();
-      listener.close(() => resolve());
-    });
   try {
     await listen(server, '127.0.0.1', 443);
     await listen(negative, options.negativeAddress, 0);
   } catch {
-    for (const socket of sockets) socket.destroy();
-    await Promise.all([close(server), close(negative)]);
+    await closeOwnedListeners(sockets, [server, negative]);
     throw fail();
   }
   let ended = false;
@@ -139,9 +134,7 @@ async function createHostedListener(input) {
     async close() {
       ended = true;
       leases.delete(lease);
-      for (const socket of sockets) socket.destroy();
-      await Promise.all([close(server), close(negative)]);
-      return !server.listening && !negative.listening && sockets.size === 0;
+      return closeOwnedListeners(sockets, [server, negative]);
     },
   });
   leases.set(lease, {
