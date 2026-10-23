@@ -12,7 +12,12 @@ const source = fs.readFileSync(file, 'utf8');
 const localRequire = createRequire(file);
 const probePlaintext = Buffer.from('hpm-dpapi-probe', 'utf16le').toString('base64');
 
-function cryptoFixture(responses, platform = 'win32', nativeProtect = () => null) {
+function cryptoFixture(
+  responses,
+  platform = 'win32',
+  nativeProtect = () => null,
+  nativeUnprotect = () => null
+) {
   const module = { exports: {} };
   let calls = 0;
   const diagnostics = [];
@@ -26,7 +31,11 @@ function cryptoFixture(responses, platform = 'win32', nativeProtect = () => null
       env: { HPM_MASTER_KEY_BASE64: Buffer.alloc(32, 17).toString('base64') },
     },
     require(name) {
-      if (name === './profile-secret-native') return { protectProfileSecretNative: nativeProtect };
+      if (name === './profile-secret-native')
+        return {
+          protectProfileSecretNative: nativeProtect,
+          unprotectProfileSecretsNative: nativeUnprotect,
+        };
       if (name === 'node:perf_hooks') return { performance: { now: () => time } };
       if (name === 'child_process')
         return {
@@ -61,6 +70,44 @@ function cryptoFixture(responses, platform = 'win32', nativeProtect = () => null
     },
   };
 }
+
+test('packaged config decryption uses one native batch without PowerShell and preserves cache ownership', () => {
+  let nativeCalls = 0;
+  const wrapped = Buffer.alloc(32, 7).toString('base64');
+  const f = cryptoFixture([], 'win32', undefined, (values, options) => {
+    nativeCalls++;
+    assert.deepEqual([...values], [wrapped]);
+    assert.equal(options.platform, 'win32');
+    return ['profile-private-🙂'];
+  });
+  const encrypted = f.crypto.DPAPI_PREFIX + wrapped;
+  assert.deepEqual(
+    [...f.crypto.decryptKeysStrict([encrypted, encrypted])],
+    ['profile-private-🙂', 'profile-private-🙂']
+  );
+  assert.equal(f.crypto.decryptKey(encrypted), 'profile-private-🙂');
+  assert.equal(nativeCalls, 1);
+  assert.equal(f.calls(), 0);
+  assert.equal(f.diagnostics.length, 0);
+});
+
+test('native batch decryption failure is terminal without compatibility retry or plaintext disclosure', () => {
+  let nativeCalls = 0;
+  const f = cryptoFixture([], 'win32', undefined, () => {
+    nativeCalls++;
+    throw new Error('PRIVATE_NATIVE_SENTINEL');
+  });
+  assert.throws(
+    () => f.crypto.decryptKeysStrict([f.crypto.DPAPI_PREFIX + Buffer.alloc(32).toString('base64')]),
+    {
+      message: 'Failed to decrypt protected configuration secrets',
+      code: 'ERR_SECRET_DECRYPTION_FAILED',
+    }
+  );
+  assert.equal(nativeCalls, 1);
+  assert.equal(f.calls(), 0);
+  assert.equal(f.diagnostics.length, 0);
+});
 
 test('packaged profile encryption uses native CurrentUser roundtrip without PowerShell probes', () => {
   let nativeCalls = 0;

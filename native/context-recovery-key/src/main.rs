@@ -1,6 +1,18 @@
 fn main() {
     if std::env::args_os().count() == 2
         && std::env::args_os().nth(1).as_deref()
+            == Some(std::ffi::OsStr::new("--hpm-profile-unprotect-v1"))
+    {
+        if !hpm_context_recovery_key::profile_secret::run_unprotect(
+            std::io::stdin(),
+            std::io::stdout(),
+        ) {
+            std::process::exit(1);
+        }
+        return;
+    }
+    if std::env::args_os().count() == 2
+        && std::env::args_os().nth(1).as_deref()
             == Some(std::ffi::OsStr::new("--hpm-profile-secret-v1"))
     {
         if !hpm_context_recovery_key::profile_secret::run(std::io::stdin(), std::io::stdout()) {

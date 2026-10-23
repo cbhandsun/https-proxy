@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：管理 GET 原两秒期限已确认，候选接入打包原生批量解密
+
+分类诊断 `709bb803`／`39972986699` 的 N09 job `120480243527` 返回 127，确认实际配置 GET 触发原两秒请求期限，没有进入 profiles 或其他内容校验；N08 job `120480243216` 仍为 71。静态链路存在确定性启动成本：常规批量解密只有环境指定桌面主程序 helper 才免于 PowerShell。候选在已打包的轻量原生程序增加独立 `--hpm-profile-unprotect-v1`，沿用原 CurrentUser、无 optional entropy 的 profile 格式，不改变上下文数据密钥协议。该优化是否足以解除真实期限仍待托管验证。
+
+原生边界严格拒绝重复／未知字段、非法／非规范 base64、空／超过 64 项、超限输入和奇数 UTF16 长度，整批解密成功才输出，失败仅固定回执。JS 复用固定程序和物理路径检查、stdin 与私有有界 pipes，严格核对整批回执和数量；常规凭据走一次轻量批处理。缺失程序／非 Windows 和大旧凭据保留既有兼容路径；已调用原生失败则固定拒绝，不走 PowerShell 或原有重试循环。已有成功解密缓存规则保持，没有新增明文缓存或延长管理期限。
+
+两项接线回归在 HEAD 旧代码先 RED，新候选 JS 纯模拟 27/27、隔离发布 12/12、Rust 纯解析／假加解密 6/6 通过，格式、零警告 Lint、CI／release 治理及全 target Clippy 通过。实际 Windows profile roundtrip 新回归进入统一原生 CI，本机过滤执行了全部六项 parse 测试，没有执行实际 DPAPI、产品 worker、安装器、注册表、防火墙或真实模型。Tokio 升级候选 `f0be7cc6` 的 Rust job 已 success，但 coverage job `120483774241` 已失败、完整 Verify 和 disposable 最近仍运行，未以依赖修复或局部回归声称整体通过。完整目标保持未完成。
+
 ## 2026-10-23：完整 Verify 七项通过，单独更新 Tokio 修复审计阻塞
 
 `d2e6fe05` 的 Verify `39971570468` 终态 failure，coverage、四个 unit 分片、integration 和 node-quality 七个 job 全部 success；Rust job `120475330106` 失败于 Windows Rust audit，固定诊断为 `unsound:RUSTSEC-2026-0386:tokio@1.52.3`。该次实际存储原有回归和覆盖率通过，但不据此宣称此前所有长尾永久消除；完整 disposable `39971570600` 最近仍运行。

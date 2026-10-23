@@ -2,7 +2,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const { protectProfileSecretNative } = require('../lib/proxy/profile-secret-native');
+const {
+  protectProfileSecretNative,
+  unprotectProfileSecretsNative,
+} = require('../lib/proxy/profile-secret-native');
 const bad = { message: 'secret_encryption_failed', code: 'ERR_SECRET_ENCRYPTION_FAILED' };
 const cipher = Buffer.alloc(32, 7).toString('base64');
 function fixture(mutation = () => {}) {
@@ -33,6 +36,131 @@ function fixture(mutation = () => {}) {
   };
   return { calls, stats, dependencies };
 }
+
+test('packaged profile unprotect uses one bounded stdin batch and preserves exact Unicode order', () => {
+  const plains = ['profile-🙂', 'second', 'x'.repeat(8192)];
+  const f = fixture((at, reply) => {
+    if (at === 'execute')
+      reply.text = JSON.stringify({
+        ok: true,
+        values: plains.map((value) => Buffer.from(value, 'utf16le').toString('base64')),
+      });
+  });
+  assert.deepEqual(unprotectProfileSecretsNative([cipher, cipher, cipher], f.dependencies), plains);
+  assert.equal(f.calls.length, 1);
+  assert.deepEqual(f.calls[0].args, ['--hpm-profile-unprotect-v1']);
+  assert.deepEqual(JSON.parse(f.calls[0].options.input), {
+    operation: 'unprotect',
+    values: [cipher, cipher, cipher],
+  });
+  assert.equal(f.calls[0].options.maxBuffer, 1500000);
+  assert.equal(f.calls[0].options.timeout, 10000);
+  assert.deepEqual(f.calls[0].options.stdio, ['pipe', 'pipe', 'pipe']);
+  assert.equal(f.calls[0].options.windowsHide, true);
+});
+
+test('batch unprotect retains source-only, non-Windows and large legacy compatibility without executing', () => {
+  const f = fixture();
+  f.dependencies.platform = 'linux';
+  assert.equal(unprotectProfileSecretsNative([cipher], f.dependencies), null);
+  f.dependencies.platform = 'win32';
+  assert.equal(
+    unprotectProfileSecretsNative([Buffer.alloc(16385).toString('base64')], f.dependencies),
+    null
+  );
+  f.dependencies.filesystem.lstatSync = () => {
+    throw Object.assign(new Error('private'), { code: 'ENOENT' });
+  };
+  assert.equal(unprotectProfileSecretsNative([cipher], f.dependencies), null);
+  assert.equal(f.calls.length, 0);
+});
+
+test('batch unprotect accepts the full 64 item boundary and rejects insecure helper metadata', () => {
+  const f = fixture((at, reply) => {
+    if (at === 'execute') reply.text = JSON.stringify({ ok: true, values: Array(64).fill('YQA=') });
+  });
+  assert.deepEqual(
+    unprotectProfileSecretsNative(Array(64).fill(cipher), f.dependencies),
+    Array(64).fill('a')
+  );
+  for (const mode of ['hardlink', 'parent-link']) {
+    const unsafe = fixture((at, stat, file) => {
+      if (at !== 'stat') return;
+      if (mode === 'hardlink' && file.endsWith('.exe')) stat.nlink = 2;
+      if (mode === 'parent-link' && !file.endsWith('.exe')) stat.isSymbolicLink = () => true;
+    });
+    assert.throws(() => unprotectProfileSecretsNative([cipher], unsafe.dependencies), {
+      message: 'secret_decryption_failed',
+      code: 'ERR_SECRET_DECRYPTION_FAILED',
+    });
+    assert.equal(unsafe.calls.length, 0);
+  }
+});
+
+test('batch unprotect rejects malformed and executable inputs before execution', () => {
+  const badDecrypt = { message: 'secret_decryption_failed', code: 'ERR_SECRET_DECRYPTION_FAILED' };
+  const f = fixture();
+  let traps = 0;
+  const getter = [cipher];
+  Object.defineProperty(getter, '0', {
+    get() {
+      traps++;
+      return cipher;
+    },
+  });
+  const proxy = new Proxy([cipher], {
+    get() {
+      traps++;
+      throw new Error('private');
+    },
+  });
+  for (const value of [
+    null,
+    {},
+    [],
+    new Array(1),
+    new Array(1000000),
+    Array(65).fill(cipher),
+    ['!!!'],
+    [cipher + '\n'],
+    ['YQ=='],
+    [1],
+    getter,
+    proxy,
+  ])
+    assert.throws(() => unprotectProfileSecretsNative(value, f.dependencies), badDecrypt);
+  assert.equal(traps, 0);
+  assert.equal(f.calls.length, 0);
+});
+
+test('batch unprotect fails closed on invalid, ambiguous, partial, odd or oversized native replies', () => {
+  const badDecrypt = { message: 'secret_decryption_failed', code: 'ERR_SECRET_DECRYPTION_FAILED' };
+  for (const reply of [
+    'null',
+    '[]',
+    '{"ok":false}',
+    'PRIVATE_NATIVE_REPLY',
+    '{"ok":true,"ok":true,"values":["YQA="]}',
+    JSON.stringify({ ok: true, values: [] }),
+    JSON.stringify({ ok: true, values: ['YQ=='] }),
+    JSON.stringify({ ok: true, values: ['!!!'] }),
+    JSON.stringify({ ok: true, values: [''] }),
+    JSON.stringify({ ok: true, values: ['YQA='], extra: true }),
+    JSON.stringify({ ok: true, values: [Buffer.alloc(16386).toString('base64')] }),
+    'x'.repeat(1500001),
+  ]) {
+    const f = fixture((at, value) => {
+      if (at === 'execute') value.text = reply;
+    });
+    assert.throws(() => unprotectProfileSecretsNative([cipher], f.dependencies), badDecrypt);
+    assert.equal(f.calls.length, 1);
+  }
+  const f = fixture();
+  f.dependencies.execute = () => {
+    throw new Error('PRIVATE_PROCESS_FAILURE');
+  };
+  assert.throws(() => unprotectProfileSecretsNative([cipher], f.dependencies), badDecrypt);
+});
 test('native profile protection uses fixed executable and stdin only with bounded private pipes', () => {
   for (const plain of ['profile-🙂', 'x'.repeat(4096)]) {
     const f = fixture();
