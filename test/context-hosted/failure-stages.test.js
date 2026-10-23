@@ -121,8 +121,8 @@ test(
       function New-NetFirewallRule {
         param($Name, $DisplayName, $Direction, $Action, $Enabled, $Profile, $Program, $RemoteAddress)
         if ($mode -eq 'create') { throw ${quote(sentinel)} }
-        if ($RemoteAddress.Count -ne 3 -or $RemoteAddress[0] -cne '0.0.0.0-127.0.0.0' -or
-            $RemoteAddress[1] -cne '127.0.0.2-255.255.255.255' -or $RemoteAddress[2] -cne '::/0' -or
+        if ($RemoteAddress.Count -ne 4 -or $RemoteAddress[0] -cne '0.0.0.0-127.0.0.0' -or
+            $RemoteAddress[1] -cne '127.0.0.2-255.255.255.255' -or $RemoteAddress[2] -cne '::/1' -or $RemoteAddress[3] -cne '8000::/1' -or
             $Direction -cne 'Outbound' -or $Action -cne 'Block' -or $Program -cne $node) { throw 'fixture_contract_failed' }
       }
       function Get-NetFirewallApplicationFilter {

@@ -48,6 +48,7 @@ test(
       param($Name, $DisplayName, $Direction, $Action, $Enabled, $Profile, $Program, $RemoteAddress, $ErrorAction)
       $script:calls++
       $script:addressCount = $RemoteAddress.Count
+      $script:addresses = @($RemoteAddress)
       if ($mode -eq 'create') { throw [ArgumentException]::new(${quote(sentinel)}) }
       $script:exists = $true
       if ($mode -eq 'partial') { throw [ArgumentException]::new(${quote(sentinel)}) }
@@ -62,7 +63,11 @@ test(
       if ($mode -eq 'cleanup') { throw ${quote(sentinel)} }
       $script:exists = $false
     }
-    foreach ($mode in @('success', 'create', 'partial', 'identity', 'cleanup', 'collision', 'query_before', 'query_cleanup')) {
+    function Get-NetFirewallAddressFilter {
+      param($ErrorAction)
+      [pscustomobject]@{ RemoteAddress = $(if ($mode -eq 'addresses') { @('Any') } else { $script:addresses }) }
+    }
+    foreach ($mode in @('success', 'create', 'partial', 'identity', 'cleanup', 'collision', 'query_before', 'query_cleanup', 'addresses')) {
       $cases = if ($mode -eq 'success') { @('original', 'ipv4', 'ipv6', 'ipv6_split', 'full_split') } else { @('original') }
       foreach ($case in $cases) {
         $script:exists = $mode -eq 'collision'
@@ -88,7 +93,7 @@ test(
       .trim()
       .split(/\r?\n/)
       .map((line) => JSON.parse(line));
-    assert.equal(rows.length, 13);
+    assert.equal(rows.length, 14);
     assert.deepEqual(
       rows.slice(0, 5).map((row) => row.addressCount),
       [3, 2, 1, 2, 4]
@@ -114,6 +119,9 @@ test(
     assert.equal(rows[10].result.cleaned, false);
     assert.equal(rows[11].result.stage, 'cleanup');
     assert.equal(rows[11].result.cleaned, false);
-    assert.deepEqual(rows[12], { calls: 0, rejected: true });
+    assert.equal(rows[12].result.stage, 'address_filter');
+    assert.equal(rows[12].result.verified, false);
+    assert.equal(rows[12].result.cleaned, true);
+    assert.deepEqual(rows[13], { calls: 0, rejected: true });
   }
 );

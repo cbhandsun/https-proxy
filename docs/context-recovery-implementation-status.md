@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：托管已定位 IPv6 /0 规则拒绝，等价地址修复待主验收
+
+独立 egress job `120245585579`（run `39902047946`，源码 `38bdd862`）已 success。五组固定结果：original 与 ipv6 的 `::/0` 在 create 阶段拒绝，category 5、HRESULT -2146233088、nativeCode 1；ipv4、ipv6_split、full_split 均 created／verified／cleaned true。日志 `hosted-job-120245585579-final.log` 只保留固定字段，不打印原始错误。本次独立诊断由同一 runner 上单独 IPv4 成功、IPv6 /0 失败及两半 /1 成功的对照定位到地址表达式，不能泛化为所有 Windows 版本不支持 /0。
+
+主网络规则将 `::/0` 改为 `::/1` 和 `8000::/1`，保持完整 IPv6 阻断及原 IPv4 仅排除 127.0.0.1；程序、方向、动作、profiles、启用、清理和原负向网络探针均保留。新地址回归在旧表达式上先失败（`egress-ipv6-split-before-v1.log`），随后四文件 mocked／解析／原 workflow 治理 18/18（`egress-ipv6-split-pure-v1.log`）。独立诊断还增加实际 address filter 回读比较，拒绝规则静默扩成 Any 或缺失地址；该新增回读本机仅 mock，通过不等于托管验证。网络主场景及 N08／N09 仍须原完整门禁之后验证。
+
+暖态发布候选 `ce0ef15b` 的 Verify `39900803138` 已 failure：四个 unit 分片、集成、Rust、质量 success，coverage failure。原生客户端新合并发布断言在普通 unit 通过，但 coverage 的 chat／Responses／Claude 第 0 轮仍分别在 5006／5018／5014ms 触发原期限；合并发布记录分别 3／2／3 条，不等同全部操作成功。终态及固定字段逐阶段证据为 `hosted-job-120241692609-final.log`、`hosted-job-120241692609-final-sanitized.json`。该优化尚未解决完整性能门禁。原 I0–I5/H1、N01–N11、当前包、私有迁移、全天及生产资格仍未完成。
+
 ## 2026-10-22：网络失败已缩小到规则创建，新增独立诊断路径
 
 `4e14f5e5` 的 disposable `39899488692` 已 failure：source-gates success，N08 `120242253238`、N09 `120242253172` 均记录 `hpm_network_failed_stage=egress_rule_create`。两者尚未启动业务场景；不能归因于 durable ACK 或宣称生命周期失败根因已修复。终态日志按各自 job ID 私有封存。`ce0ef15b` 的独立托管验收另行跟踪，不因本轮诊断变更取消或重启。

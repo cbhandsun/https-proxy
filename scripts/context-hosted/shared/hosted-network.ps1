@@ -120,8 +120,10 @@ function Invoke-HpmN08HostedNetwork {
         $networkStage = 'egress_collision'
         if ($null -ne (Get-NetFirewallRule -Name $firewallName -ErrorAction SilentlyContinue)) { throw 'n08_network_rejected' }
         $networkStage = 'egress_rule_create'
+        # NetSecurity rejects ::/0 on the hosted image. The two /1 prefixes
+        # retain the same complete IPv6 block, with IPv4 exclusions unchanged.
         New-NetFirewallRule -Name $firewallName -DisplayName $firewallName -Direction Outbound -Action Block -Enabled True -Profile Any `
-            -Program $node -RemoteAddress @('0.0.0.0-127.0.0.0', '127.0.0.2-255.255.255.255', '::/0') | Out-Null
+            -Program $node -RemoteAddress @('0.0.0.0-127.0.0.0', '127.0.0.2-255.255.255.255', '::/1', '8000::/1') | Out-Null
         $firewallCreated = $true
         $networkStage = 'egress_rule_read'
         $rule = Get-NetFirewallRule -Name $firewallName

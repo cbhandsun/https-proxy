@@ -40,6 +40,11 @@ function Invoke-HpmEgressRuleProbe {
         $rule = Get-NetFirewallRule -Name $Name -ErrorAction Stop
         $application = $rule | Get-NetFirewallApplicationFilter -ErrorAction Stop
         if ($rule.Enabled -ne 'True' -or $rule.Action -ne 'Block' -or $rule.Direction -ne 'Outbound' -or $application.Program -cne $Program) { throw 'egress_probe_identity' }
+        $result.stage = 'address_filter'
+        $filter = $rule | Get-NetFirewallAddressFilter -ErrorAction Stop
+        $actual = @($filter.RemoteAddress | ForEach-Object { $_.Trim().ToLowerInvariant() } | Sort-Object -Unique)
+        $expected = @($addresses | ForEach-Object { $_.ToLowerInvariant() } | Sort-Object -Unique)
+        if ([string]::Join("`n", $actual) -cne [string]::Join("`n", $expected)) { throw 'egress_probe_addresses' }
         $result.verified = $true
     } catch {
         # No native messages, paths, rule contents or command arguments escape.
