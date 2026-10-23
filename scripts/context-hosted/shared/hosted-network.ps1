@@ -19,6 +19,7 @@ function Invoke-HpmN08HostedNetwork {
     $profiles = @()
     $firewallName = $null
     $firewallCreated = $false
+    $wfpLease = $null
     $ca = $null
     $leaf = $null
     $primaryFailed = $false
@@ -133,6 +134,20 @@ function Invoke-HpmN08HostedNetwork {
         if ($rule.Enabled -ne 'True' -or $rule.Action -ne 'Block' -or $rule.Direction -ne 'Outbound' -or
             $application.Program -cne $node) { throw 'n08_network_rejected' }
 
+        # Windows Firewall may exempt same-host traffic even for a non-loopback
+        # destination address. Keep its rule and add a dynamic ALE connect scope
+        # for only the owned binary, so the original actual negative probe holds.
+        $networkStage = 'egress_wfp_compile'
+        Add-Type -Path (Join-Path $PSScriptRoot 'hosted-egress-wfp.cs') -ErrorAction Stop
+        $networkStage = 'egress_wfp_install'
+        try { $wfpLease = [HpmHostedEgressLease]::new($node) } catch {
+            $wfpFailurePhase = [HpmHostedEgressLease]::LastFailurePhase
+            if ($wfpFailurePhase -ge 1 -and $wfpFailurePhase -le 11) {
+                Write-Information ('hpm_wfp_failed_phase=' + $wfpFailurePhase) -InformationAction Continue
+            }
+            throw 'n08_network_rejected'
+        }
+
         $networkStage = 'hosts_mapping'
         $hostsFile = Join-Path $env:SystemRoot 'System32/drivers/etc/hosts'
         Assert-Physical $hostsFile $false
@@ -212,6 +227,7 @@ function Invoke-HpmN08HostedNetwork {
         # An unproved child tree must remain contained. The disposable hosted
         # runner is discarded on this hard failure; never unblock owned Node.
         if ($ownedScenarioStopped) {
+            if ($null -ne $wfpLease) { try { $wfpLease.Dispose() } catch { $restoreFailed = $true } }
             if ($firewallCreated) { try { Remove-NetFirewallRule -Name $firewallName -ErrorAction Stop } catch { $restoreFailed = $true } }
             foreach ($profile in $profiles) { try { Set-NetFirewallProfile -Name $profile.Name -Enabled $profile.Enabled } catch { $restoreFailed = $true } }
         } else { $restoreFailed = $true }

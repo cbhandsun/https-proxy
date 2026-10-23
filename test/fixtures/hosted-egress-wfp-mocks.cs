@@ -1,0 +1,130 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.InteropServices;
+
+public static class HpmHostedEgressFixture {
+    private sealed class Fake : HpmHostedEgressLease.Api {
+        internal string fail;
+        internal int closed, added, read;
+        private IntPtr blob, data;
+        private HpmHostedEgressLease.Filter pending;
+        internal HashSet<IntPtr> allocations = new HashSet<IntPtr>();
+        private static void Require(bool accepted) { if (!accepted) throw new Exception("fixture_assertion_failed"); }
+        public uint Open(ref HpmHostedEgressLease.Session session, out IntPtr engine) {
+            Require(session.flags == 1 && session.key != Guid.Empty);
+            engine = fail == "open" || fail == "engine-null" ? IntPtr.Zero : new IntPtr(123);
+            return fail == "open" ? 5u : 0u;
+        }
+        public uint AppId(string program, out IntPtr app) {
+            app = IntPtr.Zero;
+            if (fail == "appid") return 5;
+            if (fail == "appid-null") return 0;
+            data = Marshal.AllocHGlobal(4); allocations.Add(data);
+            Marshal.WriteInt32(data, 0x12345678);
+            blob = Marshal.AllocHGlobal(Marshal.SizeOf<HpmHostedEgressLease.Blob>()); allocations.Add(blob);
+            Marshal.StructureToPtr(new HpmHostedEgressLease.Blob {size = fail == "appid-size" ? UInt32.MaxValue : 4, data = data}, blob, false);
+            app = blob;
+            return 0;
+        }
+        public uint AddSublayer(IntPtr engine, ref HpmHostedEgressLease.Sublayer sublayer) {
+            Require(sublayer.flags == 0 && sublayer.weight == UInt16.MaxValue && sublayer.key != Guid.Empty);
+            return fail == "sublayer" ? 5u : 0u;
+        }
+        public uint AddFilter(IntPtr engine, ref HpmHostedEgressLease.Filter filter, out ulong id) {
+            added++;
+            Require(filter.flags == 0 && filter.action.type == 0x1001 && filter.count == (added == 1 ? 2u : 1u));
+            Require(filter.layer == new Guid(added == 1 ? "c38d57d1-05a7-4c33-904f-7fbceee60e82" : "4a72393b-319f-44bc-84c3-ba54dcb3b6b4"));
+            HpmHostedEgressLease.Condition application = Marshal.PtrToStructure<HpmHostedEgressLease.Condition>(filter.conditions);
+            Require(application.field == new Guid("d78e1e87-8644-4ea5-9437-d809ecefc971") && application.match == 0 && application.value.type == 12 && application.value.value.pointer == blob);
+            if (added == 1) {
+                HpmHostedEgressLease.Condition remote = Marshal.PtrToStructure<HpmHostedEgressLease.Condition>(IntPtr.Add(filter.conditions, Marshal.SizeOf<HpmHostedEgressLease.Condition>()));
+                Require(remote.field == new Guid("b235ae9a-1d64-49b8-a44c-5ff3d9095045") && remote.match == 10 && remote.value.type == 3 && remote.value.value.number == 0x7f000001);
+            }
+            pending = filter;
+            id = fail == "id-zero" ? 0 : (ulong)added;
+            pending.id = id;
+            return fail == "add" + added ? 5u : 0u;
+        }
+        public uint GetFilter(IntPtr engine, ulong id, out IntPtr filter) {
+            read++;
+            filter = IntPtr.Zero;
+            if (fail == "read" + read) return 5;
+            if (fail == "read-null") return 0;
+            filter = Marshal.AllocHGlobal(Marshal.SizeOf<HpmHostedEgressLease.Filter>()); allocations.Add(filter);
+            HpmHostedEgressLease.Filter observed = pending;
+            if (fail == "mismatch") observed.action.type = 0x1002;
+            if (fail == "filter-count") observed.count = UInt32.MaxValue;
+            Marshal.StructureToPtr(observed, filter, false);
+            return 0;
+        }
+        public void Free(ref IntPtr memory) {
+            Require(allocations.Remove(memory));
+            Marshal.FreeHGlobal(memory);
+            if (memory == blob) { Require(allocations.Remove(data)); Marshal.FreeHGlobal(data); }
+            memory = IntPtr.Zero;
+        }
+        public uint Close(IntPtr engine) {
+            Require(engine == new IntPtr(123));
+            closed++;
+            return fail == "close" && closed == 1 ? 5u : 0u;
+        }
+    }
+    private static void Require(bool accepted) { if (!accepted) throw new Exception("fixture_assertion_failed"); }
+    private static int GuardPaths() {
+        string root = Path.Combine(Path.GetTempPath(), "hpm-wfp-guard-" + Guid.NewGuid().ToString("N"));
+        var saved = new Dictionary<string,string>();
+        foreach (string key in new [] {"GITHUB_ACTIONS", "RUNNER_ENVIRONMENT", "RUNNER_OS", "RUNNER_TEMP"}) saved[key] = Environment.GetEnvironmentVariable(key);
+        int checkedPaths = 0;
+        try {
+            Directory.CreateDirectory(root);
+            Environment.SetEnvironmentVariable("GITHUB_ACTIONS", "true");
+            Environment.SetEnvironmentVariable("RUNNER_ENVIRONMENT", "github-hosted");
+            Environment.SetEnvironmentVariable("RUNNER_OS", "Windows");
+            Environment.SetEnvironmentVariable("RUNNER_TEMP", root);
+            foreach (string scenario in new [] {"n08", "n09"}) {
+                string node = Path.Combine(root, "hpm-context-" + scenario, "payload", "runtime", "node", "node.exe");
+                Directory.CreateDirectory(Path.GetDirectoryName(node));
+                File.WriteAllText(node, "synthetic inert file");
+                Require(HpmHostedEgressLease.Guard(node) == node); checkedPaths++;
+                string traversal = Path.Combine(Path.GetDirectoryName(node), "..", "node", "node.exe");
+                foreach (string invalid in new [] {traversal, Path.Combine(root, "other.exe"), "\\\\server\\node.exe", "relative.exe"}) {
+                    try { HpmHostedEgressLease.Guard(invalid); throw new Exception("fixture_missing_rejection"); }
+                    catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); checkedPaths++; }
+                }
+            }
+        } finally {
+            foreach (var entry in saved) Environment.SetEnvironmentVariable(entry.Key, entry.Value);
+            string full = Path.GetFullPath(root), parent = Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar);
+            Require(Path.GetDirectoryName(full) == parent && Path.GetFileName(full).StartsWith("hpm-wfp-guard-", StringComparison.Ordinal));
+            if (Directory.Exists(full)) { Require((File.GetAttributes(full) & FileAttributes.ReparsePoint) == 0); Directory.Delete(full, true); }
+        }
+        return checkedPaths;
+    }
+    public static string Run() {
+        Require(HpmHostedEgressLease.ValidateAbi());
+        var normal = new Fake();
+        var lease = new HpmHostedEgressLease("synthetic-program", normal);
+        Require(normal.added == 2 && normal.read == 2 && normal.closed == 0 && normal.allocations.Count == 0);
+        lease.Dispose(); lease.Dispose();
+        Require(normal.closed == 1);
+        int rejected = 0;
+        foreach (string stage in new [] {"open", "engine-null", "appid", "appid-null", "appid-size", "sublayer", "add1", "id-zero", "read1", "read-null", "add2", "read2", "mismatch", "filter-count"}) {
+            var broken = new Fake {fail = stage};
+            try { new HpmHostedEgressLease("synthetic-program", broken); throw new Exception("fixture_missing_rejection"); }
+            catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); rejected++; }
+            Require(HpmHostedEgressLease.LastFailurePhase >= 3 && HpmHostedEgressLease.LastFailurePhase <= 10);
+            Require(broken.closed == (stage == "open" || stage == "engine-null" ? 0 : 1) && broken.allocations.Count == 0);
+        }
+        var close = new Fake {fail = "close"};
+        var retry = new HpmHostedEgressLease("synthetic-program", close);
+        try { retry.Dispose(); throw new Exception("fixture_missing_rejection"); }
+        catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); }
+        retry.Dispose(); Require(close.closed == 2);
+        foreach (string invalid in new [] {null, "", "relative.exe", "PRIVATE_PROGRAM_SENTINEL", new string('x', 40000)}) {
+            try { new HpmHostedEgressLease(invalid); throw new Exception("fixture_missing_rejection"); }
+            catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); rejected++; }
+        }
+        return "wfpSyntheticRejected=" + rejected + "; nativeWfpCalls=0; networkRequests=0; guardedPaths=" + GuardPaths();
+    }
+}

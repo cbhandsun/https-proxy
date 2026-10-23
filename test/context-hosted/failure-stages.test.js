@@ -112,7 +112,7 @@ test(
       'utf8'
     );
     const start = source.indexOf("        $networkStage = 'egress_containment'");
-    const end = source.indexOf("        $networkStage = 'hosts_mapping'", start);
+    const end = source.indexOf("        $networkStage = 'egress_wfp_compile'", start);
     assert.ok(start > 0 && end > start);
     const block = source.slice(start, end);
     const observed = run(`
@@ -170,6 +170,35 @@ test(
   }
 );
 
+test('WFP setup phases use a pure fake and reject compilation or installation failure', () => {
+  const source = fs.readFileSync(
+    path.join(root, 'scripts/context-hosted/shared/hosted-network.ps1'),
+    'utf8'
+  );
+  const start = source.indexOf("        $networkStage = 'egress_wfp_compile'");
+  const end = source.indexOf("        $networkStage = 'hosts_mapping'", start);
+  assert.ok(start > 0 && end > start);
+  const observed = run(`
+    $ErrorActionPreference = 'Stop'
+    Add-Type -TypeDefinition 'public sealed class HpmHostedEgressLease { public static bool Fail; public static int LastFailurePhase { get { return 3; } } public HpmHostedEgressLease(string p) { if (Fail || p != "synthetic-program") throw new System.InvalidOperationException("private"); } }'
+    function Add-Type { param($Path, $ErrorAction) if ($mode -eq 'compile') { throw 'private' } }
+    $body = [scriptblock]::Create(${quote(source.slice(start, end).replaceAll('$PSScriptRoot', quote('synthetic-root')))})
+    foreach ($mode in @('compile', 'install', 'success')) {
+      [HpmHostedEgressLease]::Fail = $mode -eq 'install'
+      $node = 'synthetic-program'
+      $wfpLease = $null
+      try { . $body; if ($null -eq $wfpLease) { throw 'fixture_contract_failed' }; Write-Output 'success' }
+      catch { Write-Output $networkStage }
+    }
+  `);
+  assert.deepEqual(observed, [
+    'egress_wfp_compile',
+    'hpm_wfp_failed_phase=3',
+    'egress_wfp_install',
+    'success',
+  ]);
+});
+
 for (const name of ['n08', 'n09']) {
   test(`${name} closed callback can invoke the locally loaded owned Job function`, () => {
     const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'hosted-closure-scope-'));
@@ -186,8 +215,10 @@ for (const name of ['n08', 'n09']) {
       );
       const network = path.join(shared, 'hosted-network.ps1');
       const materials = path.join(shared, 'hosted-materials.ps1');
+      const wfp = path.join(shared, 'hosted-egress-wfp.cs');
       const job = path.join(library, 'owned-job.ps1');
       fs.writeFileSync(materials, '# synthetic library with no native operations\n');
+      fs.writeFileSync(wfp, '// synthetic pin only; never compiled\n');
       fs.writeFileSync(
         job,
         `
@@ -214,7 +245,7 @@ for (const name of ['n08', 'n09']) {
       `
       );
       const libraryPins = Object.fromEntries(
-        [network, materials, job].map((file) => [
+        [network, materials, wfp, job].map((file) => [
           file,
           createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
         ])

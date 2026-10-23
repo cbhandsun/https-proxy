@@ -37,7 +37,10 @@ test('network containment is retained without a successful owner stop acknowledg
     source,
     /if \(\(& \$StopOwnedScenario\) -ceq \$true\) \{ \$ownedScenarioStopped = \$true \}/
   );
-  assert.match(source, /if \(\$ownedScenarioStopped\) \{\s+if \(\$firewallCreated\)/);
+  assert.match(
+    source,
+    /if \(\$ownedScenarioStopped\) \{\s+if \(\$null -ne \$wfpLease\) \{ try \{ \$wfpLease\.Dispose\(\) \} catch \{ \$restoreFailed = \$true \} \}\s+if \(\$firewallCreated\)/
+  );
   assert.match(source, /else \{ \$restoreFailed = \$true \}\s+foreach \(\$certificate/);
 });
 test(

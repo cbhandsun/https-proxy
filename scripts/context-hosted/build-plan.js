@@ -289,6 +289,7 @@ function buildHostedReviewPlan(input) {
     const libraryFiles = [
       path.join(shared, 'hosted-network.ps1'),
       path.join(shared, 'hosted-materials.ps1'),
+      path.join(shared, 'hosted-egress-wfp.cs'),
       path.join(executionRoot, 'owned-job.ps1'),
       path.join(executionRoot, 'hosted-execution.ps1'),
     ];

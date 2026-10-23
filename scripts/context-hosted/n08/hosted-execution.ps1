@@ -21,8 +21,9 @@ function Invoke-HpmN08HostedExecution {
         $state.stage = 'library_pins'
         $network = Join-Path $PSScriptRoot '../shared/hosted-network.ps1'
         $materials = Join-Path $PSScriptRoot '../shared/hosted-materials.ps1'
+        $wfp = Join-Path $PSScriptRoot '../shared/hosted-egress-wfp.cs'
         $job = Join-Path $PSScriptRoot 'owned-job.ps1'
-        foreach ($file in @($network, $materials, $job)) {
+        foreach ($file in @($network, $materials, $wfp, $job)) {
             $file = [IO.Path]::GetFullPath($file)
             if (-not $review.libraryPins.ContainsKey($file) -or $review.libraryPins[$file] -cnotmatch '\A[a-f0-9]{64}\z' -or
                 (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $review.libraryPins[$file]) { throw 'invalid' }
