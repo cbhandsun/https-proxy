@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：创建器指纹复用已规范化载荷，扩大纯回归通过
+
+前一轮 CPU 剖析后确认 createRootCheckpoint 在 checkpointData 完整准入后又通过公开 fingerprintRecoveryCheckpoint 重复规范化相同载荷。候选仅在这个同步创建器中调用内部 fingerprintNormalizedValue；载荷准入、最终信封准入、摘要算法和外部 parser 的独立摘要验证保持，不缓存原文、不改变持久事务、独立锚点、ACK、期限、预算或 TTL。新回归在原实现先因重复准入失败，候选确认创建器不重复公开准入、外部 parser 仍验证摘要并拒绝篡改，版本 1／8／9／10、数字属性、负零、Unicode／转义和副本隔离摘要一致。
+
+六文件显式排除 encrypted worker／actual storage worker writes 并保留私有原生入口 guard，240/240 通过，零失败／取消；这是选中纯回归的结果，不含被排除的真实持久测试。证据 `checkpoint-owned-fingerprint-before-v1.log`、`checkpoint-owned-fingerprint-targeted-v1.log`、`checkpoint-owned-fingerprint-expanded-v1.log`。同一 600000 字节原文、内存 SQLite、每实现预热 20 次、16 组正反交替各 20 次快照，墙钟中位数 561.59→531.23ms（约 5.4%）、CPU 中位数 570.5→523.5ms（约 8.2%）；证据 `checkpoint-owned-fingerprint-benchmark-v2.json`、`checkpoint-owned-fingerprint-benchmark-summary-v1.json`。早期未充分预热样本另存 v1，不用于代替后续结果。该收益不证明完整 5 秒请求或磁盘性能达标，尚待新候选完整托管。原 I0–I5/H1、N01–N11、当前包、私有迁移、全天和生产目标不缩减。
+
 ## 2026-10-22：hydration 候选托管终态，发布确认仍超时
 
 `bdc7bbe13cc2cfbd319c09869e3d26d97c125444` 的 Verify `39908900710` 已 failure，七个其他 job success，coverage `120267081278` 唯一失败为 Claude long-persistent 第 0 轮：正文 4361ms 收完，但 publication_wait_failed 在 5001ms 触发原期限。普通 unit job `120267081254` 中三协议两轮正文约 1291–1548ms，不能替代覆盖率资格。disposable `39908900514` 也已 failure：source-gates `120267080232` 的覆盖率阶段三协议失败，Chat 正文 4522ms 后最终发布等待在 5002ms 超时，Responses／Claude 请求分别在 5005／5016ms 失败；业务跳过。日志均按 job ID 私有封存，不取消或重启原任务。

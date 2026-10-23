@@ -562,6 +562,46 @@ function fixture({ privateHistory = false, now } = {}) {
   };
 }
 
+test('checkpoint creation hashes its owned normalized payload without a second admission', () => {
+  const fingerprints = require('../lib/proxy/context-recovery-fingerprint');
+  const original = fingerprints.fingerprintRecoveryCheckpoint;
+  const file = require.resolve('../lib/proxy/context-recovery-root-checkpoint');
+  const cached = require.cache[file];
+  const f = fixture();
+  let admissions = 0;
+  try {
+    fingerprints.fingerprintRecoveryCheckpoint = (...args) => {
+      admissions++;
+      return Reflect.apply(original, fingerprints, args);
+    };
+    delete require.cache[file];
+    const codec = require('../lib/proxy/context-recovery-root-checkpoint');
+    const root = f.state();
+    const checkpoint = codec.createRootCheckpoint(root, []);
+    assert.equal(admissions, 0, 'only unknown fingerprint inputs need their own admission');
+    assert.equal(checkpoint.digest, original({ root, stagedSources: [], publications: [] }));
+    assert.deepEqual(codec.parseRootCheckpoint(checkpoint, root), checkpoint);
+    assert.equal(admissions, 1, 'the external checkpoint parser retains digest validation');
+    assert.throws(() => codec.parseRootCheckpoint({ ...checkpoint, digest: '0'.repeat(64) }, root));
+    for (const version of [1, 8, 9, 10]) {
+      const value = {
+        root: { version, text: 'exact🙂\r\n\t"\\', 2: -0, 10: ['中', null, true] },
+        stagedSources: [],
+        publications: [],
+      };
+      const created = codec.createRootCheckpoint(value.root, value.stagedSources);
+      assert.equal(created.digest, original(value));
+      assert.notEqual(created.root, value.root);
+      assert.notEqual(created.root['10'], value.root['10']);
+    }
+  } finally {
+    fingerprints.fingerprintRecoveryCheckpoint = original;
+    if (cached) require.cache[file] = cached;
+    else delete require.cache[file];
+    f.sessions.close();
+  }
+});
+
 test('metadata association validates its fresh normalized root without cloning private history again', (t) => {
   const f = fixture({ privateHistory: true });
   const stateData = require('../lib/proxy/context-recovery-state-data');
