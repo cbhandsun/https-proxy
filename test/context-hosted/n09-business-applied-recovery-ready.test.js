@@ -70,6 +70,116 @@ test('applied recovery accepts ready and waits only for explicit pending applica
   assert.equal(reads, 3);
   assert.equal(alive, 2);
 });
+test('a confirmed save waits for the exact previous mode, then pending application, then the new mode', async () => {
+  for (const enabled of [false, true]) {
+    for (const persistent of [false, true]) {
+      const expected = { enabled, persistent };
+      const previousMode = { enabled: !enabled, persistent: !persistent };
+      const old = ready();
+      Object.assign(old.body.contextRecovery, {
+        requestedEnabled: previousMode.enabled,
+        appliedEnabled: previousMode.enabled,
+        state: previousMode.enabled ? 'enabled_restricted' : 'disabled',
+        storage: previousMode.persistent ? 'persistent' : 'memory',
+      });
+      const next = ready();
+      Object.assign(next.body.contextRecovery, {
+        requestedEnabled: enabled,
+        appliedEnabled: enabled,
+        state: enabled ? 'enabled_restricted' : 'disabled',
+        storage: persistent ? 'persistent' : 'memory',
+      });
+      const applying = JSON.parse(JSON.stringify(next));
+      applying.body.contextRecovery.state = 'pending_application';
+      applying.body.contextRecovery.appliedEnabled = !enabled;
+      const replies = [old, old, applying, next];
+      let reads = 0,
+        alive = 0;
+      assert.equal(
+        await waitForAppliedRecovery(
+          async () => replies[reads++],
+          async () => {
+            alive++;
+            return true;
+          },
+          101,
+          15000,
+          fixture().dependencies,
+          expected,
+          previousMode
+        ),
+        true
+      );
+      assert.equal(reads, 4);
+      assert.equal(alive, 3);
+    }
+  }
+});
+
+test('stale previous configuration still exhausts the original deadline and never counts as applied', async () => {
+  let reads = 0;
+  await assert.rejects(
+    waitForAppliedRecovery(
+      async () => {
+        reads++;
+        return ready();
+      },
+      async () => true,
+      101,
+      15000,
+      fixture().dependencies,
+      { enabled: false, persistent: false },
+      { enabled: true, persistent: true }
+    ),
+    phase(189)
+  );
+  assert.equal(reads, 150);
+});
+
+test('previous-mode permission rejects malformed, excessive and executable values without traps', async () => {
+  let accesses = 0;
+  for (const previousMode of [
+    null,
+    false,
+    [],
+    {},
+    { enabled: true, persistent: 1 },
+    { enabled: true, persistent: true, extra: true },
+    {
+      get enabled() {
+        accesses++;
+        return true;
+      },
+      persistent: true,
+    },
+    new Proxy(
+      {},
+      {
+        ownKeys() {
+          accesses++;
+          throw Error('PRIVATE');
+        },
+      }
+    ),
+  ]) {
+    await assert.rejects(
+      waitForAppliedRecovery(
+        async () => {
+          assert.fail('no reads');
+        },
+        async () => true,
+        101,
+        15000,
+        fixture().dependencies,
+        { enabled: false, persistent: false },
+        previousMode
+      ),
+      phase(188)
+    );
+  }
+  assert.equal(accesses, 0);
+});
+
 test('applied recovery rejects disabled, failed, malformed, wrong owner and HTTP errors immediately', async () => {
   for (const [change, expected] of [
     [

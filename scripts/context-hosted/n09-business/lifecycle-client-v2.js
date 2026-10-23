@@ -602,7 +602,11 @@ function createClientUnsafe(input, dependencies) {
           identity.pid,
           deadline,
           {},
-          { enabled, persistent: persistence }
+          { enabled, persistent: persistence },
+          {
+            enabled: settings.contextRecoveryEnabled,
+            persistent: settings.contextRecoveryPersistenceEnabled,
+          }
         );
       } catch (error) {
         reportAppliedFailure(error);

@@ -647,6 +647,48 @@ test('synthetic combination changes remain valid after real config load merges b
   }
 });
 
+test('confirmed toggles tolerate delayed config reload without accepting the previous mode as success', async (t) => {
+  for (const combination of ['00', '01', '10', '11']) {
+    let armed = false,
+      saved = false,
+      reads = 0,
+      previousMode;
+    const f = fixture(t, (stage, value, state) => {
+      if (!armed || stage !== 'http') return;
+      const request = state.requests.at(-1);
+      if (request.method === 'POST') saved = true;
+      if (!saved || request.path !== '/v1/local/health') return;
+      reads++;
+      if (reads <= 2) Object.assign(value.contextRecovery, previousMode);
+      else if (reads === 3) value.contextRecovery.state = 'pending_application';
+    });
+    try {
+      const identity = await f.client.startLifecycle();
+      await f.client.configureSyntheticBusiness(identity, synthetic());
+      const previousCombination = combination
+        .split('')
+        .map((digit) => (digit === '1' ? '0' : '1'))
+        .join('');
+      await f.client.setCombination(identity, previousCombination);
+      const enabled = previousCombination[0] === '1';
+      previousMode = {
+        configValid: true,
+        requestedEnabled: enabled,
+        appliedEnabled: enabled,
+        state: enabled ? 'enabled_restricted' : 'disabled',
+        storage: previousCombination[1] === '1' ? 'persistent' : 'memory',
+      };
+      armed = true;
+      const result = await f.client.setCombination(identity, combination);
+      assert.equal(result.savedConfigVerified, true);
+      assert.equal(reads, 4, combination);
+      assert.equal(f.state.requests.filter((request) => request.method === 'POST').length, 3);
+    } finally {
+      await f.client.close();
+    }
+  }
+});
+
 test('every saved combination waits for explicit applied state without repeating config writes', async (t) => {
   for (const combination of ['00', '01', '10', '11']) {
     let pendingReads = 0;

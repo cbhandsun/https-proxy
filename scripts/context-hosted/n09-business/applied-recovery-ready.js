@@ -10,16 +10,18 @@ const failure = (phase, detailPhase) =>
   });
 
 // Listening and private credential publication do not attest asynchronous store
-// startup. Only the product's explicit pending_application state is a probe.
+// startup. A confirmed save may also precede the asynchronous config reload;
+// only that caller can supply the exact previous mode as a bounded probe state.
 async function waitForAppliedRecovery(
   read,
   isAlive,
   pid,
   deadline,
   dependencies = {},
-  expectedInput = { enabled: true, persistent: true }
+  expectedInput = { enabled: true, persistent: true },
+  previousInput
 ) {
-  let now, sleep, expected;
+  let now, sleep, expected, previousMode;
   try {
     expected = snapshot(expectedInput);
     if (
@@ -28,6 +30,15 @@ async function waitForAppliedRecovery(
       typeof expected.persistent !== 'boolean'
     )
       throw failure(188);
+    if (previousInput !== undefined) {
+      previousMode = snapshot(previousInput);
+      if (
+        Object.keys(previousMode).sort().join(',') !== 'enabled,persistent' ||
+        typeof previousMode.enabled !== 'boolean' ||
+        typeof previousMode.persistent !== 'boolean'
+      )
+        throw failure(188);
+    }
     dependencies = snapshot(dependencies);
     if (Object.keys(dependencies).some((key) => !['now', 'sleep'].includes(key)))
       throw failure(188);
@@ -92,17 +103,31 @@ async function waitForAppliedRecovery(
       (!expected.enabled || recovery.storage === (expected.persistent ? 'persistent' : 'memory'))
     )
       return true;
-    if (recovery.configValid !== true) throw failure(190, 233);
-    if (recovery.requestedEnabled !== expected.enabled) throw failure(190, 234);
-    if (['unavailable', 'failed'].includes(recovery.state)) throw failure(190, 235);
-    if (!['memory', 'persistent'].includes(recovery.storage)) throw failure(190, 237);
-    if (recovery.state !== 'pending_application') {
-      if (recovery.appliedEnabled !== expected.enabled) throw failure(190, 236);
-      if (expected.enabled && recovery.storage !== (expected.persistent ? 'persistent' : 'memory'))
-        throw failure(190, 237);
-      throw failure(190, 238);
+    const awaitingReload =
+      previousMode !== undefined &&
+      recovery.configValid === true &&
+      recovery.requestedEnabled === previousMode.enabled &&
+      recovery.appliedEnabled === previousMode.enabled &&
+      recovery.state === (previousMode.enabled ? 'enabled_restricted' : 'disabled') &&
+      ['memory', 'persistent'].includes(recovery.storage) &&
+      (!previousMode.enabled ||
+        recovery.storage === (previousMode.persistent ? 'persistent' : 'memory'));
+    if (!awaitingReload) {
+      if (recovery.configValid !== true) throw failure(190, 233);
+      if (recovery.requestedEnabled !== expected.enabled) throw failure(190, 234);
+      if (['unavailable', 'failed'].includes(recovery.state)) throw failure(190, 235);
+      if (!['memory', 'persistent'].includes(recovery.storage)) throw failure(190, 237);
+      if (recovery.state !== 'pending_application') {
+        if (recovery.appliedEnabled !== expected.enabled) throw failure(190, 236);
+        if (
+          expected.enabled &&
+          recovery.storage !== (expected.persistent ? 'persistent' : 'memory')
+        )
+          throw failure(190, 237);
+        throw failure(190, 238);
+      }
+      if (![false, true, null].includes(recovery.appliedEnabled)) throw failure(190, 236);
     }
-    if (![false, true, null].includes(recovery.appliedEnabled)) throw failure(190, 236);
     let alive;
     try {
       alive = await isAlive();
