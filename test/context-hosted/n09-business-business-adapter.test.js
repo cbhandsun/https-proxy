@@ -617,3 +617,30 @@ test('N09 rejected tool-result HTTP status retains fixed classification and owne
     assert.equal(f.state.closed, 1);
   }
 });
+
+test('N09 restarted recovery HTTP refusal reports its fixed status and never retries business', async () => {
+  for (const [status, expected] of [
+    [401, 163],
+    [403, 164],
+    [502, 169],
+    [503, 170],
+    [504, 171],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      (kind, _value, state) => {
+        if (kind === 'reply' && state.sent === 4) state.replyStatus = status;
+      },
+      (phase) => phases.push(phase)
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(
+      runCommittedObservedKill(f.adapter),
+      /^Error: n09_committed_observed_kill_failed$/
+    );
+    assert.equal(phases.at(-1), expected);
+    assert.equal(f.state.sent, 4);
+    assert.equal(f.state.stopped, 2);
+    assert.equal(f.state.closed, 1);
+  }
+});

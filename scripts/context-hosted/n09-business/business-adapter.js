@@ -370,7 +370,10 @@ function createN09BusinessAdapter(input, trusted = {}) {
       readObserved = false;
       publicObserved = false;
       source = undefined;
-      const reply = parseReply(await send(continuation));
+      const response = await send(continuation);
+      const recoveryFailurePhase = seedReplyFailurePhase(response.status);
+      if (recoveryFailurePhase !== null) onPhase(recoveryFailurePhase);
+      const reply = parseReply(response);
       if (
         publicText(reply) !== 'N09_RECOVERY_OK ' + nonce ||
         !readObserved ||
