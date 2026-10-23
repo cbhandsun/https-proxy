@@ -100,14 +100,14 @@ try {
     Refuses { Invoke-Child "process.stdout.write('PRIVATE_CHILD_SENTINEL'.repeat(512));setInterval(()=>{},1000);" }
     Refuses { Invoke-Child "process.stderr.write('PRIVATE_CHILD_SENTINEL'.repeat(512));setInterval(()=>{},1000);" }
     Refuses { Invoke-Child "process.stderr.write('PRIVATE_CHILD_SENTINEL');process.exit(3);" }
-    foreach ($phaseCode in @(64, 69, 72, 73, 84, 85, 86, 94, 95, 96, 97, 98, 99, 100, 101, 108, 109, 120, 121, 125, 126, 127, 128, 129, 130, 131, 139, 140, 161, 162, 173, 174, 184, 185)) {
+    foreach ($phaseCode in @(64, 69, 72, 73, 84, 85, 86, 94, 95, 96, 97, 98, 99, 100, 101, 108, 109, 120, 121, 125, 126, 127, 128, 129, 130, 131, 139, 140, 161, 162, 173, 174, 184, 185, 190, 191)) {
         Refuses { Invoke-Child ("process.stderr.write('PRIVATE_CHILD_SENTINEL');process.exit(" + $phaseCode + ');') }
     }
     foreach ($primary in @(80, 97)) {
         Refuses { Invoke-Child ("process.stderr.write('n09_owned_entry_rejected\nn09_primary_phase=" + $primary + "\n');process.exit(98);") }
     }
     & $module {
-        foreach ($phase in @(73, 84, 86, 96, 101, 108, 109, 120, 121, 125, 126, 127, 128, 129, 130, 131, 138, 162, 173, 174, 184)) {
+        foreach ($phase in @(73, 84, 86, 96, 101, 108, 109, 120, 121, 125, 126, 127, 128, 129, 130, 131, 138, 162, 173, 174, 184, 185, 186, 187, 188, 189, 190)) {
             $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected`nn09_primary_phase=$phase`n")
             if ((ConvertFrom-HpmOwnedFailurePhase $bytes) -ne $phase) { throw 'Valid phase rejected.' }
         }
@@ -116,7 +116,7 @@ try {
             "n09_owned_entry_rejected`nn09_primary_phase=97`n",
             "n09_owned_entry_rejected`nn09_primary_phase=100`n",
             "n09_owned_entry_rejected`nn09_primary_phase=139`n",
-            "n09_owned_entry_rejected`nn09_primary_phase=185`n",
+            "n09_owned_entry_rejected`nn09_primary_phase=191`n",
             "n09_owned_entry_rejected`nn09_primary_phase=80`nPRIVATE_CHILD_SENTINEL",
             "n09_owned_entry_rejected`nn09_primary_phase=80`nn09_primary_phase=81`n")) {
             if ($null -ne (ConvertFrom-HpmOwnedFailurePhase ([Text.Encoding]::UTF8.GetBytes($text)))) { throw 'Invalid phase accepted.' }

@@ -280,6 +280,67 @@ test('configuration save diagnostics disclose only fixed failure categories and 
   }
 });
 
+test('initial health diagnostics separate original deadline, transport, HTTP, shape and identity failures', async (t) => {
+  for (const [kind, expected] of [
+    ['deadline', 185],
+    ['transport', 186],
+    ['http', 187],
+    ['shape', 188],
+    ['identity', 190],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      t,
+      (stage, value, state) => {
+        if (stage !== 'http' || state.requests.at(-1)?.path !== '/v1/local/health') return;
+        if (kind === 'deadline') state.holdManagementReply = true;
+        if (kind === 'transport') state.transportFailure = true;
+        if (kind === 'http') state.statusCode = 503;
+        if (kind === 'shape') delete value.runtime;
+        if (kind === 'identity') value.pid++;
+      },
+      undefined,
+      (phase) => phases.push(phase)
+    );
+    try {
+      const identity = await f.client.startLifecycle();
+      await assert.rejects(
+        f.client.configureSyntheticBusiness(identity, synthetic()),
+        /^Error: n09_lifecycle_client_failed$/
+      );
+      assert.deepEqual(phases, [112, 113, 114, 115, expected]);
+      assert.equal(f.state.requests.length, 1);
+    } finally {
+      await f.client.close();
+    }
+  }
+});
+
+test('initial health retains total startup deadline even when its response is valid', async (t) => {
+  const now = Date.now;
+  const phases = [];
+  const f = fixture(
+    t,
+    (stage, _value, state) => {
+      if (stage === 'http' && state.requests.at(-1)?.path === '/v1/local/health')
+        t.mock.method(Date, 'now', () => now() + 16000);
+    },
+    undefined,
+    (phase) => phases.push(phase)
+  );
+  try {
+    const identity = await f.client.startLifecycle();
+    await assert.rejects(
+      f.client.configureSyntheticBusiness(identity, synthetic()),
+      /^Error: n09_lifecycle_client_failed$/
+    );
+    assert.deepEqual(phases, [112, 113, 114, 115, 189]);
+  } finally {
+    t.mock.restoreAll();
+    await f.client.close();
+  }
+});
+
 test('configuration readback diagnostics separate original deadline, transport, HTTP and content failures', async (t) => {
   for (const [kind, phase] of [
     ['deadline', 127],

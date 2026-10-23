@@ -12,7 +12,7 @@ function createN08PhaseObserver(observer = () => {}) {
   return (phase) => {
     if (
       !Number.isInteger(phase) ||
-      !(phase === 71 || (phase >= 86 && phase <= 96) || (phase >= 140 && phase <= 184))
+      !(phase === 71 || (phase >= 86 && phase <= 96) || (phase >= 140 && phase <= 190))
     )
       throw fail();
     try {

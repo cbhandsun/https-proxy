@@ -12,6 +12,7 @@ const { createN09HostAckClient } = require('../n09-ack/bootstrap-client.js');
 const { fields, discardN09PromiseRejection } = require('../n09-ack/contract.js');
 const { waitForPrivatePreload } = require('./management-status-ready.js');
 const { assertSyntheticProfileReadback } = require('./synthetic-profile-readback.js');
+const { managementFailurePhase } = require('../shared/management-failure-phase.js');
 const {
   createDaemonManagementHttpClient,
 } = require('../../../scripts/lib/context-recovery-daemon-http-client.js');
@@ -131,12 +132,30 @@ function createClientUnsafe(input, dependencies) {
       return reply.status;
     }, deadline);
     onPhase(115);
-    const response = await management(identity)({ method: 'GET', route: '/v1/local/health' });
-    if (Date.now() >= deadline) throw fail();
-    const body = snapshot(response.body);
-    const runtime = snapshot(body.runtime);
+    let response;
+    try {
+      response = await management(identity)({ method: 'GET', route: '/v1/local/health' });
+    } catch (error) {
+      onPhase(managementFailurePhase(error));
+      throw fail();
+    }
+    if (Date.now() >= deadline) {
+      onPhase(189);
+      throw fail();
+    }
+    if (response.status !== 200) {
+      onPhase(187);
+      throw fail();
+    }
+    let body, runtime;
+    try {
+      body = snapshot(response.body);
+      runtime = snapshot(body.runtime);
+    } catch {
+      onPhase(188);
+      throw fail();
+    }
     if (
-      response.status !== 200 ||
       body.ok !== true ||
       body.appId !== 'https-proxy-manager' ||
       body.status !== 'running' ||
@@ -145,8 +164,10 @@ function createClientUnsafe(input, dependencies) {
         (key) => runtime[key] !== identity[key]
       ) ||
       body.ports?.management !== identity.managementPort
-    )
+    ) {
+      onPhase(190);
       throw fail();
+    }
     return true;
   }
   const leaseStart = lease.startFreshBusinessHost;

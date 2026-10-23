@@ -8,6 +8,7 @@ const { createBusinessClient } = require('../shared/business-client.js');
 const { startObservedContinuation } = require('./observed-client.js');
 const { createN08PhaseObserver } = require('./phase-observer.js');
 const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
+const { managementFailurePhase } = require('../shared/management-failure-phase.js');
 const LIST = 'hpm_list_retained_evidence';
 const READ = 'hpm_read_retained_evidence';
 const MODEL = 'n08-synthetic';
@@ -117,13 +118,25 @@ function createBusinessScenario(input, observer) {
       },
     });
     onPhase(146);
-    const saved = await state.value.owner.request({
-      method: 'POST',
-      route: '/v1/local/config',
-      body: cfg,
-    });
-    if (saved.status !== 200 || saved.body?.ok !== true || typeof saved.body.revision !== 'string')
+    let saved;
+    try {
+      saved = await state.value.owner.request({
+        method: 'POST',
+        route: '/v1/local/config',
+        body: cfg,
+      });
+    } catch (error) {
+      onPhase(managementFailurePhase(error));
       throw fail();
+    }
+    if (saved.status !== 200) {
+      onPhase(187);
+      throw fail();
+    }
+    if (saved.body?.ok !== true || typeof saved.body.revision !== 'string') {
+      onPhase(188);
+      throw fail();
+    }
     const after = await config(state, 147);
     let health;
     const deadline = performance.now() + 15000;

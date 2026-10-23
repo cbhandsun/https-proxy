@@ -78,7 +78,7 @@ function fixture() {
 test('N08 observer accepts only fixed phase codes and discloses no supplied failure details', () => {
   const phases = [],
     observe = createN08PhaseObserver((value) => phases.push(value));
-  for (const value of [71, 86, 96, ...Array.from({ length: 45 }, (_, i) => i + 140)])
+  for (const value of [71, 86, 96, ...Array.from({ length: 51 }, (_, i) => i + 140)])
     observe(value);
   for (const value of [
     undefined,
@@ -94,11 +94,11 @@ test('N08 observer accepts only fixed phase codes and discloses no supplied fail
     97,
     130,
     139,
-    185,
+    191,
     Number.MAX_SAFE_INTEGER,
   ])
     assert.throws(() => observe(value), /^Error: n08_phase_observer_rejected$/);
-  assert.equal(phases.length, 48);
+  assert.equal(phases.length, 54);
   assert.throws(
     () =>
       createN08PhaseObserver(() => {
@@ -253,6 +253,32 @@ test('N08 management, seed and snapshot phases retain all original requests and 
   ]);
   assert.equal(result.state.externalToolExecutions, 1);
   assert.equal(result.state.phase, 'ready');
+});
+
+test('N08 config save distinguishes deadline, transport, HTTP and receipt failure before readback', async () => {
+  for (const [kind, expected] of [
+    ['deadline', 185],
+    ['transport', 186],
+    ['http', 187],
+    ['body', 188],
+  ]) {
+    const phases = [];
+    const f = scenarioFixture((phase) => phases.push(phase));
+    const request = f.value.owner.request;
+    f.value.owner.request = async (input) => {
+      if (input.method !== 'POST') return request(input);
+      if (kind === 'deadline')
+        throw Object.assign(new Error('PRIVATE'), { code: 'HPM_DAEMON_HTTP_DEADLINE' });
+      if (kind === 'transport') throw new Error('PRIVATE');
+      if (kind === 'http') return { status: 503, body: { secret: 'PRIVATE' } };
+      return { status: 200, body: { ok: false, secret: 'PRIVATE' } };
+    };
+    await assert.rejects(
+      f.scenario.configureAndSeed(f.value),
+      /^Error: n08_business_scenario_rejected$/
+    );
+    assert.deepEqual(phases, [145, 146, expected]);
+  }
 });
 
 test('N08 observer failure at every seed stage prevents later phases and stays fixed', async () => {
