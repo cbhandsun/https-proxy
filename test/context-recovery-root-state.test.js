@@ -780,7 +780,16 @@ function fullPrivateSessionFixture({
   signal,
 } = {}) {
   signal?.throwIfAborted();
-  const sessions = createContextRecoverySessions({ now });
+  let lastTime, clockRollbackMs;
+  const sessions = createContextRecoverySessions({
+    now() {
+      const time = now();
+      if (Number.isSafeInteger(time) && Number.isSafeInteger(lastTime) && time < lastTime)
+        clockRollbackMs ??= lastTime - time;
+      lastTime = time;
+      return time;
+    },
+  });
   sessions.configure(true);
   let root, rootHistory;
   const requests = [];
@@ -802,14 +811,18 @@ function fullPrivateSessionFixture({
         request,
         index === 0 ? [] : [{ callId: 'external', output: 'original-' + id }]
       );
-      assert.equal(session.ok, true);
+      assert.equal(
+        session.ok,
+        true,
+        JSON.stringify({ index, code: session.code, clockRollbackMs })
+      );
       root ??= session;
       const run = session.recovery({
         model: 'synthetic',
         messages: history,
         tools: [{ type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } }],
       });
-      assert.equal(run.ok, true, JSON.stringify({ index, code: run.code }));
+      assert.equal(run.ok, true, JSON.stringify({ index, code: run.code, clockRollbackMs }));
       for (const suffix of ['a', 'b']) {
         const calls = [
           {
@@ -827,11 +840,15 @@ function fullPrivateSessionFixture({
         assert.equal(
           accepted.mode,
           'continue',
-          JSON.stringify({ index, suffix, code: accepted.code })
+          JSON.stringify({ index, suffix, code: accepted.code, clockRollbackMs })
         );
       }
       const released = run.accept(completion([], 'public-' + id));
-      assert.equal(released.mode, 'release', JSON.stringify({ index, code: released.code }));
+      assert.equal(
+        released.mode,
+        'release',
+        JSON.stringify({ index, code: released.code, clockRollbackMs })
+      );
       assert.equal(
         session.complete(released.output, index === 0 ? [observed] : [], 'capacity-response-' + id)
           .ok,
@@ -862,6 +879,37 @@ test('cancelled full private fixture stops before creating sessions or reading i
     { name: 'AbortError' }
   );
   assert.equal(clocks, 0);
+});
+
+test('full private fixture records a clock rollback without smoothing or accepting it', () => {
+  let clocks = 0;
+  assert.throws(
+    () => fullPrivateSessionFixture({ count: 2, now: () => (++clocks === 1 ? 1000 : 999) }),
+    (error) =>
+      error.code === 'ERR_ASSERTION' &&
+      error.message.includes('"clockRollbackMs":1') &&
+      error.message.includes('"code":"context_recovery_stale"')
+  );
+  assert.ok(clocks >= 2);
+});
+
+test('full private fixture keeps the supplied clock and complete ordinary recovery rounds', () => {
+  let clocks = 0;
+  const fixture = fullPrivateSessionFixture({
+    count: 2,
+    now: () => {
+      clocks++;
+      return 1000;
+    },
+  });
+  try {
+    assert.equal(fixture.state.history.entries.length, 2);
+    assert.equal(fixture.state.createdAt, 1000);
+    assert.equal(fixture.state.expiresAt, 1000 + 24 * 60 * 60 * 1000);
+    assert.ok(clocks > 2);
+  } finally {
+    fixture.sessions.close();
+  }
 });
 
 test(
