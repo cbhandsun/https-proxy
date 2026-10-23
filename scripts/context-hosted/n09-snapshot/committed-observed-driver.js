@@ -119,17 +119,23 @@ async function kill(adapter, owner) {
 
 // Pure orchestration. Real adapters separately attest actual host observation.
 // This sequence is not runDurableSaveOrRevokeAfterAck and never calls that API.
-async function runCommittedObservedKill(adapter) {
+async function runCommittedObservedKill(adapter, onPhase = () => {}) {
   let active,
     failed = false,
     result;
   try {
+    if (typeof onPhase !== 'function' || types.isProxy(onPhase)) throw fail();
+    onPhase(101);
     active = identity(await invoke(adapter, 'startFreshBusinessHost'));
+    onPhase(102);
     const original = baseline(await invoke(adapter, 'seedThroughBusinessHttp', active));
+    onPhase(103);
     const before = snapshot(await invoke(adapter, 'readCommittedSnapshot', active), original);
     const old = active;
+    onPhase(104);
     await kill(adapter, old);
     active = undefined;
+    onPhase(105);
     active = identity(await invoke(adapter, 'restartSameBusinessHost', old));
     if (
       old.pid === active.pid ||
@@ -138,12 +144,15 @@ async function runCommittedObservedKill(adapter) {
       old.manifestSha256 !== active.manifestSha256
     )
       throw fail();
+    onPhase(106);
     const restarted = snapshot(
       await invoke(adapter, 'readCommittedSnapshot', active),
       before,
       before.revision
     );
+    onPhase(107);
     const read = data(await invoke(adapter, 'readThroughBusinessHttp', active));
+    onPhase(108);
     if (read.exactRead !== true || read.externalToolReplays !== 0) throw fail();
     const afterRead = baseline(read.accounting);
     if (

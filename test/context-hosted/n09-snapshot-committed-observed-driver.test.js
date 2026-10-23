@@ -80,7 +80,9 @@ function fixture() {
 }
 test('committed observation precedes forced kill, same-directory restart and exact read', async () => {
   const f = fixture();
-  const result = await runCommittedObservedKill(f.adapter);
+  const phases = [];
+  const result = await runCommittedObservedKill(f.adapter, (phase) => phases.push(phase));
+  assert.deepEqual(phases, [101, 102, 103, 104, 105, 106, 107, 108]);
   assert.deepEqual(f.events, [
     'start',
     'business-response',
@@ -102,6 +104,39 @@ test('committed observation precedes forced kill, same-directory restart and exa
     'n09Complete',
   ])
     assert.equal(result[key], false);
+});
+
+test('fixed committed phases retain each rejected step and always close acquired ownership', async () => {
+  for (let rejected = 101; rejected <= 108; rejected++) {
+    const f = fixture();
+    let last;
+    await assert.rejects(
+      runCommittedObservedKill(f.adapter, (phase) => {
+        last = phase;
+        if (phase === rejected) throw Error('PRIVATE_PHASE_SENTINEL');
+      }),
+      bad
+    );
+    assert.equal(last, rejected);
+    assert.equal(f.closed, 1);
+    assert.equal(f.kills, rejected === 101 ? 0 : rejected === 105 ? 1 : rejected >= 106 ? 2 : 1);
+  }
+  for (const observer of [
+    null,
+    {},
+    [],
+    'PRIVATE_PHASE_SENTINEL',
+    new Proxy(() => {}, {
+      apply() {
+        throw Error('PRIVATE_PHASE_SENTINEL');
+      },
+    }),
+  ]) {
+    const f = fixture();
+    await assert.rejects(runCommittedObservedKill(f.adapter, observer), bad);
+    assert.equal(f.events.length, 0);
+    assert.equal(f.closed, 1);
+  }
 });
 for (const invalid of ['absent', 'ack', 'root', 'revision', 'calls', 'bytes', 'unsafe']) {
   test(`reject ${invalid} snapshot and independently close`, async () => {

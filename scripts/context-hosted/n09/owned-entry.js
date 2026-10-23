@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 const { isBuiltin } = require('node:module');
 const { types } = require('node:util');
 const fail = () => new Error('n09_owned_entry_rejected');
-// 64..72 entry, 73..84 composition, 86..96 probes, 98..100 cleanup. No error data.
+// Fixed phases: entry/composition/probes, 98..100 cleanup, 101..108 committed driver.
 let failureExitCode = 64;
 let primaryFailurePhase = 64;
 function verifyPinnedClosure(pins, roots, dynamicTargets = []) {
@@ -192,12 +192,12 @@ async function main() {
       !(
         (phase >= 73 && phase <= 84) ||
         (phase >= 86 && phase <= 96) ||
-        (phase >= 98 && phase <= 100)
+        (phase >= 98 && phase <= 108)
       )
     )
       throw fail();
     failureExitCode = phase;
-    if (phase < 98) primaryFailurePhase = phase;
+    if (phase < 98 || phase >= 101) primaryFailurePhase = phase;
   });
   failureExitCode = 72;
   if (

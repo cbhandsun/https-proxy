@@ -175,7 +175,7 @@ async function composeHostedN09(input, onPhase = () => {}) {
     verifyCopies();
     adapter.bindVerifiedNetworkProof(proof);
     onPhase(80);
-    const committed = await runCommittedObservedKill(adapter);
+    const committed = await runCommittedObservedKill(adapter, onPhase);
     const committedEvidence = adapter.inspectBusinessEvidence();
     if (
       committedEvidence.seeded !== true ||
