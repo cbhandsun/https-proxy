@@ -581,7 +581,7 @@ test('checkpoint creation hashes its owned normalized payload without a second a
     assert.equal(admissions, 0, 'only unknown fingerprint inputs need their own admission');
     assert.equal(checkpoint.digest, original({ root, stagedSources: [], publications: [] }));
     assert.deepEqual(codec.parseRootCheckpoint(checkpoint, root), checkpoint);
-    assert.equal(admissions, 1, 'the external checkpoint parser retains digest validation');
+    assert.equal(admissions, 0, 'the parser hashes its independently normalized local copy');
     assert.throws(() => codec.parseRootCheckpoint({ ...checkpoint, digest: '0'.repeat(64) }, root));
     for (const version of [1, 8, 9, 10]) {
       const value = {
@@ -596,6 +596,78 @@ test('checkpoint creation hashes its owned normalized payload without a second a
     }
   } finally {
     fingerprints.fingerprintRecoveryCheckpoint = original;
+    if (cached) require.cache[file] = cached;
+    else delete require.cache[file];
+    f.sessions.close();
+  }
+});
+
+test('checkpoint parser admits unknown input once and hashes only its owned projection', () => {
+  const f = fixture({ privateHistory: true });
+  const root = f.state();
+  const checkpoint = createRootCheckpoint(root, []);
+  const stateData = require('../lib/proxy/context-recovery-state-data');
+  const fingerprints = require('../lib/proxy/context-recovery-fingerprint');
+  const normalize = stateData.normalizeRecoveryCheckpointData;
+  const fingerprint = fingerprints.fingerprintRecoveryCheckpoint;
+  const file = require.resolve('../lib/proxy/context-recovery-root-checkpoint');
+  const cached = require.cache[file];
+  let admissions = 0,
+    repeatedAdmissions = 0;
+  try {
+    stateData.normalizeRecoveryCheckpointData = (...args) => {
+      admissions++;
+      return Reflect.apply(normalize, stateData, args);
+    };
+    fingerprints.fingerprintRecoveryCheckpoint = (...args) => {
+      repeatedAdmissions++;
+      return Reflect.apply(fingerprint, fingerprints, args);
+    };
+    delete require.cache[file];
+    const codec = require('../lib/proxy/context-recovery-root-checkpoint');
+    const parsed = codec.parseRootCheckpoint(checkpoint, root);
+    assert.equal(admissions, 1, 'unknown input always crosses complete normalization');
+    assert.equal(repeatedAdmissions, 0, 'owned digest projection does not need another clone');
+    assert.deepEqual(parsed, checkpoint);
+    assert.notEqual(parsed, checkpoint);
+    assert.notEqual(parsed.root, checkpoint.root);
+    assert.notEqual(parsed.root.history, checkpoint.root.history);
+    codec.parseRootCheckpoint(checkpoint, root);
+    assert.equal(admissions, 2, 'each invocation independently admits its input');
+    const legacy = { ...checkpoint };
+    delete legacy.publications;
+    legacy.digest = fingerprint({ root: legacy.root, stagedSources: legacy.stagedSources });
+    const parsedLegacy = codec.parseRootCheckpoint(legacy, root);
+    assert.equal(Object.getPrototypeOf(parsedLegacy), null);
+    assert.deepEqual(copy(parsedLegacy), copy(legacy));
+    assert.throws(() => codec.parseRootCheckpoint({ ...checkpoint, digest: '0'.repeat(64) }, root));
+    const invalidBudget = codec.createRootCheckpoint(
+      { ...root, budget: { ...root.budget, calls: -1 } },
+      []
+    );
+    assert.throws(() => codec.parseRootCheckpoint(invalidBudget, root));
+    let touched = 0;
+    const hook = () => {
+      touched++;
+      throw new Error('untrusted_checkpoint_hook');
+    };
+    for (const input of [
+      null,
+      undefined,
+      [],
+      {},
+      { ...checkpoint, version: 2 },
+      { ...checkpoint, stagedSources: Array(2) },
+      Object.defineProperty({}, 'root', { enumerable: true, get: hook }),
+      new Proxy(checkpoint, { getOwnPropertyDescriptor: hook }),
+      { ...checkpoint, root: new Proxy(root, { getOwnPropertyDescriptor: hook }) },
+    ])
+      assert.throws(() => codec.parseRootCheckpoint(input, root));
+    assert.equal(touched, 0);
+    assert.equal(repeatedAdmissions, 0);
+  } finally {
+    stateData.normalizeRecoveryCheckpointData = normalize;
+    fingerprints.fingerprintRecoveryCheckpoint = fingerprint;
     if (cached) require.cache[file] = cached;
     else delete require.cache[file];
     f.sessions.close();

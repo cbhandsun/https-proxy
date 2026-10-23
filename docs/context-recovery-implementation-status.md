@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：解析器规范化副本指纹候选，前一托管仍运行
+
+`2b04bf2e` 的 Verify `39911220219` 七个 job 已 success，coverage `120274434852` 仍运行；disposable `39911220297` 的 source-gates `120274434818` 仍运行，egress `120274435254` success。不取消或重启原任务，不从普通 unit 通过推导覆盖率或 N08／N09 资格。
+
+解析器候选保留 checkpointData 对每次未知输入完整规范化及最终尺寸限制，只将摘要投影的再次公开 fingerprintRecoveryCheckpoint 准入改为对本次已拥有字段调用内部同算法指纹。外部摘要仍逐次重算比较，语义校验和 expected 关联保持；不缓存或跨事务共享数据。新回归先在原实现因重复指纹准入失败，候选验证每调用一次输入准入、每次返回独立副本、篡改摘要／非法预算／空值／getter／Proxy 拒绝；原创建器回归只更新公开函数调用数断言，篡改摘要拒绝断言保持，另以直接准入计数证明外部边界仍执行。
+
+六文件纯回归 241/241，显式排除 encrypted worker／actual storage worker writes 并保留本机原生入口 guard，证据 `checkpoint-owned-parser-before-v1.log`、`checkpoint-owned-parser-targeted-v1.log`、`checkpoint-owned-parser-expanded-v1.log`。随后补充旧信封缺 publications 的兼容与 null-prototype 副本断言，两项定向通过 `checkpoint-owned-parser-legacy-final-v1.log`；首次比较 plain-object 与 null-prototype 副本的测试断言失败另留存，未改变产品行为。
+
+600 KB、预热后首轮八组实验墙钟中位数约下降 12%；随后绑定实际候选与 HEAD 源码的十六组、每组 20 次外部解析，墙钟中位数约 285.87→267.66ms（约 6.4%），CPU 中位数 266→264.5ms，且候选出现 1662.74ms 长尾，结果波动明显。两轮均保留于 `owned-checkpoint-parser-experiment-v1.json`／`v2.json`，不能据此声称稳定 CPU、完整持久请求或磁盘收益；未启动本机持久 worker、DPAPI 或注册表锚点。候选尚未推送，完整 I0–I5/H1、N01–N11、当前包、私有迁移、全天和生产目标仍未完成。
+
 ## 2026-10-22：创建器指纹复用已规范化载荷，扩大纯回归通过
 
 前一轮 CPU 剖析后确认 createRootCheckpoint 在 checkpointData 完整准入后又通过公开 fingerprintRecoveryCheckpoint 重复规范化相同载荷。候选仅在这个同步创建器中调用内部 fingerprintNormalizedValue；载荷准入、最终信封准入、摘要算法和外部 parser 的独立摘要验证保持，不缓存原文、不改变持久事务、独立锚点、ACK、期限、预算或 TTL。新回归在原实现先因重复准入失败，候选确认创建器不重复公开准入、外部 parser 仍验证摘要并拒绝篡改，版本 1／8／9／10、数字属性、负零、Unicode／转义和副本隔离摘要一致。
