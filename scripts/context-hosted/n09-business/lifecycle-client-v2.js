@@ -10,6 +10,7 @@ const { createSameDirectoryLease } = require('../n09-ipc/same-directory-lease.js
 const { createClearClient } = require('../n09-ipc/clear-client.js');
 const { createN09HostAckClient } = require('../n09-ack/bootstrap-client.js');
 const { fields, discardN09PromiseRejection } = require('../n09-ack/contract.js');
+const { waitForPrivatePreload } = require('./management-status-ready.js');
 const {
   createDaemonManagementHttpClient,
 } = require('../../../scripts/lib/context-recovery-daemon-http-client.js');
@@ -122,17 +123,15 @@ function createClientUnsafe(input, dependencies) {
       { port: identity.managementPort, token },
       dependencies.httpRequest
     );
-  async function managementReady(identity) {
+  async function managementReady(identity, deadline = Date.now() + 15000) {
     onPhase(114);
-    const status = await getChannel().exchange({ op: 'status', leaseId: liveHandle() });
-    if (
-      !status.status.alive ||
-      !status.status.credentialsPrivate ||
-      status.status.preloadPhase !== 'passed'
-    )
-      throw fail();
+    await waitForPrivatePreload(async () => {
+      const reply = await getChannel().exchange({ op: 'status', leaseId: liveHandle() });
+      return reply.status;
+    }, deadline);
     onPhase(115);
     const response = await management(identity)({ method: 'GET', route: '/v1/local/health' });
+    if (Date.now() >= deadline) throw fail();
     const body = snapshot(response.body);
     const runtime = snapshot(body.runtime);
     if (
@@ -195,7 +194,8 @@ function createClientUnsafe(input, dependencies) {
         entryKey: fixture.entryKey,
         upstreamKey: fixture.upstreamKey,
       });
-      await managementReady(identity);
+      const deadline = Date.now() + 15000;
+      await managementReady(identity, deadline);
       const request = management(identity);
       onPhase(116);
       const beforeReply = await request({ method: 'GET', route: '/v1/local/config' });
@@ -282,9 +282,10 @@ function createClientUnsafe(input, dependencies) {
       )
         throw fail();
       onPhase(119);
-      const deadline = Date.now() + 15000;
       while (true) {
+        if (Date.now() >= deadline) throw fail();
         const health = await request({ method: 'GET', route: '/v1/local/health' });
+        if (Date.now() >= deadline) throw fail();
         if (
           health.status === 200 &&
           health.body?.pid === identity.pid &&

@@ -187,6 +187,25 @@ test('startup observer locates rejected status without later management requests
   assert.equal(f.state.commands.at(-1).op, 'remove');
 });
 
+test('cold lifecycle waits for private credentials and preload before the first management request', async (t) => {
+  let polls = 0;
+  const f = fixture(t, (at, value, state) => {
+    if (at === 'reply' && value.op === 'status' && ++polls <= 2) {
+      assert.equal(state.requests.length, 0);
+      value.status.credentialsPrivate = false;
+      value.status.preloadPhase = polls === 1 ? 'unobserved' : 'entered';
+    }
+  });
+  try {
+    const identity = await f.client.startLifecycle();
+    await f.client.configureSyntheticBusiness(identity, synthetic());
+    assert.equal(polls, 3);
+    assert.equal(f.state.requests[0].path, '/v1/local/health');
+  } finally {
+    await f.client.close();
+  }
+});
+
 test('startup observer rejects invalid values and proxies without executing traps', async (t) => {
   let traps = 0;
   const proxy = new Proxy(() => {}, {
