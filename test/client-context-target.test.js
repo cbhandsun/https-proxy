@@ -2233,7 +2233,11 @@ for (const official of [false, true]) {
 async function persistentWbipcCoreOwner(directory, diagnostic) {
   const { openContextRecoveryStorage } = require('../lib/proxy/context-recovery-storage');
   const { createContextRecoveryLifecycle } = require('../lib/proxy/context-recovery-lifecycle');
-  const storage = await openContextRecoveryStorage({ directory });
+  const { createObservedStorageWorker } = require('./helpers/recovery-owner-stage-probe');
+  const storage = await openContextRecoveryStorage({
+    directory,
+    WorkerType: createObservedStorageWorker(diagnostic),
+  });
   const contract = require('../lib/proxy/context-recovery-storage-contract');
   const execute = storage.execute;
   storage.execute = async (request) => {

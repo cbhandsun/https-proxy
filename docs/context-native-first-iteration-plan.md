@@ -1,5 +1,9 @@
 # 客户端原生优先与可选精确恢复：方案及迭代计划
 
+## 2026-10-22：托管失败诊断候选已补，根因与运行资格仍待真实验证
+
+WBIPC long-persistent 新增测试专用的事务／快照／锚点分段计时，原 5 秒请求期限、负载、断言与原 worker 协议保持。安装测试的临时复制可执行文件清理增加同一物理身份下的有限等待；持续占用仍失败，不把历史 EBUSY 认定为残留进程或 AV。三文件合成／复制 Node 回归 20/20，随后诊断文件 4/4 分开记录；尚无新真实 hosted 运行结果，不能授予性能、完整 N09、全天容量、私有迁移或生产资格。I0–I5/H1、N01–N11 原范围不缩减，详见[实施状态](context-recovery-implementation-status.md)。
+
 ## 2026-10-22：四场景保存／撤销确认消费已接线，真实托管验证待完成
 
 N09 lifecycle client 已私下验证当前 PID bootstrap 并连接签名 mailbox；业务适配器接入 arm → 实际恢复请求 → 原生产者最终 ACK，以及原 revokeAsync 最终 ACK。确认后不再读快照／管理接口，先强杀再回收未完成 HTTP。托管入口保留 committed／clear，并增加独立 save／revoke 场景；原命令与外层期限不变。扩大合成回归 366/366，后续错误脱敏回归 18/18 分开记录，不替代真实 Windows 验收。完整 N09、全天容量、私有迁移及生产启用仍未完成，I0–I5/H1、N01–N11 原范围不缩减。详见[实施状态](context-recovery-implementation-status.md)。

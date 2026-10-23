@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：持久化分段诊断与安装夹具清理候选
+
+WBIPC long-persistent 测试通过现有 WorkerType seam 包装原存储 worker，只在测试进程的专用 stderr 接收固定 `engine_execute`、`engine_snapshot`、`anchor_persist` 阶段、操作枚举、序号与整数耗时。原 workerData、协议、存储实现、5 秒请求期限、负载及断言保持；未知 stderr／原生错误不进入测试输出。当前尚无这三个阶段的真实 hosted 耗时，不能宣称锚点或快照已经被证明是主要瓶颈，也没有据此改变生产持久化语义。
+
+安装边界测试的所有子用例通过后，历史 after-hook 曾在删除复制的 Node 可执行文件时 EBUSY。合成夹具现在创建时固定临时根及祖先物理身份，退出后清理最多尝试四次，仅对 EBUSY／EPERM／ENOTEMPTY 等待 75ms 后再试；身份变化、未知错误、持续占用及删除未完成仍失败，且不重跑任何安装场景。该改动处理短暂占用，不证明历史问题来自 AV 或排除了残留进程。
+
+新增纯回归及实际复制 Node／模拟安装模块三文件 20/20（`owner-stage-and-cleanup-expanded-v1.log`）；随后调整计时异常路径以通过 Lint，诊断文件 4/4（`owner-stage-post-lint-v1.log`）。两组不累加。上述验证没有启动实际持久存储 worker、DPAPI、注册表或真实模型；真实托管 source-gates、运行矩阵与性能根因仍待验证。全部 I0–I5/H1、N01–N11 及原交付范围保持。
+
 ## 2026-10-22：保存／撤销 ACK 已接入业务与四场景托管入口，真实运行待验
 
 lifecycle client 通过私有合成 token 验证当前 PID 的 bootstrap，延迟创建签名 mailbox client，不公开 token／派生密钥。旧 PID 句柄在停止后失效；只有原强制退出完成后才关闭通道。同目录新 PID 使用新的 bootstrap 和客户端。业务能力获取保持被动；启动、播种并精确读回之后，以只读快照作为命令前置条件，保存必须先收到 signed armed，再发起真实业务请求，最终确认只接受原生产者签名回执，撤销调用原 sessions 的 revokeAsync，不发送替代 HTTP。

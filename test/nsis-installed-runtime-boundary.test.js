@@ -11,12 +11,14 @@ const { spawnSync } = require('node:child_process');
 const { Script } = require('node:vm');
 const { performance } = require('node:perf_hooks');
 const { discoverTestFiles } = require('../lib/test-discovery');
+const { createInstalledFixtureCleanup } = require('./helpers/installed-fixture-cleanup');
 const driver = path.resolve(__dirname, '../scripts/lib/nsis-installed-runtime-boundary.cjs');
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 let root,
   install,
   node,
   manifest,
+  cleanup,
   sequence = 0;
 
 function seal() {
@@ -70,6 +72,7 @@ function failed(result) {
 
 test.before(() => {
   root = fs.mkdtempSync(path.join(testTempRoot, 'hpm-installed-boundary-'));
+  cleanup = createInstalledFixtureCleanup(root);
   install = path.join(root, 'installed');
   fs.mkdirSync(path.join(install, 'runtime/node'), { recursive: true });
   fs.mkdirSync(path.join(install, 'runtime/native'), { recursive: true });
@@ -96,7 +99,7 @@ test.before(() => {
     `module.exports={recoveryStorageSettings(){return {enabled:false,persistent:false}},createContextRecoveryRuntime(){let closed=false;return {configureSettings(){},ready:async()=>({ok:true}),inspect(){return {requestedEnabled:false,requestedPersistence:false,appliedEnabled:false,appliedPersistence:false,storage:'memory',state:closed?'closed':'disabled',restartRetention:false}},shutdownAsync:async()=>{closed=true;return {ok:true}}}}};`
   );
 });
-test.after(() => fs.rmSync(root, { recursive: true, force: true }));
+test.after(() => cleanup());
 
 test('synthetic installed default modules run in separate bundled Node and retain incomplete scope', () => {
   const originalConfig = process.env.PROXY_CONFIG_DIR;
