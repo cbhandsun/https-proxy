@@ -18,9 +18,21 @@ const NAMES = Object.freeze([
 const POWERSHELL = 'C:\\Program Files\\PowerShell\\7\\pwsh.exe';
 function buildHostedLifecycle(input) {
   try {
-    const options = exact(input, ['ownedRoot', 'sourcePins', 'controllerCopySha256']);
+    const options = exact(input, [
+      'ownedRoot',
+      'candidate',
+      'gateSha256',
+      'sourcePins',
+      'controllerCopySha256',
+    ]);
     const pins = exact(options.sourcePins, NAMES);
     verifyPhysicalPath(options.ownedRoot, true);
+    verifyPhysicalPath(options.candidate, true);
+    // The copied controller starts the original, pinned candidate gate. Its
+    // restart attestation must expect that exact file, not a nonexistent copy.
+    const gate = path.join(options.candidate, 'scripts/lib/context-recovery-daemon-start-gate.cjs');
+    verifyPhysicalPath(gate, false);
+    if (!hex(options.gateSha256) || sha(fs.readFileSync(gate)) !== options.gateSha256) throw fail();
     const controller = path.join(
       options.ownedRoot,
       'n08-hosted-controller/context-recovery-daemon-owned-controller.psm1'
@@ -44,9 +56,15 @@ function buildHostedLifecycle(input) {
       "$script:N09ControllerPath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../../scripts/lib/context-recovery-daemon-owned-controller.psm1'))";
     if (original.split(before).length !== 2) throw fail();
     const after = "$script:N09ControllerPath = '" + controller.replaceAll("'", "''") + "'";
+    const gateBefore =
+      "(Join-Path (Split-Path $script:N09ControllerPath) 'context-recovery-daemon-start-gate.cjs')";
+    if (original.split(gateBefore).length !== 2) throw fail();
+    const gateAfter = "'" + gate.replaceAll("'", "''") + "'";
     const copies = {
       ...originals,
-      'same-directory-restart.psm1': Buffer.from(original.replace(before, after)),
+      'same-directory-restart.psm1': Buffer.from(
+        original.replace(before, after).replace(gateBefore, gateAfter)
+      ),
     };
     const outputRoot = path.join(options.ownedRoot, 'n09-hosted-lifecycle');
     fs.mkdirSync(outputRoot);
@@ -58,6 +76,8 @@ function buildHostedLifecycle(input) {
     }
     for (const name of NAMES)
       if (sha(fs.readFileSync(path.join(sourceRoot, name))) !== pins[name]) throw fail();
+    verifyPhysicalPath(gate, false);
+    if (sha(fs.readFileSync(gate)) !== options.gateSha256) throw fail();
     return Object.freeze({
       outputRoot,
       copyPins: Object.freeze(

@@ -20,7 +20,7 @@ const names = [
   'same-directory-restart.psm1',
   'n09-ipc-writer.cs',
 ];
-test('hosted lifecycle copies change only the fixed original controller path and reject overwrite or changed pins', () => {
+test('hosted lifecycle pins the same original gate as the controller and rejects changed identities', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'n09-hosted-copy-'));
   try {
     const source = path.resolve(__dirname, '../../scripts/context-hosted/n09-ipc');
@@ -30,15 +30,22 @@ test('hosted lifecycle copies change only the fixed original controller path and
     );
     fs.mkdirSync(path.dirname(controller));
     fs.writeFileSync(controller, 'synthetic controller bytes');
+    const candidate = path.join(root, 'candidate');
+    const gate = path.join(candidate, 'scripts/lib/context-recovery-daemon-start-gate.cjs');
+    fs.mkdirSync(path.dirname(gate), { recursive: true });
+    fs.writeFileSync(gate, 'synthetic original gate bytes');
     const pins = Object.fromEntries(
       names.map((name) => [name, sha(fs.readFileSync(path.join(source, name)))])
     );
     const options = {
       ownedRoot: root,
+      candidate,
+      gateSha256: sha(fs.readFileSync(gate)),
       sourcePins: pins,
       controllerCopySha256: sha(fs.readFileSync(controller)),
     };
     assert.throws(() => buildHostedLifecycle({ ...options, controllerCopySha256: '0'.repeat(64) }));
+    assert.throws(() => buildHostedLifecycle({ ...options, gateSha256: '0'.repeat(64) }));
     assert.throws(() =>
       buildHostedLifecycle({
         ...options,
@@ -61,6 +68,10 @@ test('hosted lifecycle copies change only the fixed original controller path and
             .replace(
               before,
               "$script:N09ControllerPath = '" + controller.replaceAll("'", "''") + "'"
+            )
+            .replace(
+              "(Join-Path (Split-Path $script:N09ControllerPath) 'context-recovery-daemon-start-gate.cjs')",
+              "'" + gate.replaceAll("'", "''") + "'"
             )
         );
       }

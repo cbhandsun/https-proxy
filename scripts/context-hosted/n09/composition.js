@@ -136,6 +136,8 @@ async function composeHostedN09(input) {
     });
     const lifecycle = buildHostedLifecycle({
       ownedRoot: options.ownedRoot,
+      candidate: options.candidate,
+      gateSha256: options.controllerPins['context-recovery-daemon-start-gate.cjs'],
       sourcePins: options.lifecyclePins,
       controllerCopySha256: controller.copyPins['context-recovery-daemon-owned-controller.psm1'],
     });

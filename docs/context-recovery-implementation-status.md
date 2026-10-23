@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-22：修复 N09 启动 gate 的固定路径不一致
+
+hosted controller 使用 candidate 中经过哈希校验的原始启动 gate，但 lifecycle 将 controller 路径改为临时复制件后，重启捕获检查仍按该复制目录推导 gate，期待了一个未复制的路径。现在 lifecycle 明确接收 candidate 和 gate 摘要，在构造前后验证该固定文件，并且只将复制脚本中的单一 gate 路径表达式替换为它；原启动 gate、argv/env、Job、网络及期限不变，未放宽成多路径白名单。回归旧代码 1 失败／3 通过，修复后 composition、closure、hosted boundary 与 source identity 四文件 18/18，零失败、取消或跳过。证据 `n09-gate-path-before-v1.log`、`n09-gate-path-after-v1.log`；尚待新源码的真实 hosted N09。
+
+N09 纯 driver 的全部托管基础设施扩大回归另为 25 文件 284/284，零失败、取消或跳过，证据 `n09-durable-expanded-v1.log`。该扩大回归先于本次 gate 路径修改，不累加为当前完整候选通过。
+
 ## 2026-10-22：N09 保存／撤权确认后的编排补齐，真实宿主接线仍开放
 
 独立纯 driver 已可执行保存／撤权 ACK → 强杀 → 同目录新 PID 重启。它要求受信 adapter 同步提供 callable capability，先验证 operation、PID、原文／授权身份、期限及不回退的累计消耗，确认后不插入额外 adapter I/O 即强杀。保存重启后必须精确读取且不重放工具；撤权重启后及四开关组合下都必须拒绝旧凭据。失败、部分启动、确认拒绝及清理失败保持固定错误并走独立 finally close。新增 34 条与既有 51 条合计 85/85，零失败、取消或跳过；原占位上的新回归为 0/23，证据 `n09-durable-driver-before-v2.log`、`n09-durable-driver-after-v3.log`。capability 获取中的未知 thenable／Proxy 不再先经过 await，避免校验前触发 getter。
