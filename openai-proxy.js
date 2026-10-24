@@ -29,6 +29,7 @@ const { createLazyCoreRequestHandler } = require('./lib/proxy/lazy-core-request-
 const { createContextRecoveryRuntime } = require('./lib/proxy/context-recovery-runtime');
 const { composeContextProtocolOptions } = require('./lib/proxy/context-recovery-policy');
 const { createLazyManagementHandlers } = require('./lib/proxy/lazy-management-handlers');
+const { createProxyStopControl } = require('./lib/proxy/proxy-stop-control');
 const lazyFeatures = require('./lib/proxy/lazy-feature-handlers');
 const { createProxyTransport } = require('./lib/proxy/proxy-transport');
 const {
@@ -566,7 +567,9 @@ const { reloadProxyConfig } = createRuntimeConfigController({
 });
 upstreamWarmup.refresh();
 antigravityCredentialWatchdog.refresh();
+const proxyStopControl = createProxyStopControl();
 const managementHandlers = createLazyManagementHandlers({
+  proxyStopControl,
   contextRecoveryLifecycle,
   CONFIG: () => CONFIG,
   PROFILES: () => PROFILES,
@@ -1028,6 +1031,7 @@ const handleUpgrade = createLazyWebSocketProxy({
 if (require.main === module) {
   startProxyServers({
     contextRecoveryLifecycle,
+    proxyStopControl,
     ACTIVE_HTTPS_SERVERS,
     APP_ID,
     DATA_DIR,

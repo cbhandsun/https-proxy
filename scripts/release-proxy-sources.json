@@ -394,6 +394,7 @@
   "lib/proxy/provider-context-history.js",
   "lib/proxy/provider-context-request.js",
   "lib/proxy/proxy-pid-persistence.js",
+  "lib/proxy/proxy-stop-control.js",
   "lib/proxy/proxy-transport.js",
   "lib/proxy/public-ip-address.js",
   "lib/proxy/rate-limits.js",
