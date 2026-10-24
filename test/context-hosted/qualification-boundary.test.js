@@ -133,7 +133,7 @@ test(
         assert.ok(
           scopes[0].includes(
             row.scenario === 'n09'
-              ? 'five cases: committed metadata, clear ACK, save ACK, revoke ACK and same-format backup rollback after revoke'
+              ? 'six cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke and interruption with the upstream public final held'
               : 'six mutation/hold cases'
           )
         );

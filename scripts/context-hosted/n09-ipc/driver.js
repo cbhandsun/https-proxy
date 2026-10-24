@@ -331,6 +331,28 @@ async function runDurableSaveOrRevokeAfterAck(adapter, operation) {
   if (failed) throw fail();
   return result;
 }
+function stoppedAccounting(original, before, checkpoint) {
+  if (
+    checkpoint.present !== true ||
+    checkpoint.evidenceLevel !== 'committed-metadata-only' ||
+    checkpoint.hostDurableAck !== false ||
+    !Number.isSafeInteger(checkpoint.revision) ||
+    !Number.isSafeInteger(before.revision) ||
+    checkpoint.revision < before.revision ||
+    checkpoint.calls < before.calls
+  )
+    throw fail();
+  accounting(original, { ...original, ...checkpoint });
+  const revisionGap = checkpoint.revision - before.revision;
+  if (
+    checkpoint.returnedBytes < Math.max(0, before.returnedBytes - revisionGap * 16384) ||
+    (revisionGap === 0 &&
+      (checkpoint.calls !== before.calls || checkpoint.returnedBytes !== before.returnedBytes))
+  )
+    throw fail();
+  return baseline({ ...before, ...checkpoint });
+}
+
 // The normal same-directory restart is a positive control before revocation.
 // Restore only after the actual revoke ACK and verified forced termination;
 // the last restart must remain live while explicitly refusing stored recovery.
@@ -350,27 +372,7 @@ async function runBackupRollbackAfterRevoke(adapter) {
     await forceKill(adapter, first);
     active = undefined;
     const checkpoint = data(invoke(adapter, 'readCommittedSnapshotAfterKill', first));
-    if (
-      checkpoint.present !== true ||
-      checkpoint.evidenceLevel !== 'committed-metadata-only' ||
-      checkpoint.hostDurableAck !== false ||
-      !Number.isSafeInteger(checkpoint.revision) ||
-      !Number.isSafeInteger(before.accounting.revision) ||
-      checkpoint.revision < before.accounting.revision ||
-      checkpoint.calls < before.accounting.calls
-    )
-      throw fail();
-    accounting(original, { ...original, ...checkpoint });
-    const revisionGap = checkpoint.revision - before.accounting.revision;
-    if (
-      checkpoint.returnedBytes <
-        Math.max(0, before.accounting.returnedBytes - revisionGap * 16384) ||
-      (revisionGap === 0 &&
-        (checkpoint.calls !== before.accounting.calls ||
-          checkpoint.returnedBytes !== before.accounting.returnedBytes))
-    )
-      throw fail();
-    const backedAccounting = baseline({ ...before.accounting, ...checkpoint });
+    const backedAccounting = stoppedAccounting(original, before.accounting, checkpoint);
     const captured = data(invoke(adapter, 'captureStoppedBackup', first));
     if (captured.encryptedFilesCaptured !== 2 || captured.independentAnchorCaptured !== false)
       throw fail();
@@ -437,10 +439,81 @@ async function runBackupRollbackAfterRevoke(adapter) {
   if (failed) throw fail();
   return result;
 }
+
+// Kill while the independent public generation response is held upstream. This
+// is not a COMMIT barrier; the client must receive zero bytes and no successful
+// completion, then a new daemon must recover the original with durable budgets.
+async function runUnpublishedResponseKill(adapter) {
+  let active,
+    result,
+    failed = false;
+  try {
+    active = identity(await invoke(adapter, 'startFreshBusinessHost'));
+    const original = baseline(await invoke(adapter, 'seedThroughBusinessHttp', active));
+    const before = data(await invoke(adapter, 'readThroughBusinessHttp', active));
+    if (before.exactRead !== true || before.externalToolReplays !== 0) throw fail();
+    accounting(original, before.accounting);
+    const held = data(await invoke(adapter, 'beginPublicResponseHold', active));
+    if (
+      held.pid !== active.pid ||
+      held.publicResponseHeld !== true ||
+      held.publicBytes !== 0 ||
+      held.exactRead !== true ||
+      held.externalToolReplays !== 0
+    )
+      throw fail();
+    const first = active;
+    await forceKill(adapter, first);
+    active = undefined;
+    const interrupted = data(await invoke(adapter, 'finishInterruptedPublicResponse', first));
+    if (interrupted.interrupted !== true || interrupted.publicBytes !== 0) throw fail();
+    const checkpoint = data(invoke(adapter, 'readCommittedSnapshotAfterKill', first));
+    const durable = stoppedAccounting(original, before.accounting, checkpoint);
+    active = identity(await invoke(adapter, 'restartSameBusinessHost', first));
+    sameDirectory(first, active);
+    const after = data(await invoke(adapter, 'readThroughBusinessHttp', active));
+    if (after.exactRead !== true || after.externalToolReplays !== 0) throw fail();
+    accounting(durable, after.accounting);
+    const afterAccounting = data(after.accounting);
+    if (
+      !Number.isSafeInteger(afterAccounting.revision) ||
+      afterAccounting.revision < checkpoint.revision
+    )
+      throw fail();
+    result = Object.freeze({
+      evidenceLevel: 'adapter-orchestration-only',
+      boundary: 'upstream-public-final-held',
+      interruptedWithZeroPublicBytes: true,
+      sameDirectoryNewPid: true,
+      originalReadAfterRestart: true,
+      commitInProgressQualified: false,
+      publicationCommitQualified: false,
+      n09Complete: false,
+    });
+  } catch {
+    failed = true;
+  } finally {
+    if (active) {
+      try {
+        await forceKill(adapter, active);
+      } catch {
+        failed = true;
+      }
+    }
+    try {
+      await invoke(adapter, 'close');
+    } catch {
+      failed = true;
+    }
+  }
+  if (failed) throw fail();
+  return result;
+}
 module.exports = {
   createClearClient,
   runClearAfterAck,
   runDurableSaveOrRevokeAfterAck,
   runBackupRollbackAfterRevoke,
+  runUnpublishedResponseKill,
   accounting,
 };

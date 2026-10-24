@@ -20,20 +20,22 @@ function startObservedContinuation(input) {
     throw fail();
   const body = Buffer.from(options.body);
   let observedBytes = 0,
+    termination = 'pending',
     request,
     settled = false,
     settle;
   const result = new Promise((resolve) => {
     settle = resolve;
   });
-  const finish = (response) => {
+  const finish = (response, reason = 'transport-error') => {
     if (settled) return;
     settled = true;
+    termination = response ? 'response' : reason;
     clearTimeout(timeout);
     settle(response ? { response } : { failed: true });
   };
   const timeout = setTimeout(() => {
-    finish(null);
+    finish(null, 'timeout');
     request?.destroy();
   }, 15000);
   try {
@@ -77,14 +79,15 @@ function startObservedContinuation(input) {
     request.on('error', () => finish(null));
     request.end(body);
   } catch {
-    finish(null);
+    finish(null, 'setup-error');
     request?.destroy();
   }
   return Object.freeze({
     result,
     bytes: () => observedBytes,
+    termination: () => termination,
     cancel() {
-      finish(null);
+      finish(null, 'cancelled');
       request?.destroy();
       return true;
     },

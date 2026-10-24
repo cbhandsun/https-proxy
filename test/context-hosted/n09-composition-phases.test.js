@@ -6,7 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 // Pure composition fixtures: never load a native worker, listener or controller.
-function fixture(cleanupFails = false, listenerFails = false) {
+function fixture(cleanupFails = false, listenerFails = false, unpublishedPatch = {}) {
   const root = path.resolve('synthetic-owned-root');
   let created = 0;
   let closed = 0;
@@ -18,12 +18,13 @@ function fixture(cleanupFails = false, listenerFails = false) {
       bindVerifiedNetworkProof() {},
       inspectBusinessEvidence: () => ({
         seeded: true,
-        validatedReadCount: index === 2 || index === 4 ? 2 : 1,
-        publicGenerationCount: index === 2 || index === 4 ? 2 : 1,
+        validatedReadCount: index === 5 ? 3 : index === 2 || index === 4 ? 2 : 1,
+        publicGenerationCount: [2, 4, 5].includes(index) ? 2 : 1,
         externalToolExecutions: 1,
         clearAckCount: index === 1 ? 1 : 0,
         saveAckCount: index === 2 ? 1 : 0,
         revokeAckCount: index === 3 || index === 4 ? 1 : 0,
+        ...(index === 5 ? unpublishedPatch : {}),
       }),
       close: async () => {
         closed++;
@@ -51,6 +52,16 @@ function fixture(cleanupFails = false, listenerFails = false) {
       runClearAfterAck: async () => ({}),
       runDurableSaveOrRevokeAfterAck: async () => ({}),
       runBackupRollbackAfterRevoke: async () => ({}),
+      runUnpublishedResponseKill: async () => ({
+        evidenceLevel: 'adapter-orchestration-only',
+        boundary: 'upstream-public-final-held',
+        interruptedWithZeroPublicBytes: true,
+        sameDirectoryNewPid: true,
+        originalReadAfterRestart: true,
+        commitInProgressQualified: false,
+        publicationCommitQualified: false,
+        n09Complete: false,
+      }),
     },
     './hosted-lifecycle.js': {
       buildHostedLifecycle: copy,
@@ -97,18 +108,40 @@ function fixture(cleanupFails = false, listenerFails = false) {
   };
 }
 
-test('N09 composition retains four original cases and adds stopped backup rollback', async () => {
+test('N09 composition retains five cases and adds the held public response interruption', async () => {
   const f = fixture();
   const phases = [];
   const result = await f.run(f.options, (phase) => phases.push(phase));
-  assert.deepEqual(phases, [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 84]);
-  assert.equal(result.cleanup.adaptersClosed, 5);
+  assert.deepEqual(phases, [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 86, 84]);
+  assert.equal(result.cleanup.adaptersClosed, 6);
   assert.equal(result.cleanup.listenerClosed, true);
+  assert.equal(result.unpublished.boundary, 'upstream-public-final-held');
+  assert.equal(result.unpublished.commitInProgressQualified, false);
+  assert.equal(result.unpublished.publicationCommitQualified, false);
+  assert.equal(result.businessEvidence.unpublished.validatedReadCount, 3);
+  assert.equal(result.businessEvidence.unpublished.publicGenerationCount, 2);
   assert.equal(result.n09Complete, false);
 });
 
+test('N09 held-response case rejects missing reads, replay, unexpected ACKs and missing seeds', async () => {
+  for (const patch of [
+    { seeded: false },
+    { validatedReadCount: 2 },
+    { publicGenerationCount: 1 },
+    { publicGenerationCount: 3 },
+    { externalToolExecutions: 2 },
+    { clearAckCount: 1 },
+    { saveAckCount: 1 },
+    { revokeAckCount: 1 },
+  ]) {
+    const f = fixture(false, false, patch);
+    await assert.rejects(f.run(f.options), /^Error: n09_hosted_composition_rejected$/);
+    assert.equal(f.closed(), 6);
+  }
+});
+
 test('N09 phase failures retain their stage, sanitize errors and close acquired adapters', async () => {
-  for (const rejected of [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85]) {
+  for (const rejected of [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 86]) {
     const f = fixture();
     let last;
     await assert.rejects(
@@ -121,7 +154,17 @@ test('N09 phase failures retain their stage, sanitize errors and close acquired 
     assert.equal(last, rejected);
     assert.equal(
       f.closed(),
-      rejected <= 74 ? 0 : rejected <= 81 ? 1 : rejected === 82 ? 2 : rejected === 83 ? 3 : 4
+      rejected <= 74
+        ? 0
+        : rejected <= 81
+          ? 1
+          : rejected === 82
+            ? 2
+            : rejected === 83
+              ? 3
+              : rejected === 85
+                ? 4
+                : 5
     );
   }
 });
@@ -139,7 +182,7 @@ test('N09 cleanup failures distinguish fixed resource classes and attempt every 
       /^Error: n09_hosted_composition_rejected$/
     );
     assert.equal(phases.at(-1), expected);
-    assert.equal(f.closed(), 5);
+    assert.equal(f.closed(), 6);
   }
 });
 

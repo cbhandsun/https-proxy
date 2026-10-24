@@ -96,7 +96,7 @@ jobs:
             'When their preparation stages run, payload, synthetic credentials, original evidence, DPAPI keys and certificates are generated only on this disposable runner.'
             'No private local acceptance directory or old installer artifact is an input. No payload, key, database or request body is uploaded.'
             if ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09') {
-              'Passed scope: five cases: committed metadata, clear ACK, save ACK, revoke ACK and same-format backup rollback after revoke; forced kill and same-directory restart under the original bounded Job.'
+              'Passed scope: six cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke and interruption with the upstream public final held; forced kill and same-directory restart under the original bounded Job.'
             } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n08') {
               'Passed scope: six mutation/hold cases with business-output and authenticated committed-state checks under the original bounded Job.'
             }

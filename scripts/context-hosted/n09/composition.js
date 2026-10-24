@@ -15,6 +15,7 @@ const {
   runClearAfterAck,
   runDurableSaveOrRevokeAfterAck,
   runBackupRollbackAfterRevoke,
+  runUnpublishedResponseKill,
 } = require('../n09-ipc/driver.js');
 const { buildHostedLifecycle, createHostedLifecycleSpawn } = require('./hosted-lifecycle.js');
 const { buildN09AckController } = require('../n09-ack/bootstrap-controller');
@@ -296,16 +297,51 @@ async function composeHostedN09(input, onPhase = () => {}) {
       throw fail();
     active = undefined;
     verifyCopies();
+    onPhase(86);
+    const unpublishedAdapter = createN09BusinessAdapter(
+      {
+        ownedRoot: options.ownedRoot,
+        install: path.join(options.ownedRoot, 'payload'),
+        manifestSha256: options.manifestSha256,
+      },
+      {
+        spawn: createHostedLifecycleSpawn({
+          ownedRoot: options.ownedRoot,
+          manifestSha256: options.manifestSha256,
+        }),
+        onPhase,
+      }
+    );
+    adapters.push(unpublishedAdapter);
+    active = unpublishedAdapter;
+    verifyCopies();
+    unpublishedAdapter.bindVerifiedNetworkProof(proof);
+    const unpublished = await runUnpublishedResponseKill(unpublishedAdapter);
+    const unpublishedEvidence = unpublishedAdapter.inspectBusinessEvidence();
+    if (
+      unpublishedEvidence.seeded !== true ||
+      unpublishedEvidence.validatedReadCount !== 3 ||
+      unpublishedEvidence.publicGenerationCount !== 2 ||
+      unpublishedEvidence.externalToolExecutions !== 1 ||
+      unpublishedEvidence.clearAckCount !== 0 ||
+      unpublishedEvidence.saveAckCount !== 0 ||
+      unpublishedEvidence.revokeAckCount !== 0
+    )
+      throw fail();
+    active = undefined;
+    verifyCopies();
     result = {
       committed,
       clear,
       ...durable,
       backup,
+      unpublished,
       businessEvidence: {
         committed: committedEvidence,
         clear: clearEvidence,
         ...durableEvidence,
         backup: backupEvidence,
+        unpublished: unpublishedEvidence,
       },
       networkProof: proof,
       originalControllerReused: true,
@@ -322,7 +358,7 @@ async function composeHostedN09(input, onPhase = () => {}) {
     });
   }
   onPhase(84);
-  if (cleanup.adaptersClosed !== 5 || cleanup.listenerClosed !== true) throw fail();
+  if (cleanup.adaptersClosed !== 6 || cleanup.listenerClosed !== true) throw fail();
   return Object.freeze({ ...result, cleanup });
 }
 module.exports = { composeHostedN09, closeResources };

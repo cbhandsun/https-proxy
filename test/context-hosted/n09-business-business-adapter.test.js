@@ -15,6 +15,7 @@ const {
   runClearAfterAck,
   runDurableSaveOrRevokeAfterAck,
   runBackupRollbackAfterRevoke,
+  runUnpublishedResponseKill,
 } = require('../../scripts/context-hosted/n09-ipc/driver.js');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const bad = { message: 'n09_business_adapter_failed' };
@@ -95,6 +96,7 @@ function fixture(mutation = () => {}, onPhase) {
           : { readRecoveryAdmissionFailurePhase: state.admissionDiagnostic }),
         stopLifecycle: async (owner) => {
           state.events.push('kill');
+          state.interruptObserved?.(state.interruptionReason ?? 'transport-error');
           state.rejectPending?.(new Error('synthetic_forced_kill'));
           state.ackCommand = undefined;
           state.stopped++;
@@ -155,6 +157,7 @@ function fixture(mutation = () => {}, onPhase) {
         }),
         setCombination: async () => ({ savedConfigVerified: true }),
         close: async () => {
+          state.interruptObserved?.('cancelled');
           state.rejectPending?.(new Error('synthetic_owner_close'));
           state.closed++;
         },
@@ -226,6 +229,10 @@ function fixture(mutation = () => {}, onPhase) {
           end(bytes) {
             result = JSON.parse(bytes);
           },
+          destroy() {
+            this.destroyed = true;
+            state.destroyedHeldResponses = (state.destroyedHeldResponses ?? 0) + 1;
+          },
         };
         const incoming = {
           path: '/v1/responses',
@@ -235,6 +242,13 @@ function fixture(mutation = () => {}, onPhase) {
         };
         mutation('upstream', incoming, state);
         await adapter.onBusinessRequest(incoming);
+        if (result === undefined && state.observedHttp) {
+          state.events.push('public-response-held');
+          if (state.observedHttp.reason !== 'pending') throw Error('synthetic_already_interrupted');
+          await new Promise((_resolve, reject) => {
+            state.rejectPending = reject;
+          });
+        }
         assert.ok(result);
         mutation('native-reply', result, state);
         return result;
@@ -316,11 +330,20 @@ function fixture(mutation = () => {}, onPhase) {
           ],
         };
         mutation('public', publicBody, state);
+        // The held observer has already completed private reads before the
+        // public upstream response. Persist its synthetic accounting now.
+        if (state.observedHttp?.reason === 'pending') {
+          state.calls += 2;
+          state.returnedBytes += source.bytes;
+          state.revision++;
+        }
         result = await native(publicBody);
         if (state.refuseAfter === 4) return refusal();
-        state.calls += 2;
-        state.returnedBytes += source.bytes;
-        state.revision++;
+        if (!state.observedHttp || state.observedHttp.reason !== 'pending') {
+          state.calls += 2;
+          state.returnedBytes += source.bytes;
+          state.revision++;
+        }
       } else {
         const output = body.input.find((item) => item.type === 'function_call_output');
         if (output) {
@@ -352,12 +375,167 @@ function fixture(mutation = () => {}, onPhase) {
       return { status: 502, bytes: Buffer.from('{}') };
     }
   };
+  trusted.startObservedContinuation = (input) => {
+    let resolve;
+    const result = new Promise((done) => {
+      resolve = done;
+    });
+    const observation = { reason: 'pending', bytes: 0, cancellations: 0 };
+    state.observedHttp = observation;
+    const finish = (reason, value = { failed: true }) => {
+      if (observation.reason !== 'pending') return;
+      observation.reason = reason;
+      resolve(value);
+    };
+    state.interruptObserved = finish;
+    void trusted
+      .createBusinessClient({
+        entryPort: input.entryPort,
+        templates: { continuation: input.body },
+      })()
+      .then(
+        (response) => {
+          observation.bytes = response.bytes.length;
+          finish('response', { response });
+        },
+        () => finish('transport-error')
+      );
+    const observer = {
+      result,
+      bytes: () => observation.bytes,
+      termination: () => observation.reason,
+      cancel() {
+        observation.cancellations++;
+        finish('cancelled');
+        state.rejectPending?.(new Error('synthetic_client_cancelled'));
+        return true;
+      },
+    };
+    mutation('observed-client', observation, state);
+    return observer;
+  };
   const adapter = createN09BusinessAdapter(options, {
     ...trusted,
     ...(onPhase ? { onPhase } : {}),
   });
   return { adapter, options, proof, state, trusted };
 }
+test('held independent public response is interrupted before bytes, then exact recovery preserves read accounting', async () => {
+  const f = fixture();
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  const receipt = await runUnpublishedResponseKill(f.adapter);
+  assert.equal(receipt.boundary, 'upstream-public-final-held');
+  assert.equal(receipt.interruptedWithZeroPublicBytes, true);
+  assert.equal(receipt.originalReadAfterRestart, true);
+  assert.equal(receipt.sameDirectoryNewPid, true);
+  assert.equal(receipt.commitInProgressQualified, false);
+  assert.equal(receipt.publicationCommitQualified, false);
+  assert.equal(receipt.n09Complete, false);
+  assert.equal(f.state.nativeReadObserved, 3);
+  assert.equal(f.state.calls, 6);
+  assert.equal(f.state.returnedBytes, Buffer.byteLength(f.state.original) * 3);
+  const evidence = f.adapter.inspectBusinessEvidence();
+  assert.equal(evidence.validatedReadCount, 3);
+  assert.equal(evidence.publicGenerationCount, 2);
+  assert.equal(evidence.externalToolExecutions, 1);
+  assert.equal(f.state.stopped, 2);
+  assert.equal(f.state.closed, 1);
+  assert.equal(f.state.observedHttp.cancellations, 1);
+  assert.equal(f.state.destroyedHeldResponses, 1);
+});
+
+test('held-response driver rejects false interruption evidence, restart identity and rolled-back accounting', async () => {
+  for (const [method, change] of [
+    ['beginPublicResponseHold', { pid: 999 }],
+    ['beginPublicResponseHold', { publicBytes: 1 }],
+    ['beginPublicResponseHold', { exactRead: false }],
+    ['beginPublicResponseHold', { externalToolReplays: 1 }],
+    ['finishInterruptedPublicResponse', { interrupted: false }],
+    ['finishInterruptedPublicResponse', { publicBytes: 1 }],
+    ['readCommittedSnapshotAfterKill', { calls: 0 }],
+    ['readCommittedSnapshotAfterKill', { returnedBytes: 0, revision: 1 }],
+    ['restartSameBusinessHost', { pid: 101 }],
+    ['restartSameBusinessHost', { configDir: path.join(os.tmpdir(), 'wrong-config') }],
+  ]) {
+    const f = fixture();
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    const original = f.adapter[method];
+    const wrapped = {
+      ...f.adapter,
+      [method]:
+        method === 'readCommittedSnapshotAfterKill'
+          ? (...args) => ({ ...original(...args), ...change })
+          : async (...args) => ({ ...(await original(...args)), ...change }),
+    };
+    await assert.rejects(runUnpublishedResponseKill(wrapped), { message: 'n09_ack_kill_failed' });
+    assert.equal(f.state.closed, 1);
+    assert.equal(f.state.observedHttp.cancellations, 1);
+    assert.ok(f.state.stopped >= 1);
+  }
+});
+
+test('held-response path cannot classify timeout, cancellation or emitted bytes as forced transport loss', async () => {
+  for (const reason of ['timeout', 'cancelled', 'setup-error', 'response']) {
+    const f = fixture();
+    f.state.interruptionReason = reason;
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runUnpublishedResponseKill(f.adapter), { message: 'n09_ack_kill_failed' });
+    assert.equal(f.state.closed, 1);
+    assert.equal(f.state.stopped, 1);
+  }
+  const f = fixture((at, observation) => {
+    if (at === 'observed-client') observation.bytes = 1;
+  });
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await assert.rejects(runUnpublishedResponseKill(f.adapter), { message: 'n09_ack_kill_failed' });
+  assert.equal(f.state.closed, 1);
+  assert.equal(f.state.stopped, 1);
+});
+
+test('unpublished-restart-revision must preserve the stopped durable revision as well as counters', async () => {
+  for (const revision of [undefined, 0, 1, NaN, Infinity]) {
+    const f = fixture();
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    let reads = 0;
+    await assert.rejects(
+      runUnpublishedResponseKill({
+        ...f.adapter,
+        async readThroughBusinessHttp(owner) {
+          const value = await f.adapter.readThroughBusinessHttp(owner);
+          if (++reads === 1) return value;
+          return { ...value, accounting: { ...value.accounting, revision } };
+        },
+      }),
+      { message: 'n09_ack_kill_failed' }
+    );
+    assert.equal(f.state.closed, 1);
+    assert.equal(f.state.stopped, 2);
+  }
+});
+
+test('held-response adapter requires an active seeded owner and closes independently when kill fails', async () => {
+  const f = fixture();
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  const owner = await f.adapter.startFreshBusinessHost();
+  await assert.rejects(f.adapter.beginPublicResponseHold(owner), bad);
+  await f.adapter.killOwnedJob(owner);
+  await f.adapter.close();
+  const g = fixture();
+  g.adapter.bindVerifiedNetworkProof(g.proof);
+  await assert.rejects(
+    runUnpublishedResponseKill({
+      ...g.adapter,
+      async killOwnedJob(identity) {
+        await g.adapter.killOwnedJob(identity);
+        throw Error('PRIVATE_KILL_SENTINEL');
+      },
+    }),
+    { message: 'n09_ack_kill_failed' }
+  );
+  assert.equal(g.state.closed, 1);
+  assert.equal(g.state.observedHttp.cancellations, 1);
+});
+
 test('backup revoke captures its exact revision after the completed publication barrier', async () => {
   let completed = 0;
   const f = fixture((at, value, state) => {

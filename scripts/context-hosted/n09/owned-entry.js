@@ -213,7 +213,7 @@ async function main() {
       )
     )
       throw fail();
-    if ((phase >= 80 && phase <= 83) || phase === 85) businessCasePhase = phase;
+    if ((phase >= 80 && phase <= 83) || phase === 85 || phase === 86) businessCasePhase = phase;
     const reported = phase === 230 ? publicReadFailurePhase(businessCasePhase) : phase;
     failureExitCode = reported;
     if (phase < 98 || phase >= 101) primaryFailurePhase = reported;
@@ -247,7 +247,15 @@ async function main() {
     result.backup.sameDirectoryNewPid !== true ||
     result.backup.positiveReadBeforeRevoke !== true ||
     result.backup.n09Complete !== false ||
-    result.cleanup?.adaptersClosed !== 5 ||
+    result.unpublished?.evidenceLevel !== 'adapter-orchestration-only' ||
+    result.unpublished.boundary !== 'upstream-public-final-held' ||
+    result.unpublished.interruptedWithZeroPublicBytes !== true ||
+    result.unpublished.sameDirectoryNewPid !== true ||
+    result.unpublished.originalReadAfterRestart !== true ||
+    result.unpublished.commitInProgressQualified !== false ||
+    result.unpublished.publicationCommitQualified !== false ||
+    result.unpublished.n09Complete !== false ||
+    result.cleanup?.adaptersClosed !== 6 ||
     result.cleanup.listenerClosed !== true
   )
     throw fail();
@@ -260,7 +268,7 @@ async function main() {
       nonLoopbackBlocked: true,
       listenerOwned: true,
       syntheticSocketsClosed: result.cleanup.listenerClosed,
-      cases: 5,
+      cases: 6,
       n09Complete: false,
     }) + '\n'
   );

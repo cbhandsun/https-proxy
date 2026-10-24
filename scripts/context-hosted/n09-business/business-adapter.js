@@ -14,6 +14,7 @@ const { n09AckFailureStage } = require('../n09-ack/contract');
 const { parseStoredEvidenceSource } = require('../../../lib/proxy/context-evidence-stored-page');
 const { parseObservedPage } = require('./observed-page');
 const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
+const { createPublicResponseInterruption } = require('./public-response-interruption');
 const fail = () => new Error('n09_business_adapter_failed');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const wire = (value) => Buffer.from(JSON.stringify(value));
@@ -101,6 +102,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
           'createBusinessClient',
           'createSnapshots',
           'createBackup',
+          'startObservedContinuation',
           'spawn',
           'onPhase',
         ].includes(key) ||
@@ -136,6 +138,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     externalToolExecutions = 0,
     upstreamRequests = 0;
   let pendingSave;
+  let publicInterruption;
   let backup,
     backupRestored = false,
     storageRejected = false;
@@ -552,6 +555,32 @@ function createN09BusinessAdapter(input, trusted = {}) {
         accounting: value,
       });
     },
+    async beginPublicResponseHold(identity) {
+      gate(identity);
+      if (!seeded || phase !== 'ready' || pendingSave || publicInterruption) throw fail();
+      phase = 'recovering';
+      readObserved = false;
+      publicObserved = false;
+      source = undefined;
+      upstreamFailurePhase = undefined;
+      recoveryProgressPhase = 212;
+      publicInterruption = createPublicResponseInterruption(
+        { entryPort: current.entryPort, entryKey, body: wire(continuation) },
+        trusted.startObservedContinuation
+      );
+      const held = await publicInterruption.waitHeld();
+      if (!readObserved || publicObserved || externalToolExecutions !== 1) throw fail();
+      return Object.freeze({ ...held, pid: current.pid, exactRead: true, externalToolReplays: 0 });
+    },
+    async finishInterruptedPublicResponse(identity) {
+      stoppedIdentity(identity);
+      if (!publicInterruption || phase !== 'recovering') throw fail();
+      const receipt = await publicInterruption.afterKill();
+      publicInterruption.close();
+      publicInterruption = undefined;
+      phase = 'ready';
+      return receipt;
+    },
     getClearCapability(identity) {
       gate(identity);
       const clear = client().getClearCapability(current);
@@ -882,6 +911,13 @@ function createN09BusinessAdapter(input, trusted = {}) {
         if (!readObserved) throw fail();
         failurePhase = 231;
         if (!bodyText.includes(original)) throw fail();
+        if (publicInterruption) {
+          publicInterruption.arrive(() => {
+            incoming.response.destroy();
+            return true;
+          });
+          return;
+        }
         publicObserved = true;
         publicGenerationCount++;
         recoveryProgressPhase = 216;
@@ -924,6 +960,12 @@ function createN09BusinessAdapter(input, trusted = {}) {
       closed = true;
       phase = 'closed';
       let failed = false;
+      try {
+        publicInterruption?.close();
+      } catch {
+        failed = true;
+      }
+      publicInterruption = undefined;
       try {
         backup?.close();
       } catch {

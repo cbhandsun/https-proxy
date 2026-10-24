@@ -49,12 +49,13 @@ contacted.
 
 N08 exercises the six mutation/hold cases, actual business output-byte
 observation and authenticated committed before/after root, expiry and
-cumulative-budget checks. N09 uses five distinct private adapters: committed
+cumulative-budget checks. N09 uses six distinct private adapters: committed
 metadata observation followed by forced kill/restart/read; actual
 await-clearAsync ACK followed by forced kill/restart plus four policy
-combinations; separate save and revoke durable-ACK cases; and same-format backup
-rollback after revocation. The outer composition checks each adapter's observed
-seed/read/public/ACK counts and single original tool execution.
+combinations; separate save and revoke durable-ACK cases; same-format backup
+rollback after revocation; and forced interruption with the upstream public
+final held after a private READ. The outer composition checks each adapter's
+observed seed/read/public/ACK counts and single original tool execution.
 
 The fixed child receipt is accepted only after its own cleanup and the original
 outer Job's verified cleanup. Failed stop acknowledgement retains firewall
@@ -105,9 +106,9 @@ cleanup, late ACKs and accounting regression. Their standalone observer receipts
 remain `observer-boundary-only` with `liveDaemonProved:false`. In a successful
 hosted run, the fixed composition additionally requires both actual adapter
 ACKs, same-directory new-PID restart, read/accounting checks after save, denial
-after revoke, and cleanup of all five adapters. The backup case first verifies
-an exact business read, force-stops the owned Job, and holds a bounded copy of
-only the encrypted database and wrapped key in memory. It verifies a normal
+after revoke, and cleanup of all six adapters. The backup case first verifies an
+exact business read, force-stops the owned Job, and holds a bounded copy of only
+the encrypted database and wrapped key in memory. It verifies a normal
 same-directory restart and exact read, then receives the actual revoke ACK and
 immediately force-stops that owner. Only after confirmed termination may it
 restore those two files, preserving their identities and ACLs; it never reads or
@@ -117,14 +118,21 @@ persistent recovery, and an HTTP 503 rejection with zero upstream requests.
 Timeout, process death, disabled configuration and unrelated failures cannot
 qualify. Active journals, path replacement, hardlinks, oversized files and
 partial write failures reject; partial restoration is never advertised as
-atomic. These are bounded scenario evidence; commit/publication in progress,
-historical-layout backup migration, installation lifecycle, full N09, 24-hour
-capacity, real providers and production activation remain outside these
-scenarios. Existing `n08Qualified:false` and `n09Complete:false` flags are
-preserved; a successful hosted run proves only its described cases. Source
-preparation alone proves no runtime result. The always-running workflow summary
-prints a passed scenario scope only for the matching successful job. It reports
-the remaining exclusions for every outcome.
+atomic. The sixth case first proves an exact read, completes another private
+READ, and holds the independent public final upstream. It requires zero public
+bytes before and after forced termination, an observed transport error rather
+than a timeout or cancellation, a new PID in the same directory, and exact
+original recovery after restart with nondecreasing durable revision and budgets.
+External tools execute exactly once. This upstream response hold does not
+qualify a kill inside SQLite COMMIT or a durable publication transition. These
+are bounded scenario evidence; commit/publication in progress, historical-layout
+backup migration, installation lifecycle, full N09, 24-hour capacity, real
+providers and production activation remain outside these scenarios. Existing
+`n08Qualified:false` and `n09Complete:false` flags are preserved; a successful
+hosted run proves only its described cases. Source preparation alone proves no
+runtime result. The always-running workflow summary prints a passed scenario
+scope only for the matching successful job. It reports the remaining exclusions
+for every outcome.
 
 Local verification passed 251 tests across the promoted scenarios and synthetic
 OS pipe suite, with no failures or skips on Windows. Scoped ESLint, Prettier,
