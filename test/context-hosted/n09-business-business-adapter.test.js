@@ -605,6 +605,11 @@ for (const operation of ['save', 'revoke']) {
   test(`signed ${operation} path integrates business driver and kills before draining pending HTTP`, async () => {
     const f = fixture();
     assert.equal(typeof f.adapter.existingHostDurableAckCapability(operation), 'function');
+    let inspections = 0;
+    f.state.diagnostic = async () => {
+      inspections++;
+      return 218;
+    };
     assert.equal(f.state.created, 0);
     assert.equal(f.state.sent, 0);
     f.state.holdSave = operation === 'save';
@@ -617,6 +622,7 @@ for (const operation of ['save', 'revoke']) {
     assert.equal(f.state.stopped, 2);
     const ackIndex = f.state.events.indexOf('ack');
     assert.equal(f.state.events[ackIndex + 1], 'kill');
+    assert.equal(inspections, 0);
     assert.equal(f.state.nativeReadObserved, operation === 'save' ? 3 : 1);
     if (operation === 'save') {
       assert.ok(f.state.events.indexOf('armed') < f.state.events.indexOf('http-pending'));
@@ -682,6 +688,41 @@ test('save ACK response refusals retain fixed HTTP diagnostics and forced cleanu
     assert.equal(f.state.sent, 5);
     assert.equal(f.state.stopped, 1);
     assert.equal(f.state.closed, 1);
+  }
+});
+
+test('failed save ACK can inspect only the existing finite failure diagnostic before forced cleanup', async () => {
+  for (const diagnostic of [
+    async () => 218,
+    async () => 'PRIVATE_SENTINEL',
+    async () => {
+      throw Error('PRIVATE_SENTINEL');
+    },
+  ]) {
+    const phases = [];
+    let inspections = 0;
+    const f = fixture(
+      (kind, _value, state) => {
+        if (kind === 'reply' && state.ackCommand) state.replyStatus = 502;
+      },
+      (phase) => phases.push(phase)
+    );
+    f.state.diagnostic = async () => {
+      inspections++;
+      return diagnostic();
+    };
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'), {
+      message: 'n09_ack_kill_failed',
+    });
+    assert.equal(inspections, 1);
+    assert.ok([218, 224].includes(phases.at(-1)));
+    assert.equal(phases.includes(216), true);
+    assert.equal(f.state.events.includes('ack'), false);
+    assert.equal(f.state.sent, 5);
+    assert.equal(f.state.stopped, 1);
+    assert.equal(f.state.closed, 1);
+    assert.equal(JSON.stringify(phases).includes('PRIVATE'), false);
   }
 });
 

@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：schema3观察器修复后N08独立诊断通过；N09定位save的LIST后502
+
+源码 `a4a04eaf` 的独立业务诊断 `40052480008` 已结束：N08 `120747945899` success，N09 `120747945704` failure，case82固定阶段213，说明save触发恢复已收到LIST调用而后续恢复步骤前HTTP502；不能据此判断是reader、运行、编码或ACK观察器错误，也不能排除强杀收尾覆盖阶段。正式Windows及安装资格仍独立。Verify `40052480047` unit0 `120747946185` failure是旧DPAPI互通原10000ms期限：native_protect 19ms完成，legacy_unprotect 10023ms ETIMEDOUT，未改变期限或把它当格式错误。
+
+本轮复用原有只读健康诊断：只有performN09DurableCommand已失败、save响应明确502、无更具体synthetic上游失败时，才读取一次现有固定httpFailurePhase；未知/异常映射224且原失败保持。成功签名ACK到强杀之间不新增查询或等待，15秒操作预算与外层期限不变；不输出health、请求、原文、身份或异常。新增回归修复前因诊断调用0失败，修复后adapter/command/driver/failure-phase四文件102项通过，成功save/revoke另断言诊断调用0及ACK下一事件仍为kill。Lint、CI/release治理通过。此处仅补齐失败定位，尚未宣称N09根因修复。
+
 ## 2026-10-23：新格式正式 N08/N09 的共同观察器拒绝已复现修复
 
 `f18b4a79` 正式Windows `40050413829` source-gates与egress成功，N08 `120746110196` 和N09 `120746110072` 均终态failure，固定阶段均179（N09 case80），network restore另失败。定位到验收只读观察器仍硬编码PRAGMA/header schema2；正常owner封为schema3后，它在实际业务恢复前拒绝。新增2/3正常、PRAGMA/header错配、未来版本、类型错误及旧schema1矩阵，旧实现明确在schema3正常路径失败。观察器现在只接受已知2或3，解密header必须精确匹配同一事务内PRAGMA；不授予writer/owner/原文读取权限，继续query_only/ROLLBACK且hostDurableAck=false。实际内存SQLite SQL回归切到schema3，旧schema2 sibling/损坏测试保留；观察器/driver/closure三文件46项通过。此修复是验收工具格式适配，不修改生产格式、防回滚或成功断言；正式业务仍须新源码复验。

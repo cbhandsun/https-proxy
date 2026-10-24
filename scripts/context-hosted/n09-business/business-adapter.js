@@ -207,6 +207,20 @@ function createN09BusinessAdapter(input, trusted = {}) {
     if (failurePhase !== null && upstreamFailurePhase !== undefined) onPhase(upstreamFailurePhase);
     else if (response.status === 502) onPhase(recoveryProgressPhase);
   }
+  async function reportRecoveryFailureDetail() {
+    if (typeof client().readRecoveryFailurePhase !== 'function') return;
+    let failurePhase = 224;
+    try {
+      failurePhase = await client().readRecoveryFailurePhase(current);
+    } catch {
+      // Diagnostic failure cannot change the original HTTP failure.
+    }
+    onPhase(
+      Number.isInteger(failurePhase) && failurePhase >= 217 && failurePhase <= 224
+        ? failurePhase
+        : 224
+    );
+  }
   function startSave() {
     if (pendingSave || phase !== 'ready') throw fail();
     phase = 'recovering';
@@ -215,13 +229,14 @@ function createN09BusinessAdapter(input, trusted = {}) {
     source = undefined;
     upstreamFailurePhase = undefined;
     recoveryProgressPhase = 212;
-    const tracked = { failed: false, completion: undefined };
+    const tracked = { failed: false, failedWith502: false, completion: undefined };
     pendingSave = tracked;
     // Both handlers are installed immediately. Forced Job termination may reject
     // this HTTP request; that expected rejection must never escape unobserved.
     tracked.completion = send(continuation).then(
       (value) => {
         try {
+          tracked.failedWith502 = value.status === 502;
           // The request can fail before any durable ACK is produced. Preserve
           // its finite HTTP/progress class rather than leaving only polling.
           reportRecoveryResponsePhase(value);
@@ -432,19 +447,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
       const response = await send(continuation);
       reportRecoveryResponsePhase(response);
       if (response.status === 502 && upstreamFailurePhase === undefined) {
-        if (typeof client().readRecoveryFailurePhase === 'function') {
-          let failurePhase = 224;
-          try {
-            failurePhase = await client().readRecoveryFailurePhase(current);
-          } catch {
-            // Diagnostic failure cannot change the original HTTP failure.
-          }
-          onPhase(
-            Number.isInteger(failurePhase) && failurePhase >= 217 && failurePhase <= 224
-              ? failurePhase
-              : 224
-          );
-        }
+        await reportRecoveryFailureDetail();
       }
       const reply = parseReply(response);
       if (
@@ -537,6 +540,19 @@ function createN09BusinessAdapter(input, trusted = {}) {
             },
           });
         } catch {
+          // Only after the ACK operation has failed. Never query management
+          // between a successful signed receipt and the driver's forced kill.
+          if (
+            pendingSave?.failed &&
+            pendingSave.failedWith502 &&
+            upstreamFailurePhase === undefined
+          ) {
+            try {
+              await reportRecoveryFailureDetail();
+            } catch {
+              // Preserve primary failure even when the diagnostic observer fails.
+            }
+          }
           throw fail();
         }
       };
