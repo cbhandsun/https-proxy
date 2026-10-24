@@ -75,3 +75,76 @@ test('always summary makes generation conditional on reaching preparation stages
   assert.ok(workflow.includes('When their preparation stages run,'));
   assert.equal(workflow.includes('were generated only'), false);
 });
+
+test(
+  'always summary reports scenario scope only for the matching successful job',
+  {
+    skip: process.platform !== 'win32',
+    timeout: 30000,
+  },
+  () => {
+    const workflow = fs
+      .readFileSync(
+        path.join(root, '.github/workflows/windows-context-recovery-hosted.yml'),
+        'utf8'
+      )
+      .replaceAll('\r\n', '\n');
+    const begin = workflow.indexOf(
+      '          @(\n',
+      workflow.indexOf('- name: Record bounded outcome')
+    );
+    const end = workflow.indexOf('          ) >> $env:GITHUB_STEP_SUMMARY', begin);
+    assert.ok(begin >= 0 && end > begin);
+    const expression = workflow.slice(begin, end) + '          )';
+    const result = spawnSync(
+      'C:/Program Files/PowerShell/7/pwsh.exe',
+      [
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        `
+      $ErrorActionPreference = 'Stop'
+      $env:GITHUB_SHA = 'synthetic-source'
+      $rows = foreach ($case in @(
+        @('n09', 'success'), @('n08', 'success'), @('n09', 'failure'),
+        @('n09', 'cancelled'), @('n08', 'skipped'), @('', ''),
+        @('n09', 'SUCCESS'), @('unrecognized', 'success')
+      )) {
+        $env:SCENARIO = $case[0]
+        $env:JOB_STATUS = $case[1]
+        $summary = ${expression}
+        @{ scenario = $case[0]; status = $case[1]; summary = @($summary) }
+      }
+      ConvertTo-Json -Depth 4 -Compress -InputObject @($rows)
+    `,
+      ],
+      { shell: false, windowsHide: true, timeout: 25000, maxBuffer: 32768, encoding: 'utf8' }
+    );
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 0);
+    const rows = JSON.parse(result.stdout);
+    assert.equal(rows.length, 8);
+    for (const row of rows) {
+      const scopes = row.summary.filter((line) => line.startsWith('Passed scope:'));
+      const qualified = row.status === 'success' && ['n08', 'n09'].includes(row.scenario);
+      assert.equal(scopes.length, qualified ? 1 : 0);
+      if (qualified) {
+        assert.ok(
+          scopes[0].includes(
+            row.scenario === 'n09'
+              ? 'four cases: committed metadata, clear ACK, save ACK and revoke ACK'
+              : 'six mutation/hold cases'
+          )
+        );
+      }
+      assert.ok(
+        row.summary.some((line) => line.includes('Not qualified: commit/publication in progress'))
+      );
+      assert.equal(
+        row.summary.some((line) => line.includes('Not qualified: save/revoke durable ACK')),
+        false
+      );
+    }
+  }
+);

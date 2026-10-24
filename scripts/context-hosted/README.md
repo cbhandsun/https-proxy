@@ -49,11 +49,12 @@ contacted.
 
 N08 exercises the six mutation/hold cases, actual business output-byte
 observation and authenticated committed before/after root, expiry and
-cumulative-budget checks. N09 uses two distinct private adapters: committed
-metadata observation followed by forced kill/restart/read; and actual
+cumulative-budget checks. N09 uses four distinct private adapters: committed
+metadata observation followed by forced kill/restart/read; actual
 await-clearAsync ACK followed by forced kill/restart plus four policy
-combinations. The outer composition also checks the adapters' callback-derived
-seed/read/public/clear counts and single original tool execution.
+combinations; and separate save and revoke durable-ACK cases. The outer
+composition checks each adapter's observed seed/read/public/ACK counts and
+single original tool execution.
 
 The fixed child receipt is accepted only after its own cleanup and the original
 outer Job's verified cleanup. Failed stop acknowledgement retains firewall
@@ -62,27 +63,30 @@ bounded scope text are printed. No payload, key, database, request body or
 original evidence is uploaded.
 
 Committed metadata observation is not a host save/revoke durable ACK. The
-separate `runDurableSaveOrRevokeAfterAck` pure driver now requires a passive,
-synchronous callable capability, validates its operation/PID/accounting-bound
-ACK, then force-kills without intervening adapter I/O. Save checks exact reads
-and nondecreasing accounting after same-directory restart; revoke checks denial
+separate `runDurableSaveOrRevokeAfterAck` driver requires a passive, synchronous
+callable capability, validates its operation/PID/accounting-bound ACK, then
+force-kills without intervening adapter I/O. Save checks exact reads and
+nondecreasing accounting after same-directory restart; revoke checks denial
 before and after all four policy combinations. Its receipts explicitly remain
-`adapter-orchestration-only` with all live qualification flags false. Neither
-current hosted business adapter supplies that callable capability. A boolean
-advertisement, HTTP completion or committed-file observation cannot enable it.
-The separate `n09-ack` contract and observer now validate signed,
-PID/epoch/sequence bound commands and receipts, observe the successful original
-save ACK factory, and await strict success from the bound sessions' original
-`revokeAsync` method. Their pure tests cover rejection, cleanup, late ACKs and
-accounting regression. They expose only `observer-boundary-only` evidence with
-`liveDaemonProved:false`. No start gate, private mailbox or actual hosted
-adapter installs them yet, so these modules do not grant live save/revoke
-qualification. Save/revoke ACK, commit/publication in progress, backup rollback,
-installation lifecycle, full N09, 24-hour capacity, real providers and
-production activation remain outside these scenarios. Existing
-`n08Qualified:false` and `n09Complete:false` flags are preserved; a successful
-hosted run proves only its described cases. Source preparation alone proves no
-runtime result.
+`adapter-orchestration-only`; a pure test alone grants no live qualification.
+The hosted business adapter supplies the capability through the runner payload's
+runtime hooks and private mailbox. A boolean advertisement, HTTP completion or
+committed-file observation cannot enable it. The `n09-ack` contract and observer
+validate signed, PID/epoch/sequence bound commands and receipts, observe the
+successful original save ACK factory, and await strict success from the bound
+sessions' original `revokeAsync` method. Their pure tests cover rejection,
+cleanup, late ACKs and accounting regression. Their standalone observer receipts
+remain `observer-boundary-only` with `liveDaemonProved:false`. In a successful
+hosted run, the fixed composition additionally requires both actual adapter
+ACKs, same-directory new-PID restart, read/accounting checks after save, denial
+after revoke, and cleanup of all four adapters. These are bounded scenario
+evidence; commit/publication in progress, backup rollback, installation
+lifecycle, full N09, 24-hour capacity, real providers and production activation
+remain outside these scenarios. Existing `n08Qualified:false` and
+`n09Complete:false` flags are preserved; a successful hosted run proves only its
+described cases. Source preparation alone proves no runtime result. The
+always-running workflow summary prints a passed scenario scope only for the
+matching successful job. It reports the remaining exclusions for every outcome.
 
 Local verification passed 251 tests across the promoted scenarios and synthetic
 OS pipe suite, with no failures or skips on Windows. Scoped ESLint, Prettier,

@@ -1,5 +1,31 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：当前正式 Windows 四场景及统一门禁终态通过
+
+已实时复核同一源码 `bef2503026b9182d37a57f5a38f30da29242eedb`：正式 Windows run `40053143333` 的 source-gates `120750039365`、N08 `120754367276`、N09 `120754367200` 和 egress 均终态 success；同源码 Verify `40053143347` 八项 success。N09 固定入口要求 committed、clear、save、revoke 四场景，后两者必须实际 adapter durable ACK、同目录新 PID；composition 校验实际读回/公开生成/ACK/不重放计数，且四 adapter 与 listener 清理成功，外层 Job 确认 owned tree 为空。最终网络回执确认 TLS、负向非 loopback、probes 与清理均通过。日志原有固定 `n08Qualified:false` 不被解释成完整 N08 通过，`n09Complete:false` 保留。
+
+此结果关闭本次候选的四场景正式执行缺口，但同源码独立诊断曾出现 clear 首读 248，不能抹去或据此声称已稳定。commit/publication 在途强杀、备份回滚、582 布局、真实全天容量、最终安装版真实客户端/模型、签名及生产资格仍开放。安装 payload 与已通过的 f18 候选一致，仅验收工具和测试发生变化。
+
+发现工作流 always-summary 和 hosted README 仍声称 save/revoke ACK 尚未接通，与当前固定执行断言不一致。新增实际 PowerShell 摘要回归在修改前失败；本轮只按匹配场景且 job success 才输出有限 passed scope，失败/取消/跳过/空/非法组合不输出通过声明，所有结果保留完整资格排除项。不改变任何行为断言、门禁、期限或生产代码；这些新增本地修改不继承上述已冻结源码的验收资格。
+
+原句柄 `93557` 的实际文件 SQLite 诊断已终态退出 0，安全回执 `.codex-tmp/durable-capacity-day-small.json`：原画像 1 root、288 turns、1024 bytes、300000ms 合成间隔保持，完成 288 turns、24 recoveries、12 次实际 close/reopen，final drain 成功，coverage/read/operation 首错均 null；SQLite 1720320 bytes。耗时 892500.9646ms（约 14 分 53 秒），native/model 调用均 0。此处 `qualified:true` 只指该单档功能计数，scope 明确为 `file_sqlite_synthetic_clock_no_native_owner`；不包含 native owner/DPAPI/anchor worker、真实时钟全天运行或整套五档，也不关闭原 60000ms 全套性能目标。比内存画像慢很多是已观察问题，尚无分阶段证据确认瓶颈，下一步需定位持久化执行成本。
+
+摘要与工作流治理两文件 15/15 通过，扩大到 PowerShell 解析及固定入口 closure 四文件 19/19 通过，零失败/跳过/取消；ESLint、Prettier、`npm run check:ci`、`npm run release:check` 和 `git diff --check` 通过。生产 payload 不变，未为范围说明修改重启托管作业；真实模型请求 0，未提交 Support 工单。
+
+## 2026-10-23：当前Verify八项通过；开始实际文件SQLite容量诊断
+
+`bef25030` Verify `40053143347` 已终态success，四unit、集成、质量、Rust与coverage全部通过；正式Windows `40053143333` source `120750039365` 仍在同一原作业统一门禁，不能替代N08/N09业务资格。安装候选f18与当前HEAD差异仅状态、验收工具及测试，生产payload不变。
+
+独立本地诊断将原冻结day-small画像的轮数/间隔/字节/恢复次数/重开频率保留，替换为实际session异步持久路径、加密文件SQLite及实际关闭重开；使用合成时钟和仅存内存的合成dataKey，不调用native owner、DPAPI、模型或日常配置。`.codex-tmp/durable-capacity-probe.cjs` 通过精确源码替换保护生成探针，首次因CRLF未规范化而在启动前安全拒绝，规范化后运行中；非正式门禁或可发布实现。原存储文件02:27:06Z仍在更新（811008字节），进程句柄93557仍live，不因等待重启或缩小画像。即使最终功能计数全部通过，也不等于真实24小时、原60秒全套性能或最终owner/客户端容量资格。
+
+## 2026-10-23：schema3真实安装、旧reader拒写与迁移重开终态通过
+
+源码 `f18b4a79c5d8939d59b5b19812f602b3e52b1267` 的安装run `40052046114`、encrypted job `120746710466` 已终态success：完整字面源码门禁、实际NSIS构建、安装/升级/回滚/重装/卸载和清理通过。实际manifest SHA256 `fbc493736370e623c94afeb98d6c7a8c536974c8925213137db9f390f71cd8f6`。同用户真实DPAPI、无anchor旧625-source库拒绝且字节保留、显式离线登记、迁移库跨进程读回/resave/重开、新锚定库重开均通过；实际旧baseline对认证schema3拒写且库存字节保留，当前重装后重开通过。四组合module API与实际daemon管理HTTP通过，后者仍明确forced_cleanup、clientQualified=false、gracefulDrainQualified=false。最终固定范围回执在私有job日志40665行；未上传安装器、DB、key或原文，draft未发布，模型请求0。`55c1cd9b`至此源码只有测试/状态变化，之后的诊断/观察器修复亦不改生产payload，不能替代各自正式业务复验。
+
+该证据关闭本候选schema3实际安装/旧reader拒写缺口；不授予582布局、旧二进制打开另行恢复的旧格式历史备份、完整N09在途故障矩阵、真实24小时容量、安装版真实客户端/模型、签名或生产资格。完整目标继续active。
+
+`bef25030` 独立诊断 `40053143357` 的N08 `120750039552` success；N09 `120750039530` 在clear case81的248（预期READ前公开生成）failure，本次未到save，不可当作上一轮save502已修复。另用实际session、root-storage、ACK生产者、runtime hook与schema3内存加密SQLite执行初次LIST/READ、arm、再次LIST/READ/complete及原生产者receipt，固定合成原文精确读回通过，native调用0；这是排查探针，不含签名mailbox、HTTP、worker、文件系统或强杀，不授予正式资格。探针开发时曾漏显式授权函数及使用abort代替完成，分别在begin/arm拒绝；修正夹具后通过，未修改产品或放宽准入。
+
 ## 2026-10-23：schema3观察器修复后N08独立诊断通过；N09定位save的LIST后502
 
 源码 `a4a04eaf` 的独立业务诊断 `40052480008` 已结束：N08 `120747945899` success，N09 `120747945704` failure，case82固定阶段213，说明save触发恢复已收到LIST调用而后续恢复步骤前HTTP502；不能据此判断是reader、运行、编码或ACK观察器错误，也不能排除强杀收尾覆盖阶段。正式Windows及安装资格仍独立。Verify `40052480047` unit0 `120747946185` failure是旧DPAPI互通原10000ms期限：native_protect 19ms完成，legacy_unprotect 10023ms ETIMEDOUT，未改变期限或把它当格式错误。
