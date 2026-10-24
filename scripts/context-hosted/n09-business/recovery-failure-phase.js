@@ -45,7 +45,8 @@ function recoveryAdmissionFailurePhase(input) {
     for (const name of [...events, 'bound', 'bindingUnavailable', 'completed']) {
       if (!Number.isSafeInteger(response[name]) || response[name] < 0) return 224;
     }
-    if (events.some((name) => response[name] !== 0) || response.completed < 1) return 224;
+    if (events.some((name) => response[name] !== 0)) return recoveryFailurePhase(input);
+    if (response.completed < 1) return 224;
     if (response.bindingUnavailable > 0) return 200;
     return response.bound >= 4 ? 202 : 210;
   } catch {

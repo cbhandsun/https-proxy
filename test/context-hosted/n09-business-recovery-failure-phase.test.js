@@ -49,7 +49,7 @@ test('missing-read classification uses only validated aggregate admission counte
     [],
     fixture({}),
     fixture({ ...counters, completed: 0 }),
-    fixture({ ...counters, httpRunFailed: 1 }),
+    fixture({ ...counters, httpRunFailed: 1, httpFinishFailed: 1 }),
     { ...fixture(counters), status: 503 },
   ]) {
     assert.equal(recoveryAdmissionFailurePhase(value), 224);
@@ -75,6 +75,18 @@ test('missing-read classification uses only validated aggregate admission counte
     assert.equal(recoveryAdmissionFailurePhase(value), 224);
   }
   assert.equal(touched, 0);
+});
+test('missing READ preserves a unique HTTP publication failure before admission fallback', () => {
+  for (const [index, name] of names.entries()) {
+    for (const completed of [0, 1]) {
+      assert.equal(
+        recoveryAdmissionFailurePhase(
+          fixture({ ...zero(), bound: 3, bindingUnavailable: 1, completed, [name]: 1 })
+        ),
+        217 + index
+      );
+    }
+  }
 });
 test('only one validated failure class leaves the local health projection', () => {
   for (const [index, name] of names.entries()) {

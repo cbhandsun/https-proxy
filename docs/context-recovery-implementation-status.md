@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：修复首次 missing READ 诊断丢弃已有 HTTP 阶段的问题
+
+本地实际 Core HTTP、加密内存 SQLite 与隔离公开生成探针在正常路径 8/8 精确读取通过；仅注入摘要 finished 持久化失败后，后续准入为 previous-unavailable、没有 READ，HTTP 单例计数明确为 httpFinishFailed=1。该人为负控不能证明 Windows 实际故障根因，但证明此前 admission 投影将任一 HTTP 失败统一折叠为224，会丢掉已有217–223阶段证据。现改为经过全部计数校验后优先保留唯一 HTTP 失败阶段，多个阶段或非法数据仍为224；adapter只透传固定白名单。不改变产品代码、成功路径、负载、超时、清理或失败判定。
+
+新增回归先以224!=217失败，修正后相关五文件91/91通过，ESLint与Prettier通过。覆盖全部七阶段、completed为0/1、非法编号、异常、getter/Proxy不执行和失败后的强制清理。现有文件继续由统一unit/coverage入口发现。上一候选5bee8025的Verify40058446038已终态八项success；正式Windows40058446149仍在原source-gates作业，独立诊断40058446054终态N08成功/N09失败（case83、224）。没有重启这些原作业，没有把负控当成根因修复或完整验收。
+
 ## 2026-10-23：正式 N09 save 首读仍失败；增加失败后的有限准入分类
 
 `07a8fb24` 正式 Windows `40056132359` 已终态 failure：egress、source-gates、N08 `120763507254` success，N09 `120763507211` failure，安全日志 case82 / exit249。该位置仍是 save ACK 之前的首次 readThrough，不能解释成 save ACK、强杀或重启读回失败；与独立诊断 clear case81 / exit248 一样，首次私有读取未被合成上游观察到。

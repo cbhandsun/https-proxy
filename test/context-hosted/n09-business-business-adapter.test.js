@@ -407,6 +407,10 @@ test('first missing READ reports admission class only after failed HTTP and pres
     async () => 200,
     async () => 202,
     async () => 210,
+    ...Array.from({ length: 7 }, (_, index) => async () => 217 + index),
+    async () => 216,
+    async () => 225,
+    async () => 223.5,
     async () => 'PRIVATE',
     async () => {
       throw Error('PRIVATE');
@@ -433,7 +437,11 @@ test('first missing READ reports admission class only after failed HTTP and pres
     f.adapter.bindVerifiedNetworkProof(f.proof);
     await assert.rejects(runCommittedObservedKill(f.adapter));
     assert.equal(reads, 1);
-    assert.ok([224, 200, 202, 210].includes(phases.at(-1)));
+    const expected = await diagnostic().catch(() => 224);
+    assert.equal(
+      phases.at(-1),
+      [200, 202, 210, 217, 218, 219, 220, 221, 222, 223].includes(expected) ? expected : 224
+    );
     assert.equal(f.state.stopped, 2);
     assert.equal(f.state.closed, 1);
     assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);

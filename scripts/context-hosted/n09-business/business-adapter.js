@@ -456,7 +456,9 @@ function createN09BusinessAdapter(input, trusted = {}) {
           } catch {
             // Preserve the original failed HTTP result and owned cleanup.
           }
-          onPhase([200, 202, 210].includes(detail) ? detail : 224);
+          onPhase(
+            [200, 202, 210, 217, 218, 219, 220, 221, 222, 223].includes(detail) ? detail : 224
+          );
         }
       }
       if (response.status === 502 && upstreamFailurePhase === undefined) {
