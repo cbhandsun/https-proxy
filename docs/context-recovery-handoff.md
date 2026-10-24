@@ -41,6 +41,10 @@ node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1
 
 ## 当前失败与下一步
 
+**最新e490a58批次优先：** 完整Verify `40098018857` 八项和正式Windows `40098018924` 四项均success。最新9401ca6加密NSIS生命周期 `40096977916`（job `120881245475`）已success，安装/升级/回滚/重装/卸载及原625登记迁移拒写均通过；安装manifest `df511afd…`，原clientQualified/gracefulDrainQualified/restartRetention仍false、forced_cleanup不变。e490a58未改生产源码，五秒稳定性证据仍为原42样本，历史失败保留。
+
+**582实际八步已通过：** 原4eb1ea48…的582包，与干净e490a58跨机准备并核验的当前Windows运行包b73b4354…在独立新OS-temp目录真实完成seed/read、拒绝隐式迁移、preview/enroll首次read、resave/read、旧582拒写新格式保字节、当前最终read；退出0，schema1→3、实际blob和revision精确+1、原expiry及全部内部精确回执均一致。该包不是NSIS安装产物；nsis/worker/24h/client资格明确false，详情及完整身份见实施状态顶部。下一步接入最新安装身份下Codex/Claude默认与增强实际隔离客户端，不能运行旧脚本中的日常认证/工作区Core注入。当前用户要求不动长测，继续工作期间不要读取、修改、重启或抢占冻结长测环境；下面旧记录中的日档状态检查建议本阶段不执行。额度未核验，真实模型请求0。
+
 **9401ca6最终门禁及下一批：** Verify `40095495560` 八项与正式Windows `40095495598` 四项均success，N08/N09原各六场景安全probe四项均true；完整产品/日档/安装资格仍不据此授予。独立三冷runner各50/50，结合完整coverage和正式source-gates，本候选五runner共42次持久恢复1024–2369ms、零五秒失败。最新加密NSIS生命周期 `40096977916`已实际启动，job `120881245475`尚在候选验证阶段，未有安装/升级回滚最终结论。历史失败继续保留。
 
 **582实包已找回：** Windows原`hpm-isolated-release-Wr2O5s/dist/staging/runtime`的manifest与旧4eb1ea48…精确一致，全部582源文件及Node/native/lock散列一致。已在全新合成目录以原包Node/native、已提交安全driver完成真实DPAPI seed和独立进程read，原文/身份/预算/key/原expiry内部回执相等，未开用户旧DB。新可复现入口`node scripts/qualify-context-recovery-legacy-layout.cjs <582包绝对目录> <当前包绝对目录> <当前manifest SHA256>`只创建新OS-temp数据根，复用原驱动执行八步，按schema1→3、resave实际blob及revision精确+1、旧版拒写保字节及当前重开验证；不接受用户DB路径。13项工具回归和扩大57项通过，不代表实际八步迁移已通过，后者待独立当前实包环境。运行中冻结日档未访问或改变，勿为此抢占其目录、任务或验收资源；模型额度仍未核验、调用为零。

@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：e490a58完整CI及最新安装生命周期通过，582实际迁移/回滚拒写通过
+
+`e490a58a5dff83f7699221015de19759848934a4` 的完整Verify `40098018857` 八项全部success，正式Windows `40098018924` 四项全部success，含source-gates `120884240572`、N09 `120888057797`、N08 `120888057808`。没有重跑旧失败、改动原门禁或据此扩授完整N08/N09/日档/两端客户端资格。五秒稳定性的既有五runner、42次1024–2369ms证据仍按9401ca6记录；e490a58相对9401ca6未改生产源码、依赖锁或原生Rust，不将新CI成功冒充额外延迟样本。
+
+最新加密NSIS生命周期 `40096977916` 已最终success，resolve `120881174431` 和encrypted-lifecycle `120881245475` 均成功。候选固定9401ca6、实际安装manifest `df511afda0dded1236e7738a03b1b6f5afddd07f4b1ded57d44f3abfc46cc500`，真实安装、升级、回滚、重装、卸载及同用户DPAPI、原625基线拒绝隐式迁移保字节、显式登记、迁移后读取/重存、全新锚定库重开、旧625拒写新格式均通过。安装模块API四组合与真实daemon管理HTTP四组合均成功；原clientQualified=false、gracefulDrainQualified=false、restartRetention=false、dependencyIdentity=lock_only与forced_cleanup边界保留。公开release.yml签名要求、不可变625安装器身份及未发布draft链未改；没有公开发布安装器。
+
+在用户Windows主机的全新独立OS-temp目录，以低优先级实际执行e490a58已提交的582八步工具，八阶段全部完成、进程退出0。582原包manifest固定`4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f`，每步前后重验全部源码和Node/native身份。当前运行包由Mac的干净e490a58快照按发行清单与锁定生产依赖准备、原validator验证，再配核验的Windows Node 22.22.3及与当前Rust源码一致的原生助手；manifest为`b73b4354d398157f49d60938f82edd36fa057ef4c5170e0d20a2497e31a07d6a`，541项源文件，Node SHA256 `780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b`、native `95726a7cd114f9b38c9261059f0fac071f2c2cb2e62dcb06413736c82bbec410`。该独立运行包不是上述NSIS安装产物，二者资格不混用。
+
+实际顺序为582 seed/read、当前拒绝隐式迁移、当前preview/enroll并首次read、当前resave/read、582拒绝新格式、当前最终read。真实CurrentUser DPAPI与OS锚点owner参与；只读SQLite见证旧schema1无blob、显式迁移后schema3、resave生成实际blob且revision精确+1，后续读取和旧版拒写均不漂移。原文/root/source/预算/wrapped-key/原expiry只在内部逐字段比对且全部相等；旧版拒写前后文件库存字节一致。未读用户旧数据库，未复制数据库、密钥、锚点或私有日志入库。工具明确nsisQualified=false、workerQualified=false、retention24hQualified=false、clientQualified=false；本批关闭的是582实际运行包迁移/回滚拒写，不能替代安装版客户端或默认worker迁移验收。
+
+准备失败记录保留：首次Mac原release:prepare因生产依赖.bin符号链接和缺Windows原生助手而拒绝，未弱化validator；后续只在独立新运行包用锁文件、--ignore-scripts和--bin-links=false准备生产依赖，沿原裁剪/打包/校验模块验证，再配核验的Windows二进制。Windows只解包和执行独立短测，没有编译、日常代理、系统代理或信任证书改动。全部八步只执行一遍，失败即停规则和原120000ms驱动/原生期限保留，没有重试模型或替换TTL。
+
+下一步为最新实际安装身份下Codex/Claude默认与增强隔离客户端验收：旧脚本只能参考协议，不能沿用其日常凭据读取或工作区Core/认证注入。新协议模块和固定合成上游正在接入，实际客户端资格尚未授予。冻结长测未访问、改变或重启，额度未核验，真实模型请求为0；历史失败继续保留，整体交付尚未完成。
+
 ## 2026-10-24：9401ca6完整门禁通过，启动最新安装生命周期并找回582实包
 
 `9401ca6fcd6493956516b721028796d9bb64cca6` 的完整Verify `40095495560` 八项全部success；正式Windows `40095495598` 四项全部success，含source-gates `120876761893`、N08 `120880517161`、N09 `120880517157`。N08/N09最终probesPassed、ownedTreeEmpty、tlsVerified、nonLoopbackBlocked均true，范围仍为原各六场景；其n08Qualified=false及工作流中完整N08/N09、安装、24小时等未授予边界保持，不能改写为整体完成。此前2c39a56的完整门禁失败及be7bacee五秒失败均保留，未重跑旧失败制造绿色。
