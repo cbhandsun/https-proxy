@@ -41,6 +41,10 @@ node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1
 
 ## 当前失败与下一步
 
+**2026-10-24 新进展优先见实施状态顶部：** Windows 最小开库及真实多根多页短测已通过，旧原生失败未在新隔离环境复现，不能倒推旧根因。真实 day-small 已在独立冻结 Windows 工作树及一次性任务启动，尚未取得24小时及到期后结果；勿另起重复日档或按下面旧暂停描述重启它。先读取现有冻结树 `.hpm-acceptance/task.json` 和安全进度，确认对应 PID 的实际身份及任务终态，不能只凭旧 PID 判断。候选入口 `scripts/qualify-context-recovery-native-day.js` 固定真实画像与时钟，并包含24h之后实际根到期及双重开库拒读；回归假时钟不替代该运行。be7bacee现有CI两条均终态失败：coverage idle注入锁竞争和正式Claude long-persistent五秒请求失败均保留，父提交通过不覆盖它们。
+
+新机器已补充可入库重现的开库入口（后续变更，详见实施状态顶部）：在 **Windows** 完成锁文件安装及原生准备后运行 `node scripts/diagnose-context-recovery-open.js`。它不依赖未导出的 STORAGE_STARTUP_PHASES，也不调用真实模型。先打印实际加载身份及源码/助手散列，再以默认 worker 和原期限对独立的新临时目录开库、空库 inspect、关闭及同目录重开；只输出固定阶段与耗时。非 Windows 或助手缺失返回退出码 2 且 attempted=false；运行失败退出 1，短测完成退出 0，但不授予容量或 24 小时资格。专用 `hpm-open-diagnostic-*` 临时目录及其独立 OS 锚点保留本地供排查，不入库；入口不会访问旧数据库或日常配置。此入口不取代后续固定容量负载和真实时间长测。
+
 1. 原生短测首次开库尝试失败，尚未到第一个advance。storeOpens=1，qualified=false，未发现预期持久文件。独立目录原生ACL探针成功，只证明该次ACL调用正常。原生长测、连续24小时验收均未开始。
 2. 最后的开库诊断脚本在展开STORAGE_STARTUP_PHASES时出现不可迭代错误，尚未调用原生存储。先比较实际加载模块的导出、冻结副本和源码身份，再采集有限开库阶段。不要把诊断脚本错误当成产品原生失败，也不要增加原5000/30000ms期限来寻求通过。
 3. 原生短测通过后，才组合`exercisePersistentCapacityProfile`、`createCapacityRealtimeClock`和默认`openContextRecoveryStorage`执行冻结画像；必须使用真实worker、DPAPI、OS锚点和同目录重开，保留源码/Node身份与安全阶段回执。日档还需真实24小时及到期后重开验证，单元测试的合成24小时不能替代。

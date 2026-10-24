@@ -8,6 +8,7 @@ const os = require('node:os');
 const { spawnSync } = require('node:child_process');
 const { EventEmitter } = require('node:events');
 const { randomBytes } = require('node:crypto');
+const { DatabaseSync } = require('node:sqlite');
 const {
   openContextRecoveryStorage,
   validateStorageResult,
@@ -747,9 +748,15 @@ test('owner emits only fixed phases and observer failures preserve ownership and
       'key_protect_finished',
       'key_write_started',
       'key_write_finished',
+      'anchor_open_started',
+      'anchor_opened',
       'database_prepare_started',
       'database_prepared',
       'database_opened',
+      'engine_prepare_started',
+      'engine_prepared',
+      'anchor_persist_started',
+      'anchor_persist_finished',
       'engine_ready',
     ]);
     assert.deepEqual(owner.execute(save()), { revision: 1 });
@@ -785,6 +792,68 @@ test('owner emits only fixed phases and observer failures preserve ownership and
   } finally {
     owner?.close();
     fixture.clean();
+  }
+});
+
+test('anchor startup failures retain the exact bounded phase and release the writer without leaking errors', () => {
+  for (const failure of ['construct', 'read', 'enroll', 'persist']) {
+    const fixture = temporary();
+    const phases = [];
+    const factory = createSyntheticRetainedAnchorFactory();
+    let commits = 0;
+    try {
+      assert.throws(
+        () =>
+          createStorageOwner(
+            {
+              directory: fixture.directory,
+              protectKey: fixtureKey,
+              onStartup: ({ phase }) => phases.push(phase),
+            },
+            {
+              createAnchorRepository(options) {
+                if (failure === 'construct') throw Error('PRIVATE_ANCHOR_SENTINEL');
+                const repository = factory(options);
+                return {
+                  ...repository,
+                  read() {
+                    if (failure === 'read') throw Error('PRIVATE_ANCHOR_SENTINEL');
+                    return repository.read();
+                  },
+                  commit(snapshot) {
+                    commits++;
+                    if (
+                      (failure === 'enroll' && commits === 1) ||
+                      (failure === 'persist' && commits === 2)
+                    )
+                      throw Error('PRIVATE_ANCHOR_SENTINEL');
+                    return repository.commit(snapshot);
+                  },
+                };
+              },
+            }
+          ),
+        safeFailure
+      );
+      const last =
+        failure === 'construct' || failure === 'read'
+          ? 'anchor_open_started'
+          : failure === 'enroll'
+            ? 'engine_prepare_started'
+            : 'anchor_persist_started';
+      assert.equal(phases.at(-1), last, failure);
+      assert.equal(phases.includes('engine_ready'), false);
+      assert.equal(JSON.stringify(phases).includes('PRIVATE_ANCHOR_SENTINEL'), false);
+      // A failed owner must release the same actual SQLite writer lock.
+      const mutex = new DatabaseSync(path.join(fixture.directory, '.writer.sqlite'));
+      try {
+        mutex.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE; ROLLBACK');
+      } finally {
+        mutex.close();
+      }
+    } finally {
+      fixture.clean();
+    }
   }
 });
 

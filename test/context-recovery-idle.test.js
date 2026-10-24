@@ -123,6 +123,72 @@ test('idle observation handshake acknowledges completed callbacks and leaves oth
   assert.equal(child.stderr, '');
 });
 
+test('initial idle pause excludes sweeps until explicit resume without changing the sweep', () => {
+  const helper = path.resolve(__dirname, 'helpers/context-recovery-idle-timer.cjs');
+  const idle = require.resolve('../lib/proxy/context-recovery-storage-idle');
+  const source = `
+    const assert = require('node:assert/strict');
+    const Module = require('node:module');
+    const load = Module._load;
+    const observation = new SharedArrayBuffer(4);
+    const control = new Int32Array(observation);
+    const diagnostics = new SharedArrayBuffer(40);
+    const counters = new Int32Array(diagnostics);
+    const data = { idleObservation: observation, idleDiagnostics: diagnostics };
+    Atomics.store(control, 0, 2);
+    Module._load = function(request) {
+      if (request === 'node:worker_threads') return { workerData: data };
+      return Reflect.apply(load, this, arguments);
+    };
+    let timer, unref = 0, cancelled = 0, sweeps = 0, failures = 0;
+    globalThis.setInterval = (callback, milliseconds) => {
+      timer = { callback, milliseconds, unref() { unref++; } };
+      return timer;
+    };
+    globalThis.clearInterval = value => { assert.equal(value, timer); cancelled++; };
+    require(${JSON.stringify(helper)});
+    const { startRecoveryStorageIdle } = require(${JSON.stringify(idle)});
+    const service = startRecoveryStorageIdle({
+      execute(request) {
+        assert.deepEqual(request, { operation: 'sweep' });
+        sweeps++;
+        return { removedRecords: 0, removedBytes: 0 };
+      },
+      onFailure() { failures++; }
+    });
+    assert.equal(data.idleObservation, undefined);
+    assert.equal(data.idleDiagnostics, undefined);
+    assert.equal(timer.milliseconds, 25);
+    assert.equal(unref, 1);
+    timer.callback(); timer.callback();
+    assert.equal(sweeps, 0, 'no sweep may race the external corruption transaction');
+    assert.deepEqual(Array.from(counters), Array(10).fill(0));
+    Atomics.store(control, 0, 0);
+    timer.callback();
+    assert.equal(sweeps, 1, 'resume must execute the original production sweep');
+    assert.equal(Atomics.load(counters, 0), 1);
+    assert.equal(Atomics.load(counters, 1), 1);
+    Atomics.store(control, 0, 2);
+    timer.callback();
+    assert.equal(sweeps, 1);
+    assert.equal(failures, 0);
+    service.close();
+    assert.equal(cancelled, 1);
+    Module._load = load;
+    process.stdout.write('initial_idle_pause_verified');
+  `;
+  const child = spawnSync(process.execPath, ['-e', source], {
+    encoding: 'utf8',
+    timeout: 10000,
+    maxBuffer: 16384,
+    windowsHide: true,
+  });
+  assert.equal(child.error, undefined);
+  assert.equal(child.status, 0, child.stderr);
+  assert.equal(child.stdout, 'initial_idle_pause_verified');
+  assert.equal(child.stderr, '');
+});
+
 test('idle observation requires the armed clock read and successful scheduled completion', () => {
   const clockHelper = path.resolve(__dirname, 'helpers/context-recovery-maintenance-clock.cjs');
   const timerHelper = path.resolve(__dirname, 'helpers/context-recovery-idle-timer.cjs');
@@ -570,11 +636,19 @@ test(
   { timeout: 30000, skip: process.platform !== 'win32' },
   async () => {
     let nativeWorker;
+    const idleObservation = new SharedArrayBuffer(4);
+    const observation = new Int32Array(idleObservation);
+    const idleDiagnostics = new SharedArrayBuffer(40);
+    const counters = new Int32Array(idleDiagnostics);
+    // Pause before worker construction: fault injection must own its external
+    // write transaction before the real scheduled sweep can examine corruption.
+    Atomics.store(observation, 0, 2);
     class ObservedIdleWorker extends Worker {
       constructor(file, options) {
         super(file, {
           ...options,
           execArgv: ['--require', path.join(__dirname, 'helpers/context-recovery-idle-timer.cjs')],
+          workerData: { ...options.workerData, idleObservation, idleDiagnostics },
         });
         nativeWorker = this;
       }
@@ -594,6 +668,7 @@ test(
         state: { synthetic: 'fixture', budget: { calls: 23 } },
       });
       const saved = await storage.execute({ operation: 'load', scope });
+      assert.equal(Atomics.load(counters, 0), 0, 'idle must remain paused before fault injection');
       const exited = once(nativeWorker, 'exit');
       database = new DatabaseSync(file);
       database.exec('PRAGMA busy_timeout=1000');
@@ -605,7 +680,13 @@ test(
       database.prepare('UPDATE recovery_state SET envelope=? WHERE scope=?').run(corrupt, scope);
       database.close();
       database = undefined;
+      assert.equal(Atomics.load(counters, 0), 0, 'idle must remain paused until external DB close');
+      Atomics.store(observation, 0, 0);
       await exited;
+      assert.ok(
+        Atomics.load(counters, 0) > 0,
+        'a real scheduled sweep must trigger worker failure'
+      );
       await assert.rejects(storage.execute({ operation: 'inspect' }), safe);
       await assert.rejects(storage.close(), safe);
       storage = undefined;

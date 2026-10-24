@@ -1,5 +1,37 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：Windows 原生短测通过，真实日档已启动；交接提交 CI 实际失败仍保留
+
+已通过用户在 Mac 上建立的 SSH 共享连接访问 Windows，在独立目录 `E:\DEV\WorkSpace\https-proxy-context-recovery-20261024-mac` 克隆同分支，HEAD 为 be7bacee，初始工作区干净。复用实际安装的 Node 22.22.3/npm 10.9.8、Rust/Cargo 1.92.0、MSVC 14.44/14.50、Windows SDK 10.0.22621/26100；SSH 中 nodejs 与 rustup 符号链接入口被 Windows 拒绝，改用现有物理安装路径，没有重装、切换或修改全局配置。首次 npm ci 因旧缓存经过 nodejs 符号链接失败，保留该失败；指定本验收目录内独立缓存后根依赖及插件锁文件安装均退出 0。原生助手 release 构建实际成功，指定容量/时钟 16 项回归全部通过、零跳过。
+
+默认 worker 的空库开库、关闭、同目录重开通过，首开约 4091ms、重开约 1695ms，实际经过 DPAPI、OS 锚点及 SQLite 引擎阶段。旧开库失败在当前隔离环境未复现，根因仍不能宣布已修复。随后真实时钟、默认存储与持久容量驱动完成 native-short：2 根、2 轮/根、32768 字节原文，4 轮、4 次精确恢复、2 次重开、3 次开库/关闭，约23秒；再加入真实 catalog 留存见证复验，约24秒仍通过，两个根的原 expiry 在重开间保持。两次都明确 realtime24hStarted=false、fullCapacityQualified=false。Windows 相关七文件76项通过、零跳过；新增留存/日档组合及诊断三文件19项通过、零跳过，冻结目录再验19项通过。新模块测试由统一递归入口发现；注入时钟的回归不授予真实日档资格。
+
+正式真实日档已于 **2026-10-24 10:24:50.417 UTC / 洛杉矶03:24:50** 实际启动，首个默认原生开库及 advance(0) 已完成，随后真实五分钟节拍已有回执。运行任务为 `HPM-context-recovery-native-day-20261024-102437`，实际 Node PID `236272`（仅标识本次运行，不能在后续机器上照用）。独立冻结工作树为 `E:\DEV\WorkSpace\https-proxy-native-day-frozen-20261024`，基于 be7bacee 加本轮诊断/验收候选，dirty=true，不冒充干净交接提交。源码输入及本机 Node/原生助手已复制并设为只读；不共享日常代理、配置、证书、凭据、数据库或缓存。Windows 当前用户的独立一次性任务承载进程，不依赖 SSH 窗口；没有自动重试，外层26小时终止界限不改变原生5000/30000ms期限。
+
+启动身份：550 个源码/锁文件输入 SHA256 `8167ed7afe40bb7df03fe80bd67d95c827a27c63a2d75310834d272f1047c0cf`；Node SHA256 `780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b`；原生助手 SHA256 `95726a7cd114f9b38c9261059f0fac071f2c2cb2e62dcb06413736c82bbec410`。每次开库/关闭边界复核身份。安全进度和控制回执保存在冻结树 `.hpm-acceptance/progress.jsonl`、`task.json`、`prelaunch-identity.json`，只含固定阶段、数值、源码身份和合成负载结果，不含 scope、原文或密钥。读取侧状态脚本曾因 stderr 正被写入而报共享访问错误，已改为只读文件大小；该诊断读取错误没有终止或重启长测。
+
+入口为 `node scripts/qualify-context-recovery-native-day.js`，只允许 Windows 和真实默认时钟/worker；当前日档运行时不要再次执行它。它保留冻结 day-small 的288轮、24次恢复、12次重开，最后一轮仅23h55m，之后继续真实 advance(24h)，并等待每个根的实际出生 monotonic+24h及原 wall expiry 同时到达；两次新 worker 同目录开库均须 catalog为空、既知 scope 的 load/load-reference为空、inspect为零且关闭成功。有限数值采样、scope/expiry精确相等及 revision不倒退见证有独立失败/安全回归。运行中不能记作24小时通过；最早也须洛杉矶10月25日03:24之后才能取得到期后报告。当前尚无最终日档结论，其余四档原生容量也未授予资格。
+
+be7bacee 的托管结果现已收齐，未重跑：Verify `40082282025` 七项成功、coverage `120838108720` 失败，具体为 client coverage 的 idle corruption 外部 UPDATE（原测试605行）报 database is locked；正式 Windows `40082282010` 的 source-gates `120838108532` 失败、egress成功，后续context-recovery跳过。正式门禁的实际core claude WBIPC long-persistent第0轮约5002ms请求失败，4次请求/握手，原5秒性能不稳定继续未关闭。不能用本轮局部通过覆盖这些失败。
+
+独立检查并修正 idle 故障注入测试的竞争：原25ms加速 sweep 可在外部 SELECT/UPDATE 间夺取锁，现用已有测试专用 SharedArrayBuffer gate 在开库前暂停，外部损坏事务关闭后恢复真实 sweep；计数断言要求注入期间零 sweep、恢复后真实 sweep 执行，继续检查实际 worker 退出、拒绝后续操作及释放 writer。仅改测试、不改生产或1000ms/30000ms期限、不重试。新增初始暂停/恢复负控，Mac该文件11通过、2项Windows原生跳过；Windows复验及新候选托管结果仍未取得。为隔离正在进行的正式日档，不在同一远端环境并行重跑重型验收。
+
+本轮修改文件 Lint、格式、全树语法、架构预算、CI/发布治理通过；全树 Lint 为零错误、5个既有警告。Mac 初始全树格式检查受 LF 检出与项目 CRLF 要求影响，临时对齐工作副本后通过，所有无内容变更文件随后逐字节恢复，未提交全树格式修改。npm high级审计通过，仍有传递 fast-uri moderate 项，未升级锁文件。没有新增真实模型请求，额度台账仍未核验；COMMIT/发布内部中断、迁移回滚、持久HTTP五秒问题、最终安装两端资格及受控启用均未完成。
+
+## 2026-10-24：Mac 换机续接，重建可复现开库诊断，Windows 实测待 SSH 认证
+
+在新目录克隆指定分支，起始 HEAD 精确为 `be7bacee2ab2a266f9fb356b87c1b22cd33112cf`，工作区干净，没有后续提交或适用的 AGENTS.md。已读取交接、顶部状态、架构、package 和 Verify 门禁。当前主机是 macOS arm64，复用 Node 22.22.2/npm 12.0.1；按官方 rustup 安装 Rust/Cargo 1.99.1，未修改 shell PATH。此环境不能提供 MSVC、Windows SDK、WebView2、CurrentUser DPAPI 或注册表锚点的实际资格。
+
+根目录及 evidence 插件的锁文件安装均退出 0，未升级依赖。`prepare-context-recovery-native.js` 退出 0，但非 Windows 分支直接返回 null，未构建 Windows 原生助手。指定容量/时钟两文件 16 项通过；随后开库诊断、storage service/opening、anchor owner/admission、容量/时钟七文件共 76 项，74 通过、2 项平台跳过。Rust 原生助手的跨平台协议/解析测试 16 项通过，编译有既有 Windows 专用代码的 dead_code 警告，不构成 Windows 原生验收。新增回归首次因测试漏导入 DatabaseSync 失败，修正后通过；不将夹具错误归为产品根因。修改文件 Lint、架构大小预算、CI 和发布治理通过。
+
+源码及实际加载确认 progress 模块仅导出 createStorageStartupProgress，STORAGE_STARTUP_PHASES 是内部常量；旧临时脚本展开它的错误不能解释原生首次开库失败。本轮新增 `node scripts/diagnose-context-recovery-open.js`：记录 HEAD、dirty 标志、当前检出模块导出/解析身份、限定源码集合 SHA256、Node/平台以及本机原生助手 SHA256。仅 Windows 且原生助手存在才使用默认 openContextRecoveryStorage，以原期限对专用新临时目录开库、inspect、关闭并同目录重开；没有请求模型、注入内存后端或修改日常配置。失败不重试，不输出异常、目录、数据密钥或存储内容。诊断结果明确 capacityQualified=false、realtime24hStarted=false；源码身份记录不是冻结长测清单。
+
+沿用既有有界 onStartup 机制增加 anchor_open_started/opened、engine_prepare_started/prepared、anchor_persist_started/finished，缩小原有两个观察盲区；不修改持久语义或期限。新增构造、读取、初次 enrollment commit 及后续 persist commit 失败回归，确认固定阶段、安全错误和真实 writer 锁释放。仍未确认旧 Windows 原生故障根因。实际 Mac 入口返回 windows_required、attempted=false；现有真实 worker 回归到 key_protect_started 后按平台拒绝，不能当旧 Windows 失败复现。
+
+GitHub API 在检查时显示本交接 SHA 的 Verify `40082282025`、Disposable Windows context recovery `40082282010` 均 in_progress，无最终结论；未重跑。npm 审计有一个传递 fast-uri moderate 项（无 high/critical），保留锁文件，未自动修复。已从本机 SSH 已知主机和历史目标识别出一台 Windows 候选，网络可达但 BatchMode 认证拒绝；默认 agent 无身份，另一个已有 agent socket 无响应并已停止探测。待本机安全认证可用后继续远端环境检查与原生诊断，不索取聊天密钥。
+
+原生短测、真实容量/连续 24 小时和到期后重开均尚未启动；没有新增真实模型请求，原预算快照尚未核验。旧超时、五秒请求延迟、COMMIT/发布内部中断、迁移回滚和最终安装两端资格均保留，整体交付未完成。
+
 ## 2026-10-24：按用户要求暂停，保存换机续接检查点
 
 用户要求暂停实施并提交、推送，改在另一台电脑继续。本次只保存容量驱动、回归和交接记录；不是完整交付或生产启用。续接入口见[换机交接说明](context-recovery-handoff.md)。本机长期容量诊断已按用户要求停止，原执行句柄94510终态exit -1，PID535632已不存在；未取得最终报告，不计通过，保留本机中间证据。当前没有活跃子代理，也没有启动原生24小时长测或新增真实模型请求。
