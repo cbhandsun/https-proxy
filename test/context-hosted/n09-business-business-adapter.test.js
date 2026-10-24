@@ -658,6 +658,54 @@ test('business response failure before final ACK cannot be hidden by receipt pol
   assert.equal(f.state.closed, 1);
 });
 
+test('save ACK response refusals retain fixed HTTP diagnostics and forced cleanup', async () => {
+  for (const [status, expected] of [
+    [401, 163],
+    [403, 164],
+    [502, 216],
+    [503, 170],
+    [504, 171],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      (kind, _value, state) => {
+        if (kind === 'reply' && state.ackCommand) state.replyStatus = status;
+      },
+      (phase) => phases.push(phase)
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'), {
+      message: 'n09_ack_kill_failed',
+    });
+    assert.equal(phases.at(-1), expected);
+    assert.equal(f.state.events.includes('ack'), false);
+    assert.equal(f.state.sent, 5);
+    assert.equal(f.state.stopped, 1);
+    assert.equal(f.state.closed, 1);
+  }
+});
+
+test('save ACK early 502 retains each fixed recovery boundary without retry', async () => {
+  for (let after = 0; after <= 4; after++) {
+    const phases = [];
+    const f = fixture(
+      (kind, _value, state) => {
+        if (kind === 'ack-submit') state.refuseAfter = after;
+      },
+      (phase) => phases.push(phase)
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'), {
+      message: 'n09_ack_kill_failed',
+    });
+    assert.deepEqual(phases.slice(-2), [169, 212 + after]);
+    assert.equal(f.state.events.includes('ack'), false);
+    assert.equal(f.state.sent, 5);
+    assert.equal(f.state.stopped, 1);
+    assert.equal(f.state.closed, 1);
+  }
+});
+
 test('passively acquired ACK callable sanitizes late precondition failures', async () => {
   const f = fixture((at, _value, state) => {
     if (at === 'snapshot' && state.rejectSnapshot) throw new Error('PRIVATE_precondition');

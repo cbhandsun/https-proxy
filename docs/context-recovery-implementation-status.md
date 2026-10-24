@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：save ACK 的 HTTP 拒绝诊断缺口已复现修复；当前候选 Verify 八项通过
+
+正式 Windows `40048655431` 已终态 failure：source-gates、egress、N08 success，N09 `120740811141` 在 save case82 的254（最终receipt轮询）失败，network restore另有failure，不能计作完整恢复或清理通过。检查发现startSave与重启readThrough不对称：前者已收到401/503/502等HTTP失败时只置failed，留下254而丢失安全状态/进度分类。两项新增回归修复前均失败（254取代163、253/254取代169/212）。现在二者复用固定HTTP/上游/恢复进度分类，不读取或打印响应内容；不增加请求/诊断I/O，不改15秒操作预算、5秒门禁、ACK成功条件、强杀/恢复/清理断言。相关adapter/command/driver三文件99项通过，修改文件Lint、格式、CI及release治理通过，沿用现有统一测试发现。此修复仅提高失败可定位性，尚未证明正式ACK失败的根因。
+
+`f18b4a79` 的 Verify `40050413856` coverage `120741614098` 已success，连同此前七项为八项全绿；正式Windows `40050413829` 的source `120741614156` 仍在同一原作业的统一门禁，未因观察等待重启。生产payload未因此轮诊断/测试变动，schema3实际安装资格、完整N09及真实24小时容量仍未取得。
+
+## 2026-10-23：新格式安装被原5秒持久化门禁阻断；验收预算策略等待明确选择
+
+`55c1cd9b` 的独立Verify `40049815271` 中unit shard1 `120739778950` 已failure：chat/Responses/Claude 的 long-persistent 请求在原5000ms期限失败。安全阶段汇总中单次SQLite COMMIT最高2323ms，部分replyAsync为2918/3441/2609ms；begin/storage/reply层级重叠，不能重复相加。其他已经结束的质量、Rust、集成及其余unit分片通过，coverage仍有独立状态，不能记全绿。
+
+加密安装 `40049843526` 的job `120740003265` 终态failure，完整门禁同样在WBIPC超时失败；安装器构建与新格式旧reader拒写验收均skipped。因此尚无schema3安装资格，也不能将它称作新格式拒写断言失败。原始日志保留在本机临时job文件，有限汇总工具在 `.codex-tmp/summarize-wbipc-latency.cjs`，没有模型或凭据请求。
+
+重新读取历史证据：TRUNCATE此前仍在重开第二轮5015ms失败，PERSIST负控保留已丢弃密文片段；没有重试这两种实验或改变DELETE/FULL/secure_delete。已请求用户明确选择：继续保留5秒硬门禁，或将功能验证预算与5秒性能红项分离、仍阻止生产。现有计划明确不延长原期限，未收到选择前不调整门禁。原作业不因读取超时重启，`f18b4a79` 的后续Verify/正式Windows仍使用原期限。
+
 ## 2026-10-23：补齐封版 COMMIT 后、最终 anchor ACK 前的非空旧库恢复断言
 
 新增非空旧库登记后的故障回归：正常 owner 的schema3事务已提交，最终独立anchor flush故意失败，owner必须抛固定503且不能返回ready；磁盘schema3存在、原state密文字节未变，旧anchor watermark未被虚假推进。随后通过正常owner重开，原文、revision=1和绝对expiry保留。初始化中断的既有回归另明确验证落盘schema3与anchor intent同一storeId，并在重开后继续保持身份。两项定向回归通过，原生storage服务保护计数0；不授予OS强杀或业务publication在途资格。

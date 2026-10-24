@@ -201,6 +201,12 @@ function createN09BusinessAdapter(input, trusted = {}) {
       revision: snapshot.revision,
     };
   }
+  function reportRecoveryResponsePhase(response) {
+    const failurePhase = seedReplyFailurePhase(response.status);
+    if (failurePhase !== null) onPhase(failurePhase);
+    if (failurePhase !== null && upstreamFailurePhase !== undefined) onPhase(upstreamFailurePhase);
+    else if (response.status === 502) onPhase(recoveryProgressPhase);
+  }
   function startSave() {
     if (pendingSave || phase !== 'ready') throw fail();
     phase = 'recovering';
@@ -216,6 +222,9 @@ function createN09BusinessAdapter(input, trusted = {}) {
     tracked.completion = send(continuation).then(
       (value) => {
         try {
+          // The request can fail before any durable ACK is produced. Preserve
+          // its finite HTTP/progress class rather than leaving only polling.
+          reportRecoveryResponsePhase(value);
           if (
             publicText(parseReply(value)) !== 'N09_RECOVERY_OK ' + nonce ||
             !readObserved ||
@@ -421,12 +430,8 @@ function createN09BusinessAdapter(input, trusted = {}) {
       upstreamFailurePhase = undefined;
       recoveryProgressPhase = 212;
       const response = await send(continuation);
-      const recoveryFailurePhase = seedReplyFailurePhase(response.status);
-      if (recoveryFailurePhase !== null) onPhase(recoveryFailurePhase);
-      if (recoveryFailurePhase !== null && upstreamFailurePhase !== undefined)
-        onPhase(upstreamFailurePhase);
-      else if (response.status === 502) {
-        onPhase(recoveryProgressPhase);
+      reportRecoveryResponsePhase(response);
+      if (response.status === 502 && upstreamFailurePhase === undefined) {
         if (typeof client().readRecoveryFailurePhase === 'function') {
           let failurePhase = 224;
           try {
