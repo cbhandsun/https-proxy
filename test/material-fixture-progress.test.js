@@ -9,6 +9,9 @@ test('material progress reports only the last ordered fixed stage, never stderr 
   for (const phase of [
     'script_started',
     'helper_loaded',
+    'sentinels_hashed',
+    'collision_checked',
+    'lease_compile_started',
     'lease_compiled',
     'identity_checked',
     'materials_removed',

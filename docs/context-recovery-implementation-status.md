@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：登记后正常 owner 重开与撤销备份回归通过；N09 在 ACK 回执阶段失败
+
+旧库登记测试进一步接通真实 `createStorageOwner`（加密 SQLite，合成 key/anchor 后端）：登记后原文、revision、绝对到期保留，保存后重开保持 revision 与期限，撤销后不能读取；覆盖撤销前 checkpoint 字节后，正常 owner 拒绝启动且不改写该备份。另一回归确认早已过期旧库不会因登记或正常启动重新获得期限。该文件完整25项通过，沿用统一 unit/client coverage；这些结果不授予真实 DPAPI 或旧版本读器资格。
+
+草稿 review 入口新增可选候选 SHA 后缀；必须精确等于 push SHA，仍要求新建分支、零 before、非强推、固定基线与两 asset、固定 transfer tag、实际 checkout 匹配。允许同一未发布基线用于不同源码的独立新分支，不覆盖已有引用或重复上传安装器。新旧 route/download/transfer 加固定阶段解析共31项通过；新入口回归先在旧实现失败，再由精确 SHA 校验通过。权限、匿名拒绝与完整门禁保持。
+
+源码 `eb43df9a` 的独立 Verify `40045048833` 终态 success；同源另一 Verify `40044981516` 的 coverage `120724532170` failure，材料清理 fixture 的 pwsh 在25000ms超时，最后固定阶段仅到 helper_loaded，不能据此断言是 Add-Type 或资源争用。新增 sentinels_hashed/collision_checked/lease_compile_started 固定安全标记，原25000ms期限、哈希与清理断言不变；材料及解析5项本地通过，真实 fixture 约22626ms，延迟仍有风险。
+
+正式 Windows `40044981475` 的 source-gates 与 N08 success，N09 `120729727031` failure，child exit 254 对应已进入 durable ACK receipt polling；不能当作此前248的 clear首读错误，也不能判定 ACK已返回。日志另有 network restore failure 标记，不能计为完整清理成功。加密安装 `40045048891` 的完整门禁已 success，当前安装器构建仍在运行，迁移未取得最终结果。
+
 ## 2026-10-23：离线旧库登记入口及安装验收迁移阶段补齐；最新 Windows 门禁失败已定位
 
 新增随运行时清单打包的离线 `context-recovery-enroll-cli.js`，业务边界独立在 `context-recovery-enrollment-command.js`，调用既有可信 offline owner。操作分 preview 与携精确 fingerprint 的 enroll；默认启动、HTTP 和 worker 均不获得登记权限。输出仅 fingerprint/scopeCount/maxTime 或固定 enrolled 回执，不打印原文、key、目录或原始异常。严格拒绝非法/极端参数、getter、Proxy、异步 owner、非法回执；登记期间快照变化、篡改、占用、已有锚点或清理失败沿用底层拒绝语义。完整操作与首次登记无法证明历史最新性的边界见 `context-recovery-legacy-enrollment.md`。

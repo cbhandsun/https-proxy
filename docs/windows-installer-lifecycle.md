@@ -12,6 +12,8 @@ This candidate contains the nine qualification files over committed HEAD. The re
 
 ## Workflow and boundaries
 
+The encrypted draft review route also accepts a new branch ending with `-<current-source-40-character-SHA>` after the baseline SHA. That suffix must equal both the push event SHA and the actual checkout. This permits a later candidate to reuse the same immutable unpublished baseline through its own newly created branch. Existing branches cannot be updated or force-pushed through the route. Baseline ownership, asset identities, anonymous denial and all qualification gates are unchanged.
+
 After the authorized OAuth history rewrite, new qualification runs use baseline `2295c452888449e9728b3ddcc2f80f31e9433e69`, the verified rewritten counterpart of the historical baseline above. The review workflow pins this sanitized commit. Historical run identities remain unchanged; their results do not qualify new source snapshots. The repository is now public, so the separate private baseline artifact bridge refuses execution under its existing visibility checks; this source-build installer workflow does not use that bridge.
 
 The manually dispatched `Disposable Windows installer lifecycle` workflow builds two explicit repository snapshots on a GitHub-hosted Windows runner, installs the baseline, upgrades to the current build, rolls back to the baseline and uninstalls. It never uploads or publishes the unsigned installers, reads no signing/API secrets and does not change the signed release workflow.

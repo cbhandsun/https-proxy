@@ -10,6 +10,7 @@ const {
   runLegacyAnchorEnrollment: enroll,
 } = require('../lib/proxy/context-recovery-anchor-legacy-owner');
 const { createStoragePaths } = require('../lib/proxy/context-recovery-storage-paths');
+const { createStorageOwner } = require('../lib/proxy/context-recovery-storage-owner');
 const {
   createRecoverySqliteStore,
   inspectRecoverySqliteSnapshot,
@@ -29,7 +30,7 @@ function safe(error) {
   assert.equal(error.cause, undefined);
   return true;
 }
-function fixture(t) {
+function fixture(t, time = 100, ttl = 900) {
   const temporary = fs.realpathSync.native(os.tmpdir());
   const root = fs.mkdtempSync(path.join(temporary, 'hpm-legacy-anchor-'));
   const directory = path.join(root, 'store');
@@ -39,12 +40,12 @@ function fixture(t) {
   paths.writeKey(KEY_PREFIX + dataKey);
   const file = paths.prepare('checkpoint.sqlite');
   const database = new DatabaseSync(file);
-  const store = createRecoverySqliteStore({ database, dataKey, now: () => 100 });
+  const store = createRecoverySqliteStore({ database, dataKey, now: () => time });
   store.execute({
     operation: 'save',
     scope,
     expectedRevision: 0,
-    expiresAt: 1000,
+    expiresAt: time + ttl,
     state: { original: 'PRIVATE legacy content', token: 'PRIVATE synthetic value' },
   });
   store.close();
@@ -112,6 +113,93 @@ test('offline command previews and enrolls the real encrypted SQLite snapshot wi
   assert.deepEqual(result, { exitCode: 0, stdout: '{"enrolled":true}\n', stderr: '' });
   assert.deepEqual(fs.readFileSync(f.file), before);
   assert.equal(executeLegacyEnrollmentCommand(args, run).exitCode, 1);
+});
+
+test('enrolled legacy checkpoint reopens through the production owner and retains revision, expiry and revocation floors', (t) => {
+  const time = Date.now();
+  const f = fixture(t, time, 60000);
+  const run = (input) => f.run(input);
+  const preview = executeLegacyEnrollmentCommand(['preview', '--directory', f.directory], run);
+  assert.equal(preview.exitCode, 0);
+  const fingerprint = JSON.parse(preview.stdout).fingerprint;
+  assert.equal(
+    executeLegacyEnrollmentCommand(
+      ['enroll', '--directory', f.directory, '--fingerprint', fingerprint],
+      run
+    ).exitCode,
+    0
+  );
+  const owners = [];
+  const open = () => {
+    const owner = createStorageOwner(
+      { directory: f.directory, protectKey: f.trusted.protectKey },
+      {
+        createAnchorRepository: f.trusted.createAnchorRepository,
+      }
+    );
+    owners.push(owner);
+    return owner;
+  };
+  try {
+    const first = open();
+    const record = first.execute({ operation: 'load', scope });
+    assert.equal(record.revision, 1);
+    assert.equal(record.expiresAt, time + 60000);
+    assert.deepEqual(
+      { ...record.state },
+      {
+        original: 'PRIVATE legacy content',
+        token: 'PRIVATE synthetic value',
+      }
+    );
+    assert.deepEqual(
+      first.execute({
+        operation: 'save',
+        scope,
+        expectedRevision: 1,
+        expiresAt: record.expiresAt,
+        state: record.state,
+      }),
+      { revision: 2 }
+    );
+    first.close();
+    const second = open();
+    const updated = second.execute({ operation: 'load', scope });
+    assert.equal(updated.revision, 2);
+    assert.equal(updated.expiresAt, record.expiresAt);
+    assert.deepEqual({ ...updated.state }, { ...record.state });
+    const beforeRevocation = fs.readFileSync(f.file);
+    second.execute({ operation: 'revoke', scope, expectedRevision: 2 });
+    second.close();
+    const revoked = open();
+    assert.equal(revoked.execute({ operation: 'load', scope }), null);
+    revoked.close();
+    fs.writeFileSync(f.file, beforeRevocation);
+    assert.throws(open, safe);
+    assert.deepEqual(fs.readFileSync(f.file), beforeRevocation);
+  } finally {
+    for (const owner of owners) owner.close();
+  }
+});
+
+test('enrolling an expired legacy checkpoint cannot renew its lifetime on normal owner startup', (t) => {
+  const f = fixture(t);
+  const preview = f.run();
+  assert.deepEqual(f.run({ directory: f.directory, expectedFingerprint: preview.fingerprint }), {
+    enrolled: true,
+  });
+  const owner = createStorageOwner(
+    { directory: f.directory, protectKey: f.trusted.protectKey },
+    {
+      createAnchorRepository: f.trusted.createAnchorRepository,
+    }
+  );
+  try {
+    assert.equal(owner.execute({ operation: 'load', scope }), null);
+    assert.deepEqual(owner.execute({ operation: 'catalog' }), []);
+  } finally {
+    owner.close();
+  }
 });
 
 test('legacy preview exposes exactly four frozen fields and apply requires a fresh locked inspection', (t) => {

@@ -3,6 +3,9 @@
 const phases = Object.freeze([
   'script_started',
   'helper_loaded',
+  'sentinels_hashed',
+  'collision_checked',
+  'lease_compile_started',
   'lease_compiled',
   'identity_checked',
   'materials_removed',

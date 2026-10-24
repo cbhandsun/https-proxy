@@ -13,10 +13,14 @@ try {
     foreach ($name in @('server.pfx', '.pfx-password', 'ca.pem')) { [IO.File]::WriteAllText((Join-Path $existing $name), 'SYNTHETIC_PRESERVE_' + $name) }
     $before = @{}
     foreach ($file in (Get-ChildItem -LiteralPath $existing -Force)) { $before[$file.Name] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash }
+    [Console]::Error.WriteLine('n08_material_phase=sentinels_hashed')
     # Exact production cleanup helper; never dot-source or invoke network.ps1.
     Remove-HpmN08CreatedMaterials $existing $false $null @{}
     foreach ($name in $before.Keys) { if ((Get-FileHash -LiteralPath (Join-Path $existing $name) -Algorithm SHA256).Hash -cne $before[$name]) { throw 'fixture_failed' } }
 
+    [Console]::Error.WriteLine('n08_material_phase=collision_checked')
+
+    [Console]::Error.WriteLine('n08_material_phase=lease_compile_started')
     Initialize-HpmN08ArtifactLease
     [Console]::Error.WriteLine('n08_material_phase=lease_compiled')
     $other = Join-Path $root 'other'

@@ -75,6 +75,26 @@ test('draft route rejects empty, invalid, extreme and output-injecting identitie
   }
 });
 
+test('candidate-specific draft review reuses the private baseline only with the exact new checkout SHA', () => {
+  const base = `41-42-43-${uuid}-${oldSha}`;
+  const { env, event } = fixture(`${base}-${sha}`);
+  assert.deepEqual(parseReviewRoute('draft', env, event), expected);
+  for (const suffix of [
+    oldSha,
+    '0'.repeat(40),
+    sha.toUpperCase(),
+    'a'.repeat(39),
+    'a'.repeat(41),
+    `${sha}-${sha}`,
+    `${sha}\nother=value`,
+  ]) {
+    const sample = fixture(`${base}-${suffix}`);
+    assert.throws(() => parseReviewRoute('draft', sample.env, sample.event));
+  }
+  for (const patch of [{ created: false }, { forced: true }, { before: oldSha }, { after: oldSha }])
+    assert.throws(() => parseReviewRoute('draft', env, { ...event, ...patch }));
+});
+
 test('draft route refuses updates, force pushes, deletions, foreign repository and host boundaries', () => {
   const { env, event } = fixture();
   for (const patch of [

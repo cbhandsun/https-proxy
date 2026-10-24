@@ -44,7 +44,7 @@ function parseReviewRoute(lane, env, event) {
         )
       : lane === 'draft'
         ? new RegExp(
-            `^refs/heads/acceptance/windows-encrypted-draft/(${ID})-(${ID})-(${ID})-(${UUID})-([a-f0-9]{40})$`
+            `^refs/heads/acceptance/windows-encrypted-draft/(${ID})-(${ID})-(${ID})-(${UUID})-([a-f0-9]{40})(?:-([a-f0-9]{40}))?$`
           )
         : new RegExp(`^refs/heads/acceptance/windows-encrypted-lifecycle/(${ID})$`);
   const match = pattern.exec(env.GITHUB_REF);
@@ -53,7 +53,8 @@ function parseReviewRoute(lane, env, event) {
   if (
     ids.some((value) => !Number.isSafeInteger(Number(value))) ||
     (lane !== 'encrypted' && match[2] === match[3]) ||
-    (lane === 'draft' && match[5] === '0'.repeat(40))
+    (lane === 'draft' &&
+      (match[5] === '0'.repeat(40) || (match[6] !== undefined && match[6] !== env.GITHUB_SHA)))
   )
     throw fail();
   if (lane === 'draft')
