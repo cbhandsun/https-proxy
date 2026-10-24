@@ -27,6 +27,8 @@ const {
   supportsRecoveryReferenceAdmission,
   declareRecoveryReferenceScan,
   supportsRecoveryReferenceScan,
+  declareRecoveryReadSettlement,
+  supportsRecoveryReadSettlement,
 } = require('../lib/proxy/context-recovery-storage-contract');
 const { createProxyShutdown } = require('../lib/proxy/server-shutdown');
 const unused = path.join(os.tmpdir(), 'hpm-unused-opening-path');
@@ -87,6 +89,7 @@ test('opening forwards source-page support only from the actual adapter and vali
       declareRecoveryReferenceStates(f.storage.execute);
       declareRecoveryReferenceAdmission(f.storage.execute);
       declareRecoveryReferenceScan(f.storage.execute);
+      declareRecoveryReadSettlement(f.storage.execute);
     }
     const opening = createContextRecoveryStorageOpening({
       directory: unused,
@@ -100,6 +103,7 @@ test('opening forwards source-page support only from the actual adapter and vali
       assert.equal(supportsRecoveryReferenceStates(opening.execute), marked);
       assert.equal(supportsRecoveryReferenceAdmission(opening.execute), marked);
       assert.equal(supportsRecoveryReferenceScan(opening.execute), marked);
+      assert.equal(supportsRecoveryReadSettlement(opening.execute), marked);
       if (marked) {
         const result = await opening.execute({
           operation: 'read-source',

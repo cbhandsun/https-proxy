@@ -1,0 +1,59 @@
+name: Windows persistent recovery timing
+
+on:
+  push:
+    branches:
+      - acceptance/context-recovery/**
+    paths:
+      - .github/workflows/windows-persistent-recovery-timing.yml
+      - lib/proxy/context-recovery-read-settlement.js
+      - lib/proxy/context-recovery-root-reader.js
+      - lib/proxy/context-recovery-root-storage.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core-wbipc:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Prepare locked source and native prerequisites
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency preparation failed.' }
+          npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture preparation failed.' }
+          rustup default stable
+          if ($LASTEXITCODE -ne 0) { throw 'Toolchain preparation failed.' }
+          node scripts/prepare-context-recovery-native.js
+          if ($LASTEXITCODE -ne 0) { throw 'Native preparation failed.' }
+          node scripts/prepare-evidence-gateway.js
+          if ($LASTEXITCODE -ne 0) { throw 'Gateway preparation failed.' }
+      - name: Execute the complete original Core and WBIPC test file
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/client-context-target.test.js
+          if ($LASTEXITCODE -ne 0) { throw 'Core or persistent recovery failed its original assertions.' }
+      - name: Record the verification boundary
+        if: always()
+        run: |
+          @(
+            'One complete original Core/WBIPC test file; no test filtering or retries.'
+            'Original 5000 ms requests, native worker, DPAPI, OS anchor and durable acknowledgements are retained.'
+            'All upstreams are owned synthetic fixtures. No real model request is made.'
+            'This is an independent Windows diagnostic; complete Verify and formal Windows qualification remain required.'
+            'No credentials, original content, native replies or databases are uploaded.'
+          ) >> $env:GITHUB_STEP_SUMMARY

@@ -233,13 +233,16 @@ function pagedStorage(
   references = false,
   referenceStates = false,
   admission = false,
-  publication = false
+  publication = false,
+  combined = false,
+  databaseFile = ':memory:',
+  storageNow = () => 100
 ) {
-  const database = new DatabaseSync(':memory:');
+  const database = new DatabaseSync(databaseFile);
   const store = createRecoverySqliteStore({
     database,
     dataKey: randomBytes(32).toString('base64'),
-    now: () => 100,
+    now: storageNow,
   });
   const operations = [];
   const adapter = {
@@ -252,12 +255,17 @@ function pagedStorage(
   if (references) declareRecoveryReferenceWrites(adapter.execute);
   if (referenceStates) declareRecoveryReferenceStates(adapter.execute);
   if (admission) declareRecoveryReferenceAdmission(adapter.execute);
+  if (combined)
+    require('../lib/proxy/context-recovery-storage-contract').declareRecoveryReadSettlement(
+      adapter.execute
+    );
   if (publication) attachContextRecoveryStorage(f.runtime, adapter);
   else f.attach(adapter);
   return {
     operations,
     adapter,
     database,
+    witness: () => store.snapshot(),
     load: () =>
       store.execute({
         operation: 'load',
@@ -2204,3 +2212,186 @@ test(
     }
   }
 );
+
+test('combined durable READ keeps exact budgets and progress with one fewer real SQLite COMMIT', async (t) => {
+  let prior;
+  for (const combined of [false, true]) {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-combined-reader-'));
+    let time = 100;
+    const f = fixture({ now: () => time });
+    const storage = pagedStorage(
+      f,
+      undefined,
+      true,
+      false,
+      true,
+      true,
+      false,
+      combined,
+      path.join(directory, 'checkpoint.sqlite'),
+      () => ++time
+    );
+    try {
+      assert.equal((await f.view.replyAsync(LIST, {})).ok, true);
+      let commits = 0;
+      const exec = storage.database.exec.bind(storage.database);
+      t.mock.method(storage.database, 'exec', (sql) => {
+        if (sql === 'COMMIT') {
+          assert.ok(
+            fs.statSync(path.join(directory, 'checkpoint.sqlite-journal')).size > 512,
+            'every counted commit has a real DELETE rollback journal'
+          );
+          commits++;
+        }
+        return exec(sql);
+      });
+      const start = storage.operations.length;
+      const result = await f.view.replyAsync(READ, f.args);
+      assert.equal(result.ok, true);
+      assert.equal(commits, combined ? 2 : 3);
+      assert.deepEqual(
+        storage.operations.slice(start).map((request) => request.operation),
+        combined
+          ? ['save-reference-state', 'read-source-and-settle']
+          : ['save-reference-state', 'read-source', 'settle-reader']
+      );
+      t.mock.restoreAll();
+      assert.equal(storage.witness().maxTime, time);
+      const stored = storage.load();
+      const evidence = {
+        text: JSON.parse(result.text).page.text,
+        budget: stored.state.root.budget,
+        progress: stored.state.root.ledger.sources.map(({ coveredThrough, readComplete }) => ({
+          coveredThrough,
+          readComplete,
+        })),
+        revision: stored.revision,
+        expiresAt: stored.expiresAt,
+      };
+      if (prior) assert.deepEqual(evidence, prior);
+      prior = evidence;
+    } finally {
+      f.close();
+      storage.close();
+      assert.equal(path.dirname(directory), path.resolve(os.tmpdir()));
+      assert.ok(path.basename(directory).startsWith('hpm-combined-reader-'));
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  }
+});
+
+test('combined READ cannot run before debit ACK or expose a cancelled, corrupt or uncertain settlement', async () => {
+  for (const mode of [
+    'success',
+    'predebit',
+    'cancel',
+    'revision',
+    'budget',
+    'progress',
+    'lost-ack',
+    'expired',
+    'future-time',
+    'rewind-time',
+  ]) {
+    const f = fixture();
+    const gate = deferred(),
+      entered = deferred();
+    let armed = false,
+      blocked = false,
+      finished = false;
+    const storage = pagedStorage(
+      f,
+      async (request, next) => {
+        if (!armed) return next();
+        if (request.operation === 'save-reference-state' && !blocked) {
+          blocked = true;
+          const result = mode === 'predebit' ? null : next();
+          entered.resolve();
+          await gate.promise;
+          if (mode === 'predebit') throw new Error('synthetic missing debit ACK');
+          return result;
+        }
+        const result = next();
+        if (request.operation === 'read-source-and-settle') {
+          if (mode === 'cancel') f.runtime.configure(false);
+          if (mode === 'expired') f.advance(100 + 24 * 60 * 60 * 1000);
+          if (mode === 'future-time' || mode === 'rewind-time')
+            return {
+              ...result,
+              settlement: { ...result.settlement, observedAt: mode === 'future-time' ? 101 : 99 },
+            };
+          if (mode === 'revision') return { ...result, revision: result.revision + 1 };
+          if (mode === 'budget')
+            return {
+              ...result,
+              settlement: {
+                ...result.settlement,
+                budget: {
+                  ...result.settlement.budget,
+                  returnedBytes: result.settlement.budget.returnedBytes + 1,
+                },
+              },
+            };
+          if (mode === 'progress')
+            return {
+              ...result,
+              settlement: {
+                ...result.settlement,
+                ledger: {
+                  ...result.settlement.ledger,
+                  readCount: result.settlement.ledger.readCount + 1,
+                },
+              },
+            };
+          if (mode === 'lost-ack') throw new Error('synthetic missing settlement ACK');
+        }
+        return result;
+      },
+      true,
+      false,
+      true,
+      true,
+      false,
+      true
+    );
+    try {
+      assert.equal((await f.view.replyAsync(LIST, {})).ok, true);
+      const before = storage.operations.length;
+      armed = true;
+      const pending = f.view.replyAsync(READ, f.args);
+      void pending.then(() => {
+        finished = true;
+      });
+      await entered.promise;
+      assert.equal(finished, false);
+      assert.deepEqual(
+        storage.operations.slice(before).map((request) => request.operation),
+        ['save-reference-state']
+      );
+      gate.resolve();
+      const result = await pending;
+      assert.equal(result.ok, mode === 'success');
+      if (mode !== 'success') assert.equal(result.text, undefined);
+      assert.equal(
+        storage.operations
+          .slice(before)
+          .filter((request) => request.operation === 'read-source-and-settle').length,
+        mode === 'predebit' ? 0 : 1
+      );
+      assert.equal(
+        storage.operations
+          .slice(before)
+          .some(
+            (request) =>
+              request.operation === 'read-source' || request.operation === 'settle-reader'
+          ),
+        false,
+        'a failed compound operation is never retried with the old protocol'
+      );
+    } finally {
+      gate.resolve();
+      f.close();
+      storage.close();
+    }
+  }
+});

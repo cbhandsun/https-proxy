@@ -2271,6 +2271,7 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
     'RecoveryReferenceStates',
     'RecoveryReferenceAdmission',
     'RecoveryReferenceScan',
+    'RecoveryReadSettlement',
   ]) {
     if (contract['supports' + capability](execute))
       contract['declare' + capability](storage.execute);

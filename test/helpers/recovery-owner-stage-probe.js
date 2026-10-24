@@ -17,6 +17,7 @@ const OPERATIONS = new Set([
   'save-reference',
   'save-reference-state',
   'read-source',
+  'read-source-and-settle',
   'settle-reader',
   'revoke',
   'revoke-all',

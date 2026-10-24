@@ -1,5 +1,23 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：定位Windows五秒尾延迟，生产READ减少一次串行持久提交
+
+整体仍处于上下文压缩/精确恢复的稳定性与最终自用验收阶段。本轮先核对CI：`6c0f43f` 的Verify `40089577296` 与正式Windows `40089577293`，`75e1b52` 的Verify `40089968550` 与正式Windows `40089968552` 均已全部success，包含N08/N09。不能用这些单次通过撤销be7bacee及更早五秒失败，也不覆盖本条后续生产修复。默认客户端原生压缩、可选精确恢复和私有恢复后独立公开生成均未改变。
+
+读取旧失败job `120838108532` 的限定数值阶段，Claude long-persistent第0轮在5002ms失败：后段save/read-source/settle-reader的SQLite COMMIT分别约540/816/805ms，settle时钟写入368ms，snapshot约36ms；公开生成持久发布操作后续记录2313ms。证据指向串行耐久I/O尾延迟放大，不能只归因快照CPU，也未擅自断言磁盘/杀毒等系统层根因。另读取75e1b52通过的Windows源码门禁 `120860470208`，同类12次请求约1063–2660ms、未失败；这反映波动，不构成稳定性关闭。
+
+本轮实际修改生产读取路径：保留独立maximum-debit save、FULL COMMIT、锚点持久化及精确版本ACK，之后在一个SQLite事务内完成来源/密文认证、页面读取、真实时钟水位及结算保存。新增显式内部read-source-and-settle能力，owner仍只在snapshot认证和独立锚点persist成功后返回。host持有的预扣前预算来自私有reader事务闭包；先验证页面、重算规范结算、核对精确revision，再与实际owner预算/进度逐字段相等，成功才确认预算及返回页面。worker持久observedAt必须介于请求观测和host后续真实观测之间，host更晚时间不冒充已持久。没有跨事务缓存、少做原文认证、弱化FULL/DELETE或减少预扣。
+
+LIST、非法参数、零页面预算及不声明能力的适配器仍走原流程；特别保留LIST在maximum-debit ACK前零reader调用、不确定写入不退款门禁。复合操作失败、取消、到期、见证不一致或ACK丢失后拒绝结果，不向旧协议回退重试。可信owner-to-storage边界沿用原settle-reader合同，不将序列化预算宣称为独立读权限或防恶意宿主能力。没有扩大模型可选参数或产品配置。
+
+集成红测抓到初稿少计session provenance的70字节：现将原tagged函数及既有96字节预留提为共用模块，真正canonical编码用于worker与host，原对外结果不变。真实文件SQLite顺序对照令时钟随操作推进，要求每个计数COMMIT均有实际DELETE rollback journal；成功READ从3次持久提交降为2次，原文、预算、连续进度、revision及expiry精确一致，时间水位实际持久。新回归还覆盖预扣ACK屏障、UTF8/空/seek/重复/失败页、末尾余额、损坏来源、CAS/预算/未来观测/回拨/到期拒绝、COMMIT回滚、取消和丢失/错误ACK。新测试进入统一递归入口与显式client coverage清单，新生产模块进入发行源码清单；首次release治理因漏登记新模块失败，补齐后通过，没有绕过门禁。
+
+相关七文件146项：144通过、2项原Windows原生跳过、零失败；新协议/阶段观察器四文件23项通过，六项后端架构/安全/发行治理通过。扩展Core、session、storage、blob和COMMIT五文件186项：180通过、4失败、2原平台跳过；四项失败明确为Mac缺少Windows原生能力时的三个Core持久fixture开库及一个blob默认worker开库，原失败保留，不加skip、不替换内存冒充Windows。生产语法、Lint、变更格式、模块预算、CI/发行检查通过，锁文件与依赖版本未改。
+
+新增独立托管Windows timing作业，完整执行原client-context-target.test.js（无测试过滤、无重试、保留5000ms请求和原断言），尽快取得本修复的真实DPAPI/OS锚点持久HTTP反馈；它不替代完整Verify和正式Windows门禁。不上传数据库、密钥、原文或原生响应。当前还没有本条候选的Windows五秒最终结论，不能写作已解决。
+
+正在运行的Windows冻结长测未访问、未修改、未重启或抢占。额度仍未核验，真实模型请求为0。后续先收本候选Windows性能/正确性结果，继续关闭持久恢复稳定性，再收迁移回滚与最新安装版Codex/Claude实际验收；原冻结日档及到期后重开单独按原身份收据判断，整体尚未交付。
+
 ## 2026-10-24：认证快照减少完整重建，保留重新解密与旧聚合准入
 
 发布转换中断矩阵与取消修复已按原钩子提交并推送 `6c0f43f56a9948da79caa51ef0d1c38ec3ac28f7`，远端同SHA；其Verify `40089577296` 与正式Windows `40089577293`已启动，尚无本修复最终资格。再次核对旧候选 `1dd06ea`：Verify八项及正式Windows四项（含N08/N09）均success。不能据此关闭历史五秒性能不稳定，也不能覆盖后续生产修改。
