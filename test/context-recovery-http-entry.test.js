@@ -581,6 +581,7 @@ test('admission rejection and unsupported controls use only fixed data descripto
     'context_recovery_ambiguous',
     'context_recovery_disabled',
     'context_binding_conflict',
+    'context_binding_unavailable',
     'context_binding_ancestor_unavailable',
     'invalid_recovery_results',
   ]) {
@@ -634,6 +635,27 @@ test('admission rejection and unsupported controls use only fixed data descripto
     'context_recovery_quota',
   ])
     assert.equal(blocksRecoveryAdmission({ ok: false, code }), false);
+});
+
+test('binding registry clock rollback cannot authorize ordinary forwarding', () => {
+  const { createContextBindingRegistry } = require('../lib/proxy/context-binding');
+  let time = 1001;
+  const registry = createContextBindingRegistry({ now: () => time });
+  const request = {
+    principal: 'synthetic-owner',
+    protocol: 'chat',
+    target: 'synthetic-target',
+    history: [{ role: 'user', content: 'synthetic-input' }],
+  };
+  assert.equal(registry.begin(request).ok, true);
+  time = 1000;
+  const refused = registry.begin(request);
+  assert.deepEqual(refused, { ok: false, code: 'context_binding_unavailable' });
+  assert.equal(blocksRecoveryAdmission(refused), true);
+  // A later valid clock cannot reopen a registry that rejected rollback.
+  time = 1002;
+  assert.deepEqual(registry.begin(request), refused);
+  assert.equal(blocksRecoveryAdmission(registry.begin(request)), true);
 });
 
 test('HTTP recovery preparation failures cannot fall through with missing private results', async () => {

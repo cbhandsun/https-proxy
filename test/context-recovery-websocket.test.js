@@ -1894,6 +1894,7 @@ function connectionFixture(t, options = {}) {
 
 test('WS admission contention and unavailable durable state never dispatch an incomplete continuation', async (t) => {
   for (const code of [
+    'context_binding_unavailable',
     'context_recovery_busy',
     'context_recovery_storage_unavailable',
     'context_recovery_binding_changed',

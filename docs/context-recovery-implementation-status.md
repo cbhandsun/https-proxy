@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：绑定时钟回拨后普通转发缺口已复现并修复
+
+新增纯回归通过实际binding registry受控1001→1000回拨，确认registry返回 `context_binding_unavailable` 且之后正常时间也不会重新打开；修复前共享 `blocksRecoveryAdmission` 却返回false，回归退出1。因此将该明确不可用状态加入原阻断集合，HTTP与WebSocket共享原拒绝路径；不平滑时钟、不重开失效registry、不恢复已撤销能力，也不改未知provider response ID的普通转发规则。该独立缺口尚不能证明是云端N09 248的根因。
+
+修复后HTTP entry完整19项通过；实际Core HTTP与真实WebSocket测试各扩展原准入失败矩阵，均确认不可用binding不触达普通上游，相关两项通过。上述客户端检查带本地native-storage保护、调用0，未运行真实加密worker或模型。修改文件Lint、格式、CI治理、发布治理通过，新回归沿用统一测试入口。
+
+`3eb453fb` 的Verify `40041620251` 已终态success（八项全绿）；正式Windows `40041620246` 则failure，source `120713779075` 的客户端覆盖率在Chat long-persistent首轮5000ms超时，正式业务跳过。有限阶段汇总显示本次scan准入约900ms，首轮reply约2188ms，后续reply约1695ms，SQLite单次提交最高1320ms；嵌套engine_execute/commit不重复求和。未提高原5秒期限，真实持久化延迟仍未解决。新的加密draft job继续观察原句柄。
+
+## 2026-10-23：五档原负载合成容量与原60秒目标通过；直接草稿下载在托管runner通过
+
+源码 `60f1825e9df4e2987742c58ecf8affc56fae0289` 在本地运行原五档 `qualify-context-recovery-capacity.js`，两worker、所有轮数/恢复次数/输出字节/重开频率和断言保持原值。工作负载39366.3241ms，含进程启动39905ms，退出0；五档均qualified，无firstFailure、firstCoverageGap或firstReadFailure。最大档四任务1920轮、400次恢复；其余档完成288/480/384/96轮及24/30/32/96次恢复。180秒执行预算与原60秒性能目标均通过。预加载保护在主进程及worker阻止真实storage调用，所有进程计数0；未读凭据或请求模型。此结果只授予合成时钟/JSON重构的session容量与本机性能，不授予真实SQLite、24小时墙钟运行、HTTP/客户端或生产资格。本地回执保存于日常工作区 `.hpm-acceptance/context-capacity-60f1825e-20261023/report.json`。
+
+同源码新建独立review分支启动 `40042101681`，resolve `120715320241` 成功；真实一次性Windows job `120715426832` 的 `Acquire immutable unpublished baseline directly on runner` 已success，说明该token权限与匿名拒绝/精确字节/identity完整校验路径在公开仓库实际可行。该job仍在完整源码门禁，NSIS构建和加密迁移未执行，不能计为迁移通过。分支新建前已确认远端不存在，未覆盖旧review引用、发布draft或上传安装器。本轮提交后的新旧路由/下载四文件28项回归、Lint、CI治理、发布治理均通过。
+
 ## 2026-10-23：直接草稿迁移接通新建review分支；N09仍有clear公开读取失败
 
 新增独立 `acceptance/windows-encrypted-draft/**` review入口，固定解析release/两asset ID、v4 UUID和旧baseline SHA，并保留新建分支、零before、非删除/非强推、同仓库/同官方host、实际checkout SHA检查。只有draft lane接受公开仓库，原bridge/encrypted两lane继续只接受私有仓库。只读resolve job完成后才进入拥有draft读取权限的完整加密迁移workflow；不读取模型凭据、不上传产物。相关新旧四文件28项回归通过，统一测试发现包含新文件；Lint及CI治理通过。此处记录入口实现，不代表云端安装或加密迁移已通过。

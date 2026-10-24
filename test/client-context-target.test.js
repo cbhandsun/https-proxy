@@ -308,6 +308,7 @@ function coreFixture({
 
 test('actual core refuses blocked recovery admission before ordinary HTTP forwarding', async (t) => {
   for (const code of [
+    'context_binding_unavailable',
     'context_recovery_busy',
     'context_recovery_storage_unavailable',
     'context_recovery_binding_changed',
