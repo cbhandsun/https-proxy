@@ -70,8 +70,8 @@ test('a transient readonly snapshot cannot revoke a completed write during COMMI
   assert.deepEqual(f.save(1, 'after'), { revision: 2 });
   armed = false;
   assert.equal(commits, 1, 'the transaction body and COMMIT are not replayed');
-  assert.equal(Atomics.load(state, 0), 2, 'success follows reader release');
   assert.deepEqual(await exit, [0]);
+  assert.equal(Atomics.load(state, 0), 2, 'the reader released its lock and closed');
   const loaded = f.store.execute({ operation: 'load', scope });
   assert.equal(loaded.revision, 2);
   assert.equal(loaded.state.marker, 'after');
