@@ -24,6 +24,7 @@
   "lib/proxy/claude-responses-request.js",
   "lib/proxy/claude-responses-stream.js",
   "lib/proxy/claude-self-test-target.js",
+  "lib/proxy/claude-stream-tool-context.js",
   "lib/proxy/claude-thinking-capabilities.js",
   "lib/proxy/cli-session-routing.js",
   "lib/proxy/client-context-target.js",

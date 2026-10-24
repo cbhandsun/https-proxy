@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：真实原生Claude经源码入口复现并修复已声明空参数工具被改写成文本
+
+8f74184原安装 `40130181062` / job `120980112439`已终态failure：其自身完整候选门禁、构建、实际安装/升级回滚/DPAPI生命周期均success，仍失败于claude-default-cli，四组不合格。未重跑该失败候选；这证明MCP元数据修复不足以消除全部阻塞。31e3bf0完整Verify `40131035072`八项、正式Windows `40131035076`四项已全部success，加三组独立时序诊断通过，均按各自提交/范围记录。901bdb3正式Windows `40131769563`四项success，普通Verify `40131769594`七项success、coverage `120984787863`failure；失败为旧DPAPI互操作的legacy_unprotect PowerShell启动10089ms触发原10000ms，之前native_protect为25ms。失败保留，未增期限或重试；原五秒COMMIT等待和60秒重开问题仍未关闭。
+
+为了脱离粗粒度Windows日志定位，读取官方npm精确版本2.1.292的Darwin/arm64包，验证官方SHA512 SRI，二进制235017328字节、SHA256 97a01e5bc74a199e67189435d0331ea3a24eac2e07db4b76d9148c5b0386138f。仅在新临时HOME/config/tmp下运行，macOS子进程沙箱只放行回环网络，拒绝用户目录与钥匙串；回环正控、外网与用户目录拒绝负控均实际核验，无日常配置读写或真实模型。最初共享/tmp目录写入被拒绝、源码探针未放行回环监听及token长度不足的组合错误分别保留，不作产品根因。修正仅探针隔离配置后，原生CLI直连合成上游完成8请求、一次原文、三次原生压缩及最终答案；真正openai-proxy.js、原管理配置/入口认证转发后却在seed触发原120秒截止，sourceCalls=0。没有注入Core/路由/入口认证，也没有把合成工具重放当作恢复。
+
+对第一条公开SSE只采集有限事件结构：合成上游829字节为message_start、tool_use start、两字节空参数delta、stop、tool_use终止；真实代理返回947字节却将该tool_use变成text。实际sanitizeGeminiToolCall({name:'mcp__fixture__original',args:{}},[])明确拒绝empty args for unknown tool。Claude原生流过滤器一直丢弃当前请求的工具声明，故把已声明且允许{}的MCP工具误判为未知；未把完整响应或原文写入诊断。该实际源码入口复现确认了独立产品缺陷，不能仅凭旧Windows有限阶段断言所有失败都只有此原因。
+
+现由独立claude-stream-tool-context模块从当前请求的有界UTF8 JSON提取函数名称/输入schema，复用原functionToolContract；无效、重复、非函数/服务端声明及非法字节不提供空参数调用的声明依据。主入口只组合该上下文，压缩输入复用原已解压buffer。过滤器仅向原参数校验器提供名称逐字相等的声明，不引入其他声明的Gemini跨工具/exec修复，不全局放行未知空参数。原参数清理、必填项、SSE完整性、thinking隔离、终止事件、认证与恢复持久语义不变。新增模块已加入发行源码清单，首次发行治理因未声明而拒绝的记录保留，补齐清单后通过，无依赖升级。
+
+真实HTTP新回归在旧实现实际失败declared empty arguments must remain a tool call；修复后明文/gzip已声明{}均保留工具调用，未知空参数、必填缺失及下一请求无声明仍拒绝工具输出，且不把无关exec声明用于重命名。原malformed/unclosed/missing-terminal三项仍分别失败502，每次请求只有一次终态日志且无私有内容。解析边界覆盖正常/空/非法/重复/极端大小/UTF8/Proxy/getter/原型，以及非预期内部错误不得吞为无声明。专项30/30通过、零skip；扩大含真实Core的59项中54pass、3项在Mac原生持久开库拒绝、2项原Windows-only skip，完整日志保留，没有改skip或替换存储，须交Windows原门禁复验。全树Lint零错误/五个既有警告、语法、四项架构/secret和CI/发行治理通过。
+
+修复后的同版本原生Claude经真实源码入口已完成8次合成请求、一次MCP原文、三次原生压缩及最终回答，进程组为空；内部最终见证仍明确fullCoreEntrypointVerified/defaultZeroRecovery=false，因此helper在见证门禁拒绝，未伪造独立观察器、安装、Windows或持久资格。该结果证明原生协议已跨过原失败路径，仍须新候选完整CI及Windows实际安装四组。原期限、ACK精确相等、FULL/DELETE和旧失败均保持；冻结长测未访问、真实模型请求0，整体交付未完成。
+
 ## 2026-10-24：三组原始Windows时序验收通过，保留正式五秒失败并细化安装CLI阶段回执
 
 31e3bf04b9bca81391a218066ffa1b1a60778732的独立Windows时序运行 `40131035057` 三项全部success（jobs `120982593289`、`120982593483`、`120982593512`）。每组完整执行原Core/WBIPC与Codex-summary两个文件，50项全pass、零skip，实际默认原生worker、DPAPI及OS锚点参与。三组各6次持久公开发布，组内最大分别1395/1883/1503ms，共18次仍受原5000ms门限；各150条COMMIT最慢108/104/56ms。四种物理owner场景在每组均通过，覆盖非inline/inline的两次物理重开及强杀、撤销后再次强杀；新逐次启动挑战已由实际Windows链核验。该独立诊断不替代完整CI或安装客户端资格。
