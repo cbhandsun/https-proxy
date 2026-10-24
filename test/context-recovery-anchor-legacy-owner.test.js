@@ -182,6 +182,71 @@ test('enrolled legacy checkpoint reopens through the production owner and retain
   }
 });
 
+test('committed format migration with a failed final anchor flush keeps the legacy state recoverable without a ready ACK', (t) => {
+  const time = Date.now();
+  const f = fixture(t, time, 60000);
+  const preview = f.run();
+  f.run({ directory: f.directory, expectedFingerprint: preview.fingerprint });
+  const rowsBefore = (() => {
+    const database = new DatabaseSync(f.file, { readOnly: true });
+    try {
+      return database.prepare('SELECT * FROM recovery_state ORDER BY scope').all();
+    } finally {
+      database.close();
+    }
+  })();
+  let flushes = 0;
+  assert.throws(
+    () =>
+      createStorageOwner(
+        { directory: f.directory, protectKey: f.trusted.protectKey },
+        {
+          createAnchorRepository(input) {
+            const repository = f.factory(input);
+            return {
+              ...repository,
+              commit() {
+                flushes++;
+                throw Error('PRIVATE anchor failure');
+              },
+            };
+          },
+        }
+      ),
+    safe
+  );
+  assert.equal(flushes, 1);
+  const database = new DatabaseSync(f.file, { readOnly: true });
+  try {
+    assert.equal(database.prepare('PRAGMA user_version').get().user_version, 3);
+    assert.deepEqual(
+      database.prepare('SELECT * FROM recovery_state ORDER BY scope').all(),
+      rowsBefore
+    );
+  } finally {
+    database.close();
+  }
+  const retained = f.factory({ directory: f.directory, dataKey: f.dataKey });
+  try {
+    assert.equal(retained.read().maxTime, time);
+  } finally {
+    retained.close();
+  }
+  const owner = createStorageOwner(
+    { directory: f.directory, protectKey: f.trusted.protectKey },
+    { createAnchorRepository: f.trusted.createAnchorRepository }
+  );
+  try {
+    const loaded = owner.execute({ operation: 'load', scope });
+    assert.equal(loaded.revision, 1);
+    assert.equal(loaded.expiresAt, time + 60000);
+    assert.equal(loaded.state.original, 'PRIVATE legacy content');
+    assert.equal(loaded.state.token, 'PRIVATE synthetic value');
+  } finally {
+    owner.close();
+  }
+});
+
 test('enrolling an expired legacy checkpoint cannot renew its lifetime on normal owner startup', (t) => {
   const f = fixture(t);
   const preview = f.run();

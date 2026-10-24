@@ -143,8 +143,22 @@ test('interrupted initial startup retains empty intent and permits same-storeId 
   f.failAfter(2);
   assert.throws(ordinaryOpen, safe);
   assert.equal(f.rows.size, 1);
+  const intentStoreId = [...f.rows.values()][0].value.storeId;
+  const database = new DatabaseSync(path.join(f.directory, 'checkpoint.sqlite'), {
+    readOnly: true,
+  });
+  try {
+    assert.equal(database.prepare('PRAGMA user_version').get().user_version, 3);
+    assert.equal(
+      database.prepare('SELECT store_id FROM recovery_header').get().store_id,
+      intentStoreId
+    );
+  } finally {
+    database.close();
+  }
   f.restoreBackend();
   const owner = f.open();
+  assert.equal([...f.rows.values()][0].value.storeId, intentStoreId);
   save(owner);
   owner.close();
   const reopened = f.open();

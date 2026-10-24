@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：补齐封版 COMMIT 后、最终 anchor ACK 前的非空旧库恢复断言
+
+新增非空旧库登记后的故障回归：正常 owner 的schema3事务已提交，最终独立anchor flush故意失败，owner必须抛固定503且不能返回ready；磁盘schema3存在、原state密文字节未变，旧anchor watermark未被虚假推进。随后通过正常owner重开，原文、revision=1和绝对expiry保留。初始化中断的既有回归另明确验证落盘schema3与anchor intent同一storeId，并在重开后继续保持身份。两项定向回归通过，原生storage服务保护计数0；不授予OS强杀或业务publication在途资格。
+
+`55c1cd9b` 的新建候选SHA后缀review分支已成功解析：`40049843526` 的resolve `120739873360` success，真实加密安装job `120740003265` 仍in_progress。一次读取超时仅是观察失败，继续同一run而未重启。`57254fbe` Verify `40048655436` 八项已全部success；正式Windows另有独立状态，不能用此替代。
+
 ## 2026-10-23：锚定 owner 新格式保护及旧读器拒写门禁实现，托管验证待执行
 
 当前 owner 在独立 anchor 准入后、ready 与最终 anchor ACK前，通过一个 SQLite 事务将旧schema1/2封为认证schema3；header内版本与PRAGMA相互校验，原state/blob密文字节、revision、撤销、budget、maxTime及绝对expiry不变。schema1补齐blob表与版本/header更新同事务，DDL/版本/header/COMMIT失败回滚；真实SQLITE_FULL、关闭对象、伪造pragma与未来版本均拒绝。已有schema3再次打开不重写header；generic离线引擎保留1/2兼容，只有正常锚定owner获得私有封版能力，RPC不新增操作。legacy登记入口另明确只接受1/2，现代3丢失anchor不能通过preview或旧fingerprint重新登记。
