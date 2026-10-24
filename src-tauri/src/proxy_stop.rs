@@ -150,12 +150,29 @@ fn request_stop(
 }
 
 pub(crate) fn stop_proxy(root: &Path, port: u16) -> Result<serde_json::Value, String> {
+    if port == 0
+        || !std::fs::metadata(root)
+            .map_err(|_| "proxy_stop_owner_unconfirmed")?
+            .is_dir()
+    {
+        return Err("proxy_stop_owner_unconfirmed".into());
+    }
     let Some(health) = super::read_proxy_health_direct_on_port(port, Duration::from_millis(300))
     else {
-        if super::proxy_root::proxy_runtime_dir(root)
-            .join(".proxy.pid")
-            .exists()
-        {
+        let runtime = super::proxy_root::proxy_runtime_dir(root);
+        let present = match std::fs::symlink_metadata(&runtime) {
+            Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => {
+                match std::fs::symlink_metadata(runtime.join(".proxy.pid")) {
+                    Ok(_) => true,
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+                    Err(_) => return Err("proxy_stop_owner_unconfirmed".into()),
+                }
+            }
+            Ok(_) => return Err("proxy_stop_owner_unconfirmed".into()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+            Err(_) => return Err("proxy_stop_owner_unconfirmed".into()),
+        };
+        if present {
             return Err("proxy_stop_owner_unconfirmed".into());
         }
         return Ok(
@@ -340,5 +357,32 @@ mod tests {
         )
         .is_err());
         server.join().unwrap();
+    }
+    #[test]
+    fn stopped_status_requires_a_valid_root_port_and_no_unconfirmed_pid() {
+        let root = std::env::temp_dir().join(format!(
+            "hpm-stop-admission-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        assert!(stop_proxy(&root, 0).is_err());
+        assert_eq!(stop_proxy(&root, port).unwrap()["code"], 0);
+        let runtime = root.join(".hpm-runtime");
+        std::fs::write(&runtime, b"not a directory").unwrap();
+        assert!(stop_proxy(&root, port).is_err());
+        std::fs::remove_file(&runtime).unwrap();
+        std::fs::create_dir(&runtime).unwrap();
+        std::fs::write(runtime.join(".proxy.pid"), b"1234").unwrap();
+        assert!(stop_proxy(&root, port).is_err());
+        let invalid = root.join("file");
+        std::fs::write(&invalid, b"not a root").unwrap();
+        assert!(stop_proxy(&invalid, port).is_err());
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
