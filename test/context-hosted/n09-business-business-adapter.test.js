@@ -73,6 +73,9 @@ function fixture(mutation = () => {}, onPhase) {
         },
         attestSyntheticBusiness: async () => ({ ready: true, syntheticBusinessConfigured: true }),
         ...(state.diagnostic === undefined ? {} : { readRecoveryFailurePhase: state.diagnostic }),
+        ...(state.admissionDiagnostic === undefined
+          ? {}
+          : { readRecoveryAdmissionFailurePhase: state.admissionDiagnostic }),
         stopLifecycle: async (owner) => {
           state.events.push('kill');
           state.rejectPending?.(new Error('synthetic_forced_kill'));
@@ -292,6 +295,15 @@ function fixture(mutation = () => {}, onPhase) {
       return { status: state.replyStatus ?? 200, bytes: Buffer.from(JSON.stringify(result)) };
     },
   };
+  const originalBusinessClient = trusted.createBusinessClient;
+  trusted.createBusinessClient = (input) => async () => {
+    try {
+      return await originalBusinessClient(input)();
+    } catch (error) {
+      if (!state.returnHttpFailure) throw error;
+      return { status: 502, bytes: Buffer.from('{}') };
+    }
+  };
   const adapter = createN09BusinessAdapter(options, {
     ...trusted,
     ...(onPhase ? { onPhase } : {}),
@@ -388,6 +400,63 @@ test('public generation before an observed read has a separate safe failure clas
   assert.equal(f.state.stopped, 2);
   assert.equal(f.state.closed, 1);
   assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+});
+
+test('first missing READ reports admission class only after failed HTTP and preserves forced cleanup', async () => {
+  for (const diagnostic of [
+    async () => 200,
+    async () => 202,
+    async () => 210,
+    async () => 'PRIVATE',
+    async () => {
+      throw Error('PRIVATE');
+    },
+  ]) {
+    const phases = [];
+    const f = fixture(
+      (stage, incoming) => {
+        if (stage !== 'upstream') return;
+        const body = JSON.parse(incoming.bytes);
+        if (!body.tools?.some((tool) => tool.name === 'hpm_list_retained_evidence')) return;
+        body.tools = [];
+        incoming.bytes = Buffer.from(JSON.stringify(body));
+      },
+      (phase) => phases.push(phase)
+    );
+    let reads = 0;
+    f.state.returnHttpFailure = true;
+    f.state.admissionDiagnostic = async () => {
+      reads++;
+      assert.equal(phases.includes(230), true);
+      return diagnostic();
+    };
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runCommittedObservedKill(f.adapter));
+    assert.equal(reads, 1);
+    assert.ok([224, 200, 202, 210].includes(phases.at(-1)));
+    assert.equal(f.state.stopped, 2);
+    assert.equal(f.state.closed, 1);
+    assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+  }
+});
+
+test('successful clear, save and revoke never query admission-failure diagnostics', async () => {
+  for (const run of [
+    runClearAfterAck,
+    (adapter) => runDurableSaveOrRevokeAfterAck(adapter, 'save'),
+    (adapter) => runDurableSaveOrRevokeAfterAck(adapter, 'revoke'),
+  ]) {
+    const f = fixture();
+    let reads = 0;
+    f.state.admissionDiagnostic = async () => {
+      reads++;
+      return 202;
+    };
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await run(f.adapter);
+    assert.equal(reads, 0);
+    assert.equal(f.state.closed, 1);
+  }
 });
 
 test('missing READ diagnostics separate ACK-triggered and post-restart recovery without accepting either', async () => {
@@ -906,7 +975,7 @@ test('upstream oversized, invalid UTF8 and invalid JSON fail without response wr
   const f = fixture();
   f.adapter.bindVerifiedNetworkProof(f.proof);
   await f.adapter.startFreshBusinessHost();
-  for (const bytes of [Buffer.alloc(262145), Buffer.from([255]), Buffer.from('{')]) {
+  for (const bytes of [Buffer.alloc(262145), Buffer.from([200]), Buffer.from('{')]) {
     const response = {
       destroyed: false,
       headersSent: false,

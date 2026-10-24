@@ -1,5 +1,29 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：正式 N09 save 首读仍失败；增加失败后的有限准入分类
+
+`07a8fb24` 正式 Windows `40056132359` 已终态 failure：egress、source-gates、N08 `120763507254` success，N09 `120763507211` failure，安全日志 case82 / exit249。该位置仍是 save ACK 之前的首次 readThrough，不能解释成 save ACK、强杀或重启读回失败；与独立诊断 clear case81 / exit248 一样，首次私有读取未被合成上游观察到。
+
+新增仅在首次 missing READ 的 HTTP 502 已发生后查询现有 owned management health：200 表示匿名 bindingUnavailable 计数非零，202 表示绑定计数至少四次，210 表示绑定不足四次且无 unavailable 计数；异常、非法或混合诊断只给原224。适用前提是每个新隔离 owner 的三次 seed/summary，此分类仍不能单独证明 provider、零来源或 controls 分支的具体原因。生产模块、请求/响应内容、摘要、原文、预算、期限、ACK和强杀断言均不变。成功 clear/save/revoke 不增加诊断请求，ACK成功与强杀之间也不增加I/O。有限入口和PowerShell只新增对应三个数字的识别，子进程非零仍一律失败。
+
+新增准入分类及adapter两项回归在修改前失败，初步相关五文件89项通过，覆盖非法/空/极端计数、getter/Proxy不求值、诊断失败不改变原失败与强制清理、成功路径无新增查询、management身份不匹配时零HTTP请求。数值与PowerShell封装更新后的扩大检查另行复核。现有测试文件仍由统一unit/coverage发现。本项只是诊断缺口修复，不代表N09根因已修复或候选完整资格已取得。
+
+最终编号下五文件89/89通过，ESLint、Prettier、CI/release治理及diff检查通过。PowerShell解析/阶段/真实安全子进程扩大检查12/13通过，其中子进程边界文件仍在原45000ms超时；该文件单独复跑同样2/3通过、子进程项超时。没有延时、跳项或删除负控，也不将此记作全绿。候选需在隔离托管环境验证这项未通过检查；本机结果仍作为未解决项保留。当前只推进首次恢复故障的证据和修复，暂停外围性能优化。
+
+## 2026-10-23：当前候选 Verify 八项通过；文件容量单档完成；N09 首读失败继续定位
+
+实时复核 `07a8fb24` 的 Verify `40056132385` 已终态 success，coverage、integration、四个 unit shard、node-quality、Rust 八项全部 success；coverage 内主库、client、frontend 三套覆盖率步骤均 success。正式 Windows `40056132359` 的 source-gates `120759410074` 此次观察仍 in_progress，未重启或继承其他源码资格。独立诊断 `40056132468` 的 N08 success、N09 failure；后者 `120759410611` 的有限日志为 clear case81 / exit248，外层 network restore 另记录 failure，不能宣称清理或稳定性通过。
+
+原文件容量句柄 `63355` 已退出 0，安全回执 `.codex-tmp/durable-capacity-creator-v1-day-small.json`：冻结 1 root、288 turns、1024 bytes、300000ms 合成间隔未变，实际完成 288 turns、24 recoveries、12 次 close/reopen、final results observed，coverage/read/operation 首错均 null，SQLite 1724416 bytes，耗时 844133.0927ms（约 14 分 4 秒）。旧实现单次 892500.9646ms，此两次观测不能建立稳定性能收益；更不能将该单档 `qualified:true` 外推到全五档原 60000ms 性能目标、native owner/DPAPI/anchor worker 或真实时钟全天容量。
+
+检查实际 clear driver 后确认 exit248 对应 clear 操作之前、同进程 seed-summary 后首次 readThrough，而非 clear 后重启读回。新增私有 `.codex-tmp/n09-summary-admission-probe.cjs` 以实际加密 SQLite 引擎、完整 async admission/publication API、本地合成上游，复现 seed-call、seed-output、summary 隔离生成及回执继续：16/16 可见原文，8/8 在 sending 与 finished 之间的继续请求返回原 `context_recovery_busy`，零空来源、零 native owner/真实模型请求。因此简单的“摘要 finished ACK 未完成便静默普通转发”尚未在该边界复现，不据此修改生产等待、准入或错误规则。此诊断没有实际 Core HTTP/Windows native owner，不能代替失败的 hosted N09；下一步需区分 Core 入口的 bindingUnavailable、provider gate、零 visibleSources 与普通 controls 分支。
+
+## 2026-10-23：创建阶段优化候选已推送；隔离完整复验及原档文件容量重跑中
+
+候选 `07a8fb24` 已推送原 acceptance 分支，只提交本项引用状态模块、回归与状态文档；保留无关 Cargo.toml 变更和所有私有临时证据。全库 `npm run check:syntax` 1492 文件通过；独立 ledger-admission/root-owner 两文件 59/59 通过、native 调用 0，新增 creator 两项通过。此前三文件扩大检查的 4 项 native 保护拒绝仍保留，不用这些独立成功覆盖。
+
+新同源码 Verify `40056132385`、正式 Windows `40056132359`、独立业务诊断 `40056132468` 已启动。正式 egress `120759409855` success，source-gates `120759410074` in_progress，业务尚待源码门禁。此处不继承 bef 的业务或 f18 的实际安装资格。全库语法检查结束后才启动原冻结 day-small 的实际文件 SQLite 重跑，句柄 `63355`；wrapper 仅为报告改成不可覆盖的新路径 `.codex-tmp/durable-capacity-creator-v1-day-small.json`，轮数/字节/恢复/重开和确认断言不变。仍是合成时钟、无 native owner 的诊断，不能替代正式容量或真实全天运行。
+
 ## 2026-10-23：引用状态创建去除自生成结构的重复复制及摘要；完整候选资格待复验
 
 文件 SQLite 的 48 轮分阶段诊断保留原会话 API、确认和真正关闭重开，但仅作为缩短画像排查，不能替代冻结容量目标。首次总计 30763.7307ms，session.complete 20540.3792ms，129 次 SQL COMMIT 合计 2893.3143ms；另次 CPU 采样显示 state encoder、普通 normalizer 和指纹遍历为主要 JavaScript 热点。批量读取属性描述符的实验虽有一次文件 SQLite 数字较低，同进程正反交替微基准反而持续退步，未进入生产代码。

@@ -233,6 +233,39 @@ test('failed recovery stage is read only from owned management health and return
   }
 });
 
+test('missing READ admission diagnostic stays bound to the owned management identity', async (t) => {
+  const counters = {
+    httpPreparationFailed: 0,
+    httpRunFailed: 0,
+    httpEncodingFailed: 0,
+    httpPrepareFailed: 0,
+    httpSendingFailed: 0,
+    httpPublishingFailed: 0,
+    httpFinishFailed: 0,
+    bound: 4,
+    bindingUnavailable: 0,
+    completed: 1,
+  };
+  const f = fixture(t, (at, value) => {
+    if (at === 'http' && value.contextRecovery)
+      value.contextRecovery.counters = { responses: counters };
+  });
+  const identity = await f.client.startLifecycle();
+  try {
+    assert.equal(await f.client.readRecoveryAdmissionFailurePhase(identity), 202);
+    assert.deepEqual(f.state.requests.at(-1), { path: '/v1/local/health', method: 'GET' });
+    const before = f.state.requests.length;
+    await assert.rejects(
+      f.client.readRecoveryAdmissionFailurePhase({ ...identity, pid: identity.pid + 1 })
+    );
+    assert.equal(f.state.requests.length, before);
+    counters.bindingUnavailable = 1;
+    assert.equal(await f.client.readRecoveryAdmissionFailurePhase(identity), 200);
+  } finally {
+    await f.client.close();
+  }
+});
+
 test('startup observer reports fixed lifecycle and management phases in execution order', async (t) => {
   const phases = [];
   const f = fixture(t, undefined, undefined, (phase) => phases.push(phase));

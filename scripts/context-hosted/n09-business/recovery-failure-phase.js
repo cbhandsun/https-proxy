@@ -31,4 +31,26 @@ function recoveryFailurePhase(input) {
     return 224;
   }
 }
-module.exports = { recoveryFailurePhase };
+// A fresh isolated N09 owner has three admitted seed/summary requests before
+// its first recovery. These cumulative counters classify that failed request
+// only; they do not prove why a bound turn omitted private tools.
+function recoveryAdmissionFailurePhase(input) {
+  try {
+    const reply = snapshotOwnData(input);
+    if (reply.status !== 200) return 224;
+    const body = snapshotOwnData(reply.body);
+    const recovery = snapshotOwnData(body.contextRecovery);
+    const counters = snapshotOwnData(recovery.counters);
+    const response = snapshotOwnData(counters.responses);
+    for (const name of [...events, 'bound', 'bindingUnavailable', 'completed']) {
+      if (!Number.isSafeInteger(response[name]) || response[name] < 0) return 224;
+    }
+    if (events.some((name) => response[name] !== 0) || response.completed < 1) return 224;
+    if (response.bindingUnavailable > 0) return 200;
+    return response.bound >= 4 ? 202 : 210;
+  } catch {
+    return 224;
+  }
+}
+
+module.exports = { recoveryFailurePhase, recoveryAdmissionFailurePhase };

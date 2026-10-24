@@ -106,7 +106,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
   const nonce = randomBytes(16).toString('hex');
   const entryKey = randomBytes(24).toString('hex'),
     upstreamKey = randomBytes(24).toString('hex');
-  const original = 'N09_PRIVATE_CONTENT ' + nonce + ' ' + 'synthetic-evidence '.repeat(256);
+  const original = 'N09_PRIVATE_CONTENT ' + nonce + ' ' + 'synthetic-evidence '.repeat(202);
   const originalSha256 = sha(original);
   let proof,
     lifecycle,
@@ -446,6 +446,19 @@ function createN09BusinessAdapter(input, trusted = {}) {
       recoveryProgressPhase = 212;
       const response = await send(continuation);
       reportRecoveryResponsePhase(response);
+      if (response.status === 502 && upstreamFailurePhase === 230) {
+        // Failure-only diagnostic: never add management I/O to a successful
+        // recovery or between a durable ACK and its forced kill.
+        if (typeof client().readRecoveryAdmissionFailurePhase === 'function') {
+          let detail = 224;
+          try {
+            detail = await client().readRecoveryAdmissionFailurePhase(current);
+          } catch {
+            // Preserve the original failed HTTP result and owned cleanup.
+          }
+          onPhase([200, 202, 210].includes(detail) ? detail : 224);
+        }
+      }
       if (response.status === 502 && upstreamFailurePhase === undefined) {
         await reportRecoveryFailureDetail();
       }

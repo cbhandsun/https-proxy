@@ -207,7 +207,8 @@ async function main() {
         phase === 251 ||
         phase === 252 ||
         phase === 253 ||
-        phase === 254
+        phase === 254 ||
+        [200, 202, 210].includes(phase)
       )
     )
       throw fail();

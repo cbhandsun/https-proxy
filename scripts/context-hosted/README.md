@@ -62,6 +62,15 @@ containment; the disposable runner must be discarded. Only fixed receipts and
 bounded scope text are printed. No payload, key, database, request body or
 original evidence is uploaded.
 
+When the first recovery reaches public generation without an observed READ, the
+failed HTTP response may trigger one owned local health query. Only fixed
+aggregate-counter classes leave the adapter: 200 means an unavailable binding
+was counted, 202 means at least four requests were bound, and 210 means fewer
+than four were bound without a counted unavailable binding. Malformed or
+conflicting diagnostics remain 224. These counts belong to a fresh isolated
+owner with three seed/summary requests; they do not identify a root cause.
+Successful recovery and the durable-ACK-to-kill boundary perform no such query.
+
 Committed metadata observation is not a host save/revoke durable ACK. The
 separate `runDurableSaveOrRevokeAfterAck` driver requires a passive, synchronous
 callable capability, validates its operation/PID/accounting-bound ACK, then

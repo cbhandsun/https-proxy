@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   recoveryFailurePhase,
+  recoveryAdmissionFailurePhase,
 } = require('../../scripts/context-hosted/n09-business/recovery-failure-phase');
 const names = [
   'httpPreparationFailed',
@@ -18,6 +19,63 @@ const fixture = (counters) => ({
   body: { contextRecovery: { counters: { responses: counters } } },
 });
 const zero = () => Object.fromEntries(names.map((name) => [name, 0]));
+test('missing-read classification uses only validated aggregate admission counters', () => {
+  const counters = { ...zero(), bound: 4, bindingUnavailable: 0, completed: 1 };
+  assert.equal(recoveryAdmissionFailurePhase(fixture(counters)), 202);
+  assert.equal(recoveryAdmissionFailurePhase(fixture({ ...counters, bound: 3 })), 210);
+  assert.equal(recoveryAdmissionFailurePhase(fixture({ ...counters, bindingUnavailable: 1 })), 200);
+  assert.equal(
+    recoveryAdmissionFailurePhase(fixture({ ...counters, bound: Number.MAX_SAFE_INTEGER })),
+    202
+  );
+  for (const key of ['bound', 'bindingUnavailable', 'completed']) {
+    for (const invalid of [
+      undefined,
+      null,
+      -1,
+      1.5,
+      Infinity,
+      NaN,
+      '4',
+      {},
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      assert.equal(recoveryAdmissionFailurePhase(fixture({ ...counters, [key]: invalid })), 224);
+    }
+  }
+  for (const value of [
+    null,
+    {},
+    [],
+    fixture({}),
+    fixture({ ...counters, completed: 0 }),
+    fixture({ ...counters, httpRunFailed: 1 }),
+    { ...fixture(counters), status: 503 },
+  ]) {
+    assert.equal(recoveryAdmissionFailurePhase(value), 224);
+  }
+  let touched = 0;
+  const hostile = new Proxy(
+    {},
+    {
+      getPrototypeOf() {
+        touched++;
+        throw Error('PRIVATE');
+      },
+    }
+  );
+  const getter = {
+    ...counters,
+    get bound() {
+      touched++;
+      throw Error('PRIVATE');
+    },
+  };
+  for (const value of [hostile, fixture(hostile), fixture(getter)]) {
+    assert.equal(recoveryAdmissionFailurePhase(value), 224);
+  }
+  assert.equal(touched, 0);
+});
 test('only one validated failure class leaves the local health projection', () => {
   for (const [index, name] of names.entries()) {
     assert.equal(recoveryFailurePhase(fixture({ ...zero(), [name]: 1 })), 217 + index);

@@ -15,7 +15,7 @@ const { waitForManagementHttp } = require('./management-http-ready.js');
 const { waitForAppliedRecovery } = require('./applied-recovery-ready.js');
 const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
 const { assertSyntheticProfileReadback } = require('./synthetic-profile-readback.js');
-const { recoveryFailurePhase } = require('./recovery-failure-phase');
+const { recoveryFailurePhase, recoveryAdmissionFailurePhase } = require('./recovery-failure-phase');
 const {
   createDaemonManagementHttpClient,
 } = require('../../../scripts/lib/context-recovery-daemon-http-client.js');
@@ -189,6 +189,12 @@ function createClientUnsafe(input, dependencies) {
   const leaseStart = lease.startFreshBusinessHost;
   const leaseRestart = lease.restartSameBusinessHost;
   const implementation = {
+    async readRecoveryAdmissionFailurePhase(input) {
+      const identity = owner(input);
+      return recoveryAdmissionFailurePhase(
+        await management(identity)({ method: 'GET', route: '/v1/local/health' })
+      );
+    },
     async readRecoveryFailurePhase(input) {
       const identity = owner(input);
       return recoveryFailurePhase(
