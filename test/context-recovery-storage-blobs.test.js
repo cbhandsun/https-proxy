@@ -2426,6 +2426,139 @@ test('reference integrity hashes its local normalized clone without a second ful
   }
 });
 
+test('reference-creator admits its final envelope and hashes its owned payload once', (t) => {
+  const reference = referenceStateFromCheckpoint(checkpoint());
+  const stateData = require('../lib/proxy/context-recovery-state-data');
+  const fingerprints = require('../lib/proxy/context-recovery-fingerprint-value');
+  const files = [
+    require.resolve('../lib/proxy/context-recovery-reference-state'),
+    require.resolve('../lib/proxy/context-recovery-fingerprint'),
+  ];
+  const cached = files.map((file) => require.cache[file]);
+  const normalize = stateData.normalizeRecoveryReferenceData;
+  const fingerprint = fingerprints.fingerprintNormalizedValue;
+  let admissions = 0,
+    hashes = 0;
+  t.mock.method(stateData, 'normalizeRecoveryReferenceData', (...args) => {
+    admissions++;
+    return Reflect.apply(normalize, stateData, args);
+  });
+  t.mock.method(fingerprints, 'fingerprintNormalizedValue', (...args) => {
+    hashes++;
+    return Reflect.apply(fingerprint, fingerprints, args);
+  });
+  try {
+    for (const file of files) delete require.cache[file];
+    const codec = require('../lib/proxy/context-recovery-reference-state');
+    const created = codec.createReferenceState(
+      reference.metadata,
+      reference.stagedSources,
+      reference.publications
+    );
+    assert.equal(
+      admissions,
+      1,
+      'the complete final envelope supplies the stricter byte/node admission'
+    );
+    assert.equal(hashes, 1, 'the locally generated digest is not recomputed');
+    assert.deepEqual(created, reference);
+    assert.notEqual(created.metadata, reference.metadata);
+    assert.deepEqual(codec.parseReferenceState(created), reference);
+    assert.equal(hashes, 2, 'every external parse still recomputes its digest');
+    created.digest = 'f'.repeat(64);
+    assert.throws(() => codec.parseReferenceState(created), {
+      code: 'invalid_recovery_reference_state',
+    });
+    assert.equal(hashes, 3);
+  } finally {
+    files.forEach((file, index) => {
+      require.cache[file] = cached[index];
+    });
+  }
+});
+
+test('reference-creator preserves external admission, semantic validation and mutable detached results', (t) => {
+  const failure = { code: 'invalid_recovery_reference_state' };
+  const { fingerprintRecoveryReference } = require('../lib/proxy/context-recovery-fingerprint');
+  const codec = require('../lib/proxy/context-recovery-reference-state');
+  assert.equal(Object.hasOwn(codec, 'validateParsedReferenceState'), false);
+  const priorCreator = (metadata, stagedSources, publications = []) => {
+    const payload = {
+      version: 1,
+      kind: 'recovery-reference-state',
+      metadata,
+      stagedSources,
+      publications,
+    };
+    return parseReferenceState({ ...payload, digest: fingerprintRecoveryReference(payload) });
+  };
+  for (const base of [
+    referenceStateFromCheckpoint(checkpoint()),
+    referenceStateFromCheckpoint(checkpoint([])),
+  ]) {
+    const created = createReferenceState(base.metadata, base.stagedSources, base.publications);
+    assert.deepEqual(created, priorCreator(base.metadata, base.stagedSources, base.publications));
+    assert.deepEqual(created, parseReferenceState(created));
+    assert.notEqual(created.metadata.ledger.sources, base.metadata.ledger.sources);
+    const invalidInputs = [
+      [undefined, []],
+      [null, []],
+      [{}, []],
+      [[], []],
+      [base.metadata, null],
+      [base.metadata, {}],
+      [base.metadata, [], null],
+      [{ ...base.metadata, rootId: 'invalid' }, []],
+      [{ ...base.metadata, observedAt: base.metadata.expiresAt }, []],
+      [{ ...base.metadata, budget: { ...base.metadata.budget, calls: -1 } }, []],
+      [
+        base.metadata,
+        [],
+        Array.from({ length: 513 }, () => ({
+          state: 'prepared',
+          snapshotId: base.metadata.rootId,
+        })),
+      ],
+      [{ ...base.metadata, excessive: 'x'.repeat(16 * 1024 * 1024) }, []],
+    ];
+    let touched = 0;
+    const hostile = Object.defineProperty({ ...base.metadata }, 'rootId', {
+      enumerable: true,
+      get() {
+        touched++;
+        throw new Error('not invoked');
+      },
+    });
+    const cyclic = { ...base.metadata };
+    cyclic.self = cyclic;
+    invalidInputs.push(
+      [hostile, []],
+      [cyclic, []],
+      [Object.assign(Object.create({}), base.metadata), []]
+    );
+    for (const args of invalidInputs) {
+      assert.throws(() => priorCreator(...args));
+      assert.throws(() => createReferenceState(...args), failure);
+    }
+    assert.equal(touched, 0);
+    created.metadata.rootId = 'mutated-after-creation';
+    assert.throws(() => parseReferenceState(created), failure);
+    assert.deepEqual(
+      createReferenceState(base.metadata, base.stagedSources, base.publications),
+      base
+    );
+  }
+  const base = referenceStateFromCheckpoint(checkpoint());
+  const root = require('../lib/proxy/context-recovery-root-state');
+  let validations = 0;
+  t.mock.method(root, 'validateRecoveryRootMetadata', () => {
+    validations++;
+    throw new Error('synthetic semantic failure');
+  });
+  assert.throws(() => createReferenceState(base.metadata, []), failure);
+  assert.equal(validations, 1, 'a generated digest cannot bypass metadata validation');
+});
+
 test('metadata saves validate each external reference once without weakening prior-row checks', (t) => {
   const state = checkpoint();
   const reference = referenceStateFromCheckpoint(state);

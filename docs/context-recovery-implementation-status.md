@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：引用状态创建去除自生成结构的重复复制及摘要；完整候选资格待复验
+
+文件 SQLite 的 48 轮分阶段诊断保留原会话 API、确认和真正关闭重开，但仅作为缩短画像排查，不能替代冻结容量目标。首次总计 30763.7307ms，session.complete 20540.3792ms，129 次 SQL COMMIT 合计 2893.3143ms；另次 CPU 采样显示 state encoder、普通 normalizer 和指纹遍历为主要 JavaScript 热点。批量读取属性描述符的实验虽有一次文件 SQLite 数字较低，同进程正反交替微基准反而持续退步，未进入生产代码。
+
+定位到 `createReferenceState` 对本地生成 payload 与最终 envelope 重复复制、重复计算摘要。现先按原 normalizer 对含固定 64 字节 ASCII digest 占位的完整最终 envelope 进行一次独立复制；该完整结构对字节、节点、深度的准入不宽于 payload。摘要只从当前独立副本计算一次，所有元数据、源、发布状态语义检查仍执行。外部 parse/reader/transition/association 入口保持完整复制和摘要重算，无跨调用值/权限缓存，无公开跳过验证接口，持久化、撤权、期限及 ACK 语义不变。
+
+新增工作次数回归修改前以 admissions=2 而非 1 失败，修改后两项回归通过；另覆盖空源、非法/空输入、超大结构、非法发布状态、时间/预算错误、getter/循环/自定义原型、返回值隔离、后续篡改、语义检查抛错。与 `328b014` 的旧 creator 在同一进程用同一实际会话生成的状态正反交替 6 组，每组 3 次：288 轮状态旧实现合计 1859.618ms、新实现 1308.463ms，约减少 29.6%，仅为创建阶段微基准，不外推到整条链路或原 60 秒目标。
+
+本地扩大 root-state/ledger-admission/root-owner 三文件共 130 项中 126 通过、4 项因显式本机 native-storage 保护拒绝而失败；没有移除保护、跳用例或把它记全绿。实际 DPAPI/worker 和完整 native 路径需隔离 hosted CI 复验。新回归已在现有统一 unit、coverage、client-coverage 文件中，ESLint 和 CI/release 治理通过；当前代码尚未获得最终统一/安装/业务资格。用户已明确暂缓两处已核实第三方 OAuth 常量的 Support 清理申请，未提交外部消息。
+
+修改后的 48 轮文件 SQLite 缩短诊断完成 48 turns、4 recoveries、2 reopen 与 final drain，首错均 null。总耗时 38938.7302ms，期间全库语法检查并行占用本机资源，COMMIT 合计升至 6485.3526ms；该次没有显示整条链路提速，不能拿创建阶段微基准替代整体结果。生产优化的端到端性能收益继续待独立测量。
+
 ## 2026-10-23：当前正式 Windows 四场景及统一门禁终态通过
 
 已实时复核同一源码 `bef2503026b9182d37a57f5a38f30da29242eedb`：正式 Windows run `40053143333` 的 source-gates `120750039365`、N08 `120754367276`、N09 `120754367200` 和 egress 均终态 success；同源码 Verify `40053143347` 八项 success。N09 固定入口要求 committed、clear、save、revoke 四场景，后两者必须实际 adapter durable ACK、同目录新 PID；composition 校验实际读回/公开生成/ACK/不重放计数，且四 adapter 与 listener 清理成功，外层 Job 确认 owned tree 为空。最终网络回执确认 TLS、负向非 loopback、probes 与清理均通过。日志原有固定 `n08Qualified:false` 不被解释成完整 N08 通过，`n09Complete:false` 保留。
