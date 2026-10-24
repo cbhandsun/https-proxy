@@ -198,6 +198,19 @@ function parseStageLine(line) {
   }
 }
 
+// Allocate before opening each owner. Late stderr events keep their original
+// epoch even when a later owner has already opened and reset its sequence.
+// The scope only supplies a finite ordinal; it never inspects diagnostic data.
+function createOwnerDiagnosticScope(diagnostic) {
+  if (typeof diagnostic !== 'function' || types.isProxy(diagnostic)) throw fail();
+  let epoch = 0;
+  return () => {
+    if (epoch >= Number.MAX_SAFE_INTEGER) throw fail();
+    const ownerEpoch = ++epoch;
+    return (value) => diagnostic(ownerEpoch, value);
+  };
+}
+
 function createObservedStorageWorker(diagnostic, WorkerType = Worker) {
   if (
     typeof diagnostic !== 'function' ||
@@ -240,4 +253,9 @@ function createObservedStorageWorker(diagnostic, WorkerType = Worker) {
   };
 }
 
-module.exports = { installOwnerStageProbe, parseStageLine, createObservedStorageWorker };
+module.exports = {
+  installOwnerStageProbe,
+  parseStageLine,
+  createObservedStorageWorker,
+  createOwnerDiagnosticScope,
+};

@@ -10,6 +10,7 @@ const {
   installOwnerStageProbe,
   parseStageLine,
   createObservedStorageWorker,
+  createOwnerDiagnosticScope,
 } = require('./helpers/recovery-owner-stage-probe');
 const workerFile = path.resolve(__dirname, '../lib/proxy/context-recovery-storage-worker.js');
 const helperFile = path.resolve(__dirname, 'helpers/recovery-owner-stage-probe.js');
@@ -487,4 +488,48 @@ test('observed engine rejects untrusted operation descriptors without getter/pro
     assert.throws(() => engine.execute(value), { message: 'recovery_stage_probe_failed' });
   assert.equal(traps, 0);
   assert.equal(f.rows.length, 0);
+});
+
+test('owner scope distinguishes reopened sequence numbers and delayed events without reading diagnostic data', () => {
+  const events = [];
+  const allocate = createOwnerDiagnosticScope((ownerEpoch, value) => {
+    events.push({ ownerEpoch, value });
+    if (value === null) throw new Error('fixed_observer_failure');
+  });
+  const first = allocate();
+  const second = allocate();
+  const row = Object.freeze({
+    sequence: 1,
+    operation: 'save',
+    stage: 'sqlite_commit',
+    elapsedMs: 1,
+  });
+  second(row);
+  first(row);
+  assert.deepEqual(
+    events.map(({ ownerEpoch }) => ownerEpoch),
+    [2, 1]
+  );
+  assert.equal(events[0].value, row);
+  assert.equal(events[1].value, row);
+  let traps = 0;
+  const opaque = new Proxy(
+    {},
+    {
+      get() {
+        traps++;
+        throw new Error('private');
+      },
+    }
+  );
+  first(opaque);
+  assert.equal(events[2].value, opaque);
+  assert.equal(traps, 0);
+  assert.throws(() => second(null), { message: 'fixed_observer_failure' });
+  const independent = createOwnerDiagnosticScope((ownerEpoch) => assert.equal(ownerEpoch, 1));
+  independent()(undefined);
+  for (const invalid of [undefined, null, {}, [], 1, 'private', new Proxy(() => {}, {})])
+    assert.throws(() => createOwnerDiagnosticScope(invalid), {
+      message: 'recovery_stage_probe_failed',
+    });
 });

@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：8225e2b完整Windows Rust通过，补齐慢样本owner归属
+
+8225e2b59f75ffb8068805e653dce5cdca25d078已提交推送，普通Verify `40143389800`的Rust作业`121019601628`终态success，完整fmt/Clippy/应用测试与审计通过；实际应用模块29项、二进制1项及原生助手20项通过，零ignore，新增proxy_control五项和Windows只读进程句柄观察均在真实Windows执行。node-quality、integration及unit0/unit2也已success，其余普通CI与正式Windows `40143389838`仍执行；安装review `40143410686` / job `121019741120`仍在原完整候选门禁，未重跑、未宣称安装启停资格。原7f18e86合成WFP25秒超时及所有历史五秒失败保留。
+
+定点读取慢样本日志接线发现：同一kind/mode在关库重开后engine sequence重新从一计数，原诊断缺少owner归属，不能把重复sequence的COMMIT与失败请求直接归因。本批仅在测试观察器增加独立分配、闭包固定的正整数ownerEpoch，首个owner为1、重开为2；延迟到达的旧stderr仍保留旧epoch，父端生命周期/存储耗时与其worker阶段共用同一个固定归属。原产品请求、worker消息、存储回执和所有超时不变，不记录路径、凭据、原文或原始响应。
+
+新增回归验证重开后的同序号可区分、旧事件延迟到达不被新epoch覆盖、独立作用域从一开始、数据按原身份传递且不触发getter/Proxy，以及观察器错误不转成功；原阶段与实际SQLite事务回归合计11/11通过、零skip，定点Lint和CI/发行治理通过。该批是后续因果定位所需的证据修正，不是性能修复；五秒COMMIT/系统等待根因仍未关闭，完整交付缺口与长测/额度约束保持。
+
 ## 2026-10-24：安装原生启停与持久重开探针，等待实际 Windows 候选验证
 
 7f18e86普通Verify `40140373521`终态七项success、一项failure；Rust作业`121010660051`完整fmt/Clippy/应用测试和审计通过，coverage与integration也通过。unit3 `121010659961`的合成WFP policy layout子进程在25070ms触发原25000ms的spawnSync pwsh ETIMEDOUT，未取得该用例最终断言；不据此声称确定发生在启动阶段，不重跑或提高期限。正式Windows `40140373537`四项全success。上述证据修复了旧E0432和管理契约遗漏，但不关闭bb952a7的5012ms及历史五秒/六十秒失败。

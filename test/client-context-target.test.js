@@ -2389,10 +2389,13 @@ for (const kind of ['chat', 'responses', 'claude']) {
         let runtime = createContextRecoverySessions();
         const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-wbipc-core-'));
         const persistentDirectory = path.join(directory, 'context');
-        const diagnostic = (value) => t.diagnostic(JSON.stringify({ kind, mode, ...value }));
+        const { createOwnerDiagnosticScope } = require('./helpers/recovery-owner-stage-probe');
+        const nextOwnerDiagnostic = createOwnerDiagnosticScope((ownerEpoch, value) =>
+          t.diagnostic(JSON.stringify({ kind, mode, ...value, ownerEpoch }))
+        );
         let persistent =
           mode === 'long-persistent'
-            ? await persistentWbipcCoreOwner(persistentDirectory, diagnostic)
+            ? await persistentWbipcCoreOwner(persistentDirectory, nextOwnerDiagnostic())
             : null;
         if (persistent) {
           runtime.close();
@@ -2824,7 +2827,7 @@ for (const kind of ['chat', 'responses', 'claude']) {
                 .includes(Buffer.from(original)),
               false
             );
-            persistent = await persistentWbipcCoreOwner(persistentDirectory, diagnostic);
+            persistent = await persistentWbipcCoreOwner(persistentDirectory, nextOwnerDiagnostic());
             runtime = persistent.sessions;
             assert.equal(runtime.inspect().roots, 0);
             fixture = makeFixture();
