@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：认证快照减少完整重建，保留重新解密与旧聚合准入
+
+发布转换中断矩阵与取消修复已按原钩子提交并推送 `6c0f43f56a9948da79caa51ef0d1c38ec3ac28f7`，远端同SHA；其Verify `40089577296` 与正式Windows `40089577293`已启动，尚无本修复最终资格。再次核对旧候选 `1dd06ea`：Verify八项及正式Windows四项（含N08/N09）均success。不能据此关闭历史五秒性能不稳定，也不能覆盖后续生产修改。
+
+快照优化保留每次事务内所有blob的重新解密，保留库存精确匹配、AEAD、digest、bytes、source关联、UTF-8覆盖边界、敏感内容策略和元数据校验；没有跨事务缓存、跳过认证或减少owner的锚点持久化调用。引用快照只需expiry/revision/tag见证，新增内部认证路径避免为它再次构造、规范化和散列包含全部原文的完整checkpoint；legacy存储仍走原decode路径。
+
+复核发现并先补红回归：旧v8容量下，16条160000字节NUL的metadata和raw总量合法，完整hydrate因JSON转义后超12MiB拒绝，轻量初稿却错误接受。修正为对同结构、空output的最终checkpoint骨架运行原normalizeRecoveryCheckpointData，保留节点/深度及旧原始key预算，再以骨架大小加6×全部原文字节的保守JSON上界证明聚合准入。不能证明时回到原完整decode校验，绝不保守误拒或直接放行。8条密集NUL及20条160KB ASCII（保守上界超限但原路径合法）的正控仍接受，16条密集NUL负控重新拒绝；证明和回退均限本次调用。
+
+新增回归还覆盖600KB、多source、空source、legacy、完整load兼容、snapshot metadata/quota精确一致，及缺失、额外、替换密文、自洽但错误的sourceId/bytes/digest、UTF-8切分、敏感原文、reference checksum和重算digest后的非法metadata；同一损坏重复调用仍拒绝。构造密集转义夹具时首次被既有请求准入拒绝，后改用受控认证密文注入以测试开库后边界，未改请求门禁。此前Mac默认原生worker开库失败仍保留。
+
+最终五文件组合157项：156通过、1失败、零跳过，唯一失败仍为现有 actual encrypted worker 跨重开测试在Mac默认原生开库不可用；不改为内存、不新增skip。快照新增五项及发布/COMMIT回归全部通过。每次600KB样本快照旧/新均3次cipher.open、604644密文字节，完整hydrate由1降至0；加入骨架检查后交替6批、每批10次，旧约82–89ms、新约47–63ms，仅本Mac合成观察。全树1520个JS语法、变更格式/Lint、架构预算、CI/发布治理均通过；全树Lint零错误、5个既有警告，high级npm审计通过，传递fast-uri moderate仍保留，锁文件未升级。生产代码改变，旧安装器资格不覆盖新候选，尚未重建或授予最终Windows安装版资格。
+
+本批没有访问或修改正在运行的Windows冻结长测、没有核验额度或新增模型请求；原期限、FULL/DELETE、固定画像、ACK精确版本均保持。优化不宣称消除必要的重复解密，不授予Windows五秒HTTP、原生日档或最终安装资格。
+
 ## 2026-10-24：持久发布转换内部中断矩阵与取消清理修正
 
 按用户要求先核对现有CI，没有重跑：`1dd06ea` 的Verify `40088184535` 八项均success，正式Windows `40088184542` source-gates与egress成功、N08/N09进行中；`ad1d769` 的Verify `40088855196` 七项成功、coverage进行中，正式Windows `40088855188` source-gates进行中、egress成功。历史be7bacee失败继续保留，单次通过不关闭五秒性能稳定性问题。

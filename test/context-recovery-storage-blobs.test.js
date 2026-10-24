@@ -321,6 +321,322 @@ test('created checkpoint validation retains empty, malformed, capacity and hosti
   assert.equal(traps, 0);
 });
 
+test('reference snapshots authenticate all payloads without hydrating a plaintext checkpoint', (t) => {
+  const f = fixture();
+  t.after(() => f.close());
+  const state = checkpoint(['x'.repeat(600000), 'é🙂', '']);
+  f.execute(stateRequest(f, referenceStateFromCheckpoint(state), checkpointPayloads(state)));
+  const codec = require('../lib/proxy/context-recovery-root-checkpoint');
+  const hydrate = codec.createValidatedRootCheckpoint;
+  let hydrated = 0;
+  t.mock.method(codec, 'createValidatedRootCheckpoint', (...args) => {
+    hydrated++;
+    return hydrate(...args);
+  });
+  const prepare = f.database.prepare.bind(f.database);
+  let payloads = 0,
+    encryptedBytes = 0;
+  t.mock.method(f.database, 'prepare', (sql) => {
+    const statement = prepare(sql);
+    if (sql !== 'SELECT * FROM recovery_blob WHERE scope=? AND blob_id=?') return statement;
+    return {
+      get(...args) {
+        const row = statement.get(...args);
+        payloads++;
+        encryptedBytes += row?.envelope.length ?? 0;
+        return row;
+      },
+    };
+  });
+  for (let index = 0; index < 2; index++) {
+    payloads = encryptedBytes = 0;
+    const snapshot = f.snapshot();
+    assert.equal(snapshot.scopes.length, 1);
+    assert.equal(snapshot.scopes[0].revision, 1);
+    assert.equal(snapshot.scopes[0].expiresAt, state.root.expiresAt);
+    assert.equal(payloads, 3, 'every payload is authenticated again under each transaction');
+    assert.ok(encryptedBytes > 600000);
+    assert.equal(hydrated, 0, 'snapshot does not rebuild or normalize a full plaintext checkpoint');
+  }
+  assert.deepEqual(f.load().state, state);
+  assert.equal(hydrated, 1, 'a full load still uses the original hydration validator');
+});
+
+test('reference snapshot authentication keeps empty roots and legacy checkpoint hydration', () => {
+  for (const referenced of [false, true]) {
+    const f = fixture();
+    try {
+      const state = checkpoint([]);
+      if (referenced) f.execute(stateRequest(f, referenceStateFromCheckpoint(state), []));
+      else f.save(state);
+      assert.equal(f.snapshot().scopes[0].expiresAt, state.root.expiresAt);
+      assert.deepEqual(f.load().state, state);
+    } finally {
+      f.close();
+    }
+  }
+});
+
+test('snapshot witnesses and quota agree with the fully hydrated checkpoint metadata', () => {
+  for (const referenced of [false, true]) {
+    const f = fixture();
+    try {
+      const state = checkpoint(['x'.repeat(600000), 'é🙂']);
+      const reference = referenceStateFromCheckpoint(state);
+      if (referenced) f.execute(stateRequest(f, reference, checkpointPayloads(state)));
+      else f.save(state);
+      const full = referenced ? hydrateReferenceState(reference, checkpointPayloads(state)) : state;
+      assert.deepEqual(parseReferenceState(reference), referenceStateFromCheckpoint(full));
+      const row = f.row();
+      const context = f.context(row);
+      const header = f.database.prepare('SELECT store_id, envelope FROM recovery_header').get();
+      const payloadBytes = f.database
+        .prepare('SELECT sum(length(envelope)) AS bytes FROM recovery_blob WHERE scope=?')
+        .get(f.scope).bytes;
+      const snapshot = f.snapshot();
+      assert.deepEqual(snapshot, {
+        storeId: header.store_id,
+        maxTime: full.root.observedAt,
+        scopes: [
+          {
+            scope: f.scope,
+            revision: row.revision,
+            createdAt: row.created_at,
+            expiresAt: full.root.expiresAt,
+            kind: 'state',
+            tag: createHash('sha256')
+              .update(row.envelope)
+              .update(JSON.stringify(context))
+              .digest('hex'),
+          },
+        ],
+      });
+      assert.deepEqual(f.execute({ operation: 'inspect' }), {
+        records: 1,
+        bytes: row.envelope.length + payloadBytes,
+      });
+      assert.deepEqual(f.load().state, full);
+    } finally {
+      f.close();
+    }
+  }
+});
+
+test('reference snapshot rejects missing, extra, substituted and authenticated malformed payloads', () => {
+  for (const mode of [
+    'missing',
+    'extra',
+    'swapped',
+    'sourceId',
+    'bytes',
+    'digest',
+    'utf8',
+    'policy',
+    'checksum',
+    'metadata',
+  ]) {
+    const f = fixture();
+    try {
+      const state = checkpoint(['é🙂x', 'another']);
+      const reference = referenceStateFromCheckpoint(state);
+      f.execute(stateRequest(f, reference, checkpointPayloads(state)));
+      assert.equal(f.snapshot().scopes.length, 1);
+      const blobs = f.database
+        .prepare('SELECT * FROM recovery_blob WHERE scope=? ORDER BY blob_id')
+        .all(f.scope);
+      const source = reference.metadata.ledger.sources[0];
+      const id = (value) =>
+        sha(
+          JSON.stringify([
+            'hpm/recovery/blob/v1',
+            value.sourceId,
+            value.digest,
+            value.bytes,
+            value.createdAt,
+            value.expiresAt,
+          ])
+        );
+      const blob = blobs.find((row) => row.blob_id === id(source));
+      const blobContext = (row) => ({
+        storeId: f.context(f.row()).storeId,
+        scope: sha('hpm/recovery/blob/aad/v1\0' + row.scope + '\0' + row.blob_id),
+        revision: 1,
+        createdAt: row.created_at,
+        expiresAt: row.expires_at,
+        kind: 'state',
+        version: 1,
+      });
+      if (mode === 'missing') {
+        f.database
+          .prepare('DELETE FROM recovery_blob WHERE scope=? AND blob_id=?')
+          .run(f.scope, blob.blob_id);
+      } else if (mode === 'extra') {
+        f.database
+          .prepare('INSERT INTO recovery_blob VALUES(?,?,?,?,?)')
+          .run(f.scope, 'f'.repeat(64), blob.created_at, blob.expires_at, blob.envelope);
+      } else if (mode === 'swapped') {
+        const other = blobs.find((row) => row.blob_id !== blob.blob_id);
+        f.database
+          .prepare('UPDATE recovery_blob SET envelope=? WHERE scope=? AND blob_id=?')
+          .run(other.envelope, f.scope, blob.blob_id);
+      } else if (mode === 'checksum' || mode === 'metadata') {
+        const row = f.row();
+        const envelope = f.cipher.open(f.context(row), row.envelope);
+        if (mode === 'checksum') envelope.reference.digest = 'f'.repeat(64);
+        else {
+          envelope.reference.metadata.budget.calls = -1;
+          const { digest: _digest, ...payload } = envelope.reference;
+          envelope.reference.digest = fingerprintContextData(payload);
+        }
+        f.database
+          .prepare('UPDATE recovery_state SET envelope=? WHERE scope=?')
+          .run(f.cipher.seal(f.context(row), envelope), f.scope);
+      } else if (mode === 'utf8') {
+        const metadata = {
+          ...reference.metadata,
+          budget: { ...reference.metadata.budget, calls: 1 },
+          ledger: {
+            ...reference.metadata.ledger,
+            readCount: 1,
+            sources: reference.metadata.ledger.sources.map((value, index) =>
+              index === 0 ? { ...value, coveredThrough: 1 } : value
+            ),
+          },
+        };
+        const row = f.row(),
+          envelope = f.cipher.open(f.context(row), row.envelope);
+        envelope.reference = createReferenceState(metadata, []);
+        f.database
+          .prepare('UPDATE recovery_state SET envelope=? WHERE scope=?')
+          .run(f.cipher.seal(f.context(row), envelope), f.scope);
+      } else {
+        const value = f.cipher.open(blobContext(blob), blob.envelope);
+        if (mode === 'policy') {
+          value.output = 'Bearer syntheticcredential123456';
+          value.bytes = Buffer.byteLength(value.output);
+          value.digest = sha(value.output);
+          const changed = { ...source, bytes: value.bytes, digest: value.digest };
+          const metadata = {
+            ...reference.metadata,
+            ledger: {
+              ...reference.metadata.ledger,
+              sources: reference.metadata.ledger.sources.map((item, index) =>
+                index === 0 ? changed : item
+              ),
+            },
+          };
+          const row = f.row(),
+            envelope = f.cipher.open(f.context(row), row.envelope);
+          envelope.reference = createReferenceState(metadata, []);
+          f.database
+            .prepare('UPDATE recovery_state SET envelope=? WHERE scope=?')
+            .run(f.cipher.seal(f.context(row), envelope), f.scope);
+          const next = { ...blob, blob_id: id(changed) };
+          f.database
+            .prepare('UPDATE recovery_blob SET blob_id=?,envelope=? WHERE scope=? AND blob_id=?')
+            .run(next.blob_id, f.cipher.seal(blobContext(next), value), f.scope, blob.blob_id);
+        } else {
+          if (mode === 'sourceId') value.sourceId = 'hce_' + 'e'.repeat(32);
+          if (mode === 'bytes') value.bytes++;
+          if (mode === 'digest') value.digest = 'e'.repeat(64);
+          f.database
+            .prepare('UPDATE recovery_blob SET envelope=? WHERE scope=? AND blob_id=?')
+            .run(f.cipher.seal(blobContext(blob), value), f.scope, blob.blob_id);
+        }
+      }
+      for (let index = 0; index < 2; index++) assert.throws(() => f.snapshot(), unavailable);
+    } finally {
+      f.close();
+    }
+  }
+});
+
+test('reference snapshots retain whole hydrated envelope admission for dense escapes and aggregate payloads', () => {
+  for (const [count, output, accepted] of [
+    [8, '\0'.repeat(160000), true],
+    [20, 'x'.repeat(160000), true],
+    [16, '\0'.repeat(160000), false],
+  ]) {
+    const f = fixture();
+    try {
+      const state = checkpoint(Array.from({ length: count }, () => 'tiny'));
+      const daily = referenceStateFromCheckpoint(state);
+      f.execute(stateRequest(f, daily, checkpointPayloads(state)));
+      const legacy = createReferenceState(
+        {
+          ...daily.metadata,
+          sourceVersion: 8,
+          ledger: {
+            ...daily.metadata.ledger,
+            policy: { ...daily.metadata.ledger.policy, maxBytes: 4 * 1024 * 1024 },
+            sources: daily.metadata.ledger.sources.map((source) => ({
+              ...source,
+              bytes: Buffer.byteLength(output),
+              digest: sha(output),
+            })),
+          },
+        },
+        []
+      );
+      // Authenticate an old-capacity manifest using the same retained payloads.
+      // Metadata/raw-byte quota alone cannot prove the escaped full envelope fits.
+      const row = f.row(),
+        stored = f.cipher.open(f.context(row), row.envelope);
+      const id = (source) =>
+        sha(
+          JSON.stringify([
+            'hpm/recovery/blob/v1',
+            source.sourceId,
+            source.digest,
+            source.bytes,
+            source.createdAt,
+            source.expiresAt,
+          ])
+        );
+      for (const [index, source] of legacy.metadata.ledger.sources.entries()) {
+        const newId = id(source);
+        const context = {
+          storeId: f.context(row).storeId,
+          scope: sha('hpm/recovery/blob/aad/v1\0' + f.scope + '\0' + newId),
+          revision: 1,
+          createdAt: source.createdAt,
+          expiresAt: source.expiresAt,
+          kind: 'state',
+          version: 1,
+        };
+        const envelope = f.cipher.seal(context, {
+          version: 1,
+          sourceId: source.sourceId,
+          bytes: source.bytes,
+          digest: source.digest,
+          output,
+        });
+        f.database
+          .prepare('UPDATE recovery_blob SET blob_id=?,envelope=? WHERE scope=? AND blob_id=?')
+          .run(newId, envelope, f.scope, id(daily.metadata.ledger.sources[index]));
+      }
+      const payloads = legacy.metadata.ledger.sources.map(({ sourceId }) => ({ sourceId, output }));
+      stored.reference = legacy;
+      f.database
+        .prepare('UPDATE recovery_state SET envelope=? WHERE scope=?')
+        .run(f.cipher.seal(f.context(row), stored), f.scope);
+      if (accepted) {
+        const full = hydrateReferenceState(legacy, payloads);
+        assert.equal(f.snapshot().scopes[0].expiresAt, full.root.expiresAt);
+        assert.deepEqual(f.load().state, full);
+      } else {
+        assert.throws(() => hydrateReferenceState(legacy, payloads), {
+          code: 'invalid_recovery_reference_state',
+        });
+        assert.throws(() => f.load(), unavailable);
+        assert.throws(() => f.snapshot(), unavailable);
+      }
+    } finally {
+      f.close();
+    }
+  }
+});
+
 test('snapshots authenticate each reference inventory once and recheck expiry and ciphertext', (t) => {
   const f = fixture();
   try {
