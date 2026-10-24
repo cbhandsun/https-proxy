@@ -1,5 +1,21 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：9401ca6完整门禁通过，启动最新安装生命周期并找回582实包
+
+`9401ca6fcd6493956516b721028796d9bb64cca6` 的完整Verify `40095495560` 八项全部success；正式Windows `40095495598` 四项全部success，含source-gates `120876761893`、N08 `120880517161`、N09 `120880517157`。N08/N09最终probesPassed、ownedTreeEmpty、tlsVerified、nonLoopbackBlocked均true，范围仍为原各六场景；其n08Qualified=false及工作流中完整N08/N09、安装、24小时等未授予边界保持，不能改写为整体完成。此前2c39a56的完整门禁失败及be7bacee五秒失败均保留，未重跑旧失败制造绿色。
+
+独立timing `40095495577` 三个冷runner各完整执行Core/WBIPC和Codex摘要两个文件，均50/50、无跳过。各六次long-persistent请求为：job `120876762047` 1103/1280、1111/1267、1120/1291ms；job `120876762094` 1024/1235、1065/1238、1058/1268ms；job `120876761881` 1167/1266、1213/1365、1127/1336ms（各按chat、responses、Claude两轮排列）。完整coverage `120876762062` 在proxy/client两套入口另执行12次，最大2369ms；正式source-gates另12次，最大2355ms。合计本候选五个独立runner、42次固定负载持久恢复1024–2369ms，零long-persistent request_failed，原5000ms、默认worker、DPAPI、OS锚点、预扣和精确ACK均保留。该固定负载稳定性门禁已获重复通过，不宣称任意负载或机器的延迟保证，也不替代真实模型或日档。
+
+按原新建review分支机制启动最新候选的加密NSIS生命周期 `40096977916`，固定完整9401ca6 SHA，复用原625安装器不可变身份及未发布draft获取门禁。resolve `120881174431`已success，`encrypted / encrypted-lifecycle` job `120881245475`在候选完整verify阶段，安装/升级/回滚尚未取得最终结果；不发布新安装器，公开release.yml签名要求未改。该review push另触发既有Verify `40096977814`，未修改原触发器或跳过门禁。
+
+用户授权在Windows查找后，找到原582运行包`hpm-isolated-release-Wr2O5s/dist/staging/runtime`，manifest精确为`4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f`。以低优先级、只读方式核对全部582个源文件（4306633字节）及Node、native和lock摘要，全部一致；关键源码经manifest核验后用于兼容审查，未复制用户数据库、密钥或私有日志到GitHub。又在独立全新合成目录，以该包自己的Node/原生助手和9401ca6已提交NSIS driver真实seed、关闭、独立进程read，真实CurrentUser DPAPI成功，原文/root/source/预算/wrapped-key/原expiry内部回执逐字段相等；安全回执仅报告两次owner启动及布尔值。没有运行代理、读旧用户DB、修改日常配置或访问冻结日档。该步只证明582真实基线建库/重开，不是582迁移、NSIS或worker资格。
+
+新增可复现入口`node scripts/qualify-context-recovery-legacy-layout.cjs <582运行包绝对目录> <当前运行包绝对目录> <当前manifest SHA256>`。主入口只组合；参数、582固定manifest/Node/native身份、精确回执和八步序列，与新建OS-temp目录、隔离环境、原120000ms driver边界及只读SQLite见证分开。它不接受数据库目录，每次只创建全新数据根，逐步失败即停不重试；源身份每步前后重验，日志只有固定阶段、数值与包manifest。八步为582 seed/read、当前refuse-legacy、当前preview/enroll并首次read、当前resave/read、582 refuse-new-format、当前再次read。原driver内部证明preview/enroll不改库，再单独见证schema1→3；resave必须实际产生blob且revision精确+1。原expiry、root/source、预算、key和原文摘要只在内部比较，不进入公有回执。工具成功也明确nsisQualified/workerQualified/retention24hQualified/clientQualified=false。
+
+13项工具回归通过、零跳过，覆盖参数/访问器/非法与极端输入、错误包身份、目录替换、每一步失败停止、超时/退出/输出/重复JSON键、错误回执、期限/预算/布局/revision漂移、只读DB字节不变和安全日志。自动统一测试发现已确认。新两模块范围c8语句/行100%、函数100%、分支93.43%，沿85/80/90/85门槛通过；工具及NSIS/登记/拒写四文件扩大57项首次56通过、1项因Mac缺pwsh失败，失败保留。随后从官方发布核验SHA256后在本任务work中配置独立PowerShell，不覆盖其他版本，57项全部通过、无跳过。全树1527 JS语法、Lint（零错误、5个既有警告）、模块大小/图/组合根、生产secret、CI与发行治理通过；依赖/锁文件和生产运行源码未改。本批未实际执行完整582八步迁移，须在独立环境取得当前完整运行包后执行，不能把13项模拟回归或旧基线短测计作通过。
+
+下一步收齐9401ca6最新安装/升级回滚结果，执行582→当前实包的完整迁移/回滚拒写，再接入最新安装身份下的Codex/Claude实际客户端隔离验收。旧机四组客户端脚本已找回供审查，但仍读取旧日常认证并注入工作区，未直接运行，也未冒充最新NSIS客户端资格。本批没有访问、修改或重启冻结日档，未核验额度，真实模型调用为0；整体仍未交付。
+
 ## 2026-10-24：收齐2c39a56失败门禁，修正摘要恢复夹具的双时钟
 
 `2c39a56af1ea1dc2ef1b2230f56b27641bcfddc8` 完整Verify `40092807977` 终态为六项success、coverage `120868791653` 与unit-tests (2) `120868791732` failure。正式Windows `40092807751` egress成功、source-gates `120868790904` failure，后续context-recovery未执行；不得称为正式验收通过。三个失败均为context-recovery-codex-summary.test.js的 restored Codex summary completes isolated READ and encrypted public publication 返回context_recovery_unavailable，不是本轮五秒超时。旧失败全部保留。

@@ -41,6 +41,10 @@ node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1
 
 ## 当前失败与下一步
 
+**9401ca6最终门禁及下一批：** Verify `40095495560` 八项与正式Windows `40095495598` 四项均success，N08/N09原各六场景安全probe四项均true；完整产品/日档/安装资格仍不据此授予。独立三冷runner各50/50，结合完整coverage和正式source-gates，本候选五runner共42次持久恢复1024–2369ms、零五秒失败。最新加密NSIS生命周期 `40096977916`已实际启动，job `120881245475`尚在候选验证阶段，未有安装/升级回滚最终结论。历史失败继续保留。
+
+**582实包已找回：** Windows原`hpm-isolated-release-Wr2O5s/dist/staging/runtime`的manifest与旧4eb1ea48…精确一致，全部582源文件及Node/native/lock散列一致。已在全新合成目录以原包Node/native、已提交安全driver完成真实DPAPI seed和独立进程read，原文/身份/预算/key/原expiry内部回执相等，未开用户旧DB。新可复现入口`node scripts/qualify-context-recovery-legacy-layout.cjs <582包绝对目录> <当前包绝对目录> <当前manifest SHA256>`只创建新OS-temp数据根，复用原驱动执行八步，按schema1→3、resave实际blob及revision精确+1、旧版拒写保字节及当前重开验证；不接受用户DB路径。13项工具回归和扩大57项通过，不代表实际八步迁移已通过，后者待独立当前实包环境。运行中冻结日档未访问或改变，勿为此抢占其目录、任务或验收资源；模型额度仍未核验、调用为零。
+
 **2c39a56收齐结果：** Verify `40092807977` 的coverage/unit(2)及正式Windows `40092807751` source-gates均因同一个Codex摘要恢复夹具失败，正式后续场景未执行。本机已复现：session时钟1001而storage固定10000，触发正确的未来观测拒绝；当前修正为共享夹具时钟，生产时间/认证/持久门禁不变。四文件81项回归通过。独立timing `40092807887` 30/30通过，加coverage及正式source-gates已执行的同类请求，共18次真实Windows持久恢复1227–2744ms、无五秒超时；不抵消完整CI失败。下一候选须收齐完整Verify、正式Windows和三个独立冷runner样本后再进入迁移/安装资格。历史失败及正在运行的冻结日档保持原状态，额度未核验、模型调用为零。
 
 **2026-10-24 新进展优先见实施状态顶部：** 续接候选已推送为1dd06ea，不能替换运行中冻结树的身份。另已在Mac补充实际SQLite COMMIT锁等待内部强杀，以及五种持久发布状态在COMMIT内/提交后ACK前的强杀与正控，修正引用存储取消清理缺陷；尚不覆盖磁盘同步瞬间或Windows原生资格。快照后续优化保留所有重新解密认证，仅在保留完整聚合准入时避免完整checkpoint重建；不能证明大小安全时回到原decode。当前五秒排查已定位串行FULL提交尾延迟，并补生产复合READ减少一次持久提交；原独立预扣、认证、锚点、时间水位和ACK门禁仍保留，须先取得此候选真实Windows反馈，不能凭Mac对照宣称五秒已修复。 Windows 最小开库及真实多根多页短测已通过，旧原生失败未在新隔离环境复现，不能倒推旧根因。真实 day-small 已在独立冻结 Windows 工作树及一次性任务启动，尚未取得24小时及到期后结果；勿另起重复日档或按下面旧暂停描述重启它。先读取现有冻结树 `.hpm-acceptance/task.json` 和安全进度，确认对应 PID 的实际身份及任务终态，不能只凭旧 PID 判断。候选入口 `scripts/qualify-context-recovery-native-day.js` 固定真实画像与时钟，并包含24h之后实际根到期及双重开库拒读；回归假时钟不替代该运行。be7bacee现有CI两条均终态失败：coverage idle注入锁竞争和正式Claude long-persistent五秒请求失败均保留，父提交通过不覆盖它们。
