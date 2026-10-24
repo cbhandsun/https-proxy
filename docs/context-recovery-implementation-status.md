@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：真实 NSIS 旧库显式登记与迁移后重开验收终态通过
+
+源码 `eb43df9ab54d150abefffff86bcf920c95e24aa9` 的加密安装 `40045048891`，job `120724845166` 终态 success：安全草稿下载、字面完整门禁、实际 NSIS 构建、安装/升级/回滚/重装/卸载及清理全部 success。最终安装 manifest SHA256 为 `93bff440238f0a8fa445f7b897bf6ac9b56d7a2f0d4ada75dc3c719cbc8bae60`。旧625-source读器生成的合成旧库先被当前启动安全拒绝，随后通过安装目录内的命令模块显式 preview/enroll；真实 native key unwrap 两次、独立 anchor compare 一次，预览/登记前后库存文件不变，登记后实际 owner 精确读回，并跨进程 read/resave/read，原始身份、key、预算与绝对到期回执逐字段一致。新锚定库重开、四组合 module API 与实际管理 HTTP 也通过；HTTP回执仍明确 forced_cleanup、gracefulDrainQualified=false、clientQualified=false。
+
+这是一次性 Windows runner 同用户真实 DPAPI 与旧625-source格式迁移资格，使用合成原文，不请求模型，不上传安装器、DB、key或原文，也未发布draft。它不授予582布局、旧reader防回滚、完整N09故障矩阵、真实24小时容量、终端真实模型安装版或生产启用资格。新提交 `9c8f53df` 进一步补充本地登记后撤销备份回归、安全阶段定位和逐候选 SHA review 入口；不能将旧源码安装验收直接当作所有新源码门禁已通过。
+
 ## 2026-10-23：登记后正常 owner 重开与撤销备份回归通过；N09 在 ACK 回执阶段失败
 
 旧库登记测试进一步接通真实 `createStorageOwner`（加密 SQLite，合成 key/anchor 后端）：登记后原文、revision、绝对到期保留，保存后重开保持 revision 与期限，撤销后不能读取；覆盖撤销前 checkpoint 字节后，正常 owner 拒绝启动且不改写该备份。另一回归确认早已过期旧库不会因登记或正常启动重新获得期限。该文件完整25项通过，沿用统一 unit/client coverage；这些结果不授予真实 DPAPI 或旧版本读器资格。
