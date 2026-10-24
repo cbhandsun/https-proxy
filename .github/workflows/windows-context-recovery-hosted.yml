@@ -96,11 +96,11 @@ jobs:
             'When their preparation stages run, payload, synthetic credentials, original evidence, DPAPI keys and certificates are generated only on this disposable runner.'
             'No private local acceptance directory or old installer artifact is an input. No payload, key, database or request body is uploaded.'
             if ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09') {
-              'Passed scope: four cases: committed metadata, clear ACK, save ACK and revoke ACK; forced kill and same-directory restart under the original bounded Job.'
+              'Passed scope: five cases: committed metadata, clear ACK, save ACK, revoke ACK and same-format backup rollback after revoke; forced kill and same-directory restart under the original bounded Job.'
             } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n08') {
               'Passed scope: six mutation/hold cases with business-output and authenticated committed-state checks under the original bounded Job.'
             }
-            'Not qualified: commit/publication in progress, backup rollback, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
+            'Not qualified: commit/publication in progress, historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
           ) >> $env:GITHUB_STEP_SUMMARY
 
   egress-diagnostic:

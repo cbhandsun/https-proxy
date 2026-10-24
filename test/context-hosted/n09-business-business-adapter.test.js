@@ -14,6 +14,7 @@ const {
 const {
   runClearAfterAck,
   runDurableSaveOrRevokeAfterAck,
+  runBackupRollbackAfterRevoke,
 } = require('../../scripts/context-hosted/n09-ipc/driver.js');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const bad = { message: 'n09_business_adapter_failed' };
@@ -72,6 +73,13 @@ function fixture(mutation = () => {}, onPhase) {
           return { configured: true };
         },
         attestSyntheticBusiness: async () => ({ ready: true, syntheticBusinessConfigured: true }),
+        attestRejectedPersistentStorage: async () => {
+          const value = { persistentStorageRejected: true, syntheticBusinessConfigured: true };
+          mutation('rejected-storage', value, state);
+          state.storageRejected = true;
+          state.events.push('rejected-storage');
+          return value;
+        },
         ...(state.diagnostic === undefined ? {} : { readRecoveryFailurePhase: state.diagnostic }),
         ...(state.admissionDiagnostic === undefined
           ? {}
@@ -163,8 +171,39 @@ function fixture(mutation = () => {}, onPhase) {
       },
       close() {},
     }),
+    createBackup: (_input, assertStopped) => ({
+      capture() {
+        assert.equal(assertStopped(), true);
+        state.events.push('backup-capture');
+        const value = { encryptedFilesCaptured: 2, independentAnchorCaptured: false };
+        mutation('backup-capture', value, state);
+        return value;
+      },
+      restore() {
+        assert.equal(assertStopped(), true);
+        state.events.push('backup-restore');
+        state.cleared = false;
+        const value = { encryptedFilesRestored: 2, independentAnchorRestored: false };
+        mutation('backup-restore', value, state);
+        return value;
+      },
+      close() {
+        state.backupClosed = true;
+      },
+    }),
     createBusinessClient: (input) => async () => {
       state.sent++;
+      if (state.storageRejected) {
+        const body = {
+          error: {
+            type: 'service_unavailable',
+            code: 'context_recovery_unavailable',
+            message: 'Context recovery is temporarily unavailable.',
+          },
+        };
+        mutation('rejected-reply', body, state);
+        return { status: state.rejectedStatus ?? 503, bytes: Buffer.from(JSON.stringify(body)) };
+      }
       const body = JSON.parse(input.templates.continuation);
       const native = async (request) => {
         let result;
@@ -310,6 +349,72 @@ function fixture(mutation = () => {}, onPhase) {
   });
   return { adapter, options, proof, state, trusted };
 }
+test('backup rollback driver requires control read, actual revoke boundary and rejected HTTP', async () => {
+  const f = fixture();
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  const receipt = await runBackupRollbackAfterRevoke(f.adapter);
+  assert.equal(receipt.adapterBackupRollbackObserved, true);
+  assert.equal(receipt.liveDaemonProved, false);
+  assert.equal(receipt.n09Complete, false);
+  assert.equal(f.state.nativeReadObserved, 2);
+  assert.equal(f.state.stopped, 3);
+  assert.equal(f.state.closed, 1);
+  assert.equal(f.state.backupClosed, true);
+  const events = f.state.events;
+  assert.deepEqual(events.slice(events.indexOf('ack'), events.indexOf('ack') + 3), [
+    'ack',
+    'kill',
+    'backup-restore',
+  ]);
+  assert.deepEqual(
+    events.slice(events.indexOf('backup-capture') - 2, events.indexOf('backup-capture')),
+    ['kill', 'snapshot']
+  );
+});
+
+test('backup rollback rejects invalid evidence and preserves independent cleanup', async () => {
+  for (const mutation of [
+    (at, value) => {
+      if (at === 'backup-capture') value.independentAnchorCaptured = true;
+    },
+    (at, value) => {
+      if (at === 'backup-restore') value.encryptedFilesRestored = 1;
+    },
+    (at, value) => {
+      if (at === 'rejected-storage') value.persistentStorageRejected = false;
+    },
+    (at, value) => {
+      if (at === 'rejected-reply') value.error.code = 'unrelated_failure';
+    },
+    (at, value) => {
+      if (at === 'rejected-reply') value.original = 'PRIVATE_SYNTHETIC_SENTINEL';
+    },
+    (at, _value, state) => {
+      if (at === 'rejected-reply') state.rejectedStatus = 200;
+    },
+  ]) {
+    const f = fixture(mutation);
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runBackupRollbackAfterRevoke(f.adapter), {
+      message: 'n09_ack_kill_failed',
+    });
+    assert.equal(f.state.closed, 1);
+    assert.equal(f.state.backupClosed, true);
+  }
+});
+
+test('backup adapter refuses capture while live and rejected restart before restoration', async () => {
+  const f = fixture();
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  const owner = await f.adapter.startFreshBusinessHost();
+  await f.adapter.seedThroughBusinessHttp(owner);
+  assert.throws(() => f.adapter.captureStoppedBackup(owner), bad);
+  await assert.rejects(f.adapter.restartWithRejectedStorage(owner), bad);
+  await f.adapter.killOwnedJob(owner);
+  assert.throws(() => f.adapter.captureStoppedBackup({ ...owner, pid: owner.pid + 1 }), bad);
+  await assert.rejects(f.adapter.restartWithRejectedStorage(owner), bad);
+  await f.adapter.close();
+});
 test('502 diagnostics preserve failure and cleanup while exposing only fixed stage numbers', async () => {
   for (const diagnostic of [
     async () => 220,

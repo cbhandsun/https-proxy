@@ -4,6 +4,7 @@ const { randomBytes, createHash } = require('node:crypto');
 const { types } = require('node:util');
 const { createN09LifecycleClient } = require('./lifecycle-client-v2.js');
 const { createDurableSnapshotReader } = require('../n09-snapshot/readonly-snapshot.js');
+const { createStoppedStoreBackup } = require('../n09-backup/stopped-store-backup');
 const { createBusinessClient } = require('../shared/business-client.js');
 const { exact, snapshotOwnData } = require('../shared/boundary.js');
 const { launchOptions } = require('../n09-ipc/lifecycle-channel.js');
@@ -92,6 +93,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
           'createLifecycle',
           'createBusinessClient',
           'createSnapshots',
+          'createBackup',
           'spawn',
           'onPhase',
         ].includes(key) ||
@@ -127,6 +129,9 @@ function createN09BusinessAdapter(input, trusted = {}) {
     externalToolExecutions = 0,
     upstreamRequests = 0;
   let pendingSave;
+  let backup,
+    backupRestored = false,
+    storageRejected = false;
   let upstreamFailurePhase;
   // Fixed progress classes for a 502 without a synthetic-upstream rejection.
   // 211 seed capture; 212 recovery before upstream; 213 after LIST dispatch;
@@ -185,6 +190,19 @@ function createN09BusinessAdapter(input, trusted = {}) {
     gate(current);
     if (!snapshots) throw fail();
     return snapshots.read();
+  }
+  function stoppedIdentity(input) {
+    gate();
+    const identity = snapshotOwnData(input);
+    if (
+      current ||
+      !stoppedOwner ||
+      ['pid', 'configDir', 'runtimeDir', 'manifestSha256'].some(
+        (key) => identity[key] !== stoppedOwner[key]
+      )
+    )
+      throw fail();
+    return stoppedOwner;
   }
   function accounting(snapshot) {
     if (
@@ -409,18 +427,57 @@ function createN09BusinessAdapter(input, trusted = {}) {
       return result;
     },
     readCommittedSnapshotAfterKill(identity) {
-      gate();
-      identity = snapshotOwnData(identity);
-      if (
-        current ||
-        !stoppedOwner ||
-        !snapshots ||
-        ['pid', 'configDir', 'runtimeDir', 'manifestSha256'].some(
-          (key) => identity[key] !== stoppedOwner[key]
-        )
-      )
-        throw fail();
+      stoppedIdentity(identity);
+      if (!snapshots) throw fail();
       return snapshots.read();
+    },
+    captureStoppedBackup(identity) {
+      const owner = stoppedIdentity(identity);
+      if (backup || !seeded) throw fail();
+      backup = (trusted.createBackup ?? createStoppedStoreBackup)(
+        { ownedRoot: options.ownedRoot, runtimeDir: owner.runtimeDir },
+        () =>
+          !closed &&
+          !current &&
+          Boolean(stoppedOwner) &&
+          ['configDir', 'runtimeDir', 'manifestSha256'].every(
+            (key) => stoppedOwner[key] === owner[key]
+          )
+      );
+      const receipt = exact(backup.capture(), [
+        'encryptedFilesCaptured',
+        'independentAnchorCaptured',
+      ]);
+      if (receipt.encryptedFilesCaptured !== 2 || receipt.independentAnchorCaptured !== false)
+        throw fail();
+      return receipt;
+    },
+    restoreStoppedBackup(identity) {
+      stoppedIdentity(identity);
+      if (!backup || backupRestored) throw fail();
+      const receipt = exact(backup.restore(), [
+        'encryptedFilesRestored',
+        'independentAnchorRestored',
+      ]);
+      if (receipt.encryptedFilesRestored !== 2 || receipt.independentAnchorRestored !== false)
+        throw fail();
+      backupRestored = true;
+      return receipt;
+    },
+    async restartWithRejectedStorage(previous) {
+      stoppedIdentity(previous);
+      if (!seeded || !backupRestored || storageRejected) throw fail();
+      stoppedOwner = undefined;
+      current = await client().restartLifecycle(previous);
+      const ready = await client().attestRejectedPersistentStorage(current);
+      if (ready.persistentStorageRejected !== true || ready.syntheticBusinessConfigured !== true)
+        throw fail();
+      storageRejected = true;
+      return Object.freeze({
+        ...current,
+        actualBusinessHost: true,
+        isolatedLoopbackSynthetic: true,
+      });
     },
     async restartSameBusinessHost(previous) {
       gate();
@@ -597,6 +654,37 @@ function createN09BusinessAdapter(input, trusted = {}) {
         oldReceiptDenied: true,
         originalExposed: false,
         externalToolReplays: externalToolExecutions - 1,
+      });
+    },
+    async readRejectedStorageThroughBusinessHttp(identity) {
+      gate(identity);
+      if (!seeded || !backupRestored || !storageRejected) throw fail();
+      const before = upstreamRequests;
+      const response = await send(continuation);
+      if (
+        response.status !== 503 ||
+        !Buffer.isBuffer(response.bytes) ||
+        response.bytes.length > 4096
+      )
+        throw fail();
+      const body = exact(
+        JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(response.bytes)),
+        ['error']
+      );
+      const error = exact(body.error, ['type', 'code', 'message']);
+      if (
+        error.type !== 'service_unavailable' ||
+        error.code !== 'context_recovery_unavailable' ||
+        error.message !== 'Context recovery is temporarily unavailable.' ||
+        upstreamRequests !== before ||
+        externalToolExecutions !== 1
+      )
+        throw fail();
+      return Object.freeze({
+        requestDenied: true,
+        originalExposed: false,
+        upstreamRequests: 0,
+        externalToolReplays: 0,
       });
     },
     async onBusinessRequest(input) {
@@ -816,6 +904,11 @@ function createN09BusinessAdapter(input, trusted = {}) {
       closed = true;
       phase = 'closed';
       let failed = false;
+      try {
+        backup?.close();
+      } catch {
+        failed = true;
+      }
       try {
         snapshots?.close();
       } catch {

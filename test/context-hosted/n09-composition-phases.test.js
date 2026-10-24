@@ -18,12 +18,12 @@ function fixture(cleanupFails = false, listenerFails = false) {
       bindVerifiedNetworkProof() {},
       inspectBusinessEvidence: () => ({
         seeded: true,
-        validatedReadCount: index === 2 ? 2 : 1,
-        publicGenerationCount: index === 2 ? 2 : 1,
+        validatedReadCount: index === 2 || index === 4 ? 2 : 1,
+        publicGenerationCount: index === 2 || index === 4 ? 2 : 1,
         externalToolExecutions: 1,
         clearAckCount: index === 1 ? 1 : 0,
         saveAckCount: index === 2 ? 1 : 0,
-        revokeAckCount: index === 3 ? 1 : 0,
+        revokeAckCount: index === 3 || index === 4 ? 1 : 0,
       }),
       close: async () => {
         closed++;
@@ -50,6 +50,7 @@ function fixture(cleanupFails = false, listenerFails = false) {
     '../n09-ipc/driver.js': {
       runClearAfterAck: async () => ({}),
       runDurableSaveOrRevokeAfterAck: async () => ({}),
+      runBackupRollbackAfterRevoke: async () => ({}),
     },
     './hosted-lifecycle.js': {
       buildHostedLifecycle: copy,
@@ -96,18 +97,18 @@ function fixture(cleanupFails = false, listenerFails = false) {
   };
 }
 
-test('N09 composition reports fixed phases and retains all four business cases', async () => {
+test('N09 composition retains four original cases and adds stopped backup rollback', async () => {
   const f = fixture();
   const phases = [];
   const result = await f.run(f.options, (phase) => phases.push(phase));
-  assert.deepEqual(phases, [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84]);
-  assert.equal(result.cleanup.adaptersClosed, 4);
+  assert.deepEqual(phases, [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 84]);
+  assert.equal(result.cleanup.adaptersClosed, 5);
   assert.equal(result.cleanup.listenerClosed, true);
   assert.equal(result.n09Complete, false);
 });
 
 test('N09 phase failures retain their stage, sanitize errors and close acquired adapters', async () => {
-  for (let rejected = 73; rejected <= 83; rejected++) {
+  for (const rejected of [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85]) {
     const f = fixture();
     let last;
     await assert.rejects(
@@ -118,7 +119,10 @@ test('N09 phase failures retain their stage, sanitize errors and close acquired 
       /^Error: n09_hosted_composition_rejected$/
     );
     assert.equal(last, rejected);
-    assert.equal(f.closed(), rejected <= 74 ? 0 : rejected <= 81 ? 1 : rejected === 82 ? 2 : 3);
+    assert.equal(
+      f.closed(),
+      rejected <= 74 ? 0 : rejected <= 81 ? 1 : rejected === 82 ? 2 : rejected === 83 ? 3 : 4
+    );
   }
 });
 
@@ -135,7 +139,7 @@ test('N09 cleanup failures distinguish fixed resource classes and attempt every 
       /^Error: n09_hosted_composition_rejected$/
     );
     assert.equal(phases.at(-1), expected);
-    assert.equal(f.closed(), 4);
+    assert.equal(f.closed(), 5);
   }
 });
 

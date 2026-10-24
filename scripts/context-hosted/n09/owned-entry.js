@@ -197,7 +197,7 @@ async function main() {
     if (
       !Number.isInteger(phase) ||
       !(
-        (phase >= 73 && phase <= 84) ||
+        (phase >= 73 && phase <= 85) ||
         (phase >= 86 && phase <= 96) ||
         (phase >= 98 && phase <= 138) ||
         (phase >= 162 && phase <= 199) ||
@@ -212,7 +212,7 @@ async function main() {
       )
     )
       throw fail();
-    if (phase >= 80 && phase <= 83) businessCasePhase = phase;
+    if ((phase >= 80 && phase <= 83) || phase === 85) businessCasePhase = phase;
     const reported = phase === 230 ? publicReadFailurePhase(businessCasePhase) : phase;
     failureExitCode = reported;
     if (phase < 98 || phase >= 101) primaryFailurePhase = reported;
@@ -239,7 +239,14 @@ async function main() {
         result[operation].n09Complete !== false
     ) ||
     result.n09Complete !== false ||
-    result.cleanup?.adaptersClosed !== 4 ||
+    result.backup?.adapterBackupRollbackObserved !== true ||
+    result.backup.adapterRevokeBoundaryObserved !== true ||
+    result.backup.restoredStorageRejected !== true ||
+    result.backup.independentAnchorRestored !== false ||
+    result.backup.sameDirectoryNewPid !== true ||
+    result.backup.positiveReadBeforeRevoke !== true ||
+    result.backup.n09Complete !== false ||
+    result.cleanup?.adaptersClosed !== 5 ||
     result.cleanup.listenerClosed !== true
   )
     throw fail();
@@ -252,7 +259,7 @@ async function main() {
       nonLoopbackBlocked: true,
       listenerOwned: true,
       syntheticSocketsClosed: result.cleanup.listenerClosed,
-      cases: 4,
+      cases: 5,
       n09Complete: false,
     }) + '\n'
   );

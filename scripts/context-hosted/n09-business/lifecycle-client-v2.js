@@ -15,6 +15,7 @@ const { waitForManagementHttp } = require('./management-http-ready.js');
 const { waitForAppliedRecovery } = require('./applied-recovery-ready.js');
 const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
 const { assertSyntheticProfileReadback } = require('./synthetic-profile-readback.js');
+const { waitForRejectedStorage } = require('../n09-backup/rejected-storage');
 const { recoveryFailurePhase, recoveryAdmissionFailurePhase } = require('./recovery-failure-phase');
 const {
   createDaemonManagementHttpClient,
@@ -188,6 +189,35 @@ function createClientUnsafe(input, dependencies) {
   }
   const leaseStart = lease.startFreshBusinessHost;
   const leaseRestart = lease.restartSameBusinessHost;
+  async function syntheticConfiguration(input) {
+    const identity = owner(input);
+    if (!syntheticBusiness) throw fail();
+    const deadline = Date.now() + 15000;
+    await managementReady(identity, deadline);
+    const request = management(identity);
+    onPhase(116);
+    const configReply = await request({ method: 'GET', route: '/v1/local/config' });
+    const config = snapshot(configReply.body);
+    if (
+      configReply.status !== 200 ||
+      config.activeProfile !== 'n09-synthetic' ||
+      !assertSyntheticProfileReadback(config.profiles) ||
+      config.entryAuth?.enabled !== true ||
+      config.entryAuth.keys?.length !== 1 ||
+      config.entryAuth.keys[0].id !== 'n09-synthetic' ||
+      JSON.stringify(config.entryAuth.keys[0].allowedEntryPorts) !==
+        JSON.stringify([identity.entryPort]) ||
+      JSON.stringify(config.entryAuth.keys[0].allowedProfileIds) !==
+        JSON.stringify(['n09-synthetic']) ||
+      config.appSettings?.contextRecoveryEnabled !== true ||
+      config.appSettings?.contextRecoveryPersistenceEnabled !== true
+    ) {
+      onPhase(130);
+      throw fail();
+    }
+    onPhase(119);
+    return { identity, request, deadline };
+  }
   const implementation = {
     async readRecoveryAdmissionFailurePhase(input) {
       const identity = owner(input);
@@ -388,32 +418,7 @@ function createClientUnsafe(input, dependencies) {
       });
     },
     async attestSyntheticBusiness(input) {
-      const identity = owner(input);
-      if (!syntheticBusiness) throw fail();
-      const deadline = Date.now() + 15000;
-      await managementReady(identity, deadline);
-      const request = management(identity);
-      onPhase(116);
-      const configReply = await request({ method: 'GET', route: '/v1/local/config' });
-      const config = snapshot(configReply.body);
-      if (
-        configReply.status !== 200 ||
-        config.activeProfile !== 'n09-synthetic' ||
-        !assertSyntheticProfileReadback(config.profiles) ||
-        config.entryAuth?.enabled !== true ||
-        config.entryAuth.keys?.length !== 1 ||
-        config.entryAuth.keys[0].id !== 'n09-synthetic' ||
-        JSON.stringify(config.entryAuth.keys[0].allowedEntryPorts) !==
-          JSON.stringify([identity.entryPort]) ||
-        JSON.stringify(config.entryAuth.keys[0].allowedProfileIds) !==
-          JSON.stringify(['n09-synthetic']) ||
-        config.appSettings?.contextRecoveryEnabled !== true ||
-        config.appSettings?.contextRecoveryPersistenceEnabled !== true
-      ) {
-        onPhase(130);
-        throw fail();
-      }
-      onPhase(119);
+      const { identity, request, deadline } = await syntheticConfiguration(input);
       try {
         await waitForAppliedRecovery(
           () => request({ method: 'GET', route: '/v1/local/health' }),
@@ -427,6 +432,17 @@ function createClientUnsafe(input, dependencies) {
         throw fail();
       }
       return Object.freeze({ ready: true, syntheticBusinessConfigured: true });
+    },
+    async attestRejectedPersistentStorage(input) {
+      const { identity, request, deadline } = await syntheticConfiguration(input);
+      await waitForRejectedStorage(
+        () => request({ method: 'GET', route: '/v1/local/health' }),
+        async () =>
+          (await getChannel().exchange({ op: 'status', leaseId: liveHandle() })).status.alive,
+        identity.pid,
+        deadline
+      );
+      return Object.freeze({ persistentStorageRejected: true, syntheticBusinessConfigured: true });
     },
     getClearCapability(input) {
       const identity = owner(input);

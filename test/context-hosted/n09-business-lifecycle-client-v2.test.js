@@ -208,6 +208,39 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase) {
   return { client, state, input, runtimeDir };
 }
 
+test('restored storage attestation requires enabled config, live owner and explicit storage denial', async (t) => {
+  for (const outcome of ['unavailable', 'enabled', 'wrong-pid', 'wrong-config']) {
+    const f = fixture(t, (at, value, state) => {
+      if (at !== 'http' || !state.afterRestore) return;
+      if (value.contextRecovery) {
+        value.contextRecovery.state = outcome === 'enabled' ? 'enabled_restricted' : 'unavailable';
+        value.contextRecovery.appliedEnabled = outcome === 'enabled';
+        if (outcome === 'wrong-pid') value.pid++;
+      }
+      if (outcome === 'wrong-config' && value.appSettings)
+        value.appSettings = { ...value.appSettings, contextRecoveryEnabled: false };
+    });
+    const owner = await f.client.startLifecycle();
+    await f.client.configureSyntheticBusiness(owner, synthetic());
+    await f.client.stopLifecycle(owner);
+    const restarted = await f.client.restartLifecycle(owner);
+    f.state.afterRestore = true;
+    try {
+      if (outcome === 'unavailable')
+        assert.deepEqual(await f.client.attestRejectedPersistentStorage(restarted), {
+          persistentStorageRejected: true,
+          syntheticBusinessConfigured: true,
+        });
+      else
+        await assert.rejects(f.client.attestRejectedPersistentStorage(restarted), {
+          message: 'n09_lifecycle_client_failed',
+        });
+    } finally {
+      await f.client.close();
+    }
+  }
+});
+
 test('failed recovery stage is read only from owned management health and returned as a fixed number', async (t) => {
   const counters = {
     httpPreparationFailed: 0,

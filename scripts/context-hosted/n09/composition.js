@@ -11,7 +11,11 @@ const {
 } = require('../shared/build-hosted-controller.js');
 const { createN09BusinessAdapter } = require('../n09-business/business-adapter.js');
 const { runCommittedObservedKill } = require('../n09-snapshot/committed-observed-driver.js');
-const { runClearAfterAck, runDurableSaveOrRevokeAfterAck } = require('../n09-ipc/driver.js');
+const {
+  runClearAfterAck,
+  runDurableSaveOrRevokeAfterAck,
+  runBackupRollbackAfterRevoke,
+} = require('../n09-ipc/driver.js');
 const { buildHostedLifecycle, createHostedLifecycleSpawn } = require('./hosted-lifecycle.js');
 const { buildN09AckController } = require('../n09-ack/bootstrap-controller');
 const fail = () => new Error('n09_hosted_composition_rejected');
@@ -259,11 +263,50 @@ async function composeHostedN09(input, onPhase = () => {}) {
       active = undefined;
       verifyCopies();
     }
+    onPhase(85);
+    const backupAdapter = createN09BusinessAdapter(
+      {
+        ownedRoot: options.ownedRoot,
+        install: path.join(options.ownedRoot, 'payload'),
+        manifestSha256: options.manifestSha256,
+      },
+      {
+        spawn: createHostedLifecycleSpawn({
+          ownedRoot: options.ownedRoot,
+          manifestSha256: options.manifestSha256,
+        }),
+        onPhase,
+      }
+    );
+    adapters.push(backupAdapter);
+    active = backupAdapter;
+    verifyCopies();
+    backupAdapter.bindVerifiedNetworkProof(proof);
+    const backup = await runBackupRollbackAfterRevoke(backupAdapter);
+    const backupEvidence = backupAdapter.inspectBusinessEvidence();
+    if (
+      backupEvidence.seeded !== true ||
+      backupEvidence.validatedReadCount !== 2 ||
+      backupEvidence.publicGenerationCount !== 2 ||
+      backupEvidence.externalToolExecutions !== 1 ||
+      backupEvidence.clearAckCount !== 0 ||
+      backupEvidence.saveAckCount !== 0 ||
+      backupEvidence.revokeAckCount !== 1
+    )
+      throw fail();
+    active = undefined;
+    verifyCopies();
     result = {
       committed,
       clear,
       ...durable,
-      businessEvidence: { committed: committedEvidence, clear: clearEvidence, ...durableEvidence },
+      backup,
+      businessEvidence: {
+        committed: committedEvidence,
+        clear: clearEvidence,
+        ...durableEvidence,
+        backup: backupEvidence,
+      },
       networkProof: proof,
       originalControllerReused: true,
       tlsValidationDisabled: false,
@@ -279,7 +322,7 @@ async function composeHostedN09(input, onPhase = () => {}) {
     });
   }
   onPhase(84);
-  if (cleanup.adaptersClosed !== 4 || cleanup.listenerClosed !== true) throw fail();
+  if (cleanup.adaptersClosed !== 5 || cleanup.listenerClosed !== true) throw fail();
   return Object.freeze({ ...result, cleanup });
 }
 module.exports = { composeHostedN09, closeResources };

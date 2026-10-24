@@ -70,7 +70,7 @@ test('PowerShell runtime boundaries validate receipts and bound actual safe chil
       '72',
       '73',
       '84',
-      'other',
+      '85',
       '86',
       '94',
       '95',

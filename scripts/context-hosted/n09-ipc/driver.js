@@ -331,9 +331,116 @@ async function runDurableSaveOrRevokeAfterAck(adapter, operation) {
   if (failed) throw fail();
   return result;
 }
+// The normal same-directory restart is a positive control before revocation.
+// Restore only after the actual revoke ACK and verified forced termination;
+// the last restart must remain live while explicitly refusing stored recovery.
+async function runBackupRollbackAfterRevoke(adapter) {
+  let active,
+    result,
+    failed = false;
+  try {
+    const revoke = invoke(adapter, 'existingHostDurableAckCapability', 'revoke');
+    if (typeof revoke !== 'function' || types.isProxy(revoke)) throw fail();
+    active = identity(await invoke(adapter, 'startFreshBusinessHost'));
+    const original = baseline(await invoke(adapter, 'seedThroughBusinessHttp', active));
+    const before = data(await invoke(adapter, 'readThroughBusinessHttp', active));
+    if (before.exactRead !== true || before.externalToolReplays !== 0) throw fail();
+    accounting(original, before.accounting);
+    const first = active;
+    await forceKill(adapter, first);
+    active = undefined;
+    const checkpoint = data(invoke(adapter, 'readCommittedSnapshotAfterKill', first));
+    if (
+      checkpoint.present !== true ||
+      checkpoint.evidenceLevel !== 'committed-metadata-only' ||
+      checkpoint.hostDurableAck !== false ||
+      !Number.isSafeInteger(checkpoint.revision) ||
+      !Number.isSafeInteger(before.accounting.revision) ||
+      checkpoint.revision < before.accounting.revision ||
+      checkpoint.calls < before.accounting.calls
+    )
+      throw fail();
+    accounting(original, { ...original, ...checkpoint });
+    const revisionGap = checkpoint.revision - before.accounting.revision;
+    if (
+      checkpoint.returnedBytes <
+        Math.max(0, before.accounting.returnedBytes - revisionGap * 16384) ||
+      (revisionGap === 0 &&
+        (checkpoint.calls !== before.accounting.calls ||
+          checkpoint.returnedBytes !== before.accounting.returnedBytes))
+    )
+      throw fail();
+    const backedAccounting = baseline({ ...before.accounting, ...checkpoint });
+    const captured = data(invoke(adapter, 'captureStoppedBackup', first));
+    if (captured.encryptedFilesCaptured !== 2 || captured.independentAnchorCaptured !== false)
+      throw fail();
+    active = identity(await invoke(adapter, 'restartSameBusinessHost', first));
+    sameDirectory(first, active);
+    const control = data(await invoke(adapter, 'readThroughBusinessHttp', active));
+    if (control.exactRead !== true || control.externalToolReplays !== 0) throw fail();
+    accounting(backedAccounting, control.accounting);
+    const receipt = data(await Reflect.apply(revoke, undefined, [active]));
+    if (
+      Object.keys(receipt).sort().join(',') !== 'accounting,durableBoundary,kind,pid' ||
+      receipt.kind !== 'host-revoke-completed' ||
+      receipt.durableBoundary !== 'await-revokeAsync' ||
+      receipt.pid !== active.pid
+    )
+      throw fail();
+    accounting(baseline(control.accounting), receipt.accounting);
+    const revoked = active;
+    // No backup, management or observer I/O between revoke ACK and kill.
+    await forceKill(adapter, revoked);
+    active = undefined;
+    const restored = data(invoke(adapter, 'restoreStoppedBackup', revoked));
+    if (restored.encryptedFilesRestored !== 2 || restored.independentAnchorRestored !== false)
+      throw fail();
+    active = identity(await invoke(adapter, 'restartWithRejectedStorage', revoked));
+    sameDirectory(revoked, active);
+    if (active.pid === first.pid) throw fail();
+    const denied = data(await invoke(adapter, 'readRejectedStorageThroughBusinessHttp', active));
+    if (
+      denied.requestDenied !== true ||
+      denied.originalExposed !== false ||
+      denied.upstreamRequests !== 0 ||
+      denied.externalToolReplays !== 0
+    )
+      throw fail();
+    result = Object.freeze({
+      evidenceLevel: 'adapter-orchestration-only',
+      adapterBackupRollbackObserved: true,
+      adapterRevokeBoundaryObserved: true,
+      sameDirectoryNewPid: true,
+      positiveReadBeforeRevoke: true,
+      restoredStorageRejected: true,
+      independentAnchorRestored: false,
+      liveDaemonProved: false,
+      installationQualified: false,
+      n09Complete: false,
+    });
+  } catch {
+    failed = true;
+  } finally {
+    if (active) {
+      try {
+        await forceKill(adapter, active);
+      } catch {
+        failed = true;
+      }
+    }
+    try {
+      await invoke(adapter, 'close');
+    } catch {
+      failed = true;
+    }
+  }
+  if (failed) throw fail();
+  return result;
+}
 module.exports = {
   createClearClient,
   runClearAfterAck,
   runDurableSaveOrRevokeAfterAck,
+  runBackupRollbackAfterRevoke,
   accounting,
 };

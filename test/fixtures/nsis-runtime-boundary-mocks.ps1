@@ -107,12 +107,12 @@ try {
         Refuses { Invoke-Child ("process.stderr.write('n09_owned_entry_rejected\nn09_primary_phase=" + $primary + "\n');process.exit(98);") }
     }
     & $module {
-        foreach ($phase in @(73, 84, 86, 96, 101, 108, 109, 120, 121, 125, 126, 127, 128, 129, 130, 131, 138, 162, 173, 174, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254)) {
+        foreach ($phase in @(73, 84, 85, 86, 96, 101, 108, 109, 120, 121, 125, 126, 127, 128, 129, 130, 131, 138, 162, 173, 174, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254)) {
             $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected`nn09_primary_phase=$phase`n")
             if ((ConvertFrom-HpmOwnedFailurePhase $bytes) -ne $phase) { throw 'Valid phase rejected.' }
         }
         foreach ($text in @('', 'PRIVATE_CHILD_SENTINEL', ('x' * 81),
-            "n09_owned_entry_rejected`nn09_primary_phase=85`n",
+            "n09_owned_entry_rejected`nn09_primary_phase=72`n",
             "n09_owned_entry_rejected`nn09_primary_phase=97`n",
             "n09_owned_entry_rejected`nn09_primary_phase=100`n",
             "n09_owned_entry_rejected`nn09_primary_phase=139`n",
@@ -123,7 +123,7 @@ try {
         }
         if ($null -ne (ConvertFrom-HpmOwnedFailurePhase ([byte[]]@(255)))) { throw 'Invalid UTF8 accepted.' }
         if ($null -ne (ConvertFrom-HpmOwnedFailurePhase $null)) { throw 'Null phase accepted.' }
-        foreach ($casePhase in @(80, 81, 82, 83)) {
+        foreach ($casePhase in @(80, 81, 82, 83, 85)) {
             $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected`nn09_primary_phase=254`nn09_case_phase=$casePhase`n")
             if ((ConvertFrom-HpmOwnedFailurePhase $bytes) -ne 254 -or (ConvertFrom-HpmOwnedCasePhase $bytes) -ne $casePhase) { throw 'Valid case rejected.' }
         }
