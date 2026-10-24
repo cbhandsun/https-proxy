@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：固定安装与受控CLI启动前置已完成，尚待实际四组矩阵接入
+
+`717241a`的Verify `40103958224`现已八项全部success，正式Windows `40103958111`的source-gates仍在运行；后续网络批已提交推送`7f94a4a`，不能用717的通过覆盖它。e490a58完整CI、9401ca6最新实际NSIS生命周期和582实际八步迁移/回滚拒写已获前述限定资格。
+
+新增独立安装准备模块，只接受托管Windows干净主机及固定RUNNER_TEMP/hpm-installed-clients/payload真正NSIS目标。复用原隔离/物理路径/原180000ms进程门槛；安装器目录与manifest所属checkout分别精确匹配CurrentSha，唯一安装器、原离线配置、安装注册0.1.1、manifest全源码及Node/native/lock/gateway摘要均核对。callback前后验证root/payload lease，结束必须先收到treeEmpty=true，才按已固定摘要的本次uninstaller卸载；注册或文件身份意外时拒绝，部分安装失败留下未固定卸载器则保留目录报清理失败，绝不执行它。成功顺序严格payload lease释放→卸载→root lease释放→删除目录。不伪造build/npm完成回执，也不授予客户端资格。
+
+新增固定受控启动capability：原安装Node启动唯一launcher，PowerShell先将其分配原HpmRuntimeBoundaryJob，才给首字节授权；launcher在授权前零CLI启动，此后只选固定三程序根中的codex.exe或claude.exe并转发原生stdio。spec只在全新case内创建，限定参数/隔离环境，绑定manifest、Node、客户端和launcher散列，开始与结束复验。关闭stdin后原5秒内launcher必须退出0，原20秒stop和Job5秒均保留；非0、信号、超时、管道故障或stdout/stderr各262144字节超限都失败，finally清树成功不覆盖失败，没有任意PID终止兜底。
+
+本机两模块13项全部通过（21种安装状态、3种安装进程结果及12项实际PowerShell管道/终态断言），零跳过；范围包括部分start、同一能力重复使用、隔离spec漂移、非0退出、超限、Job清理回执与不泄露原始错误。全树1545项JS语法、局部Lint及六项架构/模块预算/secret/CI/发行治理通过。它们仍是离线host/process/registry mocks，没有在用户主机真实安装NSIS、创建实际Job或启动CLI。
+
+实际四组安装版Codex/Claude默认/增强矩阵尚未启动；剩余接入为固定锁定客户端准备、该安装模块与新网络profile、实际daemon管理配置/入口认证、上述Job启动能力、合成上游及独立默认零root/私有READ/独立公开生成见证和最终完整清理回执。现有clientQualified/gracefulDrainQualified/restartRetention边界均不抬高。不要因为这些前置通过而直接消费模型额度或启用日常配置；冻结长测未访问或改变、额度未核验、真实模型请求仍0，整体未完成。
+
 ## 2026-10-24：安装矩阵网络约束前置及Windows路径守卫通过，客户端矩阵尚未启动
 
 已提交推送`717241af34edde2762d670a101550bfe37fc6075`的两端隔离协议/合成上游批次：Verify `40103958224`当前7项success、coverage尚在执行；正式Windows `40103958111`的egress成功、source-gates仍在执行，不能称该候选完整CI通过。此前e490a58完整门禁和582实际迁移结论不覆盖本批新增工具。
