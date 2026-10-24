@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：续接修改已推送，独立补齐 COMMIT 锁等待内部中断回归
+
+续接诊断、真实日档入口、留存见证和 idle 测试锁竞争修正已按原提交钩子提交并推送为 `1dd06eabcd3716f6c9638e026ae72375ff8171af`，远端分支 SHA 已核对一致。该提交的 Verify `40088184535` 已有七项成功（四个单测分片、Rust、Node质量、集成），coverage仍在client coverage阶段；正式 Windows `40088184542` 的egress成功、source-gates进行中，两条均不能记作完整通过。此前 be7bacee 的 coverage 锁竞争和正式 Claude long-persistent 约5002ms失败保留，不能用局部回归覆盖。
+
+用户要求不等待日档空转：未访问或抢占冻结 Windows 验收环境，未修改、重启或重新冻结原日档。下面新增测试仅在 Mac 的独立临时目录执行，不改变长测源码身份；1dd06ea 的推送也不会将已启动的 dirty 冻结树变成该干净提交。
+
+新增 `test/context-recovery-commit-interruption.test.js`，由统一递归单测入口及 CI 自动发现。真实加密文件 SQLite 使用生产 store，核对 DELETE/FULL 和原 busy_timeout=1000；独立进程持有 SHARED 读锁，写进程进入实际 COMMIT，第三进程中的连接以 SQLITE_BUSY 证实 PENDING 锁，并要求真实 rollback journal 存在。此后强杀写进程、等待实际 SIGKILL 退出，确认没有提交 ACK，再释放读锁并同目录新连接开库，要求原 revision、原 expiry 和完整 Unicode checkpoint 精确不变、integrity_check=ok。另有三个对照：相同等待释放后只提交/ACK一次且重开得到新版本；COMMIT 前强杀没有 PENDING 见证，不能充当内部中断；不释放锁则在原1000ms预算失败且没有 ACK，重开仍是旧版本。没有提高期限或重试。
+
+初版探针因读锁和探针连接位于同一进程，受 POSIX 共享读锁影响而未观察到 PENDING，新增测试失败；已将锁持有者拆为独立进程并保留提交前负控。修正后新四项和原存储文件共50项通过、零跳过。扩展到存储、blob、锚定格式及备份回滚五文件后112项中109通过、2项平台跳过、1项失败：现有 actual encrypted worker 跨重开测试在Mac默认原生开库报 context_recovery_storage_unavailable，该测试未按平台跳过；非Windows不能提供其DPAPI/OS锚点资格。保留这一扩展失败，不改用内存后端或跳过测试制造全绿。此证据仅覆盖 Mac 的 SQLite COMMIT 锁等待内部，不覆盖磁盘同步瞬间、持久发布转换内部强杀、DPAPI/OS锚点或 Windows 原生资格；完整矩阵仍未关闭。
+
+持久请求延迟只读排查确认重复工作：owner 每次操作完成后另取 engine.snapshot，snapshot 经 decodeState 全量恢复原文。Mac 内存 SQLite、真实 session/engine、600000字节合成原文的局部计量中，1024字节 read-source 本身解密603541字节，随后 snapshot 再解密603541字节；settle-reader 为610125+603543；元数据 save-reference-state 为13214+603541。该测量不含 HTTP、DPAPI、OS锚点或真实模型，不能解释全部 Windows 五秒失败。尚未改动生产快照路径；后续优化必须保持每条 blob 的认证、digest/bytes/source关联、UTF-8边界和原锚点持久化，不得跳过认证或跨事务缓存制造提速。
+
+新增文件Lint、格式、全树语法、架构预算、CI/发布治理检查均通过；统一发现入口已实际确认包含新测试。生产源码和锁文件未改动，本阶段未重建Windows安装器。没有新增模型调用，额度台账仍未核验。日档终态、五秒性能稳定性、持久发布内部中断、迁移/回滚、最终安装两端资格和受控启用继续未完成。
+
 ## 2026-10-24：Windows 原生短测通过，真实日档已启动；交接提交 CI 实际失败仍保留
 
 已通过用户在 Mac 上建立的 SSH 共享连接访问 Windows，在独立目录 `E:\DEV\WorkSpace\https-proxy-context-recovery-20261024-mac` 克隆同分支，HEAD 为 be7bacee，初始工作区干净。复用实际安装的 Node 22.22.3/npm 10.9.8、Rust/Cargo 1.92.0、MSVC 14.44/14.50、Windows SDK 10.0.22621/26100；SSH 中 nodejs 与 rustup 符号链接入口被 Windows 拒绝，改用现有物理安装路径，没有重装、切换或修改全局配置。首次 npm ci 因旧缓存经过 nodejs 符号链接失败，保留该失败；指定本验收目录内独立缓存后根依赖及插件锁文件安装均退出 0。原生助手 release 构建实际成功，指定容量/时钟 16 项回归全部通过、零跳过。
