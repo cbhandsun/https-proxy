@@ -9,6 +9,17 @@ const path = require('node:path');
 const {
   createN09LifecycleClient,
 } = require('../../scripts/context-hosted/n09-business/lifecycle-client-v2.js');
+const {
+  fail: ackFailure,
+  n09AckFailureStage,
+} = require('../../scripts/context-hosted/n09-ack/contract');
+const {
+  createN09MailboxClient,
+  createN09MailboxHost,
+} = require('../../scripts/context-hosted/n09-ack/mailbox');
+const {
+  performN09DurableCommand,
+} = require('../../scripts/context-hosted/n09-ack/durable-command');
 const synthetic = () => ({ entryKey: '1'.repeat(48), upstreamKey: '2'.repeat(48) });
 function fixture(t, mutation = () => {}, ackFactory, onPhase) {
   const ownedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'n09-channel-pure-'));
@@ -1188,6 +1199,151 @@ test('ACK close failure preserves forced kill and independent owner cleanup', as
   await assert.rejects(f.client.close(), /^Error: n09_lifecycle_client_failed$/);
   assert.equal(closes, 1);
   assert.equal(f.state.commands.at(-1).op, 'remove');
+});
+
+test('signed ACK failure survives the lifecycle facade and the complete durable-command path', async (t) => {
+  let host, mailbox;
+  const f = fixture(
+    t,
+    () => {},
+    (options) => {
+      const directory = path.join(path.dirname(options.runtimeDir), 'n09-signed-failure');
+      fs.mkdirSync(directory);
+      const config = {
+        directory,
+        pid: options.pid,
+        epoch: 'c'.repeat(32),
+        signingKey: 'd'.repeat(64),
+      };
+      mailbox = createN09MailboxClient(config);
+      host = createN09MailboxHost(config, {
+        armSave() {
+          throw ackFailure(142);
+        },
+        revokeBoundRoot() {
+          throw ackFailure(144);
+        },
+        close() {},
+      });
+      return {
+        submit(value) {
+          mailbox.submit({
+            version: 1,
+            pid: options.pid,
+            epoch: config.epoch,
+            sequence: 1,
+            ...value,
+          });
+          // The real host publishes a signed failure control before the client polls.
+          assert.throws(
+            () => host.step(),
+            (error) => n09AckFailureStage(error) === 144
+          );
+        },
+        readArmed: () => mailbox.readArmed(),
+        readReceipt: () => mailbox.readReceipt(),
+        close() {
+          host.close();
+          mailbox.close();
+        },
+      };
+    }
+  );
+  t.after(async () => {
+    host?.close();
+    mailbox?.close();
+    await f.client.close();
+  });
+  const owner = await f.client.startLifecycle();
+  await assert.rejects(
+    performN09DurableCommand(
+      {
+        pid: owner.pid,
+        operation: 'revoke',
+        rootId: 'hbs_' + 'e'.repeat(32),
+        expiresAt: 1000,
+        minRevision: 1,
+      },
+      {
+        client: f.client.getHostAckClient(owner),
+        startSave() {
+          assert.fail('Unexpected save');
+        },
+      }
+    ),
+    (error) => {
+      assert.equal(error.message, 'n09_host_ack_rejected');
+      assert.equal(n09AckFailureStage(error), 144);
+      assert.equal(error.cause, undefined);
+      return true;
+    }
+  );
+  await f.client.stopLifecycle(owner);
+  assert.equal(f.state.commands.at(-1).op, 'stop');
+});
+
+test('ACK facade preserves only branded finite errors without reading forged fields or proxies', async (t) => {
+  let traps = 0;
+  const forged = {};
+  for (const name of ['message', 'cause', 'stage', 'code'])
+    Object.defineProperty(forged, name, {
+      get() {
+        traps++;
+        throw Error('PRIVATE');
+      },
+    });
+  const proxy = new Proxy(
+    {},
+    {
+      get() {
+        traps++;
+      },
+      getOwnPropertyDescriptor() {
+        traps++;
+      },
+    }
+  );
+  for (const [value, expected] of [
+    [ackFailure(149), 149],
+    [forged, undefined],
+    [proxy, undefined],
+  ]) {
+    const f = fixture(
+      t,
+      () => {},
+      () => ({
+        submit() {
+          throw value;
+        },
+        readArmed() {
+          throw value;
+        },
+        readReceipt() {
+          throw value;
+        },
+        close() {},
+      })
+    );
+    t.after(() => f.client.close());
+    const owner = await f.client.startLifecycle();
+    const facade = f.client.getHostAckClient(owner);
+    for (const name of ['submit', 'readArmed', 'readReceipt']) {
+      assert.throws(
+        () => facade[name](),
+        (error) => {
+          assert.equal(n09AckFailureStage(error), expected);
+          assert.equal(
+            error.message,
+            expected === undefined ? 'n09_lifecycle_client_failed' : 'n09_host_ack_rejected'
+          );
+          assert.equal(error.cause, undefined);
+          return true;
+        }
+      );
+    }
+    await f.client.close();
+  }
+  assert.equal(traps, 0);
 });
 
 test('ACK factory rejects malformed, asynchronous and executable property boundaries safely', async (t) => {

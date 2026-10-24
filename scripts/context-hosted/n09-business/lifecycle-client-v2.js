@@ -9,7 +9,12 @@ const {
 const { createSameDirectoryLease } = require('../n09-ipc/same-directory-lease.js');
 const { createClearClient } = require('../n09-ipc/clear-client.js');
 const { createN09HostAckClient } = require('../n09-ack/bootstrap-client.js');
-const { fields, discardN09PromiseRejection } = require('../n09-ack/contract.js');
+const {
+  fields,
+  discardN09PromiseRejection,
+  n09AckFailureStage,
+  wrapN09AckFailure,
+} = require('../n09-ack/contract.js');
 const { waitForPrivatePreload } = require('./management-status-ready.js');
 const { waitForManagementHttp } = require('./management-http-ready.js');
 const { waitForAppliedRecovery } = require('./applied-recovery-ready.js');
@@ -509,7 +514,11 @@ function createClientUnsafe(input, dependencies) {
                 owner(identity);
                 if (resourceClosed || hostAck?.facade !== facade) throw fail();
                 return name === 'close' ? close() : invoke(name, args);
-              } catch {
+              } catch (error) {
+                // The signed mailbox already reduced this error to a locally
+                // branded finite stage. Preserve that diagnostic through the
+                // PID-bound facade without inspecting arbitrary error fields.
+                if (n09AckFailureStage(error) !== undefined) throw wrapN09AckFailure(error);
                 throw fail();
               }
             },
