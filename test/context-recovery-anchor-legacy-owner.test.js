@@ -19,6 +19,9 @@ const {
   createSyntheticRetainedAnchorFactory,
 } = require('./helpers/recovery-anchor-repository.cjs');
 const scope = 'a'.repeat(64);
+const {
+  executeLegacyEnrollmentCommand,
+} = require('../lib/proxy/context-recovery-enrollment-command');
 function safe(error) {
   assert.equal(error.message, 'context_recovery_storage_unavailable');
   assert.equal(error.code, error.message);
@@ -89,6 +92,27 @@ function fixture(t) {
     },
   };
 }
+
+test('offline command previews and enrolls the real encrypted SQLite snapshot without changing its bytes', (t) => {
+  const f = fixture(t);
+  const before = fs.readFileSync(f.file);
+  const run = (input) => f.run(input);
+  const args = ['preview', '--directory', f.directory];
+  const preview = executeLegacyEnrollmentCommand(args, run);
+  assert.equal(preview.exitCode, 0);
+  const receipt = JSON.parse(preview.stdout);
+  assert.deepEqual(Object.keys(receipt), ['fingerprint', 'scopeCount', 'maxTime']);
+  assert.equal(receipt.scopeCount, 1);
+  assert.equal(preview.stdout.includes('PRIVATE'), false);
+  assert.equal(preview.stdout.includes(f.directory), false);
+  const result = executeLegacyEnrollmentCommand(
+    ['enroll', '--directory', f.directory, '--fingerprint', receipt.fingerprint],
+    run
+  );
+  assert.deepEqual(result, { exitCode: 0, stdout: '{"enrolled":true}\n', stderr: '' });
+  assert.deepEqual(fs.readFileSync(f.file), before);
+  assert.equal(executeLegacyEnrollmentCommand(args, run).exitCode, 1);
+});
 
 test('legacy preview exposes exactly four frozen fields and apply requires a fresh locked inspection', (t) => {
   const f = fixture(t);

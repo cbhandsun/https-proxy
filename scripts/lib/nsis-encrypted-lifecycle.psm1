@@ -34,7 +34,7 @@ function Assert-HpmLegacyRefusalReceipt {
 }
 
 function Invoke-HpmInstalledRecoveryFixture {
-    param([string]$InstallDirectory, [string]$StoreDirectory, [string]$ManifestSha256, [ValidateSet('seed', 'read', 'resave', 'refuse-legacy')][string]$Operation)
+    param([string]$InstallDirectory, [string]$StoreDirectory, [string]$ManifestSha256, [ValidateSet('seed', 'read', 'resave', 'refuse-legacy', 'enroll-legacy')][string]$Operation)
     if ($ManifestSha256 -cnotmatch '\A[a-f0-9]{64}\z') { throw 'Encrypted lifecycle manifest identity failed.' }
     $node = Join-Path $InstallDirectory 'runtime/node/node.exe'
     $driver = Join-Path $PSScriptRoot 'nsis-installed-recovery-fixture.cjs'
@@ -68,7 +68,7 @@ function Invoke-HpmInstalledRecoveryFixture {
 
 function Invoke-HpmEncryptedLifecycleSequence {
     param([hashtable]$Operations)
-    foreach ($name in @('Install', 'Stop', 'Inspect', 'Seed', 'Read', 'RefuseLegacy', 'CheckFixtures', 'RuntimeBoundaries', 'Uninstall', 'CheckRemoved')) {
+    foreach ($name in @('Install', 'Stop', 'Inspect', 'Seed', 'Read', 'RefuseLegacy', 'EnrollLegacy', 'CheckFixtures', 'RuntimeBoundaries', 'Uninstall', 'CheckRemoved')) {
         if ($Operations[$name] -isnot [scriptblock]) { throw 'Encrypted lifecycle operation is missing.' }
     }
     & $Operations.Install 'baseline'; & $Operations.Stop
@@ -95,6 +95,10 @@ function Invoke-HpmEncryptedLifecycleSequence {
     if ((& $Operations.Inspect 'current') -cne $current) { throw 'Encrypted reinstall identity failed.' }
     & $Operations.Read 'current' 'anchored' 'read'
     & $Operations.RefuseLegacy
+    & $Operations.EnrollLegacy
+    & $Operations.Read 'current' 'legacy' 'read'
+    & $Operations.Read 'current' 'legacy' 'resave'
+    & $Operations.Read 'current' 'legacy' 'read'
     & $Operations.CheckFixtures
     & $Operations.Uninstall; & $Operations.Stop; & $Operations.CheckRemoved; & $Operations.CheckFixtures
 }

@@ -124,6 +124,8 @@
   "lib/proxy/context-recovery-coordinator.js",
   "lib/proxy/context-recovery-diagnostics.js",
   "lib/proxy/context-recovery-durable-ack.js",
+  "lib/proxy/context-recovery-enroll-cli.js",
+  "lib/proxy/context-recovery-enrollment-command.js",
   "lib/proxy/context-recovery-fingerprint-value.js",
   "lib/proxy/context-recovery-fingerprint.js",
   "lib/proxy/context-recovery-gemini-conversion.js",

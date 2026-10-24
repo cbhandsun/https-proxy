@@ -93,7 +93,7 @@ function parseDriverArguments(args) {
   if (
     !Array.isArray(args) ||
     args.length !== 4 ||
-    !['seed', 'read', 'resave', 'refuse-legacy'].includes(args[0]) ||
+    !['seed', 'read', 'resave', 'refuse-legacy', 'enroll-legacy'].includes(args[0]) ||
     typeof args[3] !== 'string' ||
     !/^[a-f0-9]{64}$/.test(args[3])
   )

@@ -14,6 +14,7 @@ const {
 } = require('./nsis-encrypted-contract');
 const { exerciseRecovery } = require('./nsis-recovery-fixture-state');
 const { inventoryStore, assertLegacyRefusal } = require('./nsis-legacy-refusal');
+const { assertLegacyEnrollment } = require('./nsis-legacy-enrollment');
 function run(args) {
   if (process.platform !== 'win32') throw fail();
   const input = parseDriverArguments(args);
@@ -65,6 +66,15 @@ function run(args) {
   try {
     const imported = (name) => require(path.join(input.install, 'lib/proxy', name));
     const { createStorageOwner } = imported('context-recovery-storage-owner.js');
+    if (input.operation === 'enroll-legacy') {
+      const { executeLegacyEnrollmentCommand } = imported('context-recovery-enrollment-command.js');
+      assertLegacyEnrollment({
+        command: executeLegacyEnrollmentCommand,
+        directory: input.store,
+        inventory: () => inventoryStore(input.store),
+        evidence: () => ({ ...observation, nativeCalls }),
+      });
+    }
     if (input.operation === 'refuse-legacy') {
       const receipt = assertLegacyRefusal({
         open: () =>
@@ -111,7 +121,7 @@ function run(args) {
     const receipt = exerciseRecovery(
       { sessions, createRootCheckpoint, parseRecoveryStorageRecord, LIST, READ },
       storage,
-      input.operation
+      input.operation === 'enroll-legacy' ? 'read' : input.operation
     );
     if (nativeCalls < 1) throw fail();
     receipt.keySha256 = digest(path.join(input.store, '.data-key'));

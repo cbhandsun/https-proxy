@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：离线旧库登记入口及安装验收迁移阶段补齐；最新 Windows 门禁失败已定位
+
+新增随运行时清单打包的离线 `context-recovery-enroll-cli.js`，业务边界独立在 `context-recovery-enrollment-command.js`，调用既有可信 offline owner。操作分 preview 与携精确 fingerprint 的 enroll；默认启动、HTTP 和 worker 均不获得登记权限。输出仅 fingerprint/scopeCount/maxTime 或固定 enrolled 回执，不打印原文、key、目录或原始异常。严格拒绝非法/极端参数、getter、Proxy、异步 owner、非法回执；登记期间快照变化、篡改、占用、已有锚点或清理失败沿用底层拒绝语义。完整操作与首次登记无法证明历史最新性的边界见 `context-recovery-legacy-enrollment.md`。
+
+命令边界与实际加密 SQLite owner 合计28项本地测试通过；owner 的 key protection 和 anchor repository 为合成依赖，不能算真实 DPAPI 登记。新命令测试进入客户端覆盖率入口，两个生产模块进入发布源码与哈希清单。安装生命周期另新增最终 current 阶段的旧库显式登记，要求真实 native unwrap 两次、独立 anchor 写入一次、预览/登记前后全部库存文件一致，再跨进程读回、resave、重开，并与 baseline 原文/身份/key/预算/到期回执逐字段比较。该新阶段尚待托管执行，不覆盖旧582布局或旧reader防回滚。
+
+已实时核实 `60f1825e` 的正式 Windows `40042056602` 终态 success，包括 N08/N09 当前限定子集；N09完整故障矩阵仍未完成。同源码加密安装 `40042101681` 终态 success，涵盖 DPAPI、旧库拒绝且字节保留、新锚定库重开、旧格式读兼容及实际管理 HTTP，不能算旧库导入。最新 `b725549e` Verify `40043419040` 八项全绿；正式 Windows `40043419176` source-gates `120719498695` failure，业务 skipped。日志明确 `context-recovery-key.test.js` native_protect 17ms成功，legacy_unprotect 在10019ms报 ETIMEDOUT；没有提高原10000ms期限，也未认定格式不兼容或自动归因于此前 N09 问题。
+
 ## 2026-10-23：绑定时钟回拨后普通转发缺口已复现并修复
 
 新增纯回归通过实际binding registry受控1001→1000回拨，确认registry返回 `context_binding_unavailable` 且之后正常时间也不会重新打开；修复前共享 `blocksRecoveryAdmission` 却返回false，回归退出1。因此将该明确不可用状态加入原阻断集合，HTTP与WebSocket共享原拒绝路径；不平滑时钟、不重开失效registry、不恢复已撤销能力，也不改未知provider response ID的普通转发规则。该独立缺口尚不能证明是云端N09 248的根因。

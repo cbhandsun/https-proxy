@@ -181,6 +181,11 @@ try {
             $receipt = Invoke-HpmInstalledRecoveryFixture $installDir $encryptedStores.legacy $manifestHashes.current 'refuse-legacy'
             Assert-HpmLegacyRefusalReceipt $receipt
         }
+        $operations.EnrollLegacy = {
+            Assert-HpmLifecycleChildPath $root $encryptedStores.legacy
+            $receipt = Invoke-HpmInstalledRecoveryFixture $installDir $encryptedStores.legacy $manifestHashes.current 'enroll-legacy'
+            Compare-HpmEncryptedReceipt $encryptedState.legacy $receipt
+        }
         $operations.RuntimeBoundaries = {
             foreach ($caseId in @('defaults-migration', 'initialization-failure', 'reopen-clear')) {
                 Assert-HpmLifecycleChildPath $env:RUNNER_TEMP $root
@@ -226,7 +231,7 @@ if ($EncryptedRecovery) {
     $httpReceipt = ConvertFrom-HpmInstalledDaemonHttpReceipt ($encryptedState.httpMatrix | ConvertTo-Json -Depth 8 -Compress) $manifestHashes.current
     Write-Output ('NSIS_RUNTIME_BOUNDARIES=' + ($installedMatrix | ConvertTo-Json -Depth 10 -Compress))
     Write-Output ('NSIS_DAEMON_HTTP=' + ($httpReceipt | ConvertTo-Json -Depth 8 -Compress))
-    Write-Output 'Hosted synthetic same-user DPAPI, legacy refusal with byte preservation, fresh anchored-store reopen and old-format reader compatibility passed. Old readers do not enforce anchors. Legacy import, old-reader antirollback, capacity, providers and production remain unqualified.'
+    Write-Output 'Hosted synthetic same-user DPAPI, legacy refusal with byte preservation, explicit legacy enrollment with unchanged checkpoint bytes, migrated-store reopen/resave, fresh anchored-store reopen and old-format reader compatibility passed. Old readers do not enforce anchors. The 582-reader layout, old-reader antirollback, full failure injection, capacity, providers and production remain unqualified.'
 } else { Write-Output 'NSIS install/upgrade/rollback/uninstall and synthetic file preservation passed. Encrypted recovery and 24-hour capacity were not qualified.' }
 
 }

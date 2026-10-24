@@ -34,6 +34,7 @@ $operations = @{
     Seed = { param($role) $events.Add('seed:' + $role) }
     Read = { param($phase, $role, $operation) $events.Add('read:' + $phase + ':' + $role + ':' + $operation) }
     RefuseLegacy = { $events.Add('refuse-legacy') }
+    EnrollLegacy = { $events.Add('enroll-legacy') }
     CheckFixtures = { $events.Add('fixtures') }
     RuntimeBoundaries = { $events.Add('module-matrix'); $events.Add('http-matrix'); ConvertFrom-HpmInstalledDaemonHttpReceipt '{}' $sha | Out-Null }
     Uninstall = { $events.Add('uninstall') }; CheckRemoved = { $events.Add('removed') }

@@ -18,6 +18,7 @@ function Operations {
         Seed = { param($role) $Events.Add('seed:' + $role) }.GetNewClosure()
         Read = { param($phase, $role, $operation) $Events.Add('read:' + $phase + ':' + $role + ':' + $operation) }.GetNewClosure()
         RefuseLegacy = { $Events.Add('refuse-legacy') }.GetNewClosure()
+        EnrollLegacy = { $Events.Add('enroll-legacy') }.GetNewClosure()
         CheckFixtures = { $Events.Add('fixtures') }.GetNewClosure()
         RuntimeBoundaries = { $Events.Add('runtime-boundaries') }.GetNewClosure()
         Uninstall = { $Events.Add('uninstall') }.GetNewClosure()
@@ -26,9 +27,9 @@ function Operations {
 }
 $events = [Collections.Generic.List[string]]::new()
 Invoke-HpmEncryptedLifecycleSequence (Operations $events)
-$expected = 'install:baseline,stop,inspect:baseline,seed:legacy,install:current,stop,inspect:current,refuse-legacy,seed:anchored,read:current:anchored:read,read:current:anchored:resave,fixtures,runtime-boundaries,install:baseline,stop,inspect:baseline,read:baseline:legacy:read,read:baseline:anchored:read,fixtures,install:current,stop,inspect:current,read:current:anchored:read,refuse-legacy,fixtures,uninstall,stop,removed,fixtures'
+$expected = 'install:baseline,stop,inspect:baseline,seed:legacy,install:current,stop,inspect:current,refuse-legacy,seed:anchored,read:current:anchored:read,read:current:anchored:resave,fixtures,runtime-boundaries,install:baseline,stop,inspect:baseline,read:baseline:legacy:read,read:baseline:anchored:read,fixtures,install:current,stop,inspect:current,read:current:anchored:read,refuse-legacy,enroll-legacy,read:current:legacy:read,read:current:legacy:resave,read:current:legacy:read,fixtures,uninstall,stop,removed,fixtures'
 if (($events -join ',') -cne $expected) { throw 'Encrypted lifecycle sequence differs.' }
-foreach ($name in @('Install', 'Stop', 'Inspect', 'Seed', 'Read', 'RefuseLegacy', 'CheckFixtures', 'RuntimeBoundaries', 'Uninstall', 'CheckRemoved')) {
+foreach ($name in @('Install', 'Stop', 'Inspect', 'Seed', 'Read', 'RefuseLegacy', 'EnrollLegacy', 'CheckFixtures', 'RuntimeBoundaries', 'Uninstall', 'CheckRemoved')) {
     $operations = Operations ([Collections.Generic.List[string]]::new())
     $operations.Remove($name)
     Refuses { Invoke-HpmEncryptedLifecycleSequence $operations }
