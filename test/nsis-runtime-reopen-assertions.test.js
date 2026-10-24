@@ -420,13 +420,20 @@ test(
   },
   async (t) => {
     const root = caseFixture(t);
+    const cpuStarted = process.cpuUsage();
     assert.deepEqual(
       await exerciseRuntimeReopenRevocation(
         { caseRoot: root },
         {
           onPhase(event) {
+            const cpu = process.cpuUsage(cpuStarted);
             process.stderr.write(
-              JSON.stringify({ scope: 'runtime-reopen-phase', ...event }) + '\n'
+              JSON.stringify({
+                scope: 'runtime-reopen-phase',
+                ...event,
+                cpuUserMs: Math.floor(cpu.user / 1000),
+                cpuSystemMs: Math.floor(cpu.system / 1000),
+              }) + '\n'
             );
           },
         }

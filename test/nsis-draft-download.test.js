@@ -247,3 +247,30 @@ test('direct encrypted workflow retains full gates and private artifact workflow
   assert.match(original, /Receive-HpmPrivateBaselineArtifact/);
   assert.doesNotMatch(original, /contents: write|download-nsis-draft/);
 });
+
+test('failed candidate diagnostics retain the failed gate and cannot authorize build or installation', () => {
+  const workflow = fs
+    .readFileSync('.github/workflows/windows-encrypted-draft-lifecycle.yml', 'utf8')
+    .replaceAll('\r\n', '\n');
+  const diagnostic = workflow
+    .split('      - name: Diagnose isolated native open after candidate gate failure\n')[1]
+    ?.split('      - name: Build current test installer without publishing')[0];
+  assert.ok(diagnostic);
+  assert.match(
+    diagnostic,
+    /if: \$\{\{ failure\(\) && steps\.candidate_gates\.outcome == 'failure' \}\}/
+  );
+  assert.match(diagnostic, /working-directory: current/);
+  assert.match(diagnostic, /node scripts\/diagnose-context-recovery-open\.js/);
+  assert.match(diagnostic, /if \(\$LASTEXITCODE -ne 0\) \{ throw /);
+  assert.doesNotMatch(
+    diagnostic,
+    /continue-on-error|--(?:timeout|directory)|qualify-|npm run verify|upload|secrets\.|GH_TOKEN/
+  );
+  const build = workflow
+    .split('      - name: Build current test installer without publishing')[1]
+    ?.split('      - name: Qualify installed same-format')[0];
+  assert.ok(build);
+  assert.doesNotMatch(build, /if:|continue-on-error/);
+  assert.ok(workflow.indexOf('npm run verify') < workflow.indexOf('Diagnose isolated native open'));
+});

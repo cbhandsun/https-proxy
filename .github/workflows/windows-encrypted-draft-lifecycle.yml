@@ -82,6 +82,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Candidate verification failed; installation qualification will not run.' }
           npm audit --audit-level=high
           if ($LASTEXITCODE -ne 0) { throw 'Candidate dependency audit failed.' }
+      - name: Diagnose isolated native open after candidate gate failure
+        if: ${{ failure() && steps.candidate_gates.outcome == 'failure' }}
+        working-directory: current
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node scripts/diagnose-context-recovery-open.js
+          if ($LASTEXITCODE -ne 0) { throw 'Isolated native open diagnostic did not pass; original gate failure remains.' }
       - name: Build current test installer without publishing
         id: candidate_build
         working-directory: current
