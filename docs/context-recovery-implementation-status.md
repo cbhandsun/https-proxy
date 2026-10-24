@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：两端隔离协议与精确恢复合成上游已实现，实际安装客户端尚未执行
+
+582迁移及完整门禁证据已单独提交推送为`3879741`，未夹带在建客户端文件。本批新增Codex/Claude各自可复用协议模块：只接受受控spawnOwned能力，不自行选择日常客户端、读取日常认证或配置；严格回环入口、全新且物理身份固定的隔离HOME，合成entry token，Codex重试0，Claude bare/strict MCP/无session持久化。固定一次来源工具、三次实际压缩协议及对应完成事件，全部最终公开文本必须精确匹配。持续观察到受控stop确认terminal/treeStopped均true，拒绝清理期间迟到的私有工具、sentinel、非法或未结束帧；不使用PID回收或任意进程终止兜底。
+
+独立纯合成上游按真实Codex Responses/compact与Claude Messages协议响应，复用生产summary识别及stored source/page解析。seed必须从唯一已发出call_id的结果取得精确原文，后续LIST身份、digest、bytes和READ连续UTF8页必须与原文逐字节相等；私有READ完成后的sentinel回答不可作为公开结果，必须再收到独立公开generation，其支持页连续完整、无私有工具和thinking/signature sentinel，才给最终合成marker。stream=true严格SSE、真实compact endpoint为JSON，不以降级JSON冒充客户端流式成功；阶段跳跃、重放、错误页、摘要/公开泄漏和固定请求上限失败即停。所有原文仅在内存核对，无日志或公有回执输出。
+
+本机新增四文件70项全部通过，加原RPC28项共98/98、零跳过。新模块定向c8语句/行97.31%、分支93.91%、函数98.5%，高于既有85/80/90/85参考门槛；Lint、语法、前端架构和CI/发行治理已通过。新测试沿统一递归发现进入CI；没有替换或跳过既有测试。仅测试工具新增独立tools/nsis-clients锁，固定历史Codex0.160.1与Claude2.1.292的官方Windows x64原生包及SHA512，应用自身依赖/锁文件未改。Mac元数据生成前两次因目标平台不匹配正确拒绝；只用package-lock-only生成锁，未安装或执行客户端，Windows准备仍须普通npm ci通过其原平台门禁。
+
+这些局部协议/上游回归不等于真实CLI、最新NSIS两端或零外连验收。协议回执只声明directModelRequests=0，安装/上游/客户端资格仍false；默认零恢复root与完整Core入口须由独立安装见证，不能由合成上游自报true。下一步为一次性GitHub Windows runner接入固定安装身份、三个可执行文件的WFP/防火墙约束、真实客户端和进程树清理见证，再收默认/增强两端结果。当前未启动该实际客户端矩阵，不在长测主机安装或改证书/hosts；额度未核验，真实模型请求仍0，整体尚未交付。
+
 ## 2026-10-24：e490a58完整CI及最新安装生命周期通过，582实际迁移/回滚拒写通过
 
 `e490a58a5dff83f7699221015de19759848934a4` 的完整Verify `40098018857` 八项全部success，正式Windows `40098018924` 四项全部success，含source-gates `120884240572`、N09 `120888057797`、N08 `120888057808`。没有重跑旧失败、改动原门禁或据此扩授完整N08/N09/日档/两端客户端资格。五秒稳定性的既有五runner、42次1024–2369ms证据仍按9401ca6记录；e490a58相对9401ca6未改生产源码、依赖锁或原生Rust，不将新CI成功冒充额外延迟样本。
