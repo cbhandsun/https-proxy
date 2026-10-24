@@ -12,6 +12,7 @@ const {
 const {
   createOwnedRoot,
   executeDriver,
+  executeWorkerDriver,
   inspectOwnedStore,
 } = require('./context-recovery-legacy-layout-runtime');
 
@@ -103,8 +104,12 @@ function validateDriverReceipt(input, installation, refusal) {
     value.nativeCalls > 4
   )
     throw fail();
+  return validateRecoveryReceipt(value.receipt, refusal);
+}
+
+function validateRecoveryReceipt(input, refusal) {
   if (refusal) {
-    const receipt = exact(value.receipt, ['refused', 'preserved', 'statusCode', 'fileCount']);
+    const receipt = exact(input, ['refused', 'preserved', 'statusCode', 'fileCount']);
     if (
       receipt.refused !== true ||
       receipt.preserved !== true ||
@@ -114,19 +119,64 @@ function validateDriverReceipt(input, installation, refusal) {
       receipt.fileCount > 16
     )
       throw fail();
-  } else compareReceipts(value.receipt, value.receipt);
-  return value.receipt;
+  } else compareReceipts(input, input);
+  return input;
+}
+
+function validateWorkerReceipt(input, installation, refusal, role) {
+  const value = exact(input, [
+    'backend',
+    'observation',
+    'receipt',
+    'sourceCount',
+    'manifestSha256',
+  ]);
+  if (
+    value.backend !== 'default-worker' ||
+    value.sourceCount !== installation.sourceCount ||
+    value.manifestSha256 !== installation.manifestSha256
+  )
+    throw fail();
+  const observation = exact(value.observation, [
+    'workerStarted',
+    'nativeKeyCompleted',
+    'databaseOpened',
+    'engineReady',
+    'ready',
+    'refused',
+    'anchorOpened',
+    'anchorPersisted',
+  ]);
+  const expected = {
+    workerStarted: true,
+    nativeKeyCompleted: true,
+    databaseOpened: true,
+    engineReady: !refusal,
+    ready: !refusal,
+    refused: refusal,
+    anchorOpened: role === 'current',
+    anchorPersisted: role === 'current' && !refusal,
+  };
+  if (!isDeepStrictEqual(observation, expected)) throw fail();
+  return validateRecoveryReceipt(value.receipt, refusal);
+}
+
+function runLegacyLayoutQualification(args, dependencies = {}) {
+  return runQualification(args, dependencies, false);
+}
+function runLegacyWorkerLayoutQualification(args, dependencies = {}) {
+  return runQualification(args, dependencies, true);
 }
 
 // Dependencies are a local unit-test boundary; the CLI passes no overrides.
-function runLegacyLayoutQualification(args, dependencies = {}) {
+function runQualification(args, dependencies, worker) {
   try {
     const request = parseLegacyLayoutArguments(args);
     const platform = dependencies.platform ?? process.platform;
     if (platform !== 'win32') throw fail();
     const verify = dependencies.verify ?? verifyPackages;
     const create = dependencies.create ?? createOwnedRoot;
-    const execute = dependencies.execute ?? executeDriver;
+    const execute = dependencies.execute ?? (worker ? executeWorkerDriver : executeDriver);
     const inspect = dependencies.inspect ?? inspectOwnedStore;
     const onProgress = dependencies.onProgress ?? (() => {});
     if (typeof onProgress !== 'function' || types.isProxy(onProgress)) throw fail();
@@ -152,10 +202,11 @@ function runLegacyLayoutQualification(args, dependencies = {}) {
     ]) {
       if (onProgress({ stage: receipts.length + 1, role, operation }) !== undefined) throw fail();
       check();
-      const receipt = validateDriverReceipt(
+      const receipt = (worker ? validateWorkerReceipt : validateDriverReceipt)(
         execute({ installation: packages[role], install: request[role], operation, owned }),
         packages[role],
-        operation.startsWith('refuse-')
+        operation.startsWith('refuse-'),
+        role
       );
       check();
       if (!operation.startsWith('refuse-')) {
@@ -204,7 +255,9 @@ function runLegacyLayoutQualification(args, dependencies = {}) {
     }
     return {
       schemaVersion: 1,
-      scope: 'packaged_runtime_legacy_layout_migration',
+      scope: worker
+        ? 'packaged_runtime_default_worker_legacy_layout_migration'
+        : 'packaged_runtime_legacy_layout_migration',
       passed: true,
       stages: receipts.length,
       baselineSourceCount: 582,
@@ -215,7 +268,7 @@ function runLegacyLayoutQualification(args, dependencies = {}) {
       layoutAfter: 3,
       revisionDelta: 1,
       nsisQualified: false,
-      workerQualified: false,
+      workerQualified: worker,
       retention24hQualified: false,
       clientQualified: false,
     };
@@ -231,4 +284,5 @@ module.exports = {
   parseLegacyLayoutArguments,
   verifyPackages,
   runLegacyLayoutQualification,
+  runLegacyWorkerLayoutQualification,
 };

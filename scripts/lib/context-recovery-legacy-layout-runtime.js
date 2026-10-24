@@ -49,12 +49,12 @@ function createOwnedRoot() {
   };
 }
 
-function executeDriver({ installation, install, operation, owned }, start = spawnSync) {
+function executeFixture(filename, { installation, install, operation, owned }, start) {
   try {
     const result = start(
       installation.node,
       [
-        path.join(__dirname, 'nsis-installed-recovery-fixture.cjs'),
+        path.join(__dirname, filename),
         operation,
         install,
         owned.store,
@@ -86,6 +86,13 @@ function executeDriver({ installation, install, operation, owned }, start = spaw
   } catch {
     throw fail();
   }
+}
+
+function executeDriver(input, start = spawnSync) {
+  return executeFixture('nsis-installed-recovery-fixture.cjs', input, start);
+}
+function executeWorkerDriver(input, start = spawnSync) {
+  return executeFixture('nsis-installed-worker-fixture.cjs', input, start);
 }
 
 function inspectOwnedStore(owned) {
@@ -123,4 +130,4 @@ function inspectOwnedStore(owned) {
   }
 }
 
-module.exports = { createOwnedRoot, executeDriver, inspectOwnedStore };
+module.exports = { createOwnedRoot, executeDriver, executeWorkerDriver, inspectOwnedStore };

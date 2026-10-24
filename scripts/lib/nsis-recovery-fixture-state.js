@@ -1,5 +1,6 @@
 'use strict';
 const { createHash } = require('node:crypto');
+const { types } = require('node:util');
 const { fail } = require('./nsis-encrypted-contract');
 const original = 'synthetic-installer-evidence-élève🙂';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -9,7 +10,7 @@ const request = () => ({
   target: 'installer-target',
   history: [{ role: 'user', content: 'synthetic lifecycle' }],
 });
-function exerciseRecovery(api, storage, operation) {
+function* recoverySteps(api, operation) {
   if (!['seed', 'read', 'resave'].includes(operation)) throw fail();
   const { sessions, createRootCheckpoint, parseRecoveryStorageRecord, LIST, READ } = api;
   let runtime;
@@ -64,21 +65,18 @@ function exerciseRecovery(api, storage, operation) {
         []
       );
       scope = hash('hpm/recovery-root/v1\0' + state.root.rootId);
-      storage.execute({
+      yield {
         operation: 'save',
         scope,
         expectedRevision: 0,
         expiresAt: state.root.expiresAt,
         state,
-      });
+      };
     }
-    const catalog = storage.execute({ operation: 'catalog' });
+    const catalog = yield { operation: 'catalog' };
     if (catalog.length !== 1) throw fail();
     scope = catalog[0].scope;
-    const record = parseRecoveryStorageRecord(
-      storage.execute({ operation: 'load', scope }),
-      catalog[0]
-    );
+    const record = parseRecoveryStorageRecord(yield { operation: 'load', scope }, catalog[0]);
     state = record.state;
     runtime?.close();
     runtime = sessions.restoreContextRecoverySessions({}, [
@@ -104,13 +102,13 @@ function exerciseRecovery(api, storage, operation) {
       throw fail();
     view.abort();
     if (operation === 'resave')
-      storage.execute({
+      yield {
         operation: 'save',
         scope,
         expectedRevision: record.revision,
         expiresAt: record.expiresAt,
         state,
-      });
+      };
     return {
       budgetSha256: hash(JSON.stringify(state.root.budget)),
       callCount: state.root.callCount,
@@ -123,4 +121,48 @@ function exerciseRecovery(api, storage, operation) {
     runtime?.close();
   }
 }
-module.exports = { exerciseRecovery };
+function ordinaryPromise(value) {
+  if (!types.isPromise(value) || Object.getPrototypeOf(value) !== Promise.prototype) return false;
+  const constructor = Object.getOwnPropertyDescriptor(value, 'constructor');
+  return !constructor || (Object.hasOwn(constructor, 'value') && constructor.value === Promise);
+}
+
+function exerciseRecovery(api, storage, operation) {
+  const steps = recoverySteps(api, operation);
+  try {
+    let next = steps.next();
+    while (!next.done) {
+      const result = storage.execute(next.value);
+      if (types.isPromise(result)) {
+        if (ordinaryPromise(result))
+          Promise.prototype.then.call(
+            result,
+            () => {},
+            () => {}
+          );
+        throw fail();
+      }
+      next = steps.next(result);
+    }
+    return next.value;
+  } finally {
+    steps.return();
+  }
+}
+
+async function exerciseRecoveryAsync(api, storage, operation) {
+  const steps = recoverySteps(api, operation);
+  try {
+    let next = steps.next();
+    while (!next.done) {
+      const pending = storage.execute(next.value);
+      if (!ordinaryPromise(pending)) throw fail();
+      next = steps.next(await pending);
+    }
+    return next.value;
+  } finally {
+    steps.return();
+  }
+}
+
+module.exports = { exerciseRecovery, exerciseRecoveryAsync };

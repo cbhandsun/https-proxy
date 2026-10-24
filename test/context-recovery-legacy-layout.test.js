@@ -8,6 +8,7 @@ const {
   BASELINE,
   parseLegacyLayoutArguments,
   runLegacyLayoutQualification,
+  runLegacyWorkerLayoutQualification,
 } = require('../scripts/lib/context-recovery-legacy-layout');
 
 const args = [path.resolve('baseline'), path.resolve('current'), 'a'.repeat(64)];
@@ -474,4 +475,163 @@ test('package verification requires exact 582 manifest, source count, Node/nativ
       ]);
     }
   }
+});
+
+function workerFixture() {
+  const f = fixture();
+  const execute = f.dependencies.execute;
+  f.dependencies.execute = (input) => {
+    const direct = execute(input);
+    const refusal = input.operation.startsWith('refuse-');
+    return {
+      backend: 'default-worker',
+      manifestSha256: direct.manifestSha256,
+      sourceCount: direct.sourceCount,
+      receipt: direct.receipt,
+      observation: {
+        workerStarted: true,
+        nativeKeyCompleted: true,
+        databaseOpened: true,
+        engineReady: !refusal,
+        ready: !refusal,
+        refused: refusal,
+        anchorOpened: input.install === args[1],
+        anchorPersisted: input.install === args[1] && !refusal,
+      },
+    };
+  };
+  return f;
+}
+
+test('default worker migration preserves all eight exact state transitions without invented native call counts', () => {
+  const f = workerFixture();
+  const result = runLegacyWorkerLayoutQualification(args, f.dependencies);
+  assert.equal(result.stages, 8);
+  assert.equal(result.workerQualified, true);
+  assert.equal(result.scope, 'packaged_runtime_default_worker_legacy_layout_migration');
+  for (const key of ['nsisQualified', 'retention24hQualified', 'clientQualified'])
+    assert.equal(result[key], false);
+  assert.equal(f.verifications(), 17);
+});
+
+test('worker migration rejects absent, forged, extra and unsafe startup observations at every stage', () => {
+  for (let stage = 1; stage <= 8; stage++) {
+    for (const change of [
+      (r) => {
+        r.backend = 'direct-owner';
+      },
+      (r) => {
+        r.nativeCalls = 1;
+      },
+      (r) => {
+        r.observation = null;
+      },
+      (r) => {
+        r.observation = {};
+      },
+      (r) => {
+        r.observation.workerStarted = false;
+      },
+      (r) => {
+        r.observation.nativeKeyCompleted = false;
+      },
+      (r) => {
+        r.observation.databaseOpened = false;
+      },
+      (r) => {
+        r.observation.engineReady = !r.observation.engineReady;
+      },
+      (r) => {
+        r.observation.ready = !r.observation.ready;
+      },
+      (r) => {
+        r.observation.refused = !r.observation.refused;
+      },
+      (r) => {
+        r.observation.anchorOpened = !r.observation.anchorOpened;
+      },
+      (r) => {
+        r.observation.anchorPersisted = !r.observation.anchorPersisted;
+      },
+      (r) => {
+        r.receipt.private = 'must not leak';
+      },
+      (r) => {
+        r.sourceCount = Number.MAX_SAFE_INTEGER;
+      },
+      (r) => {
+        r.manifestSha256 = '0'.repeat(64);
+      },
+      (r) => {
+        r.observation = new Proxy(
+          {},
+          {
+            ownKeys() {
+              throw new Error('private');
+            },
+          }
+        );
+      },
+      (r) => {
+        Object.defineProperty(r.observation, 'ready', {
+          get() {
+            throw new Error('private');
+          },
+        });
+      },
+    ]) {
+      const f = workerFixture(),
+        execute = f.dependencies.execute;
+      f.dependencies.execute = (input) => {
+        const result = execute(input);
+        if (f.operations.length === stage) change(result);
+        return result;
+      };
+      assert.throws(() => runLegacyWorkerLayoutQualification(args, f.dependencies), failure);
+      assert.equal(f.operations.length, stage);
+    }
+  }
+});
+
+test('worker migration CLI and fixture fail closed with fixed safe errors', () => {
+  for (const [file, stdout, stderr] of [
+    [
+      'scripts/qualify-context-recovery-legacy-worker.cjs',
+      '{"schemaVersion":1,"passed":false,"stage":0}\n',
+      'context_recovery_legacy_layout_failed\n',
+    ],
+    ['scripts/lib/nsis-installed-worker-fixture.cjs', '', 'nsis_worker_qualification_failed\n'],
+  ]) {
+    const result = spawnSync(process.execPath, [path.resolve(file)], { encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, stdout);
+    // node:sqlite may emit its fixed experimental warning on Node 22.
+    assert.ok(result.stderr.endsWith(stderr));
+    assert.equal(result.stderr.includes(' at '), false);
+  }
+});
+
+test('worker executor selects only its fixed fixture and retains bounded transport', () => {
+  const { executeWorkerDriver } = require('../scripts/lib/context-recovery-legacy-layout-runtime');
+  let called = 0;
+  const reply = executeWorkerDriver(
+    {
+      installation: { node: 'packaged-node', manifestSha256: args[2] },
+      install: args[1],
+      operation: 'read',
+      owned: { store: 'fresh', environment: () => ({}) },
+    },
+    (node, parameters, options) => {
+      called++;
+      assert.equal(node, 'packaged-node');
+      assert.equal(path.basename(parameters[0]), 'nsis-installed-worker-fixture.cjs');
+      assert.equal(parameters[1], 'read');
+      assert.equal(options.timeout, 120000);
+      assert.equal(options.maxBuffer, 8192);
+      assert.equal(options.shell, false);
+      return { status: 0, signal: null, stdout: '{"ok":true}\n' };
+    }
+  );
+  assert.equal(called, 1);
+  assert.deepEqual(reply, { ok: true });
 });
