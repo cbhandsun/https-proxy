@@ -58,15 +58,16 @@ function parseProfile(input) {
   }
 }
 
-function readPinned(session, pinned, expected) {
+function* readPinned(session, pinned, expected) {
   const chunks = [];
   let offsetBytes = 0;
   for (;;) {
-    const reply = session.reply(READ, {
-      sourceId: pinned.sourceId,
-      digest: pinned.digest,
-      offsetBytes,
-    });
+    const reply = yield {
+      operation: 'reply',
+      session,
+      name: READ,
+      args: { sourceId: pinned.sourceId, digest: pinned.digest, offsetBytes },
+    };
     if (!reply.ok) return reply.code;
     const { page } = JSON.parse(reply.text);
     assert.equal(page.offsetBytes, offsetBytes);
@@ -81,14 +82,11 @@ function readPinned(session, pinned, expected) {
   return null;
 }
 
-// Exercises actual session/binding/ledger APIs with a synthetic clock. No
-// transport, compaction, filesystem, credentials or model requests are involved.
-// Reopen means JSON checkpoint reconstruction, not durable SQLite qualification.
-function exerciseCapacityProfile(input) {
+// A single command sequence defines the frozen workload for both synchronous
+// in-memory reconstruction and asynchronous durable storage. The executor owns
+// the clock and resources; it cannot shorten turns, reads, pages or reopenings.
+function* createCapacityWorkload(input) {
   const profile = parseProfile(input);
-  let time = 1000;
-  let runtime = createContextRecoverySessions({ now: () => time });
-  runtime.configure(true);
   const owners = Array.from({ length: profile.roots }, (_, index) => {
     const history = [user('synthetic-capacity-' + index)];
     return {
@@ -116,8 +114,12 @@ function exerciseCapacityProfile(input) {
     firstFailure: null,
     qualified: false,
   };
-  function observe(owner, round, index) {
-    const session = runtime.begin({ ...owner.binding, history: owner.history }, owner.results);
+  function* observe(owner, round, index) {
+    const session = yield {
+      operation: 'begin',
+      binding: { ...owner.binding, history: owner.history },
+      results: owner.results,
+    };
     if (!session.ok) {
       report.firstFailure ??= { phase: 'begin', round, root: index, code: session.code };
       return null;
@@ -133,16 +135,17 @@ function exerciseCapacityProfile(input) {
       };
       // The fixed target has already failed. Preserve the exact first gap and
       // stop scheduling further mutations; never shorten a successful profile.
-      session.abort();
+      yield { operation: 'abort', session };
       return null;
     }
     return session;
   }
   try {
+    yield { operation: 'open' };
     outer: for (let round = 0; round < profile.turns; round++) {
-      time = 1000 + round * profile.intervalMs;
+      yield { operation: 'advance', offsetMs: round * profile.intervalMs };
       for (const [index, owner] of owners.entries()) {
-        const session = observe(owner, round + 1, index);
+        const session = yield* observe(owner, round + 1, index);
         if (!session) break outer;
         // Exact number of recoveries, including the final drain. This avoids
         // rounding a requested 100 recoveries down to a convenient small count.
@@ -151,7 +154,7 @@ function exerciseCapacityProfile(input) {
           Math.floor((round * profile.recoveries) / profile.turns) >
             Math.floor(((round - 1) * profile.recoveries) / profile.turns)
         )
-          recover(owner, session, round + 1, index);
+          yield* recover(owner, session, round + 1, index);
         const callId = 'call-' + index + '-' + round;
         const tool = {
           role: 'assistant',
@@ -160,11 +163,13 @@ function exerciseCapacityProfile(input) {
             { id: callId, type: 'function', function: { name: 'lookup', arguments: '{}' } },
           ],
         };
-        const result = session.complete(
-          [tool],
-          [{ callId, toolName: 'lookup', arguments: {}, completed: true, output: '' }],
-          'response-' + index + '-' + round
-        );
+        const result = yield {
+          operation: 'complete',
+          session,
+          output: [tool],
+          calls: [{ callId, toolName: 'lookup', arguments: {}, completed: true, output: '' }],
+          responseId: 'response-' + index + '-' + round,
+        };
         if (!result.ok) {
           report.firstFailure ??= {
             phase: 'complete',
@@ -172,7 +177,7 @@ function exerciseCapacityProfile(input) {
             root: index,
             code: result.code,
           };
-          session.abort();
+          yield { operation: 'abort', session };
           break outer;
         }
         const output = String(round % 10).repeat(profile.outputBytes);
@@ -187,15 +192,10 @@ function exerciseCapacityProfile(input) {
         report.completedTurns++;
       }
       if (profile.reopenEvery && (round + 1) % profile.reopenEvery === 0) {
-        const states = owners.map((owner) => ({
-          binding: owner.binding,
-          state: exportContextRecoveryRoot(runtime, owner.rootId),
-        }));
-        runtime.close();
-        runtime = restoreContextRecoverySessions(
-          { now: () => time },
-          JSON.parse(JSON.stringify(states))
-        );
+        yield {
+          operation: 'reopen',
+          roots: owners.map((owner) => ({ binding: owner.binding, rootId: owner.rootId })),
+        };
         report.reopenCount++;
       }
     }
@@ -204,11 +204,11 @@ function exerciseCapacityProfile(input) {
       // a real next request before declaring any full-workload success.
       let drained = 0;
       for (const [index, owner] of owners.entries()) {
-        const session = observe(owner, profile.turns + 1, index);
+        const session = yield* observe(owner, profile.turns + 1, index);
         if (!session) break;
-        if (profile.recoveries) recover(owner, session, profile.turns + 1, index);
+        if (profile.recoveries) yield* recover(owner, session, profile.turns + 1, index);
         drained++;
-        session.abort();
+        yield { operation: 'abort', session };
       }
       report.finalResultsObserved = drained === profile.roots;
     }
@@ -221,21 +221,83 @@ function exerciseCapacityProfile(input) {
       !report.firstFailure;
     return report;
   } finally {
-    runtime.close();
+    yield { operation: 'close' };
   }
-  function recover(owner, session, round, index) {
-    const listed = session.reply(LIST, {});
+  function* recover(owner, session, round, index) {
+    const listed = yield { operation: 'reply', session, name: LIST, args: {} };
     if (!listed.ok) {
       report.firstReadFailure ??= { phase: 'list', round, root: index, code: listed.code };
       return;
     }
     owner.pinned ??= JSON.parse(listed.text).sources[0];
     const code = owner.pinned
-      ? readPinned(session, owner.pinned, owner.original)
+      ? yield* readPinned(session, owner.pinned, owner.original)
       : 'missing_source';
     if (code) report.firstReadFailure ??= { phase: 'read', round, root: index, code };
     else report.verifiedRecoveries++;
   }
 }
 
-module.exports = { CAPACITY_PROFILES, parseProfile, exerciseCapacityProfile };
+// Preserve the existing synthetic qualification, including its original JSON
+// checkpoint reconstruction. Durable execution uses a separate explicit driver.
+function exerciseCapacityProfile(input) {
+  let time = 1000;
+  let runtime;
+  function execute(command) {
+    switch (command.operation) {
+      case 'open':
+        runtime = createContextRecoverySessions({ now: () => time });
+        runtime.configure(true);
+        return;
+      case 'advance':
+        time = 1000 + command.offsetMs;
+        return;
+      case 'begin':
+        return runtime.begin(command.binding, command.results);
+      case 'reply':
+        return command.session.reply(command.name, command.args);
+      case 'complete':
+        return command.session.complete(command.output, command.calls, command.responseId);
+      case 'abort':
+        return command.session.abort();
+      case 'reopen': {
+        const states = command.roots.map(({ binding, rootId }) => ({
+          binding,
+          state: exportContextRecoveryRoot(runtime, rootId),
+        }));
+        runtime.close();
+        runtime = restoreContextRecoverySessions(
+          { now: () => time },
+          JSON.parse(JSON.stringify(states))
+        );
+        return;
+      }
+      case 'close':
+        runtime?.close();
+        return;
+      default:
+        throw new Error('invalid_capacity_operation');
+    }
+  }
+  const workload = createCapacityWorkload(input);
+  let reply;
+  let failed = false;
+  for (;;) {
+    const step = failed ? workload.throw(reply) : workload.next(reply);
+    if (step.done) return step.value;
+    try {
+      reply = execute(step.value);
+      failed = false;
+    } catch (error) {
+      reply = error;
+      failed = true;
+    }
+  }
+}
+
+module.exports = {
+  CAPACITY_PROFILES,
+  parseProfile,
+  createCapacityWorkload,
+  exerciseCapacityProfile,
+};
