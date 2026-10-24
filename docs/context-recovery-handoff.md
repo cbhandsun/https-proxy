@@ -41,7 +41,7 @@ node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1
 
 ## 当前失败与下一步
 
-**2026-10-24 新进展优先见实施状态顶部：** 续接候选已推送为1dd06ea，不能替换运行中冻结树的身份。另已在Mac补充实际SQLite COMMIT锁等待内部强杀及正负控，尚不覆盖磁盘同步、持久发布转换或Windows原生资格。 Windows 最小开库及真实多根多页短测已通过，旧原生失败未在新隔离环境复现，不能倒推旧根因。真实 day-small 已在独立冻结 Windows 工作树及一次性任务启动，尚未取得24小时及到期后结果；勿另起重复日档或按下面旧暂停描述重启它。先读取现有冻结树 `.hpm-acceptance/task.json` 和安全进度，确认对应 PID 的实际身份及任务终态，不能只凭旧 PID 判断。候选入口 `scripts/qualify-context-recovery-native-day.js` 固定真实画像与时钟，并包含24h之后实际根到期及双重开库拒读；回归假时钟不替代该运行。be7bacee现有CI两条均终态失败：coverage idle注入锁竞争和正式Claude long-persistent五秒请求失败均保留，父提交通过不覆盖它们。
+**2026-10-24 新进展优先见实施状态顶部：** 续接候选已推送为1dd06ea，不能替换运行中冻结树的身份。另已在Mac补充实际SQLite COMMIT锁等待内部强杀，以及五种持久发布状态在COMMIT内/提交后ACK前的强杀与正控，修正引用存储取消清理缺陷；尚不覆盖磁盘同步瞬间或Windows原生资格。 Windows 最小开库及真实多根多页短测已通过，旧原生失败未在新隔离环境复现，不能倒推旧根因。真实 day-small 已在独立冻结 Windows 工作树及一次性任务启动，尚未取得24小时及到期后结果；勿另起重复日档或按下面旧暂停描述重启它。先读取现有冻结树 `.hpm-acceptance/task.json` 和安全进度，确认对应 PID 的实际身份及任务终态，不能只凭旧 PID 判断。候选入口 `scripts/qualify-context-recovery-native-day.js` 固定真实画像与时钟，并包含24h之后实际根到期及双重开库拒读；回归假时钟不替代该运行。be7bacee现有CI两条均终态失败：coverage idle注入锁竞争和正式Claude long-persistent五秒请求失败均保留，父提交通过不覆盖它们。
 
 新机器已补充可入库重现的开库入口（后续变更，详见实施状态顶部）：在 **Windows** 完成锁文件安装及原生准备后运行 `node scripts/diagnose-context-recovery-open.js`。它不依赖未导出的 STORAGE_STARTUP_PHASES，也不调用真实模型。先打印实际加载身份及源码/助手散列，再以默认 worker 和原期限对独立的新临时目录开库、空库 inspect、关闭及同目录重开；只输出固定阶段与耗时。非 Windows 或助手缺失返回退出码 2 且 attempted=false；运行失败退出 1，短测完成退出 0，但不授予容量或 24 小时资格。专用 `hpm-open-diagnostic-*` 临时目录及其独立 OS 锚点保留本地供排查，不入库；入口不会访问旧数据库或日常配置。此入口不取代后续固定容量负载和真实时间长测。
 

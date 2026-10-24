@@ -1339,3 +1339,34 @@ test('legacy publication journal capacity stays shared across roots on load as w
     second.close();
   }
 });
+
+test('reference publication cancellation persists terminal state after invalidating its session', async () => {
+  for (const phase of ['prepared', 'sending', 'transport-finished']) {
+    const database = new DatabaseSync(':memory:');
+    const engine = createRecoverySqliteStore({
+      database,
+      dataKey: randomBytes(32).toString('base64'),
+    });
+    const f = await fixture('chat', engine);
+    try {
+      assert.deepEqual(await f.view.completePublicAsync(observedOutput('chat')), { ok: true });
+      if (phase !== 'prepared')
+        assert.deepEqual(await f.view.startPublicationAsync(), { ok: true });
+      if (phase === 'transport-finished')
+        assert.deepEqual(await f.view.finishPublicationAsync(), { ok: true });
+      assert.deepEqual(await f.view.withdrawAsync(), { ok: true });
+      const save = f.requests.findLast((request) => request.operation === 'save-reference-state');
+      const record = engine.execute({ operation: 'load', scope: save.scope });
+      assert.equal(
+        record.state.publications.find((item) => item.snapshotId === f.id).state,
+        phase === 'sending' ? 'uncertain' : 'withdrawn'
+      );
+      assert.equal(record.state.root.ledger.sources[0].output, original);
+      assert.equal(f.view.inspect().active, false);
+    } finally {
+      await f.runtime.shutdownAsync();
+      engine.close();
+      database.close();
+    }
+  }
+});

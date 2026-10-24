@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：持久发布转换内部中断矩阵与取消清理修正
+
+按用户要求先核对现有CI，没有重跑：`1dd06ea` 的Verify `40088184535` 八项均success，正式Windows `40088184542` source-gates与egress成功、N08/N09进行中；`ad1d769` 的Verify `40088855196` 七项成功、coverage进行中，正式Windows `40088855188` source-gates进行中、egress成功。历史be7bacee失败继续保留，单次通过不关闭五秒性能稳定性问题。
+
+新增 `context-recovery-publication-interruption.test.js` 使用真实session、发布状态机、引用存储事务与加密文件SQLite。五种目标状态为prepared、sending、transport-finished、uncertain、withdrawn；每种分别在真实COMMIT的PENDING锁等待内部，以及COMMIT完成但存储ACK尚未返回时强杀，另有对应释放正控，共20项。前者要求真实journal、无ACK、实际SIGKILL及同目录重开得到旧完整版本；后者要求无ACK但同目录重开得到精确新版本，不能把丢失ACK解释为未提交。正控要求单次精确版本ACK，检查原expiry、原文、预算、FULL/DELETE、1000ms busy期限及integrity_check。所有新测试由统一递归入口进入CI，不访问长测目录、不调用模型。
+
+测试发现并以直接回归复现真实取消缺陷：引用存储的取消先使session失效，随后保存withdrawn/uncertain时，即使所有原文已持久化、缺少payload的ID集合为空，仍调用owner.payloads，导致清理在实际COMMIT前失败。现仅对空集合返回空payload，新增原文仍必须通过原owner能力；存储侧引用/密文认证、版本相等检查和ACK顺序均保留。直接回归覆盖prepared、sending及transport-finished后的取消，确认清理完成、状态正确、原文保留且session失效。
+
+初稿比较存储返回的空原型预算与IPC普通对象时产生夹具断言失败，已按其JSON数据语义比较，完整记录精确断言仍在；撤回失败则是上述独立复现的产品问题，两者没有混为根因。修正后发布/内部中断/COMMIT三文件共52项通过、零跳过，Lint、架构、CI及发布治理通过。此批证据范围仍为Mac文件SQLite和真实session层，不授予Windows DPAPI/OS锚点、磁盘同步瞬间中断或最终安装HTTP资格。
+
+本批不包含尚在复核的快照优化。原文留存、原期限、固定负载、ACK精确版本和持久语义保持；正在运行的冻结真实日档未访问、未修改或重启。未核验额度，没有新增真实模型请求，整体交付仍未完成。
+
 ## 2026-10-24：续接修改已推送，独立补齐 COMMIT 锁等待内部中断回归
 
 续接诊断、真实日档入口、留存见证和 idle 测试锁竞争修正已按原提交钩子提交并推送为 `1dd06eabcd3716f6c9638e026ae72375ff8171af`，远端分支 SHA 已核对一致。该提交的 Verify `40088184535` 已有七项成功（四个单测分片、Rust、Node质量、集成），coverage仍在client coverage阶段；正式 Windows `40088184542` 的egress成功、source-gates进行中，两条均不能记作完整通过。此前 be7bacee 的 coverage 锁竞争和正式 Claude long-persistent 约5002ms失败保留，不能用局部回归覆盖。
