@@ -20,6 +20,7 @@ const SUMMARY =
   '<summary>Synthetic task handoff: use the retained original evidence directory and exact reading when asked. Do not rerun the original tool.</summary>';
 const PRIVATE =
   /hpm_list_retained_evidence|hpm_read_retained_evidence|private-thinking-sentinel|private-signature-sentinel/;
+const PRIVATE_HANDOFF = 'private-thinking-sentinel ' + LIST + ' ' + READ;
 
 function createClaudeSyntheticUpstream(input) {
   let options;
@@ -62,7 +63,8 @@ function createClaudeSyntheticUpstream(input) {
     throw invalid();
   }
   function expectedRequests() {
-    return phaseIndex === 0 ? 2 : phaseIndex === 6 && options.mode === 'enhanced' ? 4 : 1;
+    if (options.mode === 'default') return phaseIndex === 0 ? 2 : 1;
+    return phaseIndex === 0 ? 3 : phaseIndex === 6 ? 4 : 2;
   }
   function setPhase(phase) {
     if (
@@ -205,7 +207,12 @@ function createClaudeSyntheticUpstream(input) {
         fail();
       const summary = isClaudeSummaryRequest(body);
       if (summary !== /^compact-[123]$/.test(PHASES[phaseIndex])) fail();
-      if ((options.mode === 'default' || phaseIndex !== 6) && privateTools) fail();
+      if (phaseIndex !== 6) {
+        const expectedPrivate =
+          options.mode === 'enhanced' &&
+          (phaseIndex === 0 ? phaseRequests === 1 : phaseRequests === 0);
+        if (privateTools !== expectedPrivate || (!privateTools && PRIVATE.test(serialized))) fail();
+      } else if (options.mode === 'default' && privateTools) fail();
       const results = parsedResults(body);
       requests++;
       phaseRequests++;
@@ -225,14 +232,16 @@ function createClaudeSyntheticUpstream(input) {
             result.output !== JSON.stringify(expected))
         )
           fail();
-        originalWire =
+        const wire =
           typeof result.output === 'string' ? result.output : JSON.stringify(result.output);
-        content = [{ type: 'text', text: 'READY' }];
+        if (originalWire !== undefined && originalWire !== wire) fail();
+        originalWire = wire;
+        content = [{ type: 'text', text: privateTools ? PRIVATE_HANDOFF : 'READY' }];
       } else if (summary) {
-        compactions++;
-        content = [{ type: 'text', text: SUMMARY }];
+        if (!privateTools) compactions++;
+        content = [{ type: 'text', text: privateTools ? PRIVATE_HANDOFF : SUMMARY }];
       } else if (phaseIndex === 6) content = finalContent(body, results, privateTools, serialized);
-      else content = [{ type: 'text', text: 'READY' }];
+      else content = [{ type: 'text', text: privateTools ? PRIVATE_HANDOFF : 'READY' }];
       return claudeSyntheticSse(options.model, requests, content);
     } catch {
       fail();

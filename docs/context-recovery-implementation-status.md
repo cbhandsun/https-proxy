@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：修复Claude增强阶段，模块预置后Core恢复串联通过
+
+以真实sessions、beginContextRecoveryRequest及isolated coordinator补充Claude seed回归，旧实现实际失败：首个外部tool call完成后提交其结果，visibleSources=1，合法私有请求只含LIST/READ；Claude合成上游却只允许final阶段出现私有工具。该限制同样覆盖摘要和摘要间继续，不能仅放行seed后再逐次撞下一个阶段。
+
+现增强组严格逐阶段要求私有后独立公开：seed为首次外部调用、私有观察其结果、独立公开READY；三次摘要及两次摘要间继续各为私有/公开两请求。只有公开摘要计入原三次压缩，私有回复带sentinel以核验不外泄；seed私有/公开请求必须引用同一call及逐字节相同的原始结果。默认组仍8请求且拒绝全部私有工具；增强组正确的完整路径为17请求，仍在原24请求上界内，没有放宽240秒矩阵、120秒客户端回合或五秒HTTP期限，也未增加压缩次数/原始工具执行次数。原最终精确READ、独立公开生成及签名/私有工具拒绝保持。
+
+真实会话新回归先失败后通过；新增负控拒绝绕过私有阶段、提前切阶段、重复私有请求、公开私有sentinel、相同内容更换原始wire表示、单个私有工具，失败保持sticky。首轮扩大直接node --test漏用了统一入口既有physical-test-temp预载，57项中33通过、24项路径拒绝，失败日志保留；按原统一入口预载和已安装独立pwsh执行，全部客户端及阶段探针165/165通过、零skip，未修改路径守卫或工具版本。定向Lint/语法、四项架构/secret及CI/发行治理通过。
+
+本机独立诊断先由真实sessions模块预置首个实际tool call，再从其结果起走真实Core HTTP及仅本机合成上游：增强路径17次合成请求、三次可解析摘要receipt、原始工具一次、精确READ、独立公开生成和最终答案相等，公开流不含私有工具名/思考/签名sentinel。首个普通转发未通过的旧fixture诊断仍独立保留，本结果不把该组合缺项当产品根因，不宣称首个普通转发、原生CLI、Windows安装或DPAPI资格。真实模型请求0。
+
+2bb4325普通Verify `40125641680`八项已全success；正式Windows `40125641677` source-gates仍在运行。原安装 `40125667621` / job `120966512135`完整候选门禁已success，正在构建，未重启；其中尚无a8cce14的coverage接线或本批Claude修复，旧结果不能授予新候选资格。五秒COMMIT与60秒重开失败继续未关闭，冻结长测未访问，完整原交付范围保持。下一步新候选走原门禁和实际安装四组，再按结果处理具体阻塞。
+
 ## 2026-10-24：真实Core串联发现LIST覆盖范围接线错误，修复后Codex内存诊断通过
 
 在2bb4325原Windows作业继续运行期间，使用真实Core HTTP、真实内存sessions及只监听127.0.0.1的固定合成上游，串联seed、三次原生摘要及最终恢复。seed已跨过，三次摘要都返回可解析的原receipt；最终LIST却被合成Codex上游拒绝，状态502、requests=11、readPages=0。有限形状证明LIST本身ok=true、sources=1、nextAfterSourceId=null，但带有真实生产coverage字段；原retainedSource只接受不含coverage的旧三字段主体，严格键检查误拒绝。真实view.reply(LIST,{})新增断言在旧实现失败，未用手造成功数据代替。

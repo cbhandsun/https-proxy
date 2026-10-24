@@ -12,6 +12,7 @@ const marker = 'HPM_PRIVATE_0123456789abcdef';
 const original = 'Synthetic original Unicode 中文🙂\r\nfixed payload\r\nREQUIRED_MARKER=' + marker;
 const hash = (text) => createHash('sha256').update(text).digest('hex');
 const options = { mode: 'default', model: 'synthetic-claude', marker, original };
+const failure = { message: 'nsis_claude_upstream_failed' };
 const body = (tools = []) => ({
   model: options.model,
   stream: true,
@@ -38,6 +39,125 @@ function events(reply) {
 function tool(reply) {
   return events(reply).find((event) => event.content_block?.type === 'tool_use').content_block;
 }
+
+test('real enhanced Claude seed privately observes the first result before independent public READY', () => {
+  const { createContextRecoverySessions } = require('../lib/proxy/context-recovery-sessions');
+  const {
+    beginContextRecoveryRequest,
+    decodeContextRecoveryEnvelope,
+  } = require('../lib/proxy/context-recovery-protocol');
+  const sessions = createContextRecoverySessions();
+  sessions.configure(true);
+  const gateway = createClaudeSyntheticUpstream({ ...options, mode: 'enhanced' });
+  const prepared = {
+    profile: { id: 'fixture', protocol: 'claude', targetUrl: 'https://api.anthropic.com' },
+    authMode: 'api-key',
+    rewriteTo: '-',
+  };
+  const begin = (request) =>
+    beginContextRecoveryRequest(sessions, {
+      auth: { ok: true, enabled: true, key: { id: 'fixture-owner' } },
+      kind: 'claude',
+      prepared,
+      buffer: Buffer.from(JSON.stringify(request)),
+    });
+  const decode = (reply) => decodeContextRecoveryEnvelope('claude', reply.wire, true);
+  let initial, view, run;
+  try {
+    gateway.setPhase('seed');
+    const seed = body(['mcp__fixture__original']);
+    initial = begin(seed);
+    assert.equal(initial.ok, true);
+    const first = decode(send(gateway, seed));
+    const call = first.content[0];
+    assert.equal(
+      initial.complete(
+        [{ role: 'assistant', content: first.content }],
+        [{ callId: call.id, toolName: call.name, arguments: {}, completed: true, output: '' }]
+      ).ok,
+      true
+    );
+    gateway.recordSourceCall();
+    const next = {
+      ...seed,
+      messages: [
+        ...seed.messages,
+        { role: 'assistant', content: first.content },
+        { role: 'user', content: [resultBlock(call.id, [{ type: 'text', text: original }])] },
+      ],
+    };
+    view = begin(next);
+    assert.equal(view.ok, true);
+    assert.equal(view.inspect().visibleSources, 1);
+    run = view.recovery(next, { publicGeneration: 'isolated' });
+    assert.equal(run.ok, true);
+    assert.deepEqual(
+      run.initialRequest.tools.map((entry) => entry.name),
+      [LIST, READ]
+    );
+    const privateReply = decode(send(gateway, run.initialRequest));
+    assert.match(JSON.stringify(privateReply), /private-thinking-sentinel/);
+    const publicTurn = run.accept(privateReply);
+    assert.equal(publicTurn.mode, 'continue');
+    assert.doesNotMatch(
+      JSON.stringify(publicTurn.request),
+      /private-thinking-sentinel|hpm_list_retained_evidence|hpm_read_retained_evidence/
+    );
+    const publicReply = decode(send(gateway, publicTurn.request));
+    assert.equal(publicReply.content[0].text, 'READY');
+    assert.equal(run.accept(publicReply).mode, 'release');
+    assert.equal(gateway.inspect().sourceCalls, 1);
+    assert.equal(gateway.inspect().requestCount, 3);
+    gateway.setPhase('compact-1');
+  } finally {
+    run?.cancel();
+    view?.abort();
+    initial?.abort();
+    sessions.close();
+  }
+});
+
+test('enhanced seed rejects bypass, premature phase changes, repeated private turns, leaks and changed wire', () => {
+  for (const fault of [
+    'bypass-private',
+    'early-phase',
+    'second-private',
+    'private-public',
+    'changed-wire',
+    'partial-tools',
+  ]) {
+    const gateway = createClaudeSyntheticUpstream({ ...options, mode: 'enhanced' });
+    gateway.setPhase('seed');
+    const call = tool(send(gateway, body(['mcp__fixture__original'])));
+    gateway.recordSourceCall();
+    const seeded = {
+      ...body(['mcp__fixture__original']),
+      messages: [
+        { role: 'user', content: [resultBlock(call.id, [{ type: 'text', text: original }])] },
+      ],
+    };
+    const privateRequest = { ...seeded, tools: body([LIST, READ]).tools };
+    if (fault === 'bypass-private') assert.throws(() => send(gateway, seeded), failure);
+    else if (fault === 'partial-tools')
+      assert.throws(() => send(gateway, { ...privateRequest, tools: body([LIST]).tools }), failure);
+    else {
+      assert.ok(send(gateway, privateRequest).wire.includes('private-thinking-sentinel'));
+      if (fault === 'early-phase') assert.throws(() => gateway.setPhase('compact-1'), failure);
+      if (fault === 'second-private') assert.throws(() => send(gateway, privateRequest), failure);
+      if (fault === 'private-public') {
+        seeded.messages.push({ role: 'user', content: 'private-thinking-sentinel' });
+        assert.throws(() => send(gateway, seeded), failure);
+      }
+      if (fault === 'changed-wire') {
+        seeded.messages[0].content[0].content = original;
+        assert.throws(() => send(gateway, seeded), failure);
+      }
+    }
+    assert.equal(gateway.inspect().failed, true);
+    assert.equal(gateway.inspect().complete, false);
+    assert.throws(() => send(gateway, body()), { message: 'nsis_claude_upstream_failed' });
+  }
+});
 function prepare(mode = 'default', mutateSeed = (value) => value) {
   const gateway = createClaudeSyntheticUpstream({ ...options, mode });
   gateway.setPhase('seed');
@@ -51,6 +171,7 @@ function prepare(mode = 'default', mutateSeed = (value) => value) {
       content: [resultBlock(call.id, mutateSeed([{ type: 'text', text: original }]))],
     },
   ];
+  if (mode === 'enhanced') events(send(gateway, { ...seeded, tools: body([LIST, READ]).tools }));
   events(send(gateway, seeded));
   for (let index = 1; index <= 3; index++) {
     gateway.setPhase('compact-' + index);
@@ -63,11 +184,13 @@ function prepare(mode = 'default', mutateSeed = (value) => value) {
     ];
     summary.messages[0].content =
       'Your task is to create a detailed summary of the conversation so far <analysis> <summary>';
+    if (mode === 'enhanced') events(send(gateway, { ...summary, tools: body([LIST, READ]).tools }));
     const reply = send(gateway, summary);
     assert.equal(reply.wire.includes(marker), false);
     events(reply);
     if (index < 3) {
       gateway.setPhase('between-' + index);
+      if (mode === 'enhanced') events(send(gateway, body([LIST, READ])));
       events(send(gateway, body()));
     }
   }
@@ -147,7 +270,7 @@ test('default three summaries preserve SSE with eight requests and no private to
 
 test('enhanced upstream requires exact private READ followed by independent public generation', () => {
   const receipt = finishEnhanced(prepare('enhanced'));
-  assert.equal(receipt.requestCount, 11);
+  assert.equal(receipt.requestCount, 17);
   assert.equal(receipt.exactPrivateRead, true);
   assert.equal(receipt.independentPublicGeneration, true);
   assert.equal(receipt.exactAuthorizedEvidenceInPublicRequest, true);
