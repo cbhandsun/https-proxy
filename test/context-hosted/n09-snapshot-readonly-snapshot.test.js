@@ -100,7 +100,7 @@ function reference(withEvidence = false) {
     runtime.close();
   }
 }
-function fixture(withEvidence = false) {
+function fixture(withEvidence = false, format = 2) {
   const key = Buffer.alloc(32, 7).toString('base64');
   const cipher = createStorageCipher(key);
   const state = {
@@ -121,7 +121,7 @@ function fixture(withEvidence = false) {
   };
   const f = {
     rows: [],
-    version: 2,
+    version: format,
     application: schema.APPLICATION_ID,
     commands: [],
     closed: 0,
@@ -152,7 +152,7 @@ function fixture(withEvidence = false) {
         kind: 'header',
         version: 1,
       },
-      { schema: 2, lastTime: 100 }
+      { schema: format, lastTime: 100 }
     ),
   };
   const layouts = [
@@ -215,6 +215,36 @@ function fixture(withEvidence = false) {
   f.reader = () => createDurableSnapshotReader(options, f.trusted);
   return f;
 }
+
+test('readonly snapshot accepts only supported formats with a matching authenticated header', () => {
+  for (const format of [2, 3]) {
+    const f = fixture(true, format);
+    const reader = f.reader();
+    const result = reader.read();
+    assert.equal(result.present, true);
+    assert.equal(result.capturedEvidence.length, 1);
+    assert.equal(result.hostDurableAck, false);
+    reader.close();
+    assert.equal(f.closed, 1);
+    assert.ok(f.commands.every((sql) => sql.includes('query_only=ON') || sql === 'ROLLBACK'));
+  }
+  for (const [header, pragma] of [
+    [2, 3],
+    [3, 2],
+    [4, 4],
+    [3, 4],
+    [3, '3'],
+    [1, 1],
+  ]) {
+    const f = fixture(true, header);
+    f.version = pragma;
+    const reader = f.reader();
+    assert.throws(() => reader.read(), bad);
+    reader.close();
+    assert.equal(f.closed, 1);
+    assert.equal(f.commands.at(-1), 'ROLLBACK');
+  }
+});
 
 test('snapshot projects authenticated captured receipts with branch-scoped identities and original source expiry', () => {
   const f = fixture(true);
@@ -542,7 +572,7 @@ test('snapshot observer rejects invalid callbacks, accessors and proxies before 
 
 test('snapshot SQL reads authenticated metadata from actual in-memory SQLite without native or files', () => {
   const { DatabaseSync } = require('node:sqlite');
-  const f = fixture();
+  const f = fixture(false, 3);
   const database = new DatabaseSync(':memory:');
   database.exec(
     schema.HEADER_SQL +
@@ -552,7 +582,7 @@ test('snapshot SQL reads authenticated metadata from actual in-memory SQLite wit
       schema.BLOB_SQL +
       ';PRAGMA application_id=' +
       schema.APPLICATION_ID +
-      ';PRAGMA user_version=2;'
+      ';PRAGMA user_version=3;'
   );
   database
     .prepare('INSERT INTO recovery_header(singleton,store_id,envelope) VALUES(1,?,?)')

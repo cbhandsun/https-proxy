@@ -81,10 +81,8 @@ function createDurableSnapshotReader(input, trusted = {}) {
       database.exec('PRAGMA busy_timeout=0; PRAGMA query_only=ON; BEGIN');
       begun = true;
       onPhase(179);
-      if (
-        recoveryStorageSchemaState(database) !== 'ready' ||
-        database.prepare('PRAGMA user_version').get().user_version !== 2
-      )
+      const format = database.prepare('PRAGMA user_version').get().user_version;
+      if (recoveryStorageSchemaState(database) !== 'ready' || (format !== 2 && format !== 3))
         throw failure();
       onPhase(180);
       const header = database.prepare(HEADER_SQL).get();
@@ -110,7 +108,7 @@ function createDurableSnapshotReader(input, trusted = {}) {
       );
       if (
         Object.keys(clock).sort().join(',') !== 'lastTime,schema' ||
-        clock.schema !== 2 ||
+        clock.schema !== format ||
         !Number.isSafeInteger(clock.lastTime) ||
         clock.lastTime < 0
       )

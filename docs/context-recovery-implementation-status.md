@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：新格式正式 N08/N09 的共同观察器拒绝已复现修复
+
+`f18b4a79` 正式Windows `40050413829` source-gates与egress成功，N08 `120746110196` 和N09 `120746110072` 均终态failure，固定阶段均179（N09 case80），network restore另失败。定位到验收只读观察器仍硬编码PRAGMA/header schema2；正常owner封为schema3后，它在实际业务恢复前拒绝。新增2/3正常、PRAGMA/header错配、未来版本、类型错误及旧schema1矩阵，旧实现明确在schema3正常路径失败。观察器现在只接受已知2或3，解密header必须精确匹配同一事务内PRAGMA；不授予writer/owner/原文读取权限，继续query_only/ROLLBACK且hostDurableAck=false。实际内存SQLite SQL回归切到schema3，旧schema2 sibling/损坏测试保留；观察器/driver/closure三文件46项通过。此修复是验收工具格式适配，不修改生产格式、防回滚或成功断言；正式业务仍须新源码复验。
+
+已为完整Verify八项及正式source-gates通过的 `f18b4a79` 新建精确SHA review分支。安装run `40052046114` resolve `120746629713` success，encrypted job `120746710466` in_progress；只复用原未发布draft及固定assets，不重复上传、不发布、不改写引用。它与schema3生产payload相同，但不包含本轮观察器修复，不可替代新正式N08/N09资格。`a4cb2328` 的HTTP失败诊断修复已提交并推送，相关托管验收另行运行。
+
 ## 2026-10-23：save ACK 的 HTTP 拒绝诊断缺口已复现修复；当前候选 Verify 八项通过
 
 正式 Windows `40048655431` 已终态 failure：source-gates、egress、N08 success，N09 `120740811141` 在 save case82 的254（最终receipt轮询）失败，network restore另有failure，不能计作完整恢复或清理通过。检查发现startSave与重启readThrough不对称：前者已收到401/503/502等HTTP失败时只置failed，留下254而丢失安全状态/进度分类。两项新增回归修复前均失败（254取代163、253/254取代169/212）。现在二者复用固定HTTP/上游/恢复进度分类，不读取或打印响应内容；不增加请求/诊断I/O，不改15秒操作预算、5秒门禁、ACK成功条件、强杀/恢复/清理断言。相关adapter/command/driver三文件99项通过，修改文件Lint、格式、CI及release治理通过，沿用现有统一测试发现。此修复仅提高失败可定位性，尚未证明正式ACK失败的根因。
