@@ -86,12 +86,13 @@ $lockFile = Join-Path $tools 'package-lock.json'
 $originalLock = [IO.File]::ReadAllBytes($lockFile)
 $proof = Join-Path $FixtureRoot 'hpm-installed-client-preparation.json'
 $observed = @()
-foreach ($global:Mode in @('success','crlf','proof','proofhash','proofduplicate','lock','npm','drift','package','duplicate','badcase','confirmed','cleanup')) {
+foreach ($global:Mode in @('success','crlf','doublecrlf','proof','proofhash','proofduplicate','lock','npm','drift','package','duplicate','badcase','confirmed','cleanup')) {
     $global:NpmCalls = 0; $global:PayloadCalls = 0; $global:NetworkCalls = 0; $global:DriverCalls = 0; $global:LeasesDisposed = 0
     $global:NetworkStopped = $null; $global:PayloadStopped = $null
     [IO.File]::WriteAllBytes($lockFile, $originalLock)
     @{ schemaVersion = 1; currentSha = ('a' * 40); buildCompleted = $true; candidateNpmCompleted = ($global:Mode -ne 'proof'); verificationCompleted = $true } | ConvertTo-Json -Compress | Set-Content -LiteralPath $proof -Encoding utf8
-    if ($global:Mode -eq 'crlf') { [IO.File]::WriteAllText($lockFile, ([Text.Encoding]::UTF8.GetString($originalLock)).Replace("`n","`r`n"), [Text.UTF8Encoding]::new($false)) }
+    if ($global:Mode -eq 'crlf') { [IO.File]::WriteAllText($lockFile, ([Text.Encoding]::UTF8.GetString($originalLock)).Replace("`r`n","`n").Replace("`n","`r`n"), [Text.UTF8Encoding]::new($false)) }
+    if ($global:Mode -eq 'doublecrlf') { [IO.File]::WriteAllText($lockFile, ([Text.Encoding]::UTF8.GetString($originalLock)).Replace("`r`n","`n").Replace("`n","`r`r`n"), [Text.UTF8Encoding]::new($false)) }
     if ($global:Mode -eq 'proofduplicate') { [IO.File]::WriteAllText($proof, ([IO.File]::ReadAllText($proof)).Replace('"schemaVersion":1','"schemaVersion":1,"schemaVersion":1'), [Text.UTF8Encoding]::new($false)) }
     $proofSha = (Get-FileHash -LiteralPath $proof -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($global:Mode -eq 'proofhash') { $proofSha = '0' * 64 }

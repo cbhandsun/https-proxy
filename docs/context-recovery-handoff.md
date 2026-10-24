@@ -41,6 +41,8 @@ node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1
 
 ## 当前失败与下一步
 
+**8067628终态失败优先：** Verify `40113538815`六项成功、unit3/coverage失败，正式Windows `40113538709` source-gates失败，安装链 `40113568952` encrypted job `120930181450`停在候选完整verify，实际安装四组未执行。共同CRLF夹具问题已复现并修正，仅测试改动、生产锁守卫不变；coverage另有真实默认worker撤销/清空重开60000ms超时，现加固定阶段诊断，期限/断言/默认存储保持，根因仍未确定。下一步读取新候选真实Windows最后start/end阶段后修实际阻塞，不能把诊断或本机局部通过当成修复。长测不访问、不改、不重启，模型调用0。
+
 **受控CLI管道修复批优先：** 608da0f路径夹具修正已推送并启动原门禁及安装链 `40113227807`；随后确认PowerShell EOF CopyToAsync完成调用会额外输出VoidTaskResult，现仅抑制这个无返回值结果，原异常和期限/Job清理不变。同一生产AST helper在Mac及Windows实际PowerShell验证14项管道断言通过，本机owned transport11/11通过；四组安装CLI仍无通过结果。详情见实施状态顶部，旧412失败保留，长测不动，模型请求0。
 
 **412c800门禁失败优先：** Verify `40112658934` unit-tests (2) job `120927442702`因控制器测试把Windows路径分隔符写成正斜线而失败；已用真实Windows、固定原源码与PowerShell AST复现并验证修正后的完整路径精确转义检查。生产及工具实现未改，旧失败保留。新候选需重新完整verify/audit/build后执行安装矩阵；`40112676779`详细jobs观察超时不代表运行终止，不重启旧运行，不授予四组CLI资格。详情见实施状态顶部。

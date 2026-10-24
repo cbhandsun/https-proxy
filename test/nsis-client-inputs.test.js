@@ -62,7 +62,11 @@ test('installed CLI preparation and orchestration execute original closed callba
   for (const name of names) {
     const destination = path.join(workspace, name);
     fs.mkdirSync(path.dirname(destination), { recursive: true });
-    fs.copyFileSync(path.join(root, name), destination);
+    if (name === 'tools/nsis-clients/package-lock.json') {
+      // Reproduce Windows checkout bytes on every test platform.
+      const text = fs.readFileSync(path.join(root, name), 'utf8').replaceAll('\r\n', '\n');
+      fs.writeFileSync(destination, text.replaceAll('\n', '\r\n'));
+    } else fs.copyFileSync(path.join(root, name), destination);
   }
   fs.writeFileSync(
     path.join(workspace, 'scripts/lib/nsis-installed-client-matrix.cjs'),
@@ -104,18 +108,22 @@ test('installed CLI preparation and orchestration execute original closed callba
   assert.equal(result.stderr, '');
   assert.equal(result.stdout.includes('synthetic-removal-sentinel'), false);
   const rows = JSON.parse(result.stdout);
-  assert.equal(rows.length, 13);
+  assert.equal(rows.length, 14);
   for (const row of rows) {
     if (['success', 'crlf'].includes(row.mode)) {
-      assert.equal(row.error, null);
+      assert.equal(row.error, null, row.mode);
       assert.equal(row.receipt.matrix.syntheticClientQualified, true);
       assert.equal(row.receipt.matrix.realProviderQualified, false);
       assert.equal(row.receipt.uninstalled, true);
     } else assert.equal(row.error, 'nsis_installed_clients_failed', row.mode);
-    if (['proof', 'proofhash', 'proofduplicate', 'lock'].includes(row.mode))
+    if (['proof', 'proofhash', 'proofduplicate', 'lock', 'doublecrlf'].includes(row.mode))
       assert.equal(row.npm, 0, row.mode);
     else assert.equal(row.npm, 1, row.mode);
-    if (['proof', 'proofhash', 'proofduplicate', 'lock', 'npm', 'drift'].includes(row.mode))
+    if (
+      ['proof', 'proofhash', 'proofduplicate', 'lock', 'doublecrlf', 'npm', 'drift'].includes(
+        row.mode
+      )
+    )
       assert.equal(row.payload, 0, row.mode);
     else assert.equal(row.payload, 1, row.mode);
     if (row.mode === 'package') {

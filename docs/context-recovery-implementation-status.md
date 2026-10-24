@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：8067628完整门禁失败已收齐，修正CRLF夹具并接入原60秒重开诊断
+
+`806762898269682e842c9eb0afc6ddceab33ebe8`的Verify `40113538815`终态failure：六项success，unit-tests (3) `120930020899`和coverage `120930020922`failure。正式Windows `40113538709`也终态failure，source-gates `120930020554`失败、egress通过、后续context-recovery被原依赖门禁跳过。安装链 `40113568952`的resolve成功，但encrypted `120930181450`在完整候选verify因同一夹具失败终止；安装器构建、升级回滚和四组客户端均未执行。此前608da0f的unit-tests (2)已success，证明路径断言修正消除了原失败；未重跑旧候选制造绿色。
+
+共同失败为nsis-client-inputs.test.js的crlf正控。已在Mac实际pwsh强制使用Windows CRLF锁副本复现：原夹具把已有CRLF再次LF→CRLF，生成CRCRLF，生产固定摘要守卫正确拒绝。现只修夹具先CRLF→LF再LF→CRLF，并让所有平台都使用Windows字节副本；新增doublecrlf负控继续要求在npm/安装之前拒绝，原13情形全部保留，合计14模式。正控失败信息仅附固定mode，生产inputs/orchestration/receipt模块和依赖锁没有变更。Windows独立mock重跑尚未取得回执，不计作通过，正式Windows CI仍须核验。
+
+coverage还保留独立失败：真实default runtime/worker、DPAPI/OS锚点的撤销和清空后关闭重开测试在60002ms触发原60000ms总超时。旧日志没有阶段信息，不能据此确认是开库、串行FULL提交、关闭或重开的产品根因；不提高期限、跳过、替换存储或用单次成功覆盖它。新增默认关闭的有限诊断第二参数{onPhase}，旧input边界不变，独立progress模块对每个实际await报告固定action/phase/event、sequence<=128和单调elapsedMs，绝无路径、scope/receipt、原文或异常内容。真实Windows原测试立即写stderr，保持原60000、默认API、ACK及全部结果断言；观察器失败保持失败且仍执行实际资源清理，不重试。
+
+本机三文件回归30pass、1个原Windows-only skip（无新增skip），定向Lint/格式、CI/发行治理及架构/模块/secret检查通过。阶段诊断只提供定位能力，尚未修复或关闭真实重开超时；四组安装验收仍没有通过证据。新候选继续走原完整verify/audit/build/安装门禁，不使用已有单项结果扩授client/restartRetention/gracefulDrain资格。真实模型请求0、两端授权未核验，冻结长测与日常配置未访问或改变，整体未完成。
+
 ## 2026-10-24：受控CLI的PowerShell EOF额外stdout已修，真实Windows管道探针通过
 
 路径夹具修正已提交推送`608da0f0ab13442443a9ff09ed7f2c77649a1a25`，Verify `40113203823`当前node-quality/integration/rust成功、其余尚在运行；正式Windows `40113203821`及新安装链`40113227807`已启动，后者check-run确认resolve成功、encrypted job `120929192649`in_progress，四组CLI步骤未确认已执行。详细可复用workflow jobs接口仍可能ReadTimeout/502，已改用原commit check-runs取得同一job身份，未重启旧运行或用观察超时判定终止。

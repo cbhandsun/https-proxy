@@ -5,6 +5,7 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { types } = require('node:util');
 const { safePath } = require('./nsis-encrypted-contract');
+const { createRuntimeReopenProgress } = require('./nsis-runtime-reopen-progress');
 const {
   LIST_EVIDENCE_TOOL: LIST,
   READ_EVIDENCE_TOOL: READ,
@@ -71,7 +72,7 @@ function ack(value) {
   check(value && Object.keys(value).join(',') === 'ok' && value.ok === true);
 }
 
-async function seed(owner) {
+async function seed(owner, run) {
   const history = [{ role: 'user', content: 'synthetic runtime revoke and clear' }];
   const tool = {
     role: 'assistant',
@@ -80,12 +81,16 @@ async function seed(owner) {
       { id: 'n09-call', type: 'function', function: { name: 'lookup', arguments: '{}' } },
     ],
   };
-  const first = await owner.sessions.beginAsync({ ...binding, history }, [], () => true);
+  const first = await run('seed-first-begin', () =>
+    owner.sessions.beginAsync({ ...binding, history }, [], () => true)
+  );
   check(first.ok === true);
   ack(
-    await first.completeObservedAsync(
-      [tool],
-      [{ callId: 'n09-call', toolName: 'lookup', arguments: {}, completed: true, output: '' }]
+    await run('seed-first-complete', () =>
+      first.completeObservedAsync(
+        [tool],
+        [{ callId: 'n09-call', toolName: 'lookup', arguments: {}, completed: true, output: '' }]
+      )
     )
   );
   const capturedHistory = [
@@ -93,26 +98,32 @@ async function seed(owner) {
     tool,
     { role: 'tool', tool_call_id: 'n09-call', content: original },
   ];
-  const second = await owner.sessions.beginAsync(
-    { ...binding, history: capturedHistory },
-    [{ callId: 'n09-call', output: original }],
-    () => true
+  const second = await run('seed-capture-begin', () =>
+    owner.sessions.beginAsync(
+      { ...binding, history: capturedHistory },
+      [{ callId: 'n09-call', output: original }],
+      () => true
+    )
   );
   check(second.ok === true);
   const answer = [{ role: 'assistant', content: 'done' }];
-  ack(await second.completeObservedAsync(answer, [], 'n09-final'));
-  const view = await owner.sessions.beginAsync(
-    { ...binding, history: [...capturedHistory, ...answer] },
-    [],
-    () => true
+  ack(
+    await run('seed-capture-complete', () => second.completeObservedAsync(answer, [], 'n09-final'))
+  );
+  const view = await run('seed-view-begin', () =>
+    owner.sessions.beginAsync(
+      { ...binding, history: [...capturedHistory, ...answer] },
+      [],
+      () => true
+    )
   );
   check(view.ok === true);
-  const listed = await view.replyAsync(LIST, {});
+  const listed = await run('seed-list', () => view.replyAsync(LIST, {}));
   check(listed.ok === true);
   const sources = JSON.parse(listed.text).sources;
   check(Array.isArray(sources) && sources.length === 1);
   const receipt = { sourceId: sources[0].sourceId, digest: sources[0].digest };
-  const read = await view.replyAsync(READ, receipt);
+  const read = await run('seed-read', () => view.replyAsync(READ, receipt));
   check(read.ok === true && JSON.parse(read.text).page.text === original);
   check(typeof first.snapshotId === 'string');
   const scope = createHash('sha256')
@@ -121,24 +132,25 @@ async function seed(owner) {
   return { view, receipt, scope };
 }
 
-async function exerciseCase(dataDirectory, action, api) {
+async function exerciseCase(dataDirectory, action, api, progress) {
+  const run = (phase, operation) => progress.run(action, phase, operation);
   let owner, storage;
-  async function closeOwner() {
+  async function closeOwner(phase = 'owner-shutdown') {
     const current = owner;
     owner = undefined;
-    if (current) ack(await current.shutdownAsync());
+    if (current) ack(await run(phase, () => current.shutdownAsync()));
   }
-  async function closeStorage() {
+  async function closeStorage(phase = 'direct-close') {
     const current = storage;
     storage = undefined;
-    if (current) check((await current.close()) === undefined);
+    if (current) check((await run(phase, () => current.close())) === undefined);
   }
   function createOwner() {
     owner = api.createRuntime({ dataDirectory });
     owner.configureSettings(settings);
   }
-  async function ready() {
-    ack(await owner.ready());
+  async function ready(phase) {
+    ack(await run(phase, () => owner.ready()));
     const state = owner.inspect();
     check(
       state.storage === 'persistent' &&
@@ -148,41 +160,59 @@ async function exerciseCase(dataDirectory, action, api) {
     );
   }
   try {
-    createOwner();
-    await ready();
-    const retained = await seed(owner);
+    await run('initial-create', createOwner);
+    await ready('initial-ready');
+    const retained = await seed(owner, run);
     ack(
-      await (action === 'revoke'
-        ? owner.sessions.revokeAsync(binding.principal)
-        : owner.clearAsync())
+      await run('invalidate', () =>
+        action === 'revoke' ? owner.sessions.revokeAsync(binding.principal) : owner.clearAsync()
+      )
     );
-    check((await retained.view.replyAsync(READ, retained.receipt)).ok === false);
+    check(
+      (await run('denied-read', () => retained.view.replyAsync(READ, retained.receipt))).ok ===
+        false
+    );
     await closeOwner();
-    storage = await api.openStorage({
-      directory: path.join(dataDirectory, 'context-recovery-v1'),
+    await run('direct-open', async () => {
+      storage = await api.openStorage({
+        directory: path.join(dataDirectory, 'context-recovery-v1'),
+      });
     });
-    check((await storage.execute({ operation: 'inspect' })).records === 0);
-    check((await storage.execute({ operation: 'load', scope: retained.scope })) === null);
+    check(
+      (await run('direct-inspect', () => storage.execute({ operation: 'inspect' }))).records === 0
+    );
+    check(
+      (await run('direct-load', () =>
+        storage.execute({ operation: 'load', scope: retained.scope })
+      )) === null
+    );
     await closeStorage();
-    createOwner();
-    await ready();
-    const reopened = await owner.sessions.beginAsync(
-      {
-        ...binding,
-        history: [{ role: 'user', content: 'deny the old synthetic receipt' }],
-        previousResponseId: 'n09-final',
-      },
-      [],
-      () => true
+    await run('reopen-create', createOwner);
+    await ready('reopen-ready');
+    const reopened = await run('reopen-begin', () =>
+      owner.sessions.beginAsync(
+        {
+          ...binding,
+          history: [{ role: 'user', content: 'deny the old synthetic receipt' }],
+          previousResponseId: 'n09-final',
+        },
+        [],
+        () => true
+      )
     );
     check(
       reopened.ok === false ||
-        (reopened.ok === true && (await reopened.replyAsync(READ, retained.receipt)).ok === false)
+        (reopened.ok === true &&
+          (await run('reopen-denied-read', () => reopened.replyAsync(READ, retained.receipt)))
+            .ok === false)
     );
-    await closeOwner();
+    await closeOwner('reopen-shutdown');
   } finally {
     // Cleanup failures remain failures; no success is constructed before ACKs.
-    const results = await Promise.allSettled([closeOwner(), closeStorage()]);
+    const results = await Promise.allSettled([
+      closeOwner('cleanup-owner'),
+      closeStorage('cleanup-storage'),
+    ]);
     check(results.every((result) => result.status === 'fulfilled'));
   }
 }
@@ -190,8 +220,9 @@ async function exerciseCase(dataDirectory, action, api) {
 // Fixed synthetic assertions only. The caller owns installed identity, the case
 // root, retained artifacts and the outer deadline. No configuration is loaded,
 // arbitrary existing store cleared, artifact deleted or installed pass granted.
-async function exerciseRuntimeReopenRevocation(input) {
+async function exerciseRuntimeReopenRevocation(input, options) {
   try {
+    const progress = createRuntimeReopenProgress(options);
     const api = parseInput(input);
     const { root } = api;
     const before = fs.lstatSync(root);
@@ -199,8 +230,8 @@ async function exerciseRuntimeReopenRevocation(input) {
     safePath(work, true);
     safePath(root, true);
     check(same(before, fs.lstatSync(root)));
-    await exerciseCase(path.join(work, 'revoke'), 'revoke', api);
-    await exerciseCase(path.join(work, 'clear'), 'clear', api);
+    await exerciseCase(path.join(work, 'revoke'), 'revoke', api, progress);
+    await exerciseCase(path.join(work, 'clear'), 'clear', api, progress);
     return {
       schemaVersion: 1,
       checks: {

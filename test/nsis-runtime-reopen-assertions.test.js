@@ -420,7 +420,19 @@ test(
   },
   async (t) => {
     const root = caseFixture(t);
-    assert.deepEqual(await exerciseRuntimeReopenRevocation({ caseRoot: root }), expected);
+    assert.deepEqual(
+      await exerciseRuntimeReopenRevocation(
+        { caseRoot: root },
+        {
+          onPhase(event) {
+            process.stderr.write(
+              JSON.stringify({ scope: 'runtime-reopen-phase', ...event }) + '\n'
+            );
+          },
+        }
+      ),
+      expected
+    );
     const [work] = fs.readdirSync(root);
     assert.ok(work.startsWith('runtime-reopen-'));
     for (const action of ['revoke', 'clear']) {
