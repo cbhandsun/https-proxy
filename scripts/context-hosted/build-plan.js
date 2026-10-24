@@ -106,6 +106,16 @@ function collectClosure(roots, dynamicTargets) {
     let source = data.toString('utf8');
     if (!Buffer.from(source).equals(data)) throw fail();
     source = source.replace(
+      /\brequire\s*\(\s*path\.join\s*\(\s*value\.install\s*,\s*(['"])lib\/proxy\/context-recovery-sessions\.js\1\s*\)\s*\)/g,
+      () => {
+        if (file !== path.resolve(__dirname, '../lib/nsis-client-observer-bootstrap.cjs'))
+          throw fail();
+        // Original gate checks the full installed manifest; the observer also
+        // verifies this exact sessions hash before its sole installed import.
+        return '';
+      }
+    );
+    source = source.replace(
       /\brequire\s*\(\s*path\.join\s*\(\s*options\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:durable-ack|lifecycle)\.js\1\s*\)\s*\)/g,
       () => {
         if (file !== path.resolve(__dirname, 'n09-ack/host-install.js')) throw fail();

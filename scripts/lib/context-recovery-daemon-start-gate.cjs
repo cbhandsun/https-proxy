@@ -200,6 +200,116 @@ function verifyN09Bootstrap(runtime = process) {
   }
 }
 
+// This independent opt-in never loads observer code before its signed closure is verified.
+function verifyInstalledClientObserver(runtime = process) {
+  const env = runtime.env;
+  if (env.HPM_INSTALLED_CLIENT_OBSERVER === undefined) return null;
+  try {
+    if (
+      env.HPM_INSTALLED_CLIENT_OBSERVER !== '1' ||
+      runtime.platform !== 'win32' ||
+      env.GITHUB_ACTIONS !== 'true' ||
+      env.RUNNER_ENVIRONMENT !== 'github-hosted' ||
+      env.RUNNER_OS !== 'Windows'
+    )
+      throw fail();
+    const root = path.join(env.RUNNER_TEMP || '', 'hpm-installed-clients');
+    if (
+      !path.isAbsolute(root) ||
+      env.HPM_DAEMON_OWNED_INSTALL !== path.join(root, 'payload') ||
+      !env.HPM_DAEMON_OWNED_CASE_ROOT?.startsWith(path.join(root, 'cases') + path.sep) ||
+      !Number.isSafeInteger(runtime.pid) ||
+      runtime.pid < 1 ||
+      !/^[a-zA-Z0-9_-]{32,256}$/.test(env.MGMT_TOKEN || '') ||
+      !/^[a-f0-9]{64}$/.test(env.HPM_DAEMON_OWNED_MANIFEST || '')
+    )
+      throw fail();
+    const physical = (file, directory = false) => {
+      if (path.resolve(file) !== file || file.startsWith('\\\\')) throw fail();
+      for (let current = file, first = true; ; current = path.dirname(current), first = false) {
+        const stat = fs.lstatSync(current);
+        if (
+          stat.isSymbolicLink() ||
+          fs.realpathSync.native(current).toLowerCase() !== current.toLowerCase() ||
+          (first
+            ? directory
+              ? !stat.isDirectory()
+              : !stat.isFile() || stat.nlink !== 1
+            : !stat.isDirectory())
+        )
+          throw fail();
+        if (path.dirname(current) === current) return;
+      }
+    };
+    physical(root, true);
+    const file = path.join(env.HPM_DAEMON_OWNED_CASE_ROOT, 'installed-client-observer/plan.json');
+    physical(file);
+    if (fs.statSync(file).size > 16384) throw fail();
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(fs.readFileSync(file));
+    const envelope = JSON.parse(text);
+    if (
+      JSON.stringify(envelope) !== text ||
+      Object.keys(envelope).sort().join(',') !== 'payload,signature' ||
+      !/^[a-f0-9]{64}$/.test(envelope.signature || '')
+    )
+      throw fail();
+    const signature = crypto
+      .createHmac('sha256', env.MGMT_TOKEN)
+      .update('hpm.installed.observer.plan.v1\0')
+      .update(JSON.stringify(envelope.payload))
+      .digest();
+    if (!crypto.timingSafeEqual(signature, Buffer.from(envelope.signature, 'hex'))) throw fail();
+    const payload = envelope.payload;
+    const names = ['nsis-client-observer-bootstrap.cjs', 'nsis-client-observer.cjs'];
+    if (
+      Object.keys(payload).sort().join(',') !== 'manifestSha256,pid,sourcePins,version' ||
+      payload.version !== 1 ||
+      payload.pid !== runtime.pid ||
+      payload.manifestSha256 !== env.HPM_DAEMON_OWNED_MANIFEST ||
+      Object.keys(payload.sourcePins).sort().join(',') !== names.join(',')
+    )
+      throw fail();
+    for (const name of names) {
+      const source = path.join(__dirname, name);
+      physical(source);
+      if (
+        require.cache[source] ||
+        !/^[a-f0-9]{64}$/.test(payload.sourcePins[name]) ||
+        fs.statSync(source).size > 65536 ||
+        crypto.createHash('sha256').update(fs.readFileSync(source)).digest('hex') !==
+          payload.sourcePins[name]
+      )
+        throw fail();
+      // The entire fixed closure may import only Node builtins and its one peer.
+      let code = fs.readFileSync(source, 'utf8');
+      code = code.replace(/\brequire\s*\(\s*(['"])([^'"]+)\1\s*\)/g, (_all, _quote, dependency) => {
+        if (
+          isBuiltin(dependency) ||
+          (name === names[0] && dependency === './nsis-client-observer.cjs')
+        )
+          return '';
+        throw fail();
+      });
+      // The bootstrap alone loads the exact installed sessions file after validating its manifest hash.
+      if (name === names[0])
+        code = code.replace(
+          /\brequire\s*\(\s*path\.join\s*\(\s*value\.install\s*,\s*(['"])lib\/proxy\/context-recovery-sessions\.js\1\s*\)\s*\)/g,
+          ''
+        );
+      if (/\brequire\s*\(/.test(code)) throw fail();
+    }
+    return {
+      caseRoot: env.HPM_DAEMON_OWNED_CASE_ROOT,
+      install: env.HPM_DAEMON_OWNED_INSTALL,
+      token: env.MGMT_TOKEN,
+      pid: runtime.pid,
+      manifestSha256: env.HPM_DAEMON_OWNED_MANIFEST,
+    };
+  } catch {
+    throw fail();
+  }
+}
+
 // Node's --require loader uses this parent id. Ordinary imports for offline
 // tests do not execute the gate; the fixed controller invocation always does.
 if (module.parent?.id === 'internal/preload') {
@@ -207,6 +317,9 @@ if (module.parent?.id === 'internal/preload') {
     fs.writeSync(2, 'HPM_GATE_ENTERED\n');
     readGate();
     verifyGateIdentity();
+    const observer = verifyInstalledClientObserver();
+    if (observer)
+      require('./nsis-client-observer-bootstrap.cjs').installInstalledClientObserver(observer);
     const ack = verifyN09Bootstrap();
     if (ack) require('../context-hosted/n09-ack/host-install').installN09HostAck(ack);
     fs.writeSync(2, 'HPM_GATE_PASSED\n');
@@ -216,4 +329,9 @@ if (module.parent?.id === 'internal/preload') {
   }
 }
 
-module.exports = { readGate, verifyGateIdentity, verifyN09Bootstrap };
+module.exports = {
+  readGate,
+  verifyGateIdentity,
+  verifyN09Bootstrap,
+  verifyInstalledClientObserver,
+};

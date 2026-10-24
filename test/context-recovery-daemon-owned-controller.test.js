@@ -130,8 +130,10 @@ test('preload identity guard leaves main argv and module loader intact in an off
   assert.deepEqual(Object.keys(fakeModule.exports).sort(), [
     'readGate',
     'verifyGateIdentity',
+    'verifyInstalledClientObserver',
     'verifyN09Bootstrap',
   ]);
+  assert.equal(fakeModule.exports.verifyInstalledClientObserver(runtime), null);
   for (const bad of [
     { ...runtime, execArgv: [] },
     { ...runtime, argv: [] },

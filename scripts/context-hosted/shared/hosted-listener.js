@@ -10,12 +10,20 @@ const { closeOwnedListeners } = require('./hosted-listener-cleanup.js');
 const leases = new WeakMap();
 const fail = () => new Error('n08_hosted_listener_rejected');
 async function createHostedListener(input) {
+  return createListener(input, false);
+}
+async function createInstalledClientListener(input) {
+  return createListener(input, true);
+}
+async function createListener(input, installed) {
   const options = exact(input, [
     'networkRoot',
     'ownedNode',
     'negativeAddress',
     'onBusinessRequest',
   ]);
+  const policy = installed ? require('./installed-client-listener-policy') : null;
+  if (policy) policy.installedListenerPaths(options);
   const localAddresses = Object.values(os.networkInterfaces()).flat().filter(Boolean);
   if (
     process.platform !== 'win32' ||
@@ -60,7 +68,9 @@ async function createHostedListener(input) {
       }
       if (
         request.method !== 'POST' ||
-        !['/v1/responses', '/v1/responses/compact'].includes(request.url)
+        (installed
+          ? !policy.installedClientRequest(request.url, request.socket.servername)
+          : !['/v1/responses', '/v1/responses/compact'].includes(request.url))
       ) {
         response.writeHead(404);
         response.end();
@@ -81,12 +91,14 @@ async function createHostedListener(input) {
         try {
           // This is the synthetic server's trusted fixture handler, not a product
           // hook. It owns fixed response buffers, stage counters and response holds.
-          const result = options.onBusinessRequest({
+          const event = {
             path: request.url,
             authorization: request.headers.authorization,
             bytes: Buffer.concat(chunks),
             response,
-          });
+          };
+          if (installed) event.apiKey = request.headers['x-api-key'];
+          const result = options.onBusinessRequest(event);
           Promise.resolve(result).catch(() => response.destroy());
         } catch {
           response.destroy();
@@ -153,4 +165,4 @@ function checkHostedListener(lease, node, networkRoot) {
     throw fail();
   return lease.inspect();
 }
-module.exports = { createHostedListener, checkHostedListener };
+module.exports = { createHostedListener, createInstalledClientListener, checkHostedListener };
