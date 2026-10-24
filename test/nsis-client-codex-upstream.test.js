@@ -13,6 +13,8 @@ const marker = 'HPM_SYNTHETIC_' + 'a'.repeat(32);
 const original = 'Synthetic upstream\r\n中文🙂\r\nREQUIRED_MARKER=' + marker;
 const options = { mode: 'enhanced', model: 'fixture-model', original, marker };
 const failure = { message: 'nsis_codex_upstream_failed' };
+const coverage = () =>
+  require('../lib/proxy/context-evidence-coverage').projectContextEvidenceCoverage(1, 1);
 const tools = [LIST, READ].map((name) => ({ type: 'function', name }));
 const tagged = (body) => ({
   ...body,
@@ -82,6 +84,9 @@ test('real enhanced session seed uses private recovery then an independent publi
     view = begin(next);
     assert.equal(view.ok, true);
     assert.equal(view.inspect().visibleSources, 1);
+    const { retainedSource } = require('../scripts/lib/nsis-client-codex-upstream-evidence');
+    const actualListing = JSON.parse(view.reply(LIST, {}).text);
+    assert.equal(retainedSource(actualListing, original).digest, hash(original));
     run = view.recovery(next, { publicGeneration: 'isolated' });
     assert.equal(run.ok, true);
     assert.deepEqual(
@@ -216,7 +221,12 @@ function listing(f, stream = true) {
     respond(
       f.upstream,
       body(
-        [output(list, tagged({ ok: true, sources: [f.source], nextAfterSourceId: null }))],
+        [
+          output(
+            list,
+            tagged({ ok: true, sources: [f.source], coverage: coverage(), nextAfterSourceId: null })
+          ),
+        ],
         true,
         stream
       )
@@ -521,12 +531,49 @@ test('LIST association rejects wrong original metadata, extra sources and noncan
     (value) => {
       value.observation = 'trusted';
     },
+    (value) => {
+      delete value.coverage;
+    },
+    (value) => {
+      value.coverage = null;
+    },
+    (value) => {
+      value.coverage = {};
+    },
+    (value) => {
+      value.coverage = [];
+    },
+    (value) => {
+      value.coverage.scope = 'all_history';
+    },
+    (value) => {
+      value.coverage.state = 'incomplete_or_pending';
+    },
+    (value) => {
+      value.coverage.observedCalls = 0;
+    },
+    (value) => {
+      value.coverage.availableSources = 2;
+    },
+    (value) => {
+      value.coverage.availableSources = Number.MAX_SAFE_INTEGER;
+    },
+    (value) => {
+      value.coverage.observedCalls = 1.5;
+    },
+    (value) => {
+      value.coverage.unavailableOrPendingCalls = -1;
+    },
+    (value) => {
+      value.coverage.extra = 'PRIVATE';
+    },
   ]) {
     const f = fixture(),
       call = decode(respond(f.upstream, body([user('final')]))).output[0];
     const value = tagged({
       ok: true,
       sources: [globalThis.structuredClone(f.source)],
+      coverage: coverage(),
       nextAfterSourceId: null,
     });
     alter(value);
@@ -534,7 +581,9 @@ test('LIST association rejects wrong original metadata, extra sources and noncan
   }
   const f = fixture(),
     call = decode(respond(f.upstream, body([user('final')]))).output[0];
-  const value = JSON.stringify(tagged({ ok: true, sources: [f.source], nextAfterSourceId: null }));
+  const value = JSON.stringify(
+    tagged({ ok: true, sources: [f.source], coverage: coverage(), nextAfterSourceId: null })
+  );
   assert.throws(
     () =>
       respond(

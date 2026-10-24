@@ -5,6 +5,7 @@ const {
   parseStoredEvidenceSource,
   parseStoredEvidencePage,
 } = require('../../lib/proxy/context-evidence-stored-page');
+const { projectContextEvidenceCoverage } = require('../../lib/proxy/context-evidence-coverage');
 const fail = () => new Error('nsis_codex_upstream_failed');
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const exact = (value, keys) => {
@@ -35,7 +36,11 @@ function originalCodexWire(output, original) {
 
 function retainedSource(value, original) {
   const body = tagged(value);
-  exact(body, ['ok', 'sources', 'nextAfterSourceId']);
+  exact(body, ['ok', 'sources', 'coverage', 'nextAfterSourceId']);
+  const expectedCoverage = projectContextEvidenceCoverage(1, 1);
+  exact(body.coverage, Object.keys(expectedCoverage));
+  if (Object.entries(expectedCoverage).some(([key, value]) => body.coverage[key] !== value))
+    throw fail();
   if (
     body.ok !== true ||
     body.nextAfterSourceId !== null ||

@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：真实Core串联发现LIST覆盖范围接线错误，修复后Codex内存诊断通过
+
+在2bb4325原Windows作业继续运行期间，使用真实Core HTTP、真实内存sessions及只监听127.0.0.1的固定合成上游，串联seed、三次原生摘要及最终恢复。seed已跨过，三次摘要都返回可解析的原receipt；最终LIST却被合成Codex上游拒绝，状态502、requests=11、readPages=0。有限形状证明LIST本身ok=true、sources=1、nextAfterSourceId=null，但带有真实生产coverage字段；原retainedSource只接受不含coverage的旧三字段主体，严格键检查误拒绝。真实view.reply(LIST,{})新增断言在旧实现失败，未用手造成功数据代替。
+
+现验收解析器要求coverage存在，精确核验生产projectContextEvidenceCoverage(1,1)的五字段：仅本分支观察范围、该固定单调用/单来源已完整、未就绪调用为零；不是忽略未知字段或接受任意覆盖声明。原digest/bytes、唯一来源、原分页/关联、provenance与原文断言保持。新增负控拒绝缺失、null/空对象/数组、范围或状态漂移、零/额外/极端/分数计数、负数未就绪计数及附加字段；相关全部客户端与探针163/163通过、零skip。
+
+同一本机Core内存串联修复后通过：13次本机合成请求、三次摘要receipt、一次原始工具结果、一次精确READ及独立公开生成，最终答案精确相等，公开流未出现私有sentinel/工具名。该诊断使用测试Core组合授权与内存存储，没有Windows安装/原生CLI/DPAPI资格，真实模型请求0。首次探针复用的Core fixture缺少普通转发所需loadConfig/getProfiles，发生诊断组合错误；补齐仅探针的空配置回调后才取得上述业务失败与成功，原错误单独保留，不作产品根因。
+
+Claude独立诊断的首次本机target漏/v1，修正后普通转发又因该测试fixture的原生流组合不完整而未取得协议结果；均保留且不作产品结论。随后以真实sessions模块预置首个实际tool call，再通过Core HTTP提交其结果，确认合法私有LIST/READ请求被Claude合成上游的seed守卫拒绝，502且sourceCalls=1。此独立阻塞尚未修改，下一批处理私有/独立公开阶段及其回归，不以Codex结果替代Claude。
+
+2bb4325普通Verify `40125641680`当前七项success、coverage的代理部分success而客户端覆盖率尚在运行；正式Windows `40125641677` source-gates及原安装 `40125667621` / job `120966512135`仍处于原完整门禁，未重启。三个Windows队列各取得150条COMMIT线程计数，当前最慢分别121/101/136ms，不能解释或撤销951a2cc的4126ms提交失败；仍须慢样本与实际修复。冻结长测未访问、原门禁和持久语义保持，整体仍未交付。
+
 ## 2026-10-24：安装链进入Codex增强CLI，修复首次工具结果后的私有seed接线
 
 25acc53的原安装运行 `40123107840` / job `120958818328`已终态failure：完整候选门禁、构建及实际安装/升级/回滚/DPAPI生命周期success，客户端步骤失败，有限回执为codex-enhanced-cli / owned_scenario。当前包manifest为ef466db595155ea63438675999e2cf47542b8faa3733863448d6d361047401dc。顺序控制已跨过Codex默认组，但没有四组最终回执，Claude尚未执行，不授予完整客户端资格。未重跑该失败作业。
