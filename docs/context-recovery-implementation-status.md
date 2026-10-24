@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：951a2cc正式Windows再次触发五秒截止，定位到实际SQLite提交
+
+`951a2cc045614e87f95236dfcf69715da7dafdfd`的正式Windows运行 `40123574934` / source-gates `120960131561`终态failure，统一源码门禁1596项通过、1项失败、零skip，后续context-recovery按原依赖跳过。失败为actual core claude WBIPC recovery has exclusive ownership and live credential revocation，位置client-context-target.test.js:2738，实际long-persistent首轮fetch于5001ms失败，requests=1、handshakes=1、roots=1；上游是原固定合成fixture，未调用真实模型。
+
+有限owner阶段把本次关键等待缩小到sequence=6的save-reference-state（combinedAdmission=true）：storage耗时4567ms，其中sqlite_clock_write=49ms、sqlite_commit=4126ms、engine_execute=4208ms、engine_snapshot=22ms、anchor_persist=314ms。此前sequence=5的scan-reference耗时556ms，commit=374ms、anchor=79ms。第一笔慢提交位于必须先持久化的准入/预算状态，不能删除它、提前返回ACK或降低FULL/DELETE来通过。观测只证明SQLite COMMIT调用占据主要等待，尚不能证明具体系统调用、磁盘、调度或其他系统因素是根因；不把它归因于模型、凭据或JS解密，也不把此前成功样本作为稳定性结论。
+
+原60秒重开失败仍独立保留。951a2cc普通Windows unit1 `120960131691`成功回执有80条完整事件，末阶段3076.5123ms，Node自身累计user/system CPU为1078/500ms；此成功队列不解释7556263失败队列。951a2cc普通Verify `40123574946`当前七项成功、coverage尚无终态，不能称完整CI通过。
+
+保持原25acc53安装运行 `40123107840` / job `120958818328`：完整候选门禁已success，正在构建测试安装器，实际生命周期及客户端步骤尚未执行；未重启作业或以其覆盖951a2cc的失败。本批保存新失败定位证据，不宣称产品性能修复；下一步按实际COMMIT等待和安装结果继续处理。冻结长测未访问、真实模型请求0，原期限、认证、精确ACK、FULL/DELETE及完整交付范围不变。
+
 ## 2026-10-24：同提交成功/失败重开对照及失败后最小原生诊断接线
 
 继续核对7556263原60秒失败，不重跑失败候选。该提交完整coverage `120953707146`、正式source-gates `120953707438`均取得80条完整阶段事件，末阶段分别约6651ms、5778ms；初次ready约731ms、472ms。失败安装作业同一源码的初次ready却约18584ms，多个后续段也变慢，revoke累计59476.59ms后才开始clear。此对照证明延迟跨多段变化，不足以确认JS计算、外部原生进程、持久I/O或环境等待哪项是根因，也不以成功样本消除失败。
