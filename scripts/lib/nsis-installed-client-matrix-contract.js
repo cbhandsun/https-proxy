@@ -10,6 +10,15 @@ const {
 } = require('./nsis-runtime-boundary-contract');
 const { digestInstalledClient } = require('./nsis-client-binary');
 const fail = () => new Error('installed_client_matrix_failed');
+const CLI_PHASES = Object.freeze([
+  'seed',
+  'compact-1',
+  'compact-2',
+  'compact-3',
+  'between-1',
+  'between-2',
+  'final',
+]);
 const PHASES = [
   'identity',
   'listener',
@@ -19,9 +28,14 @@ const PHASES = [
   'complete',
   ...['codex', 'claude'].flatMap((client) =>
     ['default', 'enhanced'].flatMap((mode) =>
-      ['configure', 'auth', 'cli', 'observe', 'stop'].map(
-        (suffix) => client + '-' + mode + '-' + suffix
-      )
+      [
+        'configure',
+        'auth',
+        'cli',
+        'observe',
+        'stop',
+        ...CLI_PHASES.map((phase) => 'cli-' + phase),
+      ].map((suffix) => client + '-' + mode + '-' + suffix)
     )
   ),
 ];
@@ -144,6 +158,7 @@ function createMatrixPhaseWriter(ownedRoot) {
   };
 }
 module.exports = {
+  CLI_PHASES,
   parseInstalledClientMatrixArguments,
   verifyInstalledClientMatrixIdentity,
   createMatrixPhaseWriter,

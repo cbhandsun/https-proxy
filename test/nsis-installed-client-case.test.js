@@ -80,6 +80,9 @@ function fixture(t, client, mode, fault) {
       assert.equal(witness.defaultZeroRecovery, mode === 'default');
     }
     if (fault === 'protocol') throw new Error('secret raw response');
+    if (fault === 'invalid-progress') input.onProgress({ phase: 'secret raw response' });
+    if (fault && typeof fault === 'object' && Object.hasOwn(fault, 'progress'))
+      input.onProgress({ phase: fault.progress });
     if (fault === 'private') state.exactRead = state.exactPrivateRead = false;
     if (fault === 'public') state.publicEvidence = state.independentPublicGeneration = false;
     if (fault === 'replay') state.sourceCalls = 2;
@@ -234,5 +237,40 @@ test('default client cases accept independently attested cold runtime without re
   for (const client of ['codex', 'claude']) {
     const f = fixture(t, client, 'default', 'cold');
     assert.equal((await f.run()).defaultZeroRecovery, true);
+  }
+});
+
+test('CLI failure retains the last finite turn phase without disclosing the exception', async (t) => {
+  for (const client of ['codex', 'claude']) {
+    const f = fixture(t, client, 'default', 'protocol');
+    await assert.rejects(f.run(), { message: 'installed_client_case_failed' });
+    assert.equal(
+      f.trace.filter((value) => value.startsWith(client + '-default-')).at(-1),
+      client + '-default-cli-seed'
+    );
+    assert.equal(
+      f.trace.some((value) => value.includes('secret')),
+      false
+    );
+    assert.equal(f.active.current, null);
+  }
+});
+
+test('unknown CLI progress is refused without writing arbitrary phase content', async (t) => {
+  for (const client of ['codex', 'claude']) {
+    for (const fault of [
+      'invalid-progress',
+      ...['', null, undefined, 3, [], {}, 'compact-0', 'compact-4', 'x'.repeat(16384)].map(
+        (progress) => ({ progress })
+      ),
+    ]) {
+      const f = fixture(t, client, 'default', fault);
+      await assert.rejects(f.run(), { message: 'installed_client_case_failed' });
+      assert.equal(
+        f.trace.some((value) => value.includes('secret')),
+        false
+      );
+      assert.equal(f.active.current, null);
+    }
   }
 });

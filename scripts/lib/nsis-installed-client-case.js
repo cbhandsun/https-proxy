@@ -11,6 +11,7 @@ const { createInstalledClientSpawn } = require('./nsis-client-owned-transport');
 const { requestInstalledClientObservation } = require('./nsis-client-observer.cjs');
 const { configureInstalledClient } = require('./nsis-client-configuration');
 const { assertEntryRefuses, createSyntheticSourceServer } = require('./nsis-client-loopback');
+const { CLI_PHASES } = require('./nsis-installed-client-matrix-contract');
 const fail = () => new Error('installed_client_case_failed');
 function zeroRecovery(state) {
   return (
@@ -57,6 +58,11 @@ async function runInstalledClientCase(options) {
   const upstream = (
     client === 'codex' ? createCodexSyntheticUpstream : createClaudeSyntheticUpstream
   )({ mode, model, original: source.text, marker: source.marker });
+  const progress = ({ phase: next }) => {
+    if (!CLI_PHASES.includes(next)) throw fail();
+    upstream.setPhase(next);
+    phase('cli-' + next);
+  };
   const caseRoot = path.join(ownedRoot, 'cases', 'client-' + label);
   fs.mkdirSync(caseRoot);
   let sequence = 0,
@@ -112,7 +118,7 @@ async function runInstalledClientCase(options) {
             entryToken,
             sourceTool: { nonce },
             spawnOwned,
-            onProgress: ({ phase }) => upstream.setPhase(phase),
+            onProgress: progress,
           })
         : await runInstalledClaudeCase({
             caseRoot,
@@ -126,7 +132,7 @@ async function runInstalledClientCase(options) {
             cliPath: path.join(ownedRoot, 'clients/claude.exe'),
             nodePath: path.join(install, 'runtime/node/node.exe'),
             spawnOwned,
-            onProgress: ({ phase }) => upstream.setPhase(phase),
+            onProgress: progress,
             inspectWitness: async () => {
               const state = upstream.inspect();
               const sample = await observe();

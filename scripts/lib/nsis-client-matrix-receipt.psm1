@@ -50,7 +50,8 @@ function Write-HpmInstalledClientPhase {
         if ($keys.Count -ne 3 -or ($keys | Sort-Object) -join ',' -cne 'failed,phase,schemaVersion' -or $item.GetProperty('schemaVersion').GetInt32() -ne 1) { throw 'invalid' }
         $null = $item.GetProperty('failed').GetBoolean()
         $allowed = @('identity','listener','probes','controller','cleanup','complete')
-        foreach ($client in @('codex','claude')) { foreach ($mode in @('default','enhanced')) { foreach ($suffix in @('configure','auth','cli','observe','stop')) { $allowed += $client + '-' + $mode + '-' + $suffix } } }
+        $suffixes = @('configure','auth','cli','observe','stop','cli-seed','cli-compact-1','cli-compact-2','cli-compact-3','cli-between-1','cli-between-2','cli-final')
+        foreach ($client in @('codex','claude')) { foreach ($mode in @('default','enhanced')) { foreach ($suffix in $suffixes) { $allowed += $client + '-' + $mode + '-' + $suffix } } }
         $candidate = $item.GetProperty('phase').GetString()
         if ($candidate -cnotin $allowed) { throw 'invalid' }
         $phase = $candidate

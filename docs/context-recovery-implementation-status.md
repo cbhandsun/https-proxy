@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：三组原始Windows时序验收通过，保留正式五秒失败并细化安装CLI阶段回执
+
+31e3bf04b9bca81391a218066ffa1b1a60778732的独立Windows时序运行 `40131035057` 三项全部success（jobs `120982593289`、`120982593483`、`120982593512`）。每组完整执行原Core/WBIPC与Codex-summary两个文件，50项全pass、零skip，实际默认原生worker、DPAPI及OS锚点参与。三组各6次持久公开发布，组内最大分别1395/1883/1503ms，共18次仍受原5000ms门限；各150条COMMIT最慢108/104/56ms。四种物理owner场景在每组均通过，覆盖非inline/inline的两次物理重开及强杀、撤销后再次强杀；新逐次启动挑战已由实际Windows链核验。该独立诊断不替代完整CI或安装客户端资格。
+
+8f74184的正式Windows `40130155278` source-gates `120979955520`现为终态failure，Chat第二轮、Responses首轮、Claude第二轮均在5002ms失败；N08/N09按原依赖跳过。该作业另有8次成功的持久公开发布、最大4237ms，全部成功与失败并存，不合并为稳定性结论。之前coverage中COMMIT4248ms/线程CPU16ms的等待失败保留，具体I/O或调度原因仍未关闭。31e3bf0普通Verify `40131035072`七项success，coverage的代理部分已success、客户端覆盖率仍在执行；正式Windows `40131035076` source-gates仍在执行，不能称最新完整门禁通过。
+
+原8f74184安装运行 `40130181062` / job `120980112439`已跨过其自身完整候选门禁并完成构建，正在实际安装/升级回滚/DPAPI生命周期；未取消、重跑或替换该作业。它与8f74184独立正式门禁失败分别保留，不由其自身通过覆盖其他失败。Claude MCP元数据修复仍待原安装四组结果。
+
+当前安装失败只保留到codex/claude默认/增强的cli，无法区分首次工具、原生压缩或最终恢复，已妨碍定位前述实际失败。本批将既有协议进度中的seed、compact-1/2/3、between-1/2、final接入原固定阶段回执，并同步JavaScript写入端与PowerShell读取端的闭合集合；在阶段切换时更新，以便客户端超时或被原Job结束时也保留最后有限阶段。没有新增响应、异常文本、进度计数、身份、路径或凭据日志，不改变客户端请求、压缩次数、原文一次、最终正确性、原240/120/60秒及五秒期限。未知、空、非法类型、极端长度或第4次压缩阶段拒绝且不写任意内容；回执失败仍使验收失败，不吞异常或重试。
+
+三个相关文件新增断言在旧实现15pass/4fail，修复后19/19通过；扩大所有相关客户端及阶段探针173/173通过、零skip，最后补充的阶段空/非法/极端边界6/6通过。定向Lint、全树语法、四项架构/secret及CI/发行治理通过，统一单元自动发现。本批仅补足实际失败所需的有限阶段证据，不是五秒性能修复，也未获得完整安装资格。冻结长测未访问，模型请求0，原迁移/default worker、原生容量/真实24小时、最终真实provider及自用交付范围保持。
+
 ## 2026-10-24：保留8f74184五秒失败与COMMIT线程CPU证据，修正物理owner验收的PID复用误判
 
 8f74184a8d000f551e2e7460048513225953b6b0的普通Verify `40130155268`终态七项success、coverage `120979955892`failure，不能称完整CI通过。coverage中Chat long-persistent第二轮5014ms、Responses首轮5002ms触发原5000ms截止。Responses sequence=6 save-reference-state耗时4665ms，engine_execute4554ms，其中SQLite COMMIT4248ms，当前存储线程同期threadCpuUserUs=16000/threadCpuSystemUs=0；此前sequence=4提交1663ms、sequence=5 scan提交1334ms，均为零线程CPU增量。Chat最慢提交1045ms/927ms亦为零线程CPU增量。证据将主要时间确定为COMMIT内等待而非该线程解密计算，尚不能区分具体持久I/O、调度或系统因素；不降低FULL/DELETE、删准入持久化、提前ACK或提高期限。

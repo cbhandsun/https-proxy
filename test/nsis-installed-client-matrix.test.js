@@ -232,6 +232,10 @@ test('argument and phase boundaries reject malformed input and disclose only fin
     assert.throws(() => parseInstalledClientMatrixArguments(args));
   const writer = createMatrixPhaseWriter(f.args[0]);
   writer('identity');
+  writer('claude-default-cli-seed', true);
+  writer('claude-enhanced-cli-compact-3', true);
+  writer('claude-enhanced-cli-between-2', true);
+  writer('codex-enhanced-cli-final', true);
   writer('claude-enhanced-cli', true);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.args[0], 'matrix-phase.json'))), {
     schemaVersion: 1,
