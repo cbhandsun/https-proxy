@@ -80,6 +80,12 @@ function resultFor(body, callId) {
   return JSON.parse(rows[0].output);
 }
 
+async function awaitPublicationCompleted(barrier) {
+  if (typeof barrier !== 'function' || types.isProxy(barrier)) throw fail();
+  const completion = exact(await barrier(), ['completed', 'hostDurableAck']);
+  if (completion.completed !== true || completion.hostDurableAck !== false) throw fail();
+}
+
 // Construction is passive. The branded network proof and lazy lifecycle gate
 // prevent a daemon or business request from preceding real hosted isolation.
 function createN09BusinessAdapter(input, trusted = {}) {
@@ -338,6 +344,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
       const second = parseReply(secondReply);
       if (publicText(second) !== 'N09_SEEDED ' + nonce) throw fail();
       history.push(...second.output);
+      const summaryCompleted = await client().getRecoveryCompletionBarrier(current);
       phase = 'summary';
       onPhase(135);
       const summaryReply = await send(
@@ -359,6 +366,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
         summaryText.includes(original)
       )
         throw fail();
+      await awaitPublicationCompleted(summaryCompleted);
       continuation = requestBody([user(summaryText), user('N09_RECOVER ' + nonce)]);
       onPhase(137);
       snapshots = (trusted.createSnapshots ?? createDurableSnapshotReader)(
@@ -496,6 +504,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async readThroughBusinessHttp(identity) {
       gate(identity);
       if (!seeded || phase !== 'ready') throw fail();
+      const publicationCompleted = await client().getRecoveryCompletionBarrier(current);
       phase = 'recovering';
       readObserved = false;
       publicObserved = false;
@@ -530,6 +539,9 @@ function createN09BusinessAdapter(input, trusted = {}) {
         externalToolExecutions !== 1
       )
         throw fail();
+      // HTTP end precedes the final publication COMMIT/ACK. Capture metadata
+      // only after the original core reports this isolated request completed.
+      await awaitPublicationCompleted(publicationCompleted);
       const value = accounting(committed());
       phase = 'ready';
       return Object.freeze({

@@ -23,6 +23,10 @@ const { assertSyntheticProfileReadback } = require('./synthetic-profile-readback
 const { waitForRejectedStorage } = require('../n09-backup/rejected-storage');
 const { recoveryFailurePhase, recoveryAdmissionFailurePhase } = require('./recovery-failure-phase');
 const {
+  recoveryCompletionSnapshot,
+  waitForRecoveryCompletion,
+} = require('./recovery-completion-ready');
+const {
   createDaemonManagementHttpClient,
 } = require('../../../scripts/lib/context-recovery-daemon-http-client.js');
 const fail = () => new Error('n09_lifecycle_client_failed');
@@ -224,6 +228,26 @@ function createClientUnsafe(input, dependencies) {
     return { identity, request, deadline };
   }
   const implementation = {
+    async getRecoveryCompletionBarrier(input) {
+      const identity = owner(input);
+      const read = () => {
+        owner(identity);
+        return management(identity)({ method: 'GET', route: '/v1/local/health' });
+      };
+      const deadline = Date.now() + 15000;
+      const baseline = recoveryCompletionSnapshot(await read(), identity.pid);
+      let used = false;
+      return async () => {
+        try {
+          owner(identity);
+          if (used) throw fail();
+          used = true;
+          return await waitForRecoveryCompletion(read, baseline, identity.pid, deadline);
+        } catch {
+          throw fail();
+        }
+      };
+    },
     async readRecoveryAdmissionFailurePhase(input) {
       const identity = owner(input);
       return recoveryAdmissionFailurePhase(

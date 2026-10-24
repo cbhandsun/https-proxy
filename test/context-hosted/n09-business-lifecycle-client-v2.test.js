@@ -219,6 +219,50 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase) {
   return { client, state, input, runtimeDir };
 }
 
+test('publication barrier binds one isolated completion to its original PID and cannot be reused after stop', async (t) => {
+  const f = fixture(t, (at, value, state) => {
+    if (at !== 'http' || !value.contextRecovery) return;
+    const events = [
+      'bound',
+      'completed',
+      'failed',
+      'reportingFailed',
+      'publicationCleanupFailed',
+      'httpPreparationFailed',
+      'httpRunFailed',
+      'httpEncodingFailed',
+      'httpPrepareFailed',
+      'httpSendingFailed',
+      'httpPublishingFailed',
+      'httpFinishFailed',
+      'bindingUnavailable',
+    ];
+    value.contextRecovery.counterWindow = 'process_lifetime';
+    value.contextRecovery.counters = {
+      responses: {
+        ...Object.fromEntries(events.map((event) => [event, 0])),
+        bound: state.completed ?? 0,
+        completed: state.completed ?? 0,
+      },
+    };
+  });
+  f.state.config.appSettings = {
+    contextRecoveryEnabled: true,
+    contextRecoveryPersistenceEnabled: true,
+  };
+  const owner = await f.client.startLifecycle();
+  const barrier = await f.client.getRecoveryCompletionBarrier(owner);
+  f.state.completed = 1;
+  assert.deepEqual(await barrier(), { completed: true, hostDurableAck: false });
+  await assert.rejects(barrier(), { message: 'n09_lifecycle_client_failed' });
+  const stale = await f.client.getRecoveryCompletionBarrier(owner);
+  await f.client.stopLifecycle(owner);
+  const requests = f.state.requests.length;
+  await assert.rejects(stale(), { message: 'n09_lifecycle_client_failed' });
+  assert.equal(f.state.requests.length, requests);
+  await f.client.close();
+});
+
 test('restored storage attestation requires enabled config, live owner and explicit storage denial', async (t) => {
   for (const outcome of ['unavailable', 'enabled', 'wrong-pid', 'wrong-config']) {
     const f = fixture(t, (at, value, state) => {

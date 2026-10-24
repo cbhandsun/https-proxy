@@ -73,6 +73,15 @@ function fixture(mutation = () => {}, onPhase) {
           return { configured: true };
         },
         attestSyntheticBusiness: async () => ({ ready: true, syntheticBusinessConfigured: true }),
+        getRecoveryCompletionBarrier: async () => {
+          state.events.push('completion-baseline');
+          return async () => {
+            state.events.push('publication-completed');
+            const value = { completed: true, hostDurableAck: false };
+            await mutation('publication-completed', value, state);
+            return value;
+          };
+        },
         attestRejectedPersistentStorage: async () => {
           const value = { persistentStorageRejected: true, syntheticBusinessConfigured: true };
           mutation('rejected-storage', value, state);
@@ -349,6 +358,45 @@ function fixture(mutation = () => {}, onPhase) {
   });
   return { adapter, options, proof, state, trusted };
 }
+test('backup revoke captures its exact revision after the completed publication barrier', async () => {
+  let completed = 0;
+  const f = fixture((at, value, state) => {
+    if (at === 'publication-completed') {
+      completed++;
+      state.revision++;
+    }
+    if (at === 'ack-submit') {
+      assert.equal(completed, 3);
+      assert.equal(value.minRevision, state.revision);
+    }
+  });
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await runBackupRollbackAfterRevoke(f.adapter);
+  assert.equal(completed, 3);
+  const events = f.state.events;
+  for (let index = 0; index < events.length; index++) {
+    if (events[index] === 'publication-completed') assert.equal(events[index + 1], 'snapshot');
+  }
+  assert.deepEqual(events.slice(events.indexOf('ack'), events.indexOf('ack') + 2), ['ack', 'kill']);
+});
+
+test('failed publication readiness cannot reach the revoke command', async () => {
+  for (const mode of ['false', 'throw', 'ack']) {
+    const f = fixture((at, value) => {
+      if (at !== 'publication-completed') return;
+      if (mode === 'throw') throw Error('PRIVATE_PUBLICATION_FAILURE');
+      if (mode === 'false') value.completed = false;
+      if (mode === 'ack') value.hostDurableAck = true;
+    });
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runBackupRollbackAfterRevoke(f.adapter), {
+      message: 'n09_ack_kill_failed',
+    });
+    assert.equal(f.state.events.includes('submit'), false);
+    assert.equal(f.state.closed, 1);
+  }
+});
+
 test('backup rollback driver requires control read, actual revoke boundary and rejected HTTP', async () => {
   const f = fixture();
   f.adapter.bindVerifiedNetworkProof(f.proof);
