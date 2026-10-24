@@ -1,10 +1,35 @@
 'use strict';
 
 const { createHmac, timingSafeEqual } = require('node:crypto');
-const { fields, fail } = require('./contract');
+const { types } = require('node:util');
+const { fields, fail, isN09AckFailureStage } = require('./contract');
 const integer = (value, min = 0) => Number.isSafeInteger(value) && value >= min;
 const hex = (value, length) =>
   typeof value === 'string' && value.length === length && /^[a-f0-9]+$/.test(value);
+
+function parseN09MailboxSignal(input) {
+  if (!input || typeof input !== 'object' || types.isProxy(input)) throw fail();
+  const withStage = Object.hasOwn(input, 'stage');
+  const value = fields(input, [
+    'version',
+    'pid',
+    'epoch',
+    'sequence',
+    'state',
+    ...(withStage ? ['stage'] : []),
+  ]);
+  if (
+    value.version !== 1 ||
+    !integer(value.pid, 1) ||
+    !hex(value.epoch, 32) ||
+    !integer(value.sequence, 1) ||
+    value.sequence > 16 ||
+    !['armed', 'failed'].includes(value.state) ||
+    (withStage && (value.state !== 'failed' || !isN09AckFailureStage(value.stage)))
+  )
+    throw fail();
+  return Object.freeze(value);
+}
 
 // An armed/failed control signal is explicitly NOT a durable host ACK.
 function createN09MailboxControl(input) {
@@ -16,7 +41,7 @@ function createN09MailboxControl(input) {
     let closed = false;
     function parse(input) {
       if (closed) throw fail();
-      const value = fields(input, ['version', 'pid', 'epoch', 'sequence', 'state']);
+      const value = parseN09MailboxSignal(input);
       if (
         value.version !== 1 ||
         value.pid !== pid ||
@@ -71,4 +96,4 @@ function createN09MailboxControl(input) {
   }
 }
 
-module.exports = { createN09MailboxControl };
+module.exports = { createN09MailboxControl, parseN09MailboxSignal };

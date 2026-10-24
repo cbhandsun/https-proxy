@@ -10,6 +10,7 @@ const {
   parseN09AckReceipt,
   isN09NativePromise,
   discardN09PromiseRejection,
+  wrapN09AckFailure,
 } = require('./contract');
 
 // No transport, filesystem, timer, model or execution capability is provided.
@@ -68,12 +69,12 @@ function createN09HostAckObserver(input) {
         value.operation !== operation ||
         value.pid !== config.pid ||
         value.epoch !== config.epoch ||
-        value.sequence !== sequence + 1 ||
-        value.rootId !== observed.rootId ||
-        value.expiresAt !== observed.expiresAt ||
-        value.minRevision !== observed.revision
+        value.sequence !== sequence + 1
       )
-        throw fail();
+        throw fail(142);
+      if (value.rootId !== observed.rootId || value.expiresAt !== observed.expiresAt)
+        throw fail(143);
+      if (value.minRevision !== observed.revision) throw fail(144);
       sequence = value.sequence;
       return value;
     }
@@ -165,9 +166,9 @@ function createN09HostAckObserver(input) {
             completed.resolve(result);
           }
           return token;
-        } catch {
+        } catch (error) {
           abort();
-          throw fail();
+          throw wrapN09AckFailure(error, 147);
         }
       },
       armSave(input) {
@@ -176,8 +177,8 @@ function createN09HostAckObserver(input) {
           return new Promise((resolve, reject) => {
             pending = { command: value, resolve, reject };
           });
-        } catch {
-          throw fail();
+        } catch (error) {
+          throw wrapN09AckFailure(error, 156);
         }
       },
       async revokeBoundRoot(input) {
@@ -200,7 +201,7 @@ function createN09HostAckObserver(input) {
                 try {
                   resolve(fields(value, ['ok']));
                 } catch {
-                  reject(fail());
+                  reject(fail(146));
                 }
               },
               () => reject(fail()),
@@ -211,12 +212,12 @@ function createN09HostAckObserver(input) {
           });
           const acknowledgement = await Promise.race([completed, cancelled]);
           available();
-          if (acknowledgement.ok !== true) throw fail();
+          if (acknowledgement.ok !== true) throw fail(146);
           revoked = true;
           return receipt(value, 'host-revoke-completed', state);
-        } catch {
+        } catch (error) {
           if (started) abort();
-          throw fail();
+          throw wrapN09AckFailure(error, 145);
         } finally {
           if (started) {
             cancelRevoke = undefined;

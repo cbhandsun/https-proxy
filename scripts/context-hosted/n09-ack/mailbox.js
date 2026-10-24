@@ -7,6 +7,8 @@ const {
   fail,
   isN09NativePromise,
   discardN09PromiseRejection,
+  n09AckFailureStage,
+  wrapN09AckFailure,
 } = require('./contract');
 const { createN09MailboxControl } = require('./mailbox-control');
 const { createN09MailboxFiles } = require('./mailbox-files');
@@ -63,14 +65,21 @@ function createN09MailboxHost(input, suppliedHooks) {
       sequence = 0,
       active,
       timer;
-    function failure(at) {
+    function failure(at, error, stage) {
       if (closed || failed) return;
       failed = true;
       try {
         files.write(
           'failure',
           at,
-          control.sign({ version: 1, pid, epoch, sequence: at, state: 'failed' })
+          control.sign({
+            version: 1,
+            pid,
+            epoch,
+            sequence: at,
+            state: 'failed',
+            stage: n09AckFailureStage(error) ?? stage,
+          })
         );
       } catch {
         /* A compromised mailbox can never yield a success receipt. */
@@ -85,11 +94,14 @@ function createN09MailboxHost(input, suppliedHooks) {
       if (active) return 'pending';
       if (sequence === 16) return 'exhausted';
       const at = sequence + 1;
+      let stage = 140;
       try {
         const envelope = files.read('command', at);
         if (envelope === null) return 'idle';
+        stage = 141;
         const command = contract.verifyCommand(envelope);
         if (command.sequence !== at) throw fail();
+        stage = 156;
         const pending =
           command.operation === 'arm-save'
             ? hooks.armSave(command)
@@ -104,6 +116,7 @@ function createN09MailboxHost(input, suppliedHooks) {
         Reflect.apply(Promise.prototype.then, pending, [
           (value) => {
             if (closed || failed) return;
+            let receiptStage = 148;
             try {
               const envelope = contract.signReceipt(value);
               const receipt = envelope.payload;
@@ -120,14 +133,15 @@ function createN09MailboxHost(input, suppliedHooks) {
                   : receipt.revision !== command.minRevision)
               )
                 throw fail();
+              receiptStage = 149;
               files.write('receipt', at, envelope);
               active = undefined;
-            } catch {
-              failure(at);
+            } catch (error) {
+              failure(at, error, receiptStage);
             }
           },
-          () => {
-            failure(at);
+          (error) => {
+            failure(at, error, 157);
           },
         ]);
         if (command.operation === 'arm-save')
@@ -137,9 +151,9 @@ function createN09MailboxHost(input, suppliedHooks) {
             control.sign({ version: 1, pid, epoch, sequence: at, state: 'armed' })
           );
         return command.operation === 'arm-save' ? 'armed' : 'revoking';
-      } catch {
-        failure(at);
-        throw fail();
+      } catch (error) {
+        failure(at, error, stage);
+        throw wrapN09AckFailure(error, stage);
       }
     }
     return Object.freeze({
@@ -197,7 +211,7 @@ function createN09MailboxClient(input) {
       if (failure !== null) {
         const signal = control.verify(failure);
         if (signal.sequence !== current.sequence || signal.state !== 'failed') throw fail();
-        throw fail();
+        throw fail(signal.stage ?? 157);
       }
     }
     return Object.freeze({
@@ -209,8 +223,8 @@ function createN09MailboxClient(input) {
           files.write('command', envelope.payload.sequence, envelope);
           current = envelope.payload;
           sequence++;
-        } catch {
-          throw fail();
+        } catch (error) {
+          throw wrapN09AckFailure(error, 150);
         }
       },
       readArmed() {
@@ -222,8 +236,8 @@ function createN09MailboxClient(input) {
           const signal = control.verify(envelope);
           if (signal.sequence !== sequence || signal.state !== 'armed') throw fail();
           return true;
-        } catch {
-          throw fail();
+        } catch (error) {
+          throw wrapN09AckFailure(error, 151);
         }
       },
       readReceipt() {
@@ -247,8 +261,8 @@ function createN09MailboxClient(input) {
             throw fail();
           current = undefined;
           return receipt;
-        } catch {
-          throw fail();
+        } catch (error) {
+          throw wrapN09AckFailure(error, 152);
         }
       },
       close() {

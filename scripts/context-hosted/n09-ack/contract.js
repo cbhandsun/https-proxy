@@ -2,8 +2,19 @@
 
 const { createHmac, timingSafeEqual } = require('node:crypto');
 const { types } = require('node:util');
-const fail = () =>
-  Object.assign(new Error('n09_host_ack_rejected'), { code: 'n09_host_ack_rejected' });
+// Local errors carry no caller-controlled detail. A WeakMap preserves only a
+// reviewed finite stage through wrappers, without reading unknown error fields.
+const failureStages = new WeakMap();
+const isN09AckFailureStage = (value) => Number.isInteger(value) && value >= 140 && value <= 157;
+function fail(stage) {
+  const error = Object.assign(new Error('n09_host_ack_rejected'), {
+    code: 'n09_host_ack_rejected',
+  });
+  if (isN09AckFailureStage(stage)) failureStages.set(error, stage);
+  return error;
+}
+const n09AckFailureStage = (error) => failureStages.get(error);
+const wrapN09AckFailure = (error, fallback) => fail(n09AckFailureStage(error) ?? fallback);
 const integer = (value, minimum = 0) => Number.isSafeInteger(value) && value >= minimum;
 const hex = (value, length) =>
   typeof value === 'string' && value.length === length && /^[a-f0-9]+$/.test(value);
@@ -201,4 +212,7 @@ module.exports = {
   discardN09PromiseRejection,
   fields,
   fail,
+  isN09AckFailureStage,
+  n09AckFailureStage,
+  wrapN09AckFailure,
 };

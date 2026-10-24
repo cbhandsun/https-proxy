@@ -71,6 +71,23 @@ conflicting diagnostics remain 224. These counts belong to a fresh isolated
 owner with three seed/summary requests; they do not identify a root cause.
 Successful recovery and the durable-ACK-to-kill boundary perform no such query.
 
+Failed ACK handshakes preserve a finite stage through the signed mailbox and
+local wrappers. Stages 140/141 identify command-file reading/verification;
+142/143/144 identify runtime binding, root/expiry identity, and
+producer-revision mismatch; 145/146 identify revoke execution and a rejected
+completion result; 147 identifies original save observation; 148/149 identify
+receipt validation and publication; 150/151/152 identify client
+submit/bootstrap-file checks, armed-control checks, and receipt checks; 153
+identifies the unchanged 15-second operation budget or invalid clock; 154/155
+identify command validation and synchronous client-method failure; 156/157
+identify host dispatch and awaited hook rejection. A known inner stage survives
+wrapping. A stage is diagnostic only: no receipt, signature, identity,
+accounting, timeout or cleanup assertion is relaxed. Arbitrary exception
+properties and text are never inspected or forwarded; the optional failure stage
+is authenticated in the control signal. An existing failed recovery HTTP phase
+retains priority over secondary polling failure. A stage identifies where
+rejection was observed, not necessarily its root cause.
+
 Committed metadata observation is not a host save/revoke durable ACK. The
 separate `runDurableSaveOrRevokeAfterAck` driver requires a passive, synchronous
 callable capability, validates its operation/PID/accounting-bound ACK, then

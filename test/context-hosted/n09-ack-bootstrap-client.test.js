@@ -10,7 +10,10 @@ const {
 } = require('../../scripts/context-hosted/n09-ack/bootstrap-contract');
 const { createN09HostAckClient } = require('../../scripts/context-hosted/n09-ack/bootstrap-client');
 const { createN09MailboxFiles } = require('../../scripts/context-hosted/n09-ack/mailbox-files');
-const { createN09AckContract } = require('../../scripts/context-hosted/n09-ack/contract');
+const {
+  createN09AckContract,
+  n09AckFailureStage,
+} = require('../../scripts/context-hosted/n09-ack/contract');
 const { createN09MailboxControl } = require('../../scripts/context-hosted/n09-ack/mailbox-control');
 const config = { token: 'synthetic_'.repeat(4), pid: 123, manifestSha256: 'a'.repeat(64) };
 const precondition = (operation = 'arm-save') => ({
@@ -159,6 +162,55 @@ test('bootstrap client rejects wrong identities and malformed bounded file input
   fs.unlinkSync(link);
   const client = createN09HostAckClient(f.options);
   client.close();
+});
+
+test('bootstrap client preserves only a verified signed failure stage through its physical-file checks', (t) => {
+  const f = fixture(t);
+  const client = createN09HostAckClient(f.options);
+  const files = createN09MailboxFiles({ directory: f.directory, pid: config.pid });
+  const control = createN09MailboxControl({
+    pid: config.pid,
+    epoch: f.payload.epoch,
+    signingKey: f.signingKey,
+  });
+  t.after(() => {
+    client.close();
+    files.close();
+    control.close();
+  });
+  client.submit(precondition('revoke-bound-root'));
+  files.write(
+    'failure',
+    1,
+    control.sign({
+      version: 1,
+      pid: config.pid,
+      epoch: f.payload.epoch,
+      sequence: 1,
+      state: 'failed',
+      stage: 144,
+    })
+  );
+  assert.throws(
+    () => client.readReceipt(),
+    (error) => {
+      safe(error);
+      assert.equal(n09AckFailureStage(error), 144);
+      return true;
+    }
+  );
+  const file = path.join(f.directory, 'failure-' + config.pid + '-1.json');
+  const forged = JSON.parse(fs.readFileSync(file, 'utf8'));
+  forged.payload.stage = 145;
+  fs.writeFileSync(file, JSON.stringify(forged));
+  assert.throws(
+    () => client.readReceipt(),
+    (error) => {
+      safe(error);
+      assert.notEqual(n09AckFailureStage(error), 145);
+      return true;
+    }
+  );
 });
 
 test('bootstrap client validates physical runtime and mailbox ancestors', (t) => {

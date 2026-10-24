@@ -9,6 +9,7 @@ const {
   parseN09AckReceipt,
   isN09NativePromise,
   discardN09PromiseRejection,
+  wrapN09AckFailure,
 } = require('./contract');
 const clock = () => performance.now();
 const pause = () => new Promise((resolve) => setTimeout(resolve, 10));
@@ -63,16 +64,20 @@ async function performN09DurableCommand(input, supplied, timing = { now: clock, 
         value < last ||
         value - started >= 15000
       )
-        throw fail();
+        throw fail(153);
       last = value;
     }
     function sync(name, args = []) {
-      const value = Reflect.apply(methods[name], hooks.client, args);
-      if (types.isPromise(value)) {
-        discardN09PromiseRejection(value);
-        throw fail();
+      try {
+        const value = Reflect.apply(methods[name], hooks.client, args);
+        if (types.isPromise(value)) {
+          discardN09PromiseRejection(value);
+          throw fail();
+        }
+        return value;
+      } catch (error) {
+        throw wrapN09AckFailure(error, 155);
       }
-      return value;
     }
     const submitted = sync('submit', [
       {
@@ -118,8 +123,8 @@ async function performN09DurableCommand(input, supplied, timing = { now: clock, 
       }
       await wait();
     }
-  } catch {
-    throw fail();
+  } catch (error) {
+    throw wrapN09AckFailure(error, 154);
   }
 }
 

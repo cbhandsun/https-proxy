@@ -15,10 +15,15 @@ test('PowerShell accepts only the added backup case and keeps malformed finite d
     $ErrorActionPreference = 'Stop'
     $module = Import-Module ./scripts/lib/nsis-runtime-boundary.psm1 -PassThru
     & $module {
-      foreach ($phase in @(85, 254)) {
+      foreach ($phase in @(85, 254) + @(140..157)) {
         $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected\`nn09_primary_phase=$phase\`nn09_case_phase=85\`n")
         if ((ConvertFrom-HpmOwnedFailurePhase $bytes) -ne $phase -or
             (ConvertFrom-HpmOwnedCasePhase $bytes) -ne 85) { throw 'Finite backup phase rejected.' }
+      }
+      foreach ($phase in @(139, 158, 159, 160, 161, 255)) {
+        $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected\`nn09_primary_phase=$phase\`nn09_case_phase=83\`n")
+        if ($null -ne (ConvertFrom-HpmOwnedFailurePhase $bytes) -or
+            $null -ne (ConvertFrom-HpmOwnedCasePhase $bytes)) { throw 'Unassigned ACK phase accepted.' }
       }
       foreach ($suffix in @("n09_case_phase=84\`n", "n09_case_phase=86\`n",
           "n09_case_phase=85\`nPRIVATE_SENTINEL", "n09_case_phase=85\`nn09_case_phase=82\`n")) {

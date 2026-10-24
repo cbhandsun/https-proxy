@@ -2,7 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { fields, fail } = require('./contract');
+const { fields, fail, wrapN09AckFailure } = require('./contract');
 const { createN09BootstrapContract } = require('./bootstrap-contract');
 const { createN09MailboxClient } = require('./mailbox');
 const identity = (stat) => [stat.dev, stat.ino, stat.birthtimeNs].join(':');
@@ -142,8 +142,8 @@ function createN09HostAckClient(input) {
           });
           sequence++;
           verifyDirectories();
-        } catch {
-          throw fail();
+        } catch (error) {
+          throw wrapN09AckFailure(error, 150);
         }
       },
       readArmed() {
@@ -152,8 +152,8 @@ function createN09HostAckClient(input) {
           const result = mailbox.readArmed();
           verifyDirectories();
           return result;
-        } catch {
-          throw fail();
+        } catch (error) {
+          throw wrapN09AckFailure(error, 150);
         }
       },
       readReceipt() {
@@ -162,8 +162,8 @@ function createN09HostAckClient(input) {
           const result = mailbox.readReceipt();
           verifyDirectories();
           return result;
-        } catch {
-          throw fail();
+        } catch (error) {
+          throw wrapN09AckFailure(error, 150);
         }
       },
       close() {

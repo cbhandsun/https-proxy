@@ -6,6 +6,7 @@ const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
 const { installN09RuntimeHooks } = require('../../scripts/context-hosted/n09-ack/runtime-hooks');
+const { n09AckFailureStage } = require('../../scripts/context-hosted/n09-ack/contract');
 const {
   createN09MailboxHost,
   createN09MailboxClient,
@@ -168,6 +169,32 @@ test('fixed ACK hook runs original producer, retains its token and binds only ta
   f.hooks.close();
   assert.equal(f.ackExports.createRecoveryDurableAck, f.originalAck);
   assert.equal(f.lifecycleExports.createContextRecoveryLifecycle, f.originalFactory);
+  assert.equal(f.counts().shutdowns, 0);
+});
+
+test('snapshot/producer revision drift and identity mismatch retain strict rejection with finite distinct stages', (t) => {
+  const f = fixture(t);
+  const lifecycle = f.open();
+  const reference = state(lifecycle);
+  f.ackExports.createRecoveryDurableAck(reference, 1);
+  const stale = command(reference, 1, 1, 'revoke-bound-root');
+  // Model a final publication ACK arriving after the client captured its DB baseline.
+  f.ackExports.createRecoveryDurableAck(reference, 2);
+  for (const [value, phase] of [
+    [stale, 144],
+    [{ ...stale, rootId: 'hbs_' + 'f'.repeat(32) }, 143],
+    [{ ...stale, pid: 124 }, 142],
+  ]) {
+    assert.throws(
+      () => f.hooks.revokeBoundRoot(value),
+      (error) => {
+        safe(error);
+        assert.equal(n09AckFailureStage(error), phase);
+        return true;
+      }
+    );
+    assert.equal(lifecycle.sessions.inspect().roots, 1);
+  }
   assert.equal(f.counts().shutdowns, 0);
 });
 

@@ -9,6 +9,7 @@ const {
   parseN09AckReceipt,
   isN09NativePromise,
   discardN09PromiseRejection,
+  wrapN09AckFailure,
 } = require('./contract');
 const { createN09HostAckObserver } = require('./observer');
 const installations = new WeakSet();
@@ -234,12 +235,12 @@ function installN09RuntimeHooks(input) {
         value.operation !== operation ||
         value.pid !== config.pid ||
         value.epoch !== config.epoch ||
-        value.sequence !== sequence + 1 ||
-        value.rootId !== owner.last.rootId ||
-        value.expiresAt !== owner.last.expiresAt ||
-        value.minRevision !== owner.last.revision
+        value.sequence !== sequence + 1
       )
-        throw fail();
+        throw fail(142);
+      if (value.rootId !== owner.last.rootId || value.expiresAt !== owner.last.expiresAt)
+        throw fail(143);
+      if (value.minRevision !== owner.last.revision) throw fail(144);
       sequence = value.sequence;
       owner.localSequence++;
       owner.pending = true;
@@ -254,17 +255,17 @@ function installN09RuntimeHooks(input) {
             if (operation === 'revoke-bound-root') owner.status = 'revoked';
             return parseN09AckReceipt({ ...receipt, sequence: value.sequence });
           })
-          .catch(() => {
+          .catch((error) => {
             failed = true;
-            throw fail();
+            throw wrapN09AckFailure(error, 157);
           })
           .finally(() => {
             owner.pending = false;
           });
-      } catch {
+      } catch (error) {
         owner.pending = false;
         failed = true;
-        throw fail();
+        throw wrapN09AckFailure(error, 156);
       }
     }
     function close() {

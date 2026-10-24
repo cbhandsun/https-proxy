@@ -10,6 +10,7 @@ const { exact, snapshotOwnData } = require('../shared/boundary.js');
 const { launchOptions } = require('../n09-ipc/lifecycle-channel.js');
 const { isVerifiedNetworkProof } = require('../shared/hosted-probes.js');
 const { performN09DurableCommand } = require('../n09-ack/durable-command.js');
+const { n09AckFailureStage } = require('../n09-ack/contract');
 const { parseStoredEvidenceSource } = require('../../../lib/proxy/context-evidence-stored-page');
 const { parseObservedPage } = require('./observed-page');
 const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
@@ -611,9 +612,16 @@ function createN09BusinessAdapter(input, trusted = {}) {
               revision: receipt.revision,
             },
           });
-        } catch {
+        } catch (error) {
           // Only after the ACK operation has failed. Never query management
           // between a successful signed receipt and the driver's forced kill.
+          const ackFailurePhase = n09AckFailureStage(error);
+          if (
+            ackFailurePhase !== undefined &&
+            !pendingSave?.failed &&
+            upstreamFailurePhase === undefined
+          )
+            onPhase(ackFailurePhase);
           if (
             pendingSave?.failed &&
             pendingSave.failedWith502 &&

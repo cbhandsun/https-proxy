@@ -641,17 +641,17 @@ test('ACK handshake rejection is distinguished from a completed readonly snapsho
   );
   f.adapter.bindVerifiedNetworkProof(f.proof);
   await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'));
-  assert.equal(phases.at(-1), 253);
+  assert.equal(phases.at(-1), 155);
   assert.equal(phases.includes(254), false);
   assert.equal(f.state.stopped, 1);
   assert.equal(f.state.closed, 1);
   assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
 });
 
-test('ACK diagnostics distinguish failure before arming from final receipt polling without relaxing either boundary', async () => {
-  for (const [stage, expected] of [
-    ['ack-armed', 253],
-    ['ack-receipt', 254],
+test('ACK diagnostics preserve handshake order and classify failed client methods without relaxing either boundary', async () => {
+  for (const [stage, pollingStarted] of [
+    ['ack-armed', false],
+    ['ack-receipt', true],
   ]) {
     const phases = [];
     const f = fixture(
@@ -662,10 +662,34 @@ test('ACK diagnostics distinguish failure before arming from final receipt polli
     );
     f.adapter.bindVerifiedNetworkProof(f.proof);
     await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'save'));
-    assert.equal(phases.at(-1), expected);
+    assert.equal(phases.at(-1), 155);
+    assert.equal(phases.includes(254), pollingStarted);
     assert.equal(f.state.closed, 1);
     assert.equal(f.state.stopped, 1);
     assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
+  }
+});
+
+test('authenticated ACK failure stages reach the hosted observer with owned cleanup and no retry', async () => {
+  const { fail } = require('../../scripts/context-hosted/n09-ack/contract');
+  for (let stage = 140; stage <= 157; stage++) {
+    const phases = [];
+    let polls = 0;
+    const f = fixture(
+      (at) => {
+        if (at === 'ack-receipt') {
+          polls++;
+          throw fail(stage);
+        }
+      },
+      (phase) => phases.push(phase)
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runDurableSaveOrRevokeAfterAck(f.adapter, 'revoke'));
+    assert.equal(phases.at(-1), stage);
+    assert.equal(polls, 1);
+    assert.equal(f.state.stopped, 1);
+    assert.equal(f.state.closed, 1);
   }
 });
 

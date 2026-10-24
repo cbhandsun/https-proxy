@@ -42,9 +42,9 @@ function ConvertFrom-HpmOwnedFailurePhase {
     # the caller still rejects the failed child regardless of this result.
     $text = Get-HpmOwnedFailureText $Bytes
     if ($null -eq $text) { return $null }
-    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-9]|13[0-8]|16[2-9]|17[0-9]|18[0-9]|19[0-9]|20[0-9]|21[0-9]|22[0-9]|23[0-9]|24[0-9]|25[0-4])\n(?:n09_case_phase=8[0-35]\n)?\z') { return $null }
+    if ($text -cnotmatch '\An09_owned_entry_rejected\nn09_primary_phase=([0-9]{2}|10[1-9]|11[0-9]|12[0-9]|13[0-8]|14[0-9]|15[0-7]|16[2-9]|17[0-9]|18[0-9]|19[0-9]|20[0-9]|21[0-9]|22[0-9]|23[0-9]|24[0-9]|25[0-4])\n(?:n09_case_phase=8[0-35]\n)?\z') { return $null }
     $phase = [int]$Matches[1]
-    if (($phase -ge 73 -and $phase -le 85) -or ($phase -ge 86 -and $phase -le 96) -or ($phase -ge 101 -and $phase -le 138) -or ($phase -ge 162 -and $phase -le 254)) { return $phase }
+    if (($phase -ge 73 -and $phase -le 85) -or ($phase -ge 86 -and $phase -le 96) -or ($phase -ge 101 -and $phase -le 138) -or ($phase -ge 140 -and $phase -le 157) -or ($phase -ge 162 -and $phase -le 254)) { return $phase }
     return $null
 }
 

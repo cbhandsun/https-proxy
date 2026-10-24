@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { fields, fail, parseN09AckCommand, parseN09AckReceipt } = require('./contract');
+const { parseN09MailboxSignal } = require('./mailbox-control');
 
 function rejectFile(handle) {
   if (handle !== undefined) {
@@ -79,7 +80,7 @@ function createN09MailboxFiles(input) {
       if (kind === 'command') payload = parseN09AckCommand(envelope.payload);
       else if (kind === 'receipt') payload = parseN09AckReceipt(envelope.payload);
       else {
-        payload = fields(envelope.payload, ['version', 'pid', 'epoch', 'sequence', 'state']);
+        payload = parseN09MailboxSignal(envelope.payload);
         if (
           payload.version !== 1 ||
           typeof payload.epoch !== 'string' ||
