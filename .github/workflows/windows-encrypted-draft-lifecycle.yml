@@ -70,6 +70,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Unpublished baseline acquisition refused.' }
       - run: rustup default stable
       - name: Require all current candidate gates
+        id: candidate_gates
         working-directory: current
         run: |
           $ErrorActionPreference = 'Stop'
@@ -82,6 +83,7 @@ jobs:
           npm audit --audit-level=high
           if ($LASTEXITCODE -ne 0) { throw 'Candidate dependency audit failed.' }
       - name: Build current test installer without publishing
+        id: candidate_build
         working-directory: current
         run: |
           $ErrorActionPreference = 'Stop'
@@ -96,6 +98,19 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           ./current/scripts/qualify-nsis-lifecycle.ps1 -BaselineDirectory './old-baseline' -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentSha $env:CURRENT_SHA -EncryptedRecovery -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json'
+      - name: Qualify installed Codex and Claude with isolated synthetic upstream
+        env:
+          CURRENT_SHA: ${{ github.sha }}
+          GATES_OUTCOME: ${{ steps.candidate_gates.outcome }}
+          BUILD_OUTCOME: ${{ steps.candidate_build.outcome }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GATES_OUTCOME -cne 'success' -or $env:BUILD_OUTCOME -cne 'success') { throw 'Installed client preparation evidence refused.' }
+          $file = Join-Path $env:RUNNER_TEMP 'hpm-installed-client-preparation.json'
+          if (Test-Path -LiteralPath $file) { throw 'Installed client preparation collision.' }
+          @{ schemaVersion = 1; currentSha = $env:CURRENT_SHA; buildCompleted = $true; candidateNpmCompleted = $true; verificationCompleted = $true } | ConvertTo-Json -Compress | Set-Content -LiteralPath $file -Encoding utf8
+          $receiptSha = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          ./current/scripts/qualify-nsis-installed-clients.ps1 -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json' -CurrentSha $env:CURRENT_SHA -PreparationReceiptSha256 $receiptSha
       - name: Record bounded scope
         if: always()
         env:

@@ -41,6 +41,8 @@ node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1
 
 ## 当前失败与下一步
 
+**安装矩阵接入批优先：** `a204c4c`完整Verify `40105361343`、正式Windows `40105361357`已终态success；新增实际NSIS/受控Codex和Claude四组矩阵总入口已接通并待原完整门禁后的托管实际执行，尚未取得实际安装客户端结果。新观察器真实发行清单解析阻塞已修，严格邮箱签名/原管理及入口认证、原网络和Job门禁不变。最新进度和Mac格式检查失败记录见实施状态顶部，不能把局部工具回归当成客户端资格。原生容量混合超时、真实24小时/到期重开、安装版持久重启/优雅退出、真实provider及自用启用仍需各自证据；冻结长测本阶段不访问、不改变、不重启，额度未核验前模型请求0。
+
 **最新e490a58批次优先：** 完整Verify `40098018857` 八项和正式Windows `40098018924` 四项均success。最新9401ca6加密NSIS生命周期 `40096977916`（job `120881245475`）已success，安装/升级/回滚/重装/卸载及原625登记迁移拒写均通过；安装manifest `df511afd…`，原clientQualified/gracefulDrainQualified/restartRetention仍false、forced_cleanup不变。e490a58未改生产源码，五秒稳定性证据仍为原42样本，历史失败保留。
 
 **582实际八步已通过：** 原4eb1ea48…的582包，与干净e490a58跨机准备并核验的当前Windows运行包b73b4354…在独立新OS-temp目录真实完成seed/read、拒绝隐式迁移、preview/enroll首次read、resave/read、旧582拒写新格式保字节、当前最终read；退出0，schema1→3、实际blob和revision精确+1、原expiry及全部内部精确回执均一致。该包不是NSIS安装产物；nsis/worker/24h/client资格明确false，详情及完整身份见实施状态顶部。下一步接入最新安装身份下Codex/Claude默认与增强实际隔离客户端，不能运行旧脚本中的日常认证/工作区Core注入。当前用户要求不动长测，继续工作期间不要读取、修改、重启或抢占冻结长测环境；下面旧记录中的日档状态检查建议本阶段不执行。额度未核验，真实模型请求0。
