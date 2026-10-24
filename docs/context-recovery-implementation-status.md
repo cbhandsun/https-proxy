@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：a9836cd完整Verify与正式Windows通过，安装链恢复后仍待实际四组
+
+固定候选`a9836cdb0c5a5b279d6e2e0f0912c8ea8747c7e9`的Verify `40114984440`八项全部completed/success，正式Windows `40114984375`四项全部success，含source-gates `120934299723`、N08 `120937840124`、N09 `120937840153`。原完整verify、审计、格式/类型相关治理、Rust及三套覆盖率门禁保持；本记录不把原场景门禁成功扩为安装客户端、24小时或真实provider资格。
+
+CRLF正控已由Windows unit-tests (3) `120934300207`通过核验，额外CRCRLF负控继续由原锁摘要拒绝。真实默认runtime/worker、DPAPI/OS锚点撤销和清空后重开的三份有限阶段回执均完整80事件：普通unit0 `120934300111`为3754.54ms；并发coverage `120934300158`为4822.18ms；正式source-gates为4227.88ms。两条路径的实际seed/读取/失效/关闭/direct存储/重开/拒读都完成，原60000ms期限与ACK断言保持。此前8067628 coverage 60002ms失败仍保留，未确定其旧根因，不能称生产问题已修或用新通过删除它。
+
+本候选coverage和正式source-gates各取得12次原long-persistent固定请求（chat、Responses、Claude两轮，proxy/client两套入口），共24次完整公开发布结束1175–3973ms，全部小于原5000ms。实际默认worker、DPAPI和OS锚点及FULL/DELETE、预扣和精确ACK参与，模型上游仍为合成fixture，realModelRequests=0。相对e490a58的生产lib/native/src无变更，故不宣称本批进行了额外生产性能优化；9401的既有42样本及be7五秒失败独立保留，不跨候选混称任意负载稳定保证。
+
+从本次既有Windows coverage日志读取五档capacity-command两轮耗时67393.97ms和38658.10ms：均满足原180000执行预算，但前者performanceTargetMet=false，后者true，原60000目标没有抬高。在Mac Apple M5 Ultra/arm64、Node22.22.2上又独立按原双worker/五档执行一次，外层仍限定180000，命令9425.11ms、worker9391.82ms，五档正确性均通过、性能目标满足；最大档1920轮/400精确恢复/20次重开。该结果仅为当前Mac合成会话容量，不替代Windows持久容量、原生最大档或真实24小时。历史混合运行/最大文件长测未终态通过及新67393.97ms未达目标记录全部保留。
+
+安装链`40115097429`的首次resolve job `120934639971`终态cancelled，后续encrypted跳过；日志接口BlobNotFound且步骤列表为空，取消原因没有足够证据确认。仅恢复此已取消job后，同一候选的resolve `120937854333`成功，encrypted `120937948810`已in_progress，仍须执行完整候选verify、audit、build、实际安装升级回滚后才运行四组。尚未确认客户端矩阵步骤已开始，不授予clientQualified或syntheticClientQualified；旧NSIS的gracefulDrain/restartRetention/forced_cleanup边界保持。
+
+本阶段没有访问或改变冻结Windows长测，未动日常代理/客户端配置，额度仅保留原177/169计数核验，两端授权仍未核验，实际模型调用0。整体仍待最新安装四组和实际provider/受控启用、持久重启/优雅退出及原生容量/24小时到期重开证据。
+
 ## 2026-10-24：8067628完整门禁失败已收齐，修正CRLF夹具并接入原60秒重开诊断
 
 `806762898269682e842c9eb0afc6ddceab33ebe8`的Verify `40113538815`终态failure：六项success，unit-tests (3) `120930020899`和coverage `120930020922`failure。正式Windows `40113538709`也终态failure，source-gates `120930020554`失败、egress通过、后续context-recovery被原依赖门禁跳过。安装链 `40113568952`的resolve成功，但encrypted `120930181450`在完整候选verify因同一夹具失败终止；安装器构建、升级回滚和四组客户端均未执行。此前608da0f的unit-tests (2)已success，证明路径断言修正消除了原失败；未重跑旧候选制造绿色。
