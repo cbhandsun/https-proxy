@@ -106,7 +106,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
   const nonce = randomBytes(16).toString('hex');
   const entryKey = randomBytes(24).toString('hex'),
     upstreamKey = randomBytes(24).toString('hex');
-  const original = 'N09_PRIVATE_CONTENT ' + nonce + ' ' + 'synthetic-evidence '.repeat(202);
+  const original = 'N09_PRIVATE_CONTENT ' + nonce + ' ' + 'synthetic-evidence '.repeat(256);
   const originalSha256 = sha(original);
   let proof,
     lifecycle,

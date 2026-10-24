@@ -459,6 +459,23 @@ test('successful clear, save and revoke never query admission-failure diagnostic
   }
 });
 
+test('diagnostic phase changes preserve the frozen synthetic original workload', async () => {
+  const f = fixture();
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  try {
+    const owner = await f.adapter.startFreshBusinessHost();
+    await f.adapter.seedThroughBusinessHttp(owner);
+    const prefixBytes = Buffer.byteLength('N09_PRIVATE_CONTENT ') + 32 + 1;
+    assert.equal(
+      Buffer.byteLength(f.state.original),
+      prefixBytes + Buffer.byteLength('synthetic-evidence ') * 256
+    );
+    assert.equal(f.state.original.endsWith('synthetic-evidence '.repeat(256)), true);
+  } finally {
+    await f.adapter.close();
+  }
+});
+
 test('missing READ diagnostics separate ACK-triggered and post-restart recovery without accepting either', async () => {
   for (const expected of [251, 252]) {
     const phases = [];
@@ -975,7 +992,7 @@ test('upstream oversized, invalid UTF8 and invalid JSON fail without response wr
   const f = fixture();
   f.adapter.bindVerifiedNetworkProof(f.proof);
   await f.adapter.startFreshBusinessHost();
-  for (const bytes of [Buffer.alloc(262145), Buffer.from([200]), Buffer.from('{')]) {
+  for (const bytes of [Buffer.alloc(262145), Buffer.from([255]), Buffer.from('{')]) {
     const response = {
       destroyed: false,
       headersSent: false,
