@@ -41,4 +41,18 @@ $pipe = New-OwnedPipe $input ([IO.Stream]::Null)
 $rejected = $false
 try { while (-not $pipe.Ended) { Update-OwnedPipes @($pipe) } } catch { $rejected = $_.Exception.Message -ceq 'nsis_client_owned_failed' }
 if (-not $rejected) { throw 'stderr_limit_accepted' }; $checks++
+# Execute the production EOF statement, rather than a mirrored suppression.
+# The unsuppressed call is a negative control for real pwsh Task behavior.
+$copySource = [IO.MemoryStream]::new([byte[]]@(1,2,3))
+$copyTarget = [IO.MemoryStream]::new()
+$toChild = $copySource.CopyToAsync($copyTarget)
+$unsuppressed = @($toChild.GetAwaiter().GetResult())
+if ($unsuppressed.Count -ne 1 -or $unsuppressed[0].GetType().FullName -cne 'System.Threading.Tasks.VoidTaskResult') { throw 'negative_control_failed' }; $checks++
+$statements = @($ast.FindAll({ param($node)
+    $node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -ceq '$null' -and $node.Right.Extent.Text -ceq '$toChild.GetAwaiter().GetResult()'
+}, $true))
+if ($statements.Count -ne 1) { throw 'eof_statement_missing' }
+$captured = @(Invoke-Expression $statements[0].Extent.Text)
+if ($captured.Count -ne 0 -or [Convert]::ToHexString($copyTarget.ToArray()) -cne '010203') { throw 'stdout_polluted' }; $checks++
+$copySource.Dispose(); $copyTarget.Dispose()
 [Console]::Out.Write('{"checks":' + $checks + ',"nativeCalls":0,"networkCalls":0}')

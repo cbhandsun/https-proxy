@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：受控CLI的PowerShell EOF额外stdout已修，真实Windows管道探针通过
+
+路径夹具修正已提交推送`608da0f0ab13442443a9ff09ed7f2c77649a1a25`，Verify `40113203823`当前node-quality/integration/rust成功、其余尚在运行；正式Windows `40113203821`及新安装链`40113227807`已启动，后者check-run确认resolve成功、encrypted job `120929192649`in_progress，四组CLI步骤未确认已执行。详细可复用workflow jobs接口仍可能ReadTimeout/502，已改用原commit check-runs取得同一job身份，未重启旧运行或用观察超时判定终止。
+
+对已接通启动链继续审查，实证确认`nsis-client-owned-process.ps1`裸调用CopyToAsync任务的GetAwaiter().GetResult()，会把System.Threading.Tasks.VoidTaskResult写入PowerShell成功输出流，污染原CLI协议stdout。现只给该无返回值的完成调用加`$null =`；不屏蔽异常、不改EOF等待、退出码、Job归属、原20秒stop/5秒退出和清理门禁。原客户端仍持续观察直到stop确认，非法/私有迟到帧仍失败。
+
+新增回归从生产PowerShell AST抽取这一完成语句执行；以实际未抑制的CopyToAsync作为负控，要求固定类型确实产生，然后执行生产语句要求零stdout，原始010203字节保持。既有管道fixture的退出/字节上限/EOF等12项保持，扩为14项；本机owned transport11/11通过，Windows7实际PowerShell在全新OS-temp/Idle进程运行同一生产helper fixture也退出0，回执checks=14、nativeCalls=0、networkCalls=0。此证据只证明实际PowerShell管道行为，不证明安装CLI或模型通过。
+
+其余启动链只读审查未发现第二个确定接线问题；配置/官方HTTPS、8项argv、独立签名观察器、先分配Job后授权、两端隔离HOME/配置、MCP固定Node以及全部原认证/持久期限保持。无生产源码或依赖变更，未访问冻结长测或日常配置，真实模型调用0。新候选仍须完整CI、审计、构建、安装升级回滚后，才可取得四组实际安装客户端证据；历史失败与整体未完成状态保持。
+
 ## 2026-10-24：412c800 Windows门禁暴露路径断言问题，保留失败并修正跨平台夹具
 
 已提交推送的矩阵总入口为`412c800a5c7b8382022bb6b677b2a5d40b932f81`，其Verify `40112658934`的unit-tests (2) job `120927442702`已completed/failure。日志唯一该文件失败为nsis-client-controller.test.js的路径转义检查：夹具使用path.join创建Windows反斜线路径，却把预期片段固定成`work''s/prep.ps1`，在Windows误报。安装矩阵链`40112676779`现有运行记录仍in_progress，但详细jobs读取持续ReadTimeout/502；未因此判定终止或重启同一运行，也未取得四组实际CLI执行结果。新候选必须重新通过完整门禁，不能用先前a204通过替代。

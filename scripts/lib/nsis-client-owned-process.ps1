@@ -84,7 +84,7 @@ try {
         Update-OwnedPipes $pipes
         [Threading.Thread]::Sleep(10)
     }
-    $toChild.GetAwaiter().GetResult()
+    $null = $toChild.GetAwaiter().GetResult()
     $process.StandardInput.Close()
     Wait-OwnedExit $process $pipes
 } catch { $failed = $true } finally {

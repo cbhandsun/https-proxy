@@ -360,7 +360,7 @@ test('PowerShell production pipe and exit helpers reject failed terminal states 
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, '');
-  assert.deepEqual(JSON.parse(result.stdout), { checks: 12, nativeCalls: 0, networkCalls: 0 });
+  assert.deepEqual(JSON.parse(result.stdout), { checks: 14, nativeCalls: 0, networkCalls: 0 });
 });
 
 test('launcher rejects CLI nonzero, signal, stream errors and excessive discarded stderr', async (t) => {
