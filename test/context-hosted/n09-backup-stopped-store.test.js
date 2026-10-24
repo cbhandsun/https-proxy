@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { fork } = require('node:child_process');
 const {
   createStoppedStoreBackup,
 } = require('../../scripts/context-hosted/n09-backup/stopped-store-backup');
@@ -144,7 +145,7 @@ test('stopped backup rejects empty, missing and oversized encrypted files', (t) 
   assert.throws(() => f.backup.capture(), safe);
 });
 
-test('every SQLite journal is rejected before capture and before restore', (t) => {
+test('data journals and arbitrary ownership journals reject before capture and restore', (t) => {
   for (const name of [
     'checkpoint.sqlite-journal',
     'checkpoint.sqlite-wal',
@@ -162,6 +163,138 @@ test('every SQLite journal is rejected before capture and before restore', (t) =
     }
   }
 });
+
+function inertMutex(f, bytes = 512) {
+  const mutex = path.join(f.store, '.writer.sqlite');
+  const journal = path.join(f.store, '.writer.sqlite-journal');
+  const header = Buffer.alloc(bytes);
+  header.writeUInt32BE(123, 12);
+  header.writeUInt32BE(bytes, 20);
+  header.writeUInt32BE(4096, 24);
+  fs.writeFileSync(mutex, Buffer.alloc(0));
+  fs.writeFileSync(journal, header);
+  return { mutex, journal, header };
+}
+
+test('only an inert empty-owner journal is preserved without copying or repairing it', (t) => {
+  for (const bytes of [512, 4096, 65536]) {
+    const f = fixture(t);
+    const m = inertMutex(f, bytes);
+    const inode = fs.statSync(m.journal).ino;
+    f.backup.capture();
+    fs.writeFileSync(f.database, 'later encrypted state');
+    f.backup.restore();
+    assert.equal(fs.readFileSync(f.database).equals(f.original[0]), true);
+    assert.equal(fs.readFileSync(m.journal).equals(m.header), true);
+    assert.equal(fs.statSync(m.journal).ino, inode);
+    assert.equal(fs.statSync(m.mutex).size, 0);
+  }
+});
+
+test('hot, populated, malformed, missing and oversized owner journals remain rejected', (t) => {
+  const changes = [
+    (m) => fs.writeFileSync(m.mutex, 'nonempty ownership database'),
+    (m) => fs.unlinkSync(m.mutex),
+    (m) => fs.truncateSync(m.journal, 0),
+    (m) => fs.truncateSync(m.journal, 511),
+    (m) => fs.truncateSync(m.journal, 65537),
+    ...[0, 8, 16, 20, 24, 28].map((offset) => (m) => {
+      m.header.writeUInt32BE(1, offset);
+      fs.writeFileSync(m.journal, m.header);
+    }),
+  ];
+  for (const change of changes) {
+    for (const phase of ['capture', 'restore']) {
+      const f = fixture(t);
+      const m = inertMutex(f);
+      if (phase === 'restore') f.backup.capture();
+      change(m);
+      assert.throws(() => f.backup[phase](), safe);
+      assert.equal(fs.readFileSync(f.database).equals(f.original[0]), true);
+    }
+  }
+});
+
+test('owner journal links, replacement and mutation during backup reject safely', (t) => {
+  for (const name of ['mutex', 'journal']) {
+    const f = fixture(t);
+    const m = inertMutex(f);
+    fs.linkSync(m[name], path.join(f.store, 'owner-extra-link'));
+    assert.throws(() => f.backup.capture(), safe);
+  }
+  for (const replacement of [false, true]) {
+    const f = fixture(t);
+    const m = inertMutex(f);
+    let calls = 0;
+    const backup = createStoppedStoreBackup(f.options, () => {
+      if (++calls === 2) {
+        if (replacement) fs.renameSync(m.journal, m.journal + '.previous');
+        m.header.writeUInt32BE(456, 12);
+        fs.writeFileSync(m.journal, m.header);
+      }
+      return true;
+    });
+    assert.throws(() => backup.capture(), safe);
+    assert.equal(fs.readFileSync(f.database).equals(f.original[0]), true);
+    backup.close();
+  }
+});
+
+async function killEmptyMutex(f) {
+  const child = fork(
+    path.join(__dirname, '../helpers/n09-stopped-mutex.cjs'),
+    [path.join(f.store, '.writer.sqlite')],
+    { stdio: ['ignore', 'ignore', 'ignore', 'ipc'], execArgv: [], windowsHide: true }
+  );
+  let exited = false;
+  const exit = new Promise((resolve) =>
+    child.once('close', () => {
+      exited = true;
+      resolve();
+    })
+  );
+  try {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('mutex_child_not_ready')), 10000);
+      child.once('message', (message) => {
+        clearTimeout(timer);
+        if (message?.ready === true) resolve();
+        else reject(new Error('mutex_child_not_ready'));
+      });
+      child.once('error', () => {
+        clearTimeout(timer);
+        reject(new Error('mutex_child_not_ready'));
+      });
+      child.once('exit', () => {
+        clearTimeout(timer);
+        reject(new Error('mutex_child_exited'));
+      });
+    });
+  } finally {
+    if (!exited) child.kill('SIGKILL');
+    await exit;
+  }
+}
+
+test(
+  'real SQLite forced exits preserve inert mutex journals across backup, restart and restore',
+  { timeout: 25000 },
+  async (t) => {
+    const f = fixture(t);
+    await killEmptyMutex(f);
+    const journal = path.join(f.store, '.writer.sqlite-journal');
+    const first = fs.readFileSync(journal);
+    f.backup.capture();
+    assert.equal(fs.readFileSync(journal).equals(first), true);
+    await killEmptyMutex(f);
+    const current = fs.readFileSync(journal);
+    fs.writeFileSync(f.database, 'current encrypted state after second owner');
+    f.backup.restore();
+    assert.equal(fs.readFileSync(journal).equals(current), true);
+    assert.equal(fs.readFileSync(f.database).equals(f.original[0]), true);
+    await killEmptyMutex(f);
+  }
+);
 
 test('replacement, hardlink and directory aliases reject before restoring either target', (t) => {
   for (const name of ['checkpoint.sqlite', '.data-key']) {

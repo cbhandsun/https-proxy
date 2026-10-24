@@ -8,6 +8,7 @@ const path = require('node:path');
 const { types } = require('node:util');
 const { createReadonlyFiles } = require('../n09-snapshot/readonly-files');
 const { discardN09PromiseRejection } = require('../n09-ack/contract');
+const { createStoppedMutexWitness } = require('./stopped-mutex-journal');
 
 const fail = () => new Error('n09_stopped_store_backup_failed');
 const entries = Object.freeze([
@@ -18,7 +19,6 @@ const journals = Object.freeze([
   'checkpoint.sqlite-journal',
   'checkpoint.sqlite-wal',
   'checkpoint.sqlite-shm',
-  '.writer.sqlite-journal',
   '.writer.sqlite-wal',
   '.writer.sqlite-shm',
 ]);
@@ -108,6 +108,7 @@ function createStoppedStoreBackup(input, assertStopped) {
       if (busy || closed) throw fail();
       busy = true;
       stopped();
+      const verifyMutex = createStoppedMutexWitness(files.directory);
       for (const entry of entries) {
         const file = path.join(files.directory, entry.name);
         const fd = fs.openSync(
@@ -119,8 +120,10 @@ function createStoppedStoreBackup(input, assertStopped) {
         held.identity = identity(stat(fd, file, entry.maximum));
       }
       stopped();
+      verifyMutex();
       result = operation(opened);
       stopped();
+      verifyMutex();
     } catch {
       failed = true;
     } finally {
