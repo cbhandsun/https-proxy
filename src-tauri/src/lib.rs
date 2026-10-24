@@ -12,6 +12,7 @@ mod codex_login;
 mod desktop_shell;
 mod launch_on_login;
 mod management_bridge;
+mod proxy_control;
 mod proxy_process;
 mod proxy_root;
 mod proxy_stop;
@@ -41,6 +42,7 @@ use proxy_root::{first_unique_existing_root, is_proxy_runtime_root, select_relea
 static PROXY_STOPPED_FOR_EXIT: AtomicBool = AtomicBool::new(false);
 static PROXY_AUTOSTART_IN_FLIGHT: AtomicBool = AtomicBool::new(false);
 const APP_ID: &str = "https-proxy-manager";
+pub use proxy_control::run_from_process_args as run_proxy_control_from_process_args;
 
 #[cfg(windows)]
 fn hide_console_window(command: &mut Command) {

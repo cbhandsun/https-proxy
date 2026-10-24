@@ -43,7 +43,7 @@ function New-HpmInstalledHttpProcessResources {
 # Private resource factory permits executed failure-path mocks, never CLI injection.
 # Fixed 240s orchestration envelope; do not widen the separate 120s module runner.
 function Invoke-HpmInstalledHttpDriverProcess {
-    param([Diagnostics.ProcessStartInfo]$StartInfo)
+    param([Diagnostics.ProcessStartInfo]$StartInfo, [switch]$RequireNaturalExit)
     $process = $null
     $job = $null
     $started = $false
@@ -92,6 +92,7 @@ function Invoke-HpmInstalledHttpDriverProcess {
         } while ($true)
         $stage = 'exit_failed'
         if ($process.ExitCode -ne 0) { throw 'invalid' }
+        if ($RequireNaturalExit) { $job.WaitForEmpty(5000) }
         $stage = 'output_invalid'
         $result = [Text.UTF8Encoding]::new($false, $true).GetString($memory.ToArray())
     } catch { $failure = $stage } finally {

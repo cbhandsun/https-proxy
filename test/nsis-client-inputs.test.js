@@ -47,6 +47,7 @@ test('installed CLI preparation and orchestration execute original closed callba
     ...[
       'nsis-client-inputs',
       'nsis-client-orchestration',
+      'nsis-native-control',
       'nsis-client-matrix-receipt',
       'nsis-installed-client-payload',
       'nsis-lifecycle',
@@ -108,7 +109,7 @@ test('installed CLI preparation and orchestration execute original closed callba
   assert.equal(result.stderr, '');
   assert.equal(result.stdout.includes('synthetic-removal-sentinel'), false);
   const rows = JSON.parse(result.stdout);
-  assert.equal(rows.length, 14);
+  assert.equal(rows.length, 16);
   for (const row of rows) {
     if (['success', 'crlf'].includes(row.mode)) {
       assert.equal(row.error, null, row.mode);
@@ -129,6 +130,17 @@ test('installed CLI preparation and orchestration execute original closed callba
     if (row.mode === 'package') {
       assert.equal(row.leasesDisposed, 1);
       assert.equal(row.network, 0);
+    }
+    if (['success', 'crlf'].includes(row.mode)) {
+      assert.equal(row.native, 1);
+      assert.equal(row.receipt.nativeControl.naturalTreeEmpty, true);
+    }
+    if (['native_failure', 'native_cleanup'].includes(row.mode)) {
+      assert.equal(row.native, 1);
+      assert.equal(row.driver, 0);
+      assert.equal(row.leasesDisposed, 2);
+      assert.equal(row.networkStopped, row.mode === 'native_failure');
+      assert.equal(row.payloadStopped, row.mode === 'native_failure');
     }
     if (row.driver) {
       assert.equal(row.leasesDisposed, 2, row.mode);

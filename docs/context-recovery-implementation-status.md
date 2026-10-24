@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：安装原生启停与持久重开探针，等待实际 Windows 候选验证
+
+7f18e86普通Verify `40140373521`终态七项success、一项failure；Rust作业`121010660051`完整fmt/Clippy/应用测试和审计通过，coverage与integration也通过。unit3 `121010659961`的合成WFP policy layout子进程在25070ms触发原25000ms的spawnSync pwsh ETIMEDOUT，未取得该用例最终断言；不据此声称确定发生在启动阶段，不重跑或提高期限。正式Windows `40140373537`四项全success。上述证据修复了旧E0432和管理契约遗漏，但不关闭bb952a7的5012ms及历史五秒/六十秒失败。
+
+新增固定--hpm-proxy-control-v1入口，在启动WebView之前复用桌面与托盘的原命令协调器，stdin仅接受有界的start/stop/restart/status枚举；不接受目录、端口、凭据或任意命令。未知字段、重复字段、空/非法/极端输入拒绝，失败退出非零，stdout仅含固定四字段，不透传异常、输出、路径或原生回复。仍沿原管理认证、目标实例绑定及停止观察期限，无强杀回退。
+
+在现有独立GitHub hosted Windows实际安装四组链之前加入安装原生空闲启停探针，不在用户SSH主机运行。核验安装manifest、源码和实际exe身份后，以默认worker和真实DPAPI/OS锚点种入固定24小时来源；两次调用实际exe启动、要求健康回执身份和持久模式，同时独立确认真实SQLite writer锁被持有；两次经同一exe正常停止，再由默认worker重开读取。原文、预算、key、root/source、原绝对expiry及布局/版本元数据均须相等，第二次启动要求新实例标识，允许退出后的PID合法复用。
+
+探针始终位于原Job容器中并在放行stdin前完成归属；成功回执后先用只读Job accounting确认全部后代自然退出，再执行已有显式清理。未自然退出、失败、超时或强制清理均不能授予正常停机资格；原四组客户端matrix及其forced_cleanup回执保持不变。限定scope为installed_native_idle_stop_storage_reopen，restartRetention/clientQualified/retention24hQualified仍false；该探针不是在途请求排空或客户端重启恢复证明。有限阶段诊断只输出固定枚举，不记录数据库、密钥、原文或原始回复。
+
+本机相关Node/PowerShell19项全通过、零skip；真实Rust源码独立模块13项通过，外层应用仍是占位边界，不能当作完整Rust应用或Windows执行证明。扩大回归40/41通过，唯一失败为原Windows Job实际进程边界在Mac创建Job阶段拒绝；独立构造检查同样失败，不跳过或改测试，须新候选Windows验证。PowerShell变更文件解析、实际C#编译和cargo fmt通过；npm audit满足原high门槛，另有一项既有moderate，未升级依赖。全树Lint零错误/五个既有警告、1580文件语法、CI和发行治理通过；实际安装资格须新候选原Windows链，不能使用旧7f18e86结果替代本批。五秒持久恢复根因、最新安装582完整迁移/回滚、在途排空/客户端重启、容量/真实24小时、真实provider和自用安装包交付仍未完成。原认证、FULL/DELETE、精确ACK和所有原期限保持，冻结长测未访问，真实模型请求0。
+
 ## 2026-10-24：修复桌面正常停止绕过排空及失败后强杀，保留新五秒超时
 
 106c17f原Verify `40139510287`现终态五项success、三项failure：Rust `121008062310`在desktop_shell残留的run_proxy_bat导入报E0432，unit3 `121008062257`及coverage `121008062340`因原管理边界契约发现Node新POST /runtime/stop未同步Rust白名单而拒绝。11ab5ee的Rust/unit3也已failure，coverage仍在执行，均保留，不重跑。定点读取确认三个残留调用均是托盘启停/重启的强杀回退；现统一调用同一个直接命令协调器，失败不恢复批处理。托盘原先立即发送started/stopped/restarted字符串，而前端消费的是完成结果对象；现后台操作真正完成后才发送command/code/output回执，失败明确code=1且不附异常原文，不能提前通知成功。原管理边界契约测试文件保持不变，Rust仅增加新固定POST路由并补错方法/额外路径拒绝。修复后相关Node含该契约24/24通过、Rust独立模块8/8通过；完整Rust应用和托盘真实安装行为仍待新候选Windows原链，不把局部模块通过覆盖E0432失败。

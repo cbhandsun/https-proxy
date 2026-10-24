@@ -63,7 +63,7 @@ foreach ($pair in @(@('HOME','home'),@('USERPROFILE','home'),@('APPDATA','appdat
 
 # Execute the actual bounded orchestration and finally logic with owned resource
 # doubles. No Process.Start, Job API or environment mutation occurs in this test.
-foreach ($mode in @('normal','start_false','assign_failed','gate_failed','stdout_limit','stderr_limit','invalid_utf8','deadline','exit_failed','pipe_failed','cleanup_failed','assign_and_cleanup_failed','wait_failed','resources_failed')) {
+foreach ($mode in @('normal','natural','natural_failed','start_false','assign_failed','gate_failed','stdout_limit','stderr_limit','invalid_utf8','deadline','exit_failed','pipe_failed','cleanup_failed','assign_and_cleanup_failed','wait_failed','resources_failed')) {
     $trace = [Collections.Generic.List[string]]::new()
     $stdout = if ($mode -eq 'stdout_limit') { [byte[]]::new(4097) } elseif ($mode -eq 'invalid_utf8') { [byte[]]@(255) } else { [Text.Encoding]::UTF8.GetBytes($json) }
     $stderr = [byte[]]::new(0)
@@ -81,6 +81,7 @@ foreach ($mode in @('normal','start_false','assign_failed','gate_failed','stdout
     $process | Add-Member ScriptMethod Dispose { $trace.Add('process_dispose') }.GetNewClosure()
     $job = [pscustomobject]@{}
     $job | Add-Member ScriptMethod Assign { param($child) $trace.Add('assign'); if ($mode -in @('assign_failed','assign_and_cleanup_failed')) { throw 'PRIVATE_UNTRUSTED_CONTENT' } }.GetNewClosure()
+    $job | Add-Member ScriptMethod WaitForEmpty { param($milliseconds) if ($milliseconds -ne 5000) { throw 'natural_wait_changed' }; $trace.Add('natural_empty'); if ($mode -eq 'natural_failed') { throw 'PRIVATE_UNTRUSTED_CONTENT' } }.GetNewClosure()
     $job | Add-Member ScriptMethod StopAndWait { param($milliseconds) if ($milliseconds -ne 5000) { throw 'job_wait_changed' }; $trace.Add('job_stop'); if ($mode -in @('cleanup_failed','assign_and_cleanup_failed')) { throw 'PRIVATE_UNTRUSTED_CONTENT' } }.GetNewClosure()
     $job | Add-Member ScriptMethod Dispose { $trace.Add('job_dispose') }.GetNewClosure()
     $resources = @{ process = $process; job = $job; clock = [pscustomobject]@{ ElapsedMilliseconds = $(if ($mode -eq 'deadline') { 240000 } else { 0 }) } }
@@ -90,8 +91,8 @@ foreach ($mode in @('normal','start_false','assign_failed','gate_failed','stdout
         function script:New-HpmInstalledHttpProcessResources { param($StartInfo) if ($script:mockMode -eq 'resources_failed') { throw 'PRIVATE_UNTRUSTED_CONTENT' }; return $script:mockResources }
     } $resources $mode
     $errorMessage = $null
-    try { $output = & $module { Invoke-HpmInstalledHttpDriverProcess ([Diagnostics.ProcessStartInfo]::new()) }; if ($mode -ne 'normal' -or $output -cne $json) { throw 'mock_expected_failure' } } catch { $errorMessage = $_.Exception.Message }
-    if ($mode -eq 'normal') { if ($errorMessage) { throw ('normal_process_mock_failed:' + $errorMessage) } }
+    try { $output = & $module { Invoke-HpmInstalledHttpDriverProcess ([Diagnostics.ProcessStartInfo]::new()) -RequireNaturalExit:($script:mockMode -in @('natural','natural_failed')) }; if ($mode -notin @('normal','natural') -or $output -cne $json) { throw 'mock_expected_failure' } } catch { $errorMessage = $_.Exception.Message }
+    if ($mode -in @('normal','natural')) { if ($errorMessage) { throw ('normal_process_mock_failed:' + $errorMessage) } }
     else {
         if ($errorMessage -cnotmatch '\Ainstalled_daemon_http_process_failed:cause=(resources_failed|start_failed|job_assign_failed|gate_release_failed|deadline|pipe_failed|output_limit|exit_failed|output_invalid|none);cleanup=(failed|confirmed)\z') { throw ('unexpected_process_mock_result:' + $mode) }
         if ($mode -eq 'assign_and_cleanup_failed' -and $errorMessage -cne 'installed_daemon_http_process_failed:cause=job_assign_failed;cleanup=failed') { throw 'primary_failure_lost' }
@@ -102,6 +103,7 @@ foreach ($mode in @('normal','start_false','assign_failed','gate_failed','stdout
         if ($mode -in @('assign_failed','assign_and_cleanup_failed') -and (-not $trace.Contains('kill_owned') -or -not $trace.Contains('wait') -or $trace.Contains('gate'))) { throw 'unassigned_process_leak' }
         if ($trace.Contains('gate') -and $trace.IndexOf('assign') -ge $trace.IndexOf('gate')) { throw 'gate_before_job' }
     }
+    if ($mode -in @('natural','natural_failed') -and (-not $trace.Contains('natural_empty') -or $trace.IndexOf('natural_empty') -ge $trace.IndexOf('job_stop'))) { throw 'natural_exit_must_be_observed_before_cleanup' }
     $outStream.Dispose(); $errStream.Dispose()
 }
 Write-Output ('installedHttpRefusals=' + $refused + '; installerExecutions=0; daemonExecutions=0; modelRequests=0')

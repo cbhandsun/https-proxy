@@ -3,6 +3,7 @@ Import-Module (Join-Path $PSScriptRoot 'nsis-lifecycle.psm1')
 Import-Module (Join-Path $PSScriptRoot 'nsis-installed-client-payload.psm1')
 Import-Module (Join-Path $PSScriptRoot 'nsis-client-inputs.psm1')
 Import-Module (Join-Path $PSScriptRoot 'nsis-client-matrix-receipt.psm1')
+Import-Module (Join-Path $PSScriptRoot 'nsis-native-control.psm1')
 $script:clientProcessModule = Import-Module (Join-Path $PSScriptRoot 'nsis-installed-daemon-http.psm1') -PassThru
 . (Join-Path $PSScriptRoot '../context-hosted/shared/hosted-network.ps1')
 
@@ -49,7 +50,12 @@ function Invoke-HpmPreparedInstalledClients {
         @{ phase = 'build_and_npm_ready'; buildCompleted = $Preparation.buildCompleted; npmCompleted = $Preparation.npmCompleted; manifestSha256 = $Material.manifestSha256; nodeSha256 = $Material.nodeSha256 } | ConvertTo-Json -Compress | Set-Content -LiteralPath $receiptFile -Encoding utf8
         $receiptSha = (Get-FileHash -LiteralPath $receiptFile -Algorithm SHA256).Hash.ToLowerInvariant()
         $owner = $ExecutionContext.SessionState.Module
-        $run = { param($network) & $owner { param($m,$n,$s) Invoke-HpmInstalledClientDriver $m $n $s } $Material $network $State }.GetNewClosure()
+        $run = { param($network) & $owner {
+            param($m,$n,$s)
+            $s.nativeControl = Invoke-HpmInstalledNativeControl $m $s
+            if ($s.nativeControl.naturalTreeEmpty -cne $true -or $s.nativeControl.probe.passed -cne $true) { throw 'installed_native_control_failed' }
+            Invoke-HpmInstalledClientDriver $m $n $s
+        } $Material $network $State }.GetNewClosure()
         $stop = { return $State.treeEmpty -ceq $true }.GetNewClosure()
         $networkReceipt = Invoke-HpmN08HostedNetwork -OwnedRoot $Material.ownedRoot -BuildReceiptSha256 $receiptSha -InstalledClientMatrix -RunOwnedScenario $run -StopOwnedScenario $stop
         if ($networkReceipt.phase -cne 'hosted_network_finished' -or $networkReceipt.ownedTreeEmpty -cne $true -or $State.treeEmpty -cne $true) { throw 'installed_client_driver_failed' }
@@ -69,7 +75,7 @@ function Invoke-HpmNsisInstalledClients {
         $stop = { return @{ treeEmpty = $state.treeEmpty -ceq $true } }.GetNewClosure()
         $result = Invoke-HpmInstalledClientPayload -CurrentDirectory $CurrentDirectory -CurrentRuntimeManifest $CurrentRuntimeManifest -CurrentSha $CurrentSha -RunOwnedScenario $run -StopOwnedScenario $stop
         if ($result.phase -cne 'installed_payload_finished' -or $result.ownedTreeEmpty -cne $true) { throw 'invalid' }
-        return @{ phase = 'installed_native_cli_four_cases_finished'; matrix = $state.matrixReceipt; uninstalled = $true }
+        return @{ phase = 'installed_native_cli_four_cases_finished'; matrix = $state.matrixReceipt; nativeControl = $state.nativeControl; uninstalled = $true }
     } catch { throw 'nsis_installed_clients_failed' }
 }
 Export-ModuleMember -Function Invoke-HpmNsisInstalledClients

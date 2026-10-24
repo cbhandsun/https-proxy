@@ -61,6 +61,13 @@ public sealed class HpmRuntimeBoundaryJob : IDisposable
     public void StopAndWait(int milliseconds) {
         if (milliseconds < 1 || milliseconds > 5000 || handle.IsClosed || !TerminateJobObject(handle, 1))
             throw new InvalidOperationException("runtime_job_failed");
+        WaitForEmpty(milliseconds);
+    }
+    // Independent observation before any forced cleanup. A successful native
+    // control receipt cannot by itself claim that all descendants exited.
+    public void WaitForEmpty(int milliseconds) {
+        if (milliseconds < 1 || milliseconds > 5000 || handle.IsClosed)
+            throw new InvalidOperationException("runtime_job_failed");
         var deadline = Stopwatch.StartNew();
         do {
             Accounting information;

@@ -64,6 +64,15 @@ $orchestration = Import-Module (Join-Path $Repository 'scripts/lib/nsis-client-o
         if (-not $result.ownedTreeEmpty) { throw 'private' }
         return @{ phase = 'hosted_network_finished'; ownedTreeEmpty = $true }
     }
+    function script:Invoke-HpmInstalledNativeControl {
+        param($Material,$State)
+        $global:NativeCalls++
+        if ($global:Mode -in @('native_failure','native_cleanup')) {
+            $State.treeEmpty = $global:Mode -eq 'native_failure'
+            throw 'synthetic_native_failure'
+        }
+        return @{ probe = @{ passed = $true }; naturalTreeEmpty = $true }
+    }
     function script:Invoke-HpmClientMatrixProcess {
         param($StartInfo)
         $global:DriverCalls++
@@ -86,8 +95,8 @@ $lockFile = Join-Path $tools 'package-lock.json'
 $originalLock = [IO.File]::ReadAllBytes($lockFile)
 $proof = Join-Path $FixtureRoot 'hpm-installed-client-preparation.json'
 $observed = @()
-foreach ($global:Mode in @('success','crlf','doublecrlf','proof','proofhash','proofduplicate','lock','npm','drift','package','duplicate','badcase','confirmed','cleanup')) {
-    $global:NpmCalls = 0; $global:PayloadCalls = 0; $global:NetworkCalls = 0; $global:DriverCalls = 0; $global:LeasesDisposed = 0
+foreach ($global:Mode in @('success','crlf','doublecrlf','proof','proofhash','proofduplicate','lock','npm','drift','package','duplicate','badcase','confirmed','cleanup','native_failure','native_cleanup')) {
+    $global:NativeCalls = 0; $global:NpmCalls = 0; $global:PayloadCalls = 0; $global:NetworkCalls = 0; $global:DriverCalls = 0; $global:LeasesDisposed = 0
     $global:NetworkStopped = $null; $global:PayloadStopped = $null
     [IO.File]::WriteAllBytes($lockFile, $originalLock)
     @{ schemaVersion = 1; currentSha = ('a' * 40); buildCompleted = $true; candidateNpmCompleted = ($global:Mode -ne 'proof'); verificationCompleted = $true } | ConvertTo-Json -Compress | Set-Content -LiteralPath $proof -Encoding utf8
@@ -101,7 +110,7 @@ foreach ($global:Mode in @('success','crlf','doublecrlf','proof','proofhash','pr
     try {
         $receipt = Invoke-HpmNsisInstalledClients -CurrentDirectory 'unused-in-mock' -CurrentRuntimeManifest 'unused-in-mock' -CurrentSha ('a' * 40) -PreparationReceiptSha256 $proofSha 6>$null
     } catch { $errorCode = $_.Exception.Message }
-    $observed += @{ mode = $global:Mode; error = $errorCode; npm = $global:NpmCalls; payload = $global:PayloadCalls; network = $global:NetworkCalls; driver = $global:DriverCalls; leasesDisposed = $global:LeasesDisposed; networkStopped = $global:NetworkStopped; payloadStopped = $global:PayloadStopped; receipt = $receipt }
+    $observed += @{ mode = $global:Mode; error = $errorCode; native = $global:NativeCalls; npm = $global:NpmCalls; payload = $global:PayloadCalls; network = $global:NetworkCalls; driver = $global:DriverCalls; leasesDisposed = $global:LeasesDisposed; networkStopped = $global:NetworkStopped; payloadStopped = $global:PayloadStopped; receipt = $receipt }
     $owned = Join-Path $FixtureRoot 'hpm-installed-clients'
     if ([IO.Directory]::Exists($owned)) { Remove-Item -LiteralPath $owned -Recurse -Force }
 }
