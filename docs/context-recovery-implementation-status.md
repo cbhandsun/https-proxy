@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：最新安装生命周期通过，修复锁定Codex二进制在客户端身份校验被误拒绝
+
+当前文档提交3ca4139697c5f0d5132ab17427fdb50adba2b896的完整Verify `40116804395`八项和正式Windows `40116804421`四项已全部completed/success。固定运行候选a9836cd的安装链 `40115097429` / job `120937948810`现为终态failure：完整候选门禁、NSIS构建和实际安装升级回滚/DPAPI步骤日志均成功，随后客户端步骤在17:55:44报告`hpm_installed_client_phase=unobserved`、`hpm_network_failed_stage=owned_scenario`，最终`nsis_installed_clients_failed`。首次resolve取消与本次失败均保留，不重跑同一失败候选。真实CLI四组没有通过证据。
+
+确认一个必然阻塞：矩阵身份校验在首个phase之前对clients/codex.exe使用通用digest，其文件上限256 MiB。按tools/nsis-clients锁中原URL下载两份原版本归档，实际SHA-512均与锁定SRI精确一致；Codex 0.160.1-win32-x64的EXE为326875440字节、SHA256=9e7c59c05cc1ce5677b1f94e835b2ac038ca3be14504e78d558eacdb0ea3f55d，超过通用上限；Claude 2.1.292为254858400字节、SHA256=eb95bb65955f8b1702e800815f9a2c0388a5de0f196c354c7ee1dd5cb9a2ba23。直接用两份真实EXE证明旧digest拒绝Codex、接受Claude；新专用流式结果与独立摘要均一致。仅读取这些公开二进制，没有运行CLI或模型。
+
+新增客户端专用哈希模块，固定codex/claude文件名及各锁定版本的精确大小上界，使用最多1 MiB缓冲逐字节SHA256；保持物理路径/单链接、描述符及前后inode/dev/size/mtime/ctime/nlink一致性检查，异常只给固定码、始终关闭描述符。矩阵身份、逐组复核和owned launcher三处改用专用函数；包SRI、预备证明、原SHA相等及Job归属仍必需。通用digest的256 MiB上限、依赖版本、原240秒矩阵/CLI期限、所有认证和产品持久语义均不改变，不以放宽性能baseline求绿。
+
+先增加326875440字节owned-launch回归，在旧实现实际失败nsis_client_owned_failed；接入修复后通过，且继续要求通用digest拒绝该文件。新增边界覆盖两端跨缓冲精确字节、单字节、空/缺失/目录/错误名称与客户端、各上限+1、硬链接/父符号链接、读取中变更、异常EOF和读取异常，以及描述符关闭。四个相关测试文件31/31通过、零跳过；此前扩大首次18/21因本机PATH未配置已安装的独立pwsh而失败，随后显式复用该pwsh，未跳过测试或安装覆盖其他版本。统一单元发现递归包含新测试。全树1564文件语法、Lint零错误/五个既有警告、四项架构/secret治理、CI和发行治理通过。
+
+本批仍需新候选完整CI及实际安装四组验收，不能据本机哈希/模拟启动断言授予clientQualified。历史五秒/60秒重开及容量未达目标记录、原生24小时/到期重开、实际provider与受控启用缺口保持。未访问冻结长测、未改日常配置，真实模型请求0。
+
 ## 2026-10-24：a9836cd完整Verify与正式Windows通过，安装链恢复后仍待实际四组
 
 固定候选`a9836cdb0c5a5b279d6e2e0f0912c8ea8747c7e9`的Verify `40114984440`八项全部completed/success，正式Windows `40114984375`四项全部success，含source-gates `120934299723`、N08 `120937840124`、N09 `120937840153`。原完整verify、审计、格式/类型相关治理、Rust及三套覆盖率门禁保持；本记录不把原场景门禁成功扩为安装客户端、24小时或真实provider资格。

@@ -8,6 +8,7 @@ const {
   parseRuntimeBoundaryArguments,
   verifyRuntimeBoundaryInstallation,
 } = require('./nsis-runtime-boundary-contract');
+const { digestInstalledClient } = require('./nsis-client-binary');
 const fail = () => new Error('installed_client_matrix_failed');
 const PHASES = [
   'identity',
@@ -102,7 +103,7 @@ function verifyInstalledClientMatrixIdentity(request, runtime = process) {
       throw fail();
     for (const client of ['codex', 'claude'])
       if (
-        digest(path.join(request.ownedRoot, 'clients', client + '.exe')) !==
+        digestInstalledClient(path.join(request.ownedRoot, 'clients', client + '.exe'), client) !==
         request[client + 'Sha256']
       )
         throw fail();

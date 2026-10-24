@@ -5,6 +5,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { dataSnapshot } = require('./context-recovery-daemon-http-boundary');
 const { safePath, digest, verifyInstallation } = require('./nsis-encrypted-contract');
+const { digestInstalledClient } = require('./nsis-client-binary');
 const fail = () => new Error('nsis_client_owned_failed');
 const equal = (a, b) => a.toLowerCase() === b.toLowerCase();
 const sha = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -131,7 +132,7 @@ function validateOwnedSpec(input, runtime = process, requireNode = false) {
     const binary = safePath(path.join(root, 'clients', value.client + '.exe'));
     if (
       digest(installation.node) !== value.nodeSha256 ||
-      digest(binary) !== value.binarySha256 ||
+      digestInstalledClient(binary, value.client) !== value.binarySha256 ||
       digest(__filename) !== value.launcherSha256
     )
       throw fail();

@@ -5,7 +5,6 @@ const os = require('node:os');
 const path = require('node:path');
 const { randomBytes } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
-const { digest } = require('./nsis-encrypted-contract');
 const { createInstalledClientListener } = require('../context-hosted/shared/hosted-listener');
 const { runHostedProbes } = require('../context-hosted/shared/hosted-probes');
 const {
@@ -21,6 +20,7 @@ const {
   verifyInstalledClientMatrixIdentity,
   createMatrixPhaseWriter,
 } = require('./nsis-installed-client-matrix-contract');
+const { digestInstalledClient } = require('./nsis-client-binary');
 const fail = () => new Error('installed_client_matrix_failed');
 function negativeAddress() {
   const values = Object.values(os.networkInterfaces())
@@ -131,7 +131,7 @@ const defaults = {
     );
   },
   runCase: runInstalledClientCase,
-  verifyBinary: (file, sha) => digest(file) === sha,
+  verifyBinary: (file, sha, client) => digestInstalledClient(file, client) === sha,
 };
 // Test dependencies are available only to direct module callers, never argv.
 async function runInstalledClientMatrix(args, dependencies = defaults) {
@@ -196,7 +196,8 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
           failed ||
           !dependencies.verifyBinary(
             path.join(request.ownedRoot, 'clients', client + '.exe'),
-            request[client + 'Sha256']
+            request[client + 'Sha256'],
+            client
           )
         )
           throw fail();

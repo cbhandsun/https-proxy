@@ -396,3 +396,26 @@ test('launcher rejects CLI nonzero, signal, stream errors and excessive discarde
     await owned.stop();
   }
 });
+
+test('locked Windows Codex binary larger than the generic digest cap reaches owned launch', async (t) => {
+  const f = fixture(t);
+  const size = 326875440;
+  fs.truncateSync(f.binary, size);
+  const { createHash } = require('node:crypto');
+  const hash = createHash('sha256');
+  const fd = fs.openSync(f.binary, 'r');
+  try {
+    const block = Buffer.alloc(1024 * 1024);
+    let count;
+    while ((count = fs.readSync(fd, block, 0, block.length, null)))
+      hash.update(block.subarray(0, count));
+  } finally {
+    fs.closeSync(fd);
+  }
+  f.options.binarySha256 = hash.digest('hex');
+  assert.throws(() => digest(f.binary));
+  const start = createInstalledClientSpawn(f.options, f.dependencies);
+  const owned = await start(f.input);
+  assert.equal(f.calls(), 1);
+  assert.deepEqual(await owned.stop(), { terminal: true, treeStopped: true });
+});
