@@ -109,6 +109,11 @@ test('installed closure and argument boundaries reject missing, invalid, hostile
         .operation,
       'enroll-legacy'
     );
+    assert.equal(
+      parseDriverArguments(['refuse-new-format', f.root, path.join(f.root, 'store'), expected])
+        .operation,
+      'refuse-new-format'
+    );
     for (const value of [
       [],
       null,

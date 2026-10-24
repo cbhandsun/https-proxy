@@ -10,6 +10,7 @@ const {
   inventoryStore,
   isStorageRefusal,
   assertLegacyRefusal,
+  assertUnknownFormatRefusal,
 } = require('../scripts/lib/nsis-legacy-refusal');
 const refusal = () =>
   Object.assign(new Error('context_recovery_storage_unavailable'), {
@@ -59,6 +60,48 @@ test('only a fixed 503 after missing anchor observation and closed-byte preserva
     assert.throws(() =>
       assertLegacyRefusal(input({ evidence: () => ({ ...evidence(), ...changed }) }))
     );
+});
+
+test('old baseline must refuse the new format without anchor calls, byte changes or an engine-ready result', () => {
+  const oldEvidence = () => ({ ...evidence(), missingAnchorReads: 0 });
+  assert.deepEqual(assertUnknownFormatRefusal(input({ evidence: oldEvidence })), {
+    refused: true,
+    preserved: true,
+    statusCode: 503,
+    fileCount: 3,
+  });
+  for (const changed of [
+    { nativeCalls: 0 },
+    { missingAnchorReads: 1 },
+    { anchorWrites: 1 },
+    { databaseOpened: false },
+    { engineReady: true },
+  ]) {
+    assert.throws(() =>
+      assertUnknownFormatRefusal(
+        input({
+          evidence: () => ({ ...oldEvidence(), ...changed }),
+        })
+      )
+    );
+  }
+  assert.throws(() =>
+    assertUnknownFormatRefusal(
+      input({
+        evidence: oldEvidence,
+        open: () => ({ close() {} }),
+      })
+    )
+  );
+  let count = 0;
+  assert.throws(() =>
+    assertUnknownFormatRefusal(
+      input({
+        evidence: oldEvidence,
+        inventory: () => (++count === 1 ? inventory() : []),
+      })
+    )
+  );
 });
 
 test('arbitrary errors, successful opens and close failures cannot impersonate admission refusal', () => {

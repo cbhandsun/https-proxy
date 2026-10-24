@@ -37,7 +37,10 @@ function isStorageRefusal(error) {
   );
 }
 
-function assertLegacyRefusal({ open, inventory, evidence, verifyClosed }) {
+function assertStorageRefusal(
+  { open, inventory, evidence, verifyClosed },
+  expectedMissingAnchorReads
+) {
   const before = inventory();
   let refused = false;
   let unexpected;
@@ -63,7 +66,7 @@ function assertLegacyRefusal({ open, inventory, evidence, verifyClosed }) {
     !Number.isSafeInteger(observed.nativeCalls) ||
     observed.nativeCalls < 1 ||
     observed.nativeCalls > 4 ||
-    observed.missingAnchorReads !== 1 ||
+    observed.missingAnchorReads !== expectedMissingAnchorReads ||
     observed.anchorWrites !== 0 ||
     observed.databaseOpened !== true ||
     observed.engineReady !== false
@@ -77,4 +80,19 @@ function assertLegacyRefusal({ open, inventory, evidence, verifyClosed }) {
   });
 }
 
-module.exports = { inventoryStore, isStorageRefusal, assertLegacyRefusal };
+function assertLegacyRefusal(input) {
+  return assertStorageRefusal(input, 1);
+}
+
+// The pinned pre-anchor baseline has no anchor backend. Its schema guard must
+// reject the sealed current format without altering bytes or returning ready.
+function assertUnknownFormatRefusal(input) {
+  return assertStorageRefusal(input, 0);
+}
+
+module.exports = {
+  inventoryStore,
+  isStorageRefusal,
+  assertLegacyRefusal,
+  assertUnknownFormatRefusal,
+};

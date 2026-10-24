@@ -63,6 +63,7 @@ $operations = @{
     Seed = { param($role) $events.Add('seed:' + $role) }
     Read = { param($phase, $role, $operation) $events.Add('read:' + $phase + ':' + $role + ':' + $operation) }
     RefuseLegacy = { $events.Add('refuse-legacy') }
+    RefuseNewFormat = { $events.Add('refuse-new-format') }
     EnrollLegacy = { $events.Add('enroll-legacy') }
     CheckFixtures = { $events.Add('fixtures') }
     RuntimeBoundaries = { $events.Add('matrix'); ConvertTo-HpmInstalledSettingsMatrixReceipt @() $sha | Out-Null }

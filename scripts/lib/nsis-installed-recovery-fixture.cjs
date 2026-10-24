@@ -13,7 +13,11 @@ const {
   safePath,
 } = require('./nsis-encrypted-contract');
 const { exerciseRecovery } = require('./nsis-recovery-fixture-state');
-const { inventoryStore, assertLegacyRefusal } = require('./nsis-legacy-refusal');
+const {
+  inventoryStore,
+  assertLegacyRefusal,
+  assertUnknownFormatRefusal,
+} = require('./nsis-legacy-refusal');
 const { assertLegacyEnrollment } = require('./nsis-legacy-enrollment');
 function run(args) {
   if (process.platform !== 'win32') throw fail();
@@ -75,8 +79,22 @@ function run(args) {
         evidence: () => ({ ...observation, nativeCalls }),
       });
     }
-    if (input.operation === 'refuse-legacy') {
-      const receipt = assertLegacyRefusal({
+    if (['refuse-legacy', 'refuse-new-format'].includes(input.operation)) {
+      if (input.operation === 'refuse-new-format') {
+        const { DatabaseSync } = require('node:sqlite');
+        const inspected = new DatabaseSync(safePath(path.join(input.store, 'checkpoint.sqlite')), {
+          readOnly: true,
+          allowExtension: false,
+        });
+        try {
+          if (inspected.prepare('PRAGMA user_version').get().user_version !== 3) throw fail();
+        } finally {
+          inspected.close();
+        }
+      }
+      const assertRefusal =
+        input.operation === 'refuse-legacy' ? assertLegacyRefusal : assertUnknownFormatRefusal;
+      const receipt = assertRefusal({
         open: () =>
           createStorageOwner({
             directory: input.store,

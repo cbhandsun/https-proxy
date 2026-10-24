@@ -34,7 +34,7 @@ function Assert-HpmLegacyRefusalReceipt {
 }
 
 function Invoke-HpmInstalledRecoveryFixture {
-    param([string]$InstallDirectory, [string]$StoreDirectory, [string]$ManifestSha256, [ValidateSet('seed', 'read', 'resave', 'refuse-legacy', 'enroll-legacy')][string]$Operation)
+    param([string]$InstallDirectory, [string]$StoreDirectory, [string]$ManifestSha256, [ValidateSet('seed', 'read', 'resave', 'refuse-legacy', 'enroll-legacy', 'refuse-new-format')][string]$Operation)
     if ($ManifestSha256 -cnotmatch '\A[a-f0-9]{64}\z') { throw 'Encrypted lifecycle manifest identity failed.' }
     $node = Join-Path $InstallDirectory 'runtime/node/node.exe'
     $driver = Join-Path $PSScriptRoot 'nsis-installed-recovery-fixture.cjs'
@@ -60,7 +60,7 @@ function Invoke-HpmInstalledRecoveryFixture {
         if ($process.ExitCode -ne 0 -or $output.Length -gt 4096) { throw 'Encrypted lifecycle reader failed.' }
         $result = $output | ConvertFrom-Json -ErrorAction Stop
         if (($result.PSObject.Properties.Name | Sort-Object) -join ',' -cne 'manifestSha256,nativeCalls,receipt,sourceCount' -or $result.manifestSha256 -cne $ManifestSha256 -or ($result.nativeCalls -isnot [int] -and $result.nativeCalls -isnot [long]) -or $result.nativeCalls -lt 1 -or $result.nativeCalls -gt 4 -or ($result.sourceCount -isnot [int] -and $result.sourceCount -isnot [long]) -or $result.sourceCount -lt 1 -or $result.sourceCount -gt 4096) { throw 'Encrypted lifecycle reader result failed.' }
-        if ($Operation -ceq 'refuse-legacy') { Assert-HpmLegacyRefusalReceipt $result.receipt }
+        if ($Operation -cin @('refuse-legacy', 'refuse-new-format')) { Assert-HpmLegacyRefusalReceipt $result.receipt }
         else { Assert-HpmEncryptedReceipt $result.receipt }
         return $result.receipt
     } finally { $process.Dispose() }
@@ -68,7 +68,7 @@ function Invoke-HpmInstalledRecoveryFixture {
 
 function Invoke-HpmEncryptedLifecycleSequence {
     param([hashtable]$Operations)
-    foreach ($name in @('Install', 'Stop', 'Inspect', 'Seed', 'Read', 'RefuseLegacy', 'EnrollLegacy', 'CheckFixtures', 'RuntimeBoundaries', 'Uninstall', 'CheckRemoved')) {
+    foreach ($name in @('Install', 'Stop', 'Inspect', 'Seed', 'Read', 'RefuseLegacy', 'RefuseNewFormat', 'EnrollLegacy', 'CheckFixtures', 'RuntimeBoundaries', 'Uninstall', 'CheckRemoved')) {
         if ($Operations[$name] -isnot [scriptblock]) { throw 'Encrypted lifecycle operation is missing.' }
     }
     & $Operations.Install 'baseline'; & $Operations.Stop
@@ -86,10 +86,10 @@ function Invoke-HpmEncryptedLifecycleSequence {
     & $Operations.RuntimeBoundaries
     & $Operations.Install 'baseline'; & $Operations.Stop
     if ((& $Operations.Inspect 'baseline') -cne $baseline) { throw 'Encrypted rollback identity failed.' }
-    # The 625-source reader accepts the unchanged on-disk format, but does not
-    # enforce independent anchors. Read compatibility grants no rollback safety.
+    # The 625-source baseline may still read its untouched legacy store. It must
+    # refuse the authenticated schema-three store before writing or returning ready.
     & $Operations.Read 'baseline' 'legacy' 'read'
-    & $Operations.Read 'baseline' 'anchored' 'read'
+    & $Operations.RefuseNewFormat
     & $Operations.CheckFixtures
     & $Operations.Install 'current'; & $Operations.Stop
     if ((& $Operations.Inspect 'current') -cne $current) { throw 'Encrypted reinstall identity failed.' }

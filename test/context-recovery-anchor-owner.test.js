@@ -87,6 +87,14 @@ test('production owner refuses original backup after acknowledged revocation wit
   const f = fixture(t),
     owner = f.open();
   assert.equal(f.writes(), 2, 'empty intent then normal startup must both persist before ready');
+  const inspected = new DatabaseSync(path.join(f.directory, 'checkpoint.sqlite'), {
+    readOnly: true,
+  });
+  try {
+    assert.equal(inspected.prepare('PRAGMA user_version').get().user_version, 3);
+  } finally {
+    inspected.close();
+  }
   save(owner);
   const file = path.join(f.directory, 'checkpoint.sqlite');
   const prior = fs.readFileSync(file);
@@ -109,6 +117,22 @@ test('production owner waits for anchor ACK and cannot continue after failed pos
   f.restoreBackend();
   const reopened = f.open();
   assert.equal(reopened.execute({ operation: 'load', scope }).revision, 2);
+});
+
+test('format sealing failure never returns a ready owner and releases the writer lock for a checked retry', (t) => {
+  const f = fixture(t);
+  const original = DatabaseSync.prototype.exec;
+  const mocked = t.mock.method(DatabaseSync.prototype, 'exec', function (sql) {
+    if (sql === 'PRAGMA user_version=3') throw Error('PRIVATE synthetic format failure');
+    return Reflect.apply(original, this, [sql]);
+  });
+  assert.throws(f.open, safe);
+  assert.equal(f.writes(), 1, 'initial intent is not a ready-owner acknowledgement');
+  mocked.mock.restore();
+  const owner = f.open();
+  save(owner);
+  owner.close();
+  assert.equal(f.open().execute({ operation: 'load', scope }).revision, 1);
 });
 
 test('interrupted initial startup retains empty intent and permits same-storeId retry without data loss', (t) => {

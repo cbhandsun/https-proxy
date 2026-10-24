@@ -202,6 +202,32 @@ test('enrolling an expired legacy checkpoint cannot renew its lifetime on normal
   }
 });
 
+test('a sealed modern store with a missing anchor cannot be re-enrolled through legacy preview or approval', (t) => {
+  const f = fixture(t);
+  const prior = f.run();
+  const database = new DatabaseSync(f.file);
+  const store = createRecoverySqliteStore({ database, dataKey: f.dataKey, now: () => 100 });
+  try {
+    store.prepareAnchoredFormat();
+  } finally {
+    store.close();
+    database.close();
+  }
+  const before = fs.readFileSync(f.file);
+  assert.throws(() => f.run(), safe);
+  assert.throws(
+    () => f.run({ directory: f.directory, expectedFingerprint: prior.fingerprint }),
+    safe
+  );
+  assert.deepEqual(fs.readFileSync(f.file), before);
+  const repository = f.factory({ directory: f.directory, dataKey: f.dataKey });
+  try {
+    assert.equal(repository.read(), null);
+  } finally {
+    repository.close();
+  }
+});
+
 test('legacy preview exposes exactly four frozen fields and apply requires a fresh locked inspection', (t) => {
   const f = fixture(t);
   const before = fs.readFileSync(f.file);

@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：锚定 owner 新格式保护及旧读器拒写门禁实现，托管验证待执行
+
+当前 owner 在独立 anchor 准入后、ready 与最终 anchor ACK前，通过一个 SQLite 事务将旧schema1/2封为认证schema3；header内版本与PRAGMA相互校验，原state/blob密文字节、revision、撤销、budget、maxTime及绝对expiry不变。schema1补齐blob表与版本/header更新同事务，DDL/版本/header/COMMIT失败回滚；真实SQLITE_FULL、关闭对象、伪造pragma与未来版本均拒绝。已有schema3再次打开不重写header；generic离线引擎保留1/2兼容，只有正常锚定owner获得私有封版能力，RPC不新增操作。legacy登记入口另明确只接受1/2，现代3丢失anchor不能通过preview或旧fingerprint重新登记。
+
+新格式6项独立测试通过；owner/legacy两文件在新格式实现下31项通过（native-storage保护调用0），之后新增封版失败释放writer及现代库禁止重新登记两项定向回归通过（调用0）。新格式/安装序列/拒写回执/管理HTTP与设置矩阵五文件52项通过；新增现代库拒登记与驱动schema3精确检查之后的完整托管验证仍待执行。新格式测试加入统一unit及client coverage，不提高容量或时间门禁。
+
+NSIS流程不再把旧reader读当前库当作成功：要求真实旧baseline在schema3上503拒绝、全部库存字节保留、没有anchor写入/engine-ready且锁释放，再由current重装后读回。baseline自己的未升级legacy库仍必须读回，之后登记/封版/读回/resave/重开。新candidate不能沿用 `eb43df9a` 的旧格式安装结果。该保护不是“旧二进制对所有历史旧格式备份也能实施撤销”；这一不可能由新格式单独保证的范围仍不宣称。
+
+同时，`57254fbe` 的独立业务诊断 `40048655447` 已终态success，N08/N09各job success；这在重复provider ID修复后给出一次完整独立业务通过，但不能替代仍在运行的正式源码门禁或完整N09故障矩阵。
+
 ## 2026-10-23：N09 合成上游重复响应/输出项身份已复现并修复
 
 新增跨完整 save/kill/restart 恢复轮次的协议回归，在修复前发现15次上游响应仅5个不同 response ID，退出1。合成上游先前让 LIST/READ 使用相同私有响应ID，后续公开生成也重复既有ID；这不是有效的独立上游事件身份。回复现在使用同一adapter内有界安全整数请求序号，为每次 response 与output item生成不同ID，call_id保持原值以保留工具配对和原证据关系；不修改原文、summary、压缩、步骤数、预算、期限、ACK、强杀或重开断言。业务适配器、durable command与driver三文件共97项本地通过；没有进程、网络、DPAPI或模型请求。
