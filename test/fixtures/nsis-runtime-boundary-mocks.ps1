@@ -130,12 +130,28 @@ try {
             $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected`nn09_primary_phase=254`nn09_case_phase=$casePhase`n")
             if ((ConvertFrom-HpmOwnedFailurePhase $bytes) -ne 254 -or (ConvertFrom-HpmOwnedCasePhase $bytes) -ne $casePhase) { throw 'Valid case rejected.' }
         }
+        $sqliteWarning = '(node:123) ExperimentalWarning: SQLite is an experimental feature and might change at any time' + "`n" + '(Use `node --trace-warnings ...` to show where the warning was created)' + "`n"
+        $finiteFailure = "n09_owned_entry_rejected`nn09_primary_phase=254`nn09_case_phase=82`n"
+        $bytes = [Text.Encoding]::UTF8.GetBytes($sqliteWarning + $finiteFailure)
+        if ((ConvertFrom-HpmOwnedFailurePhase $bytes) -ne 254 -or (ConvertFrom-HpmOwnedCasePhase $bytes) -ne 82) { throw 'Known SQLite warning hid finite failure diagnostics.' }
+        foreach ($text in @(
+            ($sqliteWarning + $sqliteWarning + $finiteFailure),
+            ('PRIVATE_CHILD_SENTINEL' + $sqliteWarning + $finiteFailure),
+            ($sqliteWarning.Replace('SQLite', 'PRIVATE_CHILD_SENTINEL') + $finiteFailure),
+            ($sqliteWarning.Replace('node:123', 'node:0') + $finiteFailure),
+            ($sqliteWarning + $finiteFailure + 'PRIVATE_CHILD_SENTINEL'),
+            ($finiteFailure + $sqliteWarning),
+            ('x' * 513)
+        )) {
+            $bytes = [Text.Encoding]::UTF8.GetBytes($text)
+            if ($null -ne (ConvertFrom-HpmOwnedCasePhase $bytes) -or $null -ne (ConvertFrom-HpmOwnedFailurePhase $bytes)) { throw 'Unknown diagnostic content accepted.' }
+        }
         foreach ($suffix in @("n09_case_phase=79`n", "n09_case_phase=84`n", "n09_case_phase=82`nPRIVATE", "n09_case_phase=82`nn09_case_phase=83`n")) {
             $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected`nn09_primary_phase=254`n$suffix")
             if ($null -ne (ConvertFrom-HpmOwnedCasePhase $bytes) -or $null -ne (ConvertFrom-HpmOwnedFailurePhase $bytes)) { throw 'Invalid case accepted.' }
         }
     }
-    Refuses { Invoke-Child "process.stderr.write('n09_owned_entry_rejected\nn09_primary_phase=254\nn09_case_phase=82\n');process.exit(254);" }
+    Refuses { Invoke-Child "require('node:sqlite');setImmediate(()=>{process.stderr.write('n09_owned_entry_rejected\nn09_primary_phase=254\nn09_case_phase=82\n');process.exit(254);});" }
     Refuses { Invoke-Child "process.stdout.write(Buffer.from([255]));" }
     Refuses { Invoke-Child "setInterval(()=>{},1000);" 1500 }
     Refuses { Invoke-Child "const child=require('node:child_process').spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'inherit',windowsHide:true});require('node:fs').writeFileSync(process.env.HPM_CHILD_PID_FILE,String(child.pid));setInterval(()=>{},1000);" 2000 }

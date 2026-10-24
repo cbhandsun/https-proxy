@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：修复 SQLite 固定 warning 导致有限失败阶段丢失的诊断缺口
+
+严格80字节失败回执解析器会将 Node SQLite 的固定 ExperimentalWarning 与后续有限 n09_primary_phase/n09_case_phase 一并丢弃。新增回归在原实现明确失败，修复只接受最多一段精确的已知 SQLite warning 前缀（含有界正整数 PID），之后仍按原80字节有限 schema 解析；未知前缀、重复 warning、额外输出、非法 UTF8、错误case、过量内容继续拒绝，任何非零子进程仍失败，不把诊断当作成功或业务证明，也不输出 warning、PID、异常或原始stderr。
+
+原有限诊断子进程改为实际 require(node:sqlite) 后输出同样254/82失败回执；原53个child_exit、所有失败/清理断言及45000ms进程期限保留。完整PowerShell边界3项通过，真实子进程测试42693ms，时延仍接近上限。中间曾新增一个额外子进程的版本在原45000ms超时，保留该失败；最终使用既有同一失败场景覆盖真实warning，没有放宽期限。此修复恢复安全可观察性，不是N09 ACK或首次私有读取根因修复，仍需云端复验。
+
 ## 2026-10-23：真实 NSIS 旧库显式登记与迁移后重开验收终态通过
 
 源码 `eb43df9ab54d150abefffff86bcf920c95e24aa9` 的加密安装 `40045048891`，job `120724845166` 终态 success：安全草稿下载、字面完整门禁、实际 NSIS 构建、安装/升级/回滚/重装/卸载及清理全部 success。最终安装 manifest SHA256 为 `93bff440238f0a8fa445f7b897bf6ac9b56d7a2f0d4ada75dc3c719cbc8bae60`。旧625-source读器生成的合成旧库先被当前启动安全拒绝，随后通过安装目录内的命令模块显式 preview/enroll；真实 native key unwrap 两次、独立 anchor compare 一次，预览/登记前后库存文件不变，登记后实际 owner 精确读回，并跨进程 read/resave/read，原始身份、key、预算与绝对到期回执逐字段一致。新锚定库重开、四组合 module API 与实际管理 HTTP 也通过；HTTP回执仍明确 forced_cleanup、gracefulDrainQualified=false、clientQualified=false。
