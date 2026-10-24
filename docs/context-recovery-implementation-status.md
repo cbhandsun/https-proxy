@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：安装链跨过Codex两组，修复Claude MCP源服务误拒绝传输元数据
+
+fbcaac60e45f1688ac58368a3a997928061ecfc2的完整Verify `40126883229`八项、正式Windows `40126883187`四项（含N08/N09）全部success。原安装运行 `40126903131` / job `120970263541`已终态failure：完整候选门禁、构建及实际安装/升级回滚/DPAPI生命周期success，客户端阶段于claude-default-cli失败。顺序控制已跨过Codex默认/增强两组，但没有四组整体通过回执，Claude增强尚未完成；不重跑该失败候选。
+
+锁定Claude 2.1.292 Windows EXE（254858400字节，SHA256 eb95bb65955f8b1702e800815f9a2c0388a5de0f196c354c7ee1dd5cb9a2ba23）的实际嵌入调用代码带claudecode/toolUseId及tools/call.params._meta；未执行该二进制或模型。当前合成原文MCP源服务只允许name/arguments，必然拒绝这类合法调用。新增真实已锁定MCP SDK的Client/StdioClientTransport启动实际源服务，经initialize/listTools后携带Claude元数据和SDK进度token调用，在旧实现实际报source_request_invalid；这确认独立协议阻塞，不把有限Windows阶段日志当成唯一根因证明。
+
+现允许有界的可选_meta，先快照完整请求并保持原16KiB含JSON转义上限，拒绝getter/Proxy/自定义原型/序列化hook/循环及深度、节点极端；progressToken须为字符串或有限数，Claude工具标识须为字符串。扩展元数据仅被校验后忽略，没有工具、端点、参数或凭据权限。仍仅允许original和精确空arguments；task及其他工具参数仍拒绝，原文一次读取且失败也消耗该次权限，固定127.0.0.1端点、五秒整次HTTP与128KiB响应上限保持。非平凡解析独立模块，无新增依赖，SDK已是直接依赖。
+
+六项新增回归覆盖实际stdio正控及重复读取拒绝、失败消耗、非法/空/极端/安全边界、16KiB精确边界和转义后超限、元数据不能改端点/工具/参数以及可执行输入零hook。统一单元发现自动纳入。扩大相关客户端与owner探针171/171通过、零skip；定向Lint、1566文件语法、四项架构/secret、CI及发行治理通过。原五秒COMMIT和60秒重开失败保留，尚无性能根因修复；当前通过样本不能消除旧失败。冻结长测未访问、模型请求0。本批仍需新候选完整CI及实际安装四组，不授予Claude或整体交付资格。
+
 ## 2026-10-24：修复Claude增强阶段，模块预置后Core恢复串联通过
 
 以真实sessions、beginContextRecoveryRequest及isolated coordinator补充Claude seed回归，旧实现实际失败：首个外部tool call完成后提交其结果，visibleSources=1，合法私有请求只含LIST/READ；Claude合成上游却只允许final阶段出现私有工具。该限制同样覆盖摘要和摘要间继续，不能仅放行seed后再逐次撞下一个阶段。

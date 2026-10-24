@@ -1,6 +1,7 @@
 'use strict';
 
 const http = require('node:http');
+const { snapshotSourceRequest, validSourceMetadata } = require('./nsis-client-source-request.cjs');
 
 function endpoint(value) {
   let url;
@@ -90,6 +91,7 @@ function createSourceHandler(url, read = fetchOriginal) {
   const target = endpoint(url);
   let called = false;
   return async (request) => {
+    request = snapshotSourceRequest(request);
     if (
       !request ||
       typeof request !== 'object' ||
@@ -119,7 +121,10 @@ function createSourceHandler(url, read = fetchOriginal) {
     if (
       request.method !== 'tools/call' ||
       !request.params ||
-      Object.keys(request.params).some((key) => !['name', 'arguments'].includes(key)) ||
+      typeof request.params !== 'object' ||
+      Array.isArray(request.params) ||
+      Object.keys(request.params).some((key) => !['name', 'arguments', '_meta'].includes(key)) ||
+      (Object.hasOwn(request.params, '_meta') && !validSourceMetadata(request.params._meta)) ||
       request.params.name !== 'original' ||
       !request.params.arguments ||
       typeof request.params.arguments !== 'object' ||
