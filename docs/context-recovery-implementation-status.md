@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：N09 合成上游重复响应/输出项身份已复现并修复
+
+新增跨完整 save/kill/restart 恢复轮次的协议回归，在修复前发现15次上游响应仅5个不同 response ID，退出1。合成上游先前让 LIST/READ 使用相同私有响应ID，后续公开生成也重复既有ID；这不是有效的独立上游事件身份。回复现在使用同一adapter内有界安全整数请求序号，为每次 response 与output item生成不同ID，call_id保持原值以保留工具配对和原证据关系；不修改原文、summary、压缩、步骤数、预算、期限、ACK、强杀或重开断言。业务适配器、durable command与driver三文件共97项本地通过；没有进程、网络、DPAPI或模型请求。
+
+该重复ID缺口位于合成验收上游，不是生产恢复防护的放宽；仍不能仅凭本地回归认定它是云端254/250间歇失败的根因。固定warning诊断修复已推送 `1b646842`，本轮身份修复还需同一完整托管业务资格验证。
+
 ## 2026-10-23：修复 SQLite 固定 warning 导致有限失败阶段丢失的诊断缺口
 
 严格80字节失败回执解析器会将 Node SQLite 的固定 ExperimentalWarning 与后续有限 n09_primary_phase/n09_case_phase 一并丢弃。新增回归在原实现明确失败，修复只接受最多一段精确的已知 SQLite warning 前缀（含有界正整数 PID），之后仍按原80字节有限 schema 解析；未知前缀、重复 warning、额外输出、非法 UTF8、错误case、过量内容继续拒绝，任何非零子进程仍失败，不把诊断当作成功或业务证明，也不输出 warning、PID、异常或原始stderr。

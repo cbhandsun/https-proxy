@@ -185,6 +185,7 @@ function fixture(mutation = () => {}, onPhase) {
         mutation('upstream', incoming, state);
         await adapter.onBusinessRequest(incoming);
         assert.ok(result);
+        mutation('native-reply', result, state);
         return result;
       };
       let result;
@@ -413,6 +414,22 @@ test('missing READ diagnostics separate ACK-triggered and post-restart recovery 
     assert.equal(f.state.closed, 1);
     assert.doesNotMatch(JSON.stringify(phases), /PRIVATE/);
   }
+});
+
+test('distinct synthetic upstream responses and output items never reuse provider identities across recovery rounds', async () => {
+  const responseIds = [],
+    itemIds = [];
+  const f = fixture((stage, response) => {
+    if (stage !== 'native-reply') return;
+    responseIds.push(response.id);
+    for (const item of response.output) itemIds.push(item.id);
+  });
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await runDurableSaveOrRevokeAfterAck(f.adapter, 'save');
+  assert.ok(responseIds.length >= 11);
+  assert.equal(new Set(responseIds).size, responseIds.length);
+  assert.equal(new Set(itemIds).size, itemIds.length);
+  assert.equal(f.state.closed, 1);
 });
 
 test('ACK handshake rejection is distinguished from a completed readonly snapshot and still forces cleanup', async () => {

@@ -590,11 +590,22 @@ function createN09BusinessAdapter(input, trusted = {}) {
         if (privateTools) privateRequests++;
         const reply = (output) => {
           if (incoming.response.destroyed || incoming.response.headersSent) throw fail();
+          if (!Number.isSafeInteger(upstreamRequests) || upstreamRequests < 1) throw fail();
+          // Every synthetic model response is a distinct provider event. Stable
+          // IDs across LIST/READ or later recovery rounds can incorrectly invoke
+          // the real proxy's response association and replay defenses. Preserve
+          // call_id for tool pairing; response and output-item identities vary.
+          const suffix = '-' + upstreamRequests;
+          const response = {
+            ...output,
+            id: output.id + suffix,
+            output: output.output.map((item) => ({ ...item, id: item.id + suffix })),
+          };
           incoming.response.writeHead(200, {
             'content-type': 'application/json',
             connection: 'close',
           });
-          incoming.response.end(wire(output));
+          incoming.response.end(wire(response));
         };
         const call = (name, args, callId) => ({
           ...textReply('n09-private-' + nonce, ''),
