@@ -103,6 +103,7 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
         "POST" => matches!(
             route,
             "/select-directory"
+                | "/runtime/stop"
                 | "/cli/launch"
                 | "/cli/sessions/delete"
                 | "/audit/conversations/clear"
@@ -513,6 +514,9 @@ mod tests {
         assert!(validate_path("GET", "/v1/local/config\r\nx: injected").is_err());
         assert!(validate_path("GET", &format!("/v1/local/{}", "x".repeat(4096))).is_err());
         assert!(validate_path("POST", "/v1/local/config").is_ok());
+        assert!(validate_path("POST", "/v1/local/runtime/stop").is_ok());
+        assert!(validate_path("GET", "/v1/local/runtime/stop").is_err());
+        assert!(validate_path("POST", "/v1/local/runtime/stop/other").is_err());
         for prefix in ["/v1/local", "/local"] {
             let preview = format!("{prefix}/context-policy/preview");
             let apply = format!("{prefix}/context-policy/apply");

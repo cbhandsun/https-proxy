@@ -2,13 +2,15 @@
 
 ## 2026-10-24：修复桌面正常停止绕过排空及失败后强杀，保留新五秒超时
 
+106c17f原Verify `40139510287`现终态五项success、三项failure：Rust `121008062310`在desktop_shell残留的run_proxy_bat导入报E0432，unit3 `121008062257`及coverage `121008062340`因原管理边界契约发现Node新POST /runtime/stop未同步Rust白名单而拒绝。11ab5ee的Rust/unit3也已failure，coverage仍在执行，均保留，不重跑。定点读取确认三个残留调用均是托盘启停/重启的强杀回退；现统一调用同一个直接命令协调器，失败不恢复批处理。托盘原先立即发送started/stopped/restarted字符串，而前端消费的是完成结果对象；现后台操作真正完成后才发送command/code/output回执，失败明确code=1且不附异常原文，不能提前通知成功。原管理边界契约测试文件保持不变，Rust仅增加新固定POST路由并补错方法/额外路径拒绝。修复后相关Node含该契约24/24通过、Rust独立模块8/8通过；完整Rust应用和托盘真实安装行为仍待新候选Windows原链，不把局部模块通过覆盖E0432失败。
+
 bb952a7普通Verify `40137024601`七项success、coverage `121000597330`终态failure：actual core chat WBIPC持久请求再次5012ms超时，requests=2/handshakes=2/roots=1。该作业还观察到COMMIT1584ms且线程CPU增量为零，但重复kind/sequence的回执不足以证明这条提交属于同一次失败请求，不把它写成已确认因果。正式Windows `40137024573` source-gates `121000597194`亦failure：publication transport-finished/release-control在writer ready阶段超过原5000ms，尚未进入该用例的COMMIT中断边界；独立Python子进程20012ms触发原20000ms。所有失败保留，不延长期限或重跑取绿。af0d94a普通Verify `40137638390`八项success，正式 `40137638394`四项也已success（N09 121006587627、N08 121006587680），成功不覆盖前述失败。
 
 实际安装证据一直明确gracefulDrainQualified=false、restartRetention=false。源码确认桌面stop_proxy_direct直接taskkill /T /F，并在直接命令失败、退出和重启路径退回同样强杀的批处理；这使已有Node排空协调器无法保障正常桌面停机。本批新增独立proxy-stop-control与Rust proxy_stop/proxy_stop_process模块，主入口仅组合。新POST /v1/local/runtime/stop沿原管理token和Origin门禁，另精确绑定真实管理回环socket/监听端口、当前PID和每次启动的128位公开实例标识；该标识只防过期目标，不授予管理权限。请求上限128字节，非法/空/过大/错目标拒绝。202仅是接受意图，先结束响应再调用原shutdown，不把意图当排空完成。启动健康回执增加公开shutdown身份，所有旧客户端认证、存储ACK、原期限和FULL/DELETE保持。
 
 桌面先核对原runtime root与entrypoint，持有目标进程对象的只读查询/同步句柄，再经原管理凭据发送固定回环请求；有界UTF8/HTTP/JSON回执须严格匹配PID、实例及202意图，拒绝重复字段、额外字段、错误长度/传输编码及非法header。随后沿原四秒观察期限等待同一进程对象真正退出且退出码0，才报告gracefulDrain；端口为零、root/runtime类型非法、残留PID或文件状态检查错误均不能当作已经停止；非零、超时、失去身份或认证失败均返回失败。没有TerminateProcess权限、PID重用后重新查杀、直接删除PID文件或静默批处理强杀回退；重启只在停止成功后启动，异根端口不自动清理。普通启动的失败也不再绕到可能清理占用端口的批处理；旧daemon不支持新停机协议时报告未确认，不能伪造正常停止。安装器已有显式受控清理和独立验收环境的forced_cleanup仍保留，未把它改名为gracefulDrain。
 
-真实openai-proxy.js HTTP回归首次发现业务入口也会分发管理路由，合法token在业务端口得到202；补充实际socket绑定后，业务端口拒绝，原token/Origin门禁保持。当前源码子进程已验证无token、错误token、Bearer替代、非法Origin、业务端口、过期PID/实例及非法/空/极端body均不能停止；正确请求得到精确202后进程退出0且PID文件消失。中断body/响应、重复意图和错误组合不触发多次shutdown，getter/Proxy不执行。相关及原排空/管理/架构/secret共23/23通过、零skip；Rust独立模块以真实源码和已锁定依赖编译，实际回环传输/解析/截止及停止状态准入5/5通过，但外层应用组合为只用于编译模块的占位边界，不能授予完整Rust应用或Windows资格。Windows专属进程句柄测试会在原Rust CI执行，覆盖活进程、零/无限哨兵期限、退出0及退出1，无新增ignore/skip。
+真实openai-proxy.js HTTP回归首次发现业务入口也会分发管理路由，合法token在业务端口得到202；补充实际socket绑定后，业务端口拒绝，原token/Origin门禁保持。当前源码子进程已验证无token、错误token、Bearer替代、非法Origin、业务端口、过期PID/实例及非法/空/极端body均不能停止；正确请求得到精确202后进程退出0且PID文件消失。中断body/响应、重复意图和错误组合不触发多次shutdown，getter/Proxy不执行。相关及原排空/管理/架构/secret及管理边界契约共24/24通过、零skip；Rust独立模块以真实源码和已锁定依赖编译，实际回环传输/解析/截止、停止状态准入及原进程/托盘回执8/8通过，但外层应用组合为只用于编译模块的占位边界，不能授予完整Rust应用或Windows资格。Windows专属进程句柄测试会在原Rust CI执行，覆盖活进程、零/无限哨兵期限、退出0及退出1，无新增ignore/skip。
 
 扩大本机检查另有entry-auth-integration在配置解密阶段ERR_SECRET_DECRYPTION_FAILED，未进入请求断言；新监听单元夹具最初漏传socket造成的失败已修正，原失败日志分别保留，不修改解密策略或跳过该文件。全树Lint零错误/五个既有警告、1575文件语法、四项架构/secret及CI/发行治理、变更文件格式和cargo fmt通过。原cargo check --tests --locked因未准备发行资源失败；按原release:prepare补准备仍失败，定点检查确认npm生成三个Unix .bin符号链接被原发行metadata守卫拒绝，同时Mac没有Windows原生助手，完整发行资源/manifest未产生。没有删链接、伪造资源或改平台/门禁来通过；完整Rust检查和最新安装正常停机/重启留存仍须Windows原链，不宣称安装资格已获得。
 
