@@ -96,19 +96,54 @@ public sealed class HpmHostedEgressLease : IDisposable {
                 if (String.Equals(program, full, StringComparison.Ordinal) && String.Equals(full, expected, StringComparison.OrdinalIgnoreCase)) approved = true;
             }
             if (!approved || full.StartsWith("\\\\", StringComparison.Ordinal)) throw Rejected();
-            string current = full;
-            bool first = true;
-            while (!String.IsNullOrEmpty(current)) {
-                FileAttributes attributes = File.GetAttributes(current);
-                if ((attributes & FileAttributes.ReparsePoint) != 0 ||
-                    (first ? (attributes & FileAttributes.Directory) != 0 : (attributes & FileAttributes.Directory) == 0)) throw Rejected();
-                first = false;
-                current = Path.GetDirectoryName(current);
+            return PhysicalProgram(full);
+        } catch { throw Rejected(); }
+    }
+    private static string PhysicalProgram(string full) {
+        string current = full;
+        bool first = true;
+        while (!String.IsNullOrEmpty(current)) {
+            FileAttributes attributes = File.GetAttributes(current);
+            if ((attributes & FileAttributes.ReparsePoint) != 0 ||
+                (first ? (attributes & FileAttributes.Directory) != 0 : (attributes & FileAttributes.Directory) == 0)) throw Rejected();
+            first = false;
+            current = Path.GetDirectoryName(current);
+        }
+        return full;
+    }
+    internal static string GuardInstalledClient(string program) {
+        LastFailurePhase = 1;
+        try {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || !ValidateAbi() ||
+                Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true" ||
+                Environment.GetEnvironmentVariable("RUNNER_ENVIRONMENT") != "github-hosted" ||
+                Environment.GetEnvironmentVariable("RUNNER_OS") != "Windows") throw Rejected();
+            string temp = Environment.GetEnvironmentVariable("RUNNER_TEMP");
+            if (String.IsNullOrEmpty(program) || String.IsNullOrEmpty(temp) || program.Length > 4096 || temp.Length > 4096 ||
+                !Path.IsPathFullyQualified(program) || !Path.IsPathFullyQualified(temp) ||
+                program.IndexOfAny(new [] {'\0', '\r', '\n'}) >= 0 || temp.IndexOfAny(new [] {'\0', '\r', '\n'}) >= 0) throw Rejected();
+            string full = Path.GetFullPath(program), root = Path.GetFullPath(temp).TrimEnd('\\');
+            if (root.Length < 3 || !String.Equals(program, full, StringComparison.Ordinal) ||
+                !String.Equals(temp.TrimEnd('\\'), root, StringComparison.Ordinal) ||
+                full.StartsWith("\\\\", StringComparison.Ordinal) || root.StartsWith("\\\\", StringComparison.Ordinal)) throw Rejected();
+            string installed = Path.Combine(root, "hpm-installed-clients");
+            bool approved = false;
+            foreach (string relative in new [] {Path.Combine("payload", "runtime", "node", "node.exe"),
+                Path.Combine("clients", "codex.exe"), Path.Combine("clients", "claude.exe")}) {
+                if (String.Equals(full, Path.Combine(installed, relative), StringComparison.OrdinalIgnoreCase)) approved = true;
             }
-            return full;
+            if (!approved) throw Rejected();
+            return PhysicalProgram(full);
         } catch { throw Rejected(); }
     }
     public HpmHostedEgressLease(string program) : this(Guard(program), new Native()) { }
+    public static HpmHostedEgressLease ForInstalledClient(string program) {
+        return new HpmHostedEgressLease(GuardInstalledClient(program), new Native());
+    }
+    // Same-assembly fixture injection only. No public factory accepts a backend.
+    internal static HpmHostedEgressLease ForInstalledClient(string program, Api backend) {
+        return new HpmHostedEgressLease(GuardInstalledClient(program), backend);
+    }
     // Same-assembly fixture injection only; the public entry always guards first.
     internal HpmHostedEgressLease(string program, Api backend) {
         api = backend;

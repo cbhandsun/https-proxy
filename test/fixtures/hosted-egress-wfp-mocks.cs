@@ -7,6 +7,7 @@ public static class HpmHostedEgressFixture {
     private sealed class Fake : HpmHostedEgressLease.Api {
         internal string fail;
         internal int closed, added, read;
+        internal string program;
         private IntPtr blob, data;
         private HpmHostedEgressLease.Filter pending;
         internal HashSet<IntPtr> allocations = new HashSet<IntPtr>();
@@ -18,6 +19,7 @@ public static class HpmHostedEgressFixture {
             return fail == "open" ? 5u : 0u;
         }
         public uint AppId(string program, out IntPtr app) {
+            this.program = program;
             app = IntPtr.Zero;
             if (fail == "appid") return 5;
             if (fail == "appid-null") return 0;
@@ -150,5 +152,84 @@ public static class HpmHostedEgressFixture {
             catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); rejected++; }
         }
         return "wfpSyntheticRejected=" + rejected + "; nativeWfpCalls=0; networkRequests=0; guardedPaths=" + GuardPaths();
+    }
+    public static string RunInstalledClients() {
+        Require(HpmHostedEgressLease.ValidateAbi());
+        int publicFactories = 0;
+        foreach (var method in typeof(HpmHostedEgressLease).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)) {
+            if (method.Name != "ForInstalledClient") continue;
+            publicFactories++;
+            Require(method.GetParameters().Length == 1 && method.GetParameters()[0].ParameterType == typeof(string));
+        }
+        Require(publicFactories == 1);
+        try { HpmHostedEgressLease.ForInstalledClient(null); throw new Exception("fixture_missing_rejection"); }
+        catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); }
+        string root = Path.Combine(Path.GetTempPath(), "hpm-wfp-client-" + Guid.NewGuid().ToString("N"));
+        var saved = new Dictionary<string,string>();
+        foreach (string key in new [] {"GITHUB_ACTIONS", "RUNNER_ENVIRONMENT", "RUNNER_OS", "RUNNER_TEMP"}) saved[key] = Environment.GetEnvironmentVariable(key);
+        int accepted = 0, rejected = 0, leases = 0;
+        bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        Action<string> refuse = program => {
+            var backend = new Fake();
+            try { HpmHostedEgressLease.ForInstalledClient(program, backend); throw new Exception("fixture_missing_rejection"); }
+            catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); rejected++; }
+            Require(backend.added == 0 && backend.closed == 0 && backend.allocations.Count == 0);
+        };
+        try {
+            Directory.CreateDirectory(root);
+            Environment.SetEnvironmentVariable("GITHUB_ACTIONS", "true");
+            Environment.SetEnvironmentVariable("RUNNER_ENVIRONMENT", "github-hosted");
+            Environment.SetEnvironmentVariable("RUNNER_OS", "Windows");
+            Environment.SetEnvironmentVariable("RUNNER_TEMP", root);
+            string installed = Path.Combine(root, "hpm-installed-clients");
+            var live = new List<HpmHostedEgressLease>();
+            var backends = new List<Fake>();
+            foreach (string relative in new [] {Path.Combine("payload", "runtime", "node", "node.exe"), Path.Combine("clients", "codex.exe"), Path.Combine("clients", "claude.exe")}) {
+                string program = Path.Combine(installed, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(program)); File.WriteAllText(program, "synthetic inert file");
+                if (windows) {
+                    Require(HpmHostedEgressLease.GuardInstalledClient(program) == program); accepted++;
+                } else refuse(program);
+                // Non-Windows still exercises the existing native-layout algorithm
+                // with a fake; this never grants a Windows path-guard witness.
+                var backend = new Fake();
+                live.Add(windows ? HpmHostedEgressLease.ForInstalledClient(program, backend) : new HpmHostedEgressLease(program, backend)); backends.Add(backend); leases++;
+                Require(backend.program == program && backend.added == 2 && backend.read == 2 && backend.closed == 0 && backend.allocations.Count == 0);
+                var broken = new Fake {fail = "read2"};
+                try {
+                    if (windows) HpmHostedEgressLease.ForInstalledClient(program, broken); else new HpmHostedEgressLease(program, broken);
+                    throw new Exception("fixture_missing_rejection");
+                } catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); }
+                Require(broken.closed == 1 && broken.allocations.Count == 0);
+                try { HpmHostedEgressLease.Guard(program); throw new Exception("fixture_missing_rejection"); }
+                catch (InvalidOperationException error) { Require(error.Message == "hosted_egress_wfp_rejected"); rejected++; }
+                refuse(Path.Combine(Path.GetDirectoryName(program), "..", Path.GetFileName(Path.GetDirectoryName(program)), Path.GetFileName(program)));
+            }
+            for (int index = 0; index < live.Count; index++) {
+                live[index].Dispose(); live[index].Dispose(); Require(backends[index].closed == 1);
+            }
+            foreach (string invalid in new [] {null, "", "relative.exe", "\\\\server\\clients\\codex.exe", "PRIVATE_PROGRAM_SENTINEL", new string('x', 40000),
+                Path.Combine(root, "other.exe"), Path.Combine(installed, "clients", "other.exe"), Path.Combine(installed, "payload", "runtime", "node", "codex.exe"),
+                Path.Combine(root, "hpm-context-n08", "payload", "runtime", "node", "node.exe")}) refuse(invalid);
+            string codex = Path.Combine(installed, "clients", "codex.exe"), claude = Path.Combine(installed, "clients", "claude.exe");
+            File.Delete(codex); Directory.CreateDirectory(codex); refuse(codex); Directory.Delete(codex);
+            File.CreateSymbolicLink(codex, claude);
+            try { refuse(codex); } finally { File.Delete(codex); }
+            string clients = Path.Combine(installed, "clients"), realClients = Path.Combine(installed, "real-clients");
+            Directory.Move(clients, realClients); Directory.CreateSymbolicLink(clients, realClients);
+            try { refuse(claude); } finally { Directory.Delete(clients); Directory.Move(realClients, clients); }
+            File.Delete(claude); Directory.Delete(clients); File.WriteAllText(clients, "synthetic ancestor file"); refuse(claude); File.Delete(clients);
+            foreach (string key in new [] {"GITHUB_ACTIONS", "RUNNER_ENVIRONMENT", "RUNNER_OS"}) {
+                string before = Environment.GetEnvironmentVariable(key); Environment.SetEnvironmentVariable(key, "untrusted");
+                refuse(Path.Combine(installed, "payload", "runtime", "node", "node.exe")); Environment.SetEnvironmentVariable(key, before);
+            }
+            Environment.SetEnvironmentVariable("RUNNER_TEMP", Path.Combine(root, "..", Path.GetFileName(root)));
+            refuse(Path.Combine(installed, "payload", "runtime", "node", "node.exe"));
+        } finally {
+            foreach (var entry in saved) Environment.SetEnvironmentVariable(entry.Key, entry.Value);
+            Require(Path.GetDirectoryName(Path.GetFullPath(root)) == Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar));
+            if (Directory.Exists(root)) { Require((File.GetAttributes(root) & FileAttributes.ReparsePoint) == 0); Directory.Delete(root, true); }
+        }
+        return "installedPrograms=" + accepted + "; installedClientRejected=" + rejected + "; syntheticLeases=" + leases + "; nativeWfpCalls=0; networkRequests=0; windowsGuardQualified=" + windows;
     }
 }

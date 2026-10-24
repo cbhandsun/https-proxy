@@ -233,7 +233,16 @@ test('synthetic HTTP source accepts fixed original and rejects unsafe payloads a
   t.after(() => new Promise((resolve) => server.close(resolve)));
   const url = endpoint('http://127.0.0.1:' + server.address().port + '/source');
   assert.equal(await fetchOriginal(url), body);
-  for (const invalid of ['', 'unexpected original', 'x'.repeat(128 * 1024 + 1)]) {
+  for (const invalid of [
+    '',
+    'unexpected original',
+    'x'.repeat(128 * 1024 + 1),
+    Buffer.concat([
+      Buffer.from('Synthetic original Unicode 中文🙂\r\n'),
+      Buffer.from([255]),
+      Buffer.from('\r\nREQUIRED_MARKER=HPM_PRIVATE_0123456789abcdef'),
+    ]),
+  ]) {
     body = invalid;
     await assert.rejects(fetchOriginal(url), { message: 'source_failed' });
   }
@@ -498,4 +507,37 @@ test('Claude rechecks directory identity after owned stop', async (t) => {
   await assert.rejects(runInstalledClaudeCase(options), {
     message: 'claude_case_identity_changed',
   });
+});
+
+test(
+  'synthetic source keeps its five-second whole-request deadline during active streaming',
+  { timeout: 30000 },
+  async (t) => {
+    let calls = 0;
+    const server = http.createServer((_request, response) => {
+      calls++;
+      response.writeHead(200, { 'content-type': 'text/plain' });
+      response.write('Synthetic original Unicode 中文🙂\r\n');
+      const interval = setInterval(() => response.write('x'), 25);
+      response.once('close', () => clearInterval(interval));
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    t.after(() => {
+      server.closeAllConnections();
+      server.close();
+    });
+    await assert.rejects(fetchOriginal('http://127.0.0.1:' + server.address().port + '/source'), {
+      message: 'source_failed',
+    });
+    assert.equal(calls, 1);
+  }
+);
+
+test('synthetic source rejects invalid transport setup without leaving a request deadline', async () => {
+  for (const url of [
+    'not a URL',
+    'http://192.0.2.1:4455/source',
+    'http://u:p@127.0.0.1:4455/source',
+  ])
+    await assert.rejects(fetchOriginal(url), { message: 'source_failed' });
 });

@@ -27,33 +27,62 @@ function endpoint(value) {
 
 function fetchOriginal(url) {
   return new Promise((resolve, reject) => {
-    const request = http.request(
-      url,
-      { method: 'POST', headers: { 'content-type': 'application/json' }, timeout: 5000 },
-      (response) => {
-        const chunks = [];
-        let bytes = 0;
-        response.on('data', (chunk) => {
-          bytes += chunk.length;
-          if (bytes > 128 * 1024) request.destroy(new Error('source_failed'));
-          else chunks.push(chunk);
-        });
-        response.on('error', () => reject(new Error('source_failed')));
-        response.on('end', () => {
-          if (response.statusCode !== 200) return reject(new Error('source_failed'));
-          const text = Buffer.concat(chunks).toString('utf8');
-          if (
-            !text.startsWith('Synthetic original Unicode 中文🙂\r\n') ||
-            !/\r\nREQUIRED_MARKER=HPM_PRIVATE_[a-zA-Z0-9-]{16,128}$/.test(text)
-          )
-            return reject(new Error('source_failed'));
-          resolve(text);
-        });
-      }
-    );
-    request.on('timeout', () => request.destroy(new Error('source_failed')));
-    request.on('error', () => reject(new Error('source_failed')));
-    request.end('{}');
+    let settled = false;
+    let deadline;
+    let request;
+    const finish = (text) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      if (text === undefined) reject(new Error('source_failed'));
+      else resolve(text);
+    };
+    // Socket inactivity is insufficient: a streaming peer can reset it forever.
+    // Keep the original five-second bound over the whole owned source request.
+    try {
+      const target = endpoint(url instanceof URL ? url.href : url);
+      request = http.request(
+        target,
+        { method: 'POST', headers: { 'content-type': 'application/json' }, timeout: 5000 },
+        (response) => {
+          const chunks = [];
+          let bytes = 0;
+          response.on('data', (chunk) => {
+            bytes += chunk.length;
+            if (bytes > 128 * 1024) request.destroy(new Error('source_failed'));
+            else chunks.push(chunk);
+          });
+          response.on('error', () => finish());
+          response.on('aborted', () => finish());
+          response.on('end', () => {
+            if (response.statusCode !== 200) return finish();
+            let text;
+            try {
+              text = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+            } catch {
+              finish();
+              return;
+            }
+            if (
+              !text.startsWith('Synthetic original Unicode 中文🙂\r\n') ||
+              !/\r\nREQUIRED_MARKER=HPM_PRIVATE_[a-zA-Z0-9-]{16,128}$/.test(text)
+            )
+              return finish();
+            finish(text);
+          });
+        }
+      );
+      deadline = setTimeout(() => {
+        finish();
+        request.destroy();
+      }, 5000);
+      request.on('timeout', () => request.destroy(new Error('source_failed')));
+      request.on('error', () => finish());
+      request.end('{}');
+    } catch {
+      finish();
+      request?.destroy();
+    }
   });
 }
 

@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：安装矩阵网络约束前置及Windows路径守卫通过，客户端矩阵尚未启动
+
+已提交推送`717241af34edde2762d670a101550bfe37fc6075`的两端隔离协议/合成上游批次：Verify `40103958224`当前7项success、coverage尚在执行；正式Windows `40103958111`的egress成功、source-gates仍在执行，不能称该候选完整CI通过。此前e490a58完整门禁和582实际迁移结论不覆盖本批新增工具。
+
+为最新实际安装两端验收新增显式InstalledClientMatrix网络profile，只允许一次性托管Windows固定RUNNER_TEMP/hpm-installed-clients根及固定payload Node、clients/codex.exe、clients/claude.exe三程序。原N08/N09默认Guard/constructor、默认两个SAN/hosts名称、脚本复制闭包和callback字段均保持；新增helper仅此profile、原build/Node/manifest校验通过后加载。每程序独立持有文件物理身份lease和SHA、对应防火墙及原动态WFP过滤/回读/清理；Node还须与原build.nodeSha256精确相等。api.anthropic.com只在新profile加入证书SAN和hosts，保持原provider官方HTTPS/443门禁，不让产品接受回环上游；未停止的进程树继续保留containment，不因清理失败提前放行。此profile尚未在真实系统调用，不能授予实际WFP或客户端资格。
+
+Mac三项新PowerShell/C#模拟回归通过（12类程序创建/身份/部分失败/清理、4类hosts冲突/原字节还原、三WFP模拟lease），原9项失败阶段通过固定本地pwsh的纯mock执行。原Windows正控fixture在Mac因Windows平台Guard拒绝失败，保留该记录；用717241a原始C#及原fixture对照得到相同拒绝，未改成skip。随后在用户Windows全新隔离临时目录以低优先级实编译当前C#和fixture，只使用same-assembly fake API：原24拒绝/10路径与新3固定路径正控/24拒绝/3模拟lease全部通过、退出0、stderr空，nativeWfpCalls=0、networkRequests=0。没有调用真实WFP、改防火墙/hosts/证书或访问冻结日档。新Windows-only正控仍将沿统一CI入口执行。
+
+审查新合成MCP来源请求时修复其socket inactivity timeout不能约束持续滴流的缺口：保留5000ms，新增覆盖整个请求的deadline，超时关闭owned请求且失败不重试；传输同步失败不遗留timer，仅严格回环无user-info URL，UTF8非法字节也拒绝。33项Claude/来源回归及两端扩大覆盖率门禁通过；该工具修复不改生产持久HTTP五秒实现或任何既有期限。安装与受控客户端进程树launcher仍在接入，最新NSIS真实CLI矩阵未启动；额度未核验、真实模型请求0，整体未交付。
+
 ## 2026-10-24：两端隔离协议与精确恢复合成上游已实现，实际安装客户端尚未执行
 
 582迁移及完整门禁证据已单独提交推送为`3879741`，未夹带在建客户端文件。本批新增Codex/Claude各自可复用协议模块：只接受受控spawnOwned能力，不自行选择日常客户端、读取日常认证或配置；严格回环入口、全新且物理身份固定的隔离HOME，合成entry token，Codex重试0，Claude bare/strict MCP/无session持久化。固定一次来源工具、三次实际压缩协议及对应完成事件，全部最终公开文本必须精确匹配。持续观察到受控stop确认terminal/treeStopped均true，拒绝清理期间迟到的私有工具、sentinel、非法或未结束帧；不使用PID回收或任意进程终止兜底。
