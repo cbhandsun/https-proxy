@@ -49,6 +49,7 @@ function createCodexSyntheticUpstream(input) {
       compactions = 0,
       originalWire,
       seedState = 0,
+      privateSeed = false,
       pending,
       source,
       offset = 0,
@@ -157,15 +158,23 @@ function createCodexSyntheticUpstream(input) {
           if (typeof body.stream !== 'boolean' || (!privateTools && body.stream !== true))
             throw fail();
           if (phase === 0) {
-            if (privateTools) throw fail();
             if (seedState === 0) {
-              if (!names.includes(ORIGINAL)) throw fail();
+              if (privateTools || !names.includes(ORIGINAL)) throw fail();
               seedState++;
               return call(body, ORIGINAL, {});
             }
-            if (seedState !== 1 || pending.name !== ORIGINAL) throw fail();
-            originalWire = originalCodexWire(outputFor(body, pending.id), options.original);
-            seedState++;
+            if (pending.name !== ORIGINAL || (!privateTools && privateText(body))) throw fail();
+            const observed = originalCodexWire(outputFor(body, pending.id), options.original);
+            if (seedState === 1) {
+              originalWire = observed;
+              seedState++;
+              if (privateTools) {
+                privateSeed = true;
+                return response(body, SENTINEL + ' ' + LIST + ' ' + READ);
+              }
+            } else if (seedState !== 2 || !privateSeed || privateTools || observed !== originalWire)
+              throw fail();
+            privateSeed = false;
             complete = true;
             return response(body, 'READY');
           }

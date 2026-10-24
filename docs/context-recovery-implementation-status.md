@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：安装链进入Codex增强CLI，修复首次工具结果后的私有seed接线
+
+25acc53的原安装运行 `40123107840` / job `120958818328`已终态failure：完整候选门禁、构建及实际安装/升级/回滚/DPAPI生命周期success，客户端步骤失败，有限回执为codex-enhanced-cli / owned_scenario。当前包manifest为ef466db595155ea63438675999e2cf47542b8faa3733863448d6d361047401dc。顺序控制已跨过Codex默认组，但没有四组最终回执，Claude尚未执行，不授予完整客户端资格。未重跑该失败作业。
+
+独立用真实createContextRecoverySessions、beginContextRecoveryRequest、真实首个外部tool call/结果和isolated coordinator复现必然接线冲突：增强seed的首次工具结果已使visibleSources=1，下一次上游请求正确只含私有LIST/READ；合成Codex上游却在seed阶段一律拒绝privateTools。原实现下新回归失败。有限Windows日志没有seed子阶段，故该实证是可确认的独立阻塞，不宣称它解释全部Windows错误。
+
+现合成上游允许增强seed的这一私有阶段，精确核对原call及原文字节，返回带私有sentinel的内部回复，仍不完成seed；必须再接收到不含私有工具/文本的独立公开请求，再次核对同一原始工具结果后，才返回READY并允许压缩。没有重跑外部工具、删正确性断言或把私有回复公开。原默认模式拒绝私有工具，原三次压缩、最终精确LIST/分页READ及独立公开生成保持。真实会话正控验证私有sentinel不进入公开请求，负控拒绝提前切阶段、重复私有请求、再次私有调用、原文变更、空历史、单个私有工具和公开私有文本，失败保持sticky。
+
+另为五秒失败定位补充已有owner-stage探针：仅sqlite_commit测量当前存储worker线程的threadCpuUserUs/threadCpuSystemUs差值，使用现有Node22.22运行时支持的threadCpuUsage，不查询其他线程/PID、冻结环境或用户数据。原四字段回执仍可解析，新字段仅允许成对出现在COMMIT；负数、分数、非安全整数、缺字段、计数倒退、getter/Proxy拒绝。原SQLite调用、结果、异常、receiver、期限和提交次数不变。10项探针回归通过；本批全部客户端与探针扩大163/163通过、零skip，统一CI自动发现。CPU新观测尚无Windows失败样本，不能据此宣称五秒问题修复。
+
+951a2cc的普通Verify `40123574946`八项已全部success；其正式Windows五秒失败及7556263原60秒失败独立保留。相同源码coverage中Claude后段COMMIT仅19–84ms、末轮公开发布1651ms，不能消除正式运行4126ms的COMMIT等待。下一步新候选须走原完整CI及安装四组；仍需实际性能修复、原生容量/24小时到期重开、真实provider与受控启用。冻结长测未访问，真实模型请求0。
+
 ## 2026-10-24：951a2cc正式Windows再次触发五秒截止，定位到实际SQLite提交
 
 `951a2cc045614e87f95236dfcf69715da7dafdfd`的正式Windows运行 `40123574934` / source-gates `120960131561`终态failure，统一源码门禁1596项通过、1项失败、零skip，后续context-recovery按原依赖跳过。失败为actual core claude WBIPC recovery has exclusive ownership and live credential revocation，位置client-context-target.test.js:2738，实际long-persistent首轮fetch于5001ms失败，requests=1、handshakes=1、roots=1；上游是原固定合成fixture，未调用真实模型。

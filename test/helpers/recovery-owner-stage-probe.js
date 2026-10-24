@@ -35,12 +35,41 @@ const STAGES = new Set([
 ]);
 const fail = () => new Error('recovery_stage_probe_failed');
 
-function installOwnerStageProbe(load, emit, now = () => performance.now()) {
-  if ([load, emit, now].some((value) => typeof value !== 'function' || types.isProxy(value)))
+function installOwnerStageProbe(
+  load,
+  emit,
+  now = () => performance.now(),
+  threadCpu = () => process.threadCpuUsage()
+) {
+  if (
+    [load, emit, now, threadCpu].some(
+      (value) => typeof value !== 'function' || types.isProxy(value)
+    )
+  )
     throw fail();
+  function cpuSample() {
+    const value = threadCpu();
+    if (!value || typeof value !== 'object' || types.isProxy(value)) throw fail();
+    const sample = {};
+    for (const name of ['user', 'system']) {
+      const slot = Object.getOwnPropertyDescriptor(value, name);
+      if (
+        !slot ||
+        !Object.hasOwn(slot, 'value') ||
+        !Number.isSafeInteger(slot.value) ||
+        slot.value < 0
+      )
+        throw fail();
+      sample[name] = slot.value;
+    }
+    return sample;
+  }
   let sequence = 0,
     operation = 'startup';
   function measured(stage, action, receiver, args) {
+    // Only this worker thread's COMMIT CPU is observed. Other worker/process
+    // CPU cannot be mistaken for computation inside a slow SQLite call.
+    const cpuStarted = stage === 'sqlite_commit' ? cpuSample() : null;
     const start = now();
     let result,
       failed = false,
@@ -53,7 +82,20 @@ function installOwnerStageProbe(load, emit, now = () => performance.now()) {
     }
     const elapsed = now() - start;
     if (!Number.isFinite(elapsed) || elapsed < 0) throw fail();
-    emit({ sequence, operation, stage, elapsedMs: Math.round(elapsed) });
+    const cpu = cpuStarted ? cpuSample() : null;
+    if (cpu && (cpu.user < cpuStarted.user || cpu.system < cpuStarted.system)) throw fail();
+    emit({
+      sequence,
+      operation,
+      stage,
+      elapsedMs: Math.round(elapsed),
+      ...(cpu
+        ? {
+            threadCpuUserUs: cpu.user - cpuStarted.user,
+            threadCpuSystemUs: cpu.system - cpuStarted.system,
+          }
+        : {}),
+    });
     if (failed) throw cause;
     return result;
   }
@@ -132,7 +174,16 @@ function parseStageLine(line) {
       !value ||
       typeof value !== 'object' ||
       Array.isArray(value) ||
-      Object.keys(value).sort().join(',') !== 'elapsedMs,operation,sequence,stage' ||
+      ![
+        'elapsedMs,operation,sequence,stage',
+        'elapsedMs,operation,sequence,stage,threadCpuSystemUs,threadCpuUserUs',
+      ].includes(Object.keys(value).sort().join(',')) ||
+      (Object.hasOwn(value, 'threadCpuUserUs') &&
+        (value.stage !== 'sqlite_commit' ||
+          !Number.isSafeInteger(value.threadCpuUserUs) ||
+          value.threadCpuUserUs < 0 ||
+          !Number.isSafeInteger(value.threadCpuSystemUs) ||
+          value.threadCpuSystemUs < 0)) ||
       !Number.isSafeInteger(value.sequence) ||
       value.sequence < 0 ||
       !OPERATIONS.has(value.operation) ||

@@ -299,6 +299,166 @@ test('stage parser rejects empty, malformed, oversized and unknown content witho
     assert.throws(() => parseStageLine(input), { message: 'recovery_stage_probe_failed' });
 });
 
+test('commit reports only its worker thread CPU delta while preserving wall time and thrown cause', () => {
+  const f = fixture();
+  const cause = new Error('PRIVATE_COMMIT_FAILURE');
+  let observed;
+  f.engineModule.createRecoverySqliteStore = ({ database }) => {
+    observed = database;
+    return { execute: () => observed.exec('COMMIT'), snapshot() {} };
+  };
+  const samples = [
+    { user: 100, system: 200 },
+    { user: 130, system: 250 },
+    { user: 300, system: 400 },
+    { user: 320, system: 410 },
+  ];
+  installOwnerStageProbe(f.load, f.emit, f.now, () => samples.shift());
+  let failed = false;
+  const database = {
+    exec(sql) {
+      assert.equal(this, database);
+      assert.equal(sql, 'COMMIT');
+      if (failed) throw cause;
+      return f.result;
+    },
+  };
+  const engine = f.engineModule.createRecoverySqliteStore({ database });
+  assert.equal(engine.execute({ operation: 'save' }), f.result);
+  failed = true;
+  assert.throws(
+    () => engine.execute({ operation: 'save' }),
+    (error) => error === cause
+  );
+  const commits = f.rows.filter((row) => row.stage === 'sqlite_commit');
+  assert.deepEqual(
+    commits.map((row) => [row.threadCpuUserUs, row.threadCpuSystemUs]),
+    [
+      [30, 50],
+      [20, 10],
+    ]
+  );
+  assert.ok(commits.every((row) => row.elapsedMs === 1));
+  for (const row of f.rows) {
+    assert.deepEqual(parseStageLine(JSON.stringify(row)), row);
+    if (row.stage !== 'sqlite_commit') assert.equal(Object.hasOwn(row, 'threadCpuUserUs'), false);
+  }
+  assert.equal(JSON.stringify(f.rows).includes('PRIVATE'), false);
+});
+
+test('commit CPU parser refuses partial, negative, fractional, unsafe and misplaced counters', () => {
+  const row = {
+    sequence: 1,
+    operation: 'save',
+    stage: 'sqlite_commit',
+    elapsedMs: 1,
+    threadCpuUserUs: 0,
+    threadCpuSystemUs: 0,
+  };
+  assert.deepEqual(parseStageLine(JSON.stringify(row)), row);
+  for (const invalid of [
+    { ...row, threadCpuUserUs: -1 },
+    { ...row, threadCpuSystemUs: 0.5 },
+    { ...row, threadCpuUserUs: Number.MAX_SAFE_INTEGER + 1 },
+    { ...row, threadCpuSystemUs: null },
+    { ...row, stage: 'engine_execute' },
+    { ...row, private: 'PRIVATE' },
+    Object.fromEntries(Object.entries(row).filter(([name]) => name !== 'threadCpuSystemUs')),
+  ])
+    assert.throws(() => parseStageLine(JSON.stringify(invalid)), {
+      message: 'recovery_stage_probe_failed',
+    });
+});
+
+test('commit CPU samples reject malformed data without invoking accessors or proxy traps', () => {
+  let traps = 0;
+  for (const sample of [
+    null,
+    {},
+    [],
+    { user: -1, system: 0 },
+    { user: 0, system: Infinity },
+    { user: 0.5, system: 0 },
+    { user: Number.MAX_SAFE_INTEGER + 1, system: 0 },
+    {
+      get user() {
+        traps++;
+        return 0;
+      },
+      system: 0,
+    },
+    new Proxy(
+      {},
+      {
+        getOwnPropertyDescriptor() {
+          traps++;
+          return undefined;
+        },
+      }
+    ),
+  ]) {
+    const f = fixture();
+    let ran = false;
+    f.engineModule.createRecoverySqliteStore = ({ database }) => ({
+      execute: () => database.exec('COMMIT'),
+      snapshot() {},
+    });
+    installOwnerStageProbe(f.load, f.emit, f.now, () => sample);
+    const engine = f.engineModule.createRecoverySqliteStore({
+      database: {
+        exec() {
+          ran = true;
+        },
+      },
+    });
+    assert.throws(() => engine.execute({ operation: 'save' }), {
+      message: 'recovery_stage_probe_failed',
+    });
+    assert.equal(ran, false);
+    assert.equal(
+      f.rows.some((row) => row.stage === 'sqlite_commit'),
+      false
+    );
+  }
+  assert.equal(traps, 0);
+});
+
+test('commit CPU samples reject rollback and accept exact safe-integer boundaries', () => {
+  for (const samples of [
+    [
+      { user: 10, system: 20 },
+      { user: 9, system: 20 },
+    ],
+    [
+      { user: 10, system: 20 },
+      { user: 10, system: 19 },
+    ],
+    [
+      { user: 0, system: 0 },
+      { user: Number.MAX_SAFE_INTEGER, system: Number.MAX_SAFE_INTEGER },
+    ],
+  ]) {
+    const f = fixture();
+    f.engineModule.createRecoverySqliteStore = ({ database }) => ({
+      execute: () => database.exec('COMMIT'),
+      snapshot() {},
+    });
+    const maximum = samples[1].user === Number.MAX_SAFE_INTEGER;
+    installOwnerStageProbe(f.load, f.emit, f.now, () => samples.shift());
+    const engine = f.engineModule.createRecoverySqliteStore({ database: { exec: () => f.result } });
+    if (!maximum)
+      assert.throws(() => engine.execute({ operation: 'save' }), {
+        message: 'recovery_stage_probe_failed',
+      });
+    else {
+      assert.equal(engine.execute({ operation: 'save' }), f.result);
+      const commit = f.rows.find((row) => row.stage === 'sqlite_commit');
+      assert.equal(commit.threadCpuUserUs, Number.MAX_SAFE_INTEGER);
+      assert.deepEqual(parseStageLine(JSON.stringify(commit)), commit);
+    }
+  }
+});
+
 test('observed engine rejects untrusted operation descriptors without getter/proxy execution', () => {
   const f = fixture();
   installOwnerStageProbe(f.load, f.emit, f.now);

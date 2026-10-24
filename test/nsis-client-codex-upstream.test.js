@@ -35,6 +35,132 @@ const decode = (result) => decodeContextRecoveryEnvelope('responses', result.wir
 const respond = (upstream, value, path = '/v1/responses') =>
   upstream.respond({ path, body: value });
 
+test('real enhanced session seed uses private recovery then an independent public READY', () => {
+  const { createContextRecoverySessions } = require('../lib/proxy/context-recovery-sessions');
+  const { beginContextRecoveryRequest } = require('../lib/proxy/context-recovery-protocol');
+  const runtime = createContextRecoverySessions();
+  runtime.configure(true);
+  const upstream = createCodexSyntheticUpstream(options);
+  const prepared = {
+    profile: { id: 'seed-fixture', protocol: 'openai', targetUrl: 'https://api.openai.com/v1' },
+    authMode: 'api-key',
+    rewriteTo: '-',
+  };
+  const auth = { ok: true, enabled: true, key: { id: 'fixture-owner' } };
+  const seed = {
+    ...body([user('seed')], false),
+    tools: [
+      {
+        type: 'function',
+        name: 'hpm_fixture_original',
+        parameters: { type: 'object', properties: {}, additionalProperties: false },
+      },
+    ],
+    tool_choice: 'auto',
+  };
+  const begin = (input) =>
+    beginContextRecoveryRequest(runtime, {
+      auth,
+      kind: 'responses',
+      prepared,
+      buffer: Buffer.from(JSON.stringify(input)),
+    });
+  let first, view, run;
+  try {
+    upstream.setPhase('seed');
+    first = begin(seed);
+    assert.equal(first.ok, true);
+    const call = decode(respond(upstream, seed)).output[0];
+    assert.equal(
+      first.complete(
+        [call],
+        [{ callId: call.call_id, toolName: call.name, arguments: {}, completed: true, output: '' }]
+      ).ok,
+      true
+    );
+    const next = { ...seed, input: [...seed.input, call, output(call, original)] };
+    view = begin(next);
+    assert.equal(view.ok, true);
+    assert.equal(view.inspect().visibleSources, 1);
+    run = view.recovery(next, { publicGeneration: 'isolated' });
+    assert.equal(run.ok, true);
+    assert.deepEqual(
+      run.initialRequest.tools.map((tool) => tool.name),
+      [LIST, READ]
+    );
+    const privateReply = decode(respond(upstream, run.initialRequest));
+    assert.match(JSON.stringify(privateReply), /private-thinking-sentinel/);
+    const publicTurn = run.accept(privateReply);
+    assert.equal(publicTurn.ok, true);
+    assert.equal(publicTurn.mode, 'continue');
+    assert.deepEqual(JSON.parse(JSON.stringify(publicTurn.request.tools)), seed.tools);
+    assert.doesNotMatch(
+      JSON.stringify(publicTurn.request),
+      /private-thinking-sentinel|hpm_list_retained_evidence|hpm_read_retained_evidence/
+    );
+    const publicReply = decode(respond(upstream, publicTurn.request));
+    assert.equal(publicReply.output[0].content[0].text, 'READY');
+    assert.equal(run.accept(publicReply).mode, 'release');
+    assert.equal(upstream.inspect().requests, 3);
+    assert.equal(upstream.inspect().sourceCalls, 1);
+    assert.equal(upstream.inspect().sourceObserved, true);
+    assert.equal(upstream.inspect().failed, false);
+    upstream.setPhase('compact-1');
+  } finally {
+    run?.cancel();
+    view?.abort();
+    first?.abort();
+    runtime.close();
+  }
+});
+
+test('private seed cannot finish early, replay, change originals or leak private data into its public request', () => {
+  for (const fault of [
+    'early-phase',
+    'replay-private',
+    'second-private',
+    'changed-original',
+    'empty-history',
+    'private-public',
+    'public-private-tool',
+    'default-private',
+  ]) {
+    const upstream = createCodexSyntheticUpstream({
+      ...options,
+      mode: fault === 'default-private' ? 'default' : 'enhanced',
+    });
+    upstream.setPhase('seed');
+    const seed = {
+      ...body([user('seed')], false),
+      tools: [{ type: 'function', name: 'hpm_fixture_original' }],
+    };
+    const call = decode(respond(upstream, seed)).output[0];
+    const privateRequest = body([output(call, original)]);
+    if (fault === 'default-private') {
+      assert.throws(() => respond(upstream, privateRequest), failure);
+      continue;
+    }
+    const reply = decode(respond(upstream, privateRequest));
+    assert.match(JSON.stringify(reply), /private-thinking-sentinel/);
+    const publicRequest = { ...seed, input: [output(call, original)] };
+    const reject = () => {
+      if (fault === 'early-phase') return upstream.setPhase('compact-1');
+      if (fault === 'replay-private') return respond(upstream, privateRequest);
+      if (fault === 'second-private')
+        return respond(upstream, body([user('again'), output(call, original)]));
+      if (fault === 'changed-original') publicRequest.input = [output(call, original + 'changed')];
+      if (fault === 'empty-history') publicRequest.input = [];
+      if (fault === 'private-public') publicRequest.input.push(user('private-thinking-sentinel'));
+      if (fault === 'public-private-tool')
+        publicRequest.tools.push({ type: 'function', name: LIST });
+      return respond(upstream, publicRequest);
+    };
+    assert.throws(reject, failure, fault);
+    assert.equal(upstream.inspect().failed, true);
+    assert.throws(() => upstream.setPhase('compact-1'), failure);
+  }
+});
+
 function fixture(change = {}, wrapper = null, compactEndpoint = false, privateSummaries = false) {
   const config = { ...options, ...change };
   const upstream = createCodexSyntheticUpstream(config);
