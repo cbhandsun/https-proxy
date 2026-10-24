@@ -378,6 +378,7 @@ function fixture(
     get initialRequest() {
       return initialRequest;
     },
+    now: () => time,
     advance(value) {
       time += value;
     },
@@ -928,17 +929,19 @@ test('restored Codex summary completes isolated READ and encrypted public public
   const { runContextRecovery } = require('../lib/proxy/context-recovery-runner');
   const { encodeContextRecoveryClientWire } = require('../lib/proxy/context-recovery-client-wire');
   const database = new DatabaseSync(':memory:');
-  const storage = createRecoverySqliteStore({
-    database,
-    dataKey: randomBytes(32).toString('base64'),
-    now: () => 10000,
-  });
   const f = fixture(
     1000,
     false,
     false,
     'N09_PRIVATE_CONTENT synthetic ' + 'synthetic-evidence '.repeat(256)
   );
+  // The owner and storage observe one clock, as in the real worker. A future
+  // storage observation must remain a refusal, not a valid restored READ.
+  const storage = createRecoverySqliteStore({
+    database,
+    dataKey: randomBytes(32).toString('base64'),
+    now: f.now,
+  });
   let dispatches = 0;
   try {
     const compact = f.begin(f.summaryBody);

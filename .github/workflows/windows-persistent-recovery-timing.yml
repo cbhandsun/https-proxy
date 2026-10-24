@@ -9,6 +9,7 @@ on:
       - lib/proxy/context-recovery-read-settlement.js
       - lib/proxy/context-recovery-root-reader.js
       - lib/proxy/context-recovery-root-storage.js
+      - test/context-recovery-codex-summary.test.js
   workflow_dispatch:
 
 permissions:
@@ -16,6 +17,10 @@ permissions:
 
 jobs:
   core-wbipc:
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: [1, 2, 3]
     runs-on: windows-latest
     timeout-minutes: 15
     defaults:
@@ -45,13 +50,13 @@ jobs:
       - name: Execute the complete original Core and WBIPC test file
         run: |
           $ErrorActionPreference = 'Stop'
-          node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/client-context-target.test.js
+          node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/client-context-target.test.js test/context-recovery-codex-summary.test.js
           if ($LASTEXITCODE -ne 0) { throw 'Core or persistent recovery failed its original assertions.' }
       - name: Record the verification boundary
         if: always()
         run: |
           @(
-            'One complete original Core/WBIPC test file; no test filtering or retries.'
+            'Three independent hosted runners, each executes both complete Core/WBIPC and Codex-summary files once; no test filtering or retries.'
             'Original 5000 ms requests, native worker, DPAPI, OS anchor and durable acknowledgements are retained.'
             'All upstreams are owned synthetic fixtures. No real model request is made.'
             'This is an independent Windows diagnostic; complete Verify and formal Windows qualification remain required.'

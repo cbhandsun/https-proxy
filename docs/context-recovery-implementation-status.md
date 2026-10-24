@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：收齐2c39a56失败门禁，修正摘要恢复夹具的双时钟
+
+`2c39a56af1ea1dc2ef1b2230f56b27641bcfddc8` 完整Verify `40092807977` 终态为六项success、coverage `120868791653` 与unit-tests (2) `120868791732` failure。正式Windows `40092807751` egress成功、source-gates `120868790904` failure，后续context-recovery未执行；不得称为正式验收通过。三个失败均为context-recovery-codex-summary.test.js的 restored Codex summary completes isolated READ and encrypted public publication 返回context_recovery_unavailable，不是本轮五秒超时。旧失败全部保留。
+
+本机用原命令复现20项中19通过、该项失败。根因为夹具session从1000重开后仅到1001，SQLite时钟却固定10000；复合READ实际持久observedAt=10000，host实际结算观测=1001，生产时间门禁正确拒绝。现让该夹具暴露自己的now并同时注入storage，不修改生产断言、不延长期限、不把未来持久观测降为成功；末尾1002的重开检查与原expiry断言保留。修正后摘要、复合READ合同/引擎及root-reader四文件81项全通过、零跳过，包含未来时间、回拨、取消、错误/丢失ACK和预扣屏障负控。Lint、变更格式、CI/发行治理通过。
+
+2c39a56独立Windows timing `40092807887` job `120868791092` 完整原Core/WBIPC文件30/30通过；六次long-persistent请求chat 1566/1561ms、responses 1282/1227ms、Claude 1690/1580ms。完整coverage和正式source-gates虽被上述摘要夹具挡住，各自Core/WBIPC六次long-persistent也均通过：coverage 2076/2038、1920/2161、2265/2301ms；正式source-gates 2309/2744、1546/1927、2422/1955ms。同一源码在三个独立runner共18次持久请求1227–2744ms，零long-persistent request_failed；默认原生worker、DPAPI、OS锚点及原5000ms请求均保留。这是稳定性改善证据，不能用它覆盖完整CI失败、关闭所有稳定性或授予安装版资格。
+
+下一候选的独立timing扩展为三个互不共享环境的冷runner，每个完整执行Core/WBIPC和Codex-summary两个文件各一次，无过滤、无自动重试；fail-fast关闭仅用于保留每个样本结果，任何失败仍使作业失败。完整Verify和正式Windows仍为独立必过门禁，通过后才推进旧582布局、升级回滚和最新安装版验收。生产代码及锁文件本批不变。未访问、修改或重启冻结日档，未核验额度或调用真实模型。整体尚未交付。
+
 ## 2026-10-24：定位Windows五秒尾延迟，生产READ减少一次串行持久提交
 
 整体仍处于上下文压缩/精确恢复的稳定性与最终自用验收阶段。本轮先核对CI：`6c0f43f` 的Verify `40089577296` 与正式Windows `40089577293`，`75e1b52` 的Verify `40089968550` 与正式Windows `40089968552` 均已全部success，包含N08/N09。不能用这些单次通过撤销be7bacee及更早五秒失败，也不覆盖本条后续生产修复。默认客户端原生压缩、可选精确恢复和私有恢复后独立公开生成均未改变。
