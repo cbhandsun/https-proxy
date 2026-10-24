@@ -353,3 +353,40 @@ test('installed observer composition accepts the actual release generator format
   assert.equal(result.factoryCalls, 1);
   sessions.close();
 });
+
+test('installed client controller seeds actual Claude listeners before startup instead of relying on hot reload', (t) => {
+  const f = fixture(t);
+  const file = path.join(f.controller.outputRoot, 'context-recovery-daemon-owned-controller.psm1');
+  const command = String.raw`
+$ErrorActionPreference='Stop'
+$tokens=$null;$errors=$null
+$ast=[Management.Automation.Language.Parser]::ParseFile($env:HPM_TEST_CONTROLLER,[ref]$tokens,[ref]$errors)
+if($errors.Count){throw 'fixture_invalid'}
+$fn=@($ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'New-HpmDaemonOwnedConfig'},$true))
+$call=@($ast.FindAll({param($n) $n -is [Management.Automation.Language.AssignmentStatementAst] -and $n.Extent.Text.StartsWith('$config = New-HpmDaemonOwnedConfig ')},$true))
+if($fn.Count -ne 1 -or $call.Count -ne 1){throw 'fixture_invalid'}
+Invoke-Expression $fn[0].Extent.Text
+$ports=@(15001,15002)
+foreach($label in @('00','01','10','11')) {
+ $Request=@{case=$label}
+ Invoke-Expression $call[0].Extent.Text
+ $expected=if($label -cin @('10','11')){'claude'}else{'openai-responses'}
+ if($config.localServer.protocol -cne $expected -or $config.entryServers[0].protocol -cne $expected){throw 'initial_protocol_mismatch'}
+ if(-not $config.entryAuth.enabled -or $config.entryAuth.keys.Count -ne 0 -or $config.appSettings.contextRecoveryEnabled -or $config.appSettings.contextRecoveryPersistenceEnabled){throw 'initial_gates_changed'}
+}
+[Console]::Out.Write('4')
+`;
+  const result = spawnSync(
+    'pwsh',
+    ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', command],
+    {
+      env: { ...process.env, HPM_TEST_CONTROLLER: file },
+      encoding: 'utf8',
+      timeout: 10000,
+      maxBuffer: 4096,
+    }
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '4');
+});

@@ -1,5 +1,21 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：保留7556263原60秒重开失败，修复Claude验收初始监听协议
+
+`7556263b98e6f5dbe601aa1e6d2358526cea8a7c`的完整Verify `40121458356`八项和业务边界诊断 `40121458373`两项均success；正式Windows `40121458384`的egress和source-gates成功，N08 `120957998887`、N09 `120957998899`已运行、尚无终态结论。安装链 `40121484825` / job `120953889091`在完整候选verify阶段终态failure，原真实默认runtime/worker撤销清空重开测试用时60013.0193ms，触发原60000ms期限，安装构建及客户端步骤均未运行。未重跑同一失败候选，不能以独立Verify成功覆盖安装门禁失败。
+
+这次取得46条有限阶段事件：revoke初次ready耗时18584ms，第一次begin约4032ms、complete约4971ms，LIST约7354ms、READ约7907ms；invalidate约2201ms，direct open约3254ms、direct inspect约4123ms，之后reopen ready约861ms。revoke全段到59476.59ms才结束，clear的initial-ready于59476.59ms开始、60562.04ms结束，原总期限在期间触发。最后停在clear初始ready不证明清空开库是根因；证据显示此前多段耗时累积，尚不能区分JS/worker计算、原生调用、持久I/O或运行环境等待。原60秒、原生5/30秒、HTTP5秒、FULL/DELETE、ACK和期限保持，旧8067628超时及本次失败均保留，根因仍待解决。
+
+并行开展不依赖模型/长测的实际源码入口HTTP诊断：新临时HOME/config/runtime、真实openai-proxy.js和管理API、仅本机哨兵上游，未注入Core或认证。Responses初始监听下，Codex缺失/错误key均拒绝、上游零调用，正确key恰好到达哨兵一次。随后保存Claude配置得到200/ok，但实际health监听协议仍为openai-responses，诊断按原要求失败。源码确认ENTRY_SERVERS/监听协议在启动时确定，保存配置不重启监听器；当前客户端控制器四组初始配置却均固定Responses。该探针是提前发现的独立验收接线缺陷，不是把7556263的重开失败归因于Claude。
+
+本批只改客户端验收的受控控制器副本：00/01从启动使用Responses，10/11从启动使用Claude，双处初始配置同步，ValidateSet仅接受这两种协议；原PS源文件、设置矩阵、默认关闭恢复及默认入口认证保持。owned adapter增加严格四项、快照冻结的初始协议期望；未提供时仍原四组Responses，提供时必须逐项核对实际health，而不是改写health响应。新参数没有任意进程、URL、认证或存储选择能力；原顺序、PID/目录/端口/凭据校验及15秒握手期限保持。
+
+先执行生成控制器中真实PowerShell函数与调用语句，在旧实现复现initial_protocol_mismatch；修复后四标签配置与认证/关闭恢复断言通过。新回归还验证计划快照、真实健康协议不匹配时停止并拒绝、空/非法/极端/访问器/Proxy输入；扩大安装客户端、owned控制器及设置矩阵206/206通过、零跳过，统一CI自动发现。全树1565文件语法、Lint零错误/五个既有警告、四项架构/secret、CI和发行治理通过。
+
+重新从启动使用生产固定Claude协议的实际源码入口探针，缺失/错误key拒绝且上游零调用、正确key恰好到本机哨兵一次，owned子进程已停止；只证明本机源码HTTP接线，不授予Windows安装/原生CLI/DPAPI资格。该探针首次又因复用硬编码Responses的健康探针而拒绝，失败记录保留；改用原启动marker后独立精确核对PID、管理/入口端口、Claude协议与TLS标志才取得上述结果，未改变产品健康检查或安装门禁。
+
+当前最紧要剩余阻塞仍为7556263的真实60秒重开耗时定位修复；本批协议修复仍须新候选完整门禁及实际安装四组。冻结长测未访问、日常配置未修改，真实模型请求0；24小时/到期重开、原生容量、实际provider和受控启用等原范围不缩减。
+
 ## 2026-10-24：ac32f58完整门禁与安装生命周期通过，修正默认冷态观察误拒绝
 
 `ac32f58fa1e48eac1ee5a5dbf02e2f8fba998f34`完整Verify `40118884107`八项、正式Windows `40118884185`四项全部completed/success。source-gates `120945898629`、N08 `120949751890`、N09 `120949751937`均success，N08/N09安全probe与ownedTreeEmpty均true，仍只授予原固定场景门禁范围。Windows普通unit0和coverage均通过326875440字节Codex受控启动回归；新增哈希边界六项在unit1通过。

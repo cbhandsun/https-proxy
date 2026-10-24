@@ -742,3 +742,82 @@ test('daemon exit keeps its cause and exposes only the latest validated observed
   assert.doesNotMatch(JSON.stringify(result), /PRIVATE_STDERR/);
   assert.equal(await f.adapter.close(), true);
 });
+
+test('startup protocols are snapshotted and the real health protocol must match each declared case', async (t) => {
+  const f = fixture(t);
+  const protocols = ['openai-responses', 'openai-responses', 'claude', 'claude'];
+  const adapter = createDaemonOwnedAdapter(
+    { install: f.install, ownedRoot: f.root, initialEntryProtocols: protocols },
+    f.channel,
+    f.io
+  );
+  protocols[2] = 'openai-responses';
+  for (const [index, label] of ['00', '01', '10', '11'].entries()) {
+    f.mutateHealth = (body) => {
+      body.ports.entries[0].protocol = index < 2 ? 'openai-responses' : 'claude';
+    };
+    const owner = await adapter.launch({ label, initialEnabled: false, initialPersistence: false });
+    assert.equal(adapter.verifyOwnedIdentity(owner), true);
+    assert.equal(await owner.stop(), true);
+  }
+  assert.equal(await adapter.close(), true);
+});
+
+test('declared Claude startup cannot be acknowledged by a Responses listener or an invalid protocol plan', async (t) => {
+  const f = fixture(t);
+  const adapter = createDaemonOwnedAdapter(
+    {
+      install: f.install,
+      ownedRoot: f.root,
+      initialEntryProtocols: ['claude', 'claude', 'claude', 'claude'],
+    },
+    f.channel,
+    f.io
+  );
+  await assert.rejects(
+    adapter.launch({ label: '00', initialEnabled: false, initialPersistence: false })
+  );
+  assert.equal(f.requests.at(-1).op, 'stop');
+  assert.equal(await adapter.close(), true);
+  const {
+    parseOwnedStartupProtocols,
+  } = require('../scripts/lib/context-recovery-daemon-owned-startup');
+  assert.deepEqual(parseOwnedStartupProtocols(undefined), Array(4).fill('openai-responses'));
+  assert.equal(
+    Object.isFrozen(parseOwnedStartupProtocols(['claude', 'claude', 'claude', 'claude'])),
+    true
+  );
+  for (const value of [
+    null,
+    {},
+    [],
+    ['claude'],
+    Array(5).fill('claude'),
+    ['claude', 'claude', 'claude', 'invalid'],
+    Array(20001).fill('claude'),
+  ])
+    assert.throws(() => parseOwnedStartupProtocols(value), {
+      message: 'daemon_owned_adapter_failed',
+    });
+  let touched = false;
+  const hostile = ['claude', 'claude', 'claude', 'claude'];
+  Object.defineProperty(hostile, '0', {
+    enumerable: true,
+    get() {
+      touched = true;
+      return 'claude';
+    },
+  });
+  assert.throws(() => parseOwnedStartupProtocols(hostile));
+  assert.throws(() =>
+    parseOwnedStartupProtocols(
+      new Proxy([], {
+        get() {
+          touched = true;
+          return 4;
+        },
+      })
+    )
+  );
+  assert.equal(touched, false);
+});

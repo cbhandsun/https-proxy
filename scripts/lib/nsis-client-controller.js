@@ -7,6 +7,12 @@ const { isDeepStrictEqual } = require('node:util');
 const { digest, safePath } = require('./nsis-encrypted-contract');
 const { exact } = require('../context-hosted/shared/boundary');
 const { buildHostedController } = require('../context-hosted/shared/build-hosted-controller');
+const INSTALLED_CLIENT_PROTOCOLS = Object.freeze([
+  'openai-responses',
+  'openai-responses',
+  'claude',
+  'claude',
+]);
 const NAMES = [
   'context-recovery-daemon-owned-controller.ps1',
   'context-recovery-daemon-owned-controller.psm1',
@@ -30,6 +36,22 @@ function transformInstalledController(source, { prepareFile, prepareSha256, temp
     if (source.split(before).length !== 2) throw fail();
     source = source.replace(before, after);
   };
+  replace(
+    '    param([int[]]$Ports)',
+    "    param([int[]]$Ports, [ValidateSet('openai-responses','claude')][string]$EntryProtocol = 'openai-responses')"
+  );
+  replace(
+    "managementPort = $ports[0]; protocol = 'openai-responses'; basePath",
+    'managementPort = $ports[0]; protocol = $EntryProtocol; basePath'
+  );
+  replace(
+    "listenPort = $ports[1]; protocol = 'openai-responses'; tls = $false",
+    'listenPort = $ports[1]; protocol = $EntryProtocol; tls = $false'
+  );
+  replace(
+    '$config = New-HpmDaemonOwnedConfig $ports',
+    "$config = New-HpmDaemonOwnedConfig $ports -EntryProtocol $(if ($Request.case -cin @('10','11')) { 'claude' } else { 'openai-responses' })"
+  );
   replace(
     "$caseRoot = Join-Path $OwnedRoot ('daemon-http-' + [Guid]::NewGuid().ToString('N'))",
     "$caseRoot = Join-Path (Join-Path $OwnedRoot 'cases') ('daemon-http-' + [Guid]::NewGuid().ToString('N'))"
@@ -139,6 +161,7 @@ function createInstalledControllerSpawn(
   };
 }
 module.exports = {
+  INSTALLED_CLIENT_PROTOCOLS,
   buildInstalledClientController,
   createInstalledControllerSpawn,
   transformInstalledController,

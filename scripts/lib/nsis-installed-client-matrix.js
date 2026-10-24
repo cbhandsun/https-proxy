@@ -8,6 +8,7 @@ const { performance } = require('node:perf_hooks');
 const { createInstalledClientListener } = require('../context-hosted/shared/hosted-listener');
 const { runHostedProbes } = require('../context-hosted/shared/hosted-probes');
 const {
+  INSTALLED_CLIENT_PROTOCOLS,
   buildInstalledClientController,
   createInstalledControllerSpawn,
 } = require('./nsis-client-controller');
@@ -120,7 +121,11 @@ const defaults = {
   },
   adapter(request, channel, token) {
     return createDaemonOwnedAdapter(
-      { install: request.install, ownedRoot: request.ownedRoot },
+      {
+        install: request.install,
+        ownedRoot: request.ownedRoot,
+        initialEntryProtocols: INSTALLED_CLIENT_PROTOCOLS,
+      },
       channel,
       {
         now: () => performance.now(),

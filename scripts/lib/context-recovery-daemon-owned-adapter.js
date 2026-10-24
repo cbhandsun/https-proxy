@@ -11,6 +11,7 @@ const {
   settle,
   callable,
 } = require('./context-recovery-daemon-http-boundary');
+const { parseOwnedStartupProtocols } = require('./context-recovery-daemon-owned-startup');
 const { LABELS, identity } = require('./context-recovery-daemon-owned-protocol');
 const { createDaemonManagementHttpClient } = require('./context-recovery-daemon-http-client');
 const {
@@ -78,7 +79,7 @@ function inspectOwnedStorage(runtimeDir, expected) {
   };
 }
 
-function readyHealth(reply, attested) {
+function readyHealth(reply, attested, initialProtocol) {
   if (reply.status !== 200) return false;
   const body = reply.body;
   const runtime = body?.runtime;
@@ -103,7 +104,7 @@ function readyHealth(reply, attested) {
     entry.length !== 1 ||
     entry[0]?.host !== '127.0.0.1' ||
     entry[0]?.listenPort !== attested.entryPort ||
-    entry[0]?.protocol !== 'openai-responses' ||
+    entry[0]?.protocol !== initialProtocol ||
     entry[0]?.tls !== false ||
     policy?.configValid !== true ||
     policy.requestedEnabled !== false ||
@@ -119,10 +120,16 @@ function readyHealth(reply, attested) {
 // Trusted dependency injection permits offline protocol/HTTP tests. Production
 // uses startDaemonOwnedController as channel; no arbitrary executable crosses it.
 function createDaemonOwnedAdapter(input, channel, dependencies) {
-  let options, wire, io;
+  let options, wire, io, initialProtocols;
   try {
     options = dataSnapshot(input, 'daemon_owned_adapter_failed');
-    if (Object.keys(options).sort().join(',') !== 'install,ownedRoot') throw fail();
+    if (
+      !['install,ownedRoot', 'initialEntryProtocols,install,ownedRoot'].includes(
+        Object.keys(options).sort().join(',')
+      )
+    )
+      throw fail();
+    initialProtocols = parseOwnedStartupProtocols(options.initialEntryProtocols);
     options.ownedRoot = safePath(options.ownedRoot, true);
     options.install = safePath(options.install, true);
     if (!inside(options.ownedRoot, options.install)) throw fail();
@@ -290,7 +297,7 @@ function createDaemonOwnedAdapter(input, channel, dependencies) {
         if (!Number.isFinite(after) || after < previous || after - start >= 15000) throw fail();
         previous = after;
         stage = 'ready_health_rejected';
-        if (health && readyHealth(health, attested)) {
+        if (health && readyHealth(health, attested, initialProtocols[next])) {
           stage = 'config_rejected';
           const config = dataSnapshot(
             (
