@@ -93,6 +93,20 @@ function createDurableSnapshotReader(input, trusted = {}) {
         (storePin !== undefined && storePin !== header.store_id)
       )
         throw failure();
+      // Copy the bounded encrypted rows under one consistent read transaction.
+      // Release SQLite before decryption/validation so an acceptance observer
+      // does not keep the owner's final publication COMMIT waiting on CPU work.
+      const rows = binding
+        ? database.prepare(BOUND_ROW_SQL).all(binding.scope)
+        : database.prepare(ROW_SQL).all();
+      if (rows.length > 1) throw failure();
+      if (binding && rows.length === 0 && database.prepare(ROW_SQL).all().length !== 0)
+        throw failure();
+      database.exec('ROLLBACK');
+      begun = false;
+      const completedRead = database;
+      database = undefined;
+      completedRead.close();
       onPhase(181);
       const clock = cipher.open(
         {
@@ -114,16 +128,6 @@ function createDurableSnapshotReader(input, trusted = {}) {
       )
         throw failure();
       onPhase(182);
-      // The first read requires an unambiguous root. Later ordinary requests
-      // may create sibling roots; they cannot replace this authenticated scope.
-      const rows = binding
-        ? database.prepare(BOUND_ROW_SQL).all(binding.scope)
-        : database.prepare(ROW_SQL).all();
-      if (rows.length > 1) throw failure();
-      // A different remaining scope cannot stand in for the bound root or
-      // manufacture a successful empty-store observation after replacement.
-      if (binding && rows.length === 0 && database.prepare(ROW_SQL).all().length !== 0)
-        throw failure();
       if (rows.length === 0) {
         result = {
           ...META,

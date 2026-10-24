@@ -246,6 +246,26 @@ test('readonly snapshot accepts only supported formats with a matching authentic
   }
 });
 
+test('readonly snapshot releases its read transaction before decrypting and projecting captured rows', () => {
+  const f = fixture(true);
+  const phases = [];
+  f.trusted.onPhase = (phase) => {
+    if ([181, 182, 183].includes(phase)) {
+      assert.equal(f.closed, 1);
+      assert.equal(f.commands.at(-1), 'ROLLBACK');
+      phases.push(phase);
+    }
+  };
+  const reader = f.reader();
+  const value = reader.read();
+  assert.equal(value.present, true);
+  assert.equal(value.hostDurableAck, false);
+  assert.equal(value.capturedEvidence.length, 1);
+  assert.deepEqual(phases, [181, 182, 183]);
+  assert.equal(f.closed, 1);
+  reader.close();
+});
+
 test('snapshot projects authenticated captured receipts with branch-scoped identities and original source expiry', () => {
   const f = fixture(true);
   const reader = f.reader();

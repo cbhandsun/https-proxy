@@ -1,5 +1,23 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-23：修复短暂只读锁导致发送确认失败，并缩短观察器持锁区间
+
+生产写连接增加SQLite内部1000ms busy handler，处理DELETE journal下短暂只读事务与最终COMMIT竞争；只等待原事务释放锁，不重放事务体或业务请求。持续占锁仍失败并完整回滚。所有权mutex与只读inspection仍busy_timeout=0；worker原30000ms期限、验收总时限、ACK到kill的操作顺序和原负载均未变。本项改变的是正常读写竞争的产品处理行为，不是上调测试预算，也不能用局部通过代替完整验收。
+
+N09只读观察器改为在同一事务中复制原有有界加密header/rows后立即ROLLBACK、close，再进行解密、认证及元数据解析；仍校验同scope、revision、expiry、schema、文件pins及全部错误分支，仍只输出committed-metadata-only/hostDurableAck=false。关闭失败仍只调用一次close并返回原固定错误，不吞异常。
+
+新增真实文件SQLite与独立worker只读锁回归：原实现短暂占锁时失败，修正后单次COMMIT成功；持续占锁依然安全失败，旧数据和revision保持，释放后可保存且旧CAS被拒绝。新增观察器释放顺序回归在修改前失败。相关存储、anchor、发布事务及观察器六文件164/164通过，原有进程退出、篡改、回滚失败及只读拒写断言保留。新测试由统一unit/coverage的discoverTestFiles自动发现。ESLint、Prettier、CI/release治理通过，完整语法检查仍在原句柄运行。
+
+Core短暂读锁私有探针首次在人为延迟finished入口期间提前发继续请求，返回既有busy拒绝，不能记成功；调整为发送前持锁、finished入口立即执行的对照后，本地文件owner初始化后续失败而未完成全8轮，同样不授予完整Core资格。无需扩大这些本地探针的时间限制；产品修复需以同一候选的隔离Windows业务/安装验收确认。
+
+## 2026-10-23：Windows失败收敛到finished确认；只读事务竞争可确定性复现
+
+修正诊断后的ad888f39独立Windows40059467942：N08成功，N09作业120769624774失败，有限输出case82 / exit223，即HTTP finished持久化确认阶段；Verify40059467959八项终态success。正式Windows40059467940仍运行，不继承独立诊断或上一源码资格。上一5bee正式40058446149已终态：source-gates、egress、N08成功，N09失败（case82 /224）。
+
+私有Core探针使用实际HTTP入口、真实时钟、加密内存SQLite，8轮精确读取/独立公开生成通过；进一步使用实际文件SQLite、createStorageOwner、异步存储调用及保留式测试anchor后端，同样8轮通过。该后端不调用DPAPI或HKCU，不代表真实native anchor资格。首个文件探针在setup阶段失败且没有完成案例，不用后一次成功抹去该失败。
+
+检查现有验收观察器发现：摘要HTTP返回后立即committed()读取；readonly-snapshot.js在BEGIN只读事务内执行解密和元数据解析，而写入端busy_timeout=0。确定性负控仅在摘要finished写入期间持有同文件只读事务，即真实save-reference-state失败、httpFinishFailed=1、后续previous-unavailable、缺少READ，复现与Windows一致的223阶段。此证据证明该竞争足以导致当前症状，尚不能证明Windows实际失败一定由这个观察器造成。后续需验证并修复读写竞争；不能增加ACK到kill间I/O、把committed观测改称durable ACK，或放宽原负载/超时/失败断言。
+
 ## 2026-10-23：修复首次 missing READ 诊断丢弃已有 HTTP 阶段的问题
 
 本地实际 Core HTTP、加密内存 SQLite 与隔离公开生成探针在正常路径 8/8 精确读取通过；仅注入摘要 finished 持久化失败后，后续准入为 previous-unavailable、没有 READ，HTTP 单例计数明确为 httpFinishFailed=1。该人为负控不能证明 Windows 实际故障根因，但证明此前 admission 投影将任一 HTTP 失败统一折叠为224，会丢掉已有217–223阶段证据。现改为经过全部计数校验后优先保留唯一 HTTP 失败阶段，多个阶段或非法数据仍为224；adapter只透传固定白名单。不改变产品代码、成功路径、负载、超时、清理或失败判定。
