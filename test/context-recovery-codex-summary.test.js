@@ -7,6 +7,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { randomBytes } = require('node:crypto');
+const { assertOwnerLaunches } = require('./helpers/physical-owner-receipt.cjs');
 const { getDefaultEnvironment } = require('@modelcontextprotocol/sdk/client/stdio.js');
 const { tryHandleContextRecoveryHttp } = require('../lib/proxy/context-recovery-http-entry');
 const { decodeContextRecoveryResponse } = require('../lib/proxy/context-recovery-protocol');
@@ -684,9 +686,12 @@ for (const [forced, inlineTools] of [
           original: f.original,
         };
         const reports = [];
+        const launches = [];
         for (const operation of forced
           ? ['save-crash', 'read', 'revoke-crash', 'read-revoked']
           : ['save', 'read']) {
+          const runId = randomBytes(16).toString('hex');
+          launches.push({ runId, operation });
           const result = spawnSync(
             process.execPath,
             [
@@ -701,7 +706,7 @@ for (const [forced, inlineTools] of [
                   ? { NODE_V8_COVERAGE: process.env.NODE_V8_COVERAGE }
                   : {}),
               },
-              input: JSON.stringify(payload),
+              input: JSON.stringify({ ...payload, runId }),
               encoding: 'utf8',
               windowsHide: true,
               shell: false,
@@ -718,6 +723,8 @@ for (const [forced, inlineTools] of [
           if (operation.endsWith('-crash')) assert.notEqual(result.status, 0);
           else assert.equal(result.status, 0, 'isolated encrypted owner must exit successfully');
           const report = JSON.parse(result.stdout);
+          assert.equal(report.runId, runId);
+          assert.equal(report.operation, operation);
           assert.equal(report.closeSkipped, operation.endsWith('-crash'));
           assert.equal(report.commitAcknowledged, operation.endsWith('-crash'));
           assert.equal(report.version, 10);
@@ -725,10 +732,10 @@ for (const [forced, inlineTools] of [
           assert.notEqual(report.pid, process.pid);
           reports.push(report);
         }
-        assert.notEqual(reports[0].pid, reports[1].pid);
+        assertOwnerLaunches(reports, launches, process.pid);
         assert.equal(reports[1].exactRead, true);
         if (forced) {
-          assert.equal(new Set(reports.map((report) => report.pid)).size, 4);
+          assert.equal(reports.length, 4);
           assert.equal(reports[3].revoked, true);
         }
         const files = fs.readdirSync(directory, { recursive: true });

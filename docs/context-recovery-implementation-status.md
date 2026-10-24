@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：保留8f74184五秒失败与COMMIT线程CPU证据，修正物理owner验收的PID复用误判
+
+8f74184a8d000f551e2e7460048513225953b6b0的普通Verify `40130155268`终态七项success、coverage `120979955892`failure，不能称完整CI通过。coverage中Chat long-persistent第二轮5014ms、Responses首轮5002ms触发原5000ms截止。Responses sequence=6 save-reference-state耗时4665ms，engine_execute4554ms，其中SQLite COMMIT4248ms，当前存储线程同期threadCpuUserUs=16000/threadCpuSystemUs=0；此前sequence=4提交1663ms、sequence=5 scan提交1334ms，均为零线程CPU增量。Chat最慢提交1045ms/927ms亦为零线程CPU增量。证据将主要时间确定为COMMIT内等待而非该线程解密计算，尚不能区分具体持久I/O、调度或系统因素；不降低FULL/DELETE、删准入持久化、提前ACK或提高期限。
+
+同一coverage还出现两个仅使用合成后端的WFP PowerShell启动超时，以及四次物理owner强杀/重开验收末尾的3 !== 4：四次spawnSync均已完成，各步版本、expiry、强杀ACK等原断言均通过，但Windows在这些已顺序退出的子进程间复用了PID数值。该处要求四个PID数值互不相同并不能证明四次独立启动，合法复用会误拒绝；不是持久状态或撤销丢失。
+
+现每次实际spawnSync前生成独立128位父端挑战，由stdin传入，helper验证格式后将该挑战和固定operation随原回执返回。父端逐次精确核对挑战及操作，统一校验2/4次启动的数量、唯一挑战、正整数且非仍存活父进程的PID；允许已退出子进程的PID数值复用。没有复用子进程、重试运行、替换worker或删任何强杀、持久ACK、原文精确读取、版本10、原expiry、撤销和无明文断言。新增独立回归正控四个相同PID但四次不同启动，负控拒绝重放/替换/缺失挑战、操作漂移、数量不足、父PID/非法PID、空/非法输入、getter及Proxy。统一单元自动发现；本机相关回归与四项架构/secret共27/27通过、零skip，Lint、CI及发行治理通过。Mac沿原平台分支不执行Windows DPAPI强杀链，新挑战仍须Windows实际复验。
+
+另一个已完成Windows普通unit1 `120979955991`具有6次实际持久HTTP发布1194–1471ms、150条COMMIT最慢58ms；unit2 `120979955950`完整重开80阶段耗时3625.56ms。成功与失败分别保留，不以成功覆盖上述等待。正式Windows `40130155278`及原安装 `40130181062` / job `120980112439`尚在各自完整源码门禁；不取消或重跑原作业，继续等其原结果检验Claude MCP修复。本批测试误判修复不是产品性能修复，整体范围未完成，冻结长测未访问、模型请求0。
+
 ## 2026-10-24：安装链跨过Codex两组，修复Claude MCP源服务误拒绝传输元数据
 
 fbcaac60e45f1688ac58368a3a997928061ecfc2的完整Verify `40126883229`八项、正式Windows `40126883187`四项（含N08/N09）全部success。原安装运行 `40126903131` / job `120970263541`已终态failure：完整候选门禁、构建及实际安装/升级回滚/DPAPI生命周期success，客户端阶段于claude-default-cli失败。顺序控制已跨过Codex默认/增强两组，但没有四组整体通过回执，Claude增强尚未完成；不重跑该失败候选。

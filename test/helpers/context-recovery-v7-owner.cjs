@@ -19,6 +19,7 @@ const {
 async function main() {
   const payload = JSON.parse(fs.readFileSync(0, 'utf8'));
   const operation = process.argv[2];
+  assert.match(payload.runId, /^[a-f0-9]{32}$/);
   assert.ok(['save', 'read', 'save-crash', 'revoke-crash', 'read-revoked'].includes(operation));
   assert.ok([7, 8, 9, 10].includes(payload.state.version));
   const scope = createHash('sha256')
@@ -89,6 +90,8 @@ async function main() {
   const report =
     JSON.stringify({
       pid: process.pid,
+      runId: payload.runId,
+      operation,
       version: payload.state.version,
       expiresAt: payload.state.expiresAt,
       exactRead,
