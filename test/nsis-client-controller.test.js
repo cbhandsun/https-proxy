@@ -124,8 +124,8 @@ test('installed transform refuses missing, duplicate, already-transformed anchor
       temporary: path.join(candidate, "temp's"),
     };
   const valid = transformInstalledController(source, options);
-  assert.ok(valid.includes("work''s/prep.ps1"));
-  assert.ok(valid.includes("temp''s"));
+  assert.ok(valid.includes(options.prepareFile.replaceAll("'", "''")));
+  assert.ok(valid.includes(options.temporary.replaceAll("'", "''")));
   for (const input of [
     '',
     null,

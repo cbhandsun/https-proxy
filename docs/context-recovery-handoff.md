@@ -41,6 +41,8 @@ node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1
 
 ## 当前失败与下一步
 
+**412c800门禁失败优先：** Verify `40112658934` unit-tests (2) job `120927442702`因控制器测试把Windows路径分隔符写成正斜线而失败；已用真实Windows、固定原源码与PowerShell AST复现并验证修正后的完整路径精确转义检查。生产及工具实现未改，旧失败保留。新候选需重新完整verify/audit/build后执行安装矩阵；`40112676779`详细jobs观察超时不代表运行终止，不重启旧运行，不授予四组CLI资格。详情见实施状态顶部。
+
 **安装矩阵接入批优先：** `a204c4c`完整Verify `40105361343`、正式Windows `40105361357`已终态success；新增实际NSIS/受控Codex和Claude四组矩阵总入口已接通并待原完整门禁后的托管实际执行，尚未取得实际安装客户端结果。新观察器真实发行清单解析阻塞已修，严格邮箱签名/原管理及入口认证、原网络和Job门禁不变。最新进度和Mac格式检查失败记录见实施状态顶部，不能把局部工具回归当成客户端资格。原生容量混合超时、真实24小时/到期重开、安装版持久重启/优雅退出、真实provider及自用启用仍需各自证据；冻结长测本阶段不访问、不改变、不重启，额度未核验前模型请求0。
 
 **最新e490a58批次优先：** 完整Verify `40098018857` 八项和正式Windows `40098018924` 四项均success。最新9401ca6加密NSIS生命周期 `40096977916`（job `120881245475`）已success，安装/升级/回滚/重装/卸载及原625登记迁移拒写均通过；安装manifest `df511afd…`，原clientQualified/gracefulDrainQualified/restartRetention仍false、forced_cleanup不变。e490a58未改生产源码，五秒稳定性证据仍为原42样本，历史失败保留。
