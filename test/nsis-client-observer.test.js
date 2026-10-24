@@ -32,10 +32,21 @@ function fixture(t, real = false) {
       "module.exports={createContextRecoverySessions(...args){return {args,inspect(){return {roots:0,snapshots:0,enabled:false,closed:false}}}},restoreContextRecoverySessions(){throw new Error('sentinel')}};"
     );
   }
+  const runtimeFile = path.join(install, 'lib/proxy/context-recovery-runtime.js');
+  if (!real)
+    fs.writeFileSync(
+      runtimeFile,
+      "module.exports={createContextRecoveryRuntime(){return {inspect(){return {state:'disabled',storage:'memory',appliedEnabled:false,requestedEnabled:false,requestedPersistence:false,appliedPersistence:false,restartRetention:false}}}}};"
+    );
   const manifest = path.join(install, 'release-runtime-manifest.json');
   fs.writeFileSync(
     manifest,
-    JSON.stringify({ sourceSha256: { 'lib/proxy/context-recovery-sessions.js': digest(sessions) } })
+    JSON.stringify({
+      sourceSha256: {
+        'lib/proxy/context-recovery-sessions.js': digest(sessions),
+        'lib/proxy/context-recovery-runtime.js': digest(runtimeFile),
+      },
+    })
   );
   const input = {
     caseRoot,
@@ -298,7 +309,7 @@ test('observer prepare PowerShell parses, bounds pipes, shares controller Job an
   assert.equal(result.status, 0, result.stderr);
 });
 
-test('hosted source closure accepts only the fixed observer installed sessions import', (t) => {
+test('hosted source closure accepts only the fixed observer installed sessions/runtime imports', (t) => {
   const { collectClosure } = require('../scripts/context-hosted/build-plan');
   const bootstrap = path.resolve(__dirname, '../scripts/lib/nsis-client-observer-bootstrap.cjs');
   const pins = collectClosure([bootstrap], []);
@@ -311,6 +322,11 @@ test('hosted source closure accepts only the fixed observer installed sessions i
   fs.writeFileSync(
     copy,
     "require(path.join(value.install, 'lib/proxy/context-recovery-sessions.js'));"
+  );
+  assert.throws(() => collectClosure([copy], []), { message: 'context_hosted_plan_rejected' });
+  fs.writeFileSync(
+    copy,
+    "require(path.join(value.install, 'lib/proxy/context-recovery-runtime.js'));"
   );
   assert.throws(() => collectClosure([copy], []), { message: 'context_hosted_plan_rejected' });
   fs.writeFileSync(copy, "require(path.join(value.install, 'lib/proxy/other.js'));");
@@ -381,6 +397,147 @@ test('pinned release manifest accepts pretty bytes but rejects UTF8 corruption, 
     fs.writeFileSync(file, bytes);
     assert.throws(
       () => observer.readInstalledManifest({ ...config, manifestSha256: digest(file) }),
+      failure
+    );
+  }
+});
+
+test('observer proves actual default runtime remains cold without creating a session authority', async (t) => {
+  const f = fixture(t, true);
+  observer.prepareInstalledClientObserver(f.input, f.runtime);
+  const installed = installInstalledClientObserver(f.input, f.runtime);
+  t.after(() => installed.close());
+  const directory = path.join(f.input.caseRoot, 'runtime-data');
+  fs.mkdirSync(directory);
+  const service = require(
+    path.join(f.input.install, 'lib/proxy/context-recovery-runtime.js')
+  ).createContextRecoveryRuntime({ dataDirectory: directory });
+  t.after(() => service.shutdownAsync());
+  service.configureSettings({
+    appSettings: { contextRecoveryEnabled: false, contextRecoveryPersistenceEnabled: false },
+  });
+  assert.equal(service.inspect().state, 'disabled');
+  observer.write(
+    path.join(f.dir, 'request.json'),
+    observer.envelope(
+      {
+        version: 1,
+        pid: f.input.pid,
+        manifestSha256: f.input.manifestSha256,
+        sequence: 1,
+      },
+      f.input.token,
+      'request'
+    )
+  );
+  assert.doesNotThrow(() => installed.sample());
+  const result = observer.authenticate(
+    observer.read(path.join(f.dir, 'receipt.json')),
+    f.input.token,
+    'receipt'
+  );
+  assert.equal(result.factoryCalls, 0);
+  assert.equal(result.coldDisabled, true);
+  assert.equal(result.roots, 0);
+  assert.equal(result.snapshots, 0);
+  assert.equal(result.enabled, false);
+  assert.equal(result.closed, false);
+  assert.deepEqual(fs.readdirSync(directory), []);
+  const pending = observer.requestInstalledClientObservation(
+    { ...f.input, sequence: 2 },
+    f.runtime
+  );
+  installed.sample();
+  assert.equal((await pending).coldDisabled, true);
+  // Only this explicit test action materializes sessions, never the observer.
+  const sessions = service.sessions;
+  const warm = observer.requestInstalledClientObservation({ ...f.input, sequence: 3 }, f.runtime);
+  installed.sample();
+  const materialized = await warm;
+  assert.equal(materialized.coldDisabled, false);
+  assert.equal(materialized.factoryCalls, 1);
+  assert.equal(sessions.inspect().roots, 0);
+});
+
+for (const field of [
+  'state',
+  'storage',
+  'appliedEnabled',
+  'requestedEnabled',
+  'requestedPersistence',
+  'appliedPersistence',
+  'restartRetention',
+])
+  test(
+    'cold observation refuses runtime ' + field + ' drift without inventing zero counts',
+    (t) => {
+      const f = fixture(t);
+      observer.prepareInstalledClientObserver(f.input, f.runtime);
+      const installed = installInstalledClientObserver(f.input, f.runtime);
+      t.after(() => installed.close());
+      const owner = require(
+        path.join(f.input.install, 'lib/proxy/context-recovery-runtime.js')
+      ).createContextRecoveryRuntime();
+      const inspect = owner.inspect;
+      owner.inspect = () => ({
+        ...inspect(),
+        [field]: field === 'state' ? 'failed' : field === 'storage' ? 'persistent' : true,
+      });
+      observer.write(
+        path.join(f.dir, 'request.json'),
+        observer.envelope(
+          { version: 1, pid: f.input.pid, manifestSha256: f.input.manifestSha256, sequence: 1 },
+          f.input.token,
+          'request'
+        )
+      );
+      assert.throws(() => installed.sample(), failure);
+      assert.equal(fs.existsSync(path.join(f.dir, 'receipt.json')), false);
+    }
+  );
+
+for (const fault of ['warm', 'changed', 'missing'])
+  test('runtime observer refuses ' + fault + ' installed runtime identity', (t) => {
+    const f = fixture(t);
+    observer.prepareInstalledClientObserver(f.input, f.runtime);
+    const file = path.join(f.input.install, 'lib/proxy/context-recovery-runtime.js');
+    if (fault === 'warm') require(file);
+    if (fault === 'changed') fs.appendFileSync(file, ' ');
+    if (fault === 'missing') fs.unlinkSync(file);
+    assert.throws(() => installInstalledClientObserver(f.input, f.runtime));
+  });
+
+test('signed cold receipts still require exact zero authority and a consistent factory witness', async (t) => {
+  for (const change of [
+    { coldDisabled: false },
+    { roots: 1 },
+    { snapshots: 1 },
+    { enabled: true },
+    { closed: true },
+    { factoryCalls: 1 },
+    { coldDisabled: 'true' },
+  ]) {
+    const f = fixture(t);
+    observer.prepareInstalledClientObserver(f.input, f.runtime);
+    const payload = {
+      version: 1,
+      pid: f.input.pid,
+      manifestSha256: f.input.manifestSha256,
+      sequence: 1,
+      roots: 0,
+      snapshots: 0,
+      enabled: false,
+      closed: false,
+      factoryCalls: 0,
+      coldDisabled: true,
+      ...change,
+    };
+    observer.write(
+      path.join(f.dir, 'receipt.json'),
+      observer.envelope(payload, f.input.token, 'receipt')
+    );
+    await assert.rejects(
+      observer.requestInstalledClientObservation({ ...f.input, sequence: 1 }, f.runtime),
       failure
     );
   }

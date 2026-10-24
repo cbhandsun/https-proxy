@@ -290,10 +290,10 @@ function verifyInstalledClientObserver(runtime = process) {
           return '';
         throw fail();
       });
-      // The bootstrap alone loads the exact installed sessions file after validating its manifest hash.
+      // The bootstrap alone loads the exact installed sessions/runtime files after validating their manifest hashes.
       if (name === names[0])
         code = code.replace(
-          /\brequire\s*\(\s*path\.join\s*\(\s*value\.install\s*,\s*(['"])lib\/proxy\/context-recovery-sessions\.js\1\s*\)\s*\)/g,
+          /\brequire\s*\(\s*path\.join\s*\(\s*value\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:sessions|runtime)\.js\1\s*\)\s*\)/g,
           ''
         );
       if (/\brequire\s*\(/.test(code)) throw fail();

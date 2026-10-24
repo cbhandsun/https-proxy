@@ -7,19 +7,24 @@ const contract = require('./nsis-client-observer.cjs');
 const fail = () => new Error('installed_client_observer_rejected');
 function installInstalledClientObserver(input, runtime = process) {
   const value = contract.config(input, runtime);
-  const file = path.join(value.install, 'lib/proxy/context-recovery-sessions.js');
-  contract.physical(file);
   const manifest = contract.readInstalledManifest(value);
-  if (
-    crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex') !==
-      manifest.sourceSha256?.['lib/proxy/context-recovery-sessions.js'] ||
-    require.cache[file]
-  )
-    throw fail();
-  const resolved = require.resolve(file);
-  if (resolved.toLowerCase() !== file.toLowerCase() || require.cache[resolved]) throw fail();
+  for (const name of ['sessions', 'runtime']) {
+    const relative = 'lib/proxy/context-recovery-' + name + '.js';
+    const file = path.join(value.install, relative);
+    contract.physical(file);
+    if (
+      crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex') !==
+        manifest.sourceSha256?.[relative] ||
+      require.cache[file]
+    )
+      throw fail();
+    const resolved = require.resolve(file);
+    if (resolved.toLowerCase() !== file.toLowerCase() || require.cache[resolved]) throw fail();
+  }
   const exports = require(path.join(value.install, 'lib/proxy/context-recovery-sessions.js'));
+  const runtimeExports = require(path.join(value.install, 'lib/proxy/context-recovery-runtime.js'));
   const sessions = [],
+    runtimes = [],
     originals = [];
   let sequence = 0,
     failed = false;
@@ -33,6 +38,36 @@ function installInstalledClientObserver(input, runtime = process) {
       else sessions.push(result);
       return result;
     };
+  }
+  const originalRuntime = runtimeExports.createContextRecoveryRuntime;
+  if (typeof originalRuntime !== 'function') throw fail();
+  runtimeExports.createContextRecoveryRuntime = function (...args) {
+    const result = Reflect.apply(originalRuntime, this, args);
+    if (!result || typeof result.inspect !== 'function' || runtimes.length >= 16) failed = true;
+    else runtimes.push(result);
+    return result;
+  };
+  // inspect() does not access the lazy sessions getter. A zero factory count
+  // qualifies only with an independently captured, hash-pinned real runtime.
+  function coldRuntime() {
+    return (
+      runtimes.length > 0 &&
+      runtimes.every((runtime) => {
+        const state = runtime.inspect();
+        return Object.entries({
+          state: 'disabled',
+          storage: 'memory',
+          appliedEnabled: false,
+          requestedEnabled: false,
+          requestedPersistence: false,
+          appliedPersistence: false,
+          restartRetention: false,
+        }).every(([key, expected]) => {
+          const slot = Object.getOwnPropertyDescriptor(state, key);
+          return slot?.enumerable && Object.hasOwn(slot, 'value') && slot.value === expected;
+        });
+      })
+    );
   }
   const dir = contract.directory(value);
   function sample() {
@@ -50,14 +85,15 @@ function installInstalledClientObserver(input, runtime = process) {
         request.pid !== value.pid ||
         request.manifestSha256 !== value.manifestSha256 ||
         request.sequence !== sequence + 1 ||
-        request.sequence > 100 ||
-        sessions.length === 0
+        request.sequence > 100
       )
         throw fail();
+      const coldDisabled = sessions.length === 0 && coldRuntime();
+      if (sessions.length === 0 && !coldDisabled) throw fail();
       let roots = 0,
         snapshots = 0,
         enabled = false,
-        closed = true;
+        closed = !coldDisabled;
       for (const session of sessions) {
         const state = session.inspect();
         if (
@@ -82,6 +118,7 @@ function installInstalledClientObserver(input, runtime = process) {
         enabled,
         closed,
         factoryCalls: sessions.length,
+        coldDisabled,
       };
       const temporary = path.join(dir, 'receipt.tmp');
       contract.write(temporary, contract.envelope(payload, value.token, 'receipt'));
@@ -106,6 +143,7 @@ function installInstalledClientObserver(input, runtime = process) {
     close() {
       clearInterval(timer);
       for (const [name, original] of originals) exports[name] = original;
+      runtimeExports.createContextRecoveryRuntime = originalRuntime;
     },
   });
 }

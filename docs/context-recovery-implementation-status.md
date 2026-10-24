@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：ac32f58完整门禁与安装生命周期通过，修正默认冷态观察误拒绝
+
+`ac32f58fa1e48eac1ee5a5dbf02e2f8fba998f34`完整Verify `40118884107`八项、正式Windows `40118884185`四项全部completed/success。source-gates `120945898629`、N08 `120949751890`、N09 `120949751937`均success，N08/N09安全probe与ownedTreeEmpty均true，仍只授予原固定场景门禁范围。Windows普通unit0和coverage均通过326875440字节Codex受控启动回归；新增哈希边界六项在unit1通过。
+
+本候选完整coverage `120945898573`及正式source-gates各取得12次long-persistent公开发布结束，共24次865–2790ms，原5000ms门禁保持，真实默认worker、DPAPI、OS锚点及FULL/DELETE参与，上游仍为合成fixture。真实默认runtime撤销/清空后重开分别4455.452ms与6738.2809ms，原60000ms保持；旧8067628 coverage 60002ms失败及未知根因继续保留。两份日志中的原五档合成capacity-command为36255.94/22680.18ms、43790.04/30819.91ms，原180000执行预算及60000性能目标均满足；不覆盖旧67393.97ms未达目标、Windows原生持久容量或24小时资格。
+
+最新安装链 `40119078841` / encrypted job `120946560726`终态failure。其完整候选门禁、NSIS构建、实际安装/升级/回滚/重装/卸载及625旧格式登记/拒写与DPAPI生命周期步骤均success；随后实际客户端步骤报告`hpm_installed_client_phase=codex-default-auth`、`hpm_network_failed_stage=owned_scenario`，退出1，尚无CLI四组通过证据。旧unobserved身份阻塞已跨过。另保留操作失败：首次为本候选创建的短名称review分支不符合原路由格式，run `40118951357` resolve拒绝、encrypted跳过；未改路由门禁，改用同一不可变基线身份与完整候选SHA的新ref后才得到本次有效安装链。
+
+旧auth阶段包含原缺失/错误入口key拒绝探针与首次独立观察，有限日志不能区分具体失败点。源码及实际默认runtime回归另确认一个必然阻塞：默认关闭恢复时runtime正确保持冷态，尚不调用sessions工厂；观察器却要求至少一个会话，因而拒绝真实默认态。先新增真实复制的runtime、原configureSettings(false/false)、签名邮箱回归，在旧实现实际报installed_client_observer_rejected。现观察器同时核验安装manifest内sessions/runtime两个精确源码摘要且拒绝预加载，再原样委托真实runtime工厂，仅记录返回实例及inspect结果，绝不访问会导致初始化的sessions getter。只有实际捕获runtime、七个冷态字段精确匹配、会话工厂零调用且roots/snapshots=0、enabled/closed=false时，才签名报告coldDisabled=true；缺少真实实例仍拒绝。已有真实会话继续报告实际聚合计数，coldDisabled必须false；接收端严格校验新字段与全部数值一致性，不以空数组自报零权限。
+
+没有为通过验收启用恢复、创建假会话或改产品默认行为。签名邮箱、单调sequence/PID/manifest、物理路径/链接、原五秒观察期限及所有认证要求保持。闭包验证只增加固定bootstrap内的runtime精确导入，其他位置和其他动态导入仍拒绝。主组合使用已有observe阶段在首次观察之前标记，未来可区分auth探针与独立观察；不据本机复现断言旧Windows日志仅有这一原因。
+
+相关三个文件36项与扩大全部安装客户端150项通过、零跳过；覆盖真实冷态→显式会话初始化、无实例拒绝、七种冷态漂移、runtime预加载/摘要漂移/缺失、签名冷态回执计数矛盾及原异常/清理路径。全树1564文件语法、Lint零错误/五个既有警告、四项架构/secret、CI与发行治理通过，新回归沿原统一入口运行。本批尚须新候选完整门禁和实际安装客户端执行；clientQualified仍false。冻结长测未访问、日常配置未改、真实模型请求0；持久重启/优雅退出、原生最大/混合容量及真实24小时/到期重开、真实provider与受控启用仍未交付。
+
 ## 2026-10-24：最新安装生命周期通过，修复锁定Codex二进制在客户端身份校验被误拒绝
 
 当前文档提交3ca4139697c5f0d5132ab17427fdb50adba2b896的完整Verify `40116804395`八项和正式Windows `40116804421`四项已全部completed/success。固定运行候选a9836cd的安装链 `40115097429` / job `120937948810`现为终态failure：完整候选门禁、NSIS构建和实际安装升级回滚/DPAPI步骤日志均成功，随后客户端步骤在17:55:44报告`hpm_installed_client_phase=unobserved`、`hpm_network_failed_stage=owned_scenario`，最终`nsis_installed_clients_failed`。首次resolve取消与本次失败均保留，不重跑同一失败候选。真实CLI四组没有通过证据。

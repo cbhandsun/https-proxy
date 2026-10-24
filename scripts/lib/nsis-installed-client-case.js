@@ -18,7 +18,8 @@ function zeroRecovery(state) {
     state.snapshots === 0 &&
     state.enabled === false &&
     state.closed === false &&
-    state.factoryCalls >= 1
+    ((state.factoryCalls >= 1 && state.coldDisabled === false) ||
+      (state.factoryCalls === 0 && state.coldDisabled === true))
   );
 }
 async function runInstalledClientCase(options) {
@@ -85,6 +86,7 @@ async function runInstalledClientCase(options) {
     await assertEntryRefuses(owner, client, model);
     const before = upstream.inspect();
     if (before.failed || (before.requests ?? before.requestCount) !== 0) throw fail();
+    phase('observe');
     await observe();
     if (client === 'claude')
       sourceServer = await createSyntheticSourceServer(source.text, () =>

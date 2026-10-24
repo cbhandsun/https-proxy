@@ -198,6 +198,7 @@ async function requestInstalledClientObservation(input, runtime = process) {
           'enabled',
           'closed',
           'factoryCalls',
+          'coldDisabled',
         ]);
         if (
           result.version !== 1 ||
@@ -205,8 +206,15 @@ async function requestInstalledClientObservation(input, runtime = process) {
           result.manifestSha256 !== value.manifestSha256 ||
           result.sequence !== sequence ||
           !Number.isSafeInteger(result.factoryCalls) ||
-          result.factoryCalls < 1 ||
+          result.factoryCalls < 0 ||
           result.factoryCalls > 16 ||
+          typeof result.coldDisabled !== 'boolean' ||
+          result.coldDisabled !== (result.factoryCalls === 0) ||
+          (result.coldDisabled &&
+            (result.roots !== 0 ||
+              result.snapshots !== 0 ||
+              result.enabled !== false ||
+              result.closed !== false)) ||
           !['roots', 'snapshots'].every(
             (key) => Number.isSafeInteger(result[key]) && result[key] >= 0
           ) ||

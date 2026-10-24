@@ -52,7 +52,8 @@ function fixture(t, client, mode, fault) {
       snapshots: fault === 'snapshot' ? 1 : 0,
       enabled: mode === 'enhanced',
       closed: fault === 'closed',
-      factoryCalls: fault === 'factory' ? 0 : 1,
+      factoryCalls: ['factory', 'cold'].includes(fault) ? 0 : 1,
+      coldDisabled: fault === 'cold',
     };
   };
   const upstream = {
@@ -226,5 +227,12 @@ test('real entry identity auth recovery and cleanup failures cannot become succe
     const f = fixture(t, 'claude', 'enhanced', fault);
     await assert.rejects(f.run(), { message: 'installed_client_case_failed' });
     assert.equal(f.closed(), 1);
+  }
+});
+
+test('default client cases accept independently attested cold runtime without requiring recovery initialization', async (t) => {
+  for (const client of ['codex', 'claude']) {
+    const f = fixture(t, client, 'default', 'cold');
+    assert.equal((await f.run()).defaultZeroRecovery, true);
   }
 });

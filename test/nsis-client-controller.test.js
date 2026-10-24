@@ -304,7 +304,14 @@ test('installed observer composition accepts the actual release generator format
   fs.writeFileSync(
     manifest,
     JSON.stringify(
-      { sourceSha256: { 'lib/proxy/context-recovery-sessions.js': digest(sessionsFile) } },
+      {
+        sourceSha256: {
+          'lib/proxy/context-recovery-sessions.js': digest(sessionsFile),
+          'lib/proxy/context-recovery-runtime.js': digest(
+            path.join(install, 'lib/proxy/context-recovery-runtime.js')
+          ),
+        },
+      },
       null,
       2
     ) + '\n'
