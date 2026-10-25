@@ -402,28 +402,28 @@ test('PowerShell control consumes only the bounded finish line and EOF without e
     .replaceAll("'", "''");
   const code = `
     $ErrorActionPreference='Stop'
-    $state=@{phase='import'}
+    $state=@{phase='import';reason='invoke';inputLength=0}
     try {
     $module=Import-Module '${modulePath}' -PassThru -Force
     & $module {
       param($state)
-      $state.phase='valid'
+      $state.phase='valid';$state.inputLength=7
       Read-HpmCoverageIoCommand -Reader ([IO.StringReader]::new("finish\u0060n"))
       $index=0
       foreach($text in @('', 'finish', "abort\u0060n", "finish\u0060r\u0060n", "finish\u0060nextra", "finish\u0060n\u0060n", ('x'*9+"\u0060n"), "完成\u0060n")) {
-        $state.phase='invalid_'+$index;$index++
+        $state.phase='invalid_'+$index;$state.reason='invoke';$state.inputLength=([string]$text).Length;$index++
         $refused=$false
         try { Read-HpmCoverageIoCommand -Reader ([IO.StringReader]::new($text)) }
-        catch { if($_.Exception.Message -cne 'persistent_io_capture_command_refused'){throw 'unsafe_capture_control_error'};$refused=$true }
-        if(-not $refused){throw 'invalid_capture_control_accepted'}
+        catch { if($_.Exception.Message -cne 'persistent_io_capture_command_refused'){$state.reason='unexpected_error';throw 'unsafe_capture_control_error'};$refused=$true }
+        if(-not $refused){$state.reason='accepted_invalid';throw 'invalid_capture_control_accepted'}
       }
-      $state.phase='disposed'
+      $state.phase='disposed';$state.reason='invoke';$state.inputLength=0
       $reader=[IO.StringReader]::new('');$reader.Dispose()
-      $refused=$false;try {Read-HpmCoverageIoCommand -Reader $reader}catch{if($_.Exception.Message -cne 'persistent_io_capture_command_refused'){throw 'unsafe_reader_error'};$refused=$true}
-      if(-not $refused){throw 'failed_reader_accepted'}
+      $refused=$false;try {Read-HpmCoverageIoCommand -Reader $reader}catch{if($_.Exception.Message -cne 'persistent_io_capture_command_refused'){$state.reason='unexpected_error';throw 'unsafe_reader_error'};$refused=$true}
+      if(-not $refused){$state.reason='accepted_invalid';throw 'failed_reader_accepted'}
     } $state
     } catch {
-      [Console]::Error.WriteLine('capture_control_failed:phase='+$state.phase)
+      [Console]::Error.WriteLine('capture_control_failed:phase='+$state.phase+';reason='+$state.reason+';length='+$state.inputLength)
       exit 1
     }
   `;
@@ -434,14 +434,13 @@ test('PowerShell control consumes only the bounded finish line and EOF without e
   });
   assert.equal(result.error, undefined);
   // Never copy arbitrary PowerShell errors, paths or external input into CI.
-  const phase = /^capture_control_failed:phase=(import|valid|invalid_[0-7]|disposed)\r?\n$/.exec(
-    result.stderr || ''
-  );
+  const { parseCoverageControlFailure } = require('./helpers/coverage-control-progress.cjs');
+  const phase = parseCoverageControlFailure(result.stderr || '');
   assert.equal(
     result.status,
     0,
     phase
-      ? `PowerShell control failed at ${phase[1]}`
+      ? `PowerShell control failed at ${phase.phase};reason=${phase.reason};length=${phase.length}`
       : 'PowerShell control failed before a fixed phase receipt'
   );
   assert.equal(result.stdout, '');
@@ -613,4 +612,31 @@ test('receipt publication refuses a replaced owned parent directory', async (t) 
   await assert.rejects(f.hooks.after(), failure);
   assert.equal(f.reports.length, 0);
   assert.deepEqual(fs.readdirSync(f.root), []);
+});
+
+test('control failure receipts contain only fixed phases, reasons and bounded synthetic lengths', () => {
+  const { parseCoverageControlFailure: parse } = require('./helpers/coverage-control-progress.cjs');
+  const line = 'capture_control_failed:phase=invalid_6;reason=accepted_invalid;length=10';
+  assert.deepEqual(parse(line + '\n'), {
+    phase: 'invalid_6',
+    reason: 'accepted_invalid',
+    length: 10,
+  });
+  assert.deepEqual(parse(line + '\r\n'), parse(line + '\n'));
+  assert.ok(Object.isFrozen(parse(line + '\n')));
+  for (const invalid of [
+    null,
+    {},
+    '',
+    line,
+    line + '\nPRIVATE',
+    line + '\n\n',
+    line.replace('invalid_6', 'PRIVATE') + '\n',
+    line.replace('accepted_invalid', 'PRIVATE') + '\n',
+    line.replace('length=10', 'length=13') + '\n',
+    line.replace('length=10', 'length=-1') + '\n',
+    line.replace('length=10', 'length=01') + '\n',
+    'PRIVATE'.repeat(128),
+  ])
+    assert.equal(parse(invalid), null);
 });

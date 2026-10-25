@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：7d快照回归在Windows通过，但时序及正式控制仍失败，扩展固定失败原因回执
+
+7d7cab22452de18cf02f837fa3b85f2a020edadd普通40215687533七项success，coverage仍执行；unit2/job121236201829已逐项通过六个新header计数/坏密文/AAD/schema/共享字节回归及二十项原生发布内部中断，unit0/job121236201337原生HTTP正常停机十项通过。故header重复解密修复取得Windows局部回归证据，不能据此授予完整门禁或五秒资格。
+
+三组时序40215687663的组1/job121236201750、组2/job121236201635成功；组3/job121236201732失败，Responses long-persistent首轮request_failed5001ms/2次合成请求。该组预算预扣save-reference-state为1981ms，其中时钟写入339ms、COMMIT1309ms，两者线程CPU user/system均0；随后结算515ms、下一预扣978ms及组合读结算1376ms继续有串行物理等待。初始化/seed还有较慢锚点flush，但它们不能冒充该请求内的分解。原五秒门保持，全部历史失败继续保留。
+
+正式40215687541/source121236201682终态failure，egress成功、后续场景跳过；唯一已记录失败为coverage-io-capture.test.js:398固定PowerShell控制回归，604.7394ms在invalid_6阶段退出1。此为九字符超长合成输入，旧回执只给阶段，尚不能区分错误接受与异常错误；没有证据归因PowerShell版本。Mac官方7.6.7原控制回归通过；Windows juhon SSH恢复后，仅执行纯StringReader短探针，7.6.8全部八种非法输入正确拒绝且返回固定错误，无开库、负载、trace或冻结环境访问，不覆盖CI失败。Windows gh API用户核对返回1，认证仍未核实，未读凭据或再次要求用户登录。
+
+5856普通40215124915已八项success；其原负载I/O40215124924/job121234497090也成功，两阶段source-bound/cleanup回执实际核验：proxy51对flush最大database41/journal32ms，client153对最大database27/journal19ms；十二次最终ACK1246–2474ms。无慢时钟写入复现，traceCompletenessVerified/fiveSecondQualified保持false，不能解释其他runner的五秒失败。7d独立I/O40215687560/job121236201234原两文件50/50通过、零skip，ACK1189–1391ms，153对flush最大database36/journal33ms，也不授正式资格。两代剩余原作业继续观察、不重跑。
+
+本批仅在原控制测试失败回执增加固定reason（invoke/unexpected_error/accepted_invalid）及固定合成输入长度0–12，区分是否发生错误接受。原输入、结束/EOF断言、错误身份要求和五秒子进程期限不变；不输出输入或原始异常。解析移至测试helper，只接受128字节内的完整固定单行，拒绝尾随/重复换行、任意标签/字段、负数/越界/前导零长度及非字符串。coverage-io-capture整文件27/27、零skip，补双换行拒绝后两个相关用例再次通过；1612份已跟踪JS语法、全树Lint零错误/5项既有警告、CI/release治理通过，新helper另由实际require/执行验证，提交后统一发现继续检查。此为定位回执，不宣称修复控制失败或Windows物理长尾。
+
+下一步收齐现有原负载I/O及完整门禁，在新SHA失败时按reason定位控制路径，同时继续五秒持久等待根因；随后才推进最新安装升级回滚、582迁移拒写、两端及完整在途矩阵等既定交付。新24h仍暂缓、旧冻结任务/库不动，真实模型0，完整目标未完成。
+
 ## 2026-10-25：消除锚定只读快照同一header的重复解密，保留独立事务和第二次读取
 
 5856d1a普通40215124915七项success、coverage仍执行，正式40215124902/source仍执行，原负载I/O40215124924仍执行。独立I/O40215124904/job121234497160已success，六次最终ACK809–909ms；153对成功flush最大database32/journal39ms，无已观察的访问/共享/锁冲突状态，但traceCompletenessVerified/fiveSecondQualified均false，不能解释1f正式三个五秒失败。1f普通40213983615已八项完整通过，十二次最终ACK1247–2491ms、COMMIT最大136ms；正式5005/5002/5003ms及全部历史失败继续保留。
