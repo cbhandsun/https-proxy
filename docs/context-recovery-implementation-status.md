@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：2ea首次ready双失败保留，移除IPC阶段等待的额外CPU忙等
+
+2ea100deba9e1d065bb9c24631bc7b61e20326db普通40216726519终态七success/coverage121239363426 failure：文件SQLite HTTP正常停机transport-finished用例首次ready5044.5354ms失败，lastFixture=fixture-prepared、startup=unobserved，未进入停机或COMMIT动作。六次持久最终ACK1758–2408ms、138次COMMIT最大168ms不能覆盖该失败。正式40216726449/source121239362770终态failure，egress成功、后续跳过：默认原生HTTP prepared/COMMIT用例首次ready5043.641ms失败，lastFixture=native-opened；完整时间线确认key_protect522→594ms、key_write594→3476ms（2882ms）、engine_ready4285ms、ready4286ms。阶段尚不能区分ACL、文件写入/flush、回读或其他等待，不能将其直接认定为fsync根因。PowerShell原控制及新增安全回执本次未失败，其旧invalid_6失败继续保留。2ea原负载I/O仍执行，不重跑原失败作业。
+
+排查这两个首次ready失败时发现父夹具以await setImmediate循环等待IPC，没有工作也持续调度。本机固定250ms算法探针旧路径轮询20153次、CPU user25.161/system21.442ms；相同等待长度的新事件helper为user0.407/system0.039ms，结束后零监听器。此是额外忙等的实测证据，尚不是Windows key_write2882ms或所有五秒失败的因果证明。
+
+本批仅将processFixture.phase的等待改为child message/exit/error或剩余期限的事件等待。原performance.now()+5000绝对截止、ready/失败/退出状态断言、真实SQL PENDING/journal探针、750ms观察、15秒整项、4秒自然退出以及所有payload/并发/COMMIT/锚点/ACK条件保持；不更改SQL锁探针本身的轮询。每次事件/超时后清理本helper的三个监听器和定时器，既有监听器保留；零剩余时间不注册资源，非法/非有限/越界预算与Proxy拒绝，部分安装失败和安装中重入事件均清理。事件内容和原始异常不进入回执。没有生产代码、后端、认证、持久语义、依赖或门禁变化。
+
+三文件最终32/32通过、零skip，含原二十项强杀/释放中断、五项真实HTTP正常停机及七项事件等待边界；1613份JS语法、全树Lint零错误/5项既有警告、CI/release治理通过。新独立test文件进入原统一unit自动发现，原client覆盖率仍直接执行原HTTP/中断组合，未替换测试。新SHA须Windows实际验证，不能宣称首次ready失败已修复或整体绿色。
+
+已收齐的其他结果分别保留：5856普通八项及正式40215124902四项均success；7d普通八项与原负载I/O40215687554成功，但三组时序组3的5001ms和正式invalid_6失败仍未关闭。7d原负载I/O client实际153对flush最大database358/journal184ms（分别3/4次≥100ms），十二次最终ACK1281–3399ms；这是物理长尾正观察，非5001ms同场采集，trace完整性及稳定性资格仍false。Mac真实文件header对照每5000快照父262/246ms、当前238/231ms，只证明小幅CPU开销降低，不能解释秒级等待。
+
+下一步继续依据现有I/O与原生开库有限阶段定位具体阻塞，核对新SHA完整Windows后推进最新安装/升级回滚/582迁移拒写、两端、在途HTTP/WS及其他原交付缺口。新24h按用户要求暂缓，旧冻结环境不动，真实模型0；全目标未完成。
+
 ## 2026-10-25：7d快照回归在Windows通过，但时序及正式控制仍失败，扩展固定失败原因回执
 
 7d7cab22452de18cf02f837fa3b85f2a020edadd普通40215687533七项success，coverage仍执行；unit2/job121236201829已逐项通过六个新header计数/坏密文/AAD/schema/共享字节回归及二十项原生发布内部中断，unit0/job121236201337原生HTTP正常停机十项通过。故header重复解密修复取得Windows局部回归证据，不能据此授予完整门禁或五秒资格。

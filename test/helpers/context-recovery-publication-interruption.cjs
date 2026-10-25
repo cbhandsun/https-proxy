@@ -11,6 +11,7 @@ const { performance } = require('node:perf_hooks');
 const { setImmediate: nextTurn } = require('node:timers/promises');
 const { DatabaseSync } = require('node:sqlite');
 const { createPublicationStartupProgress } = require('./publication-startup-progress.cjs');
+const { waitForFixtureSignal } = require('./fixture-phase-wait.cjs');
 const { openContextRecoveryStorage } = require('../../lib/proxy/context-recovery-storage');
 const { createRecoverySqliteStore } = require('../../lib/proxy/context-recovery-storage-sqlite');
 
@@ -58,7 +59,7 @@ function processFixture(file) {
             `fixture phase deadline exceeded (awaiting=${name};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs};startupTimeline=${JSON.stringify(startup.snapshot())})`
           );
         }
-        await nextTurn();
+        await waitForFixtureSignal(child, Math.max(0, deadline - performance.now()));
       }
       return messages.find((message) => message.phase === name);
     },

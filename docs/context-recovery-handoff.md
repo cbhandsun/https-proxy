@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新2ea首次ready双失败与忙等修复优先：** 2ea普通七通过/coverage失败于非原生HTTP夹具首次ready5044ms；正式失败于原生HTTP首次ready5043ms，完整阶段见key_write2882ms、原生ready4286ms，均未advance/COMMIT。不可把key_write直接当fsync原因。旧PowerShell invalid_6及全部五秒失败保留。父夹具等待IPC的setImmediate忙等在250ms内调度约2万次，现改事件等待，原绝对五秒、负载/并发/SQL探针及ACK等全部门保持；32/32本机通过，新SHA待Windows。5856普通八/正式四已通过；7d原负载I/O已观察到358/184ms物理flush长尾但不同于5001ms失败场次，不授稳定性资格。完整范围见状态顶部；新24h暂缓、冻结环境不动、模型0。
+
 **最新7d局部通过及双失败优先：** 7d Windows新header六项、原生中断二十项及HTTP正常停机十项通过；普通七项/coverage仍执行。但三组时序组3保留Responses首轮5001ms失败（预算保存1981ms、clock339/COMMIT1309ms且线程CPU均0），正式40215687541又在PowerShell控制invalid_6退出1，后续跳过，不能授安装资格。Mac7.6.7与Windows7.6.8纯StringReader均通过不能解释失败；本批只加固定reason与合成长度失败回执，27/27本机通过，原断言/期限不变。5856普通八项与原负载I/O已success，回执观察flush最长41ms、ACK1246–2474ms，仍不覆盖慢窗口。全部失败/剩余范围见状态顶部，新24h暂缓、冻结环境不动、模型0。
 
 **最新快照header重复解密修复优先：** 已用真实文件回归复现同一锚定snapshot事务header解密两次；现只在该只读事务内复用复制固定的、第二次读取字节及AAD仍相等的认证值，降为一次；第二次SQL读取、schema/tag校验、跨事务重新认证及独立锚点持久ACK保持。坏/共享可变密文、store ID及schema变更拒绝并回滚。首轮106通过，含新增空库的clock文件34通过；扩大188通过、一项Mac实际worker在key_protect_started失败，未进入SQLite，失败保留不加skip。5856普通七项/coverage、正式及原负载I/O仍执行；独立I/O已通过但不解释旧五秒失败。详情及完整剩余范围见状态顶部，新24h暂缓、旧冻结环境不动、模型0。
