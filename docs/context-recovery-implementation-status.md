@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：38c2d5e正式Windows和review通过，保留主coverage新5028ms失败
+
+38c2d5e3bbcd5826d461c384947a12a9da943cff正式Windows40159526465四项全部success：source-gates121067972485、egress121067972616、N08 121070300026、N09 121070300033。独立review Verify40159540131八项全部success；其中coverage121068016371的12次持久公开发布1209–2426ms、288次COMMIT最大122ms。正式source另12次738–1389ms、288次COMMIT最大77ms。它们是各自原作业结果，不替代同SHA其他失败。
+
+主Verify40159526473七项success，coverage121067972718在原test:client:coverage失败：Chat long-persistent首轮5028ms，requests=4、handshakes=4、roots=1、ownerEpoch=1，原5000ms门限保持。该轮sequence7 settle-reader的COMMIT627ms、线程CPU为零；sequence9 read-source-and-settle的COMMIT312ms、anchor255ms；sequence10带admission/publication的保存403ms、completeAsync451ms，之后仍有独立startPublicationAsync139ms。失败时已经到第四次合成上游请求，不能把它改称只在首次开库或首次LIST失败。启动阶段另有1392ms COMMIT，但启动完成在HTTP计时之前，不能用它解释请求总时长。多个串行持久阶段及等待并存，尚未确认底层I/O、锁或调度唯一根因；不删预算预扣ACK、持久发布或独立公开生成，不改FULL/DELETE、时钟水位和期限。
+
+父批db493bb正式40158989393 source121066344344的Chat首轮5003ms失败也保留：requests=2、handshakes=2、roots=1；sequence6带admission保存2405ms、COMMIT2085ms且线程CPU为零，后续结算/保存/读取仍有445/791/492ms COMMIT。三runner独立时序全通过不能覆盖这项失败，更不能覆盖本批5028ms。
+
+实际安装40159540153/121068085491已通过固定582归档与官方Node接收、旧锁依赖恢复及完整582身份验证，也已通过当前候选完整门禁；观察时正在构建安装器，实际582安装迁移、旧读者拒写及随后两端四组尚未执行。空根键修复已获Windows完整旧包恢复证据，迁移资格仍未获得，不重启该原作业。模型预算的新增安全读取仅返回固定budget_snapshot_unavailable，未获得新额度或预留证明，真实模型仍为零。冻结长测未访问。
+
+剩余交付保持：五秒及混合/最大容量稳定性、原生持久发布内部中断完整资格、最新实际安装582迁移/回滚拒写、在途排空与客户端重启留存、真实24小时及到期重开、额度安全核验后的实际provider两端使用、受控自用安装器交付与启用。普通CI/review/正式或局部恢复成功均不授予整体完成。
+
 ## 2026-10-24：保留db493bb恢复失败，修正npm旧锁空根键解析；三组独立五秒时序通过
 
 db493bb48c0d4e00a98d7a0efe8741e3d7403da5独立安装40159004855/121066458592终态failure：原625草稿接收和新增582私有归档/官方Node接收均成功，随后Restore old locked dependencies and verify complete 582 identity在npm ci之前仅返回固定legacy_runtime_restore_refused，尚未进入候选门禁、构建或582实际安装迁移。该失败保留、不重跑；不能把下载成功当作旧包恢复或迁移通过。
