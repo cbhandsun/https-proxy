@@ -1,0 +1,57 @@
+name: Windows persistent I/O diagnostic
+
+on:
+  push:
+    branches:
+      - acceptance/context-recovery/**
+    paths:
+      - .github/workflows/windows-persistent-io-diagnostic.yml
+      - scripts/diagnose-persistent-io.ps1
+      - scripts/summarize-persistent-io.cjs
+      - scripts/lib/persistent-io-summary.js
+      - scripts/lib/persistent-io-recording.psm1
+      - test/persistent-io-summary.test.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  file-flush:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Prepare locked dependencies and native helper
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency preparation failed.' }
+          npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture preparation failed.' }
+          rustup default stable
+          if ($LASTEXITCODE -ne 0) { throw 'Toolchain preparation failed.' }
+          node scripts/prepare-context-recovery-native.js
+          if ($LASTEXITCODE -ne 0) { throw 'Native preparation failed.' }
+          node scripts/prepare-evidence-gateway.js
+          if ($LASTEXITCODE -ne 0) { throw 'Gateway preparation failed.' }
+      - name: Observe file flushes during both complete original test files once
+        run: ./scripts/diagnose-persistent-io.ps1
+      - name: Record diagnostic limits
+        if: always()
+        run: |
+          @(
+            'Original test files, five-second requests, native worker, DPAPI, OS anchor and durable ACK assertions remain unchanged; no filtering or retry.'
+            'Memory-mode ETW flush pairs are positive I/O observations only. Missing pairs do not prove absence of slow I/O.'
+            'Tracing can perturb timing; this diagnostic does not replace complete Verify or formal Windows qualification.'
+            'Raw ETL, decoded records, paths, databases, keys and model responses are not uploaded. All upstreams are synthetic.'
+          ) >> $env:GITHUB_STEP_SUMMARY

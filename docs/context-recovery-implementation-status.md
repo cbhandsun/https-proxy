@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：2f32016完整门禁通过，增加隔离ETW文件刷新诊断以继续定位五秒等待
+
+2f32016738a7ff34fb0054039503fb677b4d3136普通Verify40161378828八项、正式Windows40161378886四项均已终态success，N08/N09为121075736802/121075736835；新增原生发布内部中断20项已在完整门禁执行。正式source121073482410另12次持久公开发布810–1557ms、288次COMMIT最大189ms；coverage121073482109另12次1366–2133ms、288次COMMIT最大288ms。38c2d5e的5028ms和父批5003ms/COMMIT2085ms等历史失败继续保留，这些成功不能关闭五秒稳定性。
+
+本批没有为取绿修改事务/认证/时钟/ACK/原期限。只对三个已有较小固定容量profile作本机合成CPU诊断，原参数及正确性断言保持；替代编码循环与原实现的468/198/59ms对473/197/59ms未见实质收益，因此未改生产编码器、未运行暂停的最大档，也不把三档合成结果当作完整容量或Windows性能资格。核对Node v22.22.3原始node_sqlite.cc确认get/all返回时会重置游标，当前证据不支持把游标未释放当作已确认根因。
+
+新增独立Windows persistent I/O diagnostic，只在一次性hosted Windows/本仓库环境运行两份完整原Core/WBIPC与Codex-summary文件各一次，所有原5000ms请求/断言保持，无过滤、重试或continue-on-error。使用系统WPR FileIO内存环形记录和唯一随机instancename，start/stop/cancel均绑定该名称且单次调用30秒有界；不取消其他记录、不改变系统策略或用户主机环境。原始ETL不上传，停止后只读解码，最后独立清理自建目录及自己创建/尝试创建的跟踪实例。
+
+入口仅组合，记录/解码模块和纯JS有界配对汇总独立。只选合成hpm-wbipc-core目录的checkpoint.sqlite及DELETE journal名称，以FileKey和IrpPtr绑定成功NtStatus的Flush/OperationEnd；名称/指针复用、未完成/丢失配对、失败flush不能制造成功证据。不相关路径在进入Node前过滤/清空；日志只有按database/journal的次数、最大耗时和阈值计数，不含路径、原始事件、原文、密钥或响应。XML拒绝DTD/重复字段，stdin严格UTF-8/规范JSON及16MiB上限，事件/文件/待配对数有界；没有成功配对就固定失败。traceCompletenessVerified/fiveSecondQualified恒false：环形丢事件不能证明无慢I/O，跟踪本身可扰动时序，也不能把一次刷新直接当作某次COMMIT的唯一因果解释。
+
+本机7项回归通过、零skip，含真实PowerShell元数据解码/非hosted拒绝、非法/访问器/Proxy/极端/容量/指针复用/失败状态/重复JSON/错误UTF-8及实体拒绝；新测试进入统一unit发现。Windows WPR实际记录仍须新提交独立作业，不宣称已经取得物理刷新根因或修复五秒问题。38c2d5e实际582迁移及两端四组资格保持；在途排空/客户端重启、容量稳定性、真实24小时、真实provider与受控交付仍未完成。冻结长测未访问、模型0。
+
 ## 2026-10-25：38c2d5e实际安装582迁移及两端四组通过，2f32016原生内部中断20项通过
 
 38c2d5e3bbcd5826d461c384947a12a9da943cff实际安装40159540153/121068085491终态success。安装manifest为2bfc2de39418c098d7228c1485e4f84feafe1f2891a6cd45959ac263fd67259f，应用SHA256为71180a708b36f1a49dce50bab78b1aa7018fdada0461c53c974634296877b867。固定582完整恢复后，实际NSIS安装目录执行八阶段默认worker迁移：旧版seed/read、当前未登记拒绝、显式登记/布局1到3、当前resave/read、旧版拒写且文件保持、当前最终read；原到期、预算、原文、密钥身份及revision仅增一保持，外层installedMigrationQualified=true、ownedTreeEmpty/uninstalled=true。内层驱动自身nsisQualified=false仍保留，不把独立运行包资格改名；外层安装归属及卸载见证才授实际安装迁移资格。
