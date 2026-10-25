@@ -13,6 +13,7 @@ mod desktop_shell;
 mod launch_on_login;
 mod management_bridge;
 mod proxy_control;
+mod proxy_health;
 mod proxy_process;
 mod proxy_root;
 mod proxy_stop;
@@ -240,22 +241,7 @@ fn get_management_token_native(management_port: Option<u16>) -> serde_json::Valu
 }
 
 fn read_proxy_health_direct_on_port(port: u16, timeout: Duration) -> Option<serde_json::Value> {
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
-    let mut stream = TcpStream::connect_timeout(&addr, timeout).ok()?;
-    let _ = stream.set_read_timeout(Some(timeout));
-    let _ = stream.set_write_timeout(Some(timeout));
-    stream
-        .write_all(b"GET /v1/local/health HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
-        .ok()?;
-    let mut response = String::new();
-    stream.read_to_string(&mut response).ok()?;
-    let body = response.split_once("\r\n\r\n")?.1.trim();
-    let json = serde_json::from_str::<serde_json::Value>(body).ok()?;
-    if json.get("appId").and_then(|v| v.as_str()) == Some(APP_ID) {
-        Some(json)
-    } else {
-        None
-    }
+    proxy_health::read_proxy_health_direct_on_port(port, timeout, APP_ID)
 }
 
 fn read_proxy_health_direct(timeout: Duration) -> Option<serde_json::Value> {

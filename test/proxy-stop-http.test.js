@@ -72,6 +72,13 @@ test(
         signal: AbortSignal.timeout(5000),
       });
       assert.equal(response.status, 200);
+      const framing =
+        response.headers.get('transfer-encoding') === 'chunked'
+          ? 'chunked'
+          : response.headers.has('content-length')
+            ? 'length'
+            : 'close';
+      t.diagnostic(JSON.stringify({ phase: 'source_health_framing', framing }));
       return response.json();
     };
     const health = await getHealth();

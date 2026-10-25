@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：2a5ce0e完整CI与正式四项通过，实际安装探针在start-1失败；修复Rust健康读取未解码chunked
+
+2a5ce0e4b81e4b7530ec670faae14c30fdeca75f普通Verify `40145270485`八项、正式Windows `40145270355`四项均终态success，N08/N09为`121028373948`/`121028373939`。独立时序 `40145270396`三组各50项/零skip通过，18次持久公开发布855–1480ms，432次COMMIT最大207ms；完整coverage `121025142758`另12次最大2043ms、288次COMMIT最大232ms；正式source `121025142043`另12次最大2119ms、288次COMMIT最大131ms。三份范围共核对42次持久恢复/公开发布，冷owner重复load-reference均为零。该结果证明冷路径修复在实际Windows worker/DPAPI/OS锚点链生效，不覆盖历史5004/5012ms、暖路径慢COMMIT或真实24小时资格。
+
+原安装review `40145279889` / job `121025260499`完整候选门禁、构建、实际安装升级回滚和同用户DPAPI阶段均success。当前安装包manifest为2339a36e6443b223c068db69106bc584522324863df6095d7f0620962553397d。随后实际原生控制探针在start-1失败，尚未进入ready-1、正常stop或Codex/Claude四组，最终job failure；旧daemon HTTP仍是forced_cleanup，gracefulDrainQualified/restartRetention/clientQualified为false。该失败保留、不重跑，不把前置成功当成安装两端或正常停止资格。
+
+定点源码审查找到独立且可复现的产品缺陷：Node管理sendJson先writeHead再end，真实源码HTTP健康回执确认为chunked；Rust read_proxy_health_direct_on_port却将头后的分块大小、分隔和终止标记直接交给serde_json，无法识别合法健康响应。保持旧函数逻辑的真实Rust回环测试先失败；新模块proxy_health在相同请求和同一分块fixture下通过。此缺陷足以导致已启动代理被误判未就绪，并影响后续正常停机的健康身份读取；尚未证明它是安装start-1的唯一失败原因，须新候选实际复验。
+
+主入口现在只组合健康读取模块，HTTP/1.1固定回环路径、无模型或任意目标输入。新模块先验证200状态、合法且无重复的HTTP头、互斥/精确Content-Length与chunked帧、终止位置、UTF8/JSON和appId，再交回原root/PID/实例/认证门禁；不改Node认证、停止202/进程退出判定或存储协议。健康响应总上限64KiB、头16KiB；每次连接/发送/读取共用原调用者的绝对期限，持续滴流不能滚动延长读期限，不提高原250/300ms调用、五秒启动、三秒停止HTTP或四秒退出观察期限。
+
+Rust模块六项零ignore通过，覆盖真实回环chunked、长度/close/多块跨UTF8边界、空/非法/截断、错误身份/状态、冲突重复HTTP头、溢出/尾随块/非法编码、精确大小边界和实际滴流截止；独立Clippy -D warnings通过。真实源码HTTP回归确认chunked且原认证/Origin、业务端口拒绝、过期实例及正常退出断言保持；相关Node与原治理18/18通过、零skip。全树Lint零错误/五个既有警告，1581文件语法、CI/发行治理、格式及cargo fmt通过；完整Rust应用和安装行为须原Windows链，不以独立模块代替。本机只给现有stable工具链补齐官方Clippy组件，没有更换Rust版本或升级依赖。
+
+另一个仅在Windows全新临时目录的极小GUI标准流诊断未完成，停在compile-console阶段，不能据此排除标准流问题，也不作产品根因；没有启动代理、安装器、存储worker或模型。582旧包已再次只读核验全部582源码及Node/native/lock共585项、91610502字节摘要相等，但最新安装582迁移仍未获资格。Windows gh只读账户核验未确认预期所有者，没有上传任何包、私有证据或凭据。冻结长测未访问，真实模型请求0，所有既定剩余范围保持。
+
 ## 2026-10-24：安装前置再现第二轮5004ms，冷恢复复用已扫描CAS事实以减少一次提交
 
 8225e2b普通Verify `40143389800`八项和正式Windows `40143389838`四项均success；其coverage/source-gates日志各12次持久公开发布全部通过，最大2570/1786ms，各300次COMMIT最大75/148ms。68ce156普通Verify `40143684424`八项及正式 `40143684430`四项也全success，coverage/source-gates各12次发布最大2722/1611ms，各300次COMMIT最大125/91ms。成功不覆盖独立安装链：8225e2b原安装 `40143410686` / job `121019741120`已终态failure，完整候选门禁的Chat long-persistent第二轮5004ms触发原5000ms，requests=6/handshakes=6/roots=1；尚未构建或执行安装启停探针，不能授予安装资格。孤立开库诊断随后两次成功不覆盖原请求失败，不重跑该候选。
