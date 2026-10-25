@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：确认同一微软账号的GitHub授权有效，建立不导出凭据的交互执行方式
+
+继续按用户要求核查：仅查询explorer.exe的拥有者SID，确认桌面会话与SSH为同一个MicrosoftAccount用户；PowerShell实际程序为非重解析实体文件。先前通过-File启动的受限一次性任务确实进入Running，但原30秒内无结果，终态诊断与清理保留，不能认定用户未授权或确定该任务卡住的唯一原因。
+
+改为同一用户Limited/Idle一次性任务直接执行固定编码命令，保持原30秒外层、10秒gh请求期限，不改执行策略、不提权、不复制或导出token。该任务成功调用gh api --hostname github.com user --jq .login，只把结果转为账号是否精确等于cbhandsun的布尔值；principalMatches、commandSucceeded、expectedOwner均true，临时任务和目录已清理，凭据导出false、模型0。因此用户已完成的GitHub授权有效，后续可在此受支持交互会话内通过gh进行582公开运行包的私有传递；不再要求重复登录。SSH本身的失败与旧-File任务无回执不能覆盖此成功，也不宣称已定位全部会话差异。尚未创建或上传任何582归档，最新安装582迁移仍未完成。
+
+原b2a27b5的Claude持久恢复5007ms失败保持；独立安装40154568348/121053147383已完成构建，正在实际安装同格式/DPAPI验收，尚无原生启停或四组新结论。冻结长测未访问，原门禁和真实模型额度约束保持。
+
 ## 2026-10-24：b2a27b5普通CI及Windows管道回归通过，正式Claude持久恢复新增5007ms失败
 
 b2a27b5e36bbfbe398e846f7549bdca6c2854aeb普通Verify `40154476073`八项全success，独立review Verify `40154568293`八项也全success。Windows Rust `121052792755`严格all-targets Clippy、应用39项、二进制1项、原生助手20项及审计通过；新增实际Cargo进程目标proxy_control_pipes明确运行，两种对照在原12000ms期限下通过（固定后台子进程13秒、无代理/模型）。此结果确认句柄回归进入完整Windows门禁，不代表实际安装控制已通过。
