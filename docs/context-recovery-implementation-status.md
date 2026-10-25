@@ -1,5 +1,21 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：在原两段完整覆盖率中限定记录窗口，保留4495正式五秒失败与4ec安装通过
+
+4495a806c8789ce08f819fd976ef37364b631c67普通Verify40168842863八项最终全部success；正式40168842861/source121095372732仍failure，第二段客户端覆盖率内Chat/Claude首轮fetch分别5012/5016ms失败（栈为undici，尚无该轮headers）；不能把第一段公开发布快速通过当成完整稳定性。原正式失败保留不重跑，未触发4495安装候选。下一步需要取得相同覆盖率负载下的物理刷新证据，单独两文件的成功ETW样本不能解释该失败。
+
+新增独立windows-persistent-io-coverage作业，按原顺序各执行一次完整test:coverage、test:client:coverage、test:frontend:coverage；原四分片runner、发现的全部测试、原断言和期限保持，原阶段失败不进入后续覆盖率阶段。只在每段完整client-context-target文件之前/之后通过现有node:test钩子启停记录，未过滤、追加或重试任何用例；普通CI无专用开关时没有这些记录钩子。开关必须匹配当前40位源码SHA、固定proxy/client阶段、专用workflow及一次性hosted Windows X64，用户主机/自托管/其他workflow拒绝。
+
+PowerShell复用既有32MiB内存WPRP、唯一实例、原30秒WPR调用、256MiB ETL及事件/配对/输入界；新增私有管道只接受有界finish加换行及EOF，空/非法/超长/额外命令/读取错误拒绝。父进程断开通过EOF进入原finally，结束后才停记录/解码/清理；没有观察到正常helper退出及清理就不写成功回执，超时只处置本次子进程，不取消其他记录或授清理资格。新诊断控制/收尾预算不改变任何5秒HTTP、12秒原生控制、30秒存储或10秒key/5秒ACL产品门限。
+
+Node组合器只继承必需系统/CI环境，不向helper转发token/API_KEY/NODE_OPTIONS；stdout/stderr各有界，未收到就绪、提前/重复/非法摘要、信号/非零退出及错误输出全部失败且不转发原始文本。回执固定源码/阶段、原正观察摘要及cleanupVerified，拒绝碰撞、重复JSON、越界、变更来源/阶段、未确认清理；文件读取使用有界fd读取及身份重查，拒绝硬链接/替换的父目录。proxy/client回执不可互用。原覆盖率退出单独保存，回执验证成功也不能覆盖非零原退出；实际PowerShell执行写入的workflow脚本并注入每一原命令/回执失败已验证只执行到正确阶段，无后续测试或重试。
+
+相关协议/实际私有PowerShell管道、控制EOF、回执/文件边界、workflow失败顺序及原ETW解码共34/34本机通过、零skip。首轮测试的注入超时未消费原Promise导致异步活动失败已修正注入模型，原失败保留为诊断回归，非产品根因。默认关闭记录的原Core完整文件25通过/3项既有Mac原生开库失败/2项既有Windows限定skip，未新增skip或回退；实际WPR全覆盖率观测仍须本批新SHA，不能授五秒资格。原始ETL和解码事件（含其中路径）、数据库、密钥、原文和模型响应均不上传；traceCompletenessVerified/fiveSecondQualified继续false。
+
+4ec842f实际安装40167122824/121090414574已终态success，manifest5a05e77a5292b5bbe3bf9ef86cc08376bc411d6cc433d73598b30d585def8c37、应用SHA72aed6c67bece6dcd9077778000cab22b872b03eb126e3514a474b96e54af095。实际582八阶段默认worker迁移/旧版拒写、同格式安装升级回滚/DPAPI、两次实际exe空闲停止重开及原到期、两端默认/增强四组各3次原生压缩/精确最终答案及TLS/归属/清理/卸载均通过；新默认owner原子启动封存已进入实际安装范围。真实provider/24小时资格false，原daemon矩阵forced_cleanup、在途排空和客户端重启留存未授资格。原主coverage初始化失败保持，不能被安装/正式/review成功覆盖。
+
+本批生产实现未改，Lint/格式/全树语法与CI/release治理通过；仍保留五秒/初始化稳定性、完整在途排空/重启留存、固定容量/真实24小时及到期重开、逐端额度预留后的真实provider验收、自用安装器交付和受控启用等全部范围。冻结长测未访问、真实模型0。
+
 ## 2026-10-25：保留新阶段及9a五秒失败，补齐保守测量器Proxy拒绝和真正异常传播
 
 2685fde普通Verify40167763038八项最终全部success；正式40167763051/source121092197215失败，原生uncertain的COMMIT前SIGKILL/释放两例5161.3449/5014.6711ms等待ready超时。新增安全回执已确认两次默认原生开库均完成：startup=ready分别2237/4520ms，lastFixture分别fixture-observed/native-opened，尚未advance。第一例停在fixture-observed至fixture-prepared之间，包含view构造及公开持久准备；第二例在开库后进入观察初始化时余量不足。回执只缩小阶段，尚未确认唯一I/O或调度原因；这两次不是“原生开库尚未返回”，也不是已经发生中断后的恢复失败。旧DPAPI兼容在10122.5873ms另有context_recovery_key_unavailable，独立保留，所有原5秒/10秒期限不变。

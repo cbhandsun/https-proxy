@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
+require('../scripts/lib/coverage-io-capture').installCoverageIoCapture(test);
 const http = require('node:http');
 const fs = require('node:fs');
 const os = require('node:os');

@@ -1,0 +1,79 @@
+name: Windows coverage persistent I/O diagnostic
+
+on:
+  push:
+    branches:
+      - acceptance/context-recovery/**
+    paths:
+      - .github/workflows/windows-persistent-io-coverage.yml
+      - scripts/capture-persistent-io.ps1
+      - scripts/check-coverage-io-receipt.cjs
+      - scripts/lib/coverage-io-capture.js
+      - scripts/lib/persistent-io-recording.psm1
+      - scripts/lib/persistent-io-binary.psm1
+      - scripts/lib/persistent-io-summary.js
+      - scripts/summarize-persistent-io.cjs
+      - scripts/fixtures/persistent-file-io.wprp
+      - test/client-context-target.test.js
+      - test/coverage-io-capture.test.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage-file-flush:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Prepare the original locked coverage prerequisites
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency preparation failed.' }
+          npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture preparation failed.' }
+          rustup default stable
+          if ($LASTEXITCODE -ne 0) { throw 'Toolchain preparation failed.' }
+      - name: Execute complete original coverage commands with owned file recording windows
+        env:
+          HPM_COVERAGE_IO: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $env:HPM_COVERAGE_IO_STAGE = 'proxy'
+          npm run test:coverage
+          $coverageExit = $LASTEXITCODE
+          if ($coverageExit -ne 0) { [Console]::Error.WriteLine('coverage_original_stage_failed:stage=' + $env:HPM_COVERAGE_IO_STAGE) }
+          node scripts/check-coverage-io-receipt.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Coverage I/O observation was not completed safely.' }
+          if ($coverageExit -ne 0) { throw 'Original proxy coverage failed; I/O evidence does not override its failure.' }
+          $env:HPM_COVERAGE_IO_STAGE = 'client'
+          npm run test:client:coverage
+          $coverageExit = $LASTEXITCODE
+          if ($coverageExit -ne 0) { [Console]::Error.WriteLine('coverage_original_stage_failed:stage=' + $env:HPM_COVERAGE_IO_STAGE) }
+          node scripts/check-coverage-io-receipt.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Client coverage I/O observation was not completed safely.' }
+          if ($coverageExit -ne 0) { throw 'Original client coverage failed; I/O evidence does not override its failure.' }
+          npm run test:frontend:coverage
+          if ($LASTEXITCODE -ne 0) { throw 'Original frontend coverage failed.' }
+      - name: Record the observation boundary
+        if: always()
+        run: |
+          @(
+            'Executes the complete original proxy, client and frontend coverage commands once each, in order, with original four-shard proxy coverage and all original assertions.'
+            'Each proxy/client recording begins before its complete client-context-target file and ends after it; no tests are filtered, retried or appended. A failed original stage still stops subsequent stages.'
+            'Original five-second HTTP and final durable ACK gates, worker, DPAPI, OS anchor and FULL/DELETE persistence remain unchanged.'
+            'WPR retains its own unique instance, 32 MiB circular buffers, bounded decoding and cleanup. Ring loss and tracing perturbation prevent completeness or stability qualification.'
+            'All providers are synthetic. No raw ETL, decoded records, paths, keys, databases, originals or model replies are uploaded.'
+          ) >> $env:GITHUB_STEP_SUMMARY

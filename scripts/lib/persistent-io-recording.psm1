@@ -74,7 +74,31 @@ function ConvertTo-HpmPersistentIoRecord {
     } else { throw 'refused' }
 }
 
+function Read-HpmCoverageIoCommand {
+    param([IO.TextReader]$Reader = [Console]::In)
+    try {
+        $waiting = [Diagnostics.Stopwatch]::StartNew()
+        $command = [Text.StringBuilder]::new()
+        $character = [char[]]::new(1)
+        while ($true) {
+            $remaining = 600000 - [int]$waiting.ElapsedMilliseconds
+            if ($remaining -le 0) { throw 'refused' }
+            $read = $Reader.ReadAsync($character,0,1)
+            if (-not $read.Wait($remaining) -or $read.GetAwaiter().GetResult() -ne 1 -or $waiting.ElapsedMilliseconds -gt 600000) { throw 'refused' }
+            if ($character[0] -eq [char]10) { break }
+            if ($command.Length -ge 8) { throw 'refused' }
+            [void]$command.Append($character[0])
+        }
+        if ($command.ToString() -cne 'finish') { throw 'refused' }
+        $remaining = 600000 - [int]$waiting.ElapsedMilliseconds
+        if ($remaining -le 0) { throw 'refused' }
+        $read = $Reader.ReadAsync($character,0,1)
+        if (-not $read.Wait($remaining) -or $read.GetAwaiter().GetResult() -ne 0 -or $waiting.ElapsedMilliseconds -gt 600000) { throw 'refused' }
+    } catch { throw 'persistent_io_capture_command_refused' }
+}
+
 function Invoke-HpmPersistentIoDiagnostic {
+    param([switch]$CaptureOnly)
     $ErrorActionPreference = 'Stop'
     $PSNativeCommandUseErrorActionPreference = $false
     $owned = $false
@@ -124,6 +148,7 @@ function Invoke-HpmPersistentIoDiagnostic {
     }
     try {
         if (-not $IsWindows -or $env:RUNNER_ARCH -cne 'X64' -or $env:CI -cne 'true' -or $args.Count -ne 0 -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:GITHUB_REPOSITORY -cne 'cbhandsun/https-proxy') { throw 'refused' }
+        if ($CaptureOnly -and ($env:HPM_COVERAGE_IO -cnotmatch '\A[a-f0-9]{40}\z' -or $env:HPM_COVERAGE_IO -cne $env:GITHUB_SHA -or $env:HPM_COVERAGE_IO_STAGE -cnotin @('proxy','client') -or -not $env:GITHUB_WORKFLOW_REF.StartsWith('cbhandsun/https-proxy/.github/workflows/windows-persistent-io-coverage.yml@'))) { throw 'refused' }
         Import-Module (Join-Path $PSScriptRoot 'nsis-lifecycle.psm1')
         $phase = 'paths'
         $parent = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
@@ -141,8 +166,17 @@ function Invoke-HpmPersistentIoDiagnostic {
         $owned = $true
         Invoke-HpmWpr -Arguments @('-start',($profile + '!HpmSqliteIO'))
         $phase = 'original-tests'
-        & node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/client-context-target.test.js test/context-recovery-codex-summary.test.js
-        $testExit = $LASTEXITCODE
+        if ($CaptureOnly) {
+            $phase = 'capture-wait'
+            # The existing test file runs in its original full coverage shard.
+            # A private pipe controls recording only; it never carries a request.
+            [Console]::Out.WriteLine('HPM_PERSISTENT_IO_CAPTURE_READY')
+            Read-HpmCoverageIoCommand
+            $testExit = 0 # The outer original coverage exit remains an independent required gate.
+        } else {
+            & node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/client-context-target.test.js test/context-recovery-codex-summary.test.js
+            $testExit = $LASTEXITCODE
+        }
         $phase = 'trace-stop'
         Invoke-HpmWpr -Arguments @('-stop',$trace,'owned synthetic SQLite diagnosis','-skipPdbGen')
         $owned = $false

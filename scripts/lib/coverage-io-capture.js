@@ -1,0 +1,343 @@
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawn } = require('node:child_process');
+const { types } = require('node:util');
+const { safePath } = require('./nsis-encrypted-contract');
+const fail = () => new Error('coverage_io_capture_failed');
+const isSha = (value) =>
+  typeof value === 'string' && value.length === 40 && /^[a-f0-9]{40}$/.test(value);
+const READY = 'HPM_PERSISTENT_IO_CAPTURE_READY';
+const PREFIX = 'HPM_PERSISTENT_IO=';
+const WORKFLOW = 'cbhandsun/https-proxy/.github/workflows/windows-persistent-io-coverage.yml@';
+const KEYS = [
+  'schemaVersion',
+  'scope',
+  'events',
+  'pairedFlushes',
+  'database',
+  'journal',
+  'collisions',
+  'unmatchedEnds',
+  'failedFlushes',
+  'unfinishedFlushes',
+  'traceCompletenessVerified',
+  'fiveSecondQualified',
+  'realModelRequests',
+];
+function exact(value, keys) {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    Object.keys(value).sort().join(',') !== [...keys].sort().join(',')
+  )
+    throw fail();
+}
+function parseSummary(text) {
+  if (typeof text !== 'string' || Buffer.byteLength(text) > 16384) throw fail();
+  const value = JSON.parse(text);
+  if (JSON.stringify(value) !== text) throw fail();
+  exact(value, KEYS);
+  if (
+    value.schemaVersion !== 1 ||
+    value.scope !== 'synthetic_sqlite_etw_flush_pairs' ||
+    value.traceCompletenessVerified !== false ||
+    value.fiveSecondQualified !== false ||
+    value.realModelRequests !== 0 ||
+    value.collisions !== 0
+  )
+    throw fail();
+  for (const key of [
+    'events',
+    'pairedFlushes',
+    'collisions',
+    'unmatchedEnds',
+    'failedFlushes',
+    'unfinishedFlushes',
+  ]) {
+    if (!Number.isSafeInteger(value[key]) || value[key] < 0 || value[key] > 100000) throw fail();
+  }
+  for (const key of ['database', 'journal']) {
+    exact(value[key], ['count', 'maxMs', 'over100Ms', 'over1000Ms']);
+    for (const number of Object.values(value[key]))
+      if (!Number.isSafeInteger(number) || number < 0) throw fail();
+    const stats = value[key];
+    if (
+      stats.count > value.pairedFlushes ||
+      stats.over1000Ms > stats.over100Ms ||
+      stats.over100Ms > stats.count ||
+      (!stats.count && stats.maxMs !== 0)
+    )
+      throw fail();
+  }
+  if (
+    !value.pairedFlushes ||
+    value.events < value.pairedFlushes * 2 ||
+    value.pairedFlushes !== value.database.count + value.journal.count
+  )
+    throw fail();
+  return value;
+}
+function receiptPath(environment) {
+  if (
+    !isSha(environment.GITHUB_SHA) ||
+    !['proxy', 'client'].includes(environment.HPM_COVERAGE_IO_STAGE)
+  )
+    throw fail();
+  return path.join(
+    safePath(environment.RUNNER_TEMP, true),
+    'hpm-coverage-io-' + environment.GITHUB_SHA + '-' + environment.HPM_COVERAGE_IO_STAGE + '.json'
+  );
+}
+function readCoverageIoReceipt(environment = process.env) {
+  const file = safePath(receiptPath(environment));
+  const pin = fs.statSync(file, { bigint: true });
+  if (pin.size < 2n || pin.size > 16384n || pin.nlink !== 1n) throw fail();
+  const descriptor = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
+  let text;
+  try {
+    const opened = fs.fstatSync(descriptor, { bigint: true });
+    const unchanged = (stat) =>
+      ['dev', 'ino', 'size', 'nlink', 'mtimeNs', 'ctimeNs'].every((key) => stat[key] === pin[key]);
+    if (!unchanged(opened)) throw fail();
+    const buffer = Buffer.alloc(16385);
+    const length = fs.readSync(descriptor, buffer, 0, buffer.length, 0);
+    if (BigInt(length) !== pin.size || !unchanged(fs.fstatSync(descriptor, { bigint: true })))
+      throw fail();
+    text = buffer.subarray(0, length).toString('utf8');
+  } finally {
+    fs.closeSync(descriptor);
+  }
+  const value = JSON.parse(text);
+  if (JSON.stringify(value) + '\n' !== text) throw fail();
+  exact(value, ['schemaVersion', 'sourceSha', 'coverageStage', 'cleanupVerified', 'summary']);
+  if (
+    value.schemaVersion !== 1 ||
+    value.sourceSha !== environment.GITHUB_SHA ||
+    value.coverageStage !== environment.HPM_COVERAGE_IO_STAGE ||
+    value.cleanupVerified !== true
+  )
+    throw fail();
+  parseSummary(JSON.stringify(value.summary));
+  return value;
+}
+function bounded(promise, milliseconds) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(fail()), milliseconds);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
+// Optional recording around this one complete test file. The original shard
+// runner, coverage command, case order and request deadlines remain unchanged.
+function installCoverageIoCapture(
+  test,
+  {
+    environment = process.env,
+    platform = process.platform,
+    start = spawn,
+    wait = bounded,
+    report = (value) => process.stdout.write('# HPM_COVERAGE_IO=' + JSON.stringify(value) + '\n'),
+  } = {}
+) {
+  if (!environment || typeof environment !== 'object' || types.isProxy(environment)) throw fail();
+  const read = (name) => {
+    const slot = Object.getOwnPropertyDescriptor(environment, name);
+    if (!slot) return undefined;
+    if (!Object.hasOwn(slot, 'value') || typeof slot.value !== 'string') throw fail();
+    return slot.value;
+  };
+  if (read('HPM_COVERAGE_IO') === undefined) return false;
+  const pinned = Object.create(null);
+  for (const key of [
+    'HPM_COVERAGE_IO',
+    'HPM_COVERAGE_IO_STAGE',
+    'GITHUB_SHA',
+    'GITHUB_ACTIONS',
+    'GITHUB_WORKFLOW_REF',
+    'GITHUB_REPOSITORY',
+    'GITHUB_WORKSPACE',
+    'RUNNER_TEMP',
+    'RUNNER_ENVIRONMENT',
+    'RUNNER_OS',
+    'RUNNER_ARCH',
+    'CI',
+    'SystemRoot',
+    'WINDIR',
+    'PATH',
+    'PATHEXT',
+    'HOME',
+    'USERPROFILE',
+    'APPDATA',
+    'LOCALAPPDATA',
+    'TEMP',
+    'TMP',
+  ]) {
+    const value = read(key);
+    if (value !== undefined) pinned[key] = value;
+  }
+  environment = pinned;
+  if (
+    platform !== 'win32' ||
+    environment.CI !== 'true' ||
+    environment.GITHUB_ACTIONS !== 'true' ||
+    environment.RUNNER_ENVIRONMENT !== 'github-hosted' ||
+    environment.RUNNER_OS !== 'Windows' ||
+    environment.RUNNER_ARCH !== 'X64' ||
+    environment.GITHUB_REPOSITORY !== 'cbhandsun/https-proxy' ||
+    !environment.GITHUB_WORKFLOW_REF?.startsWith(WORKFLOW) ||
+    !isSha(environment.HPM_COVERAGE_IO) ||
+    environment.HPM_COVERAGE_IO !== environment.GITHUB_SHA ||
+    !['proxy', 'client'].includes(environment.HPM_COVERAGE_IO_STAGE)
+  )
+    throw fail();
+  let target, entry, parentIdentity;
+  try {
+    target = receiptPath(environment);
+    parentIdentity = fs.statSync(environment.RUNNER_TEMP, { bigint: true });
+    if (fs.existsSync(target)) throw fail();
+    entry = safePath(path.join(environment.GITHUB_WORKSPACE, 'scripts/capture-persistent-io.ps1'));
+  } catch {
+    throw fail();
+  }
+  const verifyParent = () => {
+    if (receiptPath(environment) !== target) throw fail();
+    const current = fs.statSync(environment.RUNNER_TEMP, { bigint: true });
+    if (!['dev', 'ino', 'birthtimeNs'].every((key) => current[key] === parentIdentity[key]))
+      throw fail();
+  };
+  let child,
+    closed,
+    invalid = false,
+    readySeen = false,
+    finishing = false,
+    summary,
+    stdout = '',
+    stderr = '',
+    bytes = 0;
+  test.before(
+    async () => {
+      let ready, refuse;
+      const opening = new Promise((resolve, reject) => {
+        ready = resolve;
+        refuse = reject;
+      });
+      const bad = () => {
+        invalid = true;
+        refuse(fail());
+      };
+      try {
+        child = start('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', entry], {
+          cwd: environment.GITHUB_WORKSPACE,
+          env: environment,
+          windowsHide: true,
+          shell: false,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        closed = new Promise((resolve) => {
+          child.once('error', () => {
+            bad();
+            resolve({ code: null, signal: 'spawn' });
+          });
+          child.once('close', (code, signal) => {
+            if (!readySeen || !finishing) bad();
+            resolve({ code, signal });
+          });
+        });
+        child.stdin.on('error', bad);
+        child.stdout.on('data', (chunk) => {
+          bytes += chunk.length;
+          if (bytes > 16384) {
+            bad();
+            return;
+          }
+          stdout += chunk.toString('utf8');
+          let end;
+          while ((end = stdout.indexOf('\n')) >= 0) {
+            const line = stdout.slice(0, end).replace(/\r$/, '');
+            stdout = stdout.slice(end + 1);
+            try {
+              if (line === READY && !readySeen && !summary) {
+                readySeen = true;
+                ready();
+              } else if (line.startsWith(PREFIX) && readySeen && finishing && !summary)
+                summary = parseSummary(line.slice(PREFIX.length));
+              else bad();
+            } catch {
+              bad();
+            }
+          }
+        });
+        child.stderr.on('data', (chunk) => {
+          if (Buffer.byteLength(stderr) + chunk.length > 16384) {
+            bad();
+            return;
+          }
+          stderr += chunk.toString('utf8');
+        });
+        await wait(opening, 30000);
+        if (invalid) throw fail();
+      } catch {
+        child?.stdin.end('abort\n');
+        if (closed) {
+          try {
+            await wait(closed, 30000);
+          } catch {
+            child.kill('SIGKILL');
+          }
+        }
+        throw fail();
+      }
+    },
+    { timeout: 65000 }
+  );
+  test.after(
+    async () => {
+      if (!child || !closed) throw fail();
+      finishing = true;
+      let result;
+      try {
+        child.stdin.end('finish\n');
+        result = await wait(closed, 300000);
+      } catch {
+        child.kill('SIGKILL');
+        throw fail();
+      }
+      const trace = /^persistent_io_trace_bytes=([1-9][0-9]{0,8})\r?\n$/.exec(stderr);
+      if (
+        invalid ||
+        result.code !== 0 ||
+        result.signal !== null ||
+        stdout !== '' ||
+        !summary ||
+        !trace ||
+        trace[0] !== stderr ||
+        Number(trace[1]) > 268435456
+      )
+        throw fail();
+      const receipt = {
+        schemaVersion: 1,
+        sourceSha: environment.GITHUB_SHA,
+        coverageStage: environment.HPM_COVERAGE_IO_STAGE,
+        cleanupVerified: true,
+        summary,
+      };
+      try {
+        verifyParent();
+        fs.writeFileSync(target, JSON.stringify(receipt) + '\n', { flag: 'wx', mode: 0o600 });
+        verifyParent();
+        report(receipt);
+      } catch {
+        throw fail();
+      }
+    },
+    { timeout: 305000 }
+  );
+  return true;
+}
+module.exports = { installCoverageIoCapture, parseSummary, readCoverageIoReceipt };
