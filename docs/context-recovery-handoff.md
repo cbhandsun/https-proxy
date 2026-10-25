@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新阶段定位与9a失败优先：** 268普通CI八项success，但正式两例ready超时已明确原生开库分别2237/4520ms完成，lastFixture=fixture-observed/native-opened，尚未advance，需查后续初始化写入；另旧DPAPI10秒失败保留。9a又有Chat fetch5007ms/Responses最终ACK5004ms，以及共用Proxy拒绝触发的测量故障注入失败。本批补测量器自身反射前Proxy拒绝，保留原保守结果，原异常传播两处断言改为普通对象精确反射故障注入并验证原异常身份，92项扩大回归全通过，待新SHA Windows。4ec正式四项已success，主初始化失败保持。7d实际安装已全部success：582实际迁移/拒写、两次空闲停止重开及两端默认/增强四组各3次原生压缩；仅合成上游，真实provider/24小时/在途排空/客户端重启仍未合格。完整证据和剩余范围见状态顶部；冻结长测未访问、模型0。
+
 **最新共用输入边界修复优先：** 实际复现normalizeCompactionData可执行/接受Proxy记录，本批在每层结构反射前用Node内建types.isProxy拒绝，含嵌套/数组/已撤销Proxy；压缩固定错误与storageData原503映射保持，正常数据及所有预算/期限/ACK/持久语义不变。回归先失败后通过，144项相关及246项扩大测试全pass、零skip，仍须新SHA Windows。4ec review40167122873八项已全success，另12次最终ACK1179–2435ms、COMMIT最大109ms，原生20项全ok；主coverage初始ready5163ms失败保持。268阶段诊断和4ec/7d原安装继续，7d已进实际两端四组但无最终结论。完整剩余范围见状态顶部；冻结长测未访问、模型0。
 
 **最新4ec842f初始化失败优先：** 三runner各原50/50通过，18次最终ACK1178–3741ms、各138次COMMIT，证明默认启动事务数减少；主unit3原生中断20/20通过。但主Verify七success/coverage121090332601的uncertain/ACK前SIGKILL用例5162.6964ms仍在初始ready（helper75），尚未advance，不覆盖/重跑该失败。本批仅接现有只读onStartup，独立严格解析并复用实际导出的阶段验证器，超时时只输出固定阶段和整数耗时；原负载/期限/断言保持，41项本机全通过，实际Windows阶段待新SHA。d273正式四项已success，其coverage失败保持；7d安装已完成门禁/构建，仍在实际验收，4ec原正式/安装继续。完整剩余范围见状态顶部；冻结长测未访问、模型0。

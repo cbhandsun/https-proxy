@@ -174,21 +174,29 @@ test('measurement never executes getters, toJSON or coercion hooks', () => {
   assert.equal(invoked, 0);
 });
 
-test('unexpected reflection failures propagate rather than manufacturing a measurement', () => {
-  const message = new Proxy(
-    {},
-    {
-      getPrototypeOf() {
-        throw new Error('fixture failure');
-      },
+test('unexpected reflection failures propagate rather than manufacturing a measurement', (t) => {
+  const reflectionTarget = { role: 'user', content: 'synthetic' };
+  const validatorTarget = { synthetic: true };
+  const fault = new Error('fixture failure');
+  const descriptor = Object.getOwnPropertyDescriptor;
+  let failures = 0;
+  t.mock.method(Object, 'getOwnPropertyDescriptor', (target, key) => {
+    if (target === reflectionTarget || target === validatorTarget) {
+      failures++;
+      throw fault;
     }
-  );
-  assert.throws(() => measure([message]), /fixture failure/);
+    return descriptor(target, key);
+  });
   assert.throws(
-    () => measure([{ role: 'user', content: message }]),
-    /fixture failure/,
+    () => measure([reflectionTarget]),
+    (error) => error === fault
+  );
+  assert.throws(
+    () => measure([{ role: 'user', content: validatorTarget }]),
+    (error) => error === fault,
     'unexpected validator failures propagate too'
   );
+  assert.equal(failures, 2, 'both reflection and normalization must reach their injected fault');
 });
 
 function workload() {
@@ -299,4 +307,43 @@ test('fitting required context does not bypass final admission or disable a pote
   assert.equal(summaries, 1);
   assert.equal(plan.diagnostics.taskStateSummaryAttempted, true);
   assert.ok(plan.body.messages.some((message) => message.content === body.messages[1].content));
+});
+
+test('required-context measurement rejects proxies before reflection or validation traps', () => {
+  let hooks = 0;
+  const handler = {
+    getPrototypeOf(target) {
+      hooks++;
+      return Reflect.getPrototypeOf(target);
+    },
+    ownKeys(target) {
+      hooks++;
+      return Reflect.ownKeys(target);
+    },
+    getOwnPropertyDescriptor(target, key) {
+      hooks++;
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    },
+    get(target, key, receiver) {
+      hooks++;
+      return Reflect.get(target, key, receiver);
+    },
+  };
+  const content = new Proxy({ synthetic: true }, handler);
+  const message = new Proxy({ role: 'user', content: 'synthetic' }, handler);
+  const messages = new Proxy([{ role: 'user', content: 'synthetic' }], handler);
+  const revoked = Proxy.revocable([], handler);
+  revoked.revoke();
+  for (const input of [
+    messages,
+    revoked.proxy,
+    [message],
+    [{ role: 'user', content }],
+    [{ role: 'user', content: revoked.proxy }],
+  ]) {
+    assert.deepEqual(measure(input), { requiredContextMeasured: false });
+  }
+  assert.equal(hooks, 0);
+  assert.equal(measure([{ role: 'assistant', content }]).requiredContextMeasured, true);
+  assert.equal(hooks, 0, 'irrelevant output is still not traversed');
 });
