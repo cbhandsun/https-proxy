@@ -6,6 +6,19 @@ const FLAG: &str = "--hpm-proxy-control-v1";
 const MAX_INPUT: u64 = 1024;
 const FAILURE: &str = "proxy_control_failed";
 
+fn failure_phase(result: &Result<serde_json::Value, String>) -> &'static str {
+    match result {
+        Err(error) if error == "project root not found" => "root_unavailable",
+        Err(error) if error.starts_with("failed to start node proxy directly:") => "launch_failed",
+        Err(error) if error.starts_with("direct proxy process exited early:") => "child_exited",
+        Err(error) if error == "proxy_start_owner_mismatch" => "owner_mismatch",
+        Ok(value) if value.get("timedOut").and_then(|v| v.as_bool()) == Some(true) => {
+            "health_timeout"
+        }
+        _ => "command_unconfirmed",
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 enum Command {
@@ -109,17 +122,23 @@ pub fn run_from_process_args() -> bool {
     let Some(arguments) = control_arguments(&args) else {
         return false;
     };
+    let mut phase = "request_rejected";
     let result = arguments.and_then(|()| {
         control_io(
             std::io::stdin().lock(),
             std::io::stdout().lock(),
-            super::execute_proxy_command_blocking,
+            |command| {
+                let reply = super::execute_proxy_command_blocking(command);
+                phase = failure_phase(&reply);
+                reply
+            },
         )
     });
     if result != Ok(true) {
         let _ = std::io::stderr()
             .lock()
             .write_all(b"proxy_control_failed\n");
+        let _ = writeln!(std::io::stderr().lock(), "proxy_control_phase={phase}");
         std::process::exit(1);
     }
     true
@@ -128,6 +147,36 @@ pub fn run_from_process_args() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn failure_diagnostics_are_closed_values_and_never_forward_command_errors() {
+        for (error, expected) in [
+            ("project root not found", "root_unavailable"),
+            (
+                "failed to start node proxy directly: PRIVATE",
+                "launch_failed",
+            ),
+            ("direct proxy process exited early: PRIVATE", "child_exited"),
+            ("proxy_start_owner_mismatch", "owner_mismatch"),
+            (
+                "PRIVATE\nproxy_control_phase=child_exited",
+                "command_unconfirmed",
+            ),
+            ("", "command_unconfirmed"),
+        ] {
+            assert_eq!(failure_phase(&Err(error.into())), expected);
+        }
+        assert_eq!(
+            failure_phase(&Ok(serde_json::json!({"timedOut":true,"output":"PRIVATE"}))),
+            "health_timeout"
+        );
+        for value in [
+            serde_json::Value::Null,
+            serde_json::json!({}),
+            serde_json::json!({"timedOut":"PRIVATE"}),
+        ] {
+            assert_eq!(failure_phase(&Ok(value)), "command_unconfirmed");
+        }
+    }
     #[test]
     fn controller_flags_are_exact_and_reject_invalid_versions_without_launching_gui() {
         assert_eq!(control_arguments(&[]), None);

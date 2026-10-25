@@ -13,7 +13,12 @@ const {
   workerReceipt,
   storeWitness,
 } = require('../scripts/lib/nsis-native-control-contract');
-const { executeNativeControl } = require('../scripts/lib/nsis-native-control-transport');
+const {
+  executeNativeControl,
+  withControlFailurePhase,
+  CONTROL_FAILURES,
+  CONTROL_STEPS,
+} = require('../scripts/lib/nsis-native-control-transport');
 const {
   phaseWriter,
   assertWriterOwned,
@@ -234,6 +239,156 @@ test('reopen rejects expiry, budget, key, state or nonce drift and malformed nat
   ])
     assert.throws(() => controlReceipt(input, 'stop'), failure);
 });
+test('failed native commands retain only a closed diagnostic reason without retrying', () => {
+  for (const [change, reason] of [
+    [{ error: { code: 'ETIMEDOUT' } }, 'deadline'],
+    [{ error: { code: 'ENOENT' } }, 'spawn'],
+    [{ signal: 'SIGTERM' }, 'signal'],
+    [{ status: 1, stderr: 'PRIVATE' }, 'exit'],
+    [{ stderr: 'PRIVATE' }, 'stderr'],
+    [{ stdout: 'x'.repeat(513) }, 'output'],
+    [{ stdout: '' }, 'json'],
+    [{ stdout: '{}\n' }, 'receipt'],
+    ...[
+      'request_rejected',
+      'root_unavailable',
+      'launch_failed',
+      'child_exited',
+      'owner_mismatch',
+      'health_timeout',
+      'command_unconfirmed',
+    ].map((reason) => [
+      { status: 1, stderr: `proxy_control_failed\nproxy_control_phase=${reason}\n` },
+      reason,
+    ]),
+    [
+      { status: 1, stderr: 'proxy_control_failed\nproxy_control_phase=child_exited\nPRIVATE' },
+      'exit',
+    ],
+  ]) {
+    const reports = [];
+    let attempts = 0;
+    assert.throws(
+      () =>
+        withControlFailurePhase(
+          'start-1',
+          (value) => reports.push(value),
+          () =>
+            executeNativeControl('owned.exe', 'start', {}, 'owned', () => {
+              attempts++;
+              return {
+                status: 0,
+                signal: null,
+                stderr: '',
+                stdout: '{"schemaVersion":1,"command":"start","ok":true,"gracefulDrain":false}\n',
+                ...change,
+              };
+            })
+        ),
+      { message: 'native_control_probe_failed', controlFailure: reason }
+    );
+    assert.equal(attempts, 1);
+    assert.deepEqual(reports, ['start-1-' + reason]);
+    assert.ok(!JSON.stringify(reports).includes('PRIVATE'));
+  }
+});
+
+test('control failure phases reject executable reasons and invalid stages; report failures remain failures', () => {
+  let hooks = 0;
+  const getter = Object.defineProperty({}, 'controlFailure', {
+    get() {
+      hooks++;
+      return 'exit';
+    },
+  });
+  const proxy = new Proxy(
+    {},
+    {
+      getOwnPropertyDescriptor() {
+        hooks++;
+        throw Error('PRIVATE');
+      },
+    }
+  );
+  for (const error of [
+    null,
+    'PRIVATE',
+    {},
+    getter,
+    proxy,
+    { controlFailure: 'PRIVATE' },
+    { controlFailure: 'x'.repeat(10000) },
+  ]) {
+    const reports = [];
+    assert.throws(
+      () =>
+        withControlFailurePhase(
+          'stop-2',
+          (value) => reports.push(value),
+          () => {
+            throw error;
+          }
+        ),
+      failure
+    );
+    assert.deepEqual(reports, ['stop-2-exception']);
+  }
+  assert.equal(hooks, 0);
+  for (const stage of [null, '', 'start-3', 'PRIVATE', 'x'.repeat(10000)])
+    assert.throws(
+      () =>
+        withControlFailurePhase(
+          stage,
+          () => {
+            throw Error('unexpected report');
+          },
+          () => {
+            throw Error('unexpected execution');
+          }
+        ),
+      failure
+    );
+  assert.throws(
+    () =>
+      withControlFailurePhase(
+        'start-1',
+        () => {
+          throw Error('phase_failed');
+        },
+        () => {
+          throw Error('PRIVATE');
+        }
+      ),
+    { message: 'phase_failed' }
+  );
+  assert.equal(
+    withControlFailurePhase(
+      'start-1',
+      () => {
+        throw Error('unexpected report');
+      },
+      () => 123
+    ),
+    123
+  );
+});
+
+test('all bounded native failure reasons are accepted by the pinned phase writer', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-native-diagnostics-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const report = phaseWriter(root);
+  for (const stage of CONTROL_STEPS)
+    for (const reason of CONTROL_FAILURES) {
+      const phase = stage + '-' + reason;
+      report(phase);
+      assert.deepEqual(
+        JSON.parse(fs.readFileSync(path.join(root, 'native-control-phase.json'), 'utf8')),
+        { schemaVersion: 1, phase }
+      );
+    }
+  assert.throws(() => report('start-1-PRIVATE'), failure);
+});
+
 test('native transport retains fixed program, no shell, bounded deadline and exact private protocol', () => {
   let calls = 0;
   const start = (program, args, options) => {

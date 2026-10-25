@@ -37,7 +37,11 @@ function Write-HpmNativeControlFailurePhase {
             $names = @($value.EnumerateObject() | ForEach-Object { $_.Name })
             if ($names.Count -ne 2 -or ($names | Sort-Object) -join ',' -cne 'phase,schemaVersion' -or $value.GetProperty('schemaVersion').GetInt32() -ne 1) { throw 'invalid' }
             $candidate = $value.GetProperty('phase').GetString()
-            if ($candidate -cnotin @('seed','start-1','ready-1','stop-1','read-1','start-2','ready-2','stop-2','read-2','complete')) { throw 'invalid' }
+            $allowed = @('seed','start-1','ready-1','stop-1','read-1','start-2','ready-2','stop-2','read-2','complete')
+            foreach ($step in @('start-1','stop-1','start-2','stop-2')) {
+                foreach ($reason in @('request_rejected','root_unavailable','launch_failed','child_exited','owner_mismatch','health_timeout','command_unconfirmed','spawn','deadline','signal','exit','stderr','output','json','receipt','exception')) { $allowed += $step + '-' + $reason }
+            }
+            if ($candidate -cnotin $allowed) { throw 'invalid' }
             $phase = $candidate
         }
     } catch { $phase = 'phase_invalid' } finally { if ($null -ne $document) { $document.Dispose() } }

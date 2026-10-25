@@ -12,7 +12,12 @@ const {
   inspectOwnedStore,
 } = require('./context-recovery-legacy-layout-runtime');
 const { createDaemonManagementHttpClient } = require('./context-recovery-daemon-http-client');
-const { executeNativeControl } = require('./nsis-native-control-transport');
+const {
+  executeNativeControl,
+  withControlFailurePhase,
+  CONTROL_FAILURES,
+  CONTROL_STEPS,
+} = require('./nsis-native-control-transport');
 const { exerciseNativeControl, exact } = require('./nsis-native-control-contract');
 const { dataSnapshot } = require('./context-recovery-daemon-http-boundary');
 const PHASES = [
@@ -26,6 +31,7 @@ const PHASES = [
   'stop-2',
   'read-2',
   'complete',
+  ...CONTROL_STEPS.flatMap((stage) => CONTROL_FAILURES.map((reason) => stage + '-' + reason)),
 ];
 const fail = () => new Error('native_control_probe_failed');
 
@@ -281,10 +287,14 @@ async function run(args) {
     throw fail();
   };
   fs.writeFileSync(safePath(config), JSON.stringify(configuration));
+  let controlIndex = 0;
   const receipt = await exerciseNativeControl(
     {
       fixture: (operation) => executeWorkerDriver({ installation, install, operation, owned }),
-      control: (command) => executeNativeControl(program, command, nativeEnv, install),
+      control: (command) =>
+        withControlFailurePhase(CONTROL_STEPS[controlIndex++], phase, () =>
+          executeNativeControl(program, command, nativeEnv, install)
+        ),
       ready,
       inspect: () => inspectOwnedStore(owned),
       verify,

@@ -6,6 +6,59 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { PHASES } = require('../scripts/lib/nsis-native-control-probe');
+
+test('PowerShell failure diagnostics accept every closed JS phase and reject unknown private content', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-native-phase-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const cases = [
+    ...PHASES.map((phase) => ({ schemaVersion: 1, phase })),
+    { schemaVersion: 1, phase: 'PRIVATE' },
+    { schemaVersion: 1, phase: 'x'.repeat(257) },
+    { schemaVersion: 1, phase: 'start-1-child_exited', extra: 'PRIVATE' },
+    { schemaVersion: 2, phase: 'start-1' },
+  ];
+  const file = path.join(root, 'examples.json');
+  fs.writeFileSync(file, JSON.stringify(cases));
+  const script = path.join(root, 'check.ps1');
+  fs.writeFileSync(
+    script,
+    `param($Repository,$Root,$Examples,$Count)
+$ErrorActionPreference='Stop'
+$module=Import-Module (Join-Path $Repository 'scripts/lib/nsis-native-control.psm1') -Force -PassThru
+$cases=[IO.File]::ReadAllText($Examples)|ConvertFrom-Json
+$index=0
+foreach($case in $cases){
+ [IO.File]::WriteAllText((Join-Path $Root 'native-control-phase.json'),($case|ConvertTo-Json -Compress))
+ $capture=[IO.StringWriter]::new();$previous=[Console]::Error
+ try{[Console]::SetError($capture);& $module {param($r) Write-HpmNativeControlFailurePhase $r} $Root}finally{[Console]::SetError($previous)}
+ $expected=if($index -lt [int]$Count){$case.phase}else{'phase_invalid'}
+ if($capture.ToString().TrimEnd() -cne ('NSIS_NATIVE_CONTROL_PHASE='+$expected)){throw 'phase_contract_failed'}
+ $index++
+}
+[Console]::Out.WriteLine('nativePhaseCases='+$index+'; modelRequests=0')
+`
+  );
+  const result = spawnSync(
+    'pwsh',
+    [
+      '-NoLogo',
+      '-NoProfile',
+      '-NonInteractive',
+      '-File',
+      script,
+      path.resolve('.'),
+      root,
+      file,
+      String(PHASES.length),
+    ],
+    { encoding: 'utf8', timeout: 25000, maxBuffer: 4096 }
+  );
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, '');
+  assert.match(result.stdout, new RegExp('nativePhaseCases=' + cases.length + '; modelRequests=0'));
+});
 test('PowerShell native receipt keeps exact scope and rejects forged qualifications, duplicates and metadata', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-native-receipt-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
