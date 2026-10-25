@@ -449,3 +449,154 @@ test('shutdown waits for upgrade drain before PID ACK and preserves all upgrade 
     TypeError
   );
 });
+
+test(
+  'real HTTP stop drains an encrypted file commit ACK before storage close and preserves its original expiry on reopen',
+  { timeout: 10000 },
+  async (t) => {
+    const { createStoppingAdmission } = require('../lib/proxy/stopping-admission');
+    const { performance } = require('node:perf_hooks');
+    const { DatabaseSync } = require('node:sqlite');
+    const { randomBytes } = require('node:crypto');
+    const { createRecoverySqliteStore } = require('../lib/proxy/context-recovery-storage-sqlite');
+    const { createContextRecoverySessions } = require('../lib/proxy/context-recovery-sessions');
+    const directory = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), 'hpm-stop-commit-')
+    );
+    const file = path.join(directory, 'checkpoint.sqlite');
+    const key = randomBytes(32).toString('base64');
+    const database = new DatabaseSync(file);
+    const engine = createRecoverySqliteStore({ database, dataKey: key, now: () => 100 });
+    const entered = deferred(),
+      release = deferred();
+    let armed = false,
+      storageClosed = false,
+      storageClosedAt,
+      committed,
+      scope,
+      responseText = '',
+      pids = 0;
+    const sessions = createContextRecoverySessions({ now: () => 100 });
+    const owner = createContextRecoveryLifecycle({
+      sessions,
+      storage: {
+        async execute(request) {
+          const result = engine.execute(request);
+          if (armed && request.operation === 'save') {
+            armed = false;
+            scope = request.scope;
+            committed = engine.execute({ operation: 'load', scope });
+            entered.resolve();
+            await release.promise;
+          }
+          return result;
+        },
+        close() {
+          storageClosed = true;
+          storageClosedAt = performance.now();
+          engine.close();
+          database.close();
+        },
+      },
+    });
+    let stopping = false;
+    const admission = createStoppingAdmission({
+      isStopping: () => stopping,
+      closeIdleConnections: () => server.closeIdleConnections(),
+      async handleRequest(_req, res) {
+        try {
+          const result = await view.completeObservedAsync([
+            { role: 'assistant', content: 'synthetic answer' },
+          ]);
+          res.end(result.ok ? 'unexpected publication' : 'closed');
+        } catch {
+          res.end('failed');
+        }
+      },
+    });
+    const server = http.createServer(admission.request);
+    let request = null;
+    t.after(async () => {
+      release.resolve();
+      request?.destroy();
+      server.closeAllConnections();
+      server.close();
+      await owner.shutdownAsync();
+      assert.equal(fs.realpathSync.native(directory), directory);
+      assert.ok(path.basename(directory).startsWith('hpm-stop-commit-'));
+      fs.rmSync(directory, { recursive: true });
+    });
+    assert.deepEqual(await owner.configureAsync(true), { ok: true });
+    const view = await sessions.beginAsync(
+      {
+        principal: 'owner',
+        protocol: 'chat',
+        target: 'synthetic',
+        history: [{ role: 'user', content: 'q' }],
+      },
+      [],
+      () => true
+    );
+    assert.equal(view.ok, true);
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const responseEnded = deferred();
+    armed = true;
+    request = http.get('http://127.0.0.1:' + server.address().port, (res) => {
+      res.setEncoding('utf8');
+      res.on('data', (text) => {
+        responseText += text;
+        assert.ok(responseText.length < 128);
+      });
+      res.once('end', responseEnded.resolve);
+    });
+    await entered.promise;
+    assert.equal(committed.revision, 1);
+    assert.equal(committed.expiresAt, 86400100);
+    const stop = createProxyShutdown({
+      servers: [server],
+      shutdownRecovery: () => owner.shutdownAsync(),
+      stopPid() {
+        assert.equal(storageClosed, true);
+        pids++;
+        return true;
+      },
+      reportFailure() {
+        assert.fail('Expected a drained shutdown');
+      },
+    });
+    stopping = true;
+    const stopped = stop();
+    assert.equal(stop(), stopped);
+    assert.equal(sessions.inspect().closed, true);
+    await flush();
+    assert.equal(storageClosed, false, 'SQL COMMIT alone is not the outstanding storage ACK');
+    assert.equal(pids, 0);
+    assert.equal(responseText, '');
+    const stoppingAt = performance.now();
+    release.resolve();
+    assert.equal(await stopped, true);
+    assert.ok(
+      performance.now() - stoppingAt < 4000,
+      `natural shutdown exceeded original exit bound; post-storage=${Math.round(performance.now() - storageClosedAt)}ms`
+    );
+    await responseEnded.promise;
+    assert.equal(responseText, 'closed');
+    assert.equal(pids, 1);
+    const reopenedDb = new DatabaseSync(file);
+    const reopened = createRecoverySqliteStore({
+      database: reopenedDb,
+      dataKey: key,
+      now: () => 100,
+    });
+    try {
+      assert.deepEqual(reopened.execute({ operation: 'load', scope }), committed);
+      assert.equal(reopenedDb.prepare('PRAGMA synchronous').get().synchronous, 2);
+      assert.equal(reopenedDb.prepare('PRAGMA journal_mode').get().journal_mode, 'delete');
+      assert.equal(reopenedDb.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
+    } finally {
+      reopened.close();
+      reopenedDb.close();
+    }
+  }
+);

@@ -254,3 +254,63 @@ test('natural upgrade close before shutdown and while HTTP is active does not le
     assert.deepEqual(f.replies, []);
   }
 });
+
+test('stopping idle notification waits for the last response, runs once, and leaves socket ownership to HTTP', () => {
+  let stopping = false,
+    idle = 0;
+  const socket = new EventEmitter();
+  socket.end = socket.destroy = () => assert.fail('HTTP server owns idle classification');
+  const gate = createStoppingAdmission({
+    isStopping: () => stopping,
+    handleRequest() {},
+    closeIdleConnections() {
+      idle++;
+    },
+  });
+  const ordinary = new EventEmitter();
+  gate.request({ socket }, ordinary);
+  ordinary.emit('finish');
+  assert.equal(idle, 0);
+  const first = new EventEmitter(),
+    second = new EventEmitter();
+  gate.request({ socket }, first);
+  gate.request({ socket }, second);
+  stopping = true;
+  first.emit('finish');
+  first.emit('close');
+  assert.equal(idle, 0);
+  second.emit('close');
+  second.emit('finish');
+  assert.equal(idle, 1);
+  assert.equal(first.listenerCount('finish'), 0);
+  assert.equal(second.listenerCount('close'), 0);
+});
+
+test('invalid idle composition is rejected and an idle cleanup failure propagates without a second attempt', () => {
+  for (const closeIdleConnections of [null, false, {}, 1, 'close']) {
+    assert.throws(
+      () => createStoppingAdmission({ isStopping() {}, handleRequest() {}, closeIdleConnections }),
+      /Invalid stopping admission composition/
+    );
+  }
+  let stopping = false,
+    calls = 0;
+  const failure = new Error('synthetic idle close failure');
+  const gate = createStoppingAdmission({
+    isStopping: () => stopping,
+    handleRequest() {},
+    closeIdleConnections() {
+      calls++;
+      throw failure;
+    },
+  });
+  const response = new EventEmitter();
+  gate.request({ socket: {} }, response);
+  stopping = true;
+  assert.throws(
+    () => response.emit('finish'),
+    (error) => error === failure
+  );
+  response.emit('close');
+  assert.equal(calls, 1);
+});
