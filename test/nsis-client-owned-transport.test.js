@@ -12,6 +12,7 @@ const { digest } = require('../scripts/lib/nsis-encrypted-contract');
 const {
   createInstalledClientSpawn,
   createInstalledCodexRestartSpawn,
+  createInstalledClaudeRestartSpawn,
 } = require('../scripts/lib/nsis-client-owned-transport');
 const {
   validateOwnedSpec,
@@ -531,4 +532,214 @@ test('restart launch retains the original 64KiB spec bound and refuses oversized
   await assert.rejects(launch(f.input), failure);
   assert.equal(f.children.length, 0);
   assert.equal(fs.existsSync(path.join(f.caseRoot, 'client-launch.json')), false);
+});
+
+function claudeRestartFixture(t, fault) {
+  const f = restartFixture(t, fault);
+  const binary = path.join(f.options.ownedRoot, 'clients/claude.exe');
+  write(binary, 'inert synthetic Claude');
+  f.options.client = 'claude';
+  f.options.binarySha256 = digest(binary);
+  const env = f.input.env;
+  delete env.CODEX_HOME;
+  delete env.HPM_NSIS_CLIENT_ENTRY;
+  env.CLAUDE_CONFIG_DIR = path.join(f.caseRoot, 'claude-config');
+  fs.mkdirSync(env.CLAUDE_CONFIG_DIR);
+  Object.assign(env, {
+    ANTHROPIC_BASE_URL: 'http://127.0.0.1:41234',
+    ANTHROPIC_AUTH_TOKEN: 'hpm-synthetic-' + 'a'.repeat(32),
+    ANTHROPIC_MODEL: 'synthetic-claude',
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+    DISABLE_AUTOUPDATER: '1',
+  });
+  f.input.args = ['--bare', '-p', '--model', 'synthetic-claude'];
+  return { ...f, binary };
+}
+const claudeSession = '12345678-1234-4234-9234-123456789abc';
+
+test('Claude resume receives a second immutable grant chained to the first and preserving every other launch fact', async (t) => {
+  const f = claudeRestartFixture(t),
+    launch = createInstalledClaudeRestartSpawn(f.options, f.dependencies);
+  const first = await launch(f.input);
+  const firstFile = path.join(f.caseRoot, 'client-launch.json'),
+    before = fs.readFileSync(firstFile);
+  await first.stop();
+  const second = await launch({ ...f.input, args: [...f.input.args, '--resume', claudeSession] });
+  assert.notEqual(first.child, second.child);
+  const file = path.join(f.caseRoot, 'client-resume.json'),
+    spec = JSON.parse(fs.readFileSync(file));
+  assert.equal(spec.schemaVersion, 2);
+  assert.equal(spec.predecessorSha256, digest(firstFile));
+  assert.deepEqual(fs.readFileSync(firstFile), before);
+  assert.equal(loadOwnedSpec(file, digest(file), f.runtime).binary, f.binary);
+  assert.deepEqual(await second.stop(), { terminal: true, treeStopped: true });
+  await assert.rejects(launch(f.input), failure);
+  assert.equal(f.children.length, 2);
+});
+
+test('Claude second grant refuses arbitrary resume selectors, extra flags and changed credentials before spawn', async (t) => {
+  for (const change of [
+    'missing',
+    'name',
+    'path',
+    'empty',
+    'long',
+    'duplicate',
+    'fork',
+    'model',
+    'token',
+    'home',
+    'first-grant',
+    'existing-resume',
+  ]) {
+    const f = claudeRestartFixture(t),
+      launch = createInstalledClaudeRestartSpawn(f.options, f.dependencies);
+    const first = await launch(f.input);
+    await first.stop();
+    const next = globalThis.structuredClone(f.input);
+    next.args.push('--resume', claudeSession);
+    if (change === 'missing') next.args = f.input.args;
+    if (change === 'name') next.args[next.args.length - 1] = 'daily-session';
+    if (change === 'path') next.args[next.args.length - 1] = '/private/transcript.jsonl';
+    if (change === 'empty') next.args[next.args.length - 1] = '';
+    if (change === 'long') next.args[next.args.length - 1] = 'a'.repeat(16384);
+    if (change === 'duplicate') next.args.push('--resume', claudeSession);
+    if (change === 'fork') next.args.splice(1, 0, '--fork-session');
+    if (change === 'model') next.args[3] = 'other';
+    if (change === 'token') next.env.ANTHROPIC_AUTH_TOKEN = 'hpm-synthetic-' + 'b'.repeat(32);
+    if (change === 'home') next.env.HOME = next.env.APPDATA;
+    if (change === 'first-grant')
+      fs.appendFileSync(path.join(f.caseRoot, 'client-launch.json'), 'changed');
+    if (change === 'existing-resume')
+      fs.writeFileSync(path.join(f.caseRoot, 'client-resume.json'), 'PRIVATE');
+    await assert.rejects(launch(next), failure);
+    assert.equal(f.children.length, 1);
+  }
+});
+
+test('Claude first grant forbids an inherited or non-persistent session and premature restart', async (t) => {
+  for (const flag of [
+    '--resume',
+    '--resume=' + claudeSession,
+    '--continue',
+    '-c',
+    '-r',
+    '--session-id',
+    '--fork-session',
+    '--no-session-persistence',
+  ]) {
+    const f = claudeRestartFixture(t),
+      launch = createInstalledClaudeRestartSpawn(f.options, f.dependencies);
+    await assert.rejects(launch({ ...f.input, args: [...f.input.args, flag] }), failure);
+    assert.equal(f.children.length, 0);
+  }
+  const f = claudeRestartFixture(t),
+    launch = createInstalledClaudeRestartSpawn(f.options, f.dependencies);
+  const first = await launch(f.input);
+  await assert.rejects(
+    launch({ ...f.input, args: [...f.input.args, '--resume', claudeSession] }),
+    failure
+  );
+  await first.stop();
+  await assert.rejects(launch(f.input), failure);
+  assert.equal(f.children.length, 1);
+});
+
+test('Claude resume cannot replace its predecessor or conceal a nested chain or malformed grant', async (t) => {
+  const f = claudeRestartFixture(t),
+    launch = createInstalledClaudeRestartSpawn(f.options, f.dependencies);
+  const first = await launch(f.input);
+  await first.stop();
+  const second = await launch({ ...f.input, args: [...f.input.args, '--resume', claudeSession] });
+  const file = path.join(f.caseRoot, 'client-resume.json'),
+    original = fs.readFileSync(file),
+    spec = JSON.parse(original);
+  for (const change of [
+    (x) => {
+      x.predecessorSha256 = 'f'.repeat(64);
+    },
+    (x) => {
+      x.client = 'codex';
+    },
+    (x) => {
+      x.extra = true;
+    },
+    (x) => {
+      x.args[x.args.length - 1] = 'daily';
+    },
+  ]) {
+    const changed = globalThis.structuredClone(spec);
+    change(changed);
+    fs.writeFileSync(file, JSON.stringify(changed));
+    assert.throws(() => loadOwnedSpec(file, digest(file), f.runtime), failure);
+  }
+  fs.writeFileSync(file, original);
+  const firstFile = path.join(f.caseRoot, 'client-launch.json');
+  const prior = fs.readFileSync(firstFile);
+  fs.writeFileSync(firstFile, original);
+  const nested = { ...spec, predecessorSha256: digest(firstFile) };
+  fs.writeFileSync(file, JSON.stringify(nested));
+  assert.throws(() => loadOwnedSpec(file, digest(file), f.runtime), failure);
+  fs.writeFileSync(firstFile, prior);
+  fs.writeFileSync(file, original);
+  await second.stop();
+});
+
+test('owned launch reader bounds raw bytes and rejects ambiguous UTF-8, JSON and linked grants', async (t) => {
+  const f = fixture(t),
+    owned = await createInstalledClientSpawn(f.options, f.dependencies)(f.input);
+  const file = path.join(f.caseRoot, 'client-launch.json'),
+    original = fs.readFileSync(file),
+    expected = digest(file);
+  for (const bytes of [
+    Buffer.alloc(0),
+    Buffer.alloc(65537, 65),
+    Buffer.from([255]),
+    Buffer.concat([Buffer.from([239, 187, 191]), original]),
+    Buffer.from('null'),
+    Buffer.from(
+      original.toString().replace('"schemaVersion":1', '"schemaVersion":0,"schemaVersion":1')
+    ),
+    Buffer.concat([original, Buffer.from(' ')]),
+  ]) {
+    fs.writeFileSync(file, bytes);
+    assert.throws(() => loadOwnedSpec(file, digest(file), f.runtime), failure);
+  }
+  fs.writeFileSync(file, original);
+  const alias = path.join(f.caseRoot, 'linked-grant');
+  fs.linkSync(file, alias);
+  assert.throws(() => loadOwnedSpec(file, expected, f.runtime), failure);
+  fs.unlinkSync(alias);
+  await owned.stop();
+});
+
+test('owned grant reader rejects growth and replacement during its bounded fd read', async (t) => {
+  for (const mode of ['grow', 'replace']) {
+    const f = fixture(t),
+      owned = await createInstalledClientSpawn(f.options, f.dependencies)(f.input);
+    const file = path.join(f.caseRoot, 'client-launch.json'),
+      original = fs.readFileSync(file),
+      expected = digest(file);
+    const read = fs.readSync;
+    let touched = false;
+    const mock = t.mock.method(fs, 'readSync', function (...args) {
+      if (!touched) {
+        touched = true;
+        if (mode === 'grow') fs.appendFileSync(file, 'changed');
+        else {
+          fs.renameSync(file, file + '.old');
+          fs.writeFileSync(file, original);
+        }
+      }
+      return Reflect.apply(read, this, args);
+    });
+    try {
+      assert.throws(() => loadOwnedSpec(file, expected, f.runtime), failure);
+      assert.equal(touched, true);
+    } finally {
+      mock.mock.restore();
+      fs.writeFileSync(file, original);
+    }
+    await owned.stop();
+  }
 });

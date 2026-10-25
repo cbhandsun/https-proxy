@@ -31,13 +31,40 @@ function optionsFor(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input) || types.isProxy(input)) {
     throw fail('claude_case_invalid');
   }
-  for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(input))) {
-    if (!Object.hasOwn(descriptor, 'value')) throw fail('claude_case_invalid');
+  if (![Object.prototype, null].includes(Object.getPrototypeOf(input)))
+    throw fail('claude_case_invalid');
+  const required = [
+    'caseRoot',
+    'mode',
+    'entryUrl',
+    'sourceUrl',
+    'model',
+    'entryToken',
+    'marker',
+    'cliPath',
+    'nodePath',
+    'sourceTool',
+    'inspectWitness',
+    'spawnOwned',
+  ];
+  const optional = ['onProgress', 'restartClient'];
+  const keys = Reflect.ownKeys(input),
+    values = Object.create(null);
+  if (
+    required.some((key) => !keys.includes(key)) ||
+    keys.some((key) => ![...required, ...optional].includes(key))
+  )
+    throw fail('claude_case_invalid');
+  for (const key of keys) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, key);
+    if (!descriptor?.enumerable || !Object.hasOwn(descriptor, 'value'))
+      throw fail('claude_case_invalid');
+    values[key] = descriptor.value;
   }
   const options = {
-    ...input,
-    entryUrl: loopbackUrl(input.entryUrl),
-    sourceUrl: loopbackUrl(input.sourceUrl),
+    ...values,
+    entryUrl: loopbackUrl(values.entryUrl),
+    sourceUrl: loopbackUrl(values.sourceUrl),
   };
   for (const key of ['caseRoot', 'cliPath', 'nodePath', 'sourceTool']) {
     if (
@@ -49,14 +76,18 @@ function optionsFor(input) {
     }
   }
   if (
+    (Object.hasOwn(options, 'restartClient') && options.restartClient !== true) ||
     !['default', 'enhanced'].includes(options.mode) ||
     typeof options.model !== 'string' ||
     !/^[a-zA-Z0-9_.:/-]{1,128}$/.test(options.model) ||
     !/^hpm-synthetic-[a-zA-Z0-9-]{16,128}$/.test(options.entryToken) ||
     !/^HPM_PRIVATE_[a-zA-Z0-9-]{16,128}$/.test(options.marker) ||
     typeof options.spawnOwned !== 'function' ||
+    types.isProxy(options.spawnOwned) ||
     typeof options.inspectWitness !== 'function' ||
-    (options.onProgress !== undefined && typeof options.onProgress !== 'function')
+    types.isProxy(options.inspectWitness) ||
+    (options.onProgress !== undefined &&
+      (typeof options.onProgress !== 'function' || types.isProxy(options.onProgress)))
   )
     throw fail('claude_case_invalid');
   return options;
@@ -151,7 +182,7 @@ function cliArguments(options) {
     'mcp__fixture__original',
     '--tools',
     '',
-    '--no-session-persistence',
+    ...(options.restartClient ? [] : ['--no-session-persistence']),
     '--input-format',
     'stream-json',
     '--output-format',

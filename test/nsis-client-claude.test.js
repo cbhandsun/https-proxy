@@ -20,7 +20,11 @@ function fixture(t, mode = 'default', mutation = () => {}) {
   const caseRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-claude-unit-'));
   t.after(() => fs.rmSync(caseRoot, { recursive: true, force: true }));
   const marker = 'HPM_PRIVATE_0123456789abcdef';
-  const phases = [];
+  const phases = [],
+    launches = [];
+  let stops = 0,
+    stopFailureAt;
+  const sessionId = '12345678-1234-4234-9234-123456789abc';
   const witness = {
     sourceCalls: 1,
     classifiedCompactions: 3,
@@ -47,10 +51,18 @@ function fixture(t, mode = 'default', mutation = () => {}) {
     inspectWitness: () => witness,
     spawnOwned: (launch) => {
       const { args } = launch;
+      launches.push(launch);
+      const launchIndex = launches.length;
+      if (launchIndex === 2) {
+        assert.equal(stops, 1);
+        assert.equal(args.at(-2), '--resume');
+        assert.equal(args.at(-1), sessionId);
+      }
+      let initialized = false;
       assert.ok(args.includes('--bare'));
       assert.equal(args[args.indexOf('--setting-sources') + 1], '');
       assert.ok(args.includes('--strict-mcp-config'));
-      assert.ok(args.includes('--no-session-persistence'));
+      assert.equal(args.includes('--no-session-persistence'), !options.restartClient);
       assert.equal(launch.env.ANTHROPIC_API_KEY, undefined);
       assert.equal(launch.env.CLAUDE_CONFIG_DIR, path.join(caseRoot, 'home', 'claude'));
       const child = new EventEmitter();
@@ -59,26 +71,49 @@ function fixture(t, mode = 'default', mutation = () => {}) {
       child.stdin = new Writable({
         write(chunk, _encoding, done) {
           const request = JSON.parse(chunk.toString());
+          assert.equal(request.session_id, '');
           const phase = phases.at(-1);
           const events = [];
+          if (options.restartClient && !initialized) {
+            initialized = true;
+            events.push({ type: 'system', subtype: 'init', session_id: sessionId });
+          }
           if (request.message.content === '/compact')
             events.push({ type: 'system', subtype: 'compact_boundary' });
           events.push({
             type: 'result',
             is_error: false,
+            ...(options.restartClient ? { session_id: sessionId } : {}),
             result: phase === 'final' ? (mode === 'default' ? 'DONE' : marker) : 'READY',
           });
-          mutation(events, phase, witness);
+          mutation(events, phase, witness, launchIndex);
           queueMicrotask(() => {
             for (const event of events) child.stdout.write(JSON.stringify(event) + '\n');
           });
           done();
         },
       });
-      return { child, stop: async () => ({ terminal: true, treeStopped: true }) };
+      return {
+        child,
+        stop: async () => {
+          stops++;
+          if (stops === stopFailureAt) throw Error('PRIVATE');
+          return { terminal: true, treeStopped: true };
+        },
+      };
     },
   };
-  return { options, phases, witness };
+  return {
+    options,
+    phases,
+    witness,
+    launches,
+    sessionId,
+    stops: () => stops,
+    failStopAt: (index) => {
+      stopFailureAt = index;
+    },
+  };
 }
 
 for (const mode of ['default', 'enhanced'])
@@ -540,4 +575,175 @@ test('synthetic source rejects invalid transport setup without leaving a request
     'http://u:p@127.0.0.1:4455/source',
   ])
     await assert.rejects(fetchOriginal(url), { message: 'source_failed' });
+});
+
+test('Claude persisted session resumes in a second owned process without replaying original work or adding turns', async (t) => {
+  for (const mode of ['default', 'enhanced']) {
+    const f = fixture(t, mode);
+    const result = await runInstalledClaudeCase(Object.assign(f.options, { restartClient: true }));
+    assert.equal(result.clientRestarted, true);
+    assert.equal(result.persistedSessionResumed, true);
+    assert.equal(result.schemaVersion, 2);
+    assert.equal(result.ownedLaunches, 2);
+    assert.equal(result.processTerminal, true);
+    assert.equal(result.ownedTreeStopped, true);
+    assert.equal(result.compactions, 3);
+    assert.equal(f.stops(), 2);
+    assert.equal(f.launches.length, 2);
+    assert.deepEqual(f.launches[1].args, [...f.launches[0].args, '--resume', f.sessionId]);
+    assert.deepEqual(f.launches[1].env, f.launches[0].env);
+    assert.equal(f.launches[0].args.includes('--no-session-persistence'), false);
+    assert.deepEqual(f.phases, [
+      'seed',
+      'compact-1',
+      'between-1',
+      'compact-2',
+      'between-2',
+      'compact-3',
+      'final',
+    ]);
+    for (const privateValue of [
+      f.sessionId,
+      f.options.caseRoot,
+      f.options.marker,
+      f.options.entryToken,
+    ])
+      assert.equal(JSON.stringify(result).includes(privateValue), false);
+  }
+});
+
+test('Claude restart requires a canonical unchanged native session identity and a fresh init from each process', async (t) => {
+  for (const fault of [
+    'missing',
+    'invalid',
+    'path',
+    'changed',
+    'missing-init',
+    'changed-after-restart',
+    'result-after-restart',
+    'newline',
+    'nil',
+  ]) {
+    const f = fixture(t, 'enhanced', (events, phase, _witness, launch) => {
+      if (fault === 'missing-init') {
+        const index = events.findIndex((event) => event.subtype === 'init');
+        if (index >= 0) events.splice(index, 1);
+      }
+      for (const event of events) {
+        if (!['system', 'result'].includes(event.type) || event.subtype === 'compact_boundary')
+          continue;
+        if (fault === 'missing') delete event.session_id;
+        if (fault === 'newline') event.session_id += '\n';
+        if (fault === 'nil') event.session_id = '00000000-0000-0000-0000-000000000000';
+        if (fault === 'invalid') event.session_id = 'x'.repeat(4096);
+        if (fault === 'path') event.session_id = '/private/other/session.jsonl';
+        if (fault === 'changed' && phase === 'compact-1')
+          event.session_id = '87654321-1234-4234-9234-123456789abc';
+        if (fault === 'changed-after-restart' && launch === 2)
+          event.session_id = '87654321-1234-4234-9234-123456789abc';
+        if (fault === 'result-after-restart' && launch === 2 && event.type === 'result')
+          delete event.session_id;
+      }
+    });
+    await assert.rejects(
+      runInstalledClaudeCase(Object.assign(f.options, { restartClient: true })),
+      {
+        message: 'claude_session_invalid',
+      }
+    );
+    assert.ok(f.launches.length <= 2);
+    assert.ok(f.stops() <= 2);
+  }
+});
+
+test('Claude restart refuses a failed first or second tree exit without another launch', async (t) => {
+  for (const index of [1, 2]) {
+    const f = fixture(t, 'enhanced');
+    f.failStopAt(index);
+    await assert.rejects(
+      runInstalledClaudeCase(Object.assign(f.options, { restartClient: true })),
+      {
+        message: 'claude_owned_cleanup_failed',
+      }
+    );
+    assert.equal(f.launches.length, index);
+    assert.equal(f.stops(), index);
+  }
+});
+
+test('Claude options reject unknown, inherited, non-enumerable and executable restart inputs before touching the home', async (t) => {
+  for (const value of [false, null, 0, Number.MAX_SAFE_INTEGER, '', 'true', {}, []]) {
+    const f = fixture(t, 'default');
+    await assert.rejects(runInstalledClaudeCase({ ...f.options, restartClient: value }), {
+      message: 'claude_case_invalid',
+    });
+    assert.deepEqual(fs.readdirSync(f.options.caseRoot), []);
+    assert.equal(f.launches.length, 0);
+  }
+  const f = fixture(t, 'default');
+  let touched = 0;
+  const getter = Object.defineProperty({ ...f.options }, 'restartClient', {
+    enumerable: true,
+    get() {
+      touched++;
+      return true;
+    },
+  });
+  const inherited = Object.create({
+    get entryUrl() {
+      touched++;
+      throw Error('PRIVATE');
+    },
+  });
+  const hidden = Object.defineProperty({ ...f.options }, 'restartClient', {
+    enumerable: false,
+    value: true,
+  });
+  for (const input of [
+    getter,
+    inherited,
+    hidden,
+    { ...f.options, extra: true },
+    new Proxy(f.options, {
+      get() {
+        touched++;
+        throw Error('PRIVATE');
+      },
+    }),
+  ])
+    await assert.rejects(runInstalledClaudeCase(input), { message: 'claude_case_invalid' });
+  assert.equal(touched, 0);
+  assert.equal(f.launches.length, 0);
+});
+
+test('Claude restart refuses a partial frame at first EOF rather than joining it with another process', async (t) => {
+  const f = fixture(t, 'default'),
+    start = f.options.spawnOwned;
+  f.options.restartClient = true;
+  f.options.spawnOwned = (launch) => {
+    const handle = start(launch),
+      write = handle.child.stdout.write.bind(handle.child.stdout);
+    handle.child.stdout.write = (chunk, ...args) => {
+      const result = write(chunk, ...args);
+      if (f.phases.at(-1) === 'compact-3' && String(chunk).includes('"type":"result"'))
+        write('{"unfinished"');
+      return result;
+    };
+    return handle;
+  };
+  await assert.rejects(runInstalledClaudeCase(f.options), { message: 'claude_json_invalid' });
+  assert.equal(f.launches.length, 1);
+  assert.equal(f.stops(), 1);
+});
+
+test('Claude restart retains the combined stdout bound across two separately valid streams', async (t) => {
+  const padding = 'x'.repeat(1100000);
+  const f = fixture(t, 'default', (events, phase) => {
+    if (phase === 'seed' || phase === 'final')
+      events.unshift({ type: 'system', subtype: 'status', padding });
+  });
+  f.options.restartClient = true;
+  await assert.rejects(runInstalledClaudeCase(f.options), { message: 'claude_output_limit' });
+  assert.equal(f.launches.length, 2);
+  assert.equal(f.stops(), 2);
 });

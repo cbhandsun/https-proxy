@@ -8,7 +8,7 @@ const { runInstalledClaudeCase } = require('./nsis-client-claude');
 const { createCodexSyntheticUpstream } = require('./nsis-client-codex-upstream');
 const { createClaudeSyntheticUpstream } = require('./nsis-client-claude-upstream');
 const {
-  createInstalledClientSpawn,
+  createInstalledClaudeRestartSpawn,
   createInstalledCodexRestartSpawn,
 } = require('./nsis-client-owned-transport');
 const { requestInstalledClientObservation } = require('./nsis-client-observer.cjs');
@@ -102,7 +102,7 @@ async function runInstalledClientCase(options) {
         upstream.recordSourceCall()
       );
     const spawnOwned = (
-      client === 'codex' ? createInstalledCodexRestartSpawn : createInstalledClientSpawn
+      client === 'codex' ? createInstalledCodexRestartSpawn : createInstalledClaudeRestartSpawn
     )({
       ownedRoot,
       caseRoot,
@@ -127,6 +127,7 @@ async function runInstalledClientCase(options) {
             onProgress: progress,
           })
         : await runInstalledClaudeCase({
+            restartClient: true,
             caseRoot,
             mode,
             entryUrl,
@@ -172,6 +173,12 @@ async function runInstalledClientCase(options) {
       )
         throw fail();
     } else if (
+      protocol.schemaVersion !== 2 ||
+      protocol.clientRestarted !== true ||
+      protocol.persistedSessionResumed !== true ||
+      protocol.ownedLaunches !== 2 ||
+      protocol.processTerminal !== true ||
+      protocol.ownedTreeStopped !== true ||
       protocol.protocolPassed !== true ||
       !state.complete ||
       !state.allRequestsStreaming ||
@@ -196,7 +203,7 @@ async function runInstalledClientCase(options) {
       defaultZeroRecovery: mode === 'default',
       privateRead: mode === 'enhanced',
       publicGeneration: mode === 'enhanced',
-      restartRetention: client === 'codex',
+      restartRetention: true,
     };
   } catch {
     failed = true;

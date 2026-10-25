@@ -6,7 +6,7 @@ const { spawn } = require('node:child_process');
 const { types } = require('node:util');
 const { dataSnapshot } = require('./context-recovery-daemon-http-boundary');
 const { safePath, digest } = require('./nsis-encrypted-contract');
-const { hostRoot, validateOwnedSpec } = require('./nsis-client-owned-launcher.cjs');
+const { hostRoot, validateOwnedSpec, resumeFlag } = require('./nsis-client-owned-launcher.cjs');
 const fail = () => new Error('nsis_client_owned_failed');
 
 function createOwnedClientSpawn(input, dependencies, restart) {
@@ -20,7 +20,7 @@ function createOwnedClientSpawn(input, dependencies, restart) {
       'binarySha256,caseRoot,client,manifestSha256,ownedRoot,powershellExecutable'
     )
       throw fail();
-    if (restart && options.client !== 'codex') throw fail();
+    if (restart && options.client !== restart) throw fail();
     hostRoot(options.ownedRoot, runtime);
     safePath(options.caseRoot, true);
     options.powershellExecutable = safePath(options.powershellExecutable);
@@ -75,13 +75,21 @@ function createOwnedClientSpawn(input, dependencies, restart) {
         cwd: launch.cwd,
         env: launch.env,
       };
+      if (restart === 'claude' && launches === 1 && resumeFlag(spec.args)) throw fail();
+      if (restart === 'claude' && launches === 2) {
+        spec.schemaVersion = 2;
+        spec.predecessorSha256 = retainedHash;
+      }
       validateOwnedSpec(spec, runtime);
-      const file = path.join(options.caseRoot, 'client-launch.json');
+      const file = path.join(
+        options.caseRoot,
+        spec.schemaVersion === 2 ? 'client-resume.json' : 'client-launch.json'
+      );
       const serialized = JSON.stringify(spec);
       if (Buffer.byteLength(serialized) > 65536) throw fail();
-      if (launches === 1) {
+      if (launches === 1 || spec.schemaVersion === 2) {
         fs.writeFileSync(file, serialized, { flag: 'wx', mode: 0o600 });
-        retainedSpec = serialized;
+        if (launches === 1) retainedSpec = serialized;
       } else {
         // A fresh Job may reuse only the original immutable launch grant.
         // Resume is an RPC operation; no executable, argument, home or token
@@ -96,7 +104,7 @@ function createOwnedClientSpawn(input, dependencies, restart) {
       safePath(file);
       const specSha256 = digest(file);
       if (launches === 1) retainedHash = specSha256;
-      else if (specSha256 !== retainedHash) throw fail();
+      else if (spec.schemaVersion === 1 && specSha256 !== retainedHash) throw fail();
       const env = {};
       for (const name of [
         'SystemRoot',
@@ -195,7 +203,15 @@ function createInstalledClientSpawn(input, dependencies = {}) {
 // Separate trusted capability for the two-process Codex resume scenario.
 // The original public harness capability remains strictly single-use.
 function createInstalledCodexRestartSpawn(input, dependencies = {}) {
-  return createOwnedClientSpawn(input, dependencies, true);
+  return createOwnedClientSpawn(input, dependencies, 'codex');
 }
 
-module.exports = { createInstalledClientSpawn, createInstalledCodexRestartSpawn };
+function createInstalledClaudeRestartSpawn(input, dependencies = {}) {
+  return createOwnedClientSpawn(input, dependencies, 'claude');
+}
+
+module.exports = {
+  createInstalledClientSpawn,
+  createInstalledCodexRestartSpawn,
+  createInstalledClaudeRestartSpawn,
+};

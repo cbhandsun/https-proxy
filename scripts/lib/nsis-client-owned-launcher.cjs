@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { createHash } = require('node:crypto');
 const { dataSnapshot } = require('./context-recovery-daemon-http-boundary');
 const { safePath, digest, verifyInstallation } = require('./nsis-encrypted-contract');
 const { digestInstalledClient } = require('./nsis-client-binary');
@@ -33,13 +34,78 @@ function hostRoot(root, runtime = process) {
     throw fail();
   return safePath(root, true);
 }
+function readSpec(file, expected) {
+  file = safePath(file);
+  const before = fs.lstatSync(file);
+  if (!sha(expected) || before.size > 65536) throw fail();
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+  const bytes = Buffer.alloc(65537);
+  try {
+    const same = (stat) =>
+      stat.isFile() &&
+      stat.nlink === 1 &&
+      stat.dev === before.dev &&
+      stat.ino === before.ino &&
+      stat.size === before.size &&
+      stat.mtimeMs === before.mtimeMs &&
+      stat.ctimeMs === before.ctimeMs;
+    if (!same(fs.fstatSync(fd))) throw fail();
+    let count = 0,
+      received;
+    while (
+      count < bytes.length &&
+      (received = fs.readSync(fd, bytes, count, bytes.length - count, count)) !== 0
+    )
+      count += received;
+    if (
+      count !== before.size ||
+      !same(fs.fstatSync(fd)) ||
+      createHash('sha256').update(bytes.subarray(0, count)).digest('hex') !== expected
+    )
+      throw fail();
+    safePath(file);
+    if (!same(fs.lstatSync(file))) throw fail();
+    const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
+      bytes.subarray(0, count)
+    );
+    const value = JSON.parse(text);
+    if (JSON.stringify(value) !== text) throw fail();
+    return value;
+  } finally {
+    bytes.fill(0);
+    fs.closeSync(fd);
+  }
+}
+const sessionId = (value) =>
+  typeof value === 'string' &&
+  value.length === 36 &&
+  /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
+const resumeFlag = (args) =>
+  args.some((arg) =>
+    /^(?:--resume|--continue|--session-id|--fork-session|--no-session-persistence)(?:=|$)|^-[rc]$/.test(
+      arg
+    )
+  );
+function verifyClaudeResume(spec, runtime) {
+  const prior = readSpec(path.join(spec.caseRoot, 'client-launch.json'), spec.predecessorSha256);
+  if (prior.schemaVersion !== 1 || prior.client !== 'claude' || resumeFlag(prior.args))
+    throw fail();
+  validateOwnedSpec(prior, runtime);
+  if (spec.args.at(-2) !== '--resume' || !sessionId(spec.args.at(-1))) throw fail();
+  const base = { ...spec, schemaVersion: 1, args: spec.args.slice(0, -2) };
+  delete base.predecessorSha256;
+  if (JSON.stringify(base) !== JSON.stringify(prior)) throw fail();
+}
 function validateOwnedSpec(input, runtime = process, requireNode = false) {
   try {
     const value = dataSnapshot(input, 'nsis_client_owned_failed');
     if (
       Object.keys(value).sort().join(',') !==
-        'args,binarySha256,caseRoot,client,cwd,env,launcherSha256,manifestSha256,nodeSha256,ownedRoot,schemaVersion' ||
-      value.schemaVersion !== 1 ||
+        (value.schemaVersion === 2
+          ? 'args,binarySha256,caseRoot,client,cwd,env,launcherSha256,manifestSha256,nodeSha256,ownedRoot,predecessorSha256,schemaVersion'
+          : 'args,binarySha256,caseRoot,client,cwd,env,launcherSha256,manifestSha256,nodeSha256,ownedRoot,schemaVersion') ||
+      ![1, 2].includes(value.schemaVersion) ||
+      (value.schemaVersion === 2 && (value.client !== 'claude' || !sha(value.predecessorSha256))) ||
       !['codex', 'claude'].includes(value.client) ||
       !['binarySha256', 'launcherSha256', 'manifestSha256', 'nodeSha256'].every((key) =>
         sha(value[key])
@@ -145,6 +211,7 @@ function validateOwnedSpec(input, runtime = process, requireNode = false) {
         !equal(fs.realpathSync.native(runtime.execPath), fs.realpathSync.native(installation.node)))
     )
       throw fail();
+    if (value.schemaVersion === 2) verifyClaudeResume(value, runtime);
     return { spec: value, installation, binary };
   } catch {
     throw fail();
@@ -152,12 +219,9 @@ function validateOwnedSpec(input, runtime = process, requireNode = false) {
 }
 function loadOwnedSpec(file, expected, runtime = process) {
   try {
-    file = safePath(file);
-    if (!sha(expected) || fs.statSync(file).size > 65536 || digest(file) !== expected) throw fail();
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(fs.readFileSync(file));
-    const value = JSON.parse(text);
-    if (JSON.stringify(value) !== text || file !== path.join(value.caseRoot, 'client-launch.json'))
-      throw fail();
+    const value = readSpec(file, expected);
+    const name = value.schemaVersion === 2 ? 'client-resume.json' : 'client-launch.json';
+    if (file !== path.join(value.caseRoot, name)) throw fail();
     return validateOwnedSpec(value, runtime, true);
   } catch {
     throw fail();
@@ -214,4 +278,4 @@ if (require.main === module) {
     process.exitCode = 1;
   }
 }
-module.exports = { hostRoot, validateOwnedSpec, loadOwnedSpec, runLauncher };
+module.exports = { sessionId, resumeFlag, hostRoot, validateOwnedSpec, loadOwnedSpec, runLauncher };

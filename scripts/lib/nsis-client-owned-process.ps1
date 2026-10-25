@@ -53,8 +53,10 @@ try {
     $spec = [IO.File]::ReadAllText($SpecFile) | ConvertFrom-Json -AsHashtable -Depth 12
     $root = Join-Path $env:RUNNER_TEMP 'hpm-installed-clients'
     Assert-Physical $root $true
-    if ($spec.ownedRoot -ine $root -or $spec.client -cnotin @('codex','claude') -or $SpecFile -cne (Join-Path $spec.caseRoot 'client-launch.json') -or -not $spec.caseRoot.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'nsis_client_owned_failed' }
+    $expectedSpec = if ($spec.schemaVersion -eq 1) { 'client-launch.json' } elseif ($spec.schemaVersion -eq 2 -and $spec.client -ceq 'claude') { 'client-resume.json' } else { throw 'nsis_client_owned_failed' }
+    if ($spec.ownedRoot -ine $root -or $spec.client -cnotin @('codex','claude') -or $SpecFile -cne (Join-Path $spec.caseRoot $expectedSpec) -or -not $spec.caseRoot.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) { throw 'nsis_client_owned_failed' }
     Assert-Physical $spec.caseRoot $true
+    if ($spec.schemaVersion -eq 2) { Assert-Hash (Join-Path $spec.caseRoot 'client-launch.json') $spec.predecessorSha256 }
     $node = Join-Path $root 'payload/runtime/node/node.exe'
     $binary = Join-Path $root ('clients/' + $spec.client + '.exe')
     $manifest = Join-Path $root 'payload/release-runtime-manifest.json'

@@ -95,12 +95,13 @@ function fixture(t, client, mode, fault) {
     if (fault === 'final') return {};
     if (client === 'codex') assert.equal(input.restartClient, true);
     return {
-      schemaVersion: client === 'codex' ? 2 : 1,
+      schemaVersion: 2,
       exactFinalAnswer: true,
       compactions: 3,
       protocolPassed: true,
       clientRestarted: fault !== 'restart',
       persistedThreadResumed: fault !== 'resume',
+      persistedSessionResumed: fault !== 'resume',
       ownedLaunches: fault === 'launch-count' ? 1 : 2,
       processTerminal: fault !== 'restart-terminal',
       ownedTreeStopped: fault !== 'restart-tree',
@@ -158,6 +159,8 @@ function fixture(t, client, mode, fault) {
       },
     },
   };
+  overrides['./nsis-client-owned-transport'].createInstalledClaudeRestartSpawn =
+    overrides['./nsis-client-owned-transport'].createInstalledClientSpawn;
   overrides['./nsis-client-owned-transport'].createInstalledCodexRestartSpawn =
     overrides['./nsis-client-owned-transport'].createInstalledClientSpawn;
   const loaded = { exports: {} },
@@ -204,7 +207,7 @@ test('four case composition configures authenticated entry and uses independent 
         defaultZeroRecovery: mode === 'default',
         privateRead: mode === 'enhanced',
         publicGeneration: mode === 'enhanced',
-        restartRetention: client === 'codex',
+        restartRetention: true,
       });
       assert.equal(f.active.current, null);
       assert.equal(f.closed(), client === 'claude' ? 1 : 0);
@@ -294,5 +297,14 @@ test('Codex installed composition cannot qualify missing restart, substituted re
     const f = fixture(t, 'codex', 'enhanced', fault);
     await assert.rejects(f.run(), { message: 'installed_client_case_failed' });
     assert.equal(f.active.current, null);
+  }
+});
+
+test('Claude installed composition requires restored session identity and both owned process exits', async (t) => {
+  for (const fault of ['restart', 'resume', 'launch-count', 'restart-terminal', 'restart-tree']) {
+    const f = fixture(t, 'claude', 'enhanced', fault);
+    await assert.rejects(f.run(), { message: 'installed_client_case_failed' });
+    assert.equal(f.active.current, null);
+    assert.equal(f.closed(), 1);
   }
 });

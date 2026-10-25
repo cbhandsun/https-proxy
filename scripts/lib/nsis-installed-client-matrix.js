@@ -50,7 +50,7 @@ function matrixCase(input, client, mode) {
     input.defaultZeroRecovery !== (mode === 'default') ||
     input.privateRead !== (mode === 'enhanced') ||
     input.publicGeneration !== (mode === 'enhanced') ||
-    input.restartRetention !== (client === 'codex')
+    input.restartRetention !== true
   )
     throw fail();
   return { ...input };
@@ -290,7 +290,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
   }
   if (failed || cases.length !== 4) throw fail();
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     scope: 'installed_native_cli_four_cases',
     passed: true,
     syntheticClientQualified: true,
