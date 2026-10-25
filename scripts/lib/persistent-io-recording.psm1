@@ -1,5 +1,7 @@
 # FileIo_Name, FileIo_SimpleOp and FileIo_OpEnd:
 # https://learn.microsoft.com/en-us/windows/win32/etw/fileio-simpleop
+# Rendering failures retain the documented binary payload here:
+# https://learn.microsoft.com/en-us/windows/win32/wes/eventschema-eventpayload-processingerrordatatype-element
 Import-Module (Join-Path $PSScriptRoot 'persistent-io-binary.psm1')
 function ConvertTo-HpmIoPointerKey {
     param([string]$Text)
@@ -25,12 +27,12 @@ function ConvertTo-HpmPersistentIoRecord {
         if ($fields.ContainsKey($key)) { throw 'refused' }
         $fields[$key] = $entry.InnerText
     }
-    $binary = $xml.SelectNodes('/*[local-name()="Event"]/*[local-name()="BinaryEventData"] | /*[local-name()="Event"]/*[local-name()="EventData"]/*[local-name()="Binary"]')
+    $binary = $xml.SelectNodes('/*[local-name()="Event"]/*[local-name()="BinaryEventData"] | /*[local-name()="Event"]/*[local-name()="EventData"]/*[local-name()="Binary"] | /*[local-name()="Event"]/*[local-name()="ProcessingErrorData"]/*[local-name()="EventPayload"]')
     $format = 'named'
     $hex = $null
     if ($binary.Count) {
         if ($binary.Count -ne 1 -or $fields.Count) { throw 'persistent_io_payload_shape_refused' }
-        $format = 'binary'; $hex = $binary[0].InnerText
+        $format = if ($binary[0].ParentNode.LocalName -ceq 'ProcessingErrorData') { 'processing-error' } else { 'binary' }; $hex = $binary[0].InnerText
     } elseif ($fields.Count -eq 1 -and $fields.ContainsKey('')) {
         $format = 'anonymous'; $hex = $fields['']
     } elseif ($fields.Count -eq 0) { $format = 'unmapped' }
@@ -39,9 +41,9 @@ function ConvertTo-HpmPersistentIoRecord {
         $State.formats[$format]++
     }
     if ($null -ne $hex) {
-        $version = $xml.SelectSingleNode('/*[local-name()="Event"]/*[local-name()="System"]/*[local-name()="Version"]')
-        if ($null -eq $version -or $version.InnerText -cnotmatch '\A[0-3]\z') { throw 'persistent_io_payload_shape_refused' }
-        $fields = ConvertFrom-HpmFileIoBinary -Hex $hex -Opcode $Opcode -Version ([int]$version.InnerText)
+        $versions = $xml.SelectNodes('/*[local-name()="Event"]/*[local-name()="System"]/*[local-name()="Version"]')
+        if ($versions.Count -ne 1 -or $versions[0].InnerText -cnotmatch '\A[0-3]\z') { throw 'persistent_io_payload_shape_refused' }
+        $fields = ConvertFrom-HpmFileIoBinary -Hex $hex -Opcode $Opcode -Version ([int]$versions[0].InnerText)
     }
     if ($State.ContainsKey('shapes')) {
         $mask = 0; $bit = 1

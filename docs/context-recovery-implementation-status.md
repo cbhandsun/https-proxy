@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：7d56650三runner原时序全通过，继续修复ETW渲染失败载荷边界
+
+7d5665067dff482ec42e66e6f87dff53a502cdc1独立时序40166031015三个原作业均终态success（121087151444/121087151521/121087151536），各执行完整两文件50/50、零skip且不重试。三组各六次持久公开最终ACK分别1267–1421ms、1191–1331ms、1265–2438ms；各144次COMMIT最大54/39/521ms。原五秒断言、默认worker/DPAPI/OS锚点均保留。此结果验证本批产品在三个独立runner上的原负载，不覆盖旧5002/5018/5028ms等失败；普通/正式/实际安装原作业尚在完整门禁，未授本批完整交付资格。
+
+7d独立I/O40166031013/121087151445终态失败：原50项全通过，ETL为29491200字节；枚举第24事件、第二个FileIo、首条待选记录即decode-record失败，formats={unmapped:1}、字段位图0且无已知文件/待配对。说明此前三种表示仍未覆盖该记录，不是有效刷新证据或产品根因。本批按微软公开事件schema补充ProcessingErrorData/EventPayload标准二进制载荷路径，仍须单一表示、唯一System/Version及原严格x64版本/长度/UTF-16校验；不使用错误描述或原始数据日志，不忽略解码失败、不改记录/配对/时限界。新增v2/v3该表示、重复载荷/混合表示/重复版本拒绝，完整九项测试修改前8通过/1失败，修改后9/9通过、零skip。实际失败是否采用此标准表示仍待新Windows作业确认，不能提前称已定位唯一根因。
+
+另核对70f3991正式失败的完整堆栈，helper第75行为初始writer.phase('ready')，尚未发送advance；故该次5463.6451ms失败是初始化见证超时，不能称作已经进入转换或COMMIT中断后的失败。原五秒fixture门限及失败保持。产品本批未再改变；7d正在运行的完整CI、正式及安装不取消/重跑，旧582实际迁移资格、全部剩余范围和原门禁保持。冻结长测未访问，模型0。
+
 ## 2026-10-25：同事务清理认证复用及经典FileIo解码，保留70f3991正式中断失败
 
 70f39915ab010c542dc6d76689cc64656ba1b02a普通Verify40164282003八项已全success，但正式40164281984/source121082016694终态failure：publication transport-finished/release control inside durable commit before ACK在原fixture phase期限内未到达见证阶段，耗时5463.6451ms，错误fixture phase deadline exceeded，整文件19通过/1失败，后续context-recovery跳过。尚未定位该阶段等待的实际原因，不当成五秒HTTP唯一根因，也不延长期限或重跑原失败作业。45419e6正式40163808163/source121080639483另有Claude第二轮headers/body4964ms、最终publication_wait_failed5018ms，finish180ms；与同SHA unit5002ms失败及此前全部失败并存。a8b4324普通八项/正式四项最终全success，不能覆盖上述失败。

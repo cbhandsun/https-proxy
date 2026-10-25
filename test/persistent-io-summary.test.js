@@ -253,6 +253,8 @@ test('classic binary FileIo payloads reach the bounded summary with exact versio
     [2, 'anonymous'],
     [3, 'anonymous'],
     [3, 'event-data'],
+    [2, 'processing-error'],
+    [3, 'processing-error'],
   ]) {
     const xml = (revision, bytes) => {
       const hex = bytes.toString('hex');
@@ -261,7 +263,11 @@ test('classic binary FileIo payloads reach the bounded summary with exact versio
           ? '<BinaryEventData>' + hex + '</BinaryEventData>'
           : form === 'anonymous'
             ? '<EventData><Data>' + hex + '</Data></EventData>'
-            : '<EventData><Binary>' + hex + '</Binary></EventData>';
+            : form === 'event-data'
+              ? '<EventData><Binary>' + hex + '</Binary></EventData>'
+              : '<ProcessingErrorData><ErrorCode>15005</ErrorCode><DataItemName></DataItemName><EventPayload>' +
+                hex +
+                '</EventPayload></ProcessingErrorData>';
       return '<Event><System><Version>' + revision + '</Version></System>' + payload + '</Event>';
     };
     const flush = Buffer.alloc(version === 2 ? 32 : 28);
@@ -285,7 +291,7 @@ test('classic binary FileIo payloads reach the bounded summary with exact versio
       foreach($bad in $badCases){$refused=$false;try{$null=ConvertFrom-HpmFileIoBinary @bad}catch{if($_.Exception.Message -cne 'persistent_io_binary_refused'){throw 'unsafe_binary_error'};$refused=$true};if(-not $refused){throw 'invalid_binary_accepted'}}
       & $module {
         $state=@{names=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase);irps=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase);shapes=@{}}
-        foreach($badXml in @('<Event><BinaryEventData>00</BinaryEventData><BinaryEventData>00</BinaryEventData></Event>','<Event><System><Version>7</Version></System><BinaryEventData>00</BinaryEventData></Event>','<Event><EventData><Data Name="FileObject">16</Data></EventData><BinaryEventData>00</BinaryEventData></Event>')){
+        foreach($badXml in @('<Event><System><Version>2</Version><Version>3</Version></System><BinaryEventData>00</BinaryEventData></Event>','<Event><ProcessingErrorData><EventPayload>00</EventPayload><EventPayload>00</EventPayload></ProcessingErrorData></Event>','<Event><ProcessingErrorData><EventPayload>00</EventPayload></ProcessingErrorData><BinaryEventData>00</BinaryEventData></Event>','<Event><BinaryEventData>00</BinaryEventData><BinaryEventData>00</BinaryEventData></Event>','<Event><System><Version>7</Version></System><BinaryEventData>00</BinaryEventData></Event>','<Event><EventData><Data Name="FileObject">16</Data></EventData><BinaryEventData>00</BinaryEventData></Event>')){
           $refused=$false;try{$null=ConvertTo-HpmPersistentIoRecord $badXml 32 0 $state}catch{if($_.Exception.Message -cne 'persistent_io_payload_shape_refused'){throw 'unsafe_binary_shape_error'};$refused=$true};if(-not $refused){throw 'invalid_binary_shape_accepted'}
         }
         ConvertTo-HpmPersistentIoRecord '${nameXml}' 32 0 $state
