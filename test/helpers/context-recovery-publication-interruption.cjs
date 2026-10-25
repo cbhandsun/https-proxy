@@ -55,7 +55,7 @@ function processFixture(file) {
         if (performance.now() >= deadline) {
           const observed = startup.describe();
           assert.fail(
-            `fixture phase deadline exceeded (awaiting=${name};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs})`
+            `fixture phase deadline exceeded (awaiting=${name};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs};startupTimeline=${JSON.stringify(startup.snapshot())})`
           );
         }
         await nextTurn();

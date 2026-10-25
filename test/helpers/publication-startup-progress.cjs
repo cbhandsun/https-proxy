@@ -11,6 +11,7 @@ function createPublicationStartupProgress() {
   let last = 'unobserved';
   let elapsed = 0;
   let finished = false;
+  const observations = [];
   const phases = createStorageStartupProgress(({ phase }) => {
     last = phase;
   });
@@ -39,7 +40,8 @@ function createPublicationStartupProgress() {
         !Number.isSafeInteger(value.elapsedMs) ||
         value.elapsedMs < elapsed ||
         value.elapsedMs > 60000 ||
-        finished
+        finished ||
+        observations.length >= 64
       ) {
         throw new Error('publication_startup_progress_invalid');
       }
@@ -48,6 +50,10 @@ function createPublicationStartupProgress() {
         finished = true;
       } else phases.advance(value.phase);
       elapsed = value.elapsedMs;
+      observations.push({ phase: last, elapsedMs: elapsed });
+    },
+    snapshot() {
+      return observations.map((value) => ({ ...value }));
     },
     describe() {
       return { phase: last, elapsedMs: elapsed };

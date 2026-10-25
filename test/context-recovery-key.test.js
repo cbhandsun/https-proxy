@@ -16,6 +16,10 @@ const {
   keyResponse,
 } = require('../lib/proxy/context-recovery-key-contract');
 const { protectWithCurrentUser } = require('../lib/proxy/context-recovery-key-dpapi');
+const {
+  observeLegacyKeyArguments,
+  legacyKeyErrorPhase,
+} = require('./helpers/legacy-key-progress.cjs');
 const { createContextRecoveryKeyProtector } = require('../lib/proxy/context-recovery-key');
 const { secureRecoveryStoragePath } = require('../lib/proxy/context-recovery-private-path');
 const { securePrivatePathSync } = require('../lib/proxy/secure-files');
@@ -460,9 +464,12 @@ test(
     const measuredExecute = (backend) => (executable, args, options) => {
       const started = performance.now();
       let outcome = 'completed';
+      let legacyPhase;
       try {
-        return execFileSync(executable, args, options);
+        const observedArgs = backend.startsWith('legacy_') ? observeLegacyKeyArguments(args) : args;
+        return execFileSync(executable, observedArgs, options);
       } catch (error) {
+        if (backend.startsWith('legacy_')) legacyPhase = legacyKeyErrorPhase(error);
         outcome = ['ETIMEDOUT', 'ENOENT', 'EACCES', 'EPERM'].includes(error?.code)
           ? error.code
           : 'failed';
@@ -470,7 +477,12 @@ test(
       } finally {
         t.diagnostic(
           'key_backend ' +
-            JSON.stringify({ backend, outcome, elapsedMs: Math.floor(performance.now() - started) })
+            JSON.stringify({
+              backend,
+              outcome,
+              elapsedMs: Math.floor(performance.now() - started),
+              ...(legacyPhase === undefined ? {} : { legacyPhase }),
+            })
         );
       }
     };

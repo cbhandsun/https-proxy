@@ -62,3 +62,26 @@ test('publication startup observer rejects hostile, unknown, regressing and exce
   assert.throws(() => progress.observe({ phase: 'paths_ready', elapsedMs: 19 }));
   assert.deepEqual(progress.describe(), { phase: 'paths_started', elapsedMs: 20 });
 });
+
+test('startup timeout timeline contains only accepted phase samples and detached bounded snapshots', () => {
+  const progress = createPublicationStartupProgress();
+  assert.deepEqual(progress.snapshot(), []);
+  progress.observe({ phase: 'worker_started', elapsedMs: 30 });
+  progress.observe({ phase: 'paths_started', elapsedMs: 35 });
+  progress.observe({ phase: 'engine_ready', elapsedMs: 3400 });
+  progress.observe({ phase: 'ready', elapsedMs: 3417 });
+  const expected = [
+    { phase: 'worker_started', elapsedMs: 30 },
+    { phase: 'paths_started', elapsedMs: 35 },
+    { phase: 'engine_ready', elapsedMs: 3400 },
+    { phase: 'ready', elapsedMs: 3417 },
+  ];
+  assert.deepEqual(progress.snapshot(), expected);
+  const snapshot = progress.snapshot();
+  snapshot[0].phase = 'PRIVATE';
+  snapshot.push({ private: 'PRIVATE' });
+  for (let i = 0; i < 100; i++)
+    assert.throws(() => progress.observe({ phase: 'PRIVATE', elapsedMs: 3418 }));
+  assert.deepEqual(progress.snapshot(), expected);
+  assert.equal(JSON.stringify(progress.snapshot()).includes('PRIVATE'), false);
+});
