@@ -110,6 +110,7 @@ test('CLI emits only a finite summary and rejects malformed, duplicate, empty an
     '\ufffd',
     'x'.repeat(16 * 1024 * 1024 + 1),
     Buffer.from([255]),
+    [rows[0], rows[1], rows[1], rows[2]].map(JSON.stringify).join('\n'),
     '{"type":"end","type":"name","key":"1","timeMs":0,"name":' +
       JSON.stringify(filename) +
       '}\n' +
@@ -228,4 +229,82 @@ test('recording profile fixes memory buffers and only file metadata providers wi
   assert.equal(result.status, 0);
   assert.equal(result.stdout.trim(), 'bounded_profile_passed');
   assert.equal(result.stderr, '');
+});
+
+test('classic binary FileIo payloads reach the bounded summary with exact versioned x64 offsets', () => {
+  const binaryModule = path
+    .join(__dirname, '../scripts/lib/persistent-io-binary.psm1')
+    .replaceAll("'", "''");
+  const recordingModule = path
+    .join(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  const cli = path.join(__dirname, '../scripts/summarize-persistent-io.cjs').replaceAll("'", "''");
+  const name = Buffer.concat([
+    Buffer.alloc(8),
+    Buffer.from(filename.replace('Temp', 'Temp中文🙂') + '\0', 'utf16le'),
+  ]);
+  name.writeBigUInt64LE(16n);
+  const end = Buffer.alloc(20);
+  end.writeBigUInt64LE(32n);
+  const malformed = Buffer.concat([Buffer.alloc(8), Buffer.from([0, 216, 0, 0])]);
+  for (const [version, form] of [
+    [2, 'binary'],
+    [3, 'binary'],
+    [2, 'anonymous'],
+    [3, 'anonymous'],
+    [3, 'event-data'],
+  ]) {
+    const xml = (revision, bytes) => {
+      const hex = bytes.toString('hex');
+      const payload =
+        form === 'binary'
+          ? '<BinaryEventData>' + hex + '</BinaryEventData>'
+          : form === 'anonymous'
+            ? '<EventData><Data>' + hex + '</Data></EventData>'
+            : '<EventData><Binary>' + hex + '</Binary></EventData>';
+      return '<Event><System><Version>' + revision + '</Version></System>' + payload + '</Event>';
+    };
+    const flush = Buffer.alloc(version === 2 ? 32 : 28);
+    flush.writeBigUInt64LE(32n);
+    flush.writeBigUInt64LE(16n, version === 2 ? 24 : 16);
+    const nameXml =
+      form === 'event-data'
+        ? '<Event><EventData><Data Name="FileObject">16</Data><Data Name="FileName">' +
+          filename +
+          '</Data></EventData></Event>'
+        : xml(2, name);
+    const code = `
+      $ErrorActionPreference='Stop'
+      Import-Module '${binaryModule}' -Force
+      $module=Import-Module '${recordingModule}' -PassThru -Force
+      $direct=ConvertFrom-HpmFileIoBinary -Hex '${name.toString('hex')}' -Opcode 32 -Version 2
+      if(-not $direct.FileName.EndsWith('checkpoint.sqlite') -or $direct.FileObject -cne '0x0000000000000010'){throw 'binary_name_invalid'}
+      $badCases=@(@{Hex='';Opcode=32;Version=2},@{Hex='xx';Opcode=32;Version=2},@{Hex='0';Opcode=32;Version=2},@{Hex=('00'*16385);Opcode=32;Version=2},
+        @{Hex='${flush.toString('hex')}';Opcode=73;Version=7},@{Hex='00';Opcode=73;Version=2},
+        @{Hex='${malformed.toString('hex')}';Opcode=32;Version=2},@{Hex='00';Opcode=76;Version=2})
+      foreach($bad in $badCases){$refused=$false;try{$null=ConvertFrom-HpmFileIoBinary @bad}catch{if($_.Exception.Message -cne 'persistent_io_binary_refused'){throw 'unsafe_binary_error'};$refused=$true};if(-not $refused){throw 'invalid_binary_accepted'}}
+      & $module {
+        $state=@{names=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase);irps=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase);shapes=@{}}
+        foreach($badXml in @('<Event><BinaryEventData>00</BinaryEventData><BinaryEventData>00</BinaryEventData></Event>','<Event><System><Version>7</Version></System><BinaryEventData>00</BinaryEventData></Event>','<Event><EventData><Data Name="FileObject">16</Data></EventData><BinaryEventData>00</BinaryEventData></Event>')){
+          $refused=$false;try{$null=ConvertTo-HpmPersistentIoRecord $badXml 32 0 $state}catch{if($_.Exception.Message -cne 'persistent_io_payload_shape_refused'){throw 'unsafe_binary_shape_error'};$refused=$true};if(-not $refused){throw 'invalid_binary_shape_accepted'}
+        }
+        ConvertTo-HpmPersistentIoRecord '${nameXml}' 32 0 $state
+        ConvertTo-HpmPersistentIoRecord '${xml(version, flush)}' 73 10 $state
+        ConvertTo-HpmPersistentIoRecord '${xml(version, end)}' 76 35 $state
+      } | & '${process.execPath.replaceAll("'", "''")}' '${cli}'
+      if($LASTEXITCODE -ne 0){throw 'binary_record_summary_failed'}
+    `;
+    const result = spawnSync(
+      'pwsh',
+      ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code],
+      { encoding: 'utf8', timeout: 5000, maxBuffer: 4096, windowsHide: true }
+    );
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 0, 'binary record pipeline must produce a validated flush pair');
+    const summary = JSON.parse(result.stdout);
+    assert.equal(summary.pairedFlushes, 1);
+    assert.equal(summary.database.maxMs, 25);
+    assert.doesNotMatch(result.stdout, /Temp|checkpoint|0x/);
+    assert.equal(result.stderr, '');
+  }
 });

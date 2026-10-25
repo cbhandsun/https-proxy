@@ -19,7 +19,7 @@ async function main() {
     summary.observe(event);
   }
   const result = summary.snapshot();
-  if (!result.pairedFlushes) throw Error();
+  if (!result.pairedFlushes || result.collisions !== 0) throw Error();
   process.stdout.write(JSON.stringify(result) + '\n');
 }
 main().catch(() => {

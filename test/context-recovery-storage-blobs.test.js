@@ -3162,8 +3162,8 @@ for (const output of [[], ['owned synthetic source']]) {
         );
         assert.equal(
           priorOpens,
-          2,
-          'prune and the selected mutation each authenticate once; admission and save share only that selected read'
+          1,
+          'pruning authenticates the exact prior once; the selected mutation reuses only matching ciphertext and AAD'
         );
         assert.equal(f.load().state.root.budget.calls, 1);
         assert.equal(f.load().expiresAt, initial.metadata.expiresAt);
@@ -3180,4 +3180,73 @@ for (const output of [[], ['owned synthetic source']]) {
       }
     }
   );
+}
+
+for (const mode of ['new-nonce', 'corrupt-envelope', 'changed-admission']) {
+  test('selected prune reuse reauthenticates a changed selected row: ' + mode, (t) => {
+    const f = fixture();
+    try {
+      const state = checkpoint();
+      const initial = referenceStateFromCheckpoint(state);
+      f.execute(stateRequest(f, initial, checkpointPayloads(state)));
+      const before = f.row();
+      const opened = f.cipher.open(f.context(before), before.envelope);
+      const reserved = createReferenceState(
+        {
+          ...initial.metadata,
+          budget: { ...initial.metadata.budget, calls: 1, returnedBytes: 16384 },
+        },
+        []
+      );
+      const replacement =
+        mode === 'changed-admission' ? { ...opened, reference: reserved } : opened;
+      const envelope = f.cipher.seal(f.context(before), replacement);
+      if (mode === 'corrupt-envelope') envelope[envelope.length - 1] ^= 1;
+      const prepare = f.database.prepare.bind(f.database);
+      let injected = false;
+      t.mock.method(f.database, 'prepare', (sql) => {
+        if (!injected && sql === 'SELECT * FROM recovery_state WHERE scope=?') {
+          injected = true;
+          prepare('UPDATE recovery_state SET envelope=? WHERE scope=?').run(envelope, f.scope);
+        }
+        return prepare(sql);
+      });
+      const decode = TextDecoder.prototype.decode;
+      const calls = [];
+      t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+        const text = Reflect.apply(decode, this, args);
+        const value = JSON.parse(text);
+        if (
+          value.kind === 'recovery-referenced-checkpoint' &&
+          value.reference.metadata.rootId === initial.metadata.rootId
+        )
+          calls.push(value.reference.metadata.budget.calls);
+        return text;
+      });
+      const request = { ...stateRequest(f, reserved, [], 1), admission: initial };
+      if (mode === 'new-nonce') {
+        assert.equal(f.execute(request).revision, 2);
+        assert.equal(
+          calls.filter((value) => value === 0).length,
+          2,
+          'different ciphertext must authenticate again even for identical metadata'
+        );
+        assert.equal(f.load().state.root.budget.calls, 1);
+      } else {
+        assert.throws(() => f.execute(request), unavailable);
+        assert.equal(f.row().revision, 1);
+        assert.deepEqual(
+          f.row().envelope,
+          before.envelope,
+          'failed mutation rolls back its injected row'
+        );
+        if (mode === 'changed-admission') assert.deepEqual(calls, [0, 1]);
+        assert.equal(f.load().state.root.budget.calls, 0);
+      }
+      assert.equal(injected, true);
+      assert.equal(f.load().expiresAt, initial.metadata.expiresAt);
+    } finally {
+      f.close();
+    }
+  });
 }

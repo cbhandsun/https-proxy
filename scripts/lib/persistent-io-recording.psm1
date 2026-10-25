@@ -1,5 +1,15 @@
 # FileIo_Name, FileIo_SimpleOp and FileIo_OpEnd:
 # https://learn.microsoft.com/en-us/windows/win32/etw/fileio-simpleop
+Import-Module (Join-Path $PSScriptRoot 'persistent-io-binary.psm1')
+function ConvertTo-HpmIoPointerKey {
+    param([string]$Text)
+    try {
+        if ($Text -cnotmatch '\A(?:0x[0-9a-fA-F]{1,16}|[0-9]{1,20})\z') { throw 'invalid' }
+        if ($Text.StartsWith('0x')) { $value = [UInt64]::Parse($Text.Substring(2),[Globalization.NumberStyles]::AllowHexSpecifier,[Globalization.CultureInfo]::InvariantCulture) }
+        else { $value = [UInt64]::Parse($Text,[Globalization.NumberStyles]::None,[Globalization.CultureInfo]::InvariantCulture) }
+        return '0x' + $value.ToString('x16')
+    } catch { throw 'persistent_io_pointer_refused' }
+}
 function ConvertTo-HpmPersistentIoRecord {
     param([string]$Text, [int]$Opcode, [long]$TimeMs, [hashtable]$State)
     if ($Text.Length -gt 65536 -or $TimeMs -lt 0) { throw 'refused' }
@@ -15,6 +25,24 @@ function ConvertTo-HpmPersistentIoRecord {
         if ($fields.ContainsKey($key)) { throw 'refused' }
         $fields[$key] = $entry.InnerText
     }
+    $binary = $xml.SelectNodes('/*[local-name()="Event"]/*[local-name()="BinaryEventData"] | /*[local-name()="Event"]/*[local-name()="EventData"]/*[local-name()="Binary"]')
+    $format = 'named'
+    $hex = $null
+    if ($binary.Count) {
+        if ($binary.Count -ne 1 -or $fields.Count) { throw 'persistent_io_payload_shape_refused' }
+        $format = 'binary'; $hex = $binary[0].InnerText
+    } elseif ($fields.Count -eq 1 -and $fields.ContainsKey('')) {
+        $format = 'anonymous'; $hex = $fields['']
+    } elseif ($fields.Count -eq 0) { $format = 'unmapped' }
+    if ($State.ContainsKey('formats')) {
+        if (-not $State.formats.ContainsKey($format)) { $State.formats[$format] = 0 }
+        $State.formats[$format]++
+    }
+    if ($null -ne $hex) {
+        $version = $xml.SelectSingleNode('/*[local-name()="Event"]/*[local-name()="System"]/*[local-name()="Version"]')
+        if ($null -eq $version -or $version.InnerText -cnotmatch '\A[0-3]\z') { throw 'persistent_io_payload_shape_refused' }
+        $fields = ConvertFrom-HpmFileIoBinary -Hex $hex -Opcode $Opcode -Version ([int]$version.InnerText)
+    }
     if ($State.ContainsKey('shapes')) {
         $mask = 0; $bit = 1
         foreach ($key in @('FileObject','FileName','FileKey','IrpPtr','NtStatus')) {
@@ -25,20 +53,20 @@ function ConvertTo-HpmPersistentIoRecord {
         $State.shapes[$shape]++
     }
     if ($Opcode -in @(0,32,35,36)) {
-        $key = [string]$fields['FileObject']; $name = [string]$fields['FileName']
+        $key = ConvertTo-HpmIoPointerKey ([string]$fields['FileObject']); $name = [string]$fields['FileName']
         $hadName = $State.names.Remove($key)
         if ($Opcode -eq 35 -or $name -notmatch '(?i)[\\/]hpm-wbipc-core-[a-z0-9]{6}[\\/]context[\\/]checkpoint\.sqlite(?:-journal)?$') {
             if (-not $hadName) { return }; $name = ''
         } else { if ($State.names.Count -ge 256) { throw 'refused' }; [void]$State.names.Add($key) }
         [ordered]@{ type='name'; key=$key; timeMs=$TimeMs; name=$name } | ConvertTo-Json -Compress
     } elseif ($Opcode -eq 73) {
-        $key = [string]$fields['IrpPtr']; $file = [string]$fields['FileKey']
+        $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr']); $file = ConvertTo-HpmIoPointerKey ([string]$fields['FileKey'])
         if (-not $State.names.Contains($file)) { return }
         if ($State.irps.Count -ge 8192) { throw 'refused' }
         [void]$State.irps.Add($key)
         [ordered]@{ type='flush'; key=$key; timeMs=$TimeMs; name=$file } | ConvertTo-Json -Compress
     } elseif ($Opcode -eq 76) {
-        $key = [string]$fields['IrpPtr']
+        $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr'])
         if (-not $State.irps.Remove($key)) { return }
         [ordered]@{ type='end'; key=$key; timeMs=$TimeMs; name=[string]$fields['NtStatus'] } | ConvertTo-Json -Compress
     } else { throw 'refused' }
@@ -93,7 +121,7 @@ function Invoke-HpmPersistentIoDiagnostic {
         } finally { $process.Dispose() }
     }
     try {
-        if (-not $IsWindows -or $env:CI -cne 'true' -or $args.Count -ne 0 -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:GITHUB_REPOSITORY -cne 'cbhandsun/https-proxy') { throw 'refused' }
+        if (-not $IsWindows -or $env:RUNNER_ARCH -cne 'X64' -or $env:CI -cne 'true' -or $args.Count -ne 0 -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:GITHUB_REPOSITORY -cne 'cbhandsun/https-proxy') { throw 'refused' }
         Import-Module (Join-Path $PSScriptRoot 'nsis-lifecycle.psm1')
         $phase = 'paths'
         $parent = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
@@ -123,7 +151,7 @@ function Invoke-HpmPersistentIoDiagnostic {
         [Console]::Error.WriteLine('persistent_io_trace_bytes=' + $traceBytes)
         if ($traceBytes -gt 268435456) { throw 'refused' }
         $phase = 'decode-enumeration'
-        $decode = @{ names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); irps = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); shapes=@{} }
+        $decode = @{ names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); irps = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); shapes=@{}; formats=@{} }
         # FileIo GUID/opcodes follow the Microsoft FileIo_Name/SimpleOp/OpEnd
         # contracts. Decode only scalar metadata; all unrelated paths are redacted.
         $summary = Get-WinEvent -Path $trace -Oldest | ForEach-Object {
@@ -152,7 +180,7 @@ function Invoke-HpmPersistentIoDiagnostic {
         [Console]::Error.WriteLine('persistent_io_diagnostic_failed:phase=' + $phase)
         if ($phase.StartsWith('decode-')) {
             [Console]::Error.WriteLine('persistent_io_decode_counts:events=' + $count + ';fileIo=' + $selected + ';records=' + $recordAttempts)
-            [Console]::Error.WriteLine('persistent_io_decode_shape=' + (@{providers=$providerCounts;fields=$decode.shapes;knownFiles=$decode.names.Count;pendingFlushes=$decode.irps.Count}|ConvertTo-Json -Depth 4 -Compress))
+            [Console]::Error.WriteLine('persistent_io_decode_shape=' + (@{providers=$providerCounts;fields=$decode.shapes;formats=$decode.formats;knownFiles=$decode.names.Count;pendingFlushes=$decode.irps.Count}|ConvertTo-Json -Depth 4 -Compress))
         }
         exit 1
     } finally {

@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：同事务清理认证复用及经典FileIo解码，保留70f3991正式中断失败
+
+70f39915ab010c542dc6d76689cc64656ba1b02a普通Verify40164282003八项已全success，但正式40164281984/source121082016694终态failure：publication transport-finished/release control inside durable commit before ACK在原fixture phase期限内未到达见证阶段，耗时5463.6451ms，错误fixture phase deadline exceeded，整文件19通过/1失败，后续context-recovery跳过。尚未定位该阶段等待的实际原因，不当成五秒HTTP唯一根因，也不延长期限或重跑原失败作业。45419e6正式40163808163/source121080639483另有Claude第二轮headers/body4964ms、最终publication_wait_failed5018ms，finish180ms；与同SHA unit5002ms失败及此前全部失败并存。a8b4324普通八项/正式四项最终全success，不能覆盖上述失败。
+
+70独立I/O40164281997/121082016681原两份完整测试50/50通过，固定32MiB记录产生29622272字节ETL，在原256MiB界内；枚举383676事件，其中383263 FileIo、193517条待选记录，五个命名字段的存在位图全部为0，knownFiles/pendingFlushes均0，终态decode-summary失败。证明原命名字段解码未取得所需元数据，不能仅凭位图断言唯一二进制表示或产品物理刷新根因。本批新增独立纯PowerShell经典FileIo二进制解码模块，只接受已知小端x64版本及精确布局；支持BinaryEventData、EventData/Binary、单匿名Data，统一十进制/十六进制指针，拒绝混合/重复载荷、未知版本、非法UTF-16和错误长度。仅hosted X64可记录；原事件/内存/文件/时限界保持，汇总有指针碰撞即拒绝资格。真实PowerShell到Node汇总九项全通过、零skip，含三种表示、v2/v3、Unicode、混合指针和失败边界；固定WPRP亦通过微软公开XSD的实际编译验证。尚须新Windows作业取得有效刷新配对，不宣称已修复五秒。
+
+产品修改继续减少实际重复解密：prune已完成认证及语义验证的当前目标reference元数据，只在同一同步事务回调内保留；后续SELECT所得密文及全部AAD的SHA256标签必须精确相等才复用，否则重新认证。配额admissions仍只有标签/版本，不缓存原文、其他root或跨事务数据；独立提交后快照/OS锚点认证保持。正常和空source回归先复现旧实现两次认证，再验证本批一次；新nonce必须重新认证，损坏密文和改变预算必须拒绝并实际回滚，原到期保持。完整blobs文件63通过/1项既有Mac原生开库失败，零skip；另七份锚点/格式/读取结算/COMMIT与发布中断文件105/105通过、零skip。新回归进入统一unit发现，不以Mac局部结果替代Windows默认worker/DPAPI/OS锚点资格。
+
+改动文件格式/Lint、全树JS语法、CI及release治理检查通过；全树格式既有LF/CRLF问题不批量改写。认证、预算预扣ACK、精确版本/CAS、FULL/DELETE、原到期和全部期限保持。下一步新SHA完整Windows、固定三runner时序、实际安装迁移/两端四组及有效I/O证据；本批CPU工作减少不等于COMMIT物理等待已解决。582实际安装迁移/旧版拒写已有资格保持；在途排空/客户端重启、容量稳定性、真实24小时及到期后重开、真实provider和受控安装交付仍未完成。冻结长测未访问、真实模型0，额度逐端预留未核验前不调用。
+
 ## 2026-10-25：保留45419e6最终发布ACK五秒失败，固定WPR记录缓冲与停止阶段
 
 45419e682ac31a69573f5805006c1e6117ced0f4普通Verify40163808290的unit shard2/121080640113终态failure：Claude long-persistent第二轮ownerEpoch2在4736ms收headers、4737ms收完body，publication_wait_start为4737ms，publication_wait_failed为5002ms；finishPublicationAsync耗时315ms，最终save301ms、COMMIT170ms、anchor72ms，ACK在原截止之后才完成。前段准入/结算/读取有858/506/521/793ms COMMIT等待，多数线程CPU为零。此为最终发布持久ACK超时，不改写为fetch完全未响应；原5000ms包含发布ACK的断言保留，不省略最终ACK、提前标记transport-finished或用其他通过覆盖。
