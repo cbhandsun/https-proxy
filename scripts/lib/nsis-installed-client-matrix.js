@@ -42,14 +42,15 @@ function matrixCase(input, client, mode) {
   if (
     !input ||
     Object.keys(input).sort().join(',') !==
-      'client,compactions,defaultZeroRecovery,exactFinalAnswer,mode,privateRead,publicGeneration' ||
+      'client,compactions,defaultZeroRecovery,exactFinalAnswer,mode,privateRead,publicGeneration,restartRetention' ||
     input.client !== client ||
     input.mode !== mode ||
     input.compactions !== 3 ||
     input.exactFinalAnswer !== true ||
     input.defaultZeroRecovery !== (mode === 'default') ||
     input.privateRead !== (mode === 'enhanced') ||
-    input.publicGeneration !== (mode === 'enhanced')
+    input.publicGeneration !== (mode === 'enhanced') ||
+    input.restartRetention !== (client === 'codex')
   )
     throw fail();
   return { ...input };
@@ -289,7 +290,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
   }
   if (failed || cases.length !== 4) throw fail();
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     scope: 'installed_native_cli_four_cases',
     passed: true,
     syntheticClientQualified: true,

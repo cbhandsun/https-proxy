@@ -29,7 +29,8 @@ async function runInstalledCodexCase(input) {
       compactions = 0,
       completedTurns = 0,
       sourceTurnId,
-      sourceCallId;
+      sourceCallId,
+      ownedLaunches = 0;
     const compactionIds = new Set(),
       turnIds = new Set();
     const progress = (next) => {
@@ -37,70 +38,85 @@ async function runInstalledCodexCase(input) {
       phase = next;
       if (options.onProgress && options.onProgress({ phase }) !== undefined) throw fail();
     };
-    const handle = fields(await options.spawnOwned(launch), ['child', 'stop']);
-    if (typeof handle.stop !== 'function' || types.isProxy(handle.stop)) throw fail();
-    stop = handle.stop;
-    const child = handle.child;
-    if (!child || typeof child.on !== 'function' || !child.stdin || !child.stdout || !child.stderr)
-      throw fail();
     let transportFailed = false;
-    rpc = createNativeLoopbackRpc(child, {
-      onFailure(code) {
-        transportFailed = true;
-        if (
-          !rpcClosed &&
-          (!stopping || !['native_process_exited', 'native_rpc_stream_closed'].includes(code))
-        )
-          failed = true;
-      },
-      onNotification(event) {
-        if (privateWire.test(JSON.stringify(event))) throw fail();
-        if (event.method === 'turn/completed' && event.params?.threadId !== threadId) throw fail();
-        if (event.method !== 'item/completed' || event.params?.item?.type !== 'contextCompaction')
-          return;
-        const item = event.params.item;
-        if (
-          !/^compact-[1-3]$/.test(phase) ||
-          event.params.threadId !== threadId ||
-          !id(item.id) ||
-          compactionIds.has(item.id)
-        )
-          throw fail();
-        compactionIds.add(item.id);
-        compactions++;
-      },
-      onServerRequest(message) {
-        const params = message.params;
-        let args = params?.arguments;
-        if (typeof args === 'string') {
-          if (args.length > 64) throw fail();
-          args = JSON.parse(args);
-        }
-        fields(args, []);
-        if (
-          message.method !== 'item/tool/call' ||
-          phase !== 'seed' ||
-          params.threadId !== threadId ||
-          params.tool !== TOOL ||
-          (params.namespace !== undefined && params.namespace !== null) ||
-          !id(params.turnId) ||
-          !id(params.callId) ||
-          sourceCalls !== 0
-        )
-          throw fail();
-        sourceTurnId = params.turnId;
-        sourceCallId = params.callId;
-        sourceCalls++;
-        return { success: true, contentItems: [{ type: 'inputText', text: source.text }] };
-      },
-    });
-    await rpc.call('initialize', {
-      clientInfo: { name: 'hpm_nsis_offline_codex', version: '1.0.0' },
-      capabilities: { experimentalApi: true },
-    });
-    rpc.notify('initialized');
+    async function connect() {
+      ownedLaunches++;
+      const handle = fields(await options.spawnOwned(launch), ['child', 'stop']);
+      if (typeof handle.stop !== 'function' || types.isProxy(handle.stop)) throw fail();
+      stop = handle.stop;
+      const child = handle.child;
+      if (
+        !child ||
+        typeof child.on !== 'function' ||
+        !child.stdin ||
+        !child.stdout ||
+        !child.stderr
+      )
+        throw fail();
+      transportFailed = false;
+      rpc = createNativeLoopbackRpc(child, {
+        onFailure(code) {
+          transportFailed = true;
+          if (
+            !rpcClosed &&
+            (!stopping || !['native_process_exited', 'native_rpc_stream_closed'].includes(code))
+          )
+            failed = true;
+        },
+        onNotification(event) {
+          if (privateWire.test(JSON.stringify(event))) throw fail();
+          if (
+            event.method === 'turn/completed' &&
+            (!id(threadId) || event.params?.threadId !== threadId)
+          )
+            throw fail();
+          if (event.method !== 'item/completed' || event.params?.item?.type !== 'contextCompaction')
+            return;
+          const item = event.params.item;
+          if (
+            !/^compact-[1-3]$/.test(phase) ||
+            event.params.threadId !== threadId ||
+            !id(item.id) ||
+            compactionIds.has(item.id)
+          )
+            throw fail();
+          compactionIds.add(item.id);
+          compactions++;
+        },
+        onServerRequest(message) {
+          const params = message.params;
+          let args = params?.arguments;
+          if (typeof args === 'string') {
+            if (args.length > 64) throw fail();
+            args = JSON.parse(args);
+          }
+          fields(args, []);
+          if (
+            message.method !== 'item/tool/call' ||
+            phase !== 'seed' ||
+            params.threadId !== threadId ||
+            params.tool !== TOOL ||
+            (params.namespace !== undefined && params.namespace !== null) ||
+            !id(params.turnId) ||
+            !id(params.callId) ||
+            sourceCalls !== 0
+          )
+            throw fail();
+          sourceTurnId = params.turnId;
+          sourceCallId = params.callId;
+          sourceCalls++;
+          return { success: true, contentItems: [{ type: 'inputText', text: source.text }] };
+        },
+      });
+      await rpc.call('initialize', {
+        clientInfo: { name: 'hpm_nsis_offline_codex', version: '1.0.0' },
+        capabilities: { experimentalApi: true },
+      });
+      rpc.notify('initialized');
+    }
+    await connect();
     const started = await rpc.call('thread/start', {
-      ephemeral: true,
+      ephemeral: options.restartClient ? false : true,
       cwd: root,
       model: options.model,
       approvalPolicy: 'never',
@@ -117,7 +133,8 @@ async function runInstalledCodexCase(input) {
       ],
     });
     const threadId = started?.thread?.id;
-    if (!id(threadId)) throw fail();
+    if (!id(threadId) || (options.restartClient && started.thread.ephemeral !== false))
+      throw fail();
     async function turn(nextPhase, text) {
       progress(nextPhase);
       const count = compactions;
@@ -158,6 +175,33 @@ async function runInstalledCodexCase(input) {
       'Call hpm_fixture_original exactly once with {}. Reply only READY without quoting its contents.'
     );
     for (let index = 1; index <= 3; index++) await turn('compact-' + index, null);
+    if (options.restartClient) {
+      // The old process and its owned tree must end before a new transport is
+      // constructed. Only a disk-backed thread ID crosses the restart; never
+      // supply history, transcript bytes, or a rollout path to resume.
+      phase = 'restarting';
+      if (failed || transportFailed) throw fail();
+      stopping = true;
+      const closeFirst = stop;
+      stop = undefined;
+      const stopped = fields(await closeFirst(), ['terminal', 'treeStopped']);
+      if (stopped.terminal !== true || stopped.treeStopped !== true) throw fail();
+      verify();
+      rpcClosed = true;
+      rpc.close();
+      rpc = undefined;
+      if (failed) throw fail();
+      rpcClosed = false;
+      stopping = false;
+      await connect();
+      const resumed = await rpc.call('thread/resume', { threadId });
+      if (
+        resumed?.thread?.id !== threadId ||
+        resumed.thread.ephemeral !== false ||
+        ownedLaunches !== 2
+      )
+        throw fail();
+    }
     const final = await turn(
       'final',
       options.mode === 'default'
@@ -180,7 +224,7 @@ async function runInstalledCodexCase(input) {
     )
       throw fail();
     receipt = {
-      schemaVersion: 1,
+      schemaVersion: options.restartClient ? 2 : 1,
       scope: 'owned_codex_cli_protocol',
       mode: options.mode,
       completedTurns,
@@ -192,6 +236,9 @@ async function runInstalledCodexCase(input) {
       directModelRequests: 0,
       installedRuntimeQualified: false,
       upstreamRecoveryQualified: false,
+      ...(options.restartClient
+        ? { clientRestarted: true, persistedThreadResumed: true, ownedLaunches }
+        : {}),
     };
   } catch {
     failed = true;

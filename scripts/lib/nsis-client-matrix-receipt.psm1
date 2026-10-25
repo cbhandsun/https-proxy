@@ -9,7 +9,7 @@ function ConvertFrom-HpmInstalledClientMatrixReceipt {
         $keys = @($root.EnumerateObject() | ForEach-Object { $_.Name })
         $expected = @('cases','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','realModelRequests','realProviderQualified','retention24hQualified','schemaVersion','scope','syntheticClientQualified','syntheticSocketsClosed','tlsVerified')
         if ($keys.Count -ne $expected.Count -or ($keys | Sort-Object) -join ',' -cne ($expected -join ',') -or
-            $root.GetProperty('schemaVersion').GetInt32() -ne 1 -or $root.GetProperty('scope').GetString() -cne 'installed_native_cli_four_cases' -or $root.GetProperty('realModelRequests').GetInt32() -ne 0) { throw 'invalid' }
+            $root.GetProperty('schemaVersion').GetInt32() -ne 2 -or $root.GetProperty('scope').GetString() -cne 'installed_native_cli_four_cases' -or $root.GetProperty('realModelRequests').GetInt32() -ne 0) { throw 'invalid' }
         foreach ($key in @('listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','syntheticClientQualified','syntheticSocketsClosed','tlsVerified')) { if (-not $root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
         foreach ($key in @('realProviderQualified','retention24hQualified')) { if ($root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
         $cases = $root.GetProperty('cases')
@@ -19,12 +19,13 @@ function ConvertFrom-HpmInstalledClientMatrixReceipt {
             foreach ($mode in @('default','enhanced')) {
                 $item = $cases[$index++]
                 $fields = @($item.EnumerateObject() | ForEach-Object { $_.Name })
-                if ($fields.Count -ne 7 -or ($fields | Sort-Object) -join ',' -cne 'client,compactions,defaultZeroRecovery,exactFinalAnswer,mode,privateRead,publicGeneration' -or
+                if ($fields.Count -ne 8 -or ($fields | Sort-Object) -join ',' -cne 'client,compactions,defaultZeroRecovery,exactFinalAnswer,mode,privateRead,publicGeneration,restartRetention' -or
                     $item.GetProperty('client').GetString() -cne $client -or $item.GetProperty('mode').GetString() -cne $mode -or
                     $item.GetProperty('compactions').GetInt32() -ne 3 -or -not $item.GetProperty('exactFinalAnswer').GetBoolean() -or
                     $item.GetProperty('defaultZeroRecovery').GetBoolean() -ne ($mode -ceq 'default') -or
                     $item.GetProperty('privateRead').GetBoolean() -ne ($mode -ceq 'enhanced') -or
-                    $item.GetProperty('publicGeneration').GetBoolean() -ne ($mode -ceq 'enhanced')) { throw 'invalid' }
+                    $item.GetProperty('publicGeneration').GetBoolean() -ne ($mode -ceq 'enhanced') -or
+                    $item.GetProperty('restartRetention').GetBoolean() -ne ($client -ceq 'codex')) { throw 'invalid' }
             }
         }
         return $Output | ConvertFrom-Json -AsHashtable

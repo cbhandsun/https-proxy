@@ -18,7 +18,7 @@ const tick = () => new Promise((resolve) => setImmediate(resolve));
 function fixture(t, fault, mode = 'enhanced') {
   const root = fs.mkdtempSync(path.join(resolvePhysicalTestTempDirectory(), 'codex-protocol-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const child = new EventEmitter();
+  let child = new EventEmitter();
   for (const name of ['stdin', 'stdout', 'stderr']) child[name] = new PassThrough();
   const sent = [],
     progress = [];
@@ -45,7 +45,28 @@ function fixture(t, fault, mode = 'enhanced') {
       return child.stdout.emit('error', new Error('PRIVATE stream error'));
     if (request.method === 'initialize') return emit({ id: request.id, result: {} });
     if (request.method === 'thread/start')
-      return emit({ id: request.id, result: { thread: { id: 'thread-1' } } });
+      return emit({
+        id: request.id,
+        result: {
+          thread: {
+            id: 'thread-1',
+            ephemeral: fault === 'restart-ephemeral' ? true : request.params.ephemeral,
+          },
+        },
+      });
+    if (request.method === 'thread/resume') {
+      if (fault === 'resume-error')
+        return emit({ id: request.id, error: { code: -1, message: 'PRIVATE' } });
+      return emit({
+        id: request.id,
+        result: {
+          thread: {
+            id: fault === 'resume-wrong-id' ? 'foreign' : 'thread-1',
+            ephemeral: fault === 'resume-ephemeral',
+          },
+        },
+      });
+    }
     if (request.method === 'turn/start') {
       const turnId = 'turn-' + ++turns;
       emit({
@@ -141,12 +162,26 @@ function fixture(t, fault, mode = 'enhanced') {
     spawnOwned(input) {
       launches++;
       launch = input;
-      if (fault === 'spawn-failed') throw new Error('PRIVATE executable path');
+      if (fault === 'spawn-failed' || (fault === 'restart-spawn-failed' && launches === 2))
+        throw new Error('PRIVATE executable path');
+      if (launches === 2) {
+        assert.equal(stops, 1);
+        const receive = child.stdin.listeners('data')[0];
+        child = new EventEmitter();
+        for (const name of ['stdin', 'stdout', 'stderr']) child[name] = new PassThrough();
+        child.stdin.on('data', receive);
+      }
+      const launchIndex = launches;
       return {
         child,
         async stop() {
           stops++;
-          if (fault === 'stop-throw') throw new Error('PRIVATE stop path');
+          if (
+            fault === 'stop-throw' ||
+            (fault === 'first-stop-failed' && launchIndex === 1) ||
+            (fault === 'second-stop-failed' && launchIndex === 2)
+          )
+            throw new Error('PRIVATE stop path');
           return { terminal: fault !== 'stop-terminal', treeStopped: fault !== 'stop-tree' };
         },
       };
@@ -413,4 +448,51 @@ test('Codex continues inspecting private wire and framing until the owned tree i
 test('Codex final output ignores only explicitly nonpublic reasoning items', async (t) => {
   const f = fixture(t, 'nonpublic-reasoning');
   assert.equal((await runInstalledCodexCase(f.options)).exactFinalAnswer, true);
+});
+
+test('Codex restart resumes only a disk-backed thread ID after stopping the first process, retaining the original workload', async (t) => {
+  for (const mode of ['default', 'enhanced']) {
+    const f = fixture(t, undefined, mode);
+    const result = await runInstalledCodexCase({ ...f.options, restartClient: true });
+    assert.equal(f.launches(), 2);
+    assert.equal(f.stops(), 2);
+    assert.equal(result.clientRestarted, true);
+    assert.equal(result.persistedThreadResumed, true);
+    assert.equal(result.ownedLaunches, 2);
+    assert.equal(result.compactions, 3);
+    assert.equal(result.sourceCalls, 1);
+    assert.equal(result.completedTurns, 5);
+    const starts = f.sent.filter((x) => x.method === 'thread/start');
+    assert.equal(starts.length, 1);
+    assert.equal(starts[0].params.ephemeral, false);
+    assert.deepEqual(
+      f.sent.filter((x) => x.method === 'thread/resume').map((x) => x.params),
+      [{ threadId: 'thread-1' }]
+    );
+    assert.equal(f.sent.filter((x) => x.method === 'initialize').length, 2);
+  }
+});
+
+test('Codex restart refuses invalid opt-in values and failed, ephemeral or substituted resume state without retry', async (t) => {
+  for (const restartClient of [false, null, 0, '', 'true', {}, []]) {
+    const f = fixture(t);
+    await assert.rejects(runInstalledCodexCase({ ...f.options, restartClient }), failure);
+    assert.equal(f.launches(), 0);
+  }
+  for (const fault of [
+    'restart-ephemeral',
+    'first-stop-failed',
+    'restart-spawn-failed',
+    'resume-wrong-id',
+    'resume-ephemeral',
+    'resume-error',
+    'second-stop-failed',
+  ]) {
+    const f = fixture(t, fault);
+    await assert.rejects(runInstalledCodexCase({ ...f.options, restartClient: true }), failure);
+    assert.ok(f.launches() <= 2);
+    assert.ok(f.stops() <= 2);
+    assert.ok(f.sent.filter((x) => x.method === 'thread/resume').length <= 1);
+    assert.equal(f.sent.filter((x) => x.method === 'thread/start').length, 1);
+  }
 });

@@ -93,7 +93,18 @@ function fixture(t, client, mode, fault) {
       state.defaultNoPrivateTools = false;
     }
     if (fault === 'final') return {};
-    return { exactFinalAnswer: true, compactions: 3, protocolPassed: true };
+    if (client === 'codex') assert.equal(input.restartClient, true);
+    return {
+      schemaVersion: client === 'codex' ? 2 : 1,
+      exactFinalAnswer: true,
+      compactions: 3,
+      protocolPassed: true,
+      clientRestarted: fault !== 'restart',
+      persistedThreadResumed: fault !== 'resume',
+      ownedLaunches: fault === 'launch-count' ? 1 : 2,
+      processTerminal: fault !== 'restart-terminal',
+      ownedTreeStopped: fault !== 'restart-tree',
+    };
   };
   const overrides = {
     './nsis-client-codex': {
@@ -147,6 +158,8 @@ function fixture(t, client, mode, fault) {
       },
     },
   };
+  overrides['./nsis-client-owned-transport'].createInstalledCodexRestartSpawn =
+    overrides['./nsis-client-owned-transport'].createInstalledClientSpawn;
   const loaded = { exports: {} },
     requireActual = createRequire(filename);
   vm.runInThisContext(
@@ -191,6 +204,7 @@ test('four case composition configures authenticated entry and uses independent 
         defaultZeroRecovery: mode === 'default',
         privateRead: mode === 'enhanced',
         publicGeneration: mode === 'enhanced',
+        restartRetention: client === 'codex',
       });
       assert.equal(f.active.current, null);
       assert.equal(f.closed(), client === 'claude' ? 1 : 0);
@@ -272,5 +286,13 @@ test('unknown CLI progress is refused without writing arbitrary phase content', 
       );
       assert.equal(f.active.current, null);
     }
+  }
+});
+
+test('Codex installed composition cannot qualify missing restart, substituted resume or a single launch', async (t) => {
+  for (const fault of ['restart', 'resume', 'launch-count', 'restart-terminal', 'restart-tree']) {
+    const f = fixture(t, 'codex', 'enhanced', fault);
+    await assert.rejects(f.run(), { message: 'installed_client_case_failed' });
+    assert.equal(f.active.current, null);
   }
 });

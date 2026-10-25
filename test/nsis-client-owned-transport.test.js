@@ -9,7 +9,10 @@ const { PassThrough } = require('node:stream');
 const { spawnSync } = require('node:child_process');
 const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
 const { digest } = require('../scripts/lib/nsis-encrypted-contract');
-const { createInstalledClientSpawn } = require('../scripts/lib/nsis-client-owned-transport');
+const {
+  createInstalledClientSpawn,
+  createInstalledCodexRestartSpawn,
+} = require('../scripts/lib/nsis-client-owned-transport');
 const {
   validateOwnedSpec,
   loadOwnedSpec,
@@ -418,4 +421,114 @@ test('locked Windows Codex binary larger than the generic digest cap reaches own
   const owned = await start(f.input);
   assert.equal(f.calls(), 1);
   assert.deepEqual(await owned.stop(), { terminal: true, treeStopped: true });
+});
+
+function restartFixture(t, { hold = false, failed = false } = {}) {
+  const f = fixture(t),
+    children = [],
+    launches = [];
+  const releases = [];
+  f.dependencies.spawn = (executable, args, input) => {
+    const child = new EventEmitter();
+    for (const name of ['stdin', 'stdout', 'stderr']) child[name] = new PassThrough();
+    child.stdin.once('finish', () => {
+      const release = () => child.emit('close', failed ? 1 : 0, null);
+      if (hold) releases.push(release);
+      else queueMicrotask(release);
+    });
+    children.push(child);
+    launches.push({ executable, args, input });
+    return child;
+  };
+  return { ...f, children, launches, releases };
+}
+
+test('explicit Codex restart grant allows exactly two independently owned processes with the same immutable spec', async (t) => {
+  const f = restartFixture(t),
+    launch = createInstalledCodexRestartSpawn(f.options, f.dependencies);
+  const first = await launch(f.input);
+  const file = path.join(f.caseRoot, 'client-launch.json'),
+    before = fs.readFileSync(file);
+  assert.deepEqual(await first.stop(), { terminal: true, treeStopped: true });
+  const second = await launch(f.input);
+  assert.notEqual(first.child, second.child);
+  assert.deepEqual(f.launches[1], f.launches[0]);
+  assert.deepEqual(fs.readFileSync(file), before);
+  assert.deepEqual(await second.stop(), { terminal: true, treeStopped: true });
+  await assert.rejects(launch(f.input), failure);
+  assert.equal(f.children.length, 2);
+});
+
+test('restart grant permanently rejects admission before the first owned tree is confirmed terminal', async (t) => {
+  for (const pendingStop of [false, true]) {
+    const f = restartFixture(t, { hold: true }),
+      launch = createInstalledCodexRestartSpawn(f.options, f.dependencies);
+    const first = await launch(f.input);
+    const pending = pendingStop ? first.stop() : undefined;
+    await assert.rejects(launch(f.input), failure);
+    const stopping = pending ?? first.stop();
+    await new Promise(setImmediate);
+    assert.equal(f.releases.length, 1);
+    f.releases[0]();
+    assert.deepEqual(await stopping, { terminal: true, treeStopped: true });
+    await assert.rejects(launch(f.input), failure);
+    assert.equal(f.children.length, 1);
+  }
+});
+
+test('restart grant refuses altered arguments, homes, tokens, spec bytes and installation identity before spawning', async (t) => {
+  for (const change of ['args', 'home', 'token', 'spec', 'same-size-spec', 'binary', 'manifest']) {
+    const f = restartFixture(t),
+      launch = createInstalledCodexRestartSpawn(f.options, f.dependencies);
+    const first = await launch(f.input);
+    await first.stop();
+    const next = globalThis.structuredClone(f.input);
+    if (change === 'args') next.args.push('-c', 'model="other"');
+    if (change === 'home') next.env.HOME = next.env.APPDATA;
+    if (change === 'token') next.env.HPM_NSIS_CLIENT_ENTRY = 'other_' + 't'.repeat(32);
+    if (change === 'spec') fs.appendFileSync(path.join(f.caseRoot, 'client-launch.json'), '\n');
+    if (change === 'same-size-spec') {
+      const file = path.join(f.caseRoot, 'client-launch.json'),
+        bytes = fs.readFileSync(file);
+      bytes[0] ^= 1;
+      fs.writeFileSync(file, bytes);
+    }
+    if (change === 'binary') fs.appendFileSync(f.binary, 'changed');
+    if (change === 'manifest')
+      fs.appendFileSync(
+        path.join(f.options.ownedRoot, 'payload/release-runtime-manifest.json'),
+        'changed'
+      );
+    await assert.rejects(launch(next), failure);
+    await assert.rejects(launch(f.input), failure);
+    assert.equal(f.children.length, 1);
+  }
+});
+
+test('restart grant rejects a failed first exit and does not retry or admit another client', async (t) => {
+  const f = restartFixture(t, { failed: true }),
+    launch = createInstalledCodexRestartSpawn(f.options, f.dependencies);
+  const first = await launch(f.input);
+  await assert.rejects(first.stop(), failure);
+  await assert.rejects(launch(f.input), failure);
+  assert.equal(f.children.length, 1);
+  const g = restartFixture(t);
+  assert.throws(
+    () => createInstalledCodexRestartSpawn({ ...g.options, client: 'claude' }, g.dependencies),
+    failure
+  );
+  assert.equal(fs.existsSync(path.join(g.caseRoot, 'client-launch.json')), false);
+});
+
+test('restart launch retains the original 64KiB spec bound and refuses oversized grants before writing or spawning', async (t) => {
+  const f = restartFixture(t);
+  for (const name of ['SystemRoot', 'WINDIR', 'PATH']) {
+    f.runtime.env[name] = 'a'.repeat(16384);
+    f.input.env[name] = f.runtime.env[name];
+  }
+  f.input.args.push('-c', 'x=' + 'a'.repeat(16300));
+  const launch = createInstalledCodexRestartSpawn(f.options, f.dependencies);
+  await assert.rejects(launch(f.input), failure);
+  assert.equal(f.children.length, 0);
+  assert.equal(fs.existsSync(path.join(f.caseRoot, 'client-launch.json')), false);
 });

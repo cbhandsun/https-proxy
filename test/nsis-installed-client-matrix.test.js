@@ -129,6 +129,7 @@ function fixture(t, broken) {
         defaultZeroRecovery: input.mode === 'default',
         privateRead: input.mode === 'enhanced',
         publicGeneration: input.mode === 'enhanced',
+        restartRetention: input.client === 'codex',
       };
     },
   };

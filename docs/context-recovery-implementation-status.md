@@ -4,6 +4,23 @@
 
 
 
+
+## 2026-10-25：接入Codex真实进程重启验收代码，保留401第三组时序失败
+
+2c9ce7a完整普通40189080136八项、正式40189080071四项（n08/n09为121160194420/121160194533）、原负载I/O40189080196及独立I/O40189080141均已success；这些只授该源码范围，不覆盖232/d398历史失败。401752c普通40189988534也已八项success，正式40189988519/source仍执行。但其三runner40189988478第三组121158725729 failure：Chat首轮request_failed5015ms、Claude首轮5001ms，各4次合成请求；预算COMMIT分别1213/1692ms，READ结算COMMIT667/357ms，发现扫描COMMIT0ms。其余两组通过不覆盖这一组，不重跑，不启动当前安装候选，也不授五秒稳定性。
+
+独立推进既定客户端重启留存缺口，未修改当前失败负载。Codex安装版原默认/增强两组各仍完成一次原始工具、三次原生压缩、原最终精确回答及私有恢复/独立公开生成校验；现在使用ephemeral:false，在第三次压缩完成后关闭第一个受控app-server并取得terminal/treeStopped精确回执，再启动独立的新进程，仅以同一threadId调用thread/resume，从隔离CODEX_HOME落盘状态继续最终回合。没有向resume提供history、原文或rollout路径，也不重新调用原始工具、增加模型回合或自动重试。API依据固定0.160.1官方ThreadResumeParams；本机现有0.164 alpha不代替固定Windows二进制资格，实际仍由原固定包身份/哈希与安装验收证明。
+
+原createInstalledClientSpawn仍严格单次；新增只允许Codex的独立双进程能力，必须先确认首树已退出，最多两次。第二次只能重用原64KiB以内不可变启动授权，参数、环境/home/token、cwd、安装manifest/二进制/launcher及spec字节哈希逐项重新验证，拒绝提前、并发或第三次启动；首退出失败、任一身份改变或尝试违规都不派发第二进程，也不自动恢复重试。每次仍使用原PowerShell Job/WFP/Assign-before-grant桥和原20秒关闭界，未改原进程处置或放宽网络。spec复核复用原有界fd哈希器，不新增无界文件读取；原单次入口提前执行其原64KiB授权界。
+
+安装组合要求Codex协议v2及clientRestarted/persistedThreadResumed、两次启动和最终树退出证明，缺失任一项均拒绝。四组安装回执升级schemaVersion2，逐组增加restartRetention：Codex必须true、Claude必须false；JS与实际PowerShell解析器拒绝旧版、缺字段、类型替代、错误客户端声明及重复/越界JSON。Claude仍保留原no-session-persistence，本轮不授其重启留存；真实provider/24小时资格仍false。原单次Codex协议schema1兼容，回执只记录有界事实，不含线程ID、路径、token、原文或RPC响应。
+
+本机16份真实文件170通过、零skip；之后补充最终树/字段类型/同长度授权篡改及大授权边界，最终相关五文件48/48通过、零skip，含实际PowerShell解析与桥辅助逻辑。最初调用因pwsh未在PATH得到3项ENOENT，已复用本机既有7.6.8运行时仅设置该次测试PATH后验证，未安装/升级依赖或改变测试；原失败未当成产品根因。1603份JS语法、全树Lint零错误/5项既有警告、修改文件格式及CI/release治理通过。用例位于原统一CI发现文件；这些本机协议传输为显式模拟，不授实际Windows CLI/安装/客户端重启资格，必须后续全门禁通过后的固定版本实际安装验收。
+
+本批是验收实现，日常Codex/Claude配置、系统代理、证书信任和真实模型凭据未改，模型0。完整剩余范围仍包括五秒写入稳定性、最新安装升级回滚/旧布局拒写、完整在途排空、Claude重启及两端实际重启证明、容量长测、真实24小时最终报告/到期重开、逐端额度持久预留后的provider与受控自用交付；24小时名义截止已过不等于验收通过，冻结长测未访问或重启。
+
+固定协议来源：https://github.com/openai/codex/blob/rust-v0.160.1/codex-rs/app-server-protocol/schema/json/v2/ThreadResumeParams.json
+
 ## 2026-10-25：消除同事务READ结算的第二次原文解密，独立快照认证保持
 
 2c9ce7a101a8ca0aa5bf22ac904f3b74312163fb三runner40189080083均已success，各原50项通过；其中121156018117六次最终ACK1064–1215ms，36次发现/读取观察COMMIT均0ms。普通40189080136观察时七项success、coverage仍执行，正式40189080071/source及原负载I/O40189080196仍执行，独立I/O40189080141已success。原作业继续，不重跑、不提前授完整稳定性，不触发安装；232/d398的正式5002/5001ms与d398首次ready失败均保留。

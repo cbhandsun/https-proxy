@@ -9,7 +9,7 @@ const { safePath, digest } = require('./nsis-encrypted-contract');
 const { hostRoot, validateOwnedSpec } = require('./nsis-client-owned-launcher.cjs');
 const fail = () => new Error('nsis_client_owned_failed');
 
-function createInstalledClientSpawn(input, dependencies = {}) {
+function createOwnedClientSpawn(input, dependencies, restart) {
   const runtime = dependencies.runtime ?? process,
     start = dependencies.spawn ?? spawn;
   let options;
@@ -20,6 +20,7 @@ function createInstalledClientSpawn(input, dependencies = {}) {
       'binarySha256,caseRoot,client,manifestSha256,ownedRoot,powershellExecutable'
     )
       throw fail();
+    if (restart && options.client !== 'codex') throw fail();
     hostRoot(options.ownedRoot, runtime);
     safePath(options.caseRoot, true);
     options.powershellExecutable = safePath(options.powershellExecutable);
@@ -32,12 +33,17 @@ function createInstalledClientSpawn(input, dependencies = {}) {
   } catch {
     throw fail();
   }
-  let used = false;
+  let launches = 0,
+    terminal = false,
+    refused = false,
+    retainedSpec,
+    retainedHash;
   return async (inputLaunch) => {
     let child, stopPromise;
     try {
-      if (used) throw fail();
-      used = true;
+      if (refused || launches >= (restart ? 2 : 1) || (launches !== 0 && !terminal)) throw fail();
+      launches++;
+      terminal = false;
       const launch = dataSnapshot(inputLaunch, 'nsis_client_owned_failed');
       if (
         Object.keys(launch).some(
@@ -71,10 +77,27 @@ function createInstalledClientSpawn(input, dependencies = {}) {
       };
       validateOwnedSpec(spec, runtime);
       const file = path.join(options.caseRoot, 'client-launch.json');
-      fs.writeFileSync(file, JSON.stringify(spec), { flag: 'wx', mode: 0o600 });
+      const serialized = JSON.stringify(spec);
+      if (Buffer.byteLength(serialized) > 65536) throw fail();
+      if (launches === 1) {
+        fs.writeFileSync(file, serialized, { flag: 'wx', mode: 0o600 });
+        retainedSpec = serialized;
+      } else {
+        // A fresh Job may reuse only the original immutable launch grant.
+        // Resume is an RPC operation; no executable, argument, home or token
+        // can be substituted for the second process.
+        safePath(file);
+        if (
+          serialized !== retainedSpec ||
+          fs.statSync(file).size !== Buffer.byteLength(retainedSpec)
+        )
+          throw fail();
+      }
       safePath(file);
-      const specSha256 = digest(file),
-        env = {};
+      const specSha256 = digest(file);
+      if (launches === 1) retainedHash = specSha256;
+      else if (specSha256 !== retainedHash) throw fail();
+      const env = {};
       for (const name of [
         'SystemRoot',
         'WINDIR',
@@ -148,18 +171,31 @@ function createInstalledClientSpawn(input, dependencies = {}) {
             clearTimeout(timer);
             if (!clean || !exited || broken || digest(file) !== specSha256) throw fail();
             validateOwnedSpec(spec, runtime);
+            terminal = true;
             return Object.freeze({ terminal: true, treeStopped: true });
           })().catch(() => {
+            refused = true;
             throw fail();
           });
           return stopPromise;
         },
       };
     } catch {
+      refused = true;
       if (child?.stdin && !child.stdin.destroyed) child.stdin.end();
       throw fail();
     }
   };
 }
 
-module.exports = { createInstalledClientSpawn };
+function createInstalledClientSpawn(input, dependencies = {}) {
+  return createOwnedClientSpawn(input, dependencies, false);
+}
+
+// Separate trusted capability for the two-process Codex resume scenario.
+// The original public harness capability remains strictly single-use.
+function createInstalledCodexRestartSpawn(input, dependencies = {}) {
+  return createOwnedClientSpawn(input, dependencies, true);
+}
+
+module.exports = { createInstalledClientSpawn, createInstalledCodexRestartSpawn };

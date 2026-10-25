@@ -47,9 +47,10 @@ function prepareCase(input) {
   const options = fields(
     input,
     ['caseRoot', 'mode', 'entryUrl', 'model', 'entryToken', 'sourceTool', 'spawnOwned'],
-    ['onProgress']
+    ['onProgress', 'restartClient']
   );
   if (
+    (Object.hasOwn(options, 'restartClient') && options.restartClient !== true) ||
     !['default', 'enhanced'].includes(options.mode) ||
     typeof options.model !== 'string' ||
     !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(options.model) ||

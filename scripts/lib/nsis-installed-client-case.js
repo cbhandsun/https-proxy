@@ -7,7 +7,10 @@ const { runInstalledCodexCase, createCodexSyntheticSource } = require('./nsis-cl
 const { runInstalledClaudeCase } = require('./nsis-client-claude');
 const { createCodexSyntheticUpstream } = require('./nsis-client-codex-upstream');
 const { createClaudeSyntheticUpstream } = require('./nsis-client-claude-upstream');
-const { createInstalledClientSpawn } = require('./nsis-client-owned-transport');
+const {
+  createInstalledClientSpawn,
+  createInstalledCodexRestartSpawn,
+} = require('./nsis-client-owned-transport');
 const { requestInstalledClientObservation } = require('./nsis-client-observer.cjs');
 const { configureInstalledClient } = require('./nsis-client-configuration');
 const { assertEntryRefuses, createSyntheticSourceServer } = require('./nsis-client-loopback');
@@ -98,7 +101,9 @@ async function runInstalledClientCase(options) {
       sourceServer = await createSyntheticSourceServer(source.text, () =>
         upstream.recordSourceCall()
       );
-    const spawnOwned = createInstalledClientSpawn({
+    const spawnOwned = (
+      client === 'codex' ? createInstalledCodexRestartSpawn : createInstalledClientSpawn
+    )({
       ownedRoot,
       caseRoot,
       client,
@@ -111,6 +116,7 @@ async function runInstalledClientCase(options) {
     const protocol =
       client === 'codex'
         ? await runInstalledCodexCase({
+            restartClient: true,
             caseRoot,
             mode,
             entryUrl: entryUrl + '/v1',
@@ -148,7 +154,13 @@ async function runInstalledClientCase(options) {
     const state = upstream.inspect();
     if (client === 'codex') {
       if (
+        protocol.schemaVersion !== 2 ||
         protocol.exactFinalAnswer !== true ||
+        protocol.clientRestarted !== true ||
+        protocol.persistedThreadResumed !== true ||
+        protocol.ownedLaunches !== 2 ||
+        protocol.processTerminal !== true ||
+        protocol.ownedTreeStopped !== true ||
         protocol.compactions !== 3 ||
         !state.completed ||
         state.failed ||
@@ -184,6 +196,7 @@ async function runInstalledClientCase(options) {
       defaultZeroRecovery: mode === 'default',
       privateRead: mode === 'enhanced',
       publicGeneration: mode === 'enhanced',
+      restartRetention: client === 'codex',
     };
   } catch {
     failed = true;
