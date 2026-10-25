@@ -291,6 +291,17 @@ test('default production owner durably anchors a byte-unchanged scan and closes 
   assert.equal(anchored.version, 2);
   assert.equal(anchored.maxTime, time);
   assert.match(anchored.headerTag, /^[a-f0-9]{64}$/);
+  let expectedWrites = writes + 1;
+  for (const operation of ['load', 'load-reference', 'inspect']) {
+    time++;
+    const result = owner.execute(
+      operation === 'inspect' ? { operation } : { operation, scope: 'a'.repeat(64) }
+    );
+    assert.deepEqual(result, operation === 'inspect' ? { records: 0, bytes: 0 } : null);
+    assert.deepEqual(fs.readFileSync(file), before);
+    assert.equal(f.writes(), ++expectedWrites);
+    assert.equal([...f.rows.values()][0].value.maxTime, time);
+  }
   time = 1020;
   f.failNext();
   assert.throws(() => owner.execute({ operation: 'scan-reference', after: null }), safe);

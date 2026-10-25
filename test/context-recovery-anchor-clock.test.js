@@ -360,7 +360,8 @@ test('expiry deletion rolls back header, rows and payloads on late clock-write o
       f.execute({ operation: 'load', scope }).state.root.ledger.sources[0].output,
       'synthetic expiry rollback'
     );
-    assert.equal(f.sqlTime(), 101);
+    assert.equal(f.sqlTime(), 100);
+    assert.equal(f.held().maxTime, 101);
   }
 });
 
@@ -523,12 +524,12 @@ test('new witness fields remain closed, non-executable and cannot authorize a fo
 });
 
 test('live authentic header replay cannot be masked by the retained scan clock', (t) => {
-  for (const operation of ['scan', 'snapshot']) {
+  for (const operation of ['scan', 'snapshot', 'load', 'load-reference', 'inspect']) {
     const f = fixture(t);
     f.save();
     const oldHeader = f.header();
     f.setTime(105);
-    f.execute({ operation: 'load-reference', scope });
+    f.execute({ operation: 'revoke', scope, expectedRevision: 1 });
     f.setTime(110);
     f.execute({ operation: 'scan-reference', after: null });
     const revision = f.revision();
@@ -538,7 +539,13 @@ test('live authentic header replay cannot be masked by the retained scan clock',
       () =>
         operation === 'snapshot'
           ? f.snapshot()
-          : f.execute({ operation: 'scan-reference', after: null }),
+          : f.execute(
+              operation === 'scan'
+                ? { operation: 'scan-reference', after: null }
+                : operation === 'inspect'
+                  ? { operation }
+                  : { operation, scope }
+            ),
       safe
     );
     assert.equal(f.revision(), revision);
@@ -551,7 +558,7 @@ test('post-COMMIT header replay fails the independent snapshot before anchor ACK
   f.save();
   const oldHeader = f.header();
   f.setTime(105);
-  f.execute({ operation: 'load-reference', scope });
+  f.execute({ operation: 'revoke', scope, expectedRevision: 1 });
   const revision = f.revision();
   f.setTime(110);
   let injected = false;
@@ -567,4 +574,133 @@ test('post-COMMIT header replay fails the independent snapshot before anchor ACK
   assert.throws(() => f.open(), safe);
   f.close();
   assert.deepEqual(fs.readFileSync(f.file), attacked);
+});
+
+test('anchored load, reference load and inspect do not journal a clock-only observation', (t) => {
+  for (const operation of ['load', 'load-reference', 'inspect']) {
+    for (const output of ['', 'synthetic-read\r\n中文🙂', 'x'.repeat(16384)]) {
+      const f = fixture(t),
+        state = f.save(output),
+        before = f.bytes(),
+        revision = f.revision();
+      const request = operation === 'inspect' ? { operation } : { operation, scope };
+      f.setTime(110);
+      f.commits.length = 0;
+      const result = f.execute(request);
+      if (operation === 'load') assert.equal(result.state.root.ledger.sources[0].output, output);
+      else if (operation === 'load-reference')
+        assert.equal(result.reference.metadata.rootId, state.root.rootId);
+      else assert.equal(result.records, 1);
+      assert.deepEqual(f.bytes(), before);
+      assert.equal(f.sqlTime(), 100);
+      assert.equal(f.held().maxTime, 110);
+      assert.equal(f.revision(), revision + 1);
+      assert.equal(f.commits.length, 2);
+      assert.equal(
+        f.commits.some(({ journalPresent }) => journalPresent),
+        false
+      );
+      f.close();
+      f.open();
+      assert.equal(f.sqlTime(), 110);
+      assert.equal(f.execute({ operation: 'load', scope }).expiresAt, state.root.expiresAt);
+    }
+  }
+});
+
+test('empty and expired read observations keep the original deadline and reject backward clocks', (t) => {
+  for (const operation of ['load', 'load-reference', 'inspect']) {
+    for (const populated of [false, true]) {
+      const f = fixture(t),
+        state = populated ? f.save() : null;
+      const time = state ? state.root.expiresAt : 110;
+      const before = f.bytes();
+      f.setTime(time);
+      const request = operation === 'inspect' ? { operation } : { operation, scope };
+      const result = f.execute(request);
+      assert.deepEqual(result, operation === 'inspect' ? { records: 0, bytes: 0 } : null);
+      assert.deepEqual(f.bytes(), before);
+      assert.equal(f.held().maxTime, time);
+      const revision = f.revision();
+      f.setTime(time - 1);
+      assert.throws(() => f.execute(request), safe);
+      assert.equal(f.revision(), revision);
+      assert.deepEqual(f.bytes(), before);
+      f.close();
+      assert.throws(() => f.open(), safe);
+    }
+  }
+});
+
+test('read-only observations cannot acknowledge failed COMMIT or lost anchor flush acknowledgement', (t) => {
+  for (const operation of ['load', 'load-reference', 'inspect']) {
+    for (const failure of ['commit', 'anchor']) {
+      const f = fixture(t);
+      f.save();
+      const before = f.bytes(),
+        revision = f.revision();
+      f.setTime(110);
+      if (failure === 'commit') f.failCommit();
+      else f.failAnchor('after');
+      assert.throws(
+        () => f.execute(operation === 'inspect' ? { operation } : { operation, scope }),
+        safe
+      );
+      assert.deepEqual(fs.readFileSync(f.file), before);
+      if (failure === 'commit') {
+        assert.equal(f.revision(), revision);
+        f.setTime(101);
+        f.execute({ operation: 'load', scope });
+        assert.equal(f.held().maxTime, 101);
+      } else {
+        assert.equal(f.held().maxTime, 110);
+        assert.equal(f.db(), undefined);
+      }
+    }
+  }
+});
+
+test('read observations reject malformed and extreme clocks before any SQL change or anchor ACK', (t) => {
+  for (const operation of ['load', 'load-reference', 'inspect']) {
+    const f = fixture(t);
+    f.save();
+    const before = f.bytes(),
+      revision = f.revision();
+    for (const value of [-1, 99, NaN, Infinity, Number.MAX_SAFE_INTEGER]) {
+      f.setTime(value);
+      assert.throws(
+        () => f.execute(operation === 'inspect' ? { operation } : { operation, scope }),
+        safe
+      );
+      assert.equal(f.revision(), revision);
+      assert.deepEqual(f.bytes(), before);
+    }
+    f.setTime(110);
+    assert.throws(() => f.execute({ operation, scope: 'invalid' }), safe);
+    assert.equal(f.revision(), revision);
+    assert.deepEqual(f.bytes(), before);
+  }
+});
+
+test('read observations still authenticate corrupted records, including expired originals', (t) => {
+  for (const operation of ['load', 'load-reference', 'inspect']) {
+    for (const expired of [false, true]) {
+      const f = fixture(t),
+        state = f.save();
+      f.db().prepare('UPDATE recovery_state SET envelope=zeroblob(length(envelope))').run();
+      const attacked = f.bytes(),
+        revision = f.revision();
+      f.setTime(expired ? state.root.expiresAt : 110);
+      assert.throws(
+        () => f.execute(operation === 'inspect' ? { operation } : { operation, scope }),
+        safe
+      );
+      assert.equal(f.revision(), revision);
+      assert.deepEqual(fs.readFileSync(f.file), attacked);
+      f.close();
+      assert.throws(() => f.open(), safe);
+      f.close();
+      assert.deepEqual(fs.readFileSync(f.file), attacked);
+    }
+  }
 });

@@ -2,6 +2,21 @@
 
 
 
+
+## 2026-10-25：正式验收保留新失败；减少纯读取的时钟日志写入
+
+232dbdb完整普通40187616140八项success，coverage121151640481十二次最终持久ACK890–1708ms、276次COMMIT最大119ms，发现扫描COMMIT均0ms；原负载I/O40187616099也success。但正式40187616068/source121151640361仍因Chat long-persistent首轮request_failed5002ms失败（4次合成请求），场景作业跳过，不能授正式或安装资格。该轮扫描仅45ms/COMMIT0，预算保存engine1809ms/COMMIT1703ms、LIST结算COMMIT576ms、第二次预扣COMMIT489ms、READ结算COMMIT520ms与锚点327ms等串行等待仍在。初始化load-reference的COMMIT508ms发生在HTTP计时前，不能当成这一请求的根因。
+
+d3982a8141848b0cd2b31971124cc0ecfee1e7b1普通40188081800七项success、coverage121153032798 failure：原生uncertain/ACK前释放控制用例5174.9888ms首次ready超时，最后fixture-sending，原生startup已ready1094ms，尚未advance。该覆盖率HTTP六次最终ACK1900–2361ms、扫描COMMIT0，不覆盖初始化失败，client后续完整覆盖率未获资格。正式40188081835/source121153032674另因Claude首轮request_failed5001ms失败（2次合成请求）；READ结算3571ms，其中engine3104ms、clock1549ms、COMMIT1513ms、anchor439ms（native flush414ms）。前一预算保存1298ms、native flush541ms。两类失败分别保留，原期限不改，不重跑，不触发安装。
+
+沿首次ready的fixture-sending之后路径检查，原engine.execute(load)还会仅为推进时钟UPDATE头部、生成DELETE journal、持久提交；默认load-reference及inspect有相同多余写入。本批将这三项明确的观察操作接入已验证的v2独立锚点时钟持久化：原SQL事务、原完整读取/认证、提交后独立snapshot、OS锚点CAS/flush/精确回读和ACK全部保留；仅SQL无任何数据变化时不为时钟单独写盘。全部save/预扣/结算/发布/撤销与清理变更的SQL时钟同事务FULL/DELETE语义保持，未减少模型请求、故障注入步骤或正确性断言，也未把fixture中的load换成弱检查。该优化减少确定存在的读时钟日志写入，不宣称已解决正式路径的写入/flush等待。
+
+新磁盘回归三项在修改前均失败；修改后正常/空/Unicode/较大原文、空库/过期记录、原绝对expiry、同目录重开、每次原独立锚点ACK、失败COMMIT/丢失锚点回执、非法/极端/倒退时钟、坏密文含过期原文均覆盖。运行中旧有效头部重放回归扩大到三个观察操作，仍不能用内存水位掩盖重放。默认production owner真实磁盘组合也证明三项读取字节不变、每次锚点提交与精确时钟推进；首次COMMIT候选头部固定及提交后独立认证不变。原重放夹具改用真实revoke先生成不同SQL头部，确保仍攻击不同的已认证旧头部，未弱化重放断言；失败清理后读取的SQL旧水位与已持久锚点新水位分别断言。
+
+本机十五文件197通过、零失败、2项既有Windows DPAPI限定skip保留，含原容量持久/时钟短测；1603份JS语法、全树Lint零错误/5项既有警告、修改文件格式与CI/release治理通过。统一CI原有测试发现和client覆盖率已包含这些文件，不新增skip或阈值变动。本机OS锚点为显式合成保留器，仍须新SHA Windows，不能授DPAPI/OS锚点、五秒稳定性或真实24小时资格。
+
+当前没有启动新的安装候选。旧版运行包实际完整迁移/回滚拒写及4ec安装两端合成证据只覆盖旧源码身份；最新安装、完整在途排空/客户端重启、固定容量长测、真实24小时/到期重开、逐端额度安全预留后的真实provider、自用安装交付与受控启用仍在完整范围内。冻结长测未访问或重启，模型0。
+
 ## 2026-10-25：真实连接复现停止后的业务准入缺口并修复，保留232原作业
 
 232dbdb9c2fcbac757d507572355891f81bf752e的三runner时序40187616069均终态success，各原50/50、零skip；十八次最终持久ACK887–1379ms，各138次COMMIT，最大67/57/47ms，其中各30次发现扫描COMMIT均0ms。普通40187616140观察时七项success、coverage仍执行；正式40187616068/source仍执行，独立I/O40187616076成功，原负载I/O40187616099仍执行。完整结论未到，不覆盖b73的5001ms及历史失败，不重跑或取消既有作业，尚未启动232安装候选。
