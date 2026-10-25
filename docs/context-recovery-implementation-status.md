@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：55e正式Responses仍5005ms失败，扩展非刷新文件操作记录而不改持久门禁
+
+55e3d0dbc242cc588f526dcc87071d00b8e4c1f7普通40174440473八项success，coverage121111974026十二次最终ACK1026–1878ms、276次COMMIT最大149ms；独立时序40174440607三组各50通过/零skip，十八次最终ACK1228–2058ms。原负载I/O40174440481/121111973957也success，三段原覆盖率完整执行，两份清理/源码/阶段回执确认；十二次最终ACK1053–2892ms、276次COMMIT最大1710ms。proxy窗口只有34对journal刷新、最大694ms、database计数零；client窗口207对刷新、database最大35ms、journal最大102ms。记录仍不完整，不能把未捕获的database事件解释成不存在数据库刷新，也不能跨runner归因。
+
+但正式40174440515/source121111973975终态failure，context121115116824跳过；第二段客户端覆盖率内Responses持久首轮request_failed5005ms，requests4/handshakes4/roots1，尚无该轮headers。该轮sequence5 scan493ms、sequence6预留保存1429ms/COMMIT1263ms、sequence7结算616ms/COMMIT526ms、sequence8下一次预留446ms/COMMIT287ms、sequence9读取结算899ms/COMMIT635ms、sequence10公开准备874ms/COMMIT697ms；这些COMMIT线程CPU均零。先前startup/seed的扫描及保存另列在HTTP之前，不能混入此请求。实际CI为Node22.23.4（setup-node的Node22兼容环境），不据此卸载或改换本机工具版本。本批前的预留解析2到1改动已通过其相关范围，但不足以关闭五秒问题；失败保留、不重跑、未启动55e安装。
+
+已有记录仅含Flush/OperationEnd，无法区分其他文件操作。核对[SQLite Windows I/O退避说明](https://www.sqlite.org/c3ref/c_fcntl_begin_atomic_write.html)与[Windows VFS源码](https://github.com/sqlite/sqlite/blob/master/src/os_win.c)，确认存在底层I/O退避机制；尚未确认本次实际触发，不能直接认定为杀毒软件原因。没有修改SQLite重试参数、busy_timeout、FULL/DELETE/secure_delete或任何5秒/10秒/30秒门限，也未调整系统安全配置。
+
+扩展现有32MiB有界记录的解码，按[FileIo_ReadWrite](https://learn.microsoft.com/en-us/windows/win32/etw/fileio-readwrite)、[FileIo_Info](https://learn.microsoft.com/en-us/windows/win32/etw/fileio-info)及Microsoft PerfView固定x64 v2/v3布局采集read/write/set-info/delete/cleanup/close；未知版本/长度仍拒绝。只汇总目标合成数据库/journal的次数、成功耗时、非零状态耗时，以及固定的access-denied/sharing-violation/file-lock-conflict计数；不输出原始路径、指针、事件或状态文本。原100万枚举/10万筛选/8192待配对/256名字/256MiB ETL等界保持。新增操作复用独立有界配对器，原刷新成功次数及冲突零门禁保持，不把其他操作结束冒充刷新成功；未统计的rename/query/fs-control复用也使旧配对失效。
+
+同时修复实际解码边界中的IRP复用遗漏：已跟踪IRP后出现无关文件的后续操作，以前会在PowerShell过滤时丢掉新起点却留下旧IRP，后续结束可能被旧flush误配。从55e已提交函数重放该纯合成场景，实际得到filteredReplacementStarts=0且原CLI仍报告pairedFlushes=1，确认可制造错误正观察；旧I/O摘要不能单独作为精确配对或根因证明。现在先移除旧跟踪并输出不含路径的固定invalidate记录，JS失效旧配对并保留冲突，不制造成功。扩展摘要采用schema2及固定新scope，捕获器只接受封闭字段/有限整数及一致计数；schema1原摘要仍可读取，所有完整性/五秒资格恒false。非零状态与NTSTATUS错误类分别计数，不把正值信息状态直接归为访问拒绝或共享冲突。回执仍须源码/阶段绑定、helper正常退出及清理确认；原覆盖率失败继续独立保存，摘要不能覆盖原退出。
+
+相关39项本机回归通过、零skip，包括真实PowerShell二进制/命名字段、正常/带尾部布局、非法/极端/未知版本、复用/无关IRP、失败状态/计数/界及schema2完整捕获回执。新增测试自动进入统一CI，实际扩展WPR记录仍须本批新SHA；本批是补齐根因证据，不宣称产品超时已修复。原商用发行签名门禁、最大预算预扣ACK、各发布转换ACK、原期限与原文留存不变。安装/迁移已有资格与未完成的在途排空、客户端重启、容量/真实24小时及到期重开、逐端额度预留后的真实provider和受控自用交付范围均保持；冻结长测未访问、模型0。
+
 ## 2026-10-25：保留3db的5003ms失败，消除合并原文读取事务的第二次完整预留解析
 
 3db4c70f8dfd18e9c7a423e2157e02186d6c30b3普通40173001583为七项success、coverage121107640763失败：Claude long-persistent首轮request_failed5003ms，requests4/handshakes4/roots1，尚无该轮headers。预留保存sequence6耗时1300ms，其中COMMIT992ms、线程CPU零；LIST reply2208ms、其结算存储857ms，READ reply800ms，completeAsync571ms、startPublicationAsync750ms。多笔串行等待仍在，不能因另一runner快速刷新或成功请求就归为唯一CPU/I/O原因，也不合并prepared/sending/final各自原持久ACK。该失败不重跑，当前安装未触发。正式40173001582/source121107641028已success，N08/N09为121111597221/121111597246，观察时仍运行；与普通失败分别记录。

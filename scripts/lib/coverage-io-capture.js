@@ -5,6 +5,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { types } = require('node:util');
 const { safePath } = require('./nsis-encrypted-contract');
+const { OPERATION_TYPES } = require('./persistent-io-operation-summary');
 const fail = () => new Error('coverage_io_capture_failed');
 const isSha = (value) =>
   typeof value === 'string' && value.length === 40 && /^[a-f0-9]{40}$/.test(value);
@@ -39,10 +40,12 @@ function parseSummary(text) {
   if (typeof text !== 'string' || Buffer.byteLength(text) > 16384) throw fail();
   const value = JSON.parse(text);
   if (JSON.stringify(value) !== text) throw fail();
-  exact(value, KEYS);
+  const extended = value?.schemaVersion === 2;
+  exact(value, extended ? [...KEYS, 'ioOperations'] : KEYS);
   if (
-    value.schemaVersion !== 1 ||
-    value.scope !== 'synthetic_sqlite_etw_flush_pairs' ||
+    value.schemaVersion !== (extended ? 2 : 1) ||
+    value.scope !==
+      (extended ? 'synthetic_sqlite_etw_file_operations' : 'synthetic_sqlite_etw_flush_pairs') ||
     value.traceCompletenessVerified !== false ||
     value.fiveSecondQualified !== false ||
     value.realModelRequests !== 0 ||
@@ -78,7 +81,63 @@ function parseSummary(text) {
     value.pairedFlushes !== value.database.count + value.journal.count
   )
     throw fail();
+  if (extended) validateIoOperations(value.ioOperations, value.events, value.pairedFlushes);
   return value;
+}
+function validateIoOperations(operations, events, flushes) {
+  exact(operations, ['collisions', 'unfinished', ...OPERATION_TYPES]);
+  let completed = 0;
+  for (const [name, maximum] of [
+    ['collisions', 100000],
+    ['unfinished', 8192],
+  ]) {
+    if (
+      !Number.isSafeInteger(operations[name]) ||
+      operations[name] < 0 ||
+      operations[name] > maximum
+    )
+      throw fail();
+  }
+  for (const type of OPERATION_TYPES) {
+    exact(operations[type], ['database', 'journal']);
+    for (const stats of Object.values(operations[type])) {
+      exact(stats, [
+        'count',
+        'maxMs',
+        'over100Ms',
+        'over1000Ms',
+        'nonZeroStatus',
+        'maxNonZeroStatusMs',
+        'accessDenied',
+        'sharingViolation',
+        'lockConflict',
+      ]);
+      for (const [name, value] of Object.entries(stats)) {
+        if (
+          !Number.isSafeInteger(value) ||
+          value < 0 ||
+          (!['maxMs', 'maxNonZeroStatusMs'].includes(name) && value > 100000)
+        )
+          throw fail();
+      }
+      if (
+        stats.over1000Ms > stats.over100Ms ||
+        stats.over100Ms > stats.count ||
+        (!stats.count && stats.maxMs !== 0) ||
+        (!stats.nonZeroStatus && stats.maxNonZeroStatusMs !== 0) ||
+        stats.accessDenied + stats.sharingViolation + stats.lockConflict > stats.nonZeroStatus ||
+        stats.over100Ms > 0 !== (stats.count > 0 && stats.maxMs >= 100) ||
+        stats.over1000Ms > 0 !== (stats.count > 0 && stats.maxMs >= 1000)
+      )
+        throw fail();
+      completed += stats.count + stats.nonZeroStatus;
+    }
+  }
+  if (
+    completed + flushes > Math.floor(events / 2) ||
+    (!completed && !operations.collisions && !operations.unfinished)
+  )
+    throw fail();
 }
 function receiptPath(environment) {
   if (

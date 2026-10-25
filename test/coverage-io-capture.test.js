@@ -27,6 +27,34 @@ const summary = () => ({
   realModelRequests: 0,
 });
 const failure = { message: 'coverage_io_capture_failed' };
+
+test('extended operation summary survives capture cleanup and source/stage receipt verification', async (t) => {
+  const { createPersistentIoSummary } = require('../scripts/lib/persistent-io-summary');
+  const value = createPersistentIoSummary();
+  for (const event of [
+    {
+      type: 'name',
+      key: '1',
+      timeMs: 0,
+      name: 'C:\\Temp\\hpm-wbipc-core-abcdef\\context\\checkpoint.sqlite',
+    },
+    { type: 'flush', key: '2', timeMs: 1, name: '1' },
+    { type: 'end', key: '2', timeMs: 2, name: '0' },
+    { type: 'delete', key: '3', timeMs: 3, name: '1' },
+    { type: 'end', key: '3', timeMs: 103, name: '0xc0000022' },
+  ])
+    value.observe(event);
+  const recorded = value.snapshot();
+  const f = fixture(t);
+  f.install('success', { start: f.start('success', recorded) });
+  await f.hooks.before();
+  await f.hooks.after();
+  assert.deepEqual(readCoverageIoReceipt(f.environment).summary, recorded);
+  assert.equal(f.reports[0].cleanupVerified, true);
+  assert.equal(f.reports[0].summary.ioOperations.delete.database.accessDenied, 1);
+  assert.equal(f.reports[0].summary.fiveSecondQualified, false);
+});
+
 function fixture(t) {
   const root = fs.mkdtempSync(
     path.join(fs.realpathSync.native(os.tmpdir()), 'hpm-coverage-capture-')
@@ -65,7 +93,7 @@ function fixture(t) {
       timeouts.after = options.timeout;
     },
   };
-  function start(mode = 'success') {
+  function start(mode = 'success', recorded = summary()) {
     return (program, args, options) => {
       assert.equal(program, 'pwsh');
       assert.deepEqual(args.slice(0, 4), ['-NoLogo', '-NoProfile', '-NonInteractive', '-File']);
@@ -92,7 +120,7 @@ function fixture(t) {
           assert.equal(command, 'finish\n');
           if (mode === 'stop-timeout') return;
           queueMicrotask(() => {
-            let text = 'HPM_PERSISTENT_IO=' + JSON.stringify(summary()) + '\n';
+            let text = 'HPM_PERSISTENT_IO=' + JSON.stringify(recorded) + '\n';
             if (mode === 'private-output') text = 'PRIVATE_MODEL_REPLY\n';
             if (mode === 'duplicate-summary') text += text;
             if (mode !== 'missing-summary') child.stdout.write(text);
@@ -122,7 +150,7 @@ function fixture(t) {
         if (mode === 'duplicate-ready') child.stdout.write('HPM_PERSISTENT_IO_CAPTURE_READY\n');
         if (mode === 'stdout-overflow') child.stdout.write('x'.repeat(16385));
         if (mode === 'premature-summary')
-          child.stdout.write('HPM_PERSISTENT_IO=' + JSON.stringify(summary()) + '\n');
+          child.stdout.write('HPM_PERSISTENT_IO=' + JSON.stringify(recorded) + '\n');
       });
       return child;
     };

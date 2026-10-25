@@ -61,12 +61,19 @@ function ConvertTo-HpmPersistentIoRecord {
             if (-not $hadName) { return }; $name = ''
         } else { if ($State.names.Count -ge 256) { throw 'refused' }; [void]$State.names.Add($key) }
         [ordered]@{ type='name'; key=$key; timeMs=$TimeMs; name=$name } | ConvertTo-Json -Compress
-    } elseif ($Opcode -eq 73) {
+    } elseif ($Opcode -in @(64,72,77)) {
+        $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr'])
+        if ($State.irps.Remove($key)) { [ordered]@{type='invalidate';key=$key;timeMs=$TimeMs;name=''} | ConvertTo-Json -Compress }
+    } elseif ($Opcode -in @(65,66,67,68,69,70,71,73,74,75)) {
         $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr']); $file = ConvertTo-HpmIoPointerKey ([string]$fields['FileKey'])
-        if (-not $State.names.Contains($file)) { return }
+        if ($Opcode -in @(71,74,75) -or -not $State.names.Contains($file)) {
+            if ($State.irps.Remove($key)) { [ordered]@{type='invalidate';key=$key;timeMs=$TimeMs;name=''} | ConvertTo-Json -Compress }
+            return
+        }
         if ($State.irps.Count -ge 8192) { throw 'refused' }
         [void]$State.irps.Add($key)
-        [ordered]@{ type='flush'; key=$key; timeMs=$TimeMs; name=$file } | ConvertTo-Json -Compress
+        $type = @{65='cleanup';66='close';67='read';68='write';69='set-info';70='delete';73='flush'}[$Opcode]
+        [ordered]@{ type=$type; key=$key; timeMs=$TimeMs; name=$file } | ConvertTo-Json -Compress
     } elseif ($Opcode -eq 76) {
         $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr'])
         if (-not $State.irps.Remove($key)) { return }
@@ -202,7 +209,7 @@ function Invoke-HpmPersistentIoDiagnostic {
             if ($provider -cne '90cbdc39-4a3e-11d1-84f4-0000f80464e3') { $phase = 'decode-enumeration'; return }
             $selected++
             $opcode = [int]$_.Opcode
-            if ($opcode -notin @(0,32,35,36,73,76)) { $phase = 'decode-enumeration'; return }
+            if ($opcode -notin @(0,32,35,36,64,65,66,67,68,69,70,71,72,73,74,75,76,77)) { $phase = 'decode-enumeration'; return }
             $phase = 'decode-record'
             $recordAttempts++
             ConvertTo-HpmPersistentIoRecord -Text ($_.ToXml()) -Opcode $opcode -TimeMs (([DateTimeOffset]$_.TimeCreated).ToUnixTimeMilliseconds()) -State $decode

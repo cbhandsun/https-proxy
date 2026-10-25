@@ -1,6 +1,10 @@
 'use strict';
 
 const { types } = require('node:util');
+const {
+  OPERATION_TYPES,
+  createPersistentIoOperations,
+} = require('./persistent-io-operation-summary');
 const fail = () => new Error('persistent_io_trace_invalid');
 function data(input, names) {
   if (
@@ -33,6 +37,7 @@ function pointer(input) {
 function createPersistentIoSummary() {
   const names = new Map(),
     pending = new Map();
+  const operations = createPersistentIoOperations();
   const stats = {
     database: { count: 0, maxMs: 0, over100Ms: 0, over1000Ms: 0 },
     journal: { count: 0, maxMs: 0, over100Ms: 0, over1000Ms: 0 },
@@ -46,7 +51,7 @@ function createPersistentIoSummary() {
       const value = data(input, ['type', 'key', 'timeMs', 'name']);
       const type = value.type;
       if (
-        !['name', 'flush', 'end'].includes(type) ||
+        !['name', 'flush', 'end', 'invalidate', ...OPERATION_TYPES].includes(type) ||
         ++events > 100000 ||
         !Number.isSafeInteger(value.timeMs) ||
         value.timeMs < 0 ||
@@ -67,18 +72,27 @@ function createPersistentIoSummary() {
         }
         return;
       }
-      if (type === 'flush') {
+      if (type === 'invalidate') {
+        if (value.name !== '') throw fail();
         if (pending.delete(key)) collisions++;
+        operations.invalidate(key);
+        return;
+      }
+      if (type === 'flush' || OPERATION_TYPES.includes(type)) {
+        if (pending.delete(key)) collisions++;
+        operations.invalidate(key);
         // For flush events the file key is supplied as name, never a path.
         const kind = names.get(pointer(value.name));
         if (!kind) return;
-        if (pending.size >= 8192) throw fail();
-        pending.set(key, { kind, start: value.timeMs });
+        if (pending.size + operations.size() >= 8192) throw fail();
+        if (type === 'flush') pending.set(key, { kind, start: value.timeMs });
+        else operations.begin(type, key, value.timeMs, kind);
         return;
       }
       if (!/^(?:-?[0-9]{1,10}|0x[0-9a-fA-F]{1,8})$/.test(value.name)) throw fail();
       const status = Number(value.name);
       if (status < -2147483648 || status > 4294967295) throw fail();
+      if (operations.end(key, value.timeMs, status)) return;
       const start = pending.get(key);
       if (!start) {
         unmatchedEnds++;
@@ -98,9 +112,12 @@ function createPersistentIoSummary() {
       if (elapsed >= 1000) result.over1000Ms++;
     },
     snapshot() {
+      const ioOperations = operations.snapshot();
       return {
-        schemaVersion: 1,
-        scope: 'synthetic_sqlite_etw_flush_pairs',
+        schemaVersion: ioOperations ? 2 : 1,
+        scope: ioOperations
+          ? 'synthetic_sqlite_etw_file_operations'
+          : 'synthetic_sqlite_etw_flush_pairs',
         events,
         pairedFlushes: stats.database.count + stats.journal.count,
         database: { ...stats.database },
@@ -112,6 +129,7 @@ function createPersistentIoSummary() {
         traceCompletenessVerified: false,
         fiveSecondQualified: false,
         realModelRequests: 0,
+        ...(ioOperations ? { ioOperations } : {}),
       };
     },
   };

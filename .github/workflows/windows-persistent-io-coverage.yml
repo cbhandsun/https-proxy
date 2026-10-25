@@ -12,6 +12,8 @@ on:
       - scripts/lib/persistent-io-recording.psm1
       - scripts/lib/persistent-io-binary.psm1
       - scripts/lib/persistent-io-summary.js
+      - scripts/lib/persistent-io-operation-summary.js
+      - test/persistent-io-operations.test.js
       - scripts/summarize-persistent-io.cjs
       - scripts/fixtures/persistent-file-io.wprp
       - lib/proxy/context-recovery-read-settlement.js
@@ -78,5 +80,6 @@ jobs:
             'Each proxy/client recording begins before its complete client-context-target file and ends after it; no tests are filtered, retried or appended. A failed original stage still stops subsequent stages.'
             'Original five-second HTTP and final durable ACK gates, worker, DPAPI, OS anchor and FULL/DELETE persistence remain unchanged.'
             'WPR retains its own unique instance, 32 MiB circular buffers, bounded decoding and cleanup. Ring loss and tracing perturbation prevent completeness or stability qualification.'
+            'Read/write/info/delete/cleanup/close observations retain nonzero status counts; neither a VFS retry nor antivirus attribution is inferred.'
             'All providers are synthetic. No raw ETL, decoded records, paths, keys, databases, originals or model replies are uploaded.'
           ) >> $env:GITHUB_STEP_SUMMARY
