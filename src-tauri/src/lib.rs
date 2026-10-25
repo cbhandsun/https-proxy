@@ -310,6 +310,9 @@ fn start_proxy_direct() -> Result<serde_json::Value, String> {
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(5) {
         if let Some(health) = read_proxy_health_direct(Duration::from_millis(250)) {
+            if !proxy_process::launched_proxy_health_matches(&health, &root, child.id()) {
+                return Err("proxy_start_owner_mismatch".into());
+            }
             return Ok(serde_json::json!({
                 "code": 0,
                 "timedOut": false,

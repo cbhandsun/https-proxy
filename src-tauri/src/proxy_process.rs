@@ -50,6 +50,16 @@ pub(crate) fn proxy_health_matches_root(health: &serde_json::Value, root: &Path)
             .unwrap_or(false)
 }
 
+pub(crate) fn launched_proxy_health_matches(
+    health: &serde_json::Value,
+    root: &Path,
+    child_pid: u32,
+) -> bool {
+    child_pid != 0
+        && health.get("pid").and_then(|value| value.as_u64()) == Some(u64::from(child_pid))
+        && proxy_health_matches_root(health, root)
+}
+
 // Tray events have the same completed-result shape as direct frontend commands.
 // A queued command or a rejected drain must never emit a success notification.
 pub(crate) fn tray_command_receipt(
@@ -134,6 +144,51 @@ mod tests {
         let _ = std::fs::remove_dir_all(root);
         let _ = std::fs::remove_dir_all(other);
     }
+    #[test]
+    fn launched_health_requires_the_spawned_pid_and_the_selected_runtime() {
+        let root = std::env::temp_dir().join("hpm-start-identity-fixture");
+        let matching = serde_json::json!({
+            "pid": 1234,
+            "runtime": {
+                "runtimeDir": root.join(".hpm-runtime"),
+                "entrypoint": root.join("openai-proxy.js")
+            }
+        });
+        assert!(launched_proxy_health_matches(&matching, &root, 1234));
+        assert!(!launched_proxy_health_matches(&matching, &root, 4321));
+        assert!(!launched_proxy_health_matches(&matching, &root, 0));
+        assert!(!launched_proxy_health_matches(
+            &matching,
+            &root.join("other"),
+            1234
+        ));
+        for invalid in [
+            serde_json::Value::Null,
+            serde_json::json!({}),
+            serde_json::json!([]),
+            serde_json::json!({"pid":1234}),
+        ] {
+            assert!(!launched_proxy_health_matches(&invalid, &root, 1234));
+        }
+        for pid in [
+            serde_json::Value::Null,
+            serde_json::json!(0),
+            serde_json::json!(-1),
+            serde_json::json!(1234.5),
+            serde_json::json!("1234"),
+            serde_json::json!(u64::MAX),
+        ] {
+            let mut invalid = matching.clone();
+            invalid["pid"] = pid;
+            assert!(!launched_proxy_health_matches(&invalid, &root, 1234));
+        }
+        for field in ["runtimeDir", "entrypoint"] {
+            let mut invalid = matching.clone();
+            invalid["runtime"][field] = serde_json::json!("foreign-runtime");
+            assert!(!launched_proxy_health_matches(&invalid, &root, 1234));
+        }
+    }
+
     #[test]
     fn tray_receipts_preserve_completed_results_and_never_announce_failed_or_malformed_success() {
         for command in ["start", "stop", "restart", "status"] {
