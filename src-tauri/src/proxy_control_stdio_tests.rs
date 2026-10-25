@@ -93,7 +93,7 @@ mod windows {
             },
             0
         );
-        assert_eq!((count, byte), (1, [b'x']));
+        assert_eq!((count, byte), (1, *b"x"));
         assert_eq!(
             seal(std::ptr::null_mut()),
             Err("proxy_control_stdio_failed")
