@@ -5,6 +5,14 @@ on:
     branches:
       - acceptance/context-recovery/**
     paths:
+      - lib/proxy/context-recovery-anchor-wire.js
+      - lib/proxy/context-recovery-anchor.js
+      - test/context-recovery-anchor-wire.test.js
+      - lib/proxy/context-recovery-anchor-contract.js
+      - lib/proxy/context-recovery-anchor-admission.js
+      - lib/proxy/context-recovery-storage-owner.js
+      - lib/proxy/context-recovery-storage-sqlite.js
+      - test/context-recovery-anchor-clock.test.js
       - native/context-recovery-key/**
       - test/helpers/recovery-owner-stage-probe.js
       - test/helpers/recovery-anchor-stage-probe.js

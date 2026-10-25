@@ -270,3 +270,37 @@ test('production owner combines startup and format sealing while retaining indep
   assert.equal(f.writes(), 3);
   reopened.close();
 });
+
+test('default production owner durably anchors a byte-unchanged scan and closes on failed anchor ACK', (t) => {
+  let time = 1000;
+  t.mock.method(Date, 'now', () => time);
+  const f = fixture(t),
+    owner = f.open();
+  const file = path.join(f.directory, 'checkpoint.sqlite');
+  const before = fs.readFileSync(file),
+    writes = f.writes();
+  time = 1010;
+  assert.deepEqual(owner.execute({ operation: 'scan-reference', after: null }), {
+    catalog: [],
+    scope: null,
+    record: null,
+  });
+  assert.deepEqual(fs.readFileSync(file), before);
+  assert.equal(f.writes(), writes + 1);
+  const anchored = [...f.rows.values()][0].value;
+  assert.equal(anchored.version, 2);
+  assert.equal(anchored.maxTime, time);
+  assert.match(anchored.headerTag, /^[a-f0-9]{64}$/);
+  time = 1020;
+  f.failNext();
+  assert.throws(() => owner.execute({ operation: 'scan-reference', after: null }), safe);
+  assert.throws(() => owner.execute({ operation: 'scan-reference', after: null }), safe);
+  assert.deepEqual(fs.readFileSync(file), before);
+  f.restoreBackend();
+  const reopened = f.open();
+  assert.deepEqual(reopened.execute({ operation: 'scan-reference', after: null }), {
+    catalog: [],
+    scope: null,
+    record: null,
+  });
+});

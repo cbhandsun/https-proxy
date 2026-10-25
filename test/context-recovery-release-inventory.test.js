@@ -15,6 +15,7 @@ test('release inventory retains recovery helpers and dynamically loaded Worker r
     'lib/proxy/context-recovery-anchor-contract.js',
     'lib/proxy/context-recovery-anchor-enrollment.js',
     'lib/proxy/context-recovery-anchor-legacy-owner.js',
+    'lib/proxy/context-recovery-anchor-wire.js',
     'lib/proxy/context-recovery-anchor.js',
     'lib/proxy/context-recovery-budget-reader.js',
     'lib/proxy/context-recovery-key.js',
@@ -28,5 +29,11 @@ test('release inventory retains recovery helpers and dynamically loaded Worker r
 });
 
 test('recovery release regression remains in unified test discovery', () => {
-  assert.ok(discoverTestFiles(root).includes('test/context-recovery-release-inventory.test.js'));
+  const files = discoverTestFiles(root);
+  for (const file of [
+    'test/context-recovery-release-inventory.test.js',
+    'test/context-recovery-anchor-clock.test.js',
+    'test/context-recovery-anchor-wire.test.js',
+  ])
+    assert.ok(files.includes(file), file);
 });

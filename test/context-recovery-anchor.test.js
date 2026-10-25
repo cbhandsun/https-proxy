@@ -356,3 +356,22 @@ test('all 256 supported scopes roundtrip through encrypted native transport at s
   assert.deepEqual(reopened.read(), state);
   reopened.close();
 });
+
+test('header witnesses survive the real encrypted native CAS codec and reject format downgrade before dispatch', (t) => {
+  const f = fixture(t),
+    repository = f.create();
+  assert.equal(repository.read(), null);
+  const original = f.snapshot(repository);
+  repository.commit(original);
+  const witnessed = f.snapshot(repository, { version: 2, headerTag: 'd'.repeat(64) });
+  assert.deepEqual(repository.commit(witnessed), { revision: 2 });
+  repository.close();
+  const reopened = f.create();
+  assert.deepEqual(reopened.read(), witnessed);
+  const before = JSON.stringify([...f.rows]);
+  const calls = f.calls.length;
+  assert.throws(() => reopened.commit(original), safe);
+  assert.equal(f.calls.length, calls);
+  assert.equal(JSON.stringify([...f.rows]), before);
+  assert.equal(before.includes('headerTag'), false);
+});
