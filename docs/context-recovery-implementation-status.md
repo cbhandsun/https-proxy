@@ -1,5 +1,21 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：bdc正式四项通过但普通Claude仍5002ms，分解原生锚点阶段而不改持久路径
+
+bdc214f1a4ef41c98d3e68a179a1f71c9a16be6d普通40180688170最终七项success、coverage121130923484失败：Claude long-persistent第二轮request_failed5002ms，requests8/handshakes8/roots1。ownerEpoch2的READ结算196ms，但其预算预扣sequence5耗时1884ms，其中clock write515ms、COMMIT924ms、anchor persist362ms；此前预留sequence3另974ms/COMMIT818ms。重复解析去除减少了实际工作，尚未解除串行持久等待；失败保留、不重跑。三组40180688122各原50项通过、零skip，18次最终ACK811–1699ms，各138次COMMIT最大47/106/44ms，不能覆盖普通失败。
+
+原负载I/O40180688114/121130923268也failure，但为另一例transport-finished/COMMIT释放夹具初始ready5136ms超时，lastFixture=fixture-sending，原生startup已ready2072ms，尚未advance。该proxy窗口HTTP六次最终ACK2050–2656ms、138次COMMIT最大110ms，69对刷新最大database44/journal52ms，全部原flush异常计数零；非零读取为EOF、写入为快速I/O转IRP，固定三个错误类别零。源码/阶段及清理回执有效，但原覆盖率失败仍阻止client/frontend后续阶段。正式40180688125已四项success：source121130923418、egress121130923305、N08/N09为121134912359/121134912381。主失败保持，不触发bdc安装。
+
+单个anchor_persist总耗时不能区分进程启动、互斥/ACL/注册表读写及RegFlushKey。本批新增独立原生诊断命令，复用原anchor execute和真实Backend，仅包裹acquire/read/write/flush/readback，输出固定阶段及非负整数毫秒，最多五条/1024字节；另有原生总时长。普通--hpm-context-anchor-v1的接口和无诊断行为保持。原请求解析/长度、互斥/ACL、精确CAS、唯一flush及完整回读全部保留；诊断同样在写回执前释放Backend持有的句柄和互斥，诊断/回执写入失败不得返回成功。不输出slot、密文、目录、key、底层错误或原文。
+
+只有现有合成ObservedStorageWorker显式安装新测试探针，使用原仓库工厂已有execute依赖缝隙调用诊断命令。程序身份前后核验、原10000ms/131072字节/固定环境和管道选项原样传递，原stdout仍交给原身份/AEAD/CAS验证；失败不回退、不重试，不转发原生stderr。JS严格验证紧凑JSON、封闭字段、2或5个固定顺序阶段、总时长/各阶段和及原请求操作；只发出原ownerEpoch/sequence绑定的固定数值阶段。native_total包含内部各阶段，native_dispatch又包含native_total，两者不能相加；其差只说明父端观察的剩余开销，不能未经验证就归为纯启动时间。真实Windows分解仍须本批新SHA，不据此宣称性能修复。
+
+同时复现旧stderr接收器会丢失大块内的所有合法短行：从bdc已提交模块发送50条正常engine_execute行，reportedLines=0。现在逐行消费完整批次，再限制未结束的一帧为10字节前缀加512字节JSON；超长帧丢弃至换行，不能从其尾部制造前缀行。50行合并及跨块分割回归通过，原上限不提高，未知原始stderr仍不打印。
+
+本机原生22项通过、零忽略，包括正常read/compare、CAS冲突、各Backend失败/回读不等、空/非法/越界输入、诊断/回执写失败及输出前释放所有权；17项JS探针通过、零skip，含非法/极端/重复JSON、阶段/总和/请求不符、进程失败/超时/异常不泄漏、原参数原样传递及批次/分帧。Rust fmt、1597份JS语法、Lint零错误/五项原警告、修改文件格式、CI/发行治理通过；Mac Clippy的clippy::all门禁通过，另六项既有非Windows未使用代码警告保留，不等同Windows的-D warnings。两个I/O作业增加原生和探针直接路径触发，所有新测试自动进入统一CI，原普通/正式/安装及发布签名门禁不变。
+
+五秒/初始化、在途排空/客户端重启、容量与真实24小时及到期重开、逐端持久额度预留后的真实provider、最新自用安装器传递和受控启用仍未全部完成。已确认仓库公开、现有隔离安装作业不上传安装器，最终需受限传递，不能把普通公开仓库artifact当成私有分发；未提前上传安装器。原预算预扣、各发布ACK、精确revision、FULL/DELETE/secure_delete、原expiry与原文留存全部保持。冻结长测未访问，真实模型0。
+
 ## 2026-10-25：保留94cc最终ACK及初始化失败，同事务引用读取复用已验证的关联
 
 94cc639e337576c742e7d31763a8adf426f506f1普通40179307550最终七项success，coverage121126717416失败于五个原生发布夹具的初始ready：transport-finished/COMMIT强杀，以及uncertain的COMMIT强杀/释放、ACK前强杀/释放。用例耗时5071/5063/5126/5106/5084ms，原生startup均已ready，分别2719/1856/2663/2672/2555ms；lastFixture分别fixture-observed/fixture-prepared/native-opened/fixture-observed/fixture-prepared。均尚未进入第一个advance，不能当成中断后的恢复失败，原五秒夹具门禁保持、不重跑。正式40179307501/source121126717012仍在原统一门禁，egress121126717187已success；不触发最新安装。

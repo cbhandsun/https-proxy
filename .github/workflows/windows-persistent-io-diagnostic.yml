@@ -5,6 +5,11 @@ on:
     branches:
       - acceptance/context-recovery/**
     paths:
+      - native/context-recovery-key/**
+      - test/helpers/recovery-owner-stage-probe.js
+      - test/helpers/recovery-anchor-stage-probe.js
+      - test/recovery-anchor-stage-probe.test.js
+      - test/recovery-owner-stage-probe.test.js
       - .github/workflows/windows-persistent-io-diagnostic.yml
       - scripts/diagnose-persistent-io.ps1
       - scripts/summarize-persistent-io.cjs

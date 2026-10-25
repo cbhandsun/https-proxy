@@ -3,6 +3,9 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::Deserialize;
 use std::io::{Read, Write};
 
+mod diagnostic;
+pub use diagnostic::run as run_diagnostic;
+
 const MAX_IO: usize = 128 * 1024;
 const MAX_VALUE: usize = 65536;
 const MAX_REVISION: u64 = 9_007_199_254_740_991;
@@ -643,12 +646,12 @@ mod windows {
 mod tests {
     use super::*;
     #[derive(Default)]
-    struct Mock {
-        value: Option<Vec<u8>>,
-        fail: Option<&'static str>,
-        reads: usize,
-        writes: usize,
-        flushes: usize,
+    pub(super) struct Mock {
+        pub(super) value: Option<Vec<u8>>,
+        pub(super) fail: Option<&'static str>,
+        pub(super) reads: usize,
+        pub(super) writes: usize,
+        pub(super) flushes: usize,
     }
     impl Backend for Mock {
         fn acquire(&mut self, _slot: &str) -> Result<(), ()> {
@@ -685,7 +688,7 @@ mod tests {
             }
         }
     }
-    fn request(operation: &str, revision: u64) -> Request {
+    pub(super) fn request(operation: &str, revision: u64) -> Request {
         let slot = "a".repeat(64);
         if operation == "read" {
             Request::Read { slot }

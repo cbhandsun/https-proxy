@@ -258,12 +258,21 @@ test('worker bootstrap instruments actual module path before unchanged original 
   assert.equal(worker.options.eval, true);
   assert.deepEqual(worker.options.execArgv, []);
   let started = false;
+  const native = (load, emit) => {
+    assert.equal(load, f.load);
+    emit('anchor_native_read', 0);
+  };
   vm.runInNewContext(worker.script, {
     require(file) {
       if (file === helperFile)
         return {
-          installOwnerStageProbe: (_load, emit) => installOwnerStageProbe(f.load, emit, f.now),
+          installOwnerStageProbe: (_load, emit, _now, _cpu, installNative) => {
+            assert.equal(installNative, native);
+            installOwnerStageProbe(f.load, emit, f.now, undefined, installNative);
+          },
         };
+      if (file === path.join(path.dirname(helperFile), 'recovery-anchor-stage-probe.js'))
+        return { installAnchorStageProbe: native };
       assert.equal(file, workerFile);
       started = true;
       f.engineModule.createRecoverySqliteStore().execute({ operation: 'inspect' });
@@ -271,13 +280,38 @@ test('worker bootstrap instruments actual module path before unchanged original 
     process: { stderr: { write: (value) => worker.stderr.emit('data', Buffer.from(value)) } },
   });
   assert.equal(started, true);
-  assert.equal(diagnostics[0].stage, 'engine_execute');
+  assert.equal(diagnostics[0].stage, 'anchor_native_read');
+  assert.equal(diagnostics[1].stage, 'engine_execute');
   worker.stderr.emit('data', Buffer.from('PRIVATE_NATIVE_WARNING\nHPM_STA'));
   worker.stderr.emit('data', Buffer.from('GE {"secret":"PRIVATE"}\n'));
   worker.stderr.emit('data', Buffer.from('x'.repeat(5000)));
   assert.deepEqual(diagnostics.at(-1), { phase: 'owner-stage-invalid' });
   assert.equal(JSON.stringify(diagnostics).includes('PRIVATE'), false);
   assert.throws(() => new Type('PRIVATE_WORKER', {}));
+});
+
+test('worker diagnostics preserve large batches of bounded lines and reject oversized frames through newline', () => {
+  class FakeWorker {
+    constructor() {
+      this.stderr = new EventEmitter();
+    }
+  }
+  const rows = [];
+  const Type = createObservedStorageWorker((row) => rows.push(row), FakeWorker);
+  const worker = new Type(workerFile, {});
+  const line =
+    'HPM_STAGE ' +
+    JSON.stringify({ sequence: 1, operation: 'save', stage: 'anchor_native_flush', elapsedMs: 1 }) +
+    '\n';
+  worker.stderr.emit('data', Buffer.from(line.repeat(50)));
+  assert.equal(rows.length, 50);
+  worker.stderr.emit('data', Buffer.from('PRIVATE'.repeat(1000)));
+  worker.stderr.emit('data', Buffer.from(line));
+  assert.equal(rows.length, 50, 'oversized unterminated frame cannot manufacture a prefixed line');
+  worker.stderr.emit('data', Buffer.from(line.slice(0, 17)));
+  worker.stderr.emit('data', Buffer.from(line.slice(17)));
+  assert.equal(rows.length, 51);
+  assert.doesNotMatch(JSON.stringify(rows), /PRIVATE/);
 });
 
 test('stage parser rejects empty, malformed, oversized and unknown content without disclosure', () => {

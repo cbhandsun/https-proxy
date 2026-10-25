@@ -28,6 +28,9 @@ const STAGES = new Set([
   'engine_execute',
   'engine_snapshot',
   'anchor_persist',
+  ...['acquire', 'read', 'write', 'flush', 'readback', 'total', 'dispatch'].map(
+    (stage) => 'anchor_native_' + stage
+  ),
   'sqlite_begin',
   'sqlite_commit',
   'sqlite_rollback',
@@ -39,7 +42,8 @@ function installOwnerStageProbe(
   load,
   emit,
   now = () => performance.now(),
-  threadCpu = () => process.threadCpuUsage()
+  threadCpu = () => process.threadCpuUsage(),
+  installNative
 ) {
   if (
     [load, emit, now, threadCpu].some(
@@ -66,6 +70,10 @@ function installOwnerStageProbe(
   }
   let sequence = 0,
     operation = 'startup';
+  if (installNative !== undefined) {
+    if (typeof installNative !== 'function' || types.isProxy(installNative)) throw fail();
+    installNative(load, (stage, elapsedMs) => emit({ sequence, operation, stage, elapsedMs }));
+  }
   function measured(stage, action, receiver, args) {
     // Only this worker thread's COMMIT CPU is observed. Other worker/process
     // CPU cannot be mistaken for computation inside a slow SQLite call.
@@ -225,28 +233,39 @@ function createObservedStorageWorker(diagnostic, WorkerType = Worker) {
         throw fail();
       const script = [
         'const { installOwnerStageProbe } = require(' + JSON.stringify(__filename) + ');',
-        "installOwnerStageProbe(require, (value) => process.stderr.write('HPM_STAGE ' + JSON.stringify(value) + '\\n'));",
+        'const { installAnchorStageProbe } = require(' +
+          JSON.stringify(path.join(__dirname, 'recovery-anchor-stage-probe.js')) +
+          ');',
+        "installOwnerStageProbe(require, (value) => process.stderr.write('HPM_STAGE ' + JSON.stringify(value) + '\\n'), undefined, undefined, installAnchorStageProbe);",
         'require(' + JSON.stringify(file) + ');',
       ].join('\n');
       super(script, { ...options, eval: true, stderr: true });
-      let pending = '';
+      let pending = '',
+        discarded = false;
       this.stderr.on('data', (chunk) => {
-        pending += chunk.toString('utf8');
-        // Only our short prefixed lines cross into test diagnostics. Native
-        // warnings and any unknown/raw stderr are discarded, never printed.
-        if (pending.length > 4096) {
-          pending = '';
-          return;
-        }
-        const lines = pending.split('\n');
-        pending = lines.pop();
-        for (const line of lines) {
-          if (!line.startsWith('HPM_STAGE ')) continue;
-          try {
-            diagnostic({ phase: 'owner-stage', ...parseStageLine(line.slice(10)) });
-          } catch {
-            diagnostic({ phase: 'owner-stage-invalid' });
+        // Keep at most one prefixed 512-byte JSON line. Process complete lines
+        // before bounding the remainder: a large batch of valid short lines
+        // must not be discarded just because the OS delivered it together.
+        for (let offset = 0; offset < chunk.length; ) {
+          const newline = chunk.indexOf(10, offset);
+          const end = newline < 0 ? chunk.length : newline;
+          if (!discarded) {
+            if (Buffer.byteLength(pending) + end - offset > 522) {
+              pending = '';
+              discarded = true;
+            } else pending += chunk.subarray(offset, end).toString('utf8');
           }
+          offset = end + 1;
+          if (newline < 0) break;
+          if (!discarded && pending.startsWith('HPM_STAGE ')) {
+            try {
+              diagnostic({ phase: 'owner-stage', ...parseStageLine(pending.slice(10)) });
+            } catch {
+              diagnostic({ phase: 'owner-stage-invalid' });
+            }
+          }
+          pending = '';
+          discarded = false;
         }
       });
     }
