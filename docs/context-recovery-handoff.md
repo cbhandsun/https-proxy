@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新实际582和原生内部中断结果优先：** 38c2d5e实际安装40159540153/121068085491终态success：固定582在实际NSIS payload完成八阶段默认worker迁移、布局1到3、原期限/预算/原文保持及旧版拒写/字节保持，外层installedMigrationQualified=true且自然Job清理/卸载通过；manifest2bfc2de39418c098d7228c1485e4f84feafe1f2891a6cd45959ac263fd67259f。同安装随后两次实际exe正常空闲启停/重开及Codex、Claude默认/增强四组各三次原生压缩/精确最终答案全通过；仅合成上游，不授真实provider/24h/在途排空/客户端重启资格，旧forced_cleanup不改名。2f32016普通unit shard3/121073482168逐项确认新增默认worker/DPAPI/OS锚点内部发布中断20/20通过，无skip；scope仅worker固定转换强杀/释放与同目录重开。普通CI当前七项success、coverage和正式source仍运行，完整门禁未结束；38主5028ms及历史失败保持。详细身份、范围及剩余问题见状态顶部，冻结长测未访问、模型0。
+
 **最新默认原生发布中断批优先：** 新增20项五转换/两边界/强杀与释放对照，使用默认openContextRecoveryStorage、真实时钟/DPAPI/OS锚点，同目录原生重开，保留原15秒/5秒/750ms门限及全部精确断言。COMMIT须实际PENDING与journal见证；ACK前须默认worker持久回执后才暂缓发布层。原24项本机全通过，新20项Mac均停native-opening、未进入转换，保留失败、无skip，须新SHA完整Windows；不宣称五秒产品修复或原生中断资格。额度数值重新只读核对仍177/169、Codex99/Claude70，诊断Int64误拒已区分，逐端持久预留未核验，模型0。582原安装继续原作业，冻结长测未访问；完整范围见状态顶部。
 
 **最新38c2d5e证据优先：** 正式Windows40159526465四项、review Verify40159540131八项全success；正式source/review coverage各12次持久公开发布最大1389/2426ms，COMMIT最大77/122ms。主Verify40159526473仍为七项success、coverage121067972718失败：Chat long-persistent首轮5028ms、四次合成请求；串行结算/读取/公开发布等待尚未解决，启动1392ms COMMIT在HTTP计时前，不能误认作该请求根因。父批db493bb正式Chat5003ms/COMMIT2085ms失败也保留，独立通过不覆盖。实际安装40159540153/121068085491已完成固定582完整恢复/身份和候选门禁，观察时在构建，尚无新实际迁移/拒写或两端四组资格。新增预算读取失败，无新额度或预留证明；模型0、冻结长测未访问。剩余完整范围和证据详见实施状态顶部。
