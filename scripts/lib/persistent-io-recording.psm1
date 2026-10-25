@@ -15,6 +15,15 @@ function ConvertTo-HpmPersistentIoRecord {
         if ($fields.ContainsKey($key)) { throw 'refused' }
         $fields[$key] = $entry.InnerText
     }
+    if ($State.ContainsKey('shapes')) {
+        $mask = 0; $bit = 1
+        foreach ($key in @('FileObject','FileName','FileKey','IrpPtr','NtStatus')) {
+            if ($fields.ContainsKey($key)) { $mask += $bit }; $bit *= 2
+        }
+        $shape = [string]$mask
+        if (-not $State.shapes.ContainsKey($shape)) { $State.shapes[$shape] = 0 }
+        $State.shapes[$shape]++
+    }
     if ($Opcode -in @(0,32,35,36)) {
         $key = [string]$fields['FileObject']; $name = [string]$fields['FileName']
         $hadName = $State.names.Remove($key)
@@ -42,6 +51,10 @@ function Invoke-HpmPersistentIoDiagnostic {
     $root = $null
     $traceInstance = $null
     $phase = 'host'
+    $count = 0
+    $selected = 0
+    $recordAttempts = 0
+    $providerCounts = @{ fileIo=0; systemTrace=0; kernelFile=0; other=0 }
     function Invoke-HpmWpr([string[]]$Arguments) {
         $start = [Diagnostics.ProcessStartInfo]::new()
         $start.FileName = Join-Path $env:SystemRoot 'System32/wpr.exe'
@@ -91,24 +104,38 @@ function Invoke-HpmPersistentIoDiagnostic {
         $owned = $false
         Assert-HpmLifecycleArtifactPath $root $trace 'Leaf'
         if ((Get-Item -LiteralPath $trace).Length -gt 268435456) { throw 'refused' }
-        $phase = 'decode'
-        $count = 0
-        $decode = @{ names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); irps = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase) }
+        $phase = 'decode-enumeration'
+        $decode = @{ names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); irps = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); shapes=@{} }
         # FileIo GUID/opcodes follow the Microsoft FileIo_Name/SimpleOp/OpEnd
         # contracts. Decode only scalar metadata; all unrelated paths are redacted.
         $summary = Get-WinEvent -Path $trace -Oldest | ForEach-Object {
             $count++
-            if ($count -gt 1000000) { throw 'refused' }
-            if ($_.ProviderId.ToString() -cne '90cbdc39-4a3e-11d1-84f4-0000f80464e3') { return }
+            if ($count -gt 1000000) { $phase = 'decode-limit'; throw 'refused' }
+            $phase = 'decode-provider'
+            $provider = $_.ProviderId.ToString()
+            if ($provider -ceq '90cbdc39-4a3e-11d1-84f4-0000f80464e3') { $providerCounts.fileIo++ }
+            elseif ($provider -ceq '9e814aad-3204-11d2-9a82-006008a86939') { $providerCounts.systemTrace++ }
+            elseif ($provider -ceq 'edd08927-9cc4-4e65-b970-c2560fb5c289') { $providerCounts.kernelFile++ }
+            else { $providerCounts.other++ }
+            if ($provider -cne '90cbdc39-4a3e-11d1-84f4-0000f80464e3') { $phase = 'decode-enumeration'; return }
+            $selected++
             $opcode = [int]$_.Opcode
-            if ($opcode -notin @(0,32,35,36,73,76)) { return }
+            if ($opcode -notin @(0,32,35,36,73,76)) { $phase = 'decode-enumeration'; return }
+            $phase = 'decode-record'
+            $recordAttempts++
             ConvertTo-HpmPersistentIoRecord -Text ($_.ToXml()) -Opcode $opcode -TimeMs (([DateTimeOffset]$_.TimeCreated).ToUnixTimeMilliseconds()) -State $decode
+            $phase = 'decode-enumeration'
         } | & node (Join-Path $PSScriptRoot '../summarize-persistent-io.cjs')
+        $phase = 'decode-summary'
         if ($LASTEXITCODE -ne 0 -or @($summary).Count -ne 1) { throw 'refused' }
         Write-Output ('HPM_PERSISTENT_IO=' + $summary)
         if ($testExit -ne 0) { $phase = 'original-assertions'; throw 'refused' }
     } catch {
         [Console]::Error.WriteLine('persistent_io_diagnostic_failed:phase=' + $phase)
+        if ($phase.StartsWith('decode-')) {
+            [Console]::Error.WriteLine('persistent_io_decode_counts:events=' + $count + ';fileIo=' + $selected + ';records=' + $recordAttempts)
+            [Console]::Error.WriteLine('persistent_io_decode_shape=' + (@{providers=$providerCounts;fields=$decode.shapes;knownFiles=$decode.names.Count;pendingFlushes=$decode.irps.Count}|ConvertTo-Json -Depth 4 -Compress))
+        }
         exit 1
     } finally {
         $cleanupFailed = $false

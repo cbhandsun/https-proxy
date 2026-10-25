@@ -170,7 +170,7 @@ test('PowerShell decodes owned FileIo metadata, filters unrelated records and re
     $ErrorActionPreference='Stop'
     $module=Import-Module '${filename}' -PassThru -Force
     & $module {
-      $state=@{names=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase);irps=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)}
+      $state=@{names=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase);irps=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase);shapes=@{}}
       function EventXml($items){'<Event><EventData>'+($items.GetEnumerator()|ForEach-Object{'<Data Name="'+$_.Key+'">'+[Security.SecurityElement]::Escape([string]$_.Value)+'</Data>'})+'</EventData></Event>'}
       $name=EventXml @{FileObject='0x10';FileName='C:\\Temp\\hpm-wbipc-core-aB012z\\context\\checkpoint.sqlite'}
       $a=ConvertTo-HpmPersistentIoRecord $name 32 0 $state | ConvertFrom-Json
@@ -186,6 +186,9 @@ test('PowerShell decodes owned FileIo metadata, filters unrelated records and re
         $refused=$false;try{$null=ConvertTo-HpmPersistentIoRecord $bad 32 0 $state}catch{$refused=$true}
         if(-not $refused){throw 'invalid_xml_accepted'}
       }
+      if($state.shapes['3'] -ne 3 -or $state.shapes['12'] -ne 1 -or $state.shapes['24'] -ne 1){throw 'shape_counts_invalid'}
+      $encoded=$state.shapes|ConvertTo-Json -Compress
+      if($encoded -match 'PRIVATE_PATH|0x10'){throw 'unsafe_shape_output'}
       'metadata_decode_passed'
     }
   `;
