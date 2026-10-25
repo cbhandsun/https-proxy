@@ -1,0 +1,59 @@
+name: Windows native capacity prefix diagnostic
+
+on:
+  push:
+    branches:
+      - acceptance/context-recovery/**
+    paths:
+      - scripts/diagnose-context-recovery-native-prefix.js
+      - scripts/lib/context-recovery-native-prefix.js
+      - test/context-recovery-native-prefix.test.js
+      - .github/workflows/windows-native-prefix-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-prefix:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Prepare locked dependencies and native helper
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency preparation failed.' }
+          npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Plugin preparation failed.' }
+          rustup default stable
+          if ($LASTEXITCODE -ne 0) { throw 'Toolchain preparation failed.' }
+          node scripts/prepare-context-recovery-native.js
+          if ($LASTEXITCODE -ne 0) { throw 'Native preparation failed.' }
+          node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/context-recovery-native-prefix.test.js
+          if ($LASTEXITCODE -ne 0) { throw 'Diagnostic contract failed.' }
+      - name: Execute the original prefix with real elapsed time once
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node scripts/diagnose-context-recovery-native-prefix.js
+          if ($LASTEXITCODE -ne 0) { throw 'Native prefix diagnostic failed.' }
+      - name: Record verification scope
+        if: always()
+        run: |
+          @(
+            'Independent disposable runner and new synthetic database; no existing day task or database is accessed.'
+            'Unchanged day-small sequence through its first 30 real minutes, followed by original cleanup and one same-directory reopen.'
+            'The deliberate next-advance boundary is accepted only with the exact owned failure receipt and successful cleanup.'
+            'No full capacity, real 24-hour or expiry-reopen qualification is granted; all existing deadlines remain unchanged.'
+            'No real model calls, credentials, database, key, anchor or private log artifacts are uploaded. No retries.'
+          ) >> $env:GITHUB_STEP_SUMMARY

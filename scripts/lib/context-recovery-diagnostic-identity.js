@@ -24,6 +24,8 @@ function diagnosticIdentity() {
     'scripts/lib/context-recovery-diagnostic-identity.js',
     'scripts/lib/context-recovery-capacity-*.js',
     'scripts/lib/context-recovery-native-day.js',
+    'scripts/lib/context-recovery-native-prefix.js',
+    'scripts/diagnose-context-recovery-native-prefix.js',
     'scripts/qualify-context-recovery-native-day.js',
   ])
     .split('\0')
@@ -34,6 +36,8 @@ function diagnosticIdentity() {
     'scripts/lib/context-recovery-open-diagnostic.js',
     'scripts/lib/context-recovery-diagnostic-identity.js',
     'scripts/lib/context-recovery-native-day.js',
+    'scripts/lib/context-recovery-native-prefix.js',
+    'scripts/diagnose-context-recovery-native-prefix.js',
     'scripts/qualify-context-recovery-native-day.js',
     'scripts/lib/context-recovery-capacity-retention.js',
     'scripts/lib/context-recovery-capacity-failure.js',
