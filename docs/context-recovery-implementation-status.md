@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：b2a27b5普通CI及Windows管道回归通过，正式Claude持久恢复新增5007ms失败
+
+b2a27b5e36bbfbe398e846f7549bdca6c2854aeb普通Verify `40154476073`八项全success，独立review Verify `40154568293`八项也全success。Windows Rust `121052792755`严格all-targets Clippy、应用39项、二进制1项、原生助手20项及审计通过；新增实际Cargo进程目标proxy_control_pipes明确运行，两种对照在原12000ms期限下通过（固定后台子进程13秒、无代理/模型）。此结果确认句柄回归进入完整Windows门禁，不代表实际安装控制已通过。
+
+同SHA正式Windows `40154476053`的source-gates `121052793339`终态failure：actual core claude WBIPC recovery在long-persistent第二轮5007ms触发原5000ms期限，requests=8、handshakes=8、roots=1，错误位置为client-context-target.test.js的await pending。重开ownerEpoch=2未观察到load-reference；同一owner后段有681/471/359ms的COMMIT等待及多个串行持久阶段，不能将其中单笔提交称为已确认的全部根因。该失败与历史五秒、六十秒及容量失败并存，不重跑、延长期限或用普通CI成功覆盖。正式后续context-recovery因门禁失败跳过，未授N08/N09资格。
+
+独立安装 `40154568348` / `121053147383`已通过自身完整候选门禁，正在构建当前安装器；尚未取得安装升级回滚、原生正常启停/重开或四组客户端的新结果。保留旧安装start-1-deadline失败，不能从管道回归通过推断安装阻塞已经解除。
+
+按用户建议只读核对Windows账号：当前juhon为MicrosoftAccount/CloudAP，SSH SID与该账号一致；SSH具有NETWORK组、未见交互组，准确logonType查询未成功。GitHub CLI与KnownFolder配置目录一致且hosts.yml存在，没有读取配置或凭据内容。同用户Limited/Idle一次性交互任务可注册并启动，但原30秒等待内没有有效认证回执；临时任务与目录已清理，不能认定认证成功或确定唯一原因。未导出凭据、再次索要登录或上传582包，私有传递仍待解决。
+
+本批仅记录实际证据，不改变产品、认证、FULL/DELETE、精确ACK、原到期时间或任何期限。最新安装582迁移/拒写、正常停机及重启留存、容量/真实24小时、真实provider与受控自用交付仍未完成；冻结长测未访问，真实模型请求0。
+
 ## 2026-10-24：保留611a20b托管Clippy失败，修正Windows管道测试字节数组写法
 
 句柄隔离产品修复已推送611a20b567d5a1c74ab6a021f432b71dd33301c6。普通Verify `40153832279`的Rust作业`121050787481`在原all-targets Clippy -D warnings终态failure：Windows实际管道读写测试中的`[b'x']`触发byte_char_slices，尚未进入Rust运行回归。本批仅改为等价的`*b"x"`，原读字节/数量断言、句柄修复、12秒控制/13秒后台子进程、全部门禁不变；保留该失败，不重跑或屏蔽告警。当前正式 `40153832280`及原安装 `40153990974`仍在完整门禁，继续各自原作业，不因后续测试修正取消或替换身份。本批仍须新SHA完整Windows和实际安装验收，不能宣称产品启动已通过。
