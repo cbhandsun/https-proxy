@@ -11,6 +11,7 @@ const { createIsolatedTestEnv } = require('../lib/test-runtime');
 const { findAvailablePorts } = require('./helpers/test-ports');
 const { waitForProxyFixtureReady } = require('./helpers/proxy-fixture-ready');
 const { prepareProxyFixtureSecret } = require('./helpers/proxy-fixture-secret');
+const { readPendingLogText } = require('./helpers/pending-log-text.cjs');
 const frame = (type, data = {}) =>
   'event: ' + type + '\ndata: ' + JSON.stringify({ type, ...data }) + '\n\n';
 function request(port, model, tools, gzip = false) {
@@ -207,7 +208,7 @@ async function main() {
     let endings = [];
     const deadline = Date.now() + 2000;
     do {
-      const text = fs.readFileSync(path.join(env.PROXY_RUNTIME_DIR, 'proxy-events.jsonl'), 'utf8');
+      const text = readPendingLogText(path.join(env.PROXY_RUNTIME_DIR, 'proxy-events.jsonl'));
       endings = text
         .split('\n')
         .filter(Boolean)
