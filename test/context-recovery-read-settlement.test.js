@@ -482,3 +482,33 @@ test('bounded final allowance refunds canonical failure bytes without inventing 
     safe
   );
 });
+
+test('combined evidence read and settlement authenticate the selected prior envelope once', (t) => {
+  const f = engineFixture();
+  try {
+    const decode = TextDecoder.prototype.decode;
+    let priorOpens = 0;
+    t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+      const text = Reflect.apply(decode, this, args);
+      const value = JSON.parse(text);
+      if (
+        value.kind === 'recovery-referenced-checkpoint' &&
+        value.reference?.metadata.rootId === f.reserved.metadata.rootId &&
+        value.reference.metadata.budget.returnedBytes === f.reserved.metadata.budget.returnedBytes
+      )
+        priorOpens++;
+      return text;
+    });
+    const result = f.store.execute(f.request);
+    assert.equal(priorOpens, 1);
+    assert.equal(f.commits, 1);
+    assert.equal(result.revision, f.request.expectedRevision + 1);
+    assert.deepEqual(clone(result.page), f.page());
+    assert.deepEqual(
+      result.settlement,
+      createRecoveryReadSettlement(f.reserved, f.request, result.page, 100)
+    );
+  } finally {
+    f.close();
+  }
+});

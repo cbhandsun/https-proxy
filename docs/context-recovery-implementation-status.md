@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：复现并消除单笔持久变更中的旧行重复解密，五秒稳定性仍待新Windows验证
+
+沿b2a27b5正式Claude long-persistent第二轮5007ms失败继续审查，实际SQLite回归确认：带admission的save-reference-state在同一事务内解密旧状态三次，其中清理检查一次、admission一次、saveReference再一次。空来源和正常来源的新回归在修改前均因3不等于2失败；合并read-source-and-settle另在同一操作内重复打开旧行，新增回归用提交前原模块加载复现2不等于1。失败日志保留，不改变既有断言取绿。
+
+当前SQLite执行回调对一次读取出的prior行及AAD使用局部惰性openPrior，仅在本次同步锁定事务内共享其认证解密结果；admission、结算和重新编码继续各自原语义校验。清理扫描的认证检查、其他根的配额摘要检查均保持，局部值不跨回调或事务，不持久保存明文。读结算旧行从两次打开降为一次，admission保存从三次降为两次；SQLite提交数量、FULL/DELETE、安全删除、原时钟/期限、最大预算预扣、来源关联、CAS及精确ACK不变，没有把LIST提前到最大预扣ACK之前。
+
+新增三项回归均进入既有统一CI测试文件；覆盖空/正常来源、重开后的精确预算及期限、跨操作陈旧admission拒绝和版本保持、精确读取结算及单次提交。结算/契约及真实文件SQLite发布和COMMIT内部中断37/37通过、零skip。扩大SQLite/blob/anchor/admission回归115通过、一项Mac原生worker开库失败、零skip；使用提交前原模块单独复核同一worker用例也失败，该失败保留，不把本机扩大回归称为全通过。修改文件Lint、CI/发行治理及格式检查通过；全树1581文件语法通过，Lint零错误/五个既有警告，npm audit满足原high门槛、保留一项既有moderate，未升级依赖。
+
+这是实际重复工作修复，不是五秒等待唯一根因的结论；b2a27b5的5007ms以及历史COMMIT等待、五秒/六十秒和容量失败全部保持。完整Windows默认worker/DPAPI/OS锚点、持久时序和实际安装仍须本批新SHA门禁，不能拿b2安装成功替代。582迁移、在途排空/客户端重启留存、容量/真实24小时、真实provider及自用交付仍未完成。冻结长测未访问，真实模型请求0。
+
 ## 2026-10-24：b2a27b5实际安装启停/持久重开与两端四组通过，582公开文件归档已重建
 
 独立安装40154568348 / 121053147383已终态success。源身份b2a27b5e36bbfbe398e846f7549bdca6c2854aeb，安装manifest为27b2b34208311ce623012b680dbb430eba5dc09ef42c161ef668b7bcdf5b008c，实际应用SHA256为47396fb3c4af66566e76f66bc722ceecdb9f36c2900ee24259f50d19f65b366b。完整候选门禁、构建、实际安装升级回滚和同用户DPAPI通过，随后新增原生探针首次完整通过：实际exe两次启动、两次正常停止、默认worker持久库重开、原到期时间保持，并在显式清理之前确认进程树自然为空。资格严格为installed_native_idle_stop_storage_reopen；restartRetention、clientQualified、retention24hQualified仍false，不扩大为空闲范围之外的在途排空或客户端重启证明。旧start-1/deadline失败全部保留，句柄修复在这一实际候选中已通过原期限验证，不据此认定它独自解释所有旧失败。

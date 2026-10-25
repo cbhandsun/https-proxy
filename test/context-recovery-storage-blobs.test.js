@@ -3125,3 +3125,59 @@ test('layout two rejects unexpected schema and orphan payloads before serving or
     f.close();
   }
 });
+
+for (const output of [[], ['owned synthetic source']]) {
+  test(
+    'selected reference admission does not decrypt the same prior row twice: sources=' +
+      output.length,
+    (t) => {
+      const f = fixture();
+      try {
+        const state = checkpoint(output);
+        const initial = referenceStateFromCheckpoint(state);
+        f.execute(stateRequest(f, initial, checkpointPayloads(state)));
+        const reserved = createReferenceState(
+          {
+            ...initial.metadata,
+            budget: { ...initial.metadata.budget, calls: 1, returnedBytes: 16384 },
+          },
+          []
+        );
+        const decode = TextDecoder.prototype.decode;
+        let priorOpens = 0;
+        t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+          const text = Reflect.apply(decode, this, args);
+          const value = JSON.parse(text);
+          if (
+            value.kind === 'recovery-referenced-checkpoint' &&
+            value.reference?.metadata.rootId === initial.metadata.rootId &&
+            value.reference.metadata.budget.calls === 0
+          )
+            priorOpens++;
+          return text;
+        });
+        assert.equal(
+          f.execute({ ...stateRequest(f, reserved, [], 1), admission: initial }).revision,
+          2
+        );
+        assert.equal(
+          priorOpens,
+          2,
+          'prune and the selected mutation each authenticate once; admission and save share only that selected read'
+        );
+        assert.equal(f.load().state.root.budget.calls, 1);
+        assert.equal(f.load().expiresAt, initial.metadata.expiresAt);
+        // An earlier authenticated prior cannot satisfy a later stale admission.
+        assert.throws(
+          () => f.execute({ ...stateRequest(f, reserved, [], 2), admission: initial }),
+          unavailable
+        );
+        assert.equal(f.row().revision, 2);
+        f.reopen();
+        assert.equal(f.load().state.root.budget.calls, 1);
+      } finally {
+        f.close();
+      }
+    }
+  );
+}
