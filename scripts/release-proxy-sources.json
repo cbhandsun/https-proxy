@@ -438,6 +438,7 @@
   "lib/proxy/sse-buffer.js",
   "lib/proxy/sse.js",
   "lib/proxy/startup-credentials.js",
+  "lib/proxy/stopping-admission.js",
   "lib/proxy/startup-timing.js",
   "lib/proxy/stream-claude.js",
   "lib/proxy/tianxi-agentcore-local.js",
