@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：默认owner原子完成启动与锚定布局封存，减少一笔启动事务
+
+7d56650主Verify40166031041最终八项全部success，但review的Claude5002ms、Rust WouldBlock及正式原生ready/DPAPI超时保持，不能据主CI取绿。d7dbad6 Rust121089299919终态success，新增强制非阻塞/分段请求和原chunked用例均实际Windows通过；完整应用40项、二进制1项、原生20项零ignore，fmt/严格Clippy/审计通过。其余原作业及7d安装40166039585/121087243460继续，不取消/重跑、不授尚未完成资格。
+
+本批为实际启动路径修改：默认createStorageOwner用严格内部anchoredStartup布尔能力，将已有布局封存放入启动的同一BEGIN IMMEDIATE事务，在独立anchor.validateStartup准入、原时钟/配额/清理全部完成之后、同一COMMIT之前执行。随后仍独立BEGIN快照重新认证，并等待OS锚点持久ACK才engine_ready；初始锚点意图仍在SQLite提交前持久化。旧显式prepareAnchoredFormat能力仍用自己的事务，public storageRequest和产品配置不新增此能力。FULL/DELETE/secure_delete、所有原期限、原到期/预算/CAS和ACK版本相等不变。
+
+实测默认owner新建/重开均只有启动事务加独立只读快照，不再另开封存事务；空库和旧布局1/2少一笔写提交，已为3时少一笔独立只读封存事务。真实SQLite回归覆盖空库、已有1/2/3、完整reference原文读取、准入先于封存、正常旧行/blob密文与revision/到期/预算保持；非法/极端布尔及缺失准入能力在访问数据库前拒绝。准入、封存、COMMIT失败及实际max_page_count触发SQLite FULL(13)均回滚时钟/布局/密文，随后相同数据库重开能读回原到期/预算/revision。专项新增用例修改前13项8通过/5失败，修改后扩大九文件149/149通过、零skip；新增最终FULL错误码见证后完整格式文件15/15通过。独立owner接线回归还精确核验BEGIN IMMEDIATE/COMMIT(schema3)/BEGIN/COMMIT(schema3)及两次初始锚点写，未省略后提交认证。
+
+另存储service/blobs完整两文件87通过/1项既有Mac原生开库失败/1项既有Windows限定preload测试skip；本批未新增skip，保留失败及平台界，不用本机合成保护器替代Windows DPAPI/OS锚点。改动Lint/格式、全树1589JS语法及CI/release治理通过。初始化工作减少仍须本批新SHA完整Windows、三runner原时序及实际安装；不能声称解除HTTP五秒或所有初始ready超时。d273首次216对真实ETW刷新资格仅限其观测范围，五秒总稳定性、在途排空/客户端重启、容量/真实24小时及到期重开、真实provider和受控安装交付缺口保持。冻结长测未访问、模型0。
+
 ## 2026-10-25：首次取得真实ETW刷新配对，保留7d五秒及原生初始化失败，修复Windows测试夹具模式
 
 d2736ab812ca8600b09c654e5955ea0b7d670651独立I/O40166295023/121087926753已终态success：原两份完整测试50/50、零skip，ETL29229056字节；首次实际读得582条有界筛选记录、216对成功Flush/OperationEnd，其中database72次最大60ms，journal144次最大78ms，collisions/unmatchedEnds/failedFlushes/unfinishedFlushes全部0。相同作业六次持久公开最终ACK1213–1543ms、144次COMMIT最大132ms。ProcessingErrorData/EventPayload标准载荷补充后实际解码链已可用；仍保留traceCompletenessVerified=false、fiveSecondQualified=false，环形记录可能丢事件、跟踪可能扰动，不能由本次无慢刷新解释或覆盖另一runner历史超时，也不授整体五秒稳定性。

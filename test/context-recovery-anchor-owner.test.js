@@ -230,3 +230,43 @@ test('capacity rejection preserves all four acknowledged states and permits a la
   assert.equal(reopened.execute({ operation: 'inspect' }).records, 4);
   assert.equal(reopened.execute({ operation: 'load', scope: requests[0].scope }).revision, 2);
 });
+
+test('production owner combines startup and format sealing while retaining independent snapshot and anchor ACK', (t) => {
+  const f = fixture(t);
+  const exec = DatabaseSync.prototype.exec;
+  const events = [];
+  t.mock.method(DatabaseSync.prototype, 'exec', function (sql) {
+    if (['BEGIN IMMEDIATE', 'BEGIN', 'COMMIT'].includes(sql)) {
+      const file = this.prepare('PRAGMA database_list')
+        .all()
+        .find((row) => row.name === 'main')?.file;
+      if (file && path.basename(file) === 'checkpoint.sqlite') {
+        events.push({ sql, version: this.prepare('PRAGMA user_version').get().user_version });
+      }
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const owner = f.open();
+  assert.deepEqual(events, [
+    { sql: 'BEGIN IMMEDIATE', version: 0 },
+    { sql: 'COMMIT', version: 3 },
+    { sql: 'BEGIN', version: 3 },
+    { sql: 'COMMIT', version: 3 },
+  ]);
+  assert.equal(
+    f.writes(),
+    2,
+    'initial intent and final independent snapshot both require anchor ACK'
+  );
+  owner.close();
+  events.length = 0;
+  const reopened = f.open();
+  assert.deepEqual(events, [
+    { sql: 'BEGIN IMMEDIATE', version: 3 },
+    { sql: 'COMMIT', version: 3 },
+    { sql: 'BEGIN', version: 3 },
+    { sql: 'COMMIT', version: 3 },
+  ]);
+  assert.equal(f.writes(), 3);
+  reopened.close();
+});
