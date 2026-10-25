@@ -68,16 +68,28 @@ function Invoke-HpmPersistentIoDiagnostic {
         $process = [Diagnostics.Process]::new()
         $process.StartInfo = $start
         $clock = [Diagnostics.Stopwatch]::StartNew()
+        $cause = 'start'
         try {
             if (-not $process.Start()) { throw 'refused' }
             $stdout = $process.StandardOutput.ReadToEndAsync()
             $stderr = $process.StandardError.ReadToEndAsync()
+            $cause = 'deadline'
             if (-not $process.WaitForExit(30000)) { $process.Kill($true); [void]$process.WaitForExit(5000); throw 'refused' }
+            $cause = 'pipes'
             foreach ($pipe in @($stdout,$stderr)) {
                 $remaining = [Math]::Max(0, 30000 - [int]$clock.ElapsedMilliseconds)
                 if (-not $pipe.Wait($remaining)) { throw 'refused' }
             }
-            if ($stdout.GetAwaiter().GetResult().Length -gt 16384 -or $stderr.GetAwaiter().GetResult().Length -gt 16384 -or $process.ExitCode -ne 0) { throw 'refused' }
+            $cause = 'output-limit'
+            if ($stdout.GetAwaiter().GetResult().Length -gt 16384 -or $stderr.GetAwaiter().GetResult().Length -gt 16384) { throw 'refused' }
+            $cause = 'exit'
+            if ($process.ExitCode -ne 0) {
+                [Console]::Error.WriteLine('persistent_io_wpr_exit_code=' + $process.ExitCode)
+                throw 'refused'
+            }
+        } catch {
+            [Console]::Error.WriteLine('persistent_io_wpr_failed:cause=' + $cause)
+            throw 'refused'
         } finally { $process.Dispose() }
     }
     try {
@@ -91,19 +103,25 @@ function Invoke-HpmPersistentIoDiagnostic {
         $root = $candidate
         $traceInstance = 'HpmPersistentIo' + [Guid]::NewGuid().ToString('N')
         $trace = Join-Path $root 'owned.etl'
+        $profile = Join-Path $PSScriptRoot '../fixtures/persistent-file-io.wprp'
+        Assert-HpmLifecycleArtifactPath $env:GITHUB_WORKSPACE $profile 'Leaf'
         $phase = 'trace-start'
         # Memory mode has bounded circular buffers. Never cancel an existing trace
         # to obtain ownership, and never upload the raw ETL or decoded event data.
         $owned = $true
-        Invoke-HpmWpr -Arguments @('-start','FileIO')
+        Invoke-HpmWpr -Arguments @('-start',($profile + '!HpmSqliteIO'))
         $phase = 'original-tests'
         & node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/client-context-target.test.js test/context-recovery-codex-summary.test.js
         $testExit = $LASTEXITCODE
         $phase = 'trace-stop'
         Invoke-HpmWpr -Arguments @('-stop',$trace,'owned synthetic SQLite diagnosis','-skipPdbGen')
         $owned = $false
+        $phase = 'trace-file'
         Assert-HpmLifecycleArtifactPath $root $trace 'Leaf'
-        if ((Get-Item -LiteralPath $trace).Length -gt 268435456) { throw 'refused' }
+        $phase = 'trace-size'
+        $traceBytes = (Get-Item -LiteralPath $trace).Length
+        [Console]::Error.WriteLine('persistent_io_trace_bytes=' + $traceBytes)
+        if ($traceBytes -gt 268435456) { throw 'refused' }
         $phase = 'decode-enumeration'
         $decode = @{ names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); irps = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); shapes=@{} }
         # FileIo GUID/opcodes follow the Microsoft FileIo_Name/SimpleOp/OpEnd

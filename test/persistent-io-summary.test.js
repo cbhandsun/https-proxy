@@ -203,3 +203,29 @@ test('PowerShell decodes owned FileIo metadata, filters unrelated records and re
   assert.equal(result.stdout.trim(), 'metadata_decode_passed');
   assert.equal(result.stderr, '');
 });
+
+test('recording profile fixes memory buffers and only file metadata providers without stack capture', () => {
+  const profile = path
+    .join(__dirname, '../scripts/fixtures/persistent-file-io.wprp')
+    .replaceAll("'", "''");
+  const code = `
+    $ErrorActionPreference='Stop'
+    [xml]$profile=Get-Content -LiteralPath '${profile}' -Raw
+    $profiles=$profile.WindowsPerformanceRecorder.Profiles
+    if([int]$profiles.SystemCollector.BufferSize.Value -ne 64 -or [int]$profiles.SystemCollector.Buffers.Value -ne 512){throw 'memory_profile_changed'}
+    if($profiles.Profile.LoggingMode -cne 'Memory' -or $profiles.Profile.Name -cne 'HpmSqliteIO'){throw 'recording_mode_changed'}
+    if((@($profiles.SystemProvider.Keywords.Keyword|ForEach-Object{$_.Value}) -join ',') -cne 'Filename,FileIO,FileIOInit'){throw 'provider_scope_changed'}
+    if($null -ne $profile.SelectSingleNode('//Stacks') -or $null -ne $profile.SelectSingleNode('//EventProvider')){throw 'capture_scope_widened'}
+    'bounded_profile_passed'
+  `;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    encoding: 'utf8',
+    timeout: 5000,
+    maxBuffer: 4096,
+    windowsHide: true,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout.trim(), 'bounded_profile_passed');
+  assert.equal(result.stderr, '');
+});

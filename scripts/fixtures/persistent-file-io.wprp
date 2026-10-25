@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0">
+  <Profiles>
+    <SystemCollector Id="HpmFileCollector" Name="NT Kernel Logger">
+      <BufferSize Value="64" />
+      <Buffers Value="512" />
+    </SystemCollector>
+    <SystemProvider Id="HpmFileProvider">
+      <Keywords>
+        <Keyword Value="Filename" />
+        <Keyword Value="FileIO" />
+        <Keyword Value="FileIOInit" />
+      </Keywords>
+    </SystemProvider>
+    <Profile Id="HpmSqliteIO.Verbose.Memory" Name="HpmSqliteIO" Description="Bounded synthetic SQLite file operations" DetailLevel="Verbose" LoggingMode="Memory">
+      <Collectors>
+        <SystemCollectorId Value="HpmFileCollector">
+          <SystemProviderId Value="HpmFileProvider" />
+        </SystemCollectorId>
+      </Collectors>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceRecorder>

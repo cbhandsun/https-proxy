@@ -10,6 +10,7 @@ on:
       - scripts/summarize-persistent-io.cjs
       - scripts/lib/persistent-io-summary.js
       - scripts/lib/persistent-io-recording.psm1
+      - scripts/fixtures/persistent-file-io.wprp
       - test/persistent-io-summary.test.js
   workflow_dispatch:
 

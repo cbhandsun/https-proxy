@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：保留45419e6最终发布ACK五秒失败，固定WPR记录缓冲与停止阶段
+
+45419e682ac31a69573f5805006c1e6117ced0f4普通Verify40163808290的unit shard2/121080640113终态failure：Claude long-persistent第二轮ownerEpoch2在4736ms收headers、4737ms收完body，publication_wait_start为4737ms，publication_wait_failed为5002ms；finishPublicationAsync耗时315ms，最终save301ms、COMMIT170ms、anchor72ms，ACK在原截止之后才完成。前段准入/结算/读取有858/506/521/793ms COMMIT等待，多数线程CPU为零。此为最终发布持久ACK超时，不改写为fetch完全未响应；原5000ms包含发布ACK的断言保留，不省略最终ACK、提前标记transport-finished或用其他通过覆盖。
+
+同SHA独立I/O40163808175/121080639391的两份原测试仍50/50通过，但随后固定trace-stop阶段失败，未进入解码，仍无有效HPM_PERSISTENT_IO。它与前次a8 decode失败属于不同已观察阶段；当前旧回执不足以确认是WPR退出、管道、文件类型还是256MiB上限，不猜测单一根因，也不重跑旧作业。
+
+本批用提交内固定WPRP取代隐式内置FileIO配置：仅Filename/FileIO/FileIOInit，64KiB乘512个内存环形缓冲即32MiB，无栈或额外事件provider，原1百万读取/10万汇总事件、256MiB文件和16MiB stdin界均不变。仍是完整两文件各一次，原期限/全部断言保持，缺失配对不能授完整性或五秒资格。停止命令、trace文件检查、文件大小检查分别记录闭合阶段；WPR只输出固定cause及数字退出码，文件只输出字节数，不转发原生stdout/stderr。记录scope仍是隔离hosted诊断，不改产品FULL/DELETE或用户环境。
+
+增加真实PowerShell读取WPRP的内存/模式/provider范围回归，本机八项完整通过、零skip；配置需新SHA的Windows WPR实际验证，不能把本机XML或测试通过当作成功物理I/O记录。a8普通Verify40163260932八项已success，正式40163260961及454正式40163808163 source观察时仍运行；保留原作业。当前产品五秒稳定性、在途排空/客户端重启、容量/真实24小时、真实provider和受控交付仍未完成，冻结长测未访问、模型0。
+
 ## 2026-10-25：保留首次ETW解码失败，原50项通过不当成刷新证据
 
 a8b4324ffaf4ffa5a1cc06535d3528fcf9dad5e0独立I/O作业40163260955/121079049885终态failure：原两份完整测试50/50通过、零fail，随后在decode阶段固定persistent_io_diagnostic_failed失败，Node汇总也因未取得有效输入返回persistent_io_summary_failed；没有HPM_PERSISTENT_IO成功回执。不能把这个诊断脚本失败当成产品开库/恢复根因，也不能从50项通过推断已取得物理刷新时序。旧5028ms、5003ms及全部历史失败保持，不重跑原失败作业。
