@@ -9,6 +9,7 @@ const { randomBytes } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
 const { setImmediate: nextTurn } = require('node:timers/promises');
 const { DatabaseSync } = require('node:sqlite');
+const { openContextRecoveryStorage } = require('../../lib/proxy/context-recovery-storage');
 const { createRecoverySqliteStore } = require('../../lib/proxy/context-recovery-storage-sqlite');
 
 function processFixture(file) {
@@ -57,15 +58,26 @@ function processFixture(file) {
   };
 }
 
-async function publicationInterruption({ transition, boundary, kill }) {
+async function publicationInterruption({ transition, boundary, kill, native = false }) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-publication-interior-'));
   const file = path.join(directory, 'checkpoint.sqlite');
   const key = randomBytes(32).toString('base64');
   const writer = processFixture('context-recovery-publication-child.cjs');
   let reader, probe, database, engine;
   try {
-    writer.child.send({ operation: 'initialize', file, key, transition, boundary });
+    writer.child.send({
+      operation: 'initialize',
+      file,
+      transition,
+      boundary,
+      ...(native ? { native: true } : { key }),
+    });
     const ready = await writer.phase('ready');
+    if (native)
+      assert.equal(
+        writer.messages.filter((message) => message.phase === 'native-opened').length,
+        1
+      );
     if (boundary === 'commit') {
       reader = processFixture('context-recovery-commit-reader.cjs');
       reader.child.send({ file });
@@ -111,9 +123,16 @@ async function publicationInterruption({ transition, boundary, kill }) {
         writer.messages.some((message) => message.phase === 'acknowledged'),
         false
       );
-    database = new DatabaseSync(file, { allowExtension: false });
-    engine = createRecoverySqliteStore({ database, dataKey: key, now: () => 100 });
-    const restored = engine.execute({ operation: 'load', scope: ready.scope });
+    if (native) {
+      // Reopen the same physical directory with the unmodified default worker,
+      // production DPAPI protector and independently retained OS anchor.
+      engine = await openContextRecoveryStorage({ directory });
+      database = new DatabaseSync(file, { readOnly: true, allowExtension: false });
+    } else {
+      database = new DatabaseSync(file, { allowExtension: false });
+      engine = createRecoverySqliteStore({ database, dataKey: key, now: () => 100 });
+    }
+    const restored = await engine.execute({ operation: 'load', scope: ready.scope });
     const expected = kill && boundary === 'commit' ? ready.record : committed;
     assert.deepEqual(JSON.parse(JSON.stringify(restored)), expected);
     assert.equal(restored.expiresAt, ready.record.expiresAt);
@@ -135,12 +154,14 @@ async function publicationInterruption({ transition, boundary, kill }) {
     assert.equal(database.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
     assert.equal(database.prepare('PRAGMA journal_mode').get().journal_mode, 'delete');
     assert.equal(database.prepare('PRAGMA synchronous').get().synchronous, 2);
-    assert.equal(database.prepare('PRAGMA busy_timeout').get().timeout, 1000);
+    // The native inspector is a distinct read-only connection. Its busy
+    // timeout cannot witness the worker's connection-local setting.
+    if (!native) assert.equal(database.prepare('PRAGMA busy_timeout').get().timeout, 1000);
   } finally {
     await writer.close();
     await reader?.close();
     probe?.close();
-    engine?.close();
+    await engine?.close();
     database?.close();
     assert.equal(path.dirname(directory), path.resolve(os.tmpdir()));
     assert.ok(path.basename(directory).startsWith('hpm-publication-interior-'));

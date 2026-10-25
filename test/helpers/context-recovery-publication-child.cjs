@@ -3,6 +3,8 @@
 // Offline process fixture: synthetic key/data travel over private IPC only.
 const assert = require('node:assert/strict');
 const { DatabaseSync } = require('node:sqlite');
+const path = require('node:path');
+const { openContextRecoveryStorage } = require('../../lib/proxy/context-recovery-storage');
 const { createRecoverySqliteStore } = require('../../lib/proxy/context-recovery-storage-sqlite');
 const {
   createContextRecoverySessions,
@@ -23,8 +25,9 @@ async function initialize(input) {
   if (
     input?.operation !== 'initialize' ||
     typeof input.file !== 'string' ||
-    typeof input.key !== 'string' ||
-    !/^[A-Za-z0-9+/]{43}=$/.test(input.key) ||
+    (input.native === true
+      ? Object.hasOwn(input, 'key')
+      : typeof input.key !== 'string' || !/^[A-Za-z0-9+/]{43}=$/.test(input.key)) ||
     !phases.includes(input.transition) ||
     !['commit', 'ack'].includes(input.boundary)
   )
@@ -32,18 +35,23 @@ async function initialize(input) {
   let armed = false;
   let committing = false;
   let scope;
-  const database = new DatabaseSync(input.file, { allowExtension: false });
-  const engine = createRecoverySqliteStore({
-    database: {
-      prepare: (sql) => database.prepare(sql),
-      exec(sql) {
-        if (committing && sql === 'COMMIT') report('commit-entering');
-        return database.exec(sql);
-      },
-    },
-    dataKey: input.key,
-    now: () => 100,
-  });
+  const native = input.native === true;
+  const database = native ? null : new DatabaseSync(input.file, { allowExtension: false });
+  if (native) report('native-opening');
+  const engine = native
+    ? await openContextRecoveryStorage({ directory: path.dirname(input.file) })
+    : createRecoverySqliteStore({
+        database: {
+          prepare: (sql) => database.prepare(sql),
+          exec(sql) {
+            if (committing && sql === 'COMMIT') report('commit-entering');
+            return database.exec(sql);
+          },
+        },
+        dataKey: input.key,
+        now: () => 100,
+      });
+  if (native) report('native-opened');
   const storage = {
     async execute(request) {
       const target =
@@ -56,7 +64,10 @@ async function initialize(input) {
       committing = target;
       let result;
       try {
-        result = engine.execute(request);
+        // The parent additionally witnesses SQLite's actual PENDING lock.
+        // This message alone is never accepted as proof of COMMIT entry.
+        if (native && target && input.boundary === 'commit') report('commit-entering');
+        result = await engine.execute(request);
       } catch {
         report('engine-failed');
         throw new Error('fixture storage failure');
@@ -67,7 +78,7 @@ async function initialize(input) {
         const pending = new Promise((resolve) => {
           release = resolve;
         });
-        report('commit-durable', { record: engine.execute({ operation: 'load', scope }) });
+        report('commit-durable', { record: await engine.execute({ operation: 'load', scope }) });
         await pending;
       }
       return result;
@@ -77,7 +88,7 @@ async function initialize(input) {
   declareRecoveryReaderSettlement(storage.execute);
   declareRecoveryReferenceStates(storage.execute);
   declareRecoveryReferenceAdmission(storage.execute);
-  const runtime = createContextRecoverySessions({ now: () => 100 });
+  const runtime = createContextRecoverySessions({ now: native ? Date.now : () => 100 });
   runtime.configure(true);
   attachContextRecoveryStorage(runtime, storage);
   const binding = { principal: 'owner', protocol: 'chat', target: 'offline-fixture' };
@@ -111,7 +122,7 @@ async function initialize(input) {
     assert.deepEqual(await view.completePublicAsync(output), { ok: true });
   if (['transport-finished', 'uncertain'].includes(input.transition))
     assert.deepEqual(await view.startPublicationAsync(), { ok: true });
-  const before = engine.execute({ operation: 'load', scope });
+  const before = await engine.execute({ operation: 'load', scope });
   report('ready', { scope, targetId, record: before });
   advance = async () => {
     if (armed) throw new Error('duplicate advance');
@@ -129,9 +140,9 @@ async function initialize(input) {
       throw new Error('fixture publication failure');
     }
     assert.deepEqual(result, { ok: true });
-    report('acknowledged', { record: engine.execute({ operation: 'load', scope }) });
-    engine.close();
-    database.close();
+    report('acknowledged', { record: await engine.execute({ operation: 'load', scope }) });
+    await engine.close();
+    database?.close();
     process.disconnect();
   };
 }

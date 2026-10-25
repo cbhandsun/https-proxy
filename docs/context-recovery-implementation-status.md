@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：将发布内部中断扩展到默认原生worker，等待Windows实际结果
+
+新增20项原生发布中断验收，复用原五种发布转换prepared/sending/transport-finished/uncertain/withdrawn及两种边界的强杀/正常释放对照。原文件SQLite路径和24项已有COMMIT/发布回归完整保留且本机24/24通过、零skip；新路径直接使用openContextRecoveryStorage默认worker、默认DPAPI和OS锚点，真实Date.now，不传递或注入数据密钥、不替换WorkerType/保护器/锚点库。仍用原15000ms用例、5000ms阶段和750ms PENDING见证期限，未提高任何预算或重试。
+
+COMMIT边界先由独立进程持有真实SQLite SHARED读锁，发布转换发起后还必须实际观察SQLITE_BUSY/PENDING与非空DELETE journal，不能把父进程的调用前阶段通知当成已经进入COMMIT。ACK前边界必须先等默认worker完成SQLite及独立OS锚点持久回执，再由验收包装层暂缓交给发布状态机；不更改生产worker或放宽ACK。强杀后及正常释放后均以同目录默认原生worker重开，精确比较原/后继revision、原期限、发布状态、预算及原文，并验真实数据库完整性与DELETE/FULL。原直接SQLite连接busy_timeout断言保持；原生只读检查连接不冒充worker的连接局部busy_timeout。
+
+新文件由统一unit发现，未添加平台skip或忽略门禁。本机新增20项全部在native-opening之后、native-opened之前失败，尚未进入转换；该失败保留，不宣称Mac或Windows原生中断资格，Windows必须由新提交完整原门禁实际执行。这批是补齐真实边界验证，不是5028ms五秒等待的产品修复；五秒及历史失败保持，582原安装作业继续原身份，不重启、不抢占用户长测环境。
+
+另以Idle只读重核原预算文件，数值仍为maximum177/used169、请求169、Codex99/Claude70/其他0，与交接相等。前次固定numeric-fields失败由本机诊断仅接受Int32导致；允许Int32或Int64且保持0..10000原界后安全读取成功，没有修改台账或额度。剩余Codex1/Claude7仍来自用户分端授权且不能合并；逐端持久预留尚未核验，不发真实请求、不自动重试。冻结长测未访问，真实模型0。
+
 ## 2026-10-25：38c2d5e正式Windows和review通过，保留主coverage新5028ms失败
 
 38c2d5e3bbcd5826d461c384947a12a9da943cff正式Windows40159526465四项全部success：source-gates121067972485、egress121067972616、N08 121070300026、N09 121070300033。独立review Verify40159540131八项全部success；其中coverage121068016371的12次持久公开发布1209–2426ms、288次COMMIT最大122ms。正式source另12次738–1389ms、288次COMMIT最大77ms。它们是各自原作业结果，不替代同SHA其他失败。
