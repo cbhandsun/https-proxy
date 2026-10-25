@@ -54,11 +54,16 @@ function Invoke-HpmPersistentIoDiagnostic {
         $start.ArgumentList.Add('-instancename'); $start.ArgumentList.Add($traceInstance)
         $process = [Diagnostics.Process]::new()
         $process.StartInfo = $start
+        $clock = [Diagnostics.Stopwatch]::StartNew()
         try {
             if (-not $process.Start()) { throw 'refused' }
             $stdout = $process.StandardOutput.ReadToEndAsync()
             $stderr = $process.StandardError.ReadToEndAsync()
             if (-not $process.WaitForExit(30000)) { $process.Kill($true); [void]$process.WaitForExit(5000); throw 'refused' }
+            foreach ($pipe in @($stdout,$stderr)) {
+                $remaining = [Math]::Max(0, 30000 - [int]$clock.ElapsedMilliseconds)
+                if (-not $pipe.Wait($remaining)) { throw 'refused' }
+            }
             if ($stdout.GetAwaiter().GetResult().Length -gt 16384 -or $stderr.GetAwaiter().GetResult().Length -gt 16384 -or $process.ExitCode -ne 0) { throw 'refused' }
         } finally { $process.Dispose() }
     }
