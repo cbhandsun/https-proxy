@@ -292,12 +292,23 @@ test('default production owner durably anchors a byte-unchanged scan and closes 
   assert.equal(anchored.maxTime, time);
   assert.match(anchored.headerTag, /^[a-f0-9]{64}$/);
   let expectedWrites = writes + 1;
-  for (const operation of ['load', 'load-reference', 'inspect']) {
+  for (const operation of ['load', 'load-reference', 'inspect', 'catalog', 'sweep']) {
     time++;
     const result = owner.execute(
-      operation === 'inspect' ? { operation } : { operation, scope: 'a'.repeat(64) }
+      ['inspect', 'catalog', 'sweep'].includes(operation)
+        ? { operation }
+        : { operation, scope: 'a'.repeat(64) }
     );
-    assert.deepEqual(result, operation === 'inspect' ? { records: 0, bytes: 0 } : null);
+    assert.deepEqual(
+      result,
+      operation === 'inspect'
+        ? { records: 0, bytes: 0 }
+        : operation === 'catalog'
+          ? []
+          : operation === 'sweep'
+            ? { removedRecords: 0, removedBytes: 0 }
+            : null
+    );
     assert.deepEqual(fs.readFileSync(file), before);
     assert.equal(f.writes(), ++expectedWrites);
     assert.equal([...f.rows.values()][0].value.maxTime, time);
@@ -314,4 +325,59 @@ test('default production owner durably anchors a byte-unchanged scan and closes 
     scope: null,
     record: null,
   });
+});
+
+test('actual idle controller keeps thirty no-op sweeps byte-unchanged and fails closed on lost anchor ACK', (t) => {
+  const {
+    startRecoveryStorageIdle,
+    IDLE_INTERVAL_MS,
+  } = require('../lib/proxy/context-recovery-storage-idle');
+  assert.equal(IDLE_INTERVAL_MS, 60000);
+  let time = 1000;
+  t.mock.method(Date, 'now', () => time);
+  const f = fixture(t),
+    owner = f.open(),
+    file = path.join(f.directory, 'checkpoint.sqlite');
+  const before = fs.readFileSync(file),
+    writes = f.writes();
+  let tick,
+    cancelled = 0,
+    failures = 0;
+  const idle = startRecoveryStorageIdle({
+    execute: owner.execute,
+    onFailure() {
+      failures++;
+    },
+    startTimer(action) {
+      tick = action;
+      return () => {
+        cancelled++;
+      };
+    },
+  });
+  t.after(() => idle.close());
+  for (let index = 1; index <= 30; index++) {
+    time = 1000 + index * IDLE_INTERVAL_MS;
+    tick();
+    assert.equal(fs.readFileSync(file).equals(before), true);
+    assert.equal(f.writes(), writes + index);
+    assert.equal([...f.rows.values()][0].value.maxTime, time);
+    assert.equal(failures, 0);
+  }
+  f.failNext();
+  time += IDLE_INTERVAL_MS;
+  tick();
+  assert.equal(failures, 1);
+  assert.equal(cancelled, 1);
+  assert.equal(fs.readFileSync(file).equals(before), true);
+  const afterFailure = f.writes();
+  tick();
+  assert.equal(f.writes(), afterFailure);
+  assert.equal(failures, 1);
+  assert.throws(() => owner.execute({ operation: 'inspect' }), safe);
+  idle.close();
+  assert.equal(cancelled, 1);
+  f.restoreBackend();
+  const reopened = f.open();
+  assert.deepEqual(reopened.execute({ operation: 'catalog' }), []);
 });

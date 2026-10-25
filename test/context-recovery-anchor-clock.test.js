@@ -524,7 +524,15 @@ test('new witness fields remain closed, non-executable and cannot authorize a fo
 });
 
 test('live authentic header replay cannot be masked by the retained scan clock', (t) => {
-  for (const operation of ['scan', 'snapshot', 'load', 'load-reference', 'inspect']) {
+  for (const operation of [
+    'scan',
+    'snapshot',
+    'load',
+    'load-reference',
+    'inspect',
+    'catalog',
+    'sweep',
+  ]) {
     const f = fixture(t);
     f.save();
     const oldHeader = f.header();
@@ -542,7 +550,7 @@ test('live authentic header replay cannot be masked by the retained scan clock',
           : f.execute(
               operation === 'scan'
                 ? { operation: 'scan-reference', after: null }
-                : operation === 'inspect'
+                : ['inspect', 'catalog', 'sweep'].includes(operation)
                   ? { operation }
                   : { operation, scope }
             ),
@@ -703,4 +711,180 @@ test('read observations still authenticate corrupted records, including expired 
       assert.deepEqual(fs.readFileSync(f.file), attacked);
     }
   }
+});
+
+for (const operation of ['catalog', 'sweep']) {
+  test(
+    'anchored no-op ' + operation + ' preserves SQL bytes while durably advancing the exact clock',
+    (t) => {
+      for (const output of ['', 'synthetic-maintenance中文🙂', 'x'.repeat(16384)]) {
+        const f = fixture(t),
+          state = f.save(output),
+          before = f.bytes(),
+          revision = f.revision();
+        f.setTime(110);
+        f.commits.length = 0;
+        const result = f.execute({ operation });
+        if (operation === 'catalog') {
+          assert.equal(result.length, 1);
+          assert.equal(result[0].expiresAt, state.root.expiresAt);
+        } else assert.deepEqual(result, { removedRecords: 0, removedBytes: 0 });
+        assert.equal(f.bytes().equals(before), true);
+        assert.equal(f.sqlTime(), 100);
+        assert.equal(f.held().maxTime, 110);
+        assert.equal(f.revision(), revision + 1);
+        assert.equal(f.commits.length, 2);
+        assert.equal(
+          f.commits.some((entry) => entry.journalPresent),
+          false
+        );
+        assert.equal(f.db().prepare('PRAGMA synchronous').get().synchronous, 2);
+        assert.equal(f.db().prepare('PRAGMA journal_mode').get().journal_mode, 'delete');
+        assert.equal(f.db().prepare('PRAGMA secure_delete').get().secure_delete, 1);
+        f.close();
+        f.open();
+        assert.equal(f.sqlTime(), 110);
+        assert.equal(f.execute({ operation: 'load', scope }).expiresAt, state.root.expiresAt);
+      }
+    }
+  );
+}
+
+test('empty maintenance keeps its independent anchor ACK while legacy mode retains SQL clock persistence', (t) => {
+  for (const operation of ['catalog', 'sweep'])
+    for (const mode of [false, true]) {
+      const f = fixture(t, mode),
+        before = f.bytes(),
+        revision = f.revision();
+      f.setTime(110);
+      f.commits.length = 0;
+      assert.deepEqual(
+        f.execute({ operation }),
+        operation === 'catalog' ? [] : { removedRecords: 0, removedBytes: 0 }
+      );
+      assert.equal(f.bytes().equals(before), mode);
+      assert.equal(f.sqlTime(), mode ? 100 : 110);
+      assert.equal(f.held().maxTime, 110);
+      assert.equal(f.revision(), revision + 1);
+      assert.equal(f.commits[0].journalPresent, !mode);
+      assert.equal(f.commits[1].journalPresent, false);
+      f.close();
+      f.open();
+      assert.equal(f.sqlTime(), 110);
+    }
+});
+
+test('maintenance expiry deletion and clock remain atomic under FULL/DELETE, including failed COMMIT', (t) => {
+  for (const operation of ['catalog', 'sweep'])
+    for (const commitFailure of [false, true]) {
+      const f = fixture(t),
+        state = f.save(),
+        before = f.bytes(),
+        revision = f.revision();
+      f.setTime(state.root.expiresAt);
+      f.commits.length = 0;
+      if (commitFailure) {
+        f.failCommit();
+        assert.throws(() => f.execute({ operation }), safe);
+        assert.equal(f.bytes().equals(before), true);
+        assert.equal(f.sqlTime(), 100);
+        assert.equal(f.revision(), revision);
+        assert.equal(f.db().prepare('SELECT count(*) AS n FROM recovery_state').get().n, 1);
+        assert.equal(f.db().prepare('SELECT count(*) AS n FROM recovery_blob').get().n, 1);
+        f.close();
+        f.setTime(110);
+        f.open();
+        assert.equal(f.execute({ operation: 'load', scope }).expiresAt, state.root.expiresAt);
+      } else {
+        const result = f.execute({ operation });
+        if (operation === 'catalog') assert.deepEqual(result, []);
+        else {
+          assert.equal(result.removedRecords, 1);
+          assert.ok(result.removedBytes > 0);
+        }
+        assert.equal(f.bytes().equals(before), false);
+        assert.equal(f.sqlTime(), state.root.expiresAt);
+        assert.equal(f.held().maxTime, state.root.expiresAt);
+        assert.equal(f.revision(), revision + 1);
+        assert.equal(f.commits[0].journalPresent, true);
+        assert.equal(f.db().prepare('SELECT count(*) AS n FROM recovery_state').get().n, 0);
+        assert.equal(f.db().prepare('SELECT count(*) AS n FROM recovery_blob').get().n, 0);
+        f.close();
+        f.open();
+        assert.deepEqual(f.execute({ operation: 'catalog' }), []);
+      }
+    }
+});
+
+test('no-op maintenance refuses failed COMMIT or lost native ACK without advancing an uncommitted floor', (t) => {
+  for (const operation of ['catalog', 'sweep'])
+    for (const failure of ['commit', 'before', 'after']) {
+      const f = fixture(t);
+      f.save();
+      const before = f.bytes(),
+        revision = f.revision();
+      f.setTime(110);
+      if (failure === 'commit') f.failCommit();
+      else f.failAnchor(failure);
+      assert.throws(() => f.execute({ operation }), safe);
+      assert.equal(fs.readFileSync(f.file).equals(before), true);
+      if (failure === 'commit') {
+        assert.equal(f.revision(), revision);
+        f.setTime(101);
+        f.execute({ operation });
+        assert.equal(f.held().maxTime, 101);
+      } else {
+        assert.equal(f.db(), undefined);
+        assert.equal(f.revision(), revision + (failure === 'after' ? 1 : 0));
+        assert.equal(f.held().maxTime, failure === 'after' ? 110 : 100);
+      }
+    }
+});
+
+test('maintenance rejects invalid, extreme and backward clocks without SQL changes or anchor ACK', (t) => {
+  for (const operation of ['catalog', 'sweep']) {
+    const f = fixture(t);
+    f.save();
+    const before = f.bytes(),
+      revision = f.revision();
+    for (const time of [-1, 99, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER]) {
+      f.setTime(time);
+      assert.throws(() => f.execute({ operation }), safe);
+      assert.equal(f.revision(), revision);
+      assert.equal(f.bytes().equals(before), true);
+    }
+    f.setTime(110);
+    f.execute({ operation });
+    const anchoredRevision = f.revision();
+    f.setTime(109);
+    assert.throws(() => f.execute({ operation }), safe);
+    assert.equal(f.revision(), anchoredRevision);
+    assert.equal(f.bytes().equals(before), true);
+    f.close();
+    assert.throws(() => f.open(), safe);
+  }
+});
+
+test('maintenance authenticates corrupt roots and blobs before mutation or acknowledgement, even at expiry', (t) => {
+  for (const operation of ['catalog', 'sweep'])
+    for (const expired of [false, true])
+      for (const table of ['recovery_state', 'recovery_blob']) {
+        const f = fixture(t),
+          state = f.save();
+        f.db().exec(
+          table === 'recovery_state'
+            ? 'UPDATE recovery_state SET envelope=zeroblob(length(envelope))'
+            : 'UPDATE recovery_blob SET envelope=zeroblob(length(envelope))'
+        );
+        const attacked = f.bytes(),
+          revision = f.revision();
+        f.setTime(expired ? state.root.expiresAt : 110);
+        assert.throws(() => f.execute({ operation }), safe);
+        assert.equal(f.revision(), revision);
+        assert.equal(fs.readFileSync(f.file).equals(attacked), true);
+        f.close();
+        assert.throws(() => f.open(), safe);
+        f.close();
+        assert.equal(fs.readFileSync(f.file).equals(attacked), true);
+      }
 });
