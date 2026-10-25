@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：保留94cc最终ACK及初始化失败，同事务引用读取复用已验证的关联
+
+94cc639e337576c742e7d31763a8adf426f506f1普通40179307550最终七项success，coverage121126717416失败于五个原生发布夹具的初始ready：transport-finished/COMMIT强杀，以及uncertain的COMMIT强杀/释放、ACK前强杀/释放。用例耗时5071/5063/5126/5106/5084ms，原生startup均已ready，分别2719/1856/2663/2672/2555ms；lastFixture分别fixture-observed/fixture-prepared/native-opened/fixture-observed/fixture-prepared。均尚未进入第一个advance，不能当成中断后的恢复失败，原五秒夹具门禁保持、不重跑。正式40179307501/source121126717012仍在原统一门禁，egress121126717187已success；不触发最新安装。
+
+独立I/O40179307676/121126717639原50项全部通过、零skip，schema3直方图实际产出：读取84次非零全为0xc0000011（STATUS_END_OF_FILE），写入348次非零全为0xc01c0004（STATUS_FLT_DISALLOW_FAST_IO），三个固定访问/共享/锁冲突类别零。207对成功刷新最大database33/journal19ms，六次最终ACK1224–1344ms、138次COMMIT最大52ms。按[微软状态表](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55)及[快速I/O说明](https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/disallowing-a-fast-i-o-operation-in-a-preoperation-callback-routine)，写入代码表示转入IRP路径，不能据此认定SQLite应用重试或杀毒软件根因。
+
+但原覆盖率I/O40179307483/121126717040终态failure：proxy完整阶段内Claude long-persistent第二轮headers4823ms、body4824ms，最终持久ACK等待于5007ms超时；随后finishPublicationAsync347ms才完成，最终存储324ms。该轮scan374ms、预算保存538ms、LIST结算863ms、READ预扣800ms/读取结算724ms、公开准备568ms、sending253ms，多笔COMMIT及anchor等待并存。源码/阶段及cleanupVerified回执有效，仍按原覆盖率失败停止，未运行client/frontend后续阶段。摘要只捕获32对journal刷新最大386ms、journal写入最大606ms，database计数零不能当作没有数据库I/O；另一次0xc0000054锁冲突如实保留，但无法绑定到失败请求。所有完整性/五秒资格false，不能跨runner用独立成功覆盖本次失败。
+
+继续检查实际read-source-and-settle发现，旧引用已由referenceState完整解析/核对blob行关联后，readPage内部又对同一对象做同样解析/关联。真实模块观察回归在94cc源码先失败（同一旧digest解析2次而非1次）；原总计还包括写入后liveUsage对新密文的独立解析，不能把这一次算成应删除的重复工作。现在在私有blob组合内解析并核对一次，先执行原预留准备校验，再同步读取原载荷和结算；只有该内部调用把刚验证的reference传给私有页面函数，不接受请求传入的reference，不做跨调用/事务缓存。原独立readPage仍完整校验，写入后新密文配额认证、提交后独立snapshot及OS anchor、最大预算预扣ACK及prepared/sending/final各自ACK全部保持。
+
+新增回归对空、UTF-8和16KiB来源确认旧引用解析一次、新密文独立解析仍一次、COMMIT仍一次且页面/预算/连续覆盖完全相等。逐一stat确认五个文件存在后，read-settlement/root-reader/read-settlement-contract/anchor-sqlite/publication-interruption共136通过、零skip；另storage-blobs为63通过、1项Mac默认原生worker开库失败、零skip，失败保留。1595份JS语法通过，Lint零错误/五项原警告，CI/发行治理及修改文件格式通过。原覆盖率I/O路径触发新增直接依赖的storage-blobs模块，统一测试自动发现新回归；Windows实际新源码资格待运行，本批不宣称已解决五秒COMMIT/锚点等待。
+
+原商业签名发行门禁、认证、FULL/DELETE/secure_delete、原绝对expiry与原文留存不变。旧版运行包实际安装迁移/回滚拒写、升级回滚/DPAPI及两端合成四组已有资格保持；五秒/初始化稳定性、在途排空/客户端重启、容量与真实24小时及到期重开、逐端持久额度预留后的真实provider、最新安装器交付和受控启用仍未全部完成。冻结长测未访问，真实模型0。
+
 ## 2026-10-25：600正式四项通过但普通5012ms仍失败，补充有界状态码直方图
 
 600169b35680075587dd8f2ae4eee15670750ecd正式40177233268已四项success：source121120456659、egress121120456517、N08/N09为121124479810/121124479840。但普通40177233252仍七项success、coverage121120456530失败，Responses long-persistent首轮request_failed5012ms，requests2/handshakes2/roots1，未有该轮headers。该轮sequence5扫描143ms、sequence6预算保存979ms/COMMIT708ms、sequence7结算453ms/LIST reply1472ms、sequence8预扣1953ms/clock write540ms/COMMIT983ms、sequence9读取结算1364ms/READ reply3336ms，其中anchor persist808ms。不能把HTTP之前的startup/seed混入该请求。失败保留、不重跑；正式绿色不覆盖普通失败，未触发本批安装。

@@ -18,6 +18,7 @@ on:
       - scripts/fixtures/persistent-file-io.wprp
       - lib/proxy/context-recovery-read-settlement.js
       - lib/proxy/context-recovery-storage-sqlite.js
+      - lib/proxy/context-recovery-storage-blobs.js
       - test/context-recovery-read-settlement.test.js
       - test/client-context-target.test.js
       - test/coverage-io-capture.test.js

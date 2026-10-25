@@ -555,6 +555,52 @@ test('combined read validates its owned reservation once before reading payloads
   }
 });
 
+test('combined read parses the blob reference once before source I/O in the same transaction', () => {
+  const Module = require('node:module');
+  const load = (file, replacements) => {
+    const instance = new Module(file);
+    const actual = Module.createRequire(file);
+    instance.require = (name) => replacements[name] ?? actual(name);
+    instance.load(file);
+    return instance.exports;
+  };
+  const reference = require('../lib/proxy/context-recovery-reference-state');
+  let parses = 0,
+    postWriteParses = 0,
+    watchedDigest;
+  const blobs = load(require.resolve('../lib/proxy/context-recovery-storage-blobs'), {
+    './context-recovery-reference-state': {
+      ...reference,
+      parseReferenceState(...args) {
+        if (args[0]?.digest === watchedDigest) parses++;
+        else postWriteParses++;
+        return reference.parseReferenceState(...args);
+      },
+    },
+  });
+  const engine = load(require.resolve('../lib/proxy/context-recovery-storage-sqlite'), {
+    './context-recovery-storage-blobs': blobs,
+  });
+  for (const output of ['', 'é🙂abc', 'x'.repeat(16384)]) {
+    const f = engineFixture(output, engine.createRecoverySqliteStore);
+    try {
+      watchedDigest = f.reserved.digest;
+      parses = postWriteParses = 0;
+      const result = f.store.execute(f.request);
+      assert.equal(parses, 1);
+      assert.equal(postWriteParses, 1);
+      assert.equal(f.commits, 1);
+      assert.deepEqual(clone(result.page), f.page());
+      assert.deepEqual(
+        result.settlement,
+        createRecoveryReadSettlement(f.reserved, f.request, result.page, 100)
+      );
+    } finally {
+      f.close();
+    }
+  }
+});
+
 test('prepared read settlement owns copied facts and can be consumed only once', () => {
   for (const output of ['', 'é🙂abc', 'x'.repeat(16384)]) {
     const f = fixture(output);
