@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新默认worker写密钥分段优先：** 00普通七项/coverage、正式及2ea原负载I/O仍执行，旧首次ready/五秒/控制失败保留。为2ea已实测key_write2882ms加入默认worker固定开文件/ACL/写入/flush/关闭/回读阶段，owner仅组合、安装证据白名单同步；原wx/ACL/身份/write→fsync→close/精确回读/pin顺序、认证和全部期限不变。五文件50通过、1项既有Windows限定skip，含六类步骤失败/句柄清理和实际新阶段两种解析器往返；新SHA仍须Windows确认，不宣称根因修复。完整范围见状态顶部，新24h暂缓、冻结环境不动、模型0。
+
 **最新2ea首次ready双失败与忙等修复优先：** 2ea普通七通过/coverage失败于非原生HTTP夹具首次ready5044ms；正式失败于原生HTTP首次ready5043ms，完整阶段见key_write2882ms、原生ready4286ms，均未advance/COMMIT。不可把key_write直接当fsync原因。旧PowerShell invalid_6及全部五秒失败保留。父夹具等待IPC的setImmediate忙等在250ms内调度约2万次，现改事件等待，原绝对五秒、负载/并发/SQL探针及ACK等全部门保持；32/32本机通过，新SHA待Windows。5856普通八/正式四已通过；7d原负载I/O已观察到358/184ms物理flush长尾但不同于5001ms失败场次，不授稳定性资格。完整范围见状态顶部；新24h暂缓、冻结环境不动、模型0。
 
 **最新7d局部通过及双失败优先：** 7d Windows新header六项、原生中断二十项及HTTP正常停机十项通过；普通七项/coverage仍执行。但三组时序组3保留Responses首轮5001ms失败（预算保存1981ms、clock339/COMMIT1309ms且线程CPU均0），正式40215687541又在PowerShell控制invalid_6退出1，后续跳过，不能授安装资格。Mac7.6.7与Windows7.6.8纯StringReader均通过不能解释失败；本批只加固定reason与合成长度失败回执，27/27本机通过，原断言/期限不变。5856普通八项与原负载I/O已success，回执观察flush最长41ms、ACK1246–2474ms，仍不覆盖慢窗口。全部失败/剩余范围见状态顶部，新24h暂缓、冻结环境不动、模型0。

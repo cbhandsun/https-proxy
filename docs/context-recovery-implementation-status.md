@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：为已实测2882ms的写密钥阶段补默认worker有限分段，不改变写盘或期限
+
+00bdbd77f0e94c3afd098717e64a14394dcabc77普通40217720354当前七项success/coverage仍执行，正式40217720454/source仍执行。2ea原负载I/O40216726505也仍执行；旧作业继续观察不重跑。2ea普通文件SQLite首次ready5044ms和正式原生首次ready5043ms均保留，后者完整时间线已确定key_write594→3476ms为2882ms、存储ready4286ms，但尚不能区分具体子操作，不把整段误称fsync或ACL根因。夹具事件等待修复的Windows资格亦未取得。
+
+本批在原createStoragePaths.writeKey路径加入有限固定阶段：开文件、ACL、写入、flush、关闭、回读完成。owner只组合其phase到原startup进度，默认worker仍通过原id=0有限阶段消息报告；父storage验证和publication startup timeline直接沿用原严格顺序，安装worker证据白名单同步识别新阶段。总有限阶段仍低于现有64条时间线界，没有提高任何上限。原wx建文件、ACL、句柄/路径身份比较、write→fsync→finally close、精确回读比较、digest pin与inventory顺序不变；现有键pin/reopen不产生fresh-write阶段。每次显式调用有独立观察状态，诊断不会额外限制已有调用语义，owner失败关闭/无自动重试规则保持。
+
+阶段回执只有固定phase和单调elapsedMs，不输出fd、路径、密钥、原文或原始错误。观察器抛错或返回拒绝Promise按既有startup观察约定处理，不改变持久结果；实际文件/ACL/write/flush/close/read失败仍以原storageFailure传播、无成功完成阶段。非法observer在创建叶目录前拒绝。主入口没有新增业务逻辑，非平凡进度仍由既有可测模块负责。
+
+五文件51项中50通过、1项既有Windows真实worker限定skip，零失败。新增真实文件写入测试覆盖空值、普通/Unicode及17000字节边界、超限/非法值、六类子步骤失败与描述符清理、观察器失败、已有key读取及显式调用兼容；同时将实际新阶段送入安装证据与publication时间线解析。storage-service原observer失败/有限阶段回归、文件身份和nsis状态夹具通过。1614份JS语法、全树Lint零错误/5项既有警告、CI/release治理通过；无依赖或锁文件变化。新增测试进入原统一unit发现，新SHA须完整Windows验证，不宣称2882ms根因已修复。
+
+下一步在原默认worker失败窗口按新阶段确定具体ACL/写入/flush/回读耗时，再修复实证问题；继续原门禁后的最新安装升级回滚、582迁移拒写、两端及既定完整交付。五秒持久长尾、旧PowerShell控制失败和其他历史失败均保持。新24h按用户决定暂缓、原冻结任务/库不动，真实模型0。
+
 ## 2026-10-25：2ea首次ready双失败保留，移除IPC阶段等待的额外CPU忙等
 
 2ea100deba9e1d065bb9c24631bc7b61e20326db普通40216726519终态七success/coverage121239363426 failure：文件SQLite HTTP正常停机transport-finished用例首次ready5044.5354ms失败，lastFixture=fixture-prepared、startup=unobserved，未进入停机或COMMIT动作。六次持久最终ACK1758–2408ms、138次COMMIT最大168ms不能覆盖该失败。正式40216726449/source121239362770终态failure，egress成功、后续跳过：默认原生HTTP prepared/COMMIT用例首次ready5043.641ms失败，lastFixture=native-opened；完整时间线确认key_protect522→594ms、key_write594→3476ms（2882ms）、engine_ready4285ms、ready4286ms。阶段尚不能区分ACL、文件写入/flush、回读或其他等待，不能将其直接认定为fsync根因。PowerShell原控制及新增安全回执本次未失败，其旧invalid_6失败继续保留。2ea原负载I/O仍执行，不重跑原失败作业。
