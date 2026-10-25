@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新共用输入边界修复优先：** 实际复现normalizeCompactionData可执行/接受Proxy记录，本批在每层结构反射前用Node内建types.isProxy拒绝，含嵌套/数组/已撤销Proxy；压缩固定错误与storageData原503映射保持，正常数据及所有预算/期限/ACK/持久语义不变。回归先失败后通过，144项相关及246项扩大测试全pass、零skip，仍须新SHA Windows。4ec review40167122873八项已全success，另12次最终ACK1179–2435ms、COMMIT最大109ms，原生20项全ok；主coverage初始ready5163ms失败保持。268阶段诊断和4ec/7d原安装继续，7d已进实际两端四组但无最终结论。完整剩余范围见状态顶部；冻结长测未访问、模型0。
+
 **最新4ec842f初始化失败优先：** 三runner各原50/50通过，18次最终ACK1178–3741ms、各138次COMMIT，证明默认启动事务数减少；主unit3原生中断20/20通过。但主Verify七success/coverage121090332601的uncertain/ACK前SIGKILL用例5162.6964ms仍在初始ready（helper75），尚未advance，不覆盖/重跑该失败。本批仅接现有只读onStartup，独立严格解析并复用实际导出的阶段验证器，超时时只输出固定阶段和整数耗时；原负载/期限/断言保持，41项本机全通过，实际Windows阶段待新SHA。d273正式四项已success，其coverage失败保持；7d安装已完成门禁/构建，仍在实际验收，4ec原正式/安装继续。完整剩余范围见状态顶部；冻结长测未访问、模型0。
 
 **最新原子启动封存优先：** 7d主Verify八项已success，review Claude5002ms及正式ready/DPAPI失败保持；d7 Rust完整Windows成功，新增非阻塞夹具回归通过。本批默认owner把既有封存放入已准入的启动事务，减少一笔独立事务；初始锚点意图、原时钟/配额/清理、提交后独立快照认证及OS锚点ACK全部保持，非公开配置/API。空库/1/2/3、旧原文/预算/原到期、严格内部能力、准入/封存/COMMIT及实际SQLite FULL回滚后重开已覆盖，九文件149/149通过；另service/blobs87通过/既有Mac开库1失败/既有Windows限定1skip保留。仍须新SHA完整Windows/原三runner时序/实际安装，不提前授五秒资格；7d安装原作业继续，冻结长测未访问、模型0。完整范围见状态顶部。

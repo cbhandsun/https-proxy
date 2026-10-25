@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：修复共用压缩/恢复数据解析执行Proxy陷阱，4ec review完整通过仍保留主失败
+
+阶段观察回归中复现共用normalizeCompactionData在Object.getPrototypeOf/ownKeys/描述符检查时能执行Proxy陷阱，并接受可正常反射的Proxy记录；与模块原“不执行外部钩子”的输入边界冲突。新回归修改前完整envelope文件7通过/1失败（Proxy记录未被拒绝），修改后在每层对象结构读取前用Node内建types.isProxy拒绝，已撤销Proxy也返回原固定invalid_local_compaction；storageData仍映射原503/context_recovery_storage_unavailable。不引入新依赖、配置、恢复能力或缓存，正常数据、字节/深度/节点界、原文/期限/预算/ACK与持久语义不变。
+
+新增根对象/数组/嵌套/已撤销Proxy同时经过压缩与恢复入口的回归，getPrototypeOf/ownKeys/getOwnPropertyDescriptor/get陷阱计数严格为0；正常null-prototype对象及Unicode/空文本/null/false/数字仍逐字保持。完整相关存储/锚点/结算七文件144/144、扩大压缩系列和root/branch/reader共246/246通过，零skip；新回归在既有统一unit文件内。Lint、改动文件格式、全树语法及CI/release治理通过，完整Windows须新SHA。
+
+4ec842f review Verify40167122873已八项全部success。coverage121090350985新增12次持久公开最终ACK1179–2435ms、276次COMMIT最大109ms，内含原生发布中断20项全ok；主Verify coverage121090332601的初始ready5162.6964ms失败继续保留，不被review或三runner覆盖。2685fde的固定阶段诊断仍在原CI，4ec正式/实际安装及7d实际安装继续原作业；观察时7d已进实际Codex/Claude四组合成上游阶段，尚无最终资格，不取消/重跑。五秒/初始化根因仍待阶段回执，既定在途排空/重启留存、容量/真实24小时及到期重开、真实provider与受控交付缺口保持，冻结长测未访问、模型0。
+
 ## 2026-10-25：4ec842f三runner及主unit原生中断通过，coverage初始ready失败保留并细分安全阶段
 
 4ec842f7617274a35597d9a4c537ecf165b9fe66三runner40167116307均终态success（121090333244/121090333292/121090333320），各完整两文件50/50、零skip。18次持久公开最终ACK为1178–3741ms，各138次COMMIT，最大52/53/980ms；相比7d各144次，实际默认worker启动事务减少已生效，但不覆盖历史超时。主unit3/121090332789原生发布内部中断20项全ok、无not ok；同主Verify40167116305最终七success/coverage121090332601失败：uncertain/SIGKILL/OS anchor-before-ACK用例5162.6964ms初始writer.phase('ready')超时，堆栈helper75，尚未advance。该次不能当成已进入中断后恢复失败，不能因另一unit20/20或三runner通过关闭初始化/五秒阻塞。

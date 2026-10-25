@@ -306,3 +306,45 @@ test('unknown data boundary rejects empty, invalid, oversized and executable val
     store.close();
   }
 });
+
+test('compaction and recovery data reject root, array, nested and revoked proxies before any trap', () => {
+  const { storageData } = require('../lib/proxy/context-recovery-storage-contract');
+  let hooks = 0;
+  const handler = {
+    getPrototypeOf(target) {
+      hooks++;
+      return Reflect.getPrototypeOf(target);
+    },
+    ownKeys(target) {
+      hooks++;
+      return Reflect.ownKeys(target);
+    },
+    getOwnPropertyDescriptor(target, key) {
+      hooks++;
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    },
+    get(target, key, receiver) {
+      hooks++;
+      return Reflect.get(target, key, receiver);
+    },
+  };
+  const record = new Proxy({ synthetic: true }, handler);
+  const array = new Proxy(['synthetic'], handler);
+  const revoked = Proxy.revocable({}, handler);
+  revoked.revoke();
+  for (const input of [
+    record,
+    array,
+    { nested: record },
+    [array],
+    { nested: revoked.proxy },
+    revoked.proxy,
+  ]) {
+    invalid(() => normalizeCompactionData(input, 1024));
+    invalid(() => storageData(input, 1024), 'context_recovery_storage_unavailable');
+  }
+  assert.equal(hooks, 0);
+  const plain = Object.assign(Object.create(null), { synthetic: ['原文🙂', '', null, false, 0] });
+  assert.equal(JSON.stringify(normalizeCompactionData(plain, 1024)), JSON.stringify(plain));
+  assert.equal(JSON.stringify(storageData(plain, 1024)), JSON.stringify(plain));
+});
