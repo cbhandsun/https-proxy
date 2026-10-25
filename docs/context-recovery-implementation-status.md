@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：保留3db的5003ms失败，消除合并原文读取事务的第二次完整预留解析
+
+3db4c70f8dfd18e9c7a423e2157e02186d6c30b3普通40173001583为七项success、coverage121107640763失败：Claude long-persistent首轮request_failed5003ms，requests4/handshakes4/roots1，尚无该轮headers。预留保存sequence6耗时1300ms，其中COMMIT992ms、线程CPU零；LIST reply2208ms、其结算存储857ms，READ reply800ms，completeAsync571ms、startPublicationAsync750ms。多笔串行等待仍在，不能因另一runner快速刷新或成功请求就归为唯一CPU/I/O原因，也不合并prepared/sending/final各自原持久ACK。该失败不重跑，当前安装未触发。正式40173001582/source121107641028已success，N08/N09为121111597221/121111597246，观察时仍运行；与普通失败分别记录。
+
+沿失败路径检查实际SQLite实现，read-source-and-settle先validateRecoveryReadReservation，然后createRecoveryReadSettlement再次做同样完整预留/引用元数据解析。独立加载真实模块、只观察引用解析次数的回归先得到10通过/1失败，明确2次不等于1次，非静态文本断言。现在用私有prepareRecoveryReadSettlement在源I/O前校验并复制一次预留事实，返回只用一次的同步结算闭包；同一SQL事务拿到页面后仍执行原页面、编码字节、预算退款/覆盖和结算校验，随后原COMMIT、独立快照与OS锚点ACK保持。闭包成功或失败都消费并清除其预留事实，原输入后续突变不能改变事实；不缓存跨事务结果，不增加模型接口或外部能力，不改原文认证、时间采样/原expiry、最大预算预扣ACK和精确revision相等。
+
+原createRecoveryReadSettlement接口和独立validate接口保留，原调用仍完整校验；默认引擎仅替换这一处重复工作。回归含正常/空/较大来源、原输入变更、重复消费、非法/极端时钟、未预扣、非法页面/getter/Proxy及失败不可复用。相关四文件65/65通过、零skip；扩大的锚定SQLite/发布/引用blob/容量持久与时钟五文件157通过、1项Mac默认原生worker开库失败、零skip，失败未进入此读取路径，保留。既有真实COMMIT回滚、坏CAS/预算在载荷读取前拒绝、密文损坏、UTF-8、空/失败页面和原期限断言完整保留。原负载I/O工作流增加这两个生产模块和本测试的路径触发，原全部测试、四分片、期限与失败退出不变，待新SHA实际运行。本批减少已证实重复工作，不宣称物理COMMIT等待或五秒稳定性已修复。
+
+4acbbf5完整普通40171960202八项及正式40171960164四项均已success，正式N08/N09为121108267319/121108267286；正式source十二次最终ACK1227–2587ms、276次COMMIT最大69ms。其独立原负载记录中旧PowerShell解密10085ms超时及历史五秒/容量失败继续保留，不被这些成功覆盖。旧版582迁移/回滚拒写、已安装两端合成验收证据不变；在途排空/客户端重启、容量/真实24小时与到期重开、逐端额度预留后的真实provider、最新自用安装器与受控启用仍未全部完成。冻结长测未访问、模型0。
+
 ## 2026-10-25：4ac完整普通CI通过，原负载记录保留旧后端超时；修复密钥回执重复字段
 
 4acbbf5c1b93993692b821675071456b068c9ca3普通Verify40171960202八项全部success；coverage121104485697两段共12次最终持久ACK为877–3559ms，276次COMMIT最大1776ms，该次线程CPU为零。正式40171960164/source121104485361观察时仍在原统一门禁，未启动本批安装；不重启原作业或用普通成功替代正式结果。

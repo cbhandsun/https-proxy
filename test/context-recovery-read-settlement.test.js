@@ -6,6 +6,7 @@ const { randomBytes } = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 const {
   createRecoveryReadSettlement,
+  prepareRecoveryReadSettlement,
   assertRecoveryReadSettlement,
 } = require('../lib/proxy/context-recovery-read-settlement');
 const {
@@ -114,14 +115,14 @@ function fixture(output = 'é🙂abc') {
     );
   return { state, initial, reserved, request, page, output };
 }
-function engineFixture(output) {
+function engineFixture(output, createStore = createRecoverySqliteStore) {
   const f = fixture(output),
     database = new DatabaseSync(':memory:');
   let time = 100,
     failCommit = false,
     commits = 0,
     reads = 0;
-  const store = createRecoverySqliteStore({
+  const store = createStore({
     database: {
       exec(sql) {
         if (sql === 'COMMIT') {
@@ -511,4 +512,92 @@ test('combined evidence read and settlement authenticate the selected prior enve
   } finally {
     f.close();
   }
+});
+
+test('combined read validates its owned reservation once before reading payloads', () => {
+  const Module = require('node:module');
+  const load = (file, replacements) => {
+    const instance = new Module(file);
+    const actual = Module.createRequire(file);
+    instance.require = (name) => replacements[name] ?? actual(name);
+    instance.load(file);
+    return instance.exports;
+  };
+  let validations = 0;
+  const reference = require('../lib/proxy/context-recovery-reference-state');
+  const settlementFile = require.resolve('../lib/proxy/context-recovery-read-settlement');
+  const settlement = load(settlementFile, {
+    './context-recovery-reference-state': {
+      ...reference,
+      parseReferenceState(...args) {
+        validations++;
+        return reference.parseReferenceState(...args);
+      },
+    },
+  });
+  const engine = load(require.resolve('../lib/proxy/context-recovery-storage-sqlite'), {
+    './context-recovery-read-settlement': settlement,
+  });
+  const f = engineFixture(undefined, engine.createRecoverySqliteStore);
+  try {
+    validations = 0;
+    const result = f.store.execute(f.request);
+    assert.equal(validations, 1);
+    assert.equal(f.commits, 1);
+    assert.equal(result.revision, f.request.expectedRevision + 1);
+    assert.deepEqual(clone(result.page), f.page());
+    assert.deepEqual(
+      result.settlement,
+      createRecoveryReadSettlement(f.reserved, f.request, result.page, 100)
+    );
+  } finally {
+    f.close();
+  }
+});
+
+test('prepared read settlement owns copied facts and can be consumed only once', () => {
+  for (const output of ['', 'é🙂abc', 'x'.repeat(16384)]) {
+    const f = fixture(output);
+    const page = f.page();
+    const expected = createRecoveryReadSettlement(f.reserved, f.request, page, 100);
+    const settle = prepareRecoveryReadSettlement(f.reserved, f.request, 100);
+    assert.equal(Object.isFrozen(settle), true);
+    f.reserved.metadata.budget.calls = 999;
+    f.request.beforeBudget.returnedBytes = 999;
+    f.request.arguments.digest = '0'.repeat(64);
+    f.request.maxResultBytes = 1;
+    assert.deepEqual(settle(page), expected);
+    assert.throws(() => settle(page), safe);
+  }
+});
+
+test('prepared read settlement rejects invalid reservations and consumes failed page validation', () => {
+  const f = fixture();
+  for (const time of [-1, NaN, Number.MAX_SAFE_INTEGER, f.reserved.metadata.expiresAt])
+    assert.throws(() => prepareRecoveryReadSettlement(f.reserved, f.request, time), safe);
+  const unreserved = clone(f.reserved);
+  unreserved.metadata.budget.calls = f.request.beforeBudget.calls;
+  assert.throws(() => prepareRecoveryReadSettlement(unreserved, f.request, 100), safe);
+  let touched = 0;
+  const hostile = {
+    get ok() {
+      touched++;
+      throw Error('PRIVATE');
+    },
+  };
+  const proxy = new Proxy(
+    {},
+    {
+      get() {
+        touched++;
+        throw Error('PRIVATE');
+      },
+    }
+  );
+  for (const page of [null, '', {}, hostile, proxy, { ok: true, private: 'x'.repeat(17000) }]) {
+    const settle = prepareRecoveryReadSettlement(f.reserved, f.request, 100);
+    assert.throws(() => settle(page), safe);
+    assert.throws(() => settle(f.page()), safe);
+  }
+  assert.equal(touched, 0);
 });
