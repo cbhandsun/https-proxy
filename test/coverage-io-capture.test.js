@@ -402,18 +402,29 @@ test('PowerShell control consumes only the bounded finish line and EOF without e
     .replaceAll("'", "''");
   const code = `
     $ErrorActionPreference='Stop'
+    $state=@{phase='import'}
+    try {
     $module=Import-Module '${modulePath}' -PassThru -Force
     & $module {
+      param($state)
+      $state.phase='valid'
       Read-HpmCoverageIoCommand -Reader ([IO.StringReader]::new("finish\u0060n"))
+      $index=0
       foreach($text in @('', 'finish', "abort\u0060n", "finish\u0060r\u0060n", "finish\u0060nextra", "finish\u0060n\u0060n", ('x'*9+"\u0060n"), "完成\u0060n")) {
+        $state.phase='invalid_'+$index;$index++
         $refused=$false
         try { Read-HpmCoverageIoCommand -Reader ([IO.StringReader]::new($text)) }
         catch { if($_.Exception.Message -cne 'persistent_io_capture_command_refused'){throw 'unsafe_capture_control_error'};$refused=$true }
         if(-not $refused){throw 'invalid_capture_control_accepted'}
       }
+      $state.phase='disposed'
       $reader=[IO.StringReader]::new('');$reader.Dispose()
       $refused=$false;try {Read-HpmCoverageIoCommand -Reader $reader}catch{if($_.Exception.Message -cne 'persistent_io_capture_command_refused'){throw 'unsafe_reader_error'};$refused=$true}
       if(-not $refused){throw 'failed_reader_accepted'}
+    } $state
+    } catch {
+      [Console]::Error.WriteLine('capture_control_failed:phase='+$state.phase)
+      exit 1
     }
   `;
   const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
@@ -422,7 +433,17 @@ test('PowerShell control consumes only the bounded finish line and EOF without e
     maxBuffer: 4096,
   });
   assert.equal(result.error, undefined);
-  assert.equal(result.status, 0);
+  // Never copy arbitrary PowerShell errors, paths or external input into CI.
+  const phase = /^capture_control_failed:phase=(import|valid|invalid_[0-7]|disposed)\r?\n$/.exec(
+    result.stderr || ''
+  );
+  assert.equal(
+    result.status,
+    0,
+    phase
+      ? `PowerShell control failed at ${phase[1]}`
+      : 'PowerShell control failed before a fixed phase receipt'
+  );
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, '');
 });
