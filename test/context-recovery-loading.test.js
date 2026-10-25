@@ -28,7 +28,10 @@ const {
 } = require('../lib/proxy/context-recovery-storage-contract');
 const { discoverRecoveryStorage } = require('../lib/proxy/context-recovery-storage-discovery');
 const { loadDurableRecoveryRoot } = require('./helpers/recovery-durable-state.cjs');
-const { parseLongRecoveryProgress } = require('./helpers/recovery-long-progress.cjs');
+const {
+  parseLongRecoveryProgress,
+  createLongRecoveryProgress,
+} = require('./helpers/recovery-long-progress.cjs');
 const {
   LIST_EVIDENCE_TOOL: LIST,
   READ_EVIDENCE_TOOL: READ,
@@ -415,13 +418,21 @@ test(
   async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-root-loading-'));
     let storage, sessions;
+    const mark = createLongRecoveryProgress((line) => process.stderr.write(line));
     try {
+      mark('store_open_started');
       storage = await openContextRecoveryStorage({ directory });
+      mark('store_open_finished');
+      mark('seed_started');
       const f = await seed(storage, 'question', undefined, Date.now);
+      mark('seed_finished');
       const scope = createHash('sha256')
         .update('hpm/recovery-root/v1\0' + f.state.rootId)
         .digest('hex');
+      mark('record_load_started');
       const previous = await storage.execute({ operation: 'load', scope });
+      mark('record_load_finished');
+      mark('uncertain_save_started');
       await storage.execute({
         operation: 'save',
         scope,
@@ -436,28 +447,43 @@ test(
           }))
         ),
       });
+      mark('uncertain_save_finished');
+      mark('store_close_started');
       await storage.close();
+      mark('store_close_finished');
+      mark('store_reopen_started');
       storage = await openContextRecoveryStorage({ directory });
+      mark('store_reopen_finished');
       sessions = target(storage, Date.now);
+      mark('continuation_begin_started');
       const result = await sessions.beginAsync(
         { ...f.request, history: [...f.request.history.slice(0, 2), user('retry')] },
         [],
         () => true
       );
+      mark('continuation_begin_finished');
       assert.equal(result.ok, true);
+      mark('list_started');
       const listed = await result.replyAsync(LIST, {});
+      mark('list_finished');
       assert.equal(listed.ok, true);
       assert.deepEqual(JSON.parse(listed.text).sources, []);
+      mark('read_started');
       assert.equal(
         (await result.replyAsync(READ, { sourceId: f.receipt.sourceId, digest: f.receipt.digest }))
           .ok,
         false
       );
+      mark('read_finished');
+      mark('complete_started');
       assert.equal(
         (await result.completeObservedAsync([{ role: 'assistant', content: 'retried' }])).ok,
         true
       );
+      mark('complete_finished');
+      mark('record_load_started');
       const saved = await storage.execute({ operation: 'load', scope });
+      mark('record_load_finished');
       assert.deepEqual(saved.state.root.ledger.sources, []);
       assert.deepEqual(saved.state.stagedSources, previous.state.root.ledger.sources);
       assert.equal(saved.expiresAt, previous.expiresAt);
@@ -466,8 +492,12 @@ test(
         false
       );
     } finally {
+      mark('shutdown_started');
       await sessions?.shutdownAsync();
+      mark('shutdown_finished');
+      mark('store_close_started');
       await storage?.close();
+      mark('store_close_finished');
       const targetPath = path.resolve(directory);
       assert.equal(path.dirname(targetPath), path.resolve(os.tmpdir()));
       assert.ok(path.basename(targetPath).startsWith('hpm-root-loading-'));

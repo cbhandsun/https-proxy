@@ -93,3 +93,33 @@ test('long recovery observation rejects invalid clocks and preserves writer fail
     (cause) => cause === error
   );
 });
+
+test('persistent reopen diagnostics round-trip only fixed operation phases without request or error data', () => {
+  let output = '';
+  const mark = createLongRecoveryProgress(
+    (line) => {
+      output += line;
+    },
+    () => 100
+  );
+  const phases = [
+    'seed_started',
+    'seed_finished',
+    'record_load_started',
+    'record_load_finished',
+    'uncertain_save_started',
+    'uncertain_save_finished',
+    'store_reopen_started',
+    'store_reopen_finished',
+    'reauthorize_started',
+    'reauthorize_finished',
+  ];
+  for (const phase of phases) mark(phase);
+  assert.deepEqual(
+    parseLongRecoveryProgress(output),
+    phases.map((stage) => ({ stage, elapsedMs: 0 }))
+  );
+  for (const value of ['', 'scope=private', 'headers', 'original', 'seed_started\nPRIVATE'])
+    assert.throws(() => mark(value), /invalid_long_recovery_progress/);
+  assert.equal(output.includes('PRIVATE'), false);
+});

@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const http = require('node:http');
 const { fork } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
@@ -73,18 +74,26 @@ function processFixture(file) {
   };
 }
 
-async function publicationInterruption({ transition, boundary, kill, native = false }) {
+async function publicationInterruption({
+  transition,
+  boundary,
+  kill,
+  native = false,
+  graceful = false,
+}) {
+  assert.ok(!graceful || (!kill && (native || boundary === 'ack')));
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-publication-interior-'));
   const file = path.join(directory, 'checkpoint.sqlite');
   const key = randomBytes(32).toString('base64');
   const writer = processFixture('context-recovery-publication-child.cjs');
-  let reader, probe, database, engine;
+  let reader, probe, database, engine, request, httpResult;
   try {
     writer.child.send({
       operation: 'initialize',
       file,
       transition,
       boundary,
+      ...(graceful ? { graceful: true } : {}),
       ...(native ? { native: true } : { key }),
     });
     const ready = await writer.phase('ready');
@@ -101,7 +110,33 @@ async function publicationInterruption({ transition, boundary, kill, native = fa
       probe.exec('PRAGMA busy_timeout=0');
       assert.ok(probe.prepare('SELECT revision FROM recovery_state').all().length > 0);
     }
-    writer.child.send({ operation: 'advance' });
+    if (graceful) {
+      httpResult = new Promise((resolve, reject) => {
+        request = http.get(
+          {
+            host: '127.0.0.1',
+            port: ready.port,
+            path: '/',
+            signal: globalThis.AbortSignal.timeout(5000),
+          },
+          (res) => {
+            let body = '';
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => {
+              body += chunk;
+              if (body.length > 32) {
+                res.destroy();
+                reject(new Error('synthetic_http_output_invalid'));
+              }
+            });
+            res.once('error', reject);
+            res.once('end', () => resolve({ status: res.statusCode, body }));
+          }
+        );
+        request.once('error', reject);
+      });
+      httpResult.catch(() => {});
+    } else writer.child.send({ operation: 'advance' });
     let committed;
     if (boundary === 'commit') {
       await writer.phase('commit-entering');
@@ -123,12 +158,36 @@ async function publicationInterruption({ transition, boundary, kill, native = fa
       writer.messages.some((message) => message.phase === 'acknowledged'),
       false
     );
+    const stopStarted = performance.now();
+    if (graceful) {
+      writer.child.send({ operation: 'stop' });
+      await writer.phase('stopping');
+      assert.equal(
+        writer.messages.some((message) => message.phase === 'stopped'),
+        false
+      );
+      assert.equal(writer.child.exitCode, null);
+    }
     if (kill) await writer.kill();
     if (reader) {
       reader.child.send({ operation: 'release' });
       assert.deepEqual(await reader.exited, { code: 0, signal: null });
     }
-    if (!kill) {
+    if (graceful) {
+      if (boundary === 'ack') writer.child.send({ operation: 'release' });
+      committed = (await writer.phase('commit-durable')).record;
+      await writer.phase('stopped');
+      assert.deepEqual(await writer.exited, { code: 0, signal: null });
+      assert.ok(
+        performance.now() - stopStarted < 4000,
+        'natural stop exceeded original exit bound'
+      );
+      assert.deepEqual(await httpResult, { status: 503, body: 'stopped' });
+      assert.equal(
+        writer.messages.some((message) => message.phase === 'acknowledged'),
+        false
+      );
+    } else if (!kill) {
       if (boundary === 'ack') writer.child.send({ operation: 'release' });
       committed = (await writer.phase('acknowledged')).record;
       assert.deepEqual(await writer.exited, { code: 0, signal: null });
@@ -173,6 +232,7 @@ async function publicationInterruption({ transition, boundary, kill, native = fa
     // timeout cannot witness the worker's connection-local setting.
     if (!native) assert.equal(database.prepare('PRAGMA busy_timeout').get().timeout, 1000);
   } finally {
+    request?.destroy();
     await writer.close();
     await reader?.close();
     probe?.close();

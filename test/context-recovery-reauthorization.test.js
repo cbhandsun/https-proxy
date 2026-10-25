@@ -19,6 +19,7 @@ const {
 const { reauthorizeRecoveryStorage } = require('../lib/proxy/context-recovery-reauthorization');
 const { createRecoverySqliteStore } = require('../lib/proxy/context-recovery-storage-sqlite');
 const { openContextRecoveryStorage } = require('../lib/proxy/context-recovery-storage');
+const { createLongRecoveryProgress } = require('./helpers/recovery-long-progress.cjs');
 const {
   LIST_EVIDENCE_TOOL: LIST,
   READ_EVIDENCE_TOOL: READ,
@@ -656,37 +657,58 @@ test(
   async () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-reauthorization-'));
     let storage, f, restored;
+    const mark = createLongRecoveryProgress((line) => process.stderr.write(line));
     try {
       const store = path.join(directory, 'store');
+      mark('store_open_started');
       storage = await openContextRecoveryStorage({ directory: store });
+      mark('store_open_finished');
+      mark('seed_started');
       f = await fixture({ storage });
+      mark('seed_finished');
+      mark('shutdown_started');
       await f.sessions.shutdownAsync();
+      mark('shutdown_finished');
+      mark('store_close_started');
       await storage.close();
+      mark('store_close_finished');
       storage = undefined;
       assert.equal(
         fs.readFileSync(path.join(store, 'checkpoint.sqlite')).includes(Buffer.from(original)),
         false
       );
+      mark('store_reopen_started');
       storage = await openContextRecoveryStorage({ directory: store });
+      mark('store_reopen_finished');
+      mark('reauthorize_started');
       restored = await reauthorizeRecoveryStorage({
         storage,
         request: f.request,
         authorized: () => true,
       });
+      mark('reauthorize_finished');
       assert.ok(restored);
+      mark('read_started');
       const result = await restored.session.replyAsync(READ, {
         sourceId: f.receipt.sourceId,
         digest: f.receipt.digest,
       });
+      mark('read_finished');
       assert.equal(JSON.parse(result.text).page.text, original);
+      mark('record_load_started');
       const record = await storage.execute({ operation: 'load', scope: f.scope });
+      mark('record_load_finished');
       assert.equal(record.expiresAt, f.state.expiresAt);
       assert.equal(record.state.root.budget.calls, f.state.budget.calls + 1);
       assert.equal(record.state.root.budget.successfulReads, f.state.budget.successfulReads + 1);
     } finally {
+      mark('shutdown_started');
       await restored?.sessions.shutdownAsync();
       await f?.sessions.shutdownAsync();
+      mark('shutdown_finished');
+      mark('store_close_started');
       await storage?.close();
+      mark('store_close_finished');
       const target = path.resolve(directory);
       assert.equal(path.dirname(target), path.resolve(os.tmpdir()));
       assert.ok(path.basename(target).startsWith('hpm-reauthorization-'));

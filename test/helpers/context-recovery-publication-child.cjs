@@ -4,6 +4,9 @@
 const assert = require('node:assert/strict');
 const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
+const http = require('node:http');
+const { createProxyShutdown } = require('../../lib/proxy/server-shutdown');
+const { createStoppingAdmission } = require('../../lib/proxy/stopping-admission');
 const { openContextRecoveryStorage } = require('../../lib/proxy/context-recovery-storage');
 const { createRecoverySqliteStore } = require('../../lib/proxy/context-recovery-storage-sqlite');
 const {
@@ -20,6 +23,7 @@ const phases = ['prepared', 'sending', 'transport-finished', 'uncertain', 'withd
 let initialized = false;
 let advance;
 let release;
+let stop;
 const report = (phase, details = {}) => process.send({ phase, ...details });
 async function initialize(input) {
   if (
@@ -79,6 +83,9 @@ async function initialize(input) {
       } finally {
         committing = false;
       }
+      if (target && input.graceful === true && input.boundary === 'commit') {
+        report('commit-durable', { record: await engine.execute({ operation: 'load', scope }) });
+      }
       if (target && input.boundary === 'ack') {
         const pending = new Promise((resolve) => {
           release = resolve;
@@ -131,7 +138,6 @@ async function initialize(input) {
     assert.deepEqual(await view.startPublicationAsync(), { ok: true });
   report('fixture-sending');
   const before = await engine.execute({ operation: 'load', scope });
-  report('ready', { scope, targetId, record: before });
   advance = async () => {
     if (armed) throw new Error('duplicate advance');
     armed = true;
@@ -143,6 +149,7 @@ async function initialize(input) {
           : input.transition === 'transport-finished'
             ? await view.finishPublicationAsync()
             : await view.withdrawAsync();
+    if (input.graceful === true) return result;
     if (!result.ok) {
       report('publication-failed');
       throw new Error('fixture publication failure');
@@ -153,6 +160,61 @@ async function initialize(input) {
     database?.close();
     process.disconnect();
   };
+  let server;
+  if (input.graceful === true) {
+    let stopping = false;
+    const gate = createStoppingAdmission({
+      isStopping: () => stopping,
+      closeIdleConnections: () => server.closeIdleConnections(),
+      async handleRequest(_req, res) {
+        try {
+          const result = await advance();
+          assert.equal(result.ok, false);
+          res.writeHead(503, { 'Content-Type': 'text/plain' });
+          res.end('stopped');
+        } catch {
+          res.destroy();
+          fail();
+        }
+      },
+    });
+    server = http.createServer(gate.request);
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(0, '127.0.0.1', resolve);
+    });
+    const shutdown = createProxyShutdown({
+      servers: [server],
+      async shutdownRecovery() {
+        const result = await runtime.shutdownAsync();
+        await engine.close();
+        database?.close();
+        return result;
+      },
+      stopPid() {
+        return true;
+      },
+      reportFailure() {
+        report('shutdown-failed');
+      },
+    });
+    stop = async () => {
+      if (stopping) throw new Error('duplicate stop');
+      stopping = true;
+      const pending = shutdown();
+      assert.equal(runtime.inspect().closed, true);
+      report('stopping');
+      assert.equal(await pending, true);
+      report('stopped');
+      process.disconnect();
+    };
+  }
+  report('ready', {
+    scope,
+    targetId,
+    record: before,
+    ...(server ? { port: server.address().port } : {}),
+  });
 }
 function fail() {
   report('failed');
@@ -165,6 +227,8 @@ process.on('message', (input) => {
     void initialize(input).catch(fail);
   } else if (input?.operation === 'advance' && advance) {
     void advance().catch(fail);
+  } else if (input?.operation === 'stop' && stop) {
+    void stop().catch(fail);
   } else if (input?.operation === 'release' && release) {
     release();
     release = undefined;
