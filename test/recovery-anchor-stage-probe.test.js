@@ -1,6 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
 const {
   parseNativeAnchorStages,
   installAnchorStageProbe,
@@ -81,7 +82,7 @@ function fixture(response, elapsed = 20) {
     },
   };
   const load = (file) => {
-    assert.ok(file.endsWith('/context-recovery-anchor.js'));
+    assert.equal(file, path.resolve(__dirname, '../lib/proxy/context-recovery-anchor.js'));
     return original;
   };
   installAnchorStageProbe(

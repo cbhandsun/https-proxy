@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：78e真实锚点分解有效，修正新增单测的Windows路径断言
+
+78e332aefa5e3df254e7ea1a5180cb3b71d3dee9普通40182663013为六项success、unit1/coverage（121136811579/121136811463）failure；两者均为新增探针单测的两项模拟加载器断言硬编码了“/context-recovery-anchor.js”，Windows实际模块路径使用反斜杠，尚未进入模拟执行函数即失败。这是新增测试夹具错误，不是原生开库或五秒产品根因。现用node:path.resolve构造预期完整路径并assert.equal精确比较，校验比原后缀判断更严格；17项本机探针通过、零skip，Windows仍须新SHA，原失败不重跑或覆盖。
+
+独立I/O40182663052/121136811470已success，原50项全部通过、零skip。真实Windows收到78次有效原生报告、零owner-stage-invalid：72次flush为3–21ms，acquire最大1ms、read/write/readback最大0ms，native_total最大22ms、父端dispatch11–36ms，逐次dispatch减total为11–16ms；不能把该差直接当纯启动时间。六次最终持久ACK859–997ms、138次COMMIT最大50ms。普通proxy覆盖率的HTTP窗口也六次ACK1196–1612ms，原生dispatch最大94ms、flush最大79ms、COMMIT最大147ms；但完整proxy覆盖率因上述夹具断言失败，尚无client/frontend后续阶段资格。Windows Rust121136811469已成功：原生26项、应用40项及命令进程1项通过，原严格Clippy和审计门禁通过；npm的既有moderate告警仍按原high门限处理，未升级依赖或放宽门禁。
+
+这些成功样本未重现此前数百毫秒锚点等待，尚不能解释bdc的5002ms或94cc的最终ACK5007ms。78e正式40182663001/source121136811340及原负载I/O40182663014/121136811287仍执行，保留同一作业不重跑；不触发安装。本批只修正跨平台夹具路径，原认证、各ACK/期限、FULL/DELETE/secure_delete及原expiry保持；完整剩余交付范围不变。冻结长测未访问，真实模型0。
+
 ## 2026-10-25：bdc正式四项通过但普通Claude仍5002ms，分解原生锚点阶段而不改持久路径
 
 bdc214f1a4ef41c98d3e68a179a1f71c9a16be6d普通40180688170最终七项success、coverage121130923484失败：Claude long-persistent第二轮request_failed5002ms，requests8/handshakes8/roots1。ownerEpoch2的READ结算196ms，但其预算预扣sequence5耗时1884ms，其中clock write515ms、COMMIT924ms、anchor persist362ms；此前预留sequence3另974ms/COMMIT818ms。重复解析去除减少了实际工作，尚未解除串行持久等待；失败保留、不重跑。三组40180688122各原50项通过、零skip，18次最终ACK811–1699ms，各138次COMMIT最大47/106/44ms，不能覆盖普通失败。
