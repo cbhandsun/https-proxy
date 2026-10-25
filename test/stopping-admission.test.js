@@ -9,12 +9,16 @@ function fixture() {
   const requests = [],
     upgrades = [],
     replies = [];
-  const socket = {
+  const socket = Object.assign(new EventEmitter(), {
     end(value) {
       replies.push(value);
       this.writableEnded = true;
     },
-  };
+    destroy() {
+      this.destroyed = true;
+      queueMicrotask(() => this.emit('close'));
+    },
+  });
   const gate = createStoppingAdmission({
     isStopping: () => stopping,
     handleRequest: (...args) => {
@@ -135,4 +139,118 @@ test('invalid trusted compositions fail before dispatch', () => {
     { isStopping() {}, handleRequest() {}, handleUpgrade: false },
   ])
     assert.throws(() => createStoppingAdmission(input), TypeError);
+});
+
+test('upgrade drain waits for actual close, is idempotent, and refuses late upgrade admission', async () => {
+  const f = fixture();
+  let closes = 0;
+  f.socket.destroySoon = () => {
+    closes++;
+    f.socket.destroyed = true;
+  };
+  const head = Buffer.from('PRIVATE_SYNTHETIC');
+  f.gate.upgrade({}, f.socket, head, {});
+  const drain = f.gate.closeUpgrades();
+  assert.equal(f.gate.closeUpgrades(), drain);
+  let settled = false;
+  void drain.then(() => {
+    settled = true;
+  });
+  await new Promise(setImmediate);
+  assert.equal(settled, false);
+  assert.equal(closes, 1);
+  f.gate.upgrade({}, f.socket, head, {});
+  assert.equal(f.upgrades.length, 1);
+  f.socket.emit('close');
+  assert.equal(await drain, true);
+  f.socket.emit('close');
+  assert.equal(f.socket.listenerCount('close'), 0);
+  assert.equal(closes, 1);
+});
+
+test('upgrade drain preserves admitted HTTP responses before closing their shared connection', async () => {
+  const f = fixture(),
+    first = new EventEmitter(),
+    second = new EventEmitter();
+  f.gate.request({ socket: f.socket }, first, {});
+  f.gate.request({ socket: f.socket }, second, {});
+  f.gate.upgrade({}, f.socket, Buffer.alloc(0), {});
+  let closes = 0;
+  f.socket.destroySoon = () => {
+    closes++;
+    f.socket.emit('close');
+  };
+  const drain = f.gate.closeUpgrades();
+  assert.equal(closes, 0);
+  first.emit('finish');
+  first.emit('close');
+  assert.equal(closes, 0);
+  second.emit('finish');
+  second.emit('close');
+  assert.equal(await drain, true);
+  assert.equal(closes, 1);
+  assert.equal(first.listenerCount('close'), 0);
+  assert.equal(second.listenerCount('finish'), 0);
+});
+
+test('closed, absent and synchronously failed upgrade handlers leave no pending drain observations', async () => {
+  const f = fixture();
+  assert.equal(await f.gate.closeUpgrades(), true);
+  const g = fixture();
+  g.socket.destroyed = true;
+  g.gate.upgrade({}, g.socket, Buffer.alloc(0), {});
+  assert.equal(await g.gate.closeUpgrades(), true);
+  const failure = Error('PRIVATE_UPGRADE');
+  const socket = new EventEmitter();
+  socket.destroy = () => {};
+  const gate = createStoppingAdmission({
+    isStopping: () => false,
+    handleRequest() {},
+    handleUpgrade() {
+      throw failure;
+    },
+  });
+  assert.throws(
+    () => gate.upgrade({}, socket, Buffer.alloc(0), {}),
+    (error) => error === failure
+  );
+  assert.equal(socket.listenerCount('close'), 0);
+  assert.equal(await gate.closeUpgrades(), true);
+});
+
+for (const afterClose of [false, true]) {
+  test(
+    'failed upgrade close cannot authorize successful drain: emitted-close=' + afterClose,
+    async () => {
+      const f = fixture();
+      f.socket.destroySoon = () => {
+        if (afterClose) f.socket.emit('close');
+        throw Error('PRIVATE_CLOSE');
+      };
+      f.gate.upgrade({}, f.socket, Buffer.alloc(0), {});
+      const drain = f.gate.closeUpgrades();
+      assert.equal(await drain, false);
+      assert.equal(f.gate.closeUpgrades(), drain);
+      assert.equal(f.socket.listenerCount('close'), 0);
+    }
+  );
+}
+
+test('natural upgrade close before shutdown and while HTTP is active does not leak a wait callback', async () => {
+  for (const beforeStop of [false, true]) {
+    const f = fixture(),
+      response = new EventEmitter();
+    f.gate.request({ socket: f.socket }, response, {});
+    f.gate.upgrade({}, f.socket, Buffer.alloc(0), {});
+    let drain;
+    if (!beforeStop) drain = f.gate.closeUpgrades();
+    f.socket.destroyed = true;
+    f.socket.emit('close');
+    if (beforeStop) drain = f.gate.closeUpgrades();
+    assert.equal(await drain, true);
+    response.emit('close');
+    response.emit('finish');
+    assert.equal(f.socket.listenerCount('close'), 0);
+    assert.deepEqual(f.replies, []);
+  }
 });

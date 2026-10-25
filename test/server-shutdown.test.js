@@ -401,3 +401,51 @@ test(
     assert.equal(fs.existsSync(path.join(root, '.proxy.pid')), false);
   }
 );
+
+test('shutdown waits for upgrade drain before PID ACK and preserves all upgrade failure verdicts', async () => {
+  for (const mode of ['pending', 'false', 'throw', 'thenable']) {
+    const peer = deferred();
+    let pids = 0,
+      reports = 0,
+      touched = 0;
+    const stop = createProxyShutdown({
+      servers: [],
+      shutdownRecovery: () => ({ ok: true }),
+      shutdownUpgrades() {
+        if (mode === 'false') return false;
+        if (mode === 'throw') throw Error('PRIVATE_CLOSE');
+        if (mode === 'thenable')
+          return {
+            get then() {
+              touched++;
+              throw Error('PRIVATE_THEN');
+            },
+          };
+        return peer.promise;
+      },
+      stopPid() {
+        pids++;
+        return true;
+      },
+      reportFailure() {
+        reports++;
+      },
+    });
+    const pending = stop();
+    assert.equal(stop(), pending);
+    if (mode === 'pending') {
+      await flush();
+      assert.equal(pids, 0);
+      peer.resolve(true);
+    }
+    assert.equal(await pending, mode === 'pending');
+    assert.equal(pids, 1);
+    assert.equal(reports, mode === 'pending' ? 0 : 1);
+    assert.equal(touched, 0);
+  }
+  assert.throws(
+    () =>
+      createProxyShutdown({ servers: [], shutdownUpgrades: 1, stopPid() {}, reportFailure() {} }),
+    TypeError
+  );
+});
