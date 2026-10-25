@@ -13,6 +13,9 @@ mod desktop_shell;
 mod launch_on_login;
 mod management_bridge;
 mod proxy_control;
+mod proxy_control_stdio;
+#[cfg(test)]
+mod proxy_control_stdio_tests;
 mod proxy_health;
 mod proxy_process;
 mod proxy_root;

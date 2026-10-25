@@ -124,6 +124,7 @@ pub fn run_from_process_args() -> bool {
     };
     let mut phase = "request_rejected";
     let result = arguments.and_then(|()| {
+        super::proxy_control_stdio::isolate_control_stdio().map_err(|_| FAILURE)?;
         control_io(
             std::io::stdin().lock(),
             std::io::stdout().lock(),
