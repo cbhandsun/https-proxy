@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：582固定公开文件归档已通过同用户安全认证私有传递
+
+89d8c0001d805cb6b1913aee2d5942a061c6c547的普通Verify40156764926当前七项success、coverage仍在客户端覆盖阶段；正式40156764938的source-gates和独立安装40156770824/121059781694仍在原完整门禁。原b2a27b5的Claude5007ms及历史失败保持，不重跑旧失败、不以在运行或七项成功授完整资格。
+
+为解除582旧布局隔离验收的材料阻塞，通过已确认授权的同一MicrosoftAccount交互会话，以Limited/Idle一次性任务上传固定公开归档。未发布草稿release ID为423120279，唯一tag为hpm-582-public-transfer-22d1b5ef-40af-484c-b4a0-53ac09359f19，target_commitish为89d8c0001d805cb6b1913aee2d5942a061c6c547；唯一asset ID为673959578，名称hpm-582-public-runtime-without-node.zip，1461331字节，GitHub服务端digest精确为sha256:ced2c62a472107876b75dad73bd3161954988fa341f526d918f85b7be6812abb。独立已连接账户再次读取确认作者cbhandsun、draft=true、published_at=null及上述身份；无认证HTTP读取该release返回404。没有发布、覆盖或替换旧625安装器草稿，公开release.yml签名门禁未改。
+
+归档只含原固定manifest声明的582源码、旧native、旧锁文件及原manifest，共585项；此前逐项摘要、ZIP复读和公开源码凭据特征扫描通过。Node与node_modules尚不在其中，不能直接执行或当作完整旧包。现已从https://nodejs.org/dist/v22.22.3/SHASUMS256.txt取得官方清单，win-x64/node.exe摘要与旧manifest精确相等：780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b。旧锁文件为v3、117个package条目，根直接依赖与原manifest相等、无根devDependencies。后续须在隔离runner补齐固定Node、仅按旧锁文件恢复依赖，严格验证下载/解压/运行包身份后，再用最新实际安装目录执行默认worker八阶段迁移与旧版拒写。
+
+首次传递辅助调用在identity阶段失败、未进入草稿创建，原失败回执保留；核对不存在同tag草稿后，改用独立命名且带固定错误分类的辅助调用成功，不据此声称已确定首次失败唯一原因或否定用户授权。两次临时任务和目录均已清理，未导出凭据，未读取或上传数据库、密钥、OS锚点、私有日志或原文。Windows用户主机仅执行公开归档写入和GitHub CLI传递，没有运行产品代理、storage worker或安装器，冻结长测未访问、真实模型0。
+
+本批完成的是私有传递，不是582迁移或回滚资格；最新源码完整CI/安装、五秒稳定性、最新安装582迁移、在途排空/客户端重启、容量/真实24小时、真实provider和自用交付仍需后续证据。
+
 ## 2026-10-24：复现并消除单笔持久变更中的旧行重复解密，五秒稳定性仍待新Windows验证
 
 沿b2a27b5正式Claude long-persistent第二轮5007ms失败继续审查，实际SQLite回归确认：带admission的save-reference-state在同一事务内解密旧状态三次，其中清理检查一次、admission一次、saveReference再一次。空来源和正常来源的新回归在修改前均因3不等于2失败；合并read-source-and-settle另在同一操作内重复打开旧行，新增回归用提交前原模块加载复现2不等于1。失败日志保留，不改变既有断言取绿。
