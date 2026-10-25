@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新4ec842f初始化失败优先：** 三runner各原50/50通过，18次最终ACK1178–3741ms、各138次COMMIT，证明默认启动事务数减少；主unit3原生中断20/20通过。但主Verify七success/coverage121090332601的uncertain/ACK前SIGKILL用例5162.6964ms仍在初始ready（helper75），尚未advance，不覆盖/重跑该失败。本批仅接现有只读onStartup，独立严格解析并复用实际导出的阶段验证器，超时时只输出固定阶段和整数耗时；原负载/期限/断言保持，41项本机全通过，实际Windows阶段待新SHA。d273正式四项已success，其coverage失败保持；7d安装已完成门禁/构建，仍在实际验收，4ec原正式/安装继续。完整剩余范围见状态顶部；冻结长测未访问、模型0。
+
 **最新原子启动封存优先：** 7d主Verify八项已success，review Claude5002ms及正式ready/DPAPI失败保持；d7 Rust完整Windows成功，新增非阻塞夹具回归通过。本批默认owner把既有封存放入已准入的启动事务，减少一笔独立事务；初始锚点意图、原时钟/配额/清理、提交后独立快照认证及OS锚点ACK全部保持，非公开配置/API。空库/1/2/3、旧原文/预算/原到期、严格内部能力、准入/封存/COMMIT及实际SQLite FULL回滚后重开已覆盖，九文件149/149通过；另service/blobs87通过/既有Mac开库1失败/既有Windows限定1skip保留。仍须新SHA完整Windows/原三runner时序/实际安装，不提前授五秒资格；7d安装原作业继续，冻结长测未访问、模型0。完整范围见状态顶部。
 
 **最新真实ETW及失败优先：** d2736ab I/O40166295023/121087926753终态success，原50/50、216对真实刷新，database最大60ms/journal78ms，无碰撞/失败/未完成；traceCompleteness/fiveSecond资格仍false，不能覆盖别的runner超时。7d review coverage121087176443仍Claude首轮fetch5002ms（尚无headers，非最终ACK），另Rust121087176310的chunked夹具10035/WouldBlock失败；本批仅cfg(test)显式恢复accepted socket阻塞模式，新强制非阻塞/分段请求回归先失败后7/7通过，产品期限不变。7d正式原生两项及d主coverage一项均初始ready超过五秒、尚未advance；7d另旧DPAPI包装10秒失败，全部保留。7d主coverage/实际安装继续原作业；五秒尚未解决，完整范围见状态顶部。冻结长测未访问、模型0。

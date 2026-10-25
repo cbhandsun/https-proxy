@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：4ec842f三runner及主unit原生中断通过，coverage初始ready失败保留并细分安全阶段
+
+4ec842f7617274a35597d9a4c537ecf165b9fe66三runner40167116307均终态success（121090333244/121090333292/121090333320），各完整两文件50/50、零skip。18次持久公开最终ACK为1178–3741ms，各138次COMMIT，最大52/53/980ms；相比7d各144次，实际默认worker启动事务减少已生效，但不覆盖历史超时。主unit3/121090332789原生发布内部中断20项全ok、无not ok；同主Verify40167116305最终七success/coverage121090332601失败：uncertain/SIGKILL/OS anchor-before-ACK用例5162.6964ms初始writer.phase('ready')超时，堆栈helper75，尚未advance。该次不能当成已进入中断后恢复失败，不能因另一unit20/20或三runner通过关闭初始化/五秒阻塞。
+
+本批只为现有原生发布夹具增加现有openContextRecoveryStorage.onStartup只读阶段观察，保留开库/默认worker/DPAPI/OS锚点和所有原请求/fixture期限与断言。父端独立小模块先拒绝Proxy/访问器/额外字段/非普通对象，再复用实际导出的createStorageStartupProgress验证阶段及顺序；不假设模块导出私有STORAGE_STARTUP_PHASES数组。只保留闭合阶段名及0..60000整数毫秒，拒绝时间倒退、未知/重复阶段和终态后消息；无原文、路径、key、header、模型响应或底层异常。新诊断解析器首轮泛用数据解析触发Proxy回归后已改为严格自有数据描述符，完整两项纯回归通过且hook零执行，不将其当产品根因。
+
+子进程另报告已观察、已准备、已开始发布三处固定fixture阶段，5秒失败时才组合awaiting/lastFixture/startup/startupElapsedMs，避免在轮询热路径重建诊断对象。原5秒/750ms/15秒与故障见证、精确ACK/revision/expiry/FULL/DELETE均不变，畸形观察只形成固定夹具失败，不能制造绿色。完整COMMIT/发布/格式及观察41/41本机通过、零skip，新增测试进入统一unit发现；Windows阶段回执待新SHA，不宣称已定位或修复全部原生初始化根因。
+
+d273正式40166295033最终四项全success，N08/N09为121091148310/121091148375；该SHA主coverage原生ready失败仍保留。7d安装40166039585/121087243460已通过其自身完整门禁及构建，正在实际同格式/DPAPI阶段，4ec正式/review/安装原作业继续，不取消/重跑，尚无新实际安装结论。既定五秒稳定性、在途排空/客户端重启、容量/真实24小时及到期重开、真实provider和受控交付缺口保持，冻结长测未访问、模型0。
+
 ## 2026-10-25：默认owner原子完成启动与锚定布局封存，减少一笔启动事务
 
 7d56650主Verify40166031041最终八项全部success，但review的Claude5002ms、Rust WouldBlock及正式原生ready/DPAPI超时保持，不能据主CI取绿。d7dbad6 Rust121089299919终态success，新增强制非阻塞/分段请求和原chunked用例均实际Windows通过；完整应用40项、二进制1项、原生20项零ignore，fmt/严格Clippy/审计通过。其余原作业及7d安装40166039585/121087243460继续，不取消/重跑、不授尚未完成资格。

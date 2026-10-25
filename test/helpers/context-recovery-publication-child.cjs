@@ -39,7 +39,12 @@ async function initialize(input) {
   const database = native ? null : new DatabaseSync(input.file, { allowExtension: false });
   if (native) report('native-opening');
   const engine = native
-    ? await openContextRecoveryStorage({ directory: path.dirname(input.file) })
+    ? await openContextRecoveryStorage({
+        directory: path.dirname(input.file),
+        onStartup(progress) {
+          report('native-startup', { progress });
+        },
+      })
     : createRecoverySqliteStore({
         database: {
           prepare: (sql) => database.prepare(sql),
@@ -108,6 +113,7 @@ async function initialize(input) {
     ),
     { ok: true }
   );
+  report('fixture-observed');
   const original = 'synthetic-publication\r\nélève🙂\u0000';
   const view = runtime.begin(
     {
@@ -120,8 +126,10 @@ async function initialize(input) {
   const output = [{ role: 'assistant', content: 'synthetic public answer' }];
   if (input.transition !== 'prepared')
     assert.deepEqual(await view.completePublicAsync(output), { ok: true });
+  report('fixture-prepared');
   if (['transport-finished', 'uncertain'].includes(input.transition))
     assert.deepEqual(await view.startPublicationAsync(), { ok: true });
+  report('fixture-sending');
   const before = await engine.execute({ operation: 'load', scope });
   report('ready', { scope, targetId, record: before });
   advance = async () => {

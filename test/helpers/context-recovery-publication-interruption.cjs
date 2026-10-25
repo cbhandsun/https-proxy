@@ -9,6 +9,7 @@ const { randomBytes } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
 const { setImmediate: nextTurn } = require('node:timers/promises');
 const { DatabaseSync } = require('node:sqlite');
+const { createPublicationStartupProgress } = require('./publication-startup-progress.cjs');
 const { openContextRecoveryStorage } = require('../../lib/proxy/context-recovery-storage');
 const { createRecoverySqliteStore } = require('../../lib/proxy/context-recovery-storage-sqlite');
 
@@ -23,7 +24,16 @@ function processFixture(file) {
   });
   child.stderr.resume(); // Experimental SQLite warning is not protocol output.
   const messages = [];
-  child.on('message', (message) => messages.push(message));
+  const startup = createPublicationStartupProgress();
+  child.on('message', (message) => {
+    if (message?.phase === 'native-startup') {
+      try {
+        startup.observe(message.progress);
+      } catch {
+        messages.push({ phase: 'failed' });
+      }
+    } else messages.push(message);
+  });
   const exited = new Promise((resolve, reject) => {
     child.once('error', reject);
     child.once('exit', (code, signal) => resolve({ code, signal }));
@@ -41,7 +51,12 @@ function processFixture(file) {
         );
         assert.equal(child.exitCode, null);
         assert.equal(child.signalCode, null);
-        assert.ok(performance.now() < deadline, 'fixture phase deadline exceeded');
+        if (performance.now() >= deadline) {
+          const observed = startup.describe();
+          assert.fail(
+            `fixture phase deadline exceeded (awaiting=${name};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs})`
+          );
+        }
         await nextTurn();
       }
       return messages.find((message) => message.phase === name);
