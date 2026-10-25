@@ -114,7 +114,7 @@ function createPersistentIoSummary() {
     snapshot() {
       const ioOperations = operations.snapshot();
       return {
-        schemaVersion: ioOperations ? 2 : 1,
+        schemaVersion: ioOperations ? 3 : 1,
         scope: ioOperations
           ? 'synthetic_sqlite_etw_file_operations'
           : 'synthetic_sqlite_etw_flush_pairs',

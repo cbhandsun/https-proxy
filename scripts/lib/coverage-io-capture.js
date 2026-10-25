@@ -40,10 +40,10 @@ function parseSummary(text) {
   if (typeof text !== 'string' || Buffer.byteLength(text) > 16384) throw fail();
   const value = JSON.parse(text);
   if (JSON.stringify(value) !== text) throw fail();
-  const extended = value?.schemaVersion === 2;
+  const extended = [2, 3].includes(value?.schemaVersion);
   exact(value, extended ? [...KEYS, 'ioOperations'] : KEYS);
   if (
-    value.schemaVersion !== (extended ? 2 : 1) ||
+    ![1, 2, 3].includes(value.schemaVersion) ||
     value.scope !==
       (extended ? 'synthetic_sqlite_etw_file_operations' : 'synthetic_sqlite_etw_flush_pairs') ||
     value.traceCompletenessVerified !== false ||
@@ -81,10 +81,16 @@ function parseSummary(text) {
     value.pairedFlushes !== value.database.count + value.journal.count
   )
     throw fail();
-  if (extended) validateIoOperations(value.ioOperations, value.events, value.pairedFlushes);
+  if (extended)
+    validateIoOperations(
+      value.ioOperations,
+      value.events,
+      value.pairedFlushes,
+      value.schemaVersion === 3
+    );
   return value;
 }
-function validateIoOperations(operations, events, flushes) {
+function validateIoOperations(operations, events, flushes, statuses) {
   exact(operations, ['collisions', 'unfinished', ...OPERATION_TYPES]);
   let completed = 0;
   for (const [name, maximum] of [
@@ -111,8 +117,10 @@ function validateIoOperations(operations, events, flushes) {
         'accessDenied',
         'sharingViolation',
         'lockConflict',
+        ...(statuses ? ['statuses'] : []),
       ]);
       for (const [name, value] of Object.entries(stats)) {
+        if (name === 'statuses') continue;
         if (
           !Number.isSafeInteger(value) ||
           value < 0 ||
@@ -130,12 +138,41 @@ function validateIoOperations(operations, events, flushes) {
         stats.over1000Ms > 0 !== (stats.count > 0 && stats.maxMs >= 1000)
       )
         throw fail();
+      if (statuses) validateStatuses(stats);
       completed += stats.count + stats.nonZeroStatus;
     }
   }
   if (
     completed + flushes > Math.floor(events / 2) ||
     (!completed && !operations.collisions && !operations.unfinished)
+  )
+    throw fail();
+}
+function validateStatuses(stats) {
+  if (!Array.isArray(stats.statuses) || stats.statuses.length > 16) throw fail();
+  let previous = 0,
+    count = 0;
+  const classified = new Map();
+  for (const row of stats.statuses) {
+    exact(row, ['code', 'count']);
+    if (
+      !Number.isSafeInteger(row.code) ||
+      row.code <= previous ||
+      row.code > 0xffffffff ||
+      !Number.isSafeInteger(row.count) ||
+      row.count < 1 ||
+      row.count > 100000
+    )
+      throw fail();
+    previous = row.code;
+    count += row.count;
+    classified.set(row.code, row.count);
+  }
+  if (
+    count !== stats.nonZeroStatus ||
+    (classified.get(0xc0000022) ?? 0) !== stats.accessDenied ||
+    (classified.get(0xc0000043) ?? 0) !== stats.sharingViolation ||
+    (classified.get(0xc0000054) ?? 0) !== stats.lockConflict
   )
     throw fail();
 }

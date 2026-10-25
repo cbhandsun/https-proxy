@@ -11,10 +11,12 @@ const empty = () => ({
   accessDenied: 0,
   sharingViolation: 0,
   lockConflict: 0,
+  statuses: new Map(),
 });
 
 // Only normalized scalar records reach this private accumulator. No file names,
-// pointers, raw statuses or payloads are returned in its observation summary.
+// pointers, raw status strings or payloads are returned. Codes are normalized
+// uint32 values in a bounded histogram, never arbitrary event text.
 function createPersistentIoOperations() {
   const pending = new Map();
   const stats = Object.fromEntries(
@@ -53,9 +55,12 @@ function createPersistentIoOperations() {
         if (elapsed >= 100) value.over100Ms++;
         if (elapsed >= 1000) value.over1000Ms++;
       } else {
+        const unsigned = status >>> 0;
+        if (!value.statuses.has(unsigned) && value.statuses.size >= 16)
+          throw Error('persistent_io_trace_invalid');
+        value.statuses.set(unsigned, (value.statuses.get(unsigned) ?? 0) + 1);
         value.nonZeroStatus++;
         value.maxNonZeroStatusMs = Math.max(value.maxNonZeroStatusMs, elapsed);
-        const unsigned = status >>> 0;
         if (unsigned === 0xc0000022) value.accessDenied++;
         if (unsigned === 0xc0000043) value.sharingViolation++;
         if (unsigned === 0xc0000054) value.lockConflict++;
@@ -64,6 +69,12 @@ function createPersistentIoOperations() {
     },
     snapshot() {
       if (!observed) return null;
+      const copy = (value) => ({
+        ...value,
+        statuses: [...value.statuses]
+          .sort(([a], [b]) => a - b)
+          .map(([code, count]) => ({ code, count })),
+      });
       return {
         collisions,
         unfinished: pending.size,
@@ -71,8 +82,8 @@ function createPersistentIoOperations() {
           OPERATION_TYPES.map((type) => [
             type,
             {
-              database: { ...stats[type].database },
-              journal: { ...stats[type].journal },
+              database: copy(stats[type].database),
+              journal: copy(stats[type].journal),
             },
           ])
         ),

@@ -38,7 +38,7 @@ test('non-flush observations retain duration and non-success classes without man
   summary.observe(event('read', '17', 1900, '1'));
   summary.observe(event('end', '17', 1910, '0x00000103'));
   const value = summary.snapshot();
-  assert.equal(value.schemaVersion, 2);
+  assert.equal(value.schemaVersion, 3);
   assert.equal(value.pairedFlushes, 1);
   assert.equal(value.ioOperations.write.journal.maxMs, 1200);
   assert.equal(value.ioOperations.write.journal.over1000Ms, 1);
@@ -82,6 +82,55 @@ test('IRP reuse by other operations or unrelated files invalidates an old flush 
   reused.observe(event('end', '40', 30, '0'));
   assert.equal(reused.snapshot().ioOperations.collisions, 1);
   assert.equal(reused.snapshot().ioOperations.write.database.count, 0);
+});
+
+test('normalized status histograms are bounded, ordered, exact and compatible with prior schema2 evidence', () => {
+  const summary = fixture();
+  for (const [index, status] of ['259', '-1073741790', '259', '-1'].entries()) {
+    const key = String(index + 200);
+    summary.observe(event('write', key, 10, '1'));
+    summary.observe(event('end', key, 20, status));
+  }
+  const value = summary.snapshot();
+  assert.deepEqual(value.ioOperations.write.database.statuses, [
+    { code: 259, count: 2 },
+    { code: 0xc0000022, count: 1 },
+    { code: 0xffffffff, count: 1 },
+  ]);
+  assert.deepEqual(parseSummary(JSON.stringify(value)), value);
+  const legacy = globalThis.structuredClone(value);
+  legacy.schemaVersion = 2;
+  for (const type of OPERATION_TYPES)
+    for (const stats of Object.values(legacy.ioOperations[type])) delete stats.statuses;
+  assert.deepEqual(parseSummary(JSON.stringify(legacy)), legacy);
+  for (const bad of [
+    [],
+    null,
+    [{ code: 'PRIVATE', count: 4 }],
+    [{ code: 0, count: 4 }],
+    [{ code: 0x100000000, count: 4 }],
+    [{ code: 259, count: 0 }],
+    [
+      { code: 259, count: 1 },
+      { code: 259, count: 3 },
+    ],
+    [{ code: 259, count: 4 }],
+    Array.from({ length: 17 }, (_, index) => ({ code: index + 1, count: 1 })),
+  ]) {
+    const invalid = globalThis.structuredClone(value);
+    invalid.ioOperations.write.database.statuses = bad;
+    assert.throws(() => parseSummary(JSON.stringify(invalid)));
+  }
+  value.ioOperations.write.database.statuses[0].count = 999;
+  assert.equal(summary.snapshot().ioOperations.write.database.statuses[0].count, 2);
+  const bounded = fixture();
+  for (let status = 1; status <= 16; status++) {
+    bounded.observe(event('write', String(status + 200), 10, '1'));
+    bounded.observe(event('end', String(status + 200), 20, String(status)));
+  }
+  assert.equal(bounded.snapshot().ioOperations.write.database.statuses.length, 16);
+  bounded.observe(event('write', '999', 10, '1'));
+  assert.throws(() => bounded.observe(event('end', '999', 20, '17')));
 });
 
 test('extended receipt refuses malformed and inconsistent operation metrics with the original bounds', () => {
