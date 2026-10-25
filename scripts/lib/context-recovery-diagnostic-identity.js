@@ -36,6 +36,7 @@ function diagnosticIdentity() {
     'scripts/lib/context-recovery-native-day.js',
     'scripts/qualify-context-recovery-native-day.js',
     'scripts/lib/context-recovery-capacity-retention.js',
+    'scripts/lib/context-recovery-capacity-failure.js',
   ])
     if (!sources.includes(name)) sources.push(name);
   const digest = createHash('sha256');

@@ -7,6 +7,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const { CAPACITY_PROFILES } = require('../scripts/lib/context-recovery-capacity-workload');
+const { declareCapacityFailure } = require('../scripts/lib/context-recovery-capacity-failure');
 
 function fixture(mode) {
   const filename = path.resolve(__dirname, '../scripts/lib/context-recovery-native-day.js');
@@ -101,12 +102,23 @@ function fixture(mode) {
         assert.equal(profile, CAPACITY_PROFILES[0]);
         assert.deepEqual(Object.keys(options).sort(), ['advance', 'now', 'openStorage']);
         if (mode === 'driver') fail();
+        if (mode === 'driver-diagnostic')
+          throw declareCapacityFailure(
+            Error('PRIVATE_DRIVER_EXCEPTION'),
+            { operation: 'begin', stage: 'begin', commandIndex: 23, scheduledMs: 1800000 },
+            { operation: 'close', stage: 'storage-close', commandIndex: 24, scheduledMs: 1800000 }
+          );
         for (let index = 0; index < (mode === 'count' ? 12 : 13); index++) {
           const storage = await options.openStorage();
           if (index === 0) await options.advance(0);
           if (index === 12) await options.advance(86100000);
           await storage.close();
         }
+        if (mode === 'report-diagnostic')
+          return declareCapacityFailure(
+            { ...expected, qualified: false },
+            { operation: 'complete', stage: 'complete', commandIndex: 18, scheduledMs: 1800000 }
+          );
         return mode === 'report' ? { ...expected, completedTurns: 287 } : expected;
       },
     },
@@ -192,6 +204,37 @@ test('missing native helper refuses before starting the workload', async () => {
   assert.equal(f.opened(), 0);
   assert.equal(
     f.receipts.some((r) => r.event === 'native_day_started'),
+    false
+  );
+});
+
+test('day failure emits only branded fixed driver stages and never the original exception', async () => {
+  const f = fixture('driver-diagnostic');
+  await assert.rejects(f.run(), { message: 'native_capacity_day_failed' });
+  const event = f.receipts.at(-1);
+  assert.equal(event.event, 'native_day_failed');
+  assert.equal(event.stage, 'capacity');
+  assert.deepEqual(
+    { ...event.driverFailure.primary },
+    { operation: 'begin', stage: 'begin', commandIndex: 23, scheduledMs: 1800000 }
+  );
+  assert.deepEqual(
+    { ...event.driverFailure.cleanup },
+    { operation: 'close', stage: 'storage-close', commandIndex: 24, scheduledMs: 1800000 }
+  );
+  assert.equal(JSON.stringify(f.receipts).includes('PRIVATE'), false);
+  assert.equal(f.opened(), 0);
+});
+
+test('day preserves branded driver failure metadata even when report validation rejects', async () => {
+  const f = fixture('report-diagnostic');
+  await assert.rejects(f.run(), { message: 'native_capacity_day_failed' });
+  const event = f.receipts.at(-1);
+  assert.equal(event.driverFailure.primary.stage, 'complete');
+  assert.equal(event.driverFailure.primary.commandIndex, 18);
+  assert.equal(f.calls.includes('wait'), false);
+  assert.equal(
+    f.receipts.some((item) => item.event === 'native_day_completed'),
     false
   );
 });

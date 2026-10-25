@@ -292,3 +292,164 @@ test('abort-refusal cannot become successful final observation when shutdown sti
   );
   assert.deepEqual(observed, { completed: 1, aborted: 1, closed: 1 });
 });
+
+test('driver preserves first failed operation separately from cleanup without leaking exceptions', async (t) => {
+  const { capacityFailureReceipt } = require('../scripts/lib/context-recovery-capacity-failure');
+  const f = fixture(t, { failClose: true });
+  f.options.advance = () => {
+    throw new Proxy(
+      {},
+      {
+        get() {
+          throw Error('PRIVATE_EXCEPTION_GETTER');
+        },
+      }
+    );
+  };
+  let rejected;
+  try {
+    await exercisePersistentCapacityProfile(profile(), f.options);
+  } catch (error) {
+    rejected = error;
+  }
+  assert.equal(rejected.message, safe.message);
+  assert.equal(rejected.cause, undefined);
+  const receipt = capacityFailureReceipt(rejected);
+  assert.deepEqual(
+    { ...receipt.primary },
+    { operation: 'advance', stage: 'advance', commandIndex: 2, scheduledMs: 0 }
+  );
+  assert.deepEqual(
+    { ...receipt.cleanup },
+    { operation: 'close', stage: 'storage-close', commandIndex: 3, scheduledMs: 0 }
+  );
+  assert.equal(JSON.stringify(receipt).includes('PRIVATE'), false);
+  assert.equal(f.observed.opens, 1);
+  assert.equal(f.observed.closes, 1);
+});
+
+test('successful driver reports carry no failure proof and do not add report fields', async (t) => {
+  const { capacityFailureReceipt } = require('../scripts/lib/context-recovery-capacity-failure');
+  const f = fixture(t);
+  const report = await exercisePersistentCapacityProfile(profile(), f.options);
+  assert.equal(capacityFailureReceipt(report), null);
+  assert.deepEqual(report, exerciseCapacityProfile(profile()));
+});
+
+for (const mode of [
+  'initialize',
+  'configure',
+  'begin',
+  'complete',
+  'reply',
+  'shutdown',
+  'close',
+  'shutdown-close',
+]) {
+  test(
+    'fixed driver diagnostic identifies ' + mode + ' without altering cleanup or retry',
+    async () => {
+      const {
+        capacityFailureReceipt,
+      } = require('../scripts/lib/context-recovery-capacity-failure');
+      const file = path.resolve(
+        __dirname,
+        '../scripts/lib/context-recovery-capacity-persistent.js'
+      );
+      const originalRequire = createRequire(file);
+      let completed = 0,
+        closed = 0,
+        opens = 0;
+      const result = (name) => ({
+        ok: mode !== name && !(mode === 'shutdown-close' && name === 'shutdown'),
+        code: 'PRIVATE_RESULT_CODE',
+      });
+      const runtime = {
+        configureAsync: async () => result('configure'),
+        shutdownAsync: async () => result('shutdown'),
+        async beginAsync() {
+          if (mode === 'begin') return result('begin');
+          return {
+            ok: true,
+            snapshotId: 'private-root',
+            inspect: () => ({ visibleSources: completed }),
+            completeObservedAsync: async () => {
+              completed++;
+              return result('complete');
+            },
+            replyAsync: async () => result('reply'),
+            abortAsync: async () => ({ ok: true }),
+          };
+        },
+      };
+      const loaded = { exports: {} };
+      const load = vm.runInThisContext(
+        '(function(require,module,exports){' + fs.readFileSync(file, 'utf8') + '\n})',
+        { filename: file }
+      );
+      load(
+        (name) =>
+          name === '../../lib/proxy/context-recovery-sessions'
+            ? {
+                createContextRecoverySessions: () => runtime,
+                initializeContextRecoveryStorage: async () => result('initialize'),
+              }
+            : originalRequire(name),
+        loaded,
+        loaded.exports
+      );
+      const options = {
+        now: () => 1000,
+        advance: () => {},
+        openStorage() {
+          opens++;
+          return {
+            execute() {},
+            close() {
+              closed++;
+              if (mode === 'close' || mode === 'shutdown-close') throw Error('PRIVATE_CLOSE');
+            },
+          };
+        },
+      };
+      let owner;
+      try {
+        owner = await loaded.exports.exercisePersistentCapacityProfile(
+          profile({ turns: 1, recoveries: mode === 'reply' ? 1 : 0, reopenEvery: 0 }),
+          options
+        );
+      } catch (error) {
+        owner = error;
+        assert.equal(error.message, safe.message);
+      }
+      const receipt = capacityFailureReceipt(owner);
+      const expected = {
+        initialize: 'storage-initialize',
+        configure: 'storage-configure',
+        begin: 'begin',
+        complete: 'complete',
+        reply: 'reply',
+        shutdown: 'runtime-shutdown',
+        close: 'storage-close',
+        'shutdown-close': 'runtime-shutdown',
+      };
+      assert.equal(receipt.primary.stage, expected[mode]);
+      if (mode === 'shutdown-close') {
+        assert.equal(receipt.cleanup.stage, 'storage-close');
+        assert.equal(receipt.cleanup.commandIndex, receipt.primary.commandIndex);
+      } else
+        assert.equal(
+          receipt.cleanup,
+          undefined,
+          'successful storage close must not become a second failure'
+        );
+      assert.equal(receipt.primary.scheduledMs, 0);
+      assert.ok(receipt.primary.commandIndex > 0);
+      assert.equal(JSON.stringify(receipt).includes('PRIVATE'), false);
+      assert.equal(JSON.stringify(receipt).includes('private-root'), false);
+      assert.equal(opens, 1);
+      assert.equal(closed, 1);
+      if (['begin', 'complete', 'reply'].includes(mode)) assert.equal(owner.qualified, false);
+    }
+  );
+}

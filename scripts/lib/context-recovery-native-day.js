@@ -10,6 +10,7 @@ const { exercisePersistentCapacityProfile } = require('./context-recovery-capaci
 const { createCapacityRealtimeClock } = require('./context-recovery-capacity-clock');
 const { createCapacityRetentionWitness } = require('./context-recovery-capacity-retention');
 const { diagnosticIdentity } = require('./context-recovery-diagnostic-identity');
+const { capacityFailureReceipt } = require('./context-recovery-capacity-failure');
 
 const failure = () => new Error('native_capacity_day_failed');
 
@@ -37,6 +38,7 @@ async function runNativeCapacityDay(directory, emit) {
   let storeOpens = 0;
   let storeCloses = 0;
   let stage = 'capacity';
+  let driverFailure = null;
   async function open() {
     verifyIdentity();
     const attempt = ++storeOpens;
@@ -77,6 +79,7 @@ async function runNativeCapacityDay(directory, emit) {
         };
       },
     });
+    driverFailure = capacityFailureReceipt(raw);
     const report = parseCapacityReports([raw], [0])[0];
     emit({ event: 'capacity_profile_result', report, storeOpens, storeCloses });
     assert.equal(report.qualified, true);
@@ -114,8 +117,15 @@ async function runNativeCapacityDay(directory, emit) {
     };
     emit(result);
     return result;
-  } catch {
-    emit({ event: 'native_day_failed', stage, storeOpens, storeCloses });
+  } catch (error) {
+    const diagnostic = capacityFailureReceipt(error) ?? driverFailure;
+    emit({
+      event: 'native_day_failed',
+      stage,
+      storeOpens,
+      storeCloses,
+      ...(diagnostic ? { driverFailure: diagnostic } : {}),
+    });
     throw failure();
   }
 }

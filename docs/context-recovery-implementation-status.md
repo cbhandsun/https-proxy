@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：为容量失败保留固定操作阶段与清理证据；6c完整Verify通过而正式仍失败
+
+6c2ba7b198589ff8ffc05327359eb4276fb4f837完整普通40193700610已八项success，coverage121169903580的12次最终持久ACK1251–2508ms；三组40193700606各原50项success、18次ACK821–1337ms，原负载I/O40193700608与独立I/O40193700623也success。但正式40193700604/source121169903193在原legacy DPAPI互通测试约10663ms报context_recovery_key_unavailable（native_protect完成16ms，legacy_unprotect明确ETIMEDOUT10645ms），egress成功、场景跳过，不授正式/安装资格。其完整source中的六次客户端最终ACK1934、2414、1917、3227、2796、3952ms均在五秒内，也不能覆盖互通失败。
+
+父4d600fd普通40193434105同样八项success，但正式40193434321/source121169111512终态失败：Chat首轮headers/body4831ms、最终publication_wait_failed5004ms；Responses首轮request_failed5002ms、2次合成请求，后续场景跳过。Chat同请求发布sending的COMMIT784ms，最终保存COMMIT314ms；Responses预算COMMIT1978ms/线程CPU零，LIST结算551ms、第二次预扣621ms，仍有多笔串行物理持久等待。不能把6c普通或独立时序通过当作全部历史失败已消失，不重跑，不触发安装。f59c0e4普通40194260042的七项success/coverage及正式40194260057/source仍在执行。
+
+原日档30分钟失败的旧回执只有capacity和开/关计数，没有具体失败命令。现容量驱动在原固定序列执行中仅保留首个已观察失败的操作名、固定子阶段、命令序号及计划offset；关闭时另保留首个清理失败。这些元数据由独立严格模块验证并以WeakMap绑定自有结果或固定错误，只有原对象可取，JSON仿造、外部异常、Proxy/getter/继承/隐藏/未知字段及非法/越界数字均不能生成回执。未读取或保存原异常的message/stack/cause，不保留请求、原文、模型响应、scope、路径或密钥；成功报告字段不变。
+
+子阶段区分storage-open/admission/initialize/configure、advance/begin/reply/complete/abort、runtime-shutdown/storage-close。日档组合在失败时输出这些固定诊断，也能保留返回不合格报告后的既有证明；原generic失败错误、异常拒绝、关闭顺序、无重试、画像/读页/预扣与所有原期限保持。诊断身份把新模块纳入已提交通配符及未提交候选的显式哈希列表，不能遗漏新依赖。本批没有运行日档入口、重开旧库、修改冻结任务/源码或追加旧回执；不会事后给旧失败补造原因。
+
+本机七个实际文件59/59通过、零skip，含真实文件SQLite、原时钟/留存与固定画像、开库诊断及明确的阶段模拟；新测试已核实进入统一CI发现。专项捕获并修复了新增诊断中“runtime shutdown失败但storage close成功仍被标成第二失败”的问题：回归先红，修复后单失败无伪cleanup、双失败分别记录，主操作与后续清理错误不互相覆盖，私有异常getter不被执行。1605份JS语法、全树Lint零错误/5项既有警告、修改文件格式、CI/release治理通过。开发时修改脚本的旧格式匹配断言及Lint初始无效赋值均已纠正，不作为产品根因或最终验证；失败日志保留。
+
+本批提升实际失败的可定位性，未证明修复旧日档或Windows物理等待根因。下一步继续核对当前正式结果并定位原五秒/原生互通阻塞，以独立局部环境验证具体失败路径，不自动重启已失败日档。最新实际安装升级回滚/旧布局拒写、两端实际重启、完整在途排空、固定容量及真实24小时/到期后重开、逐端额度安全预留后的真实provider、私有自用交付与受控启用均在完整范围。模型0。
+
 ## 2026-10-25：核实原日档已在30分钟失败；6c三组原Windows时序通过
 
 纠正此前只有启动回执和名义24小时截止、尚未核实终态的状态：2026-10-25T12:36:16Z经用户原SSH共享连接只读查询同名计划任务，State=Ready、LastTaskResult=1、LastRunTime=2026-10-24T10:24:42Z。其安全progress在2026-10-24T10:54:50.667Z已停止写入，末个tick为10:54:50.659Z、scheduledMs=1800000、elapsedMs=1800241.744，随后明确native_day_failed/stage=capacity/storeOpens=1/storeCloses=0。没有native_day_completed、root_expiry_elapsed或expired_reopen_passed；真实连续24小时和到期后双重开库均未通过，不能继续把它当作正在等待完成的日档。

@@ -8,6 +8,8 @@ const {
 const { nativeReaderPromise } = require('../../lib/proxy/context-recovery-reader-result');
 const { createCapacityWorkload, parseProfile } = require('./context-recovery-capacity-workload');
 
+const { declareCapacityFailure } = require('./context-recovery-capacity-failure');
+
 const fail = () => new Error('persistent_capacity_execution_failed');
 
 function capabilities(input, names) {
@@ -45,6 +47,23 @@ async function exercisePersistentCapacityProfile(input, options) {
   if (types.isAsyncFunction(host.now)) throw fail();
   let runtime;
   let storage;
+  let operation = 'open',
+    stage = 'storage-open',
+    commandIndex = 0,
+    scheduledMs = 0;
+  let primary, cleanup;
+  let observedInCommand;
+  function note() {
+    observedInCommand = true;
+    const current = { operation, stage, commandIndex, scheduledMs };
+    if (!primary) primary = current;
+    else if (
+      !cleanup &&
+      ['runtime-shutdown', 'storage-close'].includes(stage) &&
+      (primary.commandIndex !== commandIndex || primary.stage !== stage)
+    )
+      cleanup = current;
+  }
   async function close() {
     const previousRuntime = runtime;
     const previousStorage = storage;
@@ -52,25 +71,30 @@ async function exercisePersistentCapacityProfile(input, options) {
     let failed = false;
     try {
       if (previousRuntime) {
+        stage = 'runtime-shutdown';
         const result = await previousRuntime.shutdownAsync();
         if (result?.ok !== true) throw fail();
       }
     } catch {
+      note();
       failed = true;
     }
     try {
       if (previousStorage) {
+        stage = 'storage-close';
         const pending = previousStorage.close();
         const result = nativeReaderPromise(pending) ? await pending : pending;
         if (result !== undefined) throw fail();
       }
     } catch {
+      note();
       failed = true;
     }
     if (failed) throw fail();
   }
   async function open() {
     if (runtime || storage) throw fail();
+    stage = 'storage-open';
     const pending = host.openStorage();
     const opened = nativeReaderPromise(pending) ? await pending : pending;
     // Retain a plain owned close capability even if another field is malformed,
@@ -91,10 +115,13 @@ async function exercisePersistentCapacityProfile(input, options) {
       )
         storage = { close: slot.value.bind(opened) };
     }
+    stage = 'storage-admission';
     capabilities(opened, ['execute', 'close']);
     storage = opened;
     runtime = createContextRecoverySessions({ now: host.now });
+    stage = 'storage-initialize';
     if ((await initializeContextRecoveryStorage(runtime, storage)).ok !== true) throw fail();
+    stage = 'storage-configure';
     if ((await runtime.configureAsync(true)).ok !== true) throw fail();
   }
   async function execute(command) {
@@ -137,17 +164,31 @@ async function exercisePersistentCapacityProfile(input, options) {
   try {
     for (;;) {
       const step = failed ? workload.throw(reply) : workload.next(reply);
-      if (step.done) return step.value;
+      if (step.done) return declareCapacityFailure(step.value, primary, cleanup);
+      operation = step.value.operation;
+      observedInCommand = false;
+      commandIndex++;
+      stage = operation;
+      if (operation === 'advance') scheduledMs = step.value.offsetMs;
       try {
         reply = await execute(step.value);
+        if (
+          ['begin', 'reply', 'complete'].includes(operation) &&
+          reply &&
+          typeof reply === 'object' &&
+          !types.isProxy(reply) &&
+          Object.getOwnPropertyDescriptor(reply, 'ok')?.value === false
+        )
+          note();
         failed = false;
       } catch {
+        if (!observedInCommand) note();
         reply = fail();
         failed = true;
       }
     }
   } catch {
-    throw fail();
+    throw declareCapacityFailure(fail(), primary, cleanup);
   }
 }
 
