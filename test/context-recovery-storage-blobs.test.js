@@ -3250,3 +3250,182 @@ for (const mode of ['new-nonce', 'corrupt-envelope', 'changed-admission']) {
     }
   });
 }
+
+for (const outputs of [[], [''], ['é🙂\u0000'], ['large-synthetic-'.repeat(4096)]]) {
+  test(
+    'fresh reference quota avoids reopening its own sealed manifest: bytes=' +
+      Buffer.byteLength(outputs.join('')),
+    (t) => {
+      const f = fixture();
+      try {
+        const state = checkpoint(outputs);
+        const reference = referenceStateFromCheckpoint(state);
+        const decode = TextDecoder.prototype.decode;
+        let opens = 0;
+        t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+          const text = Reflect.apply(decode, this, args);
+          const value = JSON.parse(text);
+          if (
+            value.kind === 'recovery-referenced-checkpoint' &&
+            value.reference?.metadata.rootId === reference.metadata.rootId
+          )
+            opens++;
+          return text;
+        });
+        assert.equal(f.execute(stateRequest(f, reference, checkpointPayloads(state))).revision, 1);
+        assert.equal(
+          opens,
+          0,
+          'fresh sealed bytes need no decrypt inside the original transaction'
+        );
+        f.snapshot();
+        assert.equal(opens, 1, 'post-COMMIT snapshot independently authenticates the manifest');
+        opens = 0;
+        assert.equal(f.execute(stateRequest(f, reference, [], 1)).revision, 2);
+        assert.equal(opens, 1, 'only the prior manifest is decrypted during a later write');
+        f.snapshot();
+        assert.equal(opens, 2, 'no reuse survives the write callback');
+        assert.deepEqual(f.load().state, state);
+        assert.equal(f.load().expiresAt, reference.metadata.expiresAt);
+      } finally {
+        f.close();
+      }
+    }
+  );
+}
+
+for (const mode of [
+  'envelope',
+  'revision',
+  'createdAt',
+  'expiresAt',
+  'scope',
+  'blob-missing',
+  'blob-id',
+  'blob-created',
+  'blob-expiry',
+  'blob-size',
+]) {
+  test('fresh reference quota rechecks stored bytes and inventory before COMMIT: ' + mode, () => {
+    let inject = false;
+    const f = fixture((sql) => {
+      if (!inject || !sql.startsWith('INSERT INTO recovery_state')) return;
+      inject = false;
+      const row = f.row();
+      const mutations = {
+        revision: 'UPDATE recovery_state SET revision=revision+1 WHERE scope=?',
+        createdAt: 'UPDATE recovery_state SET created_at=created_at+1 WHERE scope=?',
+        expiresAt: 'UPDATE recovery_state SET expires_at=expires_at-1 WHERE scope=?',
+        scope: "UPDATE recovery_state SET scope='" + sha('changed-fresh-scope') + "' WHERE scope=?",
+        'blob-missing': 'DELETE FROM recovery_blob WHERE scope=?',
+        'blob-id':
+          "UPDATE recovery_blob SET blob_id='" + sha('changed-fresh-blob') + "' WHERE scope=?",
+        'blob-created': 'UPDATE recovery_blob SET created_at=created_at+1 WHERE scope=?',
+        'blob-expiry': 'UPDATE recovery_blob SET expires_at=expires_at-1 WHERE scope=?',
+        'blob-size': "UPDATE recovery_blob SET envelope=x'00' WHERE scope=?",
+      };
+      if (mode === 'envelope') {
+        const bytes = Buffer.from(row.envelope);
+        bytes[bytes.length - 1] ^= 1;
+        f.database
+          .prepare('UPDATE recovery_state SET envelope=? WHERE scope=?')
+          .run(bytes, f.scope);
+      } else f.database.prepare(mutations[mode]).run(f.scope);
+    });
+    try {
+      const state = checkpoint('fresh inventory synthetic');
+      const reference = referenceStateFromCheckpoint(state);
+      f.execute(stateRequest(f, reference, checkpointPayloads(state)));
+      const prior = f.row();
+      const header = f.database.prepare('SELECT * FROM recovery_header').get();
+      const blobs = f.database.prepare('SELECT * FROM recovery_blob').all();
+      inject = true;
+      assert.throws(() => f.execute(stateRequest(f, reference, [], 1)), unavailable);
+      assert.deepEqual(f.row(), prior, 'failure rolls back the reference revision and envelope');
+      assert.deepEqual(f.database.prepare('SELECT * FROM recovery_header').get(), header);
+      assert.deepEqual(f.database.prepare('SELECT * FROM recovery_blob').all(), blobs);
+      assert.equal(f.execute(stateRequest(f, reference, [], 1)).revision, 2);
+      assert.deepEqual(f.load().state, state);
+      f.snapshot();
+    } finally {
+      f.close();
+    }
+  });
+}
+
+test('fresh reference quota reauthenticates a valid replacement and never lends proof to snapshots', (t) => {
+  let inject = false;
+  const f = fixture((sql) => {
+    if (!inject || !sql.startsWith('INSERT INTO recovery_state')) return;
+    inject = false;
+    const row = f.row();
+    const opened = f.cipher.open(f.context(row), row.envelope);
+    f.database
+      .prepare('UPDATE recovery_state SET envelope=? WHERE scope=?')
+      .run(f.cipher.seal(f.context(row), opened), f.scope);
+  });
+  try {
+    const state = checkpoint('fresh replacement synthetic');
+    const reference = referenceStateFromCheckpoint(state);
+    f.execute(stateRequest(f, reference, checkpointPayloads(state)));
+    const decode = TextDecoder.prototype.decode;
+    let opens = 0;
+    t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+      const text = Reflect.apply(decode, this, args);
+      const value = JSON.parse(text);
+      if (value.kind === 'recovery-referenced-checkpoint') opens++;
+      return text;
+    });
+    inject = true;
+    assert.equal(f.execute(stateRequest(f, reference, [], 1)).revision, 2);
+    assert.equal(
+      opens,
+      3,
+      'prior, injected replacement construction, then independent replacement authentication'
+    );
+    const row = f.row();
+    const bytes = Buffer.from(row.envelope);
+    bytes[bytes.length - 1] ^= 1;
+    f.database.prepare('UPDATE recovery_state SET envelope=? WHERE scope=?').run(bytes, f.scope);
+    for (let attempt = 0; attempt < 2; attempt++) assert.throws(() => f.snapshot(), unavailable);
+    f.database
+      .prepare('UPDATE recovery_state SET envelope=? WHERE scope=?')
+      .run(row.envelope, f.scope);
+    f.snapshot();
+    assert.equal(opens, 4, 'a later snapshot still independently authenticates');
+  } finally {
+    f.close();
+  }
+});
+
+test('fresh reference quota still rejects the fifth live root and rolls back its payload', () => {
+  const f = fixture();
+  try {
+    const state = checkpoint('fresh quota bounded synthetic');
+    const reference = referenceStateFromCheckpoint(state);
+    for (let index = 0; index < 4; index++) {
+      const scope = sha('fresh-quota-root-' + index);
+      assert.equal(
+        f.execute({ ...stateRequest(f, reference, checkpointPayloads(state)), scope }).revision,
+        1
+      );
+    }
+    const rows = f.database.prepare('SELECT * FROM recovery_state ORDER BY scope').all();
+    const blobs = f.database.prepare('SELECT * FROM recovery_blob ORDER BY scope').all();
+    const header = f.database.prepare('SELECT * FROM recovery_header').get();
+    assert.throws(
+      () => f.execute(stateRequest(f, reference, checkpointPayloads(state))),
+      unavailable
+    );
+    assert.deepEqual(f.database.prepare('SELECT * FROM recovery_state ORDER BY scope').all(), rows);
+    assert.deepEqual(f.database.prepare('SELECT * FROM recovery_blob ORDER BY scope').all(), blobs);
+    assert.deepEqual(f.database.prepare('SELECT * FROM recovery_header').get(), header);
+    assert.equal(f.snapshot().scopes.length, 4);
+    assert.equal(
+      f.execute({ ...stateRequest(f, reference, [], 1), scope: rows[0].scope }).revision,
+      2
+    );
+  } finally {
+    f.close();
+  }
+});
