@@ -647,3 +647,93 @@ test('prepared read settlement rejects invalid reservations and consumes failed 
   }
   assert.equal(touched, 0);
 });
+
+test('combined read does not decrypt the same immutable payload again while persisting coverage', (t) => {
+  for (const output of ['', 'é🙂abc', 'x'.repeat(16384)]) {
+    const f = engineFixture(output);
+    const decode = TextDecoder.prototype.decode;
+    let opens = 0;
+    const mock = t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+      const text = Reflect.apply(decode, this, args);
+      const value = JSON.parse(text);
+      if (
+        value.version === 1 &&
+        typeof value.output === 'string' &&
+        typeof value.sourceId === 'string'
+      )
+        opens++;
+      return text;
+    });
+    try {
+      const result = f.store.execute(f.request);
+      assert.equal(opens, 1);
+      assert.equal(result.revision, f.request.expectedRevision + 1);
+      assert.deepEqual(clone(result.page), f.page());
+      opens = 0;
+      f.store.snapshot();
+      assert.equal(opens, 1, 'the independent snapshot still authenticates the payload again');
+    } finally {
+      mock.mock.restore();
+      f.close();
+    }
+  }
+});
+
+test('combined payload reuse rejects changed ciphertext or AAD and rolls back without an ACK', () => {
+  for (const field of ['envelope', 'scope', 'blob_id', 'created_at', 'expires_at']) {
+    let armed = false,
+      reads = 0;
+    const f = engineFixture(undefined, (options) =>
+      createRecoverySqliteStore({
+        ...options,
+        database: {
+          ...options.database,
+          prepare(sql) {
+            const statement = options.database.prepare(sql);
+            if (sql !== 'SELECT * FROM recovery_blob WHERE scope=? AND blob_id=?') return statement;
+            return {
+              get(...args) {
+                const row = statement.get(...args);
+                if (!armed || ++reads !== 2) return row;
+                const changed = { ...row };
+                if (field === 'envelope') {
+                  changed.envelope = Buffer.from(row.envelope);
+                  changed.envelope[changed.envelope.length - 1] ^= 1;
+                } else if (field === 'scope' || field === 'blob_id')
+                  changed[field] = 'f'.repeat(64);
+                else changed[field]++;
+                return changed;
+              },
+            };
+          },
+        },
+      })
+    );
+    try {
+      const before = f.row(),
+        header = f.header();
+      const payloads = f.database.prepare('SELECT * FROM recovery_blob').all();
+      armed = true;
+      f.time(101);
+      assert.throws(() => f.store.execute(f.request), safe);
+      assert.equal(reads, 2);
+      assert.equal(f.commits, 0);
+      assert.deepEqual(f.row(), before);
+      assert.deepEqual(f.header(), header);
+      assert.deepEqual(f.database.prepare('SELECT * FROM recovery_blob').all(), payloads);
+      armed = false;
+      assert.equal(f.store.execute(f.request).revision, f.request.expectedRevision + 1);
+      const blob = f.database.prepare('SELECT * FROM recovery_blob').get();
+      const corrupt = Buffer.from(blob.envelope);
+      corrupt[corrupt.length - 1] ^= 1;
+      f.database.prepare('UPDATE recovery_blob SET envelope=?').run(corrupt);
+      assert.throws(
+        () => f.store.snapshot(),
+        safe,
+        'no authenticated plaintext survives into a later snapshot'
+      );
+    } finally {
+      f.close();
+    }
+  }
+});
