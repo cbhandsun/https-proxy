@@ -13,11 +13,20 @@ function ConvertFrom-HpmFileIoBinary {
             if ($text.Contains([char]0)) { throw 'invalid' }
             return @{ FileObject = '0x' + [BitConverter]::ToUInt64($bytes,0).ToString('x16'); FileName = $text }
         }
-        # Unreported operations can only invalidate a previous IRP association.
-        # Read their fixed header; never export their variable path payload.
-        if ($Opcode -in @(64,72,77)) {
+        # FileIOCreateTraceData: x64 UTF-16 OpenPath begins at 36/32 bytes.
+        # The caller filters it before exporting a fixed file class.
+        if ($Opcode -eq 64) {
             if ($Version -notin @(2,3)) { throw 'invalid' }
-            $minimum = if ($Opcode -eq 64) { if ($Version -eq 2) {38} else {34} } else { if ($Version -eq 2) {46} else {42} }
+            $offset = if ($Version -eq 2) {36} else {32}
+            if ($bytes.Length -lt $offset+2 -or $bytes.Length % 2 -ne 0 -or $bytes[-1] -ne 0 -or $bytes[-2] -ne 0) { throw 'invalid' }
+            $text = [Text.UnicodeEncoding]::new($false,$false,$true).GetString($bytes,$offset,$bytes.Length-$offset-2)
+            if ($text.Contains([char]0)) { throw 'invalid' }
+            return @{ IrpPtr = '0x' + [BitConverter]::ToUInt64($bytes,0).ToString('x16'); OpenPath = $text }
+        }
+        # Other variable-path operations only invalidate an old IRP association.
+        if ($Opcode -in @(72,77)) {
+            if ($Version -notin @(2,3)) { throw 'invalid' }
+            $minimum = if ($Version -eq 2) {46} else {42}
             if ($bytes.Length -lt $minimum -or $bytes.Length % 2 -ne 0 -or $bytes[-1] -ne 0 -or $bytes[-2] -ne 0) { throw 'invalid' }
             return @{ IrpPtr = '0x' + [BitConverter]::ToUInt64($bytes,0).ToString('x16') }
         }

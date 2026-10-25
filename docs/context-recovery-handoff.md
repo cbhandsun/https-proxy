@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新c8完整结果与打开状态盲区优先：** c8普通40218317986八项success、十二次ACK1238–2431ms，三组时序十八次1083–2379ms；正式40218317987/source仍因三端5001/5009/5001ms失败，保留、不派发安装。实际COMMIT仍有秒级/线程CPU零等待。本批补原ETW遗漏的FileIo/Create固定布局与有限状态统计，schema4兼容旧1/2/3、只输出固定文件类别，原门禁/持久/期限不变；三文件43项本机通过，不授Windows或五秒资格。默认worker新key分段一例44ms只证明观察生效，不解释旧长尾。新24h暂缓、冻结环境未访问、模型0，完整范围及证据见实施状态顶部。
+
 **最新默认worker写密钥分段优先：** 00普通七项/coverage、正式及2ea原负载I/O仍执行，旧首次ready/五秒/控制失败保留。为2ea已实测key_write2882ms加入默认worker固定开文件/ACL/写入/flush/关闭/回读阶段，owner仅组合、安装证据白名单同步；原wx/ACL/身份/write→fsync→close/精确回读/pin顺序、认证和全部期限不变。五文件50通过、1项既有Windows限定skip，含六类步骤失败/句柄清理和实际新阶段两种解析器往返；新SHA仍须Windows确认，不宣称根因修复。完整范围见状态顶部，新24h暂缓、冻结环境不动、模型0。
 
 **最新2ea首次ready双失败与忙等修复优先：** 2ea普通七通过/coverage失败于非原生HTTP夹具首次ready5044ms；正式失败于原生HTTP首次ready5043ms，完整阶段见key_write2882ms、原生ready4286ms，均未advance/COMMIT。不可把key_write直接当fsync原因。旧PowerShell invalid_6及全部五秒失败保留。父夹具等待IPC的setImmediate忙等在250ms内调度约2万次，现改事件等待，原绝对五秒、负载/并发/SQL探针及ACK等全部门保持；32/32本机通过，新SHA待Windows。5856普通八/正式四已通过；7d原负载I/O已观察到358/184ms物理flush长尾但不同于5001ms失败场次，不授稳定性资格。完整范围见状态顶部；新24h暂缓、冻结环境不动、模型0。

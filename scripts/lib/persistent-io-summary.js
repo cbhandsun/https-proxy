@@ -82,7 +82,8 @@ function createPersistentIoSummary() {
         if (pending.delete(key)) collisions++;
         operations.invalidate(key);
         // For flush events the file key is supplied as name, never a path.
-        const kind = names.get(pointer(value.name));
+        const kind = type === 'create' ? value.name : names.get(pointer(value.name));
+        if (type === 'create' && !['database', 'journal'].includes(kind)) throw fail();
         if (!kind) return;
         if (pending.size + operations.size() >= 8192) throw fail();
         if (type === 'flush') pending.set(key, { kind, start: value.timeMs });
@@ -114,7 +115,7 @@ function createPersistentIoSummary() {
     snapshot() {
       const ioOperations = operations.snapshot();
       return {
-        schemaVersion: ioOperations ? 3 : 1,
+        schemaVersion: ioOperations ? 4 : 1,
         scope: ioOperations
           ? 'synthetic_sqlite_etw_file_operations'
           : 'synthetic_sqlite_etw_flush_pairs',

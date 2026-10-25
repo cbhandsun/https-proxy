@@ -40,10 +40,10 @@ function parseSummary(text) {
   if (typeof text !== 'string' || Buffer.byteLength(text) > 16384) throw fail();
   const value = JSON.parse(text);
   if (JSON.stringify(value) !== text) throw fail();
-  const extended = [2, 3].includes(value?.schemaVersion);
+  const extended = [2, 3, 4].includes(value?.schemaVersion);
   exact(value, extended ? [...KEYS, 'ioOperations'] : KEYS);
   if (
-    ![1, 2, 3].includes(value.schemaVersion) ||
+    ![1, 2, 3, 4].includes(value.schemaVersion) ||
     value.scope !==
       (extended ? 'synthetic_sqlite_etw_file_operations' : 'synthetic_sqlite_etw_flush_pairs') ||
     value.traceCompletenessVerified !== false ||
@@ -86,12 +86,14 @@ function parseSummary(text) {
       value.ioOperations,
       value.events,
       value.pairedFlushes,
-      value.schemaVersion === 3
+      value.schemaVersion >= 3,
+      value.schemaVersion === 4
     );
   return value;
 }
-function validateIoOperations(operations, events, flushes, statuses) {
-  exact(operations, ['collisions', 'unfinished', ...OPERATION_TYPES]);
+function validateIoOperations(operations, events, flushes, statuses, creates) {
+  const operationTypes = OPERATION_TYPES.filter((type) => creates || type !== 'create');
+  exact(operations, ['collisions', 'unfinished', ...operationTypes]);
   let completed = 0;
   for (const [name, maximum] of [
     ['collisions', 100000],
@@ -104,7 +106,7 @@ function validateIoOperations(operations, events, flushes, statuses) {
     )
       throw fail();
   }
-  for (const type of OPERATION_TYPES) {
+  for (const type of operationTypes) {
     exact(operations[type], ['database', 'journal']);
     for (const stats of Object.values(operations[type])) {
       exact(stats, [

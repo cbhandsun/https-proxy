@@ -1,6 +1,14 @@
 'use strict';
 
-const OPERATION_TYPES = Object.freeze(['read', 'write', 'set-info', 'delete', 'cleanup', 'close']);
+const OPERATION_TYPES = Object.freeze([
+  'read',
+  'write',
+  'set-info',
+  'delete',
+  'cleanup',
+  'close',
+  'create',
+]);
 const empty = () => ({
   count: 0,
   maxMs: 0,

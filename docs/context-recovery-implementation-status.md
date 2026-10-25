@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：c8完整普通通过但正式三次五秒失败，补齐文件打开状态采集盲区
+
+c8aa981962467f772ec8924a674d5d23b95e0891普通40218317986已终态八项success，完整coverage121244181927的十二次持久最终ACK为1238–2431ms；三组时序40218318057三项success、十八次1083–2379ms。正式40218317987/source121244181892仍为failure，Chat/Responses/Claude持久首轮分别5001/5009/5001ms、均两次合成请求，后续context-recovery跳过；正式失败不能由上述通过覆盖。Chat预算预扣2406ms中COMMIT2154ms、线程CPU零；Responses多笔COMMIT为1125/956/1011/782ms、线程CPU零；Claude另一次预扣COMMIT1622ms。独立原负载I/O40218317995在旧解密10016ms超时终止，legacyPhase=unobserved只能证明未取得第一个固定标记，不能断言未进入DPAPI。最新安装分支尚未创建，正式门禁失败时禁止派发。
+
+默认worker的新写密钥阶段已在Windows实测：一例key_write261→305ms，共44ms，其中ACL31ms、flush12ms；这证明有限分段生效，不覆盖原2882/3993ms长尾。源级在途HTTP和发布中断已有通过，最新实际安装版的完整在途HTTP/WS、升级回滚/582迁移拒写和两端重启保留仍需正式验收。
+
+继续排查时发现现有ETW对FileIo/Create（opcode64）仅作IRP失效处理，无法保留打开时的错误状态。因此旧记录中无共享冲突不能排除打开冲突。SQLite Windows官方os_win.c有可重试I/O错误及线性延迟路径，但尚无本项目失败同场证据，不能归因杀毒、共享冲突或据此更改安全设置。本批按微软PerfView FileIOCreateTraceData的固定x64 v2/v3布局解码OpenPath，仅在采集层匹配原合成数据库/journal路径后导出固定分类；无需先收到name事件，不将create当成flush、不把任意路径输出到回执。无关操作仍使旧IRP失效，未知版本、坏UTF-16、嵌入NUL、歧义字段和原库存超界拒绝。
+
+有界summary改为schema4并增加create统计，schema1/2/3仍按各自原字段精确验证；状态码最多16种、原事件/库存/trace/输出上限、冲突拒绝、源码绑定和清理门保持。traceCompletenessVerified/fiveSecondQualified仍false，原负载、期限、认证、预算预扣、独立ACK、FULL/DELETE/secure_delete和原生锚点不改。新回归先在旧实现拒绝create记录而失败；实现后包括实际PowerShell二进制/命名解码、过滤、失败配对、异常和边界在内三文件43项全通过、零skip。1614份JS语法、全树Lint零错误/5项既有警告、CI/release治理及变更JS格式检查通过；未改变依赖或锁文件。此批修复采集盲区，尚未修复五秒超时，下一步须新SHA Windows实际采集再定位具体等待。
+
+旧冻结环境未访问，新24h按用户要求暂缓、模型调用0；Windows独立短测环境是否可用仍待用户答复，不因等待改用该主机承载负载。全目标未完成，所有旧失败保留。
+
 ## 2026-10-25：为已实测2882ms的写密钥阶段补默认worker有限分段，不改变写盘或期限
 
 00bdbd77f0e94c3afd098717e64a14394dcabc77普通40217720354当前七项success/coverage仍执行，正式40217720454/source仍执行。2ea原负载I/O40216726505也仍执行；旧作业继续观察不重跑。2ea普通文件SQLite首次ready5044ms和正式原生首次ready5043ms均保留，后者完整时间线已确定key_write594→3476ms为2882ms、存储ready4286ms，但尚不能区分具体子操作，不把整段误称fsync或ACL根因。夹具事件等待修复的Windows资格亦未取得。

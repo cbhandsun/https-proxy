@@ -61,7 +61,22 @@ function ConvertTo-HpmPersistentIoRecord {
             if (-not $hadName) { return }; $name = ''
         } else { if ($State.names.Count -ge 256) { throw 'refused' }; [void]$State.names.Add($key) }
         [ordered]@{ type='name'; key=$key; timeMs=$TimeMs; name=$name } | ConvertTo-Json -Compress
-    } elseif ($Opcode -in @(64,72,77)) {
+    } elseif ($Opcode -eq 64) {
+        $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr'])
+        # An open failure need not produce a name event. Filter the documented
+        # path here, then export only the fixed database/journal class.
+        $pathFields = @(@('OpenPath','FileName') | Where-Object { $fields.ContainsKey($_) })
+        if ($pathFields.Count -gt 1) { throw 'persistent_io_payload_shape_refused' }
+        $name = if ($pathFields.Count -eq 1) { [string]$fields[$pathFields[0]] } else { '' }
+        if ($name -notmatch '(?i)[\\/]hpm-wbipc-core-[a-z0-9]{6}[\\/]context[\\/]checkpoint\.sqlite(?:-journal)?\z') {
+            if ($State.irps.Remove($key)) { [ordered]@{type='invalidate';key=$key;timeMs=$TimeMs;name=''} | ConvertTo-Json -Compress }
+            return
+        }
+        if ($State.irps.Count -ge 8192) { throw 'refused' }
+        [void]$State.irps.Add($key)
+        $kind = if ($name.EndsWith('-journal',[StringComparison]::OrdinalIgnoreCase)) { 'journal' } else { 'database' }
+        [ordered]@{type='create';key=$key;timeMs=$TimeMs;name=$kind} | ConvertTo-Json -Compress
+    } elseif ($Opcode -in @(72,77)) {
         $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr'])
         if ($State.irps.Remove($key)) { [ordered]@{type='invalidate';key=$key;timeMs=$TimeMs;name=''} | ConvertTo-Json -Compress }
     } elseif ($Opcode -in @(65,66,67,68,69,70,71,73,74,75)) {
