@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：消除锚定只读快照同一header的重复解密，保留独立事务和第二次读取
+
+5856d1a普通40215124915七项success、coverage仍执行，正式40215124902/source仍执行，原负载I/O40215124924仍执行。独立I/O40215124904/job121234497160已success，六次最终ACK809–909ms；153对成功flush最大database32/journal39ms，无已观察的访问/共享/锁冲突状态，但traceCompletenessVerified/fiveSecondQualified均false，不能解释1f正式三个五秒失败。1f普通40213983615已八项完整通过，十二次最终ACK1247–2491ms、COMMIT最大136ms；正式5005/5002/5003ms及全部历史失败继续保留。
+
+继续快照重复解密排查，真实文件SQLite的新计数回归先失败：同一个锚定snapshot只读事务解密header两次。现事务准入仍独立读取并认证header、核对committed tag和blob归属；仅为该只读事务复制已认证header密文字节与固定AAD关联，传给其私有回调。snapshot仍第二次读取实际header：仅字节及store ID完全相等才复用已认证值，否则重新认证；schema、字段范围及committed tag仍逐次核对。复制字节避免数据库桥返回共享可变数组时替换已认证证据。任何证明不跨COMMIT、失败或下一snapshot；普通写事务不分配此副本、不复用此证明。每次owner操作后的独立快照及锚点flush/精确ACK均保留，未减少SQL读、写盘、提交或锚点次数。
+
+空库/已存合成原文都从每快照两次降为一次header解密，连续两个snapshot累计两次，数据库字节不变，FULL/DELETE保持。新增第二次读取的坏密文、store ID变化、schema变化及共享密文字节被修改均拒绝，回滚后原字节与下一快照精确相等。首轮五文件106/106通过，补空库后该文件34/34通过。扩大blob/组合读取结算/anchor owner/SQLite/clock五文件188通过、一项实际原生worker在Mac开库失败；另用默认open和固定阶段诊断确认停在key_protect_started，engine_prepare_started未达，不能用此失败验证或授予本批Windows资格，不新增skip。失败保留，后续仍须新SHA完整Windows。
+
+1612份JS语法、全树Lint零错误/5项既有警告及CI/release治理通过；新增回归位于原统一unit及client覆盖率文件，没有依赖/锁文件或时间门限改动。这是已复现重复解密的产品修复，不能宣称消除Windows物理写盘长尾或五秒超时。下一步收齐原负载I/O和新SHA完整门禁，依据证据推进具体超时及最新安装/升级回滚/582迁移拒写和两端验收。完整容量、安装版在途HTTP/WS、额度预留后真实provider及私有自用交付保持未完成；新24h暂缓，旧冻结环境不动，模型0。
+
 ## 2026-10-25：1f26027正式再次复现三个五秒请求超时，补齐时钟写入线程CPU观察
 
 1f2602772e0aefc43254b7978ce94d38bc166031普通40213983615已七项success，coverage121231028277仍在client覆盖率阶段，不能称完整通过。默认原生HTTP正常停机十项及原生发布内部中断二十项全部通过，旧解密在unit/coverage约2272/3271ms通过，全部新增安全阶段观察回归在Windows实际执行。普通基础覆盖率中的六次最终持久ACK为2331/2491、2126/2224、1946/2211ms；尚不覆盖该作业后续客户端覆盖率或正式结果。

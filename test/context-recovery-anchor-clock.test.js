@@ -888,3 +888,79 @@ test('maintenance authenticates corrupt roots and blobs before mutation or ackno
         assert.equal(fs.readFileSync(f.file).equals(attacked), true);
       }
 });
+
+for (const populated of [false, true])
+  test(
+    'anchored snapshots decrypt identical header bytes once per independent readonly transaction: populated=' +
+      populated,
+    (t) => {
+      const f = fixture(t);
+      if (populated) f.save('synthetic snapshot original');
+      const decode = TextDecoder.prototype.decode;
+      let headerOpens = 0;
+      t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+        const text = Reflect.apply(decode, this, args);
+        const value = JSON.parse(text);
+        if (Object.keys(value).sort().join(',') === 'lastTime,schema') headerOpens++;
+        return text;
+      });
+      const before = f.bytes();
+      const first = f.snapshot();
+      assert.equal(headerOpens, 1);
+      assert.deepEqual(f.snapshot(), first);
+      assert.equal(headerOpens, 2, 'a later snapshot authenticates independently');
+      assert.deepEqual(f.bytes(), before);
+      assert.equal(f.db().prepare('PRAGMA synchronous').get().synchronous, 2);
+      assert.equal(f.db().prepare('PRAGMA journal_mode').get().journal_mode, 'delete');
+    }
+  );
+
+for (const change of ['envelope', 'store-id', 'schema', 'aliased-ciphertext']) {
+  test('snapshot header reuse refuses changed locked bytes or AAD: ' + change, (t) => {
+    const f = fixture(t);
+    f.save('synthetic original');
+    const expected = f.snapshot(),
+      before = f.bytes();
+    const db = f.db(),
+      prepare = db.prepare.bind(db);
+    let reads = 0,
+      first;
+    t.mock.method(db, 'prepare', (sql) => {
+      const statement = prepare(sql);
+      if (sql !== 'SELECT store_id, envelope FROM recovery_header WHERE singleton=1')
+        return statement;
+      return {
+        get() {
+          reads++;
+          const row = statement.get();
+          if (reads === 1) first = row;
+          if (reads === 2) {
+            if (change === 'schema') db.exec('PRAGMA user_version=2');
+            else if (change === 'store-id') {
+              prepare('UPDATE recovery_header SET store_id=? WHERE singleton=1').run(
+                'f'.repeat(32)
+              );
+              return statement.get();
+            } else {
+              row.envelope[row.envelope.length - 1] ^= 1;
+              if (change === 'aliased-ciphertext') {
+                first.envelope.set(row.envelope);
+                return first;
+              }
+              return row;
+            }
+          }
+          return row;
+        },
+      };
+    });
+    assert.throws(() => f.snapshot(), safe);
+    assert.equal(reads, 2);
+    assert.deepEqual(f.bytes(), before, 'failed snapshot rolls back injected mutations');
+    assert.deepEqual(
+      f.snapshot(),
+      expected,
+      'no authentication result survives the failed transaction'
+    );
+  });
+}
