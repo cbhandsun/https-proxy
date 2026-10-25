@@ -9,6 +9,9 @@ on:
       - lib/proxy/context-recovery-read-settlement.js
       - lib/proxy/context-recovery-root-reader.js
       - lib/proxy/context-recovery-root-storage.js
+      - lib/proxy/context-recovery-storage-sqlite.js
+      - test/context-recovery-read-settlement.test.js
+      - test/context-recovery-storage-blobs.test.js
       - test/context-recovery-codex-summary.test.js
   workflow_dispatch:
 

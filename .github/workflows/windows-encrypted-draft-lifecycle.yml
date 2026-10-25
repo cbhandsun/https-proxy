@@ -68,6 +68,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
           node current/scripts/download-nsis-draft.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Unpublished baseline acquisition refused.' }
+      - name: Acquire fixed private 582 public runtime and official Node
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node current/scripts/receive-legacy-runtime.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Legacy runtime acquisition refused.' }
+      - name: Restore old locked dependencies and verify complete 582 identity
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./current/scripts/restore-legacy-runtime.ps1
       - run: rustup default stable
       - name: Require all current candidate gates
         id: candidate_gates
@@ -105,6 +116,12 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           ./current/scripts/qualify-nsis-lifecycle.ps1 -BaselineDirectory './old-baseline' -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentSha $env:CURRENT_SHA -EncryptedRecovery -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json'
+      - name: Qualify installed default-worker 582 migration and old-reader refusal
+        env:
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./current/scripts/qualify-nsis-installed-legacy-582.ps1 -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json' -CurrentSha $env:CURRENT_SHA
       - name: Qualify installed Codex and Claude with isolated synthetic upstream
         env:
           CURRENT_SHA: ${{ github.sha }}
@@ -127,5 +144,6 @@ jobs:
             'Direct unpublished baseline encrypted lifecycle result: ' + $env:JOB_STATUS
             'Draft and asset metadata, anonymous denial, installer SHA256 and identity are checked before acceptance.'
             'No baseline, installer, keys, DBs or synthetic originals are uploaded or published.'
-            'Not qualified: 582-reader old-layout migration, failure-injection matrix, real users, cross-device keys, 24-hour capacity, providers, signing or production activation.'
+            '582 migration is qualified only by a successful installed_legacy_582_finished receipt; acquisition alone grants no migration qualification.'
+            'Not qualified: full failure-injection matrix, real users, cross-device keys, 24-hour capacity, providers, signing or production activation.'
           ) >> $env:GITHUB_STEP_SUMMARY

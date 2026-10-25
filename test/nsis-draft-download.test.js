@@ -230,7 +230,17 @@ test('direct encrypted workflow retains full gates and private artifact workflow
   assert.match(workflow, /workflow_call:/);
   assert.match(workflow, /permissions: \{\}/);
   assert.equal((workflow.match(/contents: write/g) || []).length, 1);
-  assert.equal((workflow.match(/GH_TOKEN:/g) || []).length, 1);
+  assert.equal((workflow.match(/GH_TOKEN:/g) || []).length, 2);
+  const tokenSteps = workflow.split(/(?=^ {6}-)/m).filter((step) => step.includes('GH_TOKEN:'));
+  assert.equal(tokenSteps.length, 2);
+  for (const step of tokenSteps) {
+    assert.match(step, /GH_TOKEN: \$\{\{ github.token \}\}/);
+    assert.match(
+      step,
+      /node current\/scripts\/(?:download-nsis-draft|receive-legacy-runtime)\.cjs/
+    );
+    assert.doesNotMatch(step, /qualify-|restore-legacy-runtime/);
+  }
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /path: current/);
   assert.match(workflow, /npm run verify/);
@@ -273,4 +283,39 @@ test('failed candidate diagnostics retain the failed gate and cannot authorize b
   assert.ok(build);
   assert.doesNotMatch(build, /if:|continue-on-error/);
   assert.ok(workflow.indexOf('npm run verify') < workflow.indexOf('Diagnose isolated native open'));
+});
+
+test('582 installed migration is ordered after full gates and actual same-format install, before original clients', () => {
+  const workflow = fs.readFileSync(
+    '.github/workflows/windows-encrypted-draft-lifecycle.yml',
+    'utf8'
+  );
+  const steps = [
+    'receive-legacy-runtime.cjs',
+    'restore-legacy-runtime.ps1',
+    'npm run verify',
+    'tauri.js build',
+    'qualify-nsis-lifecycle.ps1',
+    'qualify-nsis-installed-legacy-582.ps1',
+    'qualify-nsis-installed-clients.ps1',
+  ].map((name) => workflow.indexOf(name));
+  assert.ok(steps.every((offset) => offset > 0));
+  assert.ok(steps.every((offset, index) => index === 0 || offset > steps[index - 1]));
+  const migration = workflow
+    .split('      - name: Qualify installed default-worker 582 migration and old-reader refusal')[1]
+    .split('      - name: Qualify installed Codex')[0];
+  assert.doesNotMatch(migration, /if:|continue-on-error|GH_TOKEN|secrets/);
+  assert.match(migration, /-CurrentSha \$env:CURRENT_SHA/);
+  const files = discoverTestFiles(path.resolve(__dirname, '..'));
+  for (const name of [
+    'legacy-runtime-transfer.test.js',
+    'legacy-runtime-archive.test.js',
+    'installed-legacy-receipt.test.js',
+    'installed-legacy-entry.test.js',
+  ]) {
+    assert.ok(
+      files.some((file) => file.endsWith(name)),
+      name
+    );
+  }
 });
