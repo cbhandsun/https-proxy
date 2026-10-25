@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新真实ETW及失败优先：** d2736ab I/O40166295023/121087926753终态success，原50/50、216对真实刷新，database最大60ms/journal78ms，无碰撞/失败/未完成；traceCompleteness/fiveSecond资格仍false，不能覆盖别的runner超时。7d review coverage121087176443仍Claude首轮fetch5002ms（尚无headers，非最终ACK），另Rust121087176310的chunked夹具10035/WouldBlock失败；本批仅cfg(test)显式恢复accepted socket阻塞模式，新强制非阻塞/分段请求回归先失败后7/7通过，产品期限不变。7d正式原生两项及d主coverage一项均初始ready超过五秒、尚未advance；7d另旧DPAPI包装10秒失败，全部保留。7d主coverage/实际安装继续原作业；五秒尚未解决，完整范围见状态顶部。冻结长测未访问、模型0。
+
 **最新7d56650独立时序优先：** 三runner40166031015全部success，各原50/50、零skip，18次持久最终ACK1191–2438ms、432次COMMIT最大521ms；普通/正式/安装原作业仍在门禁，不覆盖历史超时。I/O121087151445原50/50后在首条待选记录decode-record失败（unmapped/位图0），无刷新资格；本批仅补微软ProcessingErrorData/EventPayload标准表示和唯一版本/载荷拒绝回归，九项先失败后通过，真实Windows尚待新SHA。70正式失败堆栈已明确是初始ready（helper75），尚未advance，不是已进入转换的中断失败。完整范围见状态顶部；不重跑旧失败、不取消现有验收、冻结长测未访问、模型0。
 
 **最新同事务认证复用及70正式失败优先：** 70f3991普通CI八项success，但正式40164281984/source121082016694的publication transport-finished/release inside COMMIT见证阶段超时（5463.6451ms、19通过/1失败），不重跑、不提高fixture原期限；454正式Claude最终ACK5018ms和全部旧失败保持。70 I/O原50/50通过，29,622,272字节记录/383,676事件，但193,517待选记录五个命名字段均无、无有效配对，终态decode-summary失败，不授刷新资格。本批产品把prune已认证的目标reference元数据在同事务中以完整密文/AAD标签精确复用，正常/空source两次认证降为一次；换nonce重新认证、损坏/预算变化拒绝回滚，原门禁/期限/持久语义保持。相关105项全通过，blobs63通过/既有Mac开库1失败保留；独立经典x64 FileIo解码九项通过，实际Windows/安装与有效I/O仍待新SHA。完整范围见实施状态顶部；冻结长测未访问、模型0。

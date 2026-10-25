@@ -145,7 +145,7 @@ pub(crate) fn read_proxy_health_direct_on_port(
 fn fixture_connection(listener: std::net::TcpListener) -> TcpStream {
     listener.set_nonblocking(true).unwrap();
     let until = Instant::now() + Duration::from_secs(1);
-    let mut socket = loop {
+    let socket = loop {
         match listener.accept() {
             Ok((socket, _)) => break socket,
             Err(error)
@@ -156,6 +156,14 @@ fn fixture_connection(listener: std::net::TcpListener) -> TcpStream {
             Err(_) => panic!("owned health fixture connection failed"),
         }
     };
+    fixture_request(socket)
+}
+
+#[cfg(test)]
+fn fixture_request(mut socket: TcpStream) -> TcpStream {
+    // Winsock accept inherits the nonblocking listener mode. Timeouts only
+    // bound blocking I/O, so normalize this owned fixture before reading.
+    socket.set_nonblocking(false).unwrap();
     socket
         .set_read_timeout(Some(Duration::from_secs(1)))
         .unwrap();
@@ -181,6 +189,56 @@ mod tests {
     use super::*;
     use std::net::TcpListener;
     use std::thread;
+    #[test]
+    fn accepted_fixture_handles_a_fragmented_request_after_a_nonblocking_listener() {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let (accepted, ready) = std::sync::mpsc::channel();
+        let writer = thread::spawn(move || {
+            // Report acceptance before the final request bytes are sent. On
+            // Windows the accepted socket inherits the listener's mode.
+            listener.set_nonblocking(true).unwrap();
+            let until = Instant::now() + Duration::from_secs(1);
+            let socket = loop {
+                match listener.accept() {
+                    Ok((socket, _)) => break socket,
+                    Err(error)
+                        if error.kind() == std::io::ErrorKind::WouldBlock
+                            && Instant::now() < until =>
+                    {
+                        thread::sleep(Duration::from_millis(1));
+                    }
+                    Err(_) => panic!("owned fragmented fixture connection failed"),
+                }
+            };
+            // Force the inherited Windows mode on every platform so the
+            // regression also exercises the failure on Unix.
+            socket.set_nonblocking(true).unwrap();
+            accepted.send(()).unwrap();
+            let mut socket = fixture_request(socket);
+            socket.write_all(b"complete").unwrap();
+        });
+        let mut client = TcpStream::connect((Ipv4Addr::LOCALHOST, port)).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(1)))
+            .unwrap();
+        client
+            .set_write_timeout(Some(Duration::from_secs(1)))
+            .unwrap();
+        client
+            .write_all(b"GET /v1/local/health HTTP/1.1\r\n")
+            .unwrap();
+        ready.recv_timeout(Duration::from_secs(1)).unwrap();
+        thread::sleep(Duration::from_millis(20));
+        client
+            .write_all(b"Host: 127.0.0.1\r\nConnection: close\r\n\r\n")
+            .unwrap();
+        let mut response = Vec::new();
+        client.read_to_end(&mut response).unwrap();
+        writer.join().unwrap();
+        assert_eq!(response, b"complete");
+    }
+
     #[test]
     fn recognizes_the_chunked_health_reply_used_by_the_node_management_endpoint() {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
