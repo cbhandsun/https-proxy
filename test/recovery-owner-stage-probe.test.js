@@ -391,6 +391,10 @@ test('commit CPU parser refuses partial, negative, fractional, unsafe and mispla
     threadCpuSystemUs: 0,
   };
   assert.deepEqual(parseStageLine(JSON.stringify(row)), row);
+  assert.deepEqual(parseStageLine(JSON.stringify({ ...row, stage: 'sqlite_clock_write' })), {
+    ...row,
+    stage: 'sqlite_clock_write',
+  });
   for (const invalid of [
     { ...row, threadCpuUserUs: -1 },
     { ...row, threadCpuSystemUs: 0.5 },
@@ -566,4 +570,58 @@ test('owner scope distinguishes reopened sequence numbers and delayed events wit
     assert.throws(() => createOwnerDiagnosticScope(invalid), {
       message: 'recovery_stage_probe_failed',
     });
+});
+
+test('watermark write reports only its own thread CPU and preserves the exact statement failure', () => {
+  const f = fixture();
+  const cause = Error('PRIVATE_WATERMARK_FAILURE');
+  const samples = [
+    { user: 10, system: 20 },
+    { user: 13, system: 25 },
+    { user: 30, system: 40 },
+    { user: 30, system: 40 },
+  ];
+  let failed = false;
+  const statement = {
+    run(value) {
+      assert.equal(this, statement);
+      assert.equal(value, 'PRIVATE');
+      if (failed) throw cause;
+      return f.result;
+    },
+  };
+  f.engineModule.createRecoverySqliteStore = ({ database }) => ({
+    execute() {
+      return database
+        .prepare('UPDATE recovery_header SET envelope=? WHERE singleton=1')
+        .run('PRIVATE');
+    },
+    snapshot() {},
+  });
+  installOwnerStageProbe(f.load, f.emit, f.now, () => samples.shift());
+  const engine = f.engineModule.createRecoverySqliteStore({
+    database: {
+      prepare() {
+        return statement;
+      },
+    },
+  });
+  assert.equal(engine.execute({ operation: 'save' }), f.result);
+  failed = true;
+  assert.throws(
+    () => engine.execute({ operation: 'save' }),
+    (error) => error === cause
+  );
+  const writes = f.rows.filter((row) => row.stage === 'sqlite_clock_write');
+  assert.deepEqual(
+    writes.map((row) => [row.threadCpuUserUs, row.threadCpuSystemUs]),
+    [
+      [3, 5],
+      [0, 0],
+    ]
+  );
+  for (const row of writes) assert.deepEqual(parseStageLine(JSON.stringify(row)), row);
+  assert.ok(writes.every((row) => row.elapsedMs === 1));
+  assert.equal(JSON.stringify(f.rows).includes('PRIVATE'), false);
+  assert.deepEqual(samples, []);
 });

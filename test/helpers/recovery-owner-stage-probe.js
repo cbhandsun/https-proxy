@@ -75,9 +75,9 @@ function installOwnerStageProbe(
     installNative(load, (stage, elapsedMs) => emit({ sequence, operation, stage, elapsedMs }));
   }
   function measured(stage, action, receiver, args) {
-    // Only this worker thread's COMMIT CPU is observed. Other worker/process
-    // CPU cannot be mistaken for computation inside a slow SQLite call.
-    const cpuStarted = stage === 'sqlite_commit' ? cpuSample() : null;
+    // Measure only this worker thread around SQLite's two observed write
+    // boundaries. Other worker/process CPU cannot explain their wall time.
+    const cpuStarted = ['sqlite_commit', 'sqlite_clock_write'].includes(stage) ? cpuSample() : null;
     const start = now();
     let result,
       failed = false,
@@ -187,7 +187,7 @@ function parseStageLine(line) {
         'elapsedMs,operation,sequence,stage,threadCpuSystemUs,threadCpuUserUs',
       ].includes(Object.keys(value).sort().join(',')) ||
       (Object.hasOwn(value, 'threadCpuUserUs') &&
-        (value.stage !== 'sqlite_commit' ||
+        (!['sqlite_commit', 'sqlite_clock_write'].includes(value.stage) ||
           !Number.isSafeInteger(value.threadCpuUserUs) ||
           value.threadCpuUserUs < 0 ||
           !Number.isSafeInteger(value.threadCpuSystemUs) ||
