@@ -116,12 +116,12 @@ function deferred() {
   });
   return { promise, resolve };
 }
-function store() {
-  const database = new DatabaseSync(':memory:');
+function store(databaseFile = ':memory:', now = () => 100) {
+  const database = new DatabaseSync(databaseFile);
   const engine = createRecoverySqliteStore({
     database,
     dataKey: randomBytes(32).toString('base64'),
-    now: () => 100,
+    now,
   });
   return {
     engine,
@@ -1252,3 +1252,217 @@ test(
     }
   }
 );
+
+test('authorized cold reference admission reuses its scanned CAS facts without a second load or weakening LIST debit', async () => {
+  for (const warmAdmission of [false, true]) {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-cold-cas-'));
+    const file = path.join(directory, 'checkpoint.sqlite');
+    let time = 100;
+    const disk = store(file, () => ++time);
+    const f = await seed(disk.engine, 'question', undefined, () => time);
+    const commands = [];
+    const adapter = referenceAdapter((command) => {
+      commands.push(command);
+      return disk.engine.execute(command);
+    });
+    if (warmAdmission)
+      require('../lib/proxy/context-recovery-storage-contract').declareRecoveryReferenceAdmission(
+        adapter.execute
+      );
+    const sessions = target(adapter, () => time);
+    try {
+      const result = await sessions.beginAsync(f.request, [], () => true);
+      assert.equal(result.ok, true);
+      assert.deepEqual(
+        commands.map(({ operation }) => operation),
+        ['scan-reference']
+      );
+      commands.length = 0;
+      let commits = 0;
+      const exec = disk.database.exec.bind(disk.database);
+      disk.database.exec = (sql) => {
+        if (sql === 'COMMIT') {
+          assert.ok(fs.statSync(file + '-journal').size > 512);
+          commits++;
+        }
+        return exec(sql);
+      };
+      const reply = await result.replyAsync(LIST, {});
+      disk.database.exec = exec;
+      assert.equal(commits, warmAdmission ? 2 : 3);
+      assert.equal(reply.ok, true);
+      assert.deepEqual(
+        commands.map(({ operation }) => operation),
+        warmAdmission
+          ? ['save-reference-state', 'settle-reader']
+          : ['load-reference', 'save-reference-state', 'settle-reader']
+      );
+      const debit = commands.find(({ operation }) => operation === 'save-reference-state');
+      assert.equal(Boolean(debit.admission), warmAdmission);
+      assert.equal(debit.reference.metadata.budget.calls, f.state.budget.calls + 1);
+      assert.equal(
+        debit.reference.metadata.budget.returnedBytes,
+        f.state.budget.returnedBytes + 16384
+      );
+      const stored = await loadDurableRecoveryRoot(disk.engine, f.state.rootId);
+      assert.equal(stored.expiresAt, f.state.expiresAt);
+      assert.equal(stored.budget.calls, f.state.budget.calls + 1);
+      assert.equal(stored.budget.successfulReads, f.state.budget.successfulReads);
+      assert.equal(stored.budget.returnedBytes > f.state.budget.returnedBytes, true);
+      assert.deepEqual(stored.budget, metadata(sessions, f.state.rootId, result).budget);
+    } finally {
+      await sessions.shutdownAsync();
+      disk.close();
+      assert.equal(fs.readFileSync(file).includes(Buffer.from(original)), false);
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  }
+});
+
+test('cold admission facts accept only exact authenticated record association without executing input hooks', async () => {
+  const { parseRecoveryColdAdmission } = require('../lib/proxy/context-recovery-cold-admission');
+  const disk = store();
+  await seed(disk.engine);
+  const page = disk.engine.execute({ operation: 'scan-reference', after: null });
+  const input = { entry: page.catalog[0], record: page.record };
+  try {
+    const facts = parseRecoveryColdAdmission(input);
+    assert.equal(facts.revision, page.record.revision);
+    assert.equal(facts.scope, page.scope);
+    assert.equal(facts.root.expiresAt, page.record.expiresAt);
+    assert.equal(JSON.stringify(facts).includes(original), false);
+    let invoked = 0;
+    for (const invalid of [
+      null,
+      {},
+      [],
+      { ...input, extra: true },
+      { ...input, entry: { ...input.entry, scope: '0'.repeat(64) } },
+      { ...input, entry: { ...input.entry, revision: Number.MAX_SAFE_INTEGER + 1 } },
+      { ...input, record: { ...input.record, revision: input.record.revision + 1 } },
+      { ...input, record: { ...input.record, expiresAt: input.record.expiresAt + 1 } },
+      { ...input, record: { ...input.record, reference: null } },
+      {
+        get entry() {
+          invoked++;
+          return input.entry;
+        },
+        record: input.record,
+      },
+      new Proxy(
+        {},
+        {
+          get() {
+            invoked++;
+            return input.entry;
+          },
+        }
+      ),
+    ])
+      assert.throws(() => parseRecoveryColdAdmission(invalid));
+    assert.equal(invoked, 0);
+  } finally {
+    disk.close();
+  }
+});
+
+test('cold admission still rejects competing revisions, corrupt associations and uncertain debit ACKs without LIST settlement or retry', async () => {
+  for (const mode of ['stale', 'budget', 'expiry', 'before', 'after', 'low-ack', 'high-ack']) {
+    const disk = store();
+    const f = await seed(disk.engine);
+    const commands = [];
+    const adapter = referenceAdapter((command) => {
+      commands.push(command.operation);
+      if (command.operation !== 'save-reference-state' || !command.admission)
+        return disk.engine.execute(command);
+      if (mode === 'before') throw new Error('synthetic lost ACK');
+      if (mode === 'stale') {
+        const competing = { ...command };
+        delete competing.admission;
+        disk.engine.execute(competing);
+      }
+      if (mode === 'budget' || mode === 'expiry') {
+        const { createReferenceState } = require('../lib/proxy/context-recovery-reference-state');
+        const metadata = { ...command.admission.metadata };
+        if (mode === 'budget')
+          metadata.budget = { ...metadata.budget, calls: metadata.budget.calls + 1 };
+        else metadata.expiresAt++;
+        command = {
+          ...command,
+          admission: createReferenceState(
+            metadata,
+            command.admission.stagedSources,
+            command.admission.publications
+          ),
+        };
+      }
+      const reply = disk.engine.execute(command);
+      if (mode === 'after') throw new Error('synthetic lost ACK');
+      return { revision: reply.revision + (mode === 'low-ack' ? -1 : 1) };
+    });
+    require('../lib/proxy/context-recovery-storage-contract').declareRecoveryReferenceAdmission(
+      adapter.execute
+    );
+    const sessions = target(adapter);
+    try {
+      const view = await sessions.beginAsync(f.request, [], () => true);
+      assert.equal(view.ok, true);
+      commands.length = 0;
+      failed(await view.replyAsync(LIST, {}));
+      assert.deepEqual(commands, ['save-reference-state'], mode);
+      failed(await view.replyAsync(LIST, {}));
+      assert.deepEqual(
+        commands,
+        ['save-reference-state'],
+        'no fallback or retry after uncertain admission'
+      );
+      const stored = await loadDurableRecoveryRoot(disk.engine, f.state.rootId);
+      const committed = ['stale', 'after', 'low-ack', 'high-ack'].includes(mode);
+      assert.equal(stored.expiresAt, f.state.expiresAt);
+      assert.equal(stored.budget.calls, f.state.budget.calls + (committed ? 1 : 0));
+      assert.equal(
+        stored.budget.returnedBytes,
+        f.state.budget.returnedBytes + (committed ? 16384 : 0)
+      );
+    } finally {
+      await sessions.shutdownAsync();
+      disk.close();
+    }
+  }
+});
+
+test('remembered cold facts require an already adopted live denial entry and never perform I/O or grant startup authority', async () => {
+  const { createRecoveryRootStorage } = require('../lib/proxy/context-recovery-root-storage');
+  const disk = store();
+  const f = await seed(disk.engine);
+  const page = disk.engine.execute({ operation: 'scan-reference', after: null });
+  const facts = { entry: page.catalog[0], record: page.record };
+  try {
+    for (const mode of ['absent', 'closed', 'foreign', 'duplicate', 'success']) {
+      let calls = 0;
+      const adapter = referenceAdapter(() => {
+        calls++;
+        throw new Error('unexpected I/O');
+      });
+      require('../lib/proxy/context-recovery-storage-contract').declareRecoveryReferenceAdmission(
+        adapter.execute
+      );
+      const service = createRecoveryRootStorage(adapter);
+      if (mode !== 'absent')
+        service.admitRoot({
+          rootId: f.state.rootId,
+          principal: mode === 'foreign' ? 'other' : f.state.principal,
+          createdAt: f.state.createdAt,
+          expiresAt: f.state.expiresAt,
+        });
+      if (mode === 'closed') service.close();
+      if (mode === 'success' || mode === 'duplicate')
+        assert.equal(service.observeReference(facts), true);
+      if (mode !== 'success') assert.throws(() => service.observeReference(facts));
+      assert.equal(calls, 0);
+      service.close();
+    }
+  } finally {
+    disk.close();
+  }
+});

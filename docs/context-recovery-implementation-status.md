@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-24：安装前置再现第二轮5004ms，冷恢复复用已扫描CAS事实以减少一次提交
+
+8225e2b普通Verify `40143389800`八项和正式Windows `40143389838`四项均success；其coverage/source-gates日志各12次持久公开发布全部通过，最大2570/1786ms，各300次COMMIT最大75/148ms。68ce156普通Verify `40143684424`八项及正式 `40143684430`四项也全success，coverage/source-gates各12次发布最大2722/1611ms，各300次COMMIT最大125/91ms。成功不覆盖独立安装链：8225e2b原安装 `40143410686` / job `121019741120`已终态failure，完整候选门禁的Chat long-persistent第二轮5004ms触发原5000ms，requests=6/handshakes=6/roots=1；尚未构建或执行安装启停探针，不能授予安装资格。孤立开库诊断随后两次成功不覆盖原请求失败，不重跑该候选。
+
+安装失败日志中重开段的load-reference/settle-reader/save-reference-state分别有1101/1077/997ms的COMMIT，CPU增量分别31/0/0ms；该提交尚无ownerEpoch，保留分段与归属限制，不把同作业其他重复sequence合为精确因果。不能将此失败简化为单个四秒提交或宣布I/O/调度根因已确认。所有历史五秒与六十秒失败保留。
+
+一个仅在工作区的LIST合并候选被原maximum-debit ACK门禁回归拒绝：它提前构造了LIST结果。候选及新增不适用断言均已撤除，原LIST/READ测试未改，失败实验日志保留在任务本机，不作为产品修复或提高baseline。当前采用另一条路径：当前请求完成授权、完整扫描代际核对、发布投影、唯一根选择及实际导入后，只向该已注册的活跃根记住扫描所得的精确revision、来源ID和发布状态。启动deny-only discovery不变，不创建原文、快照或绑定权限；独立解析模块复用原目录scope/record关联校验，不保留原文。
+
+第一次预算写入仍使用原save-reference-state/admission，SQLite在真实事务中重新验证关联、精确expectedRevision及原最大预扣后才ACK；LIST/READ仍在最大预扣ACK之后执行。缺能力的旧backend保持原载入路径，任何支持路径的关联、CAS或ACK错误立即失败，不回退或重试。不接受不存在/已关闭/异主/重复登记的缓存事实，不允许启动扫描直接授予权限。该修复只减少授权冷恢复后对同一记录的一次独立load-reference事务；不取消锚点flush，不降低FULL/DELETE或安全删除，不改期限、原到期时间或ACK相等语义，不能据此关闭其他暖路径慢提交问题。
+
+新冷恢复回归先在旧实现因额外load-reference失败；修复后真实磁盘、每次变化的时钟及真实DELETE rollback journal确认首个LIST从三次COMMIT减为两次，最大预算预扣、来源/原期限与最终精确预算均保持。额外覆盖空/非法/极端记录、scope/revision/expiry关联、getter/Proxy不执行、未导入或关闭/异主/重复事实、竞争实际写入，以及提交前后丢失/高低ACK；失败不执行LIST结算或重试，已提交的16384字节最大预扣不退款。专项78项通过、两个原有平台skip不变；扩大回归272通过、一项Mac原生key_protect开库失败、五个既有skip，原失败保留，不能称本机完整验收通过。全树Lint零错误/五个既有警告、1581文件语法、CI/发行治理及原架构/secret回归通过，新模块已进入发行清单；本批仍须新的完整Windows与安装候选验证。
+
+再次只读Windows台账仍177/169、169条记录、Codex99/Claude70，与用户交接一致，没有预留或调用真实模型，两端余量不合并。冻结长测未访问。最新安装582迁移/回滚、安装启停/重启留存、容量/真实24小时、真实provider和自用安装包交付仍未完成。
+
 ## 2026-10-24：8225e2b完整Windows Rust通过，补齐慢样本owner归属
 
 8225e2b59f75ffb8068805e653dce5cdca25d078已提交推送，普通Verify `40143389800`的Rust作业`121019601628`终态success，完整fmt/Clippy/应用测试与审计通过；实际应用模块29项、二进制1项及原生助手20项通过，零ignore，新增proxy_control五项和Windows只读进程句柄观察均在真实Windows执行。node-quality、integration及unit0/unit2也已success，其余普通CI与正式Windows `40143389838`仍执行；安装review `40143410686` / job `121019741120`仍在原完整候选门禁，未重跑、未宣称安装启停资格。原7f18e86合成WFP25秒超时及所有历史五秒失败保留。
