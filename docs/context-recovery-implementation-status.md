@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：自用Windows复现5008ms，减少锚点路径重复规范化且保留每次新鲜校验
+
+用户已授权Windows新目录、单并发短测。本轮复用实际Node22.22.3/npm10.9.8和Rust/Cargo1.92.0；SSH PATH中的Cargo/Rustc入口为不可执行的零字节重解析入口，真实toolchain程序可用，任务进程内显式路径已验证，不改全局PATH或rustup默认。当前源码62bfe26bb725975b2a771e14708fa3e1b9963905以仅含当前提交的浅克隆转移，归档hash、Git对象、干净工作区及默认模块实际导出均已核验。原npm ci、插件ci --ignore-scripts、prepare-native依次退出0；首个SSH构建启动异常随后确认无启动进程和日志，首次实际构建退出0。原两份容量持久化/时钟回归26/26、零skip；默认worker真实两次同目录开库/关闭通过，ready1789/1349ms，原生程序hash为8d75ae3f3d93f7423e0a5c54273c079b15d5ea5deda3ae526b92a4ccba5cc9aa。只证明当前空库诊断，不授容量、旧失败根因或24小时资格。
+
+原两份完整五秒测试首轮50项中49通过、1失败、零skip：Claude long-persistent第二轮最终持久ACK5008ms超时，原定后两轮未执行。其余五次ACK为3753/3290/3327/4293/3694ms。同轮正文4004ms已到，最终save-reference-state1362ms、finishPublicationAsync1422ms；该最终事务COMMIT916ms且线程CPU为零，独立锚点dispatch232ms/persist273ms。阶段有包含关系，不能直接相加为请求分解；该失败不再仅发生于托管runner，全部记录保留且未通过重跑覆盖。当前62普通八项与正式四项success、原覆盖率I/O5001ms失败同时保留。
+
+检查同轮额外路径开销后发现每次锚点调用前后，旧physical会在逐级lstat之外对每一级前缀再次完整realpath。回归先在旧实现得到54≠12。本批抽取独立physical-identity模块：每次调用先检查目标类型/单链接和完整规范路径，逐级新鲜检查全部祖先，再检查完整规范路径并重读目标精确dev/ino/birthtimeNs。返回身份及locationHash输入不变，无跨调用或跨事务证明缓存；别名、重解析、硬链接、祖先失败、最终规范化后目标替换和调用中新增硬链接均拒绝，错误固定。原调用前后两目标检查、native命令/CAS/flush/精确回读ACK、独立发布步骤、SQLite FULL/DELETE/secure_delete、原5000ms和到期时间全部保持；只减少重复前缀解析。
+
+Windows两批整段粗测波动较大，未据此宣称提升。随后固定200次交替顺序配对组件测量，旧2735ms/中位11.590ms/p90 26.081ms，新1886ms/中位6.249ms/p90 17.156ms；最大90.237→110.968ms仍有波动，不能授五秒稳定性资格。此为元数据路径校验组件诊断，不是整个请求性能对照。旧、新返回身份相等，原Windows失败未关闭，须本批新SHA完整原负载复测。
+
+相关锚点与路径安全回归211/211、零skip；新增测试覆盖正常、Unicode、空目录、非法/极端输入、Proxy不触发、两边界规范化/读属性失败、祖先错误/重解析、目标替换及硬链接失败路径。新增文件进入原统一unit发现，另两项release inventory/discovery回归通过。发布清单显式包含新helper，未改依赖或锁文件、原生Rust或公开release.yml签名要求；1617份JS语法、全树Lint零错误/5项既有警告、CI/release治理通过。Mac全树format检查按原CRLF配置报告1504份既有LF文件；已核对示例文件与HEAD字节相同，未改写无关文件或放宽配置，变更JS/JSON按原格式通过，完整Windows格式门禁仍保留。后续新SHA仍需Windows及完整门禁，不将本机组件通过称为整体修复。
+
+真实模型0，旧冻结环境、任务、库及OS锚点实例均未访问；新24小时仍按用户决定暂缓。当前独立短测环境已经授权，下一步直接推进本批Windows原门限复测，无需重复询问环境权限。最新安装升级回滚、582迁移拒写、两端重启/完整在途HTTP/WS、固定容量、自用受控交付等原范围继续保留。
+
 ## 2026-10-25：c8完整普通通过但正式三次五秒失败，补齐文件打开状态采集盲区
 
 c8aa981962467f772ec8924a674d5d23b95e0891普通40218317986已终态八项success，完整coverage121244181927的十二次持久最终ACK为1238–2431ms；三组时序40218318057三项success、十八次1083–2379ms。正式40218317987/source121244181892仍为failure，Chat/Responses/Claude持久首轮分别5001/5009/5001ms、均两次合成请求，后续context-recovery跳过；正式失败不能由上述通过覆盖。Chat预算预扣2406ms中COMMIT2154ms、线程CPU零；Responses多笔COMMIT为1125/956/1011/782ms、线程CPU零；Claude另一次预扣COMMIT1622ms。独立原负载I/O40218317995在旧解密10016ms超时终止，legacyPhase=unobserved只能证明未取得第一个固定标记，不能断言未进入DPAPI。最新安装分支尚未创建，正式门禁失败时禁止派发。

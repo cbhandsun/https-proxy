@@ -18,6 +18,7 @@ test('release inventory retains recovery helpers and dynamically loaded Worker r
     'lib/proxy/context-recovery-anchor-wire.js',
     'lib/proxy/context-recovery-anchor.js',
     'lib/proxy/context-recovery-budget-reader.js',
+    'lib/proxy/context-recovery-physical-identity.js',
     'lib/proxy/context-recovery-key.js',
     'lib/proxy/context-recovery-key-worker.js',
     'lib/proxy/context-recovery-reauthorization.js',
@@ -35,6 +36,8 @@ test('recovery release regression remains in unified test discovery', () => {
     'test/context-recovery-release-inventory.test.js',
     'test/context-recovery-anchor-clock.test.js',
     'test/context-recovery-anchor-wire.test.js',
+    'test/context-recovery-anchor-path-cost.test.js',
+    'test/context-recovery-physical-identity.test.js',
     'test/stopping-admission.test.js',
     'test/server-shutdown-admission.test.js',
   ])

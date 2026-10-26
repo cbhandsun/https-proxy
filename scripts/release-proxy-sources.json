@@ -149,6 +149,7 @@
   "lib/proxy/context-recovery-messages-conversion.js",
   "lib/proxy/context-recovery-observer.js",
   "lib/proxy/context-recovery-pending-results.js",
+  "lib/proxy/context-recovery-physical-identity.js",
   "lib/proxy/context-recovery-policy.js",
   "lib/proxy/context-recovery-private-capacity.js",
   "lib/proxy/context-recovery-private-path.js",
