@@ -110,29 +110,40 @@ function Write-HpmThreadSchedulingFields {
 function ConvertTo-HpmThreadSchedulingEvent {
     param($Record, [int]$Opcode, [long]$TimeMs, [hashtable]$State)
     if ($State.bound.Count -eq 0) { return }
+    $shapeVersion='x';$shapeCount='x';$shapeType='none';$shapeStage='header'
     try {
+        $version=[int]$Record.Version
+        if($version -ge 0 -and $version -le 255){$shapeVersion=$version.ToString()}
+        $shapeStage='version'
         if ($TimeMs -lt 0 -or $Opcode -notin @(1,2,36) -or [int]$Record.Version -notin @(2,3,4)) { throw 'invalid' }
+        $shapeStage='properties'
         $properties = $Record.Properties
+        if($properties.Count -ge 0 -and $properties.Count -le 64){$shapeCount=$properties.Count.ToString()}
         $fields = @{}
         if ($properties.Count -eq 1) {
+            $shapeStage='payload'
             $raw = $properties[0].Value
+            $shapeType=if($raw -is [byte[]]){'bytes'}elseif($raw -is [string]){'string'}else{'other'}
             $hex = if ($raw -is [byte[]]) { [Convert]::ToHexString($raw) } elseif ($raw -is [string]) { $raw } else { throw 'invalid' }
             $fields = ConvertFrom-HpmThreadSchedulingBinary $hex $Opcode ([int]$Record.Version)
         } else {
+            $shapeStage='scalar'
             $indices = if ($Opcode -eq 36) { @{ NewThreadId=0;OldThreadId=1;OldThreadState=8;OldThreadWaitReason=6 } } else { @{ TThreadId=1 } }
             foreach ($key in $indices.Keys) {
                 $index = $indices[$key]
                 if ($index -ge $properties.Count) { throw 'invalid' }
                 $value = $properties[$index].Value
+                $shapeType=if($value -is [byte]){'byte'}elseif($value -is [sbyte]){'sbyte'}elseif($value -is [uint32]){'u32'}elseif($value -is [int32]){'i32'}elseif($value -is [uint64]){'u64'}elseif($value -is [int64]){'i64'}elseif($value -is [uint16]){'u16'}elseif($value -is [int16]){'i16'}else{'other'}
                 if ($value -isnot [byte] -and $value -isnot [sbyte] -and $value -isnot [uint32] -and $value -isnot [int32]) { throw 'invalid' }
                 if ($value -lt 0) { throw 'invalid' }
                 $fields[$key] = [uint32]$value
             }
         }
+        $shapeStage='fields'
         Write-HpmThreadSchedulingFields $fields $Opcode $TimeMs $State
     } catch {
         $State.bound.Clear()
-        Write-HpmIoSchedulingRecord 'schedule-unmapped' 1 $TimeMs
+        Write-HpmIoSchedulingRecord 'schedule-unmapped' 1 $TimeMs ('v'+$shapeVersion+':p'+$shapeCount+':t'+$shapeType+':e'+$shapeStage)
     }
 }
 

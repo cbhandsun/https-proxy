@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const hasExplicitPath = (source, file) => source.split(/\r?\n/).includes('      - ' + file);
 
 // A transport-only change previously ran timing but silently omitted both
 // physical I/O diagnostics. All three must observe the same source identity.
@@ -53,6 +54,15 @@ for (const workflow of [
       'scripts/lib/persistent-io-scheduling.psm1',
       'test/persistent-io-scheduling.test.js',
     ])
-      assert.ok(source.includes('      - ' + file + '\n'), file);
+      assert.ok(hasExplicitPath(source, file), file);
   });
 }
+
+test('explicit workflow trigger matching treats LF and CRLF identically without accepting missing or partial paths', () => {
+  const file = 'scripts/lib/persistent-io-scheduling.js';
+  for (const newline of ['\n', '\r\n']) {
+    assert.equal(hasExplicitPath('    paths:' + newline + '      - ' + file + newline, file), true);
+    for (const line of ['      - ' + file + '.old', '      - other.js', '    # - ' + file])
+      assert.equal(hasExplicitPath(line + newline, file), false);
+  }
+});

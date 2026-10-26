@@ -10,6 +10,16 @@ const TYPES = Object.freeze([
   'schedule-retire',
   'schedule-unmapped',
 ]);
+const SHAPE =
+  /^v(x|(?:0|[1-9]\d{0,2})):p(x|(?:0|[1-9]\d?)):t(?:none|bytes|string|u32|i32|byte|sbyte|u64|i64|u16|i16|other):e(?:header|version|properties|payload|scalar|fields)$/;
+const validShape = (name) => {
+  const match = SHAPE.exec(name);
+  return (
+    !!match &&
+    (match[1] === 'x' || Number(match[1]) <= 255) &&
+    (match[2] === 'x' || Number(match[2]) <= 64)
+  );
+};
 const BINS = Object.freeze(['delayExecution', 'ready', 'otherWaiting', 'other']);
 const blank = () => ({ count: 0, totalMs: 0, maxMs: 0, over100Ms: 0, over1000Ms: 0 });
 const integer = (value, max = Number.MAX_SAFE_INTEGER) =>
@@ -30,6 +40,7 @@ function createPersistentIoScheduling() {
   const threads = new Map(),
     bins = Object.fromEntries(BINS.map((key) => [key, blank()]));
   const windows = [];
+  const metadata = new Map();
   let enabled = false,
     bindings = 0,
     retired = 0,
@@ -58,7 +69,10 @@ function createPersistentIoScheduling() {
       }
       if (!enabled) throw fail();
       if (type === 'schedule-unmapped') {
-        if (key !== '1' || name !== '') throw fail();
+        if (key !== '1' || (name !== '' && !validShape(name))) throw fail();
+        const shape = name || 'unknown';
+        if (!metadata.has(shape) && metadata.size >= 16) throw fail();
+        metadata.set(shape, (metadata.get(shape) || 0) + 1);
         unmappedEpochs++;
         for (const value of threads.values()) if (value.pending) abandoned++;
         retired += threads.size;
@@ -123,7 +137,10 @@ function createPersistentIoScheduling() {
     snapshot() {
       if (!enabled) return null;
       return {
-        schemaVersion: 1,
+        schemaVersion: 2,
+        unmappedMetadata: [...metadata]
+          .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+          .map(([shape, count]) => ({ shape, count })),
         scope: 'sqlite_associated_thread_switch_intervals',
         bindings,
         unmappedEpochs,
@@ -145,6 +162,7 @@ function validatePersistentIoScheduling(input, events) {
   const value = normalizeCompactionData(input, 8192);
   exact(value, [
     'schemaVersion',
+    ...(value?.schemaVersion === 2 ? ['unmappedMetadata'] : []),
     'scope',
     'bindings',
     'unmappedEpochs',
@@ -159,7 +177,7 @@ function validatePersistentIoScheduling(input, events) {
     'commitCorrelationQualified',
   ]);
   if (
-    value.schemaVersion !== 1 ||
+    ![1, 2].includes(value.schemaVersion) ||
     value.scope !== 'sqlite_associated_thread_switch_intervals' ||
     value.traceCompletenessVerified !== false ||
     value.commitCorrelationQualified !== false ||
@@ -183,6 +201,25 @@ function validatePersistentIoScheduling(input, events) {
     (!value.bindings && value.switchOuts !== 0)
   )
     throw fail();
+  if (value.schemaVersion === 2) {
+    if (!Array.isArray(value.unmappedMetadata) || value.unmappedMetadata.length > 16) throw fail();
+    let total = 0,
+      prior = '';
+    for (const row of value.unmappedMetadata) {
+      exact(row, ['shape', 'count']);
+      if (
+        typeof row.shape !== 'string' ||
+        (row.shape !== 'unknown' && !validShape(row.shape)) ||
+        row.shape <= prior ||
+        !integer(row.count, events) ||
+        row.count === 0
+      )
+        throw fail();
+      prior = row.shape;
+      total += row.count;
+    }
+    if (total !== value.unmappedEpochs) throw fail();
+  }
   let count = 0;
   for (const key of BINS) {
     const stats = value[key];

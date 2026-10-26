@@ -318,3 +318,58 @@ test('native event scalar and binary properties never pair across unsupported me
   assert.equal(summary.snapshot().delayExecution.totalMs, 200);
   validatePersistentIoScheduling(summary.snapshot(), 20);
 });
+
+test('unmapped metadata retains only bounded scalar shape categories and rejects forged evidence', () => {
+  const value = fixture();
+  value.observe('schedule-unmapped', '1', 1100, 'v2:p0:tnone:escalar');
+  const report = value.snapshot();
+  assert.deepEqual(report.unmappedMetadata, [{ shape: 'v2:p0:tnone:escalar', count: 1 }]);
+  validatePersistentIoScheduling(report, 10);
+  const legacy = { ...report, schemaVersion: 1 };
+  delete legacy.unmappedMetadata;
+  validatePersistentIoScheduling(legacy, 10);
+  for (const metadata of [
+    [{ shape: 'PRIVATE', count: 1 }],
+    [{ shape: 'v256:p0:tnone:escalar', count: 1 }],
+    [{ shape: 'v2:p65:tnone:escalar', count: 1 }],
+    [{ shape: 'v2:p0:tnone:escalar', count: 0 }],
+    [],
+    Array(17).fill({ shape: 'unknown', count: 1 }),
+  ]) {
+    assert.throws(() =>
+      validatePersistentIoScheduling({ ...report, unmappedMetadata: metadata }, 10)
+    );
+  }
+  for (const shape of ['PRIVATE', 'v256:p0:tnone:escalar', 'v2:p65:tnone:escalar']) {
+    assert.throws(() => fixture().observe('schedule-unmapped', '1', 1100, shape));
+  }
+});
+
+test('unsupported actual event metadata reports version and count without values or error text', () => {
+  const module = path.resolve('scripts/lib/persistent-io-scheduling.psm1').replaceAll("'", "''");
+  const code = `
+    $ErrorActionPreference='Stop';Import-Module '${module}' -Force
+    $state=New-HpmIoSchedulingState
+    $doc=[xml]'<Event><System><Execution ThreadID="42"/></System></Event>'
+    Add-HpmIoSchedulingBinding @{} $doc 1 $state|Out-Null
+    ConvertTo-HpmThreadSchedulingEvent ([pscustomobject]@{Version=2;Properties=@()}) 36 2 $state
+    Add-HpmIoSchedulingBinding @{} $doc 3 $state|Out-Null
+    ConvertTo-HpmThreadSchedulingEvent ([pscustomobject]@{Version=2;Properties=@([pscustomobject]@{Value='PRIVATE_METADATA'})}) 36 4 $state
+  `;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    encoding: 'utf8',
+    timeout: 20000,
+    maxBuffer: 16384,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  const rows = result.stdout
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => JSON.parse(line));
+  assert.deepEqual(
+    rows.map((x) => x.name),
+    ['v2:p0:tnone:escalar', 'v2:p1:tstring:epayload']
+  );
+  assert.doesNotMatch(result.stdout, /PRIVATE_METADATA|Exception|Error/);
+});
