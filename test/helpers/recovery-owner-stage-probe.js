@@ -44,7 +44,8 @@ function installOwnerStageProbe(
   emit,
   now = () => performance.now(),
   threadCpu = () => process.threadCpuUsage(),
-  installNative
+  installNative,
+  wallNow
 ) {
   if (
     [load, emit, now, threadCpu].some(
@@ -52,6 +53,13 @@ function installOwnerStageProbe(
     )
   )
     throw fail();
+  if (wallNow !== undefined && (typeof wallNow !== 'function' || types.isProxy(wallNow)))
+    throw fail();
+  function wallSample() {
+    const value = wallNow();
+    if (!Number.isSafeInteger(value) || value < 0) throw fail();
+    return value;
+  }
   function cpuSample() {
     const value = threadCpu();
     if (!value || typeof value !== 'object' || types.isProxy(value)) throw fail();
@@ -79,6 +87,7 @@ function installOwnerStageProbe(
     // Measure only this worker thread around SQLite's two observed write
     // boundaries. Other worker/process CPU cannot explain their wall time.
     const cpuStarted = ['sqlite_commit', 'sqlite_clock_write'].includes(stage) ? cpuSample() : null;
+    const wallStarted = cpuStarted && wallNow ? wallSample() : null;
     const start = now();
     let result,
       failed = false,
@@ -91,6 +100,7 @@ function installOwnerStageProbe(
     }
     const elapsed = now() - start;
     if (!Number.isFinite(elapsed) || elapsed < 0) throw fail();
+    const wallFinished = wallStarted === null ? null : wallSample();
     const cpu = cpuStarted ? cpuSample() : null;
     if (cpu && (cpu.user < cpuStarted.user || cpu.system < cpuStarted.system)) throw fail();
     emit({
@@ -98,6 +108,13 @@ function installOwnerStageProbe(
       operation,
       stage,
       elapsedMs: Math.round(elapsed),
+      ...(wallStarted === null
+        ? {}
+        : {
+            startedAtUnixMs: wallStarted,
+            finishedAtUnixMs: wallFinished,
+            wallClockRollbackObserved: wallFinished < wallStarted,
+          }),
       ...(cpu
         ? {
             threadCpuUserUs: cpu.user - cpuStarted.user,
@@ -211,6 +228,7 @@ function parseStageLine(line) {
   try {
     if (typeof line !== 'string' || Buffer.byteLength(line) > 512) throw fail();
     const value = JSON.parse(line);
+    if (JSON.stringify(value) !== line) throw fail();
     if (
       !value ||
       typeof value !== 'object' ||
@@ -218,6 +236,7 @@ function parseStageLine(line) {
       ![
         'elapsedMs,operation,sequence,stage',
         'elapsedMs,operation,sequence,stage,threadCpuSystemUs,threadCpuUserUs',
+        'elapsedMs,finishedAtUnixMs,operation,sequence,stage,startedAtUnixMs,threadCpuSystemUs,threadCpuUserUs,wallClockRollbackObserved',
       ].includes(Object.keys(value).sort().join(',')) ||
       (Object.hasOwn(value, 'threadCpuUserUs') &&
         (!['sqlite_commit', 'sqlite_clock_write'].includes(value.stage) ||
@@ -225,6 +244,13 @@ function parseStageLine(line) {
           value.threadCpuUserUs < 0 ||
           !Number.isSafeInteger(value.threadCpuSystemUs) ||
           value.threadCpuSystemUs < 0)) ||
+      (Object.hasOwn(value, 'startedAtUnixMs') &&
+        (!['sqlite_commit', 'sqlite_clock_write'].includes(value.stage) ||
+          !Number.isSafeInteger(value.startedAtUnixMs) ||
+          value.startedAtUnixMs < 0 ||
+          !Number.isSafeInteger(value.finishedAtUnixMs) ||
+          value.finishedAtUnixMs < 0 ||
+          value.wallClockRollbackObserved !== value.finishedAtUnixMs < value.startedAtUnixMs)) ||
       !Number.isSafeInteger(value.sequence) ||
       value.sequence < 0 ||
       !OPERATIONS.has(value.operation) ||
@@ -269,7 +295,7 @@ function createObservedStorageWorker(diagnostic, WorkerType = Worker) {
         'const { installAnchorStageProbe } = require(' +
           JSON.stringify(path.join(__dirname, 'recovery-anchor-stage-probe.js')) +
           ');',
-        "installOwnerStageProbe(require, (value) => process.stderr.write('HPM_STAGE ' + JSON.stringify(value) + '\\n'), undefined, undefined, installAnchorStageProbe);",
+        "installOwnerStageProbe(require, (value) => process.stderr.write('HPM_STAGE ' + JSON.stringify(value) + '\\n'), undefined, undefined, installAnchorStageProbe, Date.now);",
         'require(' + JSON.stringify(file) + ');',
       ].join('\n');
       super(script, { ...options, eval: true, stderr: true });

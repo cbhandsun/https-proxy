@@ -266,7 +266,9 @@ test('worker bootstrap instruments actual module path before unchanged original 
     require(file) {
       if (file === helperFile)
         return {
-          installOwnerStageProbe: (_load, emit, _now, _cpu, installNative) => {
+          installOwnerStageProbe: (_load, emit, _now, _cpu, installNative, wallNow) => {
+            assert.equal(typeof wallNow, 'function');
+            assert.ok(Number.isSafeInteger(wallNow()));
             assert.equal(installNative, native);
             installOwnerStageProbe(f.load, emit, f.now, undefined, installNative);
           },
@@ -652,4 +654,241 @@ test('async owner probe measures through actual ACK and keeps captured operation
     stage: 'anchor_persist',
     elapsedMs: 1,
   });
+});
+
+test('SQL wait windows preserve independent monotonic duration and exact outcome while disclosing wall-clock rollback', () => {
+  const f = fixture();
+  let observed,
+    failed = false;
+  const cause = new Error('PRIVATE_ORIGINAL_ERROR');
+  f.engineModule.createRecoverySqliteStore = ({ database }) => {
+    observed = database;
+    return { execute: () => observed.exec('COMMIT'), snapshot() {} };
+  };
+  const walls = [1700000000000, 1700000000002, 1700000001000, 1700000000997];
+  installOwnerStageProbe(
+    f.load,
+    f.emit,
+    f.now,
+    () => ({ user: 0, system: 0 }),
+    undefined,
+    () => walls.shift()
+  );
+  const database = {
+    exec(sql) {
+      assert.equal(this, database);
+      assert.equal(sql, 'COMMIT');
+      if (failed) throw cause;
+      return f.result;
+    },
+  };
+  const engine = f.engineModule.createRecoverySqliteStore({ database });
+  assert.equal(engine.execute({ operation: 'save' }), f.result);
+  failed = true;
+  assert.throws(
+    () => engine.execute({ operation: 'save' }),
+    (error) => error === cause
+  );
+  assert.equal(walls.length, 0);
+  const rows = f.rows.filter((row) => row.stage === 'sqlite_commit');
+  assert.deepEqual(
+    rows.map((row) => [
+      row.startedAtUnixMs,
+      row.finishedAtUnixMs,
+      row.wallClockRollbackObserved,
+      row.elapsedMs,
+    ]),
+    [
+      [1700000000000, 1700000000002, false, 1],
+      [1700000001000, 1700000000997, true, 1],
+    ]
+  );
+  for (const row of f.rows) {
+    assert.deepEqual(parseStageLine(JSON.stringify(row)), row);
+    if (row.stage !== 'sqlite_commit') assert.equal(Object.hasOwn(row, 'startedAtUnixMs'), false);
+  }
+  assert.equal(JSON.stringify(f.rows).includes('PRIVATE'), false);
+});
+
+test('stage windows reject partial, unsafe, misplaced or contradictory data and duplicate fields', () => {
+  const row = {
+    sequence: 1,
+    operation: 'save',
+    stage: 'sqlite_commit',
+    elapsedMs: 1,
+    threadCpuUserUs: 0,
+    threadCpuSystemUs: 0,
+    startedAtUnixMs: 1000,
+    finishedAtUnixMs: 1001,
+    wallClockRollbackObserved: false,
+  };
+  assert.deepEqual(parseStageLine(JSON.stringify(row)), row);
+  assert.deepEqual(parseStageLine(JSON.stringify({ ...row, stage: 'sqlite_clock_write' })), {
+    ...row,
+    stage: 'sqlite_clock_write',
+  });
+  assert.equal(
+    parseStageLine(
+      JSON.stringify({ ...row, finishedAtUnixMs: 999, wallClockRollbackObserved: true })
+    ).elapsedMs,
+    1
+  );
+  for (const change of [
+    (x) => {
+      delete x.startedAtUnixMs;
+    },
+    (x) => {
+      delete x.wallClockRollbackObserved;
+    },
+    (x) => {
+      delete x.threadCpuSystemUs;
+    },
+    (x) => {
+      x.startedAtUnixMs = -1;
+    },
+    (x) => {
+      x.startedAtUnixMs = 1.5;
+    },
+    (x) => {
+      x.finishedAtUnixMs = Number.MAX_SAFE_INTEGER + 1;
+    },
+    (x) => {
+      x.wallClockRollbackObserved = 'false';
+    },
+    (x) => {
+      x.wallClockRollbackObserved = true;
+    },
+    (x) => {
+      x.stage = 'engine_execute';
+    },
+  ]) {
+    const bad = { ...row };
+    change(bad);
+    assert.throws(
+      () => parseStageLine(JSON.stringify(bad)),
+      /^Error: recovery_stage_probe_failed$/
+    );
+  }
+  for (const text of [
+    JSON.stringify(row).replace('"elapsedMs":1', '"elapsedMs":2,"elapsedMs":1'),
+    ' ' + JSON.stringify(row),
+    JSON.stringify(row).replace(
+      '"wallClockRollbackObserved":false',
+      '"wallClockRollbackObserved":true,"wallClockRollbackObserved":false'
+    ),
+  ])
+    assert.throws(() => parseStageLine(text), /^Error: recovery_stage_probe_failed$/);
+});
+
+test('wall-window probe rejects invalid clock capabilities and values without invoking hooks', () => {
+  let traps = 0;
+  for (const clock of [
+    null,
+    false,
+    new Proxy(() => {
+      traps++;
+    }, {}),
+  ]) {
+    const f = fixture();
+    assert.throws(
+      () => installOwnerStageProbe(f.load, f.emit, f.now, undefined, undefined, clock),
+      /^Error: recovery_stage_probe_failed$/
+    );
+  }
+  const getter = Object.defineProperty({}, 'valueOf', {
+    get() {
+      traps++;
+      throw new Error('PRIVATE');
+    },
+  });
+  for (const value of [
+    undefined,
+    null,
+    false,
+    '1000',
+    NaN,
+    Infinity,
+    -1,
+    1.5,
+    Number.MAX_SAFE_INTEGER + 1,
+    getter,
+    new Proxy({}, {}),
+  ]) {
+    const f = fixture();
+    let observed,
+      calls = 0;
+    f.engineModule.createRecoverySqliteStore = ({ database }) => {
+      observed = database;
+      return { execute: () => observed.exec('COMMIT'), snapshot() {} };
+    };
+    installOwnerStageProbe(
+      f.load,
+      f.emit,
+      f.now,
+      () => ({ user: 0, system: 0 }),
+      undefined,
+      () => value
+    );
+    const engine = f.engineModule.createRecoverySqliteStore({
+      database: {
+        exec() {
+          calls++;
+        },
+      },
+    });
+    assert.throws(
+      () => engine.execute({ operation: 'save' }),
+      /^Error: recovery_stage_probe_failed$/
+    );
+    assert.equal(calls, 0);
+  }
+  assert.equal(traps, 0);
+});
+
+test('header clock-write UTC windows use original statement receiver and do not replace its clock or duration', () => {
+  const f = fixture();
+  let observed,
+    wallCalls = 0;
+  const values = ['opaque-envelope'];
+  const statement = {
+    run(...args) {
+      assert.equal(this, statement);
+      assert.deepEqual(args, values);
+      return f.result;
+    },
+  };
+  f.engineModule.createRecoverySqliteStore = ({ database }) => {
+    observed = database;
+    return {
+      execute: () =>
+        observed.prepare('UPDATE recovery_header SET envelope=? WHERE singleton=1').run(...values),
+      snapshot() {},
+    };
+  };
+  installOwnerStageProbe(
+    f.load,
+    f.emit,
+    f.now,
+    () => ({ user: 0, system: 0 }),
+    undefined,
+    () => {
+      wallCalls++;
+      return Number.MAX_SAFE_INTEGER;
+    }
+  );
+  const database = {
+    prepare() {
+      assert.equal(this, database);
+      return statement;
+    },
+  };
+  const engine = f.engineModule.createRecoverySqliteStore({ database });
+  assert.equal(engine.execute({ operation: 'save' }), f.result);
+  assert.equal(wallCalls, 2);
+  const row = f.rows.find((x) => x.stage === 'sqlite_clock_write');
+  assert.equal(row.startedAtUnixMs, Number.MAX_SAFE_INTEGER);
+  assert.equal(row.finishedAtUnixMs, Number.MAX_SAFE_INTEGER);
+  assert.equal(row.elapsedMs, 1);
+  assert.equal(row.wallClockRollbackObserved, false);
+  assert.deepEqual(parseStageLine(JSON.stringify(row)), row);
 });

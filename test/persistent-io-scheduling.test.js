@@ -327,6 +327,7 @@ test('unmapped metadata retains only bounded scalar shape categories and rejects
   validatePersistentIoScheduling(report, 10);
   const legacy = { ...report, schemaVersion: 1 };
   delete legacy.unmappedMetadata;
+  delete legacy.waitWindows;
   validatePersistentIoScheduling(legacy, 10);
   for (const metadata of [
     [{ shape: 'PRIVATE', count: 1 }],
@@ -545,4 +546,72 @@ test('observed empty v3 lifecycle XML retires selected thread bindings before ID
   assert.equal(report.delayExecution.totalMs, 200);
   assert.equal(report.unmappedEpochs, 0);
   validatePersistentIoScheduling(report, 20);
+});
+
+test('top wait windows retain bounded non-delay intervals for same-clock SQL comparison without granting causality', () => {
+  const value = fixture();
+  interval(value, 1000, 1800, 5, 0);
+  interval(value, 1800, 2000, 1, 0);
+  interval(value, 2000, 2100, 5, 4);
+  interval(value, 2100, 2101, 7, 0);
+  const report = value.snapshot();
+  assert.deepEqual(
+    report.waitWindows.map((row) => [row.kind, row.elapsedMs]),
+    [
+      ['otherWaiting', 800],
+      ['ready', 200],
+      ['delayExecution', 100],
+      ['other', 1],
+    ]
+  );
+  assert.equal(report.commitCorrelationQualified, false);
+  validatePersistentIoScheduling(report, 30);
+  const legacy = { ...report, schemaVersion: 2 };
+  delete legacy.waitWindows;
+  validatePersistentIoScheduling(legacy, 30);
+  report.waitWindows[0].elapsedMs = 999;
+  assert.equal(value.snapshot().waitWindows[0].elapsedMs, 800);
+  for (const change of [
+    (x) => {
+      x.waitWindows = [];
+    },
+    (x) => {
+      x.waitWindows[0].threadState = 256;
+    },
+    (x) => {
+      x.waitWindows[0].waitReason = -1;
+    },
+    (x) => {
+      x.waitWindows[0].waitReason = 11;
+    },
+    (x) => {
+      x.waitWindows[0].kind = 'PRIVATE';
+    },
+    (x) => {
+      x.waitWindows[0].finishedAtMs++;
+    },
+    (x) => {
+      x.waitWindows[0].elapsedMs = -1;
+    },
+    (x) => {
+      x.waitWindows.reverse();
+    },
+    (x) => {
+      x.waitWindows[0].extra = 'PRIVATE';
+    },
+    (x) => {
+      x.waitWindows[0].kind = 'ready';
+    },
+  ]) {
+    const bad = JSON.parse(JSON.stringify(value.snapshot()));
+    change(bad);
+    assert.throws(() => validatePersistentIoScheduling(bad, 30));
+  }
+  let time = 3000;
+  for (let i = 0; i < 20; i++) {
+    interval(value, time, time + i, 5, 0);
+    time += i + 1;
+  }
+  assert.equal(value.snapshot().waitWindows.length, 8);
+  validatePersistentIoScheduling(value.snapshot(), 100);
 });

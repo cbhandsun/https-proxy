@@ -1,5 +1,21 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：保留ccb51三端五秒失败，补SQL与ETW同域有界时间窗口
+
+ccb51 Verify40393988758终态七success/coverage121822032954 failure，原client-context-target的Chat/Responses/Claude long-persistent首轮分别5005/5008/5006ms超时。Chat预扣/后续save COMMIT1579/2951ms，Responses942/2837ms，Claude2119/3379ms；另有414/529/655ms header clock write。启动COMMIT1308/1532/1069ms发生在请求前，不混算进请求；阶段有包含关系，不相加当精确分解。该作业其早期六次最终ACK175–228ms不能覆盖后续客户端覆盖率三项失败，全部旧失败保留。
+
+ccb51完整覆盖率I/O40393988756/job121822035262亦failure，原native prepared/release-control/ACK用例在首次ready5481ms失败，lastFixture=native-opened，startup ready3121ms，尚未进入advance/COMMIT中断边界；engine_prepared768→2682ms，独立anchor persist2683→3117ms。该原proxy失败停止client阶段，不能声称取得上述普通失败请求的同窗口I/O。649f普通40395138935八项与完整覆盖率I/O40395138904/job121826064280均success，后者proxy/client均cleanup=true，client153对flush最大database23ms/journal24ms、有965个有效区间但23次v3未映射；不同runner成功不能覆盖失败。
+
+2be独立I/O40397992583/job121836045578原50项全通过，新v3生命周期已实际解析：1717个完整区间、4个正绑定线程，unmapped/gaps/unfinished均0；仅表示已观察配对完整，32MiB环形仍不授完整trace资格。本次可配对102次flush（database34/journal68），最大392/409ms，不能据数量减少认定固定工作负载变化或已记录全部I/O。ready946次合计37ms/最大3ms，otherWaiting617次合计11169ms/最大805ms，DelayExecution未观察到；多线程总量和类别包含后续调度，不能当单次COMMIT或根因。
+
+现有owner阶段只有耗时，缺少与ETW UTC窗口对齐的起止点。本批仅在显式测试worker的sqlite_commit/sqlite_clock_write记录增加startedAtUnixMs/finishedAtUnixMs及wallClockRollbackObserved；仍用原performance单调差值记录elapsedMs，不改变输入、原接收者、返回值或异常身份。诊断墙钟回退原样标记并允许记录，不平滑、不馈入存储时钟/TTL/原期限。仅显式观察worker开启，普通direct probe不加字段；解析器要求完整三字段与CPU计数、严格阶段/整数/回退标记，拒绝重复字段和非规范JSON，原512字节单行与管道上限不扩。
+
+ETW调度子摘要schema3在原DelayExecution八窗之外增加全类别最多八个最大区间，包含有界初始threadState/waitReason及起止UTC毫秒，用于比较同一时间域的正面重叠；严格校验类别、时间差、排序、总量和计数，未知字段/伪造类别拒绝。原schema1/2历史数据仍可读，不继承新窗口。窗口包含可能的ready时间，时间重叠本身不证明I/O、VFS退避或杀毒因果；traceCompletenessVerified/commitCorrelationQualified/fiveSecondQualified继续false。原16KiB摘要、8KiB子数据、事件/窗口/采集上限和固定命令不变。
+
+扩大七文件81项本机全通过、零skip，覆盖正常/失败/极值/墙钟回退、原statement接收者及CPU/单调耗时、能力/getter/Proxy安全、严格新旧schema与窗口边界；新测试进入原统一发现，两个既有I/O触发器已覆盖这两处实现。1643份JS语法、全树Lint零错误/原五警告、变更格式及CI/release治理通过，后续差异定向复核通过。无产品持久算法、认证、FULL/DELETE、ACK、SQL事务次数、原负载/期限或依赖改变，不能称五秒产品问题已修复。
+
+3f61固定新安装40397785294仍在完整候选门，未重跑30cf失败、未授SSE或新安装包内部中断资格。20:56:48.414Z只读核验冻结5a同一身份与进程，62个连续有效tick至18300000ms（305分钟），elapsedMs=18300012.2605，未失败/重启；短暂查询等待后已得到新鲜回执，不误作停机或重启理由。五分钟监测持续，无新增Windows主机负载、真实模型0。下一步用新同域窗口定位实际慢COMMIT，同时收齐最新安装与原全部交付门；整体仍未完成。
+
 ## 2026-10-26：补已观察v3生命周期XML，固定3f61新安装已启动
 
 649f独立I/O的941个有效区间与31次v3空Properties未映射是上一批真实Windows证据。本批将有界原始XML支路仅扩到已观察的v3/空Properties，沿用现有严格v3二进制/字段解析及原生/XML版本相等要求，v2/v4未观察的空属性不扩路，未知v6+仍拒绝。v3线程启动/退出仅解除对应已绑定线程，线程ID复用不能延续旧pending；不因不相关线程生命周期再清空所有SQLite绑定。新增实际PowerShell v3 Start/Stop原始载荷回归证明旧pending计unfinished、重绑后独立200ms有效区间、无伪造跨生命周期配对。扩大五文件62项全通过、零skip，变更语法/Lint/格式通过；Windows新v3解析和完整失败窗口仍待CI，完整性/COMMIT因果/五秒资格继续false。没有改采集上限、原负载/期限、产品持久语义或认证。

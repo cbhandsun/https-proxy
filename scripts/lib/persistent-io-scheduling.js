@@ -21,6 +21,14 @@ const validShape = (name) => {
   );
 };
 const BINS = Object.freeze(['delayExecution', 'ready', 'otherWaiting', 'other']);
+const binFor = (state, reason) =>
+  state === 5
+    ? [4, 11].includes(reason)
+      ? 'delayExecution'
+      : 'otherWaiting'
+    : state === 1
+      ? 'ready'
+      : 'other';
 const blank = () => ({ count: 0, totalMs: 0, maxMs: 0, over100Ms: 0, over1000Ms: 0 });
 const integer = (value, max = Number.MAX_SAFE_INTEGER) =>
   Number.isSafeInteger(value) && value >= 0 && value <= max;
@@ -39,7 +47,8 @@ const exact = (value, keys) => {
 function createPersistentIoScheduling() {
   const threads = new Map(),
     bins = Object.fromEntries(BINS.map((key) => [key, blank()]));
-  const windows = [];
+  const windows = [],
+    waitWindows = [];
   const metadata = new Map();
   let enabled = false,
     bindings = 0,
@@ -113,14 +122,7 @@ function createPersistentIoScheduling() {
       const elapsedMs = timeMs - startedAtMs;
       if (!integer(elapsedMs, 600000)) throw fail();
       thread.pending = null;
-      const bin =
-        state === 5
-          ? [4, 11].includes(reason)
-            ? 'delayExecution'
-            : 'otherWaiting'
-          : state === 1
-            ? 'ready'
-            : 'other';
+      const bin = binFor(state, reason);
       const stats = bins[bin];
       stats.count++;
       stats.totalMs += elapsedMs;
@@ -128,6 +130,21 @@ function createPersistentIoScheduling() {
       if (elapsedMs >= 100) stats.over100Ms++;
       if (elapsedMs >= 1000) stats.over1000Ms++;
       intervals++;
+      waitWindows.push({
+        kind: bin,
+        threadState: state,
+        waitReason: reason,
+        startedAtMs,
+        finishedAtMs: timeMs,
+        elapsedMs,
+      });
+      waitWindows.sort(
+        (a, b) =>
+          b.elapsedMs - a.elapsedMs ||
+          a.startedAtMs - b.startedAtMs ||
+          (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0)
+      );
+      waitWindows.length = Math.min(8, waitWindows.length);
       if (bin === 'delayExecution') {
         windows.push({ startedAtMs, finishedAtMs: timeMs, elapsedMs });
         windows.sort((a, b) => b.elapsedMs - a.elapsedMs || a.startedAtMs - b.startedAtMs);
@@ -137,7 +154,8 @@ function createPersistentIoScheduling() {
     snapshot() {
       if (!enabled) return null;
       return {
-        schemaVersion: 2,
+        schemaVersion: 3,
+        waitWindows: waitWindows.map((row) => ({ ...row })),
         unmappedMetadata: [...metadata]
           .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
           .map(([shape, count]) => ({ shape, count })),
@@ -162,7 +180,8 @@ function validatePersistentIoScheduling(input, events) {
   const value = normalizeCompactionData(input, 8192);
   exact(value, [
     'schemaVersion',
-    ...(value?.schemaVersion === 2 ? ['unmappedMetadata'] : []),
+    ...([2, 3].includes(value?.schemaVersion) ? ['unmappedMetadata'] : []),
+    ...(value?.schemaVersion === 3 ? ['waitWindows'] : []),
     'scope',
     'bindings',
     'unmappedEpochs',
@@ -177,7 +196,7 @@ function validatePersistentIoScheduling(input, events) {
     'commitCorrelationQualified',
   ]);
   if (
-    ![1, 2].includes(value.schemaVersion) ||
+    ![1, 2, 3].includes(value.schemaVersion) ||
     value.scope !== 'sqlite_associated_thread_switch_intervals' ||
     value.traceCompletenessVerified !== false ||
     value.commitCorrelationQualified !== false ||
@@ -201,7 +220,7 @@ function validatePersistentIoScheduling(input, events) {
     (!value.bindings && value.switchOuts !== 0)
   )
     throw fail();
-  if (value.schemaVersion === 2) {
+  if ([2, 3].includes(value.schemaVersion)) {
     if (!Array.isArray(value.unmappedMetadata) || value.unmappedMetadata.length > 16) throw fail();
     let total = 0,
       prior = '';
@@ -272,6 +291,46 @@ function validatePersistentIoScheduling(input, events) {
       value.delayExecutionWindows[0].elapsedMs !== value.delayExecution.maxMs)
   )
     throw fail();
+  if (value.schemaVersion === 3) {
+    if (
+      !Array.isArray(value.waitWindows) ||
+      value.waitWindows.length !== Math.min(8, value.intervals)
+    )
+      throw fail();
+    const selected = Object.fromEntries(BINS.map((key) => [key, { count: 0, totalMs: 0 }]));
+    let previous;
+    for (const row of value.waitWindows) {
+      exact(row, ['kind', 'threadState', 'waitReason', 'startedAtMs', 'finishedAtMs', 'elapsedMs']);
+      if (
+        !BINS.includes(row.kind) ||
+        !integer(row.threadState, 255) ||
+        !integer(row.waitReason, 255) ||
+        binFor(row.threadState, row.waitReason) !== row.kind ||
+        !integer(row.startedAtMs) ||
+        !integer(row.finishedAtMs) ||
+        !integer(row.elapsedMs, 600000) ||
+        row.finishedAtMs - row.startedAtMs !== row.elapsedMs ||
+        row.elapsedMs > value[row.kind].maxMs ||
+        (previous &&
+          (row.elapsedMs > previous.elapsedMs ||
+            (row.elapsedMs === previous.elapsedMs &&
+              (row.startedAtMs < previous.startedAtMs ||
+                (row.startedAtMs === previous.startedAtMs && row.kind < previous.kind)))))
+      )
+        throw fail();
+      selected[row.kind].count++;
+      selected[row.kind].totalMs += row.elapsedMs;
+      previous = row;
+    }
+    for (const key of BINS)
+      if (selected[key].count > value[key].count || selected[key].totalMs > value[key].totalMs)
+        throw fail();
+    if (
+      value.waitWindows.length &&
+      value.waitWindows[0].elapsedMs !== Math.max(...BINS.map((key) => value[key].maxMs))
+    )
+      throw fail();
+  }
   return value;
 }
 
