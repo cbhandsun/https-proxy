@@ -1,5 +1,31 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：8e安装全链通过；接入daemon实际发布请求观察，保留7a正式失败
+
+固定8e10c371a5f606d3cae7e3f558f0ab0dc3a4a63e安装40406570137/job121865946915已终态success：完整候选门、NSIS构建、同格式升级回滚/runner-local
+DPAPI、完整582迁移与旧写者拒绝、实际安装Codex/Claude合成四案例和包内发布内部中断均success。新manifest=944c667fe2202b13b3959145e0923084042ac3bafa184389be9a2ff595e04d25；582固定baseline仍4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f，layout1→3/revision+1。四案例各三次压缩/exactFinalAnswer/restartRetention=true，默认零恢复、增强私有读取后独立公开生成；同次JSON/部分SSE停止收尾与自然退出合格。独立nativeControl两次正常停止、原expiresAt与存储重开成立，自己的restartRetention仍false。包内原生发布30/30、零fail/skip，defaultWorkerQualified=true，daemonQualified=false；WS、真实provider、24h均false，模型0。此安装只属8e，不继承到后续源码，不覆盖3f正式首次ready或其他旧失败，也未公开发布安装器。
+
+7a0f0491ce680e9a881a2141ad00eee72dcad9a1普通Verify40407405334终态success，但独立正式40407405361/source121868621552
+failure：既有actual core chat WBIPC ownership/revocation用例10962.4532ms，await
+pending处TimeoutError；日志不足以确定内部根因。egress成功，context-recovery
+skipped，不能称该提交正式通过。fd正式40405185405四项success亦不能覆盖fd普通旧兼容十秒失败或7a此次失败；全部原期限/记录保留，无重跑。
+
+本批在已签名、闭合源码校验的N09 host启动路径接入真实installed storage
+export观察，必须先于storage-opening/lifecycle捕获默认构造器。保留原构造参数、真实默认Worker、原service/execute/Promise身份与八项能力原样转发，不替代后端、不造ACK。观察每个实际save-reference-state请求相对于上次成功精确revision
+ACK的publication变化，区分prepared与withdrawn补偿；并发或异常观察拒绝授证。仅会话completePublicAsync未完成不足以证明prepared，因为其catch可能仍等待补偿写入，故不用该粗边界定位COMMIT。
+
+另建有界、不可覆盖的私有publication查询通道，HMAC域与原ACK区分，每次新nonce/sequence/PID/epoch并采样当前内存状态，防止旧pending文件被当成当前证据；原ACK
+schema、精确版本和认证不变。文件沿用物理目录/句柄身份检查，单文件4KiB/最多16次查询/原750ms，拒绝链接、替换、错身份、重放、非法/getter/Proxy与超限，失败后不重试。host构造/关闭失败均继续恢复其他原导出，不打开/关闭产品存储。三个闭合源码检查仅增加host-install内两个固定installed
+storage imports，不放开其他动态路径。
+
+公开响应保持器新增显式一次上游放行和成功对照，仍使用原15秒HTTP客户端及实际字节/终止观测；正常完整200响应与强杀transport-error严格区分。回归先红复现close与已settled结果交错后仍可授afterKill/afterRelease，现于await后再次拒绝closed/finished；实际loopback放行和socket中断均覆盖。此批尚未把查询、只读COMMIT锁与强杀/正常放行组合成新完整daemon场景，原六场景/负载不变，不能授daemon内部中断或五秒稳定资格；下一步须在实际prepared写入pending且BUSY、根/期限/精确revision一致、客户端零字节时强杀，并由默认owner处理热journal重开，再做正常放行对照。
+
+本机N09与plan扩大490项全通过、零skip；日档健康/真实时钟等22项全通过。完整context-hosted扩大602项为585通过/5失败/12既有skip：四项硬编码Windows
+PowerShell路径ENOENT，另一WFP合成后端hosted_egress_wfp_rejected；原失败记录保留，不据此宣称全树通过或修改/跳过测试。1652份JS语法、全树Lint零错误/原五警告、CI/release治理及变更格式通过；新文件已核对进入统一unit发现，无依赖、签名、产品认证/TTL/FULL/DELETE/独立OS锚点持久语义变动。
+
+22:20:39.549Z只读核实冻结5a同一源码/进程，79个连续tick至23400000ms（390分钟），elapsedMs=23400006.878，未失败/重启；watcher实际进程存活、独立五分钟检查持续。每个后续tick需先前工作序列返回；当前轮tick本身不代表该轮完成，最终仍要求288个完整历史样本、真实单调/墙钟满24小时、实际root到期、两次到期重开、15次开/关与最终成功/零退出。最早LA
+10月27日08:48:47后才能判断，不能以进程存活或名义到时替代。Windows主机无新增构建/短测，冻结源码/任务/数据库未改，模型0。其余五秒/旧兼容后端长尾、完整daemon/WS、容量、真实provider与受控自用目标保留，整体未完成。
+
 ## 2026-10-26：8e完整门全通过并启动新安装；实现实际COMMIT只读见证但尚未接入daemon
 
 2a正式40402040201、0b正式40402630046和8e正式40403400561均已四项success，含N08/N09实际执行；8e普通40403400592八项亦全部success，完整覆盖率I/O40403400584/job121854861035与独立I/O、三runner均success。原30cf/3f/56等失败继续保留。核对同一未发布草稿421213889仍draft=true、目标f8421078c67e30f32f17b4718c094fcbb6e0794e及两个固定资产667118183/667118182的名称/大小/上传状态不变；Git ls-remote缺失新候选ref（退出2）后，创建唯一固定8e10c371a5f606d3cae7e3f558f0ab0dc3a4a63e的新review分支。40406570137实际resolve成功、encrypted121865946915进入完整候选门；不重跑旧失败、不发布安装器，不因后续源码改变重定向候选，也不提前继承3f安装资格。

@@ -4,11 +4,17 @@ const path = require('node:path');
 const { fields, fail } = require('./contract');
 const { installN09RuntimeHooks } = require('./runtime-hooks');
 const { createN09MailboxHost } = require('./mailbox');
+const {
+  installPublicationStorageObserver,
+} = require('../n09-business/publication-storage-observer');
+const {
+  createPublicationObservationHost,
+} = require('../n09-business/publication-observation-host');
 
 // Called only by the granted gate, after every helper and installed source hash
-// has been verified. These two installed imports are fixed, reviewed targets.
+// has been verified. Installed imports below are fixed, reviewed targets.
 function installN09HostAck(input) {
-  let hooks;
+  let hooks, publicationObserver, publicationHost, host;
   try {
     const options = fields(input, ['install', 'caseRoot', 'pid', 'epoch', 'signingKey']);
     if (
@@ -38,12 +44,25 @@ function installN09HostAck(input) {
       'context-recovery-root-storage.js',
       'context-recovery-durable-ack.js',
       'context-recovery-lifecycle.js',
+      'context-recovery-storage.js',
+      'context-recovery-storage-opening.js',
     ])
       if (require.cache[require.resolve(path.join(options.install, 'lib/proxy', name))])
         throw fail();
     const ackExports = require(
       path.join(options.install, 'lib/proxy/context-recovery-durable-ack.js')
     );
+    const storageExports = require(
+      path.join(options.install, 'lib/proxy/context-recovery-storage.js')
+    );
+    const storageContract = require(
+      path.join(options.install, 'lib/proxy/context-recovery-storage-contract.js')
+    );
+    publicationObserver = installPublicationStorageObserver({
+      storageExports,
+      storageContract,
+      expectedDirectory: path.join(options.caseRoot, 'runtime/context-recovery-v1'),
+    });
     const lifecycleExports = require(
       path.join(options.install, 'lib/proxy/context-recovery-lifecycle.js')
     );
@@ -60,23 +79,54 @@ function installN09HostAck(input) {
       pid: options.pid,
       epoch: options.epoch,
     });
-    const host = createN09MailboxHost(
+    publicationHost = createPublicationObservationHost(
+      {
+        caseRoot: options.caseRoot,
+        pid: options.pid,
+        epoch: options.epoch,
+        signingKey: options.signingKey,
+      },
+      publicationObserver
+    );
+    let closed = false,
+      closeFailed = false;
+    const combinedHooks = Object.freeze({
+      armSave: (...args) => hooks.armSave(...args),
+      revokeBoundRoot: (...args) => hooks.revokeBoundRoot(...args),
+      close() {
+        if (closed) {
+          if (closeFailed) throw fail();
+          return;
+        }
+        closed = true;
+        for (const resource of [publicationHost, hooks]) {
+          try {
+            resource.close();
+          } catch {
+            closeFailed = true;
+          }
+        }
+        if (closeFailed) throw fail();
+      },
+    });
+    host = createN09MailboxHost(
       {
         directory: path.join(options.caseRoot, 'n09-ack'),
         pid: options.pid,
         epoch: options.epoch,
         signingKey: options.signingKey,
       },
-      hooks
+      combinedHooks
     );
     host.start();
+    publicationHost.start();
     return host;
   } catch {
-    if (hooks) {
+    for (const resource of host ? [host] : [publicationHost ?? publicationObserver, hooks]) {
       try {
-        hooks.close();
+        resource?.close();
       } catch {
-        throw fail();
+        // Continue restoring all installed exports before reporting rejection.
       }
     }
     throw fail();

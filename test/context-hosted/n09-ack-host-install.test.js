@@ -9,6 +9,12 @@ const os = require('node:os');
 const path = require('node:path');
 const { installN09HostAck } = require('../../scripts/context-hosted/n09-ack/host-install');
 const { createN09MailboxClient } = require('../../scripts/context-hosted/n09-ack/mailbox');
+const {
+  createPublicationObservationContract,
+} = require('../../scripts/context-hosted/n09-business/publication-observation-contract');
+const {
+  createPublicationObservationFiles,
+} = require('../../scripts/context-hosted/n09-business/publication-observation-files');
 const { exportContextRecoveryRoot } = require('../../lib/proxy/context-recovery-sessions');
 const { createRootCheckpoint } = require('../../lib/proxy/context-recovery-root-checkpoint');
 const {
@@ -26,24 +32,42 @@ function fixture(t) {
   const ack = path.join(install, 'lib/proxy/context-recovery-durable-ack.js');
   const lifecycle = path.join(install, 'lib/proxy/context-recovery-lifecycle.js');
   const storage = path.join(install, 'lib/proxy/context-recovery-root-storage.js');
+  const service = path.join(install, 'lib/proxy/context-recovery-storage.js');
+  const opening = path.join(install, 'lib/proxy/context-recovery-storage-opening.js');
+  const contract = path.join(install, 'lib/proxy/context-recovery-storage-contract.js');
+  fs.writeFileSync(
+    service,
+    `exports.service = {execute: request => exports.next ?? Promise.resolve({revision:request.expectedRevision+1}), close(){}};
+exports.openContextRecoveryStorage = () => (exports.opening = Promise.resolve(exports.service));
+exports.originalOpen = exports.openContextRecoveryStorage;`
+  );
+  fs.writeFileSync(opening, 'exports.neverUsed = true;');
+  fs.writeFileSync(
+    contract,
+    `module.exports = require(${real('context-recovery-storage-contract.js')});`
+  );
   fs.writeFileSync(
     ack,
     `exports.createRecoveryDurableAck = require(${real('context-recovery-durable-ack.js')}).createRecoveryDurableAck;`
   );
   fs.writeFileSync(
     lifecycle,
-    `const {createContextRecoverySessions}=require(${real('context-recovery-sessions.js')});
+    `exports.capturedOpen = require('./context-recovery-storage.js').openContextRecoveryStorage;
+const {createContextRecoverySessions}=require(${real('context-recovery-sessions.js')});
 exports.createContextRecoveryLifecycle = () => { const sessions=createContextRecoverySessions({now:()=>100}); sessions.configure(true); return {sessions,shutdownAsync:()=>sessions.shutdownAsync()}; };`
   );
   fs.writeFileSync(storage, 'exports.neverUsed = true;');
   t.after(() => {
-    for (const file of [ack, lifecycle, storage]) delete require.cache[file];
+    for (const file of [ack, lifecycle, storage, service, opening, contract])
+      delete require.cache[file];
     fs.rmSync(root, { recursive: true, force: true });
   });
   return {
     ack,
     lifecycle,
     storage,
+    service,
+    opening,
     input: { install, caseRoot, pid: 123, epoch: 'a'.repeat(32), signingKey: 'b'.repeat(64) },
   };
 }
@@ -112,4 +136,100 @@ test('host rejects warm installed ownership and malformed identity before import
     "require('./context-recovery-root-storage.js'); exports.createContextRecoveryLifecycle=()=>{};"
   );
   assert.throws(() => installN09HostAck(f.input), safe);
+});
+
+test('publication queries sample the installed storage request captured before lifecycle imports and restore both exports', async (t) => {
+  const f = fixture(t);
+  const host = installN09HostAck(f.input);
+  t.after(() => host.close());
+  const storage = require(f.service),
+    lifecycle = require(f.lifecycle);
+  // This export was captured during the installed lifecycle module evaluation.
+  assert.equal(lifecycle.capturedOpen, storage.openContextRecoveryStorage);
+  assert.notEqual(storage.openContextRecoveryStorage, storage.originalOpen);
+  const open = lifecycle.capturedOpen({
+    directory: path.join(f.input.caseRoot, 'runtime/context-recovery-v1'),
+  });
+  assert.equal(open, storage.opening);
+  const service = await open;
+  assert.equal(service, storage.service);
+  const request = (revision, publications = []) => ({
+    operation: 'save-reference-state',
+    scope: 'c'.repeat(64),
+    expectedRevision: revision,
+    reference: { metadata: { rootId: 'hbs_' + 'd'.repeat(32), expiresAt: 1000 }, publications },
+  });
+  await service.execute(request(0));
+  let release;
+  storage.next = new Promise((resolve) => {
+    release = resolve;
+  });
+  const pending = service.execute(request(1, [{ snapshotId: 'snapshot', state: 'prepared' }]));
+  assert.equal(pending, storage.next);
+  const contract = createPublicationObservationContract({
+    pid: f.input.pid,
+    epoch: f.input.epoch,
+    signingKey: f.input.signingKey,
+  });
+  const files = createPublicationObservationFiles({
+    directory: path.join(f.input.caseRoot, `n09-publication-${f.input.pid}-${f.input.epoch}`),
+    pid: f.input.pid,
+    epoch: f.input.epoch,
+  });
+  t.after(() => {
+    files.close();
+    contract.close();
+  });
+  files.write(
+    'query',
+    1,
+    JSON.stringify(
+      contract.signQuery({
+        version: 1,
+        pid: f.input.pid,
+        epoch: f.input.epoch,
+        sequence: 1,
+        challenge: 'e'.repeat(32),
+      })
+    )
+  );
+  let wire;
+  for (let i = 0; i < 50 && wire == null; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    wire = files.read('state', 1);
+  }
+  assert.notEqual(wire, null);
+  const observed = contract.verifyState(wire);
+  assert.equal(observed.transition, 'prepared');
+  assert.equal(observed.status, 'pending');
+  assert.equal(observed.expectedRevision, 1);
+  assert.equal(observed.activeCount, 1);
+  assert.equal(observed.expiresAt, 1000);
+  release({ revision: 2 });
+  await pending;
+  host.close();
+  assert.notEqual(storage.openContextRecoveryStorage, lifecycle.capturedOpen);
+  assert.equal(storage.openContextRecoveryStorage, storage.originalOpen);
+  assert.equal(require.cache[f.storage], undefined);
+});
+
+test('publication mailbox construction failure restores storage and lifecycle exports without opening product storage', (t) => {
+  const f = fixture(t);
+  fs.mkdirSync(path.join(f.input.caseRoot, `n09-publication-${f.input.pid}-${f.input.epoch}`));
+  assert.throws(() => installN09HostAck(f.input), safe);
+  const storage = require(f.service);
+  assert.equal(storage.openContextRecoveryStorage, storage.originalOpen);
+  assert.equal(storage.opening, undefined);
+  assert.equal(require.cache[f.storage], undefined);
+});
+
+test('warm storage opening is refused before wrapping or constructing any observation mailbox', (t) => {
+  const f = fixture(t);
+  require(f.opening);
+  assert.throws(() => installN09HostAck(f.input), safe);
+  assert.equal(require.cache[f.service], undefined);
+  assert.equal(
+    fs.readdirSync(f.input.caseRoot).some((name) => name.startsWith('n09-publication-')),
+    false
+  );
 });

@@ -42,6 +42,9 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
   let observer,
     started,
     cancelResponse,
+    releaseResponse,
+    releaseAttempted = false,
+    released = false,
     arrived = false,
     ended = false,
     closed = false,
@@ -98,7 +101,7 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
     if (observer.bytes() !== 0) throw fail();
   }
   return Object.freeze({
-    arrive(cancel) {
+    arrive(cancel, release) {
       try {
         if (
           closed ||
@@ -107,13 +110,19 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
           typeof cancel !== 'function' ||
           types.isProxy(cancel) ||
           types.isAsyncFunction(cancel) ||
-          types.isGeneratorFunction(cancel)
+          types.isGeneratorFunction(cancel) ||
+          (release !== undefined &&
+            (typeof release !== 'function' ||
+              types.isProxy(release) ||
+              types.isAsyncFunction(release) ||
+              types.isGeneratorFunction(release)))
         )
           throw fail();
         zeroBytes();
         if (observer.termination() !== 'pending') throw fail();
         arrived = true;
         cancelResponse = cancel;
+        releaseResponse = release;
         clearTimeout(timer);
         resolveHeld();
       } catch {
@@ -131,10 +140,64 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
         throw fail();
       }
     },
+    releaseUpstream() {
+      try {
+        if (closed || !arrived || ended || releaseAttempted || !releaseResponse) throw fail();
+        zeroBytes();
+        if (observer.termination() !== 'pending') throw fail();
+        releaseAttempted = true;
+        const result = releaseResponse();
+        if (result !== true) {
+          discardN09PromiseRejection(result);
+          throw fail();
+        }
+        released = true;
+        releaseResponse = undefined;
+        zeroBytes();
+        return Object.freeze({ upstreamReleased: true, publicBytes: 0 });
+      } catch {
+        throw fail();
+      }
+    },
+    assertReleasedPending() {
+      try {
+        if (closed || !released || ended || finished) throw fail();
+        zeroBytes();
+        if (observer.termination() !== 'pending') throw fail();
+        return Object.freeze({ upstreamReleased: true, publicBytes: 0 });
+      } catch {
+        throw fail();
+      }
+    },
+    async afterRelease() {
+      try {
+        if (closed || !released || finished) throw fail();
+        const result = exact(await observer.result, ['response']);
+        if (closed || finished) throw fail();
+        const response = exact(result.response, ['status', 'bytes']);
+        if (
+          response.status !== 200 ||
+          types.isProxy(response.bytes) ||
+          !Buffer.isBuffer(response.bytes) ||
+          response.bytes.length < 1 ||
+          response.bytes.length > 262144 ||
+          observer.bytes() !== response.bytes.length ||
+          observer.termination() !== 'response'
+        )
+          throw fail();
+        finished = true;
+        return Object.freeze({
+          response: Object.freeze({ status: response.status, bytes: Buffer.from(response.bytes) }),
+        });
+      } catch {
+        throw fail();
+      }
+    },
     async afterKill() {
       try {
-        if (closed || !arrived || finished) throw fail();
+        if (closed || !arrived || finished || (releaseAttempted && !released)) throw fail();
         const result = exact(await observer.result, ['failed']);
+        if (closed || finished) throw fail();
         if (result.failed !== true || observer.termination() !== 'transport-error') throw fail();
         zeroBytes();
         finished = true;
@@ -160,7 +223,7 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
           failed = true;
         }
       }
-      cancelResponse = undefined;
+      cancelResponse = releaseResponse = undefined;
       closeFailed = failed;
       if (failed) throw fail();
     },

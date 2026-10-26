@@ -254,3 +254,161 @@ test(
     assert.deepEqual(await owned.hold.afterKill(), { interrupted: true, publicBytes: 0 });
   }
 );
+
+test('released upstream keeps zero public bytes until the independent boundary and permits a complete positive reply', async (t) => {
+  const f = fixture(t);
+  let releases = 0;
+  f.hold.arrive(
+    () => true,
+    () => {
+      releases++;
+      return true;
+    }
+  );
+  await f.hold.waitHeld();
+  assert.deepEqual(f.hold.releaseUpstream(), { upstreamReleased: true, publicBytes: 0 });
+  assert.deepEqual(f.hold.assertReleasedPending(), { upstreamReleased: true, publicBytes: 0 });
+  assert.throws(() => f.hold.releaseUpstream(), safe);
+  const body = Buffer.from('synthetic public');
+  f.state.bytes = body.length;
+  f.settle('response', { response: { status: 200, bytes: body } });
+  assert.deepEqual(await f.hold.afterRelease(), { response: { status: 200, bytes: body } });
+  assert.equal(releases, 1);
+  await assert.rejects(f.hold.afterKill(), safe);
+  await assert.rejects(f.hold.afterRelease(), safe);
+});
+
+test(
+  'real loopback release completes the original pending HTTP request with exact response bytes',
+  { timeout: 10000 },
+  async (t) => {
+    const owned = {};
+    const server = http.createServer((request, response) => {
+      request.resume();
+      request.on('end', () =>
+        owned.hold.arrive(
+          () => {
+            response.destroy();
+            return true;
+          },
+          () => {
+            response.writeHead(200, { 'Content-Type': 'text/plain' });
+            response.end('public-release-control');
+            return true;
+          }
+        )
+      );
+    });
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    t.after(async () => {
+      owned.hold?.close();
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+    });
+    const hold = (owned.hold = createPublicResponseInterruption({
+      entryPort: server.address().port,
+      entryKey: 'a'.repeat(48),
+      body: Buffer.from('{}'),
+    }));
+    assert.deepEqual(await hold.waitHeld(), { publicResponseHeld: true, publicBytes: 0 });
+    assert.deepEqual(hold.releaseUpstream(), { upstreamReleased: true, publicBytes: 0 });
+    const result = await hold.afterRelease();
+    assert.equal(result.response.status, 200);
+    assert.equal(result.response.bytes.toString(), 'public-release-control');
+    await assert.rejects(hold.afterRelease(), safe);
+  }
+);
+
+test('release requires one synchronous true and never retries or assimilates another capability', async (t) => {
+  let traps = 0;
+  const thenable = Object.defineProperty({}, 'then', {
+    get() {
+      traps++;
+      throw Error('PRIVATE');
+    },
+  });
+  for (const value of [false, undefined, thenable, Promise.reject(Error('PRIVATE'))]) {
+    const f = fixture(t);
+    let calls = 0;
+    f.hold.arrive(
+      () => true,
+      () => {
+        calls++;
+        return value;
+      }
+    );
+    assert.throws(() => f.hold.releaseUpstream(), safe);
+    assert.throws(() => f.hold.releaseUpstream(), safe);
+    f.settle('transport-error');
+    await assert.rejects(f.hold.afterKill(), safe);
+    assert.equal(calls, 1);
+  }
+  const invalid = [
+    new Proxy(() => true, {
+      apply() {
+        traps++;
+        throw Error('PRIVATE');
+      },
+    }),
+    async () => true,
+    function* () {
+      traps++;
+      yield true;
+    },
+  ];
+  for (const release of invalid) {
+    const f = fixture(t);
+    assert.throws(() => f.hold.arrive(() => true, release), safe);
+  }
+  assert.equal(traps, 0);
+});
+
+test('released interruption still requires an actual transport error and zero client bytes', async (t) => {
+  const f = fixture(t);
+  f.hold.arrive(
+    () => true,
+    () => true
+  );
+  f.hold.releaseUpstream();
+  f.settle('transport-error');
+  assert.deepEqual(await f.hold.afterKill(), { interrupted: true, publicBytes: 0 });
+  for (const reason of ['timeout', 'cancelled']) {
+    const denied = fixture(t);
+    denied.hold.arrive(
+      () => true,
+      () => true
+    );
+    denied.hold.releaseUpstream();
+    denied.settle(reason);
+    await assert.rejects(denied.hold.afterKill(), safe);
+  }
+  const leaked = fixture(t);
+  leaked.hold.arrive(
+    () => true,
+    () => true
+  );
+  leaked.hold.releaseUpstream();
+  leaked.state.bytes = 1;
+  assert.throws(() => leaked.hold.assertReleasedPending(), safe);
+});
+
+test('closing before an already completed result is consumed cannot grant interruption or release success', async (t) => {
+  const interrupted = fixture(t);
+  interrupted.arrive();
+  const failed = assert.rejects(interrupted.hold.afterKill(), safe);
+  interrupted.settle('transport-error');
+  interrupted.hold.close();
+  await failed;
+  const released = fixture(t);
+  released.hold.arrive(
+    () => true,
+    () => true
+  );
+  released.hold.releaseUpstream();
+  const finished = assert.rejects(released.hold.afterRelease(), safe);
+  released.state.bytes = 1;
+  released.settle('response', { response: { status: 200, bytes: Buffer.from('x') } });
+  released.hold.close();
+  await finished;
+});

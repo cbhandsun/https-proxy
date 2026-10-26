@@ -58,7 +58,7 @@ function verifyPinnedClosure(pins, roots, dynamicTargets = []) {
     if (file.endsWith('.json')) continue;
     let code = source.toString('utf8');
     code = code.replace(
-      /\brequire\s*\(\s*path\.join\s*\(\s*options\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:durable-ack|lifecycle)\.js\1\s*\)\s*\)/g,
+      /\brequire\s*\(\s*path\.join\s*\(\s*options\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:durable-ack|lifecycle|storage|storage-contract)\.js\1\s*\)\s*\)/g,
       () => {
         if (file !== path.resolve(__dirname, '../n09-ack/host-install.js')) throw fail();
         return '';

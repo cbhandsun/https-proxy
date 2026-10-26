@@ -36,7 +36,8 @@ function physical(file, directory, ancestors) {
   }
 }
 
-function readBootstrap(file) {
+function readBootstrap(file, maximum = 131072) {
+  if (!Number.isSafeInteger(maximum) || maximum < 2 || maximum > 131072) throw fail();
   let fd;
   try {
     const initial = physical(file, false);
@@ -46,7 +47,7 @@ function readBootstrap(file) {
       !before.isFile() ||
       before.nlink !== 1n ||
       before.size < 1n ||
-      before.size > 131072n ||
+      before.size > BigInt(maximum) ||
       identity(before) !== identity(initial) ||
       before.size !== initial.size ||
       before.mtimeNs !== initial.mtimeNs
@@ -195,4 +196,5 @@ function createN09HostAckClient(input) {
   }
 }
 
-module.exports = { createN09HostAckClient };
+// Private helpers shared only by the separately domain-bound publication probe.
+module.exports = { createN09HostAckClient, readBootstrap, physical };

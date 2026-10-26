@@ -116,7 +116,7 @@ function collectClosure(roots, dynamicTargets) {
       }
     );
     source = source.replace(
-      /\brequire\s*\(\s*path\.join\s*\(\s*options\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:durable-ack|lifecycle)\.js\1\s*\)\s*\)/g,
+      /\brequire\s*\(\s*path\.join\s*\(\s*options\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:durable-ack|lifecycle|storage|storage-contract)\.js\1\s*\)\s*\)/g,
       () => {
         if (file !== path.resolve(__dirname, 'n09-ack/host-install.js')) throw fail();
         // Gate verifies the full installed manifest before these fixed imports.
