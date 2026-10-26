@@ -12,6 +12,7 @@ const {
   callable,
 } = require('./context-recovery-daemon-http-boundary');
 const { parseOwnedStartupProtocols } = require('./context-recovery-daemon-owned-startup');
+const { completeDaemonNaturalStop } = require('./context-recovery-daemon-natural-stop');
 const { LABELS, identity } = require('./context-recovery-daemon-owned-protocol');
 const { createDaemonManagementHttpClient } = require('./context-recovery-daemon-http-client');
 const {
@@ -238,6 +239,8 @@ function createDaemonOwnedAdapter(input, channel, dependencies) {
       const configPin = pin(attested.configDir);
       const http = io.client({ port: attested.managementPort, token });
       if (!callable(http)) throw fail();
+      let shutdown;
+      let naturalStopping = false;
       const owner = {
         identity: attested,
         async isAlive() {
@@ -257,6 +260,29 @@ function createDaemonOwnedAdapter(input, channel, dependencies) {
         },
         request: (request) => http(request),
         inspectStorage: () => inspectOwnedStorage(attested.runtimeDir, runtimePin),
+        async stopNaturally() {
+          if (active !== owner || blocked || naturalStopping) throw fail();
+          naturalStopping = true;
+          try {
+            if (
+              !unchanged(attested.runtimeDir, runtimePin) ||
+              !unchanged(attested.configDir, configPin)
+            )
+              throw fail();
+            const receipt = await completeDaemonNaturalStop(
+              { case: label, pid: attested.pid, shutdown },
+              http,
+              exchange
+            );
+            if (active !== owner) throw fail();
+            active = null;
+            activeLabel = null;
+            return receipt;
+          } catch {
+            blocked = true;
+            throw fail('controller_natural_exit');
+          }
+        },
         async stop() {
           if (active !== owner) throw fail();
           return stop(label);
@@ -298,6 +324,7 @@ function createDaemonOwnedAdapter(input, channel, dependencies) {
         previous = after;
         stage = 'ready_health_rejected';
         if (health && readyHealth(health, attested, initialProtocols[next])) {
+          shutdown = health.body.shutdown;
           stage = 'config_rejected';
           const config = dataSnapshot(
             (

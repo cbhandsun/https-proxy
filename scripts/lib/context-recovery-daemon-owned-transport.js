@@ -131,7 +131,7 @@ function startDaemonOwnedController(input, start = spawn) {
         const keys = request.op === 'start' ? 'case,op,token' : 'case,op';
         if (
           Object.keys(request).sort().join(',') !== keys ||
-          !['start', 'status', 'stop'].includes(request.op) ||
+          !['start', 'status', 'stop', 'reap'].includes(request.op) ||
           !LABELS.includes(request.case) ||
           (request.op === 'start' &&
             (typeof request.token !== 'string' || !/^[a-zA-Z0-9_-]{32,256}$/.test(request.token)))
@@ -145,7 +145,7 @@ function startDaemonOwnedController(input, start = spawn) {
       return new Promise((resolve, reject) => {
         const timer = setTimeout(
           () => abort('rpc_deadline'),
-          request.op === 'stop' ? 20000 : 15000
+          ['stop', 'reap'].includes(request.op) ? 20000 : 15000
         );
         pending = { resolve, reject, timer, request };
         try {

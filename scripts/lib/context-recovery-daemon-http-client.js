@@ -4,7 +4,12 @@ const http = require('node:http');
 const { own, callable, dataSnapshot } = require('./context-recovery-daemon-http-boundary');
 const { nativeHttpFailureCode } = require('./context-recovery-daemon-http-failure');
 
-const ROUTES = new Set(['GET /v1/local/health', 'GET /v1/local/config', 'POST /v1/local/config']);
+const ROUTES = new Set([
+  'GET /v1/local/health',
+  'GET /v1/local/config',
+  'POST /v1/local/config',
+  'POST /v1/local/runtime/stop',
+]);
 const MAX_BYTES = 256 * 1024;
 
 // The token stays in this closure. Only fixed loopback routes are reachable;

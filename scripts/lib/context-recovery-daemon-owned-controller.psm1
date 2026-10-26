@@ -13,7 +13,7 @@ function ConvertFrom-HpmDaemonOwnedFrame {
         $names = @($value.EnumerateObject() | ForEach-Object { $_.Name })
         $op = $value.GetProperty('op').GetString()
         $expected = if ($op -ceq 'start') { 'case,id,op,token,v' } else { 'case,id,op,v' }
-        if (($names | Sort-Object) -join ',' -cne $expected -or $value.GetProperty('v').GetInt32() -ne 1 -or $op -cnotin @('start', 'status', 'stop')) { throw 'invalid' }
+        if (($names | Sort-Object) -join ',' -cne $expected -or $value.GetProperty('v').GetInt32() -ne 1 -or $op -cnotin @('start', 'status', 'stop', 'reap')) { throw 'invalid' }
         $id = $value.GetProperty('id').GetInt32()
         $label = $value.GetProperty('case').GetString()
         if ($id -lt 1 -or $id -gt 4096 -or $label -cnotin @('00', '01', '10', '11')) { throw 'invalid' }
@@ -61,6 +61,19 @@ function Invoke-HpmDaemonOwnedRequest {
         $reply = @{ v = 1; id = $Request.id; op = 'status'; case = $Request.case; ok = $true; alive = $alive; credentialsPrivate = [bool](& $Operations.Credentials $State.active) }
         if ($State.active.ContainsKey('gateMarker')) { $reply.preloadPhase = $State.active.gateMarker.phase }
         return $reply
+    }
+    if ($Request.op -ceq 'reap') {
+        try {
+            if ((& $Operations.Reap $State.active) -ne $true) { throw 'invalid' }
+            $State.active = $null
+            $State.failedCase = $null
+            $State.next++
+            return @{ v = 1; id = $Request.id; op = 'reap'; case = $Request.case; ok = $true; treeEmpty = $true; cleanupSemantics = 'natural_exit'; exitCode = 0 }
+        } catch {
+            # Keep ownership for separate forced cleanup; it cannot repair qualification.
+            $State.blocked = $true; $State.failedCase = $Request.case
+            return @{ v = 1; id = $Request.id; op = 'reap'; case = $Request.case; ok = $false; cause = 'controller_natural_exit' }
+        }
     }
     if ($Request.op -cne 'stop') { throw 'daemon_protocol_rejected' }
     try {
@@ -176,6 +189,38 @@ function Stop-HpmDaemonOwnedCase {
     }
 }
 
+function Complete-HpmDaemonOwnedNaturalExit {
+    param([hashtable]$Owner)
+    try {
+        if (-not $Owner.assigned) { throw 'invalid' }
+        $clock = [Diagnostics.Stopwatch]::StartNew()
+        # Pump while waiting so redirected output cannot block natural exit.
+        do {
+            Update-HpmDaemonOwnedPipes $Owner
+            if ($Owner.process.HasExited) { break }
+            if ($clock.ElapsedMilliseconds -ge 5000) { throw 'invalid' }
+            [Threading.Thread]::Sleep(10)
+        } while ($true)
+        if ($Owner.process.ExitCode -ne 0) { throw 'invalid' }
+        # WaitForEmpty observes the owned Job; unlike StopAndWait it never kills.
+        $Owner.job.WaitForEmpty(5000)
+        $clock.Restart()
+        do {
+            Update-HpmDaemonOwnedPipes $Owner
+            if (@($Owner.streams | Where-Object { -not $_.ended }).Count -eq 0) { break }
+            if ($clock.ElapsedMilliseconds -ge 5000) { throw 'invalid' }
+            [Threading.Thread]::Sleep(10)
+        } while ($true)
+        $Owner.job.Dispose()
+        $Owner.process.Dispose()
+        return $true
+    } catch {
+        # No Dispose/kill on failure: the caller still owns this case and must
+        # report failure before using the separate forced-cleanup path.
+        throw 'daemon_natural_exit_failed'
+    }
+}
+
 function New-HpmDaemonOwnedConfig {
     param([int[]]$Ports)
     if ($null -eq $Ports -or $Ports.Count -ne 2 -or $Ports[0] -eq $Ports[1]) { throw 'daemon_port_rejected' }
@@ -278,6 +323,7 @@ function Invoke-HpmDaemonOwnedController {
             Alive = { param($owner) -not $owner.process.HasExited }
             Credentials = { param($owner) Test-HpmDaemonOwnedCredentials $owner }
             Stop = { param($owner) Stop-HpmDaemonOwnedCase $owner }
+            Reap = { param($owner) Complete-HpmDaemonOwnedNaturalExit $owner }
         }
         $clock = [Diagnostics.Stopwatch]::StartNew()
         $inputStream = [Console]::OpenStandardInput()

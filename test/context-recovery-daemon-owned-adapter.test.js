@@ -84,6 +84,20 @@ function fixture(t) {
           ...(f.preloadPhase === undefined ? {} : { preloadPhase: f.preloadPhase }),
         };
       }
+      if (request.op === 'reap') {
+        if (f.reapFailure) throw new Error('PRIVATE_REAP_ERROR');
+        return {
+          v: 1,
+          id: requests.length,
+          op: 'reap',
+          case: request.case,
+          ok: true,
+          treeEmpty: true,
+          cleanupSemantics: 'natural_exit',
+          exitCode: 0,
+          ...f.reapReply,
+        };
+      }
       if (f.stopFailure) throw new Error('PRIVATE_STOP_ERROR');
       return {
         v: 1,
@@ -109,6 +123,10 @@ function fixture(t) {
     client(options) {
       assert.equal(options.token, 'x'.repeat(32));
       return async (request) => {
+        if (request.route === '/v1/local/runtime/stop') {
+          f.stopIntent = request;
+          return { status: 202, body: { accepted: true, ...request.body }, ...f.stopReply };
+        }
         if (request.method === 'POST') {
           f.saved = request.body.appSettings;
           f.revision = 'saved';
@@ -137,6 +155,7 @@ function fixture(t) {
           appId: 'https-proxy-manager',
           status: 'running',
           pid: current.pid,
+          shutdown: { pid: current.pid, instanceId: 'a'.repeat(32) },
           runtime: {
             ...current,
             contextRecoveryDirectory: path.join(current.runtimeDir, 'context-recovery-v1'),
@@ -820,4 +839,80 @@ test('declared Claude startup cannot be acknowledged by a Responses listener or 
     )
   );
   assert.equal(touched, false);
+});
+
+test('owned natural stop binds health identity and requires an independent zero-exit receipt', async (t) => {
+  const f = fixture(t);
+  const owner = await f.launch();
+  assert.deepEqual(await owner.stopNaturally(), {
+    treeEmpty: true,
+    cleanupSemantics: 'natural_exit',
+    exitCode: 0,
+  });
+  assert.equal(f.stopIntent.body.pid, owner.identity.pid);
+  assert.equal(f.stopIntent.body.instanceId, 'a'.repeat(32));
+  assert.equal(f.requests.at(-1).op, 'reap');
+  assert.equal(
+    f.requests.some((request) => request.op === 'stop'),
+    false
+  );
+  assert.equal(f.adapter.verifyOwnedIdentity(owner), false);
+  await assert.rejects(owner.stopNaturally());
+  await assert.rejects(owner.stop());
+  await f.adapter.close();
+});
+
+test('failed natural stop preserves ownership for forced cleanup and blocks later qualification', async (t) => {
+  for (const kind of [
+    'missing_identity',
+    'stale_identity',
+    'wrong_ack',
+    'forced_receipt',
+    'reap_failure',
+  ]) {
+    const f = fixture(t);
+    if (kind === 'missing_identity')
+      f.mutateHealth = (body) => {
+        delete body.shutdown;
+      };
+    if (kind === 'stale_identity')
+      f.mutateHealth = (body) => {
+        body.shutdown.pid++;
+      };
+    if (kind === 'wrong_ack') f.stopReply = { status: 409 };
+    if (kind === 'forced_receipt') f.reapReply = { cleanupSemantics: 'forced_cleanup' };
+    if (kind === 'reap_failure') f.reapFailure = true;
+    const owner = await f.launch();
+    await assert.rejects(owner.stopNaturally(), /^Error: daemon_owned_adapter_failed$/);
+    assert.equal(f.adapter.verifyOwnedIdentity(owner), false);
+    await assert.rejects(owner.stopNaturally());
+    await f.adapter.close();
+    assert.equal(f.requests.at(-1).op, 'stop');
+    await assert.rejects(f.launch('01'));
+  }
+});
+
+test('controller transport accepts exact natural receipt without converting forced cleanup', async (t) => {
+  for (const semantics of ['natural_exit', 'forced_cleanup']) {
+    const f = fakeController();
+    const channel = startDaemonOwnedController(controllerOptions(t), () => f.child);
+    const pending = channel.exchange({ op: 'reap', case: '00' });
+    const request = JSON.parse(f.writes[0]);
+    f.child.stdout.write(
+      JSON.stringify({
+        ...request,
+        ok: true,
+        treeEmpty: true,
+        cleanupSemantics: semantics,
+        exitCode: 0,
+      }) + '\n'
+    );
+    if (semantics === 'natural_exit') {
+      assert.equal((await pending).exitCode, 0);
+      await channel.close();
+    } else {
+      await assert.rejects(pending);
+      await assert.rejects(channel.close());
+    }
+  }
 });

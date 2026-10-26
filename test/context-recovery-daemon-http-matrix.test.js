@@ -686,3 +686,30 @@ test('owned attestation receives the exact launched capability and refuses match
     }
   }
 });
+
+test('natural stop uses the existing authenticated loopback endpoint with JSON identity only', async () => {
+  const target = { pid: 42, instanceId: 'a'.repeat(32) };
+  const { calls, wire } = wireMock((response) => {
+    response.statusCode = 202;
+    response.emit('data', Buffer.from(JSON.stringify({ accepted: true, ...target })));
+    response.emit('end');
+  });
+  const client = createDaemonManagementHttpClient({ port: 15000, token: 'x'.repeat(32) }, wire);
+  assert.equal(
+    (await client({ method: 'POST', route: '/v1/local/runtime/stop', body: target })).status,
+    202
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].options.path, '/v1/local/runtime/stop');
+  assert.equal(calls[0].options.hostname, '127.0.0.1');
+  assert.equal(calls[0].options.headers['content-type'], 'application/json');
+  assert.equal(calls[0].options.headers['x-mgmt-token'], 'x'.repeat(32));
+  assert.deepEqual(JSON.parse(calls[0].body), target);
+  for (const route of [
+    '/v1/local/runtime/stop?token=x',
+    'http://evil.example/v1/local/runtime/stop',
+  ])
+    await assert.rejects(client({ method: 'POST', route, body: target }));
+  await assert.rejects(client({ method: 'GET', route: '/v1/local/runtime/stop' }));
+  assert.equal(calls.length, 1);
+});

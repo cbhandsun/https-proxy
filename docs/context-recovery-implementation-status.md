@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：普通完整Verify通过；独立自然退出验收能力接入
+
+4ef6b8a的Verify40379652156八项全success，四unit分片、integration、node-quality、rust及完整proxy/client/frontend覆盖率均通过；8939f75的Verify40377391159亦八项全success。原8939正式回执同步异常和45正式Chat5007ms失败继续保留。4ef正式40379652029/source121772120889及完整覆盖率I/O40379652039/121772121544仍执行，不授正式安装或五秒稳定资格。独立I/O40379652035/121772121645原50项通过、零skip，153对flush中database最大24ms/journal最大32ms；traceCompletenessVerified及fiveSecondQualified仍false，不能以另一runner短flush排除既有慢COMMIT。
+
+本批为后续安装在途HTTP/WS验收接入stopNaturally：使用既有认证loopback停机端点，以健康回执的精确pid/instanceId请求。严格202仅接受意图，必须再经所属控制器reap观察真实进程退出0、原Job.WaitForEmpty(5000)清空及管道EOF才返回natural_exit。等待时泵出并丢弃有界产品字节，不读秘密或按数字PID查杀。失败保留active资源供独立forced_cleanup并封锁后续资格，不以Dispose/kill制造通过。原stop及强制清理设置矩阵不改，gracefulDrainQualified仍false；实际Windows安装在途矩阵尚未执行，不能宣称该缺口完成。原期限、认证、FULL/DELETE、独立锚点flush、精确ACK、绝对expiresAt、依赖/锁文件及签名门均保持。
+
+六份相关文件69项本机全通过、零skip，另N08/N09闭包五项通过。覆盖意图ACK后等待、空/非法/Proxy/getter/极端pid/陈旧身份、错误ACK/额外字段、非零退出、非空Job、输出错误、进程和EOF原五秒超时、失败保留所有权及强制回收不授资格。新测试进入原统一发现；PowerShell故障等待独立夹具不挤占既有mock的原期限。首次新测试期待普通对象而收到安全空原型快照，已对齐字段断言，未改产品行为。全树Lint零错误/五项既有警告、语法和CI/release治理通过，最终格式检查随本批完成。
+
+更正前条Mac PowerShell四项三通过记录：补项目原physical-test-temp预加载器后，nsis-client-inputs完整四项全通过；此前编排mock失败来自本地命令遗漏预加载器，不能当产品根因。原Windows正式同步异常仍保留，须新正式证据。
+
+18:52:03.126Z只读核验冻结5a同一身份/进程，37个连续五分钟回执推进至10800000ms（180分钟）、elapsedMs=10800001.1509，未失败/重启。监测核对完整历史连续性和严格终态，不仅看存活或经过时间。Windows无新构建/短测负载，旧失败与暂停长测不动，模型0。真实24小时终态、原根实际到期及两次重开仍未通过；最新安装升级回滚/完整582迁移拒写、两端重启/完整在途HTTP/WS、五档容量、额度核对后的provider及受控自用等原交付范围保留。下一步核对正式与完整I/O终态，继续定位五秒持久等待，再组合实际安装验收；基础能力通过不能翻转整体资格。
+
 ## 2026-10-26：8939七项普通通过，正式回执异常保留；补齐同源I/O触发与回执严格校验
 
 8939f75的Verify40377391159现七项成功、coverage仍执行；integration121764211543及全部四个unit分片成功，确认前批配置隔离、真实异步idle观察、八版本空原型断言在Windows通过，原生Rust121764212110亦成功。三个独立时序40377390898全成功，仍不覆盖45正式Chat5007ms等历史失败。正式40377390755/source121764072438失败：安装客户端四案例回执测试在ConvertFrom-HpmInstalledClientMatrixReceipt处出现.NET同步异常，后续context-recovery跳过；不能授最新安装资格，未自动重跑。

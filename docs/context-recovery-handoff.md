@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新4ef完整普通结果与自然退出能力优先：** 4ef6b8a与8939普通Verify均八项全success，4ef正式及完整覆盖率I/O仍执行；独立I/O原50通过，trace完整性/五秒资格仍false。旧正式5007ms及回执同步异常保留。新stopNaturally沿用认证端点和精确pid/instanceId，202只接受意图，再由所属控制器独立观察零退出、原Job自然清空及管道EOF；失败保留资源供独立forced_cleanup并封锁资格，不能以kill补绿。六文件69及闭包五项本机全通过、零skip；实际Windows安装在途矩阵尚未执行，原gracefulDrainQualified仍false。更正Mac四项三通过记录：补原physical-test-temp预加载后完整四项全通过，旧本地启动错误不是产品根因。18:52:03Z冻结5a长测37个连续tick至180分钟、同一进程持续推进；五分钟监测继续、无额外Windows负载、模型0。完整剩余范围见实施状态顶部。
+
 **最新8939结果及后续同源采集优先：** 普通Verify七项成功/coverage仍执行，Windows集成及全部四分片已通过，前批配置隔离、idle实际ACK、八空原型版本修复获Windows证据；三组时序成功不能覆盖45正式Chat5007ms。8939正式停在四案例回执解析.NET同步异常，保留。当前以Ordinal字段集合替代该解析器的枚举管线/文化排序，原门/顺序/重复拒绝不变，清理失败仍拒绝并提供有限阶段；根因是否消除待Windows。Mac便携pwsh7.6.8整份四项三通过/编排mock一项修改前后失败，不能称完整通过。两个I/O工作流漏新通道/worker/serial/idle触发已补齐，新三项治理通过；45完整I/O其实停在proxy，须新SHA抓同源client窗口，不以独立短flush排除正式慢COMMIT。18:38:03Z冻结5a长测同一进程、34个连续tick至165分钟，持续监测、无额外Windows负载、模型0。整体范围及证据见实施状态顶部。
 
 **最新45完整失败与夹具修复优先：** 新默认owned路径三个独立runner各原50项全通过、18次最终ACK65–346ms，但正式仍Chat请求5007ms失败；该窗口COMMIT1409/1204/1038ms等待保留，不能授五秒资格。普通/覆盖率另因空原型receipt断言及idle观测器假定同步回调失败，已严格修正精确1–8/null原型断言，并等真实异步ACK后才通知armed-clock观察者，原五秒/TTL/独立SQLite门不变。entry-auth夹具父加密/隔离child解密的AES-v2密钥域不一致已本机复现并修复，同一隔离env准备后完整认证断言通过；产品认证/保护规则不动。七文件43项39通过/4原Windows限定skip；本机完整headers-routing仍在Google profile覆盖断言失败，保留，不冒充完整集成通过。b223原始3ms时钟回退继续拒绝，不平滑。18:22:40Z冻结5a长测同一进程、31个连续tick至150分钟，无额外Windows负载、模型0。下一步新SHA完整Windows及五秒持久等待，原交付范围见实施状态顶部。

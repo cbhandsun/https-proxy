@@ -116,6 +116,7 @@ function response(frame, request) {
         ...(Object.hasOwn(result, 'preloadPhase') ? ['preloadPhase'] : []),
       ],
       stop: ['treeEmpty', 'cleanupSemantics'],
+      reap: ['treeEmpty', 'cleanupSemantics', 'exitCode'],
     };
     if (!Object.hasOwn(fields, request.op)) throw reject();
     const failed = result.ok === false;
@@ -134,7 +135,9 @@ function response(frame, request) {
           ? ['setup', 'process_start', 'job_assign', 'gate_release']
           : request.op === 'stop'
             ? ['controller_cleanup']
-            : [];
+            : request.op === 'reap'
+              ? ['controller_natural_exit']
+              : [];
       if (!causes.includes(result.cause)) throw reject();
       return result;
     }
@@ -149,6 +152,13 @@ function response(frame, request) {
     if (
       request.op === 'stop' &&
       (result.treeEmpty !== true || result.cleanupSemantics !== 'forced_cleanup')
+    )
+      throw reject();
+    if (
+      request.op === 'reap' &&
+      (result.treeEmpty !== true ||
+        result.cleanupSemantics !== 'natural_exit' ||
+        result.exitCode !== 0)
     )
       throw reject();
     return result;

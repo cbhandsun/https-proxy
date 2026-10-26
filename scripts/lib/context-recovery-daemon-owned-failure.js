@@ -15,6 +15,7 @@ const CAUSES = Object.freeze([
   'controller_pipe',
   'controller_start',
   'controller_cleanup',
+  'controller_natural_exit',
   'launch_input',
   'start_rpc',
   'identity_rejected',
