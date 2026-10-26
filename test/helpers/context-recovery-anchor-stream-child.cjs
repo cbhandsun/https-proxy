@@ -6,6 +6,14 @@ const mode = process.argv[2];
 if (!['reply', 'hang', 'stderr', 'partial', 'sequence', 'exit', 'idle-hang'].includes(mode))
   process.exit(2);
 if (['hang', 'idle-hang'].includes(mode)) setInterval(() => {}, 1000);
+const lifetime = new (require('node:net').Socket)({ fd: 3, readable: true, writable: true });
+lifetime.on('end', () => process.exit(1));
+lifetime.on('error', () => process.exit(1));
+lifetime.on('data', () => process.exit(1));
+process.stdout.write(Buffer.alloc(8));
+process.stdin.on('end', () => {
+  if (!['hang', 'idle-hang'].includes(mode)) lifetime.destroy();
+});
 let input = Buffer.alloc(0);
 process.stdin.on('data', (chunk) => {
   input = Buffer.concat([input, chunk]);

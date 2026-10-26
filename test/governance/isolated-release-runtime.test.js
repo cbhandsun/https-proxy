@@ -73,6 +73,7 @@ function fixture(t, script = SCRIPT) {
     'native/context-recovery-key/src/lib.rs',
     'native/context-recovery-key/src/anchor.rs',
     'native/context-recovery-key/src/anchor/diagnostic.rs',
+    'native/context-recovery-key/src/anchor/lifetime.rs',
     'native/context-recovery-key/src/anchor/stream.rs',
     'native/context-recovery-key/src/private_path.rs',
     'native/context-recovery-key/src/profile_secret.rs',
@@ -187,6 +188,7 @@ test('isolated native build retains anchor modules and refuses changed build inp
   for (const file of [
     'native/context-recovery-key/src/anchor.rs',
     'native/context-recovery-key/src/anchor/diagnostic.rs',
+    'native/context-recovery-key/src/anchor/lifetime.rs',
     'native/context-recovery-key/src/anchor/stream.rs',
   ]) {
     const f = fixture(t);

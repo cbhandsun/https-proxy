@@ -26,17 +26,19 @@ function wire(sequence, bytes) {
   bytes.copy(out, 8);
   return out;
 }
-function fixture(t, overrides = {}) {
+function fixture(t, overrides = {}, autoReady = true) {
   const child = new ChildProcess();
   child.stdin = new PassThrough();
   child.stdout = new PassThrough();
   child.stderr = new PassThrough();
+  child.stdio = [child.stdin, child.stdout, child.stderr, new PassThrough()];
   const frames = [],
     signals = [],
     timers = new Map();
   let launches = 0,
     time = 0,
-    autoClose = true;
+    autoClose = true,
+    readySent = false;
   child.stdin.on('data', (value) => frames.push(Buffer.from(value)));
   child.stdin.on('end', () => {
     if (autoClose) queueMicrotask(() => child.emit('close', 0));
@@ -51,12 +53,12 @@ function fixture(t, overrides = {}) {
     spawnChild(file, args, options) {
       launches++;
       assert.equal(file, process.execPath);
-      assert.deepEqual(args, ['--hpm-context-anchor-stream-v1']);
+      assert.deepEqual(args, ['--hpm-context-anchor-owned-stream-v1']);
       assert.deepEqual(options, {
         windowsHide: true,
         shell: false,
         env: { SystemRoot: 'C:\\Windows', WINDIR: 'C:\\Windows' },
-        stdio: ['pipe', 'pipe', 'pipe'],
+        stdio: ['pipe', 'pipe', 'pipe', 'pipe'],
       });
       return child;
     },
@@ -85,6 +87,10 @@ function fixture(t, overrides = {}) {
     timers,
     execute(text = request) {
       const result = channel.execute(text);
+      if (autoReady && launches && !readySent) {
+        readySent = true;
+        child.stdout.write(Buffer.alloc(8));
+      }
       void result.catch(() => {});
       return result;
     },
@@ -241,7 +247,7 @@ test('spawn latency and response validation remain inside the original monotonic
   await assert.rejects(f.execute(), safe);
   assert.equal(f.frames.length, 0);
   assert.deepEqual(f.signals, ['SIGKILL']);
-  const times = [0, 0, 9999, 10000];
+  const times = [0, 0, 0, 9999, 10000];
   const g = fixture(t, { monotonic: () => times.shift() ?? 10000 });
   const result = g.execute();
   g.respond();
@@ -476,4 +482,41 @@ test('option and dependency validation invokes no proxies, accessors or process 
       safe
     );
   assert.equal(hooks, 0);
+});
+
+test('startup readiness is fragmented, bounded, private and included in the original deadline', async (t) => {
+  const f = fixture(t, {}, false),
+    pending = f.execute();
+  assert.equal(f.frames.length, 0);
+  f.child.stdout.write(Buffer.alloc(7));
+  assert.equal(f.frames.length, 0);
+  f.child.stdout.write(Buffer.alloc(1));
+  assert.equal(f.frames.length, 1);
+  f.respond();
+  assert.equal(await pending, reply);
+  assert.equal(f.child.stdio[3].writableEnded, false);
+  await f.channel.close();
+  assert.equal(f.child.stdio[3].writableEnded, false);
+  for (const bytes of [Buffer.from([1]), Buffer.alloc(9)]) {
+    const g = fixture(t, {}, false),
+      result = g.execute();
+    g.child.stdout.write(bytes);
+    await assert.rejects(result, safe);
+    assert.equal(g.frames.length, 0);
+  }
+  const g = fixture(t, {}, false),
+    result = g.execute();
+  g.timeout();
+  await assert.rejects(result, safe);
+  assert.equal(g.frames.length, 0);
+});
+
+test('lifetime pipe errors, unexpected data or early EOF close the actual owned child', async (t) => {
+  for (const event of ['error', 'data', 'end']) {
+    const f = fixture(t),
+      result = f.execute();
+    f.child.stdio[3].emit(event, event === 'error' ? Error('PRIVATE') : Buffer.from([1]));
+    await assert.rejects(result, safe);
+    assert.deepEqual(f.signals, ['SIGKILL']);
+  }
 });

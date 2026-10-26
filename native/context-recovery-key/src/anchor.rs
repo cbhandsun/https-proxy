@@ -7,6 +7,8 @@ mod diagnostic;
 pub use diagnostic::run as run_diagnostic;
 mod stream;
 pub use stream::run as run_stream;
+mod lifetime;
+pub use stream::{run_owned as run_owned_stream, run_owner_probe};
 
 const MAX_IO: usize = 128 * 1024;
 const MAX_VALUE: usize = 65536;

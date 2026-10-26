@@ -148,3 +148,26 @@ fn empty_stream_closes_cleanly_and_ordinary_and_extra_arguments_remain_rejected(
         assert!(output.stderr.is_empty());
     }
 }
+
+#[test]
+fn owned_stream_requires_lifetime_pipe_and_actual_worker_loss_interrupts_blocked_main() {
+    for flag in [
+        "--hpm-context-anchor-owned-stream-v1",
+        "--hpm-context-anchor-owner-probe-v1",
+    ] {
+        let output = run(&[flag], b"");
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+        assert!(output.stderr.is_empty());
+    }
+    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../test/helpers/context-recovery-anchor-owner-probe.cjs");
+    let output = Command::new("node")
+        .arg(fixture)
+        .arg(env!("CARGO_BIN_EXE_hpm-context-recovery-key"))
+        .output()
+        .expect("Node 22 is required for the actual worker lifecycle integration");
+    assert!(output.status.success(), "native owner lifecycle failed");
+    assert!(output.stderr.is_empty());
+    assert_eq!(output.stdout, b"native_owner_lifecycle_verified\n");
+}

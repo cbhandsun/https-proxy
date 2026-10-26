@@ -1,6 +1,25 @@
 fn main() {
     if std::env::args_os().count() == 2
         && std::env::args_os().nth(1).as_deref()
+            == Some(std::ffi::OsStr::new("--hpm-context-anchor-owned-stream-v1"))
+    {
+        if !hpm_context_recovery_key::anchor::run_owned_stream(std::io::stdin(), std::io::stdout())
+        {
+            std::process::exit(1);
+        }
+        return;
+    }
+    if std::env::args_os().count() == 2
+        && std::env::args_os().nth(1).as_deref()
+            == Some(std::ffi::OsStr::new("--hpm-context-anchor-owner-probe-v1"))
+    {
+        if !hpm_context_recovery_key::anchor::run_owner_probe(std::io::stdout()) {
+            std::process::exit(1);
+        }
+        return;
+    }
+    if std::env::args_os().count() == 2
+        && std::env::args_os().nth(1).as_deref()
             == Some(std::ffi::OsStr::new("--hpm-context-anchor-stream-v1"))
     {
         if !hpm_context_recovery_key::anchor::run_stream(std::io::stdin(), std::io::stdout()) {

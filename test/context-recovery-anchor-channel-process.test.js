@@ -21,7 +21,7 @@ function fixture(t, mode) {
     { executable: process.execPath, systemRoot: process.env.SystemRoot || 'C:\\Windows' },
     {
       spawnChild(_file, args, options) {
-        assert.deepEqual(args, ['--hpm-context-anchor-stream-v1']);
+        assert.deepEqual(args, ['--hpm-context-anchor-owned-stream-v1']);
         const child = spawn(
           process.execPath,
           [path.join(__dirname, 'helpers/context-recovery-anchor-stream-child.cjs'), mode],

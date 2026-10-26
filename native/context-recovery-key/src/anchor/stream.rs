@@ -60,6 +60,27 @@ pub fn run<R: Read, W: Write>(reader: R, writer: W) -> bool {
     serve(reader, writer, |input| parse(input).and_then(process))
 }
 
+fn ready(writer: &mut impl Write) -> bool {
+    writer.write_all(&[0u8; 8]).is_ok() && writer.flush().is_ok()
+}
+
+pub fn run_owned<R: Read, W: Write>(reader: R, mut writer: W) -> bool {
+    if super::lifetime::attach().is_err() || !ready(&mut writer) {
+        return false;
+    }
+    run(reader, writer)
+}
+
+// Explicit bounded lifecycle diagnostic. No registry, key or caller-selected
+// resource is accessed. The owner watcher must work while this thread blocks.
+pub fn run_owner_probe<W: Write>(mut writer: W) -> bool {
+    if super::lifetime::attach().is_err() || !ready(&mut writer) {
+        return false;
+    }
+    std::thread::sleep(std::time::Duration::from_secs(10));
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
