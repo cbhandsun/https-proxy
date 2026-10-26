@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：30cf完整门通过，接入安装包发布内部中断；v5取得941个有效间隔
+
+30cf Verify40393162430八项、正式40393162190四项全部success。完整coverage121819154805的12次finishPublicationAsync为91–473ms；这是该轮最终ACK正面证据，不覆盖75/45等旧五秒失败，不证明根因已消除。固定安装40393505293/job121820568246已通过完整候选验证并开始NSIS构建，SSE/客户端等尚未取得安装终态，候选仍固定30cf。
+
+649f独立I/O40395138896/job121826064328原50项通过，153对flush，database最大249ms（4次超100ms）、journal560ms（10次超100ms）。v5空Properties原始XML已实际解析，取得941个完整调度间隔、964次switch-out、23个unfinished；31次v3:p0:tnone:escalar仍明确unmapped并清空绑定。观测到otherWaiting881次/总5806ms/最大214ms、ready23次/毫秒精度总0，DelayExecution未观测到；不可把并行线程总量当请求时长，也不能以未观察到DelayExecution排除原失败。trace完整性/COMMIT因果/五秒资格仍false。下一批依据已观察v3空Properties补严格适配，原失败及未完整窗口保留。
+
+本批真正接入新的安装后步骤qualify-nsis-installed-publication.ps1：复用原20项原生发布中断与10项原生HTTP正常停机完整文件，不筛选/删减/重试。固定测试fixture现在通过测试专属publicationModule选择器加载安装payload的恢复模块；安装选择必须是GitHub hosted Windows、固定自有payload目录、完整manifest/全部源码/安装Node/native/锁文件身份一致，实际execPath必须是包内Node。缺失半套/非法选择拒绝，不回退源码；必须安装的独立preload在测试进程及fork子进程再次拒绝缺失选择。源码普通CI没有这些变量时沿原源码模块运行，产品入口没有新配置或测试hook。
+
+安装门使用既有240秒所属Job、真实自然退出/Job清空/EOF，内部测试230秒上限仍受该门约束；各原15秒、ready/HTTP五秒、COMMIT实际PENDING见证750ms与自然退出四秒不改。内部持久恢复/DPAPI/锚点/同目录精确重开仍由原用例断言；Node固定完整命令，并严格核对30个唯一原案例、通过/失败/skip计数，兼容LF/CRLF但拒绝矛盾总数或重复。原始TAP/子进程异常不输出或上传。PowerShell回执要求defaultWorkerQualified=true、daemonQualified/retention24hQualified=false、模型0；进程/解析/清理失败不能授资格或以forced cleanup补绿。新步骤在既有候选门/构建/安装迁移/客户端之后执行，并复用保守安装/卸载/目录lease，不修改公开签名门。
+
+本机扩大33项全通过、零skip，含原文件SQLite中断/停机、严格安装身份/固定模块集合、TAP及PowerShell重复字段/缺失/越权资格拒绝、实际PS自然退出调用与清理失败模拟、保守payload回归。这里并未在Mac执行30个Windows原生安装案例；该新安装范围仍待新候选真实执行，不冒充daemon内部边界或最新安装版完整交付。1643份JS及新增CJS语法、全树Lint零错误/原五警告、格式、CI/release治理通过。无产品持久算法、认证、TTL、ACK、负载、依赖或真实模型变更。冻结5a长测此前55个tick至270分钟，后续20:27:33Z同一身份56个tick至275分钟持续；长测主机只读，无重启/额外负载。
+
 ## 2026-10-26：v5实际Properties为空，接入有界原始XML；保留旧PowerShell十秒失败
 
 ccb51独立I/O40393988960/job121822034075终态success，原50项通过，153对flush、database最大36ms/journal31ms。v5版本门已通过，但153个binding全部因v5:p0:tnone:escalar未映射：原生EventRecord.Properties实际为空，零有效interval继续不证明没有等待。本批只对已观察的v5/零Properties组合调用原始ToXml并复用既有64KiB、禁DTD/外部实体、唯一字段/载荷、严格已知二进制前缀解析器；额外要求XML版本与原生v5一致。非空但非法属性不尝试另一解析器，v6+不渲染XML，失败仍清空绑定、不拼接跨未知区间。原32MiB/事件/解码期限和输出上限不扩大，不上传ETL、原始XML、ID、路径或正文。

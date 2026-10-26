@@ -135,6 +135,15 @@ jobs:
           @{ schemaVersion = 1; currentSha = $env:CURRENT_SHA; buildCompleted = $true; candidateNpmCompleted = $true; verificationCompleted = $true } | ConvertTo-Json -Compress | Set-Content -LiteralPath $file -Encoding utf8
           $receiptSha = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
           ./current/scripts/qualify-nsis-installed-clients.ps1 -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json' -CurrentSha $env:CURRENT_SHA -PreparationReceiptSha256 $receiptSha
+      - name: Qualify installed publication COMMIT and durable ACK interiors
+        env:
+          CURRENT_SHA: ${{ github.sha }}
+          GATES_OUTCOME: ${{ steps.candidate_gates.outcome }}
+          BUILD_OUTCOME: ${{ steps.candidate_build.outcome }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GATES_OUTCOME -cne 'success' -or $env:BUILD_OUTCOME -cne 'success') { throw 'Installed publication preparation evidence refused.' }
+          ./current/scripts/qualify-nsis-installed-publication.ps1 -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json' -CurrentSha $env:CURRENT_SHA
       - name: Record bounded scope
         if: always()
         env:

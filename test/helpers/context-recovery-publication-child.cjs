@@ -1,24 +1,24 @@
 'use strict';
+const { publicationModule } = require('./publication-runtime.cjs');
 
 // Offline process fixture: synthetic key/data travel over private IPC only.
 const assert = require('node:assert/strict');
 const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const http = require('node:http');
-const { createProxyShutdown } = require('../../lib/proxy/server-shutdown');
-const { createStoppingAdmission } = require('../../lib/proxy/stopping-admission');
-const { openContextRecoveryStorage } = require('../../lib/proxy/context-recovery-storage');
-const { createRecoverySqliteStore } = require('../../lib/proxy/context-recovery-storage-sqlite');
-const {
-  createContextRecoverySessions,
-  attachContextRecoveryStorage,
-} = require('../../lib/proxy/context-recovery-sessions');
+const { createProxyShutdown } = publicationModule('server-shutdown');
+const { createStoppingAdmission } = publicationModule('stopping-admission');
+const { openContextRecoveryStorage } = publicationModule('context-recovery-storage');
+const { createRecoverySqliteStore } = publicationModule('context-recovery-storage-sqlite');
+const { createContextRecoverySessions, attachContextRecoveryStorage } = publicationModule(
+  'context-recovery-sessions'
+);
 const {
   declareRecoverySourcePages,
   declareRecoveryReaderSettlement,
   declareRecoveryReferenceStates,
   declareRecoveryReferenceAdmission,
-} = require('../../lib/proxy/context-recovery-storage-contract');
+} = publicationModule('context-recovery-storage-contract');
 const phases = ['prepared', 'sending', 'transport-finished', 'uncertain', 'withdrawn'];
 let initialized = false;
 let advance;

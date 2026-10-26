@@ -1,4 +1,5 @@
 'use strict';
+const { publicationModule } = require('./publication-runtime.cjs');
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -12,8 +13,8 @@ const { setImmediate: nextTurn } = require('node:timers/promises');
 const { DatabaseSync } = require('node:sqlite');
 const { createPublicationStartupProgress } = require('./publication-startup-progress.cjs');
 const { waitForFixtureSignal } = require('./fixture-phase-wait.cjs');
-const { openContextRecoveryStorage } = require('../../lib/proxy/context-recovery-storage');
-const { createRecoverySqliteStore } = require('../../lib/proxy/context-recovery-storage-sqlite');
+const { openContextRecoveryStorage } = publicationModule('context-recovery-storage');
+const { createRecoverySqliteStore } = publicationModule('context-recovery-storage-sqlite');
 
 function processFixture(file) {
   const child = fork(path.join(__dirname, file), [], {
