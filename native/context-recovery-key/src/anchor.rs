@@ -5,6 +5,8 @@ use std::io::{Read, Write};
 
 mod diagnostic;
 pub use diagnostic::run as run_diagnostic;
+mod stream;
+pub use stream::run as run_stream;
 
 const MAX_IO: usize = 128 * 1024;
 const MAX_VALUE: usize = 65536;

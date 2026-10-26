@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：修复隔离构建缺失锚点源码；实现尚未接入默认worker的有界原生通道
+
+新24小时冻结5a3a842保持不动。本轮仅只读核对该任务，2026-10-26T16:06:40Z仍Running且实际进程存活，最新真实tick为900000ms；没有在该主机并发构建或运行短测，未重新启动长测、未读写其库。模型调用0。另b763f7a普通40353318923八项全success，但正式40353318929/source121678975954因既有PowerShell/rg读发现控制的spawnSync powershell.exe ETIMEDOUT失败，后续context-recovery跳过；保留失败，不授安装或整体资格。
+
+读取长测启动前已完成的固定原生外围测量：16次交替普通/诊断空输入拒绝调用为112.312–521.345ms，8次诊断内部elapsedMs均0，未访问锚点。该结果只证明进程边界外围存在耗时，不能将全部等待都归为CreateProcess，亦不解释此前SQLite COMMIT或RegFlushKey秒级长尾。为消除后续每次原生操作重新起进程的必要，本批先实现显式--hpm-context-anchor-stream-v1有界原生传输，默认JS owner仍使用原单次调用，尚未接入、没有当前请求性能提升或五秒稳定性资格。
+
+新传输独立模块按8字节小端序号/长度及原JSON负载分帧，每帧继续原128KiB上限、原parse和独立process；每次process新建原RegistryBackend，保持每条请求独立锁、CAS、flush与精确回读，后端句柄/锁在响应前释放，无跨请求认证缓存。严格从1递增且不绕回，空/超界/乱序/截断帧在执行前拒绝；解析、CAS、后端或I/O失败终止整个流，不消费后续工作、不重试，不输出底层错误、slot或载荷日志。完整帧边界EOF为清洁关闭。原单次命令与其10秒/128KiB调用门限、DPAPI、SQLite FULL/DELETE/secure_delete、预算预扣、独立发布ACK和绝对期限不改。后续必须完成客户端进程所有权、每请求原10秒界、超时kill/退出清理及worker串行接入，再谈默认切换，不能仅凭分帧单测启用。
+
+实现期间发现隔离发布BUILD_FILES遗漏现有anchor.rs及anchor/diagnostic.rs，Cargo在隔离目录缺少lib.rs引用的真实源码；先新增回归在旧清单得到Cargo module missing: native/context-recovery-key/src/anchor.rs，再补齐两份既有模块及新stream.rs。三文件逐一验证精确复制及准备前变更拒绝，未放宽快照hash或复制边界，也不递归收集私有文件。修复后的真实源快照生成隔离目录并离线执行Cargo测试31项通过，证明实际模块可编译，不只模拟文件存在。首次源快照因本机生成gateway artifact缺失被原门禁拒绝，随后按原prepare脚本重新生成、门禁未改。
+
+Mac原生31项单测及4项实际子进程集成测试全通过、零忽略；其中9项新分帧单测覆盖正常/最大/空/非法UTF-8/乱序/截断、分片/Interrupted读取、短写、读写/flush失败、原CAS错误和响应前释放后端，4项CLI集成在Windows分支实际验证独立注册表版本1/2及陈旧CAS终止，在非Windows分支断言不支持后端拒绝、无伪造成功或skip。Windows真实注册表分支尚待本批CI；新增用例由现有Cargo --all-targets原门禁发现。fmt、Clippy自身检查、1617份JS语法、变更JS Lint/格式、CI/release治理和四文件30项JS回归通过。Mac Clippy仍有6项既有Windows限定代码dead_code警告，未压制，Windows原-D warnings门保持；未改依赖、锁文件、coverage baseline或release.yml签名要求。最新安装/582迁移拒写、两端及真实provider、五档容量和24小时终态等完整剩余范围仍保留。
+
 ## 2026-10-26：新一轮真实24小时已获授权并实际启动，尚未通过
 
 用户明确要求启动新24小时测试，覆盖此前“暂不启动新一轮”的决定；只授权本轮独立任务，不重启原失败长测或暂停的最大文件长测。冻结源码为5a3a84286242e55478d914d906f7861bef08df9b，普通40252911111八项与正式40252911113四项均终态success；37普通coverage/正式n09失败及实际Windows原五秒测试5020/5013ms失败仍保留，当前green不能覆盖同一产品源码已观察到的不稳定。本轮day-small不授五秒HTTP、完整容量或最新安装资格。

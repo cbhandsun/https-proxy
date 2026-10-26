@@ -71,6 +71,9 @@ function fixture(t, script = SCRIPT) {
     'native/context-recovery-key/Cargo.lock',
     'native/context-recovery-key/src/main.rs',
     'native/context-recovery-key/src/lib.rs',
+    'native/context-recovery-key/src/anchor.rs',
+    'native/context-recovery-key/src/anchor/diagnostic.rs',
+    'native/context-recovery-key/src/anchor/stream.rs',
     'native/context-recovery-key/src/private_path.rs',
     'native/context-recovery-key/src/profile_secret.rs',
   ])
@@ -178,6 +181,26 @@ test('native profile encryption source remains pinned through isolated preparati
     code: 'release_isolated_source_changed',
   });
   assert.equal(fs.existsSync(path.join(directory, 'isolated-user')), false);
+});
+
+test('isolated native build retains anchor modules and refuses changed build inputs', async (t) => {
+  for (const file of [
+    'native/context-recovery-key/src/anchor.rs',
+    'native/context-recovery-key/src/anchor/diagnostic.rs',
+    'native/context-recovery-key/src/anchor/stream.rs',
+  ]) {
+    const f = fixture(t);
+    const original = fs.readFileSync(path.resolve(__dirname, '../..', file));
+    f.write(file, original);
+    const { snapshot, directory } = f.workspace();
+    assert.ok(fs.existsSync(path.join(directory, file)), 'Cargo module missing: ' + file);
+    assert.deepEqual(fs.readFileSync(path.join(directory, file)), original);
+    f.write(file, 'changed native anchor implementation');
+    await assert.rejects(prepareIsolatedRuntime(snapshot, directory), {
+      code: 'release_isolated_source_changed',
+    });
+    assert.equal(fs.existsSync(path.join(directory, 'isolated-user')), false);
+  }
 });
 
 test('empty, invalid, extreme and traversing manifests refuse before workspace creation', (t) => {
