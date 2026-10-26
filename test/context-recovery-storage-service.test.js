@@ -626,6 +626,10 @@ test('worker startup reports validated phases without granting readiness or chan
     'key_unprotect_finished',
     'database_prepare_started',
     'database_prepared',
+    'engine_prepare_started',
+    'engine_anchor_validate_started',
+    'engine_anchor_validate_finished',
+    'engine_prepared',
     'engine_ready',
   ])
     worker.emit('message', { id: 0, ok: true, phase });
@@ -661,6 +665,10 @@ test('worker startup reports validated phases without granting readiness or chan
       'key_unprotect_finished',
       'database_prepare_started',
       'database_prepared',
+      'engine_prepare_started',
+      'engine_anchor_validate_started',
+      'engine_anchor_validate_finished',
+      'engine_prepared',
       'engine_ready',
       'ready',
     ]
@@ -738,11 +746,17 @@ test('startup progress cannot reset the original deadline', async (t) => {
   f.workers[0].emit('message', { id: 0, ok: true, phase: 'worker_started' });
   t.mock.timers.tick(19);
   f.workers[0].emit('message', { id: 0, ok: true, phase: 'paths_ready' });
+  f.workers[0].emit('message', { id: 0, ok: true, phase: 'engine_anchor_validate_started' });
   assert.equal(f.workers[0].terminations, 0);
   t.mock.timers.tick(1);
   await failed;
   assert.equal(f.workers[0].terminations, 1);
-  assert.deepEqual(phases, ['worker_started', 'paths_ready', 'failed']);
+  assert.deepEqual(phases, [
+    'worker_started',
+    'paths_ready',
+    'engine_anchor_validate_started',
+    'failed',
+  ]);
 });
 
 test('owner emits only fixed phases and observer failures preserve ownership and key failure', async () => {
@@ -787,6 +801,8 @@ test('owner emits only fixed phases and observer failures preserve ownership and
       'database_prepared',
       'database_opened',
       'engine_prepare_started',
+      'engine_anchor_validate_started',
+      'engine_anchor_validate_finished',
       'engine_prepared',
       'anchor_persist_started',
       'anchor_persist_finished',
@@ -872,9 +888,15 @@ test('anchor startup failures retain the exact bounded phase and release the wri
         failure === 'construct' || failure === 'read'
           ? 'anchor_open_started'
           : failure === 'enroll'
-            ? 'engine_prepare_started'
+            ? 'engine_anchor_validate_started'
             : 'anchor_persist_started';
       assert.equal(phases.at(-1), last, failure);
+      assert.equal(
+        phases.includes('engine_anchor_validate_started'),
+        ['enroll', 'persist'].includes(failure),
+        failure
+      );
+      assert.equal(phases.includes('engine_anchor_validate_finished'), failure === 'persist');
       assert.equal(phases.includes('engine_ready'), false);
       assert.equal(JSON.stringify(phases).includes('PRIVATE_ANCHOR_SENTINEL'), false);
       // A failed owner must release the same actual SQLite writer lock.

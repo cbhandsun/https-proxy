@@ -30,6 +30,8 @@ const PHASES = [
   'database_prepared',
   'database_opened',
   'engine_prepare_started',
+  'engine_anchor_validate_started',
+  'engine_anchor_validate_finished',
   'engine_prepared',
   'anchor_persist_started',
   'anchor_persist_finished',

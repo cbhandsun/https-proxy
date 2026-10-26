@@ -147,7 +147,8 @@ test('worker evidence distinguishes actual ready and schema refusal from native 
       'worker_started',
       'key_unprotect_finished',
       'database_opened',
-      ...(refused ? ['failed'] : ['engine_ready', 'ready']),
+      'engine_anchor_validate_started',
+      ...(refused ? ['failed'] : ['engine_anchor_validate_finished', 'engine_ready', 'ready']),
     ])
       evidence.observe({ phase });
     assert.equal(evidence.receipt(refused).refused, refused);

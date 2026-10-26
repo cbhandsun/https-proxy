@@ -8,6 +8,10 @@ test('publication startup observer exposes only validated production phases and 
   assert.deepEqual(progress.describe(), { phase: 'unobserved', elapsedMs: 0 });
   progress.observe({ phase: 'worker_started', elapsedMs: 0 });
   progress.observe({ phase: 'key_protect_started', elapsedMs: 15 });
+  progress.observe({ phase: 'engine_prepare_started', elapsedMs: 20 });
+  progress.observe({ phase: 'engine_anchor_validate_started', elapsedMs: 30 });
+  progress.observe({ phase: 'engine_anchor_validate_finished', elapsedMs: 40 });
+  progress.observe({ phase: 'engine_prepared', elapsedMs: 50 });
   progress.observe({ phase: 'engine_ready', elapsedMs: 5000 });
   progress.observe({ phase: 'ready', elapsedMs: 5000 });
   const snapshot = progress.describe();

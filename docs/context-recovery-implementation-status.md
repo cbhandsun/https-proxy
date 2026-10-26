@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：8e三runner全部通过，拆分首次引擎准备内的实际锚点验证阶段
+
+8e10c37独立时序40403400491三个Windows runner121854860856/121854861264/121854861302均success，各完整50项、零skip、无重试。18次最终持久publication_wait_end为981–1384ms；每runner138次COMMIT，最大分别33/261/41ms，最终finishPublicationAsync最大89/98/101ms。8e独立I/O40403400487/job121854859962亦success，原50项、153次flush配对database/journal最大30/25ms，1107个调度区间且已观察unmapped/unfinished均0，原完整性/因果/五秒资格仍false。两批均为成功窗口，未复现旧2–4秒COMMIT，不能以未观察到就确定根因或覆盖旧失败。2a普通40402040140与0b普通40402629994现均八项success；0b完整coverage12次最终ACK730–1470ms。独立正式2a/0b/8e的source门与8e完整coverage仍在执行，整体门尚未收齐，不触发新安装替换已完成的3f候选。
+
+3f独立正式仍有七次awaiting=ready五秒失败，其中engine_prepare_started→engine_prepared涵盖了SQL初始化、空库独立锚点初始化意图、原配额/时钟和SQL COMMIT，不能从粗阶段直接归因SQLite或RegFlushKey。本批只在默认owner既有beforeStartup调用周围报告engine_anchor_validate_started/finished两项固定阶段，实际方法仍同步、接收者undefined、参数和返回值原样转发；原异常继续原固定storage failure和完整清理，不吞进产品结果。验证前意图flush、初始SQL COMMIT及其后独立快照/锚点flush/精确回读都保持原顺序与次数。新阶段不授ready、不重置30秒开库或五秒夹具/HTTP期限、不改TTL/ACK或FULL/DELETE。
+
+运行时闭合阶段白名单与安装证据消费同步增加两项；原进度64条/60秒样本边界不扩，旧阶段仍兼容，没有新增键、路径、原文或异常输出。现有统一回归先在未修改实现上明确两项红，再通过完整owner成功/observer抛错、构造/read/首次enroll/最终persist失败、写者锁释放、worker转发不授ready、超时不重置、安装拒绝与发布夹具阶段解析。扩大五文件61通过/1项既有Windows限定preload隔离skip，零失败；该Windows项在原Windows统一CI执行，不能把Mac便携证明当实际DPAPI/OS锚点资格。1643份JS语法、全树Lint零错误/原五警告、CI/release治理及变更格式通过，无依赖/签名门变动。真实Windows新阶段尚待此批，不称性能根因已修复。
+
+21:31:12.253Z只读确认冻结5a同一身份与进程，69个连续tick至20400000ms（340分钟），elapsedMs=20400019.2168，未失败/重启；本机独立watcher PID27818亦通过实际进程查询确认存活，五分钟监测持续。未给长测主机增加构建/短测，不修改冻结任务或数据，模型0。下一步收齐最新完整Windows结果，以拆分后的真实失败阶段决定具体修复；其余原daemon内部/WS、容量、24h到期双重开、额度核对后真实两端与受控自用目标保留，整体未完成。
+
 ## 2026-10-26：补原生/密钥实现到三条时序与I/O工作流触发条件
 
 2a锚点Rust修复推送后实际只启动普通、正式和两个I/O工作流，未启动三runner时序。核对发现windows-persistent-recovery-timing.yml缺native/context-recovery-key/**，三条工作流还均漏掉实际执行的prepare-context-recovery-native.js及密钥DPAPI/contract输入。不是时序作业取消或通过，属于触发遗漏；旧56时序不能代替后续原生源码的同身份样本。
