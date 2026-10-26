@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新实际prepared COMMIT完整组合优先：** 原N09六场景保持，新增真实默认daemon prepared写入COMMIT等待强杀及正常放行两分支，固定八场景回执/外层消费者同步；750ms共用BUSY与当前新nonce签名请求查询，精确owner/root/期限/revision及零公开字节，强杀后先默认owner恢复热journal再读元数据，正常对照必须完整公开响应和原完成屏障。未获实际Windows回执，不授daemon内部资格，其他发布转换仍待。真实codec先红复现合法unobserved被上一批观察器拒绝，现补精确状态但它不能满足prepared资格；不称旧五秒根因。扩大502/502、后续查询收尾41/41本机通过，原产品/ACK/期限/FULL/DELETE保持。3e普通七success/coverage与正式source仍运行，7a/fd及全部旧失败保留。22:28:54Z冻结5a同一身份81tick/400分钟，五分钟独立监测继续，无额外Windows主机负载，模型0。详见实施状态顶部。
+
 **最新8e安装终态与真实发布请求观察优先：**
 固定8e安装40406570137全链success，manifest=944c667f…；同格式升级回滚、582迁移拒写、两端合成四案例/跨进程重启/JSON与SSE停止、包内发布30项均通过，daemon内部/WS/provider/24h仍未合格。7a普通Verify全通过，独立正式40407405361保留chat
 WBIPC超时/source失败、N09跳过，不重跑覆盖。本批将真实installed默认存储请求观察接到已签名host启动，在storage-opening捕获前安装，保留默认Worker/原Promise与能力；独立新nonce

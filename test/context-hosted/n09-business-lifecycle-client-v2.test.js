@@ -21,7 +21,7 @@ const {
   performN09DurableCommand,
 } = require('../../scripts/context-hosted/n09-ack/durable-command');
 const synthetic = () => ({ entryKey: '1'.repeat(48), upstreamKey: '2'.repeat(48) });
-function fixture(t, mutation = () => {}, ackFactory, onPhase) {
+function fixture(t, mutation = () => {}, ackFactory, onPhase, publicationFactory) {
   const ownedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'n09-channel-pure-'));
   t.after(() => fs.rmSync(ownedRoot, { force: true, recursive: true }));
   const install = path.join(ownedRoot, 'installed');
@@ -214,6 +214,9 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase) {
     spawn: start,
     httpRequest,
     ...(ackFactory ? { createHostAckClient: (options) => ackFactory(options, state) } : {}),
+    ...(publicationFactory
+      ? { createPublicationClient: (options) => publicationFactory(options, state) }
+      : {}),
     ...(onPhase === undefined ? {} : { onPhase }),
   });
   return { client, state, input, runtimeDir };
@@ -1430,6 +1433,118 @@ test('ACK factory rejects malformed, asynchronous and executable property bounda
     );
     const first = await f.client.startLifecycle();
     assert.throws(() => f.client.getHostAckClient(first), /^Error: n09_lifecycle_client_failed$/);
+    await f.client.close();
+  }
+  assert.equal(traps, 0);
+});
+
+test('publication query capability is PID bound, preserves query deadline and closes only after forced termination', async (t) => {
+  let closes = 0,
+    observed;
+  const f = fixture(
+    t,
+    () => {},
+    undefined,
+    undefined,
+    (options, state) => {
+      assert.equal(options.pid, state.pid);
+      assert.equal(options.token, state.token);
+      return {
+        query: async (timeout) => {
+          observed = timeout;
+          return { status: 'pending' };
+        },
+        close() {
+          assert.equal(state.commands.at(-1).op, 'stop');
+          closes++;
+        },
+      };
+    }
+  );
+  const first = await f.client.startLifecycle();
+  const query = f.client.getPublicationObservationClient(first);
+  assert.equal(query, f.client.getPublicationObservationClient(first));
+  assert.deepEqual(await query.query(123), { status: 'pending' });
+  assert.equal(observed, 123);
+  await f.client.stopLifecycle(first);
+  await assert.rejects(query.query(123));
+  assert.equal(closes, 1);
+  const next = await f.client.restartLifecycle(first);
+  assert.notEqual(f.client.getPublicationObservationClient(next), query);
+  await f.client.stopLifecycle(next);
+  await f.client.close();
+  assert.equal(closes, 2);
+});
+test('inflight publication reply cannot survive owner termination and both cleanup resources are attempted', async (t) => {
+  let settle,
+    publicationClosed = 0,
+    ackClosed = 0;
+  const f = fixture(
+    t,
+    () => {},
+    () => ({
+      submit() {},
+      readArmed() {
+        return false;
+      },
+      readReceipt() {
+        return null;
+      },
+      close() {
+        ackClosed++;
+        throw Error('PRIVATE');
+      },
+    }),
+    undefined,
+    () => ({
+      query: () =>
+        new Promise((resolve) => {
+          settle = resolve;
+        }),
+      close() {
+        publicationClosed++;
+      },
+    })
+  );
+  const first = await f.client.startLifecycle();
+  f.client.getHostAckClient(first);
+  const query = f.client.getPublicationObservationClient(first);
+  const pending = assert.rejects(query.query(100));
+  await assert.rejects(f.client.stopLifecycle(first));
+  settle({ status: 'pending' });
+  await pending;
+  assert.equal(ackClosed, 1);
+  assert.equal(publicationClosed, 1);
+  await f.client.close();
+});
+
+test('publication query refuses executable thenables and exposes only fixed safe failures', async (t) => {
+  let traps = 0;
+  for (const query of [
+    () => {
+      throw Error('PRIVATE');
+    },
+    async () => {
+      throw Error('PRIVATE');
+    },
+    () => ({
+      then() {
+        traps++;
+      },
+    }),
+  ]) {
+    const f = fixture(
+      t,
+      () => {},
+      undefined,
+      undefined,
+      () => ({ query, close() {} })
+    );
+    const owner = await f.client.startLifecycle();
+    await assert.rejects(f.client.getPublicationObservationClient(owner).query(100), {
+      message: 'n09_lifecycle_client_failed',
+    });
+    await f.client.stopLifecycle(owner);
     await f.client.close();
   }
   assert.equal(traps, 0);

@@ -18,8 +18,8 @@ function fixture(cleanupFails = false, listenerFails = false, unpublishedPatch =
       bindVerifiedNetworkProof() {},
       inspectBusinessEvidence: () => ({
         seeded: true,
-        validatedReadCount: index === 5 ? 3 : index === 2 || index === 4 ? 2 : 1,
-        publicGenerationCount: [2, 4, 5].includes(index) ? 2 : 1,
+        validatedReadCount: index >= 5 ? 3 : index === 2 || index === 4 ? 2 : 1,
+        publicGenerationCount: index >= 6 ? 3 : [2, 4, 5].includes(index) ? 2 : 1,
         externalToolExecutions: 1,
         clearAckCount: index === 1 ? 1 : 0,
         saveAckCount: index === 2 ? 1 : 0,
@@ -68,6 +68,9 @@ function fixture(cleanupFails = false, listenerFails = false, unpublishedPatch =
       createHostedLifecycleSpawn: () => () => {},
     },
     '../n09-ack/bootstrap-controller': { buildN09AckController: copy },
+    '../n09-business/publication-commit-driver': {
+      runPreparedPublicationCommit: async (_adapter, kill) => ({ forcedKill: kill }),
+    },
   };
   const load = (name) => {
     assert.ok(Object.hasOwn(modules, name), 'Unexpected dependency');
@@ -108,12 +111,14 @@ function fixture(cleanupFails = false, listenerFails = false, unpublishedPatch =
   };
 }
 
-test('N09 composition retains five cases and adds the held public response interruption', async () => {
+test('N09 composition retains six cases and adds prepared COMMIT kill and release controls', async () => {
   const f = fixture();
   const phases = [];
   const result = await f.run(f.options, (phase) => phases.push(phase));
-  assert.deepEqual(phases, [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 86, 84]);
-  assert.equal(result.cleanup.adaptersClosed, 6);
+  assert.deepEqual(phases, [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 86, 158, 159, 84]);
+  assert.equal(result.cleanup.adaptersClosed, 8);
+  assert.equal(result.preparedKill.forcedKill, true);
+  assert.equal(result.preparedRelease.forcedKill, false);
   assert.equal(result.cleanup.listenerClosed, true);
   assert.equal(result.unpublished.boundary, 'upstream-public-final-held');
   assert.equal(result.unpublished.commitInProgressQualified, false);
@@ -141,7 +146,7 @@ test('N09 held-response case rejects missing reads, replay, unexpected ACKs and 
 });
 
 test('N09 phase failures retain their stage, sanitize errors and close acquired adapters', async () => {
-  for (const rejected of [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 86]) {
+  for (const rejected of [73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 85, 86, 158, 159]) {
     const f = fixture();
     let last;
     await assert.rejects(
@@ -164,7 +169,11 @@ test('N09 phase failures retain their stage, sanitize errors and close acquired 
               ? 3
               : rejected === 85
                 ? 4
-                : 5
+                : rejected === 86
+                  ? 5
+                  : rejected === 158
+                    ? 6
+                    : 7
     );
   }
 });
@@ -182,7 +191,7 @@ test('N09 cleanup failures distinguish fixed resource classes and attempt every 
       /^Error: n09_hosted_composition_rejected$/
     );
     assert.equal(phases.at(-1), expected);
-    assert.equal(f.closed(), 6);
+    assert.equal(f.closed(), 8);
   }
 });
 

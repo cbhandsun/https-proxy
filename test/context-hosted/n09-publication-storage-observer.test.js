@@ -193,3 +193,35 @@ test('backend overrides at the selected constructor fail before dispatch and tam
   // The tampering is the expected cleanup failure for this fixture.
   other.expectCloseFailure();
 });
+
+test('real reference codec unobserved publications remain admissible before the prepared transition', async (t) => {
+  const {
+    createContextRecoverySessions,
+    exportContextRecoveryRoot,
+  } = require('../../lib/proxy/context-recovery-sessions');
+  const { createRootCheckpoint } = require('../../lib/proxy/context-recovery-root-checkpoint');
+  const {
+    referenceStateFromCheckpoint,
+  } = require('../../lib/proxy/context-recovery-reference-state');
+  const runtime = createContextRecoverySessions({ now: () => 100 });
+  t.after(() => runtime.close());
+  runtime.configure(true);
+  const session = runtime.begin({
+    principal: 'synthetic',
+    protocol: 'chat',
+    target: 'target',
+    history: [{ role: 'user', content: 'synthetic' }],
+  });
+  session.complete([{ role: 'assistant', content: 'synthetic' }], [], 'r1');
+  const root = exportContextRecoveryRoot(runtime, session.snapshotId);
+  const reference = (state) =>
+    referenceStateFromCheckpoint(
+      createRootCheckpoint(root, [], [{ snapshotId: session.snapshotId, state }])
+    );
+  const f = setup(t);
+  await f.exports.openContextRecoveryStorage({ directory });
+  await f.service.execute({ ...request(0), reference: reference('unobserved') });
+  assert.equal(f.observer.inspect().status, 'completed');
+  await f.service.execute({ ...request(1), reference: reference('prepared') });
+  assert.equal(f.observer.inspect().transition, 'prepared');
+});

@@ -9,11 +9,13 @@ const {
 const { createSameDirectoryLease } = require('../n09-ipc/same-directory-lease.js');
 const { createClearClient } = require('../n09-ipc/clear-client.js');
 const { createN09HostAckClient } = require('../n09-ack/bootstrap-client.js');
+const { createPublicationObservationClient } = require('./publication-observation-client');
 const {
   fields,
   discardN09PromiseRejection,
   n09AckFailureStage,
   wrapN09AckFailure,
+  isN09NativePromise,
 } = require('../n09-ack/contract.js');
 const { waitForPrivatePreload } = require('./management-status-ready.js');
 const { waitForManagementHttp } = require('./management-http-ready.js');
@@ -36,10 +38,17 @@ function createClientUnsafe(input, dependencies) {
   dependencies = snapshot(dependencies);
   for (const key of Object.keys(dependencies))
     if (
-      !['spawn', 'httpRequest', 'createHostAckClient', 'onPhase'].includes(key) ||
+      ![
+        'spawn',
+        'httpRequest',
+        'createHostAckClient',
+        'createPublicationClient',
+        'onPhase',
+      ].includes(key) ||
       typeof dependencies[key] !== 'function' ||
       types.isProxy(dependencies[key]) ||
-      (key === 'createHostAckClient' && types.isAsyncFunction(dependencies[key]))
+      (['createHostAckClient', 'createPublicationClient'].includes(key) &&
+        types.isAsyncFunction(dependencies[key]))
     )
       throw fail();
   const onPhase = dependencies.onPhase ?? (() => {});
@@ -58,10 +67,19 @@ function createClientUnsafe(input, dependencies) {
   let currentLeaseId;
   let syntheticBusiness;
   let hostAck;
+  let publication;
   function closeHostAck() {
-    const resource = hostAck;
-    hostAck = undefined;
-    if (resource) resource.close();
+    const resources = [hostAck, publication];
+    hostAck = publication = undefined;
+    let failed = false;
+    for (const resource of resources) {
+      try {
+        resource?.close();
+      } catch {
+        failed = true;
+      }
+    }
+    if (failed) throw fail();
   }
   const handles = new WeakMap();
   const removed = new Set();
@@ -488,6 +506,71 @@ function createClientUnsafe(input, dependencies) {
           throw fail();
         }
       };
+    },
+    getPublicationObservationClient(input) {
+      const identity = owner(input);
+      if (publication) return publication.facade;
+      const resource = (dependencies.createPublicationClient ?? createPublicationObservationClient)(
+        {
+          runtimeDir: identity.runtimeDir,
+          pid: identity.pid,
+          manifestSha256: identity.manifestSha256,
+          token,
+        }
+      );
+      if (types.isPromise(resource)) {
+        discardN09PromiseRejection(resource);
+        throw fail();
+      }
+      const methods = fields(resource, ['query', 'close']);
+      if (
+        Object.values(methods).some(
+          (method) =>
+            typeof method !== 'function' ||
+            types.isProxy(method) ||
+            types.isGeneratorFunction(method)
+        ) ||
+        types.isAsyncFunction(methods.close)
+      )
+        throw fail();
+      let closed = false,
+        closeFailed = false;
+      function close() {
+        if (closed) {
+          if (closeFailed) throw fail();
+          return;
+        }
+        closed = true;
+        try {
+          const result = Reflect.apply(methods.close, resource, []);
+          if (result !== undefined) {
+            discardN09PromiseRejection(result);
+            throw fail();
+          }
+        } catch {
+          closeFailed = true;
+          throw fail();
+        }
+      }
+      const facade = Object.freeze({
+        async query(...args) {
+          try {
+            owner(identity);
+            if (closed || publication?.facade !== facade) throw fail();
+            const pending = Reflect.apply(methods.query, resource, args);
+            if (!isN09NativePromise(pending)) throw fail();
+            const result = await pending;
+            owner(identity);
+            if (closed || publication?.facade !== facade) throw fail();
+            return result;
+          } catch {
+            throw fail();
+          }
+        },
+        close,
+      });
+      publication = { facade, close };
+      return facade;
     },
     getHostAckClient(input) {
       const identity = owner(input);

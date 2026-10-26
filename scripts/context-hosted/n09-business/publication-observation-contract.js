@@ -60,6 +60,7 @@ function createPublicationObservationContract(input) {
           ![
             'none',
             'ambiguous',
+            'unobserved',
             'prepared',
             'sending',
             'transport-finished',

@@ -15,6 +15,7 @@ const { parseStoredEvidenceSource } = require('../../../lib/proxy/context-eviden
 const { parseObservedPage } = require('./observed-page');
 const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
 const { createPublicResponseInterruption } = require('./public-response-interruption');
+const { createPreparedCommitBoundary } = require('./publication-commit-boundary');
 const fail = () => new Error('n09_business_adapter_failed');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const wire = (value) => Buffer.from(JSON.stringify(value));
@@ -103,6 +104,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
           'createSnapshots',
           'createBackup',
           'startObservedContinuation',
+          'createCommitWitness',
           'spawn',
           'onPhase',
         ].includes(key) ||
@@ -139,6 +141,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     upstreamRequests = 0;
   let pendingSave;
   let publicInterruption;
+  let commitBoundary, heldAccounting, publicationCompleted;
   let backup,
     backupRestored = false,
     storageRejected = false;
@@ -581,6 +584,70 @@ function createN09BusinessAdapter(input, trusted = {}) {
       phase = 'ready';
       return receipt;
     },
+    async beginPreparedCommitHold(identity) {
+      gate(identity);
+      if (commitBoundary || publicationCompleted) throw fail();
+      publicationCompleted = await client().getRecoveryCompletionBarrier(current);
+      const held = await api.beginPublicResponseHold(identity);
+      const observation = client().getPublicationObservationClient(current);
+      heldAccounting = accounting(committed());
+      commitBoundary = await createPreparedCommitBoundary(
+        {
+          ownedRoot: options.ownedRoot,
+          runtimeDir: current.runtimeDir,
+          rootId: heldAccounting.rootId,
+          expiresAt: heldAccounting.expiresAt,
+          revision: heldAccounting.revision,
+        },
+        (timeout) => observation.query(timeout),
+        trusted.createCommitWitness
+      );
+      return Object.freeze({
+        ...held,
+        accounting: Object.freeze({ ...heldAccounting }),
+        readerHeld: true,
+      });
+    },
+    releasePublicResponseForCommit(identity) {
+      gate(identity);
+      if (!commitBoundary || !publicInterruption) throw fail();
+      return publicInterruption.releaseUpstream();
+    },
+    async waitPreparedCommitPending(identity) {
+      gate(identity);
+      if (!commitBoundary || !publicInterruption) throw fail();
+      const result = await commitBoundary.waitPending();
+      gate(identity);
+      publicInterruption.assertReleasedPending();
+      return Object.freeze({ ...result, pid: current.pid, publicBytes: 0 });
+    },
+    releasePreparedCommitWitness(identity) {
+      if (current) gate(identity);
+      else stoppedIdentity(identity);
+      if (!commitBoundary) throw fail();
+      const result = commitBoundary.release();
+      commitBoundary = undefined;
+      return result;
+    },
+    async finishReleasedPublicResponse(identity) {
+      gate(identity);
+      if (commitBoundary || !publicInterruption || !publicationCompleted || !heldAccounting)
+        throw fail();
+      const result = await publicInterruption.afterRelease();
+      if (
+        publicText(parseReply(result.response)) !== 'N09_RECOVERY_OK ' + nonce ||
+        !readObserved ||
+        !publicObserved ||
+        externalToolExecutions !== 1
+      )
+        throw fail();
+      await awaitPublicationCompleted(publicationCompleted);
+      publicInterruption.close();
+      publicInterruption = undefined;
+      publicationCompleted = undefined;
+      phase = 'ready';
+      return Object.freeze({ publicCompleted: true, accounting: accounting(committed()) });
+    },
     getClearCapability(identity) {
       gate(identity);
       const clear = client().getClearCapability(current);
@@ -912,10 +979,19 @@ function createN09BusinessAdapter(input, trusted = {}) {
         failurePhase = 231;
         if (!bodyText.includes(original)) throw fail();
         if (publicInterruption) {
-          publicInterruption.arrive(() => {
-            incoming.response.destroy();
-            return true;
-          });
+          publicInterruption.arrive(
+            () => {
+              incoming.response.destroy();
+              return true;
+            },
+            () => {
+              publicObserved = true;
+              publicGenerationCount++;
+              recoveryProgressPhase = 216;
+              reply(textReply('n09-public-' + nonce, 'N09_RECOVERY_OK ' + nonce));
+              return true;
+            }
+          );
           return;
         }
         publicObserved = true;
@@ -966,6 +1042,13 @@ function createN09BusinessAdapter(input, trusted = {}) {
         failed = true;
       }
       publicInterruption = undefined;
+      try {
+        commitBoundary?.close();
+      } catch {
+        failed = true;
+      }
+      commitBoundary = undefined;
+      publicationCompleted = heldAccounting = undefined;
       try {
         backup?.close();
       } catch {

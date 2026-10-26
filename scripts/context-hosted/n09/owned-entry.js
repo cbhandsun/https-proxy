@@ -200,7 +200,7 @@ async function main() {
         (phase >= 73 && phase <= 85) ||
         (phase >= 86 && phase <= 96) ||
         (phase >= 98 && phase <= 138) ||
-        (phase >= 140 && phase <= 157) ||
+        (phase >= 140 && phase <= 159) ||
         (phase >= 162 && phase <= 199) ||
         phase === 201 ||
         (phase >= 203 && phase <= 209) ||
@@ -213,7 +213,14 @@ async function main() {
       )
     )
       throw fail();
-    if ((phase >= 80 && phase <= 83) || phase === 85 || phase === 86) businessCasePhase = phase;
+    if (
+      (phase >= 80 && phase <= 83) ||
+      phase === 85 ||
+      phase === 86 ||
+      phase === 158 ||
+      phase === 159
+    )
+      businessCasePhase = phase;
     const reported = phase === 230 ? publicReadFailurePhase(businessCasePhase) : phase;
     failureExitCode = reported;
     if (phase < 98 || phase >= 101) primaryFailurePhase = reported;
@@ -255,10 +262,30 @@ async function main() {
     result.unpublished.commitInProgressQualified !== false ||
     result.unpublished.publicationCommitQualified !== false ||
     result.unpublished.n09Complete !== false ||
-    result.cleanup?.adaptersClosed !== 6 ||
+    result.cleanup?.adaptersClosed !== 8 ||
     result.cleanup.listenerClosed !== true
   )
     throw fail();
+  for (const [name, kill] of [
+    ['preparedKill', true],
+    ['preparedRelease', false],
+  ]) {
+    const value = result[name];
+    if (
+      value?.evidenceLevel !== 'adapter-orchestration-only' ||
+      value.boundary !== 'prepared-save-reference-state-commit-pending' ||
+      value.forcedKill !== kill ||
+      value.interruptedWithZeroPublicBytes !== kill ||
+      value.positivePublicCompletion !== !kill ||
+      value.actualPreparedWritePending !== true ||
+      value.readAdmissionBlocked !== true ||
+      value.sameDirectoryNewPid !== true ||
+      value.originalReadAfterRestart !== true ||
+      value.originalExpiryPreserved !== true ||
+      value.n09Complete !== false
+    )
+      throw fail();
+  }
   process.stdout.write(
     JSON.stringify({
       schemaVersion: 1,
@@ -268,7 +295,7 @@ async function main() {
       nonLoopbackBlocked: true,
       listenerOwned: true,
       syntheticSocketsClosed: result.cleanup.listenerClosed,
-      cases: 6,
+      cases: 8,
       n09Complete: false,
     }) + '\n'
   );

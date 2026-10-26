@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：组合实际daemon prepared COMMIT强杀与正常放行；修复合法unobserved观察拒绝
+
+本批保留N09原六场景和固定负载，在同一原有外层Job内追加两个独立新daemon场景。均先真实业务种入、精确读取，再让私有恢复完成并持有独立公开上游响应；从已认证元数据绑定原root/期限/精确revision，获取新nonce签名的空闲基线后持有实际DELETE-journal读事务。放行公开上游后，只读BUSY见证和新鲜签名查询共用原750ms，必须同时证明同一owner generation的新请求、唯一在途save-reference-state、prepared变化、精确root/期限/revision及客户端零字节。补偿withdrawn、并发、旧回执、假BUSY、期限/版本变化、晚到和关闭竞态全部拒绝；BUSY单独仍无发布资格。
+
+强杀分支紧接目标见证调用原forced Job cleanup，不插入其他管理/快照I/O；确认transport-error且零公开字节，再释放外部只读句柄。先由真实默认owner在同物理目录的新PID中重开、处理热journal，之后才读取认证元数据，要求原revision/调用次数/返回字节/root/TTL精确不变，再业务精确恢复且无工具重放。正常放行对照释放读锁，必须接收完整原公开响应并等原完成屏障，确认revision实际增长，才强杀/同目录重开并再次精确读取。原ACK认证与等值规则、原750ms/HTTP15秒/各产品5000/10000/30000ms、SQLite FULL/DELETE和独立OS锚点持久语义均未改变；不重试模型或放宽负载。
+
+生命周期单独绑定publication查询能力，原ACK capability仍四方法不变；查询只接受原生Promise、在回复后复核原PID，终止后旧能力不可用，失败仅固定安全错误。强杀前不增加邮箱I/O，强杀后与原ACK资源独立完整关闭，即使一个失败也尝试另一个。旧driver边界逻辑原样拆为共用模块，主组合入口只组合两个新模块；八场景回执和外层严格消费者同步要求cases/adaptersClosed=8，n09Complete仍false。新场景固定阶段158/159不复用网络探针87/88，原阶段及失败证据保留。
+
+源码核对发现上一批观察器漏掉产品真实合法unobserved状态；root-storage会给新快照填此状态，不能把它作为非法输入毒化通道。用真实sessions导出/checkpoint/reference编解码器构造合法请求，旧观察器明确failed而非completed；现补精确已支持状态及签名schema，unobserved不能满足prepared COMMIT资格。此为验收观察器bug，不冒称旧五秒或DPAPI超时根因。
+
+本机扩大N09/plan502项全通过、零skip；随后查询安全收尾再定向41项通过，包含不执行thenable钩子/固定错误与owner退出后的回复拒绝。新增实际adapter完整两分支、补偿/版本/期限/并发/重开元数据负对照、真实750ms晚到和codec回归进入统一CI；物理SQLite原见证测试继续包含在扩大集内。1656份JS语法、Lint零错误/原五警告、CI/release治理通过。此处纯组合/便携回归不授Windows原生或daemon内部实际资格；必须推送后观察固定托管八场景实际执行，sending/transport-finished/uncertain/withdrawn等完整daemon矩阵仍待，不以prepared两项替代全范围。
+
+前一批3e3c9cadab9ed0645bea0f2f40288f00ea175c48 Verify40411887801已七项success、coverage仍运行，正式40411887742 source仍运行；原7a WBIPC超时与fd旧兼容超时保留，无重跑覆盖。22:28:54.251Z只读确认冻结5a同一源码与进程，81个连续tick至24000000ms（400分钟），elapsedMs=24000002.1294，未失败/重启，五分钟独立监测继续。长测主机无额外构建或短测，冻结任务/源码/数据库未动，真实模型0。原五秒稳定性、完整daemon/WS、容量、真实24小时到期双重开、额度核对后真实provider和受控自用仍未完成。
+
 ## 2026-10-26：8e安装全链通过；接入daemon实际发布请求观察，保留7a正式失败
 
 固定8e10c371a5f606d3cae7e3f558f0ab0dc3a4a63e安装40406570137/job121865946915已终态success：完整候选门、NSIS构建、同格式升级回滚/runner-local

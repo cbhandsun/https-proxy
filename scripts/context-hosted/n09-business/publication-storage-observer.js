@@ -3,7 +3,14 @@ const { types } = require('node:util');
 const path = require('node:path');
 const { fields, isN09NativePromise } = require('../n09-ack/contract');
 const fail = () => new Error('n09_publication_storage_observer_failed');
-const states = ['prepared', 'sending', 'transport-finished', 'uncertain', 'withdrawn'];
+const states = [
+  'unobserved',
+  'prepared',
+  'sending',
+  'transport-finished',
+  'uncertain',
+  'withdrawn',
+];
 const capabilities = [
   'Scan',
   'SourcePages',

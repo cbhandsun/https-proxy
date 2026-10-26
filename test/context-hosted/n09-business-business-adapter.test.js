@@ -12,6 +12,9 @@ const {
   runCommittedObservedKill,
 } = require('../../scripts/context-hosted/n09-snapshot/committed-observed-driver.js');
 const {
+  runPreparedPublicationCommit,
+} = require('../../scripts/context-hosted/n09-business/publication-commit-driver');
+const {
   runClearAfterAck,
   runDurableSaveOrRevokeAfterAck,
   runBackupRollbackAfterRevoke,
@@ -19,7 +22,7 @@ const {
 } = require('../../scripts/context-hosted/n09-ipc/driver.js');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const bad = { message: 'n09_business_adapter_failed' };
-function fixture(mutation = () => {}, onPhase) {
+function fixture(mutation = () => {}, onPhase, prepared = false) {
   const ownedRoot = path.join(os.tmpdir(), 'n09-business-pure');
   const options = {
     ownedRoot,
@@ -155,6 +158,24 @@ function fixture(mutation = () => {}, onPhase) {
           },
           close() {},
         }),
+        getPublicationObservationClient: () => ({
+          async query() {
+            const pending = state.commitQueued === true;
+            const value = {
+              generation: 1,
+              callOrdinal: pending ? 2 : 1,
+              activeCount: pending ? 1 : 0,
+              status: pending ? 'pending' : 'completed',
+              operation: 'save-reference-state',
+              transition: pending ? 'prepared' : 'none',
+              rootId: state.rootId,
+              expiresAt: state.expiresAt,
+              expectedRevision: state.revision,
+            };
+            mutation('publication-query', value, state);
+            return value;
+          },
+        }),
         setCombination: async () => ({ savedConfigVerified: true }),
         close: async () => {
           state.interruptObserved?.('cancelled');
@@ -228,6 +249,7 @@ function fixture(mutation = () => {}, onPhase) {
           },
           end(bytes) {
             result = JSON.parse(bytes);
+            state.resolveHeldReply?.();
           },
           destroy() {
             this.destroyed = true;
@@ -245,7 +267,8 @@ function fixture(mutation = () => {}, onPhase) {
         if (result === undefined && state.observedHttp) {
           state.events.push('public-response-held');
           if (state.observedHttp.reason !== 'pending') throw Error('synthetic_already_interrupted');
-          await new Promise((_resolve, reject) => {
+          await new Promise((resolve, reject) => {
+            state.resolveHeldReply = resolve;
             state.rejectPending = reject;
           });
         }
@@ -338,6 +361,13 @@ function fixture(mutation = () => {}, onPhase) {
           state.revision++;
         }
         result = await native(publicBody);
+        if (state.commitWitnessActive) {
+          state.commitQueued = true;
+          await new Promise((resolve, reject) => {
+            state.resolveCommit = resolve;
+            state.rejectPending = reject;
+          });
+        }
         if (state.refuseAfter === 4) return refusal();
         if (!state.observedHttp || state.observedHttp.reason !== 'pending') {
           state.calls += 2;
@@ -414,12 +444,56 @@ function fixture(mutation = () => {}, onPhase) {
     mutation('observed-client', observation, state);
     return observer;
   };
+  if (prepared)
+    trusted.createCommitWitness = () => {
+      state.commitWitnessActive = true;
+      return {
+        async waitPending() {
+          for (let i = 0; i < 50 && !state.commitQueued; i++)
+            await new Promise((resolve) => setImmediate(resolve));
+          assert.equal(state.commitQueued, true);
+          return {
+            readAdmissionBlocked: true,
+            evidenceLevel: 'sqlite-read-admission-only',
+            publicationQualified: false,
+          };
+        },
+        release() {
+          state.commitWitnessActive = false;
+          if (state.observedHttp.reason === 'pending') {
+            state.revision++;
+            state.resolveCommit();
+          }
+          state.events.push('commit-release');
+          return { released: true };
+        },
+        close() {
+          state.commitWitnessActive = false;
+          state.events.push('commit-close');
+        },
+      };
+    };
   const adapter = createN09BusinessAdapter(options, {
     ...trusted,
     ...(onPhase ? { onPhase } : {}),
   });
   return { adapter, options, proof, state, trusted };
 }
+test('prepared COMMIT orchestration drives actual adapter hold, query, forced kill and release control paths', async () => {
+  for (const kill of [true, false]) {
+    const f = fixture(() => {}, undefined, true);
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    const receipt = await runPreparedPublicationCommit(f.adapter, kill);
+    assert.equal(receipt.forcedKill, kill);
+    assert.equal(receipt.originalReadAfterRestart, true);
+    assert.equal(receipt.positivePublicCompletion, !kill);
+    const evidence = f.adapter.inspectBusinessEvidence();
+    assert.equal(evidence.validatedReadCount, 3);
+    assert.equal(evidence.publicGenerationCount, 3);
+    assert.equal(f.state.events.includes('commit-release'), true);
+    assert.equal(f.state.closed, 1);
+  }
+});
 test('held independent public response is interrupted before bytes, then exact recovery preserves read accounting', async () => {
   const f = fixture();
   f.adapter.bindVerifiedNetworkProof(f.proof);
@@ -1587,4 +1661,38 @@ test('read refusal diagnostics distinguish fixed error categories, malformed env
     assert.equal(f.state.closed, 1);
     assert.equal(JSON.stringify(phases).includes('PRIVATE'), false);
   }
+});
+
+test('prepared daemon orchestration refuses compensation, stale version and recovered metadata changes', async () => {
+  for (const patch of [
+    { transition: 'withdrawn' },
+    { expectedRevision: 0 },
+    { expiresAt: 10001 },
+    { activeCount: 2 },
+  ]) {
+    const f = fixture(
+      (stage, value, state) => {
+        if (stage === 'publication-query' && state.commitQueued) Object.assign(value, patch);
+      },
+      undefined,
+      true
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runPreparedPublicationCommit(f.adapter, true), {
+      message: 'n09_publication_commit_driver_failed',
+    });
+    assert.equal(f.state.closed, 1);
+  }
+  const f = fixture(
+    (stage, _value, state) => {
+      if (stage === 'snapshot' && state.stopped > 0) state.revision++;
+    },
+    undefined,
+    true
+  );
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await assert.rejects(runPreparedPublicationCommit(f.adapter, true), {
+    message: 'n09_publication_commit_driver_failed',
+  });
+  assert.equal(f.state.closed, 1);
 });
