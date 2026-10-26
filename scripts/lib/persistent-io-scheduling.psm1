@@ -59,7 +59,7 @@ function ConvertFrom-HpmThreadSchedulingBinary {
     } catch { throw 'persistent_io_scheduling_refused' }
 }
 function ConvertTo-HpmThreadSchedulingRecord {
-    param([string]$Text, [int]$Opcode, [long]$TimeMs, [hashtable]$State)
+    param([string]$Text, [int]$Opcode, [long]$TimeMs, [hashtable]$State, [int]$ExpectedVersion = -1)
     $reader = $null
     try {
         if ($Text.Length -gt 65536 -or $TimeMs -lt 0 -or $Opcode -notin @(1,2,36)) { throw 'invalid' }
@@ -74,6 +74,7 @@ function ConvertTo-HpmThreadSchedulingRecord {
         }
         $version = $xml.SelectNodes('/*[local-name()="Event"]/*[local-name()="System"]/*[local-name()="Version"]')
         if ($version.Count -ne 1 -or $version[0].InnerText -cnotmatch '\A[2-5]\z') { throw 'invalid' }
+        if ($ExpectedVersion -ge 0 -and [int]$version[0].InnerText -ne $ExpectedVersion) { throw 'invalid' }
         $binary = $xml.SelectNodes('/*[local-name()="Event"]/*[local-name()="BinaryEventData"] | /*[local-name()="Event"]/*[local-name()="EventData"]/*[local-name()="Binary"] | /*[local-name()="Event"]/*[local-name()="ProcessingErrorData"]/*[local-name()="EventPayload"]')
         if ($binary.Count -gt 0) {
             if ($binary.Count -ne 1 -or $fields.Count -ne 0) { throw 'invalid' }
@@ -121,6 +122,14 @@ function ConvertTo-HpmThreadSchedulingEvent {
         $shapeStage='properties'
         $properties = $Record.Properties
         if($properties.Count -ge 0 -and $properties.Count -le 64){$shapeCount=$properties.Count.ToString()}
+        # Classic v5 EventRecord has no rendered Properties on the hosted image.
+        # Only this positively observed empty shape uses its original bounded
+        # XML binary payload; malformed/nonempty metadata is never reinterpreted.
+        if ($properties.Count -eq 0 -and $version -eq 5) {
+            $shapeStage='payload'
+            ConvertTo-HpmThreadSchedulingRecord -Text ($Record.ToXml()) -Opcode $Opcode -TimeMs $TimeMs -State $State -ExpectedVersion $version
+            return
+        }
         $fields = @{}
         if ($properties.Count -eq 1) {
             $shapeStage='payload'

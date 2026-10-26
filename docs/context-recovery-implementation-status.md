@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：v5实际Properties为空，接入有界原始XML；保留旧PowerShell十秒失败
+
+ccb51独立I/O40393988960/job121822034075终态success，原50项通过，153对flush、database最大36ms/journal31ms。v5版本门已通过，但153个binding全部因v5:p0:tnone:escalar未映射：原生EventRecord.Properties实际为空，零有效interval继续不证明没有等待。本批只对已观察的v5/零Properties组合调用原始ToXml并复用既有64KiB、禁DTD/外部实体、唯一字段/载荷、严格已知二进制前缀解析器；额外要求XML版本与原生v5一致。非空但非法属性不尝试另一解析器，v6+不渲染XML，失败仍清空绑定、不拼接跨未知区间。原32MiB/事件/解码期限和输出上限不扩大，不上传ETL、原始XML、ID、路径或正文。
+
+新增便携PowerShell回归实际构造空Properties/v5原始BinaryEventData和ProcessingErrorData，两端switch形成200ms受控区间；非空非法及未知版本的ToXml执行计数必须为零，DTD和原生/XML版本不符均明确unmapped。扩大五文件61项全通过、零skip，变更语法/Lint/格式通过。实际Windows新的XML形状、有效间隔及性能尚待新CI，不能把采集修复当作五秒恢复根因已修复。产品认证、FULL/DELETE、DPAPI/OS锚点ACK、TTL、原期限、负载和依赖均未改。
+
+be868完整覆盖率I/O40391947339/job121814909200已终态failure：除已修CRLF治理断言，还有legacy DPAPI互操作用例10222ms失败，native_protect31ms成功、legacy_unprotect ETIMEDOUT10189ms且legacyPhase=unobserved，未见首个脚本阶段。不能断言进入DPAPI或改变旧互操作门；不切换后端/加时/预热/重试制造通过。原proxy失败按门停止，client阶段没有执行。该结果与历史五秒失败均保留。
+
+30cf Verify40393162430与ccb51 Verify40393988758均七项success/coverage仍执行；前者已进入client覆盖率，不能称完整CI成功。固定30cf安装40393505293/job121820568246仍在完整候选门，包含SSE组合探针但尚无安装终态，不随本批诊断变动。20:22:14.498Z只读确认冻结5a同一身份/进程，55个连续有效tick至16200000ms（270分钟），elapsedMs=16200008.9801，无重启或失败；五分钟监测持续，Windows主机无新增负载，模型0。下一步取得有效Windows调度证据定位五秒等待，同时核对最新安装、WS/内部中断及全部既定交付门。
+
 ## 2026-10-26：真实Windows定位v5拒绝并修复诊断适配；SSE候选实际启动
 
 30cf独立I/O40393162188/job121819153736终态success，原50项全通过、零skip，153对flush，database最大73ms、journal最大177ms且三次超过100ms。调度子摘要明确153个binding/153个unmapped全为v5:px:tnone:eversion，尚未读取Properties，不能再将问题猜为Properties形状或标量类型。此次零有效interval仍不证明没有等待，全部五秒失败保留。

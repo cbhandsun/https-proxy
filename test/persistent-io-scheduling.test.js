@@ -426,3 +426,70 @@ test('observed Windows v5 uses the documented fixed prefixes and unknown v6 stay
   assert.equal(report.commitCorrelationQualified, false);
   validatePersistentIoScheduling(report, 20);
 });
+
+test('observed empty EventRecord properties decode only original bounded XML and never reinterpret invalid nonempty metadata', () => {
+  const module = path.resolve('scripts/lib/persistent-io-scheduling.psm1').replaceAll("'", "''");
+  const leave = Buffer.alloc(24);
+  leave.writeUInt32LE(99, 0);
+  leave.writeUInt32LE(42, 4);
+  leave[12] = 4;
+  leave[14] = 5;
+  const enter = Buffer.alloc(24);
+  enter.writeUInt32LE(42, 0);
+  enter.writeUInt32LE(99, 4);
+  const code = `
+    $ErrorActionPreference='Stop';Import-Module '${module}' -Force;$script:unexpectedRender=0
+    $state=New-HpmIoSchedulingState
+    $doc=[xml]'<Event><System><Execution ThreadID="42"/></System></Event>'
+    Add-HpmIoSchedulingBinding @{} $doc 1 $state
+    $out=[pscustomobject]@{Version=5;Properties=@()}
+    $out|Add-Member -MemberType ScriptMethod -Name ToXml -Value { '<Event><System><Version>5</Version></System><ProcessingErrorData><EventPayload>${leave.toString('hex')}</EventPayload></ProcessingErrorData></Event>' }
+    ConvertTo-HpmThreadSchedulingEvent $out 36 10 $state
+    $in=[pscustomobject]@{Version=5;Properties=@()}
+    $in|Add-Member -MemberType ScriptMethod -Name ToXml -Value { '<Event><System><Version>5</Version></System><BinaryEventData>${enter.toString('hex')}</BinaryEventData></Event>' }
+    ConvertTo-HpmThreadSchedulingEvent $in 36 210 $state
+    $bad=[pscustomobject]@{Version=5;Properties=@([pscustomobject]@{Value='PRIVATE_VALUE'})}
+    $bad|Add-Member -MemberType ScriptMethod -Name ToXml -Value {$script:unexpectedRender++;throw 'SHOULD_NOT_RENDER'}
+    ConvertTo-HpmThreadSchedulingEvent $bad 36 220 $state
+    Add-HpmIoSchedulingBinding @{} $doc 230 $state
+    $unsupported=[pscustomobject]@{Version=6;Properties=@()}
+    $unsupported|Add-Member -MemberType ScriptMethod -Name ToXml -Value {$script:unexpectedRender++;throw 'SHOULD_NOT_RENDER'}
+    ConvertTo-HpmThreadSchedulingEvent $unsupported 36 240 $state
+    Add-HpmIoSchedulingBinding @{} $doc 250 $state
+    $malformed=[pscustomobject]@{Version=5;Properties=@()}
+    $malformed|Add-Member -MemberType ScriptMethod -Name ToXml -Value { '<!DOCTYPE Event [<!ENTITY x SYSTEM "file:///PRIVATE">]><Event><System><Version>5</Version></System><BinaryEventData>&x;</BinaryEventData></Event>' }
+    ConvertTo-HpmThreadSchedulingEvent $malformed 36 260 $state
+    Add-HpmIoSchedulingBinding @{} $doc 270 $state
+    $mismatch=[pscustomobject]@{Version=5;Properties=@()}
+    $mismatch|Add-Member -MemberType ScriptMethod -Name ToXml -Value { '<Event><System><Version>4</Version></System><BinaryEventData>${enter.toString('hex')}</BinaryEventData></Event>' }
+    ConvertTo-HpmThreadSchedulingEvent $mismatch 36 280 $state
+    if($script:unexpectedRender -ne 0){throw 'unexpected_render'}
+  `;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    encoding: 'utf8',
+    timeout: 20000,
+    maxBuffer: 16384,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /PRIVATE|SHOULD_NOT_RENDER|Exception/);
+  const rows = result.stdout
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => JSON.parse(line));
+  const summary = createPersistentIoScheduling();
+  summary.observe('schedule-start', '1', 0, '');
+  for (const row of rows)
+    summary.observe(row.type, BigInt(row.key).toString(16), row.timeMs, row.name);
+  const report = summary.snapshot();
+  assert.equal(report.delayExecution.totalMs, 200);
+  assert.equal(report.intervals, 1);
+  assert.equal(report.unmappedEpochs, 4);
+  assert.equal(report.retired, 4);
+  assert.deepEqual(report.unmappedMetadata, [
+    { shape: 'v5:p0:tnone:epayload', count: 2 },
+    { shape: 'v5:p1:tstring:epayload', count: 1 },
+    { shape: 'v6:px:tnone:eversion', count: 1 },
+  ]);
+  validatePersistentIoScheduling(report, 20);
+});
