@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：独立Windows默认原生开库通过；完整无节拍诊断耗尽预算，原五秒测试已启动
+
+原冻结5a真实日档的7小时READ失败终态不变，未重启或另启24h，原目录/任务/数据库/密钥/锚点未访问。独立2f短测环境完成锁定npm ci、插件锁安装--ignore-scripts、原生准备及原capacity-persistent/capacity-clock两文件回归，各步骤退出0。首次npm缓存stat UNKNOWN/-4094失败原日志保留；只对本次进程设置新目录内npm缓存后完成，不改全局工具或配置。
+
+实际默认Windows worker在同一新目录两次开库/inspect/关闭均成功，源码干净且storageResolvedToCheckout=true。固定源码2f80e8fa03bdec991211850eac6a7c4482d0aa6e，sourceSha256=3d55e90d239e3d62a59699a2a0d5ab2a25e11ea6fec13f57b5f68e11afafa0aa，nativeSha256=31fc553d31933c7cc9ae1a95b404036035af90fc62113f0bc466136b3b4ee051，Node22.22.3/nodeSha256=780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b。实际导出storage为openContextRecoveryStorage/validateStorageResult，progress为createStorageStartupProgress。
+
+随后在独立新数据库执行原day-small全命令序列的无实时节拍诊断，保留实际默认worker/DPAPI/OS锚点、原能力声明和各产品期限。原7小时逻辑位置对应READ实际成功426ms，但它不是实际等待7小时或冻结5a根因复现。外层600000ms诊断预算耗尽时576笔启动且576笔成功返回、最大单笔2233ms、10次关闭，未产生全序列完成回执；控制器按约定终止自己所属子树，后续只读确认所属诊断子进程0。此为外层诊断未完成，不记为原生操作超时，也不算完整容量或真实24h通过，不延长预算补绿。
+
+固定2f安装40416283272/job121899468719已在只读网页确认完整候选门结束，Build current test installer without publishing已success，现执行同格式升级回滚/DPAPI；后续同格式升级回滚、582迁移/旧写者拒绝及安装两端/发布内部步骤仍待本次实际结果，不继承8e资格。GitHub连接器本次一度观察失败，已恢复并核实上述步骤；观察失败不能当作作业失败或启动重跑。另在已授权独立短测目录启动原版client-context-target与context-recovery-codex-summary两完整文件、单并发、原五秒/其他期限与负载，终态50项49通过/1失败、零skip、总84632.3675ms；失败为v7正常两物理owner用例（inline tools=false），末尾清理临时目录报ENOTEMPTY，用例5234.3353ms。该耗时不是HTTP超时证据，也不能排除finally清理覆盖更早失败。只读检查该测试目录仅剩空context子目录、所属进程0；不重跑覆盖或删除原失败。长测监测/编排14项本机通过，仅属便携门禁回归，不授原生/24h资格。无过滤/重试/门限改变。真实模型0，整体交付仍未完成。
+
+
 ## 2026-10-26：冻结5a真实日档在7小时READ终态失败，监测即时发现；2f普通门全通过
 
 22:49:10.626Z只读健康核验首次报告terminal_failure；随后原安全回执确认process_finished于22:49:04.2108148Z、exitCode=1、reason=child_exit、autoRetry=false。原任务HPM-native-day-20261026-5a3a842-33d332dd为Ready/LastTaskResult=1，原PID62028已不存在。此前完整历史84个tick到6小时55分保持连续；第85个tick到scheduledMs=25200000、elapsedMs=25200012.9955后，本轮工作失败，不能把该tick或名义运行7小时当成第85轮通过，更不能继续报告24小时运行中。检测距控制器退出回执约6.4秒；独立监测仍按五分钟配置，不承诺任何故障都能六秒发现。
