@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：贯通默认worker稳态失败阶段，保留主阶段及清理失败；e3普通门全通过
+
+原7小时READ失败只有reply/close，不能确认内部根因。本批在实际异步owner记录engine-execute/engine-snapshot/anchor-persist/owner-verify/owner-close固定阶段；串行队列转交仅WeakMap认证的安全元数据，拒绝请求仍返回原code/message/statusCode=503、不含cause或新增公开异常字段。阶段表示失败所在边界，不等同具体SQL COMMIT、DPAPI、flush或硬件根因。失败后的必需清理再次拒绝时，保留原阶段并标cleanupFailed=true，关闭Promise仍拒绝、写者锁仍等真实原生关闭；不能将cleanupFailed=false当清理ACK。原SQL拒绝仍可继续后续合法请求，锚点/身份失败仍封锁owner，不重试操作。
+
+私有worker负回执只可附精确phase/cleanupFailed；主线程严格验证、成功回执不得夹带诊断、畸形或未知标签终止服务。可选onFailure只接收固定operation/phase/boolean；非数据字段、Proxy、访问器及thenable钩子不执行，观察回调抛错/拒绝不改变原存储失败或成功。正常路径不输出诊断、不多做SQL或锚点持久调用，不改变原5000/10000/30000ms、队列、CAS/精确ACK、FULL/DELETE、授权/预算、原期限或时钟。空闲sweep失败也通过真实worker组合，在所属清理后转交阶段；即便诊断发送失败也必需关闭parentPort。day/prefix入口只组合固定失败日志，原完整画像/真实时钟/到期双重开及prefix的非24h标记保持，不启动日档或替代真实验收。
+
+两项真实文件owner回归先以缺失阶段null失败，再通过；新增十一项独立回归涵盖五个owner阶段及清理失败组合、串行/真实worker组合转交、坏输入/空/极端/Proxy/getter、回调异常/thenable、不变的请求定时器、空闲终态和发送失败后关端口。默认Windows原生八精确版本重开用例增验真实陈旧CAS拒绝阶段、原数据/期限继续不变，尚待本批实际Windows。扩大十文件134项中133通过/1项原Windows限定skip、零失败；Mac默认worker仅验证原不支持平台拒绝分支，不授DPAPI/锚点实测资格。早一轮扩大测试因旧VM夹具未声明新模块而失败，补其显式导入后原负回执断言全部保留并通过，不算产品根因。
+
+新运行时模块已列入发布源清单，新回归进入统一unit发现；补三条时序/I/O工作流对父存储适配器及新模块的直接触发，治理先三项缺路径失败、现六项通过，原命令/负载/期限/不重试保持。1659份JS语法、全树Lint零错误/原五警告、变更格式及CI/release治理通过。e3普通40419083285八项均success，闭合coverage121908666533十二次最终持久完成1030–1916ms、最大已观察COMMIT245ms；正式40419083365/source121908666926仍执行，旧失败保留。固定2f安装全链资格仅属其原身份，本批仍需独立完整Windows与安装结果。
+
+WS安装验收仍无实际Upgrade合成入口，不能改false字段冒充完成；其他daemon转换/容量、READ与五秒稳定性、真实24h、额度核对后真实两端及受控自用目标全部保留。原冻结5a终态/任务/数据库/密钥/锚点未动，未重启或另启24h，模型0。本批修复诊断缺口，不宣称旧READ或五秒根因已修复。
+
 ## 2026-10-26：固定2f安装全链完成；e3三runner原50项全部通过
 
 固定2f80e8fa03bdec991211850eac6a7c4482d0aa6e安装40416283272/job121899468719已终态success，闭合完整日志核对新manifest=793cac7b6ad55d10e010aa322550e441f4f562beb66d0f2acfde08d133734116。完整候选门、NSIS构建、同格式升级回滚/runner-local DPAPI、固定582迁移/旧写者拒绝、安装两端合成四案例及包内发布中断均success。582基线仍4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f，八阶段layout1→3/revision+1，installedMigrationQualified=true，所属树清空/卸载成立。

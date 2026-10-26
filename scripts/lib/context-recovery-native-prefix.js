@@ -95,6 +95,16 @@ async function runNativeCapacityPrefix(directory, emit) {
     const attempt = ++storeOpens;
     return openContextRecoveryStorage({
       directory,
+      onFailure: ({ operation, phase, cleanupFailed }) =>
+        report({
+          event: 'prefix_storage_operation_failed',
+          stage,
+          attempt,
+          operation,
+          phase,
+          cleanupFailed,
+          ...boundary,
+        }),
       onStartup: ({ phase, elapsedMs }) =>
         report({ event: 'prefix_startup', stage, attempt, phase, elapsedMs }),
     });

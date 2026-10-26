@@ -31,6 +31,8 @@ for (const workflow of [
       'context-recovery-anchor-channel.js',
       'context-recovery-anchor-protocol.js',
       'context-recovery-storage-worker.js',
+      'context-recovery-storage.js',
+      'context-recovery-storage-failure.js',
       'context-recovery-storage-serial.js',
       'context-recovery-storage-idle.js',
     ])

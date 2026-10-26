@@ -44,6 +44,15 @@ async function runNativeCapacityDay(directory, emit) {
     const attempt = ++storeOpens;
     return openContextRecoveryStorage({
       directory,
+      onFailure: ({ operation, phase, cleanupFailed }) =>
+        emit({
+          event: 'storage_operation_failed',
+          stage,
+          attempt,
+          operation,
+          phase,
+          cleanupFailed,
+        }),
       onStartup: ({ phase, elapsedMs }) =>
         emit({ event: 'startup', stage, attempt, phase, elapsedMs }),
     });

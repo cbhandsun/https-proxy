@@ -218,6 +218,7 @@ test('worker request rejection preserves negative replies and terminal malformed
     const modules = {
       'node:worker_threads': { parentPort: port, workerData: { directory: 'synthetic' } },
       './context-recovery-storage-contract': contract,
+      './context-recovery-storage-failure': require('../lib/proxy/context-recovery-storage-failure'),
       './context-recovery-storage-owner': { createAsyncStorageOwner: () => owner },
       './context-recovery-storage-idle': { startRecoveryStorageAsyncIdle: () => ({ close() {} }) },
       './context-recovery-storage-serial': require('../lib/proxy/context-recovery-storage-serial'),

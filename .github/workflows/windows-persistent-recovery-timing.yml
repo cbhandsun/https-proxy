@@ -18,6 +18,8 @@ on:
       - lib/proxy/context-recovery-anchor-channel.js
       - lib/proxy/context-recovery-anchor-protocol.js
       - lib/proxy/context-recovery-storage-worker.js
+      - lib/proxy/context-recovery-storage.js
+      - lib/proxy/context-recovery-storage-failure.js
       - lib/proxy/context-recovery-storage-serial.js
       - lib/proxy/context-recovery-storage-idle.js
       - test/helpers/recovery-owner-stage-probe.js

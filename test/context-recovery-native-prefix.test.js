@@ -74,8 +74,14 @@ function fixture(mode) {
         opened++;
         calls.push('open');
         if (mode === 'open') privateFailure();
-        assert.deepEqual(Object.keys(options), ['directory', 'onStartup']);
+        assert.deepEqual(Object.keys(options), ['directory', 'onFailure', 'onStartup']);
         options.onStartup({ phase: 'worker_started', elapsedMs: 0 });
+        if (mode === 'failure-observer')
+          options.onFailure({
+            operation: 'read-source-and-settle',
+            phase: 'engine-snapshot',
+            cleanupFailed: true,
+          });
         return {
           execute: async (request) => {
             assert.equal(request.operation, 'catalog');
@@ -351,4 +357,18 @@ test('actual shared executor and file SQLite accept only the intended prefix bou
   assert.equal(result.retention.maxRootExpiresAt, 86401000);
   assert.equal(events.filter((value) => value.event === 'native_prefix_tick').length, 6);
   assert.equal(events.at(-1).event, 'native_prefix_completed');
+});
+
+test('prefix forwards only bounded failure stages and never grants day qualification', async () => {
+  const f = fixture('failure-observer');
+  await f.run();
+  const events = f.events.filter((value) => value.event === 'prefix_storage_operation_failed');
+  assert.equal(events.length, 2);
+  assert.equal(events[0].phase, 'engine-snapshot');
+  assert.equal(events[0].cleanupFailed, true);
+  assert.equal(events[0].operation, 'read-source-and-settle');
+  assert.equal(events[0].realtime24hStarted, false);
+  assert.equal(events[0].realtime24hPassed, false);
+  assert.equal(events[0].fullCapacityQualified, false);
+  assert.equal(JSON.stringify(events).includes('PRIVATE'), false);
 });

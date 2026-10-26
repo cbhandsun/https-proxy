@@ -48,7 +48,24 @@ test(
       Array.from({ length: 8 }, (_, index) => [null, ['revision'], index + 1])
     );
     await closing;
-    storage = await openContextRecoveryStorage({ directory });
+    const failures = [];
+    storage = await openContextRecoveryStorage({
+      directory,
+      onFailure: (value) => failures.push(value),
+    });
+    await assert.rejects(
+      storage.execute({
+        operation: 'save',
+        scope,
+        expectedRevision: 0,
+        expiresAt,
+        state: { fixture: 'rejected-stale' },
+      }),
+      safe
+    );
+    assert.deepEqual(failures, [
+      { operation: 'save', phase: 'engine-execute', cleanupFailed: false },
+    ]);
     const record = await storage.execute({ operation: 'load', scope });
     assert.equal(record.revision, 8);
     assert.equal(record.expiresAt, expiresAt);

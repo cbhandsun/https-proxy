@@ -8,6 +8,7 @@ const { createRecoveryAnchorSession } = require('../lib/proxy/context-recovery-a
 const { createAsyncStorageOwner } = require('../lib/proxy/context-recovery-storage-owner');
 const { KEY_PREFIX } = require('../lib/proxy/context-recovery-key-contract');
 const { DatabaseSync } = require('node:sqlite');
+const { storageFailureDiagnostic } = require('../lib/proxy/context-recovery-storage-failure');
 const safe = (error) =>
   error.code === 'context_recovery_storage_unavailable' && error.message === error.code;
 const turn = () => new Promise((resolve) => setImmediate(resolve));
@@ -147,7 +148,13 @@ test('failed post-SQL ACK never succeeds and writer lock remains held until actu
   const held = f.holdClose();
   f.fail();
   const pending = save(owner, expiresAt, 1),
-    rejected = assert.rejects(pending, safe);
+    rejected = assert.rejects(pending, (error) => {
+      assert.deepEqual(storageFailureDiagnostic(error), {
+        phase: 'anchor-persist',
+        cleanupFailed: false,
+      });
+      return safe(error);
+    });
   await turn();
   assert.equal(f.closes(), 1);
   assert.throws(f.open, safe, 'cannot grant another writer while native cleanup is pending');
@@ -165,7 +172,13 @@ test('rejected stale SQL remains retryable and does not submit another anchor wr
     expiresAt = Date.now() + 60000;
   await save(owner, expiresAt);
   const writes = f.writes();
-  await assert.rejects(save(owner, expiresAt), safe);
+  await assert.rejects(save(owner, expiresAt), (error) => {
+    assert.deepEqual(storageFailureDiagnostic(error), {
+      phase: 'engine-execute',
+      cleanupFailed: false,
+    });
+    return safe(error);
+  });
   assert.equal(f.writes(), writes);
   assert.deepEqual(await save(owner, expiresAt, 1), { revision: 2 });
 });

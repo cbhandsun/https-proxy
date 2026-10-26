@@ -83,8 +83,14 @@ function fixture(mode) {
         calls.push('open');
         opened++;
         if (mode === 'open') fail();
-        assert.deepEqual(Object.keys(options), ['directory', 'onStartup']);
+        assert.deepEqual(Object.keys(options), ['directory', 'onFailure', 'onStartup']);
         options.onStartup({ phase: 'worker_started', elapsedMs: 0 });
+        if (mode === 'failure-observer')
+          options.onFailure({
+            operation: 'read-source-and-settle',
+            phase: 'anchor-persist',
+            cleanupFailed: true,
+          });
         return {
           execute: async (request) => {
             assert.equal(request.operation, 'catalog');
@@ -237,4 +243,23 @@ test('day preserves branded driver failure metadata even when report validation 
     f.receipts.some((item) => item.event === 'native_day_completed'),
     false
   );
+});
+
+test('day forwards bounded storage failure phases without inspecting the original exception', async () => {
+  const f = fixture('failure-observer');
+  await f.run();
+  const failures = f.receipts.filter((value) => value.event === 'storage_operation_failed');
+  assert.equal(failures.length, 15);
+  assert.deepEqual(Object.keys(failures[0]), [
+    'event',
+    'stage',
+    'attempt',
+    'operation',
+    'phase',
+    'cleanupFailed',
+  ]);
+  assert.equal(failures[0].operation, 'read-source-and-settle');
+  assert.equal(failures[0].phase, 'anchor-persist');
+  assert.equal(failures[0].cleanupFailed, true);
+  assert.equal(JSON.stringify(failures).includes('PRIVATE'), false);
 });
