@@ -263,6 +263,100 @@ for (const mode of [
     }
   });
 
+test('matrix preserves the specific drain failure after its business handler rejected at the same stop phase', async (t) => {
+  const f = fixture(t);
+  let business;
+  const listener = f.dependencies.listener;
+  f.dependencies.listener = async (input) => {
+    business = input.onBusinessRequest;
+    return listener(input);
+  };
+  f.dependencies.drain = async (_input, dependencies) => {
+    // The actual business failure latches the coarse stop phase before the
+    // owned drain returns its WeakMap-attested finite failure phase.
+    await business({
+      path: '/v1/responses',
+      authorization: 'Bearer wrong',
+      bytes: Buffer.from('{}'),
+      response: { destroy() {} },
+    });
+    const { exerciseInstalledHttpSseDrain } = require('../scripts/lib/nsis-installed-http-drain');
+    return exerciseInstalledHttpSseDrain(null, dependencies);
+  };
+  await assert.rejects(runInstalledClientMatrix(f.args, f.dependencies), {
+    message: 'installed_client_matrix_failed',
+  });
+  assert.deepEqual(f.phases.at(-1), {
+    phase: 'codex-default-http-drain-options',
+    failed: true,
+  });
+  assert.equal(f.calls.includes('01'), false);
+  assert.ok(f.calls.includes('forced-stop'));
+  assert.ok(f.calls.includes('adapter-close'));
+  assert.ok(f.calls.includes('listener-close'));
+});
+
+test('matrix never accepts a caller-forged drain phase or evaluates exception hooks', async (t) => {
+  let touched = 0;
+  const revoked = Proxy.revocable({}, {});
+  revoked.revoke();
+  for (const error of [
+    { phase: 'PRIVATE_FORGED_PHASE' },
+    Object.defineProperty({}, 'phase', {
+      get() {
+        touched++;
+        throw Error('PRIVATE');
+      },
+    }),
+    new Proxy(
+      {},
+      {
+        get() {
+          touched++;
+          throw Error('PRIVATE');
+        },
+      }
+    ),
+    revoked.proxy,
+  ]) {
+    const f = fixture(t);
+    f.dependencies.drain = async () => {
+      throw error;
+    };
+    await assert.rejects(runInstalledClientMatrix(f.args, f.dependencies), {
+      message: 'installed_client_matrix_failed',
+    });
+    assert.deepEqual(f.phases.at(-1), { phase: 'codex-default-stop', failed: true });
+    assert.equal(JSON.stringify(f.phases).includes('PRIVATE'), false);
+  }
+  assert.equal(touched, 0);
+});
+
+test('matrix drain detail cannot overwrite an earlier failure from another operation', async (t) => {
+  const f = fixture(t);
+  let business;
+  const listener = f.dependencies.listener;
+  f.dependencies.listener = async (input) => {
+    business = input.onBusinessRequest;
+    return listener(input);
+  };
+  f.dependencies.drain = async (_input, dependencies) => {
+    f.getOptions().onPhase('codex-default-cli');
+    await business({
+      path: '/v1/responses',
+      authorization: 'Bearer wrong',
+      bytes: Buffer.from('{}'),
+      response: { destroy() {} },
+    });
+    const { exerciseInstalledHttpSseDrain } = require('../scripts/lib/nsis-installed-http-drain');
+    return exerciseInstalledHttpSseDrain(null, dependencies);
+  };
+  await assert.rejects(runInstalledClientMatrix(f.args, f.dependencies), {
+    message: 'installed_client_matrix_failed',
+  });
+  assert.deepEqual(f.phases.at(-1), { phase: 'codex-default-cli', failed: true });
+});
+
 test('business authentication, malformed input and observer failure never produce wire', async () => {
   for (const mode of ['auth', 'json', 'observe']) {
     let rejected = false,

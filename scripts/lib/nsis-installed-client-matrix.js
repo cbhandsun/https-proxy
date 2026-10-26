@@ -250,7 +250,14 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
                 );
               } catch (error) {
                 const failure = httpDrainFailurePhase(error);
-                if (failure) mark(client + '-' + mode + '-http-drain-' + failure);
+                if (failure) {
+                  const stopPhase = client + '-' + mode + '-stop';
+                  mark(client + '-' + mode + '-http-drain-' + failure);
+                  // The business handler can fail first while this drain is
+                  // active. Refine only that same coarse phase; never replace
+                  // an earlier failure from a different operation or cleanup.
+                  if (failedPhase === stopPhase) failedPhase = phase;
+                }
                 throw fail();
               }
               if (
