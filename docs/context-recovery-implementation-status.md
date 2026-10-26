@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：冻结5a真实日档在7小时READ终态失败，监测即时发现；2f普通门全通过
+
+22:49:10.626Z只读健康核验首次报告terminal_failure；随后原安全回执确认process_finished于22:49:04.2108148Z、exitCode=1、reason=child_exit、autoRetry=false。原任务HPM-native-day-20261026-5a3a842-33d332dd为Ready/LastTaskResult=1，原PID62028已不存在。此前完整历史84个tick到6小时55分保持连续；第85个tick到scheduledMs=25200000、elapsedMs=25200012.9955后，本轮工作失败，不能把该tick或名义运行7小时当成第85轮通过，更不能继续报告24小时运行中。检测距控制器退出回执约6.4秒；独立监测仍按五分钟配置，不承诺任何故障都能六秒发现。
+
+native_day_failed原安全阶段为capacity，storeOpens=4/storeCloses=3；主失败operation=reply/stage=reply/commandIndex=272/scheduledMs=25200000，随后清理operation=close/stage=storage-close/commandIndex=275失败。核对冻结5a与当前workload文件无差异，再对原完整内存命令序列做仅数字/枚举的独立映射：第269条advance到7小时、第270条begin、第271条LIST、第272条READ。因此故障落在原文READ，前一LIST已成功；回执没有足够内部阶段，不能唯一归因DPAPI、原生进程启动、锚点、SQL、时钟或配额。没有capacity_profile_result成功或native_day_completed，也未到expiry_wait/实际到期双重开，真实24h未通过。原冻结源码/任务/数据库/密钥/锚点未改、未重开，未自动重启，也未启动另一轮24h；模型0。
+
+独立Mac直接文件SQLite诊断使用原完整day-small 288轮/24恢复/12重开及相同输出负载，合成时钟覆盖完整计划偏移；当前源码完成288轮、24恢复、13开/13关。它仅用于排除当前直接SQLite路径下的确定性序列失败，nativeQualified/real24hQualified始终false，不覆盖Windows真实失败。另从Git归档准备独立5a跟踪源码，锁文件与HEAD一致；冻结版本同样完成288轮/24恢复/13开关，便携路径未复现；不使用或复制Windows冻结数据库、DPAPI数据密钥、OS锚点或私有日志。冻结5a默认owner与HEAD已存在同步/异步原生持久路径差异，不能将当前代码结果自动继承给它，亦不能仅凭差异认定根因。
+
+2f80e8fa03bdec991211850eac6a7c4482d0aa6e普通Verify40413094407八项全success，完整coverage121888496874十二次持久完成1122–2019ms、最长已观察COMMIT204ms；成功窗口不覆盖旧五秒失败。正式40413094139现已四项success，N09/job121897571937实际完成固定八场景，N08/job121897571976亦成功。新增实际prepared写入等待的强杀/正常放行两分支通过，仅属该转换，不扩为sending/transport-finished/uncertain/withdrawn全矩阵。前一批3e普通40411887801八项与正式40411887742四项均success，实际N09仅原六场景，不能覆盖2f新增prepared强杀/放行。下一轮固定安装基线421213889及两个资产身份已只读复核不变，2f唯一候选路由原解析通过、远端ref确认不存在后，已创建固定2f候选；安装40416283272 resolve121899307841成功、encrypted121899468719正在取得固定582/官方Node，未发布安装器、不重定向候选。原日档终态后按既有独立短测授权在Windows新目录准备固定2f环境；首次长命令远程调用未启动，已只读确认目录不存在后改SCP文件传输执行，不将它当产品失败或重试模型。原npm ci在缓存路径stat返回UNKNOWN/-4094并有权限错误，未进入后续步骤，原日志保留；现仅本次进程使用新目录内独立npm缓存再按锁文件安装，不改全局配置/版本，插件锁安装、原生准备和两份原短回归仍逐步检查退出码、尚待完整准备回执。独立五分钟watcher已自动退出，按原监测提示确认终态后停用automation24；仅停止该已终结日档的监测，整体实施目标仍继续。继续定位本次原生READ失败并核对新安装全链；真实24h、五秒稳定、其他daemon转换/WS、容量、真实provider与受控自用等整体目标仍未完成。
+
 ## 2026-10-26：组合实际daemon prepared COMMIT强杀与正常放行；修复合法unobserved观察拒绝
 
 本批保留N09原六场景和固定负载，在同一原有外层Job内追加两个独立新daemon场景。均先真实业务种入、精确读取，再让私有恢复完成并持有独立公开上游响应；从已认证元数据绑定原root/期限/精确revision，获取新nonce签名的空闲基线后持有实际DELETE-journal读事务。放行公开上游后，只读BUSY见证和新鲜签名查询共用原750ms，必须同时证明同一owner generation的新请求、唯一在途save-reference-state、prepared变化、精确root/期限/revision及客户端零字节。补偿withdrawn、并发、旧回执、假BUSY、期限/版本变化、晚到和关闭竞态全部拒绝；BUSY单独仍无发布资格。
