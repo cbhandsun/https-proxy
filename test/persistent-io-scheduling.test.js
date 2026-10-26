@@ -216,7 +216,7 @@ test('PowerShell public binary prefixes bind only SQLite flush issuers and retir
     $records+=ConvertTo-HpmThreadSchedulingRecord '<Event><System><Version>4</Version></System><EventData><Data>${retired.toString('hex')}</Data></EventData></Event>' 2 1300 $state
     if($state.bound.Count -ne 0){throw 'retirement_failed'}
     $records | ForEach-Object {[Console]::Out.WriteLine($_)}
-    foreach($bad in @(@{Hex='00';Opcode=36;Version=2},@{Hex='${binary.toString('hex')}';Opcode=36;Version=5},@{Hex='${retired.toString('hex')}';Opcode=50;Version=2})){
+    foreach($bad in @(@{Hex='00';Opcode=36;Version=2},@{Hex='${binary.toString('hex')}';Opcode=36;Version=6},@{Hex='${retired.toString('hex')}';Opcode=50;Version=2})){
       $rejected=$false;try{ConvertFrom-HpmThreadSchedulingBinary @bad|Out-Null}catch{if($_.Exception.Message -cne 'persistent_io_scheduling_refused'){throw 'unsafe_error'};$rejected=$true};if(-not $rejected){throw 'missing_rejection'}
     }
   `;
@@ -273,7 +273,7 @@ test('native event scalar and binary properties never pair across unsupported me
     Add-HpmIoSchedulingBinding @{} $doc 1000 $state
     $out=Event 2 @([uint32]99,[uint32]42,[byte]0,[byte]0,[byte]0,[byte]0,[byte]4,[byte]0,[byte]5)
     ConvertTo-HpmThreadSchedulingEvent $out 36 1000 $state
-    $unsupported=Event 5 @([uint32]42)
+    $unsupported=Event 6 @([uint32]42)
     ConvertTo-HpmThreadSchedulingEvent $unsupported 36 1100 $state
     if($state.bound.Count -ne 0){throw 'binding_survived'}
     ConvertTo-HpmThreadSchedulingEvent $unsupported 36 1200 $state
@@ -372,4 +372,57 @@ test('unsupported actual event metadata reports version and count without values
     ['v2:p0:tnone:escalar', 'v2:p1:tstring:epayload']
   );
   assert.doesNotMatch(result.stdout, /PRIVATE_METADATA|Exception|Error/);
+});
+
+test('observed Windows v5 uses the documented fixed prefixes and unknown v6 stays unmapped', () => {
+  const module = path.resolve('scripts/lib/persistent-io-scheduling.psm1').replaceAll("'", "''");
+  const leave = Buffer.alloc(32);
+  leave.writeUInt32LE(99, 0);
+  leave.writeUInt32LE(42, 4);
+  leave[12] = 11;
+  leave[14] = 5;
+  const enter = Buffer.alloc(32);
+  enter.writeUInt32LE(42, 0);
+  enter.writeUInt32LE(99, 4);
+  const code = `
+    $ErrorActionPreference='Stop';Import-Module '${module}' -Force
+    $state=New-HpmIoSchedulingState
+    $doc=[xml]'<Event><System><Execution ThreadID="42"/></System></Event>'
+    Add-HpmIoSchedulingBinding @{} $doc 1 $state
+    ConvertTo-HpmThreadSchedulingRecord '<Event><System><Version>5</Version></System><BinaryEventData>${leave.toString('hex')}</BinaryEventData></Event>' 36 10 $state
+    $event=[pscustomobject]@{Version=5;Properties=@([pscustomobject]@{Value=[Convert]::FromHexString('${enter.toString('hex')}')})}
+    ConvertTo-HpmThreadSchedulingEvent $event 36 210 $state
+    $end=[pscustomobject]@{Version=5;Properties=@([pscustomobject]@{Value=[uint32]9},[pscustomobject]@{Value=[uint32]42})}
+    ConvertTo-HpmThreadSchedulingEvent $end 2 220 $state
+    Add-HpmIoSchedulingBinding @{} $doc 230 $state
+    $unknown=[pscustomobject]@{Version=6;Properties=@()}
+    ConvertTo-HpmThreadSchedulingEvent $unknown 36 240 $state
+    if($state.bound.Count -ne 0){throw 'unmapped_binding_survived'}
+    foreach($hex in @('00',('00'*65))){
+      $refused=$false;try{ConvertFrom-HpmThreadSchedulingBinary $hex 36 5|Out-Null}catch{$refused=$true};if(-not $refused){throw 'invalid_v5_prefix_accepted'}
+    }
+  `;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    encoding: 'utf8',
+    timeout: 20000,
+    maxBuffer: 16384,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  const rows = result.stdout
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => JSON.parse(line));
+  const summary = createPersistentIoScheduling();
+  summary.observe('schedule-start', '1', 0, '');
+  for (const row of rows)
+    summary.observe(row.type, BigInt(row.key).toString(16), row.timeMs, row.name);
+  const report = summary.snapshot();
+  assert.equal(report.delayExecution.totalMs, 200);
+  assert.equal(report.intervals, 1);
+  assert.equal(report.retired, 2);
+  assert.equal(report.unmappedEpochs, 1);
+  assert.deepEqual(report.unmappedMetadata, [{ shape: 'v6:px:tnone:eversion', count: 1 }]);
+  assert.equal(report.commitCorrelationQualified, false);
+  validatePersistentIoScheduling(report, 20);
 });

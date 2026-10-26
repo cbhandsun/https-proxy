@@ -37,12 +37,14 @@ function Add-HpmIoSchedulingBinding {
 # Fixed public prefix layouts: Microsoft CSwitch and PerfView's
 # CSwitchTraceData / ThreadTraceData. No stack, address, name or process memory
 # is decoded. Thread starts/ends invalidate a binding before ID reuse.
+# Hosted Windows emitted v5 (153 explicit version refusals). The documented
+# fixed prefixes remain at the same offsets; unknown v6+ stays unobserved.
 # https://learn.microsoft.com/en-us/windows/win32/etw/cswitch
 # https://github.com/microsoft/perfview/blob/main/src/TraceEvent/Parsers/KernelTraceEventParser.cs
 function ConvertFrom-HpmThreadSchedulingBinary {
     param([string]$Hex, [int]$Opcode, [int]$Version)
     try {
-        if (-not [BitConverter]::IsLittleEndian -or $Version -notin @(2,3,4) -or
+        if (-not [BitConverter]::IsLittleEndian -or $Version -notin @(2,3,4,5) -or
             [string]::IsNullOrEmpty($Hex) -or $Hex.Length -gt 8192 -or $Hex.Length % 2 -ne 0 -or
             $Hex -cnotmatch '\A[0-9a-fA-F]+\z') { throw 'invalid' }
         $bytes = [Convert]::FromHexString($Hex)
@@ -71,7 +73,7 @@ function ConvertTo-HpmThreadSchedulingRecord {
             $fields[$name] = $item.InnerText
         }
         $version = $xml.SelectNodes('/*[local-name()="Event"]/*[local-name()="System"]/*[local-name()="Version"]')
-        if ($version.Count -ne 1 -or $version[0].InnerText -cnotmatch '\A[2-4]\z') { throw 'invalid' }
+        if ($version.Count -ne 1 -or $version[0].InnerText -cnotmatch '\A[2-5]\z') { throw 'invalid' }
         $binary = $xml.SelectNodes('/*[local-name()="Event"]/*[local-name()="BinaryEventData"] | /*[local-name()="Event"]/*[local-name()="EventData"]/*[local-name()="Binary"] | /*[local-name()="Event"]/*[local-name()="ProcessingErrorData"]/*[local-name()="EventPayload"]')
         if ($binary.Count -gt 0) {
             if ($binary.Count -ne 1 -or $fields.Count -ne 0) { throw 'invalid' }
@@ -115,7 +117,7 @@ function ConvertTo-HpmThreadSchedulingEvent {
         $version=[int]$Record.Version
         if($version -ge 0 -and $version -le 255){$shapeVersion=$version.ToString()}
         $shapeStage='version'
-        if ($TimeMs -lt 0 -or $Opcode -notin @(1,2,36) -or [int]$Record.Version -notin @(2,3,4)) { throw 'invalid' }
+        if ($TimeMs -lt 0 -or $Opcode -notin @(1,2,36) -or [int]$Record.Version -notin @(2,3,4,5)) { throw 'invalid' }
         $shapeStage='properties'
         $properties = $Record.Properties
         if($properties.Count -ge 0 -and $properties.Count -le 64){$shapeCount=$properties.Count.ToString()}
