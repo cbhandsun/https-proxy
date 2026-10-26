@@ -11,6 +11,13 @@ on:
       - lib/proxy/context-recovery-anchor-contract.js
       - lib/proxy/context-recovery-anchor-admission.js
       - lib/proxy/context-recovery-storage-owner.js
+      - lib/proxy/context-recovery-anchor-channel.js
+      - lib/proxy/context-recovery-anchor-protocol.js
+      - lib/proxy/context-recovery-storage-worker.js
+      - lib/proxy/context-recovery-storage-serial.js
+      - lib/proxy/context-recovery-storage-idle.js
+      - test/helpers/recovery-owner-stage-probe.js
+      - test/helpers/recovery-anchor-stage-probe.js
       - test/context-recovery-anchor-clock.test.js
       - .github/workflows/windows-persistent-recovery-timing.yml
       - lib/proxy/context-recovery-read-settlement.js

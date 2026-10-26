@@ -5,7 +5,9 @@ const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const { createIsolatedTestEnv } = require('../lib/test-runtime');
-const { encryptConfigSecretsForStorage } = require('../lib/proxy/config');
+const {
+  prepareEncryptedProxyFixtureConfig,
+} = require('./helpers/encrypted-proxy-fixture-config.cjs');
 const { findAvailablePorts } = require('./helpers/test-ports');
 const { waitForProxyFixtureReady } = require('./helpers/proxy-fixture-ready');
 
@@ -127,10 +129,7 @@ function waitForProxy(proc) {
   };
   // Prepare persisted credentials before timing listener startup. Plaintext
   // migration is covered by config tests and can launch several DPAPI helpers.
-  fs.writeFileSync(
-    path.join(testEnv.PROXY_CONFIG_DIR, 'proxy.config.json'),
-    JSON.stringify(encryptConfigSecretsForStorage(config), null, 2)
-  );
+  prepareEncryptedProxyFixtureConfig(config, testEnv);
 
   const proxyProc = spawn(process.execPath, [path.join(__dirname, '..', 'openai-proxy.js')], {
     cwd: path.join(__dirname, '..'),

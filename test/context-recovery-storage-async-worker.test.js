@@ -40,8 +40,12 @@ test(
     );
     const closing = storage.close();
     assert.deepEqual(
-      await Promise.all(pending),
-      Array.from({ length: 8 }, (_, index) => ({ revision: index + 1 }))
+      (await Promise.all(pending)).map((receipt) => [
+        Object.getPrototypeOf(receipt),
+        Reflect.ownKeys(receipt),
+        receipt.revision,
+      ]),
+      Array.from({ length: 8 }, (_, index) => [null, ['revision'], index + 1])
     );
     await closing;
     storage = await openContextRecoveryStorage({ directory });

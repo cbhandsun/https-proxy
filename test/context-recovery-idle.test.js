@@ -708,3 +708,30 @@ test(
     }
   }
 );
+
+test('async idle observation waits for the native ACK without erasing its armed clock on repeated timer ticks', () => {
+  const helper = path.resolve(__dirname, 'helpers/context-recovery-idle-timer.cjs');
+  const idle = path.resolve(__dirname, '../lib/proxy/context-recovery-storage-idle.js');
+  const source = `
+ const assert=require('node:assert/strict'),Module=require('node:module');
+ const load=Module._load,buffer=new SharedArrayBuffer(8),state=new Int32Array(buffer);
+ Module._load=function(name){if(name==='node:worker_threads')return{workerData:{idleObservation:buffer}};return load.apply(this,arguments);};
+ let scheduled;globalThis.setInterval=(callback,ms)=>{scheduled=callback;return{unref(){}};};
+ require(${JSON.stringify(helper)});Module._load=load;
+ const {startRecoveryStorageAsyncIdle}=require(${JSON.stringify(idle)});
+ let release,calls=0;
+ const owner=startRecoveryStorageAsyncIdle({execute(){calls++;Atomics.store(state,1,1);return new Promise(resolve=>{release=resolve;});},onFailure(){throw Error('must not fail');}});
+ Atomics.store(state,0,1);scheduled();assert.equal(calls,1);assert.equal(Atomics.load(state,0),1);
+ scheduled();assert.equal(calls,1);assert.equal(Atomics.load(state,1),1);
+ release({removedRecords:0,removedBytes:0});
+ setImmediate(()=>{assert.equal(Atomics.load(state,0),2);owner.close();process.stdout.write('async_idle_ack_verified');});
+ `;
+  const child = spawnSync(process.execPath, ['-e', source], {
+    encoding: 'utf8',
+    timeout: 10000,
+    maxBuffer: 16384,
+    windowsHide: true,
+  });
+  assert.equal(child.status, 0, child.stderr);
+  assert.equal(child.stdout, 'async_idle_ack_verified');
+});

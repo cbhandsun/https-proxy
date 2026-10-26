@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：新通道三组时序通过但正式仍5007ms；修复配置隔离与异步idle观测
+
+45fd6af的新默认路径在40375001055三个独立Windows runner各原50项全通过、零skip，18次finishPublicationAsync为65–346ms。独立I/O40375001144成功。但正式40375001336/source121755535093仍有Chat long-persistent请求5007ms超时，不能由三组成功覆盖。该窗口原生dispatch约14–236ms，多笔SQLite COMMIT仍为1409/1204/1038ms，replyAsync2949ms后另一轮2464ms；阶段有包含关系，不相加充当精确请求分解。普通Verify40375001433和完整覆盖率I/O40375001071均失败，全部保留，不重跑覆盖、不授五秒稳定或安装资格。
+
+普通失败含两项夹具适配问题：八次提交实际receipt为正确的空原型记录，新增断言却期待普通对象；现逐一严格检查null原型、仅revision字段和1–8精确版本，不用宽松转换规避协议检查。idle观测器原假定回调同步返回；新async回调返回时SQLite sweep尚未开始，后续tick又会抹掉已读的armed-clock标记，因此永不记录实际完成。本批async idle返回仅含成功/失败布尔值的原生完成Promise，必须在真实owner ACK及结果校验后才true；busy、关闭、非法或失败均false，setInterval周期/行为不变。测试观测器等待该Promise、暂停重入tick并保留该次时钟标记，再发成功通知；原5000ms观察、独立SQLite已删/仍活记录断言、原TTL及真实worker/DPAPI/锚点均不改。新增可移植回归证明ACK前不通知、重复tick不抹标记。
+
+integration121755534981在entry-auth启动前报AES-v2严格解密失败，源代码行456确认并非DPAPI解密分支。夹具在父环境加密，却在另一个隔离home启动代理；原DPAPI不可用时选择的AES-v2主密钥因用户目录不同而不匹配。本机以仅有临时目录/合成凭据的隔离父进程先复现同一失败，现由受限无shell子进程在代理同一env准备配置，严格解密和完整entry-auth断言通过。不加载父进程日常密钥、不输出子进程诊断或秘密；产品secret-crypto/config、保护格式、认证及原回退选择均未改。新四项覆盖同域真实加解密、固定命令/环境/边界、非法/Proxy/getter/超限和失败隐私，进入统一unit发现。
+
+本机扩大七文件43项39通过/4既有Windows限定skip、零失败，独立entry-auth全部断言实际通过。完整两文件integration在headers-routing的Google profile覆盖断言处失败，尚未执行完；该Mac观察独立保留，不以entry-auth成功冒充完整集成通过。1629份JS语法、全树Lint零错误/5既有警告、变更格式及CI/release治理通过。时序工作流仅补新transport/worker/idle/serial及阶段探针路径触发，不改矩阵、原完整文件、次数或门限；无依赖/锁文件/签名/FULL/DELETE/预算/精确ACK/期限变更。
+
+b223的clockRollbackMs=3发生在大容量夹具直接Date.now采样输入，已有回归要求原样拒绝且不平滑；未改成合成时钟或放宽规则。18:22:40.114Z只读确认冻结5a长测同一身份和进程，31个连续tick至9000000ms（150分钟），elapsedMs=9000004.0464，无失败或重启，五分钟监测继续。无长测主机额外负载、模型0。下一步核对本批完整Windows结果，继续定位正式五秒窗口的持久等待；最新安装升级回滚/582迁移拒写、两端安装版重启/完整在途HTTP/WS、真实24小时到期重开及额度核对后的provider/受控自用仍未完成。
+
 ## 2026-10-26：默认 worker 接入异步锚点与串行队列
 
 代码提交78d975e将默认storage worker实际切换到createAsyncStorageOwner，稳态使用owned原生通道，等待独立flush与精确ACK后才发成功回执。首次开库仍同步完成read、空intent、SQLite startup与持久watermark，空intent先于初始SQLite COMMIT的边界不变。async admission复用原snapshot/successor和精确revision+1；旧同步factory继续服务明确的直接调用，默认worker不再逐请求同步启动one-shot。
