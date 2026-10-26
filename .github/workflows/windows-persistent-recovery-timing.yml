@@ -5,6 +5,10 @@ on:
     branches:
       - acceptance/context-recovery/**
     paths:
+      - native/context-recovery-key/**
+      - scripts/prepare-context-recovery-native.js
+      - lib/proxy/context-recovery-key-dpapi.js
+      - lib/proxy/context-recovery-key-contract.js
       - lib/proxy/context-recovery-anchor-wire.js
       - lib/proxy/context-recovery-anchor.js
       - test/context-recovery-anchor-wire.test.js

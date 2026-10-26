@@ -35,6 +35,15 @@ for (const workflow of [
       'context-recovery-storage-idle.js',
     ])
       assert.ok(paths.has('lib/proxy/' + file), 'missing production diagnostic trigger: ' + file);
+    // Native and source-only compatibility backends are executed by these
+    // exact workloads too. Their changes must not silently omit timing or I/O.
+    for (const file of [
+      'native/context-recovery-key/**',
+      'scripts/prepare-context-recovery-native.js',
+      'lib/proxy/context-recovery-key-dpapi.js',
+      'lib/proxy/context-recovery-key-contract.js',
+    ])
+      assert.ok(paths.has(file), 'missing native/key diagnostic trigger: ' + file);
     assert.ok(source.includes('acceptance/context-recovery/**'));
     assert.ok(source.includes('workflow_dispatch:'));
   });

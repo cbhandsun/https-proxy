@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：补原生/密钥实现到三条时序与I/O工作流触发条件
+
+2a锚点Rust修复推送后实际只启动普通、正式和两个I/O工作流，未启动三runner时序。核对发现windows-persistent-recovery-timing.yml缺native/context-recovery-key/**，三条工作流还均漏掉实际执行的prepare-context-recovery-native.js及密钥DPAPI/contract输入。不是时序作业取消或通过，属于触发遗漏；旧56时序不能代替后续原生源码的同身份样本。
+
+先在既有统一治理回归加入四个直接输入要求，原源码三项失败分别明确报缺native/prepare路径；现补三条工作流的精确触发，保留分支范围、原三runner每组完整文件各一次、全部原5000ms/10000ms/原负载、无过滤/重试与I/O边界。治理六项全通过、零skip，CI与release治理、变更Lint/格式通过；无产品/依赖/签名门变动，不授任何稳定性资格。新推送将实际触发三runner及两个I/O，现有正式/普通原作业保留，不重跑旧失败。2a普通仍七success、coverage已进入client阶段；正式source门仍运行。固定3f安装全链success与独立正式七个首次ready失败、56旧DPAPI十秒失败均保留，详见下一条。原冻结5a长测不改、不重启，监测持续；模型0，整体未完成。
+
 ## 2026-10-26：固定3f安装全链终态成功，正式独立首次ready失败仍保留
 
 安装40397785294/job121835532654现已终态success。构建、同格式升级回滚/runner-local DPAPI、完整582迁移旧写者拒绝、实际两端四案例及新增安装包COMMIT/ACK模块中断步骤均success，卸载/所属树清空成功。固定sourceSha=3f61f74d3fe3e9ba5d887ce74b1976aa606d280a，manifestSha256=465b773a74f1b5882f42738d536a19ac4a692913d842cd3a8e471a01546765e3；不是后续2a锚点修复或0b诊断修复的安装资格，也不覆盖旧30cf安装失败。
