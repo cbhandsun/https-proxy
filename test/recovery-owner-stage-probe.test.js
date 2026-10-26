@@ -625,3 +625,31 @@ test('watermark write reports only its own thread CPU and preserves the exact st
   assert.equal(JSON.stringify(f.rows).includes('PRIVATE'), false);
   assert.deepEqual(samples, []);
 });
+
+test('async owner probe measures through actual ACK and keeps captured operation identity', async () => {
+  const f = fixture();
+  let release;
+  f.admissionModule.createRecoveryAsyncAnchorAdmission = () => ({
+    persist() {},
+    async persistAsync() {
+      await new Promise((resolve) => {
+        release = resolve;
+      });
+      return f.result;
+    },
+  });
+  installOwnerStageProbe(f.load, f.emit, f.now);
+  const engine = f.engineModule.createRecoverySqliteStore(),
+    admission = f.admissionModule.createRecoveryAsyncAnchorAdmission();
+  engine.execute({ operation: 'save' });
+  const pending = admission.persistAsync(f.result);
+  assert.equal(f.rows.filter((row) => row.stage === 'anchor_persist').length, 0);
+  release();
+  assert.equal(await pending, f.result);
+  assert.deepEqual(f.rows.at(-1), {
+    sequence: 1,
+    operation: 'save',
+    stage: 'anchor_persist',
+    elapsedMs: 1,
+  });
+});

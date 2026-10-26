@@ -330,3 +330,136 @@ test('constructor captures only validated data capabilities without triggering g
   admission.persist(metadata());
   assert.equal(hits, 0);
 });
+
+test('async admission preserves synchronous intent and exact successor receipts through delayed ACK', async () => {
+  const {
+    createRecoveryAsyncAnchorAdmission,
+  } = require('../lib/proxy/context-recovery-anchor-admission');
+  let revision = 0,
+    closed = 0,
+    release;
+  const repository = {
+    identity,
+    read: () => null,
+    commit: () => ({ revision: ++revision }),
+    close: () => {
+      closed++;
+    },
+  };
+  const session = {
+    repository,
+    async commit(value) {
+      await new Promise((resolve) => {
+        release = resolve;
+      });
+      return repository.commit(value);
+    },
+    async close() {},
+  };
+  const admission = createRecoveryAsyncAnchorAdmission(
+    { repository, allowEnrollment: true },
+    session
+  );
+  admission.validateStartup(metadata({ maxTime: 0 }), true);
+  admission.persist(metadata());
+  assert.equal(revision, 2);
+  const pending = admission.persistAsync(metadata({ maxTime: 101 }));
+  await assert.rejects(admission.persistAsync(metadata({ maxTime: 102 })), safe);
+  assert.throws(() => admission.persist(metadata()), safe);
+  assert.throws(() => admission.close(), safe);
+  release();
+  await pending;
+  assert.equal(revision, 3);
+  await admission.closeAsync();
+  assert.equal(closed, 1);
+});
+
+test('async admission rejects wrong/overflow/unsafe receipt before granting another durable revision', async () => {
+  const {
+    createRecoveryAsyncAnchorAdmission,
+  } = require('../lib/proxy/context-recovery-anchor-admission');
+  for (const receipt of [
+    { revision: 2 },
+    { revision: 4 },
+    { revision: 0 },
+    { revision: Infinity },
+    { revision: 3, extra: true },
+    null,
+  ]) {
+    let revision = 0,
+      closed = 0;
+    const repository = {
+      identity,
+      read: () => null,
+      commit: () => ({ revision: ++revision }),
+      close: () => {
+        closed++;
+      },
+    };
+    const session = {
+      repository,
+      async commit() {
+        return receipt;
+      },
+      async close() {},
+    };
+    const admission = createRecoveryAsyncAnchorAdmission(
+      { repository, allowEnrollment: true },
+      session
+    );
+    admission.validateStartup(metadata({ maxTime: 0 }), true);
+    admission.persist(metadata());
+    await assert.rejects(admission.persistAsync(metadata({ maxTime: 101 })), safe);
+    assert.equal(closed, 1);
+    await assert.rejects(admission.persistAsync(metadata({ maxTime: 102 })), safe);
+  }
+});
+
+test('async capability shapes reject executable input and non-native promises without invoking hooks', async () => {
+  const {
+    createRecoveryAsyncAnchorAdmission,
+  } = require('../lib/proxy/context-recovery-anchor-admission');
+  const repository = { identity, read: () => null, commit: () => ({ revision: 1 }), close() {} };
+  let hooks = 0;
+  for (const value of [
+    undefined,
+    null,
+    {},
+    new Proxy(
+      {},
+      {
+        ownKeys() {
+          hooks++;
+        },
+      }
+    ),
+    {
+      repository,
+      commit: async () => {},
+      get close() {
+        hooks++;
+        return undefined;
+      },
+    },
+  ])
+    assert.throws(
+      () => createRecoveryAsyncAnchorAdmission({ repository, allowEnrollment: true }, value),
+      safe
+    );
+  const session = {
+    repository,
+    commit: () => ({
+      then() {
+        hooks++;
+      },
+    }),
+    close: async () => {},
+  };
+  const admission = createRecoveryAsyncAnchorAdmission(
+    { repository, allowEnrollment: true },
+    session
+  );
+  admission.validateStartup(metadata({ maxTime: 0 }), true);
+  await assert.rejects(admission.persistAsync(metadata()), safe);
+  assert.equal(hooks, 0);
+});

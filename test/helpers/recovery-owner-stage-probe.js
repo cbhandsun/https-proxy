@@ -5,6 +5,7 @@ const path = require('node:path');
 const { Worker } = require('node:worker_threads');
 const { performance } = require('node:perf_hooks');
 const { types } = require('node:util');
+const { nativeReaderPromise } = require('../../lib/proxy/context-recovery-reader-result');
 const OPERATIONS = new Set([
   'startup',
   'catalog',
@@ -114,7 +115,6 @@ function installOwnerStageProbe(
     path.resolve(__dirname, '../../lib/proxy/context-recovery-anchor-admission.js')
   );
   const createEngine = engineModule.createRecoverySqliteStore;
-  const createAdmission = admissionModule.createRecoveryAnchorAdmission;
   function observedDatabase(database) {
     return {
       exec(...args) {
@@ -162,16 +162,49 @@ function installOwnerStageProbe(
       },
     };
   };
-  admissionModule.createRecoveryAnchorAdmission = function (...args) {
-    const admission = Reflect.apply(createAdmission, this, args);
-    const persist = admission.persist;
-    return {
-      ...admission,
-      persist(...values) {
-        return measured('anchor_persist', persist, admission, values);
-      },
+  for (const name of ['createRecoveryAnchorAdmission', 'createRecoveryAsyncAnchorAdmission']) {
+    const createAdmission = admissionModule[name];
+    if (typeof createAdmission !== 'function') continue;
+    admissionModule[name] = function (...args) {
+      const admission = Reflect.apply(createAdmission, this, args);
+      return {
+        ...admission,
+        persist(...values) {
+          return measured('anchor_persist', admission.persist, admission, values);
+        },
+        ...(admission.persistAsync
+          ? {
+              async persistAsync(...values) {
+                const currentSequence = sequence,
+                  currentOperation = operation,
+                  start = now();
+                let value,
+                  failed = false,
+                  cause;
+                try {
+                  const result = Reflect.apply(admission.persistAsync, admission, values);
+                  if (!nativeReaderPromise(result)) throw fail();
+                  value = await result;
+                } catch (error) {
+                  failed = true;
+                  cause = error;
+                }
+                const elapsed = now() - start;
+                if (!Number.isFinite(elapsed) || elapsed < 0) throw fail();
+                emit({
+                  sequence: currentSequence,
+                  operation: currentOperation,
+                  stage: 'anchor_persist',
+                  elapsedMs: Math.round(elapsed),
+                });
+                if (failed) throw cause;
+                return value;
+              },
+            }
+          : {}),
+      };
     };
-  };
+  }
 }
 
 function parseStageLine(line) {

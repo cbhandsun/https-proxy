@@ -157,3 +157,53 @@ test('executable hook arguments reject proxies and absent functions before impor
     assert.throws(() => installAnchorStageProbe(() => assert.fail(), bad), safe);
   }
 });
+
+test('async native probe measures the actual owned channel and never substitutes one-shot execution', async () => {
+  const rows = [];
+  let dependencies,
+    release,
+    closed = 0,
+    time = 0,
+    starts = 0;
+  const module = {
+    createRecoveryAnchorSession(_input, supplied) {
+      dependencies = supplied;
+      return supplied.createChannel({ executable: 'synthetic.exe', systemRoot: 'C:\\Windows' });
+    },
+  };
+  installAnchorStageProbe(
+    () => module,
+    (...row) => rows.push(row),
+    () => time++,
+    () => {
+      starts++;
+      throw Error('one-shot must not execute');
+    },
+    (options) => {
+      assert.equal(options.executable, 'synthetic.exe');
+      return {
+        async execute(text) {
+          assert.equal(text, 'PRIVATE');
+          await new Promise((resolve) => {
+            release = resolve;
+          });
+          return 'UNCHANGED_REPLY';
+        },
+        async close() {
+          closed++;
+        },
+      };
+    }
+  );
+  const channel = module.createRecoveryAnchorSession({});
+  assert.equal(typeof dependencies.execute, 'function');
+  const pending = channel.execute('PRIVATE');
+  assert.equal(rows.length, 0);
+  release();
+  assert.equal(await pending, 'UNCHANGED_REPLY');
+  assert.deepEqual(rows, [['anchor_native_dispatch', 1]]);
+  assert.equal(starts, 0);
+  await channel.close();
+  assert.equal(closed, 1);
+  assert.equal(JSON.stringify(rows).includes('PRIVATE'), false);
+});

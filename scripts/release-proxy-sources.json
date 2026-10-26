@@ -208,6 +208,7 @@
   "lib/proxy/context-recovery-storage-sqlite.js",
   "lib/proxy/context-recovery-storage-staging.js",
   "lib/proxy/context-recovery-storage-startup.js",
+  "lib/proxy/context-recovery-storage-serial.js",
   "lib/proxy/context-recovery-storage-worker.js",
   "lib/proxy/context-recovery-storage.js",
   "lib/proxy/context-recovery-tool-catalog.js",

@@ -194,7 +194,7 @@ test('worker request fusion preserves public request semantics and legacy state 
   }
 });
 
-test('worker request rejection preserves negative replies and terminal malformed-id behavior', () => {
+test('worker request rejection preserves negative replies and terminal malformed-id behavior', async () => {
   const source = fs.readFileSync(
     path.join(__dirname, '../lib/proxy/context-recovery-storage-worker.js'),
     'utf8'
@@ -208,18 +208,19 @@ test('worker request rejection preserves negative replies and terminal malformed
     port.postMessage = (value) => replies.push(value);
     port.close = () => closed++;
     const owner = {
-      execute(request) {
+      async execute(request) {
         executions++;
         assert.equal(request.operation, 'inspect');
         return { bytes: 0, records: 0 };
       },
-      close() {},
+      async close() {},
     };
     const modules = {
       'node:worker_threads': { parentPort: port, workerData: { directory: 'synthetic' } },
       './context-recovery-storage-contract': contract,
-      './context-recovery-storage-owner': { createStorageOwner: () => owner },
-      './context-recovery-storage-idle': { startRecoveryStorageIdle: () => ({ close() {} }) },
+      './context-recovery-storage-owner': { createAsyncStorageOwner: () => owner },
+      './context-recovery-storage-idle': { startRecoveryStorageAsyncIdle: () => ({ close() {} }) },
+      './context-recovery-storage-serial': require('../lib/proxy/context-recovery-storage-serial'),
     };
     vm.runInNewContext(source, {
       require(name) {
@@ -243,6 +244,7 @@ test('worker request rejection preserves negative replies and terminal malformed
     assert.equal(fixture.executions(), 0);
   }
   fixture.port.emit('message', { id: 5, request: { operation: 'inspect' } });
+  await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(json(fixture.replies.at(-1)), {
     id: 5,
     ok: true,
@@ -250,10 +252,12 @@ test('worker request rejection preserves negative replies and terminal malformed
   });
   assert.equal(fixture.executions(), 1);
   fixture.port.emit('message', { id: 6, request: { operation: 'close' } });
+  await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(json(fixture.replies.at(-1)), { id: 6, ok: true, result: null });
   assert.equal(fixture.closed(), 1);
   const invalid = workerFixture();
   invalid.port.emit('message', { id: 0, request: { operation: 'inspect' } });
+  await new Promise((resolve) => setImmediate(resolve));
   assert.equal(invalid.replies.length, 0);
   assert.equal(invalid.closed(), 1);
 });
