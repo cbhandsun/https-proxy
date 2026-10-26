@@ -11,6 +11,11 @@ on:
       - lib/proxy/context-recovery-anchor-contract.js
       - lib/proxy/context-recovery-anchor-admission.js
       - lib/proxy/context-recovery-storage-owner.js
+      - lib/proxy/context-recovery-anchor-channel.js
+      - lib/proxy/context-recovery-anchor-protocol.js
+      - lib/proxy/context-recovery-storage-worker.js
+      - lib/proxy/context-recovery-storage-serial.js
+      - lib/proxy/context-recovery-storage-idle.js
       - lib/proxy/context-recovery-storage-sqlite.js
       - test/context-recovery-anchor-clock.test.js
       - native/context-recovery-key/**

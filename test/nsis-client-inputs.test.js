@@ -204,6 +204,10 @@ test('strict four-case receipt rejects duplicate fields, missing gates, wrong ca
     examples.push(JSON.stringify(value));
   }
   examples.push(examples[0].replace('"passed":true', '"passed":true,"passed":true'));
+  examples.push(examples[0].replace('"client":"codex"', '"client":"codex","client":"codex"'));
+  examples.push(examples[0].replace('"listenerOwned":true', '"ListenerOwned":true'));
+  examples.push(examples[0].replace('"restartRetention":true', '"restartRetentıon":true'));
+  examples.push('null', '[]', '{}', '', ' ', examples[0].slice(0, -1));
   examples.push('x'.repeat(4097));
   const file = path.join(temporary, 'examples.json');
   fs.writeFileSync(file, JSON.stringify(examples));
@@ -212,9 +216,18 @@ test('strict four-case receipt rejects duplicate fields, missing gates, wrong ca
     $ErrorActionPreference = 'Stop'
     Import-Module ${quote(path.join(root, 'scripts/lib/nsis-client-matrix-receipt.psm1'))} -Force
     $examples = [IO.File]::ReadAllText(${quote(file)}) | ConvertFrom-Json
-    $rows = @()
-    foreach ($text in $examples) { try { $null = ConvertFrom-HpmInstalledClientMatrixReceipt $text; $rows += $true } catch { $rows += $false } }
-    $rows | ConvertTo-Json -Compress
+    $rows = @(); $firstFailurePhase = $null
+    foreach ($text in $examples) {
+      try { $null = ConvertFrom-HpmInstalledClientMatrixReceipt $text; $rows += $true }
+      catch {
+        if ($rows.Count -eq 0) {
+          $candidate = $_.Exception.Data['HpmClientReceiptPhase']
+          $firstFailurePhase = if ($candidate -cin @('input','parse','root_fields','root_values','cases','case_0','case_1','case_2','case_3','materialize','dispose')) { $candidate } else { 'unobserved' }
+        }
+        $rows += $false
+      }
+    }
+    @{ rows = $rows; firstFailurePhase = $firstFailurePhase } | ConvertTo-Json -Compress
   `;
   const result = spawnSync(pwsh, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script], {
     encoding: 'utf8',
@@ -224,8 +237,9 @@ test('strict four-case receipt rejects duplicate fields, missing gates, wrong ca
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(
-    JSON.parse(result.stdout),
-    examples.map((_value, index) => index === 0)
+    JSON.parse(result.stdout).rows,
+    examples.map((_value, index) => index === 0),
+    'client receipt first failure phase: ' + JSON.parse(result.stdout).firstFailurePhase
   );
 });
 
