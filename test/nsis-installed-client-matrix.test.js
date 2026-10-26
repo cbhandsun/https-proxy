@@ -89,6 +89,11 @@ function fixture(t, broken) {
       },
     }),
     verifyBinary: () => broken !== 'binary',
+    drain: async (options, { owner }) => {
+      assert.equal(options.model, 'hpm-installed-' + options.client);
+      const receipt = await owner.stopNaturally();
+      return { ...receipt, httpTransportDrainQualified: broken !== 'drain-false' };
+    },
     runCase: async (input) => {
       options = input;
       assert.equal(input.token, token);
@@ -130,6 +135,13 @@ function fixture(t, broken) {
         },
       });
       assert.equal(delivered, true);
+      const drain = () =>
+        input.onReadyToStop(
+          { client: input.client, mode: input.mode, model: 'hpm-installed-' + input.client },
+          async () => {}
+        );
+      if (broken !== 'drain-missing') await drain();
+      if (broken === 'drain-duplicate') await drain();
       input.active.current = null;
       return {
         client: input.client,
@@ -149,8 +161,10 @@ function fixture(t, broken) {
 test('matrix composes four fresh daemon cases, real token factory and observed default upstream requests', async (t) => {
   const f = fixture(t);
   const receipt = await runInstalledClientMatrix(f.args, f.dependencies);
-  assert.equal(receipt.schemaVersion, 4);
+  assert.equal(receipt.schemaVersion, 5);
   assert.equal(receipt.daemonNaturalExitQualified, true);
+  assert.equal(receipt.httpTransportDrainQualified, true);
+  assert.equal(receipt.websocketDrainQualified, false);
   assert.equal(receipt.syntheticClientQualified, true);
   assert.equal(receipt.realProviderQualified, false);
   assert.equal(receipt.retention24hQualified, false);
@@ -219,6 +233,9 @@ for (const mode of [
   'natural-forced',
   'natural-nonzero',
   'natural-extra',
+  'drain-false',
+  'drain-missing',
+  'drain-duplicate',
 ])
   test('matrix rejects ' + mode + ' while attempting all available cleanup', async (t) => {
     const f = fixture(t, mode);
@@ -283,6 +300,105 @@ test('business authentication, malformed input and observer failure never produc
   }
 });
 
+test('held synthetic replies require a native true acknowledgement and unchanged case ownership', async () => {
+  let traps = 0;
+  const hostile = Object.defineProperty({}, 'then', {
+    get() {
+      traps++;
+      throw Error('PRIVATE_THEN');
+    },
+  });
+  for (const beforeReply of [
+    () => false,
+    () => null,
+    () => undefined,
+    () => hostile,
+    new Proxy(() => {
+      traps++;
+    }, {}),
+  ]) {
+    let rejected = 0,
+      delivered = 0;
+    const active = {
+      current: {
+        client: 'codex',
+        mode: 'enhanced',
+        upstreamToken: 'synthetic',
+        beforeReply,
+        upstream: {
+          respond: () => ({
+            statusCode: 200,
+            wire: Buffer.from('synthetic'),
+            contentType: 'application/json; charset=utf-8',
+          }),
+        },
+      },
+    };
+    const handler = createBusinessHandler(active, () => {
+      rejected++;
+    });
+    await handler.respond({
+      path: '/v1/responses',
+      authorization: 'Bearer synthetic',
+      bytes: Buffer.from('{}'),
+      response: {
+        destroyed: false,
+        destroy() {},
+        writeHead() {
+          delivered++;
+        },
+        end() {
+          delivered++;
+        },
+      },
+    });
+    assert.equal(rejected, 1);
+    assert.equal(delivered, 0);
+    assert.equal(handler.inspect().pending, 0);
+  }
+  assert.equal(traps, 0);
+  let delivered = false,
+    rejected = false;
+  const active = {
+    current: {
+      client: 'codex',
+      mode: 'enhanced',
+      upstreamToken: 'synthetic',
+      beforeReply: async () => {
+        active.current = null;
+        return true;
+      },
+      upstream: {
+        respond: () => ({
+          statusCode: 200,
+          wire: Buffer.from('synthetic'),
+          contentType: 'application/json; charset=utf-8',
+        }),
+      },
+    },
+  };
+  const handler = createBusinessHandler(active, () => {
+    rejected = true;
+  });
+  await handler.respond({
+    path: '/v1/responses',
+    authorization: 'Bearer synthetic',
+    bytes: Buffer.from('{}'),
+    response: {
+      destroyed: false,
+      destroy() {},
+      writeHead() {
+        delivered = true;
+      },
+      end() {
+        delivered = true;
+      },
+    },
+  });
+  assert.equal(rejected, true);
+  assert.equal(delivered, false);
+});
+
 test('argument and phase boundaries reject malformed input and disclose only finite safe phases', (t) => {
   const f = fixture(t);
   assert.equal(parseInstalledClientMatrixArguments(f.args).ownedRoot, f.args[0]);
@@ -295,6 +411,7 @@ test('argument and phase boundaries reject malformed input and disclose only fin
     assert.throws(() => parseInstalledClientMatrixArguments(args));
   const writer = createMatrixPhaseWriter(f.args[0]);
   writer('identity');
+  writer('claude-enhanced-http-drain-public_response', true);
   writer('claude-default-cli-seed', true);
   writer('claude-enhanced-cli-compact-3', true);
   writer('claude-enhanced-cli-between-2', true);

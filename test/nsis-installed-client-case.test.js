@@ -189,6 +189,16 @@ function fixture(t, client, mode, fault) {
         token: 'management-token',
         active,
         onPhase: (phase) => trace.push(phase),
+        onReadyToStop: async (input, observe) => {
+          assert.equal(input.client, client);
+          assert.equal(input.mode, mode);
+          assert.equal(input.model, 'hpm-installed-' + client);
+          assert.match(input.entryToken, /^hpm-synthetic-[a-f0-9]{32}$/);
+          assert.match(input.upstreamToken, /^hpm-upstream-[a-f0-9]{32}$/);
+          assert.equal(typeof observe, 'function');
+          trace.push('drain');
+          if (fault === 'drain') throw Error('PRIVATE_DRAIN_ERROR');
+        },
       }),
     trace,
     active,
@@ -238,6 +248,7 @@ test('real entry identity auth recovery and cleanup failures cannot become succe
       'failed',
       'compactions',
       'final',
+      'drain',
     ]) {
       const f = fixture(t, client, 'enhanced', fault);
       await assert.rejects(f.run(), { message: 'installed_client_case_failed' });

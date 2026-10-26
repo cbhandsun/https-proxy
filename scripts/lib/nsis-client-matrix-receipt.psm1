@@ -26,13 +26,13 @@ function ConvertFrom-HpmInstalledClientMatrixReceipt {
         $phase = 'parse'
         $doc = [Text.Json.JsonDocument]::Parse($Output)
         $root = $doc.RootElement
-        $expected = @('cases','daemonNaturalExitQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','realModelRequests','realProviderQualified','retention24hQualified','schemaVersion','scope','syntheticClientQualified','syntheticSocketsClosed','tlsVerified')
+        $expected = @('cases','daemonNaturalExitQualified','httpTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','realModelRequests','realProviderQualified','retention24hQualified','schemaVersion','scope','syntheticClientQualified','syntheticSocketsClosed','tlsVerified','websocketDrainQualified')
         $phase = 'root_fields'
         Assert-HpmInstalledClientJsonFields $root $expected
         $phase = 'root_values'
-        if ($root.GetProperty('schemaVersion').GetInt32() -ne 4 -or $root.GetProperty('scope').GetString() -cne 'installed_native_cli_four_cases' -or $root.GetProperty('realModelRequests').GetInt32() -ne 0) { throw 'invalid' }
-        foreach ($key in @('daemonNaturalExitQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','syntheticClientQualified','syntheticSocketsClosed','tlsVerified')) { if (-not $root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
-        foreach ($key in @('realProviderQualified','retention24hQualified')) { if ($root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
+        if ($root.GetProperty('schemaVersion').GetInt32() -ne 5 -or $root.GetProperty('scope').GetString() -cne 'installed_native_cli_four_cases' -or $root.GetProperty('realModelRequests').GetInt32() -ne 0) { throw 'invalid' }
+        foreach ($key in @('daemonNaturalExitQualified','httpTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','syntheticClientQualified','syntheticSocketsClosed','tlsVerified')) { if (-not $root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
+        foreach ($key in @('realProviderQualified','retention24hQualified','websocketDrainQualified')) { if ($root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
         $phase = 'cases'
         $cases = $root.GetProperty('cases')
         if ($cases.ValueKind -ne [Text.Json.JsonValueKind]::Array -or $cases.GetArrayLength() -ne 4) { throw 'invalid' }
@@ -78,7 +78,7 @@ function Write-HpmInstalledClientPhase {
         if ($keys.Count -ne 3 -or ($keys | Sort-Object) -join ',' -cne 'failed,phase,schemaVersion' -or $item.GetProperty('schemaVersion').GetInt32() -ne 1) { throw 'invalid' }
         $null = $item.GetProperty('failed').GetBoolean()
         $allowed = @('identity','listener','probes','controller','cleanup','complete')
-        $suffixes = @('configure','auth','cli','observe','stop','cli-seed','cli-compact-1','cli-compact-2','cli-compact-3','cli-between-1','cli-between-2','cli-final')
+        $suffixes = @('configure','auth','cli','observe','stop','cli-seed','cli-compact-1','cli-compact-2','cli-compact-3','cli-between-1','cli-between-2','cli-final','http-drain-options','http-drain-owner','http-drain-upstream_hold','http-drain-listener_stop','http-drain-public_response','http-drain-natural_exit','http-drain-storage','http-drain-cleanup')
         foreach ($client in @('codex','claude')) { foreach ($mode in @('default','enhanced')) { foreach ($suffix in $suffixes) { $allowed += $client + '-' + $mode + '-' + $suffix } } }
         $candidate = $item.GetProperty('phase').GetString()
         if ($candidate -cnotin $allowed) { throw 'invalid' }

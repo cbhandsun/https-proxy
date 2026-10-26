@@ -40,6 +40,7 @@ async function runInstalledClientCase(options) {
     token,
     active,
     onPhase,
+    onReadyToStop,
   } = options;
   const label = client + '-' + mode;
   const phase = (suffix) => onPhase(label + '-' + suffix);
@@ -195,6 +196,7 @@ async function runInstalledClientCase(options) {
     )
       throw fail();
     if (mode === 'default' && !zeroRecovery(observed)) throw fail();
+    await onReadyToStop({ client, mode, model, entryToken, upstreamToken }, observe);
     receipt = {
       client,
       mode,

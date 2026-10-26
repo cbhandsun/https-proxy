@@ -15,7 +15,11 @@ const {
 const { startDaemonOwnedController } = require('./context-recovery-daemon-owned-transport');
 const { createDaemonOwnedAdapter } = require('./context-recovery-daemon-owned-adapter');
 const { createDaemonManagementHttpClient } = require('./context-recovery-daemon-http-client');
-const { dataSnapshot } = require('./context-recovery-daemon-http-boundary');
+const { dataSnapshot, callable, settle } = require('./context-recovery-daemon-http-boundary');
+const {
+  exerciseInstalledHttpDrain,
+  httpDrainFailurePhase,
+} = require('./nsis-installed-http-drain');
 const { runInstalledClientCase } = require('./nsis-installed-client-case');
 const {
   parseInstalledClientMatrixArguments,
@@ -90,6 +94,16 @@ function createBusinessHandler(active, reject) {
           event.response.destroyed
         )
           throw fail();
+        if (current.beforeReply !== undefined) {
+          if (
+            !callable(current.beforeReply) ||
+            (await settle(current.beforeReply(), 'installed_client_matrix_failed')).value !==
+              true ||
+            active.current !== current ||
+            event.response.destroyed
+          )
+            throw fail();
+        }
         event.response.writeHead(200, { 'content-type': reply.contentType, connection: 'close' });
         event.response.end(reply.wire);
       } catch {
@@ -138,6 +152,7 @@ const defaults = {
     );
   },
   runCase: runInstalledClientCase,
+  drain: exerciseInstalledHttpDrain,
   verifyBinary: (file, sha, client) => digestInstalledClient(file, client) === sha,
 };
 // Test dependencies are available only to direct module callers, never argv.
@@ -216,7 +231,8 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
           initialEnabled: false,
           initialPersistence: false,
         });
-        let casePassed = false;
+        let drainCalls = 0,
+          drained = false;
         try {
           const value = await dependencies.runCase({
             client,
@@ -231,16 +247,44 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
             token,
             active,
             onPhase: mark,
+            onReadyToStop: async (input, observe) => {
+              if (++drainCalls !== 1 || failed || !adapter.verifyOwnedIdentity(owner)) throw fail();
+              const options = dataSnapshot(input, 'installed_client_matrix_failed');
+              if (options.client !== client || options.mode !== mode) throw fail();
+              mark(client + '-' + mode + '-stop');
+              let exited;
+              try {
+                exited = dataSnapshot(
+                  await dependencies.drain(options, { owner, adapter, active, observe }),
+                  'installed_client_matrix_failed'
+                );
+              } catch (error) {
+                const failure = httpDrainFailurePhase(error);
+                if (failure) mark(client + '-' + mode + '-http-drain-' + failure);
+                throw fail();
+              }
+              if (
+                Object.keys(exited).sort().join(',') !==
+                  'cleanupSemantics,exitCode,httpTransportDrainQualified,treeEmpty' ||
+                exited.treeEmpty !== true ||
+                exited.cleanupSemantics !== 'natural_exit' ||
+                exited.exitCode !== 0 ||
+                exited.httpTransportDrainQualified !== true
+              )
+                throw fail();
+              naturalExits++;
+              drained = true;
+            },
           });
           if (
             failed ||
             active.current !== null ||
             business.inspect().pending !== 0 ||
-            !adapter.verifyOwnedIdentity(owner)
+            drainCalls !== 1 ||
+            !drained
           )
             throw fail();
           cases.push(matrixCase(value, client, mode));
-          casePassed = true;
         } catch {
           reject();
         } finally {
@@ -252,20 +296,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
           const stopping = owner;
           owner = null;
           try {
-            if (casePassed && !failed) {
-              const exited = dataSnapshot(
-                await stopping.stopNaturally(),
-                'installed_client_matrix_failed'
-              );
-              if (
-                Object.keys(exited).sort().join(',') !== 'cleanupSemantics,exitCode,treeEmpty' ||
-                exited.treeEmpty !== true ||
-                exited.cleanupSemantics !== 'natural_exit' ||
-                exited.exitCode !== 0
-              )
-                reject();
-              else naturalExits++;
-            } else if ((await stopping.stop()) !== true) reject();
+            if (!drained && (await stopping.stop()) !== true) reject();
           } catch {
             reject();
           }
@@ -307,7 +338,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
   }
   if (failed || cases.length !== 4 || naturalExits !== 4) throw fail();
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     scope: 'installed_native_cli_four_cases',
     passed: true,
     syntheticClientQualified: true,
@@ -317,6 +348,8 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
     ...proof,
     ownedTreeEmpty: true,
     daemonNaturalExitQualified: true,
+    httpTransportDrainQualified: true,
+    websocketDrainQualified: false,
     syntheticSocketsClosed: true,
     cases,
   };
