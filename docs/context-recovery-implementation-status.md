@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：安装矩阵接入部分SSE在途排空，Windows调度观测未映射如实保留
+
+本批将实际安装四案例的最后停机探针扩为同一daemon同时两笔固定请求：JSON完整持有、SSE先发一个完整事件且入口客户端确实收到该前缀后持有尾部。两笔均在途时请求原认证自然停机，仍须独立TCP确认入口拒绝新连接，才同时放行完整JSON及SSE尾部；同一个原5000ms绝对期限涵盖两笔请求、首部/前缀观察、入口停止和完整正文，不给流式请求额外五秒。严格核对200、媒体类型、UTF-8及预定完整SSE字节，不接受仅头部、部分事件或缺尾部；随后原自然退出/Job清空/EOF及默认零恢复或增强持久工件门照旧。原CLI负载、三次压缩、重启会话、私有精确恢复及独立公开生成断言先完整执行，不以探针替代原案例。
+
+非平凡回应编码、HTTP观察和受限分片发送拆为独立模块。分片能力只用于隔离合成上游，失败/自定义thenable/Proxy、owner变化或响应销毁均不能写尾部，错误固定不带原始cause。原仅JSON helper继续保持原四字段资格，新组合helper才返回sseTransportDrainQualified=true。安装矩阵及PowerShell严格消费改schema6，必须同时取得HTTP、SSE和自然退出资格，旧schema1–5/缺失/伪造字段拒绝，websocketDrainQualified仍false；不能称完整WS、内部COMMIT/ACK中断或provider通过。
+
+扩大本机52项全通过、零skip，含两端真实隔离主入口四次启动：原JSON两例继续通过，新增两例实际先收到部分SSE再停机、完成两笔正文、观察进程close0。另覆盖两端四模式真实套接字、缺SSE hold、错误前缀/正文/UTF-8/超限/媒体类型、自然退出与存储失败、恶意能力及schema旧版本拒绝。便携证明不替代Windows安装/DPAPI/Job；新安装链尚未启动，当前be868固定安装作业仍运行旧schema5。产品代理、认证、持久语义、绝对期限、ACK和依赖不变。
+
+be868独立Windows I/O40391947350/job121814893904原50项通过，153对flush，database最大44ms/journal43ms；schema5真实采集到153次binding但153次unmapped、零有效switch interval。该结果明确不是零等待证据，新profile启动和原I/O捕获成功不能代替调度解析成功。全部原五秒失败保留，下一步依据安全metadata修正实际EventRecord适配，而非放宽严格解码或推断根因。普通Verify40391947270已node-quality/integration/rust及部分分片success，完整coverage及其他门仍执行；固定安装链40391990405也仍在候选门，不能称通过。
+
+20:05:50.130Z只读核验冻结5a长测52个连续有效tick至15300000ms（255分钟），elapsedMs=15300001.5109，同一身份/进程、未重启；独立监测继续，长测主机无新增负载，真实模型0。整体仍待五秒稳定性、最新安装全矩阵与WS/内部中断、容量/24小时终态、额度核对后的真实两端和受控自用，原范围不缩减。
+
 ## 2026-10-26：199完整门禁、fe81安装链通过；长测250分钟，补有界调度诊断
 
 199b904普通Verify40387781153八项、正式40387781045四项全部success。固定fe81安装链40383360648/job121785314864终态success：完整候选验证/审计、NSIS构建、同格式升级回滚与runner本地DPAPI、完整582旧布局迁移及旧写者拒绝、安装版Codex/Claude默认与增强四案例实际通过。安装manifest为59b5251ebd150a13ec69d0058866093807ff72df4c994eefef3cb4e51ba4813f；582来源manifest仍为4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f，布局1到3、revision增量1。四案例schema4的syntheticClientQualified与daemonNaturalExitQualified=true，realProviderQualified/retention24hQualified=false，真实模型0。独立安装native control证明两次自然停机、原expiresAt及开库保留，其restartRetention=false，不能扩大资格。该安装候选固定fe81，未包含199非流式HTTP在途探针，更不代表SSE/WS或内部COMMIT/ACK中断已验收。

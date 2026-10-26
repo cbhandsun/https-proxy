@@ -92,7 +92,11 @@ function fixture(t, broken) {
     drain: async (options, { owner }) => {
       assert.equal(options.model, 'hpm-installed-' + options.client);
       const receipt = await owner.stopNaturally();
-      return { ...receipt, httpTransportDrainQualified: broken !== 'drain-false' };
+      return {
+        ...receipt,
+        httpTransportDrainQualified: broken !== 'drain-false',
+        sseTransportDrainQualified: broken !== 'sse-false',
+      };
     },
     runCase: async (input) => {
       options = input;
@@ -161,9 +165,10 @@ function fixture(t, broken) {
 test('matrix composes four fresh daemon cases, real token factory and observed default upstream requests', async (t) => {
   const f = fixture(t);
   const receipt = await runInstalledClientMatrix(f.args, f.dependencies);
-  assert.equal(receipt.schemaVersion, 5);
+  assert.equal(receipt.schemaVersion, 6);
   assert.equal(receipt.daemonNaturalExitQualified, true);
   assert.equal(receipt.httpTransportDrainQualified, true);
+  assert.equal(receipt.sseTransportDrainQualified, true);
   assert.equal(receipt.websocketDrainQualified, false);
   assert.equal(receipt.syntheticClientQualified, true);
   assert.equal(receipt.realProviderQualified, false);
@@ -234,6 +239,7 @@ for (const mode of [
   'natural-nonzero',
   'natural-extra',
   'drain-false',
+  'sse-false',
   'drain-missing',
   'drain-duplicate',
 ])

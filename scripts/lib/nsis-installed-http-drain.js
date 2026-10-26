@@ -1,9 +1,9 @@
 'use strict';
 
-const http = require('node:http');
 const net = require('node:net');
-const { isDeepStrictEqual } = require('node:util');
 const { dataSnapshot, callable, settle } = require('./context-recovery-daemon-http-boundary');
+const { parseDrainOptions, drainPlan, INPUT } = require('./nsis-installed-drain-wire');
+const { startDrainResponse } = require('./nsis-installed-drain-response');
 const diagnostics = new WeakMap();
 const PHASES = Object.freeze([
   'options',
@@ -20,58 +20,17 @@ const fail = (phase) => {
   if (PHASES.includes(phase)) diagnostics.set(error, phase);
   return error;
 };
-const TEXT = 'HPM_INSTALLED_HTTP_DRAIN_OK';
-const INPUT = 'HPM_INSTALLED_HTTP_DRAIN_REQUEST';
-
-function parseDrainOptions(input) {
-  try {
-    const value = dataSnapshot(input, 'installed_http_drain_failed');
-    if (
-      Object.keys(value).sort().join(',') !== 'client,entryToken,mode,model,upstreamToken' ||
-      !['codex', 'claude'].includes(value.client) ||
-      !['default', 'enhanced'].includes(value.mode) ||
-      value.model !== 'hpm-installed-' + value.client ||
-      typeof value.entryToken !== 'string' ||
-      !/^hpm-synthetic-[a-f0-9]{32}$/.test(value.entryToken) ||
-      typeof value.upstreamToken !== 'string' ||
-      !/^hpm-upstream-[a-f0-9]{32}$/.test(value.upstreamToken)
-    )
-      throw fail();
-    return value;
-  } catch {
-    throw fail();
-  }
-}
-
-function publicReply(client, model) {
-  return client === 'codex'
-    ? {
-        id: 'resp_hpm_installed_drain',
-        object: 'response',
-        status: 'completed',
-        model,
-        output: [
-          { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: TEXT }] },
-        ],
-        usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
-      }
-    : {
-        id: 'msg_hpm_installed_drain',
-        type: 'message',
-        role: 'assistant',
-        model,
-        content: [{ type: 'text', text: TEXT }],
-        stop_reason: 'end_turn',
-        stop_sequence: null,
-        usage: { input_tokens: 1, output_tokens: 1 },
-      };
-}
 
 // This is a runner-local acceptance capability, with no argv entry. The caller
 // owns and attests the installed daemon and isolated synthetic TLS upstream.
 // A TCP refusal proves listener stop began; 202 alone cannot release the hold.
-async function exerciseInstalledHttpDrain(input, { owner, adapter, active, observe }) {
-  let options, request, timer, natural, probe, previous, release;
+async function exerciseInstalledTransportDrain(
+  input,
+  { owner, adapter, active, observe },
+  withSse
+) {
+  let options, timer, natural, probe, previous, release;
+  const requests = [];
   let phase = 'options',
     failedPhase;
   let failed = false,
@@ -102,7 +61,14 @@ async function exerciseInstalledHttpDrain(input, { owner, adapter, active, obser
       active.current.upstreamToken !== options.upstreamToken
     )
       throw fail();
-    const expected = publicReply(options.client, options.model);
+    const plans = [drainPlan(options, false), ...(withSse ? [drainPlan(options, true)] : [])];
+    const seen = new Set();
+    let prefixSeen = false,
+      prefixWritten = false;
+    let acceptPrefix;
+    const prefixReceived = new Promise((resolve) => {
+      acceptPrefix = resolve;
+    });
     const hold = new Promise((resolve) => {
       release = resolve;
     });
@@ -119,113 +85,76 @@ async function exerciseInstalledHttpDrain(input, { owner, adapter, active, obser
       upstream: {
         respond({ body }) {
           if (
-            ++calls !== 1 ||
+            ++calls > plans.length ||
             body.model !== options.model ||
-            body.stream !== false ||
+            typeof body.stream !== 'boolean' ||
+            seen.has(body.stream) ||
+            (!withSse && body.stream) ||
             !JSON.stringify(options.client === 'codex' ? body.input : body.messages).includes(INPUT)
           )
             throw fail();
-          return {
-            statusCode: 200,
-            contentType: 'application/json; charset=utf-8',
-            wire: Buffer.from(JSON.stringify(expected)),
-          };
+          seen.add(body.stream);
+          return plans.find((plan) => plan.stream === body.stream).reply;
         },
       },
-      beforeReply() {
+      beforeReply(reply) {
+        if (reply.stream === true) return true;
         entered();
         return hold;
       },
+      ...(withSse
+        ? {
+            prefixBytes: plans[1].split,
+            afterPrefix() {
+              prefixWritten = true;
+              return hold;
+            },
+          }
+        : {}),
     };
     active.current = probe;
-    const body = Buffer.from(
-      JSON.stringify(
-        options.client === 'codex'
-          ? {
-              model: options.model,
-              input: [{ role: 'user', content: INPUT }],
-              stream: false,
-            }
-          : {
-              model: options.model,
-              messages: [{ role: 'user', content: INPUT }],
-              max_tokens: 32,
-              stream: false,
-            }
-      )
-    );
     timer = setTimeout(() => {
       rejectDeadline(fail());
-      request?.destroy();
+      for (const request of requests) request.destroy();
       for (const socket of sockets) socket.destroy();
       release(false);
     }, 5000);
-    const response = new Promise((resolve, reject) => {
-      request = http.request(
-        {
-          hostname: '127.0.0.1',
-          port,
-          agent: false,
-          method: 'POST',
-          path: options.client === 'codex' ? '/v1/responses' : '/v1/messages',
-          headers: {
-            'content-type': 'application/json',
-            'content-length': body.length,
-            authorization: 'Bearer ' + options.entryToken,
-          },
+    const responses = plans.map((plan) =>
+      startDrainResponse({
+        port,
+        options,
+        plan,
+        isReleased: () => released,
+        onPrefix: () => {
+          prefixSeen = true;
+          acceptPrefix();
         },
-        (incoming) => {
-          const chunks = [];
-          let size = 0;
-          incoming.on('error', () => reject(fail()));
-          incoming.on('aborted', () => reject(fail()));
-          incoming.on('data', (chunk) => {
-            size += chunk.length;
-            if (size > 65536) {
-              incoming.destroy();
-              reject(fail());
-            } else chunks.push(chunk);
-          });
-          incoming.once('end', () => {
-            responseFinished = true;
-            try {
-              if (
-                !released ||
-                incoming.statusCode !== 200 ||
-                typeof incoming.headers['content-type'] !== 'string' ||
-                incoming.headers['content-type'].split(';')[0].trim().toLowerCase() !==
-                  'application/json' ||
-                !isDeepStrictEqual(
-                  JSON.parse(
-                    new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks))
-                  ),
-                  expected
-                )
-              )
-                throw fail();
-              resolve(true);
-            } catch {
-              reject(fail());
-            }
-          });
-        }
-      );
-      request.on('error', () => reject(fail()));
-      request.end(body);
-    });
+        onFinished: () => {
+          responseFinished = true;
+        },
+        onRequest: (request) => requests.push(request),
+      })
+    );
+    const response = Promise.all(responses);
     // Attach rejection handlers before waiting for the held upstream. These
     // handlers only prevent unhandled rejection; every verdict is still awaited.
     void response.catch(() => {});
     phase = 'upstream_hold';
     await within(
       Promise.race([
-        held,
+        Promise.all([held, ...(withSse ? [prefixReceived] : [])]),
         response.then(() => {
           throw fail();
         }),
       ])
     );
-    if (calls !== 1 || responseFinished || active.current !== probe) throw fail();
+    if (
+      calls !== plans.length ||
+      responseFinished ||
+      active.current !== probe ||
+      (withSse && (!prefixSeen || !prefixWritten))
+    )
+      throw fail();
     natural = settle(owner.stopNaturally(), 'installed_http_drain_failed').then(({ value }) => {
       if (!released) throw fail();
       return dataSnapshot(value, 'installed_http_drain_failed');
@@ -257,7 +186,7 @@ async function exerciseInstalledHttpDrain(input, { owner, adapter, active, obser
     phase = 'public_response';
     released = true;
     release(true);
-    if ((await within(response)) !== true) throw fail();
+    if ((await within(response)).some((value) => value !== true)) throw fail();
     clearTimeout(timer);
     phase = 'natural_exit';
     const exited = await natural;
@@ -277,14 +206,18 @@ async function exerciseInstalledHttpDrain(input, { owner, adapter, active, obser
       )
     )
       throw fail();
-    result = { ...exited, httpTransportDrainQualified: true };
+    result = {
+      ...exited,
+      httpTransportDrainQualified: true,
+      ...(withSse ? { sseTransportDrainQualified: true } : {}),
+    };
   } catch {
     failed = true;
     failedPhase = phase;
   } finally {
     clearTimeout(timer);
     release?.(false);
-    request?.destroy();
+    for (const request of requests) request.destroy();
     for (const socket of sockets) socket.destroy();
     if (probe && active.current === probe) active.current = previous;
     else if (probe) failed = true;
@@ -302,7 +235,9 @@ async function exerciseInstalledHttpDrain(input, { owner, adapter, active, obser
 
 module.exports = {
   HTTP_DRAIN_PHASES: PHASES,
-  exerciseInstalledHttpDrain,
+  exerciseInstalledHttpDrain: (input, deps) => exerciseInstalledTransportDrain(input, deps, false),
+  exerciseInstalledHttpSseDrain: (input, deps) =>
+    exerciseInstalledTransportDrain(input, deps, true),
   parseDrainOptions,
   httpDrainFailurePhase: (error) => diagnostics.get(error) ?? null,
 };

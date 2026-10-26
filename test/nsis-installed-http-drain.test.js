@@ -8,6 +8,7 @@ const { performance } = require('node:perf_hooks');
 const { discoverTestFiles } = require('../lib/test-discovery');
 const {
   exerciseInstalledHttpDrain,
+  exerciseInstalledHttpSseDrain,
   parseDrainOptions,
   httpDrainFailurePhase,
   HTTP_DRAIN_PHASES,
@@ -24,7 +25,7 @@ function options(client = 'codex', mode = 'default') {
   };
 }
 
-async function fixture(t, client, mode, fault) {
+async function fixture(t, client, mode, fault, withSse = false) {
   const input = options(client, mode);
   const previous = { client, mode, upstreamToken: input.upstreamToken };
   const active = { current: previous };
@@ -41,6 +42,8 @@ async function fixture(t, client, mode, fault) {
     requests++;
     assert.equal(request.headers.authorization, 'Bearer ' + input.entryToken);
     if (fault === 'early') delete active.current.beforeReply;
+    if (fault === 'sse-early') delete active.current.afterPrefix;
+    if (fault === 'sse-prefix') active.current.prefixBytes = 1;
     const writeHead = response.writeHead.bind(response);
     response.writeHead = (status, headers) =>
       writeHead(
@@ -84,7 +87,7 @@ async function fixture(t, client, mode, fault) {
     async stopNaturally() {
       stops++;
       assert.equal(delivered, 0);
-      assert.equal(business.inspect().pending, 1);
+      assert.equal(business.inspect().pending, withSse ? 2 : 1);
       if (fault !== 'no-listener-stop') await new Promise((resolve) => server.close(resolve));
       return {
         treeEmpty: true,
@@ -107,7 +110,7 @@ async function fixture(t, client, mode, fault) {
   });
   return {
     run: () =>
-      exerciseInstalledHttpDrain(input, {
+      (withSse ? exerciseInstalledHttpSseDrain : exerciseInstalledHttpDrain)(input, {
         owner,
         adapter: { verifyOwnedIdentity: () => fault !== 'identity' },
         active,
@@ -267,4 +270,42 @@ test('invalid entry ports are rejected before ownership probes or any network op
     );
   }
   assert.equal(calls, 0);
+});
+
+test('both protocols and modes receive an SSE prefix before stop and complete both transports', async (t) => {
+  for (const client of ['codex', 'claude'])
+    for (const mode of ['default', 'enhanced']) {
+      const f = await fixture(t, client, mode, undefined, true);
+      assert.deepEqual(await f.run(), {
+        treeEmpty: true,
+        cleanupSemantics: 'natural_exit',
+        exitCode: 0,
+        httpTransportDrainQualified: true,
+        sseTransportDrainQualified: true,
+      });
+      const state = f.inspect();
+      assert.equal(state.requests, 2);
+      assert.equal(state.stops, 1);
+      assert.equal(state.delivered, 2);
+      assert.equal(state.pending, 0);
+      assert.equal(state.rejected, 0);
+      assert.equal(state.observed, mode === 'default' ? 2 : 0);
+      assert.equal(state.active, state.previous);
+    }
+});
+
+test('missing SSE hold, invalid prefix or incomplete response cannot acquire streaming qualification', async (t) => {
+  for (const fault of [
+    'sse-early',
+    'sse-prefix',
+    'body',
+    'utf8',
+    'oversized',
+    'content-type',
+    'forced',
+    'storage',
+  ]) {
+    const f = await fixture(t, 'codex', 'default', fault, true);
+    await assert.rejects(f.run(), /^Error: installed_http_drain_failed$/);
+  }
 });

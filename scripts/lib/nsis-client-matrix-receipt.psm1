@@ -26,12 +26,12 @@ function ConvertFrom-HpmInstalledClientMatrixReceipt {
         $phase = 'parse'
         $doc = [Text.Json.JsonDocument]::Parse($Output)
         $root = $doc.RootElement
-        $expected = @('cases','daemonNaturalExitQualified','httpTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','realModelRequests','realProviderQualified','retention24hQualified','schemaVersion','scope','syntheticClientQualified','syntheticSocketsClosed','tlsVerified','websocketDrainQualified')
+        $expected = @('cases','daemonNaturalExitQualified','httpTransportDrainQualified','sseTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','realModelRequests','realProviderQualified','retention24hQualified','schemaVersion','scope','syntheticClientQualified','syntheticSocketsClosed','tlsVerified','websocketDrainQualified')
         $phase = 'root_fields'
         Assert-HpmInstalledClientJsonFields $root $expected
         $phase = 'root_values'
-        if ($root.GetProperty('schemaVersion').GetInt32() -ne 5 -or $root.GetProperty('scope').GetString() -cne 'installed_native_cli_four_cases' -or $root.GetProperty('realModelRequests').GetInt32() -ne 0) { throw 'invalid' }
-        foreach ($key in @('daemonNaturalExitQualified','httpTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','syntheticClientQualified','syntheticSocketsClosed','tlsVerified')) { if (-not $root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
+        if ($root.GetProperty('schemaVersion').GetInt32() -ne 6 -or $root.GetProperty('scope').GetString() -cne 'installed_native_cli_four_cases' -or $root.GetProperty('realModelRequests').GetInt32() -ne 0) { throw 'invalid' }
+        foreach ($key in @('daemonNaturalExitQualified','httpTransportDrainQualified','sseTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','syntheticClientQualified','syntheticSocketsClosed','tlsVerified')) { if (-not $root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
         foreach ($key in @('realProviderQualified','retention24hQualified','websocketDrainQualified')) { if ($root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
         $phase = 'cases'
         $cases = $root.GetProperty('cases')

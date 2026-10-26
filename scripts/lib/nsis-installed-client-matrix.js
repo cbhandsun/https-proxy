@@ -15,11 +15,12 @@ const {
 const { startDaemonOwnedController } = require('./context-recovery-daemon-owned-transport');
 const { createDaemonOwnedAdapter } = require('./context-recovery-daemon-owned-adapter');
 const { createDaemonManagementHttpClient } = require('./context-recovery-daemon-http-client');
-const { dataSnapshot, callable, settle } = require('./context-recovery-daemon-http-boundary');
+const { dataSnapshot } = require('./context-recovery-daemon-http-boundary');
 const {
-  exerciseInstalledHttpDrain,
+  exerciseInstalledHttpSseDrain,
   httpDrainFailurePhase,
 } = require('./nsis-installed-http-drain');
+const { writeInstalledBusinessReply } = require('./nsis-installed-business-reply');
 const { runInstalledClientCase } = require('./nsis-installed-client-case');
 const {
   parseInstalledClientMatrixArguments,
@@ -94,18 +95,7 @@ function createBusinessHandler(active, reject) {
           event.response.destroyed
         )
           throw fail();
-        if (current.beforeReply !== undefined) {
-          if (
-            !callable(current.beforeReply) ||
-            (await settle(current.beforeReply(), 'installed_client_matrix_failed')).value !==
-              true ||
-            active.current !== current ||
-            event.response.destroyed
-          )
-            throw fail();
-        }
-        event.response.writeHead(200, { 'content-type': reply.contentType, connection: 'close' });
-        event.response.end(reply.wire);
+        await writeInstalledBusinessReply(active, current, event.response, reply);
       } catch {
         reject();
         event.response.destroy();
@@ -152,7 +142,7 @@ const defaults = {
     );
   },
   runCase: runInstalledClientCase,
-  drain: exerciseInstalledHttpDrain,
+  drain: exerciseInstalledHttpSseDrain,
   verifyBinary: (file, sha, client) => digestInstalledClient(file, client) === sha,
 };
 // Test dependencies are available only to direct module callers, never argv.
@@ -265,11 +255,12 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
               }
               if (
                 Object.keys(exited).sort().join(',') !==
-                  'cleanupSemantics,exitCode,httpTransportDrainQualified,treeEmpty' ||
+                  'cleanupSemantics,exitCode,httpTransportDrainQualified,sseTransportDrainQualified,treeEmpty' ||
                 exited.treeEmpty !== true ||
                 exited.cleanupSemantics !== 'natural_exit' ||
                 exited.exitCode !== 0 ||
-                exited.httpTransportDrainQualified !== true
+                exited.httpTransportDrainQualified !== true ||
+                exited.sseTransportDrainQualified !== true
               )
                 throw fail();
               naturalExits++;
@@ -338,7 +329,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
   }
   if (failed || cases.length !== 4 || naturalExits !== 4) throw fail();
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     scope: 'installed_native_cli_four_cases',
     passed: true,
     syntheticClientQualified: true,
@@ -349,6 +340,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
     ownedTreeEmpty: true,
     daemonNaturalExitQualified: true,
     httpTransportDrainQualified: true,
+    sseTransportDrainQualified: true,
     websocketDrainQualified: false,
     syntheticSocketsClosed: true,
     cases,

@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const pwsh = process.platform === 'win32' ? 'C:/Program Files/PowerShell/7/pwsh.exe' : 'pwsh';
 function receipt() {
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     scope: 'installed_native_cli_four_cases',
     passed: true,
     syntheticClientQualified: true,
@@ -24,6 +24,7 @@ function receipt() {
     ownedTreeEmpty: true,
     daemonNaturalExitQualified: true,
     httpTransportDrainQualified: true,
+    sseTransportDrainQualified: true,
     websocketDrainQualified: false,
     syntheticSocketsClosed: true,
     cases: ['codex', 'claude'].flatMap((client) =>
@@ -174,6 +175,15 @@ test('strict four-case receipt rejects duplicate fields, missing gates, wrong ca
     (value) => {
       value.schemaVersion = 4;
     },
+    (value) => {
+      value.schemaVersion = 5;
+    },
+    (value) => {
+      delete value.sseTransportDrainQualified;
+    },
+    ...[false, null, 1, 'true'].map((gate) => (value) => {
+      value.sseTransportDrainQualified = gate;
+    }),
     (value) => {
       delete value.httpTransportDrainQualified;
     },
