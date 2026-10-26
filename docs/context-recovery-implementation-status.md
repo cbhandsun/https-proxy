@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-25：37新源码本机五秒仍双失败，真实开库通过，未授安装资格
+
+37fd6ef2d751a6a166b00c967109ee89d67cc893已推送，并在已授权Windows独立目录从62快进更新；先核对bundle hash、原HEAD/干净工作区，再执行新原生准备，退出0。新源码路径/锚点及发布清单回归213/213、零skip。随后按预先三轮串行方案运行原两份完整五秒测试，首轮50项48通过、2失败、零skip、退出1，后两轮停止，未以重跑覆盖。Chat第二轮请求5020ms失败；Responses首轮正文4298ms到达，但最终持久发布等待5013ms失败。其余完成的最终ACK为Chat首轮3856ms、Claude两轮3545/4819ms，不能据此授稳定性资格。原62的5008ms及所有历史失败仍保留。
+
+本机Chat第二owner的发现扫描sequence1为2047ms，其中独立OS锚点flush1701ms、native总1710ms、dispatch1876ms、persist1902ms；该扫描在beginAsync之前，不直接当作请求内阶段累加。请求内后续sequence5的预算保存922ms，其中flush373ms、dispatch668ms；同轮SQL写COMMIT主要12–14ms，不能将这次本机失败归为SQL COMMIT秒级等待。多笔native总18–44ms但dispatch227–474ms，存在调用外围开销；这些数字有包含关系，不能简单相加，也不足以归因杀毒、磁盘或认证。下一步应针对失败请求内各次独立持久操作及native调用外围定位，不削弱原flush/CAS/ACK或放宽五秒。
+
+新源码默认worker另行同目录两次真实开库/关闭均通过，ready1767/1953ms；实际模块导出与加载身份匹配当前checkout、dirty=false，sourceSha256=33479568307e8de0b9976d7c863b761c1559160f50213aea306d0d7ee1dd4d0d，原生hash仍8d75ae3f3d93f7423e0a5c54273c079b15d5ea5deda3ae526b92a4ccba5cc9aa。这是空库原生/DPAPI/锚点开库诊断，不是完整容量或24小时资格；原生导出/诊断脚本错误与真实失败继续区分。
+
+37普通CI 40251321177已终态七项success、coverage121343652048 failure；第一段proxy覆盖率通过，完整client覆盖率1714项中1713通过、1失败、零skip，Chat持久首轮request_failed5006ms。该窗口预扣事务COMMIT2089ms、LIST结算COMMIT903ms、随后另一预扣COMMIT794ms，线程CPU均零；不与本机不同失败窗口混同。独立三组时序40251321164各原50项全通过、零skip，18次ACK818–1326ms；独立I/O40251321174 success不覆盖完整失败。正式40251321342仍在source-gates，原覆盖率I/O40251321175仍执行，未派发安装，不将运行中或局部通过称为完整CI通过。
+
+全部原门禁、负载、SQLite FULL/DELETE/secure_delete、持久预扣、独立发布ACK及原到期时间保持。原始诊断只保存在新短测目录，公开文档仅记录固定阶段/计数，不上传库、密钥、原文或私有日志。模型调用0；冻结环境未访问，新24小时与暂停的最大文件长测未启动。最新安装升级回滚、582实际迁移拒写、两端安装版重启/完整在途HTTP/WS及核对额度后的真实provider验收仍未完成，继续保留原交付范围。
+
 ## 2026-10-25：自用Windows复现5008ms，减少锚点路径重复规范化且保留每次新鲜校验
 
 用户已授权Windows新目录、单并发短测。本轮复用实际Node22.22.3/npm10.9.8和Rust/Cargo1.92.0；SSH PATH中的Cargo/Rustc入口为不可执行的零字节重解析入口，真实toolchain程序可用，任务进程内显式路径已验证，不改全局PATH或rustup默认。当前源码62bfe26bb725975b2a771e14708fa3e1b9963905以仅含当前提交的浅克隆转移，归档hash、Git对象、干净工作区及默认模块实际导出均已核验。原npm ci、插件ci --ignore-scripts、prepare-native依次退出0；首个SSH构建启动异常随后确认无启动进程和日志，首次实际构建退出0。原两份容量持久化/时钟回归26/26、零skip；默认worker真实两次同目录开库/关闭通过，ready1789/1349ms，原生程序hash为8d75ae3f3d93f7423e0a5c54273c079b15d5ea5deda3ae526b92a4ccba5cc9aa。只证明当前空库诊断，不授容量、旧失败根因或24小时资格。
