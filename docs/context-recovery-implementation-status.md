@@ -1,5 +1,21 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：默认 worker 接入异步锚点与串行队列
+
+代码提交78d975e将默认storage worker实际切换到createAsyncStorageOwner，稳态使用owned原生通道，等待独立flush与精确ACK后才发成功回执。首次开库仍同步完成read、空intent、SQLite startup与持久watermark，空intent先于初始SQLite COMMIT的边界不变。async admission复用原snapshot/successor和精确revision+1；旧同步factory继续服务明确的直接调用，默认worker不再逐请求同步启动one-shot。
+
+新storage-serial负责FIFO组合：保留八个客户端槽位，即使有一个idle在执行也不减槽；idle仍每60000ms触发，忙碌时跳过、不排队补发或假装产生ACK。正常close拒收新请求、排空既有请求，等原生通道实际关闭；abort立即请求所属owner清理，拒绝队列及晚到的在途成功结果，不可变成正常close成功。能力/Promise经过校验，不吸收任意thenable或执行原生Promise的own then替代。清理只调用一次、不重试、错误固定。
+
+实际SQLite回归验证了已COMMIT但ACK延迟时不返回成功，以及原生失败、执行中close、路径身份丢失期间写锁仍被持有；真实通道关闭后才能重新取得writer。原未ACK持久版本仍按原规则协调，原expiresAt保持；SQL stale CAS回滚后仍可继续。原最大预算预扣、LIST/READ结算、独立公开发布、FULL/DELETE/secure_delete和认证均未改变。主worker仅组合协议/owner/serial/idle，非平凡队列逻辑独立可测。
+
+阶段探针现覆盖async admission和session，anchor_persist测量到实际ACK；稳态直接观测原owned通道的dispatch，不替换成one-shot。其内部后端分段暂为未观测，不以零代替。startup沿用原显式诊断primitive及严格校验。新回归证明ACK前不报计时完成、稳态不调用one-shot、不输出原文/请求/回复/密钥。原COMMIT/发布内部中断夹具、固定负载、5000ms请求、10000ms原生和30000ms默认存储期限未改变。
+
+本机16文件扩大228项中227通过、1项既有Windows真实storage worker preload限定skip、零失败；随后串行边界10项、最终目标四文件60项及路径清理扩展owner5项分别通过、零skip。发布清单/隔离构建14项通过，serial已进入release-proxy-sources。新Windows用例通过默认openContextRecoveryStorage验证真实worker/DPAPI/OS锚点的八个连续精确版本、排空关闭及同目录原期限重开；Mac仅证明不支持平台拒绝，Windows资格待新CI。1628份JS语法、全树Lint零错误/5既有警告、变更格式和CI/release治理通过。无依赖/锁文件、Rust、签名或coverage baseline变化。
+
+b223基线：独立时序40372177144、I/O40372177340、完整覆盖率I/O40372177164成功；普通Verify40372177331七项成功、coverage仍执行。正式40372177174/source121745507153失败，四根32MiB历史用例index469记录context_recovery_stale/clockRollbackMs=3、整项49847ms，后续context-recovery跳过。与五秒超时分开保留，不放宽时钟规则、不重跑覆盖；2c及52/37/62等旧失败仍保留。本批须新SHA的完整CI和原五秒负载，不能据局部或旧提交通过授安装资格。
+
+18:04:53.605Z只读核验新24h任务仍同一冻结5a身份和进程，28个连续tick至8100000ms（135分钟），elapsedMs=8100004.5287，无失败/重启。每五分钟监测继续，不在该Windows主机构建/短测，不改冻结任务/库；当前长测仅绑定其冻结源码，不随本批切换。模型调用0。下一步核对本批Windows默认worker及原五秒完整门禁，同时定位正式大容量时钟失败；通过后继续最新安装升级回滚、完整582迁移拒写、两端安装版重启/完整在途HTTP/WS、核对额度后的provider与受控自用，整体未完成。
+
 ## 2026-10-26：Windows原生生命周期实测通过；异步锚点会话沿用同步开库身份
 
 19940db7b538b0a620a5985cd9daff6d77c3dc82的Windows Verify/rust-tests121740672986已success：实际原生37单测及5进程集成全通过、零skip，其中owned_stream_requires_lifetime_pipe_and_actual_worker_loss_interrupts_blocked_main通过，确认新生命周期管道在Windows实际Worker终止及主线程阻塞边界有效，原-D warnings与audit门禁通过。17:48Z普通40370794426的其余单测/coverage仍运行、正式40370794354/source仍运行、完整覆盖率I/O40370794693仍运行，独立I/O40370794527已success。不能将Rust局部通过称作完整CI或五秒稳定性通过，2c完整诊断的Chat WBIPC AbortController失败及所有旧实际失败继续保留，未重跑覆盖。
