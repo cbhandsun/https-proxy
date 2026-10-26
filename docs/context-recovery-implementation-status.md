@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：Windows原生生命周期实测通过；异步锚点会话沿用同步开库身份
+
+19940db7b538b0a620a5985cd9daff6d77c3dc82的Windows Verify/rust-tests121740672986已success：实际原生37单测及5进程集成全通过、零skip，其中owned_stream_requires_lifetime_pipe_and_actual_worker_loss_interrupts_blocked_main通过，确认新生命周期管道在Windows实际Worker终止及主线程阻塞边界有效，原-D warnings与audit门禁通过。17:48Z普通40370794426的其余单测/coverage仍运行、正式40370794354/source仍运行、完整覆盖率I/O40370794693仍运行，独立I/O40370794527已success。不能将Rust局部通过称作完整CI或五秒稳定性通过，2c完整诊断的Chat WBIPC AbortController失败及所有旧实际失败继续保留，未重跑覆盖。
+
+本批在原锚点repository内抽出共用prepareCommit/acceptCommit，原同步factory仍只返回identity/read/commit/close四项能力，原加密AAD/nonce/GCM、snapshot解析/继承关系、128KiB wire与64KiB值、严格revision+1及密文值相等保持。新createRecoveryAnchorSession先向开库逻辑提供相同四项同步能力；开库read、空基线intent及正常startup persist仍同步完成。首次稳态异步commit后不可再调用同步能力干扰在途状态，后续提交复用同一密钥、slot与精确revision，惰性使用已验证的owned原生通道，不重新read、不生成替代密钥、不改变既有expiresAt。
+
+异步提交前后均重新校验目录与原生程序物理身份；仅收到原ACK结构且精确版本和值相等，才更新本机会话snapshot/revision并返回。并发调用拒绝且不打断原提交。失败或close使会话终态，等待实际通道close后才结束清理；执行中close不接受随后到达的ACK，同步close不能冒充异步进程清理。通道工厂、能力和结果经过数据属性/Proxy/原生Promise检查，不吸收任意thenable；清理错误一律固定storageFailure，不回显原始异常。不得将这一内部会话当作默认owner已经切换，worker请求/空闲清理统一串行和admission/owner异步组合仍是下一步。
+
+新10项会话回归包括同步startup后异步精确CAS及原codec重开、在途并发/同步调用、错版本/密文/负ACK/非法JSON、派发前后目录/程序替换、空/非法/回退/错身份snapshot、执行中close、工厂/结果/清理失败与原生Promise边界。本机九文件116项全通过、零skip；包含既有rollback拒写、预算/容量拒绝后owner可继续、空intent崩溃恢复、时钟/期限/最大256scope及路径安全断言。新Windows分支将实际默认原生通道的连续加密提交再用原同步codec重开并检查原expiresAt，已进入原统一test discovery和CI；Mac只证明不支持平台拒绝，不授注册表资格。
+
+1624份JS语法、全树Lint零错误/5既有警告、变更格式及CI/release治理通过。无依赖/锁文件、原生Rust、公开release.yml签名、五秒/10秒/30秒期限、SQLite FULL/DELETE/secure_delete或认证规则变化。2026-10-26T17:46:41.428Z只读核验新24h冻结5a任务仍在运行，同一身份24个连续tick至6900000ms（115分钟），elapsedMs=6900005.9496；五分钟监测持续，不访问库或改任务、不在该Windows主机添加负载。模型调用0。完整交付尚缺默认异步owner及五秒稳定性、完整门禁后的最新安装升级回滚/582迁移拒写、两端安装版重启/完整在途HTTP/WS、真实24小时到期重开及核对额度后provider和受控自用验收，均不由本批局部通过覆盖。
+
+
 ## 2026-10-26：独立生命周期管道处理强制worker终止；2c普通通过但完整诊断仍失败
 
 持续只读监测于2026-10-26T17:38:50.241Z确认新24小时任务HPM-native-day-20261026-5a3a842-33d332dd仍为同一实际进程和冻结5a3a842身份，23个连续真实节拍覆盖0–6600000ms（110分钟），elapsedMs=6600007.7938，无失败终态。后台逐5分钟观测继续记录，失联标未核验、停滞和历史缺口不被补发tick覆盖；没有重启、修改或额外占用长测Windows环境，仍须完整24小时、实际到期重开及退出0才能通过。最早24小时边界仍为洛杉矶2026-10-27 08:48:47，根实际到期与收尾检查可能稍后。
