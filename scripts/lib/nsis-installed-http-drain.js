@@ -77,11 +77,22 @@ async function exerciseInstalledTransportDrain(
       entered = resolve;
     });
     previous = active.current;
+    // Each request still performs its original observation. The installed
+    // observer owns one exact-sequence mailbox, so concurrent probes must not
+    // write it concurrently. A failed observation poisons this queue; no retry.
+    let observationTail = Promise.resolve();
+    const observeInOrder = () => {
+      const next = observationTail
+        .then(() => settle(observe(), 'installed_http_drain_failed'))
+        .then(() => true);
+      observationTail = next;
+      return next;
+    };
     probe = {
       client: options.client,
       mode: options.mode,
       upstreamToken: options.upstreamToken,
-      observe,
+      observe: observeInOrder,
       upstream: {
         respond({ body }) {
           if (

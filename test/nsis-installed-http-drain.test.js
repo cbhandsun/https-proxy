@@ -34,7 +34,13 @@ async function fixture(t, client, mode, fault, withSse = false) {
     requests = 0,
     stops = 0,
     observed = 0,
-    delivered = 0;
+    delivered = 0,
+    observing = false,
+    endedRequests = 0;
+  let releaseObservation;
+  const observationReady = new Promise((resolve) => {
+    releaseObservation = resolve;
+  });
   const business = createBusinessHandler(active, () => {
     rejected++;
   });
@@ -66,6 +72,7 @@ async function fixture(t, client, mode, fault, withSse = false) {
     const chunks = [];
     request.on('data', (chunk) => chunks.push(chunk));
     request.on('end', () => {
+      endedRequests++;
       void business.respond({
         path: request.url,
         bytes: Buffer.concat(chunks),
@@ -73,6 +80,7 @@ async function fixture(t, client, mode, fault, withSse = false) {
         authorization: client === 'codex' ? 'Bearer ' + input.upstreamToken : undefined,
         apiKey: client === 'claude' ? input.upstreamToken : undefined,
       });
+      if (fault === 'observation-overlap' && endedRequests === 2) releaseObservation();
     });
   });
   server.on('connection', (socket) => {
@@ -116,6 +124,13 @@ async function fixture(t, client, mode, fault, withSse = false) {
         active,
         observe: async () => {
           observed++;
+          if (fault === 'observation-failure') throw new Error('synthetic_observation_failure');
+          if (fault === 'observation-overlap') {
+            if (observing) throw new Error('synthetic_mailbox_overlap');
+            observing = true;
+            await observationReady;
+            observing = false;
+          }
         },
       }),
     inspect: () => ({
@@ -308,4 +323,13 @@ test('missing SSE hold, invalid prefix or incomplete response cannot acquire str
     const f = await fixture(t, 'codex', 'default', fault, true);
     await assert.rejects(f.run(), /^Error: installed_http_drain_failed$/);
   }
+});
+
+test('concurrent JSON and SSE probes serialize the original per-request observation mailbox without retry', async (t) => {
+  const f = await fixture(t, 'codex', 'default', 'observation-overlap', true);
+  assert.equal((await f.run()).sseTransportDrainQualified, true);
+  assert.equal(f.inspect().observed, 2);
+  const broken = await fixture(t, 'codex', 'default', 'observation-failure', true);
+  await assert.rejects(broken.run(), /^Error: installed_http_drain_failed$/);
+  assert.equal(broken.inspect().observed, 1);
 });
