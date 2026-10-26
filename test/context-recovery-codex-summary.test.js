@@ -9,6 +9,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
 const { assertOwnerLaunches } = require('./helpers/physical-owner-receipt.cjs');
+const { finishPhysicalOwnerCleanup } = require('./helpers/physical-owner-cleanup.cjs');
 const { getDefaultEnvironment } = require('@modelcontextprotocol/sdk/client/stdio.js');
 const { tryHandleContextRecoveryHttp } = require('../lib/proxy/context-recovery-http-entry');
 const { decodeContextRecoveryResponse } = require('../lib/proxy/context-recovery-protocol');
@@ -666,6 +667,7 @@ for (const [forced, inlineTools] of [
     () => {
       const f = fixture(Date.now(), inlineTools, inlineTools);
       const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-v7-owner-'));
+      const primaryFailures = [];
       try {
         const summary = f.begin(f.summaryBody);
         const released = summary.recovery(f.summaryBody).accept(response('summary'));
@@ -744,11 +746,18 @@ for (const [forced, inlineTools] of [
           if (fs.statSync(file).isFile())
             assert.equal(fs.readFileSync(file).includes(Buffer.from(f.original)), false);
         }
+      } catch (error) {
+        primaryFailures.push(error);
+        throw error;
       } finally {
-        f.runtime.close();
-        assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
-        assert.ok(path.basename(directory).startsWith('hpm-v7-owner-'));
-        fs.rmSync(directory, { recursive: true, force: true });
+        finishPhysicalOwnerCleanup(primaryFailures, [
+          () => f.runtime.close(),
+          () => {
+            assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
+            assert.ok(path.basename(directory).startsWith('hpm-v7-owner-'));
+            fs.rmSync(directory, { recursive: true, force: true });
+          },
+        ]);
       }
     }
   );
