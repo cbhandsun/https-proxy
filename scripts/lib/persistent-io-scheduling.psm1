@@ -122,10 +122,10 @@ function ConvertTo-HpmThreadSchedulingEvent {
         $shapeStage='properties'
         $properties = $Record.Properties
         if($properties.Count -ge 0 -and $properties.Count -le 64){$shapeCount=$properties.Count.ToString()}
-        # Classic v5 EventRecord has no rendered Properties on the hosted image.
+        # Hosted Windows emitted empty Properties for v5 switches and v3 lifecycle.
         # Only this positively observed empty shape uses its original bounded
         # XML binary payload; malformed/nonempty metadata is never reinterpreted.
-        if ($properties.Count -eq 0 -and $version -eq 5) {
+        if ($properties.Count -eq 0 -and $version -in @(3,5)) {
             $shapeStage='payload'
             ConvertTo-HpmThreadSchedulingRecord -Text ($Record.ToXml()) -Opcode $Opcode -TimeMs $TimeMs -State $State -ExpectedVersion $version
             return

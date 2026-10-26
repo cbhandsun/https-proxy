@@ -493,3 +493,56 @@ test('observed empty EventRecord properties decode only original bounded XML and
   ]);
   validatePersistentIoScheduling(report, 20);
 });
+
+test('observed empty v3 lifecycle XML retires selected thread bindings before ID reuse', () => {
+  const module = path.resolve('scripts/lib/persistent-io-scheduling.psm1').replaceAll("'", "''");
+  const thread = Buffer.alloc(8);
+  thread.writeUInt32LE(9, 0);
+  thread.writeUInt32LE(42, 4);
+  const leave = Buffer.alloc(24);
+  leave.writeUInt32LE(99, 0);
+  leave.writeUInt32LE(42, 4);
+  leave[12] = 11;
+  leave[14] = 5;
+  const enter = Buffer.alloc(24);
+  enter.writeUInt32LE(42, 0);
+  enter.writeUInt32LE(99, 4);
+  const code = `
+    $ErrorActionPreference='Stop';Import-Module '${module}' -Force
+    $state=New-HpmIoSchedulingState;$doc=[xml]'<Event><System><Execution ThreadID="42"/></System></Event>'
+    $out=[pscustomobject]@{Version=5;Properties=@([pscustomobject]@{Value=[Convert]::FromHexString('${leave.toString('hex')}')})}
+    $in=[pscustomobject]@{Version=5;Properties=@([pscustomobject]@{Value=[Convert]::FromHexString('${enter.toString('hex')}')})}
+    $lifecycle=[pscustomobject]@{Version=3;Properties=@()}
+    $lifecycle|Add-Member -MemberType ScriptMethod -Name ToXml -Value { '<Event><System><Version>3</Version></System><ProcessingErrorData><EventPayload>${thread.toString('hex')}</EventPayload></ProcessingErrorData></Event>' }
+    Add-HpmIoSchedulingBinding @{} $doc 1 $state
+    ConvertTo-HpmThreadSchedulingEvent $out 36 10 $state
+    ConvertTo-HpmThreadSchedulingEvent $lifecycle 1 20 $state
+    if($state.bound.Count -ne 0){throw 'stale_binding'}
+    Add-HpmIoSchedulingBinding @{} $doc 30 $state
+    ConvertTo-HpmThreadSchedulingEvent $out 36 40 $state
+    ConvertTo-HpmThreadSchedulingEvent $in 36 240 $state
+    ConvertTo-HpmThreadSchedulingEvent $lifecycle 2 250 $state
+    if($state.bound.Count -ne 0){throw 'retirement_failed'}
+  `;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    encoding: 'utf8',
+    timeout: 20000,
+    maxBuffer: 16384,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  const summary = createPersistentIoScheduling();
+  summary.observe('schedule-start', '1', 0, '');
+  for (const line of result.stdout.trim().split(/\r?\n/)) {
+    const row = JSON.parse(line);
+    summary.observe(row.type, BigInt(row.key).toString(16), row.timeMs, row.name);
+  }
+  const report = summary.snapshot();
+  assert.equal(report.bindings, 2);
+  assert.equal(report.retired, 2);
+  assert.equal(report.unfinished, 1);
+  assert.equal(report.intervals, 1);
+  assert.equal(report.delayExecution.totalMs, 200);
+  assert.equal(report.unmappedEpochs, 0);
+  validatePersistentIoScheduling(report, 20);
+});
