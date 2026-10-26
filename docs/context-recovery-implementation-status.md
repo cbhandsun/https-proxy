@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：8e完整门全通过并启动新安装；实现实际COMMIT只读见证但尚未接入daemon
+
+2a正式40402040201、0b正式40402630046和8e正式40403400561均已四项success，含N08/N09实际执行；8e普通40403400592八项亦全部success，完整覆盖率I/O40403400584/job121854861035与独立I/O、三runner均success。原30cf/3f/56等失败继续保留。核对同一未发布草稿421213889仍draft=true、目标f8421078c67e30f32f17b4718c094fcbb6e0794e及两个固定资产667118183/667118182的名称/大小/上传状态不变；Git ls-remote缺失新候选ref（退出2）后，创建唯一固定8e10c371a5f606d3cae7e3f558f0ab0dc3a4a63e的新review分支。40406570137实际resolve成功、encrypted121865946915进入完整候选门；不重跑旧失败、不发布安装器，不因后续源码改变重定向候选，也不提前继承3f安装资格。
+
+fd3537b后续Verify40405185320七项success/coverage121860993719 failure。原native/legacy双向兼容用例10057.558ms失败：native_protect20ms完成，legacy_unprotect10035ms ETIMEDOUT，legacyPhase=unobserved，未观测首脚本阶段；不能把它说成已进入DPAPI、锚点验证或SQL COMMIT。原10秒后端/断言保持，失败不重跑、覆盖或吞掉；该提交三runner40405185398三项success不能修复完整coverage失败，正式source仍运行。8e固定候选的全部门只属于8e，不能扩为fd完整通过。
+
+为继续实际daemon发布COMMIT内部强杀，新增独立只读锁见证模块：以原readonly-files目录/文件身份检查绑定已有单根及精确revision，两条readOnly/query_only连接先验证无PENDING，一条保留实际DELETE-journal读事务，另一条只轮询读准入。仅ERR_SQLITE_ERROR/errcode=5的真实BUSY加文件身份复核可返回sqlite-read-admission-only；750ms原见证期限在读前和成功前均检查，不能把调度晚到算及时观察。实际额外负对照证明另一BEGIN EXCLUSIVE也会造成读BUSY，因此回执仅报告readAdmissionBlocked，不含commitPending；不能单凭BUSY推断已进入COMMIT，必须由上层绑定真实daemon路径和目标转换。模块不读data-key内容或blob，不写数据库，不执行/重放写者，不持有daemon/模型执行能力。回执publicationQualified=false，不能单凭数据库BUSY证明目标发布转换、OS锚点ACK、DPAPI或完整daemon资格。
+
+新增十项实际文件/SQLite/Worker回归证明COMMIT确实等待、等待期间数据库字节未变、释放两条只读连接后原写者实际COMMIT成功；另覆盖无写者原750ms失败、提前释放/并发调用、非法/空/极端/getter/Proxy输入、revision不等/多根/WAL/缺失/空或损坏数据库、硬链接、非BUSY错误、路径身份替换、ROLLBACK/close失败的粘性拒绝与完整句柄清理。扩大三份真实文件75项全通过、零skip；1645份语法、全树Lint零错误/原五警告、CI/release治理及变更格式通过。新测试已实际核对进入统一unit发现；无依赖或产品运行路径/认证/TTL/原持久/期限变动。模块尚未接入N09原六场景或安装daemon，下一步需要把真实公开上游放行、已认证稳定版本、实际PENDING见证与强杀/正常放行对照组合，处理热journal重开，再获取真实Windows回执；本批不授新daemon中断资格，也不改旧六场景负载。
+
+21:44:40.156Z只读确认冻结5a同一身份与进程，72个连续tick至21300000ms（355分钟），elapsedMs=21300010.3073，未失败/重启；持续五分钟监测，Windows主机无新增构建/短测，模型0。其余五秒/旧兼容后端长尾、原daemon内部/WS、完整容量、真实24h实际到期双重开、额度核对后真实两端与受控自用目标仍保留，整体未完成。
+
 ## 2026-10-26：8e三runner全部通过，拆分首次引擎准备内的实际锚点验证阶段
 
 8e10c37独立时序40403400491三个Windows runner121854860856/121854861264/121854861302均success，各完整50项、零skip、无重试。18次最终持久publication_wait_end为981–1384ms；每runner138次COMMIT，最大分别33/261/41ms，最终finishPublicationAsync最大89/98/101ms。8e独立I/O40403400487/job121854859962亦success，原50项、153次flush配对database/journal最大30/25ms，1107个调度区间且已观察unmapped/unfinished均0，原完整性/因果/五秒资格仍false。两批均为成功窗口，未复现旧2–4秒COMMIT，不能以未观察到就确定根因或覆盖旧失败。2a普通40402040140与0b普通40402629994现均八项success；0b完整coverage12次最终ACK730–1470ms。独立正式2a/0b/8e的source门与8e完整coverage仍在执行，整体门尚未收齐，不触发新安装替换已完成的3f候选。
