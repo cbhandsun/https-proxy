@@ -10,6 +10,9 @@
         <Keyword Value="Filename" />
         <Keyword Value="FileIO" />
         <Keyword Value="FileIOInit" />
+        <Keyword Value="CSwitch" />
+        <!-- Thread lifecycle only (0x2), without process command-line events. -->
+        <CustomKeyword Value="0x2" />
       </Keywords>
     </SystemProvider>
     <Profile Id="HpmSqliteIO.Verbose.Memory" Name="HpmSqliteIO" Description="Bounded synthetic SQLite file operations" DetailLevel="Verbose" LoggingMode="Memory">

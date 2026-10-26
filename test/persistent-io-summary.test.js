@@ -205,7 +205,7 @@ test('PowerShell decodes owned FileIo metadata, filters unrelated records and re
   assert.equal(result.stderr, '');
 });
 
-test('recording profile fixes memory buffers and only file metadata providers without stack capture', () => {
+test('recording profile fixes memory buffers and file and scheduling metadata without stack capture', () => {
   const profile = path
     .join(__dirname, '../scripts/fixtures/persistent-file-io.wprp')
     .replaceAll("'", "''");
@@ -215,7 +215,8 @@ test('recording profile fixes memory buffers and only file metadata providers wi
     $profiles=$profile.WindowsPerformanceRecorder.Profiles
     if([int]$profiles.SystemCollector.BufferSize.Value -ne 64 -or [int]$profiles.SystemCollector.Buffers.Value -ne 512){throw 'memory_profile_changed'}
     if($profiles.Profile.LoggingMode -cne 'Memory' -or $profiles.Profile.Name -cne 'HpmSqliteIO'){throw 'recording_mode_changed'}
-    if((@($profiles.SystemProvider.Keywords.Keyword|ForEach-Object{$_.Value}) -join ',') -cne 'Filename,FileIO,FileIOInit'){throw 'provider_scope_changed'}
+    if((@($profiles.SystemProvider.Keywords.Keyword|ForEach-Object{$_.Value}) -join ',') -cne 'Filename,FileIO,FileIOInit,CSwitch'){throw 'provider_scope_changed'}
+    if((@($profiles.SystemProvider.Keywords.CustomKeyword|ForEach-Object{$_.Value}) -join ',') -cne '0x2'){throw 'thread_only_scope_changed'}
     if($null -ne $profile.SelectSingleNode('//Stacks') -or $null -ne $profile.SelectSingleNode('//EventProvider')){throw 'capture_scope_widened'}
     'bounded_profile_passed'
   `;
@@ -273,6 +274,7 @@ test('classic binary FileIo payloads reach the bounded summary with exact versio
     const flush = Buffer.alloc(version === 2 ? 32 : 28);
     flush.writeBigUInt64LE(32n);
     flush.writeBigUInt64LE(16n, version === 2 ? 24 : 16);
+    flush.writeUInt32LE(42, version === 2 ? 8 : 24);
     const nameXml =
       form === 'event-data'
         ? '<Event><EventData><Data Name="FileObject">16</Data><Data Name="FileName">' +
@@ -285,6 +287,8 @@ test('classic binary FileIo payloads reach the bounded summary with exact versio
       $module=Import-Module '${recordingModule}' -PassThru -Force
       $direct=ConvertFrom-HpmFileIoBinary -Hex '${name.toString('hex')}' -Opcode 32 -Version 2
       if(-not $direct.FileName.EndsWith('checkpoint.sqlite') -or $direct.FileObject -cne '0x0000000000000010'){throw 'binary_name_invalid'}
+      $issuer=ConvertFrom-HpmFileIoBinary -Hex '${flush.toString('hex')}' -Opcode 73 -Version ${version}
+      if($issuer.IssuingThreadId -ne 42){throw 'issuing_thread_offset_invalid'}
       $badCases=@(@{Hex='';Opcode=32;Version=2},@{Hex='xx';Opcode=32;Version=2},@{Hex='0';Opcode=32;Version=2},@{Hex=('00'*16385);Opcode=32;Version=2},
         @{Hex='${flush.toString('hex')}';Opcode=73;Version=7},@{Hex='00';Opcode=73;Version=2},
         @{Hex='${malformed.toString('hex')}';Opcode=32;Version=2},@{Hex='00';Opcode=76;Version=2})

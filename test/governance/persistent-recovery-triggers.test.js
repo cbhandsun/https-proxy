@@ -38,3 +38,21 @@ for (const workflow of [
     assert.ok(source.includes('workflow_dispatch:'));
   });
 }
+
+for (const workflow of [
+  'windows-persistent-io-diagnostic.yml',
+  'windows-persistent-io-coverage.yml',
+]) {
+  test(`${workflow} observes its closed scheduling decoder and regression`, () => {
+    const source = fs.readFileSync(
+      path.resolve(__dirname, '../../.github/workflows', workflow),
+      'utf8'
+    );
+    for (const file of [
+      'scripts/lib/persistent-io-scheduling.js',
+      'scripts/lib/persistent-io-scheduling.psm1',
+      'test/persistent-io-scheduling.test.js',
+    ])
+      assert.ok(source.includes('      - ' + file + '\n'), file);
+  });
+}

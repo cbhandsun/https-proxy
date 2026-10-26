@@ -34,7 +34,8 @@ function ConvertFrom-HpmFileIoBinary {
             if ($Version -eq 2 -and $bytes.Length -eq 32) { $offset = 24 }
             elseif ($Version -eq 3 -and $bytes.Length -eq 28) { $offset = 16 }
             else { throw 'invalid' }
-            return @{ IrpPtr = '0x' + [BitConverter]::ToUInt64($bytes,0).ToString('x16'); FileKey = '0x' + [BitConverter]::ToUInt64($bytes,$offset).ToString('x16') }
+            $threadOffset = if ($Version -eq 2) {8} else {24}
+            return @{ IrpPtr = '0x' + [BitConverter]::ToUInt64($bytes,0).ToString('x16'); FileKey = '0x' + [BitConverter]::ToUInt64($bytes,$offset).ToString('x16'); IssuingThreadId = [BitConverter]::ToUInt32($bytes,$threadOffset) }
         }
         if ($Opcode -in @(67,68)) {
             if ($Version -eq 2 -and $bytes.Length -eq 48) { $offset = 32 }

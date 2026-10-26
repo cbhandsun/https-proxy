@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：199完整门禁、fe81安装链通过；长测250分钟，补有界调度诊断
+
+199b904普通Verify40387781153八项、正式40387781045四项全部success。固定fe81安装链40383360648/job121785314864终态success：完整候选验证/审计、NSIS构建、同格式升级回滚与runner本地DPAPI、完整582旧布局迁移及旧写者拒绝、安装版Codex/Claude默认与增强四案例实际通过。安装manifest为59b5251ebd150a13ec69d0058866093807ff72df4c994eefef3cb4e51ba4813f；582来源manifest仍为4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f，布局1到3、revision增量1。四案例schema4的syntheticClientQualified与daemonNaturalExitQualified=true，realProviderQualified/retention24hQualified=false，真实模型0。独立安装native control证明两次自然停机、原expiresAt及开库保留，其restartRetention=false，不能扩大资格。该安装候选固定fe81，未包含199非流式HTTP在途探针，更不代表SSE/WS或内部COMMIT/ACK中断已验收。
+
+75的Chat5004ms/Claude5001ms以及45正式5007ms等失败全部保留，不能由本轮成功覆盖。本批增加有界ETW调度诊断，不宣称根因已确定或五秒已稳定：原FileIO外采CSwitch及仅Thread生命周期位0x2，不采ProcessThread/栈/进程内存/命令行。仅绑定所选SQLite/journal flush的实际issuer，v2/v3严格偏移，不猜PID。线程退出/复用或不支持的metadata显式清空绑定，pending成为unfinished，不跨未知区间拼接。输出四类等待统计及最多八个DelayExecution窗口；包含调度排队，不能当COMMIT时长或完整请求分解。原始事件、线程ID和路径不进入最终摘要或上传。
+
+schema5严格验证计数/窗口，traceCompletenessVerified、commitCorrelationQualified、fiveSecondQualified始终false；无普通I/O操作时ioOperations明确null，不补造计数。原32MiB环形内存、256MiB ETL、百万原始事件、十万选中事件、16MiB管道、300秒解码边界和原测试命令保留。全局CSwitch使用原生EventRecord标量/二进制properties，避免逐条渲染XML，不支持形状显式unmapped。扩大八文件67项本机全通过、零skip，覆盖PowerShell解析、v2/v3 issuer偏移、未知metadata/ID复用/丢失区间、极值与恶意输入、原I/O门和长测历史连续性。新测试进入统一发现，两个I/O工作流补明确触发路径。1637份JS语法、CI/release治理通过；Lint零错误/原五警告。真实Windows WPR新profile及同源慢窗口仍待CI，本机解析测试不能代替实际捕获。产品认证、FULL/DELETE、busy_timeout、预算、精确ACK、TTL、门限及依赖均未改。
+
+20:00:21.436Z只读核验原冻结5a3a842长测：同一源码/原生/Node身份及进程，51个连续有效tick至15000000ms（250分钟），elapsedMs=15000002.3764；未失败或重启。五分钟独立监测核对全部历史tick、单调经过时间、进程创建时间及安全回执，中途十分钟空档不能由最后新tick掩盖。断连为未核验，不推断成功或自动重启。通过仍须真实24小时、实际root到期、两次到期重开、15次开关库和零退出完整终态。冻结5a资格仅属于该源码，不继承至后续提交。长测主机无新增负载，旧失败冻结任务和暂停容量长测不动。
+
+下一步在GitHub独立runner取得新诊断证据，定位五秒等待，并推进包含199探针的最新安装链与完整SSE/WS/内部发布中断。固定容量及真实24小时终态、额度核对后的provider和受控自用仍为既定缺口，不能称整体完成。
+
 ## 2026-10-26：安装候选开始构建；接入真实在途HTTP探针，保留75五秒失败
 
 75edffe普通Verify40381808064最终七success/coverage121779723612失败，不能由其正式40381808014四项success覆盖。失败是WBIPC long-persistent首轮Chat request_failed5004ms、Claude5001ms，栈均在原fetch2742；前者2次请求/握手，后者4次。窗口内Chat save-reference-state COMMIT为775/1733/1096ms，Claude为1470ms及READ结算569ms，replyAsync分别3119ms和2763/1294ms；阶段有包含关系，不相加当完整请求分解。该失败没有同窗口完整I/O记录，不能据另一runner短flush认定底层退避、杀毒或五秒已修复。全部旧失败继续保留，不重跑覆盖。

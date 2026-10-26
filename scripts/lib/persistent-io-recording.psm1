@@ -3,6 +3,7 @@
 # Rendering failures retain the documented binary payload here:
 # https://learn.microsoft.com/en-us/windows/win32/wes/eventschema-eventpayload-processingerrordatatype-element
 Import-Module (Join-Path $PSScriptRoot 'persistent-io-binary.psm1')
+Import-Module (Join-Path $PSScriptRoot 'persistent-io-scheduling.psm1')
 function ConvertTo-HpmIoPointerKey {
     param([string]$Text)
     try {
@@ -88,6 +89,9 @@ function ConvertTo-HpmPersistentIoRecord {
         if ($State.irps.Count -ge 8192) { throw 'refused' }
         [void]$State.irps.Add($key)
         $type = @{65='cleanup';66='close';67='read';68='write';69='set-info';70='delete';73='flush'}[$Opcode]
+        if ($Opcode -eq 73 -and $State.ContainsKey('scheduling')) {
+            Add-HpmIoSchedulingBinding -Fields $fields -Xml $xml -TimeMs $TimeMs -State $State.scheduling
+        }
         [ordered]@{ type=$type; key=$key; timeMs=$TimeMs; name=$file } | ConvertTo-Json -Compress
     } elseif ($Opcode -eq 76) {
         $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr'])
@@ -209,10 +213,14 @@ function Invoke-HpmPersistentIoDiagnostic {
         [Console]::Error.WriteLine('persistent_io_trace_bytes=' + $traceBytes)
         if ($traceBytes -gt 268435456) { throw 'refused' }
         $phase = 'decode-enumeration'
-        $decode = @{ names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); irps = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); shapes=@{}; formats=@{} }
+        $decode = @{ names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); irps = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase); shapes=@{}; formats=@{}; scheduling = (New-HpmIoSchedulingState) }
         # FileIo GUID/opcodes follow the Microsoft FileIo_Name/SimpleOp/OpEnd
         # contracts. Decode only scalar metadata; all unrelated paths are redacted.
-        $summary = Get-WinEvent -Path $trace -Oldest | ForEach-Object {
+        $summary = & {
+            # A marker requires the closed schema-5 scheduling verdict even if
+            # circular loss leaves no complete interval; no silent downgrade.
+            [ordered]@{type='schedule-start';key='1';timeMs=0;name=''} | ConvertTo-Json -Compress
+            Get-WinEvent -Path $trace -Oldest | ForEach-Object {
             $count++
             if ($count -gt 1000000) { $phase = 'decode-limit'; throw 'refused' }
             $phase = 'decode-provider'
@@ -221,6 +229,13 @@ function Invoke-HpmPersistentIoDiagnostic {
             elseif ($provider -ceq '9e814aad-3204-11d2-9a82-006008a86939') { $providerCounts.systemTrace++ }
             elseif ($provider -ceq 'edd08927-9cc4-4e65-b970-c2560fb5c289') { $providerCounts.kernelFile++ }
             else { $providerCounts.other++ }
+            if ($provider -ceq '3d6fa8d1-fe05-11d0-9dda-00c04fd7ba7c') {
+                if ([int]$_.Opcode -in @(1,2,36)) {
+                    $phase = 'decode-thread-record'
+                    ConvertTo-HpmThreadSchedulingEvent -Record $_ -Opcode ([int]$_.Opcode) -TimeMs (([DateTimeOffset]$_.TimeCreated).ToUnixTimeMilliseconds()) -State $decode.scheduling
+                }
+                $phase = 'decode-enumeration'; return
+            }
             if ($provider -cne '90cbdc39-4a3e-11d1-84f4-0000f80464e3') { $phase = 'decode-enumeration'; return }
             $selected++
             $opcode = [int]$_.Opcode
@@ -229,6 +244,7 @@ function Invoke-HpmPersistentIoDiagnostic {
             $recordAttempts++
             ConvertTo-HpmPersistentIoRecord -Text ($_.ToXml()) -Opcode $opcode -TimeMs (([DateTimeOffset]$_.TimeCreated).ToUnixTimeMilliseconds()) -State $decode
             $phase = 'decode-enumeration'
+            }
         } | & node (Join-Path $PSScriptRoot '../summarize-persistent-io.cjs')
         $phase = 'decode-summary'
         if ($LASTEXITCODE -ne 0 -or @($summary).Count -ne 1) { throw 'refused' }

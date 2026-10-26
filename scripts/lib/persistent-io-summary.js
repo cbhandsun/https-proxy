@@ -1,6 +1,7 @@
 'use strict';
 
 const { types } = require('node:util');
+const { SCHEDULING_TYPES, createPersistentIoScheduling } = require('./persistent-io-scheduling');
 const {
   OPERATION_TYPES,
   createPersistentIoOperations,
@@ -38,6 +39,7 @@ function createPersistentIoSummary() {
   const names = new Map(),
     pending = new Map();
   const operations = createPersistentIoOperations();
+  const scheduling = createPersistentIoScheduling();
   const stats = {
     database: { count: 0, maxMs: 0, over100Ms: 0, over1000Ms: 0 },
     journal: { count: 0, maxMs: 0, over100Ms: 0, over1000Ms: 0 },
@@ -51,7 +53,9 @@ function createPersistentIoSummary() {
       const value = data(input, ['type', 'key', 'timeMs', 'name']);
       const type = value.type;
       if (
-        !['name', 'flush', 'end', 'invalidate', ...OPERATION_TYPES].includes(type) ||
+        !['name', 'flush', 'end', 'invalidate', ...OPERATION_TYPES, ...SCHEDULING_TYPES].includes(
+          type
+        ) ||
         ++events > 100000 ||
         !Number.isSafeInteger(value.timeMs) ||
         value.timeMs < 0 ||
@@ -60,6 +64,10 @@ function createPersistentIoSummary() {
       )
         throw fail();
       const key = pointer(value.key);
+      if (SCHEDULING_TYPES.includes(type)) {
+        scheduling.observe(type, key, value.timeMs, value.name);
+        return;
+      }
       if (type === 'name') {
         names.delete(key); // Name reuse must not inherit an old file association.
         if (
@@ -114,11 +122,13 @@ function createPersistentIoSummary() {
     },
     snapshot() {
       const ioOperations = operations.snapshot();
+      const ioScheduling = scheduling.snapshot();
       return {
-        schemaVersion: ioOperations ? 4 : 1,
-        scope: ioOperations
-          ? 'synthetic_sqlite_etw_file_operations'
-          : 'synthetic_sqlite_etw_flush_pairs',
+        schemaVersion: ioScheduling ? 5 : ioOperations ? 4 : 1,
+        scope:
+          ioScheduling || ioOperations
+            ? 'synthetic_sqlite_etw_file_operations'
+            : 'synthetic_sqlite_etw_flush_pairs',
         events,
         pairedFlushes: stats.database.count + stats.journal.count,
         database: { ...stats.database },
@@ -130,7 +140,7 @@ function createPersistentIoSummary() {
         traceCompletenessVerified: false,
         fiveSecondQualified: false,
         realModelRequests: 0,
-        ...(ioOperations ? { ioOperations } : {}),
+        ...(ioScheduling ? { ioOperations, ioScheduling } : ioOperations ? { ioOperations } : {}),
       };
     },
   };

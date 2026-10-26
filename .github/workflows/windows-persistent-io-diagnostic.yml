@@ -27,6 +27,9 @@ on:
       - scripts/diagnose-persistent-io.ps1
       - scripts/summarize-persistent-io.cjs
       - scripts/lib/persistent-io-summary.js
+      - scripts/lib/persistent-io-scheduling.js
+      - scripts/lib/persistent-io-scheduling.psm1
+      - test/persistent-io-scheduling.test.js
       - scripts/lib/persistent-io-operation-summary.js
       - test/persistent-io-operations.test.js
       - scripts/lib/persistent-io-recording.psm1

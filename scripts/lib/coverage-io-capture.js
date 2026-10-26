@@ -6,6 +6,7 @@ const { spawn } = require('node:child_process');
 const { types } = require('node:util');
 const { safePath } = require('./nsis-encrypted-contract');
 const { OPERATION_TYPES } = require('./persistent-io-operation-summary');
+const { validatePersistentIoScheduling } = require('./persistent-io-scheduling');
 const fail = () => new Error('coverage_io_capture_failed');
 const isSha = (value) =>
   typeof value === 'string' && value.length === 40 && /^[a-f0-9]{40}$/.test(value);
@@ -40,10 +41,17 @@ function parseSummary(text) {
   if (typeof text !== 'string' || Buffer.byteLength(text) > 16384) throw fail();
   const value = JSON.parse(text);
   if (JSON.stringify(value) !== text) throw fail();
-  const extended = [2, 3, 4].includes(value?.schemaVersion);
-  exact(value, extended ? [...KEYS, 'ioOperations'] : KEYS);
+  const extended = [2, 3, 4, 5].includes(value?.schemaVersion);
+  exact(
+    value,
+    value?.schemaVersion === 5
+      ? [...KEYS, 'ioOperations', 'ioScheduling']
+      : extended
+        ? [...KEYS, 'ioOperations']
+        : KEYS
+  );
   if (
-    ![1, 2, 3, 4].includes(value.schemaVersion) ||
+    ![1, 2, 3, 4, 5].includes(value.schemaVersion) ||
     value.scope !==
       (extended ? 'synthetic_sqlite_etw_file_operations' : 'synthetic_sqlite_etw_flush_pairs') ||
     value.traceCompletenessVerified !== false ||
@@ -81,13 +89,14 @@ function parseSummary(text) {
     value.pairedFlushes !== value.database.count + value.journal.count
   )
     throw fail();
-  if (extended)
+  if (value.schemaVersion === 5) validatePersistentIoScheduling(value.ioScheduling, value.events);
+  if (extended && !(value.schemaVersion === 5 && value.ioOperations === null))
     validateIoOperations(
       value.ioOperations,
       value.events,
       value.pairedFlushes,
       value.schemaVersion >= 3,
-      value.schemaVersion === 4
+      value.schemaVersion >= 4
     );
   return value;
 }
