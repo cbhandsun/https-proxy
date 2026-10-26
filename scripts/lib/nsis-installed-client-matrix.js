@@ -15,6 +15,7 @@ const {
 const { startDaemonOwnedController } = require('./context-recovery-daemon-owned-transport');
 const { createDaemonOwnedAdapter } = require('./context-recovery-daemon-owned-adapter');
 const { createDaemonManagementHttpClient } = require('./context-recovery-daemon-http-client');
+const { dataSnapshot } = require('./context-recovery-daemon-http-boundary');
 const { runInstalledClientCase } = require('./nsis-installed-client-case');
 const {
   parseInstalledClientMatrixArguments,
@@ -145,6 +146,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
   let phase = 'identity',
     failedPhase,
     failed = false,
+    naturalExits = 0,
     owner;
   const active = { current: null },
     cases = [];
@@ -214,6 +216,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
           initialEnabled: false,
           initialPersistence: false,
         });
+        let casePassed = false;
         try {
           const value = await dependencies.runCase({
             client,
@@ -237,6 +240,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
           )
             throw fail();
           cases.push(matrixCase(value, client, mode));
+          casePassed = true;
         } catch {
           reject();
         } finally {
@@ -248,7 +252,20 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
           const stopping = owner;
           owner = null;
           try {
-            if ((await stopping.stop()) !== true) reject();
+            if (casePassed && !failed) {
+              const exited = dataSnapshot(
+                await stopping.stopNaturally(),
+                'installed_client_matrix_failed'
+              );
+              if (
+                Object.keys(exited).sort().join(',') !== 'cleanupSemantics,exitCode,treeEmpty' ||
+                exited.treeEmpty !== true ||
+                exited.cleanupSemantics !== 'natural_exit' ||
+                exited.exitCode !== 0
+              )
+                reject();
+              else naturalExits++;
+            } else if ((await stopping.stop()) !== true) reject();
           } catch {
             reject();
           }
@@ -288,9 +305,9 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
       reject();
     }
   }
-  if (failed || cases.length !== 4) throw fail();
+  if (failed || cases.length !== 4 || naturalExits !== 4) throw fail();
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     scope: 'installed_native_cli_four_cases',
     passed: true,
     syntheticClientQualified: true,
@@ -299,6 +316,7 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
     realModelRequests: 0,
     ...proof,
     ownedTreeEmpty: true,
+    daemonNaturalExitQualified: true,
     syntheticSocketsClosed: true,
     cases,
   };

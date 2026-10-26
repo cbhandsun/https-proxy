@@ -66,9 +66,19 @@ function fixture(t, broken) {
         calls.push(request.label);
         token = getToken();
         return {
+          stopNaturally: async () => {
+            calls.push('natural-stop');
+            if (broken === 'stop') throw Error('PRIVATE_NATURAL_EXIT_FAILED');
+            return {
+              treeEmpty: broken !== 'natural-tree',
+              cleanupSemantics: broken === 'natural-forced' ? 'forced_cleanup' : 'natural_exit',
+              exitCode: broken === 'natural-nonzero' ? 1 : 0,
+              ...(broken === 'natural-extra' ? { detail: 'PRIVATE_DETAIL' } : {}),
+            };
+          },
           stop: async () => {
-            calls.push('stop');
-            return broken !== 'stop';
+            calls.push('forced-stop');
+            return true;
           },
         };
       },
@@ -139,6 +149,8 @@ function fixture(t, broken) {
 test('matrix composes four fresh daemon cases, real token factory and observed default upstream requests', async (t) => {
   const f = fixture(t);
   const receipt = await runInstalledClientMatrix(f.args, f.dependencies);
+  assert.equal(receipt.schemaVersion, 4);
+  assert.equal(receipt.daemonNaturalExitQualified, true);
   assert.equal(receipt.syntheticClientQualified, true);
   assert.equal(receipt.realProviderQualified, false);
   assert.equal(receipt.retention24hQualified, false);
@@ -154,19 +166,60 @@ test('matrix composes four fresh daemon cases, real token factory and observed d
   );
   assert.deepEqual(f.calls, [
     '00',
-    'stop',
+    'natural-stop',
     '01',
-    'stop',
+    'natural-stop',
     '10',
-    'stop',
+    'natural-stop',
     '11',
-    'stop',
+    'natural-stop',
     'adapter-close',
     'listener-close',
   ]);
   assert.deepEqual(f.phases.at(-1), { phase: 'complete', failed: false });
 });
-for (const mode of ['probes', 'binary', 'case', 'stop', 'adapter-close', 'listener-close'])
+
+test('matrix cannot start the next client case before independent natural-exit acknowledgement', async (t) => {
+  const f = fixture(t);
+  let release;
+  const pending = new Promise((resolve) => {
+    release = resolve;
+  });
+  const original = f.dependencies.adapter;
+  f.dependencies.adapter = (...args) => {
+    const adapter = original(...args);
+    const launch = adapter.launch;
+    adapter.launch = async (input) => {
+      const owner = await launch(input);
+      const stop = owner.stopNaturally;
+      owner.stopNaturally = async () => {
+        if (input.label === '00') await pending;
+        return stop();
+      };
+      return owner;
+    };
+    return adapter;
+  };
+  const running = runInstalledClientMatrix(f.args, f.dependencies);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(f.calls, ['00']);
+  assert.deepEqual(f.phases.at(-1), { phase: 'codex-default-stop', failed: false });
+  release();
+  assert.equal((await running).daemonNaturalExitQualified, true);
+  assert.equal(f.calls.filter((call) => call === 'natural-stop').length, 4);
+});
+for (const mode of [
+  'probes',
+  'binary',
+  'case',
+  'stop',
+  'adapter-close',
+  'listener-close',
+  'natural-tree',
+  'natural-forced',
+  'natural-nonzero',
+  'natural-extra',
+])
   test('matrix rejects ' + mode + ' while attempting all available cleanup', async (t) => {
     const f = fixture(t, mode);
     await assert.rejects(runInstalledClientMatrix(f.args, f.dependencies), {
@@ -176,6 +229,15 @@ for (const mode of ['probes', 'binary', 'case', 'stop', 'adapter-close', 'listen
     if (mode !== 'probes') assert.ok(f.calls.includes('adapter-close'));
     assert.equal(f.phases.at(-1).failed, true);
     if (mode === 'case') assert.equal(f.phases.at(-1).phase, 'codex-default-cli');
+    if (mode === 'case') {
+      assert.ok(f.calls.includes('forced-stop'));
+      assert.equal(f.calls.includes('natural-stop'), false);
+    }
+    if (mode === 'stop' || mode.startsWith('natural-')) {
+      assert.equal(f.calls.filter((call) => call === 'natural-stop').length, 1);
+      assert.equal(f.calls.includes('01'), false);
+      assert.equal(f.phases.at(-1).phase, 'codex-default-stop');
+    }
   });
 
 test('business authentication, malformed input and observer failure never produce wire', async () => {

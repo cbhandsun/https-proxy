@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：4ef完整正式通过；安装四案例实际接入自然退出门
+
+4ef6b8a普通Verify40379652156八项、正式40379652029四项均全success，后者source121772120889及N08/N09（121780693892/121780693781）已完成；完整覆盖率I/O40379652039/121772121544亦success。正式source的12次最终持久ACK为94–215ms，覆盖率I/O窗口12次为77–152ms，原5000ms及全部原断言不变。这些是本次完整通过证据，不解释或覆盖45正式5007ms、旧初始化/容量/五档等失败，也不授最新安装资格。75edffe普通七项success/coverage及正式source仍执行，其新自然退出Windows资格待终态。
+
+同源I/O回执现实际覆盖proxy与client两阶段，均cleanupVerified=true：前者51对flush、database最大28ms/journal24ms，后者153对、database24ms/journal77ms；没有观测到100ms以上flush。traceCompletenessVerified与fiveSecondQualified继续false，原非零状态计数保留，不能据循环ETW窗口排除旧正式慢COMMIT或归因杀毒。
+
+本批将75的自然退出能力接入实际安装版Codex/Claude四案例驱动：成功案例必须等待独立自然退出ACK才开始下一案例；案例失败仍走独立强制清理，后续清理成功不能修复失败。严格累计四次natural_exit/exitCode=0/treeEmpty=true后才生成schema4与daemonNaturalExitQualified=true，PowerShell接收端同步要求该门；旧schema1–3或缺失/false/错误类型的新门均拒绝，旧历史报告不改写。三次compaction、两端重启保留、private/public/default断言、provider与24小时false及模型0继续保持。该新门仅确认每个案例结束后的自然停机，不授仍在途的完整HTTP/WS排空资格；真实Windows安装矩阵尚未执行。
+
+相关七文件68项先通过；完整16份安装客户端文件最终189项本机全通过、零skip，另矩阵14项确认延迟ACK阻止下一案例、失败停在首例、强制清理/非零退出/非空树/额外字段均拒绝。所有新断言位于原统一发现文件，便携PowerShell配原physical-test-temp运行；无真实模型。全树Lint零错误/五项既有警告，1632份JS语法、变更格式、CI/release治理通过，无依赖/锁文件、产品认证、持久语义、期限、baseline或签名门变化。
+
+18:58:40.556Z只读核验冻结5a同一源码/进程，38个连续tick推进至11100000ms（185分钟），elapsedMs=11100011.1509，未失败/重启。五分钟监测继续，不在该Windows主机新增负载、不碰旧冻结失败库及暂停长测，模型0。下一步收齐本批Windows完整门禁，再按原安装链推进最新NSIS升级回滚、完整582迁移拒写及两端实际矩阵。真实24小时/到期重开、五秒稳定性、五档容量、完整安装在途HTTP/WS、额度核对后provider及受控自用仍未完成。
+
 ## 2026-10-26：普通完整Verify通过；独立自然退出验收能力接入
 
 4ef6b8a的Verify40379652156八项全success，四unit分片、integration、node-quality、rust及完整proxy/client/frontend覆盖率均通过；8939f75的Verify40377391159亦八项全success。原8939正式回执同步异常和45正式Chat5007ms失败继续保留。4ef正式40379652029/source121772120889及完整覆盖率I/O40379652039/121772121544仍执行，不授正式安装或五秒稳定资格。独立I/O40379652035/121772121645原50项通过、零skip，153对flush中database最大24ms/journal最大32ms；traceCompletenessVerified及fiveSecondQualified仍false，不能以另一runner短flush排除既有慢COMMIT。

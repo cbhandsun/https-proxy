@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新4ef完整正式通过与安装自然停机接入优先：** 4ef普通八项/正式四项/完整覆盖率I/O均success，正式12次最终ACK94–215ms、I/O窗口77–152ms；原门不改，旧正式5007ms等失败继续保留。75普通七项success、coverage/正式仍执行。本批实际安装四案例成功分支改用stopNaturally，必须独立确认四次零退出/Job清空/EOF才生成schema4的daemonNaturalExitQualified=true；旧schema或缺门不能获得新资格，失败强制回收不能补绿。完整16文件189及矩阵14项本机通过、零skip，真实Windows安装矩阵尚未执行，更不授完整在途HTTP/WS或provider资格。18:58:40Z冻结5a长测38个连续tick至185分钟，同一身份持续；监测继续、无额外Windows负载、模型0。全范围及证据见实施状态顶部。
+
 **最新4ef完整普通结果与自然退出能力优先：** 4ef6b8a与8939普通Verify均八项全success，4ef正式及完整覆盖率I/O仍执行；独立I/O原50通过，trace完整性/五秒资格仍false。旧正式5007ms及回执同步异常保留。新stopNaturally沿用认证端点和精确pid/instanceId，202只接受意图，再由所属控制器独立观察零退出、原Job自然清空及管道EOF；失败保留资源供独立forced_cleanup并封锁资格，不能以kill补绿。六文件69及闭包五项本机全通过、零skip；实际Windows安装在途矩阵尚未执行，原gracefulDrainQualified仍false。更正Mac四项三通过记录：补原physical-test-temp预加载后完整四项全通过，旧本地启动错误不是产品根因。18:52:03Z冻结5a长测37个连续tick至180分钟、同一进程持续推进；五分钟监测继续、无额外Windows负载、模型0。完整剩余范围见实施状态顶部。
 
 **最新8939结果及后续同源采集优先：** 普通Verify七项成功/coverage仍执行，Windows集成及全部四分片已通过，前批配置隔离、idle实际ACK、八空原型版本修复获Windows证据；三组时序成功不能覆盖45正式Chat5007ms。8939正式停在四案例回执解析.NET同步异常，保留。当前以Ordinal字段集合替代该解析器的枚举管线/文化排序，原门/顺序/重复拒绝不变，清理失败仍拒绝并提供有限阶段；根因是否消除待Windows。Mac便携pwsh7.6.8整份四项三通过/编排mock一项修改前后失败，不能称完整通过。两个I/O工作流漏新通道/worker/serial/idle触发已补齐，新三项治理通过；45完整I/O其实停在proxy，须新SHA抓同源client窗口，不以独立短flush排除正式慢COMMIT。18:38:03Z冻结5a长测同一进程、34个连续tick至165分钟，持续监测、无额外Windows负载、模型0。整体范围及证据见实施状态顶部。
