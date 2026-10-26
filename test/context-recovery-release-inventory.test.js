@@ -12,9 +12,11 @@ const root = path.resolve(__dirname, '..');
 test('release inventory retains recovery helpers and dynamically loaded Worker resources', () => {
   for (const relative of [
     'lib/proxy/context-recovery-anchor-admission.js',
+    'lib/proxy/context-recovery-anchor-channel.js',
     'lib/proxy/context-recovery-anchor-contract.js',
     'lib/proxy/context-recovery-anchor-enrollment.js',
     'lib/proxy/context-recovery-anchor-legacy-owner.js',
+    'lib/proxy/context-recovery-anchor-protocol.js',
     'lib/proxy/context-recovery-anchor-wire.js',
     'lib/proxy/context-recovery-anchor.js',
     'lib/proxy/context-recovery-budget-reader.js',
@@ -35,6 +37,9 @@ test('recovery release regression remains in unified test discovery', () => {
   for (const file of [
     'test/context-recovery-release-inventory.test.js',
     'test/context-recovery-anchor-clock.test.js',
+    'test/context-recovery-anchor-channel.test.js',
+    'test/context-recovery-anchor-channel-process.test.js',
+    'test/context-recovery-native-day-health.test.js',
     'test/context-recovery-anchor-wire.test.js',
     'test/context-recovery-anchor-path-cost.test.js',
     'test/context-recovery-physical-identity.test.js',
