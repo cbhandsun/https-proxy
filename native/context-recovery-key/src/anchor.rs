@@ -8,6 +8,8 @@ pub use diagnostic::run as run_diagnostic;
 mod stream;
 pub use stream::run as run_stream;
 mod lifetime;
+#[cfg(any(windows, test))]
+mod registry_component;
 pub use stream::{run_owned as run_owned_stream, run_owner_probe};
 
 const MAX_IO: usize = 128 * 1024;
@@ -472,47 +474,65 @@ mod windows {
             .iter()
             .enumerate()
             {
-                let mut key = Key(ptr::null_mut());
-                // OPEN_LINK opens a registry link itself instead of its target.
-                let result = unsafe {
-                    RegOpenKeyExW(parent, wide(component).as_ptr(), 8, KEY_ACCESS, &mut key.0)
-                };
-                if result == NOT_FOUND && create && index != 0 {
-                    let mut attributes = SecurityAttributes {
-                        length: std::mem::size_of::<SecurityAttributes>() as u32,
-                        descriptor: expected,
-                        inherit: 0,
-                    };
-                    let mut disposition = 0;
-                    if unsafe {
-                        RegCreateKeyExW(
-                            parent,
-                            wide(component).as_ptr(),
-                            0,
-                            ptr::null_mut(),
-                            0,
-                            KEY_ACCESS,
-                            &mut attributes,
-                            &mut key.0,
-                            &mut disposition,
-                        )
-                    } != 0
-                        || disposition != 1
-                    {
-                        return Err(());
-                    }
-                } else if result == NOT_FOUND && !create {
-                    return Ok(false);
-                } else if result != 0 {
-                    return Err(());
-                }
-                if key.0.is_null() {
-                    return Err(());
-                }
-                reject_link(key.0)?;
-                if index != 0 {
-                    verify_acl(key.0, 4, expected)?;
-                }
+                let key = super::registry_component::open(
+                    create && index != 0,
+                    index < 5,
+                    || {
+                        let mut key = Key(ptr::null_mut());
+                        // Always open the component itself, never a link target.
+                        let result = unsafe {
+                            RegOpenKeyExW(
+                                parent,
+                                wide(component).as_ptr(),
+                                8,
+                                KEY_ACCESS,
+                                &mut key.0,
+                            )
+                        };
+                        if result == NOT_FOUND {
+                            Ok(None)
+                        } else if result != 0 || key.0.is_null() {
+                            Err(())
+                        } else {
+                            Ok(Some(key))
+                        }
+                    },
+                    || {
+                        let mut attributes = SecurityAttributes {
+                            length: std::mem::size_of::<SecurityAttributes>() as u32,
+                            descriptor: expected,
+                            inherit: 0,
+                        };
+                        let mut disposition = 0;
+                        let mut key = Key(ptr::null_mut());
+                        if unsafe {
+                            RegCreateKeyExW(
+                                parent,
+                                wide(component).as_ptr(),
+                                0,
+                                ptr::null_mut(),
+                                0,
+                                KEY_ACCESS,
+                                &mut attributes,
+                                &mut key.0,
+                                &mut disposition,
+                            )
+                        } != 0
+                            || key.0.is_null()
+                        {
+                            return Err(());
+                        }
+                        Ok((key, disposition))
+                    },
+                    |key| {
+                        reject_link(key.0)?;
+                        if index != 0 {
+                            verify_acl(key.0, 4, expected)?;
+                        }
+                        Ok(())
+                    },
+                )?;
+                let Some(key) = key else { return Ok(false) };
                 parent = key.0;
                 self.keys.push(key);
             }

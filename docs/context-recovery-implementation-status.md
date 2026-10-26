@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-26：长测连续315分钟，修首次锚点共享目录创建竞争
+
+21:07:11.372Z只读确认原冻结5a同一源码/原生/Node和进程，64个完整连续tick至18900000ms（315分钟），elapsedMs=18900003.078，无失败/重启；独立五分钟监测iteration47亦记录推进。完整历史与单调时钟检查持续，中途空档、半小时失败、仅进程存活不能获运行信用。监测器原九项本机回归全部通过，包括历史空档不能被新tick覆盖、终态失败优先、完整24小时/真实到期/两次重开/零退出门。实际运行仍属冻结5a，不继承到后续源码；不触碰冻结目录/任务/数据库，不增加该主机测试负载，模型0。
+
+56正式40400387215/source-gates121844350685失败：原生37单元全部成功，但五项真实进程测试中的stale-CAS用例第一次compare即固定ok:false，未进入预期第二帧的过期CAS；保留失败、不重跑。现有日志不足以唯一归因。源码核对发现独立的实际竞争：不同slot锁彼此独立，但首次创建的四级共同父目录共用；RegOpen未找到后，另一创建者获胜导致RegCreate返回existing，原代码无条件拒绝。Microsoft RegCreate文档确认existing是合法结果，不能仅凭它接受未经核验的句柄或松开所有slot检查。
+
+本批将组件开库准入拆为可测模块，仅共同父目录允许created/existing两种正常disposition；槽位本身在该分支仍必须新建，异常disposition拒绝。创建API句柄一律先关闭，再做一次原OPEN_LINK开库，以该句柄执行原拒绝SymbolicLinkValue与精确受保护ACL核验，才遍历/读写；缺失、开库/创建/校验失败直接拒绝，不循环、不内存回退。已存在路径仍执行原不跟随链接开库与校验，无额外稳态事务。原slot互斥、CAS、RegFlushKey后精确回读、FULL/DELETE、TTL、SQL/HTTP/原生全部期限均未改变。并发创建获胜、句柄释放/验证次序、独占slot拒绝、非法/极端disposition、缺失、替换/校验失败、初始调用错误纳入原cargo统一单元门；不把此已知竞争修复冒称本次Windows失败或五秒超时已解决，实际Windows结果须新SHA。
+
+本机Rust release全目标38单元+5实际进程测试通过，便携进程路径只证明非Windows拒绝/生命周期，不授注册表/DPAPI资格；fmt/Clippy与CI治理通过，Mac原六条平台dead-code警告保留，Windows原-D warnings门不变。56独立I/O40400387313/job121844350730原50项成功，153次flush配对最大database39/journal46ms；新schema3实际1182区间、零已观察unmapped/gaps/unfinished，八个有界UTC窗口已输出，最大otherWaiting161ms。该成功窗口不能覆盖旧三端超时，完整性/COMMIT因果/五秒资格仍false；完整覆盖率同源采集仍运行。3f安装40397785294已过完整前置门、构建并进入实际安装升级回滚，SSE及新增内部中断终态尚待。整体仍待五秒稳定性、最新安装矩阵/daemon内部与WS、容量、24小时完整终态及额度核对后的真实两端与受控自用。
+
 ## 2026-10-26：保留ccb51三端五秒失败，补SQL与ETW同域有界时间窗口
 
 ccb51 Verify40393988758终态七success/coverage121822032954 failure，原client-context-target的Chat/Responses/Claude long-persistent首轮分别5005/5008/5006ms超时。Chat预扣/后续save COMMIT1579/2951ms，Responses942/2837ms，Claude2119/3379ms；另有414/529/655ms header clock write。启动COMMIT1308/1532/1069ms发生在请求前，不混算进请求；阶段有包含关系，不相加当精确分解。该作业其早期六次最终ACK175–228ms不能覆盖后续客户端覆盖率三项失败，全部旧失败保留。
