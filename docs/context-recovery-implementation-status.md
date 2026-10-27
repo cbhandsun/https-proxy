@@ -1,5 +1,14 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：修复日档控制器管道断开后失败证据丢失，尚未恢复24h资格
+
+868外层0xC000013A、父控制器消失、随后Node退出及最后15分钟现场保持。只读核对TaskScheduler Operational日志实际未启用，PowerShellCore/Application/System日志可读；限定窗口的PowerShell应用失败查询未取得可用记录，不能认定崩溃、用户关闭、安全软件或其他唯一原因。未开启系统日志、改环境/任务、访问DB/密钥或自动重启。控制器异常本身仍未解决，不能因本批诊断修复授全天运行资格。
+
+已发现并修复独立可确认缺口：旧入口仅把日档事件写stdout，由外层异步管道排空保存；外层消失后，事件及catch失败日志都可能随断管丢失。入口现只组合日档与独立回执模块，日档自身在原fresh temp目录创建progress.jsonl，同目录context仍用于原默认存储；每条原有有限事件先独占文件写入、完成实际短写并fsync后，再写原stdout。断管/短写仍失败且禁止写成功结果，finally独立写native_day_process_result（actualExitVerified=false），不将它冒充实际退出、外层process_finished或任务成功；stderr不可用时已选定的失败退出不再被诊断异常阻止。原真实时钟、288轮/负载、到期两次重开、默认worker/DPAPI/OS锚点、TTL/ACK/FULL/DELETE和全部期限均未改。
+
+新日志单条64KiB/总16MiB，文件wx/0600、全部目录及fd/路径物理身份绑定、拒绝软/硬链接、替换/额外写入、溢出及flush失败；无内存/管道回退。仅写原日档安全元数据及固定进程结果，不采集异常原文、模型内容、凭据或数据库。真实OS子进程stdout被父端关闭的回归确认文件仍保留事件与失败结果、实际退出1；入口组合另覆盖成功、私有失败及双断管。扩大四文件38/38零skip，含正常/非法/极端/替换/链接/实际短写/flush失败；新文件已进入统一unit发现。定向Lint/格式、1670份语法及CI/release治理通过；Mac结果不冒充Windows执行或24h通过，Windows完整CI待推送后核对。既有安装链40470352157仍固定868在独立runner完整candidate门执行，不因本批诊断变更重派或覆盖，模型0。
+
+
 ## 2026-10-27：868日档控制器异常退出，Node仍存活；禁止冒充完整资格或自动重启
 
 08:00:17.964Z健康观察首次报告process_not_running，同时processAlive=true、四连续tick至真实scheduled900000/elapsed900012.1472ms，未记录storage_operation_failed或native_day_failed。随即重新读取同一任务/实际CIM身份：08:00:44Z任务Ready、lastTaskResult3221225786（0xC000013A），PID73832仍存活、可执行路径及创建时间匹配，未有process_finished/controller_failed最终回执。08:01:18Z额外只读父子关系确认原父PID52944不存在。任务执行上限P1DT2H、restartCount0、两项电池停止/拒启均false；TaskScheduler Operational事件不可读，无法确认控制器退出来源，不把它归咎存储、DPAPI、锚点、安全软件或用户操作。
