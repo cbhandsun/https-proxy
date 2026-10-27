@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：SSH恢复，ACK签名消息契约通过；控制通道尚未接入daemon
+
+Windows SSH已恢复，只读核对同一6646任务及实际进程身份。2026-10-27T23:15:28.541Z的健康回执仍running/fresh_real_tick，scheduledMs=1800000、elapsedMs=1800812.9732000001、7个有效节拍、进程存活且failureLatched=false；已越过真实半小时检查点，尚未授24h或到期重开资格。没有重启任务、修改冻结来源或在该主机启动其他验收。
+
+22f6910普通Verify40600134115七个非coverage作业全部success；coverage122525903475、正式40600134088/source-gates122525903167及额外I/O40600134216仍运行，业务边界40600134192已success。原五秒失败及完整门保持，不能把七项成功称整条CI通过。
+
+本批新增私有publication-ack-contract，使用独立HMAC域区分command与signal，严格校验arm/release及armed/held/released消息的进程、epoch、挑战、发布状态、原expiry和精确expectedRevision+1；arm阶段不接受holdChallenge，之后必须携带有限格式的holdChallenge。契约只认证消息，不管理一次性状态、不单独阻止重放，也不证明挑战由宿主新生成；这些必须由待接入的host/client状态机强制，不能把已签消息当存储ACK或实际daemon成功。关闭清零内部key，拒绝getter/Proxy/多余字段并只抛固定错误；未改产品认证、持久语义或期限。
+
+相关三文件18/18通过；原runtime hooks、物理SQLite边界及模块治理另21/21通过，零失败/跳过。全仓Lint零错误/五个既有警告、1699份语法、CI/release治理通过，新文件自动进入原unit发现。尚无本批Windows CI或实际跨进程强杀资格。真实模型0，未写额度账或改变旧实例；后续接固定物理文件传输、一次性host/client绑定，再做实际daemon控制/中断矩阵；五秒稳定性、最新本机安装两端、真实provider、24h/到期重开和最大容量仍未完成。
+
 ## 2026-10-27：增加发布ACK内部可控边界；物理SQLite组合通过，尚未授daemon矩阵资格
 
 本批新增私有publication-ack-boundary及运行时afterDurableAck可选接口，默认宿主未启用。实际原ACK生产器执行后、原观察器发布完成回执/调用方拿到token前，才调用同步边界；只传冻结rootId/expiresAt/revision，既不传token、reference、principal或原文，也不能替换原token。异步/Proxy/generator回调及非undefined返回拒绝；失败保持sticky，待完成的host-save不能授成功。先红回归还复现了回调吞掉重入异常仍可能放行外层ACK，新实现拒绝ACK重入并在回调后重新检查失败/关闭状态；回归已转绿。原无边界路径与存储Promise、请求、精确CAS/ACK、认证和库存来源保持。
