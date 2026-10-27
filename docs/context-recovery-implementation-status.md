@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：启动最终ACK复用owned通道；5c安装闭合，b799真实五秒失败保留
+
+5c安装40447241011/job122001418349整轮success，原候选完整门及安装构建、同格式升级回滚/DPAPI、582实际迁移、两端、发布包内部检查均完成。manifest为5ff2c661e2d2c84a90b9643b71cb37bca6d0d287bbfe8ba5cd63dfe03d52c533。582回执installed_legacy_582_finished，八阶段、baselineSourceCount=582、布局1→3、revisionDelta=1、旧读者拒写。两端schema7四案例各三次压缩、精确答案/同会话重启通过，默认零代理恢复、增强私有读后独立公开生成；真实Codex默认/增强Responses WS均401拒绝未授权升级、partialFrames=5/terminalFrames=0、两端socket关闭，HTTP/SSE/WS排空及daemon自然零退出/所属树清空通过。安装包publication30/30零skip仅defaultWorkerQualified=true、daemonQualified=false；providers/24h/受控启用仍false，模型0。不得据此授其余daemon内部转换或本批新运行时资格。
+
+b799普通40448895847七项success、coverage122006665211终态failure；正式40448895755四项success，不能覆盖普通失败。失败为Responses long-persistent首轮HTTP5005ms、requests/handshakes各4。首次取得实际同窗client I/O：windowTermination=persistent-request-failed、cleanupVerified=true、68对flush，数据库max1694ms/日志446ms，unfinishedFlushes=1、traceCompletenessVerified及commitCorrelationQualified均false，不据汇总断言唯一因果。该失败同ownerEpoch1/sequence6 save-reference-state的SQL COMMIT1940ms、线程CPU0，engine_execute2009ms；后续seq7/8/9/10 COMMIT584/557/395/794ms。proxy窗口file-completed、数据库59ms/日志30ms，不覆盖client失败。原SQL FULL/DELETE及所有期限保持。
+
+本机b799新独立目录完成锁安装41522/42507ms、原生105001ms，原两容量文件26/26、两次默认worker/DPAPI开关成功。新采集文件初始至04:43:11Z摘要296b31cc0efca8a702c708065d5021cf9a6825cbf3184fa2f9a58125d3cf58ec保持、可读且Git干净，旧删除者仍未确认，未改安全软件/恢复旧冻结文件。隔离工具环境缺SystemDrive/ProgramData造成字面%SystemDrive%缓存目录，七份缓存仅元数据核对后整体移至同一新root的source目录外保留，修正仅子进程标准变量。采集整份先37/37；环境修正后36/37，actual verify.yml模拟用例pwsh spawn五秒ETIMEDOUT，原失败保留，未再次重跑补绿；CI该实际用例已通过，不能撤销本机失败。原50项恢复短测237835ms退出1，49通过/1失败零skip：Responses第二轮HTTP4902ms、最终publication_wait_failed5009ms；本机没有同窗I/O。第二owner首次scan-reference锚点dispatch549ms，startup dispatch1412/626ms；不把这些值等同于CI COMMIT1940ms的根因。
+
+本批实际运行时改动针对首次请求才建立owned锚点通道的额外开销：createAsyncStorageOwner在SQL正常COMMIT后，以原persistAsync等待启动最终快照的精确revision ACK及路径复核，才返回owner/engine_ready；worker显式await该工厂。稳态复用此通道；原同步空intent仍先于SQL COMMIT，原同步owner不改，原生compare/flush、ACK精确相等、TTL及失败闭锁均不减少或放宽。异步启动失败先等真实通道close，再清库/释放写者；清理失败和细阶段仍按原私有错误边界拒绝，不提前ready。它是实际开销优化，不称已解决所有慢flush或一小时故障。
+
+两项物理回归先因旧工厂同步返回而红，现验证挂起ACK无ready/持有写锁、首次请求复用通道、仍只有一次同步空intent；另覆盖空/非法/错revision/极端revision ACK、启动中路径替换及实际清理前不可取得写者。原TTL重开、stale SQL仍可重试、close中晚成功拒绝等断言保留；VM夹具改为等实际ready后发消息。扩大十一文件152项151通过、1原Windows限定skip、零fail；定向Lint/格式、1667语法和CI/release治理通过。本批完整Windows尚待推送后执行，不能以Mac结果授资格。新24h仍未注册/启动，原完整门因b799普通失败未过；Windows分钟监测准备未运行、监测24仍暂停，旧日档/最大文件暂停不变。下一步核对本批新源码完整门及本机原五秒，再按已授权日档启动；模型额度未核对，真实模型0。
+
+
 ## 2026-10-27：采集门禁夹具通过stdin传JSON，保留Windows源码缺失阻塞
 
 同一Windows新5c目录复核仍只有原采集测试tracked删除，长测任务未注册、24h未启动；原干净源码门、旧失败及冻结环境保持。安装链40447241011仍在原候选完整门，其现有日志已完成段无not ok，但尚无安装/升级/迁移/schema7资格，不重派同轮。

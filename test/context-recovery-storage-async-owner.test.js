@@ -8,6 +8,7 @@ const { createRecoveryAnchorSession } = require('../lib/proxy/context-recovery-a
 const { createAsyncStorageOwner } = require('../lib/proxy/context-recovery-storage-owner');
 const { KEY_PREFIX } = require('../lib/proxy/context-recovery-key-contract');
 const { DatabaseSync } = require('node:sqlite');
+const { types } = require('node:util');
 const { storageFailureDiagnostic } = require('../lib/proxy/context-recovery-storage-failure');
 const safe = (error) =>
   error.code === 'context_recovery_storage_unavailable' && error.message === error.code;
@@ -30,7 +31,11 @@ function fixture(t) {
     gates = [];
   let writes = 0,
     closes = 0,
+    channels = 0,
+    syncWrites = 0,
     failed = false;
+  const startupPhases = [];
+  let replyValue = (text) => text;
   let waitReply = async () => {},
     waitClose = async () => {};
   const protectKey = ({ operation, value }) =>
@@ -51,21 +56,35 @@ function fixture(t) {
       platform: 'win32',
       nativeExecutable: executable,
       environment: { SystemRoot: 'C:\\Windows' },
-      execute: (_file, _args, options) => execute(options.input),
-      createChannel: () => ({
-        async execute(text) {
-          const reply = execute(text);
-          await waitReply();
-          return reply;
-        },
-        async close() {
-          closes++;
-          await waitClose();
-        },
-      }),
+      execute: (_file, _args, options) => {
+        if (JSON.parse(options.input).operation !== 'read') syncWrites++;
+        return execute(options.input);
+      },
+      createChannel: () => {
+        channels++;
+        return {
+          async execute(text) {
+            const reply = execute(text);
+            await waitReply();
+            return replyValue(reply);
+          },
+          async close() {
+            closes++;
+            await waitClose();
+          },
+        };
+      },
     });
   const open = () => {
-    const owner = createAsyncStorageOwner({ directory, protectKey }, { createAnchorSession });
+    const owner = createAsyncStorageOwner(
+      { directory, protectKey, onStartup: ({ phase }) => startupPhases.push(phase) },
+      { createAnchorSession }
+    );
+    if (types.isPromise(owner))
+      return owner.then((ready) => {
+        owners.push(ready);
+        return ready;
+      });
     owners.push(owner);
     return owner;
   };
@@ -81,6 +100,29 @@ function fixture(t) {
     rows,
     writes: () => writes,
     closes: () => closes,
+    channels: () => channels,
+    syncWrites: () => syncWrites,
+    startupPhases: () => [...startupPhases],
+    corruptReply(mode) {
+      replyValue = (text) => {
+        if (mode === 'empty') return '';
+        if (mode === 'malformed') return '{';
+        const value = JSON.parse(text);
+        value.revision = mode === 'extreme-revision' ? Number.MAX_SAFE_INTEGER : value.revision + 1;
+        return JSON.stringify(value);
+      };
+    },
+    validReply() {
+      replyValue = (text) => text;
+    },
+    rejectReply() {
+      waitReply = async () => {
+        throw Error('PRIVATE synthetic reply failure');
+      };
+    },
+    resumeReplies() {
+      waitReply = async () => {};
+    },
     fail() {
       failed = true;
     },
@@ -111,9 +153,9 @@ const save = (owner, expiresAt, revision = 0) =>
     state: { original: 'PRIVATE synthetic', calls: 4 - revision },
   });
 
-test('async owner retains synchronous empty intent and startup, waits for exact ACK and reopens unchanged expiry', async (t) => {
+test('async owner retains synchronous empty intent and durable startup, waits for exact ACK and reopens unchanged expiry', async (t) => {
   const f = fixture(t),
-    owner = f.open(),
+    owner = await f.open(),
     expiresAt = Date.now() + 60000;
   assert.equal(f.writes(), 2);
   const held = f.holdReply(),
@@ -134,7 +176,7 @@ test('async owner retains synchronous empty intent and startup, waits for exact 
   held.resolve();
   assert.deepEqual(await pending, { revision: 1 });
   await owner.close();
-  const reopened = f.open();
+  const reopened = await f.open();
   const state = await reopened.execute({ operation: 'load', scope });
   assert.equal(state.expiresAt, expiresAt);
   assert.equal(state.revision, 1);
@@ -142,7 +184,7 @@ test('async owner retains synchronous empty intent and startup, waits for exact 
 
 test('failed post-SQL ACK never succeeds and writer lock remains held until actual channel close', async (t) => {
   const f = fixture(t),
-    owner = f.open(),
+    owner = await f.open(),
     expiresAt = Date.now() + 60000;
   await save(owner, expiresAt);
   const held = f.holdClose();
@@ -162,13 +204,13 @@ test('failed post-SQL ACK never succeeds and writer lock remains held until actu
   await rejected;
   await assert.rejects(owner.execute({ operation: 'load', scope }), safe);
   f.restore();
-  const reopened = f.open();
+  const reopened = await f.open();
   assert.equal((await reopened.execute({ operation: 'load', scope })).revision, 2);
 });
 
 test('rejected stale SQL remains retryable and does not submit another anchor write', async (t) => {
   const f = fixture(t),
-    owner = f.open(),
+    owner = await f.open(),
     expiresAt = Date.now() + 60000;
   await save(owner, expiresAt);
   const writes = f.writes();
@@ -185,7 +227,7 @@ test('rejected stale SQL remains retryable and does not submit another anchor wr
 
 test('close during async ACK holds the writer lock, rejects in-flight result and is idempotent', async (t) => {
   const f = fixture(t),
-    owner = f.open(),
+    owner = await f.open(),
     reply = f.holdReply(),
     closed = f.holdClose();
   const rejected = assert.rejects(save(owner, Date.now() + 60000), safe),
@@ -197,13 +239,13 @@ test('close during async ACK holds the writer lock, rejects in-flight result and
   closed.resolve();
   await closing;
   await rejected;
-  const reopened = f.open();
+  const reopened = await f.open();
   assert.equal((await reopened.execute({ operation: 'load', scope })).revision, 1);
 });
 
 test('path verification failure closes an already-used async channel before releasing writer authority', async (t) => {
   const f = fixture(t),
-    owner = f.open(),
+    owner = await f.open(),
     expiresAt = Date.now() + 60000;
   await save(owner, expiresAt);
   const key = path.join(f.directory, '.data-key'),
@@ -222,6 +264,100 @@ test('path verification failure closes an already-used async channel before rele
   held.resolve();
   await rejected;
   fs.renameSync(moved, key);
-  const reopened = f.open();
+  const reopened = await f.open();
   assert.equal((await reopened.execute({ operation: 'load', scope })).expiresAt, expiresAt);
+});
+
+test('async startup waits for its real channel ACK and reuses that channel for the first request', async (t) => {
+  const f = fixture(t),
+    held = f.holdReply(),
+    pending = f.open();
+  assert.equal(types.isPromise(pending), true, 'startup must await the owned native channel');
+  let ready = false;
+  void pending.then(() => {
+    ready = true;
+  });
+  await turn();
+  assert.equal(ready, false);
+  assert.equal(
+    f.syncWrites(),
+    1,
+    'empty enrollment intent still precedes SQL COMMIT synchronously'
+  );
+  assert.equal(f.writes(), 2);
+  assert.equal(f.channels(), 1);
+  assert.throws(f.open, safe, 'pending startup retains the exclusive writer');
+  held.resolve();
+  const owner = await pending;
+  assert.equal(f.startupPhases().filter((phase) => phase === 'engine_ready').length, 1);
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+  assert.equal(f.channels(), 1, 'first operation cannot spawn another anchor channel');
+  assert.equal(f.syncWrites(), 1, 'startup final ACK must not use another one-shot process');
+});
+
+test('failed startup ACK stays rejected and retains writer authority until actual channel cleanup', async (t) => {
+  const f = fixture(t),
+    held = f.holdClose();
+  f.rejectReply();
+  const pending = f.open();
+  assert.equal(types.isPromise(pending), true);
+  const rejected = assert.rejects(pending, (error) => {
+    assert.equal(storageFailureDiagnostic(error).phase, 'anchor-request');
+    return safe(error);
+  });
+  await turn();
+  assert.equal(f.closes(), 1);
+  assert.throws(f.open, safe);
+  held.resolve();
+  await rejected;
+  f.resumeReplies();
+  const reopened = await f.open();
+  assert.deepEqual(await reopened.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+});
+
+for (const mode of ['empty', 'malformed', 'wrong-revision', 'extreme-revision']) {
+  test(
+    'async startup rejects ' + mode + ' ACK, closes the channel and never returns ready',
+    async (t) => {
+      const f = fixture(t);
+      f.corruptReply(mode);
+      await assert.rejects(f.open(), safe);
+      assert.equal(f.startupPhases().includes('engine_ready'), false);
+      assert.equal(f.closes(), 1);
+      assert.equal(f.syncWrites(), 1);
+      f.validReply();
+      const owner = await f.open();
+      assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+    }
+  );
+}
+
+test('path replacement during startup ACK cannot return ready or release its writer before cleanup', async (t) => {
+  const f = fixture(t),
+    reply = f.holdReply(),
+    cleanup = f.holdClose();
+  const pending = f.open();
+  const rejected = assert.rejects(pending, (error) => {
+    assert.equal(storageFailureDiagnostic(error).phase, 'owner-verify');
+    return safe(error);
+  });
+  await turn();
+  const key = path.join(f.directory, '.data-key'),
+    moved = key + '-during-startup';
+  fs.renameSync(key, moved);
+  reply.resolve();
+  await turn();
+  assert.equal(f.startupPhases().includes('engine_ready'), false);
+  assert.equal(f.closes(), 1);
+  const mutex = new DatabaseSync(path.join(f.directory, '.writer.sqlite'));
+  try {
+    assert.throws(() => mutex.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE'));
+  } finally {
+    mutex.close();
+  }
+  cleanup.resolve();
+  await rejected;
+  fs.renameSync(moved, key);
+  const owner = await f.open();
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
 });

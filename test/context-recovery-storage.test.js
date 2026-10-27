@@ -200,7 +200,7 @@ test('worker request rejection preserves negative replies and terminal malformed
     'utf8'
   );
   const contract = require('../lib/proxy/context-recovery-storage-contract');
-  function workerFixture() {
+  async function workerFixture() {
     const port = new EventEmitter();
     const replies = [];
     let closed = 0,
@@ -229,10 +229,12 @@ test('worker request rejection preserves negative replies and terminal malformed
         return modules[name];
       },
     });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(json(replies.at(-1)), { id: 0, ok: true });
     replies.length = 0;
     return { port, replies, closed: () => closed, executions: () => executions };
   }
-  const fixture = workerFixture();
+  const fixture = await workerFixture();
   for (const input of [
     { id: 1 },
     { id: 2, request: { operation: 'inspect' }, extra: true },
@@ -256,7 +258,7 @@ test('worker request rejection preserves negative replies and terminal malformed
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(json(fixture.replies.at(-1)), { id: 6, ok: true, result: null });
   assert.equal(fixture.closed(), 1);
-  const invalid = workerFixture();
+  const invalid = await workerFixture();
   invalid.port.emit('message', { id: 0, request: { operation: 'inspect' } });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(invalid.replies.length, 0);

@@ -404,7 +404,7 @@ test('actual async owner retains the failed phase even when its mandatory cleanu
         persist() {},
         close() {},
         async persistAsync() {
-          if (phase === 'anchor-persist') reject();
+          if (armed && phase === 'anchor-persist') reject();
         },
         async closeAsync() {
           closes++;
@@ -436,7 +436,7 @@ test('actual async owner retains the failed phase even when its mandatory cleanu
         },
         target
       );
-      const owner = target.exports.createAsyncStorageOwner(
+      const owner = await target.exports.createAsyncStorageOwner(
         { directory, protectKey: ({ value }) => KEY_PREFIX + value },
         {
           createAnchorSession: () => ({ repository: {}, commit() {}, close() {} }),
