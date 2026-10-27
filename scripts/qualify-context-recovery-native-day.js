@@ -3,11 +3,13 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { runNativeCapacityDay } = require('./lib/context-recovery-native-day');
-const { createNativeDayReceipts } = require('./lib/context-recovery-native-day-receipts');
+const { requireNativeDayAssignment } = require('./lib/context-recovery-native-day-start');
 
 async function main() {
   if (process.argv.length !== 2 || process.platform !== 'win32') throw Error();
+  requireNativeDayAssignment(process.env?.HPM_NATIVE_DAY_OWNED_JOB);
+  const { runNativeCapacityDay } = require('./lib/context-recovery-native-day');
+  const { createNativeDayReceipts } = require('./lib/context-recovery-native-day-receipts');
   const receipts = createNativeDayReceipts(fs.realpathSync.native(os.tmpdir()));
   let exitCode = 1;
   try {

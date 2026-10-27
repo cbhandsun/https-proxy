@@ -98,6 +98,10 @@ test('directory and journal replacement reject further writes without modifying 
       fs.renameSync(file, file + '.original');
       fs.writeFileSync(file, 'replacement');
     } else {
+      // Windows refuses to rename a directory containing an open file. Move
+      // that still-open leaf first, then exercise a real directory replacement
+      // on every platform; no skip, retry or simulated identity is involved.
+      fs.renameSync(file, path.join(path.dirname(receipts.directory), 'relocated-progress.jsonl'));
       fs.renameSync(receipts.directory, receipts.directory + '.original');
       fs.mkdirSync(receipts.directory);
       fs.writeFileSync(file, 'replacement');
