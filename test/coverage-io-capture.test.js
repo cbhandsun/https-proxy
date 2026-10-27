@@ -40,15 +40,15 @@ test('the real PowerShell recorder admits only the exact workflow and job pairs'
     ['verify.yml@', 'coverage', false],
     ['', 'coverage', false],
   ];
-  const encoded = Buffer.from(JSON.stringify(cases)).toString('base64');
   const modulePath = path
     .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
     .replaceAll("'", "''");
-  const script = `Import-Module '${modulePath}';$cases=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))|ConvertFrom-Json;$results=@(foreach($case in $cases){$env:GITHUB_WORKFLOW_REF='cbhandsun/https-proxy/.github/workflows/'+$case[0];$env:GITHUB_JOB=$case[1];& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWorkflow}});ConvertTo-Json -Compress -InputObject $results`;
+  const script = `Import-Module '${modulePath}';$cases=[Console]::In.ReadToEnd()|ConvertFrom-Json;$results=@(foreach($case in $cases){$env:GITHUB_WORKFLOW_REF='cbhandsun/https-proxy/.github/workflows/'+$case[0];$env:GITHUB_JOB=$case[1];& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWorkflow}});ConvertTo-Json -Compress -InputObject $results`;
+  // Keep the fixture JSON on stdin so the command contains only reviewable PowerShell.
   const result = spawnSync(
     'pwsh',
     ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
-    { encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+    { input: JSON.stringify(cases), encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
   );
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0);
