@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：保留5411原生准备五秒失败，补有限操作位置，不冒称根因修复
+
+固定5411ff7157963ff5b5ad841c5e429e08d131f743普通40430428016七项成功，coverage121946475908终态failure。native publication sending正常释放与native HTTP transport-finished正常停机两个用例，在原ready五秒窗口耗尽，耗时5023/5074ms；lastFixture均fixture-observed，而原生startup已在527/1219ms ready。尚未进入本次目标COMMIT中断，不能记为COMMIT边界失败或首次开库失败，也不能由其他成功窗口覆盖。安全摘录另存本机，不重跑失败job；固定5411 schema7新安装候选因完整门未过而未创建/派发。其正式40430427920/source仍执行。d0119a5普通40431069804已有七项成功、coverage仍执行，正式40431069977及独立完整负载I/O40431069844均执行中。
+
+原夹具只记录startup和fixture-observed，无法识别其后准备中的具体持久调用。本批拆出test-only有限操作观察器，在子进程原execute Promise前后发送sequence/固定operation/started-completed-failed/单调elapsedMs；父进程严格解析，仅超时时附最近16条。原数据/输出/异常/目录/密钥不进入观察消息；总序号上限128、时间上限60000ms、重复/错序/未知/可执行输入拒绝，允许原有排队调用重叠，不新增串行门或自动重试。原Promise的返回值和异常原身份保留，产品失败加观察失败时独立保留两者；started与completed都是诊断，不授持久或验收资格。默认worker/DPAPI/锚点不替换、不增加storage调用，原ready/HTTP五秒、COMMIT750ms、case15秒及自然退出期限保持。产品持久、TTL、认证、ACK及SQLite FULL/DELETE没有变更，五秒根因仍未确认。
+
+新增八项含真实pending Promise/原请求与结果各一次、失败及观察双失败、重叠调用、空/非法/极端/访问器/Proxy/私有字段拒绝和有界历史；进入统一发现。相关五文件41项零fail/skip，1667份JS语法、定向Lint/格式、CI/release治理通过。早一轮扩大六文件因遗漏本次PATH的pwsh三项ENOENT失败保留；补命令级便携PowerShell后47通过/1失败，剩余为Mac上的Windows Job包装；独立构造同一Windows Job类亦失败，未授本机Windows Job资格，也不跳过/放宽原测试。最终41项是注明范围的相关验证，不替代该项或完整Windows。
+
+新真实日档2026-10-27T01:15:45.895Z同一任务/进程/身份，11连续tick至3000000ms、elapsed3000002.3982ms（50分钟），原24h资格仍false；五分钟只读监测继续、长测主机不增加其他负载，旧失败及最大文件暂停保持。下一步以当前实际CI和I/O结果定位存储长尾，完整门通过才推进新固定安装WS；daemon其余转换/容量/真实到期双重开、额度核对后真实两端及受控自用仍待，模型0。
+
+
 ## 2026-10-27：补齐完整覆盖率负载变化的 I/O 触发，五秒根因仍未确认
 
 新增测试会经全量排序改变原四分片的分配和同场负载；原覆盖率 I/O 的 paths 仅跟踪少数持久模块及单个目标测试，ff/2b 等新增安装测试后的实际五秒失败没有同窗 ETW，不能由其他成功场次解释。本批让该独立诊断同时跟踪 test/**、原两个 runner、发现/分片/隔离环境模块以及 package/锁文件；保留原完整 proxy→client→frontend 顺序、首个失败后停止、独立清理回执、环形采集上限及全部资格 false。不是重跑旧失败 job、不修改产品持久/认证/期限/覆盖率基线，也不把诊断通过当五秒稳定。新增治理先以缺 test/** 失败，扩大原采集及治理两文件34项全部通过、零 skip，定向 Lint/格式及 CI/release 治理通过。源码检查确认现有 saveReference 已复用不可变密文，不能把“预算更新重写原文”当已确认 bug 或提交无证据产品改动。

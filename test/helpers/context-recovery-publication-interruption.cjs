@@ -12,6 +12,7 @@ const { performance } = require('node:perf_hooks');
 const { setImmediate: nextTurn } = require('node:timers/promises');
 const { DatabaseSync } = require('node:sqlite');
 const { createPublicationStartupProgress } = require('./publication-startup-progress.cjs');
+const { createPublicationOperationProgress } = require('./publication-operation-progress.cjs');
 const { waitForFixtureSignal } = require('./fixture-phase-wait.cjs');
 const { openContextRecoveryStorage } = publicationModule('context-recovery-storage');
 const { createRecoverySqliteStore } = publicationModule('context-recovery-storage-sqlite');
@@ -28,8 +29,15 @@ function processFixture(file) {
   child.stderr.resume(); // Experimental SQLite warning is not protocol output.
   const messages = [];
   const startup = createPublicationStartupProgress();
+  const operations = createPublicationOperationProgress();
   child.on('message', (message) => {
-    if (message?.phase === 'native-startup') {
+    if (message?.phase === 'storage-operation') {
+      try {
+        operations.observe(message.progress);
+      } catch {
+        messages.push({ phase: 'failed' });
+      }
+    } else if (message?.phase === 'native-startup') {
       try {
         startup.observe(message.progress);
       } catch {
@@ -57,7 +65,7 @@ function processFixture(file) {
         if (performance.now() >= deadline) {
           const observed = startup.describe();
           assert.fail(
-            `fixture phase deadline exceeded (awaiting=${name};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs};startupTimeline=${JSON.stringify(startup.snapshot())})`
+            `fixture phase deadline exceeded (awaiting=${name};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs};startupTimeline=${JSON.stringify(startup.snapshot())};storageOperations=${JSON.stringify(operations.snapshot())})`
           );
         }
         await waitForFixtureSignal(child, Math.max(0, deadline - performance.now()));

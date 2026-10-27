@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const http = require('node:http');
+const { observePublicationOperations } = require('./publication-operation-progress.cjs');
 const { createProxyShutdown } = publicationModule('server-shutdown');
 const { createStoppingAdmission } = publicationModule('stopping-admission');
 const { openContextRecoveryStorage } = publicationModule('context-recovery-storage');
@@ -61,6 +62,12 @@ async function initialize(input) {
         now: () => 100,
       });
   if (native) report('native-opened');
+  // Observe the original execute Promise, including its durable native ACK.
+  // No WorkerType/protector/clock override, extra storage operation or retry.
+  const execute = observePublicationOperations(
+    (request) => engine.execute(request),
+    (progress) => report('storage-operation', { progress })
+  );
   const storage = {
     async execute(request) {
       const target =
@@ -76,7 +83,7 @@ async function initialize(input) {
         // The parent additionally witnesses SQLite's actual PENDING lock.
         // This message alone is never accepted as proof of COMMIT entry.
         if (native && target && input.boundary === 'commit') report('commit-entering');
-        result = await engine.execute(request);
+        result = await execute(request);
       } catch {
         report('engine-failed');
         throw new Error('fixture storage failure');
@@ -84,13 +91,13 @@ async function initialize(input) {
         committing = false;
       }
       if (target && input.graceful === true && input.boundary === 'commit') {
-        report('commit-durable', { record: await engine.execute({ operation: 'load', scope }) });
+        report('commit-durable', { record: await execute({ operation: 'load', scope }) });
       }
       if (target && input.boundary === 'ack') {
         const pending = new Promise((resolve) => {
           release = resolve;
         });
-        report('commit-durable', { record: await engine.execute({ operation: 'load', scope }) });
+        report('commit-durable', { record: await execute({ operation: 'load', scope }) });
         await pending;
       }
       return result;
@@ -137,7 +144,7 @@ async function initialize(input) {
   if (['transport-finished', 'uncertain'].includes(input.transition))
     assert.deepEqual(await view.startPublicationAsync(), { ok: true });
   report('fixture-sending');
-  const before = await engine.execute({ operation: 'load', scope });
+  const before = await execute({ operation: 'load', scope });
   advance = async () => {
     if (armed) throw new Error('duplicate advance');
     armed = true;
@@ -155,7 +162,7 @@ async function initialize(input) {
       throw new Error('fixture publication failure');
     }
     assert.deepEqual(result, { ok: true });
-    report('acknowledged', { record: await engine.execute({ operation: 'load', scope }) });
+    report('acknowledged', { record: await execute({ operation: 'load', scope }) });
     await engine.close();
     database?.close();
     process.disconnect();
