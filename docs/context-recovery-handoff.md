@@ -1,5 +1,18 @@
 # 上下文恢复换机交接
 
+## 2026-10-27：修复原子凭据迁移后配置监听失效；原路由回归恢复，五秒持久准备失败继续保留
+
+此前在原2b20d9d隔离归档复现的headers-routing Google profile切换失败，现已定位一项实际原因：fs.watch直接绑定配置文件的旧物理身份，首次明文保护迁移/编辑器原子写入替换文件后，后续编辑可能不再被监听。新增真实连续三次原子替换及替换后编辑回归在旧实现失败。本批保留原文件监听，增加只按固定配置文件名匹配的目录监听；仅在dev/ino/birthtimeNs身份变化时建立新文件监听并关闭旧监听，不从事件filename构造任何读取路径。普通编辑仍由原文件监听提供及时通知，原150ms debounce、串行reload、占用重试次数/间隔、认证、非法配置保留旧状态和持久/TTL语义全部不变。
+
+中间仅监听目录的实现使原debounce测试和无关文件隔离测试失败，已保留该失败并改为上述双监听，不延长原断言期限。新增正常、重复替换、删除/非法JSON后恢复、关闭后拒绝reload、兄弟文件隔离、缺失/目录初始目标、大小写及Buffer/null/非法/越界filename边界；同一写入可能有两个OS通知，断言每个固定版本按顺序实际被观察，而不把通知数冒充业务转换数。新文件进入统一unit发现，无新增依赖或平台skip。
+
+Mac原headers-routing完整文件及入口认证、配置监听/控制器共11项全部通过（67034ms），此前Google key失败不再复现，原断言和负载不改；随后补非法basename边界并复核相关三文件9/9通过。Windows在新目录仅运行真实fs.watch/rename/unlink及四项新回归，最终固定源码包SHA256 cd4135d8fd47468def8244ece34b21410fbca833981d6e301c256eaa16d4effa，4/4零skip、父Node520ms退出0、所属Job自然清空；不启动产品/恢复库、没有模型、凭据或冻结目录访问。SSH父stderr1398字节未分类，Node自身stderr0，不授整套交付管线资格。定向Lint/格式、1678语法、CI/release治理通过，完整本批CI待推送核对；旧management-startup-race夹具缺warn问题仍独立保留，未将其测试从CI删除。
+
+2b20d9d普通40488294873、正式40488294585四项及额外I/O40488294580现均终态success。8bcede2普通40490924914和正式40490925021仍in_progress；额外I/O40490925000/job122144354474已failure，原proxy coverage原生graceful HTTP十项8通过/2失败：uncertain的COMMIT与ACK两项均awaiting=ready、lastFixture=fixture-prepared，尚未进入目标中断。原开库ready分别1740/1446ms，之后load-reference及多次save-reference-state，第四次保存仍pending时五秒准备门到期（5090/5108ms）；不能归为本批配置监听引入，也不能授持久五秒稳定性。失败不rerun、不提高准备/请求/存储门限，下一步依据该持久准备路径定位重复工作和I/O耗时。
+
+先自用交付优先级继续，桌面673候选仍未包含新修复，必须保留其原身份并更新后再核验；完整安装/真实provider、剩余内部发布转换、连续24h及最大文件缺口不因此消失。原失败与冻结现场保持，没有新24h、真实模型调用0，也未改日常配置、代理或信任证书。
+
+
 ## 2026-10-27：拆除健康与原生控制对无关管理功能的冷加载依赖；两端短测通过，完整资格未授
 
 Windows测量确认健康请求经原请求核心后，还会加载整套管理聚合。本批将原健康响应实现抽为management-health，将原配置读取、脱敏、revision实现抽为management-config-read，原完整管理工厂继续复用同一实现；lazy-management仅对health/getConfig/proxyStop及原legacy别名使用独立组合，其他功能和自定义模块加载器保持原路径。停机仍调用同一个proxyStopControl.handle，配置写入队列仍由原完整工厂唯一持有。没有绕过请求核心、CORS或管理认证，没有新增公开配置端点、缩小健康字段、改变持久就绪定义或放宽期限。三份新运行时模块均进入发布源码清单。
