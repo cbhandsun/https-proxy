@@ -79,7 +79,6 @@ test('always summary makes generation conditional on reaching preparation stages
 test(
   'always summary reports scenario scope only for the matching successful job',
   {
-    skip: process.platform !== 'win32',
     timeout: 30000,
   },
   () => {
@@ -111,7 +110,7 @@ test(
     assert.ok(begin >= 0 && end > begin);
     const expression = workflow.slice(begin, end) + '          )';
     const result = spawnSync(
-      'C:/Program Files/PowerShell/7/pwsh.exe',
+      process.platform === 'win32' ? 'C:/Program Files/PowerShell/7/pwsh.exe' : 'pwsh',
       [
         '-NoLogo',
         '-NoProfile',
@@ -152,7 +151,7 @@ test(
         assert.ok(
           scopes[0].includes(
             row.scenario === 'n09'
-              ? 'cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke, interruption with the upstream public final held, and prepared SQLite COMMIT pending forced-kill/positive-release controls'
+              ? 'cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke, interruption with the upstream public final held, prepared SQLite COMMIT pending forced-kill/positive-release controls, and prepared durable-store-before-host-ACK forced-kill/positive-release controls'
               : 'six mutation/hold cases'
           )
         );
@@ -162,7 +161,7 @@ test(
         row.summary.some((line) =>
           line.includes(
             prepared
-              ? 'Not qualified: other publication COMMIT interiors (sending, transport-finished, uncertain, withdrawn), daemon durable-ACK interiors'
+              ? 'Not qualified: other publication COMMIT interiors (sending, transport-finished, uncertain, withdrawn), other daemon durable-ACK interiors (sending, transport-finished, uncertain, withdrawn)'
               : 'Not qualified: commit/publication in progress'
           )
         )

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "238ae76bb817d6033927f831bdc2356bf1502bd9",
+  "diagnosticRunId": 40602444326,
+  "diagnosticJobId": 122533677040,
+  "diagnosticConclusion": "success",
+  "preparationIdentity": {
+    "planSha256": "4833eaf7803ffd9e5a04371a13e69af3e9f8ea2a7e5dd1f2d8fddf6f603dc409",
+    "buildReceiptSha256": "c015454f3107e79f5730fe759787270df764d3af231eb3893b314d7c1b4efa1a"
+  },
+  "executionReceipt": {
+    "n08Qualified": false,
+    "nonLoopbackBlocked": true,
+    "phase": "hosted_network_finished",
+    "ownedTreeEmpty": true,
+    "tlsVerified": true,
+    "probesPassed": true
+  },
+  "fixedSourceAssertions": {
+    "requiredCases": 10,
+    "preparedAckKill": true,
+    "preparedAckRelease": true,
+    "originalOwnedJobMs": 120000,
+    "originalTreeCloseMs": 5000,
+    "exactDurableRevisionDelta": 1,
+    "budgetAndExpiryPreserved": true,
+    "zeroPublicBytesAtKill": true,
+    "positivePublicCompletionBarrier": true
+  },
+  "evidenceBasis": "fixed-source identity plus enforced ten-case entry and strict owned-Job receipt; diagnostic scope only",
+  "fullFormalQualification": false,
+  "ordinaryFailedJobs": [
+    122533677523,
+    122533677662
+  ],
+  "formalSourceGateFailedJob": 122533677372,
+  "failure": {
+    "test": "always summary reports scenario scope only for the matching successful job",
+    "expectedCases": 10,
+    "workflowSummaryCases": 8,
+    "formalBusinessSkipped": true
+  },
+  "rerunPerformed": false,
+  "modelRequests": 0
+}

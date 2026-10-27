@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：238原生业务十场景诊断通过；修复摘要门失败，增加sending前置序列
+
+固定238ae76的业务诊断40602444326/n09 job122533677040已completed/success，已读取实际日志并核对精确checkout、prepared plan/build receipt摘要与执行后的hosted_network_finished有限回执。固定执行链在原120000ms Job和5000ms树关闭门下，只有原入口十场景断言及严格owned-job十场景解析均成功才可返回；因此本次新增prepared ACK强杀/释放对照已在托管Windows实际daemon/default worker/原持久owner路径执行，而非只运行本机模拟。内部强杀要求真实持久快照精确+1、原预算/expiry不变、公开0字节，同目录新PID重开保留并恢复原文；正对照仍需原实际公开答案与发布完成屏障。有限来源证明见context-recovery-evidence/238ae76-prepared-ack-diagnostic.json，不含请求/密钥/数据库/原始native帧。这仍是独立诊断范围，不授完整正式链或全矩阵。
+
+238普通Verify40602444315的unit1/job122533677523与coverage/job122533677662失败；正式40602444340/source122533677372同因失败，后续context-recovery已skipped、egress成功。完整日志唯一失败断言为qualification-boundary的8!==10：上一批入口/PS消费者要求十场景，但正式workflow成功摘要仍写八场景，属于本轮遗漏，现修复数量及限定范围；原断言保持。把纯摘要检查移除Windows-only skip，Windows仍用原固定pwsh路径、Mac仅为该检查使用已有pwsh，八组场景/状态在Mac先红复现、后绿；成功摘要只在匹配job成功时出现，不能在failure/cancelled/未知状态授范围。未重跑覆盖238原失败，其他早先五秒与本机Windows-Job创建失败继续保留。
+
+同时为后续sending内部验收增加固定前置序列：宿主的sending目标必须先观察同一generation/root/expiry、精确前一版本的prepared持久保存/原ACK，再持有精确sending版本。前置只放行原生产器token、不发布held、不改变请求/存储Promise；不能跳过/重复前置或用旧/future版本换取目标。边界模块还支持prepared→sending→transport-finished的固定前置路线，但host当前仅接sending，实际后两者业务场景尚未加入或通过，不授完整资格。原直接prepared路径和750/5000ms门保持。
+
+审查回归又复现旧边界检查回调重入时，外层最终虽拒绝，嵌套仍可提前发布一份held探针；没有证据证明实际产品ACK暴露，runtime hook已有独立重入门。边界现进入validating状态后才调用检查，吞掉嵌套异常也必须零held并失败粘滞；固定238模块内存对照显示before拒绝/held1、after拒绝/held0。新回归保留该区别，不补写产品根因。12相关文件143/143、零fail/skip，另独立摘要项覆盖八组状态通过；原物理SQLite、双进程通道、业务adapter与源码闭包/PS签名均执行。Lint零错误/五个既有警告、1709语法、CI/release治理通过，本批格式通过；全仓既有换行失败范围不改。有限本机证据见context-recovery-evidence/publication-ack-prefix.json，新来源完整Windows门仍待。
+
+22f普通八项及正式四作业现均success，但额外I/O旧失败不覆盖，也不授五秒稳定。3e普通八项现success，e451普通七个非coverage作业及其业务诊断success，余正式/coverage/额外I/O按各自运行状态继续核对。原五秒问题仍见实际SQL COMMIT/持久刷盘尾延迟；初始化已为单事务，LIST预扣/结算和每次快照认证不能为降时延被删。本批没有声称修复了产品五秒超时。固定6646同一长测已推进55分钟/12有效节拍、进程存活、无失败锁存，不重启抢占；24h与到期两次重开尚未通过，真实模型0，旧E实例及账保持。下一步将sending前置与实际业务场景组合，并继续五秒排查；其余daemon矩阵、本机安装两端、真实provider、24h/最大容量与最终启用仍未完成。
+
 ## 2026-10-27：prepared ACK强杀/释放已接实际业务入口，待新Windows执行
 
 本批新增独立prepared-ack-probe及publication-ack-driver，将上一批真实控制通道接到现有business-adapter、原托管composition/owned-entry和原Job回执。原八场景不删，增加preparedAckKill/Release两场景，三层回执严格要求十场景及十份适配器清理；原Job、启动门、固定负载与期限未改。私有READ与独立公开上游仍按原路径执行；先持有公开上游，获取完成屏障/已提交账户与空闲观察器代次，再arm精确prepared目标，不能拿上游暂停冒充内部持久边界。

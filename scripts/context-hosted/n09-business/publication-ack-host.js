@@ -125,7 +125,10 @@ function createPublicationAckHost(input, observer) {
         )
           throw fail();
         request = value;
-        boundary.arm(Object.fromEntries(targetKeys.map((key) => [key, value[key]])));
+        boundary.arm(
+          Object.fromEntries(targetKeys.map((key) => [key, value[key]])),
+          value.transition === 'sending' ? 'prepared-prefix' : 'direct'
+        );
         state = 'armed';
         signal('armed', value);
         return state;

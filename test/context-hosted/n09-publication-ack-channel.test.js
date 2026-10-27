@@ -84,7 +84,7 @@ test('two processes authenticate all five actual blocking boundaries and release
       child.send({ kind: 'ack', transition });
       const held = await channel.waitHeld();
       assert.equal(held.revision, 8);
-      assert.equal(held.callOrdinal, 2);
+      assert.equal(held.callOrdinal, transition === 'sending' ? 3 : 2);
       assert.match(held.holdChallenge, /^[a-f0-9]{32}$/);
       channel.release();
       const released = await channel.waitReleased();
@@ -228,4 +228,13 @@ test('time spent writing the released probe cannot extend the host ACK five-seco
   channel.release();
   await assert.rejects(channel.waitReleased(), /n09_publication_ack_channel_rejected/);
   assert.equal((await rejected)[0].kind, 'rejected');
+});
+
+test('sending cannot publish a held receipt without the exact preceding prepared ACK', async (t) => {
+  const { child, channel, files } = await fixture(t);
+  await channel.arm(target('sending'));
+  const rejected = once(child, 'message', { signal: AbortSignal.timeout(3000) });
+  child.send({ kind: 'ack', transition: 'sending', skipPredecessor: true });
+  assert.equal((await rejected)[0].kind, 'rejected');
+  assert.equal(files.read('held', 1), null);
 });

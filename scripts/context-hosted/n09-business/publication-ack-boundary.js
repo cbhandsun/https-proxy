@@ -53,7 +53,11 @@ function createPublicationAckBoundary(input) {
   }
   let state = 'idle',
     baseline,
-    lastTime;
+    lastTime,
+    cursor,
+    ordinal,
+    predecessors,
+    predecessorIndex;
   function available() {
     if (state === 'closed' || state === 'failed') throw fail();
   }
@@ -78,7 +82,7 @@ function createPublicationAckBoundary(input) {
     return time;
   }
   return Object.freeze({
-    arm(input) {
+    arm(input, route = 'direct') {
       try {
         available();
         if (state !== 'idle') throw fail();
@@ -100,6 +104,22 @@ function createPublicationAckBoundary(input) {
           !transitions.has(value.transition)
         )
           throw fail();
+        if (!['direct', 'prepared-prefix'].includes(route)) throw fail();
+        if (
+          route === 'prepared-prefix' &&
+          !['sending', 'transport-finished'].includes(value.transition)
+        )
+          throw fail();
+        predecessors =
+          route === 'direct'
+            ? []
+            : value.transition === 'sending'
+              ? ['prepared']
+              : ['prepared', 'sending'];
+        cursor = value.expectedRevision - predecessors.length;
+        if (cursor < 1 || value.callOrdinal + predecessors.length >= 1024) throw fail();
+        ordinal = value.callOrdinal;
+        predecessorIndex = 0;
         baseline = Object.freeze(value);
         state = 'armed';
       } catch {
@@ -116,24 +136,36 @@ function createPublicationAckBoundary(input) {
         if (
           facts.rootId !== baseline.rootId ||
           facts.expiresAt !== baseline.expiresAt ||
-          facts.revision !== baseline.expectedRevision + 1
+          facts.revision !== cursor + 1
         )
           throw fail();
+        // Validation callbacks cannot recursively authenticate another ACK,
+        // even if their caller catches the nested rejection.
+        state = 'validating';
         const observed = fields(invoke('inspect'), observedKeys);
         if (
           observed.generation !== baseline.generation ||
           observed.activeCount !== 0 ||
           observed.status !== 'completed' ||
           observed.operation !== 'save-reference-state' ||
-          observed.transition !== baseline.transition ||
+          observed.transition !== (predecessors[predecessorIndex] ?? baseline.transition) ||
           observed.rootId !== baseline.rootId ||
           observed.expiresAt !== baseline.expiresAt ||
-          observed.expectedRevision !== baseline.expectedRevision ||
+          observed.expectedRevision !== cursor ||
           !Number.isSafeInteger(observed.callOrdinal) ||
-          observed.callOrdinal <= baseline.callOrdinal ||
+          observed.callOrdinal <= ordinal ||
           observed.callOrdinal > 1024
         )
           throw fail();
+        if (predecessorIndex < predecessors.length) {
+          // Only the fixed, exact predecessor chain may return its genuine
+          // ACK. It grants no held receipt and cannot skip the target write.
+          predecessorIndex++;
+          cursor++;
+          ordinal = observed.callOrdinal;
+          state = 'armed';
+          return;
+        }
         state = 'holding';
         const deadline = now() + 5000;
         const receipt = Object.freeze({

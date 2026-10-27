@@ -13,6 +13,27 @@ const base = {
   expectedRevision: 3,
   transition: 'prepared',
 };
+
+test('a swallowed reentrant inspection failure cannot release either ACK or publish held facts', () => {
+  let nested = false;
+  const f = fixture({
+    inspect() {
+      if (!nested) {
+        nested = true;
+        try {
+          f.boundary.afterDurableAck(f.facts);
+        } catch {
+          /* simulate swallowed callback failure */
+        }
+      }
+      return f.observed;
+    },
+  });
+  f.boundary.arm(base);
+  assert.throws(() => f.boundary.afterDurableAck(f.facts), safe);
+  assert.equal(f.receipts.length, 0);
+  assert.equal(f.boundary.inspect().state, 'failed');
+});
 function fixture(overrides = {}) {
   let time = 0,
     polls = 0;
@@ -61,6 +82,84 @@ test('all five transitions hold only their exact completed store revision and re
     assert.equal(f.receipts[0].boundary, 'durable-store-before-host-ack');
     assert.deepEqual(f.boundary.inspect(), { state: 'released', daemonQualified: false });
     assert.throws(() => f.boundary.arm(base), safe);
+  }
+});
+
+test('fixed prepared predecessors return their genuine ACKs and only the exact final transition is held', () => {
+  for (const path of [
+    ['prepared', 'sending'],
+    ['prepared', 'sending', 'transport-finished'],
+  ]) {
+    const f = fixture();
+    f.boundary.arm(
+      {
+        ...base,
+        transition: path.at(-1),
+        expectedRevision: base.expectedRevision + path.length - 1,
+      },
+      'prepared-prefix'
+    );
+    path.forEach((transition, index) => {
+      Object.assign(f.observed, {
+        transition,
+        expectedRevision: base.expectedRevision + index,
+        callOrdinal: base.callOrdinal + index + 1,
+      });
+      f.boundary.afterDurableAck({ ...f.facts, revision: base.expectedRevision + index + 1 });
+      if (index < path.length - 1) {
+        assert.equal(f.receipts.length, 0);
+        assert.equal(f.time(), 0);
+        assert.equal(f.boundary.inspect().state, 'armed');
+      }
+    });
+    assert.equal(f.receipts.length, 1);
+    assert.equal(f.receipts[0].transition, path.at(-1));
+    assert.equal(f.receipts[0].revision, base.expectedRevision + path.length);
+    assert.equal(f.boundary.inspect().state, 'released');
+  }
+});
+
+test('prefix routes reject skipped, repeated, stale, future and different-root predecessors', () => {
+  for (const patch of [
+    { transition: 'sending' },
+    { generation: 2 },
+    { callOrdinal: base.callOrdinal },
+    { rootId: 'hbs_' + 'f'.repeat(32) },
+    { expiresAt: base.expiresAt + 1 },
+    { expectedRevision: 4 },
+  ]) {
+    const f = fixture();
+    Object.assign(f.observed, patch);
+    f.boundary.arm({ ...base, transition: 'sending', expectedRevision: 4 }, 'prepared-prefix');
+    assert.throws(() => f.boundary.afterDurableAck(f.facts), safe);
+    assert.equal(f.receipts.length, 0);
+  }
+  for (const revision of [3, 5]) {
+    const f = fixture();
+    f.boundary.arm({ ...base, transition: 'sending', expectedRevision: 4 }, 'prepared-prefix');
+    assert.throws(() => f.boundary.afterDurableAck({ ...f.facts, revision }), safe);
+    assert.equal(f.receipts.length, 0);
+  }
+  const f = fixture();
+  f.boundary.arm({ ...base, transition: 'sending', expectedRevision: 4 }, 'prepared-prefix');
+  f.boundary.afterDurableAck(f.facts);
+  Object.assign(f.observed, { expectedRevision: 4, callOrdinal: 4 });
+  assert.throws(() => f.boundary.afterDurableAck({ ...f.facts, revision: 5 }), safe);
+  assert.equal(f.receipts.length, 0);
+});
+
+test('invalid route, impossible revision and exhausted ordinal cannot arm a prefix', () => {
+  for (const [patch, route] of [
+    [{}, null],
+    [{}, []],
+    [{}, 'unknown'],
+    [{}, 'prepared-prefix'],
+    [{ transition: 'sending', expectedRevision: 1 }, 'prepared-prefix'],
+    [{ transition: 'sending', callOrdinal: 1023 }, 'prepared-prefix'],
+  ]) {
+    const f = fixture();
+    assert.throws(() => f.boundary.arm({ ...base, ...patch }, route), safe);
+    assert.equal(f.receipts.length, 0);
   }
 });
 

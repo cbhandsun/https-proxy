@@ -46,6 +46,16 @@ process.on('message', (message) => {
       status: 'completed',
     };
     try {
+      if (message.transition === 'sending' && !message.skipPredecessor) {
+        const target = observed;
+        observed = { ...target, transition: 'prepared', expectedRevision: 6 };
+        host.afterDurableAck({
+          rootId: observed.rootId,
+          expiresAt: observed.expiresAt,
+          revision: 7,
+        });
+        observed = { ...target, callOrdinal: 3 };
+      }
       host.afterDurableAck({
         rootId: observed.rootId,
         expiresAt: observed.expiresAt,

@@ -96,12 +96,12 @@ jobs:
             'When their preparation stages run, payload, synthetic credentials, original evidence, DPAPI keys and certificates are generated only on this disposable runner.'
             'No private local acceptance directory or old installer artifact is an input. No payload, key, database or request body is uploaded.'
             if ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09') {
-              'Passed scope: 8 cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke, interruption with the upstream public final held, and prepared SQLite COMMIT pending forced-kill/positive-release controls; forced kill and same-directory restart under the original bounded Job.'
+              'Passed scope: 10 cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke, interruption with the upstream public final held, prepared SQLite COMMIT pending forced-kill/positive-release controls, and prepared durable-store-before-host-ACK forced-kill/positive-release controls; forced kill and same-directory restart under the original bounded Job.'
             } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n08') {
               'Passed scope: six mutation/hold cases with business-output and authenticated committed-state checks under the original bounded Job.'
             }
             if ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09') {
-              'Not qualified: other publication COMMIT interiors (sending, transport-finished, uncertain, withdrawn), daemon durable-ACK interiors, historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
+              'Not qualified: other publication COMMIT interiors (sending, transport-finished, uncertain, withdrawn), other daemon durable-ACK interiors (sending, transport-finished, uncertain, withdrawn), historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
             } else {
               'Not qualified: commit/publication in progress, historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
             }
