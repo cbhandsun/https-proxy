@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：prepared ACK强杀/释放已接实际业务入口，待新Windows执行
+
+本批新增独立prepared-ack-probe及publication-ack-driver，将上一批真实控制通道接到现有business-adapter、原托管composition/owned-entry和原Job回执。原八场景不删，增加preparedAckKill/Release两场景，三层回执严格要求十场景及十份适配器清理；原Job、启动门、固定负载与期限未改。私有READ与独立公开上游仍按原路径执行；先持有公开上游，获取完成屏障/已提交账户与空闲观察器代次，再arm精确prepared目标，不能拿上游暂停冒充内部持久边界。
+
+目标held除了签名/新挑战/代次/序号/精确revision检查，还必须通过原只读持久快照确认revision恰为checkpoint+1、root和原expiry一致、calls/returnedBytes完全不变，实际公开字节仍0。随后强杀原所属Job，使用默认owner同目录新PID重开，再核对该精确持久版本和预算并做原文精确恢复。释放对照需先通过同次released探针，再等待实际公开响应的精确答案及原发布完成屏障；单独released不授原ACK/业务成功。旧能力在强杀后关闭，关闭不自动release，失败不退款、不重试。
+
+另定位并修复既有COMMIT诊断阶段号158/159在PowerShell解析器中漏接的问题；加入新ACK场景160/161，有限primary/case envelope可完整传递，仍拒绝未分配139/255、重复/私有尾随内容与非规范格式，原80字节限制保持。这是诊断解析修复，不是产品五秒延迟修复。直接PowerShell回归及两个修改PS源文件的Parser检查通过。
+
+扩大16文件192项：191通过、1失败、零skip/cancel；失败为Mac执行原Windows Job真实子进程组合，在job_create拒绝，独立有限阶段重验确认发生于产品子进程启动前。保留该失败，不改原测试/平台门，不声称组合全绿，待Windows统一CI。其余新业务编排正反例、物理SQLite、双进程通道、生命周期、签名门控、闭包生成/消费均实际执行。单独业务/新probe检查此前66/66、后加预算/期限/公开字节/重开版本/假完成拒绝后适配器62/62，范围重叠不相加。全仓Lint零错误/五个既有警告、1709份语法、CI/release治理及本批格式通过；本机全仓既有换行格式失败仍保留。本批实际Windows/native新场景尚未执行通过，安全有限证据见context-recovery-evidence/prepared-publication-ack-business.json。
+
+22f普通Verify40600134115现八作业success，额外I/O旧失败保持、正式40600134088/source仍运行。3e与e451的业务诊断现success，但只涵盖各自旧入口，不转授本批新增两场景；e451普通coverage及部分unit、正式门和额外I/O仍运行。没有重跑洗绿，原五秒稳定性仍未解决。固定6646同一真实长测已推进45分钟/10个有效节拍，进程存活、无失败锁存；未重启或抢占其环境，24h/到期重开尚未通过。旧E实例不动，真实模型0、账未写。本批推送后优先查托管新prepared两场景；其他四状态ACK/其余实际daemon内部矩阵、本机安装两端、真实provider、五秒尾延迟、24h与最大容量缺口仍保留，整体未完成。
+
 ## 2026-10-27：ACK通道已接私有宿主与生命周期；136项通过，22f新增失败保留
 
 本批把ACK签名契约接到固定物理文件通道、同步宿主边界、已认证bootstrap客户端和原生命周期身份。observation/ACK两种范围仅允许固定目录名、消息种类与序号，复用原物理路径/FD身份/严格UTF-8/4096字节/不可覆盖ready文件校验；ready仍只证明可见性。宿主只在观察器空闲且generation/callOrdinal精确一致后arm，在真正内部ACK边界生成新的holdChallenge；客户端见过同次有效held后才可release，宿主要求全部目标事实及新挑战一致。一次使用、并发/重复/旧代次拒绝；关闭不自动release、不关闭产品存储观察器。控制失败粘滞，不能发布原host-save成功。原5000ms持有上限及750ms外部见证保持，审查发现命令写入耗时未计入750ms后已修正并补真实延迟回归。

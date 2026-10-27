@@ -20,6 +20,9 @@ const {
   runBackupRollbackAfterRevoke,
   runUnpublishedResponseKill,
 } = require('../../scripts/context-hosted/n09-ipc/driver.js');
+const {
+  runPreparedPublicationAck,
+} = require('../../scripts/context-hosted/n09-business/publication-ack-driver');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const bad = { message: 'n09_business_adapter_failed' };
 function fixture(mutation = () => {}, onPhase, prepared = false) {
@@ -99,6 +102,7 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
           : { readRecoveryAdmissionFailurePhase: state.admissionDiagnostic }),
         stopLifecycle: async (owner) => {
           state.events.push('kill');
+          state.ackProbeActive = false;
           state.interruptObserved?.(state.interruptionReason ?? 'transport-error');
           state.rejectPending?.(new Error('synthetic_forced_kill'));
           state.ackCommand = undefined;
@@ -158,6 +162,51 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
           },
           close() {},
         }),
+        getPublicationAckClient: () => {
+          const signal = (kind) => {
+            const held = kind !== 'armed';
+            const value = {
+              version: 1,
+              pid: state.pid,
+              epoch: 'e'.repeat(32),
+              challenge: 'f'.repeat(32),
+              ...state.ackTarget,
+              kind,
+              callOrdinal: held ? 2 : 1,
+              holdChallenge: held ? 'a'.repeat(32) : '',
+              revision: state.ackTarget.expectedRevision + (held ? 1 : 0),
+            };
+            mutation('prepared-ack-' + kind, value, state);
+            return value;
+          };
+          return {
+            async arm(target) {
+              state.ackProbeActive = true;
+              state.ackTarget = target;
+              state.events.push('ack-arm');
+              return signal('armed');
+            },
+            async waitHeld() {
+              for (let i = 0; i < 50 && !state.ackQueued; i++)
+                await new Promise((resolve) => setImmediate(resolve));
+              assert.equal(state.ackQueued, true);
+              state.events.push('ack-held');
+              return signal('held');
+            },
+            release() {
+              state.ackProbeActive = false;
+              state.events.push('ack-release');
+              state.resolveAck();
+            },
+            async waitReleased() {
+              return signal('released');
+            },
+            close() {
+              state.ackProbeActive = false;
+              state.events.push('ack-close');
+            },
+          };
+        },
         getPublicationObservationClient: () => ({
           async query() {
             const pending = state.commitQueued === true;
@@ -361,6 +410,14 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
           state.revision++;
         }
         result = await native(publicBody);
+        if (state.ackProbeActive) {
+          state.ackQueued = true;
+          state.revision++;
+          await new Promise((resolve, reject) => {
+            state.resolveAck = resolve;
+            state.rejectPending = reject;
+          });
+        }
         if (state.commitWitnessActive) {
           state.commitQueued = true;
           await new Promise((resolve, reject) => {
@@ -444,7 +501,7 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
     mutation('observed-client', observation, state);
     return observer;
   };
-  if (prepared)
+  if (prepared === true)
     trusted.createCommitWitness = () => {
       state.commitWitnessActive = true;
       return {
@@ -1695,4 +1752,84 @@ test('prepared daemon orchestration refuses compensation, stale version and reco
     message: 'n09_publication_commit_driver_failed',
   });
   assert.equal(f.state.closed, 1);
+});
+
+test('prepared ACK driver uses the real adapter to kill after durable revision or complete a released public response', async () => {
+  for (const kill of [true, false]) {
+    const f = fixture(() => {}, undefined, 'ack');
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    const receipt = await runPreparedPublicationAck(f.adapter, kill);
+    assert.equal(receipt.boundary, 'prepared-durable-store-before-host-ack');
+    assert.equal(receipt.forcedKill, kill);
+    assert.equal(receipt.positivePublicCompletion, !kill);
+    assert.equal(receipt.opaqueAckNotDeliveredAtKill, kill);
+    assert.equal(receipt.originalReadAfterRestart, true);
+    assert.equal(f.state.events.includes('ack-release'), !kill);
+    assert.equal(f.state.events.indexOf('ack-held') < f.state.events.indexOf('kill'), true);
+    const evidence = f.adapter.inspectBusinessEvidence();
+    assert.equal(evidence.validatedReadCount, 3);
+    assert.equal(evidence.publicGenerationCount, 3);
+    assert.equal(f.state.closed, 1);
+  }
+});
+
+test('prepared ACK driver refuses signed signals with stale, future or different binding and always cleans up', async () => {
+  for (const [stage, patch] of [
+    ['armed', { pid: 999 }],
+    ['armed', { generation: 2 }],
+    ['armed', { revision: 0 }],
+    ['held', { revision: 1 }],
+    ['held', { revision: 999 }],
+    ['held', { callOrdinal: 1 }],
+    ['held', { rootId: 'hbs_' + 'a'.repeat(32) }],
+    ['held', { expiresAt: 99999 }],
+    ['held', { challenge: 'a'.repeat(32) }],
+    ['released', { holdChallenge: 'b'.repeat(32) }],
+  ]) {
+    const f = fixture(
+      (at, value) => {
+        if (at === 'prepared-ack-' + stage) Object.assign(value, patch);
+      },
+      undefined,
+      'ack'
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runPreparedPublicationAck(f.adapter, stage !== 'released'), {
+      message: 'n09_publication_ack_driver_failed',
+    });
+    assert.equal(f.state.closed, 1);
+  }
+});
+
+test('prepared ACK qualification refuses durable budget drift, expiry renewal, public bytes and false completion', async () => {
+  for (const scenario of ['budget', 'expiry', 'bytes', 'completion', 'reopen-version']) {
+    let changed = false;
+    const f = fixture(
+      (stage, value, state) => {
+        if (stage === 'prepared-ack-held') {
+          if (scenario === 'budget') state.calls--;
+          if (scenario === 'expiry') state.expiresAt++;
+          if (scenario === 'bytes') state.observedHttp.bytes = 1;
+        }
+        if (scenario === 'completion' && stage === 'publication-completed' && state.ackQueued)
+          value.completed = false;
+        if (
+          scenario === 'reopen-version' &&
+          stage === 'snapshot' &&
+          state.stopped === 1 &&
+          !changed
+        ) {
+          state.revision++;
+          changed = true;
+        }
+      },
+      undefined,
+      'ack'
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runPreparedPublicationAck(f.adapter, scenario !== 'completion'), {
+      message: 'n09_publication_ack_driver_failed',
+    });
+    assert.equal(f.state.closed, 1);
+  }
 });

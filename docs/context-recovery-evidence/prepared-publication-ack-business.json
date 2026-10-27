@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "scope": "prepared-publication-pre-ack-business-orchestration",
+  "hostedEntryWired": true,
+  "originalCasesRetained": 8,
+  "addedCases": [
+    "preparedAckKill",
+    "preparedAckRelease"
+  ],
+  "requiredCases": 10,
+  "originalJobAndStartGateRetained": true,
+  "originalWitnessMs": 750,
+  "originalHoldMs": 5000,
+  "durableRevisionDelta": 1,
+  "budgetAtHeldMustEqualCheckpoint": true,
+  "originalExpiryMustMatch": true,
+  "heldPublicBytes": 0,
+  "positiveControlRequiresPublicCompletionBarrier": true,
+  "localChecks": {
+    "files": 16,
+    "tests": 192,
+    "passed": 191,
+    "failed": 1,
+    "skipped": 0,
+    "failure": {
+      "test": "PowerShell runtime boundaries validate receipts and bound actual safe child processes",
+      "platform": "darwin-arm64",
+      "finiteStage": "job_create",
+      "productChildStarted": false
+    },
+    "powershellParserPassed": true,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "javascriptSyntaxFiles": 1709,
+    "changedFilesFormatPassed": true
+  },
+  "newActualWindowsCasesQualified": false,
+  "fullFiveStateDaemonMatrixQualified": false,
+  "fiveSecondStabilityQualified": false,
+  "modelRequests": 0,
+  "longRunSnapshot": {
+    "taskName": "HPM-native-day-20261027-6646f59-8e34b1",
+    "checkedAtUtc": "2026-10-27T23:27:14.323Z",
+    "state": "running",
+    "reason": "progress_advanced",
+    "passed": false,
+    "lastScheduledMs": 2700000,
+    "elapsedMs": 2700946.8426,
+    "observedTicks": 10,
+    "processAlive": true,
+    "terminalConfirmed": false,
+    "runIdentity": "09921c096ed95fd403817b3318cd4b4c52109e2acbd90ad67ea662612c088e88",
+    "failureLatched": false
+  }
+}

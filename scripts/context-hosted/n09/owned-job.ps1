@@ -77,7 +77,7 @@ function Invoke-HpmN09OwnedScenario {
             $names = @($root.EnumerateObject() | ForEach-Object { $_.Name })
             if ($names.Count -ne 9 -or ($names | Sort-Object) -join ',' -cne 'cases,listenerOwned,n09Complete,nonLoopbackBlocked,phase,probesPassed,schemaVersion,syntheticSocketsClosed,tlsVerified') { throw 'invalid' }
             if ($root.GetProperty('schemaVersion').GetInt32() -ne 1 -or $root.GetProperty('phase').GetString() -cne 'n09_owned_scenario_closed' -or
-                $root.GetProperty('cases').GetInt32() -ne 8 -or $root.GetProperty('n09Complete').GetBoolean() -ne $false) { throw 'invalid' }
+                $root.GetProperty('cases').GetInt32() -ne 10 -or $root.GetProperty('n09Complete').GetBoolean() -ne $false) { throw 'invalid' }
             foreach ($name in @('probesPassed', 'tlsVerified', 'nonLoopbackBlocked', 'listenerOwned', 'syntheticSocketsClosed')) {
                 if ($root.GetProperty($name).GetBoolean() -ne $true) { throw 'invalid' }
             }

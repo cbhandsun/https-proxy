@@ -200,7 +200,7 @@ async function main() {
         (phase >= 73 && phase <= 85) ||
         (phase >= 86 && phase <= 96) ||
         (phase >= 98 && phase <= 138) ||
-        (phase >= 140 && phase <= 159) ||
+        (phase >= 140 && phase <= 161) ||
         (phase >= 162 && phase <= 199) ||
         phase === 201 ||
         (phase >= 203 && phase <= 209) ||
@@ -219,7 +219,9 @@ async function main() {
       phase === 85 ||
       phase === 86 ||
       phase === 158 ||
-      phase === 159
+      phase === 159 ||
+      phase === 160 ||
+      phase === 161
     )
       businessCasePhase = phase;
     const reported = phase === 230 ? publicReadFailurePhase(businessCasePhase) : phase;
@@ -263,7 +265,7 @@ async function main() {
     result.unpublished.commitInProgressQualified !== false ||
     result.unpublished.publicationCommitQualified !== false ||
     result.unpublished.n09Complete !== false ||
-    result.cleanup?.adaptersClosed !== 8 ||
+    result.cleanup?.adaptersClosed !== 10 ||
     result.cleanup.listenerClosed !== true
   )
     throw fail();
@@ -287,6 +289,27 @@ async function main() {
     )
       throw fail();
   }
+  for (const [name, kill] of [
+    ['preparedAckKill', true],
+    ['preparedAckRelease', false],
+  ]) {
+    const value = result[name];
+    if (
+      value?.evidenceLevel !== 'adapter-orchestration-only' ||
+      value.boundary !== 'prepared-durable-store-before-host-ack' ||
+      value.forcedKill !== kill ||
+      value.interruptedWithZeroPublicBytes !== kill ||
+      value.positivePublicCompletion !== !kill ||
+      value.actualDurableStoreObserved !== true ||
+      value.preAckBoundaryObserved !== true ||
+      value.opaqueAckNotDeliveredAtKill !== kill ||
+      value.sameDirectoryNewPid !== true ||
+      value.originalReadAfterRestart !== true ||
+      value.originalExpiryPreserved !== true ||
+      value.n09Complete !== false
+    )
+      throw fail();
+  }
   process.stdout.write(
     JSON.stringify({
       schemaVersion: 1,
@@ -296,7 +319,7 @@ async function main() {
       nonLoopbackBlocked: true,
       listenerOwned: true,
       syntheticSocketsClosed: result.cleanup.listenerClosed,
-      cases: 8,
+      cases: 10,
       n09Complete: false,
     }) + '\n'
   );

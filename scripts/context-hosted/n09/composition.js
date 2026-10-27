@@ -20,6 +20,7 @@ const {
 const { buildHostedLifecycle, createHostedLifecycleSpawn } = require('./hosted-lifecycle.js');
 const { buildN09AckController } = require('../n09-ack/bootstrap-controller');
 const { runPreparedPublicationCommit } = require('../n09-business/publication-commit-driver');
+const { runPreparedPublicationAck } = require('../n09-business/publication-ack-driver');
 const fail = () => new Error('n09_hosted_composition_rejected');
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const hex = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -333,42 +334,46 @@ async function composeHostedN09(input, onPhase = () => {}) {
     verifyCopies();
     const prepared = {},
       preparedEvidence = {};
-    for (const kill of [true, false]) {
-      onPhase(kill ? 158 : 159);
-      const ownedAdapter = createN09BusinessAdapter(
-        {
-          ownedRoot: options.ownedRoot,
-          install: path.join(options.ownedRoot, 'payload'),
-          manifestSha256: options.manifestSha256,
-        },
-        {
-          spawn: createHostedLifecycleSpawn({
+    for (const boundary of ['commit', 'ack']) {
+      for (const kill of [true, false]) {
+        onPhase((boundary === 'commit' ? 158 : 160) + (kill ? 0 : 1));
+        const ownedAdapter = createN09BusinessAdapter(
+          {
             ownedRoot: options.ownedRoot,
+            install: path.join(options.ownedRoot, 'payload'),
             manifestSha256: options.manifestSha256,
-          }),
-          onPhase,
-        }
-      );
-      adapters.push(ownedAdapter);
-      active = ownedAdapter;
-      verifyCopies();
-      ownedAdapter.bindVerifiedNetworkProof(proof);
-      const name = kill ? 'preparedKill' : 'preparedRelease';
-      prepared[name] = await runPreparedPublicationCommit(ownedAdapter, kill);
-      const evidence = ownedAdapter.inspectBusinessEvidence();
-      if (
-        evidence.seeded !== true ||
-        evidence.validatedReadCount !== 3 ||
-        evidence.publicGenerationCount !== 3 ||
-        evidence.externalToolExecutions !== 1 ||
-        evidence.clearAckCount !== 0 ||
-        evidence.saveAckCount !== 0 ||
-        evidence.revokeAckCount !== 0
-      )
-        throw fail();
-      preparedEvidence[name] = evidence;
-      active = undefined;
-      verifyCopies();
+          },
+          {
+            spawn: createHostedLifecycleSpawn({
+              ownedRoot: options.ownedRoot,
+              manifestSha256: options.manifestSha256,
+            }),
+            onPhase,
+          }
+        );
+        adapters.push(ownedAdapter);
+        active = ownedAdapter;
+        verifyCopies();
+        ownedAdapter.bindVerifiedNetworkProof(proof);
+        const name = 'prepared' + (boundary === 'ack' ? 'Ack' : '') + (kill ? 'Kill' : 'Release');
+        prepared[name] = await (
+          boundary === 'commit' ? runPreparedPublicationCommit : runPreparedPublicationAck
+        )(ownedAdapter, kill);
+        const evidence = ownedAdapter.inspectBusinessEvidence();
+        if (
+          evidence.seeded !== true ||
+          evidence.validatedReadCount !== 3 ||
+          evidence.publicGenerationCount !== 3 ||
+          evidence.externalToolExecutions !== 1 ||
+          evidence.clearAckCount !== 0 ||
+          evidence.saveAckCount !== 0 ||
+          evidence.revokeAckCount !== 0
+        )
+          throw fail();
+        preparedEvidence[name] = evidence;
+        active = undefined;
+        verifyCopies();
+      }
     }
     result = {
       committed,
@@ -400,7 +405,7 @@ async function composeHostedN09(input, onPhase = () => {}) {
     });
   }
   onPhase(84);
-  if (cleanup.adaptersClosed !== 8 || cleanup.listenerClosed !== true) throw fail();
+  if (cleanup.adaptersClosed !== 10 || cleanup.listenerClosed !== true) throw fail();
   return Object.freeze({ ...result, cleanup });
 }
 module.exports = { composeHostedN09, closeResources };

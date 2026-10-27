@@ -15,17 +15,17 @@ test('PowerShell accepts backup and held-response cases and keeps malformed diag
     $ErrorActionPreference = 'Stop'
     $module = Import-Module ./scripts/lib/nsis-runtime-boundary.psm1 -PassThru
     & $module {
-      foreach ($casePhase in @(85, 86)) {
-        foreach ($phase in @(85, 86, 254) + @(140..157)) {
+      foreach ($casePhase in @(85, 86, 158, 159, 160, 161)) {
+        foreach ($phase in @(85, 86, 254) + @(140..161)) {
           $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected\`nn09_primary_phase=$phase\`nn09_case_phase=$casePhase\`n")
           if ((ConvertFrom-HpmOwnedFailurePhase $bytes) -ne $phase -or
               (ConvertFrom-HpmOwnedCasePhase $bytes) -ne $casePhase) { throw 'Finite backup or held-response phase rejected.' }
         }
       }
-      foreach ($phase in @(139, 158, 159, 160, 161, 255)) {
+      foreach ($phase in @(139, 255)) {
         $bytes = [Text.Encoding]::UTF8.GetBytes("n09_owned_entry_rejected\`nn09_primary_phase=$phase\`nn09_case_phase=83\`n")
         if ($null -ne (ConvertFrom-HpmOwnedFailurePhase $bytes) -or
-            $null -ne (ConvertFrom-HpmOwnedCasePhase $bytes)) { throw 'Unassigned ACK phase accepted.' }
+            $null -ne (ConvertFrom-HpmOwnedCasePhase $bytes)) { throw 'Unassigned phase accepted.' }
       }
       foreach ($suffix in @("n09_case_phase=84\`n", "n09_case_phase=87\`n",
           "n09_case_phase=85\`nPRIVATE_SENTINEL", "n09_case_phase=85\`nn09_case_phase=82\`n")) {
