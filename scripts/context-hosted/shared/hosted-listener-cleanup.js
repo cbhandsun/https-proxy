@@ -33,4 +33,15 @@ async function closeOwnedListeners(sockets, listeners) {
   return listeners.every((listener) => !listener.listening) && sockets.size === 0;
 }
 
-module.exports = { closeOwnedListeners };
+async function closeOwnedListenerResources(sockets, listeners, upgrades) {
+  if (!upgrades) return closeOwnedListeners(sockets, listeners);
+  const results = await Promise.allSettled([
+    Promise.resolve().then(() => upgrades.close()),
+    closeOwnedListeners(sockets, listeners),
+  ]);
+  if (results.some((result) => result.status !== 'fulfilled' || result.value !== true))
+    throw new Error('n08_owned_listener_cleanup_failed');
+  return true;
+}
+
+module.exports = { closeOwnedListeners, closeOwnedListenerResources };

@@ -5,17 +5,18 @@ const path = require('node:path');
 const os = require('node:os');
 const https = require('node:https');
 const net = require('node:net');
+const { types } = require('node:util');
 const { exact } = require('./boundary.js');
-const { closeOwnedListeners } = require('./hosted-listener-cleanup.js');
+const { closeOwnedListenerResources } = require('./hosted-listener-cleanup.js');
 const leases = new WeakMap();
 const fail = () => new Error('n08_hosted_listener_rejected');
 async function createHostedListener(input) {
   return createListener(input, false);
 }
-async function createInstalledClientListener(input) {
-  return createListener(input, true);
+async function createInstalledClientListener(input, attachUpgrades) {
+  return createListener(input, true, attachUpgrades);
 }
-async function createListener(input, installed) {
+async function createListener(input, installed, attachUpgrades) {
   const options = exact(input, [
     'networkRoot',
     'ownedNode',
@@ -36,7 +37,13 @@ async function createListener(input, installed) {
     !localAddresses.some(
       (item) => item.address === options.negativeAddress && item.internal === false
     ) ||
-    typeof options.onBusinessRequest !== 'function'
+    typeof options.onBusinessRequest !== 'function' ||
+    (attachUpgrades !== undefined &&
+      (!installed ||
+        typeof attachUpgrades !== 'function' ||
+        types.isProxy(attachUpgrades) ||
+        types.isAsyncFunction(attachUpgrades) ||
+        types.isGeneratorFunction(attachUpgrades)))
   )
     throw fail();
   const pfx = fs.readFileSync(path.join(options.networkRoot, 'server.pfx'));
@@ -123,11 +130,18 @@ async function createListener(input, installed) {
       listener.once('listening', ready);
       listener.listen({ host, port, exclusive: true });
     });
+  let upgrades;
+  const closeResources = () => closeOwnedListenerResources(sockets, [server, negative], upgrades);
   try {
+    if (attachUpgrades) {
+      upgrades = exact(attachUpgrades(server), ['inspect', 'close']);
+      if (typeof upgrades.inspect !== 'function' || typeof upgrades.close !== 'function')
+        throw fail();
+    }
     await listen(server, '127.0.0.1', 443);
     await listen(negative, options.negativeAddress, 0);
   } catch {
-    await closeOwnedListeners(sockets, [server, negative]);
+    await closeResources();
     throw fail();
   }
   let ended = false;
@@ -146,7 +160,7 @@ async function createListener(input, installed) {
     async close() {
       ended = true;
       leases.delete(lease);
-      return closeOwnedListeners(sockets, [server, negative]);
+      return closeResources();
     },
   });
   leases.set(lease, {

@@ -29,6 +29,11 @@ test('both repository-owned scenario closures can be pinned without executing th
     assert.match(pins[entry], /^[a-f0-9]{64}$/);
     assert.match(pins[composition], /^[a-f0-9]{64}$/);
     assert.ok(Object.keys(pins).length > 10);
+    assert.equal(
+      pins[path.join(repo, 'scripts/lib/nsis-installed-websocket-listener.js')],
+      undefined,
+      'installed-only WebSocket dependencies stay outside both core-only closures'
+    );
     assert.equal(require.cache[entry], undefined);
   }
 });

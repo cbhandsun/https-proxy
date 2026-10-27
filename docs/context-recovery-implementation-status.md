@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：保留2b覆盖率WBIPC五秒失败；新增有界安装合成WebSocket监听能力，资格未提升
+
+2b55ea256ae26a70c2f599097515e4bd1dd5711d普通Verify40425744278七项成功、coverage121930932367失败。失败为actual core chat WBIPC的long-persistent首轮请求5002ms超时，requests/handshakes各一、ownerEpoch=1。准入save-reference-state第6笔combinedAdmission耗时3868ms，其中clock write188ms、真实SQLite COMMIT3139ms且该worker线程user/system CPU均0、独立anchor persist425ms；第7笔settle-reader耗时2392ms、COMMIT1303ms，replyAsync最终6299ms。后续结算继续执行，不能将其所有时间倒算为超时前耗时。此为同一固定产品代码的新失败窗口，不被1e三runner/自用短测成功覆盖；缺该失败同窗口ETW证据，尚不能唯一归因文件刷盘、调度、VFS重试、杀毒或硬件，更不能称五秒稳定性合格。不重跑失败job、不改四shard/负载/5000ms或持久门制造绿色。c38普通40426323652、正式40426323653及2b正式40425744290仍待完整终态。
+
+为完成安装版WS收尾缺口，新增installed-only监听能力：固定loopback、精确OpenAI SNI与/v1/responses、受限合成认证在101前校验，再由同步认证门提供帧处理能力；4096字节消息/握手head上限、4个活动peer及8次总握手限额，失败后封锁新准入并保留失败清理结果。任意thenable/Proxy/getter不执行，异常正文不读取或输出；真正等待peer close和已接入的原生Promise处理结束，不能把强制断开请求当实际清理完成。新组合复用原安装TLS/路径/防火墙lease；共享监听的可选安装专用attachment和独立清理模块均尝试所有资源，任一失败仍失败，原Job期限不改。复用已声明的直接依赖ws8.22.0，不改锁文件或添加依赖。
+
+WS依赖放在单独模块，不进入N08/N09核心模块闭包；真实源码closure回归核对两者均可完整固定且不含新WS模块，未放宽源闭包验证。新十一项回归涵盖真实本地101与帧、空/正常/4096边界、4097拒绝、错误路径/SNI/认证、并发/总量及失败后再准入、处理同步/异步失败、Promise/thenable/可执行属性、延迟清理和幂等close；另补双资源独立清理失败路径。扩大十一文件78项全通过、零skip；另用真实连接复现处理器内重入close会先于其异步处理完成而错误返回成功：新增回归先以true≠false失败，现先登记处理任务再调用能力，close必须等待该任务；修复后完整78项复核通过。最初扩大四项因调用命令未把本机已安装portable pwsh置入PATH而ENOENT失败，原结果保留；仅当前验证进程PATH使用既有7.6.8后执行原断言全通过，不修改系统工具或测试skip。早期新夹具在门调用前创建拒绝Promise导致unhandled，改在实际调用时创建后仍验证原拒绝路径，不算产品根因。1661份JS语法、定向Lint/格式、CI/release治理通过，新测试已进入统一发现。
+
+本批仅完成WS合成监听及清理基础能力，尚未接入安装停机组合或取得实际Windows TLS/daemon WS资格；本地wire测试显式使用合成SNI见证，不能冒称真实TLS验证。现有安装schema6/websocketDrainQualified=false保持，下一步必须组合实际入口认证Upgrade、停机前的固定帧往返、双端断开和原自然退出/树空门，实际Windows通过后才能提高该资格。HTTP/SSE四案例、认证、TTL、预算预扣/结算、精确ACK、SQLite FULL/DELETE及public release签名要求均不变。
+
+固定1e安装40425384993/job121929848744已终态success，闭合manifest=c2d470c7bef878f9f4012ebed5419bffc830435d486a003600b6dab8e30999b6。原完整候选门/构建/同格式升级回滚DPAPI、582实际八阶段layout1→3/revision+1及旧写者拒绝均通过，基线manifest仍4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f。安装Codex/Claude默认/增强四合成案例各三次压缩、精确最终答案、同会话跨进程重启留存通过，默认零恢复、增强私有READ与独立公开生成保持；schema6中自然退出/JSON/部分SSE收尾true，WS/真实provider/24h仍false。包内发布30/30零skip、defaultWorkerQualified=true、daemonQualified=false，未扩为全部daemon转换。nativeControl独立原expiry/两次正常停止/存储重开通过，自己的restartRetention仍false，不混为两端资格。全部所属树清空/卸载成立，未公开发布安装器。该安装资格只绑定固定1e，不替代新WS能力的实际Windows验收，也不覆盖2b五秒失败。新真实日档仍固定1e，与当前源码修改隔离：2026-10-27T00:40:03.478Z只读核验同一实际进程/创建时间与哈希，四个连续tick至900000ms、elapsed900003.5832ms，未见失败；运行中不等于24h通过。该Windows主机仅长测与只读监测，原旧失败/最大文件暂停环境未动，模型0，其他剩余交付范围不缩小。
+
+
 ## 2026-10-27：固定1e新独立真实24h已启动，身份及首次安全进度核验成立
 
 本轮依据用户“启动24小时测试”及“确保真实运行、其他问题并行”的授权，使用全新目录/全新任务HPM-native-day-20261027-1e88eac-5b74d29a，固定产品1e88eacc17d0ff9a9dfaa9cc4f71436780e809ce，不重启旧5a失败任务、不累计其七小时时长，不访问旧数据库/密钥/锚点/私有日志，最大文件暂停环境不动。新环境两次锁安装、原生准备、容量/时钟26项及两次默认worker真实开闭各步骤退出0，零skip；ready4860/4411ms。首次本地控制脚本路径转义造成新目录准备失败，尚未复制运行时/启动产品；残留目录和失败回执保留，更正控制脚本后换新目录准备，不当作原生产品失败或自动重跑长测。

@@ -114,3 +114,33 @@ test('listener errors and incomplete socket ownership cleanup fail closed', asyn
   stale.destroy = () => stale.emit('close');
   assert.equal(await closeOwnedListeners(new Set([stale]), []), false);
 });
+
+test('upgrade cleanup and listener cleanup both run and remain required after either fails', async () => {
+  const {
+    closeOwnedListenerResources,
+  } = require('../../scripts/context-hosted/shared/hosted-listener-cleanup');
+  for (const fault of ['none', 'upgrade', 'listener', 'false']) {
+    const calls = [];
+    const listeners = [
+      {
+        listening: true,
+        close(done) {
+          calls.push('listener');
+          this.listening = false;
+          done(fault === 'listener' ? Error('PRIVATE_SENTINEL') : undefined);
+        },
+      },
+    ];
+    const upgrades = {
+      async close() {
+        calls.push('upgrade');
+        if (fault === 'upgrade') throw Error('PRIVATE_SENTINEL');
+        return fault !== 'false';
+      },
+    };
+    const pending = closeOwnedListenerResources(new Set(), listeners, upgrades);
+    if (fault === 'none') assert.equal(await pending, true);
+    else await assert.rejects(pending, { message: 'n08_owned_listener_cleanup_failed' });
+    assert.deepEqual(calls.sort(), ['listener', 'upgrade']);
+  }
+});
