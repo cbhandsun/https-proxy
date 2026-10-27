@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：49本轮请求均在原五秒内；修复物理owner收尾ENOTEMPTY
+
+49fd13e普通Verify40462322960八项全部终态success；原三冷runner时序40462322914三个job122049577557/122049577847/122049577998各50/50、零fail/skip，18次long-persistent最终publication_wait_end为917–1353ms。独立I/O40462322795也success；正式40462322821/source及完整I/O40462322980当时仍在执行，不授其终态/安装/24h资格。66b租约编译25秒失败保留，不以新成功撤销历史失败。
+
+本机严格证明66b→49只有六个CI/治理/文档文件差异后，实际detached checkout至49，before/after 571份产品源码d482b0deb10f960d7a03e4eddc09cee74cc7b154b586aa7c0af1949f48045d25、Node及原生273e76d8…均相同，dirty=false、五份操作脚本解析通过，复用已装锁依赖/原生。按49重新执行容量3614ms及默认开库3297ms均退出0，旧回执保留原归属。原50项59898ms退出1、49通过/1失败、零skip/cancelled；唯一失败为普通双物理owner/inline tools=false的fs.rmSync ENOTEMPTY收尾，3928.5557ms，不是HTTP、持久ACK或开库超时。六次实际持久publication完成1235/1388、1250/1504、1546/1637ms，三协议完成原两轮。只读后查无所属Node/native，失败root仅一个空子目录、无结束后新增条目写入；数据库读取/密钥读取/删除均0，不确认安全软件或其他唯一根因。完整本机门仍失败，日档未注册/未启动。
+
+物理owner夹具现复用已有身份绑定清理器，新增封闭hpm-v7-owner命名空间，仍只接收真实temp直接子目录，在创建时钉住目录及全部祖先物理身份。原EBUSY/EPERM/ENOTEMPTY最多四次/间隔75ms有界删除，不重跑场景、子进程或模型；每次前复核身份、实际删除后复核，替换/链接/未知错误/恶意code字段/持续失败仍拒绝并保留证据。原installed命名空间及API保持。物理owner finally等待清理；共用失败合并器顺序等待每个动作一次，主失败、空抛出值及独立清理失败精确保留。原90秒用例、30秒子进程、五秒请求、固定负载/正确性断言、expiry/ACK/FULL/DELETE不改，生产代码未变。
+
+新增三项先红，修正后三文件32项全通过；扩大六文件48/48零skip，包含原错误合并、实际owner夹具/回执和安装publication边界。扩大首次46通过/2失败仅因Mac PATH无pwsh，保留结果；复用已有官方便携PowerShell7.6.8，仅本次测试进程补PATH后48/48，不改全局工具。定向Lint/格式、1668语法及CI/release治理通过，Mac结果不授Windows原生或本机完整50资格。写交接记录时工作目录错误在写入前失败，代码209e13f已独立提交，本记录补写后同批推送；不把该操作错误当产品根因。新源码仍须原完整CI/三runner及本机原50实际通过。旧49失败现场、既有失败/冻结日档及最大文件暂停保持，模型0；真实24h/到期重开、daemon其余内部转换、最新安装/真实provider及受控自用仍待。
+
+
 ## 2026-10-27：共享解析器变更纳入原三runner时序及I/O触发，保留66b租约编译超时
 
 66b4555普通40461179303的原unit0/2/3已终态success，前批三文件失败已不再出现；quality/integration/rust亦success，但unit1/job122045911510终态failure。实际失败为shared-hosted-materials的collision/wrong-identity/owned-cleanup用例：pwsh spawnSync原25000ms超时，有限最后阶段lease_compile_started、elapsed25292ms，尚未达到lease_compiled及其后的身份/清理断言。这里只能定位Add-Type租约编译阶段，不能认定五秒HTTP、DPAPI或规范化产品根因。coverage及正式source仍在执行，完整资格未授；不重跑此失败job或延长期限。
