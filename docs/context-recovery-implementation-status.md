@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：消除已锚定布局重开的纯时钟SQL写入，Windows新源码仍待验收
+
+物理SQLite新回归先红：已有锚定布局3、没有状态变更或到期清理时，旧启动仍重写认证头并生成DELETE回滚日志。现仅在原anchorClockFloor能力存在、已有ready布局3时，复用既有clock-only变化检测。原BEGIN IMMEDIATE、认证/schema/配额、全部行与原文验证、COMMIT及独立snapshot仍执行；未变事务保持SQLite文件与头的原字节，启动时间须由原独立OS锚点实际flush和精确CAS回执后才可ready。任何清理/状态SQL变化仍在同一事务写入时间水位并FULL提交；新建、旧布局迁移、无锚点时钟能力均保留原SQL时间写入。没有减少native调用、提前ACK、延长TTL、放宽同步或回退内存，不称已解决全部五秒或一小时故障。
+
+新四项覆盖空/有源重开的字节和journal不变、原期限精确相等、fresh初始化仍有SQL写日志、到期清理/晚时钟写与COMMIT失败回滚、锚点提交前/后失败的持久floor，以及非法/倒退/极端时钟。原七处重开实现断言改为同时核对SQLite旧水位和独立锚点精确新水位；原回滚攻击/旧DB与旧header拒绝、精确版本ACK、期限和FULL/DELETE/secure_delete断言保留。38项时钟及扩大五文件66项零fail/skip。更广484项为479通过、1项默认Windows后端在Mac开库失败、4项限定skip；未用跳过补绿，不授Windows资格。定向Lint/格式、1667份语法、CI/release治理通过，新实现实际Windows结果待CI。
+
+前批7efb19a普通40439818864八项success，原coverage121977211667首次实际产生双schema2回执：proxy51对flush（数据库max21ms/日志11ms）、client153对（20ms/11ms），cleanupVerified均true、windowTermination均file-completed，完整性/五秒资格仍false；本次没有慢失败，不能解释旧场次。正式40439818931/source121977211508失败：withdrawn三例仍在原ready五秒准备超时，startup ready为989/2983/2225ms，未完成操作为save-reference-state序号3/2/3，尚未进入目标COMMIT/anchor中断；egress成功、N08/N09跳过。742bd32普通八项及正式40438538056四项success，不能继承到7ef或本批。
+
+Windows新独立7ef目录两次锁安装退出0（36396/33301ms），修正隔离SDK环境后原生构建88195ms退出0；复用已有MSVC/SDK，未安装或覆盖工具，前置启动器/链接器失败留本机。容量/时钟原两文件26/26零skip；默认worker、DPAPI和OS锚点的新目录两次开关成功，ready2691/2669ms，实际storageExports两项、progressExports仅createStorageStartupProgress已核对。但identity.dirty=true，仅一个tracked采集测试文件意外缺失，来源未确认，未直接恢复或改安全软件，完整工作区资格仍false。该轮原五秒两文件50项49通过/1失败零skip，Claude long-persistent第二轮HTTP5028ms、requests/handshakes各8；原失败及有限阶段保留，不重跑覆盖。这些Windows结果属7ef，不是本批新SQL逻辑。日档/旧失败/最大文件暂停保持、模型0；完整24h、容量、最新schema7安装、其余daemon转换、核额度后真实两端及受控启用均未完成。
+
 ## 2026-10-27：将首失败I/O窗口接到实际普通coverage；新合成锚点32次通信已实测
 
 17fff50普通40437772833七项成功、coverage121970504037终态failure：client阶段Chat WBIPC long-persistent首轮HTTP 5014ms、requests/handshakes各2；同阶段ownerEpoch=1的save-reference-state/sequence6写COMMIT 2925ms、engine_execute3134ms，保存原失败。正式40437772844/source121970504414亦failure，client阶段同类第二轮publication_wait_failed5001ms，是最终持久完成门失败，不能误写成HTTP失败；egress成功、N08/N09跳过。独立I/O40437772838/job121970504034成功但两阶段windowTermination均file-completed，proxy51对flush/数据库max36ms/日志13ms，client153对/数据库27ms/日志98ms；这些是另一作业的成功观察，无法覆盖或解释上述慢失败，没有同窗因果或五秒稳定性资格。

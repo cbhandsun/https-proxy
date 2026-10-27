@@ -222,6 +222,115 @@ function fixture(t, mode = true) {
   };
 }
 
+test('an unchanged anchored layout-three reopen advances the durable anchor without a clock-only SQL journal', (t) => {
+  for (const populated of [false, true]) {
+    const f = fixture(t);
+    assert.equal(
+      f.commits[0].journalPresent,
+      true,
+      'fresh initialization remains a durable SQL write'
+    );
+    const state = populated ? f.save('synthetic unchanged reopen') : null;
+    const before = f.bytes(),
+      header = f.header(),
+      revision = f.revision();
+    f.close();
+    f.setTime(110);
+    f.commits.length = 0;
+    f.open();
+    assert.deepEqual(f.bytes(), before);
+    assert.deepEqual(f.header(), header);
+    assert.equal(f.sqlTime(), 100);
+    assert.equal(f.held().maxTime, 110);
+    assert.equal(f.revision(), revision + 1);
+    assert.equal(f.commits.length, 2);
+    assert.equal(
+      f.commits.some((value) => value.journalPresent),
+      false
+    );
+    assert.equal(f.db().prepare('PRAGMA synchronous').get().synchronous, 2);
+    assert.equal(f.db().prepare('PRAGMA journal_mode').get().journal_mode, 'delete');
+    assert.equal(f.db().prepare('PRAGMA secure_delete').get().secure_delete, 1);
+    if (state)
+      assert.equal(f.execute({ operation: 'load', scope }).expiresAt, state.root.expiresAt);
+  }
+});
+
+test('reopen expiry mutations retain the SQL clock and roll back on clock-write or COMMIT failure', (t) => {
+  for (const failure of [null, 'header', 'commit']) {
+    const f = fixture(t),
+      state = f.save('synthetic expired reopen');
+    const before = f.bytes(),
+      revision = f.revision();
+    f.close();
+    f.setTime(state.root.expiresAt);
+    f.commits.length = 0;
+    if (failure === 'header') f.failHeader();
+    if (failure === 'commit') f.failCommit();
+    if (failure) {
+      assert.throws(() => f.open(), safe);
+      f.close();
+      assert.deepEqual(fs.readFileSync(f.file), before);
+      assert.equal(f.revision(), revision);
+    } else {
+      f.open();
+      assert.equal(f.sqlTime(), state.root.expiresAt);
+      assert.equal(f.held().maxTime, state.root.expiresAt);
+      assert.equal(f.held().scopes.length, 0);
+      assert.equal(f.commits[0].journalPresent, true);
+      assert.equal(f.execute({ operation: 'load', scope }), null);
+    }
+  }
+});
+
+test('a reopened clock is not acknowledged until the independent anchor persists it', (t) => {
+  for (const failure of ['before', 'after']) {
+    const f = fixture(t);
+    f.save();
+    const before = f.bytes();
+    f.close();
+    f.setTime(110);
+    f.failAnchor(failure);
+    assert.throws(() => f.open(), safe);
+    f.close();
+    assert.deepEqual(fs.readFileSync(f.file), before);
+    assert.equal(f.held().maxTime, failure === 'before' ? 100 : 110);
+    f.failAnchor(undefined);
+    f.setTime(109);
+    if (failure === 'after') {
+      assert.throws(() => f.open(), safe);
+      f.close();
+    } else {
+      f.open();
+      assert.equal(f.held().maxTime, 109);
+      f.close();
+    }
+    f.setTime(110);
+    f.open();
+    assert.equal(f.held().maxTime, 110);
+    assert.equal(f.sqlTime(), 100);
+  }
+});
+
+test('unchanged reopen still refuses invalid, backward and extreme clocks before SQL mutation or anchor ACK', (t) => {
+  const f = fixture(t);
+  f.save();
+  const before = f.bytes(),
+    revision = f.revision();
+  f.close();
+  for (const value of [-1, 99, NaN, Infinity, Number.MAX_SAFE_INTEGER]) {
+    f.setTime(value);
+    assert.throws(() => f.open(), safe);
+    f.close();
+    assert.deepEqual(fs.readFileSync(f.file), before);
+    assert.equal(f.revision(), revision);
+  }
+  f.setTime(110);
+  f.open();
+  assert.deepEqual(f.bytes(), before);
+  assert.equal(f.held().maxTime, 110);
+});
+
 test('byte-unchanged anchored scan persists its exact clock in the OS anchor before ACK while retaining FULL/DELETE', (t) => {
   for (const output of ['', 'é🙂synthetic', 'x'.repeat(16384)]) {
     const f = fixture(t);
@@ -248,7 +357,8 @@ test('byte-unchanged anchored scan persists its exact clock in the OS anchor bef
     assert.equal(f.db().prepare('PRAGMA secure_delete').get().secure_delete, 1);
     f.close();
     f.open();
-    assert.equal(f.sqlTime(), 110);
+    assert.equal(f.sqlTime(), 100);
+    assert.equal(f.held().maxTime, 110);
     const restored = f.execute({ operation: 'load', scope });
     assert.equal(restored.expiresAt, state.root.expiresAt);
     assert.equal(restored.state.root.ledger.sources[0].output, output);
@@ -287,7 +397,8 @@ test('empty scans also retain a durable clock and reopen without extending a dea
   assert.equal(f.held().maxTime, 200);
   f.close();
   f.open();
-  assert.equal(f.sqlTime(), 200);
+  assert.equal(f.sqlTime(), 100);
+  assert.equal(f.held().maxTime, 200);
 });
 
 test('clock rollback is rejected both by the live floor and before any reopen mutation', (t) => {
@@ -307,7 +418,8 @@ test('clock rollback is rejected both by the live floor and before any reopen mu
   assert.deepEqual(f.bytes(), before);
   f.setTime(110);
   f.open();
-  assert.equal(f.sqlTime(), 110);
+  assert.equal(f.sqlTime(), 100);
+  assert.equal(f.held().maxTime, 110);
 });
 
 test('expiry mutations persist their SQL clock atomically instead of using the read-only fast path', (t) => {
@@ -378,7 +490,8 @@ test('lost anchor ACK closes the owner; a persisted clock still guards catchup a
   f.close();
   f.setTime(110);
   f.open();
-  assert.equal(f.sqlTime(), 110);
+  assert.equal(f.sqlTime(), 100);
+  assert.equal(f.held().maxTime, 110);
 });
 
 test('an old authenticated header or a prior complete database cannot use clock catchup', (t) => {
@@ -610,7 +723,8 @@ test('anchored load, reference load and inspect do not journal a clock-only obse
       );
       f.close();
       f.open();
-      assert.equal(f.sqlTime(), 110);
+      assert.equal(f.sqlTime(), 100);
+      assert.equal(f.held().maxTime, 110);
       assert.equal(f.execute({ operation: 'load', scope }).expiresAt, state.root.expiresAt);
     }
   }
@@ -743,7 +857,8 @@ for (const operation of ['catalog', 'sweep']) {
         assert.equal(f.db().prepare('PRAGMA secure_delete').get().secure_delete, 1);
         f.close();
         f.open();
-        assert.equal(f.sqlTime(), 110);
+        assert.equal(f.sqlTime(), 100);
+        assert.equal(f.held().maxTime, 110);
         assert.equal(f.execute({ operation: 'load', scope }).expiresAt, state.root.expiresAt);
       }
     }
@@ -770,7 +885,8 @@ test('empty maintenance keeps its independent anchor ACK while legacy mode retai
       assert.equal(f.commits[1].journalPresent, false);
       f.close();
       f.open();
-      assert.equal(f.sqlTime(), 110);
+      assert.equal(f.sqlTime(), mode ? 100 : 110);
+      assert.equal(f.held().maxTime, 110);
     }
 });
 

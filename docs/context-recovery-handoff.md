@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+**最新重开持久开销修复：** 物理回归先红，现已有锚定布局3的无变更重开复用原独立clock-floor机制，不再只为时间写脏SQL；BEGIN IMMEDIATE/COMMIT、全量认证、精确anchor ACK、实际变更的原SQL FULL提交和全部期限保持。38项及扩大66项零skip；更广484项479通过/1 Mac默认Windows开库失败/4限定skip，不授Windows资格。7ef普通八项含实际双I/O回执成功，但正式withdrawn三例ready准备失败、未进目标边界。新Windows7ef环境四步退出0、容量26项及默认两次开关通过；原50项49通过/Claude HTTP5028ms失败，且一个tracked测试文件缺失导致dirty，完整资格仍false，原结果保留不重跑。此批新SQL逻辑Windows待CI，不称五秒或一小时根因全部解决；日档仍冻结、模型0，全部剩余交付范围见实施状态顶部。
+
 **最新同窗取证组合：** 17fff50普通client保留HTTP5014ms及同owner写COMMIT2925ms失败，正式另保留最终持久完成5001ms失败；独立I/O成功来自另一作业，不能解释或覆盖。现将既有首失败有界采集接到实际Verify coverage，完整原三段命令/顺序/退出门、负载/期限/ACK/TTL/FULL/DELETE不变，JS与真实PS均严格绑定两对workflow/job；扩大68项零skip，实际新Windows取证待CI，不称产品根因已修复。新独立合成锚点同步seed加32次owned compare/实际close通过，仅组件短测、冻结库/anchor写0；旧Git超时保留、不授一小时/24h资格。742三runner与独立I/O通过，完整普通/正式仍待。日档保持冻结、模型0，完整剩余范围见实施状态顶部。
 
 
