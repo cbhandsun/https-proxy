@@ -27,6 +27,96 @@ test('ETW pairs bind file keys to owned synthetic names and distinguish database
   assert.equal(summary.snapshot().database.count, 1);
 });
 
+test('publication fixture checkpoint and journal paths retain their own slow flush observations', () => {
+  for (const suffix of ['', '-journal']) {
+    const summary = createPersistentIoSummary();
+    summary.observe(
+      event('name', '1', 0, 'C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite' + suffix)
+    );
+    summary.observe(event('flush', '2', 10, '1'));
+    summary.observe(event('end', '2', 3010, '0'));
+    const result = summary.snapshot();
+    assert.equal(result.pairedFlushes, 1);
+    assert.equal(result[suffix ? 'journal' : 'database'].maxMs, 3000);
+    assert.equal(result.traceCompletenessVerified, false);
+    assert.equal(result.fiveSecondQualified, false);
+    assert.doesNotMatch(JSON.stringify(result), /Temp|aB012z|checkpoint|PRIVATE/);
+  }
+  for (const name of [
+    '',
+    'PRIVATE/checkpoint.sqlite',
+    'C:/Temp/hpm-publication-interior-short/checkpoint.sqlite',
+    'C:/Temp/hpm-publication-interior-aB012zz/checkpoint.sqlite',
+    'C:/Temp/hpm-publication-interior-aB012z/context/checkpoint.sqlite',
+    'C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite.backup',
+    'C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite\n',
+    'C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite\r',
+    'C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite\0',
+  ]) {
+    const summary = createPersistentIoSummary();
+    summary.observe(event('name', '1', 0, name));
+    summary.observe(event('flush', '2', 10, '1'));
+    summary.observe(event('end', '2', 3010, '0'));
+    assert.equal(summary.snapshot().pairedFlushes, 0);
+  }
+});
+
+test('the real PowerShell name and create filters admit only the two synthetic checkpoint layouts', () => {
+  const cases = [
+    ['C:/Temp/hpm-wbipc-core-aB012z/context/checkpoint.sqlite', true],
+    ['C:/Temp/hpm-wbipc-core-aB012z/context/checkpoint.sqlite-journal', true],
+    ['C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite', true],
+    ['C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite-journal', true],
+    ['', false],
+    ['PRIVATE/checkpoint.sqlite', false],
+    ['x'.repeat(4097), false],
+    ['C:/Temp/hpm-publication-interior-aB012zz/checkpoint.sqlite', false],
+    ['C:/Temp/hpm-publication-interior-aB012z/context/checkpoint.sqlite', false],
+    ['C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite.backup', false],
+    ...['\0', '\r', '\n'].map((suffix) => [
+      'C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite' + suffix,
+      false,
+    ]),
+  ];
+  const file = path
+    .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  const code = `
+    $ErrorActionPreference='Stop';$module=Import-Module '${file}' -PassThru -Force
+    $cases=[Console]::In.ReadToEnd()|ConvertFrom-Json
+    $results=@(foreach($case in $cases){& $module {
+      param($name)
+      $allowed=Test-HpmPersistentIoPath $name;$decoded=$false;$kind=$null
+      if($allowed){
+        function EventXml($items){'<Event><EventData>'+($items.GetEnumerator()|ForEach-Object{'<Data Name="'+$_.Key+'">'+[Security.SecurityElement]::Escape([string]$_.Value)+'</Data>'})+'</EventData></Event>'}
+        $state=@{names=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase);irps=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)}
+        $a=ConvertTo-HpmPersistentIoRecord (EventXml @{FileObject='0x10';FileName=$name}) 32 0 $state|ConvertFrom-Json
+        $b=ConvertTo-HpmPersistentIoRecord (EventXml @{IrpPtr='0x20';OpenPath=$name}) 64 1 $state|ConvertFrom-Json
+        $decoded=($a.type -ceq 'name' -and $state.names.Count -eq 1 -and $b.type -ceq 'create' -and $state.irps.Count -eq 1)
+        $kind=$b.name
+      }
+      [ordered]@{allowed=$allowed;decoded=$decoded;kind=$kind}
+    } $case[0]});ConvertTo-Json -Compress -InputObject $results`;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    input: JSON.stringify(cases),
+    encoding: 'utf8',
+    timeout: 5000,
+    maxBuffer: 8192,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(([name, allowed]) => ({
+      allowed,
+      decoded: allowed,
+      kind: allowed ? (name.endsWith('-journal') ? 'journal' : 'database') : null,
+    }))
+  );
+  assert.doesNotMatch(result.stdout, /Temp|aB012z|PRIVATE|checkpoint/);
+});
+
 test('unrelated names, pointer reuse, lost pairs and failed flushes do not create success evidence', () => {
   const summary = createPersistentIoSummary();
   assert.equal(summary.snapshot().pairedFlushes, 0);

@@ -59,6 +59,36 @@ test('the real PowerShell recorder admits only the exact workflow and job pairs'
   );
 });
 
+test('the real PowerShell recorder refuses a foreign or stale proxy-window selector', () => {
+  const { spawnSync } = require('node:child_process');
+  const cases = [
+    ['proxy', null, true],
+    ['client', null, true],
+    ['proxy', 'native-publication-interruption', true],
+    ['client', 'native-publication-interruption', false],
+    ['proxy', 'PRIVATE', false],
+    ['proxy', 'x'.repeat(4096), false],
+    ['', null, false],
+  ];
+  const modulePath = path
+    .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  const code = `Import-Module '${modulePath}';$cases=[Console]::In.ReadToEnd()|ConvertFrom-Json;$results=@(foreach($case in $cases){$env:HPM_COVERAGE_IO_STAGE=$case[0];if($null -eq $case[1]){Remove-Item Env:\\HPM_COVERAGE_IO_PROXY_WINDOW -ErrorAction SilentlyContinue}else{$env:HPM_COVERAGE_IO_PROXY_WINDOW=$case[1]};& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWindow}});ConvertTo-Json -Compress -InputObject $results`;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    input: JSON.stringify(cases),
+    encoding: 'utf8',
+    timeout: 5000,
+    maxBuffer: 4096,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map((row) => row[2])
+  );
+});
+
 test('the actual Verify coverage job can record its own failure window without accepting other jobs', async (t) => {
   for (const coverageStage of ['proxy', 'client']) {
     const f = fixture(t);
@@ -806,6 +836,46 @@ test('the actual stage checker requires the publication receipt in client covera
   check(0); // The parallel proxy stage still owns only its original window.
 });
 
+test('the actual proxy checker cannot substitute the old receipt for an explicitly selected native window', async (t) => {
+  const { spawnSync } = require('node:child_process');
+  const f = fixture(t);
+  f.install('success');
+  await f.hooks.before();
+  await f.hooks.after();
+  f.environment.HPM_COVERAGE_IO_PROXY_WINDOW = 'native-publication-interruption';
+  const environment = Object.fromEntries(
+    Object.entries(f.environment).filter(
+      ([key]) => !['TOKEN', 'API_KEY', 'NODE_OPTIONS'].includes(key)
+    )
+  );
+  for (const name of ['SystemRoot', 'WINDIR'])
+    if (process.env[name]) environment[name] = process.env[name];
+  const check = (expected) => {
+    const result = spawnSync(
+      process.execPath,
+      [path.resolve(__dirname, '../scripts/check-coverage-io-receipt.cjs')],
+      { env: environment, encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+    );
+    assert.equal(result.error, undefined);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, expected);
+    assert.equal(result.stdout, expected === 0 ? 'coverage_io_receipt_verified\n' : '');
+    assert.equal(result.stderr, expected === 0 ? '' : 'coverage_io_receipt_failed\n');
+  };
+  check(1);
+  assert.equal(f.install('success'), false);
+  f.install('success', { windowId: 'native-publication-interruption' });
+  await f.hooks.before();
+  await f.hooks.after();
+  const receipt = readCoverageIoReceipt(f.environment, 'native-publication-interruption');
+  assert.equal(receipt.schemaVersion, 3);
+  assert.equal(receipt.windowId, 'native-publication-interruption');
+  check(0);
+  assert.throws(() => readCoverageIoReceipt(f.environment));
+  environment.HPM_COVERAGE_IO_STAGE = 'client';
+  check(1);
+});
+
 test('publication window stops on its own fixture failure and retains cleanup gates', async (t) => {
   const f = fixture(t);
   f.environment.HPM_COVERAGE_IO_STAGE = 'client';
@@ -881,6 +951,7 @@ test('recording failure reports only a closed cause without exposing stderr or l
     await assert.rejects(f.hooks.after(), (error) => {
       assert.equal(error.message, 'coverage_io_capture_failed');
       assert.equal(error.cause?.message, 'coverage_io_capture_' + cause);
+      assert.equal(error.code, 'coverage_io_capture_' + cause);
       assert.equal(String(error.cause).includes('PRIVATE'), false);
       return true;
     });

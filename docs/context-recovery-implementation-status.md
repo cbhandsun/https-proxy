@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：修复发布路径的I/O观察盲点；独立诊断选择唯一原生文件窗口
+
+4f2fa08正式40530715190/source-gates122282417219已failure，egress成功、后续跳过。日志保留13个准备超时，其中9个直接SQLite案例、4个原生案例；新SQL观察中已完成COMMIT最长3133ms，部分最后记录为COMMIT started而无returned，均未进入目标中断。原生也有开库4310ms后首笔load仍未完成。它们不全经过DPAPI/OS锚点，不能统一归因原生保护层。普通40530715191/coverage122282417254的proxy阶段完成、client阶段失败于Responses/Claude WBIPC及录制after；Responses首轮long-persistent请求5000ms失败。该client失败窗口实际回执包含21次database flush（max1442ms）及42次journal flush（max1373ms），windowTermination=persistent-request-failed、cleanupVerified=true、traceCompletenessVerified=false。可确认窗口内存在秒级I/O，尚不能精确归因到失败请求或排除调度、其他并发合成操作。额外40530715206/job122282416990终态failure，client录制after失败保留，未重跑洗绿。167cb81普通40532944086七项非coverage成功，coverage122290396976、正式source-gates122290396824及额外122290395290最后仍运行，不补写结果。
+
+本批确认并修复此前窗口接入的实际盲点：PowerShell解码及JS汇总仍只接收hpm-wbipc-core的context/checkpoint.sqlite，导致hpm-publication-interior发布夹具的事件被丢弃。新真实聚合回归先红：三秒flush计0次；修复后database/journal分别保留一次3000ms观察。两端仅接收原客户端及发布夹具这两种固定合成布局、六位目录随机尾及checkpoint.sqlite/其journal，不接纳其他路径、伪装后缀、错误布局或NUL/CR/LF；长度界限保持。PowerShell实际name/create解码也验证两布局，最终汇总仍不输出路径、原文或指针，不增加第三类任意数据库授权。
+
+额外windows-persistent-io-coverage工作流的原proxy命令显式选择native-publication-interruption为唯一录制文件，原client文件在该阶段不再启动第二个WPR；普通Verify未设置选择器，维持原录制。client阶段先清除选择器，继续原两个串行窗口。主入口按独立纯模块列出的固定窗口逐份验证，旧client回执不能替代所选native回执（实际CLI先红后绿）；非法、空、极端、Proxy/getter、继承stage及client遗留选择器拒绝，PowerShell再次校验。原四分片、全部原命令/用例/负载和失败停止规则保持，无过滤、重试或重启旧任务。原生20项只增加失败观察组合，未替换默认worker、保护器、OS锚点或时钟。首次失败结束自己的环形窗口，后续原测试继续执行；同窗口汇总可能包含并发合成操作，仍不授单笔操作关联或稳定性。
+
+4f2 after失败日志还证实Node TAP未展示Error.cause中的固定分类。本批保留generic message与安全cause，另设置同一封闭词汇的Error.code供TAP展示，不暴露stderr或原异常值；旧实现code缺失的回归实际先红后绿。录制失败仍拒绝，所有原清理、容量与协议条件保持。没有用空事件或缺失原因作为绿色证据。
+
+Mac相关九文件121/121、零skip/取消，包括实际PowerShell解码/选择器/原workflow停止顺序、实际CLI回执、原直接发布25项及同步SQL8项；定向Lint/格式、1686语法及CI/release治理通过。新增测试由既有统一unit发现，新增选择模块进入原I/O workflow paths。新原生窗口尚未在Windows运行，不授其ETW、worker或daemon资格。本批未改产品存储、认证、精确ACK、FULL/DELETE/secure_delete、独立锚点flush和24h到期；旧实例仍由用户自行切换，冻结现场/长测不动，无新24h/最大文件任务，真实模型0。后续先核对新窗口实际回执，再定位COMMIT等待；真实provider、其余daemon内部矩阵、真实24h及到期重开和最大文件的完整范围保留。
+
 ## 2026-10-27：补上发布窗口的最终CLI核验；4ca正式四作业成功，原覆盖率失败不被覆盖
 
 4ca0ab32818f9f837ff71bfa13eaea7a05b24746正式40527518009现已逐项终态核对：source-gates122271002069、egress122271002333、N08122284149994、N09122284149987均success。已取完整源码门日志，原verify、集成、Rust与审计高危阈值完成；这是一轮完整源码门及固定场景作业成功，不覆盖同提交普通coverage122271003422及额外I/O122271001376的原生准备失败，也不授full N08/N09、其余daemon内部转换、五秒长期稳定性或24h资格。源码门审计另报告fast-uri3.1.8一项moderate，依赖树确认经运行时MCP SDK→ajv引入；原high阈值未降低，没有将审计通过说成零漏洞，未主动升级依赖或改锁文件，影响与修复仍需单独核对。

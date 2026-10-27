@@ -13,6 +13,10 @@ function ConvertTo-HpmIoPointerKey {
         return '0x' + $value.ToString('x16')
     } catch { throw 'persistent_io_pointer_refused' }
 }
+function Test-HpmPersistentIoPath {
+    param([string]$Name)
+    return ($Name.Length -le 4096 -and $Name -notmatch '[\x00\r\n]' -and $Name -match '(?i)[\\/](?:hpm-wbipc-core-[a-z0-9]{6}[\\/]context|hpm-publication-interior-[a-z0-9]{6})[\\/]checkpoint\.sqlite(?:-journal)?\z')
+}
 function ConvertTo-HpmPersistentIoRecord {
     param([string]$Text, [int]$Opcode, [long]$TimeMs, [hashtable]$State)
     if ($Text.Length -gt 65536 -or $TimeMs -lt 0) { throw 'refused' }
@@ -58,7 +62,7 @@ function ConvertTo-HpmPersistentIoRecord {
     if ($Opcode -in @(0,32,35,36)) {
         $key = ConvertTo-HpmIoPointerKey ([string]$fields['FileObject']); $name = [string]$fields['FileName']
         $hadName = $State.names.Remove($key)
-        if ($Opcode -eq 35 -or $name -notmatch '(?i)[\\/]hpm-wbipc-core-[a-z0-9]{6}[\\/]context[\\/]checkpoint\.sqlite(?:-journal)?$') {
+        if ($Opcode -eq 35 -or -not (Test-HpmPersistentIoPath $name)) {
             if (-not $hadName) { return }; $name = ''
         } else { if ($State.names.Count -ge 256) { throw 'refused' }; [void]$State.names.Add($key) }
         [ordered]@{ type='name'; key=$key; timeMs=$TimeMs; name=$name } | ConvertTo-Json -Compress
@@ -69,7 +73,7 @@ function ConvertTo-HpmPersistentIoRecord {
         $pathFields = @(@('OpenPath','FileName') | Where-Object { $fields.ContainsKey($_) })
         if ($pathFields.Count -gt 1) { throw 'persistent_io_payload_shape_refused' }
         $name = if ($pathFields.Count -eq 1) { [string]$fields[$pathFields[0]] } else { '' }
-        if ($name -notmatch '(?i)[\\/]hpm-wbipc-core-[a-z0-9]{6}[\\/]context[\\/]checkpoint\.sqlite(?:-journal)?\z') {
+        if (-not (Test-HpmPersistentIoPath $name)) {
             if ($State.irps.Remove($key)) { [ordered]@{type='invalidate';key=$key;timeMs=$TimeMs;name=''} | ConvertTo-Json -Compress }
             return
         }
@@ -131,6 +135,10 @@ function Test-HpmCoverageIoWorkflow {
     )
 }
 
+function Test-HpmCoverageIoWindow {
+    $proxyWindow = [Environment]::GetEnvironmentVariable('HPM_COVERAGE_IO_PROXY_WINDOW')
+    return ($env:HPM_COVERAGE_IO_STAGE -cin @('proxy','client') -and ($null -eq $proxyWindow -or ($proxyWindow -ceq 'native-publication-interruption' -and $env:HPM_COVERAGE_IO_STAGE -ceq 'proxy')))
+}
 function Invoke-HpmPersistentIoDiagnostic {
     param([switch]$CaptureOnly)
     $ErrorActionPreference = 'Stop'
@@ -183,6 +191,7 @@ function Invoke-HpmPersistentIoDiagnostic {
     try {
         if (-not $IsWindows -or $env:RUNNER_ARCH -cne 'X64' -or $env:CI -cne 'true' -or $args.Count -ne 0 -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:GITHUB_REPOSITORY -cne 'cbhandsun/https-proxy') { throw 'refused' }
         if ($CaptureOnly -and ($env:HPM_COVERAGE_IO -cnotmatch '\A[a-f0-9]{40}\z' -or $env:HPM_COVERAGE_IO -cne $env:GITHUB_SHA -or $env:HPM_COVERAGE_IO_STAGE -cnotin @('proxy','client') -or -not (Test-HpmCoverageIoWorkflow))) { throw 'refused' }
+        if ($CaptureOnly -and -not (Test-HpmCoverageIoWindow)) { throw 'refused' }
         Import-Module (Join-Path $PSScriptRoot 'nsis-lifecycle.psm1')
         $phase = 'paths'
         $parent = [IO.Path]::GetFullPath($env:RUNNER_TEMP)

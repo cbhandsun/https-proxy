@@ -71,7 +71,8 @@ function createPersistentIoSummary() {
       if (type === 'name') {
         names.delete(key); // Name reuse must not inherit an old file association.
         if (
-          /(?:^|[\\/])hpm-wbipc-core-[A-Za-z0-9]{6}[\\/]context[\\/]checkpoint\.sqlite(?:-journal)?$/i.test(
+          !/[\0\r\n]/.test(value.name) &&
+          /[\\/](?:hpm-wbipc-core-[A-Za-z0-9]{6}[\\/]context|hpm-publication-interior-[A-Za-z0-9]{6})[\\/]checkpoint\.sqlite(?:-journal)?$/i.test(
             value.name
           )
         ) {

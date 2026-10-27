@@ -3,12 +3,12 @@ const { types } = require('node:util');
 const { installCoverageIoCapture } = require('../../scripts/lib/coverage-io-capture');
 // Keep the original fixture failure even if stopping its own recording fails.
 // Success leaves the window open for the unchanged whole-file after hook.
-function installPublicationIoCapture(test, install = installCoverageIoCapture) {
+function installPublicationWindow(test, install, windowId) {
   if (typeof install !== 'function' || types.isProxy(install) || types.isAsyncFunction(install))
     throw new Error('publication_io_capture_invalid');
   let stop;
   install(test, {
-    windowId: 'publication-graceful-http',
+    windowId,
     onReady(value) {
       if (typeof value !== 'function' || types.isProxy(value) || types.isAsyncFunction(value))
         throw new Error('publication_io_capture_invalid');
@@ -39,4 +39,10 @@ function installPublicationIoCapture(test, install = installCoverageIoCapture) {
     }
   };
 }
-module.exports = { installPublicationIoCapture };
+function installPublicationIoCapture(test, install = installCoverageIoCapture) {
+  return installPublicationWindow(test, install, 'publication-graceful-http');
+}
+function installNativePublicationIoCapture(test, install = installCoverageIoCapture) {
+  return installPublicationWindow(test, install, 'native-publication-interruption');
+}
+module.exports = { installPublicationIoCapture, installNativePublicationIoCapture };

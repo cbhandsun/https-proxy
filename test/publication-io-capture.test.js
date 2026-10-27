@@ -1,7 +1,40 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installPublicationIoCapture } = require('./helpers/publication-io-capture.cjs');
+const {
+  installPublicationIoCapture,
+  installNativePublicationIoCapture,
+} = require('./helpers/publication-io-capture.cjs');
+
+test('native publication observation selects its own window without altering a fixture result or failure', async () => {
+  const failure = Error('PRIVATE'),
+    result = {};
+  let calls = 0,
+    stops = 0;
+  const run = installNativePublicationIoCapture({}, (_, options) => {
+    assert.equal(options.windowId, 'native-publication-interruption');
+    options.onReady(() => {
+      stops++;
+    });
+  });
+  assert.equal(
+    await run(() => {
+      calls++;
+      return result;
+    }),
+    result
+  );
+  assert.equal(stops, 0);
+  await assert.rejects(
+    run(() => {
+      calls++;
+      throw failure;
+    }),
+    (error) => error === failure
+  );
+  assert.equal(calls, 2);
+  assert.equal(stops, 1);
+});
 
 test('publication recording composes one unchanged fixture and does not stop on success', async () => {
   const host = {},

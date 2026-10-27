@@ -1,6 +1,8 @@
 'use strict';
 
 const test = require('node:test');
+const { installNativePublicationIoCapture } = require('./helpers/publication-io-capture.cjs');
+const observeFailure = installNativePublicationIoCapture(test);
 const {
   publicationInterruption,
 } = require('./helpers/context-recovery-publication-interruption.cjs');
@@ -13,7 +15,10 @@ for (const transition of ['prepared', 'sending', 'transport-finished', 'uncertai
       test(
         `native worker publication ${transition}: ${kill ? 'SIGKILL' : 'release control'} inside ${boundary === 'commit' ? 'actual COMMIT lock wait' : 'durable OS anchor before publication ACK'}`,
         { timeout: 15000 },
-        () => publicationInterruption({ transition, boundary, kill, native: true })
+        () =>
+          observeFailure(() =>
+            publicationInterruption({ transition, boundary, kill, native: true })
+          )
       );
     }
   }

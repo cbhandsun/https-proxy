@@ -7,6 +7,7 @@ const { types } = require('node:util');
 const { safePath } = require('./nsis-encrypted-contract');
 const { OPERATION_TYPES } = require('./persistent-io-operation-summary');
 const { validatePersistentIoScheduling } = require('./persistent-io-scheduling');
+const { requiredCoverageIoWindows } = require('./coverage-io-windows');
 const fail = () => new Error('coverage_io_capture_failed');
 const isSha = (value) =>
   typeof value === 'string' && value.length === 40 && /^[a-f0-9]{40}$/.test(value);
@@ -191,15 +192,25 @@ function validateStatuses(stats) {
     throw fail();
 }
 function validWindow(windowId) {
-  if (!['client-context-target', 'publication-graceful-http'].includes(windowId)) throw fail();
+  if (
+    ![
+      'client-context-target',
+      'publication-graceful-http',
+      'native-publication-interruption',
+    ].includes(windowId)
+  )
+    throw fail();
+}
+function captureWindows(environment) {
+  try {
+    return requiredCoverageIoWindows(environment);
+  } catch {
+    throw fail();
+  }
 }
 function receiptPath(environment, windowId = 'client-context-target') {
   validWindow(windowId);
-  if (
-    !isSha(environment.GITHUB_SHA) ||
-    !['proxy', 'client'].includes(environment.HPM_COVERAGE_IO_STAGE) ||
-    (windowId !== 'client-context-target' && environment.HPM_COVERAGE_IO_STAGE !== 'client')
-  )
+  if (!isSha(environment.GITHUB_SHA) || !captureWindows(environment).includes(windowId))
     throw fail();
   return path.join(
     safePath(environment.RUNNER_TEMP, true),
@@ -301,6 +312,7 @@ function installCoverageIoCapture(
   for (const key of [
     'HPM_COVERAGE_IO',
     'HPM_COVERAGE_IO_STAGE',
+    'HPM_COVERAGE_IO_PROXY_WINDOW',
     'GITHUB_SHA',
     'GITHUB_ACTIONS',
     'GITHUB_JOB',
@@ -347,10 +359,9 @@ function installCoverageIoCapture(
     !['proxy', 'client'].includes(environment.HPM_COVERAGE_IO_STAGE)
   )
     throw fail();
-  // The full client command is serial. Do not introduce a second recorder in
-  // the parallel proxy shards or claim that this window covers those failures.
-  if (windowId !== 'client-context-target' && environment.HPM_COVERAGE_IO_STAGE === 'proxy')
-    return false;
+  // Exactly one proxy file records across the original parallel shards. The
+  // two client windows run in the original serial command, never together.
+  if (!captureWindows(environment).includes(windowId)) return false;
   let target, entry, parentIdentity;
   try {
     target = receiptPath(environment, windowId);
@@ -490,11 +501,15 @@ function installCoverageIoCapture(
       else if (!summary) refusal = 'missing_summary';
       else if (!trace || trace[0] !== stderr) refusal = 'trace_control';
       else if (Number(trace[1]) > 268435456) refusal = 'trace_limit';
-      if (refusal)
-        throw new Error('coverage_io_capture_failed', {
+      if (refusal) {
+        const error = new Error('coverage_io_capture_failed', {
           // Closed vocabulary only; no recorder output or exception crosses.
           cause: new Error('coverage_io_capture_' + refusal),
         });
+        // Node's TAP reporter omits cause details; its fixed code is visible.
+        error.code = 'coverage_io_capture_' + refusal;
+        throw error;
+      }
       const receipt = {
         schemaVersion: windowId === 'client-context-target' ? 2 : 3,
         ...(windowId === 'client-context-target' ? {} : { windowId }),
