@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "scope": "private-ack-control-channel",
+  "relatedTests": {
+    "files": 16,
+    "tests": 136,
+    "passed": 136,
+    "failed": 0,
+    "skipped": 0
+  },
+  "crossProcessFixture": true,
+  "observerIsFixture": true,
+  "physicalSqliteCombinationIncluded": true,
+  "hostInstallerAndLifecycleWired": true,
+  "businessDriverWired": false,
+  "actualDaemonQualified": false,
+  "defaultNativeMatrixQualified": false,
+  "limits": {
+    "externalWitnessMs": 750,
+    "hostHoldMs": 5000,
+    "commandWriteIncluded": true,
+    "releasedSignalWriteIncluded": true
+  },
+  "failClosedCases": [
+    "precomputed-release",
+    "wrong-revision",
+    "wrong-root",
+    "wrong-challenge",
+    "wrong-ordinal",
+    "concurrent-arm",
+    "closed-owner",
+    "missing-held",
+    "real-five-second-hold",
+    "late-released-signal"
+  ],
+  "originalAuthenticationRetained": true,
+  "sqliteFullDeleteRetained": true,
+  "originalExpiryRetained": true,
+  "modelRequests": 0,
+  "longRunSnapshot": {
+    "taskName": "HPM-native-day-20261027-6646f59-8e34b1",
+    "checkedAtUtc": "2026-10-27T23:21:59.981Z",
+    "state": "running",
+    "reason": "progress_advanced",
+    "passed": false,
+    "lastScheduledMs": 2400000,
+    "elapsedMs": 2400786.6079,
+    "observedTicks": 9,
+    "processAlive": true,
+    "terminalConfirmed": false,
+    "runIdentity": "09921c096ed95fd403817b3318cd4b4c52109e2acbd90ad67ea662612c088e88",
+    "failureLatched": false
+  },
+  "fullLocalFormatPassed": false,
+  "localFormatFailureFiles": 1452,
+  "headUnchangedLineEndingSamples": [
+    ".prettierrc.json",
+    "lib/proxy/context-recovery-storage-schema.js",
+    "hpm-cli.js"
+  ],
+  "changedFilesFormatPassed": true
+}

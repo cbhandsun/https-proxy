@@ -10,6 +10,8 @@ const { createSameDirectoryLease } = require('../n09-ipc/same-directory-lease.js
 const { createClearClient } = require('../n09-ipc/clear-client.js');
 const { createN09HostAckClient } = require('../n09-ack/bootstrap-client.js');
 const { createPublicationObservationClient } = require('./publication-observation-client');
+const { createPublicationAckClient } = require('./publication-ack-client');
+const { createOwnedPublicationAck } = require('./publication-ack-owner');
 const {
   fields,
   discardN09PromiseRejection,
@@ -43,11 +45,14 @@ function createClientUnsafe(input, dependencies) {
         'httpRequest',
         'createHostAckClient',
         'createPublicationClient',
+        'createPublicationAckClient',
         'onPhase',
       ].includes(key) ||
       typeof dependencies[key] !== 'function' ||
       types.isProxy(dependencies[key]) ||
-      (['createHostAckClient', 'createPublicationClient'].includes(key) &&
+      (['createHostAckClient', 'createPublicationClient', 'createPublicationAckClient'].includes(
+        key
+      ) &&
         types.isAsyncFunction(dependencies[key]))
     )
       throw fail();
@@ -68,9 +73,10 @@ function createClientUnsafe(input, dependencies) {
   let syntheticBusiness;
   let hostAck;
   let publication;
+  let publicationAck;
   function closeHostAck() {
-    const resources = [hostAck, publication];
-    hostAck = publication = undefined;
+    const resources = [hostAck, publication, publicationAck];
+    hostAck = publication = publicationAck = undefined;
     let failed = false;
     for (const resource of resources) {
       try {
@@ -506,6 +512,22 @@ function createClientUnsafe(input, dependencies) {
           throw fail();
         }
       };
+    },
+    getPublicationAckClient(input) {
+      const identity = owner(input);
+      if (publicationAck) return publicationAck.facade;
+      const resource = (dependencies.createPublicationAckClient ?? createPublicationAckClient)({
+        runtimeDir: identity.runtimeDir,
+        pid: identity.pid,
+        manifestSha256: identity.manifestSha256,
+        token,
+      });
+      const facade = createOwnedPublicationAck(resource, () => {
+        owner(identity);
+        if (publicationAck?.facade !== facade) throw fail();
+      });
+      publicationAck = { facade, close: facade.close };
+      return facade;
     },
     getPublicationObservationClient(input) {
       const identity = owner(input);

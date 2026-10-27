@@ -7,7 +7,7 @@ const fail = () => new Error('n09_publication_files_rejected');
 
 // Immutable, bounded probe files. Ready markers authorize complete visibility,
 // never durability or a storage ACK. This separate directory never alters ACKs.
-function createPublicationObservationFiles(input, create = false) {
+function createPublicationFiles(input, create, ack) {
   try {
     const { directory, pid, epoch } = fields(input, ['directory', 'pid', 'epoch']);
     if (
@@ -22,7 +22,8 @@ function createPublicationObservationFiles(input, create = false) {
       pid < 1 ||
       typeof epoch !== 'string' ||
       !/^[a-f0-9]{32}$/.test(epoch) ||
-      path.basename(directory) !== 'n09-publication-' + pid + '-' + epoch
+      path.basename(directory) !==
+        (ack ? 'n09-publication-ack-' : 'n09-publication-') + pid + '-' + epoch
     )
       throw fail();
     const pins = new Map();
@@ -38,10 +39,12 @@ function createPublicationObservationFiles(input, create = false) {
     function name(kind, sequence) {
       verify();
       if (
-        !['query', 'state'].includes(kind) ||
+        !(ack ? ['arm', 'armed', 'held', 'release', 'released'] : ['query', 'state']).includes(
+          kind
+        ) ||
         !Number.isSafeInteger(sequence) ||
         sequence < 1 ||
-        sequence > 16
+        sequence > (ack ? 1 : 16)
       )
         throw fail();
       return path.join(directory, kind + '-' + sequence + '.json');
@@ -113,4 +116,8 @@ function createPublicationObservationFiles(input, create = false) {
     throw fail();
   }
 }
-module.exports = { createPublicationObservationFiles };
+const createPublicationObservationFiles = (input, create = false) =>
+  createPublicationFiles(input, create, false);
+const createPublicationAckFiles = (input, create = false) =>
+  createPublicationFiles(input, create, true);
+module.exports = { createPublicationObservationFiles, createPublicationAckFiles };

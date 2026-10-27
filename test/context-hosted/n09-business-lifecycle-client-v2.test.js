@@ -21,7 +21,14 @@ const {
   performN09DurableCommand,
 } = require('../../scripts/context-hosted/n09-ack/durable-command');
 const synthetic = () => ({ entryKey: '1'.repeat(48), upstreamKey: '2'.repeat(48) });
-function fixture(t, mutation = () => {}, ackFactory, onPhase, publicationFactory) {
+function fixture(
+  t,
+  mutation = () => {},
+  ackFactory,
+  onPhase,
+  publicationFactory,
+  publicationAckFactory
+) {
   const ownedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'n09-channel-pure-'));
   t.after(() => fs.rmSync(ownedRoot, { force: true, recursive: true }));
   const install = path.join(ownedRoot, 'installed');
@@ -214,6 +221,9 @@ function fixture(t, mutation = () => {}, ackFactory, onPhase, publicationFactory
     spawn: start,
     httpRequest,
     ...(ackFactory ? { createHostAckClient: (options) => ackFactory(options, state) } : {}),
+    ...(publicationAckFactory
+      ? { createPublicationAckClient: (options) => publicationAckFactory(options, state) }
+      : {}),
     ...(publicationFactory
       ? { createPublicationClient: (options) => publicationFactory(options, state) }
       : {}),
@@ -1548,4 +1558,47 @@ test('publication query refuses executable thenables and exposes only fixed safe
     await f.client.close();
   }
   assert.equal(traps, 0);
+});
+
+test('publication ACK capabilities bind the same owner and reject an inflight reply after forced termination', async (t) => {
+  let settle,
+    closes = 0;
+  const f = fixture(
+    t,
+    () => {},
+    undefined,
+    undefined,
+    undefined,
+    (options, state) => {
+      assert.equal(options.pid, state.pid);
+      assert.equal(options.token, state.token);
+      return {
+        arm: async () => ({ kind: 'armed' }),
+        waitHeld: () =>
+          new Promise((resolve) => {
+            settle = resolve;
+          }),
+        release() {},
+        waitReleased: async () => ({ kind: 'released' }),
+        close() {
+          assert.equal(state.commands.at(-1).op, 'stop');
+          closes++;
+        },
+      };
+    }
+  );
+  const first = await f.client.startLifecycle();
+  const channel = f.client.getPublicationAckClient(first);
+  assert.equal(channel, f.client.getPublicationAckClient(first));
+  assert.deepEqual(await channel.arm({}), { kind: 'armed' });
+  const pending = assert.rejects(channel.waitHeld(), /n09_lifecycle_client_failed/);
+  await f.client.stopLifecycle(first);
+  settle({ kind: 'held' });
+  await pending;
+  assert.throws(() => channel.release(), /n09_lifecycle_client_failed/);
+  const next = await f.client.restartLifecycle(first);
+  assert.notEqual(f.client.getPublicationAckClient(next), channel);
+  await f.client.stopLifecycle(next);
+  assert.equal(closes, 2);
+  await f.client.close();
 });

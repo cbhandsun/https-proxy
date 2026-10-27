@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：ACK通道已接私有宿主与生命周期；136项通过，22f新增失败保留
+
+本批把ACK签名契约接到固定物理文件通道、同步宿主边界、已认证bootstrap客户端和原生命周期身份。observation/ACK两种范围仅允许固定目录名、消息种类与序号，复用原物理路径/FD身份/严格UTF-8/4096字节/不可覆盖ready文件校验；ready仍只证明可见性。宿主只在观察器空闲且generation/callOrdinal精确一致后arm，在真正内部ACK边界生成新的holdChallenge；客户端见过同次有效held后才可release，宿主要求全部目标事实及新挑战一致。一次使用、并发/重复/旧代次拒绝；关闭不自动release、不关闭产品存储观察器。控制失败粘滞，不能发布原host-save成功。原5000ms持有上限及750ms外部见证保持，审查发现命令写入耗时未计入750ms后已修正并补真实延迟回归。
+
+私有host-install已在原生产器之后/原ACK交付之前接入新宿主；没有arm时原路径继续。新增客户端仅从原签名bootstrap派生不同域的控制key，不返回token/key；目录替换、错误token/manifest/PID均拒绝。生命周期在调用前后验证原owner，先执行原强杀再关闭能力，重启后旧在途held不能返回、旧能力不能释放。真实双进程夹具完成五状态持有/释放、提前释放、错revision/root/challenge/ordinal、并发和关闭拒绝；另真实等待固定五秒观察到子进程拒绝ACK并保留失败状态；释放回执文件写入同样计入宿主五秒总界限，5100ms真实写入延迟回归拒绝原ACK，不能以已签released探针补认业务成功。这仍是受控观察器夹具，不是默认native实际daemon内部矩阵；业务adapter/driver与正式场景尚待接入，不能授完整资格。
+
+最终16文件136/136、零fail/skip/cancel，包含原物理SQLite、runtime hooks、冷安装/恢复、生命周期、PowerShell签名门控与真实闭包生成/消费。统一CI原自动发现新测试；Lint零错误/五个既有警告、1706份语法、CI/release治理通过。中途新测试的AbortSignal未声明及getter-return lint失败已修复，未跳规则。全仓format:check本机失败，报告1452份文件；抽查三份与HEAD逐字相同的既有文件均为LF、原配置要求CRLF，规范化换行后原Prettier校验通过。未全仓改写或改配置，本批文件另按原规则校验，Windows完整CI仍待。
+
+22f额外I/O40600134216/job122525903624已failure：native withdrawn/COMMIT kill与release均在原ready5000准备失败、未进入目标中断；后者原生ready4849ms。直接SQLite sending/awaiting-ACK准备同样失败，COMMIT seq3为1758ms、seq8为1724ms、seq10开始后未观察到返回；另有ZIP探针spawnSync pwsh超时。安全有限证据见context-recovery-evidence/22f6910-ci-failures.json，不能归因唯一OS/杀毒原因，也不称真实HTTP恢复已通过。普通22f七个非coverage作业及业务诊断成功，coverage/正式仍在运行；不重跑洗绿。检查产品初始化发现DDL与时钟已在同一原子事务中，不能假称发现了逐DDL自动提交或为少刷盘删除认证/锚点。
+
+同一6646真实长测最新已推进40分钟、9个有效节拍、无失败锁存、实际进程存活；没有重启或抢占环境，尚无24h/到期重开资格。原E实例保持、真实模型0、额度账未写；五秒稳定性、实际daemon全内部矩阵、本机候选安装两端、真实provider、24h/到期重开及最大容量缺口保持。下一步接实际业务adapter/driver和托管场景，继续持久尾延迟排查。
+
 ## 2026-10-27：SSH恢复，ACK签名消息契约通过；控制通道尚未接入daemon
 
 Windows SSH已恢复，只读核对同一6646任务及实际进程身份。2026-10-27T23:15:28.541Z的健康回执仍running/fresh_real_tick，scheduledMs=1800000、elapsedMs=1800812.9732000001、7个有效节拍、进程存活且failureLatched=false；已越过真实半小时检查点，尚未授24h或到期重开资格。没有重启任务、修改冻结来源或在该主机启动其他验收。

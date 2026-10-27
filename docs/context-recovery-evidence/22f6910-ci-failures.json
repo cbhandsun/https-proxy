@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "22f6910896ea74cafb080b035297f39ffd0ef231",
+  "runId": 40600134216,
+  "jobId": 122525903624,
+  "conclusion": "failure",
+  "originalStage": "proxy",
+  "originalReadyDeadlineMs": 5000,
+  "failures": [
+    {
+      "case": "native-withdrawn-commit-kill",
+      "targetBoundaryEntered": false,
+      "lastFixture": "native-opening",
+      "lastStartupPhase": "engine_anchor_validate_finished",
+      "lastStartupElapsedMs": 2199,
+      "keyFileFlushMs": 1279
+    },
+    {
+      "case": "native-withdrawn-commit-release",
+      "targetBoundaryEntered": false,
+      "lastFixture": "native-opened",
+      "startupReadyMs": 4849,
+      "enginePrepareFinishedMs": 4488,
+      "anchorPersistMs": 360
+    },
+    {
+      "case": "encrypted-http-sending-awaiting-ack-normal-stop",
+      "targetBoundaryEntered": false,
+      "lastFixture": "fixture-observed",
+      "commits": [
+        {
+          "sequence": 3,
+          "startMs": 8,
+          "returnedMs": 1766
+        },
+        {
+          "sequence": 8,
+          "startMs": 2210,
+          "returnedMs": 3934
+        },
+        {
+          "sequence": 10,
+          "startMs": 4044,
+          "returnedObserved": false
+        }
+      ]
+    },
+    {
+      "case": "real-zip-extraction",
+      "errorClass": "spawnSync_pwsh_ETIMEDOUT"
+    }
+  ],
+  "uniqueRootCauseQualified": false,
+  "fiveSecondStabilityQualified": false,
+  "rerunPerformed": false,
+  "modelRequests": 0
+}

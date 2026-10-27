@@ -238,3 +238,13 @@ test('warm storage opening is refused before wrapping or constructing any observ
     false
   );
 });
+
+test('ACK control directory conflict rejects and restores all exports without opening storage', (t) => {
+  const f = fixture(t);
+  fs.mkdirSync(path.join(f.input.caseRoot, `n09-publication-ack-${f.input.pid}-${f.input.epoch}`));
+  assert.throws(() => installN09HostAck(f.input), safe);
+  const storage = require(f.service);
+  assert.equal(storage.openContextRecoveryStorage, storage.originalOpen);
+  assert.equal(storage.opening, undefined);
+  assert.equal(require.cache[f.storage], undefined);
+});

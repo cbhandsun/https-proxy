@@ -10,11 +10,12 @@ const {
 const {
   createPublicationObservationHost,
 } = require('../n09-business/publication-observation-host');
+const { createPublicationAckHost } = require('../n09-business/publication-ack-host');
 
 // Called only by the granted gate, after every helper and installed source hash
 // has been verified. Installed imports below are fixed, reviewed targets.
 function installN09HostAck(input) {
-  let hooks, publicationObserver, publicationHost, host;
+  let hooks, publicationObserver, publicationHost, ackHost, host;
   try {
     const options = fields(input, ['install', 'caseRoot', 'pid', 'epoch', 'signingKey']);
     if (
@@ -76,12 +77,22 @@ function installN09HostAck(input) {
       ]
     )
       throw fail();
+    ackHost = createPublicationAckHost(
+      {
+        caseRoot: options.caseRoot,
+        pid: options.pid,
+        epoch: options.epoch,
+        signingKey: options.signingKey,
+      },
+      publicationObserver
+    );
     hooks = installN09RuntimeHooks({
       ackExports,
       lifecycleExports,
       expectedDirectory: path.join(options.caseRoot, 'runtime/context-recovery-v1'),
       pid: options.pid,
       epoch: options.epoch,
+      afterDurableAck: (facts) => ackHost.afterDurableAck(facts),
     });
     publicationHost = createPublicationObservationHost(
       {
@@ -103,7 +114,7 @@ function installN09HostAck(input) {
           return;
         }
         closed = true;
-        for (const resource of [publicationHost, hooks]) {
+        for (const resource of [ackHost, publicationHost, hooks]) {
           try {
             resource.close();
           } catch {
@@ -124,9 +135,12 @@ function installN09HostAck(input) {
     );
     host.start();
     publicationHost.start();
+    ackHost.start();
     return host;
   } catch {
-    for (const resource of host ? [host] : [publicationHost ?? publicationObserver, hooks]) {
+    for (const resource of host
+      ? [host]
+      : [ackHost, publicationHost ?? publicationObserver, hooks]) {
       try {
         resource?.close();
       } catch {
