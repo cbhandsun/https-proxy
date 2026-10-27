@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：67候选本机原生内部中断10项、原五秒恢复两文件50项通过；未授稳定性或整体验收
+
+在独立短测目录顺序执行，未与归档/构建负载重叠，也未操作E盘旧托盘实例。实际固定源码67f14297c8a7e3f187ff6b7ab9be4a7850600241，执行后Git tracked修改0，实际owner及三份测试文件SHA256与提交规范LF内容一致。发布候选身份仍为67，不随本记录提交重标。
+
+原命令node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/context-recovery-native-graceful-http.test.js：10/10、零skip/取消，测试55767ms，所属外层56563ms退出0、stderr0、Job自然清空。五种发布状态prepared/sending/transport-finished/uncertain/withdrawn分别经过原COMMIT锁等待与独立OS锚点持久后ACK前边界，使用未修改的默认worker、真实DPAPI/OS锚点、原真实时钟及同目录重开；原HTTP5000、COMMIT见证750、停机与存储期限、精确版本及FULL/DELETE断言保持。只授该文件正常停机矩阵，本轮没有运行其强杀兄弟矩阵、安装版或真实provider。
+
+随后原命令同一Node选项执行test/client-context-target.test.js及test/context-recovery-codex-summary.test.js：50/50、零skip/取消，测试40913ms，所属外层41166ms退出0、stderr0、Job自然清空。包括原持久HTTP五秒请求、真实加密跨进程摘要保存/重开/强杀后撤销与原到期不延长；未修改测试、负载、认证和时限。此为本机单批通过，不能覆盖旧五秒及混合负载失败，不能授长期稳定性、最大文件或24h资格。
+
+另外完成一次明确标识不授资格的独立诊断：只在新副本owner中加入有限计时，使用默认worker及真实后端；原产品源码不改。仅缓冲固定阶段/序号/耗时，关闭后写一次私有计时，不输出参数、密钥、scope、原文或响应。开库1347ms，observed166ms、prepared101ms、sending59ms、transport-finished52ms；认证快照0.679–4.986ms，后续锚点持久12.641–15.926ms。未复现托管runner的1–2秒COMMIT/五秒准备尾延迟，不能由此确定慢盘、DPAPI、快照或宿主的唯一根因，也未凭此删除认证、缓存跨事务证明或合并独立持久转换。第一次副本准备因CRLF字节摘要差异被身份门拒绝，实际执行前已核对规范LF身份；该准备失败保留，不算原生开库失败。
+
+fb7f732普通40497299266最新已观察node-quality、integration、Rust及四组unit全部success，coverage仍运行；正式40497299395的source-gates和额外I/O40497299280仍运行，egress成功。不能称完整CI成功，67旧正式legacy_unprotect十秒超时、8b额外I/O ready准备失败以及构建natural-job-exit失败126全部保留，不rerun覆盖。用户自行切换的选择不变；本轮无安装切换、真实模型、24h作业或冻结环境操作。下一步核对这些CI终态，再依据实际失败阶段继续定位，剩余安装版/真实provider、完整内部故障矩阵、五秒稳定性及真实24h/最大文件目标保持。
+
 ## 2026-10-27：67f1429自用候选已交付，用户自行切换；正式CI与构建收尾失败保留
 
 固定源码67f14297c8a7e3f187ff6b7ab9be4a7850600241的0.1.1未签名安装器及便携包已交付到Windows桌面HPM-SelfUse-0.1.1-67f1429，并在Mac独立回读核对。installer SHA256 1b95a93637255c80a1ccf2c7574b5252d0e71793dc5a699047465d03f21470ff；portable SHA256 648cccc6f76bec7aca2d365f2f1ec279a1375bbe132b111a57cda5eaa3fa4698；runtime manifest dbdccae440cb19ca9d551768bb8c7c1dab7c3225fe3c5beb0e0825cf5a5b308e。便携包通过原validate-release-package，六份修复源码与固定提交逐文件一致；两种产物均无个人配置、凭据、数据库或私有日志。新包包含认证加密失败拒绝回退、健康/原生控制冷加载拆分、原子替换后配置监听修复。旧673候选不覆盖，新文档或测试提交不得重标产物源码。
