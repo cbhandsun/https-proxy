@@ -393,31 +393,33 @@ test('overlapping inherited roots cannot amplify partition encoding work without
   );
   assert.equal(roots.length, 2);
   const repeated = Array.from({ length: 64 }, (_entry, index) => roots[index % roots.length]);
-  const stringify = JSON.stringify;
+  const ownKeys = Reflect.ownKeys;
   let attempts = 0;
-  const serialization = t.mock.method(JSON, 'stringify', (value, ...args) => {
+  // Every full-root codec admission traverses these exact payloads once;
+  // counting JSON strings would miss an encoding that rejects before emission.
+  const admission = t.mock.method(Reflect, 'ownKeys', (value) => {
     if (
       Array.isArray(value) &&
       value.length === leaves.length &&
       value.every((entry) => entry?.origin === 'hpm_workbuddy_task_state')
     )
       attempts++;
-    return stringify(value, ...args);
+    return ownKeys(value);
   });
   let packed;
   try {
     packed = consolidateGeneratedTaskStates(repeated, owner, scope);
   } finally {
-    serialization.mock.restore();
+    admission.mock.restore();
   }
   assert.equal(packed, repeated, 'already fitting originals remain exact when no merge fits');
   const limit = 1 + Math.ceil(Math.log2(repeated.length));
-  assert.ok(attempts <= limit, `overlap caused ${attempts} full-source encodings; limit ${limit}`);
+  assert.ok(attempts <= limit, `overlap caused ${attempts} full-source admissions; limit ${limit}`);
   assert.ok(attempts > 0);
   t.diagnostic(
     JSON.stringify({
       messages: repeated.length,
-      fullSourceEncodings: attempts,
+      fullSourceAdmissions: attempts,
       limit,
       modelRequests: 0,
     })

@@ -19,6 +19,20 @@ const window = [
 ];
 const invalid = (fn, code = 'invalid_local_compaction') => assert.throws(fn, { code });
 
+test('normalization never serializes primitive originals or a complete data tree', () => {
+  const input = { output: '\u0000\b\t\n\f\r"\\🙂\ud800', values: [null, false, -0, 1e100] };
+  const stringify = JSON.stringify;
+  const expected = stringify(input);
+  let result;
+  try {
+    JSON.stringify = () => assert.fail('normalization must count without serialization');
+    result = normalizeCompactionData(input, 1024);
+  } finally {
+    JSON.stringify = stringify;
+  }
+  assert.equal(stringify(result), expected);
+});
+
 test('normalization counts actual array bytes without invoking inherited JSON hooks', () => {
   const previous = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON');
   let hooks = 0;

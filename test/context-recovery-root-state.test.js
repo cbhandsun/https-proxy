@@ -85,11 +85,12 @@ const observed = {
 };
 
 test('restore source policy reuses only successful matching scalar checks within one operation', (t) => {
-  const stringify = JSON.stringify;
+  // Observe the genuine descriptor parser, independent of JSON allocation.
+  const descriptor = Object.getOwnPropertyDescriptor;
   let checks = 0;
-  t.mock.method(JSON, 'stringify', (value, ...rest) => {
-    if (value?.completed === true && Object.hasOwn(value, 'output')) checks++;
-    return stringify(value, ...rest);
+  t.mock.method(Object, 'getOwnPropertyDescriptor', (value, key) => {
+    if (key === 'output' && descriptor(value, 'completed')?.value === true) checks++;
+    return descriptor(value, key);
   });
   const validate = createRecoverySourcePolicyValidator();
   const output = 'synthetic repeated original';
@@ -161,12 +162,15 @@ test('restore source policy rejects unsafe scalars and agrees with the full sour
 });
 
 test('restore source policy bounds cached successes by entry count and retained bytes', (t) => {
-  const stringify = JSON.stringify;
+  // A cache miss still validates the actual source's own output descriptor.
+  const descriptor = Object.getOwnPropertyDescriptor;
   const checks = new Map();
-  t.mock.method(JSON, 'stringify', (value, ...rest) => {
-    if (value?.completed === true && Object.hasOwn(value, 'output'))
-      checks.set(value.output, (checks.get(value.output) ?? 0) + 1);
-    return stringify(value, ...rest);
+  t.mock.method(Object, 'getOwnPropertyDescriptor', (value, key) => {
+    if (key === 'output' && descriptor(value, 'completed')?.value === true) {
+      const output = descriptor(value, key).value;
+      checks.set(output, (checks.get(output) ?? 0) + 1);
+    }
+    return descriptor(value, key);
   });
   const countBounded = createRecoverySourcePolicyValidator();
   for (let index = 0; index < 129; index++)

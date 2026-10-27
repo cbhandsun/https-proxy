@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：修正转义原文计数分支与旧工作量观察点；保留4c完整门失败
+
+4c42638普通40459980091的quality/integration/rust/unit1已success，但unit0/job122042001284、unit2/122042001339、unit3/122042001359终态failure，完整门未过。四个失败用例属于三个文件：source policy两项以原整对象JSON.stringify统计实际校验，新实现该序列化次数为0；partition root抗放大用例同样因序列化次数0未观察到真实完整准入；partitioned ledger原文不序列化用例则发现本批fallback仍把转义原文作为primitive传给JSON.stringify，确属实现缺口，不能一概归咎夹具。旧门/失败保留，未rerun补绿，coverage与正式source当时仍执行，不宣称其终态或新源码资格。
+
+新增禁止JSON.stringify参与原文/完整数据规范化的回归先红。现按UTF-16单元精确累计C0短/长转义、引号/反斜线及孤立代理单元的编码增量，配对代理保留原UTF-8字节；数字使用原有限数值的原生字符串编码，-0及指数与JSON一致。无primitive或完整对象序列化；超过剩余编码预算立即失败，不先造放大字符串。原raw/encoded上限、65536节点、64深度、缓存128项/4MiB及descriptor-only边界保留，未改产品认证/持久/期限。source policy观察改为真实自有output descriptor校验，原命中/拒绝/条目和字节上限次数断言不变；partition root观察改为同一完整codec准入的Reflect.ownKeys，原attempts>0、1+ceil(log2(n))上限及原对象精确相同断言保留，没有放宽baseline。
+
+四相关文件130项零fail/skip；扩大十四文件204项203通过、1原平台限定skip、零fail，包含原CI三失败文件及发行隔离。新primitive禁序列化回归先红一项后通过，全部UTF-16字节oracle及原安全/溢出边界通过；定向Lint/格式、1668语法、CI/release治理通过。新源码完整Windows结果待提交后核对，不以本机结果授五秒稳定性。
+
+Windows独立4c环境两次锁安装22062/25741ms、原生构建109076ms均退出0；容量26/26零skip，真实默认worker两次DPAPI/OS锚点开关通过，ready1107/807ms。571份产品源码摘要cd1facbf802ad2678ef190e5d638f31980621fdd12667d42709b0ea4f749c506、原生3ac81889f03d943cb7a75a20b516939cc402b6d332dd3d61bd2d7fdbc9ff60a2，Node22.22.3原摘要匹配，dirty=false，实际storage/progress导出及checkout加载匹配。4c本机原50项未执行、日档未注册/未启动；因完整CI失败保持门禁，未冒充已开始24h或累计旧轮时长。159的45/50、1e一小时锚点及所有旧失败/冻结材料不变。
+
+本轮仅只读核对本机额度元数据：maximum177/used169/requestCount169、Codex99/Claude70/other0，noAutomaticRetries=true。旧Codex新增授权16次、授权时used154，此后15条全部Codex，另有Claude原预留7次；合计与177上限/169已用及人类交接余量一致。仅记录数值核对，不上传私有授权正文、凭据或请求记录；当前模型调用0，后续任何实际转发仍须在调用前持久记账、逐端限额且不自动重试，不修改日常配置。其余daemon内部矩阵、真实24h/到期重开、最新安装/真实provider及受控启用仍未完成。
+
+
 ## 2026-10-27：修复规范化整树重序列化与继承JSON钩子；新Windows资格待核对
 
 159本机原50项45通过/5失败仍冻结保留，新日档未注册/未启动。独立单Chat CPU诊断使用原负载/期限，仅按名筛选作采样，不作完整门禁或重跑补绿：固定159 Windows26545ms退出0，V8采样总24571ms，idle9386ms、normalizeCompactionData自身1956ms，open1416ms/internalModuleStat1323ms；本机Mac对照规范化自身161.9ms。该有限采样支持实际规范化热点，不唯一归因CPU调度/安全软件或解释历史一小时锚点失败；原完整五秒失败不能被诊断成功撤销，模型0。
