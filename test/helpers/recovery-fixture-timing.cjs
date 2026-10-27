@@ -16,6 +16,8 @@ const OPERATIONS = new Set([
 ]);
 const PHASES = new Set([
   'worker_started',
+  'directory_acl_started',
+  'directory_acl_finished',
   'paths_ready',
   'ownership_acquired',
   'key_protect_started',

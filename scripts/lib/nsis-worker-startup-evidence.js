@@ -4,6 +4,8 @@ const { fail } = require('./nsis-encrypted-contract');
 const PHASES = [
   'worker_started',
   'paths_started',
+  'directory_acl_started',
+  'directory_acl_finished',
   'paths_ready',
   'ownership_started',
   'ownership_acquired',

@@ -238,6 +238,8 @@ test('storage owner refuses unknown files, hard links, replaced files and unavai
         assert.equal(fs.existsSync(path.join(fixture.directory, 'checkpoint.sqlite')), false);
         assert.deepEqual(phases, [
           'paths_started',
+          'directory_acl_started',
+          'directory_acl_finished',
           'paths_ready',
           'ownership_started',
           'ownership_acquired',
@@ -604,6 +606,8 @@ test('worker startup reports validated phases without granting readiness or chan
   for (const phase of [
     'worker_started',
     'paths_started',
+    'directory_acl_started',
+    'directory_acl_finished',
     'paths_ready',
     'ownership_started',
     'ownership_acquired',
@@ -643,6 +647,8 @@ test('worker startup reports validated phases without granting readiness or chan
     [
       'worker_started',
       'paths_started',
+      'directory_acl_started',
+      'directory_acl_finished',
       'paths_ready',
       'ownership_started',
       'ownership_acquired',
@@ -777,6 +783,8 @@ test('owner emits only fixed phases and observer failures preserve ownership and
     );
     assert.deepEqual(phases, [
       'paths_started',
+      'directory_acl_started',
+      'directory_acl_finished',
       'paths_ready',
       'ownership_started',
       'ownership_acquired',
@@ -828,6 +836,8 @@ test('owner emits only fixed phases and observer failures preserve ownership and
     );
     assert.deepEqual(phases, [
       'paths_started',
+      'directory_acl_started',
+      'directory_acl_finished',
       'paths_ready',
       'ownership_started',
       'ownership_acquired',

@@ -3,6 +3,25 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createRecoveryFixtureTiming } = require('./helpers/recovery-fixture-timing.cjs');
 
+test('fixture timing retains directory ACL markers and refuses arbitrary phase text', () => {
+  let time = 0;
+  const trace = createRecoveryFixtureTiming(
+    () => time,
+    () => null
+  );
+  trace.mark('worker_started');
+  time = 100;
+  trace.mark('directory_acl_started');
+  time = 5000;
+  trace.mark('directory_acl_finished');
+  trace.mark('directory_acl_finished/PRIVATE_PATH_SENTINEL');
+  assert.deepEqual(trace.snapshot(), [
+    { phase: 'worker_started', elapsedMs: 0 },
+    { phase: 'directory_acl_started', elapsedMs: 100 },
+    { phase: 'directory_acl_finished', elapsedMs: 5000 },
+  ]);
+});
+
 test('fixture timing distinguishes wall duration from process CPU without exposing data', () => {
   let time = 100,
     usage = { user: 10000, system: 2000 };

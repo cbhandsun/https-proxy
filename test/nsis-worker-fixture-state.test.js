@@ -195,6 +195,33 @@ test('worker evidence distinguishes actual ready and schema refusal from native 
   assert.equal(hooks, 0);
 });
 
+test('worker evidence accepts directory ACL phases without treating them as readiness', () => {
+  const evidence = createWorkerStartupEvidence();
+  for (const phase of [
+    'worker_started',
+    'paths_started',
+    'directory_acl_started',
+    'directory_acl_finished',
+  ])
+    evidence.observe({ phase });
+  assert.throws(() => evidence.receipt(false));
+  for (const phase of ['key_protect_finished', 'database_opened', 'engine_ready', 'ready'])
+    evidence.observe({ phase });
+  assert.equal(evidence.receipt(false).ready, true);
+  const invalid = createWorkerStartupEvidence();
+  for (const phase of [
+    'worker_started',
+    'directory_acl_started',
+    'directory_acl_started',
+    'key_protect_finished',
+    'database_opened',
+    'engine_ready',
+    'ready',
+  ])
+    invalid.observe({ phase });
+  assert.throws(() => invalid.receipt(false));
+});
+
 test('worker refusal verifies the exact old/new format before opening and releases physical SQLite locks', (t) => {
   const fs = require('node:fs');
   const os = require('node:os');

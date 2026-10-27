@@ -67,6 +67,13 @@ function fixture(t, failure, observer) {
     events.push(event);
     return observer?.(event);
   });
+  assert.deepEqual(
+    events.map((event) => event.phase),
+    ['directory_acl_started', 'directory_acl_finished']
+  );
+  // The following assertions cover one key-write observation window. Directory
+  // admission has its own fixed phase pair and cannot stand in for key durability.
+  events.length = 0;
   armed = true;
   return {
     paths,

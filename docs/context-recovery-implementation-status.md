@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：fb安装整链通过；新快照本机50项通过、原生矩阵29/30；补目录ACL阶段，Windows连接中断
+
+安装review40500532099/job122176959482已从运行终态及各强制步骤核对为success，源码固定fb7f732。manifest d8b702a5d1b70e6137db2457a4883cf066b8f70fa8f4fd9d2cfe234a54ff4f8c：同格式安装/升级回滚/DPAPI通过；582八阶段、baselineSourceCount=582、原manifest4eb1ea48…、布局1→3及revisionDelta=1、旧读者拒写通过。schema7四个实际原生CLI案例（Codex/Claude各默认、增强）均三次压缩、精确最终答案及同会话重启；默认零代理恢复，增强私有读后独立公开生成。Codex两模式WS的401拒绝、五个partial/零terminal、两侧关闭，以及HTTP/SSE/WS排空、daemon自然退出及所属树清空通过。包内发布30/30零skip仅defaultWorkerQualified=true，daemonQualified=false；真实provider/24h仍false。此为托管临时安装器资格，不将桌面67产物重标为fb已安装验收，也不覆盖后续f224优化。
+
+f224普通40502018280八项、三台独立原完整两文件时序40502018279及额外I/O40502018274全部success。但正式40502018237 source-gates失败于原生发布prepared/ACK强杀、transport-finished/COMMIT释放两项ready准备，尚未进入目标中断：开库2441/1029ms，首项初次save-reference-state约1979ms，次项连续保存1589/1229ms后第四次仍pending；N08/N09未执行，旧五秒尾延迟不能抹除。仅文档差异的d5普通40502142096还失败于legacy-runtime-archive的原25秒pwsh启动超时；正式40502142070源码门/N08通过、N09在casePhase82的只读快照schema查询/准入阶段179失败。未确认BUSY、热日志或格式错误，不把最后阶段冒充已知产品根因，不rerun洗绿。
+
+新快照在本机独立目录的原Core/Codex两文件50/50零skip，49111ms，父Node49443ms退出0、Job自然清空。随后原生发布两文件30项29通过/1失败、零skip，102115ms，父Node102650ms退出1并完成所属清理；transport-finished强杀/COMMIT项在ready准备阶段最后paths_started146ms，尚未进入中断或新快照执行。远端终态文件及CIM确认测试结束、所属Node不存在；SSH观察连接却在300秒超时，分别保留测试失败和传输观察失败，不重启源测试。
+
+本批仅增加directory_acl_started/finished两个固定阶段，夹住原secureRecoveryStoragePath(directory)调用，后续失败可区分ACL边界与前后文件检查；不改变ACL、原生分发、重试、期限、持久语义或就绪定义。同步更新NSIS证据白名单及固定时序词汇，未知/重复阶段仍拒绝，两个阶段单独不能授readiness。新目录观察回归5项先红后绿，另一个NSIS消费回归也先红；首次VM漏process属于夹具准备错误，修正后才确认缺阶段的真实红结果。原key-write夹具先断言目录阶段，再单独观察原11项key写入，原写入断言不放宽。六文件59项58通过/1原Windows平台skip、零失败，新测试无平台skip并进入统一unit发现；Lint、格式、1679语法及CI/release治理通过。尚未授本批Windows原生资格。
+
+新Windows最小开库诊断尚未上传或启动：SSH先connection reset，随后TCP22超时，无现存共享master。准备的独立目录/计划任务未获得实际启动证据，不能称运行；未重试整套中断矩阵、改动旧实例/日常配置/冻结现场/长测或调用模型。主机连接状态已异步询问，托管工作继续。下一步核对新提交完整CI及目录/只读schema失败的实际阶段；真实provider、连续24h及到期重开、最大文件和其余daemon内部矩阵仍未完成，先自用交付优先级不变。
+
 ## 2026-10-27：快照复用本次认证字节，移除重复UTF-8转换；Windows148项通过
 
 沿快照重复工作继续定位到一项实际开销：blob.open已完成载荷长度、UTF-8往返、摘要及blob身份认证，快照随后payload又为同一原文构造Buffer并重做相同摘要。新回归在旧代码实际失败，每份正常非空原文编码3次而非要求的2次。本批open先保留原长度上限和byteLength检查，再只构造本次Buffer，使用同一字节完成认证及已解析reference的sourceId/bytes/digest绑定、coveredThrough的UTF-8完整前缀检查；返回值仍只有原数据，不暴露或缓存Buffer，没有跨调用/跨事务证明。独立parseCompletedEvidenceSource、敏感/未完成内容拒绝及完整载荷重新认证保持。
