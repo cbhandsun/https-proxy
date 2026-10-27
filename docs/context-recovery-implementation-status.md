@@ -1,5 +1,22 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：1e完整门及真实30分钟前缀通过；修正N09八案例摘要，固定新安装并行
+
+固定产品1e88eacc17d0ff9a9dfaa9cc4f71436780e809ce的普通Verify40421489324八项、正式40421489405四项（含N08与N09）、三runner时序40421489372、独立I/O40421489274及覆盖率I/O40421489645均已终态success。不会把另一个分支新启动的Verify40425384921与原完整门混为一轮，也不把成功窗口覆盖历史五秒/DPAPI/COMMIT失败或授长期稳定性。
+
+独立自用Windows固定1e新目录完成锁安装、插件--ignore-scripts锁安装、原生准备，各步骤退出0；容量/时钟26/26、失败阶段/真实默认worker17/17及原两文件五秒50/50，均零skip、原期限与负载不改、不重跑测试。真实默认worker验证八精确版本同目录重开、原expiry及陈旧CAS拒绝的engine-execute阶段；其余注入边界不能全部称DPAPI验收。六次最终持久完成1773–3394ms，138次已观察COMMIT最大149ms；只是本轮成功样本，fiveSecondStabilityQualified仍false。源码570文件哈希f0c5aa606473aace74afe6ac87f9b8b6a0d7ea943c7dc409bdfd7434bab8717c，Node22.22.3哈希780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b、原生59fcb2ede60eeea010c3d496f475161ce80269fa41ea77c766926d3964937e89，clean；初始PS5控制器退出但clone实际成功的设置失败保留，确认后只用PS7续接依赖，不称产品根因。
+
+真实30分钟前缀40421489423/job121916750527已终态success：2026-10-26T23:43:02.896Z实际开始，七个连续真实tick至1800000ms，完成elapsed1801841.267ms、最大迟到12.1911ms，开/关库各二次并同目录重开，源码同上。CI Node22.23.4、原生d8f107c6fe056ebcab7834a79e709b96f2669a07e95a87aecdd8e57aa7e768ee。prefixCompleted=true，但realtime24hStarted/realtime24hPassed/fullCapacityQualified均false，不能计入正式24h。旧5a七小时READ失败及更早半小时失败、最大文件暂停目录/任务/数据库/密钥/锚点均保持；不累计旧时长。
+
+发现N09运行约束已要求cases=8、adaptersClosed=8，但工作流人工摘要仍称六案例且笼统排除全部COMMIT内部，导致实际范围误报。本批只修摘要与说明：成功N09为原六案例加prepared真实SQLite COMMIT pending强杀/正释放两个对照；其他sending/transport-finished/uncertain/withdrawn内部、daemon durable-ACK内部、完整N09/容量/24h/provider均继续排除。prepare的daemonExecuted=false和网络阶段n08Qualified=false仍是各自局部回执，不擅改为总资格。无运行命令、原Job120秒、witness750ms、HTTP5000/native10000/storage30000ms或认证/TTL/精确ACK/FULL/DELETE变更。
+
+原八状态摘要行为回归先以旧六案例文本失败后通过；新增交叉检查生产cases和消费cases精确契约，防止摘要计数漂移。portable PowerShell执行原同一测试callback与八状态表达式通过，只证明摘要逻辑；本机三文件16项13通过/3原Windows限定skip，定向Lint/格式、CI治理与diff检查通过，原Windows完整行为回归继续统一CI。未增加skip或降低门禁。
+
+固定1e安装验收40425384993/job121929848744已在独立runner执行：基线身份与完整582恢复已成功，完整候选门/构建/升级回滚/582迁移拒写/最新安装两端及包内转换仍需逐步终态，不借用固定2f旧manifest授1e资格。不公开安装器、不动release签名要求。实际provider调用0，额度尚未复核，不能消耗。
+
+新正式24h独立环境正在按固定1e锁安装与原生短诊断准备，尚未声称启动。启动必须有实际native_day_started、源码/Node/原生哈希、真实PID与创建时间及Task Running一致回执；仅任务Start请求不算开始。持续核对每5分钟原时钟全序列，超过10分钟无真实推进为停滞/未核验，非零退出/失败立即报告且不自动重启；完成须原完整画像、真实>=86400000ms、原root实际到期后两次重开及最终退出0。启动后该主机只读监测，其他实施转Mac/GitHub独立环境。其余daemon转换/WS、容量、真实两端及受控自用缺口保持。
+
+
 ## 2026-10-26：贯通默认worker稳态失败阶段，保留主阶段及清理失败；e3普通门全通过
 
 原7小时READ失败只有reply/close，不能确认内部根因。本批在实际异步owner记录engine-execute/engine-snapshot/anchor-persist/owner-verify/owner-close固定阶段；串行队列转交仅WeakMap认证的安全元数据，拒绝请求仍返回原code/message/statusCode=503、不含cause或新增公开异常字段。阶段表示失败所在边界，不等同具体SQL COMMIT、DPAPI、flush或硬件根因。失败后的必需清理再次拒绝时，保留原阶段并标cleanupFailed=true，关闭Promise仍拒绝、写者锁仍等真实原生关闭；不能将cleanupFailed=false当清理ACK。原SQL拒绝仍可继续后续合法请求，锚点/身份失败仍封锁owner，不重试操作。

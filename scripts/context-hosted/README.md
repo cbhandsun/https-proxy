@@ -49,8 +49,8 @@ contacted.
 
 N08 exercises the six mutation/hold cases, actual business output-byte
 observation and authenticated committed before/after root, expiry and
-cumulative-budget checks. N09 uses six distinct private adapters: committed
-metadata observation followed by forced kill/restart/read; actual
+cumulative-budget checks. N09 first uses six distinct private adapters:
+committed metadata observation followed by forced kill/restart/read; actual
 await-clearAsync ACK followed by forced kill/restart plus four policy
 combinations; separate save and revoke durable-ACK cases; same-format backup
 rollback after revocation; and forced interruption with the upstream public
@@ -106,9 +106,9 @@ cleanup, late ACKs and accounting regression. Their standalone observer receipts
 remain `observer-boundary-only` with `liveDaemonProved:false`. In a successful
 hosted run, the fixed composition additionally requires both actual adapter
 ACKs, same-directory new-PID restart, read/accounting checks after save, denial
-after revoke, and cleanup of all six adapters. The backup case first verifies an
-exact business read, force-stops the owned Job, and holds a bounded copy of only
-the encrypted database and wrapped key in memory. It verifies a normal
+after revoke, and cleanup of all eight adapters. The backup case first verifies
+an exact business read, force-stops the owned Job, and holds a bounded copy of
+only the encrypted database and wrapped key in memory. It verifies a normal
 same-directory restart and exact read, then receives the actual revoke ACK and
 immediately force-stops that owner. Only after confirmed termination may it
 restore those two files, preserving their identities and ACLs; it never reads or
@@ -124,15 +124,29 @@ bytes before and after forced termination, an observed transport error rather
 than a timeout or cancellation, a new PID in the same directory, and exact
 original recovery after restart with nondecreasing durable revision and budgets.
 External tools execute exactly once. This upstream response hold does not
-qualify a kill inside SQLite COMMIT or a durable publication transition. These
-are bounded scenario evidence; commit/publication in progress, historical-layout
-backup migration, installation lifecycle, full N09, 24-hour capacity, real
-providers and production activation remain outside these scenarios. Existing
-`n08Qualified:false` and `n09Complete:false` flags are preserved; a successful
-hosted run proves only its described cases. Source preparation alone proves no
-runtime result. The always-running workflow summary prints a passed scenario
-scope only for the matching successful job. It reports the remaining exclusions
-for every outcome.
+qualify a kill inside SQLite COMMIT or a durable publication transition.
+
+The seventh and eighth cases add a prepared SQLite COMMIT boundary with forced
+kill and positive release controls. They hold a real DELETE-journal reader and
+require both read-admission blocking and a fresh authenticated observation of
+the one pending prepared `save-reference-state`, bound to the original owner,
+root, expiry and exact revision within the original shared 750 ms. Ambiguous,
+stale, compensating or late observations reject. Forced kill precedes any
+additional adapter I/O; the restarted default owner recovers the hot journal
+before metadata inspection and must retain the exact original revision and
+accounting. The release control requires the complete public HTTP result and
+original completion barrier, then a revision increase and exact recovery after
+another same-directory restart. Both retain zero external tool replays.
+
+These are bounded scenario evidence. Other publication COMMIT interiors
+(`sending`, `transport-finished`, `uncertain`, `withdrawn`), daemon durable-ACK
+interiors, historical-layout backup migration, installation lifecycle, full N09,
+24-hour capacity, real providers and production activation remain outside these
+scenarios. Existing `n08Qualified:false` and `n09Complete:false` flags are
+preserved; a successful hosted run proves only its described cases. Source
+preparation alone proves no runtime result. The always-running workflow summary
+prints a passed scenario scope only for the matching successful job. It reports
+the remaining exclusions for every outcome.
 
 Local verification passed 251 tests across the promoted scenarios and synthetic
 OS pipe suite, with no failures or skips on Windows. Scoped ESLint, Prettier,

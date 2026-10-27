@@ -83,6 +83,20 @@ test(
     timeout: 30000,
   },
   () => {
+    const producer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/owned-entry.js'),
+      'utf8'
+    );
+    const consumer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/owned-job.ps1'),
+      'utf8'
+    );
+    const produced = [...producer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
+    const consumed = [...consumer.matchAll(/GetProperty\('cases'\)\.GetInt32\(\) -ne (\d+)/g)];
+    assert.equal(produced.length, 1);
+    assert.equal(consumed.length, 1);
+    const expectedCases = Number(produced[0][1]);
+    assert.equal(Number(consumed[0][1]), expectedCases);
     const workflow = fs
       .readFileSync(
         path.join(root, '.github/workflows/windows-context-recovery-hosted.yml'),
@@ -130,16 +144,32 @@ test(
       const qualified = row.status === 'success' && ['n08', 'n09'].includes(row.scenario);
       assert.equal(scopes.length, qualified ? 1 : 0);
       if (qualified) {
+        if (row.scenario === 'n09') {
+          const reported = scopes[0].match(/^Passed scope: (\d+) cases:/);
+          assert.ok(reported);
+          assert.equal(Number(reported[1]), expectedCases);
+        }
         assert.ok(
           scopes[0].includes(
             row.scenario === 'n09'
-              ? 'six cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke and interruption with the upstream public final held'
+              ? 'cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke, interruption with the upstream public final held, and prepared SQLite COMMIT pending forced-kill/positive-release controls'
               : 'six mutation/hold cases'
           )
         );
       }
+      const prepared = row.scenario === 'n09' && row.status === 'success';
       assert.ok(
-        row.summary.some((line) => line.includes('Not qualified: commit/publication in progress'))
+        row.summary.some((line) =>
+          line.includes(
+            prepared
+              ? 'Not qualified: other publication COMMIT interiors (sending, transport-finished, uncertain, withdrawn), daemon durable-ACK interiors'
+              : 'Not qualified: commit/publication in progress'
+          )
+        )
+      );
+      assert.equal(
+        row.summary.some((line) => line.includes('prepared SQLite COMMIT pending')),
+        prepared
       );
       assert.equal(
         row.summary.some((line) => line.includes('Not qualified: save/revoke durable ACK')),
