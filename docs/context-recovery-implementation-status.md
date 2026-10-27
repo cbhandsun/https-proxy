@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：补齐N09独立入口闭包登记；a0完整CI与自用构建失败保留
+
+已核对a0c9bdd5f305d480374e3a172d0ba0e7f2943102全部六条workflow终态。普通Verify40563422237七项成功、coverage122398217919失败；正式40563422233的source-gates122398217317失败、egress成功、后续跳过。三台时序40563422266各原50/50、零skip/重试，18次持久body完成、最高1333ms；额外完整I/O40563422258/job122398217059成功，原proxy/client/frontend完成，三份schema6回执严格重验通过、两个CLI验证标志，原生发布20项通过。以上有限成功不覆盖普通/正式失败，不授五秒稳定性或完整交付资格。父308的普通八项及正式四作业已全部成功，也不能转授a0。
+
+普通coverage首个prepared/COMMIT强杀夹具在原ready5000ms失败，整项5077.7403ms，最后开库阶段engine_anchor_validate_finished为4415ms；key文件flush观测2643ms、空锚点准入1468ms，尚无storage/execution/SQL操作，目标中断未进入。正式失败为transport-finished持久锚点前ACK的normal-stop夹具，5028.6612ms仍awaiting-ready：开库1377ms，随后三次保存中最后一次engine1112ms、snapshot4ms、锚点持久仍pending。该失败也未进入目标中断，不能补认实际模型HTTP超时或唯一OS根因。普通I/O回执只属于默认client-context-target窗口，96次flush最高database65/journal41ms，与原生失败未绑定；额外三窗口成功不排除旧等待。
+
+业务诊断40563422270的N08成功、N09/job122398217302失败，child exit69指向独立入口的闭包校验，尚未进入业务。本批实际回归先红：用真实collectClosure生成入口/composition/host-install/bootstrap四根pins，交给真实N09 verifyPinnedClosure即被拒绝。a0只在计划生成器及daemon启动校验加入storage-inventory固定安装导入，遗漏了N09自己的第三份独立校验。本批仅补该固定字面量；仍只允许真实host-install路径，原物理文件/摘要/缺项/未知动态导入拒绝、整包manifest及安装来源认证保持。新增回归覆盖生成与消费实际组合、不执行安装模块、错摘要/缺项以及假host-install路径/未知/空目标拒绝，进入既有统一unit文件。
+
+定向入口/计划/源码身份13/13、零skip，原失败先红后绿；全仓Lint零错误/五个既有警告、1692份语法、CI及release治理通过。扩大到67份hosted文件实际636项为614通过/10失败/12既有skip，十项均因Mac找不到pwsh或固定Windows pwsh.exe（ENOENT），不能称完整本地门通过；错误的目录式Node调用也保留在本机日志，随后使用明确文件列表。未改测试平台条件或放宽断言。新批仍待完整Windows CI，不把闭包修复称五秒尾延迟修复。
+
+Windows SSH恢复后只读核对原任务。独立默认原生开库诊断HPM-open-a0c9bdd-d1a670于19:08:31Z成功：真实默认worker/DPAPI/OS锚点、同新目录两次打开/检查/关闭、原生模块实际导出核对，ready1783/1157ms，所属Job自然清空，任务Ready/0。此为空库短诊断，不授容量/原五秒负载/24h资格。自用构建HPM-self-use-build-a0c9bdd-d42e71于19:30:58Z失败：锁文件安装、原生prepare通过，installer主进程退出0，但原五秒所属Job自然清空门拒绝，任务Ready/126。产物28484235字节、0.1.1/NotSigned，摘要6b655482366ad4870901840183d66c7fb5a11d3cfdaeea32b37551e2cb58b7d1；未交付/安装或替换桌面候选。控制器cleanupFailed标志沿用helper的sticky失败，不能区分自然退出拒绝与强制清理错误；根路径匹配进程0也不能单独授整个Job清理。旧失败现场不重启/覆盖，不补认本次残留就是旧vctip。
+
+另以新目录hpm-self-use-20261027-a0c9bdd-lld-8f34b2、任务HPM-self-use-build-a0c9bdd-lld-8f34b2启动独立链接兼容诊断，源码固定a0且干净，Node22.22.3摘要核对，操作归档8ab4dd919fb34fe648a8453debe22f50c998fa48e1da05f41f9f1d48c3174e2e。只向该任务传Rust自带LLD链接参数，固定核对原Rust/LLD摘要，不改全局工具链。包括锁文件安装、原生fmt/clippy/test与prepare、完整Tauri/NSIS构建及应用Rust测试，仍用单并发、原各阶段预算与Job自然退出5000ms；已确认实际Node进程身份，终态尚未确认，不授构建或安装资格。小型A/B/A第二次MSVC也通过，故LLD不是已确认唯一修复。旧E盘实例继续由用户自行切换，桌面67候选及冻结现场不动，无新24h/最大文件或真实模型调用。最新安装升级/582迁移回滚/两端实际provider、其余daemon内部矩阵、真实连续24h及到期重开仍未完成。
+
 ## 2026-10-27：修复daemon观察器停用在线根快路的集成差异
 
 308f8a9e6b7bb2d60e32a0f6a273c53a5e3d9623的普通40561570944七个非coverage作业已success，coverage122391683660最后仍in_progress；正式40561570668的egress成功、source-gates122391683149仍运行，额外I/O40561571030/job122391682925仍运行。业务诊断40561570827的N08/N09均success，只是诊断范围。以上既有任务未重跑，不提前补写终态或授安装资格。

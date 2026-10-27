@@ -82,3 +82,44 @@ test('fixed entry refuses proxy or accessor hash maps before traps', () => {
   }
   assert.equal(traps, 0);
 });
+
+test('N09 entry accepts the generated real host-install closure before loading installed inventory', () => {
+  const { collectClosure } = require('../../scripts/context-hosted/build-plan');
+  const repo = path.resolve(__dirname, '../..');
+  const roots = [
+    'scripts/context-hosted/n09/owned-entry.js',
+    'scripts/context-hosted/n09/composition.js',
+    'scripts/context-hosted/n09-ack/host-install.js',
+    'scripts/context-hosted/n09-ack/bootstrap-contract.js',
+  ].map((name) => path.join(repo, name));
+  const pins = collectClosure(roots, []);
+  const inventory = path.join(repo, 'lib/proxy/context-recovery-storage-inventory.js');
+  const cachedInventory = require.cache[inventory];
+  assert.ok(Object.keys(pins).length > 10);
+  assert.equal(verifyPinnedClosure(pins, roots).files, Object.keys(pins).length);
+  assert.equal(
+    require.cache[inventory],
+    cachedInventory,
+    'verification never executes installed imports'
+  );
+  assert.throws(() => verifyPinnedClosure({ ...pins, [roots[2]]: '0'.repeat(64) }, roots));
+  const missing = { ...pins };
+  delete missing[roots[2]];
+  assert.throws(() => verifyPinnedClosure(missing, roots));
+});
+
+test('fixed installed inventory import cannot be copied to an unreviewed entry', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'n09-inventory-closure-'));
+  const entry = path.join(root, 'host-install.js');
+  try {
+    for (const target of ['storage-inventory', 'storage-inventory-unknown', '']) {
+      fs.writeFileSync(
+        entry,
+        `require(path.join(options.install, 'lib/proxy/context-recovery-${target}.js'));`
+      );
+      assert.throws(() => verifyPinnedClosure({ [entry]: sha(fs.readFileSync(entry)) }, [entry]));
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true });
+  }
+});
