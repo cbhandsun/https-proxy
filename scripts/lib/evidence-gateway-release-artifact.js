@@ -18,6 +18,8 @@ const PACKAGED_GATEWAY_INPUTS = Object.freeze(
     'package.json',
     'package-lock.json',
     'lib/proxy/context-compaction-envelope.js',
+    'lib/proxy/context-compaction-byte-budget.js',
+    'lib/proxy/context-evidence-utf8.js',
     'lib/proxy/context-call-id-lineage.js',
     'lib/proxy/context-compaction-lease.js',
   ].sort()

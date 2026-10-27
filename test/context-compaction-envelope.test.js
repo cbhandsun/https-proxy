@@ -19,6 +19,67 @@ const window = [
 ];
 const invalid = (fn, code = 'invalid_local_compaction') => assert.throws(fn, { code });
 
+test('normalization counts actual array bytes without invoking inherited JSON hooks', () => {
+  const previous = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON');
+  let hooks = 0;
+  let result;
+  Object.defineProperty(Array.prototype, 'toJSON', {
+    configurable: true,
+    get() {
+      hooks++;
+      return () => null;
+    },
+  });
+  try {
+    result = normalizeCompactionData(['exact'], 9);
+    invalid(() => normalizeCompactionData(['exact'], 8));
+  } finally {
+    if (previous) Object.defineProperty(Array.prototype, 'toJSON', previous);
+    else delete Array.prototype.toJSON;
+  }
+  assert.equal(hooks, 0);
+  assert.deepEqual(result, ['exact']);
+});
+
+test('normalization rejects a sparse array disguised by an out-of-range numeric key', () => {
+  for (const key of ['4294967295', '9007199254740991']) {
+    const input = [];
+    input.length = 1;
+    Object.defineProperty(input, key, { value: 'hidden', enumerable: true });
+    invalid(() => normalizeCompactionData(input, 1024));
+  }
+});
+
+test('normalization retains exact JSON byte admission across primitive and nested boundaries', () => {
+  for (const input of [
+    null,
+    true,
+    false,
+    0,
+    -0,
+    1e100,
+    '',
+    'ascii',
+    '原文🙂',
+    '\ud800',
+    '\udc00',
+    '\u0000\n\r\t"\\',
+    '\u0080\u2028\u2029',
+    [],
+    {},
+    [null, false, -0],
+    { 'escaped"key': ['原文🙂', { nested: '\ud800' }] },
+    { one: 'x'.repeat(600000), two: 'x'.repeat(600000) },
+    Array.from({ length: 129 }, (_, index) => `distinct-${index}`),
+    Array.from({ length: 5 }, (_, index) => `${index}${'x'.repeat(1024 * 1024)}`),
+    Array.from({ length: 65536 }, (_, index) => String.fromCharCode(index)).join(''),
+  ]) {
+    const size = Buffer.byteLength(JSON.stringify(input));
+    assert.equal(JSON.stringify(normalizeCompactionData(input, size)), JSON.stringify(input));
+    if (size > 1) invalid(() => normalizeCompactionData(input, size - 1));
+  }
+});
+
 test('normalized records preserve own data descriptors without invoking inherited setters', () => {
   const input = JSON.parse(
     '{"__proto__":{"exact":"原文🙂"},"constructor":null,"prototype":false,"nested":{"value":42}}'

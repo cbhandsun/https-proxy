@@ -55,6 +55,7 @@
   "lib/proxy/context-classifier.js",
   "lib/proxy/context-cleanup-decision.js",
   "lib/proxy/context-compaction-backoff.js",
+  "lib/proxy/context-compaction-byte-budget.js",
   "lib/proxy/context-compaction-coordinator.js",
   "lib/proxy/context-compaction-envelope.js",
   "lib/proxy/context-compaction-evidence-pack.js",

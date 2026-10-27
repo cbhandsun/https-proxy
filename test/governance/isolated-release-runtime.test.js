@@ -27,6 +27,8 @@ const RUNTIME = [
   'lib/proxy/config.js',
   ...PACKAGED_GATEWAY_FILES,
   'lib/proxy/context-compaction-envelope.js',
+  'lib/proxy/context-compaction-byte-budget.js',
+  'lib/proxy/context-evidence-utf8.js',
   'lib/proxy/context-call-id-lineage.js',
   'lib/proxy/context-compaction-lease.js',
 ];
