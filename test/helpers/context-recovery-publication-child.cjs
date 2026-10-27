@@ -7,6 +7,7 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const http = require('node:http');
 const { observePublicationOperations } = require('./publication-operation-progress.cjs');
+const { observePublicationSql } = require('./publication-sql-progress.cjs');
 const { createProxyShutdown } = publicationModule('server-shutdown');
 const { createStoppingAdmission } = publicationModule('stopping-admission');
 const { openContextRecoveryStorage } = publicationModule('context-recovery-storage');
@@ -54,13 +55,16 @@ async function initialize(input) {
         },
       })
     : createRecoverySqliteStore({
-        database: {
-          prepare: (sql) => database.prepare(sql),
-          exec(sql) {
-            if (committing && sql === 'COMMIT') report('commit-entering');
-            return database.exec(sql);
+        database: observePublicationSql(
+          {
+            prepare: (sql) => database.prepare(sql),
+            exec(sql) {
+              if (committing && sql === 'COMMIT') report('commit-entering');
+              return database.exec(sql);
+            },
           },
-        },
+          (progress) => report('sql-progress', { progress })
+        ),
         dataKey: input.key,
         now: () => 100,
       });
