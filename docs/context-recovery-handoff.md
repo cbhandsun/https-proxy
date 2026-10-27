@@ -1,5 +1,15 @@
 # 上下文恢复换机交接
 
+## 2026-10-27：补上发布窗口的最终CLI核验；4ca正式四作业成功，原覆盖率失败不被覆盖
+
+4ca0ab32818f9f837ff71bfa13eaea7a05b24746正式40527518009现已逐项终态核对：source-gates122271002069、egress122271002333、N08122284149994、N09122284149987均success。已取完整源码门日志，原verify、集成、Rust与审计高危阈值完成；这是一轮完整源码门及固定场景作业成功，不覆盖同提交普通coverage122271003422及额外I/O122271001376的原生准备失败，也不授full N08/N09、其余daemon内部转换、五秒长期稳定性或24h资格。源码门审计另报告fast-uri3.1.8一项moderate，依赖树确认经运行时MCP SDK→ajv引入；原high阈值未降低，没有将审计通过说成零漏洞，未主动升级依赖或改锁文件，影响与修复仍需单独核对。
+
+4f2fa08603cf221f3d3b941530881bdfcd382499普通40530715191七项非coverage作业已success；coverage122282417254、正式source-gates122282417219及额外I/O122282416990最后仍运行，保持终态未确认。旧任务不重跑。4ca源码门通过也不能替代4f2新增窗口真实运行的证据。
+
+本批修复上批接入遗漏：publication-graceful-http虽有独立schema3回执和原文件after gate，最终check-coverage-io-receipt.cjs却只验证默认客户端回执。新回归直接启动实际CLI：仅有有效client回执而缺发布回执时，旧实现错误退出0，已实际先红。现在client阶段必须先后验证两份精确源码/阶段/窗口/清理回执；缺失、被换为其他源码或非法附加参数均退出1且只输出固定失败文字。proxy阶段仍仅验证原窗口，不新增并行录制或改变原命令。主入口只组合现有验证器，无新资格或宽松降级；原coverageExit失败仍独立保留。测试不启动WPR、代理或模型，模拟录制只用于建立有界合成回执，不授Windows ETW资格。
+
+Mac相关四文件76/76、零skip/取消；实际CLI覆盖缺失、正常、错身份、非法参数及原proxy行为，另保留全部录制控制和直接发布矩阵。定向Lint/格式、CI/release治理通过，无产品存储或构建输入变化。新测试仍进入统一unit，新提交完整CI待核对。产品认证、HTTP5000/原生10000/存储30000、精确ACK、FULL/DELETE/secure_delete、OS锚点独立flush、原TTL全部保持；旧实例由用户自行切换，冻结现场及长测不动，无新24h/最大文件任务，真实模型0。下一步继续核对同一批CI，优先取得与实际原生失败操作绑定的阶段和I/O证据；剩余真实provider、daemon内部矩阵及真实24h/到期重开范围不缩减。
+
 ## 2026-10-27：区分子进程启动尾延迟；补直接发布夹具的独立I/O窗口，4ca原生准备失败继续保留
 
 4ca0ab32818f9f837ff71bfa13eaea7a05b24746普通Verify40527517817的七项非coverage作业均success；新增同步SQL观察回归在Windows unit shard2/job122271003463实际8/8、零skip，393ms，包含独立PENDING锁和同步阻塞前消息验证，该分片187/747文件全部通过。不能覆盖本机此前7/8失败。coverage122271003422现已failure：native worker sending强杀/ACK案例在awaiting=ready失败，开库1450ms；首两次保存分别471/2378ms，后一笔engine.execute2118ms、snapshot8ms、anchor约232ms，随后load未完成。目标中断未进入。额外I/O40527518101/job122271001376也failure：uncertain强杀/COMMIT案例开库1611ms，首笔保存1886ms，第二笔engine.execute760ms、snapshot9ms后仍在anchor持久中；原五秒准备门未过。均未重跑、跳过或提高期限。

@@ -757,6 +757,55 @@ test('publication window has its own source/stage identity without replacing the
   assert.equal(publication.summary.fiveSecondQualified, false);
 });
 
+test('the actual stage checker requires the publication receipt in client coverage and preserves proxy checks', async (t) => {
+  const { spawnSync } = require('node:child_process');
+  const f = fixture(t);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+  const environment = Object.fromEntries(
+    Object.entries(f.environment).filter(
+      ([key]) => !['TOKEN', 'API_KEY', 'NODE_OPTIONS'].includes(key)
+    )
+  );
+  for (const name of ['SystemRoot', 'WINDIR'])
+    if (process.env[name]) environment[name] = process.env[name];
+  const check = (expected, extra = []) => {
+    const result = spawnSync(
+      process.execPath,
+      [path.resolve(__dirname, '../scripts/check-coverage-io-receipt.cjs'), ...extra],
+      { env: environment, encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+    );
+    assert.equal(result.error, undefined);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, expected);
+    assert.equal(result.stdout, expected === 0 ? 'coverage_io_receipt_verified\n' : '');
+    assert.equal(result.stderr, expected === 0 ? '' : 'coverage_io_receipt_failed\n');
+  };
+  f.install('success');
+  await f.hooks.before();
+  await f.hooks.after();
+  check(1); // A valid client window cannot stand in for the publication file.
+  f.install('success', { windowId: 'publication-graceful-http' });
+  await f.hooks.before();
+  await f.hooks.after();
+  check(0);
+  const file = path.join(
+    f.root,
+    'hpm-coverage-io-' + f.environment.GITHUB_SHA + '-client-publication-graceful-http.json'
+  );
+  const receipt = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
+  fs.writeFileSync(file, JSON.stringify({ ...receipt, sourceSha: 'b'.repeat(40) }) + '\n');
+  check(1);
+  fs.writeFileSync(file, JSON.stringify(receipt) + '\n');
+  check(1, ['PRIVATE']);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'proxy';
+  environment.HPM_COVERAGE_IO_STAGE = 'proxy';
+  f.install('success');
+  await f.hooks.before();
+  await f.hooks.after();
+  fs.rmSync(file);
+  check(0); // The parallel proxy stage still owns only its original window.
+});
+
 test('publication window stops on its own fixture failure and retains cleanup gates', async (t) => {
   const f = fixture(t);
   f.environment.HPM_COVERAGE_IO_STAGE = 'client';
