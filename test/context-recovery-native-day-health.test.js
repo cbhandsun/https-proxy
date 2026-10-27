@@ -358,3 +358,100 @@ test('unverified health receipts never echo arbitrary fields as numeric progress
   assert.equal(result.elapsedMs, null);
   assert.equal(result.checkedAtUtc, null);
 });
+
+test('a storage failure is reported before the outer process exits and cannot be hidden by later completion', () => {
+  const f = fixture();
+  f.events.push({
+    event: 'storage_operation_failed',
+    stage: 'capacity',
+    attempt: 1,
+    operation: 'sweep',
+    phase: 'anchor-persist',
+    cleanupFailed: false,
+  });
+  const live = inspectNativeDayHealth(f);
+  assert.equal(live.state, 'failed');
+  assert.equal(live.reason, 'storage_operation_failed');
+  assert.equal(live.passed, false);
+  assert.equal(live.processAlive, true);
+  assert.equal(live.terminalConfirmed, false);
+  complete(f);
+  const stopped = inspectNativeDayHealth(f);
+  assert.equal(stopped.state, 'failed');
+  assert.equal(stopped.passed, false);
+  assert.equal(stopped.terminalConfirmed, true);
+});
+
+test('monitor termination needs the pinned owner, stopped process, matching task result and real exit receipt', () => {
+  const stopped = () => {
+    const f = fixture();
+    f.events.push(
+      { event: 'native_day_failed' },
+      { event: 'process_finished', exitCode: 1, reason: 'child_exit' }
+    );
+    Object.assign(event(f, 'owned_process_status'), { alive: false });
+    Object.assign(event(f, 'task_status'), { state: 'Ready', lastTaskResult: 1 });
+    return f;
+  };
+  assert.equal(inspectNativeDayHealth(stopped()).terminalConfirmed, true);
+  for (const change of [
+    (f) => {
+      event(f, 'owned_process_status').alive = true;
+    },
+    (f) => {
+      event(f, 'owned_process_status').pid++;
+    },
+    (f) => {
+      event(f, 'identity').head = 'e'.repeat(40);
+    },
+    (f) => {
+      event(f, 'process_launched').nativeSha256 = 'e'.repeat(64);
+    },
+    (f) => {
+      event(f, 'task_status').state = 'Running';
+    },
+    (f) => {
+      event(f, 'task_status').state = 'Queued';
+    },
+    (f) => {
+      event(f, 'task_status').lastTaskResult = 0;
+    },
+    (f) => {
+      event(f, 'task_status').checkedAtUtc = 'PRIVATE';
+    },
+    (f) => {
+      event(f, 'task_status').checkedAtUtc = '2026-10-25T00:00:00Z';
+    },
+    (f) => {
+      event(f, 'process_finished').reason = 'PRIVATE';
+    },
+    (f) => {
+      event(f, 'process_finished').exitCode = '1';
+    },
+    (f) => {
+      event(f, 'process_finished').exitCode = 0.5;
+    },
+    (f) => {
+      event(f, 'process_finished').exitCode = 4294967296;
+    },
+    (f) => {
+      f.events = f.events.filter((value) => value.event !== 'process_finished');
+    },
+    (f) => {
+      f.events = f.events.filter((value) => value.event !== 'owned_process_status');
+    },
+  ]) {
+    const f = stopped();
+    change(f);
+    const health = inspectNativeDayHealth(f);
+    assert.equal(health.state, 'failed');
+    assert.equal(health.terminalConfirmed, false);
+    assert.equal(health.passed, false);
+    assert.equal(JSON.stringify(health).includes('PRIVATE'), false);
+  }
+  const negativeExit = stopped();
+  event(negativeExit, 'process_finished').exitCode = -1073741819;
+  event(negativeExit, 'task_status').lastTaskResult = 3221225477;
+  assert.equal(inspectNativeDayHealth(negativeExit).terminalConfirmed, true);
+  assert.equal(inspectNativeDayHealth(complete(fixture())).terminalConfirmed, true);
+});

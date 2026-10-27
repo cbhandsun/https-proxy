@@ -56,6 +56,43 @@ function inspectNativeDayHealth(input) {
       final = unique('process_finished');
     const completed = unique('native_day_completed');
     const tick = unique('capacity_tick') ?? started;
+    const identityMatches = Boolean(
+      task &&
+      identity &&
+      process &&
+      launch &&
+      task.taskName === pin.taskName &&
+      identity.pid === pin.pid &&
+      process.pid === pin.pid &&
+      launch.pid === pin.pid &&
+      identity.dirty === false &&
+      identity.storageResolvedToCheckout === true &&
+      identity.platform === 'win32' &&
+      identity.arch === 'x64' &&
+      identity.node === pin.node &&
+      ['head', 'sourceSha256', 'nativeSha256', 'nodeSha256'].every(
+        (key) =>
+          identity[key] === pin[key] && launch[key === 'head' ? 'sourceHead' : key] === pin[key]
+      )
+    );
+    // Failed storage is already a failed acceptance, even while its outer clock
+    // waits for another turn. Only independent, source-bound exit evidence may
+    // stop a monitor; the failure label alone must never end observation.
+    const terminalConfirmed = Boolean(
+      identityMatches &&
+      process.alive === false &&
+      ['Ready', 'Disabled'].includes(task.state) &&
+      safeDate(task.checkedAtUtc) &&
+      safeDate(pin.startedAtUtc) &&
+      instant(task.checkedAtUtc) >= instant(pin.startedAtUtc) &&
+      final &&
+      Number.isInteger(final.exitCode) &&
+      final.exitCode >= -2147483648 &&
+      final.exitCode <= 0xffffffff &&
+      Number.isInteger(task.lastTaskResult) &&
+      task.lastTaskResult === final.exitCode >>> 0 &&
+      ['child_exit', 'outer_deadline', 'output_limit'].includes(final.reason)
+    );
     const result = {
       taskName: pin.taskName,
       checkedAtUtc: safeDate(task?.checkedAtUtc),
@@ -72,6 +109,7 @@ function inspectNativeDayHealth(input) {
           ? integrity.tickCount
           : 0,
       processAlive: process?.alive === true,
+      terminalConfirmed,
     };
     const state = (value, reason) => ({
       ...result,
@@ -84,24 +122,10 @@ function inspectNativeDayHealth(input) {
       (final && final.exitCode !== 0)
     )
       return state('failed', 'terminal_failure');
+    if (events.some((event) => event?.event === 'storage_operation_failed'))
+      return state('failed', 'storage_operation_failed');
     if (!task || !identity || !process || !started || !launch || !integrity) return result;
-    if (
-      task.taskName !== pin.taskName ||
-      identity.pid !== pin.pid ||
-      process.pid !== pin.pid ||
-      launch.pid !== pin.pid ||
-      identity.dirty !== false ||
-      identity.storageResolvedToCheckout !== true ||
-      identity.platform !== 'win32' ||
-      identity.arch !== 'x64' ||
-      identity.node !== pin.node
-    )
-      return state('unverified', 'identity_mismatch');
-    for (const key of ['head', 'sourceSha256', 'nativeSha256', 'nodeSha256']) {
-      const launchKey = key === 'head' ? 'sourceHead' : key;
-      if (identity[key] !== pin[key] || launch[launchKey] !== pin[key])
-        return state('unverified', 'identity_mismatch');
-    }
+    if (!identityMatches) return state('unverified', 'identity_mismatch');
     if (
       integrity.invalidCompleteLines !== 0 ||
       integrity.timelineErrors !== 0 ||

@@ -1,5 +1,20 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：修复存储已失败仍显示运行的健康判定；固定d011新安装WS验收已派发
+
+从1e一小时失败的有限回执继续核对，发现健康判定原先仅优先native_day_failed/controller_failed/非零process_finished，没有单独识别storage_operation_failed。若worker已因后台sweep失败封锁，而外层真实时钟仍等待下一轮，原实现仍可能显示running。本批以包含真实事件形状、进程仍alive的回归先失败，现立即返回failed/storage_operation_failed，passed始终false；后续即使出现完整日档的成功声明也不能掩盖先前存储失败。此修复针对监测误报窗口，不是anchor-persist产品根因或24h验收通过。
+
+同时增加terminalConfirmed，将“验收已失败”和“所属进程已退出”分开。只有固定源码/启动PID及运行时身份匹配、实际进程消失、独立process_finished、有限退出原因以及Ready/Disabled任务结果与退出码精确匹配，才可确认终态；支持Windows有符号进程退出码与无符号Task结果的同一32位值。存储错误、外层failed标签、进程仍活、缺回执、错源/错PID/排队/任务结果不符都不能单独停止观察。该字段不授予24h资格，原288真实连续节拍/完整固定画像/原root实际到期双重开/零退出等通过门全部保留。实际1e终态安全回执离线重放仍failed、processAlive=false、terminalConfirmed=true；未重启任何进程或访问冻结数据库/锚点。
+
+本机旧观察器文本保留副本，后续观察逻辑改为仅terminalConfirmed=true才自行结束，并把字段写入有限进度回执；没有启动新观察器。监测24的提示同步明确“failed但terminal未确认继续只读观察”，状态仍PAUSED，整体目标继续。新两项含进程alive下先失败/后成功不能覆盖、退出证据正常/缺失/非法/极端/错身份、负退出码等；扩大四文件37项零fail/skip，统一发现、1667份JS语法、定向Lint/格式及CI/release治理通过。原空/恶意输入和私有信息不回显回归保持。
+
+只读查询1e失败附近01:22:30Z–01:24:00Z的有限系统事件计数：对应native应用崩溃、Kernel时钟变更、睡眠及恢复均0；不读取事件Message、数据库、密钥或原文。该窄窗阴性不排除其他系统/前置校验/原生提交原因，anchor-persist的实际失败点仍待定位。冻结1e任务/目录/数据、旧5a及最大文件暂停环境均保持，不自动重启或累计旧时长，模型0。
+
+d0119a56d34923989ac4b388ade69b420ad36e5b普通40431069804八项、正式40431069977四项、完整负载I/O40431069844均终态success；I/O两阶段仅为环形观察且资格false，不能覆盖旧失败或一小时日档。按既定门禁重核draft421213889仍未发布，旧installer/identity资产667118183/667118182、大小/状态/tag/基线target全部匹配，精确新分支确认不存在后创建且远端SHA复核为固定d011，未覆盖既有分支。新安装WS流水线40433453365的resolve121956417427成功，encrypted-lifecycle121956596174已实际执行；新schema7的实际升级回滚/582迁移/两端CLI/WS及包内发布仍待其后续完整结果，不把旧1e schema6资格改写。
+
+d611普通40431857163七项成功、coverage121951196088保留新Chat WBIPC long-persistent第二轮5007ms失败（requests/handshakes各8、client coverage/ownerEpoch=2）。该owner六笔写提交502/571/520/678/614/483ms，线程CPU均0；只读snapshot的0ms COMMIT另列，不能混入写耗时；proxy与client两个执行阶段的epoch也分别归属，不能混合。无该失败同窗ETW，不唯一归因，不重跑覆盖。198普通七项成功、coverage及I/O仍执行。下一步继续锚点边界定位和五秒持久事务开销排查，同时核对固定d011实际安装；其他daemon转换/容量/真实24h、核额度后的真实两端及受控启用仍未完成。
+
+
 ## 2026-10-27：真实1e日档一小时处锚点阶段失败已及时发现并冻结；保留首个请求失败附近I/O窗口
 
 新1e日档不再运行、未通过24h。固定源码1e88eacc17d0ff9a9dfaa9cc4f71436780e809ce，任务HPM-native-day-20261027-1e88eac-5b74d29a；00:23:00.697Z实际开始，01:23:00.714Z第13个tick/3600000ms轮次开始，01:23:00.7850164Z控制器记录子进程退出1，elapsed3610031ms。此前连续12tick至55分钟不等于24h，1小时tick不等于该轮完成。有限失败回执：stage=capacity/attempt=1，后台sweep在anchor-persist失败、cleanupFailed=false；容量主失败begin/command39及清理close/command40均scheduledMs=3600000，storeOpens=1/storeCloses=0。anchor-persist包含快照、后继校验及实际提交，不能据此确认原生flush、DPAPI、OS或硬件根因。完整日志行损坏0、timelineErrors=0、identity/start各1，未拼接旧轮。
