@@ -5,6 +5,14 @@ on:
     branches:
       - acceptance/context-recovery/**
     paths:
+      - test/**
+      - scripts/run-unit-tests.js
+      - scripts/run-unit-test-shards.js
+      - lib/test-discovery.js
+      - lib/test-sharding.js
+      - lib/test-runtime.js
+      - package.json
+      - package-lock.json
       - scripts/prepare-context-recovery-native.js
       - lib/proxy/context-recovery-key-dpapi.js
       - lib/proxy/context-recovery-key-contract.js

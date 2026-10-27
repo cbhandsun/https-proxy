@@ -77,3 +77,23 @@ test('explicit workflow trigger matching treats LF and CRLF identically without 
       assert.equal(hasExplicitPath(line + newline, file), false);
   }
 });
+
+test('coverage I/O follows full-suite load and shard assignment changes', () => {
+  const source = fs.readFileSync(
+    path.resolve(__dirname, '../../.github/workflows/windows-persistent-io-coverage.yml'),
+    'utf8'
+  );
+  // Discovery sorts the entire suite before assigning shards. An added test can
+  // move the persistent request test or change its concurrent sibling workload.
+  for (const file of [
+    'test/**',
+    'scripts/run-unit-tests.js',
+    'scripts/run-unit-test-shards.js',
+    'lib/test-discovery.js',
+    'lib/test-sharding.js',
+    'lib/test-runtime.js',
+    'package.json',
+    'package-lock.json',
+  ])
+    assert.ok(hasExplicitPath(source, file), 'missing original coverage workload trigger: ' + file);
+});
