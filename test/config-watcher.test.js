@@ -37,11 +37,11 @@ function rmrf() {
     }
   );
   await sleep(50);
-  // Emit several "change" events back-to-back
+  // Keep this a single synchronous burst. Sleeping between writes allows a
+  // delayed host to complete a legitimate earlier debounce before the last
+  // write, so reloadCount===1 would no longer mean the burst has settled.
   fs.writeFileSync(CFG_FILE, JSON.stringify({ activeProfile: 'B' }));
-  await sleep(20);
   fs.writeFileSync(CFG_FILE, JSON.stringify({ activeProfile: 'C' }));
-  await sleep(20);
   fs.writeFileSync(CFG_FILE, JSON.stringify({ activeProfile: 'D' }));
   await sleep(20);
   await waitFor(() => reloadCount === 1, 500);

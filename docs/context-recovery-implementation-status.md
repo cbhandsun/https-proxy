@@ -1,5 +1,21 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：修复监听关闭后的迟到应用；Windows替换失败保留，57三台原五秒回归通过
+
+6731fbd普通Verify40510334798已终态failure：unit shard1/job122210249069为合成WFP测试的原pwsh启动25000ms超时；coverage/job122210248932为config-watcher.test.js的last write wins断言C不等于D，原proxy阶段失败且client阶段未授资格。额外I/O40510334210已success；正式40510334222已从运行终态核对为success，source-gates122210246562、egress122210246356、N08122221598870、N09122221598840全部通过。未重跑、跳过或延长这些门。57d4dfe三runner时序40512069379的三个job122216284573/122216284849/122216284581分别原两文件50/50、零skip/取消，26625/26776/25165ms，均退出0；Verify40512069240七个已结束节点success、coverage仍运行，正式40512069460原源码门仍运行。57独立I/O40512069061/job122216282175亦实际原两文件50/50、零skip/取消、24993ms并退出0。该证据不覆盖历史超时或授稳定性，57新增执行阶段尚未取得新的实际超时回执。
+
+原热加载测试在50ms防抖窗口内的三次写入之间各sleep20；调度延迟可让较早重载合法完成，随后reloadCount===1会在最后写入尚未稳定时立即返回。将该段恢复为真正同步连续三写，原B/C/D负载、50ms防抖、500ms观察及一次重载/D结果断言不改；不提高baseline或放宽成允许旧配置。
+
+另外以受控在途读取/异步标准化/读取重试复现了实际产品缺陷：watcher.close后仍会进入新的loadConfigFn/reloadFn，继续重试并发出迟到结果。三条新回归在旧实现实际失败。修复在关闭后的异步边界停止新工作，清除唯一待重试计时器并结算其内部Promise，清除pendingAfterCurrent；不尝试撤销已进入的应用回调，但不再新应用或发迟到成功/错误事件。正常未关闭的非法JSON、原60ms/最多5次重试、串行化及默认150ms防抖保持，原子替换文件/目录双监听、认证/加密配置加载与非法配置保留旧值均保持。没有触及上下文TTL、存储、模型或旧实例。
+
+Mac三文件12/12、零skip，完整headers-routing合成集成退出0；定向Lint/格式、1682语法、CI及release治理通过。新生命周期回归为7项，覆盖关闭时在途读取/标准化、关闭前已进入应用的成功或拒绝、关闭后标准化拒绝、重复关闭、重试取消及原次数/间隔和正常/非法JSON，进入统一unit发现。
+
+Windows独立任务HPM-config-lifecycle-76c9aa于2026-10-27T13:32:04.8619164Z结束，Node退出1、父13515ms、stderr0、任务Ready/LastTaskResult=1，所属清理返回成功，不授自然退出资格。12项11通过/1失败、零skip；7项生命周期及原burst/其他控制通过，但未修改的actual watcher observes repeated atomic replacement and later edits项在1947ms时报告config_replacement_not_observed（各次原1000ms观察不变）。不能将Mac或局部Windows通过冒充全批通过；该失败及前述C/D失败全部保留。源码输入归档SHA256 536196448c6daa2476f4134d0f42c47845b60434b26ce038900000f549dc48a2，四份库/测试均固定上传，无凭据或数据库。
+
+为区分上述替换失败的写入、重命名、通知与读取阶段，独立固定四版本诊断HPM-config-replace-diag-e18cf0仅观察固定类型/序号/时间/同名布尔值，不输出路径、配置原文或异常；保持20ms debounce及每阶段1000ms，不重跑原失败任务。归档SHA256 06539f5e14fa664a16f8fe9b6be235c4e1b176219f4519fa8ce0fce6fa26fc5d。实际Node已于2026-10-27T13:37:45.3692451Z退出1、528ms、stdout0/stderr575、所属清理完成；分类确认为VM漏传process.platform造成ReferenceError，这是诊断夹具错误，没有有效替换阶段证据，不能当作产品根因。修正夹具后使用新目录/新任务HPM-config-replace-diag-e18cf1（新归档9a6d58d3dce09a9b72c9c5e64b4b97909997faa2a405ab765222ee0734cc9404），未覆盖旧诊断。第一次观察SSH退出255无回执后继续读取同一任务，最终确认Ready/LastTaskResult=0、Node退出0、父12988ms、stderr0、Job自然清空，2026-10-27T13:43:42.4362328Z完成，所属controller/node均不存在。四版本通知与后续编辑全部观测到、无溢出；首版本从write_begin到observed为866ms，其读取362ms，写入14ms/重命名42ms，后续三版本约250/115/176ms。本次未复现丢事件，首轮接近原1000ms观察门，但不能据此唯一解释旧失败或归因调度/杀毒；该计时副本qualification=false，不能覆盖原11/12失败。
+
+本批只修复可复现的关闭生命周期问题，尚未修复Windows替换漏观察或持久恢复五秒尾延迟。旧实例、桌面67候选及用户自行切换选择保持；新24h/最大文件未启动，冻结现场未动，真实模型0。继续核对57完整门及同一诊断，依据实际阶段修复；真实provider/额度核对、其余daemon内部矩阵、真实24h和到期重开仍属于完整交付目标。
+
 ## 2026-10-27：定位正式门失败于连续保存准备；原worker增加有界阶段观察，Windows73项通过
 
 已取回4a正式40507241038/source-gates122199563060日志：原生正常停机transport-finished/ACK、uncertain/COMMIT及uncertain/ACK三项失败均为awaiting=ready，尚未进入目标中断。开库分别594/1542/2144ms完成，首项初次save-reference-state从101到2134ms、随后第二次仍pending；第二项连续保存1499/1267ms、第四次操作pending；第三项初次保存1429ms后第二次pending。目录ACL分别22/18/17ms，本批失败不是目录ACL未完成的证据。原1726项中3失败保留，不重启或改写原任务，不将准备超时误称目标中断语义失败。
@@ -8,7 +24,7 @@ SSH独立诊断HPM-save-phase-9fa6b3实际完成，Node退出0、父2959ms、std
 
 本批新增可选onExecutionProgress观察，从原默认worker的实际异步owner发出固定sequence/phase/elapsedMs：文件验证前后、engine.execute前后、独立认证snapshot前后、独立锚点持久前后及最终验证前后。默认不开启，不增加worker消息；仅原发布中断夹具启用，父端与夹具二次校验闭合词汇/精确字段/单调序列和时间，夹具仅保留最后24项。无请求、scope、原文、结果、异常、headers或路径，计时饱和于60000仅为观察上限，不控制任何期限。观察器异常/拒绝Promise被隔离，完成观察不能解析请求Promise或授ACK，原结果、精确版本、独立flush、FULL/DELETE、TTL、失败关闭及五秒/原生/存储门均不变。新增模块已显式进入release-proxy-sources；首次治理检查拒绝未声明模块，补齐后原检查通过。
 
-新增安全回归覆盖正常及失败序列、空/非法/极端输入、accessor/Proxy/继承风险、重复/乱序、未经启用消息拒绝、观察器失败和拒绝Promise；实际SQL加合成锚点受控阻塞确认engine/snapshot已完成但anchor_persist_started时仍无ACK，释放准确回执后才完成，后续CAS拒绝仍报告failed。首次服务测试把原null-prototype结果误写为普通对象期望，修正夹具的原型期望后通过，未改产品结果。Mac七文件128项127通过/1原Windows平台skip，N09完整501/501零skip，发布治理两项通过；Lint/格式、1681语法、CI治理及release治理已检查。本批新回归进入统一unit发现，未跳过失败或提高baseline。
+新增安全回归覆盖正常及失败序列、空/非法/极端输入、accessor/Proxy、重复/乱序、未经启用消息拒绝、观察器失败和拒绝Promise；实际SQL加合成锚点受控阻塞确认engine/snapshot已完成但anchor_persist_started时仍无ACK，释放准确回执后才完成，后续CAS拒绝仍报告failed。首次服务测试把原null-prototype结果误写为普通对象期望，修正夹具的原型期望后通过，未改产品结果。Mac七文件128项127通过/1原Windows平台skip，N09完整501/501零skip，发布治理两项通过；Lint/格式、1681语法、CI治理及release治理已检查。本批新回归进入统一unit发现，未跳过失败或提高baseline。
 
 Windows独立目录C:\\Users\\juhon\\hpm-execution-progress-20261027-58b19a、任务HPM-execution-progress-58b19a基于已有库副本叠加8份本批代码/测试，输入归档SHA256 a987397125ef514cd45ae86f2987700c52f5d827ab62b3d4f03ae41e1ac849b6。原43项基础回归43/43、零skip，父31156ms退出0；随后原native-publication-interruption/native-graceful-http两文件30/30、零skip，父93363ms退出0，两个Job均自然清空、stderr0，于2026-10-27T13:24:21.5505444Z完成。使用默认worker、真实DPAPI/OS锚点及原时间/所属清理，不是替换后端或计时副本；仅授本机本批矩阵回归，不能据单次通过覆盖旧失败、授长期稳定性、安装版或daemon完整资格。
 
