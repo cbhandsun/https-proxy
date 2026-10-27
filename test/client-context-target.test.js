@@ -2,7 +2,25 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-require('../scripts/lib/coverage-io-capture').installCoverageIoCapture(test);
+let stopCoverageIoOnFailure;
+require('../scripts/lib/coverage-io-capture').installCoverageIoCapture(test, {
+  onReady(stop) {
+    stopCoverageIoOnFailure = stop;
+  },
+});
+// Called only after a persistent request/body/ACK has already failed its
+// original gate. Keep both failures if the recording control also fails.
+function preservePersistentFailure(error, persistent) {
+  if (!persistent || !stopCoverageIoOnFailure) return error;
+  try {
+    stopCoverageIoOnFailure();
+  } catch (observationError) {
+    return new AggregateError([error, observationError], 'persistent_request_and_capture_failed', {
+      cause: observationError,
+    });
+  }
+  return error;
+}
 const http = require('node:http');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -2733,7 +2751,7 @@ for (const kind of ['chat', 'responses', 'claude']) {
                 roots: runtime.inspect().roots,
               })
             );
-            throw error;
+            throw preservePersistentFailure(error, persistent);
           });
           if (mode === 'cancelled') {
             await assert.rejects(pending, { name: 'AbortError' });
@@ -2758,7 +2776,7 @@ for (const kind of ['chat', 'responses', 'claude']) {
               phaseDiagnostic('body_end');
             } catch (error) {
               phaseDiagnostic('body_failed');
-              throw error;
+              throw preservePersistentFailure(error, persistent);
             }
             if (upstreamFailure) throw upstreamFailure;
             assert.equal(
@@ -2775,7 +2793,7 @@ for (const kind of ['chat', 'responses', 'claude']) {
                 phaseDiagnostic('publication_wait_end');
               } catch (error) {
                 phaseDiagnostic('publication_wait_failed');
-                throw error;
+                throw preservePersistentFailure(error, persistent);
               }
               await new Promise(setImmediate);
             }

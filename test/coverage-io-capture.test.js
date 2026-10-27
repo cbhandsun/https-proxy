@@ -640,3 +640,95 @@ test('control failure receipts contain only fixed phases, reasons and bounded sy
   ])
     assert.equal(parse(invalid), null);
 });
+
+test('first persistent request failure preserves its capture window without waiting for file completion', async (t) => {
+  const f = fixture(t);
+  let stop;
+  f.install('success', {
+    onReady(value) {
+      stop = value;
+    },
+  });
+  assert.equal(stop, undefined);
+  await f.hooks.before();
+  assert.equal(typeof stop, 'function');
+  assert.equal(stop(), true);
+  assert.equal(stop(), false);
+  await new Promise(setImmediate);
+  // Recording can close early; receipt publication still requires the original
+  // file's after hook and all existing child/cleanup/summary checks.
+  assert.equal(f.reports.length, 0);
+  assert.deepEqual(f.commands, ['finish\n']);
+  await f.hooks.after();
+  assert.deepEqual(f.commands, ['finish\n']);
+  const receipt = readCoverageIoReceipt(f.environment);
+  assert.equal(receipt.schemaVersion, 2);
+  assert.equal(receipt.windowTermination, 'persistent-request-failed');
+  assert.equal(receipt.summary.fiveSecondQualified, false);
+  assert.equal(receipt.summary.traceCompletenessVerified, false);
+  assert.equal(stop(), false);
+});
+
+test('normal file completion records its boundary and legacy receipts cannot claim an early window', async (t) => {
+  const f = fixture(t);
+  let stop;
+  f.install('success', {
+    onReady(value) {
+      stop = value;
+    },
+  });
+  await f.hooks.before();
+  await f.hooks.after();
+  assert.equal(stop(), false);
+  const current = readCoverageIoReceipt(f.environment);
+  assert.equal(current.schemaVersion, 2);
+  assert.equal(current.windowTermination, 'file-completed');
+  const file = path.join(f.root, 'hpm-coverage-io-' + f.environment.GITHUB_SHA + '-proxy.json');
+  const { windowTermination: _windowTermination, ...old } = current;
+  old.schemaVersion = 1;
+  fs.writeFileSync(file, JSON.stringify(old) + '\n');
+  assert.deepEqual(readCoverageIoReceipt(f.environment), old);
+  for (const bad of [
+    { ...old, windowTermination: 'persistent-request-failed' },
+    { ...current, windowTermination: 'PRIVATE' },
+    { ...current, windowTermination: null },
+    { ...current, windowTermination: 'file-completed', earlyQualification: true },
+    { ...current, schemaVersion: 3 },
+  ]) {
+    fs.writeFileSync(file, JSON.stringify(bad) + '\n');
+    assert.throws(() => readCoverageIoReceipt(f.environment), failure);
+  }
+});
+
+for (const mode of ['nonzero', 'missing-summary', 'stdin-error', 'private-output']) {
+  test(`early failed-request capture still refuses ${mode} and cannot publish a receipt`, async (t) => {
+    const f = fixture(t);
+    let stop;
+    f.install(mode, {
+      onReady(value) {
+        stop = value;
+      },
+    });
+    await f.hooks.before();
+    assert.equal(stop(), true);
+    await assert.rejects(f.hooks.after(), failure);
+    assert.deepEqual(f.commands, ['finish\n']);
+    assert.equal(f.reports.length, 0);
+    assert.deepEqual(fs.readdirSync(f.root), []);
+  });
+}
+
+test('capture control registration rejects unknown executable inputs before recording starts', (t) => {
+  let hooks = 0;
+  const f = fixture(t);
+  const proxy = new Proxy(() => {}, {
+    apply() {
+      hooks++;
+    },
+  });
+  for (const onReady of [null, {}, 'PRIVATE', proxy, async () => {}, function* () {}])
+    assert.throws(() => f.install('success', { onReady }), failure);
+  assert.equal(hooks, 0);
+  assert.deepEqual(f.hooks, {});
+  assert.deepEqual(f.commands, []);
+});

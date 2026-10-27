@@ -111,7 +111,7 @@ jobs:
         run: |
           @(
             'Executes the complete original proxy, client and frontend coverage commands once each, in order, with original four-shard proxy coverage and all original assertions.'
-            'Each proxy/client recording begins before its complete client-context-target file and ends after it; no tests are filtered, retried or appended. A failed original stage still stops subsequent stages.'
+            'Each recording begins before its complete client-context-target file; normally ends after it, or closes early at the first failed persistent request/body/durable completion to preserve that recent ring window. No tests are filtered, retried or appended; a failed original stage still stops subsequent stages.'
             'Original five-second HTTP and final durable ACK gates, worker, DPAPI, OS anchor and FULL/DELETE persistence remain unchanged.'
             'WPR retains its own unique instance, 32 MiB circular buffers, bounded decoding and cleanup. Ring loss and tracing perturbation prevent completeness or stability qualification.'
             'Read/write/info/delete/cleanup/close observations retain nonzero status counts; neither a VFS retry nor antivirus attribution is inferred.'

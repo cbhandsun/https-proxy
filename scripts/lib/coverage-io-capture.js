@@ -219,9 +219,18 @@ function readCoverageIoReceipt(environment = process.env) {
   }
   const value = JSON.parse(text);
   if (JSON.stringify(value) + '\n' !== text) throw fail();
-  exact(value, ['schemaVersion', 'sourceSha', 'coverageStage', 'cleanupVerified', 'summary']);
+  exact(value, [
+    'schemaVersion',
+    'sourceSha',
+    'coverageStage',
+    'cleanupVerified',
+    'summary',
+    ...(value.schemaVersion === 2 ? ['windowTermination'] : []),
+  ]);
   if (
-    value.schemaVersion !== 1 ||
+    ![1, 2].includes(value.schemaVersion) ||
+    (value.schemaVersion === 2 &&
+      !['file-completed', 'persistent-request-failed'].includes(value.windowTermination)) ||
     value.sourceSha !== environment.GITHUB_SHA ||
     value.coverageStage !== environment.HPM_COVERAGE_IO_STAGE ||
     value.cleanupVerified !== true
@@ -250,6 +259,7 @@ function installCoverageIoCapture(
     start = spawn,
     wait = bounded,
     report = (value) => process.stdout.write('# HPM_COVERAGE_IO=' + JSON.stringify(value) + '\n'),
+    onReady,
   } = {}
 ) {
   if (!environment || typeof environment !== 'object' || types.isProxy(environment)) throw fail();
@@ -260,6 +270,14 @@ function installCoverageIoCapture(
     return slot.value;
   };
   if (read('HPM_COVERAGE_IO') === undefined) return false;
+  if (
+    onReady !== undefined &&
+    (typeof onReady !== 'function' ||
+      types.isProxy(onReady) ||
+      types.isAsyncFunction(onReady) ||
+      types.isGeneratorFunction(onReady))
+  )
+    throw fail();
   const pinned = Object.create(null);
   for (const key of [
     'HPM_COVERAGE_IO',
@@ -323,10 +341,21 @@ function installCoverageIoCapture(
     invalid = false,
     readySeen = false,
     finishing = false,
+    windowTermination = 'file-completed',
     summary,
     stdout = '',
     stderr = '',
     bytes = 0;
+  function finish(reason) {
+    if (finishing) return false;
+    // Invalid output must still let the owned recorder stop and clean up. The
+    // unchanged final checks reject its receipt; this command grants no proof.
+    if (!child || !closed) throw fail();
+    finishing = true;
+    windowTermination = reason;
+    child.stdin.end('finish\n');
+    return true;
+  }
   test.before(
     async () => {
       let ready, refuse;
@@ -389,6 +418,7 @@ function installCoverageIoCapture(
         });
         await wait(opening, 30000);
         if (invalid) throw fail();
+        if (onReady) onReady(() => finish('persistent-request-failed'));
       } catch {
         child?.stdin.end('abort\n');
         if (closed) {
@@ -406,10 +436,9 @@ function installCoverageIoCapture(
   test.after(
     async () => {
       if (!child || !closed) throw fail();
-      finishing = true;
       let result;
       try {
-        child.stdin.end('finish\n');
+        finish('file-completed');
         result = await wait(closed, 300000);
       } catch {
         child.kill('SIGKILL');
@@ -428,11 +457,12 @@ function installCoverageIoCapture(
       )
         throw fail();
       const receipt = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         sourceSha: environment.GITHUB_SHA,
         coverageStage: environment.HPM_COVERAGE_IO_STAGE,
         cleanupVerified: true,
         summary,
+        windowTermination,
       };
       try {
         verifyParent();

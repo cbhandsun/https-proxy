@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：真实1e日档一小时处锚点阶段失败已及时发现并冻结；保留首个请求失败附近I/O窗口
+
+新1e日档不再运行、未通过24h。固定源码1e88eacc17d0ff9a9dfaa9cc4f71436780e809ce，任务HPM-native-day-20261027-1e88eac-5b74d29a；00:23:00.697Z实际开始，01:23:00.714Z第13个tick/3600000ms轮次开始，01:23:00.7850164Z控制器记录子进程退出1，elapsed3610031ms。此前连续12tick至55分钟不等于24h，1小时tick不等于该轮完成。有限失败回执：stage=capacity/attempt=1，后台sweep在anchor-persist失败、cleanupFailed=false；容量主失败begin/command39及清理close/command40均scheduledMs=3600000，storeOpens=1/storeCloses=0。anchor-persist包含快照、后继校验及实际提交，不能据此确认原生flush、DPAPI、OS或硬件根因。完整日志行损坏0、timelineErrors=0、identity/start各1，未拼接旧轮。
+
+01:24:13.132Z只读核验已发现terminal_failure/实际PID不存在，后台五分钟观察器01:24:30.945577Z同样发现并自行退出0，约90秒内识别原非零终态，没有等到次日才发现。Task Ready/LastTaskResult=1，原冻结源码、任务、数据库和独立锚点保持，不打开数据库/读取密钥、不重启或自动重试、不累计时长。本机新session记录failed及restartAuthorized=false，监测24按其既定终态规则PAUSED（不是暂停整体目标），该轮Mac所属防休眠租约以原管理session退出130释放。原5a七小时及更早半小时失败、最大文件暂停环境继续保留。
+
+独立d011完整负载I/O40431069844/job121948575851产生proxy目标文件的阶段回执：51对flush，数据库max21ms/日志max16ms，关联线程otherWaiting max494ms；原完整stage/job当时尚未终态，traceCompletenessVerified/fiveSecondQualified均false。环形32MiB可能缺失较早窗口，不能用这一尾段解释旧秒级COMMIT或认定五秒稳定，也不能把非零ETW状态直接等同产品写入失败/杀毒根因。对应安全数值回执仅留本机，原始ETL/路径/数据库/密钥/原文不上传。
+
+为避免首个实际五秒失败之后仍等整份文件结束而覆盖其附近环形记录，本批在原请求、正文或最终持久完成已经失败后，通过原所属私有pipe仅发送一次finish。原测试和四分片继续运行、不增加或重放请求、不改变原5000/10000/30000ms/ACK/FULL/DELETE/TTL；原失败仍失败。after仍独立等待所属child真实关闭/零退出、精确有界摘要/清理和源身份后才发布观察回执。坏输出即使失效仍先让所属recorder收尾，不能清理失败补绿。schema2另记file-completed或persistent-request-failed，严格拒绝未知/额外字段；历史schema1只能保留原范围，环形完整性和五秒资格始终false。不是实际原生失败或性能根因修复，尚待本批Windows验证。
+
+首个失败收尾回归旧实现因未提供控制能力失败，新增七项含重复finish、正常结束/旧schema、非零退出/缺摘要/写管道错误/私有输出、非法/可执行注册；扩大四文件62项零fail/skip。1667份JS语法、定向Lint/格式及CI/release治理通过。5411普通原两项就绪失败保留；其正式source现已success，N08/N09正在执行，不能覆盖普通失败放行安装。d011普通七项成功、coverage及其正式/独立I/O继续，d611完整门仍在执行。下一步重点定位本轮anchor-persist的实际失败边界，并继续独立五秒/安装WS/daemon转换等；真实24h、完整容量、额度核对后真实两端及受控启用全部未完成，模型0。
+
+
 ## 2026-10-27：保留5411原生准备五秒失败，补有限操作位置，不冒称根因修复
 
 固定5411ff7157963ff5b5ad841c5e429e08d131f743普通40430428016七项成功，coverage121946475908终态failure。native publication sending正常释放与native HTTP transport-finished正常停机两个用例，在原ready五秒窗口耗尽，耗时5023/5074ms；lastFixture均fixture-observed，而原生startup已在527/1219ms ready。尚未进入本次目标COMMIT中断，不能记为COMMIT边界失败或首次开库失败，也不能由其他成功窗口覆盖。安全摘录另存本机，不重跑失败job；固定5411 schema7新安装候选因完整门未过而未创建/派发。其正式40430427920/source仍执行。d0119a5普通40431069804已有七项成功、coverage仍执行，正式40431069977及独立完整负载I/O40431069844均执行中。
