@@ -35,6 +35,7 @@ function fixture(t) {
   const service = path.join(install, 'lib/proxy/context-recovery-storage.js');
   const opening = path.join(install, 'lib/proxy/context-recovery-storage-opening.js');
   const contract = path.join(install, 'lib/proxy/context-recovery-storage-contract.js');
+  const inventory = path.join(install, 'lib/proxy/context-recovery-storage-inventory.js');
   fs.writeFileSync(
     service,
     `exports.service = {execute: request => exports.next ?? Promise.resolve({revision:request.expectedRevision+1}), close(){}};
@@ -45,6 +46,10 @@ exports.originalOpen = exports.openContextRecoveryStorage;`
   fs.writeFileSync(
     contract,
     `module.exports = require(${real('context-recovery-storage-contract.js')});`
+  );
+  fs.writeFileSync(
+    inventory,
+    `module.exports = require(${real('context-recovery-storage-inventory.js')});`
   );
   fs.writeFileSync(
     ack,
@@ -58,7 +63,7 @@ exports.createContextRecoveryLifecycle = () => { const sessions=createContextRec
   );
   fs.writeFileSync(storage, 'exports.neverUsed = true;');
   t.after(() => {
-    for (const file of [ack, lifecycle, storage, service, opening, contract])
+    for (const file of [ack, lifecycle, storage, service, opening, contract, inventory])
       delete require.cache[file];
     fs.rmSync(root, { recursive: true, force: true });
   });

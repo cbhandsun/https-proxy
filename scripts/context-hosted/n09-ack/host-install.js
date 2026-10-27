@@ -58,9 +58,13 @@ function installN09HostAck(input) {
     const storageContract = require(
       path.join(options.install, 'lib/proxy/context-recovery-storage-contract.js')
     );
+    const storageInventory = require(
+      path.join(options.install, 'lib/proxy/context-recovery-storage-inventory.js')
+    );
     publicationObserver = installPublicationStorageObserver({
       storageExports,
       storageContract,
+      storageInventory,
       expectedDirectory: path.join(options.caseRoot, 'runtime/context-recovery-v1'),
     });
     const lifecycleExports = require(

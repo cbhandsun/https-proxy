@@ -7,6 +7,7 @@ const {
   installPublicationStorageObserver,
 } = require('../../scripts/context-hosted/n09-business/publication-storage-observer');
 const contract = require('../../lib/proxy/context-recovery-storage-contract');
+const storageInventory = require('../../lib/proxy/context-recovery-storage-inventory');
 const names = [
   'Scan',
   'SourcePages',
@@ -26,17 +27,23 @@ function request(revision, publications = []) {
     reference: { metadata: { rootId: 'hbs_' + 'b'.repeat(32), expiresAt: 1000 }, publications },
   };
 }
-function setup(t, flags = true) {
+function setup(t, flags = true, nativeInventory = false) {
   const calls = [];
-  let next;
+  let next, inventory;
   const service = {
     execute(...args) {
       calls.push({ receiver: this, args });
-      return next ?? Promise.resolve({ revision: args[0].expectedRevision + 1 });
+      const result = next ?? Promise.resolve({ revision: args[0].expectedRevision + 1 });
+      if (inventory) {
+        const finish = inventory.begin(args[0].operation);
+        Promise.prototype.then.call(result, finish, finish);
+      }
+      return result;
     },
     close() {},
   };
   const original = service.execute;
+  if (nativeInventory) inventory = storageInventory.createRecoveryStorageInventory(service);
   if (flags) for (const name of names) contract['declareRecovery' + name](original);
   let opened, opening;
   const exports = {
@@ -50,6 +57,7 @@ function setup(t, flags = true) {
   const observer = installPublicationStorageObserver({
     storageExports: exports,
     storageContract: contract,
+    storageInventory,
     expectedDirectory: directory,
   });
   let expectedCloseFailure = false;
@@ -125,6 +133,35 @@ test('constructor, actual service, requests, receivers and native promise identi
   assert.equal(f.service.execute, f.original);
   assert.equal(f.exports.openContextRecoveryStorage, f.constructor);
   assert.throws(() => f.observer.inspect());
+});
+
+test('native observation preserves the warm inventory fence across owned writes and restoration', async (t) => {
+  const f = setup(t, true, true);
+  const root = 'hbs_' + 'b'.repeat(32);
+  const index = storageInventory.createRecoveryRootInventory(f.service, new Map([[root, {}]]));
+  const active = new Set([root]);
+  index.completeDiscovery(index.beforeDiscovery());
+  assert.equal(index.allActive(active), true);
+  const opening = f.exports.openContextRecoveryStorage({ directory });
+  assert.equal(opening, f.getOpening());
+  assert.equal(await opening, f.service);
+  assert.equal(
+    index.allActive(active),
+    true,
+    'observation must not disable the production fast path'
+  );
+  const finish = index.begin('save-reference-state');
+  await f.service.execute(request(0));
+  finish(true);
+  assert.equal(f.observer.inspect().status, 'completed');
+  assert.equal(index.allActive(active), true);
+  for (const name of names)
+    assert.equal(contract['supportsRecovery' + name](f.service.execute), true);
+  f.observer.close();
+  assert.equal(f.service.execute, f.original);
+  assert.equal(index.allActive(active), true);
+  f.service.execute = () => Promise.resolve({ revision: 2 });
+  assert.equal(index.allActive(active), false, 'foreign replacement still invalidates the fence');
 });
 
 test('unsupported capabilities are never fabricated and another directory stays untouched', async (t) => {

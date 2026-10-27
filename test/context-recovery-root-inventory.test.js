@@ -330,7 +330,7 @@ test('a fast-path certificate is checked again after waiting and malformed or as
 
 // Physical SQLite and real service protocol, with a synthetic worker/key only.
 // These fixtures confer no Windows, DPAPI, OS-anchor or daemon qualification.
-async function fixture(t, lazy = false) {
+async function fixture(t, lazy = false, observed = false) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-inventory-test-'));
   const database = new DatabaseSync(path.join(directory, 'checkpoint.sqlite'));
   const engine = createRecoverySqliteStore({
@@ -377,7 +377,21 @@ async function fixture(t, lazy = false) {
       return Promise.resolve(1);
     }
   }
-  const native = await openContextRecoveryStorage({ directory, WorkerType: EngineWorker });
+  const exports = {
+    openContextRecoveryStorage: (options) =>
+      openContextRecoveryStorage({ ...options, WorkerType: EngineWorker }),
+  };
+  const observer = observed
+    ? require('../scripts/context-hosted/n09-business/publication-storage-observer').installPublicationStorageObserver(
+        {
+          storageExports: exports,
+          storageContract: require('../lib/proxy/context-recovery-storage-contract'),
+          storageInventory: require('../lib/proxy/context-recovery-storage-inventory'),
+          expectedDirectory: directory,
+        }
+      )
+    : null;
+  const native = await exports.openContextRecoveryStorage({ directory });
   const storage = lazy
     ? createContextRecoveryStorageOpening({ directory, openStorage: async () => native })
     : native;
@@ -387,12 +401,13 @@ async function fixture(t, lazy = false) {
     try {
       await lifecycle.shutdownAsync();
     } finally {
+      observer?.close();
       stop();
       fs.rmSync(directory, { recursive: true, force: true });
     }
   });
   assert.deepEqual(await lifecycle.configureAsync(true), { ok: true });
-  return { directory, database, engine, requests, native, storage, sessions, lifecycle };
+  return { directory, database, engine, requests, native, storage, sessions, lifecycle, observer };
 }
 const original = 'bounded synthetic evidence\r\nélève🙂';
 const user = (content) => ({ role: 'user', content });
@@ -439,12 +454,19 @@ async function seedInto(sessions) {
   };
 }
 
-for (const lazy of [false, true])
+for (const mode of [
+  { lazy: false, observed: false },
+  { lazy: true, observed: false },
+  { lazy: false, observed: true },
+  { lazy: true, observed: true },
+])
   test(
     'warm continuation skips scanning while exact durable accounting and expiry remain: lazy=' +
-      lazy,
+      mode.lazy +
+      ', observed=' +
+      mode.observed,
     async (t) => {
-      const f = await fixture(t, lazy);
+      const f = await fixture(t, mode.lazy, mode.observed);
       const seeded = await seedInto(f.sessions);
       const before = await f.storage.execute({ operation: 'load-reference', scope: seeded.scope });
       f.requests.length = 0;
@@ -455,6 +477,9 @@ for (const lazy of [false, true])
         f.requests.some((request) => request.operation === 'scan-reference'),
         false
       );
+      // Existing transaction owners keep their captured method after the tap
+      // is removed; real storage/accounting must continue without observation.
+      if (mode.observed) f.observer.close();
       const listed = await session.replyAsync(LIST, {});
       assert.equal(listed.ok, true);
       const read = await session.replyAsync(READ, {
@@ -486,46 +511,56 @@ for (const lazy of [false, true])
     }
   );
 
-test('an external writer invalidates the native certificate and preserves online/offline ambiguity', async (t) => {
-  const f = await fixture(t);
-  const seeded = await seedInto(f.sessions);
-  const other = createContextRecoverySessions({ now: () => 100 });
-  other.configure(true);
-  attachContextRecoveryStorage(other, f.native);
-  try {
-    await seedInto(other);
-  } finally {
-    await other.shutdownAsync();
-  }
-  f.requests.length = 0;
-  assert.deepEqual(await f.sessions.beginAsync(seeded.request, [], () => true), {
-    ok: false,
-    code: 'context_recovery_ambiguous',
-  });
-  assert.ok(f.requests.some((request) => request.operation === 'scan-reference'));
-  assert.equal(f.sessions.inspect().roots, 1);
-});
+for (const observed of [false, true])
+  test(
+    'an external writer invalidates the native certificate and preserves online/offline ambiguity: observed=' +
+      observed,
+    async (t) => {
+      const f = await fixture(t, false, observed);
+      const seeded = await seedInto(f.sessions);
+      const other = createContextRecoverySessions({ now: () => 100 });
+      other.configure(true);
+      attachContextRecoveryStorage(other, f.native);
+      try {
+        await seedInto(other);
+      } finally {
+        await other.shutdownAsync();
+      }
+      f.requests.length = 0;
+      assert.deepEqual(await f.sessions.beginAsync(seeded.request, [], () => true), {
+        ok: false,
+        code: 'context_recovery_ambiguous',
+      });
+      assert.ok(f.requests.some((request) => request.operation === 'scan-reference'));
+      assert.equal(f.sessions.inspect().roots, 1);
+    }
+  );
 
-test('a warm inventory never bypasses current authorization or authenticating corrupted evidence before disclosure', async (t) => {
-  const f = await fixture(t);
-  const seeded = await seedInto(f.sessions);
-  f.requests.length = 0;
-  assert.deepEqual(await f.sessions.beginAsync(seeded.request, [], () => false), {
-    ok: false,
-    code: 'context_recovery_storage_unavailable',
-  });
-  assert.equal(f.requests.length, 0);
-  f.database.prepare('UPDATE recovery_blob SET envelope=zeroblob(length(envelope))').run();
-  const session = await f.sessions.beginAsync(seeded.request, [], () => true);
-  assert.equal(session.ok, true);
-  const read = await session.replyAsync(READ, {
-    sourceId: seeded.receipt.sourceId,
-    digest: seeded.receipt.digest,
-  });
-  assert.equal(read.ok, false);
-  assert.equal((await session.replyAsync(LIST, {})).ok, false);
-  session.abort();
-});
+for (const observed of [false, true])
+  test(
+    'a warm inventory never bypasses current authorization or authenticating corrupted evidence before disclosure: observed=' +
+      observed,
+    async (t) => {
+      const f = await fixture(t, false, observed);
+      const seeded = await seedInto(f.sessions);
+      f.requests.length = 0;
+      assert.deepEqual(await f.sessions.beginAsync(seeded.request, [], () => false), {
+        ok: false,
+        code: 'context_recovery_storage_unavailable',
+      });
+      assert.equal(f.requests.length, 0);
+      f.database.prepare('UPDATE recovery_blob SET envelope=zeroblob(length(envelope))').run();
+      const session = await f.sessions.beginAsync(seeded.request, [], () => true);
+      assert.equal(session.ok, true);
+      const read = await session.replyAsync(READ, {
+        sourceId: seeded.receipt.sourceId,
+        digest: seeded.receipt.digest,
+      });
+      assert.equal(read.ok, false);
+      assert.equal((await session.replyAsync(LIST, {})).ok, false);
+      session.abort();
+    }
+  );
 
 test('failed external writes still invalidate the fence and use the original scan without a write retry', async (t) => {
   const f = await fixture(t);

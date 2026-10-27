@@ -109,11 +109,20 @@ function describe(request, prior) {
 // it. The original options, Worker, requests, receiver and promise identities
 // remain unchanged. No key/blob/output is retained and no ACK is manufactured.
 function installPublicationStorageObserver(input) {
-  const { storageExports, storageContract, expectedDirectory } = fields(input, [
+  const { storageExports, storageContract, storageInventory, expectedDirectory } = fields(input, [
     'storageExports',
     'storageContract',
+    'storageInventory',
     'expectedDirectory',
   ]);
+  const observeCalls = own(storageInventory, 'observeRecoveryStorageCalls');
+  if (
+    typeof observeCalls !== 'function' ||
+    types.isProxy(observeCalls) ||
+    types.isAsyncFunction(observeCalls) ||
+    types.isGeneratorFunction(observeCalls)
+  )
+    throw fail();
   if (
     !storageExports ||
     typeof storageExports !== 'object' ||
@@ -174,8 +183,8 @@ function installPublicationStorageObserver(input) {
         types.isProxy(slot.value)
       )
         throw fail();
-      function execute(...args) {
-        if (closed) return Reflect.apply(slot.value, this, args);
+      function observe(args, pending, threw) {
+        if (closed) return;
         let record;
         try {
           if (
@@ -191,17 +200,14 @@ function installPublicationStorageObserver(input) {
         } catch {
           failed = true;
         }
-        let pending;
-        try {
-          pending = Reflect.apply(slot.value, this, args);
-        } catch (error) {
+        if (threw) {
           failed = true;
           if (record) active.delete(record.callOrdinal);
-          throw error;
+          return;
         }
         if (!isN09NativePromise(pending)) {
           failed = true;
-          return pending;
+          return;
         }
         Reflect.apply(Promise.prototype.then, pending, [
           (result) => {
@@ -235,15 +241,41 @@ function installPublicationStorageObserver(input) {
             }
           },
         ]);
-        return pending;
+      }
+      const tap = observeCalls(service, observe);
+      const execute = tap
+        ? own(service, 'execute')
+        : function (...args) {
+            let pending;
+            try {
+              pending = Reflect.apply(slot.value, this, args);
+            } catch (error) {
+              observe(args, undefined, true);
+              throw error;
+            }
+            observe(args, pending, false);
+            return pending;
+          };
+      if (tap) {
+        const closeTap = own(tap, 'close');
+        if (
+          typeof closeTap !== 'function' ||
+          types.isProxy(closeTap) ||
+          types.isAsyncFunction(closeTap) ||
+          types.isGeneratorFunction(closeTap)
+        )
+          throw fail();
+        patches.push({ tap, closeTap });
       }
       for (const pair of flags) {
         const supported = pair.supports(slot.value);
         if (typeof supported !== 'boolean') throw fail();
         if (supported && pair.declare(execute) !== execute) throw fail();
       }
-      Object.defineProperty(service, 'execute', { ...slot, value: execute });
-      patches.push({ object: service, name: 'execute', original: slot, value: execute });
+      if (!tap) {
+        Object.defineProperty(service, 'execute', { ...slot, value: execute });
+        patches.push({ object: service, name: 'execute', original: slot, value: execute });
+      }
     } catch {
       failed = true;
     }
@@ -323,6 +355,14 @@ function installPublicationStorageObserver(input) {
       active.clear();
       prior.clear();
       for (const entry of patches.reverse()) {
+        if (entry.tap) {
+          try {
+            if (Reflect.apply(entry.closeTap, entry.tap, []) !== undefined) throw fail();
+          } catch {
+            closeFailed = true;
+          }
+          continue;
+        }
         const current = Object.getOwnPropertyDescriptor(entry.object, entry.name);
         if (
           !current ||
