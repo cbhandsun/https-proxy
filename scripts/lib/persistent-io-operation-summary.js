@@ -25,7 +25,7 @@ const empty = () => ({
 // Only normalized scalar records reach this private accumulator. No file names,
 // pointers, raw status strings or payloads are returned. Codes are normalized
 // uint32 values in a bounded histogram, never arbitrary event text.
-function createPersistentIoOperations() {
+function createPersistentIoOperations(onComplete) {
   const pending = new Map();
   const stats = Object.fromEntries(
     OPERATION_TYPES.map((type) => [
@@ -56,6 +56,7 @@ function createPersistentIoOperations() {
       pending.delete(key);
       const elapsed = time - start.time;
       if (!Number.isSafeInteger(elapsed) || elapsed < 0) throw Error('persistent_io_trace_invalid');
+      onComplete?.(start.type, start.kind, start.time, time, status);
       const value = stats[start.type][start.kind];
       if (status === 0) {
         value.count++;

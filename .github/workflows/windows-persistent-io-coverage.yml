@@ -47,6 +47,8 @@ on:
       - scripts/lib/persistent-io-recording.psm1
       - scripts/lib/persistent-io-binary.psm1
       - scripts/lib/persistent-io-summary.js
+      - scripts/lib/persistent-io-windows.js
+      - test/persistent-io-windows.test.js
       - scripts/lib/persistent-io-scheduling.js
       - scripts/lib/persistent-io-scheduling.psm1
       - test/persistent-io-scheduling.test.js

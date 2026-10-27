@@ -1,6 +1,7 @@
 'use strict';
 
 const { types } = require('node:util');
+const { createPersistentIoWindows } = require('./persistent-io-windows');
 const { SCHEDULING_TYPES, createPersistentIoScheduling } = require('./persistent-io-scheduling');
 const {
   OPERATION_TYPES,
@@ -38,7 +39,8 @@ function pointer(input) {
 function createPersistentIoSummary() {
   const names = new Map(),
     pending = new Map();
-  const operations = createPersistentIoOperations();
+  const windows = createPersistentIoWindows();
+  const operations = createPersistentIoOperations(windows.record);
   const scheduling = createPersistentIoScheduling();
   const stats = {
     database: { count: 0, maxMs: 0, over100Ms: 0, over1000Ms: 0 },
@@ -109,12 +111,13 @@ function createPersistentIoSummary() {
         return;
       }
       pending.delete(key);
+      const elapsed = value.timeMs - start.start;
+      if (!Number.isSafeInteger(elapsed) || elapsed < 0) throw fail();
+      windows.record('flush', start.kind, start.start, value.timeMs, status);
       if (status !== 0) {
         failedFlushes++;
         return;
       }
-      const elapsed = value.timeMs - start.start;
-      if (!Number.isSafeInteger(elapsed) || elapsed < 0) throw fail();
       const result = stats[start.kind];
       result.count++;
       result.maxMs = Math.max(result.maxMs, elapsed);
@@ -125,7 +128,7 @@ function createPersistentIoSummary() {
       const ioOperations = operations.snapshot();
       const ioScheduling = scheduling.snapshot();
       return {
-        schemaVersion: ioScheduling ? 5 : ioOperations ? 4 : 1,
+        schemaVersion: ioScheduling ? 6 : ioOperations ? 4 : 1,
         scope:
           ioScheduling || ioOperations
             ? 'synthetic_sqlite_etw_file_operations'
@@ -141,7 +144,11 @@ function createPersistentIoSummary() {
         traceCompletenessVerified: false,
         fiveSecondQualified: false,
         realModelRequests: 0,
-        ...(ioScheduling ? { ioOperations, ioScheduling } : ioOperations ? { ioOperations } : {}),
+        ...(ioScheduling
+          ? { ioOperations, ioScheduling, ioWindows: windows.snapshot() }
+          : ioOperations
+            ? { ioOperations }
+            : {}),
       };
     },
   };

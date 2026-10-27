@@ -124,6 +124,7 @@ test('extended operation summary survives capture cleanup and source/stage recei
   const { createPersistentIoSummary } = require('../scripts/lib/persistent-io-summary');
   const value = createPersistentIoSummary();
   for (const event of [
+    { type: 'schedule-start', key: '1', timeMs: 0, name: '' },
     {
       type: 'name',
       key: '1',
@@ -144,6 +145,8 @@ test('extended operation summary survives capture cleanup and source/stage recei
   assert.deepEqual(readCoverageIoReceipt(f.environment).summary, recorded);
   assert.equal(f.reports[0].cleanupVerified, true);
   assert.equal(f.reports[0].summary.ioOperations.delete.database.accessDenied, 1);
+  assert.equal(f.reports[0].summary.schemaVersion, 6);
+  assert.equal(f.reports[0].summary.ioWindows[0].operation, 'delete');
   assert.equal(f.reports[0].summary.fiveSecondQualified, false);
 });
 

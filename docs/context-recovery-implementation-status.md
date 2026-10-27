@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：保留I/O起止时间以定位COMMIT等待；ab5普通八作业通过
+
+已通过官方REST逐项核对ab5ccdb的Verify40543765650：coverage122328760848及其余七作业全部completed/success。正式40543765431的source-gates122328758766仍in_progress，egress122328759306成功；不提前补写正式终态，不重跑既有任务。此前804普通coverage的Responses五秒失败继续保留，不能以本轮通过授长期稳定性。
+
+进一步读取804失败窗口的原回执：database write最高662ms、journal write501ms，delete最高1ms；调度汇总为一个flush关联线程生命周期，ready区间合计15ms、otherWaiting5054ms、已观测delayExecution为0，仍有一个未完成区间且traceCompletenessVerified=false。最长1049ms COMMIT与已观测662/174ms等待区间在时间上重叠；仅是同窗口正向观察，缺少精确线程/请求绑定，不能将它们求和后认作COMMIT归因，也不能用未观测到的重试或删除延迟排除旧失败原因。下一步优先定位写入/flush等待，而非未经证实修改SQLite忙等、DPAPI或杀毒设置。
+
+原I/O汇总只保留每类最大值，丢失具体I/O发生时间，无法再对应失败请求。本批在已有规范化事件入口后新增独立有界时间段模块，调度回执升为schema6，最多八条按耗时排序的操作类型、database/journal类别、起止/耗时和uint32状态；保留失败操作，不将非零状态算成功。不输出路径、IRP、进程/线程标识、SQL或私有内容，不增加栈捕获、WPR窗口或原请求内工作。事件丢失/重用/未完成仍按原规则处理。旧schema1–5仍按原严格合同校验；新字段闭合校验，时间、排序、状态及数量/最大值必须与原汇总一致，原16384字节回执上限不变。仍不授精确COMMIT关联或五秒资格。新模块进入两个既有I/O工作流的路径触发，原测试命令、负载、分片和失败停止规则保持。
+
+新实际累加器回归先红后绿；Mac六文件88/88、零skip/取消，覆盖正常/空、非法及附加字段、极端时间/全部状态库存、八条边界、复用/未完成/无关文件、失败状态和getter/Proxy；实际回执读取链保留新字段，旧schema5兼容保持。定向Lint/格式、1688份语法及CI/release治理通过。尚未取得schema6的Windows实际ETW回执，本批不是持久恢复尾延迟产品修复。认证、HTTP5000、原生10000、存储30000、精确ACK、SQLite FULL/DELETE/secure_delete、OS锚点独立flush及原24h到期均不变。旧实例仍由用户自行切换，冻结现场保持；未新启24h/最大文件，真实模型0。其余daemon内部矩阵、最新安装两端真实provider、连续24h/到期重开及最大文件仍未完成。
+
 ## 2026-10-27：804完整I/O观察已通过；Rust链接对照保留首轮vctip失败，未改工具链
 
 804cf24897cf48dbd43c3e927b8007a9c78ecf98正式40536646269现已四作业终态success：source-gates122303587523、egress122303586960、N08122316710210、N09122316710307。普通40536645966除coverage122303586599外七项success，coverage的proxy阶段仍在actual core Responses WBIPC持久恢复失败；原同窗口24次flush中database最高683ms、journal465ms，未取得单笔精确归因，不被其他通过覆盖。正式固定场景成功仍不授full N08/N09或剩余daemon内部状态资格。

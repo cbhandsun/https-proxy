@@ -124,7 +124,7 @@ test('invalid states, stale timing, unknown bindings and extreme identifiers can
   assert.throws(() => bounded.observe('schedule-bind', 'ffff', 1000, ''));
 });
 
-test('schema five keeps original I/O gates and rejects forged scheduling counters, windows or qualification', () => {
+test('scheduled summaries keep original I/O gates and reject forged counters, windows or qualification', () => {
   const summary = createPersistentIoSummary();
   const observe = (type, key, timeMs, name = '') => summary.observe({ type, key, timeMs, name });
   observe('schedule-start', '1', 0);
@@ -135,10 +135,13 @@ test('schema five keeps original I/O gates and rejects forged scheduling counter
   observe('schedule-out', '0x2a', 1000, '5:4');
   observe('schedule-in', '0x2a', 1200);
   const report = summary.snapshot();
-  assert.equal(report.schemaVersion, 5);
+  assert.equal(report.schemaVersion, 6);
   assert.equal(report.ioOperations, null);
   assert.equal(report.pairedFlushes, 1);
   assert.deepEqual(parseSummary(JSON.stringify(report)), report);
+  const legacy = { ...report, schemaVersion: 5 };
+  delete legacy.ioWindows;
+  assert.deepEqual(parseSummary(JSON.stringify(legacy)), legacy);
   for (const change of [
     (x) => {
       x.ioScheduling.commitCorrelationQualified = true;
