@@ -9,7 +9,76 @@ const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const { finishPhysicalOwnerCleanup } = require('./helpers/physical-owner-cleanup.cjs');
 
-test('physical summary owner preserves the original failure when directory cleanup also fails', () => {
+test('async owner cleanup awaits every action once and preserves primary plus rejected cleanup', async () => {
+  const { finishPhysicalOwnerCleanupAsync } = require('./helpers/physical-owner-cleanup.cjs');
+  const primary = new Error('owned_primary');
+  const cleanup = new Error('owned_cleanup');
+  const calls = [];
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const result = finishPhysicalOwnerCleanupAsync(
+    [primary],
+    [
+      async () => {
+        await gate;
+        calls.push('runtime');
+        throw cleanup;
+      },
+      async () => {
+        calls.push('directory');
+      },
+    ]
+  );
+  const rejected = assert.rejects(result, (error) => {
+    assert.equal(error.message, 'physical_owner_cleanup_failed');
+    assert.deepEqual(error.errors, [primary, cleanup]);
+    return true;
+  });
+  await new Promise(setImmediate);
+  assert.deepEqual(calls, []);
+  release();
+  await rejected;
+  assert.deepEqual(calls, ['runtime', 'directory']);
+  await finishPhysicalOwnerCleanupAsync([], []);
+  await assert.rejects(
+    finishPhysicalOwnerCleanupAsync(
+      [],
+      [
+        async () => {
+          throw cleanup;
+        },
+      ]
+    ),
+    (error) => error === cleanup
+  );
+  const emptyPrimary = Object.freeze([undefined]);
+  await assert.rejects(
+    finishPhysicalOwnerCleanupAsync(emptyPrimary, [
+      async () => {
+        throw cleanup;
+      },
+    ]),
+    (error) => {
+      assert.deepEqual(error.errors, [undefined, cleanup]);
+      return true;
+    }
+  );
+  assert.deepEqual(emptyPrimary, [undefined]);
+  await assert.rejects(
+    async () => {
+      try {
+        throw primary;
+      } finally {
+        await finishPhysicalOwnerCleanupAsync([primary], [async () => {}]);
+      }
+    },
+    (error) => error === primary
+  );
+});
+
+test('physical summary owner preserves the original failure when directory cleanup also fails', async () => {
   const filename = path.resolve(__dirname, 'context-recovery-codex-summary.test.js');
   const load = createRequire(filename);
   const primary = new Error('owned_child_failure');
@@ -41,6 +110,15 @@ test('physical summary owner preserves the original failure when directory clean
             throw primary;
           },
         };
+      if (name === './helpers/installed-fixture-cleanup')
+        return {
+          createPhysicalOwnerFixtureCleanup() {
+            return async () => {
+              removals++;
+              throw cleanup;
+            };
+          },
+        };
       if (name === 'node:fs')
         return {
           ...fs,
@@ -57,7 +135,7 @@ test('physical summary owner preserves the original failure when directory clean
     Buffer
   );
   assert.equal(typeof callback, 'function');
-  assert.throws(callback, (error) => {
+  await assert.rejects(callback, (error) => {
     assert.equal(launches, 1);
     assert.equal(removals, 1);
     assert.equal(error.name, 'AggregateError');

@@ -10,7 +10,7 @@ const id = (stat) => [stat.dev, stat.ino, stat.birthtimeNs].join(':');
 // Call at fixture creation, then invoke only after every owned child has exited.
 // A transient Windows image/AV lock can outlive spawnSync's completed child.
 // Retrying deletion is bounded and never reruns a scenario or changes assertions.
-function createInstalledFixtureCleanup(directory) {
+function createFixtureCleanup(directory, namePattern) {
   try {
     const temp = fs.realpathSync.native(os.tmpdir());
     if (
@@ -18,7 +18,7 @@ function createInstalledFixtureCleanup(directory) {
       !path.isAbsolute(directory) ||
       path.resolve(directory) !== directory ||
       path.dirname(directory) !== temp ||
-      !/^hpm-installed-boundary-[a-zA-Z0-9]+$/.test(path.basename(directory))
+      !namePattern.test(path.basename(directory))
     )
       throw fail();
     const pins = new Map();
@@ -83,4 +83,12 @@ function safeCode(error) {
   return slot && Object.hasOwn(slot, 'value') && typeof slot.value === 'string' ? slot.value : null;
 }
 
-module.exports = { createInstalledFixtureCleanup };
+function createInstalledFixtureCleanup(directory) {
+  return createFixtureCleanup(directory, /^hpm-installed-boundary-[a-zA-Z0-9]+$/);
+}
+
+function createPhysicalOwnerFixtureCleanup(directory) {
+  return createFixtureCleanup(directory, /^hpm-v7-owner-[a-zA-Z0-9]+$/);
+}
+
+module.exports = { createInstalledFixtureCleanup, createPhysicalOwnerFixtureCleanup };

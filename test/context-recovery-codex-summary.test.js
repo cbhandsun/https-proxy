@@ -9,7 +9,8 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
 const { assertOwnerLaunches } = require('./helpers/physical-owner-receipt.cjs');
-const { finishPhysicalOwnerCleanup } = require('./helpers/physical-owner-cleanup.cjs');
+const { finishPhysicalOwnerCleanupAsync } = require('./helpers/physical-owner-cleanup.cjs');
+const { createPhysicalOwnerFixtureCleanup } = require('./helpers/installed-fixture-cleanup');
 const { getDefaultEnvironment } = require('@modelcontextprotocol/sdk/client/stdio.js');
 const { tryHandleContextRecoveryHttp } = require('../lib/proxy/context-recovery-http-entry');
 const { decodeContextRecoveryResponse } = require('../lib/proxy/context-recovery-protocol');
@@ -664,11 +665,13 @@ for (const [forced, inlineTools] of [
       : 'v7 summary survives two physical owners through real encrypted storage without extending expiry') +
       ` (inline tools: ${inlineTools})`,
     { timeout: 90000 },
-    () => {
+    async () => {
       const f = fixture(Date.now(), inlineTools, inlineTools);
       const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-v7-owner-'));
       const primaryFailures = [];
+      let cleanup;
       try {
+        cleanup = createPhysicalOwnerFixtureCleanup(directory);
         const summary = f.begin(f.summaryBody);
         const released = summary.recovery(f.summaryBody).accept(response('summary'));
         assert.equal(summary.complete(released.output, [], released.response.id).ok, true);
@@ -750,12 +753,12 @@ for (const [forced, inlineTools] of [
         primaryFailures.push(error);
         throw error;
       } finally {
-        finishPhysicalOwnerCleanup(primaryFailures, [
+        await finishPhysicalOwnerCleanupAsync(primaryFailures, [
           () => f.runtime.close(),
           () => {
             assert.equal(path.dirname(path.resolve(directory)), path.resolve(os.tmpdir()));
             assert.ok(path.basename(directory).startsWith('hpm-v7-owner-'));
-            fs.rmSync(directory, { recursive: true, force: true });
+            if (cleanup) return cleanup();
           },
         ]);
       }

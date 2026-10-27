@@ -11,10 +11,8 @@ const source = fs.readFileSync(
   'utf8'
 );
 const bad = { message: 'installed_fixture_cleanup_failed' };
-function fixture(t, remove) {
-  const directory = fs.mkdtempSync(
-    path.join(fs.realpathSync.native(os.tmpdir()), 'hpm-installed-boundary-')
-  );
+function fixture(t, remove, prefix = 'hpm-installed-boundary-') {
+  const directory = fs.mkdtempSync(path.join(fs.realpathSync.native(os.tmpdir()), prefix));
   t.after(() => {
     for (const file of [directory, directory + '-original'])
       fs.rmSync(file, { recursive: true, force: true });
@@ -43,8 +41,57 @@ function fixture(t, remove) {
       queueMicrotask(resolve);
     },
   });
-  return { directory, delays, calls, create: module.exports.createInstalledFixtureCleanup };
+  return {
+    directory,
+    delays,
+    calls,
+    create: module.exports.createInstalledFixtureCleanup,
+    createOwner: module.exports.createPhysicalOwnerFixtureCleanup,
+  };
 }
+
+test('physical owner cleanup waits out only bounded ENOTEMPTY and verifies actual removal', async (t) => {
+  const f = fixture(
+    t,
+    (file, options, attempt) => {
+      if (attempt < 3) throw Object.assign(new Error('PRIVATE_PATH'), { code: 'ENOTEMPTY' });
+      fs.rmSync(file, options);
+    },
+    'hpm-v7-owner-'
+  );
+  await f.createOwner(f.directory)();
+  assert.equal(fs.existsSync(f.directory), false);
+  assert.equal(f.calls.length, 3);
+  assert.deepEqual(f.delays, [75, 75]);
+});
+
+test('physical owner cleanup rejects foreign prefixes and preserves persistent failure evidence', async (t) => {
+  const f = fixture(
+    t,
+    () => {
+      throw Object.assign(new Error('PRIVATE_PATH'), { code: 'ENOTEMPTY' });
+    },
+    'hpm-v7-owner-'
+  );
+  const foreign = fixture(t, () => assert.fail('foreign removal'));
+  for (const input of [
+    null,
+    '',
+    '.',
+    os.tmpdir(),
+    path.dirname(f.directory),
+    path.join(f.directory, 'nested'),
+    f.directory + '/..',
+    f.directory + '\0',
+    foreign.directory,
+  ])
+    assert.throws(() => f.createOwner(input), bad);
+  fs.writeFileSync(path.join(f.directory, 'evidence'), 'synthetic');
+  await assert.rejects(f.createOwner(f.directory)(), bad);
+  assert.equal(f.calls.length, 4);
+  assert.deepEqual(f.delays, [75, 75, 75]);
+  assert.equal(fs.readFileSync(path.join(f.directory, 'evidence'), 'utf8'), 'synthetic');
+});
 
 test('transient Windows busy locks are retried only for the same pinned directory and actual removal is verified', async (t) => {
   const f = fixture(t, (file, options, attempt) => {
