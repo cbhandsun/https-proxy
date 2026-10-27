@@ -75,9 +75,14 @@ function fixture(t) {
         };
       },
     });
-  const open = () => {
+  const open = (onExecutionProgress) => {
     const owner = createAsyncStorageOwner(
-      { directory, protectKey, onStartup: ({ phase }) => startupPhases.push(phase) },
+      {
+        directory,
+        protectKey,
+        onStartup: ({ phase }) => startupPhases.push(phase),
+        onExecutionProgress,
+      },
       { createAnchorSession }
     );
     if (types.isPromise(owner))
@@ -152,6 +157,37 @@ const save = (owner, expiresAt, revision = 0) =>
     expiresAt,
     state: { original: 'PRIVATE synthetic', calls: 4 - revision },
   });
+
+test('execution observation distinguishes the retained anchor wait from SQL completion without acknowledging early', async (t) => {
+  const f = fixture(t),
+    events = [],
+    owner = await f.open((event) => events.push(event));
+  assert.equal(events.length, 0, 'startup does not masquerade as a request');
+  const held = f.holdReply();
+  let acknowledged = false;
+  const pending = save(owner, Date.now() + 60000).then((value) => {
+    acknowledged = true;
+    return value;
+  });
+  await turn();
+  assert.equal(events.at(-1).phase, 'anchor_persist_started');
+  assert.ok(events.some((event) => event.phase === 'engine_execute_finished'));
+  assert.ok(events.some((event) => event.phase === 'engine_snapshot_finished'));
+  assert.equal(acknowledged, false);
+  assert.equal(
+    events.some((event) => event.phase === 'completed'),
+    false
+  );
+  held.resolve();
+  assert.deepEqual(await pending, { revision: 1 });
+  assert.equal(events.at(-1).phase, 'completed');
+  assert.equal(events.length, 11);
+  assert.equal(JSON.stringify(events).includes('PRIVATE'), false);
+  await assert.rejects(save(owner, Date.now() + 60000), safe);
+  assert.equal(events.at(-1).phase, 'failed');
+  assert.equal(events.at(-1).sequence, 2);
+  await owner.close();
+});
 
 test('async owner retains synchronous empty intent and durable startup, waits for exact ACK and reopens unchanged expiry', async (t) => {
   const f = fixture(t),

@@ -1,5 +1,19 @@
 # 上下文恢复换机交接
 
+## 2026-10-27：定位正式门失败于连续保存准备；原worker增加有界阶段观察，Windows73项通过
+
+已取回4a正式40507241038/source-gates122199563060日志：原生正常停机transport-finished/ACK、uncertain/COMMIT及uncertain/ACK三项失败均为awaiting=ready，尚未进入目标中断。开库分别594/1542/2144ms完成，首项初次save-reference-state从101到2134ms、随后第二次仍pending；第二项连续保存1499/1267ms、第四次操作pending；第三项初次保存1429ms后第二次pending。目录ACL分别22/18/17ms，本批失败不是目录ACL未完成的证据。原1726项中3失败保留，不重启或改写原任务，不将准备超时误称目标中断语义失败。
+
+SSH独立诊断HPM-save-phase-9fa6b3实际完成，Node退出0、父2959ms、stderr0、Job自然清空。固定6731fbd产品库加明确标记的私有计时副本，仅执行一次固定合成观察/准备/发送/传输完成：149/119/74/57ms；写事务COMMIT约7–11ms、快照0.699–4.344ms、后续锚点native请求4.903–19.507ms。源码归档SHA256 2892e5130f4456161f777950c1d3c5abf6299efcf716cf98a6a9160a7cea60bc。未复现托管秒级尾延迟，qualification=false；这些数据不能确定旧失败的SQL/快照/锚点根因或覆盖原五秒失败。
+
+本批新增可选onExecutionProgress观察，从原默认worker的实际异步owner发出固定sequence/phase/elapsedMs：文件验证前后、engine.execute前后、独立认证snapshot前后、独立锚点持久前后及最终验证前后。默认不开启，不增加worker消息；仅原发布中断夹具启用，父端与夹具二次校验闭合词汇/精确字段/单调序列和时间，夹具仅保留最后24项。无请求、scope、原文、结果、异常、headers或路径，计时饱和于60000仅为观察上限，不控制任何期限。观察器异常/拒绝Promise被隔离，完成观察不能解析请求Promise或授ACK，原结果、精确版本、独立flush、FULL/DELETE、TTL、失败关闭及五秒/原生/存储门均不变。新增模块已显式进入release-proxy-sources；首次治理检查拒绝未声明模块，补齐后原检查通过。
+
+新增安全回归覆盖正常及失败序列、空/非法/极端输入、accessor/Proxy/继承风险、重复/乱序、未经启用消息拒绝、观察器失败和拒绝Promise；实际SQL加合成锚点受控阻塞确认engine/snapshot已完成但anchor_persist_started时仍无ACK，释放准确回执后才完成，后续CAS拒绝仍报告failed。首次服务测试把原null-prototype结果误写为普通对象期望，修正夹具的原型期望后通过，未改产品结果。Mac七文件128项127通过/1原Windows平台skip，N09完整501/501零skip，发布治理两项通过；Lint/格式、1681语法、CI治理及release治理已检查。本批新回归进入统一unit发现，未跳过失败或提高baseline。
+
+Windows独立目录C:\\Users\\juhon\\hpm-execution-progress-20261027-58b19a、任务HPM-execution-progress-58b19a基于已有库副本叠加8份本批代码/测试，输入归档SHA256 a987397125ef514cd45ae86f2987700c52f5d827ab62b3d4f03ae41e1ac849b6。原43项基础回归43/43、零skip，父31156ms退出0；随后原native-publication-interruption/native-graceful-http两文件30/30、零skip，父93363ms退出0，两个Job均自然清空、stderr0，于2026-10-27T13:24:21.5505444Z完成。使用默认worker、真实DPAPI/OS锚点及原时间/所属清理，不是替换后端或计时副本；仅授本机本批矩阵回归，不能据单次通过覆盖旧失败、授长期稳定性、安装版或daemon完整资格。
+
+6731fbd业务边界诊断40510334781已success；Verify40510334798的unit shard1/job122210249069失败于shared-hosted-egress-wfp原spawnSync pwsh的25000ms超时，其他已结束节点通过、coverage仍运行；正式40510334222源码门及额外I/O40510334210仍运行，完整资格未确认。旧实例/桌面67候选不替换，用户自行切换；没有新24h、最大文件、冻结现场操作或真实模型调用。下一步用实际失败阶段继续解决保存尾延迟，核对新源码完整门；真实provider与额度核对、余下daemon内部矩阵、真实24h及到期重开仍保留为完整目标。
+
 ## 2026-10-27：保留旧实例；Windows目录诊断59项及8次开库通过，N09零等待锁竞争分类
 
 用户明确选择保留E盘旧托盘实例、自行切换桌面67候选；本批未安装、退出或改写旧实例及其配置。SSH已恢复，独立目录C:\\Users\\juhon\\hpm-directory-startup-20261027-9d80e1、任务HPM-directory-startup-9d80e1确实执行并于2026-10-27T13:00:51.3346426Z完成，Ready/LastTaskResult=0。固定4a0e3d8源码输入归档SHA256 4d14bbdb3fe7d34230dbe58e26083015ff72a41f7ffd418b5550cf5e3012ed7b；原六文件59/59、零skip/取消、父Node退出0，随后8次实际默认worker/DPAPI/OS锚点独立开关库退出0，两个所属Job均自然清空。open调用800–1612ms、目录ACL阶段75–99ms。本轮仅最小启动诊断，qualification=false；调用计时不含完整进程/HTTP准备，不能覆盖此前29/30、五秒尾延迟或授连续稳定性，未重跑原失败矩阵洗绿。

@@ -203,6 +203,7 @@
   "lib/proxy/context-recovery-storage-paths.js",
   "lib/proxy/context-recovery-storage-failure.js",
   "lib/proxy/context-recovery-storage-progress.js",
+  "lib/proxy/context-recovery-execution-progress.js",
   "lib/proxy/context-recovery-storage-quota.js",
   "lib/proxy/context-recovery-storage-record.js",
   "lib/proxy/context-recovery-storage-scan.js",

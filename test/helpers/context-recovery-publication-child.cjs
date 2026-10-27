@@ -49,6 +49,9 @@ async function initialize(input) {
         onStartup(progress) {
           report('native-startup', { progress });
         },
+        onExecutionProgress(progress) {
+          report('native-execution', { progress });
+        },
       })
     : createRecoverySqliteStore({
         database: {
