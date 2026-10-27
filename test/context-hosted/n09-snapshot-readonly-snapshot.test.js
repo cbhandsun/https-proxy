@@ -627,6 +627,154 @@ test('snapshot SQL reads authenticated metadata from actual in-memory SQLite wit
   reader.close();
 });
 
+test('actual readonly SQL contention is classified without waiting, replaying or accepting a snapshot', (t) => {
+  const { DatabaseSync } = require('node:sqlite');
+  const f = fixture(false, 3);
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-readonly-lock-'));
+  const file = path.join(directory, 'checkpoint.sqlite');
+  const writer = new DatabaseSync(file);
+  writer.exec(
+    schema.HEADER_SQL +
+      ';' +
+      schema.STATE_SQL +
+      ';' +
+      schema.BLOB_SQL +
+      ';PRAGMA application_id=' +
+      schema.APPLICATION_ID +
+      ';PRAGMA user_version=3'
+  );
+  writer
+    .prepare('INSERT INTO recovery_header VALUES(1,?,?)')
+    .run(f.header.store_id, f.header.envelope);
+  const row = f.rows[0];
+  writer
+    .prepare('INSERT INTO recovery_state VALUES(?,?,?,?,?,?)')
+    .run(row.scope, row.revision, row.created_at, row.expires_at, row.kind, row.envelope);
+  const phases = [];
+  let connections = 0;
+  const reader = createDurableSnapshotReader(options, {
+    ...f.trusted,
+    createFiles: () => ({ databaseFile: file, readKey: () => 'wrapped-fixture', verify() {} }),
+    openReadonly() {
+      connections++;
+      return new DatabaseSync(file, { readOnly: true, allowExtension: false });
+    },
+    onPhase: (phase) => phases.push(phase),
+  });
+  t.after(() => {
+    reader.close();
+    writer.close();
+    fs.rmSync(directory, { recursive: true, force: true });
+  });
+  writer.exec('BEGIN EXCLUSIVE');
+  try {
+    assert.throws(() => reader.read(), bad);
+    assert.equal(connections, 1);
+    assert.equal(phases.at(-1), 255, 'the original zero-wait SQL read failed with SQLITE_BUSY');
+    assert.equal(phases.includes(180), false);
+  } finally {
+    writer.exec('ROLLBACK');
+  }
+  assert.equal(reader.read().rootId, f.state.reference.metadata.rootId);
+  assert.equal(connections, 2, 'only the explicit later observation opens another connection');
+});
+
+test('schema failure classification never inspects hostile errors or changes cleanup', () => {
+  let hooks = 0;
+  const accessor = Object.defineProperties(
+    {},
+    {
+      code: {
+        get() {
+          hooks++;
+          throw Error('PRIVATE_CODE_SENTINEL');
+        },
+      },
+      errcode: {
+        get() {
+          hooks++;
+          throw Error('PRIVATE_NUMBER_SENTINEL');
+        },
+      },
+    }
+  );
+  const proxy = new Proxy(
+    {},
+    {
+      getOwnPropertyDescriptor() {
+        hooks++;
+        throw Error('PRIVATE_PROXY_SENTINEL');
+      },
+    }
+  );
+  for (const error of [
+    null,
+    undefined,
+    '',
+    5,
+    {},
+    [],
+    accessor,
+    proxy,
+    Object.create({ code: 'ERR_SQLITE_ERROR', errcode: 5 }),
+    { code: 'ERR_SQLITE_ERROR', errcode: '5' },
+    { code: 'ERR_SQLITE_ERROR', errcode: 8 },
+    { code: 'ERR_SQLITE_ERROR', errcode: Number.MAX_SAFE_INTEGER },
+    { code: 'other', errcode: 5 },
+  ]) {
+    const f = fixture();
+    const open = f.trusted.openReadonly;
+    f.trusted.openReadonly = (...args) => {
+      const database = open(...args);
+      database.prepare = () => {
+        throw error;
+      };
+      return database;
+    };
+    const phases = [];
+    f.trusted.onPhase = (phase) => phases.push(phase);
+    const reader = f.reader();
+    try {
+      assert.throws(() => reader.read(), bad);
+      assert.equal(phases.at(-1), 179);
+      assert.equal(f.closed, 1);
+      assert.equal(f.commands.at(-1), 'ROLLBACK');
+    } finally {
+      reader.close();
+    }
+  }
+  assert.equal(hooks, 0);
+});
+
+test('a failure in the bounded SQL contention observer cannot grant a snapshot or leak its error', () => {
+  const f = fixture();
+  const open = f.trusted.openReadonly;
+  f.trusted.openReadonly = (...args) => {
+    const database = open(...args);
+    database.prepare = () => {
+      throw Object.assign(new Error('PRIVATE_SQL_SENTINEL'), {
+        code: 'ERR_SQLITE_ERROR',
+        errcode: 5,
+      });
+    };
+    return database;
+  };
+  const phases = [];
+  f.trusted.onPhase = (phase) => {
+    phases.push(phase);
+    if (phase === 255) throw Error('PRIVATE_OBSERVER_SENTINEL');
+  };
+  const reader = f.reader();
+  try {
+    assert.throws(() => reader.read(), bad);
+    assert.equal(phases.at(-1), 255);
+    assert.equal(f.closed, 1);
+    assert.equal(f.commands.at(-1), 'ROLLBACK');
+  } finally {
+    reader.close();
+  }
+});
+
 test('bound snapshot SQL tolerates a later sibling root without adopting it or hiding original corruption', () => {
   const { DatabaseSync } = require('node:sqlite');
   const f = fixture(),

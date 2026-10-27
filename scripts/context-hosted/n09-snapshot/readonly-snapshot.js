@@ -21,6 +21,13 @@ const BOUND_ROW_SQL =
 const HEADER_SQL =
   'SELECT store_id,CASE WHEN length(envelope)<=4096 THEN envelope END AS envelope FROM recovery_header WHERE singleton=1';
 
+function sqliteBusy(error) {
+  if (!error || typeof error !== 'object' || types.isProxy(error)) return false;
+  const code = Object.getOwnPropertyDescriptor(error, 'code');
+  const number = Object.getOwnPropertyDescriptor(error, 'errcode');
+  return code?.value === 'ERR_SQLITE_ERROR' && number?.value === 5;
+}
+
 function createDurableSnapshotReader(input, trusted = {}) {
   let files, onPhase;
   try {
@@ -81,9 +88,18 @@ function createDurableSnapshotReader(input, trusted = {}) {
       database.exec('PRAGMA busy_timeout=0; PRAGMA query_only=ON; BEGIN');
       begun = true;
       onPhase(179);
-      const format = database.prepare('PRAGMA user_version').get().user_version;
-      if (recoveryStorageSchemaState(database) !== 'ready' || (format !== 2 && format !== 3))
-        throw failure();
+      let format;
+      try {
+        format = database.prepare('PRAGMA user_version').get().user_version;
+        if (recoveryStorageSchemaState(database) !== 'ready' || (format !== 2 && format !== 3))
+          throw failure();
+      } catch (error) {
+        // Retain the original zero-wait rejection. Only a fixed numeric marker
+        // distinguishes actual SQL contention from other schema/read failures;
+        // no caught error, message, path or database data leaves this boundary.
+        if (sqliteBusy(error)) onPhase(255);
+        throw error;
+      }
       onPhase(180);
       const header = database.prepare(HEADER_SQL).get();
       if (

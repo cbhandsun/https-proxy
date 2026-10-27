@@ -1,5 +1,15 @@
 # 上下文恢复换机交接
 
+## 2026-10-27：保留旧实例；Windows目录诊断59项及8次开库通过，N09零等待锁竞争分类
+
+用户明确选择保留E盘旧托盘实例、自行切换桌面67候选；本批未安装、退出或改写旧实例及其配置。SSH已恢复，独立目录C:\\Users\\juhon\\hpm-directory-startup-20261027-9d80e1、任务HPM-directory-startup-9d80e1确实执行并于2026-10-27T13:00:51.3346426Z完成，Ready/LastTaskResult=0。固定4a0e3d8源码输入归档SHA256 4d14bbdb3fe7d34230dbe58e26083015ff72a41f7ffd418b5550cf5e3012ed7b；原六文件59/59、零skip/取消、父Node退出0，随后8次实际默认worker/DPAPI/OS锚点独立开关库退出0，两个所属Job均自然清空。open调用800–1612ms、目录ACL阶段75–99ms。本轮仅最小启动诊断，qualification=false；调用计时不含完整进程/HTTP准备，不能覆盖此前29/30、五秒尾延迟或授连续稳定性，未重跑原失败矩阵洗绿。
+
+4a0e3d8最新CI已从GitHub REST终态核对：Verify40507240974及额外持久I/O40507240980为success；正式40507241038为failure，source-gates/job122199563060在Require unified source gates失败，egress通过、后续context-recovery跳过。插件传输持续失败，暂未取回该次原始失败日志，不能给失败补写原因或称完整门通过；没有rerun。d5此前casePhase82/179的原因同样尚未确认。
+
+N09只读快照新增可复现的实际磁盘SQLite独占写锁回归：原busy_timeout=0不变，第一次只读schema查询仍立即拒绝，标记固定数值阶段255；写锁显式释放后仅显式后续观察可以重新读取。原实现先红（179而非255），修改后绿。仅当实际错误自有数据字段code=ERR_SQLITE_ERROR、errcode=5才分类，不读取message、路径、数据或触发accessor/Proxy；其他畸形、空、继承、非法及极值错误保持179，观察器失败仍安全拒绝并回滚/关闭。owned-entry仅准许该固定失败阶段，不授ready、ACK或资格。未增加等待/重试，也不能据此断言旧179一定是BUSY或已修复其实际根因。
+
+Mac相关四文件46/46、扩大N09全文件501/501，零skip/取消；定向Lint/格式、1679文件语法、CI及release治理通过。新测试仍由统一unit发现；本批未授Windows新分类原生完整资格。认证、原期限、精确ACK、FULL/DELETE及原到期时间全部保持。真实模型调用0，无新24h或最大文件任务，冻结现场及已知失败保留。后续先补取正式失败细节，继续定位持久准备尾延迟；安装版两端既有fb合成资格与桌面67产物身份仍分别记录，真实provider、其余daemon内部矩阵及真实24h/到期重开仍未完成。
+
 ## 2026-10-27：fb安装整链通过；新快照本机50项通过、原生矩阵29/30；补目录ACL阶段，Windows连接中断
 
 安装review40500532099/job122176959482已从运行终态及各强制步骤核对为success，源码固定fb7f732。manifest d8b702a5d1b70e6137db2457a4883cf066b8f70fa8f4fd9d2cfe234a54ff4f8c：同格式安装/升级回滚/DPAPI通过；582八阶段、baselineSourceCount=582、原manifest4eb1ea48…、布局1→3及revisionDelta=1、旧读者拒写通过。schema7四个实际原生CLI案例（Codex/Claude各默认、增强）均三次压缩、精确最终答案及同会话重启；默认零代理恢复，增强私有读后独立公开生成。Codex两模式WS的401拒绝、五个partial/零terminal、两侧关闭，以及HTTP/SSE/WS排空、daemon自然退出及所属树清空通过。包内发布30/30零skip仅defaultWorkerQualified=true，daemonQualified=false；真实provider/24h仍false。此为托管临时安装器资格，不将桌面67产物重标为fb已安装验收，也不覆盖后续f224优化。
