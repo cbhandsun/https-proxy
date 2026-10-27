@@ -1,5 +1,6 @@
 'use strict';
 
+const { createHash } = require('node:crypto');
 const { normalizeCompactionData } = require('../../lib/proxy/context-compaction-envelope');
 const { parseCapacityReports } = require('./context-recovery-capacity-parallel');
 
@@ -93,6 +94,39 @@ function inspectNativeDayHealth(input) {
       task.lastTaskResult === final.exitCode >>> 0 &&
       ['child_exit', 'outer_deadline', 'output_limit'].includes(final.reason)
     );
+    const runIdentity =
+      safeDate(pin.startedAtUtc) && safeDate(pin.creationDate)
+        ? createHash('sha256')
+            .update(
+              JSON.stringify([
+                pin.taskName,
+                pin.pid,
+                pin.head,
+                pin.sourceSha256,
+                pin.nativeSha256,
+                pin.nodeSha256,
+                pin.node,
+                safeDate(pin.startedAtUtc),
+                safeDate(pin.creationDate),
+              ])
+            )
+            .digest('hex')
+        : null;
+    const previousFailure = Boolean(
+      identityMatches &&
+      runIdentity &&
+      previous?.runIdentity === runIdentity &&
+      previous.failureLatched === true &&
+      previous.state === 'failed' &&
+      previous.passed === false
+    );
+    const observedFailure =
+      events.some((event) =>
+        ['native_day_failed', 'controller_failed', 'storage_operation_failed'].includes(
+          event?.event
+        )
+      ) ||
+      (final && final.exitCode !== 0);
     const result = {
       taskName: pin.taskName,
       checkedAtUtc: safeDate(task?.checkedAtUtc),
@@ -110,6 +144,10 @@ function inspectNativeDayHealth(input) {
           : 0,
       processAlive: process?.alive === true,
       terminalConfirmed,
+      runIdentity,
+      failureLatched: Boolean(
+        identityMatches && runIdentity && (observedFailure || previousFailure)
+      ),
     };
     const state = (value, reason) => ({
       ...result,
@@ -124,6 +162,10 @@ function inspectNativeDayHealth(input) {
       return state('failed', 'terminal_failure');
     if (events.some((event) => event?.event === 'storage_operation_failed'))
       return state('failed', 'storage_operation_failed');
+    // Bounded observers may no longer include an older failure event. Preserve
+    // only a failure witnessed under this exact source/runtime/process run;
+    // it cannot supply independent exit evidence or authorize a restart.
+    if (previousFailure) return state('failed', 'previous_failure');
     if (!task || !identity || !process || !started || !launch || !integrity) return result;
     if (!identityMatches) return state('unverified', 'identity_mismatch');
     if (

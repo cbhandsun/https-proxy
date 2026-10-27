@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：锁定同轮已观察失败；保留正式五秒与新安装前置失败
+
+补充监测回归已实际先红：同轮 storage_operation_failed 被后续有限事件窗口移除后，旧健康判定重新返回 running。现以固定任务、PID、源码/原生/Node 摘要、Node 版本、启动及进程创建时间形成 runIdentity；仅匹配当前实际身份的已观察失败可置 failureLatched。后续同轮窗口及成功声明不能抹除该失败；其他源码、进程、启动时间、空标识或未锁定记录不继承。terminalConfirmed 仍完全来自当前独立退出回执，不从历史失败/存活状态推断，更不自动重启。私有观察器保留旧文件后同步保存已确认失败历史，未恢复任何日档或监测任务。原288真实连续节拍、完整画像、到期双重开、15次开关、零退出及全部期限未变。本机四文件45项零fail/skip，定向Lint/格式、CI/release治理及语法检查通过；属于监测及组合回归，不是Windows长测通过。
+
+当前HEAD前批d543普通40433916703八项与独立I/O40433916665/job121957937472终态success，但正式40433916590/source121957937010失败：client coverage Chat WBIPC long-persistent首轮5245ms、requests/handshakes各4；egress成功，N08/N09未执行。198正式40432848807四项现均success，不能覆盖d543或其他源码失败。固定d011新安装40433453365/job121956596174也已终态failure：582及锁定身份准备成功，候选完整门在proxy coverage首轮5002ms、requests/handshakes各4、ownerEpoch=1处失败；安装构建、升级回滚、迁移、schema7两端/WS均跳过，没有新安装资格。相关diagnostic按proxy/client阶段分别归属，未重跑失败job或派发替代候选。原1e schema6安装资格保留原范围。
+
+1e日档仍为一小时处失败冻结。经新独立诊断目录中的受限Windows Job执行一次只读取证：支持的本机DPAPI解保护只在Windows进程内进行，SQLite query_only只读取认证元数据和blob计数，未读取/解密原文blob。格式3、scope各1、blob11，headerTag及scopeInventory相符，3个冻结文件前后哈希/身份与独立锚点均未变化，冻结数据库写入/锚点compare为0。SQL时间落后于独立锚点符合既有clock-only设计；只读追平后的后继检查成功，不构成时钟损坏或完整存储/持久ACK证明，不能解释历史失败。安全数值回执仅留本机。
+
+后续独立owned-stream读取及新合成slot压力诊断未获成功资格：首个非零子进程回执未定位内部阶段，后续一次明确在源码身份检查失败、owned读取及合成compare完成数均0；诊断传输失败分别保留，不能当产品根因。最后观察90秒超时后只读回查所属探针进程数0且无安全探针回执，是否实际进入子进程未证实，未盲目重启。原冻结目录/数据/锚点/任务未修改，旧失败/最大文件暂停保持，模型0。下一步仍须定位原生anchor-persist真实边界并实际修复五秒长尾；完整新日档、最新schema7安装、daemon其余转换、容量、核额度后真实两端及受控启用均未完成。
+
+
 ## 2026-10-27：修复存储已失败仍显示运行的健康判定；固定d011新安装WS验收已派发
 
 从1e一小时失败的有限回执继续核对，发现健康判定原先仅优先native_day_failed/controller_failed/非零process_finished，没有单独识别storage_operation_failed。若worker已因后台sweep失败封锁，而外层真实时钟仍等待下一轮，原实现仍可能显示running。本批以包含真实事件形状、进程仍alive的回归先失败，现立即返回failed/storage_operation_failed，passed始终false；后续即使出现完整日档的成功声明也不能掩盖先前存储失败。此修复针对监测误报窗口，不是anchor-persist产品根因或24h验收通过。

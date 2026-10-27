@@ -382,6 +382,62 @@ test('a storage failure is reported before the outer process exits and cannot be
   assert.equal(stopped.terminalConfirmed, true);
 });
 
+test('an observed failure survives a later bounded window without the failure event', () => {
+  const f = fixture();
+  f.events.push({ event: 'storage_operation_failed' });
+  f.previous = inspectNativeDayHealth(f);
+  f.events = f.events.filter((value) => value.event !== 'storage_operation_failed');
+  const live = inspectNativeDayHealth(f);
+  assert.equal(live.state, 'failed');
+  assert.equal(live.reason, 'previous_failure');
+  assert.equal(live.failureLatched, true);
+  assert.equal(live.terminalConfirmed, false);
+  f.previous = live;
+  complete(f);
+  const completed = inspectNativeDayHealth(f);
+  assert.equal(completed.state, 'failed');
+  assert.equal(completed.passed, false);
+  assert.equal(completed.terminalConfirmed, true);
+});
+
+test('failure history is bound to the exact run and never grants process termination', () => {
+  const failed = fixture();
+  failed.events.push({ event: 'storage_operation_failed' });
+  const previous = inspectNativeDayHealth(failed);
+  for (const change of [
+    (f) => {
+      f.pin.head = 'e'.repeat(40);
+    },
+    (f) => {
+      f.pin.pid++;
+    },
+    (f) => {
+      f.pin.startedAtUtc = '2026-10-26T00:00:01.000Z';
+    },
+    (f) => {
+      f.pin.creationDate = '2026-10-25T23:59:58.000Z';
+    },
+    (f) => {
+      f.previous.runIdentity = '';
+    },
+    (f) => {
+      f.previous.failureLatched = false;
+    },
+  ]) {
+    const f = fixture();
+    f.previous = { ...previous };
+    change(f);
+    const result = inspectNativeDayHealth(f);
+    assert.notEqual(result.reason, 'previous_failure');
+    assert.equal(result.failureLatched, false);
+    assert.equal(result.terminalConfirmed, false);
+  }
+  const unrelated = fixture();
+  event(unrelated, 'identity').head = 'e'.repeat(40);
+  unrelated.events.push({ event: 'storage_operation_failed' });
+  assert.equal(inspectNativeDayHealth(unrelated).failureLatched, false);
+});
+
 test('monitor termination needs the pinned owner, stopped process, matching task result and real exit receipt', () => {
   const stopped = () => {
     const f = fixture();
