@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：快照复用本次认证字节，移除重复UTF-8转换；Windows148项通过
+
+沿快照重复工作继续定位到一项实际开销：blob.open已完成载荷长度、UTF-8往返、摘要及blob身份认证，快照随后payload又为同一原文构造Buffer并重做相同摘要。新回归在旧代码实际失败，每份正常非空原文编码3次而非要求的2次。本批open先保留原长度上限和byteLength检查，再只构造本次Buffer，使用同一字节完成认证及已解析reference的sourceId/bytes/digest绑定、coveredThrough的UTF-8完整前缀检查；返回值仍只有原数据，不暴露或缓存Buffer，没有跨调用/跨事务证明。独立parseCompletedEvidenceSource、敏感/未完成内容拒绝及完整载荷重新认证保持。
+
+编码回归连续两次snapshot均精确2次，保留一次独立捕获策略检查；另外新增已认证但长度不符的超大原文回归，确认在分配原文UTF-8 Buffer前拒绝。原正常、空、Unicode、多字节截断、missing/extra/swapped、认证畸形载荷、AAD/摘要/策略、整包密集转义与聚合容量边界保持。未改TTL、ACK版本、FULL/DELETE/secure_delete、OS锚点、任何期限、认证或持久化开库失败语义；也不把这项优化宣称为五秒超时唯一根因或长期稳定性修复。
+
+Mac扩大三文件147项146通过/1真实Windows默认加密worker开库失败，该失败保留且未加平台skip；随后两项新增定向回归通过。Windows在新独立目录运行修改后完整storage-blobs、anchor-sqlite、read-settlement三文件，148/148、零skip/取消，测试44062ms、父Node44401ms退出0、stderr0、原所属Job自然清空；包括实际默认加密worker及重开。固定源码归档基于25fbd86，仅叠加本批两份源码/测试；archive SHA256 18aee5e76dca7edb9f4e3ff9b90a11a7b08a48b9872770d04202cd3432be0b4b，执行后两份文件摘要与准备时一致。定向Lint/格式、1678语法及CI/release治理通过，新提交完整CI尚待核对。
+
+安装验收40500532099/job122176959482仍实际运行，当前Require all current candidate gates；源码固定fb7f732，不包含本批优化，不能相互冒充资格。桌面67候选不替换，用户自行切换；未操作旧实例、日常配置、冻结现场或长测，模型0。原五秒/构建/日档失败全部保留，真实provider、最新安装完整结果、其余daemon内部中断、真实24h及最大文件完整资格仍待完成。
+
 ## 2026-10-27：fb完整CI通过；构建收尾定位vctip残留，安装新版验收提交独立通道
 
 fb7f73238a61415742e40ad73ee35fb15a5eb477普通40497299266八项、额外持久I/O40497299280及正式40497299395四项均从GitHub运行终态核对为success。正式source-gates122165866487、egress122165866886、N08122174950307、N09122174950314全部通过。1b476ac相对fb仅增加两份交接文档，资格仍按实际源码提交报告。67正式旧legacy_unprotect十秒超时、8b额外I/O准备超时及其他已知失败不被后续通过抹除，不rerun旧任务。

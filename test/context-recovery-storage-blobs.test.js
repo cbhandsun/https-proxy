@@ -362,6 +362,58 @@ test('reference snapshots authenticate all payloads without hydrating a plaintex
   assert.equal(hydrated, 1, 'a full load still uses the original hydration validator');
 });
 
+test('snapshot reuses authenticated UTF-8 bytes before the independent capture-policy check', (t) => {
+  const f = fixture();
+  t.after(() => f.close());
+  const output = 'synthetic-utf8-é🙂'.repeat(12000);
+  const state = checkpoint(output);
+  f.execute(stateRequest(f, referenceStateFromCheckpoint(state), checkpointPayloads(state)));
+  const from = Buffer.from;
+  let encodings = 0;
+  t.mock.method(Buffer, 'from', function (...args) {
+    if (args[0] === output) encodings++;
+    return Reflect.apply(from, Buffer, args);
+  });
+  for (let index = 0; index < 2; index++) {
+    encodings = 0;
+    const snapshot = f.snapshot();
+    assert.equal(snapshot.scopes[0].expiresAt, state.root.expiresAt);
+    assert.equal(snapshot.scopes[0].revision, 1);
+    assert.equal(encodings, 2, 'one authenticated encoding and one independent policy encoding');
+  }
+});
+
+test('snapshot rejects a mismatched oversized plaintext before allocating its UTF-8 buffer', (t) => {
+  const f = fixture();
+  t.after(() => f.close());
+  const state = checkpoint('synthetic-small-output');
+  f.execute(stateRequest(f, referenceStateFromCheckpoint(state), checkpointPayloads(state)));
+  const row = f.database.prepare('SELECT * FROM recovery_blob WHERE scope=?').get(f.scope);
+  const context = {
+    storeId: f.context(f.row()).storeId,
+    scope: sha('hpm/recovery/blob/aad/v1\0' + row.scope + '\0' + row.blob_id),
+    revision: 1,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+    kind: 'state',
+    version: 1,
+  };
+  const value = f.cipher.open(context, row.envelope);
+  const output = 'x'.repeat(2 * 1024 * 1024 + 1);
+  value.output = output;
+  f.database
+    .prepare('UPDATE recovery_blob SET envelope=? WHERE scope=? AND blob_id=?')
+    .run(f.cipher.seal(context, value), f.scope, row.blob_id);
+  const from = Buffer.from;
+  let encodings = 0;
+  t.mock.method(Buffer, 'from', function (...args) {
+    if (args[0] === output) encodings++;
+    return Reflect.apply(from, Buffer, args);
+  });
+  assert.throws(() => f.snapshot(), unavailable);
+  assert.equal(encodings, 0, 'the authenticated length guard precedes allocation');
+});
+
 test('reference snapshot authentication keeps empty roots and legacy checkpoint hydration', () => {
   for (const referenced of [false, true]) {
     const f = fixture();
