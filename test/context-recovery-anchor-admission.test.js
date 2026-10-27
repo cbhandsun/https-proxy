@@ -3,6 +3,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createRecoveryAnchorAdmission } = require('../lib/proxy/context-recovery-anchor-admission');
+const {
+  storageExecutionFailure,
+  storageFailureDiagnostic,
+} = require('../lib/proxy/context-recovery-storage-failure');
 
 const identity = Object.freeze({ keyIdentity: 'b'.repeat(64), locationHash: 'c'.repeat(64) });
 const metadata = (overrides = {}) => ({
@@ -372,6 +376,62 @@ test('async admission preserves synchronous intent and exact successor receipts 
   assert.equal(revision, 3);
   await admission.closeAsync();
   assert.equal(closed, 1);
+});
+
+test('async admission preserves snapshot, successor, nested request and exact receipt failure boundaries', async () => {
+  const {
+    createRecoveryAsyncAnchorAdmission,
+  } = require('../lib/proxy/context-recovery-anchor-admission');
+  for (const phase of [
+    'anchor-snapshot',
+    'anchor-successor',
+    'anchor-request',
+    'anchor-admission-receipt',
+  ]) {
+    for (const cleanupFailed of [false, true]) {
+      let closes = 0,
+        commits = 0;
+      const repository = {
+        identity,
+        read: () => anchored(metadata()),
+        commit: () => ({ revision: 1 }),
+        close() {},
+      };
+      const session = {
+        repository,
+        async commit() {
+          commits++;
+          if (phase === 'anchor-request') throw storageExecutionFailure(phase, true);
+          return { revision: phase === 'anchor-admission-receipt' ? 0 : 1 };
+        },
+        async close() {
+          closes++;
+          if (cleanupFailed) throw Error('PRIVATE_CLEANUP');
+        },
+      };
+      const admission = createRecoveryAsyncAnchorAdmission(
+        { repository, allowEnrollment: false },
+        session
+      );
+      admission.validateStartup(metadata());
+      const input =
+        phase === 'anchor-snapshot'
+          ? null
+          : metadata({ maxTime: phase === 'anchor-successor' ? 99 : 101 });
+      await assert.rejects(admission.persistAsync(input), (error) => {
+        assert.ok(safe(error));
+        assert.deepEqual(storageFailureDiagnostic(error), {
+          phase,
+          cleanupFailed: cleanupFailed || phase === 'anchor-request',
+        });
+        return true;
+      });
+      assert.equal(closes, 1);
+      assert.equal(commits, ['anchor-snapshot', 'anchor-successor'].includes(phase) ? 0 : 1);
+      await assert.rejects(admission.persistAsync(metadata()), safe);
+      assert.equal(closes, 1);
+    }
+  }
 });
 
 test('async admission rejects wrong/overflow/unsafe receipt before granting another durable revision', async () => {

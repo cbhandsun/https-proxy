@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { randomBytes } = require('node:crypto');
+const { storageFailureDiagnostic } = require('../lib/proxy/context-recovery-storage-failure');
 const {
   createRecoveryAnchorRepository,
   createRecoveryAnchorSession,
@@ -153,6 +154,104 @@ test('synchronous durable startup and async commits share the exact codec, key a
   const reopened = f.reopen();
   assert.deepEqual(reopened.read(), { ...next, maxTime: 102 });
   reopened.close();
+});
+
+test('async anchor failures preserve the actual fixed boundary after mandatory cleanup', async (t) => {
+  for (const [phase, setup] of [
+    ['anchor-prepare', () => ({ invalid: true })],
+    [
+      'anchor-identity-before',
+      (f) => {
+        fs.renameSync(f.directory, f.directory + '-old');
+        fs.mkdirSync(f.directory);
+      },
+    ],
+    [
+      'anchor-channel-open',
+      (f) => {
+        f.dependencies.createChannel = () => {
+          throw Error('PRIVATE_FACTORY');
+        };
+      },
+    ],
+    [
+      'anchor-request',
+      (f) => {
+        f.replyAfter(async () => {
+          throw Error('PRIVATE_NATIVE');
+        });
+      },
+    ],
+    [
+      'anchor-reply',
+      (f) => {
+        f.transform(() => '{"ok":false}');
+      },
+    ],
+    [
+      'anchor-receipt',
+      (f) => {
+        f.transform((text) => JSON.stringify({ ...JSON.parse(text), revision: 99 }));
+      },
+    ],
+    [
+      'anchor-identity-after',
+      (f) => {
+        f.replyAfter(async () => {
+          fs.renameSync(f.directory, f.directory + '-old');
+          fs.mkdirSync(f.directory);
+        });
+      },
+    ],
+  ]) {
+    const f = fixture(t),
+      { session, state } = f.open();
+    const invalid = setup(f);
+    await assert.rejects(session.commit(invalid ?? { ...state, maxTime: 101 }), (error) => {
+      assert.ok(safe(error));
+      assert.deepEqual(storageFailureDiagnostic(error), { phase, cleanupFailed: false });
+      assert.equal(JSON.stringify(error).includes('PRIVATE'), false);
+      return true;
+    });
+    assert.equal(
+      f.closes(),
+      ['anchor-prepare', 'anchor-identity-before', 'anchor-channel-open'].includes(phase) ? 0 : 1
+    );
+    await assert.rejects(session.commit(state), safe);
+  }
+});
+
+test('a private request rejection and failed cleanup keep the first phase and secondary failure separately', async (t) => {
+  let accessed = 0;
+  const privateError = new Proxy(
+    {},
+    {
+      get() {
+        accessed++;
+        throw Error('PRIVATE');
+      },
+    }
+  );
+  const f = fixture(t),
+    { session, state } = f.open();
+  f.replyAfter(async () => {
+    throw privateError;
+  });
+  f.closeAfter(async () => {
+    throw Error('PRIVATE_CLOSE');
+  });
+  await assert.rejects(session.commit({ ...state, maxTime: 101 }), (error) => {
+    assert.ok(safe(error));
+    assert.deepEqual(storageFailureDiagnostic(error), {
+      phase: 'anchor-request',
+      cleanupFailed: true,
+    });
+    return true;
+  });
+  assert.equal(accessed, 0);
+  assert.equal(f.closes(), 1);
+  await assert.rejects(session.commit(state), safe);
+  assert.equal(f.closes(), 1);
 });
 
 test('overlapping commit and old synchronous capabilities cannot disturb an in-flight async ACK', async (t) => {

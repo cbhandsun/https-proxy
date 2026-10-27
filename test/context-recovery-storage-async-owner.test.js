@@ -150,7 +150,7 @@ test('failed post-SQL ACK never succeeds and writer lock remains held until actu
   const pending = save(owner, expiresAt, 1),
     rejected = assert.rejects(pending, (error) => {
       assert.deepEqual(storageFailureDiagnostic(error), {
-        phase: 'anchor-persist',
+        phase: 'anchor-request',
         cleanupFailed: false,
       });
       return safe(error);

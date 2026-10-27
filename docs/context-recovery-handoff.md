@@ -1,5 +1,8 @@
 # 上下文恢复换机交接
 
+**最新锚点细失败传播：** 实际async repository/admission/owner此前把内部失败压成anchor-persist，现保留十个固定细边界及独立次级cleanupFailed，只走私有WeakMap/既有安全回执，公开503、原期限、精确ACK、TTL与FULL/DELETE保持。九文件125项124通过/1原Windows限定skip；新源码完整Windows待CI，不称一小时/五秒根因已修复。冻结1e独立身份探针实际匹配全部摘要；后续合成anchor短测明确在Git原5秒identity/ETIMEDOUT失败，compare完成0，不能冒充原生失败或成功。17fff50普通七项成功、coverage/正式source/I/O仍实际执行。真实24h仍未通过且没有运行中的新日档，模型0；原失败和全部剩余交付范围见实施状态顶部。
+
+
 **最新失败锁定与门禁：** 同轮已观察存储失败在后续有限窗口丢失后错误恢复running的回归先红，现以固定源码/运行时/PID/启动身份锁定failureLatched，退出仍需当前独立terminalConfirmed；45项本地回归零skip，未启动新日档。d543普通八项/I/O通过但正式source保留5245ms失败；固定d011安装候选在前置完整门5002ms失败，构建及后续升级/迁移/schema7两端WS全部跳过。198正式四项通过不能覆盖上述失败。1e一次受限只读元数据取证显示SQL/锚点header及scope相符、3文件和锚点未变；SQL时钟落后是clock-only既有行为，不是已证实根因或完整恢复资格。随后component诊断的身份/传输失败和最后观察超时分别保留，无owned/合成compare成功证明。1e仍一小时失败冻结，没有运行中的24h；原五秒、TTL、ACK、FULL/DELETE门不变，模型0。完整证据范围及剩余目标见实施状态顶部。
 
 
