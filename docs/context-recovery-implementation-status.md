@@ -1,5 +1,14 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：共享解析器变更纳入原三runner时序及I/O触发，保留66b租约编译超时
+
+66b4555普通40461179303的原unit0/2/3已终态success，前批三文件失败已不再出现；quality/integration/rust亦success，但unit1/job122045911510终态failure。实际失败为shared-hosted-materials的collision/wrong-identity/owned-cleanup用例：pwsh spawnSync原25000ms超时，有限最后阶段lease_compile_started、elapsed25292ms，尚未达到lease_compiled及其后的身份/清理断言。这里只能定位Add-Type租约编译阶段，不能认定五秒HTTP、DPAPI或规范化产品根因。coverage及正式source仍在执行，完整资格未授；不重跑此失败job或延长期限。
+
+发现当前共享normalizeCompactionData/新字节计数/UTF-8依赖的变更不会触发既有独立时序和简化I/O，只触发完整Verify/正式source及coverage I/O，三冷runner样本不能沿用159旧头。现为原timing、I/O及完整coverage I/O三个workflow显式补入这三个产品模块和原规范化测试文件的push路径；仅增加触发覆盖，原分支范围、三样本矩阵、完整运行命令、15分钟Job及所有HTTP/native/COMMIT/storage期限不改。原治理测试新增依赖断言先红三项、四项原通过；补路径后与CI治理共8项零fail/skip，定向Lint/格式及CI/release治理通过。未借此授当前或未来新头稳定性，实际三runner结果仍须逐项核对。
+
+Windows独立66b环境两次锁安装26770/16201ms、原生准备56832ms、容量3970ms均退出0；容量26/26零skip，真实默认worker两次DPAPI/OS锚点开关通过、ready1098/975ms。571份产品源码d482b0deb10f960d7a03e4eddc09cee74cc7b154b586aa7c0af1949f48045d25、原生273e76d83020624a6c98af879437b61a990d2631404f472ea48c375f95cb2319，Node22.22.3原摘要匹配、dirty=false及真实导出/checkout路径匹配。本轮原50项尚未执行，日档未注册/未启动；仅CI/治理/文档批允许在先证明全部diff均属这六个明确文件、源码/Node/native/锁输入相同且无所属运行进程后，继续使用已装依赖和已构建原生，不重复构建、不把旧HEAD的局部证据改名为新证据。更新后必须重采实际身份并继续原本机门。旧66b/4c/159及所有历史失败保留、旧日档冻结不动，模型0，剩余全目标仍按前文。
+
+
 ## 2026-10-27：修正转义原文计数分支与旧工作量观察点；保留4c完整门失败
 
 4c42638普通40459980091的quality/integration/rust/unit1已success，但unit0/job122042001284、unit2/122042001339、unit3/122042001359终态failure，完整门未过。四个失败用例属于三个文件：source policy两项以原整对象JSON.stringify统计实际校验，新实现该序列化次数为0；partition root抗放大用例同样因序列化次数0未观察到真实完整准入；partitioned ledger原文不序列化用例则发现本批fallback仍把转义原文作为primitive传给JSON.stringify，确属实现缺口，不能一概归咎夹具。旧门/失败保留，未rerun补绿，coverage与正式source当时仍执行，不宣称其终态或新源码资格。

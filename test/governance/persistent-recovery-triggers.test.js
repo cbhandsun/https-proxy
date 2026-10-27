@@ -46,6 +46,15 @@ for (const workflow of [
       'lib/proxy/context-recovery-key-contract.js',
     ])
       assert.ok(paths.has(file), 'missing native/key diagnostic trigger: ' + file);
+    // Shared data admission runs inside the same five-second recovery path.
+    // Its changes need the original independent timing and physical I/O gates.
+    for (const file of [
+      'lib/proxy/context-compaction-envelope.js',
+      'lib/proxy/context-compaction-byte-budget.js',
+      'lib/proxy/context-evidence-utf8.js',
+      'test/context-compaction-envelope.test.js',
+    ])
+      assert.ok(paths.has(file), 'missing shared parser diagnostic trigger: ' + file);
     assert.ok(source.includes('acceptance/context-recovery/**'));
     assert.ok(source.includes('workflow_dispatch:'));
   });

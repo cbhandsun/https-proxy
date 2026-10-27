@@ -5,6 +5,10 @@ on:
     branches:
       - acceptance/context-recovery/**
     paths:
+      - lib/proxy/context-compaction-envelope.js
+      - lib/proxy/context-compaction-byte-budget.js
+      - lib/proxy/context-evidence-utf8.js
+      - test/context-compaction-envelope.test.js
       - test/**
       - scripts/run-unit-tests.js
       - scripts/run-unit-test-shards.js

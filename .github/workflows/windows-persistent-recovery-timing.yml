@@ -5,6 +5,10 @@ on:
     branches:
       - acceptance/context-recovery/**
     paths:
+      - lib/proxy/context-compaction-envelope.js
+      - lib/proxy/context-compaction-byte-budget.js
+      - lib/proxy/context-evidence-utf8.js
+      - test/context-compaction-envelope.test.js
       - native/context-recovery-key/**
       - scripts/prepare-context-recovery-native.js
       - lib/proxy/context-recovery-key-dpapi.js
