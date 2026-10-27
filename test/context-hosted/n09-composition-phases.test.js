@@ -6,7 +6,12 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 // Pure composition fixtures: never load a native worker, listener or controller.
-function fixture(cleanupFails = false, listenerFails = false, unpublishedPatch = {}) {
+function fixture(
+  cleanupFails = false,
+  listenerFails = false,
+  unpublishedPatch = {},
+  sending = false
+) {
   const root = path.resolve('synthetic-owned-root');
   let created = 0;
   let closed = 0;
@@ -18,10 +23,10 @@ function fixture(cleanupFails = false, listenerFails = false, unpublishedPatch =
       bindVerifiedNetworkProof() {},
       inspectBusinessEvidence: () => ({
         seeded: true,
-        validatedReadCount: index >= 5 ? 3 : index === 2 || index === 4 ? 2 : 1,
-        publicGenerationCount: index >= 6 ? 3 : [2, 4, 5].includes(index) ? 2 : 1,
+        validatedReadCount: sending || index >= 5 ? 3 : index === 2 || index === 4 ? 2 : 1,
+        publicGenerationCount: sending || index >= 6 ? 3 : [2, 4, 5].includes(index) ? 2 : 1,
         externalToolExecutions: 1,
-        clearAckCount: index === 1 ? 1 : 0,
+        clearAckCount: !sending && index === 1 ? 1 : 0,
         saveAckCount: index === 2 ? 1 : 0,
         revokeAckCount: index === 3 || index === 4 ? 1 : 0,
         ...(index === 5 ? unpublishedPatch : {}),
@@ -33,6 +38,7 @@ function fixture(cleanupFails = false, listenerFails = false, unpublishedPatch =
     };
   };
   const copy = () => ({ copyPins: {}, outputRoot: root });
+  const driverCalls = [];
   const modules = {
     'node:fs': { realpathSync: { native: (value) => value } },
     'node:path': path,
@@ -69,7 +75,10 @@ function fixture(cleanupFails = false, listenerFails = false, unpublishedPatch =
     },
     '../n09-ack/bootstrap-controller': { buildN09AckController: copy },
     '../n09-business/publication-ack-driver': {
-      runPreparedPublicationAck: async (_adapter, kill) => ({ forcedKill: kill }),
+      runPreparedPublicationAck: async (_adapter, kill, transition = 'prepared') => {
+        driverCalls.push({ kill, transition });
+        return { forcedKill: kill };
+      },
     },
     '../n09-business/publication-commit-driver': {
       runPreparedPublicationCommit: async (_adapter, kill) => ({ forcedKill: kill }),
@@ -99,6 +108,7 @@ function fixture(cleanupFails = false, listenerFails = false, unpublishedPatch =
   return {
     run: sandbox.module.exports.composeHostedN09,
     closed: () => closed,
+    driverCalls,
     options: {
       candidate: root,
       ownedRoot: root,
@@ -213,4 +223,19 @@ test('N09 rejects invalid phase observers before acquiring resources', async () 
     await assert.rejects(f.run(f.options, observer), /^Error: n09_hosted_composition_rejected$/);
     assert.equal(f.closed(), 0);
   }
+});
+
+test('sending ACK is an independent two-case composition and never replaces the original ten cases', async () => {
+  const f = fixture(false, false, {}, true);
+  const phases = [];
+  const result = await f.run(f.options, (phase) => phases.push(phase), 'sending-ack');
+  assert.equal(result.cleanup.adaptersClosed, 2);
+  assert.equal(result.sendingAckKill.forcedKill, true);
+  assert.equal(result.sendingAckRelease.forcedKill, false);
+  assert.deepEqual(f.driverCalls, [
+    { kill: true, transition: 'sending' },
+    { kill: false, transition: 'sending' },
+  ]);
+  assert.deepEqual(phases, [73, 74, 75, 76, 77, 78, 79, 160, 161, 84]);
+  assert.equal(result.preparedAckKill, undefined);
 });

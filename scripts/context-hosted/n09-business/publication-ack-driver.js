@@ -11,18 +11,19 @@ const {
 const fail = () => new Error('n09_publication_ack_driver_failed');
 // Both cases use fresh daemons under the original owned Job. The pure driver
 // does not confer native/daemon qualification; the fixed hosted entry does I/O.
-async function runPreparedPublicationAck(adapter, kill) {
+async function runPreparedPublicationAck(adapter, kill, transition = 'prepared') {
   let active,
     result,
     failed = false;
   try {
-    if (typeof kill !== 'boolean') throw fail();
+    if (typeof kill !== 'boolean' || !['prepared', 'sending'].includes(transition)) throw fail();
+    const delta = transition === 'sending' ? 2 : 1;
     active = identity(await invoke(adapter, 'startFreshBusinessHost'));
     const original = baseline(await invoke(adapter, 'seedThroughBusinessHttp', active));
     const before = data(await invoke(adapter, 'readThroughBusinessHttp', active));
     if (before.exactRead !== true || before.externalToolReplays !== 0) throw fail();
     accounting(original, before.accounting);
-    const held = data(await invoke(adapter, 'beginPreparedAckHold', active));
+    const held = data(await invoke(adapter, 'beginPreparedAckHold', active, transition));
     const checkpoint = data(held.accounting);
     accounting(original, checkpoint);
     if (
@@ -40,19 +41,19 @@ async function runPreparedPublicationAck(adapter, kill) {
     if (released.upstreamReleased !== true || released.publicBytes !== 0) throw fail();
     const pending = data(await invoke(adapter, 'waitPreparedAckHeld', active));
     if (
-      pending.boundary !== 'prepared-durable-store-before-host-ack' ||
+      pending.boundary !== transition + '-durable-store-before-host-ack' ||
       pending.pid !== active.pid ||
       pending.publicBytes !== 0 ||
       pending.hostAckDelivered !== false ||
       pending.durableStoreObserved !== true ||
-      pending.revision !== checkpoint.revision + 1 ||
-      pending.expectedRevision !== checkpoint.revision
+      pending.revision !== checkpoint.revision + delta ||
+      pending.expectedRevision !== checkpoint.revision + delta - 1
     )
       throw fail();
     let durable = data(pending.accounting);
     accounting(baseline(checkpoint), durable);
     if (
-      durable.revision !== checkpoint.revision + 1 ||
+      durable.revision !== checkpoint.revision + delta ||
       durable.calls !== checkpoint.calls ||
       durable.returnedBytes !== checkpoint.returnedBytes
     )
@@ -71,7 +72,7 @@ async function runPreparedPublicationAck(adapter, kill) {
       const recovered = data(invoke(adapter, 'readCommittedSnapshot', active));
       if (
         recovered.present !== true ||
-        recovered.revision !== checkpoint.revision + 1 ||
+        recovered.revision !== checkpoint.revision + delta ||
         recovered.calls !== checkpoint.calls ||
         recovered.returnedBytes !== checkpoint.returnedBytes ||
         recovered.rootId !== checkpoint.rootId ||
@@ -85,7 +86,7 @@ async function runPreparedPublicationAck(adapter, kill) {
       if (completed.publicCompleted !== true) throw fail();
       durable = data(completed.accounting);
       accounting(baseline(checkpoint), durable);
-      if (!Number.isSafeInteger(durable.revision) || durable.revision <= checkpoint.revision)
+      if (!Number.isSafeInteger(durable.revision) || durable.revision < checkpoint.revision + delta)
         throw fail();
       const first = active;
       await forceKill(adapter, first);
@@ -100,12 +101,13 @@ async function runPreparedPublicationAck(adapter, kill) {
     if (!Number.isSafeInteger(finalRevision) || finalRevision < durable.revision) throw fail();
     result = Object.freeze({
       evidenceLevel: 'adapter-orchestration-only',
-      boundary: 'prepared-durable-store-before-host-ack',
+      boundary: transition + '-durable-store-before-host-ack',
       forcedKill: kill,
       interruptedWithZeroPublicBytes: kill,
       positivePublicCompletion: !kill,
       actualDurableStoreObserved: true,
       preAckBoundaryObserved: true,
+      preparedPredecessorAckObserved: transition === 'sending',
       opaqueAckNotDeliveredAtKill: kill,
       sameDirectoryNewPid: true,
       originalReadAfterRestart: true,

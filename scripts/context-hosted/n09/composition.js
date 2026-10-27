@@ -54,11 +54,12 @@ async function closeResources(adapters, listener, onFailure = () => {}) {
 }
 // Called only from the existing original outer HpmRuntimeBoundaryJob, after its
 // stdin grant and full literal/lazy closure hash check. No controller replacement.
-async function composeHostedN09(input, onPhase = () => {}) {
+async function composeHostedN09(input, onPhase = () => {}, publicationGroup = 'original') {
   let listener, active, result, cleanup;
   const adapters = [];
   try {
-    if (typeof onPhase !== 'function') throw fail();
+    if (typeof onPhase !== 'function' || !['original', 'sending-ack'].includes(publicationGroup))
+      throw fail();
     // Internal observer receives fixed numbers only, never runtime/error data.
     onPhase(73);
     const options = exact(input, [
@@ -181,57 +182,75 @@ async function composeHostedN09(input, onPhase = () => {}) {
     };
     onPhase(79);
     verifyCopies();
-    adapter.bindVerifiedNetworkProof(proof);
-    onPhase(80);
-    const committed = await runCommittedObservedKill(adapter, onPhase);
-    const committedEvidence = adapter.inspectBusinessEvidence();
-    if (
-      committedEvidence.seeded !== true ||
-      committedEvidence.validatedReadCount !== 1 ||
-      committedEvidence.publicGenerationCount !== 1 ||
-      committedEvidence.clearAckCount !== 0 ||
-      committedEvidence.externalToolExecutions !== 1
-    )
-      throw fail();
-    active = undefined;
-    // Each driver closes its adapter. A fresh closure owns the next synthetic
-    // credential and lifecycle; the same listener stays under the original Job.
-    onPhase(81);
-    const clearAdapter = createN09BusinessAdapter(
-      {
-        ownedRoot: options.ownedRoot,
-        install: path.join(options.ownedRoot, 'payload'),
-        manifestSha256: options.manifestSha256,
-      },
-      {
-        spawn: createHostedLifecycleSpawn({
-          ownedRoot: options.ownedRoot,
-          manifestSha256: options.manifestSha256,
-        }),
-        onPhase,
+    if (publicationGroup === 'sending-ack') {
+      const cases = {},
+        evidence = {};
+      for (const kill of [true, false]) {
+        onPhase(kill ? 160 : 161);
+        const ownedAdapter = kill
+          ? adapter
+          : createN09BusinessAdapter(
+              {
+                ownedRoot: options.ownedRoot,
+                install: path.join(options.ownedRoot, 'payload'),
+                manifestSha256: options.manifestSha256,
+              },
+              {
+                spawn: createHostedLifecycleSpawn({
+                  ownedRoot: options.ownedRoot,
+                  manifestSha256: options.manifestSha256,
+                }),
+                onPhase,
+              }
+            );
+        if (!kill) adapters.push(ownedAdapter);
+        active = ownedAdapter;
+        verifyCopies();
+        ownedAdapter.bindVerifiedNetworkProof(proof);
+        const name = kill ? 'sendingAckKill' : 'sendingAckRelease';
+        cases[name] = await runPreparedPublicationAck(ownedAdapter, kill, 'sending');
+        const observed = ownedAdapter.inspectBusinessEvidence();
+        if (
+          observed.seeded !== true ||
+          observed.validatedReadCount !== 3 ||
+          observed.publicGenerationCount !== 3 ||
+          observed.externalToolExecutions !== 1 ||
+          observed.clearAckCount !== 0 ||
+          observed.saveAckCount !== 0 ||
+          observed.revokeAckCount !== 0
+        )
+          throw fail();
+        evidence[name] = observed;
+        active = undefined;
+        verifyCopies();
       }
-    );
-    adapters.push(clearAdapter);
-    active = clearAdapter;
-    verifyCopies();
-    clearAdapter.bindVerifiedNetworkProof(proof);
-    const clear = await runClearAfterAck(clearAdapter);
-    const clearEvidence = clearAdapter.inspectBusinessEvidence();
-    if (
-      clearEvidence.seeded !== true ||
-      clearEvidence.validatedReadCount !== 1 ||
-      clearEvidence.publicGenerationCount !== 1 ||
-      clearEvidence.clearAckCount !== 1 ||
-      clearEvidence.externalToolExecutions !== 1
-    )
-      throw fail();
-    active = undefined;
-    verifyCopies();
-    const durable = {},
-      durableEvidence = {};
-    for (const operation of ['save', 'revoke']) {
-      onPhase(operation === 'save' ? 82 : 83);
-      const ownedAdapter = createN09BusinessAdapter(
+      result = {
+        ...cases,
+        businessEvidence: evidence,
+        networkProof: proof,
+        originalControllerReused: true,
+        tlsValidationDisabled: false,
+        remoteModelRequests: 0,
+        n09Complete: false,
+      };
+    } else {
+      adapter.bindVerifiedNetworkProof(proof);
+      onPhase(80);
+      const committed = await runCommittedObservedKill(adapter, onPhase);
+      const committedEvidence = adapter.inspectBusinessEvidence();
+      if (
+        committedEvidence.seeded !== true ||
+        committedEvidence.validatedReadCount !== 1 ||
+        committedEvidence.publicGenerationCount !== 1 ||
+        committedEvidence.clearAckCount !== 0 ||
+        committedEvidence.externalToolExecutions !== 1
+      )
+        throw fail();
+      active = undefined;
+      // Each driver closes its adapter. A fresh closure owns the next synthetic
+      // credential and lifecycle; the same listener stays under the original Job.
+      onPhase(81);
+      const clearAdapter = createN09BusinessAdapter(
         {
           ownedRoot: options.ownedRoot,
           install: path.join(options.ownedRoot, 'payload'),
@@ -245,98 +264,26 @@ async function composeHostedN09(input, onPhase = () => {}) {
           onPhase,
         }
       );
-      adapters.push(ownedAdapter);
-      active = ownedAdapter;
+      adapters.push(clearAdapter);
+      active = clearAdapter;
       verifyCopies();
-      ownedAdapter.bindVerifiedNetworkProof(proof);
-      durable[operation] = await runDurableSaveOrRevokeAfterAck(ownedAdapter, operation);
-      const evidence = ownedAdapter.inspectBusinessEvidence();
+      clearAdapter.bindVerifiedNetworkProof(proof);
+      const clear = await runClearAfterAck(clearAdapter);
+      const clearEvidence = clearAdapter.inspectBusinessEvidence();
       if (
-        evidence.seeded !== true ||
-        evidence.externalToolExecutions !== 1 ||
-        evidence.clearAckCount !== 0 ||
-        evidence.saveAckCount !== (operation === 'save' ? 1 : 0) ||
-        evidence.revokeAckCount !== (operation === 'revoke' ? 1 : 0) ||
-        (operation === 'save'
-          ? evidence.validatedReadCount < 2 || evidence.publicGenerationCount < 2
-          : evidence.validatedReadCount !== 1 || evidence.publicGenerationCount !== 1)
+        clearEvidence.seeded !== true ||
+        clearEvidence.validatedReadCount !== 1 ||
+        clearEvidence.publicGenerationCount !== 1 ||
+        clearEvidence.clearAckCount !== 1 ||
+        clearEvidence.externalToolExecutions !== 1
       )
         throw fail();
-      durableEvidence[operation] = evidence;
       active = undefined;
       verifyCopies();
-    }
-    onPhase(85);
-    const backupAdapter = createN09BusinessAdapter(
-      {
-        ownedRoot: options.ownedRoot,
-        install: path.join(options.ownedRoot, 'payload'),
-        manifestSha256: options.manifestSha256,
-      },
-      {
-        spawn: createHostedLifecycleSpawn({
-          ownedRoot: options.ownedRoot,
-          manifestSha256: options.manifestSha256,
-        }),
-        onPhase,
-      }
-    );
-    adapters.push(backupAdapter);
-    active = backupAdapter;
-    verifyCopies();
-    backupAdapter.bindVerifiedNetworkProof(proof);
-    const backup = await runBackupRollbackAfterRevoke(backupAdapter);
-    const backupEvidence = backupAdapter.inspectBusinessEvidence();
-    if (
-      backupEvidence.seeded !== true ||
-      backupEvidence.validatedReadCount !== 2 ||
-      backupEvidence.publicGenerationCount !== 2 ||
-      backupEvidence.externalToolExecutions !== 1 ||
-      backupEvidence.clearAckCount !== 0 ||
-      backupEvidence.saveAckCount !== 0 ||
-      backupEvidence.revokeAckCount !== 1
-    )
-      throw fail();
-    active = undefined;
-    verifyCopies();
-    onPhase(86);
-    const unpublishedAdapter = createN09BusinessAdapter(
-      {
-        ownedRoot: options.ownedRoot,
-        install: path.join(options.ownedRoot, 'payload'),
-        manifestSha256: options.manifestSha256,
-      },
-      {
-        spawn: createHostedLifecycleSpawn({
-          ownedRoot: options.ownedRoot,
-          manifestSha256: options.manifestSha256,
-        }),
-        onPhase,
-      }
-    );
-    adapters.push(unpublishedAdapter);
-    active = unpublishedAdapter;
-    verifyCopies();
-    unpublishedAdapter.bindVerifiedNetworkProof(proof);
-    const unpublished = await runUnpublishedResponseKill(unpublishedAdapter);
-    const unpublishedEvidence = unpublishedAdapter.inspectBusinessEvidence();
-    if (
-      unpublishedEvidence.seeded !== true ||
-      unpublishedEvidence.validatedReadCount !== 3 ||
-      unpublishedEvidence.publicGenerationCount !== 2 ||
-      unpublishedEvidence.externalToolExecutions !== 1 ||
-      unpublishedEvidence.clearAckCount !== 0 ||
-      unpublishedEvidence.saveAckCount !== 0 ||
-      unpublishedEvidence.revokeAckCount !== 0
-    )
-      throw fail();
-    active = undefined;
-    verifyCopies();
-    const prepared = {},
-      preparedEvidence = {};
-    for (const boundary of ['commit', 'ack']) {
-      for (const kill of [true, false]) {
-        onPhase((boundary === 'commit' ? 158 : 160) + (kill ? 0 : 1));
+      const durable = {},
+        durableEvidence = {};
+      for (const operation of ['save', 'revoke']) {
+        onPhase(operation === 'save' ? 82 : 83);
         const ownedAdapter = createN09BusinessAdapter(
           {
             ownedRoot: options.ownedRoot,
@@ -355,47 +302,154 @@ async function composeHostedN09(input, onPhase = () => {}) {
         active = ownedAdapter;
         verifyCopies();
         ownedAdapter.bindVerifiedNetworkProof(proof);
-        const name = 'prepared' + (boundary === 'ack' ? 'Ack' : '') + (kill ? 'Kill' : 'Release');
-        prepared[name] = await (
-          boundary === 'commit' ? runPreparedPublicationCommit : runPreparedPublicationAck
-        )(ownedAdapter, kill);
+        durable[operation] = await runDurableSaveOrRevokeAfterAck(ownedAdapter, operation);
         const evidence = ownedAdapter.inspectBusinessEvidence();
         if (
           evidence.seeded !== true ||
-          evidence.validatedReadCount !== 3 ||
-          evidence.publicGenerationCount !== 3 ||
           evidence.externalToolExecutions !== 1 ||
           evidence.clearAckCount !== 0 ||
-          evidence.saveAckCount !== 0 ||
-          evidence.revokeAckCount !== 0
+          evidence.saveAckCount !== (operation === 'save' ? 1 : 0) ||
+          evidence.revokeAckCount !== (operation === 'revoke' ? 1 : 0) ||
+          (operation === 'save'
+            ? evidence.validatedReadCount < 2 || evidence.publicGenerationCount < 2
+            : evidence.validatedReadCount !== 1 || evidence.publicGenerationCount !== 1)
         )
           throw fail();
-        preparedEvidence[name] = evidence;
+        durableEvidence[operation] = evidence;
         active = undefined;
         verifyCopies();
       }
+      onPhase(85);
+      const backupAdapter = createN09BusinessAdapter(
+        {
+          ownedRoot: options.ownedRoot,
+          install: path.join(options.ownedRoot, 'payload'),
+          manifestSha256: options.manifestSha256,
+        },
+        {
+          spawn: createHostedLifecycleSpawn({
+            ownedRoot: options.ownedRoot,
+            manifestSha256: options.manifestSha256,
+          }),
+          onPhase,
+        }
+      );
+      adapters.push(backupAdapter);
+      active = backupAdapter;
+      verifyCopies();
+      backupAdapter.bindVerifiedNetworkProof(proof);
+      const backup = await runBackupRollbackAfterRevoke(backupAdapter);
+      const backupEvidence = backupAdapter.inspectBusinessEvidence();
+      if (
+        backupEvidence.seeded !== true ||
+        backupEvidence.validatedReadCount !== 2 ||
+        backupEvidence.publicGenerationCount !== 2 ||
+        backupEvidence.externalToolExecutions !== 1 ||
+        backupEvidence.clearAckCount !== 0 ||
+        backupEvidence.saveAckCount !== 0 ||
+        backupEvidence.revokeAckCount !== 1
+      )
+        throw fail();
+      active = undefined;
+      verifyCopies();
+      onPhase(86);
+      const unpublishedAdapter = createN09BusinessAdapter(
+        {
+          ownedRoot: options.ownedRoot,
+          install: path.join(options.ownedRoot, 'payload'),
+          manifestSha256: options.manifestSha256,
+        },
+        {
+          spawn: createHostedLifecycleSpawn({
+            ownedRoot: options.ownedRoot,
+            manifestSha256: options.manifestSha256,
+          }),
+          onPhase,
+        }
+      );
+      adapters.push(unpublishedAdapter);
+      active = unpublishedAdapter;
+      verifyCopies();
+      unpublishedAdapter.bindVerifiedNetworkProof(proof);
+      const unpublished = await runUnpublishedResponseKill(unpublishedAdapter);
+      const unpublishedEvidence = unpublishedAdapter.inspectBusinessEvidence();
+      if (
+        unpublishedEvidence.seeded !== true ||
+        unpublishedEvidence.validatedReadCount !== 3 ||
+        unpublishedEvidence.publicGenerationCount !== 2 ||
+        unpublishedEvidence.externalToolExecutions !== 1 ||
+        unpublishedEvidence.clearAckCount !== 0 ||
+        unpublishedEvidence.saveAckCount !== 0 ||
+        unpublishedEvidence.revokeAckCount !== 0
+      )
+        throw fail();
+      active = undefined;
+      verifyCopies();
+      const prepared = {},
+        preparedEvidence = {};
+      for (const boundary of ['commit', 'ack']) {
+        for (const kill of [true, false]) {
+          onPhase((boundary === 'commit' ? 158 : 160) + (kill ? 0 : 1));
+          const ownedAdapter = createN09BusinessAdapter(
+            {
+              ownedRoot: options.ownedRoot,
+              install: path.join(options.ownedRoot, 'payload'),
+              manifestSha256: options.manifestSha256,
+            },
+            {
+              spawn: createHostedLifecycleSpawn({
+                ownedRoot: options.ownedRoot,
+                manifestSha256: options.manifestSha256,
+              }),
+              onPhase,
+            }
+          );
+          adapters.push(ownedAdapter);
+          active = ownedAdapter;
+          verifyCopies();
+          ownedAdapter.bindVerifiedNetworkProof(proof);
+          const name = 'prepared' + (boundary === 'ack' ? 'Ack' : '') + (kill ? 'Kill' : 'Release');
+          prepared[name] = await (
+            boundary === 'commit' ? runPreparedPublicationCommit : runPreparedPublicationAck
+          )(ownedAdapter, kill);
+          const evidence = ownedAdapter.inspectBusinessEvidence();
+          if (
+            evidence.seeded !== true ||
+            evidence.validatedReadCount !== 3 ||
+            evidence.publicGenerationCount !== 3 ||
+            evidence.externalToolExecutions !== 1 ||
+            evidence.clearAckCount !== 0 ||
+            evidence.saveAckCount !== 0 ||
+            evidence.revokeAckCount !== 0
+          )
+            throw fail();
+          preparedEvidence[name] = evidence;
+          active = undefined;
+          verifyCopies();
+        }
+      }
+      result = {
+        committed,
+        clear,
+        ...durable,
+        backup,
+        unpublished,
+        ...prepared,
+        businessEvidence: {
+          committed: committedEvidence,
+          clear: clearEvidence,
+          ...durableEvidence,
+          backup: backupEvidence,
+          unpublished: unpublishedEvidence,
+          ...preparedEvidence,
+        },
+        networkProof: proof,
+        originalControllerReused: true,
+        tlsValidationDisabled: false,
+        remoteModelRequests: 0,
+        n09Complete: false,
+      };
     }
-    result = {
-      committed,
-      clear,
-      ...durable,
-      backup,
-      unpublished,
-      ...prepared,
-      businessEvidence: {
-        committed: committedEvidence,
-        clear: clearEvidence,
-        ...durableEvidence,
-        backup: backupEvidence,
-        unpublished: unpublishedEvidence,
-        ...preparedEvidence,
-      },
-      networkProof: proof,
-      originalControllerReused: true,
-      tlsValidationDisabled: false,
-      remoteModelRequests: 0,
-      n09Complete: false,
-    };
   } catch {
     throw fail();
   } finally {
@@ -405,7 +459,11 @@ async function composeHostedN09(input, onPhase = () => {}) {
     });
   }
   onPhase(84);
-  if (cleanup.adaptersClosed !== 10 || cleanup.listenerClosed !== true) throw fail();
+  if (
+    cleanup.adaptersClosed !== (publicationGroup === 'original' ? 10 : 2) ||
+    cleanup.listenerClosed !== true
+  )
+    throw fail();
   return Object.freeze({ ...result, cleanup });
 }
 module.exports = { composeHostedN09, closeResources };

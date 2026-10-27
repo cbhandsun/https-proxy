@@ -164,9 +164,10 @@ function buildHostedReviewPlan(input) {
     if (
       Object.keys(options).length !== names.length ||
       names.some((name) => !Object.hasOwn(options, name)) ||
-      !['n08', 'n09'].includes(options.scenario)
+      !['n08', 'n09', 'n09-sending-ack'].includes(options.scenario)
     )
       throw fail();
+    const scenario = options.scenario === 'n09-sending-ack' ? 'n09' : options.scenario;
     const candidate = physical(options.candidate, true),
       ownedRoot = physical(options.ownedRoot, true);
     if (
@@ -247,22 +248,19 @@ function buildHostedReviewPlan(input) {
       JSON.parse(fs.readFileSync(path.join(payload, 'package.json'), 'utf8')),
       JSON.parse(fs.readFileSync(path.join(payload, 'package-lock.json'), 'utf8'))
     );
-    const executionRoot = path.join(__dirname, options.scenario),
+    const executionRoot = path.join(__dirname, scenario),
       shared = path.join(__dirname, 'shared');
     const mainModules = [
       'scripts/lib/context-recovery-daemon-owned-transport.js',
       'scripts/lib/context-recovery-daemon-owned-adapter.js',
     ];
     const dynamicTargets =
-      options.scenario === 'n08' ? mainModules.map((name) => path.join(candidate, name)) : [];
+      scenario === 'n08' ? mainModules.map((name) => path.join(candidate, name)) : [];
     const loadedPins = collectClosure(
       [
         path.join(executionRoot, 'owned-entry.js'),
-        path.join(
-          executionRoot,
-          options.scenario === 'n08' ? 'observed-composition.js' : 'composition.js'
-        ),
-        ...(options.scenario === 'n09'
+        path.join(executionRoot, scenario === 'n08' ? 'observed-composition.js' : 'composition.js'),
+        ...(scenario === 'n09'
           ? [
               path.join(__dirname, 'n09-ack/host-install.js'),
               path.join(__dirname, 'n09-ack/bootstrap-contract.js'),
@@ -271,7 +269,7 @@ function buildHostedReviewPlan(input) {
       ],
       dynamicTargets
     );
-    if (options.scenario === 'n09') {
+    if (scenario === 'n09') {
       const writer = path.join(__dirname, 'n09-ack/write-bootstrap.psm1');
       loadedPins[writer] = fileHash(writer);
     }
@@ -303,7 +301,7 @@ function buildHostedReviewPlan(input) {
       path.join(executionRoot, 'owned-job.ps1'),
       path.join(executionRoot, 'hosted-execution.ps1'),
     ];
-    if (options.scenario === 'n09') libraryFiles.push(path.join(executionRoot, 'run-hosted.ps1'));
+    if (scenario === 'n09') libraryFiles.push(path.join(executionRoot, 'run-hosted.ps1'));
     for (const file of [
       ...libraryFiles,
       ...jobFiles.slice(0, -1),
@@ -313,9 +311,10 @@ function buildHostedReviewPlan(input) {
       if (identityPins.get(relative) !== fileHash(file)) throw fail();
     }
     const plan = {
+      ...(options.scenario === 'n09-sending-ack' ? { publicationGroup: 'sending-ack' } : {}),
       candidate,
       manifestSha256: build.manifestSha256,
-      ...(options.scenario === 'n08'
+      ...(scenario === 'n08'
         ? { sourcePins: fixedRecordHash(candidate, mainModules) }
         : {
             lifecyclePins: fixedRecordHash(path.join(__dirname, 'n09-ipc'), [
@@ -331,7 +330,7 @@ function buildHostedReviewPlan(input) {
       jobSourcePins: Object.fromEntries(jobFiles.map((file) => [file, fileHash(file)])),
       libraryPins: Object.fromEntries(libraryFiles.map((file) => [file, fileHash(file)])),
     };
-    const out = path.join(ownedRoot, options.scenario + '-hosted-review-plan.json'),
+    const out = path.join(ownedRoot, scenario + '-hosted-review-plan.json'),
       encoded = Buffer.from(JSON.stringify(plan));
     const handle = fs.openSync(out, 'wx');
     try {

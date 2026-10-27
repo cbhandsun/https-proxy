@@ -23,8 +23,10 @@ const hex = (value) => typeof value === 'string' && /^[a-f0-9]{32}$/.test(value)
 
 // Binds the authenticated control channel to one real business checkpoint.
 // Signal authentication alone cannot qualify a publication or host-save ACK.
-function createPreparedAckProbe(input, observed, control) {
+function createPreparedAckProbe(input, observed, control, transition = 'prepared') {
   try {
+    if (!['prepared', 'sending'].includes(transition)) throw fail();
+    const delta = transition === 'sending' ? 2 : 1;
     const config = fields(input, ['pid', 'rootId', 'expiresAt', 'revision']);
     const baseline = snapshotOwnData(observed);
     const methods = fields(control, ['arm', 'waitHeld', 'release', 'waitReleased', 'close']);
@@ -37,7 +39,7 @@ function createPreparedAckProbe(input, observed, control) {
       config.expiresAt < 1 ||
       !Number.isSafeInteger(config.revision) ||
       config.revision < 1 ||
-      config.revision >= Number.MAX_SAFE_INTEGER ||
+      config.revision > Number.MAX_SAFE_INTEGER - delta ||
       baseline.activeCount !== 0 ||
       !['idle', 'completed'].includes(baseline.status) ||
       !Number.isSafeInteger(baseline.generation) ||
@@ -45,7 +47,7 @@ function createPreparedAckProbe(input, observed, control) {
       baseline.generation > 16 ||
       !Number.isSafeInteger(baseline.callOrdinal) ||
       baseline.callOrdinal < 1 ||
-      baseline.callOrdinal >= 1024 ||
+      baseline.callOrdinal + delta > 1024 ||
       Object.values(methods).some(
         (fn) => typeof fn !== 'function' || types.isProxy(fn) || types.isGeneratorFunction(fn)
       ) ||
@@ -57,8 +59,8 @@ function createPreparedAckProbe(input, observed, control) {
       callOrdinal: baseline.callOrdinal,
       rootId: config.rootId,
       expiresAt: config.expiresAt,
-      expectedRevision: config.revision,
-      transition: 'prepared',
+      expectedRevision: config.revision + delta - 1,
+      transition,
     });
     let state = 'new',
       armed,
@@ -89,7 +91,7 @@ function createPreparedAckProbe(input, observed, control) {
         if (
           result.callOrdinal !== target.callOrdinal ||
           result.holdChallenge !== '' ||
-          result.revision !== config.revision
+          result.revision !== target.expectedRevision
         )
           throw fail();
       } else {
@@ -98,9 +100,9 @@ function createPreparedAckProbe(input, observed, control) {
           result.challenge !== armed.challenge ||
           !hex(result.holdChallenge) ||
           !Number.isSafeInteger(result.callOrdinal) ||
-          result.callOrdinal <= target.callOrdinal ||
+          result.callOrdinal < target.callOrdinal + delta ||
           result.callOrdinal > 1024 ||
-          result.revision !== config.revision + 1
+          result.revision !== config.revision + delta
         )
           throw fail();
         if (
@@ -133,9 +135,9 @@ function createPreparedAckProbe(input, observed, control) {
         step('armed', 'held', async () => {
           held = signal(await invoke('waitHeld'), 'held');
           return Object.freeze({
-            boundary: 'prepared-durable-store-before-host-ack',
+            boundary: transition + '-durable-store-before-host-ack',
             pid: config.pid,
-            expectedRevision: config.revision,
+            expectedRevision: target.expectedRevision,
             revision: held.revision,
             hostAckDelivered: false,
           });

@@ -41,5 +41,7 @@
     "formalBusinessSkipped": true
   },
   "rerunPerformed": false,
-  "modelRequests": 0
+  "modelRequests": 0,
+  "extraIoFailedJob": 122533677305,
+  "extraIoFailureObserved": "same 8 !== 10 summary assertion; original proxy stage rejected"
 }

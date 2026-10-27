@@ -8,10 +8,12 @@ function Invoke-HpmN09OwnedScenario {
         [Parameter(Mandatory)][string]$OwnedRoot,
         [Parameter(Mandatory)][string]$Candidate,
         [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$PlanSha256,
-        [Parameter(Mandatory)][hashtable]$SourcePins
+        [Parameter(Mandatory)][hashtable]$SourcePins,
+        [ValidateSet('original', 'sending-ack')][string]$PublicationGroup = 'original'
     )
     $jobStage = 'environment'
     try {
+        if ($PublicationGroup -cnotin @('original', 'sending-ack')) { throw 'invalid' }
         if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
             $env:RUNNER_OS -cne 'Windows' -or [string]::IsNullOrEmpty($env:RUNNER_TEMP)) { throw 'invalid' }
         $jobStage = 'source_pins'
@@ -76,8 +78,12 @@ function Invoke-HpmN09OwnedScenario {
             $root = $document.RootElement
             $names = @($root.EnumerateObject() | ForEach-Object { $_.Name })
             if ($names.Count -ne 9 -or ($names | Sort-Object) -join ',' -cne 'cases,listenerOwned,n09Complete,nonLoopbackBlocked,phase,probesPassed,schemaVersion,syntheticSocketsClosed,tlsVerified') { throw 'invalid' }
-            if ($root.GetProperty('schemaVersion').GetInt32() -ne 1 -or $root.GetProperty('phase').GetString() -cne 'n09_owned_scenario_closed' -or
-                $root.GetProperty('cases').GetInt32() -ne 10 -or $root.GetProperty('n09Complete').GetBoolean() -ne $false) { throw 'invalid' }
+            if ($root.GetProperty('schemaVersion').GetInt32() -ne 1 -or $root.GetProperty('n09Complete').GetBoolean() -ne $false) { throw 'invalid' }
+            if ($PublicationGroup -ceq 'original') {
+                if ($root.GetProperty('phase').GetString() -cne 'n09_owned_scenario_closed' -or $root.GetProperty('cases').GetInt32() -ne 10) { throw 'invalid' }
+            } else {
+                if ($root.GetProperty('phase').GetString() -cne 'n09_sending_ack_scenario_closed' -or $root.GetProperty('cases').GetInt32() -ne 2) { throw 'invalid' }
+            }
             foreach ($name in @('probesPassed', 'tlsVerified', 'nonLoopbackBlocked', 'listenerOwned', 'syntheticSocketsClosed')) {
                 if ($root.GetProperty($name).GetBoolean() -ne $true) { throw 'invalid' }
             }

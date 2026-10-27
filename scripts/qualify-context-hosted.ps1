@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidateSet('n08', 'n09')][string]$Case)
+param([Parameter(Mandatory)][ValidateSet('n08', 'n09', 'n09-sending-ack')][string]$Case)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $qualificationStage = 'environment'
@@ -11,9 +11,11 @@ try {
     $head = git -C $candidate rev-parse HEAD
     if ($LASTEXITCODE -ne 0 -or $head -cne $env:GITHUB_SHA) { throw 'invalid' }
     $ownedRoot = Join-Path ([IO.Path]::GetFullPath($env:RUNNER_TEMP)) ('hpm-context-' + $Case)
+    $baseCase = if ($Case -ceq 'n09-sending-ack') { 'n09' } else { $Case }
+    $publicationGroup = if ($Case -ceq 'n09-sending-ack') { 'sending-ack' } else { 'original' }
     $receiptFile = Join-Path $ownedRoot 'prepared-run.json'
-    $reviewFile = Join-Path $ownedRoot ($Case + '-hosted-review-plan.json')
-    $execution = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ('context-hosted/' + $Case + '/hosted-execution.ps1')))
+    $reviewFile = Join-Path $ownedRoot ($baseCase + '-hosted-review-plan.json')
+    $execution = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ('context-hosted/' + $baseCase + '/hosted-execution.ps1')))
     $qualificationStage = 'physical_paths'
     foreach ($file in @($reviewFile, $receiptFile, $execution)) {
         $current = [IO.Path]::GetFullPath($file)
@@ -41,10 +43,10 @@ try {
     $qualificationStage = 'load_execution'
     . $execution
     $qualificationStage = 'invoke_execution'
-    $result = if ($Case -ceq 'n08') {
+    $result = if ($baseCase -ceq 'n08') {
         Invoke-HpmN08HostedExecution -OwnedRoot $ownedRoot -ReviewPlanSha256 $receipt.planSha256 -BuildReceiptSha256 $receipt.buildReceiptSha256
     } else {
-        Invoke-HpmN09HostedExecution -OwnedRoot $ownedRoot -ReviewPlanSha256 $receipt.planSha256 -BuildReceiptSha256 $receipt.buildReceiptSha256
+        Invoke-HpmN09HostedExecution -OwnedRoot $ownedRoot -ReviewPlanSha256 $receipt.planSha256 -BuildReceiptSha256 $receipt.buildReceiptSha256 -PublicationGroup $publicationGroup
     }
     # Fixed network receipt only. No payload, keys, DBs, native frames or request
     # bodies are written to Actions artifacts or the job summary.

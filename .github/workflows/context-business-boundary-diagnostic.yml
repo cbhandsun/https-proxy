@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [n08, n09]
+        scenario: [n08, n09, n09-sending-ack]
     defaults:
       run:
         shell: pwsh

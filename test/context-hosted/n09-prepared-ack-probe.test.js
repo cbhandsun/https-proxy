@@ -7,7 +7,7 @@ const {
 const config = { pid: 123, rootId: 'hbs_' + 'a'.repeat(32), expiresAt: 1000, revision: 7 };
 const observed = { generation: 1, callOrdinal: 1, activeCount: 0, status: 'completed' };
 const safe = { message: 'n09_prepared_ack_probe_failed' };
-function fixture(overrides = {}, baseline = observed, options = config) {
+function fixture(overrides = {}, baseline = observed, options = config, transition = 'prepared') {
   let target,
     releases = 0,
     closes = 0;
@@ -18,9 +18,12 @@ function fixture(overrides = {}, baseline = observed, options = config) {
     challenge: 'c'.repeat(32),
     ...target,
     kind,
-    callOrdinal: kind === 'armed' ? baseline.callOrdinal : baseline.callOrdinal + 1,
+    callOrdinal:
+      kind === 'armed'
+        ? baseline.callOrdinal
+        : baseline.callOrdinal + (transition === 'sending' ? 2 : 1),
     holdChallenge: kind === 'armed' ? '' : 'd'.repeat(32),
-    revision: options.revision + (kind === 'armed' ? 0 : 1),
+    revision: target.expectedRevision + (kind === 'armed' ? 0 : 1),
   });
   const control = {
     arm: async (value) => {
@@ -38,7 +41,7 @@ function fixture(overrides = {}, baseline = observed, options = config) {
     ...overrides,
   };
   return {
-    probe: createPreparedAckProbe(options, baseline, control),
+    probe: createPreparedAckProbe(options, baseline, control, transition),
     releases: () => releases,
     closes: () => closes,
   };
@@ -146,4 +149,27 @@ test('close failure is fixed and sticky without another cleanup invocation', () 
   assert.throws(() => f.probe.close(), safe);
   assert.throws(() => f.probe.close(), safe);
   assert.equal(closes, 1);
+});
+
+test('sending has its own exact two-version and ordinal headroom while unsupported targets reject', async () => {
+  const f = fixture(
+    {},
+    { ...observed, callOrdinal: 1022 },
+    { ...config, revision: Number.MAX_SAFE_INTEGER - 2 },
+    'sending'
+  );
+  await f.probe.arm();
+  const held = await f.probe.waitHeld();
+  assert.equal(held.boundary, 'sending-durable-store-before-host-ack');
+  assert.equal(held.expectedRevision, Number.MAX_SAFE_INTEGER - 1);
+  assert.equal(held.revision, Number.MAX_SAFE_INTEGER);
+  await f.probe.release();
+  f.probe.close();
+  for (const transition of [null, '', 'transport-finished', {}, 'unknown'])
+    assert.throws(() => fixture({}, observed, config, transition), safe);
+  assert.throws(
+    () => fixture({}, observed, { ...config, revision: Number.MAX_SAFE_INTEGER - 1 }, 'sending'),
+    safe
+  );
+  assert.throws(() => fixture({}, { ...observed, callOrdinal: 1023 }, config, 'sending'), safe);
 });

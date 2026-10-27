@@ -142,7 +142,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     upstreamRequests = 0;
   let pendingSave;
   let publicInterruption;
-  let commitBoundary, ackProbe, heldAccounting, publicationCompleted;
+  let commitBoundary, ackProbe, heldAccounting, publicationCompleted, ackRevisionDelta;
   let backup,
     backupRestored = false,
     storageRejected = false;
@@ -585,9 +585,16 @@ function createN09BusinessAdapter(input, trusted = {}) {
       phase = 'ready';
       return receipt;
     },
-    async beginPreparedAckHold(identity) {
+    async beginPreparedAckHold(identity, transition = 'prepared') {
       gate(identity);
-      if (commitBoundary || ackProbe || publicationCompleted) throw fail();
+      if (
+        !['prepared', 'sending'].includes(transition) ||
+        commitBoundary ||
+        ackProbe ||
+        publicationCompleted
+      )
+        throw fail();
+      ackRevisionDelta = transition === 'sending' ? 2 : 1;
       publicationCompleted = await client().getRecoveryCompletionBarrier(current);
       const held = await api.beginPublicResponseHold(identity);
       heldAccounting = accounting(committed());
@@ -601,7 +608,8 @@ function createN09BusinessAdapter(input, trusted = {}) {
           revision: heldAccounting.revision,
         },
         observed,
-        client().getPublicationAckClient(current)
+        client().getPublicationAckClient(current),
+        transition
       );
       await ackProbe.arm();
       gate(identity);
@@ -624,7 +632,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
       publicInterruption.assertReleasedPending();
       const durable = accounting(committed());
       if (
-        durable.revision !== heldAccounting.revision + 1 ||
+        durable.revision !== heldAccounting.revision + ackRevisionDelta ||
         durable.calls !== heldAccounting.calls ||
         durable.returnedBytes !== heldAccounting.returnedBytes
       )

@@ -178,6 +178,14 @@ async function main() {
   ]);
   failureExitCode = 70;
   const { exact } = require('../shared/boundary.js');
+  const publicationGroup = Object.hasOwn(parsed, 'publicationGroup')
+    ? parsed.publicationGroup
+    : 'original';
+  if (
+    !['original', 'sending-ack'].includes(publicationGroup) ||
+    (Object.hasOwn(parsed, 'publicationGroup') && publicationGroup === 'original')
+  )
+    throw fail();
   const plan = exact(parsed, [
     'candidate',
     'ownedRoot',
@@ -189,46 +197,59 @@ async function main() {
     'caSha256',
     'leafSha256',
     'negativeAddress',
+    ...(publicationGroup === 'sending-ack' ? ['publicationGroup'] : []),
   ]);
   if (path.resolve(plan.ownedRoot).toLowerCase() !== ownedRoot.toLowerCase()) throw fail();
   failureExitCode = 71;
   const { composeHostedN09 } = require('./composition.js');
-  const result = await composeHostedN09(plan, (phase) => {
-    if (
-      !Number.isInteger(phase) ||
-      !(
-        (phase >= 73 && phase <= 85) ||
-        (phase >= 86 && phase <= 96) ||
-        (phase >= 98 && phase <= 138) ||
-        (phase >= 140 && phase <= 161) ||
-        (phase >= 162 && phase <= 199) ||
-        phase === 201 ||
-        (phase >= 203 && phase <= 209) ||
-        (phase >= 211 && phase <= 246) ||
-        phase === 251 ||
-        phase === 252 ||
-        phase === 253 ||
-        phase === 254 ||
-        phase === 255 ||
-        [200, 202, 210].includes(phase)
+  const executionPlan = Object.fromEntries(
+    Object.entries(plan).filter(([key]) => key !== 'publicationGroup')
+  );
+  const result = await composeHostedN09(
+    executionPlan,
+    (phase) => {
+      if (
+        !Number.isInteger(phase) ||
+        !(
+          (phase >= 73 && phase <= 85) ||
+          (phase >= 86 && phase <= 96) ||
+          (phase >= 98 && phase <= 138) ||
+          (phase >= 140 && phase <= 161) ||
+          (phase >= 162 && phase <= 199) ||
+          phase === 201 ||
+          (phase >= 203 && phase <= 209) ||
+          (phase >= 211 && phase <= 246) ||
+          phase === 251 ||
+          phase === 252 ||
+          phase === 253 ||
+          phase === 254 ||
+          phase === 255 ||
+          [200, 202, 210].includes(phase)
+        )
       )
-    )
-      throw fail();
-    if (
-      (phase >= 80 && phase <= 83) ||
-      phase === 85 ||
-      phase === 86 ||
-      phase === 158 ||
-      phase === 159 ||
-      phase === 160 ||
-      phase === 161
-    )
-      businessCasePhase = phase;
-    const reported = phase === 230 ? publicReadFailurePhase(businessCasePhase) : phase;
-    failureExitCode = reported;
-    if (phase < 98 || phase >= 101) primaryFailurePhase = reported;
-  });
+        throw fail();
+      if (
+        (phase >= 80 && phase <= 83) ||
+        phase === 85 ||
+        phase === 86 ||
+        phase === 158 ||
+        phase === 159 ||
+        phase === 160 ||
+        phase === 161
+      )
+        businessCasePhase = phase;
+      const reported = phase === 230 ? publicReadFailurePhase(businessCasePhase) : phase;
+      failureExitCode = reported;
+      if (phase < 98 || phase >= 101) primaryFailurePhase = reported;
+    },
+    publicationGroup
+  );
   failureExitCode = 72;
+  if (publicationGroup === 'sending-ack') {
+    const { sendingAckClosedReceipt } = require('./sending-ack-result');
+    process.stdout.write(JSON.stringify(sendingAckClosedReceipt(result)) + '\n');
+    return;
+  }
   if (
     result.originalControllerReused !== true ||
     result.tlsValidationDisabled !== false ||

@@ -172,7 +172,7 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
               challenge: 'f'.repeat(32),
               ...state.ackTarget,
               kind,
-              callOrdinal: held ? 2 : 1,
+              callOrdinal: held ? (state.ackTarget.transition === 'sending' ? 3 : 2) : 1,
               holdChallenge: held ? 'a'.repeat(32) : '',
               revision: state.ackTarget.expectedRevision + (held ? 1 : 0),
             };
@@ -412,7 +412,7 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
         result = await native(publicBody);
         if (state.ackProbeActive) {
           state.ackQueued = true;
-          state.revision++;
+          state.revision += state.ackTarget.transition === 'sending' ? 2 : 1;
           await new Promise((resolve, reject) => {
             state.resolveAck = resolve;
             state.rejectPending = reject;
@@ -1832,4 +1832,31 @@ test('prepared ACK qualification refuses durable budget drift, expiry renewal, p
     });
     assert.equal(f.state.closed, 1);
   }
+});
+
+test('sending ACK business control requires a durable two-version advance without changing held budget or expiry', async () => {
+  for (const kill of [true, false]) {
+    const f = fixture(() => {}, undefined, 'ack');
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    const result = await runPreparedPublicationAck(f.adapter, kill, 'sending');
+    assert.equal(result.boundary, 'sending-durable-store-before-host-ack');
+    assert.equal(result.preparedPredecessorAckObserved, true);
+    assert.equal(result.positivePublicCompletion, !kill);
+    assert.equal(f.state.closed, 1);
+  }
+});
+
+test('sending ACK cannot qualify only one durable version even with an authenticated held signal', async () => {
+  const f = fixture(
+    (stage, _value, state) => {
+      if (stage === 'prepared-ack-held') state.revision--;
+    },
+    undefined,
+    'ack'
+  );
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await assert.rejects(runPreparedPublicationAck(f.adapter, true, 'sending'), {
+    message: 'n09_publication_ack_driver_failed',
+  });
+  assert.equal(f.state.closed, 1);
 });

@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory)][string]$OwnedRoot,
     [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$ReviewPlanSha256,
-    [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$BuildReceiptSha256
+    [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$BuildReceiptSha256,
+    [ValidateSet('original', 'sending-ack')][string]$PublicationGroup = 'original'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -28,5 +29,5 @@ try {
             (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $review.libraryPins[$file]) { throw 'invalid' }
     }
     . $executionFile
-    Invoke-HpmN09HostedExecution -OwnedRoot $OwnedRoot -ReviewPlanSha256 $ReviewPlanSha256 -BuildReceiptSha256 $BuildReceiptSha256
+    Invoke-HpmN09HostedExecution -OwnedRoot $OwnedRoot -ReviewPlanSha256 $ReviewPlanSha256 -BuildReceiptSha256 $BuildReceiptSha256 -PublicationGroup $PublicationGroup
 } catch { throw 'n09_hosted_entry_rejected' }

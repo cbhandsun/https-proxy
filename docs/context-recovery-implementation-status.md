@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：sending ACK实际业务独立组已接入，原十场景与120秒门保持
+
+本批将sending ACK前置序列接入业务probe/adapter/driver。prepared默认路径仍精确+1；sending先通过原prepared ACK，再暂停精确sending保存，原只读持久快照必须总共精确+2、calls/returnedBytes及root/原expiry完全不变、公开字节仍0。强杀后默认owner同目录新PID重开需保留该精确版本，再做原文恢复；释放对照仍等实际公开答案与原发布完成屏障。单版本推进即使拿到held信号也拒绝，极端revision/ordinal预留两步空间；不缓存跨事务原文、不发替代ACK、不重试或退款。
+
+新增独立n09-sending-ack场景到正式与诊断矩阵，原n09十场景完整保留。新组在自己的RUNNER_TEMP/hpm-context-n09-sending-ack、原120000ms Job/5000ms树关闭门中执行强杀/释放两场景，不延长或重置原十场景Job预算。prepare receipt的scenario、校验过的review.publicationGroup、摘要绑定的owned plan及独立phase/精确case=2消费链同时绑定新组；原组仍case=10，两种回执交叉使用拒绝。主入口只分组组合/调用，独立sending-ack-result模块验证真实业务结果、预算来源/原期限/前置ACK事实、网络证明和两份清理，再产生有限公开回执；n09Complete仍false。
+
+WFP保持Windows/hosted环境/ABI/规范绝对路径与物理祖先检查，仅新增这一个固定组内node.exe路径到原有限白名单。原两组路径正反检查保留，新增组同样检查遍历、异处、UNC及相对路径，Windows守卫用例由10增为15；这是新增路径的五项检查，不是放宽原门。Mac只完成同程序集C#编译，未执行native WFP或授新Windows路径守卫资格。初次私有编译诊断命令因拼接/转义错误两次失败，修正命令后原源码及fixture编译成功，均未调用native WFP，不能解释成产品根因。
+
+11相关文件132/132、零fail/skip；包括原业务正反例、sending两步版本/最大整数边界、结果拒绝、原十场景与独立两场景组合、闭包/PS签名、双进程前置序列。另原Job实际JSON消费片段在PowerShell真实执行，2合法回执接受、10交叉/错数量/字段/布尔/类型/尾随输入拒绝，nativeCalls=0；摘要独立项11组场景/状态通过。四份修改PS源码Parser通过，Lint零错误/五个既有警告、1712语法、CI/release治理及本批定向格式通过。原Mac Windows-Job创建失败、既有全仓换行格式失败和所有原五秒失败保持；没有跳原统一CI测试。新发送组尚待本批推送后的托管Windows默认daemon执行，不能将本机组合或旧源码的成功转授新组。安全有限证据见context-recovery-evidence/sending-publication-ack-group.json。
+
+44673be普通Verify40603609204七个非coverage作业success，业务诊断40603609151两作业success；coverage与正式40603609279/source仍运行。238额外I/O40602444317/job122533677305已失败，日志同样出现原摘要8!==10及proxy阶段拒绝，已补有限证据，原失败不重跑覆盖。本批没有修改产品五秒恢复路径，稳定性仍未解决。固定6646同一真实长测已推进65分钟/14有效节拍、进程存活、无失败锁存，未重启/抢占；尚无24h/到期两次重开资格。真实模型0，账与旧E实例保持。下一步核对新组实际Windows结果并继续其余daemon内部边界、五秒尾延迟；本机安装两端、真实provider、24h/最大容量与最终受控启用仍待完成。
+
 ## 2026-10-27：238原生业务十场景诊断通过；修复摘要门失败，增加sending前置序列
 
 固定238ae76的业务诊断40602444326/n09 job122533677040已completed/success，已读取实际日志并核对精确checkout、prepared plan/build receipt摘要与执行后的hosted_network_finished有限回执。固定执行链在原120000ms Job和5000ms树关闭门下，只有原入口十场景断言及严格owned-job十场景解析均成功才可返回；因此本次新增prepared ACK强杀/释放对照已在托管Windows实际daemon/default worker/原持久owner路径执行，而非只运行本机模拟。内部强杀要求真实持久快照精确+1、原预算/expiry不变、公开0字节，同目录新PID重开保留并恢复原文；正对照仍需原实际公开答案与发布完成屏障。有限来源证明见context-recovery-evidence/238ae76-prepared-ack-diagnostic.json，不含请求/密钥/数据库/原始native帧。这仍是独立诊断范围，不授完整正式链或全矩阵。

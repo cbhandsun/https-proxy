@@ -14,20 +14,22 @@ real daemon.
 
 `.github/workflows/windows-context-recovery-hosted.yml` runs N08 and N09 on
 separate `windows-latest` runners. The workflow requires unified verification
-and dependency audit before either runtime operation. After those gates:
+and dependency audit before each runtime job. After those gates:
 
 ```powershell
 node scripts/prepare-context-hosted-run.js n08
 ./scripts/qualify-context-hosted.ps1 -Case n08
 ```
 
-The N09 job uses `n09` in both positions. The prepare command checks the exact
-GitHub source SHA and tracked source hashes, observes the actual
+The original N09 job uses `n09` in both positions. The independent sending ACK
+job uses `n09-sending-ack` in both positions. The prepare command checks the
+exact GitHub source SHA and tracked source hashes, observes the actual
 `npm run release:prepare` exit, then creates a fresh
-`$RUNNER_TEMP/hpm-context-n08` or `hpm-context-n09` directory. The payload's
-schema-2 manifest, executable, source hashes, release layout and production
-dependency lock are verified before the fixed review plan is written. A
-collision fails and preserves the existing directory.
+`$RUNNER_TEMP/hpm-context-n08`, `hpm-context-n09`, or
+`hpm-context-n09-sending-ack` directory. The payload's schema-2 manifest,
+executable, source hashes, release layout and production dependency lock are
+verified before the fixed review plan is written. A collision fails and
+preserves the existing directory.
 
 Source package-lock and runtime package-lock are different artifacts: production
 staging intentionally removes development dependencies. `runtime-lock.js`
@@ -138,19 +140,39 @@ accounting. The release control requires the complete public HTTP result and
 original completion barrier, then a revision increase and exact recovery after
 another same-directory restart. Both retain zero external tool replays.
 
+The ninth and tenth original N09 cases hold the prepared write after the real
+storage ACK producer but before its original opaque ACK is delivered. They
+require an authenticated held challenge and a readonly durable snapshot with
+exactly one revision advance, unchanged budget and original expiry, and zero
+public bytes. Forced kill must preserve that exact version after default-owner
+reopen; positive release still requires the actual public answer and completion
+barrier. A released probe alone is never a host-save acknowledgement.
+
+`n09-sending-ack` adds two independent cases under its own unchanged 120-second
+Job, with the original ten-case job retained. Its group is bound to the hashed
+review and execution plans and strict two-case receipt. The same authenticated
+root must first complete the exact prepared predecessor ACK; the held sending
+write must then produce a total advance of exactly two revisions with unchanged
+held budget and expiry. Wrong group, version, ordinal, predecessor, public bytes
+or incomplete cleanup rejects. Both groups keep the original 750ms witness,
+five-second internal hold, source/manifest closure and default storage owner.
+The WFP guard admits only the additional fixed runner-local executable path,
+retaining its original platform, environment and physical ancestor checks.
+
 These are bounded scenario evidence. Other publication COMMIT interiors
-(`sending`, `transport-finished`, `uncertain`, `withdrawn`), daemon durable-ACK
-interiors, historical-layout backup migration, installation lifecycle, full N09,
-24-hour capacity, real providers and production activation remain outside these
+(`sending`, `transport-finished`, `uncertain`, `withdrawn`), the remaining
+daemon durable-ACK interiors (`transport-finished`, `uncertain`, `withdrawn`),
+historical-layout backup migration, installation lifecycle, full N09, 24-hour
+capacity, real providers and production activation remain outside these
 scenarios. Existing `n08Qualified:false` and `n09Complete:false` flags are
 preserved; a successful hosted run proves only its described cases. Source
 preparation alone proves no runtime result. The always-running workflow summary
 prints a passed scenario scope only for the matching successful job. It reports
 the remaining exclusions for every outcome.
 
-Local verification passed 251 tests across the promoted scenarios and synthetic
-OS pipe suite, with no failures or skips on Windows. Scoped ESLint, Prettier,
-unified CI governance and the 1393-file JavaScript syntax check also passed.
-These checks do not execute the hosted daemon scenarios or establish installed
-client acceptance; the workflow must still complete its own full verification
-and actual scenario execution.
+Historical verification of earlier promoted scenarios passed 251 tests across
+the promoted scenarios and synthetic OS pipe suite, with no failures or skips on
+Windows. Scoped ESLint, Prettier, unified CI governance and the 1393-file
+JavaScript syntax check also passed. Those historical checks do not qualify the
+new sending group or establish installed client acceptance; the workflow must
+still complete its own full verification and actual scenario execution.

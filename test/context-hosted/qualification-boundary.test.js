@@ -93,7 +93,15 @@ test(
     const produced = [...producer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
     const consumed = [...consumer.matchAll(/GetProperty\('cases'\)\.GetInt32\(\) -ne (\d+)/g)];
     assert.equal(produced.length, 1);
-    assert.equal(consumed.length, 1);
+    assert.equal(consumed.length, 2);
+    const sendingProducer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/sending-ack-result.js'),
+      'utf8'
+    );
+    const sendingCases = [...sendingProducer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
+    assert.equal(sendingCases.length, 1);
+    const expectedSendingCases = Number(sendingCases[0][1]);
+    assert.equal(Number(consumed[1][1]), expectedSendingCases);
     const expectedCases = Number(produced[0][1]);
     assert.equal(Number(consumed[0][1]), expectedCases);
     const workflow = fs
@@ -122,7 +130,8 @@ test(
       $rows = foreach ($case in @(
         @('n09', 'success'), @('n08', 'success'), @('n09', 'failure'),
         @('n09', 'cancelled'), @('n08', 'skipped'), @('', ''),
-        @('n09', 'SUCCESS'), @('unrecognized', 'success')
+        @('n09', 'SUCCESS'), @('unrecognized', 'success'),
+        @('n09-sending-ack', 'success'), @('n09-sending-ack', 'failure'), @('n09-sending-ack', 'cancelled')
       )) {
         $env:SCENARIO = $case[0]
         $env:JOB_STATUS = $case[1]
@@ -137,22 +146,28 @@ test(
     assert.equal(result.error, undefined);
     assert.equal(result.status, 0);
     const rows = JSON.parse(result.stdout);
-    assert.equal(rows.length, 8);
+    assert.equal(rows.length, 11);
     for (const row of rows) {
       const scopes = row.summary.filter((line) => line.startsWith('Passed scope:'));
-      const qualified = row.status === 'success' && ['n08', 'n09'].includes(row.scenario);
+      const qualified =
+        row.status === 'success' && ['n08', 'n09', 'n09-sending-ack'].includes(row.scenario);
       assert.equal(scopes.length, qualified ? 1 : 0);
       if (qualified) {
-        if (row.scenario === 'n09') {
+        if (['n09', 'n09-sending-ack'].includes(row.scenario)) {
           const reported = scopes[0].match(/^Passed scope: (\d+) cases:/);
           assert.ok(reported);
-          assert.equal(Number(reported[1]), expectedCases);
+          assert.equal(
+            Number(reported[1]),
+            row.scenario === 'n09' ? expectedCases : expectedSendingCases
+          );
         }
         assert.ok(
           scopes[0].includes(
             row.scenario === 'n09'
               ? 'cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke, interruption with the upstream public final held, prepared SQLite COMMIT pending forced-kill/positive-release controls, and prepared durable-store-before-host-ACK forced-kill/positive-release controls'
-              : 'six mutation/hold cases'
+              : row.scenario === 'n09-sending-ack'
+                ? 'cases: sending durable-store-before-host-ACK forced-kill/positive-release controls after the exact prepared predecessor'
+                : 'six mutation/hold cases'
           )
         );
       }
@@ -162,7 +177,9 @@ test(
           line.includes(
             prepared
               ? 'Not qualified: other publication COMMIT interiors (sending, transport-finished, uncertain, withdrawn), other daemon durable-ACK interiors (sending, transport-finished, uncertain, withdrawn)'
-              : 'Not qualified: commit/publication in progress'
+              : row.scenario === 'n09-sending-ack' && row.status === 'success'
+                ? 'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors (prepared, transport-finished, uncertain, withdrawn)'
+                : 'Not qualified: commit/publication in progress'
           )
         )
       );
