@@ -198,6 +198,7 @@
   "lib/proxy/context-recovery-storage-discovery.js",
   "lib/proxy/context-recovery-storage-idle.js",
   "lib/proxy/context-recovery-storage-maintenance.js",
+  "lib/proxy/context-recovery-storage-inventory.js",
   "lib/proxy/context-recovery-storage-opening.js",
   "lib/proxy/context-recovery-storage-owner.js",
   "lib/proxy/context-recovery-storage-paths.js",

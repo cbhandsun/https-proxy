@@ -2254,33 +2254,39 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
   const { openContextRecoveryStorage } = require('../lib/proxy/context-recovery-storage');
   const { createContextRecoveryLifecycle } = require('../lib/proxy/context-recovery-lifecycle');
   const { createObservedStorageWorker } = require('./helpers/recovery-owner-stage-probe');
-  const storage = await openContextRecoveryStorage({
+  const backend = await openContextRecoveryStorage({
     directory,
     WorkerType: createObservedStorageWorker(diagnostic),
   });
   const contract = require('../lib/proxy/context-recovery-storage-contract');
-  const execute = storage.execute;
+  const execute = backend.execute;
   let combinedAdmissions = 0;
   let combinedPublications = 0;
-  storage.execute = async (request) => {
-    const started = performance.now();
-    const combinedPublication =
-      request.admission &&
-      request.reference.metadata.budget.calls === request.admission.metadata.budget.calls;
-    try {
-      const result = await execute(request);
-      if (request.admission) combinedAdmissions++;
-      if (combinedPublication) combinedPublications++;
-      return result;
-    } finally {
-      diagnostic({
-        phase: 'storage',
-        operation: request.operation,
-        ...(request.admission ? { combinedAdmission: true } : {}),
-        ...(combinedPublication ? { combinedPublication: true } : {}),
-        elapsedMs: Math.round(performance.now() - started),
-      });
-    }
+  let scans = 0;
+  let warmScanSkips = 0;
+  const storage = {
+    close: backend.close.bind(backend),
+    execute: async (request) => {
+      if (request.operation === 'scan-reference') scans++;
+      const started = performance.now();
+      const combinedPublication =
+        request.admission &&
+        request.reference.metadata.budget.calls === request.admission.metadata.budget.calls;
+      try {
+        const result = await Reflect.apply(execute, backend, [request]);
+        if (request.admission) combinedAdmissions++;
+        if (combinedPublication) combinedPublications++;
+        return result;
+      } finally {
+        diagnostic({
+          phase: 'storage',
+          operation: request.operation,
+          ...(request.admission ? { combinedAdmission: true } : {}),
+          ...(combinedPublication ? { combinedPublication: true } : {}),
+          elapsedMs: Math.round(performance.now() - started),
+        });
+      }
+    },
   };
   for (const capability of [
     'RecoveryScan',
@@ -2295,6 +2301,10 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
     if (contract['supports' + capability](execute))
       contract['declare' + capability](storage.execute);
   }
+  const {
+    aliasRecoveryStorageInventory,
+  } = require('../lib/proxy/context-recovery-storage-inventory');
+  assert.equal(aliasRecoveryStorageInventory(storage, backend), true);
   const lifecycle = createContextRecoveryLifecycle({ storage });
   try {
     assert.deepEqual(await lifecycle.configureAsync(true), { ok: true });
@@ -2308,7 +2318,16 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
   const begin = sessions.beginAsync;
   sessions.beginAsync = async (...args) => {
     const started = performance.now();
+    const scansBefore = scans;
+    const rootsBefore = sessions.inspect().roots;
     const view = await begin(...args);
+    if (
+      view.ok &&
+      rootsBefore > 0 &&
+      view.reason === 'observed_continuation' &&
+      scans === scansBefore
+    )
+      warmScanSkips++;
     diagnostic({ phase: 'beginAsync', elapsedMs: Math.round(performance.now() - started) });
     if (view.ok) {
       for (const name of ['replyAsync', 'completeAsync', 'startPublicationAsync']) {
@@ -2342,6 +2361,7 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
     lifecycle,
     combinedAdmissions: () => combinedAdmissions,
     combinedPublications: () => combinedPublications,
+    warmScanSkips: () => warmScanSkips,
     waitForPublication(index, signal) {
       if (completed.length >= index) return Promise.resolve(completed[index - 1]);
       return new Promise((resolve, reject) => {
@@ -2831,6 +2851,7 @@ for (const kind of ['chat', 'responses', 'claude']) {
             assert.equal(counters.failed, success ? 0 : 1);
           }
           if (persistent && turn === 0) {
+            assert.ok(persistent.warmScanSkips() > 0);
             assert.ok(persistent.combinedAdmissions() > 0);
             assert.ok(persistent.combinedPublications() > 0);
             savedRoot = exportContextRecoveryRootMetadata(runtime, seed.snapshotId).metadata;

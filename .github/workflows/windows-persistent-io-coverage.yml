@@ -30,6 +30,11 @@ on:
       - lib/proxy/context-recovery-anchor-protocol.js
       - lib/proxy/context-recovery-storage-worker.js
       - lib/proxy/context-recovery-storage.js
+      - lib/proxy/context-recovery-storage-inventory.js
+      - lib/proxy/context-recovery-storage-opening.js
+      - lib/proxy/context-recovery-root-storage.js
+      - lib/proxy/context-recovery-root-loading.js
+      - lib/proxy/context-recovery-sessions.js
       - lib/proxy/context-recovery-storage-failure.js
       - lib/proxy/context-recovery-storage-serial.js
       - lib/proxy/context-recovery-storage-idle.js
