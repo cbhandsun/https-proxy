@@ -4,11 +4,14 @@ const net = require('node:net');
 const { dataSnapshot, callable, settle } = require('./context-recovery-daemon-http-boundary');
 const { parseDrainOptions, drainPlan, INPUT } = require('./nsis-installed-drain-wire');
 const { startDrainResponse } = require('./nsis-installed-drain-response');
+const { createInstalledWebSocketDrain } = require('./nsis-installed-websocket-drain');
 const diagnostics = new WeakMap();
 const PHASES = Object.freeze([
   'options',
   'owner',
   'upstream_hold',
+  'websocket_open',
+  'websocket_close',
   'listener_stop',
   'public_response',
   'natural_exit',
@@ -27,9 +30,10 @@ const fail = (phase) => {
 async function exerciseInstalledTransportDrain(
   input,
   { owner, adapter, active, observe },
-  withSse
+  withSse,
+  withWebSocket = false
 ) {
-  let options, timer, natural, probe, previous, release;
+  let options, timer, natural, probe, previous, release, websocket, websocketDrain;
   const requests = [];
   let phase = 'options',
     failedPhase;
@@ -77,6 +81,8 @@ async function exerciseInstalledTransportDrain(
       entered = resolve;
     });
     previous = active.current;
+    if (withWebSocket && options.client === 'codex')
+      websocket = createInstalledWebSocketDrain(options);
     // Each request still performs its original observation. The installed
     // observer owns one exact-sequence mailbox, so concurrent probes must not
     // write it concurrently. A failed observation poisons this queue; no retry.
@@ -93,6 +99,7 @@ async function exerciseInstalledTransportDrain(
       mode: options.mode,
       upstreamToken: options.upstreamToken,
       observe: observeInOrder,
+      ...(websocket ? { prepareUpgrade: websocket.prepare } : {}),
       upstream: {
         respond({ body }) {
           if (
@@ -150,15 +157,20 @@ async function exerciseInstalledTransportDrain(
     // Attach rejection handlers before waiting for the held upstream. These
     // handlers only prevent unhandled rejection; every verdict is still awaited.
     void response.catch(() => {});
-    phase = 'upstream_hold';
+    phase = websocket ? 'websocket_open' : 'upstream_hold';
     await within(
       Promise.race([
-        Promise.all([held, ...(withSse ? [prefixReceived] : [])]),
+        Promise.all([
+          held,
+          ...(withSse ? [prefixReceived] : []),
+          ...(websocket ? [websocket.open(port)] : []),
+        ]),
         response.then(() => {
           throw fail();
         }),
       ])
     );
+    if (websocket && options.mode === 'default') await within(observeInOrder());
     if (
       calls !== plans.length ||
       responseFinished ||
@@ -166,6 +178,7 @@ async function exerciseInstalledTransportDrain(
       (withSse && (!prefixSeen || !prefixWritten))
     )
       throw fail();
+    websocket?.beginStop();
     natural = settle(owner.stopNaturally(), 'installed_http_drain_failed').then(({ value }) => {
       if (!released) throw fail();
       return dataSnapshot(value, 'installed_http_drain_failed');
@@ -198,6 +211,10 @@ async function exerciseInstalledTransportDrain(
     released = true;
     release(true);
     if ((await within(response)).some((value) => value !== true)) throw fail();
+    if (websocket) {
+      phase = 'websocket_close';
+      websocketDrain = await within(websocket.verifyClosed());
+    }
     clearTimeout(timer);
     phase = 'natural_exit';
     const exited = await natural;
@@ -221,6 +238,7 @@ async function exerciseInstalledTransportDrain(
       ...exited,
       httpTransportDrainQualified: true,
       ...(withSse ? { sseTransportDrainQualified: true } : {}),
+      ...(websocket ? { websocketDrainQualified: true, websocketDrain } : {}),
     };
   } catch {
     failed = true;
@@ -230,6 +248,13 @@ async function exerciseInstalledTransportDrain(
     release?.(false);
     for (const request of requests) request.destroy();
     for (const socket of sockets) socket.destroy();
+    if (websocket) {
+      try {
+        await websocket.close();
+      } catch {
+        failed = true;
+      }
+    }
     if (probe && active.current === probe) active.current = previous;
     else if (probe) failed = true;
     if (natural) {
@@ -249,6 +274,8 @@ module.exports = {
   exerciseInstalledHttpDrain: (input, deps) => exerciseInstalledTransportDrain(input, deps, false),
   exerciseInstalledHttpSseDrain: (input, deps) =>
     exerciseInstalledTransportDrain(input, deps, true),
+  exerciseInstalledHttpSseWebSocketDrain: (input, deps) =>
+    exerciseInstalledTransportDrain(input, deps, true, true),
   parseDrainOptions,
   httpDrainFailurePhase: (error) => diagnostics.get(error) ?? null,
 };

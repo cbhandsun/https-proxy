@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
 const pwsh = process.platform === 'win32' ? 'C:/Program Files/PowerShell/7/pwsh.exe' : 'pwsh';
 function receipt() {
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     scope: 'installed_native_cli_four_cases',
     passed: true,
     syntheticClientQualified: true,
@@ -25,7 +25,17 @@ function receipt() {
     daemonNaturalExitQualified: true,
     httpTransportDrainQualified: true,
     sseTransportDrainQualified: true,
-    websocketDrainQualified: false,
+    websocketDrainQualified: true,
+    websocketDrains: ['default', 'enhanced'].map((mode) => ({
+      client: 'codex',
+      mode,
+      protocol: 'responses',
+      unauthorizedUpgradeRefused: true,
+      partialFrames: 5,
+      terminalFrames: 0,
+      clientClosed: true,
+      upstreamClosed: true,
+    })),
     syntheticSocketsClosed: true,
     cases: ['codex', 'claude'].flatMap((client) =>
       ['default', 'enhanced'].map((mode) => ({
@@ -179,6 +189,42 @@ test('strict four-case receipt rejects duplicate fields, missing gates, wrong ca
       value.schemaVersion = 5;
     },
     (value) => {
+      value.schemaVersion = 6;
+    },
+    (value) => {
+      delete value.websocketDrains;
+    },
+    (value) => {
+      value.websocketDrains.reverse();
+    },
+    (value) => {
+      value.websocketDrains.pop();
+    },
+    (value) => {
+      value.websocketDrains[1].client = 'claude';
+    },
+    (value) => {
+      value.websocketDrains[1].protocol = 'realtime';
+    },
+    (value) => {
+      value.websocketDrains[1].partialFrames = 4;
+    },
+    (value) => {
+      value.websocketDrains[1].unauthorizedUpgradeRefused = false;
+    },
+    (value) => {
+      value.websocketDrains[1].terminalFrames = 1;
+    },
+    (value) => {
+      value.websocketDrains[1].clientClosed = false;
+    },
+    (value) => {
+      value.websocketDrains[1].upstreamClosed = false;
+    },
+    (value) => {
+      value.websocketDrains[1].extra = true;
+    },
+    (value) => {
       delete value.sseTransportDrainQualified;
     },
     ...[false, null, 1, 'true'].map((gate) => (value) => {
@@ -194,7 +240,7 @@ test('strict four-case receipt rejects duplicate fields, missing gates, wrong ca
       value.httpTransportDrainQualified = 'true';
     },
     (value) => {
-      value.websocketDrainQualified = true;
+      value.websocketDrainQualified = false;
     },
     (value) => {
       delete value.daemonNaturalExitQualified;
@@ -323,6 +369,8 @@ test('phase diagnostics disclose only fixed enums and preserve invalid or missin
       '{"schemaVersion":1,"phase":"claude-default-cli-seed","failed":true}',
       '{"schemaVersion":1,"phase":"claude-enhanced-cli-between-2","failed":true}',
       '{"schemaVersion":1,"phase":"codex-enhanced-cli-final","failed":true}',
+      '{"schemaVersion":1,"phase":"codex-enhanced-http-drain-websocket_open","failed":true}',
+      '{"schemaVersion":1,"phase":"codex-default-http-drain-websocket_close","failed":true}',
       '{"schemaVersion":1,"phase":"claude-enhanced-cli-compact-4","failed":true}',
       '{"schemaVersion":1,"phase":"unknown-sensitive-sentinel","failed":true}',
       '{"schemaVersion":1,"phase":"complete","failed":false,"failed":false}',
@@ -350,6 +398,8 @@ test('phase diagnostics disclose only fixed enums and preserve invalid or missin
       'claude-default-cli-seed',
       'claude-enhanced-cli-between-2',
       'codex-enhanced-cli-final',
+      'codex-enhanced-http-drain-websocket_open',
+      'codex-default-http-drain-websocket_close',
       'unobserved',
       'unobserved',
       'unobserved',

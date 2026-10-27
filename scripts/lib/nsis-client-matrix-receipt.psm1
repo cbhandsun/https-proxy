@@ -26,13 +26,13 @@ function ConvertFrom-HpmInstalledClientMatrixReceipt {
         $phase = 'parse'
         $doc = [Text.Json.JsonDocument]::Parse($Output)
         $root = $doc.RootElement
-        $expected = @('cases','daemonNaturalExitQualified','httpTransportDrainQualified','sseTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','realModelRequests','realProviderQualified','retention24hQualified','schemaVersion','scope','syntheticClientQualified','syntheticSocketsClosed','tlsVerified','websocketDrainQualified')
+        $expected = @('cases','daemonNaturalExitQualified','httpTransportDrainQualified','sseTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','realModelRequests','realProviderQualified','retention24hQualified','schemaVersion','scope','syntheticClientQualified','syntheticSocketsClosed','tlsVerified','websocketDrainQualified','websocketDrains')
         $phase = 'root_fields'
         Assert-HpmInstalledClientJsonFields $root $expected
         $phase = 'root_values'
-        if ($root.GetProperty('schemaVersion').GetInt32() -ne 6 -or $root.GetProperty('scope').GetString() -cne 'installed_native_cli_four_cases' -or $root.GetProperty('realModelRequests').GetInt32() -ne 0) { throw 'invalid' }
-        foreach ($key in @('daemonNaturalExitQualified','httpTransportDrainQualified','sseTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','syntheticClientQualified','syntheticSocketsClosed','tlsVerified')) { if (-not $root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
-        foreach ($key in @('realProviderQualified','retention24hQualified','websocketDrainQualified')) { if ($root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
+        if ($root.GetProperty('schemaVersion').GetInt32() -ne 7 -or $root.GetProperty('scope').GetString() -cne 'installed_native_cli_four_cases' -or $root.GetProperty('realModelRequests').GetInt32() -ne 0) { throw 'invalid' }
+        foreach ($key in @('daemonNaturalExitQualified','httpTransportDrainQualified','sseTransportDrainQualified','listenerOwned','nonLoopbackBlocked','ownedTreeEmpty','passed','probesPassed','syntheticClientQualified','syntheticSocketsClosed','tlsVerified','websocketDrainQualified')) { if (-not $root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
+        foreach ($key in @('realProviderQualified','retention24hQualified')) { if ($root.GetProperty($key).GetBoolean()) { throw 'invalid' } }
         $phase = 'cases'
         $cases = $root.GetProperty('cases')
         if ($cases.ValueKind -ne [Text.Json.JsonValueKind]::Array -or $cases.GetArrayLength() -ne 4) { throw 'invalid' }
@@ -49,6 +49,18 @@ function ConvertFrom-HpmInstalledClientMatrixReceipt {
                     $item.GetProperty('publicGeneration').GetBoolean() -ne ($mode -ceq 'enhanced') -or
                     -not $item.GetProperty('restartRetention').GetBoolean()) { throw 'invalid' }
             }
+        }
+        $phase = 'websocket_drains'
+        $drains = $root.GetProperty('websocketDrains')
+        if ($drains.ValueKind -ne [Text.Json.JsonValueKind]::Array -or $drains.GetArrayLength() -ne 2) { throw 'invalid' }
+        $index = 0
+        foreach ($mode in @('default','enhanced')) {
+            $item = $drains[$index++]
+            Assert-HpmInstalledClientJsonFields $item @('client','mode','protocol','partialFrames','terminalFrames','clientClosed','upstreamClosed','unauthorizedUpgradeRefused')
+            if ($item.GetProperty('client').GetString() -cne 'codex' -or $item.GetProperty('mode').GetString() -cne $mode -or
+                $item.GetProperty('protocol').GetString() -cne 'responses' -or $item.GetProperty('partialFrames').GetInt32() -ne 5 -or
+                $item.GetProperty('terminalFrames').GetInt32() -ne 0 -or -not $item.GetProperty('clientClosed').GetBoolean() -or
+                -not $item.GetProperty('upstreamClosed').GetBoolean() -or -not $item.GetProperty('unauthorizedUpgradeRefused').GetBoolean()) { throw 'invalid' }
         }
         $phase = 'materialize'
         return $Output | ConvertFrom-Json -AsHashtable
@@ -78,7 +90,7 @@ function Write-HpmInstalledClientPhase {
         if ($keys.Count -ne 3 -or ($keys | Sort-Object) -join ',' -cne 'failed,phase,schemaVersion' -or $item.GetProperty('schemaVersion').GetInt32() -ne 1) { throw 'invalid' }
         $null = $item.GetProperty('failed').GetBoolean()
         $allowed = @('identity','listener','probes','controller','cleanup','complete')
-        $suffixes = @('configure','auth','cli','observe','stop','cli-seed','cli-compact-1','cli-compact-2','cli-compact-3','cli-between-1','cli-between-2','cli-final','http-drain-options','http-drain-owner','http-drain-upstream_hold','http-drain-listener_stop','http-drain-public_response','http-drain-natural_exit','http-drain-storage','http-drain-cleanup')
+        $suffixes = @('configure','auth','cli','observe','stop','cli-seed','cli-compact-1','cli-compact-2','cli-compact-3','cli-between-1','cli-between-2','cli-final','http-drain-options','http-drain-owner','http-drain-upstream_hold','http-drain-websocket_open','http-drain-websocket_close','http-drain-listener_stop','http-drain-public_response','http-drain-natural_exit','http-drain-storage','http-drain-cleanup')
         foreach ($client in @('codex','claude')) { foreach ($mode in @('default','enhanced')) { foreach ($suffix in $suffixes) { $allowed += $client + '-' + $mode + '-' + $suffix } } }
         $candidate = $item.GetProperty('phase').GetString()
         if ($candidate -cnotin $allowed) { throw 'invalid' }

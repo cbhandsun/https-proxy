@@ -5,7 +5,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { randomBytes } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
-const { createInstalledClientListener } = require('../context-hosted/shared/hosted-listener');
+const { createInstalledWebSocketListener } = require('./nsis-installed-websocket-listener');
+const { parseInstalledWebSocketDrainEvidence } = require('./nsis-installed-websocket-drain');
 const { runHostedProbes } = require('../context-hosted/shared/hosted-probes');
 const {
   INSTALLED_CLIENT_PROTOCOLS,
@@ -17,7 +18,7 @@ const { createDaemonOwnedAdapter } = require('./context-recovery-daemon-owned-ad
 const { createDaemonManagementHttpClient } = require('./context-recovery-daemon-http-client');
 const { dataSnapshot } = require('./context-recovery-daemon-http-boundary');
 const {
-  exerciseInstalledHttpSseDrain,
+  exerciseInstalledHttpSseWebSocketDrain,
   httpDrainFailurePhase,
 } = require('./nsis-installed-http-drain');
 const { writeInstalledBusinessReply } = require('./nsis-installed-business-reply');
@@ -110,7 +111,7 @@ const defaults = {
   verify: verifyInstalledClientMatrixIdentity,
   phaseWriter: createMatrixPhaseWriter,
   address: negativeAddress,
-  listener: createInstalledClientListener,
+  listener: createInstalledWebSocketListener,
   probes: runHostedProbes,
   controller(options) {
     const controller = buildInstalledClientController(options);
@@ -142,7 +143,7 @@ const defaults = {
     );
   },
   runCase: runInstalledClientCase,
-  drain: exerciseInstalledHttpSseDrain,
+  drain: exerciseInstalledHttpSseWebSocketDrain,
   verifyBinary: (file, sha, client) => digestInstalledClient(file, client) === sha,
 };
 // Test dependencies are available only to direct module callers, never argv.
@@ -154,7 +155,8 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
     naturalExits = 0,
     owner;
   const active = { current: null },
-    cases = [];
+    cases = [],
+    websocketDrains = [];
   const reject = () => {
     failed = true;
     failedPhase ??= phase;
@@ -178,6 +180,12 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
       ownedNode: identity.node,
       negativeAddress: address,
       onBusinessRequest: (event) => business.respond(event),
+      prepareUpgrade(event) {
+        const current = active.current;
+        if (current?.client !== 'codex' || typeof current.prepareUpgrade !== 'function')
+          throw fail();
+        return current.prepareUpgrade(event);
+      },
     });
     const view = listener.inspect();
     mark('probes');
@@ -262,7 +270,8 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
               }
               if (
                 Object.keys(exited).sort().join(',') !==
-                  'cleanupSemantics,exitCode,httpTransportDrainQualified,sseTransportDrainQualified,treeEmpty' ||
+                  'cleanupSemantics,exitCode,httpTransportDrainQualified,sseTransportDrainQualified,treeEmpty' +
+                    (client === 'codex' ? ',websocketDrain,websocketDrainQualified' : '') ||
                 exited.treeEmpty !== true ||
                 exited.cleanupSemantics !== 'natural_exit' ||
                 exited.exitCode !== 0 ||
@@ -270,6 +279,14 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
                 exited.sseTransportDrainQualified !== true
               )
                 throw fail();
+              if (client === 'codex') {
+                if (exited.websocketDrainQualified !== true) throw fail();
+                websocketDrains.push({
+                  client,
+                  mode,
+                  ...parseInstalledWebSocketDrainEvidence(exited.websocketDrain),
+                });
+              }
               naturalExits++;
               drained = true;
             },
@@ -334,9 +351,10 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
       reject();
     }
   }
-  if (failed || cases.length !== 4 || naturalExits !== 4) throw fail();
+  if (failed || cases.length !== 4 || naturalExits !== 4 || websocketDrains.length !== 2)
+    throw fail();
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     scope: 'installed_native_cli_four_cases',
     passed: true,
     syntheticClientQualified: true,
@@ -348,7 +366,8 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
     daemonNaturalExitQualified: true,
     httpTransportDrainQualified: true,
     sseTransportDrainQualified: true,
-    websocketDrainQualified: false,
+    websocketDrainQualified: true,
+    websocketDrains,
     syntheticSocketsClosed: true,
     cases,
   };

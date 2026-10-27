@@ -9,6 +9,7 @@ const { discoverTestFiles } = require('../lib/test-discovery');
 const {
   exerciseInstalledHttpDrain,
   exerciseInstalledHttpSseDrain,
+  exerciseInstalledHttpSseWebSocketDrain,
   parseDrainOptions,
   httpDrainFailurePhase,
   HTTP_DRAIN_PHASES,
@@ -25,7 +26,7 @@ function options(client = 'codex', mode = 'default') {
   };
 }
 
-async function fixture(t, client, mode, fault, withSse = false) {
+async function fixture(t, client, mode, fault, withSse = false, withWs = false) {
   const input = options(client, mode);
   const previous = { client, mode, upstreamToken: input.upstreamToken };
   const active = { current: previous };
@@ -89,6 +90,15 @@ async function fixture(t, client, mode, fault, withSse = false) {
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = server.address().port;
+  const websocket = withWs
+    ? await require('./helpers/installed-websocket-drain-fixture').installWebSocketDrainFixture(
+        t,
+        server,
+        input,
+        active,
+        fault
+      )
+    : null;
   const owner = {
     identity: { entryPort: port },
     isAlive: async () => true,
@@ -96,7 +106,9 @@ async function fixture(t, client, mode, fault, withSse = false) {
       stops++;
       assert.equal(delivered, 0);
       assert.equal(business.inspect().pending, withSse ? 2 : 1);
+      const upgrades = websocket?.stop();
       if (fault !== 'no-listener-stop') await new Promise((resolve) => server.close(resolve));
+      if (upgrades) await upgrades;
       return {
         treeEmpty: true,
         cleanupSemantics: fault === 'forced' ? 'forced_cleanup' : 'natural_exit',
@@ -115,15 +127,22 @@ async function fixture(t, client, mode, fault, withSse = false) {
   t.after(async () => {
     for (const socket of sockets) socket.destroy();
     await new Promise((resolve) => server.close(resolve));
+    if (websocket) await websocket.close();
   });
   return {
     run: () =>
-      (withSse ? exerciseInstalledHttpSseDrain : exerciseInstalledHttpDrain)(input, {
+      (withWs
+        ? exerciseInstalledHttpSseWebSocketDrain
+        : withSse
+          ? exerciseInstalledHttpSseDrain
+          : exerciseInstalledHttpDrain)(input, {
         owner,
         adapter: { verifyOwnedIdentity: () => fault !== 'identity' },
         active,
         observe: async () => {
           observed++;
+          if (fault === 'ws-observation' && observed === 3)
+            throw Error('synthetic_ws_observation_failed');
           if (fault === 'observation-failure') throw new Error('synthetic_observation_failure');
           if (fault === 'observation-overlap') {
             if (observing) throw new Error('synthetic_mailbox_overlap');
@@ -332,4 +351,67 @@ test('concurrent JSON and SSE probes serialize the original per-request observat
   const broken = await fixture(t, 'codex', 'default', 'observation-failure', true);
   await assert.rejects(broken.run(), /^Error: installed_http_drain_failed$/);
   assert.equal(broken.inspect().observed, 1);
+});
+
+test(
+  'real Responses WebSocket partial turn closes both peers under the same JSON/SSE stop gate',
+  { timeout: 15000 },
+  async (t) => {
+    for (const mode of ['default', 'enhanced']) {
+      const f = await fixture(t, 'codex', mode, undefined, true, true);
+      const result = await f.run();
+      assert.equal(result.httpTransportDrainQualified, true);
+      assert.equal(result.sseTransportDrainQualified, true);
+      assert.equal(result.websocketDrainQualified, true);
+      assert.deepEqual(result.websocketDrain, {
+        protocol: 'responses',
+        unauthorizedUpgradeRefused: true,
+        partialFrames: 5,
+        terminalFrames: 0,
+        clientClosed: true,
+        upstreamClosed: true,
+      });
+      assert.equal(f.inspect().pending, 0);
+      assert.equal(f.inspect().delivered, 2);
+      assert.equal(f.inspect().observed, mode === 'default' ? 3 : 0);
+    }
+  }
+);
+
+test(
+  'WebSocket wrong authentication, early closure, changed prefix or terminal frame cannot qualify',
+  { timeout: 15000 },
+  async (t) => {
+    for (const fault of [
+      'ws-auth',
+      'ws-auth-bypass',
+      'ws-early',
+      'ws-frame',
+      'ws-terminal',
+      'ws-binary',
+      'ws-utf8',
+      'ws-oversized',
+    ]) {
+      const f = await fixture(t, 'codex', 'enhanced', fault, true, true);
+      await assert.rejects(f.run(), (error) => httpDrainFailurePhase(error) === 'websocket_open');
+    }
+  }
+);
+
+test(
+  'a stop receipt with an upgraded peer left open cannot gain WS qualification through forced cleanup',
+  { timeout: 10000 },
+  async (t) => {
+    const f = await fixture(t, 'codex', 'default', 'ws-not-closed', true, true);
+    const start = performance.now();
+    await assert.rejects(f.run(), (error) => httpDrainFailurePhase(error) === 'websocket_close');
+    assert.ok(performance.now() - start >= 4900);
+  }
+);
+
+test('default WS progress requires another zero-recovery observation before stop', async (t) => {
+  const f = await fixture(t, 'codex', 'default', 'ws-observation', true, true);
+  await assert.rejects(f.run(), (error) => httpDrainFailurePhase(error) === 'websocket_open');
+  assert.equal(f.inspect().observed, 3);
+  assert.equal(f.inspect().stops, 0);
 });

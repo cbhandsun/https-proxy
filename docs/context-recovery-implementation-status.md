@@ -1,5 +1,22 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：安装停机矩阵接入真实Responses WS前缀与双端关闭门，schema7尚待实际Windows
+
+已将上一批installed-only WS监听能力接入实际安装矩阵默认组合，不再停留在未选用的基础模块。保持原四个CLI案例、各三次压缩/精确最终答案/同会话重启、JSON及部分SSE hold/自然退出不变；Codex默认/增强两个owner各增加同一/v1/responses连接上的在途普通WS turn。以真实entry Upgrade发送固定response.create，要求五个精确公开进度帧至output_text.delta，始终不发送或接受response.completed；不是空闲连接关闭，也未改走Realtime规避增强传输。WS与原JSON/SSE一同进入原5000ms窗口，原hold只在独立TCP拒绝后释放，owner原自然零退出/树空及存储范围门全部保留。
+
+同一五秒窗口先发送无效合成认证的真实Upgrade阴性对照，必须收到完整有界401并观察实际socket关闭；101、503、断线、过量/未完成响应和强制清理都不能作为认证拒绝资格。正向握手前还要求上游handshake计数仍零。正向只允许一个握手、一个response.create、精确帧序列；在发起原stopNaturally前必须观察前缀，停机后独立等待client和upstream两个WS close，不能用本探针finally的terminate补齐资格。默认模式在WS前缀后再执行原序号化观察，必须继续零恢复；原每个HTTP请求的独立观察仍保留，不并发争用原签名mailbox。
+
+新增WS拒绝/传输两个可测试模块；未知/可执行输入拒绝，固定模型/loopback/路径、4096消息/拒绝体上限，无任意URL或真实provider凭据入口。异常和响应正文不输出，回执只含固定protocol、五帧/零终态计数、unauthorizedUpgradeRefused及两端closed布尔值。强制清理只负责等所属资源真实关闭，不能创建正向证明；所有未知或失败仍失败，不自动重连、重发或重跑模型。
+
+安装矩阵schema升7，保留原全部字段并新增websocketDrains，必须恰为Codex default/enhanced按序两个精确Responses证明，同时四次原自然退出成立后才能生成websocketDrainQualified=true；旧schema1–6、缺证明、错序/客户端/协议/计数、未关闭/未拒绝认证、重复/未知字段均拒绝。Claude原HTTP/SSE路径保持，不声称Claude有Responses WS。PS消费者同步严格验证并增加有限websocket_open/close阶段，未降低原资源或资格门。这里的新true仅能由新组合成功运行产生；旧固定1e实际安装schema6的WS=false不回写，当前源码的实际Windows WS资格仍未取得。
+
+本机使用真实WebSocketProxy和增强恢复WS transport与停止准入，正常两模式都观察在途前缀及双端关闭；认证绕过、错误上游认证、提前关闭、错误/终态/二进制/非法UTF8/超量帧、默认零恢复观察失败均拒绝，遗漏upgraded peer必须耗尽原五秒并失败，不能靠最后强制清理补绿。另有独立真实HTTP Upgrade的401/101/503/断线/过量/未完成对照及纯证据/端口/坏序/Proxy/getter/空/极端路径。测试fixture显式使用内存session、合成SNI及provider seam，不能冒充TLS/DPAPI/真实Windows；部署默认组合仍走原安装TLS、防火墙、默认worker与DPAPI。扩大十三文件91项通过、零skip；新增测试进入统一发现，1666份JS语法、定向Lint/格式、CI/release治理通过，原安全/覆盖率基线及锁文件不变。
+
+ff4b129普通40428223986七项成功、coverage121939233460保留新的Chat WBIPC long-persistent第二轮5001ms失败，ownerEpoch=2、requests/handshakes各6。第3笔准入2034ms/COMMIT1405ms（线程CPU0），第4笔结算1577ms/COMMIT1012ms（user15000us/system0），后续第5笔准入1263ms在超时附近继续完成；不能混合两次owner的sequence或把全部完成时间算在超时前。该失败同窗ETW缺失，根因未唯一确认，保留独立安全回执且不重跑job，不能用新WS测试或成功窗口称五秒稳定。c38普通40426323652八项及正式40426323653四项均终态success，不能覆盖ff与2b失败；ff正式40428224004仍在执行。
+
+固定1e安装40425384993全链成功及manifest c2d470c7bef878f9f4012ebed5419bffc830435d486a003600b6dab8e30999b6保持，仅授其原schema6合成/迁移/包内范围；本批须先新完整普通/正式门，再以固定新SHA执行实际安装矩阵，不将局部通过改称整体完成。新24h仍是固定1e的独立任务；2026-10-27T00:58:55.965Z同一实际进程/创建时间/源码运行时哈希核验成立，八个连续tick至2100000ms、elapsed2100015.068ms，已真实越过旧半小时失败点但尚未通过24h。五分钟监测持续，原失败及最大文件暂停环境不动，该Windows主机不加验收负载。真实模型0、额度未复核，其他daemon转换、容量、真实provider及受控自用缺口保持。
+
+
 ## 2026-10-27：保留2b覆盖率WBIPC五秒失败；新增有界安装合成WebSocket监听能力，资格未提升
 
 2b55ea256ae26a70c2f599097515e4bd1dd5711d普通Verify40425744278七项成功、coverage121930932367失败。失败为actual core chat WBIPC的long-persistent首轮请求5002ms超时，requests/handshakes各一、ownerEpoch=1。准入save-reference-state第6笔combinedAdmission耗时3868ms，其中clock write188ms、真实SQLite COMMIT3139ms且该worker线程user/system CPU均0、独立anchor persist425ms；第7笔settle-reader耗时2392ms、COMMIT1303ms，replyAsync最终6299ms。后续结算继续执行，不能将其所有时间倒算为超时前耗时。此为同一固定产品代码的新失败窗口，不被1e三runner/自用短测成功覆盖；缺该失败同窗口ETW证据，尚不能唯一归因文件刷盘、调度、VFS重试、杀毒或硬件，更不能称五秒稳定性合格。不重跑失败job、不改四shard/负载/5000ms或持久门制造绿色。c38普通40426323652、正式40426323653及2b正式40425744290仍待完整终态。

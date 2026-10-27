@@ -96,6 +96,19 @@ function fixture(t, broken) {
         ...receipt,
         httpTransportDrainQualified: broken !== 'drain-false',
         sseTransportDrainQualified: broken !== 'sse-false',
+        ...(options.client === 'codex' && broken !== 'ws-missing'
+          ? {
+              websocketDrainQualified: broken !== 'ws-false',
+              websocketDrain: {
+                protocol: 'responses',
+                unauthorizedUpgradeRefused: true,
+                partialFrames: broken === 'ws-prefix' ? 4 : 5,
+                terminalFrames: 0,
+                clientClosed: true,
+                upstreamClosed: broken !== 'ws-open',
+              },
+            }
+          : {}),
       };
     },
     runCase: async (input) => {
@@ -165,11 +178,18 @@ function fixture(t, broken) {
 test('matrix composes four fresh daemon cases, real token factory and observed default upstream requests', async (t) => {
   const f = fixture(t);
   const receipt = await runInstalledClientMatrix(f.args, f.dependencies);
-  assert.equal(receipt.schemaVersion, 6);
+  assert.equal(receipt.schemaVersion, 7);
   assert.equal(receipt.daemonNaturalExitQualified, true);
   assert.equal(receipt.httpTransportDrainQualified, true);
   assert.equal(receipt.sseTransportDrainQualified, true);
-  assert.equal(receipt.websocketDrainQualified, false);
+  assert.equal(receipt.websocketDrainQualified, true);
+  assert.deepEqual(
+    receipt.websocketDrains.map(({ client, mode }) => [client, mode]),
+    [
+      ['codex', 'default'],
+      ['codex', 'enhanced'],
+    ]
+  );
   assert.equal(receipt.syntheticClientQualified, true);
   assert.equal(receipt.realProviderQualified, false);
   assert.equal(receipt.retention24hQualified, false);
@@ -523,4 +543,14 @@ test('argument and phase boundaries reject malformed input and disclose only fin
     failed: true,
   });
   assert.throws(() => writer('private-input'));
+});
+
+test('matrix cannot grant WS qualification without both exact Codex partial-turn close proofs', async (t) => {
+  for (const fault of ['ws-missing', 'ws-false', 'ws-prefix', 'ws-open']) {
+    const f = fixture(t, fault);
+    await assert.rejects(runInstalledClientMatrix(f.args, f.dependencies), {
+      message: 'installed_client_matrix_failed',
+    });
+    assert.ok(!f.calls.includes('01'));
+  }
 });
