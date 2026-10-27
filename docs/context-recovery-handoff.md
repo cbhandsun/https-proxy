@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+## 2026-10-27：最新651正式门通过但coverage五秒再失败，不能仅依据7456绿灯推进整体资格
+
+优先读取实施状态顶部。651f84b只更新文档，普通coverage122475888761仍在chat long-persistent首轮原5000ms门于5015ms失败；正式40585553740四作业成功。safe JSON证据已保存context-recovery-evidence/651f84b-persistent-timeout.json：seq4 COMMIT3028ms、同窗journal flush607/630ms及database flush1789ms时间对应，后续结算1185ms。未授精确单笔关联或唯一根因，不把Fast I/O转IRP状态认作写失败或特定杀毒根因。原LIST最大预扣ACK前禁止读取及未知ACK不退款的门保持，本批没有为了少一次COMMIT而改变预算或读取顺序。
+
+本机固定7456的新Clang/LLD构建已完成两次锁文件安装、原生47项与prepare，最后在installer-build运行，原Job五秒退出/最终封存交付尚未确认。新目录41c8a8，旧长引用clone失败41c8a7保留；桌面67和旧E实例不动。交付与长测监控的预编译准备只有本机有限检查，不代表Windows新安装或24h启动；Windows分账额度仍Codex1/Claude7、实际模型0。继续解决当前持久尾延迟并取得本机安装包，完整daemon、真实provider、24h到期重开及最大容量目标保持，不重复启动或覆盖旧失败。
+
 ## 2026-10-27：7456源码与安装整链已通过，当前优先完成本机安装包交付
 
 优先读取实施状态顶部。固定7456f97的普通八项、正式四作业及额外完整I/O均success；新安装run40576036673全部success。实际manifest21251c237ef91067f40bf111ce9edf10140002dde0f4d9a5a19d8f88ff93bc59、application5e79af7ce73e218d5b3771fa81f54a4dc77f00b0f9d9fcbfe7b126c093027de4。582八步布局1→3/精确+1及旧版拒写、安装原生Codex/Claude默认/增强四组三次压缩/精确回答/同会话重启、原生发布内部30/30均完成，取回客户端及582回执用原解析器重验通过。仅授各自范围，真实provider/24h及完整daemon内部矩阵仍未授；旧失败不被覆盖。

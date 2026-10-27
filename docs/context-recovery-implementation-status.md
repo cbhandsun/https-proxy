@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：651正式四作业成功，coverage再现五秒超时；保留预扣与结算门
+
+651f84b041ab2c65cd8cdd694de5f49984199c83仅比7456f97增加两份交接文档。普通Verify40585553842七项成功、coverage122475888761失败；正式40585553740的source-gates122475888113、egress122475888560、N09122486614639、N08122486614732均success。正式固定场景成功与7456的历史完整成功不能覆盖本次失败，也不能宣称五秒稳定性解决。未重跑失败任务。
+
+coverage原proxy阶段通过；client阶段的actual core chat WBIPC在long-persistent首轮、原5000ms门于5015ms拒绝，requests=1、handshakes=1、roots=1，尚未进入该轮后续私有读/公开生成；Responses/Claude其后有限用例成功不能补认chat成功。client原命令失败后frontend未执行。三份I/O回执均cleanupVerified=true，并用原parseSummary严格重验，通过只属于记录格式与清理范围。有限安全证据已入库至context-recovery-evidence/651f84b-persistent-timeout.json，不含原文、响应、headers、凭据、文件路径或原始ETW。
+
+首轮combined admission的save-reference-state耗时3868ms，其中seq4 COMMIT为3028ms、观察到线程用户/系统CPU均0；后续settle-reader为1185ms，其中seq5 COMMIT974ms，replyAsync5092ms。该COMMIT区间1793136457234–1793136460262与同一合成窗口内journal flush607/630ms、database flush1789ms在时间上对应；最终flush结束与SQL时钟有约2ms差异。窗口同时观察database写855/651ms，成功flush status=0。traceCompletenessVerified及commitCorrelationQualified仍false，不授单笔精确关联、完整事件或唯一根因。非零状态0xC01C0004按[Microsoft NTSTATUS定义](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55)属于Fast I/O转IRP路径的内部状态，不能直接称持久写失败或某杀毒软件根因。
+
+检查了合并LIST写入的可行性。既有“metadata LIST waits for maximum-debit ACK”真实回归要求目录读取调用数在预扣ACK前为0，预扣16384字节，未知ACK不结算/退款。预扣和结算分别承担原失败语义，不能为降低延迟而提前读取、少扣预算或略过其中一门。本批未修改产品路径、认证、预算、FULL/DELETE/secure_delete、OS锚点独立flush、精确ACK或任何期限。后续继续从实际页写入与刷盘范围定位，不把同窗口的慢flush补写为已经确认的磁盘/过滤器唯一根因。
+
+Windows独立7456构建HPM-self-use-build-7456f97-clang-41c8a8已真实启动，锁文件两阶段、原生fmt/clippy与47项零fail/ignore及prepare成功，最后仍在installer-build，所属Node实际身份匹配；完整构建终态和原五秒Job自然退出门尚未确认，未封存或交付新产物。此前固定review分支clone因Windows引用锁路径过长失败，保留41c8a7现场；新41c8a8从短分支depth2取得并detach精确7456、源码干净后才启动，不改全局Git或工具版本。交付脚本已准备，仅七阶段全成功及源码/摘要复核通过才复制到新的桌面目录；未执行，不覆盖桌面67或旧E实例。候选说明已加入本次5015ms已知失败，不将同源码托管安装资格转授本机编译二进制。
+
+长测监控准备沿用原Job源码并加入固定power lease，组合源码摘要316a4448b9ec4e9bddd3d563c218ac4b0dbeee1e08f88866e6008a7b907eda5c；本机C#编译、PowerShell模板语法及加载器13项检查通过，但未执行Windows原生调用，仍待Windows编译/成功/非零/超时短测，不能称长测已启动。Windows私有额度只读重验仍177/169，Codex1/Claude7分别保留，未预留/调用。所有旧失败及冻结现场保持，无新24h/最大文件任务；最新本机安装、真实provider、实际daemon剩余内部矩阵、完整真实24h/到期重开及最大容量仍未完成，整体目标不缩减。
+
 ## 2026-10-27：7456完整CI及最新安装整链通过；本机交付仍受构建退出门约束
 
 固定产品源码7456f97e9c3222089b4e7a01fe6c8fe636930f8d的普通Verify40572154489八项、正式Windows40572154488四作业均已success；业务诊断40572154315的N08/N09也success，仍仅为固定诊断范围。真实闭包生成/消费及未知导入拒绝两项新增回归已在Windows unit1/job122428902560执行通过，分片188/753文件通过。额外完整I/O40572154421/job122428902455成功，原proxy/client/frontend依次完成；三个schema6回执用原parseSummary严格重验，均file-completed、cleanupVerified=true，两个CLI核验标志齐全。native-publication-interruption/client-context-target/publication-graceful-http分别75/144/63次flush，database/journal最大653/561、95/186、23/38ms。fiveSecondQualified及traceCompletenessVerified仍false，旧a0及更早原失败全部保留，不称五秒长期稳定。
