@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+## 2026-10-27：ACK内部边界基础已补，真实长测继续运行
+
+优先读实施状态顶部。私有afterDurableAck及publication-ack-boundary只在原生产器完成后、原token交付前持有固定事实；异常/重入不能发布host-save成功，也不替换原ACK。五状态固定版本/原expiry检查及迟到release拒绝、真实物理FULL/DELETE SQLite的prepared控制和sending失败保留已通过。默认宿主未启用新边界，签名控制通道和实际daemon全内部矩阵仍未完成，不授daemon/native资格；本批也未修复五秒尾延迟。相关81/81、后续范围重合28/28、Lint/1697语法/治理通过，新Windows CI仍待。
+
+不要重启或抢占固定6646的真实24h任务；当前健康仍running、无失败锁存，具体新快照见context-recovery-evidence/publication-post-ack-boundary.json。旧冻结现场/旧E实例保持。额度只读仍Codex1/Claude7（169/177），逐上游请求计数，不按CLI启动次数计，也未执行旧私有harness或预留调用。后续在Mac/托管环境接入新ACK边界的受签名控制与实际daemon中断；完整安装两端、真实provider、五秒稳定性、24h到期重开与最大容量仍待完成。
+
 ## 2026-10-27：6646真实24h已启动，优先读此新检查点
 
 北京时间28日06:41:21（UTC27日22:41:21.177）已实际启动独立6646真实24h任务；任务、实际Node及原生助手身份均核对，源码冻结/干净。已看到五分钟时点、累计301015.7959ms与两个有效节拍，健康progress_advanced、无失败/时间线错误；Windows每分钟观察器已实际写健康历史。任务无自动重试，旧冻结现场与旧实例不动，真实模型0。不可重新启动此任务或抢占其验收环境。具体回执与监控入口说明见实施状态顶部及context-recovery-evidence/6646f59-native-day-started.json；尚未通过24h/到期两次重开。

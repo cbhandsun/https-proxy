@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "scope": "private_publication_post_durable_ack_boundary",
+  "hookEnabledByDefaultHost": false,
+  "originalOpaqueAckPreserved": true,
+  "callbackFields": [
+    "rootId",
+    "expiresAt",
+    "revision"
+  ],
+  "rootRevisionMustEqualExpectedPlusOne": true,
+  "observedStorageStateMustBeCompleted": true,
+  "supportedTransitions": [
+    "prepared",
+    "sending",
+    "transport-finished",
+    "uncertain",
+    "withdrawn"
+  ],
+  "holdDeadlineMs": 5000,
+  "externalOriginalWitnessDeadlineMs": 750,
+  "originalWitnessConnected": false,
+  "physicalSqliteComposition": {
+    "fullSynchronous": true,
+    "deleteJournal": true,
+    "secureDelete": true,
+    "preparedControlAfterPhysicalCommit": true,
+    "sendingGateFailureRetainsCommittedRevision": true,
+    "originalExpiryPreserved": true,
+    "nativeDefaultWorkerQualified": false,
+    "actualDaemonQualified": false
+  },
+  "verification": {
+    "relatedTestFiles": 12,
+    "relatedTestsPassed": 81,
+    "failed": 0,
+    "skipped": 0,
+    "subsequentBoundaryAndGovernanceTestsPassed": 28,
+    "testScopesOverlap": true,
+    "syntaxFiles": 1697,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "ciGovernancePassed": true,
+    "releaseGovernancePassed": true,
+    "windowsCiQualified": false
+  },
+  "modelRequests": 0,
+  "ledgerChanged": false,
+  "liveDay": {
+    "taskName": "HPM-native-day-20261027-6646f59-8e34b1",
+    "checkedAtUtc": "2026-10-27T23:07:05.806Z",
+    "state": "running",
+    "reason": "progress_advanced",
+    "passed": false,
+    "lastScheduledMs": 1500000,
+    "elapsedMs": 1500788.8958,
+    "observedTicks": 6,
+    "processAlive": true,
+    "terminalConfirmed": false,
+    "runIdentity": "09921c096ed95fd403817b3318cd4b4c52109e2acbd90ad67ea662612c088e88",
+    "failureLatched": false
+  },
+  "fullDaemonMatrixQualified": false
+}

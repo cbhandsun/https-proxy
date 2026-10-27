@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：增加发布ACK内部可控边界；物理SQLite组合通过，尚未授daemon矩阵资格
+
+本批新增私有publication-ack-boundary及运行时afterDurableAck可选接口，默认宿主未启用。实际原ACK生产器执行后、原观察器发布完成回执/调用方拿到token前，才调用同步边界；只传冻结rootId/expiresAt/revision，既不传token、reference、principal或原文，也不能替换原token。异步/Proxy/generator回调及非undefined返回拒绝；失败保持sticky，待完成的host-save不能授成功。先红回归还复现了回调吞掉重入异常仍可能放行外层ACK，新实现拒绝ACK重入并在回调后重新检查失败/关闭状态；回归已转绿。原无边界路径与存储Promise、请求、精确CAS/ACK、认证和库存来源保持。
+
+可控边界要求观察器同代次、唯一已完成save-reference-state、目标root/原expiry/transition一致、callOrdinal更新，实际revision必须精确expectedRevision+1；原事实不符先于调用观察器即拒绝。支持五个原发布状态，不提前返回或制造ACK。固定5000ms持有上限包含回执发布/轮询，迟到release、倒退/停止/非法时钟、重复进入/重arm和关闭后调用均拒绝；这是私有测试基础模块，外部原750ms见证并未修改，但尚未接入该新模块的签名控制通道。
+
+新增真实会话+物理加密SQLite组合测试，明确保留构造器/等待测试seam：prepared控制在SQL COMMIT之后、DELETE journal已移除且FULL/secure_delete仍开时才进入暂停，原完成仍未返回；后续sending边界主动失败时，上层完成拒绝，已提交revision和原expiry仍保留，不退款或重试。这不等于原生DPAPI/OS锚点或实际daemon强杀。本批只完成内部可控点基础，签名控制/原生实际daemon全五状态COMMIT和ACK矩阵仍未完成。有限证明见context-recovery-evidence/publication-post-ack-boundary.json。
+
+相关12文件81/81、零fail/skip；首轮80通过/1缺pwsh失败保留，随后仅为该命令临时加入已有PowerShell7.6.8路径，原PowerShell签名/门控组合真实执行通过，没有跳测试。后续事实预校验与模块大小治理28/28，范围有重合，不相加授全仓资格；全仓Lint零错误/五个既有警告，1697语法、CI/release治理及格式通过。新测试进入原统一unit自动发现，尚待本批Windows CI；本批没有修复或掩盖既有五秒尾延迟。
+
+长测仍固定6646、独立同一任务/进程，无失败锁存；最新只读健康快照随安全证明记录，未在Windows启动别的验收任务，也未改其冻结来源。分账台账再次只读核对169/177、Codex1/Claude7；静态AST证明旧私有v4在上游请求处理器中逐请求增used并写账，不能把一次CLI启动计成一次额度，也不能将旧无fsync路径当新的持久记账保证。未执行该私有harness、未写账或预留，真实模型0。原始CLI上游固定场景34项离线回归通过，仅用于核对调用计数，不是实际模型资格。其余安装、真实provider、五秒稳定性、24h到期重开及最大容量缺口保持。
+
 ## 2026-10-27：真实24h已实际启动并推进五分钟；6646普通全绿，正式与额外原失败保留
 
 已按用户后续明确的“启动24小时测试”授权，在独立6646冻结目录注册并启动新任务，无自动重试。此前把完整CI全绿额外绑成启动前提，现纠正执行顺序：原生短测、100项Windows回归、原生开库与Job/power短验通过及源码/运行环境/安全回执封存后即可独立运行；原完整CI仍是整体交付门禁，并未删除、跳过或放宽。注册时将delivery CI未通过明确写入元数据；旧失败、冻结长测目录/任务/数据库、旧E实例及候选均保持，未调用模型。

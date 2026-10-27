@@ -86,6 +86,9 @@ function fixture(t, options = {}) {
     lifecycleExports,
     expectedDirectory: directory,
     ...identity,
+    ...(Object.hasOwn(options, 'afterDurableAck')
+      ? { afterDurableAck: options.afterDurableAck }
+      : {}),
   });
   t.after(() => {
     try {
@@ -390,4 +393,100 @@ test('cleanup restores owned descriptors but never overwrites third-party drift'
   assert.equal(ackExports.createRecoveryDurableAck, thirdParty);
   assert.equal(lifecycleExports.createContextRecoveryLifecycle, originalFactory);
   assert.throws(() => hooks.close(), safe);
+});
+
+test('private post-durable boundary sees only frozen facts after the original producer and before token release', (t) => {
+  const seen = [];
+  const f = fixture(t, {
+    afterDurableAck(facts) {
+      assert.equal(f.tokens.length, 1);
+      assert.equal(Object.isFrozen(facts), true);
+      seen.push(facts);
+    },
+  });
+  const reference = state(f.open());
+  const token = f.ackExports.createRecoveryDurableAck(reference, 1);
+  assert.equal(token, f.tokens[0]);
+  assert.equal(seen.length, 1);
+  assert.deepEqual(Object.keys(seen[0]), ['rootId', 'expiresAt', 'revision']);
+  assert.deepEqual(seen[0], {
+    rootId: reference.metadata.rootId,
+    expiresAt: reference.metadata.expiresAt,
+    revision: 1,
+  });
+  assert.equal(JSON.stringify(seen).includes(reference.metadata.principal), false);
+});
+
+test('private boundary rejection cannot publish a host-save receipt or leak its original error', async (t) => {
+  for (const callback of [
+    () => {
+      throw Error('PRIVATE_ACK_BOUNDARY');
+    },
+    () => false,
+    () => Promise.reject(Error('PRIVATE_ACK_BOUNDARY')),
+  ]) {
+    const f = fixture(t, {
+      afterDurableAck(facts) {
+        if (facts.revision === 2) return callback();
+      },
+    });
+    const reference = state(f.open());
+    f.ackExports.createRecoveryDurableAck(reference, 1);
+    const pending = assert.rejects(f.hooks.armSave(command(reference)), safe);
+    assert.throws(() => f.ackExports.createRecoveryDurableAck(reference, 2), safe);
+    await pending;
+    assert.throws(() => f.ackExports.createRecoveryDurableAck(reference, 3), safe);
+  }
+});
+
+test('invalid private boundary callbacks reject before patching either export', (t) => {
+  let touched = 0;
+  const hostile = new Proxy(() => {}, {
+    get() {
+      touched++;
+      throw Error('PRIVATE');
+    },
+  });
+  for (const value of [undefined, null, {}, hostile, async () => {}, function* () {}]) {
+    assert.throws(() => fixture(t, { afterDurableAck: value }), safe);
+  }
+  assert.equal(touched, 0);
+});
+
+test('private boundary does not evaluate unknown thenables and rejects reentrant ACK production', (t) => {
+  let touched = 0;
+  const f = fixture(t, {
+    afterDurableAck() {
+      return Object.defineProperty({}, 'then', {
+        get() {
+          touched++;
+          throw Error('PRIVATE');
+        },
+      });
+    },
+  });
+  const reference = state(f.open());
+  assert.throws(() => f.ackExports.createRecoveryDurableAck(reference, 1), safe);
+  assert.equal(touched, 0);
+  const recursive = fixture(t, {
+    afterDurableAck() {
+      recursive.ackExports.createRecoveryDurableAck(reference, 2);
+    },
+  });
+  recursive.open();
+  assert.throws(() => recursive.ackExports.createRecoveryDurableAck(reference, 1), safe);
+});
+
+test('a callback cannot swallow a reentrant failure and still release the outer ACK', (t) => {
+  const f = fixture(t, {
+    afterDurableAck() {
+      try {
+        f.ackExports.createRecoveryDurableAck(reference, 2);
+      } catch {
+        /* fixed outer failure must remain sticky */
+      }
+    },
+  });
+  const reference = state(f.open());
+  assert.throws(() => f.ackExports.createRecoveryDurableAck(reference, 1), safe);
 });

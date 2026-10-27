@@ -77,13 +77,24 @@ function strictShutdown(pending) {
 // resources, call shutdown on close, or provide any transport/endpoint.
 function installN09RuntimeHooks(input) {
   try {
+    plain(input);
+    const withBoundary = Object.hasOwn(input, 'afterDurableAck');
     const config = fields(input, [
       'ackExports',
       'lifecycleExports',
       'expectedDirectory',
       'pid',
       'epoch',
+      ...(withBoundary ? ['afterDurableAck'] : []),
     ]);
+    if (
+      withBoundary &&
+      (typeof config.afterDurableAck !== 'function' ||
+        types.isProxy(config.afterDurableAck) ||
+        types.isAsyncFunction(config.afterDurableAck) ||
+        types.isGeneratorFunction(config.afterDurableAck))
+    )
+      throw fail();
     if (
       !directory(config.expectedDirectory) ||
       !Number.isSafeInteger(config.pid) ||
@@ -103,7 +114,8 @@ function installN09RuntimeHooks(input) {
       constructing = false,
       closed = false,
       failed = false,
-      closeFailed = false;
+      closeFailed = false,
+      notifying = false;
     let sequence = 0;
     const patches = [];
     function available() {
@@ -116,7 +128,7 @@ function installN09RuntimeHooks(input) {
     function ack(input, revision) {
       try {
         if (closed) return Reflect.apply(ackSlot.value, config.ackExports, [input, revision]);
-        if (constructing || failed) {
+        if (constructing || failed || notifying) {
           Reflect.apply(ackSlot.value, config.ackExports, [input, revision]);
           failed = true;
           throw fail();
@@ -174,11 +186,28 @@ function installN09RuntimeHooks(input) {
           epoch: config.epoch,
           createRecoveryDurableAck(reference, revision) {
             const token = Reflect.apply(ackSlot.value, config.ackExports, [reference, revision]);
-            owner.produced = Object.freeze({
+            const facts = Object.freeze({
               rootId: reference.metadata.rootId,
               expiresAt: reference.metadata.expiresAt,
               revision,
             });
+            // A private acceptance seam, after the real producer but before
+            // the observer can publish completion or the caller gets its token.
+            // It receives no token, reference, principal or stored content.
+            if (withBoundary) {
+              notifying = true;
+              try {
+                const result = config.afterDurableAck(facts);
+                if (result !== undefined) {
+                  discardN09PromiseRejection(result);
+                  throw fail();
+                }
+                available();
+              } finally {
+                notifying = false;
+              }
+            }
+            owner.produced = facts;
             return token;
           },
         });
