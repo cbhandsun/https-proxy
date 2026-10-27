@@ -1,5 +1,8 @@
 # 上下文恢复换机交接
 
+**最新同窗取证组合：** 17fff50普通client保留HTTP5014ms及同owner写COMMIT2925ms失败，正式另保留最终持久完成5001ms失败；独立I/O成功来自另一作业，不能解释或覆盖。现将既有首失败有界采集接到实际Verify coverage，完整原三段命令/顺序/退出门、负载/期限/ACK/TTL/FULL/DELETE不变，JS与真实PS均严格绑定两对workflow/job；扩大68项零skip，实际新Windows取证待CI，不称产品根因已修复。新独立合成锚点同步seed加32次owned compare/实际close通过，仅组件短测、冻结库/anchor写0；旧Git超时保留、不授一小时/24h资格。742三runner与独立I/O通过，完整普通/正式仍待。日档保持冻结、模型0，完整剩余范围见实施状态顶部。
+
+
 **最新锚点细失败传播：** 实际async repository/admission/owner此前把内部失败压成anchor-persist，现保留十个固定细边界及独立次级cleanupFailed，只走私有WeakMap/既有安全回执，公开503、原期限、精确ACK、TTL与FULL/DELETE保持。九文件125项124通过/1原Windows限定skip；新源码完整Windows待CI，不称一小时/五秒根因已修复。冻结1e独立身份探针实际匹配全部摘要；后续合成anchor短测明确在Git原5秒identity/ETIMEDOUT失败，compare完成0，不能冒充原生失败或成功。17fff50普通七项成功、coverage/正式source/I/O仍实际执行。真实24h仍未通过且没有运行中的新日档，模型0；原失败和全部剩余交付范围见实施状态顶部。
 
 

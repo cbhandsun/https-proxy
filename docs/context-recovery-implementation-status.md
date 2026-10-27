@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：将首失败I/O窗口接到实际普通coverage；新合成锚点32次通信已实测
+
+17fff50普通40437772833七项成功、coverage121970504037终态failure：client阶段Chat WBIPC long-persistent首轮HTTP 5014ms、requests/handshakes各2；同阶段ownerEpoch=1的save-reference-state/sequence6写COMMIT 2925ms、engine_execute3134ms，保存原失败。正式40437772844/source121970504414亦failure，client阶段同类第二轮publication_wait_failed5001ms，是最终持久完成门失败，不能误写成HTTP失败；egress成功、N08/N09跳过。独立I/O40437772838/job121970504034成功但两阶段windowTermination均file-completed，proxy51对flush/数据库max36ms/日志13ms，client153对/数据库27ms/日志98ms；这些是另一作业的成功观察，无法覆盖或解释上述慢失败，没有同窗因果或五秒稳定性资格。
+
+为补齐这个实际取证缺口，本批把既有有界采集组合到Verify的原coverage作业，只在该步骤显式启用。原完整proxy四分片→client→frontend命令各一次且顺序不变，每段保留原退出码，安全回执或原阶段失败都不能补绿，原失败停止后段；原test:coverage中的安全覆盖检查仍执行。不改任何测试负载/断言、HTTP5000/native10000/storage30000、ACK/TTL/FULL/DELETE或覆盖率基线，不重跑旧失败。原首失败才发送finish、实际close/零退出/独立清理、32MiB环形/有界摘要和全部资格false保持；原始ETL/路径/数据库/密钥/原文不上传。追踪会扰动时序，取得同窗记录也不自动授完整性或稳定性资格；正式source仍按原npm run verify执行，未被替换。
+
+JS入口和真实PowerShell recorder同时只接纳固定仓库中诊断workflow/coverage-file-flush与verify.yml/coverage两对身份，保留GitHub-hosted Windows/X64、SHA相等、阶段和路径检查；其他job、交叉组合、空/非法ref拒绝。新测试先因Verify上下文被拒绝而红；两份实际workflow run文本均用真实PowerShell逐一模拟每段原退出/回执失败，确认只执行应有的前缀，无重复/跳过后补。五文件扩大68项零fail/skip，定向Lint/格式、1667份语法和CI/release治理通过，实际新Windows采集尚待推送后结果，不能预称已抓到慢失败。
+
+Windows新目录/新合成slot的独立短测现实际完成：固定冻结1e源码/原生/Node匹配，初始同步compare一次、owned-stream连续32次精确revision成功，实际close完成，首次794ms，其余60–430ms。冻结数据库写入/冻结anchor compare均0，原材料未修改，fullStoreQualified=false。先前身份检查ETIMEDOUT与未进入compare的失败原样保留；本次仅证明当前短程组件通信，不授默认worker/完整存储/一小时或24h资格，也不解释历史失败。安全回执和探针只留本机。742bd32三runner40438538114三项与独立I/O40438538108成功，普通已有七项成功/coverage及正式source仍执行；一小时锚点和五秒产品根因仍待，模型0。
+
+
 ## 2026-10-27：修复锚点内部失败被外层压平，继续保留五秒真实失败
 
 一小时日档只有anchor-persist粗标签，不能区分快照/后继校验、实际原生请求、回复解析、前后物理身份与精确ACK。本批修复实际async repository→admission→owner失败传播：增加十个固定内部边界，只通过既有私有WeakMap携带，不读取异常message/cause/stack/任意字段，不把标签附到公开503。原始原生请求及回复各一次、无重试；同一必需清理先实际等待，次级清理失败与首失败位置分别保存。admission/owner不得再把已有细阶段覆盖成anchor-persist；未品牌化错误仍使用当前固定粗阶段。正常成功不发额外事件，不增加SQL/原生调用，也不授权ACK、清理完成或验收通过。

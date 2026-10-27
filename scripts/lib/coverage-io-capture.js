@@ -12,7 +12,10 @@ const isSha = (value) =>
   typeof value === 'string' && value.length === 40 && /^[a-f0-9]{40}$/.test(value);
 const READY = 'HPM_PERSISTENT_IO_CAPTURE_READY';
 const PREFIX = 'HPM_PERSISTENT_IO=';
-const WORKFLOW = 'cbhandsun/https-proxy/.github/workflows/windows-persistent-io-coverage.yml@';
+const WORKFLOWS = [
+  ['windows-persistent-io-coverage.yml', 'coverage-file-flush'],
+  ['verify.yml', 'coverage'],
+];
 const KEYS = [
   'schemaVersion',
   'scope',
@@ -284,6 +287,7 @@ function installCoverageIoCapture(
     'HPM_COVERAGE_IO_STAGE',
     'GITHUB_SHA',
     'GITHUB_ACTIONS',
+    'GITHUB_JOB',
     'GITHUB_WORKFLOW_REF',
     'GITHUB_REPOSITORY',
     'GITHUB_WORKSPACE',
@@ -315,7 +319,13 @@ function installCoverageIoCapture(
     environment.RUNNER_OS !== 'Windows' ||
     environment.RUNNER_ARCH !== 'X64' ||
     environment.GITHUB_REPOSITORY !== 'cbhandsun/https-proxy' ||
-    !environment.GITHUB_WORKFLOW_REF?.startsWith(WORKFLOW) ||
+    !WORKFLOWS.some(
+      ([file, job]) =>
+        environment.GITHUB_JOB === job &&
+        environment.GITHUB_WORKFLOW_REF?.startsWith(
+          'cbhandsun/https-proxy/.github/workflows/' + file + '@refs/'
+        )
+    ) ||
     !isSha(environment.HPM_COVERAGE_IO) ||
     environment.HPM_COVERAGE_IO !== environment.GITHUB_SHA ||
     !['proxy', 'client'].includes(environment.HPM_COVERAGE_IO_STAGE)

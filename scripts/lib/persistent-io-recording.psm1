@@ -123,6 +123,14 @@ function Read-HpmCoverageIoCommand {
     } catch { throw 'persistent_io_capture_command_refused' }
 }
 
+function Test-HpmCoverageIoWorkflow {
+    $workflow = [string]$env:GITHUB_WORKFLOW_REF
+    return (
+        ($env:GITHUB_JOB -ceq 'coverage-file-flush' -and $workflow.StartsWith('cbhandsun/https-proxy/.github/workflows/windows-persistent-io-coverage.yml@refs/')) -or
+        ($env:GITHUB_JOB -ceq 'coverage' -and $workflow.StartsWith('cbhandsun/https-proxy/.github/workflows/verify.yml@refs/'))
+    )
+}
+
 function Invoke-HpmPersistentIoDiagnostic {
     param([switch]$CaptureOnly)
     $ErrorActionPreference = 'Stop'
@@ -174,7 +182,7 @@ function Invoke-HpmPersistentIoDiagnostic {
     }
     try {
         if (-not $IsWindows -or $env:RUNNER_ARCH -cne 'X64' -or $env:CI -cne 'true' -or $args.Count -ne 0 -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:GITHUB_REPOSITORY -cne 'cbhandsun/https-proxy') { throw 'refused' }
-        if ($CaptureOnly -and ($env:HPM_COVERAGE_IO -cnotmatch '\A[a-f0-9]{40}\z' -or $env:HPM_COVERAGE_IO -cne $env:GITHUB_SHA -or $env:HPM_COVERAGE_IO_STAGE -cnotin @('proxy','client') -or -not $env:GITHUB_WORKFLOW_REF.StartsWith('cbhandsun/https-proxy/.github/workflows/windows-persistent-io-coverage.yml@'))) { throw 'refused' }
+        if ($CaptureOnly -and ($env:HPM_COVERAGE_IO -cnotmatch '\A[a-f0-9]{40}\z' -or $env:HPM_COVERAGE_IO -cne $env:GITHUB_SHA -or $env:HPM_COVERAGE_IO_STAGE -cnotin @('proxy','client') -or -not (Test-HpmCoverageIoWorkflow))) { throw 'refused' }
         Import-Module (Join-Path $PSScriptRoot 'nsis-lifecycle.psm1')
         $phase = 'paths'
         $parent = [IO.Path]::GetFullPath($env:RUNNER_TEMP)

@@ -28,6 +28,68 @@ const summary = () => ({
 });
 const failure = { message: 'coverage_io_capture_failed' };
 
+test('the real PowerShell recorder admits only the exact workflow and job pairs', () => {
+  const { spawnSync } = require('node:child_process');
+  const cases = [
+    ['windows-persistent-io-coverage.yml@refs/heads/fixture', 'coverage-file-flush', true],
+    ['verify.yml@refs/pull/1/merge', 'coverage', true],
+    ['verify.yml@refs/heads/fixture', 'unit-tests', false],
+    ['verify.yml@refs/heads/fixture', 'coverage-file-flush', false],
+    ['windows-persistent-io-coverage.yml@refs/heads/fixture', 'coverage', false],
+    ['verify.yml@refs/heads/fixture', '', false],
+    ['verify.yml@', 'coverage', false],
+    ['', 'coverage', false],
+  ];
+  const encoded = Buffer.from(JSON.stringify(cases)).toString('base64');
+  const modulePath = path
+    .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  const script = `Import-Module '${modulePath}';$cases=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))|ConvertFrom-Json;$results=@(foreach($case in $cases){$env:GITHUB_WORKFLOW_REF='cbhandsun/https-proxy/.github/workflows/'+$case[0];$env:GITHUB_JOB=$case[1];& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWorkflow}});ConvertTo-Json -Compress -InputObject $results`;
+  const result = spawnSync(
+    'pwsh',
+    ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
+    { encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+  );
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map((value) => value[2])
+  );
+});
+
+test('the actual Verify coverage job can record its own failure window without accepting other jobs', async (t) => {
+  for (const coverageStage of ['proxy', 'client']) {
+    const f = fixture(t);
+    f.environment.GITHUB_WORKFLOW_REF =
+      'cbhandsun/https-proxy/.github/workflows/verify.yml@refs/heads/acceptance/context-recovery/fixture';
+    f.environment.GITHUB_JOB = 'coverage';
+    f.environment.HPM_COVERAGE_IO_STAGE = coverageStage;
+    f.install('success');
+    await f.hooks.before();
+    await f.hooks.after();
+    const receipt = readCoverageIoReceipt(f.environment);
+    assert.equal(receipt.coverageStage, coverageStage);
+    assert.equal(receipt.cleanupVerified, true);
+    assert.equal(receipt.summary.fiveSecondQualified, false);
+  }
+  for (const [workflow, job] of [
+    ['verify.yml', 'unit-tests'],
+    ['verify.yml', 'coverage-file-flush'],
+    ['windows-persistent-io-coverage.yml', 'coverage'],
+    ['verify.yml', ''],
+  ]) {
+    const f = fixture(t);
+    f.environment.GITHUB_WORKFLOW_REF =
+      'cbhandsun/https-proxy/.github/workflows/' +
+      workflow +
+      '@refs/heads/acceptance/context-recovery/fixture';
+    f.environment.GITHUB_JOB = job;
+    assert.throws(() => f.install('success'), failure);
+  }
+});
+
 test('extended operation summary survives capture cleanup and source/stage receipt verification', async (t) => {
   const { createPersistentIoSummary } = require('../scripts/lib/persistent-io-summary');
   const value = createPersistentIoSummary();
@@ -65,6 +127,7 @@ function fixture(t) {
     HPM_COVERAGE_IO_STAGE: 'proxy',
     GITHUB_SHA: 'a'.repeat(40),
     GITHUB_ACTIONS: 'true',
+    GITHUB_JOB: 'coverage-file-flush',
     CI: 'true',
     RUNNER_ENVIRONMENT: 'github-hosted',
     RUNNER_OS: 'Windows',
@@ -535,36 +598,38 @@ $module=Import-Module '${modulePath}' -PassThru -Force
   assert.equal(f.reports[0].summary.fiveSecondQualified, false);
 });
 
-test('actual coverage workflow stops after each failed original stage or receipt and never masks its exit', () => {
-  const { spawnSync } = require('node:child_process');
-  const workflow = fs
-    .readFileSync(
-      path.resolve(__dirname, '../.github/workflows/windows-persistent-io-coverage.yml'),
-      'utf8'
-    )
-    .replaceAll('\r\n', '\n');
-  const block = workflow.slice(
-    workflow.indexOf('      - name: Execute complete original coverage commands')
-  );
-  const matched = block.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/);
-  assert.ok(matched);
-  const body = matched[1].replace(/^ {10}/gm, '');
-  const all = [
-    'npm run test:coverage',
-    'receipt proxy',
-    'npm run test:client:coverage',
-    'receipt client',
-    'npm run test:frontend:coverage',
-  ];
-  for (const [mode, count] of [
-    ['success', 5],
-    ['npm-test:coverage', 2],
-    ['receipt-proxy', 2],
-    ['npm-test:client:coverage', 4],
-    ['receipt-client', 4],
-    ['npm-test:frontend:coverage', 5],
-  ]) {
-    const code = `
+for (const workflowName of ['windows-persistent-io-coverage.yml', 'verify.yml']) {
+  test(
+    'actual ' +
+      workflowName +
+      ' stops after each failed original stage or receipt and never masks its exit',
+    () => {
+      const { spawnSync } = require('node:child_process');
+      const workflow = fs
+        .readFileSync(path.resolve(__dirname, '../.github/workflows/', workflowName), 'utf8')
+        .replaceAll('\r\n', '\n');
+      const block = workflow.slice(
+        workflow.indexOf('      - name: Execute complete original coverage commands')
+      );
+      const matched = block.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/);
+      assert.ok(matched);
+      const body = matched[1].replace(/^ {10}/gm, '');
+      const all = [
+        'npm run test:coverage',
+        'receipt proxy',
+        'npm run test:client:coverage',
+        'receipt client',
+        'npm run test:frontend:coverage',
+      ];
+      for (const [mode, count] of [
+        ['success', 5],
+        ['npm-test:coverage', 2],
+        ['receipt-proxy', 2],
+        ['npm-test:client:coverage', 4],
+        ['receipt-client', 4],
+        ['npm-test:frontend:coverage', 5],
+      ]) {
+        const code = `
       $mode='${mode}'
       $calls=[Collections.Generic.List[string]]::new()
       function npm {
@@ -582,24 +647,26 @@ test('actual coverage workflow stops after each failed original stage or receipt
       try { ${body} } catch { $failed=$true }
       [ordered]@{calls=@($calls);failed=$failed}|ConvertTo-Json -Compress
     `;
-    const result = spawnSync(
-      'pwsh',
-      ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code],
-      { encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
-    );
-    assert.equal(result.error, undefined);
-    assert.equal(result.status, 0);
-    assert.deepEqual(JSON.parse(result.stdout), {
-      calls: all.slice(0, count),
-      failed: mode !== 'success',
-    });
-    if (mode === 'npm-test:coverage')
-      assert.equal(result.stderr.trim(), 'coverage_original_stage_failed:stage=proxy');
-    else if (mode === 'npm-test:client:coverage')
-      assert.equal(result.stderr.trim(), 'coverage_original_stage_failed:stage=client');
-    else assert.equal(result.stderr, '');
-  }
-});
+        const result = spawnSync(
+          'pwsh',
+          ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code],
+          { encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+        );
+        assert.equal(result.error, undefined);
+        assert.equal(result.status, 0);
+        assert.deepEqual(JSON.parse(result.stdout), {
+          calls: all.slice(0, count),
+          failed: mode !== 'success',
+        });
+        if (mode === 'npm-test:coverage')
+          assert.equal(result.stderr.trim(), 'coverage_original_stage_failed:stage=proxy');
+        else if (mode === 'npm-test:client:coverage')
+          assert.equal(result.stderr.trim(), 'coverage_original_stage_failed:stage=client');
+        else assert.equal(result.stderr, '');
+      }
+    }
+  );
+}
 
 test('receipt publication refuses a replaced owned parent directory', async (t) => {
   const f = fixture(t);
