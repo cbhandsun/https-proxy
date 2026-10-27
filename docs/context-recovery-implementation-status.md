@@ -1,5 +1,14 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：868日档控制器异常退出，Node仍存活；禁止冒充完整资格或自动重启
+
+08:00:17.964Z健康观察首次报告process_not_running，同时processAlive=true、四连续tick至真实scheduled900000/elapsed900012.1472ms，未记录storage_operation_failed或native_day_failed。随即重新读取同一任务/实际CIM身份：08:00:44Z任务Ready、lastTaskResult3221225786（0xC000013A），PID73832仍存活、可执行路径及创建时间匹配，未有process_finished/controller_failed最终回执。08:01:18Z额外只读父子关系确认原父PID52944不存在。任务执行上限P1DT2H、restartCount0、两项电池停止/拒启均false；TaskScheduler Operational事件不可读，无法确认控制器退出来源，不把它归咎存储、DPAPI、锚点、安全软件或用户操作。
+
+实际Node存活不等于控制器仍持有防休眠/输出排空及最终退出回执。原要求最终任务成功和实际零退出保持，因此本轮当前不能作为完整24h合格证据；既不伪造外层回执，也不把任务Ready误报为Node已停止。未停止/重启/接管所属进程、改活跃环境或读取数据库，继续同一只读监测且terminalConfirmed=false，不能据此自动停监测。需定位控制器异常和观察实际Node终态；此事件在约20分钟观察时发现，不会等24h后才报告。刚写入的启动及10分钟记录仍是当时真实证据，不能覆盖此后监督链异常。
+
+安装链40470352157已resolve成功、私有旧基线获取成功，当前进入原完整candidate gates；模型0、日档环境不加测试负载，旧失败/门禁全部保留。
+
+
 ## 2026-10-27：868完整门与本机原50闭合；真实24h已启动，最新安装链独立执行
 
 固定8682b768547d52c6c96026aa23e7ec496bfd5cea的普通Verify40464979597八项、正式40464979574四项、原三冷runner时序40464979606三项及完整coverage I/O40464979524均终态success。三组时序各50/50、零skip，18次最终持久publication为708–1229ms。本机原50项在新five-second-40fa89b5现场77105ms退出0、50通过/零skip/cancelled，六次最终持久1749–2624ms；默认worker/DPAPI/OS锚点、正常及强杀owner、精确期限和撤销断言按原门执行。此前49的ENOTEMPTY、159的45/50、其他五秒超时与旧日档失败均保留，不能用本轮通过消除历史不稳定记录或授全天资格。
