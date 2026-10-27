@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：159 完整门与最新安装版闭合；真实日档仍须实际启动回执
+
+固定运行时159f655f148b696c4ee04182b94869a9b920ebbf普通Verify40451844045八项、正式40451844099四项、原时序40451844101三runner各50/50零skip均终态success；完整I/O40451844056及独立I/O40451844149也success。只授对应源码和既有门禁范围，不撤销b799五秒失败及1e一小时锚点失败，也不把独立成功I/O归因于历史失败。
+
+新安装40454350217/job122024202100整轮success，manifest b02b44a8283cdc4e7937270e992db8cb5288f5cc78d6c82d8a86421dc05a450e。原候选完整门、安装构建、同格式升级回滚/DPAPI全部通过；582完整基线八阶段、布局1→3、revisionDelta=1、旧读者拒写通过。schema7四CLI案例各三次压缩/精确答案/同会话重启；默认零代理恢复，增强私有读后独立公开生成；Codex默认/增强WS未授权401、五个partial/零terminal、两侧socket关闭，HTTP/SSE/WS排空、daemon自然退出及所属树清空通过。包内发布中断30/30零skip仅defaultWorkerQualified=true，daemonQualified=false。真实provider、24h及受控自用仍未授资格；没有将runner临时构建称作已交付本机安装器，模型0。
+
+Windows新独立159环境锁安装107173/72769ms退出0。原生构建先在开发shell环境发现30秒超时、尚未启动产品命令，原失败保留；只修私有准备器，按vswhere/实际x64文件及两个注册表视图定位已有MSVC14.50.35717/SDK10.0.26100.0，不安装或改全局工具。实际原生构建291261ms退出0，原容量两文件26/26零skip，默认worker两次DPAPI/OS锚点开关成功，ready9161/7172ms。有限资源采样CPU100%，多种非本项目进程占用；不停止用户程序、不据此确认唯一根因。源码570份、dirty=false，摘要37846e69f826ec0f528f1fa271b1f34b42f6fcb4e943a093a50f663c9385d0fb；原生c462c4afe291e7d4a6fbef805fa16730eab1fc0b9cea53b1bdd3c532c41be716，Node22.22.3原摘要匹配。原采集测试文件仍可读/规范化摘要匹配，旧删除者未确认，未改安全软件。
+
+本机原50项五秒门411056ms退出1，45通过/5失败、零skip/cancelled；不重跑补绿。Chat long-json首轮HTTP5084ms、requests/handshakes各4，未进入该种类持久场景；Responses long-persistent首轮HTTP4807ms、最终持久publication_wait_failed5023ms，随后finishPublicationAsync602ms；Claude long-persistent第二轮HTTP5033ms、requests/handshakes各8。另两种inline tools=true的物理owner摘要场景在原30秒子进程启动/交互窗口ETIMEDOUT。该轮采集Responses写COMMIT最大206ms、Claude142ms，稳态多数约13–21ms；不能沿用旧1940ms COMMIT作唯一解释，也不能把高CPU直接当已确认根因。新日档未注册/未启动，原本机门仍拦截；观察器四文件解析及owned Job成功/非零/超时三烟测实际通过，30秒仅观察执行时限、CIM5秒，不修改产品期限或日档原负载，不把主日档Node放入观察Job。下一步定位新失败的请求CPU/排队与子进程启动阶段，保留原门及现场，修复后才给新源码资格和启动回执。旧冻结任务/数据库/锚点、原HTTP5000/COMMIT750/native10000/storage30000、FULL/DELETE、精确ACK及原期限全部保持，模型调用0。
+
+
 ## 2026-10-27：启动最终ACK复用owned通道；5c安装闭合，b799真实五秒失败保留
 
 5c安装40447241011/job122001418349整轮success，原候选完整门及安装构建、同格式升级回滚/DPAPI、582实际迁移、两端、发布包内部检查均完成。manifest为5ff2c661e2d2c84a90b9643b71cb37bca6d0d287bbfe8ba5cd63dfe03d52c533。582回执installed_legacy_582_finished，八阶段、baselineSourceCount=582、布局1→3、revisionDelta=1、旧读者拒写。两端schema7四案例各三次压缩、精确答案/同会话重启通过，默认零代理恢复、增强私有读后独立公开生成；真实Codex默认/增强Responses WS均401拒绝未授权升级、partialFrames=5/terminalFrames=0、两端socket关闭，HTTP/SSE/WS排空及daemon自然零退出/所属树清空通过。安装包publication30/30零skip仅defaultWorkerQualified=true、daemonQualified=false；providers/24h/受控启用仍false，模型0。不得据此授其余daemon内部转换或本批新运行时资格。

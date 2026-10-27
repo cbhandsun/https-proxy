@@ -1,5 +1,8 @@
 # 上下文恢复换机交接
 
+**最新159实际资格优先：** 159f655普通八项/正式四项/三个原50项runner及两I/O全success；最新安装40454350217整轮success，582八阶段布局1→3/旧读者拒写、四CLI三次压缩/重启、WS认证及HTTP/SSE/WS自然排空通过，publication30项仍仅default worker。真实provider/24h/受控启用未授资格。Windows新目录原生构建、26容量与两次默认开关通过；原本机50项45通过/5失败（HTTP5084/5033、发布5023ms及两物理owner ETIMEDOUT），原门拦截、新24h未启动，不累计旧轮时长。私有SDK发现已纠正、原先未进产品命令的shell超时保留；未改安全软件/全局环境。原失败/门禁及冻结材料保持，模型0，详见实施状态顶部。
+
+
 **启动ACK复用与最新安装结论优先：** 5c安装40447241011整轮success，真实582布局1→3/旧版拒写、schema7四CLI案例及Codex默认/增强WS/HTTP/SSE自然排空通过；安装publication30项仅default worker，daemon其余转换/providers/24h仍未授资格。b799正式四项成功但普通coverage失败：Responses首轮HTTP5005ms，同窗COMMIT1940ms/CPU0、DB flush max1694ms，完整性和相关性资格仍false；本机50项49通过/1最终发布5009ms失败，均保留。新文件保持可读/Git干净，隔离标准环境缓存问题已纠正，旧删除者未确认。新运行时让SQL COMMIT后最终启动ACK使用并等待owned通道、worker await工厂，首请求复用连接，原同步空intent/精确ACK/FULL/DELETE/TTL不变。152项151通过/1原平台skip，尚待本批Windows完整门；新24h尚未启动，分钟观察器未运行，不能累计旧轮时长。模型0，详见实施状态顶部。
 
 
