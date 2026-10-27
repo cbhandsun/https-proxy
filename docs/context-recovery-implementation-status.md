@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：真实24h已实际启动并推进五分钟；6646普通全绿，正式与额外原失败保留
+
+已按用户后续明确的“启动24小时测试”授权，在独立6646冻结目录注册并启动新任务，无自动重试。此前把完整CI全绿额外绑成启动前提，现纠正执行顺序：原生短测、100项Windows回归、原生开库与Job/power短验通过及源码/运行环境/安全回执封存后即可独立运行；原完整CI仍是整体交付门禁，并未删除、跳过或放宽。注册时将delivery CI未通过明确写入元数据；旧失败、冻结长测目录/任务/数据库、旧E实例及候选均保持，未调用模型。
+
+本轮真实启动回执为2026-10-27T22:41:21.177Z（北京时间28日06:41:21），不是仅有计划任务请求。已核对任务Running、实际Node命令/可执行身份/创建时刻及所属真实原生助手，源码干净、577份来源摘要09734483741b1981790e438475885937e62415c41ac00e1bd79f058459356cac，与预封存一致。独立健康解析已看到scheduledMs=300000、elapsedMs=301015.7959、两个有效节拍，状态progress_advanced、进程存活、无失败锁存、零时间线/完整行错误。Windows每分钟观察器已实际写出健康历史，不再只是本机模板检查。模型0、wake lease已取得、无自动重试；当前仅授“已真实启动并推进”范围，真实24h通过及两次到期后重开仍false。完整安全回执见context-recovery-evidence/6646f59-native-day-started.json。
+
+固定6646普通Verify40594726506现八作业success；正式40594726439/source-gates122507607690失败，egress成功、后续场景跳过，不能以普通通过覆盖正式失败。直接SQLite withdrawn/ACK夹具在原ready5000ms准备超时，尚未进入目标中断；save-reference-state占3787ms，其中实际COMMIT从852到4525ms、3673ms。原生transport-finished/COMMIT夹具同样准备超时：开库ready1347ms、前两次保存872/1508ms，最后seq4 engine_execute_started后无完成，未进入目标强杀。不能补写为目标中断已验证或唯一OS根因。
+
+额外I/O40594726441/job122507607168的原proxy阶段失败于actual chat WBIPC：首轮3701ms含发布完成，重开后的第二轮5000ms超时、requests/handshakes=8、root=1；保留原五秒门与失败。此次录制窗口是native-publication-interruption，24次flush、database/journal最大443/17ms，schema6与cleanupVerified由原parseSummary严格重验；该窗口不是失败chat窗口，不能关联归因，也不授trace completeness或five-second资格。有限阶段事实见context-recovery-evidence/6646f59-ci-failures.json。本机长测不用于覆盖上述失败，后续继续在Mac/托管环境排查，避免抢占正在运行的Windows长测。完整daemon内部矩阵、本机候选安装两端、受分账额度控制的真实provider、最大容量与最终受控启用仍未完成。
+
 ## 2026-10-27：6646 Windows回归100项与原生开库短验通过，长测身份已封存但未启动
 
 固定6646f5923a4633f6f3afbdd3995ef4e1f21f50c8在Windows新目录完成两次原锁文件安装及容量/时钟/首次失败/到期见证/回执/健康/进程树十一文件回归，100/100、零fail/skip/cancel，TAP103824.6625ms、父113555ms，原父120000ms与Job自然退出5000ms门保持。原生源码树仍3437873f3052ff996f769332239d56c81748c8c6；本轮复用已完整构建验证的同树助手0356dfca…，用原安装函数生成独立文件并验单链接，未将复制称重新构建。随后默认worker/DPAPI/OS锚点在另一个空目录两次开/检查/关、同目录重开全部通过，具体ready耗时见安全证据；父3334ms、零stderr、原Job自然退出通过。这仍不授有负载HTTP五秒稳定性或真实24h资格。

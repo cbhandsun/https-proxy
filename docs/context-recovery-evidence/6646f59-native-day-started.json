@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "6646f5923a4633f6f3afbdd3995ef4e1f21f50c8",
+  "sourceSha256": "09734483741b1981790e438475885937e62415c41ac00e1bd79f058459356cac",
+  "nativeSha256": "0356dfca64c77622a7699f765ea32577f1aa2613ff896db23cff17c41d490937",
+  "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+  "observerJobSha256": "6041a2569465c90e7be4410f4d72cf81d20ca3b6457bd0fccc9eae7dc68f11c2",
+  "registrationScriptSha256": "364678cbd5c173dffcd15320be5bd26845093e059eb2c8687268e9da0266573b",
+  "operationalScripts": {
+    "status-day.ps1": "6d4d62141911525030cb0859737fb72ba6dc10082335b52a217dc6dae65d0d12",
+    "monitor-local.ps1": "bf9fc0d576d07590e39ef03b9dbdb09b0bce932ad1c597ebe452984b5ca239c0",
+    "run-day.ps1": "bbc8db866e5e296e50d33e336e384d3d263969f576a9b0f1fa32c2e5760fd2b7",
+    "observer-runtime-identity.ps1": "905ce9faf45c53e29a4286b04dfcfacfbf051234bb5130e0417259d4c48c2124"
+  },
+  "profile": {
+    "name": "day-small",
+    "roots": 1,
+    "turns": 288,
+    "intervalMs": 300000,
+    "outputBytes": 1024,
+    "recoveries": 24,
+    "reopenEvery": 24,
+    "expiredReopens": 2
+  },
+  "startedAtUtc": "2026-10-27T22:41:21.177Z",
+  "realtime24hStarted": true,
+  "realtime24hPassed": false,
+  "firstTick": {
+    "event": "native_day_started",
+    "atUtc": "2026-10-27T22:41:21.177Z",
+    "realtime24hStarted": true,
+    "scheduledMs": 0,
+    "started": true,
+    "elapsedMs": 1075.9482000000007,
+    "maximumLatenessMs": 0
+  },
+  "nextTick": {
+    "event": "capacity_tick",
+    "atUtc": "2026-10-27T22:46:21.12Z",
+    "realtime24hStarted": true,
+    "scheduledMs": 300000,
+    "started": true,
+    "elapsedMs": 301015.79589999997,
+    "maximumLatenessMs": 1.9131999999517575
+  },
+  "health": {
+    "taskName": "HPM-native-day-20261027-6646f59-8e34b1",
+    "checkedAtUtc": "2026-10-27T22:46:28.962Z",
+    "state": "running",
+    "reason": "progress_advanced",
+    "passed": false,
+    "lastScheduledMs": 300000,
+    "elapsedMs": 301015.79589999997,
+    "observedTicks": 2,
+    "processAlive": true,
+    "terminalConfirmed": false,
+    "runIdentity": "09921c096ed95fd403817b3318cd4b4c52109e2acbd90ad67ea662612c088e88",
+    "failureLatched": false
+  },
+  "progressIntegrity": {
+    "event": "progress_integrity",
+    "invalidCompleteLines": 0,
+    "tickCount": 2,
+    "tickSamples": [
+      {
+        "scheduledMs": 0,
+        "elapsedMs": 1075.9482000000007,
+        "atUtc": "2026-10-27T22:41:21.177Z"
+      },
+      {
+        "scheduledMs": 300000,
+        "elapsedMs": 301015.79589999997,
+        "atUtc": "2026-10-27T22:46:21.12Z"
+      }
+    ],
+    "timelineErrors": 0,
+    "identityCount": 1,
+    "startedCount": 1,
+    "expiryAttempts": [],
+    "lastWriteAtUtc": "2026-10-27T22:46:21.1266707Z",
+    "bytes": 4355
+  },
+  "windowsMinuteObserver": {
+    "realModelRequests": 0,
+    "health-history.jsonlBytes": 1875,
+    "health-latest.jsonBytes": 374,
+    "health": {
+      "taskName": "HPM-native-day-20261027-6646f59-8e34b1",
+      "checkedAtUtc": "2026-10-27T22:46:20.132Z",
+      "state": "running",
+      "reason": "fresh_real_tick",
+      "passed": false,
+      "lastScheduledMs": 0,
+      "elapsedMs": 1075.9482000000007,
+      "observedTicks": 1,
+      "processAlive": true,
+      "terminalConfirmed": false,
+      "runIdentity": "09921c096ed95fd403817b3318cd4b4c52109e2acbd90ad67ea662612c088e88",
+      "failureLatched": false
+    },
+    "event": "native_day_minute_observer_status"
+  },
+  "wakeLeaseObserved": true,
+  "autoRetry": false,
+  "realModelRequests": 0,
+  "deliveryCiGatesPassed": false,
+  "oldFrozenEnvironmentAccessed": false,
+  "oldInstanceSwitched": false,
+  "ciFailuresRetained": true
+}
