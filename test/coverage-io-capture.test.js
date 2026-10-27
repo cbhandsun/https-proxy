@@ -187,6 +187,7 @@ function fixture(t) {
             if (mode === 'private-output') text = 'PRIVATE_MODEL_REPLY\n';
             if (mode === 'duplicate-summary') text += text;
             if (mode !== 'missing-summary') child.stdout.write(text);
+            if (mode === 'pending-stdout') child.stdout.write('PRIVATE');
             child.stderr.write(
               mode === 'extra-stderr'
                 ? 'persistent_io_trace_bytes=1024\n\n'
@@ -735,6 +736,137 @@ test('first persistent request failure preserves its capture window without wait
   assert.equal(receipt.summary.traceCompletenessVerified, false);
   assert.equal(stop(), false);
 });
+
+test('publication window has its own source/stage identity without replacing the client window', async (t) => {
+  const f = fixture(t);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+  f.install('success');
+  await f.hooks.before();
+  await f.hooks.after();
+  const client = readCoverageIoReceipt(f.environment);
+  f.install('success', { windowId: 'publication-graceful-http' });
+  await f.hooks.before();
+  await f.hooks.after();
+  const publication = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
+  assert.equal(publication.schemaVersion, 3);
+  assert.equal(publication.windowId, 'publication-graceful-http');
+  assert.equal(publication.windowTermination, 'file-completed');
+  assert.deepEqual(readCoverageIoReceipt(f.environment), client);
+  assert.equal(f.reports.length, 2);
+  assert.equal(publication.summary.traceCompletenessVerified, false);
+  assert.equal(publication.summary.fiveSecondQualified, false);
+});
+
+test('publication window stops on its own fixture failure and retains cleanup gates', async (t) => {
+  const f = fixture(t);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+  let stop;
+  f.install('success', {
+    windowId: 'publication-graceful-http',
+    onReady(value) {
+      stop = value;
+    },
+  });
+  await f.hooks.before();
+  assert.equal(stop(), true);
+  assert.equal(stop(), false);
+  assert.equal(f.reports.length, 0);
+  await f.hooks.after();
+  const receipt = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
+  assert.equal(receipt.windowTermination, 'publication-fixture-failed');
+  assert.deepEqual(f.commands, ['finish\n']);
+  assert.equal(receipt.cleanupVerified, true);
+});
+
+test('publication window refuses invalid scopes and cross-window or legacy receipts', async (t) => {
+  const f = fixture(t);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+  let hooks = 0;
+  const hostile = {
+    toString() {
+      hooks++;
+      throw Error('PRIVATE');
+    },
+  };
+  for (const windowId of [null, '', 'PRIVATE', '../client', 'x'.repeat(4096), hostile]) {
+    assert.throws(() => f.install('success', { windowId }), failure);
+    assert.throws(() => readCoverageIoReceipt(f.environment, windowId), failure);
+  }
+  assert.equal(hooks, 0);
+  f.install('success', { windowId: 'publication-graceful-http' });
+  await f.hooks.before();
+  await f.hooks.after();
+  const file = path.join(
+    f.root,
+    'hpm-coverage-io-' + f.environment.GITHUB_SHA + '-client-publication-graceful-http.json'
+  );
+  const current = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
+  for (const value of [
+    { ...current, windowId: 'client-context-target' },
+    { ...current, windowTermination: 'persistent-request-failed' },
+    { ...current, schemaVersion: 2 },
+    { ...current, windowId: undefined },
+    { ...current, coverageStage: 'proxy' },
+    { ...current, sourceSha: 'b'.repeat(40) },
+    { ...current, cleanupVerified: false },
+    { ...current, extra: 'PRIVATE' },
+  ]) {
+    fs.writeFileSync(file, JSON.stringify(value) + '\n');
+    assert.throws(() => readCoverageIoReceipt(f.environment, 'publication-graceful-http'), failure);
+  }
+});
+
+test('recording failure reports only a closed cause without exposing stderr or losing its original gate', async (t) => {
+  for (const [mode, cause] of [
+    ['nonzero', 'recorder_exit'],
+    ['signal', 'recorder_signal'],
+    ['pending-stdout', 'pending_stdout'],
+    ['missing-summary', 'missing_summary'],
+    ['private-output', 'protocol'],
+    ['private-error', 'trace_control'],
+    ['size-overflow', 'trace_limit'],
+  ]) {
+    const f = fixture(t);
+    f.install(mode);
+    await f.hooks.before();
+    await assert.rejects(f.hooks.after(), (error) => {
+      assert.equal(error.message, 'coverage_io_capture_failed');
+      assert.equal(error.cause?.message, 'coverage_io_capture_' + cause);
+      assert.equal(String(error.cause).includes('PRIVATE'), false);
+      return true;
+    });
+    assert.equal(f.reports.length, 0);
+  }
+});
+
+test('publication window never competes with the recorder in parallel proxy shards', (t) => {
+  const f = fixture(t);
+  assert.equal(f.install('success', { windowId: 'publication-graceful-http' }), false);
+  assert.deepEqual(f.hooks, {});
+  assert.deepEqual(f.commands, []);
+  assert.throws(() => readCoverageIoReceipt(f.environment, 'publication-graceful-http'), failure);
+  f.environment.GITHUB_JOB = 'unit-tests';
+  assert.throws(() => f.install('success', { windowId: 'publication-graceful-http' }), failure);
+});
+
+for (const mode of ['nonzero', 'missing-summary', 'stdin-error', 'private-output']) {
+  test(`publication window cannot publish after ${mode}`, async (t) => {
+    const f = fixture(t);
+    f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+    let stop;
+    f.install(mode, {
+      windowId: 'publication-graceful-http',
+      onReady(value) {
+        stop = value;
+      },
+    });
+    await f.hooks.before();
+    stop();
+    await assert.rejects(f.hooks.after(), failure);
+    assert.equal(f.reports.length, 0);
+    assert.throws(() => readCoverageIoReceipt(f.environment, 'publication-graceful-http'));
+  });
+}
 
 test('normal file completion records its boundary and legacy receipts cannot claim an early window', async (t) => {
   const f = fixture(t);

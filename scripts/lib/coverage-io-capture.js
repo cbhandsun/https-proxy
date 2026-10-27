@@ -190,19 +190,29 @@ function validateStatuses(stats) {
   )
     throw fail();
 }
-function receiptPath(environment) {
+function validWindow(windowId) {
+  if (!['client-context-target', 'publication-graceful-http'].includes(windowId)) throw fail();
+}
+function receiptPath(environment, windowId = 'client-context-target') {
+  validWindow(windowId);
   if (
     !isSha(environment.GITHUB_SHA) ||
-    !['proxy', 'client'].includes(environment.HPM_COVERAGE_IO_STAGE)
+    !['proxy', 'client'].includes(environment.HPM_COVERAGE_IO_STAGE) ||
+    (windowId !== 'client-context-target' && environment.HPM_COVERAGE_IO_STAGE !== 'client')
   )
     throw fail();
   return path.join(
     safePath(environment.RUNNER_TEMP, true),
-    'hpm-coverage-io-' + environment.GITHUB_SHA + '-' + environment.HPM_COVERAGE_IO_STAGE + '.json'
+    'hpm-coverage-io-' +
+      environment.GITHUB_SHA +
+      '-' +
+      environment.HPM_COVERAGE_IO_STAGE +
+      (windowId === 'client-context-target' ? '' : '-' + windowId) +
+      '.json'
   );
 }
-function readCoverageIoReceipt(environment = process.env) {
-  const file = safePath(receiptPath(environment));
+function readCoverageIoReceipt(environment = process.env, windowId = 'client-context-target') {
+  const file = safePath(receiptPath(environment, windowId));
   const pin = fs.statSync(file, { bigint: true });
   if (pin.size < 2n || pin.size > 16384n || pin.nlink !== 1n) throw fail();
   const descriptor = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
@@ -228,10 +238,14 @@ function readCoverageIoReceipt(environment = process.env) {
     'coverageStage',
     'cleanupVerified',
     'summary',
-    ...(value.schemaVersion === 2 ? ['windowTermination'] : []),
+    ...([2, 3].includes(value.schemaVersion) ? ['windowTermination'] : []),
+    ...(value.schemaVersion === 3 ? ['windowId'] : []),
   ]);
   if (
-    ![1, 2].includes(value.schemaVersion) ||
+    !(windowId === 'client-context-target' ? [1, 2] : [3]).includes(value.schemaVersion) ||
+    (value.schemaVersion === 3 &&
+      (value.windowId !== windowId ||
+        !['file-completed', 'publication-fixture-failed'].includes(value.windowTermination))) ||
     (value.schemaVersion === 2 &&
       !['file-completed', 'persistent-request-failed'].includes(value.windowTermination)) ||
     value.sourceSha !== environment.GITHUB_SHA ||
@@ -263,6 +277,7 @@ function installCoverageIoCapture(
     wait = bounded,
     report = (value) => process.stdout.write('# HPM_COVERAGE_IO=' + JSON.stringify(value) + '\n'),
     onReady,
+    windowId = 'client-context-target',
   } = {}
 ) {
   if (!environment || typeof environment !== 'object' || types.isProxy(environment)) throw fail();
@@ -273,6 +288,7 @@ function installCoverageIoCapture(
     return slot.value;
   };
   if (read('HPM_COVERAGE_IO') === undefined) return false;
+  validWindow(windowId);
   if (
     onReady !== undefined &&
     (typeof onReady !== 'function' ||
@@ -331,9 +347,13 @@ function installCoverageIoCapture(
     !['proxy', 'client'].includes(environment.HPM_COVERAGE_IO_STAGE)
   )
     throw fail();
+  // The full client command is serial. Do not introduce a second recorder in
+  // the parallel proxy shards or claim that this window covers those failures.
+  if (windowId !== 'client-context-target' && environment.HPM_COVERAGE_IO_STAGE === 'proxy')
+    return false;
   let target, entry, parentIdentity;
   try {
-    target = receiptPath(environment);
+    target = receiptPath(environment, windowId);
     parentIdentity = fs.statSync(environment.RUNNER_TEMP, { bigint: true });
     if (fs.existsSync(target)) throw fail();
     entry = safePath(path.join(environment.GITHUB_WORKSPACE, 'scripts/capture-persistent-io.ps1'));
@@ -341,7 +361,7 @@ function installCoverageIoCapture(
     throw fail();
   }
   const verifyParent = () => {
-    if (receiptPath(environment) !== target) throw fail();
+    if (receiptPath(environment, windowId) !== target) throw fail();
     const current = fs.statSync(environment.RUNNER_TEMP, { bigint: true });
     if (!['dev', 'ino', 'birthtimeNs'].every((key) => current[key] === parentIdentity[key]))
       throw fail();
@@ -428,7 +448,14 @@ function installCoverageIoCapture(
         });
         await wait(opening, 30000);
         if (invalid) throw fail();
-        if (onReady) onReady(() => finish('persistent-request-failed'));
+        if (onReady)
+          onReady(() =>
+            finish(
+              windowId === 'client-context-target'
+                ? 'persistent-request-failed'
+                : 'publication-fixture-failed'
+            )
+          );
       } catch {
         child?.stdin.end('abort\n');
         if (closed) {
@@ -455,19 +482,22 @@ function installCoverageIoCapture(
         throw fail();
       }
       const trace = /^persistent_io_trace_bytes=([1-9][0-9]{0,8})\r?\n$/.exec(stderr);
-      if (
-        invalid ||
-        result.code !== 0 ||
-        result.signal !== null ||
-        stdout !== '' ||
-        !summary ||
-        !trace ||
-        trace[0] !== stderr ||
-        Number(trace[1]) > 268435456
-      )
-        throw fail();
+      let refusal;
+      if (result.signal !== null) refusal = 'recorder_signal';
+      else if (result.code !== 0) refusal = 'recorder_exit';
+      else if (invalid) refusal = 'protocol';
+      else if (stdout !== '') refusal = 'pending_stdout';
+      else if (!summary) refusal = 'missing_summary';
+      else if (!trace || trace[0] !== stderr) refusal = 'trace_control';
+      else if (Number(trace[1]) > 268435456) refusal = 'trace_limit';
+      if (refusal)
+        throw new Error('coverage_io_capture_failed', {
+          // Closed vocabulary only; no recorder output or exception crosses.
+          cause: new Error('coverage_io_capture_' + refusal),
+        });
       const receipt = {
-        schemaVersion: 2,
+        schemaVersion: windowId === 'client-context-target' ? 2 : 3,
+        ...(windowId === 'client-context-target' ? {} : { windowId }),
         sourceSha: environment.GITHUB_SHA,
         coverageStage: environment.HPM_COVERAGE_IO_STAGE,
         cleanupVerified: true,
