@@ -23,7 +23,9 @@ async function runNativeCapacityDay(directory, emit) {
   if (!identity.nativeSha256) throw failure();
   const pin = ({ head, sourceSha256, nativeSha256, nodeSha256 }) =>
     JSON.stringify([head, sourceSha256, nativeSha256, nodeSha256]);
+  let driverFailed = false;
   function verifyIdentity() {
+    if (driverFailed) throw failure();
     if (pin(diagnosticIdentity()) !== pin(identity)) throw failure();
   }
   emit({ event: 'identity', ...identity });
@@ -44,7 +46,8 @@ async function runNativeCapacityDay(directory, emit) {
     const attempt = ++storeOpens;
     return openContextRecoveryStorage({
       directory,
-      onFailure: ({ operation, phase, cleanupFailed }) =>
+      onFailure: ({ operation, phase, cleanupFailed }) => {
+        driverFailed = true;
         emit({
           event: 'storage_operation_failed',
           stage,
@@ -52,43 +55,55 @@ async function runNativeCapacityDay(directory, emit) {
           operation,
           phase,
           cleanupFailed,
-        }),
+        });
+      },
       onStartup: ({ phase, elapsedMs }) =>
         emit({ event: 'startup', stage, attempt, phase, elapsedMs }),
     });
   }
   try {
-    const raw = await exercisePersistentCapacityProfile(profile, {
-      now: witness.now,
-      async advance(offsetMs) {
-        await clock.advance(offsetMs);
-        emit({
-          event: offsetMs === 0 ? 'native_day_started' : 'capacity_tick',
-          atUtc: new Date(clock.now()).toISOString(),
-          realtime24hStarted: true,
-          scheduledMs: offsetMs,
-          ...clock.inspect(),
-        });
+    const raw = await exercisePersistentCapacityProfile(
+      profile,
+      {
+        now: witness.now,
+        async advance(offsetMs) {
+          verifyIdentity();
+          await clock.advance(offsetMs);
+          verifyIdentity();
+          emit({
+            event: offsetMs === 0 ? 'native_day_started' : 'capacity_tick',
+            atUtc: new Date(clock.now()).toISOString(),
+            realtime24hStarted: true,
+            scheduledMs: offsetMs,
+            ...clock.inspect(),
+          });
+        },
+        async openStorage() {
+          const storage = await open();
+          return {
+            // Preserve the actual function's WeakSet capability declarations.
+            execute: storage.execute,
+            async close() {
+              try {
+                witness.observeCatalog(await storage.execute({ operation: 'catalog' }));
+                verifyIdentity();
+              } finally {
+                await storage.close();
+                storeCloses++;
+              }
+              emit({ event: 'capacity_closed', storeOpens, storeCloses, ...witness.inspect() });
+            },
+          };
+        },
       },
-      async openStorage() {
-        const storage = await open();
-        return {
-          // Preserve the actual function's WeakSet capability declarations.
-          execute: storage.execute,
-          async close() {
-            try {
-              witness.observeCatalog(await storage.execute({ operation: 'catalog' }));
-              verifyIdentity();
-            } finally {
-              await storage.close();
-              storeCloses++;
-            }
-            emit({ event: 'capacity_closed', storeOpens, storeCloses, ...witness.inspect() });
-          },
-        };
-      },
-    });
-    driverFailure = capacityFailureReceipt(raw);
+      (token) => {
+        driverFailed = true;
+        driverFailure = capacityFailureReceipt(token);
+        emit({ event: 'native_day_failed', stage, storeOpens, storeCloses, driverFailure });
+      }
+    );
+    driverFailure = capacityFailureReceipt(raw) ?? driverFailure;
+    verifyIdentity();
     const report = parseCapacityReports([raw], [0])[0];
     emit({ event: 'capacity_profile_result', report, storeOpens, storeCloses });
     assert.equal(report.qualified, true);
@@ -97,8 +112,11 @@ async function runNativeCapacityDay(directory, emit) {
     // day-small's final scheduled turn is only 23h55m. The final five minutes
     // and each root's actual birth-to-expiry interval must really elapse.
     stage = 'expiry_wait';
+    verifyIdentity();
     await clock.advance(86400000);
+    verifyIdentity();
     await witness.waitForExpiry();
+    verifyIdentity();
     assert.ok(clock.inspect().elapsedMs >= 86400000);
     emit({ event: 'root_expiry_elapsed', ...clock.inspect(), ...witness.inspect() });
     stage = 'expired_reopen';

@@ -412,17 +412,24 @@ for (const mode of [
           };
         },
       };
+      const observedFailures = [];
       let owner;
       try {
         owner = await loaded.exports.exercisePersistentCapacityProfile(
           profile({ turns: 1, recoveries: mode === 'reply' ? 1 : 0, reopenEvery: 0 }),
-          options
+          options,
+          (token) => {
+            observedFailures.push(token);
+          }
         );
       } catch (error) {
         owner = error;
         assert.equal(error.message, safe.message);
       }
       const receipt = capacityFailureReceipt(owner);
+      assert.equal(observedFailures.length, 1);
+      assert.deepEqual(capacityFailureReceipt(observedFailures[0]).primary, receipt.primary);
+      assert.deepEqual(Reflect.ownKeys(observedFailures[0]), []);
       const expected = {
         initialize: 'storage-initialize',
         configure: 'storage-configure',
@@ -453,3 +460,44 @@ for (const mode of [
     }
   );
 }
+
+test('invalid failure observers refuse before opening; healthy observers receive nothing', async (t) => {
+  const f = fixture(t);
+  for (const observer of [null, {}, async () => {}, function* () {}, new Proxy(() => {}, {})]) {
+    await assert.rejects(exercisePersistentCapacityProfile(profile(), f.options, observer), safe);
+  }
+  assert.equal(f.observed.opens, 0);
+  let notified = 0;
+  const report = await exercisePersistentCapacityProfile(profile(), f.options, () => {
+    notified++;
+  });
+  assert.deepEqual(report, exerciseCapacityProfile(profile()));
+  assert.equal(notified, 0);
+});
+
+test('observer failure cannot skip shutdown and owned storage close or leak its exception', async (t) => {
+  const { capacityFailureReceipt } = require('../scripts/lib/context-recovery-capacity-failure');
+  for (const observer of [
+    () => {
+      throw Error('PRIVATE_OBSERVER');
+    },
+    () => null,
+    () => Promise.reject(Error('PRIVATE_OBSERVER')),
+  ]) {
+    const f = fixture(t);
+    f.options.advance = () => {
+      throw Error('PRIVATE_CLOCK');
+    };
+    let error;
+    try {
+      await exercisePersistentCapacityProfile(profile(), f.options, observer);
+    } catch (caught) {
+      error = caught;
+    }
+    assert.equal(error.message, safe.message);
+    assert.equal(error.cause, undefined);
+    assert.equal(capacityFailureReceipt(error).primary.stage, 'advance');
+    assert.equal(f.observed.opens, 1);
+    assert.equal(f.observed.closes, 1);
+  }
+});

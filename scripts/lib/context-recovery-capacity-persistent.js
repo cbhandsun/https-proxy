@@ -9,6 +9,7 @@ const { nativeReaderPromise } = require('../../lib/proxy/context-recovery-reader
 const { createCapacityWorkload, parseProfile } = require('./context-recovery-capacity-workload');
 
 const { declareCapacityFailure } = require('./context-recovery-capacity-failure');
+const { createCapacityFailureObserver } = require('./context-recovery-capacity-failure-observer');
 
 const fail = () => new Error('persistent_capacity_execution_failed');
 
@@ -41,7 +42,8 @@ function capabilities(input, names) {
 // No JSON checkpoint export/restore, source transformation, retry or in-memory
 // fallback can stand in for reopening that storage. The returned qualification
 // covers the workload only; a caller must separately prove native/time identity.
-async function exercisePersistentCapacityProfile(input, options) {
+async function exercisePersistentCapacityProfile(input, options, onFirstFailure) {
+  const observer = createCapacityFailureObserver(onFirstFailure);
   const profile = parseProfile(input);
   const host = capabilities(options, ['openStorage', 'now', 'advance']);
   if (types.isAsyncFunction(host.now)) throw fail();
@@ -56,8 +58,10 @@ async function exercisePersistentCapacityProfile(input, options) {
   function note() {
     observedInCommand = true;
     const current = { operation, stage, commandIndex, scheduledMs };
-    if (!primary) primary = current;
-    else if (
+    if (!primary) {
+      primary = current;
+      observer.notify(primary);
+    } else if (
       !cleanup &&
       ['runtime-shutdown', 'storage-close'].includes(stage) &&
       (primary.commandIndex !== commandIndex || primary.stage !== stage)
@@ -183,6 +187,10 @@ async function exercisePersistentCapacityProfile(input, options) {
         failed = false;
       } catch {
         if (!observedInCommand) note();
+        reply = fail();
+        failed = true;
+      }
+      if (observer.failed()) {
         reply = fail();
         failed = true;
       }

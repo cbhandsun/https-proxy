@@ -104,7 +104,7 @@ function fixture(mode) {
       },
     },
     './context-recovery-capacity-persistent': {
-      async exercisePersistentCapacityProfile(profile, options) {
+      async exercisePersistentCapacityProfile(profile, options, onFirstFailure) {
         assert.equal(profile, CAPACITY_PROFILES[0]);
         assert.deepEqual(Object.keys(options).sort(), ['advance', 'now', 'openStorage']);
         if (mode === 'driver') fail();
@@ -116,9 +116,28 @@ function fixture(mode) {
           );
         for (let index = 0; index < (mode === 'count' ? 12 : 13); index++) {
           const storage = await options.openStorage();
-          if (index === 0) await options.advance(0);
-          if (index === 12) await options.advance(86100000);
-          await storage.close();
+          try {
+            if (index === 0) await options.advance(0);
+            if (mode === 'live-driver-diagnostic') {
+              await options.advance(1800000);
+              onFirstFailure?.(
+                declareCapacityFailure(
+                  {},
+                  {
+                    operation: 'reply',
+                    stage: 'reply',
+                    commandIndex: 23,
+                    scheduledMs: 1800000,
+                  }
+                )
+              );
+              await options.advance(2100000);
+              return { ...expected, qualified: false };
+            }
+            if (index === 12) await options.advance(86100000);
+          } finally {
+            await storage.close();
+          }
         }
         if (mode === 'report-diagnostic')
           return declareCapacityFailure(
@@ -247,9 +266,15 @@ test('day preserves branded driver failure metadata even when report validation 
 
 test('day forwards bounded storage failure phases without inspecting the original exception', async () => {
   const f = fixture('failure-observer');
-  await f.run();
+  await assert.rejects(f.run(), { message: 'native_capacity_day_failed' });
+  assert.equal(f.calls.filter((v) => v === 'close').length, 1);
+  assert.equal(f.calls.some(Array.isArray), false);
+  assert.equal(
+    f.receipts.some((v) => v.event === 'native_day_completed'),
+    false
+  );
   const failures = f.receipts.filter((value) => value.event === 'storage_operation_failed');
-  assert.equal(failures.length, 15);
+  assert.equal(failures.length, 1);
   assert.deepEqual(Object.keys(failures[0]), [
     'event',
     'stage',
@@ -262,4 +287,23 @@ test('day forwards bounded storage failure phases without inspecting the origina
   assert.equal(failures[0].phase, 'anchor-persist');
   assert.equal(failures[0].cleanupFailed, true);
   assert.equal(JSON.stringify(failures).includes('PRIVATE'), false);
+});
+
+test('first live driver failure is visible before another scheduled wait and still closes storage', async () => {
+  const f = fixture('live-driver-diagnostic');
+  await assert.rejects(f.run(), { message: 'native_capacity_day_failed' });
+  assert.deepEqual(f.calls.filter(Array.isArray), [
+    ['advance', 0],
+    ['advance', 1800000],
+  ]);
+  assert.equal(f.calls.filter((v) => v === 'close').length, 1);
+  assert.equal(f.calls.includes('wait'), false);
+  const first = f.receipts.find((v) => v.event === 'native_day_failed');
+  assert.equal(first.driverFailure.primary.scheduledMs, 1800000);
+  assert.equal(first.storeCloses, 0);
+  assert.equal(f.receipts.at(-1).storeCloses, 1);
+  assert.equal(
+    f.receipts.some((v) => v.event === 'native_day_completed'),
+    false
+  );
 });

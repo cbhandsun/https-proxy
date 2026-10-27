@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+## 2026-10-27：7456本机候选已到桌面，最新CI仍有独立失败；长测及时失败门已修复
+
+优先读取实施状态顶部。本机7456独立完整构建七阶段及原Job5000ms自然退出通过，安装器SHA1ac6fbac9d2b70938f2dd1c4596440d14a3f7fadbae9d97bd943f0b601636d3b，Windows桌面HPM-SelfUse-0.1.1-7456f97三文件已读回复核。未安装，旧实例仍由用户自行切换。实际本机原生容量/时钟26项和协议40项通过、原期限保持；有限成功不能覆盖651的5015ms持久请求失败，也不能继承托管另一二进制的安装资格。安全证据见context-recovery-evidence/7456f97-local-candidate.json。
+
+最新f5普通Verify七项成功、coverage在PowerShell/rg真实集成spawnSync powershell.exe ETIMEDOUT失败；正式Windows四项成功，原失败不重跑。本批先红后绿修复长测首次已知失败仍继续等待的问题：驱动可选同步观察器只传一次无原文的品牌token，异常不跳过关闭；长测锁存存储或驱动失败、即时记录且拒绝后续等待/成功。无观察器原负载保持；完整真实24h/每根实际到期/两次重开要求不变，尚无新24h启动。Windows SSH恢复，私有传输显式UTF-8修复仅属工具层。新监控Windows短验、本批完整CI、五秒稳定性、daemon剩余矩阵、本机安装两端、受分账额度控制的真实provider及24h/最大容量仍待完成，模型0、冻结现场不动。
+
 ## 2026-10-27：最新651正式门通过但coverage五秒再失败，不能仅依据7456绿灯推进整体资格
 
 优先读取实施状态顶部。651f84b只更新文档，普通coverage122475888761仍在chat long-persistent首轮原5000ms门于5015ms失败；正式40585553740四作业成功。safe JSON证据已保存context-recovery-evidence/651f84b-persistent-timeout.json：seq4 COMMIT3028ms、同窗journal flush607/630ms及database flush1789ms时间对应，后续结算1185ms。未授精确单笔关联或唯一根因，不把Fast I/O转IRP状态认作写失败或特定杀毒根因。原LIST最大预扣ACK前禁止读取及未知ACK不退款的门保持，本批没有为了少一次COMMIT而改变预算或读取顺序。
