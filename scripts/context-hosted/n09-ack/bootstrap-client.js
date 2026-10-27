@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { types } = require('node:util');
 const { fields, fail, wrapN09AckFailure } = require('./contract');
 const { createN09BootstrapContract } = require('./bootstrap-contract');
 const { createN09MailboxClient } = require('./mailbox');
@@ -26,8 +27,12 @@ function physical(file, directory, ancestors) {
     const id = identity(stat);
     if (first) result = stat;
     if (ancestors) {
-      if (ancestors.has(current) && ancestors.get(current) !== id) throw fail();
-      ancestors.set(current, id);
+      if (
+        Map.prototype.has.call(ancestors, current) &&
+        Map.prototype.get.call(ancestors, current) !== id
+      )
+        throw fail();
+      Map.prototype.set.call(ancestors, current, id);
     }
     const parent = path.dirname(current);
     if (parent === current) return result;
@@ -36,11 +41,13 @@ function physical(file, directory, ancestors) {
   }
 }
 
-function readBootstrap(file, maximum = 131072) {
+function readBootstrap(file, maximum = 131072, ancestors) {
   if (!Number.isSafeInteger(maximum) || maximum < 2 || maximum > 131072) throw fail();
+  if (ancestors !== undefined && (!types.isMap(ancestors) || types.isProxy(ancestors)))
+    throw fail();
   let fd;
   try {
-    const initial = physical(file, false);
+    const initial = physical(file, false, ancestors);
     fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
     const before = fs.fstatSync(fd, { bigint: true });
     if (
@@ -56,7 +63,7 @@ function readBootstrap(file, maximum = 131072) {
     const bytes = Buffer.alloc(Number(before.size));
     if (fs.readSync(fd, bytes, 0, bytes.length, 0) !== bytes.length) throw fail();
     const after = fs.fstatSync(fd, { bigint: true });
-    const final = physical(file, false);
+    const final = physical(file, false, ancestors);
     for (const stat of [after, final]) {
       if (
         !stat.isFile() ||

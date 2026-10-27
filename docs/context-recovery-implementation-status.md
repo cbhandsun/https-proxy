@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-27：2a普通八项通过，正式观察查询超时保留；合并观察文件的重复物理校验
+
+2a38b92af97ceb643aba105035b2e8ccdae19fea普通Verify40558151411八项已全部success，含coverage122379663604及四个unit分片。独立时序40558151385三台runner122379664002/122379664469/122379664955各原50/50、零skip/重试；chat、Responses、Claude各两次持久body均完成，三台最大body分别973/899/742ms，首轮必须实际省扫描的断言通过。仅为本轮有限样本，不授五秒长期稳定性或安装资格，不覆盖旧失败。
+
+正式40558151417的egress成功、source-gates122379663693失败、后续跳过。唯一失败为n09-publication-observation的旧回复重放测试在第一笔合法query就超过原750ms（整项811.7545ms），未进入重放拒绝断言，不是已经确认的认证错误或持久HTTP失败。额外I/O40558151401/job122379663214也failure：Python隔离子进程原20秒及PowerShell读取原20秒明确ETIMEDOUT；native rejection内存探针在15013ms断言退出码null，原spawnSync期限15000ms，但没有输出底层错误，不能补认具体原因；proxy阶段停止，后续client/frontend未运行。其native-publication-interruption文件窗口仍file-completed/cleanupVerified=true，schema6严格重验通过，311次flush的database/journal最大118/153ms；不能用该窗口覆盖整批失败或排除其他等待。独立file-flush40558151397成功。
+
+Windows新目录hpm-local-short-2a38b92-20261027-c42f81、任务HPM-local-short-2a38b92-c42f81执行原两文件40项及原120秒总预算。固定归档c07eb83383997483ad24c46eb716976a4ade68ae5ded79680413eb241862068d，1981份源码前后匹配，锁文件和原生源码树与复用环境一致。已确认所属Node实际于18:23:33.8051989Z启动，18:25:34.3848276Z在child-exit预算终止，Ready/126、29项通过、childExitObserved=null、cleanupFailed=false、所属根0；不授自然退出或整批通过。已完成chat/Responses各两次持久body最大3183/4461ms、COMMIT最大626/441ms、请求失败0；Claude及后续原生中断尚未完成，不能报告通过。旧短测未重跑或覆盖。
+
+本批降低私有发布观察通道的重复文件系统工作：原观察文件读取在有界reader前后各多遍历一次同一文件及祖先。现在将既有pins传入reader原来的开文件前/读后物理校验，保留两次路径及祖先身份绑定、descriptor前后身份/大小/mtime/ctime、单硬链接、严格UTF-8/JSON和4096字节上限；ready标志及目录复核不变。仅合并重复校验，不缓存文件内容或祖先信任，不改变750ms/签名/精确序号/随机挑战及失败后禁止继续查询。私有Map校验拒绝Proxy并使用原生方法，避免执行覆盖的Map方法。本机固定合成读取元数据检查75→53次，只证明工作量减少，不证明托管超时根因或Windows新资格。旧reader未接收pins的独立API测试先红不代表旧观察通道存在替换绕过：旧通道原本在reader外检查pins，本批将同一检查合并到reader内部。
+
+相关ack/publication及新边界回归118/118、零skip/取消；覆盖文件/父目录替换、硬链接/别名、空/非法UTF-8/JSON/极端上限、恶意Map、读取中替换、短读/读取错误和descriptor清理，原重放与原750ms门保持。1691份JS语法、定向Lint通过；新文件由统一unit自动发现。完整Windows新批仍待运行，不能授实际daemon中断资格。普通2a通过不覆盖其正式及额外失败，尚未触发安装路由。
+
+Windows SSH已恢复，只读确认旧E盘实例仍在运行，用户自行切换的约束不变。台账再次只读核对maximum177/used169、Codex剩1/Claude剩7，分账一致，dispatchReservationPrepared=false；未预留或调用模型。旧实例/日常配置/冻结现场未改，无新24h/最大文件任务。剩余最新安装升级/582迁移回滚与两端实际provider、其他daemon内部矩阵、真实连续24h/到期重开及最大文件目标保持。
+
 ## 2026-10-27：移除受代次保护的在线根重复扫描；15e原失败与本机短测边界保留
 
 15e9ae9577097a518f473c9b09462ab1ecd03a43正式40547422169四作业已success：源码门122341661023、egress122341661725、N08122354533389、N09122354533521。普通40547422248七项success，coverage122341662363仍failure：chat/Responses/Claude持久请求分别5001/5002/5002ms超时，另有WFP合成工厂的pwsh原25000ms启动超时。首个chat失败窗口的2977ms COMMIT与2023ms database flush重叠；schema6已保留具体I/O时间段，但不授精确线程/请求归因。独立I/O40547422305/job122341662198原50/50、144次flush成功；完整额外I/O40547422400/job122341663042成功，三窗口均file-completed/清理验证，实际汇总重验通过。它们不覆盖普通失败，不授五秒稳定性，旧任务未重跑。

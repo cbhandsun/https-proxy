@@ -60,9 +60,10 @@ function createPublicationObservationFiles(input, create = false) {
             }
             throw fail();
           }
-          if (marker.size !== 0n || physical(file, false, pins).size > 4096n) throw fail();
-          const value = readBootstrap(file, 4096);
-          physical(file, false, pins);
+          if (marker.size !== 0n) throw fail();
+          // Bind the existing pins at the bounded reader's before/after path
+          // checks, rather than traversing the same file ancestors twice more.
+          const value = readBootstrap(file, 4096, pins);
           verify();
           return value;
         } catch {
