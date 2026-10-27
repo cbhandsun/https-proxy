@@ -5,6 +5,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const os = require('node:os');
+const fs = require('node:fs');
+const { DatabaseSync } = require('node:sqlite');
+const {
+  createPublicationCommitWitness,
+} = require('../../scripts/context-hosted/n09-business/publication-commit-witness');
+const schema = require('../../lib/proxy/context-recovery-storage-schema');
 const {
   createPreparedCommitBoundary,
 } = require('../../scripts/context-hosted/n09-business/publication-commit-boundary');
@@ -234,4 +240,214 @@ test('baseline failure rejects before acquiring a physical read lock', async () 
         () => assert.fail('physical lock')
       )
     );
+});
+
+test('rejected witness shape releases its actual SQLite read lock before rejecting construction', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-rejected-witness-'));
+  const runtimeDir = path.join(root, 'runtime'),
+    directory = path.join(runtimeDir, 'context-recovery-v1');
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, '.data-key'), 'synthetic-placeholder');
+  const database = new DatabaseSync(path.join(directory, 'checkpoint.sqlite'));
+  let witness,
+    closed = 0;
+  t.after(() => {
+    witness?.close();
+    database.close();
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+  database.exec(
+    schema.HEADER_SQL +
+      ';' +
+      schema.STATE_SQL +
+      ';' +
+      schema.BLOB_SQL +
+      ';PRAGMA application_id=' +
+      schema.APPLICATION_ID +
+      ';PRAGMA user_version=3;PRAGMA journal_mode=DELETE;PRAGMA synchronous=FULL;PRAGMA busy_timeout=0'
+  );
+  database
+    .prepare('INSERT INTO recovery_state VALUES(?,?,?,?,?,?)')
+    .run('a'.repeat(64), 4, 1, 10000, 'state', Buffer.from('synthetic'));
+  await assert.rejects(
+    createPreparedCommitBoundary(
+      { ...config, ownedRoot: root, runtimeDir },
+      async () => baseline,
+      (input) => {
+        witness = createPublicationCommitWitness(input);
+        return {
+          ...witness,
+          close() {
+            closed++;
+            witness.close();
+          },
+          unexpected: true,
+        };
+      }
+    ),
+    /n09_prepared_commit_boundary_failed/
+  );
+  database.exec('BEGIN IMMEDIATE; UPDATE recovery_state SET revision=5; COMMIT');
+  assert.equal(closed, 1);
+  assert.equal(database.prepare('SELECT revision FROM recovery_state').get().revision, 5);
+});
+
+test('overlapping rejected waits and explicit close invoke a witness close exactly once', async () => {
+  let done,
+    closed = 0;
+  const boundary = await createPreparedCommitBoundary(
+    config,
+    async () => baseline,
+    () => ({
+      waitPending: () =>
+        new Promise((resolve) => {
+          done = resolve;
+        }),
+      release() {
+        return { released: true };
+      },
+      close() {
+        closed++;
+      },
+    })
+  );
+  const first = assert.rejects(boundary.waitPending(), /n09_prepared_commit_boundary_failed/);
+  await assert.rejects(boundary.waitPending(), /n09_prepared_commit_boundary_failed/);
+  done(lock);
+  await first;
+  boundary.close();
+  boundary.close();
+  assert.equal(closed, 1);
+});
+
+test('malformed witness cleanup never invokes accessors, proxies or inherited capabilities', async () => {
+  let hooks = 0;
+  const trapped = () => {
+    hooks++;
+    throw Error('PRIVATE');
+  };
+  for (const resource of [
+    null,
+    {},
+    [],
+    new Proxy({}, { ownKeys: trapped }),
+    Object.create({ close: trapped }),
+    { close: new Proxy(() => {}, { apply: trapped }) },
+    Object.defineProperty({}, 'close', { enumerable: true, get: trapped }),
+  ]) {
+    await assert.rejects(
+      createPreparedCommitBoundary(
+        config,
+        async () => baseline,
+        () => resource
+      ),
+      /n09_prepared_commit_boundary_failed/
+    );
+  }
+  for (const field of ['waitPending', 'release', 'unexpected']) {
+    let closed = 0;
+    const resource = {
+      waitPending: async () => lock,
+      release: () => ({ released: true }),
+      close() {
+        assert.equal(this, resource);
+        closed++;
+      },
+    };
+    Object.defineProperty(resource, field, { enumerable: true, get: trapped });
+    await assert.rejects(
+      createPreparedCommitBoundary(
+        config,
+        async () => baseline,
+        () => resource
+      ),
+      /n09_prepared_commit_boundary_failed/
+    );
+    assert.equal(closed, 1);
+  }
+  assert.equal(hooks, 0);
+});
+
+test('invalid or rejected cleanup results are sticky failures and are never assimilated', async () => {
+  let hooks = 0;
+  const thenable = Object.defineProperty({}, 'then', {
+    get() {
+      hooks++;
+      throw Error('PRIVATE');
+    },
+  });
+  for (const result of [
+    () => false,
+    () => null,
+    () => 1,
+    () => thenable,
+    () => Promise.reject(Error('PRIVATE')),
+  ]) {
+    let closed = 0;
+    const boundary = await createPreparedCommitBoundary(
+      config,
+      async () => baseline,
+      () => ({
+        waitPending: async () => lock,
+        release: () => ({ released: true }),
+        close() {
+          closed++;
+          return result();
+        },
+      })
+    );
+    assert.throws(() => boundary.close(), /n09_prepared_commit_boundary_failed/);
+    assert.throws(() => boundary.close(), /n09_prepared_commit_boundary_failed/);
+    await assert.rejects(boundary.waitPending(), /n09_prepared_commit_boundary_failed/);
+    assert.equal(closed, 1);
+  }
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(hooks, 0);
+});
+
+test('validated witness methods keep their original receiver and do not reread mutable properties', async () => {
+  for (const mode of ['close', 'release']) {
+    let queries = 0,
+      closed = 0,
+      released = 0,
+      hooks = 0;
+    const resource = {
+      async waitPending() {
+        assert.equal(this, resource);
+        return lock;
+      },
+      release() {
+        assert.equal(this, resource);
+        released++;
+        return { released: true };
+      },
+      close() {
+        assert.equal(this, resource);
+        closed++;
+      },
+    };
+    const boundary = await createPreparedCommitBoundary(
+      config,
+      async () => (++queries === 1 ? baseline : state),
+      () => resource
+    );
+    for (const name of ['waitPending', 'release', 'close'])
+      Object.defineProperty(resource, name, {
+        get() {
+          hooks++;
+          throw Error('PRIVATE');
+        },
+      });
+    if (mode === 'close') {
+      boundary.close();
+      boundary.close();
+      assert.equal(closed, 1);
+    } else {
+      assert.equal((await boundary.waitPending()).actualPreparedWritePending, true);
+      assert.deepEqual(boundary.release(), { released: true });
+      assert.equal(released, 1);
+      boundary.close();
+    }
+    assert.equal(hooks, 0);
+  }
 });

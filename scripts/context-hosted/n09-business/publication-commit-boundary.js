@@ -13,7 +13,27 @@ async function createPreparedCommitBoundary(
   query,
   createWitness = createPublicationCommitWitness
 ) {
-  let witness;
+  let witness, closeWitnessMethod;
+  let witnessClosed = false,
+    witnessCloseFailed = false;
+  function closeWitness() {
+    if (!closeWitnessMethod) return;
+    if (witnessClosed) {
+      if (witnessCloseFailed) throw fail();
+      return;
+    }
+    witnessClosed = true;
+    try {
+      const result = Reflect.apply(closeWitnessMethod, witness, []);
+      if (result !== undefined) {
+        discardN09PromiseRejection(result);
+        throw fail();
+      }
+    } catch {
+      witnessCloseFailed = true;
+      throw fail();
+    }
+  }
   try {
     const config = exact(input, ['ownedRoot', 'runtimeDir', 'rootId', 'expiresAt', 'revision']);
     if (
@@ -56,6 +76,26 @@ async function createPreparedCommitBoundary(
       discardN09PromiseRejection(resource);
       throw fail();
     }
+    if (
+      !resource ||
+      typeof resource !== 'object' ||
+      types.isProxy(resource) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(resource))
+    )
+      throw fail();
+    // Capture only a safe own synchronous cleanup before checking the rest of
+    // the factory result. A malformed result may already own a real read lock.
+    witness = resource;
+    const cleanup = Object.getOwnPropertyDescriptor(resource, 'close');
+    if (
+      cleanup &&
+      Object.hasOwn(cleanup, 'value') &&
+      typeof cleanup.value === 'function' &&
+      !types.isProxy(cleanup.value) &&
+      !types.isAsyncFunction(cleanup.value) &&
+      !types.isGeneratorFunction(cleanup.value)
+    )
+      closeWitnessMethod = cleanup.value;
     const methods = exact(resource, ['waitPending', 'release', 'close']);
     if (
       Object.values(methods).some(
@@ -66,7 +106,6 @@ async function createPreparedCommitBoundary(
       types.isAsyncFunction(methods.release)
     )
       throw fail();
-    witness = resource;
     let closed = false,
       observed = false,
       waiting = false,
@@ -77,7 +116,7 @@ async function createPreparedCommitBoundary(
           if (closed || waiting || observed) throw fail();
           waiting = true;
           const deadline = performance.now() + 750;
-          const pending = witness.waitPending();
+          const pending = Reflect.apply(methods.waitPending, witness, []);
           if (!isN09NativePromise(pending)) throw fail();
           const lock = exact(await pending, [
             'readAdmissionBlocked',
@@ -120,7 +159,7 @@ async function createPreparedCommitBoundary(
         } catch {
           closed = true;
           try {
-            witness.close();
+            closeWitness();
           } catch {
             closeFailed = true;
           }
@@ -132,7 +171,7 @@ async function createPreparedCommitBoundary(
       release() {
         if (closed || waiting || !observed) throw fail();
         try {
-          const result = exact(witness.release(), ['released']);
+          const result = exact(Reflect.apply(methods.release, witness, []), ['released']);
           if (result.released !== true) throw fail();
           closed = true;
           return Object.freeze({ released: true });
@@ -140,7 +179,7 @@ async function createPreparedCommitBoundary(
           closed = true;
           closeFailed = true;
           try {
-            witness.close();
+            closeWitness();
           } catch {
             /* already rejected */
           }
@@ -154,7 +193,7 @@ async function createPreparedCommitBoundary(
         }
         closed = true;
         try {
-          witness.close();
+          closeWitness();
         } catch {
           closeFailed = true;
           throw fail();
@@ -163,7 +202,7 @@ async function createPreparedCommitBoundary(
     });
   } catch {
     try {
-      witness?.close();
+      closeWitness();
     } catch {
       /* construction is rejected */
     }
