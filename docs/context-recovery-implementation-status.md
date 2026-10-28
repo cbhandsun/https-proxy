@@ -1,10 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：正式源门同机采集已实际执行；本机e0原生检查通过
+
+固定a7cbd6f正式40631684839/source122629276180已产生相同SHA的真实I/O回执，windowTermination=file-completed、cleanupVerified=true；与普通coverage122629275909回执、独立I/O122629275997回执均通过原parseSummary重验。正式窗口六轮持久发布1582/1834/1407/1694/1167/1343ms，26对journal刷新最大24ms、数据库配对0；零数据库配对不能证明无数据库I/O。普通窗口96对刷新、DB最大64/journal167ms；独立I/O终态success、144对、DB192/journal258ms。全部traceCompleteness/fiveSecond/commitCorrelation资格仍false。两份覆盖率日志只是已上传前缀，完整源门、普通coverage及额外覆盖I/O仍在运行，不能把录制结束当作完整CI或五秒稳定性通过。证据见context-recovery-evidence/a7cbd6f-source-capture-observed.json。
+
+本机固定e0构建的原plugin ci网络ECONNRESET失败不覆盖、不删；从已存在且锁文件字节相同的独立旧构建缓存仅读取五份缺失公开依赖，按锁定integrity校验写入新构建缓存（总95份、网络0），以新无自动重试任务离线继续。原任务/日志保留；续建plugin ci在12180ms退出0，原native-check在129594ms退出0，native-prepare在1274ms退出0。已核对所属Node身份和rustc实际编译进展，目前installer-build，候选尚未产生；原期限、公开签名要求及旧实例保持。校验与保留脚本已准备，待原构建成功后才执行，不先授本机安装或真实provider资格。
+
+另对原625本机失败40项组仅做终态日志只读核对：完成36项耗时合计110504.2835ms，最后六项为prepared/sending/transport-finished各COMMIT及ACK正常停止，约6.6–7.5秒/项；原120秒父门失败及无最终TAP状态不变。这提供累计耗时接近父限的证据，不能反推下一项唯一失败原因或称整组通过，原门不提高。旧6646长测失败现场、任务和旧E实例不动，新24h未启动，真实模型0。下一步核对同一活跃CI/构建句柄，继续五秒尾等待定位与候选实际交付。
+
 ## 2026-10-28：正式源门接入同机I/O采集，保留最新失败
 
 本批将已有代理覆盖率窗口的有限I/O采集接入正式source-gates；原npm run verify、四分片并行、后续client coverage、audit、750/5000ms期限及十组业务矩阵保持。独立选择模块只允许精确生命周期，录制器仍验证原托管平台、仓库、workflow/job和相同SHA；后续client阶段只省略重复录制，不省略测试。finally核对回执，原验证失败即使同时遇到回执失败也保持失败，不继续audit。正常、非法、安全与失败路径四文件79/79，关联I/O五文件39/39；真实PowerShell执行五种源门失败组合，语法1733、Lint零错误/五既有警告、变更JS格式、PowerShell解析及CI/release治理通过。格式器曾改写十场景字面量而触发78/79失败，已恢复原字面量，未改治理断言。
 
-这是同次失败取证能力，尚未完成Windows执行，更不是五秒产品修复。bb92902正式40630050030/source122624078755终态失败，完整日志2677944字节已读；失败在签名ACK通道uncertain取消握手和同步ACK期间observation两项，业务矩阵因源门失败跳过。该次六轮持久发布846/1099/745/943/1848/1408ms，不覆盖625及其他旧五秒失败。Windows SSH已恢复；固定e0独立构建的源码准备、缓存复制和npm ci成功，plugin ci在114342ms因公开npm registry连接ECONNRESET退出，任务Ready/result1且无所属Node、未生成候选，没有重启刷绿。有限证据见context-recovery-evidence/source-gate-io-capture.json。
+这是同次失败取证能力，尚未完成Windows执行，更不是五秒产品修复。bb92902正式40630050030/source122624078755终态失败，完整日志2677944字符已读；失败在签名ACK通道uncertain取消握手和同步ACK期间observation两项，业务矩阵因源门失败跳过。该次六轮持久发布846/1099/745/943/1848/1408ms，不覆盖625及其他旧五秒失败。Windows SSH已恢复；固定e0独立构建的源码准备、缓存复制和npm ci成功，plugin ci在114342ms因公开npm registry连接ECONNRESET退出，任务Ready/result1且无所属Node、未生成候选，没有重启刷绿。有限证据见context-recovery-evidence/source-gate-io-capture.json。
 
 旧6646长测终态失败现场、旧E实例均不动，新24h未启动，真实模型0。下一步读取正式源门同机录制并定位尾等待，同时修复本机公开依赖传输阻塞后继续最新候选构建；未授整体完成或自用切换。
 

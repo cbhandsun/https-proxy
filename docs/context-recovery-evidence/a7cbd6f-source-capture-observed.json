@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "source": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+  "observedAtUtc": "2026-10-28T04:27:25Z",
+  "sameRunnerFormalCapture": {
+    "runId": 40631684839,
+    "jobId": 122629276180,
+    "jobStatusAtObservation": "in_progress",
+    "logScope": "uploaded prefix only; not a completed source gate",
+    "receiptValidatedWithOriginalParser": true,
+    "sourceShaMatched": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+    "windowTermination": "file-completed",
+    "cleanupVerified": true,
+    "summary": {
+      "schemaVersion": 6,
+      "scope": "synthetic_sqlite_etw_file_operations",
+      "pairedFlushes": 26,
+      "database": {
+        "count": 0,
+        "maxMs": 0,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 26,
+        "maxMs": 24,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false,
+      "commitCorrelationQualified": false
+    },
+    "persistentPublicationSamplesMs": [
+      1582,
+      1834,
+      1407,
+      1694,
+      1167,
+      1343
+    ]
+  },
+  "ordinaryCoverageCapture": {
+    "runId": 40631684746,
+    "jobId": 122629275909,
+    "jobStatusAtObservation": "in_progress",
+    "logScope": "uploaded prefix only",
+    "receiptValidatedWithOriginalParser": true,
+    "windowTermination": "file-completed",
+    "cleanupVerified": true,
+    "summary": {
+      "schemaVersion": 6,
+      "scope": "synthetic_sqlite_etw_file_operations",
+      "pairedFlushes": 96,
+      "database": {
+        "count": 32,
+        "maxMs": 64,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 64,
+        "maxMs": 167,
+        "over100Ms": 1,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false,
+      "commitCorrelationQualified": false
+    },
+    "persistentPublicationSamplesMs": [
+      939,
+      1228,
+      726,
+      1012,
+      945,
+      1255
+    ]
+  },
+  "standaloneIoDiagnostic": {
+    "runId": 40631684845,
+    "jobId": 122629275997,
+    "jobStatus": "success",
+    "receiptValidatedWithOriginalParser": true,
+    "summary": {
+      "schemaVersion": 6,
+      "scope": "synthetic_sqlite_etw_file_operations",
+      "pairedFlushes": 144,
+      "database": {
+        "count": 48,
+        "maxMs": 192,
+        "over100Ms": 4,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 96,
+        "maxMs": 258,
+        "over100Ms": 8,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false,
+      "commitCorrelationQualified": false
+    }
+  },
+  "limits": {
+    "zeroObservedDatabaseFlushesDoNotProveAbsenceOfDatabaseIo": true,
+    "uploadedPrefixesDoNotQualifyCompletedJobs": true,
+    "oldFailuresRetained": true,
+    "fiveSecondStabilityQualified": false,
+    "fullFormalCiQualified": false,
+    "realModelRequests": 0,
+    "new24HourStarted": false
+  }
+}

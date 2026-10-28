@@ -3,8 +3,18 @@
   "baseSource": "bb929029bc5577acd9c16db2758f455c1a286a5c",
   "purpose": "Capture the original proxy coverage window in the formal source gate on the same runner without changing its command, parallelism or deadlines.",
   "verification": {
-    "captureAndWorkflowTests": { "tests": 79, "passed": 79, "failed": 0, "skipped": 0 },
-    "relatedIoTests": { "tests": 39, "passed": 39, "failed": 0, "skipped": 0 },
+    "captureAndWorkflowTests": {
+      "tests": 79,
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0
+    },
+    "relatedIoTests": {
+      "tests": 39,
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0
+    },
     "syntaxFiles": 1733,
     "lintErrors": 0,
     "existingLintWarnings": 5,
@@ -23,15 +33,22 @@
     "runId": 40630050030,
     "sourceJobId": 122624078755,
     "sourceStatus": "failure",
-    "sourceLogBytes": 2677944,
     "failedFile": "test/context-hosted/n09-publication-ack-channel.test.js",
     "failedCases": [
       "signed cancellation handshake: uncertain",
       "authenticated observation during synchronous ACK hold: observation"
     ],
-    "persistentPublicationSamplesMs": [846, 1099, 745, 943, 1848, 1408],
+    "persistentPublicationSamplesMs": [
+      846,
+      1099,
+      745,
+      943,
+      1848,
+      1408
+    ],
     "fiveSecondStabilityQualified": false,
-    "businessMatrix": "skipped after failed source gate"
+    "businessMatrix": "skipped after failed source gate",
+    "sourceLogCharacters": 2677944
   },
   "localCandidateBuild": {
     "source": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
