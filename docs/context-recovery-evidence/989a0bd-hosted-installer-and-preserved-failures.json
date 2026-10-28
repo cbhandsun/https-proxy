@@ -1,0 +1,662 @@
+{
+  "schemaVersion": 1,
+  "source": "989a0bda67945a56934774bc8b24af49bee92977",
+  "scope": "exact_source_ci_hosted_installer_and_local_preparation",
+  "ordinary": {
+    "runId": 40720243799,
+    "passedJobs": 8,
+    "coverageLogChars": 3791044
+  },
+  "reviewVerify": {
+    "runId": 40720391526,
+    "passedJobs": 8
+  },
+  "formal": {
+    "runId": 40720243800,
+    "passedJobs": 12,
+    "sourceLogChars": 3884939,
+    "businessReceipts": [
+      {
+        "jobId": 122942597402,
+        "name": "context-recovery (n09-sending-ack)",
+        "logChars": 34983,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n09-sending-ack",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "7a5545ac168dd8c06b2b746cfd1da61b97a0c61d0c9c0bc532253c27d4132b07",
+          "buildReceiptSha256": "fe751bd8b721e0a0d0a47c1a67de4dad374efe7123154b55485117e1d8dc8676",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "tlsVerified": true,
+          "probesPassed": true,
+          "nonLoopbackBlocked": true,
+          "ownedTreeEmpty": true,
+          "phase": "hosted_network_finished",
+          "n08Qualified": false
+        },
+        "errors": [],
+        "verified": true
+      },
+      {
+        "jobId": 122942597409,
+        "name": "context-recovery (n09-finished-ack)",
+        "logChars": 35070,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n09-finished-ack",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "e9fdc72ec8bb50771cb790cfb493e19c5adb761b5ee9c586b73a3cb6c7b87817",
+          "buildReceiptSha256": "f558ca3a572be018e2c42200fab3325e4ec87bed511c49fa191e485b29006216",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "ownedTreeEmpty": true,
+          "tlsVerified": true,
+          "nonLoopbackBlocked": true,
+          "n08Qualified": false,
+          "phase": "hosted_network_finished",
+          "probesPassed": true
+        },
+        "errors": [],
+        "verified": true
+      },
+      {
+        "jobId": 122942597431,
+        "name": "context-recovery (n09-uncertain-commit)",
+        "logChars": 35006,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n09-uncertain-commit",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "12693c3cd2ee057602632600fc4d12b60359d66d9ecb0bd2fb78b144d1d5cd79",
+          "buildReceiptSha256": "06dae41ccb0307276f7bc1bf7a37111d6cb2a01f2bf97bfccfe496e3fffb8e3b",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "ownedTreeEmpty": true,
+          "probesPassed": true,
+          "tlsVerified": true,
+          "phase": "hosted_network_finished",
+          "nonLoopbackBlocked": true,
+          "n08Qualified": false
+        },
+        "errors": [],
+        "verified": true
+      },
+      {
+        "jobId": 122942597481,
+        "name": "context-recovery (n09-withdrawn-commit)",
+        "logChars": 35001,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n09-withdrawn-commit",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "cb49811cab83655b6f922db362805bf4c2751b396a6c00999ca059f4a6196592",
+          "buildReceiptSha256": "1d311d5bde45c8436044b2fa5244dd9e6f141832d60b8d86da696f01de485a33",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "probesPassed": true,
+          "phase": "hosted_network_finished",
+          "ownedTreeEmpty": true,
+          "n08Qualified": false,
+          "tlsVerified": true,
+          "nonLoopbackBlocked": true
+        },
+        "errors": [],
+        "verified": true
+      },
+      {
+        "jobId": 122942597593,
+        "name": "context-recovery (n09-sending-commit)",
+        "logChars": 34995,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n09-sending-commit",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "69d2552a925ab899ddc55c9a4363ccde8eea7a3333b732c9c4208acfb4ae494c",
+          "buildReceiptSha256": "ed3fe718d6fd0a997f57e5e0c996760c1f2d0088112c646b8b2a282715c4dc98",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "ownedTreeEmpty": true,
+          "tlsVerified": true,
+          "phase": "hosted_network_finished",
+          "nonLoopbackBlocked": true,
+          "probesPassed": true
+        },
+        "errors": [],
+        "verified": true
+      },
+      {
+        "jobId": 122942597603,
+        "name": "context-recovery (n09-finished-commit)",
+        "logChars": 35008,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n09-finished-commit",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "5772129bc2bb69c18a905c22606d8e7f52d3334b30d1cf98fdb74ab1488fbee7",
+          "buildReceiptSha256": "3ae12a4e45280f07db9d851324fe9b956f586314f8464173f7e55dcb86f1cb3b",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "phase": "hosted_network_finished",
+          "nonLoopbackBlocked": true,
+          "n08Qualified": false,
+          "tlsVerified": true,
+          "probesPassed": true,
+          "ownedTreeEmpty": true
+        },
+        "errors": [],
+        "verified": true
+      },
+      {
+        "jobId": 122942597604,
+        "name": "context-recovery (n09-uncertain-ack)",
+        "logChars": 35073,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n09-uncertain-ack",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "957fa2e98e0e2b01a7cf89be9458402bcdb531a0eb82acfc69ab6606a7fd5f0e",
+          "buildReceiptSha256": "3897b84ebca630e7abf77458581bdd0875ec29617ce484757ce53ea0747e1f7f",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "phase": "hosted_network_finished",
+          "nonLoopbackBlocked": true,
+          "probesPassed": true,
+          "tlsVerified": true,
+          "ownedTreeEmpty": true,
+          "n08Qualified": false
+        },
+        "errors": [],
+        "verified": true
+      },
+      {
+        "jobId": 122942597924,
+        "name": "context-recovery (n08)",
+        "logChars": 34923,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n08",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "795f8802e9774c36793c935442550716a32a2eaece072d231af450ee63d7e064",
+          "buildReceiptSha256": "283bfb5a73c0be7bb57cd1d524826cab6333a24aa4f0c6d2f2a4886f2d74e1aa",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "nonLoopbackBlocked": true,
+          "probesPassed": true,
+          "n08Qualified": false,
+          "ownedTreeEmpty": true,
+          "tlsVerified": true,
+          "phase": "hosted_network_finished"
+        },
+        "errors": [],
+        "verified": true
+      },
+      {
+        "jobId": 122942675378,
+        "name": "context-recovery (n09-withdrawn-ack)",
+        "logChars": 34991,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n09-withdrawn-ack",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "145f02046ecb706c0f2d46f9c90b9106801d198fdc305e59eb7eb0089d4d507b",
+          "buildReceiptSha256": "7424c973834c60d632b97248a7fff978a3a8957cfaf8b1ef81ce29b45b7e8d27",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "nonLoopbackBlocked": true,
+          "ownedTreeEmpty": true,
+          "tlsVerified": true,
+          "probesPassed": true,
+          "phase": "hosted_network_finished",
+          "n08Qualified": false
+        },
+        "errors": [],
+        "verified": true
+      },
+      {
+        "jobId": 122942597771,
+        "name": "context-recovery (n09)",
+        "logChars": 34921,
+        "preparation": {
+          "schemaVersion": 1,
+          "scenario": "n09",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "planSha256": "2b40c39c57b588ac45ffd99895695050ae56e2dd29dd1bd3611690032ad4e144",
+          "buildReceiptSha256": "73093d476d7065edf6f61fcca6dfe81f9095650bf46c7a7becf395731e508003",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "probesPassed": true,
+          "ownedTreeEmpty": true,
+          "phase": "hosted_network_finished",
+          "tlsVerified": true,
+          "nonLoopbackBlocked": true,
+          "n08Qualified": false
+        },
+        "errors": [],
+        "verified": true
+      }
+    ]
+  },
+  "extraIo": {
+    "runId": 40720243525,
+    "jobId": 122928849673,
+    "conclusion": "failure",
+    "fullLogChars": 2730230,
+    "failures": 2,
+    "boundary": "transport-finished COMMIT kill and positive-release fixture readiness",
+    "targetAdvanceEntered": false,
+    "awaiting": [
+      "ready",
+      "ready"
+    ],
+    "startupElapsedMs": [
+      1470,
+      2716
+    ],
+    "uniqueRootCauseConfirmed": false,
+    "summaryAcceptedByOriginalParser": true,
+    "cleanupVerified": true,
+    "pairedFlushes": 96,
+    "databaseMaxFlushMs": 229,
+    "journalMaxFlushMs": 647,
+    "fiveSecondQualified": false,
+    "traceCompletenessVerified": false
+  },
+  "hostedInstaller": {
+    "source": "989a0bda67945a56934774bc8b24af49bee92977",
+    "runId": 40720391644,
+    "jobId": 122929594397,
+    "conclusion": "success",
+    "fullLogChars": 3913714,
+    "receipts": [
+      {
+        "label": "NSIS_RUNTIME_BOUNDARIES",
+        "value": {
+          "schemaVersion": 1,
+          "caseId": "settings-matrix",
+          "phase": "current_pre_rollback",
+          "manifestSha256": "118a87485c88fdd718aade7b19122f75a10ed12c65fe3c684c056ac78b781d45",
+          "scope": "installed_module_api",
+          "dependencyIdentity": "lock_only",
+          "restartRetention": false,
+          "combinations": [
+            {
+              "schemaVersion": 1,
+              "combination": "00",
+              "manifestSha256": "118a87485c88fdd718aade7b19122f75a10ed12c65fe3c684c056ac78b781d45",
+              "scope": "verified_payload_module_api",
+              "dependencyIdentity": "lock_only",
+              "checks": [
+                "policy_applied",
+                "storage_boundary",
+                "shutdown_acknowledged"
+              ],
+              "restartRetention": false
+            },
+            {
+              "schemaVersion": 1,
+              "combination": "01",
+              "manifestSha256": "118a87485c88fdd718aade7b19122f75a10ed12c65fe3c684c056ac78b781d45",
+              "scope": "verified_payload_module_api",
+              "dependencyIdentity": "lock_only",
+              "checks": [
+                "policy_applied",
+                "storage_boundary",
+                "shutdown_acknowledged"
+              ],
+              "restartRetention": false
+            },
+            {
+              "schemaVersion": 1,
+              "combination": "10",
+              "manifestSha256": "118a87485c88fdd718aade7b19122f75a10ed12c65fe3c684c056ac78b781d45",
+              "scope": "verified_payload_module_api",
+              "dependencyIdentity": "lock_only",
+              "checks": [
+                "policy_applied",
+                "storage_boundary",
+                "shutdown_acknowledged"
+              ],
+              "restartRetention": false
+            },
+            {
+              "schemaVersion": 1,
+              "combination": "11",
+              "manifestSha256": "118a87485c88fdd718aade7b19122f75a10ed12c65fe3c684c056ac78b781d45",
+              "scope": "verified_payload_module_api",
+              "dependencyIdentity": "lock_only",
+              "checks": [
+                "policy_applied",
+                "storage_boundary",
+                "shutdown_acknowledged"
+              ],
+              "restartRetention": false
+            }
+          ]
+        }
+      },
+      {
+        "label": "NSIS_DAEMON_HTTP",
+        "value": {
+          "schemaVersion": 1,
+          "caseId": "daemon-http-settings-matrix",
+          "phase": "current_pre_rollback",
+          "scope": "installed_daemon_management_http",
+          "manifestSha256": "118a87485c88fdd718aade7b19122f75a10ed12c65fe3c684c056ac78b781d45",
+          "dependencyIdentity": "lock_only",
+          "modelRequests": 0,
+          "restartRetention": false,
+          "clientQualified": false,
+          "gracefulDrainQualified": false,
+          "controllerClosed": true,
+          "cleanupSemantics": "forced_cleanup",
+          "combinations": [
+            {
+              "combination": "00",
+              "checks": [
+                "config_saved",
+                "application_observed",
+                "storage_verified",
+                "owned_stop_acknowledged"
+              ]
+            },
+            {
+              "combination": "01",
+              "checks": [
+                "config_saved",
+                "application_observed",
+                "storage_verified",
+                "owned_stop_acknowledged"
+              ]
+            },
+            {
+              "combination": "10",
+              "checks": [
+                "config_saved",
+                "application_observed",
+                "storage_verified",
+                "owned_stop_acknowledged"
+              ]
+            },
+            {
+              "combination": "11",
+              "checks": [
+                "config_saved",
+                "application_observed",
+                "storage_verified",
+                "owned_stop_acknowledged"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "label": "NSIS_INSTALLED_LEGACY_582",
+        "value": {
+          "passed": true,
+          "clientQualified": false,
+          "retention24hQualified": false,
+          "installedMigrationQualified": true,
+          "modelRequests": 0,
+          "scope": "installed_payload_default_worker_582_migration",
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "phase": "installed_legacy_582_finished",
+          "driver": {
+            "schemaVersion": 1,
+            "scope": "packaged_runtime_default_worker_legacy_layout_migration",
+            "passed": true,
+            "stages": 8,
+            "baselineSourceCount": 582,
+            "baselineManifestSha256": "4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f",
+            "currentManifestSha256": "118a87485c88fdd718aade7b19122f75a10ed12c65fe3c684c056ac78b781d45",
+            "modelRequests": 0,
+            "layoutBefore": 1,
+            "layoutAfter": 3,
+            "revisionDelta": 1,
+            "nsisQualified": false,
+            "workerQualified": true,
+            "retention24hQualified": false,
+            "clientQualified": false
+          },
+          "ownedTreeEmpty": true,
+          "uninstalled": true
+        }
+      },
+      {
+        "label": "NSIS_INSTALLED_CLIENTS",
+        "value": {
+          "uninstalled": true,
+          "phase": "installed_native_cli_four_cases_finished",
+          "matrix": {
+            "schemaVersion": 7,
+            "scope": "installed_native_cli_four_cases",
+            "passed": true,
+            "syntheticClientQualified": true,
+            "realProviderQualified": false,
+            "retention24hQualified": false,
+            "realModelRequests": 0,
+            "probesPassed": true,
+            "tlsVerified": true,
+            "nonLoopbackBlocked": true,
+            "listenerOwned": true,
+            "ownedTreeEmpty": true,
+            "daemonNaturalExitQualified": true,
+            "httpTransportDrainQualified": true,
+            "sseTransportDrainQualified": true,
+            "websocketDrainQualified": true,
+            "websocketDrains": [
+              {
+                "client": "codex",
+                "mode": "default",
+                "protocol": "responses",
+                "unauthorizedUpgradeRefused": true,
+                "partialFrames": 5,
+                "terminalFrames": 0,
+                "clientClosed": true,
+                "upstreamClosed": true
+              },
+              {
+                "client": "codex",
+                "mode": "enhanced",
+                "protocol": "responses",
+                "unauthorizedUpgradeRefused": true,
+                "partialFrames": 5,
+                "terminalFrames": 0,
+                "clientClosed": true,
+                "upstreamClosed": true
+              }
+            ],
+            "syntheticSocketsClosed": true,
+            "cases": [
+              {
+                "client": "codex",
+                "mode": "default",
+                "compactions": 3,
+                "exactFinalAnswer": true,
+                "defaultZeroRecovery": true,
+                "privateRead": false,
+                "publicGeneration": false,
+                "restartRetention": true
+              },
+              {
+                "client": "codex",
+                "mode": "enhanced",
+                "compactions": 3,
+                "exactFinalAnswer": true,
+                "defaultZeroRecovery": false,
+                "privateRead": true,
+                "publicGeneration": true,
+                "restartRetention": true
+              },
+              {
+                "client": "claude",
+                "mode": "default",
+                "compactions": 3,
+                "exactFinalAnswer": true,
+                "defaultZeroRecovery": true,
+                "privateRead": false,
+                "publicGeneration": false,
+                "restartRetention": true
+              },
+              {
+                "client": "claude",
+                "mode": "enhanced",
+                "compactions": 3,
+                "exactFinalAnswer": true,
+                "defaultZeroRecovery": false,
+                "privateRead": true,
+                "publicGeneration": true,
+                "restartRetention": true
+              }
+            ]
+          },
+          "nativeControl": {
+            "probe": {
+              "schemaVersion": 1,
+              "scope": "installed_native_idle_stop_storage_reopen",
+              "passed": true,
+              "normalStops": 2,
+              "originalExpiryPreserved": true,
+              "storageReopenVerified": true,
+              "idleGracefulStopVerified": true,
+              "restartRetention": false,
+              "clientQualified": false,
+              "retention24hQualified": false,
+              "modelRequests": 0,
+              "sourceCommit": "989a0bda67945a56934774bc8b24af49bee92977",
+              "manifestSha256": "118a87485c88fdd718aade7b19122f75a10ed12c65fe3c684c056ac78b781d45",
+              "applicationSha256": "a754fba4161c867b4dcf748d84413cb88135fc1e0e7ffd69144a6cfb8dd3dafb"
+            },
+            "naturalTreeEmpty": true
+          }
+        }
+      },
+      {
+        "label": "NSIS_INSTALLED_PUBLICATION",
+        "value": {
+          "phase": "installed_publication_finished",
+          "uninstalled": true,
+          "naturalTreeEmpty": true,
+          "realModelRequests": 0,
+          "sourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+          "probe": {
+            "schemaVersion": 1,
+            "scope": "installed_payload_publication_interior",
+            "passed": true,
+            "manifestSha256": "118a87485c88fdd718aade7b19122f75a10ed12c65fe3c684c056ac78b781d45",
+            "tests": 30,
+            "passedTests": 30,
+            "failedTests": 0,
+            "skippedTests": 0,
+            "defaultWorkerQualified": true,
+            "daemonQualified": false,
+            "retention24hQualified": false,
+            "realModelRequests": 0
+          }
+        }
+      }
+    ]
+  },
+  "windowsIndependentShort": {
+    "source": "989a0bda67945a56934774bc8b24af49bee92977",
+    "initialTaskConclusion": "failure",
+    "productTestsStarted": false,
+    "rootNpmProcessExitCode": 0,
+    "pluginNpmProcessExitCode": 0,
+    "postInstallIdentityFailure": {
+      "phase": "git-revision",
+      "code": "ETIMEDOUT",
+      "signal": "SIGTERM",
+      "deadlineMs": 5000
+    },
+    "failedTaskPreserved": true,
+    "strictAdmissionContinuationRequested": true,
+    "continuationActualStartedConfirmed": true,
+    "fixedGroupDeadlineMs": 120000,
+    "noProductTestReplay": true,
+    "continuationConclusion": "failure",
+    "sourceAndLockedDependenciesAdmitted": true,
+    "admissionElapsedMs": 1774,
+    "nativeArtifactVerified": true,
+    "nativeOpenPassed": false,
+    "completedOpens": 0,
+    "completedCloses": 0,
+    "regressionOrLaterTestsStarted": false,
+    "nativeOpenTimeline": [
+      {
+        "phase": "worker_started",
+        "elapsedMs": 4888
+      },
+      {
+        "phase": "paths_started",
+        "elapsedMs": 5035
+      },
+      {
+        "phase": "directory_acl_started",
+        "elapsedMs": 5046
+      },
+      {
+        "phase": "failed",
+        "elapsedMs": 19299
+      }
+    ],
+    "nativeOpenFailureUniquelyAttributed": false,
+    "automaticRestart": false,
+    "terminalOwnedProcessesRemaining": 0,
+    "terminalConfirmed": true,
+    "postFailureCpuSample": {
+      "observedCpuPercent": 67.7,
+      "logicalProcessors": 16,
+      "matchedProcesses": 740,
+      "elapsedMs": 1743.8,
+      "scope": "matching_readable_processes_only_not_complete_host_utilization",
+      "failureTimeCausalityEstablished": false
+    }
+  },
+  "limits": {
+    "allSourceGatesPassed": false,
+    "fiveSecondStable": false,
+    "localInstalledBinaryQualified": false,
+    "realProviderQualified": false,
+    "real24hStarted": false,
+    "real24hQualified": false,
+    "maximumCapacityStillPaused": true,
+    "realModelRequests": 0,
+    "oldFailedRunsPreserved": true,
+    "publicInstallerPublished": false,
+    "dailyInstanceChanged": false,
+    "originalAuthenticationPersistenceAndDeadlinesPreserved": true,
+    "sameFormatSettingsMatrixScope": "installed_module_api with forced cleanup; no restart or client qualification inherited from later independent CLI receipt"
+  }
+}

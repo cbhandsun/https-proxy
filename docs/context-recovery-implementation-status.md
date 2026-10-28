@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：989 最新托管安装链全通过；额外 I/O 五秒失败与本机准备失败保持
+
+固定989a0bda普通40720243799八作业、review Verify40720391526八作业、正式40720243800十二作业全部成功；普通coverage完整3791044、正式source3884939字符日志及十份实际业务执行回执均已核对。最后n09的source/plan/build与执行后hosted_network_finished、TLS/非回环阻断/ownedTreeEmpty一致，不能只用prepared_only授资格。
+
+额外I/O40720243525/job122928849673仍failure，完整2730230字符日志已读：transport-finished COMMIT kill/release两个用例在原五秒ready门失败，尚未进入目标advance。启动ready分别1470/2716ms，随后仍有准备存储操作等待；一次engine执行1647ms，之后锚点持久开始但未完成。原解析器接受本次有限I/O摘要，96对刷新、DB最大229ms/journal647ms、cleanupVerified=true；traceCompleteness/commitCorrelation/fiveSecond资格仍false，不把最大刷新或后置资源采样当唯一原因，不借普通/正式绿色覆盖此失败。
+
+最新安装40720391644/job122929594397终态success，完整3913714字符日志及五份最终回执核对：候选自身完整verify/audit和NSIS构建通过，同格式升级回滚/同用户DPAPI、真实582八阶段布局1→3/revision精确+1/旧写者拒绝通过；Codex/Claude默认及增强四CLI合成案例均三次压缩、精确答案、同目录重启留存通过，增强模式私有读取后独立公开生成。原HTTP/SSE/WebSocket排空、未授权升级拒绝和自然退出回执通过；包内发布中断30/30、零fail/skip。共同manifest118a8748、app a754fba4。只授这份托管安装二进制与回执限定范围；同格式settings模块/管理HTTP矩阵仍是forced_cleanup、restartRetention=false，不能从后续独立CLI转授自然退出或重启资格。f151安装客户端排空失败继续保留，单次成功不证明其唯一原因已消除或五秒稳定性成立。
+
+本机989独立短测使用新目录和提交原始字节辅助文件，实际Node身份确认；源码干净/原生树/辅助文件校验通过，两次锁文件npm进程均exit0，但插件后git-revision触及原5000ms门ETIMEDOUT/SIGTERM，任务Ready/1，产品测试尚未启动。原日志/任务不改；以独立admitted任务严格重验源码、辅助文件及直接依赖锁定版本后续接，未重新npm安装、未重放产品测试、原120秒组门保持。续接准入1774ms通过、原生二进制安装核验通过，但首次默认开库失败（0开0闭），worker_started4888ms、paths_started5035ms、directory_acl_started5046ms、failed19299ms；尚未到DPAPI/SQL，不能归为请求五秒或确认ACL原生调用唯一原因。任务Ready/1，后续回归/完整文件/20与40项未启动，不重启续接；独立终态核对所属Node/native残留0。退出后只读聚合CPU样本67.7%（匹配可读进程下界、非完整主机利用率），不是失败瞬间因果。未启动的新本机构建payload另发现assignment CRLF与Git原始LF字节不一致，预检保持readyForLaunch=false，未注册/执行；未来必须新不可变payload，不能绕过身份或额外I/O失败门。
+
+有限证据见context-recovery-evidence/989a0bd-hosted-installer-and-preserved-failures.json。没有改产品持久/认证/期限，没有启动新24h或模型，没有切换旧E实例。整体仍缺五秒尾等待稳定性、本机最新包安装两端、额度安全核对后的真实provider、有效真实24h及到期两次重开、暂停的最大容量与受控自用结论。下一步以实际本机准入结果定位具体阻塞，保留全部失败，不重跑刷绿或提高门禁。
+
+
 ## 2026-10-28：f151完整源门和十业务通过；安装观察请求发布竞态修复
 
 固定f1511ff普通40711485908八作业、review Verify40711645359八作业、正式40711485875十二作业及额外I/O40711485965全部成功。普通coverage完整3789272、额外I/O3793207、正式source3881454字符日志已读，七份I/O摘要通过原parseSummary；十份业务逐一核对同source/plan/build及执行后的hosted_network_finished、TLS/非回环阻断/ownedTreeEmpty，不把prepared_only算执行。两次原完整负载24个持久发布结束样本1052–2126ms，32MiB历史重开通过，仅授本批样本；历史五秒失败保留，不宣称稳定性全部解决。
