@@ -664,10 +664,13 @@ function createN09BusinessAdapter(input, trusted = {}) {
         gate(identity);
       }
       const deadline = ackRoute.publicTransportCompleted ? performance.now() + 750 : undefined;
+      // Fixed private progress only; preserve the original witness deadline.
+      onPhase(247);
       const held = await ackProbe.waitHeld();
       gate(identity);
       let publicBytes = 0;
       if (ackRoute.publicTransportCompleted) {
+        onPhase(248);
         const observed = await publicInterruption.observePublished(
           Math.floor(deadline - performance.now())
         );
@@ -689,7 +692,10 @@ function createN09BusinessAdapter(input, trusted = {}) {
         durable.returnedBytes !== heldAccounting.returnedBytes
       )
         throw fail();
-      if (deadline !== undefined && performance.now() >= deadline) throw fail();
+      if (deadline !== undefined && performance.now() >= deadline) {
+        onPhase(250);
+        throw fail();
+      }
       return Object.freeze({
         ...held,
         publicBytes,
@@ -702,6 +708,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async releasePreparedAck(identity) {
       gate(identity);
       if (!ackProbe) throw fail();
+      onPhase(249);
       const result = await ackProbe.release();
       gate(identity);
       ackProbe.close();

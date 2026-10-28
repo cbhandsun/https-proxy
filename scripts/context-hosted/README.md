@@ -208,3 +208,10 @@ Windows. Scoped ESLint, Prettier, unified CI governance and the 1393-file
 JavaScript syntax check also passed. Those historical checks do not qualify the
 new sending group or establish installed client acceptance; the workflow must
 still complete its own full verification and actual scenario execution.
+
+ACK business progress uses fixed numeric markers only: 247 waits for the signed
+held signal, 248 observes the finished public wire, and 249 releases the final
+ACK control. Marker 250 is emitted only after the original 750ms witness has
+expired following valid durable accounting. Existing readonly markers 174–184
+remain unchanged. A last marker identifies a reached step, not a unique root
+cause; no deadline is reset or extended and no failed path gains a receipt.

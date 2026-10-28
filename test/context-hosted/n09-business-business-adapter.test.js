@@ -1945,6 +1945,7 @@ test('transport-finished ACK keeps complete public wire separate from final dura
 test('finished ACK rejects partial versions, changed wire bytes and a late metadata observation under the same 750ms witness', async () => {
   for (const scenario of ['version', 'bytes', 'content', 'late-snapshot', 'completion']) {
     let delayed = false;
+    const phases = [];
     const f = fixture(
       (stage, value, state) => {
         if (stage === 'prepared-ack-held') {
@@ -1965,7 +1966,7 @@ test('finished ACK rejects partial versions, changed wire bytes and a late metad
         if (scenario === 'completion' && stage === 'publication-completed' && state.ackQueued)
           value.completed = false;
       },
-      undefined,
+      (phase) => phases.push(phase),
       'ack'
     );
     f.adapter.bindVerifiedNetworkProof(f.proof);
@@ -1973,6 +1974,8 @@ test('finished ACK rejects partial versions, changed wire bytes and a late metad
       runPreparedPublicationAck(f.adapter, scenario !== 'completion', 'transport-finished'),
       { message: 'n09_publication_ack_driver_failed' }
     );
+    if (scenario === 'late-snapshot') assert.equal(phases.at(-1), 250);
+    if (scenario === 'completion') assert.equal(phases.at(-1), 249);
     assert.equal(f.state.closed, 1);
   }
 });
@@ -2047,4 +2050,41 @@ test('terminal ACK business adapter refuses false cancellation, reused trigger, 
       assert.equal(f.state.closed, 1);
     }
   }
+});
+
+test('ACK progress separates held signal, public wire and release failures without granting a receipt', async () => {
+  for (const [stage, patch, expected] of [
+    ['held', { revision: 1 }, 247],
+    ['held', { holdChallenge: 'bad' }, 247],
+    ['released', { holdChallenge: 'b'.repeat(32) }, 249],
+  ]) {
+    const phases = [];
+    const f = fixture(
+      (at, value) => {
+        if (at === 'prepared-ack-' + stage) Object.assign(value, patch);
+      },
+      (phase) => phases.push(phase),
+      'ack'
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(runPreparedPublicationAck(f.adapter, false, 'transport-finished'), {
+      message: 'n09_publication_ack_driver_failed',
+    });
+    assert.equal(phases.at(-1), expected);
+    assert.equal(f.state.closed, 1);
+  }
+  const phases = [];
+  const f = fixture(
+    (stage, _value, state) => {
+      if (stage === 'prepared-ack-held') state.publicWireResponse.bytes[0] ^= 1;
+    },
+    (phase) => phases.push(phase),
+    'ack'
+  );
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  await assert.rejects(runPreparedPublicationAck(f.adapter, false, 'transport-finished'), {
+    message: 'n09_publication_ack_driver_failed',
+  });
+  assert.equal(phases.at(-1), 248);
+  assert.equal(f.state.closed, 1);
 });

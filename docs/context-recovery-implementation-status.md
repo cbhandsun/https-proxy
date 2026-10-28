@@ -1,5 +1,14 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：补ACK失败步骤区分，未追授旧184的唯一原因
+
+c505 finished失败只有case161/最后readonly184，不能区分后续等待held、独立公开wire观察、释放控制或原750ms见证耗尽。本批增加四个私有固定数字：247进入签名held等待、248进入finished wire观察、249进入ACK释放、250只在原见证结束且持久accounting已验证后确认超时。Node入口仅登记这四个整数；没有原文/错误对象/路径/credentials输出，没有在合格边界与强杀之间加操作。保持原750ms起点/上限、所有5秒持有、15秒完成门、精确版本、认证与FULL/DELETE语义；标记只是定位信息，不授资格。
+
+两文件75/75、零fail/skip；既有760ms晚快照回归精确落250、完成屏障失败落249，新回归分别验证伪held/挑战、坏公开wire、坏release落247/248/249并拒绝回执、保留清理。1728语法、全仓Lint零错误/五既有警告及CI/release治理通过。旧c505的184不因新增分类被重新解释为已确认超时，本批不是产品五秒修复；须等待新固定源码真实Windows结果。
+
+核对时fb1与c505普通七个非coverage作业均success，coverage与各自正式source仍在原job运行，c505额外I/O也仍运行。c505独立五success/finished failure及全部旧失败保持；不重跑覆盖。冻结旧长测/数据/任务和旧实例未动，新24h未启动、真实模型0、额度未写。整体仍需五秒稳定性、剩余daemon COMMIT内部矩阵、最新安装两端和其余既定交付验证。
+
+
 ## 2026-10-28：withdrawn/uncertain两组真实Windows业务诊断通过，finished同批失败保留
 
 固定c5058da独立诊断40619749468已终态：n08/n09/sending/withdrawn/uncertain五组success，finished failure。新withdrawn/job122590631025及uncertain/job122590630957完整日志已读，精确source/plan/build摘要和执行后hosted_network_finished、TLS/非loopback隔离/ownedTreeEmpty均核对。每组实际执行默认持久daemon的kill及清理后release两控制，包括真实客户端断开、宿主同请求关闭见证、精确终态+2/+3、原budget/expiry、同目录新PID恢复原文与工具不重放；不只是prepared_only或纯模拟。正式40619749502/source122590630670仍运行，因此这是实际独立业务证据，尚非正式完整资格；full N09和五秒稳定性仍false。有限证据见context-recovery-evidence/c5058da-terminal-hosted-diagnostic.json。

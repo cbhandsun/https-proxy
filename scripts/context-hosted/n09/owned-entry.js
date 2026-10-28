@@ -221,6 +221,7 @@ async function main() {
           phase === 201 ||
           (phase >= 203 && phase <= 209) ||
           (phase >= 211 && phase <= 246) ||
+          [247, 248, 249, 250].includes(phase) ||
           phase === 251 ||
           phase === 252 ||
           phase === 253 ||
