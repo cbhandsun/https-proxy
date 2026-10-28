@@ -107,13 +107,13 @@ function createPublicationAckBoundary(input) {
         if (!['direct', 'prepared-prefix'].includes(route)) throw fail();
         if (
           route === 'prepared-prefix' &&
-          !['sending', 'transport-finished'].includes(value.transition)
+          !['sending', 'transport-finished', 'uncertain', 'withdrawn'].includes(value.transition)
         )
           throw fail();
         predecessors =
           route === 'direct'
             ? []
-            : value.transition === 'sending'
+            : ['sending', 'withdrawn'].includes(value.transition)
               ? ['prepared']
               : ['prepared', 'sending'];
         cursor = value.expectedRevision - predecessors.length;

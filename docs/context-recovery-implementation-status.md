@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：终态取消暂停点基础通过，尚未接签名通道或实际daemon
+
+补独立publication-action-hook和publication-cancellation-gate：只在原invokeRecoveryPublication成功完成后观察固定动作枚举，观察器不收到session/参数/结果/原文或ACK；等待后返回同一个原结果，原生产器异常保持，不造ok或终态。withdrawn需要真实prepared元数据，uncertain先核对prepared再核对sending；generation/根/原expiry/精确版本/ordinal/空闲已完成写均匹配才发布有限暂停事实。异步暂停给真实客户端断开的后续见证留出事件循环，当前模块本身不会取消请求或写终态。五秒上限同时受观察时钟和独立真实单调时钟约束，冻结注入时钟也在真实五秒拒绝；关闭、超时、重入或非法回调均粘滞失败，不自动放行，不重试。ACK边界的prepared-prefix也扩展到prepared→withdrawn和prepared→sending→uncertain，前置真实token仍原路返回，只有最后精确ACK被持有。
+
+这批只是私有验收基础模块：尚未接入签名trigger-held/trigger-release消息、host-install、真正客户端断开/0字节见证、daemon terminal kill/release或清理完成屏障；不授终态矩阵、实际Windows或整体验收。已通过的prepared/sending/finished实际场景保持，不拿新纯边界代替剩余场景。证据见context-recovery-evidence/publication-cancellation-boundary-foundation.json。
+
+七文件86/86、零fail/skip，含原ACK通道/真实物理SQLite边界相关回归；补Promise钩子后两新文件31/31。新测试在统一递归发现范围。1719语法、全仓Lint零错误/五既有警告，最终新增测试定向Lint也通过，定向格式和CI/release治理通过。首次本地37项中一个测试因假定两个microtask足够而失败，已改显式进入观察器的promise屏障；另修正计时测试publish回调误返回push长度，确保走到原期限判断再重验，未改生产期限或吞异常。纯模块测试不声称默认daemon已取消或持久恢复稳定。
+
+固定10f普通40614630234七个非coverage作业已success，coverage/job122574122478仍运行；正式40614630081/source122574121458仍运行、egress success，额外I/O40614630037/job122574121819仍运行，新录制器阶段尚无终态可读，不重跑。后续继续签名触发/取消见证接线并核对同一CI，优先处理实际COMMIT长尾；本批没有五秒稳定性修复。冻结6646旧长测/数据/任务未动、新24h未启动，旧实例与日常配置未操作，真实模型0、账未写。本机最新安装两端、额度核对后的真实provider、剩余daemon COMMIT/终态、24h到期双重开、最大容量与最终受控自用均未完成。
+
 ## 2026-10-28：实际COMMIT等待已关联；补录制器失败阶段，原40项新增失败保留
 
 独立timing3原40项没有通过：任务Ready/result126，原120000ms父门触发，未取得子进程正常退出；37条ok、一条已观察not-ok且无完整TAP总计。首次失败是encrypted-worker自动续接用例清理目录时ENOTEMPTY/rmdir（client-context-target.test.js:590，7606ms），不能当作已证明产品恢复或杀毒根因；终止后该根及共用只读native路径所属运行进程0。第一份只读终止提取因失败任务没有events.jsonl而退出1，随后按同一handle的状态确认，不重启；没有用观察器错误替代产品根因。现场、全部原期限和旧失败保持。有限证据见context-recovery-evidence/1afe7b3-worker-sqlite-stage-failure.json。

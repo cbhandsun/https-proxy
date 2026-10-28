@@ -89,6 +89,8 @@ test('fixed prepared predecessors return their genuine ACKs and only the exact f
   for (const path of [
     ['prepared', 'sending'],
     ['prepared', 'sending', 'transport-finished'],
+    ['prepared', 'withdrawn'],
+    ['prepared', 'sending', 'uncertain'],
   ]) {
     const f = fixture();
     f.boundary.arm(

@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+  "scope": "private acceptance cancellation boundary primitives only",
+  "implementation": {
+    "publicationHook": "scripts/context-hosted/n09-business/publication-action-hook.js",
+    "cancellationGate": "scripts/context-hosted/n09-business/publication-cancellation-gate.js",
+    "onlyOriginalSuccessReachesObserver": true,
+    "observerReceivesActionEnumOnly": true,
+    "originalResultIdentityPreserved": true,
+    "originalProducerErrorsPreserved": true,
+    "genuinePredecessorMetadataRequired": true,
+    "withdrawnPredecessors": [
+      "prepared"
+    ],
+    "uncertainPredecessors": [
+      "prepared",
+      "sending"
+    ],
+    "gateDeadlineMs": 5000,
+    "independentRealMonotonicDeadline": true,
+    "closeRejectsRatherThanReleases": true,
+    "stickyFailure": true,
+    "receiptQualification": false,
+    "signedTriggerProtocolIntegrated": false,
+    "hostInstallIntegrated": false,
+    "actualClientCancellationWitness": false,
+    "actualDaemonTerminalScenariosRun": false
+  },
+  "validation": {
+    "relatedSevenFiles": {
+      "tests": 86,
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0
+    },
+    "afterPromiseHookBoundariesAdded": {
+      "files": 2,
+      "tests": 31,
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0
+    },
+    "testDiscoveryIncludesNewFiles": true,
+    "syntaxFiles": 1719,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "changedFileFormat": "passed",
+    "ciGovernance": "passed",
+    "releaseGovernance": "passed",
+    "initialLocalHookTestFailure": {
+      "reason": "test assumed a fixed count of microtasks before observer entry",
+      "failed": 1,
+      "passed": 36,
+      "correction": "wait for explicit observer-entry promise"
+    },
+    "timingTestCorrection": "do not return Array.push length from the publish observer; revalidated original deadline paths"
+  },
+  "priorCi": {
+    "sourceCommit": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+    "ordinaryRun": 40614630234,
+    "ordinaryNonCoverageJobsSucceeded": 7,
+    "ordinaryCoverageJob": {
+      "id": 122574122478,
+      "status": "in_progress"
+    },
+    "formalRun": 40614630081,
+    "formalSourceJob": {
+      "id": 122574121458,
+      "status": "in_progress"
+    },
+    "egress": "success",
+    "extraIoRun": 40614630037,
+    "extraIoJob": {
+      "id": 122574121819,
+      "status": "in_progress"
+    },
+    "fullQualification": false
+  },
+  "oldFiveSecondFailuresRetained": true,
+  "fiveSecondStabilityEstablished": false,
+  "nativeDayStartedOrRestarted": false,
+  "oldInstanceModified": false,
+  "realModelRequests": 0
+}
