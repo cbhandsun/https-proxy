@@ -15,6 +15,51 @@ const {
 } = require('../scripts/lib/nsis-client-observer-bootstrap.cjs');
 const digest = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const failure = { message: 'installed_client_observer_rejected' };
+
+test('a sample during request creation cannot poison the next authenticated observation', async (t) => {
+  const f = fixture(t);
+  observer.prepareInstalledClientObserver(f.input, f.runtime);
+  const installed = installInstalledClientObserver(f.input, f.runtime);
+  t.after(() => installed.close());
+  require(f.sessions).createContextRecoverySessions();
+  const original = fs.writeFileSync;
+  let sampled = false,
+    sampleFailure,
+    pending;
+  try {
+    fs.writeFileSync = function (file, bytes, options) {
+      if (
+        typeof file === 'string' &&
+        path.dirname(file) === f.dir &&
+        /^request(?:-1)?\.json$/.test(path.basename(file)) &&
+        !sampled
+      ) {
+        sampled = true;
+        original(file, '', options);
+        try {
+          installed.sample();
+        } catch (error) {
+          sampleFailure = error;
+        }
+        return original(file, bytes, { ...options, flag: 'w' });
+      }
+      return original(file, bytes, options);
+    };
+    pending = observer.requestInstalledClientObservation({ ...f.input, sequence: 1 }, f.runtime);
+    void pending.catch(() => {});
+  } finally {
+    fs.writeFileSync = original;
+  }
+  try {
+    assert.equal(sampled, true);
+    assert.equal(sampleFailure, undefined);
+    installed.sample();
+    assert.equal((await pending).sequence, 1);
+  } finally {
+    await pending.catch(() => {});
+  }
+});
+
 function fixture(t, real = false) {
   const temp = fs.mkdtempSync(path.join(resolvePhysicalTestTempDirectory(), 'observer-'));
   const root = path.join(temp, 'hpm-installed-clients'),
@@ -77,6 +122,129 @@ function fixture(t, real = false) {
   });
   return { input, runtime, sessions, dir: path.join(caseRoot, 'installed-client-observer') };
 }
+
+test('unpublished request bytes remain inert and malformed published bytes stay fatal', (t) => {
+  const f = fixture(t);
+  observer.prepareInstalledClientObserver(f.input, f.runtime);
+  const installed = installInstalledClientObserver(f.input, f.runtime);
+  t.after(() => installed.close());
+  require(f.sessions).createContextRecoverySessions();
+  fs.writeFileSync(path.join(f.dir, 'request-1.json'), '{');
+  assert.doesNotThrow(() => installed.sample());
+  assert.equal(fs.existsSync(path.join(f.dir, 'receipt.json')), false);
+  fs.writeFileSync(path.join(f.dir, 'request-1.json.ready'), '', { flag: 'wx' });
+  assert.throws(() => installed.sample(), failure);
+  assert.throws(() => installed.sample(), failure);
+});
+
+test('request publication never replaces an existing body or ready marker', (t) => {
+  for (const name of ['request-1.json', 'request-1.json.ready']) {
+    const f = fixture(t);
+    observer.prepareInstalledClientObserver(f.input, f.runtime);
+    const file = path.join(f.dir, name);
+    fs.writeFileSync(file, 'sentinel');
+    assert.throws(() => observer.publishRequest(path.join(f.dir, 'request-1.json'), {}));
+    assert.equal(fs.readFileSync(file, 'utf8'), 'sentinel');
+    if (name.endsWith('.ready'))
+      assert.equal(fs.existsSync(path.join(f.dir, 'request-1.json')), false);
+  }
+});
+
+test('completed request slots are not sampled again while the next exact sequence is published', async (t) => {
+  const f = fixture(t);
+  observer.prepareInstalledClientObserver(f.input, f.runtime);
+  const installed = installInstalledClientObserver(f.input, f.runtime);
+  t.after(() => installed.close());
+  require(f.sessions).createContextRecoverySessions();
+  const first = observer.requestInstalledClientObservation({ ...f.input, sequence: 1 }, f.runtime);
+  installed.sample();
+  assert.equal((await first).sequence, 1);
+  fs.writeFileSync(path.join(f.dir, 'request-1.json'), '{');
+  assert.doesNotThrow(() => installed.sample());
+  const second = observer.requestInstalledClientObservation({ ...f.input, sequence: 2 }, f.runtime);
+  installed.sample();
+  assert.equal((await second).sequence, 2);
+  assert.equal(fs.existsSync(path.join(f.dir, 'request-1.json')), false);
+  assert.equal(fs.existsSync(path.join(f.dir, 'request-1.json.ready')), false);
+});
+
+test('a published slot rejects stale, skipped and out-of-range signed sequences permanently', (t) => {
+  for (const sequence of [0, 2, 101]) {
+    const f = fixture(t);
+    observer.prepareInstalledClientObserver(f.input, f.runtime);
+    const installed = installInstalledClientObserver(f.input, f.runtime);
+    t.after(() => installed.close());
+    require(f.sessions).createContextRecoverySessions();
+    observer.publishRequest(
+      path.join(f.dir, 'request-1.json'),
+      observer.envelope(
+        { version: 1, pid: 123, manifestSha256: f.input.manifestSha256, sequence },
+        f.input.token,
+        'request'
+      )
+    );
+    assert.throws(() => installed.sample(), failure);
+    assert.throws(() => installed.sample(), failure);
+    assert.equal(fs.existsSync(path.join(f.dir, 'receipt.json')), false);
+  }
+});
+
+test('replacing a publication marker while its signed body is read fails closed', (t) => {
+  const f = fixture(t);
+  observer.prepareInstalledClientObserver(f.input, f.runtime);
+  const request = path.join(f.dir, 'request-1.json');
+  observer.publishRequest(
+    request,
+    observer.envelope(
+      { version: 1, pid: 123, manifestSha256: f.input.manifestSha256, sequence: 1 },
+      f.input.token,
+      'request'
+    )
+  );
+  const original = fs.readFileSync;
+  let changed = false;
+  try {
+    fs.readFileSync = function (file, ...args) {
+      if (file === request && !changed) {
+        changed = true;
+        fs.renameSync(request + '.ready', request + '.old-ready');
+        fs.writeFileSync(request + '.ready', '', { flag: 'wx' });
+      }
+      return original(file, ...args);
+    };
+    assert.throws(() => observer.readPublishedRequest(request), failure);
+    assert.equal(changed, true);
+  } finally {
+    fs.readFileSync = original;
+  }
+});
+
+test('nonempty, hard-linked and directory publication markers cannot authorize a sample', (t) => {
+  for (const fault of ['nonempty', 'hardlink', 'directory']) {
+    const f = fixture(t);
+    observer.prepareInstalledClientObserver(f.input, f.runtime);
+    const installed = installInstalledClientObserver(f.input, f.runtime);
+    t.after(() => installed.close());
+    require(f.sessions).createContextRecoverySessions();
+    observer.write(
+      path.join(f.dir, 'request-1.json'),
+      observer.envelope(
+        { version: 1, pid: 123, manifestSha256: f.input.manifestSha256, sequence: 1 },
+        f.input.token,
+        'request'
+      )
+    );
+    const ready = path.join(f.dir, 'request-1.json.ready');
+    if (fault === 'directory') fs.mkdirSync(ready);
+    else {
+      fs.writeFileSync(ready, fault === 'nonempty' ? 'x' : '');
+      if (fault === 'hardlink') fs.linkSync(ready, path.join(f.dir, 'other-ready'));
+    }
+    assert.throws(() => installed.sample(), failure);
+    assert.equal(fs.existsSync(path.join(f.dir, 'receipt.json')), false);
+  }
+});
+
 test('observer prep binds pid manifest and complete fixed closure, disabled gate stays inert', (t) => {
   const f = fixture(t);
   assert.equal(verifyInstalledClientObserver({ env: {} }), null);
@@ -154,10 +322,11 @@ test('observer never qualifies cold factories, warm sessions, changed source, ma
     t.after(() => installed.close());
     if (fault === 'request') {
       require(f.sessions).createContextRecoverySessions();
-      fs.writeFileSync(path.join(f.dir, 'request.json'), 'PRIVATE');
+      fs.writeFileSync(path.join(f.dir, 'request-1.json'), 'PRIVATE');
+      fs.writeFileSync(path.join(f.dir, 'request-1.json.ready'), '', { flag: 'wx' });
     } else
-      observer.write(
-        path.join(f.dir, 'request.json'),
+      observer.publishRequest(
+        path.join(f.dir, 'request-1.json'),
         observer.envelope(
           { version: 1, pid: 123, manifestSha256: f.input.manifestSha256, sequence: 1 },
           f.input.token,
@@ -266,8 +435,8 @@ test('observer rejects unsafe paths, hardlinked mailbox, empty malformed signatu
   t.after(() => installed.close());
   const session = require(f.sessions).createContextRecoverySessions();
   session.inspect = () => ({ roots: -1, snapshots: 0, enabled: false, closed: false });
-  observer.write(
-    path.join(f.dir, 'request.json'),
+  observer.publishRequest(
+    path.join(f.dir, 'request-1.json'),
     observer.envelope(
       { version: 1, pid: 123, manifestSha256: f.input.manifestSha256, sequence: 1 },
       f.input.token,
@@ -417,8 +586,8 @@ test('observer proves actual default runtime remains cold without creating a ses
     appSettings: { contextRecoveryEnabled: false, contextRecoveryPersistenceEnabled: false },
   });
   assert.equal(service.inspect().state, 'disabled');
-  observer.write(
-    path.join(f.dir, 'request.json'),
+  observer.publishRequest(
+    path.join(f.dir, 'request-1.json'),
     observer.envelope(
       {
         version: 1,
@@ -483,8 +652,8 @@ for (const field of [
         ...inspect(),
         [field]: field === 'state' ? 'failed' : field === 'storage' ? 'persistent' : true,
       });
-      observer.write(
-        path.join(f.dir, 'request.json'),
+      observer.publishRequest(
+        path.join(f.dir, 'request-1.json'),
         observer.envelope(
           { version: 1, pid: f.input.pid, manifestSha256: f.input.manifestSha256, sequence: 1 },
           f.input.token,

@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "baseSource": "f1511ffeef6e6679939a9184365e599322e82af9",
+  "completedCI": {
+    "verifyRunId": 40711485908,
+    "verifySuccess": 8,
+    "reviewVerifyRunId": 40711645359,
+    "reviewVerifySuccess": 8,
+    "formalRunId": 40711485875,
+    "formalSuccess": 12,
+    "executedBusinessReceiptsVerified": 10,
+    "coverageIoRunId": 40711485965,
+    "coverageIoSuccess": true,
+    "fullLogCharacters": {
+      "coverage": 3789272,
+      "extraIo": 3793207,
+      "formalSource": 3881454
+    },
+    "ioSummariesAccepted": 7,
+    "persistentPublicationEndSamples": {
+      "count": 24,
+      "minimumMs": 1052,
+      "maximumMs": 2126
+    },
+    "historicalTimeoutFailuresPreserved": true,
+    "fiveSecondStabilityQualified": false
+  },
+  "installer": {
+    "runId": 40711645587,
+    "jobId": 122898491721,
+    "conclusion": "failure",
+    "fullLogCharacters": 3907000,
+    "candidateGates": "success",
+    "build": "success",
+    "sameFormatAndDPAPI": "success",
+    "legacy582": "success",
+    "legacyStages": 8,
+    "legacyManifestSha256": "4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f",
+    "manifestSha256": "f723ae2edaa8e46a4c199de6fc299c3548bb8cfcc4876f5192cda6918102f5a0",
+    "applicationSha256": "00b2961ec9ecfde12aae549ff32e4fe2d9ca015e4bd84b0300142cce1f974151",
+    "layoutBefore": 1,
+    "layoutAfter": 3,
+    "revisionDelta": 1,
+    "clientFailurePhase": "claude-default-http-drain-upstream_hold",
+    "publicationStage": "skipped",
+    "clientQualified": false,
+    "overallQualified": false
+  },
+  "reproducedDefect": {
+    "scope": "installed acceptance observer request mailbox",
+    "trigger": "sample after exclusive request pathname creation but before its JSON bytes have finished writing",
+    "before": {
+      "tests": 1,
+      "pass": 0,
+      "fail": 1
+    },
+    "observedEffect": "malformed partial request permanently poisons the sampler and later requests cannot receive a receipt",
+    "attributionToInstallerFailure": "not confirmed"
+  },
+  "change": "Publish each exact sequence in its own request slot with an exclusive empty ready marker after body write and physical validation; sample only the next published slot, pin marker identity across reading, and clean the previous slot only after its exact authenticated receipt. Published malformed or tampered requests still fail permanently.",
+  "preserved": [
+    "HMAC and manifest/PID binding",
+    "exact previous sequence and no automatic retry",
+    "original 5000ms observation and drain deadlines",
+    "FULL/DELETE persistence and all existing expiry values",
+    "public release signing requirements",
+    "all earlier failures and frozen environments"
+  ],
+  "localVerification": {
+    "files": 4,
+    "tests": 69,
+    "pass": 69,
+    "fail": 0,
+    "skip": 0,
+    "actualPowerShellAvailable": true,
+    "syntaxFiles": 1734,
+    "eslint": "passed",
+    "newBoundaryCases": [
+      "sample during incomplete request publication",
+      "unpublished malformed body",
+      "published malformed body remains fatal",
+      "existing body or marker collision",
+      "nonempty hard-linked or directory marker refusal",
+      "marker replacement during signed body read",
+      "completed slots are not read during next-sequence publication",
+      "stale skipped and out-of-range published sequences stay permanently rejected"
+    ]
+  },
+  "initialValidationEnvironmentFailure": {
+    "tests": 2,
+    "reason": "pwsh absent from PATH",
+    "preserved": true,
+    "resolvedBy": "use the existing isolated PowerShell runtime without changing tests"
+  },
+  "realModelRequests": 0,
+  "new24HourStarted": false,
+  "localBuildStarted": false,
+  "remaining": [
+    "exact new-source Windows gates and installation validation",
+    "local latest installed two-client and controlled self-use",
+    "quota-reserved real provider validation",
+    "real 24-hour run and expiry reopens",
+    "paused maximum-capacity qualification"
+  ]
+}

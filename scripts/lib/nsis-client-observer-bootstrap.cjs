@@ -74,12 +74,11 @@ function installInstalledClientObserver(input, runtime = process) {
     if (failed) throw fail();
     try {
       const request = contract.authenticate(
-        contract.read(path.join(dir, 'request.json')),
+        contract.readPublishedRequest(path.join(dir, 'request-' + (sequence + 1) + '.json')),
         value.token,
         'request'
       );
       contract.record(request, ['version', 'pid', 'manifestSha256', 'sequence']);
-      if (request.sequence === sequence) return;
       if (
         request.version !== 1 ||
         request.pid !== value.pid ||

@@ -129,6 +129,33 @@ function write(file, value) {
   fs.writeFileSync(file, JSON.stringify(value), { flag: 'wx', mode: 0o600 });
   physical(file);
 }
+// The JSON pathname becomes visible before writeFileSync finishes in another
+// process. Publish an empty exclusive marker only after the body is closed and
+// checked; malformed published requests still fail permanently, without retry.
+function publishRequest(file, value) {
+  const ready = file + '.ready';
+  if (fs.existsSync(ready)) throw fail();
+  write(file, value);
+  fs.writeFileSync(ready, '', { flag: 'wx', mode: 0o600 });
+  physical(ready);
+}
+function readPublishedRequest(file) {
+  const ready = file + '.ready';
+  physical(ready);
+  const before = fs.lstatSync(ready, { bigint: true });
+  if (before.size !== 0n) throw fail();
+  const value = read(file);
+  physical(ready);
+  const after = fs.lstatSync(ready, { bigint: true });
+  if (
+    after.size !== 0n ||
+    before.dev !== after.dev ||
+    before.ino !== after.ino ||
+    before.birthtimeNs !== after.birthtimeNs
+  )
+    throw fail();
+  return value;
+}
 function prepareInstalledClientObserver(input, runtime = process) {
   try {
     const value = config(input, runtime),
@@ -168,15 +195,17 @@ async function requestInstalledClientObservation(input, runtime = process) {
       dir = directory(value);
     if (!Number.isSafeInteger(sequence) || sequence < 1 || sequence > 100) throw fail();
     physical(dir, true);
-    const request = path.join(dir, 'request.json'),
+    const request = path.join(dir, 'request-' + sequence + '.json'),
       receipt = path.join(dir, 'receipt.json');
     if (sequence > 1) {
       const old = authenticate(read(receipt), value.token, 'receipt');
       if (old.sequence !== sequence - 1) throw fail();
-      fs.unlinkSync(request);
+      const previous = path.join(dir, 'request-' + (sequence - 1) + '.json');
+      fs.unlinkSync(previous + '.ready');
+      fs.unlinkSync(previous);
       fs.unlinkSync(receipt);
     }
-    write(
+    publishRequest(
       request,
       envelope(
         { version: 1, pid: value.pid, manifestSha256: value.manifestSha256, sequence },
@@ -242,6 +271,8 @@ module.exports = {
   envelope,
   read,
   write,
+  publishRequest,
+  readPublishedRequest,
   directory,
   record,
   readInstalledManifest,

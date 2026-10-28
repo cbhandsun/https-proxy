@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：f151完整源门和十业务通过；安装观察请求发布竞态修复
+
+固定f1511ff普通40711485908八作业、review Verify40711645359八作业、正式40711485875十二作业及额外I/O40711485965全部成功。普通coverage完整3789272、额外I/O3793207、正式source3881454字符日志已读，七份I/O摘要通过原parseSummary；十份业务逐一核对同source/plan/build及执行后的hosted_network_finished、TLS/非回环阻断/ownedTreeEmpty，不把prepared_only算执行。两次原完整负载24个持久发布结束样本1052–2126ms，32MiB历史重开通过，仅授本批样本；历史五秒失败保留，不宣称稳定性全部解决。
+
+最新安装40711645587/122898491721终态failure，完整3907000字符日志已核对：原完整候选verify/audit、实际NSIS构建、同格式升级回滚及同用户DPAPI成功，实际582八阶段布局1→3、revision精确+1及旧写者拒绝成功。manifest f723ae2e、application 00b2961e。客户端矩阵失败于claude-default-http-drain-upstream_hold，包内发布步骤因此skipped；不能授两端矩阵、包内发布或完整安装资格，不能借旧e0安装绿色覆盖本次失败。
+
+沿阶段发现并确定性复现观察请求的跨进程发布竞态：request.json使用wx直接写入，采样可在文件刚创建、正文未完整时读取，随后因非canonical JSON永久拒绝。新增回归在旧代码1项失败；这证明独立邮箱缺陷，不证明此次托管失败唯一命中该原因。现仅为安装验收观察请求使用逐精确序号独立槽，增加正文完成且物理校验后的独占空ready标记，读前/读后核对标记身份；只读取下一槽，确认精确签名回执后才清理上一槽，正常轮换不重读旧槽；未发布正文不采样，已发布非法/篡改正文仍永久失败。HMAC、PID/manifest绑定、原5000ms观察/排空门和不重试均保留；产品恢复库、FULL/DELETE、原到期时间及公开签名要求不改。
+
+四文件69/69零fail/skip，包括实际PowerShell辅助检查、原HTTP/SSE/WS负载及失败门、客户端矩阵；1734语法和定向ESLint通过。最初扩大检查有两项因pwsh未在PATH而失败，原日志保留，复用已有隔离PowerShell后执行通过，未跳过测试。证据见context-recovery-evidence/f1511ff-installed-observer-publication.json。新提交完整Windows及安装资格仍待，不把本机69项转授Windows或五秒根因。此前准备的f151本机构建尚未注册/启动，不能使用旧准备文件冒充本批交付；旧实例由用户自行切换，旧868/6646与短测失败现场不动、新24h未启动、最大容量仍暂停、真实模型0。
+
+
 ## 2026-10-28：录制选择器断言遗漏修正；安装链独立原门并行推进
 
 固定cd348d9普通40709879485/unit2 job122891933694失败，完整979036字符日志已读，定位test/coverage-proxy-window-workflow.test.js仍断言旧publication-graceful-http，而工作流已显式选择native-publication-interruption。这是上批观测调整漏同步的既有测试，不是产品超时根因；原CI失败保留，不重跑覆盖。Mac原单文件1项失败已复现。仅校正标题与预期proxy选择器，实际PowerShell执行的七种成功/原各阶段失败组合、完整命令顺序/原异常/stderr/client阶段清除选择器和原五秒子进程限全部保持。五文件70/70、零fail/skip，ESLint/格式/CI及release治理通过。该修正不授任何性能或完整Windows资格。证据见context-recovery-evidence/cd348d9-selector-contract-correction.json。
