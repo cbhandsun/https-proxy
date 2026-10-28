@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "baseSource": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+  "bug": "Primed native readiness cannot be consumed while the owner runs synchronous SQL/manifest initialization. The unchanged ten-second readiness deadline can expire before the already queued frame is consumed.",
+  "regressionBefore": {
+    "tests": 16,
+    "pass": 15,
+    "fail": 1,
+    "newFailure": "async owner consumes native readiness before a synchronous engine pass can exhaust its ten-second startup bound"
+  },
+  "change": "Await the exact module-created readiness capability before heavy SQL initialization, then reverify physical identity under the retained writer lock. Synchronous admission and initial durable intent remain before SQL commit; startup still requires its independent exact durable ACK.",
+  "regressionAfter": {
+    "mainFiles": 7,
+    "tests": 106,
+    "pass": 106,
+    "fail": 0,
+    "skip": 0,
+    "relatedFiles": 5,
+    "relatedPass": 103,
+    "relatedFail": 0,
+    "relatedSkip": 1,
+    "relatedSkipNote": "Existing platform guard unchanged"
+  },
+  "newCases": 7,
+  "checks": {
+    "syntaxFiles": 1734,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "ciGovernance": "passed",
+    "releaseGovernance": "passed",
+    "changedFormatting": "passed"
+  },
+  "invariants": [
+    "original readiness/request/close deadlines unchanged",
+    "first request sequence unchanged",
+    "readiness is not admission or persistence authority",
+    "exact private WeakMap capabilities only",
+    "await actual child close before readiness failure",
+    "physical identity rechecked after await",
+    "writer ownership retained during await and cleanup",
+    "FULL/DELETE/secure_delete unchanged",
+    "original expiries and exact ACK versions unchanged",
+    "no plaintext-root cache or cross-transaction proof",
+    "ephemeral key handoff cleared after construction"
+  ],
+  "windowsNewSourceVerified": false,
+  "fiveSecondQualified": false,
+  "observedAf6FailuresExplainedConclusively": false,
+  "realModelRequests": 0,
+  "new24hStarted": false
+}

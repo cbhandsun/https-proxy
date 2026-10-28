@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：af6正式链通过、coverage重开失败；修复预启动就绪被同步SQL饿死的竞态
+
+固定af6d9d1普通40647577186七作业成功、coverage失败；正式40647577225十二作业全部成功，十份实际业务完整日志逐份核对同source/plan/build及执行后hosted_network_finished、TLS/隔离/ownedTreeEmpty，不能只用prepared_only。coverage完整2689631字符，唯一失败为四根32MiB历史，新增闭集诊断确认stage=reopen、fixtures=4、duration102717ms，仍无内部失败标签；正式source完整3832206、额外I/O3743617已读，原parseSummary核验四份覆盖I/O，独立I/O摘要另已核验。三次原50项时序组全部通过、18个发布样本627–1144ms，只授有限样本，不覆盖历史五秒失败。证据见context-recovery-evidence/af6d9d1-complete-ci-and-local-failure.json。
+
+Windows原新目录af6任务终态Ready/1、所属Node已退出。锁文件两次npm均exit0，默认DPAPI/OS锚点同目录2开2闭通过、ready2640/2123ms；容量/时钟28/28、完整blobs91/91、完整root-state72/72、原生中断20/20，均零fail/skip。四个16MiB载荷根用例44925ms、四根32MiB私有历史99352ms均通过原单用例门。最后原40项组为39通过/1失败、零skip，父门120000ms未放宽、正常退出1（104992ms）；Claude WBIPC用例13017ms报storage_unavailable，进入持久模式前尚未留下该owner阶段，不能擅定为请求五秒或唯一原生根因。旧任务/日志冻结，不重跑覆盖。原最大容量长测未恢复，新24h未启动。
+
+本批复现具体产品竞态：primed原生子进程已排队就绪帧，owner随后同步SQL/manifest处理超过原10秒，事件循环无法消费就绪帧，恢复调度后因超时而拒绝。确定性回归以单调测试时钟模拟10001ms同步阶段、使用真实transport帧/顺序，修改前15/16（新增失败），不是提高deadline。现将精确私有就绪能力等待放在同步SQL前，保留与先前同步anchor读的启动重叠；恢复调度后重验物理身份，写锁全程持有。空库意图仍同步且先于SQL COMMIT，就绪不是ACK，最终独立快照/精确持久ACK仍必需。
+
+新增能力仅WeakMap绑定模块创建的channel/session，不接受伪造/Proxy/getter/thenable；原10秒就绪、请求及关闭门不变，分段8零字节才就绪，不消费序号；超时/非法帧/关闭等到实际子进程close才拒绝，不respawn。等待期间路径替换须在SQL前拒绝且恢复后可重新正常开库。短期密钥传递容器在构造/失败后清除。新增七项，最终七文件106/106（含真实子进程原10秒超时及真实就绪屏障）、另五文件103通过/零失败/一既有平台跳过；1734语法、Lint零错误/五既有警告、变更格式及CI/release治理通过。见context-recovery-evidence/readiness-before-sql-startup.json。为两类失败补有限startup标签，原工作负载/期限/认证持久语义不变。
+
+该确定性竞态已修，但尚未用新提交证明af6两处Windows失败均已解决；不能授唯一根因或五秒稳定。下一步固定本批源码、新目录执行原Windows门并核对完整CI。旧6646和868失败现场/任务、E旧实例、日常配置及额度均不动，真实模型0。最新安装版两端、本机切换、真实provider、24h/到期双重开和最大容量等整体缺口继续保留。
+
+
 ## 2026-10-28：523完整核验保留coverage失败；启动引用快照事务内认证复用
 
 固定523d9e8正式40643443063十二作业全部success，十份业务完整日志逐份核对精确source/plan/build以及prepared_only后的hosted_network_finished、TLS/隔离/ownedTreeEmpty；source完整3824274字符。普通40643442917为七成功、coverage失败，完整失败日志已读，不能用正式绿色覆盖。四项五秒ready失败均尚未进入目标advance：两项启动ready耗3567/4084ms，另一项最后engine_anchor_validate_finished为2502ms；uncertain样本另见engine执行2236ms，未确认唯一底层原因。第五项四根32MiB私有历史在102357ms报storage_unavailable，旧回执没有失败阶段，不能据此断言是解密或DPAPI根因。额外I/O40643442935通过，四份覆盖I/O及独立I/O共五份摘要经原parseSummary核验；仍全部fiveSecondQualified=false。三次原完整50项持久时序组全部通过，18个持久发布样本731–1766ms，只授该有限范围。见context-recovery-evidence/523d9e8-ci-and-short-scopes.json。

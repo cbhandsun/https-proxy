@@ -20,7 +20,7 @@ function gate() {
   });
   return { promise, resolve };
 }
-function fixture(t) {
+function fixture(t, delayedEngine = false) {
   const temporary = fs.realpathSync.native(os.tmpdir());
   const root = fs.mkdtempSync(path.join(temporary, 'hpm-async-owner-'));
   const directory = path.join(root, 'store'),
@@ -34,6 +34,9 @@ function fixture(t) {
     channels = 0,
     syncWrites = 0,
     failed = false;
+  let nativeTime = 0,
+    readinessObserved = false,
+    engineSawReady = false;
   const startupPhases = [];
   const channelStartup = [];
   let replyValue = (text) => text;
@@ -64,6 +67,43 @@ function fixture(t) {
       createChannel: () => {
         channels++;
         channelStartup.push({ phase: startupPhases.at(-1), writes });
+        if (delayedEngine) {
+          const { ChildProcess } = require('node:child_process');
+          const { PassThrough } = require('node:stream');
+          const {
+            createRecoveryAnchorChannel,
+          } = require('../lib/proxy/context-recovery-anchor-channel');
+          const child = new ChildProcess();
+          child.stdin = new PassThrough();
+          child.stdout = new PassThrough();
+          child.stderr = new PassThrough();
+          child.stdio = [child.stdin, child.stdout, child.stderr, new PassThrough()];
+          child.kill = () => {
+            queueMicrotask(() => child.emit('close', null, 'SIGKILL'));
+            return true;
+          };
+          child.stdin.on('end', () => queueMicrotask(() => child.emit('close', 0)));
+          child.stdin.on('data', (frame) => {
+            const reply = Buffer.from(execute(frame.subarray(8).toString('utf8')));
+            const header = Buffer.alloc(8);
+            header.writeUInt32LE(frame.readUInt32LE(0), 0);
+            header.writeUInt32LE(reply.length, 4);
+            queueMicrotask(() => child.stdout.write(Buffer.concat([header, reply])));
+          });
+          return createRecoveryAnchorChannel(
+            { executable, systemRoot: 'C:\\Windows' },
+            {
+              monotonic: () => nativeTime,
+              spawnChild() {
+                queueMicrotask(() => {
+                  child.stdout.write(Buffer.alloc(8));
+                  readinessObserved = true;
+                });
+                return child;
+              },
+            }
+          );
+        }
         return {
           async execute(text) {
             const reply = execute(text);
@@ -82,7 +122,13 @@ function fixture(t) {
       {
         directory,
         protectKey,
-        onStartup: ({ phase }) => startupPhases.push(phase),
+        onStartup: ({ phase }) => {
+          startupPhases.push(phase);
+          if (delayedEngine && phase === 'engine_prepare_started') {
+            engineSawReady = readinessObserved;
+            nativeTime = 10001;
+          }
+        },
         onExecutionProgress,
       },
       { createAnchorSession }
@@ -109,6 +155,7 @@ function fixture(t) {
     closes: () => closes,
     channels: () => channels,
     channelStartup: () => [...channelStartup],
+    engineSawReady: () => engineSawReady,
     syncWrites: () => syncWrites,
     startupPhases: () => [...startupPhases],
     corruptReply(mode) {
@@ -430,6 +477,32 @@ test('synchronous startup rejection awaits the primed child before releasing the
   held.resolve();
   await rejected;
   f.restore();
+  const owner = await f.open();
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+});
+
+// Model a >10s synchronous SQL/manifest pass with a monotonic test clock, not
+// a larger timeout. The real transport readiness frame is queued before it.
+test('async owner consumes native readiness before a synchronous engine pass can exhaust its ten-second startup bound', async (t) => {
+  const f = fixture(t, true);
+  const owner = await f.open();
+  assert.equal(f.engineSawReady(), true);
+  assert.equal(f.syncWrites(), 1, 'empty intent remains synchronous before SQL commit');
+  assert.equal(f.writes(), 2, 'readiness cannot substitute for durable startup ACK');
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+});
+
+test('physical replacement while awaiting native readiness rejects startup before SQL admission', async (t) => {
+  const f = fixture(t, true);
+  const pending = f.open();
+  const key = path.join(f.directory, '.data-key'),
+    moved = key + '-readiness';
+  fs.renameSync(key, moved);
+  await assert.rejects(pending, safe);
+  assert.equal(f.startupPhases().includes('engine_prepare_started'), false);
+  assert.equal(fs.existsSync(path.join(f.directory, 'checkpoint.sqlite')), false);
+  assert.equal(f.syncWrites(), 0);
+  fs.renameSync(moved, key);
   const owner = await f.open();
   assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
 });

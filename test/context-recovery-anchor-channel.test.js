@@ -7,6 +7,7 @@ const { PassThrough } = require('node:stream');
 const {
   createRecoveryAnchorChannel,
   primeRecoveryAnchorChannel,
+  waitForRecoveryAnchorChannelReady,
 } = require('../lib/proxy/context-recovery-anchor-channel');
 const {
   encodeRecoveryAnchorFrame,
@@ -656,3 +657,66 @@ test('primed readiness timeout rejects a queued first request only after the own
   await f.channel.close();
   assert.equal(f.launches(), 1);
 });
+
+test('private readiness barrier accepts only its exact transport and consumes no request sequence', async (t) => {
+  let touched = 0;
+  for (const input of [
+    null,
+    {},
+    Object.create(null),
+    new Proxy(
+      {},
+      {
+        get() {
+          touched++;
+          throw Error();
+        },
+      }
+    ),
+  ])
+    assert.equal(waitForRecoveryAnchorChannelReady(input), null);
+  assert.equal(touched, 0);
+  const f = fixture(t, {}, false);
+  await assert.rejects(waitForRecoveryAnchorChannelReady(f.channel), safe);
+  assert.equal(f.launches(), 0);
+  primeRecoveryAnchorChannel(f.channel);
+  const waiting = waitForRecoveryAnchorChannelReady(f.channel);
+  let settled = false;
+  void waiting.then(() => {
+    settled = true;
+  });
+  f.child.stdout.write(Buffer.alloc(4));
+  await turn();
+  assert.equal(settled, false);
+  assert.equal(f.frames.length, 0);
+  f.child.stdout.write(Buffer.alloc(4));
+  await waiting;
+  assert.equal(f.timers.size, 0);
+  f.setTime(10001);
+  const first = f.execute();
+  assert.equal(f.frames[0].readUInt32LE(0), 1);
+  f.respond(reply, 1);
+  assert.equal(await first, reply);
+});
+
+for (const mode of ['timeout', 'invalid-frame', 'closed']) {
+  test('readiness barrier rejects ' + mode + ' only after actual owned child close', async (t) => {
+    const f = fixture(t, {}, false);
+    primeRecoveryAnchorChannel(f.channel);
+    f.keepAlive();
+    let settled = false;
+    const failed = assert.rejects(waitForRecoveryAnchorChannelReady(f.channel), safe).then(() => {
+      settled = true;
+    });
+    if (mode === 'timeout') f.timeout();
+    else if (mode === 'invalid-frame') f.child.stdout.write(Buffer.from([1]));
+    else void f.channel.close();
+    await turn();
+    assert.equal(settled, false);
+    assert.equal(f.frames.length, 0);
+    f.child.emit('close', null, 'SIGKILL');
+    await failed;
+    assert.equal(f.launches(), 1);
+    assert.equal(f.timers.size, 0);
+  });
+}

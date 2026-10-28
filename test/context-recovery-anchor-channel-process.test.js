@@ -9,6 +9,7 @@ const { performance } = require('node:perf_hooks');
 const {
   createRecoveryAnchorChannel,
   primeRecoveryAnchorChannel,
+  waitForRecoveryAnchorChannelReady,
 } = require('../lib/proxy/context-recovery-anchor-channel');
 
 const request = JSON.stringify({ operation: 'read', slot: 'a'.repeat(64) });
@@ -197,7 +198,7 @@ test('primed actual process reaches readiness before the first command and keeps
   const f = fixture(t, 'reply');
   assert.equal(primeRecoveryAnchorChannel(f.channel), true);
   assert.equal(f.children.length, 1);
-  await new Promise((resolve) => f.children[0].stdout.once('data', resolve));
+  await waitForRecoveryAnchorChannelReady(f.channel);
   assert.equal(await f.channel.execute(request), reply);
   assert.equal(f.children.length, 1);
   await f.channel.close();

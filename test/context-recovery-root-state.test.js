@@ -955,13 +955,17 @@ test(
     const fixtures = [];
     let storage, restored;
     let stage = 'fixture-padding',
-      failure;
+      failure,
+      startup;
     const pilot = fullPrivateSessionFixture({ count: 2 });
     const padding = pilot.state.history.entries.map((entry) => 16384 - entry.bytes);
     pilot.sessions.close();
     try {
       const options = {
         directory: path.join(directory, 'context'),
+        onStartup({ phase, elapsedMs }) {
+          startup = { phase, elapsedMs };
+        },
         onFailure(value) {
           const { operation, phase, cleanupFailed } = value;
           if (
@@ -1052,6 +1056,7 @@ test(
           stage,
           fixtures: fixtures.length,
           storageFailure: failure ?? null,
+          startup: startup ?? null,
         })
       );
       throw error;

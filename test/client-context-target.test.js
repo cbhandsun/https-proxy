@@ -2257,6 +2257,14 @@ async function persistentWbipcCoreOwner(directory, diagnostic) {
   const backend = await openContextRecoveryStorage({
     directory,
     WorkerType: createObservedStorageWorker(diagnostic),
+    onStartup: diagnostic,
+    onFailure: ({ operation, phase, cleanupFailed }) =>
+      diagnostic({
+        phase: 'storage_failure',
+        operation,
+        failurePhase: phase,
+        cleanupFailed,
+      }),
   });
   const contract = require('../lib/proxy/context-recovery-storage-contract');
   const execute = backend.execute;

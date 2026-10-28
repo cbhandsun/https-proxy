@@ -11,6 +11,7 @@ const {
   createRecoveryAnchorRepository,
   createRecoveryAnchorSession,
   primeRecoveryAnchorSession,
+  waitForRecoveryAnchorStartupSession,
   closeRecoveryAnchorStartupSession,
 } = require('../lib/proxy/context-recovery-anchor');
 
@@ -625,4 +626,29 @@ test('startup cleanup uses only the registered close capability and awaits the s
     }
   );
   assert.equal(closeRecoveryAnchorStartupSession(hostile), null);
+});
+
+test('startup readiness cannot invoke a forged session callback or thenable', () => {
+  let touched = 0;
+  const input = new Proxy(
+    {
+      ready() {
+        touched++;
+        return {
+          then() {
+            touched++;
+          },
+        };
+      },
+    },
+    {
+      get() {
+        touched++;
+        throw Error();
+      },
+    }
+  );
+  for (const value of [undefined, null, {}, input])
+    assert.equal(waitForRecoveryAnchorStartupSession(value), null);
+  assert.equal(touched, 0);
 });
