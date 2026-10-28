@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：a7完整链通过，970再次失败；代理录制转向实际失败文件
+
+固定a7cbd6f普通40631684746八作业、正式40631684839十二作业（含十组实际业务）、独立I/O40631684845及额外覆盖I/O40631684852均终态success。普通coverage完整日志3716760字符、正式source3812677字符、额外I/O3724755字符均已读；十组完整执行日志逐份核对相同source SHA、plan/build摘要、准备后实际hosted_network_finished及TLS/隔离/ownedTreeEmpty，不只采用prepared_only。普通、正式source及额外I/O共36个持久发布样本601–2068ms，六份覆盖率I/O回执和正式source回执经原解析器核对；仍不授五秒稳定性、完整N08/N09或本机安装二进制资格。证据见context-recovery-evidence/a7cbd6f-complete-ci.json。
+
+最新文档提交9708443的普通40632734602反而失败：unit3/122632640298中native protect在15ms完成，legacy unprotect为ETIMEDOUT/10254ms，legacyPhase=unobserved，不证明DPAPI解密本身失败。coverage/122632640503的graceful HTTP uncertain和withdrawn在原ready五秒门失败，尚未advance；完成COMMIT最大1985/1515ms，随后各有一条COMMIT已开始但未返回。该夹具直接使用SQLite文件、固定合成时钟，不使用native worker/DPAPI/OS anchor，因此本次慢等待不需要这些组件才会出现；不能外推旧长测唯一原因。两份完整失败日志已读，正式40632734637/source122632640104仍运行，a7绿色不能覆盖这些失败。证据见context-recovery-evidence/9708443-ci-failures.json。
+
+本批只调整有限录制覆盖面：普通Verify代理阶段显式选择publication-graceful-http，进入原client命令前清除选择器；正式source仍录client-context-target，额外I/O仍录native-publication-interruption。原命令/工作负载/四分片并发/期限/认证/持久语义均不变，每个并行代理阶段仍只有一个录制器。JS与PowerShell只接受两个固定publication选择，client阶段拒绝携带代理选择器；真实checker拒绝旧/其他窗口回执，原夹具失败仍停止本窗口并保留失败。新增回归先56/58（两项拒绝新窗口），实现后六文件90/90、关联六文件41/41、零fail/skip；实际PowerShell执行七种工作流成功/失败组合，确认选择器不泄漏至client、原失败不得继续后续门。语法1734、Lint零错误/五既有警告、变更JS格式及CI/release治理通过。该录制调整还未经过本批Windows执行，不称为产品五秒修复。
+
+Mac独立CPU诊断保持原五档、两个worker、180秒执行限与60秒目标：实际约9.7秒、固定正确性断言通过，仅授本次合成会话范围。热点为原负载执行、哈希、GC、历史编码与克隆；采样权重不是精确CPU计时，不能覆盖Windows旧79秒或说明其原因，没有移动负载出计时范围。原始profile未上传，有限证据见context-recovery-evidence/9708443-mac-capacity-profile.json。
+
+本机固定e0仍在原installer-build任务内实际Rust编译，尚无新安装器；已对现有staging做隔离只读校验，557份来源、依赖、Node与native摘要一致，仅授打包输入。保留/桌面交付脚本已准备，需原构建全部成功才执行；旧实例由用户自行切换。旧6646失败现场/任务不动，新24h未启动、真实模型0、额度未写。下一步定位同次失败文件的I/O/调度等待并继续真实候选交付，不重跑970刷绿或提高任何原门。
+
 ## 2026-10-28：正式源门同机采集已实际执行；本机e0原生检查通过
 
 固定a7cbd6f正式40631684839/source122629276180已产生相同SHA的真实I/O回执，windowTermination=file-completed、cleanupVerified=true；与普通coverage122629275909回执、独立I/O122629275997回执均通过原parseSummary重验。正式窗口六轮持久发布1582/1834/1407/1694/1167/1343ms，26对journal刷新最大24ms、数据库配对0；零数据库配对不能证明无数据库I/O。普通窗口96对刷新、DB最大64/journal167ms；独立I/O终态success、144对、DB192/journal258ms。全部traceCompleteness/fiveSecond/commitCorrelation资格仍false。两份覆盖率日志只是已上传前缀，完整源门、普通coverage及额外覆盖I/O仍在运行，不能把录制结束当作完整CI或五秒稳定性通过。证据见context-recovery-evidence/a7cbd6f-source-capture-observed.json。

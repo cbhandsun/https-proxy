@@ -18,6 +18,13 @@ test('coverage windows keep the legacy proxy and serial client profiles and expl
     }),
     ['native-publication-interruption']
   );
+  assert.deepEqual(
+    requiredCoverageIoWindows({
+      HPM_COVERAGE_IO_STAGE: 'proxy',
+      HPM_COVERAGE_IO_PROXY_WINDOW: 'publication-graceful-http',
+    }),
+    ['publication-graceful-http']
+  );
 });
 
 test('coverage window selection refuses empty, foreign, inherited, extreme and hostile inputs without hooks', () => {
@@ -45,6 +52,10 @@ test('coverage window selection refuses empty, foreign, inherited, extreme and h
     {
       HPM_COVERAGE_IO_STAGE: 'client',
       HPM_COVERAGE_IO_PROXY_WINDOW: 'native-publication-interruption',
+    },
+    {
+      HPM_COVERAGE_IO_STAGE: 'client',
+      HPM_COVERAGE_IO_PROXY_WINDOW: 'publication-graceful-http',
     },
     Object.defineProperty({ ...base }, 'HPM_COVERAGE_IO_PROXY_WINDOW', {
       enumerable: true,

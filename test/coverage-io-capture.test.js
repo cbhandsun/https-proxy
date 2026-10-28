@@ -65,7 +65,9 @@ test('the real PowerShell recorder refuses a foreign or stale proxy-window selec
     ['proxy', null, true],
     ['client', null, true],
     ['proxy', 'native-publication-interruption', true],
+    ['proxy', 'publication-graceful-http', true],
     ['client', 'native-publication-interruption', false],
+    ['client', 'publication-graceful-http', false],
     ['proxy', 'PRIVATE', false],
     ['proxy', 'x'.repeat(4096), false],
     ['', null, false],
@@ -847,65 +849,74 @@ test('the actual stage checker requires the publication receipt in client covera
   check(0); // The parallel proxy stage still owns only its original window.
 });
 
-test('the actual proxy checker cannot substitute the old receipt for an explicitly selected native window', async (t) => {
-  const { spawnSync } = require('node:child_process');
-  const f = fixture(t);
-  f.install('success');
-  await f.hooks.before();
-  await f.hooks.after();
-  f.environment.HPM_COVERAGE_IO_PROXY_WINDOW = 'native-publication-interruption';
-  const environment = Object.fromEntries(
-    Object.entries(f.environment).filter(
-      ([key]) => !['TOKEN', 'API_KEY', 'NODE_OPTIONS'].includes(key)
-    )
-  );
-  for (const name of ['SystemRoot', 'WINDIR'])
-    if (process.env[name]) environment[name] = process.env[name];
-  const check = (expected) => {
-    const result = spawnSync(
-      process.execPath,
-      [path.resolve(__dirname, '../scripts/check-coverage-io-receipt.cjs')],
-      { env: environment, encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
-    );
-    assert.equal(result.error, undefined);
-    assert.equal(result.signal, null);
-    assert.equal(result.status, expected);
-    assert.equal(result.stdout, expected === 0 ? 'coverage_io_receipt_verified\n' : '');
-    assert.equal(result.stderr, expected === 0 ? '' : 'coverage_io_receipt_failed\n');
-  };
-  check(1);
-  assert.equal(f.install('success'), false);
-  f.install('success', { windowId: 'native-publication-interruption' });
-  await f.hooks.before();
-  await f.hooks.after();
-  const receipt = readCoverageIoReceipt(f.environment, 'native-publication-interruption');
-  assert.equal(receipt.schemaVersion, 3);
-  assert.equal(receipt.windowId, 'native-publication-interruption');
-  check(0);
-  assert.throws(() => readCoverageIoReceipt(f.environment));
-  environment.HPM_COVERAGE_IO_STAGE = 'client';
-  check(1);
+test('the actual proxy checker requires the explicitly selected publication window receipt', async (t) => {
+  for (const windowId of ['native-publication-interruption', 'publication-graceful-http'])
+    await t.test(windowId, async (t) => {
+      const { spawnSync } = require('node:child_process');
+      const f = fixture(t);
+      f.install('success');
+      await f.hooks.before();
+      await f.hooks.after();
+      f.environment.HPM_COVERAGE_IO_PROXY_WINDOW = windowId;
+      const environment = Object.fromEntries(
+        Object.entries(f.environment).filter(
+          ([key]) => !['TOKEN', 'API_KEY', 'NODE_OPTIONS'].includes(key)
+        )
+      );
+      for (const name of ['SystemRoot', 'WINDIR'])
+        if (process.env[name]) environment[name] = process.env[name];
+      const check = (expected) => {
+        const result = spawnSync(
+          process.execPath,
+          [path.resolve(__dirname, '../scripts/check-coverage-io-receipt.cjs')],
+          { env: environment, encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+        );
+        assert.equal(result.error, undefined);
+        assert.equal(result.signal, null);
+        assert.equal(result.status, expected);
+        assert.equal(result.stdout, expected === 0 ? 'coverage_io_receipt_verified\n' : '');
+        assert.equal(result.stderr, expected === 0 ? '' : 'coverage_io_receipt_failed\n');
+      };
+      check(1);
+      assert.equal(f.install('success'), false);
+      f.install('success', { windowId });
+      await f.hooks.before();
+      await f.hooks.after();
+      const receipt = readCoverageIoReceipt(f.environment, windowId);
+      assert.equal(receipt.schemaVersion, 3);
+      assert.equal(receipt.windowId, windowId);
+      check(0);
+      assert.throws(() => readCoverageIoReceipt(f.environment));
+      environment.HPM_COVERAGE_IO_STAGE = 'client';
+      check(1);
+    });
 });
 
 test('publication window stops on its own fixture failure and retains cleanup gates', async (t) => {
-  const f = fixture(t);
-  f.environment.HPM_COVERAGE_IO_STAGE = 'client';
-  let stop;
-  f.install('success', {
-    windowId: 'publication-graceful-http',
-    onReady(value) {
-      stop = value;
-    },
-  });
-  await f.hooks.before();
-  assert.equal(stop(), true);
-  assert.equal(stop(), false);
-  assert.equal(f.reports.length, 0);
-  await f.hooks.after();
-  const receipt = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
-  assert.equal(receipt.windowTermination, 'publication-fixture-failed');
-  assert.deepEqual(f.commands, ['finish\n']);
-  assert.equal(receipt.cleanupVerified, true);
+  for (const stage of ['proxy', 'client'])
+    await t.test(stage, async (t) => {
+      const f = fixture(t);
+      f.environment.HPM_COVERAGE_IO_STAGE = stage;
+      if (stage === 'proxy')
+        f.environment.HPM_COVERAGE_IO_PROXY_WINDOW = 'publication-graceful-http';
+      let stop;
+      f.install('success', {
+        windowId: 'publication-graceful-http',
+        onReady(value) {
+          stop = value;
+        },
+      });
+      await f.hooks.before();
+      assert.equal(stop(), true);
+      assert.equal(stop(), false);
+      assert.equal(f.reports.length, 0);
+      await f.hooks.after();
+      const receipt = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
+      assert.equal(receipt.windowTermination, 'publication-fixture-failed');
+      assert.equal(receipt.coverageStage, stage);
+      assert.deepEqual(f.commands, ['finish\n']);
+      assert.equal(receipt.cleanupVerified, true);
+    });
 });
 
 test('publication window refuses invalid scopes and cross-window or legacy receipts', async (t) => {

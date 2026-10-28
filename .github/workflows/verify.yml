@@ -66,12 +66,14 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $false
           $env:HPM_COVERAGE_IO_STAGE = 'proxy'
+          $env:HPM_COVERAGE_IO_PROXY_WINDOW = 'publication-graceful-http'
           npm run test:coverage
           $coverageExit = $LASTEXITCODE
           if ($coverageExit -ne 0) { [Console]::Error.WriteLine('coverage_original_stage_failed:stage=' + $env:HPM_COVERAGE_IO_STAGE) }
           node scripts/check-coverage-io-receipt.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Coverage I/O observation was not completed safely.' }
           if ($coverageExit -ne 0) { throw 'Original proxy coverage failed; I/O evidence does not override its failure.' }
+          Remove-Item Env:\HPM_COVERAGE_IO_PROXY_WINDOW
           $env:HPM_COVERAGE_IO_STAGE = 'client'
           npm run test:client:coverage
           $coverageExit = $LASTEXITCODE

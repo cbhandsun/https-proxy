@@ -24,14 +24,14 @@ function requiredCoverageIoWindows(environment = process.env) {
     proxy &&
     (!proxy.enumerable ||
       !Object.hasOwn(proxy, 'value') ||
-      proxy.value !== 'native-publication-interruption' ||
+      !['native-publication-interruption', 'publication-graceful-http'].includes(proxy.value) ||
       stage.value !== 'proxy')
   )
     throw fail();
   return Object.freeze(
     stage.value === 'client'
       ? ['client-context-target', 'publication-graceful-http']
-      : [proxy ? 'native-publication-interruption' : 'client-context-target']
+      : [proxy ? proxy.value : 'client-context-target']
   );
 }
 module.exports = { requiredCoverageIoWindows };

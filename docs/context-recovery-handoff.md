@@ -1,5 +1,9 @@
 # 上下文恢复换机交接
 
+## 2026-10-28 最新续接：a7全链通过但970又失败，不授稳定性
+
+优先读实施状态顶部。a7普通八/正式十二（含十业务）/两I/O全部success，完整日志、十份执行回执及36个持久发布样本已核对；970普通unit3旧PS互操作10秒超时、coverage两项graceful HTTP初始ready五秒失败均保留，正式source仍运行。失败graceful夹具直接用SQLite文件，不依赖native worker/DPAPI/OS anchor；尚未进入目标advance，唯一底层原因未定。本批普通proxy录制选择改到这个graceful文件，正式source仍录客户端恢复、额外I/O仍录原生中断，每阶段一录制器，原测试/并发/所有门不变；局部131项通过，Windows本批执行待。Mac原五档CPU诊断约9.7秒，只是合成诊断，不覆盖Windows旧失败。本机e0候选仍实际编译，staging 557来源校验通过但无安装器，勿提前交付；旧实例、旧长测失败现场及真实模型限制沿用。
+
 ## 2026-10-28 最新续接：正式源门已取得真实采集回执，完整门仍待
 
 优先读实施状态顶部。a7cbd6f正式source-gates已实际执行同机I/O采集，回执相同SHA、file-completed/cleanupVerified，原解析器通过；完整CI仍运行，录制结束不授五秒稳定性。固定e0本机构建经锁定公开缓存补齐后，离线plugin ci、native-check、native-prepare均退出0，已进入实际installer-build，尚无新包；原网络失败任务/日志保留，旧实例不动。原625失败40项组的36条完成耗时合计110.5秒，只提供接近120秒父限的证据，不授整组通过或唯一根因。旧长测失败现场、新24h和真实模型限制沿用。

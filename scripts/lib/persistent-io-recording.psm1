@@ -145,7 +145,7 @@ function Test-HpmCoverageIoWorkflow {
 
 function Test-HpmCoverageIoWindow {
     $proxyWindow = [Environment]::GetEnvironmentVariable('HPM_COVERAGE_IO_PROXY_WINDOW')
-    return ($env:HPM_COVERAGE_IO_STAGE -cin @('proxy','client') -and ($null -eq $proxyWindow -or ($proxyWindow -ceq 'native-publication-interruption' -and $env:HPM_COVERAGE_IO_STAGE -ceq 'proxy')))
+    return ($env:HPM_COVERAGE_IO_STAGE -cin @('proxy','client') -and ($null -eq $proxyWindow -or ($proxyWindow -cin @('native-publication-interruption','publication-graceful-http') -and $env:HPM_COVERAGE_IO_STAGE -ceq 'proxy')))
 }
 function Invoke-HpmPersistentIoDiagnostic {
     param([switch]$CaptureOnly)
