@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：transport-finished实际Windows诊断通过；减少事务内重复头解密
+
+固定48a5da2的诊断40606814821四作业均success，新增finished/job122548247619的完整日志已读取，精确源码SHA、plan/build摘要及执行后hosted_network_finished/ownedTreeEmpty均核对。源码严格两场景入口/Job消费链要求prepared与sending原ACK前置、transport-finished持久精确+3、原预算/expiry、原HTTP完整答案与独立发布屏障、强杀后默认owner同目录重开。仅授该独立Windows诊断范围，不能转授本批新源码或完整正式门。有限证据见context-recovery-evidence/48a5da2-finished-ack-diagnostic.json。48a普通Verify40606814770的quality/integration已success，余作业仍运行；正式40606814792/source122548247945及额外I/O/job122548247725仍运行，egress成功。原7ab矩阵失败与所有五秒失败保留。
+
+五秒排查中确认执行事务内的相同头记录仍在初始入场、clock和提交前重复解密；这是CPU重复工作，不能解释秒级COMMIT尾延迟。先用六组真实SQLite回归复现四次头解密，再把同锁checkedHeader传给clock与提交前见证。每次仍重新读取SQL行、比较storeId/密文、重新校验schema；入场密文副本防止驱动别名缓冲区变更，发生时钟改写必须对新密文重新认证。结果只存在当前事务栈，不跨COMMIT/ROLLBACK/下一操作或独立owner快照，原始内容不缓存、持久写和anchor ACK不删。
+
+相同头的执行加独立快照由四次解密降为两次，改写时钟的save为三次；不是五秒稳定性资格。八项新攻击回归在clock和提交前分别注入密文/身份/schema/别名变更，均拒绝且回滚、未授anchor ACK。核心三文件106/106、零fail/skip；扩大四文件188项中187通过/1失败，失败是Mac运行默认Windows原生worker，独立有限阶段探针确认key_protect_started后失败、未进入SQLite引擎，不改平台门/不跳该统一CI测试。所有新回归在现有anchor-clock统一CI及client coverage发现范围。有限证据见context-recovery-evidence/transaction-header-authentication-reuse.json。
+
+1712语法、Lint零错误/五既有警告、CI/release治理通过；npm audit原high门退出0，仍报告fast-uri一项moderate，锁文件与依赖未升级。保持FULL/DELETE、原时钟/24h到期、精确ACK版本和独立锚点刷盘。固定6646长测UTC00:10:57只读核实同任务存活、85分钟/18有效节拍、无失败锁存，不重启/抢占；24h和到期两次重开尚未通过。真实模型0、账未写、旧E实例不动。下一步核对本批Windows门与持续定位持久I/O尾延迟；其余daemon COMMIT/uncertain/withdrawn内部矩阵、本机安装两端、额度核对后的真实provider、最大容量和最终受控启用仍未完成。
+
 ## 2026-10-28：sending Windows独立诊断通过；修正矩阵检查，接入transport-finished ACK组
 
 固定7ab7cb7的诊断40605075515三个作业均success；sending/job122542438949完整日志已核对源码SHA、计划/构建摘要及执行后hosted_network_finished和ownedTreeEmpty回执。严格两场景入口/消费链要求实际默认daemon的prepared前置ACK、sending持久精确+2、预算/原expiry不变、强杀时公开0字节、同目录默认owner重开和释放完成屏障。仅授该独立诊断范围。有限证据见context-recovery-evidence/7ab7cb7-sending-ack-diagnostic.json。

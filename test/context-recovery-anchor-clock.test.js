@@ -1080,3 +1080,95 @@ for (const change of ['envelope', 'store-id', 'schema', 'aliased-ciphertext']) {
     );
   });
 }
+
+for (const operation of ['catalog', 'sweep', 'save'])
+  for (const time of [100, 110])
+    test(
+      'anchored execution authenticates unchanged locked header once and a replacement independently: ' +
+        operation +
+        '/' +
+        time,
+      (t) => {
+        const f = fixture(t);
+        const decode = TextDecoder.prototype.decode;
+        let opens = 0;
+        t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+          const text = Reflect.apply(decode, this, args);
+          if (Object.keys(JSON.parse(text)).sort().join(',') === 'lastTime,schema') opens++;
+          return text;
+        });
+        f.setTime(time);
+        const request =
+          operation === 'save'
+            ? {
+                operation,
+                scope,
+                expectedRevision: 0,
+                expiresAt: 1000,
+                state: { text: 'synthetic locked-header' },
+              }
+            : { operation };
+        const before = f.revision();
+        f.execute(request);
+        assert.equal(
+          opens,
+          operation === 'save' && time !== 100 ? 3 : 2,
+          'execute authenticates its initial header and any replacement; independent snapshot authenticates again'
+        );
+        assert.equal(f.revision(), before + 1, 'the original anchor ACK remains required');
+        const count = opens;
+        f.snapshot();
+        assert.equal(opens, count + 1, 'no proof survives into a later transaction');
+        assert.equal(f.db().prepare('PRAGMA synchronous').get().synchronous, 2);
+        assert.equal(f.db().prepare('PRAGMA journal_mode').get().journal_mode, 'delete');
+      }
+    );
+
+for (const read of [2, 3])
+  for (const change of ['envelope', 'store-id', 'schema', 'aliased-ciphertext'])
+    test(
+      'execution header proof refuses changed clock or commit witness: ' + read + '/' + change,
+      (t) => {
+        const f = fixture(t);
+        const before = f.bytes(),
+          expected = f.snapshot(),
+          revision = f.revision();
+        const db = f.db(),
+          prepare = db.prepare.bind(db);
+        let reads = 0,
+          first;
+        t.mock.method(db, 'prepare', (sql) => {
+          const statement = prepare(sql);
+          if (sql !== 'SELECT store_id, envelope FROM recovery_header WHERE singleton=1')
+            return statement;
+          return {
+            get() {
+              const row = statement.get();
+              reads++;
+              if (reads === 1) first = row;
+              if (reads === read) {
+                if (change === 'schema') db.exec('PRAGMA user_version=2');
+                else if (change === 'store-id') {
+                  prepare('UPDATE recovery_header SET store_id=? WHERE singleton=1').run(
+                    'f'.repeat(32)
+                  );
+                  return statement.get();
+                } else {
+                  row.envelope[row.envelope.length - 1] ^= 1;
+                  if (change === 'aliased-ciphertext') {
+                    first.envelope.set(row.envelope);
+                    return first;
+                  }
+                }
+              }
+              return row;
+            },
+          };
+        });
+        assert.throws(() => f.execute({ operation: 'catalog' }), safe);
+        assert.equal(reads, read);
+        assert.equal(f.revision(), revision, 'a rejected operation never reaches anchor ACK');
+        assert.deepEqual(f.bytes(), before, 'injected mutations roll back');
+        assert.deepEqual(f.snapshot(), expected, 'failed transaction proofs are discarded');
+      }
+    );

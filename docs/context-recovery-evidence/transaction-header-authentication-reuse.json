@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "baselineSourceCommit": "48a5da2cffa59ea932c4768786bb61904819aec9",
+  "scope": "identical authenticated SQLite header reuse inside one SQL transaction only",
+  "regressionBefore": {
+    "cases": 6,
+    "failed": 6,
+    "observedHeaderOpensEach": 4
+  },
+  "regressionAfter": {
+    "unchangedExecutePlusIndependentSnapshotHeaderOpens": 2,
+    "changedClockSavePlusIndependentSnapshotHeaderOpens": 3,
+    "freshCiphertextAuthenticated": true,
+    "laterTransactionsAuthenticateIndependently": true
+  },
+  "proofBoundary": {
+    "ciphertextRereadBeforeReuse": true,
+    "storeIdCompared": true,
+    "schemaRechecked": true,
+    "ciphertextWitnessCopied": true,
+    "committedHeaderPinKept": true,
+    "noProofAcrossCommitOrRollback": true,
+    "noOriginalContentCache": true
+  },
+  "verification": {
+    "coreTestsPassed": 106,
+    "coreTestsFailed": 0,
+    "coreTestsSkipped": 0,
+    "expandedTestsPassed": 187,
+    "expandedTestsFailed": 1,
+    "expandedTestsSkipped": 0,
+    "expandedFailure": {
+      "test": "actual encrypted worker exposes reference save/load, exact pages and legacy load across reopen",
+      "platform": "darwin",
+      "independentProbeLastPhaseBeforeFailure": "key_protect_started",
+      "engineEntered": false,
+      "windowsQualification": false
+    },
+    "adversarialNewCases": 8,
+    "adversarialBoundaries": [
+      "clock header read",
+      "pre-commit header witness"
+    ],
+    "adversarialChanges": [
+      "ciphertext",
+      "store identity",
+      "schema",
+      "aliased ciphertext"
+    ],
+    "syntaxFiles": 1712,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "ciGovernance": true,
+    "releaseGovernance": true,
+    "auditHighGatePassed": true,
+    "auditModerateFindings": 1,
+    "dependenciesUpgraded": false
+  },
+  "persistence": {
+    "sqliteSynchronous": "FULL",
+    "sqliteJournal": "DELETE",
+    "originalClockWritesKept": true,
+    "anchorAckKept": true,
+    "originalExpiryKept": true,
+    "ackExactVersionKept": true
+  },
+  "productFiveSecondStabilitySolved": false,
+  "commitFlushTailStillOpen": true,
+  "newWindowsQualificationPending": true,
+  "longTestRestarted": false,
+  "modelRequests": 0
+}
