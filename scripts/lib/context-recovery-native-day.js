@@ -11,6 +11,7 @@ const { createCapacityRealtimeClock } = require('./context-recovery-capacity-clo
 const { createCapacityRetentionWitness } = require('./context-recovery-capacity-retention');
 const { diagnosticIdentity } = require('./context-recovery-diagnostic-identity');
 const { capacityFailureReceipt } = require('./context-recovery-capacity-failure');
+const { createNativeDayAdvance } = require('./context-recovery-native-day-advance');
 
 const failure = () => new Error('native_capacity_day_failed');
 
@@ -66,18 +67,15 @@ async function runNativeCapacityDay(directory, emit) {
       profile,
       {
         now: witness.now,
-        async advance(offsetMs) {
-          verifyIdentity();
-          await clock.advance(offsetMs);
-          verifyIdentity();
-          emit({
-            event: offsetMs === 0 ? 'native_day_started' : 'capacity_tick',
-            atUtc: new Date(clock.now()).toISOString(),
-            realtime24hStarted: true,
-            scheduledMs: offsetMs,
-            ...clock.inspect(),
-          });
-        },
+        advance: createNativeDayAdvance({
+          clock,
+          verifyIdentity,
+          emit,
+          onFailure(advanceFailure) {
+            driverFailed = true;
+            emit({ event: 'native_day_failed', stage, storeOpens, storeCloses, advanceFailure });
+          },
+        }),
         async openStorage() {
           const storage = await open();
           return {

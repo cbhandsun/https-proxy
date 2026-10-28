@@ -1,5 +1,17 @@
 # 上下文恢复换机交接
 
+## 2026-10-28：固定6646长测在90分钟advance失败，已确认终止并保留现场
+
+原同一长测于UTC00:11:30以exit1退出，任务Ready/LastTaskResult1、所属进程已退出，失败锁存和终止均已确认。最后实际有效节拍为85分钟/18个，90分钟advance（commandIndex58、scheduledMs5400000）失败，随后close（index59）也有清理失败标记。没有24h通过或到期重开证据，不能把进程经过约90分钟当作有效24h。退出后只读核对未发现该冻结根下的Node/native helper残留，未启动/结束任何进程；源码、Node和native摘要仍精确匹配，源码干净、577份范围源码。原目录、数据库、任务和冻结脚本未修改，也未重启或自动重试。安全证据见context-recovery-evidence/6646-native-day-90min-failure.json。
+
+现有回执没有storage_operation_failed事件，advance内部可能在等待前身份检查、真实时钟等待、等待后身份检查或进度写出失败，旧进程退出后无法反推唯一子阶段。有限System时间事件查询未返回该窗口事件，但这不排除时钟失败；退出后摘要匹配同样不能证明失败瞬间的状态。最初私有只读脚本的Node JSON与PS JSON缺换行，解析未取得身份记录，修正输出分隔后才取得上述身份；未将脚本错误或推测写成产品根因。
+
+本批将advance编排拆到独立可测模块，保持原身份检查、实际经过时钟、固定负载、所有期限及失败即停止。失败立即发出固定phase和有限scheduledMs，先于driver清理；不读取/转发原异常、原文或路径。输入描述符、Proxy、非法/极端offset、错误进度、异步观察器、并发、输出失败、时钟倒退均拒绝且粘滞，不自动重试；主模块只组合，新增模块也纳入来源摘要。不会把新诊断能力追授旧失败或现有冻结源码。
+
+六文件74/74、零fail/skip，含真实短经过时钟及原day/持久容量/回执/健康回归；1714语法、Lint零错误/五既有警告、CI/release治理通过。初次Lint因no-unsafe-finally拒绝，已将固定失败重新抛出放到finally外，未抑制规则。证据见context-recovery-evidence/native-day-advance-provenance.json。本批没有启动新长测。9e26dfc普通40607195765已有quality/integration/Rust及unit0/1/2成功，unit3和coverage仍运行；正式40607195689/source122549532847仍运行，egress成功。48a普通七个非coverage作业成功，coverage与正式source仍运行；其四独立业务诊断已通过的范围保持。
+
+下一步继续核对完整Windows门，基于新阶段能力定位长测实际失败，再决定新的独立验收；现阶段不承诺长测重启或24h通过时间。产品五秒COMMIT尾延迟仍未解决，uncertain/withdrawn及其余COMMIT实际daemon内部矩阵、本机最新安装两端、逐provider额度核对后的真实模型、最大容量和最终自用启用均未完成。真实模型0、账未写，旧E实例不动，所有历史失败保留。
+
 ## 2026-10-28：transport-finished实际Windows诊断通过；减少事务内重复头解密
 
 固定48a5da2的诊断40606814821四作业均success，新增finished/job122548247619的完整日志已读取，精确源码SHA、plan/build摘要及执行后hosted_network_finished/ownedTreeEmpty均核对。源码严格两场景入口/Job消费链要求prepared与sending原ACK前置、transport-finished持久精确+3、原预算/expiry、原HTTP完整答案与独立发布屏障、强杀后默认owner同目录重开。仅授该独立Windows诊断范围，不能转授本批新源码或完整正式门。有限证据见context-recovery-evidence/48a5da2-finished-ack-diagnostic.json。48a普通Verify40606814770的quality/integration已success，余作业仍运行；正式40606814792/source122548247945及额外I/O/job122548247725仍运行，egress成功。原7ab矩阵失败与所有五秒失败保留。

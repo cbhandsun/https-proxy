@@ -25,8 +25,9 @@ function fixture(mode) {
     async advance(offset) {
       scheduledMs = offset;
       calls.push(['advance', offset]);
+      if (mode === 'clock-advance-failure') fail();
     },
-    inspect: () => ({ elapsedMs: scheduledMs, scheduledMs }),
+    inspect: () => ({ started: true, elapsedMs: scheduledMs, scheduledMs, maximumLatenessMs: 0 }),
   };
   const witness = {
     now: clock.now,
@@ -163,7 +164,9 @@ function fixture(mode) {
     receipts,
     opened: () => opened,
     run: () =>
-      target.exports.runNativeCapacityDay('/unused-native-day', (event) => receipts.push(event)),
+      target.exports.runNativeCapacityDay('/unused-native-day', (event) => {
+        receipts.push(event);
+      }),
   };
 }
 
@@ -306,4 +309,20 @@ test('first live driver failure is visible before another scheduled wait and sti
     f.receipts.some((v) => v.event === 'native_day_completed'),
     false
   );
+});
+
+test('day reports a bounded advance phase before cleanup and never waits again', async () => {
+  const f = fixture('clock-advance-failure');
+  await assert.rejects(f.run(), { message: 'native_capacity_day_failed' });
+  const first = f.receipts.find((event) => event.event === 'native_day_failed');
+  assert.deepEqual({ ...first.advanceFailure }, { phase: 'wait', scheduledMs: 0 });
+  assert.equal(first.storeOpens, 1);
+  assert.equal(first.storeCloses, 0);
+  assert.equal(f.receipts.at(-1).storeCloses, 1);
+  assert.deepEqual(f.calls.filter(Array.isArray), [['advance', 0]]);
+  assert.equal(
+    f.receipts.some((event) => event.event === 'native_day_completed'),
+    false
+  );
+  assert.equal(JSON.stringify(f.receipts).includes('PRIVATE'), false);
 });

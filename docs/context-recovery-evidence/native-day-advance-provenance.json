@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "scope": "native-day orchestration advance failure provenance only",
+  "failurePhases": [
+    "offset-admission",
+    "identity-before-wait",
+    "wait",
+    "identity-after-wait",
+    "progress-now",
+    "progress-inspect",
+    "progress-emit"
+  ],
+  "firstFailureSticky": true,
+  "noRetry": true,
+  "failureReceiptBeforeCleanup": true,
+  "callbacksRejectExecutableDescriptorsAndAsyncResults": true,
+  "originalClockAndIdentityChecksKept": true,
+  "newModuleIncludedInSourceIdentity": true,
+  "frozenLongRunModified": false,
+  "newLongRunStarted": false,
+  "retrospectiveRootCauseClaimed": false,
+  "verification": {
+    "testsPassed": 74,
+    "testsFailed": 0,
+    "testsSkipped": 0,
+    "files": 6,
+    "actualShortElapsedClockExecuted": true,
+    "syntheticRollbackStillRejected": true,
+    "syntaxFiles": 1714,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "ciGovernance": true,
+    "releaseGovernance": true,
+    "initialLintFailure": "no-unsafe-finally on diagnostic rethrow; rewritten to preserve selected failure outside finally, no lint suppression"
+  },
+  "productFiveSecondStabilitySolved": false,
+  "modelRequests": 0
+}
