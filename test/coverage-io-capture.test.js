@@ -65,8 +65,10 @@ test('the real PowerShell recorder refuses a foreign or stale proxy-window selec
     ['proxy', null, true],
     ['client', null, true],
     ['proxy', 'native-publication-interruption', true],
+    ['proxy', 'publication-interruption', true],
     ['proxy', 'publication-graceful-http', true],
     ['client', 'native-publication-interruption', false],
+    ['client', 'publication-interruption', false],
     ['client', 'publication-graceful-http', false],
     ['proxy', 'PRIVATE', false],
     ['proxy', 'x'.repeat(4096), false],
@@ -850,7 +852,11 @@ test('the actual stage checker requires the publication receipt in client covera
 });
 
 test('the actual proxy checker requires the explicitly selected publication window receipt', async (t) => {
-  for (const windowId of ['native-publication-interruption', 'publication-graceful-http'])
+  for (const windowId of [
+    'native-publication-interruption',
+    'publication-graceful-http',
+    'publication-interruption',
+  ])
     await t.test(windowId, async (t) => {
       const { spawnSync } = require('node:child_process');
       const f = fixture(t);

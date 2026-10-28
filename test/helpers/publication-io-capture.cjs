@@ -45,4 +45,11 @@ function installPublicationIoCapture(test, install = installCoverageIoCapture) {
 function installNativePublicationIoCapture(test, install = installCoverageIoCapture) {
   return installPublicationWindow(test, install, 'native-publication-interruption');
 }
-module.exports = { installPublicationIoCapture, installNativePublicationIoCapture };
+function installSqlPublicationIoCapture(test, install = installCoverageIoCapture) {
+  return installPublicationWindow(test, install, 'publication-interruption');
+}
+module.exports = {
+  installPublicationIoCapture,
+  installNativePublicationIoCapture,
+  installSqlPublicationIoCapture,
+};

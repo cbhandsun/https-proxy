@@ -1,4 +1,5 @@
 'use strict';
+const { fixtureTag } = require('../../scripts/lib/persistent-io-association');
 const { publicationModule } = require('./publication-runtime.cjs');
 
 // Offline process fixture: synthetic key/data travel over private IPC only.
@@ -63,7 +64,9 @@ async function initialize(input) {
               return database.exec(sql);
             },
           },
-          (progress) => report('sql-progress', { progress })
+          (progress) => report('sql-progress', { progress }),
+          undefined,
+          { ownerProcessId: process.pid, fixtureTag: fixtureTag(input.file) }
         ),
         dataKey: input.key,
         now: () => 100,

@@ -396,3 +396,135 @@ test(
     assert.equal(progress.describe().status, 'returned');
   }
 );
+
+test('SQL progress retains owned UTC and fixture identity alongside pending and completed calls', () => {
+  const { fixtureTag } = require('../scripts/lib/persistent-io-association');
+  const identity = {
+    ownerProcessId: 321,
+    fixtureTag: fixtureTag('C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite'),
+  };
+  const rows = [];
+  let tick = 0,
+    wall = 1000,
+    calls = 0;
+  const db = {
+    exec() {
+      calls++;
+      wall += 200;
+      return db;
+    },
+    prepare() {},
+  };
+  const wrapped = observePublicationSql(
+    db,
+    (value) => rows.push(value),
+    () => tick++,
+    identity,
+    () => wall
+  );
+  identity.ownerProcessId = 999;
+  assert.equal(wrapped.exec('COMMIT'), db);
+  assert.equal(calls, 1);
+  assert.equal(rows[0].status, 'started');
+  assert.equal(rows[1].status, 'returned');
+  assert.equal(rows[0].ownerProcessId, 321);
+  assert.equal(rows[1].ownerProcessId, 321);
+  assert.equal(rows[0].observedAtUnixMs, 1000);
+  assert.equal(rows[1].observedAtUnixMs, 1200);
+  const progress = createPublicationSqlProgress();
+  for (const row of rows) progress.observe(row);
+  progress.snapshot()[0].ownerProcessId = 888;
+  assert.equal(progress.snapshot()[0].ownerProcessId, 321);
+  assert.doesNotMatch(JSON.stringify(progress.snapshot()), /aB012z|checkpoint|Temp|PRIVATE/);
+});
+
+test('SQL identity admission rejects incomplete, foreign, extreme and aliased observations', () => {
+  const { fixtureTag } = require('../scripts/lib/persistent-io-association');
+  const identity = {
+    ownerProcessId: 1,
+    fixtureTag: fixtureTag('C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite'),
+  };
+  const start = { ...sample(), ...identity, observedAtUnixMs: 1000 };
+  for (const invalid of [
+    { ...start, ownerProcessId: 0 },
+    { ...start, ownerProcessId: 0xffffffff },
+    { ...start, fixtureTag: null },
+    { ...start, fixtureTag: 'PRIVATE' },
+    { ...start, observedAtUnixMs: -1 },
+    { ...start, observedAtUnixMs: NaN },
+    { ...start, observedAtUnixMs: Infinity },
+    { ...start, observedAtUnixMs: '1' },
+    { ...start, observedAtUnixMs: undefined },
+    { ...start, extra: 'PRIVATE' },
+    Object.defineProperty({ ...start }, 'ownerProcessId', {
+      enumerable: true,
+      get() {
+        throw Error('PRIVATE');
+      },
+    }),
+    new Proxy(start, {
+      ownKeys() {
+        throw Error('PRIVATE');
+      },
+    }),
+  ])
+    assert.throws(
+      () => createPublicationSqlProgress().observe(invalid),
+      /publication_sql_progress_invalid/
+    );
+  const p = createPublicationSqlProgress();
+  p.observe(start);
+  for (const invalid of [
+    { ...start, status: 'returned', ownerProcessId: 2 },
+    { ...start, status: 'returned', fixtureTag: '0'.repeat(64) },
+    sample(1, 'returned', 1),
+  ])
+    assert.throws(() => p.observe(invalid));
+  // UTC rollback is retained, never used to manufacture a nonnegative I/O interval.
+  p.observe({ ...start, status: 'returned', observedAtUnixMs: 999 });
+  assert.equal(p.describe().observedAtUnixMs, 999);
+});
+
+test('optional SQL identity never reads foreign hooks or changes the underlying SQL result/error', () => {
+  const { fixtureTag } = require('../scripts/lib/persistent-io-association');
+  const identity = {
+    ownerProcessId: 1,
+    fixtureTag: fixtureTag('C:/Temp/hpm-publication-interior-aB012z/checkpoint.sqlite'),
+  };
+  const db = {
+      exec() {
+        throw failure;
+      },
+      prepare() {},
+    },
+    failure = Error('PRIVATE_SQL_ERROR');
+  let hooks = 0;
+  const trap = () => {
+    hooks++;
+    throw Error('PRIVATE');
+  };
+  for (const bad of [
+    null,
+    {},
+    [],
+    { ...identity, extra: 1 },
+    Object.defineProperty({ ...identity }, 'ownerProcessId', { enumerable: true, get: trap }),
+    new Proxy(identity, { ownKeys: trap }),
+  ])
+    assert.throws(
+      () => observePublicationSql(db, () => {}, undefined, bad),
+      /publication_sql_progress_invalid/
+    );
+  assert.equal(hooks, 0);
+  const wrapped = observePublicationSql(
+    db,
+    () => {},
+    () => 1,
+    identity,
+    () => -1
+  );
+  assert.throws(
+    () => wrapped.exec('COMMIT'),
+    (error) => error === failure
+  );
+});

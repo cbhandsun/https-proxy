@@ -209,7 +209,10 @@ test('CLI emits only a finite summary and rejects malformed, duplicate, empty an
     const result = spawnSync(process.execPath, [file], { input, encoding: 'utf8', timeout: 5000 });
     assert.equal(result.status, 1);
     assert.equal(result.stdout, '');
-    assert.equal(result.stderr, 'persistent_io_summary_failed\n');
+    assert.match(
+      result.stderr,
+      /^persistent_io_summary_failed\npersistent_io_summary_cause=(?:arguments|input-bytes|input-encoding|record-bytes|record-json|record-canonical|record-observe|snapshot|no-flush|collisions|output)\n$/
+    );
   }
 });
 

@@ -203,6 +203,7 @@ function validWindow(windowId) {
       'client-context-target',
       'publication-graceful-http',
       'native-publication-interruption',
+      'publication-interruption',
     ].includes(windowId)
   )
     throw fail();

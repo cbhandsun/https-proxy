@@ -34,6 +34,8 @@ on:
       - lib/proxy/context-recovery-storage-idle.js
       - test/helpers/recovery-owner-stage-probe.js
       - scripts/lib/persistent-io-association.js
+      - scripts/lib/coverage-io-capture.js
+      - scripts/lib/coverage-io-recorder-failure.js
       - test/helpers/recovery-anchor-stage-probe.js
       - test/context-recovery-anchor-clock.test.js
       - .github/workflows/windows-persistent-recovery-timing.yml

@@ -17,6 +17,19 @@ const PHASES = new Set([
   'decode-summary',
   'original-assertions',
 ]);
+const SUMMARY_CAUSES = Object.freeze([
+  'arguments',
+  'input-bytes',
+  'input-encoding',
+  'record-bytes',
+  'record-json',
+  'record-canonical',
+  'record-observe',
+  'snapshot',
+  'no-flush',
+  'collisions',
+  'output',
+]);
 const CAUSES = new Set(['start', 'deadline', 'pipes', 'output-limit', 'exit']);
 
 // Recorder stderr is never returned. Only complete, unique fixed control lines
@@ -25,12 +38,19 @@ const CAUSES = new Set(['start', 'deadline', 'pipes', 'output-limit', 'exit']);
 function coverageIoRecorderFailureDetail(input) {
   if (typeof input !== 'string' || Buffer.byteLength(input) > 16384 || !input.endsWith('\n'))
     return '';
-  let phase, cause;
+  let phase, cause, summaryCause;
   let phases = 0,
-    causes = 0;
+    causes = 0,
+    summaries = 0;
   for (const line of input.split('\n').slice(0, -1)) {
     const text = line.endsWith('\r') ? line.slice(0, -1) : line;
     const phasePrefix = 'persistent_io_diagnostic_failed:phase=';
+    const summaryPrefix = 'persistent_io_summary_cause=';
+    if (text.startsWith(summaryPrefix)) {
+      summaries++;
+      const value = text.slice(summaryPrefix.length);
+      if (SUMMARY_CAUSES.includes(value)) summaryCause = value;
+    }
     const causePrefix = 'persistent_io_wpr_failed:cause=';
     if (text.startsWith(phasePrefix)) {
       phases++;
@@ -45,7 +65,14 @@ function coverageIoRecorderFailureDetail(input) {
   }
   if (phases !== 1 || phase === undefined || causes > 1 || (causes && cause === undefined))
     return '';
-  return '; recorder_phase=' + phase + (cause === undefined ? '' : '; wpr_cause=' + cause);
+  if (summaries > 1 || (summaries && (summaryCause === undefined || phase !== 'decode-summary')))
+    return '';
+  return (
+    '; recorder_phase=' +
+    phase +
+    (cause === undefined ? '' : '; wpr_cause=' + cause) +
+    (summaryCause === undefined ? '' : '; summary_cause=' + summaryCause)
+  );
 }
 
-module.exports = { coverageIoRecorderFailureDetail };
+module.exports = { coverageIoRecorderFailureDetail, SUMMARY_CAUSES };

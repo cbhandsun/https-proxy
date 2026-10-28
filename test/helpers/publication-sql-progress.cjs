@@ -1,6 +1,7 @@
 'use strict';
 const { types } = require('node:util');
 const { performance } = require('node:perf_hooks');
+const { validFixtureTag } = require('../../scripts/lib/persistent-io-association');
 const { nativeReaderPromise } = require('../../lib/proxy/context-recovery-reader-result');
 const fail = () => new Error('publication_sql_progress_invalid');
 const PHASES = new Set(['begin-read', 'begin-write', 'commit', 'rollback', 'clock-write']);
@@ -10,6 +11,8 @@ const EXEC = new Map([
   ['COMMIT', 'commit'],
   ['ROLLBACK', 'rollback'],
 ]);
+const IDENTITY = ['ownerProcessId', 'fixtureTag', 'observedAtUnixMs'];
+const BASE = ['sequence', 'phase', 'status', 'elapsedMs'];
 const CLOCK_SQL = 'UPDATE recovery_header SET envelope=? WHERE singleton=1';
 function plain(input) {
   if (
@@ -29,13 +32,11 @@ function createPublicationSqlProgress() {
     observe(input) {
       plain(input);
       const keys = Reflect.ownKeys(input);
-      if (
-        keys.length !== 4 ||
-        keys.some((key) => !['sequence', 'phase', 'status', 'elapsedMs'].includes(key))
-      )
-        throw fail();
+      const extended = keys.length === 7;
+      const names = extended ? [...BASE, ...IDENTITY] : BASE;
+      if (keys.length !== names.length || keys.some((key) => !names.includes(key))) throw fail();
       const value = {};
-      for (const key of ['sequence', 'phase', 'status', 'elapsedMs']) {
+      for (const key of names) {
         const slot = Object.getOwnPropertyDescriptor(input, key);
         if (!slot?.enumerable || !Object.hasOwn(slot, 'value')) throw fail();
         value[key] = slot.value;
@@ -51,6 +52,23 @@ function createPublicationSqlProgress() {
         value.elapsedMs < 0 ||
         value.elapsedMs > 60000 ||
         (last && value.elapsedMs < last.elapsedMs)
+      )
+        throw fail();
+      if (
+        extended &&
+        (!Number.isSafeInteger(value.ownerProcessId) ||
+          value.ownerProcessId <= 0 ||
+          value.ownerProcessId >= 0xffffffff ||
+          !validFixtureTag(value.fixtureTag) ||
+          !Number.isSafeInteger(value.observedAtUnixMs) ||
+          value.observedAtUnixMs < 0)
+      )
+        throw fail();
+      if (
+        last &&
+        (Object.hasOwn(last, 'ownerProcessId') !== extended ||
+          (extended &&
+            (value.ownerProcessId !== last.ownerProcessId || value.fixtureTag !== last.fixtureTag)))
       )
         throw fail();
       if (value.status === 'started') {
@@ -92,7 +110,13 @@ function method(object, name, prototype = false) {
 // Trusted fixture capabilities only. Calls are synchronous, exactly once and
 // retain their original receiver/results/errors. No SQL, arguments, rows or
 // exception values cross the observation boundary. Returned is not a durable ACK.
-function observePublicationSql(database, emit, now = () => performance.now()) {
+function observePublicationSql(
+  database,
+  emit,
+  now = () => performance.now(),
+  identity,
+  wallNow = Date.now
+) {
   plain(database);
   const keys = Reflect.ownKeys(database);
   if (keys.length !== 2 || keys.some((key) => !['exec', 'prepare'].includes(key))) throw fail();
@@ -100,6 +124,28 @@ function observePublicationSql(database, emit, now = () => performance.now()) {
     prepare = method(database, 'prepare');
   for (const callback of [emit, now])
     if (typeof callback !== 'function' || types.isProxy(callback)) throw fail();
+  let ownedIdentity;
+  if (identity !== undefined) {
+    plain(identity);
+    const keys = Reflect.ownKeys(identity);
+    if (keys.length !== 2 || keys.some((key) => !['ownerProcessId', 'fixtureTag'].includes(key)))
+      throw fail();
+    ownedIdentity = {};
+    for (const key of keys) {
+      const slot = Object.getOwnPropertyDescriptor(identity, key);
+      if (!slot?.enumerable || !Object.hasOwn(slot, 'value')) throw fail();
+      ownedIdentity[key] = slot.value;
+    }
+    if (
+      !Number.isSafeInteger(ownedIdentity.ownerProcessId) ||
+      ownedIdentity.ownerProcessId <= 0 ||
+      ownedIdentity.ownerProcessId >= 0xffffffff ||
+      !validFixtureTag(ownedIdentity.fixtureTag) ||
+      typeof wallNow !== 'function' ||
+      types.isProxy(wallNow)
+    )
+      throw fail();
+  }
   const origin = now();
   if (!Number.isFinite(origin) || origin < 0) throw fail();
   const progress = createPublicationSqlProgress();
@@ -116,6 +162,7 @@ function observePublicationSql(database, emit, now = () => performance.now()) {
         phase,
         status,
         elapsedMs: Math.min(60000, Math.floor(elapsed)),
+        ...(ownedIdentity ? { ...ownedIdentity, observedAtUnixMs: wallNow() } : {}),
       });
     } catch {
       observing = false;

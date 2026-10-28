@@ -37,10 +37,17 @@ on:
       - test/helpers/recovery-anchor-stage-probe.js
       - test/recovery-anchor-stage-probe.test.js
       - test/recovery-owner-stage-probe.test.js
+      - test/context-recovery-publication-interruption.test.js
+      - test/helpers/context-recovery-publication-child.cjs
+      - test/helpers/context-recovery-publication-interruption.cjs
+      - test/helpers/publication-sql-progress.cjs
+      - test/publication-sql-progress.test.js
       - .github/workflows/windows-persistent-io-diagnostic.yml
       - scripts/diagnose-persistent-io.ps1
       - scripts/summarize-persistent-io.cjs
       - scripts/lib/persistent-io-summary.js
+      - scripts/lib/coverage-io-recorder-failure.js
+      - test/persistent-io-summary-failure.test.js
       - scripts/lib/persistent-io-association.js
       - scripts/lib/persistent-io-association.psm1
       - test/persistent-io-association.test.js
@@ -89,7 +96,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Native preparation failed.' }
           node scripts/prepare-evidence-gateway.js
           if ($LASTEXITCODE -ne 0) { throw 'Gateway preparation failed.' }
-      - name: Observe file flushes during both complete original test files once
+      - name: Observe file flushes during all three complete original test files once
         run: ./scripts/diagnose-persistent-io.ps1
       - name: Record diagnostic limits
         if: always()

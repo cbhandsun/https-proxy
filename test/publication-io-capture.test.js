@@ -137,3 +137,24 @@ test('publication composition rejects invalid capabilities without executing hos
     await assert.rejects(run(input), /publication_io_capture_invalid/);
   assert.equal(hooks, 0);
 });
+
+test('plain publication interruption owns only its selected window and retains the original failure', async () => {
+  const { installSqlPublicationIoCapture } = require('./helpers/publication-io-capture.cjs');
+  let stopped = 0;
+  const observe = installSqlPublicationIoCapture({}, (_test, options) => {
+    assert.equal(options.windowId, 'publication-interruption');
+    options.onReady(() => {
+      stopped++;
+    });
+  });
+  assert.equal(await observe(async () => 'completed'), 'completed');
+  assert.equal(stopped, 0);
+  const error = new Error('synthetic_publication_failed');
+  await assert.rejects(
+    observe(async () => {
+      throw error;
+    }),
+    (value) => value === error
+  );
+  assert.equal(stopped, 1);
+});

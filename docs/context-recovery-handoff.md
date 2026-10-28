@@ -1,5 +1,16 @@
 # 上下文恢复换机交接
 
+## 2026-10-28：457 完整三处失败与 b92 失败保留；对准非原生发布准备的 I/O 窗口
+
+457五条CI已终态：timing/独立I/O成功，普通/正式/额外coverage失败，完整失败日志2814903/2824129/2812787字符已读。普通三项publication prepared在原ready五秒内失败，尚未到目标advance：准备COMMIT已返回1371/2277/2011/2353ms，其他提交仍pending，不虚构最终耗时；这些是非原生publication文件，原Verify所选native窗口不覆盖它。正式为Tianxi真实PowerShell调用ETIMEDOUT；额外为native protect25ms后legacy unprotect10234ms超时且未见首阶段，不能确认DPAPI算法失败。相同457范围实际Core持久发布42个786–2119ms、未见该范围真实请求失败，但不覆盖原五秒失败或失败的完整门。
+
+b92普通7作业成功/coverage失败：20个native publication用例通过后，录制器after-hook在decode-summary拒绝，具体汇总拒绝原因未知；正式完整日志2856698字符有11项失败，十项publication均awaiting ready、另caller-owned reply子进程15秒边界失败，业务skipped。三timing及独立I/O各50/50完整日志已读；额外coverage已成功，完整3949992字符无not-ok、三份同源码/cleanup回执经原parseSummary接受；不以这些局部通过抵消失败。
+
+本批仅修正观测：Verify在原完整coverage中选非原生publication-interruption窗口，首个失败即停止自己的录制、全部原测试照常完成；额外coverage保留native窗口，正式原scope不改。独立I/O保留原50项再加完整20项非原生中断控制，不过滤/重试/增加期限。SQL进度可带真实子PID、匿名夹具摘要、UTC；父端核对子进程身份，原序号/相对计时/32条边界保留，相对elapsed不是单段时长，returned不是最终ACK。汇总失败新增封闭阶段原因码，原非零退出、无成功输出、字节/事件/碰撞门不放宽，不能据此追认b92根因。
+
+固定b92的SQL观察器对照8通过/3新增边界先红；本地扩大71/71、原20种发布中断/正控全部执行，651条SQL记录对应20夹具/20子PID；定向Lint/格式、CI治理及统一新测试发现通过，Windows新窗口/完整门仍待。首次对照漏物理临时目录预加载导致额外已有路径拒绝，输出保留，不作产品根因。证据见context-recovery-evidence/publication-sql-io-window.json。本批不是五秒性能修复；下一步读取新同轮失败的实际I/O并修复持久等待，最新安装/两端真实provider/有效24h仍未完成。旧868冻结不动、新长测/模型0、旧实例和最大容量暂停保持。
+
+
 ## 2026-10-28：schema7 已有真实 I/O 关联；完整覆盖率/正式门仍待终态
 
 固定45798f9四个unit分片完整日志已读（976655/702740/580911/603039字符），无not-ok，七项关联边界和一项真实PowerShell用例实际进入统一Windows门并通过。三timing各50/50、十八持久发布786–1146ms；独立I/O完整333934字符、50/50，schema7经原parseSummary接受，144对flush，DB最大33ms/journal203ms。Chat重开owner第4次settle-reader COMMIT224ms，与同夹具摘要、事件头PID匹配的journal flush203ms/write201ms相交，flush载荷发起线程与头TID一致。Responses第7次save的139ms journal write则落在139ms clock-write内而非COMMIT内。均为正向有限关联，不授物理文件身份、唯一原因或旧五秒失败解释；CPU字段记录0不等于证明绝对没有CPU开销。

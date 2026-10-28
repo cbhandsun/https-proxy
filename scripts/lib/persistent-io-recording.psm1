@@ -146,7 +146,7 @@ function Test-HpmCoverageIoWorkflow {
 
 function Test-HpmCoverageIoWindow {
     $proxyWindow = [Environment]::GetEnvironmentVariable('HPM_COVERAGE_IO_PROXY_WINDOW')
-    return ($env:HPM_COVERAGE_IO_STAGE -cin @('proxy','client') -and ($null -eq $proxyWindow -or ($proxyWindow -cin @('native-publication-interruption','publication-graceful-http') -and $env:HPM_COVERAGE_IO_STAGE -ceq 'proxy')))
+    return ($env:HPM_COVERAGE_IO_STAGE -cin @('proxy','client') -and ($null -eq $proxyWindow -or ($proxyWindow -cin @('native-publication-interruption','publication-graceful-http','publication-interruption') -and $env:HPM_COVERAGE_IO_STAGE -ceq 'proxy')))
 }
 function Invoke-HpmPersistentIoDiagnostic {
     param([switch]$CaptureOnly)
@@ -226,7 +226,7 @@ function Invoke-HpmPersistentIoDiagnostic {
             Read-HpmCoverageIoCommand
             $testExit = 0 # The outer original coverage exit remains an independent required gate.
         } else {
-            & node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/client-context-target.test.js test/context-recovery-codex-summary.test.js
+            & node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/client-context-target.test.js test/context-recovery-codex-summary.test.js test/context-recovery-publication-interruption.test.js
             $testExit = $LASTEXITCODE
         }
         $phase = 'trace-stop'

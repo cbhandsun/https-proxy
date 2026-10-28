@@ -24,7 +24,11 @@ function requiredCoverageIoWindows(environment = process.env) {
     proxy &&
     (!proxy.enumerable ||
       !Object.hasOwn(proxy, 'value') ||
-      !['native-publication-interruption', 'publication-graceful-http'].includes(proxy.value) ||
+      ![
+        'native-publication-interruption',
+        'publication-graceful-http',
+        'publication-interruption',
+      ].includes(proxy.value) ||
       stage.value !== 'proxy')
   )
     throw fail();

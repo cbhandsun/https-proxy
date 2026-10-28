@@ -1,4 +1,5 @@
 'use strict';
+const { fixtureTag } = require('../../scripts/lib/persistent-io-association');
 const { publicationModule } = require('./publication-runtime.cjs');
 
 const assert = require('node:assert/strict');
@@ -21,7 +22,8 @@ const { waitForFixtureSignal } = require('./fixture-phase-wait.cjs');
 const { openContextRecoveryStorage } = publicationModule('context-recovery-storage');
 const { createRecoverySqliteStore } = publicationModule('context-recovery-storage-sqlite');
 
-function processFixture(file) {
+function processFixture(file, databaseFile, diagnostic) {
+  const expectedTag = fixtureTag(databaseFile);
   const child = fork(path.join(__dirname, file), [], {
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     windowsHide: true,
@@ -44,6 +46,21 @@ function processFixture(file) {
     if (message?.phase === 'sql-progress') {
       try {
         sql.observe(message.progress);
+        const sample = sql.describe();
+        if (Object.hasOwn(sample, 'ownerProcessId')) {
+          if (sample.ownerProcessId !== child.pid || sample.fixtureTag !== expectedTag)
+            throw Error('publication_sql_identity_refused');
+          diagnostic?.({
+            phase: 'publication-sql',
+            stage: sample.phase,
+            status: sample.status,
+            sequence: sample.sequence,
+            elapsedMs: sample.elapsedMs,
+            observedAtUnixMs: sample.observedAtUnixMs,
+            ownerProcessId: sample.ownerProcessId,
+            fixtureTag: sample.fixtureTag,
+          });
+        }
       } catch {
         messages.push({ phase: 'failed' });
       }
@@ -112,12 +129,13 @@ async function publicationInterruption({
   kill,
   native = false,
   graceful = false,
+  diagnostic,
 }) {
   assert.ok(!graceful || (!kill && (native || boundary === 'ack')));
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-publication-interior-'));
   const file = path.join(directory, 'checkpoint.sqlite');
   const key = randomBytes(32).toString('base64');
-  const writer = processFixture('context-recovery-publication-child.cjs');
+  const writer = processFixture('context-recovery-publication-child.cjs', file, diagnostic);
   let reader, probe, database, engine, request, httpResult;
   try {
     writer.child.send({
