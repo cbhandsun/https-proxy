@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：本机e0候选已交付桌面；750正式源门失败保持
+
+固定75030e4普通Verify40635072357、额外覆盖I/O40635072382及独立I/O40635072389均终态success；正式40635072369/source122640046390失败，业务矩阵skipped。四份完整日志分别2720501/3721787/3725823/248632字符均已读取，八份有限I/O摘要经原parseSummary重验。普通proxy新的publication-graceful-http选择已在Windows实际生效。正式十项native-publication失败均awaiting=ready，目标advance尚未进入；其中一次.data-key创建2273ms、fsync1843ms而DPAPI保护17ms，其他失败也有文件/引擎阶段尾等待，尚未确认唯一底层原因。正式采集的是另一个client窗口，不能转授为这十项失败的I/O因果证据；所有fiveSecondQualified仍false，原5000ms/持久/认证门不变。有限记录见context-recovery-evidence/75030e4-ci-failures.json。
+
+Windows SSH恢复后沿用原cached-bundle句柄，未重启任务。修复隔离打包环境的缓存目录与官方下载中断：使用Tauri支持的项目内useLocalToolsDir，NSIS 3.11和tauri-utils 0.5.3均按官方固定SHA1及传输SHA256核对，442份文件逐份核验，仅写入该候选目录。未升级依赖、未改全局工具或公开release签名要求。续建installer-bundle在168398ms退出0，原app-rust-check在506755ms退出0，最终任务Ready/0；原冷构建40分钟失败、NSIS缓存panic及下载10053日志保持，不能称冷构建已通过。
+
+固定e0本机原生Rust 47项、应用Rust 41项通过，零失败/忽略；保留前以原verifyPortableRuntime在隔离环境重验557来源、依赖、Node及native，源树干净。安装器0.1.1、28455027字节、SHA256 77f8a21d32c8ebcf2624045c6fbd354e4416492b0975c70ffb02ad1305150d42，manifest e033fbb53fd69a48d61d588461cfaf9ddb3fcad1d58ca7242cd659b99e7ec54d。已复制到Windows桌面HPM-SelfUse-0.1.1-e0e0f14，三文件为安装器、身份清单和说明，复制前后摘要一致；未安装、未退出旧E实例，依用户决定自行切换。同源码托管40625996281已授升级回滚、582完整迁移拒写与四CLI合成资格，不能转授这份本机二进制。有限证据见context-recovery-evidence/e0e0f14-local-candidate-delivered.json。
+
+本批实际完成本机候选构建与桌面交付，不授整体完成。仍缺五秒尾延迟稳定性、本机安装后的两端验收、额度核对后的真实provider、真实24小时及到期双重开、暂停的最大容量和受控自用结论。旧6646终态失败现场/任务保持，新24h未启动，真实模型0、分账额度未写、日常配置未改。下一步继续定位实际Windows文件/持久写尾等待；用户切换后的安装验收须绑定本机这份二进制。
+
 ## 2026-10-28：a7完整链通过，970再次失败；代理录制转向实际失败文件
 
 固定a7cbd6f普通40631684746八作业、正式40631684839十二作业（含十组实际业务）、独立I/O40631684845及额外覆盖I/O40631684852均终态success。普通coverage完整日志3716760字符、正式source3812677字符、额外I/O3724755字符均已读；十组完整执行日志逐份核对相同source SHA、plan/build摘要、准备后实际hosted_network_finished及TLS/隔离/ownedTreeEmpty，不只采用prepared_only。普通、正式source及额外I/O共36个持久发布样本601–2068ms，六份覆盖率I/O回执和正式source回执经原解析器核对；仍不授五秒稳定性、完整N08/N09或本机安装二进制资格。证据见context-recovery-evidence/a7cbd6f-complete-ci.json。

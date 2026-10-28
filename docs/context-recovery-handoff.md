@@ -1,5 +1,9 @@
 # 上下文恢复换机交接
 
+## 2026-10-28 最新续接：本机e0候选已在桌面，750正式失败未解
+
+优先读实施状态顶部。固定e0续建任务终态Ready/0：installer-bundle与app-rust-check均在原期限退出0，原生Rust47项、557来源运行时复核通过，安装器77f8a21d…已复制到Windows桌面HPM-SelfUse-0.1.1-e0e0f14，用户自行切换，旧实例未动。本机安装资格仍false，不能继承托管同源码二进制的安装结论。隔离NSIS缓存及官方工具下载问题已纠正，原冷构建/缓存panic/下载失败全保留。750普通和两I/O成功，正式source十项native初始ready五秒失败，业务skipped；完整日志和八摘要已核对，尚无唯一原因或五秒产品修复。旧长测终态失败现场、新24h未启动、真实模型0和原额度/门禁全部沿用。证据见75030e4-ci-failures.json和e0e0f14-local-candidate-delivered.json。
+
 ## 2026-10-28 最新续接：a7全链通过但970又失败，不授稳定性
 
 优先读实施状态顶部。a7普通八/正式十二（含十业务）/两I/O全部success，完整日志、十份执行回执及36个持久发布样本已核对；970普通unit3旧PS互操作10秒超时、coverage两项graceful HTTP初始ready五秒失败均保留，正式source仍运行。失败graceful夹具直接用SQLite文件，不依赖native worker/DPAPI/OS anchor；尚未进入目标advance，唯一底层原因未定。本批普通proxy录制选择改到这个graceful文件，正式source仍录客户端恢复、额外I/O仍录原生中断，每阶段一录制器，原测试/并发/所有门不变；局部131项通过，Windows本批执行待。Mac原五档CPU诊断约9.7秒，只是合成诊断，不覆盖Windows旧失败。本机e0候选仍实际编译，staging 557来源校验通过但无安装器，勿提前交付；旧实例、旧长测失败现场及真实模型限制沿用。
