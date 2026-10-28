@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "baselineSource": "a49fba8ec355d214892297f7375f570847865b6d",
+  "change": "Initial OS anchor read uses the existing owned channel; synchronous admission consumes it exactly once before SQL startup.",
+  "invariants": [
+    "Original readiness and initial-read deadlines start concurrently at the persisted-key barrier; no second timeout window",
+    "No frame before exact native readiness",
+    "Physical directory and executable identity rechecked before and after asynchronous read and again at synchronous consumption",
+    "Empty enrollment intent remains synchronous and durable before initial SQL COMMIT",
+    "Final startup ACK retains exact revision and existing envelope codec",
+    "Failure awaits actual owned child close before releasing writer",
+    "No authentication, expiry, FULL/DELETE or policy change; no cross-startup read cache"
+  ],
+  "regressions": {
+    "exactBaseline": "Final branded-channel owner regression against in-memory a49 owner+anchor sources fails: synchronous reads actual 1 expected 0; source files not overwritten",
+    "naiveSequentialWindow": "Waiting for readiness before starting read incorrectly accepts reply at 10001ms after readiness at 9000ms; new regression rejects this alternative",
+    "expanded": {
+      "tests": 151,
+      "pass": 149,
+      "fail": 0,
+      "skip": 2,
+      "skipScope": [
+        "Existing non-Windows directory lifecycle real worker test",
+        "Existing non-Windows storage worker preload test"
+      ]
+    },
+    "boundaries": [
+      "Empty and existing authenticated anchor",
+      "Duplicate consumption and overlapping read/commit refusal",
+      "Malformed/empty/envelope-corrupt replies",
+      "Physical replacement during await",
+      "Close during pending read",
+      "Foreign then/getter/Proxy hooks untouched",
+      "No SQL initialization before read; exact child close before writer unlock"
+    ]
+  },
+  "checks": [
+    "Targeted ESLint zero errors/warnings",
+    "CI governance passed",
+    "1737 JavaScript syntax checks passed",
+    "All changed JS parsed by node tests",
+    "git diff --check passed"
+  ],
+  "baselineCi": {
+    "verify": {
+      "run": 40759490709,
+      "conclusion": "success",
+      "coverageFullLogCharacters": 3809701
+    },
+    "formal": {
+      "run": 40759490629,
+      "conclusion": "failure",
+      "sourceJob": 123067228074,
+      "fullLogCharacters": 2759171,
+      "visibleFailures": 5,
+      "businessQualification": false
+    },
+    "timing": {
+      "run": 40759490680,
+      "conclusion": "success",
+      "runners": 3,
+      "testsPerRunner": 50,
+      "publicationRangeMs": [608, 1461]
+    },
+    "persistentIo": {
+      "run": 40759490705,
+      "conclusion": "success",
+      "job": 123067228809,
+      "fullLogCharacters": 271584,
+      "databaseMaxMs": 20,
+      "journalMaxMs": 17,
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    "extraIo": {
+      "run": 40759490804,
+      "conclusion": "success",
+      "fullLogCharacters": 3814646
+    },
+    "coverageIoReceiptsAcceptedByOriginalParser": 6
+  },
+  "windowsBaseline": {
+    "initialPreparationFailure": {
+      "npmCiExit": 0,
+      "pluginCiExit": 0,
+      "postInstallGitRevision": "ETIMEDOUT at unchanged 5000ms",
+      "taskExit": 1,
+      "productStarted": false
+    },
+    "separateAdmission": {
+      "gitAndInstalledLockChecksPassed": true,
+      "dependenciesReinstalled": false,
+      "originalFailurePreserved": true
+    },
+    "defaultNativeOpen": {
+      "opens": 2,
+      "closes": 2,
+      "readyMs": [5020, 4503],
+      "originalStartupDeadlineMs": 30000,
+      "fiveSecondQualified": false
+    },
+    "journalPass": 9,
+    "capacityClockPass": 28,
+    "blobs": {
+      "tests": 92,
+      "pass": 92,
+      "fixedFourRootLargeCaseMs": 54675.0399
+    },
+    "rootState": {
+      "tests": 73,
+      "pass": 73,
+      "fixedFourRoot32MiBCaseMs": 164562.4871,
+      "originalLargeCaseDeadlineMs": 180000
+    },
+    "nativeInterruption": {
+      "tests": 20,
+      "pass": 1,
+      "fail": 19,
+      "cancelled": 0,
+      "skip": 0,
+      "controllerExit": 1,
+      "elapsedMs": 112653,
+      "allFailuresAwaiting": "ready",
+      "targetAdvanceReachedInFailedCases": false,
+      "ownedProcessesAfterFailure": 0
+    },
+    "finalFiveSecondGroupStarted": false
+  },
+  "limitations": [
+    "New implementation not measured on Windows yet; no wall-time speedup claim",
+    "Baseline formal failure blocks installation qualification",
+    "Prior 5448ms COMMIT and all other failures retained",
+    "Old 868 remains failed with four ticks; scheduler Operational log disabled and no matching system lifecycle events; unique interruption cause unconfirmed",
+    "Latest installer and provider acceptance, valid real24h/expiry reopens, paused maximum capacity and controlled self-use remain incomplete"
+  ],
+  "realModelRequests": 0,
+  "new24HourStarted": false,
+  "fiveSecondStabilityQualified": false
+}

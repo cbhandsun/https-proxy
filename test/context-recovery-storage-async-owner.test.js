@@ -39,11 +39,15 @@ function fixture(t, delayedEngine = false, delayedKeyPersistence = false) {
     engineSawReady = false;
   const startupPhases = [];
   const channelStartup = [];
-  let replyValue = (text) => text;
+  let replyValue = (text) => text,
+    readReply = (text) => text;
+  let waitRead = async () => {},
+    waitNativeReady = async () => {};
   let waitReply = async () => {},
     waitClose = async () => {};
   let protectionFailure;
-  let nativeRequests = 0;
+  let nativeRequests = 0,
+    syncReads = 0;
   const protectionSamples = [];
   const protectKey = ({ operation, value }) => {
     if (operation !== 'protect') return value.slice(KEY_PREFIX.length);
@@ -79,6 +83,7 @@ function fixture(t, delayedEngine = false, delayedKeyPersistence = false) {
       environment: { SystemRoot: 'C:\\Windows' },
       execute: (_file, _args, options) => {
         if (JSON.parse(options.input).operation !== 'read') syncWrites++;
+        else syncReads++;
         return execute(options.input);
       },
       createChannel: () => {
@@ -95,24 +100,41 @@ function fixture(t, delayedEngine = false, delayedKeyPersistence = false) {
           child.stdout = new PassThrough();
           child.stderr = new PassThrough();
           child.stdio = [child.stdin, child.stdout, child.stderr, new PassThrough()];
+          let childClosed = false;
+          async function finishChild(code, signal) {
+            await waitClose();
+            if (childClosed) return;
+            childClosed = true;
+            closes++;
+            child.emit('close', code, signal);
+          }
           child.kill = () => {
-            queueMicrotask(() => child.emit('close', null, 'SIGKILL'));
+            void finishChild(null, 'SIGKILL');
             return true;
           };
-          child.stdin.on('end', () => queueMicrotask(() => child.emit('close', 0)));
+          child.stdin.on('end', () => {
+            void finishChild(0);
+          });
           child.stdin.on('data', (frame) => {
-            const reply = Buffer.from(execute(frame.subarray(8).toString('utf8')));
-            const header = Buffer.alloc(8);
-            header.writeUInt32LE(frame.readUInt32LE(0), 0);
-            header.writeUInt32LE(reply.length, 4);
-            queueMicrotask(() => child.stdout.write(Buffer.concat([header, reply])));
+            const text = frame.subarray(8).toString('utf8');
+            const reading = JSON.parse(text).operation === 'read';
+            const output = execute(text);
+            void (async () => {
+              if (reading) await waitRead();
+              const reply = Buffer.from(reading ? readReply(output) : output);
+              const header = Buffer.alloc(8);
+              header.writeUInt32LE(frame.readUInt32LE(0), 0);
+              header.writeUInt32LE(reply.length, 4);
+              child.stdout.write(Buffer.concat([header, reply]));
+            })();
           });
           return createRecoveryAnchorChannel(
             { executable, systemRoot: 'C:\\Windows' },
             {
               monotonic: () => nativeTime,
               spawnChild() {
-                queueMicrotask(() => {
+                queueMicrotask(async () => {
+                  await waitNativeReady();
                   child.stdout.write(Buffer.alloc(8));
                   readinessObserved = true;
                 });
@@ -180,6 +202,7 @@ function fixture(t, delayedEngine = false, delayedKeyPersistence = false) {
     nativeRequests: () => nativeRequests,
     engineSawReady: () => engineSawReady,
     syncWrites: () => syncWrites,
+    syncReads: () => syncReads,
     startupPhases: () => [...startupPhases],
     corruptReply(mode) {
       replyValue = (text) => {
@@ -206,6 +229,24 @@ function fixture(t, delayedEngine = false, delayedKeyPersistence = false) {
     },
     restore() {
       failed = false;
+    },
+    elapseNativeClock(value) {
+      nativeTime = value;
+    },
+    holdNativeReady() {
+      const held = gate();
+      gates.push(held);
+      waitNativeReady = () => held.promise;
+      return held;
+    },
+    holdRead() {
+      const held = gate();
+      gates.push(held);
+      waitRead = () => held.promise;
+      return held;
+    },
+    corruptRead() {
+      readReply = () => '{';
     },
     holdReply() {
       const held = gate();
@@ -275,7 +316,9 @@ test('async owner retains synchronous empty intent and durable startup, waits fo
   });
   await turn();
   assert.equal(acknowledged, false);
-  const db = new DatabaseSync(path.join(f.directory, 'checkpoint.sqlite'), { readOnly: true });
+  const db = new DatabaseSync(path.join(f.directory, 'checkpoint.sqlite'), {
+    readOnly: true,
+  });
   try {
     assert.equal(db.prepare('SELECT count(*) AS count FROM recovery_state').get().count, 1);
   } finally {
@@ -399,7 +442,10 @@ test('async startup waits for its real channel ACK and reuses that channel for t
   held.resolve();
   const owner = await pending;
   assert.equal(f.startupPhases().filter((phase) => phase === 'engine_ready').length, 1);
-  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), {
+    records: 0,
+    bytes: 0,
+  });
   assert.equal(f.channels(), 1, 'first operation cannot spawn another anchor channel');
   assert.equal(f.syncWrites(), 1, 'startup final ACK must not use another one-shot process');
 });
@@ -421,7 +467,10 @@ test('failed startup ACK stays rejected and retains writer authority until actua
   await rejected;
   f.resumeReplies();
   const reopened = await f.open();
-  assert.deepEqual(await reopened.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+  assert.deepEqual(await reopened.execute({ operation: 'inspect' }), {
+    records: 0,
+    bytes: 0,
+  });
 });
 
 for (const mode of ['empty', 'malformed', 'wrong-revision', 'extreme-revision']) {
@@ -436,7 +485,10 @@ for (const mode of ['empty', 'malformed', 'wrong-revision', 'extreme-revision'])
       assert.equal(f.syncWrites(), 1);
       f.validReply();
       const owner = await f.open();
-      assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+      assert.deepEqual(await owner.execute({ operation: 'inspect' }), {
+        records: 0,
+        bytes: 0,
+      });
     }
   );
 }
@@ -468,7 +520,10 @@ test('path replacement during startup ACK cannot return ready or release its wri
   await rejected;
   fs.renameSync(moved, key);
   const owner = await f.open();
-  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), {
+    records: 0,
+    bytes: 0,
+  });
 });
 
 test('early transport prestart leaves the original readiness window after key persistence', async (t) => {
@@ -478,7 +533,10 @@ test('early transport prestart leaves the original readiness window after key pe
   assert.equal(f.channels(), 1);
   assert.equal(f.syncWrites(), 1);
   assert.equal(f.writes(), 2);
-  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), {
+    records: 0,
+    bytes: 0,
+  });
 });
 
 test('fresh owner primes only its idle transport before protecting or persisting its real key', async (t) => {
@@ -487,7 +545,13 @@ test('fresh owner primes only its idle transport before protecting or persisting
   assert.deepEqual(f.channelStartup(), [{ phase: 'key_protect_started', writes: 0 }]);
   assert.equal(f.channels(), 1);
   assert.deepEqual(f.protectionSamples(), [
-    { channels: 1, nativeRequests: 0, writes: 0, keyExists: false, databaseExists: false },
+    {
+      channels: 1,
+      nativeRequests: 0,
+      writes: 0,
+      keyExists: false,
+      databaseExists: false,
+    },
   ]);
   assert.equal(f.syncWrites(), 1, 'durable enrollment remains behind key persistence');
   assert.equal(f.writes(), 2, 'idle process readiness cannot replace the final durable ACK');
@@ -498,7 +562,10 @@ test('fresh owner primes only its idle transport before protecting or persisting
     'anchor_open_started',
     'existing keys are unprotected before session binding'
   );
-  assert.deepEqual(await reopened.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+  assert.deepEqual(await reopened.execute({ operation: 'inspect' }), {
+    records: 0,
+    bytes: 0,
+  });
 });
 
 for (const mode of ['throw', 'malformed', 'collision']) {
@@ -565,7 +632,10 @@ test('synchronous startup rejection awaits the primed child before releasing the
   await rejected;
   f.restore();
   const owner = await f.open();
-  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), {
+    records: 0,
+    bytes: 0,
+  });
 });
 
 // Model a >10s synchronous SQL/manifest pass with a monotonic test clock, not
@@ -576,7 +646,10 @@ test('async owner consumes native readiness before a synchronous engine pass can
   assert.equal(f.engineSawReady(), true);
   assert.equal(f.syncWrites(), 1, 'empty intent remains synchronous before SQL commit');
   assert.equal(f.writes(), 2, 'readiness cannot substitute for durable startup ACK');
-  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), {
+    records: 0,
+    bytes: 0,
+  });
 });
 
 test('physical replacement while awaiting native readiness rejects startup before SQL admission', async (t) => {
@@ -591,5 +664,75 @@ test('physical replacement while awaiting native readiness rejects startup befor
   assert.equal(f.syncWrites(), 0);
   fs.renameSync(moved, key);
   const owner = await f.open();
-  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), {
+    records: 0,
+    bytes: 0,
+  });
+});
+
+test('async startup reads the OS anchor through its already-owned channel without a synchronous read process', async (t) => {
+  const f = fixture(t, true);
+  const owner = await f.open();
+  assert.equal(f.syncReads(), 0);
+  assert.equal(f.syncWrites(), 1, 'empty intent remains durable synchronously before SQL COMMIT');
+  assert.equal(f.writes(), 2, 'final startup ACK remains independent');
+  await owner.close();
+  const reopened = await f.open();
+  assert.equal(f.syncReads(), 0, 'reopening also performs a fresh channel read');
+  assert.equal(f.syncWrites(), 1);
+  assert.deepEqual(await reopened.execute({ operation: 'inspect' }), {
+    records: 0,
+    bytes: 0,
+  });
+});
+
+test('failed startup channel read cannot release its writer or initialize SQL until the actual child closes', async (t) => {
+  const f = fixture(t, true),
+    read = f.holdRead(),
+    close = f.holdClose();
+  f.corruptRead();
+  const pending = f.open(),
+    rejected = assert.rejects(pending, safe);
+  await turn();
+  assert.equal(f.syncReads(), 0);
+  assert.equal(f.syncWrites(), 0);
+  assert.equal(fs.existsSync(path.join(f.directory, 'checkpoint.sqlite')), false);
+  read.resolve();
+  await turn();
+  const mutex = new DatabaseSync(path.join(f.directory, '.writer.sqlite'));
+  try {
+    assert.throws(() => mutex.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE'));
+  } finally {
+    mutex.close();
+  }
+  assert.equal(f.closes(), 0);
+  close.resolve();
+  await rejected;
+  assert.equal(f.closes(), 1);
+  assert.equal(fs.existsSync(path.join(f.directory, 'checkpoint.sqlite')), false);
+  const released = new DatabaseSync(path.join(f.directory, '.writer.sqlite'));
+  try {
+    released.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE; ROLLBACK');
+  } finally {
+    released.close();
+  }
+});
+
+test('initial read shares the original key-barrier deadline instead of restarting after delayed readiness', async (t) => {
+  const f = fixture(t, true),
+    ready = f.holdNativeReady(),
+    read = f.holdRead();
+  const pending = f.open(),
+    rejected = assert.rejects(pending, safe);
+  await turn();
+  f.elapseNativeClock(9000);
+  ready.resolve();
+  await turn();
+  f.elapseNativeClock(10001);
+  read.resolve();
+  await rejected;
+  assert.equal(f.syncReads(), 0);
+  assert.equal(f.syncWrites(), 0);
+  assert.equal(fs.existsSync(path.join(f.directory, 'checkpoint.sqlite')), false);
+  assert.equal(f.closes(), 1);
 });

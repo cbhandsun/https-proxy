@@ -10,6 +10,7 @@ const { storageFailureDiagnostic } = require('../lib/proxy/context-recovery-stor
 const {
   createRecoveryAnchorRepository,
   createRecoveryAnchorSession,
+  readRecoveryAnchorStartupSession,
   primeRecoveryAnchorSession,
   waitForRecoveryAnchorStartupSession,
   closeRecoveryAnchorStartupSession,
@@ -74,9 +75,13 @@ function fixture(t, overrides = {}) {
     },
     ...overrides,
   };
-  function open() {
+  function createSession() {
     const session = createRecoveryAnchorSession(input, dependencies);
     owners.push(session);
+    return session;
+  }
+  function open() {
+    const session = createSession();
     const repository = session.repository;
     assert.deepEqual(Object.keys(repository), ['identity', 'read', 'commit', 'close']);
     const prior = repository.read();
@@ -98,6 +103,7 @@ function fixture(t, overrides = {}) {
   });
   return {
     open,
+    createSession,
     input,
     dependencies,
     directory,
@@ -151,7 +157,9 @@ test('synchronous durable startup and async commits share the exact codec, key a
   waiting.resolve();
   assert.deepEqual(await pending, { revision: 2 });
   f.replyAfter(async () => {});
-  assert.deepEqual(await session.commit({ ...next, maxTime: 102 }), { revision: 3 });
+  assert.deepEqual(await session.commit({ ...next, maxTime: 102 }), {
+    revision: 3,
+  });
   assert.equal(f.launches(), 1);
   await session.close();
   const reopened = f.reopen();
@@ -212,7 +220,10 @@ test('async anchor failures preserve the actual fixed boundary after mandatory c
     const invalid = setup(f);
     await assert.rejects(session.commit(invalid ?? { ...state, maxTime: 101 }), (error) => {
       assert.ok(safe(error));
-      assert.deepEqual(storageFailureDiagnostic(error), { phase, cleanupFailed: false });
+      assert.deepEqual(storageFailureDiagnostic(error), {
+        phase,
+        cleanupFailed: false,
+      });
       assert.equal(JSON.stringify(error).includes('PRIVATE'), false);
       return true;
     });
@@ -279,7 +290,11 @@ test('wrong revision, wrong ciphertext, invalid and negative ACKs remain termina
     () => '{"ok":false}',
     () => '{}',
     (text) => JSON.stringify({ ...JSON.parse(text), revision: 3 }),
-    (text) => JSON.stringify({ ...JSON.parse(text), value: Buffer.alloc(29).toString('base64') }),
+    (text) =>
+      JSON.stringify({
+        ...JSON.parse(text),
+        value: Buffer.alloc(29).toString('base64'),
+      }),
   ]) {
     const f = fixture(t),
       { session, state } = f.open(),
@@ -474,7 +489,10 @@ test('Windows actual session commits survive original codec reopen; unsupported 
   assert.deepEqual(await session.commit({ ...next, maxTime: next.maxTime + 1 }), { revision: 3 });
   await session.close();
   resources.reopened = createRecoveryAnchorRepository(input);
-  assert.deepEqual(resources.reopened.read(), { ...next, maxTime: next.maxTime + 1 });
+  assert.deepEqual(resources.reopened.read(), {
+    ...next,
+    maxTime: next.maxTime + 1,
+  });
   t.diagnostic('actual_registry_async_session_and_original_codec_reopen_verified');
 });
 
@@ -491,7 +509,9 @@ test('close failures and non-native close results never leak raw errors or claim
     }),
     () => undefined,
   ]) {
-    const f = fixture(t, { createChannel: () => ({ execute: async () => '{}', close }) });
+    const f = fixture(t, {
+      createChannel: () => ({ execute: async () => '{}', close }),
+    });
     const { session, repository, state } = f.open();
     await assert.rejects(session.commit({ ...state, maxTime: 101 }), safe);
     await assert.rejects(session.close(), safe);
@@ -651,4 +671,132 @@ test('startup readiness cannot invoke a forged session callback or thenable', ()
   for (const value of [undefined, null, {}, input])
     assert.equal(waitForRecoveryAnchorStartupSession(value), null);
   assert.equal(touched, 0);
+});
+
+test('owned startup read is consumed once by synchronous admission and preserves exact durable revisions', async (t) => {
+  const f = fixture(t),
+    session = f.createSession();
+  await readRecoveryAnchorStartupSession(session);
+  assert.deepEqual(f.calls, ['read']);
+  assert.equal(f.launches(), 1);
+  const state = {
+    version: 1,
+    ...session.repository.identity,
+    storeId: 'a'.repeat(32),
+    maxTime: 100,
+    scopes: [],
+  };
+  assert.throws(() => session.repository.commit(state), safe);
+  await assert.rejects(session.commit(state), safe);
+  assert.equal(session.repository.read(), null);
+  assert.deepEqual(session.repository.commit(state), { revision: 1 });
+  assert.deepEqual(await session.commit({ ...state, maxTime: 101 }), {
+    revision: 2,
+  });
+  await session.close();
+  const reopened = f.createSession();
+  await readRecoveryAnchorStartupSession(reopened);
+  assert.deepEqual(reopened.repository.read(), { ...state, maxTime: 101 });
+  await assert.rejects(readRecoveryAnchorStartupSession(reopened), safe);
+  assert.throws(() => reopened.repository.read(), safe);
+});
+
+for (const mode of ['empty', 'bad-json', 'bad-envelope', 'closed']) {
+  test('owned initial read fails closed and closes its exact child: ' + mode, async (t) => {
+    const f = fixture(t),
+      session = f.createSession();
+    f.transform((text) =>
+      mode === 'empty'
+        ? ''
+        : mode === 'bad-json'
+          ? '{'
+          : mode === 'bad-envelope'
+            ? JSON.stringify({ ok: true, revision: 1, value: 'AAAA' })
+            : text
+    );
+    const held = deferred();
+    f.replyAfter(() => held.promise);
+    const pending = readRecoveryAnchorStartupSession(session);
+    const rejected = assert.rejects(pending, safe);
+    if (mode === 'closed') await session.close();
+    held.resolve();
+    await rejected;
+    assert.equal(f.closes(), 1);
+    assert.throws(() => session.repository.read(), safe);
+    await assert.rejects(readRecoveryAnchorStartupSession(session), safe);
+    assert.deepEqual(f.calls, ['read']);
+  });
+}
+
+test('initial read rechecks physical identity after yielding without accepting a replacement directory', async (t) => {
+  const f = fixture(t),
+    session = f.createSession(),
+    held = deferred();
+  f.replyAfter(() => held.promise);
+  const pending = readRecoveryAnchorStartupSession(session),
+    rejected = assert.rejects(pending, safe);
+  fs.renameSync(f.directory, f.directory + '-old');
+  fs.mkdirSync(f.directory);
+  held.resolve();
+  await rejected;
+  assert.equal(f.closes(), 1);
+  assert.throws(() => session.repository.read(), safe);
+});
+
+test('startup read accepts only exact session capabilities without invoking foreign hooks', () => {
+  let touched = 0;
+  const hook = () => {
+    touched++;
+    throw Error('PRIVATE hook');
+  };
+  for (const input of [
+    null,
+    undefined,
+    {},
+    Object.defineProperty({}, 'read', { get: hook }),
+    new Proxy({}, { get: hook, ownKeys: hook }),
+  ])
+    assert.equal(readRecoveryAnchorStartupSession(input), null);
+  assert.equal(touched, 0);
+});
+
+test('initial channel read rejects overlapping consumers without issuing another native request', async (t) => {
+  const f = fixture(t),
+    session = f.createSession(),
+    held = deferred();
+  f.replyAfter(() => held.promise);
+  const pending = readRecoveryAnchorStartupSession(session);
+  await assert.rejects(readRecoveryAnchorStartupSession(session), safe);
+  assert.throws(() => session.repository.read(), safe);
+  assert.deepEqual(f.calls, ['read']);
+  held.resolve();
+  await pending;
+  assert.equal(session.repository.read(), null);
+});
+
+test('initial channel read never assimilates a foreign then getter and still closes its transport', async (t) => {
+  let touched = 0,
+    closed = 0;
+  const f = fixture(t, {
+    createChannel() {
+      return {
+        execute() {
+          return Object.defineProperty({}, 'then', {
+            get() {
+              touched++;
+              throw Error('PRIVATE then');
+            },
+          });
+        },
+        async close() {
+          closed++;
+        },
+      };
+    },
+  });
+  const session = f.createSession();
+  await assert.rejects(readRecoveryAnchorStartupSession(session), safe);
+  assert.equal(touched, 0);
+  assert.equal(closed, 1);
+  assert.throws(() => session.repository.read(), safe);
 });
