@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：523完整核验保留coverage失败；启动引用快照事务内认证复用
+
+固定523d9e8正式40643443063十二作业全部success，十份业务完整日志逐份核对精确source/plan/build以及prepared_only后的hosted_network_finished、TLS/隔离/ownedTreeEmpty；source完整3824274字符。普通40643442917为七成功、coverage失败，完整失败日志已读，不能用正式绿色覆盖。四项五秒ready失败均尚未进入目标advance：两项启动ready耗3567/4084ms，另一项最后engine_anchor_validate_finished为2502ms；uncertain样本另见engine执行2236ms，未确认唯一底层原因。第五项四根32MiB私有历史在102357ms报storage_unavailable，旧回执没有失败阶段，不能据此断言是解密或DPAPI根因。额外I/O40643442935通过，四份覆盖I/O及独立I/O共五份摘要经原parseSummary核验；仍全部fiveSecondQualified=false。三次原完整50项持久时序组全部通过，18个持久发布样本731–1766ms，只授该有限范围。见context-recovery-evidence/523d9e8-ci-and-short-scopes.json。
+
+Windows SSH已恢复，沿用同一admitted任务，未重启。固定523独立短测全部自然退出0：默认DPAPI/OS锚点同目录两次开闭ready2267/1575ms，容量/时钟28/28、原生中断20/20、原客户端+原生HTTP40/40，零fail/skip；后两组各保留原120000ms父门，实际94923/89338ms。任务Ready/result0、所属Node已退出。原source准备辅助脚本缺失execFileSync导入的失败仍保留，后续只修辅助准入并保持原提交与canonical支持文件，不把它算产品失败重试。相同9c原生二进制/343原生源码树及Node摘要已核对；并非单变量性能对照，不能将所有改善归于启动重叠。
+
+本批产品修复确认同一次启动SQL事务中，beforeStartup已完整认证的引用manifest会被prune再次解密/解析。只在同一writer lock内保存小型完整密文/AAD及载荷清单哈希，精确相同才复用；不留原文、不同事务或COMMIT后的证明。变化则重新认证或拒绝，过期清理仍走原独立认证与删除路径，第五根仍在删除前被拒绝且完整回滚。后续独立快照不采集复用证明，仍每次重新认证。新增九项边界均通过；Mac完整blobs为90/91，唯一默认原生worker失败在修改前也出现，未跳过或改fallback来制造绿色，须Windows验证。关联八文件175通过/零失败/两项既有平台跳过；1734语法、Lint零错误/五既有警告、变更格式及CI/release治理通过。见context-recovery-evidence/startup-reference-snapshot-reuse.json。
+
+同时为原32MiB固定用例补闭集失败阶段和原存储失败标签，保留原负载、180秒及各原生操作门，避免下一次再只留下泛化异常。这不是已确认修好523第五项，也未授本批Windows/五秒整体资格。下一步固定本批源码做新目录Windows完整blobs/root-state及原短测门，再核对该批完整CI。旧6646失败现场/任务、E旧实例和日常配置保持；新24h未启动、真实模型0、额度未写。最新安装版、本机两端、真实provider、24h/到期重开及最大容量等缺口继续保留。
+
+
 ## 2026-10-28：原生锚点进程启动提前重叠，真实请求与持久边界不变
 
 固定6a69491普通40639948188八作业、正式40639942626十二作业全部终态success。普通coverage完整3721913字符、正式source3815252字符与十份业务完整日志已读，逐份核对精确source/plan/build及prepared_only后实际hosted_network_finished、TLS/隔离/ownedTreeEmpty。四份I/O回执经原parseSummary验证，普通proxy新graceful窗口实际执行；所有fiveSecondQualified仍false。不能用此绿色覆盖750/970历史失败或本机失败，也不转授本批新实现。证据见context-recovery-evidence/6a69491-complete-ci.json。

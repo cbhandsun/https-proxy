@@ -104,11 +104,12 @@ function fixture(afterWrite = () => {}, rootScope) {
   const database = new DatabaseSync(':memory:');
   const key = randomBytes(32).toString('base64');
   let time = 100;
-  const open = () =>
+  const open = (extra = {}) =>
     createRecoverySqliteStore({
       database: recoverySqliteFaults(database, afterWrite),
       dataKey: key,
       now: () => time,
+      ...extra,
     });
   let store = open();
   const cipher = createStorageCipher(key);
@@ -142,9 +143,9 @@ function fixture(afterWrite = () => {}, rootScope) {
     load: (target = scope) => store.execute({ operation: 'load', scope: target }),
     row: () => database.prepare('SELECT * FROM recovery_state WHERE scope=?').get(scope),
     version: () => database.prepare('PRAGMA user_version').get().user_version,
-    reopen() {
+    reopen(extra) {
       store.close();
-      store = open();
+      store = open(extra);
     },
     time(value) {
       time = value;
@@ -3477,6 +3478,218 @@ test('fresh reference quota still rejects the fifth live root and rolls back its
       f.execute({ ...stateRequest(f, reference, [], 1), scope: rows[0].scope }).revision,
       2
     );
+  } finally {
+    f.close();
+  }
+});
+
+test('startup snapshot and pruning authenticate unchanged reference manifests once under the same SQL lock', (t) => {
+  const f = fixture();
+  try {
+    const state = checkpoint(),
+      reference = referenceStateFromCheckpoint(state);
+    f.execute(stateRequest(f, reference, checkpointPayloads(state)));
+    let manifests = 0,
+      payloads = 0;
+    const decode = TextDecoder.prototype.decode;
+    t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+      const text = Reflect.apply(decode, this, args);
+      const value = JSON.parse(text);
+      if (value.kind === 'recovery-referenced-checkpoint') manifests++;
+      if (value.version === 1 && typeof value.sourceId === 'string') payloads++;
+      return text;
+    });
+    const expectedPayloads = state.root.ledger.sources.length + state.stagedSources.length;
+    let inventoryReads = 0;
+    const prepare = f.database.prepare.bind(f.database);
+    t.mock.method(f.database, 'prepare', (sql) => {
+      if (sql === 'SELECT blob_id FROM recovery_blob WHERE scope=? LIMIT 513') inventoryReads++;
+      return prepare(sql);
+    });
+    f.reopen({ beforeStartup() {} });
+    assert.equal(
+      manifests,
+      1,
+      'startup pruning cannot decrypt its unchanged authenticated manifest twice'
+    );
+    assert.equal(payloads, expectedPayloads);
+    const readsBeforeSnapshot = inventoryReads;
+    f.snapshot();
+    assert.equal(inventoryReads, readsBeforeSnapshot, 'later snapshots collect no startup proof');
+    assert.equal(manifests, 2, 'post-COMMIT snapshot must authenticate independently');
+    assert.equal(payloads, expectedPayloads * 2);
+    f.reopen({ beforeStartup() {} });
+    assert.equal(manifests, 3, 'another startup never inherits proof');
+  } finally {
+    f.close();
+  }
+});
+
+for (const mode of [
+  'new-nonce',
+  'corrupt-envelope',
+  'changed-aad',
+  'changed-blob',
+  'missing-blob',
+  'extra-inventory',
+]) {
+  test('startup snapshot proof cannot admit changed SQL state: ' + mode, (t) => {
+    const f = fixture();
+    try {
+      const state = checkpoint(),
+        reference = referenceStateFromCheckpoint(state);
+      f.execute(stateRequest(f, reference, checkpointPayloads(state)));
+      const original = f.row();
+      const beforeRows = f.database.prepare('SELECT * FROM recovery_blob ORDER BY blob_id').all();
+      const resealed = f.cipher.seal(
+        f.context(original),
+        f.cipher.open(f.context(original), original.envelope)
+      );
+      let manifests = 0;
+      const decode = TextDecoder.prototype.decode;
+      t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+        const text = Reflect.apply(decode, this, args);
+        if (JSON.parse(text).kind === 'recovery-referenced-checkpoint') manifests++;
+        return text;
+      });
+      const mutate = () => {
+        if (mode === 'new-nonce' || mode === 'corrupt-envelope') {
+          const bytes = Buffer.from(resealed);
+          if (mode === 'corrupt-envelope') bytes[bytes.length - 1] ^= 1;
+          f.database
+            .prepare('UPDATE recovery_state SET envelope=? WHERE scope=?')
+            .run(bytes, f.scope);
+        } else if (mode === 'changed-aad')
+          f.database
+            .prepare('UPDATE recovery_state SET revision=revision+1 WHERE scope=?')
+            .run(f.scope);
+        else if (mode === 'changed-blob') {
+          const bytes = Buffer.from(beforeRows[0].envelope);
+          bytes[bytes.length - 1] ^= 1;
+          f.database
+            .prepare('UPDATE recovery_blob SET envelope=? WHERE scope=? AND blob_id=?')
+            .run(bytes, f.scope, beforeRows[0].blob_id);
+        } else if (mode === 'missing-blob')
+          f.database.prepare('DELETE FROM recovery_blob WHERE scope=?').run(f.scope);
+        else {
+          const b = beforeRows[0];
+          for (let i = 0; i < 512; i++)
+            f.database
+              .prepare('INSERT INTO recovery_blob VALUES(?,?,?,?,?)')
+              .run(f.scope, sha('extra-' + i), b.created_at, b.expires_at, b.envelope);
+        }
+      };
+      if (mode === 'new-nonce') {
+        f.reopen({ beforeStartup: mutate });
+        assert.equal(manifests, 2, 'changed ciphertext requires fresh authentication');
+        assert.equal(f.load().revision, 1);
+      } else {
+        assert.throws(() => f.reopen({ beforeStartup: mutate }), unavailable);
+        assert.deepEqual(f.row(), original);
+        assert.deepEqual(
+          f.database.prepare('SELECT * FROM recovery_blob ORDER BY blob_id').all(),
+          beforeRows
+        );
+        f.reopen({ beforeStartup() {} });
+        assert.equal(f.snapshot().scopes.length, 1);
+      }
+    } finally {
+      f.close();
+    }
+  });
+}
+
+test('startup proof never skips the original expired-root authentication and deletion path', (t) => {
+  const f = fixture();
+  try {
+    const state = checkpoint(),
+      reference = referenceStateFromCheckpoint(state);
+    f.execute(stateRequest(f, reference, checkpointPayloads(state)));
+    f.time(state.root.expiresAt);
+    let manifests = 0;
+    const decode = TextDecoder.prototype.decode;
+    t.mock.method(TextDecoder.prototype, 'decode', function (...args) {
+      const text = Reflect.apply(decode, this, args);
+      if (JSON.parse(text).kind === 'recovery-referenced-checkpoint') manifests++;
+      return text;
+    });
+    f.reopen({ beforeStartup() {} });
+    assert.equal(manifests, 2, 'expired rows retain the original independent cleanup validation');
+    assert.equal(f.database.prepare('SELECT count(*) AS count FROM recovery_state').get().count, 0);
+    assert.equal(f.database.prepare('SELECT count(*) AS count FROM recovery_blob').get().count, 0);
+    assert.deepEqual(f.snapshot().scopes, []);
+  } finally {
+    f.close();
+  }
+});
+
+test('startup proof retains the four-root quota before admitting a valid fifth scope', () => {
+  const f = fixture();
+  try {
+    const state = checkpoint(),
+      reference = referenceStateFromCheckpoint(state);
+    for (let i = 0; i < 4; i++)
+      f.execute({
+        ...stateRequest(f, reference, checkpointPayloads(state)),
+        scope: sha('quota-' + i),
+      });
+    const rows = f.database.prepare('SELECT * FROM recovery_state ORDER BY scope').all();
+    const blobs = f.database.prepare('SELECT * FROM recovery_blob ORDER BY scope,blob_id').all();
+    const base = rows[0],
+      target = sha('quota-fifth');
+    const nextRow = { ...base, scope: target };
+    nextRow.envelope = f.cipher.seal(
+      f.context(nextRow),
+      f.cipher.open(f.context(base), base.envelope)
+    );
+    const storeId = f.database.prepare('SELECT store_id FROM recovery_header').get().store_id;
+    const blobContext = (row) => ({
+      storeId,
+      scope: sha('hpm/recovery/blob/aad/v1\0' + row.scope + '\0' + row.blob_id),
+      revision: 1,
+      createdAt: row.created_at,
+      expiresAt: row.expires_at,
+      kind: 'state',
+      version: 1,
+    });
+    const copied = blobs
+      .filter((row) => row.scope === base.scope)
+      .map((row) => {
+        const next = { ...row, scope: target };
+        return {
+          ...next,
+          envelope: f.cipher.seal(blobContext(next), f.cipher.open(blobContext(row), row.envelope)),
+        };
+      });
+    assert.throws(
+      () =>
+        f.reopen({
+          beforeStartup() {
+            f.database
+              .prepare('INSERT INTO recovery_state VALUES(?,?,?,?,?,?)')
+              .run(
+                target,
+                nextRow.revision,
+                nextRow.created_at,
+                nextRow.expires_at,
+                nextRow.kind,
+                nextRow.envelope
+              );
+            for (const row of copied)
+              f.database
+                .prepare('INSERT INTO recovery_blob VALUES(?,?,?,?,?)')
+                .run(row.scope, row.blob_id, row.created_at, row.expires_at, row.envelope);
+          },
+        }),
+      unavailable
+    );
+    assert.deepEqual(f.database.prepare('SELECT * FROM recovery_state ORDER BY scope').all(), rows);
+    assert.deepEqual(
+      f.database.prepare('SELECT * FROM recovery_blob ORDER BY scope,blob_id').all(),
+      blobs
+    );
+    f.reopen({ beforeStartup() {} });
+    assert.equal(f.snapshot().scopes.length, 4);
   } finally {
     f.close();
   }

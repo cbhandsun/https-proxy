@@ -39,6 +39,7 @@ const {
   projectPublishedRecoveryReference,
 } = require('../lib/proxy/context-recovery-restore-projection');
 const { openContextRecoveryStorage } = require('../lib/proxy/context-recovery-storage');
+const { parseStorageFailureDiagnostic } = require('../lib/proxy/context-recovery-storage-failure');
 const {
   LIST_EVIDENCE_TOOL: LIST,
   READ_EVIDENCE_TOOL: READ,
@@ -953,14 +954,28 @@ test(
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-full-private-worker-'));
     const fixtures = [];
     let storage, restored;
+    let stage = 'fixture-padding',
+      failure;
     const pilot = fullPrivateSessionFixture({ count: 2 });
     const padding = pilot.state.history.entries.map((entry) => 16384 - entry.bytes);
     pilot.sessions.close();
     try {
-      const options = { directory: path.join(directory, 'context') };
+      const options = {
+        directory: path.join(directory, 'context'),
+        onFailure(value) {
+          const { operation, phase, cleanupFailed } = value;
+          if (
+            ['open', 'save-reference-state', 'load', 'close', 'sweep'].includes(operation) &&
+            typeof cleanupFailed === 'boolean'
+          )
+            failure = { operation, ...parseStorageFailureDiagnostic({ phase, cleanupFailed }) };
+        },
+      };
+      stage = 'initial-open';
       storage = await openContextRecoveryStorage(options);
       t.signal.throwIfAborted();
       for (let index = 0; index < 4; index++) {
+        stage = 'build-root-' + (index + 1);
         const fixture = fullPrivateSessionFixture({
           padding,
           target: 'capacity-target-' + index,
@@ -977,6 +992,7 @@ test(
         const reference = referenceStateFromCheckpoint(checkpoint);
         fixture.scope = sha('hpm/recovery-root/v1\0' + state.rootId);
         fixture.digest = checkpoint.digest;
+        stage = 'save-root-' + (index + 1);
         assert.equal(
           (
             await storage.execute({
@@ -993,13 +1009,16 @@ test(
         t.signal.throwIfAborted();
         fixture.sessions.close();
       }
+      stage = 'initial-close';
       await storage.close();
       storage = undefined;
       t.signal.throwIfAborted();
+      stage = 'reopen';
       storage = await openContextRecoveryStorage(options);
       t.signal.throwIfAborted();
       const roots = [];
       for (const fixture of fixtures) {
+        stage = 'load-root-' + (roots.length + 1);
         const loaded = await storage.execute({ operation: 'load', scope: fixture.scope });
         t.signal.throwIfAborted();
         assert.equal(loaded.state.digest, fixture.digest);
@@ -1014,6 +1033,7 @@ test(
         );
         roots.push({ binding: fixture.requests[0], state: loaded.state.root });
       }
+      stage = 'restore-sessions';
       restored = restoreContextRecoverySessions({ now: Date.now }, roots);
       for (const fixture of fixtures) {
         const state = exportContextRecoveryRoot(restored, fixture.state.rootId);
@@ -1024,6 +1044,17 @@ test(
           copy(fixture.state.history)
         );
       }
+    } catch (error) {
+      // Closed labels only: keep the original failure and every original bound.
+      t.diagnostic(
+        JSON.stringify({
+          scope: 'full_private_worker_failure',
+          stage,
+          fixtures: fixtures.length,
+          storageFailure: failure ?? null,
+        })
+      );
+      throw error;
     } finally {
       for (const fixture of fixtures) fixture.sessions.close();
       restored?.close();
