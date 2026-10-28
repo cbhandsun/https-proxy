@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1afe7b310ea575ed00d0b68a7addc93a4916e6fe",
+  "taskName": "HPM-independent-short-1afe7b3-a6fa74-cpu",
+  "scope": "one separately instrumented original top-level Chat WBIPC case; original forty-case run remains failed",
+  "selectedOriginalTest": "actual core chat WBIPC recovery has exclusive ownership and live credential revocation",
+  "originalLongPayloadCharacters": 600000,
+  "testSourceModified": false,
+  "parentDeadlineMs": 120000,
+  "requestDeadlineMs": 5000,
+  "profilingPerturbed": true,
+  "qualification": false,
+  "originalFailurePreserved": true,
+  "taskResult": 0,
+  "selectedTestPassed": 1,
+  "selectedTestFailed": 0,
+  "selectedTestSkipped": 0,
+  "naturalJobEmpty": true,
+  "elapsedMs": 18710,
+  "selectedBodyEndObservations": [
+    {
+      "mode": "long-json",
+      "phase": "body_end",
+      "turn": 0,
+      "elapsedMs": 607
+    },
+    {
+      "mode": "long-json",
+      "phase": "body_end",
+      "turn": 1,
+      "elapsedMs": 702
+    },
+    {
+      "mode": "long-persistent",
+      "phase": "body_end",
+      "turn": 0,
+      "elapsedMs": 1992
+    },
+    {
+      "mode": "long-persistent",
+      "phase": "body_end",
+      "turn": 1,
+      "elapsedMs": 2356
+    }
+  ],
+  "profileSummary": {
+    "event": "isolated_chat_profile_summary",
+    "profiles": [
+      {
+        "profileBytes": 2908169,
+        "samples": 10846,
+        "sourceSamples": 5695,
+        "profileDurationMs": 17628,
+        "sampledElapsedWeightMs": 17628,
+        "sourceElapsedWeightMs": 9276,
+        "top": [
+          {
+            "file": "lib/proxy/context-recovery-auth.js",
+            "line": 13,
+            "function": "readCredentialBytes",
+            "samples": 753,
+            "sampledElapsedWeightMs": 1239
+          },
+          {
+            "file": "lib/proxy/context-compaction-envelope.js",
+            "line": 29,
+            "function": "clone",
+            "samples": 410,
+            "sampledElapsedWeightMs": 689
+          },
+          {
+            "file": "lib/proxy/context-recovery-state-encoder.js",
+            "line": 37,
+            "function": "stringBytes",
+            "samples": 285,
+            "sampledElapsedWeightMs": 496
+          },
+          {
+            "file": "lib/proxy/context-compaction-byte-budget.js",
+            "line": 15,
+            "function": "string",
+            "samples": 291,
+            "sampledElapsedWeightMs": 467
+          },
+          {
+            "file": "lib/proxy/context-recovery-fingerprint-value.js",
+            "line": 13,
+            "function": "append",
+            "samples": 258,
+            "sampledElapsedWeightMs": 413
+          },
+          {
+            "file": "test/client-context-target.test.js",
+            "line": 2393,
+            "function": "(anonymous)",
+            "samples": 193,
+            "sampledElapsedWeightMs": 339
+          },
+          {
+            "file": "lib/proxy/core-request-handler.js",
+            "line": 1,
+            "function": "(anonymous)",
+            "samples": 166,
+            "sampledElapsedWeightMs": 271
+          },
+          {
+            "file": "lib/proxy/logger.js",
+            "line": 1,
+            "function": "(anonymous)",
+            "samples": 137,
+            "sampledElapsedWeightMs": 221
+          },
+          {
+            "file": "lib/proxy/workbuddy-tool-history.js",
+            "line": 85,
+            "function": "fingerprint",
+            "samples": 124,
+            "sampledElapsedWeightMs": 198
+          },
+          {
+            "file": "lib/proxy/context-evidence-utf8.js",
+            "line": 6,
+            "function": "isWellFormedEvidenceText",
+            "samples": 123,
+            "sampledElapsedWeightMs": 192
+          },
+          {
+            "file": "lib/proxy/context-recovery-wbipc-window.js",
+            "line": 35,
+            "function": "fits",
+            "samples": 111,
+            "sampledElapsedWeightMs": 177
+          },
+          {
+            "file": "lib/proxy/context-public-window.js",
+            "line": 33,
+            "function": "encodeString",
+            "samples": 92,
+            "sampledElapsedWeightMs": 150
+          },
+          {
+            "file": "lib/proxy/context-recovery-fingerprint-value.js",
+            "line": 29,
+            "function": "(anonymous)",
+            "samples": 85,
+            "sampledElapsedWeightMs": 137
+          },
+          {
+            "file": "lib/proxy/context-recovery-state-encoder.js",
+            "line": 98,
+            "function": "clone",
+            "samples": 85,
+            "sampledElapsedWeightMs": 136
+          },
+          {
+            "file": "test/client-context-target.test.js",
+            "line": 1,
+            "function": "(anonymous)",
+            "samples": 74,
+            "sampledElapsedWeightMs": 121
+          },
+          {
+            "file": "lib/proxy/protocol-openai.js",
+            "line": 1,
+            "function": "(anonymous)",
+            "samples": 65,
+            "sampledElapsedWeightMs": 106
+          },
+          {
+            "file": "lib/proxy/context-recovery-wbipc-window.js",
+            "line": 43,
+            "function": "(anonymous)",
+            "samples": 63,
+            "sampledElapsedWeightMs": 100
+          },
+          {
+            "file": "test/client-context-target.test.js",
+            "line": 2529,
+            "function": "(anonymous)",
+            "samples": 62,
+            "sampledElapsedWeightMs": 99
+          }
+        ]
+      }
+    ],
+    "elapsedWeightsAreCpuTime": false,
+    "rawProfilesReturned": false,
+    "qualification": false,
+    "realModelRequests": 0
+  },
+  "rawProfilesUploaded": false,
+  "profileWeightsProvePerRequestCpuTime": false,
+  "profileWeightsEstablishUniqueCause": false,
+  "noOriginalCredentialGuardRemoved": true,
+  "noCrossRequestPlaintextCacheAdded": true,
+  "realModelRequests": 0
+}

@@ -1,5 +1,17 @@
 # 上下文恢复换机交接
 
+## 2026-10-28：9e与1afe完整CI通过；本机原40项仍失败，隔离采样不覆盖失败
+
+固定9e26dfc普通40607195765八作业、正式40607195689六作业全部success，事务内头认证复用已通过相同源码Windows门。固定1afe7b3普通40607922332八作业、正式40607922322六作业也全部success；已读取正式finished/job122559607051完整日志，核对源码SHA、plan/build摘要及执行后hosted_network_finished、ownedTreeEmpty回执，不能只把prepare-only当执行。该正式范围仍是原N08、N09十场景及独立sending/finished两场景，不授其他daemon内部矩阵或整体验收。额外I/O40607922323/job122551960491仍failure：20项原生发布用例通过后，after-hook因coverage_io_capture_recorder_exit拒绝回执（188492ms）；没有有效录制资格，尚未确认录制器根因。本次该日志未见新增五秒请求失败，不能由此覆盖所有旧五秒失败。证据见context-recovery-evidence/1afe7b3-complete-ci-scopes.json。
+
+Windows使用新目录封存1afe的2024份提交源码，Node/native/原生树及锁文件摘要核对。首次冷npm ci在原120000ms父限失败，未进入产品测试，未观测正常退出；181次已完成fetch中最大60306ms，尚无唯一底层原因，失败目录/任务保持。随后按已授权的兼容环境复用另起新目录：现有7456构建环境同一锁摘要、16个直接依赖精确版本全部匹配，不修改它、不升级依赖；容量回归28/28通过，原Job自然为空。其后原client-context-target+native-graceful-http四十项组触及原120000ms父限，task Ready/result126、未取得子进程正常退出，清理未失败；只有28条完成ok及一条已观察not-ok，不能冒充四十项通过。首次活动日志观察失败后改共享读写方式读取同一handle，未重启任务。证据见context-recovery-evidence/1afe7b3-local-short-failure.json。
+
+首个失败是Chat WBIPC的long-json第二轮request_failed，客户端观察5477ms、requests8/handshakes8/roots1，await pending处ERR_TEST_FAILURE；异常类别与唯一根因仍未证实。该Chat用例尚未进入long-persistent，不能归因SQLite COMMIT，也不删原五秒门。Responses持久两轮正文另观察3812/2825ms，仅为该次有限样本。原测试、负载、正确性、所有版本/原期限与认证断言均未修改；没有重跑失败四十项组制造绿色。失败、临时源码、数据和任务均保留，旧长测根与旧E实例不动，确认三份新独立任务根下无所属Node/native残留。
+
+另一次明确标记diagnostic-only的隔离采样，只选原Chat WBIPC顶层用例，所有内部模式、600000字符负载和原5000/120000ms门不改。该单用例在采样下通过，父Job自然为空、18710ms；这不是原40项通过，更不证明稳定性或修复。V8样本权重主要线索包括认证文件读取、规范化、状态字符串编码及指纹计算；权重是采样经过时间，不能当精确CPU时间、单次请求耗时或因果归属。原始profile/日志未上传，只提交有限源码函数与计数，见context-recovery-evidence/1afe7b3-isolated-chat-profile.json。认证读取不删、不加跨请求原文缓存；下一步把这些共享阶段按单次请求关联，再改具体瓶颈。
+
+本批为实际Windows核验与失败证据入库，不声称修改了产品五秒路径。旧6646长测仍是85分钟最后有效节拍、90分钟advance失败，未重启、新24h未启动；源码干净与摘要只能证明退出后状态，不追授旧失败根因。现存E盘旧管理器只读确认仍运行，用户未切换；本机最新安装两端、额度核对后的真实provider、剩余daemon COMMIT/uncertain/withdrawn、24h/到期双重开、最大容量和最终受控自用仍未完成。本批真实模型0、账未写、日常配置未改，原全部门禁与失败记录保持。
+
 ## 2026-10-28：固定6646长测在90分钟advance失败，已确认终止并保留现场
 
 原同一长测于UTC00:11:30以exit1退出，任务Ready/LastTaskResult1、所属进程已退出，失败锁存和终止均已确认。最后实际有效节拍为85分钟/18个，90分钟advance（commandIndex58、scheduledMs5400000）失败，随后close（index59）也有清理失败标记。没有24h通过或到期重开证据，不能把进程经过约90分钟当作有效24h。退出后只读核对未发现该冻结根下的Node/native helper残留，未启动/结束任何进程；源码、Node和native摘要仍精确匹配，源码干净、577份范围源码。原目录、数据库、任务和冻结脚本未修改，也未重启或自动重试。安全证据见context-recovery-evidence/6646-native-day-90min-failure.json。
