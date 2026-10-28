@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：withdrawn/uncertain两组真实Windows业务诊断通过，finished同批失败保留
+
+固定c5058da独立诊断40619749468已终态：n08/n09/sending/withdrawn/uncertain五组success，finished failure。新withdrawn/job122590631025及uncertain/job122590630957完整日志已读，精确source/plan/build摘要和执行后hosted_network_finished、TLS/非loopback隔离/ownedTreeEmpty均核对。每组实际执行默认持久daemon的kill及清理后release两控制，包括真实客户端断开、宿主同请求关闭见证、精确终态+2/+3、原budget/expiry、同目录新PID恢复原文与工具不重放；不只是prepared_only或纯模拟。正式40619749502/source122590630670仍运行，因此这是实际独立业务证据，尚非正式完整资格；full N09和五秒稳定性仍false。有限证据见context-recovery-evidence/c5058da-terminal-hosted-diagnostic.json。
+
+同源finished/job122590631234完整失败日志已读：childExit184、casePhase161（第二个release控制），没有hosted_network_finished或ownedTreeEmpty最终回执。184只表明最后记录了readonly snapshot的收尾观察点，随后任意未另标记步骤也可能失败；不能反推唯一根因、目标已命中、750ms已超时或清理泄漏。未重跑、延长期限、跳过该组或借新两组通过覆盖失败。fb1普通七个非coverage作业success，coverage、正式source及额外I/O仍在各自原作业运行；不重复启动。
+
+在用户已授权的Windows独立短测环境新增一次有限空库开库诊断，使用原Job分配/自然进程树清理、真实worker/default owner/DPAPI/OS锚点和显式5000ms控制期限，无真实模型。588份提交库文件及必要支持文件匹配当前c505库源码（原1afe封存库代码未变），Node/native摘要精确核对；安全诊断脚本先确认实际模块函数及progress模块唯一导出createStorageStartupProgress，未把非导出的STORAGE_STARTUP_PHASES当可迭代对象。实际开库2614.156ms、空catalog56.811ms，35个有限阶段，Job3754ms自然空、关闭无失败。密钥文件open阶段0ms/flush5ms，而该机器ACL/所有权/原生启动阶段为数百毫秒；不能用这个跨机器单样本归因托管runner旧长尾或授五秒恢复稳定性。证据见context-recovery-evidence/c5058da-local-open-diagnostic.json。数据库/包装密钥/原始日志保留本机，未上传。
+
+第一份私有诊断准备在产品调用前失败，未创建新根/启动Node。检查发现本机588文件有54份工作区字节与Git blob换行不同；改为提交blob身份后完成一次实际诊断。首份错误只保留为准备失败，未追授为产品根因；不把第二次有限开库当作旧40项或持久HTTP失败已修复。正式门、原所有失败与期限、FULL/DELETE和认证均保持。
+
+本批推进了真实终态业务矩阵，仍需处理同源finished失败及原生开库/COMMIT长尾，等待同一正式完整CI；之后继续安装版两端和受控自用等原交付缺口。旧6646冻结现场/数据/任务未动、新24h未启动、旧E实例未切换；真实模型0、额度未写、日常配置未改。
+
+
 ## 2026-10-28：取消终态接入固定Windows两组入口，实际执行结果待核
 
 新增n09-withdrawn-ack和n09-uncertain-ack独立业务组；原n08/n09/sending/finished四组保留。每组使用两个新adapter、原120秒Job/750ms见证/5秒持有门、默认持久owner及同目录重开。withdrawn只允许prepared前置，uncertain必须prepared与sending前置，最终版本精确+2/+3。客户端真实关闭和服务端同请求取消见证均须先满足，随后验证终态持久写入前ACK暂停；释放控制额外等待原清理完成后最终失败outcome。两组均不得宣称公开传输成功或正常publication完成。

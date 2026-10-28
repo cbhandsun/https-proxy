@@ -1,0 +1,247 @@
+{
+  "sourceHead": "1afe7b310ea575ed00d0b68a7addc93a4916e6fe",
+  "comparedCurrentHead": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+  "committedLibraryAndSupportingFilesPinned": 588,
+  "productLibraryMatchesCurrentHead": true,
+  "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+  "nativeSha256": "0356dfca64c77622a7699f765ea32577f1aa2613ff896db23cff17c41d490937",
+  "diagnosticSha256": "6ecefaddc81575b8003c30cd5a11bbbfee69b1fc3eb391865ef4027d42faeeba",
+  "initialSetupFailure": {
+    "beforeProductInvocation": true,
+    "noOwnedRootCreated": true,
+    "causeConfirmed": false,
+    "incorrectWorkingTreeBytePinsCorrectedToGitBlobPins": true,
+    "localByteDifferencesFromCommittedBlobs": 54,
+    "failedAttemptPreserved": true
+  },
+  "events": [
+    {
+      "event": "open_diagnostic_job_finished",
+      "exitCode": 0,
+      "jobNaturallyEmpty": true,
+      "elapsedMs": 3754,
+      "sourceFiles": 588,
+      "productLibraryMatchesCurrentHead": true,
+      "sourceHead": "1afe7b310ea575ed00d0b68a7addc93a4916e6fe",
+      "comparedHead": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+      "modelRequests": 0,
+      "qualification": false
+    },
+    {
+      "event": "open_diagnostic_identity",
+      "defaultOwner": true,
+      "progressExportValidated": true,
+      "timeoutMs": 5000,
+      "qualification": false,
+      "modelRequests": 0
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "worker_started",
+      "elapsedMs": 339
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "paths_started",
+      "elapsedMs": 480
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "directory_acl_started",
+      "elapsedMs": 493
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "directory_acl_finished",
+      "elapsedMs": 853
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "paths_ready",
+      "elapsedMs": 855
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "ownership_started",
+      "elapsedMs": 855
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "ownership_acquired",
+      "elapsedMs": 1073
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_protect_started",
+      "elapsedMs": 1086
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_protect_finished",
+      "elapsedMs": 1301
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_write_started",
+      "elapsedMs": 1307
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_file_open_started",
+      "elapsedMs": 1315
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_file_opened",
+      "elapsedMs": 1315
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_acl_started",
+      "elapsedMs": 1316
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_acl_finished",
+      "elapsedMs": 1520
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_file_write_started",
+      "elapsedMs": 1521
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_file_write_finished",
+      "elapsedMs": 1521
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_file_flush_started",
+      "elapsedMs": 1521
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_file_flush_finished",
+      "elapsedMs": 1526
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_file_closed",
+      "elapsedMs": 1527
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_file_readback_started",
+      "elapsedMs": 1527
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_file_readback_finished",
+      "elapsedMs": 1543
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "key_write_finished",
+      "elapsedMs": 1543
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "anchor_open_started",
+      "elapsedMs": 1552
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "anchor_opened",
+      "elapsedMs": 1814
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "database_prepare_started",
+      "elapsedMs": 1822
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "database_prepared",
+      "elapsedMs": 2064
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "database_opened",
+      "elapsedMs": 2065
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "engine_prepare_started",
+      "elapsedMs": 2079
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "engine_anchor_validate_started",
+      "elapsedMs": 2096
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "engine_anchor_validate_finished",
+      "elapsedMs": 2310
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "engine_prepared",
+      "elapsedMs": 2337
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "anchor_persist_started",
+      "elapsedMs": 2337
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "anchor_persist_finished",
+      "elapsedMs": 2604
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "engine_ready",
+      "elapsedMs": 2609
+    },
+    {
+      "event": "open_diagnostic_phase",
+      "phase": "ready",
+      "elapsedMs": 2610
+    },
+    {
+      "event": "open_diagnostic_completed",
+      "openMs": 2614.156,
+      "catalogMs": 56.811,
+      "elapsedMs": 2925,
+      "processCpuMicroseconds": {
+        "user": 516000,
+        "system": 687000
+      },
+      "cpuScope": "node-process-including-worker-not-native-child",
+      "phases": 35,
+      "qualification": false,
+      "fiveSecondStable": false,
+      "modelRequests": 0
+    },
+    {
+      "event": "open_diagnostic_cleanup",
+      "closeFailed": false,
+      "qualification": false,
+      "modelRequests": 0
+    }
+  ],
+  "scope": {
+    "oneIsolatedEmptyStoreStartup": true,
+    "realWorkerAndDefaultOwner": true,
+    "nativeDpapiAndOsAnchor": true,
+    "controlledTimeoutMs": 5000,
+    "requestsToModels": 0,
+    "fiveSecondRecoveryStability": false,
+    "capacity": false,
+    "sameDirectoryRecovery": false,
+    "longRun": false,
+    "earlierFailuresRetained": true
+  }
+}
