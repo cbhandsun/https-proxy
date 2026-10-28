@@ -4,7 +4,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { ChildProcess } = require('node:child_process');
 const { PassThrough } = require('node:stream');
-const { createRecoveryAnchorChannel } = require('../lib/proxy/context-recovery-anchor-channel');
+const {
+  createRecoveryAnchorChannel,
+  primeRecoveryAnchorChannel,
+} = require('../lib/proxy/context-recovery-anchor-channel');
 const {
   encodeRecoveryAnchorFrame,
   parseRecoveryAnchorReply,
@@ -519,4 +522,137 @@ test('lifetime pipe errors, unexpected data or early EOF close the actual owned 
     await assert.rejects(result, safe);
     assert.deepEqual(f.signals, ['SIGKILL']);
   }
+});
+
+test('primed readiness is not an operation ACK and leaves the original first sequence and request deadline', async (t) => {
+  const f = fixture(t, {}, false);
+  assert.equal(primeRecoveryAnchorChannel(f.channel), true);
+  assert.equal(primeRecoveryAnchorChannel(f.channel), true);
+  assert.equal(f.launches(), 1);
+  assert.equal(f.timers.size, 1);
+  assert.equal(f.frames.length, 0);
+  f.child.stdout.write(Buffer.alloc(3));
+  f.child.stdout.write(Buffer.alloc(5));
+  assert.equal(f.timers.size, 0);
+  assert.equal(f.frames.length, 0);
+  f.setTime(9999);
+  const result = f.execute();
+  assert.equal(f.frames.length, 1);
+  assert.equal(f.frames[0].readUInt32LE(0), 1);
+  assert.equal(f.timers.size, 1);
+  f.respond();
+  assert.equal(await result, reply);
+  assert.equal(f.timers.size, 0);
+  await f.channel.close();
+  assert.equal(f.launches(), 1);
+});
+
+for (const mode of ['nonzero', 'oversized', 'late-partial', 'unsolicited-after-ready']) {
+  test('primed channel rejects ' + mode + ' readiness without dispatch or respawn', async (t) => {
+    const f = fixture(t, {}, false);
+    primeRecoveryAnchorChannel(f.channel);
+    if (mode === 'nonzero') f.child.stdout.write(Buffer.from([1]));
+    if (mode === 'oversized') f.child.stdout.write(Buffer.alloc(9));
+    if (mode === 'late-partial') {
+      f.child.stdout.write(Buffer.alloc(4));
+      f.setTime(10000);
+      f.child.stdout.write(Buffer.alloc(4));
+    }
+    if (mode === 'unsolicited-after-ready') {
+      f.child.stdout.write(Buffer.alloc(8));
+      f.child.stdout.write(wire(1, reply));
+    }
+    await turn();
+    assert.deepEqual(f.signals, ['SIGKILL']);
+    assert.equal(f.frames.length, 0);
+    await assert.rejects(f.execute(), safe);
+    await f.channel.close();
+    assert.equal(f.launches(), 1);
+  });
+}
+
+test('repeated priming never resets the original ten second readiness deadline', async (t) => {
+  const f = fixture(t, {}, false);
+  primeRecoveryAnchorChannel(f.channel);
+  f.setTime(9999);
+  primeRecoveryAnchorChannel(f.channel);
+  assert.equal(f.timers.size, 1);
+  f.setTime(10000);
+  [...f.timers.values()][0]();
+  await turn();
+  assert.deepEqual(f.signals, ['SIGKILL']);
+  assert.equal(f.frames.length, 0);
+  assert.equal(f.timers.size, 0);
+  assert.throws(() => primeRecoveryAnchorChannel(f.channel), safe);
+  await f.channel.close();
+});
+
+test('synchronously expired priming cannot start a child after its deadline', async (t) => {
+  const f = fixture(
+    t,
+    {
+      scheduleTimer(callback) {
+        callback();
+        return 1;
+      },
+      cancelTimer() {},
+    },
+    false
+  );
+  assert.throws(() => primeRecoveryAnchorChannel(f.channel), safe);
+  assert.equal(f.launches(), 0);
+  assert.equal(f.frames.length, 0);
+  await f.channel.close();
+});
+
+for (const time of [-1, NaN, Infinity, Number.MAX_SAFE_INTEGER]) {
+  test('priming refuses invalid or extreme monotonic time ' + String(time), async (t) => {
+    const f = fixture(t, { monotonic: () => time }, false);
+    assert.throws(() => primeRecoveryAnchorChannel(f.channel), safe);
+    assert.equal(f.launches(), 0);
+    await f.channel.close();
+  });
+}
+
+test('forged priming channel capability has no getters or process side effects', () => {
+  let touched = 0;
+  const hostile = new Proxy(
+    {},
+    {
+      get() {
+        touched++;
+        throw Error();
+      },
+      ownKeys() {
+        touched++;
+        throw Error();
+      },
+    }
+  );
+  for (const value of [null, undefined, false, 0, '', {}, [], hostile])
+    assert.equal(primeRecoveryAnchorChannel(value), false);
+  assert.equal(touched, 0);
+});
+
+test('primed readiness timeout rejects a queued first request only after the owned child actually closes', async (t) => {
+  const f = fixture(t, {}, false);
+  primeRecoveryAnchorChannel(f.channel);
+  f.keepAlive();
+  const pending = f.execute();
+  let rejected = false;
+  const failed = assert.rejects(pending, safe).then(() => {
+    rejected = true;
+  });
+  assert.equal(f.timers.size, 2);
+  f.setTime(10000);
+  [...f.timers.values()][0]();
+  await turn();
+  assert.equal(rejected, false);
+  assert.deepEqual(f.signals, ['SIGKILL']);
+  assert.equal(f.frames.length, 0);
+  f.child.emit('close', null, 'SIGKILL');
+  await failed;
+  assert.equal(f.timers.size, 0);
+  await f.channel.close();
+  assert.equal(f.launches(), 1);
 });

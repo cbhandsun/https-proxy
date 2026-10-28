@@ -35,6 +35,7 @@ function fixture(t) {
     syncWrites = 0,
     failed = false;
   const startupPhases = [];
+  const channelStartup = [];
   let replyValue = (text) => text;
   let waitReply = async () => {},
     waitClose = async () => {};
@@ -62,6 +63,7 @@ function fixture(t) {
       },
       createChannel: () => {
         channels++;
+        channelStartup.push({ phase: startupPhases.at(-1), writes });
         return {
           async execute(text) {
             const reply = execute(text);
@@ -106,6 +108,7 @@ function fixture(t) {
     writes: () => writes,
     closes: () => closes,
     channels: () => channels,
+    channelStartup: () => [...channelStartup],
     syncWrites: () => syncWrites,
     startupPhases: () => [...startupPhases],
     corruptReply(mode) {
@@ -394,6 +397,39 @@ test('path replacement during startup ACK cannot return ready or release its wri
   cleanup.resolve();
   await rejected;
   fs.renameSync(moved, key);
+  const owner = await f.open();
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+});
+
+test('async owner launches the idle anchor transport before synchronous read and enrollment', async (t) => {
+  const f = fixture(t),
+    owner = await f.open();
+  assert.deepEqual(f.channelStartup(), [{ phase: 'anchor_open_started', writes: 0 }]);
+  assert.equal(f.syncWrites(), 1);
+  assert.equal(f.writes(), 2);
+  await owner.execute({ operation: 'inspect' });
+  assert.equal(f.channels(), 1);
+});
+
+test('synchronous startup rejection awaits the primed child before releasing the SQLite writer', async (t) => {
+  const f = fixture(t),
+    held = f.holdClose();
+  f.fail();
+  const pending = f.open();
+  assert.equal(types.isPromise(pending), true);
+  const rejected = assert.rejects(pending, safe);
+  await turn();
+  assert.equal(f.closes(), 1);
+  assert.equal(f.startupPhases().includes('engine_ready'), false);
+  const mutex = new DatabaseSync(path.join(f.directory, '.writer.sqlite'));
+  try {
+    assert.throws(() => mutex.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE'));
+  } finally {
+    mutex.close();
+  }
+  held.resolve();
+  await rejected;
+  f.restore();
   const owner = await f.open();
   assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
 });

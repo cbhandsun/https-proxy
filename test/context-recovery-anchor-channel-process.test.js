@@ -6,7 +6,10 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
-const { createRecoveryAnchorChannel } = require('../lib/proxy/context-recovery-anchor-channel');
+const {
+  createRecoveryAnchorChannel,
+  primeRecoveryAnchorChannel,
+} = require('../lib/proxy/context-recovery-anchor-channel');
 
 const request = JSON.stringify({ operation: 'read', slot: 'a'.repeat(64) });
 const reply = '{"ok":true,"revision":0,"value":null}';
@@ -176,4 +179,27 @@ test('channel and native stream pair under the current Windows registry backend,
   assert.equal(children.length, 1);
   assert.equal(closed.size, 1);
   await channel.close();
+});
+
+test('primed actual child can close before its first request without sending any frame or leaving a process', async (t) => {
+  const f = fixture(t, 'idle-empty');
+  assert.equal(primeRecoveryAnchorChannel(f.channel), true);
+  assert.equal(f.children.length, 1);
+  await f.channel.close();
+  assert.equal(f.children.length, 1);
+  assert.equal(f.closed.size, 1);
+  assert.equal(f.children[0].exitCode, 0);
+  await assert.rejects(f.channel.execute(request), safe);
+  assert.equal(f.children.length, 1);
+});
+
+test('primed actual process reaches readiness before the first command and keeps its original sequence', async (t) => {
+  const f = fixture(t, 'reply');
+  assert.equal(primeRecoveryAnchorChannel(f.channel), true);
+  assert.equal(f.children.length, 1);
+  await new Promise((resolve) => f.children[0].stdout.once('data', resolve));
+  assert.equal(await f.channel.execute(request), reply);
+  assert.equal(f.children.length, 1);
+  await f.channel.close();
+  assert.equal(f.closed.size, 1);
 });

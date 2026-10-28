@@ -3,7 +3,11 @@
 // Synthetic subprocess lifecycle fixture only. No configuration, network,
 // credential, storage directory or registry access.
 const mode = process.argv[2];
-if (!['reply', 'hang', 'stderr', 'partial', 'sequence', 'exit', 'idle-hang'].includes(mode))
+if (
+  !['reply', 'hang', 'stderr', 'partial', 'sequence', 'exit', 'idle-hang', 'idle-empty'].includes(
+    mode
+  )
+)
   process.exit(2);
 if (['hang', 'idle-hang'].includes(mode)) setInterval(() => {}, 1000);
 const lifetime = new (require('node:net').Socket)({ fd: 3, readable: true, writable: true });
@@ -16,6 +20,7 @@ process.stdin.on('end', () => {
 });
 let input = Buffer.alloc(0);
 process.stdin.on('data', (chunk) => {
+  if (mode === 'idle-empty') process.exit(2);
   input = Buffer.concat([input, chunk]);
   if (input.length > 131080) process.exit(2);
   if (input.length < 8) return;

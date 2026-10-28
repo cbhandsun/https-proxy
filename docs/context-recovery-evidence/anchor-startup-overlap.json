@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "baseSource": "6a69491e0213d940c270daeb3670891cf29d17a8",
+  "implementationBlobs": {
+    "lib/proxy/context-recovery-anchor-channel.js": "d3f8110443197aa2801c69fda97a6c3b6f0640d4",
+    "lib/proxy/context-recovery-anchor.js": "84cd675b3d4d768d85936fa17f48a568ba295bd8",
+    "lib/proxy/context-recovery-storage-owner.js": "2f044ddbe4b9f0529c827290adda6812bf61a73b"
+  },
+  "change": "Overlap owned native anchor process startup with existing synchronous initialization; never dispatch an anchor frame before admission",
+  "nativeTreeUnchanged": "3437873f3052ff996f769332239d56c81748c8c6",
+  "deadlinesUnchanged": {
+    "fixtureMs": 5000,
+    "individualNativePublicationMs": 15000,
+    "localGroupMs": 120000,
+    "nativeRequestAndCloseMs": 10000
+  },
+  "invariants": {
+    "firstSequenceUnchanged": true,
+    "readyIsNotAck": true,
+    "noAnchorRequestBeforeAdmission": true,
+    "emptyIntentBeforeSqlCommit": true,
+    "FULL_DELETE_semanticsUnchanged": true,
+    "originalExpiryUnchanged": true,
+    "noCrossRequestAuthenticationCache": true,
+    "startupFailureAwaitsRegisteredChildCloseBeforeWriterRelease": true,
+    "cleanupFailureCannotGrantWriterRelease": true
+  },
+  "validation": {
+    "redNewRegressions": {
+      "tests": 29,
+      "pass": 25,
+      "fail": 4
+    },
+    "caughtUnsanitizedFactoryFailure": {
+      "tests": 171,
+      "pass": 170,
+      "fail": 1
+    },
+    "caughtLazyUnderlyingProcess": {
+      "tests": 25,
+      "pass": 24,
+      "fail": 1
+    },
+    "finalTenFiles": {
+      "tests": 211,
+      "pass": 211,
+      "fail": 0,
+      "skipped": 0
+    },
+    "additionalReadyCloseFile": {
+      "tests": 34,
+      "pass": 34,
+      "fail": 0,
+      "skipped": 0
+    },
+    "syntaxFiles": 1734,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "ciGovernance": true,
+    "releaseGovernance": true
+  },
+  "scope": {
+    "windowsNewImplementationExecuted": false,
+    "fiveSecondStable": false,
+    "real24HourPassed": false,
+    "realModelRequests": 0,
+    "oldFailuresPreserved": true
+  }
+}

@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 1,
+  "source": "6a69491e0213d940c270daeb3670891cf29d17a8",
+  "verifyRunId": 40639948188,
+  "formalRunId": 40639942626,
+  "verifyJobs": [
+    {
+      "id": 122655513123,
+      "name": "rust-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 122655513252,
+      "name": "unit-tests (0)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122655513255,
+      "name": "unit-tests (3)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122655513272,
+      "name": "node-quality",
+      "conclusion": "success"
+    },
+    {
+      "id": 122655513322,
+      "name": "integration-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 122655513329,
+      "name": "unit-tests (1)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122655513337,
+      "name": "unit-tests (2)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122655513422,
+      "name": "coverage",
+      "conclusion": "success"
+    }
+  ],
+  "formalJobs": [
+    {
+      "id": 122655494916,
+      "name": "source-gates",
+      "conclusion": "success"
+    },
+    {
+      "id": 122655495192,
+      "name": "egress-diagnostic",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571512,
+      "name": "context-recovery (n09)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571542,
+      "name": "context-recovery (n09-withdrawn-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571561,
+      "name": "context-recovery (n08)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571562,
+      "name": "context-recovery (n09-finished-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571617,
+      "name": "context-recovery (n09-sending-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571632,
+      "name": "context-recovery (n09-finished-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571635,
+      "name": "context-recovery (n09-withdrawn-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571649,
+      "name": "context-recovery (n09-uncertain-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571671,
+      "name": "context-recovery (n09-sending-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122662571684,
+      "name": "context-recovery (n09-uncertain-ack)",
+      "conclusion": "success"
+    }
+  ],
+  "fullSourceLogCharacters": 3815252,
+  "fullCoverageLogCharacters": 3721913,
+  "formalExecutionReceipts": [
+    {
+      "jobId": 122662571542,
+      "scenario": "n09-withdrawn-ack",
+      "conclusion": "success",
+      "fullLogCharacters": 34986,
+      "validated": true,
+      "planSha256": "e4bc9f10d4bd2caad00c34943388ef69a8d3c71f449830e24c61fac49d9dae57",
+      "buildReceiptSha256": "a51477974699ac84b991db3409fd010d4afcfda252fc2bd19df460bdbbe20420"
+    },
+    {
+      "jobId": 122662571562,
+      "scenario": "n09-finished-ack",
+      "conclusion": "success",
+      "fullLogCharacters": 34978,
+      "validated": true,
+      "planSha256": "dd829af24c164e62e57ba1e8473d67ba7b3722cb3b10cd2e6027c282145db948",
+      "buildReceiptSha256": "c6f7bfdb54cd56089da67de1a8c0ff48b112a8f76a9cec4d4147013d9cda8a7e"
+    },
+    {
+      "jobId": 122662571512,
+      "scenario": "n09",
+      "conclusion": "success",
+      "fullLogCharacters": 34914,
+      "validated": true,
+      "planSha256": "fb80d670ed303e840a65e39e370a3f12fa56feea4c5156e88d5710e88701a252",
+      "buildReceiptSha256": "4265780dacd905ee877baebb534fd815a93ed122b51ab45a990c018833c20788"
+    },
+    {
+      "jobId": 122662571561,
+      "scenario": "n08",
+      "conclusion": "success",
+      "fullLogCharacters": 34915,
+      "validated": true,
+      "planSha256": "68e7ce7f8bc449f3be8a872f5798640fe64e102e6aa418f94c1a82d4dcdc9015",
+      "buildReceiptSha256": "f53056942f48b680c03af6ff935bb9c8e813165514bf687e6d3e063739fa45d5"
+    },
+    {
+      "jobId": 122662571632,
+      "scenario": "n09-finished-commit",
+      "conclusion": "success",
+      "fullLogCharacters": 34996,
+      "validated": true,
+      "planSha256": "2f5883ae0a682733c70bca0ca2f733846a82d68b2d36cdb1e8c82562ffe4952d",
+      "buildReceiptSha256": "6c41c6ca12e83f5acd50efb9131030bcff56494de2638de4587ff7a884d49970"
+    },
+    {
+      "jobId": 122662571635,
+      "scenario": "n09-withdrawn-commit",
+      "conclusion": "success",
+      "fullLogCharacters": 35006,
+      "validated": true,
+      "planSha256": "8808538fc6ddf4922808eb6a3c995561855d4d03ddc0b86fdcc5aecaa6fc0a6f",
+      "buildReceiptSha256": "5e972354aa1e0332cec5cfd59bd6eb3c364bc407eb545a987096ffb91ecca5e0"
+    },
+    {
+      "jobId": 122662571617,
+      "scenario": "n09-sending-commit",
+      "conclusion": "success",
+      "fullLogCharacters": 34991,
+      "validated": true,
+      "planSha256": "fd9ba862b0c0286438c590be15f2fe2390a2ab22b1f8351beb6a0bad37dd1f93",
+      "buildReceiptSha256": "83f56ab0857b06211a8108c64dfceb61b639e8f305a7ebead426c446905fd2c6"
+    },
+    {
+      "jobId": 122662571649,
+      "scenario": "n09-uncertain-commit",
+      "conclusion": "success",
+      "fullLogCharacters": 35006,
+      "validated": true,
+      "planSha256": "24615fcc90b830e14c3f89b7faa0924c2f5b8477d9cad1506398c0936f84da28",
+      "buildReceiptSha256": "cabe912550267410cf435247d5bcf386129ffa8d388e8dde59d9428d95d5d970"
+    },
+    {
+      "jobId": 122662571671,
+      "scenario": "n09-sending-ack",
+      "conclusion": "success",
+      "fullLogCharacters": 34981,
+      "validated": true,
+      "planSha256": "469d0a9694484c40bbd271eee57cb61c4668dd244809ee3b24ec1cd7519f9531",
+      "buildReceiptSha256": "3c517a84d4bcd32d7671aa6f82f53f92332dd3c371784de432b230948ba39782"
+    },
+    {
+      "jobId": 122662571684,
+      "scenario": "n09-uncertain-ack",
+      "conclusion": "success",
+      "fullLogCharacters": 34991,
+      "validated": true,
+      "planSha256": "80a53a655c25971f16b24cbb6cc42cb33810655ec09501ddd4d7ee26da55236d",
+      "buildReceiptSha256": "6bc941ea185547551b03f67f94716b50704bfcc5c090646cd219e17eeeb3b732"
+    }
+  ],
+  "ioReceipts": [
+    {
+      "jobId": 122655494916,
+      "windowId": "client-context-target",
+      "stage": "proxy",
+      "cleanupVerified": true,
+      "termination": "file-completed",
+      "pairedFlushes": 14,
+      "database": {
+        "count": 0,
+        "maxMs": 0,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 14,
+        "maxMs": 15,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "validatedByOriginalParseSummary": true,
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122655513422,
+      "windowId": "publication-graceful-http",
+      "stage": "proxy",
+      "cleanupVerified": true,
+      "termination": "file-completed",
+      "pairedFlushes": 63,
+      "database": {
+        "count": 21,
+        "maxMs": 223,
+        "over100Ms": 3,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 42,
+        "maxMs": 264,
+        "over100Ms": 5,
+        "over1000Ms": 0
+      },
+      "validatedByOriginalParseSummary": true,
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122655513422,
+      "windowId": "client-context-target",
+      "stage": "client",
+      "cleanupVerified": true,
+      "termination": "file-completed",
+      "pairedFlushes": 144,
+      "database": {
+        "count": 48,
+        "maxMs": 22,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 96,
+        "maxMs": 25,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "validatedByOriginalParseSummary": true,
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122655513422,
+      "windowId": "publication-graceful-http",
+      "stage": "client",
+      "cleanupVerified": true,
+      "termination": "file-completed",
+      "pairedFlushes": 63,
+      "database": {
+        "count": 21,
+        "maxMs": 9,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 42,
+        "maxMs": 22,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "validatedByOriginalParseSummary": true,
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    }
+  ],
+  "scope": {
+    "businessReceiptsAfterPreparedOnlyVerified": true,
+    "sourceBound": true,
+    "fullN08Qualified": false,
+    "fullN09Qualified": false,
+    "priorFailuresPreserved": true,
+    "localWindowsFailedGroupsCovered": false,
+    "productFiveSecondStable": false,
+    "realProviderQualified": false,
+    "retention24hQualified": false,
+    "realModelRequests": 0
+  }
+}

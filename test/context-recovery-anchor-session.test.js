@@ -10,6 +10,8 @@ const { storageFailureDiagnostic } = require('../lib/proxy/context-recovery-stor
 const {
   createRecoveryAnchorRepository,
   createRecoveryAnchorSession,
+  primeRecoveryAnchorSession,
+  closeRecoveryAnchorStartupSession,
 } = require('../lib/proxy/context-recovery-anchor');
 
 const safe = (error) =>
@@ -495,4 +497,132 @@ test('close failures and non-native close results never leak raw errors or claim
     assert.throws(() => repository.close(), safe);
   }
   assert.equal(hooks, 0);
+});
+
+test('priming starts one owned channel without reading or committing and preserves synchronous admission', async (t) => {
+  const f = fixture(t);
+  const session = createRecoveryAnchorSession(f.input, f.dependencies);
+  assert.equal(primeRecoveryAnchorSession(session), true);
+  assert.equal(primeRecoveryAnchorSession(session), true);
+  assert.equal(f.launches(), 1);
+  assert.deepEqual(f.calls, []);
+  assert.throws(
+    () => session.repository.close(),
+    safe,
+    'live primed child requires real async cleanup'
+  );
+  assert.equal(session.repository.read(), null);
+  const state = {
+    version: 1,
+    ...session.repository.identity,
+    storeId: 'a'.repeat(32),
+    maxTime: 100,
+    scopes: [],
+  };
+  session.repository.commit(state);
+  assert.deepEqual(f.calls, ['read', 'compare']);
+  await session.commit({ ...state, maxTime: 101 });
+  assert.equal(f.launches(), 1);
+  assert.throws(() => primeRecoveryAnchorSession(session), safe);
+  await session.close();
+  assert.equal(f.closes(), 1);
+  assert.throws(() => primeRecoveryAnchorSession(session), safe);
+});
+
+test('priming rejects forged capabilities without inspecting input or launching a process', () => {
+  let touched = 0;
+  const hostile = new Proxy(
+    {},
+    {
+      get() {
+        touched++;
+        throw Error();
+      },
+      ownKeys() {
+        touched++;
+        throw Error();
+      },
+      getPrototypeOf() {
+        touched++;
+        throw Error();
+      },
+    }
+  );
+  for (const input of [undefined, null, false, 0, '', {}, [], hostile]) {
+    assert.equal(primeRecoveryAnchorSession(input), false);
+    assert.equal(closeRecoveryAnchorStartupSession(input), null);
+  }
+  assert.equal(touched, 0);
+});
+
+for (const mode of ['replaced-program', 'hardlinked-program']) {
+  test('priming refuses ' + mode + ' before process launch or anchor access', async (t) => {
+    const f = fixture(t),
+      session = createRecoveryAnchorSession(f.input, f.dependencies);
+    t.after(() => session.close());
+    if (mode === 'replaced-program') {
+      fs.renameSync(f.executable, f.executable + '.retained');
+      fs.writeFileSync(f.executable, 'replacement');
+    } else fs.linkSync(f.executable, f.executable + '.alias');
+    assert.throws(() => primeRecoveryAnchorSession(session), safe);
+    assert.equal(f.launches(), 0);
+    assert.deepEqual(f.calls, []);
+  });
+}
+
+test('failed priming factory cannot send a request or publish a usable session', async (t) => {
+  const f = fixture(t, {
+    createChannel() {
+      throw Error('PRIVATE factory failure');
+    },
+  });
+  const session = createRecoveryAnchorSession(f.input, f.dependencies);
+  assert.throws(() => primeRecoveryAnchorSession(session), safe);
+  await session.close();
+  assert.deepEqual(f.calls, []);
+  assert.throws(() => session.repository.read(), safe);
+});
+
+test('primed session cleanup rejection cannot claim synchronous cleanup or leak backend details', async (t) => {
+  const f = fixture(t),
+    session = createRecoveryAnchorSession(f.input, f.dependencies);
+  primeRecoveryAnchorSession(session);
+  f.closeAfter(async () => {
+    throw Error('PRIVATE close failure');
+  });
+  await assert.rejects(session.close(), safe);
+  assert.equal(f.closes(), 1);
+  assert.deepEqual(f.calls, []);
+  assert.throws(() => session.repository.close(), safe);
+  assert.throws(() => primeRecoveryAnchorSession(session), safe);
+});
+
+test('startup cleanup uses only the registered close capability and awaits the same real close promise', async (t) => {
+  const f = fixture(t),
+    session = createRecoveryAnchorSession(f.input, f.dependencies),
+    held = deferred();
+  primeRecoveryAnchorSession(session);
+  f.closeAfter(() => held.promise);
+  const closing = closeRecoveryAnchorStartupSession(session);
+  assert.equal(closing, session.close());
+  assert.equal(f.closes(), 1);
+  let finished = false;
+  void closing.then(() => {
+    finished = true;
+  });
+  await turn();
+  assert.equal(finished, false);
+  held.resolve();
+  await closing;
+  assert.equal(finished, true);
+  assert.deepEqual(f.calls, []);
+  const hostile = new Proxy(
+    {},
+    {
+      get() {
+        throw Error('must not inspect');
+      },
+    }
+  );
+  assert.equal(closeRecoveryAnchorStartupSession(hostile), null);
 });

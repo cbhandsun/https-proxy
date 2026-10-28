@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：原生锚点进程启动提前重叠，真实请求与持久边界不变
+
+固定6a69491普通40639948188八作业、正式40639942626十二作业全部终态success。普通coverage完整3721913字符、正式source3815252字符与十份业务完整日志已读，逐份核对精确source/plan/build及prepared_only后实际hosted_network_finished、TLS/隔离/ownedTreeEmpty。四份I/O回执经原parseSummary验证，普通proxy新graceful窗口实际执行；所有fiveSecondQualified仍false。不能用此绿色覆盖750/970历史失败或本机失败，也不转授本批新实现。证据见context-recovery-evidence/6a69491-complete-ci.json。
+
+Windows独立6a/新9c原生二进制短测：源码干净，同原生源码树3437873f；离线两次npm各自日志exit0，Mac CRLF辅助文件与提交LF不符、插件后外层源码复核失败均保留，后者具体异常未采到，不称npm本身失败。用提交原始字节和新续接任务重新严格准入。默认DPAPI/OS锚点同目录两次开闭通过，ready3072/2218ms（原30秒开库门，不授五秒资格），容量/时钟两文件28/28通过。原四十项组120秒父门失败：37可见通过、零可见断言失败、无最终TAP；另一个独立二十项原生中断组同样120秒失败，19可见通过、无最终TAP，不替代原四十项或称整组通过。两次失败任务/日志保留，没有提高期限。有限记录见context-recovery-evidence/6a69491-local-native-short.json。
+
+三次固定空对象拒绝请求不读写文件、密钥或锚点，仍各耗178–182ms；这只证明本机原生调用存在明显成本，不授它为所有五秒失败的唯一原因。新实现让已有owned anchor通道在同步读/空库意图/SQL初始化前启动进程，首次请求仍在原准入之后；原同步空库持久意图、SQLite FULL/DELETE、独立快照认证、精确CAS ACK及原expiry保持。WeakMap绑定精确私有会话与通道，不能由伪造/Proxy能力触发启动或关闭；只接受固定8字节就绪帧，不把它当作ACK，不消耗首个序号，重复预启动不重置原10秒就绪期限。原请求、关闭及五秒/15秒/120秒门不变。同步启动失败也须等待真实子进程关闭才释放SQLite写锁；清理失败不能声称释放。
+
+新增回归先25/29、实现后相关验证通过；扩展验证捕获原始工厂异常泄漏（170/171），已统一为安全错误。真实子进程回归又捕获“仅创建JS通道仍未spawn”（24/25），已补底层实际启动，不能靠模拟工厂计数授性能收益。最终十文件211/211、零fail/skip，包括真实进程无首帧关闭、先就绪再首请求、原10秒超时杀进程等；追加就绪超时+待发请求关闭边界文件通过。1734语法、Lint零错误/五既有警告、CI/release治理及变更格式通过，新测试仍由统一发现进入CI。证据见context-recovery-evidence/anchor-startup-overlap.json。
+
+本批尚未执行新实现的Windows完整门或测得实际收益，不称五秒稳定性已修复；下一步固定本批提交做同原门Windows验证和完整CI。旧6646终态失败现场/任务、旧E实例及日常配置保持，新24h未启动，真实模型0、分账额度未写。桌面e0候选继续由用户自行切换；本机安装两端/真实provider、24h与到期双重开、最大容量及受控自用等完整缺口保留。
+
 ## 2026-10-28：本机e0候选已交付桌面；750正式源门失败保持
 
 固定75030e4普通Verify40635072357、额外覆盖I/O40635072382及独立I/O40635072389均终态success；正式40635072369/source122640046390失败，业务矩阵skipped。四份完整日志分别2720501/3721787/3725823/248632字符均已读取，八份有限I/O摘要经原parseSummary重验。普通proxy新的publication-graceful-http选择已在Windows实际生效。正式十项native-publication失败均awaiting=ready，目标advance尚未进入；其中一次.data-key创建2273ms、fsync1843ms而DPAPI保护17ms，其他失败也有文件/引擎阶段尾等待，尚未确认唯一底层原因。正式采集的是另一个client窗口，不能转授为这十项失败的I/O因果证据；所有fiveSecondQualified仍false，原5000ms/持久/认证门不变。有限记录见context-recovery-evidence/75030e4-ci-failures.json。
