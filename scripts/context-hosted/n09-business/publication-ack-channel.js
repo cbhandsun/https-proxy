@@ -39,7 +39,8 @@ function createPublicationAckChannel(input) {
     let state = 'idle',
       pending = false,
       request,
-      held;
+      held,
+      triggerHeld;
     function enter(expected) {
       if (pending || state !== expected) {
         state = 'failed';
@@ -65,12 +66,25 @@ function createPublicationAckChannel(input) {
             'transition',
           ];
           if (exact.some((key) => value[key] !== request[key])) throw fail();
-          if (kind === 'armed') {
+          if (kind === 'armed' || kind === 'armed-cancel') {
             if (value.callOrdinal !== request.callOrdinal) throw fail();
           } else if (value.callOrdinal <= request.callOrdinal) throw fail();
           if (
             kind === 'released' &&
             ['callOrdinal', 'holdChallenge', 'revision'].some((key) => value[key] !== held[key])
+          )
+            throw fail();
+          if (
+            kind === 'trigger-held' &&
+            value.callOrdinal < request.callOrdinal + (request.transition === 'uncertain' ? 2 : 1)
+          )
+            throw fail();
+          if (
+            kind === 'held' &&
+            request.kind === 'arm-cancel' &&
+            (!triggerHeld ||
+              value.callOrdinal <= triggerHeld.callOrdinal ||
+              value.holdChallenge === triggerHeld.holdChallenge)
           )
             throw fail();
           return value;
@@ -93,29 +107,58 @@ function createPublicationAckChannel(input) {
         pending = false;
       }
     }
+    function arm(input, cancellation) {
+      const signal = cancellation ? 'armed-cancel' : 'armed';
+      return operation('idle', signal, async (deadline) => {
+        const target = fields(input, targetKeys);
+        request = contract.signCommand({
+          version: 1,
+          pid: config.pid,
+          epoch: config.epoch,
+          challenge: randomBytes(16).toString('hex'),
+          kind: cancellation ? 'arm-cancel' : 'arm',
+          ...target,
+          holdChallenge: '',
+          revision: target.expectedRevision,
+        }).payload;
+        files.write('arm', 1, JSON.stringify(contract.signCommand(request)));
+        return receive(signal, deadline);
+      });
+    }
     return Object.freeze({
-      arm(input) {
-        return operation('idle', 'armed', async (deadline) => {
-          const target = fields(input, targetKeys);
-          request = contract.signCommand({
-            version: 1,
-            pid: config.pid,
-            epoch: config.epoch,
-            challenge: randomBytes(16).toString('hex'),
-            kind: 'arm',
-            ...target,
-            holdChallenge: '',
-            revision: target.expectedRevision,
-          }).payload;
-          files.write('arm', 1, JSON.stringify(contract.signCommand(request)));
-          return receive('armed', deadline);
+      arm: (input) => arm(input, false),
+      armCancellation: (input) => arm(input, true),
+      waitTriggerHeld() {
+        return operation('armed-cancel', 'trigger-held', async (deadline) => {
+          triggerHeld = await receive('trigger-held', deadline);
+          return triggerHeld;
         });
       },
+      releaseTrigger() {
+        try {
+          enter('trigger-held');
+          files.write(
+            'trigger-release',
+            1,
+            JSON.stringify(contract.signCommand({ ...triggerHeld, kind: 'trigger-release' }))
+          );
+          state = 'trigger-release-requested';
+        } catch {
+          if (state !== 'closed') state = 'failed';
+          throw fail();
+        } finally {
+          pending = false;
+        }
+      },
       waitHeld() {
-        return operation('armed', 'held', async (deadline) => {
-          held = await receive('held', deadline);
-          return held;
-        });
+        return operation(
+          request?.kind === 'arm-cancel' ? 'trigger-release-requested' : 'armed',
+          'held',
+          async (deadline) => {
+            held = await receive('held', deadline);
+            return held;
+          }
+        );
       },
       release() {
         try {

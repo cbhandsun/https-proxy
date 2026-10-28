@@ -153,7 +153,7 @@ function verifyN09Bootstrap(runtime = process) {
       if (file.endsWith('.json')) continue;
       let code = fs.readFileSync(file, 'utf8');
       code = code.replace(
-        /\brequire\s*\(\s*path\.join\s*\(\s*options\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:durable-ack|lifecycle|storage|storage-contract|storage-inventory)\.js\1\s*\)\s*\)/g,
+        /\brequire\s*\(\s*path\.join\s*\(\s*options\.install\s*,\s*(['"])lib\/proxy\/context-recovery-(?:durable-ack|http-entry|lifecycle|publication|storage|storage-contract|storage-inventory)\.js\1\s*\)\s*\)/g,
         () => {
           if (file !== path.join(candidate, 'scripts/context-hosted/n09-ack/host-install.js'))
             throw fail();

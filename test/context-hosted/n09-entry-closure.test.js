@@ -112,7 +112,15 @@ test('fixed installed inventory import cannot be copied to an unreviewed entry',
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'n09-inventory-closure-'));
   const entry = path.join(root, 'host-install.js');
   try {
-    for (const target of ['storage-inventory', 'storage-inventory-unknown', '']) {
+    for (const target of [
+      'storage-inventory',
+      'publication',
+      'http-entry',
+      'storage-inventory-unknown',
+      'publication-unknown',
+      'http-entry-unknown',
+      '',
+    ]) {
       fs.writeFileSync(
         entry,
         `require(path.join(options.install, 'lib/proxy/context-recovery-${target}.js'));`

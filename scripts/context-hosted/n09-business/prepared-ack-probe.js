@@ -3,6 +3,7 @@
 const { types } = require('node:util');
 const { fields, isN09NativePromise, discardN09PromiseRejection } = require('../n09-ack/contract');
 const { snapshotOwnData } = require('../shared/boundary');
+const { publicationAckCapability } = require('./publication-ack-capability');
 const fail = () => new Error('n09_prepared_ack_probe_failed');
 const signalKeys = [
   'version',
@@ -29,7 +30,7 @@ function createPreparedAckProbe(input, observed, control, transition = 'prepared
     const delta = ['prepared', 'sending', 'transport-finished'].indexOf(transition) + 1;
     const config = fields(input, ['pid', 'rootId', 'expiresAt', 'revision']);
     const baseline = snapshotOwnData(observed);
-    const methods = fields(control, ['arm', 'waitHeld', 'release', 'waitReleased', 'close']);
+    const { methods } = publicationAckCapability(control);
     if (
       !Number.isSafeInteger(config.pid) ||
       config.pid < 1 ||

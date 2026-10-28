@@ -170,3 +170,60 @@ test('ACK control closes idempotently and refuses every capability after close',
   ])
     rejected(() => createPublicationAckContract(value));
 });
+
+test('cancellation kinds preserve thirteen signed fields and distinguish predecessor from terminal revision', () => {
+  const contract = make();
+  try {
+    for (const transition of ['withdrawn', 'uncertain'])
+      for (const kind of ['arm-cancel', 'armed-cancel', 'trigger-held', 'trigger-release']) {
+        const before = ['arm-cancel', 'armed-cancel'].includes(kind),
+          signal = ['armed-cancel', 'trigger-held'].includes(kind);
+        const value = {
+          ...payload(),
+          transition,
+          kind,
+          holdChallenge: before ? '' : 'e'.repeat(32),
+          revision: 7,
+        };
+        const signed = contract[signal ? 'signSignal' : 'signCommand'](value);
+        assert.deepEqual(contract[signal ? 'verifySignal' : 'verifyCommand'](signed), value);
+        assert.equal(Object.keys(signed.payload).length, 13);
+        rejected(() => contract[signal ? 'verifyCommand' : 'verifySignal'](signed));
+        for (const patch of [
+          { revision: 8 },
+          { transition: 'prepared' },
+          { rootId: value.rootId + '\n' },
+          { holdChallenge: before ? 'e'.repeat(32) : '' },
+        ])
+          rejected(() => contract[signal ? 'signSignal' : 'signCommand']({ ...value, ...patch }));
+      }
+  } finally {
+    contract.close();
+  }
+});
+
+test('cancellation arm bounds reserve every predecessor and terminal ordinal', () => {
+  const contract = make();
+  try {
+    for (const [transition, minimum, maximum] of [
+      ['withdrawn', 2, 1022],
+      ['uncertain', 3, 1021],
+    ]) {
+      const value = {
+        ...payload(),
+        kind: 'arm-cancel',
+        transition,
+        expectedRevision: minimum,
+        revision: minimum,
+        callOrdinal: maximum,
+      };
+      assert.equal(contract.verifyCommand(contract.signCommand(value)).callOrdinal, maximum);
+      rejected(() => contract.signCommand({ ...value, callOrdinal: maximum + 1 }));
+      rejected(() =>
+        contract.signCommand({ ...value, expectedRevision: minimum - 1, revision: minimum - 1 })
+      );
+    }
+  } finally {
+    contract.close();
+  }
+});

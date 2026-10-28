@@ -99,3 +99,32 @@ test('failed synchronous release and close expose only fixed errors and remain s
   assert.equal(releases, 1);
   assert.equal(closes, 1);
 });
+
+test('cancellation capability is complete and owned; partial or async command extensions are rejected', async () => {
+  const resource = {
+    arm: async () => ({}),
+    waitHeld: async () => ({}),
+    release() {},
+    waitReleased: async () => ({}),
+    close() {},
+    armCancellation: async () => ({ armed: true }),
+    waitTriggerHeld: async () => ({ held: true }),
+    releaseTrigger() {},
+  };
+  const {
+    publicationAckCapability,
+  } = require('../../scripts/context-hosted/n09-business/publication-ack-capability');
+  assert.equal(publicationAckCapability(resource).cancellation, true);
+  const client = createOwnedPublicationAck(resource, () => {});
+  assert.deepEqual(await client.armCancellation({}), { armed: true });
+  assert.deepEqual(await client.waitTriggerHeld(), { held: true });
+  assert.equal(client.releaseTrigger(), undefined);
+  client.close();
+  const { waitTriggerHeld: omitted, ...partial } = resource;
+  assert.ok(omitted);
+  assert.throws(() => createOwnedPublicationAck(partial, () => {}), safe);
+  assert.throws(
+    () => createOwnedPublicationAck({ ...resource, releaseTrigger: async () => {} }, () => {}),
+    safe
+  );
+});

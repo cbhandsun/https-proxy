@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "31e6510fea631debb575cb136dd1a3f5bdd7b5b2",
+  "scope": "signed private cancellation channel, cold hook installation and real loopback transport witnesses; no terminal daemon business scenario yet",
+  "implementation": {
+    "signedFields": 13,
+    "newCommandKinds": [
+      "arm-cancel",
+      "trigger-release"
+    ],
+    "newSignalKinds": [
+      "armed-cancel",
+      "trigger-held"
+    ],
+    "triggerRevision": "expectedRevision",
+    "terminalAckRevision": "expectedRevision + 1",
+    "distinctTriggerAndFinalChallengesRequired": true,
+    "serverCancellationPredicateMandatoryForNewRoute": true,
+    "serverWitnessBoundToOriginalHandlerAsyncContext": true,
+    "originalAbortListenerRunsBeforeWitness": true,
+    "serverHeadersSentDisqualifiesEvenWithZeroBody": true,
+    "otherRequestsCannotSupplyWitness": true,
+    "maximumActiveServerObservations": 8,
+    "clientWitnessRequiresActualTransportClose": true,
+    "legacySyntheticCancelledResultRejected": true,
+    "legacyKillAndCancelReceiptsNotInterchangeable": true,
+    "failedCancellationCannotFallBackToKillReceipt": true,
+    "witnessDeadlineMaximumMs": 750,
+    "originalPublicationHoldMs": 5000,
+    "originalClientRequestDeadlineMs": 15000,
+    "legacyFiveMethodCapabilityPreserved": true,
+    "newEightMethodCapabilityAllOrNothing": true,
+    "sourceClosureValidatorsUpdated": 3,
+    "onlyNewFixedInstalledImports": [
+      "context-recovery-publication.js",
+      "context-recovery-http-entry.js"
+    ],
+    "unknownImportAndOmittedSourcePinRejected": true
+  },
+  "validation": {
+    "finalNineFiles": {
+      "tests": 90,
+      "passed": 90,
+      "failed": 0,
+      "skipped": 0
+    },
+    "expandedClosureSevenFiles": {
+      "tests": 36,
+      "passed": 34,
+      "failed": 0,
+      "skipped": 2,
+      "skipReason": "two pre-existing Windows-only entry phase tests on Mac; no new skip"
+    },
+    "realLoopbackTcpExercised": true,
+    "realSourceColdInstallAndRestoreExercised": true,
+    "persistentLifecycleConstructedInColdSmoke": false,
+    "newTestInUnifiedDiscovery": true,
+    "syntaxFiles": 1722,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "changedFormat": "passed",
+    "ciGovernance": "passed",
+    "releaseGovernance": "passed",
+    "initialLocalClosureRefusalsRetained": [
+      "planner omitted the fixed publication import",
+      "bootstrap verifier omitted the same import",
+      "owned entry verifier omitted publication/http-entry imports"
+    ],
+    "closureChecksWereNotRemoved": true
+  },
+  "remaining": {
+    "terminalBusinessProbeAndAdapterWired": false,
+    "cancellationOutcomeCompletionBarrierWired": false,
+    "terminalDaemonKillReleaseExecuted": false,
+    "newSourceWindowsQualification": false,
+    "fiveSecondStabilityEstablished": false
+  },
+  "oldFailuresRetained": true,
+  "qualification": false,
+  "nativeDayStartedOrRestarted": false,
+  "oldInstanceOrDailyConfigurationModified": false,
+  "realModelRequests": 0
+}

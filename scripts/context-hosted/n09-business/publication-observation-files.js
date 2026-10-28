@@ -39,9 +39,20 @@ function createPublicationFiles(input, create, ack) {
     function name(kind, sequence) {
       verify();
       if (
-        !(ack ? ['arm', 'armed', 'held', 'release', 'released'] : ['query', 'state']).includes(
-          kind
-        ) ||
+        !(
+          ack
+            ? [
+                'arm',
+                'armed',
+                'armed-cancel',
+                'trigger-held',
+                'trigger-release',
+                'held',
+                'release',
+                'released',
+              ]
+            : ['query', 'state']
+        ).includes(kind) ||
         !Number.isSafeInteger(sequence) ||
         sequence < 1 ||
         sequence > (ack ? 1 : 16)

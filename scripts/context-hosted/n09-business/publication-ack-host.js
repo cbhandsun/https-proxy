@@ -3,11 +3,13 @@
 const path = require('node:path');
 const { randomBytes } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
+const { setTimeout: pause } = require('node:timers/promises');
 const { types } = require('node:util');
 const { fields, discardN09PromiseRejection } = require('../n09-ack/contract');
 const { createPublicationAckContract } = require('./publication-ack-contract');
 const { createPublicationAckFiles } = require('./publication-observation-files');
 const { createPublicationAckBoundary } = require('./publication-ack-boundary');
+const { createPublicationCancellationGate } = require('./publication-cancellation-gate');
 const fail = () => new Error('n09_publication_ack_host_rejected');
 const targetKeys = [
   'generation',
@@ -20,10 +22,22 @@ const targetKeys = [
 
 // Private test host. It neither owns nor closes the original storage observer.
 // The blocking boundary is entered only by the genuine producer's runtime hook.
-function createPublicationAckHost(input, observer) {
-  let files, contract, boundary, timer;
+function createPublicationAckHost(input, observer, dependencies) {
+  let files, contract, boundary, cancellationGate, timer;
   try {
     const config = fields(input, ['caseRoot', 'pid', 'epoch', 'signingKey']);
+    const cancellationObserved =
+      dependencies === undefined
+        ? undefined
+        : fields(dependencies, ['cancellationObserved']).cancellationObserved;
+    if (
+      cancellationObserved !== undefined &&
+      (typeof cancellationObserved !== 'function' ||
+        types.isProxy(cancellationObserved) ||
+        types.isAsyncFunction(cancellationObserved) ||
+        types.isGeneratorFunction(cancellationObserved))
+    )
+      throw fail();
     const { inspect } = fields(observer, ['inspect', 'close']);
     if (
       typeof inspect !== 'function' ||
@@ -50,13 +64,16 @@ function createPublicationAckHost(input, observer) {
     );
     let state = 'idle',
       request,
-      held;
+      held,
+      triggerHeld,
+      triggerReleased = false;
     const wait = new Int32Array(new SharedArrayBuffer(4));
     function available() {
       if (state === 'closed' || state === 'failed') throw fail();
     }
     function reject() {
-      state = 'failed';
+      if (state !== 'closed') state = 'failed';
+      cancellationGate?.close();
       if (timer) clearInterval(timer);
       timer = undefined;
       throw fail();
@@ -96,6 +113,42 @@ function createPublicationAckHost(input, observer) {
         return true;
       },
     });
+    cancellationGate = createPublicationCancellationGate({
+      inspect: () => Reflect.apply(inspect, observer, []),
+      now: () => performance.now(),
+      pause,
+      publish(receipt) {
+        available();
+        if (state !== 'armed' || request.kind !== 'arm-cancel') throw fail();
+        triggerHeld = Object.freeze({
+          ...request,
+          callOrdinal: receipt.callOrdinal,
+          revision: receipt.revision,
+          holdChallenge: randomBytes(16).toString('hex'),
+        });
+        state = 'trigger-holding';
+        signal('trigger-held', triggerHeld);
+      },
+      released() {
+        available();
+        if (state !== 'trigger-holding') throw fail();
+        const wire = files.read('trigger-release', 1);
+        if (wire === null) return false;
+        const command = contract.verifyCommand(wire);
+        if (
+          command.kind !== 'trigger-release' ||
+          Object.keys(triggerHeld).some(
+            (key) => key !== 'kind' && command[key] !== triggerHeld[key]
+          )
+        )
+          throw fail();
+        const cancelled = cancellationObserved();
+        discardN09PromiseRejection(cancelled);
+        if (typeof cancelled !== 'boolean') throw fail();
+        available();
+        return cancelled;
+      },
+    });
     function step() {
       try {
         available();
@@ -103,7 +156,11 @@ function createPublicationAckHost(input, observer) {
         const wire = files.read('arm', 1);
         if (wire === null) return 'idle';
         const value = contract.verifyCommand(wire);
-        if (value.kind !== 'arm') throw fail();
+        if (
+          !['arm', 'arm-cancel'].includes(value.kind) ||
+          (value.kind === 'arm-cancel' && cancellationObserved === undefined)
+        )
+          throw fail();
         const snapshot = Reflect.apply(inspect, observer, []);
         discardN09PromiseRejection(snapshot);
         const observed = fields(snapshot, [
@@ -127,12 +184,15 @@ function createPublicationAckHost(input, observer) {
         request = value;
         boundary.arm(
           Object.fromEntries(targetKeys.map((key) => [key, value[key]])),
-          ['sending', 'transport-finished'].includes(value.transition)
+          value.kind === 'arm-cancel' ||
+            ['sending', 'transport-finished'].includes(value.transition)
             ? 'prepared-prefix'
             : 'direct'
         );
+        if (value.kind === 'arm-cancel')
+          cancellationGate.arm(Object.fromEntries(targetKeys.map((key) => [key, value[key]])));
         state = 'armed';
-        signal('armed', value);
+        signal(value.kind === 'arm-cancel' ? 'armed-cancel' : 'armed', value);
         return state;
       } catch {
         return reject();
@@ -144,12 +204,34 @@ function createPublicationAckHost(input, observer) {
         try {
           available();
           const deadline = state === 'armed' ? performance.now() + 5000 : undefined;
+          if (
+            request?.kind === 'arm-cancel' &&
+            !triggerReleased &&
+            fields(facts, ['rootId', 'expiresAt', 'revision']).revision ===
+              request.expectedRevision + 1
+          )
+            throw fail();
           boundary.afterDurableAck(facts);
           if (state === 'holding') {
             if (performance.now() >= deadline) throw fail();
             state = 'released';
             signal('released', held);
             if (performance.now() >= deadline) throw fail();
+          }
+        } catch {
+          reject();
+        }
+      },
+      async afterPublicationAction(action) {
+        try {
+          available();
+          if (request?.kind !== 'arm-cancel') return;
+          await cancellationGate.afterPublicationAction(action);
+          available();
+          if (cancellationGate.inspect().state === 'released' && !triggerReleased) {
+            if (state !== 'trigger-holding') throw fail();
+            triggerReleased = true;
+            state = 'armed';
           }
         } catch {
           reject();
@@ -171,6 +253,7 @@ function createPublicationAckHost(input, observer) {
         state = 'closed';
         if (timer) clearInterval(timer);
         timer = undefined;
+        cancellationGate.close();
         boundary.close();
         files.close();
         contract.close();
@@ -178,7 +261,7 @@ function createPublicationAckHost(input, observer) {
     });
   } catch {
     if (timer) clearInterval(timer);
-    for (const resource of [boundary, files, contract]) {
+    for (const resource of [cancellationGate, boundary, files, contract]) {
       try {
         resource?.close();
       } catch {

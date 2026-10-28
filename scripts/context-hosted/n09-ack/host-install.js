@@ -11,11 +11,21 @@ const {
   createPublicationObservationHost,
 } = require('../n09-business/publication-observation-host');
 const { createPublicationAckHost } = require('../n09-business/publication-ack-host');
+const { installPublicationActionHook } = require('../n09-business/publication-action-hook');
+const {
+  installPublicationHttpCancellation,
+} = require('../n09-business/publication-http-cancellation');
 
 // Called only by the granted gate, after every helper and installed source hash
 // has been verified. Installed imports below are fixed, reviewed targets.
 function installN09HostAck(input) {
-  let hooks, publicationObserver, publicationHost, ackHost, host;
+  let hooks,
+    publicationObserver,
+    publicationHost,
+    ackHost,
+    publicationActionHook,
+    publicationHttpCancellation,
+    host;
   try {
     const options = fields(input, ['install', 'caseRoot', 'pid', 'epoch', 'signingKey']);
     if (
@@ -47,6 +57,11 @@ function installN09HostAck(input) {
       'context-recovery-lifecycle.js',
       'context-recovery-storage.js',
       'context-recovery-storage-opening.js',
+      'context-recovery-publication.js',
+      'context-recovery-http-entry.js',
+      'context-recovery-compaction.js',
+      'context-recovery-observer.js',
+      'context-recovery-websocket-turn.js',
     ])
       if (require.cache[require.resolve(path.join(options.install, 'lib/proxy', name))])
         throw fail();
@@ -68,6 +83,23 @@ function installN09HostAck(input) {
       storageInventory,
       expectedDirectory: path.join(options.caseRoot, 'runtime/context-recovery-v1'),
     });
+    ackHost = createPublicationAckHost(
+      {
+        caseRoot: options.caseRoot,
+        pid: options.pid,
+        epoch: options.epoch,
+        signingKey: options.signingKey,
+      },
+      publicationObserver,
+      { cancellationObserved: () => publicationHttpCancellation?.wasCancelled() === true }
+    );
+    const publicationExports = require(
+      path.join(options.install, 'lib/proxy/context-recovery-publication.js')
+    );
+    publicationActionHook = installPublicationActionHook({
+      publicationExports,
+      afterPublicationAction: (action) => ackHost.afterPublicationAction(action),
+    });
     const lifecycleExports = require(
       path.join(options.install, 'lib/proxy/context-recovery-lifecycle.js')
     );
@@ -77,15 +109,6 @@ function installN09HostAck(input) {
       ]
     )
       throw fail();
-    ackHost = createPublicationAckHost(
-      {
-        caseRoot: options.caseRoot,
-        pid: options.pid,
-        epoch: options.epoch,
-        signingKey: options.signingKey,
-      },
-      publicationObserver
-    );
     hooks = installN09RuntimeHooks({
       ackExports,
       lifecycleExports,
@@ -93,6 +116,15 @@ function installN09HostAck(input) {
       pid: options.pid,
       epoch: options.epoch,
       afterDurableAck: (facts) => ackHost.afterDurableAck(facts),
+    });
+    if (
+      require.cache[
+        require.resolve(path.join(options.install, 'lib/proxy/context-recovery-http-entry.js'))
+      ]
+    )
+      throw fail();
+    publicationHttpCancellation = installPublicationHttpCancellation({
+      httpExports: require(path.join(options.install, 'lib/proxy/context-recovery-http-entry.js')),
     });
     publicationHost = createPublicationObservationHost(
       {
@@ -114,7 +146,13 @@ function installN09HostAck(input) {
           return;
         }
         closed = true;
-        for (const resource of [ackHost, publicationHost, hooks]) {
+        for (const resource of [
+          ackHost,
+          publicationHost,
+          publicationActionHook,
+          publicationHttpCancellation,
+          hooks,
+        ]) {
           try {
             resource.close();
           } catch {
@@ -140,7 +178,13 @@ function installN09HostAck(input) {
   } catch {
     for (const resource of host
       ? [host]
-      : [ackHost, publicationHost ?? publicationObserver, hooks]) {
+      : [
+          ackHost,
+          publicationHost ?? publicationObserver,
+          publicationActionHook,
+          publicationHttpCancellation,
+          hooks,
+        ]) {
       try {
         resource?.close();
       } catch {

@@ -41,23 +41,45 @@ function createPublicationAckContract(input) {
         value.pid !== pid ||
         value.epoch !== epoch ||
         !hex(value.challenge, 32) ||
-        !(signal ? ['armed', 'held', 'released'] : ['arm', 'release']).includes(value.kind) ||
+        !(
+          signal
+            ? ['armed', 'armed-cancel', 'trigger-held', 'held', 'released']
+            : ['arm', 'arm-cancel', 'trigger-release', 'release']
+        ).includes(value.kind) ||
         !bounded(value.generation, 1, 16) ||
         !bounded(value.callOrdinal, 1, 1024) ||
         typeof value.rootId !== 'string' ||
+        value.rootId.length !== 36 ||
         !/^hbs_[a-f0-9]{32}$/.test(value.rootId) ||
         !bounded(value.expiresAt, 1, Number.MAX_SAFE_INTEGER) ||
         !bounded(value.expectedRevision, 1, Number.MAX_SAFE_INTEGER - 1) ||
         !transitions.includes(value.transition)
       )
         throw fail();
-      const beforeHold = value.kind === 'arm' || value.kind === 'armed';
+      const cancellation = [
+        'arm-cancel',
+        'armed-cancel',
+        'trigger-held',
+        'trigger-release',
+      ].includes(value.kind);
+      if (cancellation && !['uncertain', 'withdrawn'].includes(value.transition)) throw fail();
+      const beforeHold = ['arm', 'arm-cancel', 'armed', 'armed-cancel'].includes(value.kind);
+      if (
+        cancellation &&
+        (value.expectedRevision < (value.transition === 'uncertain' ? 3 : 2) ||
+          (beforeHold && value.callOrdinal + (value.transition === 'uncertain' ? 3 : 2) > 1024) ||
+          (!beforeHold && value.callOrdinal >= 1024))
+      )
+        throw fail();
+      const revision = ['trigger-held', 'trigger-release'].includes(value.kind)
+        ? value.expectedRevision
+        : value.expectedRevision + 1;
       if (
         beforeHold
           ? value.holdChallenge !== '' ||
             value.revision !== value.expectedRevision ||
             value.callOrdinal >= 1024
-          : !hex(value.holdChallenge, 32) || value.revision !== value.expectedRevision + 1
+          : !hex(value.holdChallenge, 32) || value.revision !== revision
       )
         throw fail();
       return Object.freeze(value);

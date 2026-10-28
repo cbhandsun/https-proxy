@@ -224,3 +224,19 @@ test('copied controller writes a PowerShell-signed plan before grant and gate de
     envelope
   );
 });
+
+test('the signed closure includes cancellation hooks and rejects omission or a foreign dynamic importer', (t) => {
+  const f = fixture(t);
+  const hook = 'scripts/context-hosted/n09-business/publication-action-hook.js';
+  assert.match(f.payload.sourcePins[hook], /^[a-f0-9]{64}$/);
+  const { [hook]: omitted, ...sourcePins } = f.payload.sourcePins;
+  assert.ok(omitted);
+  f.write(f.contract.sign({ ...f.payload, sourcePins }));
+  assert.throws(() => verifyN09Bootstrap(f.runtime), safe);
+  const foreign = path.join(f.root, 'foreign.js');
+  fs.writeFileSync(
+    foreign,
+    "const path=require('node:path');require(path.join(options.install,'lib/proxy/context-recovery-publication.js'));"
+  );
+  assert.throws(() => collectClosure([foreign], []), { message: 'context_hosted_plan_rejected' });
+});

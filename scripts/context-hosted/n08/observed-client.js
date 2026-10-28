@@ -5,7 +5,7 @@ const fail = () => new Error('n08_observed_request_rejected');
 
 // Fixed continuation request. The byte counter observes actual client data,
 // including bytes received before settlement; it is never a scenario assertion.
-function startObservedContinuation(input) {
+function startObserved(input, transportCancellation) {
   const options = exact(input, ['entryPort', 'entryKey', 'body']);
   if (
     !Number.isInteger(options.entryPort) ||
@@ -23,7 +23,8 @@ function startObservedContinuation(input) {
     termination = 'pending',
     request,
     settled = false,
-    settle;
+    settle,
+    cancelRequested = false;
   const result = new Promise((resolve) => {
     settle = resolve;
   });
@@ -33,6 +34,9 @@ function startObservedContinuation(input) {
     termination = response ? 'response' : reason;
     clearTimeout(timeout);
     settle(response ? { response } : { failed: true });
+  };
+  const transportFailure = () => {
+    if (!transportCancellation || !cancelRequested) finish(null);
   };
   const timeout = setTimeout(() => {
     finish(null, 'timeout');
@@ -72,11 +76,20 @@ function startObservedContinuation(input) {
             finish(null);
           else finish({ status, bytes: Buffer.concat(chunks) });
         });
-        response.on('aborted', () => finish(null));
-        response.on('error', () => finish(null));
+        response.on('aborted', transportFailure);
+        response.on('error', transportFailure);
       }
     );
-    request.on('error', () => finish(null));
+    request.on('error', transportFailure);
+    request.on('close', () => {
+      if (transportCancellation && cancelRequested && !settled)
+        finish(
+          null,
+          request.destroyed === true && request.socket?.destroyed === true
+            ? 'cancelled-transport'
+            : 'setup-error'
+        );
+    });
     request.end(body);
   } catch {
     finish(null, 'setup-error');
@@ -87,10 +100,17 @@ function startObservedContinuation(input) {
     bytes: () => observedBytes,
     termination: () => termination,
     cancel() {
-      finish(null, 'cancelled');
-      request?.destroy();
+      if (transportCancellation) {
+        cancelRequested = true;
+        request?.destroy();
+      } else {
+        finish(null, 'cancelled');
+        request?.destroy();
+      }
       return true;
     },
   });
 }
-module.exports = { startObservedContinuation };
+const startObservedContinuation = (input) => startObserved(input, false);
+const startCancellationObservedContinuation = (input) => startObserved(input, true);
+module.exports = { startObservedContinuation, startCancellationObservedContinuation };

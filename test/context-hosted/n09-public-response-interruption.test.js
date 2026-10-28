@@ -514,3 +514,103 @@ test('closing before an already completed result is consumed cannot grant interr
   released.hold.close();
   await finished;
 });
+
+test('cancellation witness waits for a real loopback client transport close with zero public bytes', async (t) => {
+  const {
+    createCancellationPublicResponseInterruption,
+  } = require('../../scripts/context-hosted/n09-business/public-response-interruption');
+  let serverClosed;
+  const closed = new Promise((resolve) => {
+    serverClosed = resolve;
+  });
+  const server = http.createServer((req, res) => {
+    res.once('close', serverClosed);
+    req.resume();
+    req.once('end', () =>
+      hold.arrive(
+        () => true,
+        () => true
+      )
+    );
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const hold = createCancellationPublicResponseInterruption({
+    entryPort: server.address().port,
+    entryKey: 'a'.repeat(48),
+    body: Buffer.from('{}'),
+  });
+  t.after(async () => {
+    hold.close();
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  });
+  await hold.waitHeld();
+  hold.releaseUpstream();
+  assert.deepEqual(await hold.cancelReleased(), {
+    cancelled: true,
+    clientTransportClosed: true,
+    publicBytes: 0,
+  });
+  await closed;
+  assert.deepEqual(hold.assertCancelled(), {
+    cancelled: true,
+    clientTransportClosed: true,
+    publicBytes: 0,
+  });
+  await assert.rejects(hold.cancelReleased(), safe);
+  assert.throws(() => hold.assertCancelled(), safe);
+});
+
+test('the legacy synthetic cancelled result cannot qualify as a real cancellation transport witness', async (t) => {
+  const f = fixture(t);
+  f.hold.arrive(
+    () => true,
+    () => true
+  );
+  await f.hold.waitHeld();
+  f.hold.releaseUpstream();
+  await assert.rejects(f.hold.cancelReleased(), safe);
+  assert.throws(() => f.hold.assertCancelled(), safe);
+  await assert.rejects(f.hold.afterKill(), safe);
+});
+
+test('cancellation rechecks the native promise after cancel without executing a changed then hook', async (t) => {
+  let touched = 0;
+  const pending = new Promise(() => {});
+  const f = fixture(t, {
+    result: pending,
+    cancel() {
+      if (!Object.hasOwn(pending, 'then'))
+        Object.defineProperty(pending, 'then', {
+          get() {
+            touched++;
+            throw Error('PRIVATE');
+          },
+        });
+      return true;
+    },
+  });
+  f.hold.arrive(
+    () => true,
+    () => true
+  );
+  await f.hold.waitHeld();
+  f.hold.releaseUpstream();
+  await assert.rejects(f.hold.cancelReleased(), safe);
+  assert.equal(touched, 0);
+  assert.throws(() => f.hold.assertCancelled(), safe);
+});
+
+test('a cancellation transport witness timeout is sticky and cannot fall back to a kill receipt', async (t) => {
+  const f = fixture(t, { cancel: () => true });
+  f.hold.arrive(
+    () => true,
+    () => true
+  );
+  await f.hold.waitHeld();
+  f.hold.releaseUpstream();
+  await assert.rejects(f.hold.cancelReleased(10), safe);
+  f.settle('transport-error');
+  await assert.rejects(f.hold.afterKill(), safe);
+  assert.throws(() => f.hold.assertCancelled(), safe);
+});

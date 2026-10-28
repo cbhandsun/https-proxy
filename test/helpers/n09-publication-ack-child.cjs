@@ -6,6 +6,8 @@ const {
 } = require('../../scripts/context-hosted/n09-business/publication-ack-host');
 const fs = require('node:fs');
 const caseRoot = process.argv[2];
+let cancellationObserved = true,
+  cancellationChecks = 0;
 let observed = {
   generation: 1,
   callOrdinal: 1,
@@ -19,11 +21,40 @@ let observed = {
 };
 const host = createPublicationAckHost(
   { caseRoot, pid: process.pid, epoch: 'a'.repeat(32), signingKey: 'b'.repeat(64) },
-  { inspect: () => observed, close() {} }
+  { inspect: () => observed, close() {} },
+  {
+    cancellationObserved: () => {
+      cancellationChecks++;
+      return cancellationObserved;
+    },
+  } // Channel fixture only; not a real cancellation witness.
 );
 host.start();
 process.send({ kind: 'ready' });
 process.on('message', (message) => {
+  if (message.kind === 'cancel-observed') {
+    cancellationObserved = true;
+    return;
+  }
+  if (message.kind === 'probe-cancel') {
+    void (async () => {
+      const deadline = Date.now() + 750;
+      while (!cancellationChecks && Date.now() < deadline)
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      process.send({
+        kind: 'cancel-probe',
+        checks: cancellationChecks,
+        state: host.step(),
+        cancelled: cancellationObserved,
+      });
+    })();
+    return;
+  }
+  if (message.kind === 'cancel-action') {
+    if (message.waitForCancellation) cancellationObserved = false;
+    void cancellation(message).catch(() => process.send({ kind: 'rejected' }));
+    return;
+  }
   if (message.kind === 'ack') {
     if (message.slowRelease) {
       const original = fs.writeFileSync;
@@ -79,3 +110,35 @@ process.on('disconnect', () => {
   host.close();
   process.exit(0);
 });
+
+async function cancellation(message) {
+  const predecessors = message.transition === 'withdrawn' ? ['prepared'] : ['prepared', 'sending'];
+  for (const [index, transition] of predecessors.entries()) {
+    observed = {
+      generation: 1,
+      callOrdinal: 2 + index,
+      activeCount: 0,
+      operation: 'save-reference-state',
+      transition,
+      rootId: 'hbs_' + 'd'.repeat(32),
+      expiresAt: 123456,
+      expectedRevision: 7 - predecessors.length + index,
+      status: 'completed',
+    };
+    host.afterDurableAck({
+      rootId: observed.rootId,
+      expiresAt: observed.expiresAt,
+      revision: observed.expectedRevision + 1,
+    });
+    if (!message.skipTrigger)
+      await host.afterPublicationAction(transition === 'prepared' ? 'prepare' : 'sending');
+  }
+  observed = {
+    ...observed,
+    transition: message.transition,
+    callOrdinal: 2 + predecessors.length,
+    expectedRevision: 7,
+  };
+  host.afterDurableAck({ rootId: observed.rootId, expiresAt: observed.expiresAt, revision: 8 });
+  process.send({ kind: 'returned' });
+}

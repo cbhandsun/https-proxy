@@ -4,7 +4,10 @@ const { types } = require('node:util');
 const { createHash } = require('node:crypto');
 const { performance } = require('node:perf_hooks');
 const { exact } = require('../shared/boundary');
-const { startObservedContinuation } = require('../n08/observed-client');
+const {
+  startObservedContinuation,
+  startCancellationObservedContinuation,
+} = require('../n08/observed-client');
 const { isN09NativePromise, discardN09PromiseRejection } = require('../n09-ack/contract');
 const fail = () => new Error('n09_public_response_interruption_failed');
 
@@ -54,7 +57,10 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
     closeFailed = false,
     published,
     observingPublished = false,
-    publishedFailed = false;
+    publishedFailed = false,
+    cancellationAttempted = false,
+    cancellationFailed = false,
+    cancelled = false;
   let resolveHeld, rejectHeld;
   const held = new Promise((resolve, reject) => {
     resolveHeld = resolve;
@@ -107,7 +113,15 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
   }
   const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
   async function readPublished(deadline) {
-    if (closed || !released || finished || publishedFailed) throw fail();
+    if (
+      closed ||
+      !released ||
+      finished ||
+      publishedFailed ||
+      cancellationAttempted ||
+      cancellationFailed
+    )
+      throw fail();
     let timeout;
     let raw;
     try {
@@ -220,11 +234,83 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
     },
     assertReleasedPending() {
       try {
-        if (closed || !released || ended || finished) throw fail();
+        if (closed || !released || ended || finished || cancellationAttempted || cancellationFailed)
+          throw fail();
         zeroBytes();
         if (observer.termination() !== 'pending') throw fail();
         return Object.freeze({ upstreamReleased: true, publicBytes: 0 });
       } catch {
+        throw fail();
+      }
+    },
+    async cancelReleased(timeoutMs = 750) {
+      let timeout;
+      try {
+        if (
+          closed ||
+          !released ||
+          ended ||
+          finished ||
+          published ||
+          observingPublished ||
+          publishedFailed ||
+          cancellationAttempted ||
+          !Number.isSafeInteger(timeoutMs) ||
+          timeoutMs < 1 ||
+          timeoutMs > 750
+        )
+          throw fail();
+        zeroBytes();
+        if (observer.termination() !== 'pending') throw fail();
+        cancellationAttempted = true;
+        const deadline = performance.now() + timeoutMs;
+        const result = observer.cancel();
+        discardN09PromiseRejection(result);
+        if (result !== true) throw fail();
+        if (!isN09NativePromise(observer.result)) {
+          discardN09PromiseRejection(observer.result);
+          throw fail();
+        }
+        const reply = exact(
+          await Promise.race([
+            observer.result,
+            new Promise((_, reject) => {
+              timeout = setTimeout(() => reject(fail()), Math.max(1, deadline - performance.now()));
+            }),
+          ]),
+          ['failed']
+        );
+        if (
+          closed ||
+          cancellationFailed ||
+          performance.now() >= deadline ||
+          reply.failed !== true ||
+          observer.termination() !== 'cancelled-transport'
+        )
+          throw fail();
+        zeroBytes();
+        cancelled = true;
+        return Object.freeze({ cancelled: true, clientTransportClosed: true, publicBytes: 0 });
+      } catch {
+        cancellationFailed = true;
+        throw fail();
+      } finally {
+        clearTimeout(timeout);
+      }
+    },
+    assertCancelled() {
+      try {
+        if (
+          closed ||
+          !cancelled ||
+          cancellationFailed ||
+          observer.termination() !== 'cancelled-transport'
+        )
+          throw fail();
+        zeroBytes();
+        return Object.freeze({ cancelled: true, clientTransportClosed: true, publicBytes: 0 });
+      } catch {
+        cancellationFailed = true;
         throw fail();
       }
     },
@@ -286,7 +372,15 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
     },
     async afterKill() {
       try {
-        if (closed || !arrived || finished || (releaseAttempted && !released)) throw fail();
+        if (
+          closed ||
+          !arrived ||
+          finished ||
+          cancellationAttempted ||
+          cancellationFailed ||
+          (releaseAttempted && !released)
+        )
+          throw fail();
         const result = exact(await observer.result, ['failed']);
         if (closed || finished) throw fail();
         if (result.failed !== true || observer.termination() !== 'transport-error') throw fail();
@@ -321,4 +415,8 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
   });
 }
 
-module.exports = { createPublicResponseInterruption };
+const createCancellationPublicResponseInterruption = (
+  input,
+  start = startCancellationObservedContinuation
+) => createPublicResponseInterruption(input, start);
+module.exports = { createPublicResponseInterruption, createCancellationPublicResponseInterruption };

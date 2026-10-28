@@ -61,19 +61,23 @@ function createPublicationAckClient(input) {
         throw fail();
       }
     }
+    function command(name) {
+      try {
+        available();
+        channel[name]();
+        available();
+      } catch {
+        failed = true;
+        throw fail();
+      }
+    }
     return Object.freeze({
       arm: (target) => call('arm', target),
       waitHeld: () => call('waitHeld'),
-      release() {
-        try {
-          available();
-          channel.release();
-          available();
-        } catch {
-          failed = true;
-          throw fail();
-        }
-      },
+      armCancellation: (target) => call('armCancellation', target),
+      waitTriggerHeld: () => call('waitTriggerHeld'),
+      releaseTrigger: () => command('releaseTrigger'),
+      release: () => command('release'),
       waitReleased: () => call('waitReleased'),
       close() {
         closed = true;

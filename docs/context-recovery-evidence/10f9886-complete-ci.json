@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+  "ordinaryRun": 40614630234,
+  "ordinarySuccessfulJobs": 8,
+  "formalRun": 40614630081,
+  "formalSuccessfulJobs": 6,
+  "formalFullBusinessLogsRead": true,
+  "formalBusiness": [
+    {
+      "jobId": 122581533053,
+      "scenario": "n09-finished-ack",
+      "sourceSha": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+      "planSha256": "f8b7050b03de7cceaedb49a742792cd9c236bd342f7684b5d523321224670e28",
+      "buildReceiptSha256": "40bdaf39ca1f626dfd718250dd0b1c362443d1385bc39a1d67c053643c76021e",
+      "finalReceipt": {
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "probesPassed": true
+      }
+    },
+    {
+      "jobId": 122581533071,
+      "scenario": "n09",
+      "sourceSha": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+      "planSha256": "401461aa42639b28db9b0a914787689b74fd6627476b4a4c1728efa1755afd2b",
+      "buildReceiptSha256": "4d83dfe603eb950cecf717d12c2796c1a51783942637a1aca1f17815b4bb79f6",
+      "finalReceipt": {
+        "phase": "hosted_network_finished",
+        "probesPassed": true,
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "tlsVerified": true,
+        "ownedTreeEmpty": true
+      }
+    },
+    {
+      "jobId": 122581533075,
+      "scenario": "n09-sending-ack",
+      "sourceSha": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+      "planSha256": "1f57724bf9b8a550e6ec0c0e64c6a292ca56c30fed378d3279d87781362d298b",
+      "buildReceiptSha256": "33c5e85c0033d01d4f0b49306e8d4f75e0c90da79bde9fc8e36bd647698fce8c",
+      "finalReceipt": {
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "probesPassed": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false
+      }
+    },
+    {
+      "jobId": 122581533082,
+      "scenario": "n08",
+      "sourceSha": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+      "planSha256": "1338166eae907db31727d4448a5ee0c25e98f24d9104592ed5d0be8b3d2b73f5",
+      "buildReceiptSha256": "ca74ddb612f6ce2832b6be996f6932932de4922c5cbab50f2fc4e6d4cbcf86c3",
+      "finalReceipt": {
+        "ownedTreeEmpty": true,
+        "probesPassed": true,
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true
+      }
+    }
+  ],
+  "extraIoRun": 40614630037,
+  "extraIoJob": 122574121819,
+  "extraIoConclusion": "success",
+  "extraIoEvidence": "10f9886-io-normal-completion.json",
+  "originalFailuresRetained": true,
+  "fiveSecondStabilityEstablished": false,
+  "overallQualification": false,
+  "realModelRequests": 0
+}

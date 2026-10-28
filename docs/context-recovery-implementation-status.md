@@ -1,5 +1,21 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：签名取消通道及真实传输见证已接宿主；终态业务矩阵仍待
+
+保留原13字段及HMAC身份/挑战/代次/根/expiry/版本/ordinal绑定，新增独立arm-cancel/armed-cancel和trigger-held/trigger-release。触发暂停只承认前置版本expectedRevision，最终ACK必须精确下一版本且使用不同挑战；提前签名释放、跳过触发、用trigger挑战伪装held均拒绝。有效trigger-release也不能单独放行，宿主必须看到同一原HTTP handler异步上下文的服务端响应关闭，且没有公开headers或正文完成。原abort监听先运行，别的请求关闭、正常成功或仅零正文但已发headers均不能替代。观察器仅保留有限传输状态/原生对象事件，最多八个活动响应，关闭清除监听，不读取或日志化请求正文、headers、凭据或session。
+
+旧客户端cancel()先标cancelled再销毁socket，不能授真实断开见证；保留旧行为并新增独立严格观察器，等待实际ClientRequest传输关闭才标cancelled-transport。新cancelReleased/断开见证用原750ms最大控制窗口，校验实际0正文，失败粘滞且不能转为kill成功；在cancel回调后重验原生Promise，拒绝被替换的then/constructor，不执行未知钩子。旧15s请求、5s publication持有、ACK原token和FULL/DELETE语义不改。能力包装器精确支持旧五方法或完整新八方法，部分扩展/异步释放命令拒绝，不自动降级新路径。
+
+私有host-install已在HTTP消费者解构前安装原publication动作钩子和HTTP关闭观察器，冷态守卫拒绝已加载的producer/四个消费者；原生产函数与描述符关闭后恢复。三处独立源码闭包检查（构建、bootstrap、owned-entry）只登记固定publication/http-entry导入，仍限制为受审宿主及完整源码摘要；漏签新钩子、未知导入或外国文件照样拒绝。初次本地这三处遗漏分别拒绝，已逐一修复，未删门或改成通配允许。真实仓库源码的冷态安装/恢复也已实际执行，未构造持久生命周期/worker或发模型请求。
+
+最终九文件90/90、零fail/skip，含双进程物理签名通道、真实loopback TCP、8→9活动监听边界、跨请求隔离、旧cancelled假见证拒绝及真实源码冷安装。扩大七文件闭包检查34通过/0失败，另两项保持原Windows-only入口在Mac跳过，未加skip；本机不能据此授Windows入口。1722语法、全仓Lint零错误/五既有警告、定向格式及CI/release治理通过。证据见context-recovery-evidence/publication-cancellation-signed-transport.json。尚未接终态业务probe/adapter、取消结果的完成屏障，未运行实际daemon withdrawn/uncertain kill/release；本批不授终态持久矩阵或完整交付。
+
+固定10f9886普通40614630234八作业、正式40614630081六作业全部success，四份正式业务完整日志已读，精确source/plan/build及执行后hosted_network_finished/ownedTreeEmpty/TLS/隔离回执均核对。额外I/O40614630037/job122574121819也success，三份有限回执经原parseSummary重验；client-context-target专属窗口观察到的database/journal flush最大30/23ms，不能拿并行proxy的publication窗口解释其他HTTP请求。两阶段共十二次持久正文602–1322ms仅为该次样本，traceCompleteness/fiveSecondQualified均false，所有旧五秒失败保持。证据见10f9886-complete-ci.json和10f9886-io-normal-completion.json。
+
+固定31e6510独立业务40615577171四场景均success，四份完整日志/源码/计划/构建及执行后回执均已核对；普通40615577158七作业success但unit0/job122577161382失败：shared-hosted-materials原collision/identity清理测试25205ms、spawnSync pwsh.exe ETIMEDOUT，未确认唯一原因，不提高原期限、不重跑覆盖。其coverage已success，额外I/O40615577234/job122577161195现success，三回执经原解析器验证，正式source/egress及n08/sending/finished作业已success，n09/job122584138968仍运行，正式完整门未授；不能把旧源通过转授本批新接线。证据见31e6510-diagnostic-and-unit-failure.json和31e6510-io-normal-completion.json。
+
+下一步接终态业务探针、真实客户端取消和严格取消完成屏障，再执行默认daemon的持久快照/强杀/释放/同目录重开；同时继续定位原五秒COMMIT等待。旧6646长测冻结现场/任务未动，新24h未启动，未操作旧实例或日常配置，真实模型0、账未写。本机最新安装两端、逐provider额度核对后的真实模型、其余daemon COMMIT/终态、24h到期双重开、最大容量和最终受控自用仍未完成。
+
 ## 2026-10-28：终态取消暂停点基础通过，尚未接签名通道或实际daemon
 
 补独立publication-action-hook和publication-cancellation-gate：只在原invokeRecoveryPublication成功完成后观察固定动作枚举，观察器不收到session/参数/结果/原文或ACK；等待后返回同一个原结果，原生产器异常保持，不造ok或终态。withdrawn需要真实prepared元数据，uncertain先核对prepared再核对sending；generation/根/原expiry/精确版本/ordinal/空闲已完成写均匹配才发布有限暂停事实。异步暂停给真实客户端断开的后续见证留出事件循环，当前模块本身不会取消请求或写终态。五秒上限同时受观察时钟和独立真实单调时钟约束，冻结注入时钟也在真实五秒拒绝；关闭、超时、重入或非法回调均粘滞失败，不自动放行，不重试。ACK边界的prepared-prefix也扩展到prepared→withdrawn和prepared→sending→uncertain，前置真实token仍原路返回，只有最后精确ACK被持有。

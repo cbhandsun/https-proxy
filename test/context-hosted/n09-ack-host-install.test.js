@@ -58,12 +58,36 @@ exports.originalOpen = exports.openContextRecoveryStorage;`
   fs.writeFileSync(
     lifecycle,
     `exports.capturedOpen = require('./context-recovery-storage.js').openContextRecoveryStorage;
+exports.capturedPublication = require('./context-recovery-publication.js').invokeRecoveryPublication;
 const {createContextRecoverySessions}=require(${real('context-recovery-sessions.js')});
 exports.createContextRecoveryLifecycle = () => { const sessions=createContextRecoverySessions({now:()=>100}); sessions.configure(true); return {sessions,shutdownAsync:()=>sessions.shutdownAsync()}; };`
   );
+  const publication = path.join(install, 'lib/proxy/context-recovery-publication.js');
+  fs.writeFileSync(
+    publication,
+    `exports.invokeRecoveryPublication=require(${real('context-recovery-publication.js')}).invokeRecoveryPublication;exports.originalInvoke=exports.invokeRecoveryPublication;`
+  );
+  const consumers = [
+    'context-recovery-http-entry.js',
+    'context-recovery-compaction.js',
+    'context-recovery-observer.js',
+    'context-recovery-websocket-turn.js',
+  ].map((name) => path.join(install, 'lib/proxy', name));
+  for (const file of consumers) fs.writeFileSync(file, 'exports.neverUsed=true;');
+  fs.writeFileSync(consumers[0], 'exports.tryHandleContextRecoveryHttp = () => false;');
   fs.writeFileSync(storage, 'exports.neverUsed = true;');
   t.after(() => {
-    for (const file of [ack, lifecycle, storage, service, opening, contract, inventory])
+    for (const file of [
+      ack,
+      lifecycle,
+      storage,
+      service,
+      opening,
+      contract,
+      inventory,
+      publication,
+      ...consumers,
+    ])
       delete require.cache[file];
     fs.rmSync(root, { recursive: true, force: true });
   });
@@ -73,6 +97,8 @@ exports.createContextRecoveryLifecycle = () => { const sessions=createContextRec
     storage,
     service,
     opening,
+    publication,
+    consumers,
     input: { install, caseRoot, pid: 123, epoch: 'a'.repeat(32), signingKey: 'b'.repeat(64) },
   };
 }
@@ -92,6 +118,9 @@ test('host installs on cold fixed exports, observes original ACK and restores wi
   });
   const ack = require(f.ack);
   const factory = require(f.lifecycle);
+  const publication = require(f.publication);
+  assert.equal(factory.capturedPublication, publication.invokeRecoveryPublication);
+  assert.notEqual(factory.capturedPublication, publication.originalInvoke);
   const lifecycle = factory.createContextRecoveryLifecycle({
     directory: path.join(f.input.caseRoot, 'runtime/context-recovery-v1'),
   });
@@ -124,6 +153,7 @@ test('host installs on cold fixed exports, observes original ACK and restores wi
   assert.equal(client.readReceipt().revision, 2);
   assert.equal(require.cache[f.storage], undefined);
   host.close();
+  assert.equal(publication.invokeRecoveryPublication, publication.originalInvoke);
   assert.equal(lifecycle.sessions.inspect().closed, false);
   assert.deepEqual(await lifecycle.shutdownAsync(), { ok: true });
 });
@@ -247,4 +277,32 @@ test('ACK control directory conflict rejects and restores all exports without op
   assert.equal(storage.openContextRecoveryStorage, storage.originalOpen);
   assert.equal(storage.opening, undefined);
   assert.equal(require.cache[f.storage], undefined);
+});
+
+test('publication producer or an already-destructured consumer cannot enter the private host gate warm', (t) => {
+  for (const name of ['publication', 0, 1, 2, 3]) {
+    const f = fixture(t);
+    const file = name === 'publication' ? f.publication : f.consumers[name];
+    require(file);
+    assert.throws(() => installN09HostAck(f.input), safe);
+    assert.equal(require.cache[f.ack], undefined);
+  }
+});
+
+test('the real source installs cold before HTTP consumers and restores without constructing a lifecycle', () => {
+  const { spawnSync } = require('node:child_process');
+  const root = path.resolve(__dirname, '../..');
+  const source = `const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {installN09HostAck}=require(${JSON.stringify(path.join(root, 'scripts/context-hosted/n09-ack/host-install.js'))});
+const caseRoot=fs.mkdtempSync(path.join(fs.realpathSync.native(os.tmpdir()),'n09-actual-cold-'));fs.mkdirSync(path.join(caseRoot,'n09-ack'));
+let host;try{host=installN09HostAck({install:${JSON.stringify(root)},caseRoot,pid:process.pid,epoch:'a'.repeat(32),signingKey:'b'.repeat(64)});host.close();host=undefined;const publication=require(${JSON.stringify(path.join(root, 'lib/proxy/context-recovery-publication.js'))}),http=require(${JSON.stringify(path.join(root, 'lib/proxy/context-recovery-http-entry.js'))});process.stdout.write(JSON.stringify({publicationRestored:publication.invokeRecoveryPublication.name==='invokeRecoveryPublication',httpRestored:http.tryHandleContextRecoveryHttp.name==='tryHandleContextRecoveryHttp'}));}finally{host?.close();fs.rmSync(caseRoot,{recursive:true,force:true});}`;
+  const result = spawnSync(process.execPath, ['-e', source], {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(JSON.parse(result.stdout), { publicationRestored: true, httpRestored: true });
 });

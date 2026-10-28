@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+  "runId": 40614630037,
+  "jobId": 122574121819,
+  "jobConclusion": "success",
+  "fullJobLogRead": true,
+  "originalSummaryParserAccepted": 3,
+  "originalCoverageStagesPreserved": [
+    "proxy",
+    "client",
+    "frontend"
+  ],
+  "receipts": [
+    {
+      "sourceSha": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+      "stage": "proxy",
+      "window": "native-publication-interruption",
+      "cleanup": true,
+      "events": 20103,
+      "pairedFlushes": 149,
+      "database": {
+        "count": 47,
+        "maxMs": 43,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 102,
+        "maxMs": 58,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false,
+      "models": 0
+    },
+    {
+      "sourceSha": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+      "stage": "client",
+      "window": "client-context-target",
+      "cleanup": true,
+      "events": 25521,
+      "pairedFlushes": 144,
+      "database": {
+        "count": 48,
+        "maxMs": 30,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 96,
+        "maxMs": 23,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false,
+      "models": 0
+    },
+    {
+      "sourceSha": "10f98863a008cf4940bfc9019ce88ed6335519a3",
+      "stage": "client",
+      "window": "publication-graceful-http",
+      "cleanup": true,
+      "events": 3409,
+      "pairedFlushes": 63,
+      "database": {
+        "count": 21,
+        "maxMs": 24,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 42,
+        "maxMs": 23,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false,
+      "models": 0
+    }
+  ],
+  "persistentBodyEndObservations": [
+    {
+      "stage": "proxy",
+      "kind": "chat",
+      "turn": 0,
+      "elapsedMs": 992
+    },
+    {
+      "stage": "proxy",
+      "kind": "chat",
+      "turn": 1,
+      "elapsedMs": 1322
+    },
+    {
+      "stage": "proxy",
+      "kind": "responses",
+      "turn": 0,
+      "elapsedMs": 798
+    },
+    {
+      "stage": "proxy",
+      "kind": "responses",
+      "turn": 1,
+      "elapsedMs": 913
+    },
+    {
+      "stage": "proxy",
+      "kind": "claude",
+      "turn": 0,
+      "elapsedMs": 912
+    },
+    {
+      "stage": "proxy",
+      "kind": "claude",
+      "turn": 1,
+      "elapsedMs": 1154
+    },
+    {
+      "stage": "client",
+      "kind": "chat",
+      "turn": 0,
+      "elapsedMs": 602
+    },
+    {
+      "stage": "client",
+      "kind": "chat",
+      "turn": 1,
+      "elapsedMs": 722
+    },
+    {
+      "stage": "client",
+      "kind": "responses",
+      "turn": 0,
+      "elapsedMs": 631
+    },
+    {
+      "stage": "client",
+      "kind": "responses",
+      "turn": 1,
+      "elapsedMs": 770
+    },
+    {
+      "stage": "client",
+      "kind": "claude",
+      "turn": 0,
+      "elapsedMs": 604
+    },
+    {
+      "stage": "client",
+      "kind": "claude",
+      "turn": 1,
+      "elapsedMs": 729
+    }
+  ],
+  "proxyPublicationTraceDoesNotAttributeOtherHttpRequests": true,
+  "traceCompletenessVerified": false,
+  "fiveSecondStabilityEstablished": false,
+  "oldFailuresRetained": true,
+  "qualification": false,
+  "realModelRequests": 0
+}

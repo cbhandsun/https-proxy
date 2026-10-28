@@ -241,3 +241,114 @@ test('sending cannot publish a held receipt without the exact preceding prepared
   assert.equal((await rejected)[0].kind, 'rejected');
   assert.equal(files.read('held', 1), null);
 });
+
+test('signed cancellation handshake releases an async predecessor gate before its separate terminal ACK', async (t) => {
+  for (const transition of ['withdrawn', 'uncertain'])
+    await t.test(transition, async (t) => {
+      const { child, channel, files } = await fixture(t);
+      const armed = await channel.armCancellation(target(transition));
+      assert.equal(armed.kind, 'armed-cancel');
+      const returned = once(child, 'message', { signal: AbortSignal.timeout(3000) });
+      child.send({ kind: 'cancel-action', transition });
+      const trigger = await channel.waitTriggerHeld();
+      assert.equal(trigger.revision, 7);
+      assert.equal(trigger.callOrdinal, transition === 'withdrawn' ? 2 : 3);
+      assert.equal(files.read('held', 1), null, 'trigger is not the final durable ACK');
+      channel.releaseTrigger();
+      const held = await channel.waitHeld();
+      assert.equal(held.revision, 8);
+      assert(held.callOrdinal > trigger.callOrdinal);
+      assert.notEqual(held.holdChallenge, trigger.holdChallenge);
+      channel.release();
+      await channel.waitReleased();
+      assert.equal((await returned)[0].kind, 'returned');
+    });
+});
+
+test('even a full terminal ACK prefix cannot bypass the signed cancellation trigger', async (t) => {
+  const { child, channel, files } = await fixture(t);
+  await channel.armCancellation(target('uncertain'));
+  const rejected = once(child, 'message', { signal: AbortSignal.timeout(3000) });
+  child.send({ kind: 'cancel-action', transition: 'uncertain', skipTrigger: true });
+  assert.equal((await rejected)[0].kind, 'rejected');
+  assert.equal(files.read('held', 1), null);
+  assert.equal(files.read('trigger-held', 1), null);
+});
+
+test('a trigger release signed before the fresh trigger challenge does not release the predecessor', async (t) => {
+  const { child, channel, files, contract } = await fixture(t);
+  const armed = await channel.armCancellation(target('withdrawn'));
+  files.write(
+    'trigger-release',
+    1,
+    JSON.stringify(
+      contract.signCommand({
+        ...armed,
+        kind: 'trigger-release',
+        holdChallenge: '0'.repeat(32),
+        callOrdinal: 2,
+        revision: 7,
+      })
+    )
+  );
+  const rejected = once(child, 'message', { signal: AbortSignal.timeout(3000) });
+  child.send({ kind: 'cancel-action', transition: 'withdrawn' });
+  await channel.waitTriggerHeld();
+  assert.equal((await rejected)[0].kind, 'rejected');
+  assert.equal(files.read('held', 1), null);
+});
+
+test('a valid trigger release still waits for the independent server-side cancellation witness', async (t) => {
+  const { child, channel } = await fixture(t);
+  await channel.armCancellation(target('withdrawn'));
+  child.send({ kind: 'cancel-action', transition: 'withdrawn', waitForCancellation: true });
+  await channel.waitTriggerHeld();
+  channel.releaseTrigger();
+  const probed = once(child, 'message', { signal: AbortSignal.timeout(3000) });
+  child.send({ kind: 'probe-cancel' });
+  const [probe] = await probed;
+  assert.equal(probe.kind, 'cancel-probe');
+  assert(probe.checks > 0);
+  assert.equal(probe.state, 'trigger-holding');
+  assert.equal(probe.cancelled, false);
+  const returned = once(child, 'message', { signal: AbortSignal.timeout(3000) });
+  child.send({ kind: 'cancel-observed' });
+  await channel.waitHeld();
+  channel.release();
+  await channel.waitReleased();
+  assert.equal((await returned)[0].kind, 'returned');
+});
+
+test('cancellation route cannot arm a normal transition or release before a fresh trigger', async (t) => {
+  const a = await fixture(t);
+  await assert.rejects(
+    a.channel.armCancellation(target('prepared')),
+    /n09_publication_ack_channel_rejected/
+  );
+  assert.equal(a.files.read('arm', 1), null);
+  const b = await fixture(t);
+  await b.channel.armCancellation(target('withdrawn'));
+  assert.throws(() => b.channel.releaseTrigger(), /n09_publication_ack_channel_rejected/);
+  assert.equal(b.files.read('trigger-release', 1), null);
+});
+
+test('the final held signal cannot reuse the trigger challenge even with an authentic signature', async (t) => {
+  const { channel, files, contract } = await fixture(t);
+  const armed = await channel.armCancellation(target('withdrawn'));
+  const trigger = {
+    ...armed,
+    kind: 'trigger-held',
+    callOrdinal: 2,
+    holdChallenge: 'e'.repeat(32),
+    revision: 7,
+  };
+  files.write('trigger-held', 1, JSON.stringify(contract.signSignal(trigger)));
+  await channel.waitTriggerHeld();
+  channel.releaseTrigger();
+  files.write(
+    'held',
+    1,
+    JSON.stringify(contract.signSignal({ ...trigger, kind: 'held', callOrdinal: 3, revision: 8 }))
+  );
+  await assert.rejects(channel.waitHeld(), /n09_publication_ack_channel_rejected/);
+});

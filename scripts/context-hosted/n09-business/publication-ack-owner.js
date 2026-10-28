@@ -1,12 +1,13 @@
 'use strict';
 
 const { types } = require('node:util');
-const { fields, isN09NativePromise, discardN09PromiseRejection } = require('../n09-ack/contract');
+const { isN09NativePromise, discardN09PromiseRejection } = require('../n09-ack/contract');
+const { publicationAckCapability } = require('./publication-ack-capability');
 const fail = () => new Error('n09_lifecycle_client_failed');
 function createOwnedPublicationAck(resource, validate) {
   try {
     discardN09PromiseRejection(resource);
-    const methods = fields(resource, ['arm', 'waitHeld', 'release', 'waitReleased', 'close']);
+    const { methods, cancellation } = publicationAckCapability(resource);
     if (
       typeof validate !== 'function' ||
       types.isProxy(validate) ||
@@ -44,22 +45,30 @@ function createOwnedPublicationAck(resource, validate) {
         throw fail();
       }
     }
+    function command(name) {
+      try {
+        available();
+        const result = Reflect.apply(methods[name], resource, []);
+        discardN09PromiseRejection(result);
+        if (result !== undefined) throw fail();
+        available();
+      } catch {
+        failed = true;
+        throw fail();
+      }
+    }
     return Object.freeze({
       arm: (...args) => call('arm', ...args),
       waitHeld: () => call('waitHeld'),
       waitReleased: () => call('waitReleased'),
-      release() {
-        try {
-          available();
-          const result = Reflect.apply(methods.release, resource, []);
-          discardN09PromiseRejection(result);
-          if (result !== undefined) throw fail();
-          available();
-        } catch {
-          failed = true;
-          throw fail();
-        }
-      },
+      release: () => command('release'),
+      ...(cancellation
+        ? {
+            armCancellation: (...args) => call('armCancellation', ...args),
+            waitTriggerHeld: () => call('waitTriggerHeld'),
+            releaseTrigger: () => command('releaseTrigger'),
+          }
+        : {}),
       close() {
         if (closed) {
           if (closeFailed) throw fail();
