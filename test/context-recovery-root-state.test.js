@@ -3370,3 +3370,55 @@ test(
     }
   }
 );
+
+test('recovery state clone rejects nested and revoked proxies before structural traps', () => {
+  let traps = 0;
+  const handler = {
+    getPrototypeOf(target) {
+      traps++;
+      return Reflect.getPrototypeOf(target);
+    },
+    ownKeys(target) {
+      traps++;
+      return Reflect.ownKeys(target);
+    },
+    getOwnPropertyDescriptor(target, key) {
+      traps++;
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    },
+    get(target, key) {
+      traps++;
+      return Reflect.get(target, key);
+    },
+  };
+  const object = new Proxy({ data: 'synthetic' }, handler);
+  const array = new Proxy(['synthetic'], handler);
+  const revoked = Proxy.revocable({}, handler);
+  revoked.revoke();
+  for (const value of [object, array, revoked.proxy]) {
+    for (const input of [
+      value,
+      { nested: value },
+      [value],
+      { version: 10, root: { nested: value } },
+    ]) {
+      assert.throws(() => normalizeRecoveryStateData(input), {
+        message: 'invalid_context_recovery_state_data',
+      });
+    }
+  }
+  for (const value of [object, array, revoked.proxy]) {
+    assert.throws(() => normalizeRecoveryCheckpointData({ root: { version: 10, nested: value } }), {
+      message: 'invalid_context_recovery_state_data',
+    });
+    const { normalizeRecoveryReferenceData } = require('../lib/proxy/context-recovery-state-data');
+    assert.throws(
+      () =>
+        normalizeRecoveryReferenceData({
+          metadata: { kind: 'recovery-root-metadata', sourceVersion: 10, nested: value },
+        }),
+      { message: 'invalid_context_recovery_state_data' }
+    );
+  }
+  assert.equal(traps, 0);
+});

@@ -577,3 +577,34 @@ test('owned artifact reconstruction keeps creation time, closes failed stores an
     else delete require.cache[file];
   }
 });
+
+test('owned root admission rejects proxy sources before collecting immutable clone facts', () => {
+  let traps = 0;
+  const hook = () => {
+    traps++;
+    throw new Error('synthetic proxy trap');
+  };
+  const handler = {
+    getPrototypeOf: hook,
+    ownKeys: hook,
+    getOwnPropertyDescriptor: hook,
+    get: hook,
+  };
+  for (const slot of ['root', 'ledger', 'sources', 'source']) {
+    const input = fixture();
+    let candidate = input;
+    if (slot === 'root') candidate = new Proxy(input, handler);
+    else if (slot === 'ledger') input.ledger = new Proxy(input.ledger, handler);
+    else if (slot === 'sources') input.ledger.sources = new Proxy(input.ledger.sources, handler);
+    else input.ledger.sources[0] = new Proxy(input.ledger.sources[0], handler);
+    assert.throws(() => api().admitRecoveryRoot(candidate), {
+      message: 'invalid_context_recovery_state_data',
+    });
+  }
+  const revoked = Proxy.revocable(fixture(), handler);
+  revoked.revoke();
+  assert.throws(() => api().admitRecoveryRoot(revoked.proxy), {
+    message: 'invalid_context_recovery_state_data',
+  });
+  assert.equal(traps, 0);
+});

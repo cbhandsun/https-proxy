@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：恢复状态克隆器在反射前拒绝Proxy；原Responses单例采样未复现尾延迟
+
+底层cloneRecoveryStateData原来只拒绝非普通原型/访问器，普通Proxy仍可越过克隆并在getPrototypeOf/ownKeys/descriptor/get上执行调用方陷阱；嵌套Proxy也可进入v10 checkpoint/reference及owned admission事实收集。新回归在原版本明确失败Missing expected exception。现在只在结构反射之前增加types.isProxy拒绝；撤销Proxy也得到固定invalid_context_recovery_state_data，不触发陷阱。没有改节点/深度/字节、原型/访问器/循环边界、授权、预算、原expiry或持久/精确ACK语义，没有跨调用缓存。
+
+三个完整文件114/114、零fail/skip，覆盖普通/空/非法/极端原门、对象/数组/撤销及嵌套Proxy、checkpoint/reference和owned事实路径；所有恶意陷阱计数0。1731语法、全仓Lint零错误/五既有警告、最终改动文件Lint、定向格式、CI/release治理通过。回归加入现有root-state/ledger-admission文件，由原统一unit/client coverage发现；Windows新源码门仍待，不把此输入边界修复称作五秒性能修复。有限证据见context-recovery-evidence/recovery-state-proxy-rejection.json。
+
+前一轮已在用户授权的Windows独立短测目录对原Responses顶层用例采样一次：原600000字符及全部内部模式不改，原5000ms请求/120000ms父Job和5000ms树关闭不改。该用例1/1、零fail/skip，18825ms、task终态0/原Job自然空；两次long-persistent body_end为2009/2385ms。两份worker SQLite记录无overflow，COMMIT最大32.676/26.271ms，19个执行阶段完成、无失败，engineExecute累计955ms、独立snapshot679ms、anchor703ms。CPU计数分辨率粗，不能把0当作没有CPU；instrumentation有扰动，单例选择不能替代原40项或覆盖旧秒级COMMIT和五秒失败。原1afe的2024份源码pin在启动前核对，lib与所选测试到be6545无变更；Node摘要核对，但本次没有独立钉住助手身份，因此不授新的native身份/资格。原始日志只保留本机，有限数据见context-recovery-evidence/1afe-responses-sql-v4-sample.json。未由此次通过追授任何根因或性能修复。
+
+e0十组独立真实daemon诊断通过保持；其普通原七项通过/coverage仍运行，正式source122610336517和额外I/O122610337153仍为原作业。安装40625996281/122611063764仍执行原完整候选门，没有进入安装完成；该候选源码固定e0，不自动继承本批新输入拒绝。继续核对同一原job，不重启洗掉失败。
+
+旧6646失败现场/任务及旧E实例不动，新24h未启动、真实模型0、额度未写。整体仍缺五秒稳定性、当前完整门/安装两端、额度分账受控真实provider、24h/到期双重开、最大容量及最终自用启用，不因局部修复收窄目标。
+
+
 ## 2026-10-28：e0十组独立Windows业务全部通过；最新安装链已启动原源码门
 
 固定e0e0f14独立40625817674十组已全部终态success；十份完整日志逐一核对精确source/plan/build摘要及实际hosted_network_finished、probesPassed、TLS/非loopback隔离/ownedTreeEmpty回执。新sending-commit/job122610337061和finished-commit/job122610337108都完成真实默认daemon的kill/release控制，两个取消型COMMIT也通过，原六组全部保留通过。支持本批同步暂停内服务认证观察查询的修复；这不是单纯prepared_only或夹具替代。有限证据见context-recovery-evidence/e0e0f14-ten-diagnostic-groups.json。ae306两组184/case160和旧c505 finished184/case161及所有五秒失败均保留，不追授旧c505的唯一原因，不授五秒长期稳定性/full N09/24h。

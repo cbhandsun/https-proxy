@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "baseSource": "be6545ec4718458b60fff189389cf10b64f64484",
+  "scope": "recovery_state_descriptor_only_clone_and_owned_admission",
+  "beforeFix": {
+    "regressionExitCode": 1,
+    "failure": "Missing expected exception",
+    "ordinaryProxyAccepted": true
+  },
+  "afterFix": {
+    "files": [
+      "test/context-recovery-root-state.test.js",
+      "test/context-recovery-ledger-admission.test.js",
+      "test/context-history-map.test.js"
+    ],
+    "tests": 114,
+    "passed": 114,
+    "failed": 0,
+    "skipped": 0,
+    "trapsInvoked": 0,
+    "proxyObjectArrayRevokedCovered": true,
+    "nestedCheckpointReferenceOwnedFactsCovered": true
+  },
+  "invariants": {
+    "byteNodeDepthLimitsChanged": false,
+    "authenticationChanged": false,
+    "durabilityChanged": false,
+    "ackRevisionChanged": false,
+    "expiryChanged": false,
+    "plaintextCacheAdded": false
+  },
+  "qualification": {
+    "windowsCiPassed": false,
+    "fiveSecondStable": false,
+    "nativeCommitOr24hQualified": false,
+    "realModelCalls": 0
+  }
+}
