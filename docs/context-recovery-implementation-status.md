@@ -1,5 +1,22 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：2e 完整正式链通过；真实五秒请求失败已与 COMMIT 刷盘窗口关联
+
+固定2e943758普通40735126668八作业、正式40735126602十二作业全部成功。完整coverage3796360/source3890398字符日志已读；十份业务完整日志逐一核对同source/plan/build与实际hosted_network_finished、TLS/非回环阻断/ownedTreeEmpty，不能用prepared_only代替执行。七份有限I/O回执经原parseSummary接受；接受格式不授traceCompleteness或五秒资格。
+
+额外I/O40735126648/job122981492362终态failure、完整3745244字符日志保留：Chat
+WBIPC
+long-persistent第1轮请求5001ms失败，Claude第0轮5012ms失败。两者是实际HTTP请求触及原AbortSignal五秒门，不是本次原生夹具首次ready超时。Chat同一失败段内ownerEpoch1/sequence9的SQL
+COMMIT为1793208711930→1793208714010（2080ms），有限记录的journal
+flush1930→3114（1184ms）和DB
+flush3133→4010（877ms）均落在该段；这比总engine耗时更具体，但公开窗口没有文件ID/PID，不能授唯一物理文件或唯一根因。随后第二请求预算保存COMMIT1059ms、结算954ms、下一预算保存1428ms、读取结算676ms，叠加锚点等待，不能把任一局部低值或普通绿色称为稳定。
+
+调用路径已核对root-reader/root-storage/read-settlement及既有回归：读取前的预算预留必须先持久确认，存储读取结果的结算必须精确ACK后才返回；目前两次提交不是可直接删除的重复写。直接把预留延迟到读取后会改变失败时计费/准入语义，故本批未采用，也未合并任何publication状态或跨COMMIT复用认证证明。下一步须针对同轮持久等待作可保留这些语义的实现修复，本批仅完成证据归因范围，五秒缺口保持。
+
+Windows隔离缓存续建实际应用2e工具，15项helper零fail/skip；275个公开压缩包逐checksum及回读校验通过、234个非目标平台锁条目缺失明确报告。原离线锁定npm/plugin、原生Rust47项和native-prepare均退出0；installer-build实际子进程在运行，有限编译日志已观察到syn等编译单元，无新包完成回执。产品源码仍固定989，不把2e缓存工具身份当产品源码或安装资格；原cache-copy失败/部分旧缓存保持，旧实例未动。
+
+证据见context-recovery-evidence/2e94375-complete-ci-and-persistent-timeout.json。旧868长测只读再次确认process_not_running、最后scheduled900000/4节拍、passed=false，缺最终子进程回执，terminalConfirmed仍false；没有有效新24h在跑。本批模型0/新24h未启动/最大容量暂停，最新本机安装两端、真实provider、24h及两次到期重开和受控自用仍未完成。
+
 ## 2026-10-28：bc 普通通过、正式持久准备失败；修复本机构建缓存复制方式
 
 固定bc36aed普通40727593464八作业成功，coverage完整3791897字符已读、无not-ok，三份I/O经原parseSummary接受；正式40727593501/source122954931052终态failure，完整2736629字符已读，后续业务skipped。唯一可见原生sending/ACK kill用例仍在ready五秒门失败，未advance；开库1676ms，首个save-reference-state总2383ms，其中engine_execute1917ms、anchor持久结束2346ms，下一save的engine执行580ms后未完成。engine总耗时不等于已测COMMIT单段；本次有限录制没有覆盖此原生失败窗口，不能用另一个窗口的DB/journal低值解释它或宣布稳定。既有989托管安装资格和所有旧失败分别保留。

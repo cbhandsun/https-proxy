@@ -1,5 +1,10 @@
 # 上下文恢复换机交接
 
+## 2026-10-28 最新续接：2e 全正式通过，实际请求五秒失败保持
+
+优先读实施状态顶部及2e94375-complete-ci-and-persistent-timeout.json。普通八/正式十二和十实际业务完整核对，七I/O原解析接受；额外I/O实际Chat5001/Claude5012ms请求失败。Chat2080ms
+COMMIT与同窗journal1184/DB877ms刷新相交，但无文件ID/PID，不能授唯一原因。读取前持久预算和读取后精确结算不是可直接删除的重复写，publication/ACK/FULL/DELETE/期限不可改；尚无本批五秒产品修复。Windows2e缓存helper15项、固定989原生Rust47项实际通过，安装器仍编译，无新包/安装资格；原失败保持。旧868进程不存在、有效15分钟/4节拍，缺最终子进程回执、terminalConfirmed=false，无新24h或模型；旧实例/最大容量限制沿用。
+
 ## 2026-10-28 最新续接：本机构建卡在展开缓存复制，原五秒失败仍在
 
 优先读实施状态顶部及cargo-archive-cache-and-runtime-failures.json。bc普通八成功，正式source在原生sending/ACK准备ready五秒失败，engine_execute1917ms不能当COMMIT单段或唯一根因。独立观测诊断10可见通过/7失败触及原120秒、无最终TAP，所有失败保留。固定989新本机诊断候选仅生成、不安装、不授资格，原全门启动模板不放宽；源码与1260ms纯导入采样通过，但cache-copy在registry/src失败，任务Ready/1、没有安装器，不重启原任务。新模块只按Cargo.lock校验/复制公开压缩包并回读，明确缺失其他平台条目，后续Cargo原离线/锁定门仍必跑；15项单测及治理通过，尚待Windows应用。须新控制任务、新Cargo缓存，原部分缓存/失败现场保持；旧实例、真实模型、新24h和最大容量限制沿用。
