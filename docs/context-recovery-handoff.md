@@ -1,5 +1,10 @@
 # 上下文恢复换机交接
 
+## 2026-10-28 最新续接：本机构建卡在展开缓存复制，原五秒失败仍在
+
+优先读实施状态顶部及cargo-archive-cache-and-runtime-failures.json。bc普通八成功，正式source在原生sending/ACK准备ready五秒失败，engine_execute1917ms不能当COMMIT单段或唯一根因。独立观测诊断10可见通过/7失败触及原120秒、无最终TAP，所有失败保留。固定989新本机诊断候选仅生成、不安装、不授资格，原全门启动模板不放宽；源码与1260ms纯导入采样通过，但cache-copy在registry/src失败，任务Ready/1、没有安装器，不重启原任务。新模块只按Cargo.lock校验/复制公开压缩包并回读，明确缺失其他平台条目，后续Cargo原离线/锁定门仍必跑；15项单测及治理通过，尚待Windows应用。须新控制任务、新Cargo缓存，原部分缓存/失败现场保持；旧实例、真实模型、新24h和最大容量限制沿用。
+
+
 ## 2026-10-28 最新续接：989 托管最新安装资格已取得，五秒失败不能被覆盖
 
 优先读实施状态顶部与989a0bd-hosted-installer-and-preserved-failures.json。固定989普通八/review八/正式十二成功，十份实际业务回执完整核对；额外I/O两项transport-finished COMMIT准备ready五秒失败仍在，未advance、唯一底层原因未确认。最新安装40720391644终态success、完整日志已读：升级回滚/DPAPI、真实582八阶段迁移拒写、四CLI合成三次压缩与重启留存、自然HTTP/SSE/WS排空和包内发布30项全通过，只授托管manifest118a8748/app a754fba4。旧f151安装失败及所有五秒失败保持，本机二进制/真实provider/24h不继承。本机新989短测两次npm进程0但后置git-revision五秒超时，产品测试未启动；原任务冻结，独立严格admitted准入通过，但首次默认开库在目录ACL阶段失败（worker4888ms、ACL开始5046ms、失败19299ms、0开0闭），后续产品组未启动，任务Ready/1保持，须定位该边界而非重跑。预备本机构建的CRLF辅助身份不符已在启动前拦截，未注册/执行，勿直接启动旧payload。旧长测/旧实例/模型限制继续，未启动新24h，最大容量仍暂停。

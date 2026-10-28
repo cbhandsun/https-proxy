@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "parentSource": "bc36aedf385c52d5dfb1c2a2eaea0804099e44cf",
+  "scope": "build_cache_fix_and_retained_runtime_failures",
+  "bcOrdinary": {
+    "runId": 40727593464,
+    "jobsPassed": 8,
+    "coverageLogChars": 3791897,
+    "coverageIoReceiptsAcceptedByOriginalParser": 3
+  },
+  "bcFormal": {
+    "runId": 40727593501,
+    "jobId": 122954931052,
+    "conclusion": "failure",
+    "fullLogChars": 2736629,
+    "awaiting": "ready",
+    "lastFixture": "fixture-observed",
+    "startupElapsedMs": 1676,
+    "targetAdvanceEntered": false,
+    "firstSaveElapsedMs": 2383,
+    "firstSaveEngineExecuteMs": 1917,
+    "firstSaveAnchorPersistFinishedMs": 2346,
+    "nextSaveEngineExecuteMs": 580,
+    "sqlCommitSubphaseTimeKnown": false,
+    "nativeFailureIoWindowCaptured": false,
+    "uniqueRootCauseConfirmed": false
+  },
+  "windowsDiagnostics": {
+    "fixedSource": "989a0bda67945a56934774bc8b24af49bee92977",
+    "isolatedAclMs": 311,
+    "instrumentedWorkerCompletedOpens": 2,
+    "instrumentedWorkerCompletedCloses": 2,
+    "instrumentedWorkerReadyMs": [
+      4354,
+      4692
+    ],
+    "instrumentedInterruptionVisiblePasses": 10,
+    "instrumentedInterruptionVisibleFailures": 7,
+    "finalTapObserved": false,
+    "groupDeadlineMs": 120000,
+    "taskResult": 126,
+    "nativeCallsStarted": 107,
+    "nativeCallsFinished": 105,
+    "nativeCallFailuresObserved": 0,
+    "unfinishedNativeCalls": 2,
+    "maxFinishedNativeCallMs": 1150,
+    "ownedProcessesRemaining": 0,
+    "qualification": false
+  },
+  "windowsImportProfile": {
+    "source": "989a0bda67945a56934774bc8b24af49bee92977",
+    "elapsedMs": 1260,
+    "sourceModules": 90,
+    "nodeBootstrapCompleteMs": 202,
+    "storageOpened": false,
+    "modelRequests": 0
+  },
+  "localCandidateBuild": {
+    "fixedSource": "989a0bda67945a56934774bc8b24af49bee92977",
+    "purpose": "candidate_generation_only_unqualified",
+    "conclusion": "failure",
+    "failedStage": "cache-copy",
+    "elapsedMs": 324886,
+    "completedCopies": [
+      ".fingerprint",
+      "build",
+      "deps",
+      "incremental",
+      "registry/cache"
+    ],
+    "nextCopyFailed": "registry/src",
+    "perTreeCopyDeadlineMs": 120000,
+    "cacheStageDeadlineMs": 600000,
+    "exactCopyErrorCauseAvailable": false,
+    "candidateProduced": false,
+    "originalFailurePreserved": true,
+    "oldAllGatesQualifiedLaunchTemplateUnchanged": true
+  },
+  "change": {
+    "copyOnlyLockSelectedPublicArchives": true,
+    "validateOriginalCargoLockChecksumsAndReadback": true,
+    "expandedSourcesCopied": false,
+    "oldCacheHardlinksCreated": false,
+    "credentialsCopied": false,
+    "missingForeignPlatformArchivesExplicitlyCounted": true,
+    "cargoOfflineLockedBuildAndTestStillRequired": true,
+    "windowsExecutionOfNewHelperPending": true,
+    "productRuntimeChanged": false,
+    "originalDeadlinesChanged": false
+  },
+  "validation": {
+    "testsPassed": 15,
+    "testsFailed": 0,
+    "testsSkipped": 0,
+    "unifiedUnitDiscoveryVerified": true,
+    "syntaxFiles": 1736,
+    "eslintPassed": true,
+    "ciAndReleaseGovernancePassed": true,
+    "initialTestsFailedBecausePhysicalTempAlias": 3,
+    "destinationNewlineRegressionRedBeforeFix": true
+  },
+  "limits": {
+    "allSourceGatesPassed": false,
+    "fiveSecondStable": false,
+    "localInstalledQualified": false,
+    "realProviderQualified": false,
+    "retention24hQualified": false,
+    "new24hStarted": false,
+    "realModelRequests": 0,
+    "oldFrozenFailuresPreserved": true,
+    "maximumCapacityStillPaused": true,
+    "dailyInstanceChanged": false
+  }
+}

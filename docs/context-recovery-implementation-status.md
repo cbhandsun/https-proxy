@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：bc 普通通过、正式持久准备失败；修复本机构建缓存复制方式
+
+固定bc36aed普通40727593464八作业成功，coverage完整3791897字符已读、无not-ok，三份I/O经原parseSummary接受；正式40727593501/source122954931052终态failure，完整2736629字符已读，后续业务skipped。唯一可见原生sending/ACK kill用例仍在ready五秒门失败，未advance；开库1676ms，首个save-reference-state总2383ms，其中engine_execute1917ms、anchor持久结束2346ms，下一save的engine执行580ms后未完成。engine总耗时不等于已测COMMIT单段；本次有限录制没有覆盖此原生失败窗口，不能用另一个窗口的DB/journal低值解释它或宣布稳定。既有989托管安装资格和所有旧失败分别保留。
+
+Windows独立诊断：空目录ACL总311ms；带有限观测的真实worker两次开闭通过、ready4354/4692ms，不授默认worker资格。随后同一固定989源码、原负载/五秒/120秒门的首次原生中断文件诊断，原父门到期，任务Ready/126、cleanupFailed=false；只有10项可见通过/7项ready失败，无最终TAP，不能称整组20项执行或通过。107次ACL调用开始、105次完成，已完成最大1150ms、未观察到调用自身失败；两次未完成不能排除其后会超时。独立终态确认所属Node/native残留0。失败分布于key ACL/protect、引擎/锚点启动和首次持久保存，不支持统一归因ACL。新目录纯导入采样90模块1260ms、Node bootstrap202ms，未开库；这是经过时间线索，不是CPU或唯一根因。
+
+为并行准备实际交付，在独立目录启动了只生成、不安装的固定989诊断候选：它保留extraIoPassed/allSourceGatesPassed/localInstalledQualified=false，原要求全门通过的启动模板保持阻断，不授整体或长测资格。新payload用Git原始字节，纠正了旧未启动payload的CRLF身份差异；源码及导入采样通过。随后cache-copy324886ms退出1，编译产物四目录和registry/cache成功，下一registry/src复制失败；原脚本丢弃了子进程详细原因，不能认定唯一是120秒超时。未进入npm或编译、没有新安装器；旧任务、部分缓存和日志保持。
+
+本批将后续缓存准备拆成可测试模块：仅按两份提交Cargo.lock选取公开.crate，校验原checksum和写后回读，逐描述符限制64MiB/总512MiB；拒绝链接、物理路径替换、目标复用、非法路径及有副作用输入，不复制registry/src、凭据或到旧缓存的硬链接。Windows缓存不必具备其他平台所有条目，缺项明确计数，不冒充目标依赖齐备；Cargo仍须原离线/锁定构建和测试，没有网络补齐、依赖升级、跳测或自动重试。新15项本地通过、零fail/skip，统一unit发现已确认，1736语法、定向Lint及CI/release治理通过。最初三项被Mac临时目录物理别名挡在预期路径前，修正测试放置而不改产品路径门；新增非法目标换行回归先红后修复，原记录保留。Windows实际使用新模块仍待，不能把单测称为本机构建完成。
+
+证据见context-recovery-evidence/cargo-archive-cache-and-runtime-failures.json。本批不改产品恢复实现、认证、原期限、FULL/DELETE或公开签名门；新24h和真实模型均未启动，旧E实例未动，最大容量仍暂停。下一步在新控制任务/新Cargo缓存中实际应用模块、继续原构建检查；五秒尾等待、最新本机安装两端、真实provider及24h/到期重开等完整缺口保持。
+
+
 ## 2026-10-28：989 最新托管安装链全通过；额外 I/O 五秒失败与本机准备失败保持
 
 固定989a0bda普通40720243799八作业、review Verify40720391526八作业、正式40720243800十二作业全部成功；普通coverage完整3791044、正式source3884939字符日志及十份实际业务执行回执均已核对。最后n09的source/plan/build与执行后hosted_network_finished、TLS/非回环阻断/ownedTreeEmpty一致，不能只用prepared_only授资格。
