@@ -28,6 +28,13 @@ const {
 } = require('../lib/proxy/context-recovery-storage-paths');
 const { KEY_PREFIX } = require('../lib/proxy/context-recovery-key-contract');
 const { createStorageStartupProgress } = require('../lib/proxy/context-recovery-storage-progress');
+// Real owner fixtures use the actual admitted backend; fake-worker protocol
+// fixtures below continue to exercise the complete legacy phase sequence.
+const directoryAdmissionPhases =
+  process.platform === 'win32' &&
+  fs.existsSync(path.resolve(__dirname, '../runtime/native/hpm-context-recovery-key.exe'))
+    ? ['directory_writer_prepare_started', 'directory_writer_prepare_finished']
+    : ['directory_acl_started', 'directory_acl_finished'];
 
 const scope = 'c'.repeat(64);
 const state = {
@@ -238,8 +245,7 @@ test('storage owner refuses unknown files, hard links, replaced files and unavai
         assert.equal(fs.existsSync(path.join(fixture.directory, 'checkpoint.sqlite')), false);
         assert.deepEqual(phases, [
           'paths_started',
-          'directory_acl_started',
-          'directory_acl_finished',
+          ...directoryAdmissionPhases,
           'paths_ready',
           'ownership_started',
           'ownership_acquired',
@@ -783,8 +789,7 @@ test('owner emits only fixed phases and observer failures preserve ownership and
     );
     assert.deepEqual(phases, [
       'paths_started',
-      'directory_acl_started',
-      'directory_acl_finished',
+      ...directoryAdmissionPhases,
       'paths_ready',
       'ownership_started',
       'ownership_acquired',
@@ -836,8 +841,7 @@ test('owner emits only fixed phases and observer failures preserve ownership and
     );
     assert.deepEqual(phases, [
       'paths_started',
-      'directory_acl_started',
-      'directory_acl_finished',
+      ...directoryAdmissionPhases,
       'paths_ready',
       'ownership_started',
       'ownership_acquired',

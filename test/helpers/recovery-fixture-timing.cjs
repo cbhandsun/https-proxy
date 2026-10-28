@@ -18,6 +18,8 @@ const PHASES = new Set([
   'worker_started',
   'directory_acl_started',
   'directory_acl_finished',
+  'directory_writer_prepare_started',
+  'directory_writer_prepare_finished',
   'paths_ready',
   'ownership_acquired',
   'key_protect_started',

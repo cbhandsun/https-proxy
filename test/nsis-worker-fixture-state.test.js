@@ -222,6 +222,21 @@ test('worker evidence accepts directory ACL phases without treating them as read
   assert.throws(() => invalid.receipt(false));
 });
 
+test('compound directory preparation evidence cannot stand in for native worker readiness', () => {
+  const evidence = createWorkerStartupEvidence();
+  for (const phase of [
+    'worker_started',
+    'paths_started',
+    'directory_writer_prepare_started',
+    'directory_writer_prepare_finished',
+  ])
+    evidence.observe({ phase });
+  assert.throws(() => evidence.receipt(false));
+  for (const phase of ['key_protect_finished', 'database_opened', 'engine_ready', 'ready'])
+    evidence.observe({ phase });
+  assert.equal(evidence.receipt(false).ready, true);
+});
+
 test('worker refusal verifies the exact old/new format before opening and releases physical SQLite locks', (t) => {
   const fs = require('node:fs');
   const os = require('node:os');

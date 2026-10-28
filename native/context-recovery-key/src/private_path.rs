@@ -1,5 +1,37 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
+
+mod storage;
+pub use storage::run as run_storage_directory;
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+struct PathIdentity {
+    dev: String,
+    ino: String,
+    #[serde(rename = "birthtimeNs")]
+    birthtime_ns: String,
+}
+
+#[cfg(any(windows, test))]
+fn identity_from_parts(
+    volume: u32,
+    index: [u32; 2],
+    creation: [u32; 2],
+) -> Result<PathIdentity, ()> {
+    let index = (u64::from(index[0]) << 32) | u64::from(index[1]);
+    let ticks = (u64::from(creation[1]) << 32) | u64::from(creation[0]);
+    // Node/libuv accepts signed FILETIME ticks. Refuse values which would
+    // otherwise wrap there while Rust's wider arithmetic still succeeded.
+    if ticks > i64::MAX as u64 {
+        return Err(());
+    }
+    let birthtime = i128::from(ticks) * 100 - 11_644_473_600_000_000_000i128;
+    Ok(PathIdentity {
+        dev: volume.to_string(),
+        ino: index.to_string(),
+        birthtime_ns: birthtime.to_string(),
+    })
+}
 
 const MAX_INPUT: u64 = 20000;
 
@@ -59,7 +91,7 @@ fn parse(input: &[u8]) -> Result<Request, ()> {
 
 #[cfg(windows)]
 mod windows {
-    use super::{Kind, Request};
+    use super::{identity_from_parts, Kind, Request};
     use std::ffi::c_void;
     use std::fs::{File, OpenOptions};
     use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
@@ -197,11 +229,16 @@ mod windows {
         String::from_utf16(unsafe { std::slice::from_raw_parts(text, length) }).map_err(|_| ())
     }
 
-    fn open(path: &Path, write_acl: bool) -> Result<File, ()> {
+    pub(super) fn open(path: &Path, write_acl: bool) -> Result<File, ()> {
         // No DELETE sharing: keep every ancestor and the target pinned while
-        // examining and replacing the target DACL. Open reparses themselves.
+        // examining and replacing the target DACL. Metadata-only access does
+        // not participate in Windows sharing checks (MS-FSA 2.1.5.1.2.2).
+        // Bit 1 is FILE_READ_DATA / FILE_LIST_DIRECTORY: request it alongside
+        // READ_ATTRIBUTES so share_mode(3) actually denies rename/delete opens.
+        // No DELETE access is requested and no content is read here.
+        // Open reparses themselves.
         let file = OpenOptions::new()
-            .access_mode(if write_acl { 0x0006_0080 } else { 0x80 })
+            .access_mode(if write_acl { 0x0006_0081 } else { 0x81 })
             .share_mode(3)
             .custom_flags(0x0220_0000)
             .open(path)
@@ -211,6 +248,19 @@ mod windows {
             return Err(());
         }
         Ok(file)
+    }
+
+    pub(super) fn identity(
+        file: &File,
+        require_single_link: bool,
+    ) -> Result<super::PathIdentity, ()> {
+        let mut info: FileInfo = unsafe { std::mem::zeroed() };
+        if unsafe { GetFileInformationByHandle(file.as_raw_handle(), &mut info) } == 0
+            || (require_single_link && info.links != 1)
+        {
+            return Err(());
+        }
+        identity_from_parts(info.volume, info.index, info.creation)
     }
 
     unsafe fn acl_bytes(acl: Handle) -> Result<Vec<u8>, ()> {
@@ -355,6 +405,38 @@ pub fn run<R: Read, W: Write>(reader: R, mut writer: W) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn handle_identity_maps_volume_index_and_signed_filetime_without_rounding() {
+        let parts = |ticks: u64| [ticks as u32, (ticks >> 32) as u32];
+        let identity = identity_from_parts(
+            u32::MAX,
+            [u32::MAX, u32::MAX],
+            parts(116_444_736_000_000_001),
+        )
+        .unwrap();
+        assert_eq!(identity.dev, "4294967295");
+        assert_eq!(identity.ino, "18446744073709551615");
+        assert_eq!(identity.birthtime_ns, "100");
+        assert_eq!(
+            identity_from_parts(0, [0, 1], parts(116_444_736_000_000_000))
+                .unwrap()
+                .birthtime_ns,
+            "0"
+        );
+        assert_eq!(
+            identity_from_parts(0, [0, 1], parts(116_444_735_999_999_999))
+                .unwrap()
+                .birthtime_ns,
+            "-100"
+        );
+        assert_eq!(
+            identity_from_parts(0, [0, 1], [0, 0]).unwrap().birthtime_ns,
+            "-11644473600000000000"
+        );
+        assert!(identity_from_parts(0, [0, 0], parts(i64::MAX as u64)).is_ok());
+        assert!(identity_from_parts(0, [0, 0], parts(i64::MAX as u64 + 1)).is_err());
+        assert!(identity_from_parts(0, [0, 0], [u32::MAX, u32::MAX]).is_err());
+    }
     #[test]
     #[cfg(windows)]
     fn protects_real_file_and_directory_and_rejects_mismatches_and_hardlinks() {

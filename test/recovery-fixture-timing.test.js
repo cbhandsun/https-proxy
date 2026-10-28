@@ -22,6 +22,22 @@ test('fixture timing retains directory ACL markers and refuses arbitrary phase t
   ]);
 });
 
+test('compound directory and writer preparation has its own finite diagnostic markers', () => {
+  let time = 0;
+  const trace = createRecoveryFixtureTiming(
+    () => time,
+    () => null
+  );
+  trace.mark('directory_writer_prepare_started');
+  time = 12;
+  trace.mark('directory_writer_prepare_finished');
+  trace.mark('directory_writer_prepare_finished/private');
+  assert.deepEqual(trace.snapshot(), [
+    { phase: 'directory_writer_prepare_started', elapsedMs: 0 },
+    { phase: 'directory_writer_prepare_finished', elapsedMs: 12 },
+  ]);
+});
+
 test('fixture timing distinguishes wall duration from process CPU without exposing data', () => {
   let time = 100,
     usage = { user: 10000, system: 2000 };

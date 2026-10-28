@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：合并目录/writer 原生准入并修复句柄保护；Windows 组件 43/43
+
+7d 普通 Verify 仍失败：原生 graceful HTTP 在目标 advance 前的 ready 五秒超时，另有 PowerShell 原三十秒超时；旧失败保留。正式十二作业成功，仅授同源码门及十个有界合成场景，不授完整 N08/N09、安装器、provider 或 24h。额外 I/O/coverage 成功不覆盖这些失败。
+
+独立 Windows 固定 903 的原 Core/Codex 两完整文件已自然退出 0，50/50、零 skip，六个持久发布 2167–2975ms。此前额外 120 秒控制器不足的失败保留，完整运行采用仓库原十五分钟作业界限，单请求五秒不变。另一原 graceful/readiness 两文件退出 1，12 项中 5 通过/7 失败：五项 graceful 未过初始 ready，另两项私有控制器 PATH 缺 PowerShell 导致 ENOENT；后者不能解释托管三十秒失败。
+
+本批实际优化将目录 ACL 与固定 writer 创建/ACL 放在一次原生调用，返回原生句柄身份并仅消费一次 writer 准入；不预建 checkpoint，不缓存跨提交认证。首轮原生组件 14 项中 13 通过/1 失败（Cargo 101）：原元数据句柄未阻止根目录 rename。按微软共享检查语义修正公共 open 的读取/列目录访问位，保留无 DELETE sharing、DACL、reparse、单链接/大小及失败关闭；fresh/既有 writer 与 root/ancestor/file guard 的负控和关闭后合法 rename 正控实际通过。修复后原生模块 15/15、locked release build 与 fmt 通过，另 38 个非本模块用例未在该组件运行，不授整个 Rust crate 资格。
+
+第二轮 Node 18 项中 17 通过/1 失败，发生在 native 调用前：测试错误假定 Node 能精确读取合成的 Unix 纪元前 100ns，实际读为 4294967295999999900ns；原生仍精确返回 -100ns。保留失败，修正测试为先证明真实 native canonical 成功回执及精确 -100，再验证 facade 因不一致严格拒绝；不转换时间放行，不授 pre-Unix 兼容资格。第三轮新目录复用相同十三份输入及同哈希 single-link 原生产物，公开模块 18/18、完整 storage-service 25/25，合计 43/43、零 fail/skip/cancel，真实 worker/DPAPI 新库重开和进程隔离实际通过；任务成功、所属进程为空，全部在原 60/120 秒阶段界限及十五分钟总界限内。仅授未提交组件功能，不授新提交完整 CI、五秒稳定性或 24h。
+
+当前本机合并回归 57 项中 52 通过/5 平台跳过；1744 语法、完整 Lint（零错误/五个既有警告）、CI/发布治理、本批 JS 格式及原 high 审计门通过。整个 Mac checkout 格式检查因 1437 文件告警退出 1，三份未改样本仅换行差异，未批量格式化且不宣称完整格式门通过。详见 context-recovery-evidence/native-directory-compound-preparation.json。最近封存分账仍 169/177、Codex1/Claude7，发送前仍需新鲜台账与持久预留，本批模型 0。旧 868 仍四节拍/约十五分钟、进程不存在且缺最终回执；无新 24h 在跑。旧日常实例/冻结环境/最大容量暂停保持。下一步提交本批，核对新精确源码完整 CI 与原 Windows 五秒门，再推进最新安装升级/582 迁移回滚、双端及有效 24h；整体尚未完成。
+
 ## 2026-10-28：903 完整门终态与旧选择器断言修正
 
 90389ed五条CI均已终态：三timing和独立I/O成功，Verify、正式源码门和额外coverage失败。完整失败日志3043230/3056699/3048857字符已读；Verify coverage与正式source-gates均仅见旧工作流选择器断言失败，额外coverage另有ACK通道“released探针写入不得延长五秒”用例失败（892.768ms，channel rejected），不能把该失败宣称为五秒真实请求失败或已解决。正式业务未执行。旧失败全部保留。
