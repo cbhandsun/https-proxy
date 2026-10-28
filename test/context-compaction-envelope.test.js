@@ -33,6 +33,63 @@ test('normalization never serializes primitive originals or a complete data tree
   assert.equal(stringify(result), expected);
 });
 
+test('short metadata cannot evict repeated large text from request-local byte accounting', (t) => {
+  const body = 'large-body-'.repeat(2048);
+  const input = {
+    metadata: Array.from({ length: 128 }, (_, index) => `entry-${index}`),
+    body: Array(8).fill(body),
+  };
+  const expected = JSON.stringify(input);
+  const size = Buffer.byteLength(expected);
+  const original = RegExp.prototype.test;
+  let scans = 0;
+  t.mock.method(RegExp.prototype, 'test', function (value) {
+    if (value === body) scans++;
+    return Reflect.apply(original, this, [value]);
+  });
+  assert.equal(JSON.stringify(normalizeCompactionData(input, size)), expected);
+  assert.equal(scans, 1, 'large text is scanned once despite preceding short identifiers');
+  assert.equal(JSON.stringify(normalizeCompactionData(input, size)), expected);
+  assert.equal(scans, 2, 'a separate parse must validate again');
+  invalid(() => normalizeCompactionData(input, size - 1));
+});
+
+test('repeated large escaped text is charged for every occurrence after short metadata', () => {
+  for (const body of ['"\\\n\u0000'.repeat(1024), '原文🙂\ud800\udc00\ud800'.repeat(1024)]) {
+    const input = {
+      metadata: Array.from({ length: 128 }, (_, index) => `entry-${index}`),
+      body: Array(8).fill(body),
+    };
+    const expected = JSON.stringify(input);
+    const size = Buffer.byteLength(expected);
+    assert.equal(JSON.stringify(normalizeCompactionData(input, size)), expected);
+    invalid(() => normalizeCompactionData(input, size - 1));
+  }
+});
+
+test('large text memo retains bounded entries and a shared raw-byte cap', (t) => {
+  const original = RegExp.prototype.test;
+  let watched;
+  let scans = 0;
+  t.mock.method(RegExp.prototype, 'test', function (value) {
+    if (value === watched) scans++;
+    return Reflect.apply(original, this, [value]);
+  });
+  for (const values of [
+    Array.from({ length: 65 }, (_, index) => `${index}${'x'.repeat(1024)}`),
+    Array.from({ length: 4 }, (_, index) => `${index}${'x'.repeat(1024 * 1024)}`),
+  ]) {
+    watched = values.at(-1);
+    scans = 0;
+    const input = [...values, watched];
+    const expected = JSON.stringify(input);
+    const size = Buffer.byteLength(expected);
+    assert.equal(JSON.stringify(normalizeCompactionData(input, size)), expected);
+    assert.equal(scans, 2, 'text beyond an entry or byte cap must be scanned again');
+    invalid(() => normalizeCompactionData(input, size - 1));
+  }
+});
+
 test('normalization counts actual array bytes without invoking inherited JSON hooks', () => {
   const previous = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON');
   let hooks = 0;

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "baseSource": "ae664cc0f6998eac24bd84bdbd19ab14a5ae9020",
+  "change": "Reserve independent short/large string memo slots in request-local encoded-byte accounting.",
+  "invariants": {
+    "maximumCombinedEntries": 128,
+    "maximumSharedRawBytes": 4194304,
+    "everyOccurrenceCharged": true,
+    "parseLocalOnly": true,
+    "authenticationUnchanged": true,
+    "durabilityUnchanged": true,
+    "deadlinesUnchanged": true
+  },
+  "regression": {
+    "before": {
+      "expectedLargeScans": 1,
+      "actualLargeScans": 8,
+      "exitCode": 1
+    },
+    "after": {
+      "relatedTests": 128,
+      "pass": 128,
+      "fail": 0,
+      "skip": 0
+    },
+    "boundaries": [
+      "short metadata flood",
+      "separate parse revalidation",
+      "per-occurrence exact byte limit",
+      "escaped control and surrogate text",
+      "large entry cap",
+      "shared raw-byte cap"
+    ]
+  },
+  "expandedLocal": {
+    "tests": 105,
+    "pass": 104,
+    "fail": 1,
+    "skip": 0,
+    "failure": "actual encrypted worker exposes reference save/load, exact pages and legacy load across reopen",
+    "code": "context_recovery_storage_unavailable",
+    "scope": "Previously observed Mac native startup failure; not a Windows qualification."
+  },
+  "checks": {
+    "javascriptSyntaxFiles": 1736,
+    "targetedLintPassed": true,
+    "ciGovernancePassed": true,
+    "unifiedDiscoveryConfirmed": true
+  },
+  "constructionDiagnostic": {
+    "roots": 4,
+    "privateBytes": 33554432,
+    "entriesPerRoot": 512,
+    "baselineMacMs": 3938,
+    "modifiedMacMs": 4241,
+    "modifiedSourceDirty": true,
+    "nativeStorage": false,
+    "acceptanceQualified": false,
+    "conclusion": "No end-to-end speed improvement demonstrated; not a five-second fix."
+  },
+  "baseCi": {
+    "verify": {
+      "run": 40741437008,
+      "conclusion": "success",
+      "jobs": 8
+    },
+    "formal": {
+      "run": 40741436936,
+      "job": 123003779357,
+      "conclusion": "failure",
+      "failedTests": 33,
+      "publicationWaitFailedMs": 5000,
+      "observedFinalCommitMs": 933
+    },
+    "timing": {
+      "run": 40741437017,
+      "conclusion": "success",
+      "runners": 3,
+      "testsEach": 50
+    },
+    "persistentIo": {
+      "run": 40741437025,
+      "conclusion": "success"
+    },
+    "extraCoverageIo": {
+      "run": 40741437000,
+      "conclusion": "success"
+    },
+    "qualification": "Formal failure retained; no current-source installer qualification."
+  },
+  "longTest": {
+    "source": "8682b768547d52c6c96026aa23e7ec496bfd5cea",
+    "state": "failed",
+    "reason": "process_not_running",
+    "observedTicks": 4,
+    "lastScheduledMs": 900000,
+    "passed": false,
+    "terminalConfirmed": false,
+    "restarted": false
+  },
+  "new24hStarted": false,
+  "realModelRequests": 0,
+  "remaining": [
+    "Windows persistent five-second stability",
+    "latest local installer and both clients",
+    "secure quota reconciliation then real provider acceptance",
+    "valid real 24h and expiry reopens",
+    "paused maximum-capacity qualification",
+    "controlled self-use"
+  ]
+}

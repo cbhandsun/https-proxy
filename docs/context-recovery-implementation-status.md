@@ -1,5 +1,14 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：修复短标识挤占大文本字节计数缓存；不授五秒修复资格
+
+短标识先填满128槽后，同一大文本会反复扫描；新增回归修改前实际8次/预期1次失败，现按短/大文本各64槽分配，共享原4MiB原文上限、逐次扣除完整编码字节，缓存仅存在于单次解析。覆盖独立解析重新校验、精确大小/少一字节、转义/控制字符/代理项、槽数和共享容量上限；原描述符、Proxy及节点门不变。相关五文件128项全通过，零fail/skip；扩大105项104通过/1个既有Mac原生开库不可用，失败保留。1736语法、定向Lint和CI治理通过，新增测试由统一unit发现。
+
+四根32MiB同负载Mac纯构造诊断：基线3938ms，修改工作树4241ms，不能声称整体提速或Windows五秒修复。ae664cc普通8作业、三timing各50项、独立I/O与额外coverage成功；正式40741436936/source123003779357失败33项，Chat实际publication等待触及5000ms，最终COMMIT933ms，其他原生准备/系统工具失败另保留。正式失败阻断最新安装资格，旧989托管安装通过不转授当前提交。本机989构建终态失败、无新安装器；ae独立短测四根32MiB原180秒门取消，native20和short50未执行。
+
+旧868只读复核仍process_not_running、4节拍/最后scheduled900000、passed=false，缺最终回执/terminalConfirmed=false；没有有效24h在跑，没有重启、模型0、旧实例未动、最大容量暂停。证据见context-recovery-evidence/compaction-byte-memo-isolation.json；下一步仍是实际Windows构造/持久尾等待定位修复和原门验证，随后最新安装两端、真实provider及有效24h到期重开。
+
+
 ## 2026-10-28：修复 EXCLUSIVE 连接绕过 DELETE 日志清理语义，五秒缺口保持
 
 检查COMMIT提速候选时，官方SQLite说明与真实文件负例均证实：EXCLUSIVE锁模式即使journal_mode仍为DELETE，也会保留回滚日志。原引擎没有固定连接锁模式，预设EXCLUSIVE时撤销、到期均能在当前journal找到旧密文片段；修改前5项3通过/2失败，不能仅检查PRAGMA journal_mode就认定物理删除成立。这是独立清理边界，不证明旧Windows五秒失败使用了EXCLUSIVE或其唯一根因。
