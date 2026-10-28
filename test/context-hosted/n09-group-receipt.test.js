@@ -6,7 +6,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 // Execute only the actual bounded JSON consumer, never its OS/Job constructor.
-test('all five Job receipt consumers reject crossed groups and malformed scope without native calls', () => {
+test('all nine Job receipt consumers reject crossed groups and malformed scope without native calls', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '../../scripts/context-hosted/n09/owned-job.ps1'),
     'utf8'
@@ -32,7 +32,11 @@ test('all five Job receipt consumers reject crossed groups and malformed scope w
     $finished = [ordered]@{ schemaVersion = 1; phase = 'n09_finished_ack_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
     $withdrawn = [ordered]@{ schemaVersion = 1; phase = 'n09_withdrawn_ack_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
     $uncertain = [ordered]@{ schemaVersion = 1; phase = 'n09_uncertain_ack_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
-    $pairs = @(@($core, 'original'), @($sending, 'sending-ack'), @($finished, 'finished-ack'), @($withdrawn, 'withdrawn-ack'), @($uncertain, 'uncertain-ack'))
+    $sendingCommit = [ordered]@{ schemaVersion = 1; phase = 'n09_sending_commit_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
+    $finishedCommit = [ordered]@{ schemaVersion = 1; phase = 'n09_finished_commit_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
+    $withdrawnCommit = [ordered]@{ schemaVersion = 1; phase = 'n09_withdrawn_commit_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
+    $uncertainCommit = [ordered]@{ schemaVersion = 1; phase = 'n09_uncertain_commit_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
+    $pairs = @(@($core, 'original'), @($sending, 'sending-ack'), @($finished, 'finished-ack'), @($withdrawn, 'withdrawn-ack'), @($uncertain, 'uncertain-ack'), @($sendingCommit, 'sending-commit'), @($finishedCommit, 'finished-commit'), @($withdrawnCommit, 'withdrawn-commit'), @($uncertainCommit, 'uncertain-commit'))
     $rejected = 0
     foreach ($pair in $pairs) {
       $value = Read-Receipt ($pair[0] | ConvertTo-Json -Compress) $pair[1]
@@ -58,7 +62,7 @@ test('all five Job receipt consumers reject crossed groups and malformed scope w
       if (-not $failed) { throw 'invalid_scope_accepted' }
       $rejected++
     }
-    [Console]::Write('accepted=5; rejected=' + $rejected + '; nativeCalls=0')
+    [Console]::Write('accepted=9; rejected=' + $rejected + '; nativeCalls=0')
   `,
     ],
     { encoding: 'utf8', timeout: 15000, maxBuffer: 4096, shell: false, windowsHide: true }
@@ -66,5 +70,5 @@ test('all five Job receipt consumers reject crossed groups and malformed scope w
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, '');
-  assert.equal(result.stdout, 'accepted=5; rejected=31; nativeCalls=0');
+  assert.equal(result.stdout, 'accepted=9; rejected=83; nativeCalls=0');
 });

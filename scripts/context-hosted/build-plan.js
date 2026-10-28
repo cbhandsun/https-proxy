@@ -171,6 +171,10 @@ function buildHostedReviewPlan(input) {
         'n09-finished-ack',
         'n09-withdrawn-ack',
         'n09-uncertain-ack',
+        'n09-sending-commit',
+        'n09-finished-commit',
+        'n09-withdrawn-commit',
+        'n09-uncertain-commit',
       ].includes(options.scenario)
     )
       throw fail();
@@ -184,7 +188,15 @@ function buildHostedReviewPlan(input) {
             ? 'withdrawn-ack'
             : options.scenario === 'n09-uncertain-ack'
               ? 'uncertain-ack'
-              : undefined;
+              : options.scenario === 'n09-sending-commit'
+                ? 'sending-commit'
+                : options.scenario === 'n09-finished-commit'
+                  ? 'finished-commit'
+                  : options.scenario === 'n09-withdrawn-commit'
+                    ? 'withdrawn-commit'
+                    : options.scenario === 'n09-uncertain-commit'
+                      ? 'uncertain-commit'
+                      : undefined;
     const candidate = physical(options.candidate, true),
       ownedRoot = physical(options.ownedRoot, true);
     if (

@@ -33,6 +33,10 @@ function prepare(scenario) {
         'n09-finished-ack',
         'n09-withdrawn-ack',
         'n09-uncertain-ack',
+        'n09-sending-commit',
+        'n09-finished-commit',
+        'n09-withdrawn-commit',
+        'n09-uncertain-commit',
       ].includes(scenario) ||
       process.execArgv.length !== 0 ||
       process.env.NODE_OPTIONS ||

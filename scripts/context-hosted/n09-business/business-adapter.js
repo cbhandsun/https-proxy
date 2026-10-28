@@ -20,7 +20,10 @@ const {
   createCancellationPublicResponseInterruption,
 } = require('./public-response-interruption');
 const { publicationTransitionRoute } = require('./publication-transition-route');
-const { createPreparedCommitBoundary } = require('./publication-commit-boundary');
+const {
+  createPreparedCommitBoundary,
+  createPublicationCommitBoundary,
+} = require('./publication-commit-boundary');
 const { createPreparedAckProbe } = require('./prepared-ack-probe');
 const fail = () => new Error('n09_business_adapter_failed');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
@@ -149,6 +152,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
   let publicInterruption;
   let commitBoundary, ackProbe, heldAccounting, publicationCompleted, ackRevisionDelta;
   let ackRoute = publicationTransitionRoute('prepared');
+  let transitionCommit;
   let backup,
     backupRestored = false,
     storageRejected = false;
@@ -715,6 +719,156 @@ function createN09BusinessAdapter(input, trusted = {}) {
       ackProbe = undefined;
       return result;
     },
+    async beginTransitionCommitHold(identity, transition) {
+      gate(identity);
+      if (
+        transitionCommit ||
+        !['sending', 'transport-finished', 'withdrawn', 'uncertain'].includes(transition)
+      )
+        throw fail();
+      const route = publicationTransitionRoute(transition);
+      const prefix = route.cancellation
+        ? transition
+        : transition === 'sending'
+          ? 'prepared'
+          : 'sending';
+      const control = { transition, route, state: 'arming' };
+      transitionCommit = control;
+      try {
+        const held = await api.beginPreparedAckHold(identity, prefix);
+        gate(identity);
+        if (transitionCommit !== control) throw fail();
+        control.baseline = held.accounting;
+        control.state = 'armed';
+        return Object.freeze({ ...held, prefixArmed: true });
+      } catch {
+        control.state = 'failed';
+        throw fail();
+      }
+    },
+    async waitTransitionCommitPending(identity) {
+      gate(identity);
+      if (
+        !transitionCommit ||
+        transitionCommit.state !== 'armed' ||
+        commitBoundary ||
+        !ackProbe ||
+        !publicInterruption
+      )
+        throw fail();
+      transitionCommit.state = 'entering';
+      const { transition, route, baseline } = transitionCommit;
+      let predecessor, cancelled;
+      if (route.cancellation) {
+        await ackProbe.waitTriggerHeld();
+        gate(identity);
+        if (!readObserved || !publicObserved || externalToolExecutions !== 1) throw fail();
+        cancelled = await publicInterruption.cancelReleased();
+        gate(identity);
+        predecessor = accounting(committed());
+      } else {
+        const held = await api.waitPreparedAckHeld(identity);
+        gate(identity);
+        // Reuse this exact authenticated observation inside this operation;
+        // the read-lock factory independently checks the same durable version.
+        predecessor = held.accounting;
+      }
+      if (
+        predecessor.revision !== baseline.revision + route.delta - 1 ||
+        ['rootId', 'expiresAt', 'calls', 'returnedBytes'].some(
+          (key) => predecessor[key] !== baseline[key]
+        )
+      )
+        throw fail();
+      const observation = client().getPublicationObservationClient(current);
+      commitBoundary = await createPublicationCommitBoundary(
+        {
+          ownedRoot: options.ownedRoot,
+          runtimeDir: current.runtimeDir,
+          rootId: predecessor.rootId,
+          expiresAt: predecessor.expiresAt,
+          revision: predecessor.revision,
+        },
+        (timeout) => observation.query(timeout),
+        trusted.createCommitWitness,
+        transition
+      );
+      gate(identity);
+      if (route.cancellation) await ackProbe.releaseTrigger(cancelled);
+      else await api.releasePreparedAck(identity);
+      gate(identity);
+      ackRoute = route;
+      const deadline = performance.now() + 750;
+      const pending = await commitBoundary.waitPending();
+      gate(identity);
+      let publicBytes = 0;
+      if (route.publicTransportCompleted) {
+        const observed = await publicInterruption.observePublished(
+          Math.floor(deadline - performance.now())
+        );
+        gate(identity);
+        if (
+          publicText(parseReply(observed.response)) !== 'N09_RECOVERY_OK ' + nonce ||
+          !readObserved ||
+          !publicObserved ||
+          externalToolExecutions !== 1
+        )
+          throw fail();
+        publicBytes = observed.response.bytes.length;
+      } else if (route.cancellation) publicInterruption.assertCancelled();
+      else publicInterruption.assertReleasedPending();
+      if (performance.now() >= deadline) throw fail();
+      transitionCommit.predecessor = predecessor;
+      transitionCommit.state = 'pending';
+      return Object.freeze({
+        ...pending,
+        pid: current.pid,
+        publicBytes,
+        predecessorAckObserved: true,
+        targetAckDelivered: false,
+        publicTransportCompleted: route.publicTransportCompleted,
+        clientCancelled: route.cancellation,
+        clientTransportClosed: route.cancellation,
+        accounting: Object.freeze({ ...predecessor }),
+      });
+    },
+    async finishReleasedTransitionCommit(identity) {
+      gate(identity);
+      if (!transitionCommit || transitionCommit.state !== 'released' || commitBoundary)
+        throw fail();
+      transitionCommit.state = 'finishing';
+      const { route, baseline, predecessor } = transitionCommit;
+      if (route.cancellation) {
+        if (!ackProbe || !publicInterruption) throw fail();
+        const held = await ackProbe.waitHeld();
+        gate(identity);
+        publicInterruption.assertCancelled();
+        const durable = accounting(committed());
+        if (
+          held.revision !== predecessor.revision + 1 ||
+          durable.revision !== held.revision ||
+          ['rootId', 'expiresAt', 'calls', 'returnedBytes'].some(
+            (key) => durable[key] !== baseline[key]
+          )
+        )
+          throw fail();
+        await api.releasePreparedAck(identity);
+      } else if (ackProbe) throw fail();
+      const completed =
+        await api[
+          route.cancellation ? 'finishReleasedCancelledPublication' : 'finishReleasedPublicResponse'
+        ](identity);
+      gate(identity);
+      if (
+        completed.accounting.revision < predecessor.revision + 1 ||
+        ['rootId', 'expiresAt', 'calls', 'returnedBytes'].some(
+          (key) => completed.accounting[key] !== baseline[key]
+        )
+      )
+        throw fail();
+      transitionCommit.state = 'finished';
+      return Object.freeze({ ...completed });
+    },
     async beginPreparedCommitHold(identity) {
       gate(identity);
       if (commitBoundary || ackProbe || publicationCompleted) throw fail();
@@ -758,6 +912,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
       if (!commitBoundary) throw fail();
       const result = commitBoundary.release();
       commitBoundary = undefined;
+      if (transitionCommit?.state === 'pending') transitionCommit.state = 'released';
       return result;
     },
     async finishReleasedPublicResponse(identity) {
@@ -1229,7 +1384,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
         failed = true;
       }
       ackProbe = undefined;
-      publicationCompleted = heldAccounting = undefined;
+      publicationCompleted = heldAccounting = transitionCommit = undefined;
       try {
         backup?.close();
       } catch {

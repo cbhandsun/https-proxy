@@ -67,7 +67,7 @@ function assertHostedGates(source) {
   orderedLines(runtime, [
     'needs: source-gates',
     'fail-fast: false',
-    'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack]',
+    'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]',
     '- name: Build runner-local payload and fixed review plan',
     "$ErrorActionPreference = 'Stop'",
     'node scripts/prepare-context-hosted-run.js $env:SCENARIO',
@@ -89,7 +89,7 @@ function assertHostedGates(source) {
   assert.ok(source.includes('permissions:\n  contents: read\n'));
 }
 
-test('same SHA source gates run once before six isolated runtime scenarios with all original commands', () => {
+test('same SHA source gates run once before ten isolated runtime scenarios with all original commands', () => {
   assertHostedGates(workflow);
 });
 
@@ -98,7 +98,7 @@ for (const mutation of [
     'missing original n09 scenario',
     (source) =>
       source.replace(
-        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack]',
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]',
         'scenario: [n08, n09-sending-ack, n09-finished-ack]'
       ),
   ],
@@ -106,7 +106,7 @@ for (const mutation of [
     'missing sending ACK group',
     (source) =>
       source.replace(
-        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack]',
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]',
         'scenario: [n08, n09, n09-finished-ack]'
       ),
   ],
@@ -114,7 +114,7 @@ for (const mutation of [
     'missing finished ACK group',
     (source) =>
       source.replace(
-        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack]',
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]',
         'scenario: [n08, n09, n09-sending-ack]'
       ),
   ],
@@ -122,9 +122,20 @@ for (const mutation of [
     'missing ' + name + ' ACK group',
     (source) =>
       source.replace(
-        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack]',
-        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack]'.replace(
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]',
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]'.replace(
           ', n09-' + name + '-ack',
+          ''
+        )
+      ),
+  ]),
+  ...['sending', 'finished', 'withdrawn', 'uncertain'].map((name) => [
+    'missing ' + name + ' COMMIT group',
+    (source) =>
+      source.replace(
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]',
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]'.replace(
+          ', n09-' + name + '-commit',
           ''
         )
       ),

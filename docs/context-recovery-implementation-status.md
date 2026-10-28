@@ -1,5 +1,20 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：四目标daemon COMMIT内部编排已接固定十组，实际Windows结果待核
+
+新增sending、transport-finished、withdrawn、uncertain COMMIT内部强杀/释放编排。正常型先暂停真实prepared/sending前置ACK，在精确前置持久版本上取得SQLite reader，再释放原ACK使默认owner进入目标写入；取消型先暂停原trigger、验证真实客户端关闭和公开正文0，在前置版本持reader后释放trigger进入原清理写入。同一750ms见证必须取得物理read-admission阻塞和同代次/根/原expiry/精确revision的唯一pending目标，不能用单独BUSY或末端ACK替代COMMIT内部证据。finished独立验证完整公开wire，uncertain不能借三版本误授公开传输完成。
+
+强杀合格边界与原forceKill之间不加I/O，随后释放reader，必须先由真实default owner重开/恢复hot journal，再独立检查精确前置revision、预算和expiry及业务原文。释放控制等待原publication完成或取消清理；取消型还必须等最终终态持久ACK、精确下一版本、0正文，然后释放原ACK并等最终取消outcome。普通前置观察在同一操作内复用刚验证的不可变accounting，reader工厂仍独立核对同一版本；未加跨请求快照/原文缓存或跳过独立认证。arming在首个await前锁存，拒绝重复/重叠及失败后重入。
+
+新四个*-commit组各用两个新adapter与原120秒Job，原六组保留。prepare/plan/Node/PS执行链、固定WFP程序路径、严格两控制回执及正式/独立diagnostic矩阵均登记为十组；正式仍需同SHA完整source-gates。九组PS回执实际解析，72种交叉组及其他非法输入全部拒绝，35种实际摘要状态检查不把失败/取消/未知组/大小写/尾换行授通过范围。测试仅序列化实际摘要中的scope行以保持原32768字节输出上限，未提高期限或baseline。
+
+十二文件168项：166通过/0失败、两项原Windows物理路径用例在Mac保持既有skip；新增driver、真实adapter的四目标kill/release、闭合回执、错目标/版本/预算/expiry/释放/清理/恢复版本/假取消及并发门均执行，物理SQLite reader原门也保留。PS消费者/35状态补测另4通过/两原skip。四个改动PS文件解析和原WFP C#实际编译通过，native调用0；1731语法、全仓Lint零错误/五既有警告、定向格式及CI/release治理通过。初版新目标测试因协议模拟器未选read-lock seam、以及错误要求在已拒绝前置预算后仍释放ACK而失败，已补正确模拟并保留“拒绝后不能释放”断言，未改产品期限或吞异常。
+
+固定c5058da普通40619749582八作业、正式40619749502八作业全部success，六份正式业务完整日志精确source/plan/build及执行后hosted_network_finished/TLS/隔离/ownedTreeEmpty核对。额外I/O40619749491/job122590630788也success，三份回执经原parseSummary重验：paired flush251/144/63，DB最大52/23/11ms，journal32/23/14ms，全部traceCompletenessVerified/fiveSecondQualified false，不能覆盖原五秒失败。相同c505独立finished184失败保留，未确认唯一原因。证据见context-recovery-evidence/c5058da-complete-ci.json；该正式六组不包含本批新增四目标COMMIT组。
+
+本批尚无新四组真实Windows执行通过结果，不授完整daemon COMMIT矩阵、五秒稳定性或整体验收。下一步核对新固定十组的实际执行及完整门，失败定位不重跑覆盖；继续最新安装两端等原交付缺口。旧6646冻结现场/数据/任务和旧E实例未动、新24h未启动、真实模型0、额度未写、日常配置未改。
+
+
 ## 2026-10-28：六组Windows独立诊断完整通过；补强其余转换的COMMIT观察边界
 
 固定c390e22独立40620783142六组均终态success；六份完整日志已读，逐一核对精确源码SHA、plan/build摘要和实际执行后hosted_network_finished、TLS/非loopback隔离/ownedTreeEmpty回执，不能只凭prepared_only。这一轮包括原n08/n09/sending/finished及新withdrawn/uncertain，有限证据见context-recovery-evidence/c390e22-six-diagnostic-groups.json。该轮未复现c505 finished184，但仅新增了步骤分类，没有产品五秒修复；旧失败及根因未确认状态不变、不自动重试。c390正式40620783099/source122594006535仍在原作业运行；普通五个作业success、unit1/unit2与coverage仍运行，不能授完整CI或五秒稳定性。

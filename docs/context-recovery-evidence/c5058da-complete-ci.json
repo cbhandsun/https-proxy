@@ -1,0 +1,237 @@
+{
+  "source": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+  "ordinary": {
+    "runId": 40619749582,
+    "allEightJobsSuccess": true
+  },
+  "formal": {
+    "runId": 40619749502,
+    "sourceGatesJob": 122590630670,
+    "allEightJobsSuccess": true,
+    "cases": [
+      {
+        "jobId": 122596435253,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-withdrawn-ack",
+          "sourceSha": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+          "planSha256": "e3e1fed8217db28c0933f75e5677f982fec96a1c8d113408c39fdbc56b3e13ea",
+          "buildReceiptSha256": "949b0c70ee97be5d560634fb34d78de86d4101420082270478ed95af672ab20f",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "nonLoopbackBlocked": true,
+          "tlsVerified": true,
+          "probesPassed": true,
+          "ownedTreeEmpty": true,
+          "n08Qualified": false,
+          "phase": "hosted_network_finished"
+        },
+        "fullLogRead": true
+      },
+      {
+        "jobId": 122596435288,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n08",
+          "sourceSha": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+          "planSha256": "fd8ab9b525e0762472e07e8d258b73fd15dcabc6e2687322114995425797d045",
+          "buildReceiptSha256": "984e245ac4fadbb95c759a72d1d4406982cca8ad129bc5caec505513bca4da8b",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "ownedTreeEmpty": true,
+          "probesPassed": true,
+          "phase": "hosted_network_finished",
+          "nonLoopbackBlocked": true,
+          "tlsVerified": true,
+          "n08Qualified": false
+        },
+        "fullLogRead": true
+      },
+      {
+        "jobId": 122596435295,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-sending-ack",
+          "sourceSha": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+          "planSha256": "7aa7d02fecb80fc822618ecba7e6af86f5f05de62dbe18f51f85417f0bdfefb9",
+          "buildReceiptSha256": "6d0b1d62c13f078736dd6e5fdacb33f0d79a46a5ef508cdbb645f62533acc211",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "tlsVerified": true,
+          "ownedTreeEmpty": true,
+          "phase": "hosted_network_finished",
+          "probesPassed": true,
+          "nonLoopbackBlocked": true
+        },
+        "fullLogRead": true
+      },
+      {
+        "jobId": 122596435330,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-uncertain-ack",
+          "sourceSha": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+          "planSha256": "743196adf4cedd7af004a8bd375424ee739570fd341f25980a33b93d1b83cc94",
+          "buildReceiptSha256": "cfc7f8bb724e4232cb176baa607be4f28f9df69b7d4b63747b6bc34ae35affae",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "tlsVerified": true,
+          "ownedTreeEmpty": true,
+          "phase": "hosted_network_finished",
+          "probesPassed": true,
+          "nonLoopbackBlocked": true
+        },
+        "fullLogRead": true
+      },
+      {
+        "jobId": 122596435390,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09",
+          "sourceSha": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+          "planSha256": "35d04921a7dddfa94c2d8ff63e2a76a5fb54e5de949f3f0d6d743ea42e67b6d5",
+          "buildReceiptSha256": "a8142a7fa85d3e06524d82d591a4f72f3d899f2b7a5a464f488ea36a8a5ee7b5",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "tlsVerified": true,
+          "nonLoopbackBlocked": true,
+          "phase": "hosted_network_finished",
+          "n08Qualified": false,
+          "probesPassed": true,
+          "ownedTreeEmpty": true
+        },
+        "fullLogRead": true
+      },
+      {
+        "jobId": 122596435420,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-finished-ack",
+          "sourceSha": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+          "planSha256": "c3de6408599df6e8bafa0ee26fd2a4c4de9328cc990f6a739b8c5d90a675360b",
+          "buildReceiptSha256": "7876a8f3c43229a8f0747347db18efa05443b922cad45c5a6a4893c651996fa3",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "probesPassed": true,
+          "tlsVerified": true,
+          "phase": "hosted_network_finished",
+          "ownedTreeEmpty": true,
+          "nonLoopbackBlocked": true
+        },
+        "fullLogRead": true
+      }
+    ]
+  },
+  "extraIo": {
+    "runId": 40619749491,
+    "jobId": 122590630788,
+    "fullLogRead": true,
+    "originalParserAcceptedSummaries": 3,
+    "windows": [
+      {
+        "windowId": "native-publication-interruption",
+        "coverageStage": "proxy",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "pairedFlushes": 251,
+        "database": {
+          "count": 81,
+          "maxMs": 52,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 170,
+          "maxMs": 32,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false
+      },
+      {
+        "windowId": "client-context-target",
+        "coverageStage": "client",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "pairedFlushes": 144,
+        "database": {
+          "count": 48,
+          "maxMs": 23,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 96,
+          "maxMs": 23,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false
+      },
+      {
+        "windowId": "publication-graceful-http",
+        "coverageStage": "client",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "pairedFlushes": 63,
+        "database": {
+          "count": 21,
+          "maxMs": 11,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 42,
+          "maxMs": 14,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false
+      }
+    ]
+  },
+  "retainedFailures": [
+    {
+      "runId": 40619749468,
+      "jobId": 122590631234,
+      "scenario": "n09-finished-ack",
+      "childExitCode": 184,
+      "businessCasePhase": 161,
+      "uniqueCauseConfirmed": false,
+      "notOverwrittenByFormalSuccess": true
+    }
+  ],
+  "scope": {
+    "completeFixedSourceChainPassed": true,
+    "newNonPreparedDaemonCommitCasesIncluded": false,
+    "fiveSecondRecoveryStable": false,
+    "fullN09": false,
+    "installedClients": false,
+    "realModelCalls": 0,
+    "new24HourStarted": false
+  }
+}

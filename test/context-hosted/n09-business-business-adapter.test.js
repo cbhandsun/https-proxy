@@ -23,6 +23,9 @@ const {
 const {
   runPreparedPublicationAck,
 } = require('../../scripts/context-hosted/n09-business/publication-ack-driver');
+const {
+  runTransitionPublicationCommit,
+} = require('../../scripts/context-hosted/n09-business/publication-transition-commit-driver');
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const bad = { message: 'n09_business_adapter_failed' };
 function fixture(mutation = () => {}, onPhase, prepared = false) {
@@ -113,6 +116,7 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
           state.events.push('kill');
           state.ackProbeActive = false;
           state.ackQueued = false;
+          state.commitQueued = false;
           state.interruptObserved?.(state.interruptionReason ?? 'transport-error');
           state.rejectPending?.(new Error('synthetic_forced_kill'));
           state.ackCommand = undefined;
@@ -244,13 +248,20 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
         getPublicationObservationClient: () => ({
           async query() {
             const pending = state.commitQueued === true;
+            const target = state.ackTarget?.transition;
+            const delta = ['sending', 'withdrawn'].includes(target)
+              ? 2
+              : ['transport-finished', 'uncertain'].includes(target)
+                ? 3
+                : 1;
+            const ordinal = state.ackQueued ? delta + 1 : state.triggerQueued ? delta : 1;
             const value = {
               generation: 1,
-              callOrdinal: pending ? 2 : 1,
+              callOrdinal: pending ? ordinal + 1 : ordinal,
               activeCount: pending ? 1 : 0,
               status: pending ? 'pending' : 'completed',
               operation: 'save-reference-state',
-              transition: pending ? 'prepared' : 'none',
+              transition: pending ? (state.commitTarget ?? 'prepared') : 'none',
               rootId: state.rootId,
               expiresAt: state.expiresAt,
               expectedRevision: state.revision,
@@ -457,7 +468,13 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
             await new Promise((resolve) => {
               state.resolveTrigger = resolve;
             });
-            state.revision++;
+            if (state.commitWitnessActive) {
+              state.commitQueued = true;
+              await new Promise((resolve, reject) => {
+                state.resolveCommit = resolve;
+                state.rejectPending = reject;
+              });
+            } else state.revision++;
           }
           state.ackQueued = true;
           if (state.ackTarget.transition === 'transport-finished') {
@@ -474,6 +491,13 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
         }
         if (state.commitWitnessActive) {
           state.commitQueued = true;
+          if (state.commitTarget === 'transport-finished') {
+            const bytes = Buffer.from(JSON.stringify(result));
+            state.observedHttp.bytes = bytes.length;
+            state.publicWireResponse = { status: 200, bytes };
+            state.events.push('public-wire-before-commit');
+            state.interruptObserved('response', { response: state.publicWireResponse });
+          }
           await new Promise((resolve, reject) => {
             state.resolveCommit = resolve;
             state.rejectPending = reject;
@@ -486,7 +510,8 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
             ['transport-finished', 'withdrawn', 'uncertain'].includes(
               state.ackTarget?.transition
             ) && state.ackQueued
-          )
+          ) &&
+          !(state.commitTarget === 'transport-finished' && state.commitQueued)
         ) {
           state.calls += 2;
           state.returnedBytes += source.bytes;
@@ -564,9 +589,19 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
     mutation('observed-client', observation, state);
     return observer;
   };
-  if (prepared === true)
-    trusted.createCommitWitness = () => {
+  if (prepared === true || prepared === 'ack-commit')
+    trusted.createCommitWitness = (input) => {
+      mutation('commit-create', input, state);
       state.commitWitnessActive = true;
+      const prefix = state.ackTarget?.transition;
+      state.commitTarget =
+        prefix === 'prepared'
+          ? 'sending'
+          : prefix === 'sending'
+            ? 'transport-finished'
+            : ['withdrawn', 'uncertain'].includes(prefix)
+              ? prefix
+              : 'prepared';
       return {
         async waitPending() {
           for (let i = 0; i < 50 && !state.commitQueued; i++)
@@ -580,12 +615,14 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
         },
         release() {
           state.commitWitnessActive = false;
-          if (state.observedHttp.reason === 'pending') {
+          if (state.commitQueued && state.stopped === 0) {
             state.revision++;
             state.resolveCommit();
           }
           state.events.push('commit-release');
-          return { released: true };
+          const value = { released: true };
+          mutation('commit-release', value, state);
+          return value;
         },
         close() {
           state.commitWitnessActive = false;
@@ -2087,4 +2124,211 @@ test('ACK progress separates held signal, public wire and release failures witho
   });
   assert.equal(phases.at(-1), 248);
   assert.equal(f.state.closed, 1);
+});
+
+for (const transition of ['sending', 'transport-finished', 'withdrawn', 'uncertain']) {
+  test(
+    transition +
+      ' COMMIT driver uses its real predecessor controls, read-lock composition and exact rollback version',
+    async () => {
+      const cases = {},
+        businessEvidence = {};
+      const name = transition === 'transport-finished' ? 'finished' : transition;
+      for (const kill of [true, false]) {
+        const f = fixture(
+          (stage, input, state) => {
+            if (stage !== 'commit-create') return;
+            assert.equal(state.ackProbeActive, true);
+            assert.equal(input.expectedRevision, state.revision);
+            assert.equal(
+              state.observedHttp.reason,
+              ['withdrawn', 'uncertain'].includes(transition) ? 'cancelled-transport' : 'pending'
+            );
+            assert.equal(state.ackQueued || state.triggerQueued, true);
+          },
+          undefined,
+          'ack-commit'
+        );
+        f.adapter.bindVerifiedNetworkProof(f.proof);
+        const result = await runTransitionPublicationCommit(f.adapter, kill, transition);
+        assert.equal(result.boundary, transition + '-save-reference-state-commit-pending');
+        assert.equal(result.actualTargetWritePending, true);
+        assert.equal(result.readAdmissionBlocked, true);
+        assert.equal(result.predecessorAckObserved, true);
+        assert.equal(
+          result.publicTransportCompletedBeforeBoundary,
+          transition === 'transport-finished'
+        );
+        assert.equal(
+          result.cancellationBeforeBoundary,
+          ['withdrawn', 'uncertain'].includes(transition)
+        );
+        assert.equal(result.originalReadAfterRestart, true);
+        assert.equal(result.originalExpiryPreserved, true);
+        assert.equal(result.n09Complete, false);
+        assert.equal(f.state.closed, 1);
+        const key = name + 'Commit' + (kill ? 'Kill' : 'Release');
+        cases[key] = result;
+        businessEvidence[key] = f.adapter.inspectBusinessEvidence();
+      }
+      const {
+        transitionCommitClosedReceipt,
+      } = require('../../scripts/context-hosted/n09/transition-commit-result');
+      const receipt = transitionCommitClosedReceipt(
+        {
+          ...cases,
+          businessEvidence,
+          networkProof: {
+            probesPassed: true,
+            tlsVerified: true,
+            nonLoopbackBlocked: true,
+            listenerOwned: true,
+          },
+          originalControllerReused: true,
+          tlsValidationDisabled: false,
+          remoteModelRequests: 0,
+          n09Complete: false,
+          cleanup: { adaptersClosed: 2, listenerClosed: true },
+        },
+        name + '-commit'
+      );
+      assert.equal(receipt.cases, 2);
+      assert.equal(receipt.n09Complete, false);
+    }
+  );
+}
+
+test('transition COMMIT composition rejects wrong targets, predecessor drift, public bytes and failed cleanup', async () => {
+  for (const transition of ['sending', 'transport-finished', 'withdrawn', 'uncertain']) {
+    const cancellation = ['withdrawn', 'uncertain'].includes(transition);
+    for (const scenario of [
+      'target',
+      'revision',
+      'budget',
+      'expiry',
+      'release',
+      'outcome',
+      'reopen',
+    ]) {
+      let changed = false;
+      const f = fixture(
+        (stage, value, state) => {
+          if (stage === 'publication-query' && state.commitQueued) {
+            if (scenario === 'target') value.transition = 'prepared';
+            if (scenario === 'revision') value.expectedRevision++;
+          }
+          if (
+            stage === 'snapshot' &&
+            state.ackTarget &&
+            !state.commitWitnessActive &&
+            (state.ackQueued || state.triggerQueued) &&
+            state.stopped === 0 &&
+            !changed
+          ) {
+            if (scenario === 'budget') {
+              state.calls--;
+              changed = true;
+            }
+            if (scenario === 'expiry') {
+              state.expiresAt++;
+              changed = true;
+            }
+          }
+          if (stage === 'commit-release' && scenario === 'release') value.released = false;
+          if (scenario === 'outcome' && state.commitQueued && state.stopped === 0) {
+            if (stage === 'publication-completed') value.completed = false;
+            if (stage === 'cancellation-completed') value.cleanupFinished = false;
+          }
+          if (scenario === 'reopen' && stage === 'snapshot' && state.stopped === 1 && !changed) {
+            state.revision++;
+            changed = true;
+          }
+        },
+        undefined,
+        'ack-commit'
+      );
+      f.adapter.bindVerifiedNetworkProof(f.proof);
+      await assert.rejects(
+        runTransitionPublicationCommit(f.adapter, scenario === 'reopen', transition),
+        {
+          message: 'n09_transition_commit_driver_failed',
+        },
+        transition + ':' + scenario
+      );
+      assert.equal(f.state.closed, 1);
+      if (!cancellation && !['budget', 'expiry'].includes(scenario))
+        assert.ok(f.state.events.includes('ack-release'));
+    }
+    if (cancellation) {
+      const f = fixture(
+        (stage, _value, state) => {
+          if (stage === 'prepared-ack-trigger-held') state.observedHttp.reason = 'transport-error';
+        },
+        undefined,
+        'ack-commit'
+      );
+      f.adapter.bindVerifiedNetworkProof(f.proof);
+      await assert.rejects(runTransitionPublicationCommit(f.adapter, true, transition), {
+        message: 'n09_transition_commit_driver_failed',
+      });
+      assert.equal(f.state.events.includes('ack-trigger-release'), false);
+      assert.equal(f.state.closed, 1);
+    }
+  }
+});
+
+test('transition COMMIT arming is single-use before its first asynchronous boundary and cannot overlap', async () => {
+  const f = fixture(() => {}, undefined, 'ack-commit');
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  const owner = await f.adapter.startFreshBusinessHost();
+  await f.adapter.seedThroughBusinessHttp(owner);
+  await f.adapter.readThroughBusinessHttp(owner);
+  const first = f.adapter.beginTransitionCommitHold(owner, 'sending');
+  await assert.rejects(f.adapter.beginTransitionCommitHold(owner, 'sending'), bad);
+  const held = await first;
+  assert.equal(held.prefixArmed, true);
+  await f.adapter.killOwnedJob(owner);
+  await f.adapter.close();
+  assert.equal(f.state.closed, 1);
+});
+
+test('transition COMMIT driver rejects invalid action inputs before starting a host and closes its adapter', async () => {
+  let started = 0,
+    closed = 0,
+    hooks = 0;
+  const trap = () => {
+    hooks++;
+    throw Error('private');
+  };
+  const adapter = {
+    startFreshBusinessHost() {
+      started++;
+      throw Error('not reached');
+    },
+    close() {
+      closed++;
+    },
+  };
+  const invalid = [
+    undefined,
+    null,
+    '',
+    0,
+    'sending-ack',
+    '__proto__',
+    'sending\n',
+    'x'.repeat(100000),
+    new Proxy({}, { get: trap }),
+  ];
+  for (const transition of invalid)
+    await assert.rejects(runTransitionPublicationCommit(adapter, false, transition), {
+      message: 'n09_transition_commit_driver_failed',
+    });
+  for (const kill of [undefined, null, 0, 'false', [], new Proxy({}, { get: trap })])
+    await assert.rejects(runTransitionPublicationCommit(adapter, kill, 'sending'), {
+      message: 'n09_transition_commit_driver_failed',
+    });
+  assert.equal(started, 0);
+  assert.equal(closed, invalid.length + 6);
+  assert.equal(hooks, 0);
 });

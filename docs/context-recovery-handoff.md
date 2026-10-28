@@ -1,5 +1,10 @@
 # 上下文恢复换机交接
 
+## 2026-10-28 四目标COMMIT续接
+
+最新固定验收矩阵已扩为十组：原六组保留，新增sending/finished/withdrawn/uncertain COMMIT内部各kill/release。新四组的真实前置ACK/trigger、reader、default-owner hot-journal重开和严格回执已接上，本地组合验证通过，尚待它们自己的Windows执行与完整门。固定c505普通八、正式八及额外I/O已通过，六业务完整日志与三I/O回执已核对；同源独立finished184旧失败保留，五秒稳定性仍未确认。细节与证据优先读[实施状态](context-recovery-implementation-status.md)顶部。旧长测/实例/真实模型限制沿用，不把旧通过转授本批或整体完成。
+
+
 ## 2026-10-28 续接指针
 
 当前实现与失败状态优先读取[实施状态](context-recovery-implementation-status.md)顶部最新记录。c390e22六组独立Windows业务诊断完整通过，完整日志和执行回执已核对，但正式完整CI仍待；c505 finished184旧失败未确认唯一原因，所有旧失败保留。其余转换的COMMIT观察核心已补强并有本地回归，尚未接非prepared真实daemon COMMIT编排，不能把ACK末端通过当作COMMIT内部通过。旧6646长测最后有效85分钟、90分钟失败，冻结现场/任务不能动，新24h尚未启动。旧实例由用户自行切换，真实模型仍须先核对逐provider额度和安全配置。

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidateSet('n08', 'n09', 'n09-sending-ack', 'n09-finished-ack', 'n09-withdrawn-ack', 'n09-uncertain-ack')][string]$Case)
+param([Parameter(Mandatory)][ValidateSet('n08', 'n09', 'n09-sending-ack', 'n09-finished-ack', 'n09-withdrawn-ack', 'n09-uncertain-ack', 'n09-sending-commit', 'n09-finished-commit', 'n09-withdrawn-commit', 'n09-uncertain-commit')][string]$Case)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $qualificationStage = 'environment'
@@ -12,7 +12,7 @@ try {
     if ($LASTEXITCODE -ne 0 -or $head -cne $env:GITHUB_SHA) { throw 'invalid' }
     $ownedRoot = Join-Path ([IO.Path]::GetFullPath($env:RUNNER_TEMP)) ('hpm-context-' + $Case)
     $baseCase = if ($Case -ceq 'n08') { 'n08' } else { 'n09' }
-    $publicationGroup = if ($Case -ceq 'n09-sending-ack') { 'sending-ack' } elseif ($Case -ceq 'n09-finished-ack') { 'finished-ack' } elseif ($Case -ceq 'n09-withdrawn-ack') { 'withdrawn-ack' } elseif ($Case -ceq 'n09-uncertain-ack') { 'uncertain-ack' } else { 'original' }
+    $publicationGroup = if ($Case -ceq 'n09-sending-ack') { 'sending-ack' } elseif ($Case -ceq 'n09-finished-ack') { 'finished-ack' } elseif ($Case -ceq 'n09-withdrawn-ack') { 'withdrawn-ack' } elseif ($Case -ceq 'n09-uncertain-ack') { 'uncertain-ack' } elseif ($Case -ceq 'n09-sending-commit') { 'sending-commit' } elseif ($Case -ceq 'n09-finished-commit') { 'finished-commit' } elseif ($Case -ceq 'n09-withdrawn-commit') { 'withdrawn-commit' } elseif ($Case -ceq 'n09-uncertain-commit') { 'uncertain-commit' } else { 'original' }
     $receiptFile = Join-Path $ownedRoot 'prepared-run.json'
     $reviewFile = Join-Path $ownedRoot ($baseCase + '-hosted-review-plan.json')
     $execution = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ('context-hosted/' + $baseCase + '/hosted-execution.ps1')))

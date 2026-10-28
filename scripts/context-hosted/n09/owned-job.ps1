@@ -9,11 +9,11 @@ function Invoke-HpmN09OwnedScenario {
         [Parameter(Mandatory)][string]$Candidate,
         [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$PlanSha256,
         [Parameter(Mandatory)][hashtable]$SourcePins,
-        [ValidateSet('original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack')][string]$PublicationGroup = 'original'
+        [ValidateSet('original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack', 'sending-commit', 'finished-commit', 'withdrawn-commit', 'uncertain-commit')][string]$PublicationGroup = 'original'
     )
     $jobStage = 'environment'
     try {
-        if ($PublicationGroup -cnotin @('original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack')) { throw 'invalid' }
+        if ($PublicationGroup -cnotin @('original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack', 'sending-commit', 'finished-commit', 'withdrawn-commit', 'uncertain-commit')) { throw 'invalid' }
         if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
             $env:RUNNER_OS -cne 'Windows' -or [string]::IsNullOrEmpty($env:RUNNER_TEMP)) { throw 'invalid' }
         $jobStage = 'source_pins'
@@ -89,6 +89,14 @@ function Invoke-HpmN09OwnedScenario {
                 if ($root.GetProperty('phase').GetString() -cne 'n09_withdrawn_ack_scenario_closed' -or $root.GetProperty('cases').GetInt32() -ne 2) { throw 'invalid' }
             } elseif ($PublicationGroup -ceq 'uncertain-ack') {
                 if ($root.GetProperty('phase').GetString() -cne 'n09_uncertain_ack_scenario_closed' -or $root.GetProperty('cases').GetInt32() -ne 2) { throw 'invalid' }
+            } elseif ($PublicationGroup -ceq 'sending-commit') {
+                if ($root.GetProperty('phase').GetString() -cne 'n09_sending_commit_scenario_closed' -or $root.GetProperty('cases').GetInt32() -ne 2) { throw 'invalid' }
+            } elseif ($PublicationGroup -ceq 'finished-commit') {
+                if ($root.GetProperty('phase').GetString() -cne 'n09_finished_commit_scenario_closed' -or $root.GetProperty('cases').GetInt32() -ne 2) { throw 'invalid' }
+            } elseif ($PublicationGroup -ceq 'withdrawn-commit') {
+                if ($root.GetProperty('phase').GetString() -cne 'n09_withdrawn_commit_scenario_closed' -or $root.GetProperty('cases').GetInt32() -ne 2) { throw 'invalid' }
+            } elseif ($PublicationGroup -ceq 'uncertain-commit') {
+                if ($root.GetProperty('phase').GetString() -cne 'n09_uncertain_commit_scenario_closed' -or $root.GetProperty('cases').GetInt32() -ne 2) { throw 'invalid' }
             } else { throw 'invalid' }
             foreach ($name in @('probesPassed', 'tlsVerified', 'nonLoopbackBlocked', 'listenerOwned', 'syntheticSocketsClosed')) {
                 if ($root.GetProperty($name).GetBoolean() -ne $true) { throw 'invalid' }

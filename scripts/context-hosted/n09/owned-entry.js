@@ -182,9 +182,17 @@ async function main() {
     ? parsed.publicationGroup
     : 'original';
   if (
-    !['original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack'].includes(
-      publicationGroup
-    ) ||
+    ![
+      'original',
+      'sending-ack',
+      'finished-ack',
+      'withdrawn-ack',
+      'uncertain-ack',
+      'sending-commit',
+      'finished-commit',
+      'withdrawn-commit',
+      'uncertain-commit',
+    ].includes(publicationGroup) ||
     (Object.hasOwn(parsed, 'publicationGroup') && publicationGroup === 'original')
   )
     throw fail();
@@ -251,11 +259,19 @@ async function main() {
   if (publicationGroup !== 'original') {
     const { sendingAckClosedReceipt, finishedAckClosedReceipt } = require('./sending-ack-result');
     const { cancellationAckClosedReceipt } = require('./cancellation-ack-result');
-    const receipt = ['withdrawn-ack', 'uncertain-ack'].includes(publicationGroup)
-      ? cancellationAckClosedReceipt(result, publicationGroup)
-      : publicationGroup === 'sending-ack'
-        ? sendingAckClosedReceipt(result)
-        : finishedAckClosedReceipt(result);
+    const { transitionCommitClosedReceipt } = require('./transition-commit-result');
+    const receipt = [
+      'sending-commit',
+      'finished-commit',
+      'withdrawn-commit',
+      'uncertain-commit',
+    ].includes(publicationGroup)
+      ? transitionCommitClosedReceipt(result, publicationGroup)
+      : ['withdrawn-ack', 'uncertain-ack'].includes(publicationGroup)
+        ? cancellationAckClosedReceipt(result, publicationGroup)
+        : publicationGroup === 'sending-ack'
+          ? sendingAckClosedReceipt(result)
+          : finishedAckClosedReceipt(result);
     process.stdout.write(JSON.stringify(receipt) + '\n');
     return;
   }

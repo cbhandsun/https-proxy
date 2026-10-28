@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack]
+        scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]
     defaults:
       run:
         shell: pwsh
@@ -105,6 +105,14 @@ jobs:
               'Passed scope: 2 cases: withdrawn durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared predecessor ACK and actual client transport closure; zero public bytes, exact two-version advance, fixed budget/expiry and same-directory restart under the original bounded Job.'
             } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09-uncertain-ack') {
               'Passed scope: 2 cases: uncertain durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared and sending predecessor ACKs and actual client transport closure; zero public bytes, exact three-version advance, fixed budget/expiry and same-directory restart under the original bounded Job.'
+            } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09-sending-commit') {
+              'Passed scope: 2 cases: sending COMMIT pending forced-kill/release controls after real predecessor ACKs and a held reader; exact pending target, original budget/expiry, public transport or cancellation witness as applicable, cleanup and same-directory restart under the original bounded Job.'
+            } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09-finished-commit') {
+              'Passed scope: 2 cases: transport-finished COMMIT pending forced-kill/release controls after real predecessor ACKs and a held reader; exact pending target, original budget/expiry, public transport or cancellation witness as applicable, cleanup and same-directory restart under the original bounded Job.'
+            } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09-withdrawn-commit') {
+              'Passed scope: 2 cases: withdrawn COMMIT pending forced-kill/release controls after real predecessor ACKs and a held reader; exact pending target, original budget/expiry, public transport or cancellation witness as applicable, cleanup and same-directory restart under the original bounded Job.'
+            } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09-uncertain-commit') {
+              'Passed scope: 2 cases: uncertain COMMIT pending forced-kill/release controls after real predecessor ACKs and a held reader; exact pending target, original budget/expiry, public transport or cancellation witness as applicable, cleanup and same-directory restart under the original bounded Job.'
             } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n08') {
               'Passed scope: six mutation/hold cases with business-output and authenticated committed-state checks under the original bounded Job.'
             }
@@ -116,6 +124,8 @@ jobs:
               'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors (prepared, sending, uncertain, withdrawn), historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
             } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -cin @('n09-withdrawn-ack', 'n09-uncertain-ack')) {
               'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors, historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
+            } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -cin @('n09-sending-commit', 'n09-finished-commit', 'n09-withdrawn-commit', 'n09-uncertain-commit')) {
+              'Not qualified: other publication COMMIT interiors, independent native OS-anchor interiors, five-second stability, historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
             } else {
               'Not qualified: commit/publication in progress, historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
             }

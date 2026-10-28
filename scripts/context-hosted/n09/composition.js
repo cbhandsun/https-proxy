@@ -21,6 +21,9 @@ const { buildHostedLifecycle, createHostedLifecycleSpawn } = require('./hosted-l
 const { buildN09AckController } = require('../n09-ack/bootstrap-controller');
 const { runPreparedPublicationCommit } = require('../n09-business/publication-commit-driver');
 const { runPreparedPublicationAck } = require('../n09-business/publication-ack-driver');
+const {
+  runTransitionPublicationCommit,
+} = require('../n09-business/publication-transition-commit-driver');
 const fail = () => new Error('n09_hosted_composition_rejected');
 const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 const hex = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -60,9 +63,17 @@ async function composeHostedN09(input, onPhase = () => {}, publicationGroup = 'o
   try {
     if (
       typeof onPhase !== 'function' ||
-      !['original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack'].includes(
-        publicationGroup
-      )
+      ![
+        'original',
+        'sending-ack',
+        'finished-ack',
+        'withdrawn-ack',
+        'uncertain-ack',
+        'sending-commit',
+        'finished-commit',
+        'withdrawn-commit',
+        'uncertain-commit',
+      ].includes(publicationGroup)
     )
       throw fail();
     // Internal observer receives fixed numbers only, never runtime/error data.
@@ -193,6 +204,14 @@ async function composeHostedN09(input, onPhase = () => {}, publicationGroup = 'o
         'finished-ack': { name: 'finishedAck', transition: 'transport-finished' },
         'withdrawn-ack': { name: 'withdrawnAck', transition: 'withdrawn' },
         'uncertain-ack': { name: 'uncertainAck', transition: 'uncertain' },
+        'sending-commit': { name: 'sendingCommit', transition: 'sending', commit: true },
+        'finished-commit': {
+          name: 'finishedCommit',
+          transition: 'transport-finished',
+          commit: true,
+        },
+        'withdrawn-commit': { name: 'withdrawnCommit', transition: 'withdrawn', commit: true },
+        'uncertain-commit': { name: 'uncertainCommit', transition: 'uncertain', commit: true },
       }[publicationGroup];
       const cases = {},
         evidence = {};
@@ -219,7 +238,9 @@ async function composeHostedN09(input, onPhase = () => {}, publicationGroup = 'o
         verifyCopies();
         ownedAdapter.bindVerifiedNetworkProof(proof);
         const name = group.name + (kill ? 'Kill' : 'Release');
-        cases[name] = await runPreparedPublicationAck(ownedAdapter, kill, group.transition);
+        cases[name] = await (
+          group.commit ? runTransitionPublicationCommit : runPreparedPublicationAck
+        )(ownedAdapter, kill, group.transition);
         const observed = ownedAdapter.inspectBusinessEvidence();
         if (
           observed.seeded !== true ||

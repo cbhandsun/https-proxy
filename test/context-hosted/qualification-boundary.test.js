@@ -93,7 +93,7 @@ test(
     const produced = [...producer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
     const consumed = [...consumer.matchAll(/GetProperty\('cases'\)\.GetInt32\(\) -ne (\d+)/g)];
     assert.equal(produced.length, 1);
-    assert.equal(consumed.length, 5);
+    assert.equal(consumed.length, 9);
     const sendingProducer = fs.readFileSync(
       path.join(root, 'scripts/context-hosted/n09/sending-ack-result.js'),
       'utf8'
@@ -111,6 +111,14 @@ test(
     assert.equal(terminalCases.length, 1);
     assert.equal(Number(consumed[3][1]), Number(terminalCases[0][1]));
     assert.equal(Number(consumed[4][1]), Number(terminalCases[0][1]));
+    const commitProducer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/transition-commit-result.js'),
+      'utf8'
+    );
+    const commitCases = [...commitProducer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
+    assert.equal(commitCases.length, 1);
+    for (const index of [5, 6, 7, 8])
+      assert.equal(Number(consumed[index][1]), Number(commitCases[0][1]));
     const expectedCases = Number(produced[0][1]);
     assert.equal(Number(consumed[0][1]), expectedCases);
     const workflow = fs
@@ -143,12 +151,17 @@ test(
         @('n09-sending-ack', 'success'), @('n09-sending-ack', 'failure'), @('n09-sending-ack', 'cancelled'),
         @('n09-finished-ack', 'success'), @('n09-finished-ack', 'failure'), @('n09-finished-ack', 'cancelled'),
         @('n09-withdrawn-ack', 'success'), @('n09-withdrawn-ack', 'failure'), @('n09-withdrawn-ack', 'cancelled'),
-        @('n09-uncertain-ack', 'success'), @('n09-uncertain-ack', 'failure'), @('n09-uncertain-ack', 'cancelled')
+        @('n09-uncertain-ack', 'success'), @('n09-uncertain-ack', 'failure'), @('n09-uncertain-ack', 'cancelled'),
+        @('n09-sending-commit', 'success'), @('n09-sending-commit', 'failure'), @('n09-sending-commit', 'cancelled'),
+        @('n09-finished-commit', 'success'), @('n09-finished-commit', 'failure'), @('n09-finished-commit', 'cancelled'),
+        @('n09-withdrawn-commit', 'success'), @('n09-withdrawn-commit', 'failure'), @('n09-withdrawn-commit', 'cancelled'),
+        @('n09-uncertain-commit', 'success'), @('n09-uncertain-commit', 'failure'), @('n09-uncertain-commit', 'cancelled'),
+        @('n09-unknown-commit', 'success'), @('n09-sending-commit', 'SUCCESS'), @(("n09-sending-commit"+[char]10), 'success')
       )) {
         $env:SCENARIO = $case[0]
         $env:JOB_STATUS = $case[1]
         $summary = ${expression}
-        @{ scenario = $case[0]; status = $case[1]; summary = @($summary) }
+        @{ scenario = $case[0]; status = $case[1]; summary = @($summary | Where-Object { $_.StartsWith('Passed scope:') -or $_.StartsWith('Not qualified:') }) }
       }
       ConvertTo-Json -Depth 4 -Compress -InputObject @($rows)
     `,
@@ -158,7 +171,7 @@ test(
     assert.equal(result.error, undefined);
     assert.equal(result.status, 0);
     const rows = JSON.parse(result.stdout);
-    assert.equal(rows.length, 20);
+    assert.equal(rows.length, 35);
     for (const row of rows) {
       const scopes = row.summary.filter((line) => line.startsWith('Passed scope:'));
       const qualified =
@@ -170,6 +183,10 @@ test(
           'n09-finished-ack',
           'n09-withdrawn-ack',
           'n09-uncertain-ack',
+          'n09-sending-commit',
+          'n09-finished-commit',
+          'n09-withdrawn-commit',
+          'n09-uncertain-commit',
         ].includes(row.scenario);
       assert.equal(scopes.length, qualified ? 1 : 0);
       if (qualified) {
@@ -180,6 +197,10 @@ test(
             'n09-finished-ack',
             'n09-withdrawn-ack',
             'n09-uncertain-ack',
+            'n09-sending-commit',
+            'n09-finished-commit',
+            'n09-withdrawn-commit',
+            'n09-uncertain-commit',
           ].includes(row.scenario)
         ) {
           const reported = scopes[0].match(/^Passed scope: (\d+) cases:/);
@@ -201,7 +222,13 @@ test(
                     ? 'cases: withdrawn durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared predecessor ACK and actual client transport closure'
                     : row.scenario === 'n09-uncertain-ack'
                       ? 'cases: uncertain durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared and sending predecessor ACKs and actual client transport closure'
-                      : 'six mutation/hold cases'
+                      : row.scenario.endsWith('-commit')
+                        ? 'cases: ' +
+                          (row.scenario === 'n09-finished-commit'
+                            ? 'transport-finished'
+                            : row.scenario.slice(4, -7)) +
+                          ' COMMIT pending forced-kill/release controls after real predecessor ACKs and a held reader'
+                        : 'six mutation/hold cases'
           )
         );
       }
@@ -218,7 +245,14 @@ test(
                   : ['n09-withdrawn-ack', 'n09-uncertain-ack'].includes(row.scenario) &&
                       row.status === 'success'
                     ? 'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors'
-                    : 'Not qualified: commit/publication in progress'
+                    : [
+                          'n09-sending-commit',
+                          'n09-finished-commit',
+                          'n09-withdrawn-commit',
+                          'n09-uncertain-commit',
+                        ].includes(row.scenario) && row.status === 'success'
+                      ? 'Not qualified: other publication COMMIT interiors'
+                      : 'Not qualified: commit/publication in progress'
           )
         )
       );

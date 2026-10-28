@@ -91,7 +91,7 @@ public sealed class HpmHostedEgressLease : IDisposable {
             if (String.IsNullOrEmpty(program) || String.IsNullOrEmpty(temp)) throw Rejected();
             string full = Path.GetFullPath(program), root = Path.GetFullPath(temp).TrimEnd('\\');
             bool approved = false;
-            foreach (string scenario in new [] { "n08", "n09", "n09-sending-ack", "n09-finished-ack", "n09-withdrawn-ack", "n09-uncertain-ack" }) {
+            foreach (string scenario in new [] { "n08", "n09", "n09-sending-ack", "n09-finished-ack", "n09-withdrawn-ack", "n09-uncertain-ack", "n09-sending-commit", "n09-finished-commit", "n09-withdrawn-commit", "n09-uncertain-commit" }) {
                 string expected = Path.Combine(root, "hpm-context-" + scenario, "payload", "runtime", "node", "node.exe");
                 if (String.Equals(program, full, StringComparison.Ordinal) && String.Equals(full, expected, StringComparison.OrdinalIgnoreCase)) approved = true;
             }

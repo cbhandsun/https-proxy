@@ -24,13 +24,17 @@ node scripts/prepare-context-hosted-run.js n08
 The original N09 job uses `n09` in both positions. The independent sending and
 transport-finished ACK jobs use `n09-sending-ack` and `n09-finished-ack`
 respectively in both positions. The cancellation terminal jobs use
-`n09-withdrawn-ack` and `n09-uncertain-ack` in both positions. The prepare
+`n09-withdrawn-ack` and `n09-uncertain-ack` in both positions. The additional
+COMMIT-interior jobs use `n09-sending-commit`, `n09-finished-commit`,
+`n09-withdrawn-commit` and `n09-uncertain-commit` in both positions. The prepare
 command checks the exact GitHub source SHA and tracked source hashes, observes
 the actual `npm run release:prepare` exit, then creates a fresh
 `$RUNNER_TEMP/hpm-context-n08`, `hpm-context-n09`, or
 `hpm-context-n09-sending-ack`, `hpm-context-n09-finished-ack`,
-`hpm-context-n09-withdrawn-ack`, or `hpm-context-n09-uncertain-ack` directory.
-The payload's schema-2 manifest, executable, source hashes, release layout and
+`hpm-context-n09-withdrawn-ack`, `hpm-context-n09-uncertain-ack`, or one of the
+four corresponding fixed `hpm-context-n09-*-commit` directories. Each permitted
+name is explicitly enumerated; the executable guard does not accept a glob. The
+payload's schema-2 manifest, executable, source hashes, release layout and
 production dependency lock are verified before the fixed review plan is written.
 A collision fails and preserves the existing directory.
 
@@ -220,8 +224,30 @@ The COMMIT boundary module now has an explicit target-transition entry in
 addition to its unchanged prepared entry. It binds the pending observer sample
 to exactly one generation, root, original expiry and predecessor revision, plus
 physical read-admission blockage in the same original 750ms window. A target
-label alone never proves predecessor ACKs or a live daemon: the remaining
-transition compositions must still pause their real predecessor, acquire the
-reader, release into the intended write and pass their own runtime controls.
-Malformed root IDs, versions without a safe successor and overridden rejected
-promises reject before they can confer an observation receipt.
+label alone never proves predecessor ACKs or a live daemon: every transition
+composition must pause its real predecessor, acquire the reader, release into
+the intended write and pass their own runtime controls. Malformed root IDs,
+versions without a safe successor and overridden rejected promises reject before
+they can confer an observation receipt.
+
+The four non-prepared COMMIT groups now have a fixed daemon composition. A
+normal sending/finished case first holds the real prepared/sending ACK, obtains
+a reader at its exact durable predecessor, then releases that original ACK into
+the target write. A cancelled withdrawn/uncertain case holds its authenticated
+trigger, observes actual client closure, obtains the predecessor reader, and
+releases the trigger into the original cleanup write. Both require the exact
+pending transition and physical read-admission blockage under the unchanged
+750ms witness. The finished case independently binds the exact completed public
+wire; cancelled cases require zero public bytes. Forced interruption must reopen
+through the default owner and preserve the exact predecessor version before
+reading the original. A release control must finish the original publication or
+cancellation cleanup; cancelled cases also pass the final terminal ACK control.
+No synthetic clock, writer replacement, model call or retry is added.
+
+Each new group uses its own two fresh adapters and original 120-second Job,
+explicit review-plan group, fixed executable path and strict two-case receipt.
+The original six runtime groups remain present; the formal ten-group matrix
+still requires the complete same-SHA source gates. These new compositions need
+their own actual Windows results. Local protocol fixtures, reader-lock tests and
+receipt parsers do not qualify the full N09, five-second stability, installed
+clients, real providers or 24-hour capacity.

@@ -80,6 +80,12 @@ function fixture(
         return { forcedKill: kill };
       },
     },
+    '../n09-business/publication-transition-commit-driver': {
+      runTransitionPublicationCommit: async (_adapter, kill, transition) => {
+        driverCalls.push({ kill, transition, commit: true });
+        return { forcedKill: kill };
+      },
+    },
     '../n09-business/publication-commit-driver': {
       runPreparedPublicationCommit: async (_adapter, kill) => ({ forcedKill: kill }),
     },
@@ -273,4 +279,25 @@ for (const transition of ['withdrawn', 'uncertain']) {
       assert.equal(result.preparedAckKill, undefined);
     }
   );
+}
+
+for (const [name, transition] of [
+  ['sending', 'sending'],
+  ['finished', 'transport-finished'],
+  ['withdrawn', 'withdrawn'],
+  ['uncertain', 'uncertain'],
+]) {
+  test(name + ' COMMIT group uses two independent adapters and the COMMIT driver', async () => {
+    const f = fixture(false, false, {}, true);
+    const result = await f.run(f.options, () => {}, name + '-commit');
+    assert.equal(result.cleanup.adaptersClosed, 2);
+    assert.equal(result[name + 'CommitKill'].forcedKill, true);
+    assert.equal(result[name + 'CommitRelease'].forcedKill, false);
+    assert.deepEqual(f.driverCalls, [
+      { kill: true, transition, commit: true },
+      { kill: false, transition, commit: true },
+    ]);
+    assert.equal(result.sendingAckKill, undefined);
+    assert.equal(result.preparedCommitKill, undefined);
+  });
 }
