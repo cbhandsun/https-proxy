@@ -1,5 +1,14 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：修复健康验证器“缺终态仍通过”的成功门漏洞
+
+只读子代理从现有完成夹具复现：其余完整合成证据不变、仅把任务状态改为Queued/Unknown/null，旧代码会passed=true但terminalConfirmed=false。现成功分支必须满足原严格terminalConfirmed，实际零退出/child_exit、任务成功、原容量画像、288连续真实ticks、86400000ms、原root到期、双重开及15次开关条件全部保留；不宽化失败终态，不把控制器缺失当作Node退出0。Queued/Unknown/null/Running不能授通过，Ready/Disabled仅在全部其他证据成立时仍可通过。
+
+固定b92未修改健康源码对照19项16通过/3先红，修复后19/19；主代理合并相关本地回归90/90、零skip，定向Lint/格式、1741语法、CI/发布治理通过。只验证纯健康判定与本地非原生控制，不代表Windows/24小时通过，详见context-recovery-evidence/native-day-terminal-success-gate.json。旧868冻结验证器、监测、任务/数据库/锚点完全不动，仍失败且缺最终回执；本漏洞没有使那轮不足画像的15分钟记录通过，也不追认其终态。
+
+新一轮失败终态证书还缺固定控制器PID/创建时间及同轮任务实例/LastRunTime等权威字段，不能猜测；仅改Task Action为Node会丢失现有stdout重定向、环境清理、防睡眠lease及owned-Job授权，未采用。继续先收口原五秒持久/准备失败与完整门，再做最新安装/两端真实provider/有效24h。新长测与模型均0，旧实例和最大容量暂停保持。
+
+
 ## 2026-10-28：457 完整三处失败与 b92 失败保留；对准非原生发布准备的 I/O 窗口
 
 457五条CI已终态：timing/独立I/O成功，普通/正式/额外coverage失败，完整失败日志2814903/2824129/2812787字符已读。普通三项publication prepared在原ready五秒内失败，尚未到目标advance：准备COMMIT已返回1371/2277/2011/2353ms，其他提交仍pending，不虚构最终耗时；这些是非原生publication文件，原Verify所选native窗口不覆盖它。正式为Tianxi真实PowerShell调用ETIMEDOUT；额外为native protect25ms后legacy unprotect10234ms超时且未见首阶段，不能确认DPAPI算法失败。相同457范围实际Core持久发布42个786–2119ms、未见该范围真实请求失败，但不覆盖原五秒失败或失败的完整门。

@@ -315,6 +315,36 @@ test('passing requires a full fixed profile, actual day, both expiry reopens and
   assert.equal(inspectNativeDayHealth(f).reason, 'exit_receipt_stalled');
 });
 
+for (const taskState of ['Queued', 'Unknown', null, 'Running']) {
+  test(
+    'complete receipts cannot pass without a successful terminal task state: ' + String(taskState),
+    () => {
+      const f = complete(fixture());
+      event(f, 'task_status').state = taskState;
+      const health = inspectNativeDayHealth(f);
+      assert.equal(health.passed, false);
+      assert.equal(health.state, 'unverified');
+      assert.equal(health.reason, 'exit_not_verified');
+      assert.equal(health.terminalConfirmed, false);
+    }
+  );
+}
+
+for (const taskState of ['Ready', 'Disabled']) {
+  test(
+    'complete verified zero-exit receipts retain valid terminal task state: ' + taskState,
+    () => {
+      const f = complete(fixture());
+      event(f, 'task_status').state = taskState;
+      const health = inspectNativeDayHealth(f);
+      assert.equal(health.passed, true);
+      assert.equal(health.state, 'passed');
+      assert.equal(health.reason, 'qualified_completion');
+      assert.equal(health.terminalConfirmed, true);
+    }
+  );
+}
+
 test('empty, illegal, oversized, duplicated and executable observations fail with a fixed private-safe error', () => {
   let hooks = 0;
   const proxy = new Proxy(

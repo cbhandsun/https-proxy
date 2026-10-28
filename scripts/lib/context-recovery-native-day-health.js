@@ -275,7 +275,10 @@ function inspectNativeDayHealth(input) {
           return state('stalled', 'exit_receipt_stalled');
         return state('finishing', 'awaiting_exit_receipt');
       }
+      // Completion also needs the existing source-bound terminal proof. A
+      // complete report cannot promote a queued or unknown task to success.
       if (
+        !terminalConfirmed ||
         final.exitCode !== 0 ||
         final.reason !== 'child_exit' ||
         process.alive !== false ||
