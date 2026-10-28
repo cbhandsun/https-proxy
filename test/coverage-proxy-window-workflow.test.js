@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-test('the actual coverage workflow scopes the native publication proxy selector and preserves every failure gate', () => {
+test('the actual coverage workflow scopes the publication preparation proxy selector and preserves every failure gate', () => {
   const workflow = fs
     .readFileSync(path.resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8')
     .replaceAll('\r\n', '\n');
@@ -53,7 +53,7 @@ $results=@(foreach($script:row in $inputData.cases){$script:seen=[Collections.Ge
   );
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0);
-  const proxy = (kind) => ({ kind, stage: 'proxy', selector: 'native-publication-interruption' });
+  const proxy = (kind) => ({ kind, stage: 'proxy', selector: 'publication-interruption' });
   const client = (kind) => ({ kind, stage: 'client', selector: null });
   assert.deepEqual(
     JSON.parse(result.stdout),

@@ -1,5 +1,16 @@
 # 上下文恢复换机交接
 
+## 2026-10-28：903 完整门终态与旧选择器断言修正
+
+90389ed五条CI均已终态：三timing和独立I/O成功，Verify、正式源码门和额外coverage失败。完整失败日志3043230/3056699/3048857字符已读；Verify coverage与正式source-gates均仅见旧工作流选择器断言失败，额外coverage另有ACK通道“released探针写入不得延长五秒”用例失败（892.768ms，channel rejected），不能把该失败宣称为五秒真实请求失败或已解决。正式业务未执行。旧失败全部保留。
+
+修正既有工作流治理测试的名称与期望选择器为publication-interruption，匹配已经提交的Verify实际选择窗口；七种成功/失败场景、原5000ms子进程期限、错误断言与命令序列不变。独立Windows治理夹具在真实pwsh执行实际YAML正文，退出0，1项通过/0失败/0跳过，5532.2909ms；仅授该断言修正，不授完整CI通过。此为测试同步修正，不是持久性能修复。
+
+独立I/O完整70/70（原50项及完整新增20项），651条SQL记录/20夹具，381对flush，DB最大34ms、journal最大30ms；三timing各50/50，十八持久发布813–1080ms。均不能覆盖原重负载五秒失败。Windows新903准备任务插件npm本体退出0，但其后原5000ms Git身份检查超时，未进入原生准备；后续只读身份/锁检查通过，原任务失败保留，仅允许新独立任务执行尚未执行的原生准备，产品测试尚未开始。
+
+旧868只读复核仍process_not_running、四ticks、末scheduled900000/elapsed900012ms、passed=false、terminalConfirmed=false；冻结源码/验证器/数据库/任务不变，新24h/模型请求0。下一步先定位额外ACK失败并完成903实际原生构建，读取修正后的完整门，再推进最新安装及双端验收；不以本批局部通过替代整体交付。
+
+
 ## 2026-10-28：修复健康验证器“缺终态仍通过”的成功门漏洞
 
 只读子代理从现有完成夹具复现：其余完整合成证据不变、仅把任务状态改为Queued/Unknown/null，旧代码会passed=true但terminalConfirmed=false。现成功分支必须满足原严格terminalConfirmed，实际零退出/child_exit、任务成功、原容量画像、288连续真实ticks、86400000ms、原root到期、双重开及15次开关条件全部保留；不宽化失败终态，不把控制器缺失当作Node退出0。Queued/Unknown/null/Running不能授通过，Ready/Disabled仅在全部其他证据成立时仍可通过。
