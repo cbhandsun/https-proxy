@@ -1,0 +1,27 @@
+{
+  "remaining": {
+    "claude": 7,
+    "codex": 1
+  },
+  "dailyConfigurationChangesAllowed": false,
+  "usedAtGrant": 154,
+  "event": "numeric_client_grant_reconciliation",
+  "codexNewGrant": 16,
+  "realModelRequests": 0,
+  "claudePriorReserved": 7,
+  "separateGrantCountsVerified": true,
+  "noAutomaticRetries": true,
+  "dispatchReservationPrepared": false,
+  "used": 169,
+  "requestsSinceGrant": {
+    "codex": 15,
+    "other": 0,
+    "claude": 0
+  },
+  "maximum": 177,
+  "scope": "read_only_numeric_ledger_and_separate_grant_reconciliation",
+  "ledgerChanged": false,
+  "credentialsReadOrReturned": false,
+  "priorHarnessExecuted": false,
+  "freshDispatchReservationRequired": true
+}

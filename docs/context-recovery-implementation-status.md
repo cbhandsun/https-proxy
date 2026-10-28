@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：e0十组独立Windows业务全部通过；最新安装链已启动原源码门
+
+固定e0e0f14独立40625817674十组已全部终态success；十份完整日志逐一核对精确source/plan/build摘要及实际hosted_network_finished、probesPassed、TLS/非loopback隔离/ownedTreeEmpty回执。新sending-commit/job122610337061和finished-commit/job122610337108都完成真实默认daemon的kill/release控制，两个取消型COMMIT也通过，原六组全部保留通过。支持本批同步暂停内服务认证观察查询的修复；这不是单纯prepared_only或夹具替代。有限证据见context-recovery-evidence/e0e0f14-ten-diagnostic-groups.json。ae306两组184/case160和旧c505 finished184/case161及所有五秒失败均保留，不追授旧c505的唯一原因，不授五秒长期稳定性/full N09/24h。
+
+普通40625817781已确认node-quality/integration/rust成功，四unit与coverage仍在各自原job；正式40625817663/source122610336517仍执行统一门、egress已success，额外I/O40625817825仍运行。因此十组独立通过尚不等于完整正式门通过，不重复启动原作业。
+
+通过既有review分支路由启动最新e0安装链40625996281：先核对既有未发布draft421213889、固定installer667118183/identity667118182及baseline f8421078，再用原严格route解析器核对首次创建push约束。resolve/job122610921859已success，encrypted/job122611063764实际运行；原同SHA完整verify/high audit必须通过后才构建、安装。随后原链执行同格式升级回滚/DPAPI、完整582布局迁移与旧写者拒绝、Codex/Claude默认/增强四个实际CLI合成上游案例及包内COMMIT/ACK门。没有创建新baseline或上传包/数据库/密钥，公开release签名要求不改。当前只是实际启动，不能授安装/迁移/两端资格；后续核对同一job，不重启覆盖。有限启动记录见context-recovery-evidence/e0e0f14-installer-requested.json。
+
+Windows原额度台账和分离授权本轮只读核对：maximum177/used169，请求记录数匹配；grant后Codex15、Claude0、other0，剩Codex1/Claude7不可合并。原无自动重试和不改日常配置约束均验证，未预留dispatch、未写账、未执行旧私有harness，真实模型0。数值证据见context-recovery-evidence/e0e0f14-provider-budget-reconciled.json；真正发起时仍需新鲜预留及分provider计数，不能将此只读快照当无限授权。
+
+下一步核对上述完整门与安装链实际结果，并继续持久五秒尾延迟定位。旧6646终态失败现场和旧E实例未动，新24h未启动；五秒稳定性、最新本机安装两端/真实provider、24h及到期双重开、最大容量及最终受控自用等原缺口仍保留，整体目标未完成。
+
+
 ## 2026-10-28：Windows SSH恢复；修复正常COMMIT编排中的同步观察查询阻塞
 
 SSH已重新连通Windows juhon账户。固定ae306f2普通40623076461八作业与额外I/O40623076458成功；正式40623076450/source122601482524失败、业务skipped。完整源码门日志有WBIPC恢复timeout和隔离Python测试子进程spawnSync node ETIMEDOUT，不能借普通CI通过覆盖。独立十组40623076473八通过、sending-commit/finished-commit均184/case160失败；新withdrawn/uncertain COMMIT两份完整日志核对精确source/plan/build及实际network_finished、TLS/隔离/ownedTreeEmpty。有限记录见context-recovery-evidence/ae306f2-first-commit-groups.json。

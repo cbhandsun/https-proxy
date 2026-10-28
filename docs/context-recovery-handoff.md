@@ -1,5 +1,10 @@
 # 上下文恢复换机交接
 
+## 2026-10-28 最新续接：e0十组实际诊断通过，完整门与安装链仍在运行
+
+优先读[实施状态](context-recovery-implementation-status.md)顶部。e0e0f14修复ACK同步暂停期间观察查询无法响应；独立40625817674十组真实Windows业务全部success，完整十份source/plan/build和执行后回执已核对，未转授产品五秒稳定性。普通40625817781、正式40625817663/source122610336517与额外I/O40625817825仍为原活跃作业；最新同SHA安装链40625996281/122611063764已启动，先原完整verify/audit，之后才安装升级回滚、582迁移拒写和两端合成CLI。不要另启重复作业或把旧包资格转授该候选。额度本轮只读重新核对仍169/177、Codex1/Claude7分离，真实请求0、未预留dispatch。旧6646长测终态失败现场保持、新24h未启动，旧E实例由用户自行切换。全部五秒/旧COMMIT失败和完整其余交付门保持。
+
+
 ## 2026-10-28 四目标COMMIT续接
 
 最新固定验收矩阵已扩为十组：原六组保留，新增sending/finished/withdrawn/uncertain COMMIT内部各kill/release。新四组的真实前置ACK/trigger、reader、default-owner hot-journal重开和严格回执已接上，本地组合验证通过，尚待它们自己的Windows执行与完整门。固定c505普通八、正式八及额外I/O已通过，六业务完整日志与三I/O回执已核对；同源独立finished184旧失败保留，五秒稳定性仍未确认。细节与证据优先读[实施状态](context-recovery-implementation-status.md)顶部。旧长测/实例/真实模型限制沿用，不把旧通过转授本批或整体完成。
