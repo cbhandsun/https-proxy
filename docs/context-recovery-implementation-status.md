@@ -1,5 +1,20 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：8b重开回归实际通过，五秒尾等待仍失败；原生失败窗口录制续接
+
+固定8b2d90a普通40705457631七成功、coverage三失败，正式40705457954十二作业全部成功；正式source完整3880020、额外I/O3793289、普通coverage2726265字符均已读，十份实际业务完整日志逐份核对精确source/plan/build和执行后hosted_network_finished、TLS/隔离/ownedTreeEmpty。四份覆盖I/O及一份独立I/O摘要经原parseSummary核验，均fiveSecondQualified=false。三次原50项时序组150项全通过、18个发布样本872–1138ms。此前反复失败的四根32MiB历史重开，本次普通coverage用例通过、100120ms，不能因此授整体五秒稳定性。有限证据见context-recovery-evidence/8b2d90a-ci-tail-and-local-resource.json。
+
+普通coverage三项native-publication失败均awaiting=ready，目标advance尚未进入。一次空库启动到anchor_persist_started已4793ms：key-file打开274ms、flush633ms、同步初始意图约1122ms，engine_anchor_validate_finished到engine_prepared又2461ms；该区间尚未采到细分SQL因果。另两项分别在ready1768/3100ms后继续准备存储写，某次engine执行658ms、再一条执行仍待。就绪屏障修复通过了大根重开，但不能把这些剩余尾等待归为同一竞态或已经修好。
+
+Windows原任务的插件npm进程exit0，后置git-revision在原5000ms门报ETIMEDOUT，任务Ready/1，尚未进入产品测试；不能称npm失败。原任务/日志不动，独立admitted续接先重新核对精确源码、canonical辅助文件和已安装直接依赖锁定版本，1991ms退出0；两次npm不重装，任何产品测试也未重跑覆盖。默认DPAPI/OS锚点两次开闭通过、ready4604/2804ms（原30秒开库门），容量/时钟28/28、完整blobs91/91、完整root-state72/72，零fail/skip。四个16MiB载荷根61088ms、四根32MiB历史149126ms，均在原单用例期限内，后者整文件247599ms不等于单用例超时，也不是重启最大容量长测。
+
+随后的原生20项组在原120000ms父门失败，19个可见not-ok/零可见通过、无最终TAP，不能写成整组20项已执行；所有失败都尚未ready，多数最后在ACL或所有权获取，甚至有未见worker_started者。任务Ready/126、cleanupFailed=false，独立终态读取确认该根所属Node/native剩余0；没有重启或继续后续40项。退出两分钟后的只读聚合资源采样CPU100%、约45GiB可用内存；后续分类CPU采样主要为other，node0，未报告进程名/PID/命令行。采样发生在失败后，不能反推失败瞬间唯一原因，未结束其他进程或修改安全软件/系统环境。原失败和两次观察器失败亦保留。
+
+本批仅把普通Verify代理阶段既有I/O选择器从publication-graceful-http改为native-publication-interruption，直接覆盖此次实际失败文件；仍是原完整四分片负载和命令、单录制器，原五秒/15秒/120秒门、原失败停止、client两窗口及选择器清除不变。正式source和额外I/O选择不改。现有四文件69/69、零fail/skip（包括实际PowerShell工作流各阶段失败必须停止及两种选择器的严格回执核对）、CI/release治理通过。这是取因果证据的观测调整，不是产品性能修复，需下一批实际Windows录制。
+
+最新安装迁移链的封存基线草稿资产已只读核对仍在，摘要匹配；新源码安装路由仅本机prepare并通过原解析器，未触发、未授安装资格，仍等待完整原门。旧868/6646失败现场、旧E实例、日常配置和额度不动，新24h未启动、真实模型0。下一步读取本批托管原生失败窗口，在可核验资源状态下恢复本机原门；不靠本机重跑或单次绿色抹除失败。最新安装版两端、用户切换、真实provider、24h/到期重开和最大容量等整体缺口保留。
+
+
 ## 2026-10-28：af6正式链通过、coverage重开失败；修复预启动就绪被同步SQL饿死的竞态
 
 固定af6d9d1普通40647577186七作业成功、coverage失败；正式40647577225十二作业全部成功，十份实际业务完整日志逐份核对同source/plan/build及执行后hosted_network_finished、TLS/隔离/ownedTreeEmpty，不能只用prepared_only。coverage完整2689631字符，唯一失败为四根32MiB历史，新增闭集诊断确认stage=reopen、fixtures=4、duration102717ms，仍无内部失败标签；正式source完整3832206、额外I/O3743617已读，原parseSummary核验四份覆盖I/O，独立I/O摘要另已核验。三次原50项时序组全部通过、18个发布样本627–1144ms，只授有限样本，不覆盖历史五秒失败。证据见context-recovery-evidence/af6d9d1-complete-ci-and-local-failure.json。

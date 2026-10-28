@@ -1,0 +1,2074 @@
+{
+  "schemaVersion": 1,
+  "source": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+  "verifyRunId": 40705457631,
+  "formalRunId": 40705457954,
+  "verifyJobs": [
+    {
+      "id": 122876230676,
+      "name": "node-quality",
+      "conclusion": "success"
+    },
+    {
+      "id": 122876230994,
+      "name": "unit-tests (0)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122876231163,
+      "name": "integration-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 122876231425,
+      "name": "unit-tests (1)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122876231428,
+      "name": "coverage",
+      "conclusion": "failure"
+    },
+    {
+      "id": 122876231431,
+      "name": "unit-tests (2)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122876231512,
+      "name": "rust-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 122876231523,
+      "name": "unit-tests (3)",
+      "conclusion": "success"
+    }
+  ],
+  "formalJobs": [
+    {
+      "id": 122876231110,
+      "name": "source-gates",
+      "conclusion": "success"
+    },
+    {
+      "id": 122876231481,
+      "name": "egress-diagnostic",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616106,
+      "name": "context-recovery (n08)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616136,
+      "name": "context-recovery (n09-finished-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616199,
+      "name": "context-recovery (n09-uncertain-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616205,
+      "name": "context-recovery (n09-finished-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616225,
+      "name": "context-recovery (n09-uncertain-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616236,
+      "name": "context-recovery (n09)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616402,
+      "name": "context-recovery (n09-sending-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616414,
+      "name": "context-recovery (n09-withdrawn-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616420,
+      "name": "context-recovery (n09-withdrawn-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122885616506,
+      "name": "context-recovery (n09-sending-ack)",
+      "conclusion": "success"
+    }
+  ],
+  "formal": [
+    {
+      "jobId": 122885616106,
+      "logCharacters": 34919,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n08",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "e7c07a972bb28c16e1b097c0a9851ec6f5c1ad64aa81167daf24d46f11a8f04e",
+        "buildReceiptSha256": "8939b8abf4fad47c377917badd01dd7dcb3602ead709d73257db99c22607f167",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "n08Qualified": false,
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "ownedTreeEmpty": true
+      }
+    },
+    {
+      "jobId": 122885616136,
+      "logCharacters": 34991,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-finished-ack",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "22be642a58867ae6aef33c8aaf303d82ba145fd9b7e89a199fa6cb10b15885f6",
+        "buildReceiptSha256": "ba6b04cc851b64c8551f38199e4642df8b98ccd959e24f4e7e932b0c8c1da15a",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "probesPassed": true,
+        "phase": "hosted_network_finished"
+      }
+    },
+    {
+      "jobId": 122885616199,
+      "logCharacters": 34996,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-uncertain-ack",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "50e424a28a335ce39e2a51c4b119cafd0511922a96f9c9fed13b17f9369d0c15",
+        "buildReceiptSha256": "0e7afa2f307ffdf7252e87956f807dc6fcfd6d4ede61a50a01161d5ad88c24bb",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "tlsVerified": true,
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "phase": "hosted_network_finished"
+      }
+    },
+    {
+      "jobId": 122885616205,
+      "logCharacters": 34999,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-finished-commit",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "e418b9b45114eff615744ac1d3754d32271492f3299f440de35f522274926e25",
+        "buildReceiptSha256": "87da2c19e0f4fff4d260d2b60ef6ff13721af84ae4abf43a514569d50c340174",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "ownedTreeEmpty": true,
+        "tlsVerified": true,
+        "n08Qualified": false
+      }
+    },
+    {
+      "jobId": 122885616225,
+      "logCharacters": 35012,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-uncertain-commit",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "4aa8c4bd13e0a89e26a056d92058623158ba342b6dbb3285a1a5563f81572efa",
+        "buildReceiptSha256": "9deee9922b8a68afe929400bcbfac6e66f35dab5b2797997ab5ae07f4129efd1",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished"
+      }
+    },
+    {
+      "jobId": 122885616236,
+      "logCharacters": 34922,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "8ad47f463bbaedd6a6eb5202b708cad9c5a3d1645df5c666c8bf5965d6010347",
+        "buildReceiptSha256": "391529d548455d5f6336ec6040126d56fda27f33d92f1a2b79cf88f63b26e87d",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "probesPassed": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true
+      }
+    },
+    {
+      "jobId": 122885616402,
+      "logCharacters": 34995,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-sending-commit",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "e11a2c58ad17bbc951fff9027b146e20bd5887263d8e0c287f4a70d170b173fb",
+        "buildReceiptSha256": "22041bb292b79dd44ca1d71958984755bb90b1141db553f141cb51c883b5e2dc",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "tlsVerified": true,
+        "n08Qualified": false,
+        "probesPassed": true,
+        "nonLoopbackBlocked": true,
+        "ownedTreeEmpty": true,
+        "phase": "hosted_network_finished"
+      }
+    },
+    {
+      "jobId": 122885616414,
+      "logCharacters": 35005,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-withdrawn-commit",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "2b12199b23dada2fbf526f310fbc46d732ec052d69a44c3ced59ed40792029ae",
+        "buildReceiptSha256": "c3fa04cef0d990e07728c506850a1f2967296c4ecddb318dbdbfdbe26c6b2170",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "probesPassed": true,
+        "phase": "hosted_network_finished"
+      }
+    },
+    {
+      "jobId": 122885616420,
+      "logCharacters": 34992,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-withdrawn-ack",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "2bde43c7947d6d36aec370a7d2eba837969dc8ab9667c2366b4721e4808bc33a",
+        "buildReceiptSha256": "7c13f81c858d8968426da0b221ae899a2efc3098505d0cc04a5ff31c973111e6",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "probesPassed": true,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "ownedTreeEmpty": true
+      }
+    },
+    {
+      "jobId": 122885616506,
+      "logCharacters": 34979,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-sending-ack",
+        "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+        "planSha256": "a5d960adbe87b8ad29a2195b5dfb98553cc3ffb2f65b0f51700c4538875dbd9e",
+        "buildReceiptSha256": "7353009c2ca032658a841b049c646636c8f95f837b4724e65728595a801d923d",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "phase": "hosted_network_finished",
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "probesPassed": true
+      }
+    }
+  ],
+  "io": [
+    {
+      "jobId": 122876231110,
+      "kind": "COVERAGE_IO",
+      "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+      "coverageStage": "proxy",
+      "windowId": "client-context-target",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "fullSummaryValidated": true,
+      "summarySha256": "1850418103e7fe3cdc690d673917e5df7492bf5f74cc1c29036556369b0b0092",
+      "database": {
+        "count": 16,
+        "maxMs": 43,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 52,
+        "maxMs": 39,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122876230499,
+      "kind": "COVERAGE_IO",
+      "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+      "coverageStage": "proxy",
+      "windowId": "native-publication-interruption",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "fullSummaryValidated": true,
+      "summarySha256": "846d2fb64905a1d4232b7b51d39e2ce4c32e3412c3743d81f3ede9d1f13ee14b",
+      "database": {
+        "count": 65,
+        "maxMs": 21,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 132,
+        "maxMs": 36,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122876230499,
+      "kind": "COVERAGE_IO",
+      "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+      "coverageStage": "client",
+      "windowId": "client-context-target",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "fullSummaryValidated": true,
+      "summarySha256": "b0494c9d544b9404563c9a2ddd66edb69353a4152b42a60372a3827d54b8201b",
+      "database": {
+        "count": 48,
+        "maxMs": 40,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 96,
+        "maxMs": 21,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122876230499,
+      "kind": "COVERAGE_IO",
+      "sourceSha": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+      "coverageStage": "client",
+      "windowId": "publication-graceful-http",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "fullSummaryValidated": true,
+      "summarySha256": "18fd8e0addc722dd59eed4e7dba00281c84122026d66d8de8f53d770d0c04c18",
+      "database": {
+        "count": 21,
+        "maxMs": 12,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 42,
+        "maxMs": 17,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122876230422,
+      "kind": "PERSISTENT_IO",
+      "fullSummaryValidated": true,
+      "summarySha256": "b4ce6803b6dd27fa6adfed91e6afeab052655b95879a2f70f19bb639262409e0",
+      "database": {
+        "count": 48,
+        "maxMs": 19,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 96,
+        "maxMs": 14,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    }
+  ],
+  "timing": [
+    {
+      "jobId": 122876231352,
+      "sourceMention": true,
+      "totals": [
+        "2026-10-28T14:25:22.6868511Z # tests 50",
+        "2026-10-28T14:25:22.6869097Z # pass 50",
+        "2026-10-28T14:25:22.6870120Z # fail 0",
+        "2026-10-28T14:25:22.6871139Z # skipped 0"
+      ],
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 872
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 988
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 889
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1050
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 916
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1059
+        }
+      ]
+    },
+    {
+      "jobId": 122876231435,
+      "sourceMention": true,
+      "totals": [
+        "2026-10-28T14:25:21.5037063Z # tests 50",
+        "2026-10-28T14:25:21.5037648Z # pass 50",
+        "2026-10-28T14:25:21.5037956Z # fail 0",
+        "2026-10-28T14:25:21.5038735Z # skipped 0"
+      ],
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 977
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1067
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 998
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1138
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 982
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1122
+        }
+      ]
+    },
+    {
+      "jobId": 122876231671,
+      "sourceMention": true,
+      "totals": [
+        "2026-10-28T14:25:20.4709711Z # tests 50",
+        "2026-10-28T14:25:20.4710619Z # pass 50",
+        "2026-10-28T14:25:20.4710966Z # fail 0",
+        "2026-10-28T14:25:20.4712775Z # skipped 0"
+      ],
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 994
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1047
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 972
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1102
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 946
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1099
+        }
+      ]
+    }
+  ],
+  "coverageFailureReports": [
+    {
+      "case": "not ok 11 - native worker publication transport-finished: SIGKILL inside durable OS anchor before publication ACK",
+      "durationMs": 5017.8489,
+      "awaiting": "ready",
+      "startup": "anchor_persist_started",
+      "startupElapsedMs": 4793,
+      "startupTimeline": [
+        {
+          "phase": "worker_started",
+          "elapsedMs": 87
+        },
+        {
+          "phase": "paths_started",
+          "elapsedMs": 104
+        },
+        {
+          "phase": "directory_acl_started",
+          "elapsedMs": 106
+        },
+        {
+          "phase": "directory_acl_finished",
+          "elapsedMs": 141
+        },
+        {
+          "phase": "paths_ready",
+          "elapsedMs": 141
+        },
+        {
+          "phase": "ownership_started",
+          "elapsedMs": 142
+        },
+        {
+          "phase": "ownership_acquired",
+          "elapsedMs": 167
+        },
+        {
+          "phase": "key_protect_started",
+          "elapsedMs": 168
+        },
+        {
+          "phase": "key_protect_finished",
+          "elapsedMs": 191
+        },
+        {
+          "phase": "key_write_started",
+          "elapsedMs": 191
+        },
+        {
+          "phase": "key_file_open_started",
+          "elapsedMs": 191
+        },
+        {
+          "phase": "key_file_opened",
+          "elapsedMs": 465
+        },
+        {
+          "phase": "key_acl_started",
+          "elapsedMs": 465
+        },
+        {
+          "phase": "key_acl_finished",
+          "elapsedMs": 484
+        },
+        {
+          "phase": "key_file_write_started",
+          "elapsedMs": 485
+        },
+        {
+          "phase": "key_file_write_finished",
+          "elapsedMs": 485
+        },
+        {
+          "phase": "key_file_flush_started",
+          "elapsedMs": 485
+        },
+        {
+          "phase": "key_file_flush_finished",
+          "elapsedMs": 1118
+        },
+        {
+          "phase": "key_file_closed",
+          "elapsedMs": 1119
+        },
+        {
+          "phase": "key_file_readback_started",
+          "elapsedMs": 1119
+        },
+        {
+          "phase": "key_file_readback_finished",
+          "elapsedMs": 1128
+        },
+        {
+          "phase": "key_write_finished",
+          "elapsedMs": 1129
+        },
+        {
+          "phase": "anchor_open_started",
+          "elapsedMs": 1129
+        },
+        {
+          "phase": "anchor_opened",
+          "elapsedMs": 1179
+        },
+        {
+          "phase": "database_prepare_started",
+          "elapsedMs": 1179
+        },
+        {
+          "phase": "database_prepared",
+          "elapsedMs": 1205
+        },
+        {
+          "phase": "database_opened",
+          "elapsedMs": 1205
+        },
+        {
+          "phase": "engine_prepare_started",
+          "elapsedMs": 1205
+        },
+        {
+          "phase": "engine_anchor_validate_started",
+          "elapsedMs": 1209
+        },
+        {
+          "phase": "engine_anchor_validate_finished",
+          "elapsedMs": 2331
+        },
+        {
+          "phase": "engine_prepared",
+          "elapsedMs": 4792
+        },
+        {
+          "phase": "anchor_persist_started",
+          "elapsedMs": 4793
+        }
+      ],
+      "storageOperations": [],
+      "executionProgress": []
+    },
+    {
+      "case": "not ok 12 - native worker publication transport-finished: release control inside durable OS anchor before publication ACK",
+      "durationMs": 5299.0518,
+      "awaiting": "ready",
+      "startup": "ready",
+      "startupElapsedMs": 1768,
+      "startupTimeline": [
+        {
+          "phase": "worker_started",
+          "elapsedMs": 136
+        },
+        {
+          "phase": "paths_started",
+          "elapsedMs": 156
+        },
+        {
+          "phase": "directory_acl_started",
+          "elapsedMs": 157
+        },
+        {
+          "phase": "directory_acl_finished",
+          "elapsedMs": 216
+        },
+        {
+          "phase": "paths_ready",
+          "elapsedMs": 217
+        },
+        {
+          "phase": "ownership_started",
+          "elapsedMs": 217
+        },
+        {
+          "phase": "ownership_acquired",
+          "elapsedMs": 254
+        },
+        {
+          "phase": "key_protect_started",
+          "elapsedMs": 255
+        },
+        {
+          "phase": "key_protect_finished",
+          "elapsedMs": 276
+        },
+        {
+          "phase": "key_write_started",
+          "elapsedMs": 276
+        },
+        {
+          "phase": "key_file_open_started",
+          "elapsedMs": 277
+        },
+        {
+          "phase": "key_file_opened",
+          "elapsedMs": 651
+        },
+        {
+          "phase": "key_acl_started",
+          "elapsedMs": 651
+        },
+        {
+          "phase": "key_acl_finished",
+          "elapsedMs": 672
+        },
+        {
+          "phase": "key_file_write_started",
+          "elapsedMs": 672
+        },
+        {
+          "phase": "key_file_write_finished",
+          "elapsedMs": 672
+        },
+        {
+          "phase": "key_file_flush_started",
+          "elapsedMs": 672
+        },
+        {
+          "phase": "key_file_flush_finished",
+          "elapsedMs": 1202
+        },
+        {
+          "phase": "key_file_closed",
+          "elapsedMs": 1202
+        },
+        {
+          "phase": "key_file_readback_started",
+          "elapsedMs": 1203
+        },
+        {
+          "phase": "key_file_readback_finished",
+          "elapsedMs": 1205
+        },
+        {
+          "phase": "key_write_finished",
+          "elapsedMs": 1205
+        },
+        {
+          "phase": "anchor_open_started",
+          "elapsedMs": 1206
+        },
+        {
+          "phase": "anchor_opened",
+          "elapsedMs": 1245
+        },
+        {
+          "phase": "database_prepare_started",
+          "elapsedMs": 1245
+        },
+        {
+          "phase": "database_prepared",
+          "elapsedMs": 1268
+        },
+        {
+          "phase": "database_opened",
+          "elapsedMs": 1268
+        },
+        {
+          "phase": "engine_prepare_started",
+          "elapsedMs": 1269
+        },
+        {
+          "phase": "engine_anchor_validate_started",
+          "elapsedMs": 1274
+        },
+        {
+          "phase": "engine_anchor_validate_finished",
+          "elapsedMs": 1650
+        },
+        {
+          "phase": "engine_prepared",
+          "elapsedMs": 1741
+        },
+        {
+          "phase": "anchor_persist_started",
+          "elapsedMs": 1742
+        },
+        {
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 1767
+        },
+        {
+          "phase": "engine_ready",
+          "elapsedMs": 1768
+        },
+        {
+          "phase": "ready",
+          "elapsedMs": 1768
+        }
+      ],
+      "storageOperations": [
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "started",
+          "elapsedMs": 60
+        },
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "completed",
+          "elapsedMs": 187
+        },
+        {
+          "sequence": 2,
+          "operation": "save-reference-state",
+          "status": "started",
+          "elapsedMs": 203
+        },
+        {
+          "sequence": 2,
+          "operation": "save-reference-state",
+          "status": "completed",
+          "elapsedMs": 446
+        },
+        {
+          "sequence": 3,
+          "operation": "save-reference-state",
+          "status": "started",
+          "elapsedMs": 513
+        },
+        {
+          "sequence": 3,
+          "operation": "save-reference-state",
+          "status": "completed",
+          "elapsedMs": 1208
+        },
+        {
+          "sequence": 4,
+          "operation": "save-reference-state",
+          "status": "started",
+          "elapsedMs": 1231
+        }
+      ],
+      "executionProgress": [
+        {
+          "sequence": 2,
+          "phase": "verify_before_finished",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_execute_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_execute_finished",
+          "elapsedMs": 184
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_snapshot_started",
+          "elapsedMs": 184
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_snapshot_finished",
+          "elapsedMs": 189
+        },
+        {
+          "sequence": 2,
+          "phase": "anchor_persist_started",
+          "elapsedMs": 189
+        },
+        {
+          "sequence": 2,
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 196
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_after_started",
+          "elapsedMs": 196
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_after_finished",
+          "elapsedMs": 197
+        },
+        {
+          "sequence": 2,
+          "phase": "completed",
+          "elapsedMs": 197
+        },
+        {
+          "sequence": 3,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 3,
+          "phase": "verify_before_finished",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 3,
+          "phase": "engine_execute_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 3,
+          "phase": "engine_execute_finished",
+          "elapsedMs": 658
+        },
+        {
+          "sequence": 3,
+          "phase": "engine_snapshot_started",
+          "elapsedMs": 658
+        },
+        {
+          "sequence": 3,
+          "phase": "engine_snapshot_finished",
+          "elapsedMs": 663
+        },
+        {
+          "sequence": 3,
+          "phase": "anchor_persist_started",
+          "elapsedMs": 663
+        },
+        {
+          "sequence": 3,
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 671
+        },
+        {
+          "sequence": 3,
+          "phase": "verify_after_started",
+          "elapsedMs": 671
+        },
+        {
+          "sequence": 3,
+          "phase": "verify_after_finished",
+          "elapsedMs": 672
+        },
+        {
+          "sequence": 3,
+          "phase": "completed",
+          "elapsedMs": 672
+        },
+        {
+          "sequence": 4,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 4,
+          "phase": "verify_before_finished",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 4,
+          "phase": "engine_execute_started",
+          "elapsedMs": 1
+        }
+      ]
+    },
+    {
+      "case": "not ok 13 - native worker publication uncertain: SIGKILL inside actual COMMIT lock wait",
+      "durationMs": 5076.552,
+      "awaiting": "ready",
+      "startup": "ready",
+      "startupElapsedMs": 3100,
+      "startupTimeline": [
+        {
+          "phase": "worker_started",
+          "elapsedMs": 129
+        },
+        {
+          "phase": "paths_started",
+          "elapsedMs": 181
+        },
+        {
+          "phase": "directory_acl_started",
+          "elapsedMs": 182
+        },
+        {
+          "phase": "directory_acl_finished",
+          "elapsedMs": 216
+        },
+        {
+          "phase": "paths_ready",
+          "elapsedMs": 216
+        },
+        {
+          "phase": "ownership_started",
+          "elapsedMs": 217
+        },
+        {
+          "phase": "ownership_acquired",
+          "elapsedMs": 264
+        },
+        {
+          "phase": "key_protect_started",
+          "elapsedMs": 265
+        },
+        {
+          "phase": "key_protect_finished",
+          "elapsedMs": 302
+        },
+        {
+          "phase": "key_write_started",
+          "elapsedMs": 302
+        },
+        {
+          "phase": "key_file_open_started",
+          "elapsedMs": 302
+        },
+        {
+          "phase": "key_file_opened",
+          "elapsedMs": 873
+        },
+        {
+          "phase": "key_acl_started",
+          "elapsedMs": 874
+        },
+        {
+          "phase": "key_acl_finished",
+          "elapsedMs": 911
+        },
+        {
+          "phase": "key_file_write_started",
+          "elapsedMs": 911
+        },
+        {
+          "phase": "key_file_write_finished",
+          "elapsedMs": 911
+        },
+        {
+          "phase": "key_file_flush_started",
+          "elapsedMs": 911
+        },
+        {
+          "phase": "key_file_flush_finished",
+          "elapsedMs": 924
+        },
+        {
+          "phase": "key_file_closed",
+          "elapsedMs": 924
+        },
+        {
+          "phase": "key_file_readback_started",
+          "elapsedMs": 924
+        },
+        {
+          "phase": "key_file_readback_finished",
+          "elapsedMs": 927
+        },
+        {
+          "phase": "key_write_finished",
+          "elapsedMs": 927
+        },
+        {
+          "phase": "anchor_open_started",
+          "elapsedMs": 928
+        },
+        {
+          "phase": "anchor_opened",
+          "elapsedMs": 969
+        },
+        {
+          "phase": "database_prepare_started",
+          "elapsedMs": 970
+        },
+        {
+          "phase": "database_prepared",
+          "elapsedMs": 991
+        },
+        {
+          "phase": "database_opened",
+          "elapsedMs": 992
+        },
+        {
+          "phase": "engine_prepare_started",
+          "elapsedMs": 992
+        },
+        {
+          "phase": "engine_anchor_validate_started",
+          "elapsedMs": 996
+        },
+        {
+          "phase": "engine_anchor_validate_finished",
+          "elapsedMs": 1329
+        },
+        {
+          "phase": "engine_prepared",
+          "elapsedMs": 2797
+        },
+        {
+          "phase": "anchor_persist_started",
+          "elapsedMs": 2797
+        },
+        {
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 3098
+        },
+        {
+          "phase": "engine_ready",
+          "elapsedMs": 3099
+        },
+        {
+          "phase": "ready",
+          "elapsedMs": 3100
+        }
+      ],
+      "storageOperations": [
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "started",
+          "elapsedMs": 47
+        },
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "completed",
+          "elapsedMs": 113
+        },
+        {
+          "sequence": 2,
+          "operation": "save-reference-state",
+          "status": "started",
+          "elapsedMs": 129
+        }
+      ],
+      "executionProgress": [
+        {
+          "sequence": 1,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 1,
+          "phase": "verify_before_finished",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_execute_started",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_execute_finished",
+          "elapsedMs": 3
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_snapshot_started",
+          "elapsedMs": 3
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_snapshot_finished",
+          "elapsedMs": 4
+        },
+        {
+          "sequence": 1,
+          "phase": "anchor_persist_started",
+          "elapsedMs": 4
+        },
+        {
+          "sequence": 1,
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 58
+        },
+        {
+          "sequence": 1,
+          "phase": "verify_after_started",
+          "elapsedMs": 58
+        },
+        {
+          "sequence": 1,
+          "phase": "verify_after_finished",
+          "elapsedMs": 59
+        },
+        {
+          "sequence": 1,
+          "phase": "completed",
+          "elapsedMs": 59
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_before_finished",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_execute_started",
+          "elapsedMs": 1
+        }
+      ]
+    }
+  ],
+  "fullHistoryCoverage": {
+    "passed": true,
+    "durationMs": 100120.1361
+  },
+  "coverageLogCharacters": 2726265,
+  "sourceLogCharacters": 3880020,
+  "extraIoLogCharacters": 3793289,
+  "local": {
+    "task": "Ready",
+    "taskResult": 126,
+    "state": {
+      "phase": "child-exit",
+      "atUtc": "2026-10-28T14:39:32.5990946Z",
+      "realModelRequests": 0,
+      "event": "independent_short_8b2d90a_failed",
+      "step": "native-interruption",
+      "cleanupFailed": false,
+      "qualification": false,
+      "childExitObserved": null
+    },
+    "steps": [
+      {
+        "event": "independent_short_8b2d90a_step_finished",
+        "jobNaturallyEmpty": true,
+        "childExitCode": 0,
+        "elapsedMs": 1991,
+        "realModelRequests": 0,
+        "step": "source-admission",
+        "stderrBytes": 0,
+        "stdoutBytes": 144,
+        "atUtc": "2026-10-28T14:31:08.8098411Z",
+        "qualification": false
+      },
+      {
+        "event": "independent_short_8b2d90a_step_finished",
+        "jobNaturallyEmpty": true,
+        "childExitCode": 0,
+        "elapsedMs": 2443,
+        "realModelRequests": 0,
+        "step": "native-artifact",
+        "stderrBytes": 0,
+        "stdoutBytes": 140,
+        "atUtc": "2026-10-28T14:31:11.3957151Z",
+        "qualification": false
+      },
+      {
+        "event": "independent_short_8b2d90a_step_finished",
+        "jobNaturallyEmpty": true,
+        "childExitCode": 0,
+        "elapsedMs": 14109,
+        "realModelRequests": 0,
+        "step": "native-open",
+        "stderrBytes": 0,
+        "stdoutBytes": 4174,
+        "atUtc": "2026-10-28T14:31:25.5729041Z",
+        "qualification": false
+      },
+      {
+        "event": "independent_short_8b2d90a_step_finished",
+        "jobNaturallyEmpty": true,
+        "childExitCode": 0,
+        "elapsedMs": 10151,
+        "realModelRequests": 0,
+        "step": "regression",
+        "stderrBytes": 0,
+        "stdoutBytes": 6624,
+        "atUtc": "2026-10-28T14:31:35.784413Z",
+        "qualification": false
+      },
+      {
+        "event": "independent_short_8b2d90a_step_finished",
+        "jobNaturallyEmpty": true,
+        "childExitCode": 0,
+        "elapsedMs": 102957,
+        "realModelRequests": 0,
+        "step": "blobs",
+        "stderrBytes": 0,
+        "stdoutBytes": 22626,
+        "atUtc": "2026-10-28T14:33:18.7986901Z",
+        "qualification": false
+      },
+      {
+        "event": "independent_short_8b2d90a_step_finished",
+        "jobNaturallyEmpty": true,
+        "childExitCode": 0,
+        "elapsedMs": 252606,
+        "realModelRequests": 0,
+        "step": "root-state",
+        "stderrBytes": 0,
+        "stdoutBytes": 18293,
+        "atUtc": "2026-10-28T14:37:31.5431608Z",
+        "qualification": false
+      }
+    ],
+    "logs": [
+      {
+        "step": "source-admission",
+        "stdoutBytes": 144,
+        "stderrBytes": 0,
+        "visiblePasses": 0,
+        "failures": [],
+        "totals": [],
+        "knownErrors": []
+      },
+      {
+        "step": "native-artifact",
+        "stdoutBytes": 140,
+        "stderrBytes": 0,
+        "visiblePasses": 0,
+        "failures": [],
+        "totals": [],
+        "knownErrors": []
+      },
+      {
+        "step": "native-open",
+        "stdoutBytes": 4174,
+        "stderrBytes": 0,
+        "visiblePasses": 0,
+        "failures": [],
+        "totals": [],
+        "knownErrors": []
+      },
+      {
+        "step": "regression",
+        "stdoutBytes": 6624,
+        "stderrBytes": 0,
+        "visiblePasses": 28,
+        "failures": [],
+        "totals": [
+          "# tests 28",
+          "# pass 28",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# duration_ms 7722.949"
+        ],
+        "knownErrors": []
+      },
+      {
+        "step": "blobs",
+        "stdoutBytes": 22626,
+        "stderrBytes": 0,
+        "visiblePasses": 91,
+        "failures": [],
+        "totals": [
+          "# tests 91",
+          "# pass 91",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# duration_ms 100610.9905"
+        ],
+        "knownErrors": []
+      },
+      {
+        "step": "root-state",
+        "stdoutBytes": 18293,
+        "stderrBytes": 0,
+        "visiblePasses": 72,
+        "failures": [],
+        "totals": [
+          "# tests 72",
+          "# pass 72",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# duration_ms 247599.9246"
+        ],
+        "knownErrors": []
+      },
+      {
+        "step": "native-interruption",
+        "stdoutBytes": 27350,
+        "stderrBytes": 0,
+        "visiblePasses": 0,
+        "failures": [
+          "not ok 1 - native worker publication prepared: SIGKILL inside actual COMMIT lock wait",
+          "not ok 2 - native worker publication prepared: release control inside actual COMMIT lock wait",
+          "not ok 3 - native worker publication prepared: SIGKILL inside durable OS anchor before publication ACK",
+          "not ok 4 - native worker publication prepared: release control inside durable OS anchor before publication ACK",
+          "not ok 5 - native worker publication sending: SIGKILL inside actual COMMIT lock wait",
+          "not ok 6 - native worker publication sending: release control inside actual COMMIT lock wait",
+          "not ok 7 - native worker publication sending: SIGKILL inside durable OS anchor before publication ACK",
+          "not ok 8 - native worker publication sending: release control inside durable OS anchor before publication ACK",
+          "not ok 9 - native worker publication transport-finished: SIGKILL inside actual COMMIT lock wait",
+          "not ok 10 - native worker publication transport-finished: release control inside actual COMMIT lock wait",
+          "not ok 11 - native worker publication transport-finished: SIGKILL inside durable OS anchor before publication ACK",
+          "not ok 12 - native worker publication transport-finished: release control inside durable OS anchor before publication ACK",
+          "not ok 13 - native worker publication uncertain: SIGKILL inside actual COMMIT lock wait",
+          "not ok 14 - native worker publication uncertain: release control inside actual COMMIT lock wait",
+          "not ok 15 - native worker publication uncertain: SIGKILL inside durable OS anchor before publication ACK",
+          "not ok 16 - native worker publication uncertain: release control inside durable OS anchor before publication ACK",
+          "not ok 17 - native worker publication withdrawn: SIGKILL inside actual COMMIT lock wait",
+          "not ok 18 - native worker publication withdrawn: release control inside actual COMMIT lock wait",
+          "not ok 19 - native worker publication withdrawn: SIGKILL inside durable OS anchor before publication ACK"
+        ],
+        "totals": [],
+        "knownErrors": []
+      }
+    ],
+    "defaultOpen": {
+      "event": "short_default_native_open_summary",
+      "head": "8b2d90a2d408d732bfb3bd93dc23238adeba014d",
+      "dirty": false,
+      "sourceSha256": "85c922f7733c4e6296d1dcf68b2b3115332307b18fdc159e1cd5cf39b4894aca",
+      "nativeSha256": "9c7362db4cc538d2729ffe3ee7de8e7308606b3bc125133874bc2e26804e2a80",
+      "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+      "passed": true,
+      "completedOpens": 2,
+      "completedCloses": 2,
+      "attempts": [
+        {
+          "attempt": 1,
+          "readyMs": 4604,
+          "timeline": [
+            {
+              "attempt": 1,
+              "phase": "worker_started",
+              "elapsedMs": 629
+            },
+            {
+              "attempt": 1,
+              "phase": "paths_started",
+              "elapsedMs": 812
+            },
+            {
+              "attempt": 1,
+              "phase": "directory_acl_started",
+              "elapsedMs": 827
+            },
+            {
+              "attempt": 1,
+              "phase": "directory_acl_finished",
+              "elapsedMs": 2166
+            },
+            {
+              "attempt": 1,
+              "phase": "paths_ready",
+              "elapsedMs": 2172
+            },
+            {
+              "attempt": 1,
+              "phase": "ownership_started",
+              "elapsedMs": 2173
+            },
+            {
+              "attempt": 1,
+              "phase": "ownership_acquired",
+              "elapsedMs": 2519
+            },
+            {
+              "attempt": 1,
+              "phase": "key_protect_started",
+              "elapsedMs": 2532
+            },
+            {
+              "attempt": 1,
+              "phase": "key_protect_finished",
+              "elapsedMs": 2822
+            },
+            {
+              "attempt": 1,
+              "phase": "key_write_started",
+              "elapsedMs": 2833
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_open_started",
+              "elapsedMs": 2839
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_opened",
+              "elapsedMs": 2874
+            },
+            {
+              "attempt": 1,
+              "phase": "key_acl_started",
+              "elapsedMs": 2874
+            },
+            {
+              "attempt": 1,
+              "phase": "key_acl_finished",
+              "elapsedMs": 3227
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_write_started",
+              "elapsedMs": 3228
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_write_finished",
+              "elapsedMs": 3229
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_flush_started",
+              "elapsedMs": 3229
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_flush_finished",
+              "elapsedMs": 3233
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_closed",
+              "elapsedMs": 3234
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_readback_started",
+              "elapsedMs": 3234
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_readback_finished",
+              "elapsedMs": 3253
+            },
+            {
+              "attempt": 1,
+              "phase": "key_write_finished",
+              "elapsedMs": 3253
+            },
+            {
+              "attempt": 1,
+              "phase": "anchor_open_started",
+              "elapsedMs": 3264
+            },
+            {
+              "attempt": 1,
+              "phase": "anchor_opened",
+              "elapsedMs": 3718
+            },
+            {
+              "attempt": 1,
+              "phase": "database_prepare_started",
+              "elapsedMs": 3726
+            },
+            {
+              "attempt": 1,
+              "phase": "database_prepared",
+              "elapsedMs": 4124
+            },
+            {
+              "attempt": 1,
+              "phase": "database_opened",
+              "elapsedMs": 4125
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_prepare_started",
+              "elapsedMs": 4137
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_anchor_validate_started",
+              "elapsedMs": 4174
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_anchor_validate_finished",
+              "elapsedMs": 4504
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_prepared",
+              "elapsedMs": 4527
+            },
+            {
+              "attempt": 1,
+              "phase": "anchor_persist_started",
+              "elapsedMs": 4527
+            },
+            {
+              "attempt": 1,
+              "phase": "anchor_persist_finished",
+              "elapsedMs": 4596
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_ready",
+              "elapsedMs": 4604
+            },
+            {
+              "attempt": 1,
+              "phase": "ready",
+              "elapsedMs": 4604
+            }
+          ]
+        },
+        {
+          "attempt": 2,
+          "readyMs": 2804,
+          "timeline": [
+            {
+              "attempt": 2,
+              "phase": "worker_started",
+              "elapsedMs": 475
+            },
+            {
+              "attempt": 2,
+              "phase": "paths_started",
+              "elapsedMs": 665
+            },
+            {
+              "attempt": 2,
+              "phase": "directory_acl_started",
+              "elapsedMs": 693
+            },
+            {
+              "attempt": 2,
+              "phase": "directory_acl_finished",
+              "elapsedMs": 1067
+            },
+            {
+              "attempt": 2,
+              "phase": "paths_ready",
+              "elapsedMs": 1076
+            },
+            {
+              "attempt": 2,
+              "phase": "ownership_started",
+              "elapsedMs": 1076
+            },
+            {
+              "attempt": 2,
+              "phase": "ownership_acquired",
+              "elapsedMs": 1486
+            },
+            {
+              "attempt": 2,
+              "phase": "key_unprotect_started",
+              "elapsedMs": 1804
+            },
+            {
+              "attempt": 2,
+              "phase": "key_unprotect_finished",
+              "elapsedMs": 2051
+            },
+            {
+              "attempt": 2,
+              "phase": "anchor_open_started",
+              "elapsedMs": 2063
+            },
+            {
+              "attempt": 2,
+              "phase": "anchor_opened",
+              "elapsedMs": 2495
+            },
+            {
+              "attempt": 2,
+              "phase": "database_prepare_started",
+              "elapsedMs": 2504
+            },
+            {
+              "attempt": 2,
+              "phase": "database_prepared",
+              "elapsedMs": 2722
+            },
+            {
+              "attempt": 2,
+              "phase": "database_opened",
+              "elapsedMs": 2723
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_prepare_started",
+              "elapsedMs": 2732
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_anchor_validate_started",
+              "elapsedMs": 2745
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_anchor_validate_finished",
+              "elapsedMs": 2746
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_prepared",
+              "elapsedMs": 2750
+            },
+            {
+              "attempt": 2,
+              "phase": "anchor_persist_started",
+              "elapsedMs": 2750
+            },
+            {
+              "attempt": 2,
+              "phase": "anchor_persist_finished",
+              "elapsedMs": 2794
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_ready",
+              "elapsedMs": 2803
+            },
+            {
+              "attempt": 2,
+              "phase": "ready",
+              "elapsedMs": 2804
+            }
+          ]
+        }
+      ],
+      "originalStartupDeadlineMs": 30000,
+      "fiveSecondQualified": false,
+      "realModelRequests": 0
+    },
+    "largeCases": [
+      {
+        "step": "blobs",
+        "fixedLargeCasePassed": true,
+        "durationMs": 61088.6805,
+        "observedFailure": false
+      },
+      {
+        "step": "root-state",
+        "fixedLargeCasePassed": true,
+        "durationMs": 149126.8944,
+        "observedFailure": false
+      }
+    ],
+    "nativeFailures": [
+      {
+        "case": "not ok 1 - native worker publication prepared: SIGKILL inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "ownership_started",
+        "startupElapsedMs": 1663,
+        "durationMs": 5619.5874
+      },
+      {
+        "case": "not ok 2 - native worker publication prepared: release control inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "directory_acl_started",
+        "startupElapsedMs": 1085,
+        "durationMs": 5865.9651
+      },
+      {
+        "case": "not ok 3 - native worker publication prepared: SIGKILL inside durable OS anchor before publication ACK",
+        "awaiting": "ready",
+        "startup": "directory_acl_started",
+        "startupElapsedMs": 1339,
+        "durationMs": 5853.103
+      },
+      {
+        "case": "not ok 4 - native worker publication prepared: release control inside durable OS anchor before publication ACK",
+        "awaiting": "ready",
+        "startup": "directory_acl_started",
+        "startupElapsedMs": 1009,
+        "durationMs": 5811.6781
+      },
+      {
+        "case": "not ok 5 - native worker publication sending: SIGKILL inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "directory_acl_finished",
+        "startupElapsedMs": 2212,
+        "durationMs": 5405.7206
+      },
+      {
+        "case": "not ok 6 - native worker publication sending: release control inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "key_protect_started",
+        "startupElapsedMs": 2082,
+        "durationMs": 5517.9198
+      },
+      {
+        "case": "not ok 7 - native worker publication sending: SIGKILL inside durable OS anchor before publication ACK",
+        "awaiting": "ready",
+        "startup": "ownership_started",
+        "startupElapsedMs": 1958,
+        "durationMs": 5388.1983
+      },
+      {
+        "case": "not ok 8 - native worker publication sending: release control inside durable OS anchor before publication ACK",
+        "awaiting": "ready",
+        "startup": "ownership_started",
+        "startupElapsedMs": 1795,
+        "durationMs": 5463.8431
+      },
+      {
+        "case": "not ok 9 - native worker publication transport-finished: SIGKILL inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "ownership_started",
+        "startupElapsedMs": 1869,
+        "durationMs": 5709.5075
+      },
+      {
+        "case": "not ok 10 - native worker publication transport-finished: release control inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "key_protect_started",
+        "startupElapsedMs": 2787,
+        "durationMs": 5620.5534
+      },
+      {
+        "case": "not ok 11 - native worker publication transport-finished: SIGKILL inside durable OS anchor before publication ACK",
+        "awaiting": "ready",
+        "startup": "ownership_started",
+        "startupElapsedMs": 2062,
+        "durationMs": 5443.1593
+      },
+      {
+        "case": "not ok 12 - native worker publication transport-finished: release control inside durable OS anchor before publication ACK",
+        "awaiting": "ready",
+        "startup": "ownership_started",
+        "startupElapsedMs": 2034,
+        "durationMs": 5824.9365
+      },
+      {
+        "case": "not ok 13 - native worker publication uncertain: SIGKILL inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "unobserved",
+        "startupElapsedMs": 0,
+        "durationMs": 5778.5061
+      },
+      {
+        "case": "not ok 14 - native worker publication uncertain: release control inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "unobserved",
+        "startupElapsedMs": 0,
+        "durationMs": 5790.8668
+      },
+      {
+        "case": "not ok 15 - native worker publication uncertain: SIGKILL inside durable OS anchor before publication ACK",
+        "awaiting": "ready",
+        "startup": "directory_acl_started",
+        "startupElapsedMs": 1074,
+        "durationMs": 5614.6795
+      },
+      {
+        "case": "not ok 16 - native worker publication uncertain: release control inside durable OS anchor before publication ACK",
+        "awaiting": "ready",
+        "startup": "unobserved",
+        "startupElapsedMs": 0,
+        "durationMs": 5619.539
+      },
+      {
+        "case": "not ok 17 - native worker publication withdrawn: SIGKILL inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "worker_started",
+        "startupElapsedMs": 725,
+        "durationMs": 5342.3834
+      },
+      {
+        "case": "not ok 18 - native worker publication withdrawn: release control inside actual COMMIT lock wait",
+        "awaiting": "ready",
+        "startup": "ownership_started",
+        "startupElapsedMs": 1978,
+        "durationMs": 5462.5263
+      },
+      {
+        "case": "not ok 19 - native worker publication withdrawn: SIGKILL inside durable OS anchor before publication ACK",
+        "awaiting": "ready",
+        "startup": "directory_acl_started",
+        "startupElapsedMs": 1013,
+        "durationMs": 5393.0044
+      }
+    ],
+    "finalTapAvailable": false,
+    "originalNativeGroupDeadlineMs": 120000,
+    "fortyTestGroupStarted": false,
+    "terminal": {
+      "event": "terminal_owned_process_read",
+      "atUtc": "2026-10-28T14:45:25.1571801Z",
+      "taskState": "Ready",
+      "taskResult": 126,
+      "ownedProcessesRemaining": 0,
+      "processDetailsReported": false,
+      "realModelRequests": 0
+    },
+    "preparationFailure": {
+      "rootNpmCiExitCode": 0,
+      "pluginNpmCiExitCode": 0,
+      "failedPhase": "git-revision",
+      "code": "ETIMEDOUT",
+      "deadlineMs": 5000,
+      "originalTaskPreserved": true,
+      "continuationSourceAndDirectLockedDependenciesAdmitted": true,
+      "dependenciesReinstalled": false
+    },
+    "afterTaskResourceSample": {
+      "event": "host_aggregate_resource_sample",
+      "atUtc": "2026-10-28T14:41:07.5696573Z",
+      "totalMemoryKiB": 100375608,
+      "freeMemoryKiB": 47032196,
+      "cpuPercent": 100,
+      "diskPercent": 2,
+      "diskQueue": 0,
+      "availableMemoryMiB": 45619,
+      "pagesPerSecond": 25149,
+      "pageReadsPerSecond": 406,
+      "processDetailsRead": false,
+      "realModelRequests": 0
+    },
+    "afterTaskCpuCategories": {
+      "event": "aggregate_cpu_categories",
+      "atUtc": "2026-10-28T14:42:43.9095235Z",
+      "sampleElapsedSeconds": 4.794,
+      "logicalProcessors": 16,
+      "unavailableA": 1,
+      "unavailableB": 1,
+      "categories": [
+        {
+          "category": "security",
+          "cpuSeconds": 3
+        },
+        {
+          "category": "browser",
+          "cpuSeconds": 0
+        },
+        {
+          "category": "system",
+          "cpuSeconds": 2
+        },
+        {
+          "category": "node",
+          "cpuSeconds": 0
+        },
+        {
+          "category": "git",
+          "cpuSeconds": 0
+        },
+        {
+          "category": "other",
+          "cpuSeconds": 26
+        }
+      ],
+      "processNamesReported": false,
+      "processIdsReported": false,
+      "commandLinesRead": false,
+      "realModelRequests": 0
+    },
+    "resourceSampleIsNotFailureTimeCausality": true
+  },
+  "observationChange": {
+    "workflow": "verify.yml",
+    "proxyWindowBefore": "publication-graceful-http",
+    "proxyWindowAfter": "native-publication-interruption",
+    "clientWindowsUnchanged": true,
+    "originalCommandsWorkloadsAndConcurrencyUnchanged": true,
+    "failedOriginalStageStillFails": true,
+    "tests": {
+      "tests": 69,
+      "pass": 69,
+      "fail": 0,
+      "skip": 0
+    },
+    "ciGovernance": "passed",
+    "releaseGovernance": "passed",
+    "performanceFixClaimed": false
+  },
+  "allHistoricalFailuresPreserved": true,
+  "fiveSecondQualified": false,
+  "new24hStarted": false,
+  "realModelRequests": 0
+}
