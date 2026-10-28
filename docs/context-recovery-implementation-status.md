@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：修复 EXCLUSIVE 连接绕过 DELETE 日志清理语义，五秒缺口保持
+
+检查COMMIT提速候选时，官方SQLite说明与真实文件负例均证实：EXCLUSIVE锁模式即使journal_mode仍为DELETE，也会保留回滚日志。原引擎没有固定连接锁模式，预设EXCLUSIVE时撤销、到期均能在当前journal找到旧密文片段；修改前5项3通过/2失败，不能仅检查PRAGMA journal_mode就认定物理删除成立。这是独立清理边界，不证明旧Windows五秒失败使用了EXCLUSIVE或其唯一根因。
+
+现只在可写开库初始化前显式设NORMAL并读取核验；拒绝/忽略设置即固定错误退出、startup回调和建表均未执行，没有内存回退。FULL/DELETE/secure_delete、原busy_timeout与所有期限、预算先持久、publication状态/ACK精确相等均不变；只读离线检查路径不设pragma。新增真实文件覆盖新库/已有库重开后撤销及精确到期清理，保留PERSIST密文残留负控制，并覆盖NORMAL被忽略/抛错。日志测试共9项，已确认进入统一unit发现。
+
+五文件88项通过、零fail/skip，包括锚点时钟、格式、只读检查和真实COMMIT中断。扩大三文件187项中186通过/1失败/0跳过：Mac默认原生worker开库仍报context_recovery_storage_unavailable，同名错误已在修改前startup-snapshot-final-blobs日志出现；该失败保留，不授整组或Windows通过。定向Lint零错误/警告、CI治理通过。本批尚待固定提交Windows完整门，不能称五秒稳定性修复。
+
+证据见context-recovery-evidence/normal-locking-journal-retention.json。现有Windows构建仍固定989，已观察到真实编译单元递增，未动其源码/任务或另起短测；没有完成安装器回执。本批新24h未启动、模型0、旧868失败现场/旧实例/最大容量暂停均保持。整体下一步仍是五秒持久等待修复、最新实际二进制安装两端、额度核对后的provider以及有效24h和到期重开。
+
+
 ## 2026-10-28：2e 完整正式链通过；真实五秒请求失败已与 COMMIT 刷盘窗口关联
 
 固定2e943758普通40735126668八作业、正式40735126602十二作业全部成功。完整coverage3796360/source3890398字符日志已读；十份业务完整日志逐一核对同source/plan/build与实际hosted_network_finished、TLS/非回环阻断/ownedTreeEmpty，不能用prepared_only代替执行。七份有限I/O回执经原parseSummary接受；接受格式不授traceCompleteness或五秒资格。

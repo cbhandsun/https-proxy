@@ -11,11 +11,16 @@ const { randomBytes } = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 const { createRecoverySqliteStore } = require('../lib/proxy/context-recovery-storage-sqlite');
 
-function fixture(t, candidate = false) {
+function fixture(t, candidate = false, exclusive = false) {
   const temporary = fs.realpathSync.native(os.tmpdir());
   const root = fs.mkdtempSync(path.join(temporary, 'hpm-journal-retention-'));
   const file = path.join(root, 'checkpoint.sqlite');
   const database = new DatabaseSync(file, { allowExtension: false });
+  const dataKey = randomBytes(32).toString('base64');
+  if (exclusive) {
+    database.exec('PRAGMA locking_mode=EXCLUSIVE');
+    assert.equal(database.prepare('PRAGMA locking_mode').get().locking_mode, 'exclusive');
+  }
   let time = 100;
   const owned = { store: undefined };
   t.after(() => {
@@ -41,9 +46,9 @@ function fixture(t, candidate = false) {
         prepare: (sql) => database.prepare(sql),
       }
     : database;
-  const store = createRecoverySqliteStore({
+  let store = createRecoverySqliteStore({
     database: adapter,
-    dataKey: randomBytes(32).toString('base64'),
+    dataKey,
     now: () => time,
   });
   owned.store = store;
@@ -59,6 +64,13 @@ function fixture(t, candidate = false) {
     database.prepare('SELECT envelope FROM recovery_state WHERE scope=?').get(scope).envelope
   );
   return {
+    reopenExclusive() {
+      store.close();
+      database.exec('PRAGMA locking_mode=EXCLUSIVE');
+      assert.equal(database.prepare('PRAGMA locking_mode').get().locking_mode, 'exclusive');
+      store = createRecoverySqliteStore({ database: adapter, dataKey, now: () => time });
+      owned.store = store;
+    },
     remove(operation) {
       time = operation === 'expiry' ? 1000 : 200;
       store.execute(
@@ -69,6 +81,7 @@ function fixture(t, candidate = false) {
       assert.equal(store.execute({ operation: 'load', scope }), null);
       assert.equal(database.prepare('PRAGMA synchronous').get().synchronous, 2);
       assert.equal(database.prepare('PRAGMA secure_delete').get().secure_delete, 1);
+      assert.equal(database.prepare('PRAGMA locking_mode').get().locking_mode, 'normal');
     },
     retainedCiphertext() {
       const journal = fs.existsSync(file + '-journal')
@@ -89,6 +102,17 @@ for (const operation of ['revoke', 'expiry']) {
     f.remove(operation);
     assert.equal(f.retainedCiphertext(), false);
   });
+  test(`preconfigured EXCLUSIVE cannot retain discarded ciphertext after ${operation}`, (t) => {
+    const f = fixture(t, false, true);
+    f.remove(operation);
+    assert.equal(f.retainedCiphertext(), false);
+  });
+  test(`existing store reopened from EXCLUSIVE deletes the journal after ${operation}`, (t) => {
+    const f = fixture(t);
+    f.reopenExclusive();
+    f.remove(operation);
+    assert.equal(f.retainedCiphertext(), false);
+  });
 }
 
 test('journal retention control detects PERSIST fragments despite successful logical denial', (t) => {
@@ -98,3 +122,48 @@ test('journal retention control detects PERSIST fragments despite successful log
     assert.equal(f.retainedCiphertext(), true);
   }
 });
+
+for (const outcome of ['ignored', 'thrown']) {
+  test(`failed NORMAL locking admission is closed before initialization: ${outcome}`, (t) => {
+    const temporary = fs.realpathSync.native(os.tmpdir());
+    const root = fs.mkdtempSync(path.join(temporary, 'hpm-journal-retention-'));
+    const file = path.join(root, 'checkpoint.sqlite');
+    const database = new DatabaseSync(file, { allowExtension: false });
+    t.after(() => {
+      database.close();
+      assert.equal(fs.realpathSync.native(root), root);
+      assert.equal(path.dirname(root), temporary);
+      assert.match(path.basename(root), /^hpm-journal-retention-/);
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+    database.exec('PRAGMA locking_mode=EXCLUSIVE');
+    let admissions = 0;
+    assert.throws(
+      () =>
+        createRecoverySqliteStore({
+          database: {
+            exec(sql) {
+              if (sql === 'PRAGMA locking_mode=NORMAL') {
+                if (outcome === 'thrown') throw new Error('synthetic-private-driver-error');
+                return;
+              }
+              return database.exec(sql);
+            },
+            prepare: (sql) => database.prepare(sql),
+          },
+          dataKey: randomBytes(32).toString('base64'),
+          now: () => 100,
+          beforeStartup() {
+            admissions++;
+          },
+        }),
+      {
+        code: 'context_recovery_storage_unavailable',
+        message: 'context_recovery_storage_unavailable',
+      }
+    );
+    assert.equal(admissions, 0);
+    assert.equal(database.prepare('SELECT count(*) AS count FROM sqlite_schema').get().count, 0);
+    assert.equal(fs.statSync(file).size, 0);
+  });
+}

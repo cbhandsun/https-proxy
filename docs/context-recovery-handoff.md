@@ -1,5 +1,10 @@
 # 上下文恢复换机交接
 
+## 2026-10-28 最新续接：固定 NORMAL 锁模式，防 DELETE 名义下残留日志
+
+优先读实施状态顶部与normal-locking-journal-retention.json。预设EXCLUSIVE的真实文件撤销/到期密文残留已复现，两回归先红；可写开库现固定NORMAL并核验，拒绝即在初始化前失败，只读检查不改pragma。FULL/DELETE/期限/预算/ACK保持，五文件88项通过；扩大187项仍有Mac默认原生worker一项既有开库失败，未授完整/Windows资格。不得把本修复称五秒尾等待根因或稳定性解决。固定989安装器仍原任务编译，本批不改它、不另起Windows短测、新24h或模型；旧失败/实例/容量暂停沿用。
+
+
 ## 2026-10-28 最新续接：2e 全正式通过，实际请求五秒失败保持
 
 优先读实施状态顶部及2e94375-complete-ci-and-persistent-timeout.json。普通八/正式十二和十实际业务完整核对，七I/O原解析接受；额外I/O实际Chat5001/Claude5012ms请求失败。Chat2080ms

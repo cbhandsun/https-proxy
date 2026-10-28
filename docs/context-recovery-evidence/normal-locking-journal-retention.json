@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "parentSourceSha": "86728557abe5cf49d710f7fcde5b18fdf88bfb77",
+  "defect": "A preconfigured EXCLUSIVE SQLite connection retains discarded ciphertext in its rollback journal despite journal_mode=DELETE.",
+  "reproduction": {
+    "database": "disposable real SQLite file",
+    "beforeFix": {
+      "tests": 5,
+      "passed": 3,
+      "failed": 2,
+      "skipped": 0
+    },
+    "failingCases": ["revoke with preconfigured EXCLUSIVE", "expiry with preconfigured EXCLUSIVE"]
+  },
+  "change": {
+    "lockingMode": "NORMAL",
+    "requireObservedModeBeforeStartup": true,
+    "rejection": "context_recovery_storage_unavailable",
+    "journalMode": "DELETE",
+    "synchronous": "FULL",
+    "secureDelete": "ON",
+    "publicationStatesChanged": false,
+    "deadlinesChanged": false,
+    "ackRulesChanged": false,
+    "expiryChanged": false,
+    "inspectionPragmasChanged": false
+  },
+  "validation": {
+    "journalTests": 9,
+    "relatedFiles": 5,
+    "relatedPassed": 88,
+    "relatedFailed": 0,
+    "relatedSkipped": 0,
+    "extendedFiles": 3,
+    "extendedTests": 187,
+    "extendedPassed": 186,
+    "extendedFailed": 1,
+    "extendedSkipped": 0,
+    "extendedFailure": {
+      "test": "actual encrypted worker exposes reference save/load, exact pages and legacy load across reopen",
+      "error": "context_recovery_storage_unavailable",
+      "previouslyObservedBeforeChange": true,
+      "uniqueCauseConfirmed": false
+    },
+    "unifiedUnitDiscoveryConfirmed": true,
+    "eslintErrors": 0,
+    "eslintWarnings": 0,
+    "ciGovernancePassed": true,
+    "syntaxCheckPassed": true,
+    "syntaxFiles": 1736
+  },
+  "officialReferences": [
+    "https://www.sqlite.org/pragma.html#pragma_locking_mode",
+    "https://www.sqlite.org/tempfiles.html#rollback_journals"
+  ],
+  "qualification": {
+    "windowsThisChangeExecuted": false,
+    "fiveSecondStable": false,
+    "newInstallerBuiltFromThisChange": false,
+    "localInstalledQualified": false,
+    "real24hPassed": false
+  },
+  "liveBuildUnchanged": {
+    "productSource": "989a0bda67945a56934774bc8b24af49bee92977",
+    "stage": "installer-build",
+    "candidateProduced": false,
+    "originalFailuresPreserved": true
+  },
+  "realModelRequests": 0,
+  "new24HourStarted": false,
+  "oldInstanceChanged": false
+}
