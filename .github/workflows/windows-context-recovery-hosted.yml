@@ -35,10 +35,29 @@ jobs:
           rustup default stable
           if ($LASTEXITCODE -ne 0) { throw 'Native build toolchain failed.' }
       - name: Require unified source gates
+        env:
+          HPM_COVERAGE_IO: ${{ github.sha }}
+          HPM_COVERAGE_IO_STAGE: proxy
+          HPM_COVERAGE_IO_VERIFY_PROXY_ONLY: '1'
         run: |
           $ErrorActionPreference = 'Stop'
-          npm run verify
-          if ($LASTEXITCODE -ne 0) { throw 'Unified verification failed.' }
+          $verificationFailed = $false
+          try {
+            npm run verify
+            if ($LASTEXITCODE -ne 0) { throw 'Unified verification failed.' }
+          } catch {
+            $verificationFailed = $true
+            throw
+          } finally {
+            node scripts/check-coverage-io-receipt.cjs
+            if ($LASTEXITCODE -ne 0) {
+              if ($verificationFailed) {
+                [Console]::Error.WriteLine('Source-gate I/O receipt failed; original verification remains failed.')
+              } else {
+                throw 'Source-gate I/O receipt failed.'
+              }
+            }
+          }
           npm audit --audit-level=high
           if ($LASTEXITCODE -ne 0) { throw 'Dependency audit failed.' }
 

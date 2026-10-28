@@ -129,6 +129,14 @@ function Read-HpmCoverageIoCommand {
 
 function Test-HpmCoverageIoWorkflow {
     $workflow = [string]$env:GITHUB_WORKFLOW_REF
+    $verifyProxyOnly = [Environment]::GetEnvironmentVariable('HPM_COVERAGE_IO_VERIFY_PROXY_ONLY')
+    if ($null -ne $verifyProxyOnly) {
+        return (
+            $verifyProxyOnly -ceq '1' -and $env:HPM_COVERAGE_IO_STAGE -ceq 'proxy' -and
+            $env:npm_lifecycle_event -ceq 'test:coverage' -and $env:GITHUB_JOB -ceq 'source-gates' -and
+            $workflow.StartsWith('cbhandsun/https-proxy/.github/workflows/windows-context-recovery-hosted.yml@refs/')
+        )
+    }
     return (
         ($env:GITHUB_JOB -ceq 'coverage-file-flush' -and $workflow.StartsWith('cbhandsun/https-proxy/.github/workflows/windows-persistent-io-coverage.yml@refs/')) -or
         ($env:GITHUB_JOB -ceq 'coverage' -and $workflow.StartsWith('cbhandsun/https-proxy/.github/workflows/verify.yml@refs/'))

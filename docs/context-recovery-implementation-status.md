@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：正式源门接入同机I/O采集，保留最新失败
+
+本批将已有代理覆盖率窗口的有限I/O采集接入正式source-gates；原npm run verify、四分片并行、后续client coverage、audit、750/5000ms期限及十组业务矩阵保持。独立选择模块只允许精确生命周期，录制器仍验证原托管平台、仓库、workflow/job和相同SHA；后续client阶段只省略重复录制，不省略测试。finally核对回执，原验证失败即使同时遇到回执失败也保持失败，不继续audit。正常、非法、安全与失败路径四文件79/79，关联I/O五文件39/39；真实PowerShell执行五种源门失败组合，语法1733、Lint零错误/五既有警告、变更JS格式、PowerShell解析及CI/release治理通过。格式器曾改写十场景字面量而触发78/79失败，已恢复原字面量，未改治理断言。
+
+这是同次失败取证能力，尚未完成Windows执行，更不是五秒产品修复。bb92902正式40630050030/source122624078755终态失败，完整日志2677944字节已读；失败在签名ACK通道uncertain取消握手和同步ACK期间observation两项，业务矩阵因源门失败跳过。该次六轮持久发布846/1099/745/943/1848/1408ms，不覆盖625及其他旧五秒失败。Windows SSH已恢复；固定e0独立构建的源码准备、缓存复制和npm ci成功，plugin ci在114342ms因公开npm registry连接ECONNRESET退出，任务Ready/result1且无所属Node、未生成候选，没有重启刷绿。有限证据见context-recovery-evidence/source-gate-io-capture.json。
+
+旧6646长测终态失败现场、旧E实例均不动，新24h未启动，真实模型0。下一步读取正式源门同机录制并定位尾等待，同时修复本机公开依赖传输阻塞后继续最新候选构建；未授整体完成或自用切换。
+
 ## 2026-10-28：e0完整CI链通过；625再现五秒失败，本机整组父限失败保留
 
 固定e0e0f14普通40625817781八作业、正式40625817663十二作业（source/egress及十业务）全部success。十份正式业务完整日志逐一核对source/plan/build摘要和实际network_finished、probesPassed、TLS/隔离/ownedTreeEmpty。额外I/O40625817825/job122610337153也success，完整日志3719087字节已读，三份原parseSummary重新校验：paired215/144/63，DB最大43/92/15ms、journal47/45/20ms，cleanupVerified/file-completed；traceCompleteness/fiveSecond/commitCorrelation资格仍false。普通coverage、正式source和额外I/O各12次long-persistent最终publication_wait_end为973–2102、944–1871、1082–1631ms；36个样本不覆盖旧失败或授后续625资格。证据见context-recovery-evidence/e0e0f14-complete-ci.json。

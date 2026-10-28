@@ -189,3 +189,72 @@ for (const mutation of [
     assert.throws(() => assertHostedGates(mutation[1](workflow)));
   });
 }
+
+test('actual source gate preserves original failure and checks its receipt before audit', () => {
+  const { spawnSync } = require('node:child_process');
+  const source = job(workflow, 'source-gates');
+  const lines = source.split('\n');
+  const start = lines.findIndex((line) => line.trim() === '- name: Require unified source gates');
+  assert.ok(start >= 0);
+  const run = lines.findIndex((line, index) => index > start && line.trim() === 'run: |');
+  assert.ok(run > start);
+  const body = [];
+  for (let index = run + 1; index < lines.length; index++) {
+    if (lines[index].trim() && !lines[index].startsWith('          ')) break;
+    body.push(lines[index].slice(10));
+  }
+  const code = body.join('\n');
+  assert.ok(source.includes("HPM_COVERAGE_IO_VERIFY_PROXY_ONLY: '1'"));
+  assert.ok(source.includes('HPM_COVERAGE_IO: ${{ github.sha }}'));
+  assert.ok(code.includes('finally {'));
+  const cases = [
+    { verify: 0, receipt: 0, audit: 0, error: null, commands: ['verify', 'receipt', 'audit'] },
+    {
+      verify: 1,
+      receipt: 0,
+      audit: 0,
+      error: 'Unified verification failed.',
+      commands: ['verify', 'receipt'],
+    },
+    {
+      verify: 0,
+      receipt: 1,
+      audit: 0,
+      error: 'Source-gate I/O receipt failed.',
+      commands: ['verify', 'receipt'],
+    },
+    {
+      verify: 1,
+      receipt: 1,
+      audit: 0,
+      error: 'Unified verification failed.',
+      commands: ['verify', 'receipt'],
+    },
+    {
+      verify: 0,
+      receipt: 0,
+      audit: 1,
+      error: 'Dependency audit failed.',
+      commands: ['verify', 'receipt', 'audit'],
+    },
+  ];
+  const script = `$ErrorActionPreference='Stop';$inputData=[Console]::In.ReadToEnd()|ConvertFrom-Json;
+function npm {if($args.Count -eq 2 -and $args[0] -ceq 'run' -and $args[1] -ceq 'verify'){$script:seen.Add('verify');$global:LASTEXITCODE=$script:row.verify}elseif($args.Count -eq 2 -and $args[0] -ceq 'audit' -and $args[1] -ceq '--audit-level=high'){$script:seen.Add('audit');$global:LASTEXITCODE=$script:row.audit}else{throw 'unexpected_npm'}}
+function node {if($args.Count -ne 1 -or $args[0] -cne 'scripts/check-coverage-io-receipt.cjs'){throw 'unexpected_node'};$script:seen.Add('receipt');$global:LASTEXITCODE=$script:row.receipt}
+$results=@(foreach($script:row in $inputData.cases){$script:seen=[Collections.Generic.List[string]]::new();$failure=$null;try{& ([scriptblock]::Create($inputData.code))}catch{$failure=$_.Exception.Message};[ordered]@{error=$failure;commands=@($script:seen)}});ConvertTo-Json -Depth 5 -Compress -InputObject $results`;
+  const result = spawnSync(
+    'pwsh',
+    ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
+    { input: JSON.stringify({ code, cases }), encoding: 'utf8', timeout: 5000, maxBuffer: 8192 }
+  );
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(({ error, commands }) => ({ error, commands }))
+  );
+  assert.equal(
+    result.stderr.trim(),
+    'Source-gate I/O receipt failed; original verification remains failed.'
+  );
+});

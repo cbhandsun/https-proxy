@@ -10,6 +10,7 @@ const { validatePersistentIoScheduling } = require('./persistent-io-scheduling')
 const { validatePersistentIoWindows } = require('./persistent-io-windows');
 const { requiredCoverageIoWindows } = require('./coverage-io-windows');
 const { coverageIoRecorderFailureDetail } = require('./coverage-io-recorder-failure');
+const { coverageIoVerifyScope } = require('./coverage-io-verify-scope');
 const fail = () => new Error('coverage_io_capture_failed');
 const isSha = (value) =>
   typeof value === 'string' && value.length === 40 && /^[a-f0-9]{40}$/.test(value);
@@ -318,6 +319,8 @@ function installCoverageIoCapture(
     'HPM_COVERAGE_IO',
     'HPM_COVERAGE_IO_STAGE',
     'HPM_COVERAGE_IO_PROXY_WINDOW',
+    'HPM_COVERAGE_IO_VERIFY_PROXY_ONLY',
+    'npm_lifecycle_event',
     'GITHUB_SHA',
     'GITHUB_ACTIONS',
     'GITHUB_JOB',
@@ -344,6 +347,27 @@ function installCoverageIoCapture(
     if (value !== undefined) pinned[key] = value;
   }
   environment = pinned;
+  let verifyScope;
+  try {
+    verifyScope = coverageIoVerifyScope(environment);
+  } catch {
+    throw fail();
+  }
+  const sourceWorkflow =
+    environment.GITHUB_JOB === 'source-gates' &&
+    environment.GITHUB_WORKFLOW_REF?.startsWith(
+      'cbhandsun/https-proxy/.github/workflows/windows-context-recovery-hosted.yml@refs/'
+    );
+  const workflowAllowed =
+    verifyScope !== null
+      ? sourceWorkflow
+      : WORKFLOWS.some(
+          ([file, job]) =>
+            environment.GITHUB_JOB === job &&
+            environment.GITHUB_WORKFLOW_REF?.startsWith(
+              'cbhandsun/https-proxy/.github/workflows/' + file + '@refs/'
+            )
+        );
   if (
     platform !== 'win32' ||
     environment.CI !== 'true' ||
@@ -352,21 +376,19 @@ function installCoverageIoCapture(
     environment.RUNNER_OS !== 'Windows' ||
     environment.RUNNER_ARCH !== 'X64' ||
     environment.GITHUB_REPOSITORY !== 'cbhandsun/https-proxy' ||
-    !WORKFLOWS.some(
-      ([file, job]) =>
-        environment.GITHUB_JOB === job &&
-        environment.GITHUB_WORKFLOW_REF?.startsWith(
-          'cbhandsun/https-proxy/.github/workflows/' + file + '@refs/'
-        )
-    ) ||
+    !workflowAllowed ||
     !isSha(environment.HPM_COVERAGE_IO) ||
     environment.HPM_COVERAGE_IO !== environment.GITHUB_SHA ||
     !['proxy', 'client'].includes(environment.HPM_COVERAGE_IO_STAGE)
   )
     throw fail();
+  // npm verify later runs client coverage in a separate serial command. Keep
+  // this source-gate recorder bound to its one original proxy-file window.
+  const windows = captureWindows(environment);
+  if (verifyScope === 'omit-client') return false;
   // Exactly one proxy file records across the original parallel shards. The
   // two client windows run in the original serial command, never together.
-  if (!captureWindows(environment).includes(windowId)) return false;
+  if (!windows.includes(windowId)) return false;
   let target, entry, parentIdentity;
   try {
     target = receiptPath(environment, windowId);

@@ -43,7 +43,7 @@ test('the real PowerShell recorder admits only the exact workflow and job pairs'
   const modulePath = path
     .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
     .replaceAll("'", "''");
-  const script = `Import-Module '${modulePath}';$cases=[Console]::In.ReadToEnd()|ConvertFrom-Json;$results=@(foreach($case in $cases){$env:GITHUB_WORKFLOW_REF='cbhandsun/https-proxy/.github/workflows/'+$case[0];$env:GITHUB_JOB=$case[1];& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWorkflow}});ConvertTo-Json -Compress -InputObject $results`;
+  const script = `Import-Module '${modulePath}';Remove-Item Env:\\HPM_COVERAGE_IO_VERIFY_PROXY_ONLY -ErrorAction SilentlyContinue;$cases=[Console]::In.ReadToEnd()|ConvertFrom-Json;$results=@(foreach($case in $cases){$env:GITHUB_WORKFLOW_REF='cbhandsun/https-proxy/.github/workflows/'+$case[0];$env:GITHUB_JOB=$case[1];& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWorkflow}});ConvertTo-Json -Compress -InputObject $results`;
   // Keep the fixture JSON on stdin so the command contains only reviewable PowerShell.
   const result = spawnSync(
     'pwsh',
@@ -1187,4 +1187,94 @@ test('recorder phase text never converts a successful exit with invalid controls
   });
   assert.equal(f.reports.length, 0);
   assert.equal(fs.readdirSync(f.root).length, 0);
+});
+
+test('formal source gate records its original proxy window and omits only the later client command', async (t) => {
+  const f = fixture(t);
+  f.environment.GITHUB_WORKFLOW_REF =
+    'cbhandsun/https-proxy/.github/workflows/windows-context-recovery-hosted.yml@refs/heads/acceptance/context-recovery/fixture';
+  f.environment.GITHUB_JOB = 'source-gates';
+  f.environment.HPM_COVERAGE_IO_VERIFY_PROXY_ONLY = '1';
+  f.environment.npm_lifecycle_event = 'test:coverage';
+  assert.equal(f.install('success'), true);
+  await f.hooks.before();
+  await f.hooks.after();
+  assert.equal(f.reports.length, 1);
+  assert.equal(f.reports[0].coverageStage, 'proxy');
+  assert.equal(f.reports[0].summary.fiveSecondQualified, false);
+  const second = fixture(t);
+  Object.assign(second.environment, f.environment);
+  second.environment.RUNNER_TEMP = second.root;
+  second.environment.npm_lifecycle_event = 'test:client:coverage';
+  assert.equal(second.install('success'), false);
+  assert.deepEqual(second.hooks, {});
+});
+
+test('source proxy omission cannot bypass the exact hosted authority or fixed window', (t) => {
+  for (const change of [
+    { HPM_COVERAGE_IO_VERIFY_PROXY_ONLY: undefined },
+    { HPM_COVERAGE_IO_VERIFY_PROXY_ONLY: '0' },
+    { GITHUB_JOB: 'coverage' },
+    {
+      GITHUB_WORKFLOW_REF: 'cbhandsun/https-proxy/.github/workflows/verify.yml@refs/heads/fixture',
+    },
+    { GITHUB_SHA: 'b'.repeat(40) },
+    { GITHUB_REPOSITORY: 'other/repository' },
+    { RUNNER_ENVIRONMENT: 'self-hosted' },
+    { HPM_COVERAGE_IO_STAGE: 'client' },
+    { HPM_COVERAGE_IO_PROXY_WINDOW: 'unknown' },
+    { npm_lifecycle_event: 'verify' },
+    { npm_lifecycle_event: '' },
+  ]) {
+    const f = fixture(t);
+    Object.assign(
+      f.environment,
+      {
+        GITHUB_JOB: 'source-gates',
+        GITHUB_WORKFLOW_REF:
+          'cbhandsun/https-proxy/.github/workflows/windows-context-recovery-hosted.yml@refs/heads/fixture',
+        HPM_COVERAGE_IO_VERIFY_PROXY_ONLY: '1',
+        npm_lifecycle_event: 'test:client:coverage',
+      },
+      change
+    );
+    for (const key of Object.keys(f.environment))
+      if (f.environment[key] === undefined) delete f.environment[key];
+    assert.throws(() => f.install('success'), failure);
+    assert.deepEqual(f.hooks, {});
+  }
+  const legacy = fixture(t);
+  legacy.environment.HPM_COVERAGE_IO_VERIFY_PROXY_ONLY = '1';
+  legacy.environment.npm_lifecycle_event = 'test:coverage';
+  assert.throws(() => legacy.install('success'), failure);
+});
+
+test('PowerShell source recorder requires explicit proxy scope and the original coverage command', () => {
+  const { spawnSync } = require('node:child_process');
+  const cases = [
+    ['1', 'test:coverage', 'proxy', 'source-gates', true],
+    ['1', 'test:client:coverage', 'proxy', 'source-gates', false],
+    ['1', 'verify', 'proxy', 'source-gates', false],
+    ['1', 'test:coverage', 'client', 'source-gates', false],
+    ['1', 'test:coverage', 'proxy', 'coverage', false],
+    ['0', 'test:coverage', 'proxy', 'source-gates', false],
+    [null, 'test:coverage', 'proxy', 'source-gates', false],
+  ];
+  const modulePath = path
+    .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  const code = `Import-Module '${modulePath}';$cases=[Console]::In.ReadToEnd()|ConvertFrom-Json;$env:GITHUB_WORKFLOW_REF='cbhandsun/https-proxy/.github/workflows/windows-context-recovery-hosted.yml@refs/heads/fixture';$rows=@(foreach($row in $cases){if($null -eq $row[0]){Remove-Item Env:\\HPM_COVERAGE_IO_VERIFY_PROXY_ONLY -ErrorAction SilentlyContinue}else{$env:HPM_COVERAGE_IO_VERIFY_PROXY_ONLY=$row[0]};$env:npm_lifecycle_event=$row[1];$env:HPM_COVERAGE_IO_STAGE=$row[2];$env:GITHUB_JOB=$row[3];& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWorkflow}});ConvertTo-Json -Compress -InputObject $rows`;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    input: JSON.stringify(cases),
+    encoding: 'utf8',
+    timeout: 5000,
+    maxBuffer: 4096,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map((row) => row[4])
+  );
 });
