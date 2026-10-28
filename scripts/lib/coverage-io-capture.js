@@ -9,6 +9,7 @@ const { OPERATION_TYPES } = require('./persistent-io-operation-summary');
 const { validatePersistentIoScheduling } = require('./persistent-io-scheduling');
 const { validatePersistentIoWindows } = require('./persistent-io-windows');
 const { requiredCoverageIoWindows } = require('./coverage-io-windows');
+const { coverageIoRecorderFailureDetail } = require('./coverage-io-recorder-failure');
 const fail = () => new Error('coverage_io_capture_failed');
 const isSha = (value) =>
   typeof value === 'string' && value.length === 40 && /^[a-f0-9]{40}$/.test(value);
@@ -506,7 +507,8 @@ function installCoverageIoCapture(
       else if (!trace || trace[0] !== stderr) refusal = 'trace_control';
       else if (Number(trace[1]) > 268435456) refusal = 'trace_limit';
       if (refusal) {
-        const error = new Error('coverage_io_capture_failed', {
+        const detail = refusal === 'recorder_exit' ? coverageIoRecorderFailureDetail(stderr) : '';
+        const error = new Error('coverage_io_capture_failed' + detail, {
           // Closed vocabulary only; no recorder output or exception crosses.
           cause: new Error('coverage_io_capture_' + refusal),
         });

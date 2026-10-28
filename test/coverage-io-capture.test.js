@@ -221,6 +221,10 @@ function fixture(t) {
             if (mode === 'duplicate-summary') text += text;
             if (mode !== 'missing-summary') child.stdout.write(text);
             if (mode === 'pending-stdout') child.stdout.write('PRIVATE');
+            if (mode === 'nonzero-control')
+              child.stderr.write(
+                'PRIVATE_ERROR_DETAIL\npersistent_io_wpr_failed:cause=deadline\r\npersistent_io_diagnostic_failed:phase=trace-stop\r\n'
+              );
             child.stderr.write(
               mode === 'extra-stderr'
                 ? 'persistent_io_trace_bytes=1024\n\n'
@@ -233,7 +237,11 @@ function fixture(t) {
                       : 'persistent_io_trace_bytes=1024\n'
             );
             if (mode === 'stdin-error') child.stdin.emit('error', new Error('PRIVATE'));
-            child.emit('close', mode === 'nonzero' ? 1 : 0, mode === 'signal' ? 'SIGTERM' : null);
+            child.emit(
+              'close',
+              ['nonzero', 'nonzero-control'].includes(mode) ? 1 : 0,
+              mode === 'signal' ? 'SIGTERM' : null
+            );
           });
         },
       });
@@ -1053,4 +1061,130 @@ test('capture control registration rejects unknown executable inputs before reco
   assert.equal(hooks, 0);
   assert.deepEqual(f.hooks, {});
   assert.deepEqual(f.commands, []);
+});
+
+test('recorder exit keeps its original rejection and exposes only validated phase literals', async (t) => {
+  const f = fixture(t);
+  f.install('nonzero-control');
+  await f.hooks.before();
+  await assert.rejects(f.hooks.after(), (error) => {
+    assert.equal(
+      error.message,
+      'coverage_io_capture_failed; recorder_phase=trace-stop; wpr_cause=deadline'
+    );
+    assert.equal(error.code, 'coverage_io_capture_recorder_exit');
+    assert.equal(error.cause.message, 'coverage_io_capture_recorder_exit');
+    assert.equal(String(error).includes('PRIVATE'), false);
+    return true;
+  });
+  assert.equal(f.reports.length, 0);
+  assert.deepEqual(f.commands, ['finish\n']);
+  assert.deepEqual(f.killed, []);
+  assert.equal(fs.readdirSync(f.root).length, 0, 'failure never writes a success receipt');
+});
+
+test('recorder failure detail parses complete fixed lines without reflecting unrelated diagnostics', () => {
+  const {
+    coverageIoRecorderFailureDetail: detail,
+  } = require('../scripts/lib/coverage-io-recorder-failure');
+  for (const phase of [
+    'host',
+    'paths',
+    'trace-start',
+    'original-tests',
+    'capture-wait',
+    'trace-stop',
+    'trace-file',
+    'trace-size',
+    'decode-enumeration',
+    'decode-limit',
+    'decode-provider',
+    'decode-thread-record',
+    'decode-record',
+    'decode-summary',
+    'original-assertions',
+  ]) {
+    assert.equal(
+      detail('persistent_io_diagnostic_failed:phase=' + phase + '\n'),
+      '; recorder_phase=' + phase
+    );
+  }
+  for (const cause of ['start', 'deadline', 'pipes', 'output-limit', 'exit']) {
+    assert.equal(
+      detail(
+        'PRIVATE_INPUT\npersistent_io_wpr_failed:cause=' +
+          cause +
+          '\r\npersistent_io_diagnostic_failed:phase=trace-stop\r\n'
+      ),
+      '; recorder_phase=trace-stop; wpr_cause=' + cause
+    );
+  }
+});
+
+test('recorder failure detail refuses absent, malformed, ambiguous and extreme controls without coercion', () => {
+  const {
+    coverageIoRecorderFailureDetail: detail,
+  } = require('../scripts/lib/coverage-io-recorder-failure');
+  let touched = 0;
+  const hostile = {
+    toString() {
+      touched++;
+      throw Error('PRIVATE');
+    },
+  };
+  const revoked = Proxy.revocable({}, {});
+  revoked.revoke();
+  const phase = 'persistent_io_diagnostic_failed:phase=trace-stop\n';
+  const cause = 'persistent_io_wpr_failed:cause=deadline\n';
+  for (const value of [
+    undefined,
+    null,
+    false,
+    1,
+    {},
+    hostile,
+    revoked.proxy,
+    '',
+    '\n',
+    'PRIVATE\n',
+    phase.trimEnd(),
+    phase + 'unfinished',
+    'x'.repeat(16385),
+    '界'.repeat(6000),
+    phase + phase,
+    phase + cause + cause,
+    cause,
+    'persistent_io_diagnostic_failed:phase=trace-stopPRIVATE\n',
+    'persistent_io_diagnostic_failed:phase=trace-stop\0\n',
+    phase + 'persistent_io_diagnostic_failed:phase=PRIVATE\n',
+    phase + 'persistent_io_wpr_failed:cause=PRIVATE\n',
+    phase + 'persistent_io_wpr_failed:cause=deadline\r\r\n',
+  ])
+    assert.equal(detail(value), '');
+  assert.equal(touched, 0);
+  assert.equal(
+    detail('x'.repeat(16384 - phase.length) + '\n' + phase),
+    '',
+    'byte bound is unchanged'
+  );
+});
+
+test('recorder phase text never converts a successful exit with invalid controls into a receipt', async (t) => {
+  const f = fixture(t);
+  const start = f.start('success');
+  f.install('success', {
+    start(...args) {
+      const child = start(...args);
+      child.stderr.write('persistent_io_diagnostic_failed:phase=trace-stop\n');
+      return child;
+    },
+  });
+  await f.hooks.before();
+  await assert.rejects(f.hooks.after(), (error) => {
+    assert.equal(error.message, 'coverage_io_capture_failed');
+    assert.equal(error.code, 'coverage_io_capture_trace_control');
+    return true;
+  });
+  assert.equal(f.reports.length, 0);
+  assert.equal(fs.readdirSync(f.root).length, 0);
 });

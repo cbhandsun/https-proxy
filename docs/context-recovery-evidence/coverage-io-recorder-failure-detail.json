@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "scope": "preserve fixed recorder failure phase on an already rejected nonzero exit",
+  "redBefore": {
+    "originalParentLostValidatedPhase": true,
+    "regressionExitCode": 1
+  },
+  "implementation": {
+    "newModule": "scripts/lib/coverage-io-recorder-failure.js",
+    "maximumStderrBytes": 16384,
+    "completeUniquePhaseLinesRequired": true,
+    "phasesWhitelisted": 15,
+    "wprCausesWhitelisted": 5,
+    "rawStderrReflected": false,
+    "originalErrorCodeAndCausePreserved": true,
+    "successReceiptOnFailure": false,
+    "successControlParserUnchanged": true,
+    "timeoutsUnchanged": true,
+    "retriesAdded": false
+  },
+  "validation": {
+    "relatedSevenFiles": {
+      "passed": 96,
+      "failed": 0,
+      "skipped": 0
+    },
+    "afterSuccessExitBoundaryAddedCaptureFile": {
+      "passed": 53,
+      "failed": 0,
+      "skipped": 0
+    },
+    "syntaxFiles": 1715,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "changedFileFormat": "passed",
+    "ciGovernance": "passed",
+    "releaseGovernance": "passed",
+    "initialTerminalReaderMissingEventsFailureRetained": true
+  },
+  "windowsOriginalIoRecorderRunForNewImplementation": "not yet executed",
+  "oldRecorderExitFailurePreserved": true,
+  "qualification": false,
+  "fiveSecondStabilityEstablished": false,
+  "realModelRequests": 0
+}

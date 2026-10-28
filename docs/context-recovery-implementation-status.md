@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：实际COMMIT等待已关联；补录制器失败阶段，原40项新增失败保留
+
+独立timing3原40项没有通过：任务Ready/result126，原120000ms父门触发，未取得子进程正常退出；37条ok、一条已观察not-ok且无完整TAP总计。首次失败是encrypted-worker自动续接用例清理目录时ENOTEMPTY/rmdir（client-context-target.test.js:590，7606ms），不能当作已证明产品恢复或杀毒根因；终止后该根及共用只读native路径所属运行进程0。第一份只读终止提取因失败任务没有events.jsonl而退出1，随后按同一handle的状态确认，不重启；没有用观察器错误替代产品根因。现场、全部原期限和旧失败保持。有限证据见context-recovery-evidence/1afe7b3-worker-sqlite-stage-failure.json。
+
+三类WBIPC各19次实际存储操作均有固定阶段回执，69份请求记录完整；六次持久正文1758–2584ms（Chat首轮2110ms）。更关键的是原测试已经具备的SQLite探针600条有限记录/0非法已解析，无需再启动一次SQLite预加载运行。Responses同一owner2/sequence3的save-reference-state engine_execute650ms中，实际COMMIT615ms；Chat owner1/sequence5的settle-reader engine_execute496ms中COMMIT466ms，记录到两者线程user/system CPU增量均0。计数粗粒度的0不证明绝无CPU，亦不能确认底层I/O原因；只能把本次长尾明确关联到持久提交调用，不能拿普通CPU解密优化解释。快照/锚点仍独立认证/持久化，未合并事务、降级FULL/DELETE或改期限。三类阶段记录不能覆盖整组失败或授五秒稳定性。
+
+定位额外I/O失败时发现父层丢弃子录制器已有的固定失败阶段，只保留recorder_exit。已先红后绿修复：独立模块只解析有界stderr里的完整、唯一白名单阶段和WPR原因，拒绝重复/未知/未完成/极端控制行，不执行输入钩子或反射原错误。只在本来已拒绝的非零退出错误消息中附固定字面量；原error.code/cause、回执资格、成功控制解析和所有等待门不变。零退出附伪阶段依然拒绝、绝无成功回执，不吞异常、不重试。新增回归在现有统一CI测试文件中，模块也加入I/O工作流路径触发。七文件96/96；补成功退出边界后capture文件53/53，均零fail/skip；1715语法、Lint零错误/五既有警告、定向格式、CI/release治理通过。新实现真实Windows I/O门仍待；有限证据见context-recovery-evidence/coverage-io-recorder-failure-detail.json。
+
+固定82d7522普通40613573954七个非coverage作业已success，coverage仍运行；正式40613574036/source仍运行、egress success，未授完整CI。4bd旧coverage现success但其unit1/正式source失败保持。下一步核对新录制器失败阶段及完整门，继续查提交等待的实际文件/调度原因，同时推进daemon剩余矩阵；本批不是五秒产品修复。旧6646仍是85分钟有效、90分钟失败，不重启/新启24h，旧实例未切换；本机安装两端、额度核对后的真实provider、24h到期双重开、最大容量和最终受控自用仍未完成。真实模型0，日常配置与账未改。
+
 ## 2026-10-28：SSH恢复，单请求阶段诊断完成；4bd完整CI仍有失败
 
 SSH恢复后只读续查同一timing2任务，未因断线重启。独立1afe冻结源码原40项在私有观察器下40/40、零skip，112852ms、exit0，原120000ms父门/5000ms请求门及600000字符负载保持，所属Job自然为空、任务Ready/result0、该根运行进程0。69份请求阶段记录中，六次long-persistent正文为1468–2156ms；认证guard累计74.515–107.997ms，单次最大4.358ms，不能据此归因旧五秒失败或删减认证。规范化/克隆/指纹跨度可能嵌套，不能相加解释总时长；部分包含正文后的ACK，线程CPU计数也较粗，未归属其他线程。原5477ms失败与全部旧失败保持，本批没有产品超时修复或稳定性资格。有限证据见context-recovery-evidence/1afe7b3-request-stage-observation.json。

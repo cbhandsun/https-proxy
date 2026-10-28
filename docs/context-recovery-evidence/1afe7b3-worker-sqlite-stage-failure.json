@@ -1,0 +1,904 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1afe7b310ea575ed00d0b68a7addc93a4916e6fe",
+  "scope": "one independent instrumented original forty-case group, terminal failure retained",
+  "testSourceModified": false,
+  "requestDeadlineMs": 5000,
+  "parentDeadlineMs": 120000,
+  "probeVersion": 3,
+  "preloadSha256": "d82bb791dba9aa44dd7f26bcda8238a87338406fd47735113c1b43d246721874",
+  "stageObserverSha256": "bcd88224e4d7a865642f758c4cdc91c73becf6a6fd32b11146b4b94f0b119704",
+  "taskName": "HPM-independent-short-1afe7b3-a6fa74-timing3",
+  "taskState": "Ready",
+  "taskResult": 126,
+  "terminalState": {
+    "realModelRequests": 0,
+    "event": "independent_timing3_1afe7b3_failed",
+    "phase": "child-exit",
+    "cleanupFailed": false,
+    "qualification": false,
+    "atUtc": "2026-10-28T01:15:56.5412086Z",
+    "childExitObserved": null,
+    "step": "timing"
+  },
+  "observedOkLines": 37,
+  "observedFailures": [
+    {
+      "number": 5,
+      "name": "actual core HTTP automatically adopts a unique stored continuation into a fresh lifecycle owner: encrypted-worker"
+    }
+  ],
+  "firstFailureClasses": [
+    {
+      "event": "timing3_first_failure_classes",
+      "knownClasses": [],
+      "sourceLocations": [
+        "test\\client-context-target.test.js:590:14"
+      ],
+      "durationMs": 7606.5444,
+      "rawErrorReturned": false,
+      "qualification": false
+    },
+    {
+      "event": "timing3_first_failure_fs_classes",
+      "codes": [
+        "ENOTEMPTY"
+      ],
+      "operations": [
+        "rmdir"
+      ],
+      "atCleanupRm": true,
+      "rawPathReturned": false,
+      "qualification": false
+    }
+  ],
+  "fullTapTotalsObserved": false,
+  "childNormalExitObserved": false,
+  "ownedRuntimeProcessCount": 0,
+  "stageRecords": 600,
+  "invalidStageRecords": 0,
+  "storageExecutionSummaries": [
+    {
+      "kind": "chat",
+      "storageStages": {
+        "owners": 2,
+        "invalid": false,
+        "overflow": false,
+        "active": 0,
+        "completed": 19,
+        "failed": 0,
+        "workerElapsedMs": 2892,
+        "stageTotalsMs": {
+          "verifyBefore": 162,
+          "engineExecute": 1330,
+          "engineSnapshot": 627,
+          "anchorPersist": 611,
+          "verifyAfter": 158
+        },
+        "longest": [
+          {
+            "owner": 1,
+            "sequence": 5,
+            "parentObservedStartMs": 6817.046,
+            "parentObservedEndMs": 7388.077,
+            "status": "completed",
+            "workerElapsedMs": 570,
+            "stageMs": {
+              "verifyBefore": 8,
+              "engineExecute": 497,
+              "engineSnapshot": 31,
+              "anchorPersist": 27,
+              "verifyAfter": 7
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 4,
+            "parentObservedStartMs": 6592.157,
+            "parentObservedEndMs": 6776.168,
+            "status": "completed",
+            "workerElapsedMs": 184,
+            "stageMs": {
+              "verifyBefore": 7,
+              "engineExecute": 92,
+              "engineSnapshot": 45,
+              "anchorPersist": 31,
+              "verifyAfter": 8
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 3,
+            "parentObservedStartMs": 11788.872,
+            "parentObservedEndMs": 11965.358,
+            "status": "completed",
+            "workerElapsedMs": 176,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 62,
+              "engineSnapshot": 45,
+              "anchorPersist": 49,
+              "verifyAfter": 10
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 6,
+            "parentObservedStartMs": 12467.02,
+            "parentObservedEndMs": 12643.799,
+            "status": "completed",
+            "workerElapsedMs": 176,
+            "stageMs": {
+              "verifyBefore": 7,
+              "engineExecute": 95,
+              "engineSnapshot": 41,
+              "anchorPersist": 26,
+              "verifyAfter": 7
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 5,
+            "parentObservedStartMs": 12282.26,
+            "parentObservedEndMs": 12445.885,
+            "status": "completed",
+            "workerElapsedMs": 163,
+            "stageMs": {
+              "verifyBefore": 7,
+              "engineExecute": 71,
+              "engineSnapshot": 41,
+              "anchorPersist": 32,
+              "verifyAfter": 12
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 7,
+            "parentObservedStartMs": 7628.112,
+            "parentObservedEndMs": 7776.642,
+            "status": "completed",
+            "workerElapsedMs": 148,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 71,
+              "engineSnapshot": 31,
+              "anchorPersist": 29,
+              "verifyAfter": 8
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 4,
+            "parentObservedStartMs": 12002.176,
+            "parentObservedEndMs": 12144.8,
+            "status": "completed",
+            "workerElapsedMs": 145,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 50,
+              "engineSnapshot": 41,
+              "anchorPersist": 34,
+              "verifyAfter": 10
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 1,
+            "parentObservedStartMs": 10967.627,
+            "parentObservedEndMs": 11108.821,
+            "status": "completed",
+            "workerElapsedMs": 141,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 41,
+              "engineSnapshot": 41,
+              "anchorPersist": 39,
+              "verifyAfter": 11
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 7,
+            "parentObservedStartMs": 12906.697,
+            "parentObservedEndMs": 13046.003,
+            "status": "completed",
+            "workerElapsedMs": 139,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 53,
+              "engineSnapshot": 36,
+              "anchorPersist": 31,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 2,
+            "parentObservedStartMs": 11221.966,
+            "parentObservedEndMs": 11357.802,
+            "status": "completed",
+            "workerElapsedMs": 135,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 17,
+              "engineSnapshot": 44,
+              "anchorPersist": 55,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 6,
+            "parentObservedStartMs": 7484.295,
+            "parentObservedEndMs": 7609.406,
+            "status": "completed",
+            "workerElapsedMs": 125,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 41,
+              "engineSnapshot": 34,
+              "anchorPersist": 32,
+              "verifyAfter": 8
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 8,
+            "parentObservedStartMs": 13115.078,
+            "parentObservedEndMs": 13237.772,
+            "status": "completed",
+            "workerElapsedMs": 122,
+            "stageMs": {
+              "verifyBefore": 8,
+              "engineExecute": 42,
+              "engineSnapshot": 38,
+              "anchorPersist": 27,
+              "verifyAfter": 6
+            }
+          }
+        ],
+        "parentArrivalWindowsAreNotRequestAuthority": true
+      }
+    },
+    {
+      "kind": "responses",
+      "storageStages": {
+        "owners": 2,
+        "invalid": false,
+        "overflow": false,
+        "active": 0,
+        "completed": 19,
+        "failed": 0,
+        "workerElapsedMs": 2977,
+        "stageTotalsMs": {
+          "verifyBefore": 154,
+          "engineExecute": 1418,
+          "engineSnapshot": 649,
+          "anchorPersist": 584,
+          "verifyAfter": 167
+        },
+        "longest": [
+          {
+            "owner": 2,
+            "sequence": 3,
+            "parentObservedStartMs": 11898.262,
+            "parentObservedEndMs": 12631.807,
+            "status": "completed",
+            "workerElapsedMs": 733,
+            "stageMs": {
+              "verifyBefore": 8,
+              "engineExecute": 650,
+              "engineSnapshot": 38,
+              "anchorPersist": 29,
+              "verifyAfter": 8
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 4,
+            "parentObservedStartMs": 7200.597,
+            "parentObservedEndMs": 7382.559,
+            "status": "completed",
+            "workerElapsedMs": 181,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 94,
+              "engineSnapshot": 40,
+              "anchorPersist": 28,
+              "verifyAfter": 10
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 4,
+            "parentObservedStartMs": 12655.88,
+            "parentObservedEndMs": 12816.699,
+            "status": "completed",
+            "workerElapsedMs": 160,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 56,
+              "engineSnapshot": 38,
+              "anchorPersist": 47,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 9,
+            "parentObservedStartMs": 13827.915,
+            "parentObservedEndMs": 13981.374,
+            "status": "completed",
+            "workerElapsedMs": 153,
+            "stageMs": {
+              "verifyBefore": 8,
+              "engineExecute": 38,
+              "engineSnapshot": 58,
+              "anchorPersist": 36,
+              "verifyAfter": 13
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 7,
+            "parentObservedStartMs": 7800.384,
+            "parentObservedEndMs": 7952.522,
+            "status": "completed",
+            "workerElapsedMs": 152,
+            "stageMs": {
+              "verifyBefore": 8,
+              "engineExecute": 70,
+              "engineSnapshot": 32,
+              "anchorPersist": 31,
+              "verifyAfter": 10
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 6,
+            "parentObservedStartMs": 13085.439,
+            "parentObservedEndMs": 13235.075,
+            "status": "completed",
+            "workerElapsedMs": 149,
+            "stageMs": {
+              "verifyBefore": 6,
+              "engineExecute": 74,
+              "engineSnapshot": 34,
+              "anchorPersist": 27,
+              "verifyAfter": 7
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 8,
+            "parentObservedStartMs": 8198.266,
+            "parentObservedEndMs": 8338.255,
+            "status": "completed",
+            "workerElapsedMs": 140,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 49,
+              "engineSnapshot": 41,
+              "anchorPersist": 33,
+              "verifyAfter": 8
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 7,
+            "parentObservedStartMs": 13438.917,
+            "parentObservedEndMs": 13576.606,
+            "status": "completed",
+            "workerElapsedMs": 137,
+            "stageMs": {
+              "verifyBefore": 6,
+              "engineExecute": 56,
+              "engineSnapshot": 36,
+              "anchorPersist": 30,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 9,
+            "parentObservedStartMs": 8397.753,
+            "parentObservedEndMs": 8527.502,
+            "status": "completed",
+            "workerElapsedMs": 130,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 41,
+              "engineSnapshot": 43,
+              "anchorPersist": 26,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 5,
+            "parentObservedStartMs": 12935.647,
+            "parentObservedEndMs": 13066.341,
+            "status": "completed",
+            "workerElapsedMs": 130,
+            "stageMs": {
+              "verifyBefore": 8,
+              "engineExecute": 48,
+              "engineSnapshot": 39,
+              "anchorPersist": 27,
+              "verifyAfter": 8
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 5,
+            "parentObservedStartMs": 7413.868,
+            "parentObservedEndMs": 7540.143,
+            "status": "completed",
+            "workerElapsedMs": 125,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 39,
+              "engineSnapshot": 39,
+              "anchorPersist": 29,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 1,
+            "parentObservedStartMs": 11100.385,
+            "parentObservedEndMs": 11222.592,
+            "status": "completed",
+            "workerElapsedMs": 122,
+            "stageMs": {
+              "verifyBefore": 8,
+              "engineExecute": 30,
+              "engineSnapshot": 43,
+              "anchorPersist": 30,
+              "verifyAfter": 10
+            }
+          }
+        ],
+        "parentArrivalWindowsAreNotRequestAuthority": true
+      }
+    },
+    {
+      "kind": "claude",
+      "storageStages": {
+        "owners": 2,
+        "invalid": false,
+        "overflow": false,
+        "active": 0,
+        "completed": 19,
+        "failed": 0,
+        "workerElapsedMs": 2700,
+        "stageTotalsMs": {
+          "verifyBefore": 180,
+          "engineExecute": 973,
+          "engineSnapshot": 699,
+          "anchorPersist": 646,
+          "verifyAfter": 191
+        },
+        "longest": [
+          {
+            "owner": 1,
+            "sequence": 4,
+            "parentObservedStartMs": 8529.75,
+            "parentObservedEndMs": 8771.194,
+            "status": "completed",
+            "workerElapsedMs": 241,
+            "stageMs": {
+              "verifyBefore": 11,
+              "engineExecute": 137,
+              "engineSnapshot": 48,
+              "anchorPersist": 36,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 3,
+            "parentObservedStartMs": 13842.655,
+            "parentObservedEndMs": 14041.895,
+            "status": "completed",
+            "workerElapsedMs": 199,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 86,
+              "engineSnapshot": 54,
+              "anchorPersist": 38,
+              "verifyAfter": 10
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 6,
+            "parentObservedStartMs": 14539.269,
+            "parentObservedEndMs": 14722.704,
+            "status": "completed",
+            "workerElapsedMs": 183,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 92,
+              "engineSnapshot": 39,
+              "anchorPersist": 33,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 8,
+            "parentObservedStartMs": 9652.198,
+            "parentObservedEndMs": 9824.442,
+            "status": "completed",
+            "workerElapsedMs": 172,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 67,
+              "engineSnapshot": 44,
+              "anchorPersist": 41,
+              "verifyAfter": 11
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 9,
+            "parentObservedStartMs": 9909.246,
+            "parentObservedEndMs": 10076.96,
+            "status": "completed",
+            "workerElapsedMs": 167,
+            "stageMs": {
+              "verifyBefore": 12,
+              "engineExecute": 50,
+              "engineSnapshot": 48,
+              "anchorPersist": 42,
+              "verifyAfter": 15
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 7,
+            "parentObservedStartMs": 9233.345,
+            "parentObservedEndMs": 9397.697,
+            "status": "completed",
+            "workerElapsedMs": 164,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 80,
+              "engineSnapshot": 34,
+              "anchorPersist": 31,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 7,
+            "parentObservedStartMs": 15058.568,
+            "parentObservedEndMs": 15215.898,
+            "status": "completed",
+            "workerElapsedMs": 156,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 59,
+              "engineSnapshot": 40,
+              "anchorPersist": 35,
+              "verifyAfter": 12
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 4,
+            "parentObservedStartMs": 14078.305,
+            "parentObservedEndMs": 14225.426,
+            "status": "completed",
+            "workerElapsedMs": 146,
+            "stageMs": {
+              "verifyBefore": 10,
+              "engineExecute": 55,
+              "engineSnapshot": 40,
+              "anchorPersist": 31,
+              "verifyAfter": 9
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 5,
+            "parentObservedStartMs": 14378.578,
+            "parentObservedEndMs": 14520.77,
+            "status": "completed",
+            "workerElapsedMs": 142,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 58,
+              "engineSnapshot": 37,
+              "anchorPersist": 28,
+              "verifyAfter": 10
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 5,
+            "parentObservedStartMs": 8816.622,
+            "parentObservedEndMs": 8957.358,
+            "status": "completed",
+            "workerElapsedMs": 139,
+            "stageMs": {
+              "verifyBefore": 8,
+              "engineExecute": 41,
+              "engineSnapshot": 42,
+              "anchorPersist": 36,
+              "verifyAfter": 12
+            }
+          },
+          {
+            "owner": 1,
+            "sequence": 10,
+            "parentObservedStartMs": 10128.42,
+            "parentObservedEndMs": 10264.75,
+            "status": "completed",
+            "workerElapsedMs": 136,
+            "stageMs": {
+              "verifyBefore": 9,
+              "engineExecute": 38,
+              "engineSnapshot": 40,
+              "anchorPersist": 35,
+              "verifyAfter": 13
+            }
+          },
+          {
+            "owner": 2,
+            "sequence": 8,
+            "parentObservedStartMs": 15295.457,
+            "parentObservedEndMs": 15430.286,
+            "status": "completed",
+            "workerElapsedMs": 134,
+            "stageMs": {
+              "verifyBefore": 8,
+              "engineExecute": 44,
+              "engineSnapshot": 42,
+              "anchorPersist": 32,
+              "verifyAfter": 8
+            }
+          }
+        ],
+        "parentArrivalWindowsAreNotRequestAuthority": true
+      }
+    }
+  ],
+  "selectedSqliteTails": [
+    {
+      "kind": "responses",
+      "ownerEpoch": 2,
+      "sequence": 3,
+      "operation": "save-reference-state",
+      "stages": [
+        {
+          "kind": "responses",
+          "stage": "sqlite_begin",
+          "operation": "save-reference-state",
+          "ownerEpoch": 2,
+          "sequence": 3,
+          "elapsedMs": 1
+        },
+        {
+          "kind": "responses",
+          "stage": "sqlite_clock_write",
+          "operation": "save-reference-state",
+          "ownerEpoch": 2,
+          "sequence": 3,
+          "elapsedMs": 2,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "startedAtUnixMs": 1793150086046,
+          "finishedAtUnixMs": 1793150086048
+        },
+        {
+          "kind": "responses",
+          "stage": "sqlite_commit",
+          "operation": "save-reference-state",
+          "ownerEpoch": 2,
+          "sequence": 3,
+          "elapsedMs": 615,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "startedAtUnixMs": 1793150086079,
+          "finishedAtUnixMs": 1793150086694
+        },
+        {
+          "kind": "responses",
+          "stage": "engine_execute",
+          "operation": "save-reference-state",
+          "ownerEpoch": 2,
+          "sequence": 3,
+          "elapsedMs": 650
+        },
+        {
+          "kind": "responses",
+          "stage": "sqlite_begin",
+          "operation": "save-reference-state",
+          "ownerEpoch": 2,
+          "sequence": 3,
+          "elapsedMs": 0
+        },
+        {
+          "kind": "responses",
+          "stage": "sqlite_commit",
+          "operation": "save-reference-state",
+          "ownerEpoch": 2,
+          "sequence": 3,
+          "elapsedMs": 0,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "startedAtUnixMs": 1793150086731,
+          "finishedAtUnixMs": 1793150086731
+        },
+        {
+          "kind": "responses",
+          "stage": "engine_snapshot",
+          "operation": "save-reference-state",
+          "ownerEpoch": 2,
+          "sequence": 3,
+          "elapsedMs": 37
+        },
+        {
+          "kind": "responses",
+          "stage": "anchor_native_dispatch",
+          "operation": "save-reference-state",
+          "ownerEpoch": 2,
+          "sequence": 3,
+          "elapsedMs": 9
+        },
+        {
+          "kind": "responses",
+          "stage": "anchor_persist",
+          "operation": "save-reference-state",
+          "ownerEpoch": 2,
+          "sequence": 3,
+          "elapsedMs": 29
+        }
+      ]
+    },
+    {
+      "kind": "chat",
+      "ownerEpoch": 1,
+      "sequence": 5,
+      "operation": "settle-reader",
+      "stages": [
+        {
+          "kind": "chat",
+          "stage": "sqlite_begin",
+          "operation": "settle-reader",
+          "ownerEpoch": 1,
+          "sequence": 5,
+          "elapsedMs": 1
+        },
+        {
+          "kind": "chat",
+          "stage": "sqlite_clock_write",
+          "operation": "settle-reader",
+          "ownerEpoch": 1,
+          "sequence": 5,
+          "elapsedMs": 2,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 15000,
+          "startedAtUnixMs": 1793150067464,
+          "finishedAtUnixMs": 1793150067466
+        },
+        {
+          "kind": "chat",
+          "stage": "sqlite_commit",
+          "operation": "settle-reader",
+          "ownerEpoch": 1,
+          "sequence": 5,
+          "elapsedMs": 466,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "startedAtUnixMs": 1793150067493,
+          "finishedAtUnixMs": 1793150067959
+        },
+        {
+          "kind": "chat",
+          "stage": "engine_execute",
+          "operation": "settle-reader",
+          "ownerEpoch": 1,
+          "sequence": 5,
+          "elapsedMs": 496
+        },
+        {
+          "kind": "chat",
+          "stage": "sqlite_begin",
+          "operation": "settle-reader",
+          "ownerEpoch": 1,
+          "sequence": 5,
+          "elapsedMs": 0
+        },
+        {
+          "kind": "chat",
+          "stage": "sqlite_commit",
+          "operation": "settle-reader",
+          "ownerEpoch": 1,
+          "sequence": 5,
+          "elapsedMs": 0,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "startedAtUnixMs": 1793150067990,
+          "finishedAtUnixMs": 1793150067990
+        },
+        {
+          "kind": "chat",
+          "stage": "engine_snapshot",
+          "operation": "settle-reader",
+          "ownerEpoch": 1,
+          "sequence": 5,
+          "elapsedMs": 31
+        },
+        {
+          "kind": "chat",
+          "stage": "anchor_native_dispatch",
+          "operation": "settle-reader",
+          "ownerEpoch": 1,
+          "sequence": 5,
+          "elapsedMs": 9
+        },
+        {
+          "kind": "chat",
+          "stage": "anchor_persist",
+          "operation": "settle-reader",
+          "ownerEpoch": 1,
+          "sequence": 5,
+          "elapsedMs": 27
+        }
+      ]
+    }
+  ],
+  "persistentBodyEndObservations": [
+    {
+      "kind": "chat",
+      "phase": "body_end",
+      "turn": 0,
+      "elapsedMs": 2110
+    },
+    {
+      "kind": "chat",
+      "phase": "body_end",
+      "turn": 1,
+      "elapsedMs": 2146
+    },
+    {
+      "kind": "responses",
+      "phase": "body_end",
+      "turn": 0,
+      "elapsedMs": 1758
+    },
+    {
+      "kind": "responses",
+      "phase": "body_end",
+      "turn": 1,
+      "elapsedMs": 2584
+    },
+    {
+      "kind": "claude",
+      "phase": "body_end",
+      "turn": 0,
+      "elapsedMs": 2036
+    },
+    {
+      "kind": "claude",
+      "phase": "body_end",
+      "turn": 1,
+      "elapsedMs": 2337
+    }
+  ],
+  "existingSourceProbeUsed": true,
+  "additionalSqlitePreloadRunStarted": false,
+  "qualification": false,
+  "profilingPerturbed": true,
+  "parentArrivalWindowsAreNotRequestAuthority": true,
+  "zeroThreadCpuDeltaDoesNotProveZeroCpuWork": true,
+  "uniqueUnderlyingIoCauseEstablished": false,
+  "originalFailuresPreserved": true,
+  "fiveSecondStabilityEstablished": false,
+  "realModelRequests": 0,
+  "longRunStartedOrRestarted": false,
+  "oldManagerModified": false
+}

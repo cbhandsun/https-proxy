@@ -48,6 +48,7 @@ on:
       - scripts/capture-persistent-io.ps1
       - scripts/check-coverage-io-receipt.cjs
       - scripts/lib/coverage-io-capture.js
+      - scripts/lib/coverage-io-recorder-failure.js
       - scripts/lib/coverage-io-windows.js
       - scripts/lib/persistent-io-recording.psm1
       - scripts/lib/persistent-io-binary.psm1
