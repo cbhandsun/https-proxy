@@ -91,7 +91,12 @@ function installN09HostAck(input) {
         signingKey: options.signingKey,
       },
       publicationObserver,
-      { cancellationObserved: () => publicationHttpCancellation?.wasCancelled() === true }
+      {
+        cancellationObserved: () => publicationHttpCancellation?.wasCancelled() === true,
+        serviceObservation: () => {
+          publicationHost.step();
+        },
+      }
     );
     const publicationExports = require(
       path.join(options.install, 'lib/proxy/context-recovery-publication.js')

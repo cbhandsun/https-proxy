@@ -27,12 +27,16 @@ const target = (transition = 'prepared') => ({
   expectedRevision: 7,
   transition,
 });
-async function fixture(t) {
+async function fixture(t, mode = '') {
   const caseRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-ack-channel-'));
-  const child = fork(path.join(__dirname, '../helpers/n09-publication-ack-child.cjs'), [caseRoot], {
-    silent: true,
-    execArgv: [],
-  });
+  const child = fork(
+    path.join(__dirname, '../helpers/n09-publication-ack-child.cjs'),
+    [caseRoot, mode],
+    {
+      silent: true,
+      execArgv: [],
+    }
+  );
   let channel = null,
     files = null,
     contract = null,
@@ -65,7 +69,7 @@ async function fixture(t) {
     epoch,
   });
   contract = createPublicationAckContract({ pid: child.pid, epoch, signingKey });
-  return { child, channel, files, contract };
+  return { child, channel, files, contract, caseRoot };
 }
 
 test('two processes authenticate all five actual blocking boundaries and release only after held', async (t) => {
@@ -351,4 +355,154 @@ test('the final held signal cannot reuse the trigger challenge even with an auth
     JSON.stringify(contract.signSignal({ ...trigger, kind: 'held', callOrdinal: 3, revision: 8 }))
   );
   await assert.rejects(channel.waitHeld(), /n09_publication_ack_channel_rejected/);
+});
+
+// This real two-process channel isolates the same event-loop starvation as the
+// daemon composition. It does not claim native storage or COMMIT qualification.
+for (const mode of ['timer-only', 'observation']) {
+  test(`authenticated observation during synchronous ACK hold: ${mode}`, async (t) => {
+    const { performance } = require('node:perf_hooks');
+    const {
+      createPublicationObservationFiles,
+    } = require('../../scripts/context-hosted/n09-business/publication-observation-files');
+    const {
+      createPublicationObservationContract,
+    } = require('../../scripts/context-hosted/n09-business/publication-observation-contract');
+    const { child, channel, files: ackFiles, caseRoot } = await fixture(t, mode);
+    const files = createPublicationObservationFiles({
+      directory: path.join(caseRoot, 'n09-publication-' + child.pid + '-' + epoch),
+      pid: child.pid,
+      epoch,
+    });
+    const contract = createPublicationObservationContract({ pid: child.pid, epoch, signingKey });
+    t.after(() => {
+      files.close();
+      contract.close();
+    });
+    async function query(sequence) {
+      const challenge = sequence.toString(16).repeat(32);
+      files.write(
+        'query',
+        sequence,
+        JSON.stringify(
+          contract.signQuery({ version: 1, pid: child.pid, epoch, sequence, challenge })
+        )
+      );
+      const deadline = performance.now() + 750;
+      let wire;
+      while ((wire = files.read('state', sequence)) === null && performance.now() < deadline)
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      assert.notEqual(wire, null);
+      const state = contract.verifyState(wire);
+      assert.equal(state.sequence, sequence);
+      assert.equal(state.challenge, challenge);
+      return state;
+    }
+    await channel.arm(target());
+    const returned = once(child, 'message', { signal: AbortSignal.timeout(3000) });
+    child.send({ kind: 'ack', transition: 'prepared', pendingAfterRelease: true });
+    await channel.waitHeld();
+    if (mode === 'timer-only') {
+      files.write(
+        'query',
+        1,
+        JSON.stringify(
+          contract.signQuery({
+            version: 1,
+            pid: child.pid,
+            epoch,
+            sequence: 1,
+            challenge: '1'.repeat(32),
+          })
+        )
+      );
+      const deadline = performance.now() + 750;
+      while (performance.now() < deadline) {
+        assert.equal(files.read('state', 1), null);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      assert.equal(files.read('state', 1), null);
+    } else {
+      const held = await query(1);
+      assert.equal(held.status, 'completed');
+      assert.equal(held.transition, 'prepared');
+      assert.equal(held.expectedRevision, 7);
+      assert.equal(held.activeCount, 0);
+      assert.equal(ackFiles.read('released', 1), null);
+    }
+    channel.release();
+    await channel.waitReleased();
+    assert.equal((await returned)[0].kind, 'returned');
+    if (mode === 'timer-only') {
+      const deadline = performance.now() + 750;
+      while (files.read('state', 1) === null && performance.now() < deadline)
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      assert.notEqual(files.read('state', 1), null);
+    }
+    const pending = await query(2);
+    assert.equal(pending.status, 'pending');
+    assert.equal(pending.transition, 'sending');
+    assert.equal(pending.expectedRevision, 8);
+    assert.equal(pending.activeCount, 1);
+  });
+}
+for (const mode of ['service-throw', 'service-return', 'service-promise', 'service-reentrant']) {
+  test(`observation service failure rejects held ACK: ${mode}`, async (t) => {
+    const { child, channel, files } = await fixture(t, mode);
+    await channel.arm(target());
+    const rejected = once(child, 'message', { signal: AbortSignal.timeout(3000) });
+    child.send({ kind: 'ack', transition: 'prepared' });
+    assert.equal((await rejected)[0].kind, 'rejected');
+    assert.equal(files.read('released', 1), null);
+  });
+}
+
+test('observation service dependencies reject unsafe shapes without invoking user hooks', () => {
+  const {
+    createPublicationAckHost,
+  } = require('../../scripts/context-hosted/n09-business/publication-ack-host');
+  let traps = 0;
+  const proxy = new Proxy(
+    {},
+    {
+      ownKeys() {
+        traps++;
+        throw new Error('fixture');
+      },
+      get() {
+        traps++;
+        throw new Error('fixture');
+      },
+    }
+  );
+  const accessor = Object.defineProperty({ cancellationObserved() {} }, 'serviceObservation', {
+    enumerable: true,
+    get() {
+      traps++;
+      throw new Error('fixture');
+    },
+  });
+  for (const dependencies of [
+    null,
+    [],
+    proxy,
+    accessor,
+    { cancellationObserved() {}, serviceObservation: true },
+    { cancellationObserved() {}, serviceObservation: async () => {} },
+    { cancellationObserved() {}, serviceObservation: function* () {} },
+    { cancellationObserved() {}, serviceObservation: new Proxy(() => {}, {}) },
+    { cancellationObserved() {}, serviceObservation() {}, extra: true },
+    { serviceObservation() {} },
+  ]) {
+    assert.throws(
+      () =>
+        createPublicationAckHost(
+          { caseRoot: os.tmpdir(), pid: process.pid, epoch, signingKey },
+          {},
+          dependencies
+        ),
+      /n09_publication_ack_host_rejected/
+    );
+  }
+  assert.equal(traps, 0);
 });

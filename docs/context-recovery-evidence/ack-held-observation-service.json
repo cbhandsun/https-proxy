@@ -1,0 +1,26 @@
+{
+  "kind": "independent_ack_observation_channel",
+  "nodeVersion": "v22.22.3",
+  "nodeIdentityVerified": true,
+  "sourceFilesVerified": 90,
+  "exitCode": 0,
+  "summary": [
+    "# tests 36",
+    "# pass 36",
+    "# fail 0",
+    "# cancelled 0",
+    "# skipped 0",
+    "# duration_ms 35944.2683"
+  ],
+  "archiveSha256": "6b71b787ee86284125e2417daff2d068d8db5eaba784461511e0525d36aa1934",
+  "scope": "real_two_process_authenticated_channel_only",
+  "nativeCommitQualified": false,
+  "fiveSecondRecoveryStable": false,
+  "realModelCalls": 0,
+  "new24HourStarted": false,
+  "preparationFailureRetained": {
+    "firstAttemptProductStarted": false,
+    "reason": "node_not_in_ssh_PATH",
+    "resolution": "reuse_existing_hash_verified_Node_22_22_3_without_install_or_PATH_changes"
+  }
+}

@@ -24,20 +24,35 @@ const targetKeys = [
 // The blocking boundary is entered only by the genuine producer's runtime hook.
 function createPublicationAckHost(input, observer, dependencies) {
   let files, contract, boundary, cancellationGate, timer;
+  let handlingAck = false;
   try {
     const config = fields(input, ['caseRoot', 'pid', 'epoch', 'signingKey']);
-    const cancellationObserved =
-      dependencies === undefined
-        ? undefined
-        : fields(dependencies, ['cancellationObserved']).cancellationObserved;
     if (
-      cancellationObserved !== undefined &&
-      (typeof cancellationObserved !== 'function' ||
-        types.isProxy(cancellationObserved) ||
-        types.isAsyncFunction(cancellationObserved) ||
-        types.isGeneratorFunction(cancellationObserved))
+      dependencies !== undefined &&
+      (!dependencies ||
+        typeof dependencies !== 'object' ||
+        types.isProxy(dependencies) ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(dependencies)))
     )
       throw fail();
+    const hooks =
+      dependencies === undefined
+        ? {}
+        : fields(dependencies, [
+            'cancellationObserved',
+            ...(Object.hasOwn(dependencies, 'serviceObservation') ? ['serviceObservation'] : []),
+          ]);
+    const { cancellationObserved, serviceObservation } = hooks;
+    for (const hook of [cancellationObserved, serviceObservation]) {
+      if (
+        hook !== undefined &&
+        (typeof hook !== 'function' ||
+          types.isProxy(hook) ||
+          types.isAsyncFunction(hook) ||
+          types.isGeneratorFunction(hook))
+      )
+        throw fail();
+    }
     const { inspect } = fields(observer, ['inspect', 'close']);
     if (
       typeof inspect !== 'function' ||
@@ -85,6 +100,16 @@ function createPublicationAckHost(input, observer, dependencies) {
       inspect: () => Reflect.apply(inspect, observer, []),
       now: () => performance.now(),
       sleep: (ms) => {
+        // The main event loop is intentionally paused before the original ACK.
+        // Service only this pinned authenticated observation channel, never
+        // general events or another producer. Its work stays in the same gate.
+        if (serviceObservation !== undefined) {
+          available();
+          const result = Reflect.apply(serviceObservation, undefined, []);
+          discardN09PromiseRejection(result);
+          if (result !== undefined) throw fail();
+          available();
+        }
         Atomics.wait(wait, 0, 0, ms);
       },
       publish(receipt) {
@@ -201,6 +226,8 @@ function createPublicationAckHost(input, observer, dependencies) {
     return Object.freeze({
       step,
       afterDurableAck(facts) {
+        if (handlingAck) return reject();
+        handlingAck = true;
         try {
           available();
           const deadline = state === 'armed' ? performance.now() + 5000 : undefined;
@@ -220,6 +247,8 @@ function createPublicationAckHost(input, observer, dependencies) {
           }
         } catch {
           reject();
+        } finally {
+          handlingAck = false;
         }
       },
       async afterPublicationAction(action) {

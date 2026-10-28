@@ -1,0 +1,114 @@
+{
+  "source": "ae306f23d9d04651ec9e3829565d90e20d08d2f3",
+  "runId": 40623076473,
+  "jobConclusions": {
+    "n08": "success",
+    "n09": "success",
+    "n09-sending-ack": "success",
+    "n09-finished-ack": "success",
+    "n09-withdrawn-ack": "success",
+    "n09-uncertain-ack": "success",
+    "n09-sending-commit": "failure",
+    "n09-finished-commit": "failure",
+    "n09-withdrawn-commit": "success",
+    "n09-uncertain-commit": "success"
+  },
+  "newCancellationCommitCases": [
+    {
+      "jobId": 122601482570,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-uncertain-commit",
+        "sourceSha": "ae306f23d9d04651ec9e3829565d90e20d08d2f3",
+        "planSha256": "75a56b4308f2d2d3f87743ce70a88e19e3ded7ed303f945a154280d37698088b",
+        "buildReceiptSha256": "aef064c3dad741154ed0c0b74712ae1bd70a6f557cc8d6c3ddb0e8b8de790173",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "executed": {
+        "tlsVerified": true,
+        "ownedTreeEmpty": true,
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "phase": "hosted_network_finished",
+        "probesPassed": true
+      },
+      "fullLogRead": true
+    },
+    {
+      "jobId": 122601482751,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-withdrawn-commit",
+        "sourceSha": "ae306f23d9d04651ec9e3829565d90e20d08d2f3",
+        "planSha256": "39e773862b7c6665a81a6a29bae65af53e3cad2e199f813eb27f7e02063cbdac",
+        "buildReceiptSha256": "5cf1d583a0358ecfe9c4c8fb0188469d8b7402e034e02ee4c90b4569c75a7ace",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "executed": {
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "probesPassed": true,
+        "nonLoopbackBlocked": true
+      },
+      "fullLogRead": true
+    }
+  ],
+  "retainedNormalFailures": [
+    {
+      "jobId": 122601482652,
+      "scenario": "n09-sending-commit",
+      "childExitCode": 184,
+      "businessCasePhase": 160
+    },
+    {
+      "jobId": 122601482661,
+      "scenario": "n09-finished-commit",
+      "childExitCode": 184,
+      "businessCasePhase": 160
+    }
+  ],
+  "rootCauseWork": {
+    "synchronousPredecessorAckHoldCannotServeTimerObservationQuery": true,
+    "timerOnlyTwoProcessQueryBlockedForOriginal750ms": true,
+    "cooperativeSignedObservationDuringHeldAckRegressionPassed": true,
+    "retainsIndependentLiveQueriesAndOriginalAuthentication": true,
+    "doesNotEstablishCauseOfEarlierC505FinishedAckFailure": true
+  },
+  "scope": {
+    "allTenPassed": false,
+    "fixedNormalCommitRuntimePassed": false,
+    "fiveSecondStable": false,
+    "fullN09": false,
+    "realModelCalls": 0,
+    "new24HourStarted": false
+  },
+  "completeCi": {
+    "verifyRunId": 40623076461,
+    "verifyEightJobs": "success",
+    "extraIoRunId": 40623076458,
+    "extraIoJobId": 122601482238,
+    "extraIoConclusion": "success",
+    "formalRunId": 40623076450,
+    "sourceJobId": 122601482524,
+    "sourceConclusion": "failure",
+    "businessConclusion": "skipped",
+    "sourceFullLogRead": true,
+    "sourceFailures": [
+      {
+        "test": "actual core responses WBIPC recovery has exclusive ownership and live credential revocation",
+        "failure": "aborted_due_to_timeout"
+      },
+      {
+        "test": "Actual isolated generic child executes Python tests through the same environment as the unit runner",
+        "failure": "spawnSync_node_ETIMEDOUT"
+      }
+    ],
+    "sameSourceVerifySuccessDoesNotOverrideFormalSourceFailure": true
+  }
+}

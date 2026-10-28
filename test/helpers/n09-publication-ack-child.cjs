@@ -6,6 +6,11 @@ const {
 } = require('../../scripts/context-hosted/n09-business/publication-ack-host');
 const fs = require('node:fs');
 const caseRoot = process.argv[2];
+const mode = process.argv[3];
+let observationHost;
+const {
+  createPublicationObservationHost,
+} = require('../../scripts/context-hosted/n09-business/publication-observation-host');
 let cancellationObserved = true,
   cancellationChecks = 0;
 let observed = {
@@ -23,12 +28,39 @@ const host = createPublicationAckHost(
   { caseRoot, pid: process.pid, epoch: 'a'.repeat(32), signingKey: 'b'.repeat(64) },
   { inspect: () => observed, close() {} },
   {
+    ...(mode && mode !== 'timer-only'
+      ? {
+          serviceObservation() {
+            if (mode === 'service-throw') throw new Error('fixture');
+            if (mode === 'service-return') return true;
+            if (mode === 'service-promise') return Promise.reject(new Error('fixture'));
+            if (mode === 'service-reentrant') {
+              try {
+                host.afterDurableAck({
+                  rootId: observed.rootId,
+                  expiresAt: observed.expiresAt,
+                  revision: 8,
+                });
+              } catch {}
+              return;
+            }
+            observationHost.step();
+          },
+        }
+      : {}),
     cancellationObserved: () => {
       cancellationChecks++;
       return cancellationObserved;
     },
   } // Channel fixture only; not a real cancellation witness.
 );
+if (mode === 'observation' || mode === 'timer-only') {
+  observationHost = createPublicationObservationHost(
+    { caseRoot, pid: process.pid, epoch: 'a'.repeat(32), signingKey: 'b'.repeat(64) },
+    { inspect: () => observed, close() {} }
+  );
+  observationHost.start();
+}
 host.start();
 process.send({ kind: 'ready' });
 process.on('message', (message) => {
@@ -100,6 +132,15 @@ process.on('message', (message) => {
         expiresAt: observed.expiresAt,
         revision: message.wrongRevision ? 9 : 8,
       });
+      if (message.pendingAfterRelease)
+        observed = {
+          ...observed,
+          callOrdinal: observed.callOrdinal + 1,
+          activeCount: 1,
+          expectedRevision: 8,
+          transition: 'sending',
+          status: 'pending',
+        };
       process.send({ kind: 'returned' });
     } catch {
       process.send({ kind: 'rejected' });
@@ -108,6 +149,7 @@ process.on('message', (message) => {
 });
 process.on('disconnect', () => {
   host.close();
+  observationHost?.close();
   process.exit(0);
 });
 

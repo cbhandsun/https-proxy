@@ -1,5 +1,18 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：Windows SSH恢复；修复正常COMMIT编排中的同步观察查询阻塞
+
+SSH已重新连通Windows juhon账户。固定ae306f2普通40623076461八作业与额外I/O40623076458成功；正式40623076450/source122601482524失败、业务skipped。完整源码门日志有WBIPC恢复timeout和隔离Python测试子进程spawnSync node ETIMEDOUT，不能借普通CI通过覆盖。独立十组40623076473八通过、sending-commit/finished-commit均184/case160失败；新withdrawn/uncertain COMMIT两份完整日志核对精确source/plan/build及实际network_finished、TLS/隔离/ownedTreeEmpty。有限记录见context-recovery-evidence/ae306f2-first-commit-groups.json。
+
+正常COMMIT编排持有原前置ACK后还要独立查询实时观察基线，而ACK同步Atomics.wait暂停主事件循环，原观察宿主只在定时器响应，形成确定性的自阻塞。修复仅在原同步暂停轮询内服务已固定、已认证的观察通道；保留独立实时查询、原HMAC/序号/挑战校验、原ACK身份和精确版本，不运行通用事件或其他producer、不缓存基线、不减少解密或持久写。服务耗时计入原750ms/5000ms门。同步服务抛错、异常返回、Promise及重入均锁存拒绝，不能授released回执。
+
+真实双进程回归以原timer-only通道证明查询整个750ms无响应、原ACK释放后才响应；新服务在原ACK仍held时返回独立签名completed状态，释放后新序号/挑战查询取得pending下一版本。该回归只是跨进程协议，不能当作native COMMIT或五秒恢复资格。六文件140/140、观察6/6、收尾四文件72/72（批次重叠），零fail/skip；覆盖恶意依赖形状、异常服务、重入、已有750ms及五秒拒绝门。1731语法、全仓Lint零错误/五既有警告、定向格式、CI/release治理通过。新Windows完整daemon结果尚待提交后的原门，不追授旧c505 finished184根因。
+
+Windows独立新目录以摘要核对90份源码和既有Node 22.22.3，真实双进程通道36/36、零fail/skip，35944ms结束；包括原超时拒绝门和新的阻塞/修复/恶意服务回归。首份准备因SSH PATH无node而在产品调用前失败，未安装或改全局PATH，改为现有已核对Node绝对路径完成；失败保留。证据见context-recovery-evidence/ack-held-observation-service.json，仍不授native COMMIT、产品五秒稳定性或正式全门。
+
+旧6646长测终态失败与全部冻结现场保持；没有重新启动24小时。旧E实例、日常配置和凭据未动，真实模型0、额度未写。整体尚缺五秒稳定性、最新完整十组/安装两端、额度核对后的真实provider、24小时及到期重开、最大容量等原交付门。
+
+
 ## 2026-10-28：四目标daemon COMMIT内部编排已接固定十组，实际Windows结果待核
 
 新增sending、transport-finished、withdrawn、uncertain COMMIT内部强杀/释放编排。正常型先暂停真实prepared/sending前置ACK，在精确前置持久版本上取得SQLite reader，再释放原ACK使默认owner进入目标写入；取消型先暂停原trigger、验证真实客户端关闭和公开正文0，在前置版本持reader后释放trigger进入原清理写入。同一750ms见证必须取得物理read-admission阻塞和同代次/根/原expiry/精确revision的唯一pending目标，不能用单独BUSY或末端ACK替代COMMIT内部证据。finished独立验证完整公开wire，uncertain不能借三版本误授公开传输完成。
