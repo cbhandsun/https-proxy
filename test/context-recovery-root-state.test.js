@@ -679,6 +679,75 @@ test('checkpoint parser admits unknown input once and hashes only its owned proj
   }
 });
 
+test('checkpoint-to-reference conversion admits unknown private history only once', () => {
+  const f = fixture({ privateHistory: true });
+  const checkpoint = createRootCheckpoint(f.state(), []);
+  const expected = referenceStateFromCheckpoint(checkpoint);
+  const data = require('../lib/proxy/context-recovery-state-data');
+  const normalize = data.normalizeRecoveryCheckpointData;
+  const files = [
+    require.resolve('../lib/proxy/context-recovery-root-checkpoint'),
+    require.resolve('../lib/proxy/context-recovery-reference-state'),
+  ];
+  const saved = files.map((file) => require.cache[file]);
+  let admissions = 0;
+  try {
+    data.normalizeRecoveryCheckpointData = (...args) => {
+      admissions++;
+      return Reflect.apply(normalize, data, args);
+    };
+    for (const file of files) delete require.cache[file];
+    const codec = require('../lib/proxy/context-recovery-reference-state');
+    const parsed = codec.referenceStateFromCheckpoint(checkpoint);
+    assert.deepEqual(parsed, expected);
+    assert.notEqual(parsed.metadata.history, checkpoint.root.history);
+    assert.equal(admissions, 1, 'one complete descriptor-only checkpoint admission');
+    codec.referenceStateFromCheckpoint(checkpoint);
+    assert.equal(admissions, 2, 'each conversion independently validates its input');
+    const legacy = { ...checkpoint };
+    delete legacy.publications;
+    legacy.digest =
+      require('../lib/proxy/context-recovery-fingerprint').fingerprintRecoveryCheckpoint({
+        root: legacy.root,
+        stagedSources: legacy.stagedSources,
+      });
+    assert.deepEqual(codec.referenceStateFromCheckpoint(legacy), expected);
+    const invalidBudget = createRootCheckpoint(
+      { ...checkpoint.root, budget: { ...checkpoint.root.budget, calls: -1 } },
+      []
+    );
+    assert.throws(() => codec.referenceStateFromCheckpoint(invalidBudget));
+    assert.throws(() =>
+      codec.referenceStateFromCheckpoint({ ...checkpoint, digest: '0'.repeat(64) })
+    );
+    checkpoint.root.expiresAt++;
+    assert.throws(() => codec.referenceStateFromCheckpoint(checkpoint));
+    assert.equal(parsed.metadata.expiresAt, checkpoint.root.expiresAt - 1);
+    let touched = 0;
+    const hook = () => {
+      touched++;
+      throw Error('untrusted_checkpoint_hook');
+    };
+    for (const input of [
+      null,
+      undefined,
+      [],
+      {},
+      Object.defineProperty({}, 'root', { enumerable: true, get: hook }),
+      new Proxy(checkpoint, { getOwnPropertyDescriptor: hook }),
+    ])
+      assert.throws(() => codec.referenceStateFromCheckpoint(input));
+    assert.equal(touched, 0);
+  } finally {
+    data.normalizeRecoveryCheckpointData = normalize;
+    files.forEach((file, index) => {
+      if (saved[index]) require.cache[file] = saved[index];
+      else delete require.cache[file];
+    });
+    f.sessions.close();
+  }
+});
+
 test('metadata association validates its fresh normalized root without cloning private history again', (t) => {
   const f = fixture({ privateHistory: true });
   const stateData = require('../lib/proxy/context-recovery-state-data');
