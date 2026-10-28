@@ -1,5 +1,10 @@
 # 上下文恢复换机交接
 
+## 2026-10-28 续接指针
+
+当前实现与失败状态优先读取[实施状态](context-recovery-implementation-status.md)顶部最新记录。c390e22六组独立Windows业务诊断完整通过，完整日志和执行回执已核对，但正式完整CI仍待；c505 finished184旧失败未确认唯一原因，所有旧失败保留。其余转换的COMMIT观察核心已补强并有本地回归，尚未接非prepared真实daemon COMMIT编排，不能把ACK末端通过当作COMMIT内部通过。旧6646长测最后有效85分钟、90分钟失败，冻结现场/任务不能动，新24h尚未启动。旧实例由用户自行切换，真实模型仍须先核对逐provider额度和安全配置。
+
+
 ## 2026-10-28：9e与1afe完整CI通过；本机原40项仍失败，隔离采样不覆盖失败
 
 固定9e26dfc普通40607195765八作业、正式40607195689六作业全部success，事务内头认证复用已通过相同源码Windows门。固定1afe7b3普通40607922332八作业、正式40607922322六作业也全部success；已读取正式finished/job122559607051完整日志，核对源码SHA、plan/build摘要及执行后hosted_network_finished、ownedTreeEmpty回执，不能只把prepare-only当执行。该正式范围仍是原N08、N09十场景及独立sending/finished两场景，不授其他daemon内部矩阵或整体验收。额外I/O40607922323/job122551960491仍failure：20项原生发布用例通过后，after-hook因coverage_io_capture_recorder_exit拒绝回执（188492ms）；没有有效录制资格，尚未确认录制器根因。本次该日志未见新增五秒请求失败，不能由此覆盖所有旧五秒失败。证据见context-recovery-evidence/1afe7b3-complete-ci-scopes.json。

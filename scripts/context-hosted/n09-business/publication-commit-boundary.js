@@ -7,11 +7,12 @@ const { createPublicationCommitWitness } = require('./publication-commit-witness
 const fail = () => new Error('n09_prepared_commit_boundary_failed');
 
 // Private acceptance composition. Read admission alone is insufficient: the
-// fresh authenticated sample must identify the one actual prepared write.
-async function createPreparedCommitBoundary(
+// fresh authenticated sample must identify the one actual target write.
+async function createPublicationCommitBoundary(
   input,
   query,
-  createWitness = createPublicationCommitWitness
+  createWitness = createPublicationCommitWitness,
+  transition = 'prepared'
 ) {
   let witness, closeWitnessMethod;
   let witnessClosed = false,
@@ -35,6 +36,10 @@ async function createPreparedCommitBoundary(
     }
   }
   try {
+    if (
+      !['prepared', 'sending', 'transport-finished', 'withdrawn', 'uncertain'].includes(transition)
+    )
+      throw fail();
     const config = exact(input, ['ownedRoot', 'runtimeDir', 'rootId', 'expiresAt', 'revision']);
     if (
       typeof query !== 'function' ||
@@ -43,16 +48,21 @@ async function createPreparedCommitBoundary(
       types.isProxy(createWitness) ||
       types.isAsyncFunction(createWitness) ||
       typeof config.rootId !== 'string' ||
+      config.rootId.length !== 36 ||
       !/^hbs_[a-f0-9]{32}$/.test(config.rootId) ||
       !Number.isSafeInteger(config.expiresAt) ||
       config.expiresAt < 1 ||
       !Number.isSafeInteger(config.revision) ||
-      config.revision < 1
+      config.revision < 1 ||
+      config.revision === Number.MAX_SAFE_INTEGER
     )
       throw fail();
     const ask = (timeout) => {
       const result = query(timeout);
-      if (!isN09NativePromise(result)) throw fail();
+      if (!isN09NativePromise(result)) {
+        discardN09PromiseRejection(result);
+        throw fail();
+      }
       return result;
     };
     const baseline = snapshotOwnData(await ask(750));
@@ -117,7 +127,10 @@ async function createPreparedCommitBoundary(
           waiting = true;
           const deadline = performance.now() + 750;
           const pending = Reflect.apply(methods.waitPending, witness, []);
-          if (!isN09NativePromise(pending)) throw fail();
+          if (!isN09NativePromise(pending)) {
+            discardN09PromiseRejection(pending);
+            throw fail();
+          }
           const lock = exact(await pending, [
             'readAdmissionBlocked',
             'evidenceLevel',
@@ -143,7 +156,7 @@ async function createPreparedCommitBoundary(
             state.activeCount !== 1 ||
             state.status !== 'pending' ||
             state.operation !== 'save-reference-state' ||
-            state.transition !== 'prepared' ||
+            state.transition !== transition ||
             state.rootId !== config.rootId ||
             state.expiresAt !== config.expiresAt ||
             state.expectedRevision !== config.revision
@@ -151,9 +164,12 @@ async function createPreparedCommitBoundary(
             throw fail();
           observed = true;
           return Object.freeze({
-            boundary: 'prepared-save-reference-state-commit-pending',
+            boundary: transition + '-save-reference-state-commit-pending',
             readAdmissionBlocked: true,
-            actualPreparedWritePending: true,
+            actualPreparedWritePending: transition === 'prepared',
+            ...(transition !== 'prepared'
+              ? { actualTransitionWritePending: true, transition }
+              : {}),
             expectedRevision: config.revision,
           });
         } catch {
@@ -209,4 +225,6 @@ async function createPreparedCommitBoundary(
     throw fail();
   }
 }
-module.exports = { createPreparedCommitBoundary };
+const createPreparedCommitBoundary = (input, query, createWitness) =>
+  createPublicationCommitBoundary(input, query, createWitness, 'prepared');
+module.exports = { createPreparedCommitBoundary, createPublicationCommitBoundary };

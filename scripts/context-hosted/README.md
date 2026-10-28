@@ -215,3 +215,13 @@ ACK control. Marker 250 is emitted only after the original 750ms witness has
 expired following valid durable accounting. Existing readonly markers 174–184
 remain unchanged. A last marker identifies a reached step, not a unique root
 cause; no deadline is reset or extended and no failed path gains a receipt.
+
+The COMMIT boundary module now has an explicit target-transition entry in
+addition to its unchanged prepared entry. It binds the pending observer sample
+to exactly one generation, root, original expiry and predecessor revision, plus
+physical read-admission blockage in the same original 750ms window. A target
+label alone never proves predecessor ACKs or a live daemon: the remaining
+transition compositions must still pause their real predecessor, acquire the
+reader, release into the intended write and pass their own runtime controls.
+Malformed root IDs, versions without a safe successor and overridden rejected
+promises reject before they can confer an observation receipt.

@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：六组Windows独立诊断完整通过；补强其余转换的COMMIT观察边界
+
+固定c390e22独立40620783142六组均终态success；六份完整日志已读，逐一核对精确源码SHA、plan/build摘要和实际执行后hosted_network_finished、TLS/非loopback隔离/ownedTreeEmpty回执，不能只凭prepared_only。这一轮包括原n08/n09/sending/finished及新withdrawn/uncertain，有限证据见context-recovery-evidence/c390e22-six-diagnostic-groups.json。该轮未复现c505 finished184，但仅新增了步骤分类，没有产品五秒修复；旧失败及根因未确认状态不变、不自动重试。c390正式40620783099/source122594006535仍在原作业运行；普通五个作业success、unit1/unit2与coverage仍运行，不能授完整CI或五秒稳定性。
+
+继续COMMIT内部矩阵时发现边界允许没有安全后继版本的Number.MAX_SAFE_INTEGER越过初始校验。已先加回归取得红灯（query计数1而应0），修正为开查/持锁之前拒绝，并把根ID长度固定为36，拒绝尾随换行和极端输入。原prepared入口/回执语义保持，核心复用到显式sending、transport-finished、withdrawn、uncertain目标；必须匹配同代次、同根/原expiry/精确前置revision、唯一pending save-reference-state与物理read-admission阻塞。不能拿BUSY、旧prepared样本或目标标签独立授资格。恶意改写then的已拒绝原生Promise也在拒绝路径安全消解，不执行未知then钩子、不授观察回执，避免额外未处理拒绝干扰原清理。
+
+三个文件99/99、零fail/skip，含真实临时SQLite读锁原门、原适配器和四目标组合正常/错误前置版本/并发/错误状态/错根与期限/清理路径。四闭包文件23/23、零fail/skip；1728语法、全仓Lint零错误/五既有警告、定向格式及CI/release治理通过，新回归仍在统一CI原文件。这个新目标接口尚未接入daemon非prepared COMMIT编排，因此本批不授其余COMMIT内部矩阵或整体验收。
+
+后续以实际前置ACK暂停取得同一库读锁，再释放进入目标COMMIT；取消型需复用真实关闭见证与trigger，不能跳过前置或用末端ACK测试替代COMMIT内部中断。完成后再固定Windows实际执行。旧长测冻结现场/数据/任务及旧E实例未动、新24h未启动，真实模型0、额度未写；安装版两端、真实provider、五秒稳定性与其余既定交付缺口继续保留。
+
+
 ## 2026-10-28：补ACK失败步骤区分，未追授旧184的唯一原因
 
 c505 finished失败只有case161/最后readonly184，不能区分后续等待held、独立公开wire观察、释放控制或原750ms见证耗尽。本批增加四个私有固定数字：247进入签名held等待、248进入finished wire观察、249进入ACK释放、250只在原见证结束且持久accounting已验证后确认超时。Node入口仅登记这四个整数；没有原文/错误对象/路径/credentials输出，没有在合格边界与强杀之间加操作。保持原750ms起点/上限、所有5秒持有、15秒完成门、精确版本、认证与FULL/DELETE语义；标记只是定位信息，不授资格。

@@ -1,0 +1,148 @@
+{
+  "source": "c390e22f15660177b1ec5c413bc07b3eff624357",
+  "run": 40620783142,
+  "allSixJobsSuccess": true,
+  "cases": [
+    {
+      "jobId": 122594007013,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-sending-ack",
+        "sourceSha": "c390e22f15660177b1ec5c413bc07b3eff624357",
+        "planSha256": "e0f04f33d1214b41cb714c7cf4f8e0e38372d35cacf29bce0a8613893fa1f0de",
+        "buildReceiptSha256": "fb60f97f7a19c56c20eb0a76752d312ba259af525d2280230a0deb276e9c3170",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "executed": {
+        "probesPassed": true,
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "n08Qualified": false
+      },
+      "fullLogRead": true
+    },
+    {
+      "jobId": 122594007322,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n08",
+        "sourceSha": "c390e22f15660177b1ec5c413bc07b3eff624357",
+        "planSha256": "e342101f45a2899f462aed7ad662230bbe6e9b90c6ac54289267fe1b98da78a0",
+        "buildReceiptSha256": "f5bc67b635b3a63c7b7033e35fd0cde277dac005fc882e66b4c966da45add120",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "executed": {
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "probesPassed": true
+      },
+      "fullLogRead": true
+    },
+    {
+      "jobId": 122594007325,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-uncertain-ack",
+        "sourceSha": "c390e22f15660177b1ec5c413bc07b3eff624357",
+        "planSha256": "64cba31d38c839d2b5a2ed85c3830ec46ff40c5ccb94775a7f27d9d1ea52d841",
+        "buildReceiptSha256": "d2427e735acf56f4f85ae47916b797f45bfdd9055250c7343547a1526d9d1aff",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "executed": {
+        "n08Qualified": false,
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "probesPassed": true
+      },
+      "fullLogRead": true
+    },
+    {
+      "jobId": 122594007387,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09",
+        "sourceSha": "c390e22f15660177b1ec5c413bc07b3eff624357",
+        "planSha256": "2939bd1c6809424e77c067ba1de5925aea9889b19416fbdb3cc005a2afcee679",
+        "buildReceiptSha256": "05b8869c2f7d254087a5a6b094be44b4618f0a6792801377bbe558fe3a07ed60",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "executed": {
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "tlsVerified": true,
+        "probesPassed": true,
+        "nonLoopbackBlocked": true
+      },
+      "fullLogRead": true
+    },
+    {
+      "jobId": 122594007400,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-finished-ack",
+        "sourceSha": "c390e22f15660177b1ec5c413bc07b3eff624357",
+        "planSha256": "7897077b94daf59d10273232cbdd4b653b07f32202d19b525f3092086def8e23",
+        "buildReceiptSha256": "db9d0a7c4b9cc2f2542984c2eafd11cdde4460b617b6190b2feb65e4444c9694",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "executed": {
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "tlsVerified": true,
+        "n08Qualified": false,
+        "ownedTreeEmpty": true
+      },
+      "fullLogRead": true
+    },
+    {
+      "jobId": 122594007407,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-withdrawn-ack",
+        "sourceSha": "c390e22f15660177b1ec5c413bc07b3eff624357",
+        "planSha256": "fdec7d57f1968ca38d404515264941660c32cabc7f119b3f2545bcc8ef95ea5f",
+        "buildReceiptSha256": "f1f4fadc1de04c361cad5c74c3e7b6c36bf49df0edf50a76c4f28bd44bc060ea",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "executed": {
+        "nonLoopbackBlocked": true,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "probesPassed": true
+      },
+      "fullLogRead": true
+    }
+  ],
+  "scope": {
+    "formalCompleteCi": false,
+    "fiveSecondStability": false,
+    "uniqueCauseOfEarlierC505FinishedFailureConfirmed": false,
+    "priorFailuresRetained": true,
+    "fullN09": false,
+    "realModelCalls": 0,
+    "new24HourStarted": false
+  }
+}

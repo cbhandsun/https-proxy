@@ -451,3 +451,165 @@ test('validated witness methods keep their original receiver and do not reread m
     assert.equal(hooks, 0);
   }
 });
+
+test('COMMIT boundary rejects trailing-newline root IDs and a revision with no safe successor before querying or owning a lock', async () => {
+  let queries = 0,
+    resources = 0;
+  for (const change of [
+    { rootId: config.rootId + '\n' },
+    { rootId: config.rootId + '\r\n' },
+    { rootId: 'x'.repeat(100000) },
+    { revision: Number.MAX_SAFE_INTEGER },
+  ]) {
+    await assert.rejects(
+      createPreparedCommitBoundary(
+        { ...config, ...change },
+        async () => {
+          queries++;
+          return baseline;
+        },
+        () => {
+          resources++;
+          return {};
+        }
+      ),
+      /n09_prepared_commit_boundary_failed/
+    );
+  }
+  assert.equal(queries, 0);
+  assert.equal(resources, 0);
+});
+
+const {
+  createPublicationCommitBoundary,
+} = require('../../scripts/context-hosted/n09-business/publication-commit-boundary');
+for (const transition of ['sending', 'transport-finished', 'withdrawn', 'uncertain']) {
+  test(
+    transition +
+      ' COMMIT observation binds only its exact pending transition and predecessor revision',
+    async () => {
+      for (const patch of [
+        undefined,
+        { transition: 'prepared' },
+        { expectedRevision: 3 },
+        { expectedRevision: 5 },
+        { activeCount: 2 },
+        { status: 'completed' },
+        { generation: 2 },
+        { rootId: 'hbs_' + 'b'.repeat(32) },
+        { expiresAt: 10001 },
+      ]) {
+        let queries = 0,
+          closed = 0,
+          released = 0;
+        const observedTimeouts = [];
+        const boundary = await createPublicationCommitBoundary(
+          config,
+          async (timeout) => {
+            observedTimeouts.push(timeout);
+            return ++queries === 1 ? baseline : { ...state, transition, ...patch };
+          },
+          () => ({
+            async waitPending() {
+              return lock;
+            },
+            release() {
+              released++;
+              return { released: true };
+            },
+            close() {
+              closed++;
+            },
+          }),
+          transition
+        );
+        if (patch) {
+          await assert.rejects(boundary.waitPending(), /n09_prepared_commit_boundary_failed/);
+          assert.throws(() => boundary.release());
+          assert.equal(closed, 1);
+          assert.equal(released, 0);
+        } else {
+          assert.deepEqual(await boundary.waitPending(), {
+            boundary: transition + '-save-reference-state-commit-pending',
+            readAdmissionBlocked: true,
+            actualPreparedWritePending: false,
+            actualTransitionWritePending: true,
+            transition,
+            expectedRevision: 4,
+          });
+          assert.deepEqual(boundary.release(), { released: true });
+          assert.equal(released, 1);
+        }
+        boundary.close();
+        assert.ok(observedTimeouts.every((value) => value >= 1 && value <= 750));
+      }
+    }
+  );
+}
+test('invalid COMMIT transition cannot query or acquire a witness, including executable and extreme input', async () => {
+  let hooks = 0;
+  const trap = () => {
+    hooks++;
+    throw Error('private');
+  };
+  for (const transition of [
+    null,
+    '',
+    'finished',
+    '__proto__',
+    'withdrawn\n',
+    'x'.repeat(100000),
+    1,
+    new Proxy({}, { get: trap }),
+  ]) {
+    await assert.rejects(
+      createPublicationCommitBoundary(config, trap, trap, transition),
+      /n09_prepared_commit_boundary_failed/
+    );
+  }
+  assert.equal(hooks, 0);
+});
+test('malformed rejected native promises are consumed without executing their then overrides or granting a COMMIT witness', async () => {
+  let hooks = 0,
+    closed = 0;
+  const malformed = () => {
+    const result = Promise.reject(Error('private'));
+    Object.defineProperty(result, 'then', {
+      value() {
+        hooks++;
+        throw Error('private');
+      },
+    });
+    return result;
+  };
+  await assert.rejects(
+    createPublicationCommitBoundary(
+      config,
+      malformed,
+      () => {
+        throw Error('not reached');
+      },
+      'sending'
+    ),
+    /n09_prepared_commit_boundary_failed/
+  );
+  const boundary = await createPublicationCommitBoundary(
+    config,
+    async () => baseline,
+    () => ({
+      waitPending: malformed,
+      release() {
+        throw Error('not reached');
+      },
+      close() {
+        closed++;
+      },
+    }),
+    'uncertain'
+  );
+  await assert.rejects(boundary.waitPending(), /n09_prepared_commit_boundary_failed/);
+  boundary.close();
+  assert.equal(closed, 1);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(hooks, 0);
+});
