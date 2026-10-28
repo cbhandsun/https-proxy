@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "baselineHead": "ef3a48b9126654f9c32ede7489e64e13a9faf9af",
+  "ciFailure": {
+    "run": 40789232796,
+    "job": 123170006389,
+    "logChars": 699752,
+    "notOkCount": 1,
+    "test": "missing existing legacy file is refused without replacement: .writer.sqlite",
+    "source": "test/context-recovery-anchor-legacy-owner.test.js:356-359",
+    "failure": "Missing expected exception; compound directory admission recreated the missing legacy writer."
+  },
+  "change": "Offline enrollment uses a dedicated existing-only path capability. It neither mkdirs nor dispatches compound writer preparation, and exposes only directory/verify/pinExisting/pinKey. Normal runtime creation still uses compound native admission.",
+  "preserved": [
+    "directory/file ACL and readback",
+    "ancestor/inode/birthtime/link/size/inventory validation",
+    "original lifetime writer mutex and post-lock verification",
+    "fresh key unwrap and complete authenticated readonly snapshot for each offline invocation",
+    "original legacy preview fingerprint and anchor commit checks",
+    "original expiry/exact ACK/FULL DELETE semantics",
+    "all original tests and deadlines"
+  ],
+  "regressions": {
+    "forcedNativeBaseline": {
+      "tests": 5,
+      "pass": 0,
+      "fail": 5,
+      "skip": 0,
+      "actualBugCases": 2,
+      "unavailableNewCapabilityCases": 3
+    },
+    "initialFixedRelated": {
+      "tests": 38,
+      "pass": 38,
+      "fail": 0,
+      "skip": 0
+    },
+    "expandedCurrent": {
+      "tests": 87,
+      "pass": 86,
+      "fail": 0,
+      "skip": 1,
+      "platform": "macOS",
+      "actualWindowsQualified": false
+    },
+    "coverage": [
+      "missing writer never repaired by paths",
+      "directory removed after legacy preflight is not recreated",
+      "existing-only frozen capability has no creation methods",
+      "valid retained bytes and strict ACL sequence",
+      "empty/missing/invalid/oversized entries",
+      "replaced identities and hardlinks",
+      "ACL failure leaves bytes unchanged and never dispatches creation"
+    ]
+  },
+  "staticChecks": {
+    "syntaxFiles": 1745,
+    "ciGovernanceExit": 0,
+    "targetedLintExit": 0,
+    "targetedFormatExit": 0
+  },
+  "nativeInputsUnchanged": true,
+  "priorEf3Timing": {
+    "runnerTests": [
+      50,
+      50,
+      50
+    ],
+    "runnerPass": [
+      50,
+      50,
+      50
+    ],
+    "persistentPublicationSamples": 18,
+    "rangeMs": [
+      561,
+      1402
+    ],
+    "wholeCiQualified": false,
+    "stableFiveSecondQualified": false
+  },
+  "ef3WindowsShortCandidate": {
+    "prepared": true,
+    "started": false,
+    "heldBecauseKnownRegression": true
+  },
+  "ef3InstallerCandidate": {
+    "prepared": true,
+    "started": false,
+    "heldBecauseKnownRegression": true
+  },
+  "limits": [
+    "New exact-source Windows and complete CI remain required.",
+    "This path capability prevents its own creation/repair. The pre-existing pinExisting-to-DatabaseSync-open cross-process race can still create a temporary file before the original post-lock identity verification refuses enrollment; it is not claimed eliminated.",
+    "Old ef3 failure and all prior failures remain; successful timing samples do not erase them."
+  ],
+  "realModelRequests": 0,
+  "new24hStarted": false,
+  "overallComplete": false
+}

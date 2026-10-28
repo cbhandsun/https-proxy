@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：修复 ef3 离线旧布局缺失 writer 被补建的实际回归
+
+ef3 普通 unit0 的完整 699752 字符日志有一项失败：原有 legacy-owner 用例要求缺失 .writer.sqlite 拒绝且不补建，新合并准入提前创建了该文件，导致不再抛错。该失败保留，ef3 本机五秒候选及安装候选均冻结未启动；不以三 timing 各 50/50、十八持久发布 561–1402ms 或其他局部绿色覆盖它。完整 coverage/正式门仍待终态。
+
+离线登记现使用 existing-only 路径能力，不 mkdir、不调用创建 writer 的 compound，且仅暴露冻结 directory/verify/pinExisting/pinKey；正常运行时保留合并准入优化。原祖先/文件身份、ACL 前后验证、单链接/大小/inventory、writer 独占锁、原 post-lock verify、密钥解封、完整只读认证及 fingerprint/anchor 提交门均保持。未改原缺失文件断言、Native 十三份输入、期限、TTL、精确 ACK 或 FULL/DELETE。
+
+强制 native 模拟的五项回归在固定 ef3 上全红，其中前两项直接证明缺失 writer、预检后消失目录被补建；修复后相关 38/38。增加 ACL 失败保留字节边界后，扩大七文件 87 项中 86 通过/1 个平台跳过；1745 语法、定向 Lint/格式及 CI 治理通过。仅授本机逻辑回归，不授 Windows 或完整新源码资格；详见 context-recovery-evidence/existing-only-legacy-paths.json。
+
+既有 pinExisting 返回至默认 DatabaseSync 打开之间的外部删除竞态可能临时创建文件，但原 post-lock 身份检查会拒绝，不能授予登记；本批不宣称已消除所有跨进程临时创建。下一步提交此实际修复并核对新完整 CI，在新目录执行原五秒与 graceful/readiness 完整文件，再推进最新安装升级/582 迁移回滚及双端。旧长测/日常实例/最大容量暂停保持，新 24h 与模型调用均 0，整体未完成。
+
 ## 2026-10-28：合并目录/writer 原生准入并修复句柄保护；Windows 组件 43/43
 
 7d 普通 Verify 仍失败：原生 graceful HTTP 在目标 advance 前的 ready 五秒超时，另有 PowerShell 原三十秒超时；旧失败保留。正式十二作业成功，仅授同源码门及十个有界合成场景，不授完整 N08/N09、安装器、provider 或 24h。额外 I/O/coverage 成功不覆盖这些失败。
