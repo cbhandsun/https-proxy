@@ -3,47 +3,11 @@
 const { types } = require('node:util');
 const { snapshotOwnData } = require('../shared/boundary');
 const fail = () => new Error('n09_recovery_completion_unavailable');
-const failures = Object.freeze([
-  'failed',
-  'reportingFailed',
-  'publicationCleanupFailed',
-  'httpPreparationFailed',
-  'httpRunFailed',
-  'httpEncodingFailed',
-  'httpPrepareFailed',
-  'httpSendingFailed',
-  'httpPublishingFailed',
-  'httpFinishFailed',
-  'bindingUnavailable',
-]);
-
+const { recoveryHealthCounters, RECOVERY_FAILURE_COUNTERS } = require('./recovery-health-counters');
 function recoveryCompletionSnapshot(input, pid) {
   try {
-    if (!Number.isSafeInteger(pid) || pid < 1) throw fail();
-    const reply = snapshotOwnData(input);
-    const body = snapshotOwnData(reply.body);
-    const recovery = snapshotOwnData(body.contextRecovery);
-    const counters = snapshotOwnData(snapshotOwnData(recovery.counters).responses);
-    if (
-      reply.status !== 200 ||
-      body.pid !== pid ||
-      body.ok !== true ||
-      body.appId !== 'https-proxy-manager' ||
-      body.status !== 'running' ||
-      recovery.appliedEnabled !== true ||
-      recovery.storage !== 'persistent' ||
-      recovery.counterWindow !== 'process_lifetime'
-    )
-      throw fail();
-    for (const name of ['bound', 'completed', ...failures]) {
-      if (
-        !Number.isSafeInteger(counters[name]) ||
-        counters[name] < 0 ||
-        counters[name] === Number.MAX_SAFE_INTEGER
-      )
-        throw fail();
-    }
-    if (failures.some((name) => counters[name] !== 0)) throw fail();
+    const counters = recoveryHealthCounters(input, pid);
+    if (RECOVERY_FAILURE_COUNTERS.some((name) => counters[name] !== 0)) throw fail();
     return Object.freeze({ bound: counters.bound, completed: counters.completed });
   } catch {
     throw fail();

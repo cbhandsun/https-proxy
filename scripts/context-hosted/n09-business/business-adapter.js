@@ -15,7 +15,11 @@ const { n09AckFailureStage } = require('../n09-ack/contract');
 const { parseStoredEvidenceSource } = require('../../../lib/proxy/context-evidence-stored-page');
 const { parseObservedPage } = require('./observed-page');
 const { seedReplyFailurePhase } = require('../shared/seed-reply-phase.js');
-const { createPublicResponseInterruption } = require('./public-response-interruption');
+const {
+  createPublicResponseInterruption,
+  createCancellationPublicResponseInterruption,
+} = require('./public-response-interruption');
+const { publicationTransitionRoute } = require('./publication-transition-route');
 const { createPreparedCommitBoundary } = require('./publication-commit-boundary');
 const { createPreparedAckProbe } = require('./prepared-ack-probe');
 const fail = () => new Error('n09_business_adapter_failed');
@@ -144,6 +148,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
   let pendingSave;
   let publicInterruption;
   let commitBoundary, ackProbe, heldAccounting, publicationCompleted, ackRevisionDelta;
+  let ackRoute = publicationTransitionRoute('prepared');
   let backup,
     backupRestored = false,
     storageRejected = false;
@@ -560,16 +565,27 @@ function createN09BusinessAdapter(input, trusted = {}) {
         accounting: value,
       });
     },
-    async beginPublicResponseHold(identity) {
+    async beginPublicResponseHold(identity, cancellation = false) {
       gate(identity);
-      if (!seeded || phase !== 'ready' || pendingSave || publicInterruption) throw fail();
+      if (
+        typeof cancellation !== 'boolean' ||
+        !seeded ||
+        phase !== 'ready' ||
+        pendingSave ||
+        publicInterruption
+      )
+        throw fail();
       phase = 'recovering';
       readObserved = false;
       publicObserved = false;
       source = undefined;
       upstreamFailurePhase = undefined;
       recoveryProgressPhase = 212;
-      publicInterruption = createPublicResponseInterruption(
+      publicInterruption = (
+        cancellation
+          ? createCancellationPublicResponseInterruption
+          : createPublicResponseInterruption
+      )(
         { entryPort: current.entryPort, entryKey, body: wire(continuation) },
         trusted.startObservedContinuation
       );
@@ -580,8 +596,9 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async finishInterruptedPublicResponse(identity) {
       stoppedIdentity(identity);
       if (!publicInterruption || phase !== 'recovering') throw fail();
-      const receipt =
-        ackRevisionDelta === 3
+      const receipt = ackRoute.cancellation
+        ? Object.freeze({ ...publicInterruption.assertCancelled(), clientCancelled: true })
+        : ackRoute.publicTransportCompleted
           ? await publicInterruption.afterPublishedKill()
           : await publicInterruption.afterKill();
       publicInterruption.close();
@@ -592,15 +609,21 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async beginPreparedAckHold(identity, transition = 'prepared') {
       gate(identity);
       if (
-        !['prepared', 'sending', 'transport-finished'].includes(transition) ||
+        !['prepared', 'sending', 'transport-finished', 'withdrawn', 'uncertain'].includes(
+          transition
+        ) ||
         commitBoundary ||
         ackProbe ||
         publicationCompleted
       )
         throw fail();
-      ackRevisionDelta = ['prepared', 'sending', 'transport-finished'].indexOf(transition) + 1;
-      publicationCompleted = await client().getRecoveryCompletionBarrier(current);
-      const held = await api.beginPublicResponseHold(identity);
+      ackRoute = publicationTransitionRoute(transition);
+      ackRevisionDelta = ackRoute.delta;
+      publicationCompleted =
+        await client()[
+          ackRoute.cancellation ? 'getRecoveryCancellationBarrier' : 'getRecoveryCompletionBarrier'
+        ](current);
+      const held = await api.beginPublicResponseHold(identity, ackRoute.cancellation);
       heldAccounting = accounting(committed());
       const observed = await client().getPublicationObservationClient(current).query(750);
       gate(identity);
@@ -631,11 +654,20 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async waitPreparedAckHeld(identity) {
       gate(identity);
       if (!ackProbe || !publicInterruption || !heldAccounting) throw fail();
-      const deadline = ackRevisionDelta === 3 ? performance.now() + 750 : undefined;
+      if (ackRoute.cancellation) {
+        await ackProbe.waitTriggerHeld();
+        gate(identity);
+        if (!readObserved || !publicObserved || externalToolExecutions !== 1) throw fail();
+        const witness = await publicInterruption.cancelReleased();
+        gate(identity);
+        await ackProbe.releaseTrigger(witness);
+        gate(identity);
+      }
+      const deadline = ackRoute.publicTransportCompleted ? performance.now() + 750 : undefined;
       const held = await ackProbe.waitHeld();
       gate(identity);
       let publicBytes = 0;
-      if (ackRevisionDelta === 3) {
+      if (ackRoute.publicTransportCompleted) {
         const observed = await publicInterruption.observePublished(
           Math.floor(deadline - performance.now())
         );
@@ -648,7 +680,8 @@ function createN09BusinessAdapter(input, trusted = {}) {
         )
           throw fail();
         publicBytes = observed.response.bytes.length;
-      } else publicInterruption.assertReleasedPending();
+      } else if (ackRoute.cancellation) publicInterruption.assertCancelled();
+      else publicInterruption.assertReleasedPending();
       const durable = accounting(committed());
       if (
         durable.revision !== heldAccounting.revision + ackRevisionDelta ||
@@ -660,7 +693,8 @@ function createN09BusinessAdapter(input, trusted = {}) {
       return Object.freeze({
         ...held,
         publicBytes,
-        publicTransportCompleted: ackRevisionDelta === 3,
+        publicTransportCompleted: ackRoute.publicTransportCompleted,
+        ...(ackRoute.cancellation ? { clientCancelled: true, clientTransportClosed: true } : {}),
         durableStoreObserved: true,
         accounting: Object.freeze(durable),
       });
@@ -743,6 +777,44 @@ function createN09BusinessAdapter(input, trusted = {}) {
       publicationCompleted = undefined;
       phase = 'ready';
       return Object.freeze({ publicCompleted: true, accounting: accounting(committed()) });
+    },
+    async finishReleasedCancelledPublication(identity) {
+      gate(identity);
+      if (
+        !ackRoute.cancellation ||
+        ackProbe ||
+        commitBoundary ||
+        !publicInterruption ||
+        !publicationCompleted ||
+        !heldAccounting
+      )
+        throw fail();
+      const witness = publicInterruption.assertCancelled();
+      const outcome = exact(await publicationCompleted(), [
+        'cancelled',
+        'cleanupFinished',
+        'hostDurableAck',
+      ]);
+      gate(identity);
+      if (
+        outcome.cancelled !== true ||
+        outcome.cleanupFinished !== true ||
+        outcome.hostDurableAck !== false ||
+        witness.publicBytes !== 0
+      )
+        throw fail();
+      const value = accounting(committed());
+      publicInterruption.close();
+      publicInterruption = undefined;
+      publicationCompleted = undefined;
+      phase = 'ready';
+      return Object.freeze({
+        cancelled: true,
+        cleanupFinished: true,
+        clientTransportClosed: true,
+        publicBytes: 0,
+        accounting: value,
+      });
     },
     getClearCapability(identity) {
       gate(identity);

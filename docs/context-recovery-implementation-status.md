@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：SSH恢复；取消终态业务接线完成局部验证，222完整门仍失败
+
+本机BatchMode SSH重新连接Windows成功，仅探测连通性，未启动远端任务或操作旧实例。当前222b11c普通七个非coverage作业success，coverage及额外I/O仍运行；正式40618107191源码门/job122585262696失败，后续业务skipped。已读完整日志：八个原native publication用例均在awaiting=ready超时，尚未进入目标COMMIT/OS锚点中断。密钥文件打开跨度231–2426ms、flush446–1621ms；其中两项已达native-opened，但原fixture初始化仍未就绪。不能把用例名当成已经发生目标中断，也未确认杀毒、调度或存储的唯一原因。原五秒门不变，不重跑覆盖。独立业务40618107418四作业success，完整四日志精确222源码及执行后hosted_network_finished/ownedTreeEmpty均核对；该独立路径不能越过正式源码门。有限记录见context-recovery-evidence/222b11c-ci-source-startup-failures.json。31e6510正式六作业现均success，其普通unit0旧超时失败仍保留。
+
+业务probe/adapter/driver现支持withdrawn与uncertain：先验证签名的前置prepared/sending触发点，主动取消真实客户端并确认传输关闭/公开正文0，再释放触发；最终持久版本必须精确+2/+3，ordinal必须晚于触发且挑战不同。使用独立固定映射，uncertain的+3不再与transport-finished的公开传输完成混淆。强杀路径重开同目录核对精确终态版本及原文；释放路径等待原HTTP清理后的最终失败outcome，再重开读取原文。原expiry、预算、独立公开生成与工具不重放约束保持，原成功完成屏障仍拒绝任何失败计数。
+
+新增取消完成屏障只接受同PID持久owner的process_lifetime计数：唯一预期httpSendingFailed和failed各1，bound只增1、completed不变，其他失败必须0。阶段失败计数先出现时继续等原清理，不能提前授完成；顺序回退、额外请求、错误阶段、清理失败、未知then钩子均拒绝。保留原15秒总期限并用真实单调时钟独立限制等待，不重试错误。probe对已完成原生Promise中的未知signal也先封装后校验，避免异步返回值触发输入then钩子。
+
+五文件134/134、零fail/skip，含新终态适配器kill/release和16组伪取消/版本/挑战/预算/期限/清理拒绝；闭包四文件21/21，原签名/取消/真实TCP七文件93/93、最终probe/固定映射11/11均零fail/skip。初次两项新终态测试失败是协议模拟器在连接关闭后仍把模拟响应计入已关闭客户端，已修模拟器并重验，未改产品或放宽正文门。新增测试在统一递归CI发现范围；1726语法通过，全仓Lint零错误/五既有警告，CI/release治理通过。本批接线仍未加入固定Windows业务分组及闭合回执，尚无实际daemon withdrawn/uncertain新矩阵通过，不授五秒稳定性或完整验收。
+
+下一步完成固定Windows分组/闭合回执并执行新终态矩阵，同时继续定位原生开库与COMMIT长尾。旧6646长测仍为85分钟有效、90分钟失败，冻结目录/数据/任务未动、新24h未启动；本机最新安装两端、逐provider额度核对后的真实模型、24h到期双重开、最大容量及受控自用仍待。真实模型0、额度未写、日常代理/证书/CLI配置未改，旧实例由用户自行切换。
+
 ## 2026-10-28：签名取消通道及真实传输见证已接宿主；终态业务矩阵仍待
 
 保留原13字段及HMAC身份/挑战/代次/根/expiry/版本/ordinal绑定，新增独立arm-cancel/armed-cancel和trigger-held/trigger-release。触发暂停只承认前置版本expectedRevision，最终ACK必须精确下一版本且使用不同挑战；提前签名释放、跳过触发、用trigger挑战伪装held均拒绝。有效trigger-release也不能单独放行，宿主必须看到同一原HTTP handler异步上下文的服务端响应关闭，且没有公开headers或正文完成。原abort监听先运行，别的请求关闭、正常成功或仅零正文但已发headers均不能替代。观察器仅保留有限传输状态/原生对象事件，最多八个活动响应，关闭清除监听，不读取或日志化请求正文、headers、凭据或session。

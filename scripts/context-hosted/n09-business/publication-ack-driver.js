@@ -8,6 +8,7 @@ const {
   accounting,
   forceKill,
 } = require('../n09-ipc/driver-boundary');
+const { publicationTransitionRoute } = require('./publication-transition-route');
 const fail = () => new Error('n09_publication_ack_driver_failed');
 // Both cases use fresh daemons under the original owned Job. The pure driver
 // does not confer native/daemon qualification; the fixed hosted entry does I/O.
@@ -16,12 +17,9 @@ async function runPreparedPublicationAck(adapter, kill, transition = 'prepared')
     result,
     failed = false;
   try {
-    if (
-      typeof kill !== 'boolean' ||
-      !['prepared', 'sending', 'transport-finished'].includes(transition)
-    )
-      throw fail();
-    const delta = ['prepared', 'sending', 'transport-finished'].indexOf(transition) + 1;
+    if (typeof kill !== 'boolean') throw fail();
+    const route = publicationTransitionRoute(transition);
+    const delta = route.delta;
     active = identity(await invoke(adapter, 'startFreshBusinessHost'));
     const original = baseline(await invoke(adapter, 'seedThroughBusinessHttp', active));
     const before = data(await invoke(adapter, 'readThroughBusinessHttp', active));
@@ -47,12 +45,14 @@ async function runPreparedPublicationAck(adapter, kill, transition = 'prepared')
     if (
       pending.boundary !== transition + '-durable-store-before-host-ack' ||
       pending.pid !== active.pid ||
-      (delta === 3
+      (route.publicTransportCompleted
         ? !Number.isSafeInteger(pending.publicBytes) ||
           pending.publicBytes < 1 ||
           pending.publicBytes > 262144
         : pending.publicBytes !== 0) ||
-      pending.publicTransportCompleted !== (delta === 3) ||
+      pending.publicTransportCompleted !== route.publicTransportCompleted ||
+      (route.cancellation &&
+        (pending.clientCancelled !== true || pending.clientTransportClosed !== true)) ||
       pending.hostAckDelivered !== false ||
       pending.durableStoreObserved !== true ||
       pending.revision !== checkpoint.revision + delta ||
@@ -74,10 +74,12 @@ async function runPreparedPublicationAck(adapter, kill, transition = 'prepared')
       active = undefined;
       const interrupted = data(await invoke(adapter, 'finishInterruptedPublicResponse', first));
       if (
-        delta === 3
-          ? interrupted.publicTransportCompleted !== true ||
-            interrupted.publicBytes !== pending.publicBytes
-          : interrupted.interrupted !== true || interrupted.publicBytes !== 0
+        route.cancellation
+          ? interrupted.clientCancelled !== true || interrupted.publicBytes !== 0
+          : route.publicTransportCompleted
+            ? interrupted.publicTransportCompleted !== true ||
+              interrupted.publicBytes !== pending.publicBytes
+            : interrupted.interrupted !== true || interrupted.publicBytes !== 0
       )
         throw fail();
       // Reopen through the genuine default owner before inspecting metadata.
@@ -97,8 +99,24 @@ async function runPreparedPublicationAck(adapter, kill, transition = 'prepared')
     } else {
       const release = data(await invoke(adapter, 'releasePreparedAck', active));
       if (release.released !== true) throw fail();
-      const completed = data(await invoke(adapter, 'finishReleasedPublicResponse', active));
-      if (completed.publicCompleted !== true) throw fail();
+      const completed = data(
+        await invoke(
+          adapter,
+          route.cancellation
+            ? 'finishReleasedCancelledPublication'
+            : 'finishReleasedPublicResponse',
+          active
+        )
+      );
+      if (
+        route.cancellation
+          ? completed.cancelled !== true ||
+            completed.cleanupFinished !== true ||
+            completed.clientTransportClosed !== true ||
+            completed.publicBytes !== 0
+          : completed.publicCompleted !== true
+      )
+        throw fail();
       durable = data(completed.accounting);
       accounting(baseline(checkpoint), durable);
       if (!Number.isSafeInteger(durable.revision) || durable.revision < checkpoint.revision + delta)
@@ -118,14 +136,22 @@ async function runPreparedPublicationAck(adapter, kill, transition = 'prepared')
       evidenceLevel: 'adapter-orchestration-only',
       boundary: transition + '-durable-store-before-host-ack',
       forcedKill: kill,
-      interruptedWithZeroPublicBytes: kill && delta !== 3,
-      positivePublicCompletion: !kill,
+      interruptedWithZeroPublicBytes:
+        kill && !route.cancellation && !route.publicTransportCompleted,
+      positivePublicCompletion: !kill && !route.cancellation,
       actualDurableStoreObserved: true,
       preAckBoundaryObserved: true,
       preparedPredecessorAckObserved: delta >= 2,
       sendingPredecessorAckObserved: delta === 3,
-      publicTransportCompletedBeforeBoundary: delta === 3,
-      publicationCompletionObserved: !kill,
+      publicTransportCompletedBeforeBoundary: route.publicTransportCompleted,
+      publicationCompletionObserved: !kill && !route.cancellation,
+      ...(route.cancellation
+        ? {
+            cancellationBeforeTerminalAckObserved: true,
+            clientTransportClosedBeforeBoundary: true,
+            publicationCleanupObserved: !kill,
+          }
+        : {}),
       opaqueAckNotDeliveredAtKill: kill,
       sameDirectoryNewPid: true,
       originalReadAfterRestart: true,

@@ -30,6 +30,7 @@ const {
   recoveryCompletionSnapshot,
   waitForRecoveryCompletion,
 } = require('./recovery-completion-ready');
+const { waitForRecoveryCancellation } = require('./recovery-cancellation-ready');
 const {
   createDaemonManagementHttpClient,
 } = require('../../../scripts/lib/context-recovery-daemon-http-client.js');
@@ -251,27 +252,30 @@ function createClientUnsafe(input, dependencies) {
     onPhase(119);
     return { identity, request, deadline };
   }
-  const implementation = {
-    async getRecoveryCompletionBarrier(input) {
-      const identity = owner(input);
-      const read = () => {
+  async function completionBarrier(input, waitForOutcome) {
+    const identity = owner(input);
+    const read = () => {
+      owner(identity);
+      return management(identity)({ method: 'GET', route: '/v1/local/health' });
+    };
+    const deadline = Date.now() + 15000;
+    const baseline = recoveryCompletionSnapshot(await read(), identity.pid);
+    let used = false;
+    return async () => {
+      try {
         owner(identity);
-        return management(identity)({ method: 'GET', route: '/v1/local/health' });
-      };
-      const deadline = Date.now() + 15000;
-      const baseline = recoveryCompletionSnapshot(await read(), identity.pid);
-      let used = false;
-      return async () => {
-        try {
-          owner(identity);
-          if (used) throw fail();
-          used = true;
-          return await waitForRecoveryCompletion(read, baseline, identity.pid, deadline);
-        } catch {
-          throw fail();
-        }
-      };
-    },
+        if (used) throw fail();
+        used = true;
+        return await waitForOutcome(read, baseline, identity.pid, deadline);
+      } catch {
+        throw fail();
+      }
+    };
+  }
+  const implementation = {
+    getRecoveryCompletionBarrier: (input) => completionBarrier(input, waitForRecoveryCompletion),
+    getRecoveryCancellationBarrier: (input) =>
+      completionBarrier(input, waitForRecoveryCancellation),
     async readRecoveryAdmissionFailurePhase(input) {
       const identity = owner(input);
       return recoveryAdmissionFailurePhase(

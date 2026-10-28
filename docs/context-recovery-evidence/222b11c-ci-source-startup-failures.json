@@ -1,0 +1,122 @@
+{
+  "source": "222b11ca9ac224b4e0bf332546de1a8e6ddf352e",
+  "sshReachable": true,
+  "ordinary": {
+    "run": 40618107904,
+    "sevenNonCoverageJobs": "success",
+    "coverage": "in_progress_at_observation"
+  },
+  "formal": {
+    "run": 40618107191,
+    "sourceJob": 122585262696,
+    "source": "failure",
+    "business": "skipped",
+    "failures": [
+      {
+        "test": "native worker publication transport-finished: release control inside actual COMMIT lock wait",
+        "durationMs": 5019.9027,
+        "awaiting": "ready",
+        "startupPhase": "anchor_persist_started",
+        "startupElapsedMs": 4705,
+        "keyFileOpenMs": 1031,
+        "keyFileFlushMs": 822,
+        "enteredTargetBoundary": false
+      },
+      {
+        "test": "native worker publication transport-finished: SIGKILL inside durable OS anchor before publication ACK",
+        "durationMs": 5117.8559,
+        "awaiting": "ready",
+        "startupPhase": "engine_anchor_validate_finished",
+        "startupElapsedMs": 3743,
+        "keyFileOpenMs": 2426,
+        "keyFileFlushMs": 564,
+        "enteredTargetBoundary": false
+      },
+      {
+        "test": "native worker publication transport-finished: release control inside durable OS anchor before publication ACK",
+        "durationMs": 5527.291,
+        "awaiting": "ready",
+        "startupPhase": "anchor_persist_started",
+        "startupElapsedMs": 4172,
+        "keyFileOpenMs": 420,
+        "keyFileFlushMs": 1621,
+        "enteredTargetBoundary": false
+      },
+      {
+        "test": "native worker publication uncertain: SIGKILL inside actual COMMIT lock wait",
+        "durationMs": 5024.8684,
+        "awaiting": "ready",
+        "startupPhase": "ready",
+        "startupElapsedMs": 4723,
+        "keyFileOpenMs": 1471,
+        "keyFileFlushMs": 446,
+        "enteredTargetBoundary": false
+      },
+      {
+        "test": "native worker publication uncertain: release control inside actual COMMIT lock wait",
+        "durationMs": 5024.0082,
+        "awaiting": "ready",
+        "startupPhase": "anchor_persist_started",
+        "startupElapsedMs": 4227,
+        "keyFileOpenMs": 455,
+        "keyFileFlushMs": 491,
+        "enteredTargetBoundary": false
+      },
+      {
+        "test": "native worker publication uncertain: SIGKILL inside durable OS anchor before publication ACK",
+        "durationMs": 5025.7624,
+        "awaiting": "ready",
+        "startupPhase": "anchor_persist_started",
+        "startupElapsedMs": 4692,
+        "keyFileOpenMs": 231,
+        "keyFileFlushMs": 914,
+        "enteredTargetBoundary": false
+      },
+      {
+        "test": "native worker publication withdrawn: SIGKILL inside actual COMMIT lock wait",
+        "durationMs": 5527.0433,
+        "awaiting": "ready",
+        "startupPhase": "engine_anchor_validate_finished",
+        "startupElapsedMs": 2447,
+        "keyFileOpenMs": 773,
+        "keyFileFlushMs": 550,
+        "enteredTargetBoundary": false
+      },
+      {
+        "test": "native worker publication withdrawn: release control inside actual COMMIT lock wait",
+        "durationMs": 5037.5839,
+        "awaiting": "ready",
+        "startupPhase": "ready",
+        "startupElapsedMs": 4580,
+        "keyFileOpenMs": 1776,
+        "keyFileFlushMs": 1174,
+        "enteredTargetBoundary": false
+      }
+    ]
+  },
+  "independentBusiness": {
+    "run": 40618107418,
+    "jobs": [
+      122585263300,
+      122585263545,
+      122585263582,
+      122585263591
+    ],
+    "allFourSuccess": true,
+    "allFourFullLogsRead": true,
+    "sourceIdentityAndExecutedNetworkFinishedAndOwnedTreeEmpty": true,
+    "terminalCancellationNewCasesIncluded": false
+  },
+  "extraIo": {
+    "run": 40618107117,
+    "job": 122585261954,
+    "status": "in_progress_at_observation"
+  },
+  "qualification": {
+    "completeCi": false,
+    "fiveSecondStability": false,
+    "rootCauseConfirmed": false,
+    "new24HourStarted": false,
+    "realModelCalls": 0
+  }
+}

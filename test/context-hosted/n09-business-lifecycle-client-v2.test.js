@@ -1602,3 +1602,41 @@ test('publication ACK capabilities bind the same owner and reject an inflight re
   assert.equal(closes, 2);
   await f.client.close();
 });
+
+test('cancellation completion uses owned health, waits for cleanup and remains one-use after stop', async (t) => {
+  const {
+    RECOVERY_FAILURE_COUNTERS,
+  } = require('../../scripts/context-hosted/n09-business/recovery-health-counters');
+  const f = fixture(t, (at, value, state) => {
+    if (at !== 'http' || !value.contextRecovery) return;
+    value.contextRecovery.counterWindow = 'process_lifetime';
+    value.contextRecovery.counters = {
+      responses: {
+        ...Object.fromEntries(RECOVERY_FAILURE_COUNTERS.map((event) => [event, 0])),
+        bound: state.cancelled ? 1 : 0,
+        completed: 0,
+        failed: state.cancelled ? 1 : 0,
+        httpSendingFailed: state.cancelled ? 1 : 0,
+      },
+    };
+  });
+  f.state.config.appSettings = {
+    contextRecoveryEnabled: true,
+    contextRecoveryPersistenceEnabled: true,
+  };
+  const owner = await f.client.startLifecycle();
+  const barrier = await f.client.getRecoveryCancellationBarrier(owner);
+  const stale = await f.client.getRecoveryCancellationBarrier(owner);
+  f.state.cancelled = true;
+  assert.deepEqual(await barrier(), {
+    cancelled: true,
+    cleanupFinished: true,
+    hostDurableAck: false,
+  });
+  await assert.rejects(barrier(), { message: 'n09_lifecycle_client_failed' });
+  await f.client.stopLifecycle(owner);
+  const requests = f.state.requests.length;
+  await assert.rejects(stale(), { message: 'n09_lifecycle_client_failed' });
+  assert.equal(f.state.requests.length, requests);
+  await f.client.close();
+});

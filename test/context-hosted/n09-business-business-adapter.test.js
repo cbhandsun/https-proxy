@@ -89,6 +89,15 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
             return value;
           };
         },
+        getRecoveryCancellationBarrier: async () => {
+          state.events.push('cancellation-baseline');
+          return async () => {
+            const value = { cancelled: true, cleanupFinished: true, hostDurableAck: false };
+            state.events.push('cancellation-completed');
+            await mutation('cancellation-completed', value, state);
+            return value;
+          };
+        },
         attestRejectedPersistentStorage: async () => {
           const value = { persistentStorageRejected: true, syntheticBusinessConfigured: true };
           mutation('rejected-storage', value, state);
@@ -165,7 +174,12 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
         }),
         getPublicationAckClient: () => {
           const signal = (kind) => {
-            const held = kind !== 'armed';
+            const held = !['armed', 'armed-cancel'].includes(kind);
+            const delta = ['sending', 'withdrawn'].includes(state.ackTarget.transition)
+              ? 2
+              : ['transport-finished', 'uncertain'].includes(state.ackTarget.transition)
+                ? 3
+                : 1;
             const value = {
               version: 1,
               pid: state.pid,
@@ -173,20 +187,33 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
               challenge: 'f'.repeat(32),
               ...state.ackTarget,
               kind,
-              callOrdinal: held
-                ? state.ackTarget.transition === 'sending'
-                  ? 3
-                  : state.ackTarget.transition === 'transport-finished'
-                    ? 4
-                    : 2
-                : 1,
-              holdChallenge: held ? 'a'.repeat(32) : '',
-              revision: state.ackTarget.expectedRevision + (held ? 1 : 0),
+              callOrdinal: held ? delta + (kind === 'trigger-held' ? 0 : 1) : 1,
+              holdChallenge: held ? (kind === 'trigger-held' ? 'b' : 'a').repeat(32) : '',
+              revision:
+                state.ackTarget.expectedRevision + (held && kind !== 'trigger-held' ? 1 : 0),
             };
             mutation('prepared-ack-' + kind, value, state);
             return value;
           };
           return {
+            async armCancellation(target) {
+              state.ackProbeActive = true;
+              state.ackTarget = target;
+              state.events.push('ack-arm-cancel');
+              return signal('armed-cancel');
+            },
+            async waitTriggerHeld() {
+              for (let i = 0; i < 50 && !state.triggerQueued; i++)
+                await new Promise((resolve) => setImmediate(resolve));
+              assert.equal(state.triggerQueued, true);
+              state.events.push('ack-trigger-held');
+              return signal('trigger-held');
+            },
+            releaseTrigger() {
+              state.events.push('ack-trigger-release');
+              assert.equal(state.observedHttp.reason, 'cancelled-transport');
+              state.resolveTrigger();
+            },
             async arm(target) {
               state.ackProbeActive = true;
               state.ackTarget = target;
@@ -418,9 +445,21 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
         }
         result = await native(publicBody);
         if (state.ackProbeActive) {
+          const terminal = ['withdrawn', 'uncertain'].includes(state.ackTarget.transition);
+          const delta = ['sending', 'withdrawn'].includes(state.ackTarget.transition)
+            ? 2
+            : ['transport-finished', 'uncertain'].includes(state.ackTarget.transition)
+              ? 3
+              : 1;
+          state.revision += delta - (terminal ? 1 : 0);
+          if (terminal) {
+            state.triggerQueued = true;
+            await new Promise((resolve) => {
+              state.resolveTrigger = resolve;
+            });
+            state.revision++;
+          }
           state.ackQueued = true;
-          state.revision +=
-            ['prepared', 'sending', 'transport-finished'].indexOf(state.ackTarget.transition) + 1;
           if (state.ackTarget.transition === 'transport-finished') {
             const bytes = Buffer.from(JSON.stringify(result));
             state.observedHttp.bytes = bytes.length;
@@ -443,7 +482,11 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
         if (state.refuseAfter === 4) return refusal();
         if (
           (!state.observedHttp || state.observedHttp.reason !== 'pending') &&
-          !(state.ackTarget?.transition === 'transport-finished' && state.ackQueued)
+          !(
+            ['transport-finished', 'withdrawn', 'uncertain'].includes(
+              state.ackTarget?.transition
+            ) && state.ackQueued
+          )
         ) {
           state.calls += 2;
           state.returnedBytes += source.bytes;
@@ -500,6 +543,7 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
       })()
       .then(
         (response) => {
+          if (observation.reason !== 'pending') return;
           observation.bytes = response.bytes.length;
           finish('response', { response });
         },
@@ -511,8 +555,9 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
       termination: () => observation.reason,
       cancel() {
         observation.cancellations++;
-        finish('cancelled');
-        state.rejectPending?.(new Error('synthetic_client_cancelled'));
+        const terminal = ['withdrawn', 'uncertain'].includes(state.ackTarget?.transition);
+        finish(terminal ? 'cancelled-transport' : 'cancelled');
+        if (!terminal) state.rejectPending?.(new Error('synthetic_client_cancelled'));
         return true;
       },
     };
@@ -1929,5 +1974,77 @@ test('finished ACK rejects partial versions, changed wire bytes and a late metad
       { message: 'n09_publication_ack_driver_failed' }
     );
     assert.equal(f.state.closed, 1);
+  }
+});
+
+for (const transition of ['withdrawn', 'uncertain']) {
+  test(
+    transition +
+      ' ACK driver cancels before terminal durable ACK and retains original after reopen',
+    async () => {
+      for (const kill of [true, false]) {
+        const f = fixture(() => {}, undefined, 'ack');
+        f.adapter.bindVerifiedNetworkProof(f.proof);
+        const receipt = await runPreparedPublicationAck(f.adapter, kill, transition);
+        assert.equal(receipt.boundary, transition + '-durable-store-before-host-ack');
+        assert.equal(receipt.cancellationBeforeTerminalAckObserved, true);
+        assert.equal(receipt.clientTransportClosedBeforeBoundary, true);
+        assert.equal(receipt.publicTransportCompletedBeforeBoundary, false);
+        assert.equal(receipt.positivePublicCompletion, false);
+        assert.equal(receipt.publicationCompletionObserved, false);
+        assert.equal(receipt.publicationCleanupObserved, !kill);
+        assert.equal(receipt.originalReadAfterRestart, true);
+        assert.equal(receipt.originalExpiryPreserved, true);
+        assert.ok(
+          f.state.events.indexOf('ack-trigger-held') < f.state.events.indexOf('ack-trigger-release')
+        );
+        assert.ok(
+          f.state.events.indexOf('ack-trigger-release') < f.state.events.indexOf('ack-held')
+        );
+        assert.equal(f.state.events.includes('cancellation-completed'), !kill);
+        assert.equal(f.state.closed, 1);
+      }
+    }
+  );
+}
+
+test('terminal ACK business adapter refuses false cancellation, reused trigger, budget drift and failed cleanup', async () => {
+  for (const transition of ['withdrawn', 'uncertain']) {
+    for (const scenario of [
+      'transport',
+      'bytes',
+      'nonce',
+      'revision',
+      'budget',
+      'expiry',
+      'cleanup',
+      'ack-authority',
+    ]) {
+      const f = fixture(
+        (stage, value, state) => {
+          if (stage === 'prepared-ack-trigger-held') {
+            if (scenario === 'transport') state.observedHttp.reason = 'transport-error';
+            if (scenario === 'bytes') state.observedHttp.bytes = 1;
+          }
+          if (stage === 'prepared-ack-held') {
+            if (scenario === 'nonce') value.holdChallenge = 'b'.repeat(32);
+            if (scenario === 'revision') value.revision++;
+            if (scenario === 'budget') state.calls--;
+            if (scenario === 'expiry') state.expiresAt++;
+          }
+          if (stage === 'cancellation-completed') {
+            if (scenario === 'cleanup') value.cleanupFinished = false;
+            if (scenario === 'ack-authority') value.hostDurableAck = true;
+          }
+        },
+        undefined,
+        'ack'
+      );
+      f.adapter.bindVerifiedNetworkProof(f.proof);
+      await assert.rejects(runPreparedPublicationAck(f.adapter, false, transition), {
+        message: 'n09_publication_ack_driver_failed',
+      });
+      assert.equal(f.state.closed, 1);
+    }
   }
 });

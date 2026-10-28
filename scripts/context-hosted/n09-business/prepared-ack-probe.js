@@ -4,6 +4,7 @@ const { types } = require('node:util');
 const { fields, isN09NativePromise, discardN09PromiseRejection } = require('../n09-ack/contract');
 const { snapshotOwnData } = require('../shared/boundary');
 const { publicationAckCapability } = require('./publication-ack-capability');
+const { publicationTransitionRoute } = require('./publication-transition-route');
 const fail = () => new Error('n09_prepared_ack_probe_failed');
 const signalKeys = [
   'version',
@@ -20,21 +21,23 @@ const signalKeys = [
   'holdChallenge',
   'revision',
 ];
-const hex = (value) => typeof value === 'string' && /^[a-f0-9]{32}$/.test(value);
+const hex = (value) =>
+  typeof value === 'string' && value.length === 32 && /^[a-f0-9]{32}$/.test(value);
 
 // Binds the authenticated control channel to one real business checkpoint.
 // Signal authentication alone cannot qualify a publication or host-save ACK.
 function createPreparedAckProbe(input, observed, control, transition = 'prepared') {
   try {
-    if (!['prepared', 'sending', 'transport-finished'].includes(transition)) throw fail();
-    const delta = ['prepared', 'sending', 'transport-finished'].indexOf(transition) + 1;
+    const { delta, cancellation: terminal } = publicationTransitionRoute(transition);
     const config = fields(input, ['pid', 'rootId', 'expiresAt', 'revision']);
     const baseline = snapshotOwnData(observed);
-    const { methods } = publicationAckCapability(control);
+    const { methods, cancellation } = publicationAckCapability(control);
+    if (terminal && !cancellation) throw fail();
     if (
       !Number.isSafeInteger(config.pid) ||
       config.pid < 1 ||
       typeof config.rootId !== 'string' ||
+      config.rootId.length !== 36 ||
       !/^hbs_[a-f0-9]{32}$/.test(config.rootId) ||
       !Number.isSafeInteger(config.expiresAt) ||
       config.expiresAt < 1 ||
@@ -66,14 +69,20 @@ function createPreparedAckProbe(input, observed, control, transition = 'prepared
     let state = 'new',
       armed,
       held,
+      trigger,
       closeFailed = false;
-    async function invoke(name, ...args) {
+    function invoke(name, ...args) {
       const result = Reflect.apply(methods[name], control, args);
       if (!isN09NativePromise(result)) {
         discardN09PromiseRejection(result);
         throw fail();
       }
-      return result;
+      return new Promise((resolve, reject) =>
+        Reflect.apply(Promise.prototype.then, result, [
+          (value) => resolve(Object.freeze(Object.assign(Object.create(null), { value }))),
+          () => reject(fail()),
+        ])
+      );
     }
     function signal(value, kind) {
       const result = fields(value, signalKeys);
@@ -88,7 +97,7 @@ function createPreparedAckProbe(input, observed, control, transition = 'prepared
         )
       )
         throw fail();
-      if (kind === 'armed') {
+      if (kind === 'armed' || kind === 'armed-cancel') {
         if (
           result.callOrdinal !== target.callOrdinal ||
           result.holdChallenge !== '' ||
@@ -101,9 +110,17 @@ function createPreparedAckProbe(input, observed, control, transition = 'prepared
           result.challenge !== armed.challenge ||
           !hex(result.holdChallenge) ||
           !Number.isSafeInteger(result.callOrdinal) ||
-          result.callOrdinal < target.callOrdinal + delta ||
+          result.callOrdinal < target.callOrdinal + delta - (kind === 'trigger-held' ? 1 : 0) ||
           result.callOrdinal > 1024 ||
-          result.revision !== config.revision + delta
+          result.revision !== config.revision + delta - (kind === 'trigger-held' ? 1 : 0)
+        )
+          throw fail();
+        if (
+          terminal &&
+          kind === 'held' &&
+          (!trigger ||
+            result.callOrdinal <= trigger.callOrdinal ||
+            result.holdChallenge === trigger.holdChallenge)
         )
           throw fail();
         if (
@@ -130,11 +147,48 @@ function createPreparedAckProbe(input, observed, control, transition = 'prepared
     return Object.freeze({
       arm: () =>
         step('new', 'armed', async () => {
-          armed = signal(await invoke('arm', target), 'armed');
+          armed = signal(
+            (await invoke(terminal ? 'armCancellation' : 'arm', target)).value,
+            terminal ? 'armed-cancel' : 'armed'
+          );
         }),
+      ...(terminal
+        ? {
+            waitTriggerHeld: () =>
+              step('armed', 'trigger-held', async () => {
+                trigger = signal((await invoke('waitTriggerHeld')).value, 'trigger-held');
+                return Object.freeze({
+                  boundary:
+                    (transition === 'withdrawn' ? 'prepared' : 'sending') + '-before-client-cancel',
+                  pid: config.pid,
+                  expectedRevision: target.expectedRevision,
+                  revision: trigger.revision,
+                  terminalDurableAck: false,
+                });
+              }),
+            releaseTrigger: (input) =>
+              step('trigger-held', 'trigger-released', async () => {
+                const witness = fields(input, [
+                  'cancelled',
+                  'clientTransportClosed',
+                  'publicBytes',
+                ]);
+                if (
+                  witness.cancelled !== true ||
+                  witness.clientTransportClosed !== true ||
+                  witness.publicBytes !== 0
+                )
+                  throw fail();
+                const result = Reflect.apply(methods.releaseTrigger, control, []);
+                discardN09PromiseRejection(result);
+                if (result !== undefined) throw fail();
+                return Object.freeze({ triggerReleaseRequested: true, hostAckDelivered: false });
+              }),
+          }
+        : {}),
       waitHeld: () =>
-        step('armed', 'held', async () => {
-          held = signal(await invoke('waitHeld'), 'held');
+        step(terminal ? 'trigger-released' : 'armed', 'held', async () => {
+          held = signal((await invoke('waitHeld')).value, 'held');
           return Object.freeze({
             boundary: transition + '-durable-store-before-host-ack',
             pid: config.pid,
@@ -148,7 +202,7 @@ function createPreparedAckProbe(input, observed, control, transition = 'prepared
           const result = Reflect.apply(methods.release, control, []);
           discardN09PromiseRejection(result);
           if (result !== undefined) throw fail();
-          signal(await invoke('waitReleased'), 'released');
+          signal((await invoke('waitReleased')).value, 'released');
           return Object.freeze({ released: true, hostAckDelivered: false });
         }),
       close() {
