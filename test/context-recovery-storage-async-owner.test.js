@@ -20,7 +20,7 @@ function gate() {
   });
   return { promise, resolve };
 }
-function fixture(t, delayedEngine = false) {
+function fixture(t, delayedEngine = false, delayedKeyPersistence = false) {
   const temporary = fs.realpathSync.native(os.tmpdir());
   const root = fs.mkdtempSync(path.join(temporary, 'hpm-async-owner-'));
   const directory = path.join(root, 'store'),
@@ -42,9 +42,26 @@ function fixture(t, delayedEngine = false) {
   let replyValue = (text) => text;
   let waitReply = async () => {},
     waitClose = async () => {};
-  const protectKey = ({ operation, value }) =>
-    operation === 'protect' ? KEY_PREFIX + value : value.slice(KEY_PREFIX.length);
+  let protectionFailure;
+  let nativeRequests = 0;
+  const protectionSamples = [];
+  const protectKey = ({ operation, value }) => {
+    if (operation !== 'protect') return value.slice(KEY_PREFIX.length);
+    protectionSamples.push({
+      channels,
+      nativeRequests,
+      writes,
+      keyExists: fs.existsSync(path.join(directory, '.data-key')),
+      databaseExists: fs.existsSync(path.join(directory, 'checkpoint.sqlite')),
+    });
+    if (protectionFailure === 'throw') throw Error('PRIVATE synthetic key protection failure');
+    if (protectionFailure === 'malformed') return KEY_PREFIX + 'not-base64';
+    if (protectionFailure === 'collision')
+      fs.writeFileSync(path.join(directory, '.data-key'), 'synthetic collision', { flag: 'wx' });
+    return KEY_PREFIX + value;
+  };
   const execute = (text) => {
+    nativeRequests++;
     const request = JSON.parse(text),
       prior = rows.get(request.slot) ?? { revision: 0, value: null };
     if (request.operation === 'read') return JSON.stringify({ ok: true, ...prior });
@@ -124,6 +141,7 @@ function fixture(t, delayedEngine = false) {
         protectKey,
         onStartup: ({ phase }) => {
           startupPhases.push(phase);
+          if (delayedKeyPersistence && phase === 'key_write_started') nativeTime = 10001;
           if (delayedEngine && phase === 'engine_prepare_started') {
             engineSawReady = readinessObserved;
             nativeTime = 10001;
@@ -155,6 +173,11 @@ function fixture(t, delayedEngine = false) {
     closes: () => closes,
     channels: () => channels,
     channelStartup: () => [...channelStartup],
+    protectionSamples: () => [...protectionSamples],
+    rejectProtection(mode) {
+      protectionFailure = mode;
+    },
+    nativeRequests: () => nativeRequests,
     engineSawReady: () => engineSawReady,
     syncWrites: () => syncWrites,
     startupPhases: () => [...startupPhases],
@@ -448,10 +471,74 @@ test('path replacement during startup ACK cannot return ready or release its wri
   assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
 });
 
+test('early transport prestart leaves the original readiness window after key persistence', async (t) => {
+  const f = fixture(t, true, true);
+  const owner = await f.open();
+  assert.equal(f.engineSawReady(), true);
+  assert.equal(f.channels(), 1);
+  assert.equal(f.syncWrites(), 1);
+  assert.equal(f.writes(), 2);
+  assert.deepEqual(await owner.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+});
+
+test('fresh owner primes only its idle transport before protecting or persisting its real key', async (t) => {
+  const f = fixture(t);
+  const owner = await f.open();
+  assert.deepEqual(f.channelStartup(), [{ phase: 'key_protect_started', writes: 0 }]);
+  assert.equal(f.channels(), 1);
+  assert.deepEqual(f.protectionSamples(), [
+    { channels: 1, nativeRequests: 0, writes: 0, keyExists: false, databaseExists: false },
+  ]);
+  assert.equal(f.syncWrites(), 1, 'durable enrollment remains behind key persistence');
+  assert.equal(f.writes(), 2, 'idle process readiness cannot replace the final durable ACK');
+  await owner.close();
+  const reopened = await f.open();
+  assert.equal(
+    f.channelStartup()[1].phase,
+    'anchor_open_started',
+    'existing keys are unprotected before session binding'
+  );
+  assert.deepEqual(await reopened.execute({ operation: 'inspect' }), { records: 0, bytes: 0 });
+});
+
+for (const mode of ['throw', 'malformed', 'collision']) {
+  test('early idle transport closes before writer release after key ' + mode, async (t) => {
+    const f = fixture(t),
+      held = f.holdClose();
+    f.rejectProtection(mode);
+    const pending = f.open();
+    assert.equal(types.isPromise(pending), true);
+    const rejected = assert.rejects(pending, safe);
+    await turn();
+    assert.equal(f.channels(), 1);
+    assert.equal(f.closes(), 1);
+    assert.equal(
+      f.nativeRequests(),
+      0,
+      'no anchor read or enrollment precedes persisted-key admission'
+    );
+    assert.equal(fs.existsSync(path.join(f.directory, 'checkpoint.sqlite')), false);
+    const mutex = new DatabaseSync(path.join(f.directory, '.writer.sqlite'));
+    try {
+      assert.throws(() => mutex.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE'));
+    } finally {
+      mutex.close();
+    }
+    held.resolve();
+    await rejected;
+    const released = new DatabaseSync(path.join(f.directory, '.writer.sqlite'));
+    try {
+      released.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE; ROLLBACK');
+    } finally {
+      released.close();
+    }
+  });
+}
+
 test('async owner launches the idle anchor transport before synchronous read and enrollment', async (t) => {
   const f = fixture(t),
     owner = await f.open();
-  assert.deepEqual(f.channelStartup(), [{ phase: 'anchor_open_started', writes: 0 }]);
+  assert.deepEqual(f.channelStartup(), [{ phase: 'key_protect_started', writes: 0 }]);
   assert.equal(f.syncWrites(), 1);
   assert.equal(f.writes(), 2);
   await owner.execute({ operation: 'inspect' });

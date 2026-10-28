@@ -7,6 +7,7 @@ const { PassThrough } = require('node:stream');
 const {
   createRecoveryAnchorChannel,
   primeRecoveryAnchorChannel,
+  prestartRecoveryAnchorChannel,
   waitForRecoveryAnchorChannelReady,
 } = require('../lib/proxy/context-recovery-anchor-channel');
 const {
@@ -720,3 +721,102 @@ for (const mode of ['timeout', 'invalid-frame', 'closed']) {
     assert.equal(f.timers.size, 0);
   });
 }
+
+test('idle prestart emits no request or readiness authority and arms the original window only at priming', async (t) => {
+  const f = fixture(t, {}, false);
+  assert.equal(prestartRecoveryAnchorChannel(f.channel), true);
+  assert.equal(prestartRecoveryAnchorChannel(f.channel), true);
+  assert.equal(f.launches(), 1);
+  assert.equal(f.timers.size, 0);
+  await assert.rejects(waitForRecoveryAnchorChannelReady(f.channel), safe);
+  await assert.rejects(f.execute(), safe);
+  assert.equal(f.frames.length, 0);
+  f.setTime(10001);
+  primeRecoveryAnchorChannel(f.channel);
+  assert.equal(f.timers.size, 1);
+  f.child.stdout.write(Buffer.alloc(8));
+  await waitForRecoveryAnchorChannelReady(f.channel);
+  const pending = f.execute();
+  assert.equal(f.frames[0].readUInt32LE(0), 1);
+  f.respond(reply, 1);
+  assert.equal(await pending, reply);
+  assert.equal(f.timers.size, 0);
+});
+
+test('early zero readiness remains inert until priming and does not consume the first sequence', async (t) => {
+  const f = fixture(t, {}, false);
+  prestartRecoveryAnchorChannel(f.channel);
+  f.child.stdout.write(Buffer.alloc(8));
+  await assert.rejects(waitForRecoveryAnchorChannelReady(f.channel), safe);
+  await assert.rejects(f.execute(), safe);
+  f.setTime(20000);
+  primeRecoveryAnchorChannel(f.channel);
+  await waitForRecoveryAnchorChannelReady(f.channel);
+  assert.equal(f.timers.size, 0);
+  const pending = f.execute();
+  assert.equal(f.frames[0].readUInt32LE(0), 1);
+  f.respond(reply, 1);
+  assert.equal(await pending, reply);
+  assert.equal(f.launches(), 1);
+});
+
+test('prestarted transport keeps its original armed deadline and awaits actual close on failure', async (t) => {
+  const f = fixture(t, {}, false);
+  prestartRecoveryAnchorChannel(f.channel);
+  f.setTime(20000);
+  primeRecoveryAnchorChannel(f.channel);
+  f.keepAlive();
+  let settled = false;
+  const rejected = assert.rejects(waitForRecoveryAnchorChannelReady(f.channel), safe).then(() => {
+    settled = true;
+  });
+  f.timeout();
+  await turn();
+  assert.equal(settled, false);
+  assert.equal(f.frames.length, 0);
+  f.child.emit('close', null, 'SIGKILL');
+  await rejected;
+  assert.equal(f.launches(), 1);
+});
+
+for (const bytes of [Buffer.from([1]), Buffer.alloc(9)]) {
+  test(
+    'invalid prestart readiness fails closed without a frame or respawn (' +
+      bytes.length +
+      ' bytes)',
+    async (t) => {
+      const f = fixture(t, {}, false);
+      prestartRecoveryAnchorChannel(f.channel);
+      f.keepAlive();
+      f.child.stdout.write(bytes);
+      assert.throws(() => primeRecoveryAnchorChannel(f.channel), safe);
+      let closed = false;
+      const closing = f.channel.close().then(() => {
+        closed = true;
+      });
+      await turn();
+      assert.equal(closed, false);
+      assert.equal(f.frames.length, 0);
+      f.child.emit('close', null, 'SIGKILL');
+      await closing;
+      assert.equal(f.launches(), 1);
+    }
+  );
+}
+
+test('idle prestart accepts only exact module capabilities without reading caller properties', () => {
+  let touched = 0;
+  const hook = () => {
+    touched++;
+    throw Error('PRIVATE hook');
+  };
+  for (const value of [
+    null,
+    undefined,
+    {},
+    Object.defineProperty({}, 'execute', { get: hook }),
+    new Proxy({}, { get: hook, ownKeys: hook }),
+  ])
+    assert.equal(prestartRecoveryAnchorChannel(value), false);
+  assert.equal(touched, 0);
+});
