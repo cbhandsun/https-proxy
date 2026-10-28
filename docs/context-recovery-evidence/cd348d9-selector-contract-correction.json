@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "baseSource": "cd348d9b57d0fed7915ddc359b54996f3be4991d",
+  "verifyRunId": 40709879485,
+  "failedJobId": 122891933694,
+  "fullFailureLogCharacters": 979036,
+  "failure": "actual PowerShell workflow regression still expected publication-graceful-http after the configured proxy window changed to native-publication-interruption",
+  "localBefore": {
+    "tests": 1,
+    "pass": 0,
+    "fail": 1
+  },
+  "change": "Update only this test title and expected proxy selector; preserve all seven actual PowerShell success/failure scenarios, exact errors, command order, client selector removal, original five-second test-process deadline and stderr assertions.",
+  "localAfter": {
+    "files": 5,
+    "tests": 70,
+    "pass": 70,
+    "fail": 0,
+    "skip": 0
+  },
+  "checks": {
+    "eslint": "passed",
+    "format": "passed",
+    "ciGovernance": "passed",
+    "releaseGovernance": "passed"
+  },
+  "installerParallelRun": {
+    "source": "cd348d9b57d0fed7915ddc359b54996f3be4991d",
+    "runId": 40710918509,
+    "resolveJobId": 122895632682,
+    "resolveConclusion": "success",
+    "encryptedJobId": 122895920386,
+    "lastObservedStatus": "in_progress",
+    "ownCompleteVerifyAndAuditRequiredBeforeBuild": true,
+    "qualification": false,
+    "sourceFailureWillNotBeOverridden": true
+  },
+  "runtimeChanged": false,
+  "fiveSecondPerformanceFixClaimed": false,
+  "oldFailuresPreserved": true,
+  "windowsLocalJobsRestarted": false,
+  "new24hStarted": false,
+  "realModelRequests": 0
+}

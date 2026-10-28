@@ -1,6 +1,11 @@
 # 上下文恢复换机交接
 
 
+## 2026-10-28 最新续接：cd窗口断言遗漏已定位；保留原运行
+
+优先读[实施状态](context-recovery-implementation-status.md)顶部。cd普通unit2因既有真实PowerShell测试仍断言旧graceful窗口失败，现只同步为native-publication窗口，原七种阶段失败门不变，70项通过；不是产品五秒修复。原coverage122891933133/正式source122891933344继续读，所有失败保留。独立托管安装链40710918509、encrypted122895920386已运行，但必须先原verify/audit，旧cd断言会导致拒绝，未授安装资格；修正批需要新精确源码路由，不能混用review Verify40710918282与原Verify。无本机重测/构建/切换，新24h未启动、模型0、旧失败现场与额度不动。
+
+
 ## 2026-10-28 最新续接：8b大根重开通过，三项五秒ready失败保持
 
 优先读[实施状态](context-recovery-implementation-status.md)顶部。8b正式十二作业和十实际业务完整通过，普通coverage四根32MiB历史用例通过，但三项native-publication在原五秒ready门失败。Windows28/91/72项通过，原生20项组在原120秒父门失败，19可见失败/无最终TAP，后续40项未执行；两任务冻结、终态所属进程0。准备阶段git-revision五秒超时与npm进程exit0已区分，独立严格准入续接未重装依赖或重跑产品测试。退出后的CPU100%仅为资源线索，不是失败瞬间因果。新批仅让普通Verify既有录制器选择实际失败的native-publication文件，原负载/并发/期限/失败停止/client窗口不变，69项回归通过；须读取新批实际失败窗口，不授性能修复。安装路由仅prepare、未触发，新24h未启动、模型0，旧长测失败现场/旧实例/额度均不动。

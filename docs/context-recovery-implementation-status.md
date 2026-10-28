@@ -1,5 +1,14 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：录制选择器断言遗漏修正；安装链独立原门并行推进
+
+固定cd348d9普通40709879485/unit2 job122891933694失败，完整979036字符日志已读，定位test/coverage-proxy-window-workflow.test.js仍断言旧publication-graceful-http，而工作流已显式选择native-publication-interruption。这是上批观测调整漏同步的既有测试，不是产品超时根因；原CI失败保留，不重跑覆盖。Mac原单文件1项失败已复现。仅校正标题与预期proxy选择器，实际PowerShell执行的七种成功/原各阶段失败组合、完整命令顺序/原异常/stderr/client阶段清除选择器和原五秒子进程限全部保持。五文件70/70、零fail/skip，ESLint/格式/CI及release治理通过。该修正不授任何性能或完整Windows资格。证据见context-recovery-evidence/cd348d9-selector-contract-correction.json。
+
+为并行推进最新安装交付，已通过原路由解析器创建独立托管review分支，精确cd源码安装链40710918509已实际运行，resolve122895632682成功，encrypted122895920386仍在运行；它必须自行通过原完整verify和npm audit，之后才构建、升级回滚、582迁移及两端合成CLI，不覆盖现有普通/正式失败。旧cd断言错误会使其原门失败即停止，不授安装成功；不能把分支push或路由解析当作安装执行。本批修正后须用新源码新路由，保留旧运行，不覆盖分支。该分支也触发独立Verify40710918282，必须按分支与run区分，不混入原40709879485。没有在本机追加构建、短测、安装或切换，模型0、未公开安装器、公开release签名门不变。
+
+原cd普通coverage122891933133和正式source122891933344仍是原活跃句柄，后续继续读取包括原生I/O录制和任何产品失败，不因为断言修正而略过。8b本机两份失败任务及其进程终止证据保持，旧868/6646冻结现场不动，未启动新24h，最大容量仍暂停，旧E实例由用户自行切换。整体仍缺五秒尾延迟稳定性、最新安装资格/本机两端、真实provider、24h与到期重开等，不把70项局部通过当整体完成。
+
+
 ## 2026-10-28：8b重开回归实际通过，五秒尾等待仍失败；原生失败窗口录制续接
 
 固定8b2d90a普通40705457631七成功、coverage三失败，正式40705457954十二作业全部成功；正式source完整3880020、额外I/O3793289、普通coverage2726265字符均已读，十份实际业务完整日志逐份核对精确source/plan/build和执行后hosted_network_finished、TLS/隔离/ownedTreeEmpty。四份覆盖I/O及一份独立I/O摘要经原parseSummary核验，均fiveSecondQualified=false。三次原50项时序组150项全通过、18个发布样本872–1138ms。此前反复失败的四根32MiB历史重开，本次普通coverage用例通过、100120ms，不能因此授整体五秒稳定性。有限证据见context-recovery-evidence/8b2d90a-ci-tail-and-local-resource.json。
