@@ -1,0 +1,449 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1afe7b310ea575ed00d0b68a7addc93a4916e6fe",
+  "observedHeadCommit": "4bd3ffce4e38c813865e7da42ddc750fb7948ada",
+  "scope": "independent instrumented original forty-case group, diagnostic only",
+  "testSourceModified": false,
+  "requestDeadlineMs": 5000,
+  "parentDeadlineMs": 120000,
+  "originalLongPayloadCharacters": 600000,
+  "sourcePinCount": 2024,
+  "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+  "nativeSha256": "0356dfca64c77622a7699f765ea32577f1aa2613ff896db23cff17c41d490937",
+  "probeVersion": 2,
+  "preloadSha256": "098d0bb9ce1cf549043f9beb1f4b56b7376cc41a93dda3f7b74d89fefa541433",
+  "requestStreamContextBound": true,
+  "receiptObjects": 3,
+  "requestRecords": 69,
+  "invalidCompleteLines": 0,
+  "taskName": "HPM-independent-short-1afe7b3-a6fa74-timing2",
+  "taskResult": 0,
+  "elapsedMs": 112852,
+  "childExitCode": 0,
+  "tests": 40,
+  "passed": 40,
+  "failed": 0,
+  "skipped": 0,
+  "naturalJobEmpty": true,
+  "ownedRuntimeProcessCount": 0,
+  "completedAtUtc": "2026-10-28T01:09:50.1200542Z",
+  "selectedRequestRecords": [
+    {
+      "request": 17,
+      "kind": "chat",
+      "mode": "long-json",
+      "turn": 0,
+      "clientPhase": "body_end",
+      "clientElapsedMs": 487,
+      "serverObservedElapsedMs": 469.098,
+      "spansObservedUntilMs": 467.565,
+      "responseFinished": true,
+      "heapAtStart": 36544256,
+      "heapAtEnd": 64036792,
+      "gcEvents": 1,
+      "gcObservedMs": 3.704,
+      "spans": {
+        "normalizeData": {
+          "count": 695,
+          "totalMs": 116.065,
+          "maxMs": 4.253,
+          "threadCpuUserUs": 93000,
+          "threadCpuSystemUs": 93000,
+          "threadCpuAvailable": true
+        },
+        "fingerprint": {
+          "count": 265,
+          "totalMs": 36.253,
+          "maxMs": 7.584,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 16000,
+          "threadCpuAvailable": true
+        },
+        "credentialGuard": {
+          "count": 85,
+          "totalMs": 57.059,
+          "maxMs": 1.037,
+          "threadCpuUserUs": 32000,
+          "threadCpuSystemUs": 16000,
+          "threadCpuAvailable": true
+        },
+        "cloneState": {
+          "count": 25,
+          "totalMs": 59.973,
+          "maxMs": 3.809,
+          "threadCpuUserUs": 16000,
+          "threadCpuSystemUs": 15000,
+          "threadCpuAvailable": true
+        }
+      }
+    },
+    {
+      "request": 18,
+      "kind": "chat",
+      "mode": "long-json",
+      "turn": 1,
+      "clientPhase": "body_end",
+      "clientElapsedMs": 462,
+      "serverObservedElapsedMs": 443.523,
+      "spansObservedUntilMs": 440.732,
+      "responseFinished": true,
+      "heapAtStart": 65660336,
+      "heapAtEnd": 66990344,
+      "gcEvents": 3,
+      "gcObservedMs": 7.693,
+      "spans": {
+        "normalizeData": {
+          "count": 860,
+          "totalMs": 119.458,
+          "maxMs": 4.595,
+          "threadCpuUserUs": 126000,
+          "threadCpuSystemUs": 0,
+          "threadCpuAvailable": true
+        },
+        "fingerprint": {
+          "count": 294,
+          "totalMs": 48.561,
+          "maxMs": 7.884,
+          "threadCpuUserUs": 31000,
+          "threadCpuSystemUs": 0,
+          "threadCpuAvailable": true
+        },
+        "credentialGuard": {
+          "count": 91,
+          "totalMs": 54.974,
+          "maxMs": 0.891,
+          "threadCpuUserUs": 15000,
+          "threadCpuSystemUs": 0,
+          "threadCpuAvailable": true
+        },
+        "cloneState": {
+          "count": 27,
+          "totalMs": 57.004,
+          "maxMs": 3.297,
+          "threadCpuUserUs": 46000,
+          "threadCpuSystemUs": 16000,
+          "threadCpuAvailable": true
+        }
+      }
+    },
+    {
+      "request": 22,
+      "kind": "chat",
+      "mode": "long-persistent",
+      "turn": 0,
+      "clientPhase": "body_end",
+      "clientElapsedMs": 1644,
+      "serverObservedElapsedMs": 1636.165,
+      "spansObservedUntilMs": 1767.958,
+      "responseFinished": true,
+      "heapAtStart": 84035176,
+      "heapAtEnd": 82871912,
+      "gcEvents": 4,
+      "gcObservedMs": 11.812,
+      "spans": {
+        "normalizeData": {
+          "count": 2125,
+          "totalMs": 144.232,
+          "maxMs": 4.639,
+          "threadCpuUserUs": 109000,
+          "threadCpuSystemUs": 48000,
+          "threadCpuAvailable": true
+        },
+        "fingerprint": {
+          "count": 600,
+          "totalMs": 68.156,
+          "maxMs": 9.165,
+          "threadCpuUserUs": 79000,
+          "threadCpuSystemUs": 16000,
+          "threadCpuAvailable": true
+        },
+        "credentialGuard": {
+          "count": 135,
+          "totalMs": 82.678,
+          "maxMs": 1.277,
+          "threadCpuUserUs": 93000,
+          "threadCpuSystemUs": 15000,
+          "threadCpuAvailable": true
+        },
+        "cloneState": {
+          "count": 175,
+          "totalMs": 91.586,
+          "maxMs": 2.876,
+          "threadCpuUserUs": 45000,
+          "threadCpuSystemUs": 32000,
+          "threadCpuAvailable": true
+        }
+      }
+    },
+    {
+      "request": 23,
+      "kind": "chat",
+      "mode": "long-persistent",
+      "turn": 1,
+      "clientPhase": "body_end",
+      "clientElapsedMs": 1707,
+      "serverObservedElapsedMs": 1687.626,
+      "spansObservedUntilMs": 1802.51,
+      "responseFinished": true,
+      "heapAtStart": 80473568,
+      "heapAtEnd": 90028440,
+      "gcEvents": 5,
+      "gcObservedMs": 15.356,
+      "spans": {
+        "normalizeData": {
+          "count": 2693,
+          "totalMs": 179.333,
+          "maxMs": 4.527,
+          "threadCpuUserUs": 124000,
+          "threadCpuSystemUs": 63000,
+          "threadCpuAvailable": true
+        },
+        "fingerprint": {
+          "count": 679,
+          "totalMs": 95.278,
+          "maxMs": 9.384,
+          "threadCpuUserUs": 61000,
+          "threadCpuSystemUs": 0,
+          "threadCpuAvailable": true
+        },
+        "credentialGuard": {
+          "count": 145,
+          "totalMs": 89.003,
+          "maxMs": 1.296,
+          "threadCpuUserUs": 76000,
+          "threadCpuSystemUs": 16000,
+          "threadCpuAvailable": true
+        },
+        "cloneState": {
+          "count": 176,
+          "totalMs": 121.278,
+          "maxMs": 4.436,
+          "threadCpuUserUs": 94000,
+          "threadCpuSystemUs": 31000,
+          "threadCpuAvailable": true
+        }
+      }
+    },
+    {
+      "request": 45,
+      "kind": "responses",
+      "mode": "long-persistent",
+      "turn": 0,
+      "clientPhase": "body_end",
+      "clientElapsedMs": 1468,
+      "serverObservedElapsedMs": 1455.914,
+      "spansObservedUntilMs": 1585.513,
+      "responseFinished": true,
+      "heapAtStart": 131122824,
+      "heapAtEnd": 139311600,
+      "gcEvents": 4,
+      "gcObservedMs": 11.145,
+      "spans": {
+        "normalizeData": {
+          "count": 2296,
+          "totalMs": 170.29,
+          "maxMs": 5.337,
+          "threadCpuUserUs": 109000,
+          "threadCpuSystemUs": 32000,
+          "threadCpuAvailable": true
+        },
+        "fingerprint": {
+          "count": 610,
+          "totalMs": 58.033,
+          "maxMs": 7.636,
+          "threadCpuUserUs": 31000,
+          "threadCpuSystemUs": 15000,
+          "threadCpuAvailable": true
+        },
+        "credentialGuard": {
+          "count": 135,
+          "totalMs": 74.515,
+          "maxMs": 1.038,
+          "threadCpuUserUs": 79000,
+          "threadCpuSystemUs": 0,
+          "threadCpuAvailable": true
+        },
+        "cloneState": {
+          "count": 239,
+          "totalMs": 112.73,
+          "maxMs": 3.491,
+          "threadCpuUserUs": 78000,
+          "threadCpuSystemUs": 32000,
+          "threadCpuAvailable": true
+        }
+      }
+    },
+    {
+      "request": 46,
+      "kind": "responses",
+      "mode": "long-persistent",
+      "turn": 1,
+      "clientPhase": "body_end",
+      "clientElapsedMs": 2156,
+      "serverObservedElapsedMs": 2141.574,
+      "spansObservedUntilMs": 2263.585,
+      "responseFinished": true,
+      "heapAtStart": 133999640,
+      "heapAtEnd": 143654464,
+      "gcEvents": 6,
+      "gcObservedMs": 14.491,
+      "spans": {
+        "normalizeData": {
+          "count": 3003,
+          "totalMs": 218.522,
+          "maxMs": 5.074,
+          "threadCpuUserUs": 94000,
+          "threadCpuSystemUs": 77000,
+          "threadCpuAvailable": true
+        },
+        "fingerprint": {
+          "count": 679,
+          "totalMs": 85.144,
+          "maxMs": 7.569,
+          "threadCpuUserUs": 62000,
+          "threadCpuSystemUs": 32000,
+          "threadCpuAvailable": true
+        },
+        "credentialGuard": {
+          "count": 145,
+          "totalMs": 101.568,
+          "maxMs": 4.358,
+          "threadCpuUserUs": 79000,
+          "threadCpuSystemUs": 16000,
+          "threadCpuAvailable": true
+        },
+        "cloneState": {
+          "count": 254,
+          "totalMs": 168.415,
+          "maxMs": 3.9,
+          "threadCpuUserUs": 94000,
+          "threadCpuSystemUs": 63000,
+          "threadCpuAvailable": true
+        }
+      }
+    },
+    {
+      "request": 68,
+      "kind": "claude",
+      "mode": "long-persistent",
+      "turn": 0,
+      "clientPhase": "body_end",
+      "clientElapsedMs": 1932,
+      "serverObservedElapsedMs": 1917.568,
+      "spansObservedUntilMs": 2059.451,
+      "responseFinished": true,
+      "heapAtStart": 116321840,
+      "heapAtEnd": 125018112,
+      "gcEvents": 4,
+      "gcObservedMs": 19.373,
+      "spans": {
+        "normalizeData": {
+          "count": 2186,
+          "totalMs": 211.953,
+          "maxMs": 7.953,
+          "threadCpuUserUs": 80000,
+          "threadCpuSystemUs": 0,
+          "threadCpuAvailable": true
+        },
+        "fingerprint": {
+          "count": 614,
+          "totalMs": 92.418,
+          "maxMs": 8.106,
+          "threadCpuUserUs": 93000,
+          "threadCpuSystemUs": 0,
+          "threadCpuAvailable": true
+        },
+        "credentialGuard": {
+          "count": 135,
+          "totalMs": 107.997,
+          "maxMs": 3.974,
+          "threadCpuUserUs": 31000,
+          "threadCpuSystemUs": 0,
+          "threadCpuAvailable": true
+        },
+        "cloneState": {
+          "count": 180,
+          "totalMs": 130.497,
+          "maxMs": 4.733,
+          "threadCpuUserUs": 79000,
+          "threadCpuSystemUs": 47000,
+          "threadCpuAvailable": true
+        }
+      }
+    },
+    {
+      "request": 69,
+      "kind": "claude",
+      "mode": "long-persistent",
+      "turn": 1,
+      "clientPhase": "body_end",
+      "clientElapsedMs": 2000,
+      "serverObservedElapsedMs": 1984.571,
+      "spansObservedUntilMs": 2129.947,
+      "responseFinished": true,
+      "heapAtStart": 122671320,
+      "heapAtEnd": 109010264,
+      "gcEvents": 8,
+      "gcObservedMs": 33.116,
+      "spans": {
+        "normalizeData": {
+          "count": 2776,
+          "totalMs": 240.065,
+          "maxMs": 5.684,
+          "threadCpuUserUs": 138000,
+          "threadCpuSystemUs": 62000,
+          "threadCpuAvailable": true
+        },
+        "fingerprint": {
+          "count": 693,
+          "totalMs": 109.897,
+          "maxMs": 7.678,
+          "threadCpuUserUs": 32000,
+          "threadCpuSystemUs": 32000,
+          "threadCpuAvailable": true
+        },
+        "credentialGuard": {
+          "count": 145,
+          "totalMs": 102.603,
+          "maxMs": 2.177,
+          "threadCpuUserUs": 31000,
+          "threadCpuSystemUs": 47000,
+          "threadCpuAvailable": true
+        },
+        "cloneState": {
+          "count": 181,
+          "totalMs": 156.307,
+          "maxMs": 5.668,
+          "threadCpuUserUs": 189000,
+          "threadCpuSystemUs": 0,
+          "threadCpuAvailable": true
+        }
+      }
+    }
+  ],
+  "limitations": {
+    "profilingPerturbed": true,
+    "qualification": false,
+    "inclusiveSpansMayOverlap": true,
+    "spansMayIncludePostBodyWork": true,
+    "gcObservationMayLag": true,
+    "otherThreadWorkNotAttributed": true,
+    "windowsThreadCpuCountersAreCoarse": true,
+    "uniqueCauseEstablished": false,
+    "fiveSecondStabilityEstablished": false,
+    "earlierFortyCaseFailurePreserved": true,
+    "observerV1EmptySpansRejected": true
+  },
+  "observerCorrection": {
+    "smallRequestSmokeWasInsufficient": true,
+    "largePayloadCharacters": 600000,
+    "largePayloadBeforeFixEmptySpans": true,
+    "largePayloadAfterFixCredentialGuardCount": 1,
+    "largePayloadAfterFixNormalizeDataCount": 1,
+    "privateObserverOnly": true,
+    "productChanges": false
+  },
+  "realModelRequests": 0,
+  "longRunStartedOrRestarted": false,
+  "oldManagerModified": false
+}

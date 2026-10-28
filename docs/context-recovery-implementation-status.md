@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：SSH恢复，单请求阶段诊断完成；4bd完整CI仍有失败
+
+SSH恢复后只读续查同一timing2任务，未因断线重启。独立1afe冻结源码原40项在私有观察器下40/40、零skip，112852ms、exit0，原120000ms父门/5000ms请求门及600000字符负载保持，所属Job自然为空、任务Ready/result0、该根运行进程0。69份请求阶段记录中，六次long-persistent正文为1468–2156ms；认证guard累计74.515–107.997ms，单次最大4.358ms，不能据此归因旧五秒失败或删减认证。规范化/克隆/指纹跨度可能嵌套，不能相加解释总时长；部分包含正文后的ACK，线程CPU计数也较粗，未归属其他线程。原5477ms失败与全部旧失败保持，本批没有产品超时修复或稳定性资格。有限证据见context-recovery-evidence/1afe7b3-request-stage-observation.json。
+
+第一版观察器大请求阶段计数为空，已拒绝作为归因证据。起初小请求/小流式烟测不足，不能据此确认流事件归因；随后600000字符负载实际复现空计数，只在新私有观察器传播req/res流事件的观测上下文，恢复原认证/规范化调用计数。未改源码或原函数行为，原始profile、私有日志、数据库和凭据未上传。该修正只修观察工具，不声称修复产品。
+
+固定4bd3ffc普通40611496992六作业success、unit1/job122563851285 failure、coverage/job122563851529仍运行；正式40611496944/source122563850968 failure、egress success、业务skipped。已读两份失败完整日志：unit1实际旧DPAPI互操作用例在legacy_unprotect 10025ms/ETIMEDOUT、legacyPhase unobserved失败，native_protect 14ms完成；正式sending释放用例在awaiting=ready/5207ms失败，startup ready为2087ms，第三次save-reference-state仅见engine_execute_started，sqlProgress为空，未进入目标中断。不能凭此确认COMMIT、DPAPI或杀毒为唯一根因。没有重跑掩盖失败，原十秒/五秒门保持；证据见context-recovery-evidence/4bd3ffc-ci-failure-scopes.json。前一批1afe完整CI通过不能覆盖本批失败，额外I/O录制器旧失败也保持。
+
+下一步优先将剩余持久耗时关联到worker执行、SQLite及锚点各阶段，再改已证实的瓶颈；当前证据不足以安全删事务、认证或跨事务复用解密。原6646长测仍为85分钟最后有效节拍、90分钟失败，未重启或新启24h；旧E实例未切换。其余daemon COMMIT/uncertain/withdrawn矩阵、本机最新安装两端、逐provider额度核对后的真实模型、24h到期双重开、最大容量及受控自用仍未完成。本批模型0、额度未写、日常配置未改。
+
 ## 2026-10-28：9e与1afe完整CI通过；本机原40项仍失败，隔离采样不覆盖失败
 
 固定9e26dfc普通40607195765八作业、正式40607195689六作业全部success，事务内头认证复用已通过相同源码Windows门。固定1afe7b3普通40607922332八作业、正式40607922322六作业也全部success；已读取正式finished/job122559607051完整日志，核对源码SHA、plan/build摘要及执行后hosted_network_finished、ownedTreeEmpty回执，不能只把prepare-only当执行。该正式范围仍是原N08、N09十场景及独立sending/finished两场景，不授其他daemon内部矩阵或整体验收。额外I/O40607922323/job122551960491仍failure：20项原生发布用例通过后，after-hook因coverage_io_capture_recorder_exit拒绝回执（188492ms）；没有有效录制资格，尚未确认录制器根因。本次该日志未见新增五秒请求失败，不能由此覆盖所有旧五秒失败。证据见context-recovery-evidence/1afe7b3-complete-ci-scopes.json。
