@@ -1,0 +1,448 @@
+{
+  "schemaVersion": 1,
+  "runtimeSourceSha": "6c801fac70e4c80b7ce64d32c8bc7a8698fa322e",
+  "qualification": false,
+  "ci": {
+    "verify": {
+      "runId": 40762748054,
+      "conclusion": "failure",
+      "coverageJob": 123078713417,
+      "fullLogCharacters": 3768510,
+      "visibleFailures": 1,
+      "phase": "Chat long-persistent turn0 publication_wait_failed",
+      "elapsedMs": 5000,
+      "headersReceivedMs": 4856,
+      "bodyEndMs": 4857
+    },
+    "formal": {
+      "runId": 40762748060,
+      "conclusion": "failure",
+      "sourceJob": 123078713687,
+      "fullLogCharacters": 3758575,
+      "visibleFailures": 1,
+      "phase": "Chat long-persistent turn0 request_failed",
+      "elapsedMs": 5016,
+      "requests": 2,
+      "handshakes": 2,
+      "businessJobConclusion": "skipped"
+    },
+    "timing": {
+      "runId": 40762748031,
+      "conclusion": "success",
+      "runners": 3,
+      "testsPerRunner": 50,
+      "publicationRangeMs": [609, 1094]
+    },
+    "persistentIo": {
+      "runId": 40762748621,
+      "conclusion": "success",
+      "fullLogCharacters": 271962,
+      "pairedFlushes": 144,
+      "databaseMaxMs": 25,
+      "journalMaxMs": 16,
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    "extraCoverageIo": {
+      "runId": 40762748071,
+      "conclusion": "success",
+      "fullLogCharacters": 3819609
+    },
+    "coverageIoReceiptsAcceptedByOriginalParser": 7,
+    "cleanupVerified": true
+  },
+  "persistentFailureSamples": [
+    {
+      "jobId": 123078713417,
+      "sourceSha": "6c801fac70e4c80b7ce64d32c8bc7a8698fa322e",
+      "failure": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_failed",
+          "elapsedMs": 5000
+        }
+      ],
+      "phases": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "headers_received",
+          "elapsedMs": 4856
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "body_end",
+          "elapsedMs": 4857
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_start",
+          "elapsedMs": 4857
+        }
+      ],
+      "commits": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 0,
+          "operation": "startup",
+          "stage": "sqlite_commit",
+          "elapsedMs": 562,
+          "startedAtUnixMs": 1793219556986,
+          "finishedAtUnixMs": 1793219557547,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 3,
+          "operation": "save-reference-state",
+          "stage": "sqlite_commit",
+          "elapsedMs": 1862,
+          "startedAtUnixMs": 1793219558439,
+          "finishedAtUnixMs": 1793219560302,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 4,
+          "operation": "save-reference-state",
+          "stage": "sqlite_commit",
+          "elapsedMs": 2187,
+          "startedAtUnixMs": 1793219561266,
+          "finishedAtUnixMs": 1793219563452,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 5,
+          "operation": "settle-reader",
+          "stage": "sqlite_commit",
+          "elapsedMs": 56,
+          "startedAtUnixMs": 1793219563764,
+          "finishedAtUnixMs": 1793219563820,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 15000,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 6,
+          "operation": "save-reference-state",
+          "stage": "sqlite_commit",
+          "elapsedMs": 402,
+          "startedAtUnixMs": 1793219564242,
+          "finishedAtUnixMs": 1793219564644,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 7,
+          "operation": "read-source-and-settle",
+          "stage": "sqlite_commit",
+          "elapsedMs": 48,
+          "startedAtUnixMs": 1793219564937,
+          "finishedAtUnixMs": 1793219564985,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 8,
+          "operation": "save-reference-state",
+          "stage": "sqlite_commit",
+          "elapsedMs": 28,
+          "startedAtUnixMs": 1793219565171,
+          "finishedAtUnixMs": 1793219565200,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 9,
+          "operation": "save-reference-state",
+          "stage": "sqlite_commit",
+          "elapsedMs": 202,
+          "startedAtUnixMs": 1793219565270,
+          "finishedAtUnixMs": 1793219565472,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 10,
+          "operation": "save-reference-state",
+          "stage": "sqlite_commit",
+          "elapsedMs": 17,
+          "startedAtUnixMs": 1793219565541,
+          "finishedAtUnixMs": 1793219565558,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        }
+      ]
+    },
+    {
+      "jobId": 123078713687,
+      "sourceSha": "6c801fac70e4c80b7ce64d32c8bc7a8698fa322e",
+      "failure": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "request_failed",
+          "elapsedMs": 5016,
+          "requests": 2,
+          "handshakes": 2,
+          "roots": 1
+        }
+      ],
+      "phases": [],
+      "commits": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 0,
+          "operation": "startup",
+          "stage": "sqlite_commit",
+          "elapsedMs": 800,
+          "startedAtUnixMs": 1793219558934,
+          "finishedAtUnixMs": 1793219559734,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 3,
+          "operation": "save-reference-state",
+          "stage": "sqlite_commit",
+          "elapsedMs": 976,
+          "startedAtUnixMs": 1793219560498,
+          "finishedAtUnixMs": 1793219561474,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 4,
+          "operation": "save-reference-state",
+          "stage": "sqlite_commit",
+          "elapsedMs": 1410,
+          "startedAtUnixMs": 1793219562325,
+          "finishedAtUnixMs": 1793219563735,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 5,
+          "operation": "settle-reader",
+          "stage": "sqlite_commit",
+          "elapsedMs": 1514,
+          "startedAtUnixMs": 1793219564009,
+          "finishedAtUnixMs": 1793219565523,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 16000,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "phase": "owner-stage",
+          "sequence": 6,
+          "operation": "save-reference-state",
+          "stage": "sqlite_commit",
+          "elapsedMs": 942,
+          "startedAtUnixMs": 1793219566277,
+          "finishedAtUnixMs": 1793219567220,
+          "wallClockRollbackObserved": false,
+          "threadCpuUserUs": 0,
+          "threadCpuSystemUs": 0,
+          "ownerEpoch": 1
+        }
+      ]
+    }
+  ],
+  "windows": {
+    "originalPreparationFailure": {
+      "npmCiExitCode": 0,
+      "pluginCiExitCode": 0,
+      "postInstallGitRevision": "ETIMEDOUT at original 5000ms",
+      "productTestsStarted": false,
+      "taskExitCode": 1
+    },
+    "separateAdmission": {
+      "gitAndInstalledLockChecksPassed": true,
+      "dependenciesReinstalled": false,
+      "originalFailurePreserved": true
+    },
+    "defaultOpen": {
+      "opens": 2,
+      "closes": 2,
+      "readyMs": [2867, 2845],
+      "startupDeadlineMs": 30000,
+      "fiveSecondQualified": false
+    },
+    "journalPassed": 9,
+    "capacityClockPassed": 28,
+    "blobsPassed": 92,
+    "rootStatePassed": 73,
+    "fixedLargeBlobCaseMs": 46563.1295,
+    "fixedFourRoots32MiBMs": 104807.2163,
+    "originalLargeCaseDeadlineMs": 180000,
+    "nativeInterruption": {
+      "visiblePassed": 5,
+      "visibleFailed": 14,
+      "failedCasesAwaiting": "ready",
+      "failedCasesTargetAdvanceReached": false,
+      "finalTotalsAvailable": false,
+      "outerDeadlineMs": 120000,
+      "taskExitCode": 126,
+      "reason": "probe_deadline",
+      "ownedProcessesAfterFailure": 0,
+      "followingFiveSecondGroupStarted": false
+    }
+  },
+  "separateOriginalHttpDiagnostic": {
+    "filtered": false,
+    "qualification": false,
+    "tests": [
+      "test/client-context-target.test.js",
+      "test/context-recovery-native-graceful-http.test.js"
+    ],
+    "coreCasesObservedPassed": 30,
+    "nativeHttpObservedPassed": 5,
+    "nativeHttpObservedFailed": 1,
+    "failure": {
+      "test": "not ok 35 - native worker HTTP normal stop drains transport-finished inside actual COMMIT lock wait",
+      "awaiting": "ready",
+      "lastFixture": "fixture-prepared",
+      "startupPhase": "ready",
+      "startupElapsedMs": 2910,
+      "durationMs": 5148.6438
+    },
+    "persistentPublicationSamplesMs": [2395, 2980, 2582, 1990, 1689, 2203],
+    "finalTotalsAvailable": false,
+    "naturalExitConfirmed": false,
+    "outerDeadlineMs": 120000,
+    "taskExitCode": 126,
+    "ownedProcessesAfterFailure": 0,
+    "sumReportedCaseDurationsMs": 113516,
+    "cleanupLeakProven": false,
+    "postRunSourceNativeAndNodeIdentityVerified": true,
+    "sourceSha256": "238eaa5d52ec40cef60d6f196579f8de883d9966218569ecb8c7217ec9f6aedd",
+    "nativeSha256": "9c7362db4cc538d2729ffe3ee7de8e7308606b3bc125133874bc2e26804e2a80"
+  },
+  "writeByteDiagnostic": {
+    "event": "reference_write_byte_measurement",
+    "sourceHead": "6c801fac70e4c80b7ce64d32c8bc7a8698fa322e",
+    "fixtureSourceSha256": "05e1674a5bc6d1a12d0960bde0aea07b6eda6597ff781c834d466034b46239c6",
+    "scope": "Committed checkpoint fixture with a 600000-byte synthetic suffix; not the exact WBIPC HTTP fixture or Windows acceptance",
+    "sourceVersion": 10,
+    "sourceBytes": 600025,
+    "referenceEncodedBytes": 4293,
+    "metadataFields": {
+      "kind": 24,
+      "rootId": 38,
+      "principal": 7,
+      "protocol": 6,
+      "target": 8,
+      "policyFingerprint": 66,
+      "policyBasis": 4,
+      "createdAt": 3,
+      "expiresAt": 8,
+      "observedAt": 3,
+      "callCount": 1,
+      "binding": 2241,
+      "history": 167,
+      "ledger": 685,
+      "budget": 61,
+      "snapshots": 570,
+      "version": 1,
+      "sourceVersion": 2
+    },
+    "before": {
+      "manifestCiphertextBytes": 4387,
+      "blobCiphertextBytes": 600219
+    },
+    "after": {
+      "manifestCiphertextBytes": 4387,
+      "blobCiphertextBytes": 600219
+    },
+    "immutableBlobUnchanged": true,
+    "sqlRowsChangedByMetadataSave": 1,
+    "fullSynchronous": 2,
+    "deleteJournal": "delete",
+    "qualification": false,
+    "realModelRequests": 0
+  },
+  "remaining": [
+    "Correlate failed request COMMIT intervals to individual physical files and issuing processes; current finite category/timing windows do not prove unique physical cause",
+    "Fix actual persistent request tail while retaining FULL/DELETE, exact ACK, original expiry and budget ordering",
+    "Resolve native interruption readiness and full original group completion",
+    "Latest installer upgrade/rollback and both installed clients remain blocked",
+    "Provider validation requires fresh separate quota audit and secure local configuration",
+    "Valid real24h plus original expiry wait and two reopens not passed; old 868 remains failed and frozen",
+    "Maximum capacity remains user-paused; daily old instance retained for user-controlled switch"
+  ],
+  "new24HourStarted": false,
+  "realModelRequests": 0,
+  "oldFailuresPreserved": true
+}
