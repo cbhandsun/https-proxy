@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "baseSource": "50f73e151c62b74fd772cbfdb575c54610cc8bc2",
+  "change": "Daily snapshot shape admission consumes counters from the complete descriptor-only encoder instead of serializing the retained history and rescanning all raw text.",
+  "bounds": {
+    "encodedBytes": "Exact count from unchanged scalar accounting.",
+    "rawBytesUpperBound": "Encoded bytes plus ASCII array-index key lengths; conservatively bounds the former recursive raw-key count.",
+    "maximumBytes": 117440512,
+    "nodes": 65536,
+    "depth": 64,
+    "nearBoundary": "Conservative proof failure retains the existing exact authenticated hydration; legacy path unchanged."
+  },
+  "regression": {
+    "beforeSkeletonSerializations": 1,
+    "afterSkeletonSerializations": 0,
+    "beforeExitCode": 1,
+    "pureRelated": {
+      "tests": 140,
+      "pass": 140,
+      "fail": 0,
+      "skip": 0
+    },
+    "expanded": {
+      "tests": 168,
+      "pass": 167,
+      "fail": 1,
+      "skip": 0,
+      "failure": "actual encrypted worker exposes reference save/load, exact pages and legacy load across reopen",
+      "code": "context_recovery_storage_unavailable",
+      "scope": "Known Mac native startup failure, retained; Mac platform-conditional returns do not grant Windows qualification."
+    }
+  },
+  "checks": {
+    "syntaxFiles": 1737,
+    "targetedLintPassed": true,
+    "ciGovernancePassed": true,
+    "unifiedDiscoveryConfirmed": true
+  },
+  "benchmark": {
+    "sourceBase": "50f73e151c62b74fd772cbfdb575c54610cc8bc2",
+    "diagnosticDirty": true,
+    "privateHistoryBytes": 8388608,
+    "nativeStorage": false,
+    "qualification": false,
+    "realModelRequests": 0,
+    "samples": [
+      {
+        "mode": "baseline",
+        "sourceSha256": "a0c5484ac757e95f3023a9103667040472650de3acc64996ad57f0f121364820",
+        "timesMs": [181, 161, 159, 173, 175],
+        "skeletonSerializations": 5
+      },
+      {
+        "mode": "modified",
+        "sourceSha256": "79d56799fafcf79ca0da042001d3becbd74b417b6f2f368e2c981f78f3321f9f",
+        "timesMs": [162, 171, 164, 190, 189],
+        "skeletonSerializations": 0
+      }
+    ]
+  },
+  "benchmarkConclusion": "Five 8MiB in-memory snapshot samples do not demonstrate wall-time improvement. Additional full-tree serializations fall from five to zero. No Windows five-second qualification.",
+  "oldSourceWindowsDiagnostic": {
+    "sourceSha": "ae664cc0f6998eac24bd84bdbd19ab14a5ae9020",
+    "taskResult": 0,
+    "childExitCode": 0,
+    "controllerElapsedMs": 161196,
+    "originalDeadlineMs": 180000,
+    "stageIntervals": {
+      "buildMs": [10702, 10598, 7181, 9708],
+      "saveMs": [7407, 7544, 12742, 16027],
+      "reopenMs": 23062,
+      "loadMs": [10043, 10196, 10391, 10990]
+    },
+    "qualification": false,
+    "previous180SecondFailureRetained": true,
+    "diagnosticFailuresRetained": [
+      "Owned-job stdin handshake blocked behind extra Node test parent, before product invocation.",
+      "Incorrect expected stage count rejected seven actual stage sites before product invocation."
+    ]
+  },
+  "baseCoverageFailure": {
+    "sourceSha": "50f73e151c62b74fd772cbfdb575c54610cc8bc2",
+    "runId": 40750514561,
+    "jobId": 123035650972,
+    "conclusion": "failure",
+    "fullLogCharacters": 3741220,
+    "failedTest": "actual core chat WBIPC recovery has exclusive ownership and live credential revocation",
+    "failure": [
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "turn": 0,
+        "phase": "request_failed",
+        "elapsedMs": 5003,
+        "requests": 1,
+        "handshakes": 1,
+        "roots": 1
+      }
+    ],
+    "commits": [
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "owner-stage",
+        "sequence": 0,
+        "operation": "startup",
+        "stage": "sqlite_commit",
+        "elapsedMs": 1450,
+        "startedAtUnixMs": 1793214679615,
+        "finishedAtUnixMs": 1793214681065,
+        "wallClockRollbackObserved": false,
+        "threadCpuUserUs": 0,
+        "threadCpuSystemUs": 0,
+        "ownerEpoch": 1
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "owner-stage",
+        "sequence": 3,
+        "operation": "save-reference-state",
+        "stage": "sqlite_commit",
+        "elapsedMs": 2019,
+        "startedAtUnixMs": 1793214683474,
+        "finishedAtUnixMs": 1793214685493,
+        "wallClockRollbackObserved": false,
+        "threadCpuUserUs": 0,
+        "threadCpuSystemUs": 0,
+        "ownerEpoch": 1
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "owner-stage",
+        "sequence": 4,
+        "operation": "save-reference-state",
+        "stage": "sqlite_commit",
+        "elapsedMs": 5448,
+        "startedAtUnixMs": 1793214687388,
+        "finishedAtUnixMs": 1793214692836,
+        "wallClockRollbackObserved": false,
+        "threadCpuUserUs": 0,
+        "threadCpuSystemUs": 0,
+        "ownerEpoch": 1
+      }
+    ],
+    "qualification": false
+  },
+  "invariants": [
+    "Every snapshot independently authenticates actual manifest and payload bytes.",
+    "No authentication proof survives COMMIT.",
+    "Original FULL/DELETE, expiry, exact ACK, budgets and all deadlines unchanged."
+  ],
+  "new24hStarted": false,
+  "realModelRequests": 0,
+  "remaining": "Persistent five-second tail, current-source full gates, latest local installer and both clients, secure quota reconciliation and real providers, valid real24h/expiry, paused maximum-capacity and controlled self-use remain incomplete."
+}

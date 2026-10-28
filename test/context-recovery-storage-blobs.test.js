@@ -363,6 +363,25 @@ test('reference snapshots authenticate all payloads without hydrating a plaintex
   assert.equal(hydrated, 1, 'a full load still uses the original hydration validator');
 });
 
+test('daily reference snapshot admits capacity without serializing a full private-history skeleton', (t) => {
+  const f = fixture();
+  t.after(() => f.close());
+  const state = checkpoint(['synthetic first', 'synthetic second']);
+  assert.equal(state.root.version, 10);
+  f.execute(stateRequest(f, referenceStateFromCheckpoint(state), checkpointPayloads(state)));
+  const stringify = JSON.stringify;
+  let skeletons = 0;
+  t.mock.method(JSON, 'stringify', (value, ...args) => {
+    if (value?.kind === 'recovery-write-ahead') skeletons++;
+    return Reflect.apply(stringify, JSON, [value, ...args]);
+  });
+  const snapshot = f.snapshot();
+  assert.equal(snapshot.scopes[0].expiresAt, state.root.expiresAt);
+  assert.equal(skeletons, 0, 'capacity admission must not serialize retained private history');
+  t.mock.restoreAll();
+  assert.deepEqual(f.load().state, state);
+});
+
 test('snapshot reuses authenticated UTF-8 bytes before the independent capture-policy check', (t) => {
   const f = fixture();
   t.after(() => f.close());
