@@ -21,15 +21,16 @@ node scripts/prepare-context-hosted-run.js n08
 ./scripts/qualify-context-hosted.ps1 -Case n08
 ```
 
-The original N09 job uses `n09` in both positions. The independent sending ACK
-job uses `n09-sending-ack` in both positions. The prepare command checks the
-exact GitHub source SHA and tracked source hashes, observes the actual
+The original N09 job uses `n09` in both positions. The independent sending and
+transport-finished ACK jobs use `n09-sending-ack` and `n09-finished-ack`
+respectively in both positions. The prepare command checks the exact GitHub
+source SHA and tracked source hashes, observes the actual
 `npm run release:prepare` exit, then creates a fresh
 `$RUNNER_TEMP/hpm-context-n08`, `hpm-context-n09`, or
-`hpm-context-n09-sending-ack` directory. The payload's schema-2 manifest,
-executable, source hashes, release layout and production dependency lock are
-verified before the fixed review plan is written. A collision fails and
-preserves the existing directory.
+`hpm-context-n09-sending-ack`, or `hpm-context-n09-finished-ack` directory. The
+payload's schema-2 manifest, executable, source hashes, release layout and
+production dependency lock are verified before the fixed review plan is written.
+A collision fails and preserves the existing directory.
 
 Source package-lock and runtime package-lock are different artifacts: production
 staging intentionally removes development dependencies. `runtime-lock.js`
@@ -159,16 +160,29 @@ five-second internal hold, source/manifest closure and default storage owner.
 The WFP guard admits only the additional fixed runner-local executable path,
 retaining its original platform, environment and physical ancestor checks.
 
+`n09-finished-ack` independently holds the transport-finished durable write
+before delivery of its original ACK, after the genuine prepared and sending
+predecessor ACKs. The held snapshot must advance exactly three revisions with
+the original budget and expiry. The original HTTP request must already have
+received the exact complete public answer; its byte count and digest are bound
+within the same 750ms witness. This transport fact is distinct from the final
+publication completion barrier. Kill/reopen must preserve the exact held
+revision and recover the original; the release control must additionally await
+the original publication completion barrier. No replacement HTTP request or
+model retry is issued. A separate hashed plan, fixed executable path, two-case
+receipt and original 120-second Job retain isolation from the other groups. This
+new group still requires its own Windows execution result.
+
 These are bounded scenario evidence. Other publication COMMIT interiors
 (`sending`, `transport-finished`, `uncertain`, `withdrawn`), the remaining
-daemon durable-ACK interiors (`transport-finished`, `uncertain`, `withdrawn`),
-historical-layout backup migration, installation lifecycle, full N09, 24-hour
-capacity, real providers and production activation remain outside these
-scenarios. Existing `n08Qualified:false` and `n09Complete:false` flags are
-preserved; a successful hosted run proves only its described cases. Source
-preparation alone proves no runtime result. The always-running workflow summary
-prints a passed scenario scope only for the matching successful job. It reports
-the remaining exclusions for every outcome.
+daemon durable-ACK interiors (`uncertain`, `withdrawn`), historical-layout
+backup migration, installation lifecycle, full N09, 24-hour capacity, real
+providers and production activation remain outside these scenarios. Existing
+`n08Qualified:false` and `n09Complete:false` flags are preserved; a successful
+hosted run proves only its described cases. Source preparation alone proves no
+runtime result. The always-running workflow summary prints a passed scenario
+scope only for the matching successful job. It reports the remaining exclusions
+for every outcome.
 
 Historical verification of earlier promoted scenarios passed 251 tests across
 the promoted scenarios and synthetic OS pipe suite, with no failures or skips on

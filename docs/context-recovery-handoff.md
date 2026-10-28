@@ -1,5 +1,17 @@
 # 上下文恢复换机交接
 
+## 2026-10-28：sending Windows独立诊断通过；修正矩阵检查，接入transport-finished ACK组
+
+固定7ab7cb7的诊断40605075515三个作业均success；sending/job122542438949完整日志已核对源码SHA、计划/构建摘要及执行后hosted_network_finished和ownedTreeEmpty回执。严格两场景入口/消费链要求实际默认daemon的prepared前置ACK、sending持久精确+2、预算/原expiry不变、强杀时公开0字节、同目录默认owner重开和释放完成屏障。仅授该独立诊断范围。有限证据见context-recovery-evidence/7ab7cb7-sending-ack-diagnostic.json。
+
+7ab完整门未通过：普通40605075604的unit1/job122542439249、unit0/job122542439569、coverage/job122542439327失败，其余五作业success；正式40605075725/source122542439733失败、egress成功、业务skipped；额外I/O/job122542439769失败。五份失败完整日志均已读取，失败断言为两份工作流测试仍要求scenario:[n08,n09]，是上一批新增组时漏改检查，并非本次测得的产品五秒修复或新超时根因。本批同步精确四组枚举，保留原门/依赖/命令/期限/失败停止检查，增加漏原场景/任一ACK组的拒绝用例；不删除断言、不洗掉原失败。
+
+本批新增独立n09-finished-ack组：真实prepared→sending ACK先通过，持有transport-finished保存后的原ACK，原只读快照要求精确+3、预算和原期限不变。此阶段原HTTP回答已经发送，不能套用公开0字节中断断言；新增见证在同一750ms内等待原HTTP请求的完整精确答案并绑定字节数/摘要，和最终发布完成屏障明确区分。强杀前原ACK仍未交付，默认owner同目录新PID重开保留精确版本并恢复；释放对照还必须等待原发布完成屏障。原HTTP单请求回归、错内容/字节数/部分版本/假完成/760ms见证超时/回调关闭/重入及错误回执拒绝均覆盖。无替代请求、无模型重试、无原文缓存或认证削减。
+
+原N09十场景、独立sending两场景保持，新组另用固定目录/摘要绑定plan/独立两场景phase及原120000ms Job、5000ms树关闭门。WFP仅增加第四个固定node路径，平台/物理祖先/ABI门不变；Mac只做同程序集编译，Windows原生守卫与新daemon场景尚待新提交的CI。业务/通道等136项与不重叠边界/闭包34项通过、零fail/skip；单请求断言后wire16项通过，PS实际JSON消费者3接受/17拒绝/native0，摘要14状态行通过。四份PS解析、1712语法、Lint零错误/五既有警告、CI/release治理通过。原Mac Windows Job失败和全仓既有换行格式失败仍保留。有限本机证据见context-recovery-evidence/finished-publication-ack-group.json。
+
+SSH恢复后只读确认固定6646同一长测在UTC00:07:44仍运行：85分钟/18有效节拍、进程存活、无失败锁存，未重启/抢占。尚未24小时，更没有到期两次重开通过。本批未改变产品五秒恢复路径，持久尾延迟稳定性仍未解决。真实模型0、账未写、旧E实例不动。剩余uncertain/withdrawn及COMMIT实际daemon矩阵、五秒尾延迟、本机候选安装两端、真实provider（先核对逐provider额度）、24h/最大容量与受控启用继续保留，整体交付未完成。
+
 ## 2026-10-27：sending ACK独立两场景已接入，待实际Windows门
 
 优先读实施状态顶部。新n09-sending-ack有独立目录、校验过的分组计划/回执和原120秒Job/五秒树关闭门，原n09十场景不变；正式与诊断矩阵均新增该组。必须先prepared原ACK，再以持久快照验证sending总精确+2、预算/原期限不变及公开0字节；强杀同目录重开、释放正对照完成屏障保持。WFP仅增这个固定目录node路径，原环境/物理门保持，15路径正反例待Windows执行。

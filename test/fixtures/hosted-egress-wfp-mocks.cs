@@ -102,7 +102,7 @@ public static class HpmHostedEgressFixture {
             Environment.SetEnvironmentVariable("RUNNER_ENVIRONMENT", "github-hosted");
             Environment.SetEnvironmentVariable("RUNNER_OS", "Windows");
             Environment.SetEnvironmentVariable("RUNNER_TEMP", root);
-            foreach (string scenario in new [] {"n08", "n09", "n09-sending-ack"}) {
+            foreach (string scenario in new [] {"n08", "n09", "n09-sending-ack", "n09-finished-ack"}) {
                 string node = Path.Combine(root, "hpm-context-" + scenario, "payload", "runtime", "node", "node.exe");
                 Directory.CreateDirectory(Path.GetDirectoryName(node));
                 File.WriteAllText(node, "synthetic inert file");

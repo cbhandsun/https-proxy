@@ -103,6 +103,7 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
         stopLifecycle: async (owner) => {
           state.events.push('kill');
           state.ackProbeActive = false;
+          state.ackQueued = false;
           state.interruptObserved?.(state.interruptionReason ?? 'transport-error');
           state.rejectPending?.(new Error('synthetic_forced_kill'));
           state.ackCommand = undefined;
@@ -172,7 +173,13 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
               challenge: 'f'.repeat(32),
               ...state.ackTarget,
               kind,
-              callOrdinal: held ? (state.ackTarget.transition === 'sending' ? 3 : 2) : 1,
+              callOrdinal: held
+                ? state.ackTarget.transition === 'sending'
+                  ? 3
+                  : state.ackTarget.transition === 'transport-finished'
+                    ? 4
+                    : 2
+                : 1,
               holdChallenge: held ? 'a'.repeat(32) : '',
               revision: state.ackTarget.expectedRevision + (held ? 1 : 0),
             };
@@ -412,7 +419,15 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
         result = await native(publicBody);
         if (state.ackProbeActive) {
           state.ackQueued = true;
-          state.revision += state.ackTarget.transition === 'sending' ? 2 : 1;
+          state.revision +=
+            ['prepared', 'sending', 'transport-finished'].indexOf(state.ackTarget.transition) + 1;
+          if (state.ackTarget.transition === 'transport-finished') {
+            const bytes = Buffer.from(JSON.stringify(result));
+            state.observedHttp.bytes = bytes.length;
+            state.events.push('public-wire-before-ack');
+            state.publicWireResponse = { status: 200, bytes };
+            state.interruptObserved('response', { response: state.publicWireResponse });
+          }
           await new Promise((resolve, reject) => {
             state.resolveAck = resolve;
             state.rejectPending = reject;
@@ -426,7 +441,10 @@ function fixture(mutation = () => {}, onPhase, prepared = false) {
           });
         }
         if (state.refuseAfter === 4) return refusal();
-        if (!state.observedHttp || state.observedHttp.reason !== 'pending') {
+        if (
+          (!state.observedHttp || state.observedHttp.reason !== 'pending') &&
+          !(state.ackTarget?.transition === 'transport-finished' && state.ackQueued)
+        ) {
           state.calls += 2;
           state.returnedBytes += source.bytes;
           state.revision++;
@@ -1859,4 +1877,57 @@ test('sending ACK cannot qualify only one durable version even with an authentic
     message: 'n09_publication_ack_driver_failed',
   });
   assert.equal(f.state.closed, 1);
+});
+
+test('transport-finished ACK keeps complete public wire separate from final durable publication completion', async () => {
+  for (const kill of [true, false]) {
+    const f = fixture(() => {}, undefined, 'ack');
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    const result = await runPreparedPublicationAck(f.adapter, kill, 'transport-finished');
+    assert.equal(result.boundary, 'transport-finished-durable-store-before-host-ack');
+    assert.equal(result.publicTransportCompletedBeforeBoundary, true);
+    assert.equal(result.sendingPredecessorAckObserved, true);
+    assert.equal(result.interruptedWithZeroPublicBytes, false);
+    assert.equal(result.publicationCompletionObserved, !kill);
+    assert.equal(
+      f.state.events.indexOf('public-wire-before-ack') < f.state.events.indexOf('kill'),
+      true
+    );
+    assert.equal(f.state.closed, 1);
+  }
+});
+
+test('finished ACK rejects partial versions, changed wire bytes and a late metadata observation under the same 750ms witness', async () => {
+  for (const scenario of ['version', 'bytes', 'content', 'late-snapshot', 'completion']) {
+    let delayed = false;
+    const f = fixture(
+      (stage, value, state) => {
+        if (stage === 'prepared-ack-held') {
+          if (scenario === 'version') state.revision--;
+          if (scenario === 'bytes') state.observedHttp.bytes--;
+          if (scenario === 'content') state.publicWireResponse.bytes[0] ^= 1;
+        }
+        if (
+          scenario === 'late-snapshot' &&
+          stage === 'snapshot' &&
+          state.ackQueued &&
+          state.stopped === 0 &&
+          !delayed
+        ) {
+          delayed = true;
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 760);
+        }
+        if (scenario === 'completion' && stage === 'publication-completed' && state.ackQueued)
+          value.completed = false;
+      },
+      undefined,
+      'ack'
+    );
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    await assert.rejects(
+      runPreparedPublicationAck(f.adapter, scenario !== 'completion', 'transport-finished'),
+      { message: 'n09_publication_ack_driver_failed' }
+    );
+    assert.equal(f.state.closed, 1);
+  }
 });

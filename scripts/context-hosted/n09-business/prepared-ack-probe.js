@@ -25,8 +25,8 @@ const hex = (value) => typeof value === 'string' && /^[a-f0-9]{32}$/.test(value)
 // Signal authentication alone cannot qualify a publication or host-save ACK.
 function createPreparedAckProbe(input, observed, control, transition = 'prepared') {
   try {
-    if (!['prepared', 'sending'].includes(transition)) throw fail();
-    const delta = transition === 'sending' ? 2 : 1;
+    if (!['prepared', 'sending', 'transport-finished'].includes(transition)) throw fail();
+    const delta = ['prepared', 'sending', 'transport-finished'].indexOf(transition) + 1;
     const config = fields(input, ['pid', 'rootId', 'expiresAt', 'revision']);
     const baseline = snapshotOwnData(observed);
     const methods = fields(control, ['arm', 'waitHeld', 'release', 'waitReleased', 'close']);

@@ -29,6 +29,6 @@ test(
     assert.equal(result.stderr, '');
     assert.match(result.stdout, /wfpSyntheticRejected=24; nativeWfpCalls=0; networkRequests=0/);
     assert.doesNotMatch(result.stdout + result.stderr, /PRIVATE_PROGRAM_SENTINEL/);
-    assert.match(result.stdout, /guardedPaths=15/);
+    assert.match(result.stdout, /guardedPaths=20/);
   }
 );

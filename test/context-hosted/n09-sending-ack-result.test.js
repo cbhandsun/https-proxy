@@ -1,7 +1,10 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { sendingAckClosedReceipt } = require('../../scripts/context-hosted/n09/sending-ack-result');
+const {
+  sendingAckClosedReceipt,
+  finishedAckClosedReceipt,
+} = require('../../scripts/context-hosted/n09/sending-ack-result');
 function fixture() {
   const result = (kill) => ({
     evidenceLevel: 'adapter-orchestration-only',
@@ -121,4 +124,44 @@ test('sending receipt validation never executes getters or proxies', () => {
     safe
   );
   assert.equal(touched, 0);
+});
+
+test('finished receipt requires both predecessor ACKs and complete wire without claiming zero-byte interruption', () => {
+  const source = fixture();
+  const convert = (value, kill) => ({
+    ...value,
+    boundary: 'transport-finished-durable-store-before-host-ack',
+    interruptedWithZeroPublicBytes: false,
+    sendingPredecessorAckObserved: true,
+    publicTransportCompletedBeforeBoundary: true,
+    publicationCompletionObserved: !kill,
+  });
+  const value = {
+    ...source,
+    finishedAckKill: convert(source.sendingAckKill, true),
+    finishedAckRelease: convert(source.sendingAckRelease, false),
+    businessEvidence: {
+      finishedAckKill: source.businessEvidence.sendingAckKill,
+      finishedAckRelease: source.businessEvidence.sendingAckRelease,
+    },
+  };
+  delete value.sendingAckKill;
+  delete value.sendingAckRelease;
+  assert.equal(finishedAckClosedReceipt(value).phase, 'n09_finished_ack_scenario_closed');
+  assert.throws(() => sendingAckClosedReceipt(value), safe);
+  assert.throws(() => finishedAckClosedReceipt(fixture()), safe);
+  for (const patch of [
+    { sendingPredecessorAckObserved: false },
+    { publicTransportCompletedBeforeBoundary: false },
+    { interruptedWithZeroPublicBytes: true },
+    { publicationCompletionObserved: true },
+  ])
+    assert.throws(
+      () =>
+        finishedAckClosedReceipt({
+          ...value,
+          finishedAckKill: { ...value.finishedAckKill, ...patch },
+        }),
+      safe
+    );
 });

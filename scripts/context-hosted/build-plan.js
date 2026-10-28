@@ -164,10 +164,16 @@ function buildHostedReviewPlan(input) {
     if (
       Object.keys(options).length !== names.length ||
       names.some((name) => !Object.hasOwn(options, name)) ||
-      !['n08', 'n09', 'n09-sending-ack'].includes(options.scenario)
+      !['n08', 'n09', 'n09-sending-ack', 'n09-finished-ack'].includes(options.scenario)
     )
       throw fail();
-    const scenario = options.scenario === 'n09-sending-ack' ? 'n09' : options.scenario;
+    const scenario = options.scenario === 'n08' ? 'n08' : 'n09';
+    const publicationGroup =
+      options.scenario === 'n09-sending-ack'
+        ? 'sending-ack'
+        : options.scenario === 'n09-finished-ack'
+          ? 'finished-ack'
+          : undefined;
     const candidate = physical(options.candidate, true),
       ownedRoot = physical(options.ownedRoot, true);
     if (
@@ -311,7 +317,7 @@ function buildHostedReviewPlan(input) {
       if (identityPins.get(relative) !== fileHash(file)) throw fail();
     }
     const plan = {
-      ...(options.scenario === 'n09-sending-ack' ? { publicationGroup: 'sending-ack' } : {}),
+      ...(publicationGroup ? { publicationGroup } : {}),
       candidate,
       manifestSha256: build.manifestSha256,
       ...(scenario === 'n08'

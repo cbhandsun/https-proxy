@@ -67,7 +67,7 @@ function assertHostedGates(source) {
   orderedLines(runtime, [
     'needs: source-gates',
     'fail-fast: false',
-    'scenario: [n08, n09]',
+    'scenario: [n08, n09, n09-sending-ack, n09-finished-ack]',
     '- name: Build runner-local payload and fixed review plan',
     "$ErrorActionPreference = 'Stop'",
     'node scripts/prepare-context-hosted-run.js $env:SCENARIO',
@@ -89,11 +89,35 @@ function assertHostedGates(source) {
   assert.ok(source.includes('permissions:\n  contents: read\n'));
 }
 
-test('same SHA source gates run once before two isolated runtime scenarios with all original commands', () => {
+test('same SHA source gates run once before four isolated runtime scenarios with all original commands', () => {
   assertHostedGates(workflow);
 });
 
 for (const mutation of [
+  [
+    'missing original n09 scenario',
+    (source) =>
+      source.replace(
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack]',
+        'scenario: [n08, n09-sending-ack, n09-finished-ack]'
+      ),
+  ],
+  [
+    'missing sending ACK group',
+    (source) =>
+      source.replace(
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack]',
+        'scenario: [n08, n09, n09-finished-ack]'
+      ),
+  ],
+  [
+    'missing finished ACK group',
+    (source) =>
+      source.replace(
+        'scenario: [n08, n09, n09-sending-ack, n09-finished-ack]',
+        'scenario: [n08, n09, n09-sending-ack]'
+      ),
+  ],
   ['missing dependency edge', (source) => source.replace('    needs: source-gates\n', '')],
   ['missing literal verify', (source) => source.replace('          npm run verify\n', '')],
   [

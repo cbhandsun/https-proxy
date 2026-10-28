@@ -127,7 +127,9 @@ function createPublicationAckHost(input, observer) {
         request = value;
         boundary.arm(
           Object.fromEntries(targetKeys.map((key) => [key, value[key]])),
-          value.transition === 'sending' ? 'prepared-prefix' : 'direct'
+          ['sending', 'transport-finished'].includes(value.transition)
+            ? 'prepared-prefix'
+            : 'direct'
         );
         state = 'armed';
         signal('armed', value);

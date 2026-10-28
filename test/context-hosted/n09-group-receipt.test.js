@@ -29,12 +29,13 @@ test('original and sending Job receipt consumers reject crossed groups and malfo
     }
     $core = [ordered]@{ schemaVersion = 1; phase = 'n09_owned_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 10; n09Complete = $false }
     $sending = [ordered]@{ schemaVersion = 1; phase = 'n09_sending_ack_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
-    foreach ($pair in @(@($core, 'original'), @($sending, 'sending-ack'))) {
+    $finished = [ordered]@{ schemaVersion = 1; phase = 'n09_finished_ack_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
+    foreach ($pair in @(@($core, 'original'), @($sending, 'sending-ack'), @($finished, 'finished-ack'))) {
       $value = Read-Receipt ($pair[0] | ConvertTo-Json -Compress) $pair[1]
       if ($value.ownedTreeEmpty -ne $true -or $value.n09Complete -ne $false) { throw 'consumer_scope_lost' }
     }
     $rejected = 0
-    foreach ($pair in @(@($core, 'sending-ack'), @($sending, 'original'))) {
+    foreach ($pair in @(@($core, 'sending-ack'), @($sending, 'original'), @($core, 'finished-ack'), @($finished, 'original'), @($sending, 'finished-ack'), @($finished, 'sending-ack'), @($core, ''), @($sending, 'unknown'), @($finished, 'FINISHED-ACK'))) {
       $failed = $false
       try { $null = Read-Receipt ($pair[0] | ConvertTo-Json -Compress) $pair[1] } catch { $failed = $true }
       if (-not $failed) { throw 'crossed_group_accepted' }
@@ -47,7 +48,7 @@ test('original and sending Job receipt consumers reject crossed groups and malfo
       if (-not $failed) { throw 'invalid_scope_accepted' }
       $rejected++
     }
-    [Console]::Write('accepted=2; rejected=' + $rejected + '; nativeCalls=0')
+    [Console]::Write('accepted=3; rejected=' + $rejected + '; nativeCalls=0')
   `,
     ],
     { encoding: 'utf8', timeout: 15000, maxBuffer: 4096, shell: false, windowsHide: true }
@@ -55,5 +56,5 @@ test('original and sending Job receipt consumers reject crossed groups and malfo
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, '');
-  assert.equal(result.stdout, 'accepted=2; rejected=10; nativeCalls=0');
+  assert.equal(result.stdout, 'accepted=3; rejected=17; nativeCalls=0');
 });

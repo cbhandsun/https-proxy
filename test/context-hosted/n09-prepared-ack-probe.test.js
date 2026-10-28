@@ -21,7 +21,8 @@ function fixture(overrides = {}, baseline = observed, options = config, transiti
     callOrdinal:
       kind === 'armed'
         ? baseline.callOrdinal
-        : baseline.callOrdinal + (transition === 'sending' ? 2 : 1),
+        : baseline.callOrdinal +
+          (['prepared', 'sending', 'transport-finished'].indexOf(transition) + 1),
     holdChallenge: kind === 'armed' ? '' : 'd'.repeat(32),
     revision: target.expectedRevision + (kind === 'armed' ? 0 : 1),
   });
@@ -165,11 +166,40 @@ test('sending has its own exact two-version and ordinal headroom while unsupport
   assert.equal(held.revision, Number.MAX_SAFE_INTEGER);
   await f.probe.release();
   f.probe.close();
-  for (const transition of [null, '', 'transport-finished', {}, 'unknown'])
+  for (const transition of [null, '', 'uncertain', {}, 'unknown'])
     assert.throws(() => fixture({}, observed, config, transition), safe);
   assert.throws(
     () => fixture({}, observed, { ...config, revision: Number.MAX_SAFE_INTEGER - 1 }, 'sending'),
     safe
   );
   assert.throws(() => fixture({}, { ...observed, callOrdinal: 1023 }, config, 'sending'), safe);
+});
+
+test('finished target reserves three exact revisions and both predecessor ordinals', async () => {
+  const f = fixture(
+    {},
+    { ...observed, callOrdinal: 1021 },
+    { ...config, revision: Number.MAX_SAFE_INTEGER - 3 },
+    'transport-finished'
+  );
+  await f.probe.arm();
+  const held = await f.probe.waitHeld();
+  assert.equal(held.boundary, 'transport-finished-durable-store-before-host-ack');
+  assert.equal(held.revision, Number.MAX_SAFE_INTEGER);
+  await f.probe.release();
+  f.probe.close();
+  assert.throws(
+    () =>
+      fixture(
+        {},
+        observed,
+        { ...config, revision: Number.MAX_SAFE_INTEGER - 2 },
+        'transport-finished'
+      ),
+    safe
+  );
+  assert.throws(
+    () => fixture({}, { ...observed, callOrdinal: 1022 }, config, 'transport-finished'),
+    safe
+  );
 });

@@ -182,7 +182,7 @@ async function main() {
     ? parsed.publicationGroup
     : 'original';
   if (
-    !['original', 'sending-ack'].includes(publicationGroup) ||
+    !['original', 'sending-ack', 'finished-ack'].includes(publicationGroup) ||
     (Object.hasOwn(parsed, 'publicationGroup') && publicationGroup === 'original')
   )
     throw fail();
@@ -197,7 +197,7 @@ async function main() {
     'caSha256',
     'leafSha256',
     'negativeAddress',
-    ...(publicationGroup === 'sending-ack' ? ['publicationGroup'] : []),
+    ...(publicationGroup !== 'original' ? ['publicationGroup'] : []),
   ]);
   if (path.resolve(plan.ownedRoot).toLowerCase() !== ownedRoot.toLowerCase()) throw fail();
   failureExitCode = 71;
@@ -245,9 +245,13 @@ async function main() {
     publicationGroup
   );
   failureExitCode = 72;
-  if (publicationGroup === 'sending-ack') {
-    const { sendingAckClosedReceipt } = require('./sending-ack-result');
-    process.stdout.write(JSON.stringify(sendingAckClosedReceipt(result)) + '\n');
+  if (publicationGroup !== 'original') {
+    const { sendingAckClosedReceipt, finishedAckClosedReceipt } = require('./sending-ack-result');
+    const receipt =
+      publicationGroup === 'sending-ack'
+        ? sendingAckClosedReceipt(result)
+        : finishedAckClosedReceipt(result);
+    process.stdout.write(JSON.stringify(receipt) + '\n');
     return;
   }
   if (

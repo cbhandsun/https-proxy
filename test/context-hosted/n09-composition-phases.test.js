@@ -239,3 +239,17 @@ test('sending ACK is an independent two-case composition and never replaces the 
   assert.deepEqual(phases, [73, 74, 75, 76, 77, 78, 79, 160, 161, 84]);
   assert.equal(result.preparedAckKill, undefined);
 });
+
+test('finished ACK has a separate two-case composition and preserves the complete public-wire target', async () => {
+  const f = fixture(false, false, {}, true);
+  const result = await f.run(f.options, () => {}, 'finished-ack');
+  assert.equal(result.cleanup.adaptersClosed, 2);
+  assert.equal(result.finishedAckKill.forcedKill, true);
+  assert.equal(result.finishedAckRelease.forcedKill, false);
+  assert.deepEqual(f.driverCalls, [
+    { kill: true, transition: 'transport-finished' },
+    { kill: false, transition: 'transport-finished' },
+  ]);
+  assert.equal(result.sendingAckKill, undefined);
+  assert.equal(result.preparedAckKill, undefined);
+});

@@ -278,12 +278,111 @@ test('released upstream keeps zero public bytes until the independent boundary a
   await assert.rejects(f.hold.afterRelease(), safe);
 });
 
+test('a completed public wire is observed separately from publication completion or an interrupted request', async (t) => {
+  for (const kill of [true, false]) {
+    const f = fixture(t);
+    f.hold.arrive(
+      () => true,
+      () => true
+    );
+    await f.hold.waitHeld();
+    f.hold.releaseUpstream();
+    const body = Buffer.from('public-wire-only');
+    f.state.bytes = body.length;
+    f.settle('response', { response: { status: 200, bytes: body } });
+    assert.deepEqual(await f.hold.observePublished(), { response: { status: 200, bytes: body } });
+    if (kill)
+      assert.deepEqual(await f.hold.afterPublishedKill(), {
+        publicTransportCompleted: true,
+        publicBytes: body.length,
+      });
+    else assert.deepEqual(await f.hold.afterRelease(), { response: { status: 200, bytes: body } });
+    await assert.rejects(f.hold.afterKill(), safe);
+    await assert.rejects(f.hold.afterPublishedKill(), safe);
+  }
+});
+
+test('published observation rejects timeouts, malformed wire, stale bytes and content replacement without a retry', async (t) => {
+  for (const mode of ['timeout', 'empty', 'oversized', 'status', 'counter', 'changed']) {
+    const f = fixture(t);
+    f.hold.arrive(
+      () => true,
+      () => true
+    );
+    await f.hold.waitHeld();
+    f.hold.releaseUpstream();
+    if (mode === 'timeout') {
+      await assert.rejects(f.hold.observePublished(1), safe);
+      await assert.rejects(f.hold.observePublished(), safe);
+      continue;
+    }
+    const body =
+      mode === 'empty'
+        ? Buffer.alloc(0)
+        : mode === 'oversized'
+          ? Buffer.alloc(262145)
+          : Buffer.from('wire-fact');
+    f.state.bytes = body.length + (mode === 'counter' ? 1 : 0);
+    f.settle('response', { response: { status: mode === 'status' ? 201 : 200, bytes: body } });
+    if (mode === 'changed') {
+      await f.hold.observePublished();
+      body[0] ^= 1;
+      await assert.rejects(f.hold.afterPublishedKill(), safe);
+      body[0] ^= 1;
+      await assert.rejects(f.hold.afterPublishedKill(), safe);
+    } else await assert.rejects(f.hold.observePublished(), safe);
+  }
+});
+
+test('published observation refuses illegal witness bounds and concurrent completion or closure during callbacks', async (t) => {
+  for (const bound of [0, 751, NaN, Infinity, null, {}, '750']) {
+    const f = fixture(t);
+    await assert.rejects(f.hold.observePublished(bound), safe);
+  }
+  const pending = fixture(t);
+  pending.hold.arrive(
+    () => true,
+    () => true
+  );
+  await pending.hold.waitHeld();
+  pending.hold.releaseUpstream();
+  const observed = assert.rejects(pending.hold.observePublished(), safe);
+  await assert.rejects(pending.hold.afterRelease(), safe);
+  pending.state.bytes = 1;
+  pending.settle('response', { response: { status: 200, bytes: Buffer.from('a') } });
+  await observed;
+  for (const method of ['observePublished', 'afterRelease']) {
+    let closing = false;
+    const closed = fixture(t, {
+      bytes() {
+        if (closing) {
+          closed.hold.close();
+          return 1;
+        }
+        return 0;
+      },
+    });
+    closed.hold.arrive(
+      () => true,
+      () => true
+    );
+    await closed.hold.waitHeld();
+    closed.hold.releaseUpstream();
+    closed.state.bytes = 1;
+    closed.settle('response', { response: { status: 200, bytes: Buffer.from('a') } });
+    closing = true;
+    await assert.rejects(closed.hold[method](), safe);
+  }
+});
+
 test(
   'real loopback release completes the original pending HTTP request with exact response bytes',
   { timeout: 10000 },
   async (t) => {
     const owned = {};
+    let requests = 0;
     const server = http.createServer((request, response) => {
+      requests++;
       request.resume();
       request.on('end', () =>
         owned.hold.arrive(
@@ -313,10 +412,13 @@ test(
     }));
     assert.deepEqual(await hold.waitHeld(), { publicResponseHeld: true, publicBytes: 0 });
     assert.deepEqual(hold.releaseUpstream(), { upstreamReleased: true, publicBytes: 0 });
+    const observed = await hold.observePublished();
+    assert.equal(observed.response.bytes.toString(), 'public-release-control');
     const result = await hold.afterRelease();
     assert.equal(result.response.status, 200);
     assert.equal(result.response.bytes.toString(), 'public-release-control');
     await assert.rejects(hold.afterRelease(), safe);
+    assert.equal(requests, 1);
   }
 );
 

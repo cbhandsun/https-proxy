@@ -8,18 +8,18 @@ function Invoke-HpmN09HostedExecution {
         [Parameter(Mandatory)][string]$OwnedRoot,
         [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$ReviewPlanSha256,
         [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$BuildReceiptSha256,
-        [ValidateSet('original', 'sending-ack')][string]$PublicationGroup = 'original'
+        [ValidateSet('original', 'sending-ack', 'finished-ack')][string]$PublicationGroup = 'original'
     )
     $state = @{ invoked = $false; closed = $false; stage = 'review_plan' }
     try {
-        if ($PublicationGroup -cnotin @('original', 'sending-ack')) { throw 'invalid' }
+        if ($PublicationGroup -cnotin @('original', 'sending-ack', 'finished-ack')) { throw 'invalid' }
         $OwnedRoot = [IO.Path]::GetFullPath($OwnedRoot)
         $reviewFile = Join-Path $OwnedRoot 'n09-hosted-review-plan.json'
         if ((Get-Item -LiteralPath $reviewFile).Length -gt 131072 -or
             (Get-FileHash -LiteralPath $reviewFile -Algorithm SHA256).Hash.ToLowerInvariant() -cne $ReviewPlanSha256) { throw 'invalid' }
         $review = [IO.File]::ReadAllText($reviewFile, [Text.UTF8Encoding]::new($false, $true)) | ConvertFrom-Json -AsHashtable
         $expected = @('candidate', 'manifestSha256', 'lifecyclePins', 'controllerPins', 'loadedPins', 'negativeAddress', 'jobSourcePins', 'libraryPins')
-        if ($PublicationGroup -ceq 'sending-ack') { $expected += 'publicationGroup'; if ($review.publicationGroup -cne $PublicationGroup) { throw 'invalid' } }
+        if ($PublicationGroup -cne 'original') { $expected += 'publicationGroup'; if ($review.publicationGroup -cne $PublicationGroup) { throw 'invalid' } }
         if ($review.Count -ne $expected.Count -or @($expected | Where-Object { -not $review.ContainsKey($_) }).Count -ne 0) { throw 'invalid' }
         $state.stage = 'library_pins'
         $network = Join-Path $PSScriptRoot '../shared/hosted-network.ps1'
@@ -49,7 +49,7 @@ function Invoke-HpmN09HostedExecution {
                 lifecyclePins = $review.lifecyclePins;
                 controllerPins = $review.controllerPins; loadedPins = $review.loadedPins; networkRoot = $networkDescriptor.networkRoot;
                 caSha256 = $networkDescriptor.caSha256; leafSha256 = $networkDescriptor.leafSha256; negativeAddress = $review.negativeAddress }
-            if ($PublicationGroup -ceq 'sending-ack') { $plan.publicationGroup = $PublicationGroup }
+            if ($PublicationGroup -cne 'original') { $plan.publicationGroup = $PublicationGroup }
             $state.stage = 'write_owned_plan'
             $planPath = Join-Path $OwnedRoot 'n09-hosted-plan.json'
             $planBytes = [Text.UTF8Encoding]::new($false).GetBytes(($plan | ConvertTo-Json -Depth 8 -Compress))

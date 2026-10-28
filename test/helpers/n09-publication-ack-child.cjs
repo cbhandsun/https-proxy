@@ -46,15 +46,23 @@ process.on('message', (message) => {
       status: 'completed',
     };
     try {
-      if (message.transition === 'sending' && !message.skipPredecessor) {
+      if (
+        ['sending', 'transport-finished'].includes(message.transition) &&
+        !message.skipPredecessor
+      ) {
         const target = observed;
-        observed = { ...target, transition: 'prepared', expectedRevision: 6 };
-        host.afterDurableAck({
-          rootId: observed.rootId,
-          expiresAt: observed.expiresAt,
-          revision: 7,
+        const predecessors =
+          message.transition === 'sending' ? ['prepared'] : ['prepared', 'sending'];
+        predecessors.forEach((transition, index) => {
+          const expectedRevision = 7 - predecessors.length + index;
+          observed = { ...target, transition, expectedRevision, callOrdinal: 2 + index };
+          host.afterDurableAck({
+            rootId: observed.rootId,
+            expiresAt: observed.expiresAt,
+            revision: expectedRevision + 1,
+          });
         });
-        observed = { ...target, callOrdinal: 3 };
+        observed = { ...target, callOrdinal: 2 + predecessors.length };
       }
       host.afterDurableAck({
         rootId: observed.rootId,

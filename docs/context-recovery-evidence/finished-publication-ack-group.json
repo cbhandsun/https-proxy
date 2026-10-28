@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "scope": "transport-finished durable-store-before-host-ack private acceptance group",
+  "windowsExecutionPassed": false,
+  "productFiveSecondStabilitySolved": false,
+  "group": "n09-finished-ack",
+  "fixedPredecessors": [
+    "prepared",
+    "sending"
+  ],
+  "exactDurableRevisionDelta": 3,
+  "originalExpiryAndHeldBudgetPreserved": true,
+  "witnessMs": 750,
+  "internalHoldMs": 5000,
+  "ownedJobMs": 120000,
+  "treeCloseMs": 5000,
+  "sameOriginalHttpRequest": true,
+  "publicWireCompleteRequiredBeforeKill": true,
+  "publicWireDoesNotGrantPublicationCompletion": true,
+  "killRequiresDefaultOwnerSameDirectoryReopen": true,
+  "releaseRequiresOriginalPublicationCompletionBarrier": true,
+  "localVerification": {
+    "businessAndChannelTests": {
+      "passed": 136,
+      "failed": 0,
+      "skipped": 0
+    },
+    "boundaryAndClosureTests": {
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0
+    },
+    "wireTestsAfterSingleRequestAssertion": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "actualPowerShellJsonConsumer": {
+      "accepted": 3,
+      "rejected": 17,
+      "nativeCalls": 0
+    },
+    "summaryStatusRows": 14,
+    "powershellSourcesParsed": 4,
+    "wfp": "same-assembly compile only; Windows native guards not executed on Mac",
+    "syntaxFiles": 1712,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "ciGovernance": true,
+    "releaseGovernance": true
+  },
+  "failureRecordsRetained": [
+    "7ab workflow matrix assertion failures",
+    "prior Windows five-second HTTP and durable COMMIT tails",
+    "Mac Windows Job creation failure before product child",
+    "existing full-repository line-ending format failures"
+  ],
+  "longTest": {
+    "sourceCommit": "6646f5923a4633f6f3afbdd3995ef4e1f21f50c8",
+    "checkedAtUtc": "2026-10-28T00:07:44.101Z",
+    "runIdentity": "09921c096ed95fd403817b3318cd4b4c52109e2acbd90ad67ea662612c088e88",
+    "scheduledMs": 5100000,
+    "validTicks": 18,
+    "processAlive": true,
+    "failureLatched": false,
+    "passed": false,
+    "restarted": false
+  },
+  "modelRequests": 0,
+  "quotaLedgerWritten": false
+}

@@ -2,6 +2,7 @@
 
 const { randomBytes, createHash } = require('node:crypto');
 const { types } = require('node:util');
+const { performance } = require('node:perf_hooks');
 const { createN09LifecycleClient } = require('./lifecycle-client-v2.js');
 const { createDurableSnapshotReader } = require('../n09-snapshot/readonly-snapshot.js');
 const { createStoppedStoreBackup } = require('../n09-backup/stopped-store-backup');
@@ -579,7 +580,10 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async finishInterruptedPublicResponse(identity) {
       stoppedIdentity(identity);
       if (!publicInterruption || phase !== 'recovering') throw fail();
-      const receipt = await publicInterruption.afterKill();
+      const receipt =
+        ackRevisionDelta === 3
+          ? await publicInterruption.afterPublishedKill()
+          : await publicInterruption.afterKill();
       publicInterruption.close();
       publicInterruption = undefined;
       phase = 'ready';
@@ -588,13 +592,13 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async beginPreparedAckHold(identity, transition = 'prepared') {
       gate(identity);
       if (
-        !['prepared', 'sending'].includes(transition) ||
+        !['prepared', 'sending', 'transport-finished'].includes(transition) ||
         commitBoundary ||
         ackProbe ||
         publicationCompleted
       )
         throw fail();
-      ackRevisionDelta = transition === 'sending' ? 2 : 1;
+      ackRevisionDelta = ['prepared', 'sending', 'transport-finished'].indexOf(transition) + 1;
       publicationCompleted = await client().getRecoveryCompletionBarrier(current);
       const held = await api.beginPublicResponseHold(identity);
       heldAccounting = accounting(committed());
@@ -627,9 +631,24 @@ function createN09BusinessAdapter(input, trusted = {}) {
     async waitPreparedAckHeld(identity) {
       gate(identity);
       if (!ackProbe || !publicInterruption || !heldAccounting) throw fail();
+      const deadline = ackRevisionDelta === 3 ? performance.now() + 750 : undefined;
       const held = await ackProbe.waitHeld();
       gate(identity);
-      publicInterruption.assertReleasedPending();
+      let publicBytes = 0;
+      if (ackRevisionDelta === 3) {
+        const observed = await publicInterruption.observePublished(
+          Math.floor(deadline - performance.now())
+        );
+        gate(identity);
+        if (
+          publicText(parseReply(observed.response)) !== 'N09_RECOVERY_OK ' + nonce ||
+          !readObserved ||
+          !publicObserved ||
+          externalToolExecutions !== 1
+        )
+          throw fail();
+        publicBytes = observed.response.bytes.length;
+      } else publicInterruption.assertReleasedPending();
       const durable = accounting(committed());
       if (
         durable.revision !== heldAccounting.revision + ackRevisionDelta ||
@@ -637,9 +656,11 @@ function createN09BusinessAdapter(input, trusted = {}) {
         durable.returnedBytes !== heldAccounting.returnedBytes
       )
         throw fail();
+      if (deadline !== undefined && performance.now() >= deadline) throw fail();
       return Object.freeze({
         ...held,
-        publicBytes: 0,
+        publicBytes,
+        publicTransportCompleted: ackRevisionDelta === 3,
         durableStoreObserved: true,
         accounting: Object.freeze(durable),
       });

@@ -16,8 +16,12 @@ async function runPreparedPublicationAck(adapter, kill, transition = 'prepared')
     result,
     failed = false;
   try {
-    if (typeof kill !== 'boolean' || !['prepared', 'sending'].includes(transition)) throw fail();
-    const delta = transition === 'sending' ? 2 : 1;
+    if (
+      typeof kill !== 'boolean' ||
+      !['prepared', 'sending', 'transport-finished'].includes(transition)
+    )
+      throw fail();
+    const delta = ['prepared', 'sending', 'transport-finished'].indexOf(transition) + 1;
     active = identity(await invoke(adapter, 'startFreshBusinessHost'));
     const original = baseline(await invoke(adapter, 'seedThroughBusinessHttp', active));
     const before = data(await invoke(adapter, 'readThroughBusinessHttp', active));
@@ -43,7 +47,12 @@ async function runPreparedPublicationAck(adapter, kill, transition = 'prepared')
     if (
       pending.boundary !== transition + '-durable-store-before-host-ack' ||
       pending.pid !== active.pid ||
-      pending.publicBytes !== 0 ||
+      (delta === 3
+        ? !Number.isSafeInteger(pending.publicBytes) ||
+          pending.publicBytes < 1 ||
+          pending.publicBytes > 262144
+        : pending.publicBytes !== 0) ||
+      pending.publicTransportCompleted !== (delta === 3) ||
       pending.hostAckDelivered !== false ||
       pending.durableStoreObserved !== true ||
       pending.revision !== checkpoint.revision + delta ||
@@ -64,7 +73,13 @@ async function runPreparedPublicationAck(adapter, kill, transition = 'prepared')
       await forceKill(adapter, first);
       active = undefined;
       const interrupted = data(await invoke(adapter, 'finishInterruptedPublicResponse', first));
-      if (interrupted.interrupted !== true || interrupted.publicBytes !== 0) throw fail();
+      if (
+        delta === 3
+          ? interrupted.publicTransportCompleted !== true ||
+            interrupted.publicBytes !== pending.publicBytes
+          : interrupted.interrupted !== true || interrupted.publicBytes !== 0
+      )
+        throw fail();
       // Reopen through the genuine default owner before inspecting metadata.
       // The durable prepared revision must survive even though no ACK escaped.
       active = identity(await invoke(adapter, 'restartSameBusinessHost', first));
@@ -103,11 +118,14 @@ async function runPreparedPublicationAck(adapter, kill, transition = 'prepared')
       evidenceLevel: 'adapter-orchestration-only',
       boundary: transition + '-durable-store-before-host-ack',
       forcedKill: kill,
-      interruptedWithZeroPublicBytes: kill,
+      interruptedWithZeroPublicBytes: kill && delta !== 3,
       positivePublicCompletion: !kill,
       actualDurableStoreObserved: true,
       preAckBoundaryObserved: true,
-      preparedPredecessorAckObserved: transition === 'sending',
+      preparedPredecessorAckObserved: delta >= 2,
+      sendingPredecessorAckObserved: delta === 3,
+      publicTransportCompletedBeforeBoundary: delta === 3,
+      publicationCompletionObserved: !kill,
       opaqueAckNotDeliveredAtKill: kill,
       sameDirectoryNewPid: true,
       originalReadAfterRestart: true,

@@ -84,7 +84,10 @@ test('two processes authenticate all five actual blocking boundaries and release
       child.send({ kind: 'ack', transition });
       const held = await channel.waitHeld();
       assert.equal(held.revision, 8);
-      assert.equal(held.callOrdinal, transition === 'sending' ? 3 : 2);
+      assert.equal(
+        held.callOrdinal,
+        transition === 'sending' ? 3 : transition === 'transport-finished' ? 4 : 2
+      );
       assert.match(held.holdChallenge, /^[a-f0-9]{32}$/);
       channel.release();
       const released = await channel.waitReleased();

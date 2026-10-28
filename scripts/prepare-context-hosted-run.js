@@ -26,7 +26,7 @@ function prepare(scenario) {
   try {
     if (
       process.platform !== 'win32' ||
-      !['n08', 'n09', 'n09-sending-ack'].includes(scenario) ||
+      !['n08', 'n09', 'n09-sending-ack', 'n09-finished-ack'].includes(scenario) ||
       process.execArgv.length !== 0 ||
       process.env.NODE_OPTIONS ||
       process.env.NODE_PATH ||

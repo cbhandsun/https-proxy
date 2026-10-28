@@ -1,6 +1,8 @@
 'use strict';
 
 const { types } = require('node:util');
+const { createHash } = require('node:crypto');
+const { performance } = require('node:perf_hooks');
 const { exact } = require('../shared/boundary');
 const { startObservedContinuation } = require('../n08/observed-client');
 const { isN09NativePromise, discardN09PromiseRejection } = require('../n09-ack/contract');
@@ -49,7 +51,10 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
     ended = false,
     closed = false,
     finished = false,
-    closeFailed = false;
+    closeFailed = false,
+    published,
+    observingPublished = false,
+    publishedFailed = false;
   let resolveHeld, rejectHeld;
   const held = new Promise((resolve, reject) => {
     resolveHeld = resolve;
@@ -99,6 +104,60 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
   }
   function zeroBytes() {
     if (observer.bytes() !== 0) throw fail();
+  }
+  const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+  async function readPublished(deadline) {
+    if (closed || !released || finished || publishedFailed) throw fail();
+    let timeout;
+    let raw;
+    try {
+      raw =
+        deadline === undefined
+          ? await observer.result
+          : await Promise.race([
+              observer.result,
+              new Promise((_, reject) => {
+                timeout = setTimeout(
+                  () => reject(fail()),
+                  Math.max(1, deadline - performance.now())
+                );
+              }),
+            ]);
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+    const result = exact(raw, ['response']);
+    if (
+      closed ||
+      finished ||
+      publishedFailed ||
+      (deadline !== undefined && performance.now() >= deadline)
+    )
+      throw fail();
+    const response = exact(result.response, ['status', 'bytes']);
+    if (
+      response.status !== 200 ||
+      types.isProxy(response.bytes) ||
+      !Buffer.isBuffer(response.bytes) ||
+      response.bytes.length < 1 ||
+      response.bytes.length > 262144 ||
+      observer.bytes() !== response.bytes.length ||
+      observer.termination() !== 'response'
+    )
+      throw fail();
+    const bytes = Buffer.from(response.bytes);
+    if (published && (published.bytes !== bytes.length || published.digest !== digest(bytes))) {
+      publishedFailed = true;
+      throw fail();
+    }
+    if (
+      closed ||
+      finished ||
+      publishedFailed ||
+      (deadline !== undefined && performance.now() >= deadline)
+    )
+      throw fail();
+    return Object.freeze({ response: Object.freeze({ status: response.status, bytes }) });
   }
   return Object.freeze({
     arrive(cancel, release) {
@@ -169,26 +228,58 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
         throw fail();
       }
     },
-    async afterRelease() {
+    async observePublished(timeoutMs = 750) {
       try {
-        if (closed || !released || finished) throw fail();
-        const result = exact(await observer.result, ['response']);
-        if (closed || finished) throw fail();
-        const response = exact(result.response, ['status', 'bytes']);
         if (
-          response.status !== 200 ||
-          types.isProxy(response.bytes) ||
-          !Buffer.isBuffer(response.bytes) ||
-          response.bytes.length < 1 ||
-          response.bytes.length > 262144 ||
-          observer.bytes() !== response.bytes.length ||
-          observer.termination() !== 'response'
+          published ||
+          observingPublished ||
+          publishedFailed ||
+          !Number.isSafeInteger(timeoutMs) ||
+          timeoutMs < 1 ||
+          timeoutMs > 750
         )
           throw fail();
+        observingPublished = true;
+        const deadline = performance.now() + timeoutMs;
+        const result = await readPublished(deadline);
+        if (publishedFailed || closed || finished) throw fail();
+        const observed = Object.freeze({
+          bytes: result.response.bytes.length,
+          digest: digest(result.response.bytes),
+        });
+        if (performance.now() >= deadline) throw fail();
+        published = observed;
+        return result;
+      } catch {
+        publishedFailed = true;
+        throw fail();
+      } finally {
+        observingPublished = false;
+      }
+    },
+    async afterPublishedKill() {
+      try {
+        if (!published || observingPublished || publishedFailed) throw fail();
+        const result = await readPublished();
         finished = true;
         return Object.freeze({
-          response: Object.freeze({ status: response.status, bytes: Buffer.from(response.bytes) }),
+          publicTransportCompleted: true,
+          publicBytes: result.response.bytes.length,
         });
+      } catch {
+        publishedFailed = true;
+        throw fail();
+      }
+    },
+    async afterRelease() {
+      try {
+        if (observingPublished) {
+          publishedFailed = true;
+          throw fail();
+        }
+        const result = await readPublished();
+        finished = true;
+        return result;
       } catch {
         throw fail();
       }
@@ -223,7 +314,7 @@ function createPublicResponseInterruption(input, start = startObservedContinuati
           failed = true;
         }
       }
-      cancelResponse = releaseResponse = undefined;
+      cancelResponse = releaseResponse = published = undefined;
       closeFailed = failed;
       if (failed) throw fail();
     },
