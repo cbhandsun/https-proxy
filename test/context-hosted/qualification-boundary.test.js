@@ -93,7 +93,7 @@ test(
     const produced = [...producer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
     const consumed = [...consumer.matchAll(/GetProperty\('cases'\)\.GetInt32\(\) -ne (\d+)/g)];
     assert.equal(produced.length, 1);
-    assert.equal(consumed.length, 3);
+    assert.equal(consumed.length, 5);
     const sendingProducer = fs.readFileSync(
       path.join(root, 'scripts/context-hosted/n09/sending-ack-result.js'),
       'utf8'
@@ -103,6 +103,14 @@ test(
     const expectedSendingCases = Number(sendingCases[0][1]);
     assert.equal(Number(consumed[1][1]), expectedSendingCases);
     assert.equal(Number(consumed[2][1]), expectedSendingCases);
+    const terminalProducer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/cancellation-ack-result.js'),
+      'utf8'
+    );
+    const terminalCases = [...terminalProducer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
+    assert.equal(terminalCases.length, 1);
+    assert.equal(Number(consumed[3][1]), Number(terminalCases[0][1]));
+    assert.equal(Number(consumed[4][1]), Number(terminalCases[0][1]));
     const expectedCases = Number(produced[0][1]);
     assert.equal(Number(consumed[0][1]), expectedCases);
     const workflow = fs
@@ -133,7 +141,9 @@ test(
         @('n09', 'cancelled'), @('n08', 'skipped'), @('', ''),
         @('n09', 'SUCCESS'), @('unrecognized', 'success'),
         @('n09-sending-ack', 'success'), @('n09-sending-ack', 'failure'), @('n09-sending-ack', 'cancelled'),
-        @('n09-finished-ack', 'success'), @('n09-finished-ack', 'failure'), @('n09-finished-ack', 'cancelled')
+        @('n09-finished-ack', 'success'), @('n09-finished-ack', 'failure'), @('n09-finished-ack', 'cancelled'),
+        @('n09-withdrawn-ack', 'success'), @('n09-withdrawn-ack', 'failure'), @('n09-withdrawn-ack', 'cancelled'),
+        @('n09-uncertain-ack', 'success'), @('n09-uncertain-ack', 'failure'), @('n09-uncertain-ack', 'cancelled')
       )) {
         $env:SCENARIO = $case[0]
         $env:JOB_STATUS = $case[1]
@@ -148,15 +158,30 @@ test(
     assert.equal(result.error, undefined);
     assert.equal(result.status, 0);
     const rows = JSON.parse(result.stdout);
-    assert.equal(rows.length, 14);
+    assert.equal(rows.length, 20);
     for (const row of rows) {
       const scopes = row.summary.filter((line) => line.startsWith('Passed scope:'));
       const qualified =
         row.status === 'success' &&
-        ['n08', 'n09', 'n09-sending-ack', 'n09-finished-ack'].includes(row.scenario);
+        [
+          'n08',
+          'n09',
+          'n09-sending-ack',
+          'n09-finished-ack',
+          'n09-withdrawn-ack',
+          'n09-uncertain-ack',
+        ].includes(row.scenario);
       assert.equal(scopes.length, qualified ? 1 : 0);
       if (qualified) {
-        if (['n09', 'n09-sending-ack', 'n09-finished-ack'].includes(row.scenario)) {
+        if (
+          [
+            'n09',
+            'n09-sending-ack',
+            'n09-finished-ack',
+            'n09-withdrawn-ack',
+            'n09-uncertain-ack',
+          ].includes(row.scenario)
+        ) {
           const reported = scopes[0].match(/^Passed scope: (\d+) cases:/);
           assert.ok(reported);
           assert.equal(
@@ -172,7 +197,11 @@ test(
                 ? 'cases: sending durable-store-before-host-ACK forced-kill/positive-release controls after the exact prepared predecessor'
                 : row.scenario === 'n09-finished-ack'
                   ? 'cases: transport-finished durable-store-before-host-ACK forced-kill/positive-release controls after exact prepared and sending predecessor ACKs'
-                  : 'six mutation/hold cases'
+                  : row.scenario === 'n09-withdrawn-ack'
+                    ? 'cases: withdrawn durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared predecessor ACK and actual client transport closure'
+                    : row.scenario === 'n09-uncertain-ack'
+                      ? 'cases: uncertain durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared and sending predecessor ACKs and actual client transport closure'
+                      : 'six mutation/hold cases'
           )
         );
       }
@@ -186,7 +215,10 @@ test(
                 ? 'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors (prepared, transport-finished, uncertain, withdrawn)'
                 : row.scenario === 'n09-finished-ack' && row.status === 'success'
                   ? 'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors (prepared, sending, uncertain, withdrawn)'
-                  : 'Not qualified: commit/publication in progress'
+                  : ['n09-withdrawn-ack', 'n09-uncertain-ack'].includes(row.scenario) &&
+                      row.status === 'success'
+                    ? 'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors'
+                    : 'Not qualified: commit/publication in progress'
           )
         )
       );

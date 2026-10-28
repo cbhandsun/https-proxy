@@ -253,3 +253,24 @@ test('finished ACK has a separate two-case composition and preserves the complet
   assert.equal(result.sendingAckKill, undefined);
   assert.equal(result.preparedAckKill, undefined);
 });
+
+for (const transition of ['withdrawn', 'uncertain']) {
+  test(
+    transition +
+      ' cancellation has independent kill and release adapters without replacing original cases',
+    async () => {
+      const f = fixture(false, false, {}, true);
+      const result = await f.run(f.options, () => {}, transition + '-ack');
+      assert.equal(result.cleanup.adaptersClosed, 2);
+      assert.equal(result[transition + 'AckKill'].forcedKill, true);
+      assert.equal(result[transition + 'AckRelease'].forcedKill, false);
+      assert.deepEqual(f.driverCalls, [
+        { kill: true, transition },
+        { kill: false, transition },
+      ]);
+      assert.equal(result.sendingAckKill, undefined);
+      assert.equal(result.finishedAckKill, undefined);
+      assert.equal(result.preparedAckKill, undefined);
+    }
+  );
+}

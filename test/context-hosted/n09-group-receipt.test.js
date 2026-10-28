@@ -6,7 +6,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 // Execute only the actual bounded JSON consumer, never its OS/Job constructor.
-test('original and sending Job receipt consumers reject crossed groups and malformed scope without native calls', () => {
+test('all five Job receipt consumers reject crossed groups and malformed scope without native calls', () => {
   const source = fs.readFileSync(
     path.join(__dirname, '../../scripts/context-hosted/n09/owned-job.ps1'),
     'utf8'
@@ -30,15 +30,25 @@ test('original and sending Job receipt consumers reject crossed groups and malfo
     $core = [ordered]@{ schemaVersion = 1; phase = 'n09_owned_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 10; n09Complete = $false }
     $sending = [ordered]@{ schemaVersion = 1; phase = 'n09_sending_ack_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
     $finished = [ordered]@{ schemaVersion = 1; phase = 'n09_finished_ack_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
-    foreach ($pair in @(@($core, 'original'), @($sending, 'sending-ack'), @($finished, 'finished-ack'))) {
+    $withdrawn = [ordered]@{ schemaVersion = 1; phase = 'n09_withdrawn_ack_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
+    $uncertain = [ordered]@{ schemaVersion = 1; phase = 'n09_uncertain_ack_scenario_closed'; probesPassed = $true; tlsVerified = $true; nonLoopbackBlocked = $true; listenerOwned = $true; syntheticSocketsClosed = $true; cases = 2; n09Complete = $false }
+    $pairs = @(@($core, 'original'), @($sending, 'sending-ack'), @($finished, 'finished-ack'), @($withdrawn, 'withdrawn-ack'), @($uncertain, 'uncertain-ack'))
+    $rejected = 0
+    foreach ($pair in $pairs) {
       $value = Read-Receipt ($pair[0] | ConvertTo-Json -Compress) $pair[1]
       if ($value.ownedTreeEmpty -ne $true -or $value.n09Complete -ne $false) { throw 'consumer_scope_lost' }
+      foreach ($other in $pairs) {
+        if ($pair[1] -ceq $other[1]) { continue }
+        $failed = $false
+        try { $null = Read-Receipt ($pair[0] | ConvertTo-Json -Compress) $other[1] } catch { $failed = $true }
+        if (-not $failed) { throw 'crossed_group_accepted' }
+        $rejected++
+      }
     }
-    $rejected = 0
-    foreach ($pair in @(@($core, 'sending-ack'), @($sending, 'original'), @($core, 'finished-ack'), @($finished, 'original'), @($sending, 'finished-ack'), @($finished, 'sending-ack'), @($core, ''), @($sending, 'unknown'), @($finished, 'FINISHED-ACK'))) {
+    foreach ($group in @('', 'unknown', 'UNCERTAIN-ACK')) {
       $failed = $false
-      try { $null = Read-Receipt ($pair[0] | ConvertTo-Json -Compress) $pair[1] } catch { $failed = $true }
-      if (-not $failed) { throw 'crossed_group_accepted' }
+      try { $null = Read-Receipt ($uncertain | ConvertTo-Json -Compress) $group } catch { $failed = $true }
+      if (-not $failed) { throw 'invalid_group_accepted' }
       $rejected++
     }
     $wire = $sending | ConvertTo-Json -Compress
@@ -48,7 +58,7 @@ test('original and sending Job receipt consumers reject crossed groups and malfo
       if (-not $failed) { throw 'invalid_scope_accepted' }
       $rejected++
     }
-    [Console]::Write('accepted=3; rejected=' + $rejected + '; nativeCalls=0')
+    [Console]::Write('accepted=5; rejected=' + $rejected + '; nativeCalls=0')
   `,
     ],
     { encoding: 'utf8', timeout: 15000, maxBuffer: 4096, shell: false, windowsHide: true }
@@ -56,5 +66,5 @@ test('original and sending Job receipt consumers reject crossed groups and malfo
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, '');
-  assert.equal(result.stdout, 'accepted=3; rejected=17; nativeCalls=0');
+  assert.equal(result.stdout, 'accepted=5; rejected=31; nativeCalls=0');
 });

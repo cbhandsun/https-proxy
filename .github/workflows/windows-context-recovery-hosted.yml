@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [n08, n09, n09-sending-ack, n09-finished-ack]
+        scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack]
     defaults:
       run:
         shell: pwsh
@@ -101,6 +101,10 @@ jobs:
               'Passed scope: 2 cases: sending durable-store-before-host-ACK forced-kill/positive-release controls after the exact prepared predecessor; fixed budget, expiry and two-version durable advance, zero public bytes at kill and same-directory restart under the original bounded Job.'
             } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09-finished-ack') {
               'Passed scope: 2 cases: transport-finished durable-store-before-host-ACK forced-kill/positive-release controls after exact prepared and sending predecessor ACKs; complete public wire observed separately from final publication completion, exact three-version durable advance and same-directory restart under the original bounded Job.'
+            } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09-withdrawn-ack') {
+              'Passed scope: 2 cases: withdrawn durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared predecessor ACK and actual client transport closure; zero public bytes, exact two-version advance, fixed budget/expiry and same-directory restart under the original bounded Job.'
+            } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09-uncertain-ack') {
+              'Passed scope: 2 cases: uncertain durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared and sending predecessor ACKs and actual client transport closure; zero public bytes, exact three-version advance, fixed budget/expiry and same-directory restart under the original bounded Job.'
             } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n08') {
               'Passed scope: six mutation/hold cases with business-output and authenticated committed-state checks under the original bounded Job.'
             }
@@ -110,6 +114,8 @@ jobs:
               'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors (prepared, transport-finished, uncertain, withdrawn), historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
             } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -ceq 'n09-finished-ack') {
               'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors (prepared, sending, uncertain, withdrawn), historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
+            } elseif ($env:JOB_STATUS -ceq 'success' -and $env:SCENARIO -cin @('n09-withdrawn-ack', 'n09-uncertain-ack')) {
+              'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors, historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
             } else {
               'Not qualified: commit/publication in progress, historical-layout backup migration, installation lifecycle, full N08/N09, 24-hour capacity, real providers or production activation.'
             }

@@ -182,7 +182,9 @@ async function main() {
     ? parsed.publicationGroup
     : 'original';
   if (
-    !['original', 'sending-ack', 'finished-ack'].includes(publicationGroup) ||
+    !['original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack'].includes(
+      publicationGroup
+    ) ||
     (Object.hasOwn(parsed, 'publicationGroup') && publicationGroup === 'original')
   )
     throw fail();
@@ -247,8 +249,10 @@ async function main() {
   failureExitCode = 72;
   if (publicationGroup !== 'original') {
     const { sendingAckClosedReceipt, finishedAckClosedReceipt } = require('./sending-ack-result');
-    const receipt =
-      publicationGroup === 'sending-ack'
+    const { cancellationAckClosedReceipt } = require('./cancellation-ack-result');
+    const receipt = ['withdrawn-ack', 'uncertain-ack'].includes(publicationGroup)
+      ? cancellationAckClosedReceipt(result, publicationGroup)
+      : publicationGroup === 'sending-ack'
         ? sendingAckClosedReceipt(result)
         : finishedAckClosedReceipt(result);
     process.stdout.write(JSON.stringify(receipt) + '\n');

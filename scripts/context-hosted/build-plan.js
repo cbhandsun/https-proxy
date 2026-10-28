@@ -164,7 +164,14 @@ function buildHostedReviewPlan(input) {
     if (
       Object.keys(options).length !== names.length ||
       names.some((name) => !Object.hasOwn(options, name)) ||
-      !['n08', 'n09', 'n09-sending-ack', 'n09-finished-ack'].includes(options.scenario)
+      ![
+        'n08',
+        'n09',
+        'n09-sending-ack',
+        'n09-finished-ack',
+        'n09-withdrawn-ack',
+        'n09-uncertain-ack',
+      ].includes(options.scenario)
     )
       throw fail();
     const scenario = options.scenario === 'n08' ? 'n08' : 'n09';
@@ -173,7 +180,11 @@ function buildHostedReviewPlan(input) {
         ? 'sending-ack'
         : options.scenario === 'n09-finished-ack'
           ? 'finished-ack'
-          : undefined;
+          : options.scenario === 'n09-withdrawn-ack'
+            ? 'withdrawn-ack'
+            : options.scenario === 'n09-uncertain-ack'
+              ? 'uncertain-ack'
+              : undefined;
     const candidate = physical(options.candidate, true),
       ownedRoot = physical(options.ownedRoot, true);
     if (

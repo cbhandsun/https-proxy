@@ -60,7 +60,9 @@ async function composeHostedN09(input, onPhase = () => {}, publicationGroup = 'o
   try {
     if (
       typeof onPhase !== 'function' ||
-      !['original', 'sending-ack', 'finished-ack'].includes(publicationGroup)
+      !['original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack'].includes(
+        publicationGroup
+      )
     )
       throw fail();
     // Internal observer receives fixed numbers only, never runtime/error data.
@@ -186,7 +188,12 @@ async function composeHostedN09(input, onPhase = () => {}, publicationGroup = 'o
     onPhase(79);
     verifyCopies();
     if (publicationGroup !== 'original') {
-      const finished = publicationGroup === 'finished-ack';
+      const group = {
+        'sending-ack': { name: 'sendingAck', transition: 'sending' },
+        'finished-ack': { name: 'finishedAck', transition: 'transport-finished' },
+        'withdrawn-ack': { name: 'withdrawnAck', transition: 'withdrawn' },
+        'uncertain-ack': { name: 'uncertainAck', transition: 'uncertain' },
+      }[publicationGroup];
       const cases = {},
         evidence = {};
       for (const kill of [true, false]) {
@@ -211,12 +218,8 @@ async function composeHostedN09(input, onPhase = () => {}, publicationGroup = 'o
         active = ownedAdapter;
         verifyCopies();
         ownedAdapter.bindVerifiedNetworkProof(proof);
-        const name = (finished ? 'finishedAck' : 'sendingAck') + (kill ? 'Kill' : 'Release');
-        cases[name] = await runPreparedPublicationAck(
-          ownedAdapter,
-          kill,
-          finished ? 'transport-finished' : 'sending'
-        );
+        const name = group.name + (kill ? 'Kill' : 'Release');
+        cases[name] = await runPreparedPublicationAck(ownedAdapter, kill, group.transition);
         const observed = ownedAdapter.inspectBusinessEvidence();
         if (
           observed.seeded !== true ||

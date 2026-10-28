@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory)][string]$OwnedRoot,
     [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$ReviewPlanSha256,
     [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$BuildReceiptSha256,
-    [ValidateSet('original', 'sending-ack', 'finished-ack')][string]$PublicationGroup = 'original'
+    [ValidateSet('original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack')][string]$PublicationGroup = 'original'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'

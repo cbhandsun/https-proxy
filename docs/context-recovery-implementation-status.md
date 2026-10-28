@@ -1,5 +1,16 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：取消终态接入固定Windows两组入口，实际执行结果待核
+
+新增n09-withdrawn-ack和n09-uncertain-ack独立业务组；原n08/n09/sending/finished四组保留。每组使用两个新adapter、原120秒Job/750ms见证/5秒持有门、默认持久owner及同目录重开。withdrawn只允许prepared前置，uncertain必须prepared与sending前置，最终版本精确+2/+3。客户端真实关闭和服务端同请求取消见证均须先满足，随后验证终态持久写入前ACK暂停；释放控制额外等待原清理完成后最终失败outcome。两组均不得宣称公开传输成功或正常publication完成。
+
+固定prepare/plan/PowerShell执行链、Node入口和三层回执范围均已登记新组；闭包继续精确绑定源码，WFP仅新增两个固定RUNNER_TEMP下node.exe路径，未接受任意路径或去掉物理/环境校验。独立严格终态回执检查前置、取消/清理/持久/重开、原expiry和业务次数；原sending/finished解析保持。PowerShell九字段回执按五组精确区分，20种交叉组均拒绝。正式workflow现在六组且仍needs完整source-gates，独立diagnostic也六组但不替代正式资格；成功摘要只对应实际成功组，所有失败/取消/未知状态不授范围。未放宽门禁、提高baseline或新增重试。
+
+本地九文件50项：48通过/0失败、两项原Windows物理路径测试在Mac保持原skip；新终态回执、组合、PowerShell实际JSON消费者及20行实际摘要状态均执行通过。新增测试在统一递归CI。四个改动PS文件语法解析及原WFP C#实际编译通过，未调用native/网络/系统API；1728份JS语法、全仓Lint零错误/五既有警告及CI/release治理通过。初次摘要测试因新回执模块尚未格式化、测试的cases行正则未匹配而失败，格式化后重验，未删断言或改回执语义。仍无新组Windows daemon执行通过证据，本批不能授终态矩阵、五秒稳定性或整体验收。
+
+fb1f206普通40619441012、正式40619441260/source122589607101及额外I/O40619440921/job122589605470仍运行；独立40619441265仅n08已success，其余三业务仍运行，不重复启动。222旧正式八个初始化超时与全部旧失败保留。下一步读取本批六组固定Windows实际执行及其完整日志，失败优先定位，不用旧源或局部通过覆盖。旧长测冻结现场/数据/任务及旧E实例未动，新24h未启动，真实模型0、额度未写、日常配置未改；其余既定安装版两端、真实provider、长时到期重开和容量/受控自用仍待。
+
+
 ## 2026-10-28：SSH恢复；取消终态业务接线完成局部验证，222完整门仍失败
 
 本机BatchMode SSH重新连接Windows成功，仅探测连通性，未启动远端任务或操作旧实例。当前222b11c普通七个非coverage作业success，coverage及额外I/O仍运行；正式40618107191源码门/job122585262696失败，后续业务skipped。已读完整日志：八个原native publication用例均在awaiting=ready超时，尚未进入目标COMMIT/OS锚点中断。密钥文件打开跨度231–2426ms、flush446–1621ms；其中两项已达native-opened，但原fixture初始化仍未就绪。不能把用例名当成已经发生目标中断，也未确认杀毒、调度或存储的唯一原因。原五秒门不变，不重跑覆盖。独立业务40618107418四作业success，完整四日志精确222源码及执行后hosted_network_finished/ownedTreeEmpty均核对；该独立路径不能越过正式源码门。有限记录见context-recovery-evidence/222b11c-ci-source-startup-failures.json。31e6510正式六作业现均success，其普通unit0旧超时失败仍保留。

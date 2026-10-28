@@ -23,12 +23,14 @@ node scripts/prepare-context-hosted-run.js n08
 
 The original N09 job uses `n09` in both positions. The independent sending and
 transport-finished ACK jobs use `n09-sending-ack` and `n09-finished-ack`
-respectively in both positions. The prepare command checks the exact GitHub
-source SHA and tracked source hashes, observes the actual
-`npm run release:prepare` exit, then creates a fresh
+respectively in both positions. The cancellation terminal jobs use
+`n09-withdrawn-ack` and `n09-uncertain-ack` in both positions. The prepare
+command checks the exact GitHub source SHA and tracked source hashes, observes
+the actual `npm run release:prepare` exit, then creates a fresh
 `$RUNNER_TEMP/hpm-context-n08`, `hpm-context-n09`, or
-`hpm-context-n09-sending-ack`, or `hpm-context-n09-finished-ack` directory. The
-payload's schema-2 manifest, executable, source hashes, release layout and
+`hpm-context-n09-sending-ack`, `hpm-context-n09-finished-ack`,
+`hpm-context-n09-withdrawn-ack`, or `hpm-context-n09-uncertain-ack` directory.
+The payload's schema-2 manifest, executable, source hashes, release layout and
 production dependency lock are verified before the fixed review plan is written.
 A collision fails and preserves the existing directory.
 
@@ -173,16 +175,32 @@ model retry is issued. A separate hashed plan, fixed executable path, two-case
 receipt and original 120-second Job retain isolation from the other groups. This
 new group still requires its own Windows execution result.
 
+`n09-withdrawn-ack` and `n09-uncertain-ack` each use two fresh adapters and
+their own original 120-second Job. The authenticated trigger stops after
+prepared or sending respectively, before the original HTTP handler resumes. The
+client must close its actual request transport with zero public bytes; the host
+independently requires the matching original response close, after its original
+abort listener, with no public headers or successful response finish. Only then
+may the signed trigger release advance the original lifecycle into withdrawn or
+uncertain. The final held ACK uses a different challenge and later ordinal, with
+exact two- or three-version advance and unchanged budget/expiry. The kill case
+reopens the same directory and checks the exact durable version before reading
+the original. The release case additionally waits for original cleanup and the
+final cancellation outcome, not merely an early failure-stage counter. Neither
+case grants positive public completion or a host-save ACK from its control
+receipt. New fixed paths and hashed plans retain all original platform/physical
+source, Job, TLS and egress requirements. These groups require their own Windows
+execution results; pure adapter tests do not qualify them.
+
 These are bounded scenario evidence. Other publication COMMIT interiors
-(`sending`, `transport-finished`, `uncertain`, `withdrawn`), the remaining
-daemon durable-ACK interiors (`uncertain`, `withdrawn`), historical-layout
-backup migration, installation lifecycle, full N09, 24-hour capacity, real
-providers and production activation remain outside these scenarios. Existing
-`n08Qualified:false` and `n09Complete:false` flags are preserved; a successful
-hosted run proves only its described cases. Source preparation alone proves no
-runtime result. The always-running workflow summary prints a passed scenario
-scope only for the matching successful job. It reports the remaining exclusions
-for every outcome.
+(`sending`, `transport-finished`, `uncertain`, `withdrawn`), other daemon
+durable-ACK interiors, historical-layout backup migration, installation
+lifecycle, full N09, 24-hour capacity, real providers and production activation
+remain outside these scenarios. Existing `n08Qualified:false` and
+`n09Complete:false` flags are preserved; a successful hosted run proves only its
+described cases. Source preparation alone proves no runtime result. The
+always-running workflow summary prints a passed scenario scope only for the
+matching successful job. It reports the remaining exclusions for every outcome.
 
 Historical verification of earlier promoted scenarios passed 251 tests across
 the promoted scenarios and synthetic OS pipe suite, with no failures or skips on

@@ -22,7 +22,10 @@ test('business diagnostic reuses the pinned bounded executor and cannot replace 
     assert.ok(source.includes(command));
     assert.ok(formal.includes(command));
   }
-  assert.match(source, /scenario: \[n08, n09, n09-sending-ack, n09-finished-ack\]/);
+  assert.match(
+    source,
+    /scenario: \[n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack\]/
+  );
   assert.ok(source.includes('ref: ${{ github.sha }}'));
   assert.ok(source.includes('persist-credentials: false'));
   assert.ok(source.includes('contents: read'));

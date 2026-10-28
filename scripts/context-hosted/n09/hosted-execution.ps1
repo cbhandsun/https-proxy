@@ -8,11 +8,11 @@ function Invoke-HpmN09HostedExecution {
         [Parameter(Mandatory)][string]$OwnedRoot,
         [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$ReviewPlanSha256,
         [Parameter(Mandatory)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$BuildReceiptSha256,
-        [ValidateSet('original', 'sending-ack', 'finished-ack')][string]$PublicationGroup = 'original'
+        [ValidateSet('original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack')][string]$PublicationGroup = 'original'
     )
     $state = @{ invoked = $false; closed = $false; stage = 'review_plan' }
     try {
-        if ($PublicationGroup -cnotin @('original', 'sending-ack', 'finished-ack')) { throw 'invalid' }
+        if ($PublicationGroup -cnotin @('original', 'sending-ack', 'finished-ack', 'withdrawn-ack', 'uncertain-ack')) { throw 'invalid' }
         $OwnedRoot = [IO.Path]::GetFullPath($OwnedRoot)
         $reviewFile = Join-Path $OwnedRoot 'n09-hosted-review-plan.json'
         if ((Get-Item -LiteralPath $reviewFile).Length -gt 131072 -or
