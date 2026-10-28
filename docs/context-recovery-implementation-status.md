@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：补齐路径准入修改的原 timing/I/O 触发范围
+
+0610461 已推送 existing-only 离线登记修复。核对发现原 timing 与独立 I/O 的显式 paths 未列 storage-paths/private-path 等共享准入模块，因此 061 仅启动 Verify、正式及额外 coverage-I/O 三条，不能继承 ef3 的三 runner 结果作为新源码资格。
+
+三工作流触发名单补入五个实际共享路径/安全模块，原工作流正文、三 runner、完整原命令、权限、分支、期限与门限全部逐字保留。既有触发治理回归新增断言，对固定 061 先见 7 项中 4 通过/3 失败，修改后 7/7；CI 治理与定向 Lint 通过。运行时代码和 Native 输入均不再变，不授完整 CI 或五秒稳定通过。详见 context-recovery-evidence/path-admission-diagnostic-triggers.json。
+
+ef3 的旧布局缺 writer 失败与全部旧失败保留；ef3/061 本机短测候选均未启动，最终提交将绑定新目录执行 existing-only/legacy 完整 33 项、原 Core/Codex50 和 graceful/readiness12，共 95 项，原十五分钟总预算及五秒/PowerShell 三十秒门保持。最新安装候选仍未触发；旧长测/日常实例不动，模型与新 24h 均 0，整体未完成。
+
 ## 2026-10-28：修复 ef3 离线旧布局缺失 writer 被补建的实际回归
 
 ef3 普通 unit0 的完整 699752 字符日志有一项失败：原有 legacy-owner 用例要求缺失 .writer.sqlite 拒绝且不补建，新合并准入提前创建了该文件，导致不再抛错。该失败保留，ef3 本机五秒候选及安装候选均冻结未启动；不以三 timing 各 50/50、十八持久发布 561–1402ms 或其他局部绿色覆盖它。完整 coverage/正式门仍待终态。

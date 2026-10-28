@@ -55,6 +55,16 @@ for (const workflow of [
       'test/context-compaction-envelope.test.js',
     ])
       assert.ok(paths.has(file), 'missing shared parser diagnostic trigger: ' + file);
+    // Path admission runs on every persistent open. A shared-path change must
+    // not silently omit the original timing and independent I/O jobs.
+    for (const file of [
+      'lib/proxy/context-recovery-storage-paths.js',
+      'lib/proxy/context-recovery-private-path.js',
+      'lib/proxy/private-path-native.js',
+      'lib/proxy/secure-files.js',
+      'lib/proxy/context-recovery-storage-progress.js',
+    ])
+      assert.ok(paths.has(file), 'missing path-admission diagnostic trigger: ' + file);
     assert.ok(source.includes('acceptance/context-recovery/**'));
     assert.ok(source.includes('workflow_dispatch:'));
   });

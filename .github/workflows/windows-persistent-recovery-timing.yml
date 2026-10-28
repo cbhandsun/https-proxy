@@ -19,6 +19,11 @@ on:
       - lib/proxy/context-recovery-anchor-contract.js
       - lib/proxy/context-recovery-anchor-admission.js
       - lib/proxy/context-recovery-storage-owner.js
+      - lib/proxy/context-recovery-storage-paths.js
+      - lib/proxy/context-recovery-private-path.js
+      - lib/proxy/private-path-native.js
+      - lib/proxy/secure-files.js
+      - lib/proxy/context-recovery-storage-progress.js
       - lib/proxy/context-recovery-anchor-channel.js
       - lib/proxy/context-recovery-anchor-protocol.js
       - lib/proxy/context-recovery-storage-worker.js
