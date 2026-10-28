@@ -4,6 +4,7 @@
 # https://learn.microsoft.com/en-us/windows/win32/wes/eventschema-eventpayload-processingerrordatatype-element
 Import-Module (Join-Path $PSScriptRoot 'persistent-io-binary.psm1')
 Import-Module (Join-Path $PSScriptRoot 'persistent-io-scheduling.psm1')
+Import-Module (Join-Path $PSScriptRoot 'persistent-io-association.psm1')
 function ConvertTo-HpmIoPointerKey {
     param([string]$Text)
     try {
@@ -80,7 +81,7 @@ function ConvertTo-HpmPersistentIoRecord {
         if ($State.irps.Count -ge 8192) { throw 'refused' }
         [void]$State.irps.Add($key)
         $kind = if ($name.EndsWith('-journal',[StringComparison]::OrdinalIgnoreCase)) { 'journal' } else { 'database' }
-        [ordered]@{type='create';key=$key;timeMs=$TimeMs;name=$kind} | ConvertTo-Json -Compress
+        [ordered]@{type='create';key=$key;timeMs=$TimeMs;name=$kind;association=(Get-HpmIoAssociation $fields $xml)} | ConvertTo-Json -Compress
     } elseif ($Opcode -in @(72,77)) {
         $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr'])
         if ($State.irps.Remove($key)) { [ordered]@{type='invalidate';key=$key;timeMs=$TimeMs;name=''} | ConvertTo-Json -Compress }
@@ -96,7 +97,7 @@ function ConvertTo-HpmPersistentIoRecord {
         if ($Opcode -eq 73 -and $State.ContainsKey('scheduling')) {
             Add-HpmIoSchedulingBinding -Fields $fields -Xml $xml -TimeMs $TimeMs -State $State.scheduling
         }
-        [ordered]@{ type=$type; key=$key; timeMs=$TimeMs; name=$file } | ConvertTo-Json -Compress
+        [ordered]@{ type=$type; key=$key; timeMs=$TimeMs; name=$file; association=(Get-HpmIoAssociation $fields $xml) } | ConvertTo-Json -Compress
     } elseif ($Opcode -eq 76) {
         $key = ConvertTo-HpmIoPointerKey ([string]$fields['IrpPtr'])
         if (-not $State.irps.Remove($key)) { return }

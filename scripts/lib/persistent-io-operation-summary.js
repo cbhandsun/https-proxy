@@ -44,11 +44,11 @@ function createPersistentIoOperations(onComplete) {
   return {
     invalidate,
     size: () => pending.size,
-    begin(type, key, time, kind) {
+    begin(type, key, time, kind, identity = null) {
       invalidate(key);
       if (!kind) return;
       observed = true;
-      pending.set(key, { type, kind, time });
+      pending.set(key, { type, kind, time, identity });
     },
     end(key, time, status) {
       const start = pending.get(key);
@@ -56,7 +56,7 @@ function createPersistentIoOperations(onComplete) {
       pending.delete(key);
       const elapsed = time - start.time;
       if (!Number.isSafeInteger(elapsed) || elapsed < 0) throw Error('persistent_io_trace_invalid');
-      onComplete?.(start.type, start.kind, start.time, time, status);
+      onComplete?.(start.type, start.kind, start.time, time, status, start.identity);
       const value = stats[start.type][start.kind];
       if (status === 0) {
         value.count++;

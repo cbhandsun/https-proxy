@@ -1,6 +1,7 @@
 'use strict';
 
 const { types } = require('node:util');
+const { fixtureTag, parseIoAssociation } = require('./persistent-io-association');
 const { createPersistentIoWindows } = require('./persistent-io-windows');
 const { SCHEDULING_TYPES, createPersistentIoScheduling } = require('./persistent-io-scheduling');
 const {
@@ -52,7 +53,16 @@ function createPersistentIoSummary() {
     failedFlushes = 0;
   return {
     observe(input) {
-      const value = data(input, ['type', 'key', 'timeMs', 'name']);
+      const hasAssociation = !types.isProxy(input) && input && Object.hasOwn(input, 'association');
+      const value = data(input, [
+        'type',
+        'key',
+        'timeMs',
+        'name',
+        ...(hasAssociation ? ['association'] : []),
+      ]);
+      const association = hasAssociation ? parseIoAssociation(value.association) : null;
+      if (hasAssociation && !['flush', ...OPERATION_TYPES].includes(value.type)) throw fail();
       const type = value.type;
       if (
         !['name', 'flush', 'end', 'invalidate', ...OPERATION_TYPES, ...SCHEDULING_TYPES].includes(
@@ -79,7 +89,10 @@ function createPersistentIoSummary() {
           )
         ) {
           if (names.size >= 256) throw fail();
-          names.set(key, value.name.toLowerCase().endsWith('-journal') ? 'journal' : 'database');
+          names.set(key, {
+            kind: value.name.toLowerCase().endsWith('-journal') ? 'journal' : 'database',
+            fixtureTag: fixtureTag(value.name),
+          });
         }
         return;
       }
@@ -93,12 +106,16 @@ function createPersistentIoSummary() {
         if (pending.delete(key)) collisions++;
         operations.invalidate(key);
         // For flush events the file key is supplied as name, never a path.
-        const kind = type === 'create' ? value.name : names.get(pointer(value.name));
+        const file = type === 'create' ? null : names.get(pointer(value.name));
+        const kind = type === 'create' ? value.name : file?.kind;
+        const identity = association
+          ? { ...association, fixtureTag: file?.fixtureTag ?? null }
+          : null;
         if (type === 'create' && !['database', 'journal'].includes(kind)) throw fail();
         if (!kind) return;
         if (pending.size + operations.size() >= 8192) throw fail();
-        if (type === 'flush') pending.set(key, { kind, start: value.timeMs });
-        else operations.begin(type, key, value.timeMs, kind);
+        if (type === 'flush') pending.set(key, { kind, start: value.timeMs, identity });
+        else operations.begin(type, key, value.timeMs, kind, identity);
         return;
       }
       if (!/^(?:-?[0-9]{1,10}|0x[0-9a-fA-F]{1,8})$/.test(value.name)) throw fail();
@@ -113,7 +130,7 @@ function createPersistentIoSummary() {
       pending.delete(key);
       const elapsed = value.timeMs - start.start;
       if (!Number.isSafeInteger(elapsed) || elapsed < 0) throw fail();
-      windows.record('flush', start.kind, start.start, value.timeMs, status);
+      windows.record('flush', start.kind, start.start, value.timeMs, status, start.identity);
       if (status !== 0) {
         failedFlushes++;
         return;
@@ -128,7 +145,7 @@ function createPersistentIoSummary() {
       const ioOperations = operations.snapshot();
       const ioScheduling = scheduling.snapshot();
       return {
-        schemaVersion: ioScheduling ? 6 : ioOperations ? 4 : 1,
+        schemaVersion: ioScheduling ? (windows.hasAssociations() ? 7 : 6) : ioOperations ? 4 : 1,
         scope:
           ioScheduling || ioOperations
             ? 'synthetic_sqlite_etw_file_operations'

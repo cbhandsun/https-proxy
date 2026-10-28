@@ -2,6 +2,7 @@
 
 // Test-only observation. No product request, worker message or receipt is changed.
 const path = require('node:path');
+const { fixtureTag, validFixtureTag } = require('../../scripts/lib/persistent-io-association');
 const { Worker } = require('node:worker_threads');
 const { performance } = require('node:perf_hooks');
 const { types } = require('node:util');
@@ -237,7 +238,18 @@ function parseStageLine(line) {
         'elapsedMs,operation,sequence,stage',
         'elapsedMs,operation,sequence,stage,threadCpuSystemUs,threadCpuUserUs',
         'elapsedMs,finishedAtUnixMs,operation,sequence,stage,startedAtUnixMs,threadCpuSystemUs,threadCpuUserUs,wallClockRollbackObserved',
-      ].includes(Object.keys(value).sort().join(',')) ||
+      ].includes(
+        Object.keys(value)
+          .filter((key) => !['ownerProcessId', 'fixtureTag'].includes(key))
+          .sort()
+          .join(',')
+      ) ||
+      ((Object.hasOwn(value, 'ownerProcessId') || Object.hasOwn(value, 'fixtureTag')) &&
+        (!Number.isSafeInteger(value.ownerProcessId) ||
+          value.ownerProcessId <= 0 ||
+          value.ownerProcessId >= 0xffffffff ||
+          (value.fixtureTag !== null && !validFixtureTag(value.fixtureTag)) ||
+          !Object.hasOwn(value, 'fixtureTag'))) ||
       (Object.hasOwn(value, 'threadCpuUserUs') &&
         (!['sqlite_commit', 'sqlite_clock_write'].includes(value.stage) ||
           !Number.isSafeInteger(value.threadCpuUserUs) ||
@@ -291,11 +303,13 @@ function createObservedStorageWorker(diagnostic, WorkerType = Worker) {
       if (file !== path.resolve(__dirname, '../../lib/proxy/context-recovery-storage-worker.js'))
         throw fail();
       const script = [
-        'const { installOwnerStageProbe } = require(' + JSON.stringify(__filename) + ');',
+        'const { installOwnerStageProbe, observedOwnerIdentity } = require(' +
+          JSON.stringify(__filename) +
+          ');',
         'const { installAnchorStageProbe } = require(' +
           JSON.stringify(path.join(__dirname, 'recovery-anchor-stage-probe.js')) +
           ');',
-        "installOwnerStageProbe(require, (value) => process.stderr.write('HPM_STAGE ' + JSON.stringify(value) + '\\n'), undefined, undefined, installAnchorStageProbe, Date.now);",
+        "const identity = observedOwnerIdentity(require('node:worker_threads').workerData); installOwnerStageProbe(require, (value) => process.stderr.write('HPM_STAGE ' + JSON.stringify({ ...value, ...identity }) + '\\n'), undefined, undefined, installAnchorStageProbe, Date.now);",
         'require(' + JSON.stringify(file) + ');',
       ].join('\n');
       super(script, { ...options, eval: true, stderr: true });
@@ -331,7 +345,18 @@ function createObservedStorageWorker(diagnostic, WorkerType = Worker) {
   };
 }
 
+function observedOwnerIdentity(workerData) {
+  let tag = null;
+  if (workerData && typeof workerData === 'object' && !types.isProxy(workerData)) {
+    const slot = Object.getOwnPropertyDescriptor(workerData, 'directory');
+    if (slot && Object.hasOwn(slot, 'value') && typeof slot.value === 'string')
+      tag = fixtureTag(slot.value + '/checkpoint.sqlite');
+  }
+  return Object.freeze({ ownerProcessId: process.pid, fixtureTag: tag });
+}
+
 module.exports = {
+  observedOwnerIdentity,
   installOwnerStageProbe,
   parseStageLine,
   createObservedStorageWorker,

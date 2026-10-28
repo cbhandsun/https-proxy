@@ -8,6 +8,7 @@ const vm = require('node:vm');
 const { EventEmitter } = require('node:events');
 const {
   installOwnerStageProbe,
+  observedOwnerIdentity,
   parseStageLine,
   createObservedStorageWorker,
   createOwnerDiagnosticScope,
@@ -264,8 +265,10 @@ test('worker bootstrap instruments actual module path before unchanged original 
   };
   vm.runInNewContext(worker.script, {
     require(file) {
+      if (file === 'node:worker_threads') return { workerData };
       if (file === helperFile)
         return {
+          observedOwnerIdentity,
           installOwnerStageProbe: (_load, emit, _now, _cpu, installNative, wallNow) => {
             assert.equal(typeof wallNow, 'function');
             assert.ok(Number.isSafeInteger(wallNow()));

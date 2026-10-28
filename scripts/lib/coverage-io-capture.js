@@ -48,10 +48,10 @@ function parseSummary(text) {
   if (typeof text !== 'string' || Buffer.byteLength(text) > 16384) throw fail();
   const value = JSON.parse(text);
   if (JSON.stringify(value) !== text) throw fail();
-  const extended = [2, 3, 4, 5, 6].includes(value?.schemaVersion);
+  const extended = [2, 3, 4, 5, 6, 7].includes(value?.schemaVersion);
   exact(
     value,
-    value?.schemaVersion === 6
+    [6, 7].includes(value?.schemaVersion)
       ? [...KEYS, 'ioOperations', 'ioScheduling', 'ioWindows']
       : value?.schemaVersion === 5
         ? [...KEYS, 'ioOperations', 'ioScheduling']
@@ -60,7 +60,7 @@ function parseSummary(text) {
           : KEYS
   );
   if (
-    ![1, 2, 3, 4, 5, 6].includes(value.schemaVersion) ||
+    ![1, 2, 3, 4, 5, 6, 7].includes(value.schemaVersion) ||
     value.scope !==
       (extended ? 'synthetic_sqlite_etw_file_operations' : 'synthetic_sqlite_etw_flush_pairs') ||
     value.traceCompletenessVerified !== false ||
@@ -107,7 +107,7 @@ function parseSummary(text) {
       value.schemaVersion >= 3,
       value.schemaVersion >= 4
     );
-  if (value.schemaVersion === 6) validatePersistentIoWindows(value.ioWindows, value);
+  if ([6, 7].includes(value.schemaVersion)) validatePersistentIoWindows(value.ioWindows, value);
   return value;
 }
 function validateIoOperations(operations, events, flushes, statuses, creates) {

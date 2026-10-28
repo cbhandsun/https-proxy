@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-28T21:07:11.227615+00:00",
+  "baseline": "757cc30ca3340c944175b09bae26d732bd80eb4a",
+  "runtimeSource": "6c801fac70e4c80b7ce64d32c8bc7a8698fa322e",
+  "scope": "bounded synthetic I/O attribution instrumentation; no runtime/authentication/durability change",
+  "problem": "Existing finite I/O windows remove file and process association, so time overlap cannot identify the failing COMMIT I/O.",
+  "changes": [
+    "Selected operation start copies event-header PID/TID and payload issuer TID independently. Missing/placeholder IDs stay null; ambiguous/illegal fields fail closed. Header PID is not relabelled as owner PID.",
+    "Name-map association uses a SHA-256 tag of the fixed synthetic fixture suffix, shared by Win32/device spellings and journal/database names. It is not a physical file ID and does not prove process ownership.",
+    "Paired top-eight windows own detached start metadata across name reuse; reused/invalidated IRPs cannot inherit previous metadata. No paths, pointer addresses, payloads, or unrelated file names are exported.",
+    "Test-only owner stage records add actual process.pid and the same fixture tag. No product request, worker protocol or persistence operation is changed.",
+    "Closed receipt schema7 validates association fields; original schemas1-6, byte/event/window limits and false qualification flags remain. Both new regression files enter existing unit discovery."
+  ],
+  "validation": {
+    "baselineNewInputRefused": true,
+    "localRelated": {
+      "tests": 30,
+      "pass": 30,
+      "fail": 0,
+      "skip": 0
+    },
+    "windowsStandaloneDecoder": {
+      "event": "io_association_decoder_test",
+      "exitCode": 0,
+      "rows": [
+        "ok 1 - actual PowerShell retains payload issuer independently of event header and refuses malformed identities",
+        "# tests 1",
+        "# pass 1",
+        "# fail 0",
+        "# skipped 0",
+        "# duration_ms 3002.7836"
+      ],
+      "stderrBytes": 0,
+      "productDatabaseOpened": false,
+      "realModelRequests": 0
+    },
+    "syntaxFiles": 1740,
+    "targetedLint": "pass",
+    "targetedFormat": "pass",
+    "ciGovernance": "pass",
+    "fullWindowsRelatedSuite": "not qualified: SSH observer timeout75s; partial TAP exists, no final totals/exit receipt; no restart solely for observation timeout",
+    "testDevelopmentFailure": "New IRP-reuse test incorrectly expected rejection of an existing allowed collision counter. Counter and safe current association were correct. Assertion corrected to preserve original parser semantics. Initial local29/30 and Windows partial failure are preserved privately; no product failure reclassified.",
+    "fullWindowsRelatedSuiteVisible": {
+      "pass": 72,
+      "fail": 1,
+      "finalTapTotals": false,
+      "exitCode": null,
+      "observerTimeoutSeconds": 75,
+      "pinnedNodeProcessesObserved": 0
+    }
+  },
+  "limitations": [
+    "No real ETW capture of the new schema yet. Complete exact-source CI remains required.",
+    "Payload issuer is absent on layouts the existing binary decoder does not expose; it stays null without header fallback.",
+    "Physical file identity and issuer-to-owner PID mapping remain unproven. A fixture tag or matching event-header PID alone is insufficient.",
+    "Five-second persistent recovery remains unresolved; prior request/COMMIT failures are retained. Latest installer, providers and real24h do not inherit qualification."
+  ],
+  "preserved": {
+    "fullDeleteSemantics": true,
+    "originalDeadlines": true,
+    "authentication": true,
+    "exactAckEquality": true,
+    "existingExpiry": true,
+    "fixedLoadsAndGates": true,
+    "longTestFrozen": true,
+    "maximumCapacityUserPause": true,
+    "oldDailyInstanceUntouched": true,
+    "realModelRequests": 0
+  },
+  "references": [
+    "https://learn.microsoft.com/en-us/windows/win32/etw/fileio-readwrite",
+    "https://learn.microsoft.com/en-us/windows/win32/etw/fileio-info"
+  ]
+}
