@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-28：e0完整CI链通过；625再现五秒失败，本机整组父限失败保留
+
+固定e0e0f14普通40625817781八作业、正式40625817663十二作业（source/egress及十业务）全部success。十份正式业务完整日志逐一核对source/plan/build摘要和实际network_finished、probesPassed、TLS/隔离/ownedTreeEmpty。额外I/O40625817825/job122610337153也success，完整日志3719087字节已读，三份原parseSummary重新校验：paired215/144/63，DB最大43/92/15ms、journal47/45/20ms，cleanupVerified/file-completed；traceCompleteness/fiveSecond/commitCorrelation资格仍false。普通coverage、正式source和额外I/O各12次long-persistent最终publication_wait_end为973–2102、944–1871、1082–1631ms；36个样本不覆盖旧失败或授后续625资格。证据见context-recovery-evidence/e0e0f14-complete-ci.json。
+
+最新6257b6b普通40626851312七项success、coverage122613736095失败（N09 ACK client父路径替换用例在arm拒绝）；正式40626851354/source122613736247失败、egress成功、业务skipped。完整失败日志还包括签名通道arm、WFP pwsh编译25000ms ETIMEDOUT，以及真实Responses第二轮long-persistent request_failed5006ms、Claude首轮publication_wait_failed5011ms。同次Responses ownerEpoch2/sequence5 save-reference-state COMMIT3887ms、engine3928ms、storage4284ms；Claude另有COMMIT1487/1640ms。线程CPU记录0的分辨率粗，不授唯一I/O原因，也不据此断言Proxy修复导致退化。证据见context-recovery-evidence/6257b6b-ci-failures.json；无重跑、跳过或期限放宽。
+
+Windows独立目录实际检出干净625，原npm ci39284ms、plugin ci --ignore-scripts53497ms，支持的artifact安装函数复制同树0356dfca助手，Node780f44f2摘要核对。十二文件预检在原120000ms父限终态126，清理无失败、所属进程0；77项可见通过、零已见断言失败但无最终汇总。五档CLI命令79782.2279ms，在原180000ms功能执行预算内、原60000ms性能目标false，该完整测试80531.8303ms。拥有树监督夹具已编译并留下success/explicit-close/natural-leak痕迹，controller-kill未进入；不由痕迹追授具体挂点或整组通过。
+
+定位后另起独立诊断，原容量/时钟两文件28/28、零fail/skip；默认worker真实DPAPI/OS锚点两次开闭及同目录重开成功，ready4499/2348ms，默认30000ms开库门保持。实际导出/加载归属、578份源码e543b6ad和干净625身份核对。此后原两文件40项组也在120000ms父限终态126，36项可见通过、无最终汇总、清理无失败。三协议六次持久body1996/2100、1835/2033、1878/2894ms，最终发布2138/2248、1979/2205、2024/3039ms；观察通过不覆盖整组失败。首次启动传递SSH255后，先权威枚举确认任务/目录/所属Node均不存在，再首次实际启动；未重启运行中的任务。证据见context-recovery-evidence/6257b6b-local-preflight-and-diagnostic.json，原始日志/DB/密钥均留本机。
+
+e0安装40625996281现已全部终态success，resolve122610921859及lifecycle122611063764通过。完整3837699字节日志和五份最终回执已核对，manifest3dc88520、application c829ede1一致。原完整候选门/审计、实际NSIS构建、同格式安装升级回滚/同用户DPAPI、582八阶段布局1→3/revision精确+1和旧写者拒绝均完成。两端默认/增强四个实际CLI合成案例各三次压缩、精确最终答案、同会话重启；默认零代理恢复，增强私有读后独立公开生成；HTTP/SSE/WS排空和daemon自然退出通过。包内发布30/30、零skip，仅defaultWorkerQualified=true、daemonQualified=false。设置矩阵的module API/管理HTTP回执自身仍是forced_cleanup及restartRetention=false，不能借后续客户端自然退出改写其范围。证据见context-recovery-evidence/e0e0f14-complete-installer.json。只授固定e0托管安装二进制，真实provider/24h仍false，不能给625源码、桌面旧包或日常实例继承资格。
+
+下一步在失败的同一次源门捕获SQLite文件/调度关联证据，定位并修复真实尾等待，同时核对原安装job。旧6646失败现场/任务及旧E实例未动，新24h未注册/启动，真实模型0、额度未写。五秒稳定性、当前本机安装两端/真实provider、24h及到期双重开、最大容量和最终自用启用等完整缺口保持。
+
 ## 2026-10-28：恢复状态克隆器在反射前拒绝Proxy；原Responses单例采样未复现尾延迟
 
 底层cloneRecoveryStateData原来只拒绝非普通原型/访问器，普通Proxy仍可越过克隆并在getPrototypeOf/ownKeys/descriptor/get上执行调用方陷阱；嵌套Proxy也可进入v10 checkpoint/reference及owned admission事实收集。新回归在原版本明确失败Missing expected exception。现在只在结构反射之前增加types.isProxy拒绝；撤销Proxy也得到固定invalid_context_recovery_state_data，不触发陷阱。没有改节点/深度/字节、原型/访问器/循环边界、授权、预算、原expiry或持久/精确ACK语义，没有跨调用缓存。

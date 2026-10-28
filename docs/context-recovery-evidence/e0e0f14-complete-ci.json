@@ -1,0 +1,565 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+  "verify": {
+    "runId": 40625817781,
+    "jobs": [
+      {
+        "id": 122610337016,
+        "name": "rust-tests",
+        "conclusion": "success"
+      },
+      {
+        "id": 122610337134,
+        "name": "unit-tests (0)",
+        "conclusion": "success"
+      },
+      {
+        "id": 122610337154,
+        "name": "integration-tests",
+        "conclusion": "success"
+      },
+      {
+        "id": 122610337165,
+        "name": "unit-tests (2)",
+        "conclusion": "success"
+      },
+      {
+        "id": 122610337188,
+        "name": "node-quality",
+        "conclusion": "success"
+      },
+      {
+        "id": 122610337221,
+        "name": "coverage",
+        "conclusion": "success"
+      },
+      {
+        "id": 122610337235,
+        "name": "unit-tests (1)",
+        "conclusion": "success"
+      },
+      {
+        "id": 122610337266,
+        "name": "unit-tests (3)",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "formal": {
+    "runId": 40625817663,
+    "sourceJobId": 122610336517,
+    "sourceConclusion": "success",
+    "egressJobId": 122610336746,
+    "egressConclusion": "success",
+    "fullTenBusinessLogsRead": true,
+    "business": [
+      {
+        "jobId": 122616877749,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n08",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "b4c4c8952070d0557ee07f223547784ad39b8fb92d11a07ddf24feea1457911c",
+          "buildReceiptSha256": "cbe9f21b2ec15d489fae08727b51aac0e40b950a42343704e19655f4b59d51cd",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "tlsVerified": true,
+          "ownedTreeEmpty": true,
+          "probesPassed": true,
+          "phase": "hosted_network_finished",
+          "nonLoopbackBlocked": true
+        }
+      },
+      {
+        "jobId": 122616877754,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-uncertain-ack",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "a9d89e4a2ccb2f2c2f8b38f016e154053320c0fa408d61c9eaddb7d6c02ab0d4",
+          "buildReceiptSha256": "56293b7ba9b5feb04f6ea5a56eb74fc9456edbf79b89d3af05363c53c3ce2cc5",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "nonLoopbackBlocked": true,
+          "n08Qualified": false,
+          "ownedTreeEmpty": true,
+          "phase": "hosted_network_finished",
+          "probesPassed": true,
+          "tlsVerified": true
+        }
+      },
+      {
+        "jobId": 122616877780,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-finished-commit",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "b91686fe645fac1c372b1926141b5cbdcfa0e220e1e7cdec88f9d52a8614a937",
+          "buildReceiptSha256": "0a470bfe1ae8d76bf912c5bc396870cc6b1fda927591068319b9bca99cc09556",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "nonLoopbackBlocked": true,
+          "probesPassed": true,
+          "phase": "hosted_network_finished",
+          "ownedTreeEmpty": true,
+          "tlsVerified": true
+        }
+      },
+      {
+        "jobId": 122616877784,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-withdrawn-ack",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "44a4df69b7f024ed72695f0c4850064cbda038bd8252562ec02b3939dbd1e088",
+          "buildReceiptSha256": "0ae92aec813f31ac2aae40760fcfb674ca1818de3007fa080e755a2137912d2a",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "phase": "hosted_network_finished",
+          "tlsVerified": true,
+          "n08Qualified": false,
+          "ownedTreeEmpty": true,
+          "probesPassed": true,
+          "nonLoopbackBlocked": true
+        }
+      },
+      {
+        "jobId": 122616877793,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-sending-ack",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "679625b08e239c0a8e51d6224be67c29f794bbd4a7dbb3fb4a3ffb90a80211d4",
+          "buildReceiptSha256": "fb4ba698d86e2c8289457cb6663bac3315d42d8c61d0a31f16972355079e44ac",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "tlsVerified": true,
+          "probesPassed": true,
+          "nonLoopbackBlocked": true,
+          "phase": "hosted_network_finished",
+          "n08Qualified": false,
+          "ownedTreeEmpty": true
+        }
+      },
+      {
+        "jobId": 122616877799,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-uncertain-commit",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "6d8462d28dd7ea6c17b9bb1b84ad1d12aa6c735adadb112fcc75a3aa452c35a5",
+          "buildReceiptSha256": "cbe15fcec94af1917071a5cbe11df53285e90b92751eb76e445a365847920660",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "tlsVerified": true,
+          "nonLoopbackBlocked": true,
+          "probesPassed": true,
+          "phase": "hosted_network_finished",
+          "ownedTreeEmpty": true
+        }
+      },
+      {
+        "jobId": 122616877811,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-finished-ack",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "f379b62a15ef4b65b71b46c6ee2f7da28edf3c026cbf7c60c3aa4551f0136e5d",
+          "buildReceiptSha256": "c01db4ee2e01a03bed877e2d8f9400ea98eaf022cdb53c9f481068fd05d8f499",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "ownedTreeEmpty": true,
+          "phase": "hosted_network_finished",
+          "probesPassed": true,
+          "tlsVerified": true,
+          "nonLoopbackBlocked": true,
+          "n08Qualified": false
+        }
+      },
+      {
+        "jobId": 122616877825,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-withdrawn-commit",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "2831dc1a623ade1bdee06a695f6dd0d8331e82e519886ea8ff78eff08fa65bd2",
+          "buildReceiptSha256": "0650cd0d1ba3cc400f8b49afd764e83c55e0975bbbea7d77488492ae6f8de89c",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "probesPassed": true,
+          "ownedTreeEmpty": true,
+          "phase": "hosted_network_finished",
+          "tlsVerified": true,
+          "nonLoopbackBlocked": true
+        }
+      },
+      {
+        "jobId": 122616877828,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "1c6928202ac41220eae430053153f150e71868d13194c6fe92b48f0fec12ddee",
+          "buildReceiptSha256": "a5aeec5f6a674c79e937a1d86e89f85177639263fd54a9a5715c34f9c899943a",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "ownedTreeEmpty": true,
+          "nonLoopbackBlocked": true,
+          "n08Qualified": false,
+          "phase": "hosted_network_finished",
+          "probesPassed": true,
+          "tlsVerified": true
+        }
+      },
+      {
+        "jobId": 122616877848,
+        "conclusion": "success",
+        "fullLogRead": true,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-sending-commit",
+          "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+          "planSha256": "00160d0b45d8aea347582f5dd9717690604ac6a7d436d0398b1f668b7fc75fba",
+          "buildReceiptSha256": "bebe3034bef905ef0af7508523e1f08681219b4b213552e62519f59869dbfd72",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "probesPassed": true,
+          "nonLoopbackBlocked": true,
+          "tlsVerified": true,
+          "n08Qualified": false,
+          "phase": "hosted_network_finished",
+          "ownedTreeEmpty": true
+        }
+      }
+    ]
+  },
+  "extraIo": {
+    "runId": 40625817825,
+    "jobId": 122610337153,
+    "conclusion": "success",
+    "fullLogRead": true,
+    "receiptParser": "scripts/lib/coverage-io-capture.js:parseSummary",
+    "allThreeOriginalReceiptsAccepted": true,
+    "validatedWindows": [
+      {
+        "windowId": "native-publication-interruption",
+        "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+        "coverageStage": "proxy",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "pairedFlushes": 215,
+        "databaseMaxMs": 43,
+        "journalMaxMs": 47,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "commitCorrelationQualified": false
+      },
+      {
+        "windowId": "client-context-target",
+        "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+        "coverageStage": "client",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "pairedFlushes": 144,
+        "databaseMaxMs": 92,
+        "journalMaxMs": 45,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "commitCorrelationQualified": false
+      },
+      {
+        "windowId": "publication-graceful-http",
+        "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+        "coverageStage": "client",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "pairedFlushes": 63,
+        "databaseMaxMs": 15,
+        "journalMaxMs": 20,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "commitCorrelationQualified": false
+      }
+    ]
+  },
+  "persistentPublicationTimings": [
+    {
+      "stage": "verify-coverage",
+      "observations": 12,
+      "minMs": 973,
+      "maxMs": 2102,
+      "rows": [
+        {
+          "kind": "chat",
+          "turn": 0,
+          "elapsedMs": 1717
+        },
+        {
+          "kind": "chat",
+          "turn": 1,
+          "elapsedMs": 2102
+        },
+        {
+          "kind": "responses",
+          "turn": 0,
+          "elapsedMs": 1282
+        },
+        {
+          "kind": "responses",
+          "turn": 1,
+          "elapsedMs": 1792
+        },
+        {
+          "kind": "claude",
+          "turn": 0,
+          "elapsedMs": 1447
+        },
+        {
+          "kind": "claude",
+          "turn": 1,
+          "elapsedMs": 1444
+        },
+        {
+          "kind": "chat",
+          "turn": 0,
+          "elapsedMs": 973
+        },
+        {
+          "kind": "chat",
+          "turn": 1,
+          "elapsedMs": 1154
+        },
+        {
+          "kind": "responses",
+          "turn": 0,
+          "elapsedMs": 1034
+        },
+        {
+          "kind": "responses",
+          "turn": 1,
+          "elapsedMs": 1204
+        },
+        {
+          "kind": "claude",
+          "turn": 0,
+          "elapsedMs": 1018
+        },
+        {
+          "kind": "claude",
+          "turn": 1,
+          "elapsedMs": 1222
+        }
+      ]
+    },
+    {
+      "stage": "formal-source",
+      "observations": 12,
+      "minMs": 944,
+      "maxMs": 1871,
+      "rows": [
+        {
+          "kind": "chat",
+          "turn": 0,
+          "elapsedMs": 1637
+        },
+        {
+          "kind": "chat",
+          "turn": 1,
+          "elapsedMs": 1871
+        },
+        {
+          "kind": "responses",
+          "turn": 0,
+          "elapsedMs": 1407
+        },
+        {
+          "kind": "responses",
+          "turn": 1,
+          "elapsedMs": 1346
+        },
+        {
+          "kind": "claude",
+          "turn": 0,
+          "elapsedMs": 1211
+        },
+        {
+          "kind": "claude",
+          "turn": 1,
+          "elapsedMs": 1402
+        },
+        {
+          "kind": "chat",
+          "turn": 0,
+          "elapsedMs": 963
+        },
+        {
+          "kind": "chat",
+          "turn": 1,
+          "elapsedMs": 1116
+        },
+        {
+          "kind": "responses",
+          "turn": 0,
+          "elapsedMs": 972
+        },
+        {
+          "kind": "responses",
+          "turn": 1,
+          "elapsedMs": 1169
+        },
+        {
+          "kind": "claude",
+          "turn": 0,
+          "elapsedMs": 944
+        },
+        {
+          "kind": "claude",
+          "turn": 1,
+          "elapsedMs": 1126
+        }
+      ]
+    },
+    {
+      "stage": "extra-io",
+      "observations": 12,
+      "minMs": 1082,
+      "maxMs": 1631,
+      "rows": [
+        {
+          "kind": "chat",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1602
+        },
+        {
+          "kind": "chat",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1631
+        },
+        {
+          "kind": "responses",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1163
+        },
+        {
+          "kind": "responses",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1564
+        },
+        {
+          "kind": "claude",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1427
+        },
+        {
+          "kind": "claude",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1474
+        },
+        {
+          "kind": "chat",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1215
+        },
+        {
+          "kind": "chat",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1194
+        },
+        {
+          "kind": "responses",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1228
+        },
+        {
+          "kind": "responses",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1195
+        },
+        {
+          "kind": "claude",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1082
+        },
+        {
+          "kind": "claude",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1273
+        }
+      ]
+    }
+  ],
+  "scope": {
+    "fullFixedE0CiChainPassed": true,
+    "later6257b6bInherited": false,
+    "fiveSecondStabilityEstablished": false,
+    "oldFailuresOverridden": false,
+    "fullN09": false,
+    "retention24h": false,
+    "realModelCalls": 0
+  }
+}
