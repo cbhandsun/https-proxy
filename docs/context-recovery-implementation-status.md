@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：实际 WPR 硬链接分支确认，源码准入已通过
+
+562ebcc的schema preflight job123271278161完整19123字符日志确认wpr-path拒绝、wprHardLink=true/wprReparse=false，Node检查尚未到达，负载/录制均未启动。现仅为固定SystemRoot/System32/wpr.exe拆出只读工具校验，允许该工具硬链接，固定精确路径、叶类型、UNC/device拒绝、全部祖先重解析拒绝、read lease及每条命令前后SHA保留；不改共享产物门、Node、ETL或owned root。真实Host硬链接先红后绿，错误/含..路径、目录、叶/祖先链接及身份前后变化负控覆盖；父端五完整文件69/69零skip/cancel、Lint/格式/治理通过。新Windows结果尚待执行；这是诊断工具校验修复，不是产品五秒根因，2b/562原失败保留。
+
+本机新轮源码准入已真实通过exit0/28602ms，全部2159文件、13Native输入和HEAD/tree/shallow/clean核对。后续cache-copy在5223ms失败、未进入npm/Native/installer；原因是私有预填工具错误要求两锁509个跨平台archive均已存在。旧公共缓存275个存在且SHA全部匹配、234个缺失（含非Windows平台包）。修正仅预填真实存在且严格校验的公共项，缺失显式记录、不授完整缓存资格；原Cargo --locked/offline继续决定目标所需依赖，不自制平台解析器或放宽构建门。旧失败冻结、新隔离修复版已请求启动，是否实际编译仍须新进程/阶段回执。旧实例不动，模型/新24h均0。有限证据见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
 ## 2026-10-29（UTC）：schema 首轮被 host 门拒绝，修复实际命令多候选组合
 
 2b1fba6/schema job123268656740完整23238字符日志已核为host阶段失败，sourceSha尚null、事件0、测试负载/WPR未启动，清理true。原失败保留，不授FilterIO布局或产品原因。新增真实Host组合检查捕获Get-Command Application可返回多个候选，旧.Source数组被当作单一可执行路径；修为按命令搜索优先序取首项。真实双候选及完整Host/共享路径门/有界Git回归通过，不再mock整个Host。不能把本机已复现的问题直接认作该Windows失败根因；新只读preflight在npm/Native之前执行同一Host，输出有限cause及工具HardLink/Reparse布尔，拒绝仍红停，不泄露路径、环境或异常。

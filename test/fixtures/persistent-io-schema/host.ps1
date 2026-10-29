@@ -47,16 +47,41 @@ $module=Import-Module (Join-Path $Repository 'scripts/lib/persistent-io-schema-r
             }
             Initialize-HpmSchemaHostObservation;$failed=$false
             try{$hostInfo=Get-HpmSchemaHost}catch{$failed=$true}
-            $expected=switch($script:mode){'normal'{'complete'};'authority'{'authority'};'platform'{'platform'};'administrator'{'administrator'};'source'{'source-identity'};'node-hardlink'{'node-path'};default{'wpr-path'}}
-            if($script:SchemaHostCause -cne $expected -or (($script:mode -ceq 'normal') -eq $failed)){throw ('actual_host_gate_failed_'+$script:mode+':'+$script:SchemaHostCause)}
+            $expected=switch($script:mode){'normal'{'complete'};'wpr-hardlink'{'complete'};'authority'{'authority'};'platform'{'platform'};'administrator'{'administrator'};'source'{'source-identity'};'node-hardlink'{'node-path'};default{'wpr-path'}}
+            if($script:SchemaHostCause -cne $expected -or (($script:mode -cin @('normal','wpr-hardlink')) -eq $failed)){throw ('actual_host_gate_failed_'+$script:mode+':'+$script:SchemaHostCause)}
             if($script:mode -ceq 'normal' -and $hostInfo.sha -cne $Sha){throw 'source_identity_lost'}
             if($script:mode -ceq 'wpr-hardlink' -and -not $script:SchemaHostWitness.wprHardLink){throw 'hardlink_witness_lost'}
-            if($script:mode -ceq 'wpr-hardlink'){$preflightRejected=$false;try{Invoke-HpmPersistentIoSchemaPreflight}catch{$preflightRejected=$true};if(-not $preflightRejected){throw 'preflight_failure_swallowed'}}
+            if($script:mode -ceq 'wpr-hardlink'){Invoke-HpmPersistentIoSchemaPreflight}
             if($script:mode -ceq 'wpr-symlink' -and -not $script:SchemaHostWitness.wprReparse){throw 'reparse_witness_lost'}
             if($script:mode -cin @('wpr-hardlink','wpr-symlink')){Remove-Item $wpr;Move-Item ($wpr+'.original') $wpr}
             if($script:mode -ceq 'node-hardlink'){Remove-Item $script:hostNode;Move-Item ($script:hostNode+'.original') $script:hostNode}
         }
-        $script:mode='normal';Invoke-HpmPersistentIoSchemaPreflight
+        $script:mode='normal'
+        foreach($wrong in @('',(Join-Path $parent 'wpr.exe'),(Join-Path $parent 'System32/../System32/wpr.exe'),'\\device\wpr.exe')){
+            $rejected=$false;try{Assert-HpmSchemaWprTool $wrong}catch{$rejected=$true};if(-not $rejected){throw 'wrong_tool_path_accepted'}
+        }
+        Move-Item $wpr ($wpr+'.original');[void](New-Item -ItemType Directory $wpr)
+        try{$rejected=$false;try{Assert-HpmSchemaWprTool $wpr}catch{$rejected=$true};if(-not $rejected){throw 'directory_tool_accepted'}}finally{Remove-Item $wpr;Move-Item ($wpr+'.original') $wpr}
+        $system32=Join-Path $parent 'System32';Move-Item $system32 ($system32+'.original');[void](New-Item -ItemType SymbolicLink -Path $system32 -Target ($system32+'.original'))
+        try{$rejected=$false;try{Assert-HpmSchemaWprTool $wpr}catch{$rejected=$true};if(-not $rejected){throw 'ancestor_reparse_accepted'}}finally{Remove-Item $system32;Move-Item ($system32+'.original') $system32}
+        $actual=Get-HpmSchemaHost
+        $processCommand=Get-Command Invoke-HpmSchemaCaptureProcess
+        function Invoke-HpmSchemaCaptureProcess {
+            param($Executable,$Arguments,$DeadlineMs,$MaximumBytes)
+            $script:wprCalls++
+            if($script:identityMode -ceq 'post'){[IO.File]::WriteAllText($Executable,'changed during invocation')}
+            return @{ExitCode=0;Output='PRIVATE_DISCARDED'}
+        }
+        try{
+            foreach($script:identityMode in @('pre','post')){
+                [IO.File]::WriteAllText($wpr,'fixed read-only mock binary');$actual.wprHash=(Get-FileHash $wpr).Hash
+                if($script:identityMode -ceq 'pre'){[IO.File]::WriteAllText($wpr,'changed before invocation')}
+                $script:wprCalls=0;$rejected=$false
+                try{Invoke-HpmSchemaWpr $actual ('HpmIoSchema'+'a'*32) @('-status')}catch{$rejected=$true}
+                if(-not $rejected -or $script:wprCalls -ne $(if($script:identityMode -ceq 'pre'){0}else{1})){throw 'tool_identity_drift_accepted'}
+            }
+        }finally{Set-Item Function:Invoke-HpmSchemaCaptureProcess $processCommand.ScriptBlock;[IO.File]::WriteAllText($wpr,'fixed read-only mock binary')}
+        Invoke-HpmPersistentIoSchemaPreflight
     }finally{
         Remove-Item $parent -Recurse -Force
         foreach($key in $saved.Keys){if($null -eq $saved[$key]){Remove-Item ('Env:'+ $key) -ErrorAction SilentlyContinue}else{[Environment]::SetEnvironmentVariable($key,$saved[$key])}}

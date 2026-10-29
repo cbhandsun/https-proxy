@@ -1,6 +1,7 @@
 Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'persistent-io-schema.psm1')
 Import-Module (Join-Path $PSScriptRoot 'persistent-io-schema-process.psm1')
+Import-Module (Join-Path $PSScriptRoot 'persistent-io-schema-tool.psm1')
 Import-Module (Join-Path $PSScriptRoot 'nsis-lifecycle.psm1') -DisableNameChecking
 function Test-HpmSchemaAuthority {
     return ($env:GITHUB_JOB -ceq 'minifilter-schema-discovery' -and $env:GITHUB_WORKFLOW_REF -cmatch '\Acbhandsun/https-proxy/\.github/workflows/windows-persistent-io-coverage\.yml@refs/(?:heads|tags)/[A-Za-z0-9_./-]+\z' -and $env:GITHUB_SHA -cmatch '\A[a-f0-9]{40}\z')
@@ -33,18 +34,20 @@ function Get-HpmSchemaHost {
     if($identity.ExitCode -ne 0 -or $identity.Output.Trim() -cne $env:GITHUB_SHA){throw 'io_schema_failed'}
     $script:SchemaHostCause='wpr-path';$wpr=Join-Path $env:SystemRoot 'System32/wpr.exe'
     Set-HpmSchemaToolWitness 'wpr' $wpr
-    Assert-HpmLifecycleArtifactPath ([IO.Path]::GetPathRoot($wpr)) $wpr 'Leaf'
+    Assert-HpmSchemaWprTool $wpr
     $script:SchemaHostCause='node-discovery';$node=Get-HpmSchemaTool 'node'
     $script:SchemaHostCause='node-path';Set-HpmSchemaToolWitness 'node' $node
     Assert-HpmLifecycleArtifactPath ([IO.Path]::GetPathRoot($node)) $node 'Leaf'
-    $script:SchemaHostCause='wpr-hash';$hash=(Get-FileHash $wpr).Hash
+    $script:SchemaHostCause='wpr-hash'
+    $identityLease=[IO.File]::Open($wpr,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+    try{$hash=Get-HpmSchemaWprHash $wpr;if((Get-HpmSchemaWprHash $wpr) -cne $hash){throw 'io_schema_failed'}}finally{$identityLease.Dispose()}
     $script:SchemaHostCause='complete'
     return @{workspace=$workspace;parent=$parent;wpr=$wpr;node=$node;sha=$env:GITHUB_SHA;wprHash=$hash}
 }
 function Invoke-HpmSchemaWpr($HostInfo,[string]$Instance,[string[]]$Arguments){
-    if($Instance -cnotmatch '\AHpmIoSchema[a-f0-9]{32}\z' -or (Get-FileHash $HostInfo.wpr).Hash -cne $HostInfo.wprHash){throw 'io_schema_failed'}
+    if($Instance -cnotmatch '\AHpmIoSchema[a-f0-9]{32}\z' -or (Get-HpmSchemaWprHash $HostInfo.wpr) -cne $HostInfo.wprHash){throw 'io_schema_failed'}
     $result=Invoke-HpmSchemaCaptureProcess $HostInfo.wpr @($Arguments+@('-instancename',$Instance)) 30000 16384
-    if($result.ExitCode -ne 0 -or (Get-FileHash $HostInfo.wpr).Hash -cne $HostInfo.wprHash){throw 'io_schema_failed'}
+    if($result.ExitCode -ne 0 -or (Get-HpmSchemaWprHash $HostInfo.wpr) -cne $HostInfo.wprHash){throw 'io_schema_failed'}
 }
 function New-HpmSchemaOwnedJob {
     if(-not $IsWindows){throw 'io_schema_failed'}

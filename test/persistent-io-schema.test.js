@@ -117,8 +117,8 @@ test('actual host uses real physical path validation and bounded git identity be
       return JSON.parse(line.slice('HPM_IO_SCHEMA_PREFLIGHT='.length));
     });
   assert.equal(rows.length, 2);
-  assert.equal(rows[0].passed, false);
-  assert.equal(rows[0].hostCause, 'wpr-path');
+  assert.equal(rows[0].passed, true);
+  assert.equal(rows[0].hostCause, 'complete');
   assert.equal(rows[0].hostToolWitness.wprHardLink, true);
   const receipt = rows[1];
   assert.equal(receipt.passed, true);
