@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：固定候选完整安装通过，交付与超时定位并行
+
+1a5ae1c安装审阅40813874985/job123250370275已成功，完整4358031字符日志与五份有限回执已核：原完整候选verify/audit、同格式升级回滚/DPAPI、安装版582八阶段完整迁移和旧reader拒写、Codex/Claude默认与增强四个实际原生CLI合成场景、持久发布COMMIT/ACK内部中断30/30零skip均通过。manifest b3e82711…和application 02e42f33…仅绑定托管该二进制，不转授本机新包、真实provider、有效24h或稳定五秒资格。此前失败全部保留，见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+97d97d5普通Verify40815377246仍6成功2失败；unit1实际Chat/Responses持久恢复请求均5002ms失败，与coverage的fixture ready前置超时分别记录。不能删除最大预扣ACK、独立结算ACK、FULL/DELETE或锚点故障边界换绿色。新只读WPR能力作业与原I/O作业独立，仅查实际System32工具和发现的profile元数据，不录制、不猜事件schema，不授根因结论；双流先限各16KiB原始字节再严格解码，原5s命令/5s清理保留。原coverage作业与32MiB profile不改。
+
+交付固定1a5候选，独立Windows目录重编Native并准备本机自用安装包；只复用已核工具与公共锁定缓存，不追诊断提交反复重打包，不覆盖旧实例，用户自行切换。构建启动须以实际任务/PID/源码身份回执为准，本记录不称已启动或完成。CI证据收口与I/O定位并行；无新24h、模型0，旧冻结失败与最大容量暂停保持。
+
 ## 2026-10-29（UTC）：原生窗口实际捕获长文件操作，失败身份绑定补齐
 
 1a5ae1c原生窗口40813512755/job123249119711已终态失败，完整3099491字符日志读取；withdrawn的kill/release两项在fixture ready原五秒前置门失败，未进入目标中断。首项startup ready父端833ms，后续save的owner execute间隔1997ms、anchor间隔1277ms；不是仅开库慢。唯一source/native-window/cleanup回执经原parseSummary接受：schema7、384事件/7对flush，database最大129ms，journal6对均超100ms、最大996ms，同轮长FileIO正证据成立。write/flush相互重叠且仅top8，不能相加或当完整操作列表；调度otherWaiting3836ms同样与I/O重叠，ready/delayExecution零不排除缺失。traceCompletenessVerified、commitCorrelationQualified、fiveSecondQualified仍false，尚不能认定AV、VFS重试或唯一物理原因。

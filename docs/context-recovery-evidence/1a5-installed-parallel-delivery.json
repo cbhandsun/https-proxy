@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "candidateSource": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+  "installedReview": {
+    "runId": 40813874985,
+    "jobId": 123250370275,
+    "conclusion": "success",
+    "fullLogCharacters": 4358031,
+    "fiveReceiptsAudited": true,
+    "runtimeManifestSha256": "b3e8271196a042ac44626688e5d23b4d7f0ae5f7749491567bcae14261744272",
+    "applicationSha256": "02e42f33b1e8ca257921a268137a3b54fc23cd716b29792fd4636591c9a5237f",
+    "completeCandidateGatesPassed": true,
+    "sameFormatUpgradeRollbackPassed": true,
+    "installed582MigrationAndOldReaderRefusalPassed": true,
+    "actualNativeCliSyntheticCasesPassed": 4,
+    "installedPublicationTestsPassed": 30,
+    "installedPublicationTestsFailed": 0,
+    "installedPublicationTestsSkipped": 0,
+    "realProviderQualified": false,
+    "retention24hQualified": false,
+    "fiveSecondStableQualified": false,
+    "localCandidateBinaryQualified": false
+  },
+  "latestOrdinaryVerify": {
+    "source": "97d97d526b3852542670300361ed9a0c7664f398",
+    "runId": 40815377246,
+    "successfulJobs": 6,
+    "failedJobs": 2,
+    "httpFailureJobId": 123255072363,
+    "httpRecoveryTimeoutMs": 5002,
+    "actualChatAndResponsesRecoveryFailed": true,
+    "nativePublicationFixtureFailureJobId": 123255072237,
+    "nativePublicationTargetEntered": false,
+    "failuresRetained": true
+  },
+  "parallelDelivery": {
+    "fixedLocalCandidateSource": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "newIsolatedLocalBuildAuthorized": true,
+    "localBuildStartedByThisReceipt": false,
+    "oldInstanceChanged": false,
+    "automaticInstallationOrSwitch": false,
+    "manualSwitchByUser": true,
+    "originalPersistenceAndFiveSecondGatesPreserved": true,
+    "new24hRunStarted": false,
+    "realModelRequests": 0
+  }
+}

@@ -51,6 +51,8 @@ on:
       - test/recovery-anchor-stage-probe.test.js
       - test/recovery-owner-stage-probe.test.js
       - .github/workflows/windows-persistent-io-coverage.yml
+      - scripts/check-persistent-io-capabilities.ps1
+      - scripts/lib/persistent-io-capabilities*.psm1
       - scripts/capture-persistent-io.ps1
       - scripts/check-coverage-io-receipt.cjs
       - scripts/lib/coverage-io-capture.js
@@ -143,3 +145,13 @@ jobs:
             'Read/write/info/delete/cleanup/close observations retain nonzero status counts; neither a VFS retry nor antivirus attribution is inferred.'
             'All providers are synthetic. No raw ETL, decoded records, paths, keys, databases, originals or model replies are uploaded.'
           ) >> $env:GITHUB_STEP_SUMMARY
+  wpr-read-only-capabilities:
+    runs-on: windows-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Inspect existing WPR metadata without recording
+        shell: pwsh
+        run: ./scripts/check-persistent-io-capabilities.ps1

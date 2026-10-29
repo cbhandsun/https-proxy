@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+优先读实施状态顶部及context-recovery-evidence/1a5-installed-parallel-delivery.json：1a5完整安装审阅40813874985已通过，含同格式升级回滚/DPAPI、582完整迁移拒写、四个实际CLI合成场景和安装版发布内部中断30/30零skip；不授真实provider/24h/五秒稳定性。固定此源码准备独立本机自用候选，旧实例由用户自行切换，诊断更新不反复阻断打包。97普通Verify仍有实际Chat/Responses5002ms超时及另一个fixture前置失败，原记录保留；新独立WPR元数据作业只核能力，不录制、不改原门禁/32MiB profile。无新24h、模型0。
+
 最新状态先读实施状态顶部：1a5ae1c的Windows两端独立增强run40813512898均成功，原三次压缩/重启/私有读取后独立公开生成与清理闭合，但仍非安装/provider/24h。其原生I/O run40813512755失败：两个withdrawn场景未过fixture ready五秒，原目标未进入；同轮journal长FileIO配对最大996ms已记录，write/flush和调度等待不得重复相加，trace不完整且未证明唯一原因。新超时文本仅追加安全PID+合成文件tag，六完整文件29/29，新Windows绑定待核，旧失败不反向归属。853正式十二作业通过仅属原有界合成场景，不覆盖1a5失败。1a5安装审阅40813874985在原verify/audit门中；稳定五秒、最新安装资格、真实provider和有效24h均未整体闭合。模型0，旧实例/冻结长测不动。见context-recovery-evidence/native-publication-io-tail.json。
 
 ## 2026-10-29（UTC）：两条独立定位线与完整门并行
