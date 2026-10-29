@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：原生窗口实际捕获长文件操作，失败身份绑定补齐
+
+1a5ae1c原生窗口40813512755/job123249119711已终态失败，完整3099491字符日志读取；withdrawn的kill/release两项在fixture ready原五秒前置门失败，未进入目标中断。首项startup ready父端833ms，后续save的owner execute间隔1997ms、anchor间隔1277ms；不是仅开库慢。唯一source/native-window/cleanup回执经原parseSummary接受：schema7、384事件/7对flush，database最大129ms，journal6对均超100ms、最大996ms，同轮长FileIO正证据成立。write/flush相互重叠且仅top8，不能相加或当完整操作列表；调度otherWaiting3836ms同样与I/O重叠，ready/delayExecution零不排除缺失。traceCompletenessVerified、commitCorrelationQualified、fiveSecondQualified仍false，尚不能认定AV、VFS重试或唯一物理原因。
+
+现TAP超时没有child.pid/expectedTag，只能按时间推断两个fixture归属，不能严格绑定。已仅在原assert.fail末尾追加≤128B fixtureIdentity：只读own-data正整数PID（与I/O解析范围一致）及既有64hex合成目录tag，非法/访问器归null，不泄漏路径、原文或异常。无新SQL、消息、时钟、Worker或重试，原5000ms/清理不变；三个真实timeout路径回归旧helper先红，reserved PID另先红1项，修后六完整文件29/29零skip/cancel，含原plain SQLite/HTTP中断正控与模块治理。单测fakefork/时钟仅用于走原timeout/finally，不授Native或Windows身份绑定资格；新字段不能反向补授旧失败。
+
+1a5两端独立增强run40813512898已经成功，完整Claude26934/Codex26922字符日志及精确client回执/cross-client拒绝核对，原三压缩/重启/私有read后独立public生成及清理闭合；仍非安装/provider/24h。853正式40812509451十二作业全success，source完整4327571字符与十业务完整日志/source-plan-build及cleanup回执核对，仅授原有界合成场景，不能覆盖当前原生失败。1a5完整安装审阅40813874985仍在原完整候选verify/audit阶段，未授构建/安装结论。模型0，旧实例/冻结长测/最大容量暂停保持。证据见context-recovery-evidence/native-publication-io-tail.json。
+
 ## 2026-10-29（UTC）：修复 Claude 诊断首启协议，并将额外 I/O 对准原生失败窗口
 
 使用实际 runtime-config-controller、management-health 与原 configureInstalledClient 确定性复现：初始OpenAI监听即使原POST配置已生效，health仍是原OpenAI入口，原十五秒Claude协议门拒绝。已仅对新生成诊断controller副本的唯一固定调用改为Claude初始监听，并给adapter相同固定初始协议；label仍00，原PS1及正式controller/生产热重载/Job归属和启动放行不变。变换前复制源与有限fd读取前后身份和原摘要复核，变换后重钉copyPins；没有降低身份或健康断言。缺初始协议回归先红，修后父端十二完整文件87/87、零skip/cancel，含原两端协议、真实PowerShell及模块治理。agent首轮无便携pwsh PATH的两项ENOENT也保留为工具环境失败，不能算产品失败或Windows通过。

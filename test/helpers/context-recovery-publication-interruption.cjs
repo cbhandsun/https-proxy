@@ -9,6 +9,7 @@ const path = require('node:path');
 const http = require('node:http');
 const { fork } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
+const { types } = require('node:util');
 const { performance } = require('node:perf_hooks');
 const { setImmediate: nextTurn } = require('node:timers/promises');
 const { DatabaseSync } = require('node:sqlite');
@@ -88,6 +89,15 @@ function processFixture(file, databaseFile, diagnostic) {
     child.once('error', reject);
     child.once('exit', (code, signal) => resolve({ code, signal }));
   });
+  function failureIdentity() {
+    const slot = types.isProxy(child) ? undefined : Object.getOwnPropertyDescriptor(child, 'pid');
+    const pid = slot && Object.hasOwn(slot, 'value') ? slot.value : null;
+    return {
+      ownerProcessId: Number.isSafeInteger(pid) && pid > 0 && pid < 0xffffffff ? pid : null,
+      fixtureTag:
+        typeof expectedTag === 'string' && /^[a-f0-9]{64}$/.test(expectedTag) ? expectedTag : null,
+    };
+  }
   return {
     child,
     messages,
@@ -104,7 +114,7 @@ function processFixture(file, databaseFile, diagnostic) {
         if (performance.now() >= deadline) {
           const observed = startup.describe();
           assert.fail(
-            `fixture phase deadline exceeded (awaiting=${name};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs};startupTimeline=${JSON.stringify(startup.snapshot())};storageOperations=${JSON.stringify(operations.snapshot())};executionProgress=${JSON.stringify(executionSamples)};sqlProgress=${JSON.stringify(sql.snapshot())})`
+            `fixture phase deadline exceeded (awaiting=${name};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs};startupTimeline=${JSON.stringify(startup.snapshot())};storageOperations=${JSON.stringify(operations.snapshot())};executionProgress=${JSON.stringify(executionSamples)};sqlProgress=${JSON.stringify(sql.snapshot())};fixtureIdentity=${JSON.stringify(failureIdentity())})`
           );
         }
         await waitForFixtureSignal(child, Math.max(0, deadline - performance.now()));

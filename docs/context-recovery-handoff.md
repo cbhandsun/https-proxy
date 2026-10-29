@@ -1,6 +1,6 @@
 # 上下文恢复换机交接
 
-最新状态先读实施状态顶部：853b3a8 独立两端 run40812509488 已终态，Codex 增强通过；Claude 在 configure 阶段失败、CLI 尚未启动，原因是新诊断先启动固定 OpenAI 监听再尝试热配置 Claude，实际监听协议不变。已修复诊断专用初始协议与 adapter 一致性，本机十二文件87/87，原十五秒健康门不改；实际Windows修复验证待新源码。e4fe 正式源门另有两项 native publication fixture ready 五秒失败，目标中断未进入，原失败保持；COMMIT 的1772/1986ms是父端观察间隔，包含传递/调度影响，尚无物理根因。额外coverage将原单proxy观察窗口定向native-publication-interruption，保留完整原测试和client窗口，下一轮才有同轮原生I/O记录机会。e4fe 时延三组各50/50、独立I/O70/70及额外coverage通过不能覆盖上述失败。最新安装两端、稳定五秒、真实provider和有效24h均未授整体资格；模型0、旧实例/冻结长测不动。证据见 context-recovery-evidence/claude-diagnostic-initial-protocol.json 与 parallel-diagnostic-first-windows.json。
+最新状态先读实施状态顶部：1a5ae1c的Windows两端独立增强run40813512898均成功，原三次压缩/重启/私有读取后独立公开生成与清理闭合，但仍非安装/provider/24h。其原生I/O run40813512755失败：两个withdrawn场景未过fixture ready五秒，原目标未进入；同轮journal长FileIO配对最大996ms已记录，write/flush和调度等待不得重复相加，trace不完整且未证明唯一原因。新超时文本仅追加安全PID+合成文件tag，六完整文件29/29，新Windows绑定待核，旧失败不反向归属。853正式十二作业通过仅属原有界合成场景，不覆盖1a5失败。1a5安装审阅40813874985在原verify/audit门中；稳定五秒、最新安装资格、真实provider和有效24h均未整体闭合。模型0，旧实例/冻结长测不动。见context-recovery-evidence/native-publication-io-tail.json。
 
 ## 2026-10-29（UTC）：两条独立定位线与完整门并行
 

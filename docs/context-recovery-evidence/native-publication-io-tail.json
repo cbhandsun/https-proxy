@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+  "runId": 40813512755,
+  "jobId": 123249119711,
+  "conclusion": "failure",
+  "fullLogCharacters": 3099491,
+  "failureLatched": true,
+  "failureScope": "two native withdrawn anchor kill/release fixture-ready deadlines exceeded; target interruption not entered",
+  "firstFailure": {
+    "startupReadyParentObservedMs": 833,
+    "saveOwnerExecutionIntervalMs": 1997,
+    "saveOwnerAnchorIntervalMs": 1277
+  },
+  "ioReceipt": {
+    "sourceSha": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "windowId": "native-publication-interruption",
+    "cleanupVerified": true,
+    "originalParseSummaryAccepted": true,
+    "schemaVersion": 7,
+    "events": 384,
+    "pairedFlushes": 7,
+    "database": {
+      "count": 1,
+      "maxMs": 129,
+      "over100Ms": 1,
+      "over1000Ms": 0
+    },
+    "journal": {
+      "count": 6,
+      "maxMs": 996,
+      "over100Ms": 6,
+      "over1000Ms": 0
+    },
+    "traceCompletenessVerified": false,
+    "fiveSecondQualified": false,
+    "realModelRequests": 0,
+    "slowIoWindows": [
+      {
+        "operation": "flush",
+        "kind": "journal",
+        "startedAtMs": 1793245522286,
+        "finishedAtMs": 1793245523282,
+        "elapsedMs": 996,
+        "status": 0,
+        "association": {
+          "eventProcessId": 6744,
+          "eventThreadId": 4924,
+          "issuingThreadId": 4924,
+          "fixtureTag": "aaad6936af7cb47aeec1ce907925a537bda24ea479ad5ca426ffeaf1452e815e"
+        }
+      },
+      {
+        "operation": "write",
+        "kind": "journal",
+        "startedAtMs": 1793245522286,
+        "finishedAtMs": 1793245523280,
+        "elapsedMs": 994,
+        "status": 0,
+        "association": {
+          "eventProcessId": 6744,
+          "eventThreadId": 4924,
+          "issuingThreadId": null,
+          "fixtureTag": "aaad6936af7cb47aeec1ce907925a537bda24ea479ad5ca426ffeaf1452e815e"
+        }
+      },
+      {
+        "operation": "flush",
+        "kind": "journal",
+        "startedAtMs": 1793245521498,
+        "finishedAtMs": 1793245522286,
+        "elapsedMs": 788,
+        "status": 0,
+        "association": {
+          "eventProcessId": 6744,
+          "eventThreadId": 4924,
+          "issuingThreadId": 4924,
+          "fixtureTag": "aaad6936af7cb47aeec1ce907925a537bda24ea479ad5ca426ffeaf1452e815e"
+        }
+      },
+      {
+        "operation": "write",
+        "kind": "journal",
+        "startedAtMs": 1793245521498,
+        "finishedAtMs": 1793245522283,
+        "elapsedMs": 785,
+        "status": 0,
+        "association": {
+          "eventProcessId": 6744,
+          "eventThreadId": 4924,
+          "issuingThreadId": null,
+          "fixtureTag": "aaad6936af7cb47aeec1ce907925a537bda24ea479ad5ca426ffeaf1452e815e"
+        }
+      },
+      {
+        "operation": "flush",
+        "kind": "journal",
+        "startedAtMs": 1793245513924,
+        "finishedAtMs": 1793245514557,
+        "elapsedMs": 633,
+        "status": 0,
+        "association": {
+          "eventProcessId": 5172,
+          "eventThreadId": 9000,
+          "issuingThreadId": 9000,
+          "fixtureTag": "dc805d5170b190f059bb2cdc8c4321c3001605c2d87f8ccb452a08f747ed1bd3"
+        }
+      },
+      {
+        "operation": "write",
+        "kind": "journal",
+        "startedAtMs": 1793245513924,
+        "finishedAtMs": 1793245514555,
+        "elapsedMs": 631,
+        "status": 0,
+        "association": {
+          "eventProcessId": 5172,
+          "eventThreadId": 9000,
+          "issuingThreadId": null,
+          "fixtureTag": "dc805d5170b190f059bb2cdc8c4321c3001605c2d87f8ccb452a08f747ed1bd3"
+        }
+      },
+      {
+        "operation": "write",
+        "kind": "journal",
+        "startedAtMs": 1793245516709,
+        "finishedAtMs": 1793245517275,
+        "elapsedMs": 566,
+        "status": 0,
+        "association": {
+          "eventProcessId": 5172,
+          "eventThreadId": 9000,
+          "issuingThreadId": null,
+          "fixtureTag": "dc805d5170b190f059bb2cdc8c4321c3001605c2d87f8ccb452a08f747ed1bd3"
+        }
+      },
+      {
+        "operation": "flush",
+        "kind": "journal",
+        "startedAtMs": 1793245513423,
+        "finishedAtMs": 1793245513924,
+        "elapsedMs": 501,
+        "status": 0,
+        "association": {
+          "eventProcessId": 5172,
+          "eventThreadId": 9000,
+          "issuingThreadId": 9000,
+          "fixtureTag": "dc805d5170b190f059bb2cdc8c4321c3001605c2d87f8ccb452a08f747ed1bd3"
+        }
+      }
+    ]
+  },
+  "scheduling": {
+    "scope": "sqlite_associated_thread_switch_intervals",
+    "bindings": 2,
+    "delayExecution": {
+      "count": 0,
+      "totalMs": 0,
+      "maxMs": 0,
+      "over100Ms": 0,
+      "over1000Ms": 0
+    },
+    "ready": {
+      "count": 0,
+      "totalMs": 0,
+      "maxMs": 0,
+      "over100Ms": 0,
+      "over1000Ms": 0
+    },
+    "otherWaiting": {
+      "count": 16,
+      "totalMs": 3836,
+      "maxMs": 1274,
+      "over100Ms": 5,
+      "over1000Ms": 1
+    },
+    "commitCorrelationQualified": false,
+    "traceCompletenessVerified": false
+  },
+  "interpretation": {
+    "successfulSlowJournalFileOperationsObserved": true,
+    "overlappingWriteFlushMustNotBeSummed": true,
+    "schedulingAndIoMustNotBeSummed": true,
+    "noDelayOrReadySamplesDoNotProveAbsence": true,
+    "currentTapDoesNotBindFailureToChildPidAndFixtureTag": true,
+    "timeOverlapIsInferenceOnly": true,
+    "antivirusCauseProven": false,
+    "sqliteVfsRetryCauseProven": false,
+    "uniquePhysicalCauseProven": false,
+    "fullStabilityQualified": false
+  },
+  "relatedParentFormal": {
+    "sourceSha": "853b3a8a3df406a478ae108708f6f36cce03afbe",
+    "runId": 40812509451,
+    "allTwelveJobsSucceeded": true,
+    "sourceLogCharacters": 4327571,
+    "allTenBusinessLogsAndSourceCleanupReceiptsRead": true,
+    "scope": "original_bounded_synthetic_cases_only",
+    "doesNotOverrideThisFailure": true,
+    "installedQualified": false,
+    "fullN08N09Qualified": false,
+    "retention24hQualified": false
+  },
+  "stagedEnhancedCli": {
+    "sourceSha": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "runId": 40813512898,
+    "conclusion": "success",
+    "claude": {
+      "jobId": 123249119994,
+      "fullLogCharacters": 26934,
+      "diagnosticPassed": true
+    },
+    "codex": {
+      "jobId": 123249120593,
+      "fullLogCharacters": 26922,
+      "diagnosticPassed": true
+    },
+    "exactClientReceiptsAccepted": true,
+    "crossClientReceiptsRejected": true,
+    "installedQualified": false,
+    "realProvider": false,
+    "retention24hQualified": false,
+    "realModelRequests": 0
+  },
+  "timeoutIdentityChange": {
+    "onlyExistingTimeoutTextChanged": true,
+    "boundedJsonBytesMaximum": 128,
+    "ownDataChildPidOnly": true,
+    "pidRangeMatchesIoAssociation": true,
+    "hashedSyntheticFixtureTagOnly": true,
+    "doesNotRetroactivelyIdentifyOldFailures": true,
+    "newSqlMessagesClocksWorkersOrRetries": false,
+    "originalDeadlineMs": 5000,
+    "localCompleteTestFiles": 6,
+    "localTestsPassed": 29,
+    "localTestsFailed": 0,
+    "localTestsSkipped": 0,
+    "actualWindowsIdentityBindingStillUnverified": true
+  }
+}
