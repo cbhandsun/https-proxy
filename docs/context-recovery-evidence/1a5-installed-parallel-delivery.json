@@ -22,27 +22,30 @@
     "localCandidateBinaryQualified": false
   },
   "latestOrdinaryVerify": {
-    "source": "97d97d526b3852542670300361ed9a0c7664f398",
-    "runId": 40815377246,
+    "source": "67320fc380ab44a049e3cfc05eaa50043e25237c",
+    "runId": 40820891744,
     "successfulJobs": 6,
     "failedJobs": 2,
-    "httpFailureJobId": 123255072363,
-    "httpRecoveryTimeoutMs": 5002,
-    "actualChatAndResponsesRecoveryFailed": true,
-    "nativePublicationFixtureFailureJobId": 123255072237,
-    "nativePublicationTargetEntered": false,
-    "failuresRetained": true
+    "unit2JobId": 123272854879,
+    "unit2FullLogCharacters": 654017,
+    "coverageJobId": 123272854639,
+    "coverageFullLogCharacters": 3093693,
+    "failure": "schema_process_fixture_failure_not_latched",
+    "productionFiveSecondRootCauseProven": false,
+    "failuresRetained": true,
+    "doesNotOverrideHttpTimeoutFailuresRun": 40815377246
   },
   "parallelDelivery": {
     "fixedLocalCandidateSource": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
     "newIsolatedLocalBuildAuthorized": true,
-    "localBuildStartedByThisReceipt": false,
     "oldInstanceChanged": false,
     "automaticInstallationOrSwitch": false,
     "manualSwitchByUser": true,
     "originalPersistenceAndFiveSecondGatesPreserved": true,
     "new24hRunStarted": false,
-    "realModelRequests": 0
+    "realModelRequests": 0,
+    "localBuildStartedConfirmed": true,
+    "installerBuildCompleted": false
   },
   "formalReview": {
     "source": "97d97d526b3852542670300361ed9a0c7664f398",
@@ -171,5 +174,164 @@
     "oldFailuresFrozen": true,
     "realModelRequests": 0,
     "new24hRunStarted": false
+  },
+  "schemaDiscoveryObserved": {
+    "source": "67320fc380ab44a049e3cfc05eaa50043e25237c",
+    "runId": 40820891742,
+    "jobId": 123272854473,
+    "completeLogCharacters": 42537,
+    "conclusion": "success",
+    "originalThreeFileCommandExitedZero": true,
+    "cleanupVerified": true,
+    "events": 429325,
+    "layouts": 61,
+    "namedPayloadEvents": 0,
+    "unsupportedPayloadEvents": 429325,
+    "eventSchemaVerified": false,
+    "filterAttributionQualified": false,
+    "fiveSecondQualified": false
+  },
+  "classicFilterIoMetadataTargets": {
+    "provider": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+    "version": 3,
+    "id": 0,
+    "records": [
+      {
+        "opcode": 96,
+        "count": 94518
+      },
+      {
+        "opcode": 97,
+        "count": 39236
+      },
+      {
+        "opcode": 98,
+        "count": 169584
+      },
+      {
+        "opcode": 99,
+        "count": 54621
+      },
+      {
+        "opcode": 100,
+        "count": 33
+      },
+      {
+        "opcode": 101,
+        "count": 276
+      }
+    ],
+    "sdkSource": "https://github.com/microsoft/win32metadata/blob/c16762d41f1bd641ff8c4389ebf16ee50747129f/generation/WinSDK/RecompiledIdlHeaders/shared/evntrace.h",
+    "sdkLines": [
+      491,
+      496
+    ],
+    "pairingProven": false,
+    "sqliteFailureAttributionProven": false
+  },
+  "currentCandidateNativeObserved": {
+    "source": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "rootNpmCiExitCode": 0,
+    "rootNpmCiElapsedMs": 32228,
+    "pluginNpmCiExitCode": 0,
+    "pluginNpmCiElapsedMs": 63964,
+    "nativeCheckExitCode": 0,
+    "nativeCheckElapsedMs": 203385,
+    "rustTestGroupsPassed": [
+      53,
+      0,
+      5
+    ],
+    "rustTestsIgnored": 0,
+    "nativePrepareExitCode": 0,
+    "nativePrepareElapsedMs": 1785,
+    "nativeSha256": "f938861dcee8e791a60f2fc445a8462920e24260f37799f1c32e7367867ebfd2",
+    "nativeBytes": 498688,
+    "nativeNlink": 1,
+    "installerBuildExitCode": 1,
+    "installerBuildElapsedMs": 110714,
+    "installerFailure": "offline_cargo_missing_gtk_index_metadata",
+    "matchingOfficialGtkIndexFound": true,
+    "trackedSourceAndNativeInputsUnchanged": true,
+    "installerProduced": false,
+    "applicationRustCheckExecuted": false,
+    "failurePreserved": true,
+    "realModelRequests": 0
+  },
+  "continuationAuthorized": {
+    "sameSource": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "originalFailureFilesSealed": 30,
+    "sealSha256": "3464099d917c9b5241bf748f16d42a0515d33c19ec724a8fa8091f7ea3f89c43",
+    "sourceAdmissionExitCode": 0,
+    "sourceAdmissionElapsedMs": 4045,
+    "publicIndexAppendExitCode": 0,
+    "publicIndexAppendElapsedMs": 20926,
+    "lockRecords": 509,
+    "metadataFiles": 439,
+    "existingMetadataVerifiedUnwritten": 245,
+    "metadataFilesAppended": 194,
+    "networkRequests": 0,
+    "originalInstallerDeadlineMs": 2400000,
+    "originalAppRustDeadlineMs": 600000,
+    "sameSourceValidatedArtifactsReused": true,
+    "oldE0NativeReused": false,
+    "oldTaskAndFailureLogsOverwritten": false,
+    "installerCompleted": false,
+    "installed": false,
+    "realProviderQualified": false,
+    "retention24hQualified": false,
+    "fiveSecondStableQualified": false
+  },
+  "tdhMetadataBatch": {
+    "samePhysicalEtlHeldAcrossReaders": true,
+    "payloadOrExtendedDataValuesRead": false,
+    "sampledMetadataOnly": true,
+    "originalUnsupportedReceiptRetained": true,
+    "originalTestFailuresPreserved": true,
+    "originalRecorderAndProfileUnchanged": true,
+    "deadlineMs": 30000,
+    "maximumOutputBytes": 16384,
+    "parentRelatedTests": 85,
+    "parentRelatedTestsPassed": 85,
+    "parentRelatedTestsSkipped": 0,
+    "windowsPInvokeVerified": false,
+    "productFiveSecondRootCauseProven": false
+  },
+  "knownHttpDeadlineFailure": {
+    "source": "97d97d526b3852542670300361ed9a0c7664f398",
+    "runId": 40815377246,
+    "jobId": 123255072363,
+    "completeLogCharacters": 931394,
+    "cases": [
+      {
+        "protocol": "chat",
+        "turn": 0,
+        "elapsedMs": 5002
+      },
+      {
+        "protocol": "responses",
+        "turn": 1,
+        "elapsedMs": 5002
+      }
+    ],
+    "realRecoveryRequestsFailed": true,
+    "uniquePhysicalCauseProven": false,
+    "failureRetained": true
+  },
+  "schemaProcessFixtureRepair": {
+    "oldHeldPipeConstructionInsufficientOnWindows": true,
+    "priorWindowsFailureModeProven": false,
+    "nodeSource": "https://github.com/nodejs/node/blob/v22.22.3/deps/uv/src/win/process.c",
+    "nodeSourceLines": [
+      988,
+      1020
+    ],
+    "detachedDoesNotSetCreateBreakawayFromJob": true,
+    "readyHandshakeBeforeParentExit": true,
+    "windowsRealOwnedJobRequired": true,
+    "cachedPidKillRemoved": true,
+    "originalDrainDeadlineMs": 5000,
+    "originalProcessDeadlineMs": 30000,
+    "windowsFixedFixtureResultPending": true
   }
 }

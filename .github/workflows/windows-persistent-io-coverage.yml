@@ -53,6 +53,8 @@ on:
       - .github/workflows/windows-persistent-io-coverage.yml
       - scripts/capture-persistent-io-schema.ps1
       - scripts/lib/persistent-io-schema*.psm1
+      - scripts/lib/persistent-io-schema-tdh*.cs
+      - scripts/lib/persistent-io-schema-tdh-child.ps1
       - scripts/lib/persistent-io-schema-tests.cjs
       - scripts/fixtures/persistent-io-schema.wprp
       - scripts/check-persistent-io-capabilities.ps1

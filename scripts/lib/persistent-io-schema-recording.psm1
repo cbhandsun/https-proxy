@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'persistent-io-schema.psm1')
 Import-Module (Join-Path $PSScriptRoot 'persistent-io-schema-process.psm1')
 Import-Module (Join-Path $PSScriptRoot 'persistent-io-schema-tool.psm1')
+Import-Module (Join-Path $PSScriptRoot 'persistent-io-schema-tdh.psm1')
 Import-Module (Join-Path $PSScriptRoot 'nsis-lifecycle.psm1') -DisableNameChecking
 function Test-HpmSchemaAuthority {
     return ($env:GITHUB_JOB -ceq 'minifilter-schema-discovery' -and $env:GITHUB_WORKFLOW_REF -cmatch '\Acbhandsun/https-proxy/\.github/workflows/windows-persistent-io-coverage\.yml@refs/(?:heads|tags)/[A-Za-z0-9_./-]+\z' -and $env:GITHUB_SHA -cmatch '\A[a-f0-9]{40}\z')
@@ -83,10 +84,10 @@ function Invoke-HpmPersistentIoSchemaPreflight {
     if(-not $passed){throw 'io_schema_failed'}
 }
 function Invoke-HpmPersistentIoSchemaDiscovery {
-    $ErrorActionPreference='Stop';$root=$null;$lease=$null;$hostInfo=$null;$owned=$false;$phase='host';$failed=$false;$testExit=$null;$testTreeClosed=$true
+    $ErrorActionPreference='Stop';$root=$null;$lease=$null;$tracePins=$null;$hostInfo=$null;$owned=$false;$phase='host';$failed=$false;$testExit=$null;$testTreeClosed=$true
     Initialize-HpmSchemaHostObservation
     $state=New-HpmIoSchemaState
-    $receipt=[ordered]@{schemaVersion=1;scope='hosted_minifilter_schema_discovery';sourceSha=$null;phase='host';failed=$true;originalTestsPassed=$false;schema=$null;cleanupVerified=$false;eventSchemaVerified=$false;filterAttributionQualified=$false;fiveSecondQualified=$false;installedQualified=$false;realProviderQualified=$false;realModelRequests=0}
+    $receipt=[ordered]@{schemaVersion=1;scope='hosted_minifilter_schema_discovery';sourceSha=$null;phase='host';failed=$true;originalTestsPassed=$false;originalTestsExitCode=$null;schema=$null;tdhMetadata=$null;cleanupVerified=$false;eventSchemaVerified=$false;filterAttributionQualified=$false;fiveSecondQualified=$false;installedQualified=$false;realProviderQualified=$false;realModelRequests=0}
     try {
         $hostInfo=Get-HpmSchemaHost;$receipt.sourceSha=$hostInfo.sha
         $phase='paths';$root=Join-Path $hostInfo.parent ('hpm-io-schema-'+[Guid]::NewGuid().ToString('N'))
@@ -98,11 +99,17 @@ function Invoke-HpmPersistentIoSchemaDiscovery {
         $phase='trace-start';$owned=$true;Invoke-HpmSchemaWpr $hostInfo $instance @('-start',($profile+'!HpmIoSchema'))
         $phase='original-tests';$result=Invoke-HpmSchemaOriginalTests $hostInfo;$testExit=$result.ExitCode;$result=$null
         $receipt.originalTestsPassed=$testExit -eq 0
+        $receipt.originalTestsExitCode=$testExit
         $phase='trace-stop';Invoke-HpmSchemaWpr $hostInfo $instance @('-stop',$trace,'owned synthetic I/O schema','-skipPdbGen');$owned=$false
         $phase='trace-file';Assert-HpmLifecycleArtifactPath $root $trace 'Leaf'
         if((Get-Item -LiteralPath $trace).Length -gt 268435456){throw 'io_schema_failed'}
+        $tracePins=New-HpmSchemaTracePins $hostInfo $root $trace
         $phase='schema';Read-HpmSchemaEvents $trace $state
         if($state.events -eq 0){throw 'io_schema_failed'}
+        if($state.named -eq 0 -and $state.unsupported -gt 0){
+            $phase='tdh-metadata';$receipt.tdhMetadata=Invoke-HpmSchemaTdhMetadata $hostInfo $root $trace
+        }
+        $tracePins.Verify()
         if($testExit -ne 0){$phase='original-tests';throw 'io_schema_failed'}
         $phase='complete'
     } catch {$failed=$true;if($_.Exception.Message -ceq 'persistent_io_schema_cleanup_failed'){$testTreeClosed=$false}}
@@ -110,6 +117,7 @@ function Invoke-HpmPersistentIoSchemaDiscovery {
         $cleanup=$true
         if($owned){try{Invoke-HpmSchemaWpr $hostInfo $instance @('-cancel')}catch{$cleanup=$false}}
         if($null -ne $lease){try{$lease.Dispose()}catch{$cleanup=$false}}
+        if($null -ne $tracePins){try{$tracePins.Dispose()}catch{$cleanup=$false}}
         if($null -ne $root){try{Remove-HpmSchemaRoot $hostInfo.parent $root}catch{$cleanup=$false}}
         $cleanup=$cleanup -and $testTreeClosed
         $receipt.cleanupVerified=$cleanup

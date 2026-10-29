@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：原生检查通过，应用续建与同 ETL 元数据并行
+
+固定1a5本机已完成两次原npm ci（32228/63964ms）、官方Native fmt/clippy/完整Rust组53+0+5零失败/忽略（203385ms）及实际prepare重编（1785ms）。新Native f938861d…/498688B/nlink1，2159源码及13Native输入最终核对不变。应用打包110714ms退出1，明确原offline Cargo缺gtk索引metadata；官方旧index中gtk0.18.2及锁checksum相等，无需改依赖。原失败30文件已副本/SHA封存；新独立控制任务复用同一已核1a5构建工作区，只append全509锁记录索引，既有245文件逐字节不写、新增194、网络0；原Tauri40min与appRust600s保持。已进入实际App Cargo，未产安装器、未执行安装或授本机UI资格。源、旧任务/失败日志、旧日常实例和冻结日档不改，模型0。
+
+673 schema job123272854473完整42537字符日志成功：原三文件命令退出0、清理true，429325事件/61布局全部无命名payload，不能当FilterIO已解码。实际classic FileIo v3 opcodes96–101共358268条；微软固定SDK仅证明pre/post init、completion及failure类别，计数不能硬配、failure不等同SQLite或AV。新增仅在named0/unsupported时的TDH元数据旁路；父真实祖先/leaf句柄从Get-WinEvent前跨TDH到最终Verify，子仍独立原Job/30s/16KiB，同一owned ETL≤256MiB，不读/哈希UserData或ExtendedData值。首个完整descriptor+flags样本取字段名/原生类型，其余只header计数，sampledMetadataOnly明确，原unsupported和测试exit保留。固定阶段/uint状态失败DTO仍红停；Windows PInvoke/ABI与元数据可用性待新runner验证。
+
+673普通Verify仍6成功2失败，unit2/coverage完整日志仅schema进程夹具failure_not_latched，旧日志未附mode，精确失败模式尚未直接证明；[固定Node源码](https://github.com/nodejs/node/blob/v22.22.3/deps/uv/src/win/process.c)确认Windows非detached子会加入父kill-on-close Job，因此旧held-pipe构造不能保证跨父退出持pipe。已仅改夹具为detached+ready握手，Windows套原真实Job证明仍被外层归属并原5s清空，不按PID文件杀进程；原5s drain/30s及失败期待不变，Windows新分支待实跑。源码4并发校验纯模块与真实文件/排空负控进入原unit自动发现，不改运行中候选。父端七完整文件85/85零skip/cancel，Lint/格式/CI治理通过；不覆盖97实际HTTP5002ms或任何旧失败。有限证据见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
 ## 2026-10-29（UTC）：实际 WPR 硬链接分支确认，源码准入已通过
 
 562ebcc的schema preflight job123271278161完整19123字符日志确认wpr-path拒绝、wprHardLink=true/wprReparse=false，Node检查尚未到达，负载/录制均未启动。现仅为固定SystemRoot/System32/wpr.exe拆出只读工具校验，允许该工具硬链接，固定精确路径、叶类型、UNC/device拒绝、全部祖先重解析拒绝、read lease及每条命令前后SHA保留；不改共享产物门、Node、ETL或owned root。真实Host硬链接先红后绿，错误/含..路径、目录、叶/祖先链接及身份前后变化负控覆盖；父端五完整文件69/69零skip/cancel、Lint/格式/治理通过。新Windows结果尚待执行；这是诊断工具校验修复，不是产品五秒根因，2b/562原失败保留。
