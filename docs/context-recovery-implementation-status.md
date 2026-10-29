@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：实际 WPR 能力已核，新增独立事件结构发现
+
+52c8e83的只读能力job123265990677已成功，完整17647字符日志得到实际WPR10.0.26100.33648、Minifilter profile及四个FilterIO关键词；这只是工具能力，不是过滤器延迟或AV归因。新增独立schema作业/32MiB单collector profile，用原三完整文件固定负载采集实际Provider/Id/Version/Opcode与字段名称、结构hash和长度范围；不输出字段值、值hash、消息或路径。无命名payload明确unsupported，字段类型unknown，不套旧FileIO二进制偏移，不改原profile、原coverage和只读能力job。事件/XML/布局/字段/最终JSON全部硬界限，任何溢出失败，不截断制造完整性结论。
+
+真实测试进程复用原HpmRuntimeBoundaryJob，固定薄stdin入口在Assign后才执行原负载；父退出而后代持pipe也在finally原5s StopAndWait闭合，清理失败锁存。新增结构、authority、生命周期及真实有界进程/fakeJob回归，父端五完整文件68/68零skip/cancel；只覆盖本机诊断工具，不授Windows schema或五秒稳定性，新源码须实际runner验证。97正式十二作业完整日志及十业务source/plan/build/network/owned清理已核，独立I/O70/70、381flush（DB40ms/journal49ms），均不覆盖同源码实际HTTP5002ms失败。有限证据并入context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+本机自用固定1a5首次在源码准入拒绝，未编译：私有ZIP遗漏真实clone空.git/refs目录，解包Git128；已确定性先红复现，保留原失败。修复为保留真实目录entries并在新目录解包核验Git/全部2159文件/13Native输入，未以假.git放行。构建是否真正开始仍以实际阶段进程回执为准；原实例、冻结868及最大容量暂停保持，模型0、无新24h。
+
 ## 2026-10-29（UTC）：固定候选完整安装通过，交付与超时定位并行
 
 1a5ae1c安装审阅40813874985/job123250370275已成功，完整4358031字符日志与五份有限回执已核：原完整候选verify/audit、同格式升级回滚/DPAPI、安装版582八阶段完整迁移和旧reader拒写、Codex/Claude默认与增强四个实际原生CLI合成场景、持久发布COMMIT/ACK内部中断30/30零skip均通过。manifest b3e82711…和application 02e42f33…仅绑定托管该二进制，不转授本机新包、真实provider、有效24h或稳定五秒资格。此前失败全部保留，见context-recovery-evidence/1a5-installed-parallel-delivery.json。

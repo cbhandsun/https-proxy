@@ -43,5 +43,53 @@
     "originalPersistenceAndFiveSecondGatesPreserved": true,
     "new24hRunStarted": false,
     "realModelRequests": 0
+  },
+  "formalReview": {
+    "source": "97d97d526b3852542670300361ed9a0c7664f398",
+    "runId": 40815377266,
+    "allTwelveJobsSucceeded": true,
+    "allTwelveCompleteLogsRead": true,
+    "tenBusinessIdentityNetworkAndOwnedCleanupAudited": true,
+    "sourceLogCharacters": 4332322,
+    "scope": "original_bounded_synthetic_cases_only",
+    "fullN08N09Qualified": false,
+    "fiveSecondStableQualified": false
+  },
+  "independentIo": {
+    "source": "97d97d526b3852542670300361ed9a0c7664f398",
+    "runId": 40815377269,
+    "jobId": 123255071861,
+    "completeLogCharacters": 556210,
+    "tests": 70,
+    "passed": 70,
+    "failed": 0,
+    "skipped": 0,
+    "originalParserAccepted": true,
+    "events": 40413,
+    "pairedFlushes": 381,
+    "databaseMaxMs": 40,
+    "journalMaxMs": 49,
+    "traceCompletenessVerified": false,
+    "fiveSecondQualified": false,
+    "doesNotOverrideHttpFailures": true
+  },
+  "wprCapability": {
+    "source": "52c8e83e3cd88aef5c6a57ed261703e82ff021f2",
+    "runId": 40818757363,
+    "jobId": 123265990677,
+    "conclusion": "success",
+    "completeLogCharacters": 17647,
+    "osVersion": "10.0.26100.0",
+    "wprVersion": "10.0.26100.33648",
+    "wprSha256": "2d3bdee5d8d68404db88b6ab0889022abfe70014f76ccb273282427d03dbd421",
+    "actualProfileId": "Minifilter",
+    "detailsSha256": "b592984288dfe9acc82be2231b323e35380ad737eacbea1f920661cc772014a9",
+    "filterIOKeywordPresent": true,
+    "filterIOInitKeywordPresent": true,
+    "filterIOFastIOKeywordPresent": true,
+    "filterIOFailureKeywordPresent": true,
+    "eventSchemaVerified": false,
+    "recordingStarted": false,
+    "filterAttributionQualified": false
   }
 }
