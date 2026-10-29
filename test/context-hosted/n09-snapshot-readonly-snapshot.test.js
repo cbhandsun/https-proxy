@@ -510,6 +510,158 @@ test('hardlinked or replaced file fails pins', () =>
     fs.writeFileSync(db, 'replacement');
     assert.throws(() => files.verify(), bad);
   }));
+
+for (const field of ['ino', 'dev', 'birthtimeNs']) {
+  test(`readonly pins reject ${field} changes hidden by Number stat precision`, (t) =>
+    withFiles(({ root, runtimeDir, dir }) => {
+      const db = path.join(dir, 'checkpoint.sqlite');
+      const original = fs.lstatSync;
+      const first = field === 'birthtimeNs' ? 1700000000000000000n : 9007199254740992n;
+      const second = first + (field === 'birthtimeNs' ? 100n : 1n);
+      assert.equal(Number(first), Number(second));
+      let replaced = false;
+      t.mock.method(fs, 'lstatSync', (file, options) => {
+        const stat = original(file, options);
+        if (file !== db) return stat;
+        const precise = options?.bigint === true;
+        const values = { dev: 1n, ino: 9007199254740992n, birthtimeNs: 1700000000000000000n };
+        values[field] = replaced ? second : first;
+        return Object.assign(Object.create(Object.getPrototypeOf(stat)), stat, {
+          dev: precise ? values.dev : Number(values.dev),
+          ino: precise ? values.ino : Number(values.ino),
+          birthtimeMs: precise
+            ? values.birthtimeNs / 1000000n
+            : Number(values.birthtimeNs) / 1000000,
+          ...(precise ? { birthtimeNs: values.birthtimeNs } : {}),
+        });
+      });
+      try {
+        const files = createReadonlyFiles({ ownedRoot: root, runtimeDir });
+        files.verify();
+        fs.renameSync(db, path.join(dir, 'previous'));
+        fs.writeFileSync(db, 'replacement');
+        replaced = true;
+        // Both names still exist; this does not depend on released inode reuse.
+        assert.equal(fs.existsSync(path.join(dir, 'previous')), true);
+        assert.throws(() => files.verify(), bad);
+      } finally {
+        t.mock.restoreAll();
+      }
+    }));
+}
+
+test('readonly key descriptor compares precise stat and fstat before reading and closes on mismatch', (t) =>
+  withFiles(({ root, runtimeDir, dir }) => {
+    const key = path.join(dir, '.data-key');
+    const original = {
+      lstat: fs.lstatSync,
+      fstat: fs.fstatSync,
+      open: fs.openSync,
+      close: fs.closeSync,
+      read: fs.readSync,
+    };
+    let descriptor,
+      closed = 0,
+      reads = 0;
+    function observed(stat, options, ino) {
+      return Object.assign(Object.create(Object.getPrototypeOf(stat)), stat, {
+        ino: options?.bigint ? ino : Number(ino),
+      });
+    }
+    t.mock.method(fs, 'lstatSync', (file, options) => {
+      const stat = original.lstat(file, options);
+      return file === key ? observed(stat, options, 9007199254740992n) : stat;
+    });
+    t.mock.method(fs, 'openSync', (file, ...args) => {
+      const fd = original.open(file, ...args);
+      if (file === key) descriptor = fd;
+      return fd;
+    });
+    t.mock.method(fs, 'fstatSync', (fd, options) =>
+      observed(original.fstat(fd, options), options, 9007199254740993n)
+    );
+    t.mock.method(fs, 'readSync', (fd, ...args) => {
+      if (fd === descriptor) reads++;
+      return original.read(fd, ...args);
+    });
+    t.mock.method(fs, 'closeSync', (fd) => {
+      if (fd === descriptor) closed++;
+      return original.close(fd);
+    });
+    try {
+      const files = createReadonlyFiles({ ownedRoot: root, runtimeDir });
+      assert.throws(() => files.readKey(), bad);
+      assert.equal(reads, 0);
+      assert.equal(closed, 1);
+    } finally {
+      t.mock.restoreAll();
+    }
+  }));
+
+test('readonly key reads preserve empty and maximum-sized keys with full uint64 identity and signed birth time', (t) => {
+  for (const content of ['', 'fixture-wrapped-key', 'x'.repeat(17000)]) {
+    withFiles(({ root, runtimeDir, dir }) => {
+      const key = path.join(dir, '.data-key');
+      fs.writeFileSync(key, content);
+      const lstat = fs.lstatSync,
+        fstat = fs.fstatSync;
+      function observed(stat, options) {
+        const precise = options?.bigint === true;
+        return Object.assign(Object.create(Object.getPrototypeOf(stat)), stat, {
+          ino: precise ? 18446744073709551615n : Number(18446744073709551615n),
+          birthtimeMs: precise ? 0n : -0.0001,
+          ...(precise ? { birthtimeNs: -100n } : {}),
+        });
+      }
+      t.mock.method(fs, 'lstatSync', (file, options) => {
+        const stat = lstat(file, options);
+        return file === key ? observed(stat, options) : stat;
+      });
+      t.mock.method(fs, 'fstatSync', (fd, options) => observed(fstat(fd, options), options));
+      try {
+        const files = createReadonlyFiles({ ownedRoot: root, runtimeDir });
+        assert.equal(files.readKey(), content);
+        files.verify();
+      } finally {
+        t.mock.restoreAll();
+      }
+    });
+  }
+});
+
+test('readonly file and key caps reject precise oversized or invalid size before opening a descriptor', (t) => {
+  for (const [name, size] of [
+    ['.data-key', 17001n],
+    ['checkpoint.sqlite', 1073741825n],
+    ['.data-key', 1n << 100n],
+    ['.data-key', -1n],
+  ]) {
+    withFiles(({ root, runtimeDir, dir }) => {
+      const target = path.join(dir, name),
+        lstat = fs.lstatSync;
+      let opened = 0;
+      t.mock.method(fs, 'lstatSync', (file, options) => {
+        const stat = lstat(file, options);
+        return file !== target
+          ? stat
+          : Object.assign(Object.create(Object.getPrototypeOf(stat)), stat, {
+              size: options?.bigint ? size : Number(size),
+            });
+      });
+      t.mock.method(fs, 'openSync', () => {
+        opened++;
+        throw new Error('PRIVATE_SENTINEL');
+      });
+      try {
+        const files = createReadonlyFiles({ ownedRoot: root, runtimeDir });
+        assert.throws(() => files.readKey(), bad);
+        assert.equal(opened, 0);
+      } finally {
+        t.mock.restoreAll();
+      }
+    });
+  }
+});
 test('symlink storage path fails closed', () =>
   withFiles(({ root, runtimeDir, dir }) => {
     const moved = path.join(root, 'moved');

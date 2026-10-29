@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：单人自用先收口Codex，修只读验收身份精度缺口
+
+用户已选Codex优先；只收口已交付1a5安装实例、受支持HTTP路径的一次原生压缩后精确恢复，以及启用持久化时的同用户重开。Claude、实验WebSocket、公开发行/签名、最大容量及新24h不作为首次受控自用前置；不修改认证、精确ACK、FULL/DELETE、现有期限和已有到期时间。Windows08:27:25Z只读未观察到1a5管理器或目标安装登记，仍旧E盘0.1.0实例；遵守用户自行切换安排，未安装/启停/读配置或私有数据。
+
+09普通8/8、正式12/12已终态成功。后续仅交付文档c337的Verify为7成功/coverage失败，完整3121308字符日志精确在readonly snapshot测试511的replacement断言Missing expected exception；507硬链接断言已过。旧文件rename后仍保留，不能归因已释放inode复用。验收observer使用Number dev/ino/birthtimeMs可能丢失64位身份精度；三个不同BigInt身份映射同Number的确定性回归在旧实现先红。现仅改readonly-files为BigInt lstat/fstat、dev/ino/birthtimeNs精确比对，原单链接/DB1GiB/key17000及拒绝/关闭规则不变，不加原文读取或内容哈希替代。原文件40/40、相关三文件132/132、父端含治理42/42零skip，Lint/格式/CI治理通过；新Windows结果待核。未采本次实际原BigInt IDs，不能称已证实该runner具体NTFS机制或产品原文漏洞；c337原失败保留。修复只属验收工具，不更换1a5产品或重打包。
+
+Codex自动真实短验收仍受额度和验收入口约束：最近安全核账Codex1/Claude7不能合并，不等于新的发请求许可；现成已验证一次compact协议路径Codex8次（并非保证真实模型恰好该次数），原runner硬编码三compact不能直接套用。原持久预扣writer控制流尚未安全复核，不能绕过guard，也不开发新台账子系统来扩大范围。第一步是用户按原安排切换已交付候选；之后只做Codex单端有界短闭环，调用前fresh核账且不足时另获明确额度授权，不能以连通或省掉compact冒充恢复。模型0、未改日常Codex配置、未动旧实例/冻结失败，无新长测。
+
 ## 2026-10-29（UTC）：固定1a5自用安装包已实际交付，准备与请求期限已分开
 
 Windows桌面新目录HPM-SelfUse-0.1.1-1a5ae1c已收到HTTPS Proxy Manager_0.1.1_x64-setup.exe（28473935字节），源码固定1a5ae1c8176b544c3d96d1fa10d0a320ac742109，安装器SHA256=7e949f2e3fe21a2e8d33548bcb030bc97e37021e0428b3d14b8d5fc3212feac0。复制前后SHA相等，同目录使用说明和delivery-summary.json均已写入并读回SHA；未安装、未启动GUI/代理、未改配置，旧E实例由用户自行切换。默认客户端原生压缩，代理精确恢复可选，未签名自用包不改公开release签名要求。

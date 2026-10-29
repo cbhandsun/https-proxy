@@ -38,7 +38,9 @@ function optionsData(input) {
   return result;
 }
 function identity(stat) {
-  return [stat.dev, stat.ino, stat.birthtimeMs].join(':');
+  if ([stat.dev, stat.ino, stat.birthtimeNs].some((value) => typeof value !== 'bigint'))
+    throw failure();
+  return [stat.dev, stat.ino, stat.birthtimeNs].join(':');
 }
 function createReadonlyFiles(input) {
   const options = optionsData(input);
@@ -46,12 +48,16 @@ function createReadonlyFiles(input) {
   const pins = new Map();
   let keyDigest;
   function pin(file, directoryOnly = false, maximum = 1024 * 1024 * 1024) {
-    const stat = fs.lstatSync(file);
+    const stat = fs.lstatSync(file, { bigint: true });
     if (
       stat.isSymbolicLink() ||
       (directoryOnly
         ? !stat.isDirectory()
-        : !stat.isFile() || stat.nlink !== 1 || stat.size > maximum)
+        : !stat.isFile() ||
+          stat.nlink !== 1n ||
+          typeof stat.size !== 'bigint' ||
+          stat.size < 0n ||
+          stat.size > BigInt(maximum))
     )
       throw failure();
     if (
@@ -84,12 +90,14 @@ function createReadonlyFiles(input) {
     const fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
     let bytes;
     try {
-      const held = fs.fstatSync(fd);
-      if (identity(held) !== identity(before) || held.size !== before.size || held.nlink !== 1)
+      const held = fs.fstatSync(fd, { bigint: true });
+      if (identity(held) !== identity(before) || held.size !== before.size || held.nlink !== 1n)
         throw failure();
-      bytes = Buffer.alloc(before.size + 1);
+      // Conversion is safe only after pin() has checked the unchanged key cap.
+      const size = Number(before.size);
+      bytes = Buffer.alloc(size + 1);
       const count = fs.readSync(fd, bytes, 0, bytes.length, 0);
-      if (count !== before.size) throw failure();
+      if (count !== size) throw failure();
       const digest = createHash('sha256').update(bytes.subarray(0, count)).digest('hex');
       if (keyDigest !== undefined && keyDigest !== digest) throw failure();
       keyDigest = digest;
