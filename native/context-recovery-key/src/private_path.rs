@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 
 mod storage;
+#[cfg(any(windows, test))]
+mod target_acl;
 pub use storage::run as run_storage_directory;
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -277,6 +279,39 @@ mod windows {
         Ok(std::slice::from_raw_parts(acl.cast(), length).to_vec())
     }
 
+    fn read_target_acl(file: &File) -> Result<super::target_acl::TargetAcl, ()> {
+        let mut actual = ptr::null_mut();
+        let mut readback = Local(ptr::null_mut());
+        if unsafe {
+            GetSecurityInfo(
+                file.as_raw_handle(),
+                1,
+                DACL,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                &mut actual,
+                ptr::null_mut(),
+                &mut readback.0,
+            )
+        } != 0
+        {
+            return Err(());
+        }
+        let mut control = 0;
+        let mut revision = 0;
+        if unsafe { GetSecurityDescriptorControl(readback.0, &mut control, &mut revision) } == 0 {
+            return Err(());
+        }
+        Ok(super::target_acl::TargetAcl {
+            protected: control & 0x1000 != 0,
+            bytes: if actual.is_null() {
+                None
+            } else {
+                Some(unsafe { acl_bytes(actual)? })
+            },
+        })
+    }
+
     pub(super) fn secure(request: Request) -> Result<(), ()> {
         let path = Path::new(&request.path);
         let mut ancestors = Vec::new();
@@ -337,46 +372,32 @@ mod windows {
         {
             return Err(());
         }
-        if unsafe {
-            SetSecurityInfo(
-                file.as_raw_handle(),
-                1,
-                DACL | PROTECTED_DACL,
-                ptr::null_mut(),
-                ptr::null_mut(),
-                expected,
-                ptr::null_mut(),
-            )
-        } != 0
-        {
-            return Err(());
-        }
-        let mut actual = ptr::null_mut();
-        let mut readback = Local(ptr::null_mut());
-        if unsafe {
-            GetSecurityInfo(
-                file.as_raw_handle(),
-                1,
-                DACL,
-                ptr::null_mut(),
-                ptr::null_mut(),
-                &mut actual,
-                ptr::null_mut(),
-                &mut readback.0,
-            )
-        } != 0
-        {
-            return Err(());
-        }
-        let mut control = 0;
-        let mut revision = 0;
-        if unsafe { GetSecurityDescriptorControl(readback.0, &mut control, &mut revision) } == 0
-            || control & 0x1000 == 0
-            || unsafe { acl_bytes(actual)? != acl_bytes(expected)? }
-        {
-            return Err(());
-        }
-        Ok(())
+        let expected_bytes = unsafe { acl_bytes(expected)? };
+        // Preserve target-object authentication and the final same-handle
+        // readback, without repropagating an already exact directory DACL.
+        // Existing child ACL repair is not this operation's contract.
+        super::target_acl::secure(
+            &expected_bytes,
+            || read_target_acl(&file),
+            || {
+                if unsafe {
+                    SetSecurityInfo(
+                        file.as_raw_handle(),
+                        1,
+                        DACL | PROTECTED_DACL,
+                        ptr::null_mut(),
+                        ptr::null_mut(),
+                        expected,
+                        ptr::null_mut(),
+                    )
+                } != 0
+                {
+                    Err(())
+                } else {
+                    Ok(())
+                }
+            },
+        )
     }
 }
 
@@ -458,6 +479,21 @@ mod tests {
         };
         assert!(secure(request(&root, Kind::Directory)).is_ok());
         assert!(secure(request(&file, Kind::File)).is_ok());
+        let directory_before =
+            windows::identity(&windows::open(&root, false).unwrap(), false).unwrap();
+        let file_before = windows::identity(&windows::open(&file, false).unwrap(), true).unwrap();
+        // The real Win32 branch must accept already protected exact targets on
+        // repeated calls, preserving the child bytes and physical identities.
+        assert!(secure(request(&root, Kind::Directory)).is_ok());
+        assert!(secure(request(&file, Kind::File)).is_ok());
+        assert_eq!(
+            windows::identity(&windows::open(&root, false).unwrap(), false).unwrap(),
+            directory_before
+        );
+        assert_eq!(
+            windows::identity(&windows::open(&file, false).unwrap(), true).unwrap(),
+            file_before
+        );
         assert_eq!(std::fs::read(&file).unwrap(), b"synthetic");
         assert!(secure(request(&root, Kind::File)).is_err());
         assert!(secure(request(&file, Kind::Directory)).is_err());

@@ -1,5 +1,9 @@
 # 上下文恢复换机交接
 
+2026-10-29 启动修复候选：角色诊断已确认 config_loaded 后 runtime_directory/request_diagnostics 的原生权限调用在 5014ms 超时，实际 Node exit1；后续同目标 handle 只读核对在 5ms 完成，目录身份、当前 owner、protected DACL、原 Rust 三 ACE/OICI/FA 的精确字节及双读稳定均符合。未递归读取子项、未重写权限，不能据此断言内核唯一根因。现将 private-path 权限操作改为同 handle 先核对，已精确 protected 时免重复 SetSecurityInfo；不匹配（含 NULL DACL）仍按原设置，所有成功均须独立最终精确读回，原 pin/type/link/SID/失败拒绝保留，五秒期限不变。该操作只保证目标，不宣称递归修复子对象继承。
+
+候选验证：8 项新增策略回归及原 Windows 真实用例中的重复调用/内容身份断言进入既有 native CI；Mac cargo test --locked 为 50 unit+5 integration exit0，fmt check exit0，always-Set 负控失败。Mac 相关 JS 为 21 pass/3 skip/1 原 Windows 路径断言失败；额外 native clippy -D warnings 在未修改 anchor.rs 的 6 项非 Windows dead-code 上失败，未加豁免。Windows 专属权限、构建和真实启动待验，尚未投放候选 native，不能称启动修复通过。模型请求为零。
+
 2026-10-29 受控切换续报：用户已保存其他工作并明确授权整机重启；实际仅发出一次非强制重启，新 boot 12:08:16.500Z 已核，旧进程身份缺席。固定 1a5 公共候选已投放原 E 盘路径，5185 个公共文件独立 SHA 核验 exit0，配置/runtime/冻结证据的保护对象身份与 ACL 保留，旧 Git 不重置。投放内部完成，但外围收集器变量覆盖失败如实保留；没有重放投放。新托盘曾实际启动，后端未就绪；为停止自动恢复竞争，已正常 Quit 新托盘，目前不能宣称可用。
 
 正确三参数的受控启动诊断确认：配置解密成功（profile-unprotect 118.741ms），config_loaded 后原生 `--hpm-context-private-path-v1` 在 5018.7923ms 发生 ETIMEDOUT，随后 private_path_unavailable、实际 Node exit1。原 5000ms 权限期限未变；尚需确定固定调用角色及原生阻塞位置，不据此断言 DPAPI、数据库或杀毒软件根因。前一诊断因 PowerShell argv 拼接产生四参数，MODULE_NOT_FOUND 属诊断错误，已保留并用实际进程回归验证修正，不能计作产品故障。未更换依赖、放宽认证、开启精准恢复或调用模型。下一步修复真实启动阻塞后，重验无诊断钩子的普通启动/管理健康，再恢复托盘，随后按 Codex 单人自用范围收尾；旧五秒与 24h 失败不被覆盖。

@@ -1521,5 +1521,38 @@
     "new24hRunStarted": false,
     "fiveSecondStableQualified": false,
     "retention24hQualified": false
+  },
+  "runtimeAclStartupRepairCandidate": {
+    "targetRole": "runtime_directory",
+    "caller": "request_diagnostics",
+    "failedNativeElapsedMs": 5014.2895,
+    "actualNodeExitCode": 1,
+    "readOnlyTargetAcl": {
+      "sameIdentity": true,
+      "ownerCurrent": true,
+      "protected": true,
+      "exactExpectedBytes": true,
+      "readbackStable": true,
+      "elapsedMs": 5,
+      "privateChildrenEnumerated": false,
+      "aclWritten": false
+    },
+    "repair": "same-handle exact protected target ACL skips redundant Set; all successful paths independently read back; nonmatching target still sets",
+    "nativeDeadlineMsUnchanged": 5000,
+    "newPolicyRegressions": 8,
+    "macNativeUnitPassed": 50,
+    "macNativeIntegrationPassed": 5,
+    "macFormatPassed": true,
+    "alwaysSetNegativeControlFailed": true,
+    "macJsPassed": 21,
+    "macJsSkipped": 3,
+    "macJsFailed": 1,
+    "macJsFailure": "existing Windows path assertion in secure-files.test.js:60",
+    "macAdditionalNativeClippyPassed": false,
+    "macAdditionalNativeClippyFailure": "six unchanged non-Windows dead-code warnings in anchor.rs",
+    "windowsBuildVerified": false,
+    "actualStartupRepairVerified": false,
+    "candidateNativeDeployed": false,
+    "realModelRequests": 0
   }
 }
