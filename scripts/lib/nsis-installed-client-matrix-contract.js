@@ -10,6 +10,7 @@ const {
 } = require('./nsis-runtime-boundary-contract');
 const { HTTP_DRAIN_PHASES } = require('./nsis-installed-http-drain');
 const { digestInstalledClient } = require('./nsis-client-binary');
+const { OWNED_STOP_PHASES } = require('./nsis-client-owned-failure');
 const fail = () => new Error('installed_client_matrix_failed');
 const CLI_PHASES = Object.freeze([
   'seed',
@@ -42,6 +43,7 @@ const PHASES = [
         'stop',
         ...CLI_PHASES.map((phase) => 'cli-' + phase),
         ...(client === 'codex' ? CODEX_RESTART_PHASES.map((phase) => 'cli-' + phase) : []),
+        ...(client === 'codex' ? OWNED_STOP_PHASES.map((phase) => 'cli-' + phase) : []),
         ...HTTP_DRAIN_PHASES.map((phase) => 'http-drain-' + phase),
       ].map((suffix) => client + '-' + mode + '-' + suffix)
     )

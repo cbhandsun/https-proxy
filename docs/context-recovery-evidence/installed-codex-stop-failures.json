@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "scope": "installed_codex_restart_stop_diagnostics",
+  "baselineSourceSha": "428b69cc6c804f948bfa4e7a2d80b8e48e91638a",
+  "observedInstalledFailure": {
+    "sourceSha": "b4753a8980f4c846419755fd69ac6f112503e52f",
+    "runId": 40804270759,
+    "jobId": 123219455735,
+    "fullLogCharactersRead": 4298042,
+    "fullVerifyAuditBuild": "success",
+    "sameFormatInstallUpgradeRollbackDpapi": "success",
+    "legacy582": {
+      "passed": true,
+      "stages": 8,
+      "sourceCount": 582,
+      "layoutBefore": 1,
+      "layoutAfter": 3,
+      "revisionDelta": 1,
+      "ownedTreeEmpty": true,
+      "uninstalled": true,
+      "currentManifestSha256": "200c54a3ad695e91cf49e7f6fc3a528531432b946cc16bdcdd0dbec7a92dc4c5"
+    },
+    "matrix": "failure",
+    "lastPhase": "codex-enhanced-cli-restart-stop",
+    "thirdCompactionCompletedBeforeThisPhase": true,
+    "secondEnhancedCliStarted": false,
+    "claudeExecuted": false,
+    "installedPublicationInteriors": "skipped",
+    "exactStopFailureCauseProven": false,
+    "allPriorFailuresPreserved": true
+  },
+  "change": {
+    "behavioralTimeoutFixClaimed": false,
+    "privateWeakMapAttestation": true,
+    "finiteStopCodes": 21,
+    "boundedControllerMarkerBytes": 128,
+    "arbitraryStderrForwarded": false,
+    "firstPsAndMatrixFailureLatched": true,
+    "exceptionGettersOrForgedCodeCannotRefinePhase": true,
+    "psNaturalExitDeadlineMs": 5000,
+    "outerStopDeadlineMs": 20000,
+    "jobTreeAndFinalIdentityGatesPreserved": true,
+    "successReceiptFieldsChanged": false,
+    "productStorageOrModelSemanticsChanged": false
+  },
+  "validation": {
+    "transportNewGroupsBaselineFail": 3,
+    "relatedCompleteFiles": 7,
+    "tests": 87,
+    "pass": 87,
+    "fail": 0,
+    "skip": 0,
+    "cancelled": 0,
+    "realPortablePowerShell": true,
+    "windowsInstallerQualified": false,
+    "initialNewPsFixtureFailurePreserved": "PowerShell array expression emitted a Char instead of the intended invalid string; fixed fixture parentheses, no product cause inferred",
+    "initialExpandedFailurePreserved": "original exact stderr negative-control needed the new fixed admission marker plus unchanged generic line",
+    "syntaxFiles": 1749,
+    "targetedLint": "passed",
+    "ciAndReleaseGovernance": "passed"
+  },
+  "independentIoContrast": {
+    "sourceSha": "428b69cc6c804f948bfa4e7a2d80b8e48e91638a",
+    "runId": 40806806351,
+    "jobId": 123227605547,
+    "fullLogCharactersRead": 551848,
+    "tests": 70,
+    "pass": 70,
+    "fail": 0,
+    "skip": 0,
+    "summaryAcceptedByOriginalParser": true,
+    "freshStartupCommitMs": [
+      21,
+      17,
+      20
+    ],
+    "freshHeaderUpdatesEachBelowOneMs": true,
+    "persistentPublicationMs": [
+      852,
+      963,
+      912,
+      996,
+      898,
+      1007
+    ],
+    "traceCompletenessVerified": false,
+    "fiveSecondQualified": false,
+    "doesNotExplainOrClearPriorSlowFailures": true
+  },
+  "qualification": {
+    "fiveSecondStability": false,
+    "installedClientMatrix": false,
+    "realProviders": false,
+    "real24Hours": false,
+    "realModelRequests": 0,
+    "new24HourRuns": 0,
+    "dailyInstanceChanged": false,
+    "overallComplete": false
+  }
+}

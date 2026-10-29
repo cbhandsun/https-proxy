@@ -1,4 +1,5 @@
 'use strict';
+const { createOwnedStopFailure } = require('../scripts/lib/nsis-client-owned-failure');
 
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
@@ -543,6 +544,30 @@ test('argument and phase boundaries reject malformed input and disclose only fin
     failed: true,
   });
   assert.throws(() => writer('private-input'));
+});
+
+test('matrix refines only an attested failure at its exact Codex restart-stop boundary', async (t) => {
+  for (const [attested, phase] of [
+    [true, 'restart-stop'],
+    [false, 'restart-stop'],
+    [true, 'seed'],
+  ]) {
+    const f = fixture(t);
+    f.dependencies.runCase = async (input) => {
+      input.onPhase('codex-default-cli-' + phase);
+      const code = 'nsis_owned_stop_controller_natural_exit_code';
+      throw attested ? createOwnedStopFailure(code) : Object.assign(new Error('PRIVATE'), { code });
+    };
+    await assert.rejects(runInstalledClientMatrix(f.args, f.dependencies));
+    assert.deepEqual(f.phases.at(-1), {
+      phase:
+        attested && phase === 'restart-stop'
+          ? 'codex-default-cli-restart-stop-controller-natural-exit-code'
+          : 'codex-default-cli-' + phase,
+      failed: true,
+    });
+    assert.equal(JSON.stringify(f.phases).includes('PRIVATE'), false);
+  }
 });
 
 test('phase writer admits only the fixed Codex restart lifecycle phases', (t) => {

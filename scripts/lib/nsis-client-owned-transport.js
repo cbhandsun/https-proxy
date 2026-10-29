@@ -5,9 +5,64 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { types } = require('node:util');
 const { dataSnapshot } = require('./context-recovery-daemon-http-boundary');
+const { createOwnedStopFailure } = require('./nsis-client-owned-failure');
 const { safePath, digest } = require('./nsis-encrypted-contract');
 const { hostRoot, validateOwnedSpec, resumeFlag } = require('./nsis-client-owned-launcher.cjs');
 const fail = () => new Error('nsis_client_owned_failed');
+const controllerPhases = new Set([
+  'admission',
+  'launch',
+  'forward',
+  'eof',
+  'natural_exit',
+  'natural_exit_timeout',
+  'natural_exit_code',
+  'job_cleanup',
+  'process_cleanup',
+  'drain',
+  'final_identity',
+]);
+function controllerDiagnostic() {
+  const line = Buffer.alloc(128);
+  let length = 0,
+    discard = false,
+    phase,
+    invalid = false;
+  const consume = () => {
+    const value = line.subarray(0, length).toString('latin1').replace(/\r$/, '');
+    if (value.startsWith('HPM_OWNED_FAILURE=')) {
+      const next = value.slice('HPM_OWNED_FAILURE='.length);
+      if (phase !== undefined || !controllerPhases.has(next)) invalid = true;
+      else phase = next;
+    }
+    line.fill(0);
+    length = 0;
+  };
+  return {
+    receive(bytes) {
+      for (const byte of bytes) {
+        if (byte === 10) {
+          if (!discard) consume();
+          discard = false;
+        } else if (!discard) {
+          if (length === line.length) {
+            line.fill(0);
+            length = 0;
+            discard = true;
+          } else line[length++] = byte;
+        }
+      }
+    },
+    finish() {
+      if (!discard && line.subarray(0, length).toString('latin1').startsWith('HPM_OWNED_FAILURE='))
+        invalid = true;
+      line.fill(0);
+      length = 0;
+      discard = false;
+    },
+    inspect: () => ({ phase, invalid }),
+  };
+}
 
 function createOwnedClientSpawn(input, dependencies, restart) {
   const runtime = dependencies.runtime ?? process,
@@ -142,6 +197,7 @@ function createOwnedClientSpawn(input, dependencies, restart) {
       );
       let broken = false,
         exited = false;
+      const diagnostic = controllerDiagnostic();
       let finishExit;
       const exit = new Promise((resolve) => {
         finishExit = resolve;
@@ -155,35 +211,50 @@ function createOwnedClientSpawn(input, dependencies, restart) {
       child.stdout.on('error', () => {
         broken = true;
       });
-      child.stderr.on('data', () => {}); // Never forward controller/native errors.
+      // Retain only a bounded fixed failure marker; never retain or forward stderr text.
+      child.stderr.on('data', (bytes) => diagnostic.receive(bytes));
       child.stderr.on('error', () => {
         broken = true;
       });
       child.once('close', (code, signal) => {
         exited = true;
-        finishExit(code === 0 && signal === null);
+        diagnostic.finish();
+        finishExit({ zero: code === 0, signal: signal !== null });
       });
       return {
         child,
         stop() {
           if (stopPromise) return stopPromise;
+          let stopCode = 'nsis_owned_stop_stream';
           stopPromise = (async () => {
             child.stdin.end();
             let timer;
-            const clean = await Promise.race([
+            const outcome = await Promise.race([
               exit,
               new Promise((resolve) => {
-                timer = setTimeout(() => resolve(false), 20000);
+                timer = setTimeout(() => resolve(null), 20000);
               }),
             ]);
             clearTimeout(timer);
-            if (!clean || !exited || broken || digest(file) !== specSha256) throw fail();
-            validateOwnedSpec(spec, runtime);
-            terminal = true;
-            return Object.freeze({ terminal: true, treeStopped: true });
+            const info = diagnostic.inspect();
+            if (outcome === null) stopCode = 'nsis_owned_stop_timeout';
+            else if (info.invalid) stopCode = 'nsis_owned_stop_diagnostic_invalid';
+            else if (outcome.signal) stopCode = 'nsis_owned_stop_controller_signal';
+            else if (info.phase) stopCode = 'nsis_owned_stop_controller_' + info.phase;
+            else if (!outcome.zero || !exited) stopCode = 'nsis_owned_stop_controller_exit';
+            else if (broken) stopCode = 'nsis_owned_stop_stream';
+            else {
+              stopCode = 'nsis_owned_stop_spec';
+              if (digest(file) !== specSha256) throw fail();
+              stopCode = 'nsis_owned_stop_identity';
+              validateOwnedSpec(spec, runtime);
+              terminal = true;
+              return Object.freeze({ terminal: true, treeStopped: true });
+            }
+            throw fail();
           })().catch(() => {
             refused = true;
-            throw fail();
+            throw createOwnedStopFailure(stopCode);
           });
           return stopPromise;
         },

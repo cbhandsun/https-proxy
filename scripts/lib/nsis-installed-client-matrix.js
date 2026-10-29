@@ -29,6 +29,7 @@ const {
   createMatrixPhaseWriter,
 } = require('./nsis-installed-client-matrix-contract');
 const { digestInstalledClient } = require('./nsis-client-binary');
+const { ownedStopFailure } = require('./nsis-client-owned-failure');
 const fail = () => new Error('installed_client_matrix_failed');
 function negativeAddress() {
   const values = Object.values(os.networkInterfaces())
@@ -300,7 +301,18 @@ async function runInstalledClientMatrix(args, dependencies = defaults) {
           )
             throw fail();
           cases.push(matrixCase(value, client, mode));
-        } catch {
+        } catch (error) {
+          const cause = ownedStopFailure(error);
+          const stopPhase = client + '-' + mode + '-cli-restart-stop';
+          if (
+            client === 'codex' &&
+            cause &&
+            phase === stopPhase &&
+            (!failedPhase || failedPhase === stopPhase)
+          ) {
+            mark(stopPhase + '-' + cause.slice('nsis_owned_stop_'.length).replaceAll('_', '-'));
+            if (failedPhase === stopPhase) failedPhase = phase;
+          }
           reject();
         } finally {
           try {

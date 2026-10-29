@@ -344,7 +344,7 @@ test('PS rejects non-Windows or malformed launch spec using only the fixed safe 
   assert.ifError(result.error);
   assert.equal(result.status, 1);
   assert.equal(result.stdout, '');
-  assert.equal(result.stderr, 'nsis_client_owned_failed\n');
+  assert.equal(result.stderr, 'HPM_OWNED_FAILURE=admission\nnsis_client_owned_failed\n');
 });
 
 test('PowerShell production pipe and exit helpers reject failed terminal states and bound each output stream', () => {
@@ -741,5 +741,127 @@ test('owned grant reader rejects growth and replacement during its bounded fd re
       fs.writeFileSync(file, original);
     }
     await owned.stop();
+  }
+});
+
+test('owned stop classifies only its fixed rejection boundary and permanently denies restart', async (t) => {
+  for (const [fault, code] of [
+    ['exit-failed', 'nsis_owned_stop_controller_exit'],
+    ['signal', 'nsis_owned_stop_controller_signal'],
+    ['spec-changed', 'nsis_owned_stop_spec'],
+    ['binary-changed', 'nsis_owned_stop_identity'],
+    ['stream', 'nsis_owned_stop_stream'],
+    ['spec-missing', 'nsis_owned_stop_spec'],
+  ]) {
+    const f = fixture(t, fault),
+      spawn = createInstalledCodexRestartSpawn(f.options, f.dependencies);
+    const owned = await spawn(f.input);
+    if (fault === 'stream')
+      f.child.stdout.emit(
+        'error',
+        Object.assign(new Error('PRIVATE raw error'), { code: 'nsis_owned_stop_controller_eof' })
+      );
+    if (fault === 'spec-missing') fs.unlinkSync(path.join(f.caseRoot, 'client-launch.json'));
+    const stopped = owned.stop();
+    assert.equal(owned.stop(), stopped);
+    await assert.rejects(stopped, { message: 'nsis_client_owned_failed', code });
+    await assert.rejects(owned.stop(), { message: 'nsis_client_owned_failed', code });
+    await assert.rejects(spawn(f.input), failure);
+    assert.equal(f.calls(), 1);
+  }
+});
+
+test('owned stop timeout keeps the original 20-second limit and its fixed failure code', async (t) => {
+  const f = fixture(t, 'never-close'),
+    spawn = createInstalledCodexRestartSpawn(f.options, f.dependencies);
+  const owned = await spawn(f.input);
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const stopped = owned.stop();
+  const rejected = assert.rejects(stopped, {
+    message: 'nsis_client_owned_failed',
+    code: 'nsis_owned_stop_timeout',
+  });
+  let settled = false;
+  void stopped.catch(() => {
+    settled = true;
+  });
+  t.mock.timers.tick(19999);
+  await Promise.resolve();
+  assert.equal(settled, false);
+  t.mock.timers.tick(1);
+  await rejected;
+  assert.equal(owned.stop(), stopped);
+  await assert.rejects(spawn(f.input), failure);
+  assert.equal(f.calls(), 1);
+});
+
+test('owned stop consumes only bounded closed controller failure markers without exposing stderr', async (t) => {
+  const phases = [
+    'admission',
+    'launch',
+    'forward',
+    'eof',
+    'natural_exit',
+    'natural_exit_timeout',
+    'natural_exit_code',
+    'job_cleanup',
+    'process_cleanup',
+    'drain',
+    'final_identity',
+  ];
+  for (const phase of phases) {
+    const f = fixture(t, 'exit-failed'),
+      owned = await createInstalledClientSpawn(f.options, f.dependencies)(f.input);
+    f.child.stderr.write('PRIVATE arbitrary stderr\nHPM_OWNED_FAIL');
+    f.child.stderr.write('URE=' + phase + '\r\n');
+    await assert.rejects(owned.stop(), (error) => {
+      assert.equal(error.message, 'nsis_client_owned_failed');
+      assert.equal(error.code, 'nsis_owned_stop_controller_' + phase);
+      assert.equal(JSON.stringify(error).includes('PRIVATE'), false);
+      return true;
+    });
+  }
+  for (const stderr of [
+    'HPM_OWNED_FAILURE=unknown\n',
+    'HPM_OWNED_FAILURE=launch\nHPM_OWNED_FAILURE=drain\n',
+    'HPM_OWNED_FAILURE=launch\nHPM_OWNED_FAILURE=launch\n',
+    'HPM_OWNED_FAILURE=launch',
+  ]) {
+    const f = fixture(t, 'exit-failed'),
+      owned = await createInstalledClientSpawn(f.options, f.dependencies)(f.input);
+    f.child.stderr.write(stderr);
+    await assert.rejects(owned.stop(), {
+      message: 'nsis_client_owned_failed',
+      code: 'nsis_owned_stop_diagnostic_invalid',
+    });
+  }
+  const recovered = fixture(t, 'exit-failed');
+  const recoveredOwned = await createInstalledClientSpawn(
+    recovered.options,
+    recovered.dependencies
+  )(recovered.input);
+  recovered.child.stderr.write('HPM_OWNED_FAILURE=' + 'x'.repeat(1024 * 1024) + '\n');
+  recovered.child.stderr.write('HPM_OWNED_FAILURE=eof\n');
+  await assert.rejects(recoveredOwned.stop(), {
+    message: 'nsis_client_owned_failed',
+    code: 'nsis_owned_stop_controller_eof',
+  });
+  const marked = fixture(t),
+    rejected = await createInstalledClientSpawn(marked.options, marked.dependencies)(marked.input);
+  marked.child.stderr.write('HPM_OWNED_FAILURE=drain\n');
+  await assert.rejects(rejected.stop(), {
+    message: 'nsis_client_owned_failed',
+    code: 'nsis_owned_stop_controller_drain',
+  });
+  for (const stderr of [
+    '',
+    'PRIVATE ignored\n',
+    'x'.repeat(1024 * 1024) + '\n',
+    'noise HPM_OWNED_FAILURE=launch\n',
+  ]) {
+    const f = fixture(t),
+      owned = await createInstalledClientSpawn(f.options, f.dependencies)(f.input);
+    f.child.stderr.write(stderr);
+    assert.deepEqual(await owned.stop(), { terminal: true, treeStopped: true });
   }
 });

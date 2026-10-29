@@ -93,7 +93,12 @@ function Write-HpmInstalledClientPhase {
         $suffixes = @('configure','auth','cli','observe','stop','cli-seed','cli-compact-1','cli-compact-2','cli-compact-3','cli-between-1','cli-between-2','cli-final','http-drain-options','http-drain-owner','http-drain-upstream_hold','http-drain-websocket_open','http-drain-websocket_close','http-drain-listener_stop','http-drain-public_response','http-drain-natural_exit','http-drain-storage','http-drain-cleanup')
         foreach ($client in @('codex','claude')) {
             $clientSuffixes = @($suffixes)
-            if ($client -ceq 'codex') { $clientSuffixes += @('cli-restart-stop','cli-restart-initialize','cli-restart-resume') }
+            if ($client -ceq 'codex') {
+                $clientSuffixes += @('cli-restart-stop','cli-restart-initialize','cli-restart-resume')
+                $stopCauses = @('timeout','controller_exit','controller_signal','stream','spec','identity','diagnostic_invalid','receipt','rpc','case_identity')
+                foreach ($stage in @('admission','launch','forward','eof','natural_exit','job_cleanup','process_cleanup','drain','final_identity','natural_exit_timeout','natural_exit_code')) { $stopCauses += 'controller_' + $stage }
+                foreach ($cause in $stopCauses) { $clientSuffixes += 'cli-restart-stop-' + $cause.Replace('_','-') }
+            }
             foreach ($mode in @('default','enhanced')) { foreach ($suffix in $clientSuffixes) { $allowed += $client + '-' + $mode + '-' + $suffix } }
         }
         $candidate = $item.GetProperty('phase').GetString()

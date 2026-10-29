@@ -1,6 +1,7 @@
 'use strict';
 
 const { types } = require('node:util');
+const { carryOwnedStopFailure, createOwnedStopFailure } = require('./nsis-client-owned-failure');
 const { fields, createCodexSyntheticSource, prepareCase } = require('./nsis-client-codex-options');
 const { createNativeLoopbackRpc } = require('./native-loopback-rpc');
 const fail = () =>
@@ -20,7 +21,8 @@ async function runInstalledCodexCase(input) {
     stopping = false,
     rpcClosed = false,
     failed = false,
-    receipt;
+    receipt,
+    failure;
   try {
     const { options, source, root, verify, launch } = prepareCase(input);
     verifyOwned = verify;
@@ -185,13 +187,22 @@ async function runInstalledCodexCase(input) {
       progress('restart-stop');
       const closeFirst = stop;
       stop = undefined;
-      const stopped = fields(await closeFirst(), ['terminal', 'treeStopped']);
-      if (stopped.terminal !== true || stopped.treeStopped !== true) throw fail();
-      verify();
+      const stopped = await closeFirst();
+      try {
+        const proof = fields(stopped, ['terminal', 'treeStopped']);
+        if (proof.terminal !== true || proof.treeStopped !== true) throw fail();
+      } catch {
+        throw createOwnedStopFailure('nsis_owned_stop_receipt');
+      }
+      try {
+        verify();
+      } catch {
+        throw createOwnedStopFailure('nsis_owned_stop_case_identity');
+      }
       rpcClosed = true;
       rpc.close();
       rpc = undefined;
-      if (failed) throw fail();
+      if (failed) throw createOwnedStopFailure('nsis_owned_stop_rpc');
       rpcClosed = false;
       stopping = false;
       progress('restart-initialize');
@@ -243,7 +254,8 @@ async function runInstalledCodexCase(input) {
         ? { clientRestarted: true, persistedThreadResumed: true, ownedLaunches }
         : {}),
     };
-  } catch {
+  } catch (error) {
+    failure = error;
     failed = true;
   } finally {
     stopping = true;
@@ -251,7 +263,8 @@ async function runInstalledCodexCase(input) {
       try {
         const stopped = fields(await stop(), ['terminal', 'treeStopped']);
         if (stopped.terminal !== true || stopped.treeStopped !== true) failed = true;
-      } catch {
+      } catch (error) {
+        if (!failed) failure = error;
         failed = true;
       }
     }
@@ -263,7 +276,7 @@ async function runInstalledCodexCase(input) {
     rpcClosed = true;
     rpc?.close();
   }
-  if (failed || !receipt) throw fail();
+  if (failed || !receipt) throw carryOwnedStopFailure(fail(), failure);
   return Object.freeze({ ...receipt, processTerminal: true, ownedTreeStopped: true });
 }
 

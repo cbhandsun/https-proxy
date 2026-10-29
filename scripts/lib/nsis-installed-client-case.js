@@ -15,6 +15,7 @@ const { requestInstalledClientObservation } = require('./nsis-client-observer.cj
 const { configureInstalledClient } = require('./nsis-client-configuration');
 const { assertEntryRefuses, createSyntheticSourceServer } = require('./nsis-client-loopback');
 const { CLI_PHASES, CODEX_RESTART_PHASES } = require('./nsis-installed-client-matrix-contract');
+const { carryOwnedStopFailure } = require('./nsis-client-owned-failure');
 const fail = () => new Error('installed_client_case_failed');
 function zeroRecovery(state) {
   return (
@@ -75,7 +76,8 @@ async function runInstalledClientCase(options) {
     sourceServer,
     observed,
     failed = false,
-    receipt;
+    receipt,
+    failure;
   const observe = async () => {
     if (!(await owner.isAlive()) || !adapter.verifyOwnedIdentity(owner)) throw fail();
     const result = await requestInstalledClientObservation({
@@ -209,7 +211,8 @@ async function runInstalledClientCase(options) {
       publicGeneration: mode === 'enhanced',
       restartRetention: true,
     };
-  } catch {
+  } catch (error) {
+    failure = error;
     failed = true;
   } finally {
     active.current = null;
@@ -221,7 +224,7 @@ async function runInstalledClientCase(options) {
       }
     }
   }
-  if (failed) throw fail();
+  if (failed) throw carryOwnedStopFailure(fail(), failure);
   return receipt;
 }
 module.exports = { runInstalledClientCase, zeroRecovery };

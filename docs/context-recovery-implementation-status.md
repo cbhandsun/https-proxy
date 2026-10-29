@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：安装增强 Codex 停在首进程收尾，补齐拒绝原因传递
+
+b475 安装审阅 40804270759 已失败，完整 4298042 字符日志已读：完整 verify/audit、0.1.1 NSIS 构建、实际同格式安装升级回滚/DPAPI、582 八阶段完整迁移/旧版拒写及清理均成功，当前 manifest 为 200c54a3ad695e91cf49e7f6fc3a528531432b946cc16bdcdd0dbec7a92dc4c5。矩阵最后阶段是 codex-enhanced-cli-restart-stop；该阶段在第三次压缩完成后、旧 CLI 收尾前写入，尚未启动增强模式第二个 CLI，不能称第三次压缩失败。default 路径已越过，但无最终矩阵回执，不授完整双端资格；Claude 与安装版 COMMIT/ACK 内部中断尚未执行。
+
+实际停止拒绝此前被 transport、Codex 与安装用例三层吞掉具体原因。本批只修诊断丢失：闭合 21 种停止分类，PS 保留首失败并只写固定标记，transport 最多保留 128 字节一行，超长行丢弃、重复/未知/截断标记拒绝；私有 WeakMap 传递诊断，伪造 code/异常 getter 无法细化矩阵阶段。区分 launcher 原五秒窗口到期与非零退出，以及外层二十秒、流错误、spec/身份、回执和 RPC 拒绝；不得把 launcher 窗口等同 Codex 原生退出耗时。原自然退出、Job 清空、完整身份复验、成功回执和全部期限保持，无行为超时修复声明。
+
+新增 transport 三组在原实现先红；修后七完整文件 87/87、零 skip，包含真实 PowerShell helper/阶段解析。新 PS 夹具首次因数组表达式产生 Char 的错误保留，另一次扩大组 86/87 是原 stderr 精确断言需接纳新增固定 admission 标记，均不归因产品。1749 语法、定向 Lint/格式、CI/发布治理通过；Windows 新分类仍待实际安装验证。
+
+独立 428b I/O 诊断 40806806351 完整 551848 字符日志、原三文件 70/70，原 parser 接受 schema7：fresh 启动 COMMIT 为 21/17/20ms，四次 header UPDATE 各不足 1ms，六持久发布 852–1007ms。该轮未复现秒级尾延迟，traceCompletenessVerified/fiveSecondQualified 均 false，不解释或抹去旧失败。b475 正式源码门与十业务日志另已完整核对、十二作业成功，仅授原有有界合成场景。下一步固定新候选核对停止分类，再修实际阻塞；不动旧 868、日常实例及最大容量暂停，无模型调用或新 24h。详见 context-recovery-evidence/installed-codex-stop-failures.json。
+
 ## 2026-10-29（UTC）：ee 正式门终态通过，56d 启动失败仍阻止稳定性资格
 
 ee161d4 正式运行 40803390990 十二作业成功，源码门完整 4272107 字符及十个业务完整日志已核对；每个业务均为该源码、具有 plan/build 回执并完成网络收尾与 ownedTreeEmpty。仅授原有有界合成场景，不授完整 N08/N09、安装版双端、真实 provider 或五秒稳定性，亦不抹去 ee integration/额外 coverage 失败。

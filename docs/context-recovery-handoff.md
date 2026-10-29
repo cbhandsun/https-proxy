@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+## 2026-10-29（UTC）：下一关是增强 Codex 首进程停止分类
+
+先读状态顶部及 context-recovery-evidence/installed-codex-stop-failures.json。b475 安装全日志已读，verify/audit/build、同格式升级回滚/DPAPI、582 完整迁移拒写成功；矩阵失败于 codex-enhanced-cli-restart-stop，三次压缩已完成、增强第二进程未启动，Claude 和安装版内部中断未执行。不要称压缩失败、default 单独完整合格或整体安装完成。
+
+本批修三层停止原因丢失，21 种私有 attested 诊断经固定 PS 标记、128 字节有界解析到有限矩阵阶段；伪造异常不授诊断，全部失败仍拒绝，不改五秒 launcher 自然退出、二十秒外层等待、Job/身份/成功回执或生产存储。七完整文件 87/87 含实际 PowerShell，Windows 新分类资格待验；本批不是超时行为修复。428b 独立原三文件 I/O 70/70、fresh COMMIT 17–21ms、持久发布 852–1007ms 未复现旧秒级问题，不授稳定性或清除失败。下一步新固定候选读取真实停止细项再改原因；旧长测/日常实例/最大容量暂停保持，无新 24h、模型零。
+
 ## 2026-10-29（UTC）：优先核对实际安装端，保留最新启动失败
 
 先读状态顶部及 context-recovery-evidence/ee-formal-and-56d-startup-failures.json。ee 正式十二作业成功、源码门与十业务完整日志已核，仅授原有有界合成场景；56d 正式源码门失败，其中十一项 native fixture 在 ready 前超原五秒，未进入目标中断。额外 coverage 四失败和 unit0 合成 WFP 原 25 秒失败保留，不得与真实恢复请求超时混为一谈。

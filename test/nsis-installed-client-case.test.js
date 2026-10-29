@@ -1,4 +1,8 @@
 'use strict';
+const {
+  createOwnedStopFailure,
+  ownedStopFailure,
+} = require('../scripts/lib/nsis-client-owned-failure');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -81,6 +85,7 @@ function fixture(t, client, mode, fault) {
     }
     if (fault === 'protocol') throw new Error('secret raw response');
     if (fault === 'invalid-progress') input.onProgress({ phase: 'secret raw response' });
+    if (fault && typeof fault === 'object' && Object.hasOwn(fault, 'error')) throw fault.error;
     if (fault && typeof fault === 'object' && Object.hasOwn(fault, 'progress'))
       input.onProgress({ phase: fault.progress });
     if (fault === 'private') state.exactRead = state.exactPrivateRead = false;
@@ -265,6 +270,21 @@ test('default client cases accept independently attested cold runtime without re
   for (const client of ['codex', 'claude']) {
     const f = fixture(t, client, 'default', 'cold');
     assert.equal((await f.run()).defaultZeroRecovery, true);
+  }
+});
+
+test('CLI case preserves only attested owned-stop provenance after its cleanup', async (t) => {
+  for (const attested of [true, false]) {
+    const code = 'nsis_owned_stop_spec';
+    const error = attested
+      ? createOwnedStopFailure(code)
+      : Object.assign(new Error('PRIVATE'), { code });
+    const f = fixture(t, 'codex', 'enhanced', { error });
+    await assert.rejects(f.run(), (failure) => {
+      assert.equal(failure.message, 'installed_client_case_failed');
+      assert.equal(ownedStopFailure(failure), attested ? code : null);
+      return true;
+    });
   }
 });
 

@@ -14,6 +14,10 @@ const {
 const nonce = 'a'.repeat(32);
 const failure = { message: 'nsis_client_codex_failed', code: 'nsis_client_codex_failed' };
 const tick = () => new Promise((resolve) => setImmediate(resolve));
+const {
+  createOwnedStopFailure,
+  ownedStopFailure,
+} = require('../scripts/lib/nsis-client-owned-failure');
 
 function fixture(t, fault, mode = 'enhanced') {
   const root = fs.mkdtempSync(path.join(resolvePhysicalTestTempDirectory(), 'codex-protocol-'));
@@ -198,6 +202,74 @@ function fixture(t, fault, mode = 'enhanced') {
     launch: () => launch,
   };
 }
+
+test('Codex restart distinguishes invalid stop proof, case mutation and unexpected RPC during stop without accepting any', async (t) => {
+  for (const kind of ['receipt', 'case_identity', 'rpc']) {
+    const f = fixture(t);
+    const spawn = f.options.spawnOwned;
+    await assert.rejects(
+      runInstalledCodexCase({
+        ...f.options,
+        restartClient: true,
+        async spawnOwned(input) {
+          const handle = await spawn(input);
+          return {
+            child: handle.child,
+            async stop() {
+              const stopped = await handle.stop();
+              if (kind === 'rpc') handle.child.stdout.write('PRIVATE malformed RPC\n');
+              if (kind === 'case_identity') fs.rmSync(f.root, { recursive: true, force: true });
+              return kind === 'receipt' ? { terminal: true, treeStopped: false } : stopped;
+            },
+          };
+        },
+      }),
+      (error) => {
+        assert.equal(ownedStopFailure(error), 'nsis_owned_stop_' + kind);
+        return true;
+      }
+    );
+    assert.equal(f.launches(), 1);
+    assert.equal(f.stops(), 1);
+    assert.equal(f.progress.at(-1).phase, 'restart-stop');
+  }
+});
+
+test('Codex restart preserves attested stop failures without launching a successor or disclosing exception fields', async (t) => {
+  for (const attested of [true, false]) {
+    const f = fixture(t);
+    const spawn = f.options.spawnOwned;
+    const code = 'nsis_owned_stop_controller_natural_exit_timeout';
+    const cause = attested
+      ? createOwnedStopFailure(code)
+      : Object.assign(new Error('PRIVATE'), { code });
+    await assert.rejects(
+      runInstalledCodexCase({
+        ...f.options,
+        restartClient: true,
+        async spawnOwned(input) {
+          const handle = await spawn(input);
+          return {
+            child: handle.child,
+            async stop() {
+              await handle.stop();
+              throw cause;
+            },
+          };
+        },
+      }),
+      (error) => {
+        assert.equal(error.message, failure.message);
+        assert.equal(error.code, failure.code);
+        assert.equal(ownedStopFailure(error), attested ? code : null);
+        return true;
+      }
+    );
+    assert.equal(f.launches(), 1);
+    assert.equal(f.stops(), 1);
+    assert.equal(f.progress.at(-1).phase, 'restart-stop');
+  }
+});
 
 for (const mode of ['default', 'enhanced'])
   test(

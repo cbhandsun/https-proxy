@@ -1,10 +1,11 @@
 param([string]$ScriptFile)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$failed = $false; $failurePhase = $null
 $tokens = $null; $errors = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($ScriptFile, [ref]$tokens, [ref]$errors)
 if ($errors.Count -ne 0) { throw 'parse_failed' }
-$names = @('New-OwnedPipe', 'Update-OwnedPipes', 'Assert-OwnedExit', 'Wait-OwnedExit')
+$names = @('New-OwnedPipe', 'Update-OwnedPipes', 'Assert-OwnedExit', 'Wait-OwnedExit', 'Set-OwnedFailure')
 foreach ($function in $ast.FindAll({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] }, $true)) {
     if ($function.Name -cin $names) { Invoke-Expression $function.Extent.Text }
 }
