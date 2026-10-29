@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+用户已明确授权现在受控切换；本轮已实际推进，但尚未投放/启动新版。35711d2最新Verify40858135513完整8/8通过，固定1a5候选及4203备份/私有对象metadata fresh核验通过。实际Quit菜单仅发送一次并被接受；初15s未确认，后旧manager及主Node缺席，其真实exitcode未获回执，不授graceful资格。唯一旧orphan经精确held handle单次终止，已读本次非零码3762814977，但native Wait258/exitTime0，Windows资源释放仍未确认；不重复终止/不扩AV或SQLite诊断，不猜唯一原因。退出辅助CIM/native400ns精度误拒、逻辑alias/实际映像跨API误拒及探针syntax失败均保留，未伪称产品问题已修。固定5185公共投放/982新文件计划、4203备份后变更拒绝、原文件ACL保留及失败inFlight记录已准备且syntax0；旧root公共写0/新tray未启动/模型0。不得对混合旧root运行会递归私有树的portable官方发行verifier，只能clean candidate官方核验加目标固定公共SHA。下一步待旧进程完全释放；整机重启超出本轮代理中断许可，需单独用户决定，不自动重启。旧配置/data/锚点/冻结证据、旧Git和其他修改均保持，具体安全回执留本机。
+
 本轮已按用户选择收口为脚本启动且保留托盘：PR21已合master，merge e78da7a、验证head aaddfec，树相同；push40854174517和PR40854183904均完整8/8通过，两份coverage完整日志无not ok。正式40854174909的source-gates123380863711完整通过，正式全链12/12通过，十个业务场景完整日志已核，无not ok/非零退出。用户明确允许先受控自用、五秒性能后续优化，暂不作为本轮合并前置；原五秒测试/期限、旧5002/5009失败、安全/正确性/精确ACK/FULL-DELETE/原到期时间全部保留，不授稳定五秒/有效24h/真实provider资格。
 
 Windows公共runtime与托盘候选已在新目录实际准备，源/目标官方清单558项、完整公共闭包5185文件及EXE/Node/Native哈希通过；产物固定1a5，生产输入及打包gateway与aadd无差异，不冒充新构建。旧E盘保留原路径/实例/配置/data/冻结证据；旧tracked修改191项，公共范围89项中57仅CRLF差、32仍不同，4203个旧公共文件共32880092bytes已实际保全，逐文件三SHA/flush及最终journal闭合、受限ACL/owned空，32项内容差异均保留；未覆盖/切换/启动候选。旧.git与白名单外修改原位保留，不假称Windows旧Git已更新。Mac已切master，既有来源未知status文档修改保留未混入。模型0，fresh09:26分账Codex1/Claude7仅是余额，实际请求仍须fresh核账与受支持安全预扣。

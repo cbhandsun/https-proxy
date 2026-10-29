@@ -1426,5 +1426,48 @@
       "privateDataCopied": false,
       "oldRootModified": false
     }
+  },
+  "controlledWindowsScriptSwitchAttempt": {
+    "explicitSwitchAuthorization": true,
+    "latestDocsSource": "35711d2fc2f8bc42fa1bfc43d55a992eeee508dc",
+    "latestDocsVerify": {
+      "run": 40858135513,
+      "passed": 8,
+      "total": 8
+    },
+    "freshCleanCandidateOfficialVerificationPassed": true,
+    "freshBackupJournalAndReceiptVerified": true,
+    "freshProtectedObjectIdentityAndAclMatched": true,
+    "firstQuitIdentityRefusal": {
+      "crossApiCimNativeTimeDifferenceNs": 400,
+      "quitSent": false,
+      "failureRetained": true
+    },
+    "actualQuitMenuRequests": 1,
+    "actualQuitMenuAccepted": true,
+    "initialQuitWaitMs": 15000,
+    "initialQuitWaitConfirmed": false,
+    "oldManagerAndPrimaryNodeLaterAbsent": true,
+    "theirActualExitCodesIndependentlyObserved": false,
+    "orphanHeldImageRefusalRetained": true,
+    "orphanTerminationRequests": 1,
+    "orphanActualTerminationCode": 3762814977,
+    "orphanNativeWaitResult": 258,
+    "orphanNativeExitTimeZero": true,
+    "orphanFinalResourceReleaseConfirmed": false,
+    "orphanGracefulExitQualified": false,
+    "additionalTerminationOrDiagnosticLoopsPlanned": false,
+    "automaticMachineRestart": false,
+    "fixedApplyHelperPreparedAndSyntaxChecked": true,
+    "fixedApplyHelperSha256": "bb6cfeb5442cbe4b49138c79aba5c938dd06add92bcf9ca7e4654d7bdd84c0fa",
+    "fixedApplyIssued": false,
+    "oldPublicRootWritten": false,
+    "privateConfigOrDataCopied": false,
+    "newTrayStarted": false,
+    "runtimeSwitched": false,
+    "modelRequests": 0,
+    "frozenAcceptanceUntouched": true,
+    "targetVerificationScope": "fixed 5185 public paths only; never invoke portable release full-tree verifier on mixed live root",
+    "nextAction": "resolve pending Windows process release before apply; machine restart requires separate authorization"
   }
 }
