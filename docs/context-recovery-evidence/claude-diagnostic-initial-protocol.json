@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "853b3a8a3df406a478ae108708f6f36cce03afbe",
+  "runId": 40812509488,
+  "claude": {
+    "jobId": 123245903770,
+    "conclusion": "failure",
+    "fullLogCharacters": 27674,
+    "failedPhase": "claude-enhanced-configure",
+    "originalCliStarted": false,
+    "ownedTreeEmpty": true,
+    "syntheticSocketsClosed": true,
+    "probesPassed": true,
+    "tlsVerified": true,
+    "nonLoopbackBlocked": true,
+    "listenerOwned": true
+  },
+  "codex": {
+    "jobId": 123245904158,
+    "conclusion": "success",
+    "fullLogCharacters": 26931,
+    "diagnosticPassed": true,
+    "installedQualified": false,
+    "realProvider": false,
+    "retention24hQualified": false
+  },
+  "diagnosticStartupMismatch": {
+    "initialOwnedLabel": "00",
+    "initialEntryProtocol": "openai-responses",
+    "requestedProtocolAfterConfiguration": "claude",
+    "entryProtocolFixedAtStartup": true,
+    "actualSource": [
+      "openai-proxy.js:878 const ENTRY_SERVERS",
+      "openai-proxy.js:579 management entry snapshot",
+      "lib/proxy/runtime-config-controller.js:47 applyConfig",
+      "scripts/lib/nsis-client-configuration.js:132 health protocol check"
+    ],
+    "productHotReloadChanged": false,
+    "originalFifteenSecondHealthGateChanged": false,
+    "repairRequired": "start isolated Claude diagnostic with original Claude initial entry and matching adapter protocol; retain exact original controller admission"
+  },
+  "allQualificationGranted": false,
+  "realModelRequests": 0,
+  "previousFailuresRetained": true,
+  "repair": {
+    "scope": "diagnostic_generated_copy_only",
+    "fixedClaudeInitialEntry": true,
+    "matchingAdapterProtocols": true,
+    "originalInstalledControllerChanged": false,
+    "originalProductChanged": false,
+    "originalLabelOrderChanged": false,
+    "originalHealthDeadlineMs": 15000,
+    "copyPinsRebound": true,
+    "boundedDescriptorReadAndBeforeAfterIdentity": true,
+    "realConfigurationAndHealthReproduction": true,
+    "baselineMissingInitialProtocolRegressionFailed": true,
+    "localIntegrationFiles": 12,
+    "localIntegrationTests": 87,
+    "localIntegrationPass": 87,
+    "localIntegrationFail": 0,
+    "localIntegrationSkip": 0,
+    "newWindowsResultGranted": false
+  },
+  "nativeIoSelection": {
+    "workflow": "windows-persistent-io-coverage.yml",
+    "priorProxyWindow": "client-context-target",
+    "newFixedProxyWindow": "native-publication-interruption",
+    "originalCompleteCoverageCommandsRetained": true,
+    "originalProxyShardCount": 4,
+    "serialClientWindows": [
+      "client-context-target",
+      "publication-graceful-http"
+    ],
+    "fixedSingleProxyWindow": true,
+    "clientSelectorCleared": true,
+    "originalGateOrRetryChanged": false,
+    "newSameRunNativeIoObserved": false
+  }
+}

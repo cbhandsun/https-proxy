@@ -1,5 +1,19 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：修复 Claude 诊断首启协议，并将额外 I/O 对准原生失败窗口
+
+使用实际 runtime-config-controller、management-health 与原 configureInstalledClient 确定性复现：初始OpenAI监听即使原POST配置已生效，health仍是原OpenAI入口，原十五秒Claude协议门拒绝。已仅对新生成诊断controller副本的唯一固定调用改为Claude初始监听，并给adapter相同固定初始协议；label仍00，原PS1及正式controller/生产热重载/Job归属和启动放行不变。变换前复制源与有限fd读取前后身份和原摘要复核，变换后重钉copyPins；没有降低身份或健康断言。缺初始协议回归先红，修后父端十二完整文件87/87、零skip/cancel，含原两端协议、真实PowerShell及模块治理。agent首轮无便携pwsh PATH的两项ENOENT也保留为工具环境失败，不能算产品失败或Windows通过。
+
+另一线仅把额外coverage的proxy记录窗口从client-context-target切到已支持的native-publication-interruption，client前显式清理，原完整proxy四shard/client/frontend命令及所有测试/失败停止/期限照旧；原verify窗口与独立70项I/O不改。选择只是记录归属：e4fe额外coverage虽成功且native20全执行，三个摘要经原parser接受，却只含旧Core与client窗口，无法解释另一个formal轮的native准备超时。固定选窗及真实pwsh编排先红两项，相关四完整文件68/68，未放宽记录器source/host/cleanup授权、ring界限或原5000ms/8192字节子进程门。下一源码的实际Claude和native窗口记录仍待执行，不重跑853失败或反向补授e4fe。证据见context-recovery-evidence/claude-diagnostic-initial-protocol.json。
+
+## 2026-10-29（UTC）：853 Claude 配置失败定位为诊断入口启动协议不匹配
+
+853b3a8 独立 run 40812509488 已终态：Codex job123245904158 成功，完整26931字符日志、安全回执闭合；Claude job123245903770 失败，完整27674字符日志，最后 claude-enhanced-configure，尚未启动 Claude CLI。原网络证明和树/套接字清理均 true，模型0；不会把配置失败算成模型/恢复协议已经执行。原失败保留，未重跑。
+
+本批诊断先按label00启动openai-responses，再原POST配置Claude；但openai-proxy.js的ENTRY_SERVERS在启动时const固定，管理health读取实际原监听快照，applyConfig不重建监听入口。因此原十五秒health要求Claude协议无法满足，先前“可热配置到Claude”判断不成立。修复范围仅诊断专用初始协议与adapter一致性，恢复原安装矩阵Claude原生启动语义，不改产品热重启方向或延长期限。见context-recovery-evidence/claude-diagnostic-initial-protocol.json。
+
+同时e4fe正式源门40811752242/job123243430222完整3102576字符日志已失败：withdrawn在native anchor kill/release两项均未到fixture ready/目标边界，storage ready为3290/4824ms；同轮startup COMMIT阶段的父端观察间隔1772/1986ms，第二空库intent验证阶段父端间隔1809ms，四次header写仅0–2ms。无root/blob且人工reader在ready后才建立，不能归因原文解密或该reader。这些间隔还包含消息传递/调度影响，不能直接等同SQLite/native函数内部耗时；源码只有一次startup COMMIT和每次anchor CAS的一次flush，不删初始化intent/SQL后锚点这两个不同安全边界。暂未证明物理根因，不能由其他runner时延/I/O通过覆盖本失败。
+
 ## 2026-10-29（UTC）：Claude 原增强协议拆为独立并行作业
 
 新增 Claude 专用薄入口、Messages/x-api-key 策略与独立 scope 回执，共用已在 e4fe 实际 Windows 成功的 staged 生命周期；没有复制完整 driver，也未改原安装矩阵或 CLI 协议。workflow 固定 codex/claude 两项、fail-fast:false、无 needs，每项独立 hosted runner、WFP/Job/运行目录；默认 Codex 入口兼容。Claude 沿原 controller 首 label00 禁用入口启动，由原 runInstalledClientCase 真实 POST 配置 Claude+persistent、原十五秒 health 验证后才开始 CLI，保留 MCP 原文读取、三次压缩、重启、精确恢复与独立公开生成全部断言。两端回执/phase/scope 相互拒绝，所有安装/provider/24h 资格仍 false，模型 0。

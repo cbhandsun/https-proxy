@@ -1,6 +1,6 @@
 # 上下文恢复换机交接
 
-最新 Windows 局部证据：e4fe090 独立 staged Codex 增强诊断 40811752318 成功，原三次压缩/重启/最终私有读取与公开生成断言及清理闭合，模型 0；原时延三组各 50/50。旧安装停止失败未因此清除，最新完整门、最新安装双端和有效 24h 仍未授资格。见实施状态顶部与 context-recovery-evidence/parallel-diagnostic-first-windows.json；继续并行 Claude 原协议验证，不访问用户 Windows 或冻结长测。
+最新状态先读实施状态顶部：853b3a8 独立两端 run40812509488 已终态，Codex 增强通过；Claude 在 configure 阶段失败、CLI 尚未启动，原因是新诊断先启动固定 OpenAI 监听再尝试热配置 Claude，实际监听协议不变。已修复诊断专用初始协议与 adapter 一致性，本机十二文件87/87，原十五秒健康门不改；实际Windows修复验证待新源码。e4fe 正式源门另有两项 native publication fixture ready 五秒失败，目标中断未进入，原失败保持；COMMIT 的1772/1986ms是父端观察间隔，包含传递/调度影响，尚无物理根因。额外coverage将原单proxy观察窗口定向native-publication-interruption，保留完整原测试和client窗口，下一轮才有同轮原生I/O记录机会。e4fe 时延三组各50/50、独立I/O70/70及额外coverage通过不能覆盖上述失败。最新安装两端、稳定五秒、真实provider和有效24h均未授整体资格；模型0、旧实例/冻结长测不动。证据见 context-recovery-evidence/claude-diagnostic-initial-protocol.json 与 parallel-diagnostic-first-windows.json。
 
 ## 2026-10-29（UTC）：两条独立定位线与完整门并行
 

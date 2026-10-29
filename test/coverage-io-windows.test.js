@@ -77,7 +77,7 @@ test('coverage window selection refuses empty, foreign, inherited, extreme and h
   assert.equal(hooks, 0);
 });
 
-test('extra full-suite coverage records the Core request file that failed its five-second gate', () => {
+test('extra full-suite coverage selects the native publication window and preserves original commands', () => {
   const workflow = fs
     .readFileSync(
       path.resolve(__dirname, '../.github/workflows/windows-persistent-io-coverage.yml'),
@@ -92,12 +92,22 @@ test('extra full-suite coverage records the Core request file that failed its fi
   const selector = run[1].match(/\$env:HPM_COVERAGE_IO_PROXY_WINDOW = '([a-z-]+)'/);
   const environment = { HPM_COVERAGE_IO_STAGE: 'proxy' };
   if (selector) environment.HPM_COVERAGE_IO_PROXY_WINDOW = selector[1];
-  assert.deepEqual(requiredCoverageIoWindows(environment), ['client-context-target']);
+  assert.deepEqual(requiredCoverageIoWindows(environment), ['native-publication-interruption']);
   assert.equal(
-    /^\s*Remove-Item Env:\\HPM_COVERAGE_IO_PROXY_WINDOW/m.test(run[1]),
-    false,
-    'an unset default selector must not fail before serial client coverage'
+    [...run[1].matchAll(/\$env:HPM_COVERAGE_IO_PROXY_WINDOW = '([a-z-]+)'/g)].length,
+    1,
+    'proxy coverage must retain exactly one fixed recording window'
   );
+  const clear = run[1].search(/^\s*Remove-Item Env:\\HPM_COVERAGE_IO_PROXY_WINDOW/m);
+  const client = run[1].indexOf("$env:HPM_COVERAGE_IO_STAGE = 'client'");
+  const originalProxyGate = run[1].indexOf(
+    "if ($coverageExit -ne 0) { throw 'Original proxy coverage failed; I/O evidence does not override its failure.' }"
+  );
+  assert.ok(clear > originalProxyGate && clear < client);
+  assert.deepEqual(requiredCoverageIoWindows({ HPM_COVERAGE_IO_STAGE: 'client' }), [
+    'client-context-target',
+    'publication-graceful-http',
+  ]);
   const commands = run[1]
     .split('\n')
     .map((line) => line.trim())

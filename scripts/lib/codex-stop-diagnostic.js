@@ -15,7 +15,6 @@ const { runHostedProbes } = require('../context-hosted/shared/hosted-probes');
 const {
   buildInstalledClientController,
   createInstalledControllerSpawn,
-  INSTALLED_CLIENT_PROTOCOLS,
 } = require('./nsis-client-controller');
 const { startDaemonOwnedController } = require('./context-recovery-daemon-owned-transport');
 const { createDaemonOwnedAdapter } = require('./context-recovery-daemon-owned-adapter');
@@ -24,6 +23,7 @@ const { runInstalledClientCase } = require('./nsis-installed-client-case');
 const { writeInstalledBusinessReply } = require('./nsis-installed-business-reply');
 const { ownedStopFailure, OWNED_STOP_PHASES } = require('./nsis-client-owned-failure');
 const { diagnosticPolicy } = require('./staged-client-diagnostic-policy');
+const { buildClaudeDiagnosticController } = require('./claude-context-diagnostic-controller');
 const fail = () => new Error('codex_stop_diagnostic_failed');
 function negativeAddress() {
   const value = Object.values(os.networkInterfaces())
@@ -90,8 +90,11 @@ const defaults = {
   address: negativeAddress,
   listener: createInstalledClientListener,
   probes: runHostedProbes,
-  controller(input) {
-    const controller = buildInstalledClientController(input);
+  controller(input, client) {
+    const controller =
+      client === 'claude'
+        ? buildClaudeDiagnosticController(input)
+        : buildInstalledClientController(input);
     return startDaemonOwnedController(
       {
         install: input.install,
@@ -102,12 +105,12 @@ const defaults = {
       createInstalledControllerSpawn({ ...input, controller })
     );
   },
-  adapter(input, channel, token) {
+  adapter(input, channel, token, client) {
     return createDaemonOwnedAdapter(
       {
         install: input.install,
         ownedRoot: input.ownedRoot,
-        initialEntryProtocols: INSTALLED_CLIENT_PROTOCOLS,
+        initialEntryProtocols: diagnosticPolicy(client).initialEntryProtocols,
       },
       channel,
       {
@@ -174,11 +177,11 @@ async function runStagedClientDiagnostic(args, client, dependencies = defaults) 
       throw fail();
     mark('controller');
     ownedTreeEmpty = false;
-    channel = dependencies.controller({ ...identity, ...request });
+    channel = dependencies.controller({ ...identity, ...request }, client);
     const token = randomBytes(24).toString('base64url');
-    adapter = dependencies.adapter(request, channel, () => token);
-    // The original controller starts at label 00; the unchanged case helper then
-    // explicitly configures enhanced persistence. No preceding default CLI is run.
+    adapter = dependencies.adapter(request, channel, () => token, client);
+    // Preserve the original label order. The Claude-specific generated controller
+    // starts with Claude listeners; the original case helper enables persistence.
     owner = await adapter.launch({ label: '00', initialEnabled: false, initialPersistence: false });
     const result = await dependencies.runCase({
       client,

@@ -57,7 +57,8 @@ function fixture(t, fault, client = 'codex') {
         ])
       );
     },
-    controller() {
+    controller(_input, selected) {
+      assert.equal(selected, client);
       step('controller');
       return {
         close: async () => {
@@ -66,7 +67,8 @@ function fixture(t, fault, client = 'codex') {
         },
       };
     },
-    adapter() {
+    adapter(_request, _channel, _token, selected) {
+      assert.equal(selected, client);
       step('adapter');
       return {
         async launch(input) {

@@ -7,7 +7,7 @@ const { spawnSync } = require('node:child_process');
 
 for (const [workflowName, selectedProxy] of [
   ['verify.yml', 'publication-interruption'],
-  ['windows-persistent-io-coverage.yml', null],
+  ['windows-persistent-io-coverage.yml', 'native-publication-interruption'],
 ]) {
   test(`the actual ${workflowName} scopes its proxy selector and preserves every failure gate`, () => {
     const workflow = fs
