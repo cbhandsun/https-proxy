@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：ee 正式门终态通过，56d 启动失败仍阻止稳定性资格
+
+ee161d4 正式运行 40803390990 十二作业成功，源码门完整 4272107 字符及十个业务完整日志已核对；每个业务均为该源码、具有 plan/build 回执并完成网络收尾与 ownedTreeEmpty。仅授原有有界合成场景，不授完整 N08/N09、安装版双端、真实 provider 或五秒稳定性，亦不抹去 ee integration/额外 coverage 失败。
+
+56d1721 正式源码门完整 3099843 字符日志有十二项失败，其中十一项在原五秒 fixture ready 前失败，尚未进入目标中断；有的 native ready 已到 4437ms 后等待 load-reference，有的 ready 1193ms 后种子 save-reference-state 未完成，不能把全部归为开库或目标 ACK 失败。额外 coverage 完整 3063636 字符有四项失败，其中两项在原 750ms 初始 arm，另有 native ready 及 Python 隔离环境失败；unit0 完整 594600 字符仅见原 25000ms 合成 WFP PowerShell 子进程超时。旧失败均保留，不提高期限或重跑制造绿色。
+
+b475 安装审阅 40804270759 的权威 steps 已确认完整 verify/audit 门成功，正在构建安装器；同格式、582、四 CLI 与安装版中断门尚待执行。日志接口返回的旧前缀不能作为当前卡点或完整验收日志。fresh 库没有 root/blob，且初始化 header 更新共用一个 SQL 事务，现有证据不支持以重复原文解密或多次 FULL COMMIT 解释启动尾延迟；不能删除首次 enrollment intent 或最终 anchor ACK。下一步读取真实安装端阶段，取得同轮启动 clock-write/COMMIT 分段后再修实际耗时。无新 24h、模型调用或日常实例变更。详见 context-recovery-evidence/ee-formal-and-56d-startup-failures.json。
+
 ## 2026-10-29（UTC）：减少marker空轮询重复遍历，保持正文前物理准入
 
 858额外coverage完整4183222字符日志已读并成功，三份同源码/cleanup回执经原parseSummary接受，十二持久发布987–2109ms；ee额外完整3044127字符日志仍唯一失败于原750ms初始arm（999.9555ms），尚未进入目标慢released五秒负控。两者并列保留，不授稳定性或握手物理根因。b475普通Verify目前7作业成功/coverage仍运行，安装审阅40804270759仍在原完整门禁，未重启。

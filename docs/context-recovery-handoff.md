@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+## 2026-10-29（UTC）：优先核对实际安装端，保留最新启动失败
+
+先读状态顶部及 context-recovery-evidence/ee-formal-and-56d-startup-failures.json。ee 正式十二作业成功、源码门与十业务完整日志已核，仅授原有有界合成场景；56d 正式源码门失败，其中十一项 native fixture 在 ready 前超原五秒，未进入目标中断。额外 coverage 四失败和 unit0 合成 WFP 原 25 秒失败保留，不得与真实恢复请求超时混为一谈。
+
+b475 安装审阅 40804270759 完整 verify/audit 已成功，实际正在 build；后续需读取安装 Codex 的 restart-stop/initialize/resume 实际阶段，未授双端通过。旧日志前缀不证明停滞。fresh 无原文且 header 更新只有一个 SQL 事务，无证据允许删认证、FULL/DELETE 或两处锚点故障边界；需要同轮启动 clock-write/COMMIT 分段定位尾延迟。旧 868 仍失败、缺最终回执，无新 24h，模型与日常实例变更均为零。
+
 ## 2026-10-29（UTC）：marker轮询精简与关闭边界
 
 读状态顶部及context-recovery-evidence/publication-marker-poll-boundary.json。858额外完整coverage成功，十二持久发布987–2109ms、三份回执经原parser接受；ee仍在初始arm750ms失败，不能用单次绿色覆盖。b475安装审阅40804270759仍原完整门禁，后续必须实际核对Codex新细分阶段，不能把compact-3旧回执等同压缩根因。

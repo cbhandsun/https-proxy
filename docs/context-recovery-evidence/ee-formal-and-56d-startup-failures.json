@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "scope": "hosted_ci_terminal_scope",
+  "formal": {
+    "sourceSha": "ee161d4afe1105d49ccc17de3d64109fd4551a19",
+    "runId": 40803390990,
+    "conclusion": "success",
+    "jobsSucceeded": 12,
+    "sourceGate": {
+      "jobId": 123216514514,
+      "logCharacters": 4272107,
+      "failedTests": 0
+    },
+    "businessJobs": [
+      {
+        "jobId": 123224045943,
+        "scenario": "n09-sending-ack",
+        "logCharacters": 35055,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      },
+      {
+        "jobId": 123224045980,
+        "scenario": "n09",
+        "logCharacters": 34914,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      },
+      {
+        "jobId": 123224045992,
+        "scenario": "n09-withdrawn-ack",
+        "logCharacters": 34984,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      },
+      {
+        "jobId": 123224045993,
+        "scenario": "n09-finished-commit",
+        "logCharacters": 34997,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      },
+      {
+        "jobId": 123224046010,
+        "scenario": "n09-finished-ack",
+        "logCharacters": 34977,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      },
+      {
+        "jobId": 123224046022,
+        "scenario": "n09-withdrawn-commit",
+        "logCharacters": 35003,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      },
+      {
+        "jobId": 123224046042,
+        "scenario": "n09-sending-commit",
+        "logCharacters": 34990,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      },
+      {
+        "jobId": 123224046046,
+        "scenario": "n09-uncertain-ack",
+        "logCharacters": 34985,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      },
+      {
+        "jobId": 123224046083,
+        "scenario": "n08",
+        "logCharacters": 34997,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      },
+      {
+        "jobId": 123224046085,
+        "scenario": "n09-uncertain-commit",
+        "logCharacters": 35000,
+        "sourceMatches": true,
+        "preparedPlanAndBuildReceiptPresent": true,
+        "ownedTreeEmpty": true,
+        "networkFinished": true
+      }
+    ],
+    "qualification": "original bounded synthetic hosted scenarios only"
+  },
+  "latestFailures": {
+    "sourceSha": "56d1721d7af3f14ffa0d4efeb974330ec3bf2b51",
+    "formal": {
+      "runId": 40805203258,
+      "jobId": 123222379357,
+      "logCharacters": 3099843,
+      "failedTests": 12,
+      "nativeFixtureReadyDeadlineFailures": 11,
+      "targetInterruptionEnteredForThoseFailures": false,
+      "examples": [
+        {
+          "startupReadyMs": 4437,
+          "nextOperation": "load-reference",
+          "targetEntered": false
+        },
+        {
+          "startupReadyMs": 1193,
+          "lastFixture": "fixture-observed",
+          "pendingOperation": "save-reference-state",
+          "targetEntered": false
+        }
+      ],
+      "causeProven": false
+    },
+    "unit": {
+      "runId": 40805203281,
+      "jobId": 123222379166,
+      "logCharacters": 594600,
+      "failedTests": 1,
+      "failure": "synthetic installed-client WFP PowerShell child exceeded original 25000ms"
+    },
+    "extraCoverage": {
+      "runId": 40805203266,
+      "jobId": 123222379034,
+      "logCharacters": 3063636,
+      "failedTests": 4,
+      "failures": [
+        "initial ACK arm before service-throw negative control",
+        "initial ACK arm before service-return negative control",
+        "native fixture awaiting ready before withdrawn ACK interruption",
+        "isolated generic child Python environment test"
+      ]
+    },
+    "preserved": true
+  },
+  "installer": {
+    "sourceSha": "b4753a8980f4c846419755fd69ac6f112503e52f",
+    "runId": 40804270759,
+    "jobId": 123219455735,
+    "candidateGates": "success",
+    "build": "in_progress",
+    "installedClients": "pending",
+    "complete": false,
+    "partialLogIsNotCurrentStageEvidence": true
+  },
+  "analysis": {
+    "freshStoreContainsNoOriginalPayloads": true,
+    "startupHeaderUpdatesShareOneTransaction": true,
+    "fullDeleteAndBothAnchorBoundariesPreserved": true,
+    "physicalCauseOfStartupTailProven": false
+  },
+  "qualification": {
+    "fiveSecondStability": false,
+    "latestInstalledClients": false,
+    "fullN08N09": false,
+    "realProviders": false,
+    "real24Hours": false,
+    "realModelRequests": 0,
+    "new24HourRuns": 0,
+    "dailyInstanceChanged": false,
+    "overallComplete": false
+  }
+}
