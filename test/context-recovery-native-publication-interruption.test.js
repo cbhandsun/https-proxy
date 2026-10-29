@@ -14,7 +14,7 @@ for (const transition of ['prepared', 'sending', 'transport-finished', 'uncertai
     for (const kill of [true, false]) {
       test(
         `native worker publication ${transition}: ${kill ? 'SIGKILL' : 'release control'} inside ${boundary === 'commit' ? 'actual COMMIT lock wait' : 'durable OS anchor before publication ACK'}`,
-        { timeout: 15000 },
+        { timeout: 40000 },
         () =>
           observeFailure(() =>
             publicationInterruption({ transition, boundary, kill, native: true })

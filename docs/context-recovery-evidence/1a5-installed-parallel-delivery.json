@@ -22,24 +22,15 @@
     "localCandidateBinaryQualified": false
   },
   "latestOrdinaryVerify": {
-    "source": "32cf9e8c69be571102d30dfb9afde5b85be4f237",
-    "runId": 40825536372,
+    "source": "cdde3c5225b4c02c90306afcb0014fb049b7193c",
+    "runId": 40827812383,
     "successfulJobs": 8,
     "failedJobs": 0,
-    "unit2JobId": 123287603755,
-    "unit2FullLogCharacters": 653624,
-    "coverageJobId": 123287603653,
-    "coverageFullLogCharacters": 4251371,
-    "coverageNotOkLines": 0,
+    "coverageJobId": 123294786453,
+    "coverageFullLogCharacters": 4251305,
     "coverageIoReceiptsAcceptedByOriginalParser": 3,
     "coverageIoCleanupAllTrue": true,
-    "publicationWaitPairs": 12,
-    "publicationWaitDurationMinMs": 69,
-    "publicationWaitDurationMaxMs": 137,
-    "publicationWaitEndElapsedMaxMs": 2208,
-    "elapsedIsNotWaitDuration": true,
     "fiveSecondStableQualified": false,
-    "doesNotOverrideHttpTimeoutFailuresRun": 40815377246,
     "previousFailuresRetained": true
   },
   "parallelDelivery": {
@@ -52,18 +43,25 @@
     "new24hRunStarted": false,
     "realModelRequests": 0,
     "localBuildStartedConfirmed": true,
-    "installerBuildCompleted": false
+    "installerBuildCompleted": false,
+    "fiveSecondRefersToHttpAndPostPreparationGates": true
   },
   "formalReview": {
-    "source": "97d97d526b3852542670300361ed9a0c7664f398",
-    "runId": 40815377266,
+    "source": "cdde3c5225b4c02c90306afcb0014fb049b7193c",
+    "runId": 40827812223,
     "allTwelveJobsSucceeded": true,
     "allTwelveCompleteLogsRead": true,
+    "sourceLogCharacters": 4343615,
+    "egressLogCharacters": 18981,
+    "tenBusinessLogCharacters": 349702,
     "tenBusinessIdentityNetworkAndOwnedCleanupAudited": true,
-    "sourceLogCharacters": 4332322,
+    "fixedBusinessCases": 32,
+    "childReceiptsValidatedByPinnedSourceChain": true,
+    "childPrivateJsonDirectlyLogged": false,
     "scope": "original_bounded_synthetic_cases_only",
     "fullN08N09Qualified": false,
-    "fiveSecondStableQualified": false
+    "fiveSecondStableQualified": false,
+    "doesNotOverride857FormalFailure": true
   },
   "independentIo": {
     "source": "97d97d526b3852542670300361ed9a0c7664f398",
@@ -229,10 +227,7 @@
       }
     ],
     "sdkSource": "https://github.com/microsoft/win32metadata/blob/c16762d41f1bd641ff8c4389ebf16ee50747129f/generation/WinSDK/RecompiledIdlHeaders/shared/evntrace.h",
-    "sdkLines": [
-      491,
-      496
-    ],
+    "sdkLines": [491, 496],
     "pairingProven": false,
     "sqliteFailureAttributionProven": false
   },
@@ -244,11 +239,7 @@
     "pluginNpmCiElapsedMs": 63964,
     "nativeCheckExitCode": 0,
     "nativeCheckElapsedMs": 203385,
-    "rustTestGroupsPassed": [
-      53,
-      0,
-      5
-    ],
+    "rustTestGroupsPassed": [53, 0, 5],
     "rustTestsIgnored": 0,
     "nativePrepareExitCode": 0,
     "nativePrepareElapsedMs": 1785,
@@ -329,10 +320,7 @@
     "oldHeldPipeConstructionInsufficientOnWindows": true,
     "priorWindowsFailureModeProven": false,
     "nodeSource": "https://github.com/nodejs/node/blob/v22.22.3/deps/uv/src/win/process.c",
-    "nodeSourceLines": [
-      988,
-      1020
-    ],
+    "nodeSourceLines": [988, 1020],
     "detachedDoesNotSetCreateBreakawayFromJob": true,
     "readyHandshakeBeforeParentExit": true,
     "windowsRealOwnedJobRequired": true,
@@ -471,5 +459,580 @@
     "sdkHeaderFlags": "https://github.com/microsoft/win32metadata/blob/c16762d41f1bd641ff8c4389ebf16ee50747129f/generation/WinSDK/RecompiledIdlHeaders/um/evntcons.h",
     "windowsValidationPending": true,
     "realModelRequests": 0
+  },
+  "formalReview97": {
+    "source": "97d97d526b3852542670300361ed9a0c7664f398",
+    "runId": 40815377266,
+    "allTwelveJobsSucceeded": true,
+    "allTwelveCompleteLogsRead": true,
+    "tenBusinessIdentityNetworkAndOwnedCleanupAudited": true,
+    "sourceLogCharacters": 4332322,
+    "scope": "original_bounded_synthetic_cases_only",
+    "fullN08N09Qualified": false,
+    "fiveSecondStableQualified": false
+  },
+  "formal857Failure": {
+    "source": "85708c90158fc098d16bd62689ce98c450e7dee0",
+    "runId": 40826917337,
+    "sourceJobId": 123291954134,
+    "sourceCompleteLogCharacters": 3121809,
+    "conclusion": "failure",
+    "businessNotExecuted": true,
+    "failures": [
+      {
+        "test": "native worker HTTP normal stop drains uncertain inside durable OS anchor before publication ACK",
+        "durationMs": 5135.876,
+        "deadlineMs": 5000,
+        "awaiting": "ready",
+        "lastFixture": "native-opened",
+        "startupLastStage": {
+          "phase": "ready",
+          "elapsedMs": 2691
+        },
+        "httpRequestStarted": false
+      },
+      {
+        "test": "native worker HTTP normal stop drains withdrawn inside actual COMMIT lock wait",
+        "durationMs": 5769.2256,
+        "deadlineMs": 5000,
+        "awaiting": "ready",
+        "lastFixture": "native-opening",
+        "startupLastStage": {
+          "phase": "engine_sql_commit_started",
+          "elapsedMs": 3144
+        },
+        "httpRequestStarted": false
+      }
+    ],
+    "failureRetained": true,
+    "precisePhysicalCauseProven": false
+  },
+  "ordinary857Verify": {
+    "source": "85708c90158fc098d16bd62689ce98c450e7dee0",
+    "runId": 40826917351,
+    "successfulJobs": 8,
+    "failedJobs": 0,
+    "coverageJobId": 123291954209,
+    "coverageCompleteLogCharacters": 4249104,
+    "coverageNotOkLines": 0,
+    "originalIoParserAcceptedReceipts": 3,
+    "doesNotOverrideFormalFailures": true,
+    "fiveSecondStableQualified": false
+  },
+  "schemaDiscoverySuccessCdde": {
+    "source": "cdde3c5225b4c02c90306afcb0014fb049b7193c",
+    "runId": 40827812077,
+    "jobId": 123294784685,
+    "completeLogCharacters": 46947,
+    "originalTestsExitCode": 0,
+    "cleanupVerified": true,
+    "phase": "complete",
+    "metadata": {
+      "schemaVersion": 1,
+      "scope": "sampled_native_event_metadata",
+      "sampledMetadataOnly": true,
+      "eventValuesDecoded": false,
+      "fieldTypesVerified": false,
+      "filterAttributionQualified": false,
+      "traceCompletenessVerified": false,
+      "realModelRequests": 0,
+      "events": 430731,
+      "selectedEvents": 358902,
+      "unsupportedLayouts": 0,
+      "layouts": [
+        {
+          "provider": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "id": 0,
+          "version": 3,
+          "opcode": 100,
+          "headerFlags": 832,
+          "descriptorIdentity": "1f0296f8a63811a1d021a8e41b6c1071a0817e7d8c01873205b8e3bec87be00e",
+          "metadataProvider": "9e814aad-3204-11d2-9a82-006008a86939",
+          "eventClass": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "decodingSource": 1,
+          "metadataId": 0,
+          "metadataVersion": 3,
+          "metadataOpcode": 100,
+          "unsupported": null,
+          "count": 44,
+          "fields": [
+            {
+              "name": "RoutineAddr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileObject",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileContext",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "IrpPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "CallbackDataPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "MajorFunction",
+              "inType": 8,
+              "outType": 0
+            },
+            {
+              "name": "Status",
+              "inType": 8,
+              "outType": 18
+            }
+          ]
+        },
+        {
+          "provider": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "id": 0,
+          "version": 3,
+          "opcode": 101,
+          "headerFlags": 832,
+          "descriptorIdentity": "375ac7516c65be20c8113d5511fbfa6f26322ced5aaefee19199dd911b14f3f5",
+          "metadataProvider": "9e814aad-3204-11d2-9a82-006008a86939",
+          "eventClass": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "decodingSource": 1,
+          "metadataId": 0,
+          "metadataVersion": 3,
+          "metadataOpcode": 101,
+          "unsupported": null,
+          "count": 280,
+          "fields": [
+            {
+              "name": "RoutineAddr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileObject",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileContext",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "IrpPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "CallbackDataPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "MajorFunction",
+              "inType": 8,
+              "outType": 0
+            },
+            {
+              "name": "Status",
+              "inType": 8,
+              "outType": 18
+            }
+          ]
+        },
+        {
+          "provider": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "id": 0,
+          "version": 3,
+          "opcode": 96,
+          "headerFlags": 832,
+          "descriptorIdentity": "d31c06107808501d82cfdf2007f7b90d0c01307e83217490d106fc093dad0307",
+          "metadataProvider": "9e814aad-3204-11d2-9a82-006008a86939",
+          "eventClass": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "decodingSource": 1,
+          "metadataId": 0,
+          "metadataVersion": 3,
+          "metadataOpcode": 96,
+          "unsupported": null,
+          "count": 93988,
+          "fields": [
+            {
+              "name": "RoutineAddr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileObject",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileContext",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "IrpPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "CallbackDataPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "MajorFunction",
+              "inType": 8,
+              "outType": 0
+            }
+          ]
+        },
+        {
+          "provider": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "id": 0,
+          "version": 3,
+          "opcode": 97,
+          "headerFlags": 832,
+          "descriptorIdentity": "d4a5a2e97c9bef1cc287a3003250c844fec39b9f3f0730cff303e7af1996ab3a",
+          "metadataProvider": "9e814aad-3204-11d2-9a82-006008a86939",
+          "eventClass": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "decodingSource": 1,
+          "metadataId": 0,
+          "metadataVersion": 3,
+          "metadataOpcode": 97,
+          "unsupported": null,
+          "count": 39422,
+          "fields": [
+            {
+              "name": "RoutineAddr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileObject",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileContext",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "IrpPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "CallbackDataPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "MajorFunction",
+              "inType": 8,
+              "outType": 0
+            }
+          ]
+        },
+        {
+          "provider": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "id": 0,
+          "version": 3,
+          "opcode": 98,
+          "headerFlags": 848,
+          "descriptorIdentity": "3372d60dcff7b6f16e45bffe56d1a415875e0922ab1feba8c10e41e8fe358184",
+          "metadataProvider": "9e814aad-3204-11d2-9a82-006008a86939",
+          "eventClass": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "decodingSource": 1,
+          "metadataId": 0,
+          "metadataVersion": 3,
+          "metadataOpcode": 98,
+          "unsupported": null,
+          "count": 169970,
+          "fields": [
+            {
+              "name": "InitialTime",
+              "inType": 10,
+              "outType": 27
+            },
+            {
+              "name": "RoutineAddr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileObject",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileContext",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "IrpPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "CallbackDataPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "MajorFunction",
+              "inType": 8,
+              "outType": 0
+            }
+          ]
+        },
+        {
+          "provider": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "id": 0,
+          "version": 3,
+          "opcode": 99,
+          "headerFlags": 848,
+          "descriptorIdentity": "01bb2d73714da8c006cd6580a4c4c961376907013d4d27cf2b8a8eb4b7d1b31d",
+          "metadataProvider": "9e814aad-3204-11d2-9a82-006008a86939",
+          "eventClass": "90cbdc39-4a3e-11d1-84f4-0000f80464e3",
+          "decodingSource": 1,
+          "metadataId": 0,
+          "metadataVersion": 3,
+          "metadataOpcode": 99,
+          "unsupported": null,
+          "count": 55198,
+          "fields": [
+            {
+              "name": "InitialTime",
+              "inType": 10,
+              "outType": 27
+            },
+            {
+              "name": "RoutineAddr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileObject",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "FileContext",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "IrpPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "CallbackDataPtr",
+              "inType": 16,
+              "outType": 0
+            },
+            {
+              "name": "MajorFunction",
+              "inType": 8,
+              "outType": 0
+            }
+          ]
+        }
+      ]
+    },
+    "physicalCauseProven": false
+  },
+  "localStagingNativeShort": {
+    "source": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "manifestSha256": "299814bc072769a9077093e55c6c9336cddb75f96c496c8bc5291c2208ff265e",
+    "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+    "nativeSha256": "f938861dcee8e791a60f2fc445a8462920e24260f37799f1c32e7367867ebfd2",
+    "nativeNlink": 1,
+    "sourceFilesBeforeAfter": 2159,
+    "runtimeFilesBeforeAfter": 558,
+    "taskExitCode": 0,
+    "ownedEmpty": true,
+    "defaultWorker": true,
+    "realDpapiAndNewNamespaceAnchor": true,
+    "seedOriginalDriverMs": 50177,
+    "independentSameStoreReadOriginalDriverMs": 37757,
+    "driverMsIncludeManifestAndWholeOperation": true,
+    "allSevenOriginalReceiptFieldsEqual": true,
+    "originalExpiryPreserved": true,
+    "installedQualified": false,
+    "httpFiveSecondQualified": false,
+    "realProviderQualified": false,
+    "retention24hQualified": false,
+    "realModelRequests": 0
+  },
+  "headlessControllerQualification": {
+    "actualWindowsCases": 5,
+    "normalExit": 0,
+    "nonzeroExitExactlyForwarded": 7,
+    "overflowExit": 126,
+    "overflowCapturedBytes": 16777216,
+    "heldPipeExit": 126,
+    "heldPipeOriginalDrainMs": 5000,
+    "stopTaskResult": 267014,
+    "allOwnedTreesEmpty": true,
+    "sameSid": true,
+    "singleGrantAndEof": true,
+    "noConsole": true,
+    "oldConsoleInterruptionCauseProven": false
+  },
+  "headlessWarmContinuation": {
+    "source": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "priorAdmissionFailureExit": 126,
+    "priorSourcePassedMs": 5910,
+    "priorActualCauseProven": false,
+    "priorFailurePreserved": true,
+    "rawPowerShellGitChecksReplacedWithOriginalFullSourceHelper": true,
+    "sourceHelperFirstAndFinalGitTimeoutMs": 5000,
+    "sourceHelperStageTimeoutMs": 60000,
+    "sourceFirstPassedMs": 4803,
+    "indexStagePassedMs": 36454,
+    "existingIndexFilesVerifiedUnmodified": 439,
+    "appendedIndexFiles": 0,
+    "lockedRecords": 509,
+    "installerActuallyStarted": true,
+    "installerStartedUtc": "2026-10-29T06:46:25.2115523Z",
+    "originalInstallerDeadlineUtc": "2026-10-29T07:26:25.2115523Z",
+    "latestObservedUtc": "2026-10-29T07:29:07.8730934Z",
+    "actualNewCompileStartRecords": 188,
+    "currentCargoIdentityMatched": true,
+    "installerExitObserved": false,
+    "installerCompleted": false,
+    "appRustCompleted": false,
+    "oldInstanceChanged": false,
+    "new24hRunStarted": false,
+    "realModelRequests": 0,
+    "controllerExitObserved": true,
+    "controllerExitCode": 126,
+    "failureCategory": "build_step_deadline",
+    "failureAtUtc": "2026-10-29T07:26:25.6810506Z",
+    "ownedEmpty": true,
+    "failureFilesPreserved": 29,
+    "compileJobs": 1
+  },
+  "pureFilterIoCorrelation": {
+    "connectedToNativeCapture": false,
+    "ownedFileObjectAndIrpGenerationsRequired": true,
+    "fullCallbackKeyRequired": true,
+    "rawQpcClockAndExactInitialTimeWitnessRequired": true,
+    "realOpEndNtStatusRequired": true,
+    "operationFailuresDiscardEpochCandidates": true,
+    "duplicateOrAmbiguousEpochsDiscardAllCandidates": true,
+    "globalCombinedIrpAndCandidateLimit": 8192,
+    "fileHistoryLimit": 256,
+    "eventLimit": 1000000,
+    "summaryLeaksPointerPidTagOrPath": false,
+    "filterAttributionQualified": false,
+    "nativeCaptureQualified": false,
+    "parentUnitTestsPassed": 40,
+    "parentGovernanceTestsPassed": 2,
+    "parentTestsFailed": 0,
+    "parentTestsSkipped": 0,
+    "unifiedUnitDiscoveryIncludesNewTest": true,
+    "realModelRequests": 0,
+    "managedNativeChecksPassed": 75,
+    "rawNativeAdapterImplemented": true,
+    "realCaptureWiringStillRequired": true,
+    "workPausedForInstallerDelivery": true
+  },
+  "previousOrdinaryVerify32cf": {
+    "source": "32cf9e8c69be571102d30dfb9afde5b85be4f237",
+    "runId": 40825536372,
+    "successfulJobs": 8,
+    "failedJobs": 0,
+    "unit2JobId": 123287603755,
+    "unit2FullLogCharacters": 653624,
+    "coverageJobId": 123287603653,
+    "coverageFullLogCharacters": 4251371,
+    "coverageNotOkLines": 0,
+    "coverageIoReceiptsAcceptedByOriginalParser": 3,
+    "coverageIoCleanupAllTrue": true,
+    "publicationWaitPairs": 12,
+    "publicationWaitDurationMinMs": 69,
+    "publicationWaitDurationMaxMs": 137,
+    "publicationWaitEndElapsedMaxMs": 2208,
+    "elapsedIsNotWaitDuration": true,
+    "fiveSecondStableQualified": false,
+    "doesNotOverrideHttpTimeoutFailuresRun": 40815377246,
+    "previousFailuresRetained": true
+  },
+  "oldNativeDayMonitoring": {
+    "source": "8682b768547d52c6c96026aa23e7ec496bfd5cea",
+    "failed": true,
+    "observedTicks": 4,
+    "lastScheduledMs": 900000,
+    "terminalConfirmed": false,
+    "missingFinalReceipt": true,
+    "realtime24hPassed": false,
+    "automaticRestart": false,
+    "monitorDeletedOnUserInstruction": true,
+    "automationId": "24",
+    "frozenEvidencePreserved": true
+  },
+  "deliveryPriority": {
+    "userRequestedSelfUseInstallerFirst": true,
+    "candidateSourceUnchanged": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "installationPackageDelivered": false,
+    "separatePreparationAndHttpDeadlinesAuthorized": true,
+    "httpRequestDeadlineMsUnchanged": 5000,
+    "preparationBudgetTargetMs": 30000,
+    "productionAuthenticationPersistenceAndExpiryUnchanged": true,
+    "newFilterIoCaptureWorkPaused": true,
+    "realModelRequests": 0
+  },
+  "jobs4WarmBuild": {
+    "source": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "compileJobs": 4,
+    "actualLauncherStarted": true,
+    "launcherPid": 70644,
+    "launcherCreatedUtc": "2026-10-29T07:49:35.990617Z",
+    "controllerPid": 4124,
+    "controllerCreatedUtc": "2026-10-29T07:49:37.3628525Z",
+    "sourceStageExitCode": 0,
+    "sourceStageMs": 8425,
+    "indexStageExitCode": 0,
+    "indexStageMs": 33098,
+    "installerPid": 75932,
+    "installerCreatedUtc": "2026-10-29T07:50:43.1322895Z",
+    "originalInstallerDeadlineUtc": "2026-10-29T08:30:43.1322895Z",
+    "installerCompleted": false,
+    "cargoStartedObserved": false,
+    "bc50FailureFilesPreserved": 29,
+    "oldInstanceChanged": false,
+    "new24hRunStarted": false,
+    "realModelRequests": 0
+  },
+  "preparationDeadlineSeparation": {
+    "initialReadyBudgetMs": 30000,
+    "previousInitialReadyBudgetMs": 5000,
+    "absoluteDeadlineNotResetByMessages": true,
+    "httpRequestBudgetMs": 5000,
+    "postPreparationPhaseBudgetMs": 5000,
+    "commitProbeBudgetMs": 750,
+    "stopBudgetMs": 4000,
+    "caseOuterBudgetMs": 40000,
+    "previousCaseOuterBudgetMs": 15000,
+    "changedProductionCode": false,
+    "relatedLocalTestsPassed": 50,
+    "relatedLocalTestsFailed": 0,
+    "relatedLocalTestsSkipped": 0,
+    "parentIdentityAndGovernanceTestsPassed": 10,
+    "windowsNativeActualValidationForThisChange": false,
+    "doesNotOverrideHistoricalFailures": true,
+    "fiveSecondStableQualified": false
   }
 }

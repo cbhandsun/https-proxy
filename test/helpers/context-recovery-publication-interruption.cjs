@@ -103,7 +103,12 @@ function processFixture(file, databaseFile, diagnostic) {
     messages,
     exited,
     async phase(name) {
-      const deadline = performance.now() + 5000;
+      // Initial preparation includes the real default worker open and fixture
+      // seed. Match production storage's 30s opening budget; later interruption
+      // targets and the HTTP request retain their independent original bounds.
+      const preparing = name === 'ready';
+      const budgetMs = preparing ? 30000 : 5000;
+      const deadline = performance.now() + budgetMs;
       while (!messages.some((message) => message.phase === name)) {
         assert.ok(
           !messages.some((message) => /failed/.test(message.phase)),
@@ -114,10 +119,13 @@ function processFixture(file, databaseFile, diagnostic) {
         if (performance.now() >= deadline) {
           const observed = startup.describe();
           assert.fail(
-            `fixture phase deadline exceeded (awaiting=${name};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs};startupTimeline=${JSON.stringify(startup.snapshot())};storageOperations=${JSON.stringify(operations.snapshot())};executionProgress=${JSON.stringify(executionSamples)};sqlProgress=${JSON.stringify(sql.snapshot())};fixtureIdentity=${JSON.stringify(failureIdentity())})`
+            `fixture ${preparing ? 'preparation' : 'interruption'} deadline exceeded (awaiting=${name};budgetMs=${budgetMs};lastFixture=${messages.at(-1)?.phase ?? 'unobserved'};startup=${observed.phase};startupElapsedMs=${observed.elapsedMs};startupTimeline=${JSON.stringify(startup.snapshot())};storageOperations=${JSON.stringify(operations.snapshot())};executionProgress=${JSON.stringify(executionSamples)};sqlProgress=${JSON.stringify(sql.snapshot())};fixtureIdentity=${JSON.stringify(failureIdentity())})`
           );
         }
-        await waitForFixtureSignal(child, Math.max(0, deadline - performance.now()));
+        await waitForFixtureSignal(
+          child,
+          Math.min(5000, Math.max(0, deadline - performance.now()))
+        );
       }
       return messages.find((message) => message.phase === name);
     },

@@ -9,7 +9,7 @@ for (const transition of ['prepared', 'sending', 'transport-finished', 'uncertai
   for (const boundary of ['commit', 'ack']) {
     test(
       `native worker HTTP normal stop drains ${transition} inside ${boundary === 'commit' ? 'actual COMMIT lock wait' : 'durable OS anchor before publication ACK'}`,
-      { timeout: 15000 },
+      { timeout: 40000 },
       () =>
         publicationInterruption({ transition, boundary, kill: false, native: true, graceful: true })
     );

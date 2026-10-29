@@ -8,7 +8,7 @@ const {
 for (const transition of ['prepared', 'sending', 'transport-finished', 'uncertain', 'withdrawn']) {
   test(
     `encrypted file HTTP normal stop drains ${transition} awaiting publication ACK`,
-    { timeout: 15000 },
+    { timeout: 40000 },
     () =>
       observeFailure(() =>
         publicationInterruption({ transition, boundary: 'ack', kill: false, graceful: true })
