@@ -1,5 +1,13 @@
 # 上下文恢复换机交接
 
+## 2026-10-29（UTC）：01b 实际安装迁移已过，seed-output屏障缺口已补
+
+优先读状态顶部与context-recovery-evidence/seed-output-publication-barrier.json。01b正式source-gates成功、十业务9成功/1原n09失败（case82/exit144）；858独立十组业务诊断成功不能覆盖它。858新通道文件10项实际Windows通过，unit3另因既有原15秒caller-owned reply memory子进程status null失败，保留、不重试或延长。
+
+seed-output第二轮可走真正私有恢复，却原来只等HTTPend。它的迟到final ACK可污染后续summary/read的进程累计completed基线；现在第二轮发送前建立原barrier、响应验证后等待完成，再建立summary基线，原其他屏障/精确ACK/固定请求/预算/期限/FULL/DELETE均不改。旧实现两项先红，修后四完整文件115/115及治理通过，尚非Windows通过或此次144的独立根因证书。
+
+01b安装40800745678完整日志已读：实际0.1.1同格式安装/升级/回滚/卸载/同用户DPAPI通过，完整582旧布局默认worker八阶段迁移及旧reader拒写通过（layout1→3、revision+1、旧期限/预算/key/原文及字节保持）。CLI两端步骤失败，compact-3是最后已写阶段，兼含后续停止/重启/initialize/resume，阶段不够细；安装COMMIT/ACK未执行。接续收口该CLI失败和五秒稳定性，新源码门仍需核对；不可用局部绿色抹旧失败。旧实例由用户切换、旧868冻结及最大容量暂停不动，新24h与模型均0，整体未完成。
+
 ## 2026-10-29（UTC）：01b 普通完整门通过，验收通道减少同次重复物理检查
 
 优先读实施状态顶部及context-recovery-evidence/publication-files-physical-boundaries.json。01b普通Verify八作业成功，完整coverage日志已读；十二持久发布703–3258ms、三份同源码/cleanup回执经原parser接受，Windows两工作流22种编排情形通过。额外coverage唯一失败是初始arm的原750ms见证，尚未进入目标慢released五秒负控；Core六次1154–1955ms不清除旧5002ms失败。正式source-gates与安装审阅40800745678仍原作业执行，不重启、不继承其他源码资格。

@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：01b 安装升级/完整582迁移通过，修复seed-output完成屏障缺口
+
+01b正式40800611319已终态：source-gates完整4263984字符日志通过，十个业务日志已读，11作业成功/1失败；原n09在durable-save场景82以144退出，精确minRevision不相等的拒绝保持。858独立业务诊断十组全部成功且同源码/ownedTreeEmpty回执闭合，不覆盖01b正式失败。858普通unit3完整1153245字符日志：新增通道文件10项Windows通过，唯一失败是既有caller-owned reply memory用例，原15000ms子进程没有正常退出，实际15014.4607ms/status null，失败阶段未知，不改该门。
+
+找到可复现的验收顺序缺口：seed-output第二轮包含原文visibleSources，能进入真实私有恢复；原实现仅等HTTP正文结束，之后才建立summary的全局completed基线。若第二轮最终ACK稍后才完成，其completed会被下一轮当成本轮完成，错位还能延续到read屏障；快照可能先于原生产ACK观察，精确144拒绝正确。现于第二轮发送前取得它自己的原15秒completion barrier，验证响应后等待，再建立原summary基线；原summary/read屏障、三次业务HTTP负载、版本精确相等、预算/期限、签名和FULL/DELETE均不变。没有重试或扩大原预算；不能仅凭有限144日志断定本次必由此竞态触发。
+
+两项定向回归在固定858上全红：ACK仍held时第三轮已发送、失败completion未能阻止summary。修后四完整相关文件115/115、零skip/cancel；延迟/false/throw/假hostAck与原保存/撤销快照及ACK后立即强杀边界保持，新增测试进入原统一文件。1746语法、定向Lint/格式、CI/release/结构治理通过，新源码Windows完整门待核。证据见context-recovery-evidence/seed-output-publication-barrier.json。
+
+01b安装审阅40800745678完整4288539字符日志已读：原full verify/audit、真实0.1.1构建、同格式安装升级回滚卸载/同用户DPAPI均通过；当前安装app摘要7e04ab23…，运行时manifest a6617c44…。随后完整582默认worker八阶段实际通过：旧4eb1ea48…身份582文件、layout1→3、revision仅+1、旧reader拒写与字节保持、同目录重开，ownedTreeEmpty/uninstalled均true。两端CLI步骤仍失败，最后有限阶段codex-default-cli-compact-3还覆盖首CLI停止、第二次启动/初始化/resume，不能直接称第三次压缩根因；安装COMMIT/ACK步骤未执行。两端/真实provider/有效24h与整体仍未完成；所有失败、旧868/日常实例/最大容量暂停保持，无新24h、模型0。
+
 ## 2026-10-29（UTC）：01b 普通完整 Verify 通过；消除验收通道同次操作的重复目录遍历
 
 01b208c 普通 Verify 40800611335 八作业全部成功，coverage 完整4173107字符日志无 not-ok；十二次持久发布703–3258ms，三份同源码/cleanup I/O回执经原parseSummary接受。实际Windows两工作流共22个selector编排情形通过，原5000ms期限不变。额外coverage 40800611371完整3040915字符日志仍失败：唯一失败在ACK通道初始arm的原750ms见证，尚未进入“慢released写入”的五秒负控；同轮Core六次发布1154–1955ms，不能消除原5002ms失败或授稳定性。正式source-gates与安装审阅40800745678仍在原任务执行，本批不重启或覆盖它们。

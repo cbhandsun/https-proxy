@@ -353,6 +353,7 @@ function createN09BusinessAdapter(input, trusted = {}) {
       externalToolExecutions++;
       phase = 'seed-output';
       onPhase(133);
+      const seedOutputCompleted = await client().getRecoveryCompletionBarrier(current);
       const secondReply = await send(requestBody(history));
       onPhase(134);
       const secondFailurePhase = seedReplyFailurePhase(secondReply.status);
@@ -360,6 +361,9 @@ function createN09BusinessAdapter(input, trusted = {}) {
       if (secondReply.status === 502) onPhase(211);
       const second = parseReply(secondReply);
       if (publicText(second) !== 'N09_SEEDED ' + nonce) throw fail();
+      // This request can already run private recovery. Its HTTP body ends
+      // before the final publication ACK; do not lend that completion to summary.
+      await awaitPublicationCompleted(seedOutputCompleted);
       history.push(...second.output);
       const summaryCompleted = await client().getRecoveryCompletionBarrier(current);
       phase = 'summary';

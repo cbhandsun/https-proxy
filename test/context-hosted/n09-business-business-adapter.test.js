@@ -775,16 +775,19 @@ test('backup revoke captures its exact revision after the completed publication 
       state.revision++;
     }
     if (at === 'ack-submit') {
-      assert.equal(completed, 3);
+      assert.equal(completed, 4);
       assert.equal(value.minRevision, state.revision);
     }
   });
   f.adapter.bindVerifiedNetworkProof(f.proof);
   await runBackupRollbackAfterRevoke(f.adapter);
-  assert.equal(completed, 3);
+  assert.equal(completed, 4);
   const events = f.state.events;
+  const seedOutputCompletion = events.indexOf('publication-completed');
+  assert.equal(events[seedOutputCompletion + 1], 'completion-baseline');
   for (let index = 0; index < events.length; index++) {
-    if (events[index] === 'publication-completed') assert.equal(events[index + 1], 'snapshot');
+    if (events[index] === 'publication-completed' && index !== seedOutputCompletion)
+      assert.equal(events[index + 1], 'snapshot');
   }
   assert.deepEqual(events.slice(events.indexOf('ack'), events.indexOf('ack') + 2), ['ack', 'kill']);
 });
@@ -1179,6 +1182,71 @@ test('synthetic public recovery output supports JSON and complete Responses SSE 
     await f.adapter.close();
   }
 });
+test('seed output waits for its own publication before creating the summary completion baseline', async (t) => {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let reached;
+  const held = new Promise((resolve) => {
+    reached = resolve;
+  });
+  let completions = 0;
+  const f = fixture(async (at, _value, state) => {
+    if (at !== 'publication-completed') return;
+    completions++;
+    if (completions === 1) {
+      reached(state.sent);
+      await gate;
+      state.revision++;
+    }
+  });
+  f.adapter.bindVerifiedNetworkProof(f.proof);
+  const owner = await f.adapter.startFreshBusinessHost();
+  const pending = f.adapter.seedThroughBusinessHttp(owner).then(
+    (value) => ({ value }),
+    (error) => ({ error })
+  );
+  t.after(async () => {
+    release();
+    await pending;
+    await f.adapter.killOwnedJob(owner);
+    await f.adapter.close();
+  });
+  assert.equal(await held, 2, 'the seed-output ACK must precede the third HTTP request');
+  assert.equal(f.state.sent, 2);
+  assert.equal(f.state.events.filter((event) => event === 'completion-baseline').length, 1);
+  assert.equal(f.state.events.includes('snapshot'), false);
+  release();
+  const result = await pending;
+  assert.equal(result.error, undefined);
+  assert.equal(result.value.rootId, f.state.rootId);
+  assert.equal(f.state.sent, 3);
+  assert.equal(completions, 2);
+});
+
+test('seed output publication failure never reaches summary or the metadata snapshot', async () => {
+  for (const mode of ['false', 'throw', 'ack']) {
+    const f = fixture((at, value, state) => {
+      if (at !== 'publication-completed' || state.sent !== 2) return;
+      if (mode === 'throw') throw Error('PRIVATE_SEED_PUBLICATION_FAILURE');
+      if (mode === 'false') value.completed = false;
+      if (mode === 'ack') value.hostDurableAck = true;
+    });
+    f.adapter.bindVerifiedNetworkProof(f.proof);
+    const owner = await f.adapter.startFreshBusinessHost();
+    try {
+      await assert.rejects(f.adapter.seedThroughBusinessHttp(owner), bad);
+      assert.equal(f.state.sent, 2);
+      assert.equal(f.state.events.includes('snapshot'), false);
+      assert.equal(f.state.events.includes('submit'), false);
+    } finally {
+      await f.adapter.killOwnedJob(owner);
+      await f.adapter.close();
+    }
+  }
+});
+
 test('seed observer separates HTTP completion, protocol validation and metadata snapshot without removing work', async () => {
   const phases = [],
     f = fixture(undefined, (phase) => phases.push(phase));
