@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：固定1a5自用安装包已实际交付，准备与请求期限已分开
+
+Windows桌面新目录HPM-SelfUse-0.1.1-1a5ae1c已收到HTTPS Proxy Manager_0.1.1_x64-setup.exe（28473935字节），源码固定1a5ae1c8176b544c3d96d1fa10d0a320ac742109，安装器SHA256=7e949f2e3fe21a2e8d33548bcb030bc97e37021e0428b3d14b8d5fc3212feac0。复制前后SHA相等，同目录使用说明和delivery-summary.json均已写入并读回SHA；未安装、未启动GUI/代理、未改配置，旧E实例由用户自行切换。默认客户端原生压缩，代理精确恢复可选，未签名自用包不改公开release签名要求。
+
+本轮jobs4在原期限内完整结束：source0/8425ms、index0/33098ms、installer-build0/493053ms、app-rust-check0/317277ms（40+1项通过、0失败/忽略/过滤）、final-source0/5845ms；TaskReady0、launcher0/cleanup=true、owned空。最终2159源码、13Native输入、四锁、Node/Native单链接与558runtime全部核对；manifest299814bc…与先前默认Worker真实DPAPI/OS锚点/同库独立进程重开短测完全一致。92份旧失败文件SHA均未变。先前bc50原40min超时、未知控制台中断等失败保留，不能用本轮成功抹除。
+
+准备/请求拆分已提交推送09d11e2：仅初始ready为30000ms绝对期限，进度不重置；HTTP及准备后中断仍5000ms、COMMIT探针750ms/停止4000ms不改，原case外层只补25s到40s。局部六文件50/50和父端10项身份/治理通过；09的完整Windows四unit日志均读，20项真实Native发布中断和10项真实Native HTTP正常停止通过、零skip。独立原I/O完整70/70、零失败/跳过。09普通Verify此时7/8成功、coverage运行，正式source门成功/业务仍运行，不能称最新完整CI结束；已核cdde普通8/8和正式12/12保持原范围。
+
+自用安装包产出已不再受旧24h阻塞；监测24已按用户要求删除，旧868失败/缺最终退出回执原样保留，不重启。仍未闭合的是本机实际安装/界面与用户切换后的验收、真实provider、五秒长期稳定和有效24h；这些不授予完成资格，也不阻塞已交付的固定自用候选。无真实模型调用、无新24h，原认证、精确ACK、FULL/DELETE、原到期时间不变。有限哈希与范围见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
 ## 2026-10-29（UTC）：自用安装优先，停止旧失败日档重复监测
 
 按用户新指令删除自动监测24；868原轮失败、4个节拍/900000ms、缺最终退出回执和terminalConfirmed=false原样保留，不重启、不伪造24小时通过。有效24h、真实provider和五秒长期稳定性仍未通过，但不再把它们作为本轮自用安装器产出的前提。

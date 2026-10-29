@@ -43,7 +43,7 @@
     "new24hRunStarted": false,
     "realModelRequests": 0,
     "localBuildStartedConfirmed": true,
-    "installerBuildCompleted": false,
+    "installerBuildCompleted": true,
     "fiveSecondRefersToHttpAndPostPreparationGates": true
   },
   "formalReview": {
@@ -986,7 +986,7 @@
   "deliveryPriority": {
     "userRequestedSelfUseInstallerFirst": true,
     "candidateSourceUnchanged": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
-    "installationPackageDelivered": false,
+    "installationPackageDelivered": true,
     "separatePreparationAndHttpDeadlinesAuthorized": true,
     "httpRequestDeadlineMsUnchanged": 5000,
     "preparationBudgetTargetMs": 30000,
@@ -1009,12 +1009,46 @@
     "installerPid": 75932,
     "installerCreatedUtc": "2026-10-29T07:50:43.1322895Z",
     "originalInstallerDeadlineUtc": "2026-10-29T08:30:43.1322895Z",
-    "installerCompleted": false,
-    "cargoStartedObserved": false,
+    "installerCompleted": true,
+    "cargoStartedObserved": true,
     "bc50FailureFilesPreserved": 29,
     "oldInstanceChanged": false,
     "new24hRunStarted": false,
-    "realModelRequests": 0
+    "realModelRequests": 0,
+    "appRustCompleted": true,
+    "finalSourceCompleted": true,
+    "taskResult": 0,
+    "ownedEmpty": true,
+    "launcherCleanupConfirmed": true,
+    "finalObservedUtc": "2026-10-29T08:05:29Z",
+    "finishedStages": [
+      {
+        "step": "source",
+        "exitCode": 0,
+        "elapsedMs": 8425
+      },
+      {
+        "step": "index-append",
+        "exitCode": 0,
+        "elapsedMs": 33098
+      },
+      {
+        "step": "installer-build",
+        "exitCode": 0,
+        "elapsedMs": 493053
+      },
+      {
+        "step": "app-rust-check",
+        "exitCode": 0,
+        "elapsedMs": 317277
+      },
+      {
+        "step": "final-source",
+        "exitCode": 0,
+        "elapsedMs": 5845
+      }
+    ],
+    "oldFailureFilesVerifiedUnchanged": 92
   },
   "preparationDeadlineSeparation": {
     "initialReadyBudgetMs": 30000,
@@ -1031,8 +1065,67 @@
     "relatedLocalTestsFailed": 0,
     "relatedLocalTestsSkipped": 0,
     "parentIdentityAndGovernanceTestsPassed": 10,
-    "windowsNativeActualValidationForThisChange": false,
+    "windowsNativeActualValidationForThisChange": true,
     "doesNotOverrideHistoricalFailures": true,
-    "fiveSecondStableQualified": false
+    "fiveSecondStableQualified": false,
+    "windowsNativePublicationCasesPassed": 20,
+    "windowsNativeGracefulHttpCasesPassed": 10,
+    "windowsNativeCasesSkipped": 0,
+    "windowsNativeJobIds": [123328867985, 123328868242],
+    "source": "09d11e2b4fe846319ab49197bc043ca89e4619f2"
+  },
+  "localSelfUseInstallerDelivery": {
+    "source": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "version": "0.1.1",
+    "desktopFolderName": "HPM-SelfUse-0.1.1-1a5ae1c",
+    "installerFile": "HTTPS Proxy Manager_0.1.1_x64-setup.exe",
+    "installerBytes": 28473935,
+    "installerSha256": "7e949f2e3fe21a2e8d33548bcb030bc97e37021e0428b3d14b8d5fc3212feac0",
+    "applicationSha256": "ba5903c726d91f5946994191fe977fae4ae1919313d1860d4e10ee01f71e68f8",
+    "runtimeManifestSha256": "299814bc072769a9077093e55c6c9336cddb75f96c496c8bc5291c2208ff265e",
+    "manifestMatchesPriorNativeShort": true,
+    "sourceFilesVerified": 2159,
+    "nativeInputsVerified": 13,
+    "runtimeFilesVerified": 558,
+    "originalFourLocksVerified": true,
+    "appRustTestsPassed": 41,
+    "appRustTestsFailed": 0,
+    "appRustTestsIgnored": 0,
+    "taskResult": 0,
+    "launcherCleanupConfirmed": true,
+    "ownedEmpty": true,
+    "sourceAndDesktopInstallerHashesEqual": true,
+    "summarySha256": "1e08deafebba6875293e52a14e52e5f0668280b1a0f8260aabb5f6956112d2c8",
+    "readmeSha256": "d91b74021ac6319add5c5f9f4936ad4a874d113c8258232a1f20835a1498ab79",
+    "oldFailureFilesVerifiedUnchanged": 92,
+    "defaultCompression": "client-native",
+    "proxyExactRecovery": "optional",
+    "signed": false,
+    "publicRelease": false,
+    "installed": false,
+    "localDesktopUiQualified": false,
+    "oldInstanceChanged": false,
+    "manualSwitchByUser": true,
+    "realProviderQualified": false,
+    "retention24hQualified": false,
+    "fiveSecondStableQualified": false,
+    "realModelRequests": 0,
+    "new24HourStarted": false
+  },
+  "repositoryCiAtDelivery": {
+    "source": "09d11e2b4fe846319ab49197bc043ca89e4619f2",
+    "observedAtUtc": "2026-10-29T08:12:32.002585+00:00",
+    "verifyRun": 40838493562,
+    "verifyJobsPassed": 7,
+    "verifyCoverageStillRunning": true,
+    "formalRun": 40838493530,
+    "formalSourceGatePassed": true,
+    "formalBusinessStillRunning": true,
+    "independentIoRun": 40838493537,
+    "independentIoTestsPassed": 70,
+    "independentIoTestsFailed": 0,
+    "independentIoTestsSkipped": 0,
+    "completeLatestCiQualified": false,
+    "doesNotOverrideHistoricalFailures": true
   }
 }

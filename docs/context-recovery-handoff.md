@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+当前交付：固定1a5自用0.1.1安装器已真实构建并复制到Windows桌面HPM-SelfUse-0.1.1-1a5ae1c；installer/app-Rust/final-source及Task均0、cleanup=true/owned空，92份旧失败SHA不变。完整SHA和范围见实施状态顶部及1a5-installed-parallel-delivery.json。默认原生压缩、代理恢复可选，旧实例用户自行安装切换，不自动动配置。准备30s/真实恢复HTTP验收5s已分开并推送09d11e2，Windows原生20+10通过、零skip；09完整CI尚未结束。旧24h监测24已删除、不重启，失败和缺回执保留。尚未授本机安装UI/真实provider/五秒稳定/有效24h资格，模型0；下一步以用户自行切换后的实际验收为准，不再把旧失败轮当作正在跑24小时。
+
 最新用户优先：交付固定1a5自用安装版；旧868失败日档监测24已按指令删除，冻结证据/缺最终回执保留，不重启，不再重复查同一失败。当前阻塞是本机应用编译/安装器未产出：bc50在原40min期限控制器126且owned空，29份失败摘要封存；新独立warm方案仅Cargo jobs1→4、原源码/工具/锁/期限不变，是否实际启动以新回执为准。本机默认Worker真实DPAPI/OS锚点同库重开短测0已过，不是安装或HTTP资格。cdde普通8/8、正式12/12已核；857准备5s失败及97真实HTTP5002ms失败均保留。新授权把初始准备30s与真实HTTP5s分开，具体实现/回归状态先读实施状态顶部。停止扩展FilterIO/WPR，旧实例用户自行切换，真实模型仍0，有效24h/真实provider/五秒稳定性未授予。
 
 最新优先：32cf普通完整Verify八作业已通过，coverage完整日志/三份原parser回执已核，不能覆盖旧HTTP5002ms或授稳定性。857独立schema已真实定位callback-header-size误拒：记录Size不是typed callback结构内存长度；正确classic0x140/48旧probe先红，现取消错误>=80而强化固定ABI/file-mode门，父端80/80，新Windows待核。本机无控制台normal首版已成功；有界输出/read-lease固定版仍在实际夹具，未用于产品续建、包仍未完成。先读状态顶部，旧失败/旧实例/冻结日档与原门保留，模型和新24h均0。
