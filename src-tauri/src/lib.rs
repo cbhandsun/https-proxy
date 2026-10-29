@@ -12,6 +12,7 @@ mod codex_login;
 mod desktop_shell;
 mod launch_on_login;
 mod management_bridge;
+mod node_runtime;
 mod proxy_control;
 mod proxy_control_stdio;
 #[cfg(test)]
@@ -270,14 +271,9 @@ fn format_proxy_status(health: &serde_json::Value) -> String {
     )
 }
 
-fn node_proxy_command(root: &Path) -> Command {
-    let bundled_node = root.join("runtime").join("node").join("node.exe");
+fn node_proxy_command(root: &Path, runtime: &node_runtime::NodeRuntime) -> Command {
     let runtime_dir = proxy_runtime_dir(root);
-    let mut command = if bundled_node.exists() {
-        Command::new(bundled_node)
-    } else {
-        Command::new("node")
-    };
+    let mut command = runtime.command();
     proxy_process::configure_node_environment(&mut command, root, &runtime_dir);
     command
         .arg(root.join("openai-proxy.js"))
@@ -306,9 +302,10 @@ fn start_proxy_direct() -> Result<serde_json::Value, String> {
     }
 
     proxy_process::ensure_proxy_config_file(&root);
-    let mut child = node_proxy_command(&root)
-        .spawn()
-        .map_err(|e| format!("failed to start node proxy directly: {e}"))?;
+    let runtime = node_runtime::NodeRuntime::select(&root).map_err(str::to_owned)?;
+    let mut command = node_proxy_command(&root, &runtime);
+    let mut child = runtime.spawn(&mut command).map_err(str::to_owned)?;
+    drop(runtime);
 
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(5) {

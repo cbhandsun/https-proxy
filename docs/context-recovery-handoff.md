@@ -1,5 +1,9 @@
 # 上下文恢复换机交接
 
+2026-10-29 后续普通Codex502排查：原服务/3085 owner和健康正常，精准恢复仍disabled/memory。截图两请求的有限事件投影均为upstream_request/tls_handshake/ECONNRESET，DNS+TCP已成功、TLS未完成/未见响应、非复用socket、ContentLength匹配；6.6/7.1s是最终请求总耗时，含三次route，不宣称单握手耗时或body已上网。系统/项目DNS同4公网地址；进一步固定同IP/SNI/script/env/cwd，两Node均22.22.3且SHA780f44相同，bundled路径36ms reset、原NVM路径1553ms TLS1.3且authorized。已知网络配置中未找到明确old-only规则，不能认定v2rayN/防火墙/杀软为根因。未关闭TLS、改系统proxy或重放模型。
+
+当前按兼容环境先临时恢复：正常退出原GUI/Node，无force；显式原NVM Node在原root/config/runtime运行，托盘已接管，1GUI+1Node、3085/管理端口owner与认证健康200匹配。bundled文件/manifest/原配置数据保留，模型0。这仍是临时入口，旧GUI重启会回bundled，不冒称持久修复。现新增显式HPM_NODE_EXECUTABLE启动选择候选：默认行为不变，只接受与bundled逐字节相等的本机regular单链接EXE，持文件/祖先pins至spawn完成、拒写/删/重解析/非法输入；显式无效值拒绝不回退。仅托盘组合和启动器预启动条件改变，无UI新设置、无依赖/锁升级。Mac纯模块10/10（含same inode/size写后恢复mtime仍拒绝的先红回归）、格式/治理通过；Windows pin/spawn及完整CI/新GUI构建仍待验，候选未投放。完整网络元数据/私有运行回执仅留本机。
+
 2026-10-29 本轮受控脚本/托盘切换已完成：修复提交 f8887736e0376add9c640b1c094125bd89d28164 的 Verify40886442286完整8/8成功；Rust完整日志46817字符已核（原生61+5，真实权限重复调用及8项新增策略回归通过），coverage完整4278117字符已核，无实际not ok/原阶段失败，未降低门禁。独立本机Windows原生61+5、Clippy、正式prepare及五文件JS29/29、0skip通过。新helper对原runtime同对象调用126ms（原5000ms不变），前后身份/protected精确DACL稳定。干净双来源候选官方验证成功，完整5185公共文件仅native与manifest哈希两处变化，其余5183相同；两旧文件已受限备份，实际r+投放/flush/readback exit0，原对象/ACL保留，无私有目录递归核验。
 
 普通正式启动无observer，3696ms、CLI exit0/ok=true；实际后端与托盘恢复，交互会话内1 GUI+1 Node，原生TCP owner及两次认证健康HTTP200，root/config/runtime/PID精确匹配。最终原config/runtime/frozen/root物理对象和原启动bat哈希仍一致，旧Git未重置。应用及JS仍固定1a5，只有native来自f888，不冒称全新Tauri重构建。恢复requested/applied仍false、disabled/memory，保留原默认客户端原生压缩。14:17:08Z fresh分账核对177/169、Codex1/Claude7，未reservation，模型0；这些余额不是新的请求授权，安全计数writer审阅和真实Codex恢复闭环仍未完成。旧五秒/旧24h失败与本轮诊断argv、缓存编排、Mac平台检查失败记录保留；本轮启动成功不授整体五秒稳定、真实provider、有效24h或精准恢复已开启资格。下一步只按Codex单人自用收尾，先解决真实调用额度/安全预扣，不再停已恢复服务或重启长测。

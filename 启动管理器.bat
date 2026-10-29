@@ -6,8 +6,10 @@ set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 set "NO_PAUSE=1"
 
-if exist "%SCRIPT_DIR%proxy.bat" (
-  call "%SCRIPT_DIR%proxy.bat" start
+if not defined HPM_NODE_EXECUTABLE (
+  if exist "%SCRIPT_DIR%proxy.bat" (
+    call "%SCRIPT_DIR%proxy.bat" start
+  )
 )
 
 set "PORTABLE_EXE=%SCRIPT_DIR%https-proxy-manager.exe"
