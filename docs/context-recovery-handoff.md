@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+## 2026-10-29（UTC）：marker轮询精简与关闭边界
+
+读状态顶部及context-recovery-evidence/publication-marker-poll-boundary.json。858额外完整coverage成功，十二持久发布987–2109ms、三份回执经原parser接受；ee仍在初始arm750ms失败，不能用单次绿色覆盖。b475安装审阅40804270759仍原完整门禁，后续必须实际核对Codex新细分阶段，不能把compact-3旧回执等同压缩根因。
+
+验收通道present读目录walk4→3、missing2→1、write仍3；marker/payload前后完整祖先/descriptor/身份校验和ENOENT后verify保留，写仍在wx前verify，无缓存/期限/签名改变。可能先探测坏祖先下marker元数据再拒绝，但不得提前打开正文；新增关闭中途无payload open检查。六项先红后四完整文件80/80，本批不是Windows/五秒稳定修复证书。接续收齐现有CI与安装终态，聚焦实际阻塞；旧失败/旧实例/冻结868/最大容量暂停均保留，新24h与模型0。
+
 ## 2026-10-29（UTC）：安装Codex重启失败阶段细分
 
 优先读状态顶部与context-recovery-evidence/installed-codex-restart-phases.json。01b的compact-3最后阶段也覆盖停止/重启/initialize/resume，不能当作第三次压缩根因。仅给Codex两模式增加restart-stop/restart-initialize/restart-resume固定进度；不推进合成上游、不改变Claude、认证、三次压缩、身份/自然退出、原5/20/30/60/240秒门。阶段观察失败仍保留所属树cleanup；六项先红，修改后三完整JS文件49/49。

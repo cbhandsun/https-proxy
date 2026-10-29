@@ -40,7 +40,7 @@ function createPublicationFiles(input, create, ack) {
       physical(directory, true, pins);
     }
     function name(kind, sequence) {
-      verify();
+      available();
       if (
         !(
           ack
@@ -77,6 +77,9 @@ function createPublicationFiles(input, create, ack) {
             }
             throw fail();
           }
+          // A present marker's physical walk already admits every pinned
+          // ancestor before payload access. Absence takes the verify above.
+          available();
           if (marker.size !== 0n) throw fail();
           // Bind the existing pins at the bounded reader's before/after path
           // checks, rather than traversing the same file ancestors twice more.
@@ -94,6 +97,7 @@ function createPublicationFiles(input, create, ack) {
         let fd;
         try {
           const file = name(kind, sequence);
+          verify();
           if (
             typeof value !== 'string' ||
             Buffer.byteLength(value) < 2 ||

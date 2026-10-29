@@ -40,10 +40,127 @@ for (const ack of [false, true]) {
     assert.equal(walks, 3, 'before create, complete data path, complete marker path');
     walks = 0;
     assert.deepEqual(f.files.read(f.kind, 1), { value: 1 });
-    assert.equal(walks, 4, 'before access, marker, before descriptor read, after descriptor read');
+    assert.equal(walks, 3, 'marker, before descriptor read, after descriptor read');
     walks = 0;
     assert.deepEqual(f.files.read(f.kind, 1), { value: 1 });
-    assert.equal(walks, 4, 'a later read must perform every physical check again');
+    assert.equal(walks, 3, 'a later read must perform every physical check again');
+  });
+
+  test(`${name} empty polling validates its pinned ancestors once per observation`, (t) => {
+    const f = fixture(t, ack);
+    const original = fs.lstatSync;
+    let walks = 0;
+    t.mock.method(fs, 'lstatSync', function (file, ...args) {
+      if (file === f.directory) walks++;
+      return Reflect.apply(original, fs, [file, ...args]);
+    });
+    assert.equal(f.files.read(f.kind, 1), null);
+    assert.equal(walks, 1);
+    assert.equal(f.files.read(f.kind, 1), null);
+    assert.equal(walks, 2, 'later missing observations still revalidate the physical directory');
+  });
+
+  test(`${name} marker inspection cannot authorize a replaced parent or open its payload`, async (t) => {
+    for (const present of [false, true]) {
+      await t.test(present ? 'present' : 'missing', (t) => {
+        const f = fixture(t, ack);
+        if (present) f.files.write(f.kind, 1, '{}');
+        const original = fs.lstatSync;
+        const marker = path.join(f.directory, f.kind + '-1.json.ready');
+        let replaced = false;
+        t.mock.method(fs, 'lstatSync', function (file, ...args) {
+          if (file !== marker || replaced) return Reflect.apply(original, fs, [file, ...args]);
+          let stat, failure;
+          try {
+            stat = Reflect.apply(original, fs, [file, ...args]);
+          } catch (error) {
+            failure = error;
+          }
+          fs.renameSync(f.directory, f.directory + '.old');
+          fs.mkdirSync(f.directory);
+          replaced = true;
+          if (failure) throw failure;
+          return stat;
+        });
+        let opened = 0;
+        const open = fs.openSync;
+        t.mock.method(fs, 'openSync', function (...args) {
+          opened++;
+          return Reflect.apply(open, fs, args);
+        });
+        assert.throws(() => f.files.read(f.kind, 1), /n09_publication_files_rejected/);
+        assert.equal(replaced, true);
+        assert.equal(opened, 0);
+        assert.throws(() => f.files.read(f.kind, 1), /n09_publication_files_rejected/);
+      });
+    }
+  });
+
+  test(`${name} closed marker inspection does not open the payload`, (t) => {
+    const f = fixture(t, ack);
+    f.files.write(f.kind, 1, '{}');
+    const marker = path.join(f.directory, f.kind + '-1.json.ready');
+    const original = fs.lstatSync;
+    t.mock.method(fs, 'lstatSync', function (file, ...args) {
+      const stat = Reflect.apply(original, fs, [file, ...args]);
+      if (file === marker) f.files.close();
+      return stat;
+    });
+    let opened = 0;
+    const open = fs.openSync;
+    t.mock.method(fs, 'openSync', function (...args) {
+      opened++;
+      return Reflect.apply(open, fs, args);
+    });
+    assert.throws(() => f.files.read(f.kind, 1), /n09_publication_files_rejected/);
+    assert.equal(opened, 0);
+  });
+
+  test(`${name} replaced write directory is rejected before any wx creation`, (t) => {
+    const f = fixture(t, ack);
+    fs.renameSync(f.directory, f.directory + '.old');
+    fs.mkdirSync(f.directory);
+    let opened = 0;
+    const open = fs.openSync;
+    t.mock.method(fs, 'openSync', function (...args) {
+      opened++;
+      return Reflect.apply(open, fs, args);
+    });
+    assert.throws(() => f.files.write(f.kind, 1, '{}'), /n09_publication_files_rejected/);
+    assert.equal(opened, 0);
+  });
+
+  test(`${name} marker aliases are rejected before opening payload bytes`, async (t) => {
+    for (const alias of ['parent', 'symlink', 'hardlink']) {
+      await t.test(alias, (t) => {
+        const f = fixture(t, ack);
+        f.files.write(f.kind, 1, '{}');
+        const marker = path.join(f.directory, f.kind + '-1.json.ready');
+        if (alias === 'parent') {
+          fs.renameSync(f.directory, f.directory + '.old');
+          fs.symlinkSync(
+            f.directory + '.old',
+            f.directory,
+            process.platform === 'win32' ? 'junction' : 'dir'
+          );
+        } else if (alias === 'symlink') {
+          fs.renameSync(marker, marker + '.old');
+          if (process.platform === 'win32') {
+            const target = path.join(f.root, 'marker-target');
+            fs.mkdirSync(target);
+            fs.symlinkSync(target, marker, 'junction');
+          } else fs.symlinkSync(marker + '.old', marker, 'file');
+        } else fs.linkSync(marker, marker + '.alias');
+        let opened = 0;
+        const open = fs.openSync;
+        t.mock.method(fs, 'openSync', function (...args) {
+          opened++;
+          return Reflect.apply(open, fs, args);
+        });
+        assert.throws(() => f.files.read(f.kind, 1), /n09_publication_files_rejected/);
+        assert.equal(opened, 0);
+      });
+    }
   });
 
   test(`${name} transport rejects replaced ancestors even for a missing marker`, (t) => {

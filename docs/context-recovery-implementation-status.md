@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：减少marker空轮询重复遍历，保持正文前物理准入
+
+858额外coverage完整4183222字符日志已读并成功，三份同源码/cleanup回执经原parseSummary接受，十二持久发布987–2109ms；ee额外完整3044127字符日志仍唯一失败于原750ms初始arm（999.9555ms），尚未进入目标慢released五秒负控。两者并列保留，不授稳定性或握手物理根因。b475普通Verify目前7作业成功/coverage仍运行，安装审阅40804270759仍在原完整门禁，未重启。
+
+read原name先遍历目录，随后的physical(marker)又核对全部固定祖先；marker缺失还会再遍历一次。现name只做状态/枚举/范围校验：present仍须marker完整祖先准入及payload descriptor前后全链，missing仍在verify成功后才返回null；write在wx之前仍显式verify。present目录遍历4→3、空轮询2→1、write保持3，每次调用重查，不缓存。元数据探测顺序确有变化：坏祖先下可能先lstat/realpath marker，随后拒绝；不能声称系统调用顺序完全相同，正文open/read/write仍在完整物理准入之后。另在marker校验后重新检查closed，避免关闭中途仍打开正文。
+
+固定b475回归30项24通过/6先红；修改后四完整相关文件80/80、零skip/cancel，覆盖marker期间换目录、ENOENT后换目录、junction/symlink/hardlink、坏目录write无wx、关闭中途无payload open、后续逐次重验及原签名/750ms/五秒/descriptor/字节边界。定向Lint、格式、语法与CI/release治理通过；新源码Windows和五秒稳定性仍待。证据见context-recovery-evidence/publication-marker-poll-boundary.json。原安装两端/正式失败、旧868冻结/日常实例/最大容量暂停保持，新24h和模型均0，整体未完成。
+
 ## 2026-10-29（UTC）：安装Codex重启阶段闭合细分，保留compact-3原失败
 
 01b安装两端的最后阶段compact-3原来还覆盖首树停止、第二次启动/initialize与thread/resume，npm完成到失败约35秒不证明哪一步超时。与已过989候选核对，协议/启动器/RPC/CLI锁没有差异，不能改三次压缩负载或猜测模型原因。现仅为Codex默认/增强增加restart-stop、restart-initialize、restart-resume三个固定阶段，JS writer与PowerShell读取闭集同步；生命周期进度只写安全阶段，不调用合成上游setPhase，Claude与未知阶段继续拒绝。原单RPC30秒、turn60秒、首树stop20秒、launcher EOF5秒、driver240秒以及认证、resume精确身份/自然退出/三次压缩均不变。progress失败时仍保留所有活跃CLI的所属cleanup能力，不称为产品根因修复。
