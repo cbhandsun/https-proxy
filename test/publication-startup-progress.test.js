@@ -3,6 +3,35 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createPublicationStartupProgress } = require('./helpers/publication-startup-progress.cjs');
 
+test('default worker SQL startup phases retain the original finite monotone progress contract', () => {
+  const progress = createPublicationStartupProgress();
+  const phases = [
+    'worker_started',
+    'engine_anchor_validate_finished',
+    ...[1, 2, 3, 4].flatMap((index) => [
+      'engine_sql_clock_write_' + index + '_started',
+      'engine_sql_clock_write_' + index + '_finished',
+    ]),
+    'engine_sql_clock_write_overflow',
+    'engine_sql_commit_started',
+    'engine_sql_commit_finished',
+    'engine_prepared',
+    'engine_ready',
+    'ready',
+  ];
+  phases.forEach((phase, index) => progress.observe({ phase, elapsedMs: index }));
+  assert.deepEqual(
+    progress.snapshot(),
+    phases.map((phase, elapsedMs) => ({ phase, elapsedMs }))
+  );
+  for (const phase of [
+    'engine_sql_clock_write_5_started',
+    'engine_sql_commit_retry',
+    'engine_sql_PRIVATE',
+  ])
+    assert.throws(() => createPublicationStartupProgress().observe({ phase, elapsedMs: 1 }));
+});
+
 test('publication startup observer exposes only validated production phases and elapsed time', () => {
   const progress = createPublicationStartupProgress();
   assert.deepEqual(progress.describe(), { phase: 'unobserved', elapsedMs: 0 });

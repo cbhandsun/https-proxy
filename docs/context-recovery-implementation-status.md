@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：分开故障定位与完整安装等待，启动并行诊断链
+
+用户要求并行提速。本轮按文件归属并行实施，未削减原门：b475 安装共约 31m52s，其中完整候选门 19m59s、NSIS 构建 5m09s、实际两端故障尝试 75s；Rust cache 已命中、cargo-audit 安装仅 1s，因此不为小收益修改缓存安全边界。
+
+新增独立 staged Codex enhanced stop 工作流，不依赖 full verify/Tauri/NSIS 安装。锁定原 Node/CLI、完整 runtime manifest/源码/Native 身份，执行原完整增强协议、默认持久 Worker、三次压缩、重启和最终恢复；原三程序 WFP、Job、launcher、五秒/二十秒及 240 秒边界保持。独立临时 TLS/hosts/WFP 组合有完整清理和外来 hosts 修改拒写，contract 在父端内存及 lease/hash 下固定；不伪造安装 build 回执，报告强制非安装/非 provider/非 24h、模型零。受限 acceptance push 与专属路径允许它和完整 CI 同时开始；真实耗时与 Windows 结果仍待首轮，不声称已缩短到某个分钟数。
+
+另一线把有限 SQL 阶段接入原默认 Worker：在原锚点验证后开始观测初始化 header UPDATE 与首次 COMMIT，构造 engine 的 finally 永久停用；原 receiver/参数/单次调用/返回和异常身份保持，不读写 SQL 参数或原文，抛错不报 finished，最多四组 UPDATE 加一次 overflow。新阶段不能授 ready/ACK，不改认证、期限、锚点或 FULL/DELETE；它们是同轮最后观察点，不能单凭阶段间隔认定物理原因。发布清单及原三 timing/I/O 触发包含新模块，旧冻结 868 完全不动。
+
+本机九完整文件 66 项中 65 通过、1 项既有平台跳过，另原两容量文件 28/28。新阶段基线拒绝、缺发布清单与三触发基线失败均先红后修；owner 夹具原 Date.now 同毫秒会合法少写一次，已仅在注入单测给两个原时钟检查不同样本，运行时免写规则未改。独立 PS 组件、固定回执/篡改/失败清理、源码/Node/Native 三组件身份负控已覆盖；不授 Windows/安装/稳定性。
+
+9b4 最新完整门仍失败且保留：正式源码门在原 750ms 初始 arm 失败；安装审阅在原 30s PowerShell readiness 测试停止，未构建或进入 CLI，后置独立开库通过不能覆盖它。unit2 三项 graceful HTTP 未过种子 ready，另 legacy interop 的 native protect 16ms 成功、legacy PowerShell unprotect 原十秒超时且阶段未观察，不能称 Native DPAPI 算法失败。coverage 还有原 Node/Python 子进程与 PowerShell/rg 超时；额外 coverage 完整日志成功也不抹除这些失败。下一步提交并实际运行独立快诊断，同时保留完整门；旧实例、长测及最大容量暂停保持。详见 context-recovery-evidence/parallel-diagnostic-lanes.json。
+
 ## 2026-10-29（UTC）：安装增强 Codex 停在首进程收尾，补齐拒绝原因传递
 
 b475 安装审阅 40804270759 已失败，完整 4298042 字符日志已读：完整 verify/audit、0.1.1 NSIS 构建、实际同格式安装升级回滚/DPAPI、582 八阶段完整迁移/旧版拒写及清理均成功，当前 manifest 为 200c54a3ad695e91cf49e7f6fc3a528531432b946cc16bdcdd0dbec7a92dc4c5。矩阵最后阶段是 codex-enhanced-cli-restart-stop；该阶段在第三次压缩完成后、旧 CLI 收尾前写入，尚未启动增强模式第二个 CLI，不能称第三次压缩失败。default 路径已越过，但无最终矩阵回执，不授完整双端资格；Claude 与安装版 COMMIT/ACK 内部中断尚未执行。

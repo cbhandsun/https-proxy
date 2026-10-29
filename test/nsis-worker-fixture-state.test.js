@@ -140,6 +140,39 @@ test('async save rejection propagates and closes the actual memory session witho
   assert.equal(closed, 1);
 });
 
+test('worker SQL startup markers never substitute for native ready, refusal or anchor gates', () => {
+  const sqlPhases = [
+    ...[1, 2, 3, 4].flatMap((index) => [
+      'engine_sql_clock_write_' + index + '_started',
+      'engine_sql_clock_write_' + index + '_finished',
+    ]),
+    'engine_sql_clock_write_overflow',
+    'engine_sql_commit_started',
+    'engine_sql_commit_finished',
+  ];
+  const prefix = [
+    'worker_started',
+    'key_unprotect_finished',
+    'database_opened',
+    'engine_anchor_validate_finished',
+  ];
+  const complete = createWorkerStartupEvidence();
+  for (const phase of [...prefix, ...sqlPhases]) complete.observe({ phase });
+  assert.throws(() => complete.receipt(false));
+  for (const phase of ['engine_ready', 'ready']) complete.observe({ phase });
+  assert.equal(complete.receipt(false).ready, true);
+  for (const extra of [
+    'engine_sql_clock_write_5_started',
+    'engine_sql_commit_retry',
+    sqlPhases[0],
+  ]) {
+    const evidence = createWorkerStartupEvidence();
+    for (const phase of [...prefix, ...sqlPhases, extra, 'engine_ready', 'ready'])
+      evidence.observe({ phase });
+    assert.throws(() => evidence.receipt(false));
+  }
+});
+
 test('worker evidence distinguishes actual ready and schema refusal from native startup failures', () => {
   for (const refused of [false, true]) {
     const evidence = createWorkerStartupEvidence();

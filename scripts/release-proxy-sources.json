@@ -189,6 +189,7 @@
   "lib/proxy/context-recovery-sessions.js",
   "lib/proxy/context-recovery-snapshot-index.js",
   "lib/proxy/context-recovery-source-policy.js",
+  "lib/proxy/context-recovery-startup-sql-progress.js",
   "lib/proxy/context-recovery-state-data.js",
   "lib/proxy/context-recovery-state-encoder.js",
   "lib/proxy/context-recovery-storage-blobs.js",

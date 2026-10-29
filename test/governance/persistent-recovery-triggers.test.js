@@ -27,6 +27,7 @@ for (const workflow of [
     );
     for (const file of [
       'context-recovery-storage-owner.js',
+      'context-recovery-startup-sql-progress.js',
       'context-recovery-anchor.js',
       'context-recovery-anchor-channel.js',
       'context-recovery-anchor-protocol.js',

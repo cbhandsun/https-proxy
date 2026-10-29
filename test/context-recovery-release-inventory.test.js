@@ -25,6 +25,7 @@ test('release inventory retains recovery helpers and dynamically loaded Worker r
     'lib/proxy/context-recovery-key-worker.js',
     'lib/proxy/context-recovery-reauthorization.js',
     'lib/proxy/context-recovery-storage-worker.js',
+    'lib/proxy/context-recovery-startup-sql-progress.js',
     'lib/proxy/stopping-admission.js',
   ]) {
     assert.equal(manifest.filter((entry) => entry === relative).length, 1, relative);
@@ -45,6 +46,10 @@ test('recovery release regression remains in unified test discovery', () => {
     'test/context-recovery-physical-identity.test.js',
     'test/stopping-admission.test.js',
     'test/server-shutdown-admission.test.js',
+    'test/context-recovery-startup-sql-progress.test.js',
+    'test/codex-stop-diagnostic.test.js',
+    'test/codex-stop-diagnostic-network.test.js',
+    'test/codex-stop-diagnostic-run.test.js',
   ])
     assert.ok(files.includes(file), file);
 });

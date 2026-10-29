@@ -28,6 +28,11 @@ const {
 } = require('../lib/proxy/context-recovery-storage-paths');
 const { KEY_PREFIX } = require('../lib/proxy/context-recovery-key-contract');
 const { createStorageStartupProgress } = require('../lib/proxy/context-recovery-storage-progress');
+const startupSqlWritePhases = [1, 2, 3, 4].flatMap((index) => [
+  'engine_sql_clock_write_' + index + '_started',
+  'engine_sql_clock_write_' + index + '_finished',
+]);
+const startupSqlCommitPhases = ['engine_sql_commit_started', 'engine_sql_commit_finished'];
 // Real owner fixtures use the actual admitted backend; fake-worker protocol
 // fixtures below continue to exercise the complete legacy phase sequence.
 const directoryAdmissionPhases =
@@ -639,6 +644,9 @@ test('worker startup reports validated phases without granting readiness or chan
     'engine_prepare_started',
     'engine_anchor_validate_started',
     'engine_anchor_validate_finished',
+    ...startupSqlWritePhases,
+    'engine_sql_clock_write_overflow',
+    ...startupSqlCommitPhases,
     'engine_prepared',
     'engine_ready',
   ])
@@ -680,6 +688,9 @@ test('worker startup reports validated phases without granting readiness or chan
       'engine_prepare_started',
       'engine_anchor_validate_started',
       'engine_anchor_validate_finished',
+      ...startupSqlWritePhases,
+      'engine_sql_clock_write_overflow',
+      ...startupSqlCommitPhases,
       'engine_prepared',
       'engine_ready',
       'ready',
@@ -771,7 +782,11 @@ test('startup progress cannot reset the original deadline', async (t) => {
   ]);
 });
 
-test('owner emits only fixed phases and observer failures preserve ownership and key failure', async () => {
+test('owner emits only fixed phases and observer failures preserve ownership and key failure', async (t) => {
+  // Keep the two existing clock samples distinct in this injected-owner fixture.
+  // Same-millisecond samples legitimately omit an unchanged header write.
+  let time = Date.now();
+  t.mock.method(Date, 'now', () => ++time);
   const fixture = temporary();
   let owner;
   const phases = [];
@@ -816,6 +831,8 @@ test('owner emits only fixed phases and observer failures preserve ownership and
       'engine_prepare_started',
       'engine_anchor_validate_started',
       'engine_anchor_validate_finished',
+      ...startupSqlWritePhases,
+      ...startupSqlCommitPhases,
       'engine_prepared',
       'anchor_persist_started',
       'anchor_persist_finished',

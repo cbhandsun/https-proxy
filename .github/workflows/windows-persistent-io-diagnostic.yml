@@ -18,6 +18,7 @@ on:
       - lib/proxy/context-recovery-anchor-contract.js
       - lib/proxy/context-recovery-anchor-admission.js
       - lib/proxy/context-recovery-storage-owner.js
+      - lib/proxy/context-recovery-startup-sql-progress.js
       - lib/proxy/context-recovery-storage-paths.js
       - lib/proxy/context-recovery-private-path.js
       - lib/proxy/private-path-native.js

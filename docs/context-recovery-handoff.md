@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+## 2026-10-29（UTC）：两条独立定位线与完整门并行
+
+优先读状态顶部及 context-recovery-evidence/parallel-diagnostic-lanes.json。用户要求提速后，新建 staged Codex enhanced stop 快诊断：原完整增强协议/默认持久 Worker/三次压缩/重启/最终恢复、原 WFP/Job/期限与身份全部保留，但不等待 full verify/Tauri/NSIS，始终不授安装/provider/24h资格。受限主 acceptance push 即可启动，不重复创建一个会再触发八个 Verify job 的诊断分支；实际 Windows 首轮尚待运行。
+
+默认 Worker 另一线新增被动初始化 SQL 阶段，原锚点验证后 start、engine 构造 finally finish；不替换 Worker、不读参数/原文、不改变 SQL 调用或 ACK。新模块已进入 runtime 发布清单与原 timing/I/O 触发。局部 65pass/1 原平台skip及容量 28pass 不等于 Windows 资格；阶段只是最后观察点，不足以断言 I/O 根因。9b4 安装仍在前置 PowerShell 30s 门失败，实际 CLI 未执行；正式初始 750ms、graceful seed ready、legacy PowerShell 十秒及另两子进程失败均保留，额外 coverage 成功不覆盖。先从新快诊断拿具体停止原因，再修原因；正式门仍完整执行，无新 24h、模型零、旧实例不动。
+
 ## 2026-10-29（UTC）：下一关是增强 Codex 首进程停止分类
 
 先读状态顶部及 context-recovery-evidence/installed-codex-stop-failures.json。b475 安装全日志已读，verify/audit/build、同格式升级回滚/DPAPI、582 完整迁移拒写成功；矩阵失败于 codex-enhanced-cli-restart-stop，三次压缩已完成、增强第二进程未启动，Claude 和安装版内部中断未执行。不要称压缩失败、default 单独完整合格或整体安装完成。
