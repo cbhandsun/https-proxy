@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+当前合并跟进：00feb44的Windows四unit全部通过，原四目录隔离及新BigInt回归实跑通过；旧PowerShell超时本轮通过但根因未证。PR21仍draft。PR coverage真实Chat long-persistent请求5009ms失败，同轮clock-write456ms、COMMIT1771ms，不能当准备超时。formal另回收崩溃fixture把建库/两save/sweep全放进spawn5s，旧日志无法判阶段；现拆绝对准备30s与授权后sweep原5s，保留两行/原clock/COMMIT前37退出、marker和重开断言，close后才清理。局部16pass+2原Win skip、治理2pass，新Windows待核，不改产品。用户关于五秒性能是否暂缓作为单人合并前置的选择尚待回复，未擅自改门。fresh09:26额度177/169、Codex1/Claude7已核，未预扣未调用。Eroot非浅/脏、Codex版本进程5s超时未核；根下有私有冻结acceptance目录，禁止整根rename，配置/runtime身份和ACL仅只读记录，未改旧实例/配置/数据。脚本是否保留托盘界面亦待用户选择。
+
 当前用户授权处理PR21并走Codex单人脚本自用，安装器不作为前提。远端master2295为恢复分支祖先，快进无冲突；PR21仍draft/master未动。Windows旧Eroot是local master1a127de且有tracked修改，不覆盖、不把未核浅历史当真实分歧；Node alias磁盘缺失、Native不同、配置/data仅候选，Codex版本及fresh额度SSH超时未核，模型0，不沿用旧1/7。bd7原NSIS四目录Number inode Set3!=4已用确定性先红回归修为BigInt，原负控/四组合/期限不变；Mac完整fixture原HEAD也失败，Windows新源码CI待核。两项PowerShell5000/15000超时保留未定因，不扩诊断/不放宽或跳测；先原门禁通过再合master，之后保留本地工作/配置数据更新脚本运行环境。先读实施状态顶部。
 
 当前收尾范围已由用户选定Codex优先：固定已交付1a5，先确认用户自行安装切换，再做单客户端HTTP原生compact→私有精确READ→独立公开生成，持久化开启时再核同用户重开；不扩Claude/实验WebSocket/公开发行/最大容量/新24h。08:27Z仍旧E盘0.1.0运行，新候选未观察运行，未擅自切换。09普通8/8和正式12/12已成功；c337有一处验收只读snapshot replacement拒绝失败，已保留并仅修Number文件身份精度为BigInt，局部132/132/父端42通过，新Windows待核，非产品漏洞已证实，不重打包。Codex现余1次不足现成已验证单compact路径8次，实际调用前仍需fresh核账、可信预扣及必要追加授权，不跑原三compact全矩阵、不绕安全guard；日常使用与agent验收分账区分，模型0。详细证据先读实施状态顶部。

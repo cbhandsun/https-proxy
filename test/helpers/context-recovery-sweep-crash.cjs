@@ -34,10 +34,22 @@ try {
       expiresAt: n === 1 ? 200 : 1000,
       state: fixture.state,
     });
-  time = 200;
-  armed = true;
-  store.execute({ operation: 'sweep' });
-  process.exit(39);
+  // Preparation is complete at the original clock value. Only the parent's
+  // fixed authorization starts the separately bounded destructive operation.
+  process.once('message', (message) => {
+    if (message !== 'sweep') process.exit(39);
+    try {
+      time = 200;
+      armed = true;
+      store.execute({ operation: 'sweep' });
+    } catch {
+      process.exit(39);
+    }
+    process.exit(39);
+  });
+  process.once('disconnect', () => process.exit(39));
+  if (typeof process.send !== 'function') process.exit(39);
+  process.send('ready');
 } catch {
   process.exit(39);
 }

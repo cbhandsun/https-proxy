@@ -1265,5 +1265,94 @@
       "failure": "ETIMEDOUT",
       "causeProven": false
     }
-  ]
+  ],
+  "latestMergeGateFollowup": {
+    "source": "00feb44c128abef95cafb4bce8c4d6b0633db2a9",
+    "pushVerifyRun": 40849394168,
+    "prVerifyRun": 40849402511,
+    "formalRun": 40849394143,
+    "allFourUnitShardsPassed": true,
+    "actualWindowsMatrixPrecisionRegressionAndOriginalFourChildCasePassed": true,
+    "oldPowerShellTimeoutTestsPassedThisRound": true,
+    "oldPowerShellTimeoutCausesStillUnproven": true,
+    "fullCurrentCiQualified": false,
+    "prCoverageJob": 123364819136,
+    "prCoverageFullLogCharacters": 3079858,
+    "actualHttpFailure": {
+      "test": "actual core chat WBIPC recovery has exclusive ownership and live credential revocation",
+      "mode": "long-persistent",
+      "turn": 0,
+      "elapsedMs": 5009,
+      "requests": 4,
+      "handshakes": 4,
+      "roots": 1,
+      "ownerSequence": 8,
+      "lastSaveReferenceStateMs": 2626,
+      "observedSqliteClockWriteMs": 456,
+      "observedSqliteCommitMs": 1771,
+      "actualRequestDeadlineMs": 5000,
+      "setupFailure": false,
+      "uniqueRootCauseProven": false
+    },
+    "formalSourceJob": 123364791024,
+    "formalSourceFullLogCharacters": 3137732,
+    "maintenanceCrashFailure": {
+      "originalSpawnTotalDeadlineMs": 5000,
+      "observedTestMs": 5265.8892,
+      "observedStatus": null,
+      "expectedStatus": 37,
+      "oldTimeoutPhaseProven": false
+    },
+    "historicalFailuresRetained": true
+  },
+  "maintenanceFixtureDeadlineSeparation": {
+    "prepareAbsoluteDeadlineMs": 30000,
+    "sweepDeadlineMs": 5000,
+    "fixedReadyThenSweepProtocol": true,
+    "originalTwoSavesClockAndLoadUnchanged": true,
+    "originalCommitMarkerAndExit37Required": true,
+    "originalReopenAndClockAssertionsUnchanged": true,
+    "noParentExecArgvInherited": true,
+    "fixedMarkerValidatedWithoutLoggingUnexpectedOutput": true,
+    "combinedOutputCapBytes": 65536,
+    "ownedChildCloseRequiredBeforeCleanup": true,
+    "localPassed": 16,
+    "localPreexistingWindowsSkips": 2,
+    "localFailed": 0,
+    "governancePassed": 2,
+    "productionCodeChanged": false,
+    "windowsNewSourceValidationPending": true
+  },
+  "freshWindowsPredeployment": {
+    "checkedAtUtc": "2026-10-29T09:26:05.155Z",
+    "maximum": 177,
+    "used": 169,
+    "remaining": {
+      "codex": 1,
+      "claude": 7
+    },
+    "separateGrantCountsVerified": true,
+    "dispatchReservationPrepared": false,
+    "modelRequests": 0,
+    "localGitShallow": false,
+    "codexCmdEntryIdentified": true,
+    "codexVersionProcessDeadlineMs": 5000,
+    "codexVersionVerified": false,
+    "codexVersionFailure": "process_timeout",
+    "sshObservationSucceeded": true,
+    "oldManagerAndTwoNodeIdentitiesStillObserved": true,
+    "relatedNodeTcpListenerObserved": false,
+    "rootConfigRuntimeNonReparse": true,
+    "configRuntimeAclProtected": true,
+    "frozenPrivateAcceptanceDirectoryPresentUnderOldRoot": true,
+    "wholeRootRenameAllowed": false,
+    "oldTreeOrDataModified": false
+  },
+  "singleUserFiveSecondMergePolicy": {
+    "existingPerformanceDeadlineMs": 5000,
+    "existingGatePreserved": true,
+    "changeRequiresExplicitUserDecision": true,
+    "decisionPending": true,
+    "safetyCorrectnessPersistenceAndExpiryRequirementsUnchanged": true
+  }
 }

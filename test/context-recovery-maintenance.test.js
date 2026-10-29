@@ -7,7 +7,7 @@ const { randomBytes } = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { spawnSync } = require('node:child_process');
+const { runRecoverySweepCrash } = require('./helpers/context-recovery-sweep-process.cjs');
 const { Worker } = require('node:worker_threads');
 const { createRecoverySqliteStore } = require('../lib/proxy/context-recovery-storage-sqlite');
 const { storageRequest } = require('../lib/proxy/context-recovery-storage-contract');
@@ -350,22 +350,13 @@ function clean(directory) {
   fs.rmSync(resolved, { recursive: true, force: true });
 }
 
-test('physical process exit before collection commit preserves old rows and the clock; reopen safely collects them', () => {
+test('physical process exit before collection commit preserves old rows and the clock; reopen safely collects them', async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-maintenance-crash-'));
   const file = path.join(directory, 'state.sqlite');
   const dataKey = randomBytes(32).toString('base64');
   let database, store;
   try {
-    const result = spawnSync(
-      process.execPath,
-      [path.join(__dirname, 'helpers/context-recovery-sweep-crash.cjs')],
-      {
-        input: JSON.stringify({ file, key: dataKey, state: request(1).state }),
-        encoding: 'utf8',
-        timeout: 5000,
-        windowsHide: true,
-      }
-    );
+    const result = await runRecoverySweepCrash({ file, key: dataKey, state: request(1).state });
     assert.equal(result.status, 37);
     assert.equal(result.stdout, 'maintenance-before-commit');
     database = new DatabaseSync(file);
