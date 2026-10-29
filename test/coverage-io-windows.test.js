@@ -1,6 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { requiredCoverageIoWindows } = require('../scripts/lib/coverage-io-windows');
 
 test('coverage windows keep the legacy proxy and serial client profiles and explicitly select one native proxy window', () => {
@@ -73,4 +75,38 @@ test('coverage window selection refuses empty, foreign, inherited, extreme and h
   ])
     assert.throws(() => requiredCoverageIoWindows(input), /coverage_io_window_invalid/);
   assert.equal(hooks, 0);
+});
+
+test('extra full-suite coverage records the Core request file that failed its five-second gate', () => {
+  const workflow = fs
+    .readFileSync(
+      path.resolve(__dirname, '../.github/workflows/windows-persistent-io-coverage.yml'),
+      'utf8'
+    )
+    .replaceAll('\r\n', '\n');
+  const block = workflow.slice(
+    workflow.indexOf('      - name: Execute complete original coverage commands')
+  );
+  const run = block.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/);
+  assert.ok(run, 'the original complete coverage command must still execute');
+  const selector = run[1].match(/\$env:HPM_COVERAGE_IO_PROXY_WINDOW = '([a-z-]+)'/);
+  const environment = { HPM_COVERAGE_IO_STAGE: 'proxy' };
+  if (selector) environment.HPM_COVERAGE_IO_PROXY_WINDOW = selector[1];
+  assert.deepEqual(requiredCoverageIoWindows(environment), ['client-context-target']);
+  assert.equal(
+    /Remove-Item Env:\\HPM_COVERAGE_IO_PROXY_WINDOW/.test(run[1]),
+    false,
+    'an unset default selector must not fail before serial client coverage'
+  );
+  const commands = run[1]
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => /^(?:npm run |node scripts\/check-coverage-io-receipt\.cjs$)/.test(line));
+  assert.deepEqual(commands, [
+    'npm run test:coverage',
+    'node scripts/check-coverage-io-receipt.cjs',
+    'npm run test:client:coverage',
+    'node scripts/check-coverage-io-receipt.cjs',
+    'npm run test:frontend:coverage',
+  ]);
 });

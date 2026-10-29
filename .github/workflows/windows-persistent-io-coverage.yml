@@ -112,15 +112,14 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $false
+          [Environment]::SetEnvironmentVariable('HPM_COVERAGE_IO_PROXY_WINDOW', $null, 'Process')
           $env:HPM_COVERAGE_IO_STAGE = 'proxy'
-          $env:HPM_COVERAGE_IO_PROXY_WINDOW = 'native-publication-interruption'
           npm run test:coverage
           $coverageExit = $LASTEXITCODE
           if ($coverageExit -ne 0) { [Console]::Error.WriteLine('coverage_original_stage_failed:stage=' + $env:HPM_COVERAGE_IO_STAGE) }
           node scripts/check-coverage-io-receipt.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Coverage I/O observation was not completed safely.' }
           if ($coverageExit -ne 0) { throw 'Original proxy coverage failed; I/O evidence does not override its failure.' }
-          Remove-Item Env:\HPM_COVERAGE_IO_PROXY_WINDOW
           $env:HPM_COVERAGE_IO_STAGE = 'client'
           npm run test:client:coverage
           $coverageExit = $LASTEXITCODE
@@ -135,7 +134,7 @@ jobs:
         run: |
           @(
             'Executes the complete original proxy, client and frontend coverage commands once each, in order, with original four-shard proxy coverage and all original assertions.'
-            'Proxy coverage selects exactly one complete native-publication-interruption file across the original four shards; client coverage retains serial client-context-target and publication-graceful-http windows. A first observed fixture/request failure closes only its own recent ring window. No tests are filtered, retried or appended; a failed original stage still stops subsequent stages.'
+            'Proxy coverage selects exactly one complete client-context-target file across the original four shards, including the persistent Core recovery request; client coverage retains serial client-context-target and publication-graceful-http windows. All native publication-interruption tests still execute in the original complete suite. A first observed fixture/request failure closes only its own recent ring window. No tests are filtered, retried or appended; a failed original stage still stops subsequent stages.'
             'Original five-second HTTP and final durable ACK gates, worker, DPAPI, OS anchor and FULL/DELETE persistence remain unchanged.'
             'WPR retains its own unique instance, 32 MiB circular buffers, bounded decoding and cleanup. Ring loss and tracing perturbation prevent completeness or stability qualification.'
             'Read/write/info/delete/cleanup/close observations retain nonzero status counts; neither a VFS retry nor antivirus attribution is inferred.'

@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：1786 完整门已读；保留五秒与本机旧布局失败，对准实际 Core 录制窗口
+
+1786 普通 Verify 八作业、正式十二作业全部成功，完整 source-gates 与十个业务作业日志已读，仅授原 32 个有界合成场景，不授完整 N08/N09。三 timing 各 50/50，十八持久发布 846–1070ms；独立 I/O 70/70、样本 949–1104ms。额外 coverage 完整 3002403 字符日志有两项失败：Responses long-persistent 第零轮原五秒在 5002ms 失败，必要序号4的 clock write717ms/COMMIT2553ms；另一个托管 WFP 合成夹具的 pwsh 在原25000ms内超时，阶段未知。初始种子保存发生在请求前，不能累加为请求内耗时；不能归因杀软、锁或唯一物理原因。
+
+独立 Windows 两次原 npm ci、官方 Native/gateway 准备均成功，公开缓存245项逐payload核验，未修改旧cache或声称网络/新鲜audit已修复。完整旧布局组33项32通过/1失败，首次同步 production owner 启动返回 storage unavailable，preview/enroll已过、load等尚未进入；后续Core/Codex50和graceful/readiness12没有执行。2120源码、锁、Node22.22.3及新构建原生产物身份全等，任务Ready1、所属进程为空。该用例注入protector/anchor，不能认定真实DPAPI/OS锚点失败。首次私有诊断因重复消费一次性stdin授权，在产品调用前失败；修正为受控stage直接调用后，三项编排正负控通过，本次最小owner开库1197ms、16个native调用全部返回、任务Ready0/所属为空，不能追认原失败消除或95项通过。
+
+本批仅将额外coverage的单一proxy录制窗口从native-publication-interruption对准实际失败的client-context-target。完整原测试（包括全部native中断用例）、四分片、命令顺序、原五秒/PowerShell/作业期限、失败停止、原认证/期限/精确ACK及FULL/DELETE均保持；普通Verify的publication-interruption窗口不动。新窗口回归在固定1786上3项2通过/1先红，修改后连同触发治理10/10。此为观测修正，不是性能修复；新精确源码完整门仍待执行。
+
+同1786源码的安装审阅40794879961已启动，最近实际阶段为原完整verify/audit门；尚未授安装升级/582迁移/双端资格，其成功也不能覆盖额外coverage失败。正准备在新独立目录执行尚未执行的原50+12完整文件，不跳过旧布局失败并称整体通过。证据见context-recovery-evidence/core-request-coverage-window.json。旧868仍失败且缺最终回执、旧实例/冻结目录/最大容量暂停均保持；无新24h、模型0，整体未完成。
+
+另将既有真实PowerShell编排回归覆盖两工作流，各保留原七种成功/失败组合，并预置旧selector验证窗口选择不会被继承环境污染。Mac无pwsh，本机未执行该PowerShell部分，实际验证待Windows CI；未跳过测试或延长原5000ms子进程期限。统一测试发现包含这两个既有测试文件，1745语法、定向Lint及CI治理通过。
+
 ## 2026-10-28：补齐路径准入修改的原 timing/I/O 触发范围
 
 0610461 已推送 existing-only 离线登记修复。核对发现原 timing 与独立 I/O 的显式 paths 未列 storage-paths/private-path 等共享准入模块，因此 061 仅启动 Verify、正式及额外 coverage-I/O 三条，不能继承 ef3 的三 runner 结果作为新源码资格。
