@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+2026-10-29 Node路径兼容自用交付已闭合：175d10d22b0fd44e432d51d77518af928de4e573 的 Verify40899053663完整8/8成功，Rust日志48367字符、coverage4277689字符已完整核，无实际not ok/阶段失败。新管理器source175、version-only0.1.1 overlay，app SHA3716f154d277fbc44b8d6793677d6a0070174af99e87fbf5da42e9c5c438b86d；源Cargo产物nlink2/实际编译exit0，独立复制nlink1后官方clean及正式artifact两门均过，2208源码/5185公共闭包已核。真实原root+NVM全字节选择/pin预检328ms。只有app与机器级原启动bat投放，原bat1350B仅插入73B进程级HPM_NODE_EXECUTABLE/setlocal，其余正文/BOM/EOL/fallback逐字节保留；原全局环境/PATH/NVM/网络规则未改。
+
+新管理器scoped正式CLI start4854ms、restart5406ms（包括停机/选择/启动，非单个5s健康计时）、stop302ms均exit0/ok，restart实际PID变化且都为已核原NVM；stop gracefulDrain=true。随后实际原启动管理器.bat→新GUI→其autoStart旧NVM Node，单GUI单Node，3085/管理端口同owner，认证健康200且root/entry/config/runtime/PID精确一致。Node始终22.22.3，与bundled SHA780f44相同，只有执行位置选择改变。最终零HTTP严格TLS1552ms、authorized=true/TLS1.3；原config/runtime/frozen/root物理对象及native99d/manifest310807等五公共hash正确，恢复requested/applied仍false、disabled/memory默认保留。本轮模型0，未授provider闭环/整体五秒稳定/有效24h资格。单人自用入口仍为原bat与其启动的托盘；直接EXE无该进程级选择时默认bundled行为不变，不把临时手动旧Node方案冒称持久交付。
+
+旧辅助失败继续留存：独立模块两轮实际10/10但原匿名Job关闭未证原因/后续member日志字段错误；build源nlink检查边界误拒（编译实际0）；75s复制观察超时仅未核验，未重发复制，后续独立持久候选证明0；首个新plan取旧全局路径schema失败在mutation=false前拒绝，修为逐文件完整预检后新helper一次r+写入0。原184B重写launcher计划未投，最终仅73B插入。以上不计作产品根因，不改原失败记录。具体外部路径相关网络策略仍未确认，不归因特定软件；已按原兼容环境恢复并固定原Node，停止本轮SSH及额外诊断。后续只做Codex精准恢复真实闭环所需授权/安全预扣与独立测试，保持日常恢复开关关闭，禁止挪用Claude分账或自动模型重试。
+
 2026-10-29 后续普通Codex502排查：原服务/3085 owner和健康正常，精准恢复仍disabled/memory。截图两请求的有限事件投影均为upstream_request/tls_handshake/ECONNRESET，DNS+TCP已成功、TLS未完成/未见响应、非复用socket、ContentLength匹配；6.6/7.1s是最终请求总耗时，含三次route，不宣称单握手耗时或body已上网。系统/项目DNS同4公网地址；进一步固定同IP/SNI/script/env/cwd，两Node均22.22.3且SHA780f44相同，bundled路径36ms reset、原NVM路径1553ms TLS1.3且authorized。已知网络配置中未找到明确old-only规则，不能认定v2rayN/防火墙/杀软为根因。未关闭TLS、改系统proxy或重放模型。
 
 当前按兼容环境先临时恢复：正常退出原GUI/Node，无force；显式原NVM Node在原root/config/runtime运行，托盘已接管，1GUI+1Node、3085/管理端口owner与认证健康200匹配。bundled文件/manifest/原配置数据保留，模型0。这仍是临时入口，旧GUI重启会回bundled，不冒称持久修复。现新增显式HPM_NODE_EXECUTABLE启动选择候选：默认行为不变，只接受与bundled逐字节相等的本机regular单链接EXE，持文件/祖先pins至spawn完成、拒写/删/重解析/非法输入；显式无效值拒绝不回退。仅托盘组合和启动器预启动条件改变，无UI新设置、无依赖/锁升级。Mac纯模块10/10（含same inode/size写后恢复mtime仍拒绝的先红回归）、格式/治理通过；Windows pin/spawn及完整CI/新GUI构建仍待验，候选未投放。完整网络元数据/私有运行回执仅留本机。
