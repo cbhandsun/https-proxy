@@ -91,5 +91,36 @@
     "eventSchemaVerified": false,
     "recordingStarted": false,
     "filterAttributionQualified": false
+  },
+  "schemaDiscoveryFirstAttempt": {
+    "source": "2b1fba6434b5d71aa48c9642161707ba1b17fae8",
+    "runId": 40819583560,
+    "jobId": 123268656740,
+    "completeLogCharacters": 23238,
+    "conclusion": "failure",
+    "phase": "host",
+    "sourceShaInReceipt": null,
+    "events": 0,
+    "originalTestsPassed": false,
+    "cleanupVerified": true,
+    "workloadStarted": false,
+    "actualWindowsCauseProven": false,
+    "failuresRetained": true
+  },
+  "hostDiscoveryRepair": {
+    "localMultipleApplicationCandidatesReproduced": true,
+    "selectsFirstApplicationByCommandPrecedence": true,
+    "fullActualHostCompositionTested": true,
+    "artifactPathGuardsPreserved": true,
+    "preflightBeforeDependencies": true,
+    "preflightStartsRecording": false,
+    "parentRelatedTests": 69,
+    "parentRelatedTestsPassed": 69,
+    "parentRelatedTestsSkipped": 0,
+    "initialParentMissingPhysicalTempPreloadRefused": true,
+    "initialParentRefusalPhase": "temp-path",
+    "notAProductFailure": true,
+    "doesNotProveWindowsCause": true,
+    "realModelRequests": 0
   }
 }

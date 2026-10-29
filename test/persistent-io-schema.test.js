@@ -73,6 +73,10 @@ test('independent schema profile retains exactly one 32MiB memory collector and 
   );
   assert.doesNotMatch(job, /needs:|upload-artifact|continue-on-error/);
   assert.match(job, /capture-persistent-io-schema\.ps1/);
+  assert.ok(
+    job.indexOf('capture-persistent-io-schema.ps1 --preflight') < job.indexOf('- run: npm ci')
+  );
+  assert.ok(job.includes('capture-persistent-io-schema.ps1 --preflight'));
   const recording = fs.readFileSync(
     path.join(__dirname, '../scripts/lib/persistent-io-schema-recording.psm1'),
     'utf8'
@@ -88,4 +92,37 @@ test('independent schema profile retains exactly one 32MiB memory collector and 
   ])
     assert.ok(launcher.includes(name));
   assert.doesNotMatch(recording, /test-name-pattern|Tdh|ConvertFrom-HpmFileIoBinary/);
+});
+
+test('actual host uses real physical path validation and bounded git identity before any recording', () => {
+  const result = spawnSync(
+    'pwsh',
+    [
+      '-NoProfile',
+      '-File',
+      path.join(__dirname, 'fixtures/persistent-io-schema/host.ps1'),
+      path.resolve(__dirname, '..'),
+      process.execPath,
+    ],
+    { encoding: 'utf8', timeout: 20000, maxBuffer: 8192 }
+  );
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, '');
+  const rows = result.stdout
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => {
+      assert.ok(line.startsWith('HPM_IO_SCHEMA_PREFLIGHT='));
+      return JSON.parse(line.slice('HPM_IO_SCHEMA_PREFLIGHT='.length));
+    });
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].passed, false);
+  assert.equal(rows[0].hostCause, 'wpr-path');
+  assert.equal(rows[0].hostToolWitness.wprHardLink, true);
+  const receipt = rows[1];
+  assert.equal(receipt.passed, true);
+  assert.equal(receipt.hostCause, 'complete');
+  assert.equal(receipt.recordingStarted, false);
+  assert.doesNotMatch(result.stdout, /hpm-schema-host|node\.bin|mock binary/);
 });

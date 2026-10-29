@@ -1,5 +1,11 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：schema 首轮被 host 门拒绝，修复实际命令多候选组合
+
+2b1fba6/schema job123268656740完整23238字符日志已核为host阶段失败，sourceSha尚null、事件0、测试负载/WPR未启动，清理true。原失败保留，不授FilterIO布局或产品原因。新增真实Host组合检查捕获Get-Command Application可返回多个候选，旧.Source数组被当作单一可执行路径；修为按命令搜索优先序取首项。真实双候选及完整Host/共享路径门/有界Git回归通过，不再mock整个Host。不能把本机已复现的问题直接认作该Windows失败根因；新只读preflight在npm/Native之前执行同一Host，输出有限cause及工具HardLink/Reparse布尔，拒绝仍红停，不泄露路径、环境或异常。
+
+父端首轮省略既有physical-test-temp预加载，在temp-path拒绝；直接负控确认该原因，按原runner物理临时目录方式五完整文件69/69零skip/cancel。生产路径门、原coverage/profile、测试负载和原期限不改，新Windows结果待核。1a5本机准备第二轮明确Git status私有5s命令超时，并非HTTP恢复超时，仍未编译；原失败冻结，新目录保留全部源码/Native/Git检查，仅先做必要源码SHA后查Git。最后权威是新轮source进程存在，后续SSH观察失败只记未核验，不推断编译已开始或任务结束。模型/新24h均0。
+
 ## 2026-10-29（UTC）：实际 WPR 能力已核，新增独立事件结构发现
 
 52c8e83的只读能力job123265990677已成功，完整17647字符日志得到实际WPR10.0.26100.33648、Minifilter profile及四个FilterIO关键词；这只是工具能力，不是过滤器延迟或AV归因。新增独立schema作业/32MiB单collector profile，用原三完整文件固定负载采集实际Provider/Id/Version/Opcode与字段名称、结构hash和长度范围；不输出字段值、值hash、消息或路径。无命名payload明确unsupported，字段类型unknown，不套旧FileIO二进制偏移，不改原profile、原coverage和只读能力job。事件/XML/布局/字段/最终JSON全部硬界限，任何溢出失败，不截断制造完整性结论。

@@ -104,6 +104,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Verify the actual read-only schema host before dependencies
+        run: ./scripts/capture-persistent-io-schema.ps1 --preflight
       - run: npm ci
       - run: npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
       - run: node scripts/prepare-context-recovery-native.js

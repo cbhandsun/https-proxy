@@ -5,21 +5,41 @@ Import-Module (Join-Path $PSScriptRoot 'nsis-lifecycle.psm1') -DisableNameChecki
 function Test-HpmSchemaAuthority {
     return ($env:GITHUB_JOB -ceq 'minifilter-schema-discovery' -and $env:GITHUB_WORKFLOW_REF -cmatch '\Acbhandsun/https-proxy/\.github/workflows/windows-persistent-io-coverage\.yml@refs/(?:heads|tags)/[A-Za-z0-9_./-]+\z' -and $env:GITHUB_SHA -cmatch '\A[a-f0-9]{40}\z')
 }
+function Assert-HpmSchemaPlatform {
+    if(-not $IsWindows -or $env:CI -cne 'true' -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ARCH -cne 'X64' -or $env:GITHUB_REPOSITORY -cne 'cbhandsun/https-proxy'){throw 'io_schema_failed'}
+}
+function Test-HpmSchemaAdministrator {
+    return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+function Get-HpmSchemaTool([string]$Name) { return (Get-Command $Name -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source }
+function Set-HpmSchemaToolWitness([string]$Name,[string]$Path){
+    $item=Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    $link=$item.PSObject.Properties['LinkType']
+    $script:SchemaHostWitness[$Name+'HardLink']=($null -ne $link -and $link.Value -ceq 'HardLink')
+    $script:SchemaHostWitness[$Name+'Reparse']=(($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)
+}
 function Get-HpmSchemaHost {
-    if(-not (Test-HpmSchemaAuthority) -or -not $IsWindows -or $env:CI -cne 'true' -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ARCH -cne 'X64' -or $env:GITHUB_REPOSITORY -cne 'cbhandsun/https-proxy' -or $env:GITHUB_SHA -cnotmatch '\A[a-f0-9]{40}\z'){throw 'io_schema_failed'}
-    if(-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){throw 'io_schema_failed'}
-    $workspace=[IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
-    $parent=[IO.Path]::GetFullPath($env:RUNNER_TEMP)
+    $script:SchemaHostCause='authority'
+    if(-not (Test-HpmSchemaAuthority)){throw 'io_schema_failed'}
+    $script:SchemaHostCause='platform';Assert-HpmSchemaPlatform
+    $script:SchemaHostCause='administrator';if(-not (Test-HpmSchemaAdministrator)){throw 'io_schema_failed'}
+    $script:SchemaHostCause='temp-path';$parent=[IO.Path]::GetFullPath($env:RUNNER_TEMP)
     Assert-HpmLifecycleArtifactPath ([IO.Path]::GetPathRoot($parent)) $parent 'Container'
+    $script:SchemaHostCause='workspace-path';$workspace=[IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
     Assert-HpmLifecycleArtifactPath ([IO.Path]::GetPathRoot($workspace)) $workspace 'Container'
-    $git=(Get-Command git -CommandType Application -ErrorAction Stop).Source
-    $identity=Invoke-HpmSchemaCaptureProcess $git @('-C',$workspace,'rev-parse','HEAD') 30000 16384
+    $script:SchemaHostCause='git-discovery';$git=Get-HpmSchemaTool 'git'
+    $script:SchemaHostCause='git-query';$identity=Invoke-HpmSchemaCaptureProcess $git @('-C',$workspace,'rev-parse','HEAD') 30000 16384
+    $script:SchemaHostCause='source-identity'
     if($identity.ExitCode -ne 0 -or $identity.Output.Trim() -cne $env:GITHUB_SHA){throw 'io_schema_failed'}
-    $wpr=Join-Path $env:SystemRoot 'System32/wpr.exe'
+    $script:SchemaHostCause='wpr-path';$wpr=Join-Path $env:SystemRoot 'System32/wpr.exe'
+    Set-HpmSchemaToolWitness 'wpr' $wpr
     Assert-HpmLifecycleArtifactPath ([IO.Path]::GetPathRoot($wpr)) $wpr 'Leaf'
-    $node=(Get-Command node -CommandType Application -ErrorAction Stop).Source
+    $script:SchemaHostCause='node-discovery';$node=Get-HpmSchemaTool 'node'
+    $script:SchemaHostCause='node-path';Set-HpmSchemaToolWitness 'node' $node
     Assert-HpmLifecycleArtifactPath ([IO.Path]::GetPathRoot($node)) $node 'Leaf'
-    return @{workspace=$workspace;parent=$parent;wpr=$wpr;node=$node;sha=$env:GITHUB_SHA;wprHash=(Get-FileHash $wpr).Hash}
+    $script:SchemaHostCause='wpr-hash';$hash=(Get-FileHash $wpr).Hash
+    $script:SchemaHostCause='complete'
+    return @{workspace=$workspace;parent=$parent;wpr=$wpr;node=$node;sha=$env:GITHUB_SHA;wprHash=$hash}
 }
 function Invoke-HpmSchemaWpr($HostInfo,[string]$Instance,[string[]]$Arguments){
     if($Instance -cnotmatch '\AHpmIoSchema[a-f0-9]{32}\z' -or (Get-FileHash $HostInfo.wpr).Hash -cne $HostInfo.wprHash){throw 'io_schema_failed'}
@@ -48,8 +68,20 @@ function Remove-HpmSchemaRoot([string]$Parent,[string]$Root){
     Assert-HpmLifecycleArtifactPath $Parent $Root 'Container'
     Remove-Item -LiteralPath $Root -Recurse -Force -ErrorAction Stop
 }
+function Initialize-HpmSchemaHostObservation {
+    $script:SchemaHostCause='unobserved';$script:SchemaHostWitness=@{wprHardLink=$null;wprReparse=$null;nodeHardLink=$null;nodeReparse=$null}
+}
+function Invoke-HpmPersistentIoSchemaPreflight {
+    $ErrorActionPreference='Stop';Initialize-HpmSchemaHostObservation
+    $passed=$false;$source=$null
+    try{$value=Get-HpmSchemaHost;$source=$value.sha;$passed=$true}catch{}
+    $receipt=@{schemaVersion=1;scope='hosted_minifilter_schema_preflight';sourceSha=$source;passed=$passed;hostCause=$script:SchemaHostCause;hostToolWitness=$script:SchemaHostWitness;recordingStarted=$false;realModelRequests=0;filterAttributionQualified=$false}
+    [Console]::Out.WriteLine('HPM_IO_SCHEMA_PREFLIGHT='+($receipt|ConvertTo-Json -Depth 4 -Compress))
+    if(-not $passed){throw 'io_schema_failed'}
+}
 function Invoke-HpmPersistentIoSchemaDiscovery {
     $ErrorActionPreference='Stop';$root=$null;$lease=$null;$hostInfo=$null;$owned=$false;$phase='host';$failed=$false;$testExit=$null;$testTreeClosed=$true
+    Initialize-HpmSchemaHostObservation
     $state=New-HpmIoSchemaState
     $receipt=[ordered]@{schemaVersion=1;scope='hosted_minifilter_schema_discovery';sourceSha=$null;phase='host';failed=$true;originalTestsPassed=$false;schema=$null;cleanupVerified=$false;eventSchemaVerified=$false;filterAttributionQualified=$false;fiveSecondQualified=$false;installedQualified=$false;realProviderQualified=$false;realModelRequests=0}
     try {
@@ -80,10 +112,12 @@ function Invoke-HpmPersistentIoSchemaDiscovery {
         $receipt.cleanupVerified=$cleanup
         if(-not $cleanup){$failed=$true;$phase='cleanup'}
     }
+    if($script:SchemaHostCause -cnotin @('unobserved','authority','platform','administrator','temp-path','workspace-path','git-discovery','git-query','source-identity','wpr-path','node-discovery','node-path','wpr-hash','complete')){throw 'io_schema_failed'}
+    $receipt.hostCause=$script:SchemaHostCause;$receipt.hostToolWitness=$script:SchemaHostWitness
     $receipt.phase=$phase;$receipt.failed=$failed;$receipt.schema=Get-HpmIoSchemaSummary $state
     $json=$receipt|ConvertTo-Json -Depth 12 -Compress
     if([Text.Encoding]::UTF8.GetByteCount($json) -gt 65536){throw 'io_schema_failed'}
     [Console]::Out.WriteLine('HPM_IO_SCHEMA='+$json)
     if($failed){throw 'io_schema_failed'}
 }
-Export-ModuleMember -Function Invoke-HpmPersistentIoSchemaDiscovery
+Export-ModuleMember -Function Invoke-HpmPersistentIoSchemaDiscovery,Invoke-HpmPersistentIoSchemaPreflight
