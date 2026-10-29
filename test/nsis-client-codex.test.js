@@ -470,6 +470,58 @@ test('Codex restart resumes only a disk-backed thread ID after stopping the firs
       [{ threadId: 'thread-1' }]
     );
     assert.equal(f.sent.filter((x) => x.method === 'initialize').length, 2);
+    assert.deepEqual(
+      f.progress.map((event) => event.phase),
+      [
+        'seed',
+        'compact-1',
+        'compact-2',
+        'compact-3',
+        'restart-stop',
+        'restart-initialize',
+        'restart-resume',
+        'final',
+      ]
+    );
+  }
+});
+
+test('Codex restart progress identifies the failing owned lifecycle boundary', async (t) => {
+  for (const [fault, phase] of [
+    ['first-stop-failed', 'restart-stop'],
+    ['restart-spawn-failed', 'restart-initialize'],
+    ['resume-error', 'restart-resume'],
+  ]) {
+    await t.test(fault, async (t) => {
+      const f = fixture(t, fault);
+      await assert.rejects(runInstalledCodexCase({ ...f.options, restartClient: true }), failure);
+      assert.equal(f.progress.at(-1).phase, phase);
+      assert.equal(
+        f.progress.some((event) => event.phase === 'final'),
+        false
+      );
+      assert.ok(f.launches() <= 2);
+      assert.ok(f.stops() <= 2);
+    });
+  }
+});
+
+test('Codex restart progress failure retains ownership of every live CLI for cleanup', async (t) => {
+  for (const [phase, launches] of [
+    ['restart-stop', 1],
+    ['restart-initialize', 1],
+    ['restart-resume', 2],
+  ]) {
+    const f = fixture(t);
+    const observed = f.options.onProgress;
+    f.options.onProgress = (event) => {
+      observed(event);
+      if (event.phase === phase) throw Error('PRIVATE_PROGRESS_FAILURE');
+    };
+    await assert.rejects(runInstalledCodexCase({ ...f.options, restartClient: true }), failure);
+    assert.equal(f.launches(), launches);
+    assert.equal(f.stops(), launches);
+    assert.equal(f.sent.filter((message) => message.method === 'turn/start').length, 1);
   }
 });
 

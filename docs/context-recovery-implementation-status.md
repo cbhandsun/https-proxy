@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：安装Codex重启阶段闭合细分，保留compact-3原失败
+
+01b安装两端的最后阶段compact-3原来还覆盖首树停止、第二次启动/initialize与thread/resume，npm完成到失败约35秒不证明哪一步超时。与已过989候选核对，协议/启动器/RPC/CLI锁没有差异，不能改三次压缩负载或猜测模型原因。现仅为Codex默认/增强增加restart-stop、restart-initialize、restart-resume三个固定阶段，JS writer与PowerShell读取闭集同步；生命周期进度只写安全阶段，不调用合成上游setPhase，Claude与未知阶段继续拒绝。原单RPC30秒、turn60秒、首树stop20秒、launcher EOF5秒、driver240秒以及认证、resume精确身份/自然退出/三次压缩均不变。progress失败时仍保留所有活跃CLI的所属cleanup能力，不称为产品根因修复。
+
+固定ee161d4的六项定向TAP全红：三类重启错误均留在compact-3，路由/写入拒绝新阶段。修改后原三完整JS文件49/49。扩大RPC/所属桥检查最初53项50通过/3失败，完整定位均是本机无pwsh、断言尚未执行；失败记录保留。按官方release的大小及SHA校验独立Mac Arm64 PowerShell7.6.9便携运行时，仅用于单命令环境；补齐后五个完整文件57/57、零skip/cancel，实际PowerShell解析器验证六个Codex阶段并拒绝Claude/未知/非法值。1746语法、定向Lint/格式及CI/release/结构治理通过，新源码Windows/最新安装两端仍未授资格。
+
+ee完整CI仍待终态，普通integration失败完整25620字符日志已读：metadata-only audit后切换profile期间ECONNRESET，未确认物理原因、未改集成源码或加自动重试。ee种子屏障修复仍待Windows结果，不能被本批阶段细分代替。接下来绑定新源码准备原完整安装审阅，保留01b已过的同格式升级回滚/完整582迁移范围及CLI失败、所有五秒/旧868/日常实例和最大容量暂停；无新24h、模型0，整体未完成。证据见context-recovery-evidence/installed-codex-restart-phases.json。
+
 ## 2026-10-29（UTC）：01b 安装升级/完整582迁移通过，修复seed-output完成屏障缺口
 
 01b正式40800611319已终态：source-gates完整4263984字符日志通过，十个业务日志已读，11作业成功/1失败；原n09在durable-save场景82以144退出，精确minRevision不相等的拒绝保持。858独立业务诊断十组全部成功且同源码/ownedTreeEmpty回执闭合，不覆盖01b正式失败。858普通unit3完整1153245字符日志：新增通道文件10项Windows通过，唯一失败是既有caller-owned reply memory用例，原15000ms子进程没有正常退出，实际15014.4607ms/status null，失败阶段未知，不改该门。

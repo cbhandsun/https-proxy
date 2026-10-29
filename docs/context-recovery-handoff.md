@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+## 2026-10-29（UTC）：安装Codex重启失败阶段细分
+
+优先读状态顶部与context-recovery-evidence/installed-codex-restart-phases.json。01b的compact-3最后阶段也覆盖停止/重启/initialize/resume，不能当作第三次压缩根因。仅给Codex两模式增加restart-stop/restart-initialize/restart-resume固定进度；不推进合成上游、不改变Claude、认证、三次压缩、身份/自然退出、原5/20/30/60/240秒门。阶段观察失败仍保留所属树cleanup；六项先红，修改后三完整JS文件49/49。
+
+Mac扩大检查原53项有3项因缺pwsh在断言前失败，现场记录保留；官方便携7.6.9 Arm64摘要校验后单命令使用，五完整文件57/57含实际PowerShell闭集/非法阶段检查通过，系统版本未替换。本批只修定位能力，新源码Windows和安装两端未通过；ee普通integration另有metadata-only audit后profile切换ECONNRESET失败，原source不动，不重试掩盖。接续准备绑定新源码的原完整安装链，继续五秒稳定性及真实两端/有效24h；旧失败、旧实例、冻结868和最大容量暂停保持，模型/新长测均0。
+
 ## 2026-10-29（UTC）：01b 实际安装迁移已过，seed-output屏障缺口已补
 
 优先读状态顶部与context-recovery-evidence/seed-output-publication-barrier.json。01b正式source-gates成功、十业务9成功/1原n09失败（case82/exit144）；858独立十组业务诊断成功不能覆盖它。858新通道文件10项实际Windows通过，unit3另因既有原15秒caller-owned reply memory子进程status null失败，保留、不重试或延长。

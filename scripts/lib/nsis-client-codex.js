@@ -182,6 +182,7 @@ async function runInstalledCodexCase(input) {
       phase = 'restarting';
       if (failed || transportFailed) throw fail();
       stopping = true;
+      progress('restart-stop');
       const closeFirst = stop;
       stop = undefined;
       const stopped = fields(await closeFirst(), ['terminal', 'treeStopped']);
@@ -193,7 +194,9 @@ async function runInstalledCodexCase(input) {
       if (failed) throw fail();
       rpcClosed = false;
       stopping = false;
+      progress('restart-initialize');
       await connect();
+      progress('restart-resume');
       const resumed = await rpc.call('thread/resume', { threadId });
       if (
         resumed?.thread?.id !== threadId ||

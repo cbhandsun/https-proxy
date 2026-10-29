@@ -14,7 +14,7 @@ const {
 const { requestInstalledClientObservation } = require('./nsis-client-observer.cjs');
 const { configureInstalledClient } = require('./nsis-client-configuration');
 const { assertEntryRefuses, createSyntheticSourceServer } = require('./nsis-client-loopback');
-const { CLI_PHASES } = require('./nsis-installed-client-matrix-contract');
+const { CLI_PHASES, CODEX_RESTART_PHASES } = require('./nsis-installed-client-matrix-contract');
 const fail = () => new Error('installed_client_case_failed');
 function zeroRecovery(state) {
   return (
@@ -63,8 +63,10 @@ async function runInstalledClientCase(options) {
     client === 'codex' ? createCodexSyntheticUpstream : createClaudeSyntheticUpstream
   )({ mode, model, original: source.text, marker: source.marker });
   const progress = ({ phase: next }) => {
-    if (!CLI_PHASES.includes(next)) throw fail();
-    upstream.setPhase(next);
+    if (!(client === 'codex' && CODEX_RESTART_PHASES.includes(next))) {
+      if (!CLI_PHASES.includes(next)) throw fail();
+      upstream.setPhase(next);
+    }
     phase('cli-' + next);
   };
   const caseRoot = path.join(ownedRoot, 'cases', 'client-' + label);

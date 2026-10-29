@@ -91,7 +91,11 @@ function Write-HpmInstalledClientPhase {
         $null = $item.GetProperty('failed').GetBoolean()
         $allowed = @('identity','listener','probes','controller','cleanup','complete')
         $suffixes = @('configure','auth','cli','observe','stop','cli-seed','cli-compact-1','cli-compact-2','cli-compact-3','cli-between-1','cli-between-2','cli-final','http-drain-options','http-drain-owner','http-drain-upstream_hold','http-drain-websocket_open','http-drain-websocket_close','http-drain-listener_stop','http-drain-public_response','http-drain-natural_exit','http-drain-storage','http-drain-cleanup')
-        foreach ($client in @('codex','claude')) { foreach ($mode in @('default','enhanced')) { foreach ($suffix in $suffixes) { $allowed += $client + '-' + $mode + '-' + $suffix } } }
+        foreach ($client in @('codex','claude')) {
+            $clientSuffixes = @($suffixes)
+            if ($client -ceq 'codex') { $clientSuffixes += @('cli-restart-stop','cli-restart-initialize','cli-restart-resume') }
+            foreach ($mode in @('default','enhanced')) { foreach ($suffix in $clientSuffixes) { $allowed += $client + '-' + $mode + '-' + $suffix } }
+        }
         $candidate = $item.GetProperty('phase').GetString()
         if ($candidate -cnotin $allowed) { throw 'invalid' }
         $phase = $candidate

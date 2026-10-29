@@ -20,6 +20,11 @@ const CLI_PHASES = Object.freeze([
   'between-2',
   'final',
 ]);
+const CODEX_RESTART_PHASES = Object.freeze([
+  'restart-stop',
+  'restart-initialize',
+  'restart-resume',
+]);
 const PHASES = [
   'identity',
   'listener',
@@ -36,6 +41,7 @@ const PHASES = [
         'observe',
         'stop',
         ...CLI_PHASES.map((phase) => 'cli-' + phase),
+        ...(client === 'codex' ? CODEX_RESTART_PHASES.map((phase) => 'cli-' + phase) : []),
         ...HTTP_DRAIN_PHASES.map((phase) => 'http-drain-' + phase),
       ].map((suffix) => client + '-' + mode + '-' + suffix)
     )
@@ -161,6 +167,7 @@ function createMatrixPhaseWriter(ownedRoot) {
 }
 module.exports = {
   CLI_PHASES,
+  CODEX_RESTART_PHASES,
   parseInstalledClientMatrixArguments,
   verifyInstalledClientMatrixIdentity,
   createMatrixPhaseWriter,

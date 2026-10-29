@@ -284,6 +284,23 @@ test('CLI failure retains the last finite turn phase without disclosing the exce
   }
 });
 
+test('Codex restart lifecycle progress does not change the synthetic upstream phase', async (t) => {
+  for (const mode of ['default', 'enhanced']) {
+    for (const progress of ['restart-stop', 'restart-initialize', 'restart-resume']) {
+      const f = fixture(t, 'codex', mode, { progress });
+      const result = await f.run();
+      assert.equal(result.client, 'codex');
+      assert.equal(f.trace.includes('codex-' + mode + '-cli-' + progress), true);
+      assert.equal(f.trace.includes(progress), false);
+      assert.equal(f.trace.includes('seed'), true);
+      assert.equal(f.active.current, null);
+      const other = fixture(t, 'claude', mode, { progress });
+      await assert.rejects(other.run(), { message: 'installed_client_case_failed' });
+      assert.equal(other.active.current, null);
+    }
+  }
+});
+
 test('unknown CLI progress is refused without writing arbitrary phase content', async (t) => {
   for (const client of ['codex', 'claude']) {
     for (const fault of [

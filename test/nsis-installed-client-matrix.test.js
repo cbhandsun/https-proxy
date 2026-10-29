@@ -545,6 +545,31 @@ test('argument and phase boundaries reject malformed input and disclose only fin
   assert.throws(() => writer('private-input'));
 });
 
+test('phase writer admits only the fixed Codex restart lifecycle phases', (t) => {
+  const f = fixture(t);
+  const writer = createMatrixPhaseWriter(f.args[0]);
+  for (const mode of ['default', 'enhanced']) {
+    for (const phase of ['restart-stop', 'restart-initialize', 'restart-resume']) {
+      const expected = 'codex-' + mode + '-cli-' + phase;
+      writer(expected, true);
+      assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.args[0], 'matrix-phase.json'))), {
+        schemaVersion: 1,
+        phase: expected,
+        failed: true,
+      });
+      assert.throws(() => writer('claude-' + mode + '-cli-' + phase));
+    }
+  }
+  for (const phase of [
+    '',
+    'codex-default-cli-restart',
+    'codex-default-cli-restart-unknown',
+    'codex-default-cli-restart-stop\nPRIVATE',
+    'x'.repeat(4096),
+  ])
+    assert.throws(() => writer(phase));
+});
+
 test('matrix cannot grant WS qualification without both exact Codex partial-turn close proofs', async (t) => {
   for (const fault of ['ws-missing', 'ws-false', 'ws-prefix', 'ws-open']) {
     const f = fixture(t, fault);
