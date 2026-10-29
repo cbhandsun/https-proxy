@@ -1,5 +1,11 @@
 # 上下文恢复换机交接
 
+## 2026-10-29（UTC）：01b 普通完整门通过，验收通道减少同次重复物理检查
+
+优先读实施状态顶部及context-recovery-evidence/publication-files-physical-boundaries.json。01b普通Verify八作业成功，完整coverage日志已读；十二持久发布703–3258ms、三份同源码/cleanup回执经原parser接受，Windows两工作流22种编排情形通过。额外coverage唯一失败是初始arm的原750ms见证，尚未进入目标慢released五秒负控；Core六次1154–1955ms不清除旧5002ms失败。正式source-gates与安装审阅40800745678仍原作业执行，不重启、不继承其他源码资格。
+
+验收文件通道只去掉已被同次完整physical(file)覆盖、其间没有I/O或公开回调的目录重复遍历，仍即时检查closed/failed；所有固定祖先、descriptor前后、单链接/大小/时间/UTF-8/规范JSON/签名及原期限不变。写目录遍历5→3、读5→4，无跨操作缓存、不改生产或FULL/DELETE。两项先红、四完整文件60/60及治理通过，新文件已进入统一CI。不能称握手根因或五秒稳定修复；新源码Windows与安装/582/双端/真实provider/有效24h仍未完成，所有失败/冻结环境/旧实例/最大容量暂停保持，模型和新长测均0。
+
 ## 2026-10-29（UTC）：修复 a79 Windows selector 空字符串清理；原五秒失败保持
 
 已读a79普通unit2完整906585字符日志，唯一失败是新增真实PowerShell额外工作流编排：452.2106ms内读到selector为空字符串、期望null；普通Verify编排同轮通过，不是超时或产品恢复失败。System.Environment的null参数在该PowerShell环境保留空变量，不能用其清理后要求闭合录制器放行空值。改为仅在Test-Path确认环境变量存在时用Env provider删除；没有忽略删除错误，空/外来selector的录制器拒绝规则完全不改。对应微软环境变量文档与同轮失败见context-recovery-evidence/coverage-selector-environment-removal.json。

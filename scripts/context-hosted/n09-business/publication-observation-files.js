@@ -32,8 +32,11 @@ function createPublicationFiles(input, create, ack) {
     physical(directory, true, pins);
     let closed = false,
       failed = false;
-    function verify() {
+    function available() {
       if (closed || failed) throw fail();
+    }
+    function verify() {
+      available();
       physical(directory, true, pins);
     }
     function name(kind, sequence) {
@@ -78,7 +81,9 @@ function createPublicationFiles(input, create, ack) {
           // Bind the existing pins at the bounded reader's before/after path
           // checks, rather than traversing the same file ancestors twice more.
           const value = readBootstrap(file, 4096, pins);
-          verify();
+          // The reader's final physical(file) already rechecks every pinned
+          // ancestor. No I/O or callback occurs before this state check.
+          available();
           return value;
         } catch {
           failed = true;
@@ -101,12 +106,12 @@ function createPublicationFiles(input, create, ack) {
           fs.closeSync(fd);
           fd = undefined;
           physical(file, false, pins);
-          verify();
+          available();
           fd = fs.openSync(file + '.ready', 'wx', 0o600);
           fs.closeSync(fd);
           fd = undefined;
           physical(file + '.ready', false, pins);
-          verify();
+          available();
         } catch {
           failed = true;
           if (fd !== undefined) {

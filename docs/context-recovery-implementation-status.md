@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：01b 普通完整 Verify 通过；消除验收通道同次操作的重复目录遍历
+
+01b208c 普通 Verify 40800611335 八作业全部成功，coverage 完整4173107字符日志无 not-ok；十二次持久发布703–3258ms，三份同源码/cleanup I/O回执经原parseSummary接受。实际Windows两工作流共22个selector编排情形通过，原5000ms期限不变。额外coverage 40800611371完整3040915字符日志仍失败：唯一失败在ACK通道初始arm的原750ms见证，尚未进入“慢released写入”的五秒负控；同轮Core六次发布1154–1955ms，不能消除原5002ms失败或授稳定性。正式source-gates与安装审阅40800745678仍在原任务执行，本批不重启或覆盖它们。
+
+通道文件readBootstrap的末次physical(file)已遍历全部固定祖先；write的physical(data/marker)同样包含目录。紧接着再verify目录没有间隔I/O或公开回调，形成同次操作的重复遍历。本批只将这三处重复目录遍历改为原closed/failed状态检查；保留每次访问前及descriptor读取前后的完整物理身份、固定祖先、单链接、大小/mtime/ctime、UTF-8/规范JSON与签名门，不新增跨操作缓存。写入目录遍历由5降3，读取由5降4，后续读取仍完整重验；所有750ms/五秒/输出界限、生产存储及FULL/DELETE完全不变。这是验收通道I/O改进，不是已经证明的Windows握手或SQLite尾延迟修复。
+
+新回归固定旧实现8项6通过/2先红，新增关闭中途边界后四个完整相关文件60/60、零skip/cancel，真实五种发布握手、750ms命令负控、五秒不释放/慢released负控及替换/硬链接/读取故障均通过。1746语法、定向Lint/格式、CI与release治理通过，新增文件进入统一发现（816文件）；新源码Windows完整门仍待。证据见context-recovery-evidence/publication-files-physical-boundaries.json。a79完整门失败、1786本机95项分任务92通过/3失败、旧868有效15分钟后失败及其缺终态回执全部保留；无新24h、模型0、旧实例和最大容量暂停不动，整体未完成。
+
 ## 2026-10-29（UTC）：修复 a79 Windows selector 空字符串清理；原五秒失败保持
 
 已读a79普通unit2完整906585字符日志，唯一失败是新增真实PowerShell额外工作流编排：452.2106ms内读到selector为空字符串、期望null；普通Verify编排同轮通过，不是超时或产品恢复失败。System.Environment的null参数在该PowerShell环境保留空变量，不能用其清理后要求闭合录制器放行空值。改为仅在Test-Path确认环境变量存在时用Env provider删除；没有忽略删除错误，空/外来selector的录制器拒绝规则完全不改。对应微软环境变量文档与同轮失败见context-recovery-evidence/coverage-selector-environment-removal.json。
