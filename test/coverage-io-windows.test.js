@@ -94,7 +94,7 @@ test('extra full-suite coverage records the Core request file that failed its fi
   if (selector) environment.HPM_COVERAGE_IO_PROXY_WINDOW = selector[1];
   assert.deepEqual(requiredCoverageIoWindows(environment), ['client-context-target']);
   assert.equal(
-    /Remove-Item Env:\\HPM_COVERAGE_IO_PROXY_WINDOW/.test(run[1]),
+    /^\s*Remove-Item Env:\\HPM_COVERAGE_IO_PROXY_WINDOW/m.test(run[1]),
     false,
     'an unset default selector must not fail before serial client coverage'
   );

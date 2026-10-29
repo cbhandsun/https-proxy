@@ -354,6 +354,7 @@ test('native qualification counts DPAPI separately from ACL and anchor calls and
   const native = path.resolve('synthetic-native.exe');
   assert.equal(nativeKeyInvocation(native, ['--hpm-context-key-v1'], native), true);
   assert.equal(nativeKeyInvocation(native, ['--hpm-context-private-path-v1'], native), false);
+  assert.equal(nativeKeyInvocation(native, ['--hpm-context-storage-directory-v1'], native), false);
   assert.equal(nativeKeyInvocation(native, ['--hpm-context-anchor-v1'], native), false);
   for (const args of [
     [],
@@ -362,6 +363,11 @@ test('native qualification counts DPAPI separately from ACL and anchor calls and
     ['--hpm-context-key-v1', 'extra'],
     ['--hpm-context-anchor-v1', 'extra'],
     ['--hpm-context-anchor-v2'],
+    ['--hpm-context-storage-directory-v1', 'extra'],
+    ['--hpm-context-storage-directory-v2'],
+    [''],
+    ['--hpm-context-storage-directory-v1\n'],
+    ['x'.repeat(4096)],
   ])
     assert.throws(() => nativeKeyInvocation(native, args, native));
   assert.throws(() =>
@@ -369,6 +375,13 @@ test('native qualification counts DPAPI separately from ACL and anchor calls and
   );
   assert.throws(() =>
     nativeKeyInvocation(path.resolve('powershell.exe'), ['--hpm-context-anchor-v1'], native)
+  );
+  assert.throws(() =>
+    nativeKeyInvocation(
+      path.resolve('powershell.exe'),
+      ['--hpm-context-storage-directory-v1'],
+      native
+    )
   );
 });
 test('PowerShell sequence and artifact contracts run without installer or network execution', () => {

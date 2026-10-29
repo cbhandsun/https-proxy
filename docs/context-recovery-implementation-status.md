@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：修复 a79 Windows selector 空字符串清理；原五秒失败保持
+
+已读a79普通unit2完整906585字符日志，唯一失败是新增真实PowerShell额外工作流编排：452.2106ms内读到selector为空字符串、期望null；普通Verify编排同轮通过，不是超时或产品恢复失败。System.Environment的null参数在该PowerShell环境保留空变量，不能用其清理后要求闭合录制器放行空值。改为仅在Test-Path确认环境变量存在时用Env provider删除；没有忽略删除错误，空/外来selector的录制器拒绝规则完全不改。对应微软环境变量文档与同轮失败见context-recovery-evidence/coverage-selector-environment-removal.json。
+
+两工作流各保留原七种成功/失败组合，再覆盖初始selector不存在、空、外来和4096字符值；期望仍为proxy正确窗口及serial client的null，原5000ms子进程期限不变。Mac本机解码/触发10/10、语法/Lint/CI治理通过；实际Windows扩展编排与新源码完整CI待核，未授五秒修复。生产代理、Native与双锁均未改变，安装验收适配器另仅补入既有合并准入命令；1786已知5002ms和本机旧布局33项的一处失败继续保留。
+
+独立62项候选另在产品测试前被私有复制校验误判公开依赖名cookie阻止；现场冻结。新helper改为generated元数据逐字段及整子树绑定已提交public lock，无cookie特例，两正控/24负控通过；新目录一次执行仍待完整结果，不是62项已通过。同1786安装审阅原完整verify/audit及实际0.1.1安装器构建成功，随后同格式加密生命周期reader失败，升级回滚/582迁移/双端仍未授资格。旧868/原失败目录/日常实例及最大容量暂停不动，无新24h、模型0，整体未完成。
+
+本机纯selector编排组件也已保留失败：两项PowerShell子进程均在原5000ms内未完成，比较22个mock情形没有闭合；不知道卡在启动还是脚本内部，不能宣称逻辑通过。8个固定文件/Node前后身份一致、TaskReady1/所属为空；未延长时限或反复试跑。原Core/Codex50项实际50/50，六次最终发布1547–2136ms；另12项10通过/2失败，两次均awaiting=ready、目标COMMIT/ACK尚未进入，不能将pending阶段猜成完成耗时。
+
+安装失败另有已复现的确定性适配器阻塞：nsis-encrypted-contract仅接纳旧三个Native命令，拒绝生产已新增的--hpm-context-storage-directory-v1。包装器在真正dispatch前调用该guard，因此首次current旧布局拒写无法取得原要求的DPAPI/数据库证据。只补入确切命令并仍返回false、不计作DPAPI；原唯一helper路径、单参数、实际key-v1计数及全部拒写/升级回滚门不变。定向回归固定旧代码先红，修后1/1，相关完整拒写/登记9/9；仅授适配器单元范围，整条安装链待重验，不能断言没有其他问题。详见context-recovery-evidence/installed-compound-admission-contract.json。
+
 ## 2026-10-29（UTC）：1786 完整门已读；保留五秒与本机旧布局失败，对准实际 Core 录制窗口
 
 1786 普通 Verify 八作业、正式十二作业全部成功，完整 source-gates 与十个业务作业日志已读，仅授原 32 个有界合成场景，不授完整 N08/N09。三 timing 各 50/50，十八持久发布 846–1070ms；独立 I/O 70/70、样本 949–1104ms。额外 coverage 完整 3002403 字符日志有两项失败：Responses long-persistent 第零轮原五秒在 5002ms 失败，必要序号4的 clock write717ms/COMMIT2553ms；另一个托管 WFP 合成夹具的 pwsh 在原25000ms内超时，阶段未知。初始种子保存发生在请求前，不能累加为请求内耗时；不能归因杀软、锁或唯一物理原因。

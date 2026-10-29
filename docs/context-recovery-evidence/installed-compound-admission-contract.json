@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "baselineHead": "1786de0a4587374d5241a99a2f61715478a542d7",
+  "installerRun": {
+    "runId": 40794879961,
+    "jobId": 123188948286,
+    "completeLogCharacters": 4282653,
+    "originalVerifyAudit": "success",
+    "installerBuild": "success",
+    "baselineInstallObserved": true,
+    "currentInstallObserved": true,
+    "failedStep": "Qualify installed same-format readers and runner-local DPAPI",
+    "reportedError": "Encrypted lifecycle reader failed.",
+    "rollbackQualified": false,
+    "legacy582Executed": false,
+    "installedClientMatrixExecuted": false
+  },
+  "sourceProvenBlocker": {
+    "newProductionCommand": "--hpm-context-storage-directory-v1",
+    "oldQualificationGuardRejected": true,
+    "guardRunsBeforeNativeDispatch": true,
+    "firstCurrentOperation": "refuse-legacy",
+    "requiredRealDpapiAndDatabaseObservationUnreachableWhenGuardRejects": true,
+    "notClaimedAsOnlyRemainingInstallerProblem": true
+  },
+  "change": {
+    "oneExactCommandAdded": true,
+    "commandCountsAsDpapi": false,
+    "dpapiStillOnlyExactKeyV1": true,
+    "pinnedExecutableStillRequired": true,
+    "singleArgumentStillRequired": true,
+    "extraArgumentsUnknownVersionsFallbacksStillRejected": true,
+    "receiptNativeCallMinAndMaxUnchanged": true,
+    "refusalChecksAndWholeLifecycleUnchanged": true
+  },
+  "regression": {
+    "baseline": {
+      "targetedTests": 1,
+      "pass": 0,
+      "fail": 1,
+      "skip": 0
+    },
+    "fixed": {
+      "targetedTests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skip": 0
+    },
+    "relatedLegacyRefusalEnrollment": {
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "skip": 0
+    },
+    "negativeBoundaries": [
+      "empty command",
+      "extra argument",
+      "unknown command version",
+      "newline suffix",
+      "4096-character command",
+      "PowerShell fallback executable"
+    ]
+  },
+  "qualification": {
+    "newInstaller": false,
+    "legacy582": false,
+    "installedClients": false,
+    "fiveSecondStable": false,
+    "realProvider": false,
+    "real24h": false,
+    "overallComplete": false
+  },
+  "realModelRequests": 0,
+  "new24HourRuns": 0
+}

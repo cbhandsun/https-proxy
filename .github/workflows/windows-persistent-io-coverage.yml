@@ -112,7 +112,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $false
-          [Environment]::SetEnvironmentVariable('HPM_COVERAGE_IO_PROXY_WINDOW', $null, 'Process')
+          if (Test-Path Env:\HPM_COVERAGE_IO_PROXY_WINDOW) { Remove-Item Env:\HPM_COVERAGE_IO_PROXY_WINDOW }
           $env:HPM_COVERAGE_IO_STAGE = 'proxy'
           npm run test:coverage
           $coverageExit = $LASTEXITCODE

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "baselineHead": "a79b3a6c5e63ff12b47c25799ec359ca3c293eed",
+  "observedFailure": {
+    "runId": 40797189806,
+    "jobId": 123196404356,
+    "completeLogCharacters": 906585,
+    "failedFile": "test/coverage-proxy-window-workflow.test.js",
+    "workflow": "windows-persistent-io-coverage.yml",
+    "durationMs": 452.2106,
+    "expectedSelector": null,
+    "actualSelector": "",
+    "originalVerifyCompositionPassed": true,
+    "timeoutObserved": false,
+    "productRecoveryFailure": false
+  },
+  "cause": "PowerShell's System.Environment method with a null value retained an empty environment variable; the recording contract correctly refuses empty selectors.",
+  "primaryReference": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables",
+  "change": "Remove the process-local selector through the Environment provider only when Test-Path confirms it exists. No expected absence is treated as a failure, and removal errors still stop the original stage.",
+  "regression": {
+    "originalFailureCombinationsPerWorkflow": 7,
+    "additionalInitialSelectorCases": [
+      null,
+      "",
+      "foreign-window",
+      "4096-character synthetic selector"
+    ],
+    "actualPowerShellWorkflowCount": 2,
+    "expectedSelectorUnchanged": true,
+    "childTimeoutMs": 5000,
+    "localDecoderAndTriggerTests": 10,
+    "localPass": 10,
+    "localFail": 0,
+    "localSkip": 0,
+    "windowsExecutionPending": true,
+    "localWindowsAttempt": {
+      "scope": "mock actual YAML command orchestration only",
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "skip": 0,
+      "cancel": 0,
+      "eachInnerPwshTimeoutMs": 5000,
+      "comparisonsCompleted": false,
+      "taskResult": 1,
+      "ownedEmpty": true,
+      "fixedFilesVerified": 8,
+      "sourceFilesUnchanged": 3,
+      "node": "v22.22.3",
+      "controllerPriority": "BelowNormal",
+      "qualification": false,
+      "productFailure": false,
+      "retried": false,
+      "phaseUnknown": true,
+      "sourceCommitted": false
+    }
+  },
+  "originalCaptureAdmissionUnchanged": true,
+  "emptyAndForeignSelectorsStillRejectedByRecorder": true,
+  "originalCommandsLoadDeadlinesFailureChecksUnchanged": true,
+  "preservedFailures": {
+    "responses5002ms": true,
+    "windowsLegacy33Failed": true,
+    "firstDiagnosticDuplicateAssignment": true,
+    "privateDependencyCopy": {
+      "failedBeforeProductTests": true,
+      "cause": "Public dependencies.cookie metadata was incorrectly classified as a credential field.",
+      "oldFailureFrozen": true,
+      "correctedHelperPublicLockBound": true,
+      "correctedHelperPositiveRoots": 2,
+      "correctedHelperNegativeCases": 24,
+      "product62Qualified": false
+    },
+    "independentWindowsRemaining62": {
+      "runtimeSource": "1786de0a4587374d5241a99a2f61715478a542d7",
+      "coreTests": 50,
+      "corePass": 50,
+      "gracefulTests": 12,
+      "gracefulPass": 10,
+      "gracefulFail": 2,
+      "skip": 0,
+      "cancel": 0,
+      "publicationRangeMs": [
+        1547,
+        2136
+      ],
+      "failuresAwaiting": "ready",
+      "targetCommitOrAckNotEntered": true,
+      "taskResult": 1,
+      "ownedEmpty": true,
+      "sourceFilesVerified": 2120,
+      "originalDeadlinesUnchanged": true,
+      "priorFailuresCleared": false
+    }
+  },
+  "parallelInstaller": {
+    "runId": 40794879961,
+    "sourceHead": "1786de0a4587374d5241a99a2f61715478a542d7",
+    "originalFullVerifyAuditPassed": true,
+    "lastObservedStage": "Qualify installed same-format readers and runner-local DPAPI",
+    "installerQualified": false,
+    "result": "failure",
+    "installerBuildPassed": true,
+    "sameFormatLifecycleQualified": false
+  },
+  "qualification": {
+    "fiveSecondStable": false,
+    "fullNewCi": false,
+    "installer": false,
+    "legacy582": false,
+    "installedClients": false,
+    "real24h": false,
+    "overallComplete": false
+  },
+  "realModelRequests": 0,
+  "new24HourRuns": 0,
+  "productionNativeAndLocksUnchanged": true,
+  "installedQualificationAdapterExactCommandAdded": true
+}

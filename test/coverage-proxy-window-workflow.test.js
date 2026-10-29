@@ -26,6 +26,10 @@ for (const [workflowName, selectedProxy] of [
     }
     const cases = [
       { error: null },
+      ...[null, '', 'foreign-window', 'x'.repeat(4096)].map((selectorSeed) => ({
+        selectorSeed,
+        error: null,
+      })),
       {
         proxy: 1,
         error: 'Original proxy coverage failed; I/O evidence does not override its failure.',
@@ -43,7 +47,7 @@ for (const [workflowName, selectedProxy] of [
 function Seen($kind){$script:seen.Add([ordered]@{kind=$kind;stage=$env:HPM_COVERAGE_IO_STAGE;selector=[Environment]::GetEnvironmentVariable('HPM_COVERAGE_IO_PROXY_WINDOW')})}
 function npm {if($args.Count -ne 2 -or $args[0] -cne 'run'){throw 'unexpected_npm'};switch -CaseSensitive ($args[1]){'test:coverage'{Seen 'proxy';$global:LASTEXITCODE=[int]$script:row.proxy}'test:client:coverage'{Seen 'client';$global:LASTEXITCODE=[int]$script:row.client}'test:frontend:coverage'{Seen 'frontend';$global:LASTEXITCODE=[int]$script:row.frontend}default{throw 'unexpected_npm'}}}
 function node {if($args.Count -ne 1 -or $args[0] -cne 'scripts/check-coverage-io-receipt.cjs'){throw 'unexpected_node'};Seen ('receipt-'+$env:HPM_COVERAGE_IO_STAGE);if($env:HPM_COVERAGE_IO_STAGE -ceq 'proxy'){$global:LASTEXITCODE=[int]$script:row.receiptProxy}elseif($env:HPM_COVERAGE_IO_STAGE -ceq 'client'){$global:LASTEXITCODE=[int]$script:row.receiptClient}else{throw 'unexpected_stage'}}
-$results=@(foreach($script:row in $inputData.cases){$script:seen=[Collections.Generic.List[object]]::new();$env:HPM_COVERAGE_IO_PROXY_WINDOW='native-publication-interruption';$failure=$null;try{& ([scriptblock]::Create($inputData.code))}catch{$failure=$_.Exception.Message};[ordered]@{error=$failure;commands=@($script:seen)}});ConvertTo-Json -Depth 6 -Compress -InputObject $results`;
+$results=@(foreach($script:row in $inputData.cases){$script:seen=[Collections.Generic.List[object]]::new();$env:HPM_COVERAGE_IO_PROXY_WINDOW='native-publication-interruption';if($script:row.PSObject.Properties.Name -contains 'selectorSeed'){if($null -eq $script:row.selectorSeed){Remove-Item Env:\\HPM_COVERAGE_IO_PROXY_WINDOW}else{$env:HPM_COVERAGE_IO_PROXY_WINDOW=[string]$script:row.selectorSeed}};$failure=$null;try{& ([scriptblock]::Create($inputData.code))}catch{$failure=$_.Exception.Message};[ordered]@{error=$failure;commands=@($script:seen)}});ConvertTo-Json -Depth 6 -Compress -InputObject $results`;
     const result = spawnSync(
       'pwsh',
       ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
