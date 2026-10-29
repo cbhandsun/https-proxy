@@ -23,6 +23,7 @@ const { createDaemonManagementHttpClient } = require('./context-recovery-daemon-
 const { runInstalledClientCase } = require('./nsis-installed-client-case');
 const { writeInstalledBusinessReply } = require('./nsis-installed-business-reply');
 const { ownedStopFailure, OWNED_STOP_PHASES } = require('./nsis-client-owned-failure');
+const { diagnosticPolicy } = require('./staged-client-diagnostic-policy');
 const fail = () => new Error('codex_stop_diagnostic_failed');
 function negativeAddress() {
   const value = Object.values(os.networkInterfaces())
@@ -37,7 +38,8 @@ function negativeAddress() {
   if (!value) throw fail();
   return value.address;
 }
-function businessHandler(active, reject) {
+function businessHandler(active, reject, client = 'codex') {
+  const policy = diagnosticPolicy(client);
   let pending = 0;
   return {
     async respond(event) {
@@ -46,13 +48,15 @@ function businessHandler(active, reject) {
         const current = active.current;
         if (
           !current ||
-          current.client !== 'codex' ||
+          current.client !== client ||
           current.mode !== 'enhanced' ||
           !Buffer.isBuffer(event.bytes) ||
           event.bytes.length > 262144 ||
-          !['/v1/responses', '/v1/responses/compact'].includes(event.path) ||
-          event.authorization !== 'Bearer ' + current.upstreamToken ||
-          event.apiKey !== undefined
+          !policy.paths.includes(event.path) ||
+          (client === 'codex'
+            ? event.authorization !== 'Bearer ' + current.upstreamToken ||
+              event.apiKey !== undefined
+            : event.apiKey !== current.upstreamToken || event.authorization !== undefined)
         )
           throw fail();
         const body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(event.bytes));
@@ -116,7 +120,8 @@ const defaults = {
   },
   runCase: runInstalledClientCase,
 };
-async function runCodexStopDiagnostic(args, dependencies = defaults) {
+async function runStagedClientDiagnostic(args, client, dependencies = defaults) {
+  const policy = diagnosticPolicy(client);
   let owner, channel, adapter, listener, writer, business, proof;
   let phase = 'identity',
     failedPhase,
@@ -141,7 +146,7 @@ async function runCodexStopDiagnostic(args, dependencies = defaults) {
     fs.mkdirSync(path.join(request.ownedRoot, 'cases'));
     mark('listener');
     const address = dependencies.address();
-    business = businessHandler(active, reject);
+    business = businessHandler(active, reject, client);
     socketsClosed = false;
     listener = await dependencies.listener({
       networkRoot: request.networkRoot,
@@ -176,14 +181,14 @@ async function runCodexStopDiagnostic(args, dependencies = defaults) {
     // explicitly configures enhanced persistence. No preceding default CLI is run.
     owner = await adapter.launch({ label: '00', initialEnabled: false, initialPersistence: false });
     const result = await dependencies.runCase({
-      client: 'codex',
+      client,
       mode: 'enhanced',
       owner,
       adapter,
       ownedRoot: request.ownedRoot,
       install: request.install,
       manifestSha256: request.manifestSha256,
-      binarySha256: request.codexSha256,
+      binarySha256: request[client + 'Sha256'],
       powershellExecutable: identity.powershellExecutable,
       token,
       active,
@@ -205,6 +210,7 @@ async function runCodexStopDiagnostic(args, dependencies = defaults) {
   } catch (error) {
     const code = ownedStopFailure(error);
     if (
+      client === 'codex' &&
       code &&
       phase === 'codex-enhanced-cli-restart-stop' &&
       (!failedPhase || failedPhase === phase)
@@ -266,7 +272,7 @@ async function runCodexStopDiagnostic(args, dependencies = defaults) {
   }
   return Object.freeze({
     schemaVersion: 1,
-    scope: 'staged_codex_enhanced_stop_diagnostic',
+    scope: policy.scope,
     diagnosticPassed: complete && !failed,
     failedPhase: failed ? failedPhase : null,
     failureCode,
@@ -282,4 +288,7 @@ async function runCodexStopDiagnostic(args, dependencies = defaults) {
     listenerOwned: proof?.listenerOwned === true,
   });
 }
-module.exports = { runCodexStopDiagnostic, businessHandler };
+function runCodexStopDiagnostic(args, dependencies) {
+  return runStagedClientDiagnostic(args, 'codex', dependencies);
+}
+module.exports = { runCodexStopDiagnostic, runStagedClientDiagnostic, businessHandler };

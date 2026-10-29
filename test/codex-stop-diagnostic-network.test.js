@@ -123,11 +123,17 @@ test('fast workflow is a read-only independent acceptance push with original CLI
   );
   assert.match(workflow, /branches:\s*\n\s*- acceptance\/context-recovery\/\*\*/);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /fail-fast: false/);
+  assert.match(workflow, /client: \[codex, claude\]/);
+  assert.ok(workflow.includes("Invoke-HpmCodexStopDiagnostic -Client '${{ matrix.client }}'"));
   assert.doesNotMatch(workflow, /pull_request_target|contents: write|needs:/);
   assert.match(workflow, /paths:/);
   for (const input of [
     'scripts/diagnose-codex-stop.js',
     'scripts/lib/codex-stop-diagnostic*',
+    'scripts/diagnose-claude-context.js',
+    'scripts/lib/claude-context-diagnostic*.js',
+    'scripts/lib/staged-client-diagnostic-policy.js',
     'lib/proxy/**',
     'tools/nsis-clients/package-lock.json',
     'scripts/lib/nsis-installed-daemon-http*.psm1',

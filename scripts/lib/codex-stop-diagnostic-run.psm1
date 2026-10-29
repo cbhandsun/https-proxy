@@ -11,7 +11,7 @@ function ConvertFrom-HpmCodexStopDiagnosticReceipt {
         foreach($property in $doc.RootElement.EnumerateObject()){if(-not $remaining.Remove($property.Name)){throw 'invalid'}}
         if($remaining.Count -ne 0){throw 'invalid'}
         $item=$doc.RootElement
-        if($item.GetProperty('schemaVersion').GetInt32() -ne 1 -or $item.GetProperty('scope').GetString() -cne 'staged_codex_enhanced_stop_diagnostic' -or $item.GetProperty('modelRequests').GetInt32() -ne 0){throw 'invalid'}
+        if($item.GetProperty('schemaVersion').GetInt32() -ne 1 -or $item.GetProperty('scope').GetString() -cne $Contract.SCOPE -or $item.GetProperty('modelRequests').GetInt32() -ne 0){throw 'invalid'}
         foreach($key in @('installedQualified','realProvider','retention24hQualified')){if($item.GetProperty($key).GetBoolean()){throw 'invalid'}}
         foreach($key in @('diagnosticPassed','ownedTreeEmpty','syntheticSocketsClosed','probesPassed','tlsVerified','nonLoopbackBlocked','listenerOwned')){$null=$item.GetProperty($key).GetBoolean()}
         $report=$Text|ConvertFrom-Json
@@ -29,7 +29,9 @@ function Invoke-HpmCodexStopDiagnosticOwnedProcess {
     return & $module {param($s) Invoke-HpmInstalledHttpDriverProcess $s -RequireNaturalExit} $Start
 }
 function Invoke-HpmCodexStopDiagnosticDriver {
-    param([string]$Root,[string]$Candidate,$Materials,[hashtable]$State,$Contract,[string]$ContractSha256)
+    param([string]$Root,[string]$Candidate,$Materials,[hashtable]$State,$Contract,[string]$ContractSha256,[ValidateSet('codex','claude')][string]$Client='codex')
+    $scope=if($Client -ceq 'codex'){'staged_codex_enhanced_stop_diagnostic'}else{'staged_claude_enhanced_protocol_diagnostic'}
+    if($Contract.SCOPE -cne $scope){throw 'codex_stop_contract_identity'}
     $contractFile=Join-Path $Root 'diagnostic-contract.json'
     if((Get-FileHash -LiteralPath $contractFile).Hash.ToLowerInvariant() -cne $ContractSha256){throw 'codex_stop_contract_identity'}
     $staging=Get-Content -LiteralPath (Join-Path $Root 'staging-identity.json') -Raw|ConvertFrom-Json
@@ -44,7 +46,8 @@ function Invoke-HpmCodexStopDiagnosticDriver {
     $module=Import-Module (Join-Path $PSScriptRoot 'nsis-installed-daemon-http.psm1') -Force -PassThru
     & $module {param($s,$c) Set-HpmInstalledHttpDriverEnvironment $s $c} $start $case
     foreach($key in @('GITHUB_ACTIONS','RUNNER_ENVIRONMENT','RUNNER_OS','RUNNER_TEMP','GITHUB_WORKSPACE','CI')){$start.Environment[$key]=[Environment]::GetEnvironmentVariable($key)}
-    foreach($arg in @((Join-Path $Candidate 'scripts/diagnose-codex-stop.js'),$Root,(Join-Path $Root 'payload'),$staging.manifestSha256,$Materials.networkRoot,$Materials.caSha256,$Materials.leafSha256,$staging.codexSha256,$staging.claudeSha256)){$start.ArgumentList.Add($arg)}
+    $entry=if($Client -ceq 'codex'){'scripts/diagnose-codex-stop.js'}else{'scripts/diagnose-claude-context.js'}
+    foreach($arg in @((Join-Path $Candidate $entry),$Root,(Join-Path $Root 'payload'),$staging.manifestSha256,$Materials.networkRoot,$Materials.caSha256,$Materials.leafSha256,$staging.codexSha256,$staging.claudeSha256)){$start.ArgumentList.Add($arg)}
     $State.treeEmpty=$false
     try{$text=Invoke-HpmCodexStopDiagnosticOwnedProcess $start;$State.treeEmpty=$true}
     catch{
@@ -54,15 +57,17 @@ function Invoke-HpmCodexStopDiagnosticDriver {
     if((Get-FileHash -LiteralPath $contractFile).Hash.ToLowerInvariant() -cne $ContractSha256){throw 'codex_stop_contract_identity'}
     $report=ConvertFrom-HpmCodexStopDiagnosticReceipt $text $Contract
     $State.report=$report
-    Write-Information ('CODEX_STOP_DIAGNOSTIC='+($report|ConvertTo-Json -Compress)) -InformationAction Continue
+    $prefix=if($Client -ceq 'codex'){'CODEX_STOP_DIAGNOSTIC='}else{'CLAUDE_CONTEXT_DIAGNOSTIC='}
+    Write-Information ($prefix+($report|ConvertTo-Json -Compress)) -InformationAction Continue
     return $report
 }
 function Invoke-HpmCodexStopDiagnostic {
+    param([ValidateSet('codex','claude')][string]$Client='codex')
     if(-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:CI -cne 'true'){throw 'codex_stop_environment_refused'}
     $root=Join-Path $env:RUNNER_TEMP 'hpm-installed-clients'
     $candidate=[IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE 'current'))
-    $nodeCode="const fs=require('node:fs'),path=require('node:path');const root=path.join(process.env.RUNNER_TEMP,'hpm-installed-clients');fs.writeFileSync(path.join(root,'diagnostic-network.ps1'),require('./scripts/lib/codex-stop-diagnostic-network').NETWORK_SCRIPT,{flag:'wx'});fs.writeFileSync(path.join(root,'diagnostic-contract.json'),JSON.stringify(require('./scripts/lib/codex-stop-diagnostic-contract')),{flag:'wx'});"
-    & node -e $nodeCode
+    $nodeCode="const fs=require('node:fs'),path=require('node:path');const root=path.join(process.env.RUNNER_TEMP,'hpm-installed-clients');fs.writeFileSync(path.join(root,'diagnostic-network.ps1'),require('./scripts/lib/codex-stop-diagnostic-network').NETWORK_SCRIPT,{flag:'wx'});fs.writeFileSync(path.join(root,'diagnostic-contract.json'),JSON.stringify(require('./scripts/lib/codex-stop-diagnostic-contract').getDiagnosticContract(process.argv[1])),{flag:'wx'});"
+    & node -e $nodeCode $Client
     if($LASTEXITCODE -ne 0){throw 'codex_stop_composition_failed'}
     . (Join-Path $candidate 'scripts/context-hosted/shared/hosted-materials.ps1')
     Initialize-HpmN08ArtifactLease
@@ -79,7 +84,7 @@ function Invoke-HpmCodexStopDiagnostic {
         . (Join-Path $root 'diagnostic-network.ps1')
         $state=@{treeEmpty=$true;report=$null}
         $owner=$ExecutionContext.SessionState.Module
-        $run={param($materials) & $owner {param($r,$c,$m,$s,$contract,$sha) Invoke-HpmCodexStopDiagnosticDriver $r $c $m $s $contract $sha} $root $candidate $materials $state $contract $contractSha}.GetNewClosure()
+        $run={param($materials) & $owner {param($r,$c,$m,$s,$contract,$sha,$client) Invoke-HpmCodexStopDiagnosticDriver $r $c $m $s $contract $sha $client} $root $candidate $materials $state $contract $contractSha $Client}.GetNewClosure()
         $stop={return $state.treeEmpty -ceq $true}.GetNewClosure()
         $sha=(Get-FileHash -LiteralPath (Join-Path $root 'staging-identity.json')).Hash.ToLowerInvariant()
         $result=Invoke-HpmCodexStopDiagnosticNetwork -OwnedRoot $root -StagingReceiptSha256 $sha -CandidateRoot $candidate -RunOwnedScenario $run -StopOwnedScenario $stop

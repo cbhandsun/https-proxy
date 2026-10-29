@@ -1,13 +1,6 @@
 'use strict';
 const { PHASES } = require('./nsis-installed-client-matrix-contract');
 const { OWNED_STOP_CODES } = require('./nsis-client-owned-failure');
-const DIAGNOSTIC_PHASES = Object.freeze(
-  PHASES.filter(
-    (phase) =>
-      ['identity', 'listener', 'probes', 'controller', 'cleanup', 'complete'].includes(phase) ||
-      phase.startsWith('codex-enhanced-')
-  )
-);
 const FIELDS = Object.freeze([
   'schemaVersion',
   'scope',
@@ -25,7 +18,27 @@ const FIELDS = Object.freeze([
   'nonLoopbackBlocked',
   'listenerOwned',
 ]);
-function parseDiagnosticReceipt(text) {
+function getDiagnosticContract(client = 'codex') {
+  if (!['codex', 'claude'].includes(client)) throw new Error('codex_stop_receipt_rejected');
+  return Object.freeze({
+    FIELDS,
+    DIAGNOSTIC_PHASES: Object.freeze(
+      PHASES.filter(
+        (phase) =>
+          ['identity', 'listener', 'probes', 'controller', 'cleanup', 'complete'].includes(phase) ||
+          phase.startsWith(client + '-enhanced-')
+      )
+    ),
+    OWNED_STOP_CODES: client === 'codex' ? OWNED_STOP_CODES : Object.freeze([]),
+    SCOPE:
+      client === 'codex'
+        ? 'staged_codex_enhanced_stop_diagnostic'
+        : 'staged_claude_enhanced_protocol_diagnostic',
+  });
+}
+function parseStagedDiagnosticReceipt(text, client) {
+  const contract = getDiagnosticContract(client);
+
   try {
     if (typeof text !== 'string' || Buffer.byteLength(text) > 4096) throw Error();
     const value = JSON.parse(text);
@@ -35,7 +48,7 @@ function parseDiagnosticReceipt(text) {
       Array.isArray(value) ||
       Object.keys(value).sort().join(',') !== [...FIELDS].sort().join(',') ||
       value.schemaVersion !== 1 ||
-      value.scope !== 'staged_codex_enhanced_stop_diagnostic' ||
+      value.scope !== contract.SCOPE ||
       value.installedQualified !== false ||
       value.realProvider !== false ||
       value.retention24hQualified !== false ||
@@ -49,8 +62,8 @@ function parseDiagnosticReceipt(text) {
         'nonLoopbackBlocked',
         'listenerOwned',
       ].every((key) => typeof value[key] === 'boolean') ||
-      (value.failedPhase !== null && !DIAGNOSTIC_PHASES.includes(value.failedPhase)) ||
-      (value.failureCode !== null && !OWNED_STOP_CODES.includes(value.failureCode)) ||
+      (value.failedPhase !== null && !contract.DIAGNOSTIC_PHASES.includes(value.failedPhase)) ||
+      (value.failureCode !== null && !contract.OWNED_STOP_CODES.includes(value.failureCode)) ||
       (value.diagnosticPassed &&
         (value.failedPhase !== null ||
           value.failureCode !== null ||
@@ -70,4 +83,12 @@ function parseDiagnosticReceipt(text) {
     throw new Error('codex_stop_receipt_rejected');
   }
 }
-module.exports = { DIAGNOSTIC_PHASES, FIELDS, OWNED_STOP_CODES, parseDiagnosticReceipt };
+function parseDiagnosticReceipt(text) {
+  return parseStagedDiagnosticReceipt(text, 'codex');
+}
+module.exports = {
+  ...getDiagnosticContract(),
+  getDiagnosticContract,
+  parseDiagnosticReceipt,
+  parseStagedDiagnosticReceipt,
+};

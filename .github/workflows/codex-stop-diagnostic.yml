@@ -1,4 +1,4 @@
-name: Independent staged Codex enhanced stop diagnostic
+name: Independent staged Codex and Claude enhanced diagnostics
 
 on:
   push:
@@ -7,6 +7,11 @@ on:
     paths:
       - .github/workflows/codex-stop-diagnostic.yml
       - scripts/diagnose-codex-stop.js
+      - scripts/diagnose-claude-context.js
+      - scripts/lib/claude-context-diagnostic*.js
+      - scripts/lib/staged-client-diagnostic-policy.js
+      - scripts/lib/staged-client-diagnostic*.js
+      - test/claude-context-diagnostic*.test.js
       - scripts/lib/codex-stop-diagnostic*
       - test/codex-stop-diagnostic*.test.js
       - test/fixtures/codex-stop-diagnostic*.ps1
@@ -44,6 +49,11 @@ permissions:
 
 jobs:
   diagnostic:
+    name: Staged ${{ matrix.client }} enhanced diagnostic
+    strategy:
+      fail-fast: false
+      matrix:
+        client: [codex, claude]
     runs-on: windows-latest
     timeout-minutes: 15
     defaults:
@@ -77,12 +87,12 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           Import-Module ./scripts/lib/codex-stop-diagnostic-run.psm1 -Force
-          Invoke-HpmCodexStopDiagnostic
+          Invoke-HpmCodexStopDiagnostic -Client '${{ matrix.client }}'
       - name: Record diagnostic scope only
         if: always()
         run: |
           @(
-            'Staged Codex enhanced stop diagnostic status: ${{ job.status }}'
+            'Staged ${{ matrix.client }} enhanced diagnostic status: ${{ job.status }}'
             'No full verify, Tauri build, NSIS installation or installed qualification is granted.'
             'The original installed lifecycle workflow and all of its gates remain unchanged.'
             'No real provider request, daily-instance change, or 24-hour run is performed.'

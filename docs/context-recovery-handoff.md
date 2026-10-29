@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+最新 Windows 局部证据：e4fe090 独立 staged Codex 增强诊断 40811752318 成功，原三次压缩/重启/最终私有读取与公开生成断言及清理闭合，模型 0；原时延三组各 50/50。旧安装停止失败未因此清除，最新完整门、最新安装双端和有效 24h 仍未授资格。见实施状态顶部与 context-recovery-evidence/parallel-diagnostic-first-windows.json；继续并行 Claude 原协议验证，不访问用户 Windows 或冻结长测。
+
 ## 2026-10-29（UTC）：两条独立定位线与完整门并行
 
 优先读状态顶部及 context-recovery-evidence/parallel-diagnostic-lanes.json。用户要求提速后，新建 staged Codex enhanced stop 快诊断：原完整增强协议/默认持久 Worker/三次压缩/重启/最终恢复、原 WFP/Job/期限与身份全部保留，但不等待 full verify/Tauri/NSIS，始终不授安装/provider/24h资格。受限主 acceptance push 即可启动，不重复创建一个会再触发八个 Verify job 的诊断分支；实际 Windows 首轮尚待运行。

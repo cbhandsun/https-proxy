@@ -11,7 +11,7 @@ const {
   prepareDiagnosticStaging,
   verifyToolsLock,
 } = require('../scripts/lib/codex-stop-diagnostic-staging');
-function fixture(t, fault) {
+function fixture(t, fault, client = 'codex') {
   const root = fs.mkdtempSync(path.join(resolvePhysicalTestTempDirectory(), 'codex-stop-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const ownedRoot = path.join(root, 'hpm-installed-clients');
@@ -86,9 +86,10 @@ function fixture(t, fault) {
       };
     },
     async runCase(input) {
-      assert.equal(input.client, 'codex');
+      assert.equal(input.client, client);
       assert.equal(input.mode, 'enhanced');
-      input.onPhase('codex-enhanced-cli-restart-stop');
+      input.onPhase(client + '-enhanced-cli-compact-3');
+      if (client === 'codex') input.onPhase('codex-enhanced-cli-restart-stop');
       step('case');
       if (fault === 'trusted-stop')
         throw createOwnedStopFailure('nsis_owned_stop_controller_natural_exit_timeout');
@@ -313,5 +314,33 @@ test('staged identity binds every real source byte, packaged Node and default na
     fs.appendFileSync(file, 'changed');
     assert.throws(() => verifyDiagnosticRuntime(candidate, staging));
     fs.writeFileSync(file, before);
+  }
+});
+
+test('independent Claude case uses the same owned lifecycle with no preceding Codex protocol', async (t) => {
+  const { runClaudeContextDiagnostic } = require('../scripts/lib/claude-context-diagnostic');
+  const {
+    parseClaudeDiagnosticReceipt,
+  } = require('../scripts/lib/claude-context-diagnostic-contract');
+  for (const fault of [
+    undefined,
+    'case',
+    'owner-false',
+    'adapter-false',
+    'listener-false',
+    'compactions',
+  ]) {
+    const f = fixture(t, fault, 'claude');
+    const report = await runClaudeContextDiagnostic(f.args, f.dependencies);
+    assert.equal(report.diagnosticPassed, fault === undefined);
+    assert.equal(report.scope, 'staged_claude_enhanced_protocol_diagnostic');
+    assert.equal(report.failureCode, null);
+    assert.equal(report.installedQualified, false);
+    assert.equal(report.realProvider, false);
+    assert.equal(report.modelRequests, 0);
+    assert.doesNotThrow(() => parseClaudeDiagnosticReceipt(JSON.stringify(report) + '\n'));
+    assert.equal(f.events.filter((event) => event === 'case').length, 1);
+    assert.ok(f.events.includes('owner-stop'));
+    assert.ok(f.events.includes('adapter-close'));
   }
 });

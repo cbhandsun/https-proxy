@@ -1,5 +1,17 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：Claude 原增强协议拆为独立并行作业
+
+新增 Claude 专用薄入口、Messages/x-api-key 策略与独立 scope 回执，共用已在 e4fe 实际 Windows 成功的 staged 生命周期；没有复制完整 driver，也未改原安装矩阵或 CLI 协议。workflow 固定 codex/claude 两项、fail-fast:false、无 needs，每项独立 hosted runner、WFP/Job/运行目录；默认 Codex 入口兼容。Claude 沿原 controller 首 label00 禁用入口启动，由原 runInstalledClientCase 真实 POST 配置 Claude+persistent、原十五秒 health 验证后才开始 CLI，保留 MCP 原文读取、三次压缩、重启、精确恢复与独立公开生成全部断言。两端回执/phase/scope 相互拒绝，所有安装/provider/24h 资格仍 false，模型 0。
+
+本机六个完整相关文件 65/65、零 skip/cancel，含原 Claude 协议和 installed case、Codex 兼容、两 client 实际 PowerShell helper、父合同绑定/篡改与失败清理；模块大小/依赖图、定向 Lint、格式和 CI 治理通过。首轮新增负控误把既有 businessHandler(undefined) 的 Codex 默认视为非法，已仅修测试保留原默认兼容，未改运行门。共用 driver 拆至 294 行、未提高 baseline；触发包含新公共策略文件。实际 Claude Windows 结果仍待本批提交，e4fe 通过仅属于 Codex 与原时延/I/O，不能混授 Claude/安装/真实 provider 或整体完成。
+
+## 2026-10-29（UTC）：独立 Windows Codex 增强快诊断通过，三组原时延用例完成
+
+固定 e4fe090a03640d381e72a8f91e0cf0a71952c3a4 的独立 run 40811752318/job 123243430227 已成功，完整 26888 字符日志读取；从 run 开始 03:22:17Z 到终态更新 03:24:54Z，实际 CLI 步骤 03:24:07Z 到唯一安全回执 03:24:47Z。原完整增强协议断言三次压缩、重启保留、私有读取后独立公开生成及精确最终答案全部满足；ownedTreeEmpty、syntheticSocketsClosed 和四项网络证明均 true，installedQualified/realProvider/retention24hQualified 均 false，模型 0。这证明独立诊断链实际可执行，不证明旧安装 Codex 停止失败根因已修复；旧失败仍保留。
+
+原 timing run 40811752309 三个完整作业各 50/50、零 skip/fail，完整日志读取。新默认 Worker SQL 观测实际产生 18/17/18 对闭合阶段，首次 COMMIT 的父端观察最大间隔分别 25/27/77ms；本轮没有重现原秒级尾延迟，父端间隔不能证明物理原因，更不能授予五秒长期稳定。独立 I/O run 40811752291/job 123243430106 也已成功，原三完整文件 70/70、零 skip，完整 557260 字符日志读取；原 parseSummary 接受 schema7，39730 事件/381 对 flush，数据库/日志最大 46/40ms，但 traceCompletenessVerified/fiveSecondQualified 仍 false，不能解释或抹除旧秒级失败。普通完整 CI、正式源门和额外 coverage I/O 作业此时仍在运行；最新安装版两端、COMMIT/ACK 内部中断及有效 24h 仍未整体闭合。另一线继续准备独立 Claude 原增强协议验证，避免被 Codex 首失败阻挡。详见 context-recovery-evidence/parallel-diagnostic-first-windows.json。
+
 ## 2026-10-29（UTC）：分开故障定位与完整安装等待，启动并行诊断链
 
 用户要求并行提速。本轮按文件归属并行实施，未削减原门：b475 安装共约 31m52s，其中完整候选门 19m59s、NSIS 构建 5m09s、实际两端故障尝试 75s；Rust cache 已命中、cargo-audit 安装仅 1s，因此不为小收益修改缓存安全边界。
