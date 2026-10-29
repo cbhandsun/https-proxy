@@ -8,6 +8,8 @@ $result=[HpmTdhManagedTests]::Run()
 Import-Module (Join-Path $Repository 'scripts/lib/persistent-io-schema-tdh-contract.psm1') -Force
 $text=$result.summary|ConvertTo-Json -Depth 8 -Compress
 $safe=ConvertFrom-HpmTdhMetadataSummary $text
+$policy=ConvertFrom-HpmTdhMetadataSummary ($result.policySummary|ConvertTo-Json -Depth 8 -Compress)
+if($policy.layouts[0].unsupported -cne 'field_name_policy' -or $policy.layouts[0].fields.Count -ne 0){throw 'policy_qualification_changed'}
 if($safe.selectedEvents -ne 2 -or $safe.layouts[0].count -ne 2){throw 'summary_invalid'}
 $rejections=0
 foreach($scenario in @('empty','unknown','duplicate','name','count','limit','qualification','type','provider','descriptor','reason','selected','encoding')){
@@ -34,7 +36,7 @@ foreach($scenario in @('empty','unknown','duplicate','name','count','limit','qua
 $duplicate=$text.Replace('"schemaVersion":1','"schemaVersion":1,"schemaVersion":1')
 try{ConvertFrom-HpmTdhMetadataSummary $duplicate|Out-Null;throw 'duplicate_accepted'}catch{if($_.Exception.Message -cne 'io_schema_tdh_failed'){throw 'duplicate_gate_failed'}}
 $failureRejections=0
-foreach($phase in @('abi','open','process','information-size','information-read','metadata','close','callback')){
+foreach($phase in @('abi','open','process','information-size','information-read','metadata','close','callback','serialization','cleanup','path-platform','path-shape','path-open','path-information','path-type','path-links','path-size','path-closed','path-identity','callback-record-null','callback-event-limit','callback-deadline','callback-header-size','callback-layout-limit','callback-field-limit','metadata-bounds','metadata-buffer','metadata-array','metadata-name-offset','metadata-name-termination','metadata-name-encoding','metadata-name-duplicate')){
     foreach($code in @($null,0,4294967295)){
         $failureText=@{schemaVersion=1;scope='sampled_native_event_metadata_failure';phase=$phase;status=$code}|ConvertTo-Json -Compress
         $parsed=ConvertFrom-HpmTdhMetadataFailure $failureText

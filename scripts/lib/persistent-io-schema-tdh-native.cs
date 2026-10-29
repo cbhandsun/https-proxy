@@ -6,12 +6,16 @@ namespace HpmIoSchemaTdh {
         public string phase { get; private set; }
         public uint? status { get; private set; }
         internal Failure(string phase, uint? status = null) : base("io_schema_tdh_failed") { this.phase=phase;this.status=status; }
-        internal static Failure At(Exception error, string phase) { return error as Failure ?? new Failure(phase); }
+        internal static Failure At(Exception error, string phase) {
+            var known=error as Failure;if(known!=null)return known;
+            var pin=error as TracePinFailure;return pin==null?new Failure(phase):new Failure(pin.phase,pin.status);
+        }
         public static Failure Describe(Exception error, string fallback) {
             for(int i=0;error!=null && i<8;i++,error=error.InnerException) {
                 var known=error as Failure;if(known!=null)return known;
+                var pin=error as TracePinFailure;if(pin!=null)return new Failure(pin.phase,pin.status);
             }
-            return new Failure(fallback == "abi" ? "abi" : "metadata");
+            return new Failure(fallback == "abi" ? "abi" : fallback == "serialization" ? "serialization" : "metadata");
         }
     }
     [StructLayout(LayoutKind.Sequential)] internal struct Descriptor {

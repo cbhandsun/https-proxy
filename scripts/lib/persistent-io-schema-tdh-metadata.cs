@@ -43,30 +43,32 @@ namespace HpmIoSchemaTdh {
     }
     internal static class Metadata {
         internal const int MaximumBytes = 65536;
-        internal static Failure Failed() { return new Failure("metadata"); }
+        internal static Failure Failed(string phase="metadata") { return new Failure(phase); }
         internal static T Read<T>(byte[] bytes, int offset) where T : struct {
             int size = Marshal.SizeOf<T>();
-            if (offset < 0 || offset > bytes.Length - size) throw Failed();
+            if (offset < 0 || offset > bytes.Length - size) throw Failed("metadata-bounds");
             var pin = GCHandle.Alloc(bytes, GCHandleType.Pinned);
             try { return Marshal.PtrToStructure<T>(IntPtr.Add(pin.AddrOfPinnedObject(), offset)); }
             finally { pin.Free(); }
         }
         internal static string Name(byte[] bytes, uint offset, int minimum) {
-            if (offset < minimum || offset >= bytes.Length || (offset & 1) != 0) throw Failed();
+            if (offset < minimum || offset >= bytes.Length || (offset & 1) != 0) throw Failed("metadata-name-offset");
             int start = checked((int)offset), end = start;
             for (; end <= bytes.Length - 2 && end - start <= 128; end += 2)
                 if (bytes[end] == 0 && bytes[end + 1] == 0) break;
-            if (end > bytes.Length - 2 || end - start > 128) throw Failed();
-            string name = new UnicodeEncoding(false, false, true).GetString(bytes, start, end - start);
-            if (!Regex.IsMatch(name, "\\A[A-Za-z_][A-Za-z0-9_]{0,63}\\z")) throw Failed();
+            if (end > bytes.Length - 2 || end - start > 128) throw Failed("metadata-name-termination");
+            string name;
+            try { name=new UnicodeEncoding(false,false,true).GetString(bytes,start,end-start); }
+            catch(DecoderFallbackException) { throw Failed("metadata-name-encoding"); }
+            if (!Regex.IsMatch(name, "\\A[A-Za-z_][A-Za-z0-9_]{0,63}\\z")) return null;
             return name;
         }
         internal static void Parse(Layout layout, byte[] bytes) {
-            if (bytes == null || bytes.Length > MaximumBytes) throw Failed();
+            if (bytes == null || bytes.Length > MaximumBytes) throw Failed("metadata-buffer");
             var info = Read<TraceInfo>(bytes, 0);
             int start = Marshal.SizeOf<TraceInfo>(), stride = Marshal.SizeOf<PropertyInfo>();
             if (info.PropertyCount > 64 || info.TopLevelPropertyCount > info.PropertyCount ||
-                (ulong)start + (ulong)info.PropertyCount * (ulong)stride > (ulong)bytes.Length) throw Failed();
+                (ulong)start + (ulong)info.PropertyCount * (ulong)stride > (ulong)bytes.Length) throw Failed("metadata-array");
             if (info.DecodingSource > 3) { layout.unsupported = "unknown_decoding_source"; return; }
             layout.metadataProvider = info.Provider.ToString();
             layout.eventClass = info.EventGuid.ToString();
@@ -90,7 +92,8 @@ namespace HpmIoSchemaTdh {
                     return;
                 }
                 string name = Name(bytes, property.NameOffset, minimum);
-                if (!names.Add(name)) throw Failed();
+                if(name==null){layout.unsupported="field_name_policy";return;}
+                if (!names.Add(name)) throw Failed("metadata-name-duplicate");
                 fields.Add(new Field { name = name, inType = property.InType, outType = property.OutType });
             }
             layout.fields = fields.ToArray();

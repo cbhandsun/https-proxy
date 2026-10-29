@@ -29,6 +29,7 @@ try {
     Add-Type -Path $paths -ErrorAction Stop
     $failurePhase='metadata'
     $summary=[HpmIoSchemaTdh.Reader]::Read($Trace)
+    $failurePhase='serialization'
     $json=ConvertTo-Json -InputObject $summary -Depth 8 -Compress
     if([Text.Encoding]::UTF8.GetByteCount($json) -gt 16384){throw 'refused'}
 } catch {
@@ -38,7 +39,7 @@ try {
         $failurePhase=$cause.phase;$failureStatus=$cause.status
     }
 } finally {
-    foreach($lease in $leases){try{$lease.Dispose()}catch{$failed=$true}}
+    foreach($lease in $leases){try{$lease.Dispose()}catch{if(-not $failed){$failurePhase='cleanup';$failureStatus=$null};$failed=$true}}
 }
 if($failed){
     $failure=@{schemaVersion=1;scope='sampled_native_event_metadata_failure';phase=$failurePhase;status=$failureStatus}

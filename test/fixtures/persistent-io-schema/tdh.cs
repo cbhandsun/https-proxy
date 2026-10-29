@@ -127,7 +127,7 @@ public static class HpmTdhManagedTests {
             new {Mode="close",Phase="close",Status=(uint?)6},
             new {Mode="cancel",Phase="process",Status=(uint?)1223},
             new {Mode="callback",Phase="information-size",Status=(uint?)null},
-            new {Mode="null",Phase="callback",Status=(uint?)null},
+            new {Mode="null",Phase="callback-record-null",Status=(uint?)null},
             new {Mode="parameter",Phase="information-size",Status=(uint?)87},
             new {Mode="grow",Phase="information-read",Status=(uint?)122},
             new {Mode="short",Phase="information-read",Status=(uint?)0}
@@ -143,7 +143,7 @@ public static class HpmTdhManagedTests {
         var malformed=new Fake {Bytes=new byte[112]};
         Store(malformed.Bytes,0,new TraceInfo {PropertyCount=UInt32.MaxValue});
         try { Reader.Consume(malformed,"none");throw new Exception("missing_failure"); }
-        catch(Failure error) { Check(error.phase=="metadata" && error.status==null && malformed.Closed==1);checks++; }
+        catch(Failure error) { Check(error.phase=="metadata-array" && error.status==null && malformed.Closed==1);checks++; }
         Check(Failure.Describe(new Exception("PRIVATE",new Failure("abi")),"metadata").phase=="abi");checks++;
         foreach (string mode in new [] { "missing", "huge" }) {
             var api = new Fake { Mode = mode }; var summary = Reader.Consume(api, "none");
@@ -155,6 +155,31 @@ public static class HpmTdhManagedTests {
             var layout = new Layout(); Metadata.Parse(layout, Schema(1, flag));
             Check(layout.unsupported != null && layout.fields.Length == 0); checks++;
         }
+        Summary policySummary=null;
+        foreach(string name in new [] {"field-with-hyphen","字段","", "123Field"}) {
+            var bytes=Schema();var prop=Metadata.Read<PropertyInfo>(bytes,112);
+            var nameBytes=Encoding.Unicode.GetBytes(name+"\0");Array.Copy(nameBytes,0,bytes,prop.NameOffset,nameBytes.Length);
+            var layout=new Layout();Metadata.Parse(layout,bytes);
+            Check(layout.unsupported=="field_name_policy" && layout.fields.Length==0);checks++;
+            var api=new Fake {Bytes=bytes};var unsupported=Reader.Consume(api,"none");
+            Check(unsupported.unsupportedLayouts==1 && api.Closed==1);policySummary=unsupported;checks++;
+        }
+        var invalidEncoding=Schema();var invalidProperty=Metadata.Read<PropertyInfo>(invalidEncoding,112);
+        invalidEncoding[invalidProperty.NameOffset]=0;invalidEncoding[invalidProperty.NameOffset+1]=0xd8;
+        invalidEncoding[invalidProperty.NameOffset+2]=0;invalidEncoding[invalidProperty.NameOffset+3]=0;
+        try {Metadata.Parse(new Layout(),invalidEncoding);throw new Exception("missing_failure");}
+        catch(Failure error){Check(error.phase=="metadata-name-encoding");checks++;}
+        var tagged=new Layout();Metadata.Parse(tagged,Schema(1,0x40));Check(tagged.unsupported==null && tagged.fields.Length==1);checks++;
+        foreach(uint flags in new uint[] {0x10,0x20,0x80000000}) {
+            var layout=new Layout();Metadata.Parse(layout,Schema(1,flags));
+            Check(layout.unsupported=="unknown_property_flags" && layout.fields.Length==0);checks++;
+        }
+        var shortHeader=new Fake();var shortValue=Event();shortValue.Size=79;shortHeader.Headers[0]=shortValue;
+        try {Reader.Consume(shortHeader,"none");throw new Exception("missing_failure");}
+        catch(Failure error){Check(error.phase=="callback-header-size" && shortHeader.Closed==1);checks++;}
+        Check(Failure.Describe(new Exception("PRIVATE",new TracePinFailure("path-open",5)),"metadata").phase=="path-open");checks++;
+        Check(Failure.Describe(new Exception("PRIVATE",new TracePinFailure("path-open",5)),"metadata").status==5);checks++;
+        Check(Failure.Describe(new Exception("PRIVATE"),"serialization").phase=="serialization");checks++;
         var zero = new Layout(); Metadata.Parse(zero, Schema(0)); Check(zero.unsupported == "empty_metadata"); checks++;
         var nested = Schema(); var info = Metadata.Read<TraceInfo>(nested, 0); info.TopLevelPropertyCount = 0; Store(nested, 0, info);
         var nestedLayout = new Layout(); Metadata.Parse(nestedLayout, nested); Check(nestedLayout.unsupported == "nested_struct"); checks++;
@@ -182,6 +207,6 @@ public static class HpmTdhManagedTests {
         var tooManyFields = new Fake { Bytes = Schema(64) }; tooManyFields.Headers.Clear();
         for (ushort i = 0; i < 5; i++) tooManyFields.Headers.Add(Event(i));
         Reject(() => Reader.Consume(tooManyFields, "none")); checks++;
-        return new { checks = checks, summary = result, windowsNativeExecuted = false };
+        return new { checks = checks, summary = result, policySummary=policySummary, windowsNativeExecuted = false };
     }
 }

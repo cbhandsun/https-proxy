@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：新 Windows 分片通过，TDH 与本机续建失败分别定位
+
+32cf9e8普通Verify已观察七作业成功、coverage仍运行；unit2完整653624字符日志确认真实Windows进程夹具及TDH managed回归通过。该结果不覆盖原HTTP5002ms失败。独立schema job123287603328完整42339字符日志为失败：原三文件命令exit0，430710事件全部无命名payload，TDH child回执metadata/status=null，tdhMetadata=null，最终cleanupVerified=true。metadata阶段仍包含多个拒绝点，尚未确定具体根因；保持失败，下一步用固定有限阶段区分，不猜字段偏移、不输出事件值。
+
+本批仅四字段失败DTO的phase细分为固定32项，补Windows路径/PInvoke状态、callback与metadata数组/名称/编码/重复、序列化/清理分类，原失败仍红。另用旧32源码确定性复现合法Unicode/非标识符名称被误当损坏；微软[NameOffset定义](https://learn.microsoft.com/en-us/windows/win32/api/tdh/ns-tdh-event_property_info#members)仅要求null终止Unicode，现对输出白名单外合法名称明确unsupported/fields空，坏offset、缺终止、非法UTF16及重复仍拒绝。不声称该误拒是本轮原因。父端四完整文件80/80零skip、1773 JS语法与CI治理及变更文件格式通过；全本机format因1434既有混合换行文件与CRLF策略不符失败，未批量改无关文件或放宽原Windows门。
+
+固定1a5本机续建05:49:14Z确认Task Ready/0xC000013A，控制器和owned进程均已不存在；状态文件残留Running不能作存活证据。最后153条crate开始记录，无Cargo错误，未到原40min期限；来源未知，不能归因用户操作。原30失败文件与此次中断metadata保留。尚无安装器/appRust/桌面交付；新无控制台launcher先做独立退出/归属清理夹具验证，再决定复用同源warm target续建，原期限、同SID、原Job停止语义保持。用户保留旧实例自行切换，模型/新24h均0。有限事实见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
 ## 2026-10-29（UTC）：原生检查通过，应用续建与同 ETL 元数据并行
 
 固定1a5本机已完成两次原npm ci（32228/63964ms）、官方Native fmt/clippy/完整Rust组53+0+5零失败/忽略（203385ms）及实际prepare重编（1785ms）。新Native f938861d…/498688B/nlink1，2159源码及13Native输入最终核对不变。应用打包110714ms退出1，明确原offline Cargo缺gtk索引metadata；官方旧index中gtk0.18.2及锁checksum相等，无需改依赖。原失败30文件已副本/SHA封存；新独立控制任务复用同一已核1a5构建工作区，只append全509锁记录索引，既有245文件逐字节不写、新增194、网络0；原Tauri40min与appRust600s保持。已进入实际App Cargo，未产安装器、未执行安装或授本机UI资格。源、旧任务/失败日志、旧日常实例和冻结日档不改，模型0。

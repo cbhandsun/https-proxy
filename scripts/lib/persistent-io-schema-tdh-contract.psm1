@@ -43,7 +43,7 @@ function ConvertFrom-HpmTdhMetadataSummary([string]$Text) {
             $reason=$layout.GetProperty('unsupported');$fields=$layout.GetProperty('fields')
             if($fields.ValueKind -ne [Text.Json.JsonValueKind]::Array -or $fields.GetArrayLength() -gt 64){throw 'refused'}
             if($reason.ValueKind -ne [Text.Json.JsonValueKind]::Null){
-                if($reason.GetString() -cnotin @('metadata_unavailable','metadata_buffer_limit','unknown_decoding_source','wpp_context_required','nested_struct','dynamic_count_or_length','custom_schema','wbem_xml_fragment','unknown_property_flags','empty_metadata') -or $fields.GetArrayLength() -ne 0){throw 'refused'}
+                if($reason.GetString() -cnotin @('metadata_unavailable','metadata_buffer_limit','unknown_decoding_source','wpp_context_required','nested_struct','dynamic_count_or_length','custom_schema','wbem_xml_fragment','unknown_property_flags','empty_metadata','field_name_policy') -or $fields.GetArrayLength() -ne 0){throw 'refused'}
                 $unsupportedCount++
             }elseif($fields.GetArrayLength() -eq 0 -or $decoding.ValueKind -eq [Text.Json.JsonValueKind]::Null -or $layout.GetProperty('metadataProvider').ValueKind -eq [Text.Json.JsonValueKind]::Null -or $layout.GetProperty('eventClass').ValueKind -eq [Text.Json.JsonValueKind]::Null){throw 'refused'}
             $names=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -65,7 +65,7 @@ function ConvertFrom-HpmTdhMetadataFailure([string]$Text) {
         if([string]::IsNullOrEmpty($Text) -or [Text.Encoding]::UTF8.GetByteCount($Text) -gt 1024){throw 'refused'}
         $document=[Text.Json.JsonDocument]::Parse($Text);$root=$document.RootElement
         Assert-HpmTdhKeys $root @('schemaVersion','scope','phase','status')
-        if($root.GetProperty('schemaVersion').GetInt32() -ne 1 -or $root.GetProperty('scope').GetString() -cne 'sampled_native_event_metadata_failure' -or $root.GetProperty('phase').GetString() -cnotin @('abi','open','process','information-size','information-read','metadata','close','callback')){throw 'refused'}
+        if($root.GetProperty('schemaVersion').GetInt32() -ne 1 -or $root.GetProperty('scope').GetString() -cne 'sampled_native_event_metadata_failure' -or $root.GetProperty('phase').GetString() -cnotin @('abi','open','process','information-size','information-read','metadata','close','callback','serialization','cleanup','path-platform','path-shape','path-open','path-information','path-type','path-links','path-size','path-closed','path-identity','callback-record-null','callback-event-limit','callback-deadline','callback-header-size','callback-layout-limit','callback-field-limit','metadata-bounds','metadata-buffer','metadata-array','metadata-name-offset','metadata-name-termination','metadata-name-encoding','metadata-name-duplicate')){throw 'refused'}
         $status=$root.GetProperty('status')
         if($status.ValueKind -ne [Text.Json.JsonValueKind]::Null){$null=$status.GetUInt32()}
         return ConvertFrom-Json -InputObject $Text -AsHashtable

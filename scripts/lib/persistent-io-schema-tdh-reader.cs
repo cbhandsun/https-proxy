@@ -26,24 +26,25 @@ namespace HpmIoSchemaTdh {
             RecordCallback callback = (record) => {
                 if (failed) return;
                 try {
-                    if (record == IntPtr.Zero) throw new Failure("callback");
-                    if (++result.events > 1000000 || clock.ElapsedMilliseconds >= 30000) throw Metadata.Failed();
+                    if (record == IntPtr.Zero) throw new Failure("callback-record-null");
+                    if (++result.events > 1000000) throw new Failure("callback-event-limit");
+                    if (clock.ElapsedMilliseconds >= 30000) throw new Failure("callback-deadline");
                     // Only the fixed native header is inspected. Payload and extended-data
                     // pointers are neither dereferenced, copied, hashed nor exported.
                     var header = Marshal.PtrToStructure<Header>(record);
-                    if (header.Size < Marshal.SizeOf<Header>()) throw Metadata.Failed();
+                    if (header.Size < Marshal.SizeOf<Header>()) throw new Failure("callback-header-size");
                     if (header.Provider != new Guid("90cbdc39-4a3e-11d1-84f4-0000f80464e3") ||
                         header.Descriptor.Opcode < 96 || header.Descriptor.Opcode > 101) return;
                     result.selectedEvents++;
                     string key = Key(header);
                     if (!layouts.TryGetValue(key, out Layout layout)) {
-                        if (layouts.Count >= 64) throw Metadata.Failed();
+                        if (layouts.Count >= 64) throw new Failure("callback-layout-limit");
                         layout = new Layout { provider = header.Provider.ToString(), id = header.Descriptor.Id,
                             version = header.Descriptor.Version, opcode = header.Descriptor.Opcode, headerFlags = header.Flags,
                             descriptorIdentity = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key))).ToLowerInvariant() };
                         Metadata.Obtain(api, record, layout);
                         fieldCells += layout.fields.Length;
-                        if (fieldCells > 256) throw Metadata.Failed();
+                        if (fieldCells > 256) throw new Failure("callback-field-limit");
                         if (layout.unsupported != null) result.unsupportedLayouts++;
                         layouts.Add(key, layout);
                     }
