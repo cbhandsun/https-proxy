@@ -1,5 +1,15 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：处理主线合并，修正四目录隔离断言精度
+
+用户已明确由agent处理PR21合并及脚本自用。远端master2295c452为bd7祖先，behind0/ahead410，merge-tree与HEAD tree相同，无代码冲突；产品lib/plugins/入口/前端/Tauri/Native/双锁/启动脚本与已交付1a5无差异。PR21保持草稿，master尚未更新，先满足原门禁，不把未通过CI称合并完成。
+
+bd7正式source/job123344142704的nsis-settings-matrix测试287行四个真实目录仍存在，却Number inode Set得到3；新增四个不释放目录/64位身份碰撞的确定性回归先红3!=4。仅将该隔离断言改用BigInt inode，重复BigInt身份负控仍只计3，原四组合和540000/520000ms期限、controller/安全拒绝规则不变。Mac新回归通过；完整文件5通过1失败，原HEAD同一PowerShell fixture也在进入身份断言前失败，不能称本机完整绿色。Lint/格式/CI和模块治理通过，新Windows完整结果待核。
+
+bd7另两项旧失败已读完整日志并保留：coverage的首次pwsh准入夹具5000ms ETIMEDOUT，没有WPR或模型执行；Tianxi为三行Get-Content加JSON元数据的PowerShell15000ms ETIMEDOUT，不是rg子进程。尚未证明根因，不盲改编码/生产命令，不加新诊断框架、不提期限、不重跑旧失败制造绿色；本次实际精度修复按原完整新源码CI裁决，不用新通过抹掉旧超时。
+
+Windows实际入口已证为原E盘HTTPS-Proxy，local master1a127de且tracked dirty；浅克隆及真实祖先关系未核，撤回仅由本地双向is-ancestor退出1推断真实分歧。活进程记录的Node alias文件磁盘缺失，现有Native与1a5不同，不能据此猜缺依赖或活进程版本；已pin独立Node22.22.3可用。配置/data仅候选，候选恢复DB/key未存在；旧配置字段缺省不能记成false。Codex版本、fresh分账因同次SSH观察超时未核，不沿用旧1/7作当前许可。未改旧目录、全局NVM、配置、数据/锚点，候选复制和启停均未发生，模型0。下一步按合并后的统一主线部署脚本，保留用户本地修改及原配置数据，不长期维护第二份代码。
+
 ## 2026-10-29（UTC）：单人自用先收口Codex，修只读验收身份精度缺口
 
 用户已选Codex优先；只收口已交付1a5安装实例、受支持HTTP路径的一次原生压缩后精确恢复，以及启用持久化时的同用户重开。Claude、实验WebSocket、公开发行/签名、最大容量及新24h不作为首次受控自用前置；不修改认证、精确ACK、FULL/DELETE、现有期限和已有到期时间。Windows08:27:25Z只读未观察到1a5管理器或目标安装登记，仍旧E盘0.1.0实例；遵守用户自行切换安排，未安装/启停/读配置或私有数据。

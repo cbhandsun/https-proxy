@@ -13,6 +13,8 @@ const {
 } = require('../scripts/lib/nsis-settings-matrix-case');
 const { discoverTestFiles } = require('../lib/test-discovery');
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const directoryInodes = (directories) =>
+  new Set(directories.map((directory) => fs.statSync(directory, { bigint: true }).ino));
 
 // This fixture deliberately never executes native code. It proves the harness,
 // not DPAPI, actual storage startup or installed product behavior.
@@ -225,6 +227,34 @@ test('initialization, unsafe file, wrong state and shutdown failures cannot pass
     });
 });
 
+test('four retained data directories reject Number inode aliasing in the isolation assertion', async (t) => {
+  await withFixture(async (root) => {
+    const directories = combinations.map((combination) => path.join(root, combination, 'data'));
+    for (const directory of directories) fs.mkdirSync(directory, { recursive: true });
+    const inodes = directories.map((_, index) => 9007199254740992n + BigInt(index));
+    assert.equal(new Set(inodes.map(Number)).size, 3);
+    const original = fs.statSync;
+    t.mock.method(fs, 'statSync', (file, options) => {
+      const stat = original(file, options),
+        index = directories.indexOf(file);
+      if (index < 0) return stat;
+      return Object.assign(Object.create(Object.getPrototypeOf(stat)), stat, {
+        ino: options?.bigint === true ? inodes[index] : Number(inodes[index]),
+      });
+    });
+    try {
+      const identities = directoryInodes(directories);
+      assert.equal(identities.size, 4);
+      assert.ok([...identities].every((identity) => typeof identity === 'bigint'));
+      assert.ok(directories.every((directory) => fs.existsSync(directory)));
+      inodes[3] = inodes[2];
+      assert.equal(directoryInodes(directories).size, 3);
+    } finally {
+      t.mock.restoreAll();
+    }
+  });
+});
+
 test(
   'PowerShell controller runs four isolated synthetic payload children and refuses identity/schema failures',
   { timeout: 540000 },
@@ -284,10 +314,7 @@ test(
         .readdirSync(root)
         .filter((name) => /^settings-[01]{2}-[a-f0-9]{32}$/.test(name));
       assert.equal(cases.length, 4);
-      assert.equal(
-        new Set(cases.map((name) => fs.statSync(path.join(root, name, 'data')).ino)).size,
-        4
-      );
+      assert.equal(directoryInodes(cases.map((name) => path.join(root, name, 'data'))).size, 4);
     } finally {
       assert.ok(path.resolve(root).startsWith(path.resolve(testTempRoot) + path.sep));
       fs.rmSync(root, { recursive: true, force: true });

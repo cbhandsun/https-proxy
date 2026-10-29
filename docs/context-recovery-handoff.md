@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+当前用户授权处理PR21并走Codex单人脚本自用，安装器不作为前提。远端master2295为恢复分支祖先，快进无冲突；PR21仍draft/master未动。Windows旧Eroot是local master1a127de且有tracked修改，不覆盖、不把未核浅历史当真实分歧；Node alias磁盘缺失、Native不同、配置/data仅候选，Codex版本及fresh额度SSH超时未核，模型0，不沿用旧1/7。bd7原NSIS四目录Number inode Set3!=4已用确定性先红回归修为BigInt，原负控/四组合/期限不变；Mac完整fixture原HEAD也失败，Windows新源码CI待核。两项PowerShell5000/15000超时保留未定因，不扩诊断/不放宽或跳测；先原门禁通过再合master，之后保留本地工作/配置数据更新脚本运行环境。先读实施状态顶部。
+
 当前收尾范围已由用户选定Codex优先：固定已交付1a5，先确认用户自行安装切换，再做单客户端HTTP原生compact→私有精确READ→独立公开生成，持久化开启时再核同用户重开；不扩Claude/实验WebSocket/公开发行/最大容量/新24h。08:27Z仍旧E盘0.1.0运行，新候选未观察运行，未擅自切换。09普通8/8和正式12/12已成功；c337有一处验收只读snapshot replacement拒绝失败，已保留并仅修Number文件身份精度为BigInt，局部132/132/父端42通过，新Windows待核，非产品漏洞已证实，不重打包。Codex现余1次不足现成已验证单compact路径8次，实际调用前仍需fresh核账、可信预扣及必要追加授权，不跑原三compact全矩阵、不绕安全guard；日常使用与agent验收分账区分，模型0。详细证据先读实施状态顶部。
 
 当前交付：固定1a5自用0.1.1安装器已真实构建并复制到Windows桌面HPM-SelfUse-0.1.1-1a5ae1c；installer/app-Rust/final-source及Task均0、cleanup=true/owned空，92份旧失败SHA不变。完整SHA和范围见实施状态顶部及1a5-installed-parallel-delivery.json。默认原生压缩、代理恢复可选，旧实例用户自行安装切换，不自动动配置。准备30s/真实恢复HTTP验收5s已分开并推送09d11e2，Windows原生20+10通过、零skip；09完整CI尚未结束。旧24h监测24已删除、不重启，失败和缺回执保留。尚未授本机安装UI/真实provider/五秒稳定/有效24h资格，模型0；下一步以用户自行切换后的实际验收为准，不再把旧失败轮当作正在跑24小时。
