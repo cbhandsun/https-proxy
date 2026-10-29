@@ -1,5 +1,9 @@
 # 上下文恢复换机交接
 
+2026-10-29 本轮受控脚本/托盘切换已完成：修复提交 f8887736e0376add9c640b1c094125bd89d28164 的 Verify40886442286完整8/8成功；Rust完整日志46817字符已核（原生61+5，真实权限重复调用及8项新增策略回归通过），coverage完整4278117字符已核，无实际not ok/原阶段失败，未降低门禁。独立本机Windows原生61+5、Clippy、正式prepare及五文件JS29/29、0skip通过。新helper对原runtime同对象调用126ms（原5000ms不变），前后身份/protected精确DACL稳定。干净双来源候选官方验证成功，完整5185公共文件仅native与manifest哈希两处变化，其余5183相同；两旧文件已受限备份，实际r+投放/flush/readback exit0，原对象/ACL保留，无私有目录递归核验。
+
+普通正式启动无observer，3696ms、CLI exit0/ok=true；实际后端与托盘恢复，交互会话内1 GUI+1 Node，原生TCP owner及两次认证健康HTTP200，root/config/runtime/PID精确匹配。最终原config/runtime/frozen/root物理对象和原启动bat哈希仍一致，旧Git未重置。应用及JS仍固定1a5，只有native来自f888，不冒称全新Tauri重构建。恢复requested/applied仍false、disabled/memory，保留原默认客户端原生压缩。14:17:08Z fresh分账核对177/169、Codex1/Claude7，未reservation，模型0；这些余额不是新的请求授权，安全计数writer审阅和真实Codex恢复闭环仍未完成。旧五秒/旧24h失败与本轮诊断argv、缓存编排、Mac平台检查失败记录保留；本轮启动成功不授整体五秒稳定、真实provider、有效24h或精准恢复已开启资格。下一步只按Codex单人自用收尾，先解决真实调用额度/安全预扣，不再停已恢复服务或重启长测。
+
 2026-10-29 启动修复候选：角色诊断已确认 config_loaded 后 runtime_directory/request_diagnostics 的原生权限调用在 5014ms 超时，实际 Node exit1；后续同目标 handle 只读核对在 5ms 完成，目录身份、当前 owner、protected DACL、原 Rust 三 ACE/OICI/FA 的精确字节及双读稳定均符合。未递归读取子项、未重写权限，不能据此断言内核唯一根因。现将 private-path 权限操作改为同 handle 先核对，已精确 protected 时免重复 SetSecurityInfo；不匹配（含 NULL DACL）仍按原设置，所有成功均须独立最终精确读回，原 pin/type/link/SID/失败拒绝保留，五秒期限不变。该操作只保证目标，不宣称递归修复子对象继承。
 
 候选验证：8 项新增策略回归及原 Windows 真实用例中的重复调用/内容身份断言进入既有 native CI；Mac cargo test --locked 为 50 unit+5 integration exit0，fmt check exit0，always-Set 负控失败。Mac 相关 JS 为 21 pass/3 skip/1 原 Windows 路径断言失败；额外 native clippy -D warnings 在未修改 anchor.rs 的 6 项非 Windows dead-code 上失败，未加豁免。Windows 专属权限、构建和真实启动待验，尚未投放候选 native，不能称启动修复通过。模型请求为零。
