@@ -5,6 +5,7 @@ const { createGeminiProtocol } = require('../lib/proxy/protocol-gemini');
 const { createClaudeFilters } = require('../lib/proxy/claude-filters');
 const { createRouteHandlers } = require('../lib/proxy/handlers/route-handlers');
 const { rejectContextOverflow } = require('../lib/proxy/context-budget-manager');
+const { composeContextProtocolOptions } = require('../lib/proxy/context-recovery-policy');
 const tools = require('../lib/proxy/tools');
 const noop = () => {};
 function protocol(options = {}, extra = {}) {
@@ -236,6 +237,46 @@ const retained = budgeted.claudeMessagesToResponsesRequest(
   'model'
 );
 assert.ok(retained.__hpmDiagnostics.contextBudget.droppedCount > 0);
+for (const enabled of [false, true]) {
+  const preserving = protocol(
+    composeContextProtocolOptions(
+      {
+        maxContextTokens: 6000,
+        outputReserveTokens: 1,
+        toolReserveTokens: 1,
+        safetyMarginTokens: 1,
+      },
+      { appSettings: { contextPolicyVersion: 2, contextRecoveryEnabled: enabled } }
+    )
+  );
+  const full = preserving.claudeMessagesToResponsesRequest(
+    { messages: history, tools: declared },
+    'model'
+  );
+  assert.equal(full.input[0].content[0].text, history[0].content);
+  assert.equal(full.input.filter((item) => item.type === 'function_call').length, 2);
+  assert.equal(full.input.filter((item) => item.type === 'function_call_output').length, 2);
+  assert.equal(full.__hpmDiagnostics.contextBudget.policy, 'preserve-window');
+  assert.equal(full.__hpmDiagnostics.contextBudget.droppedCount, 0);
+  assert.equal(rejectContextOverflow({}, full, noop), true);
+  assert.ok(!JSON.stringify(full).includes('__hpmDiagnostics'));
+  const native = preserving.claudeMessagesToResponsesRequest(
+    { messages: history, tools: declared },
+    'model',
+    { codex: false, nativeContextManagement: true }
+  );
+  assert.equal(native.__hpmDiagnostics.contextBudget.enabled, false);
+  assert.equal(native.input[0].content[0].text, history[0].content);
+}
+const nativeRetained = budgeted.claudeMessagesToResponsesRequest(
+  { messages: history, tools: declared },
+  'model',
+  { codex: false, nativeContextManagement: true }
+);
+assert.equal(nativeRetained.__hpmDiagnostics.contextBudget.droppedCount, 0);
+assert.equal(nativeRetained.input[0].content[0].text, history[0].content);
+assert.equal(nativeRetained.input.filter((item) => item.type === 'function_call').length, 2);
+assert.equal(nativeRetained.input.filter((item) => item.type === 'function_call_output').length, 2);
 assert.equal(retained.input.filter((item) => item.type === 'function_call').length, 2);
 assert.equal(retained.input.filter((item) => item.type === 'function_call_output').length, 2);
 assert.ok(!JSON.stringify(retained).includes('__hpmDiagnostics'));

@@ -1,0 +1,27 @@
+{
+  "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+  "runId": 40625996281,
+  "branch": "acceptance/windows-encrypted-draft/421213889-667118183-667118182-e49b3173-3f31-4c8a-9039-88b1e837c990-f8421078c67e30f32f17b4718c094fcbb6e0794e-e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+  "releaseMetadataVerified": true,
+  "routeParserAccepted": true,
+  "routeResolveJobId": 122610921859,
+  "routeResolveConclusion": "success",
+  "lifecycleJobId": 122611063764,
+  "lifecycleLastConfirmedStatus": "in_progress",
+  "originalFullCandidateGatesRequiredBeforeBuildAndInstall": true,
+  "baselineIdentity": {
+    "releaseId": 421213889,
+    "installerAssetId": 667118183,
+    "identityAssetId": 667118182,
+    "baselineSha": "f8421078c67e30f32f17b4718c094fcbb6e0794e"
+  },
+  "scope": {
+    "installerPassed": false,
+    "legacy582Passed": false,
+    "installedClientsPassed": false,
+    "realProviderQualified": false,
+    "retention24hQualified": false,
+    "existingLocalInstanceChanged": false,
+    "realModelCalls": 0
+  }
+}

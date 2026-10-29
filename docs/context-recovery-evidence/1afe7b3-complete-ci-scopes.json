@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1afe7b310ea575ed00d0b68a7addc93a4916e6fe",
+  "ordinaryVerify": {
+    "runId": 40607922332,
+    "successfulJobs": 8,
+    "failedJobs": 0
+  },
+  "formal": {
+    "runId": 40607922322,
+    "successfulJobs": 6,
+    "failedJobs": 0,
+    "sourceGateJob": 122551960434,
+    "n09FinishedAckJob": 122559607051,
+    "actualLogRead": true,
+    "planSha256": "00ef31d271e5c3054550bf469cdc574a5e41299ddcee315a38b5324268af6e64",
+    "buildReceiptSha256": "cf46119e89548435db89df608b1e9ab83eb2004be2870d9d2f1a854eb63ebacd",
+    "executionReceipt": {
+      "phase": "hosted_network_finished",
+      "ownedTreeEmpty": true,
+      "tlsVerified": true,
+      "nonLoopbackBlocked": true,
+      "n08Qualified": false,
+      "probesPassed": true
+    }
+  },
+  "extraIoDiagnostic": {
+    "runId": 40607922323,
+    "failedJob": 122551960491,
+    "fullLogRead": true,
+    "nativePublicationCasesPassed": 20,
+    "afterHookFailed": true,
+    "code": "coverage_io_capture_recorder_exit",
+    "hookElapsedMs": 188492.5338,
+    "traceQualification": false,
+    "uniqueRecorderFailureCauseConfirmed": false,
+    "newFiveSecondRequestFailureObserved": false
+  },
+  "parentProductHeaderOptimization": {
+    "sourceCommit": "9e26dfcdc9444f79501ccf9f0528e6775e48c57a",
+    "verifyRunId": 40607195765,
+    "successfulVerifyJobs": 8,
+    "formalRunId": 40607195689,
+    "successfulFormalJobs": 6
+  },
+  "localFortyCaseFailurePreserved": true,
+  "oldPersistentFiveSecondFailuresPreserved": true,
+  "nativeDayStillFailedAt90MinuteAdvance": true,
+  "fullDeliveryComplete": false,
+  "realModelRequests": 0
+}

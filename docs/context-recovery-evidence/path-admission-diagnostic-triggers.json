@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "baselineHead": "0610461c4661dd46d9e84be3a0e4f7bb08e70597",
+  "problem": "Shared path admission changed but original timing and independent I/O push filters omitted those inputs. Only Verify, formal and coverage-I/O were triggered for 061.",
+  "pathsAdded": [
+    "lib/proxy/context-recovery-storage-paths.js",
+    "lib/proxy/context-recovery-private-path.js",
+    "lib/proxy/private-path-native.js",
+    "lib/proxy/secure-files.js",
+    "lib/proxy/context-recovery-storage-progress.js"
+  ],
+  "originalWorkflowBodiesUnchanged": {
+    "windows-persistent-recovery-timing.yml": true,
+    "windows-persistent-io-diagnostic.yml": true,
+    "windows-persistent-io-coverage.yml": true
+  },
+  "unchanged": [
+    "original commands and complete selected files",
+    "three timing runners and fail-fast:false",
+    "job/per-request/PowerShell deadlines",
+    "read-only repository permissions and existing branch scope",
+    "SQLite FULL/DELETE, authentication, ACK and original expiry"
+  ],
+  "regression": {
+    "baseline": {
+      "tests": 7,
+      "pass": 4,
+      "fail": 3,
+      "skip": 0
+    },
+    "fixed": {
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skip": 0
+    },
+    "ciGovernanceExit": 0,
+    "targetedLintExit": 0
+  },
+  "runtimeCodeUnchangedFromBaseline": true,
+  "oldEf3FailureRetained": true,
+  "newExactSourceFullCiQualified": false,
+  "newWindowsShortStarted": false,
+  "installerCandidateStarted": false,
+  "realModelRequests": 0,
+  "new24hStarted": false,
+  "overallComplete": false
+}

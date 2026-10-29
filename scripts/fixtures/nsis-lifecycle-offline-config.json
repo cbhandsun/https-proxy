@@ -1,0 +1,31 @@
+{
+  "activeProfile": "lifecycle-offline",
+  "profiles": [
+    {
+      "id": "lifecycle-offline",
+      "name": "Synthetic offline lifecycle fixture",
+      "protocol": "openai",
+      "apiKey": "",
+      "targetUrl": "http://127.0.0.1:9"
+    }
+  ],
+  "localServer": {
+    "host": "127.0.0.1",
+    "listenPort": 19443,
+    "basePath": "/v1",
+    "protocol": "openai-chat"
+  },
+  "entryServers": [],
+  "entryAuth": { "enabled": true, "keys": [], "allowedOrigins": [] },
+  "appSettings": {
+    "autoStartProxy": false,
+    "upstreamWarmupEnabled": false,
+    "upstreamDnsServers": [],
+    "contextPolicyVersion": 2,
+    "contextEvidenceEnabled": false,
+    "contextRecoveryEnabled": false,
+    "contextRecoveryPersistenceEnabled": false
+  },
+  "diagnostics": { "enabled": false },
+  "mcpHub": { "servers": [], "routing": [] }
+}

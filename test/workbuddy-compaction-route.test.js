@@ -19,12 +19,14 @@ const {
 const { parseBufferedChatCompletion } = require('../lib/proxy/context-artifact-tool');
 const { encodeWorkBuddyToolCompletion } = require('../lib/proxy/workbuddy-mixed-tool-phase');
 const { LOCAL_SUMMARY_MARKER } = require('../lib/proxy/workbuddy-compaction-bridge');
+const { BUNDLE_SCHEMA } = require('../lib/proxy/context-compaction-state-bundle');
 const {
   normalizeWorkBuddyStandaloneCompactionRequest,
 } = require('../lib/proxy/workbuddy-standalone-compaction');
 const { summaryFixture } = require('./helpers/compaction-summary-fixture');
 const { createContextArtifactStore } = require('../lib/proxy/context-artifact-store');
 const { CONTEXT_ARTIFACT_TOOL_NAME } = require('../lib/proxy/context-artifact-tool');
+const { composeContextProtocolOptions } = require('../lib/proxy/context-recovery-policy');
 
 const source = [
   { type: 'message', role: 'system', content: '原始策略🙂', future_field: { exact: true } },
@@ -60,6 +62,160 @@ test('history above 16 MiB reaches admission and rejects oversized protected inp
   }
 });
 
+test('version 2 native ordinary requests preserve complete tool history and schemas without private work', async () => {
+  const f = fixture({ policyVersion: 2 });
+  const long = source.map((item) =>
+    item.type === 'function_call_output'
+      ? { ...item, output: 'PRIVATE_MIDDLE🙂'.repeat(1500) }
+      : item
+  );
+  try {
+    assert.ok(
+      await f.request(long, {
+        body: { tools: [{ ...tools[0], description: 'original schema'.repeat(1000) }] },
+      })
+    );
+    assert.deepEqual(f.errors, []);
+    assert.equal(f.sent.length, 1);
+    assert.equal(f.artifacts.stats().entries, 0);
+    assert.equal(f.sent[0].messages.filter((m) => m.role === 'tool').length, 3);
+    for (const message of f.sent[0].messages.filter((m) => m.role === 'tool'))
+      assert.equal(message.content, 'PRIVATE_MIDDLE🙂'.repeat(1500));
+    assert.equal(f.sent[0].tools[0].function.description, 'original schema'.repeat(1000));
+    assert.ok(
+      !f.events.some((event) =>
+        [
+          'workbuddy_context_plan',
+          'workbuddy_wbipc_payload_fallback',
+          'workbuddy_context_artifact_read',
+        ].includes(event.kind)
+      )
+    );
+    assert.doesNotMatch(JSON.stringify(f.events), /PRIVATE_MIDDLE/);
+  } finally {
+    f.close();
+  }
+});
+
+test('native preflight rejects capacity without dispatch and host payload rejection never triggers compaction/replay', async () => {
+  for (const options of [{ maxRequestBytes: 1000 }, { mode: 'retry' }]) {
+    const f = fixture({ ...options, policyVersion: 2 });
+    try {
+      assert.equal(
+        await f.request([{ role: 'user', content: 'PRIVATE_INPUT'.repeat(1000) }]),
+        undefined
+      );
+      assert.equal(f.errors[0].status, 413);
+      assert.equal(f.errors[0].payload.error.code, 'workbuddy_request_too_large');
+      assert.equal(f.sent.length, options.mode === 'retry' ? 1 : 0);
+      assert.equal(f.artifacts.stats().entries, 0);
+      assert.equal(
+        f.errors[0].payload.error.context_reason,
+        options.mode === 'retry' ? 'native_context_preserved' : 'native_context_too_large'
+      );
+      assert.doesNotMatch(JSON.stringify([f.errors, f.events]), /PRIVATE_INPUT/);
+    } finally {
+      f.close();
+    }
+  }
+});
+
+test('native explicit compaction continues through its authenticated summary without capturing recovery evidence', async () => {
+  for (const stream of [false, true]) {
+    const f = fixture({ policyVersion: 2, renewable: true });
+    try {
+      const compacted = await f.request([...source, { type: 'compaction_trigger' }], { stream });
+      assert.ok(compacted);
+      assert.equal(f.artifacts.stats().entries, 0);
+      const response = await f.request([...compacted.output, { role: 'user', content: '继续' }], {
+        stream,
+      });
+      assert.ok(response);
+      assert.deepEqual(f.errors, []);
+      assert.equal(f.artifacts.stats().entries, 0);
+      assert.ok(
+        f.sent[0].messages[0].content.startsWith(
+          'You are a dedicated historical-context summarizer'
+        )
+      );
+      assert.equal(f.sent.length, 2);
+    } finally {
+      f.close();
+    }
+  }
+});
+
+test('native continuation still rejects retired tool calls without creating recovery authority', async () => {
+  const f = fixture({ policyVersion: 2, mode: 'replay-old' });
+  try {
+    const compacted = await f.request([...source, { type: 'compaction_trigger' }]);
+    assert.ok(compacted);
+    assert.equal(
+      await f.request([...compacted.output, { role: 'user', content: '继续' }]),
+      undefined
+    );
+    assert.equal(f.errors.length, 1);
+    assert.equal(f.errors[0].status, 502);
+    assert.equal(f.artifacts.stats().entries, 0);
+    assert.equal(f.sent.length, 2);
+  } finally {
+    f.close();
+  }
+});
+
+test('native request policy is pinned before asynchronous preparation and old evidence requires explicit recovery', async () => {
+  const pinned = fixture({ policyVersion: 2, maxRequestBytes: 1000 });
+  try {
+    const pending = pinned.request([{ role: 'user', content: 'retained'.repeat(1000) }]);
+    pinned.setPolicy(2, true);
+    assert.equal(await pending, undefined);
+    assert.equal(pinned.sent.length, 0);
+    assert.equal(pinned.errors[0].payload.error.context_reason, 'native_context_too_large');
+  } finally {
+    pinned.close();
+  }
+  const old = fixture({ renewable: true });
+  try {
+    const long = source.map((item) =>
+      item.type === 'function_call_output'
+        ? { ...item, output: 'original evidence'.repeat(3000) }
+        : item
+    );
+    const compacted = await old.request([...long, { type: 'compaction_trigger' }]);
+    assert.ok(compacted);
+    assert.ok(old.artifacts.stats().entries > 0);
+    const calls = old.sent.length;
+    const entries = old.artifacts.stats().entries;
+    old.setPolicy(2);
+    assert.equal(
+      await old.request([...compacted.output, { role: 'user', content: 'continue' }]),
+      undefined
+    );
+    assert.equal(old.errors[0].status, 409);
+    assert.equal(old.errors[0].payload.error.code, 'context_recovery_disabled');
+    assert.equal(old.sent.length, calls);
+    assert.equal(old.artifacts.stats().entries, entries);
+  } finally {
+    old.close();
+  }
+});
+
+test('version 2 explicitly enabled planning retains its own qualified archival path', async () => {
+  const f = fixture({ policyVersion: 2, recoveryEnabled: true });
+  try {
+    assert.ok(
+      await f.request([{ role: 'user', content: 'continue' }], {
+        body: { tools: [{ ...tools[0], description: 'd'.repeat(200000) }] },
+      })
+    );
+    assert.deepEqual(f.errors, []);
+    assert.equal(f.sent.length, 1);
+    assert.ok(Buffer.byteLength(JSON.stringify(f.sent[0])) <= 100000);
+  } finally {
+    f.close();
+  }
+});
+
 test('a large tool catalog is compacted before host dispatch without losing the current request', async () => {
   const f = fixture();
   try {
@@ -86,6 +242,8 @@ function fixture({
   preset,
   renewable = false,
   artifactTtlMs = 1000,
+  policyVersion,
+  recoveryEnabled = false,
 } = {}) {
   let now = 100;
   let activeReq;
@@ -112,7 +270,12 @@ function fixture({
     endings.push(args);
     resolveDone?.();
   };
-  const protocolOptions = { contextWindowPolicy: 'disabled' };
+  const protocolOptions = composeContextProtocolOptions(
+    { contextWindowPolicy: 'disabled' },
+    {
+      appSettings: { contextPolicyVersion: policyVersion, contextRecoveryEnabled: recoveryEnabled },
+    }
+  );
   const protocol = createOpenAIProtocol({
     cleanToolArgs: (_name, args) => args,
     fallbackId: (prefix) => prefix + '_fixture',
@@ -176,13 +339,25 @@ function fixture({
           role: 'assistant',
           content: summarizing ? summaryFixture(body, summaryText) : '继续处理新要求🙂',
         };
-        if (!summarizing && mode === 'evidence' && !readEvidence) {
+        if (
+          !summarizing &&
+          ['evidence', 'user-archive', 'archive-root'].includes(mode) &&
+          !readEvidence
+        ) {
           readEvidence = true;
           assert.ok(body.tools.some((tool) => tool.function?.name === CONTEXT_ARTIFACT_TOOL_NAME));
           const text = body.messages.find((m) =>
             m.content?.startsWith(LOCAL_SUMMARY_MARKER)
           ).content;
-          const receipt = JSON.parse(text.split('\n')[1]).evidenceReceipts[0];
+          const payload = JSON.parse(text.split('\n')[1]);
+          const receipt =
+            mode === 'archive-root'
+              ? payload.evidenceReceipts[
+                  payload.snapshots.at(-1).payload.userArchive.entries[0].receiptIndex
+                ]
+              : mode === 'user-archive'
+                ? payload.userArchive.entries[0]
+                : payload.evidenceReceipts[0];
           message.content = null;
           message.tool_calls = [
             {
@@ -265,6 +440,16 @@ function fixture({
     envelopes,
     artifacts,
     state,
+    setPolicy(version, enabled = false) {
+      const next = composeContextProtocolOptions(
+        { contextWindowPolicy: 'disabled' },
+        {
+          appSettings: { contextPolicyVersion: version, contextRecoveryEnabled: enabled },
+        }
+      );
+      for (const key of Reflect.ownKeys(protocolOptions)) delete protocolOptions[key];
+      Object.defineProperties(protocolOptions, Object.getOwnPropertyDescriptors(next));
+    },
     expire() {
       now += 100;
     },
@@ -634,6 +819,121 @@ test('dedicated compaction cannot inherit an execution prompt preset', async () 
     assert.ok(!JSON.stringify(f.sent[0]).includes('EXECUTE_SIDE_EFFECT_NOW'));
   } finally {
     f.close();
+  }
+});
+
+test('standalone handler archives a historical user and delivers the exact original only through the internal evidence reader', async () => {
+  const f = fixture({ mode: 'user-archive' });
+  const original = {
+    type: 'message',
+    role: 'user',
+    content: '关键约束：不删除目录，不重启代理；这些是归档原文🙂。'.repeat(8),
+  };
+  try {
+    const input = [
+      { role: 'system', content: '保护系统策略，不泄露认证。' },
+      { role: 'user', content: '最初目标不变。' },
+      original,
+      { role: 'user', content: '最近输入。' },
+      { role: 'user', content: '当前输入。' },
+    ];
+    const before = JSON.stringify(input);
+    const compacted = await f.request(input, { standalone: true });
+    assert.ok(compacted, JSON.stringify(f.errors));
+    assert.equal(f.artifacts.stats().entries, 1);
+    assert.ok(!compacted.output.some((item) => item.content === original.content));
+    const reply = await f.request([
+      ...compacted.output,
+      { role: 'user', content: '先查留存原文。' },
+    ]);
+    assert.ok(reply, JSON.stringify(f.errors));
+    assert.equal(f.sent.length, 3, 'one summary, one synthetic reader choice, one continuation');
+    assert.ok(
+      !f.sent[1].messages.some((item) => item.role === 'user' && item.content === original.content)
+    );
+    const delivered = f.sent[2].messages.find(
+      (item) => item.role === 'tool' && item.name === CONTEXT_ARTIFACT_TOOL_NAME
+    );
+    const page = JSON.parse(delivered.content);
+    assert.equal(page.ok, true);
+    assert.deepEqual(JSON.parse(page.page.text), original);
+    assert.equal(page.page.totalBytes, Buffer.byteLength(JSON.stringify(original)));
+    assert.equal(JSON.stringify(input), before);
+    assert.deepEqual(f.errors, []);
+    assert.ok(!JSON.stringify(f.events).includes(original.content));
+    assert.ok(!JSON.stringify(f.endings).includes(original.content));
+    assert.ok(
+      reply.output.every((item) => item.type !== 'function_call'),
+      'no client tool invocation'
+    );
+  } finally {
+    f.close();
+  }
+});
+
+test('actual handler replays a multi-cycle root and resolves its original archive index over JSON and SSE', async () => {
+  for (const stream of [false, true]) {
+    const f = fixture({ mode: 'archive-root', renewable: true });
+    const original = {
+      type: 'message',
+      role: 'user',
+      content: '最初归档的细节：不得删除或重启，缺失证据不重跑。🙂',
+    };
+    try {
+      let compacted = await f.request(
+        [
+          { role: 'system', content: '保留策略。' },
+          { role: 'user', content: '最初目标。' },
+          original,
+          { role: 'user', content: '最近一轮。' },
+          { role: 'user', content: '当前输入。' },
+        ],
+        { standalone: true }
+      );
+      assert.ok(compacted, JSON.stringify(f.errors));
+      for (let cycle = 0; cycle < 2; cycle++) {
+        compacted = await f.request(
+          [
+            ...compacted.output,
+            { role: 'user', content: `轮次${cycle}新增约束。` },
+            { role: 'user', content: `轮次${cycle}继续，不擅自重跑。` },
+          ],
+          { standalone: true }
+        );
+        assert.ok(compacted, JSON.stringify(f.errors));
+      }
+      assert.equal(f.sent.length, 3);
+      const reply = await f.request(
+        [...compacted.output, { role: 'user', content: '先回读第一轮归档原文。' }],
+        { stream }
+      );
+      assert.ok(reply, JSON.stringify(f.errors));
+      assert.deepEqual(f.errors, []);
+      const liveRoots = f.sent[3].messages.filter((item) =>
+        item.content?.startsWith(LOCAL_SUMMARY_MARKER)
+      );
+      assert.equal(liveRoots.length, 1);
+      const root = JSON.parse(liveRoots[0].content.split('\n')[1]);
+      assert.equal(root.schema, BUNDLE_SCHEMA);
+      assert.equal(root.snapshots.length, 3);
+      assert.equal(root.evidenceReceipts.length, 5);
+      const delivered = f.sent[4].messages.find(
+        (item) => item.role === 'tool' && item.name === CONTEXT_ARTIFACT_TOOL_NAME
+      );
+      const page = JSON.parse(delivered.content);
+      assert.equal(page.ok, true);
+      assert.deepEqual(JSON.parse(page.page.text), original);
+      assert.equal(
+        f.sent.length,
+        5,
+        'three summaries, one reader selection and one continuation; no external tool replay'
+      );
+      assert.ok(reply.output.every((item) => item.type !== 'function_call'));
+      assert.ok(!JSON.stringify(f.events).includes(original.content));
+      assert.ok(!JSON.stringify(f.endings).includes(original.content));
+    } finally {
+      f.close();
+    }
   }
 });
 

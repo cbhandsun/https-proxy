@@ -1,0 +1,71 @@
+{
+  "source": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+  "diagnosticRun": 40619749468,
+  "cases": [
+    {
+      "id": 122590630957,
+      "scenario": "n09-uncertain-ack",
+      "sourceSha": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+      "planSha256": "fc31c24c127ae5323aa3afc3c98c17f65b2c2dc0ad8242488b25d1a7697080b7",
+      "buildReceiptSha256": "75cf1494d916d9b5a8b29e907088d3271220ff5b3458369dcda93d7c16ac53f4",
+      "executed": {
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "tlsVerified": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "phase": "hosted_network_finished"
+      },
+      "fullLogRead": true,
+      "caseCount": 2,
+      "formalQualification": false
+    },
+    {
+      "id": 122590631025,
+      "scenario": "n09-withdrawn-ack",
+      "sourceSha": "c5058da4e47f734e7bd1551faf88abf4ae9ec7ea",
+      "planSha256": "c654289f3a929f8c363b33caac84a09f0a64e356121ddb3c89affd8dacf9868f",
+      "buildReceiptSha256": "f5bc251623a6987f134ea1048f2735ed9232c2f793588fcacc4ad9f193816d83",
+      "executed": {
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false
+      },
+      "fullLogRead": true,
+      "caseCount": 2,
+      "formalQualification": false
+    }
+  ],
+  "retainedFailure": {
+    "job": 122590631234,
+    "scenario": "n09-finished-ack",
+    "conclusion": "failure",
+    "fullLogRead": true,
+    "childExitCode": 184,
+    "businessCasePhase": 161,
+    "lastNumericObservation": "readonly snapshot finalization marker",
+    "exactCauseConfirmed": false,
+    "ownedTreeEmptyReceiptObtained": false,
+    "noAutomaticRetry": true
+  },
+  "scope": {
+    "newTerminalCasesExecuted": true,
+    "allSixDiagnosticJobsPassed": false,
+    "formalSourceGatesComplete": false,
+    "fiveSecondStability": false,
+    "fullN09": false,
+    "realModelRequests": 0,
+    "new24HourStarted": false
+  },
+  "diagnosticJobsAtObservation": {
+    "n08": "success",
+    "n09": "success",
+    "n09-sending-ack": "success",
+    "n09-finished-ack": "failure",
+    "n09-withdrawn-ack": "success",
+    "n09-uncertain-ack": "success"
+  }
+}

@@ -1,0 +1,698 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+  "ordinaryVerify": {
+    "runId": 40631684746,
+    "jobs": [
+      {
+        "id": 122629275631,
+        "name": "rust-tests",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 122629275909,
+        "name": "coverage",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 122629275916,
+        "name": "integration-tests",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 122629275942,
+        "name": "unit-tests (2)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 122629275950,
+        "name": "node-quality",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 122629275976,
+        "name": "unit-tests (0)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 122629275985,
+        "name": "unit-tests (1)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 122629276019,
+        "name": "unit-tests (3)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "coverageJobId": 122629275909,
+    "fullCoverageLogRead": true,
+    "logCharacters": 3716760,
+    "persistentPublicationSamples": [
+      {
+        "kind": "chat",
+        "turn": 0,
+        "elapsedMs": 939
+      },
+      {
+        "kind": "chat",
+        "turn": 1,
+        "elapsedMs": 1228
+      },
+      {
+        "kind": "responses",
+        "turn": 0,
+        "elapsedMs": 726
+      },
+      {
+        "kind": "responses",
+        "turn": 1,
+        "elapsedMs": 1012
+      },
+      {
+        "kind": "claude",
+        "turn": 0,
+        "elapsedMs": 945
+      },
+      {
+        "kind": "claude",
+        "turn": 1,
+        "elapsedMs": 1255
+      },
+      {
+        "kind": "chat",
+        "turn": 0,
+        "elapsedMs": 601
+      },
+      {
+        "kind": "chat",
+        "turn": 1,
+        "elapsedMs": 706
+      },
+      {
+        "kind": "responses",
+        "turn": 0,
+        "elapsedMs": 657
+      },
+      {
+        "kind": "responses",
+        "turn": 1,
+        "elapsedMs": 709
+      },
+      {
+        "kind": "claude",
+        "turn": 0,
+        "elapsedMs": 629
+      },
+      {
+        "kind": "claude",
+        "turn": 1,
+        "elapsedMs": 718
+      }
+    ],
+    "receiptsValidatedWithOriginalParser": true,
+    "receipts": [
+      {
+        "schemaVersion": 2,
+        "windowId": "client-context-target",
+        "coverageStage": "proxy",
+        "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "summary": {
+          "schemaVersion": 6,
+          "scope": "synthetic_sqlite_etw_file_operations",
+          "pairedFlushes": 96,
+          "database": {
+            "count": 32,
+            "maxMs": 64,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "journal": {
+            "count": 64,
+            "maxMs": 167,
+            "over100Ms": 1,
+            "over1000Ms": 0
+          },
+          "traceCompletenessVerified": false,
+          "fiveSecondQualified": false,
+          "commitCorrelationQualified": false
+        }
+      },
+      {
+        "schemaVersion": 2,
+        "windowId": "client-context-target",
+        "coverageStage": "client",
+        "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "summary": {
+          "schemaVersion": 6,
+          "scope": "synthetic_sqlite_etw_file_operations",
+          "pairedFlushes": 144,
+          "database": {
+            "count": 48,
+            "maxMs": 20,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "journal": {
+            "count": 96,
+            "maxMs": 28,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "traceCompletenessVerified": false,
+          "fiveSecondQualified": false,
+          "commitCorrelationQualified": false
+        }
+      },
+      {
+        "schemaVersion": 3,
+        "windowId": "publication-graceful-http",
+        "coverageStage": "client",
+        "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "summary": {
+          "schemaVersion": 6,
+          "scope": "synthetic_sqlite_etw_file_operations",
+          "pairedFlushes": 63,
+          "database": {
+            "count": 21,
+            "maxMs": 911,
+            "over100Ms": 11,
+            "over1000Ms": 0
+          },
+          "journal": {
+            "count": 42,
+            "maxMs": 709,
+            "over100Ms": 14,
+            "over1000Ms": 0
+          },
+          "traceCompletenessVerified": false,
+          "fiveSecondQualified": false,
+          "commitCorrelationQualified": false
+        }
+      }
+    ]
+  },
+  "formal": {
+    "runId": 40631684839,
+    "sourceJobId": 122629276180,
+    "sourceStatus": "success",
+    "fullSourceLogRead": true,
+    "sourceLogCharacters": 3812677,
+    "sourcePersistentPublicationSamples": [
+      {
+        "kind": "chat",
+        "turn": 0,
+        "elapsedMs": 1582
+      },
+      {
+        "kind": "chat",
+        "turn": 1,
+        "elapsedMs": 1834
+      },
+      {
+        "kind": "responses",
+        "turn": 0,
+        "elapsedMs": 1407
+      },
+      {
+        "kind": "responses",
+        "turn": 1,
+        "elapsedMs": 1694
+      },
+      {
+        "kind": "claude",
+        "turn": 0,
+        "elapsedMs": 1167
+      },
+      {
+        "kind": "claude",
+        "turn": 1,
+        "elapsedMs": 1343
+      },
+      {
+        "kind": "chat",
+        "turn": 0,
+        "elapsedMs": 932
+      },
+      {
+        "kind": "chat",
+        "turn": 1,
+        "elapsedMs": 1094
+      },
+      {
+        "kind": "responses",
+        "turn": 0,
+        "elapsedMs": 950
+      },
+      {
+        "kind": "responses",
+        "turn": 1,
+        "elapsedMs": 1193
+      },
+      {
+        "kind": "claude",
+        "turn": 0,
+        "elapsedMs": 956
+      },
+      {
+        "kind": "claude",
+        "turn": 1,
+        "elapsedMs": 1133
+      }
+    ],
+    "sourceReceiptVerified": true,
+    "businessJobs": [
+      {
+        "jobId": 122636101539,
+        "scenario": "n09-uncertain-commit",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 35337,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-uncertain-commit",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "2bbcabcdf4dacc60b84da6492c6507466bb924765be0bce37692da199b4c19a3",
+          "buildReceiptSha256": "4b4ac915256d1902bc4a093b7b7c7e0b7dd87f68afb18a04efa5210a4fac531c",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "ownedTreeEmpty": true,
+          "nonLoopbackBlocked": true,
+          "probesPassed": true,
+          "phase": "hosted_network_finished",
+          "tlsVerified": true
+        }
+      },
+      {
+        "jobId": 122636101543,
+        "scenario": "n09-withdrawn-ack",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 34993,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-withdrawn-ack",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "6ef67c911aa6f47903587724af45f1b301a37081a95cfed25cfeab1fb65e9d22",
+          "buildReceiptSha256": "514dac7e6f3fa8578f3db94c267e53b9a5096d656d38617e46e080783a76ef97",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "ownedTreeEmpty": true,
+          "probesPassed": true,
+          "tlsVerified": true,
+          "phase": "hosted_network_finished",
+          "nonLoopbackBlocked": true
+        }
+      },
+      {
+        "jobId": 122636101547,
+        "scenario": "n09",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 34920,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "857af507f03074c12e65bc3e6d2e8cbe74e955ba5936b59f3324fe39ad0743c7",
+          "buildReceiptSha256": "c68e732caabc02edcf7bfc80ba73044af6c44553739629401815b6c7b0f34156",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "phase": "hosted_network_finished",
+          "tlsVerified": true,
+          "ownedTreeEmpty": true,
+          "probesPassed": true,
+          "n08Qualified": false,
+          "nonLoopbackBlocked": true
+        }
+      },
+      {
+        "jobId": 122636101586,
+        "scenario": "n09-finished-commit",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 35003,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-finished-commit",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "2940dd99884865de88eda585c64644c9b6b2961ae8e22cddf0c49fc7d4942fdf",
+          "buildReceiptSha256": "ababc47a395b80becb19fcd0712090ddce57b53c2f0521825b9ecc21c930826b",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "phase": "hosted_network_finished",
+          "n08Qualified": false,
+          "ownedTreeEmpty": true,
+          "nonLoopbackBlocked": true,
+          "probesPassed": true,
+          "tlsVerified": true
+        }
+      },
+      {
+        "jobId": 122636101594,
+        "scenario": "n09-sending-ack",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 34980,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-sending-ack",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "61988e929e2fec5324348d6de9c521a216c8bcd5420370cd89a4fba85e4d0ee4",
+          "buildReceiptSha256": "a497afb2c9696d039038092616c447e7c24c947d187ce4405315c5eefbc35b5e",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "nonLoopbackBlocked": true,
+          "tlsVerified": true,
+          "ownedTreeEmpty": true,
+          "n08Qualified": false,
+          "probesPassed": true,
+          "phase": "hosted_network_finished"
+        }
+      },
+      {
+        "jobId": 122636101602,
+        "scenario": "n09-withdrawn-commit",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 35005,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-withdrawn-commit",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "81284c06afa75245d7763da160713ce51e08d0b49b013da40330bb3465706349",
+          "buildReceiptSha256": "72aaad20f23ea084efaabffbdd4b684cec09c9c7e8762dda7e4ca0e2ce7203d5",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "n08Qualified": false,
+          "phase": "hosted_network_finished",
+          "ownedTreeEmpty": true,
+          "tlsVerified": true,
+          "nonLoopbackBlocked": true,
+          "probesPassed": true
+        }
+      },
+      {
+        "jobId": 122636101613,
+        "scenario": "n09-finished-ack",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 34988,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-finished-ack",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "3285b4c401ab6e11af62ad9ad976f0f2d720033e2eb7ec11edf7fa1c9521c81f",
+          "buildReceiptSha256": "66448ba677506ab3b121eed0b8978a5027bc558b5aef4a980b94df2d942af5ec",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "probesPassed": true,
+          "nonLoopbackBlocked": true,
+          "tlsVerified": true,
+          "ownedTreeEmpty": true,
+          "phase": "hosted_network_finished",
+          "n08Qualified": false
+        }
+      },
+      {
+        "jobId": 122636101622,
+        "scenario": "n09-sending-commit",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 34998,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-sending-commit",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "1f2222e88135ba25212d7a1cb7d7a16c3d44b516962dc82101e1af3ddaecbc02",
+          "buildReceiptSha256": "c7044b3ff29ae373bf44af4d151fb319ca37477d64c32e292c47db4a185256e6",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "probesPassed": true,
+          "tlsVerified": true,
+          "nonLoopbackBlocked": true,
+          "ownedTreeEmpty": true,
+          "n08Qualified": false,
+          "phase": "hosted_network_finished"
+        }
+      },
+      {
+        "jobId": 122636101635,
+        "scenario": "n08",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 34921,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n08",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "c3c02fa7b23d508e59f61abd30147504b044c2070cd4e06caca740ef5d902687",
+          "buildReceiptSha256": "38d70e2264f11c2314bbc10eb6be929f9d6324b3074883256fefcff13582ed5f",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "ownedTreeEmpty": true,
+          "nonLoopbackBlocked": true,
+          "phase": "hosted_network_finished",
+          "probesPassed": true,
+          "n08Qualified": false,
+          "tlsVerified": true
+        }
+      },
+      {
+        "jobId": 122636101641,
+        "scenario": "n09-uncertain-ack",
+        "conclusion": "success",
+        "fullLogRead": true,
+        "logCharacters": 34990,
+        "prepared": {
+          "schemaVersion": 1,
+          "scenario": "n09-uncertain-ack",
+          "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+          "planSha256": "232e8e26ed4970e26704bd9da460f7720f7b2195c14d05bfdb23bfd77a90e669",
+          "buildReceiptSha256": "0c597dbbd25b0b1b38f67973146d5bac97173cc0cbef102ec5be688f2b11c494",
+          "phase": "prepared_only",
+          "networkExecuted": false,
+          "daemonExecuted": false
+        },
+        "executed": {
+          "nonLoopbackBlocked": true,
+          "tlsVerified": true,
+          "phase": "hosted_network_finished",
+          "probesPassed": true,
+          "n08Qualified": false,
+          "ownedTreeEmpty": true
+        }
+      }
+    ],
+    "egressJobId": 122629275898,
+    "egressStatus": "success"
+  },
+  "extraIo": {
+    "runId": 40631684852,
+    "jobId": 122629275816,
+    "status": "success",
+    "fullLogRead": true,
+    "logCharacters": 3724755,
+    "persistentPublicationSamples": [
+      {
+        "kind": "chat",
+        "turn": 0,
+        "elapsedMs": 1719
+      },
+      {
+        "kind": "chat",
+        "turn": 1,
+        "elapsedMs": 2068
+      },
+      {
+        "kind": "responses",
+        "turn": 0,
+        "elapsedMs": 1319
+      },
+      {
+        "kind": "responses",
+        "turn": 1,
+        "elapsedMs": 1701
+      },
+      {
+        "kind": "claude",
+        "turn": 0,
+        "elapsedMs": 1404
+      },
+      {
+        "kind": "claude",
+        "turn": 1,
+        "elapsedMs": 1445
+      },
+      {
+        "kind": "chat",
+        "turn": 0,
+        "elapsedMs": 967
+      },
+      {
+        "kind": "chat",
+        "turn": 1,
+        "elapsedMs": 1141
+      },
+      {
+        "kind": "responses",
+        "turn": 0,
+        "elapsedMs": 1022
+      },
+      {
+        "kind": "responses",
+        "turn": 1,
+        "elapsedMs": 1215
+      },
+      {
+        "kind": "claude",
+        "turn": 0,
+        "elapsedMs": 1000
+      },
+      {
+        "kind": "claude",
+        "turn": 1,
+        "elapsedMs": 1201
+      }
+    ],
+    "receiptsValidatedWithOriginalParser": true,
+    "receipts": [
+      {
+        "schemaVersion": 3,
+        "windowId": "native-publication-interruption",
+        "coverageStage": "proxy",
+        "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "summary": {
+          "schemaVersion": 6,
+          "scope": "synthetic_sqlite_etw_file_operations",
+          "pairedFlushes": 210,
+          "database": {
+            "count": 70,
+            "maxMs": 49,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "journal": {
+            "count": 140,
+            "maxMs": 38,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "traceCompletenessVerified": false,
+          "fiveSecondQualified": false,
+          "commitCorrelationQualified": false
+        }
+      },
+      {
+        "schemaVersion": 2,
+        "windowId": "client-context-target",
+        "coverageStage": "client",
+        "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "summary": {
+          "schemaVersion": 6,
+          "scope": "synthetic_sqlite_etw_file_operations",
+          "pairedFlushes": 144,
+          "database": {
+            "count": 48,
+            "maxMs": 26,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "journal": {
+            "count": 96,
+            "maxMs": 16,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "traceCompletenessVerified": false,
+          "fiveSecondQualified": false,
+          "commitCorrelationQualified": false
+        }
+      },
+      {
+        "schemaVersion": 3,
+        "windowId": "publication-graceful-http",
+        "coverageStage": "client",
+        "sourceSha": "a7cbd6fafc331d92029e14767ff90dcf916cbce7",
+        "cleanupVerified": true,
+        "windowTermination": "file-completed",
+        "summary": {
+          "schemaVersion": 6,
+          "scope": "synthetic_sqlite_etw_file_operations",
+          "pairedFlushes": 63,
+          "database": {
+            "count": 21,
+            "maxMs": 12,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "journal": {
+            "count": 42,
+            "maxMs": 13,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "traceCompletenessVerified": false,
+          "fiveSecondQualified": false,
+          "commitCorrelationQualified": false
+        }
+      }
+    ]
+  },
+  "limits": {
+    "fixedScenarioExecutionQualified": true,
+    "fullN08OrN09QualificationClaimed": false,
+    "installedBinaryQualified": false,
+    "fiveSecondStabilityQualified": false,
+    "oldFailuresRetained": true,
+    "real24hQualified": false,
+    "realModelRequests": 0
+  }
+}

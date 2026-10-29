@@ -1,0 +1,1298 @@
+{
+  "schemaVersion": 1,
+  "source": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+  "verifyRunId": 40647577186,
+  "formalRunId": 40647577225,
+  "coverageFullLogCharacters": 2689631,
+  "sourceFullLogCharacters": 3832206,
+  "coverageIoFullLogCharacters": 3743617,
+  "formal": [
+    {
+      "jobId": 122688158320,
+      "logCharacters": 34930,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "cb489f9a39f78e9b7572351477238b93c1be7e40625cd34a865a0c5861ebceb1",
+        "buildReceiptSha256": "cfccae3ec38699b15a36cfe440c2b82129a32b149142ae5f401a7c13bfb1a91e",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "n08Qualified": false
+      }
+    },
+    {
+      "jobId": 122688158334,
+      "logCharacters": 35000,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-withdrawn-ack",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "0813cbc040c4e2b7d49d64146fe8a051300d540aa4a9838b800697635924ae09",
+        "buildReceiptSha256": "2522c1e27c2bb61a481624416d0ef75575813a406cafb2f8bfe1c782005a88a5",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "probesPassed": true,
+        "n08Qualified": false,
+        "tlsVerified": true,
+        "ownedTreeEmpty": true,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true
+      }
+    },
+    {
+      "jobId": 122688158394,
+      "logCharacters": 35002,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-uncertain-ack",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "31dd11b80ac2b76ff454c4914fc40f98b09105245ff78c0576a56069e89f6122",
+        "buildReceiptSha256": "7ed38937ad5ccac571418f01cf6c2a576255c834ecb1443f85d6086329f2da31",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "probesPassed": true,
+        "ownedTreeEmpty": true,
+        "tlsVerified": true,
+        "n08Qualified": false,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true
+      }
+    },
+    {
+      "jobId": 122688158408,
+      "logCharacters": 35005,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-sending-commit",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "81102a6af1eec01c8f866c5ff1a8b0f1b759bcbe41d5f1950af505c13d1c0fa7",
+        "buildReceiptSha256": "b3895bf3823f0453fa1818d857af018cb3116988bce19a6ba0d6486f3f334b69",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "probesPassed": true,
+        "n08Qualified": false,
+        "nonLoopbackBlocked": true,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "ownedTreeEmpty": true
+      }
+    },
+    {
+      "jobId": 122688158435,
+      "logCharacters": 34931,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n08",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "70579aec8d51a9e8ff9c5367e7348159443a76d529687c4b95f6d17e1a4491f3",
+        "buildReceiptSha256": "0e327af0806a4dc82916633e788d84d9f1ed6042f5b15c39f03826746591aded",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "probesPassed": true
+      }
+    },
+    {
+      "jobId": 122688158439,
+      "logCharacters": 35015,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-uncertain-commit",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "84aadc95d5bda685d1f0023411e9cda02f8f178a0eb40a01a8f0dcc2964e11f2",
+        "buildReceiptSha256": "a8c00d0042aeff6982e842453f000dade775a0188d87d8861a72356f6d7dc8b0",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "tlsVerified": true
+      }
+    },
+    {
+      "jobId": 122688158442,
+      "logCharacters": 35002,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-finished-ack",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "008d72403eba5c9d6dd2e5540a2aedf288abb02993a5e92e4a3a02941e5a18c8",
+        "buildReceiptSha256": "d31ab27d528cde84bedfc04649fe5fee0a725bd666d78e19245f06f1972e9771",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "probesPassed": true,
+        "n08Qualified": false,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "nonLoopbackBlocked": true
+      }
+    },
+    {
+      "jobId": 122688158445,
+      "logCharacters": 35010,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-finished-commit",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "e62393787ccd5c39be7afd8a73c1c4769accbf99880f71a4a57bb2a14d0b7cfd",
+        "buildReceiptSha256": "f8901440249e47b13175e4ebc1ba6e6d60f35215dd73188bed8cd66db20f556a",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "ownedTreeEmpty": true,
+        "probesPassed": true,
+        "n08Qualified": false
+      }
+    },
+    {
+      "jobId": 122688158503,
+      "logCharacters": 35022,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-withdrawn-commit",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "c552d5bd2c1a7524969c1ede92aa45b1085fde1d5e7f228eb47c5dfc46ec045e",
+        "buildReceiptSha256": "fb24352b2de8d963d86ed9cf94fadce861022d35a4e303e6a777378b945aea37",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "n08Qualified": false
+      }
+    },
+    {
+      "jobId": 122688158568,
+      "logCharacters": 34990,
+      "prepared": {
+        "schemaVersion": 1,
+        "scenario": "n09-sending-ack",
+        "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+        "planSha256": "963c8a7d6f18c352afd031963ff0a76f47fb62f5f4414b586f6c8c7299a26f68",
+        "buildReceiptSha256": "2a9733422e8337f292ce9c51426e186332a7c4ba1f3fd8def6f0bf0bb45e6f6d",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "probesPassed": true,
+        "phase": "hosted_network_finished"
+      }
+    }
+  ],
+  "io": [
+    {
+      "jobId": 122679869428,
+      "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+      "coverageStage": "proxy",
+      "windowId": "client-context-target",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "fullSummaryValidated": true,
+      "summarySha256": "5093f0763c0440ff49ee39ed6506af083d83c57759a93166be940b6c14f75339",
+      "database": {
+        "count": 0,
+        "maxMs": 0,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 30,
+        "maxMs": 34,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122679869189,
+      "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+      "coverageStage": "proxy",
+      "windowId": "native-publication-interruption",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "fullSummaryValidated": true,
+      "summarySha256": "3b09590177aeddd9513b76f7d4677869cb3ae7f52b0fa638dffbe178f1e65d54",
+      "database": {
+        "count": 69,
+        "maxMs": 38,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 138,
+        "maxMs": 51,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122679869189,
+      "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+      "coverageStage": "client",
+      "windowId": "client-context-target",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "fullSummaryValidated": true,
+      "summarySha256": "48cf22affee5bb3c9f9892d65811c0179d5718a97538087a44afa4dd6265e64c",
+      "database": {
+        "count": 48,
+        "maxMs": 40,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 96,
+        "maxMs": 20,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122679869189,
+      "sourceSha": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+      "coverageStage": "client",
+      "windowId": "publication-graceful-http",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "fullSummaryValidated": true,
+      "summarySha256": "b80d962796983b856ee29310475d7776665e2c5ec79fc8cadaf5cb7d4a89fd69",
+      "database": {
+        "count": 21,
+        "maxMs": 14,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 42,
+        "maxMs": 17,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    }
+  ],
+  "verifyJobs": [
+    {
+      "id": 122679869028,
+      "name": "coverage",
+      "conclusion": "failure"
+    },
+    {
+      "id": 122679869141,
+      "name": "node-quality",
+      "conclusion": "success"
+    },
+    {
+      "id": 122679869148,
+      "name": "unit-tests (2)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122679869171,
+      "name": "unit-tests (1)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122679869227,
+      "name": "unit-tests (3)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122679869249,
+      "name": "rust-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 122679869257,
+      "name": "integration-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 122679869273,
+      "name": "unit-tests (0)",
+      "conclusion": "success"
+    }
+  ],
+  "formalJobs": [
+    {
+      "id": 122679869106,
+      "name": "egress-diagnostic",
+      "conclusion": "success"
+    },
+    {
+      "id": 122679869428,
+      "name": "source-gates",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158320,
+      "name": "context-recovery (n09)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158334,
+      "name": "context-recovery (n09-withdrawn-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158394,
+      "name": "context-recovery (n09-uncertain-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158408,
+      "name": "context-recovery (n09-sending-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158435,
+      "name": "context-recovery (n08)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158439,
+      "name": "context-recovery (n09-uncertain-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158442,
+      "name": "context-recovery (n09-finished-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158445,
+      "name": "context-recovery (n09-finished-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158503,
+      "name": "context-recovery (n09-withdrawn-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122688158568,
+      "name": "context-recovery (n09-sending-ack)",
+      "conclusion": "success"
+    }
+  ],
+  "timing": [
+    {
+      "jobId": 122679868957,
+      "sourceMention": true,
+      "fullLogCharacters": 243066,
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 986
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1099
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 982
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1118
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 974
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1144
+        }
+      ],
+      "totals": [
+        "2026-10-28T07:04:37.3114117Z # tests 50",
+        "2026-10-28T07:04:37.3114738Z # pass 50",
+        "2026-10-28T07:04:37.3115031Z # fail 0",
+        "2026-10-28T07:04:37.3115780Z # skipped 0"
+      ]
+    },
+    {
+      "jobId": 122679869362,
+      "sourceMention": true,
+      "fullLogCharacters": 242595,
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 986
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 999
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 668
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 747
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 627
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 755
+        }
+      ],
+      "totals": [
+        "2026-10-28T07:04:08.1195599Z # tests 50",
+        "2026-10-28T07:04:08.1195905Z # pass 50",
+        "2026-10-28T07:04:08.1196006Z # fail 0",
+        "2026-10-28T07:04:08.1196243Z # skipped 0"
+      ]
+    },
+    {
+      "jobId": 122679869480,
+      "sourceMention": true,
+      "fullLogCharacters": 243029,
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1070
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1006
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 856
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1052
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 893
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 985
+        }
+      ],
+      "totals": [
+        "2026-10-28T07:04:48.3224003Z # tests 50",
+        "2026-10-28T07:04:48.3224760Z # pass 50",
+        "2026-10-28T07:04:48.3225174Z # fail 0",
+        "2026-10-28T07:04:48.3226099Z # skipped 0"
+      ]
+    },
+    {
+      "jobId": 122679869057,
+      "sourceMention": true,
+      "fullLogCharacters": 248637,
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 949
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1024
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1000
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1070
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "phase": "publication_wait_end",
+          "elapsedMs": 910
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "phase": "publication_wait_end",
+          "elapsedMs": 1087
+        }
+      ],
+      "totals": [
+        "2026-10-28T07:04:49.2911031Z # tests 50",
+        "2026-10-28T07:04:49.2912055Z # pass 50",
+        "2026-10-28T07:04:49.2912490Z # fail 0",
+        "2026-10-28T07:04:49.2913674Z # skipped 0"
+      ]
+    }
+  ],
+  "coverageFailure": {
+    "case": "encrypted worker reopens four full session roots with 32 MiB of exact private history",
+    "durationMs": 102717.0267,
+    "stage": "reopen",
+    "fixtures": 4,
+    "storageFailure": null,
+    "code": "context_recovery_storage_unavailable",
+    "uniqueRootCauseConfirmed": false
+  },
+  "local": {
+    "event": "independent_short_observed",
+    "sourceHead": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+    "taskState": "Ready",
+    "taskResult": 1,
+    "taskPriority": 4,
+    "state": {
+      "step": "short",
+      "atUtc": "2026-10-28T07:13:32.7231343Z",
+      "childExitCode": 1,
+      "stdoutBytes": 131635,
+      "event": "independent_short_af6d9d1_step_finished",
+      "realModelRequests": 0,
+      "qualification": false,
+      "jobNaturallyEmpty": false,
+      "stderrBytes": 115,
+      "elapsedMs": 104992
+    },
+    "events": [
+      {
+        "step": "source",
+        "atUtc": "2026-10-28T07:04:37.1870481Z",
+        "childExitCode": 0,
+        "stdoutBytes": 238,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 803,
+        "elapsedMs": 24834
+      },
+      {
+        "step": "cache-copy",
+        "atUtc": "2026-10-28T07:04:46.5525476Z",
+        "childExitCode": 0,
+        "stdoutBytes": 54,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 0,
+        "elapsedMs": 9275
+      },
+      {
+        "step": "npm-ci",
+        "atUtc": "2026-10-28T07:05:14.1681092Z",
+        "childExitCode": 0,
+        "stdoutBytes": 298,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 0,
+        "elapsedMs": 27541
+      },
+      {
+        "step": "plugin-ci",
+        "atUtc": "2026-10-28T07:05:55.1633326Z",
+        "childExitCode": 0,
+        "stdoutBytes": 253,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 0,
+        "elapsedMs": 40922
+      },
+      {
+        "step": "native-artifact",
+        "atUtc": "2026-10-28T07:05:57.3905979Z",
+        "childExitCode": 0,
+        "stdoutBytes": 140,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 0,
+        "elapsedMs": 2155
+      },
+      {
+        "step": "native-open",
+        "atUtc": "2026-10-28T07:06:06.9867669Z",
+        "childExitCode": 0,
+        "stdoutBytes": 4170,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 0,
+        "elapsedMs": 9494
+      },
+      {
+        "step": "regression",
+        "atUtc": "2026-10-28T07:06:17.3308943Z",
+        "childExitCode": 0,
+        "stdoutBytes": 6624,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 0,
+        "elapsedMs": 10272
+      },
+      {
+        "step": "blobs",
+        "atUtc": "2026-10-28T07:07:38.9710182Z",
+        "childExitCode": 0,
+        "stdoutBytes": 22616,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 0,
+        "elapsedMs": 81578
+      },
+      {
+        "step": "root-state",
+        "atUtc": "2026-10-28T07:10:03.258784Z",
+        "childExitCode": 0,
+        "stdoutBytes": 18275,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 0,
+        "elapsedMs": 144219
+      },
+      {
+        "step": "native-interruption",
+        "atUtc": "2026-10-28T07:11:47.6587448Z",
+        "childExitCode": 0,
+        "stdoutBytes": 5292,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": true,
+        "stderrBytes": 0,
+        "elapsedMs": 104350
+      },
+      {
+        "step": "short",
+        "atUtc": "2026-10-28T07:13:32.7231343Z",
+        "childExitCode": 1,
+        "stdoutBytes": 131635,
+        "event": "independent_short_af6d9d1_step_finished",
+        "realModelRequests": 0,
+        "qualification": false,
+        "jobNaturallyEmpty": false,
+        "stderrBytes": 115,
+        "elapsedMs": 104992
+      }
+    ],
+    "actualNodeAlive": false,
+    "actualNodeIdentityVerified": false,
+    "real24hStarted": false,
+    "realModelRequests": 0,
+    "logs": [
+      {
+        "step": "source",
+        "stdoutBytes": 238,
+        "stderrBytes": 803,
+        "visiblePasses": 0,
+        "failures": [],
+        "totals": [],
+        "knownErrors": []
+      },
+      {
+        "step": "cache-copy",
+        "stdoutBytes": 54,
+        "stderrBytes": 0,
+        "visiblePasses": 0,
+        "failures": [],
+        "totals": [],
+        "knownErrors": []
+      },
+      {
+        "step": "npm-ci",
+        "stdoutBytes": 298,
+        "stderrBytes": 0,
+        "visiblePasses": 0,
+        "failures": [],
+        "totals": [],
+        "knownErrors": []
+      },
+      {
+        "step": "plugin-ci",
+        "stdoutBytes": 253,
+        "stderrBytes": 0,
+        "visiblePasses": 0,
+        "failures": [],
+        "totals": [],
+        "knownErrors": []
+      },
+      {
+        "step": "native-artifact",
+        "stdoutBytes": 140,
+        "stderrBytes": 0,
+        "visiblePasses": 0,
+        "failures": [],
+        "totals": [],
+        "knownErrors": []
+      },
+      {
+        "step": "native-open",
+        "stdoutBytes": 4170,
+        "stderrBytes": 0,
+        "visiblePasses": 0,
+        "failures": [],
+        "totals": [],
+        "knownErrors": []
+      },
+      {
+        "step": "regression",
+        "stdoutBytes": 6624,
+        "stderrBytes": 0,
+        "visiblePasses": 28,
+        "failures": [],
+        "totals": [
+          "# tests 28",
+          "# pass 28",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# duration_ms 7978.1958"
+        ],
+        "knownErrors": []
+      },
+      {
+        "step": "blobs",
+        "stdoutBytes": 22616,
+        "stderrBytes": 0,
+        "visiblePasses": 91,
+        "failures": [],
+        "totals": [
+          "# tests 91",
+          "# pass 91",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# duration_ms 79378.6106"
+        ],
+        "knownErrors": []
+      },
+      {
+        "step": "root-state",
+        "stdoutBytes": 18275,
+        "stderrBytes": 0,
+        "visiblePasses": 72,
+        "failures": [],
+        "totals": [
+          "# tests 72",
+          "# pass 72",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# duration_ms 142325.348"
+        ],
+        "knownErrors": []
+      },
+      {
+        "step": "native-interruption",
+        "stdoutBytes": 5292,
+        "stderrBytes": 0,
+        "visiblePasses": 20,
+        "failures": [],
+        "totals": [
+          "# tests 20",
+          "# pass 20",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0",
+          "# duration_ms 102518.2531"
+        ],
+        "knownErrors": []
+      },
+      {
+        "step": "short",
+        "stdoutBytes": 131635,
+        "stderrBytes": 115,
+        "visiblePasses": 39,
+        "failures": [
+          "not ok 30 - actual core claude WBIPC recovery has exclusive ownership and live credential revocation"
+        ],
+        "totals": [
+          "# tests 40",
+          "# pass 39",
+          "# fail 1",
+          "# cancelled 0",
+          "# skipped 0",
+          "# duration_ms 103801.0604"
+        ],
+        "knownErrors": []
+      }
+    ],
+    "failures": [
+      {
+        "case": "not ok 30 - actual core claude WBIPC recovery has exclusive ownership and live credential revocation",
+        "durationMs": 13017.1174,
+        "code": "context_recovery_storage_unavailable",
+        "safeError": "context_recovery_storage_unavailable"
+      }
+    ],
+    "defaultOpen": {
+      "event": "short_default_native_open_summary",
+      "head": "af6d9d174bcc1e96cdbd9fee115b98ee1f5a6a12",
+      "dirty": false,
+      "sourceSha256": "5159414a46fb9f41f60520a56e7451b818128dd737368460ab173ba986b50fe0",
+      "nativeSha256": "9c7362db4cc538d2729ffe3ee7de8e7308606b3bc125133874bc2e26804e2a80",
+      "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+      "passed": true,
+      "completedOpens": 2,
+      "completedCloses": 2,
+      "attempts": [
+        {
+          "attempt": 1,
+          "readyMs": 2640,
+          "timeline": [
+            {
+              "attempt": 1,
+              "phase": "worker_started",
+              "elapsedMs": 355
+            },
+            {
+              "attempt": 1,
+              "phase": "paths_started",
+              "elapsedMs": 501
+            },
+            {
+              "attempt": 1,
+              "phase": "directory_acl_started",
+              "elapsedMs": 516
+            },
+            {
+              "attempt": 1,
+              "phase": "directory_acl_finished",
+              "elapsedMs": 1097
+            },
+            {
+              "attempt": 1,
+              "phase": "paths_ready",
+              "elapsedMs": 1101
+            },
+            {
+              "attempt": 1,
+              "phase": "ownership_started",
+              "elapsedMs": 1102
+            },
+            {
+              "attempt": 1,
+              "phase": "ownership_acquired",
+              "elapsedMs": 1331
+            },
+            {
+              "attempt": 1,
+              "phase": "key_protect_started",
+              "elapsedMs": 1343
+            },
+            {
+              "attempt": 1,
+              "phase": "key_protect_finished",
+              "elapsedMs": 1548
+            },
+            {
+              "attempt": 1,
+              "phase": "key_write_started",
+              "elapsedMs": 1555
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_open_started",
+              "elapsedMs": 1563
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_opened",
+              "elapsedMs": 1564
+            },
+            {
+              "attempt": 1,
+              "phase": "key_acl_started",
+              "elapsedMs": 1564
+            },
+            {
+              "attempt": 1,
+              "phase": "key_acl_finished",
+              "elapsedMs": 1761
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_write_started",
+              "elapsedMs": 1761
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_write_finished",
+              "elapsedMs": 1762
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_flush_started",
+              "elapsedMs": 1762
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_flush_finished",
+              "elapsedMs": 1766
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_closed",
+              "elapsedMs": 1766
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_readback_started",
+              "elapsedMs": 1766
+            },
+            {
+              "attempt": 1,
+              "phase": "key_file_readback_finished",
+              "elapsedMs": 1781
+            },
+            {
+              "attempt": 1,
+              "phase": "key_write_finished",
+              "elapsedMs": 1781
+            },
+            {
+              "attempt": 1,
+              "phase": "anchor_open_started",
+              "elapsedMs": 1789
+            },
+            {
+              "attempt": 1,
+              "phase": "anchor_opened",
+              "elapsedMs": 2096
+            },
+            {
+              "attempt": 1,
+              "phase": "database_prepare_started",
+              "elapsedMs": 2105
+            },
+            {
+              "attempt": 1,
+              "phase": "database_prepared",
+              "elapsedMs": 2321
+            },
+            {
+              "attempt": 1,
+              "phase": "database_opened",
+              "elapsedMs": 2323
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_prepare_started",
+              "elapsedMs": 2331
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_anchor_validate_started",
+              "elapsedMs": 2349
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_anchor_validate_finished",
+              "elapsedMs": 2564
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_prepared",
+              "elapsedMs": 2585
+            },
+            {
+              "attempt": 1,
+              "phase": "anchor_persist_started",
+              "elapsedMs": 2585
+            },
+            {
+              "attempt": 1,
+              "phase": "anchor_persist_finished",
+              "elapsedMs": 2631
+            },
+            {
+              "attempt": 1,
+              "phase": "engine_ready",
+              "elapsedMs": 2639
+            },
+            {
+              "attempt": 1,
+              "phase": "ready",
+              "elapsedMs": 2640
+            }
+          ]
+        },
+        {
+          "attempt": 2,
+          "readyMs": 2123,
+          "timeline": [
+            {
+              "attempt": 2,
+              "phase": "worker_started",
+              "elapsedMs": 349
+            },
+            {
+              "attempt": 2,
+              "phase": "paths_started",
+              "elapsedMs": 496
+            },
+            {
+              "attempt": 2,
+              "phase": "directory_acl_started",
+              "elapsedMs": 510
+            },
+            {
+              "attempt": 2,
+              "phase": "directory_acl_finished",
+              "elapsedMs": 724
+            },
+            {
+              "attempt": 2,
+              "phase": "paths_ready",
+              "elapsedMs": 731
+            },
+            {
+              "attempt": 2,
+              "phase": "ownership_started",
+              "elapsedMs": 731
+            },
+            {
+              "attempt": 2,
+              "phase": "ownership_acquired",
+              "elapsedMs": 941
+            },
+            {
+              "attempt": 2,
+              "phase": "key_unprotect_started",
+              "elapsedMs": 1153
+            },
+            {
+              "attempt": 2,
+              "phase": "key_unprotect_finished",
+              "elapsedMs": 1349
+            },
+            {
+              "attempt": 2,
+              "phase": "anchor_open_started",
+              "elapsedMs": 1359
+            },
+            {
+              "attempt": 2,
+              "phase": "anchor_opened",
+              "elapsedMs": 1706
+            },
+            {
+              "attempt": 2,
+              "phase": "database_prepare_started",
+              "elapsedMs": 1715
+            },
+            {
+              "attempt": 2,
+              "phase": "database_prepared",
+              "elapsedMs": 1913
+            },
+            {
+              "attempt": 2,
+              "phase": "database_opened",
+              "elapsedMs": 1914
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_prepare_started",
+              "elapsedMs": 1924
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_anchor_validate_started",
+              "elapsedMs": 1938
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_anchor_validate_finished",
+              "elapsedMs": 1939
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_prepared",
+              "elapsedMs": 1942
+            },
+            {
+              "attempt": 2,
+              "phase": "anchor_persist_started",
+              "elapsedMs": 1942
+            },
+            {
+              "attempt": 2,
+              "phase": "anchor_persist_finished",
+              "elapsedMs": 2114
+            },
+            {
+              "attempt": 2,
+              "phase": "engine_ready",
+              "elapsedMs": 2122
+            },
+            {
+              "attempt": 2,
+              "phase": "ready",
+              "elapsedMs": 2123
+            }
+          ]
+        }
+      ],
+      "originalStartupDeadlineMs": 30000,
+      "fiveSecondQualified": false,
+      "realModelRequests": 0
+    },
+    "largeCases": [
+      {
+        "step": "blobs",
+        "fixedLargeCasePassed": true,
+        "durationMs": 44925.7085,
+        "observedFailure": false
+      },
+      {
+        "step": "root-state",
+        "fixedLargeCasePassed": true,
+        "durationMs": 99352.6595,
+        "observedFailure": false
+      }
+    ]
+  },
+  "fiveSecondQualified": false,
+  "allHistoricalFailuresPreserved": true,
+  "new24hStarted": false,
+  "realModelRequests": 0
+}

@@ -7,6 +7,8 @@ function bindEvidenceGatewayShutdown(runtime, host = process) {
   function dispose() {
     host.removeListener('SIGINT', stop);
     host.removeListener('SIGTERM', stop);
+    host.stdin?.removeListener('end', stop);
+    host.stdin?.removeListener('close', stop);
   }
   function stop() {
     if (completion) return completion;
@@ -21,6 +23,11 @@ function bindEvidenceGatewayShutdown(runtime, host = process) {
   }
   host.on('SIGINT', stop);
   host.on('SIGTERM', stop);
+  // The SDK stdio server listens for data/errors, but does not close on EOF.
+  // Retaining its downstream child would keep an abandoned gateway alive.
+  host.stdin?.on('end', stop);
+  host.stdin?.on('close', stop);
+  if (host.stdin?.readableEnded || host.stdin?.destroyed) stop();
   return { dispose, stop };
 }
 

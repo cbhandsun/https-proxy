@@ -248,6 +248,40 @@ function baseConfig(overrides = {}) {
   await Promise.all([firstMutation, secondMutation]);
   assert.deepStrictEqual(operationOrder, ['first-start', 'first-end', 'second']);
 
+  const versioned = baseConfig({
+    appSettings: { contextPolicyVersion: 2, contextRecoveryEnabled: false },
+  });
+  fs.writeFileSync(configFile, JSON.stringify(versioned), 'utf8');
+  const beforePolicyWrite = fs.readFileSync(configFile, 'utf8');
+  const beforePolicyReloads = reloads;
+  for (const appSettings of [undefined, {}, { contextPolicyVersion: 1 }]) {
+    const blocked = await invoke(
+      handlers.handleLocalSaveConfigRequest,
+      baseConfig({ appSettings })
+    );
+    assert.strictEqual(blocked.statusCode, 409);
+    assert.strictEqual(JSON.parse(blocked.body).error, 'context_policy_version_conflict');
+    assert.strictEqual(fs.readFileSync(configFile, 'utf8'), beforePolicyWrite);
+    assert.strictEqual(reloads, beforePolicyReloads);
+  }
+  const retainedPolicy = await invoke(handlers.handleLocalSaveConfigRequest, versioned);
+  assert.strictEqual(retainedPolicy.statusCode, 200);
+  assert.strictEqual(
+    JSON.parse(fs.readFileSync(configFile, 'utf8')).appSettings.contextPolicyVersion,
+    2
+  );
+  fs.writeFileSync(
+    configFile,
+    JSON.stringify(baseConfig({ appSettings: { contextPolicyVersion: 3 } })),
+    'utf8'
+  );
+  const unknownPolicyBefore = fs.readFileSync(configFile, 'utf8');
+  const unknownPolicySave = await invoke(handlers.handleLocalSaveConfigRequest, versioned);
+  assert.strictEqual(unknownPolicySave.statusCode, 409);
+  assert.strictEqual(fs.readFileSync(configFile, 'utf8'), unknownPolicyBefore);
+
+  assert.equal(path.dirname(path.resolve(tmpDir)), path.resolve(os.tmpdir()));
+  assert.ok(path.basename(tmpDir).startsWith('hpm-management-config-'));
   fs.rmSync(tmpDir, { recursive: true, force: true });
   console.log('[management-config.test] ok');
 })().catch((err) => {

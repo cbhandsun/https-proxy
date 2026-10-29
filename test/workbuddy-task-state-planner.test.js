@@ -7,6 +7,8 @@ const { collectContextArtifactReferences } = require('../lib/proxy/context-artif
 const {
   createContextCompactionCoordinator,
 } = require('../lib/proxy/context-compaction-coordinator');
+const { createContextCompactionBackoff } = require('../lib/proxy/context-compaction-backoff');
+const { createContextSummaryCheckpoints } = require('../lib/proxy/context-summary-checkpoints');
 const { applyResponsesHistoryPolicy } = require('../lib/proxy/responses-history-policy');
 const { createContextHistoryBranch } = require('../lib/proxy/context-history-branch');
 const {
@@ -97,6 +99,467 @@ function completion(value, extra = {}) {
   };
 }
 const tick = () => new Promise((resolve) => setImmediate(resolve));
+
+test('large tool history and immutable policy do not prevent a bounded task-state summary', async () => {
+  const body = workload();
+  body.messages[0].content = 'immutable-policy '.repeat(14000);
+  body.messages.splice(
+    2,
+    0,
+    ...Array.from({ length: 2100 }, (_value, index) => [
+      {
+        role: 'assistant',
+        tool_calls: [
+          { id: `empty-${index}`, type: 'function', function: { name: 'read', arguments: '{}' } },
+        ],
+      },
+      { role: 'tool', tool_call_id: `empty-${index}`, content: '' },
+    ]).flat()
+  );
+  const original = JSON.stringify(body);
+  let calls = 0;
+  const result = await prepareWorkBuddyTaskStateContext(
+    body,
+    options(null, { targetBodyBytes: 274421 }),
+    {
+      requestSummary: async (request) => {
+        calls++;
+        const payload = JSON.parse(request.messages[1].content);
+        assert.ok(Buffer.byteLength(JSON.stringify(request)) <= 274421);
+        assert.ok(!JSON.stringify(payload).includes('immutable-policy'));
+        assert.ok(!JSON.stringify(payload).includes('证据🙂'));
+        const firstUser = payload.transcript.find((entry) => entry.role === 'user');
+        return completion({
+          schema: TASK_STATE_SCHEMA,
+          version: 1,
+          objectives: [
+            { text: '修复压缩', sources: [{ sourceId: firstUser.id, quote: '修复压缩。' }] },
+          ],
+          requirements: [],
+          decisions: [],
+          work: [],
+          blockers: [],
+          nextSteps: [],
+          files: [],
+        });
+      },
+    }
+  );
+  assert.equal(calls, 1);
+  assert.equal(result.diagnostics.taskStateStatus, 'applied');
+  assert.equal(result.fits, true);
+  assert.ok(result.body.messages.includes(body.messages[0]));
+  assert.equal(JSON.stringify(body), original);
+});
+
+test('33 MB history and oversized required inputs back off an exact reconnect without another model request', async (t) => {
+  const messages = [
+    ...Array.from({ length: 45 }, (_, index) => ({
+      role: 'system',
+      content: `Policy ${index}: ` + 'p'.repeat(6000),
+    })),
+    ...Array.from({ length: 66 }, (_, index) => ({
+      role: 'user',
+      content: `Constraint ${index}: preserve original. ` + 'u'.repeat(2650),
+    })),
+  ];
+  const toolOutput = 'synthetic tool evidence '.repeat(17000);
+  for (let index = 0; index < 80; index++)
+    messages.push(
+      {
+        role: 'assistant',
+        tool_calls: [
+          { id: `large_${index}`, type: 'function', function: { name: 'read', arguments: '{}' } },
+        ],
+      },
+      { role: 'tool', tool_call_id: `large_${index}`, content: toolOutput },
+      { role: 'assistant', content: `Unverified progress ${index}.` }
+    );
+  messages.push(
+    { role: 'user', content: 'Recent constraint: preserve state.' },
+    { role: 'user', content: 'Continue safely.' }
+  );
+  const body = { model: 'fixture-model', messages };
+  const sourceBytes = Buffer.byteLength(JSON.stringify(body));
+  assert.ok(sourceBytes > 30 * 1024 * 1024);
+  const backoff = createContextCompactionBackoff({ now: () => 1000 });
+  const coordinator = createContextCompactionCoordinator();
+  let calls = 0;
+  const measurements = [];
+  try {
+    for (const [index, scope] of ['first', 'reconnect'].entries()) {
+      const store = createContextArtifactStore();
+      const history = createContextHistoryBranch(body, {
+        owner: 'owner',
+        scope,
+        // Match the production ingress branch, not its smaller host-send budget.
+        maxBytes: 64 * 1024 * 1024,
+      });
+      try {
+        const result = await prepareWorkBuddyTaskStateContext(
+          body,
+          options(store, {
+            artifactScope: scope,
+            targetBodyBytes: 393216,
+            archiveHistoricalUsers: true,
+          }),
+          {
+            historyBranch: history,
+            coordinator,
+            compactionScope: scope,
+            failureBackoff: backoff,
+            compactionRetryBinding: {
+              owner: 'owner',
+              provider: 'workbuddy-wbipc',
+              model: body.model,
+              endpoint: 'https://host/v2',
+            },
+            requestSummary: async () => {
+              calls++;
+              return completion('{}');
+            },
+          }
+        );
+        assert.equal(result.fits, false);
+        assert.equal(result.body.messages.length, messages.length);
+        assert.ok(result.diagnostics.requiredContextMessageBytes > 393216);
+        assert.equal(result.diagnostics.userArchiveStatus, 'selected');
+        assert.equal(result.diagnostics.taskStateFailureReason, 'summary_schema_invalid');
+        assert.equal(result.diagnostics.taskStateBackoffApplied, index > 0);
+        assert.equal(result.diagnostics.taskStateSummaryAttempted, index === 0);
+        assert.equal(result.diagnostics.compactionTiming.summaryRequests, index === 0 ? 1 : 0);
+        assert.equal(result.diagnostics.archivedUserMessages, 0);
+        assert.equal(result.diagnostics.historyTransactionStatus, 'rolled_back');
+        assert.equal(store.stats().entries, 0);
+        measurements.push({
+          requiredBytes: result.diagnostics.requiredContextMessageBytes,
+          archivedUsers: result.diagnostics.archivedUserMessages,
+          backoffApplied: result.diagnostics.taskStateBackoffApplied,
+          timing: result.diagnostics.compactionTiming,
+        });
+      } finally {
+        history.close();
+        store.close();
+      }
+    }
+    assert.equal(calls, 1);
+    t.diagnostic(JSON.stringify({ sourceBytes, modelRequests: calls, measurements }));
+  } finally {
+    coordinator.close();
+  }
+});
+
+function chunkedWorkload() {
+  const body = workload();
+  for (const [index, message] of body.messages.entries())
+    if (message.role === 'assistant' && typeof message.content === 'string')
+      message.content = Array.from(
+        { length: 100 },
+        (_entry, line) => `Progress ${index} line ${line}: unverified. ` + 'data '.repeat(30)
+      ).join('\n');
+  return body;
+}
+function chunkedSummary(request) {
+  const payload = JSON.parse(request.messages[1].content);
+  if (payload.previous) return completion(payload.previous);
+  const citation = payload.citations[0];
+  return completion({
+    schema: TASK_STATE_SCHEMA,
+    version: 1,
+    objectives: [
+      {
+        text: 'Source-backed task',
+        sources: [{ sourceId: citation.sourceId, quote: citation.quote }],
+      },
+    ],
+    requirements: [],
+    decisions: [],
+    work: [],
+    blockers: [],
+    nextSteps: [],
+    files: [],
+  });
+}
+
+test('committed chunk checkpoints resume across scopes and process new constraints without sharing evidence', async (t) => {
+  const checkpoints = createContextSummaryCheckpoints();
+  const store = createContextArtifactStore();
+  const binding = {
+    owner: 'owner',
+    provider: 'workbuddy-wbipc',
+    model: 'fixture-model',
+    endpoint: '/v2',
+  };
+  const original = chunkedWorkload();
+  const scopes = ['first-request', 'reconnect', 'appended-request'];
+  const plans = [];
+  const seen = [];
+  try {
+    for (const [index, scope] of scopes.entries()) {
+      const body = globalThis.structuredClone(original);
+      if (index === 2)
+        body.messages.push({ role: 'user', content: 'NEW: retain checkpoint evidence.' });
+      const before = JSON.stringify(body);
+      const history = createContextHistoryBranch(body, { owner: 'owner', scope });
+      let calls = 0;
+      try {
+        const plan = await prepareWorkBuddyTaskStateContext(
+          body,
+          options(store, { targetBodyBytes: 170000, artifactScope: scope }),
+          {
+            historyBranch: history,
+            summaryCheckpoints: checkpoints,
+            compactionRetryBinding: binding,
+            requestSummary: async (request) => {
+              calls++;
+              const payload = JSON.parse(request.messages[1].content);
+              seen.push({ index, sourceIndices: payload.transcript.map((entry) => entry.index) });
+              const response = chunkedSummary(request);
+              const completionBody = JSON.parse(response.body);
+              const state = JSON.parse(completionBody.choices[0].message.content);
+              const newConstraint = payload.citations.find((entry) =>
+                entry.quote.startsWith('NEW:')
+              );
+              if (newConstraint)
+                state.requirements.push({
+                  id: 'new',
+                  status: 'active',
+                  text: newConstraint.quote,
+                  sources: [{ sourceId: newConstraint.sourceId, quote: newConstraint.quote }],
+                });
+              return completion(state);
+            },
+          }
+        );
+        assert.equal(plan.fits, true);
+        assert.equal(plan.diagnostics.taskStateStatus, 'applied');
+        assert.equal(plan.diagnostics.taskStateCheckpointCommitted, true);
+        assert.equal(plan.diagnostics.taskStateSummaryAttempted, calls > 0);
+        assert.equal(JSON.stringify(body), before, 'caller history is not mutated');
+        assert.deepEqual(
+          plan.body.messages.filter((message) => message.role === 'user'),
+          body.messages.filter((message) => message.role === 'user')
+        );
+        plans.push({ calls, diagnostics: plan.diagnostics });
+        if (index === 2) {
+          const taskMessage = plan.body.messages.find((message) =>
+            message.content?.startsWith(TASK_STATE_MARKER)
+          );
+          const task = JSON.parse(taskMessage.content.slice(TASK_STATE_MARKER.length + 1));
+          assert.equal(
+            task.state.requirements.find((entry) => entry.id === 'new').text,
+            'NEW: retain checkpoint evidence.'
+          );
+        }
+        const receipts = collectContextArtifactReferences(plan.body.messages, scope);
+        assert.ok(receipts.length > 0);
+        for (const receipt of receipts) {
+          assert.equal(store.read('owner', scope, receipt.locator, receipt.digest).ok, true);
+          assert.equal(store.read('owner', 'foreign', receipt.locator, receipt.digest).ok, false);
+          assert.equal(
+            store.read('foreign-owner', scope, receipt.locator, receipt.digest).ok,
+            false
+          );
+        }
+      } finally {
+        history.close();
+      }
+    }
+    assert.ok(plans[0].calls > 1);
+    assert.equal(
+      plans[1].calls,
+      0,
+      'new request-local scope revalidates the furthest committed semantic frontier'
+    );
+    assert.equal(plans[1].diagnostics.taskStateCheckpointHits, 1);
+    assert.equal(plans[1].diagnostics.taskStateFrontierReused, true);
+    assert.equal(plans[1].diagnostics.taskStateFrontierSourceMessages, original.messages.length);
+    assert.equal(plans[1].diagnostics.compactionTiming.summaryRequests, 0);
+    assert.ok(
+      plans[2].calls > 0 && plans[2].calls < plans[0].calls,
+      'only changed suffix chunks request a model'
+    );
+    assert.ok(plans[2].diagnostics.taskStateCheckpointHits > 0);
+    assert.equal(plans[2].diagnostics.taskStateFrontierSourceMessages, original.messages.length);
+    assert.ok(
+      seen
+        .filter((entry) => entry.index === 2)
+        .every((entry) =>
+          entry.sourceIndices.every((sourceIndex) => sourceIndex >= original.messages.length)
+        )
+    );
+    t.diagnostic(
+      JSON.stringify({
+        modelRequests: plans.map((plan) => plan.calls),
+        reusedChunks: plans.map((plan) => plan.diagnostics.taskStateCheckpointHits),
+      })
+    );
+  } finally {
+    checkpoints.close();
+    store.close();
+  }
+});
+
+test('summary checkpoints publish only after the outer safe-point commit, never after rollback or failed publication', async () => {
+  for (const mode of [
+    'deferred',
+    'rollback',
+    'publication_failure',
+    'invalid_summary',
+    'stale',
+    'cancelled',
+  ]) {
+    const checkpoints = createContextSummaryCheckpoints();
+    const body = chunkedWorkload();
+    const history = createContextHistoryBranch(body, { owner: 'owner', scope: 'scope' });
+    const store = createContextArtifactStore();
+    const controller = new globalThis.AbortController();
+    let calls = 0;
+    try {
+      const plan = await prepareWorkBuddyTaskStateContext(
+        body,
+        options(
+          mode === 'publication_failure'
+            ? {
+                beginTransaction() {
+                  return {
+                    put: () => null,
+                    stats: () => ({ stagedEntries: 0 }),
+                    commit: () => ({ ok: false }),
+                    rollback: () => true,
+                  };
+                },
+              }
+            : store,
+          { targetBodyBytes: 170000 }
+        ),
+        {
+          historyBranch: history,
+          signal: controller.signal,
+          summaryCheckpoints: checkpoints,
+          compactionRetryBinding: {
+            owner: 'owner',
+            provider: 'workbuddy-wbipc',
+            model: 'fixture-model',
+            endpoint: '/v2',
+          },
+          deferCommit: mode === 'deferred' || mode === 'rollback',
+          requestSummary: async (request) => {
+            calls++;
+            if (calls === 2 && mode === 'cancelled') controller.abort();
+            if (calls === 2 && mode === 'stale') {
+              const snapshot = history.snapshot();
+              assert.equal(
+                history.replace({ ...snapshot.body, tool_choice: 'none' }, snapshot.version).ok,
+                true
+              );
+            }
+            return mode === 'invalid_summary' && calls === 2
+              ? completion('{}')
+              : chunkedSummary(request);
+          },
+        }
+      );
+      assert.equal(checkpoints.stats().entries, 0);
+      if (mode === 'deferred') {
+        assert.ok(checkpoints.stats().reservedBytes > 0);
+        const committed = plan.pendingCommit.commit();
+        assert.equal(committed.ok, true);
+        assert.equal(committed.plan.diagnostics.taskStateCheckpointCommitted, true);
+        assert.ok(checkpoints.stats().entries > 1);
+        assert.equal(plan.pendingCommit.commit(), committed, 'safe-point wrapper is idempotent');
+      } else if (mode === 'rollback') {
+        plan.pendingCommit.rollback();
+        assert.equal(plan.pendingCommit.commit().ok, false);
+        assert.equal(checkpoints.stats().entries, 0);
+      } else {
+        assert.equal(plan.diagnostics.taskStateCheckpointCommitted, false);
+        assert.equal(checkpoints.stats().active, 0);
+      }
+      assert.equal(checkpoints.stats().reservedBytes, 0);
+    } finally {
+      checkpoints.close();
+      history.close();
+      store.close();
+    }
+  }
+});
+
+test('multi-chunk summaries retain concurrently appended history and retry the complete batch from cache', async () => {
+  const body = chunkedWorkload();
+  const coordinator = createContextCompactionCoordinator();
+  const store = createContextArtifactStore();
+  const history = createContextHistoryBranch(body, { owner: 'owner', scope: 'scope' });
+  const tail = { role: 'assistant', content: 'new tail that must not be lost' };
+  let calls = 0;
+  const runtime = {
+    coordinator,
+    requestSummary: async (request) => {
+      calls++;
+      if (calls === 1) assert.equal(history.append([tail], history.stats().version).ok, true);
+      return chunkedSummary(request);
+    },
+  };
+  try {
+    const first = await prepareWorkBuddyTaskStateContext(
+      body,
+      options(store, { targetBodyBytes: 170000 }),
+      { ...runtime, historyBranch: history }
+    );
+    assert.equal(first.diagnostics.taskStateStatus, 'applied');
+    assert.ok(first.diagnostics.taskStateSummaryChunks > 1);
+    assert.equal(calls, first.diagnostics.taskStateSummaryChunks);
+    assert.ok(first.body.messages.some((message) => message.content === tail.content));
+    const count = calls;
+    const retry = await prepareWorkBuddyTaskStateContext(
+      body,
+      options(null, { targetBodyBytes: 170000 }),
+      runtime
+    );
+    assert.equal(retry.diagnostics.taskStateStatus, 'applied');
+    assert.equal(retry.diagnostics.taskStateSummaryReused, true);
+    assert.equal(calls, count);
+  } finally {
+    history.close();
+    store.close();
+    coordinator.close();
+  }
+});
+
+test('mid-batch cancellation rolls back owned history and evidence without publishing a partial task state', async () => {
+  const body = chunkedWorkload();
+  const store = createContextArtifactStore();
+  const history = createContextHistoryBranch(body, { owner: 'owner', scope: 'scope' });
+  const controller = new globalThis.AbortController();
+  let calls = 0;
+  try {
+    const result = await prepareWorkBuddyTaskStateContext(
+      body,
+      options(store, { targetBodyBytes: 170000 }),
+      {
+        historyBranch: history,
+        signal: controller.signal,
+        requestSummary: async (request) => {
+          calls++;
+          controller.abort();
+          return chunkedSummary(request);
+        },
+      }
+    );
+    assert.equal(calls, 1);
+    assert.ok(result.diagnostics.taskStateSummaryChunks > 1);
+    assert.equal(result.fits, false);
+    assert.equal(result.diagnostics.historyTransactionStatus, 'rolled_back');
+    assert.equal(JSON.stringify(history.snapshot().body), JSON.stringify(body));
+    assert.equal(store.stats().entries, 0);
+    assert.ok(
+      !result.body.messages.some((message) => message.content?.startsWith?.(TASK_STATE_MARKER))
+    );
+  } finally {
+    history.close();
+    store.close();
+  }
+});
 
 test('versioned summary snapshots preserve every concurrent tail entry before atomic evidence publication', async () => {
   const store = createContextArtifactStore(),
@@ -631,7 +1094,11 @@ test('repeated semantic compaction retains previous checkpoint as quoted backgro
       const user = transcript.find(
         (entry) => entry.role === 'user' && entry.text.includes('修复压缩')
       );
-      const revision = transcript.findLast((entry) => entry.role === 'user');
+      assert.equal(payload.previous.requirements[0].status, 'revoked');
+      const originalRevision = next.messages.findIndex(
+        (entry) => entry.content === '撤销禁止重启，必要时可以重启。'
+      );
+      assert.equal(payload.previous.requirements[0].revision.sourceId, `m_${originalRevision}`);
       return completion({
         schema: TASK_STATE_SCHEMA,
         version: 1,
@@ -642,7 +1109,7 @@ test('repeated semantic compaction retains previous checkpoint as quoted backgro
             text: '禁止重启。',
             status: 'revoked',
             sources: [{ sourceId: user.id, quote: '禁止重启。' }],
-            revision: { sourceId: revision.id, quote: '撤销禁止重启' },
+            revision: payload.previous.requirements[0].revision,
           },
         ],
         decisions: [],
@@ -654,6 +1121,7 @@ test('repeated semantic compaction retains previous checkpoint as quoted backgro
     },
   });
   assert.equal(second.diagnostics.taskStateStatus, 'applied');
+  assert.equal(second.diagnostics.taskStateCarriedRequirements, 1);
   assert.equal(
     second.body.messages.filter((entry) => entry.content?.startsWith?.(TASK_STATE_MARKER)).length,
     1,
@@ -661,6 +1129,82 @@ test('repeated semantic compaction retains previous checkpoint as quoted backgro
   );
   assert.ok(second.body.messages.includes(body.messages[1]));
   coordinator.close();
+});
+
+test('cross-cycle requirement loss is rejected and missing originals pin the genuine previous checkpoint', async () => {
+  for (const mode of ['drop', 'missing_original']) {
+    const body = workload();
+    const first = await prepareWorkBuddyTaskStateContext(body, options(null), {
+      requestSummary: async (request) => completion(summary(request)),
+    });
+    assert.equal(first.diagnostics.taskStateStatus, 'applied');
+    const prior = first.body.messages.find((message) =>
+      message.content?.startsWith(TASK_STATE_MARKER)
+    );
+    const next = {
+      ...body,
+      messages: first.body.messages.filter(
+        (message) =>
+          mode !== 'missing_original' || message.content !== '撤销禁止重启，必要时可以重启。'
+      ),
+    };
+    for (let index = 20; index < 40; index++)
+      next.messages.push(
+        {
+          role: 'assistant',
+          tool_calls: [
+            { id: `call-${index}`, type: 'function', function: { name: 'read', arguments: '{}' } },
+          ],
+        },
+        { role: 'tool', tool_call_id: `call-${index}`, content: 'evidence'.repeat(1000) },
+        { role: 'assistant', content: 'new progress '.repeat(100) }
+      );
+    next.messages.push({ role: 'user', content: 'Keep current input exact.' });
+    const history = createContextHistoryBranch(next, { owner: 'owner', scope: 'scope' });
+    let calls = 0;
+    try {
+      const result = await prepareWorkBuddyTaskStateContext(next, options(null), {
+        historyBranch: history,
+        requestSummary: async (request) => {
+          calls++;
+          const payload = JSON.parse(request.messages[1].content);
+          assert.equal(Boolean(payload.previous?.requirements.length), mode === 'drop');
+          const citation = payload.citations.find((entry) => entry.quote.includes('修复压缩'));
+          return completion({
+            schema: TASK_STATE_SCHEMA,
+            version: 1,
+            objectives: [{ text: 'Reported task', sources: [{ citationId: citation.citationId }] }],
+            requirements: [],
+            decisions: [],
+            work: [],
+            blockers: [],
+            nextSteps: [],
+            files: [],
+          });
+        },
+      });
+      assert.equal(calls, 1, 'no automatic retries or external tool replay');
+      assert.ok(
+        result.body.messages.some((message) => message.content === prior.content),
+        'old exact constraints survive a rejected replacement or unavailable original'
+      );
+      if (mode === 'drop') {
+        assert.equal(result.diagnostics.taskStateStatus, 'invalid_compaction_candidate');
+        assert.equal(result.diagnostics.taskStateFailureReason, 'summary_requirement_loss');
+        assert.equal(result.diagnostics.taskStateCarriedRequirements, 1);
+      } else {
+        assert.equal(result.diagnostics.taskStateStatus, 'applied');
+        assert.equal(result.diagnostics.taskStatePinnedStates, 1);
+        assert.equal(result.diagnostics.taskStateCarriedRequirements, 0);
+        assert.ok(
+          result.body.messages.some((message) => message.content === 'Keep current input exact.')
+        );
+        assert.equal(result.diagnostics.historyTransactionStatus, 'committed');
+      }
+    } finally {
+      history.close();
+    }
+  }
 });
 
 test('empty, invalid, disabled and unavailable sources do not dispatch independent model work', async () => {

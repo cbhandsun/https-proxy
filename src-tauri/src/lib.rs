@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tauri::Manager;
@@ -12,8 +12,15 @@ mod codex_login;
 mod desktop_shell;
 mod launch_on_login;
 mod management_bridge;
+mod proxy_control;
+mod proxy_control_stdio;
+#[cfg(test)]
+mod proxy_control_stdio_tests;
+mod proxy_health;
 mod proxy_process;
 mod proxy_root;
+mod proxy_stop;
+mod proxy_stop_process;
 use app_shortcuts::execute_app_shortcut;
 use codex_login::launch_codex_login_script;
 #[cfg(test)]
@@ -39,44 +46,7 @@ use proxy_root::{first_unique_existing_root, is_proxy_runtime_root, select_relea
 static PROXY_STOPPED_FOR_EXIT: AtomicBool = AtomicBool::new(false);
 static PROXY_AUTOSTART_IN_FLIGHT: AtomicBool = AtomicBool::new(false);
 const APP_ID: &str = "https-proxy-manager";
-
-/// Run `proxy.bat <args>` in the project root directory.
-fn run_proxy_bat_with_timeout(args: &[&str], timeout: Duration) -> Option<(Output, bool)> {
-    let root = find_project_root()?;
-    let mut command = std::process::Command::new("cmd");
-    command
-        .arg("/c")
-        .arg("proxy.bat")
-        .args(args)
-        .env("NO_PAUSE", "1")
-        .current_dir(&root)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    hide_console_window(&mut command);
-    let mut child = command.spawn().ok()?;
-
-    let deadline = Instant::now() + timeout;
-    loop {
-        match child.try_wait() {
-            Ok(Some(_)) => return child.wait_with_output().ok().map(|out| (out, false)),
-            Ok(None) => {
-                if Instant::now() >= deadline {
-                    let _ = child.kill();
-                    return child.wait_with_output().ok().map(|out| (out, true));
-                }
-                std::thread::sleep(Duration::from_millis(50));
-            }
-            Err(_) => {
-                let _ = child.kill();
-                return None;
-            }
-        }
-    }
-}
-
-fn run_proxy_bat(args: &[&str]) -> Option<Output> {
-    run_proxy_bat_with_timeout(args, Duration::from_secs(30)).map(|(out, _)| out)
-}
+pub use proxy_control::run_from_process_args as run_proxy_control_from_process_args;
 
 #[cfg(windows)]
 fn hide_console_window(command: &mut Command) {
@@ -274,22 +244,7 @@ fn get_management_token_native(management_port: Option<u16>) -> serde_json::Valu
 }
 
 fn read_proxy_health_direct_on_port(port: u16, timeout: Duration) -> Option<serde_json::Value> {
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
-    let mut stream = TcpStream::connect_timeout(&addr, timeout).ok()?;
-    let _ = stream.set_read_timeout(Some(timeout));
-    let _ = stream.set_write_timeout(Some(timeout));
-    stream
-        .write_all(b"GET /v1/local/health HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
-        .ok()?;
-    let mut response = String::new();
-    stream.read_to_string(&mut response).ok()?;
-    let body = response.split_once("\r\n\r\n")?.1.trim();
-    let json = serde_json::from_str::<serde_json::Value>(body).ok()?;
-    if json.get("appId").and_then(|v| v.as_str()) == Some(APP_ID) {
-        Some(json)
-    } else {
-        None
-    }
+    proxy_health::read_proxy_health_direct_on_port(port, timeout, APP_ID)
 }
 
 fn read_proxy_health_direct(timeout: Duration) -> Option<serde_json::Value> {
@@ -347,8 +302,7 @@ fn start_proxy_direct() -> Result<serde_json::Value, String> {
                 "output": format!("Proxy already running.\n{}", format_proxy_status(&health))
             }));
         }
-        let _ = stop_proxy_direct();
-        std::thread::sleep(Duration::from_millis(300));
+        return Err("proxy_start_owner_mismatch".into());
     }
 
     proxy_process::ensure_proxy_config_file(&root);
@@ -359,6 +313,9 @@ fn start_proxy_direct() -> Result<serde_json::Value, String> {
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(5) {
         if let Some(health) = read_proxy_health_direct(Duration::from_millis(250)) {
+            if !proxy_process::launched_proxy_health_matches(&health, &root, child.id()) {
+                return Err("proxy_start_owner_mismatch".into());
+            }
             return Ok(serde_json::json!({
                 "code": 0,
                 "timedOut": false,
@@ -422,70 +379,9 @@ fn clear_audit_conversations_native(management_port: Option<u16>) -> serde_json:
     }
 }
 
-fn taskkill_pid(pid: u64) -> Result<String, String> {
-    let mut command = Command::new("taskkill");
-    command.args(["/PID", &pid.to_string(), "/T", "/F"]);
-    hide_console_window(&mut command);
-    let output = command.output().map_err(|e| e.to_string())?;
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    if output.status.success() {
-        Ok(format!("{}{}", stdout, stderr))
-    } else {
-        Err(format!("{}{}", stdout, stderr))
-    }
-}
-
 fn stop_proxy_direct() -> Result<serde_json::Value, String> {
-    let health = read_proxy_health_direct(Duration::from_millis(300));
-    let mut target_pid: Option<u64> = health
-        .as_ref()
-        .and_then(|h| h.get("pid"))
-        .and_then(|v| v.as_u64());
-
-    if target_pid.is_none() {
-        if let Some(root) = find_project_root() {
-            let pid_file = proxy_runtime_dir(&root).join(".proxy.pid");
-            if let Ok(content) = std::fs::read_to_string(&pid_file) {
-                if let Ok(parsed_pid) = content.trim().parse::<u64>() {
-                    target_pid = Some(parsed_pid);
-                }
-            }
-        }
-    }
-
-    let Some(pid) = target_pid else {
-        let _ = run_proxy_bat(&["stop"]);
-        return Ok(serde_json::json!({
-            "code": 0,
-            "timedOut": false,
-            "direct": true,
-            "output": "Proxy is not running.\n"
-        }));
-    };
-    let kill_output = taskkill_pid(pid)?;
-    if let Some(root) = find_project_root() {
-        let _ = std::fs::remove_file(proxy_runtime_dir(&root).join(".proxy.pid"));
-    }
-    let _ = run_proxy_bat(&["stop"]);
-    let started = Instant::now();
-    while started.elapsed() < Duration::from_secs(4) {
-        if read_proxy_health_direct(Duration::from_millis(200)).is_none() {
-            return Ok(serde_json::json!({
-                "code": 0,
-                "timedOut": false,
-                "direct": true,
-                "output": format!("Proxy stopped directly (PID {pid}).\n{kill_output}")
-            }));
-        }
-        std::thread::sleep(Duration::from_millis(100));
-    }
-    Ok(serde_json::json!({
-        "code": 0,
-        "timedOut": false,
-        "direct": true,
-        "output": format!("Stop signal sent to PID {pid}; health endpoint is still draining.\n{kill_output}")
-    }))
+    let root = find_project_root().ok_or("proxy_stop_root_unavailable")?;
+    proxy_stop::stop_proxy(&root, proxy_management_port())
 }
 
 fn proxy_command_direct(command: &str) -> Option<Result<serde_json::Value, String>> {
@@ -508,11 +404,10 @@ fn proxy_command_direct(command: &str) -> Option<Result<serde_json::Value, Strin
         )),
         "stop" => Some(stop_proxy_direct()),
         "start" => Some(start_proxy_direct()),
-        "restart" => Some({
-            let _ = stop_proxy_direct();
+        "restart" => Some(stop_proxy_direct().and_then(|_| {
             std::thread::sleep(Duration::from_millis(250));
             start_proxy_direct()
-        }),
+        })),
         _ => None,
     }
 }
@@ -542,11 +437,14 @@ fn start_proxy_if_needed() {
                 return;
             }
         }
-        let _ = stop_proxy_direct();
+        // Another root or an unauthenticated instance cannot authorize stop.
+        if stop_proxy_direct().is_err() {
+            return;
+        }
         std::thread::sleep(Duration::from_millis(300));
     }
     if start_proxy_direct().is_err() {
-        let _ = run_proxy_bat(&["start"]);
+        log::warn!("Proxy autostart was not confirmed.");
     }
 }
 
@@ -568,10 +466,8 @@ pub(crate) fn stop_proxy_for_exit() {
     {
         return;
     }
-    if stop_proxy_direct().is_err()
-        || read_proxy_health_direct(Duration::from_millis(150)).is_some()
-    {
-        let _ = run_proxy_bat(&["stop"]);
+    if stop_proxy_direct().is_err() {
+        log::warn!("Proxy shutdown was not confirmed; forced cleanup was not authorized.");
     }
 }
 
@@ -695,41 +591,7 @@ async fn execute_proxy_command(command: String) -> Result<serde_json::Value, Str
 
 fn execute_proxy_command_blocking(command: String) -> Result<serde_json::Value, String> {
     let command = normalize_proxy_command(command.as_str())?;
-    if let Some(result) = proxy_command_direct(command) {
-        if result.is_ok() {
-            return result;
-        }
-    }
-
-    let timeout = match command {
-        "status" => Duration::from_secs(8),
-        "stop" => Duration::from_secs(12),
-        "start" => Duration::from_secs(25),
-        "restart" => Duration::from_secs(35),
-        _ => Duration::from_secs(20),
-    };
-
-    match run_proxy_bat_with_timeout(&[command], timeout) {
-        Some((out, timed_out)) => {
-            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-            let code = out.status.code().unwrap_or(if timed_out { 124 } else { 0 });
-            let timeout_message = if timed_out {
-                format!(
-                    "\nCommand timed out after {}s and was stopped.",
-                    timeout.as_secs()
-                )
-            } else {
-                String::new()
-            };
-            Ok(serde_json::json!({
-              "code": code,
-              "timedOut": timed_out,
-              "output": format!("{}{}{}", stdout, stderr, timeout_message)
-            }))
-        }
-        None => Err("proxy.bat not found in project directory hierarchy".into()),
-    }
+    proxy_command_direct(command).ok_or_else(|| "proxy_command_unavailable".to_string())?
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

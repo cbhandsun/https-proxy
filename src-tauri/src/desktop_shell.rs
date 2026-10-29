@@ -5,8 +5,10 @@ use tauri_plugin_dialog::DialogExt;
 
 use crate::app_shortcuts::maybe_execute_app_shortcut;
 use crate::proxy_root::find_project_root;
-use crate::{hide_console_window, proxy_runtime_dir, read_app_setting, run_proxy_bat};
-use crate::{start_proxy_direct, stop_proxy_direct, stop_proxy_for_exit};
+use crate::stop_proxy_for_exit;
+use crate::{
+    execute_proxy_command_blocking, hide_console_window, proxy_runtime_dir, read_app_setting,
+};
 
 fn show_main_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
@@ -281,33 +283,14 @@ pub(crate) fn configure_desktop_shell(app: &mut tauri::App) -> Result<(), tauri:
                 if id == "tray_show" {
                     show_main_window(app_handle);
                 } else if id == "tray_start" {
-                    std::thread::spawn(|| {
-                        if start_proxy_direct().is_err() {
-                            let _ = run_proxy_bat(&["start"]);
-                        }
-                    });
-                    emit_tray_command(app_handle, "started");
+                    run_tray_proxy_command(app_handle, "start");
                 } else if id == "tray_stop" {
-                    std::thread::spawn(|| {
-                        if stop_proxy_direct().is_err() {
-                            let _ = run_proxy_bat(&["stop"]);
-                        }
-                    });
-                    emit_tray_command(app_handle, "stopped");
+                    run_tray_proxy_command(app_handle, "stop");
                 } else if id == "tray_restart" {
-                    std::thread::spawn(|| {
-                        let _ = stop_proxy_direct();
-                        std::thread::sleep(std::time::Duration::from_millis(250));
-                        if start_proxy_direct().is_err() {
-                            let _ = run_proxy_bat(&["restart"]);
-                        }
-                    });
-                    emit_tray_command(app_handle, "restarted");
+                    run_tray_proxy_command(app_handle, "restart");
                 } else if id == "tray_status" {
                     show_main_window(app_handle);
-                    if let Some(window) = app_handle.get_webview_window("main") {
-                        let _ = window.emit("tray-command", "status");
-                    }
+                    run_tray_proxy_command(app_handle, "status");
                 } else if id == "tray_quit" {
                     stop_proxy_for_exit();
                     app_handle.exit(0);
@@ -344,14 +327,19 @@ pub(crate) fn configure_desktop_shell(app: &mut tauri::App) -> Result<(), tauri:
     Ok(())
 }
 
-fn emit_tray_command(app: &tauri::AppHandle, command: &str) {
-    if read_app_setting("showWindowOnTrayCommand", true) {
-        if let Some(window) = app.get_webview_window("main") {
-            let _ = window.show();
-            let _ = window.set_focus();
-            let _ = window.emit("tray-command", command);
+fn run_tray_proxy_command(app: &tauri::AppHandle, command: &'static str) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let result = execute_proxy_command_blocking(command.to_string());
+        let receipt = crate::proxy_process::tray_command_receipt(command, result);
+        if read_app_setting("showWindowOnTrayCommand", true) || command == "status" {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+                let _ = window.emit("tray-command", receipt);
+            }
         }
-    }
+    });
 }
 
 pub(crate) fn handle_app_menu_event(app_handle: &tauri::AppHandle, event: tauri::menu::MenuEvent) {

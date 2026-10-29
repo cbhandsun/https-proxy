@@ -1,0 +1,912 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+  "runs": {
+    "40735126668": [
+      {
+        "id": 122981492660,
+        "name": "rust-tests",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122981492806,
+        "name": "node-quality",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122981492913,
+        "name": "unit-tests (1)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122981492928,
+        "name": "unit-tests (2)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122981492931,
+        "name": "coverage",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122981493056,
+        "name": "integration-tests",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122981493120,
+        "name": "unit-tests (3)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122981493415,
+        "name": "unit-tests (0)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      }
+    ],
+    "40735126602": [
+      {
+        "id": 122981492149,
+        "name": "source-gates",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122981492895,
+        "name": "egress-diagnostic",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538034,
+        "name": "context-recovery (n08)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538103,
+        "name": "context-recovery (n09-finished-ack)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538116,
+        "name": "context-recovery (n09)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538124,
+        "name": "context-recovery (n09-uncertain-ack)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538148,
+        "name": "context-recovery (n09-sending-ack)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538151,
+        "name": "context-recovery (n09-withdrawn-ack)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538182,
+        "name": "context-recovery (n09-uncertain-commit)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538232,
+        "name": "context-recovery (n09-withdrawn-commit)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538237,
+        "name": "context-recovery (n09-sending-commit)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      },
+      {
+        "id": 122992538247,
+        "name": "context-recovery (n09-finished-commit)",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      }
+    ],
+    "40735126648": [
+      {
+        "id": 122981492362,
+        "name": "coverage-file-flush",
+        "status": "completed",
+        "conclusion": "failure",
+        "headSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca"
+      }
+    ]
+  },
+  "completeLogs": [
+    {
+      "stage": "coverage",
+      "characters": 3796360,
+      "notOkLines": []
+    },
+    {
+      "stage": "source",
+      "characters": 3890398,
+      "notOkLines": []
+    },
+    {
+      "stage": "extra",
+      "characters": 3745244,
+      "notOkLines": [
+        "not ok 168 - actual core chat WBIPC recovery has exclusive ownership and live credential revocation",
+        "not ok 170 - actual core claude WBIPC recovery has exclusive ownership and live credential revocation"
+      ]
+    }
+  ],
+  "business": [
+    {
+      "jobId": 122992538034,
+      "completeLogCharacters": 34934,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n08",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "94db9df15764cb758aeaedca1bacc0cbaeb12af36d1a5596dc38d8ff4ccc907b",
+        "buildReceiptSha256": "45b6ead4ca49aa29b7aa030b348f107591d3b42d0d38ae8ed0f4eed52fecc117",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "nonLoopbackBlocked": true,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "probesPassed": true,
+        "n08Qualified": false,
+        "ownedTreeEmpty": true
+      }
+    },
+    {
+      "jobId": 122992538103,
+      "completeLogCharacters": 34999,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n09-finished-ack",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "6210d4d562f7c91f6f46444f643d20bb54617f73bc0e4b1d6de416d691bf6885",
+        "buildReceiptSha256": "908ac04009acd5e5365066fd06fe93a8346bd3110126c4caac0c3799d4efca5a",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "probesPassed": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished"
+      }
+    },
+    {
+      "jobId": 122992538116,
+      "completeLogCharacters": 34929,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n09",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "f16686e2808fccbc4f0be82c1a32ebdb1adcbe3b6f2d708c183e4cc3071091b6",
+        "buildReceiptSha256": "bb6bb720180ab14fb40bbd7b5bedc243103f378e49d7b13d658450020da7ad92",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "n08Qualified": false,
+        "probesPassed": true,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "ownedTreeEmpty": true,
+        "tlsVerified": true
+      }
+    },
+    {
+      "jobId": 122992538124,
+      "completeLogCharacters": 34997,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n09-uncertain-ack",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "c99cb1737fd0d44ba458bcc74bd363c614110dd5ee2ebac019ed7ef2a06d413e",
+        "buildReceiptSha256": "0672b4133c1a7d2bb62814327d2dcfed40402926e0db0ebccbcb20c4d9a0f6db",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "probesPassed": true
+      }
+    },
+    {
+      "jobId": 122992538148,
+      "completeLogCharacters": 34994,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n09-sending-ack",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "b3e8d9d3c117e84a656cbe42ba6e17e489a6b7c1996be63731864e73a9b24201",
+        "buildReceiptSha256": "141722180723e1ea884ddcb4be195c55960a5b1c353e63082b88b394f2b9fd3c",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "nonLoopbackBlocked": true,
+        "probesPassed": true
+      }
+    },
+    {
+      "jobId": 122992538151,
+      "completeLogCharacters": 35003,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n09-withdrawn-ack",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "e1e3c12a011ba183e0cfff622a7cbef56acd786d456dd8edf5b0a9091ec6db41",
+        "buildReceiptSha256": "c2d63a2d4081f4b67754329b3ac1d57620da506d86c2c607f88a6c33638154a9",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "probesPassed": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false
+      }
+    },
+    {
+      "jobId": 122992538182,
+      "completeLogCharacters": 35096,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n09-uncertain-commit",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "0698ce69830b11cdf6772944cd2bd5d720bf3141073b7c6187a24410a513fb11",
+        "buildReceiptSha256": "fc11f2591dba20a85839bf27bfa249929e1044b3fff39ffdcdb8bcbd1d25796a",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "tlsVerified": true,
+        "probesPassed": true,
+        "n08Qualified": false,
+        "nonLoopbackBlocked": true
+      }
+    },
+    {
+      "jobId": 122992538232,
+      "completeLogCharacters": 35013,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n09-withdrawn-commit",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "875c2b6e239e64a94eb4a09d9f055cb19b61971452463e95136e1e22d627e608",
+        "buildReceiptSha256": "9bb18d0c3ee6b5f3483b9165aa738e140d4389ba2c1d1c749b927e824227bd03",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "phase": "hosted_network_finished",
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "tlsVerified": true,
+        "probesPassed": true,
+        "nonLoopbackBlocked": true
+      }
+    },
+    {
+      "jobId": 122992538237,
+      "completeLogCharacters": 35009,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n09-sending-commit",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "bc280ac839059462859ebd6a0aa1fe65e5c356c5c3420acc7c4e42eba8eca953",
+        "buildReceiptSha256": "51ceabb378cdd15697a295e355b3dab1ae409aae799c6315e53ab003b78a1a24",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "probesPassed": true,
+        "nonLoopbackBlocked": true,
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "tlsVerified": true
+      }
+    },
+    {
+      "jobId": 122992538247,
+      "completeLogCharacters": 35006,
+      "preparation": {
+        "schemaVersion": 1,
+        "scenario": "n09-finished-commit",
+        "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+        "planSha256": "273f491677567ce9a78ddc1cc7c3640ee9fd77ec9176589311bd84344c051b89",
+        "buildReceiptSha256": "45af1f37d3f08f7ca4dd188bc07ad8290cc5118ca7e829797112f4267ecc995a",
+        "phase": "prepared_only",
+        "networkExecuted": false,
+        "daemonExecuted": false
+      },
+      "execution": {
+        "n08Qualified": false,
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "probesPassed": true
+      }
+    }
+  ],
+  "persistentRequestFailures": [
+    {
+      "kind": "chat",
+      "mode": "long-persistent",
+      "turn": 1,
+      "phase": "request_failed",
+      "elapsedMs": 5001,
+      "requests": 6,
+      "handshakes": 6,
+      "roots": 1
+    },
+    {
+      "kind": "claude",
+      "mode": "long-persistent",
+      "turn": 0,
+      "phase": "request_failed",
+      "elapsedMs": 5012,
+      "requests": 4,
+      "handshakes": 4,
+      "roots": 1
+    }
+  ],
+  "slowCommitsInFailureSegment": [
+    {
+      "kind": "chat",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 9,
+      "operation": "save-reference-state",
+      "stage": "sqlite_commit",
+      "elapsedMs": 2080,
+      "startedAtUnixMs": 1793208711930,
+      "finishedAtUnixMs": 1793208714010,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 16000,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 1
+    },
+    {
+      "kind": "chat",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 10,
+      "operation": "save-reference-state",
+      "stage": "sqlite_commit",
+      "elapsedMs": 1037,
+      "startedAtUnixMs": 1793208714412,
+      "finishedAtUnixMs": 1793208715449,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 16000,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 1
+    },
+    {
+      "kind": "chat",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 3,
+      "operation": "save-reference-state",
+      "stage": "sqlite_commit",
+      "elapsedMs": 1059,
+      "startedAtUnixMs": 1793208716193,
+      "finishedAtUnixMs": 1793208717252,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 2
+    },
+    {
+      "kind": "chat",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 4,
+      "operation": "settle-reader",
+      "stage": "sqlite_commit",
+      "elapsedMs": 954,
+      "startedAtUnixMs": 1793208717546,
+      "finishedAtUnixMs": 1793208718500,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 2
+    },
+    {
+      "kind": "chat",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 5,
+      "operation": "save-reference-state",
+      "stage": "sqlite_commit",
+      "elapsedMs": 1428,
+      "startedAtUnixMs": 1793208718763,
+      "finishedAtUnixMs": 1793208720191,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 2
+    },
+    {
+      "kind": "chat",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 6,
+      "operation": "read-source-and-settle",
+      "stage": "sqlite_commit",
+      "elapsedMs": 676,
+      "startedAtUnixMs": 1793208720278,
+      "finishedAtUnixMs": 1793208720954,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 2
+    },
+    {
+      "kind": "claude",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 3,
+      "operation": "save-reference-state",
+      "stage": "sqlite_commit",
+      "elapsedMs": 531,
+      "startedAtUnixMs": 1793208736853,
+      "finishedAtUnixMs": 1793208737384,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 1
+    },
+    {
+      "kind": "claude",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 4,
+      "operation": "save-reference-state",
+      "stage": "sqlite_commit",
+      "elapsedMs": 1129,
+      "startedAtUnixMs": 1793208737759,
+      "finishedAtUnixMs": 1793208738889,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 1
+    },
+    {
+      "kind": "claude",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 7,
+      "operation": "read-source-and-settle",
+      "stage": "sqlite_commit",
+      "elapsedMs": 587,
+      "startedAtUnixMs": 1793208740204,
+      "finishedAtUnixMs": 1793208740791,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 1
+    },
+    {
+      "kind": "claude",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 8,
+      "operation": "save-reference-state",
+      "stage": "sqlite_commit",
+      "elapsedMs": 757,
+      "startedAtUnixMs": 1793208741033,
+      "finishedAtUnixMs": 1793208741789,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 1
+    },
+    {
+      "kind": "claude",
+      "mode": "long-persistent",
+      "phase": "owner-stage",
+      "sequence": 9,
+      "operation": "save-reference-state",
+      "stage": "sqlite_commit",
+      "elapsedMs": 817,
+      "startedAtUnixMs": 1793208742352,
+      "finishedAtUnixMs": 1793208743169,
+      "wallClockRollbackObserved": false,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "ownerEpoch": 1
+    }
+  ],
+  "ioReceipts": [
+    {
+      "stage": "coverage",
+      "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+      "coverageStage": "proxy",
+      "windowTermination": "file-completed",
+      "cleanupVerified": true,
+      "originalSummaryParserAccepted": true,
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 34408,
+        "pairedFlushes": 243,
+        "database": {
+          "count": 81,
+          "maxMs": 30,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 162,
+          "maxMs": 38,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0
+      }
+    },
+    {
+      "stage": "coverage",
+      "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+      "coverageStage": "client",
+      "windowTermination": "file-completed",
+      "cleanupVerified": true,
+      "originalSummaryParserAccepted": true,
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 26369,
+        "pairedFlushes": 144,
+        "database": {
+          "count": 48,
+          "maxMs": 21,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 96,
+          "maxMs": 14,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0
+      }
+    },
+    {
+      "stage": "coverage",
+      "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+      "coverageStage": "client",
+      "windowTermination": "file-completed",
+      "cleanupVerified": true,
+      "originalSummaryParserAccepted": true,
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 3497,
+        "pairedFlushes": 63,
+        "database": {
+          "count": 21,
+          "maxMs": 11,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 42,
+          "maxMs": 13,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0
+      }
+    },
+    {
+      "stage": "source",
+      "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+      "coverageStage": "proxy",
+      "windowTermination": "file-completed",
+      "cleanupVerified": true,
+      "originalSummaryParserAccepted": true,
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 1484,
+        "pairedFlushes": 20,
+        "database": {
+          "count": 0,
+          "maxMs": 0,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 20,
+          "maxMs": 24,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0
+      }
+    },
+    {
+      "stage": "extra",
+      "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+      "coverageStage": "proxy",
+      "windowTermination": "file-completed",
+      "cleanupVerified": true,
+      "originalSummaryParserAccepted": true,
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 26054,
+        "pairedFlushes": 239,
+        "database": {
+          "count": 75,
+          "maxMs": 117,
+          "over100Ms": 1,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 164,
+          "maxMs": 52,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0
+      }
+    },
+    {
+      "stage": "extra",
+      "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+      "coverageStage": "client",
+      "windowTermination": "persistent-request-failed",
+      "cleanupVerified": true,
+      "originalSummaryParserAccepted": true,
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 7445,
+        "pairedFlushes": 39,
+        "database": {
+          "count": 13,
+          "maxMs": 877,
+          "over100Ms": 7,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 26,
+          "maxMs": 1184,
+          "over100Ms": 8,
+          "over1000Ms": 1
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0,
+        "ioWindows": [
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793208711930,
+            "finishedAtMs": 1793208713114,
+            "elapsedMs": 1184,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793208711930,
+            "finishedAtMs": 1793208713075,
+            "elapsedMs": 1145,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793208713133,
+            "finishedAtMs": 1793208714010,
+            "elapsedMs": 877,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793208718764,
+            "finishedAtMs": 1793208719560,
+            "elapsedMs": 796,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793208718764,
+            "finishedAtMs": 1793208719558,
+            "elapsedMs": 794,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793208717547,
+            "finishedAtMs": 1793208718312,
+            "elapsedMs": 765,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793208717547,
+            "finishedAtMs": 1793208718309,
+            "elapsedMs": 762,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793208716193,
+            "finishedAtMs": 1793208716875,
+            "elapsedMs": 682,
+            "status": 0
+          }
+        ]
+      }
+    },
+    {
+      "stage": "extra",
+      "sourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+      "coverageStage": "client",
+      "windowTermination": "file-completed",
+      "cleanupVerified": true,
+      "originalSummaryParserAccepted": true,
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 3463,
+        "pairedFlushes": 63,
+        "database": {
+          "count": 21,
+          "maxMs": 16,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 42,
+          "maxMs": 20,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0
+      }
+    }
+  ],
+  "interpretation": {
+    "sameWindowFlushOverlapObserved": true,
+    "uniqueFileOrProcessAttributionProven": false,
+    "uniqueRootCauseProven": false,
+    "fiveSecondStable": false,
+    "admissionBeforeReadMustRemainDurable": true,
+    "noProductChangeInThisBatch": true
+  },
+  "windowsCacheContinuation": {
+    "productSourceSha": "989a0bda67945a56934774bc8b24af49bee92977",
+    "cacheHelperSourceSha": "2e943758af8b5aa45620862df34c0ef6dd4beaca",
+    "windowsHelperTests": 15,
+    "windowsHelperFailed": 0,
+    "windowsHelperSkipped": 0,
+    "nativeRustPassed": 47,
+    "nativeRustFailed": 0,
+    "installerBuildCompleted": false,
+    "localInstalledQualified": false,
+    "originalFailedCacheCopyPreserved": true
+  },
+  "realModelRequests": 0,
+  "new24HourStarted": false,
+  "oldInstanceChanged": false
+}

@@ -1,0 +1,158 @@
+name: Disposable Windows encrypted draft lifecycle
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_id:
+        required: true
+        type: string
+      installer_asset_id:
+        required: true
+        type: string
+      identity_asset_id:
+        required: true
+        type: string
+      baseline_target_sha:
+        required: true
+        type: string
+      transfer_tag:
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      release_id:
+        required: true
+        type: string
+      installer_asset_id:
+        required: true
+        type: string
+      identity_asset_id:
+        required: true
+        type: string
+      baseline_target_sha:
+        required: true
+        type: string
+      transfer_tag:
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  encrypted-lifecycle:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write # GitHub restricts draft release reads to repository writers.
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: current
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+      - name: Acquire immutable unpublished baseline directly on runner
+        env:
+          RELEASE_ID: ${{ inputs.release_id }}
+          INSTALLER_ASSET_ID: ${{ inputs.installer_asset_id }}
+          IDENTITY_ASSET_ID: ${{ inputs.identity_asset_id }}
+          BASELINE_TARGET_SHA: ${{ inputs.baseline_target_sha }}
+          TRANSFER_TAG: ${{ inputs.transfer_tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node current/scripts/download-nsis-draft.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Unpublished baseline acquisition refused.' }
+      - name: Acquire fixed private 582 public runtime and official Node
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node current/scripts/receive-legacy-runtime.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Legacy runtime acquisition refused.' }
+      - name: Restore old locked dependencies and verify complete 582 identity
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./current/scripts/restore-legacy-runtime.ps1
+      - run: rustup default stable
+      - name: Require all current candidate gates
+        id: candidate_gates
+        working-directory: current
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate dependencies failed.' }
+          npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate local evidence plugin dependencies failed.' }
+          npm run verify
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate verification failed; installation qualification will not run.' }
+          npm audit --audit-level=high
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate dependency audit failed.' }
+      - name: Diagnose isolated native open after candidate gate failure
+        if: ${{ failure() && steps.candidate_gates.outcome == 'failure' }}
+        working-directory: current
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node scripts/diagnose-context-recovery-open.js
+          if ($LASTEXITCODE -ne 0) { throw 'Isolated native open diagnostic did not pass; original gate failure remains.' }
+      - name: Build current test installer without publishing
+        id: candidate_build
+        working-directory: current
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $config = Get-Content -LiteralPath src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          if ($config.identifier -cne 'com.efficiency.https-proxy-manager' -or $config.bundle.windows.nsis.installMode -cne 'currentUser' -or (Test-Path -LiteralPath src-tauri/tauri.windows.conf.json)) { throw 'Candidate installer scope refused.' }
+          @{ version = '0.1.1' } | ConvertTo-Json | Set-Content -LiteralPath encrypted-lifecycle.config.json -Encoding utf8
+          node node_modules/@tauri-apps/cli/tauri.js build --bundles nsis --config encrypted-lifecycle.config.json
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate NSIS build failed.' }
+      - name: Qualify installed same-format readers and runner-local DPAPI
+        env:
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./current/scripts/qualify-nsis-lifecycle.ps1 -BaselineDirectory './old-baseline' -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentSha $env:CURRENT_SHA -EncryptedRecovery -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json'
+      - name: Qualify installed default-worker 582 migration and old-reader refusal
+        env:
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./current/scripts/qualify-nsis-installed-legacy-582.ps1 -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json' -CurrentSha $env:CURRENT_SHA
+      - name: Qualify installed Codex and Claude with isolated synthetic upstream
+        env:
+          CURRENT_SHA: ${{ github.sha }}
+          GATES_OUTCOME: ${{ steps.candidate_gates.outcome }}
+          BUILD_OUTCOME: ${{ steps.candidate_build.outcome }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GATES_OUTCOME -cne 'success' -or $env:BUILD_OUTCOME -cne 'success') { throw 'Installed client preparation evidence refused.' }
+          $file = Join-Path $env:RUNNER_TEMP 'hpm-installed-client-preparation.json'
+          if (Test-Path -LiteralPath $file) { throw 'Installed client preparation collision.' }
+          @{ schemaVersion = 1; currentSha = $env:CURRENT_SHA; buildCompleted = $true; candidateNpmCompleted = $true; verificationCompleted = $true } | ConvertTo-Json -Compress | Set-Content -LiteralPath $file -Encoding utf8
+          $receiptSha = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          ./current/scripts/qualify-nsis-installed-clients.ps1 -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json' -CurrentSha $env:CURRENT_SHA -PreparationReceiptSha256 $receiptSha
+      - name: Qualify installed publication COMMIT and durable ACK interiors
+        env:
+          CURRENT_SHA: ${{ github.sha }}
+          GATES_OUTCOME: ${{ steps.candidate_gates.outcome }}
+          BUILD_OUTCOME: ${{ steps.candidate_build.outcome }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GATES_OUTCOME -cne 'success' -or $env:BUILD_OUTCOME -cne 'success') { throw 'Installed publication preparation evidence refused.' }
+          ./current/scripts/qualify-nsis-installed-publication.ps1 -CurrentDirectory './current/src-tauri/target/release/bundle/nsis' -CurrentRuntimeManifest './current/dist/staging/runtime/release-runtime-manifest.json' -CurrentSha $env:CURRENT_SHA
+      - name: Record bounded scope
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          @(
+            'Direct unpublished baseline encrypted lifecycle result: ' + $env:JOB_STATUS
+            'Draft and asset metadata, anonymous denial, installer SHA256 and identity are checked before acceptance.'
+            'No baseline, installer, keys, DBs or synthetic originals are uploaded or published.'
+            '582 migration is qualified only by a successful installed_legacy_582_finished receipt; acquisition alone grants no migration qualification.'
+            'Not qualified: full failure-injection matrix, real users, cross-device keys, 24-hour capacity, providers, signing or production activation.'
+          ) >> $env:GITHUB_STEP_SUMMARY

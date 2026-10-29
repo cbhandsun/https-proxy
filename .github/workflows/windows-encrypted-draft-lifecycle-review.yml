@@ -1,0 +1,42 @@
+name: Review branch Windows encrypted draft lifecycle
+
+on:
+  push:
+    branches:
+      - acceptance/windows-encrypted-draft/**
+
+permissions: {}
+
+jobs:
+  resolve:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      release_id: ${{ steps.route.outputs.release_id }}
+      installer_asset_id: ${{ steps.route.outputs.installer_asset_id }}
+      identity_asset_id: ${{ steps.route.outputs.identity_asset_id }}
+      baseline_target_sha: ${{ steps.route.outputs.baseline_target_sha }}
+      transfer_tag: ${{ steps.route.outputs.transfer_tag }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+      - id: route
+        run: node scripts/resolve-nsis-review-route.cjs draft
+  encrypted:
+    needs: resolve
+    permissions:
+      contents: write
+    uses: ./.github/workflows/windows-encrypted-draft-lifecycle.yml
+    with:
+      release_id: ${{ needs.resolve.outputs.release_id }}
+      installer_asset_id: ${{ needs.resolve.outputs.installer_asset_id }}
+      identity_asset_id: ${{ needs.resolve.outputs.identity_asset_id }}
+      baseline_target_sha: ${{ needs.resolve.outputs.baseline_target_sha }}
+      transfer_tag: ${{ needs.resolve.outputs.transfer_tag }}

@@ -1,0 +1,69 @@
+name: Context business boundary diagnostic
+
+on:
+  push:
+    branches:
+      - acceptance/context-recovery/**
+    paths:
+      - .github/workflows/context-business-boundary-diagnostic.yml
+      - scripts/context-hosted/**
+      - scripts/lib/nsis-runtime-boundary.psm1
+      - scripts/lib/nsis-runtime-boundary-job.cs
+      - scripts/qualify-context-hosted.ps1
+      - scripts/prepare-context-hosted-run.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [n08, n09, n09-sending-ack, n09-finished-ack, n09-withdrawn-ack, n09-uncertain-ack, n09-sending-commit, n09-finished-commit, n09-withdrawn-commit, n09-uncertain-commit]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Prepare fixed diagnostic prerequisites
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Source dependency preparation failed.' }
+          npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture dependency preparation failed.' }
+          rustup default stable
+          if ($LASTEXITCODE -ne 0) { throw 'Native toolchain preparation failed.' }
+      - name: Prepare original pinned payload and plan
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node scripts/prepare-context-hosted-run.js $env:SCENARIO
+          if ($LASTEXITCODE -ne 0) { throw 'Diagnostic payload preparation failed.' }
+      - name: Diagnose original bounded business execution
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./scripts/qualify-context-hosted.ps1 -Case $env:SCENARIO
+      - name: Preserve diagnostic evidence boundary
+        if: always()
+        run: |
+          @(
+            'Diagnostic execution only; no qualification or publication is granted.'
+            'The original pinned payload, network boundary, owned Job and business assertions are reused.'
+            'Formal Verify and the complete source-gates plus business chain remain required.'
+            'No payload, credential, original content, native reply or database is uploaded.'
+          ) >> $env:GITHUB_STEP_SUMMARY

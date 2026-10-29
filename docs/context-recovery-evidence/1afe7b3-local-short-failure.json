@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1afe7b310ea575ed00d0b68a7addc93a4916e6fe",
+  "sourceFilesPinned": 2024,
+  "archiveSha256": "f43c33f749772c938d6943fe0a932d7579dad6c9c3c4220807ead4e3bd9fba31",
+  "nativeTree": "3437873f3052ff996f769332239d56c81748c8c6",
+  "nativeSha256": "0356dfca64c77622a7699f765ea32577f1aa2613ff896db23cff17c41d490937",
+  "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+  "lockSha256": "c092f66b4e84d6bd461ce22ef9bcac1713465656d4420f36ea0058b22a76a850",
+  "preparationFailure": {
+    "taskName": "HPM-independent-short-1afe7b3-a6fa74",
+    "step": "dependencies",
+    "taskResult": 126,
+    "parentDeadlineMs": 120000,
+    "productTestsStarted": false,
+    "completedNpmFetches": 181,
+    "maximumCompletedFetchMs": 60306,
+    "npmFinalExitObserved": false,
+    "uniqueCauseConfirmed": false,
+    "retained": true
+  },
+  "compatibleReuse": {
+    "directPackages": 16,
+    "matched": 16,
+    "missing": 0,
+    "mismatch": 0,
+    "sameLockInstalledEnvironment": true,
+    "baseSourceCommit": "7456f97e9c3222089b4e7a01fe6c8fe636930f8d",
+    "newDirectory": true,
+    "baseEnvironmentModified": false,
+    "dependencyUpgrade": false
+  },
+  "taskName": "HPM-independent-short-1afe7b3-a6fa74-reuse",
+  "taskState": "Ready",
+  "taskResult": 126,
+  "capacityRegression": {
+    "tests": 28,
+    "pass": 28,
+    "fail": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "shortSuite": {
+    "originalFiles": [
+      "test/client-context-target.test.js",
+      "test/context-recovery-native-graceful-http.test.js"
+    ],
+    "expectedCases": 40,
+    "completed": false,
+    "observedOkLines": 28,
+    "observedFailedCases": [
+      {
+        "number": 28,
+        "name": "actual core chat WBIPC recovery has exclusive ownership and live credential revocation"
+      }
+    ],
+    "parentDeadlineMs": 120000,
+    "originalRequestDeadlineMs": 5000,
+    "childExitObserved": null,
+    "cleanupFailed": false,
+    "requestFailure": {
+      "kind": "chat",
+      "mode": "long-json",
+      "phase": "request_failed",
+      "turn": 1,
+      "elapsedMs": 5477,
+      "requests": 8,
+      "handshakes": 8,
+      "roots": 1
+    },
+    "failureCode": "ERR_TEST_FAILURE",
+    "timeoutExceptionClassVerified": false,
+    "persistentModeEnteredInFailedChatCase": false,
+    "uniqueRootCauseConfirmed": false
+  },
+  "persistentResponsesBodyEndMs": [
+    3812,
+    2825
+  ],
+  "persistentStorageSamples": 17,
+  "largestObservedOuterStorage": [
+    {
+      "kind": "responses",
+      "operation": "save-reference-state",
+      "elapsedMs": 713
+    },
+    {
+      "kind": "responses",
+      "operation": "save-reference-state",
+      "elapsedMs": 491
+    },
+    {
+      "kind": "responses",
+      "operation": "save-reference-state",
+      "elapsedMs": 471
+    }
+  ],
+  "outerStorageSamplesAreCommitDurations": false,
+  "terminalEvidence": {
+    "event": "independent_tasks_terminal_evidence",
+    "stepReceipts": [
+      {
+        "scope": "cpu",
+        "step": "cpu",
+        "childExitCode": 0,
+        "elapsedMs": 18710,
+        "jobNaturallyEmpty": true,
+        "qualification": false,
+        "modelRequests": 0
+      },
+      {
+        "scope": "reuse",
+        "step": "capacity-regression",
+        "childExitCode": 0,
+        "elapsedMs": 15411,
+        "jobNaturallyEmpty": true,
+        "qualification": false,
+        "modelRequests": 0
+      }
+    ],
+    "remainingOwnedNodeOrNative": 0,
+    "processesChanged": 0,
+    "modelRequests": 0
+  },
+  "dailyManagerChanged": false,
+  "nativeDayRestarted": false,
+  "realModelRequests": 0,
+  "stabilityQualified": false,
+  "firstLiveLogObservationFailed": true,
+  "logObserverChangedToSharedReadWrite": true,
+  "testOrModelRetryUsedToGrantQualification": false
+}

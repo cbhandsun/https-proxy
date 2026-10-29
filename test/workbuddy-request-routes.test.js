@@ -34,7 +34,7 @@ function request(port, requestPath, body) {
     req.end(JSON.stringify(body));
   });
 }
-async function run(hostMode) {
+async function run(hostMode, policyVersion) {
   let received = 0;
   const upstream = http.createServer((req, res) => {
     received++;
@@ -143,7 +143,7 @@ async function run(hostMode) {
         },
       ],
       modelRoutes: [],
-      appSettings: { conversationAuditEnabled: false },
+      appSettings: { conversationAuditEnabled: false, contextPolicyVersion: policyVersion },
     })
   );
   const child = spawn(
@@ -319,6 +319,68 @@ async function run(hostMode) {
       assert.equal(sentCount(), before, 'Invalid compatibility controls must not dispatch');
     }
     if (hostMode) {
+      // The same large, complete history must succeed through legacy planning
+      // and fail before host dispatch when automatic planning is disabled.
+      for (let index = 0; index < ports.length; index++) {
+        const messages = [{ role: 'user', content: 'native-capacity-fixture' }];
+        const input = [{ role: 'user', content: 'native-capacity-fixture' }];
+        for (let round = 0; round < 6; round++) {
+          const id = 'native-fixture-' + round;
+          const output = 'synthetic-evidence'.repeat(6000);
+          if (index === 2)
+            messages.push(
+              { role: 'assistant', content: [{ type: 'tool_use', id, name: 'read', input: {} }] },
+              { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content: output }] }
+            );
+          else
+            messages.push(
+              {
+                role: 'assistant',
+                tool_calls: [{ id, type: 'function', function: { name: 'read', arguments: '{}' } }],
+              },
+              { role: 'tool', tool_call_id: id, content: output }
+            );
+          input.push(
+            { type: 'function_call', call_id: id, name: 'read', arguments: '{}' },
+            { type: 'function_call_output', call_id: id, output }
+          );
+        }
+        messages.push({ role: 'user', content: 'continue' });
+        input.push({ role: 'user', content: 'continue' });
+        const tool = { name: 'read', parameters: { type: 'object' } };
+        const before = sentCount();
+        const result = await request(
+          ports[index],
+          ['/v1/chat/completions', '/v1/responses', '/v1/messages'][index],
+          {
+            model: 'deepseek-v4-flash',
+            ...(index === 1 ? { input } : { messages }),
+            ...(index === 2 ? { max_tokens: 128 } : {}),
+            tools:
+              index === 2
+                ? [{ name: tool.name, input_schema: tool.parameters }]
+                : index === 1
+                  ? [{ type: 'function', ...tool }]
+                  : [{ type: 'function', function: tool }],
+          }
+        );
+        if (policyVersion === 2) {
+          assert.ok([400, 413].includes(result.status), result.text);
+          assert.ok(
+            ['context_length_exceeded', 'workbuddy_request_too_large'].includes(
+              JSON.parse(result.text).error.code
+            )
+          );
+          assert.equal(
+            sentCount(),
+            before,
+            'Native admission must not dispatch, summarize or retry'
+          );
+        } else {
+          assert.equal(result.status, 200, result.text);
+          assert.ok(sentCount() > before);
+        }
+      }
       for (const compactPath of ['/v1/responses/compact', '/responses/compact?fixture=1']) {
         const before = sentCount();
         const history = [
@@ -408,6 +470,8 @@ async function run(hostMode) {
 async function main() {
   await run(false);
   await run(true);
+  await run(false, 2);
+  await run(true, 2);
 }
 main().catch((error) => {
   process.stderr.write(String(error.stack) + '\n');

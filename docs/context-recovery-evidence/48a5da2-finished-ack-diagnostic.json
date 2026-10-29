@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "48a5da2cffa59ea932c4768786bb61904819aec9",
+  "diagnosticRunId": 40606814821,
+  "diagnosticJobId": 122548247619,
+  "diagnosticConclusion": "success",
+  "preparationIdentity": {
+    "scenario": "n09-finished-ack",
+    "planSha256": "de84691f378ccbdad7269a950043d9e995168f43a430fbfda7c55d9743b38431",
+    "buildReceiptSha256": "baf1fee93d1548363cf6633f3f00b5f994f3a0b35fb53aef52db4256cc6e05de"
+  },
+  "executionReceipt": {
+    "tlsVerified": true,
+    "n08Qualified": false,
+    "phase": "hosted_network_finished",
+    "probesPassed": true,
+    "nonLoopbackBlocked": true,
+    "ownedTreeEmpty": true
+  },
+  "fixedSourceAssertions": {
+    "requiredCases": 2,
+    "finishedAckKill": true,
+    "finishedAckRelease": true,
+    "preparedAndSendingPredecessorAcks": true,
+    "exactDurableRevisionDelta": 3,
+    "originalOwnedJobMs": 120000,
+    "originalTreeCloseMs": 5000,
+    "originalWitnessMs": 750,
+    "budgetAndExpiryPreserved": true,
+    "completeOriginalPublicWireRequired": true,
+    "publicWireNotEquivalentToPublicationCompletion": true,
+    "sameDirectoryDefaultOwnerReopen": true,
+    "releaseRequiresPublicationCompletionBarrier": true
+  },
+  "evidenceBasis": "fixed-source identity and enforced two-case entry plus strict owned-Job receipt; independent diagnostic only",
+  "allFourDiagnosticJobsSuccess": true,
+  "fullFormalQualification": false,
+  "formalSourceGateJob": 122548247945,
+  "formalSourceGateObservedStatus": "in_progress",
+  "fullVerifyRunId": 40606814770,
+  "extraIoJob": 122548247725,
+  "extraIoObservedStatus": "in_progress",
+  "fiveSecondStabilityQualified": false,
+  "modelRequests": 0
+}

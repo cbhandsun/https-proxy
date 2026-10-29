@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "scope": "acceptance_transport_marker_polling",
+  "baselineSourceSha": "b4753a8980f4c846419755fd69ac6f112503e52f",
+  "change": {
+    "presentReadAncestorWalks": { "before": 4, "after": 3 },
+    "missingMarkerAncestorWalks": { "before": 2, "after": 1 },
+    "writeAncestorWalksUnchanged": 3,
+    "presentMarkerChecksAllPinnedAncestorsBeforePayloadOpen": true,
+    "missingMarkerRequiresDirectoryVerificationBeforeNull": true,
+    "writeVerifiesDirectoryBeforeWx": true,
+    "descriptorBeforeAfterAndPayloadIdentityChecksPreserved": true,
+    "closedMarkerInspectionCannotOpenPayload": true,
+    "crossOperationCacheAdded": false,
+    "metadataProbeOrderChanged": true,
+    "badAncestorsCanReceiveMarkerMetadataProbeBeforeRejection": true,
+    "badAncestorsCannotAuthorizePayloadOpenReadOrWrite": true,
+    "signatureAndDeadlineChecksChanged": false,
+    "productRuntimeChanged": false
+  },
+  "validation": {
+    "baselineTests": 30,
+    "baselinePass": 24,
+    "baselineFail": 6,
+    "baselineFailures": ["duplicate present-read walks", "duplicate empty-poll walks", "closed marker inspection reached payload open"],
+    "relatedCompleteFiles": 4,
+    "tests": 80,
+    "pass": 80,
+    "fail": 0,
+    "skip": 0,
+    "cancelled": 0,
+    "negativeControls": [
+      "parent replaced during present marker inspection: no payload open",
+      "parent replaced after marker ENOENT: refusal instead of null",
+      "parent alias, marker reparse or marker hardlink: no payload open",
+      "replaced write directory: no wx creation",
+      "closed during marker inspection: no payload open",
+      "later reads repeat every physical check",
+      "original descriptor replacement, byte bounds, canonical JSON and signed handshake controls"
+    ],
+    "changedSourceWindowsPassed": false
+  },
+  "prior858ExtraCoverage": {
+    "runId": 40802212958,
+    "jobId": 123212712313,
+    "completeLogCharactersRead": 4183222,
+    "conclusion": "success",
+    "originalParserAcceptedSameSourceCleanupReceipts": 3,
+    "persistentPublicationSamples": 12,
+    "publicationRangeMs": [987, 2109],
+    "fiveSecondQualified": false
+  },
+  "priorEeExtraCoverageFailure": {
+    "runId": 40803391008,
+    "jobId": 123216514685,
+    "completeLogCharactersRead": 3044127,
+    "failedTests": 1,
+    "failedCase": "time spent writing the released probe cannot extend the host ACK five-second bound",
+    "actualFailure": "initial channel.arm under the original 750ms witness",
+    "testDurationMs": 999.9555,
+    "targetFiveSecondNegativeControlEntered": false,
+    "failurePreserved": true
+  },
+  "qualification": {
+    "physicalCauseOf750msFailureProven": false,
+    "fiveSecondStability": false,
+    "installedClients": false,
+    "realProviders": false,
+    "real24Hours": false,
+    "allHistoricalFailuresPreserved": true,
+    "realModelRequests": 0,
+    "new24HourRuns": 0,
+    "dailyInstanceChanged": false,
+    "overallComplete": false
+  }
+}

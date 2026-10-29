@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "scope": "parallel_fault_localization_without_gate_reduction",
+  "baselineSourceSha": "9b4bcdf7661c0ecfa865b34137adfe43d49255f6",
+  "criticalPath": {
+    "runId": 40804270759,
+    "jobId": 123219455735,
+    "totalSeconds": 1912,
+    "fullCandidateGatesSeconds": 1199,
+    "nsisBuildSeconds": 309,
+    "sameFormatLifecycleSeconds": 232,
+    "legacy582Seconds": 45,
+    "clientAttemptSeconds": 75,
+    "cargoAuditInstallSecondsOn428Verify": 1,
+    "cargoCacheOptimizationAdded": false
+  },
+  "lanes": {
+    "codexStop": {
+      "independentHostedRunner": true,
+      "originalCompleteEnhancedProtocol": true,
+      "defaultPersistentWorker": true,
+      "compactions": 3,
+      "restartAndFinalRecovery": true,
+      "originalWfpPrograms": 3,
+      "originalJobsAndDeadlines": true,
+      "requiresFullVerifyBeforeDiagnostic": false,
+      "requiresNsisBuildOrInstall": false,
+      "createsInstalledSuccessReceipt": false,
+      "stagingIdentityAndContractPins": true,
+      "arbitraryStderrOrModelOutputLogged": false,
+      "installedQualified": false,
+      "realProvider": false,
+      "retention24hQualified": false,
+      "windowsExecutedBeforeCommit": false
+    },
+    "startupSql": {
+      "defaultWorkerFileExecArgvAndDataUnchanged": true,
+      "observerBeginsAfterOriginalAnchorValidation": true,
+      "permanentlyStopsAfterEngineConstruction": true,
+      "headerUpdatePairsBounded": 4,
+      "overflowMarkerOnce": true,
+      "firstCommitStartAndSuccessfulReturn": true,
+      "sqlArgumentsAndResultsReported": false,
+      "originalCallsReceiversResultsExceptionsPreserved": true,
+      "sqlErrorsNeverBecomeFinished": true,
+      "readinessGrantedByMarkers": false,
+      "firstObservedPhaseDoesNotAloneProvePhysicalCause": true,
+      "fullDeleteCryptoExpiryAndAnchorGatesChanged": false,
+      "releaseInventoryIncludesObserver": true,
+      "independentTimingAndIoTriggersIncludeObserver": true
+    },
+    "formal": {
+      "existingFullInstallerAndReleaseWorkflowsChanged": false,
+      "existingTimingAndIoBodiesChanged": false,
+      "allExistingFailuresPreserved": true
+    }
+  },
+  "localValidation": {
+    "combinedCompleteFiles": 9,
+    "tests": 66,
+    "pass": 65,
+    "fail": 0,
+    "existingPlatformSkip": 1,
+    "originalCapacityFiles": 2,
+    "capacityTests": 28,
+    "capacityPass": 28,
+    "initialFailuresPreserved": [
+      "new startup phase rejected by baseline closed enum",
+      "injected owner fixture assumed four updates despite original same-millisecond clock no-op; fixture uses monotone samples only",
+      "new module initially missing release inventory; regression rejected then explicit inventory entry added",
+      "three original diagnostic trigger lists initially missing the new production module"
+    ],
+    "newFastDiagnosticComponentsUseRealPowerShell": true,
+    "realWindowsQualification": false
+  },
+  "prior9bFailures": {
+    "ordinaryVerify": {
+      "runId": 40808869706,
+      "failedJobs": [
+        123234195901,
+        123234195894
+      ]
+    },
+    "formalSourceGate": {
+      "runId": 40808869600,
+      "jobId": 123234195008,
+      "fullLogCharactersRead": 3071178,
+      "failure": "initial original 750ms ACK arm",
+      "targetFiveSecondNegativeControlEntered": false
+    },
+    "installer": {
+      "runId": 40809001318,
+      "jobId": 123234768525,
+      "fullLogCharactersRead": 3070451,
+      "failure": "original 30000ms PowerShell readiness regression before build",
+      "installedCliExecuted": false,
+      "postFailureNativeOpenDiagnosticPassed": true
+    },
+    "unit2": {
+      "jobId": 123234195901,
+      "fullLogCharactersRead": 723352,
+      "legacyInterop": {
+        "nativeProtect": "completed",
+        "nativeProtectMs": 16,
+        "legacyUnprotect": "ETIMEDOUT",
+        "legacyUnprotectMs": 10017,
+        "legacyPhase": "unobserved"
+      },
+      "gracefulHttpFailuresBeforeTarget": 3
+    },
+    "coverage": {
+      "jobId": 123234195894,
+      "fullLogCharactersRead": 3064344,
+      "failures": [
+        "original generic Python child Node process timeout",
+        "original PowerShell/rg subprocess timeout"
+      ]
+    },
+    "extraCoverage": {
+      "runId": 40808869616,
+      "jobId": 123234195107,
+      "fullLogCharactersRead": 4198832,
+      "conclusion": "success",
+      "doesNotClearOtherFailures": true
+    }
+  },
+  "qualification": {
+    "fiveSecondStability": false,
+    "installedClientMatrix": false,
+    "realProviders": false,
+    "real24Hours": false,
+    "realModelRequests": 0,
+    "new24HourRuns": 0,
+    "localWindowsBuildOrShortTest": false,
+    "dailyInstanceChanged": false,
+    "overallComplete": false
+  }
+}

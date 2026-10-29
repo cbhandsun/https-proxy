@@ -16,6 +16,11 @@ New tests join the unit gate automatically. Only tests with a dedicated package
 script or runner are excluded explicitly. `test/frontend/` is excluded by
 directory convention because `scripts/run-frontend-tests.js` owns its execution.
 
-All spawned proxy processes must use temporary config and runtime directories.
-`npm run clean:test-runtime` removes legacy ignored runtime files from `test/`;
-normal test execution must leave that directory unchanged.
+All spawned proxy processes must use `createIsolatedTestEnv` with a temporary
+workspace. It isolates config/runtime storage, the child process home (including
+`os.homedir()`), Codex home and Windows/XDG application-data paths. Proxy
+startup must not synchronize a real user's managed model catalog or read client
+settings. Do not replace parent-process home variables or disable production
+behavior to make a fixture safe. `npm run clean:test-runtime` removes legacy
+ignored runtime files from `test/`; normal test execution must leave that
+directory unchanged.

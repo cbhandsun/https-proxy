@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "scope": "one_instrumented_original_Responses_top_level_case_only",
+  "referenceSource": "1afe7b310ea575ed00d0b68a7addc93a4916e6fe",
+  "productionAndSelectedTestUnchangedThrough": "be6545ec4718458b60fff189389cf10b64f64484",
+  "archiveSha256": "8c181b6790727b3cc861beb866f7bd2807062793a9db5eca2c5c76f1a8e5a43f",
+  "sourcePinsCheckedBeforeLaunch": 2024,
+  "parentDeadlineMs": 120000,
+  "requestDeadlineMs": 5000,
+  "taskResult": 0,
+  "naturalOwnedJobEmpty": true,
+  "tapSummary": [
+    "# tests 1",
+    "# pass 1",
+    "# fail 0",
+    "# cancelled 0",
+    "# skipped 0",
+    "# duration_ms 18825.3134"
+  ],
+  "requests": [
+    {
+      "mode": "long-persistent",
+      "turn": 0,
+      "phase": "body_end",
+      "elapsedMs": 2009
+    },
+    {
+      "mode": "long-persistent",
+      "turn": 1,
+      "phase": "body_end",
+      "elapsedMs": 2385
+    }
+  ],
+  "storageStages": {
+    "owners": 2,
+    "invalid": false,
+    "overflow": false,
+    "active": 0,
+    "completed": 19,
+    "failed": 0,
+    "workerElapsedMs": 2720,
+    "stageTotalsMs": {
+      "verifyBefore": 189,
+      "engineExecute": 955,
+      "engineSnapshot": 679,
+      "anchorPersist": 703,
+      "verifyAfter": 191
+    }
+  },
+  "sqliteWorkers": [
+    {
+      "threadId": 1,
+      "rows": 56,
+      "overflow": false,
+      "maxCommitMs": 32.676,
+      "cpuResolutionIsCoarse": true
+    },
+    {
+      "threadId": 2,
+      "rows": 46,
+      "overflow": false,
+      "maxCommitMs": 26.271,
+      "cpuResolutionIsCoarse": true
+    }
+  ],
+  "profilingPerturbed": true,
+  "oldFiveSecondFailuresPreserved": true,
+  "tailDelayReproduced": false,
+  "uniqueRootCauseEstablished": false,
+  "fiveSecondStableQualified": false,
+  "realModelRequests": 0,
+  "new24HourStarted": false,
+  "nativeIdentityPinnedDuringSample": false,
+  "doesNotQualifyNativeSourceIdentity": true
+}

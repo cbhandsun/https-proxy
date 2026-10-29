@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "baseSource": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+  "change": "Reuse reference manifest authentication only inside the same startup SQL callback after full ciphertext/AAD and payload inventory witnesses match. Clear proofs before COMMIT. Independent snapshots authenticate again.",
+  "regression": {
+    "blobsFullFile": {
+      "tests": 91,
+      "pass": 90,
+      "fail": 1,
+      "skip": 0,
+      "knownFailure": "actual encrypted worker exposes reference save/load, exact pages and legacy load across reopen; same failure observed before implementation on this Mac; Windows native verification still required"
+    },
+    "newCases": 9,
+    "relatedFiles": {
+      "tests": 177,
+      "pass": 175,
+      "fail": 0,
+      "skip": 2,
+      "note": "Existing platform guards; no new skips added"
+    }
+  },
+  "checks": {
+    "syntaxFiles": 1734,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "changedFormatting": "passed",
+    "ciGovernance": "passed",
+    "releaseGovernance": "passed"
+  },
+  "securityBoundaries": [
+    "same SQL writer lock only",
+    "manifest ciphertext plus complete AAD witness",
+    "full payload ciphertext/AAD inventory witness",
+    "no plaintext cache",
+    "no proof after COMMIT",
+    "changed state must authenticate anew or reject",
+    "original expiry cleanup still authenticates independently",
+    "four-root quota still rejects fifth valid root with rollback",
+    "FULL/DELETE/secure_delete and exact ACK versions unchanged"
+  ],
+  "rootHistoryFailureDiagnostic": "Closed stage/operation/phase labels added; original four roots, 32 MiB workload, per-operation and 180-second test deadlines retained; previous failure stage unknown.",
+  "windowsNewSourceVerified": false,
+  "fiveSecondQualified": false,
+  "real24hStarted": false,
+  "realModelRequests": 0,
+  "failureRecordsPreserved": true
+}

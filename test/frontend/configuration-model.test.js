@@ -238,6 +238,37 @@ const assert = require('node:assert/strict');
   assert.equal(defaultSettings.forceChatStreaming, false);
   assert.equal(defaultSettings.upstreamWarmupEnabled, false);
   assert.equal(defaultSettings.streamDirectRequestBodies, false);
+  assert.equal(defaultSettings.contextRecoveryPersistenceEnabled, false);
+  assert.equal(
+    Object.hasOwn(defaultSettings, 'contextPolicyVersion'),
+    false,
+    'normalization does not migrate legacy config'
+  );
+  for (const contextPolicyVersion of [1, 2, 3]) {
+    const before = {
+      contextPolicyVersion,
+      contextRecoveryEnabled: false,
+      extensionSetting: 'preserved',
+    };
+    const after = normalizeAppSettings(before);
+    assert.equal(
+      after.contextPolicyVersion,
+      contextPolicyVersion,
+      'unknown versions survive normalization for backend validation'
+    );
+    assert.equal(after.extensionSetting, 'preserved');
+    assert.equal(before.contextPolicyVersion, contextPolicyVersion);
+  }
+  assert.equal(
+    normalizeAppSettings({ contextRecoveryPersistenceEnabled: true })
+      .contextRecoveryPersistenceEnabled,
+    true
+  );
+  assert.equal(
+    normalizeAppSettings({ contextRecoveryPersistenceEnabled: 'true' })
+      .contextRecoveryPersistenceEnabled,
+    false
+  );
   assert.equal(defaultSettings.upstreamWarmupIntervalMs, 45000);
   assert.equal(defaultSettings.upstreamWarmupMaxTargets, 4);
   assert.equal(defaultSettings.upstreamWarmupStaggerMs, 200);

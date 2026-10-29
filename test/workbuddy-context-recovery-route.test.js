@@ -224,16 +224,16 @@ async function main() {
   assert.equal(hostRejected.outcome.artifactsDelivered, 2);
   const capacityKey = JSON.stringify(['owner', '/v2', 'hy4-preview-f', 'stream']);
   const rejectedBytes = Buffer.byteLength(JSON.stringify(hostRejected.sent[3]));
-  const rejectionMargin = Math.min(1024, Math.ceil(rejectedBytes * 0.05));
   const eligibleAcceptedBytes = hostRejected.sent
     .slice(0, 3)
     .map((body) => Buffer.byteLength(JSON.stringify(body)))
-    .filter((size) => size <= rejectedBytes - rejectionMargin);
+    .filter((size) => size < rejectedBytes);
   assert.equal(
     capacityController.targetBytes(capacityKey, 149111),
     Math.max(...eligibleAcceptedBytes),
-    'a failed later recovery keeps the largest actual accepted size below its new rejection margin'
+    'a failed later recovery keeps the largest proven accepted size strictly below rejection'
   );
+  assert.ok(capacityController.targetBytes(capacityKey, 149111) < rejectedBytes);
   const nextRequest = await run({ mode: 'noRecovery', capacityController });
   assert.equal(
     nextRequest.outcome.finalStatus,

@@ -195,7 +195,7 @@ test('unknown data rejects accessors, symbols, cycles, prototypes, coercion and 
     { ...options, extra: true },
     { ...options, owner: '' },
     { ...options, maxEntries: 0 },
-    { ...options, maxEntries: 257 },
+    { ...options, maxEntries: 513 },
     { ...options, maxBytes: 1 },
     { ...options, ttlMs: Infinity },
   ])

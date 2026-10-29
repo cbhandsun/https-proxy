@@ -6,29 +6,37 @@ const fs = require('node:fs'),
   path = require('node:path');
 const { spawn } = require('node:child_process');
 const { once } = require('node:events');
+const { gzipSync, gunzipSync } = require('node:zlib');
 const { createIsolatedTestEnv } = require('../lib/test-runtime');
 const { findAvailablePorts } = require('./helpers/test-ports');
 const { waitForProxyFixtureReady } = require('./helpers/proxy-fixture-ready');
 const { prepareProxyFixtureSecret } = require('./helpers/proxy-fixture-secret');
+const { readPendingLogText } = require('./helpers/pending-log-text.cjs');
 const frame = (type, data = {}) =>
   'event: ' + type + '\ndata: ' + JSON.stringify({ type, ...data }) + '\n\n';
-function request(port, model) {
+function request(port, model, tools, gzip = false) {
   return new Promise((resolve, reject) => {
-    const body = Buffer.from(
+    const json = Buffer.from(
       JSON.stringify({
         model,
         messages: [{ role: 'user', content: 'synthetic' }],
         max_tokens: 128,
         stream: true,
+        ...(tools === undefined ? {} : { tools }),
       })
     );
+    const body = gzip ? gzipSync(json) : json;
     const req = http.request(
       {
         host: '127.0.0.1',
         port,
         path: '/v1/messages',
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'content-length': body.length },
+        headers: {
+          'content-type': 'application/json',
+          'content-length': body.length,
+          ...(gzip ? { 'content-encoding': 'gzip' } : {}),
+        },
       },
       (res) => {
         let text = '';
@@ -44,10 +52,15 @@ function request(port, model) {
 }
 async function main() {
   const upstream = http.createServer((req, res) => {
-    let bytes = '';
-    req.on('data', (chunk) => (bytes += chunk));
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
     req.on('end', () => {
-      const { model } = JSON.parse(bytes);
+      const bytes = Buffer.concat(chunks);
+      const { model } = JSON.parse(
+        req.headers['content-encoding'] === 'gzip'
+          ? gunzipSync(bytes, { maxOutputLength: 1024 * 1024 }).toString('utf8')
+          : bytes.toString('utf8')
+      );
       res.writeHead(200, { 'content-type': 'text/event-stream' });
       res.write(
         frame('message_start', {
@@ -71,7 +84,12 @@ async function main() {
           index: 0,
           delta: {
             type: 'input_json_delta',
-            partial_json: model === 'malformed' ? '{"private-content":' : '{"q":"synthetic"}',
+            partial_json:
+              model === 'malformed'
+                ? '{"private-content":'
+                : model.endsWith('-empty')
+                  ? '{}'
+                  : '{"q":"synthetic"}',
           },
         })
       );
@@ -140,23 +158,71 @@ async function main() {
       }
       assert.equal(child.exitCode, null, 'Malformed native frames must not crash proxy');
     }
+    const declared = [
+      {
+        name: 'lookup',
+        input_schema: { type: 'object', properties: {}, additionalProperties: false },
+      },
+    ];
+    const empty = await request(port, 'declared-empty', declared);
+    assert.equal(empty.status, 200);
+    assert.ok(
+      empty.text.includes('"type":"tool_use"'),
+      'declared empty arguments must remain a tool call'
+    );
+    assert.ok(empty.text.includes('event: message_stop'));
+    const compressed = await request(port, 'compressed-empty', declared, true);
+    assert.equal(compressed.status, 200);
+    assert.ok(compressed.text.includes('"type":"tool_use"'));
+    assert.ok(compressed.text.includes('event: message_stop'));
+    const unrelated = await request(port, 'unrelated-repair', [
+      {
+        name: 'exec',
+        input_schema: {
+          type: 'object',
+          properties: { code: { type: 'string' } },
+          required: ['code'],
+        },
+      },
+    ]);
+    assert.ok(unrelated.text.includes('"name":"lookup"'));
+    assert.ok(
+      !unrelated.text.includes('"name":"exec"'),
+      'native declarations must not enable cross-tool exec repair'
+    );
+    for (const [model, tools] of [
+      ['undeclared-empty', [{ name: 'other', input_schema: { type: 'object' } }]],
+      ['required-empty', [{ name: 'lookup', input_schema: { type: 'object', required: ['q'] } }]],
+      ['subsequent-empty', undefined],
+    ]) {
+      const result = await request(port, model, tools);
+      assert.equal(result.status, 200);
+      assert.ok(
+        !result.text.includes('"type":"tool_use"'),
+        'invalid or cross-request tool authority must not pass'
+      );
+      assert.ok(result.text.includes('event: message_stop'));
+    }
     // The bounded JSONL writer is asynchronous; wait for persisted records rather
     // than assuming that socket end also completed filesystem append operations.
     let endings = [];
     const deadline = Date.now() + 2000;
     do {
-      const text = fs.readFileSync(path.join(env.PROXY_RUNTIME_DIR, 'proxy-events.jsonl'), 'utf8');
+      const text = readPendingLogText(path.join(env.PROXY_RUNTIME_DIR, 'proxy-events.jsonl'));
       endings = text
         .split('\n')
         .filter(Boolean)
         .map((line) => JSON.parse(line))
         .filter((entry) => entry.kind === 'request_end' && entry.path.endsWith('/messages'));
-      if (endings.length >= 4) break;
+      if (endings.length >= 10) break;
       await new Promise((resolve) => setTimeout(resolve, 10));
     } while (Date.now() < deadline);
-    assert.equal(endings.length, 4, 'Each request must have one terminal log');
-    assert.equal(new Set(endings.map((entry) => entry.reqId)).size, 4);
-    assert.deepEqual(endings.map((entry) => entry.statusCode).sort(), [200, 502, 502, 502]);
+    assert.equal(endings.length, 10, 'Each request must have one terminal log');
+    assert.equal(new Set(endings.map((entry) => entry.reqId)).size, 10);
+    assert.deepEqual(
+      endings.map((entry) => entry.statusCode).sort(),
+      [200, 200, 200, 200, 200, 200, 200, 502, 502, 502]
+    );
     assert.ok(!JSON.stringify(endings).includes('private-content'));
   } finally {
     const exited = child.exitCode === null ? once(child, 'exit') : null;

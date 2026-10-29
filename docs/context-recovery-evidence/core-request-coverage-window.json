@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "baselineHead": "1786de0a4587374d5241a99a2f61715478a542d7",
+  "problem": "The extra coverage proxy recorder selected native-publication-interruption while the actual five-second failure was in client-context-target. That recording cannot identify the failed request's file-I/O phase.",
+  "baselineCi": {
+    "verify": {
+      "runId": 40790861638,
+      "successJobs": 8
+    },
+    "formal": {
+      "runId": 40790861605,
+      "successJobs": 12,
+      "boundedSyntheticCases": 32,
+      "fullN08N09Qualified": false
+    },
+    "timing": {
+      "runId": 40790861929,
+      "runners": 3,
+      "testsPerRunner": 50,
+      "persistentPublicationSamples": 18,
+      "publicationRangeMs": [
+        846,
+        1070
+      ]
+    },
+    "independentIo": {
+      "runId": 40790861616,
+      "tests": 70,
+      "publicationRangeMs": [
+        949,
+        1104
+      ]
+    },
+    "extraCoverage": {
+      "runId": 40790861699,
+      "jobId": 123175446034,
+      "failed": true,
+      "fullLogCharacters": 3002403,
+      "notOkCount": 2,
+      "responses": {
+        "mode": "long-persistent",
+        "turn": 0,
+        "deadlineMs": 5000,
+        "requestFailedElapsedMs": 5002,
+        "nativeReadyMs": 658,
+        "requiredSequence4": {
+          "operation": "save-reference-state",
+          "clockWriteMs": 717,
+          "commitMs": 2553,
+          "engineExecuteMs": 3299
+        },
+        "requestSeedExcluded": true
+      },
+      "separateHostedWfpFixture": {
+        "spawnSyncPwshTimeoutMs": 25000,
+        "phaseUnknown": true
+      }
+    }
+  },
+  "independentWindows": {
+    "sourceFilesVerified": 2120,
+    "node": "v22.22.3",
+    "nativeSha256": "6eeabf850188d90c27c7adeee485015494a85a26fdaad05e567f4869b84f1538",
+    "nativeInstalledLinks": 1,
+    "nativeBuiltLinks": 2,
+    "dependencies": {
+      "originalRootCiExit": 0,
+      "originalPluginCiExit": 0,
+      "verifiedPublicCacheEntries": 245,
+      "oldCacheWrites": 0,
+      "networkRepairClaimed": false,
+      "freshAuditClaimed": false
+    },
+    "legacy": {
+      "tests": 33,
+      "pass": 32,
+      "fail": 1,
+      "skip": 0,
+      "cancel": 0,
+      "taskResult": 1,
+      "ownedEmpty": true,
+      "failure": "First synchronous production owner startup after preview and enrollment; load/revision/expiry/revocation assertions not entered.",
+      "injectedProtectorAndAnchor": true,
+      "dpapiOrOsAnchorCauseProven": false
+    },
+    "unexecuted": {
+      "coreCodexTests": 50,
+      "gracefulReadinessTests": 12
+    },
+    "minimalDiagnostic": {
+      "firstAttemptFailedBeforeProduct": true,
+      "firstAttemptCause": "Private helper consumed the one-use stdin assignment a second time.",
+      "correctedCompositionControls": 3,
+      "correctedHelperStdinReads": 0,
+      "correctedAttemptTaskResult": 0,
+      "correctedAttemptOwnedEmpty": true,
+      "firstOwnerOpenMs": 1197,
+      "nativeCallsReturned": 16,
+      "nativeCallsFailed": 0,
+      "perCallDeadlineMs": 5000,
+      "priorLegacyFailureCleared": false,
+      "qualification": false
+    }
+  },
+  "change": {
+    "proxyObservationWindow": "client-context-target",
+    "nativePublicationTestsStillExecute": true,
+    "originalCommandsAndOrderUnchanged": true,
+    "originalFourShardsUnchanged": true,
+    "originalFailureGatesUnchanged": true,
+    "ordinaryVerifyWindowUnchanged": true,
+    "recorderProtocolAndBoundsUnchanged": true,
+    "productionAndNativeInputsUnchanged": true
+  },
+  "regression": {
+    "baseline": {
+      "tests": 3,
+      "pass": 2,
+      "fail": 1,
+      "skip": 0
+    },
+    "fixedWithTriggerGovernance": {
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "skip": 0
+    },
+    "ciGovernanceExit": 0,
+    "syntaxFiles": 1745,
+    "targetedLintExit": 0,
+    "powerShellComposition": {
+      "workflows": 2,
+      "casesPerWorkflow": 7,
+      "inheritedSelectorSeeded": true,
+      "originalChildTimeoutMs": 5000,
+      "localExecuted": false,
+      "reason": "pwsh unavailable on this Mac; actual Windows CI execution required"
+    }
+  },
+  "installerReview": {
+    "runId": 40794879961,
+    "sourceHead": "1786de0a4587374d5241a99a2f61715478a542d7",
+    "started": true,
+    "lastObservedStage": "Require all current candidate gates",
+    "qualified": false,
+    "doesNotOverrideExtraCoverageFailure": true
+  },
+  "retained": {
+    "allOldFailures": true,
+    "old868Frozen": true,
+    "old868Passed": false,
+    "old868TerminalConfirmed": false,
+    "maximumFileProfilePaused": true,
+    "dailyInstanceChanged": false
+  },
+  "qualification": {
+    "performanceFix": false,
+    "fiveSecondStable": false,
+    "newExactSourceFullCi": false,
+    "installer": false,
+    "legacy582": false,
+    "installedClients": false,
+    "realProvider": false,
+    "real24h": false,
+    "overallComplete": false
+  },
+  "realModelRequests": 0,
+  "new24HourRuns": 0
+}

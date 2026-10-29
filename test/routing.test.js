@@ -161,5 +161,82 @@ clearCaches();
   assert.equal(routing.isConversationRequestPath('GET', '/v1/image-jobs'), false);
 }
 
+// ─── 9. prepareRequestBuffer handles compressed bodies and Codex hint headers ───
+{
+  const zlib = require('node:zlib');
+  const profiles = [
+    { id: 'openai-official', name: 'OpenAI Official', protocol: 'openai' },
+    { id: 'deepseek', name: 'DeepSeek', protocol: 'claude' },
+  ];
+  const routes = [
+    { from: 'gpt-6.1-sol', profileId: 'openai-official', to: 'gpt-6.1-sol' },
+    { from: 'codex/rewritten', profileId: 'openai-official', to: 'rewritten-target' },
+  ];
+  const activeProfile = profiles[1]; // default is deepseek (claude)
+  const resolver = (model) => routing.resolveRoute(model, routes, profiles, activeProfile);
+
+  // 9a: zstd compressed body with x-codex-routing-hint
+  const rawPayload = JSON.stringify({ model: 'gpt-6.1-sol', input: 'test' });
+  const compressed =
+    typeof zlib.zstdCompressSync === 'function'
+      ? zlib.zstdCompressSync(Buffer.from(rawPayload))
+      : zlib.gzipSync(Buffer.from(rawPayload));
+  const encoding = typeof zlib.zstdCompressSync === 'function' ? 'zstd' : 'gzip';
+
+  const preparedWithHint = routing.prepareRequestBuffer(
+    compressed,
+    encoding,
+    activeProfile,
+    resolver,
+    { headers: { 'x-codex-routing-hint': 'model=gpt-6.1-sol' } }
+  );
+  assert.equal(preparedWithHint.model, 'gpt-6.1-sol', 'model resolved via hint');
+  assert.equal(preparedWithHint.routed, true, 'route matched');
+  assert.equal(
+    preparedWithHint.profile.id,
+    'openai-official',
+    'profile resolved to openai-official'
+  );
+  assert.equal(
+    preparedWithHint.buffer,
+    compressed,
+    'original compressed buffer preserved for passthrough'
+  );
+
+  // 9b: zstd compressed body without hint header (extract from decompressed body)
+  const preparedWithoutHint = routing.prepareRequestBuffer(
+    compressed,
+    encoding,
+    activeProfile,
+    resolver,
+    {}
+  );
+  assert.equal(preparedWithoutHint.model, 'gpt-6.1-sol', 'model resolved via decompression');
+  assert.equal(
+    preparedWithoutHint.profile.id,
+    'openai-official',
+    'profile resolved to openai-official'
+  );
+
+  // 9c: compressed body with rewrite
+  const rewritePayload = JSON.stringify({ model: 'codex/rewritten', input: 'test' });
+  const rewriteCompressed =
+    typeof zlib.zstdCompressSync === 'function'
+      ? zlib.zstdCompressSync(Buffer.from(rewritePayload))
+      : zlib.gzipSync(Buffer.from(rewritePayload));
+  const preparedWithRewrite = routing.prepareRequestBuffer(
+    rewriteCompressed,
+    encoding,
+    activeProfile,
+    resolver,
+    {}
+  );
+  assert.equal(preparedWithRewrite.model, 'codex/rewritten');
+  assert.equal(preparedWithRewrite.rewriteTo, 'rewritten-target');
+  assert.equal(preparedWithRewrite.decompressed, true);
+  const rewrittenBody = JSON.parse(preparedWithRewrite.buffer.toString('utf8'));
+  assert.equal(rewrittenBody.model, 'rewritten-target');
+}
+
 clearCaches();
-console.log('routing.test.js ok (8 scenarios)');
+console.log('routing.test.js ok (9 scenarios)');

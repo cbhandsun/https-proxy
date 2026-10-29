@@ -246,7 +246,7 @@ console.log('[secret-crypto.test] backend status:', JSON.stringify(backend));
 let helperInvocation = null;
 const helperOutput = _runNativeDpapiHelper('["protected-value"]', {
   platform: 'win32',
-  helperPath: 'C:\\Program Files\\HTTPS Proxy Manager\\HTTPS Proxy Manager.exe',
+  helperPath: path.resolve('Program Files', 'HTTPS Proxy Manager', 'HTTPS Proxy Manager.exe'),
   fileExists: () => true,
   execFileSync(executable, args, options) {
     helperInvocation = { executable, args, options };

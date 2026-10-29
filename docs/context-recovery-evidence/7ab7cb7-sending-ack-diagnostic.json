@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7ab7cb73860eca72bfe3976c8927ac037ba99612",
+  "diagnosticRunId": 40605075515,
+  "diagnosticJobId": 122542438949,
+  "diagnosticConclusion": "success",
+  "preparationIdentity": {
+    "planSha256": "c84b17e1530d91c4b72e2077421ce1fd2b45ff97948f6b6a45741eec80388b14",
+    "buildReceiptSha256": "37af3252dc5c1a381f67276f238faac5225799b621a6a357e060542c2f38b625"
+  },
+  "executionReceipt": {
+    "ownedTreeEmpty": true,
+    "n08Qualified": false,
+    "tlsVerified": true,
+    "phase": "hosted_network_finished",
+    "nonLoopbackBlocked": true,
+    "probesPassed": true
+  },
+  "fixedSourceAssertions": {
+    "requiredCases": 2,
+    "sendingAckKill": true,
+    "sendingAckRelease": true,
+    "preparedPredecessorAck": true,
+    "exactDurableRevisionDelta": 2,
+    "originalOwnedJobMs": 120000,
+    "originalTreeCloseMs": 5000,
+    "budgetAndExpiryPreserved": true,
+    "zeroPublicBytesAtKill": true,
+    "positivePublicCompletionBarrier": true
+  },
+  "evidenceBasis": "fixed-source identity and enforced two-case entry plus strict owned-Job receipt; independent diagnostic only",
+  "fullFormalQualification": false,
+  "verifyRunId": 40605075604,
+  "ordinaryFailedJobs": [
+    122542439249,
+    122542439569,
+    122542439327
+  ],
+  "ordinarySuccessfulJobCount": 5,
+  "formalRunId": 40605075725,
+  "formalSourceGateFailedJob": 122542439733,
+  "formalBusinessSkipped": true,
+  "extraIoFailedJob": 122542439769,
+  "failures": {
+    "tests": [
+      "business-diagnostic-workflow.test.js",
+      "workflow-gates.test.js"
+    ],
+    "observed": "workflow assertions still require the original two-scenario matrix after adding sending-ack; original proxy coverage rejects and formal business is skipped",
+    "fullFailedLogsInspected": true,
+    "productLatencyCauseConfirmed": false
+  },
+  "rerunPerformed": false,
+  "modelRequests": 0
+}

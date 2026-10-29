@@ -1,0 +1,21 @@
+name: Review branch Windows installer lifecycle
+
+on:
+  push:
+    branches:
+      - acceptance/windows-lifecycle-20261022
+      - acceptance/windows-lifecycle/**
+
+permissions:
+  contents: read
+
+jobs:
+  installer-lifecycle:
+    if: >-
+      github.ref == 'refs/heads/acceptance/windows-lifecycle-20261022' ||
+      (github.repository == 'cbhandsun/https-proxy' &&
+       github.event.created == true && github.event.forced == false && github.event.deleted == false &&
+       github.event.before == '0000000000000000000000000000000000000000')
+    uses: ./.github/workflows/windows-installer-lifecycle.yml
+    with:
+      baseline_sha: 2295c452888449e9728b3ddcc2f80f31e9433e69

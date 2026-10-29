@@ -1,10 +1,9 @@
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { discoverTestFiles, selectUnitTestFiles } = require('../lib/test-discovery');
-const { selectTestShard } = require('../lib/test-sharding');
-const { createIsolatedTestEnv } = require('../lib/test-runtime');
+const { selectTestShard, testShardExitStatus } = require('../lib/test-sharding');
+const { createIsolatedTestEnv, resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
 
 const repoRoot = path.resolve(__dirname, '..');
 const dedicatedTestFiles = [
@@ -30,8 +29,11 @@ try {
   process.exit(1);
 }
 
+let failedFiles = 0;
 for (const testFile of shard.tests) {
-  const testRuntimeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-unit-runtime-'));
+  const testRuntimeDir = fs.mkdtempSync(
+    path.join(resolvePhysicalTestTempDirectory(), 'hpm-unit-runtime-')
+  );
   let result;
   try {
     result = spawnSync(process.execPath, [testFile], {
@@ -42,12 +44,19 @@ for (const testFile of shard.tests) {
   } finally {
     fs.rmSync(testRuntimeDir, { recursive: true, force: true });
   }
-  if (result.status !== 0) {
+  if (testShardExitStatus(result.status, result.signal) !== 0) {
     console.error(`[unit] failed: ${testFile}`);
-    process.exit(result.status || 1);
+    failedFiles++;
   }
 }
 
-console.log(
-  `[unit] ok: ${shard.tests.length}/${unitTests.length} test files (shard ${shard.index + 1}/${shard.count})`
-);
+if (failedFiles) {
+  console.error(
+    `[unit] completed: ${shard.tests.length}/${unitTests.length} test files (shard ${shard.index + 1}/${shard.count}); failed: ${failedFiles}`
+  );
+  process.exitCode = 1;
+} else {
+  console.log(
+    `[unit] ok: ${shard.tests.length}/${unitTests.length} test files (shard ${shard.index + 1}/${shard.count})`
+  );
+}

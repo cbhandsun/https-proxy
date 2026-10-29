@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0">
+  <Profiles>
+    <SystemCollector Id="HpmSchemaCollector" Name="NT Kernel Logger">
+      <BufferSize Value="64" />
+      <Buffers Value="512" />
+    </SystemCollector>
+    <SystemProvider Id="HpmSchemaProvider">
+      <Keywords>
+        <Keyword Value="Filename" />
+        <Keyword Value="FileIO" />
+        <Keyword Value="FileIOInit" />
+        <Keyword Value="FilterIO" />
+        <Keyword Value="FilterIOInit" />
+        <Keyword Value="FilterIOFastIO" />
+        <Keyword Value="FilterIOFailure" />
+        <!-- Thread lifecycle only (0x2), without process command-line events. -->
+        <CustomKeyword Value="0x2" />
+      </Keywords>
+    </SystemProvider>
+    <Profile Id="HpmIoSchema.Verbose.Memory" Name="HpmIoSchema" Description="Bounded synthetic I/O schema discovery" DetailLevel="Verbose" LoggingMode="Memory">
+      <Collectors>
+        <SystemCollectorId Value="HpmSchemaCollector">
+          <SystemProviderId Value="HpmSchemaProvider" />
+        </SystemCollectorId>
+      </Collectors>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceRecorder>

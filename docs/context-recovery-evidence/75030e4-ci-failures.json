@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 1,
+  "source": "75030e43594935466ad62ae95e7eb6da406339a1",
+  "verifyRunId": 40635072357,
+  "verifyConclusion": "success",
+  "formalRunId": 40635072369,
+  "formalConclusion": "failure",
+  "formalSourceJobId": 122640046390,
+  "formalBusinessConclusion": "skipped",
+  "completeLogsRead": [
+    {
+      "jobId": 122640046390,
+      "characters": 2720501
+    },
+    {
+      "jobId": 122640046304,
+      "characters": 3721787
+    },
+    {
+      "jobId": 122640046473,
+      "characters": 3725823
+    },
+    {
+      "jobId": 122640046481,
+      "characters": 248632
+    }
+  ],
+  "failures": [
+    {
+      "case": "not ok 8 - native worker publication sending: release control inside durable OS anchor before publication ACK",
+      "durationMs": 6555.441,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "ready",
+      "keyProtectMs": 18,
+      "keyOpenMs": 87,
+      "keyFlushMs": 37
+    },
+    {
+      "case": "not ok 9 - native worker publication transport-finished: SIGKILL inside actual COMMIT lock wait",
+      "durationMs": 5016.6421,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "engine_anchor_validate_started",
+      "keyProtectMs": 17,
+      "keyOpenMs": 2273,
+      "keyFlushMs": 1843
+    },
+    {
+      "case": "not ok 10 - native worker publication transport-finished: release control inside actual COMMIT lock wait",
+      "durationMs": 5014.57,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "anchor_persist_started",
+      "keyProtectMs": 18,
+      "keyOpenMs": 473,
+      "keyFlushMs": 1424
+    },
+    {
+      "case": "not ok 11 - native worker publication transport-finished: SIGKILL inside durable OS anchor before publication ACK",
+      "durationMs": 5687.3638,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "engine_anchor_validate_finished",
+      "keyProtectMs": 14,
+      "keyOpenMs": 552,
+      "keyFlushMs": 959
+    },
+    {
+      "case": "not ok 12 - native worker publication transport-finished: release control inside durable OS anchor before publication ACK",
+      "durationMs": 5021.3813,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "ready",
+      "keyProtectMs": 16,
+      "keyOpenMs": 174,
+      "keyFlushMs": 427
+    },
+    {
+      "case": "not ok 13 - native worker publication uncertain: SIGKILL inside actual COMMIT lock wait",
+      "durationMs": 5095.4003,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "ready",
+      "keyProtectMs": 18,
+      "keyOpenMs": 356,
+      "keyFlushMs": 490
+    },
+    {
+      "case": "not ok 14 - native worker publication uncertain: release control inside actual COMMIT lock wait",
+      "durationMs": 5345.0749,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "engine_anchor_validate_finished",
+      "keyProtectMs": 15,
+      "keyOpenMs": 1669,
+      "keyFlushMs": 571
+    },
+    {
+      "case": "not ok 15 - native worker publication uncertain: SIGKILL inside durable OS anchor before publication ACK",
+      "durationMs": 5285.6243,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "engine_anchor_validate_finished",
+      "keyProtectMs": 18,
+      "keyOpenMs": 1046,
+      "keyFlushMs": 728
+    },
+    {
+      "case": "not ok 16 - native worker publication uncertain: release control inside durable OS anchor before publication ACK",
+      "durationMs": 6051.248,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "engine_anchor_validate_finished",
+      "keyProtectMs": 14,
+      "keyOpenMs": 183,
+      "keyFlushMs": 441
+    },
+    {
+      "case": "not ok 17 - native worker publication withdrawn: SIGKILL inside actual COMMIT lock wait",
+      "durationMs": 5261.5,
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "finalStartupPhase": "ready",
+      "keyProtectMs": 15,
+      "keyOpenMs": 875,
+      "keyFlushMs": 518
+    }
+  ],
+  "receiptSummaries": [
+    {
+      "jobId": 122640046390,
+      "window": "client-context-target",
+      "stage": "proxy",
+      "sourceSha": "75030e43594935466ad62ae95e7eb6da406339a1",
+      "validatedByOriginalParseSummary": true,
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "pairedFlushes": 12,
+      "database": {
+        "count": 0,
+        "maxMs": 0,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 12,
+        "maxMs": 61,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122640046304,
+      "window": "publication-graceful-http",
+      "stage": "proxy",
+      "sourceSha": "75030e43594935466ad62ae95e7eb6da406339a1",
+      "validatedByOriginalParseSummary": true,
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "pairedFlushes": 63,
+      "database": {
+        "count": 21,
+        "maxMs": 11,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 42,
+        "maxMs": 34,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122640046304,
+      "window": "client-context-target",
+      "stage": "client",
+      "sourceSha": "75030e43594935466ad62ae95e7eb6da406339a1",
+      "validatedByOriginalParseSummary": true,
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "pairedFlushes": 144,
+      "database": {
+        "count": 48,
+        "maxMs": 30,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 96,
+        "maxMs": 14,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122640046304,
+      "window": "publication-graceful-http",
+      "stage": "client",
+      "sourceSha": "75030e43594935466ad62ae95e7eb6da406339a1",
+      "validatedByOriginalParseSummary": true,
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "pairedFlushes": 63,
+      "database": {
+        "count": 21,
+        "maxMs": 9,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 42,
+        "maxMs": 25,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122640046473,
+      "window": "native-publication-interruption",
+      "stage": "proxy",
+      "sourceSha": "75030e43594935466ad62ae95e7eb6da406339a1",
+      "validatedByOriginalParseSummary": true,
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "pairedFlushes": 191,
+      "database": {
+        "count": 61,
+        "maxMs": 86,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 130,
+        "maxMs": 36,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122640046473,
+      "window": "client-context-target",
+      "stage": "client",
+      "sourceSha": "75030e43594935466ad62ae95e7eb6da406339a1",
+      "validatedByOriginalParseSummary": true,
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "pairedFlushes": 144,
+      "database": {
+        "count": 48,
+        "maxMs": 38,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 96,
+        "maxMs": 30,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122640046473,
+      "window": "publication-graceful-http",
+      "stage": "client",
+      "sourceSha": "75030e43594935466ad62ae95e7eb6da406339a1",
+      "validatedByOriginalParseSummary": true,
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "pairedFlushes": 63,
+      "database": {
+        "count": 21,
+        "maxMs": 26,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 42,
+        "maxMs": 29,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    },
+    {
+      "jobId": 122640046481,
+      "window": "standalone-client-context-target",
+      "stage": "standalone",
+      "sourceSha": "75030e43594935466ad62ae95e7eb6da406339a1",
+      "validatedByOriginalParseSummary": true,
+      "cleanupVerified": null,
+      "windowTermination": null,
+      "pairedFlushes": 144,
+      "database": {
+        "count": 48,
+        "maxMs": 46,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "journal": {
+        "count": 96,
+        "maxMs": 35,
+        "over100Ms": 0,
+        "over1000Ms": 0
+      },
+      "traceCompletenessVerified": false,
+      "fiveSecondQualified": false
+    }
+  ],
+  "interpretation": {
+    "uniqueRootCauseConfirmed": false,
+    "productFiveSecondFixed": false,
+    "allFailuresBeforeTargetAdvance": true,
+    "failedNativeFileRecorded": false,
+    "sourceRecordedDifferentClientWindow": true,
+    "fullDurabilityPreserved": true,
+    "phaseDeadlineMs": 5000,
+    "realModelRequests": 0,
+    "oldFailuresPreserved": true
+  }
+}

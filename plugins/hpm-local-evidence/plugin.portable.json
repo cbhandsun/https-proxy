@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "hpm-local-evidence",
+  "version": "0.1.1",
+  "description": "Session-isolated, memory-only retrieval of prospectively completed local tool evidence. No model, routing, authentication or transcript access."
+}

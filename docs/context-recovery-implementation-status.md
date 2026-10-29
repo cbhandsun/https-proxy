@@ -1,0 +1,10082 @@
+# HTTPS Proxy 多端上下文恢复实施状态
+
+## 2026-10-29（UTC）：处理主线合并，修正四目录隔离断言精度
+
+用户已明确由agent处理PR21合并及脚本自用。远端master2295c452为bd7祖先，behind0/ahead410，merge-tree与HEAD tree相同，无代码冲突；产品lib/plugins/入口/前端/Tauri/Native/双锁/启动脚本与已交付1a5无差异。PR21保持草稿，master尚未更新，先满足原门禁，不把未通过CI称合并完成。
+
+bd7正式source/job123344142704的nsis-settings-matrix测试287行四个真实目录仍存在，却Number inode Set得到3；新增四个不释放目录/64位身份碰撞的确定性回归先红3!=4。仅将该隔离断言改用BigInt inode，重复BigInt身份负控仍只计3，原四组合和540000/520000ms期限、controller/安全拒绝规则不变。Mac新回归通过；完整文件5通过1失败，原HEAD同一PowerShell fixture也在进入身份断言前失败，不能称本机完整绿色。Lint/格式/CI和模块治理通过，新Windows完整结果待核。
+
+bd7另两项旧失败已读完整日志并保留：coverage的首次pwsh准入夹具5000ms ETIMEDOUT，没有WPR或模型执行；Tianxi为三行Get-Content加JSON元数据的PowerShell15000ms ETIMEDOUT，不是rg子进程。尚未证明根因，不盲改编码/生产命令，不加新诊断框架、不提期限、不重跑旧失败制造绿色；本次实际精度修复按原完整新源码CI裁决，不用新通过抹掉旧超时。
+
+Windows实际入口已证为原E盘HTTPS-Proxy，local master1a127de且tracked dirty；浅克隆及真实祖先关系未核，撤回仅由本地双向is-ancestor退出1推断真实分歧。活进程记录的Node alias文件磁盘缺失，现有Native与1a5不同，不能据此猜缺依赖或活进程版本；已pin独立Node22.22.3可用。配置/data仅候选，候选恢复DB/key未存在；旧配置字段缺省不能记成false。Codex版本、fresh分账因同次SSH观察超时未核，不沿用旧1/7作当前许可。未改旧目录、全局NVM、配置、数据/锚点，候选复制和启停均未发生，模型0。下一步按合并后的统一主线部署脚本，保留用户本地修改及原配置数据，不长期维护第二份代码。
+
+## 2026-10-29（UTC）：单人自用先收口Codex，修只读验收身份精度缺口
+
+用户已选Codex优先；只收口已交付1a5安装实例、受支持HTTP路径的一次原生压缩后精确恢复，以及启用持久化时的同用户重开。Claude、实验WebSocket、公开发行/签名、最大容量及新24h不作为首次受控自用前置；不修改认证、精确ACK、FULL/DELETE、现有期限和已有到期时间。Windows08:27:25Z只读未观察到1a5管理器或目标安装登记，仍旧E盘0.1.0实例；遵守用户自行切换安排，未安装/启停/读配置或私有数据。
+
+09普通8/8、正式12/12已终态成功。后续仅交付文档c337的Verify为7成功/coverage失败，完整3121308字符日志精确在readonly snapshot测试511的replacement断言Missing expected exception；507硬链接断言已过。旧文件rename后仍保留，不能归因已释放inode复用。验收observer使用Number dev/ino/birthtimeMs可能丢失64位身份精度；三个不同BigInt身份映射同Number的确定性回归在旧实现先红。现仅改readonly-files为BigInt lstat/fstat、dev/ino/birthtimeNs精确比对，原单链接/DB1GiB/key17000及拒绝/关闭规则不变，不加原文读取或内容哈希替代。原文件40/40、相关三文件132/132、父端含治理42/42零skip，Lint/格式/CI治理通过；新Windows结果待核。未采本次实际原BigInt IDs，不能称已证实该runner具体NTFS机制或产品原文漏洞；c337原失败保留。修复只属验收工具，不更换1a5产品或重打包。
+
+Codex自动真实短验收仍受额度和验收入口约束：最近安全核账Codex1/Claude7不能合并，不等于新的发请求许可；现成已验证一次compact协议路径Codex8次（并非保证真实模型恰好该次数），原runner硬编码三compact不能直接套用。原持久预扣writer控制流尚未安全复核，不能绕过guard，也不开发新台账子系统来扩大范围。第一步是用户按原安排切换已交付候选；之后只做Codex单端有界短闭环，调用前fresh核账且不足时另获明确额度授权，不能以连通或省掉compact冒充恢复。模型0、未改日常Codex配置、未动旧实例/冻结失败，无新长测。
+
+## 2026-10-29（UTC）：固定1a5自用安装包已实际交付，准备与请求期限已分开
+
+Windows桌面新目录HPM-SelfUse-0.1.1-1a5ae1c已收到HTTPS Proxy Manager_0.1.1_x64-setup.exe（28473935字节），源码固定1a5ae1c8176b544c3d96d1fa10d0a320ac742109，安装器SHA256=7e949f2e3fe21a2e8d33548bcb030bc97e37021e0428b3d14b8d5fc3212feac0。复制前后SHA相等，同目录使用说明和delivery-summary.json均已写入并读回SHA；未安装、未启动GUI/代理、未改配置，旧E实例由用户自行切换。默认客户端原生压缩，代理精确恢复可选，未签名自用包不改公开release签名要求。
+
+本轮jobs4在原期限内完整结束：source0/8425ms、index0/33098ms、installer-build0/493053ms、app-rust-check0/317277ms（40+1项通过、0失败/忽略/过滤）、final-source0/5845ms；TaskReady0、launcher0/cleanup=true、owned空。最终2159源码、13Native输入、四锁、Node/Native单链接与558runtime全部核对；manifest299814bc…与先前默认Worker真实DPAPI/OS锚点/同库独立进程重开短测完全一致。92份旧失败文件SHA均未变。先前bc50原40min超时、未知控制台中断等失败保留，不能用本轮成功抹除。
+
+准备/请求拆分已提交推送09d11e2：仅初始ready为30000ms绝对期限，进度不重置；HTTP及准备后中断仍5000ms、COMMIT探针750ms/停止4000ms不改，原case外层只补25s到40s。局部六文件50/50和父端10项身份/治理通过；09的完整Windows四unit日志均读，20项真实Native发布中断和10项真实Native HTTP正常停止通过、零skip。独立原I/O完整70/70、零失败/跳过。09普通Verify此时7/8成功、coverage运行，正式source门成功/业务仍运行，不能称最新完整CI结束；已核cdde普通8/8和正式12/12保持原范围。
+
+自用安装包产出已不再受旧24h阻塞；监测24已按用户要求删除，旧868失败/缺最终退出回执原样保留，不重启。仍未闭合的是本机实际安装/界面与用户切换后的验收、真实provider、五秒长期稳定和有效24h；这些不授予完成资格，也不阻塞已交付的固定自用候选。无真实模型调用、无新24h，原认证、精确ACK、FULL/DELETE、原到期时间不变。有限哈希与范围见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+## 2026-10-29（UTC）：自用安装优先，停止旧失败日档重复监测
+
+按用户新指令删除自动监测24；868原轮失败、4个节拍/900000ms、缺最终退出回执和terminalConfirmed=false原样保留，不重启、不伪造24小时通过。有效24h、真实provider和五秒长期稳定性仍未通过，但不再把它们作为本轮自用安装器产出的前提。
+
+当前实际阻塞是本机应用编译及NSIS安装包尚未产出。固定1a5的bc50单并发构建在07:26:25.681Z触及原40分钟installer-build期限，控制器126、Job清理成功/owned空，29份有限失败文件摘要已封存；没有Cargo编译错误或产品HTTP请求执行失败证据。新独立warm候选仅将Cargo编译并发1→4，源/13项Native输入/双锁/工具固定，保留原40min/appRust600s/Task75min和所有失败；新jobs4已实际启动：WinExe70644、控制器4124、installer Node75932及创建时间分别核对，首source0/8425ms、index0/33098ms；截至07:51:03Z正在installer步骤，尚无Cargo开始回执，原截止08:30:43Z。产包仍以真实终态为准。
+
+本机固定1a5 staging已真实完成默认Worker、真实DPAPI和新命名空间OS锚点、独立进程同库重开，原七项加密回执一致/原到期保持，Task0且owned空。此为原生短测，不是安装版或五秒HTTP资格。原1a5安装CI的升级回滚、582完整迁移拒写、两端四个实际CLI合成场景和发布内部中断30/30已通过，不能转授本机二进制。当前cdde普通Verify八作业、正式十二作业完整通过；857原两项fixture ready准备5000ms失败及97实际HTTP5002ms失败继续保留。
+
+本批按用户授权分开初始准备和请求门：初始ready预算已对齐生产存储默认30000ms；真实HTTP AbortSignal5000ms以及准备后的中断/停止期限保持，不改认证、精确ACK、FULL/DELETE、24小时期限或已有到期时间。初始准备使用同一绝对deadline，进度消息不重置；四个原case外层15→40s仅补25s准备余量。相关六完整文件50/50零skip/cancel，父端身份/模块治理10/10，Lint/格式通过；仍待本批提交与新源码CI，不授Windows新门或五秒稳定资格。已完成FilterIO组件仅作未接入采集的独立批次保存，停止扩展WPR；旧日常实例由用户自行切换，不自动安装或改配置，模型0。
+
+## 2026-10-29（UTC）：32cf 完整普通 CI 通过，修正实际 TDH 事件长度误判
+
+32cf普通Verify40825536372八作业全部成功，coverage/job123287603653完整4251371字符无not-ok；三份同source/cleanup=true回执经原parseSummary接受，原五秒HTTP/发布门不改。十二对publication_wait的真实差值69–137ms；末端elapsed最大2208ms是自场景开始累计，不是等待时长，不能混记或授长期稳定性。原97的HTTP5002ms及其余失败仍保留；正式source门仍在执行。
+
+857 schema/job123291955018完整42735字符实际失败callback-header-size/null，原三文件exit0、421433事件、清理true。官方EVENT_HEADER.Size为记录大小，微软RawDispatchClassic转换仍可保留48字节旧头Size，不能将其作为EVENT_RECORD_CALLBACK固定80字节前缀的内存长度。正确classic flags0x140/Size48/真实112字节结构与poison payload指针的旧857临时probe先红（metadata调用0、Close1）；删除错误>=80条件，不换另一下界，强化固定ABI关键offset、EVENT_RECORD文件模式及回调配置验证。父端四完整文件80/80零skip，含95managed检查；未读UserData/ExtendedData、未改原30s/16KiB/数量门或资格。尚未观测该runner具体Size，不写成已抓到48；新Windows验证待执行。官方依据和有限证据见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+本机无控制台首版纯夹具已实际编译/subsystem2、normal任务exit0，同SID/1+EOF/noConsole=true且owned为空。父审发现输出硬上限缺口后未用于续建；固定版有界双流/read leases正在新目录实际验证。候选仍固定1a5，未产安装器/未安装，不因诊断提交重编；旧实例、冻结日档/最大容量暂停保持，模型/新24h均0。
+
+## 2026-10-29（UTC）：新 Windows 分片通过，TDH 与本机续建失败分别定位
+
+32cf9e8普通Verify已观察七作业成功、coverage仍运行；unit2完整653624字符日志确认真实Windows进程夹具及TDH managed回归通过。该结果不覆盖原HTTP5002ms失败。独立schema job123287603328完整42339字符日志为失败：原三文件命令exit0，430710事件全部无命名payload，TDH child回执metadata/status=null，tdhMetadata=null，最终cleanupVerified=true。metadata阶段仍包含多个拒绝点，尚未确定具体根因；保持失败，下一步用固定有限阶段区分，不猜字段偏移、不输出事件值。
+
+本批仅四字段失败DTO的phase细分为固定32项，补Windows路径/PInvoke状态、callback与metadata数组/名称/编码/重复、序列化/清理分类，原失败仍红。另用旧32源码确定性复现合法Unicode/非标识符名称被误当损坏；微软[NameOffset定义](https://learn.microsoft.com/en-us/windows/win32/api/tdh/ns-tdh-event_property_info#members)仅要求null终止Unicode，现对输出白名单外合法名称明确unsupported/fields空，坏offset、缺终止、非法UTF16及重复仍拒绝。不声称该误拒是本轮原因。父端四完整文件80/80零skip、1773 JS语法与CI治理及变更文件格式通过；全本机format因1434既有混合换行文件与CRLF策略不符失败，未批量改无关文件或放宽原Windows门。
+
+固定1a5本机续建05:49:14Z确认Task Ready/0xC000013A，控制器和owned进程均已不存在；状态文件残留Running不能作存活证据。最后153条crate开始记录，无Cargo错误，未到原40min期限；来源未知，不能归因用户操作。原30失败文件与此次中断metadata保留。尚无安装器/appRust/桌面交付；新无控制台launcher先做独立退出/归属清理夹具验证，再决定复用同源warm target续建，原期限、同SID、原Job停止语义保持。用户保留旧实例自行切换，模型/新24h均0。有限事实见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+## 2026-10-29（UTC）：原生检查通过，应用续建与同 ETL 元数据并行
+
+固定1a5本机已完成两次原npm ci（32228/63964ms）、官方Native fmt/clippy/完整Rust组53+0+5零失败/忽略（203385ms）及实际prepare重编（1785ms）。新Native f938861d…/498688B/nlink1，2159源码及13Native输入最终核对不变。应用打包110714ms退出1，明确原offline Cargo缺gtk索引metadata；官方旧index中gtk0.18.2及锁checksum相等，无需改依赖。原失败30文件已副本/SHA封存；新独立控制任务复用同一已核1a5构建工作区，只append全509锁记录索引，既有245文件逐字节不写、新增194、网络0；原Tauri40min与appRust600s保持。已进入实际App Cargo，未产安装器、未执行安装或授本机UI资格。源、旧任务/失败日志、旧日常实例和冻结日档不改，模型0。
+
+673 schema job123272854473完整42537字符日志成功：原三文件命令退出0、清理true，429325事件/61布局全部无命名payload，不能当FilterIO已解码。实际classic FileIo v3 opcodes96–101共358268条；微软固定SDK仅证明pre/post init、completion及failure类别，计数不能硬配、failure不等同SQLite或AV。新增仅在named0/unsupported时的TDH元数据旁路；父真实祖先/leaf句柄从Get-WinEvent前跨TDH到最终Verify，子仍独立原Job/30s/16KiB，同一owned ETL≤256MiB，不读/哈希UserData或ExtendedData值。首个完整descriptor+flags样本取字段名/原生类型，其余只header计数，sampledMetadataOnly明确，原unsupported和测试exit保留。固定阶段/uint状态失败DTO仍红停；Windows PInvoke/ABI与元数据可用性待新runner验证。
+
+673普通Verify仍6成功2失败，unit2/coverage完整日志仅schema进程夹具failure_not_latched，旧日志未附mode，精确失败模式尚未直接证明；[固定Node源码](https://github.com/nodejs/node/blob/v22.22.3/deps/uv/src/win/process.c)确认Windows非detached子会加入父kill-on-close Job，因此旧held-pipe构造不能保证跨父退出持pipe。已仅改夹具为detached+ready握手，Windows套原真实Job证明仍被外层归属并原5s清空，不按PID文件杀进程；原5s drain/30s及失败期待不变，Windows新分支待实跑。源码4并发校验纯模块与真实文件/排空负控进入原unit自动发现，不改运行中候选。父端七完整文件85/85零skip/cancel，Lint/格式/CI治理通过；不覆盖97实际HTTP5002ms或任何旧失败。有限证据见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+## 2026-10-29（UTC）：实际 WPR 硬链接分支确认，源码准入已通过
+
+562ebcc的schema preflight job123271278161完整19123字符日志确认wpr-path拒绝、wprHardLink=true/wprReparse=false，Node检查尚未到达，负载/录制均未启动。现仅为固定SystemRoot/System32/wpr.exe拆出只读工具校验，允许该工具硬链接，固定精确路径、叶类型、UNC/device拒绝、全部祖先重解析拒绝、read lease及每条命令前后SHA保留；不改共享产物门、Node、ETL或owned root。真实Host硬链接先红后绿，错误/含..路径、目录、叶/祖先链接及身份前后变化负控覆盖；父端五完整文件69/69零skip/cancel、Lint/格式/治理通过。新Windows结果尚待执行；这是诊断工具校验修复，不是产品五秒根因，2b/562原失败保留。
+
+本机新轮源码准入已真实通过exit0/28602ms，全部2159文件、13Native输入和HEAD/tree/shallow/clean核对。后续cache-copy在5223ms失败、未进入npm/Native/installer；原因是私有预填工具错误要求两锁509个跨平台archive均已存在。旧公共缓存275个存在且SHA全部匹配、234个缺失（含非Windows平台包）。修正仅预填真实存在且严格校验的公共项，缺失显式记录、不授完整缓存资格；原Cargo --locked/offline继续决定目标所需依赖，不自制平台解析器或放宽构建门。旧失败冻结、新隔离修复版已请求启动，是否实际编译仍须新进程/阶段回执。旧实例不动，模型/新24h均0。有限证据见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+## 2026-10-29（UTC）：schema 首轮被 host 门拒绝，修复实际命令多候选组合
+
+2b1fba6/schema job123268656740完整23238字符日志已核为host阶段失败，sourceSha尚null、事件0、测试负载/WPR未启动，清理true。原失败保留，不授FilterIO布局或产品原因。新增真实Host组合检查捕获Get-Command Application可返回多个候选，旧.Source数组被当作单一可执行路径；修为按命令搜索优先序取首项。真实双候选及完整Host/共享路径门/有界Git回归通过，不再mock整个Host。不能把本机已复现的问题直接认作该Windows失败根因；新只读preflight在npm/Native之前执行同一Host，输出有限cause及工具HardLink/Reparse布尔，拒绝仍红停，不泄露路径、环境或异常。
+
+父端首轮省略既有physical-test-temp预加载，在temp-path拒绝；直接负控确认该原因，按原runner物理临时目录方式五完整文件69/69零skip/cancel。生产路径门、原coverage/profile、测试负载和原期限不改，新Windows结果待核。1a5本机准备第二轮明确Git status私有5s命令超时，并非HTTP恢复超时，仍未编译；原失败冻结，新目录保留全部源码/Native/Git检查，仅先做必要源码SHA后查Git。最后权威是新轮source进程存在，后续SSH观察失败只记未核验，不推断编译已开始或任务结束。模型/新24h均0。
+
+## 2026-10-29（UTC）：实际 WPR 能力已核，新增独立事件结构发现
+
+52c8e83的只读能力job123265990677已成功，完整17647字符日志得到实际WPR10.0.26100.33648、Minifilter profile及四个FilterIO关键词；这只是工具能力，不是过滤器延迟或AV归因。新增独立schema作业/32MiB单collector profile，用原三完整文件固定负载采集实际Provider/Id/Version/Opcode与字段名称、结构hash和长度范围；不输出字段值、值hash、消息或路径。无命名payload明确unsupported，字段类型unknown，不套旧FileIO二进制偏移，不改原profile、原coverage和只读能力job。事件/XML/布局/字段/最终JSON全部硬界限，任何溢出失败，不截断制造完整性结论。
+
+真实测试进程复用原HpmRuntimeBoundaryJob，固定薄stdin入口在Assign后才执行原负载；父退出而后代持pipe也在finally原5s StopAndWait闭合，清理失败锁存。新增结构、authority、生命周期及真实有界进程/fakeJob回归，父端五完整文件68/68零skip/cancel；只覆盖本机诊断工具，不授Windows schema或五秒稳定性，新源码须实际runner验证。97正式十二作业完整日志及十业务source/plan/build/network/owned清理已核，独立I/O70/70、381flush（DB40ms/journal49ms），均不覆盖同源码实际HTTP5002ms失败。有限证据并入context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+本机自用固定1a5首次在源码准入拒绝，未编译：私有ZIP遗漏真实clone空.git/refs目录，解包Git128；已确定性先红复现，保留原失败。修复为保留真实目录entries并在新目录解包核验Git/全部2159文件/13Native输入，未以假.git放行。构建是否真正开始仍以实际阶段进程回执为准；原实例、冻结868及最大容量暂停保持，模型0、无新24h。
+
+## 2026-10-29（UTC）：固定候选完整安装通过，交付与超时定位并行
+
+1a5ae1c安装审阅40813874985/job123250370275已成功，完整4358031字符日志与五份有限回执已核：原完整候选verify/audit、同格式升级回滚/DPAPI、安装版582八阶段完整迁移和旧reader拒写、Codex/Claude默认与增强四个实际原生CLI合成场景、持久发布COMMIT/ACK内部中断30/30零skip均通过。manifest b3e82711…和application 02e42f33…仅绑定托管该二进制，不转授本机新包、真实provider、有效24h或稳定五秒资格。此前失败全部保留，见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+97d97d5普通Verify40815377246仍6成功2失败；unit1实际Chat/Responses持久恢复请求均5002ms失败，与coverage的fixture ready前置超时分别记录。不能删除最大预扣ACK、独立结算ACK、FULL/DELETE或锚点故障边界换绿色。新只读WPR能力作业与原I/O作业独立，仅查实际System32工具和发现的profile元数据，不录制、不猜事件schema，不授根因结论；双流先限各16KiB原始字节再严格解码，原5s命令/5s清理保留。原coverage作业与32MiB profile不改。
+
+交付固定1a5候选，独立Windows目录重编Native并准备本机自用安装包；只复用已核工具与公共锁定缓存，不追诊断提交反复重打包，不覆盖旧实例，用户自行切换。构建启动须以实际任务/PID/源码身份回执为准，本记录不称已启动或完成。CI证据收口与I/O定位并行；无新24h、模型0，旧冻结失败与最大容量暂停保持。
+
+## 2026-10-29（UTC）：原生窗口实际捕获长文件操作，失败身份绑定补齐
+
+1a5ae1c原生窗口40813512755/job123249119711已终态失败，完整3099491字符日志读取；withdrawn的kill/release两项在fixture ready原五秒前置门失败，未进入目标中断。首项startup ready父端833ms，后续save的owner execute间隔1997ms、anchor间隔1277ms；不是仅开库慢。唯一source/native-window/cleanup回执经原parseSummary接受：schema7、384事件/7对flush，database最大129ms，journal6对均超100ms、最大996ms，同轮长FileIO正证据成立。write/flush相互重叠且仅top8，不能相加或当完整操作列表；调度otherWaiting3836ms同样与I/O重叠，ready/delayExecution零不排除缺失。traceCompletenessVerified、commitCorrelationQualified、fiveSecondQualified仍false，尚不能认定AV、VFS重试或唯一物理原因。
+
+现TAP超时没有child.pid/expectedTag，只能按时间推断两个fixture归属，不能严格绑定。已仅在原assert.fail末尾追加≤128B fixtureIdentity：只读own-data正整数PID（与I/O解析范围一致）及既有64hex合成目录tag，非法/访问器归null，不泄漏路径、原文或异常。无新SQL、消息、时钟、Worker或重试，原5000ms/清理不变；三个真实timeout路径回归旧helper先红，reserved PID另先红1项，修后六完整文件29/29零skip/cancel，含原plain SQLite/HTTP中断正控与模块治理。单测fakefork/时钟仅用于走原timeout/finally，不授Native或Windows身份绑定资格；新字段不能反向补授旧失败。
+
+1a5两端独立增强run40813512898已经成功，完整Claude26934/Codex26922字符日志及精确client回执/cross-client拒绝核对，原三压缩/重启/私有read后独立public生成及清理闭合；仍非安装/provider/24h。853正式40812509451十二作业全success，source完整4327571字符与十业务完整日志/source-plan-build及cleanup回执核对，仅授原有界合成场景，不能覆盖当前原生失败。1a5完整安装审阅40813874985仍在原完整候选verify/audit阶段，未授构建/安装结论。模型0，旧实例/冻结长测/最大容量暂停保持。证据见context-recovery-evidence/native-publication-io-tail.json。
+
+## 2026-10-29（UTC）：修复 Claude 诊断首启协议，并将额外 I/O 对准原生失败窗口
+
+使用实际 runtime-config-controller、management-health 与原 configureInstalledClient 确定性复现：初始OpenAI监听即使原POST配置已生效，health仍是原OpenAI入口，原十五秒Claude协议门拒绝。已仅对新生成诊断controller副本的唯一固定调用改为Claude初始监听，并给adapter相同固定初始协议；label仍00，原PS1及正式controller/生产热重载/Job归属和启动放行不变。变换前复制源与有限fd读取前后身份和原摘要复核，变换后重钉copyPins；没有降低身份或健康断言。缺初始协议回归先红，修后父端十二完整文件87/87、零skip/cancel，含原两端协议、真实PowerShell及模块治理。agent首轮无便携pwsh PATH的两项ENOENT也保留为工具环境失败，不能算产品失败或Windows通过。
+
+另一线仅把额外coverage的proxy记录窗口从client-context-target切到已支持的native-publication-interruption，client前显式清理，原完整proxy四shard/client/frontend命令及所有测试/失败停止/期限照旧；原verify窗口与独立70项I/O不改。选择只是记录归属：e4fe额外coverage虽成功且native20全执行，三个摘要经原parser接受，却只含旧Core与client窗口，无法解释另一个formal轮的native准备超时。固定选窗及真实pwsh编排先红两项，相关四完整文件68/68，未放宽记录器source/host/cleanup授权、ring界限或原5000ms/8192字节子进程门。下一源码的实际Claude和native窗口记录仍待执行，不重跑853失败或反向补授e4fe。证据见context-recovery-evidence/claude-diagnostic-initial-protocol.json。
+
+## 2026-10-29（UTC）：853 Claude 配置失败定位为诊断入口启动协议不匹配
+
+853b3a8 独立 run 40812509488 已终态：Codex job123245904158 成功，完整26931字符日志、安全回执闭合；Claude job123245903770 失败，完整27674字符日志，最后 claude-enhanced-configure，尚未启动 Claude CLI。原网络证明和树/套接字清理均 true，模型0；不会把配置失败算成模型/恢复协议已经执行。原失败保留，未重跑。
+
+本批诊断先按label00启动openai-responses，再原POST配置Claude；但openai-proxy.js的ENTRY_SERVERS在启动时const固定，管理health读取实际原监听快照，applyConfig不重建监听入口。因此原十五秒health要求Claude协议无法满足，先前“可热配置到Claude”判断不成立。修复范围仅诊断专用初始协议与adapter一致性，恢复原安装矩阵Claude原生启动语义，不改产品热重启方向或延长期限。见context-recovery-evidence/claude-diagnostic-initial-protocol.json。
+
+同时e4fe正式源门40811752242/job123243430222完整3102576字符日志已失败：withdrawn在native anchor kill/release两项均未到fixture ready/目标边界，storage ready为3290/4824ms；同轮startup COMMIT阶段的父端观察间隔1772/1986ms，第二空库intent验证阶段父端间隔1809ms，四次header写仅0–2ms。无root/blob且人工reader在ready后才建立，不能归因原文解密或该reader。这些间隔还包含消息传递/调度影响，不能直接等同SQLite/native函数内部耗时；源码只有一次startup COMMIT和每次anchor CAS的一次flush，不删初始化intent/SQL后锚点这两个不同安全边界。暂未证明物理根因，不能由其他runner时延/I/O通过覆盖本失败。
+
+## 2026-10-29（UTC）：Claude 原增强协议拆为独立并行作业
+
+新增 Claude 专用薄入口、Messages/x-api-key 策略与独立 scope 回执，共用已在 e4fe 实际 Windows 成功的 staged 生命周期；没有复制完整 driver，也未改原安装矩阵或 CLI 协议。workflow 固定 codex/claude 两项、fail-fast:false、无 needs，每项独立 hosted runner、WFP/Job/运行目录；默认 Codex 入口兼容。Claude 沿原 controller 首 label00 禁用入口启动，由原 runInstalledClientCase 真实 POST 配置 Claude+persistent、原十五秒 health 验证后才开始 CLI，保留 MCP 原文读取、三次压缩、重启、精确恢复与独立公开生成全部断言。两端回执/phase/scope 相互拒绝，所有安装/provider/24h 资格仍 false，模型 0。
+
+本机六个完整相关文件 65/65、零 skip/cancel，含原 Claude 协议和 installed case、Codex 兼容、两 client 实际 PowerShell helper、父合同绑定/篡改与失败清理；模块大小/依赖图、定向 Lint、格式和 CI 治理通过。首轮新增负控误把既有 businessHandler(undefined) 的 Codex 默认视为非法，已仅修测试保留原默认兼容，未改运行门。共用 driver 拆至 294 行、未提高 baseline；触发包含新公共策略文件。实际 Claude Windows 结果仍待本批提交，e4fe 通过仅属于 Codex 与原时延/I/O，不能混授 Claude/安装/真实 provider 或整体完成。
+
+## 2026-10-29（UTC）：独立 Windows Codex 增强快诊断通过，三组原时延用例完成
+
+固定 e4fe090a03640d381e72a8f91e0cf0a71952c3a4 的独立 run 40811752318/job 123243430227 已成功，完整 26888 字符日志读取；从 run 开始 03:22:17Z 到终态更新 03:24:54Z，实际 CLI 步骤 03:24:07Z 到唯一安全回执 03:24:47Z。原完整增强协议断言三次压缩、重启保留、私有读取后独立公开生成及精确最终答案全部满足；ownedTreeEmpty、syntheticSocketsClosed 和四项网络证明均 true，installedQualified/realProvider/retention24hQualified 均 false，模型 0。这证明独立诊断链实际可执行，不证明旧安装 Codex 停止失败根因已修复；旧失败仍保留。
+
+原 timing run 40811752309 三个完整作业各 50/50、零 skip/fail，完整日志读取。新默认 Worker SQL 观测实际产生 18/17/18 对闭合阶段，首次 COMMIT 的父端观察最大间隔分别 25/27/77ms；本轮没有重现原秒级尾延迟，父端间隔不能证明物理原因，更不能授予五秒长期稳定。独立 I/O run 40811752291/job 123243430106 也已成功，原三完整文件 70/70、零 skip，完整 557260 字符日志读取；原 parseSummary 接受 schema7，39730 事件/381 对 flush，数据库/日志最大 46/40ms，但 traceCompletenessVerified/fiveSecondQualified 仍 false，不能解释或抹除旧秒级失败。普通完整 CI、正式源门和额外 coverage I/O 作业此时仍在运行；最新安装版两端、COMMIT/ACK 内部中断及有效 24h 仍未整体闭合。另一线继续准备独立 Claude 原增强协议验证，避免被 Codex 首失败阻挡。详见 context-recovery-evidence/parallel-diagnostic-first-windows.json。
+
+## 2026-10-29（UTC）：分开故障定位与完整安装等待，启动并行诊断链
+
+用户要求并行提速。本轮按文件归属并行实施，未削减原门：b475 安装共约 31m52s，其中完整候选门 19m59s、NSIS 构建 5m09s、实际两端故障尝试 75s；Rust cache 已命中、cargo-audit 安装仅 1s，因此不为小收益修改缓存安全边界。
+
+新增独立 staged Codex enhanced stop 工作流，不依赖 full verify/Tauri/NSIS 安装。锁定原 Node/CLI、完整 runtime manifest/源码/Native 身份，执行原完整增强协议、默认持久 Worker、三次压缩、重启和最终恢复；原三程序 WFP、Job、launcher、五秒/二十秒及 240 秒边界保持。独立临时 TLS/hosts/WFP 组合有完整清理和外来 hosts 修改拒写，contract 在父端内存及 lease/hash 下固定；不伪造安装 build 回执，报告强制非安装/非 provider/非 24h、模型零。受限 acceptance push 与专属路径允许它和完整 CI 同时开始；真实耗时与 Windows 结果仍待首轮，不声称已缩短到某个分钟数。
+
+另一线把有限 SQL 阶段接入原默认 Worker：在原锚点验证后开始观测初始化 header UPDATE 与首次 COMMIT，构造 engine 的 finally 永久停用；原 receiver/参数/单次调用/返回和异常身份保持，不读写 SQL 参数或原文，抛错不报 finished，最多四组 UPDATE 加一次 overflow。新阶段不能授 ready/ACK，不改认证、期限、锚点或 FULL/DELETE；它们是同轮最后观察点，不能单凭阶段间隔认定物理原因。发布清单及原三 timing/I/O 触发包含新模块，旧冻结 868 完全不动。
+
+本机九完整文件 66 项中 65 通过、1 项既有平台跳过，另原两容量文件 28/28。新阶段基线拒绝、缺发布清单与三触发基线失败均先红后修；owner 夹具原 Date.now 同毫秒会合法少写一次，已仅在注入单测给两个原时钟检查不同样本，运行时免写规则未改。独立 PS 组件、固定回执/篡改/失败清理、源码/Node/Native 三组件身份负控已覆盖；不授 Windows/安装/稳定性。
+
+9b4 最新完整门仍失败且保留：正式源码门在原 750ms 初始 arm 失败；安装审阅在原 30s PowerShell readiness 测试停止，未构建或进入 CLI，后置独立开库通过不能覆盖它。unit2 三项 graceful HTTP 未过种子 ready，另 legacy interop 的 native protect 16ms 成功、legacy PowerShell unprotect 原十秒超时且阶段未观察，不能称 Native DPAPI 算法失败。coverage 还有原 Node/Python 子进程与 PowerShell/rg 超时；额外 coverage 完整日志成功也不抹除这些失败。下一步提交并实际运行独立快诊断，同时保留完整门；旧实例、长测及最大容量暂停保持。详见 context-recovery-evidence/parallel-diagnostic-lanes.json。
+
+## 2026-10-29（UTC）：安装增强 Codex 停在首进程收尾，补齐拒绝原因传递
+
+b475 安装审阅 40804270759 已失败，完整 4298042 字符日志已读：完整 verify/audit、0.1.1 NSIS 构建、实际同格式安装升级回滚/DPAPI、582 八阶段完整迁移/旧版拒写及清理均成功，当前 manifest 为 200c54a3ad695e91cf49e7f6fc3a528531432b946cc16bdcdd0dbec7a92dc4c5。矩阵最后阶段是 codex-enhanced-cli-restart-stop；该阶段在第三次压缩完成后、旧 CLI 收尾前写入，尚未启动增强模式第二个 CLI，不能称第三次压缩失败。default 路径已越过，但无最终矩阵回执，不授完整双端资格；Claude 与安装版 COMMIT/ACK 内部中断尚未执行。
+
+实际停止拒绝此前被 transport、Codex 与安装用例三层吞掉具体原因。本批只修诊断丢失：闭合 21 种停止分类，PS 保留首失败并只写固定标记，transport 最多保留 128 字节一行，超长行丢弃、重复/未知/截断标记拒绝；私有 WeakMap 传递诊断，伪造 code/异常 getter 无法细化矩阵阶段。区分 launcher 原五秒窗口到期与非零退出，以及外层二十秒、流错误、spec/身份、回执和 RPC 拒绝；不得把 launcher 窗口等同 Codex 原生退出耗时。原自然退出、Job 清空、完整身份复验、成功回执和全部期限保持，无行为超时修复声明。
+
+新增 transport 三组在原实现先红；修后七完整文件 87/87、零 skip，包含真实 PowerShell helper/阶段解析。新 PS 夹具首次因数组表达式产生 Char 的错误保留，另一次扩大组 86/87 是原 stderr 精确断言需接纳新增固定 admission 标记，均不归因产品。1749 语法、定向 Lint/格式、CI/发布治理通过；Windows 新分类仍待实际安装验证。
+
+独立 428b I/O 诊断 40806806351 完整 551848 字符日志、原三文件 70/70，原 parser 接受 schema7：fresh 启动 COMMIT 为 21/17/20ms，四次 header UPDATE 各不足 1ms，六持久发布 852–1007ms。该轮未复现秒级尾延迟，traceCompletenessVerified/fiveSecondQualified 均 false，不解释或抹去旧失败。b475 正式源码门与十业务日志另已完整核对、十二作业成功，仅授原有有界合成场景。下一步固定新候选核对停止分类，再修实际阻塞；不动旧 868、日常实例及最大容量暂停，无模型调用或新 24h。详见 context-recovery-evidence/installed-codex-stop-failures.json。
+
+## 2026-10-29（UTC）：ee 正式门终态通过，56d 启动失败仍阻止稳定性资格
+
+ee161d4 正式运行 40803390990 十二作业成功，源码门完整 4272107 字符及十个业务完整日志已核对；每个业务均为该源码、具有 plan/build 回执并完成网络收尾与 ownedTreeEmpty。仅授原有有界合成场景，不授完整 N08/N09、安装版双端、真实 provider 或五秒稳定性，亦不抹去 ee integration/额外 coverage 失败。
+
+56d1721 正式源码门完整 3099843 字符日志有十二项失败，其中十一项在原五秒 fixture ready 前失败，尚未进入目标中断；有的 native ready 已到 4437ms 后等待 load-reference，有的 ready 1193ms 后种子 save-reference-state 未完成，不能把全部归为开库或目标 ACK 失败。额外 coverage 完整 3063636 字符有四项失败，其中两项在原 750ms 初始 arm，另有 native ready 及 Python 隔离环境失败；unit0 完整 594600 字符仅见原 25000ms 合成 WFP PowerShell 子进程超时。旧失败均保留，不提高期限或重跑制造绿色。
+
+b475 安装审阅 40804270759 的权威 steps 已确认完整 verify/audit 门成功，正在构建安装器；同格式、582、四 CLI 与安装版中断门尚待执行。日志接口返回的旧前缀不能作为当前卡点或完整验收日志。fresh 库没有 root/blob，且初始化 header 更新共用一个 SQL 事务，现有证据不支持以重复原文解密或多次 FULL COMMIT 解释启动尾延迟；不能删除首次 enrollment intent 或最终 anchor ACK。下一步读取真实安装端阶段，取得同轮启动 clock-write/COMMIT 分段后再修实际耗时。无新 24h、模型调用或日常实例变更。详见 context-recovery-evidence/ee-formal-and-56d-startup-failures.json。
+
+## 2026-10-29（UTC）：减少marker空轮询重复遍历，保持正文前物理准入
+
+858额外coverage完整4183222字符日志已读并成功，三份同源码/cleanup回执经原parseSummary接受，十二持久发布987–2109ms；ee额外完整3044127字符日志仍唯一失败于原750ms初始arm（999.9555ms），尚未进入目标慢released五秒负控。两者并列保留，不授稳定性或握手物理根因。b475普通Verify目前7作业成功/coverage仍运行，安装审阅40804270759仍在原完整门禁，未重启。
+
+read原name先遍历目录，随后的physical(marker)又核对全部固定祖先；marker缺失还会再遍历一次。现name只做状态/枚举/范围校验：present仍须marker完整祖先准入及payload descriptor前后全链，missing仍在verify成功后才返回null；write在wx之前仍显式verify。present目录遍历4→3、空轮询2→1、write保持3，每次调用重查，不缓存。元数据探测顺序确有变化：坏祖先下可能先lstat/realpath marker，随后拒绝；不能声称系统调用顺序完全相同，正文open/read/write仍在完整物理准入之后。另在marker校验后重新检查closed，避免关闭中途仍打开正文。
+
+固定b475回归30项24通过/6先红；修改后四完整相关文件80/80、零skip/cancel，覆盖marker期间换目录、ENOENT后换目录、junction/symlink/hardlink、坏目录write无wx、关闭中途无payload open、后续逐次重验及原签名/750ms/五秒/descriptor/字节边界。定向Lint、格式、语法与CI/release治理通过；新源码Windows和五秒稳定性仍待。证据见context-recovery-evidence/publication-marker-poll-boundary.json。原安装两端/正式失败、旧868冻结/日常实例/最大容量暂停保持，新24h和模型均0，整体未完成。
+
+## 2026-10-29（UTC）：安装Codex重启阶段闭合细分，保留compact-3原失败
+
+01b安装两端的最后阶段compact-3原来还覆盖首树停止、第二次启动/initialize与thread/resume，npm完成到失败约35秒不证明哪一步超时。与已过989候选核对，协议/启动器/RPC/CLI锁没有差异，不能改三次压缩负载或猜测模型原因。现仅为Codex默认/增强增加restart-stop、restart-initialize、restart-resume三个固定阶段，JS writer与PowerShell读取闭集同步；生命周期进度只写安全阶段，不调用合成上游setPhase，Claude与未知阶段继续拒绝。原单RPC30秒、turn60秒、首树stop20秒、launcher EOF5秒、driver240秒以及认证、resume精确身份/自然退出/三次压缩均不变。progress失败时仍保留所有活跃CLI的所属cleanup能力，不称为产品根因修复。
+
+固定ee161d4的六项定向TAP全红：三类重启错误均留在compact-3，路由/写入拒绝新阶段。修改后原三完整JS文件49/49。扩大RPC/所属桥检查最初53项50通过/3失败，完整定位均是本机无pwsh、断言尚未执行；失败记录保留。按官方release的大小及SHA校验独立Mac Arm64 PowerShell7.6.9便携运行时，仅用于单命令环境；补齐后五个完整文件57/57、零skip/cancel，实际PowerShell解析器验证六个Codex阶段并拒绝Claude/未知/非法值。1746语法、定向Lint/格式及CI/release/结构治理通过，新源码Windows/最新安装两端仍未授资格。
+
+ee完整CI仍待终态，普通integration失败完整25620字符日志已读：metadata-only audit后切换profile期间ECONNRESET，未确认物理原因、未改集成源码或加自动重试。ee种子屏障修复仍待Windows结果，不能被本批阶段细分代替。接下来绑定新源码准备原完整安装审阅，保留01b已过的同格式升级回滚/完整582迁移范围及CLI失败、所有五秒/旧868/日常实例和最大容量暂停；无新24h、模型0，整体未完成。证据见context-recovery-evidence/installed-codex-restart-phases.json。
+
+## 2026-10-29（UTC）：01b 安装升级/完整582迁移通过，修复seed-output完成屏障缺口
+
+01b正式40800611319已终态：source-gates完整4263984字符日志通过，十个业务日志已读，11作业成功/1失败；原n09在durable-save场景82以144退出，精确minRevision不相等的拒绝保持。858独立业务诊断十组全部成功且同源码/ownedTreeEmpty回执闭合，不覆盖01b正式失败。858普通unit3完整1153245字符日志：新增通道文件10项Windows通过，唯一失败是既有caller-owned reply memory用例，原15000ms子进程没有正常退出，实际15014.4607ms/status null，失败阶段未知，不改该门。
+
+找到可复现的验收顺序缺口：seed-output第二轮包含原文visibleSources，能进入真实私有恢复；原实现仅等HTTP正文结束，之后才建立summary的全局completed基线。若第二轮最终ACK稍后才完成，其completed会被下一轮当成本轮完成，错位还能延续到read屏障；快照可能先于原生产ACK观察，精确144拒绝正确。现于第二轮发送前取得它自己的原15秒completion barrier，验证响应后等待，再建立原summary基线；原summary/read屏障、三次业务HTTP负载、版本精确相等、预算/期限、签名和FULL/DELETE均不变。没有重试或扩大原预算；不能仅凭有限144日志断定本次必由此竞态触发。
+
+两项定向回归在固定858上全红：ACK仍held时第三轮已发送、失败completion未能阻止summary。修后四完整相关文件115/115、零skip/cancel；延迟/false/throw/假hostAck与原保存/撤销快照及ACK后立即强杀边界保持，新增测试进入原统一文件。1746语法、定向Lint/格式、CI/release/结构治理通过，新源码Windows完整门待核。证据见context-recovery-evidence/seed-output-publication-barrier.json。
+
+01b安装审阅40800745678完整4288539字符日志已读：原full verify/audit、真实0.1.1构建、同格式安装升级回滚卸载/同用户DPAPI均通过；当前安装app摘要7e04ab23…，运行时manifest a6617c44…。随后完整582默认worker八阶段实际通过：旧4eb1ea48…身份582文件、layout1→3、revision仅+1、旧reader拒写与字节保持、同目录重开，ownedTreeEmpty/uninstalled均true。两端CLI步骤仍失败，最后有限阶段codex-default-cli-compact-3还覆盖首CLI停止、第二次启动/初始化/resume，不能直接称第三次压缩根因；安装COMMIT/ACK步骤未执行。两端/真实provider/有效24h与整体仍未完成；所有失败、旧868/日常实例/最大容量暂停保持，无新24h、模型0。
+
+## 2026-10-29（UTC）：01b 普通完整 Verify 通过；消除验收通道同次操作的重复目录遍历
+
+01b208c 普通 Verify 40800611335 八作业全部成功，coverage 完整4173107字符日志无 not-ok；十二次持久发布703–3258ms，三份同源码/cleanup I/O回执经原parseSummary接受。实际Windows两工作流共22个selector编排情形通过，原5000ms期限不变。额外coverage 40800611371完整3040915字符日志仍失败：唯一失败在ACK通道初始arm的原750ms见证，尚未进入“慢released写入”的五秒负控；同轮Core六次发布1154–1955ms，不能消除原5002ms失败或授稳定性。正式source-gates与安装审阅40800745678仍在原任务执行，本批不重启或覆盖它们。
+
+通道文件readBootstrap的末次physical(file)已遍历全部固定祖先；write的physical(data/marker)同样包含目录。紧接着再verify目录没有间隔I/O或公开回调，形成同次操作的重复遍历。本批只将这三处重复目录遍历改为原closed/failed状态检查；保留每次访问前及descriptor读取前后的完整物理身份、固定祖先、单链接、大小/mtime/ctime、UTF-8/规范JSON与签名门，不新增跨操作缓存。写入目录遍历由5降3，读取由5降4，后续读取仍完整重验；所有750ms/五秒/输出界限、生产存储及FULL/DELETE完全不变。这是验收通道I/O改进，不是已经证明的Windows握手或SQLite尾延迟修复。
+
+新回归固定旧实现8项6通过/2先红，新增关闭中途边界后四个完整相关文件60/60、零skip/cancel，真实五种发布握手、750ms命令负控、五秒不释放/慢released负控及替换/硬链接/读取故障均通过。1746语法、定向Lint/格式、CI与release治理通过，新增文件进入统一发现（816文件）；新源码Windows完整门仍待。证据见context-recovery-evidence/publication-files-physical-boundaries.json。a79完整门失败、1786本机95项分任务92通过/3失败、旧868有效15分钟后失败及其缺终态回执全部保留；无新24h、模型0、旧实例和最大容量暂停不动，整体未完成。
+
+## 2026-10-29（UTC）：修复 a79 Windows selector 空字符串清理；原五秒失败保持
+
+已读a79普通unit2完整906585字符日志，唯一失败是新增真实PowerShell额外工作流编排：452.2106ms内读到selector为空字符串、期望null；普通Verify编排同轮通过，不是超时或产品恢复失败。System.Environment的null参数在该PowerShell环境保留空变量，不能用其清理后要求闭合录制器放行空值。改为仅在Test-Path确认环境变量存在时用Env provider删除；没有忽略删除错误，空/外来selector的录制器拒绝规则完全不改。对应微软环境变量文档与同轮失败见context-recovery-evidence/coverage-selector-environment-removal.json。
+
+两工作流各保留原七种成功/失败组合，再覆盖初始selector不存在、空、外来和4096字符值；期望仍为proxy正确窗口及serial client的null，原5000ms子进程期限不变。Mac本机解码/触发10/10、语法/Lint/CI治理通过；实际Windows扩展编排与新源码完整CI待核，未授五秒修复。生产代理、Native与双锁均未改变，安装验收适配器另仅补入既有合并准入命令；1786已知5002ms和本机旧布局33项的一处失败继续保留。
+
+独立62项候选另在产品测试前被私有复制校验误判公开依赖名cookie阻止；现场冻结。新helper改为generated元数据逐字段及整子树绑定已提交public lock，无cookie特例，两正控/24负控通过；新目录一次执行仍待完整结果，不是62项已通过。同1786安装审阅原完整verify/audit及实际0.1.1安装器构建成功，随后同格式加密生命周期reader失败，升级回滚/582迁移/双端仍未授资格。旧868/原失败目录/日常实例及最大容量暂停不动，无新24h、模型0，整体未完成。
+
+本机纯selector编排组件也已保留失败：两项PowerShell子进程均在原5000ms内未完成，比较22个mock情形没有闭合；不知道卡在启动还是脚本内部，不能宣称逻辑通过。8个固定文件/Node前后身份一致、TaskReady1/所属为空；未延长时限或反复试跑。原Core/Codex50项实际50/50，六次最终发布1547–2136ms；另12项10通过/2失败，两次均awaiting=ready、目标COMMIT/ACK尚未进入，不能将pending阶段猜成完成耗时。
+
+安装失败另有已复现的确定性适配器阻塞：nsis-encrypted-contract仅接纳旧三个Native命令，拒绝生产已新增的--hpm-context-storage-directory-v1。包装器在真正dispatch前调用该guard，因此首次current旧布局拒写无法取得原要求的DPAPI/数据库证据。只补入确切命令并仍返回false、不计作DPAPI；原唯一helper路径、单参数、实际key-v1计数及全部拒写/升级回滚门不变。定向回归固定旧代码先红，修后1/1，相关完整拒写/登记9/9；仅授适配器单元范围，整条安装链待重验，不能断言没有其他问题。详见context-recovery-evidence/installed-compound-admission-contract.json。
+
+## 2026-10-29（UTC）：1786 完整门已读；保留五秒与本机旧布局失败，对准实际 Core 录制窗口
+
+1786 普通 Verify 八作业、正式十二作业全部成功，完整 source-gates 与十个业务作业日志已读，仅授原 32 个有界合成场景，不授完整 N08/N09。三 timing 各 50/50，十八持久发布 846–1070ms；独立 I/O 70/70、样本 949–1104ms。额外 coverage 完整 3002403 字符日志有两项失败：Responses long-persistent 第零轮原五秒在 5002ms 失败，必要序号4的 clock write717ms/COMMIT2553ms；另一个托管 WFP 合成夹具的 pwsh 在原25000ms内超时，阶段未知。初始种子保存发生在请求前，不能累加为请求内耗时；不能归因杀软、锁或唯一物理原因。
+
+独立 Windows 两次原 npm ci、官方 Native/gateway 准备均成功，公开缓存245项逐payload核验，未修改旧cache或声称网络/新鲜audit已修复。完整旧布局组33项32通过/1失败，首次同步 production owner 启动返回 storage unavailable，preview/enroll已过、load等尚未进入；后续Core/Codex50和graceful/readiness12没有执行。2120源码、锁、Node22.22.3及新构建原生产物身份全等，任务Ready1、所属进程为空。该用例注入protector/anchor，不能认定真实DPAPI/OS锚点失败。首次私有诊断因重复消费一次性stdin授权，在产品调用前失败；修正为受控stage直接调用后，三项编排正负控通过，本次最小owner开库1197ms、16个native调用全部返回、任务Ready0/所属为空，不能追认原失败消除或95项通过。
+
+本批仅将额外coverage的单一proxy录制窗口从native-publication-interruption对准实际失败的client-context-target。完整原测试（包括全部native中断用例）、四分片、命令顺序、原五秒/PowerShell/作业期限、失败停止、原认证/期限/精确ACK及FULL/DELETE均保持；普通Verify的publication-interruption窗口不动。新窗口回归在固定1786上3项2通过/1先红，修改后连同触发治理10/10。此为观测修正，不是性能修复；新精确源码完整门仍待执行。
+
+同1786源码的安装审阅40794879961已启动，最近实际阶段为原完整verify/audit门；尚未授安装升级/582迁移/双端资格，其成功也不能覆盖额外coverage失败。正准备在新独立目录执行尚未执行的原50+12完整文件，不跳过旧布局失败并称整体通过。证据见context-recovery-evidence/core-request-coverage-window.json。旧868仍失败且缺最终回执、旧实例/冻结目录/最大容量暂停均保持；无新24h、模型0，整体未完成。
+
+另将既有真实PowerShell编排回归覆盖两工作流，各保留原七种成功/失败组合，并预置旧selector验证窗口选择不会被继承环境污染。Mac无pwsh，本机未执行该PowerShell部分，实际验证待Windows CI；未跳过测试或延长原5000ms子进程期限。统一测试发现包含这两个既有测试文件，1745语法、定向Lint及CI治理通过。
+
+## 2026-10-28：补齐路径准入修改的原 timing/I/O 触发范围
+
+0610461 已推送 existing-only 离线登记修复。核对发现原 timing 与独立 I/O 的显式 paths 未列 storage-paths/private-path 等共享准入模块，因此 061 仅启动 Verify、正式及额外 coverage-I/O 三条，不能继承 ef3 的三 runner 结果作为新源码资格。
+
+三工作流触发名单补入五个实际共享路径/安全模块，原工作流正文、三 runner、完整原命令、权限、分支、期限与门限全部逐字保留。既有触发治理回归新增断言，对固定 061 先见 7 项中 4 通过/3 失败，修改后 7/7；CI 治理与定向 Lint 通过。运行时代码和 Native 输入均不再变，不授完整 CI 或五秒稳定通过。详见 context-recovery-evidence/path-admission-diagnostic-triggers.json。
+
+ef3 的旧布局缺 writer 失败与全部旧失败保留；ef3/061 本机短测候选均未启动，最终提交将绑定新目录执行 existing-only/legacy 完整 33 项、原 Core/Codex50 和 graceful/readiness12，共 95 项，原十五分钟总预算及五秒/PowerShell 三十秒门保持。最新安装候选仍未触发；旧长测/日常实例不动，模型与新 24h 均 0，整体未完成。
+
+## 2026-10-28：修复 ef3 离线旧布局缺失 writer 被补建的实际回归
+
+ef3 普通 unit0 的完整 699752 字符日志有一项失败：原有 legacy-owner 用例要求缺失 .writer.sqlite 拒绝且不补建，新合并准入提前创建了该文件，导致不再抛错。该失败保留，ef3 本机五秒候选及安装候选均冻结未启动；不以三 timing 各 50/50、十八持久发布 561–1402ms 或其他局部绿色覆盖它。完整 coverage/正式门仍待终态。
+
+离线登记现使用 existing-only 路径能力，不 mkdir、不调用创建 writer 的 compound，且仅暴露冻结 directory/verify/pinExisting/pinKey；正常运行时保留合并准入优化。原祖先/文件身份、ACL 前后验证、单链接/大小/inventory、writer 独占锁、原 post-lock verify、密钥解封、完整只读认证及 fingerprint/anchor 提交门均保持。未改原缺失文件断言、Native 十三份输入、期限、TTL、精确 ACK 或 FULL/DELETE。
+
+强制 native 模拟的五项回归在固定 ef3 上全红，其中前两项直接证明缺失 writer、预检后消失目录被补建；修复后相关 38/38。增加 ACL 失败保留字节边界后，扩大七文件 87 项中 86 通过/1 个平台跳过；1745 语法、定向 Lint/格式及 CI 治理通过。仅授本机逻辑回归，不授 Windows 或完整新源码资格；详见 context-recovery-evidence/existing-only-legacy-paths.json。
+
+既有 pinExisting 返回至默认 DatabaseSync 打开之间的外部删除竞态可能临时创建文件，但原 post-lock 身份检查会拒绝，不能授予登记；本批不宣称已消除所有跨进程临时创建。下一步提交此实际修复并核对新完整 CI，在新目录执行原五秒与 graceful/readiness 完整文件，再推进最新安装升级/582 迁移回滚及双端。旧长测/日常实例/最大容量暂停保持，新 24h 与模型调用均 0，整体未完成。
+
+## 2026-10-28：合并目录/writer 原生准入并修复句柄保护；Windows 组件 43/43
+
+7d 普通 Verify 仍失败：原生 graceful HTTP 在目标 advance 前的 ready 五秒超时，另有 PowerShell 原三十秒超时；旧失败保留。正式十二作业成功，仅授同源码门及十个有界合成场景，不授完整 N08/N09、安装器、provider 或 24h。额外 I/O/coverage 成功不覆盖这些失败。
+
+独立 Windows 固定 903 的原 Core/Codex 两完整文件已自然退出 0，50/50、零 skip，六个持久发布 2167–2975ms。此前额外 120 秒控制器不足的失败保留，完整运行采用仓库原十五分钟作业界限，单请求五秒不变。另一原 graceful/readiness 两文件退出 1，12 项中 5 通过/7 失败：五项 graceful 未过初始 ready，另两项私有控制器 PATH 缺 PowerShell 导致 ENOENT；后者不能解释托管三十秒失败。
+
+本批实际优化将目录 ACL 与固定 writer 创建/ACL 放在一次原生调用，返回原生句柄身份并仅消费一次 writer 准入；不预建 checkpoint，不缓存跨提交认证。首轮原生组件 14 项中 13 通过/1 失败（Cargo 101）：原元数据句柄未阻止根目录 rename。按微软共享检查语义修正公共 open 的读取/列目录访问位，保留无 DELETE sharing、DACL、reparse、单链接/大小及失败关闭；fresh/既有 writer 与 root/ancestor/file guard 的负控和关闭后合法 rename 正控实际通过。修复后原生模块 15/15、locked release build 与 fmt 通过，另 38 个非本模块用例未在该组件运行，不授整个 Rust crate 资格。
+
+第二轮 Node 18 项中 17 通过/1 失败，发生在 native 调用前：测试错误假定 Node 能精确读取合成的 Unix 纪元前 100ns，实际读为 4294967295999999900ns；原生仍精确返回 -100ns。保留失败，修正测试为先证明真实 native canonical 成功回执及精确 -100，再验证 facade 因不一致严格拒绝；不转换时间放行，不授 pre-Unix 兼容资格。第三轮新目录复用相同十三份输入及同哈希 single-link 原生产物，公开模块 18/18、完整 storage-service 25/25，合计 43/43、零 fail/skip/cancel，真实 worker/DPAPI 新库重开和进程隔离实际通过；任务成功、所属进程为空，全部在原 60/120 秒阶段界限及十五分钟总界限内。仅授未提交组件功能，不授新提交完整 CI、五秒稳定性或 24h。
+
+当前本机合并回归 57 项中 52 通过/5 平台跳过；1744 语法、完整 Lint（零错误/五个既有警告）、CI/发布治理、本批 JS 格式及原 high 审计门通过。整个 Mac checkout 格式检查因 1437 文件告警退出 1，三份未改样本仅换行差异，未批量格式化且不宣称完整格式门通过。详见 context-recovery-evidence/native-directory-compound-preparation.json。最近封存分账仍 169/177、Codex1/Claude7，发送前仍需新鲜台账与持久预留，本批模型 0。旧 868 仍四节拍/约十五分钟、进程不存在且缺最终回执；无新 24h 在跑。旧日常实例/冻结环境/最大容量暂停保持。下一步提交本批，核对新精确源码完整 CI 与原 Windows 五秒门，再推进最新安装升级/582 迁移回滚、双端及有效 24h；整体尚未完成。
+
+## 2026-10-28：903 完整门终态与旧选择器断言修正
+
+90389ed五条CI均已终态：三timing和独立I/O成功，Verify、正式源码门和额外coverage失败。完整失败日志3043230/3056699/3048857字符已读；Verify coverage与正式source-gates均仅见旧工作流选择器断言失败，额外coverage另有ACK通道“released探针写入不得延长五秒”用例失败（892.768ms，channel rejected），不能把该失败宣称为五秒真实请求失败或已解决。正式业务未执行。旧失败全部保留。
+
+修正既有工作流治理测试的名称与期望选择器为publication-interruption，匹配已经提交的Verify实际选择窗口；七种成功/失败场景、原5000ms子进程期限、错误断言与命令序列不变。独立Windows治理夹具在真实pwsh执行实际YAML正文，退出0，1项通过/0失败/0跳过，5532.2909ms；仅授该断言修正，不授完整CI通过。此为测试同步修正，不是持久性能修复。
+
+独立I/O完整70/70（原50项及完整新增20项），651条SQL记录/20夹具，381对flush，DB最大34ms、journal最大30ms；三timing各50/50，十八持久发布813–1080ms。均不能覆盖原重负载五秒失败。Windows新903准备任务插件npm本体退出0，但其后原5000ms Git身份检查超时，未进入原生准备；后续只读身份/锁检查通过，原任务失败保留，仅允许新独立任务执行尚未执行的原生准备，产品测试尚未开始。
+
+旧868只读复核仍process_not_running、四ticks、末scheduled900000/elapsed900012ms、passed=false、terminalConfirmed=false；冻结源码/验证器/数据库/任务不变，新24h/模型请求0。下一步先定位额外ACK失败并完成903实际原生构建，读取修正后的完整门，再推进最新安装及双端验收；不以本批局部通过替代整体交付。
+
+
+## 2026-10-28：修复健康验证器“缺终态仍通过”的成功门漏洞
+
+只读子代理从现有完成夹具复现：其余完整合成证据不变、仅把任务状态改为Queued/Unknown/null，旧代码会passed=true但terminalConfirmed=false。现成功分支必须满足原严格terminalConfirmed，实际零退出/child_exit、任务成功、原容量画像、288连续真实ticks、86400000ms、原root到期、双重开及15次开关条件全部保留；不宽化失败终态，不把控制器缺失当作Node退出0。Queued/Unknown/null/Running不能授通过，Ready/Disabled仅在全部其他证据成立时仍可通过。
+
+固定b92未修改健康源码对照19项16通过/3先红，修复后19/19；主代理合并相关本地回归90/90、零skip，定向Lint/格式、1741语法、CI/发布治理通过。只验证纯健康判定与本地非原生控制，不代表Windows/24小时通过，详见context-recovery-evidence/native-day-terminal-success-gate.json。旧868冻结验证器、监测、任务/数据库/锚点完全不动，仍失败且缺最终回执；本漏洞没有使那轮不足画像的15分钟记录通过，也不追认其终态。
+
+新一轮失败终态证书还缺固定控制器PID/创建时间及同轮任务实例/LastRunTime等权威字段，不能猜测；仅改Task Action为Node会丢失现有stdout重定向、环境清理、防睡眠lease及owned-Job授权，未采用。继续先收口原五秒持久/准备失败与完整门，再做最新安装/两端真实provider/有效24h。新长测与模型均0，旧实例和最大容量暂停保持。
+
+
+## 2026-10-28：457 完整三处失败与 b92 失败保留；对准非原生发布准备的 I/O 窗口
+
+457五条CI已终态：timing/独立I/O成功，普通/正式/额外coverage失败，完整失败日志2814903/2824129/2812787字符已读。普通三项publication prepared在原ready五秒内失败，尚未到目标advance：准备COMMIT已返回1371/2277/2011/2353ms，其他提交仍pending，不虚构最终耗时；这些是非原生publication文件，原Verify所选native窗口不覆盖它。正式为Tianxi真实PowerShell调用ETIMEDOUT；额外为native protect25ms后legacy unprotect10234ms超时且未见首阶段，不能确认DPAPI算法失败。相同457范围实际Core持久发布42个786–2119ms、未见该范围真实请求失败，但不覆盖原五秒失败或失败的完整门。
+
+b92普通7作业成功/coverage失败：20个native publication用例通过后，录制器after-hook在decode-summary拒绝，具体汇总拒绝原因未知；正式完整日志2856698字符有11项失败，十项publication均awaiting ready、另caller-owned reply子进程15秒边界失败，业务skipped。三timing及独立I/O各50/50完整日志已读；额外coverage已成功，完整3949992字符无not-ok、三份同源码/cleanup回执经原parseSummary接受；不以这些局部通过抵消失败。
+
+本批仅修正观测：Verify在原完整coverage中选非原生publication-interruption窗口，首个失败即停止自己的录制、全部原测试照常完成；额外coverage保留native窗口，正式原scope不改。独立I/O保留原50项再加完整20项非原生中断控制，不过滤/重试/增加期限。SQL进度可带真实子PID、匿名夹具摘要、UTC；父端核对子进程身份，原序号/相对计时/32条边界保留，相对elapsed不是单段时长，returned不是最终ACK。汇总失败新增封闭阶段原因码，原非零退出、无成功输出、字节/事件/碰撞门不放宽，不能据此追认b92根因。
+
+固定b92的SQL观察器对照8通过/3新增边界先红；本地扩大71/71、原20种发布中断/正控全部执行，651条SQL记录对应20夹具/20子PID；定向Lint/格式、CI治理及统一新测试发现通过，Windows新窗口/完整门仍待。首次对照漏物理临时目录预加载导致额外已有路径拒绝，输出保留，不作产品根因。证据见context-recovery-evidence/publication-sql-io-window.json。本批不是五秒性能修复；下一步读取新同轮失败的实际I/O并修复持久等待，最新安装/两端真实provider/有效24h仍未完成。旧868冻结不动、新长测/模型0、旧实例和最大容量暂停保持。
+
+
+## 2026-10-28：schema7 已有真实 I/O 关联；完整覆盖率/正式门仍待终态
+
+固定45798f9四个unit分片完整日志已读（976655/702740/580911/603039字符），无not-ok，七项关联边界和一项真实PowerShell用例实际进入统一Windows门并通过。三timing各50/50、十八持久发布786–1146ms；独立I/O完整333934字符、50/50，schema7经原parseSummary接受，144对flush，DB最大33ms/journal203ms。Chat重开owner第4次settle-reader COMMIT224ms，与同夹具摘要、事件头PID匹配的journal flush203ms/write201ms相交，flush载荷发起线程与头TID一致。Responses第7次save的139ms journal write则落在139ms clock-write内而非COMMIT内。均为正向有限关联，不授物理文件身份、唯一原因或旧五秒失败解释；CPU字段记录0不等于证明绝对没有CPU开销。
+
+普通40769318872/coverage123101898869、正式40769318882/source123101898563、额外40769318995/123101899699仍实际运行，不能称完整CI通过。补上三个过滤路径工作流对新关联模块/测试的触发范围，原命令、分支、并发、门限和失败停止不变；治理检查通过。详见context-recovery-evidence/45798f9-first-io-association.json。下一步读取同轮完整失败窗口，继续持久等待修复；旧失败/实例/长测冻结/最大容量暂停保持，新24h与模型调用均0，最新安装和整体资格未取得。
+
+
+## 2026-10-28：补齐有限 I/O 与合成测试库关联；五秒修复仍未取得
+
+上一批证据757cc30已推送，运行时代码仍6c801fa，原普通/正式真实五秒失败保持。新批仅修改诊断：保留已选SQLite事件头PID/TID及载荷发起线程ID，彼此不替代；缺失/占位为null，非法/歧义拒绝。匿名合成夹具后缀摘要随开始事件进入原八条最长窗口，跨名称复用不改旧事件身份、IRP复用不继承旧身份；owner探针记录实际PID及同夹具摘要。schema7闭合校验，旧1–6、原字节/事件/期限门和所有资格false不变。摘要不是物理文件ID，事件头PID不是已证明的拥有者，不能据此宣布唯一根因。
+
+本地相关30/30，Windows实际PowerShell独立解码1/1；1740语法、定向Lint/格式、CI治理及统一unit发现通过。新测试曾错误预期既有允许碰撞计数会被拒绝，已修正为保留原解析语义；初始29/30及Windows部分失败保留。扩大Windows九文件观察超过75秒，部分TAP无最终汇总/可靠退出回执，匹配固定诊断Node路径进程已空，不授整组通过、不因观察超时重启。新格式尚无真实ETW采集，完整精确源码CI仍需读取；证据见context-recovery-evidence/bounded-io-fixture-association.json。
+
+下一步应读取完整CI与新回执，对齐失败COMMIT的夹具/进程/发起线程，并继续实际持久等待修复；不得用本批观测能力代替性能解决或删除必要预算/结算/发布持久化。最新安装/两端真实provider/有效24h到期重开仍未完成；模型0、旧868冻结不动、旧实例供用户自切换、最大容量仍暂停。
+
+
+## 2026-10-28：6c 启动缩短仍未解决真实五秒持久等待；本机独立 HTTP 范围明确
+
+运行时代码固定6c801fa。五条CI均终态：三timing各50项、独立I/O、额外coverage成功；普通40762748054/coverage123078713417与正式40762748060/source123078713687失败，完整3768510/3758575字符日志各有一个实际Chat WBIPC失败。普通long-persistent第0轮4856ms收headers、4857ms正文结束，发布等待5000ms失败；正式同轮实际请求5016ms失败、已发2次合成请求/握手。正式业务作业skipped。七份有限coverage I/O回执原parseSummary接受且同源码/cleanup=true；额外日志3819609字符无not-ok，不覆盖失败。三机十八样本609–1094ms，独立记录DB最大25ms/journal16ms，均不授完整追踪或稳定资格。
+
+同轮SQL记录已保留：普通序号4的save-reference-state COMMIT2187ms；正式序号4/5/6分别1410/1514/942ms（save/settle-reader/save）。初始种子保存的序号3在请求前，不能把其耗时误加为请求内；线程CPU小不授唯一I/O驱动归因。启动改走通道并没有解决这些持久等待，旧5448ms与其余全部失败继续保留。
+
+本机原准备两次npm均退出0，插件后的Git版本检查仍触及原5000ms，任务1/产品未启动；单独准入保留失败、重验原身份与已安装锁文件，不重装。真实2开2关ready2867/2845ms，仅授原30秒启动门；journal9、capacity/clock28、blobs92、root-state73通过，固定大blob46563ms、四根32MiB完整私有历史104807ms在原180000ms内。原生中断组只观察到5通过/14失败，失败均awaiting ready、未到目标advance；原120秒外层终止，任务126、无最终汇总，所属进程为空，后续五秒组未执行。
+
+为直接诊断实际请求，另开独立任务及临时数据，使用只读固定源码执行两个原样完整HTTP文件，不过滤/重试模型/改门禁。本机Core/WBIPC30项均完成通过，六个持久发布样本2395/2980/2582/1990/1689/2203ms；原生HTTP排空5项通过、transport-finished/COMMIT一项准备ready超时（开库ready2910ms、最后fixture-prepared）。整组仍触及原120秒、任务126、缺最终汇总，不能授整组通过；36项报告耗时合计113516ms另有进程开销，不据此确认资源泄漏。两根下所属进程为空，事后Git干净、源码/Node/原生哈希与开跑前一致；原失败组没有重跑或覆盖。
+
+本地写入量诊断使用固定源码checkpoint夹具和600000字节合成后缀，非失败WBIPC实例：原文600025字节、引用清单4293字节、密文清单4387字节、blob600219字节；仅预算元数据保存改1行且blob密文摘要不变，FULL=2/DELETE保持。它排除该夹具中整段原文重写的猜测，不授Windows或失败实例归因。下一步应对齐失败COMMIT的物理文件/发起进程I/O，不能只继续优化开库或删除必要的预算/结算写入。
+
+证据见context-recovery-evidence/6c801fa-windows-and-persistent-failures.json。最新安装资格仍被正式/普通及本机门阻断；真实provider未调用（模型0），有效24h/到期双重开未通过且未重启旧868，最大容量仍用户暂停，旧日常实例保留供用户自行切换。整体未完成，局部通过不转授其余交付资格。
+
+
+## 2026-10-28：首次锚点读取复用既有通道；a49 本机与正式失败完整保留
+
+a49fba8 已终态：普通八作业、三timing各50项、独立I/O与额外coverage成功；正式40759490629/source123067228074失败，完整2759171字符记录五项可见失败，包括prepared ACK前置、父目录替换以及三项HTTP夹具ready超时，后续业务不授资格。普通coverage3809701及额外3814646字符完整核对无not-ok，六份有限I/O回执经原parseSummary接受并确认同源码/cleanup；三timing十八个publication样本608–1461ms。局部绿色不覆盖正式失败或旧5448ms COMMIT。
+
+本机原准备任务两次npm均退出0，安装后的Git版本检查触及原5000ms限制，任务1且产品未启动；失败保留。单独任务复核原Git身份与已安装锁文件，不重装依赖、不放宽期限，完成真实DPAPI/OS锚点2开2关（5020/4503ms，仅原30秒启动门），journal9、capacity/clock28、blobs92、root-state73全通过；四根32MiB完整私有历史164562ms在原180000ms内。随后native中断完整20项仅1通过/19失败，退出1、所属进程为空，19项均awaiting ready，失败项未到目标advance；最终五秒组未执行。提前启动空闲进程仍未解决本机阻塞，不重跑该失败组制造绿色。
+
+本批定位到异步owner已有通道却仍另起同步原生进程首次read。新回归对固定a49源码先红：同步read实际1/预期0。现通过同一已拥有通道读取，严格认证后只供同步准入消费一次；物理身份在await前后及消费时复核，空库同步登记仍在SQL COMMIT前，最终精确持久ACK保留。就绪与首次read从原密钥落盘屏障并发计时，不等待就绪后另给10秒；错误顺序版本已被10001ms回归拒绝。新增非法响应、并发/重复消费、目录替换、关闭、外部then/getter和实际子进程关闭后才释放写锁等边界。扩大151项149通过/2个既有非Windows平台跳过，定向Lint、1737语法与CI治理通过；统一unit发现原两测试文件。尚无本批Windows耗时证据，不授五秒修复。
+
+证据见context-recovery-evidence/startup-anchor-channel-read.json。最新安装资格继续被正式和本机失败阻断；旧868长测失败冻结，任务日志未启用且中断窗未读到匹配系统事件，退出唯一原因未确认。没有有效24h在跑/没有重启，模型0，旧实例与最大容量暂停保持。下一步验证本批固定源码并继续实际启动/持久准备耗时修复，随后最新安装两端、受额度控制的真实provider、有效24h到期重开及受控自用仍需完成。
+
+
+## 2026-10-28：新库空闲锚点预启动；完整 CI 通过与本机准备超时分别保留
+
+固定 eac2df8 四条 CI 已终态成功：普通8作业、正式12作业、timing三机各50项、额外I/O。完整 coverage/source/十业务日志已核对，同源码计划/构建和实际执行回执成立，仅授所选托管场景；额外I/O完整3809613字符无not-ok，三份有限回执经原parseSummary接受且cleanup=true，不授traceCompleteness或五秒稳定。timing十八个publication样本835–1112ms；旧50f实际5003ms请求/5448ms COMMIT失败继续保留。
+
+本机独立eac目录实际开库2开2关（13444/10114ms，仅原30秒启动门），journal9、capacity/clock28、blobs92、root-state73通过；原生中断组原120秒外层终态126，8个可见通过/9个可见失败，均在ready准备阶段、尚未进入目标advance。暖开库2683–3778ms后仍有夹具保存/加载未完成，不能称为目标中断失败或开库失败；最终五秒组没有启动，所属进程已空，原现场不重跑。
+
+本批新库在生成真实密钥后，仅提前启动既有空闲锚点进程，与DPAPI及密钥落盘重叠；原密钥验证屏障后才赋予就绪权限并启用原10秒就绪期限，没有提前请求/序号/持久权限。已有密钥重开仍原位置绑定。保护抛错、非法返回及文件碰撞均等待实际子进程关闭后才释放写锁；最终精确ACK及FULL/DELETE、期限、认证保持。回归先红，相关91/91通过；扩大116项115通过/1个既有平台跳过，定向Lint、1737语法和CI治理通过。尚无本批Windows性能证据，不授五秒修复；详见context-recovery-evidence/idle-anchor-prestart.json。
+
+旧868仍仅4节拍/最后scheduled900000，进程不存在、缺最终回执，未通过24h且没有重启。模型0，旧实例和最大容量暂停保持。下一步对本批固定提交运行完整CI及新目录Windows原门验证；随后最新安装升级回滚、两端实际使用及有效24h到期重开仍需完成。
+
+
+## 2026-10-28：消除快照容量证明的整树序列化；50f 五秒 COMMIT 失败保持
+
+实际Windows固定ae旧源码四根32MiB阶段诊断已自然退出0，控制器161196ms；构造10702/10598/7181/9708ms，保存7407/7544/12742/16027ms，同目录重开23062ms，加载10043/10196/10391/10990ms，完成会话恢复。仅授旧源码诊断范围，不覆盖原180秒取消或授最新版本/五秒/24h资格。此前两次诊断自身错误（额外测试父进程吞所属Job握手、阶段数预期错误）发生在产品调用前，已分别冻结，不当作产品根因。
+
+沿重开快照路径发现：完成有界准入后仍JSON.stringify整棵历史并递归扫描原文字节。新回归先红：额外整树序列化1次，现0次；同一编码器仍完整描述符克隆并检查原节点/深度/编码字节，测量只返回计数。编码字节加数组ASCII索引键长度，构成旧raw-key计数的保守上界；只用于v9/v10容量证明，临界失败仍转原完整认证hydrate，旧布局保持原路径。没有跨COMMIT认证缓存或原期限/ACK/持久语义变更。
+
+纯相关四文件140通过；扩大168项167通过/1个既有Mac原生开库不可用，零skip，Windows条件体返回不授Windows实际资格。新度量用例覆盖正常/空/转义/代理项/极端数组键/非法/资源上限/Proxy/getter/后续修改，统一unit发现确认；1737语法、定向Lint及CI治理通过。同8MiB内存快照五次基线181/161/159/173/175ms，修改162/171/164/190/189ms：没有墙钟提速证明，只确认额外整树序列化5→0，不授五秒修复。
+
+50f普通40750514561终态failure：七作业成功，coverage123035650972完整3741220字符日志中Chat long-persistent第0轮实际5003ms请求失败，同轮COMMIT2019/5448ms且线程CPU记录0；不能用JS去重解释或掩盖此持久等待。正式与额外I/O尚未终态；b7的4634ms COMMIT/5009ms请求及原生拒绝子进程退出失败分别保留。证据见context-recovery-evidence/snapshot-shape-byte-measurement.json。没有有效24h在跑/没有重启，模型0、旧实例与最大容量暂停保持。下一步需进一步区分同轮SQL提交的持久I/O等待与观测环境成本，保留原门禁，不移除认证或持久步骤制造绿色。
+
+
+## 2026-10-28：消除 checkpoint 转引用的连续重复准入；五秒与完整容量失败保持
+
+referenceStateFromCheckpoint原先先完整normalize，再交parseRootCheckpoint再次normalize同份私有历史。回归先红：实际2次/预期1次；现专用入口从未知输入完整准入一次，再对本次拥有的root完成同样摘要重算和全部语义校验，外部expected-root解析接口仍独立准入且保持原关联检查。没有暴露可跳校验的内部函数、跨调用缓存或跨COMMIT复用认证。覆盖逐调用重新准入、输出隔离、旧无publications格式、有效摘要但非法budget、摘要/期限篡改、空/非法/getter/Proxy输入；相关四文件174项通过，零fail/skip，但Mac中Windows条件体返回不授Windows实际资格。
+
+同四根32MiB纯构造Mac诊断4242ms，前一修改4241ms，未显示整体提速，不能把去重代码或局部通过称为五秒修复。b7ab0ee五条CI本次已确认实际在运行，完整结果未出；ae正式五秒失败与Windows原180秒完整根取消继续保留。旧868失败冻结现场不动，没有有效新24h或模型调用。本批证据见context-recovery-evidence/reference-single-checkpoint-admission.json，下一步按同轮阶段记录定位Windows实际保存/加载耗时，原门禁保持。
+
+
+## 2026-10-28：修复短标识挤占大文本字节计数缓存；不授五秒修复资格
+
+短标识先填满128槽后，同一大文本会反复扫描；新增回归修改前实际8次/预期1次失败，现按短/大文本各64槽分配，共享原4MiB原文上限、逐次扣除完整编码字节，缓存仅存在于单次解析。覆盖独立解析重新校验、精确大小/少一字节、转义/控制字符/代理项、槽数和共享容量上限；原描述符、Proxy及节点门不变。相关五文件128项全通过，零fail/skip；扩大105项104通过/1个既有Mac原生开库不可用，失败保留。1736语法、定向Lint和CI治理通过，新增测试由统一unit发现。
+
+四根32MiB同负载Mac纯构造诊断：基线3938ms，修改工作树4241ms，不能声称整体提速或Windows五秒修复。ae664cc普通8作业、三timing各50项、独立I/O与额外coverage成功；正式40741436936/source123003779357失败33项，Chat实际publication等待触及5000ms，最终COMMIT933ms，其他原生准备/系统工具失败另保留。正式失败阻断最新安装资格，旧989托管安装通过不转授当前提交。本机989构建终态失败、无新安装器；ae独立短测四根32MiB原180秒门取消，native20和short50未执行。
+
+旧868只读复核仍process_not_running、4节拍/最后scheduled900000、passed=false，缺最终回执/terminalConfirmed=false；没有有效24h在跑，没有重启、模型0、旧实例未动、最大容量暂停。证据见context-recovery-evidence/compaction-byte-memo-isolation.json；下一步仍是实际Windows构造/持久尾等待定位修复和原门验证，随后最新安装两端、真实provider及有效24h到期重开。
+
+
+## 2026-10-28：修复 EXCLUSIVE 连接绕过 DELETE 日志清理语义，五秒缺口保持
+
+检查COMMIT提速候选时，官方SQLite说明与真实文件负例均证实：EXCLUSIVE锁模式即使journal_mode仍为DELETE，也会保留回滚日志。原引擎没有固定连接锁模式，预设EXCLUSIVE时撤销、到期均能在当前journal找到旧密文片段；修改前5项3通过/2失败，不能仅检查PRAGMA journal_mode就认定物理删除成立。这是独立清理边界，不证明旧Windows五秒失败使用了EXCLUSIVE或其唯一根因。
+
+现只在可写开库初始化前显式设NORMAL并读取核验；拒绝/忽略设置即固定错误退出、startup回调和建表均未执行，没有内存回退。FULL/DELETE/secure_delete、原busy_timeout与所有期限、预算先持久、publication状态/ACK精确相等均不变；只读离线检查路径不设pragma。新增真实文件覆盖新库/已有库重开后撤销及精确到期清理，保留PERSIST密文残留负控制，并覆盖NORMAL被忽略/抛错。日志测试共9项，已确认进入统一unit发现。
+
+五文件88项通过、零fail/skip，包括锚点时钟、格式、只读检查和真实COMMIT中断。扩大三文件187项中186通过/1失败/0跳过：Mac默认原生worker开库仍报context_recovery_storage_unavailable，同名错误已在修改前startup-snapshot-final-blobs日志出现；该失败保留，不授整组或Windows通过。定向Lint零错误/警告、CI治理通过。本批尚待固定提交Windows完整门，不能称五秒稳定性修复。
+
+证据见context-recovery-evidence/normal-locking-journal-retention.json。现有Windows构建仍固定989，已观察到真实编译单元递增，未动其源码/任务或另起短测；没有完成安装器回执。本批新24h未启动、模型0、旧868失败现场/旧实例/最大容量暂停均保持。整体下一步仍是五秒持久等待修复、最新实际二进制安装两端、额度核对后的provider以及有效24h和到期重开。
+
+
+## 2026-10-28：2e 完整正式链通过；真实五秒请求失败已与 COMMIT 刷盘窗口关联
+
+固定2e943758普通40735126668八作业、正式40735126602十二作业全部成功。完整coverage3796360/source3890398字符日志已读；十份业务完整日志逐一核对同source/plan/build与实际hosted_network_finished、TLS/非回环阻断/ownedTreeEmpty，不能用prepared_only代替执行。七份有限I/O回执经原parseSummary接受；接受格式不授traceCompleteness或五秒资格。
+
+额外I/O40735126648/job122981492362终态failure、完整3745244字符日志保留：Chat
+WBIPC
+long-persistent第1轮请求5001ms失败，Claude第0轮5012ms失败。两者是实际HTTP请求触及原AbortSignal五秒门，不是本次原生夹具首次ready超时。Chat同一失败段内ownerEpoch1/sequence9的SQL
+COMMIT为1793208711930→1793208714010（2080ms），有限记录的journal
+flush1930→3114（1184ms）和DB
+flush3133→4010（877ms）均落在该段；这比总engine耗时更具体，但公开窗口没有文件ID/PID，不能授唯一物理文件或唯一根因。随后第二请求预算保存COMMIT1059ms、结算954ms、下一预算保存1428ms、读取结算676ms，叠加锚点等待，不能把任一局部低值或普通绿色称为稳定。
+
+调用路径已核对root-reader/root-storage/read-settlement及既有回归：读取前的预算预留必须先持久确认，存储读取结果的结算必须精确ACK后才返回；目前两次提交不是可直接删除的重复写。直接把预留延迟到读取后会改变失败时计费/准入语义，故本批未采用，也未合并任何publication状态或跨COMMIT复用认证证明。下一步须针对同轮持久等待作可保留这些语义的实现修复，本批仅完成证据归因范围，五秒缺口保持。
+
+Windows隔离缓存续建实际应用2e工具，15项helper零fail/skip；275个公开压缩包逐checksum及回读校验通过、234个非目标平台锁条目缺失明确报告。原离线锁定npm/plugin、原生Rust47项和native-prepare均退出0；installer-build实际子进程在运行，有限编译日志已观察到syn等编译单元，无新包完成回执。产品源码仍固定989，不把2e缓存工具身份当产品源码或安装资格；原cache-copy失败/部分旧缓存保持，旧实例未动。
+
+证据见context-recovery-evidence/2e94375-complete-ci-and-persistent-timeout.json。旧868长测只读再次确认process_not_running、最后scheduled900000/4节拍、passed=false，缺最终子进程回执，terminalConfirmed仍false；没有有效新24h在跑。本批模型0/新24h未启动/最大容量暂停，最新本机安装两端、真实provider、24h及两次到期重开和受控自用仍未完成。
+
+## 2026-10-28：bc 普通通过、正式持久准备失败；修复本机构建缓存复制方式
+
+固定bc36aed普通40727593464八作业成功，coverage完整3791897字符已读、无not-ok，三份I/O经原parseSummary接受；正式40727593501/source122954931052终态failure，完整2736629字符已读，后续业务skipped。唯一可见原生sending/ACK kill用例仍在ready五秒门失败，未advance；开库1676ms，首个save-reference-state总2383ms，其中engine_execute1917ms、anchor持久结束2346ms，下一save的engine执行580ms后未完成。engine总耗时不等于已测COMMIT单段；本次有限录制没有覆盖此原生失败窗口，不能用另一个窗口的DB/journal低值解释它或宣布稳定。既有989托管安装资格和所有旧失败分别保留。
+
+Windows独立诊断：空目录ACL总311ms；带有限观测的真实worker两次开闭通过、ready4354/4692ms，不授默认worker资格。随后同一固定989源码、原负载/五秒/120秒门的首次原生中断文件诊断，原父门到期，任务Ready/126、cleanupFailed=false；只有10项可见通过/7项ready失败，无最终TAP，不能称整组20项执行或通过。107次ACL调用开始、105次完成，已完成最大1150ms、未观察到调用自身失败；两次未完成不能排除其后会超时。独立终态确认所属Node/native残留0。失败分布于key ACL/protect、引擎/锚点启动和首次持久保存，不支持统一归因ACL。新目录纯导入采样90模块1260ms、Node bootstrap202ms，未开库；这是经过时间线索，不是CPU或唯一根因。
+
+为并行准备实际交付，在独立目录启动了只生成、不安装的固定989诊断候选：它保留extraIoPassed/allSourceGatesPassed/localInstalledQualified=false，原要求全门通过的启动模板保持阻断，不授整体或长测资格。新payload用Git原始字节，纠正了旧未启动payload的CRLF身份差异；源码及导入采样通过。随后cache-copy324886ms退出1，编译产物四目录和registry/cache成功，下一registry/src复制失败；原脚本丢弃了子进程详细原因，不能认定唯一是120秒超时。未进入npm或编译、没有新安装器；旧任务、部分缓存和日志保持。
+
+本批将后续缓存准备拆成可测试模块：仅按两份提交Cargo.lock选取公开.crate，校验原checksum和写后回读，逐描述符限制64MiB/总512MiB；拒绝链接、物理路径替换、目标复用、非法路径及有副作用输入，不复制registry/src、凭据或到旧缓存的硬链接。Windows缓存不必具备其他平台所有条目，缺项明确计数，不冒充目标依赖齐备；Cargo仍须原离线/锁定构建和测试，没有网络补齐、依赖升级、跳测或自动重试。新15项本地通过、零fail/skip，统一unit发现已确认，1736语法、定向Lint及CI/release治理通过。最初三项被Mac临时目录物理别名挡在预期路径前，修正测试放置而不改产品路径门；新增非法目标换行回归先红后修复，原记录保留。Windows实际使用新模块仍待，不能把单测称为本机构建完成。
+
+证据见context-recovery-evidence/cargo-archive-cache-and-runtime-failures.json。本批不改产品恢复实现、认证、原期限、FULL/DELETE或公开签名门；新24h和真实模型均未启动，旧E实例未动，最大容量仍暂停。下一步在新控制任务/新Cargo缓存中实际应用模块、继续原构建检查；五秒尾等待、最新本机安装两端、真实provider及24h/到期重开等完整缺口保持。
+
+
+## 2026-10-28：989 最新托管安装链全通过；额外 I/O 五秒失败与本机准备失败保持
+
+固定989a0bda普通40720243799八作业、review Verify40720391526八作业、正式40720243800十二作业全部成功；普通coverage完整3791044、正式source3884939字符日志及十份实际业务执行回执均已核对。最后n09的source/plan/build与执行后hosted_network_finished、TLS/非回环阻断/ownedTreeEmpty一致，不能只用prepared_only授资格。
+
+额外I/O40720243525/job122928849673仍failure，完整2730230字符日志已读：transport-finished COMMIT kill/release两个用例在原五秒ready门失败，尚未进入目标advance。启动ready分别1470/2716ms，随后仍有准备存储操作等待；一次engine执行1647ms，之后锚点持久开始但未完成。原解析器接受本次有限I/O摘要，96对刷新、DB最大229ms/journal647ms、cleanupVerified=true；traceCompleteness/commitCorrelation/fiveSecond资格仍false，不把最大刷新或后置资源采样当唯一原因，不借普通/正式绿色覆盖此失败。
+
+最新安装40720391644/job122929594397终态success，完整3913714字符日志及五份最终回执核对：候选自身完整verify/audit和NSIS构建通过，同格式升级回滚/同用户DPAPI、真实582八阶段布局1→3/revision精确+1/旧写者拒绝通过；Codex/Claude默认及增强四CLI合成案例均三次压缩、精确答案、同目录重启留存通过，增强模式私有读取后独立公开生成。原HTTP/SSE/WebSocket排空、未授权升级拒绝和自然退出回执通过；包内发布中断30/30、零fail/skip。共同manifest118a8748、app a754fba4。只授这份托管安装二进制与回执限定范围；同格式settings模块/管理HTTP矩阵仍是forced_cleanup、restartRetention=false，不能从后续独立CLI转授自然退出或重启资格。f151安装客户端排空失败继续保留，单次成功不证明其唯一原因已消除或五秒稳定性成立。
+
+本机989独立短测使用新目录和提交原始字节辅助文件，实际Node身份确认；源码干净/原生树/辅助文件校验通过，两次锁文件npm进程均exit0，但插件后git-revision触及原5000ms门ETIMEDOUT/SIGTERM，任务Ready/1，产品测试尚未启动。原日志/任务不改；以独立admitted任务严格重验源码、辅助文件及直接依赖锁定版本后续接，未重新npm安装、未重放产品测试、原120秒组门保持。续接准入1774ms通过、原生二进制安装核验通过，但首次默认开库失败（0开0闭），worker_started4888ms、paths_started5035ms、directory_acl_started5046ms、failed19299ms；尚未到DPAPI/SQL，不能归为请求五秒或确认ACL原生调用唯一原因。任务Ready/1，后续回归/完整文件/20与40项未启动，不重启续接；独立终态核对所属Node/native残留0。退出后只读聚合CPU样本67.7%（匹配可读进程下界、非完整主机利用率），不是失败瞬间因果。未启动的新本机构建payload另发现assignment CRLF与Git原始LF字节不一致，预检保持readyForLaunch=false，未注册/执行；未来必须新不可变payload，不能绕过身份或额外I/O失败门。
+
+有限证据见context-recovery-evidence/989a0bd-hosted-installer-and-preserved-failures.json。没有改产品持久/认证/期限，没有启动新24h或模型，没有切换旧E实例。整体仍缺五秒尾等待稳定性、本机最新包安装两端、额度安全核对后的真实provider、有效真实24h及到期两次重开、暂停的最大容量与受控自用结论。下一步以实际本机准入结果定位具体阻塞，保留全部失败，不重跑刷绿或提高门禁。
+
+
+## 2026-10-28：f151完整源门和十业务通过；安装观察请求发布竞态修复
+
+固定f1511ff普通40711485908八作业、review Verify40711645359八作业、正式40711485875十二作业及额外I/O40711485965全部成功。普通coverage完整3789272、额外I/O3793207、正式source3881454字符日志已读，七份I/O摘要通过原parseSummary；十份业务逐一核对同source/plan/build及执行后的hosted_network_finished、TLS/非回环阻断/ownedTreeEmpty，不把prepared_only算执行。两次原完整负载24个持久发布结束样本1052–2126ms，32MiB历史重开通过，仅授本批样本；历史五秒失败保留，不宣称稳定性全部解决。
+
+最新安装40711645587/122898491721终态failure，完整3907000字符日志已核对：原完整候选verify/audit、实际NSIS构建、同格式升级回滚及同用户DPAPI成功，实际582八阶段布局1→3、revision精确+1及旧写者拒绝成功。manifest f723ae2e、application 00b2961e。客户端矩阵失败于claude-default-http-drain-upstream_hold，包内发布步骤因此skipped；不能授两端矩阵、包内发布或完整安装资格，不能借旧e0安装绿色覆盖本次失败。
+
+沿阶段发现并确定性复现观察请求的跨进程发布竞态：request.json使用wx直接写入，采样可在文件刚创建、正文未完整时读取，随后因非canonical JSON永久拒绝。新增回归在旧代码1项失败；这证明独立邮箱缺陷，不证明此次托管失败唯一命中该原因。现仅为安装验收观察请求使用逐精确序号独立槽，增加正文完成且物理校验后的独占空ready标记，读前/读后核对标记身份；只读取下一槽，确认精确签名回执后才清理上一槽，正常轮换不重读旧槽；未发布正文不采样，已发布非法/篡改正文仍永久失败。HMAC、PID/manifest绑定、原5000ms观察/排空门和不重试均保留；产品恢复库、FULL/DELETE、原到期时间及公开签名要求不改。
+
+四文件69/69零fail/skip，包括实际PowerShell辅助检查、原HTTP/SSE/WS负载及失败门、客户端矩阵；1734语法和定向ESLint通过。最初扩大检查有两项因pwsh未在PATH而失败，原日志保留，复用已有隔离PowerShell后执行通过，未跳过测试。证据见context-recovery-evidence/f1511ff-installed-observer-publication.json。新提交完整Windows及安装资格仍待，不把本机69项转授Windows或五秒根因。此前准备的f151本机构建尚未注册/启动，不能使用旧准备文件冒充本批交付；旧实例由用户自行切换，旧868/6646与短测失败现场不动、新24h未启动、最大容量仍暂停、真实模型0。
+
+
+## 2026-10-28：录制选择器断言遗漏修正；安装链独立原门并行推进
+
+固定cd348d9普通40709879485/unit2 job122891933694失败，完整979036字符日志已读，定位test/coverage-proxy-window-workflow.test.js仍断言旧publication-graceful-http，而工作流已显式选择native-publication-interruption。这是上批观测调整漏同步的既有测试，不是产品超时根因；原CI失败保留，不重跑覆盖。Mac原单文件1项失败已复现。仅校正标题与预期proxy选择器，实际PowerShell执行的七种成功/原各阶段失败组合、完整命令顺序/原异常/stderr/client阶段清除选择器和原五秒子进程限全部保持。五文件70/70、零fail/skip，ESLint/格式/CI及release治理通过。该修正不授任何性能或完整Windows资格。证据见context-recovery-evidence/cd348d9-selector-contract-correction.json。
+
+为并行推进最新安装交付，已通过原路由解析器创建独立托管review分支，精确cd源码安装链40710918509已实际运行，resolve122895632682成功，encrypted122895920386仍在运行；它必须自行通过原完整verify和npm audit，之后才构建、升级回滚、582迁移及两端合成CLI，不覆盖现有普通/正式失败。旧cd断言错误会使其原门失败即停止，不授安装成功；不能把分支push或路由解析当作安装执行。本批修正后须用新源码新路由，保留旧运行，不覆盖分支。该分支也触发独立Verify40710918282，必须按分支与run区分，不混入原40709879485。没有在本机追加构建、短测、安装或切换，模型0、未公开安装器、公开release签名门不变。
+
+原cd普通coverage122891933133和正式source122891933344仍是原活跃句柄，后续继续读取包括原生I/O录制和任何产品失败，不因为断言修正而略过。8b本机两份失败任务及其进程终止证据保持，旧868/6646冻结现场不动，未启动新24h，最大容量仍暂停，旧E实例由用户自行切换。整体仍缺五秒尾延迟稳定性、最新安装资格/本机两端、真实provider、24h与到期重开等，不把70项局部通过当整体完成。
+
+
+## 2026-10-28：8b重开回归实际通过，五秒尾等待仍失败；原生失败窗口录制续接
+
+固定8b2d90a普通40705457631七成功、coverage三失败，正式40705457954十二作业全部成功；正式source完整3880020、额外I/O3793289、普通coverage2726265字符均已读，十份实际业务完整日志逐份核对精确source/plan/build和执行后hosted_network_finished、TLS/隔离/ownedTreeEmpty。四份覆盖I/O及一份独立I/O摘要经原parseSummary核验，均fiveSecondQualified=false。三次原50项时序组150项全通过、18个发布样本872–1138ms。此前反复失败的四根32MiB历史重开，本次普通coverage用例通过、100120ms，不能因此授整体五秒稳定性。有限证据见context-recovery-evidence/8b2d90a-ci-tail-and-local-resource.json。
+
+普通coverage三项native-publication失败均awaiting=ready，目标advance尚未进入。一次空库启动到anchor_persist_started已4793ms：key-file打开274ms、flush633ms、同步初始意图约1122ms，engine_anchor_validate_finished到engine_prepared又2461ms；该区间尚未采到细分SQL因果。另两项分别在ready1768/3100ms后继续准备存储写，某次engine执行658ms、再一条执行仍待。就绪屏障修复通过了大根重开，但不能把这些剩余尾等待归为同一竞态或已经修好。
+
+Windows原任务的插件npm进程exit0，后置git-revision在原5000ms门报ETIMEDOUT，任务Ready/1，尚未进入产品测试；不能称npm失败。原任务/日志不动，独立admitted续接先重新核对精确源码、canonical辅助文件和已安装直接依赖锁定版本，1991ms退出0；两次npm不重装，任何产品测试也未重跑覆盖。默认DPAPI/OS锚点两次开闭通过、ready4604/2804ms（原30秒开库门），容量/时钟28/28、完整blobs91/91、完整root-state72/72，零fail/skip。四个16MiB载荷根61088ms、四根32MiB历史149126ms，均在原单用例期限内，后者整文件247599ms不等于单用例超时，也不是重启最大容量长测。
+
+随后的原生20项组在原120000ms父门失败，19个可见not-ok/零可见通过、无最终TAP，不能写成整组20项已执行；所有失败都尚未ready，多数最后在ACL或所有权获取，甚至有未见worker_started者。任务Ready/126、cleanupFailed=false，独立终态读取确认该根所属Node/native剩余0；没有重启或继续后续40项。退出两分钟后的只读聚合资源采样CPU100%、约45GiB可用内存；后续分类CPU采样主要为other，node0，未报告进程名/PID/命令行。采样发生在失败后，不能反推失败瞬间唯一原因，未结束其他进程或修改安全软件/系统环境。原失败和两次观察器失败亦保留。
+
+本批仅把普通Verify代理阶段既有I/O选择器从publication-graceful-http改为native-publication-interruption，直接覆盖此次实际失败文件；仍是原完整四分片负载和命令、单录制器，原五秒/15秒/120秒门、原失败停止、client两窗口及选择器清除不变。正式source和额外I/O选择不改。现有四文件69/69、零fail/skip（包括实际PowerShell工作流各阶段失败必须停止及两种选择器的严格回执核对）、CI/release治理通过。这是取因果证据的观测调整，不是产品性能修复，需下一批实际Windows录制。
+
+最新安装迁移链的封存基线草稿资产已只读核对仍在，摘要匹配；新源码安装路由仅本机prepare并通过原解析器，未触发、未授安装资格，仍等待完整原门。旧868/6646失败现场、旧E实例、日常配置和额度不动，新24h未启动、真实模型0。下一步读取本批托管原生失败窗口，在可核验资源状态下恢复本机原门；不靠本机重跑或单次绿色抹除失败。最新安装版两端、用户切换、真实provider、24h/到期重开和最大容量等整体缺口保留。
+
+
+## 2026-10-28：af6正式链通过、coverage重开失败；修复预启动就绪被同步SQL饿死的竞态
+
+固定af6d9d1普通40647577186七作业成功、coverage失败；正式40647577225十二作业全部成功，十份实际业务完整日志逐份核对同source/plan/build及执行后hosted_network_finished、TLS/隔离/ownedTreeEmpty，不能只用prepared_only。coverage完整2689631字符，唯一失败为四根32MiB历史，新增闭集诊断确认stage=reopen、fixtures=4、duration102717ms，仍无内部失败标签；正式source完整3832206、额外I/O3743617已读，原parseSummary核验四份覆盖I/O，独立I/O摘要另已核验。三次原50项时序组全部通过、18个发布样本627–1144ms，只授有限样本，不覆盖历史五秒失败。证据见context-recovery-evidence/af6d9d1-complete-ci-and-local-failure.json。
+
+Windows原新目录af6任务终态Ready/1、所属Node已退出。锁文件两次npm均exit0，默认DPAPI/OS锚点同目录2开2闭通过、ready2640/2123ms；容量/时钟28/28、完整blobs91/91、完整root-state72/72、原生中断20/20，均零fail/skip。四个16MiB载荷根用例44925ms、四根32MiB私有历史99352ms均通过原单用例门。最后原40项组为39通过/1失败、零skip，父门120000ms未放宽、正常退出1（104992ms）；Claude WBIPC用例13017ms报storage_unavailable，进入持久模式前尚未留下该owner阶段，不能擅定为请求五秒或唯一原生根因。旧任务/日志冻结，不重跑覆盖。原最大容量长测未恢复，新24h未启动。
+
+本批复现具体产品竞态：primed原生子进程已排队就绪帧，owner随后同步SQL/manifest处理超过原10秒，事件循环无法消费就绪帧，恢复调度后因超时而拒绝。确定性回归以单调测试时钟模拟10001ms同步阶段、使用真实transport帧/顺序，修改前15/16（新增失败），不是提高deadline。现将精确私有就绪能力等待放在同步SQL前，保留与先前同步anchor读的启动重叠；恢复调度后重验物理身份，写锁全程持有。空库意图仍同步且先于SQL COMMIT，就绪不是ACK，最终独立快照/精确持久ACK仍必需。
+
+新增能力仅WeakMap绑定模块创建的channel/session，不接受伪造/Proxy/getter/thenable；原10秒就绪、请求及关闭门不变，分段8零字节才就绪，不消费序号；超时/非法帧/关闭等到实际子进程close才拒绝，不respawn。等待期间路径替换须在SQL前拒绝且恢复后可重新正常开库。短期密钥传递容器在构造/失败后清除。新增七项，最终七文件106/106（含真实子进程原10秒超时及真实就绪屏障）、另五文件103通过/零失败/一既有平台跳过；1734语法、Lint零错误/五既有警告、变更格式及CI/release治理通过。见context-recovery-evidence/readiness-before-sql-startup.json。为两类失败补有限startup标签，原工作负载/期限/认证持久语义不变。
+
+该确定性竞态已修，但尚未用新提交证明af6两处Windows失败均已解决；不能授唯一根因或五秒稳定。下一步固定本批源码、新目录执行原Windows门并核对完整CI。旧6646和868失败现场/任务、E旧实例、日常配置及额度均不动，真实模型0。最新安装版两端、本机切换、真实provider、24h/到期双重开和最大容量等整体缺口继续保留。
+
+
+## 2026-10-28：523完整核验保留coverage失败；启动引用快照事务内认证复用
+
+固定523d9e8正式40643443063十二作业全部success，十份业务完整日志逐份核对精确source/plan/build以及prepared_only后的hosted_network_finished、TLS/隔离/ownedTreeEmpty；source完整3824274字符。普通40643442917为七成功、coverage失败，完整失败日志已读，不能用正式绿色覆盖。四项五秒ready失败均尚未进入目标advance：两项启动ready耗3567/4084ms，另一项最后engine_anchor_validate_finished为2502ms；uncertain样本另见engine执行2236ms，未确认唯一底层原因。第五项四根32MiB私有历史在102357ms报storage_unavailable，旧回执没有失败阶段，不能据此断言是解密或DPAPI根因。额外I/O40643442935通过，四份覆盖I/O及独立I/O共五份摘要经原parseSummary核验；仍全部fiveSecondQualified=false。三次原完整50项持久时序组全部通过，18个持久发布样本731–1766ms，只授该有限范围。见context-recovery-evidence/523d9e8-ci-and-short-scopes.json。
+
+Windows SSH已恢复，沿用同一admitted任务，未重启。固定523独立短测全部自然退出0：默认DPAPI/OS锚点同目录两次开闭ready2267/1575ms，容量/时钟28/28、原生中断20/20、原客户端+原生HTTP40/40，零fail/skip；后两组各保留原120000ms父门，实际94923/89338ms。任务Ready/result0、所属Node已退出。原source准备辅助脚本缺失execFileSync导入的失败仍保留，后续只修辅助准入并保持原提交与canonical支持文件，不把它算产品失败重试。相同9c原生二进制/343原生源码树及Node摘要已核对；并非单变量性能对照，不能将所有改善归于启动重叠。
+
+本批产品修复确认同一次启动SQL事务中，beforeStartup已完整认证的引用manifest会被prune再次解密/解析。只在同一writer lock内保存小型完整密文/AAD及载荷清单哈希，精确相同才复用；不留原文、不同事务或COMMIT后的证明。变化则重新认证或拒绝，过期清理仍走原独立认证与删除路径，第五根仍在删除前被拒绝且完整回滚。后续独立快照不采集复用证明，仍每次重新认证。新增九项边界均通过；Mac完整blobs为90/91，唯一默认原生worker失败在修改前也出现，未跳过或改fallback来制造绿色，须Windows验证。关联八文件175通过/零失败/两项既有平台跳过；1734语法、Lint零错误/五既有警告、变更格式及CI/release治理通过。见context-recovery-evidence/startup-reference-snapshot-reuse.json。
+
+同时为原32MiB固定用例补闭集失败阶段和原存储失败标签，保留原负载、180秒及各原生操作门，避免下一次再只留下泛化异常。这不是已确认修好523第五项，也未授本批Windows/五秒整体资格。下一步固定本批源码做新目录Windows完整blobs/root-state及原短测门，再核对该批完整CI。旧6646失败现场/任务、E旧实例和日常配置保持；新24h未启动、真实模型0、额度未写。最新安装版、本机两端、真实provider、24h/到期重开及最大容量等缺口继续保留。
+
+
+## 2026-10-28：原生锚点进程启动提前重叠，真实请求与持久边界不变
+
+固定6a69491普通40639948188八作业、正式40639942626十二作业全部终态success。普通coverage完整3721913字符、正式source3815252字符与十份业务完整日志已读，逐份核对精确source/plan/build及prepared_only后实际hosted_network_finished、TLS/隔离/ownedTreeEmpty。四份I/O回执经原parseSummary验证，普通proxy新graceful窗口实际执行；所有fiveSecondQualified仍false。不能用此绿色覆盖750/970历史失败或本机失败，也不转授本批新实现。证据见context-recovery-evidence/6a69491-complete-ci.json。
+
+Windows独立6a/新9c原生二进制短测：源码干净，同原生源码树3437873f；离线两次npm各自日志exit0，Mac CRLF辅助文件与提交LF不符、插件后外层源码复核失败均保留，后者具体异常未采到，不称npm本身失败。用提交原始字节和新续接任务重新严格准入。默认DPAPI/OS锚点同目录两次开闭通过，ready3072/2218ms（原30秒开库门，不授五秒资格），容量/时钟两文件28/28通过。原四十项组120秒父门失败：37可见通过、零可见断言失败、无最终TAP；另一个独立二十项原生中断组同样120秒失败，19可见通过、无最终TAP，不替代原四十项或称整组通过。两次失败任务/日志保留，没有提高期限。有限记录见context-recovery-evidence/6a69491-local-native-short.json。
+
+三次固定空对象拒绝请求不读写文件、密钥或锚点，仍各耗178–182ms；这只证明本机原生调用存在明显成本，不授它为所有五秒失败的唯一原因。新实现让已有owned anchor通道在同步读/空库意图/SQL初始化前启动进程，首次请求仍在原准入之后；原同步空库持久意图、SQLite FULL/DELETE、独立快照认证、精确CAS ACK及原expiry保持。WeakMap绑定精确私有会话与通道，不能由伪造/Proxy能力触发启动或关闭；只接受固定8字节就绪帧，不把它当作ACK，不消耗首个序号，重复预启动不重置原10秒就绪期限。原请求、关闭及五秒/15秒/120秒门不变。同步启动失败也须等待真实子进程关闭才释放SQLite写锁；清理失败不能声称释放。
+
+新增回归先25/29、实现后相关验证通过；扩展验证捕获原始工厂异常泄漏（170/171），已统一为安全错误。真实子进程回归又捕获“仅创建JS通道仍未spawn”（24/25），已补底层实际启动，不能靠模拟工厂计数授性能收益。最终十文件211/211、零fail/skip，包括真实进程无首帧关闭、先就绪再首请求、原10秒超时杀进程等；追加就绪超时+待发请求关闭边界文件通过。1734语法、Lint零错误/五既有警告、CI/release治理及变更格式通过，新测试仍由统一发现进入CI。证据见context-recovery-evidence/anchor-startup-overlap.json。
+
+本批尚未执行新实现的Windows完整门或测得实际收益，不称五秒稳定性已修复；下一步固定本批提交做同原门Windows验证和完整CI。旧6646终态失败现场/任务、旧E实例及日常配置保持，新24h未启动，真实模型0、分账额度未写。桌面e0候选继续由用户自行切换；本机安装两端/真实provider、24h与到期双重开、最大容量及受控自用等完整缺口保留。
+
+## 2026-10-28：本机e0候选已交付桌面；750正式源门失败保持
+
+固定75030e4普通Verify40635072357、额外覆盖I/O40635072382及独立I/O40635072389均终态success；正式40635072369/source122640046390失败，业务矩阵skipped。四份完整日志分别2720501/3721787/3725823/248632字符均已读取，八份有限I/O摘要经原parseSummary重验。普通proxy新的publication-graceful-http选择已在Windows实际生效。正式十项native-publication失败均awaiting=ready，目标advance尚未进入；其中一次.data-key创建2273ms、fsync1843ms而DPAPI保护17ms，其他失败也有文件/引擎阶段尾等待，尚未确认唯一底层原因。正式采集的是另一个client窗口，不能转授为这十项失败的I/O因果证据；所有fiveSecondQualified仍false，原5000ms/持久/认证门不变。有限记录见context-recovery-evidence/75030e4-ci-failures.json。
+
+Windows SSH恢复后沿用原cached-bundle句柄，未重启任务。修复隔离打包环境的缓存目录与官方下载中断：使用Tauri支持的项目内useLocalToolsDir，NSIS 3.11和tauri-utils 0.5.3均按官方固定SHA1及传输SHA256核对，442份文件逐份核验，仅写入该候选目录。未升级依赖、未改全局工具或公开release签名要求。续建installer-bundle在168398ms退出0，原app-rust-check在506755ms退出0，最终任务Ready/0；原冷构建40分钟失败、NSIS缓存panic及下载10053日志保持，不能称冷构建已通过。
+
+固定e0本机原生Rust 47项、应用Rust 41项通过，零失败/忽略；保留前以原verifyPortableRuntime在隔离环境重验557来源、依赖、Node及native，源树干净。安装器0.1.1、28455027字节、SHA256 77f8a21d32c8ebcf2624045c6fbd354e4416492b0975c70ffb02ad1305150d42，manifest e033fbb53fd69a48d61d588461cfaf9ddb3fcad1d58ca7242cd659b99e7ec54d。已复制到Windows桌面HPM-SelfUse-0.1.1-e0e0f14，三文件为安装器、身份清单和说明，复制前后摘要一致；未安装、未退出旧E实例，依用户决定自行切换。同源码托管40625996281已授升级回滚、582完整迁移拒写与四CLI合成资格，不能转授这份本机二进制。有限证据见context-recovery-evidence/e0e0f14-local-candidate-delivered.json。
+
+本批实际完成本机候选构建与桌面交付，不授整体完成。仍缺五秒尾延迟稳定性、本机安装后的两端验收、额度核对后的真实provider、真实24小时及到期双重开、暂停的最大容量和受控自用结论。旧6646终态失败现场/任务保持，新24h未启动，真实模型0、分账额度未写、日常配置未改。下一步继续定位实际Windows文件/持久写尾等待；用户切换后的安装验收须绑定本机这份二进制。
+
+## 2026-10-28：a7完整链通过，970再次失败；代理录制转向实际失败文件
+
+固定a7cbd6f普通40631684746八作业、正式40631684839十二作业（含十组实际业务）、独立I/O40631684845及额外覆盖I/O40631684852均终态success。普通coverage完整日志3716760字符、正式source3812677字符、额外I/O3724755字符均已读；十组完整执行日志逐份核对相同source SHA、plan/build摘要、准备后实际hosted_network_finished及TLS/隔离/ownedTreeEmpty，不只采用prepared_only。普通、正式source及额外I/O共36个持久发布样本601–2068ms，六份覆盖率I/O回执和正式source回执经原解析器核对；仍不授五秒稳定性、完整N08/N09或本机安装二进制资格。证据见context-recovery-evidence/a7cbd6f-complete-ci.json。
+
+最新文档提交9708443的普通40632734602反而失败：unit3/122632640298中native protect在15ms完成，legacy unprotect为ETIMEDOUT/10254ms，legacyPhase=unobserved，不证明DPAPI解密本身失败。coverage/122632640503的graceful HTTP uncertain和withdrawn在原ready五秒门失败，尚未advance；完成COMMIT最大1985/1515ms，随后各有一条COMMIT已开始但未返回。该夹具直接使用SQLite文件、固定合成时钟，不使用native worker/DPAPI/OS anchor，因此本次慢等待不需要这些组件才会出现；不能外推旧长测唯一原因。两份完整失败日志已读，正式40632734637/source122632640104仍运行，a7绿色不能覆盖这些失败。证据见context-recovery-evidence/9708443-ci-failures.json。
+
+本批只调整有限录制覆盖面：普通Verify代理阶段显式选择publication-graceful-http，进入原client命令前清除选择器；正式source仍录client-context-target，额外I/O仍录native-publication-interruption。原命令/工作负载/四分片并发/期限/认证/持久语义均不变，每个并行代理阶段仍只有一个录制器。JS与PowerShell只接受两个固定publication选择，client阶段拒绝携带代理选择器；真实checker拒绝旧/其他窗口回执，原夹具失败仍停止本窗口并保留失败。新增回归先56/58（两项拒绝新窗口），实现后六文件90/90、关联六文件41/41、零fail/skip；实际PowerShell执行七种工作流成功/失败组合，确认选择器不泄漏至client、原失败不得继续后续门。语法1734、Lint零错误/五既有警告、变更JS格式及CI/release治理通过。该录制调整还未经过本批Windows执行，不称为产品五秒修复。
+
+Mac独立CPU诊断保持原五档、两个worker、180秒执行限与60秒目标：实际约9.7秒、固定正确性断言通过，仅授本次合成会话范围。热点为原负载执行、哈希、GC、历史编码与克隆；采样权重不是精确CPU计时，不能覆盖Windows旧79秒或说明其原因，没有移动负载出计时范围。原始profile未上传，有限证据见context-recovery-evidence/9708443-mac-capacity-profile.json。
+
+本机固定e0仍在原installer-build任务内实际Rust编译，尚无新安装器；已对现有staging做隔离只读校验，557份来源、依赖、Node与native摘要一致，仅授打包输入。保留/桌面交付脚本已准备，需原构建全部成功才执行；旧实例由用户自行切换。旧6646失败现场/任务不动，新24h未启动、真实模型0、额度未写。下一步定位同次失败文件的I/O/调度等待并继续真实候选交付，不重跑970刷绿或提高任何原门。
+
+## 2026-10-28：正式源门同机采集已实际执行；本机e0原生检查通过
+
+固定a7cbd6f正式40631684839/source122629276180已产生相同SHA的真实I/O回执，windowTermination=file-completed、cleanupVerified=true；与普通coverage122629275909回执、独立I/O122629275997回执均通过原parseSummary重验。正式窗口六轮持久发布1582/1834/1407/1694/1167/1343ms，26对journal刷新最大24ms、数据库配对0；零数据库配对不能证明无数据库I/O。普通窗口96对刷新、DB最大64/journal167ms；独立I/O终态success、144对、DB192/journal258ms。全部traceCompleteness/fiveSecond/commitCorrelation资格仍false。两份覆盖率日志只是已上传前缀，完整源门、普通coverage及额外覆盖I/O仍在运行，不能把录制结束当作完整CI或五秒稳定性通过。证据见context-recovery-evidence/a7cbd6f-source-capture-observed.json。
+
+本机固定e0构建的原plugin ci网络ECONNRESET失败不覆盖、不删；从已存在且锁文件字节相同的独立旧构建缓存仅读取五份缺失公开依赖，按锁定integrity校验写入新构建缓存（总95份、网络0），以新无自动重试任务离线继续。原任务/日志保留；续建plugin ci在12180ms退出0，原native-check在129594ms退出0，native-prepare在1274ms退出0。已核对所属Node身份和rustc实际编译进展，目前installer-build，候选尚未产生；原期限、公开签名要求及旧实例保持。校验与保留脚本已准备，待原构建成功后才执行，不先授本机安装或真实provider资格。
+
+另对原625本机失败40项组仅做终态日志只读核对：完成36项耗时合计110504.2835ms，最后六项为prepared/sending/transport-finished各COMMIT及ACK正常停止，约6.6–7.5秒/项；原120秒父门失败及无最终TAP状态不变。这提供累计耗时接近父限的证据，不能反推下一项唯一失败原因或称整组通过，原门不提高。旧6646长测失败现场、任务和旧E实例不动，新24h未启动，真实模型0。下一步核对同一活跃CI/构建句柄，继续五秒尾等待定位与候选实际交付。
+
+## 2026-10-28：正式源门接入同机I/O采集，保留最新失败
+
+本批将已有代理覆盖率窗口的有限I/O采集接入正式source-gates；原npm run verify、四分片并行、后续client coverage、audit、750/5000ms期限及十组业务矩阵保持。独立选择模块只允许精确生命周期，录制器仍验证原托管平台、仓库、workflow/job和相同SHA；后续client阶段只省略重复录制，不省略测试。finally核对回执，原验证失败即使同时遇到回执失败也保持失败，不继续audit。正常、非法、安全与失败路径四文件79/79，关联I/O五文件39/39；真实PowerShell执行五种源门失败组合，语法1733、Lint零错误/五既有警告、变更JS格式、PowerShell解析及CI/release治理通过。格式器曾改写十场景字面量而触发78/79失败，已恢复原字面量，未改治理断言。
+
+这是同次失败取证能力，尚未完成Windows执行，更不是五秒产品修复。bb92902正式40630050030/source122624078755终态失败，完整日志2677944字符已读；失败在签名ACK通道uncertain取消握手和同步ACK期间observation两项，业务矩阵因源门失败跳过。该次六轮持久发布846/1099/745/943/1848/1408ms，不覆盖625及其他旧五秒失败。Windows SSH已恢复；固定e0独立构建的源码准备、缓存复制和npm ci成功，plugin ci在114342ms因公开npm registry连接ECONNRESET退出，任务Ready/result1且无所属Node、未生成候选，没有重启刷绿。有限证据见context-recovery-evidence/source-gate-io-capture.json。
+
+旧6646长测终态失败现场、旧E实例均不动，新24h未启动，真实模型0。下一步读取正式源门同机录制并定位尾等待，同时修复本机公开依赖传输阻塞后继续最新候选构建；未授整体完成或自用切换。
+
+## 2026-10-28：e0完整CI链通过；625再现五秒失败，本机整组父限失败保留
+
+固定e0e0f14普通40625817781八作业、正式40625817663十二作业（source/egress及十业务）全部success。十份正式业务完整日志逐一核对source/plan/build摘要和实际network_finished、probesPassed、TLS/隔离/ownedTreeEmpty。额外I/O40625817825/job122610337153也success，完整日志3719087字节已读，三份原parseSummary重新校验：paired215/144/63，DB最大43/92/15ms、journal47/45/20ms，cleanupVerified/file-completed；traceCompleteness/fiveSecond/commitCorrelation资格仍false。普通coverage、正式source和额外I/O各12次long-persistent最终publication_wait_end为973–2102、944–1871、1082–1631ms；36个样本不覆盖旧失败或授后续625资格。证据见context-recovery-evidence/e0e0f14-complete-ci.json。
+
+最新6257b6b普通40626851312七项success、coverage122613736095失败（N09 ACK client父路径替换用例在arm拒绝）；正式40626851354/source122613736247失败、egress成功、业务skipped。完整失败日志还包括签名通道arm、WFP pwsh编译25000ms ETIMEDOUT，以及真实Responses第二轮long-persistent request_failed5006ms、Claude首轮publication_wait_failed5011ms。同次Responses ownerEpoch2/sequence5 save-reference-state COMMIT3887ms、engine3928ms、storage4284ms；Claude另有COMMIT1487/1640ms。线程CPU记录0的分辨率粗，不授唯一I/O原因，也不据此断言Proxy修复导致退化。证据见context-recovery-evidence/6257b6b-ci-failures.json；无重跑、跳过或期限放宽。
+
+Windows独立目录实际检出干净625，原npm ci39284ms、plugin ci --ignore-scripts53497ms，支持的artifact安装函数复制同树0356dfca助手，Node780f44f2摘要核对。十二文件预检在原120000ms父限终态126，清理无失败、所属进程0；77项可见通过、零已见断言失败但无最终汇总。五档CLI命令79782.2279ms，在原180000ms功能执行预算内、原60000ms性能目标false，该完整测试80531.8303ms。拥有树监督夹具已编译并留下success/explicit-close/natural-leak痕迹，controller-kill未进入；不由痕迹追授具体挂点或整组通过。
+
+定位后另起独立诊断，原容量/时钟两文件28/28、零fail/skip；默认worker真实DPAPI/OS锚点两次开闭及同目录重开成功，ready4499/2348ms，默认30000ms开库门保持。实际导出/加载归属、578份源码e543b6ad和干净625身份核对。此后原两文件40项组也在120000ms父限终态126，36项可见通过、无最终汇总、清理无失败。三协议六次持久body1996/2100、1835/2033、1878/2894ms，最终发布2138/2248、1979/2205、2024/3039ms；观察通过不覆盖整组失败。首次启动传递SSH255后，先权威枚举确认任务/目录/所属Node均不存在，再首次实际启动；未重启运行中的任务。证据见context-recovery-evidence/6257b6b-local-preflight-and-diagnostic.json，原始日志/DB/密钥均留本机。
+
+e0安装40625996281现已全部终态success，resolve122610921859及lifecycle122611063764通过。完整3837699字节日志和五份最终回执已核对，manifest3dc88520、application c829ede1一致。原完整候选门/审计、实际NSIS构建、同格式安装升级回滚/同用户DPAPI、582八阶段布局1→3/revision精确+1和旧写者拒绝均完成。两端默认/增强四个实际CLI合成案例各三次压缩、精确最终答案、同会话重启；默认零代理恢复，增强私有读后独立公开生成；HTTP/SSE/WS排空和daemon自然退出通过。包内发布30/30、零skip，仅defaultWorkerQualified=true、daemonQualified=false。设置矩阵的module API/管理HTTP回执自身仍是forced_cleanup及restartRetention=false，不能借后续客户端自然退出改写其范围。证据见context-recovery-evidence/e0e0f14-complete-installer.json。只授固定e0托管安装二进制，真实provider/24h仍false，不能给625源码、桌面旧包或日常实例继承资格。
+
+下一步在失败的同一次源门捕获SQLite文件/调度关联证据，定位并修复真实尾等待，同时核对原安装job。旧6646失败现场/任务及旧E实例未动，新24h未注册/启动，真实模型0、额度未写。五秒稳定性、当前本机安装两端/真实provider、24h及到期双重开、最大容量和最终自用启用等完整缺口保持。
+
+## 2026-10-28：恢复状态克隆器在反射前拒绝Proxy；原Responses单例采样未复现尾延迟
+
+底层cloneRecoveryStateData原来只拒绝非普通原型/访问器，普通Proxy仍可越过克隆并在getPrototypeOf/ownKeys/descriptor/get上执行调用方陷阱；嵌套Proxy也可进入v10 checkpoint/reference及owned admission事实收集。新回归在原版本明确失败Missing expected exception。现在只在结构反射之前增加types.isProxy拒绝；撤销Proxy也得到固定invalid_context_recovery_state_data，不触发陷阱。没有改节点/深度/字节、原型/访问器/循环边界、授权、预算、原expiry或持久/精确ACK语义，没有跨调用缓存。
+
+三个完整文件114/114、零fail/skip，覆盖普通/空/非法/极端原门、对象/数组/撤销及嵌套Proxy、checkpoint/reference和owned事实路径；所有恶意陷阱计数0。1731语法、全仓Lint零错误/五既有警告、最终改动文件Lint、定向格式、CI/release治理通过。回归加入现有root-state/ledger-admission文件，由原统一unit/client coverage发现；Windows新源码门仍待，不把此输入边界修复称作五秒性能修复。有限证据见context-recovery-evidence/recovery-state-proxy-rejection.json。
+
+前一轮已在用户授权的Windows独立短测目录对原Responses顶层用例采样一次：原600000字符及全部内部模式不改，原5000ms请求/120000ms父Job和5000ms树关闭不改。该用例1/1、零fail/skip，18825ms、task终态0/原Job自然空；两次long-persistent body_end为2009/2385ms。两份worker SQLite记录无overflow，COMMIT最大32.676/26.271ms，19个执行阶段完成、无失败，engineExecute累计955ms、独立snapshot679ms、anchor703ms。CPU计数分辨率粗，不能把0当作没有CPU；instrumentation有扰动，单例选择不能替代原40项或覆盖旧秒级COMMIT和五秒失败。原1afe的2024份源码pin在启动前核对，lib与所选测试到be6545无变更；Node摘要核对，但本次没有独立钉住助手身份，因此不授新的native身份/资格。原始日志只保留本机，有限数据见context-recovery-evidence/1afe-responses-sql-v4-sample.json。未由此次通过追授任何根因或性能修复。
+
+e0十组独立真实daemon诊断通过保持；其普通原七项通过/coverage仍运行，正式source122610336517和额外I/O122610337153仍为原作业。安装40625996281/122611063764仍执行原完整候选门，没有进入安装完成；该候选源码固定e0，不自动继承本批新输入拒绝。继续核对同一原job，不重启洗掉失败。
+
+旧6646失败现场/任务及旧E实例不动，新24h未启动、真实模型0、额度未写。整体仍缺五秒稳定性、当前完整门/安装两端、额度分账受控真实provider、24h/到期双重开、最大容量及最终自用启用，不因局部修复收窄目标。
+
+
+## 2026-10-28：e0十组独立Windows业务全部通过；最新安装链已启动原源码门
+
+固定e0e0f14独立40625817674十组已全部终态success；十份完整日志逐一核对精确source/plan/build摘要及实际hosted_network_finished、probesPassed、TLS/非loopback隔离/ownedTreeEmpty回执。新sending-commit/job122610337061和finished-commit/job122610337108都完成真实默认daemon的kill/release控制，两个取消型COMMIT也通过，原六组全部保留通过。支持本批同步暂停内服务认证观察查询的修复；这不是单纯prepared_only或夹具替代。有限证据见context-recovery-evidence/e0e0f14-ten-diagnostic-groups.json。ae306两组184/case160和旧c505 finished184/case161及所有五秒失败均保留，不追授旧c505的唯一原因，不授五秒长期稳定性/full N09/24h。
+
+普通40625817781已确认node-quality/integration/rust成功，四unit与coverage仍在各自原job；正式40625817663/source122610336517仍执行统一门、egress已success，额外I/O40625817825仍运行。因此十组独立通过尚不等于完整正式门通过，不重复启动原作业。
+
+通过既有review分支路由启动最新e0安装链40625996281：先核对既有未发布draft421213889、固定installer667118183/identity667118182及baseline f8421078，再用原严格route解析器核对首次创建push约束。resolve/job122610921859已success，encrypted/job122611063764实际运行；原同SHA完整verify/high audit必须通过后才构建、安装。随后原链执行同格式升级回滚/DPAPI、完整582布局迁移与旧写者拒绝、Codex/Claude默认/增强四个实际CLI合成上游案例及包内COMMIT/ACK门。没有创建新baseline或上传包/数据库/密钥，公开release签名要求不改。当前只是实际启动，不能授安装/迁移/两端资格；后续核对同一job，不重启覆盖。有限启动记录见context-recovery-evidence/e0e0f14-installer-requested.json。
+
+Windows原额度台账和分离授权本轮只读核对：maximum177/used169，请求记录数匹配；grant后Codex15、Claude0、other0，剩Codex1/Claude7不可合并。原无自动重试和不改日常配置约束均验证，未预留dispatch、未写账、未执行旧私有harness，真实模型0。数值证据见context-recovery-evidence/e0e0f14-provider-budget-reconciled.json；真正发起时仍需新鲜预留及分provider计数，不能将此只读快照当无限授权。
+
+下一步核对上述完整门与安装链实际结果，并继续持久五秒尾延迟定位。旧6646终态失败现场和旧E实例未动，新24h未启动；五秒稳定性、最新本机安装两端/真实provider、24h及到期双重开、最大容量及最终受控自用等原缺口仍保留，整体目标未完成。
+
+
+## 2026-10-28：Windows SSH恢复；修复正常COMMIT编排中的同步观察查询阻塞
+
+SSH已重新连通Windows juhon账户。固定ae306f2普通40623076461八作业与额外I/O40623076458成功；正式40623076450/source122601482524失败、业务skipped。完整源码门日志有WBIPC恢复timeout和隔离Python测试子进程spawnSync node ETIMEDOUT，不能借普通CI通过覆盖。独立十组40623076473八通过、sending-commit/finished-commit均184/case160失败；新withdrawn/uncertain COMMIT两份完整日志核对精确source/plan/build及实际network_finished、TLS/隔离/ownedTreeEmpty。有限记录见context-recovery-evidence/ae306f2-first-commit-groups.json。
+
+正常COMMIT编排持有原前置ACK后还要独立查询实时观察基线，而ACK同步Atomics.wait暂停主事件循环，原观察宿主只在定时器响应，形成确定性的自阻塞。修复仅在原同步暂停轮询内服务已固定、已认证的观察通道；保留独立实时查询、原HMAC/序号/挑战校验、原ACK身份和精确版本，不运行通用事件或其他producer、不缓存基线、不减少解密或持久写。服务耗时计入原750ms/5000ms门。同步服务抛错、异常返回、Promise及重入均锁存拒绝，不能授released回执。
+
+真实双进程回归以原timer-only通道证明查询整个750ms无响应、原ACK释放后才响应；新服务在原ACK仍held时返回独立签名completed状态，释放后新序号/挑战查询取得pending下一版本。该回归只是跨进程协议，不能当作native COMMIT或五秒恢复资格。六文件140/140、观察6/6、收尾四文件72/72（批次重叠），零fail/skip；覆盖恶意依赖形状、异常服务、重入、已有750ms及五秒拒绝门。1731语法、全仓Lint零错误/五既有警告、定向格式、CI/release治理通过。新Windows完整daemon结果尚待提交后的原门，不追授旧c505 finished184根因。
+
+Windows独立新目录以摘要核对90份源码和既有Node 22.22.3，真实双进程通道36/36、零fail/skip，35944ms结束；包括原超时拒绝门和新的阻塞/修复/恶意服务回归。首份准备因SSH PATH无node而在产品调用前失败，未安装或改全局PATH，改为现有已核对Node绝对路径完成；失败保留。证据见context-recovery-evidence/ack-held-observation-service.json，仍不授native COMMIT、产品五秒稳定性或正式全门。
+
+旧6646长测终态失败与全部冻结现场保持；没有重新启动24小时。旧E实例、日常配置和凭据未动，真实模型0、额度未写。整体尚缺五秒稳定性、最新完整十组/安装两端、额度核对后的真实provider、24小时及到期重开、最大容量等原交付门。
+
+
+## 2026-10-28：四目标daemon COMMIT内部编排已接固定十组，实际Windows结果待核
+
+新增sending、transport-finished、withdrawn、uncertain COMMIT内部强杀/释放编排。正常型先暂停真实prepared/sending前置ACK，在精确前置持久版本上取得SQLite reader，再释放原ACK使默认owner进入目标写入；取消型先暂停原trigger、验证真实客户端关闭和公开正文0，在前置版本持reader后释放trigger进入原清理写入。同一750ms见证必须取得物理read-admission阻塞和同代次/根/原expiry/精确revision的唯一pending目标，不能用单独BUSY或末端ACK替代COMMIT内部证据。finished独立验证完整公开wire，uncertain不能借三版本误授公开传输完成。
+
+强杀合格边界与原forceKill之间不加I/O，随后释放reader，必须先由真实default owner重开/恢复hot journal，再独立检查精确前置revision、预算和expiry及业务原文。释放控制等待原publication完成或取消清理；取消型还必须等最终终态持久ACK、精确下一版本、0正文，然后释放原ACK并等最终取消outcome。普通前置观察在同一操作内复用刚验证的不可变accounting，reader工厂仍独立核对同一版本；未加跨请求快照/原文缓存或跳过独立认证。arming在首个await前锁存，拒绝重复/重叠及失败后重入。
+
+新四个*-commit组各用两个新adapter与原120秒Job，原六组保留。prepare/plan/Node/PS执行链、固定WFP程序路径、严格两控制回执及正式/独立diagnostic矩阵均登记为十组；正式仍需同SHA完整source-gates。九组PS回执实际解析，72种交叉组及其他非法输入全部拒绝，35种实际摘要状态检查不把失败/取消/未知组/大小写/尾换行授通过范围。测试仅序列化实际摘要中的scope行以保持原32768字节输出上限，未提高期限或baseline。
+
+十二文件168项：166通过/0失败、两项原Windows物理路径用例在Mac保持既有skip；新增driver、真实adapter的四目标kill/release、闭合回执、错目标/版本/预算/expiry/释放/清理/恢复版本/假取消及并发门均执行，物理SQLite reader原门也保留。PS消费者/35状态补测另4通过/两原skip。四个改动PS文件解析和原WFP C#实际编译通过，native调用0；1731语法、全仓Lint零错误/五既有警告、定向格式及CI/release治理通过。初版新目标测试因协议模拟器未选read-lock seam、以及错误要求在已拒绝前置预算后仍释放ACK而失败，已补正确模拟并保留“拒绝后不能释放”断言，未改产品期限或吞异常。
+
+固定c5058da普通40619749582八作业、正式40619749502八作业全部success，六份正式业务完整日志精确source/plan/build及执行后hosted_network_finished/TLS/隔离/ownedTreeEmpty核对。额外I/O40619749491/job122590630788也success，三份回执经原parseSummary重验：paired flush251/144/63，DB最大52/23/11ms，journal32/23/14ms，全部traceCompletenessVerified/fiveSecondQualified false，不能覆盖原五秒失败。相同c505独立finished184失败保留，未确认唯一原因。证据见context-recovery-evidence/c5058da-complete-ci.json；该正式六组不包含本批新增四目标COMMIT组。
+
+本批尚无新四组真实Windows执行通过结果，不授完整daemon COMMIT矩阵、五秒稳定性或整体验收。下一步核对新固定十组的实际执行及完整门，失败定位不重跑覆盖；继续最新安装两端等原交付缺口。旧6646冻结现场/数据/任务和旧E实例未动、新24h未启动、真实模型0、额度未写、日常配置未改。
+
+
+## 2026-10-28：六组Windows独立诊断完整通过；补强其余转换的COMMIT观察边界
+
+固定c390e22独立40620783142六组均终态success；六份完整日志已读，逐一核对精确源码SHA、plan/build摘要和实际执行后hosted_network_finished、TLS/非loopback隔离/ownedTreeEmpty回执，不能只凭prepared_only。这一轮包括原n08/n09/sending/finished及新withdrawn/uncertain，有限证据见context-recovery-evidence/c390e22-six-diagnostic-groups.json。该轮未复现c505 finished184，但仅新增了步骤分类，没有产品五秒修复；旧失败及根因未确认状态不变、不自动重试。c390正式40620783099/source122594006535仍在原作业运行；普通五个作业success、unit1/unit2与coverage仍运行，不能授完整CI或五秒稳定性。
+
+继续COMMIT内部矩阵时发现边界允许没有安全后继版本的Number.MAX_SAFE_INTEGER越过初始校验。已先加回归取得红灯（query计数1而应0），修正为开查/持锁之前拒绝，并把根ID长度固定为36，拒绝尾随换行和极端输入。原prepared入口/回执语义保持，核心复用到显式sending、transport-finished、withdrawn、uncertain目标；必须匹配同代次、同根/原expiry/精确前置revision、唯一pending save-reference-state与物理read-admission阻塞。不能拿BUSY、旧prepared样本或目标标签独立授资格。恶意改写then的已拒绝原生Promise也在拒绝路径安全消解，不执行未知then钩子、不授观察回执，避免额外未处理拒绝干扰原清理。
+
+三个文件99/99、零fail/skip，含真实临时SQLite读锁原门、原适配器和四目标组合正常/错误前置版本/并发/错误状态/错根与期限/清理路径。四闭包文件23/23、零fail/skip；1728语法、全仓Lint零错误/五既有警告、定向格式及CI/release治理通过，新回归仍在统一CI原文件。这个新目标接口尚未接入daemon非prepared COMMIT编排，因此本批不授其余COMMIT内部矩阵或整体验收。
+
+后续以实际前置ACK暂停取得同一库读锁，再释放进入目标COMMIT；取消型需复用真实关闭见证与trigger，不能跳过前置或用末端ACK测试替代COMMIT内部中断。完成后再固定Windows实际执行。旧长测冻结现场/数据/任务及旧E实例未动、新24h未启动，真实模型0、额度未写；安装版两端、真实provider、五秒稳定性与其余既定交付缺口继续保留。
+
+
+## 2026-10-28：补ACK失败步骤区分，未追授旧184的唯一原因
+
+c505 finished失败只有case161/最后readonly184，不能区分后续等待held、独立公开wire观察、释放控制或原750ms见证耗尽。本批增加四个私有固定数字：247进入签名held等待、248进入finished wire观察、249进入ACK释放、250只在原见证结束且持久accounting已验证后确认超时。Node入口仅登记这四个整数；没有原文/错误对象/路径/credentials输出，没有在合格边界与强杀之间加操作。保持原750ms起点/上限、所有5秒持有、15秒完成门、精确版本、认证与FULL/DELETE语义；标记只是定位信息，不授资格。
+
+两文件75/75、零fail/skip；既有760ms晚快照回归精确落250、完成屏障失败落249，新回归分别验证伪held/挑战、坏公开wire、坏release落247/248/249并拒绝回执、保留清理。1728语法、全仓Lint零错误/五既有警告及CI/release治理通过。旧c505的184不因新增分类被重新解释为已确认超时，本批不是产品五秒修复；须等待新固定源码真实Windows结果。
+
+核对时fb1与c505普通七个非coverage作业均success，coverage与各自正式source仍在原job运行，c505额外I/O也仍运行。c505独立五success/finished failure及全部旧失败保持；不重跑覆盖。冻结旧长测/数据/任务和旧实例未动，新24h未启动、真实模型0、额度未写。整体仍需五秒稳定性、剩余daemon COMMIT内部矩阵、最新安装两端和其余既定交付验证。
+
+
+## 2026-10-28：withdrawn/uncertain两组真实Windows业务诊断通过，finished同批失败保留
+
+固定c5058da独立诊断40619749468已终态：n08/n09/sending/withdrawn/uncertain五组success，finished failure。新withdrawn/job122590631025及uncertain/job122590630957完整日志已读，精确source/plan/build摘要和执行后hosted_network_finished、TLS/非loopback隔离/ownedTreeEmpty均核对。每组实际执行默认持久daemon的kill及清理后release两控制，包括真实客户端断开、宿主同请求关闭见证、精确终态+2/+3、原budget/expiry、同目录新PID恢复原文与工具不重放；不只是prepared_only或纯模拟。正式40619749502/source122590630670仍运行，因此这是实际独立业务证据，尚非正式完整资格；full N09和五秒稳定性仍false。有限证据见context-recovery-evidence/c5058da-terminal-hosted-diagnostic.json。
+
+同源finished/job122590631234完整失败日志已读：childExit184、casePhase161（第二个release控制），没有hosted_network_finished或ownedTreeEmpty最终回执。184只表明最后记录了readonly snapshot的收尾观察点，随后任意未另标记步骤也可能失败；不能反推唯一根因、目标已命中、750ms已超时或清理泄漏。未重跑、延长期限、跳过该组或借新两组通过覆盖失败。fb1普通七个非coverage作业success，coverage、正式source及额外I/O仍在各自原作业运行；不重复启动。
+
+在用户已授权的Windows独立短测环境新增一次有限空库开库诊断，使用原Job分配/自然进程树清理、真实worker/default owner/DPAPI/OS锚点和显式5000ms控制期限，无真实模型。588份提交库文件及必要支持文件匹配当前c505库源码（原1afe封存库代码未变），Node/native摘要精确核对；安全诊断脚本先确认实际模块函数及progress模块唯一导出createStorageStartupProgress，未把非导出的STORAGE_STARTUP_PHASES当可迭代对象。实际开库2614.156ms、空catalog56.811ms，35个有限阶段，Job3754ms自然空、关闭无失败。密钥文件open阶段0ms/flush5ms，而该机器ACL/所有权/原生启动阶段为数百毫秒；不能用这个跨机器单样本归因托管runner旧长尾或授五秒恢复稳定性。证据见context-recovery-evidence/c5058da-local-open-diagnostic.json。数据库/包装密钥/原始日志保留本机，未上传。
+
+第一份私有诊断准备在产品调用前失败，未创建新根/启动Node。检查发现本机588文件有54份工作区字节与Git blob换行不同；改为提交blob身份后完成一次实际诊断。首份错误只保留为准备失败，未追授为产品根因；不把第二次有限开库当作旧40项或持久HTTP失败已修复。正式门、原所有失败与期限、FULL/DELETE和认证均保持。
+
+本批推进了真实终态业务矩阵，仍需处理同源finished失败及原生开库/COMMIT长尾，等待同一正式完整CI；之后继续安装版两端和受控自用等原交付缺口。旧6646冻结现场/数据/任务未动、新24h未启动、旧E实例未切换；真实模型0、额度未写、日常配置未改。
+
+
+## 2026-10-28：取消终态接入固定Windows两组入口，实际执行结果待核
+
+新增n09-withdrawn-ack和n09-uncertain-ack独立业务组；原n08/n09/sending/finished四组保留。每组使用两个新adapter、原120秒Job/750ms见证/5秒持有门、默认持久owner及同目录重开。withdrawn只允许prepared前置，uncertain必须prepared与sending前置，最终版本精确+2/+3。客户端真实关闭和服务端同请求取消见证均须先满足，随后验证终态持久写入前ACK暂停；释放控制额外等待原清理完成后最终失败outcome。两组均不得宣称公开传输成功或正常publication完成。
+
+固定prepare/plan/PowerShell执行链、Node入口和三层回执范围均已登记新组；闭包继续精确绑定源码，WFP仅新增两个固定RUNNER_TEMP下node.exe路径，未接受任意路径或去掉物理/环境校验。独立严格终态回执检查前置、取消/清理/持久/重开、原expiry和业务次数；原sending/finished解析保持。PowerShell九字段回执按五组精确区分，20种交叉组均拒绝。正式workflow现在六组且仍needs完整source-gates，独立diagnostic也六组但不替代正式资格；成功摘要只对应实际成功组，所有失败/取消/未知状态不授范围。未放宽门禁、提高baseline或新增重试。
+
+本地九文件50项：48通过/0失败、两项原Windows物理路径测试在Mac保持原skip；新终态回执、组合、PowerShell实际JSON消费者及20行实际摘要状态均执行通过。新增测试在统一递归CI。四个改动PS文件语法解析及原WFP C#实际编译通过，未调用native/网络/系统API；1728份JS语法、全仓Lint零错误/五既有警告及CI/release治理通过。初次摘要测试因新回执模块尚未格式化、测试的cases行正则未匹配而失败，格式化后重验，未删断言或改回执语义。仍无新组Windows daemon执行通过证据，本批不能授终态矩阵、五秒稳定性或整体验收。
+
+fb1f206普通40619441012、正式40619441260/source122589607101及额外I/O40619440921/job122589605470仍运行；独立40619441265仅n08已success，其余三业务仍运行，不重复启动。222旧正式八个初始化超时与全部旧失败保留。下一步读取本批六组固定Windows实际执行及其完整日志，失败优先定位，不用旧源或局部通过覆盖。旧长测冻结现场/数据/任务及旧E实例未动，新24h未启动，真实模型0、额度未写、日常配置未改；其余既定安装版两端、真实provider、长时到期重开和容量/受控自用仍待。
+
+
+## 2026-10-28：SSH恢复；取消终态业务接线完成局部验证，222完整门仍失败
+
+本机BatchMode SSH重新连接Windows成功，仅探测连通性，未启动远端任务或操作旧实例。当前222b11c普通七个非coverage作业success，coverage及额外I/O仍运行；正式40618107191源码门/job122585262696失败，后续业务skipped。已读完整日志：八个原native publication用例均在awaiting=ready超时，尚未进入目标COMMIT/OS锚点中断。密钥文件打开跨度231–2426ms、flush446–1621ms；其中两项已达native-opened，但原fixture初始化仍未就绪。不能把用例名当成已经发生目标中断，也未确认杀毒、调度或存储的唯一原因。原五秒门不变，不重跑覆盖。独立业务40618107418四作业success，完整四日志精确222源码及执行后hosted_network_finished/ownedTreeEmpty均核对；该独立路径不能越过正式源码门。有限记录见context-recovery-evidence/222b11c-ci-source-startup-failures.json。31e6510正式六作业现均success，其普通unit0旧超时失败仍保留。
+
+业务probe/adapter/driver现支持withdrawn与uncertain：先验证签名的前置prepared/sending触发点，主动取消真实客户端并确认传输关闭/公开正文0，再释放触发；最终持久版本必须精确+2/+3，ordinal必须晚于触发且挑战不同。使用独立固定映射，uncertain的+3不再与transport-finished的公开传输完成混淆。强杀路径重开同目录核对精确终态版本及原文；释放路径等待原HTTP清理后的最终失败outcome，再重开读取原文。原expiry、预算、独立公开生成与工具不重放约束保持，原成功完成屏障仍拒绝任何失败计数。
+
+新增取消完成屏障只接受同PID持久owner的process_lifetime计数：唯一预期httpSendingFailed和failed各1，bound只增1、completed不变，其他失败必须0。阶段失败计数先出现时继续等原清理，不能提前授完成；顺序回退、额外请求、错误阶段、清理失败、未知then钩子均拒绝。保留原15秒总期限并用真实单调时钟独立限制等待，不重试错误。probe对已完成原生Promise中的未知signal也先封装后校验，避免异步返回值触发输入then钩子。
+
+五文件134/134、零fail/skip，含新终态适配器kill/release和16组伪取消/版本/挑战/预算/期限/清理拒绝；闭包四文件21/21，原签名/取消/真实TCP七文件93/93、最终probe/固定映射11/11均零fail/skip。初次两项新终态测试失败是协议模拟器在连接关闭后仍把模拟响应计入已关闭客户端，已修模拟器并重验，未改产品或放宽正文门。新增测试在统一递归CI发现范围；1726语法通过，全仓Lint零错误/五既有警告，CI/release治理通过。本批接线仍未加入固定Windows业务分组及闭合回执，尚无实际daemon withdrawn/uncertain新矩阵通过，不授五秒稳定性或完整验收。
+
+下一步完成固定Windows分组/闭合回执并执行新终态矩阵，同时继续定位原生开库与COMMIT长尾。旧6646长测仍为85分钟有效、90分钟失败，冻结目录/数据/任务未动、新24h未启动；本机最新安装两端、逐provider额度核对后的真实模型、24h到期双重开、最大容量及受控自用仍待。真实模型0、额度未写、日常代理/证书/CLI配置未改，旧实例由用户自行切换。
+
+## 2026-10-28：签名取消通道及真实传输见证已接宿主；终态业务矩阵仍待
+
+保留原13字段及HMAC身份/挑战/代次/根/expiry/版本/ordinal绑定，新增独立arm-cancel/armed-cancel和trigger-held/trigger-release。触发暂停只承认前置版本expectedRevision，最终ACK必须精确下一版本且使用不同挑战；提前签名释放、跳过触发、用trigger挑战伪装held均拒绝。有效trigger-release也不能单独放行，宿主必须看到同一原HTTP handler异步上下文的服务端响应关闭，且没有公开headers或正文完成。原abort监听先运行，别的请求关闭、正常成功或仅零正文但已发headers均不能替代。观察器仅保留有限传输状态/原生对象事件，最多八个活动响应，关闭清除监听，不读取或日志化请求正文、headers、凭据或session。
+
+旧客户端cancel()先标cancelled再销毁socket，不能授真实断开见证；保留旧行为并新增独立严格观察器，等待实际ClientRequest传输关闭才标cancelled-transport。新cancelReleased/断开见证用原750ms最大控制窗口，校验实际0正文，失败粘滞且不能转为kill成功；在cancel回调后重验原生Promise，拒绝被替换的then/constructor，不执行未知钩子。旧15s请求、5s publication持有、ACK原token和FULL/DELETE语义不改。能力包装器精确支持旧五方法或完整新八方法，部分扩展/异步释放命令拒绝，不自动降级新路径。
+
+私有host-install已在HTTP消费者解构前安装原publication动作钩子和HTTP关闭观察器，冷态守卫拒绝已加载的producer/四个消费者；原生产函数与描述符关闭后恢复。三处独立源码闭包检查（构建、bootstrap、owned-entry）只登记固定publication/http-entry导入，仍限制为受审宿主及完整源码摘要；漏签新钩子、未知导入或外国文件照样拒绝。初次本地这三处遗漏分别拒绝，已逐一修复，未删门或改成通配允许。真实仓库源码的冷态安装/恢复也已实际执行，未构造持久生命周期/worker或发模型请求。
+
+最终九文件90/90、零fail/skip，含双进程物理签名通道、真实loopback TCP、8→9活动监听边界、跨请求隔离、旧cancelled假见证拒绝及真实源码冷安装。扩大七文件闭包检查34通过/0失败，另两项保持原Windows-only入口在Mac跳过，未加skip；本机不能据此授Windows入口。1722语法、全仓Lint零错误/五既有警告、定向格式及CI/release治理通过。证据见context-recovery-evidence/publication-cancellation-signed-transport.json。尚未接终态业务probe/adapter、取消结果的完成屏障，未运行实际daemon withdrawn/uncertain kill/release；本批不授终态持久矩阵或完整交付。
+
+固定10f9886普通40614630234八作业、正式40614630081六作业全部success，四份正式业务完整日志已读，精确source/plan/build及执行后hosted_network_finished/ownedTreeEmpty/TLS/隔离回执均核对。额外I/O40614630037/job122574121819也success，三份有限回执经原parseSummary重验；client-context-target专属窗口观察到的database/journal flush最大30/23ms，不能拿并行proxy的publication窗口解释其他HTTP请求。两阶段共十二次持久正文602–1322ms仅为该次样本，traceCompleteness/fiveSecondQualified均false，所有旧五秒失败保持。证据见10f9886-complete-ci.json和10f9886-io-normal-completion.json。
+
+固定31e6510独立业务40615577171四场景均success，四份完整日志/源码/计划/构建及执行后回执均已核对；普通40615577158七作业success但unit0/job122577161382失败：shared-hosted-materials原collision/identity清理测试25205ms、spawnSync pwsh.exe ETIMEDOUT，未确认唯一原因，不提高原期限、不重跑覆盖。其coverage已success，额外I/O40615577234/job122577161195现success，三回执经原解析器验证，正式source/egress及n08/sending/finished作业已success，n09/job122584138968仍运行，正式完整门未授；不能把旧源通过转授本批新接线。证据见31e6510-diagnostic-and-unit-failure.json和31e6510-io-normal-completion.json。
+
+下一步接终态业务探针、真实客户端取消和严格取消完成屏障，再执行默认daemon的持久快照/强杀/释放/同目录重开；同时继续定位原五秒COMMIT等待。旧6646长测冻结现场/任务未动，新24h未启动，未操作旧实例或日常配置，真实模型0、账未写。本机最新安装两端、逐provider额度核对后的真实模型、其余daemon COMMIT/终态、24h到期双重开、最大容量和最终受控自用仍未完成。
+
+## 2026-10-28：终态取消暂停点基础通过，尚未接签名通道或实际daemon
+
+补独立publication-action-hook和publication-cancellation-gate：只在原invokeRecoveryPublication成功完成后观察固定动作枚举，观察器不收到session/参数/结果/原文或ACK；等待后返回同一个原结果，原生产器异常保持，不造ok或终态。withdrawn需要真实prepared元数据，uncertain先核对prepared再核对sending；generation/根/原expiry/精确版本/ordinal/空闲已完成写均匹配才发布有限暂停事实。异步暂停给真实客户端断开的后续见证留出事件循环，当前模块本身不会取消请求或写终态。五秒上限同时受观察时钟和独立真实单调时钟约束，冻结注入时钟也在真实五秒拒绝；关闭、超时、重入或非法回调均粘滞失败，不自动放行，不重试。ACK边界的prepared-prefix也扩展到prepared→withdrawn和prepared→sending→uncertain，前置真实token仍原路返回，只有最后精确ACK被持有。
+
+这批只是私有验收基础模块：尚未接入签名trigger-held/trigger-release消息、host-install、真正客户端断开/0字节见证、daemon terminal kill/release或清理完成屏障；不授终态矩阵、实际Windows或整体验收。已通过的prepared/sending/finished实际场景保持，不拿新纯边界代替剩余场景。证据见context-recovery-evidence/publication-cancellation-boundary-foundation.json。
+
+七文件86/86、零fail/skip，含原ACK通道/真实物理SQLite边界相关回归；补Promise钩子后两新文件31/31。新测试在统一递归发现范围。1719语法、全仓Lint零错误/五既有警告，最终新增测试定向Lint也通过，定向格式和CI/release治理通过。首次本地37项中一个测试因假定两个microtask足够而失败，已改显式进入观察器的promise屏障；另修正计时测试publish回调误返回push长度，确保走到原期限判断再重验，未改生产期限或吞异常。纯模块测试不声称默认daemon已取消或持久恢复稳定。
+
+固定10f普通40614630234七个非coverage作业已success，coverage/job122574122478仍运行；正式40614630081/source122574121458仍运行、egress success，额外I/O40614630037/job122574121819仍运行，新录制器阶段尚无终态可读，不重跑。后续继续签名触发/取消见证接线并核对同一CI，优先处理实际COMMIT长尾；本批没有五秒稳定性修复。冻结6646旧长测/数据/任务未动、新24h未启动，旧实例与日常配置未操作，真实模型0、账未写。本机最新安装两端、额度核对后的真实provider、剩余daemon COMMIT/终态、24h到期双重开、最大容量与最终受控自用均未完成。
+
+## 2026-10-28：实际COMMIT等待已关联；补录制器失败阶段，原40项新增失败保留
+
+独立timing3原40项没有通过：任务Ready/result126，原120000ms父门触发，未取得子进程正常退出；37条ok、一条已观察not-ok且无完整TAP总计。首次失败是encrypted-worker自动续接用例清理目录时ENOTEMPTY/rmdir（client-context-target.test.js:590，7606ms），不能当作已证明产品恢复或杀毒根因；终止后该根及共用只读native路径所属运行进程0。第一份只读终止提取因失败任务没有events.jsonl而退出1，随后按同一handle的状态确认，不重启；没有用观察器错误替代产品根因。现场、全部原期限和旧失败保持。有限证据见context-recovery-evidence/1afe7b3-worker-sqlite-stage-failure.json。
+
+三类WBIPC各19次实际存储操作均有固定阶段回执，69份请求记录完整；六次持久正文1758–2584ms（Chat首轮2110ms）。更关键的是原测试已经具备的SQLite探针600条有限记录/0非法已解析，无需再启动一次SQLite预加载运行。Responses同一owner2/sequence3的save-reference-state engine_execute650ms中，实际COMMIT615ms；Chat owner1/sequence5的settle-reader engine_execute496ms中COMMIT466ms，记录到两者线程user/system CPU增量均0。计数粗粒度的0不证明绝无CPU，亦不能确认底层I/O原因；只能把本次长尾明确关联到持久提交调用，不能拿普通CPU解密优化解释。快照/锚点仍独立认证/持久化，未合并事务、降级FULL/DELETE或改期限。三类阶段记录不能覆盖整组失败或授五秒稳定性。
+
+定位额外I/O失败时发现父层丢弃子录制器已有的固定失败阶段，只保留recorder_exit。已先红后绿修复：独立模块只解析有界stderr里的完整、唯一白名单阶段和WPR原因，拒绝重复/未知/未完成/极端控制行，不执行输入钩子或反射原错误。只在本来已拒绝的非零退出错误消息中附固定字面量；原error.code/cause、回执资格、成功控制解析和所有等待门不变。零退出附伪阶段依然拒绝、绝无成功回执，不吞异常、不重试。新增回归在现有统一CI测试文件中，模块也加入I/O工作流路径触发。七文件96/96；补成功退出边界后capture文件53/53，均零fail/skip；1715语法、Lint零错误/五既有警告、定向格式、CI/release治理通过。新实现真实Windows I/O门仍待；有限证据见context-recovery-evidence/coverage-io-recorder-failure-detail.json。
+
+固定82d7522普通40613573954七个非coverage作业已success，coverage仍运行；正式40613574036/source仍运行、egress success，未授完整CI。4bd旧coverage现success但其unit1/正式source失败保持。下一步核对新录制器失败阶段及完整门，继续查提交等待的实际文件/调度原因，同时推进daemon剩余矩阵；本批不是五秒产品修复。旧6646仍是85分钟有效、90分钟失败，不重启/新启24h，旧实例未切换；本机安装两端、额度核对后的真实provider、24h到期双重开、最大容量和最终受控自用仍未完成。真实模型0，日常配置与账未改。
+
+## 2026-10-28：SSH恢复，单请求阶段诊断完成；4bd完整CI仍有失败
+
+SSH恢复后只读续查同一timing2任务，未因断线重启。独立1afe冻结源码原40项在私有观察器下40/40、零skip，112852ms、exit0，原120000ms父门/5000ms请求门及600000字符负载保持，所属Job自然为空、任务Ready/result0、该根运行进程0。69份请求阶段记录中，六次long-persistent正文为1468–2156ms；认证guard累计74.515–107.997ms，单次最大4.358ms，不能据此归因旧五秒失败或删减认证。规范化/克隆/指纹跨度可能嵌套，不能相加解释总时长；部分包含正文后的ACK，线程CPU计数也较粗，未归属其他线程。原5477ms失败与全部旧失败保持，本批没有产品超时修复或稳定性资格。有限证据见context-recovery-evidence/1afe7b3-request-stage-observation.json。
+
+第一版观察器大请求阶段计数为空，已拒绝作为归因证据。起初小请求/小流式烟测不足，不能据此确认流事件归因；随后600000字符负载实际复现空计数，只在新私有观察器传播req/res流事件的观测上下文，恢复原认证/规范化调用计数。未改源码或原函数行为，原始profile、私有日志、数据库和凭据未上传。该修正只修观察工具，不声称修复产品。
+
+固定4bd3ffc普通40611496992六作业success、unit1/job122563851285 failure、coverage/job122563851529仍运行；正式40611496944/source122563850968 failure、egress success、业务skipped。已读两份失败完整日志：unit1实际旧DPAPI互操作用例在legacy_unprotect 10025ms/ETIMEDOUT、legacyPhase unobserved失败，native_protect 14ms完成；正式sending释放用例在awaiting=ready/5207ms失败，startup ready为2087ms，第三次save-reference-state仅见engine_execute_started，sqlProgress为空，未进入目标中断。不能凭此确认COMMIT、DPAPI或杀毒为唯一根因。没有重跑掩盖失败，原十秒/五秒门保持；证据见context-recovery-evidence/4bd3ffc-ci-failure-scopes.json。前一批1afe完整CI通过不能覆盖本批失败，额外I/O录制器旧失败也保持。
+
+下一步优先将剩余持久耗时关联到worker执行、SQLite及锚点各阶段，再改已证实的瓶颈；当前证据不足以安全删事务、认证或跨事务复用解密。原6646长测仍为85分钟最后有效节拍、90分钟失败，未重启或新启24h；旧E实例未切换。其余daemon COMMIT/uncertain/withdrawn矩阵、本机最新安装两端、逐provider额度核对后的真实模型、24h到期双重开、最大容量及受控自用仍未完成。本批模型0、额度未写、日常配置未改。
+
+## 2026-10-28：9e与1afe完整CI通过；本机原40项仍失败，隔离采样不覆盖失败
+
+固定9e26dfc普通40607195765八作业、正式40607195689六作业全部success，事务内头认证复用已通过相同源码Windows门。固定1afe7b3普通40607922332八作业、正式40607922322六作业也全部success；已读取正式finished/job122559607051完整日志，核对源码SHA、plan/build摘要及执行后hosted_network_finished、ownedTreeEmpty回执，不能只把prepare-only当执行。该正式范围仍是原N08、N09十场景及独立sending/finished两场景，不授其他daemon内部矩阵或整体验收。额外I/O40607922323/job122551960491仍failure：20项原生发布用例通过后，after-hook因coverage_io_capture_recorder_exit拒绝回执（188492ms）；没有有效录制资格，尚未确认录制器根因。本次该日志未见新增五秒请求失败，不能由此覆盖所有旧五秒失败。证据见context-recovery-evidence/1afe7b3-complete-ci-scopes.json。
+
+Windows使用新目录封存1afe的2024份提交源码，Node/native/原生树及锁文件摘要核对。首次冷npm ci在原120000ms父限失败，未进入产品测试，未观测正常退出；181次已完成fetch中最大60306ms，尚无唯一底层原因，失败目录/任务保持。随后按已授权的兼容环境复用另起新目录：现有7456构建环境同一锁摘要、16个直接依赖精确版本全部匹配，不修改它、不升级依赖；容量回归28/28通过，原Job自然为空。其后原client-context-target+native-graceful-http四十项组触及原120000ms父限，task Ready/result126、未取得子进程正常退出，清理未失败；只有28条完成ok及一条已观察not-ok，不能冒充四十项通过。首次活动日志观察失败后改共享读写方式读取同一handle，未重启任务。证据见context-recovery-evidence/1afe7b3-local-short-failure.json。
+
+首个失败是Chat WBIPC的long-json第二轮request_failed，客户端观察5477ms、requests8/handshakes8/roots1，await pending处ERR_TEST_FAILURE；异常类别与唯一根因仍未证实。该Chat用例尚未进入long-persistent，不能归因SQLite COMMIT，也不删原五秒门。Responses持久两轮正文另观察3812/2825ms，仅为该次有限样本。原测试、负载、正确性、所有版本/原期限与认证断言均未修改；没有重跑失败四十项组制造绿色。失败、临时源码、数据和任务均保留，旧长测根与旧E实例不动，确认三份新独立任务根下无所属Node/native残留。
+
+另一次明确标记diagnostic-only的隔离采样，只选原Chat WBIPC顶层用例，所有内部模式、600000字符负载和原5000/120000ms门不改。该单用例在采样下通过，父Job自然为空、18710ms；这不是原40项通过，更不证明稳定性或修复。V8样本权重主要线索包括认证文件读取、规范化、状态字符串编码及指纹计算；权重是采样经过时间，不能当精确CPU时间、单次请求耗时或因果归属。原始profile/日志未上传，只提交有限源码函数与计数，见context-recovery-evidence/1afe7b3-isolated-chat-profile.json。认证读取不删、不加跨请求原文缓存；下一步把这些共享阶段按单次请求关联，再改具体瓶颈。
+
+本批为实际Windows核验与失败证据入库，不声称修改了产品五秒路径。旧6646长测仍是85分钟最后有效节拍、90分钟advance失败，未重启、新24h未启动；源码干净与摘要只能证明退出后状态，不追授旧失败根因。现存E盘旧管理器只读确认仍运行，用户未切换；本机最新安装两端、额度核对后的真实provider、剩余daemon COMMIT/uncertain/withdrawn、24h/到期双重开、最大容量和最终受控自用仍未完成。本批真实模型0、账未写、日常配置未改，原全部门禁与失败记录保持。
+
+## 2026-10-28：固定6646长测在90分钟advance失败，已确认终止并保留现场
+
+原同一长测于UTC00:11:30以exit1退出，任务Ready/LastTaskResult1、所属进程已退出，失败锁存和终止均已确认。最后实际有效节拍为85分钟/18个，90分钟advance（commandIndex58、scheduledMs5400000）失败，随后close（index59）也有清理失败标记。没有24h通过或到期重开证据，不能把进程经过约90分钟当作有效24h。退出后只读核对未发现该冻结根下的Node/native helper残留，未启动/结束任何进程；源码、Node和native摘要仍精确匹配，源码干净、577份范围源码。原目录、数据库、任务和冻结脚本未修改，也未重启或自动重试。安全证据见context-recovery-evidence/6646-native-day-90min-failure.json。
+
+现有回执没有storage_operation_failed事件，advance内部可能在等待前身份检查、真实时钟等待、等待后身份检查或进度写出失败，旧进程退出后无法反推唯一子阶段。有限System时间事件查询未返回该窗口事件，但这不排除时钟失败；退出后摘要匹配同样不能证明失败瞬间的状态。最初私有只读脚本的Node JSON与PS JSON缺换行，解析未取得身份记录，修正输出分隔后才取得上述身份；未将脚本错误或推测写成产品根因。
+
+本批将advance编排拆到独立可测模块，保持原身份检查、实际经过时钟、固定负载、所有期限及失败即停止。失败立即发出固定phase和有限scheduledMs，先于driver清理；不读取/转发原异常、原文或路径。输入描述符、Proxy、非法/极端offset、错误进度、异步观察器、并发、输出失败、时钟倒退均拒绝且粘滞，不自动重试；主模块只组合，新增模块也纳入来源摘要。不会把新诊断能力追授旧失败或现有冻结源码。
+
+六文件74/74、零fail/skip，含真实短经过时钟及原day/持久容量/回执/健康回归；1714语法、Lint零错误/五既有警告、CI/release治理通过。初次Lint因no-unsafe-finally拒绝，已将固定失败重新抛出放到finally外，未抑制规则。证据见context-recovery-evidence/native-day-advance-provenance.json。本批没有启动新长测。9e26dfc普通40607195765已有quality/integration/Rust及unit0/1/2成功，unit3和coverage仍运行；正式40607195689/source122549532847仍运行，egress成功。48a普通七个非coverage作业成功，coverage与正式source仍运行；其四独立业务诊断已通过的范围保持。
+
+下一步继续核对完整Windows门，基于新阶段能力定位长测实际失败，再决定新的独立验收；现阶段不承诺长测重启或24h通过时间。产品五秒COMMIT尾延迟仍未解决，uncertain/withdrawn及其余COMMIT实际daemon内部矩阵、本机最新安装两端、逐provider额度核对后的真实模型、最大容量和最终自用启用均未完成。真实模型0、账未写，旧E实例不动，所有历史失败保留。
+
+## 2026-10-28：transport-finished实际Windows诊断通过；减少事务内重复头解密
+
+固定48a5da2的诊断40606814821四作业均success，新增finished/job122548247619的完整日志已读取，精确源码SHA、plan/build摘要及执行后hosted_network_finished/ownedTreeEmpty均核对。源码严格两场景入口/Job消费链要求prepared与sending原ACK前置、transport-finished持久精确+3、原预算/expiry、原HTTP完整答案与独立发布屏障、强杀后默认owner同目录重开。仅授该独立Windows诊断范围，不能转授本批新源码或完整正式门。有限证据见context-recovery-evidence/48a5da2-finished-ack-diagnostic.json。48a普通Verify40606814770的quality/integration已success，余作业仍运行；正式40606814792/source122548247945及额外I/O/job122548247725仍运行，egress成功。原7ab矩阵失败与所有五秒失败保留。
+
+五秒排查中确认执行事务内的相同头记录仍在初始入场、clock和提交前重复解密；这是CPU重复工作，不能解释秒级COMMIT尾延迟。先用六组真实SQLite回归复现四次头解密，再把同锁checkedHeader传给clock与提交前见证。每次仍重新读取SQL行、比较storeId/密文、重新校验schema；入场密文副本防止驱动别名缓冲区变更，发生时钟改写必须对新密文重新认证。结果只存在当前事务栈，不跨COMMIT/ROLLBACK/下一操作或独立owner快照，原始内容不缓存、持久写和anchor ACK不删。
+
+相同头的执行加独立快照由四次解密降为两次，改写时钟的save为三次；不是五秒稳定性资格。八项新攻击回归在clock和提交前分别注入密文/身份/schema/别名变更，均拒绝且回滚、未授anchor ACK。核心三文件106/106、零fail/skip；扩大四文件188项中187通过/1失败，失败是Mac运行默认Windows原生worker，独立有限阶段探针确认key_protect_started后失败、未进入SQLite引擎，不改平台门/不跳该统一CI测试。所有新回归在现有anchor-clock统一CI及client coverage发现范围。有限证据见context-recovery-evidence/transaction-header-authentication-reuse.json。
+
+1712语法、Lint零错误/五既有警告、CI/release治理通过；npm audit原high门退出0，仍报告fast-uri一项moderate，锁文件与依赖未升级。保持FULL/DELETE、原时钟/24h到期、精确ACK版本和独立锚点刷盘。固定6646长测UTC00:10:57只读核实同任务存活、85分钟/18有效节拍、无失败锁存，不重启/抢占；24h和到期两次重开尚未通过。真实模型0、账未写、旧E实例不动。下一步核对本批Windows门与持续定位持久I/O尾延迟；其余daemon COMMIT/uncertain/withdrawn内部矩阵、本机安装两端、额度核对后的真实provider、最大容量和最终受控启用仍未完成。
+
+## 2026-10-28：sending Windows独立诊断通过；修正矩阵检查，接入transport-finished ACK组
+
+固定7ab7cb7的诊断40605075515三个作业均success；sending/job122542438949完整日志已核对源码SHA、计划/构建摘要及执行后hosted_network_finished和ownedTreeEmpty回执。严格两场景入口/消费链要求实际默认daemon的prepared前置ACK、sending持久精确+2、预算/原expiry不变、强杀时公开0字节、同目录默认owner重开和释放完成屏障。仅授该独立诊断范围。有限证据见context-recovery-evidence/7ab7cb7-sending-ack-diagnostic.json。
+
+7ab完整门未通过：普通40605075604的unit1/job122542439249、unit0/job122542439569、coverage/job122542439327失败，其余五作业success；正式40605075725/source122542439733失败、egress成功、业务skipped；额外I/O/job122542439769失败。五份失败完整日志均已读取，失败断言为两份工作流测试仍要求scenario:[n08,n09]，是上一批新增组时漏改检查，并非本次测得的产品五秒修复或新超时根因。本批同步精确四组枚举，保留原门/依赖/命令/期限/失败停止检查，增加漏原场景/任一ACK组的拒绝用例；不删除断言、不洗掉原失败。
+
+本批新增独立n09-finished-ack组：真实prepared→sending ACK先通过，持有transport-finished保存后的原ACK，原只读快照要求精确+3、预算和原期限不变。此阶段原HTTP回答已经发送，不能套用公开0字节中断断言；新增见证在同一750ms内等待原HTTP请求的完整精确答案并绑定字节数/摘要，和最终发布完成屏障明确区分。强杀前原ACK仍未交付，默认owner同目录新PID重开保留精确版本并恢复；释放对照还必须等待原发布完成屏障。原HTTP单请求回归、错内容/字节数/部分版本/假完成/760ms见证超时/回调关闭/重入及错误回执拒绝均覆盖。无替代请求、无模型重试、无原文缓存或认证削减。
+
+原N09十场景、独立sending两场景保持，新组另用固定目录/摘要绑定plan/独立两场景phase及原120000ms Job、5000ms树关闭门。WFP仅增加第四个固定node路径，平台/物理祖先/ABI门不变；Mac只做同程序集编译，Windows原生守卫与新daemon场景尚待新提交的CI。业务/通道等136项与不重叠边界/闭包34项通过、零fail/skip；单请求断言后wire16项通过，PS实际JSON消费者3接受/17拒绝/native0，摘要14状态行通过。四份PS解析、1712语法、Lint零错误/五既有警告、CI/release治理通过。原Mac Windows Job失败和全仓既有换行格式失败仍保留。有限本机证据见context-recovery-evidence/finished-publication-ack-group.json。
+
+SSH恢复后只读确认固定6646同一长测在UTC00:07:44仍运行：85分钟/18有效节拍、进程存活、无失败锁存，未重启/抢占。尚未24小时，更没有到期两次重开通过。本批未改变产品五秒恢复路径，持久尾延迟稳定性仍未解决。真实模型0、账未写、旧E实例不动。剩余uncertain/withdrawn及COMMIT实际daemon矩阵、五秒尾延迟、本机候选安装两端、真实provider（先核对逐provider额度）、24h/最大容量与受控启用继续保留，整体交付未完成。
+
+## 2026-10-27：sending ACK实际业务独立组已接入，原十场景与120秒门保持
+
+本批将sending ACK前置序列接入业务probe/adapter/driver。prepared默认路径仍精确+1；sending先通过原prepared ACK，再暂停精确sending保存，原只读持久快照必须总共精确+2、calls/returnedBytes及root/原expiry完全不变、公开字节仍0。强杀后默认owner同目录新PID重开需保留该精确版本，再做原文恢复；释放对照仍等实际公开答案与原发布完成屏障。单版本推进即使拿到held信号也拒绝，极端revision/ordinal预留两步空间；不缓存跨事务原文、不发替代ACK、不重试或退款。
+
+新增独立n09-sending-ack场景到正式与诊断矩阵，原n09十场景完整保留。新组在自己的RUNNER_TEMP/hpm-context-n09-sending-ack、原120000ms Job/5000ms树关闭门中执行强杀/释放两场景，不延长或重置原十场景Job预算。prepare receipt的scenario、校验过的review.publicationGroup、摘要绑定的owned plan及独立phase/精确case=2消费链同时绑定新组；原组仍case=10，两种回执交叉使用拒绝。主入口只分组组合/调用，独立sending-ack-result模块验证真实业务结果、预算来源/原期限/前置ACK事实、网络证明和两份清理，再产生有限公开回执；n09Complete仍false。
+
+WFP保持Windows/hosted环境/ABI/规范绝对路径与物理祖先检查，仅新增这一个固定组内node.exe路径到原有限白名单。原两组路径正反检查保留，新增组同样检查遍历、异处、UNC及相对路径，Windows守卫用例由10增为15；这是新增路径的五项检查，不是放宽原门。Mac只完成同程序集C#编译，未执行native WFP或授新Windows路径守卫资格。初次私有编译诊断命令因拼接/转义错误两次失败，修正命令后原源码及fixture编译成功，均未调用native WFP，不能解释成产品根因。
+
+11相关文件132/132、零fail/skip；包括原业务正反例、sending两步版本/最大整数边界、结果拒绝、原十场景与独立两场景组合、闭包/PS签名、双进程前置序列。另原Job实际JSON消费片段在PowerShell真实执行，2合法回执接受、10交叉/错数量/字段/布尔/类型/尾随输入拒绝，nativeCalls=0；摘要独立项11组场景/状态通过。四份修改PS源码Parser通过，Lint零错误/五个既有警告、1712语法、CI/release治理及本批定向格式通过。原Mac Windows-Job创建失败、既有全仓换行格式失败和所有原五秒失败保持；没有跳原统一CI测试。新发送组尚待本批推送后的托管Windows默认daemon执行，不能将本机组合或旧源码的成功转授新组。安全有限证据见context-recovery-evidence/sending-publication-ack-group.json。
+
+44673be普通Verify40603609204七个非coverage作业success，业务诊断40603609151两作业success；coverage与正式40603609279/source仍运行。238额外I/O40602444317/job122533677305已失败，日志同样出现原摘要8!==10及proxy阶段拒绝，已补有限证据，原失败不重跑覆盖。本批没有修改产品五秒恢复路径，稳定性仍未解决。固定6646同一真实长测已推进65分钟/14有效节拍、进程存活、无失败锁存，未重启/抢占；尚无24h/到期两次重开资格。真实模型0，账与旧E实例保持。下一步核对新组实际Windows结果并继续其余daemon内部边界、五秒尾延迟；本机安装两端、真实provider、24h/最大容量与最终受控启用仍待完成。
+
+## 2026-10-27：238原生业务十场景诊断通过；修复摘要门失败，增加sending前置序列
+
+固定238ae76的业务诊断40602444326/n09 job122533677040已completed/success，已读取实际日志并核对精确checkout、prepared plan/build receipt摘要与执行后的hosted_network_finished有限回执。固定执行链在原120000ms Job和5000ms树关闭门下，只有原入口十场景断言及严格owned-job十场景解析均成功才可返回；因此本次新增prepared ACK强杀/释放对照已在托管Windows实际daemon/default worker/原持久owner路径执行，而非只运行本机模拟。内部强杀要求真实持久快照精确+1、原预算/expiry不变、公开0字节，同目录新PID重开保留并恢复原文；正对照仍需原实际公开答案与发布完成屏障。有限来源证明见context-recovery-evidence/238ae76-prepared-ack-diagnostic.json，不含请求/密钥/数据库/原始native帧。这仍是独立诊断范围，不授完整正式链或全矩阵。
+
+238普通Verify40602444315的unit1/job122533677523与coverage/job122533677662失败；正式40602444340/source122533677372同因失败，后续context-recovery已skipped、egress成功。完整日志唯一失败断言为qualification-boundary的8!==10：上一批入口/PS消费者要求十场景，但正式workflow成功摘要仍写八场景，属于本轮遗漏，现修复数量及限定范围；原断言保持。把纯摘要检查移除Windows-only skip，Windows仍用原固定pwsh路径、Mac仅为该检查使用已有pwsh，八组场景/状态在Mac先红复现、后绿；成功摘要只在匹配job成功时出现，不能在failure/cancelled/未知状态授范围。未重跑覆盖238原失败，其他早先五秒与本机Windows-Job创建失败继续保留。
+
+同时为后续sending内部验收增加固定前置序列：宿主的sending目标必须先观察同一generation/root/expiry、精确前一版本的prepared持久保存/原ACK，再持有精确sending版本。前置只放行原生产器token、不发布held、不改变请求/存储Promise；不能跳过/重复前置或用旧/future版本换取目标。边界模块还支持prepared→sending→transport-finished的固定前置路线，但host当前仅接sending，实际后两者业务场景尚未加入或通过，不授完整资格。原直接prepared路径和750/5000ms门保持。
+
+审查回归又复现旧边界检查回调重入时，外层最终虽拒绝，嵌套仍可提前发布一份held探针；没有证据证明实际产品ACK暴露，runtime hook已有独立重入门。边界现进入validating状态后才调用检查，吞掉嵌套异常也必须零held并失败粘滞；固定238模块内存对照显示before拒绝/held1、after拒绝/held0。新回归保留该区别，不补写产品根因。12相关文件143/143、零fail/skip，另独立摘要项覆盖八组状态通过；原物理SQLite、双进程通道、业务adapter与源码闭包/PS签名均执行。Lint零错误/五个既有警告、1709语法、CI/release治理通过，本批格式通过；全仓既有换行失败范围不改。有限本机证据见context-recovery-evidence/publication-ack-prefix.json，新来源完整Windows门仍待。
+
+22f普通八项及正式四作业现均success，但额外I/O旧失败不覆盖，也不授五秒稳定。3e普通八项现success，e451普通七个非coverage作业及其业务诊断success，余正式/coverage/额外I/O按各自运行状态继续核对。原五秒问题仍见实际SQL COMMIT/持久刷盘尾延迟；初始化已为单事务，LIST预扣/结算和每次快照认证不能为降时延被删。本批没有声称修复了产品五秒超时。固定6646同一长测已推进55分钟/12有效节拍、进程存活、无失败锁存，不重启抢占；24h与到期两次重开尚未通过，真实模型0，旧E实例及账保持。下一步将sending前置与实际业务场景组合，并继续五秒排查；其余daemon矩阵、本机安装两端、真实provider、24h/最大容量与最终启用仍未完成。
+
+## 2026-10-27：prepared ACK强杀/释放已接实际业务入口，待新Windows执行
+
+本批新增独立prepared-ack-probe及publication-ack-driver，将上一批真实控制通道接到现有business-adapter、原托管composition/owned-entry和原Job回执。原八场景不删，增加preparedAckKill/Release两场景，三层回执严格要求十场景及十份适配器清理；原Job、启动门、固定负载与期限未改。私有READ与独立公开上游仍按原路径执行；先持有公开上游，获取完成屏障/已提交账户与空闲观察器代次，再arm精确prepared目标，不能拿上游暂停冒充内部持久边界。
+
+目标held除了签名/新挑战/代次/序号/精确revision检查，还必须通过原只读持久快照确认revision恰为checkpoint+1、root和原expiry一致、calls/returnedBytes完全不变，实际公开字节仍0。随后强杀原所属Job，使用默认owner同目录新PID重开，再核对该精确持久版本和预算并做原文精确恢复。释放对照需先通过同次released探针，再等待实际公开响应的精确答案及原发布完成屏障；单独released不授原ACK/业务成功。旧能力在强杀后关闭，关闭不自动release，失败不退款、不重试。
+
+另定位并修复既有COMMIT诊断阶段号158/159在PowerShell解析器中漏接的问题；加入新ACK场景160/161，有限primary/case envelope可完整传递，仍拒绝未分配139/255、重复/私有尾随内容与非规范格式，原80字节限制保持。这是诊断解析修复，不是产品五秒延迟修复。直接PowerShell回归及两个修改PS源文件的Parser检查通过。
+
+扩大16文件192项：191通过、1失败、零skip/cancel；失败为Mac执行原Windows Job真实子进程组合，在job_create拒绝，独立有限阶段重验确认发生于产品子进程启动前。保留该失败，不改原测试/平台门，不声称组合全绿，待Windows统一CI。其余新业务编排正反例、物理SQLite、双进程通道、生命周期、签名门控、闭包生成/消费均实际执行。单独业务/新probe检查此前66/66、后加预算/期限/公开字节/重开版本/假完成拒绝后适配器62/62，范围重叠不相加。全仓Lint零错误/五个既有警告、1709份语法、CI/release治理及本批格式通过；本机全仓既有换行格式失败仍保留。本批实际Windows/native新场景尚未执行通过，安全有限证据见context-recovery-evidence/prepared-publication-ack-business.json。
+
+22f普通Verify40600134115现八作业success，额外I/O旧失败保持、正式40600134088/source仍运行。3e与e451的业务诊断现success，但只涵盖各自旧入口，不转授本批新增两场景；e451普通coverage及部分unit、正式门和额外I/O仍运行。没有重跑洗绿，原五秒稳定性仍未解决。固定6646同一真实长测已推进45分钟/10个有效节拍，进程存活、无失败锁存；未重启或抢占其环境，24h/到期重开尚未通过。旧E实例不动，真实模型0、账未写。本批推送后优先查托管新prepared两场景；其他四状态ACK/其余实际daemon内部矩阵、本机安装两端、真实provider、五秒尾延迟、24h与最大容量缺口仍保留，整体未完成。
+
+## 2026-10-27：ACK通道已接私有宿主与生命周期；136项通过，22f新增失败保留
+
+本批把ACK签名契约接到固定物理文件通道、同步宿主边界、已认证bootstrap客户端和原生命周期身份。observation/ACK两种范围仅允许固定目录名、消息种类与序号，复用原物理路径/FD身份/严格UTF-8/4096字节/不可覆盖ready文件校验；ready仍只证明可见性。宿主只在观察器空闲且generation/callOrdinal精确一致后arm，在真正内部ACK边界生成新的holdChallenge；客户端见过同次有效held后才可release，宿主要求全部目标事实及新挑战一致。一次使用、并发/重复/旧代次拒绝；关闭不自动release、不关闭产品存储观察器。控制失败粘滞，不能发布原host-save成功。原5000ms持有上限及750ms外部见证保持，审查发现命令写入耗时未计入750ms后已修正并补真实延迟回归。
+
+私有host-install已在原生产器之后/原ACK交付之前接入新宿主；没有arm时原路径继续。新增客户端仅从原签名bootstrap派生不同域的控制key，不返回token/key；目录替换、错误token/manifest/PID均拒绝。生命周期在调用前后验证原owner，先执行原强杀再关闭能力，重启后旧在途held不能返回、旧能力不能释放。真实双进程夹具完成五状态持有/释放、提前释放、错revision/root/challenge/ordinal、并发和关闭拒绝；另真实等待固定五秒观察到子进程拒绝ACK并保留失败状态；释放回执文件写入同样计入宿主五秒总界限，5100ms真实写入延迟回归拒绝原ACK，不能以已签released探针补认业务成功。这仍是受控观察器夹具，不是默认native实际daemon内部矩阵；业务adapter/driver与正式场景尚待接入，不能授完整资格。
+
+最终16文件136/136、零fail/skip/cancel，包含原物理SQLite、runtime hooks、冷安装/恢复、生命周期、PowerShell签名门控与真实闭包生成/消费。统一CI原自动发现新测试；Lint零错误/五个既有警告、1706份语法、CI/release治理通过。中途新测试的AbortSignal未声明及getter-return lint失败已修复，未跳规则。全仓format:check本机失败，报告1452份文件；抽查三份与HEAD逐字相同的既有文件均为LF、原配置要求CRLF，规范化换行后原Prettier校验通过。未全仓改写或改配置，本批文件另按原规则校验，Windows完整CI仍待。
+
+22f额外I/O40600134216/job122525903624已failure：native withdrawn/COMMIT kill与release均在原ready5000准备失败、未进入目标中断；后者原生ready4849ms。直接SQLite sending/awaiting-ACK准备同样失败，COMMIT seq3为1758ms、seq8为1724ms、seq10开始后未观察到返回；另有ZIP探针spawnSync pwsh超时。安全有限证据见context-recovery-evidence/22f6910-ci-failures.json，不能归因唯一OS/杀毒原因，也不称真实HTTP恢复已通过。普通22f七个非coverage作业及业务诊断成功，coverage/正式仍在运行；不重跑洗绿。检查产品初始化发现DDL与时钟已在同一原子事务中，不能假称发现了逐DDL自动提交或为少刷盘删除认证/锚点。
+
+同一6646真实长测最新已推进40分钟、9个有效节拍、无失败锁存、实际进程存活；没有重启或抢占环境，尚无24h/到期重开资格。原E实例保持、真实模型0、额度账未写；五秒稳定性、实际daemon全内部矩阵、本机候选安装两端、真实provider、24h/到期重开及最大容量缺口保持。下一步接实际业务adapter/driver和托管场景，继续持久尾延迟排查。
+
+## 2026-10-27：SSH恢复，ACK签名消息契约通过；控制通道尚未接入daemon
+
+Windows SSH已恢复，只读核对同一6646任务及实际进程身份。2026-10-27T23:15:28.541Z的健康回执仍running/fresh_real_tick，scheduledMs=1800000、elapsedMs=1800812.9732000001、7个有效节拍、进程存活且failureLatched=false；已越过真实半小时检查点，尚未授24h或到期重开资格。没有重启任务、修改冻结来源或在该主机启动其他验收。
+
+22f6910普通Verify40600134115七个非coverage作业全部success；coverage122525903475、正式40600134088/source-gates122525903167及额外I/O40600134216仍运行，业务边界40600134192已success。原五秒失败及完整门保持，不能把七项成功称整条CI通过。
+
+本批新增私有publication-ack-contract，使用独立HMAC域区分command与signal，严格校验arm/release及armed/held/released消息的进程、epoch、挑战、发布状态、原expiry和精确expectedRevision+1；arm阶段不接受holdChallenge，之后必须携带有限格式的holdChallenge。契约只认证消息，不管理一次性状态、不单独阻止重放，也不证明挑战由宿主新生成；这些必须由待接入的host/client状态机强制，不能把已签消息当存储ACK或实际daemon成功。关闭清零内部key，拒绝getter/Proxy/多余字段并只抛固定错误；未改产品认证、持久语义或期限。
+
+相关三文件18/18通过；原runtime hooks、物理SQLite边界及模块治理另21/21通过，零失败/跳过。全仓Lint零错误/五个既有警告、1699份语法、CI/release治理通过，新文件自动进入原unit发现。尚无本批Windows CI或实际跨进程强杀资格。真实模型0，未写额度账或改变旧实例；后续接固定物理文件传输、一次性host/client绑定，再做实际daemon控制/中断矩阵；五秒稳定性、最新本机安装两端、真实provider、24h/到期重开和最大容量仍未完成。
+
+## 2026-10-27：增加发布ACK内部可控边界；物理SQLite组合通过，尚未授daemon矩阵资格
+
+本批新增私有publication-ack-boundary及运行时afterDurableAck可选接口，默认宿主未启用。实际原ACK生产器执行后、原观察器发布完成回执/调用方拿到token前，才调用同步边界；只传冻结rootId/expiresAt/revision，既不传token、reference、principal或原文，也不能替换原token。异步/Proxy/generator回调及非undefined返回拒绝；失败保持sticky，待完成的host-save不能授成功。先红回归还复现了回调吞掉重入异常仍可能放行外层ACK，新实现拒绝ACK重入并在回调后重新检查失败/关闭状态；回归已转绿。原无边界路径与存储Promise、请求、精确CAS/ACK、认证和库存来源保持。
+
+可控边界要求观察器同代次、唯一已完成save-reference-state、目标root/原expiry/transition一致、callOrdinal更新，实际revision必须精确expectedRevision+1；原事实不符先于调用观察器即拒绝。支持五个原发布状态，不提前返回或制造ACK。固定5000ms持有上限包含回执发布/轮询，迟到release、倒退/停止/非法时钟、重复进入/重arm和关闭后调用均拒绝；这是私有测试基础模块，外部原750ms见证并未修改，但尚未接入该新模块的签名控制通道。
+
+新增真实会话+物理加密SQLite组合测试，明确保留构造器/等待测试seam：prepared控制在SQL COMMIT之后、DELETE journal已移除且FULL/secure_delete仍开时才进入暂停，原完成仍未返回；后续sending边界主动失败时，上层完成拒绝，已提交revision和原expiry仍保留，不退款或重试。这不等于原生DPAPI/OS锚点或实际daemon强杀。本批只完成内部可控点基础，签名控制/原生实际daemon全五状态COMMIT和ACK矩阵仍未完成。有限证明见context-recovery-evidence/publication-post-ack-boundary.json。
+
+相关12文件81/81、零fail/skip；首轮80通过/1缺pwsh失败保留，随后仅为该命令临时加入已有PowerShell7.6.8路径，原PowerShell签名/门控组合真实执行通过，没有跳测试。后续事实预校验与模块大小治理28/28，范围有重合，不相加授全仓资格；全仓Lint零错误/五个既有警告，1697语法、CI/release治理及格式通过。新测试进入原统一unit自动发现，尚待本批Windows CI；本批没有修复或掩盖既有五秒尾延迟。
+
+长测仍固定6646、独立同一任务/进程，无失败锁存；最新只读健康快照随安全证明记录，未在Windows启动别的验收任务，也未改其冻结来源。分账台账再次只读核对169/177、Codex1/Claude7；静态AST证明旧私有v4在上游请求处理器中逐请求增used并写账，不能把一次CLI启动计成一次额度，也不能将旧无fsync路径当新的持久记账保证。未执行该私有harness、未写账或预留，真实模型0。原始CLI上游固定场景34项离线回归通过，仅用于核对调用计数，不是实际模型资格。其余安装、真实provider、五秒稳定性、24h到期重开及最大容量缺口保持。
+
+## 2026-10-27：真实24h已实际启动并推进五分钟；6646普通全绿，正式与额外原失败保留
+
+已按用户后续明确的“启动24小时测试”授权，在独立6646冻结目录注册并启动新任务，无自动重试。此前把完整CI全绿额外绑成启动前提，现纠正执行顺序：原生短测、100项Windows回归、原生开库与Job/power短验通过及源码/运行环境/安全回执封存后即可独立运行；原完整CI仍是整体交付门禁，并未删除、跳过或放宽。注册时将delivery CI未通过明确写入元数据；旧失败、冻结长测目录/任务/数据库、旧E实例及候选均保持，未调用模型。
+
+本轮真实启动回执为2026-10-27T22:41:21.177Z（北京时间28日06:41:21），不是仅有计划任务请求。已核对任务Running、实际Node命令/可执行身份/创建时刻及所属真实原生助手，源码干净、577份来源摘要09734483741b1981790e438475885937e62415c41ac00e1bd79f058459356cac，与预封存一致。独立健康解析已看到scheduledMs=300000、elapsedMs=301015.7959、两个有效节拍，状态progress_advanced、进程存活、无失败锁存、零时间线/完整行错误。Windows每分钟观察器已实际写出健康历史，不再只是本机模板检查。模型0、wake lease已取得、无自动重试；当前仅授“已真实启动并推进”范围，真实24h通过及两次到期后重开仍false。完整安全回执见context-recovery-evidence/6646f59-native-day-started.json。
+
+固定6646普通Verify40594726506现八作业success；正式40594726439/source-gates122507607690失败，egress成功、后续场景跳过，不能以普通通过覆盖正式失败。直接SQLite withdrawn/ACK夹具在原ready5000ms准备超时，尚未进入目标中断；save-reference-state占3787ms，其中实际COMMIT从852到4525ms、3673ms。原生transport-finished/COMMIT夹具同样准备超时：开库ready1347ms、前两次保存872/1508ms，最后seq4 engine_execute_started后无完成，未进入目标强杀。不能补写为目标中断已验证或唯一OS根因。
+
+额外I/O40594726441/job122507607168的原proxy阶段失败于actual chat WBIPC：首轮3701ms含发布完成，重开后的第二轮5000ms超时、requests/handshakes=8、root=1；保留原五秒门与失败。此次录制窗口是native-publication-interruption，24次flush、database/journal最大443/17ms，schema6与cleanupVerified由原parseSummary严格重验；该窗口不是失败chat窗口，不能关联归因，也不授trace completeness或five-second资格。有限阶段事实见context-recovery-evidence/6646f59-ci-failures.json。本机长测不用于覆盖上述失败，后续继续在Mac/托管环境排查，避免抢占正在运行的Windows长测。完整daemon内部矩阵、本机候选安装两端、受分账额度控制的真实provider、最大容量与最终受控启用仍未完成。
+
+## 2026-10-27：6646 Windows回归100项与原生开库短验通过，长测身份已封存但未启动
+
+固定6646f5923a4633f6f3afbdd3995ef4e1f21f50c8在Windows新目录完成两次原锁文件安装及容量/时钟/首次失败/到期见证/回执/健康/进程树十一文件回归，100/100、零fail/skip/cancel，TAP103824.6625ms、父113555ms，原父120000ms与Job自然退出5000ms门保持。原生源码树仍3437873f3052ff996f769332239d56c81748c8c6；本轮复用已完整构建验证的同树助手0356dfca…，用原安装函数生成独立文件并验单链接，未将复制称重新构建。随后默认worker/DPAPI/OS锚点在另一个空目录两次开/检查/关、同目录重开全部通过，具体ready耗时见安全证据；父3334ms、零stderr、原Job自然退出通过。这仍不授有负载HTTP五秒稳定性或真实24h资格。
+
+组合观察器已在Windows实际编译、验证同程序集的Job和power lease。成功、退出17、1500ms到期终止三路径分别267/200/1561ms，所属树均关闭，成功路径还过原自然退出门；wake请求实际取得并释放。首轮私有脚本在成功编译后读取未定义LASTEXITCODE而失败、第一轮隔离npm配置将用户/全局设成同一空文件而拒绝，均保留原任务/回执；前者在原生smoke前，后者在安装前，不补写产品根因。修正后采用新的短验任务或操作日志目录，未重启任何24h任务。
+
+新的长测源码与四份操作脚本已封存，源码摘要09734483741b1981790e438475885937e62415c41ac00e1bd79f058459356cac、577份范围文件，源码干净；coverage-io-capture.test.js已实际读取，未重现旧缺文件。已准备每分钟观察器及stdin赋权门，未将它称为已在实际长测中运行。新24h任务尚未注册/启动，完整真实经过时间、每根原到期及两次到期后重开要求保持。旧冻结目录/任务/数据、旧E实例及桌面候选不动，真实模型0。
+
+固定6646普通Verify40594726506七个非coverage作业已success，coverage122507607549仍in_progress；正式40594726439的egress成功、source-gates122507607690仍in_progress，额外I/O40594726441仍in_progress。这是明确活跃作业的等待，不能预授整条终态或重跑旧失败。完整原门通过后再决定正式长测启动，不把此文档提交当作新的产品来源；所有旧五秒失败及其余安装/daemon/真实provider/最大容量缺口保持。有限安全证据见context-recovery-evidence/6646f59-windows-day-preflight.json。
+
+## 2026-10-27：本机7456包已交付，短测26+40通过；修复长测首次失败继续等待
+
+Windows SSH已恢复。固定7456源码的独立Clang/LLD构建七阶段全部完成，原生47项、应用Rust41项零失败/忽略，原Job自然退出5000ms门通过。安装器28459218字节，SHA256为1ac6fbac9d2b70938f2dd1c4596440d14a3f7fadbae9d97bd943f0b601636d3b，已复制到Windows桌面HPM-SelfUse-0.1.1-7456f97并逐文件读取复核。未执行安装器，旧E实例由用户自行切换。完整身份及有限回执见context-recovery-evidence/7456f97-local-candidate.json；此本机新二进制尚无安装客户端资格，不能继承此前托管安装产物资格。自用未签名与公开release签名门保持。
+
+该包实际原生助手0356dfca…在独立短测的原容量/时钟两文件26/26、原协议两文件40/40全部通过，零fail/skip/cancel。协议父105093ms小于原120000ms，原HTTP5000ms及Job5000ms保持；六次持久body为chat2032/1727、Responses1505/1872、Claude2130/1862ms。它是有限本机证据，不覆盖651的5015ms失败，也不授五秒长期稳定、真实provider或24h资格。SSH传输另定位到输入codepage936造成中文脚本在原生调用前解析失败；仅私有SSH加载器改为显式严格UTF-8，实际中文/emoji只读探针通过，不更改系统编码，也不归因产品或杀毒。
+
+最新f5fed6f普通Verify40590040956七项success、coverage122491600260失败；失败是PowerShell/rg读发现集成spawnSync powershell.exe ETIMEDOUT，尚不能据此认定新的HTTP恢复超时。正式Windows40590041058四作业success。旧5015ms恢复失败及所有早先失败均保留，无重跑洗绿。
+
+本批在长测编排实际复现两个问题：存储onFailure后仍可能发出完成；驱动已记录半小时读失败，但首份带阶段的失败只在整份profile返回后可见，下一次时钟等待仍会进入。先红回归25项中10项失败后修复：持久驱动仅向可选同步观察器发送一次冻结空token，其WeakMap回执只含原固定四字段；观察器异常/非空返回闭锁且不跳过finally关闭。长测立即发native_day_failed并锁存失败，在后续等待前拒绝，存储失败同样锁存，最终关闭仍执行。无观察器的原负载/结果/顺序保持，成功场景仍要求完整真实24h、每根实际到期及两次重开；合成时钟仅用于回归，不能授实际时长资格。该源码发现不补写为旧冻结长测的唯一根因。新增测试进入既有自动发现unit CI，原认证、最大预扣ACK、精确ACK、FULL/DELETE及期限不变。
+
+本机定向六文件52/52通过；全仓Lint零错误/五个既有警告、1694份语法及CI治理通过。扩大监控/回执/工作负载五文件48项中47通过、一个既有Windows平台跳过、零失败；尚待本批Windows CI及新监控Windows原生短验，不声称新24h已启动。真实模型0，额度未动，旧长测现场不动；剩余为五秒稳定性、完整daemon内部矩阵、本机新包安装两端、真实provider、真实24h到期重开及最大容量，整体尚未完成。
+
+## 2026-10-27：651正式四作业成功，coverage再现五秒超时；保留预扣与结算门
+
+651f84b041ab2c65cd8cdd694de5f49984199c83仅比7456f97增加两份交接文档。普通Verify40585553842七项成功、coverage122475888761失败；正式40585553740的source-gates122475888113、egress122475888560、N09122486614639、N08122486614732均success。正式固定场景成功与7456的历史完整成功不能覆盖本次失败，也不能宣称五秒稳定性解决。未重跑失败任务。
+
+coverage原proxy阶段通过；client阶段的actual core chat WBIPC在long-persistent首轮、原5000ms门于5015ms拒绝，requests=1、handshakes=1、roots=1，尚未进入该轮后续私有读/公开生成；Responses/Claude其后有限用例成功不能补认chat成功。client原命令失败后frontend未执行。三份I/O回执均cleanupVerified=true，并用原parseSummary严格重验，通过只属于记录格式与清理范围。有限安全证据已入库至context-recovery-evidence/651f84b-persistent-timeout.json，不含原文、响应、headers、凭据、文件路径或原始ETW。
+
+首轮combined admission的save-reference-state耗时3868ms，其中seq4 COMMIT为3028ms、观察到线程用户/系统CPU均0；后续settle-reader为1185ms，其中seq5 COMMIT974ms，replyAsync5092ms。该COMMIT区间1793136457234–1793136460262与同一合成窗口内journal flush607/630ms、database flush1789ms在时间上对应；最终flush结束与SQL时钟有约2ms差异。窗口同时观察database写855/651ms，成功flush status=0。traceCompletenessVerified及commitCorrelationQualified仍false，不授单笔精确关联、完整事件或唯一根因。非零状态0xC01C0004按[Microsoft NTSTATUS定义](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55)属于Fast I/O转IRP路径的内部状态，不能直接称持久写失败或某杀毒软件根因。
+
+检查了合并LIST写入的可行性。既有“metadata LIST waits for maximum-debit ACK”真实回归要求目录读取调用数在预扣ACK前为0，预扣16384字节，未知ACK不结算/退款。预扣和结算分别承担原失败语义，不能为降低延迟而提前读取、少扣预算或略过其中一门。本批未修改产品路径、认证、预算、FULL/DELETE/secure_delete、OS锚点独立flush、精确ACK或任何期限。后续继续从实际页写入与刷盘范围定位，不把同窗口的慢flush补写为已经确认的磁盘/过滤器唯一根因。
+
+Windows独立7456构建HPM-self-use-build-7456f97-clang-41c8a8已真实启动，锁文件两阶段、原生fmt/clippy与47项零fail/ignore及prepare成功，最后仍在installer-build，所属Node实际身份匹配；完整构建终态和原五秒Job自然退出门尚未确认，未封存或交付新产物。此前固定review分支clone因Windows引用锁路径过长失败，保留41c8a7现场；新41c8a8从短分支depth2取得并detach精确7456、源码干净后才启动，不改全局Git或工具版本。交付脚本已准备，仅七阶段全成功及源码/摘要复核通过才复制到新的桌面目录；未执行，不覆盖桌面67或旧E实例。候选说明已加入本次5015ms已知失败，不将同源码托管安装资格转授本机编译二进制。
+
+长测监控准备沿用原Job源码并加入固定power lease，组合源码摘要316a4448b9ec4e9bddd3d563c218ac4b0dbeee1e08f88866e6008a7b907eda5c；本机C#编译、PowerShell模板语法及加载器13项检查通过，但未执行Windows原生调用，仍待Windows编译/成功/非零/超时短测，不能称长测已启动。Windows私有额度只读重验仍177/169，Codex1/Claude7分别保留，未预留/调用。所有旧失败及冻结现场保持，无新24h/最大文件任务；最新本机安装、真实provider、实际daemon剩余内部矩阵、完整真实24h/到期重开及最大容量仍未完成，整体目标不缩减。
+
+## 2026-10-27：7456完整CI及最新安装整链通过；本机交付仍受构建退出门约束
+
+固定产品源码7456f97e9c3222089b4e7a01fe6c8fe636930f8d的普通Verify40572154489八项、正式Windows40572154488四作业均已success；业务诊断40572154315的N08/N09也success，仍仅为固定诊断范围。真实闭包生成/消费及未知导入拒绝两项新增回归已在Windows unit1/job122428902560执行通过，分片188/753文件通过。额外完整I/O40572154421/job122428902455成功，原proxy/client/frontend依次完成；三个schema6回执用原parseSummary严格重验，均file-completed、cleanupVerified=true，两个CLI核验标志齐全。native-publication-interruption/client-context-target/publication-graceful-http分别75/144/63次flush，database/journal最大653/561、95/186、23/38ms。fiveSecondQualified及traceCompletenessVerified仍false，旧a0及更早原失败全部保留，不称五秒长期稳定。
+
+最新安装run40576036673的resolve122442608191与encrypted122442827171均completed/success，已核对完整实际日志。该路由再次完成原npm verify/high审计、构建、安装升级回滚、同用户DPAPI、原布局拒读/显式迁移及新格式旧版拒读并保持字节。实际安装runtime manifest为21251c237ef91067f40bf111ce9edf10140002dde0f4d9a5a19d8f88ff93bc59，application为5e79af7ce73e218d5b3771fa81f54a4dc77f00b0f9d9fcbfe7b126c093027de4。此身份只属于7456安装产物，不转授后续文档提交、本机a0构建或桌面67候选。
+
+NSIS_INSTALLED_LEGACY_582实际八阶段通过，baselineSourceCount=582、原manifest4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f、布局1→3、revisionDelta=1、旧版拒写，ownedTreeEmpty及uninstalled为true。NSIS_INSTALLED_CLIENTS实际原生Codex/Claude默认/增强四组各三次压缩、精确回答、同会话重启；默认零恢复、增强私有读后独立公开生成。HTTP/SSE/WS排空、自然退出、TLS/非loopback拒绝完成，两个Responses WS案例各五个partial/零terminal、未认证拒绝及两侧关闭。原安装客户端和582严格PowerShell解析器已对取回回执再次通过。独立idle-stop两次正常停止/同目录重开保留原expiry，但该probe自身restartRetention/clientQualified仍false，不能用四组矩阵补写它的范围。NSIS_INSTALLED_PUBLICATION原30/30、零fail/skip，defaultWorkerQualified=true、daemonQualified=false；早先daemon/settings矩阵自己的forced-cleanup及restartRetention=false也保持，不被后续回执追溯覆盖。真实provider及24h仍false，模型0。
+
+Windows独立a0默认原生短测HPM-native-short-a0c9bdd-d0f138在原120秒预算内40/40、零fail/skip/cancel；父105501ms，Job自然清空。六次持久body为chat1387/1865、Responses3041/1825、Claude1486/1942ms、请求失败0。采用同一原生源码树的新助手5b4e59955673be11d070fb13e428cf0286acdc815746199a871afac7109385e3；独立空库两次开关/重开ready1982/2153ms。仅为本机有限样本，不把a0身份或单次短测转授7456安装长期稳定性。
+
+本机a0完整构建的MSVC与隔离Rust LLD两次均主进程0但原五秒所属Job自然退出失败，后续应用Rust检查未进入，不交付产物。LLD批原生fmt/clippy及47项通过，不能抵消完整构建失败。另一次新目录仅NSIS bundling诊断自然清空成功，不能据此唯一归因Rust或NSIS。最小固定C编译单独复现同类残留：现有MSVC14.50.35717的cl.exe退出0、AMD64 COFF有效，但同一所属Job内vctip仍活，签名Valid/Microsoft；保留其摘要13445e4d935015b6a56cc5095d0b9f7d12a06aafafd38a0553ea9ca17d20f214，实际强制清理成功。此为组件复现，不补写为前两次完整构建残留的直接捕获。原helper cleanupFailed沿用sticky自然退出错误，不能独立证明强制清理失败。
+
+继续在新工具目录准备官方LLVM23.1.4兼容探针，不改全局工具链。官方压缩包SHA1a3f2f998e230b5791cc4e2bfe11a1f7c07fe42c96ff44f227c9db0bedfaf091、276626313字节及二次物理读取一致；现有7-Zip流式解压给tar全量目录，4986项、4283028480原始字节及目录摘要566c4db599a7d5b345d45a09e412cb1b792d523c362b50d0bde6a3bd4ec0eaed核对通过，所属Job自然退出。系统tar直接读zstd因1GiB窗口超其内存限制而拒绝，保留诊断失败，不认定归档损坏。选择性提取已完成：369份独立常规文件、702237212字节、AMD64 PE及所有摘要核对通过，工具清单SHA5e4bda3a7e711c83a90903abace3f9bc60f148b43ca49f770514064891380035，所属Job原五秒自然退出门通过；随后固定C/C++编译、AMD64 COFF、LLVM链接及精确程序输出探针成功，9419ms、零stderr、原Job五秒自然退出通过。clang-cl摘要2fcd72a41bbc6bcf8e89c63555c4db7451da53bf47082fb91d6b1c1e990636ad，lld-link摘要92052a2d6dbd722fe31ef1991f1522f3c8200cc78917bf65920f3790148c4c36；仅此兼容范围，不授完整构建资格。托管安装路由不保留当前installer资产，故新7456包尚未交付用户电脑。下一步优先解决本机完整构建及交付，随后补实际daemon剩余内部矩阵与受额度控制的真实provider；真实24h/到期重开、最大文件及原性能目标仍保留。旧E实例由用户自行切换，冻结现场不动，无新长测、真实模型0，原认证、FULL/DELETE/secure_delete、精确ACK和全部期限不变。
+
+## 2026-10-27：补齐N09独立入口闭包登记；a0完整CI与自用构建失败保留
+
+已核对a0c9bdd5f305d480374e3a172d0ba0e7f2943102全部六条workflow终态。普通Verify40563422237七项成功、coverage122398217919失败；正式40563422233的source-gates122398217317失败、egress成功、后续跳过。三台时序40563422266各原50/50、零skip/重试，18次持久body完成、最高1333ms；额外完整I/O40563422258/job122398217059成功，原proxy/client/frontend完成，三份schema6回执严格重验通过、两个CLI验证标志，原生发布20项通过。以上有限成功不覆盖普通/正式失败，不授五秒稳定性或完整交付资格。父308的普通八项及正式四作业已全部成功，也不能转授a0。
+
+普通coverage首个prepared/COMMIT强杀夹具在原ready5000ms失败，整项5077.7403ms，最后开库阶段engine_anchor_validate_finished为4415ms；key文件flush观测2643ms、空锚点准入1468ms，尚无storage/execution/SQL操作，目标中断未进入。正式失败为transport-finished持久锚点前ACK的normal-stop夹具，5028.6612ms仍awaiting-ready：开库1377ms，随后三次保存中最后一次engine1112ms、snapshot4ms、锚点持久仍pending。该失败也未进入目标中断，不能补认实际模型HTTP超时或唯一OS根因。普通I/O回执只属于默认client-context-target窗口，96次flush最高database65/journal41ms，与原生失败未绑定；额外三窗口成功不排除旧等待。
+
+业务诊断40563422270的N08成功、N09/job122398217302失败，child exit69指向独立入口的闭包校验，尚未进入业务。本批实际回归先红：用真实collectClosure生成入口/composition/host-install/bootstrap四根pins，交给真实N09 verifyPinnedClosure即被拒绝。a0只在计划生成器及daemon启动校验加入storage-inventory固定安装导入，遗漏了N09自己的第三份独立校验。本批仅补该固定字面量；仍只允许真实host-install路径，原物理文件/摘要/缺项/未知动态导入拒绝、整包manifest及安装来源认证保持。新增回归覆盖生成与消费实际组合、不执行安装模块、错摘要/缺项以及假host-install路径/未知/空目标拒绝，进入既有统一unit文件。
+
+定向入口/计划/源码身份13/13、零skip，原失败先红后绿；全仓Lint零错误/五个既有警告、1692份语法、CI及release治理通过。扩大到67份hosted文件实际636项为614通过/10失败/12既有skip，十项均因Mac找不到pwsh或固定Windows pwsh.exe（ENOENT），不能称完整本地门通过；错误的目录式Node调用也保留在本机日志，随后使用明确文件列表。未改测试平台条件或放宽断言。新批仍待完整Windows CI，不把闭包修复称五秒尾延迟修复。
+
+Windows SSH恢复后只读核对原任务。独立默认原生开库诊断HPM-open-a0c9bdd-d1a670于19:08:31Z成功：真实默认worker/DPAPI/OS锚点、同新目录两次打开/检查/关闭、原生模块实际导出核对，ready1783/1157ms，所属Job自然清空，任务Ready/0。此为空库短诊断，不授容量/原五秒负载/24h资格。自用构建HPM-self-use-build-a0c9bdd-d42e71于19:30:58Z失败：锁文件安装、原生prepare通过，installer主进程退出0，但原五秒所属Job自然清空门拒绝，任务Ready/126。产物28484235字节、0.1.1/NotSigned，摘要6b655482366ad4870901840183d66c7fb5a11d3cfdaeea32b37551e2cb58b7d1；未交付/安装或替换桌面候选。控制器cleanupFailed标志沿用helper的sticky失败，不能区分自然退出拒绝与强制清理错误；根路径匹配进程0也不能单独授整个Job清理。旧失败现场不重启/覆盖，不补认本次残留就是旧vctip。
+
+另以新目录hpm-self-use-20261027-a0c9bdd-lld-8f34b2、任务HPM-self-use-build-a0c9bdd-lld-8f34b2启动独立链接兼容诊断，源码固定a0且干净，Node22.22.3摘要核对，操作归档8ab4dd919fb34fe648a8453debe22f50c998fa48e1da05f41f9f1d48c3174e2e。只向该任务传Rust自带LLD链接参数，固定核对原Rust/LLD摘要，不改全局工具链。包括锁文件安装、原生fmt/clippy/test与prepare、完整Tauri/NSIS构建及应用Rust测试，仍用单并发、原各阶段预算与Job自然退出5000ms；已确认实际Node进程身份，终态尚未确认，不授构建或安装资格。小型A/B/A第二次MSVC也通过，故LLD不是已确认唯一修复。旧E盘实例继续由用户自行切换，桌面67候选及冻结现场不动，无新24h/最大文件或真实模型调用。最新安装升级/582迁移回滚/两端实际provider、其余daemon内部矩阵、真实连续24h及到期重开仍未完成。
+
+## 2026-10-27：修复daemon观察器停用在线根快路的集成差异
+
+308f8a9e6b7bb2d60e32a0f6a273c53a5e3d9623的普通40561570944七个非coverage作业已success，coverage122391683660最后仍in_progress；正式40561570668的egress成功、source-gates122391683149仍运行，额外I/O40561571030/job122391682925仍运行。业务诊断40561570827的N08/N09均success，只是诊断范围。以上既有任务未重跑，不提前补写终态或授安装资格。
+
+实际复现了另一项接入差异：N09发布观察器直接替换原生service.execute，导致2a的私有inventory方法身份检查失效；合成组合接入前allActive=true、接入后false。此前三台时序夹具已通过受控外观保留来源，而真实daemon观察器仍走旧替换，不能将那三台结果转授带观察器的daemon。本批在存储inventory内部创建固定透传包装，调用原方法一次后才报告观察，保留receiver、原请求、原Promise/同步错误身份以及原生写入代次；观察不能产生ACK、替换返回或改变原生调度。只更新这一个受控包装的共享私有方法守卫，普通外部替换仍失效；不接受公共能力标志作为来源证明。未登记的注入适配器仍走原观察路径，不从它们获得新证书。
+
+包装拒绝关闭/有待完成写入/失效/已有观察的来源及非法回调；回调抛错、非undefined返回和异常Promise只让观察证书永久失效，原存储结果不被吞掉或改写。关闭恢复原descriptor和守卫，旧事务持有的包装引用仍直接透传；外部方法/descriptor篡改不被覆盖，关闭失败为sticky，不恢复快路。原观察器仍验证精确revision并转发全部原能力。host-install必须从已验证安装目录加载对应的inventory模块，避免拿控制器自己的WeakMap误作来源；闭包生成器与启动验证器只增加这一个固定模块路径的登记，仍限定原host-install及整包manifest，没有放宽任意动态import。
+
+初次扩大检查发现闭包生成器未登记固定新路径的四项失败，补齐生成/验证两端后原测试通过；初次Lint的测试getter缺return也已修正，均未跳过检查。最终相关182项为180通过、两个既有Mac平台skip（真实worker/DPAPI项），零fail/取消；另有计划/源码身份8/8。物理SQLite+真实service协议但合成worker/key的组合覆盖直接/惰性开库、观察期间省扫描、移除观察后精确原文/预算字节/原到期、外部写入歧义及损坏证据拒读；新私有包装回归覆盖Promise/错误身份、共享alias代次、未知/待完成写入、回调失败、关闭失败及篡改。新文件进入统一unit；这些不授Windows DPAPI/OS锚点、真实daemon内部中断或五秒稳定性。
+
+定向原格式、全仓Lint零错误/五个既有警告、1692份语法、CI和release治理通过。inventory局部c8为98.83% statements、97.39% branches；仅局部覆盖，不能替代完整CI。原HTTP5000/原生10000/存储30000/COMMIT见证750及FULL/DELETE/secure_delete、独立认证快照、OS锚点flush、精确ACK和24h期限保持。新批仍需完整Windows门，尚未触发最新安装路由；其余发布状态/daemon ACK内部矩阵、最新安装与实际两端、真实24h/到期重开和最大文件均未完成。旧实例/日常配置/冻结现场未改，无新长测或本机短测，真实模型0、台账未改。
+
+## 2026-10-27：2a普通八项通过，正式观察查询超时保留；合并观察文件的重复物理校验
+
+2a38b92af97ceb643aba105035b2e8ccdae19fea普通Verify40558151411八项已全部success，含coverage122379663604及四个unit分片。独立时序40558151385三台runner122379664002/122379664469/122379664955各原50/50、零skip/重试；chat、Responses、Claude各两次持久body均完成，三台最大body分别973/899/742ms，首轮必须实际省扫描的断言通过。仅为本轮有限样本，不授五秒长期稳定性或安装资格，不覆盖旧失败。
+
+正式40558151417的egress成功、source-gates122379663693失败、后续跳过。唯一失败为n09-publication-observation的旧回复重放测试在第一笔合法query就超过原750ms（整项811.7545ms），未进入重放拒绝断言，不是已经确认的认证错误或持久HTTP失败。额外I/O40558151401/job122379663214也failure：Python隔离子进程原20秒及PowerShell读取原20秒明确ETIMEDOUT；native rejection内存探针在15013ms断言退出码null，原spawnSync期限15000ms，但没有输出底层错误，不能补认具体原因；proxy阶段停止，后续client/frontend未运行。其native-publication-interruption文件窗口仍file-completed/cleanupVerified=true，schema6严格重验通过，311次flush的database/journal最大118/153ms；不能用该窗口覆盖整批失败或排除其他等待。独立file-flush40558151397成功。
+
+Windows新目录hpm-local-short-2a38b92-20261027-c42f81、任务HPM-local-short-2a38b92-c42f81执行原两文件40项及原120秒总预算。固定归档c07eb83383997483ad24c46eb716976a4ade68ae5ded79680413eb241862068d，1981份源码前后匹配，锁文件和原生源码树与复用环境一致。已确认所属Node实际于18:23:33.8051989Z启动，18:25:34.3848276Z在child-exit预算终止，Ready/126、29项通过、childExitObserved=null、cleanupFailed=false、所属根0；不授自然退出或整批通过。已完成chat/Responses各两次持久body最大3183/4461ms、COMMIT最大626/441ms、请求失败0；Claude及后续原生中断尚未完成，不能报告通过。旧短测未重跑或覆盖。
+
+本批降低私有发布观察通道的重复文件系统工作：原观察文件读取在有界reader前后各多遍历一次同一文件及祖先。现在将既有pins传入reader原来的开文件前/读后物理校验，保留两次路径及祖先身份绑定、descriptor前后身份/大小/mtime/ctime、单硬链接、严格UTF-8/JSON和4096字节上限；ready标志及目录复核不变。仅合并重复校验，不缓存文件内容或祖先信任，不改变750ms/签名/精确序号/随机挑战及失败后禁止继续查询。私有Map校验拒绝Proxy并使用原生方法，避免执行覆盖的Map方法。本机固定合成读取元数据检查75→53次，只证明工作量减少，不证明托管超时根因或Windows新资格。旧reader未接收pins的独立API测试先红不代表旧观察通道存在替换绕过：旧通道原本在reader外检查pins，本批将同一检查合并到reader内部。
+
+相关ack/publication及新边界回归118/118、零skip/取消；覆盖文件/父目录替换、硬链接/别名、空/非法UTF-8/JSON/极端上限、恶意Map、读取中替换、短读/读取错误和descriptor清理，原重放与原750ms门保持。1691份JS语法、定向Lint通过；新文件由统一unit自动发现。完整Windows新批仍待运行，不能授实际daemon中断资格。普通2a通过不覆盖其正式及额外失败，尚未触发安装路由。
+
+Windows SSH已恢复，只读确认旧E盘实例仍在运行，用户自行切换的约束不变。台账再次只读核对maximum177/used169、Codex剩1/Claude剩7，分账一致，dispatchReservationPrepared=false；未预留或调用模型。旧实例/日常配置/冻结现场未改，无新24h/最大文件任务。剩余最新安装升级/582迁移回滚与两端实际provider、其他daemon内部矩阵、真实连续24h/到期重开及最大文件目标保持。
+
+## 2026-10-27：移除受代次保护的在线根重复扫描；15e原失败与本机短测边界保留
+
+15e9ae9577097a518f473c9b09462ab1ecd03a43正式40547422169四作业已success：源码门122341661023、egress122341661725、N08122354533389、N09122354533521。普通40547422248七项success，coverage122341662363仍failure：chat/Responses/Claude持久请求分别5001/5002/5002ms超时，另有WFP合成工厂的pwsh原25000ms启动超时。首个chat失败窗口的2977ms COMMIT与2023ms database flush重叠；schema6已保留具体I/O时间段，但不授精确线程/请求归因。独立I/O40547422305/job122341662198原50/50、144次flush成功；完整额外I/O40547422400/job122341663042成功，三窗口均file-completed/清理验证，实际汇总重验通过。它们不覆盖普通失败，不授五秒稳定性，旧任务未重跑。
+
+Windows独立短测HPM-local-short-15e-b61d72基于15e固定归档0351973c638f5a5054c2e31998a75814278b6f29ef7fbb01463dca88a98a14a9，前后1979份源码匹配，复用相同锁文件的依赖及Node22.22.3；原生helper摘要690e915ec61f0c5aa767f8dc5330b8af8dd292d0d9b65ea0d942951a441173bc，其源码树与67一致。实际命令为client-context-target与native-graceful-http，共40项（任务描述写50不准确，按实际命令报告）。已确认真实测试进程启动，前38项通过，原120秒总预算终止时withdrawn两项没有最终结果。任务Ready/126、cleanupFailed=false、所属根进程0，不授自然退出或整批通过。已完成的三种WBIPC客户端各两次持久响应最大2291/2745/2566ms、请求失败0，COMMIT最大19/46/274ms；只能证明本机这一轮，不覆盖托管超时。读取器的Windows文件共享和引号错误均属于诊断脚本，修正只读核对后没有重启测试，不能当作产品根因。原始私有日志及运行目录不上传。
+
+本批实际修改恢复热路径：原beginAsync即使完整发现的所有持久根均已在线，也会重新扫描离线候选，产生一次额外存储往返及其验证/锚点I/O。新独立inventory模块只保留现有拒绝索引的完整性和私有写入代次，不保存原文、checkpoint或读权限。仅在启动发现完整、原服务方法身份未变、没有待完成/索引外写入、全部索引根在线且处于原有效期内时省去该重复扫描。未知/失败/交错写入、方法替换、关闭、索引裁剪、无来源证明的适配器、冷根和到期边界保持原扫描；等待已观察发布后再次核对代次和当前授权。惰性开库保留同一私有来源，不能通过能力标志伪造证明；未来未知操作默认使快路失效。在线注册表仍执行原选择/歧义检查，不从索引恢复权限。
+
+实际读取及发布仍使用原CAS、预算预扣/结算和独立认证快照，LIST最大保守预扣、精确ACK、原到期、FULL/DELETE/secure_delete及OS锚点独立flush均未改变。损坏payload/tombstone即使已知根在线，也不能越过原生持久预算门披露证据或被清除。旧/未知适配器走原逻辑。真实WBIPC夹具改为受控透明外观，保留原native服务方法身份；新增首轮在线续接确实省扫描的断言，原模型合成负载、四分片、五秒门和失败停止规则保持。新模块加入运行时闭包及三个既有Windows诊断路径，16项新回归由统一unit发现。
+
+新回归实际先红后绿；Mac新增16/16、零skip/取消，覆盖真实SQLite/服务协议组合、冷暖根、在线/离线歧义、索引外及失败写入、并发/迟到完成、惰性来源、方法/getter/Proxy、代次耗尽、精确有效期、损坏拒读、原生contentItems外层的精确字节记账。它们使用合成worker/key，不授DPAPI/OS锚点或daemon资格。七文件相关检查209项为202通过、1失败、6个既有平台skip；唯一失败为Mac真实worker在key_protect_started后无法使用Windows DPAPI，原失败保留，不能称完整本地验收通过。全仓Lint零错误/五个既有警告、1690份语法、CI及release治理通过；审计high门退出0，原fast-uri一项moderate未升级依赖。全仓原格式命令在Mac报1456个LF文件不符既有CRLF要求（core.autocrlf=input）；逐份只读auto行尾诊断确认1456项均仅为行尾，无其他格式问题。未批量改写或改配置；本批文件按原CRLF检查，Windows仍执行原完整格式门。
+
+新快路尚待本提交完整Windows门及原五秒负载验证，不宣称秒级flush根因已消失或稳定性已修复。15e安装路由只完成基线/582资产和固定源码预检，因普通门失败未启动。旧实例继续由用户自行切换，冻结现场和长测不动，无新24h/最大文件任务，真实模型0。其余daemon内部矩阵、最新安装升级/迁移/回滚与真实两端、连续24h/到期重开和最大文件仍属于未完成目标。
+
+## 2026-10-27：保留I/O起止时间以定位COMMIT等待；ab5普通八作业通过
+
+已通过官方REST逐项核对ab5ccdb的Verify40543765650：coverage122328760848及其余七作业全部completed/success。正式40543765431的source-gates122328758766仍in_progress，egress122328759306成功；不提前补写正式终态，不重跑既有任务。此前804普通coverage的Responses五秒失败继续保留，不能以本轮通过授长期稳定性。
+
+进一步读取804失败窗口的原回执：database write最高662ms、journal write501ms，delete最高1ms；调度汇总为一个flush关联线程生命周期，ready区间合计15ms、otherWaiting5054ms、已观测delayExecution为0，仍有一个未完成区间且traceCompletenessVerified=false。最长1049ms COMMIT与已观测662/174ms等待区间在时间上重叠；仅是同窗口正向观察，缺少精确线程/请求绑定，不能将它们求和后认作COMMIT归因，也不能用未观测到的重试或删除延迟排除旧失败原因。下一步优先定位写入/flush等待，而非未经证实修改SQLite忙等、DPAPI或杀毒设置。
+
+原I/O汇总只保留每类最大值，丢失具体I/O发生时间，无法再对应失败请求。本批在已有规范化事件入口后新增独立有界时间段模块，调度回执升为schema6，最多八条按耗时排序的操作类型、database/journal类别、起止/耗时和uint32状态；保留失败操作，不将非零状态算成功。不输出路径、IRP、进程/线程标识、SQL或私有内容，不增加栈捕获、WPR窗口或原请求内工作。事件丢失/重用/未完成仍按原规则处理。旧schema1–5仍按原严格合同校验；新字段闭合校验，时间、排序、状态及数量/最大值必须与原汇总一致，原16384字节回执上限不变。仍不授精确COMMIT关联或五秒资格。新模块进入两个既有I/O工作流的路径触发，原测试命令、负载、分片和失败停止规则保持。
+
+新实际累加器回归先红后绿；Mac六文件88/88、零skip/取消，覆盖正常/空、非法及附加字段、极端时间/全部状态库存、八条边界、复用/未完成/无关文件、失败状态和getter/Proxy；实际回执读取链保留新字段，旧schema5兼容保持。定向Lint/格式、1688份语法及CI/release治理通过。尚未取得schema6的Windows实际ETW回执，本批不是持久恢复尾延迟产品修复。认证、HTTP5000、原生10000、存储30000、精确ACK、SQLite FULL/DELETE/secure_delete、OS锚点独立flush及原24h到期均不变。旧实例仍由用户自行切换，冻结现场保持；未新启24h/最大文件，真实模型0。其余daemon内部矩阵、最新安装两端真实provider、连续24h/到期重开及最大文件仍未完成。
+
+## 2026-10-27：804完整I/O观察已通过；Rust链接对照保留首轮vctip失败，未改工具链
+
+804cf24897cf48dbd43c3e927b8007a9c78ecf98正式40536646269现已四作业终态success：source-gates122303587523、egress122303586960、N08122316710210、N09122316710307。普通40536645966除coverage122303586599外七项success，coverage的proxy阶段仍在actual core Responses WBIPC持久恢复失败；原同窗口24次flush中database最高683ms、journal465ms，未取得单笔精确归因，不被其他通过覆盖。正式固定场景成功仍不授full N08/N09或剩余daemon内部状态资格。
+
+额外完整coverage I/O40536646072/job122303586775已终态success，原proxy/client/frontend命令依次完成。proxy原生文件20/20、无失败，schema3窗口native-publication-interruption采369次flush（database83ms、journal93ms）；client-context-target窗口144次（52/25ms）；publication-graceful-http窗口63次（11/21ms）。三份回执均固定804源码、file-completed、cleanupVerified=true，两个阶段实际coverage_io_receipt_verified，取回后再用原严格parseSummary验证。此前发布路径丢事件及窗口漏验的修复已有Windows实际证据，不只是假回执单元测试。traceCompletenessVerified/fiveSecondQualified仍false，不能据此认定旧秒级尾延迟消失。独立两文件I/O40536646045/job122303586800也success，原50/50、零skip，144次flush（database28ms、journal32ms），同样不授稳定性。所有旧失败、原门及冻结现场保留，无重跑旧任务。
+
+Windows新目录hpm-linker-probe-20261027-e03c5a、任务HPM-linker-probe-e03c5a执行一次受控Rust链接A/B/A，只编译运行固定println程序；控制器SHA256 dda4fff173c049c0c0aabdbca1187198fdca01dc4d78d0d95a769ff07c0ab2ea，Node探针c6406263ea2616514b36022d30a715ddcb90fd578685bd6197ce40d3e64745ec。沿用所属Job赋权后stdin闸门、原编译/进程/五秒自然退出及清理门，不启动安装器、代理或模型。三次compiler退出0、生成程序均返回精确固定输出；msvc-a在natural-job-exit失败，捕获所属vctip，签名Valid、摘要13445e4d935015b6a56cc5095d0b9f7d12a06aafafd38a0553ea9ca17d20f214，expectedMsvcHelper路径相等标志false，不能补写具体加载位置；随后所属清理成功。rust-lld及msvc-c均自然清空并清理成功。第二次MSVC控制也通过，不能把LLD单次通过当作唯一根因或整体构建修复。任务Ready/LastTaskResult=0仅表示诊断完成，qualification=false；16:34:37.076191Z形成最终回执，后续CIM确认所属controller树0。编译器SHA256 5f3b5087b95e250378dd7bd829ae627d51c149468aae1e38c0f2a85c17cd374e，Rust所带LLD为6e0ee026bde7fe3b334a2e3a1c589c7ebf73e72ef671416d1c28549000ea3051。未下载/升级工具，未应用链接器、全局遥测设置或项目构建变更。对照使用[Rust官方链接选项](https://doc.rust-lang.org/rustc/codegen-options/index.html#linker-flavor)，其运行成功不等于完整Tauri/NSIS兼容资格。
+
+真实模型准备只做源码清单：774份候选触发初始上限，未因此读取全部历史；缩小至预算/本轮v4相关名称后仅只读7份代码，找到既有写入入口，未执行私有验收脚本、未改台账或预留请求。旧仓库验收入口仍有91/96历史额度假设，不能直接用来运行当前169已用的验收；私有代码的静态检查不授持久记账或dispatch资格，实际请求前仍须逐笔核对并安全持久记账。
+
+本批仅更新证据，不新增产品代码。旧实例保持、由用户自行切换；桌面67候选不替换，未新启24h/最大文件任务，真实模型0。下一步继续解决实际五秒尾延迟及构建首轮残留，保留原保守预扣/结算、精确ACK、认证、FULL/DELETE、OS锚点与到期语义；真实provider、剩余daemon内部矩阵、连续24h/到期重开及最大文件仍未完成。
+
+## 2026-10-27：修复发布路径的I/O观察盲点；独立诊断选择唯一原生文件窗口
+
+4f2fa08正式40530715190/source-gates122282417219已failure，egress成功、后续跳过。日志保留13个准备超时，其中9个直接SQLite案例、4个原生案例；新SQL观察中已完成COMMIT最长3133ms，部分最后记录为COMMIT started而无returned，均未进入目标中断。原生也有开库4310ms后首笔load仍未完成。它们不全经过DPAPI/OS锚点，不能统一归因原生保护层。普通40530715191/coverage122282417254的proxy阶段完成、client阶段失败于Responses/Claude WBIPC及录制after；Responses首轮long-persistent请求5000ms失败。该client失败窗口实际回执包含21次database flush（max1442ms）及42次journal flush（max1373ms），windowTermination=persistent-request-failed、cleanupVerified=true、traceCompletenessVerified=false。可确认窗口内存在秒级I/O，尚不能精确归因到失败请求或排除调度、其他并发合成操作。额外40530715206/job122282416990终态failure，client录制after失败保留，未重跑洗绿。167cb81普通40532944086七项非coverage成功，coverage122290396976、正式source-gates122290396824及额外122290395290最后仍运行，不补写结果。
+
+本批确认并修复此前窗口接入的实际盲点：PowerShell解码及JS汇总仍只接收hpm-wbipc-core的context/checkpoint.sqlite，导致hpm-publication-interior发布夹具的事件被丢弃。新真实聚合回归先红：三秒flush计0次；修复后database/journal分别保留一次3000ms观察。两端仅接收原客户端及发布夹具这两种固定合成布局、六位目录随机尾及checkpoint.sqlite/其journal，不接纳其他路径、伪装后缀、错误布局或NUL/CR/LF；长度界限保持。PowerShell实际name/create解码也验证两布局，最终汇总仍不输出路径、原文或指针，不增加第三类任意数据库授权。
+
+额外windows-persistent-io-coverage工作流的原proxy命令显式选择native-publication-interruption为唯一录制文件，原client文件在该阶段不再启动第二个WPR；普通Verify未设置选择器，维持原录制。client阶段先清除选择器，继续原两个串行窗口。主入口按独立纯模块列出的固定窗口逐份验证，旧client回执不能替代所选native回执（实际CLI先红后绿）；非法、空、极端、Proxy/getter、继承stage及client遗留选择器拒绝，PowerShell再次校验。原四分片、全部原命令/用例/负载和失败停止规则保持，无过滤、重试或重启旧任务。原生20项只增加失败观察组合，未替换默认worker、保护器、OS锚点或时钟。首次失败结束自己的环形窗口，后续原测试继续执行；同窗口汇总可能包含并发合成操作，仍不授单笔操作关联或稳定性。
+
+4f2 after失败日志还证实Node TAP未展示Error.cause中的固定分类。本批保留generic message与安全cause，另设置同一封闭词汇的Error.code供TAP展示，不暴露stderr或原异常值；旧实现code缺失的回归实际先红后绿。录制失败仍拒绝，所有原清理、容量与协议条件保持。没有用空事件或缺失原因作为绿色证据。
+
+Mac相关九文件121/121、零skip/取消，包括实际PowerShell解码/选择器/原workflow停止顺序、实际CLI回执、原直接发布25项及同步SQL8项；定向Lint/格式、1686语法及CI/release治理通过。新增测试由既有统一unit发现，新增选择模块进入原I/O workflow paths。新原生窗口尚未在Windows运行，不授其ETW、worker或daemon资格。本批未改产品存储、认证、精确ACK、FULL/DELETE/secure_delete、独立锚点flush和24h到期；旧实例仍由用户自行切换，冻结现场/长测不动，无新24h/最大文件任务，真实模型0。后续先核对新窗口实际回执，再定位COMMIT等待；真实provider、其余daemon内部矩阵、真实24h及到期重开和最大文件的完整范围保留。
+
+## 2026-10-27：补上发布窗口的最终CLI核验；4ca正式四作业成功，原覆盖率失败不被覆盖
+
+4ca0ab32818f9f837ff71bfa13eaea7a05b24746正式40527518009现已逐项终态核对：source-gates122271002069、egress122271002333、N08122284149994、N09122284149987均success。已取完整源码门日志，原verify、集成、Rust与审计高危阈值完成；这是一轮完整源码门及固定场景作业成功，不覆盖同提交普通coverage122271003422及额外I/O122271001376的原生准备失败，也不授full N08/N09、其余daemon内部转换、五秒长期稳定性或24h资格。源码门审计另报告fast-uri3.1.8一项moderate，依赖树确认经运行时MCP SDK→ajv引入；原high阈值未降低，没有将审计通过说成零漏洞，未主动升级依赖或改锁文件，影响与修复仍需单独核对。
+
+4f2fa08603cf221f3d3b941530881bdfcd382499普通40530715191七项非coverage作业已success；coverage122282417254、正式source-gates122282417219及额外I/O122282416990最后仍运行，保持终态未确认。旧任务不重跑。4ca源码门通过也不能替代4f2新增窗口真实运行的证据。
+
+本批修复上批接入遗漏：publication-graceful-http虽有独立schema3回执和原文件after gate，最终check-coverage-io-receipt.cjs却只验证默认客户端回执。新回归直接启动实际CLI：仅有有效client回执而缺发布回执时，旧实现错误退出0，已实际先红。现在client阶段必须先后验证两份精确源码/阶段/窗口/清理回执；缺失、被换为其他源码或非法附加参数均退出1且只输出固定失败文字。proxy阶段仍仅验证原窗口，不新增并行录制或改变原命令。主入口只组合现有验证器，无新资格或宽松降级；原coverageExit失败仍独立保留。测试不启动WPR、代理或模型，模拟录制只用于建立有界合成回执，不授Windows ETW资格。
+
+Mac相关四文件76/76、零skip/取消；实际CLI覆盖缺失、正常、错身份、非法参数及原proxy行为，另保留全部录制控制和直接发布矩阵。定向Lint/格式、CI/release治理通过，无产品存储或构建输入变化。新测试仍进入统一unit，新提交完整CI待核对。产品认证、HTTP5000/原生10000/存储30000、精确ACK、FULL/DELETE/secure_delete、OS锚点独立flush、原TTL全部保持；旧实例由用户自行切换，冻结现场及长测不动，无新24h/最大文件任务，真实模型0。下一步继续核对同一批CI，优先取得与实际原生失败操作绑定的阶段和I/O证据；剩余真实provider、daemon内部矩阵及真实24h/到期重开范围不缩减。
+
+## 2026-10-27：区分子进程启动尾延迟；补直接发布夹具的独立I/O窗口，4ca原生准备失败继续保留
+
+4ca0ab32818f9f837ff71bfa13eaea7a05b24746普通Verify40527517817的七项非coverage作业均success；新增同步SQL观察回归在Windows unit shard2/job122271003463实际8/8、零skip，393ms，包含独立PENDING锁和同步阻塞前消息验证，该分片187/747文件全部通过。不能覆盖本机此前7/8失败。coverage122271003422现已failure：native worker sending强杀/ACK案例在awaiting=ready失败，开库1450ms；首两次保存分别471/2378ms，后一笔engine.execute2118ms、snapshot8ms、anchor约232ms，随后load未完成。目标中断未进入。额外I/O40527518101/job122271001376也failure：uncertain强杀/COMMIT案例开库1611ms，首笔保存1886ms，第二笔engine.execute760ms、snapshot9ms后仍在anchor持久中；原五秒准备门未过。均未重跑、跳过或提高期限。
+
+普通coverage另有原录制after hook失败，记录为coverage_io_capture_failed，原30项业务断言通过不等于该文件通过；原日志没有足以区分子进程退出、协议输出、摘要/trace控制的原因，不补猜根因。额外I/O的proxy回执仅绑定client-context-target录制窗口，28个已观察journal flush最高55ms、traceCompletenessVerified=false；未取得两笔失败原生操作与事件的精确关联，不能用该回执排除它们的I/O等待。正式40527518009的egress成功、source-gates122271002069最后仍运行，保持终态未确认。
+
+Windows独立短诊断HPM-reader-startup-c61b2e输入归档a33e36ddfc9ad40057bf23b4b4d2bef30a1650971697b272215556a99fe6dea7，四份固定控制/探针文件，只用新合成SQLite。启动SSH观察75秒超时后继续只读同一任务，未重启。最终Ready/LastTaskResult=0，15:10:02.9619021Z完成，父8445ms、Job自然清空、所属进程0，qualification=false、模型0。fork到spawn约901ms，到首条preload消息4346ms，preload自身196ms，到reader-held等价SELECT完成4648ms；子进程内open至SELECT约6ms。此次主要时间位于进入预加载之前，但父端收到消息也含IPC/调度开销，不能把4346ms全算成Node初始化或断言旧7/8的唯一根因。原7/8现场和五秒门保持，未重跑成绿色。
+
+本批给原context-recovery-graceful-http文件接入独立publication-graceful-http录制窗口：保持原五状态/五秒准备/十五秒外层和调用负载，只在已授权托管串行client coverage启用；完整proxy并行分片不增加第二个录制器，默认未启用时无录制进程。新schema3精确绑定源码、client阶段和固定windowId，独立回执名不覆盖原client-context-target的schema1/2；跨窗口、旧schema冒充、非法/极端/恶意scope及多余字段均拒绝。首次夹具失败只结束自己的录制，最终发布仍需原after清理和完整摘要；录制停止失败保留原fixture错误及独立AggregateError，不重试、不吞错或授资格。原client窗口行为保持。该新窗口不覆盖proxy阶段原生中断失败，也不能凭录制启动或事件缺失排除等待。
+
+同时将原录制after拒绝分成封闭原因词汇（进程退出/信号、协议、剩余输出、缺摘要、trace控制、容量），原generic失败和全部拒绝条件保持，只有安全cause分类增加；不输出stderr、trace原文或异常值。针对缺失window身份/停止原因/安全分类的回归均先红后绿。Mac四文件75/75、零skip/取消，包括原直接发布矩阵25项与真实PowerShell控制回归；定向Lint/格式、1684语法及CI/release治理通过。仅本机验证，新增托管真实窗口尚未运行，不授Windows ETW、五秒稳定性或原生/daemon新资格。新测试仍进入既有统一unit。
+
+先自用候选及已通过57安装整链的身份不变，用户保留旧实例自行切换；本批未动旧实例/日常配置/冻结数据库，未新启24h或最大文件任务，真实模型0。产品认证、精确ACK、FULL/DELETE/secure_delete、独立OS锚点flush及原TTL均不变。后续继续定位原生准备中execute/anchor及进程启动尾延迟，并补齐与实际失败操作绑定的I/O证据；其余daemon内部矩阵、真实provider、连续真实24h/到期重开和最大文件仍保留完整目标。
+
+## 2026-10-27：57安装整链已通过；直接SQL阶段观察落地，Windows读锁准备失败保留
+
+固定57d4dfeb143ea752670f6c1c11504eeaef8b1491的安装run40517260908现已终态success，resolve122234047422及encrypted122234232170全部success；已读实际日志和三个最终JSON回执，非仅凭排队或聚合绿灯。原完整源码门/build/安装升级回滚/同用户DPAPI完成。manifest f27d2fc4c3f212d1f95623f5160b301922348b576328f20c0ce65da5b019ee0f，application 8a98c974421bd27b91f7e6b6936cc429db72f5c91b786f910cc429fb272c2195。582八阶段、原baselineSourceCount=582及manifest4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f、布局1→3、revisionDelta=1、旧版拒写完成；installedMigrationQualified=true，ownedTreeEmpty=true。四个实际原生CLI合成案例为Codex/Claude各默认及增强，均三次压缩、精确最终答案、同会话重启；默认零代理恢复，增强私有读后独立公开生成。HTTP/SSE/WS排空及daemon自然退出完成，WS保留401拒绝、五个partial/零terminal及两侧关闭断言。安装包内发布30/30、零skip，仅defaultWorkerQualified=true、daemonQualified=false。realProviderQualified=false、retention24hQualified=false、真实模型0；不将57托管安装资格转授桌面67候选、后续1f/69源码或日常实例，用户仍自行切换。
+
+69f1cd9普通40521381962除coverage122249102793外七项success；coverage的直接文件SQLite正常停机prepared/ACK项仍在awaiting=ready五秒失败，load-reference完成27→29ms，save-reference-state从36ms起pending，目标中断未进入。正式40521382348的egress成功、source-gates122249106901失败、后续跳过；已定位为actual core chat WBIPC的long-persistent首轮请求5003ms失败，requests=2/handshakes=2/roots=1。该默认原生owner的已完成写COMMIT分别1852/712/631ms，锚点分发也有415ms，随后read-source-and-settle的557ms COMMIT在失败后才报告。可确认多笔持久操作消耗请求期限；不能据此唯一归因文件flush、调度或杀毒，也不能用完成日志排除尚未完成等待。business诊断40521382001及额外I/O40521382183成功不覆盖两项失败，未重跑洗绿。
+
+本批仅在直接文件发布夹具中加入同步SQL调用前/返回/抛出观察，固定BEGIN/BEGIN IMMEDIATE/COMMIT/ROLLBACK及原clock UPDATE词汇；不发送SQL文本、参数、行、异常、路径或私有数据。父端闭合字段/有界序号/单调时间校验，只保留最后32样本。观察器异常和原生拒绝Promise不能更改、重试或阻止原SQL；后续诊断时钟损坏只停止观察，原调用及原结果/错误身份保持。返回观察不授持久ACK，COMMIT开始观察不替代独立PENDING锁见证；默认worker路径保持原样。新测试覆盖正常/空/非法/极端/恶意属性/失败及真实FULL/DELETE文件读回，并以独立reader、writer、probe证明同步COMMIT阻塞时开始消息已到达、释放后才返回。初版同进程reader/probe无法证明跨进程PENDING，已修正拓扑，不能当作产品根因。
+
+Mac新文件8/8、扩大相关六文件49/49，零skip/取消，定向Lint/格式及1683语法、CI/release治理通过；新文件由既有统一unit自动发现。Windows独立HPM-sql-publication-0d5f23输入归档fc89efef5c69d15262f69feec5afe4b32dd6b4c6568f3855a62d8374bdef3e03，固定12文件。原unit阶段7/8，测试8在独立reader-held就绪原5000ms门失败，writer尚未创建、SQL观察未执行；原55项发布矩阵按非零停止，未运行。任务已终态Ready/LastTaskResult=1，于14:51:11.2729698Z结束；父62786ms、stderr0，所属清理返回不授自然退出。只读回取八项耗时确认前三至七项均已完成，不能将总45775ms直接归为SQL阻塞或断言Python/PowerShell预加载根因。已检查physical-test-temp及其导入：仅文件路径解析时执行realpath/lstat，test-python-runtime无顶层工具探测；仍需区分子进程启动、模块加载与开库/SELECT阶段。
+
+本批不宣称五秒稳定性已修复。HTTP5000、原生10000、存储30000、COMMIT见证750、FULL/DELETE/secure_delete、精确ACK和原24h期限均未变。保留所有历史失败和冻结现场，未新启24h/最大文件任务、未动旧实例或日常配置，真实模型0。下一步使用本批有界SQL证据继续定位持久尾延迟；完整provider、其余daemon内部矩阵、真实24h/到期重开和最大文件仍待完成。
+
+## 2026-10-27：修复N09见证拒绝漏锁与重复关闭；直接SQLite五秒准备失败保留，57安装通道已创建
+
+57d4dfe的Verify40512069240同一attempt恰好八项必需job，已逐项核对success，最后coverage于13:47:05Z完成；正式40512069460的source-gates122216285342、egress122216286089、N08122227968466、N09122227968533也全部success。三runner各原50项、独立I/O40512069061及完整coverage-I/O40512069206均success。普通Verify的run聚合状态却仍in_progress/conclusion=null，与八个已完成作业不一致；连接器及官方REST带no-cache读取一致，未把它补写为终态通过、取消或重跑。仅按实际完成检查的范围报告，不授五秒长期稳定性。
+
+已核对未公开基线421213889仍draft、固定target f8421078c67e30f32f17b4718c094fcbb6e0794e、installer/identity资产667118183/667118182及原transfer tag；未读取或上传用户密钥/DB。新建一次既有受控review路由的57固定源码分支（后缀57d4dfeb143ea752670f6c1c11504eeaef8b1491），无force/覆盖，实际运行40517260908已生成，resolve/job122234047422成功，encrypted/job122234232170最后确认为queued。该流程自身仍强制完整npm verify/audit，门未过不安装，再做升级回滚、582迁移及安装双端合成/发布矩阵；不绕过任何原门，未把分支推送/排队称安装开始或通过。后续插件传输读取失败，当前阶段待同一run核对，不另建或重启。它固定57、不含1f监听关闭修复及本批见证清理，不替换桌面67候选或E盘旧实例，用户自行切换选择保持。
+
+Windows原有私有台账已只读重新核对：maximum=177、used=169、requests数组169条，usedAtGrant=154、Codex授权16已用15，Claude既有保留7未消耗，分别剩1/7，other=0，分配精确对齐总余额8。noAutomaticRetries=true、dailyConfigurationChangesAllowed=false；未准备dispatch reservation，实际转发前仍须按客户端逐笔持久记账。本轮真实模型0，不因核对成功自动调用模型或合并余额，不向Git上传台账/授权原件。
+
+为继续daemon内部见证，先修复两个已实际复现的清理缺陷：工厂已取得真实SQLite SHARED读锁但返回多余字段，构造拒绝前原实现没有接管close，后续真实COMMIT报database is locked；并发wait拒绝和显式关闭又会重复调用同一close（2而非1）。两项回归先失败。现在先捕获安全的自有同步close，再验证资源完整形状，拒绝也释放已取得的锁；关闭尝试最多一次、失败保持sticky。验证后的wait/release/close固定方法及原receiver不再从可变属性重新读取。清理返回非undefined（含拒绝Promise/thenable）保持失败，拒绝Promise被观察、then getter不执行，不能将异步未完成清理称成功。无安全close能力时仍拒绝、不执行getter/Proxy/继承方法，不授任何见证或关闭资格。
+
+Mac单文件12/12、N09全部506/506，零skip/取消；正常/空/非法/极端输入原覆盖保持，新增真实锁释放、并发只关闭一次、恶意属性、清理失败/Promise与方法被替换边界。定向Lint/格式、1682语法、CI及release治理通过；新测试在既有统一unit文件内，不新增跳过或放宽断言。原750ms共用见证预算、精确generation/root/expiry/revision与新nonce签名绑定、SQLite FULL/DELETE及所有产品认证/期限/TTL不变。此为验收见证清理修复，不是原生开库或五秒尾延迟根因修复，也未新增sending等daemon资格。
+
+Windows独立任务HPM-n09-witness-6bb2d4输入归档SHA256 e7a3ad10a04eb9e331f1d4d45968587a8b605712c7461df26ec2be87d0577db2，固定94份源码/测试/控制文件，基于现有隔离库叠加当前N09源码和本批两份改动。启动SSH观察75秒超时后继续只读核对同一任务，未重启；最终Ready/LastTaskResult=1，2026-10-27T14:13:06.8999340Z结束，父44501ms、stderr0，所属清理返回成功但不授自然退出。四文件34项32通过/2失败、零skip；本批关键前12项全部通过，执行后两份改动摘要一致。两个原有真实文件challenge控制在2387/2342ms报固定n09_publication_client_rejected，具体阶段/原因尚未确认，保留原失败，不将局部12项或Mac506项冒充整批Windows通过。该短测不授原生worker、DPAPI、daemon或安装资格。
+
+1f4978e Verify40515117503的coverage/job122226937689现已failure：context-recovery-graceful-http的prepared/ACK、sending/ACK两项在awaiting=ready时五秒超时，仅见load-reference完成5/3ms，save-reference-state于59/51ms开始后仍pending；均尚未进入目标中断。它们使用直接文件SQLite和合成密钥，不经过默认worker/DPAPI/OS锚点，不能只将本批失败归因原生后端，也不能断言与旧原生超时根因相同。原I/O回执仅绑定client-context-target文件的录制窗口，汇总日志见13:52:54Z，两项失败日志见13:54:48/53Z；未取得窗口与这两笔失败操作的关联覆盖证据，20个已观察journal flush最高40ms不能用于排除其I/O阻塞。traceCompletenessVerified=false，不能用缺失事件排除等待，也不以日志打印顺序冒充完整的操作时钟关联。其余七个普通job成功，正式40515117533最后为源码门运行中，后续读取失败则保持终态未确认，不rerun洗绿。
+
+下一步优先补直接SQL阶段，区别执行体、时钟写入与COMMIT阻塞，同时跟进同一57安装run及1f正式门。剩余daemon内部转换、真实provider、连续真实24h及到期重开/最大文件/受控自用仍保留完整范围。冻结现场与原长测/失败记录不动，无新24h或最大文件任务，无真实模型调用；公开release签名要求及已确定产品方向不改。
+
+## 2026-10-27：修复监听关闭后的迟到应用；Windows替换失败保留，57三台原五秒回归通过
+
+6731fbd普通Verify40510334798已终态failure：unit shard1/job122210249069为合成WFP测试的原pwsh启动25000ms超时；coverage/job122210248932为config-watcher.test.js的last write wins断言C不等于D，原proxy阶段失败且client阶段未授资格。额外I/O40510334210已success；正式40510334222已从运行终态核对为success，source-gates122210246562、egress122210246356、N08122221598870、N09122221598840全部通过。未重跑、跳过或延长这些门。57d4dfe三runner时序40512069379的三个job122216284573/122216284849/122216284581分别原两文件50/50、零skip/取消，26625/26776/25165ms，均退出0；Verify40512069240七个已结束节点success、coverage仍运行，正式40512069460原源码门仍运行。57独立I/O40512069061/job122216282175亦实际原两文件50/50、零skip/取消、24993ms并退出0。该证据不覆盖历史超时或授稳定性，57新增执行阶段尚未取得新的实际超时回执。
+
+原热加载测试在50ms防抖窗口内的三次写入之间各sleep20；调度延迟可让较早重载合法完成，随后reloadCount===1会在最后写入尚未稳定时立即返回。将该段恢复为真正同步连续三写，原B/C/D负载、50ms防抖、500ms观察及一次重载/D结果断言不改；不提高baseline或放宽成允许旧配置。
+
+另外以受控在途读取/异步标准化/读取重试复现了实际产品缺陷：watcher.close后仍会进入新的loadConfigFn/reloadFn，继续重试并发出迟到结果。三条新回归在旧实现实际失败。修复在关闭后的异步边界停止新工作，清除唯一待重试计时器并结算其内部Promise，清除pendingAfterCurrent；不尝试撤销已进入的应用回调，但不再新应用或发迟到成功/错误事件。正常未关闭的非法JSON、原60ms/最多5次重试、串行化及默认150ms防抖保持，原子替换文件/目录双监听、认证/加密配置加载与非法配置保留旧值均保持。没有触及上下文TTL、存储、模型或旧实例。
+
+Mac三文件12/12、零skip，完整headers-routing合成集成退出0；定向Lint/格式、1682语法、CI及release治理通过。新生命周期回归为7项，覆盖关闭时在途读取/标准化、关闭前已进入应用的成功或拒绝、关闭后标准化拒绝、重复关闭、重试取消及原次数/间隔和正常/非法JSON，进入统一unit发现。
+
+Windows独立任务HPM-config-lifecycle-76c9aa于2026-10-27T13:32:04.8619164Z结束，Node退出1、父13515ms、stderr0、任务Ready/LastTaskResult=1，所属清理返回成功，不授自然退出资格。12项11通过/1失败、零skip；7项生命周期及原burst/其他控制通过，但未修改的actual watcher observes repeated atomic replacement and later edits项在1947ms时报告config_replacement_not_observed（各次原1000ms观察不变）。不能将Mac或局部Windows通过冒充全批通过；该失败及前述C/D失败全部保留。源码输入归档SHA256 536196448c6daa2476f4134d0f42c47845b60434b26ce038900000f549dc48a2，四份库/测试均固定上传，无凭据或数据库。
+
+为区分上述替换失败的写入、重命名、通知与读取阶段，独立固定四版本诊断HPM-config-replace-diag-e18cf0仅观察固定类型/序号/时间/同名布尔值，不输出路径、配置原文或异常；保持20ms debounce及每阶段1000ms，不重跑原失败任务。归档SHA256 06539f5e14fa664a16f8fe9b6be235c4e1b176219f4519fa8ce0fce6fa26fc5d。实际Node已于2026-10-27T13:37:45.3692451Z退出1、528ms、stdout0/stderr575、所属清理完成；分类确认为VM漏传process.platform造成ReferenceError，这是诊断夹具错误，没有有效替换阶段证据，不能当作产品根因。修正夹具后使用新目录/新任务HPM-config-replace-diag-e18cf1（新归档9a6d58d3dce09a9b72c9c5e64b4b97909997faa2a405ab765222ee0734cc9404），未覆盖旧诊断。第一次观察SSH退出255无回执后继续读取同一任务，最终确认Ready/LastTaskResult=0、Node退出0、父12988ms、stderr0、Job自然清空，2026-10-27T13:43:42.4362328Z完成，所属controller/node均不存在。四版本通知与后续编辑全部观测到、无溢出；首版本从write_begin到observed为866ms，其读取362ms，写入14ms/重命名42ms，后续三版本约250/115/176ms。本次未复现丢事件，首轮接近原1000ms观察门，但不能据此唯一解释旧失败或归因调度/杀毒；该计时副本qualification=false，不能覆盖原11/12失败。
+
+本批只修复可复现的关闭生命周期问题，尚未修复Windows替换漏观察或持久恢复五秒尾延迟。旧实例、桌面67候选及用户自行切换选择保持；新24h/最大文件未启动，冻结现场未动，真实模型0。继续核对57完整门及同一诊断，依据实际阶段修复；真实provider/额度核对、其余daemon内部矩阵、真实24h和到期重开仍属于完整交付目标。
+
+## 2026-10-27：定位正式门失败于连续保存准备；原worker增加有界阶段观察，Windows73项通过
+
+已取回4a正式40507241038/source-gates122199563060日志：原生正常停机transport-finished/ACK、uncertain/COMMIT及uncertain/ACK三项失败均为awaiting=ready，尚未进入目标中断。开库分别594/1542/2144ms完成，首项初次save-reference-state从101到2134ms、随后第二次仍pending；第二项连续保存1499/1267ms、第四次操作pending；第三项初次保存1429ms后第二次pending。目录ACL分别22/18/17ms，本批失败不是目录ACL未完成的证据。原1726项中3失败保留，不重启或改写原任务，不将准备超时误称目标中断语义失败。
+
+SSH独立诊断HPM-save-phase-9fa6b3实际完成，Node退出0、父2959ms、stderr0、Job自然清空。固定6731fbd产品库加明确标记的私有计时副本，仅执行一次固定合成观察/准备/发送/传输完成：149/119/74/57ms；写事务COMMIT约7–11ms、快照0.699–4.344ms、后续锚点native请求4.903–19.507ms。源码归档SHA256 2892e5130f4456161f777950c1d3c5abf6299efcf716cf98a6a9160a7cea60bc。未复现托管秒级尾延迟，qualification=false；这些数据不能确定旧失败的SQL/快照/锚点根因或覆盖原五秒失败。
+
+本批新增可选onExecutionProgress观察，从原默认worker的实际异步owner发出固定sequence/phase/elapsedMs：文件验证前后、engine.execute前后、独立认证snapshot前后、独立锚点持久前后及最终验证前后。默认不开启，不增加worker消息；仅原发布中断夹具启用，父端与夹具二次校验闭合词汇/精确字段/单调序列和时间，夹具仅保留最后24项。无请求、scope、原文、结果、异常、headers或路径，计时饱和于60000仅为观察上限，不控制任何期限。观察器异常/拒绝Promise被隔离，完成观察不能解析请求Promise或授ACK，原结果、精确版本、独立flush、FULL/DELETE、TTL、失败关闭及五秒/原生/存储门均不变。新增模块已显式进入release-proxy-sources；首次治理检查拒绝未声明模块，补齐后原检查通过。
+
+新增安全回归覆盖正常及失败序列、空/非法/极端输入、accessor/Proxy、重复/乱序、未经启用消息拒绝、观察器失败和拒绝Promise；实际SQL加合成锚点受控阻塞确认engine/snapshot已完成但anchor_persist_started时仍无ACK，释放准确回执后才完成，后续CAS拒绝仍报告failed。首次服务测试把原null-prototype结果误写为普通对象期望，修正夹具的原型期望后通过，未改产品结果。Mac七文件128项127通过/1原Windows平台skip，N09完整501/501零skip，发布治理两项通过；Lint/格式、1681语法、CI治理及release治理已检查。本批新回归进入统一unit发现，未跳过失败或提高baseline。
+
+Windows独立目录C:\\Users\\juhon\\hpm-execution-progress-20261027-58b19a、任务HPM-execution-progress-58b19a基于已有库副本叠加8份本批代码/测试，输入归档SHA256 a987397125ef514cd45ae86f2987700c52f5d827ab62b3d4f03ae41e1ac849b6。原43项基础回归43/43、零skip，父31156ms退出0；随后原native-publication-interruption/native-graceful-http两文件30/30、零skip，父93363ms退出0，两个Job均自然清空、stderr0，于2026-10-27T13:24:21.5505444Z完成。使用默认worker、真实DPAPI/OS锚点及原时间/所属清理，不是替换后端或计时副本；仅授本机本批矩阵回归，不能据单次通过覆盖旧失败、授长期稳定性、安装版或daemon完整资格。
+
+6731fbd业务边界诊断40510334781已success；Verify40510334798的unit shard1/job122210249069失败于shared-hosted-egress-wfp原spawnSync pwsh的25000ms超时，其他已结束节点通过、coverage仍运行；正式40510334222源码门及额外I/O40510334210仍运行，完整资格未确认。旧实例/桌面67候选不替换，用户自行切换；没有新24h、最大文件、冻结现场操作或真实模型调用。下一步用实际失败阶段继续解决保存尾延迟，核对新源码完整门；真实provider与额度核对、余下daemon内部矩阵、真实24h及到期重开仍保留为完整目标。
+
+## 2026-10-27：保留旧实例；Windows目录诊断59项及8次开库通过，N09零等待锁竞争分类
+
+用户明确选择保留E盘旧托盘实例、自行切换桌面67候选；本批未安装、退出或改写旧实例及其配置。SSH已恢复，独立目录C:\\Users\\juhon\\hpm-directory-startup-20261027-9d80e1、任务HPM-directory-startup-9d80e1确实执行并于2026-10-27T13:00:51.3346426Z完成，Ready/LastTaskResult=0。固定4a0e3d8源码输入归档SHA256 4d14bbdb3fe7d34230dbe58e26083015ff72a41f7ffd418b5550cf5e3012ed7b；原六文件59/59、零skip/取消、父Node退出0，随后8次实际默认worker/DPAPI/OS锚点独立开关库退出0，两个所属Job均自然清空。open调用800–1612ms、目录ACL阶段75–99ms。本轮仅最小启动诊断，qualification=false；调用计时不含完整进程/HTTP准备，不能覆盖此前29/30、五秒尾延迟或授连续稳定性，未重跑原失败矩阵洗绿。
+
+4a0e3d8最新CI已从GitHub REST终态核对：Verify40507240974及额外持久I/O40507240980为success；正式40507241038为failure，source-gates/job122199563060在Require unified source gates失败，egress通过、后续context-recovery跳过。插件传输持续失败，暂未取回该次原始失败日志，不能给失败补写原因或称完整门通过；没有rerun。d5此前casePhase82/179的原因同样尚未确认。
+
+N09只读快照新增可复现的实际磁盘SQLite独占写锁回归：原busy_timeout=0不变，第一次只读schema查询仍立即拒绝，标记固定数值阶段255；写锁显式释放后仅显式后续观察可以重新读取。原实现先红（179而非255），修改后绿。仅当实际错误自有数据字段code=ERR_SQLITE_ERROR、errcode=5才分类，不读取message、路径、数据或触发accessor/Proxy；其他畸形、空、继承、非法及极值错误保持179，观察器失败仍安全拒绝并回滚/关闭。owned-entry仅准许该固定失败阶段，不授ready、ACK或资格。未增加等待/重试，也不能据此断言旧179一定是BUSY或已修复其实际根因。
+
+Mac相关四文件46/46、扩大N09全文件501/501，零skip/取消；定向Lint/格式、1679文件语法、CI及release治理通过。新测试仍由统一unit发现；本批未授Windows新分类原生完整资格。认证、原期限、精确ACK、FULL/DELETE及原到期时间全部保持。真实模型调用0，无新24h或最大文件任务，冻结现场及已知失败保留。后续先补取正式失败细节，继续定位持久准备尾延迟；安装版两端既有fb合成资格与桌面67产物身份仍分别记录，真实provider、其余daemon内部矩阵及真实24h/到期重开仍未完成。
+
+## 2026-10-27：fb安装整链通过；新快照本机50项通过、原生矩阵29/30；补目录ACL阶段，Windows连接中断
+
+安装review40500532099/job122176959482已从运行终态及各强制步骤核对为success，源码固定fb7f732。manifest d8b702a5d1b70e6137db2457a4883cf066b8f70fa8f4fd9d2cfe234a54ff4f8c：同格式安装/升级回滚/DPAPI通过；582八阶段、baselineSourceCount=582、原manifest4eb1ea48…、布局1→3及revisionDelta=1、旧读者拒写通过。schema7四个实际原生CLI案例（Codex/Claude各默认、增强）均三次压缩、精确最终答案及同会话重启；默认零代理恢复，增强私有读后独立公开生成。Codex两模式WS的401拒绝、五个partial/零terminal、两侧关闭，以及HTTP/SSE/WS排空、daemon自然退出及所属树清空通过。包内发布30/30零skip仅defaultWorkerQualified=true，daemonQualified=false；真实provider/24h仍false。此为托管临时安装器资格，不将桌面67产物重标为fb已安装验收，也不覆盖后续f224优化。
+
+f224普通40502018280八项、三台独立原完整两文件时序40502018279及额外I/O40502018274全部success。但正式40502018237 source-gates失败于原生发布prepared/ACK强杀、transport-finished/COMMIT释放两项ready准备，尚未进入目标中断：开库2441/1029ms，首项初次save-reference-state约1979ms，次项连续保存1589/1229ms后第四次仍pending；N08/N09未执行，旧五秒尾延迟不能抹除。仅文档差异的d5普通40502142096还失败于legacy-runtime-archive的原25秒pwsh启动超时；正式40502142070源码门/N08通过、N09在casePhase82的只读快照schema查询/准入阶段179失败。未确认BUSY、热日志或格式错误，不把最后阶段冒充已知产品根因，不rerun洗绿。
+
+新快照在本机独立目录的原Core/Codex两文件50/50零skip，49111ms，父Node49443ms退出0、Job自然清空。随后原生发布两文件30项29通过/1失败、零skip，102115ms，父Node102650ms退出1并完成所属清理；transport-finished强杀/COMMIT项在ready准备阶段最后paths_started146ms，尚未进入中断或新快照执行。远端终态文件及CIM确认测试结束、所属Node不存在；SSH观察连接却在300秒超时，分别保留测试失败和传输观察失败，不重启源测试。
+
+本批仅增加directory_acl_started/finished两个固定阶段，夹住原secureRecoveryStoragePath(directory)调用，后续失败可区分ACL边界与前后文件检查；不改变ACL、原生分发、重试、期限、持久语义或就绪定义。同步更新NSIS证据白名单及固定时序词汇，未知/重复阶段仍拒绝，两个阶段单独不能授readiness。新目录观察回归5项先红后绿，另一个NSIS消费回归也先红；首次VM漏process属于夹具准备错误，修正后才确认缺阶段的真实红结果。原key-write夹具先断言目录阶段，再单独观察原11项key写入，原写入断言不放宽。六文件59项58通过/1原Windows平台skip、零失败，新测试无平台skip并进入统一unit发现；Lint、格式、1679语法及CI/release治理通过。尚未授本批Windows原生资格。
+
+新Windows最小开库诊断尚未上传或启动：SSH先connection reset，随后TCP22超时，无现存共享master。准备的独立目录/计划任务未获得实际启动证据，不能称运行；未重试整套中断矩阵、改动旧实例/日常配置/冻结现场/长测或调用模型。主机连接状态已异步询问，托管工作继续。下一步核对新提交完整CI及目录/只读schema失败的实际阶段；真实provider、连续24h及到期重开、最大文件和其余daemon内部矩阵仍未完成，先自用交付优先级不变。
+
+## 2026-10-27：快照复用本次认证字节，移除重复UTF-8转换；Windows148项通过
+
+沿快照重复工作继续定位到一项实际开销：blob.open已完成载荷长度、UTF-8往返、摘要及blob身份认证，快照随后payload又为同一原文构造Buffer并重做相同摘要。新回归在旧代码实际失败，每份正常非空原文编码3次而非要求的2次。本批open先保留原长度上限和byteLength检查，再只构造本次Buffer，使用同一字节完成认证及已解析reference的sourceId/bytes/digest绑定、coveredThrough的UTF-8完整前缀检查；返回值仍只有原数据，不暴露或缓存Buffer，没有跨调用/跨事务证明。独立parseCompletedEvidenceSource、敏感/未完成内容拒绝及完整载荷重新认证保持。
+
+计数范围补正：3次降为2次指未读非空载荷的显式整串Buffer转换，连续两次snapshot均确认；已读UTF-8前缀的必要转换另计，并非所有载荷都固定2次。独立捕获策略检查保持。另外新增已认证但长度不符的超大原文回归，确认在分配原文UTF-8 Buffer前拒绝。原正常、空、Unicode、多字节截断、missing/extra/swapped、认证畸形载荷、AAD/摘要/策略、整包密集转义与聚合容量边界保持。未改TTL、ACK版本、FULL/DELETE/secure_delete、OS锚点、任何期限、认证或持久化开库失败语义；也不把这项优化宣称为五秒超时唯一根因或长期稳定性修复。
+
+Mac扩大三文件147项146通过/1真实Windows默认加密worker开库失败，该失败保留且未加平台skip；随后两项新增定向回归通过。Windows在新独立目录运行修改后完整storage-blobs、anchor-sqlite、read-settlement三文件，148/148、零skip/取消，测试44062ms、父Node44401ms退出0、stderr0、原所属Job自然清空；包括实际默认加密worker及重开。固定源码归档基于25fbd86，仅叠加本批两份源码/测试；archive SHA256 18aee5e76dca7edb9f4e3ff9b90a11a7b08a48b9872770d04202cd3432be0b4b，执行后两份文件摘要与准备时一致。定向Lint/格式、1678语法及CI/release治理通过，新提交完整CI尚待核对。
+
+安装验收40500532099/job122176959482仍实际运行，当前Require all current candidate gates；源码固定fb7f732，不包含本批优化，不能相互冒充资格。桌面67候选不替换，用户自行切换；未操作旧实例、日常配置、冻结现场或长测，模型0。原五秒/构建/日档失败全部保留，真实provider、最新安装完整结果、其余daemon内部中断、真实24h及最大文件完整资格仍待完成。
+
+## 2026-10-27：fb完整CI通过；构建收尾定位vctip残留，安装新版验收提交独立通道
+
+fb7f73238a61415742e40ad73ee35fb15a5eb477普通40497299266八项、额外持久I/O40497299280及正式40497299395四项均从GitHub运行终态核对为success。正式source-gates122165866487、egress122165866886、N08122174950307、N09122174950314全部通过。1b476ac相对fb仅增加两份交接文档，资格仍按实际源码提交报告。67正式旧legacy_unprotect十秒超时、8b额外I/O准备超时及其他已知失败不被后续通过抹除，不rerun旧任务。
+
+本机短测终态后，新建一次构建诊断，固定原67源码、Tauri命令、编译环境及五秒自然Job退出门，不运行安装器或替换交付物。实际根Node于11:45:06.555Z启动，归属Job后才发原stdin闸门；进程树先cargo/rustc，后makensis，嵌套准备步骤的release日志不能代表主应用完成。子进程最终退出0、输出排空完成，WaitForEmpty(5000)实际失败；11:53:09Z强制清理前捕获唯一残留vctip，创建于11:51:32.543Z。所属清理成功、计划任务终态126，仍为构建失败。此前673/67仅有聚合收尾失败，不能反推各自残留对象；本次也不能解释持久恢复五秒尾延迟。
+
+空Job的原WaitForEmpty、StopAndWait、成员数0及Dispose控制全部通过。最小合成C编译链接的固定三组baseline-a、VSCMD_SKIP_SENDTELEMETRY=1、baseline-c均编译退出0、均因vctip在原五秒自然退出门失败，随后所属清理成功。残留二进制签名Valid、SHA256 13445e4d935015b6a56cc5095d0b9f7d12a06aafafd38a0553ea9ca17d20f214，与已安装MSVC14.50.35717工具目录内14.50.35720.0 vctip一致；严格路径相等标志false且完整加载路径未保存，因此仅确认内容身份，不补写加载位置。父SSH stderr493字节未分类，实验不授构建资格。该环境变量不是有效修复，不修改系统/用户遥测设置、删改工具、豁免残留进程或延长退出门。
+
+已通过完整门的fb固定源码推送到既有加密安装review通道的新分支，复用原不可变未公开baseline及582运行时获取方式。完整源码门、真实安装/升级回滚、旧布局迁移及安装版双端合成验收继续由原托管流程强制执行；不跳过前置门、不改公开release签名要求。分支提交不等于作业已开始或通过，后续须核对具体run及终态。桌面67安装器/便携包在诊断后回读SHA256仍与原交付相等，用户自行切换；没有操作旧实例、日常配置、冻结库或长测，模型0。真实provider、最新安装完整结果、五秒长期稳定性、剩余内部故障矩阵及真实24h/最大文件仍未完成。
+
+安装review现已确认实际运行：40500532099，resolve/job122176785374成功，encrypted/job122176959482为in_progress，当前步骤Run rustup default stable。尚未进入安装，不能称安装或双端验收通过。后续复用该run核对，不因观察超时新建重复任务。
+
+## 2026-10-27：67候选本机原生内部中断10项、原五秒恢复两文件50项通过；未授稳定性或整体验收
+
+在独立短测目录顺序执行，未与归档/构建负载重叠，也未操作E盘旧托盘实例。实际固定源码67f14297c8a7e3f187ff6b7ab9be4a7850600241，执行后Git tracked修改0，实际owner及三份测试文件SHA256与提交规范LF内容一致。发布候选身份仍为67，不随本记录提交重标。
+
+原命令node --require ./test/helpers/physical-test-temp.cjs --test --test-concurrency=1 test/context-recovery-native-graceful-http.test.js：10/10、零skip/取消，测试55767ms，所属外层56563ms退出0、stderr0、Job自然清空。五种发布状态prepared/sending/transport-finished/uncertain/withdrawn分别经过原COMMIT锁等待与独立OS锚点持久后ACK前边界，使用未修改的默认worker、真实DPAPI/OS锚点、原真实时钟及同目录重开；原HTTP5000、COMMIT见证750、停机与存储期限、精确版本及FULL/DELETE断言保持。只授该文件正常停机矩阵，本轮没有运行其强杀兄弟矩阵、安装版或真实provider。
+
+随后原命令同一Node选项执行test/client-context-target.test.js及test/context-recovery-codex-summary.test.js：50/50、零skip/取消，测试40913ms，所属外层41166ms退出0、stderr0、Job自然清空。包括原持久HTTP五秒请求、真实加密跨进程摘要保存/重开/强杀后撤销与原到期不延长；未修改测试、负载、认证和时限。此为本机单批通过，不能覆盖旧五秒及混合负载失败，不能授长期稳定性、最大文件或24h资格。
+
+另外完成一次明确标识不授资格的独立诊断：只在新副本owner中加入有限计时，使用默认worker及真实后端；原产品源码不改。仅缓冲固定阶段/序号/耗时，关闭后写一次私有计时，不输出参数、密钥、scope、原文或响应。开库1347ms，observed166ms、prepared101ms、sending59ms、transport-finished52ms；认证快照0.679–4.986ms，后续锚点持久12.641–15.926ms。未复现托管runner的1–2秒COMMIT/五秒准备尾延迟，不能由此确定慢盘、DPAPI、快照或宿主的唯一根因，也未凭此删除认证、缓存跨事务证明或合并独立持久转换。第一次副本准备因CRLF字节摘要差异被身份门拒绝，实际执行前已核对规范LF身份；该准备失败保留，不算原生开库失败。
+
+fb7f732普通40497299266最新已观察node-quality、integration、Rust及四组unit全部success，coverage仍运行；正式40497299395的source-gates和额外I/O40497299280仍运行，egress成功。不能称完整CI成功，67旧正式legacy_unprotect十秒超时、8b额外I/O ready准备失败以及构建natural-job-exit失败126全部保留，不rerun覆盖。用户自行切换的选择不变；本轮无安装切换、真实模型、24h作业或冻结环境操作。下一步核对这些CI终态，再依据实际失败阶段继续定位，剩余安装版/真实provider、完整内部故障矩阵、五秒稳定性及真实24h/最大文件目标保持。
+
+## 2026-10-27：67f1429自用候选已交付，用户自行切换；正式CI与构建收尾失败保留
+
+固定源码67f14297c8a7e3f187ff6b7ab9be4a7850600241的0.1.1未签名安装器及便携包已交付到Windows桌面HPM-SelfUse-0.1.1-67f1429，并在Mac独立回读核对。installer SHA256 1b95a93637255c80a1ccf2c7574b5252d0e71793dc5a699047465d03f21470ff；portable SHA256 648cccc6f76bec7aca2d365f2f1ec279a1375bbe132b111a57cda5eaa3fa4698；runtime manifest dbdccae440cb19ca9d551768bb8c7c1dab7c3225fe3c5beb0e0825cf5a5b308e。便携包通过原validate-release-package，六份修复源码与固定提交逐文件一致；两种产物均无个人配置、凭据、数据库或私有日志。新包包含认证加密失败拒绝回退、健康/原生控制冷加载拆分、原子替换后配置监听修复。旧673候选不覆盖，新文档或测试提交不得重标产物源码。
+
+新目录锁文件安装、插件安装、原生准备均退出0；构建子进程退出0，但所属控制器在natural-job-exit阶段失败126，未满足原五秒Job自然清空门。输出排空已完成，仍存活的具体子进程身份尚未确认；不能将独立校验后的产物说成整套构建成功，不延长门限、不自动重跑覆盖。九项编译输入Git树身份一致后仅复用编译缓存，输出包、运行时及清单均重新生成。
+
+实际新manager/运行时及锁定Claude2.1.292、Codex0.160.1分别在独立目录、初始明文合成配置、本地合成上游执行。首轮与便携包压缩重叠，两端均health_timeout且请求0；此调度失误及失败保留，不能据此确定唯一根因。压缩结束后一次独立冷启动诊断4347ms就绪，诊断主动终止不能算正常生命周期验收。清除该并发负载后仅一轮独立确认：两端各一次授权请求精确回复，入口未授权拒绝、正常停机及所属Job自然清空全部通过，父Node46053ms退出0。没有预保护配置、提高期限或改断言。仅授包内基本合成使用范围，持久化/恢复关闭；不能推定五秒恢复稳定、真实provider、安装生命周期或24h合格。
+
+完整CI核对：67f1429普通40492674344及额外I/O40492674358成功；正式40492674427在source-gates/job122150247506失败，后续恢复验收跳过。context-recovery-key的原生与旧DPAPI互通用例中原生protect约19ms完成，legacy_unprotect在原10秒门10054ms超时，首阶段标记unobserved；尚未确定产品或宿主根因，不绕过旧互通门、不rerun洗绿。8bcede2普通40490924914及正式40490925021成功；其额外I/O40490925000两项ready准备超时仍保留，不能用67额外I/O单次成功覆盖稳定性缺口。
+
+另修复management-startup-race旧夹具：使用实际物理临时目录及真实pid，追踪实际PID持久化所有者并等待stop，断言PID及临时文件清除、警告为零；不再写宿主根目录/test-runtime，不以空warn吞掉持久化失败。原端口、token、就绪、重启与失败断言保留，新清理断言进入原统一unit文件。Mac定向PID/网络13项及扩大相关十文件28项通过，Lint/格式、CI/release治理通过；该夹具修改尚待新提交完整Windows CI，不能用源码67的CI覆盖。
+
+用户明确选择“先保留旧实例，我自行切换”。E盘旧托盘实例保持运行，新候选未安装、未启动UI、未覆盖旧目录和配置。交付附SHA256SUMS、verification.json及试用说明，默认客户端原生压缩，精确恢复为可选试用。实际安装版双端/真实provider、持久五秒稳定性、内部发布中断扩展、连续真实24h与最大文件完整验收仍待完成；582迁移与回滚已有通过范围保留，不能覆盖最新包完整资格。没有新24h运行，真实模型调用0，额度未核对前继续禁止模型请求，原冻结现场、失败记录和全部期限/认证/持久门保持。
+
+## 2026-10-27：修复原子凭据迁移后配置监听失效；原路由回归恢复，五秒持久准备失败继续保留
+
+此前在原2b20d9d隔离归档复现的headers-routing Google profile切换失败，现已定位一项实际原因：fs.watch直接绑定配置文件的旧物理身份，首次明文保护迁移/编辑器原子写入替换文件后，后续编辑可能不再被监听。新增真实连续三次原子替换及替换后编辑回归在旧实现失败。本批保留原文件监听，增加只按固定配置文件名匹配的目录监听；仅在dev/ino/birthtimeNs身份变化时建立新文件监听并关闭旧监听，不从事件filename构造任何读取路径。普通编辑仍由原文件监听提供及时通知，原150ms debounce、串行reload、占用重试次数/间隔、认证、非法配置保留旧状态和持久/TTL语义全部不变。
+
+中间仅监听目录的实现使原debounce测试和无关文件隔离测试失败，已保留该失败并改为上述双监听，不延长原断言期限。新增正常、重复替换、删除/非法JSON后恢复、关闭后拒绝reload、兄弟文件隔离、缺失/目录初始目标、大小写及Buffer/null/非法/越界filename边界；同一写入可能有两个OS通知，断言每个固定版本按顺序实际被观察，而不把通知数冒充业务转换数。新文件进入统一unit发现，无新增依赖或平台skip。
+
+Mac原headers-routing完整文件及入口认证、配置监听/控制器共11项全部通过（67034ms），此前Google key失败不再复现，原断言和负载不改；随后补非法basename边界并复核相关三文件9/9通过。Windows在新目录仅运行真实fs.watch/rename/unlink及四项新回归，最终固定源码包SHA256 cd4135d8fd47468def8244ece34b21410fbca833981d6e301c256eaa16d4effa，4/4零skip、父Node520ms退出0、所属Job自然清空；不启动产品/恢复库、没有模型、凭据或冻结目录访问。SSH父stderr1398字节未分类，Node自身stderr0，不授整套交付管线资格。定向Lint/格式、1678语法、CI/release治理通过，完整本批CI待推送核对；旧management-startup-race夹具缺warn问题仍独立保留，未将其测试从CI删除。
+
+2b20d9d普通40488294873、正式40488294585四项及额外I/O40488294580现均终态success。8bcede2普通40490924914和正式40490925021仍in_progress；额外I/O40490925000/job122144354474已failure，原proxy coverage原生graceful HTTP十项8通过/2失败：uncertain的COMMIT与ACK两项均awaiting=ready、lastFixture=fixture-prepared，尚未进入目标中断。原开库ready分别1740/1446ms，之后load-reference及多次save-reference-state，第四次保存仍pending时五秒准备门到期（5090/5108ms）；不能归为本批配置监听引入，也不能授持久五秒稳定性。失败不rerun、不提高准备/请求/存储门限，下一步依据该持久准备路径定位重复工作和I/O耗时。
+
+先自用交付优先级继续，桌面673候选仍未包含新修复，必须保留其原身份并更新后再核验；完整安装/真实provider、剩余内部发布转换、连续24h及最大文件缺口不因此消失。原失败与冻结现场保持，没有新24h、真实模型调用0，也未改日常配置、代理或信任证书。
+
+
+## 2026-10-27：拆除健康与原生控制对无关管理功能的冷加载依赖；两端短测通过，完整资格未授
+
+Windows测量确认健康请求经原请求核心后，还会加载整套管理聚合。本批将原健康响应实现抽为management-health，将原配置读取、脱敏、revision实现抽为management-config-read，原完整管理工厂继续复用同一实现；lazy-management仅对health/getConfig/proxyStop及原legacy别名使用独立组合，其他功能和自定义模块加载器保持原路径。停机仍调用同一个proxyStopControl.handle，配置写入队列仍由原完整工厂唯一持有。没有绕过请求核心、CORS或管理认证，没有新增公开配置端点、缩小健康字段、改变持久就绪定义或放宽期限。三份新运行时模块均进入发布源码清单。
+
+只拆健康的首次Windows补丁现场f7a820中Claude通过、Codex授权精确回复通过但原生stop未确认，原失败保留。核对实际Rust停机前使用原/config请求验证token：先前健康顺带加载的整套管理功能，掩盖了这个有界读取的冷加载成本。因此同时拆出配置读取和停机分发，而不是延长token探测或停机期限。最终新目录a1c968固定补丁manifest摘要599c1063af1ee1d5d67c1f80ef9bcaed2c85e7f78a5bb681a8354ee6536b7887，在原673实际manager/Node/原生helper上逐文件应用并验证补丁摘要，两端各一次原生CLI通过：入口未授权拒绝、一次本地合成请求精确回复、原生正常停机/所属清理均确认。两次start总命令4784/5036ms，原生内部五秒等待门不改且未报告timedOut；总命令含前置探测和进程开销，不能据此授端到端低于五秒或长期稳定。原生CLI与父Node退出0；SSH父stderr3772字节未分类，不能称整套交付门无诊断异常。此为独立补丁运行时短测，不是新安装器验收，恢复/持久化关闭、真实模型0，不能覆盖持久恢复五秒稳定性。
+
+新增回归实际证明健康不加载管理聚合/写入/CLI功能、保留全部响应与状态更新、失败初始化不洗绿，配置探测仍脱敏且revision精确，停机保持同一处理器；空、非法、极端及配置/诊断/响应失败路径保留。首个冷加载回归修改前实际失败。Mac相关十三文件28/28零skip，含实际入口认证集成、原核心与管理工厂契约；格式、定向Lint、1677语法、CI/release治理和统一unit发现通过。扩大初次另外两项失败（headers-routing热重载的Google key断言、management-startup-race旧夹具缺log.warn）在原2b20d9d隔离归档均复现同样失败，未从统一CI删除，未以局部通过覆盖。独立Windows单元复制首次漏helpers而准备失败；新目录补齐后SSH230秒观察超时、最终回执缺失，随后只读CIM确认所属回归进程均不存在，不认定其测试通过、不伪造退出码或自动重启。
+
+2b20d9d普通40488294873核对七项success、coverage仍in_progress；正式40488294585及额外I/O40488294580仍在运行。上一4bd57b1正式40486886573已失败于source-gates：Python隔离子进程20秒超时、settings矩阵四结果仅得三，后续context-recovery跳过，原失败和期限保留、不rerun。本批完整新CI待推送核对；桌面673安装器/便携包尚未更新，源码身份不重标。旧持久超时、发布内部转换、安装多压缩失败、日档监督失败及最大文件暂停均继续保留；没有启动新24h、调用真实模型或修改原实例/冻结环境，先自用交付优先级和完整目标不变。
+
+
+## 2026-10-27：修复首次加密失败后的认证回退；Windows与Mac各38项通过
+
+沿冷启动链确认产品缺口：loadConfig首次迁移明文凭据时，原生保护抛出ERR_SECRET_ENCRYPTION_FAILED，但配置层仅强制上抛解密错误，可能吞掉加密失败并返回默认配置。本批统一导出加密错误码，配置层对两种失败均保留原异常、拒绝加载；throwOnError=false也不能将原认证替换成默认配置。原保护后端、迁移顺序、持久语义和期限不变。
+
+新增profile、入口key、桌面token及MCP bearer四类回归，分别验证默认/false/true选项上抛同一异常、原文件不变、无额外文件和私有错误输出。修复前四项实际失败。扩大六文件后Mac38/38，Windows独立短测38/38、6815ms退出0，均零skip/失败、所属Job自然清空。首次Windows复制漏带test-ports夹具，35项通过、一个文件未执行；补齐原夹具后在新目录执行，旧失败保留。Mac扩大首次还发现旧传输夹具硬编码Windows路径被宿主绝对路径校验拒绝，仅将夹具改成当前宿主path.resolve绝对路径，校验及相对路径拒绝不变。新回归已确认进入统一unit发现；格式、定向Lint、1673语法及CI/release治理通过，完整新提交CI待核对。
+
+固定673包内Core在全新明文配置下原五秒诊断未就绪，5069ms终止；新目录增加阶段测量后4819ms收到健康响应。后一次诊断观察上限10秒，原五秒阈值不变，不能作为稳定性通过：端口约2679ms监听，配置读取约353ms，DPAPI保护75–98ms/次、批量解密72–76ms；首次健康请求还加载请求核心，首轮核心1107ms，下一轮整套管理模块约582ms。证据指向冷模块图与首次健康加载累计耗时，尚不能归为DPAPI唯一原因。下一步减少健康请求不需要的管理功能加载，保留正常请求、认证和原就绪定义。
+
+本轮核对4bd57b1普通40486886591和正式40486886573仍in_progress。桌面673候选尚未包含本批修复，不重标产物身份；后续需更新候选。旧五秒失败、868安装Claude between-1、额外I/O ready超时、日档监督失败和最大文件暂停均保留。未启动新24h、真实模型0、日常实例及冻结库不动，先自用交付优先级和完整目标保持。
+
+
+## 2026-10-27：交付673自用候选产物；两端包内基本使用通过，完整资格与失败保留
+
+固定源码673eb36d8cc91f6538021d6ff8a15805c07e83cc的未签名0.1.1安装器及便携包已实际产出并保留，不能用后续文档提交重标源码。installer SHA256 acad4fc886d74d8e325b6df0b3d01128a42eee1cc9909db0645525b1c0e48bd8，portable SHA256 bc07770f0cc479b10ee7b393718f0dc706d9e97ae111f4035c1f7eef488bbe19；运行时manifest a7370a6b0162dfbe982056d509052843e64419db04eb9f8d60a0297cddc8efed。便携包通过原validate-release-package检查，独立拷贝与回读摘要一致，交付物不含个人配置、密钥、数据库或测试日志。普通八项及正式四项源码CI已通过的范围保持。
+
+本地构建Rust/Tauri日志实际完成release及一个NSIS bundle，但外层所属控制器最终退出126，因此原构建任务仍为失败；控制器收尾原因尚未确认，不能将可用产物改写成完整构建成功。产物独立核验后供自用候选，不冒充已签名公开发行或安装生命周期资格。
+
+使用实际候选manager及运行时、锁定的Claude2.1.292与Codex0.160.1原生客户端，在各自独立HOME/APPDATA/主密钥路径、临时端口和本地合成上游执行基本检查。Claude第二版用例通过（该轮外层因Codex启动失败退出1），Codex第三版独立退出0；均验证入口未授权拒绝、一次授权请求精确回复、正常停机及所属进程清理。Claude首次诊断的自定义合成地址缺/v1属于夹具错误，修正后的通过不能删除旧记录。Codex前两轮明文配置启动未过原五秒健康门，第三轮使用包内现有secret-crypto预先保护两项测试凭据后通过，符合应用正常加密配置格式；预先保护也改变冷启动准备，不能据此认定此前冷启动超时唯一根因或五秒稳定性已根治。产品代码、认证和原期限未改变，没有真实模型请求。
+
+本批只授包内合成上游基本使用范围，未执行本机NSIS安装、真实provider、最新多压缩完整矩阵或24h到期重开。Windows仍有一个原产品实例，保持不动；安装器、便携包、摘要及试用说明作为首批自用交付。24h不再阻挡首次自用，但原15分钟监督链失败、868安装Claude between-1、额外I/O四项ready超时、最大文件暂停及其余内部发布缺口全部保留。默认客户端原生压缩、精确恢复可选试用；公开release签名、TTL/ACK/SQLite持久语义及完整验收门均不变，后续继续修复而非宣布整体完成。
+
+
+## 2026-10-27：按用户要求先交付自用候选，24h不再作为首次自用前置；本机构建已实际运行
+
+用户提出“24小时验收有没有可能先上线发现问题再优化”，本轮已明确先交付自用版本：安装/升级回滚与两端基本使用仍需核验，默认客户端原生压缩，代理精确恢复可选试用且如实标注24h未通过；全天与扩展故障矩阵后续继续完成，不缩减完整目标，不改其通过条件，不改公开release签名要求。未将旧失败或正在构建称交付完成，也未修改日常Codex/Claude、系统代理或信任证书。
+
+673eb36普通40474496236八项及正式40474496283四项全部终态success，377夹具EPERM失败已由实际新Windows回归覆盖但历史保留。额外完整I/O40474496319/job122089258084仍failure：client阶段四个native graceful HTTP用例（sending锚点、transport-finished COMMIT/锚点、withdrawn锚点）在awaiting=ready准备阶段超五秒，未进入各自目标中断；不能称全部稳定性门已过，不rerun补绿。868安装两端claude-default-cli-between-1失败仍未定位，不能由旧159成功或本批源码CI授新安装资格。
+
+Windows现有Claude PE版本2.1.292.0与CI固定版本一致，在全新隔离HOME/配置、相同合成源与原120秒turn期限下，直连诊断无会话持久化2711ms、启用持久化4807ms均实际退出0：三次compact、两次between和final，共8次本地请求、一次源工具、3个边界、无私有恢复工具，真实模型0。它们未走产品Core、TLS、安装或同会话重启，不授相应资格。随后源Core诊断未在原五秒就绪，保留失败；发现其主密钥路径未显式隔离，核对所属PID68392的exe/创建时间后停止该诊断（124357ms、Node退出-1），没有重跑补绿。只读元数据检查默认master.key已存在且未在诊断窗口新建/改写；检查器未读内容，不据此证明Core此前没有访问，也不删除用户密钥。后续本机Core诊断须显式隔离HOME/USERPROFILE/APPDATA及HPM_MASTER_KEY_FILE，再执行。
+
+为避免等待新一轮runner全矩阵后又丢弃安装产物，已在Windows新自用构建目录固定673、确认clean后，复用官方Node22.22.3和现有Rust/MSVC/SDK，锁安装36612ms/插件44535ms、原生83852ms逐步退出0。独立所属Job构建任务实际进入installer-build：08:58:22.4418656Z、PID79140、exe/创建时间匹配，09:14Z仍实际存活，编译日志已推进WebView2/Tauri；不是仅注册任务。构建不打开恢复库、不请求模型、不碰冻结日档，成功产物须保留本机installer/manifest摘要后再做安装与两端基本检查；当前尚未产出已验证自用包。原24h仍未运行/未通过、最大文件暂停、剩余额度逐端隔离与失败记录均保留，真实模型0。
+
+
+## 2026-10-27：补日档所属Job和启动闸门；Windows短测23/23，保留377夹具与868安装失败
+
+3773479普通Verify40472016489终态六项success、coverage122081127735及unit2/122081128141失败。两个job实际均只报告同一个新夹具失败：context-recovery-native-day-receipts目录替换用例直接rename仍含打开文件的目录，在Windows返回EPERM，未进入替换检测断言；不能把它当产品开库/持久/五秒故障。夹具现在先移动仍打开的日志叶，再实际替换目录，跨平台都执行相同真实攻击路径，拒写/不修改替换物及close失败断言保持，无skip、重试或模拟身份。原两个失败job不rerun，后续完整CI待本批提交。
+
+原868控制器未持有主Node的所属Windows Job，导致外层消失后Node暂成孤儿；具体0xC000013A来源仍未知。新增日档私有控制器模块复用原HpmRuntimeBoundaryJob，要求预先加载已验证Job类型、无冷编译；先建立所属Job，创建无窗口/重定向管道进程并实际Assign，成功后才发精确单字节1及EOF。入口在任何产品模块导入/存储打开前验证可选HPM_NATIVE_DAY_OWNED_JOB=1闸门；直接CLI未设标志时保留原使用方式，正式所属启动器必须设标志。非平凡逻辑独立模块，原日档真实时钟/负载及持久认证/期限不改。
+
+控制器死亡时内核关闭其非继承Job句柄，实际所属Node及后代一同终止；显式清理由私有弱引用能力绑定实际Process/Job，不读取可变公开Process字段来选PID，不接受伪造句柄。成功路径还须RequireNaturalExit验证所属Job已自然清空；存在后代则保留失败再强制清理，重复调用不能洗掉失败、强制清理不能事后升级为自然退出资格。全部清理观察仍原五秒，未延长原业务、短测或120秒Job门。Mac下一轮控制器组合模板已接入stdin重定向/环境标志/所属启动/成功前自然退出检查，使用不可执行的root/head占位，三份PS解析通过；首次本机解析命令把绝对路径错误Join-Path而失败，修正解析路径后通过，非产品故障。未上传或应用该模板到旧现场、未启动新24h。
+
+Windows每次新建独立短测目录，先只读确认无运行日档、原73832/52944不存在，核对并复制原官方Node22.22.3，只有进程树夹具、不开恢复库、不访问旧DB/密钥、不调用模型。初版9/9、目录夹具修正后23/23，增加自然退出失败保持与禁止强制清理升级后最终23/23、17772ms退出0且零skip，固定测试源码包摘要c311323d4fc2fa0382f9d6a667b44019798cc12c266d00506a33ff7f1871088a；旧短测各自保留。实际覆盖正常退出、显式清理、仍有后代的自然退出拒绝、真实强杀控制器后的Node及后代全部消失、伪造/修改能力、启动字节与EOF/非法环境、原独立回执的全部正常及安全/失败边界。Mac扩大四文件42项41通过、1明确Windows原生Job用例平台skip、零fail；该用例上述Windows已实际执行，无借skip授资格。新两文件均进入统一unit发现，Lint/格式、1672语法及CI/release治理通过；本批完整新CI尚待。
+
+固定868安装40470352157/job122075837771已终态failure，原完整候选门/构建、同格式升级回滚/DPAPI和582实际完整迁移/拒写均步骤success。真实582回执八阶段、sourceCount582、layout1→3、revisionDelta1、ownedTreeEmpty=true，当前manifest bb59fa5516c5ec054cecec7a8d91d9b73c6082a5be4ac6ae4e1a1721ab84f085。两端合成上游步骤失败，有限阶段claude-default-cli-between-1、owned_scenario；尚未确认根因，后续包内publication步骤skip，不授整体安装/两端或包内发布资格，不重派补绿。下一批定位该实际CLI失败。真实24h仍未运行/未通过，daemon其余内部转换、完整容量缺口、真实provider与受控自用交付继续；模型0、旧失败/冻结现场/最大文件暂停及原门禁全部保持。
+
+
+## 2026-10-27：修复日档控制器管道断开后失败证据丢失，尚未恢复24h资格
+
+868外层0xC000013A、父控制器消失、随后Node退出及最后15分钟现场保持。只读核对TaskScheduler Operational日志实际未启用，PowerShellCore/Application/System日志可读；限定窗口的PowerShell应用失败查询未取得可用记录，不能认定崩溃、用户关闭、安全软件或其他唯一原因。未开启系统日志、改环境/任务、访问DB/密钥或自动重启。控制器异常本身仍未解决，不能因本批诊断修复授全天运行资格。
+
+已发现并修复独立可确认缺口：旧入口仅把日档事件写stdout，由外层异步管道排空保存；外层消失后，事件及catch失败日志都可能随断管丢失。入口现只组合日档与独立回执模块，日档自身在原fresh temp目录创建progress.jsonl，同目录context仍用于原默认存储；每条原有有限事件先独占文件写入、完成实际短写并fsync后，再写原stdout。断管/短写仍失败且禁止写成功结果，finally独立写native_day_process_result（actualExitVerified=false），不将它冒充实际退出、外层process_finished或任务成功；stderr不可用时已选定的失败退出不再被诊断异常阻止。原真实时钟、288轮/负载、到期两次重开、默认worker/DPAPI/OS锚点、TTL/ACK/FULL/DELETE和全部期限均未改。
+
+新日志单条64KiB/总16MiB，文件wx/0600、全部目录及fd/路径物理身份绑定、拒绝软/硬链接、替换/额外写入、溢出及flush失败；无内存/管道回退。仅写原日档安全元数据及固定进程结果，不采集异常原文、模型内容、凭据或数据库。真实OS子进程stdout被父端关闭的回归确认文件仍保留事件与失败结果、实际退出1；入口组合另覆盖成功、私有失败及双断管。扩大四文件38/38零skip，含正常/非法/极端/替换/链接/实际短写/flush失败；新文件已进入统一unit发现。定向Lint/格式、1670份语法及CI/release治理通过；Mac结果不冒充Windows执行或24h通过，Windows完整CI待推送后核对。既有安装链40470352157仍固定868在独立runner完整candidate门执行，不因本批诊断变更重派或覆盖，模型0。
+
+
+## 2026-10-27：868日档控制器异常退出，Node仍存活；禁止冒充完整资格或自动重启
+
+08:00:17.964Z健康观察首次报告process_not_running，同时processAlive=true、四连续tick至真实scheduled900000/elapsed900012.1472ms，未记录storage_operation_failed或native_day_failed。随即重新读取同一任务/实际CIM身份：08:00:44Z任务Ready、lastTaskResult3221225786（0xC000013A），PID73832仍存活、可执行路径及创建时间匹配，未有process_finished/controller_failed最终回执。08:01:18Z额外只读父子关系确认原父PID52944不存在。任务执行上限P1DT2H、restartCount0、两项电池停止/拒启均false；TaskScheduler Operational事件不可读，无法确认控制器退出来源，不把它归咎存储、DPAPI、锚点、安全软件或用户操作。
+
+实际Node存活不等于控制器仍持有防休眠/输出排空及最终退出回执。原要求最终任务成功和实际零退出保持，因此本轮当前不能作为完整24h合格证据；既不伪造外层回执，也不把任务Ready误报为Node已停止。未停止/重启/接管所属进程、改活跃环境或读取数据库，继续同一只读监测且terminalConfirmed=false，不能据此自动停监测。需定位控制器异常和观察实际Node终态；此事件在约20分钟观察时发现，不会等24h后才报告。刚写入的启动及10分钟记录仍是当时真实证据，不能覆盖此后监督链异常。
+
+后续08:02:55.071Z及08:04:02.9326701Z两次独立只读CIM观察均确认Node73832已不存在，任务仍Ready/0xC000013A，最后完整进度仍为15分钟、4558字节，最终回执仍缺失。因此本轮已不能继续累计有效时间，原预计明日完成时间撤销；未将未知子进程退出码补写成产品回执。冻结现场、不自动重启，继续解决控制器退出和最终失败证据不足的问题；旧存储失败与本次外层异常不能混为已确认同因。
+
+安装链40470352157已resolve成功、私有旧基线获取成功，当前进入原完整candidate gates；模型0、日档环境不加测试负载，旧失败/门禁全部保留。
+
+
+## 2026-10-27：868完整门与本机原50闭合；真实24h已启动，最新安装链独立执行
+
+固定8682b768547d52c6c96026aa23e7ec496bfd5cea的普通Verify40464979597八项、正式40464979574四项、原三冷runner时序40464979606三项及完整coverage I/O40464979524均终态success。三组时序各50/50、零skip，18次最终持久publication为708–1229ms。本机原50项在新five-second-40fa89b5现场77105ms退出0、50通过/零skip/cancelled，六次最终持久1749–2624ms；默认worker/DPAPI/OS锚点、正常及强杀owner、精确期限和撤销断言按原门执行。此前49的ENOTEMPTY、159的45/50、其他五秒超时与旧日档失败均保留，不能用本轮通过消除历史不稳定记录或授全天资格。
+
+真实日档已实际启动，不再是预检或任务注册：2026-10-27T07:41:50.618Z开始计时，实际PID73832及进程创建时间/可执行路径匹配。固定571份产品源码摘要d482b0deb10f960d7a03e4eddc09cee74cc7b154b586aa7c0af1949f48045d25、Node22.22.3及原生273e76d8…、dirty=false，原锁依赖与原生复用关系经过逐文件证明。07:56:48.461Z只读回执为running/progress_advanced，三个连续tick至scheduled600000、elapsed600009.0578ms、processAlive=true、failureLatched=false。tick标记本轮开始，不能把单条tick称该轮已完成。洛杉矶最早10月28日00:41:50后才满真实24h，仍须288轮完整画像、原root实际到期、两次到期重开、15次开关、native_day_completed以及实际零退出/任务成功；旧轮时间绝不累计。
+
+Windows分钟观察器先验证并加载原C# Job源码对应的预编译DLL，在Node计时前完成编译/加载；直接及实际加载器的成功/非零/超时smoke均通过，错pin拒绝，避免每分钟冷编译。临时防休眠仅随所属控制器生命周期恢复，不修改全局电源配置。Mac独立五分钟观察器使用868冻结健康验证模块，绑定同一PID/创建时间/源码/真实开始时间，失败锁存、无进展报告、没有自动重启；监测24已ACTIVE。当前任务优先级只读记录，运行中不修改。日档主机只读监测，不执行构建、短测、模型或访问旧冻结数据库。
+
+重新核对私有基线release421213889仍draft、固定target f8421078…及两个asset ID/大小/上传状态相符后，创建精确868候选分支并回读SHA一致。最新安装链40470352157已实际in_progress，关联Verify40470352348也执行中，尚未授本批安装/升级/迁移或两端资格。它在独立GitHub runner执行原完整候选门、构建、同格式升级回滚/DPAPI、582完整迁移/旧写者拒绝及schema7两端合成上游/停止收尾/包内发布；不占用真实日档主机，不改公开release签名门。当前实际模型调用0；数值额度已核对Codex1/Claude7分别剩余，实际请求仍须调用前持久记账和逐端核对，不自动重试、不混用额度。真实provider、其余daemon内部发布/ACK转换、完整容量缺口、安装器自用交付及受控启用仍未完成。
+
+
+## 2026-10-27：49本轮请求均在原五秒内；修复物理owner收尾ENOTEMPTY
+
+49fd13e普通Verify40462322960八项全部终态success；原三冷runner时序40462322914三个job122049577557/122049577847/122049577998各50/50、零fail/skip，18次long-persistent最终publication_wait_end为917–1353ms。独立I/O40462322795也success；正式40462322821/source及完整I/O40462322980当时仍在执行，不授其终态/安装/24h资格。66b租约编译25秒失败保留，不以新成功撤销历史失败。
+
+本机严格证明66b→49只有六个CI/治理/文档文件差异后，实际detached checkout至49，before/after 571份产品源码d482b0deb10f960d7a03e4eddc09cee74cc7b154b586aa7c0af1949f48045d25、Node及原生273e76d8…均相同，dirty=false、五份操作脚本解析通过，复用已装锁依赖/原生。按49重新执行容量3614ms及默认开库3297ms均退出0，旧回执保留原归属。原50项59898ms退出1、49通过/1失败、零skip/cancelled；唯一失败为普通双物理owner/inline tools=false的fs.rmSync ENOTEMPTY收尾，3928.5557ms，不是HTTP、持久ACK或开库超时。六次实际持久publication完成1235/1388、1250/1504、1546/1637ms，三协议完成原两轮。只读后查无所属Node/native，失败root仅一个空子目录、无结束后新增条目写入；数据库读取/密钥读取/删除均0，不确认安全软件或其他唯一根因。完整本机门仍失败，日档未注册/未启动。
+
+物理owner夹具现复用已有身份绑定清理器，新增封闭hpm-v7-owner命名空间，仍只接收真实temp直接子目录，在创建时钉住目录及全部祖先物理身份。原EBUSY/EPERM/ENOTEMPTY最多四次/间隔75ms有界删除，不重跑场景、子进程或模型；每次前复核身份、实际删除后复核，替换/链接/未知错误/恶意code字段/持续失败仍拒绝并保留证据。原installed命名空间及API保持。物理owner finally等待清理；共用失败合并器顺序等待每个动作一次，主失败、空抛出值及独立清理失败精确保留。原90秒用例、30秒子进程、五秒请求、固定负载/正确性断言、expiry/ACK/FULL/DELETE不改，生产代码未变。
+
+新增三项先红，修正后三文件32项全通过；扩大六文件48/48零skip，包含原错误合并、实际owner夹具/回执和安装publication边界。扩大首次46通过/2失败仅因Mac PATH无pwsh，保留结果；复用已有官方便携PowerShell7.6.8，仅本次测试进程补PATH后48/48，不改全局工具。定向Lint/格式、1668语法及CI/release治理通过，Mac结果不授Windows原生或本机完整50资格。写交接记录时工作目录错误在写入前失败，代码209e13f已独立提交，本记录补写后同批推送；不把该操作错误当产品根因。新源码仍须原完整CI/三runner及本机原50实际通过。旧49失败现场、既有失败/冻结日档及最大文件暂停保持，模型0；真实24h/到期重开、daemon其余内部转换、最新安装/真实provider及受控自用仍待。
+
+
+## 2026-10-27：共享解析器变更纳入原三runner时序及I/O触发，保留66b租约编译超时
+
+66b4555普通40461179303的原unit0/2/3已终态success，前批三文件失败已不再出现；quality/integration/rust亦success，但unit1/job122045911510终态failure。实际失败为shared-hosted-materials的collision/wrong-identity/owned-cleanup用例：pwsh spawnSync原25000ms超时，有限最后阶段lease_compile_started、elapsed25292ms，尚未达到lease_compiled及其后的身份/清理断言。这里只能定位Add-Type租约编译阶段，不能认定五秒HTTP、DPAPI或规范化产品根因。coverage及正式source仍在执行，完整资格未授；不重跑此失败job或延长期限。
+
+发现当前共享normalizeCompactionData/新字节计数/UTF-8依赖的变更不会触发既有独立时序和简化I/O，只触发完整Verify/正式source及coverage I/O，三冷runner样本不能沿用159旧头。现为原timing、I/O及完整coverage I/O三个workflow显式补入这三个产品模块和原规范化测试文件的push路径；仅增加触发覆盖，原分支范围、三样本矩阵、完整运行命令、15分钟Job及所有HTTP/native/COMMIT/storage期限不改。原治理测试新增依赖断言先红三项、四项原通过；补路径后与CI治理共8项零fail/skip，定向Lint/格式及CI/release治理通过。未借此授当前或未来新头稳定性，实际三runner结果仍须逐项核对。
+
+Windows独立66b环境两次锁安装26770/16201ms、原生准备56832ms、容量3970ms均退出0；容量26/26零skip，真实默认worker两次DPAPI/OS锚点开关通过、ready1098/975ms。571份产品源码d482b0deb10f960d7a03e4eddc09cee74cc7b154b586aa7c0af1949f48045d25、原生273e76d83020624a6c98af879437b61a990d2631404f472ea48c375f95cb2319，Node22.22.3原摘要匹配、dirty=false及真实导出/checkout路径匹配。本轮原50项尚未执行，日档未注册/未启动；仅CI/治理/文档批允许在先证明全部diff均属这六个明确文件、源码/Node/native/锁输入相同且无所属运行进程后，继续使用已装依赖和已构建原生，不重复构建、不把旧HEAD的局部证据改名为新证据。更新后必须重采实际身份并继续原本机门。旧66b/4c/159及所有历史失败保留、旧日档冻结不动，模型0，剩余全目标仍按前文。
+
+
+## 2026-10-27：修正转义原文计数分支与旧工作量观察点；保留4c完整门失败
+
+4c42638普通40459980091的quality/integration/rust/unit1已success，但unit0/job122042001284、unit2/122042001339、unit3/122042001359终态failure，完整门未过。四个失败用例属于三个文件：source policy两项以原整对象JSON.stringify统计实际校验，新实现该序列化次数为0；partition root抗放大用例同样因序列化次数0未观察到真实完整准入；partitioned ledger原文不序列化用例则发现本批fallback仍把转义原文作为primitive传给JSON.stringify，确属实现缺口，不能一概归咎夹具。旧门/失败保留，未rerun补绿，coverage与正式source当时仍执行，不宣称其终态或新源码资格。
+
+新增禁止JSON.stringify参与原文/完整数据规范化的回归先红。现按UTF-16单元精确累计C0短/长转义、引号/反斜线及孤立代理单元的编码增量，配对代理保留原UTF-8字节；数字使用原有限数值的原生字符串编码，-0及指数与JSON一致。无primitive或完整对象序列化；超过剩余编码预算立即失败，不先造放大字符串。原raw/encoded上限、65536节点、64深度、缓存128项/4MiB及descriptor-only边界保留，未改产品认证/持久/期限。source policy观察改为真实自有output descriptor校验，原命中/拒绝/条目和字节上限次数断言不变；partition root观察改为同一完整codec准入的Reflect.ownKeys，原attempts>0、1+ceil(log2(n))上限及原对象精确相同断言保留，没有放宽baseline。
+
+四相关文件130项零fail/skip；扩大十四文件204项203通过、1原平台限定skip、零fail，包含原CI三失败文件及发行隔离。新primitive禁序列化回归先红一项后通过，全部UTF-16字节oracle及原安全/溢出边界通过；定向Lint/格式、1668语法、CI/release治理通过。新源码完整Windows结果待提交后核对，不以本机结果授五秒稳定性。
+
+Windows独立4c环境两次锁安装22062/25741ms、原生构建109076ms均退出0；容量26/26零skip，真实默认worker两次DPAPI/OS锚点开关通过，ready1107/807ms。571份产品源码摘要cd1facbf802ad2678ef190e5d638f31980621fdd12667d42709b0ea4f749c506、原生3ac81889f03d943cb7a75a20b516939cc402b6d332dd3d61bd2d7fdbc9ff60a2，Node22.22.3原摘要匹配，dirty=false，实际storage/progress导出及checkout加载匹配。4c本机原50项未执行、日档未注册/未启动；因完整CI失败保持门禁，未冒充已开始24h或累计旧轮时长。159的45/50、1e一小时锚点及所有旧失败/冻结材料不变。
+
+本轮仅只读核对本机额度元数据：maximum177/used169/requestCount169、Codex99/Claude70/other0，noAutomaticRetries=true。旧Codex新增授权16次、授权时used154，此后15条全部Codex，另有Claude原预留7次；合计与177上限/169已用及人类交接余量一致。仅记录数值核对，不上传私有授权正文、凭据或请求记录；当前模型调用0，后续任何实际转发仍须在调用前持久记账、逐端限额且不自动重试，不修改日常配置。其余daemon内部矩阵、真实24h/到期重开、最新安装/真实provider及受控启用仍未完成。
+
+
+## 2026-10-27：修复规范化整树重序列化与继承JSON钩子；新Windows资格待核对
+
+159本机原50项45通过/5失败仍冻结保留，新日档未注册/未启动。独立单Chat CPU诊断使用原负载/期限，仅按名筛选作采样，不作完整门禁或重跑补绿：固定159 Windows26545ms退出0，V8采样总24571ms，idle9386ms、normalizeCompactionData自身1956ms，open1416ms/internalModuleStat1323ms；本机Mac对照规范化自身161.9ms。该有限采样支持实际规范化热点，不唯一归因CPU调度/安全软件或解释历史一小时锚点失败；原完整五秒失败不能被诊断成功撤销，模型0。
+
+本批产品改动在既有descriptor-only安全遍历中精确累计JSON编码字节，拆独立请求内预算模块；不再为准入再次序列化完整对象。短期字符串计数缓存最多128项/4MiB，只在本次规范化调用内存在；保留原raw bytes、maxBytes、65536节点及64深度限制，不保存跨请求原文。正常UTF-16直接计算原UTF-8及引号字节，必要JSON转义和孤立代理单元仍按原JSON字符串规则计数；数字包括-0/指数保留原编码。未改存储、认证、期限、精确ACK、FULL/DELETE或任一超时。
+
+新增回归先红两项：旧实现最后JSON.stringify会调用数组继承toJSON getter，使钩子参与准入/掩盖超限；稀疏数组亦可用非数组索引的大数字键伪装own-key数量。现不执行该继承钩子、按原实际数组字节拒绝超限，并要求每个实际数组键精确为连续索引。新边界覆盖空/普通/嵌套、转义键/C0/C1/Unicode、孤立与配对代理、全部65536 UTF-16单元、129种字符串及超过缓存总容量输入，与JSON.stringify字节oracle比较精确上界和少一字节拒绝；原代理/getter/toJSON/循环/深度/节点/失败回归保留。统一CI已有发现的原测试文件中新增，不跳测试或放宽阈值。
+
+新模块补入原release源码清单，gateway输入哈希同时覆盖新模块及其UTF-8依赖，对应隔离发行夹具同步。首次release治理因未声明新文件明确失败，补声明后通过；首次Lint控制字符regex失败，改用等价既有范围写法后通过。扩大十一文件85项84通过/1原平台skip/零fail；定向Lint/格式、1668语法、CI及release治理通过。固定600000字节尾段五轮各50次、交替先后次序的Mac语义对照旧71/68/68/68/68ms、新44/43/43/43/41ms；仅性能诊断，无新baseline门或Windows稳定性结论。Mac全Chat采样仍因需要Windows原生而非零，不能授该场景或新源码Windows资格。新完整CI和本机实际门待推送后核对；真实24h、daemon其余转换、真实provider和受控自用仍未完成，旧冻结材料及全部失败不变。
+
+
+## 2026-10-27：159 完整门与最新安装版闭合；真实日档仍须实际启动回执
+
+固定运行时159f655f148b696c4ee04182b94869a9b920ebbf普通Verify40451844045八项、正式40451844099四项、原时序40451844101三runner各50/50零skip均终态success；完整I/O40451844056及独立I/O40451844149也success。只授对应源码和既有门禁范围，不撤销b799五秒失败及1e一小时锚点失败，也不把独立成功I/O归因于历史失败。
+
+新安装40454350217/job122024202100整轮success，manifest b02b44a8283cdc4e7937270e992db8cb5288f5cc78d6c82d8a86421dc05a450e。原候选完整门、安装构建、同格式升级回滚/DPAPI全部通过；582完整基线八阶段、布局1→3、revisionDelta=1、旧读者拒写通过。schema7四CLI案例各三次压缩/精确答案/同会话重启；默认零代理恢复，增强私有读后独立公开生成；Codex默认/增强WS未授权401、五个partial/零terminal、两侧socket关闭，HTTP/SSE/WS排空、daemon自然退出及所属树清空通过。包内发布中断30/30零skip仅defaultWorkerQualified=true，daemonQualified=false。真实provider、24h及受控自用仍未授资格；没有将runner临时构建称作已交付本机安装器，模型0。
+
+Windows新独立159环境锁安装107173/72769ms退出0。原生构建先在开发shell环境发现30秒超时、尚未启动产品命令，原失败保留；只修私有准备器，按vswhere/实际x64文件及两个注册表视图定位已有MSVC14.50.35717/SDK10.0.26100.0，不安装或改全局工具。实际原生构建291261ms退出0，原容量两文件26/26零skip，默认worker两次DPAPI/OS锚点开关成功，ready9161/7172ms。有限资源采样CPU100%，多种非本项目进程占用；不停止用户程序、不据此确认唯一根因。源码570份、dirty=false，摘要37846e69f826ec0f528f1fa271b1f34b42f6fcb4e943a093a50f663c9385d0fb；原生c462c4afe291e7d4a6fbef805fa16730eab1fc0b9cea53b1bdd3c532c41be716，Node22.22.3原摘要匹配。原采集测试文件仍可读/规范化摘要匹配，旧删除者未确认，未改安全软件。
+
+本机原50项五秒门411056ms退出1，45通过/5失败、零skip/cancelled；不重跑补绿。Chat long-json首轮HTTP5084ms、requests/handshakes各4，未进入该种类持久场景；Responses long-persistent首轮HTTP4807ms、最终持久publication_wait_failed5023ms，随后finishPublicationAsync602ms；Claude long-persistent第二轮HTTP5033ms、requests/handshakes各8。另两种inline tools=true的物理owner摘要场景在原30秒子进程启动/交互窗口ETIMEDOUT。该轮采集Responses写COMMIT最大206ms、Claude142ms，稳态多数约13–21ms；不能沿用旧1940ms COMMIT作唯一解释，也不能把高CPU直接当已确认根因。新日档未注册/未启动，原本机门仍拦截；观察器四文件解析及owned Job成功/非零/超时三烟测实际通过，30秒仅观察执行时限、CIM5秒，不修改产品期限或日档原负载，不把主日档Node放入观察Job。下一步定位新失败的请求CPU/排队与子进程启动阶段，保留原门及现场，修复后才给新源码资格和启动回执。旧冻结任务/数据库/锚点、原HTTP5000/COMMIT750/native10000/storage30000、FULL/DELETE、精确ACK及原期限全部保持，模型调用0。
+
+
+## 2026-10-27：启动最终ACK复用owned通道；5c安装闭合，b799真实五秒失败保留
+
+5c安装40447241011/job122001418349整轮success，原候选完整门及安装构建、同格式升级回滚/DPAPI、582实际迁移、两端、发布包内部检查均完成。manifest为5ff2c661e2d2c84a90b9643b71cb37bca6d0d287bbfe8ba5cd63dfe03d52c533。582回执installed_legacy_582_finished，八阶段、baselineSourceCount=582、布局1→3、revisionDelta=1、旧读者拒写。两端schema7四案例各三次压缩、精确答案/同会话重启通过，默认零代理恢复、增强私有读后独立公开生成；真实Codex默认/增强Responses WS均401拒绝未授权升级、partialFrames=5/terminalFrames=0、两端socket关闭，HTTP/SSE/WS排空及daemon自然零退出/所属树清空通过。安装包publication30/30零skip仅defaultWorkerQualified=true、daemonQualified=false；providers/24h/受控启用仍false，模型0。不得据此授其余daemon内部转换或本批新运行时资格。
+
+b799普通40448895847七项success、coverage122006665211终态failure；正式40448895755四项success，不能覆盖普通失败。失败为Responses long-persistent首轮HTTP5005ms、requests/handshakes各4。首次取得实际同窗client I/O：windowTermination=persistent-request-failed、cleanupVerified=true、68对flush，数据库max1694ms/日志446ms，unfinishedFlushes=1、traceCompletenessVerified及commitCorrelationQualified均false，不据汇总断言唯一因果。该失败同ownerEpoch1/sequence6 save-reference-state的SQL COMMIT1940ms、线程CPU0，engine_execute2009ms；后续seq7/8/9/10 COMMIT584/557/395/794ms。proxy窗口file-completed、数据库59ms/日志30ms，不覆盖client失败。原SQL FULL/DELETE及所有期限保持。
+
+本机b799新独立目录完成锁安装41522/42507ms、原生105001ms，原两容量文件26/26、两次默认worker/DPAPI开关成功。新采集文件初始至04:43:11Z摘要296b31cc0efca8a702c708065d5021cf9a6825cbf3184fa2f9a58125d3cf58ec保持、可读且Git干净，旧删除者仍未确认，未改安全软件/恢复旧冻结文件。隔离工具环境缺SystemDrive/ProgramData造成字面%SystemDrive%缓存目录，七份缓存仅元数据核对后整体移至同一新root的source目录外保留，修正仅子进程标准变量。采集整份先37/37；环境修正后36/37，actual verify.yml模拟用例pwsh spawn五秒ETIMEDOUT，原失败保留，未再次重跑补绿；CI该实际用例已通过，不能撤销本机失败。原50项恢复短测237835ms退出1，49通过/1失败零skip：Responses第二轮HTTP4902ms、最终publication_wait_failed5009ms；本机没有同窗I/O。第二owner首次scan-reference锚点dispatch549ms，startup dispatch1412/626ms；不把这些值等同于CI COMMIT1940ms的根因。
+
+本批实际运行时改动针对首次请求才建立owned锚点通道的额外开销：createAsyncStorageOwner在SQL正常COMMIT后，以原persistAsync等待启动最终快照的精确revision ACK及路径复核，才返回owner/engine_ready；worker显式await该工厂。稳态复用此通道；原同步空intent仍先于SQL COMMIT，原同步owner不改，原生compare/flush、ACK精确相等、TTL及失败闭锁均不减少或放宽。异步启动失败先等真实通道close，再清库/释放写者；清理失败和细阶段仍按原私有错误边界拒绝，不提前ready。它是实际开销优化，不称已解决所有慢flush或一小时故障。
+
+两项物理回归先因旧工厂同步返回而红，现验证挂起ACK无ready/持有写锁、首次请求复用通道、仍只有一次同步空intent；另覆盖空/非法/错revision/极端revision ACK、启动中路径替换及实际清理前不可取得写者。原TTL重开、stale SQL仍可重试、close中晚成功拒绝等断言保留；VM夹具改为等实际ready后发消息。扩大十一文件152项151通过、1原Windows限定skip、零fail；定向Lint/格式、1667语法和CI/release治理通过。本批完整Windows尚待推送后执行，不能以Mac结果授资格。新24h仍未注册/启动，原完整门因b799普通失败未过；Windows分钟监测准备未运行、监测24仍暂停，旧日档/最大文件暂停不变。下一步核对本批新源码完整门及本机原五秒，再按已授权日档启动；模型额度未核对，真实模型0。
+
+
+## 2026-10-27：采集门禁夹具通过stdin传JSON，保留Windows源码缺失阻塞
+
+同一Windows新5c目录复核仍只有原采集测试tracked删除，长测任务未注册、24h未启动；原干净源码门、旧失败及冻结环境保持。安装链40447241011仍在原候选完整门，其现有日志已完成段无not ok，但尚无安装/升级/迁移/schema7资格，不重派同轮。
+
+采集测试的真实PowerShell八组workflow/job断言现将固定JSON夹具放在stdin，命令中只保留可直接审核的PS，不再把Base64数据插入命令；module路径原单引号清理、五秒timeout、4096输出上限、实际退出码/stderr/逐项断言和原CI发现规则全部不变，未改产品或安全软件。它是透明传输改进，不是已经确认的隔离根因或修复结论。初期机械替换误触第二个独立调用，Lint与整份回归报undefined cases、35通过/2失败；已限缩修改到首个调用，原失败TAP保留。修正后整份37项零fail/skip，Lint/格式及CI/release治理通过；完整新Windows结果待提交后核对。
+
+新独立文件观察只记录变体可读性，不执行测试、不覆盖旧缺失文件、不授源码或24h资格；早期变体不是最终提交文件，不能据其短时可读认定最终固定提交不会再丢失。下一步用新固定源码、新目录实际执行原测试并观察文件/工作区，再按完整原门准备日档。模型调用0，额度未核对不请求模型；安装链仍并行。
+
+
+## 2026-10-27：5c完整源码门已闭合，新24h被启动前源码缺失门拦截；最新安装链已派发
+
+5c444234cc3d070aef4d8d3c0a45fcf852d4d96d的普通Verify40444678641八项、正式40444678416四项、原时序40444678456三组均终态success；完整coverage I/O40444678549及独立I/O40444678467也success。仅授该源码对应门禁与短测范围，旧五秒超时、一小时anchor-persist失败及其他失败保留，不据此授稳定性或24h资格。固定5c新安装分支已实际创建，安装升级/回滚/582迁移/schema7两端链40447241011已启动，resolve成功，当前encrypted-lifecycle仍在原Require all current candidate gates；尚无本批安装或WS合格结论，未重跑旧d011失败。
+
+用户本轮重新授权启动真实24h，已建新独立目录固定5c并核对现有Node22.22.3/MSVC/SDK。两次锁安装退出0为39065/32881ms，原生构建107303ms退出0；容量/时钟26/26零skip，默认worker/DPAPI/OS锚点两次真实开关成功，ready2690/2574ms。开库诊断当时dirty=false，570份产品源码摘要7d41ab8389962d265461bcf40f16071bca0eabe1d730bae27255a39ed93a6f37、原生bc13948c0116aacaa8cb49ee555243afc1a1a0d0ebe4e209c65ffbc59fdb5cb6，Node摘要与原22.22.3匹配。它们仍是启动前短测，realtime24hStarted=false。
+
+最终预检中同名test/coverage-io-capture.test.js先存在但打开返回Windows32共享冲突，之后变为实际缺失、Windows2且Git一项tracked删除；只读Restart Manager资源查询成功但持有进程数0，不能据此确认安全软件或其他删除者。旧7ef目录同名文件异常与本轮均保留，不反复恢复、改安全软件或吞掉dirty状态。额外测试文件读检查失败与随后原源码身份门失败分别保留；最终仍由原干净源码门拒绝启动。新任务未注册、实际24h未开始，不报告运行时长或预计完成；需本机安全软件报告核对来源后恢复可审核环境。
+
+已在新目录准备Windows每分钟严格健康回执组合，复用既有身份/失败锁存/节拍连续性判定，不修改产品源码、负载或期限；四份PS语法检查通过，Mac监测/日档组合/保留期三文件31项零fail/skip。因原启动门未过，Windows分钟观察器尚未运行、原监测24仍暂停，不能预称已监测。新轮有效通过仍须288轮完整画像、真实至少86400000ms、原root实际到期、两次到期重开、15次开关及零退出/任务成功共同成立。旧冻结目录/任务不变，未新增后台长测、真实模型0。并行工作在独立GitHub runner推进最新安装链，不占用日档环境；其他内部发布转换、完整容量/24h、核额度后真实两端及受控启用仍未完成。
+
+
+## 2026-10-27：消除已锚定布局重开的纯时钟SQL写入，Windows新源码仍待验收
+
+物理SQLite新回归先红：已有锚定布局3、没有状态变更或到期清理时，旧启动仍重写认证头并生成DELETE回滚日志。现仅在原anchorClockFloor能力存在、已有ready布局3时，复用既有clock-only变化检测。原BEGIN IMMEDIATE、认证/schema/配额、全部行与原文验证、COMMIT及独立snapshot仍执行；未变事务保持SQLite文件与头的原字节，启动时间须由原独立OS锚点实际flush和精确CAS回执后才可ready。任何清理/状态SQL变化仍在同一事务写入时间水位并FULL提交；新建、旧布局迁移、无锚点时钟能力均保留原SQL时间写入。没有减少native调用、提前ACK、延长TTL、放宽同步或回退内存，不称已解决全部五秒或一小时故障。
+
+新四项覆盖空/有源重开的字节和journal不变、原期限精确相等、fresh初始化仍有SQL写日志、到期清理/晚时钟写与COMMIT失败回滚、锚点提交前/后失败的持久floor，以及非法/倒退/极端时钟。原七处重开实现断言改为同时核对SQLite旧水位和独立锚点精确新水位；原回滚攻击/旧DB与旧header拒绝、精确版本ACK、期限和FULL/DELETE/secure_delete断言保留。38项时钟及扩大五文件66项零fail/skip。更广484项为479通过、1项默认Windows后端在Mac开库失败、4项限定skip；未用跳过补绿，不授Windows资格。定向Lint/格式、1667份语法、CI/release治理通过，新实现实际Windows结果待CI。
+
+前批7efb19a普通40439818864八项success，原coverage121977211667首次实际产生双schema2回执：proxy51对flush（数据库max21ms/日志11ms）、client153对（20ms/11ms），cleanupVerified均true、windowTermination均file-completed，完整性/五秒资格仍false；本次没有慢失败，不能解释旧场次。正式40439818931/source121977211508失败：withdrawn三例仍在原ready五秒准备超时，startup ready为989/2983/2225ms，未完成操作为save-reference-state序号3/2/3，尚未进入目标COMMIT/anchor中断；egress成功、N08/N09跳过。742bd32普通八项及正式40438538056四项success，不能继承到7ef或本批。
+
+Windows新独立7ef目录两次锁安装退出0（36396/33301ms），修正隔离SDK环境后原生构建88195ms退出0；复用已有MSVC/SDK，未安装或覆盖工具，前置启动器/链接器失败留本机。容量/时钟原两文件26/26零skip；默认worker、DPAPI和OS锚点的新目录两次开关成功，ready2691/2669ms，实际storageExports两项、progressExports仅createStorageStartupProgress已核对。但identity.dirty=true，仅一个tracked采集测试文件意外缺失，来源未确认，未直接恢复或改安全软件，完整工作区资格仍false。该轮原五秒两文件50项49通过/1失败零skip，Claude long-persistent第二轮HTTP5028ms、requests/handshakes各8；原失败及有限阶段保留，不重跑覆盖。这些Windows结果属7ef，不是本批新SQL逻辑。日档/旧失败/最大文件暂停保持、模型0；完整24h、容量、最新schema7安装、其余daemon转换、核额度后真实两端及受控启用均未完成。
+
+## 2026-10-27：将首失败I/O窗口接到实际普通coverage；新合成锚点32次通信已实测
+
+17fff50普通40437772833七项成功、coverage121970504037终态failure：client阶段Chat WBIPC long-persistent首轮HTTP 5014ms、requests/handshakes各2；同阶段ownerEpoch=1的save-reference-state/sequence6写COMMIT 2925ms、engine_execute3134ms，保存原失败。正式40437772844/source121970504414亦failure，client阶段同类第二轮publication_wait_failed5001ms，是最终持久完成门失败，不能误写成HTTP失败；egress成功、N08/N09跳过。独立I/O40437772838/job121970504034成功但两阶段windowTermination均file-completed，proxy51对flush/数据库max36ms/日志13ms，client153对/数据库27ms/日志98ms；这些是另一作业的成功观察，无法覆盖或解释上述慢失败，没有同窗因果或五秒稳定性资格。
+
+为补齐这个实际取证缺口，本批把既有有界采集组合到Verify的原coverage作业，只在该步骤显式启用。原完整proxy四分片→client→frontend命令各一次且顺序不变，每段保留原退出码，安全回执或原阶段失败都不能补绿，原失败停止后段；原test:coverage中的安全覆盖检查仍执行。不改任何测试负载/断言、HTTP5000/native10000/storage30000、ACK/TTL/FULL/DELETE或覆盖率基线，不重跑旧失败。原首失败才发送finish、实际close/零退出/独立清理、32MiB环形/有界摘要和全部资格false保持；原始ETL/路径/数据库/密钥/原文不上传。追踪会扰动时序，取得同窗记录也不自动授完整性或稳定性资格；正式source仍按原npm run verify执行，未被替换。
+
+JS入口和真实PowerShell recorder同时只接纳固定仓库中诊断workflow/coverage-file-flush与verify.yml/coverage两对身份，保留GitHub-hosted Windows/X64、SHA相等、阶段和路径检查；其他job、交叉组合、空/非法ref拒绝。新测试先因Verify上下文被拒绝而红；两份实际workflow run文本均用真实PowerShell逐一模拟每段原退出/回执失败，确认只执行应有的前缀，无重复/跳过后补。五文件扩大68项零fail/skip，定向Lint/格式、1667份语法和CI/release治理通过，实际新Windows采集尚待推送后结果，不能预称已抓到慢失败。
+
+Windows新目录/新合成slot的独立短测现实际完成：固定冻结1e源码/原生/Node匹配，初始同步compare一次、owned-stream连续32次精确revision成功，实际close完成，首次794ms，其余60–430ms。冻结数据库写入/冻结anchor compare均0，原材料未修改，fullStoreQualified=false。先前身份检查ETIMEDOUT与未进入compare的失败原样保留；本次仅证明当前短程组件通信，不授默认worker/完整存储/一小时或24h资格，也不解释历史失败。安全回执和探针只留本机。742bd32三runner40438538114三项与独立I/O40438538108成功，普通已有七项成功/coverage及正式source仍执行；一小时锚点和五秒产品根因仍待，模型0。
+
+
+## 2026-10-27：修复锚点内部失败被外层压平，继续保留五秒真实失败
+
+一小时日档只有anchor-persist粗标签，不能区分快照/后继校验、实际原生请求、回复解析、前后物理身份与精确ACK。本批修复实际async repository→admission→owner失败传播：增加十个固定内部边界，只通过既有私有WeakMap携带，不读取异常message/cause/stack/任意字段，不把标签附到公开503。原始原生请求及回复各一次、无重试；同一必需清理先实际等待，次级清理失败与首失败位置分别保存。admission/owner不得再把已有细阶段覆盖成anchor-persist；未品牌化错误仍使用当前固定粗阶段。正常成功不发额外事件，不增加SQL/原生调用，也不授权ACK、清理完成或验收通过。
+
+新增实际async session细边界回归先因诊断null失败，覆盖准备、前后身份、通道创建、请求、负回复、错revision；另测请求Proxy异常不被读取、清理失败不覆盖首阶段。admission测试快照/后继/嵌套请求/非法receipt及清理失败两分支，十阶段通过严格诊断解析和serial转发；原真实SQLite owner测试现精确断言anchor-request，保留native实际close前不可取得第二写者、失败不能返回ACK及原到期时间。早期本批局部测试暴露一次catch放置错误，修正后原owner回归恢复；没有跳过或放宽断言。扩大九文件125项：124通过、0失败、1原Windows限定skip，不能授Mac原生资格。定向Lint/格式、1667份语法、CI/release治理通过，新源码完整Windows门待推送后核对。
+
+独立只读身份探针本轮实际成功：冻结1e head/source/native/node摘要全部匹配、dirty=false、570份源文件。随后两次全新目录的合成anchor短测均未进入锚点阶段；第二份有限失败回执明确identity/ETIMEDOUT，seeded=false/compares=0，仍是原5秒Git工具检查失败，不是已经定位的原生根因；不延长该期限、不把它算作实际compare测试、不因其他身份探针成功覆盖失败。私有探针/回执留本机，不上传冻结材料或模型凭据。d543正式client失败同owner三笔写COMMIT实际1246/1198/1875ms，耗时事实保留，仍缺该失败同窗I/O，不能唯一归因。
+
+17fff50普通40437772833已有七项success、coverage仍执行；正式40437772844的egress成功、source仍执行；独立完整I/O40437772838/job121970504034仍在实际执行原命令，暂未取得采集日志，不能声称通过或已抓到慢失败。原1e日档、旧失败/最大文件暂停均保持，不重启/累计；模型0。下一步用实际Windows细阶段和首失败I/O继续定位并修复产品锚点/五秒问题。最新schema7安装、daemon其余发布转换、容量、完整真实24h、核额度后真实两端及受控自用均未完成。
+
+
+## 2026-10-27：锁定同轮已观察失败；保留正式五秒与新安装前置失败
+
+补充监测回归已实际先红：同轮 storage_operation_failed 被后续有限事件窗口移除后，旧健康判定重新返回 running。现以固定任务、PID、源码/原生/Node 摘要、Node 版本、启动及进程创建时间形成 runIdentity；仅匹配当前实际身份的已观察失败可置 failureLatched。后续同轮窗口及成功声明不能抹除该失败；其他源码、进程、启动时间、空标识或未锁定记录不继承。terminalConfirmed 仍完全来自当前独立退出回执，不从历史失败/存活状态推断，更不自动重启。私有观察器保留旧文件后同步保存已确认失败历史，未恢复任何日档或监测任务。原288真实连续节拍、完整画像、到期双重开、15次开关、零退出及全部期限未变。本机四文件45项零fail/skip，定向Lint/格式、CI/release治理及语法检查通过；属于监测及组合回归，不是Windows长测通过。
+
+当前HEAD前批d543普通40433916703八项与独立I/O40433916665/job121957937472终态success，但正式40433916590/source121957937010失败：client coverage Chat WBIPC long-persistent首轮5245ms、requests/handshakes各4；egress成功，N08/N09未执行。198正式40432848807四项现均success，不能覆盖d543或其他源码失败。固定d011新安装40433453365/job121956596174也已终态failure：582及锁定身份准备成功，候选完整门在proxy coverage首轮5002ms、requests/handshakes各4、ownerEpoch=1处失败；安装构建、升级回滚、迁移、schema7两端/WS均跳过，没有新安装资格。相关diagnostic按proxy/client阶段分别归属，未重跑失败job或派发替代候选。原1e schema6安装资格保留原范围。
+
+1e日档仍为一小时处失败冻结。经新独立诊断目录中的受限Windows Job执行一次只读取证：支持的本机DPAPI解保护只在Windows进程内进行，SQLite query_only只读取认证元数据和blob计数，未读取/解密原文blob。格式3、scope各1、blob11，headerTag及scopeInventory相符，3个冻结文件前后哈希/身份与独立锚点均未变化，冻结数据库写入/锚点compare为0。SQL时间落后于独立锚点符合既有clock-only设计；只读追平后的后继检查成功，不构成时钟损坏或完整存储/持久ACK证明，不能解释历史失败。安全数值回执仅留本机。
+
+后续独立owned-stream读取及新合成slot压力诊断未获成功资格：首个非零子进程回执未定位内部阶段，后续一次明确在源码身份检查失败、owned读取及合成compare完成数均0；诊断传输失败分别保留，不能当产品根因。最后观察90秒超时后只读回查所属探针进程数0且无安全探针回执，是否实际进入子进程未证实，未盲目重启。原冻结目录/数据/锚点/任务未修改，旧失败/最大文件暂停保持，模型0。下一步仍须定位原生anchor-persist真实边界并实际修复五秒长尾；完整新日档、最新schema7安装、daemon其余转换、容量、核额度后真实两端及受控启用均未完成。
+
+
+## 2026-10-27：修复存储已失败仍显示运行的健康判定；固定d011新安装WS验收已派发
+
+从1e一小时失败的有限回执继续核对，发现健康判定原先仅优先native_day_failed/controller_failed/非零process_finished，没有单独识别storage_operation_failed。若worker已因后台sweep失败封锁，而外层真实时钟仍等待下一轮，原实现仍可能显示running。本批以包含真实事件形状、进程仍alive的回归先失败，现立即返回failed/storage_operation_failed，passed始终false；后续即使出现完整日档的成功声明也不能掩盖先前存储失败。此修复针对监测误报窗口，不是anchor-persist产品根因或24h验收通过。
+
+同时增加terminalConfirmed，将“验收已失败”和“所属进程已退出”分开。只有固定源码/启动PID及运行时身份匹配、实际进程消失、独立process_finished、有限退出原因以及Ready/Disabled任务结果与退出码精确匹配，才可确认终态；支持Windows有符号进程退出码与无符号Task结果的同一32位值。存储错误、外层failed标签、进程仍活、缺回执、错源/错PID/排队/任务结果不符都不能单独停止观察。该字段不授予24h资格，原288真实连续节拍/完整固定画像/原root实际到期双重开/零退出等通过门全部保留。实际1e终态安全回执离线重放仍failed、processAlive=false、terminalConfirmed=true；未重启任何进程或访问冻结数据库/锚点。
+
+本机旧观察器文本保留副本，后续观察逻辑改为仅terminalConfirmed=true才自行结束，并把字段写入有限进度回执；没有启动新观察器。监测24的提示同步明确“failed但terminal未确认继续只读观察”，状态仍PAUSED，整体目标继续。新两项含进程alive下先失败/后成功不能覆盖、退出证据正常/缺失/非法/极端/错身份、负退出码等；扩大四文件37项零fail/skip，统一发现、1667份JS语法、定向Lint/格式及CI/release治理通过。原空/恶意输入和私有信息不回显回归保持。
+
+只读查询1e失败附近01:22:30Z–01:24:00Z的有限系统事件计数：对应native应用崩溃、Kernel时钟变更、睡眠及恢复均0；不读取事件Message、数据库、密钥或原文。该窄窗阴性不排除其他系统/前置校验/原生提交原因，anchor-persist的实际失败点仍待定位。冻结1e任务/目录/数据、旧5a及最大文件暂停环境均保持，不自动重启或累计旧时长，模型0。
+
+d0119a56d34923989ac4b388ade69b420ad36e5b普通40431069804八项、正式40431069977四项、完整负载I/O40431069844均终态success；I/O两阶段仅为环形观察且资格false，不能覆盖旧失败或一小时日档。按既定门禁重核draft421213889仍未发布，旧installer/identity资产667118183/667118182、大小/状态/tag/基线target全部匹配，精确新分支确认不存在后创建且远端SHA复核为固定d011，未覆盖既有分支。新安装WS流水线40433453365的resolve121956417427成功，encrypted-lifecycle121956596174已实际执行；新schema7的实际升级回滚/582迁移/两端CLI/WS及包内发布仍待其后续完整结果，不把旧1e schema6资格改写。
+
+d611普通40431857163七项成功、coverage121951196088保留新Chat WBIPC long-persistent第二轮5007ms失败（requests/handshakes各8、client coverage/ownerEpoch=2）。该owner六笔写提交502/571/520/678/614/483ms，线程CPU均0；只读snapshot的0ms COMMIT另列，不能混入写耗时；proxy与client两个执行阶段的epoch也分别归属，不能混合。无该失败同窗ETW，不唯一归因，不重跑覆盖。198普通七项成功、coverage及I/O仍执行。下一步继续锚点边界定位和五秒持久事务开销排查，同时核对固定d011实际安装；其他daemon转换/容量/真实24h、核额度后的真实两端及受控启用仍未完成。
+
+
+## 2026-10-27：真实1e日档一小时处锚点阶段失败已及时发现并冻结；保留首个请求失败附近I/O窗口
+
+新1e日档不再运行、未通过24h。固定源码1e88eacc17d0ff9a9dfaa9cc4f71436780e809ce，任务HPM-native-day-20261027-1e88eac-5b74d29a；00:23:00.697Z实际开始，01:23:00.714Z第13个tick/3600000ms轮次开始，01:23:00.7850164Z控制器记录子进程退出1，elapsed3610031ms。此前连续12tick至55分钟不等于24h，1小时tick不等于该轮完成。有限失败回执：stage=capacity/attempt=1，后台sweep在anchor-persist失败、cleanupFailed=false；容量主失败begin/command39及清理close/command40均scheduledMs=3600000，storeOpens=1/storeCloses=0。anchor-persist包含快照、后继校验及实际提交，不能据此确认原生flush、DPAPI、OS或硬件根因。完整日志行损坏0、timelineErrors=0、identity/start各1，未拼接旧轮。
+
+01:24:13.132Z只读核验已发现terminal_failure/实际PID不存在，后台五分钟观察器01:24:30.945577Z同样发现并自行退出0，约90秒内识别原非零终态，没有等到次日才发现。Task Ready/LastTaskResult=1，原冻结源码、任务、数据库和独立锚点保持，不打开数据库/读取密钥、不重启或自动重试、不累计时长。本机新session记录failed及restartAuthorized=false，监测24按其既定终态规则PAUSED（不是暂停整体目标），该轮Mac所属防休眠租约以原管理session退出130释放。原5a七小时及更早半小时失败、最大文件暂停环境继续保留。
+
+独立d011完整负载I/O40431069844/job121948575851产生proxy目标文件的阶段回执：51对flush，数据库max21ms/日志max16ms，关联线程otherWaiting max494ms；原完整stage/job当时尚未终态，traceCompletenessVerified/fiveSecondQualified均false。环形32MiB可能缺失较早窗口，不能用这一尾段解释旧秒级COMMIT或认定五秒稳定，也不能把非零ETW状态直接等同产品写入失败/杀毒根因。对应安全数值回执仅留本机，原始ETL/路径/数据库/密钥/原文不上传。
+
+为避免首个实际五秒失败之后仍等整份文件结束而覆盖其附近环形记录，本批在原请求、正文或最终持久完成已经失败后，通过原所属私有pipe仅发送一次finish。原测试和四分片继续运行、不增加或重放请求、不改变原5000/10000/30000ms/ACK/FULL/DELETE/TTL；原失败仍失败。after仍独立等待所属child真实关闭/零退出、精确有界摘要/清理和源身份后才发布观察回执。坏输出即使失效仍先让所属recorder收尾，不能清理失败补绿。schema2另记file-completed或persistent-request-failed，严格拒绝未知/额外字段；历史schema1只能保留原范围，环形完整性和五秒资格始终false。不是实际原生失败或性能根因修复，尚待本批Windows验证。
+
+首个失败收尾回归旧实现因未提供控制能力失败，新增七项含重复finish、正常结束/旧schema、非零退出/缺摘要/写管道错误/私有输出、非法/可执行注册；扩大四文件62项零fail/skip。1667份JS语法、定向Lint/格式及CI/release治理通过。5411普通原两项就绪失败保留；其正式source现已success，N08/N09正在执行，不能覆盖普通失败放行安装。d011普通七项成功、coverage及其正式/独立I/O继续，d611完整门仍在执行。下一步重点定位本轮anchor-persist的实际失败边界，并继续独立五秒/安装WS/daemon转换等；真实24h、完整容量、额度核对后真实两端及受控启用全部未完成，模型0。
+
+
+## 2026-10-27：保留5411原生准备五秒失败，补有限操作位置，不冒称根因修复
+
+固定5411ff7157963ff5b5ad841c5e429e08d131f743普通40430428016七项成功，coverage121946475908终态failure。native publication sending正常释放与native HTTP transport-finished正常停机两个用例，在原ready五秒窗口耗尽，耗时5023/5074ms；lastFixture均fixture-observed，而原生startup已在527/1219ms ready。尚未进入本次目标COMMIT中断，不能记为COMMIT边界失败或首次开库失败，也不能由其他成功窗口覆盖。安全摘录另存本机，不重跑失败job；固定5411 schema7新安装候选因完整门未过而未创建/派发。其正式40430427920/source仍执行。d0119a5普通40431069804已有七项成功、coverage仍执行，正式40431069977及独立完整负载I/O40431069844均执行中。
+
+原夹具只记录startup和fixture-observed，无法识别其后准备中的具体持久调用。本批拆出test-only有限操作观察器，在子进程原execute Promise前后发送sequence/固定operation/started-completed-failed/单调elapsedMs；父进程严格解析，仅超时时附最近16条。原数据/输出/异常/目录/密钥不进入观察消息；总序号上限128、时间上限60000ms、重复/错序/未知/可执行输入拒绝，允许原有排队调用重叠，不新增串行门或自动重试。原Promise的返回值和异常原身份保留，产品失败加观察失败时独立保留两者；started与completed都是诊断，不授持久或验收资格。默认worker/DPAPI/锚点不替换、不增加storage调用，原ready/HTTP五秒、COMMIT750ms、case15秒及自然退出期限保持。产品持久、TTL、认证、ACK及SQLite FULL/DELETE没有变更，五秒根因仍未确认。
+
+新增八项含真实pending Promise/原请求与结果各一次、失败及观察双失败、重叠调用、空/非法/极端/访问器/Proxy/私有字段拒绝和有界历史；进入统一发现。相关五文件41项零fail/skip，1667份JS语法、定向Lint/格式、CI/release治理通过。早一轮扩大六文件因遗漏本次PATH的pwsh三项ENOENT失败保留；补命令级便携PowerShell后47通过/1失败，剩余为Mac上的Windows Job包装；独立构造同一Windows Job类亦失败，未授本机Windows Job资格，也不跳过/放宽原测试。最终41项是注明范围的相关验证，不替代该项或完整Windows。
+
+新真实日档2026-10-27T01:15:45.895Z同一任务/进程/身份，11连续tick至3000000ms、elapsed3000002.3982ms（50分钟），原24h资格仍false；五分钟只读监测继续、长测主机不增加其他负载，旧失败及最大文件暂停保持。下一步以当前实际CI和I/O结果定位存储长尾，完整门通过才推进新固定安装WS；daemon其余转换/容量/真实到期双重开、额度核对后真实两端及受控自用仍待，模型0。
+
+
+## 2026-10-27：补齐完整覆盖率负载变化的 I/O 触发，五秒根因仍未确认
+
+新增测试会经全量排序改变原四分片的分配和同场负载；原覆盖率 I/O 的 paths 仅跟踪少数持久模块及单个目标测试，ff/2b 等新增安装测试后的实际五秒失败没有同窗 ETW，不能由其他成功场次解释。本批让该独立诊断同时跟踪 test/**、原两个 runner、发现/分片/隔离环境模块以及 package/锁文件；保留原完整 proxy→client→frontend 顺序、首个失败后停止、独立清理回执、环形采集上限及全部资格 false。不是重跑旧失败 job、不修改产品持久/认证/期限/覆盖率基线，也不把诊断通过当五秒稳定。新增治理先以缺 test/** 失败，扩大原采集及治理两文件34项全部通过、零 skip，定向 Lint/格式及 CI/release 治理通过。源码检查确认现有 saveReference 已复用不可变密文，不能把“预算更新重写原文”当已确认 bug 或提交无证据产品改动。
+
+固定5411ff7的新 WS 安装组合仍待完整 Windows 门：普通40430428016已有七项成功、coverage仍执行；正式40430427920的source仍执行，N08/N09尚未获本次资格。固定1e已闭合的schema6安装结果不改写为schema7。2026-10-27T01:09:45.444Z新真实日档同一任务/进程/身份、10个连续tick至2700000ms，elapsed2700005.627ms（45分钟），尚非24h通过；五分钟只读监测、原完整288轮/恢复/到期双重开及零退出要求保持。长测主机不加其他负载，全部旧失败及最大文件暂停保持，真实模型0。下一步用独立 runner 的同负载 I/O 定位长尾，完整门通过后执行固定5411ff7实际安装 WS 矩阵；其余daemon转换/容量/真实provider及受控启用缺口不缩减。
+
+
+## 2026-10-27：安装停机矩阵接入真实Responses WS前缀与双端关闭门，schema7尚待实际Windows
+
+已将上一批installed-only WS监听能力接入实际安装矩阵默认组合，不再停留在未选用的基础模块。保持原四个CLI案例、各三次压缩/精确最终答案/同会话重启、JSON及部分SSE hold/自然退出不变；Codex默认/增强两个owner各增加同一/v1/responses连接上的在途普通WS turn。以真实entry Upgrade发送固定response.create，要求五个精确公开进度帧至output_text.delta，始终不发送或接受response.completed；不是空闲连接关闭，也未改走Realtime规避增强传输。WS与原JSON/SSE一同进入原5000ms窗口，原hold只在独立TCP拒绝后释放，owner原自然零退出/树空及存储范围门全部保留。
+
+同一五秒窗口先发送无效合成认证的真实Upgrade阴性对照，必须收到完整有界401并观察实际socket关闭；101、503、断线、过量/未完成响应和强制清理都不能作为认证拒绝资格。正向握手前还要求上游handshake计数仍零。正向只允许一个握手、一个response.create、精确帧序列；在发起原stopNaturally前必须观察前缀，停机后独立等待client和upstream两个WS close，不能用本探针finally的terminate补齐资格。默认模式在WS前缀后再执行原序号化观察，必须继续零恢复；原每个HTTP请求的独立观察仍保留，不并发争用原签名mailbox。
+
+新增WS拒绝/传输两个可测试模块；未知/可执行输入拒绝，固定模型/loopback/路径、4096消息/拒绝体上限，无任意URL或真实provider凭据入口。异常和响应正文不输出，回执只含固定protocol、五帧/零终态计数、unauthorizedUpgradeRefused及两端closed布尔值。强制清理只负责等所属资源真实关闭，不能创建正向证明；所有未知或失败仍失败，不自动重连、重发或重跑模型。
+
+安装矩阵schema升7，保留原全部字段并新增websocketDrains，必须恰为Codex default/enhanced按序两个精确Responses证明，同时四次原自然退出成立后才能生成websocketDrainQualified=true；旧schema1–6、缺证明、错序/客户端/协议/计数、未关闭/未拒绝认证、重复/未知字段均拒绝。Claude原HTTP/SSE路径保持，不声称Claude有Responses WS。PS消费者同步严格验证并增加有限websocket_open/close阶段，未降低原资源或资格门。这里的新true仅能由新组合成功运行产生；旧固定1e实际安装schema6的WS=false不回写，当前源码的实际Windows WS资格仍未取得。
+
+本机使用真实WebSocketProxy和增强恢复WS transport与停止准入，正常两模式都观察在途前缀及双端关闭；认证绕过、错误上游认证、提前关闭、错误/终态/二进制/非法UTF8/超量帧、默认零恢复观察失败均拒绝，遗漏upgraded peer必须耗尽原五秒并失败，不能靠最后强制清理补绿。另有独立真实HTTP Upgrade的401/101/503/断线/过量/未完成对照及纯证据/端口/坏序/Proxy/getter/空/极端路径。测试fixture显式使用内存session、合成SNI及provider seam，不能冒充TLS/DPAPI/真实Windows；部署默认组合仍走原安装TLS、防火墙、默认worker与DPAPI。扩大十三文件91项通过、零skip；新增测试进入统一发现，1666份JS语法、定向Lint/格式、CI/release治理通过，原安全/覆盖率基线及锁文件不变。
+
+ff4b129普通40428223986七项成功、coverage121939233460保留新的Chat WBIPC long-persistent第二轮5001ms失败，ownerEpoch=2、requests/handshakes各6。第3笔准入2034ms/COMMIT1405ms（线程CPU0），第4笔结算1577ms/COMMIT1012ms（user15000us/system0），后续第5笔准入1263ms在超时附近继续完成；不能混合两次owner的sequence或把全部完成时间算在超时前。该失败同窗ETW缺失，根因未唯一确认，保留独立安全回执且不重跑job，不能用新WS测试或成功窗口称五秒稳定。c38普通40426323652八项及正式40426323653四项均终态success，不能覆盖ff与2b失败；ff正式40428224004仍在执行。
+
+固定1e安装40425384993全链成功及manifest c2d470c7bef878f9f4012ebed5419bffc830435d486a003600b6dab8e30999b6保持，仅授其原schema6合成/迁移/包内范围；本批须先新完整普通/正式门，再以固定新SHA执行实际安装矩阵，不将局部通过改称整体完成。新24h仍是固定1e的独立任务；2026-10-27T00:58:55.965Z同一实际进程/创建时间/源码运行时哈希核验成立，八个连续tick至2100000ms、elapsed2100015.068ms，已真实越过旧半小时失败点但尚未通过24h。五分钟监测持续，原失败及最大文件暂停环境不动，该Windows主机不加验收负载。真实模型0、额度未复核，其他daemon转换、容量、真实provider及受控自用缺口保持。
+
+
+## 2026-10-27：保留2b覆盖率WBIPC五秒失败；新增有界安装合成WebSocket监听能力，资格未提升
+
+2b55ea256ae26a70c2f599097515e4bd1dd5711d普通Verify40425744278七项成功、coverage121930932367失败。失败为actual core chat WBIPC的long-persistent首轮请求5002ms超时，requests/handshakes各一、ownerEpoch=1。准入save-reference-state第6笔combinedAdmission耗时3868ms，其中clock write188ms、真实SQLite COMMIT3139ms且该worker线程user/system CPU均0、独立anchor persist425ms；第7笔settle-reader耗时2392ms、COMMIT1303ms，replyAsync最终6299ms。后续结算继续执行，不能将其所有时间倒算为超时前耗时。此为同一固定产品代码的新失败窗口，不被1e三runner/自用短测成功覆盖；缺该失败同窗口ETW证据，尚不能唯一归因文件刷盘、调度、VFS重试、杀毒或硬件，更不能称五秒稳定性合格。不重跑失败job、不改四shard/负载/5000ms或持久门制造绿色。c38普通40426323652、正式40426323653及2b正式40425744290仍待完整终态。
+
+为完成安装版WS收尾缺口，新增installed-only监听能力：固定loopback、精确OpenAI SNI与/v1/responses、受限合成认证在101前校验，再由同步认证门提供帧处理能力；4096字节消息/握手head上限、4个活动peer及8次总握手限额，失败后封锁新准入并保留失败清理结果。任意thenable/Proxy/getter不执行，异常正文不读取或输出；真正等待peer close和已接入的原生Promise处理结束，不能把强制断开请求当实际清理完成。新组合复用原安装TLS/路径/防火墙lease；共享监听的可选安装专用attachment和独立清理模块均尝试所有资源，任一失败仍失败，原Job期限不改。复用已声明的直接依赖ws8.22.0，不改锁文件或添加依赖。
+
+WS依赖放在单独模块，不进入N08/N09核心模块闭包；真实源码closure回归核对两者均可完整固定且不含新WS模块，未放宽源闭包验证。新十一项回归涵盖真实本地101与帧、空/正常/4096边界、4097拒绝、错误路径/SNI/认证、并发/总量及失败后再准入、处理同步/异步失败、Promise/thenable/可执行属性、延迟清理和幂等close；另补双资源独立清理失败路径。扩大十一文件78项全通过、零skip；另用真实连接复现处理器内重入close会先于其异步处理完成而错误返回成功：新增回归先以true≠false失败，现先登记处理任务再调用能力，close必须等待该任务；修复后完整78项复核通过。最初扩大四项因调用命令未把本机已安装portable pwsh置入PATH而ENOENT失败，原结果保留；仅当前验证进程PATH使用既有7.6.8后执行原断言全通过，不修改系统工具或测试skip。早期新夹具在门调用前创建拒绝Promise导致unhandled，改在实际调用时创建后仍验证原拒绝路径，不算产品根因。1661份JS语法、定向Lint/格式、CI/release治理通过，新测试已进入统一发现。
+
+本批仅完成WS合成监听及清理基础能力，尚未接入安装停机组合或取得实际Windows TLS/daemon WS资格；本地wire测试显式使用合成SNI见证，不能冒称真实TLS验证。现有安装schema6/websocketDrainQualified=false保持，下一步必须组合实际入口认证Upgrade、停机前的固定帧往返、双端断开和原自然退出/树空门，实际Windows通过后才能提高该资格。HTTP/SSE四案例、认证、TTL、预算预扣/结算、精确ACK、SQLite FULL/DELETE及public release签名要求均不变。
+
+固定1e安装40425384993/job121929848744已终态success，闭合manifest=c2d470c7bef878f9f4012ebed5419bffc830435d486a003600b6dab8e30999b6。原完整候选门/构建/同格式升级回滚DPAPI、582实际八阶段layout1→3/revision+1及旧写者拒绝均通过，基线manifest仍4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f。安装Codex/Claude默认/增强四合成案例各三次压缩、精确最终答案、同会话跨进程重启留存通过，默认零恢复、增强私有READ与独立公开生成保持；schema6中自然退出/JSON/部分SSE收尾true，WS/真实provider/24h仍false。包内发布30/30零skip、defaultWorkerQualified=true、daemonQualified=false，未扩为全部daemon转换。nativeControl独立原expiry/两次正常停止/存储重开通过，自己的restartRetention仍false，不混为两端资格。全部所属树清空/卸载成立，未公开发布安装器。该安装资格只绑定固定1e，不替代新WS能力的实际Windows验收，也不覆盖2b五秒失败。新真实日档仍固定1e，与当前源码修改隔离：2026-10-27T00:40:03.478Z只读核验同一实际进程/创建时间与哈希，四个连续tick至900000ms、elapsed900003.5832ms，未见失败；运行中不等于24h通过。该Windows主机仅长测与只读监测，原旧失败/最大文件暂停环境未动，模型0，其他剩余交付范围不缩小。
+
+
+## 2026-10-27：固定1e新独立真实24h已启动，身份及首次安全进度核验成立
+
+本轮依据用户“启动24小时测试”及“确保真实运行、其他问题并行”的授权，使用全新目录/全新任务HPM-native-day-20261027-1e88eac-5b74d29a，固定产品1e88eacc17d0ff9a9dfaa9cc4f71436780e809ce，不重启旧5a失败任务、不累计其七小时时长，不访问旧数据库/密钥/锚点/私有日志，最大文件暂停环境不动。新环境两次锁安装、原生准备、容量/时钟26项及两次默认worker真实开闭各步骤退出0，零skip；ready4860/4411ms。首次本地控制脚本路径转义造成新目录准备失败，尚未复制运行时/启动产品；残留目录和失败回执保留，更正控制脚本后换新目录准备，不当作原生产品失败或自动重跑长测。
+
+实际进程54304于2026-10-27T00:22:56.239Z启动，native_day_started于2026-10-27T00:23:00.697Z出现；2026-10-27T00:24:10.791Z已核对Task Running、实际进程alive、精确exe与创建时间一致、dirty=false、完整首条tick=0、identity/start各一次、完整JSON损坏及时间线错误均零。不是仅Start-ScheduledTask回执。源码570文件哈希f0c5aa606473aace74afe6ac87f9b8b6a0d7ea943c7dc409bdfd7434bab8717c；Node22.22.3/780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b；本新路径原生构建768c164757ee5a155cf80221ef4575b2b89b96bbdc352700a3323d42cff4ca85，实际导出为原两项storage及单项progress工厂，加载解析指向本checkout。不同构建路径的原生二进制哈希不借用短测或CI值。
+
+realtime24hStarted=true，realtime24hPassed仍false。北京时间10月27日08:23:00开始，最早10月28日08:23后完成原root实际出生至到期等待、两次到期同目录重开及最终零退出才可通过。原day-small288轮、24恢复、12轮中重开、总15开/关库及原时钟/负载/期限保持；每个tick代表轮开始，不能当作该轮工作完成。至少86400000ms真实经过、完整原画像及全部连续tick必须一起核对，不能仅墙钟过一天或最后一个新tick掩盖早期空档。
+
+已有每五分钟只读监测24已从旧终态目标转到本新任务，独立后台观察器首次状态running；核对进程创建时间/源码与运行时身份/全部tick序列/退出，不改产品或访问数据库。半小时失败即使任务/进程仍alive也判失败；超过10分钟无真实推进标停滞风险；SSH/观察失败只标未核验。九项健康判定回归全通过，包括半小时失败优先、过去睡眠空档不能被最后tick覆盖、缺身份、坏进度及全部终态门。观察器不自动重启，任务无restart/trigger；仅本任务临时防睡眠租约，未改系统永久电源设置。测试源码冻结，主机自此仅长测及只读核验，其他工作在Mac/独立GitHub runner进行。
+
+并行N09范围修复已提交推送2b55ea256ae26a70c2f599097515e4bd1dd5711d，新Verify40425744278/正式40425744290正在执行；不会替换固定1e测试身份。1e完整coverage闭合十二次最终持久1034–2195ms、已观察276次COMMIT最大88ms；三runner各原50/50零skip，十八次最终持久1038–1434ms，单runner138次COMMIT、最大73/55/147ms，旧失败均保留，不能授五秒稳定性。固定1e安装40425384993独立runner已恢复完整582身份，候选门仍执行；其后实际升级/回滚/582拒写/两端及安装包内部资格仍待，不借旧2f结果补齐。真实模型调用0，额度未复核，WS/其他daemon转换/剩余容量/真实provider与受控自用仍未完成。
+
+
+## 2026-10-27：1e完整门及真实30分钟前缀通过；修正N09八案例摘要，固定新安装并行
+
+固定产品1e88eacc17d0ff9a9dfaa9cc4f71436780e809ce的普通Verify40421489324八项、正式40421489405四项（含N08与N09）、三runner时序40421489372、独立I/O40421489274及覆盖率I/O40421489645均已终态success。不会把另一个分支新启动的Verify40425384921与原完整门混为一轮，也不把成功窗口覆盖历史五秒/DPAPI/COMMIT失败或授长期稳定性。
+
+独立自用Windows固定1e新目录完成锁安装、插件--ignore-scripts锁安装、原生准备，各步骤退出0；容量/时钟26/26、失败阶段/真实默认worker17/17及原两文件五秒50/50，均零skip、原期限与负载不改、不重跑测试。真实默认worker验证八精确版本同目录重开、原expiry及陈旧CAS拒绝的engine-execute阶段；其余注入边界不能全部称DPAPI验收。六次最终持久完成1773–3394ms，138次已观察COMMIT最大149ms；只是本轮成功样本，fiveSecondStabilityQualified仍false。源码570文件哈希f0c5aa606473aace74afe6ac87f9b8b6a0d7ea943c7dc409bdfd7434bab8717c，Node22.22.3哈希780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b、原生59fcb2ede60eeea010c3d496f475161ce80269fa41ea77c766926d3964937e89，clean；初始PS5控制器退出但clone实际成功的设置失败保留，确认后只用PS7续接依赖，不称产品根因。
+
+真实30分钟前缀40421489423/job121916750527已终态success：2026-10-26T23:43:02.896Z实际开始，七个连续真实tick至1800000ms，完成elapsed1801841.267ms、最大迟到12.1911ms，开/关库各二次并同目录重开，源码同上。CI Node22.23.4、原生d8f107c6fe056ebcab7834a79e709b96f2669a07e95a87aecdd8e57aa7e768ee。prefixCompleted=true，但realtime24hStarted/realtime24hPassed/fullCapacityQualified均false，不能计入正式24h。旧5a七小时READ失败及更早半小时失败、最大文件暂停目录/任务/数据库/密钥/锚点均保持；不累计旧时长。
+
+发现N09运行约束已要求cases=8、adaptersClosed=8，但工作流人工摘要仍称六案例且笼统排除全部COMMIT内部，导致实际范围误报。本批只修摘要与说明：成功N09为原六案例加prepared真实SQLite COMMIT pending强杀/正释放两个对照；其他sending/transport-finished/uncertain/withdrawn内部、daemon durable-ACK内部、完整N09/容量/24h/provider均继续排除。prepare的daemonExecuted=false和网络阶段n08Qualified=false仍是各自局部回执，不擅改为总资格。无运行命令、原Job120秒、witness750ms、HTTP5000/native10000/storage30000ms或认证/TTL/精确ACK/FULL/DELETE变更。
+
+原八状态摘要行为回归先以旧六案例文本失败后通过；新增交叉检查生产cases和消费cases精确契约，防止摘要计数漂移。portable PowerShell执行原同一测试callback与八状态表达式通过，只证明摘要逻辑；本机三文件16项13通过/3原Windows限定skip，定向Lint/格式、CI治理与diff检查通过，原Windows完整行为回归继续统一CI。未增加skip或降低门禁。
+
+固定1e安装验收40425384993/job121929848744已在独立runner执行：基线身份与完整582恢复已成功，完整候选门/构建/升级回滚/582迁移拒写/最新安装两端及包内转换仍需逐步终态，不借用固定2f旧manifest授1e资格。不公开安装器、不动release签名要求。实际provider调用0，额度尚未复核，不能消耗。
+
+新正式24h独立环境正在按固定1e锁安装与原生短诊断准备，尚未声称启动。启动必须有实际native_day_started、源码/Node/原生哈希、真实PID与创建时间及Task Running一致回执；仅任务Start请求不算开始。持续核对每5分钟原时钟全序列，超过10分钟无真实推进为停滞/未核验，非零退出/失败立即报告且不自动重启；完成须原完整画像、真实>=86400000ms、原root实际到期后两次重开及最终退出0。启动后该主机只读监测，其他实施转Mac/GitHub独立环境。其余daemon转换/WS、容量、真实两端及受控自用缺口保持。
+
+
+## 2026-10-26：贯通默认worker稳态失败阶段，保留主阶段及清理失败；e3普通门全通过
+
+原7小时READ失败只有reply/close，不能确认内部根因。本批在实际异步owner记录engine-execute/engine-snapshot/anchor-persist/owner-verify/owner-close固定阶段；串行队列转交仅WeakMap认证的安全元数据，拒绝请求仍返回原code/message/statusCode=503、不含cause或新增公开异常字段。阶段表示失败所在边界，不等同具体SQL COMMIT、DPAPI、flush或硬件根因。失败后的必需清理再次拒绝时，保留原阶段并标cleanupFailed=true，关闭Promise仍拒绝、写者锁仍等真实原生关闭；不能将cleanupFailed=false当清理ACK。原SQL拒绝仍可继续后续合法请求，锚点/身份失败仍封锁owner，不重试操作。
+
+私有worker负回执只可附精确phase/cleanupFailed；主线程严格验证、成功回执不得夹带诊断、畸形或未知标签终止服务。可选onFailure只接收固定operation/phase/boolean；非数据字段、Proxy、访问器及thenable钩子不执行，观察回调抛错/拒绝不改变原存储失败或成功。正常路径不输出诊断、不多做SQL或锚点持久调用，不改变原5000/10000/30000ms、队列、CAS/精确ACK、FULL/DELETE、授权/预算、原期限或时钟。空闲sweep失败也通过真实worker组合，在所属清理后转交阶段；即便诊断发送失败也必需关闭parentPort。day/prefix入口只组合固定失败日志，原完整画像/真实时钟/到期双重开及prefix的非24h标记保持，不启动日档或替代真实验收。
+
+两项真实文件owner回归先以缺失阶段null失败，再通过；新增十一项独立回归涵盖五个owner阶段及清理失败组合、串行/真实worker组合转交、坏输入/空/极端/Proxy/getter、回调异常/thenable、不变的请求定时器、空闲终态和发送失败后关端口。默认Windows原生八精确版本重开用例增验真实陈旧CAS拒绝阶段、原数据/期限继续不变，尚待本批实际Windows。扩大十文件134项中133通过/1项原Windows限定skip、零失败；Mac默认worker仅验证原不支持平台拒绝分支，不授DPAPI/锚点实测资格。早一轮扩大测试因旧VM夹具未声明新模块而失败，补其显式导入后原负回执断言全部保留并通过，不算产品根因。
+
+新运行时模块已列入发布源清单，新回归进入统一unit发现；补三条时序/I/O工作流对父存储适配器及新模块的直接触发，治理先三项缺路径失败、现六项通过，原命令/负载/期限/不重试保持。1659份JS语法、全树Lint零错误/原五警告、变更格式及CI/release治理通过。e3普通40419083285八项均success，闭合coverage121908666533十二次最终持久完成1030–1916ms、最大已观察COMMIT245ms；正式40419083365/source121908666926仍执行，旧失败保留。固定2f安装全链资格仅属其原身份，本批仍需独立完整Windows与安装结果。
+
+WS安装验收仍无实际Upgrade合成入口，不能改false字段冒充完成；其他daemon转换/容量、READ与五秒稳定性、真实24h、额度核对后真实两端及受控自用目标全部保留。原冻结5a终态/任务/数据库/密钥/锚点未动，未重启或另启24h，模型0。本批修复诊断缺口，不宣称旧READ或五秒根因已修复。
+
+## 2026-10-26：固定2f安装全链完成；e3三runner原50项全部通过
+
+固定2f80e8fa03bdec991211850eac6a7c4482d0aa6e安装40416283272/job121899468719已终态success，闭合完整日志核对新manifest=793cac7b6ad55d10e010aa322550e441f4f562beb66d0f2acfde08d133734116。完整候选门、NSIS构建、同格式升级回滚/runner-local DPAPI、固定582迁移/旧写者拒绝、安装两端合成四案例及包内发布中断均success。582基线仍4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f，八阶段layout1→3/revision+1，installedMigrationQualified=true，所属树清空/卸载成立。
+
+NSIS_INSTALLED_CLIENTS schema6四案例各compactions=3、exactFinalAnswer/restartRetention=true；默认defaultZeroRecovery=true，增强privateRead/publicGeneration=true。daemonNaturalExitQualified/httpTransportDrainQualified/sseTransportDrainQualified=true，证明本次实际安装CLI及同会话跨进程重启、同次JSON/部分SSE停止收尾。websocketDrainQualified/realProviderQualified/retention24hQualified仍false，模型0。独立nativeControl原expiresAt/两次正常停止/存储重开成立，自己的restartRetention仍false；包内发布30/30、零fail/skip、defaultWorkerQualified=true、daemonQualified=false，均绑定同一manifest。只授固定2f安装合成及包内资格，不扩为全部daemon转换、真实provider或24h，也未公开发布安装器。
+
+e3b7dcae2df028fb04b6e77e21a462a1c7e850db三runner40419083400全部success，121908666313/121908666656/121908666684各完整原50项、零fail/skip，保留原期限和负载，无重试；18次最终持久完成1041–2365ms，每runner138次已观察COMMIT、最大56/151/443ms。这是新的成功窗口，不覆盖2f独立Windows目录ENOTEMPTY、7a五秒请求或更早秒级COMMIT/DPAPI失败，不授五秒稳定性。e3普通40419083285已有quality/integration/unit3/Rust success，其余unit和coverage仍在执行；正式40419083365 egress成功、source仍在执行。2f到e3实际diff只有交接文档及测试/清理helper，没有产品变更，但仍不把2f安装身份改写为e3。
+
+原冻结5a真实日档7小时READ失败终态保持，未重启/另启日档，未访问冻结数据库/密钥/锚点。现行默认worker实际使用异步串行owner与原生持久通道；源码检查尚未找到能唯一解释旧READ失败的证据，不能仅凭路径已改变或新成功样本称根因已修复。继续完整Windows门和真实READ/五秒诊断，其余daemon转换/WS、容量、真实24h、额度核对后真实两端及受控自用仍未完成。
+
+## 2026-10-26：保留跨物理owner主失败与清理失败；固定2f安装升级回滚步骤成功
+
+独立Windows原版50项留下49通过/1失败的原结果，不重跑覆盖。源码确认v7物理owner用例finally中的rmSync异常会覆盖先前断言/子进程失败；现用真实测试注册及原fixture/会话流程，分别注入一次子进程错误和一次目录清理错误，旧实现只抛后者，修复后AggregateError按原主失败、后续清理失败保留各自身份。运行时关闭和带原目录归属断言的删除各尝试一次，任何单独清理失败仍失败，全部清理成功时继续原主异常；不重试删除或子进程，不修改5000/10000/30000ms、原90秒用例与原30秒spawn期限/数据负载/正确性断言。此为测试故障证据保留修复，不是ENOTEMPTY根因修复，也不解释冻结5a真实7小时READ或历史五秒失败。
+
+新四项回归包含真实fixture双失败、空/正常清理、主失败不被替换、多个独立清理各一次、单独清理失败及undefined原始抛出值，已核对进入统一unit发现。扩大两文件24项本机全通过、零skip；其中原物理owner用例在Mac验证原固定非Windows拒绝分支，不能授Windows原生资格。定向Lint/格式、CI/release治理及diff检查通过。本批仅改变测试证据保留，不改产品、认证、TTL、ACK、FULL/DELETE或签名门。
+
+固定2f安装40416283272/job121899468719最新步骤10构建、11实际同格式升级回滚/runner-local DPAPI均success；步骤12实际582迁移/旧写者拒绝正在执行，后续两端合成与安装包发布内部验收仍待。属于固定2f候选，不重定向新提交或扩大为完整安装通过。原日档仍终态失败、未重启或另启24h，冻结环境不动，真实模型0。下一步继续核对本次安装终态和新SHA完整Windows，并针对原生READ/五秒路径收集可归因证据；整体剩余范围不缩小。
+
+## 2026-10-26：独立Windows默认原生开库通过；完整无节拍诊断耗尽预算，原五秒测试已启动
+
+原冻结5a真实日档的7小时READ失败终态不变，未重启或另启24h，原目录/任务/数据库/密钥/锚点未访问。独立2f短测环境完成锁定npm ci、插件锁安装--ignore-scripts、原生准备及原capacity-persistent/capacity-clock两文件回归，各步骤退出0。首次npm缓存stat UNKNOWN/-4094失败原日志保留；只对本次进程设置新目录内npm缓存后完成，不改全局工具或配置。
+
+实际默认Windows worker在同一新目录两次开库/inspect/关闭均成功，源码干净且storageResolvedToCheckout=true。固定源码2f80e8fa03bdec991211850eac6a7c4482d0aa6e，sourceSha256=3d55e90d239e3d62a59699a2a0d5ab2a25e11ea6fec13f57b5f68e11afafa0aa，nativeSha256=31fc553d31933c7cc9ae1a95b404036035af90fc62113f0bc466136b3b4ee051，Node22.22.3/nodeSha256=780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b。实际导出storage为openContextRecoveryStorage/validateStorageResult，progress为createStorageStartupProgress。
+
+随后在独立新数据库执行原day-small全命令序列的无实时节拍诊断，保留实际默认worker/DPAPI/OS锚点、原能力声明和各产品期限。原7小时逻辑位置对应READ实际成功426ms，但它不是实际等待7小时或冻结5a根因复现。外层600000ms诊断预算耗尽时576笔启动且576笔成功返回、最大单笔2233ms、10次关闭，未产生全序列完成回执；控制器按约定终止自己所属子树，后续只读确认所属诊断子进程0。此为外层诊断未完成，不记为原生操作超时，也不算完整容量或真实24h通过，不延长预算补绿。
+
+固定2f安装40416283272/job121899468719已在只读网页确认完整候选门结束，Build current test installer without publishing已success，现执行同格式升级回滚/DPAPI；后续同格式升级回滚、582迁移/旧写者拒绝及安装两端/发布内部步骤仍待本次实际结果，不继承8e资格。GitHub连接器本次一度观察失败，已恢复并核实上述步骤；观察失败不能当作作业失败或启动重跑。另在已授权独立短测目录启动原版client-context-target与context-recovery-codex-summary两完整文件、单并发、原五秒/其他期限与负载，终态50项49通过/1失败、零skip、总84632.3675ms；失败为v7正常两物理owner用例（inline tools=false），末尾清理临时目录报ENOTEMPTY，用例5234.3353ms。该耗时不是HTTP超时证据，也不能排除finally清理覆盖更早失败。只读检查该测试目录仅剩空context子目录、所属进程0；不重跑覆盖或删除原失败。长测监测/编排14项本机通过，仅属便携门禁回归，不授原生/24h资格。无过滤/重试/门限改变。真实模型0，整体交付仍未完成。
+
+
+## 2026-10-26：冻结5a真实日档在7小时READ终态失败，监测即时发现；2f普通门全通过
+
+22:49:10.626Z只读健康核验首次报告terminal_failure；随后原安全回执确认process_finished于22:49:04.2108148Z、exitCode=1、reason=child_exit、autoRetry=false。原任务HPM-native-day-20261026-5a3a842-33d332dd为Ready/LastTaskResult=1，原PID62028已不存在。此前完整历史84个tick到6小时55分保持连续；第85个tick到scheduledMs=25200000、elapsedMs=25200012.9955后，本轮工作失败，不能把该tick或名义运行7小时当成第85轮通过，更不能继续报告24小时运行中。检测距控制器退出回执约6.4秒；独立监测仍按五分钟配置，不承诺任何故障都能六秒发现。
+
+native_day_failed原安全阶段为capacity，storeOpens=4/storeCloses=3；主失败operation=reply/stage=reply/commandIndex=272/scheduledMs=25200000，随后清理operation=close/stage=storage-close/commandIndex=275失败。核对冻结5a与当前workload文件无差异，再对原完整内存命令序列做仅数字/枚举的独立映射：第269条advance到7小时、第270条begin、第271条LIST、第272条READ。因此故障落在原文READ，前一LIST已成功；回执没有足够内部阶段，不能唯一归因DPAPI、原生进程启动、锚点、SQL、时钟或配额。没有capacity_profile_result成功或native_day_completed，也未到expiry_wait/实际到期双重开，真实24h未通过。原冻结源码/任务/数据库/密钥/锚点未改、未重开，未自动重启，也未启动另一轮24h；模型0。
+
+独立Mac直接文件SQLite诊断使用原完整day-small 288轮/24恢复/12重开及相同输出负载，合成时钟覆盖完整计划偏移；当前源码完成288轮、24恢复、13开/13关。它仅用于排除当前直接SQLite路径下的确定性序列失败，nativeQualified/real24hQualified始终false，不覆盖Windows真实失败。另从Git归档准备独立5a跟踪源码，锁文件与HEAD一致；冻结版本同样完成288轮/24恢复/13开关，便携路径未复现；不使用或复制Windows冻结数据库、DPAPI数据密钥、OS锚点或私有日志。冻结5a默认owner与HEAD已存在同步/异步原生持久路径差异，不能将当前代码结果自动继承给它，亦不能仅凭差异认定根因。
+
+2f80e8fa03bdec991211850eac6a7c4482d0aa6e普通Verify40413094407八项全success，完整coverage121888496874十二次持久完成1122–2019ms、最长已观察COMMIT204ms；成功窗口不覆盖旧五秒失败。正式40413094139现已四项success，N09/job121897571937实际完成固定八场景，N08/job121897571976亦成功。新增实际prepared写入等待的强杀/正常放行两分支通过，仅属该转换，不扩为sending/transport-finished/uncertain/withdrawn全矩阵。前一批3e普通40411887801八项与正式40411887742四项均success，实际N09仅原六场景，不能覆盖2f新增prepared强杀/放行。下一轮固定安装基线421213889及两个资产身份已只读复核不变，2f唯一候选路由原解析通过、远端ref确认不存在后，已创建固定2f候选；安装40416283272 resolve121899307841成功、encrypted121899468719正在取得固定582/官方Node，未发布安装器、不重定向候选。原日档终态后按既有独立短测授权在Windows新目录准备固定2f环境；首次长命令远程调用未启动，已只读确认目录不存在后改SCP文件传输执行，不将它当产品失败或重试模型。原npm ci在缓存路径stat返回UNKNOWN/-4094并有权限错误，未进入后续步骤，原日志保留；现仅本次进程使用新目录内独立npm缓存再按锁文件安装，不改全局配置/版本，插件锁安装、原生准备和两份原短回归仍逐步检查退出码、尚待完整准备回执。独立五分钟watcher已自动退出，按原监测提示确认终态后停用automation24；仅停止该已终结日档的监测，整体实施目标仍继续。继续定位本次原生READ失败并核对新安装全链；真实24h、五秒稳定、其他daemon转换/WS、容量、真实provider与受控自用等整体目标仍未完成。
+
+## 2026-10-26：组合实际daemon prepared COMMIT强杀与正常放行；修复合法unobserved观察拒绝
+
+本批保留N09原六场景和固定负载，在同一原有外层Job内追加两个独立新daemon场景。均先真实业务种入、精确读取，再让私有恢复完成并持有独立公开上游响应；从已认证元数据绑定原root/期限/精确revision，获取新nonce签名的空闲基线后持有实际DELETE-journal读事务。放行公开上游后，只读BUSY见证和新鲜签名查询共用原750ms，必须同时证明同一owner generation的新请求、唯一在途save-reference-state、prepared变化、精确root/期限/revision及客户端零字节。补偿withdrawn、并发、旧回执、假BUSY、期限/版本变化、晚到和关闭竞态全部拒绝；BUSY单独仍无发布资格。
+
+强杀分支紧接目标见证调用原forced Job cleanup，不插入其他管理/快照I/O；确认transport-error且零公开字节，再释放外部只读句柄。先由真实默认owner在同物理目录的新PID中重开、处理热journal，之后才读取认证元数据，要求原revision/调用次数/返回字节/root/TTL精确不变，再业务精确恢复且无工具重放。正常放行对照释放读锁，必须接收完整原公开响应并等原完成屏障，确认revision实际增长，才强杀/同目录重开并再次精确读取。原ACK认证与等值规则、原750ms/HTTP15秒/各产品5000/10000/30000ms、SQLite FULL/DELETE和独立OS锚点持久语义均未改变；不重试模型或放宽负载。
+
+生命周期单独绑定publication查询能力，原ACK capability仍四方法不变；查询只接受原生Promise、在回复后复核原PID，终止后旧能力不可用，失败仅固定安全错误。强杀前不增加邮箱I/O，强杀后与原ACK资源独立完整关闭，即使一个失败也尝试另一个。旧driver边界逻辑原样拆为共用模块，主组合入口只组合两个新模块；八场景回执和外层严格消费者同步要求cases/adaptersClosed=8，n09Complete仍false。新场景固定阶段158/159不复用网络探针87/88，原阶段及失败证据保留。
+
+源码核对发现上一批观察器漏掉产品真实合法unobserved状态；root-storage会给新快照填此状态，不能把它作为非法输入毒化通道。用真实sessions导出/checkpoint/reference编解码器构造合法请求，旧观察器明确failed而非completed；现补精确已支持状态及签名schema，unobserved不能满足prepared COMMIT资格。此为验收观察器bug，不冒称旧五秒或DPAPI超时根因。
+
+本机扩大N09/plan502项全通过、零skip；随后查询安全收尾再定向41项通过，包含不执行thenable钩子/固定错误与owner退出后的回复拒绝。新增实际adapter完整两分支、补偿/版本/期限/并发/重开元数据负对照、真实750ms晚到和codec回归进入统一CI；物理SQLite原见证测试继续包含在扩大集内。1656份JS语法、Lint零错误/原五警告、CI/release治理通过。此处纯组合/便携回归不授Windows原生或daemon内部实际资格；必须推送后观察固定托管八场景实际执行，sending/transport-finished/uncertain/withdrawn等完整daemon矩阵仍待，不以prepared两项替代全范围。
+
+前一批3e3c9cadab9ed0645bea0f2f40288f00ea175c48 Verify40411887801已七项success、coverage仍运行，正式40411887742 source仍运行；原7a WBIPC超时与fd旧兼容超时保留，无重跑覆盖。22:28:54.251Z只读确认冻结5a同一源码与进程，81个连续tick至24000000ms（400分钟），elapsedMs=24000002.1294，未失败/重启，五分钟独立监测继续。长测主机无额外构建或短测，冻结任务/源码/数据库未动，真实模型0。原五秒稳定性、完整daemon/WS、容量、真实24小时到期双重开、额度核对后真实provider和受控自用仍未完成。
+
+## 2026-10-26：8e安装全链通过；接入daemon实际发布请求观察，保留7a正式失败
+
+固定8e10c371a5f606d3cae7e3f558f0ab0dc3a4a63e安装40406570137/job121865946915已终态success：完整候选门、NSIS构建、同格式升级回滚/runner-local
+DPAPI、完整582迁移与旧写者拒绝、实际安装Codex/Claude合成四案例和包内发布内部中断均success。新manifest=944c667fe2202b13b3959145e0923084042ac3bafa184389be9a2ff595e04d25；582固定baseline仍4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f，layout1→3/revision+1。四案例各三次压缩/exactFinalAnswer/restartRetention=true，默认零恢复、增强私有读取后独立公开生成；同次JSON/部分SSE停止收尾与自然退出合格。独立nativeControl两次正常停止、原expiresAt与存储重开成立，自己的restartRetention仍false。包内原生发布30/30、零fail/skip，defaultWorkerQualified=true，daemonQualified=false；WS、真实provider、24h均false，模型0。此安装只属8e，不继承到后续源码，不覆盖3f正式首次ready或其他旧失败，也未公开发布安装器。
+
+7a0f0491ce680e9a881a2141ad00eee72dcad9a1普通Verify40407405334终态success，但独立正式40407405361/source121868621552
+failure：既有actual core chat WBIPC ownership/revocation用例10962.4532ms，await
+pending处TimeoutError；日志不足以确定内部根因。egress成功，context-recovery
+skipped，不能称该提交正式通过。fd正式40405185405四项success亦不能覆盖fd普通旧兼容十秒失败或7a此次失败；全部原期限/记录保留，无重跑。
+
+本批在已签名、闭合源码校验的N09 host启动路径接入真实installed storage
+export观察，必须先于storage-opening/lifecycle捕获默认构造器。保留原构造参数、真实默认Worker、原service/execute/Promise身份与八项能力原样转发，不替代后端、不造ACK。观察每个实际save-reference-state请求相对于上次成功精确revision
+ACK的publication变化，区分prepared与withdrawn补偿；并发或异常观察拒绝授证。仅会话completePublicAsync未完成不足以证明prepared，因为其catch可能仍等待补偿写入，故不用该粗边界定位COMMIT。
+
+另建有界、不可覆盖的私有publication查询通道，HMAC域与原ACK区分，每次新nonce/sequence/PID/epoch并采样当前内存状态，防止旧pending文件被当成当前证据；原ACK
+schema、精确版本和认证不变。文件沿用物理目录/句柄身份检查，单文件4KiB/最多16次查询/原750ms，拒绝链接、替换、错身份、重放、非法/getter/Proxy与超限，失败后不重试。host构造/关闭失败均继续恢复其他原导出，不打开/关闭产品存储。三个闭合源码检查仅增加host-install内两个固定installed
+storage imports，不放开其他动态路径。
+
+公开响应保持器新增显式一次上游放行和成功对照，仍使用原15秒HTTP客户端及实际字节/终止观测；正常完整200响应与强杀transport-error严格区分。回归先红复现close与已settled结果交错后仍可授afterKill/afterRelease，现于await后再次拒绝closed/finished；实际loopback放行和socket中断均覆盖。此批尚未把查询、只读COMMIT锁与强杀/正常放行组合成新完整daemon场景，原六场景/负载不变，不能授daemon内部中断或五秒稳定资格；下一步须在实际prepared写入pending且BUSY、根/期限/精确revision一致、客户端零字节时强杀，并由默认owner处理热journal重开，再做正常放行对照。
+
+本机N09与plan扩大490项全通过、零skip；日档健康/真实时钟等22项全通过。完整context-hosted扩大602项为585通过/5失败/12既有skip：四项硬编码Windows
+PowerShell路径ENOENT，另一WFP合成后端hosted_egress_wfp_rejected；原失败记录保留，不据此宣称全树通过或修改/跳过测试。1652份JS语法、全树Lint零错误/原五警告、CI/release治理及变更格式通过；新文件已核对进入统一unit发现，无依赖、签名、产品认证/TTL/FULL/DELETE/独立OS锚点持久语义变动。
+
+22:20:39.549Z只读核实冻结5a同一源码/进程，79个连续tick至23400000ms（390分钟），elapsedMs=23400006.878，未失败/重启；watcher实际进程存活、独立五分钟检查持续。每个后续tick需先前工作序列返回；当前轮tick本身不代表该轮完成，最终仍要求288个完整历史样本、真实单调/墙钟满24小时、实际root到期、两次到期重开、15次开/关与最终成功/零退出。最早LA
+10月27日08:48:47后才能判断，不能以进程存活或名义到时替代。Windows主机无新增构建/短测，冻结源码/任务/数据库未改，模型0。其余五秒/旧兼容后端长尾、完整daemon/WS、容量、真实provider与受控自用目标保留，整体未完成。
+
+## 2026-10-26：8e完整门全通过并启动新安装；实现实际COMMIT只读见证但尚未接入daemon
+
+2a正式40402040201、0b正式40402630046和8e正式40403400561均已四项success，含N08/N09实际执行；8e普通40403400592八项亦全部success，完整覆盖率I/O40403400584/job121854861035与独立I/O、三runner均success。原30cf/3f/56等失败继续保留。核对同一未发布草稿421213889仍draft=true、目标f8421078c67e30f32f17b4718c094fcbb6e0794e及两个固定资产667118183/667118182的名称/大小/上传状态不变；Git ls-remote缺失新候选ref（退出2）后，创建唯一固定8e10c371a5f606d3cae7e3f558f0ab0dc3a4a63e的新review分支。40406570137实际resolve成功、encrypted121865946915进入完整候选门；不重跑旧失败、不发布安装器，不因后续源码改变重定向候选，也不提前继承3f安装资格。
+
+fd3537b后续Verify40405185320七项success/coverage121860993719 failure。原native/legacy双向兼容用例10057.558ms失败：native_protect20ms完成，legacy_unprotect10035ms ETIMEDOUT，legacyPhase=unobserved，未观测首脚本阶段；不能把它说成已进入DPAPI、锚点验证或SQL COMMIT。原10秒后端/断言保持，失败不重跑、覆盖或吞掉；该提交三runner40405185398三项success不能修复完整coverage失败，正式source仍运行。8e固定候选的全部门只属于8e，不能扩为fd完整通过。
+
+为继续实际daemon发布COMMIT内部强杀，新增独立只读锁见证模块：以原readonly-files目录/文件身份检查绑定已有单根及精确revision，两条readOnly/query_only连接先验证无PENDING，一条保留实际DELETE-journal读事务，另一条只轮询读准入。仅ERR_SQLITE_ERROR/errcode=5的真实BUSY加文件身份复核可返回sqlite-read-admission-only；750ms原见证期限在读前和成功前均检查，不能把调度晚到算及时观察。实际额外负对照证明另一BEGIN EXCLUSIVE也会造成读BUSY，因此回执仅报告readAdmissionBlocked，不含commitPending；不能单凭BUSY推断已进入COMMIT，必须由上层绑定真实daemon路径和目标转换。模块不读data-key内容或blob，不写数据库，不执行/重放写者，不持有daemon/模型执行能力。回执publicationQualified=false，不能单凭数据库BUSY证明目标发布转换、OS锚点ACK、DPAPI或完整daemon资格。
+
+新增十项实际文件/SQLite/Worker回归证明COMMIT确实等待、等待期间数据库字节未变、释放两条只读连接后原写者实际COMMIT成功；另覆盖无写者原750ms失败、提前释放/并发调用、非法/空/极端/getter/Proxy输入、revision不等/多根/WAL/缺失/空或损坏数据库、硬链接、非BUSY错误、路径身份替换、ROLLBACK/close失败的粘性拒绝与完整句柄清理。扩大三份真实文件75项全通过、零skip；1645份语法、全树Lint零错误/原五警告、CI/release治理及变更格式通过。新测试已实际核对进入统一unit发现；无依赖或产品运行路径/认证/TTL/原持久/期限变动。模块尚未接入N09原六场景或安装daemon，下一步需要把真实公开上游放行、已认证稳定版本、实际PENDING见证与强杀/正常放行对照组合，处理热journal重开，再获取真实Windows回执；本批不授新daemon中断资格，也不改旧六场景负载。
+
+21:44:40.156Z只读确认冻结5a同一身份与进程，72个连续tick至21300000ms（355分钟），elapsedMs=21300010.3073，未失败/重启；持续五分钟监测，Windows主机无新增构建/短测，模型0。其余五秒/旧兼容后端长尾、原daemon内部/WS、完整容量、真实24h实际到期双重开、额度核对后真实两端与受控自用目标仍保留，整体未完成。
+
+## 2026-10-26：8e三runner全部通过，拆分首次引擎准备内的实际锚点验证阶段
+
+8e10c37独立时序40403400491三个Windows runner121854860856/121854861264/121854861302均success，各完整50项、零skip、无重试。18次最终持久publication_wait_end为981–1384ms；每runner138次COMMIT，最大分别33/261/41ms，最终finishPublicationAsync最大89/98/101ms。8e独立I/O40403400487/job121854859962亦success，原50项、153次flush配对database/journal最大30/25ms，1107个调度区间且已观察unmapped/unfinished均0，原完整性/因果/五秒资格仍false。两批均为成功窗口，未复现旧2–4秒COMMIT，不能以未观察到就确定根因或覆盖旧失败。2a普通40402040140与0b普通40402629994现均八项success；0b完整coverage12次最终ACK730–1470ms。独立正式2a/0b/8e的source门与8e完整coverage仍在执行，整体门尚未收齐，不触发新安装替换已完成的3f候选。
+
+3f独立正式仍有七次awaiting=ready五秒失败，其中engine_prepare_started→engine_prepared涵盖了SQL初始化、空库独立锚点初始化意图、原配额/时钟和SQL COMMIT，不能从粗阶段直接归因SQLite或RegFlushKey。本批只在默认owner既有beforeStartup调用周围报告engine_anchor_validate_started/finished两项固定阶段，实际方法仍同步、接收者undefined、参数和返回值原样转发；原异常继续原固定storage failure和完整清理，不吞进产品结果。验证前意图flush、初始SQL COMMIT及其后独立快照/锚点flush/精确回读都保持原顺序与次数。新阶段不授ready、不重置30秒开库或五秒夹具/HTTP期限、不改TTL/ACK或FULL/DELETE。
+
+运行时闭合阶段白名单与安装证据消费同步增加两项；原进度64条/60秒样本边界不扩，旧阶段仍兼容，没有新增键、路径、原文或异常输出。现有统一回归先在未修改实现上明确两项红，再通过完整owner成功/observer抛错、构造/read/首次enroll/最终persist失败、写者锁释放、worker转发不授ready、超时不重置、安装拒绝与发布夹具阶段解析。扩大五文件61通过/1项既有Windows限定preload隔离skip，零失败；该Windows项在原Windows统一CI执行，不能把Mac便携证明当实际DPAPI/OS锚点资格。1643份JS语法、全树Lint零错误/原五警告、CI/release治理及变更格式通过，无依赖/签名门变动。真实Windows新阶段尚待此批，不称性能根因已修复。
+
+21:31:12.253Z只读确认冻结5a同一身份与进程，69个连续tick至20400000ms（340分钟），elapsedMs=20400019.2168，未失败/重启；本机独立watcher PID27818亦通过实际进程查询确认存活，五分钟监测持续。未给长测主机增加构建/短测，不修改冻结任务或数据，模型0。下一步收齐最新完整Windows结果，以拆分后的真实失败阶段决定具体修复；其余原daemon内部/WS、容量、24h到期双重开、额度核对后真实两端与受控自用目标保留，整体未完成。
+
+## 2026-10-26：补原生/密钥实现到三条时序与I/O工作流触发条件
+
+2a锚点Rust修复推送后实际只启动普通、正式和两个I/O工作流，未启动三runner时序。核对发现windows-persistent-recovery-timing.yml缺native/context-recovery-key/**，三条工作流还均漏掉实际执行的prepare-context-recovery-native.js及密钥DPAPI/contract输入。不是时序作业取消或通过，属于触发遗漏；旧56时序不能代替后续原生源码的同身份样本。
+
+先在既有统一治理回归加入四个直接输入要求，原源码三项失败分别明确报缺native/prepare路径；现补三条工作流的精确触发，保留分支范围、原三runner每组完整文件各一次、全部原5000ms/10000ms/原负载、无过滤/重试与I/O边界。治理六项全通过、零skip，CI与release治理、变更Lint/格式通过；无产品/依赖/签名门变动，不授任何稳定性资格。新推送将实际触发三runner及两个I/O，现有正式/普通原作业保留，不重跑旧失败。2a普通仍七success、coverage已进入client阶段；正式source门仍运行。固定3f安装全链success与独立正式七个首次ready失败、56旧DPAPI十秒失败均保留，详见下一条。原冻结5a长测不改、不重启，监测持续；模型0，整体未完成。
+
+## 2026-10-26：固定3f安装全链终态成功，正式独立首次ready失败仍保留
+
+安装40397785294/job121835532654现已终态success。构建、同格式升级回滚/runner-local DPAPI、完整582迁移旧写者拒绝、实际两端四案例及新增安装包COMMIT/ACK模块中断步骤均success，卸载/所属树清空成功。固定sourceSha=3f61f74d3fe3e9ba5d887ce74b1976aa606d280a，manifestSha256=465b773a74f1b5882f42738d536a19ac4a692913d842cd3a8e471a01546765e3；不是后续2a锚点修复或0b诊断修复的安装资格，也不覆盖旧30cf安装失败。
+
+NSIS_INSTALLED_CLIENTS实际schema6四案例均compactions=3、exactFinalAnswer/restartRetention=true；默认模式defaultZeroRecovery=true，增强模式privateRead/publicGeneration=true。daemonNaturalExitQualified/httpTransportDrainQualified/sseTransportDrainQualified均true，证明实际安装CLI压缩、原会话跨进程重启、私有恢复后独立公开生成及同次停止的JSON/已接收部分SSE收尾；websocketDrainQualified=false，realProviderQualified/retention24hQualified=false，模型0。独立nativeControl正常停止两次、原expiresAt保留、storageReopenVerified=true，但其独立restartRetention仍false，不将模块/CLI资格扩大到它。
+
+NSIS_INSTALLED_PUBLICATION实际30/30、failed/skipped=0，scope=installed_payload_publication_interior、defaultWorkerQualified=true，使用包内经身份校验的默认worker/DPAPI/OS锚点及真实COMMIT锁等待/ACK内部边界，naturalTreeEmpty/uninstalled=true。daemonQualified/retention24hQualified=false，仍缺完整实际daemon内部故障矩阵，不称全故障注入完成。582回执baselineManifest仍4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f，layout1→3/revision+1，installedMigrationQualified=true。
+
+同一3f的独立正式40397502012/source121834319303却终态failure，context-recovery skipped；日志七次fixture phase deadline均awaiting=ready，未进入advance，部分default storage已ready3863/4305ms、另停在engine_prepare_started或anchor_persist_started。安装内同样模块30项成功不能覆盖这条并发/环境中的首次准备失败，不重跑它，不放宽原五秒。3f legacy_unprotect该轮4697ms成功不能覆盖56另一runner十秒失败；旧三端五秒、DPAPI、容量和时钟失败全部保留。
+
+56完整覆盖率同源I/O40400387272/job121844350412终态success，proxy/client cleanupVerified均true。proxy51对flush、database/journal最大30/30ms，868个有效调度区间；client153对、最大27/15ms，1043区间；两者已观察unmapped/gaps/unfinished均0，但原32MiB环形完整性仍false。实际395条sqlite_commit/sqlite_clock_write阶段全部带新UTC起止，最长COMMIT为Responses sequence6/save-reference-state123ms，CPU零；这次成功窗口没有原2–4秒慢COMMIT，不能借不同runner正面样本认定因果或五秒已稳定，两个资格标记继续false。新接口已实际可采，后续继续等待原负载失败的同源窗口，不扩大上限或修改命令。
+
+2a Rust121850126348已实际success，Windows42项原生单元（含新增五项竞争准入回归）+5项真实进程全部通过，先前失败的stale-CAS进程用例本轮成功；原严格Clippy及应用40单元+1进程亦通过，单次成功不唯一归因旧失败或授五秒资格。2a普通40402040140已七success/coverage仍运行，正式40402040201 source仍运行；0b普通40402629994与正式40402630046也仍运行。21:15:55.444Z只读核验冻结5a同一身份和进程，66个连续tick至19500000ms（325分钟），elapsedMs=19500003.7432，未重启/失败；五分钟独立监测持续，无额外Windows主机负载、真实模型0。下一步核验新锚点修复的完整Windows门和真实慢窗口，继续原daemon内部/WS、固定容量、24小时实际到期双重开，以及核对额度后的真实两端/受控自用交付；整体未完成。
+
+## 2026-10-26：安装升级与582实际通过，修最终失败阶段被粗粒度stop覆盖
+
+固定3f61安装40397785294/job121835532654已核验step10构建、step11同格式升级回滚/runner-local DPAPI、step12完整582迁移与旧写者拒绝均success；当前step13实际安装两端合成上游矩阵in_progress，step14安装包COMMIT/ACK内部中断仍pending。未取消/重跑/改候选身份，不能提前授schema6、SSE或模块内部中断资格，真实provider仍未执行。
+
+56 Verify40400387227终态七项success/coverage121844351225 failure，唯一TAP失败是原legacy DPAPI兼容用例10048.5214ms：native_protect20ms完成，legacy_unprotect10026ms ETIMEDOUT，最后有限阶段dpapi_started。首次受管调用开始标记不等于已证明具体底层系统调用或根因，原十秒/后端/双向兼容断言保持；不重跑覆盖。另56正式首次CAS失败及全部三端五秒失败仍保留。2a8e068四条原Windows工作流40402040025/40402040138/40402040201/40402040140已实际启动，当前正式source门仍运行，不称新修复已获Windows资格。56完整覆盖率同源I/O40400387272仍在原完整命令，不因轮询等待超时重启。
+
+旧30cf安装仅报告codex-default-stop，源码发现实际阶段丢失：组合排空中的业务reject会先锁存粗stop，helper随后通过私有WeakMap确认具体http-drain阶段，最终回执却重新写回粗stop。本机在原源码通过真实business拒绝+真实helper失败复现，原测试明确得到stop而预期http-drain-options。现仅当首失败正好是同一个client/mode的粗stop时，用该helper认证的固定细阶段补全；更早其他操作失败不覆盖，清理错误不覆盖，任意异常对象/自报phase/getter/Proxy/撤销Proxy不能伪造细阶段或执行hook。失败结果、强制失败清理、原五秒、认证与全部负载均保持；不是五秒产品性能修复，也不能倒推30cf原唯一原因。
+
+扩大三文件33项本机通过、零skip，覆盖同阶段细化、不同操作首失败保留、伪造异常、原四案例/自然退出/并发观察/完整JSON+部分SSE门；变更语法、Lint、格式检查通过，新回归在既有统一文件内。当前运行中3f候选保持原源码，不被本批诊断修复替换。21:10:29.061Z只读确认冻结5a同一身份与进程，65个连续tick至19200000ms（320分钟），elapsedMs=19200018.1554，无失败/重启；长测持续五分钟独立监测，工作节拍发于本轮开始，后续tick须前轮原实际工作完整返回，最后一轮完成仍须最终原全量报告，不能仅按tick授完成。无额外Windows主机负载，模型0。下一步核对实际SSE/内部中断终态与2a完整Windows门、同源慢SQL窗口，全部原交付目标保持。
+
+## 2026-10-26：长测连续315分钟，修首次锚点共享目录创建竞争
+
+21:07:11.372Z只读确认原冻结5a同一源码/原生/Node和进程，64个完整连续tick至18900000ms（315分钟），elapsedMs=18900003.078，无失败/重启；独立五分钟监测iteration47亦记录推进。完整历史与单调时钟检查持续，中途空档、半小时失败、仅进程存活不能获运行信用。监测器原九项本机回归全部通过，包括历史空档不能被新tick覆盖、终态失败优先、完整24小时/真实到期/两次重开/零退出门。实际运行仍属冻结5a，不继承到后续源码；不触碰冻结目录/任务/数据库，不增加该主机测试负载，模型0。
+
+56正式40400387215/source-gates121844350685失败：原生37单元全部成功，但五项真实进程测试中的stale-CAS用例第一次compare即固定ok:false，未进入预期第二帧的过期CAS；保留失败、不重跑。现有日志不足以唯一归因。源码核对发现独立的实际竞争：不同slot锁彼此独立，但首次创建的四级共同父目录共用；RegOpen未找到后，另一创建者获胜导致RegCreate返回existing，原代码无条件拒绝。Microsoft RegCreate文档确认existing是合法结果，不能仅凭它接受未经核验的句柄或松开所有slot检查。
+
+本批将组件开库准入拆为可测模块，仅共同父目录允许created/existing两种正常disposition；槽位本身在该分支仍必须新建，异常disposition拒绝。创建API句柄一律先关闭，再做一次原OPEN_LINK开库，以该句柄执行原拒绝SymbolicLinkValue与精确受保护ACL核验，才遍历/读写；缺失、开库/创建/校验失败直接拒绝，不循环、不内存回退。已存在路径仍执行原不跟随链接开库与校验，无额外稳态事务。原slot互斥、CAS、RegFlushKey后精确回读、FULL/DELETE、TTL、SQL/HTTP/原生全部期限均未改变。并发创建获胜、句柄释放/验证次序、独占slot拒绝、非法/极端disposition、缺失、替换/校验失败、初始调用错误纳入原cargo统一单元门；不把此已知竞争修复冒称本次Windows失败或五秒超时已解决，实际Windows结果须新SHA。
+
+本机Rust release全目标38单元+5实际进程测试通过，便携进程路径只证明非Windows拒绝/生命周期，不授注册表/DPAPI资格；fmt/Clippy与CI治理通过，Mac原六条平台dead-code警告保留，Windows原-D warnings门不变。56独立I/O40400387313/job121844350730原50项成功，153次flush配对最大database39/journal46ms；新schema3实际1182区间、零已观察unmapped/gaps/unfinished，八个有界UTC窗口已输出，最大otherWaiting161ms。该成功窗口不能覆盖旧三端超时，完整性/COMMIT因果/五秒资格仍false；完整覆盖率同源采集仍运行。3f安装40397785294已过完整前置门、构建并进入实际安装升级回滚，SSE及新增内部中断终态尚待。整体仍待五秒稳定性、最新安装矩阵/daemon内部与WS、容量、24小时完整终态及额度核对后的真实两端与受控自用。
+
+## 2026-10-26：保留ccb51三端五秒失败，补SQL与ETW同域有界时间窗口
+
+ccb51 Verify40393988758终态七success/coverage121822032954 failure，原client-context-target的Chat/Responses/Claude long-persistent首轮分别5005/5008/5006ms超时。Chat预扣/后续save COMMIT1579/2951ms，Responses942/2837ms，Claude2119/3379ms；另有414/529/655ms header clock write。启动COMMIT1308/1532/1069ms发生在请求前，不混算进请求；阶段有包含关系，不相加当精确分解。该作业其早期六次最终ACK175–228ms不能覆盖后续客户端覆盖率三项失败，全部旧失败保留。
+
+ccb51完整覆盖率I/O40393988756/job121822035262亦failure，原native prepared/release-control/ACK用例在首次ready5481ms失败，lastFixture=native-opened，startup ready3121ms，尚未进入advance/COMMIT中断边界；engine_prepared768→2682ms，独立anchor persist2683→3117ms。该原proxy失败停止client阶段，不能声称取得上述普通失败请求的同窗口I/O。649f普通40395138935八项与完整覆盖率I/O40395138904/job121826064280均success，后者proxy/client均cleanup=true，client153对flush最大database23ms/journal24ms、有965个有效区间但23次v3未映射；不同runner成功不能覆盖失败。
+
+2be独立I/O40397992583/job121836045578原50项全通过，新v3生命周期已实际解析：1717个完整区间、4个正绑定线程，unmapped/gaps/unfinished均0；仅表示已观察配对完整，32MiB环形仍不授完整trace资格。本次可配对102次flush（database34/journal68），最大392/409ms，不能据数量减少认定固定工作负载变化或已记录全部I/O。ready946次合计37ms/最大3ms，otherWaiting617次合计11169ms/最大805ms，DelayExecution未观察到；多线程总量和类别包含后续调度，不能当单次COMMIT或根因。
+
+现有owner阶段只有耗时，缺少与ETW UTC窗口对齐的起止点。本批仅在显式测试worker的sqlite_commit/sqlite_clock_write记录增加startedAtUnixMs/finishedAtUnixMs及wallClockRollbackObserved；仍用原performance单调差值记录elapsedMs，不改变输入、原接收者、返回值或异常身份。诊断墙钟回退原样标记并允许记录，不平滑、不馈入存储时钟/TTL/原期限。仅显式观察worker开启，普通direct probe不加字段；解析器要求完整三字段与CPU计数、严格阶段/整数/回退标记，拒绝重复字段和非规范JSON，原512字节单行与管道上限不扩。
+
+ETW调度子摘要schema3在原DelayExecution八窗之外增加全类别最多八个最大区间，包含有界初始threadState/waitReason及起止UTC毫秒，用于比较同一时间域的正面重叠；严格校验类别、时间差、排序、总量和计数，未知字段/伪造类别拒绝。原schema1/2历史数据仍可读，不继承新窗口。窗口包含可能的ready时间，时间重叠本身不证明I/O、VFS退避或杀毒因果；traceCompletenessVerified/commitCorrelationQualified/fiveSecondQualified继续false。原16KiB摘要、8KiB子数据、事件/窗口/采集上限和固定命令不变。
+
+扩大七文件81项本机全通过、零skip，覆盖正常/失败/极值/墙钟回退、原statement接收者及CPU/单调耗时、能力/getter/Proxy安全、严格新旧schema与窗口边界；新测试进入原统一发现，两个既有I/O触发器已覆盖这两处实现。1643份JS语法、全树Lint零错误/原五警告、变更格式及CI/release治理通过，后续差异定向复核通过。无产品持久算法、认证、FULL/DELETE、ACK、SQL事务次数、原负载/期限或依赖改变，不能称五秒产品问题已修复。
+
+3f61固定新安装40397785294仍在完整候选门，未重跑30cf失败、未授SSE或新安装包内部中断资格。20:56:48.414Z只读核验冻结5a同一身份与进程，62个连续有效tick至18300000ms（305分钟），elapsedMs=18300012.2605，未失败/重启；短暂查询等待后已得到新鲜回执，不误作停机或重启理由。五分钟监测持续，无新增Windows主机负载、真实模型0。下一步用新同域窗口定位实际慢COMMIT，同时收齐最新安装与原全部交付门；整体仍未完成。
+
+## 2026-10-26：补已观察v3生命周期XML，固定3f61新安装已启动
+
+649f独立I/O的941个有效区间与31次v3空Properties未映射是上一批真实Windows证据。本批将有界原始XML支路仅扩到已观察的v3/空Properties，沿用现有严格v3二进制/字段解析及原生/XML版本相等要求，v2/v4未观察的空属性不扩路，未知v6+仍拒绝。v3线程启动/退出仅解除对应已绑定线程，线程ID复用不能延续旧pending；不因不相关线程生命周期再清空所有SQLite绑定。新增实际PowerShell v3 Start/Stop原始载荷回归证明旧pending计unfinished、重绑后独立200ms有效区间、无伪造跨生命周期配对。扩大五文件62项全通过、零skip，变更语法/Lint/格式通过；Windows新v3解析和完整失败窗口仍待CI，完整性/COMMIT因果/五秒资格继续false。没有改采集上限、原负载/期限、产品持久语义或认证。
+
+5819f43已接入安装包模块内部中断门，3f61f74已修双HTTP探针单观察邮箱的并发；两批均已推送。已核验同一未发布草稿及固定资产身份，为完整3f61f74d3fe3e9ba5d887ce74b1976aa606d280a创建唯一新安装候选，40397785294实际运行；原30cf安装失败不重跑、覆盖或改写，新作业也不继承旧资格。此候选包含SSE组合门、观察串行化及原20+10原生安装包内部中断步骤，仍严格先完整候选门再构建安装，真实provider/24h/daemon内部边界仍未合格；不随本批纯诊断源码修改。主3f普通40397501935与正式40397502012仍运行，不称通过。
+
+20:40:45.177Z只读确认冻结5a同一身份和进程，59个连续有效tick至17400000ms（290分钟），elapsedMs=17400000.9217，无失败或重启；五分钟监测持续，无额外Windows主机负载、真实模型0。下一步核对v3同源采集、3f61完整门及真实安装终态，再继续五秒根因、完整WS/daemon内部中断、固定容量、24小时到期重开及额度核对后的两端真实提供方与受控自用等原全部目标。
+
+## 2026-10-26：安装30cf在Codex停机失败；修复双探针观察回执并发
+
+固定30cf安装40393505293/job121820568246已终态failure。原完整verify/审计、NSIS构建、同格式升级回滚/DPAPI及完整582迁移拒写实际通过；582回执manifest为4fa62babe67643bc1d166dbb069865011bfa52537e989e9722ae5514e3f7bcec，布局1到3/revision+1。最终客户端矩阵停在hpm_installed_client_phase=codex-default-stop，尚无四案例/SSE成功回执；保留该失败，不能由普通八项/正式四项成功或此前fe81旧安装通过覆盖。该有限阶段不足以单独认定Windows失败根因。
+
+代码检查发现组合JSON/SSE两笔并发请求都调用原observe，而真实安装观察器只有一个严格递增sequence的request/receipt文件对，并发写会冲突。本机用固定事件屏障让两笔body都进入再放行首观察，冻结5819f433398241b3c5a44638e06ce6a784c120d2的原helper加载同一已纠正夹具，完整八项七通过/一失败，确认旧组合路径不能处理观察重叠；修复后四文件34项全通过。最初本机诊断夹具自身曾有局部变量遮蔽，已经更正，不把那条夹具失败当作产品或Windows根因；有效红证据为输出installed-observation-real-before.tap的冻结源码运行。
+
+本批仅在隔离安装探针内部按原生Promise串行执行每笔原observe，两笔均须独立完成原身份/默认零恢复检查，原sequence和HMAC等值规则不变。首次观察失败会令后续排队观察直接失败，不再调用它、不重试或继续写邮箱。两笔业务请求仍同时在途，JSON完整持有/SSE实际前缀/入口停止/正文收尾/自然退出等断言全保留，并共用原5000ms期限；没有改成串行业务负载。新增重叠及首次失败不重试回归，含真实主入口两端JSON/SSE通过；变更语法/Lint/格式检查通过。产品代理、认证、持久算法、SQL、TTL/ACK、依赖均未变。这是否解释该次Windows停机失败须由新候选实际验证，不能宣称已修五秒稳定性或安装资格。
+
+上一批5819f43安装包模块内部中断门已提交推送，33项本机通过，但30个Windows原生安装案例尚未执行，scope仍明确不含daemon内部边界。20:35:47.741Z冻结5a长测同一身份与进程，58个连续有效tick至17100000ms（285分钟），elapsedMs=17100007.0454，无重启/失败；监测持续，无额外Windows主机负载，模型0。下一步为含本修复及模块中断门的新提交获取完整Windows与安装资格，并继续v3采集与真实五秒等待定位；全部既定交付缺口保留。
+
+## 2026-10-26：30cf完整门通过，接入安装包发布内部中断；v5取得941个有效间隔
+
+30cf Verify40393162430八项、正式40393162190四项全部success。完整coverage121819154805的12次finishPublicationAsync为91–473ms；这是该轮最终ACK正面证据，不覆盖75/45等旧五秒失败，不证明根因已消除。固定安装40393505293/job121820568246已通过完整候选验证并开始NSIS构建，SSE/客户端等尚未取得安装终态，候选仍固定30cf。
+
+649f独立I/O40395138896/job121826064328原50项通过，153对flush，database最大249ms（4次超100ms）、journal560ms（10次超100ms）。v5空Properties原始XML已实际解析，取得941个完整调度间隔、964次switch-out、23个unfinished；31次v3:p0:tnone:escalar仍明确unmapped并清空绑定。观测到otherWaiting881次/总5806ms/最大214ms、ready23次/毫秒精度总0，DelayExecution未观测到；不可把并行线程总量当请求时长，也不能以未观察到DelayExecution排除原失败。trace完整性/COMMIT因果/五秒资格仍false。下一批依据已观察v3空Properties补严格适配，原失败及未完整窗口保留。
+
+本批真正接入新的安装后步骤qualify-nsis-installed-publication.ps1：复用原20项原生发布中断与10项原生HTTP正常停机完整文件，不筛选/删减/重试。固定测试fixture现在通过测试专属publicationModule选择器加载安装payload的恢复模块；安装选择必须是GitHub hosted Windows、固定自有payload目录、完整manifest/全部源码/安装Node/native/锁文件身份一致，实际execPath必须是包内Node。缺失半套/非法选择拒绝，不回退源码；必须安装的独立preload在测试进程及fork子进程再次拒绝缺失选择。源码普通CI没有这些变量时沿原源码模块运行，产品入口没有新配置或测试hook。
+
+安装门使用既有240秒所属Job、真实自然退出/Job清空/EOF，内部测试230秒上限仍受该门约束；各原15秒、ready/HTTP五秒、COMMIT实际PENDING见证750ms与自然退出四秒不改。内部持久恢复/DPAPI/锚点/同目录精确重开仍由原用例断言；Node固定完整命令，并严格核对30个唯一原案例、通过/失败/skip计数，兼容LF/CRLF但拒绝矛盾总数或重复。原始TAP/子进程异常不输出或上传。PowerShell回执要求defaultWorkerQualified=true、daemonQualified/retention24hQualified=false、模型0；进程/解析/清理失败不能授资格或以forced cleanup补绿。新步骤在既有候选门/构建/安装迁移/客户端之后执行，并复用保守安装/卸载/目录lease，不修改公开签名门。
+
+本机扩大33项全通过、零skip，含原文件SQLite中断/停机、严格安装身份/固定模块集合、TAP及PowerShell重复字段/缺失/越权资格拒绝、实际PS自然退出调用与清理失败模拟、保守payload回归。这里并未在Mac执行30个Windows原生安装案例；该新安装范围仍待新候选真实执行，不冒充daemon内部边界或最新安装版完整交付。1643份JS及新增CJS语法、全树Lint零错误/原五警告、格式、CI/release治理通过。无产品持久算法、认证、TTL、ACK、负载、依赖或真实模型变更。冻结5a长测此前55个tick至270分钟，后续20:27:33Z同一身份56个tick至275分钟持续；长测主机只读，无重启/额外负载。
+
+## 2026-10-26：v5实际Properties为空，接入有界原始XML；保留旧PowerShell十秒失败
+
+ccb51独立I/O40393988960/job121822034075终态success，原50项通过，153对flush、database最大36ms/journal31ms。v5版本门已通过，但153个binding全部因v5:p0:tnone:escalar未映射：原生EventRecord.Properties实际为空，零有效interval继续不证明没有等待。本批只对已观察的v5/零Properties组合调用原始ToXml并复用既有64KiB、禁DTD/外部实体、唯一字段/载荷、严格已知二进制前缀解析器；额外要求XML版本与原生v5一致。非空但非法属性不尝试另一解析器，v6+不渲染XML，失败仍清空绑定、不拼接跨未知区间。原32MiB/事件/解码期限和输出上限不扩大，不上传ETL、原始XML、ID、路径或正文。
+
+新增便携PowerShell回归实际构造空Properties/v5原始BinaryEventData和ProcessingErrorData，两端switch形成200ms受控区间；非空非法及未知版本的ToXml执行计数必须为零，DTD和原生/XML版本不符均明确unmapped。扩大五文件61项全通过、零skip，变更语法/Lint/格式通过。实际Windows新的XML形状、有效间隔及性能尚待新CI，不能把采集修复当作五秒恢复根因已修复。产品认证、FULL/DELETE、DPAPI/OS锚点ACK、TTL、原期限、负载和依赖均未改。
+
+be868完整覆盖率I/O40391947339/job121814909200已终态failure：除已修CRLF治理断言，还有legacy DPAPI互操作用例10222ms失败，native_protect31ms成功、legacy_unprotect ETIMEDOUT10189ms且legacyPhase=unobserved，未见首个脚本阶段。不能断言进入DPAPI或改变旧互操作门；不切换后端/加时/预热/重试制造通过。原proxy失败按门停止，client阶段没有执行。该结果与历史五秒失败均保留。
+
+30cf Verify40393162430与ccb51 Verify40393988758均七项success/coverage仍执行；前者已进入client覆盖率，不能称完整CI成功。固定30cf安装40393505293/job121820568246仍在完整候选门，包含SSE组合探针但尚无安装终态，不随本批诊断变动。20:22:14.498Z只读确认冻结5a同一身份/进程，55个连续有效tick至16200000ms（270分钟），elapsedMs=16200008.9801，无重启或失败；五分钟监测持续，Windows主机无新增负载，模型0。下一步取得有效Windows调度证据定位五秒等待，同时核对最新安装、WS/内部中断及全部既定交付门。
+
+## 2026-10-26：真实Windows定位v5拒绝并修复诊断适配；SSE候选实际启动
+
+30cf独立I/O40393162188/job121819153736终态success，原50项全通过、零skip，153对flush，database最大73ms、journal最大177ms且三次超过100ms。调度子摘要明确153个binding/153个unmapped全为v5:px:tnone:eversion，尚未读取Properties，不能再将问题猜为Properties形状或标量类型。此次零有效interval仍不证明没有等待，全部五秒失败保留。
+
+本批修复已确认的诊断版本阻塞：二进制、XML和原生EventRecord三个入口加入明确v5，按Microsoft PerfView KernelTraceEventParser的CSwitchTraceData/ThreadTraceData固定前缀偏移读取标量；不解码新增尾部、不扩大已有输入上限，未知v6+仍显式unmapped，错误长度继续拒绝。新增真实PowerShell v5 XML与原生属性组合、前缀长度/未知版本及200ms受控等待回归，原版本/生命周期/隐私断言保持；五文件60项本机全通过，变更语法/Lint/格式通过。真实Windows v5解析结果尚待新提交，不把采集适配修复称五秒产品根因修复。原认证、FULL/DELETE、独立flush/精确ACK、期限、负载和依赖均未变。
+
+旧be868安装链40391990405/job121815253306已终态failure，日志唯一失败是已修CRLF治理断言，原完整候选门正确阻止后续构建安装；独立开库诊断两次成功不能修复该门。保留失败、不重跑。已核验同一未发布草稿/固定资产身份，创建唯一30cf安装候选，40393505293/121820568246实际进入完整候选验证；它包含SSE组合门且严格先完整verify，再NSIS、升级回滚/582迁移拒写及两端安装验收。候选固定30cf，不随本批诊断源码修改，不发布安装器或上传私有材料。30cf普通/正式及完整覆盖率I/O仍执行，不能称已通过。
+
+20:14:29.829Z冻结5a长测54个连续有效tick至15900000ms（265分钟），elapsedMs=15900008.6716，同一身份与进程，无失败或重启；五分钟监测持续，长测主机无新增构建/短测，模型0。下一步核验v5实际采集、定位五秒等待，收齐30cf完整门及安装SSE终态，继续原WS/内部中断、容量、24小时到期重开及额度核对后provider/受控自用等全部目标。
+
+## 2026-10-26：保留be868门禁失败，修复CRLF治理断言并补有限metadata形状
+
+be868普通Verify40391947270/unit-tests(1)121814894324终态failure。完整日志明确唯一失败文件为test/governance/persistent-recovery-triggers.test.js，新两项以includes固定LF匹配Windows CRLF工作流，误报scheduling路径缺失；原另一组同文件断言已正规化换行。现按完整行解析LF/CRLF，路径必须完整精确相等，缺失/后缀不同/注释不能通过。新增两种换行与非法行回归，不改工作流触发路径或放宽门禁。该失败和前批所有真实五秒失败保留，不能称be868完整CI通过。固定be868安装链40391990405仍在候选验证，未取得新终态，不重跑或取消。
+
+独立I/O已实际记录153次binding全部unmapped，零有效调度interval。当前没有足够证据归因版本、Properties形状或标量类型，不能猜测后增加宽松解析。此批只为unmapped追加封闭元数据：版本0–255或x、property数量0–64或x、固定类型枚举、固定解码阶段；不取原始值、线程ID、原始异常或任意类型名称。JS子摘要schema2严格验证最多16种形状、正整数计数与总unmapped相等，超限拒绝；原schema1作为已有诊断证据仍可解析，资格始终false。未知metadata继续清空绑定，不跨丢失区间拼接。新增真实PowerShell空Properties/非法字符串载荷测试及伪造边界，不能把有限形状采集本身称产品根因修复。
+
+本机扩大六文件60项全通过、零skip，1641份JS语法、全树Lint零错误/原五警告、CI/release治理通过。上一批SSE组合安装门7dfd65c已提交推送，其52项本机通过，Windows完整门禁尚待结果；不提前授安装版SSE或WS/内部中断资格。原认证、FULL/DELETE、TTL、busy_timeout、ACK、负载及五秒期限均未改，无真实模型调用。
+
+20:09:13.599Z长测只读核验同一冻结5a身份/进程，53个连续有效tick至15600000ms（260分钟），elapsedMs=15600006.6115，无失败或重启；监测继续，Windows主机无额外负载。下一步依据新有限metadata修复实际采集适配并定位五秒等待，核对SSE新门及最新安装终态，继续原全部交付范围。
+
+## 2026-10-26：安装矩阵接入部分SSE在途排空，Windows调度观测未映射如实保留
+
+本批将实际安装四案例的最后停机探针扩为同一daemon同时两笔固定请求：JSON完整持有、SSE先发一个完整事件且入口客户端确实收到该前缀后持有尾部。两笔均在途时请求原认证自然停机，仍须独立TCP确认入口拒绝新连接，才同时放行完整JSON及SSE尾部；同一个原5000ms绝对期限涵盖两笔请求、首部/前缀观察、入口停止和完整正文，不给流式请求额外五秒。严格核对200、媒体类型、UTF-8及预定完整SSE字节，不接受仅头部、部分事件或缺尾部；随后原自然退出/Job清空/EOF及默认零恢复或增强持久工件门照旧。原CLI负载、三次压缩、重启会话、私有精确恢复及独立公开生成断言先完整执行，不以探针替代原案例。
+
+非平凡回应编码、HTTP观察和受限分片发送拆为独立模块。分片能力只用于隔离合成上游，失败/自定义thenable/Proxy、owner变化或响应销毁均不能写尾部，错误固定不带原始cause。原仅JSON helper继续保持原四字段资格，新组合helper才返回sseTransportDrainQualified=true。安装矩阵及PowerShell严格消费改schema6，必须同时取得HTTP、SSE和自然退出资格，旧schema1–5/缺失/伪造字段拒绝，websocketDrainQualified仍false；不能称完整WS、内部COMMIT/ACK中断或provider通过。
+
+扩大本机52项全通过、零skip，含两端真实隔离主入口四次启动：原JSON两例继续通过，新增两例实际先收到部分SSE再停机、完成两笔正文、观察进程close0。另覆盖两端四模式真实套接字、缺SSE hold、错误前缀/正文/UTF-8/超限/媒体类型、自然退出与存储失败、恶意能力及schema旧版本拒绝。便携证明不替代Windows安装/DPAPI/Job；新安装链尚未启动，当前be868固定安装作业仍运行旧schema5。产品代理、认证、持久语义、绝对期限、ACK和依赖不变。
+
+be868独立Windows I/O40391947350/job121814893904原50项通过，153对flush，database最大44ms/journal43ms；schema5真实采集到153次binding但153次unmapped、零有效switch interval。该结果明确不是零等待证据，新profile启动和原I/O捕获成功不能代替调度解析成功。全部原五秒失败保留，下一步依据安全metadata修正实际EventRecord适配，而非放宽严格解码或推断根因。普通Verify40391947270已node-quality/integration/rust及部分分片success，完整coverage及其他门仍执行；固定安装链40391990405也仍在候选门，不能称通过。
+
+20:05:50.130Z只读核验冻结5a长测52个连续有效tick至15300000ms（255分钟），elapsedMs=15300001.5109，同一身份/进程、未重启；独立监测继续，长测主机无新增负载，真实模型0。整体仍待五秒稳定性、最新安装全矩阵与WS/内部中断、容量/24小时终态、额度核对后的真实两端和受控自用，原范围不缩减。
+
+## 2026-10-26：199完整门禁、fe81安装链通过；长测250分钟，补有界调度诊断
+
+199b904普通Verify40387781153八项、正式40387781045四项全部success。固定fe81安装链40383360648/job121785314864终态success：完整候选验证/审计、NSIS构建、同格式升级回滚与runner本地DPAPI、完整582旧布局迁移及旧写者拒绝、安装版Codex/Claude默认与增强四案例实际通过。安装manifest为59b5251ebd150a13ec69d0058866093807ff72df4c994eefef3cb4e51ba4813f；582来源manifest仍为4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f，布局1到3、revision增量1。四案例schema4的syntheticClientQualified与daemonNaturalExitQualified=true，realProviderQualified/retention24hQualified=false，真实模型0。独立安装native control证明两次自然停机、原expiresAt及开库保留，其restartRetention=false，不能扩大资格。该安装候选固定fe81，未包含199非流式HTTP在途探针，更不代表SSE/WS或内部COMMIT/ACK中断已验收。
+
+75的Chat5004ms/Claude5001ms以及45正式5007ms等失败全部保留，不能由本轮成功覆盖。本批增加有界ETW调度诊断，不宣称根因已确定或五秒已稳定：原FileIO外采CSwitch及仅Thread生命周期位0x2，不采ProcessThread/栈/进程内存/命令行。仅绑定所选SQLite/journal flush的实际issuer，v2/v3严格偏移，不猜PID。线程退出/复用或不支持的metadata显式清空绑定，pending成为unfinished，不跨未知区间拼接。输出四类等待统计及最多八个DelayExecution窗口；包含调度排队，不能当COMMIT时长或完整请求分解。原始事件、线程ID和路径不进入最终摘要或上传。
+
+schema5严格验证计数/窗口，traceCompletenessVerified、commitCorrelationQualified、fiveSecondQualified始终false；无普通I/O操作时ioOperations明确null，不补造计数。原32MiB环形内存、256MiB ETL、百万原始事件、十万选中事件、16MiB管道、300秒解码边界和原测试命令保留。全局CSwitch使用原生EventRecord标量/二进制properties，避免逐条渲染XML，不支持形状显式unmapped。扩大八文件67项本机全通过、零skip，覆盖PowerShell解析、v2/v3 issuer偏移、未知metadata/ID复用/丢失区间、极值与恶意输入、原I/O门和长测历史连续性。新测试进入统一发现，两个I/O工作流补明确触发路径。1637份JS语法、CI/release治理通过；Lint零错误/原五警告。真实Windows WPR新profile及同源慢窗口仍待CI，本机解析测试不能代替实际捕获。产品认证、FULL/DELETE、busy_timeout、预算、精确ACK、TTL、门限及依赖均未改。
+
+20:00:21.436Z只读核验原冻结5a3a842长测：同一源码/原生/Node身份及进程，51个连续有效tick至15000000ms（250分钟），elapsedMs=15000002.3764；未失败或重启。五分钟独立监测核对全部历史tick、单调经过时间、进程创建时间及安全回执，中途十分钟空档不能由最后新tick掩盖。断连为未核验，不推断成功或自动重启。通过仍须真实24小时、实际root到期、两次到期重开、15次开关库和零退出完整终态。冻结5a资格仅属于该源码，不继承至后续提交。长测主机无新增负载，旧失败冻结任务和暂停容量长测不动。
+
+下一步在GitHub独立runner取得新诊断证据，定位五秒等待，并推进包含199探针的最新安装链与完整SSE/WS/内部发布中断。固定容量及真实24小时终态、额度核对后的provider和受控自用仍为既定缺口，不能称整体完成。
+
+## 2026-10-26：安装候选开始构建；接入真实在途HTTP探针，保留75五秒失败
+
+75edffe普通Verify40381808064最终七success/coverage121779723612失败，不能由其正式40381808014四项success覆盖。失败是WBIPC long-persistent首轮Chat request_failed5004ms、Claude5001ms，栈均在原fetch2742；前者2次请求/握手，后者4次。窗口内Chat save-reference-state COMMIT为775/1733/1096ms，Claude为1470ms及READ结算569ms，replyAsync分别3119ms和2763/1294ms；阶段有包含关系，不相加当完整请求分解。该失败没有同窗口完整I/O记录，不能据另一runner短flush认定底层退避、杀毒或五秒已修复。全部旧失败继续保留，不重跑覆盖。
+
+fe81f2f普通40382872968八项及正式40382872881四项均success。已以固定fe81源码创建唯一安装review分支，原未发布草稿421213889及两个固定资产的身份仍有效；安装链40383360648/job121785314864实际取得旧包、恢复并验证完整582身份，通过原完整npm run verify和安全审计，正在构建测试NSIS。构建、升级回滚、实际582迁移拒写和安装客户端均尚未取得终态资格。没有发布安装器、上传私有材料或取消/重跑旧失败。该作业继续使用fe81，不随本批源码变化。
+
+本批新增exerciseInstalledHttpDrain并真正接入四案例最后阶段，而非仅补闲置停机断言：原CLI三次compaction、两次进程启动及默认/增强/精确原文/独立公开生成断言先完整完成，再发一笔独立、固定非流式HTTP合成探针。上游严格认证后持有完整回应，必须确认请求仍在途；随后请求既有认证自然停机，独立TCP探针观察入口实际ECONNREFUSED后才释放回应。严格核对200、JSON媒体类型、UTF-8与完整预定正文，等原所属Job零退出/树空/管道EOF，并核对默认无持久目录或增强持久工件存在。202、伪造零退出、提前响应、强制清理、错误正文或存储边界均不能授资格。HTTP仍原5000ms，原自然退出控制器期限不扩大，TCP观察不发模型请求。
+
+实际业务回复组合支持受限beforeReply能力，只有原生true回执且仍为同一案例才发送公开字节；自定义thenable、Proxy能力、失败或案例变更均拒绝，不执行其getter。案例必须恰好调用一次停机探针，不允许缺失/重复或失败后闲置stop补绿。schema5明确要求四次httpTransportDrainQualified=true及daemonNaturalExitQualified=true，旧schema1–4拒绝；websocketDrainQualified必须false，provider/24h亦false。此门只描述上述非流式传输探针，SSE在途、WS和实际安装COMMIT/ACK内部边界仍未合格，不能宣称完整在途验收完成。仅输出八个固定失败阶段，经WeakMap识别本模块错误，不读伪造错误字段或原始正文。
+
+扩大20文件231项本机全通过、零skip，包括两端四种模式实际套接字持有/关闭、原五秒无入口停止拒绝、非法/超限/UTF-8/媒体类型、假ACK/非零及强制退出、目录边界、端口极值、持有能力安全、重复/缺失回调及原PowerShell严格接收。另两项确实启动隔离的真实主入口，经实际认证停机观察完整响应和进程退出0；该可移植证明不冒充Windows Job或原生持久资格。Claude首次源探针因本机夹具自定义base缺/v1而落到/messages，被原路径校验拒绝；保留安全失败记录后修正夹具base，两端通过，产品路由及断言未改。新测试进入原统一发现；1635份JS语法、全树Lint零错误/五既有警告、变更格式及CI/release治理通过。无依赖/锁文件、认证、FULL/DELETE、原expiresAt、预算预扣、精确ACK或签名门变化。
+
+19:28:39.301Z只读核验原冻结5a长测同一身份/进程，44个连续tick至12900000ms（215分钟）、elapsedMs=12900017.7992，未失败/重启。五分钟监测继续，Windows主机无新增构建/短测，旧失败与暂停长测不动，真实模型0。下一步核对本批Windows门禁和fe81安装终态，继续解决五秒持久等待、完整安装SSE/WS及内部中断、固定容量、真实24小时到期重开、额度核对后provider和受控自用等原缺口；全目标仍未完成。
+
+## 2026-10-26：4ef完整正式通过；安装四案例实际接入自然退出门
+
+4ef6b8a普通Verify40379652156八项、正式40379652029四项均全success，后者source121772120889及N08/N09（121780693892/121780693781）已完成；完整覆盖率I/O40379652039/121772121544亦success。正式source的12次最终持久ACK为94–215ms，覆盖率I/O窗口12次为77–152ms，原5000ms及全部原断言不变。这些是本次完整通过证据，不解释或覆盖45正式5007ms、旧初始化/容量/五档等失败，也不授最新安装资格。75edffe普通七项success/coverage及正式source仍执行，其新自然退出Windows资格待终态。
+
+同源I/O回执现实际覆盖proxy与client两阶段，均cleanupVerified=true：前者51对flush、database最大28ms/journal24ms，后者153对、database24ms/journal77ms；没有观测到100ms以上flush。traceCompletenessVerified与fiveSecondQualified继续false，原非零状态计数保留，不能据循环ETW窗口排除旧正式慢COMMIT或归因杀毒。
+
+本批将75的自然退出能力接入实际安装版Codex/Claude四案例驱动：成功案例必须等待独立自然退出ACK才开始下一案例；案例失败仍走独立强制清理，后续清理成功不能修复失败。严格累计四次natural_exit/exitCode=0/treeEmpty=true后才生成schema4与daemonNaturalExitQualified=true，PowerShell接收端同步要求该门；旧schema1–3或缺失/false/错误类型的新门均拒绝，旧历史报告不改写。三次compaction、两端重启保留、private/public/default断言、provider与24小时false及模型0继续保持。该新门仅确认每个案例结束后的自然停机，不授仍在途的完整HTTP/WS排空资格；真实Windows安装矩阵尚未执行。
+
+相关七文件68项先通过；完整16份安装客户端文件最终189项本机全通过、零skip，另矩阵14项确认延迟ACK阻止下一案例、失败停在首例、强制清理/非零退出/非空树/额外字段均拒绝。所有新断言位于原统一发现文件，便携PowerShell配原physical-test-temp运行；无真实模型。全树Lint零错误/五项既有警告，1632份JS语法、变更格式、CI/release治理通过，无依赖/锁文件、产品认证、持久语义、期限、baseline或签名门变化。
+
+18:58:40.556Z只读核验冻结5a同一源码/进程，38个连续tick推进至11100000ms（185分钟），elapsedMs=11100011.1509，未失败/重启。五分钟监测继续，不在该Windows主机新增负载、不碰旧冻结失败库及暂停长测，模型0。下一步收齐本批Windows完整门禁，再按原安装链推进最新NSIS升级回滚、完整582迁移拒写及两端实际矩阵。真实24小时/到期重开、五秒稳定性、五档容量、完整安装在途HTTP/WS、额度核对后provider及受控自用仍未完成。
+
+## 2026-10-26：普通完整Verify通过；独立自然退出验收能力接入
+
+4ef6b8a的Verify40379652156八项全success，四unit分片、integration、node-quality、rust及完整proxy/client/frontend覆盖率均通过；8939f75的Verify40377391159亦八项全success。原8939正式回执同步异常和45正式Chat5007ms失败继续保留。4ef正式40379652029/source121772120889及完整覆盖率I/O40379652039/121772121544仍执行，不授正式安装或五秒稳定资格。独立I/O40379652035/121772121645原50项通过、零skip，153对flush中database最大24ms/journal最大32ms；traceCompletenessVerified及fiveSecondQualified仍false，不能以另一runner短flush排除既有慢COMMIT。
+
+本批为后续安装在途HTTP/WS验收接入stopNaturally：使用既有认证loopback停机端点，以健康回执的精确pid/instanceId请求。严格202仅接受意图，必须再经所属控制器reap观察真实进程退出0、原Job.WaitForEmpty(5000)清空及管道EOF才返回natural_exit。等待时泵出并丢弃有界产品字节，不读秘密或按数字PID查杀。失败保留active资源供独立forced_cleanup并封锁后续资格，不以Dispose/kill制造通过。原stop及强制清理设置矩阵不改，gracefulDrainQualified仍false；实际Windows安装在途矩阵尚未执行，不能宣称该缺口完成。原期限、认证、FULL/DELETE、独立锚点flush、精确ACK、绝对expiresAt、依赖/锁文件及签名门均保持。
+
+六份相关文件69项本机全通过、零skip，另N08/N09闭包五项通过。覆盖意图ACK后等待、空/非法/Proxy/getter/极端pid/陈旧身份、错误ACK/额外字段、非零退出、非空Job、输出错误、进程和EOF原五秒超时、失败保留所有权及强制回收不授资格。新测试进入原统一发现；PowerShell故障等待独立夹具不挤占既有mock的原期限。首次新测试期待普通对象而收到安全空原型快照，已对齐字段断言，未改产品行为。全树Lint零错误/五项既有警告、语法和CI/release治理通过，最终格式检查随本批完成。
+
+更正前条Mac PowerShell四项三通过记录：补项目原physical-test-temp预加载器后，nsis-client-inputs完整四项全通过；此前编排mock失败来自本地命令遗漏预加载器，不能当产品根因。原Windows正式同步异常仍保留，须新正式证据。
+
+18:52:03.126Z只读核验冻结5a同一身份/进程，37个连续五分钟回执推进至10800000ms（180分钟）、elapsedMs=10800001.1509，未失败/重启。监测核对完整历史连续性和严格终态，不仅看存活或经过时间。Windows无新构建/短测负载，旧失败与暂停长测不动，模型0。真实24小时终态、原根实际到期及两次重开仍未通过；最新安装升级回滚/完整582迁移拒写、两端重启/完整在途HTTP/WS、五档容量、额度核对后的provider及受控自用等原交付范围保留。下一步核对正式与完整I/O终态，继续定位五秒持久等待，再组合实际安装验收；基础能力通过不能翻转整体资格。
+
+## 2026-10-26：8939七项普通通过，正式回执异常保留；补齐同源I/O触发与回执严格校验
+
+8939f75的Verify40377391159现七项成功、coverage仍执行；integration121764211543及全部四个unit分片成功，确认前批配置隔离、真实异步idle观察、八版本空原型断言在Windows通过，原生Rust121764212110亦成功。三个独立时序40377390898全成功，仍不覆盖45正式Chat5007ms等历史失败。正式40377390755/source121764072438失败：安装客户端四案例回执测试在ConvertFrom-HpmInstalledClientMatrixReceipt处出现.NET同步异常，后续context-recovery跳过；不能授最新安装资格，未自动重跑。
+
+核对45独立I/O40375001144，只能证明该次正面观测：153对flush、database最大38ms/journal最大23ms，traceCompletenessVerified仍false；它与正式失败是不同runner/窗口，不能排除正式COMMIT秒级等待。45完整覆盖率I/O实际在proxy阶段因两项已修夹具失败而停止，client阶段未执行，不能声称已得到完整覆盖率失败窗口。本批发现两个I/O工作流路径过滤器未包含新owned通道、协议、默认worker、serial和idle；补齐五项触发而不改原命令、并发、负载、期限、采集上限/权限及失败停止规则。三项新治理回归确认时序及两个I/O工作流均覆盖实际生产输入；HEAD旧清单确实缺idle触发，已记录前后证据。新SHA将重新获取同源完整覆盖率I/O，仍以原失败为准，采集成功不等于五秒资格。
+
+安装回执校验改为独立Ordinal字段集合逐一移除，代替JsonElement上的PowerShell枚举管线和文化排序；根字段与四案例字段继续拒绝重复、缺失、额外、大小写/Unicode替代，全部schema/顺序/布尔门和三次compaction断言保持。新增空/非法根/截断及字段边界。清理异常仍使验收失败，只规范为固定拒绝错误，不吞异常制造成功；异常附带仅有限input/parse/root/case/materialize/dispose阶段，不包含原JSON或底层原因，正常返回和上层固定错误协议不变。该调整尚不能证明Windows同步异常根因已消除，须新CI核验，原失败保留。
+
+复用本机已有便携PowerShell7.6.8，仅在命令进程PATH加入目录，无安装/全局版本变更。严格回执、非托管准备拒绝、有限phase三项本机通过；整份nsis-client-inputs四项中三通过、一项编排mock的success分支失败，修改前后均存在，未据局部通过称完整通过。三项新触发治理回归通过，1630份JS语法、全树Lint零错误/5既有警告、格式及CI/release治理通过。无依赖、锁文件、认证、签名、持久语义或任何门限变化。
+
+18:38:03.491Z只读核验冻结5a长测同一身份/进程，34个连续tick至9900000ms（165分钟）、elapsedMs=9900005.305，未失败/重启；五分钟监测持续，Windows无额外负载、模型0。下一步核对新SHA的回执及完整I/O/正式门禁，继续解决真实五秒等待，再按原门禁推进最新安装升级回滚、完整582迁移拒写、两端安装版与额度核对后的provider/受控自用；真实24小时终态及所有既定交付仍未完成。
+
+## 2026-10-26：新通道三组时序通过但正式仍5007ms；修复配置隔离与异步idle观测
+
+45fd6af的新默认路径在40375001055三个独立Windows runner各原50项全通过、零skip，18次finishPublicationAsync为65–346ms。独立I/O40375001144成功。但正式40375001336/source121755535093仍有Chat long-persistent请求5007ms超时，不能由三组成功覆盖。该窗口原生dispatch约14–236ms，多笔SQLite COMMIT仍为1409/1204/1038ms，replyAsync2949ms后另一轮2464ms；阶段有包含关系，不相加充当精确请求分解。普通Verify40375001433和完整覆盖率I/O40375001071均失败，全部保留，不重跑覆盖、不授五秒稳定或安装资格。
+
+普通失败含两项夹具适配问题：八次提交实际receipt为正确的空原型记录，新增断言却期待普通对象；现逐一严格检查null原型、仅revision字段和1–8精确版本，不用宽松转换规避协议检查。idle观测器原假定回调同步返回；新async回调返回时SQLite sweep尚未开始，后续tick又会抹掉已读的armed-clock标记，因此永不记录实际完成。本批async idle返回仅含成功/失败布尔值的原生完成Promise，必须在真实owner ACK及结果校验后才true；busy、关闭、非法或失败均false，setInterval周期/行为不变。测试观测器等待该Promise、暂停重入tick并保留该次时钟标记，再发成功通知；原5000ms观察、独立SQLite已删/仍活记录断言、原TTL及真实worker/DPAPI/锚点均不改。新增可移植回归证明ACK前不通知、重复tick不抹标记。
+
+integration121755534981在entry-auth启动前报AES-v2严格解密失败，源代码行456确认并非DPAPI解密分支。夹具在父环境加密，却在另一个隔离home启动代理；原DPAPI不可用时选择的AES-v2主密钥因用户目录不同而不匹配。本机以仅有临时目录/合成凭据的隔离父进程先复现同一失败，现由受限无shell子进程在代理同一env准备配置，严格解密和完整entry-auth断言通过。不加载父进程日常密钥、不输出子进程诊断或秘密；产品secret-crypto/config、保护格式、认证及原回退选择均未改。新四项覆盖同域真实加解密、固定命令/环境/边界、非法/Proxy/getter/超限和失败隐私，进入统一unit发现。
+
+本机扩大七文件43项39通过/4既有Windows限定skip、零失败，独立entry-auth全部断言实际通过。完整两文件integration在headers-routing的Google profile覆盖断言处失败，尚未执行完；该Mac观察独立保留，不以entry-auth成功冒充完整集成通过。1629份JS语法、全树Lint零错误/5既有警告、变更格式及CI/release治理通过。时序工作流仅补新transport/worker/idle/serial及阶段探针路径触发，不改矩阵、原完整文件、次数或门限；无依赖/锁文件/签名/FULL/DELETE/预算/精确ACK/期限变更。
+
+b223的clockRollbackMs=3发生在大容量夹具直接Date.now采样输入，已有回归要求原样拒绝且不平滑；未改成合成时钟或放宽规则。18:22:40.114Z只读确认冻结5a长测同一身份和进程，31个连续tick至9000000ms（150分钟），elapsedMs=9000004.0464，无失败或重启，五分钟监测继续。无长测主机额外负载、模型0。下一步核对本批完整Windows结果，继续定位正式五秒窗口的持久等待；最新安装升级回滚/582迁移拒写、两端安装版重启/完整在途HTTP/WS、真实24小时到期重开及额度核对后的provider/受控自用仍未完成。
+
+## 2026-10-26：默认 worker 接入异步锚点与串行队列
+
+代码提交78d975e将默认storage worker实际切换到createAsyncStorageOwner，稳态使用owned原生通道，等待独立flush与精确ACK后才发成功回执。首次开库仍同步完成read、空intent、SQLite startup与持久watermark，空intent先于初始SQLite COMMIT的边界不变。async admission复用原snapshot/successor和精确revision+1；旧同步factory继续服务明确的直接调用，默认worker不再逐请求同步启动one-shot。
+
+新storage-serial负责FIFO组合：保留八个客户端槽位，即使有一个idle在执行也不减槽；idle仍每60000ms触发，忙碌时跳过、不排队补发或假装产生ACK。正常close拒收新请求、排空既有请求，等原生通道实际关闭；abort立即请求所属owner清理，拒绝队列及晚到的在途成功结果，不可变成正常close成功。能力/Promise经过校验，不吸收任意thenable或执行原生Promise的own then替代。清理只调用一次、不重试、错误固定。
+
+实际SQLite回归验证了已COMMIT但ACK延迟时不返回成功，以及原生失败、执行中close、路径身份丢失期间写锁仍被持有；真实通道关闭后才能重新取得writer。原未ACK持久版本仍按原规则协调，原expiresAt保持；SQL stale CAS回滚后仍可继续。原最大预算预扣、LIST/READ结算、独立公开发布、FULL/DELETE/secure_delete和认证均未改变。主worker仅组合协议/owner/serial/idle，非平凡队列逻辑独立可测。
+
+阶段探针现覆盖async admission和session，anchor_persist测量到实际ACK；稳态直接观测原owned通道的dispatch，不替换成one-shot。其内部后端分段暂为未观测，不以零代替。startup沿用原显式诊断primitive及严格校验。新回归证明ACK前不报计时完成、稳态不调用one-shot、不输出原文/请求/回复/密钥。原COMMIT/发布内部中断夹具、固定负载、5000ms请求、10000ms原生和30000ms默认存储期限未改变。
+
+本机16文件扩大228项中227通过、1项既有Windows真实storage worker preload限定skip、零失败；随后串行边界10项、最终目标四文件60项及路径清理扩展owner5项分别通过、零skip。发布清单/隔离构建14项通过，serial已进入release-proxy-sources。新Windows用例通过默认openContextRecoveryStorage验证真实worker/DPAPI/OS锚点的八个连续精确版本、排空关闭及同目录原期限重开；Mac仅证明不支持平台拒绝，Windows资格待新CI。1628份JS语法、全树Lint零错误/5既有警告、变更格式和CI/release治理通过。无依赖/锁文件、Rust、签名或coverage baseline变化。
+
+b223基线：独立时序40372177144、I/O40372177340、完整覆盖率I/O40372177164成功；普通Verify40372177331七项成功、coverage仍执行。正式40372177174/source121745507153失败，四根32MiB历史用例index469记录context_recovery_stale/clockRollbackMs=3、整项49847ms，后续context-recovery跳过。与五秒超时分开保留，不放宽时钟规则、不重跑覆盖；2c及52/37/62等旧失败仍保留。本批须新SHA的完整CI和原五秒负载，不能据局部或旧提交通过授安装资格。
+
+18:04:53.605Z只读核验新24h任务仍同一冻结5a身份和进程，28个连续tick至8100000ms（135分钟），elapsedMs=8100004.5287，无失败/重启。每五分钟监测继续，不在该Windows主机构建/短测，不改冻结任务/库；当前长测仅绑定其冻结源码，不随本批切换。模型调用0。下一步核对本批Windows默认worker及原五秒完整门禁，同时定位正式大容量时钟失败；通过后继续最新安装升级回滚、完整582迁移拒写、两端安装版重启/完整在途HTTP/WS、核对额度后的provider与受控自用，整体未完成。
+
+## 2026-10-26：Windows原生生命周期实测通过；异步锚点会话沿用同步开库身份
+
+19940db7b538b0a620a5985cd9daff6d77c3dc82的Windows Verify/rust-tests121740672986已success：实际原生37单测及5进程集成全通过、零skip，其中owned_stream_requires_lifetime_pipe_and_actual_worker_loss_interrupts_blocked_main通过，确认新生命周期管道在Windows实际Worker终止及主线程阻塞边界有效，原-D warnings与audit门禁通过。17:48Z普通40370794426的其余单测/coverage仍运行、正式40370794354/source仍运行、完整覆盖率I/O40370794693仍运行，独立I/O40370794527已success。不能将Rust局部通过称作完整CI或五秒稳定性通过，2c完整诊断的Chat WBIPC AbortController失败及所有旧实际失败继续保留，未重跑覆盖。
+
+本批在原锚点repository内抽出共用prepareCommit/acceptCommit，原同步factory仍只返回identity/read/commit/close四项能力，原加密AAD/nonce/GCM、snapshot解析/继承关系、128KiB wire与64KiB值、严格revision+1及密文值相等保持。新createRecoveryAnchorSession先向开库逻辑提供相同四项同步能力；开库read、空基线intent及正常startup persist仍同步完成。首次稳态异步commit后不可再调用同步能力干扰在途状态，后续提交复用同一密钥、slot与精确revision，惰性使用已验证的owned原生通道，不重新read、不生成替代密钥、不改变既有expiresAt。
+
+异步提交前后均重新校验目录与原生程序物理身份；仅收到原ACK结构且精确版本和值相等，才更新本机会话snapshot/revision并返回。并发调用拒绝且不打断原提交。失败或close使会话终态，等待实际通道close后才结束清理；执行中close不接受随后到达的ACK，同步close不能冒充异步进程清理。通道工厂、能力和结果经过数据属性/Proxy/原生Promise检查，不吸收任意thenable；清理错误一律固定storageFailure，不回显原始异常。不得将这一内部会话当作默认owner已经切换，worker请求/空闲清理统一串行和admission/owner异步组合仍是下一步。
+
+新10项会话回归包括同步startup后异步精确CAS及原codec重开、在途并发/同步调用、错版本/密文/负ACK/非法JSON、派发前后目录/程序替换、空/非法/回退/错身份snapshot、执行中close、工厂/结果/清理失败与原生Promise边界。本机九文件116项全通过、零skip；包含既有rollback拒写、预算/容量拒绝后owner可继续、空intent崩溃恢复、时钟/期限/最大256scope及路径安全断言。新Windows分支将实际默认原生通道的连续加密提交再用原同步codec重开并检查原expiresAt，已进入原统一test discovery和CI；Mac只证明不支持平台拒绝，不授注册表资格。
+
+1624份JS语法、全树Lint零错误/5既有警告、变更格式及CI/release治理通过。无依赖/锁文件、原生Rust、公开release.yml签名、五秒/10秒/30秒期限、SQLite FULL/DELETE/secure_delete或认证规则变化。2026-10-26T17:46:41.428Z只读核验新24h冻结5a任务仍在运行，同一身份24个连续tick至6900000ms（115分钟），elapsedMs=6900005.9496；五分钟监测持续，不访问库或改任务、不在该Windows主机添加负载。模型调用0。完整交付尚缺默认异步owner及五秒稳定性、完整门禁后的最新安装升级回滚/582迁移拒写、两端安装版重启/完整在途HTTP/WS、真实24小时到期重开及核对额度后provider和受控自用验收，均不由本批局部通过覆盖。
+
+
+## 2026-10-26：独立生命周期管道处理强制worker终止；2c普通通过但完整诊断仍失败
+
+持续只读监测于2026-10-26T17:38:50.241Z确认新24小时任务HPM-native-day-20261026-5a3a842-33d332dd仍为同一实际进程和冻结5a3a842身份，23个连续真实节拍覆盖0–6600000ms（110分钟），elapsedMs=6600007.7938，无失败终态。后台逐5分钟观测继续记录，失联标未核验、停滞和历史缺口不被补发tick覆盖；没有重启、修改或额外占用长测Windows环境，仍须完整24小时、实际到期重开及退出0才能通过。最早24小时边界仍为洛杉矶2026-10-27 08:48:47，根实际到期与收尾检查可能稍后。
+
+最新2c125a55162faaaf9a6168860fca1c9938e9baec的Verify40366333624八项success，包含完整coverage和原生Rust；独立持久时序40366333572及I/O40366333536 success。但完整覆盖率I/O40366333564/job121724936934仍failure，client共1714项、1713通过/1失败/零skip，actual core chat WBIPC recovery用例在AbortController超时处失败。该用例整项9091.8602ms不是单次请求耗时，不与旧5007ms错误混写。正式40366333540仍排队，不能由上述成功覆盖完整诊断失败或授五秒稳定资格；旧52/37/62等实际失败继续保留，无自动重跑。
+
+本机探针证实Worker.terminate不能依赖JavaScript exit回调清理原生子进程。本批新增独立第四继承管道与原生阻塞读线程，所属worker消失/管道读失败/任何意外数据即仅终止原生进程自身，即使主处理线程仍阻塞；不枚举或按PID终止外部进程。Windows只接收精确四描述符的libuv启动表、检查独立pipe句柄并DuplicateHandle持有副本，缺失/别名/非法输入拒绝，原CRT句柄不关闭。Unix持有socket副本且恢复阻塞读。旧one-shot和旧stream-v1协议保持，新owned-stream-v1只有成功安装生命周期读线程才发固定8字节全零ready；显式owner-probe-v1仅主线程阻塞10秒且访问零注册表/密钥/数据库，用于故障边界验证。
+
+客户端使用新模式及四管道，完整ready前不发送请求；坏ready/多余字节/生命周期管道异常使通道终止，启动/ready/请求/ACK仍共享原10000ms单调期限，不重置timer。正常close只结束请求stdin，保持生命周期管道至真实子进程close，以免误杀正常退出。原帧界、精确ACK、路径身份、CAS/flush/回读、最大容量、预算预扣、独立发布、SQLite FULL/DELETE/secure_delete与原expiresAt不变；默认同步owner尚未切换，串行接入及原五秒稳定性仍待完成。
+
+Mac实际编译的原生33单测+5子进程集成通过、零skip；新集成实际验证缺生命周期管道拒绝、正常stdin EOF、管道EOF/非法数据在主线程10秒阻塞期间提前退出及实际Worker强制终止后的原生退出。首次观测以kill(pid,0)将Mac已退出的zombie误判存活，已保留诊断并改为只读核对Unix退出状态；该分支只证明原生线程退出，不授Windows句柄清理或Mac Node完整回收资格。Windows实际分支不接受zombie替代，必须观察实际进程不存在，随原test:recovery-native进入统一CI。客户端21单测+8实际子进程测试通过，包含原10秒超时/正常close、碎片/非法/超限ready及生命周期失败。另原锚点/健康/隔离清单36项通过；新lifetime源码显式进入隔离构建输入和逐文件篡改拒绝回归。
+
+变更JS格式及全树Lint零错误/5项既有警告，1623份JS语法、CI/release治理及Rust fmt通过；Mac clippy仅保留既有六项非Windows后端dead_code警告，Windows原-D warnings门禁不改。无依赖/锁文件、签名门禁或公开发布变化，模型调用0。下一步先核对本批Windows真实生命周期/注册表结果，再把异步通道与worker请求/空闲清理串行接入默认owner，继续解决原五秒长尾；最新安装升级回滚、完整582迁移拒写、安装版两端重启与完整在途HTTP/WS、核对额度后真实provider和受控自用仍未完成。
+
+
+## 2026-10-26：启用逐节拍只读监测；完成尚未接入默认owner的通道客户端
+
+用户明确要求持续确认24小时测试真实推进，并行解决其余问题。本轮在当前对话配置每5分钟只读监测，检查新任务HPM-native-day-20261026-5a3a842-33d332dd的同一进程/创建时间、启动与源码/原生/Node身份，以及完整的0起每5分钟节拍序列；不只看Task Running或经过时间。2026-10-26T16:56:04Z实际核验仍运行，14个真实tick覆盖0–3900000ms（65分钟），源码冻结5a3a842不变、无失败终态，尚无24小时或到期重开资格。没有在长测主机增加构建/短测，旧失败冻结环境和暂停的最大文件长测不动，模型调用0。
+
+新增纯健康判定模块独立于验收执行器，不打开数据库、密钥或原文。失败终态优先于alive或后续startup；即便任务仍显示Running，历史native_day_failed也不能被覆盖。完整日志行损坏、序号/时钟倒退、缺样、身份变化、时间不可信均不能获得running资格；超过10分钟无新tick标为停滞风险，历史中已有超过10分钟的连续性缺口不能被后续新tick或补发计数覆盖，完成事件后迟迟无退出回执也标为停滞。通过须同时满足原完整day-small报告/12次工作负载重开、288个真实节拍、单调及实际墙钟均满24h、原根实际到期见证、两次到期重开、15次开/关及退出0；不接受只有完成标签或墙钟到了。SSH/观测失败记为未核验并保留历史，不作终止判断、不重启。监测依赖当前Mac应用及网络连通；连接不可用不能继续报告正常，Windows原控制器仍独立记录实际退出。Mac监测期间另使用25小时临时防闲置休眠租约，已核对实际系统断言，期满自动释放。
+
+初始额外观测未取得可用回执，保持未核验；随后用短命令运行独立只读脚本成功，未改长测源码/任务。监测接收的元数据经过有界解析，数值和时间先验证再进入公开健康回执；新增隐私回归先复现未核验路径会回显伪造进度字段，现只输出固定原因、合法时间及数值。9项健康回归通过，含半小时失败但进程还活着、停滞界、早报完成、错身份、损坏/回退、缺少到期重开/退出与非法输入，不会将日志标签当作真实资格。
+
+通道客户端按上一批显式原生流协议惰性创建一个持有真实ChildProcess句柄的子进程，单请求在途、严格序号/长度/UTF-8与原ACK结构，最大128KiB原wire及64KiB原密文值不扩大。提取原ownRecord/nativeReply为共用协议模块，旧同步repository继续复用相同校验及原路径身份/CAS验证。只传SystemRoot/WINDIR，stderr字节不保留且使通道失败；不转发凭据环境，不记录请求或回复。每请求仍为原10000ms，启动及响应校验均由单调期限覆盖；即使timer延迟，过期回复亦不被接受。
+
+超时、坏帧、I/O/进程错误或执行中close只终止所持有的子进程句柄，等待实际close再拒绝请求/确认清理；仅exit事件或已发kill均不算清理完成。kill失败仍等真实退出，没有数字PID回退、重试、模型请求或内存替代。空闲close先EOF，原10秒内不退出才终止并等待。回归先复现旧请求已取消timer回调会误杀新请求，现每个回调绑定其在途请求，旧回调不能触碰后续请求。19项单测、8项真实子进程测试通过，真实hang在约10006ms后拒绝且childClosed=true，真实忽略EOF在约10038ms后回收，无skip；Windows原生配对分支进入统一CI，Mac该分支只证明合成坏序号拒绝，不授注册表资格。
+
+扩大19文件260项本机回归全通过、零skip；随后健康边界扩展至9项并再次通过，变更JS Lint/格式、1623份JS语法、CI/release治理通过。新channel/protocol已显式进入发布清单，三个新测试进入原统一发现；没有改依赖、锁文件、coverage baseline、五秒请求门限、SQLite FULL/DELETE/secure_delete、预算预扣/精确ACK/独立发布或任何原expiresAt。默认owner尚未使用该客户端，强制storage Worker终止时的子进程回收与worker请求/空闲清理串行接入仍未完成，不能因客户端局部通过宣称五秒已修复。
+
+52ffd1d普通40356616950八项全success，rust-tests121690682184确认Windows原生35单测及4项实际CLI/注册表集成通过；但正式40356616968/source121690681619仍失败：Claude持久首轮request_failed5007ms，以及WFP布局/工厂、碰撞身份清理、实际DPAPI备份回滚/clear和旧包装互通等控制失败，后续context-recovery跳过，全部保留、不授安装资格。其他原失败与全部既定交付缺口继续保留。下一步须完成worker生命周期组合并让原完整负载确实走新路径，再经Windows完整门禁验证，不能通过旧路径的局部绿绕过失败。
+
+## 2026-10-26：修复隔离构建缺失锚点源码；实现尚未接入默认worker的有界原生通道
+
+新24小时冻结5a3a842保持不动。本轮仅只读核对该任务，2026-10-26T16:06:40Z仍Running且实际进程存活，最新真实tick为900000ms；没有在该主机并发构建或运行短测，未重新启动长测、未读写其库。模型调用0。另b763f7a普通40353318923八项全success，但正式40353318929/source121678975954因既有PowerShell/rg读发现控制的spawnSync powershell.exe ETIMEDOUT失败，后续context-recovery跳过；保留失败，不授安装或整体资格。
+
+读取长测启动前已完成的固定原生外围测量：16次交替普通/诊断空输入拒绝调用为112.312–521.345ms，8次诊断内部elapsedMs均0，未访问锚点。该结果只证明进程边界外围存在耗时，不能将全部等待都归为CreateProcess，亦不解释此前SQLite COMMIT或RegFlushKey秒级长尾。为消除后续每次原生操作重新起进程的必要，本批先实现显式--hpm-context-anchor-stream-v1有界原生传输，默认JS owner仍使用原单次调用，尚未接入、没有当前请求性能提升或五秒稳定性资格。
+
+新传输独立模块按8字节小端序号/长度及原JSON负载分帧，每帧继续原128KiB上限、原parse和独立process；每次process新建原RegistryBackend，保持每条请求独立锁、CAS、flush与精确回读，后端句柄/锁在响应前释放，无跨请求认证缓存。严格从1递增且不绕回，空/超界/乱序/截断帧在执行前拒绝；解析、CAS、后端或I/O失败终止整个流，不消费后续工作、不重试，不输出底层错误、slot或载荷日志。完整帧边界EOF为清洁关闭。原单次命令与其10秒/128KiB调用门限、DPAPI、SQLite FULL/DELETE/secure_delete、预算预扣、独立发布ACK和绝对期限不改。后续必须完成客户端进程所有权、每请求原10秒界、超时kill/退出清理及worker串行接入，再谈默认切换，不能仅凭分帧单测启用。
+
+实现期间发现隔离发布BUILD_FILES遗漏现有anchor.rs及anchor/diagnostic.rs，Cargo在隔离目录缺少lib.rs引用的真实源码；先新增回归在旧清单得到Cargo module missing: native/context-recovery-key/src/anchor.rs，再补齐两份既有模块及新stream.rs。三文件逐一验证精确复制及准备前变更拒绝，未放宽快照hash或复制边界，也不递归收集私有文件。修复后的真实源快照生成隔离目录并离线执行Cargo测试31项通过，证明实际模块可编译，不只模拟文件存在。首次源快照因本机生成gateway artifact缺失被原门禁拒绝，随后按原prepare脚本重新生成、门禁未改。
+
+Mac原生31项单测及4项实际子进程集成测试全通过、零忽略；其中9项新分帧单测覆盖正常/最大/空/非法UTF-8/乱序/截断、分片/Interrupted读取、短写、读写/flush失败、原CAS错误和响应前释放后端，4项CLI集成在Windows分支实际验证独立注册表版本1/2及陈旧CAS终止，在非Windows分支断言不支持后端拒绝、无伪造成功或skip。Windows真实注册表分支尚待本批CI；新增用例由现有Cargo --all-targets原门禁发现。fmt、Clippy自身检查、1617份JS语法、变更JS Lint/格式、CI/release治理和四文件30项JS回归通过。Mac Clippy仍有6项既有Windows限定代码dead_code警告，未压制，Windows原-D warnings门保持；未改依赖、锁文件、coverage baseline或release.yml签名要求。最新安装/582迁移拒写、两端及真实provider、五档容量和24小时终态等完整剩余范围仍保留。
+
+## 2026-10-26：新一轮真实24小时已获授权并实际启动，尚未通过
+
+用户明确要求启动新24小时测试，覆盖此前“暂不启动新一轮”的决定；只授权本轮独立任务，不重启原失败长测或暂停的最大文件长测。冻结源码为5a3a84286242e55478d914d906f7861bef08df9b，普通40252911111八项与正式40252911113四项均终态success；37普通coverage/正式n09失败及实际Windows原五秒测试5020/5013ms失败仍保留，当前green不能覆盖同一产品源码已观察到的不稳定。本轮day-small不授五秒HTTP、完整容量或最新安装资格。
+
+在新Windows目录建立独立干净checkout与独立Node副本，以显式工具路径、任务专用缓存/TEMP依次完成npm ci、插件ci --ignore-scripts、原生prepare，退出码均0；两份容量/时钟回归26/26、零skip；默认worker两次同目录真实开库/关闭通过，ready3779/3363ms。重新编译的原生文件已独立安装并固定hash，未执行旧冻结环境、日常代理、系统代理、证书或客户端配置。
+
+新任务HPM-native-day-20261026-5a3a842-33d332dd于2026-10-26T15:48:47.132Z输出native_day_started，realtime24hStarted=true；已交叉核对Task Scheduler Running、实际进程存活、独立Node路径、启动回执与进程内identity一致、dirty=false，安全进度完整行无解析错误。源码sha256=33479568307e8de0b9976d7c863b761c1559160f50213aea306d0d7ee1dd4d0d，原生sha256=70f69e948b33ba8aae7a2af54835cd1b4e3ae129a3cd06206aea941f68848c9a，Node22.22.3 sha256=780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b。本机私有回执保存完整环境与进程身份；公开文档不上传数据库、DPAPI材料、OS锚点或私有原始日志。
+
+固定day-small保持1根、288轮、5分钟间隔、1024字节输出、24次恢复、每24轮同目录重开。真实worker/DPAPI/OS锚点与默认存储不替换，真实wall/monotonic经过时间及根实际到期见证不注入合成时钟。23h55m最后一轮后仍须等满24h及根实际到期，再两次重开核对catalog为空、旧load/load-reference为空与inspect记录/字节为0。只有native_day_completed、realtime24hPassed=true、两次到期重开及退出0才授此档资格，目前尚未取得。
+
+任务仅手动启动一次，无触发器、无自动重试，原26小时外层安全界及16MiB输出界不改变产品门限；临时进程唤醒租约退出时释放，不改全局电源方案。后续仅只读核对本任务安全进度，不因观察超时重启、不修改冻结源码、不在其主机并发开展抢占验收资源的短测。预计最早2026-10-27T15:48:47Z之后进入到期重开，实际结束还需根出生偏移和检查耗时；运行中不是完成。模型调用0、额度未核对不调用真实provider，原失败记录和其余完整交付范围继续保留。
+
+## 2026-10-25：37新源码本机五秒仍双失败，真实开库通过，未授安装资格
+
+37fd6ef2d751a6a166b00c967109ee89d67cc893已推送，并在已授权Windows独立目录从62快进更新；先核对bundle hash、原HEAD/干净工作区，再执行新原生准备，退出0。新源码路径/锚点及发布清单回归213/213、零skip。随后按预先三轮串行方案运行原两份完整五秒测试，首轮50项48通过、2失败、零skip、退出1，后两轮停止，未以重跑覆盖。Chat第二轮请求5020ms失败；Responses首轮正文4298ms到达，但最终持久发布等待5013ms失败。其余完成的最终ACK为Chat首轮3856ms、Claude两轮3545/4819ms，不能据此授稳定性资格。原62的5008ms及所有历史失败仍保留。
+
+本机Chat第二owner的发现扫描sequence1为2047ms，其中独立OS锚点flush1701ms、native总1710ms、dispatch1876ms、persist1902ms；该扫描在beginAsync之前，不直接当作请求内阶段累加。请求内后续sequence5的预算保存922ms，其中flush373ms、dispatch668ms；同轮SQL写COMMIT主要12–14ms，不能将这次本机失败归为SQL COMMIT秒级等待。多笔native总18–44ms但dispatch227–474ms，存在调用外围开销；这些数字有包含关系，不能简单相加，也不足以归因杀毒、磁盘或认证。下一步应针对失败请求内各次独立持久操作及native调用外围定位，不削弱原flush/CAS/ACK或放宽五秒。
+
+新源码默认worker另行同目录两次真实开库/关闭均通过，ready1767/1953ms；实际模块导出与加载身份匹配当前checkout、dirty=false，sourceSha256=33479568307e8de0b9976d7c863b761c1559160f50213aea306d0d7ee1dd4d0d，原生hash仍8d75ae3f3d93f7423e0a5c54273c079b15d5ea5deda3ae526b92a4ccba5cc9aa。这是空库原生/DPAPI/锚点开库诊断，不是完整容量或24小时资格；原生导出/诊断脚本错误与真实失败继续区分。
+
+37普通CI 40251321177已终态七项success、coverage121343652048 failure；第一段proxy覆盖率通过，完整client覆盖率1714项中1713通过、1失败、零skip，Chat持久首轮request_failed5006ms。该窗口预扣事务COMMIT2089ms、LIST结算COMMIT903ms、随后另一预扣COMMIT794ms，线程CPU均零；不与本机不同失败窗口混同。独立三组时序40251321164各原50项全通过、零skip，18次ACK818–1326ms；独立I/O40251321174 success不覆盖完整失败。正式40251321342仍在source-gates，原覆盖率I/O40251321175仍执行，未派发安装，不将运行中或局部通过称为完整CI通过。
+
+全部原门禁、负载、SQLite FULL/DELETE/secure_delete、持久预扣、独立发布ACK及原到期时间保持。原始诊断只保存在新短测目录，公开文档仅记录固定阶段/计数，不上传库、密钥、原文或私有日志。模型调用0；冻结环境未访问，新24小时与暂停的最大文件长测未启动。最新安装升级回滚、582实际迁移拒写、两端安装版重启/完整在途HTTP/WS及核对额度后的真实provider验收仍未完成，继续保留原交付范围。
+
+## 2026-10-25：自用Windows复现5008ms，减少锚点路径重复规范化且保留每次新鲜校验
+
+用户已授权Windows新目录、单并发短测。本轮复用实际Node22.22.3/npm10.9.8和Rust/Cargo1.92.0；SSH PATH中的Cargo/Rustc入口为不可执行的零字节重解析入口，真实toolchain程序可用，任务进程内显式路径已验证，不改全局PATH或rustup默认。当前源码62bfe26bb725975b2a771e14708fa3e1b9963905以仅含当前提交的浅克隆转移，归档hash、Git对象、干净工作区及默认模块实际导出均已核验。原npm ci、插件ci --ignore-scripts、prepare-native依次退出0；首个SSH构建启动异常随后确认无启动进程和日志，首次实际构建退出0。原两份容量持久化/时钟回归26/26、零skip；默认worker真实两次同目录开库/关闭通过，ready1789/1349ms，原生程序hash为8d75ae3f3d93f7423e0a5c54273c079b15d5ea5deda3ae526b92a4ccba5cc9aa。只证明当前空库诊断，不授容量、旧失败根因或24小时资格。
+
+原两份完整五秒测试首轮50项中49通过、1失败、零skip：Claude long-persistent第二轮最终持久ACK5008ms超时，原定后两轮未执行。其余五次ACK为3753/3290/3327/4293/3694ms。同轮正文4004ms已到，最终save-reference-state1362ms、finishPublicationAsync1422ms；该最终事务COMMIT916ms且线程CPU为零，独立锚点dispatch232ms/persist273ms。阶段有包含关系，不能直接相加为请求分解；该失败不再仅发生于托管runner，全部记录保留且未通过重跑覆盖。当前62普通八项与正式四项success、原覆盖率I/O5001ms失败同时保留。
+
+检查同轮额外路径开销后发现每次锚点调用前后，旧physical会在逐级lstat之外对每一级前缀再次完整realpath。回归先在旧实现得到54≠12。本批抽取独立physical-identity模块：每次调用先检查目标类型/单链接和完整规范路径，逐级新鲜检查全部祖先，再检查完整规范路径并重读目标精确dev/ino/birthtimeNs。返回身份及locationHash输入不变，无跨调用或跨事务证明缓存；别名、重解析、硬链接、祖先失败、最终规范化后目标替换和调用中新增硬链接均拒绝，错误固定。原调用前后两目标检查、native命令/CAS/flush/精确回读ACK、独立发布步骤、SQLite FULL/DELETE/secure_delete、原5000ms和到期时间全部保持；只减少重复前缀解析。
+
+Windows两批整段粗测波动较大，未据此宣称提升。随后固定200次交替顺序配对组件测量，旧2735ms/中位11.590ms/p90 26.081ms，新1886ms/中位6.249ms/p90 17.156ms；最大90.237→110.968ms仍有波动，不能授五秒稳定性资格。此为元数据路径校验组件诊断，不是整个请求性能对照。旧、新返回身份相等，原Windows失败未关闭，须本批新SHA完整原负载复测。
+
+相关锚点与路径安全回归211/211、零skip；新增测试覆盖正常、Unicode、空目录、非法/极端输入、Proxy不触发、两边界规范化/读属性失败、祖先错误/重解析、目标替换及硬链接失败路径。新增文件进入原统一unit发现，另两项release inventory/discovery回归通过。发布清单显式包含新helper，未改依赖或锁文件、原生Rust或公开release.yml签名要求；1617份JS语法、全树Lint零错误/5项既有警告、CI/release治理通过。Mac全树format检查按原CRLF配置报告1504份既有LF文件；已核对示例文件与HEAD字节相同，未改写无关文件或放宽配置，变更JS/JSON按原格式通过，完整Windows格式门禁仍保留。后续新SHA仍需Windows及完整门禁，不将本机组件通过称为整体修复。
+
+真实模型0，旧冻结环境、任务、库及OS锚点实例均未访问；新24小时仍按用户决定暂缓。当前独立短测环境已经授权，下一步直接推进本批Windows原门限复测，无需重复询问环境权限。最新安装升级回滚、582迁移拒写、两端重启/完整在途HTTP/WS、固定容量、自用受控交付等原范围继续保留。
+
+## 2026-10-25：c8完整普通通过但正式三次五秒失败，补齐文件打开状态采集盲区
+
+c8aa981962467f772ec8924a674d5d23b95e0891普通40218317986已终态八项success，完整coverage121244181927的十二次持久最终ACK为1238–2431ms；三组时序40218318057三项success、十八次1083–2379ms。正式40218317987/source121244181892仍为failure，Chat/Responses/Claude持久首轮分别5001/5009/5001ms、均两次合成请求，后续context-recovery跳过；正式失败不能由上述通过覆盖。Chat预算预扣2406ms中COMMIT2154ms、线程CPU零；Responses多笔COMMIT为1125/956/1011/782ms、线程CPU零；Claude另一次预扣COMMIT1622ms。独立原负载I/O40218317995在旧解密10016ms超时终止，legacyPhase=unobserved只能证明未取得第一个固定标记，不能断言未进入DPAPI。最新安装分支尚未创建，正式门禁失败时禁止派发。
+
+默认worker的新写密钥阶段已在Windows实测：一例key_write261→305ms，共44ms，其中ACL31ms、flush12ms；这证明有限分段生效，不覆盖原2882/3993ms长尾。源级在途HTTP和发布中断已有通过，最新实际安装版的完整在途HTTP/WS、升级回滚/582迁移拒写和两端重启保留仍需正式验收。
+
+继续排查时发现现有ETW对FileIo/Create（opcode64）仅作IRP失效处理，无法保留打开时的错误状态。因此旧记录中无共享冲突不能排除打开冲突。SQLite Windows官方os_win.c有可重试I/O错误及线性延迟路径，但尚无本项目失败同场证据，不能归因杀毒、共享冲突或据此更改安全设置。本批按微软PerfView FileIOCreateTraceData的固定x64 v2/v3布局解码OpenPath，仅在采集层匹配原合成数据库/journal路径后导出固定分类；无需先收到name事件，不将create当成flush、不把任意路径输出到回执。无关操作仍使旧IRP失效，未知版本、坏UTF-16、嵌入NUL、歧义字段和原库存超界拒绝。
+
+有界summary改为schema4并增加create统计，schema1/2/3仍按各自原字段精确验证；状态码最多16种、原事件/库存/trace/输出上限、冲突拒绝、源码绑定和清理门保持。traceCompletenessVerified/fiveSecondQualified仍false，原负载、期限、认证、预算预扣、独立ACK、FULL/DELETE/secure_delete和原生锚点不改。新回归先在旧实现拒绝create记录而失败；实现后包括实际PowerShell二进制/命名解码、过滤、失败配对、异常和边界在内三文件43项全通过、零skip。1614份JS语法、全树Lint零错误/5项既有警告、CI/release治理及变更JS格式检查通过；未改变依赖或锁文件。此批修复采集盲区，尚未修复五秒超时，下一步须新SHA Windows实际采集再定位具体等待。
+
+旧冻结环境未访问，新24h按用户要求暂缓、模型调用0；Windows独立短测环境是否可用仍待用户答复，不因等待改用该主机承载负载。全目标未完成，所有旧失败保留。
+
+## 2026-10-25：为已实测2882ms的写密钥阶段补默认worker有限分段，不改变写盘或期限
+
+00bdbd77f0e94c3afd098717e64a14394dcabc77普通40217720354当前七项success/coverage仍执行，正式40217720454/source仍执行。2ea原负载I/O40216726505也仍执行；旧作业继续观察不重跑。2ea普通文件SQLite首次ready5044ms和正式原生首次ready5043ms均保留，后者完整时间线已确定key_write594→3476ms为2882ms、存储ready4286ms，但尚不能区分具体子操作，不把整段误称fsync或ACL根因。夹具事件等待修复的Windows资格亦未取得。
+
+本批在原createStoragePaths.writeKey路径加入有限固定阶段：开文件、ACL、写入、flush、关闭、回读完成。owner只组合其phase到原startup进度，默认worker仍通过原id=0有限阶段消息报告；父storage验证和publication startup timeline直接沿用原严格顺序，安装worker证据白名单同步识别新阶段。总有限阶段仍低于现有64条时间线界，没有提高任何上限。原wx建文件、ACL、句柄/路径身份比较、write→fsync→finally close、精确回读比较、digest pin与inventory顺序不变；现有键pin/reopen不产生fresh-write阶段。每次显式调用有独立观察状态，诊断不会额外限制已有调用语义，owner失败关闭/无自动重试规则保持。
+
+阶段回执只有固定phase和单调elapsedMs，不输出fd、路径、密钥、原文或原始错误。观察器抛错或返回拒绝Promise按既有startup观察约定处理，不改变持久结果；实际文件/ACL/write/flush/close/read失败仍以原storageFailure传播、无成功完成阶段。非法observer在创建叶目录前拒绝。主入口没有新增业务逻辑，非平凡进度仍由既有可测模块负责。
+
+五文件51项中50通过、1项既有Windows真实worker限定skip，零失败。新增真实文件写入测试覆盖空值、普通/Unicode及17000字节边界、超限/非法值、六类子步骤失败与描述符清理、观察器失败、已有key读取及显式调用兼容；同时将实际新阶段送入安装证据与publication时间线解析。storage-service原observer失败/有限阶段回归、文件身份和nsis状态夹具通过。1614份JS语法、全树Lint零错误/5项既有警告、CI/release治理通过；无依赖或锁文件变化。新增测试进入原统一unit发现，新SHA须完整Windows验证，不宣称2882ms根因已修复。
+
+下一步在原默认worker失败窗口按新阶段确定具体ACL/写入/flush/回读耗时，再修复实证问题；继续原门禁后的最新安装升级回滚、582迁移拒写、两端及既定完整交付。五秒持久长尾、旧PowerShell控制失败和其他历史失败均保持。新24h按用户决定暂缓、原冻结任务/库不动，真实模型0。
+
+## 2026-10-25：2ea首次ready双失败保留，移除IPC阶段等待的额外CPU忙等
+
+2ea100deba9e1d065bb9c24631bc7b61e20326db普通40216726519终态七success/coverage121239363426 failure：文件SQLite HTTP正常停机transport-finished用例首次ready5044.5354ms失败，lastFixture=fixture-prepared、startup=unobserved，未进入停机或COMMIT动作。六次持久最终ACK1758–2408ms、138次COMMIT最大168ms不能覆盖该失败。正式40216726449/source121239362770终态failure，egress成功、后续跳过：默认原生HTTP prepared/COMMIT用例首次ready5043.641ms失败，lastFixture=native-opened；完整时间线确认key_protect522→594ms、key_write594→3476ms（2882ms）、engine_ready4285ms、ready4286ms。阶段尚不能区分ACL、文件写入/flush、回读或其他等待，不能将其直接认定为fsync根因。PowerShell原控制及新增安全回执本次未失败，其旧invalid_6失败继续保留。2ea原负载I/O仍执行，不重跑原失败作业。
+
+排查这两个首次ready失败时发现父夹具以await setImmediate循环等待IPC，没有工作也持续调度。本机固定250ms算法探针旧路径轮询20153次、CPU user25.161/system21.442ms；相同等待长度的新事件helper为user0.407/system0.039ms，结束后零监听器。此是额外忙等的实测证据，尚不是Windows key_write2882ms或所有五秒失败的因果证明。
+
+本批仅将processFixture.phase的等待改为child message/exit/error或剩余期限的事件等待。原performance.now()+5000绝对截止、ready/失败/退出状态断言、真实SQL PENDING/journal探针、750ms观察、15秒整项、4秒自然退出以及所有payload/并发/COMMIT/锚点/ACK条件保持；不更改SQL锁探针本身的轮询。每次事件/超时后清理本helper的三个监听器和定时器，既有监听器保留；零剩余时间不注册资源，非法/非有限/越界预算与Proxy拒绝，部分安装失败和安装中重入事件均清理。事件内容和原始异常不进入回执。没有生产代码、后端、认证、持久语义、依赖或门禁变化。
+
+三文件最终32/32通过、零skip，含原二十项强杀/释放中断、五项真实HTTP正常停机及七项事件等待边界；1613份JS语法、全树Lint零错误/5项既有警告、CI/release治理通过。新独立test文件进入原统一unit自动发现，原client覆盖率仍直接执行原HTTP/中断组合，未替换测试。新SHA须Windows实际验证，不能宣称首次ready失败已修复或整体绿色。
+
+已收齐的其他结果分别保留：5856普通八项及正式40215124902四项均success；7d普通八项与原负载I/O40215687554成功，但三组时序组3的5001ms和正式invalid_6失败仍未关闭。7d原负载I/O client实际153对flush最大database358/journal184ms（分别3/4次≥100ms），十二次最终ACK1281–3399ms；这是物理长尾正观察，非5001ms同场采集，trace完整性及稳定性资格仍false。Mac真实文件header对照每5000快照父262/246ms、当前238/231ms，只证明小幅CPU开销降低，不能解释秒级等待。
+
+下一步继续依据现有I/O与原生开库有限阶段定位具体阻塞，核对新SHA完整Windows后推进最新安装/升级回滚/582迁移拒写、两端、在途HTTP/WS及其他原交付缺口。新24h按用户要求暂缓，旧冻结环境不动，真实模型0；全目标未完成。
+
+## 2026-10-25：7d快照回归在Windows通过，但时序及正式控制仍失败，扩展固定失败原因回执
+
+7d7cab22452de18cf02f837fa3b85f2a020edadd普通40215687533七项success，coverage仍执行；unit2/job121236201829已逐项通过六个新header计数/坏密文/AAD/schema/共享字节回归及二十项原生发布内部中断，unit0/job121236201337原生HTTP正常停机十项通过。故header重复解密修复取得Windows局部回归证据，不能据此授予完整门禁或五秒资格。
+
+三组时序40215687663的组1/job121236201750、组2/job121236201635成功；组3/job121236201732失败，Responses long-persistent首轮request_failed5001ms/2次合成请求。该组预算预扣save-reference-state为1981ms，其中时钟写入339ms、COMMIT1309ms，两者线程CPU user/system均0；随后结算515ms、下一预扣978ms及组合读结算1376ms继续有串行物理等待。初始化/seed还有较慢锚点flush，但它们不能冒充该请求内的分解。原五秒门保持，全部历史失败继续保留。
+
+正式40215687541/source121236201682终态failure，egress成功、后续场景跳过；唯一已记录失败为coverage-io-capture.test.js:398固定PowerShell控制回归，604.7394ms在invalid_6阶段退出1。此为九字符超长合成输入，旧回执只给阶段，尚不能区分错误接受与异常错误；没有证据归因PowerShell版本。Mac官方7.6.7原控制回归通过；Windows juhon SSH恢复后，仅执行纯StringReader短探针，7.6.8全部八种非法输入正确拒绝且返回固定错误，无开库、负载、trace或冻结环境访问，不覆盖CI失败。Windows gh API用户核对返回1，认证仍未核实，未读凭据或再次要求用户登录。
+
+5856普通40215124915已八项success；其原负载I/O40215124924/job121234497090也成功，两阶段source-bound/cleanup回执实际核验：proxy51对flush最大database41/journal32ms，client153对最大database27/journal19ms；十二次最终ACK1246–2474ms。无慢时钟写入复现，traceCompletenessVerified/fiveSecondQualified保持false，不能解释其他runner的五秒失败。7d独立I/O40215687560/job121236201234原两文件50/50通过、零skip，ACK1189–1391ms，153对flush最大database36/journal33ms，也不授正式资格。两代剩余原作业继续观察、不重跑。
+
+本批仅在原控制测试失败回执增加固定reason（invoke/unexpected_error/accepted_invalid）及固定合成输入长度0–12，区分是否发生错误接受。原输入、结束/EOF断言、错误身份要求和五秒子进程期限不变；不输出输入或原始异常。解析移至测试helper，只接受128字节内的完整固定单行，拒绝尾随/重复换行、任意标签/字段、负数/越界/前导零长度及非字符串。coverage-io-capture整文件27/27、零skip，补双换行拒绝后两个相关用例再次通过；1612份已跟踪JS语法、全树Lint零错误/5项既有警告、CI/release治理通过，新helper另由实际require/执行验证，提交后统一发现继续检查。此为定位回执，不宣称修复控制失败或Windows物理长尾。
+
+下一步收齐现有原负载I/O及完整门禁，在新SHA失败时按reason定位控制路径，同时继续五秒持久等待根因；随后才推进最新安装升级回滚、582迁移拒写、两端及完整在途矩阵等既定交付。新24h仍暂缓、旧冻结任务/库不动，真实模型0，完整目标未完成。
+
+## 2026-10-25：消除锚定只读快照同一header的重复解密，保留独立事务和第二次读取
+
+5856d1a普通40215124915七项success、coverage仍执行，正式40215124902/source仍执行，原负载I/O40215124924仍执行。独立I/O40215124904/job121234497160已success，六次最终ACK809–909ms；153对成功flush最大database32/journal39ms，无已观察的访问/共享/锁冲突状态，但traceCompletenessVerified/fiveSecondQualified均false，不能解释1f正式三个五秒失败。1f普通40213983615已八项完整通过，十二次最终ACK1247–2491ms、COMMIT最大136ms；正式5005/5002/5003ms及全部历史失败继续保留。
+
+继续快照重复解密排查，真实文件SQLite的新计数回归先失败：同一个锚定snapshot只读事务解密header两次。现事务准入仍独立读取并认证header、核对committed tag和blob归属；仅为该只读事务复制已认证header密文字节与固定AAD关联，传给其私有回调。snapshot仍第二次读取实际header：仅字节及store ID完全相等才复用已认证值，否则重新认证；schema、字段范围及committed tag仍逐次核对。复制字节避免数据库桥返回共享可变数组时替换已认证证据。任何证明不跨COMMIT、失败或下一snapshot；普通写事务不分配此副本、不复用此证明。每次owner操作后的独立快照及锚点flush/精确ACK均保留，未减少SQL读、写盘、提交或锚点次数。
+
+空库/已存合成原文都从每快照两次降为一次header解密，连续两个snapshot累计两次，数据库字节不变，FULL/DELETE保持。新增第二次读取的坏密文、store ID变化、schema变化及共享密文字节被修改均拒绝，回滚后原字节与下一快照精确相等。首轮五文件106/106通过，补空库后该文件34/34通过。扩大blob/组合读取结算/anchor owner/SQLite/clock五文件188通过、一项实际原生worker在Mac开库失败；另用默认open和固定阶段诊断确认停在key_protect_started，engine_prepare_started未达，不能用此失败验证或授予本批Windows资格，不新增skip。失败保留，后续仍须新SHA完整Windows。
+
+1612份JS语法、全树Lint零错误/5项既有警告及CI/release治理通过；新增回归位于原统一unit及client覆盖率文件，没有依赖/锁文件或时间门限改动。这是已复现重复解密的产品修复，不能宣称消除Windows物理写盘长尾或五秒超时。下一步收齐原负载I/O和新SHA完整门禁，依据证据推进具体超时及最新安装/升级回滚/582迁移拒写和两端验收。完整容量、安装版在途HTTP/WS、额度预留后真实provider及私有自用交付保持未完成；新24h暂缓，旧冻结环境不动，模型0。
+
+## 2026-10-25：1f26027正式再次复现三个五秒请求超时，补齐时钟写入线程CPU观察
+
+1f2602772e0aefc43254b7978ce94d38bc166031普通40213983615已七项success，coverage121231028277仍在client覆盖率阶段，不能称完整通过。默认原生HTTP正常停机十项及原生发布内部中断二十项全部通过，旧解密在unit/coverage约2272/3271ms通过，全部新增安全阶段观察回归在Windows实际执行。普通基础覆盖率中的六次最终持久ACK为2331/2491、2126/2224、1946/2211ms；尚不覆盖该作业后续客户端覆盖率或正式结果。
+
+正式40213983525/source121231028104终态failure，egress成功、后续场景跳过：Chat long-persistent首轮request_failed5005ms/4次合成请求，Responses第二轮5002ms/8次，Claude首轮5003ms/4次，均在原client-context-target.test.js:2742等待fetch时超时。Responses首轮最终ACK2726ms成功不覆盖第二轮失败。旧DPAPI本次2705/552ms通过，不关闭ea183的10275ms失败；原30秒安装及首次ready失败继续保留。本次没有构建或启动最新安装链，也不重跑原失败作业。
+
+按固定owner阶段统计，Chat包含COMMIT最大849ms、时钟写入最大441ms、原生锚点flush最大222ms；Responses分别689/178/283ms，Claude749/205/224ms。统计涵盖该场景初始化、seed和终止前已观察的操作，不能把全场景总量冒充单个请求分解。记录支持串行持久等待累积，但尚不能归因某个驱动、Defender或具体物理设备；原认证、FULL/DELETE、精确ACK及每次预算预扣不变。
+
+本批只将既有COMMIT线程CPU观察扩展到同一worker的sqlite_clock_write边界，以区分该已实测数百毫秒阶段的计算与等待。测量只包围原statement.run，接收者、参数、返回值和原异常身份保持；只增加固定非负安全整数计数，解析器仍拒绝其他阶段携带CPU及部分/非法字段。新增成功与失败路径回归，实际内存SQLite事务/回滚及原生阶段解析继续通过，两文件18/18、零skip；没有生产代码、依赖、期限或认证变化。现有I/O工作流的路径触发覆盖此helper，提交后用独立runner继续原完整负载取证，不能用诊断通过替代主门禁。
+
+GitHub网页没有手动Run workflow入口，默认分支API也确认缺少该工作流文件；本机没有gh，因而未宣称手动诊断已启动。下一步核对新SHA实际诊断与完整Windows门禁，依据I/O/CPU证据修复具体阻塞，再推进最新安装升级回滚、582迁移拒写和两端验收。新24h按用户要求暂缓，旧冻结任务/数据库不动，模型调用0；全部剩余交付范围保持。
+
+## 2026-10-25：ea183普通完整通过，正式保留旧解密及原生首次ready超时，补充有界阶段证据
+
+ea183a8987862f8e86dcd50afea434c5166f6045普通Verify40203128680已八项全部success。默认原生worker/DPAPI/OS锚点的新增真实HTTP持久在途正常停机十项全部通过，覆盖五个发布状态各实际COMMIT/PENDING与持久ACK边界、原四秒自然退出及同目录精确重开；这是源码集成资格，不能当作最新安装版完整HTTP/WS矩阵。
+
+正式40203128822/source121198338093终态failure：native_protect完成22ms，legacy_unprotect在10275ms报ETIMEDOUT；另两个prepared原生COMMIT中断用例在首次ready等待分别5690.0928/6676.6957ms失败，lastFixture=native-opened、startup=ready耗时3417/3546ms，尚未发送advance或进入COMMIT。egress成功、后续context-recovery场景跳过，不授正式或安装资格。原安装两项30秒失败本次未复现：普通loading/reauthorization约1141/1389ms，正式约2476/2561ms；这些通过不能解释或关闭旧失败。不重跑原作业，不提高任何期限。
+
+本批仅给既有旧DPAPI互通测试增加固定stderr阶段观察：脚本启动、程序集、stdin、DPAPI、保护后往返、输出及脚本结束。移除固定写入后原SCRIPT逐字节相等；实际生产后端、最小环境、stdin传输、10秒期限、认证及失败不回退保持。异常只读取自有数据字段stderr，返回有限枚举，不输出原错误、参数、密钥或原文；恶意Proxy/getter、非法/重复/超长/截断阶段拒绝。实际PowerShell仅执行语法解析和合成程序集失败验证，无真实模型或本机DPAPI调用。原生发布夹具同时保留最多64条已验证固定开库阶段/单调耗时，失败时输出脱离内部状态的快照，用于区分各开库阶段及开库后的ready等待；原五秒ready和原中断动作不变。
+
+本机五份测试58项中51通过、7项既有平台skip、零失败；新旧解密观察五项及阶段快照测试均执行，原非原生二十项中断和五项真实HTTP正常停机继续通过。新增测试进入原统一unit发现，无依赖或锁文件变化。此批是失败定位证据，尚未修复实际间歇超时；下一步核对新SHA Windows阶段，按实证修复后再依完整门禁推进最新安装/升级回滚/582迁移拒写和两端验收。完整容量、安装版HTTP/WS、真实provider额度预留、私有交付及受控启用仍保留；新的24h按用户要求暂缓，旧冻结任务/库不动，模型调用0。
+
+## 2026-10-25：安装候选门禁保留新超时，接入真实HTTP持久在途正常停机用例及重开阶段回执
+
+17eff3035bb39042a2ec89c3dc1599c647c5e15e原普通40200031763八项、正式40200031743四项均success，普通十二次最终ACK1269–2208ms、276次COMMIT最大499ms；默认worker原生发布中断20/20也已逐项核验。但随后安装链40201850587/job121194588193在原完整候选门禁失败：loading原生不确定发布重开用例30001.8921ms、reauthorization原生恢复用例30010.2424ms均超出原30000ms整项界，内部阶段尚无证据。六次持久最终ACK1716–3000ms通过不覆盖这两个失败。后置独立开库诊断两次272/261ms成功，也不能解释或覆盖失败。构建、实际NSIS、582迁移拒写和两端矩阵全部未执行；不能把旧4ec安装资格授予本候选。
+
+同源码review Verify40201850547终态七success/一failure，unit3/job121194498929的非原生publication transport-finished强杀COMMIT夹具，在5267.5203ms的首次ready等待失败，lastFixture=fixture-prepared、startup=unobserved，尚未发送advance或进入中断动作。它使用显式合成key/文件SQLite，不能误称DPAPI开库或已经进入COMMIT的失败。全部原五秒/初始化/旧DPAPI/容量/日档失败继续保留，不重跑这些原作业、不提高任何门限。
+
+独立原生前缀40198124618/job121183301633已终态success，源码4d2f743干净，Node22.23.4、源码SHA256 a2fadcdfd48938a9fc200a44114ad38d17482c1b05ceb68a2152ee6ac565aaf8；13:34:39.268Z首条真实计时回执已核验，七次原节拍至1800000ms，两次开关库及同目录精确catalog/期限校验通过，最终真实elapsed1801590.5254ms。默认worker/DPAPI/OS锚点没有替代，但fullCapacityQualified/realtime24hPassed均false，旧日档失败根因仍未确定。用户随后明确“暂不启动新的24小时验收”；此要求仅暂缓这项验收，整体交付继续，不新建日档任务或重启旧任务。
+
+本批复用既有发布中断夹具新增真实回环HTTP正常停机路径。五个发布状态各增加文件SQLite的ACK前案例，以及两个边界的默认原生worker案例共十项；实际COMMIT边界仍须另一读事务加独立探针观察SQLITE_BUSY/PENDING及非空journal，原750ms观察/5秒ready/15秒整项保持。先触发实际HTTP写入，观察边界后正常关闭会话准入；ACK/COMMIT未释放时不得出现stopped或退出。释放后HTTP只能得到固定503/stopped，原advance结果必须因关闭而拒绝，且进程须在原4秒退出界内自然0、无signal；强杀清理不授成功。之后同目录重开逐字段等于真实已提交回执，revision仅+1，原expiry、原文/预算及FULL/DELETE/integrity断言保持。原二十项强杀/释放对照路径仍执行，新增模式不缩短或替换原测试。
+
+另在两项失败的原30秒测试中，仅增加固定开库/seed/存读/关闭/重开/授权/读取/清理阶段及单调耗时；不输出异常、记录、headers、key、原文或模型响应。使用既有有界进度模块及严格枚举解析，新增阶段往返/非法标签拒绝回归。未改原测试时间、平台条件、认证或持久语义；这些回执用于后续实际定位，尚未确认或修复这两项产品超时根因。
+
+五份真实文件本机69通过/3项既有Windows限定skip，含新五个实际HTTP文件SQLite案例及原二十项中断；新十项原生测试没有skip/注入后端或合成时钟，本机抽取首项明确停在native-opening失败、未进入COMMIT/停机，不授Windows资格。新原生矩阵仍须提交后Windows实际执行。1611份JS语法、全树Lint零错误/5项既有警告、修改文件格式和CI/release治理通过；开发期间新helper的AbortSignal Lint错误已改为显式globalThis，未当作产品根因。两份新增用例已实际确认进入统一unit发现及client完整覆盖率；没有依赖升级或锁文件变更，没有生产代码改动。
+
+下一步依据原30秒回执定位真实阻塞，继续五秒稳定性、原生正常HTTP在途矩阵，再依原门禁推进最新安装/升级回滚/582完整迁移拒写及两端实际重启。完整安装版HTTP/WS在途排空、固定容量、逐端额度核验及持久预留后的真实provider、私有自用安装交付和受控启用仍未完成；24h按用户决定暂缓但资格仍未完成，原冻结库/任务不动，模型0。
+
+## 2026-10-25：修复持久ACK完成后HTTP新空闲连接仍阻塞正常停机
+
+4d2f743完整普通40198124246八项及正式40198124307四项已success（n08/n09为121188209619/121188209646）。普通coverage121183300230十二次最终持久ACK1147–2462ms、276次COMMIT最大82ms。6106353普通40199114951七项success、coverage仍执行，正式40199114656/source仍执行；独立原生30分钟前缀40198124618仍在真实elapsed执行步骤，日志/首个计时回执尚未核验。全部历史五秒、初始化、DPAPI、容量及3b控制退出1失败继续保留；不重跑旧作业或重启原失败日档。
+
+推进既定持久在途排空时，新增真实回环HTTP与真实加密文件SQLite组合：实际会话触发持久save，SQL提交后仅挂起该次存储ACK，停止时同步关闭会话准入，必须等待ACK再关storage及清PID。旧路径确实等待完存储，但完成响应后新变为空闲的keep-alive连接仍占住server.close回调；在实际stopping-admission组合中原四秒退出界失败，记录post-storage=4006ms。前一无该计时断言的探针虽结束成功，耗时4033ms，不能据此授予原四秒退出资格。
+
+现由准入模块在停止状态且该连接全部已接纳响应finish/close后，通知HTTP server执行closeIdleConnections。Node自身决定哪些连接已经空闲；不直接end/destroy HTTP socket、不提前关闭共享连接上的其他响应或升级连接。主入口仅组合现有servers的关闭通知。正常运行不调用，重复finish/close只处理一次；无回调的旧组合兼容，非法回调提前拒绝，清理抛错原样传播而非吞掉或重试。恢复/升级/凭据/监听器/PID各门的原成功判定、认证和全部期限保持。
+
+新文件组合修复后约21–23ms完成，并证明ACK挂起时storage不关/PID不清/HTTP不返回；停止后的迟到完成只能返回固定closed而不能发布成功。实际提交记录revision=1、原expiresAt=86400100在相同物理文件重新开库后完整相等，FULL/DELETE及integrity_check保持。使用公开合成数据、显式合成会话时钟和进程内SQLite；不是默认worker/DPAPI/OS锚点或实际安装版资格。首次新夹具漏传beginAsync授权回调，已在进入HTTP之前被拒绝，补齐显式可信回调后完成上述复现；另一次临时计时字段漏赋产生NaN，补齐后实测4006ms，不拿诊断遗漏当产品原因。
+
+现有实际startProxyServers子进程另增加无后续请求的keep-alive收尾，原四秒关闭观察内自然退出0/PID消失；HTTP与升级管线案例仍完整返回已接纳正文后拒绝新请求，已升级双端连接与恢复门等待原断言保持。单元覆盖普通运行不关闭、多响应最后完成、重复事件、坏组合及关闭失败；八份实际存在文件共50/50通过、零skip，含实际TCP/子进程、PID、凭据、WebSocket及持久重开。1609份JS语法、全树Lint零错误/5项既有警告、修改文件格式及CI/release治理通过，新增用例进入原统一unit及client覆盖率文件。
+
+本批修复已复现的正常HTTP停机尾部阻塞，不宣称解决五秒请求或完整安装版在途持久矩阵。下一步新SHA完整Windows门禁及最新实际安装升级/回滚/582迁移拒写、两端重启；原生前缀结果仍须独立收齐。完整固定容量、合格真实24小时/到期重开、逐端额度核对和持久预留后真实provider、私有自用安装交付和受控启用仍未完成；原失败日档不重启、不接触冻结库，模型0。
+
+## 2026-10-25：核对PowerShell实际版本并保留固定控制失败阶段
+
+4d2f743普通40198124246七项success、coverage121183300230仍执行；正式40198124307的egress成功、source121183301451仍执行。独立30分钟原生诊断40198124618/121183301633的依赖及原生准备成功，真实elapsed执行步骤仍in_progress；日志尚不可取，首个native_prefix_started未核验，不能称计时确认或通过。原失败日档保持终态，不重启、不接触冻结库；全部五秒、初始化、旧DPAPI及其他失败记录继续保留。
+
+3b427d7正式固定控制/EOF用例退出1的内部原因仍未确认。实际失败runner镜像20261021.278.1列PowerShell7.6.7，本机和用户Windows小探针是7.6.8。已从官方发布并排准备7.6.7，仅对单次命令设置PATH，核对70628335字节及官方SHA256 50dde99bb066adacbb9a748182d09eb9beff25119dc3b12e85c84b6b6b1c5da9；不覆盖既有工具或依赖。两个本机版本同一原用例均通过，Windows7.6.8固定十项最小函数探针也通过，因此不能把版本差异或7.6.8移除更新通知当作根因，不升级CI或关闭其机制来制造通过。
+
+该测试此前只断言子进程status=0，失败没有内部阶段。本批仅给自有PowerShell测试脚本加固定import/valid/invalid_0…7/disposed阶段，失败固定写入一行并exit1；Node只有全行严格匹配这些枚举才加入断言信息，任意其他stderr不进入状态断言。合法输入后的stdout/stderr仍必须完全空，全部八种非法输入和已关闭reader仍必须原样拒绝；原5000ms、4096字节及生产控制600000ms/finish换行后严格EOF均不变。没有生产存储、认证、锚点、SQL或期限修改，不宣称解决产品根因。
+
+PowerShell7.6.7完整coverage-io-capture文件26/26通过、零skip，实际stdin/EOF及原工作流失败退出测试均执行；另以公开合成错误分别注入五个阶段，均退出1且只输出对应固定阶段，原异常不输出。临时验证脚本最初模板截取偏一导致JS SyntaxError，修正截取长度后上述五项验证完成；此工具脚本错误未进入PowerShell或产品，也不充当原CI根因。该文件Lint、格式及CI/release治理通过，原统一CI已包含本用例；本机结果仍不授Windows稳定性、安装或真实24小时资格。
+
+下一步收齐原生前缀及当前完整普通/正式结果；若门禁通过，推进最新安装升级回滚/582完整迁移与拒写、固定两端重启验收。五秒持久稳定性、完整在途排空、全部固定容量及合格真实24小时/到期重开、逐端安全额度核对和预留后真实provider、自用私有安装交付与受控启用仍全部未完成，模型0。
+
+## 2026-10-25：增加独立Windows真实30分钟原画像前缀诊断，不重启失败日档
+
+3b427d7普通40197053270七项success、coverage仍执行，正式40197053155/source121180059959终态失败于coverage-io-capture.test.js的PowerShell固定控制/EOF回归（退出1而预期0），场景跳过，尚未确认其内部原因；不把它归因于产品存储或日志竞态修复。c646普通40196783182 coverage121179217521另保留Responses第二轮request_failed5007ms/8次合成请求，正式40196783294/source已success、n08/n09为121182294181/121182294195仍执行。原日志ENOENT、旧DPAPI及全部持久/初始化/容量失败均保留，不重跑或触发安装。
+
+为定位原日档约30分钟capacity失败，新增独立diagnose-context-recovery-native-prefix入口及一次性Windows runner工作流。入口只能无参数运行，在实际TEMP的物理路径下创建全新合成数据库；不连接用户Windows主机，不访问原冻结树、旧进程/任务、数据库、锚点或凭据。默认openContextRecoveryStorage执行真实worker/DPAPI/OS锚点，使用原createCapacityRealtimeClock真实elapsed等待及原留存见证。源码/Node/原生助手身份在各开关库边界复核，存储导出与加载身份也须匹配当前checkout；新增脚本及模块已纳入源身份哈希。
+
+原day-small画像与共用执行序列不改：1根、288轮、每轮300000ms、1024字节输出、24轮重开及24次恢复这些冻结参数均逐项核对。诊断只执行原前七轮advance(0…1800000)，在下一次advance(2100000)前明确结束前缀；仅当原执行器返回自己绑定的精确advance/序号23/计划2100000失败证明、没有任何先前或清理失败、开关各1次、七个tick且真实elapsed至少1800000时，才接受这个预定边界。任意提前返回/错误阶段或序号/丢失证明/时钟失败都拒绝，且失败后即使clock.inspect再失败也保留原操作阶段。没有实际等待35分钟或用合成时钟冒充生产elapsed。
+
+原清理完成后再用第二个默认worker同目录重开，完整catalog的scope/createdAt/expiresAt/revision必须逐项原样相等，留存见证再核验；两次实际关闭都必须成功。安全输出只有固定阶段、数值和源身份，原异常/原文/key/模型响应不进入日志。无完整容量report/qualified字段，所有realtime24hStarted/realtime24hPassed/fullCapacityQualified永久false，没有到期重开资格，也不代替正式24小时。新45分钟job外层预算只容纳30分钟诊断及准备，任何原HTTP/存储/key/ACL/锚点期限不变，不自动重试或上传私有材料。
+
+新模块5项本机回归含固定画像/边界、空/非法/可执行观察器、坏时钟/加载身份、缺原生助手、首尾开库/清理失败、版本或期限替代，以及实际共用执行器+真实文件SQLite+合成时间的组合。六文件共50/50通过、零skip；这些本机模拟不授Windows原生或真实30分钟资格。新增装载身份门禁最初捕获本机组合fixture遗漏字段，已补齐显式模拟身份，保留该开发失败，不当作产品根因。1609份JS语法、全树Lint零错误/5项既有警告、修改文件格式与CI/release治理通过；新测试已实际确认进入统一CI发现。工作流仅新诊断相关变更自动派发一次，锁文件安装、原生准备及合同测试逐步检查退出状态；尚须核对实际native_prefix_started回执，不能仅凭job在运行宣布计时已启动。
+
+后续优先收齐当前原门禁，排查PowerShell控制回归与五秒持久等待，再推进最新安装升级回滚/旧布局拒写、两端实际重启和完整持久在途排空。固定容量、合格真实24小时/到期重开、安全逐端额度预留后的真实provider、自用私有交付与受控启用仍全部在范围内。原30分钟失败日档不重启、不改写；模型0。
+
+## 2026-10-25：修复路由回归等待异步日志首次创建时的ENOENT竞态
+
+c6461560bc94d3acfa3a9a86584fc5fa8ef98ed7普通40196783182及正式40196783294仍执行，未重跑既有失败。133原负载I/O40195596710已终态success；该源码完整普通/三组时序/两I/O成功仍不能覆盖正式40195596719因日志首次创建ENOENT失败，或69普通Chat5009/Responses5004ms和全部历史失败。
+
+正式失败精确位于test/claude-filtered-route.test.js原2秒日志轮询的第一次readFileSync。异步writer还没有首次创建proxy-events.jsonl时，该读取立即抛ENOENT，尚未进入原轮询等待。本批只在测试辅助读取中把真实自有ENOENT视为尚无内容，继续原10ms间隔/2000ms绝对截止；出现文件后仍逐行原JSON.parse、十条终态、十个唯一reqId、原200/502分布、无私有内容等全部断言，不缓存先前内容，不重启或重发HTTP/模型请求。
+
+读取失败仅依据非Proxy异常自身的code数据描述符精确判断；EACCES/EIO/EISDIR/参数错误、继承或getter code、任意其他异常均按原身份立即抛出，不读取外部异常getter。空文件保持空文本，损坏JSON仍由原解析立即失败；永久缺失仍在原2秒截止后因终态数量不足失败。新回归在真实临时目录先读缺失文件、再实际追加并读取完整记录、再验证空文件和坏JSON，修复前明确ENOENT红；另覆盖各错误与可执行异常的拒绝，修复后两项通过且零skip。原完整路由脚本与新回归在测试入口共3项通过；另按统一CI直接node脚本方式执行完整路由也成功，原十次真实回环合成HTTP案例及断言全部执行。
+
+1606份JS语法、全树Lint零错误/5项既有警告、修改文件格式及CI/release治理通过；辅助CJS也已被实际require和Lint验证。新回归已实际确认进入统一CI发现。没有产品或依赖/锁文件变更，没有提高等待界、吞掉存储失败、加skip或降低覆盖率/正确性门禁；此修复不授五秒持久恢复、DPAPI、安装、真实模型或24小时资格。
+
+下一步收齐新SHA完整普通与正式Windows结果，依据实际失败继续五秒/原生互通排查，再依原门禁推进最新安装升级回滚/旧布局拒写及两端实际重启。完整持久在途排空、固定容量、合格真实24小时/到期重开、逐端安全额度预留后的真实provider、自用私有交付与受控启用均保留。原30分钟失败日档未重启、未开冻结数据库或读取私有材料，模型0。
+
+## 2026-10-25：实际升级连接复现正常停机阻塞，接入受控升级连接排空
+
+133905969891947ee3301a6c100dfd3fc981dec9普通40195596714已八项success，coverage121175636575十二次最终持久ACK1177–2133ms；三组40195596674各原50项success，18次ACK778–1359ms，独立I/O40195596692成功，原负载I/O40195596710仍执行。但正式40195596719/source121175636357因test/claude-filtered-route.test.js在首次异步日志文件尚未出现时readFileSync ENOENT失败，后续场景跳过。现有2秒轮询没有包含文件尚不存在的阶段；此为具体门禁阻塞，下一批须在不改2秒界及终态断言下修复，不能用主CI绿色覆盖或重跑。
+
+69ff782正式40194997941四项success（n08/n09为121176869785/121176869770），但普通40194997879 coverage121173819409保留Chat首轮最终publication_wait_failed5009ms、Responses首轮request_failed5004ms/4次合成请求失败；f59普通40194260042八项、正式40194260057四项（n08/n09为121176297798/121176297816）均success。全部旧初始化/持久HTTP/DPAPI/容量失败仍保留，未启动当前安装候选。
+
+原停止组合撤销恢复入口并等待HTTP listeners，但没有显式终止已经接纳、脱离HTTP解析器的升级连接。独立子进程通过实际startProxyServers、真实TCP升级与实际WebSocketLifecycle保持连接；触发原停止后，在原4秒观察界内没有收到连接关闭，修正清理后的探针明确AbortError失败。不是只从源码推断。初版探针失败清理因自持恢复门闩和半关闭测试端未释放而挂住，已仅对本机本测试创建的子进程做失败清理，并完善探针：通过路径必须先取得自然退出0才进入清理钩子，强制清理绝不授予成功。旧日档/用户其他进程未触碰。
+
+stopping-admission现在只持有已接纳升级socket的关闭观察及固定清理状态，不保存req/head/headers/token或原文；正常关闭立即移除。shutdownUpgrades作为独立被核验的资源门接入原createProxyShutdown，主入口只组合，恢复立即撤销、凭据writer停止、监听器排空与PID清理原顺序/判定保留。升级关闭和其他资源可独立开始，但任一失败均不能返回成功；收到真实close之前不能把调用destroySoon当作完成。已有待发数据使用socket原destroySoon排空；同一连接上仍有先前接纳HTTP响应时，等待所有响应finish/close再关闭升级连接，原停止后新HTTP/upgrade拒绝逻辑不变。
+
+修复后的实际子进程探针接入独立真实TCP上游，用实际WebSocketLifecycle拥有两端，确认客户端和上游均关闭；恢复门闩仍未ACK时进程保持存活，释放后自然退出0、PID记录消失，无生产强杀。相同原四秒关闭界与原15秒测试外层保持。同步handler失败保留原异常身份并移除观察；无连接/已关闭/自然关闭、重复/重入调用、多个共享HTTP响应、关闭调用抛错（包括同步close后再抛错）、失败/非法/可执行升级回执都已覆盖。新增边界测试捕获并修正了清理回调在无HTTP状态时的undefined比较问题；未当作旧产品根因。
+
+三个专项文件24/24通过；扩大十份实际文件62/62通过、零skip，含真实TCP/子进程、WebSocket生命周期、凭据/PID及监听器组合。1605份JS语法、全树Lint零错误/5项既有警告、修改文件格式及CI/release治理通过。测试位于原统一CI/client覆盖率文件，无依赖升级、新skip、阈值或任何HTTP5000/native控制12000/停止HTTP3000/进程退出4000等期限修改。
+
+本批修复正常停止的升级传输阻塞；恢复排空门在该进程探针中显式受控，尚不是安装版实际worker持久发布在途矩阵，也不授予完整gracefulDrain、两端重启或真实24小时资格。必须新SHA Windows及实际安装组合。下一步修正已复现日志首次创建竞态、继续五秒/旧DPAPI阻塞，再依原完整门禁推进最新安装/迁移回滚拒写、两端实际重启；完整在途持久发布、固定容量、真实24小时/到期重开、安全额度预留后的真实provider、私有自用交付与受控启用全部在范围。原已失败日档未重启、未开旧库，模型0。
+
+## 2026-10-25：消除空闲维护无变更时的SQLite时钟单独写盘，删除仍同事务持久化
+
+69ff782普通40194997879七项success、coverage及正式40194997941/source仍执行；f59c0e4普通40194260042已八项success，正式40194260057/source仍执行。6c普通完整/三组时序/两I/O通过，但正式legacy_unprotect ETIMEDOUT10645ms及4d正式Chat最终ACK5004/Responses请求5002ms继续保留，不重跑，不触发安装。本批检查固定PowerShell旧后端确认原最小环境、stdin-only及10秒界保持，尚无证据支持改变其安全边界或宣布超时根因修复。
+
+持久路径实测发现catalog与默认每分钟idle sweep即使没有删除任何记录，仍为推进时钟UPDATE头部并产生DELETE journal。两个真实文件SQLite回归修改前均因数据库字节被改写而失败。现将这两项维护接入原已启用的独立锚点时钟模式：原BEGIN IMMEDIATE、完整认证/扫描及清理、提交后独立snapshot、原生OS锚点CAS/flush/精确ACK仍全部执行；total_changes证明没有数据变化时，时钟由同一次原锚点持久化，SQL字节/头部不变、不生成clock-only journal。旧非锚定模式仍按原SQL时钟持久方式执行。
+
+只要存在到期删除或其他SQL变化，时钟仍在同一FULL/DELETE事务写入，COMMIT失败逐字节回滚根、blob和头部，锚点不前进；真实原expiry到点后删除、空目录重开及secure_delete保持。没有暂停/降低idle频率、移走数据库/日志、合并预扣/结算/发布ACK或改变任一5000/10000/30000ms等期限。新回归覆盖空库、空原文/Unicode/较大合成原文、旧模式对照、到期变更与COMMIT失败、锚点写前失败/写后丢ACK、坏/倒退/极端时钟、过期及未过期坏根/坏blob、运行中旧有效头部重放。原始认证和独立快照不会借用前一事务证明。
+
+实际生产owner配合原idle controller，使用显式合成锚点后端和注入时钟，连续驱动30次原60000ms间隔的tick，确认每次独立锚点写入及精确水位、SQL字节不变；下一锚点失败使owner关闭、定时器仅取消一次，不继续执行或ACK，随后正常重开仍按原规则验证。此为实际模块/磁盘组合的合成时间回归，不授Windows DPAPI、真实原生flush或真实经过30分钟/24小时资格。当前及be7已提交产品源码的独立SQLite前七轮加入30次维护清扫仍未复现旧日档30分钟失败；交接提交没有留存见证模块，诊断显式复用当前见证，不能冒充原dirty冻结源码重现。旧日档具体内部根因仍未知。
+
+12份逐一核实存在的测试文件223项中221通过、零失败、2项原Windows CurrentUser DPAPI限定skip保留；专项两文件38项通过，两个新字节不变用例先红后绿。1605份JS语法、全树Lint零错误/5项既有警告、修改文件格式及CI/release治理通过。新回归在原统一CI/client覆盖率文件中，无依赖/锁文件升级，无新skip或门限变更。实际减少确定存在的维护日志写盘，尚不能据此解释或关闭Windows物理提交尾延迟，必须核对新SHA原负载/完整门禁。
+
+下一步继续核对当前完整Windows及五秒稳定性，再推进最新安装升级回滚/旧布局拒写和两端实际重启；完整在途排空、固定容量、合格真实24小时及到期重开、逐端额度安全预留后的真实provider、自用私有交付及受控启用全部保留。原已失败日档未执行/重启/改写，也未打开冻结数据库或读取密钥/锚点；模型0。
+
+## 2026-10-25：为容量失败保留固定操作阶段与清理证据；6c完整Verify通过而正式仍失败
+
+6c2ba7b198589ff8ffc05327359eb4276fb4f837完整普通40193700610已八项success，coverage121169903580的12次最终持久ACK1251–2508ms；三组40193700606各原50项success、18次ACK821–1337ms，原负载I/O40193700608与独立I/O40193700623也success。但正式40193700604/source121169903193在原legacy DPAPI互通测试约10663ms报context_recovery_key_unavailable（native_protect完成16ms，legacy_unprotect明确ETIMEDOUT10645ms），egress成功、场景跳过，不授正式/安装资格。其完整source中的六次客户端最终ACK1934、2414、1917、3227、2796、3952ms均在五秒内，也不能覆盖互通失败。
+
+父4d600fd普通40193434105同样八项success，但正式40193434321/source121169111512终态失败：Chat首轮headers/body4831ms、最终publication_wait_failed5004ms；Responses首轮request_failed5002ms、2次合成请求，后续场景跳过。Chat同请求发布sending的COMMIT784ms，最终保存COMMIT314ms；Responses预算COMMIT1978ms/线程CPU零，LIST结算551ms、第二次预扣621ms，仍有多笔串行物理持久等待。不能把6c普通或独立时序通过当作全部历史失败已消失，不重跑，不触发安装。f59c0e4普通40194260042的七项success/coverage及正式40194260057/source仍在执行。
+
+原日档30分钟失败的旧回执只有capacity和开/关计数，没有具体失败命令。现容量驱动在原固定序列执行中仅保留首个已观察失败的操作名、固定子阶段、命令序号及计划offset；关闭时另保留首个清理失败。这些元数据由独立严格模块验证并以WeakMap绑定自有结果或固定错误，只有原对象可取，JSON仿造、外部异常、Proxy/getter/继承/隐藏/未知字段及非法/越界数字均不能生成回执。未读取或保存原异常的message/stack/cause，不保留请求、原文、模型响应、scope、路径或密钥；成功报告字段不变。
+
+子阶段区分storage-open/admission/initialize/configure、advance/begin/reply/complete/abort、runtime-shutdown/storage-close。日档组合在失败时输出这些固定诊断，也能保留返回不合格报告后的既有证明；原generic失败错误、异常拒绝、关闭顺序、无重试、画像/读页/预扣与所有原期限保持。诊断身份把新模块纳入已提交通配符及未提交候选的显式哈希列表，不能遗漏新依赖。本批没有运行日档入口、重开旧库、修改冻结任务/源码或追加旧回执；不会事后给旧失败补造原因。
+
+本机七个实际文件59/59通过、零skip，含真实文件SQLite、原时钟/留存与固定画像、开库诊断及明确的阶段模拟；新测试已核实进入统一CI发现。专项捕获并修复了新增诊断中“runtime shutdown失败但storage close成功仍被标成第二失败”的问题：回归先红，修复后单失败无伪cleanup、双失败分别记录，主操作与后续清理错误不互相覆盖，私有异常getter不被执行。1605份JS语法、全树Lint零错误/5项既有警告、修改文件格式、CI/release治理通过。开发时修改脚本的旧格式匹配断言及Lint初始无效赋值均已纠正，不作为产品根因或最终验证；失败日志保留。
+
+本批提升实际失败的可定位性，未证明修复旧日档或Windows物理等待根因。下一步继续核对当前正式结果并定位原五秒/原生互通阻塞，以独立局部环境验证具体失败路径，不自动重启已失败日档。最新实际安装升级回滚/旧布局拒写、两端实际重启、完整在途排空、固定容量及真实24小时/到期后重开、逐端额度安全预留后的真实provider、私有自用交付与受控启用均在完整范围。模型0。
+
+## 2026-10-25：核实原日档已在30分钟失败；6c三组原Windows时序通过
+
+纠正此前只有启动回执和名义24小时截止、尚未核实终态的状态：2026-10-25T12:36:16Z经用户原SSH共享连接只读查询同名计划任务，State=Ready、LastTaskResult=1、LastRunTime=2026-10-24T10:24:42Z。其安全progress在2026-10-24T10:54:50.667Z已停止写入，末个tick为10:54:50.659Z、scheduledMs=1800000、elapsedMs=1800241.744，随后明确native_day_failed/stage=capacity/storeOpens=1/storeCloses=0。没有native_day_completed、root_expiry_elapsed或expired_reopen_passed；真实连续24小时和到期后双重开库均未通过，不能继续把它当作正在等待完成的日档。
+
+安全回执首条身份与原启动一致：be7bacee、dirty=true、550输入的sourceSha256=8167ed7afe40bb7df03fe80bd67d95c827a27c63a2d75310834d272f1047c0cf，Node22.22.3，原生与Node哈希均匹配已记启动值。progress.jsonl为3865字节、SHA256=215ff5f35981a9e0474c2d5d90c9a113bebdef5e783486dac9ed4882fa11076c。只读计划任务元数据、有限安全进度/身份及验收回执文件元数据；没有执行冻结入口、开库、读取密钥/锚点/原文、修改冻结源码或任务、停止/重启进程，也未重启其他暂停长测。Mac保存的terminal安全数值回执仅作本机审计，没有上传私有日志、数据库或凭据。
+
+旧失败回执没有保留具体命令或内部原因，不能从30分钟时间点推断TTL、DPAPI、时钟或SQLite根因。独立Mac实际文件SQLite按固定day-small画像执行到offset1800000的前七轮，采用显式合成时钟及原留存见证，随后在下一advance主动停止：684次now、开/关各1次，正常经过观察/关闭见证，未复现该位置失败。此为局部定位，未运行原生worker/DPAPI/OS锚点或真实经过30分钟，更不授24小时资格；32768采样界在此诊断未触及。必须继续完善能保留固定操作阶段的安全诊断并定位真实失败，不能把局部未复现或仅时间已过当作日档成功。首次只读状态命令的本机stderr解码异常已用明确编码修正，发生在诊断输出读取层，不是产品根因；没有因此重启任务。
+
+6c2ba7b198589ff8ffc05327359eb4276fb4f837三组原时序40193700606终态success，各50项/零skip；jobs121169903384/121169903556/121169903709的18次最终持久ACK为821–1337ms，各138次SQL COMMIT，最大44/43/73ms，36次观察COMMIT各均0ms。独立I/O40193700623也success。普通40193700610七项success、coverage仍执行；正式40193700604/source及原负载I/O40193700608仍执行。父4d600fd普通40193434105也是七项success/coverage仍执行，正式40193434321/source仍执行。不重跑、不提前启动安装或授整体五秒稳定性；4a5049/5010、401第三组5015/5001及全部历史初始化/持久/容量失败仍保留。
+
+本批记录实际终态并更正交付状态，没有修改产品、原测试门禁或期限。下一步以当前原完整CI/正式Windows结果继续五秒排查，保留旧日档失败且不自动重启；最新实际安装升级回滚、旧布局拒写、两端真实重启、完整在途排空、固定容量、合格的真实24小时/到期重开、安全逐端额度预留后的真实provider、自用私有交付及受控启用仍在完整目标内。模型0。
+
+## 2026-10-25：去除新封装引用状态在同事务配额检查中的重复解密
+
+4d600fd32a0210b11230d71777c2422bbd38a8c1已推送，普通40193434105与正式40193434321仍执行，未重跑或触发安装；其父4a16e54普通七项success、coverage保留Responses5049/Claude5010ms失败，正式四项success不能覆盖。本批继续产品持久路径，未把两端重启验收代码当作实际Windows资格。
+
+真实SQLite回归复现：save-reference-state刚封装并写入的新v3引用状态，在当前事务的liveUsage中又被解密一次。空源、空原文、Unicode/NUL和64KiB原文四例修改前均因1不等于0失败。现仅对内部刚封装的v3引用状态，在SQL写入之前固定完整密文与AAD的SHA-256见证；写入后的实际行精确匹配才在这一同步回调内复用内部元数据。其他行或任何密文/AAD替换仍重新解密；旧布局/不透明状态路径不变，不引入跨请求/事务缓存或外部证明参数。
+
+usageVersion仍对复用值执行原referenceState解析与实际SQL blob关联清单检查，然后执行原来源数、密文字节及总容量配额。未以已知版本跳过写入后关联检查。新回归在实际INSERT之后改变密文、revision/created_at/expires_at/scope，以及删除blob/改变blob_id/创建时间/到期时间/密文长度，全部在原COMMIT前失败并逐字节回滚根、头部与blob；下一合法写入正常。有效新nonce替换走重新认证，第五个live根仍拒绝且不残留载荷。后续独立snapshot重新解密，并持续拒绝提交后的坏密文，没有借用本次证明。
+
+新增16项通过；完整blob文件79项中78通过，1项既有Mac默认原生worker首次开库context_recovery_storage_unavailable失败保留，未进入本修复路径；后加第五根配额回归在专项16项中独立通过。经逐一确认文件存在的九个关联文件248/248通过、零skip，涵盖锚点/格式/容量短测、根状态/读取、结算与发布。1603份JS语法、全树Lint零错误/5项既有警告、修改文件格式与CI/release治理通过。新增用例位于原统一CI/client覆盖率文件，无依赖或锁文件升级，无新skip/基线或期限修改。
+
+本批减少确定存在的元数据解密/复制，尚不证明解决Windows FULL/DELETE COMMIT及OS锚点flush串行等待；原事务、独立提交后快照、最大预扣与精确ACK、secure_delete、原绝对期限不变。仍须新SHA完整Windows与原负载时序结果，五秒稳定性未合格。最新安装升级回滚/旧布局拒写、完整在途排空、两端实际重启、容量及24小时最终报告/到期重开、安全逐端额度预留后的真实provider、私有自用安装交付与受控启用均未缩减。冻结长测未访问或重启，模型0。
+
+## 2026-10-25：接入Claude进程重启与会话恢复验收，四组回执要求两端重启
+
+4a16e54c0c8d2378e28a91cf58189783c5d0278c普通40190912868最终七项success，coverage121161534918保留Responses首轮5049ms、Claude首轮5010ms失败，各4次合成请求；正式40190912848四项success（n08/n09为121165945350/121165945424）不能覆盖普通失败，未启动当前安装候选。401752c正式40189988519/source121158725485另在Claude第二轮request_failed5011ms、6次合成请求失败，场景跳过；三组时序第三组的5015/5001ms及全部更早失败继续保留，不重跑、不改期限。本批不改产品持久路径，独立补齐既定客户端重启验收实现。
+
+Claude安装版默认/增强两组现在都在隔离home内开启原生会话落盘，在原三次压缩完成后关闭第一棵受控进程树，取得原terminal/treeStopped回执后才启动第二进程，以首进程init/result实际报告的一致UUID恢复。两进程都必须报告同一合法session_id，并各有自己的init；没有接受名称、文件路径、外部指定ID或自动采用最近会话。原stream-json输入的session_id空字符串保持，恢复选择仅通过受限--resume参数，没有重新注入历史/原文或重跑原始工具。原八次默认模型请求、三次压缩、最终精确回答、增强模式精确私有读取/独立公开生成、入口认证和独立运行观察全部保留；不新增模型回合或自动重试。
+
+原单次启动与Codex双进程能力不变。Claude使用独立的最多两进程能力：首份授权仍为v1/client-launch.json，第二份为只写一次的v2/client-resume.json，绑定首份字节哈希。只允许在原参数尾部增加--resume和合法UUID，其余参数、环境/home/token、cwd、安装manifest/二进制/launcher均必须一致。首份不能预选/继续/分叉旧会话或禁用持久化；提前/第三次启动、首树未退出、已有第二授权、首份变更、链嵌套和任何身份替代都拒绝。Node桥独立验证完整链，PowerShell先检查host/owned-root/physical路径，再复核前置授权哈希和固定文件名；仍使用原Job/WFP、Assign-before-grant及20秒关闭界。
+
+授权读取改用固定最大65537字节的fd缓冲，检查打开前后与路径身份、大小、链接数、mtime/ctime及实际内容哈希；超过原64KiB界、增长/替换、硬链接、非法UTF-8/BOM、重复或非规范JSON均拒绝，不扫描其他会话目录。Claude options在访问字段前拒绝Proxy/自定义原型、继承/getter/隐藏/未知字段和非法opt-in。首进程EOF的半帧不能带入第二进程，原2MiB总输出界跨两进程累计，不能在重启时重置；会话UUID、原文、路径、token或原始输出不进入公开回执/日志。
+
+安装组合同时要求Claude协议v2、恢复身份和两次进程树退出证明，四组安装回执升级v3，Codex/Claude的restartRetention都必须true；v1/v2旧回执、缺少任一客户端证明、错误类型或重复/越界JSON不能获得新资格。原单次Claude协议仍支持原不落盘模式。新字段描述的是实际执行后才能返回的证据要求，当前尚未执行新SHA固定0.160.1/2.1.292 Windows CLI安装验收，不能据此称两端重启已通过；真实provider与真实24小时资格仍false。
+
+16份实际测试文件184/184本机通过、零skip，含真实PowerShell解析与辅助逻辑；之后保留原输入帧的Claude39项再次通过。1603份JS语法、全树Lint零错误/5项既有警告、修改文件格式及CI/release治理通过，无依赖/锁文件升级。测试为明确的协议/进程模拟与本机文件/管道验证，仍须完整Windows原门禁及实际安装、两端恢复结果。开发中的模拟选项捕获与组合器旧引用问题已由本机回归捕获修正，未当成原生产品根因。所有原五秒HTTP、客户端阶段、存储/原生/Job期限不变，日常配置、系统代理和信任证书未改。
+
+整体仍未完成：五秒持久写入稳定性、最新安装升级回滚/旧布局拒写、完整在途排空及两端实际重启证明、容量长测、真实24小时最终报告/到期重开、逐端额度安全预留后的真实provider、自用私有安装交付与受控启用均在范围内。冻结长测未访问或重启，模型0；下一批继续处理预算/结算/发布的实际持久等待。
+
+接口依据：[Claude CLI恢复与持久化参数](https://code.claude.com/docs/en/cli-reference)、[官方session_id及跨进程恢复说明](https://code.claude.com/docs/en/agent-sdk/sessions)。固定Windows二进制仍须原哈希/版本与实际运行验证，不用最新文档或本机模拟替代。
+
+## 2026-10-25：接入Codex真实进程重启验收代码，保留401第三组时序失败
+
+2c9ce7a完整普通40189080136八项、正式40189080071四项（n08/n09为121160194420/121160194533）、原负载I/O40189080196及独立I/O40189080141均已success；这些只授该源码范围，不覆盖232/d398历史失败。401752c普通40189988534也已八项success，正式40189988519/source仍执行。但其三runner40189988478第三组121158725729 failure：Chat首轮request_failed5015ms、Claude首轮5001ms，各4次合成请求；预算COMMIT分别1213/1692ms，READ结算COMMIT667/357ms，发现扫描COMMIT0ms。其余两组通过不覆盖这一组，不重跑，不启动当前安装候选，也不授五秒稳定性。
+
+独立推进既定客户端重启留存缺口，未修改当前失败负载。Codex安装版原默认/增强两组各仍完成一次原始工具、三次原生压缩、原最终精确回答及私有恢复/独立公开生成校验；现在使用ephemeral:false，在第三次压缩完成后关闭第一个受控app-server并取得terminal/treeStopped精确回执，再启动独立的新进程，仅以同一threadId调用thread/resume，从隔离CODEX_HOME落盘状态继续最终回合。没有向resume提供history、原文或rollout路径，也不重新调用原始工具、增加模型回合或自动重试。API依据固定0.160.1官方ThreadResumeParams；本机现有0.164 alpha不代替固定Windows二进制资格，实际仍由原固定包身份/哈希与安装验收证明。
+
+原createInstalledClientSpawn仍严格单次；新增只允许Codex的独立双进程能力，必须先确认首树已退出，最多两次。第二次只能重用原64KiB以内不可变启动授权，参数、环境/home/token、cwd、安装manifest/二进制/launcher及spec字节哈希逐项重新验证，拒绝提前、并发或第三次启动；首退出失败、任一身份改变或尝试违规都不派发第二进程，也不自动恢复重试。每次仍使用原PowerShell Job/WFP/Assign-before-grant桥和原20秒关闭界，未改原进程处置或放宽网络。spec复核复用原有界fd哈希器，不新增无界文件读取；原单次入口提前执行其原64KiB授权界。
+
+安装组合要求Codex协议v2及clientRestarted/persistedThreadResumed、两次启动和最终树退出证明，缺失任一项均拒绝。四组安装回执升级schemaVersion2，逐组增加restartRetention：Codex必须true、Claude必须false；JS与实际PowerShell解析器拒绝旧版、缺字段、类型替代、错误客户端声明及重复/越界JSON。Claude仍保留原no-session-persistence，本轮不授其重启留存；真实provider/24小时资格仍false。原单次Codex协议schema1兼容，回执只记录有界事实，不含线程ID、路径、token、原文或RPC响应。
+
+本机16份真实文件170通过、零skip；之后补充最终树/字段类型/同长度授权篡改及大授权边界，最终相关五文件48/48通过、零skip，含实际PowerShell解析与桥辅助逻辑。最初调用因pwsh未在PATH得到3项ENOENT，已复用本机既有7.6.8运行时仅设置该次测试PATH后验证，未安装/升级依赖或改变测试；原失败未当成产品根因。1603份JS语法、全树Lint零错误/5项既有警告、修改文件格式及CI/release治理通过。用例位于原统一CI发现文件；这些本机协议传输为显式模拟，不授实际Windows CLI/安装/客户端重启资格，必须后续全门禁通过后的固定版本实际安装验收。
+
+本批是验收实现，日常Codex/Claude配置、系统代理、证书信任和真实模型凭据未改，模型0。完整剩余范围仍包括五秒写入稳定性、最新安装升级回滚/旧布局拒写、完整在途排空、Claude重启及两端实际重启证明、容量长测、真实24小时最终报告/到期重开、逐端额度持久预留后的provider与受控自用交付；24小时名义截止已过不等于验收通过，冻结长测未访问或重启。
+
+固定协议来源：https://github.com/openai/codex/blob/rust-v0.160.1/codex-rs/app-server-protocol/schema/json/v2/ThreadResumeParams.json
+
+## 2026-10-25：消除同事务READ结算的第二次原文解密，独立快照认证保持
+
+2c9ce7a101a8ca0aa5bf22ac904f3b74312163fb三runner40189080083均已success，各原50项通过；其中121156018117六次最终ACK1064–1215ms，36次发现/读取观察COMMIT均0ms。普通40189080136观察时七项success、coverage仍执行，正式40189080071/source及原负载I/O40189080196仍执行，独立I/O40189080141已success。原作业继续，不重跑、不提前授完整稳定性，不触发安装；232/d398的正式5002/5001ms与d398首次ready失败均保留。
+
+沿必须持久化的READ结算继续检查，真实SQLite回归复现同一不可变blob在构建页面时解密一次，随后保存coveredThrough/readComplete时又解密一次；修复前实测2不等于1。现由blob模块内部同步组合读取、结算与引用保存，只在这一次SQL锁定事务内保留所选已认证原文及密文/AAD见证。保存进度仍重新查询实际blob，要求完整密文和认证上下文SHA-256见证精确匹配，才复用本次原文做原摘要/UTF-8前缀校验；更换密文、scope/blob_id、created_at或expires_at都拒绝。见证和原文不返回、不进入请求/回执/日志，在成功或失败finally清除，不形成跨调用/事务缓存。普通saveReference入口不接受该内部见证，其他读取与保存仍执行原完整解密。
+
+主引擎仍在同一原事务中检查CAS/最大预扣、原expiry/时钟、引用变更、配额、密文封装与SQL写入；原COMMIT之后独立snapshot仍重新解密全部载荷、原OS锚点CAS/flush/精确ACK保持。新回归覆盖空/Unicode/较大原文，证明事务内载荷解密2→1，而后续独立snapshot仍解密1次；各类见证替换全部在提交前失败，原记录/头部/blob保持，下一合法读取可执行，事后损坏载荷的独立snapshot仍失败。原固定负载、期限、预扣/结算和公开发布各次ACK不合并，不新增模型调用或重试。本批减少已证实重复工作，不宣称解决物理COMMIT/注册表flush等待。
+
+七文件116通过、零skip；另经文件存在检查的根状态/根读取/预算准入/结算契约/发布五文件167通过、零skip。blob完整文件63通过、1项既有Mac默认原生worker首次开库失败保留，未进入本修复路径；最初把不存在的独立reference测试名加到命令中，Node只执行了真实blob文件，因此不将该次称作四文件验证，后续扩大范围已用真实文件列表先校验。1603份JS语法、全树Lint零错误/5项既有警告、修改文件格式及CI/release治理通过。新回归位于已有统一CI与client覆盖率文件，未增加skip或修改门限；仍须新SHA实际Windows及最新安装资格。
+
+整体仍未完成：五秒稳定性、最新安装升级回滚与旧布局拒写、完整在途排空/两端客户端重启、固定容量长测、真实24小时及到期重开、逐端额度持久预留后的真实provider、自用私有安装交付和受控启用仍在范围内。24小时名义截止已到不代表最终报告通过；冻结长测未访问或重启，模型0。
+
+## 2026-10-25：正式验收保留新失败；减少纯读取的时钟日志写入
+
+232dbdb完整普通40187616140八项success，coverage121151640481十二次最终持久ACK890–1708ms、276次COMMIT最大119ms，发现扫描COMMIT均0ms；原负载I/O40187616099也success。但正式40187616068/source121151640361仍因Chat long-persistent首轮request_failed5002ms失败（4次合成请求），场景作业跳过，不能授正式或安装资格。该轮扫描仅45ms/COMMIT0，预算保存engine1809ms/COMMIT1703ms、LIST结算COMMIT576ms、第二次预扣COMMIT489ms、READ结算COMMIT520ms与锚点327ms等串行等待仍在。初始化load-reference的COMMIT508ms发生在HTTP计时前，不能当成这一请求的根因。
+
+d3982a8141848b0cd2b31971124cc0ecfee1e7b1普通40188081800七项success、coverage121153032798 failure：原生uncertain/ACK前释放控制用例5174.9888ms首次ready超时，最后fixture-sending，原生startup已ready1094ms，尚未advance。该覆盖率HTTP六次最终ACK1900–2361ms、扫描COMMIT0，不覆盖初始化失败，client后续完整覆盖率未获资格。正式40188081835/source121153032674另因Claude首轮request_failed5001ms失败（2次合成请求）；READ结算3571ms，其中engine3104ms、clock1549ms、COMMIT1513ms、anchor439ms（native flush414ms）。前一预算保存1298ms、native flush541ms。两类失败分别保留，原期限不改，不重跑，不触发安装。
+
+沿首次ready的fixture-sending之后路径检查，原engine.execute(load)还会仅为推进时钟UPDATE头部、生成DELETE journal、持久提交；默认load-reference及inspect有相同多余写入。本批将这三项明确的观察操作接入已验证的v2独立锚点时钟持久化：原SQL事务、原完整读取/认证、提交后独立snapshot、OS锚点CAS/flush/精确回读和ACK全部保留；仅SQL无任何数据变化时不为时钟单独写盘。全部save/预扣/结算/发布/撤销与清理变更的SQL时钟同事务FULL/DELETE语义保持，未减少模型请求、故障注入步骤或正确性断言，也未把fixture中的load换成弱检查。该优化减少确定存在的读时钟日志写入，不宣称已解决正式路径的写入/flush等待。
+
+新磁盘回归三项在修改前均失败；修改后正常/空/Unicode/较大原文、空库/过期记录、原绝对expiry、同目录重开、每次原独立锚点ACK、失败COMMIT/丢失锚点回执、非法/极端/倒退时钟、坏密文含过期原文均覆盖。运行中旧有效头部重放回归扩大到三个观察操作，仍不能用内存水位掩盖重放。默认production owner真实磁盘组合也证明三项读取字节不变、每次锚点提交与精确时钟推进；首次COMMIT候选头部固定及提交后独立认证不变。原重放夹具改用真实revoke先生成不同SQL头部，确保仍攻击不同的已认证旧头部，未弱化重放断言；失败清理后读取的SQL旧水位与已持久锚点新水位分别断言。
+
+本机十五文件197通过、零失败、2项既有Windows DPAPI限定skip保留，含原容量持久/时钟短测；1603份JS语法、全树Lint零错误/5项既有警告、修改文件格式与CI/release治理通过。统一CI原有测试发现和client覆盖率已包含这些文件，不新增skip或阈值变动。本机OS锚点为显式合成保留器，仍须新SHA Windows，不能授DPAPI/OS锚点、五秒稳定性或真实24小时资格。
+
+当前没有启动新的安装候选。旧版运行包实际完整迁移/回滚拒写及4ec安装两端合成证据只覆盖旧源码身份；最新安装、完整在途排空/客户端重启、固定容量长测、真实24小时/到期重开、逐端额度安全预留后的真实provider、自用安装交付与受控启用仍在完整范围内。冻结长测未访问或重启，模型0。
+
+## 2026-10-25：真实连接复现停止后的业务准入缺口并修复，保留232原作业
+
+232dbdb9c2fcbac757d507572355891f81bf752e的三runner时序40187616069均终态success，各原50/50、零skip；十八次最终持久ACK887–1379ms，各138次COMMIT，最大67/57/47ms，其中各30次发现扫描COMMIT均0ms。普通40187616140观察时七项success、coverage仍执行；正式40187616068/source仍执行，独立I/O40187616076成功，原负载I/O40187616099仍执行。完整结论未到，不覆盖b73的5001ms及历史失败，不重跑或取消既有作业，尚未启动232安装候选。
+
+独立推进停止流程：管理入口已有isShuttingDown准入检查，业务HTTP及upgrade入口缺失。用实际startProxyServers、独立子进程及真实TCP连接，在一笔已接纳HTTP响应仍活跃时触发原停止控制，再在同一连接发送新的HTTP或WebSocket升级；原实现分别实际调用业务处理器/升级处理器一次，两项回归均失败。不是通过静态源码推断。
+
+新增独立stopping-admission模块，由主入口仅组合。停止标志生效后新业务HTTP固定503/no-store/close，upgrade不再进入业务处理器；同连接仍有已接纳响应时，只保存计数与拒绝标志，等所有已接纳响应finish/close再结束升级连接，避免直接destroy提前截断原响应。没有保存请求、head、凭据或正文；正常请求/升级原参数及返回值不变，处理器异常保持原异常身份且清理观察器。重复finish/close、多个在途响应、空/大head、已销毁/已结束socket和非法内部组合已覆盖。原认证、并发限制、恢复owner撤销/关闭、持久ACK、PID清理与全部期限保持；这只修复停止后的业务准入，不冒称在途持久发布/真实WebSocket完整排空已验收。
+
+实际连接两例修复后均通过，并逐字节确认已接纳响应的held/done完整内容先于503，业务/升级派发计数零、自然退出码0且PID已清。相关四文件17通过；扩大可在Mac直接验证的十文件41通过、零skip。另十一文件尝试85通过/2失败/2项既有Windows限定skip保留：默认原生worker在key_protect_started后Mac开库失败，以及原management-startup-race夹具在不可写/test-runtime触发缺失log.warn；独立用提交版232入口重现后者同样失败，未用修改测试掩盖。新增测试进入统一发现和client覆盖率，新模块进入发布清单。
+
+本批尚须新SHA完整Windows验证；232结果继续独立留存。完整剩余范围仍含五秒稳定性最终门禁、当前安装/升级回滚/旧布局拒写、完整在途排空与客户端重启、容量长测/真实24小时及到期重开、核对逐端额度并安全预留后的真实provider、自用私有安装交付及受控启用。冻结长测未访问或重启，真实模型0。
+
+## 2026-10-25：保留b73五秒失败；无数据变更的发现扫描仅在独立锚点持久化时钟
+
+b73d83977f7485917791356c6e2f2d4061a0aab6的普通Verify40183225577终态七项success、unit2/121138491301 failure：Claude long-persistent首轮headers/body4314ms，最终发布持久ACK等待5001ms失败。正式40183225591四项、原完整覆盖率I/O40183225603与独立两文件I/O40183225679均success，不能覆盖该失败，未触发b73安装候选。原同请求扫描COMMIT285ms、预算COMMIT449ms、公开prepare COMMIT655ms、sending COMMIT947ms及最终保存COMMIT645ms表明多次串行持久等待，不能只归因于最后保存或原生锚点；原失败与所有历史记录保留。
+
+本批实际减少默认owner的内部scan-reference时钟单独写盘：仍在原BEGIN IMMEDIATE中完整认证、扫描、清理和判歧义；若total_changes证明没有任何数据变更，不单为时钟重写SQLite头部。采样时钟进入提交后的独立认证快照，并仍须一次原生OS锚点CAS、flush和精确回读后才能ACK。发生到期删除或其他变更时，时钟仍与变更在同一原FULL/DELETE事务提交；secure_delete、原绝对expiry、最大预算预扣、LIST/READ结算及prepare/sending/final各次持久确认均保留，无内存持久回退、无模型重试或期限提高。
+
+为允许安全重开时钟落后的SQL，锚点逻辑v2增加完整加密头部的SHA-256见证。仅原独立锚点与SQL的store/key/location、头部和全部行标签/版本/期限完全一致时允许补齐时钟，且当前真实时钟不得早于保留的锚点水位；v1原回滚门禁不放宽，v2拒绝旧owner降级写入。v2加密明文使用固定七元组，仅省去顶层字段名，连同新增见证的字节数不大于同一v1快照，原64KiB原生界及全部行字段保持；v1原字节格式兼容。
+
+另对运行中头部重放固定COMMIT前认证见证，仅COMMIT成功后安装为预期值。下一事务及提交后的独立快照必须重新认证并精确匹配，不能用内存时钟水位掩盖旧有效头部，也不能由只读快照替换预期值。真实磁盘SQLite的运行中重放、COMMIT后/独立快照前重放两项回归，在撤去防护时均因缺少预期拒绝而失败，恢复防护后通过；后者验证无锚点ACK且owner关闭。SQL COMMIT/晚时钟写入失败保持原字节与载荷，失败水位不得污染下一操作。
+
+本机四文件39/39通过、零skip；扩大十五文件192通过、零失败、2项既有Windows CurrentUser DPAPI限定skip保留，含容量持久/时钟短测。真实SQL文件对照确认旧扫描产生DELETE journal、新扫描字节不变，二者都保留原扫描COMMIT、独立snapshot COMMIT与一次锚点ACK。本机锚点仓库为显式合成保留器，不冒称Windows DPAPI/OS锚点或真实24小时资格。1600份JS语法、全树Lint（零错误、5项既有警告）、修改文件格式、CI/release治理通过；新用例进入统一发现和client覆盖率，发布清单含新wire模块，原门禁不改。须新提交完整Windows/原负载时序和安装证据后才能判断五秒改善，当前不授稳定性。
+
+旧版运行包迁移/回滚拒写与4ec安装两端合成证据仍有效于其源码身份；当前源码安装、在途排空/客户端重启、固定容量完整长测、真实24小时与到期重开、逐端额度预留后的真实provider、私有自用安装器交付和受控启用尚未全部完成。冻结长测未访问或重启，真实模型调用0。
+
+## 2026-10-25：78e真实锚点分解有效，修正新增单测的Windows路径断言
+
+78e332aefa5e3df254e7ea1a5180cb3b71d3dee9普通40182663013为六项success、unit1/coverage（121136811579/121136811463）failure；两者均为新增探针单测的两项模拟加载器断言硬编码了“/context-recovery-anchor.js”，Windows实际模块路径使用反斜杠，尚未进入模拟执行函数即失败。这是新增测试夹具错误，不是原生开库或五秒产品根因。现用node:path.resolve构造预期完整路径并assert.equal精确比较，校验比原后缀判断更严格；17项本机探针通过、零skip，Windows仍须新SHA，原失败不重跑或覆盖。
+
+独立I/O40182663052/121136811470已success，原50项全部通过、零skip。真实Windows收到78次有效原生报告、零owner-stage-invalid：72次flush为3–21ms，acquire最大1ms、read/write/readback最大0ms，native_total最大22ms、父端dispatch11–36ms，逐次dispatch减total为11–16ms；不能把该差直接当纯启动时间。六次最终持久ACK859–997ms、138次COMMIT最大50ms。普通proxy覆盖率的HTTP窗口也六次ACK1196–1612ms，原生dispatch最大94ms、flush最大79ms、COMMIT最大147ms；但完整proxy覆盖率因上述夹具断言失败，尚无client/frontend后续阶段资格。Windows Rust121136811469已成功：原生26项、应用40项及命令进程1项通过，原严格Clippy和审计门禁通过；npm的既有moderate告警仍按原high门限处理，未升级依赖或放宽门禁。
+
+这些成功样本未重现此前数百毫秒锚点等待，尚不能解释bdc的5002ms或94cc的最终ACK5007ms。78e正式40182663001/source121136811340及原负载I/O40182663014/121136811287仍执行，保留同一作业不重跑；不触发安装。本批只修正跨平台夹具路径，原认证、各ACK/期限、FULL/DELETE/secure_delete及原expiry保持；完整剩余交付范围不变。冻结长测未访问，真实模型0。
+
+## 2026-10-25：bdc正式四项通过但普通Claude仍5002ms，分解原生锚点阶段而不改持久路径
+
+bdc214f1a4ef41c98d3e68a179a1f71c9a16be6d普通40180688170最终七项success、coverage121130923484失败：Claude long-persistent第二轮request_failed5002ms，requests8/handshakes8/roots1。ownerEpoch2的READ结算196ms，但其预算预扣sequence5耗时1884ms，其中clock write515ms、COMMIT924ms、anchor persist362ms；此前预留sequence3另974ms/COMMIT818ms。重复解析去除减少了实际工作，尚未解除串行持久等待；失败保留、不重跑。三组40180688122各原50项通过、零skip，18次最终ACK811–1699ms，各138次COMMIT最大47/106/44ms，不能覆盖普通失败。
+
+原负载I/O40180688114/121130923268也failure，但为另一例transport-finished/COMMIT释放夹具初始ready5136ms超时，lastFixture=fixture-sending，原生startup已ready2072ms，尚未advance。该proxy窗口HTTP六次最终ACK2050–2656ms、138次COMMIT最大110ms，69对刷新最大database44/journal52ms，全部原flush异常计数零；非零读取为EOF、写入为快速I/O转IRP，固定三个错误类别零。源码/阶段及清理回执有效，但原覆盖率失败仍阻止client/frontend后续阶段。正式40180688125已四项success：source121130923418、egress121130923305、N08/N09为121134912359/121134912381。主失败保持，不触发bdc安装。
+
+单个anchor_persist总耗时不能区分进程启动、互斥/ACL/注册表读写及RegFlushKey。本批新增独立原生诊断命令，复用原anchor execute和真实Backend，仅包裹acquire/read/write/flush/readback，输出固定阶段及非负整数毫秒，最多五条/1024字节；另有原生总时长。普通--hpm-context-anchor-v1的接口和无诊断行为保持。原请求解析/长度、互斥/ACL、精确CAS、唯一flush及完整回读全部保留；诊断同样在写回执前释放Backend持有的句柄和互斥，诊断/回执写入失败不得返回成功。不输出slot、密文、目录、key、底层错误或原文。
+
+只有现有合成ObservedStorageWorker显式安装新测试探针，使用原仓库工厂已有execute依赖缝隙调用诊断命令。程序身份前后核验、原10000ms/131072字节/固定环境和管道选项原样传递，原stdout仍交给原身份/AEAD/CAS验证；失败不回退、不重试，不转发原生stderr。JS严格验证紧凑JSON、封闭字段、2或5个固定顺序阶段、总时长/各阶段和及原请求操作；只发出原ownerEpoch/sequence绑定的固定数值阶段。native_total包含内部各阶段，native_dispatch又包含native_total，两者不能相加；其差只说明父端观察的剩余开销，不能未经验证就归为纯启动时间。真实Windows分解仍须本批新SHA，不据此宣称性能修复。
+
+同时复现旧stderr接收器会丢失大块内的所有合法短行：从bdc已提交模块发送50条正常engine_execute行，reportedLines=0。现在逐行消费完整批次，再限制未结束的一帧为10字节前缀加512字节JSON；超长帧丢弃至换行，不能从其尾部制造前缀行。50行合并及跨块分割回归通过，原上限不提高，未知原始stderr仍不打印。
+
+本机原生22项通过、零忽略，包括正常read/compare、CAS冲突、各Backend失败/回读不等、空/非法/越界输入、诊断/回执写失败及输出前释放所有权；17项JS探针通过、零skip，含非法/极端/重复JSON、阶段/总和/请求不符、进程失败/超时/异常不泄漏、原参数原样传递及批次/分帧。Rust fmt、1597份JS语法、Lint零错误/五项原警告、修改文件格式、CI/发行治理通过；Mac Clippy的clippy::all门禁通过，另六项既有非Windows未使用代码警告保留，不等同Windows的-D warnings。两个I/O作业增加原生和探针直接路径触发，所有新测试自动进入统一CI，原普通/正式/安装及发布签名门禁不变。
+
+五秒/初始化、在途排空/客户端重启、容量与真实24小时及到期重开、逐端持久额度预留后的真实provider、最新自用安装器传递和受控启用仍未全部完成。已确认仓库公开、现有隔离安装作业不上传安装器，最终需受限传递，不能把普通公开仓库artifact当成私有分发；未提前上传安装器。原预算预扣、各发布ACK、精确revision、FULL/DELETE/secure_delete、原expiry与原文留存全部保持。冻结长测未访问，真实模型0。
+
+## 2026-10-25：保留94cc最终ACK及初始化失败，同事务引用读取复用已验证的关联
+
+94cc639e337576c742e7d31763a8adf426f506f1普通40179307550最终七项success，coverage121126717416失败于五个原生发布夹具的初始ready：transport-finished/COMMIT强杀，以及uncertain的COMMIT强杀/释放、ACK前强杀/释放。用例耗时5071/5063/5126/5106/5084ms，原生startup均已ready，分别2719/1856/2663/2672/2555ms；lastFixture分别fixture-observed/fixture-prepared/native-opened/fixture-observed/fixture-prepared。均尚未进入第一个advance，不能当成中断后的恢复失败，原五秒夹具门禁保持、不重跑。正式40179307501/source121126717012仍在原统一门禁，egress121126717187已success；不触发最新安装。
+
+独立I/O40179307676/121126717639原50项全部通过、零skip，schema3直方图实际产出：读取84次非零全为0xc0000011（STATUS_END_OF_FILE），写入348次非零全为0xc01c0004（STATUS_FLT_DISALLOW_FAST_IO），三个固定访问/共享/锁冲突类别零。207对成功刷新最大database33/journal19ms，六次最终ACK1224–1344ms、138次COMMIT最大52ms。按[微软状态表](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55)及[快速I/O说明](https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/disallowing-a-fast-i-o-operation-in-a-preoperation-callback-routine)，写入代码表示转入IRP路径，不能据此认定SQLite应用重试或杀毒软件根因。
+
+但原覆盖率I/O40179307483/121126717040终态failure：proxy完整阶段内Claude long-persistent第二轮headers4823ms、body4824ms，最终持久ACK等待于5007ms超时；随后finishPublicationAsync347ms才完成，最终存储324ms。该轮scan374ms、预算保存538ms、LIST结算863ms、READ预扣800ms/读取结算724ms、公开准备568ms、sending253ms，多笔COMMIT及anchor等待并存。源码/阶段及cleanupVerified回执有效，仍按原覆盖率失败停止，未运行client/frontend后续阶段。摘要只捕获32对journal刷新最大386ms、journal写入最大606ms，database计数零不能当作没有数据库I/O；另一次0xc0000054锁冲突如实保留，但无法绑定到失败请求。所有完整性/五秒资格false，不能跨runner用独立成功覆盖本次失败。
+
+继续检查实际read-source-and-settle发现，旧引用已由referenceState完整解析/核对blob行关联后，readPage内部又对同一对象做同样解析/关联。真实模块观察回归在94cc源码先失败（同一旧digest解析2次而非1次）；原总计还包括写入后liveUsage对新密文的独立解析，不能把这一次算成应删除的重复工作。现在在私有blob组合内解析并核对一次，先执行原预留准备校验，再同步读取原载荷和结算；只有该内部调用把刚验证的reference传给私有页面函数，不接受请求传入的reference，不做跨调用/事务缓存。原独立readPage仍完整校验，写入后新密文配额认证、提交后独立snapshot及OS anchor、最大预算预扣ACK及prepared/sending/final各自ACK全部保持。
+
+新增回归对空、UTF-8和16KiB来源确认旧引用解析一次、新密文独立解析仍一次、COMMIT仍一次且页面/预算/连续覆盖完全相等。逐一stat确认五个文件存在后，read-settlement/root-reader/read-settlement-contract/anchor-sqlite/publication-interruption共136通过、零skip；另storage-blobs为63通过、1项Mac默认原生worker开库失败、零skip，失败保留。1595份JS语法通过，Lint零错误/五项原警告，CI/发行治理及修改文件格式通过。原覆盖率I/O路径触发新增直接依赖的storage-blobs模块，统一测试自动发现新回归；Windows实际新源码资格待运行，本批不宣称已解决五秒COMMIT/锚点等待。
+
+原商业签名发行门禁、认证、FULL/DELETE/secure_delete、原绝对expiry与原文留存不变。旧版运行包实际安装迁移/回滚拒写、升级回滚/DPAPI及两端合成四组已有资格保持；五秒/初始化稳定性、在途排空/客户端重启、容量与真实24小时及到期重开、逐端持久额度预留后的真实provider、最新安装器交付和受控启用仍未全部完成。冻结长测未访问，真实模型0。
+
+## 2026-10-25：600正式四项通过但普通5012ms仍失败，补充有界状态码直方图
+
+600169b35680075587dd8f2ae4eee15670750ecd正式40177233268已四项success：source121120456659、egress121120456517、N08/N09为121124479810/121124479840。但普通40177233252仍七项success、coverage121120456530失败，Responses long-persistent首轮request_failed5012ms，requests2/handshakes2/roots1，未有该轮headers。该轮sequence5扫描143ms、sequence6预算保存979ms/COMMIT708ms、sequence7结算453ms/LIST reply1472ms、sequence8预扣1953ms/clock write540ms/COMMIT983ms、sequence9读取结算1364ms/READ reply3336ms，其中anchor persist808ms。不能把HTTP之前的startup/seed混入该请求。失败保留、不重跑；正式绿色不覆盖普通失败，未触发本批安装。
+
+扩展记录已实际执行：独立40177233291/121120456653原两完整文件50通过、零skip，ETL29229056字节、24046条筛选记录、207对成功刷新，database69对最大33ms、journal138对最大35ms，原刷新冲突/未配对/失败/未完成均零。write的database/journal成功最大18/33ms，非零状态48/301次、最大0/1ms；三个已知拒绝/共享/锁冲突类别均零。原负载40177233263/121120456503亦success，三段原覆盖率完整执行且proxy/client清理及源码阶段回执确认；分别8016/17428事件、69/176对刷新，刷新database最大70/103ms、journal最大27/175ms。write非零状态分别17+100及32+294次；三个已知类别仍零。client其他操作配对冲突2次如实保留，原flush冲突门禁不变。所有完整性及五秒资格仍false，不能跨runner归因，更不能把非零状态一律解释成I/O错误或杀毒重试。
+
+本批仅扩展诊断摘要为schema3：每类操作和文件类别最多16种规范化非零uint32状态码及计数，严格递增、无重复，总数必须等于nonZeroStatus，三个固定错误类别必须与直方图一致；第17种拒绝整份记录而不截断。快照独立复制，不输出原始状态字符串、路径、指针或载荷；原资源界保持。捕获器严格接受封闭schema1/2/3，旧证据仍可读取。40项本机回归通过、零skip，覆盖正常/有符号转无符号/空/非法/越界/重复/计数不一致/16与17边界及实际PowerShell捕获清理。测试自动进入统一CI；真实新状态码分布须本批新SHA运行，不宣称五秒产品问题已修复。
+
+另校正55e本机验证范围：65项实际来自read-settlement、root-reader、read-settlement-contract三份测试，先前命令还误列了不存在的root-storage第四路径，不能声称四文件覆盖。现先逐一stat确认三份均为实际文件后重新执行，65通过、零失败/skip；顶部对应旧记录已改为三份。统一CI仍按原递归发现、全部门禁执行，未跳过测试。
+
+默认原生压缩与可选精确恢复方向、最大预算预扣ACK、各发布状态ACK、精确revision、原expiry、原文留存及FULL/DELETE/secure_delete均保持。旧版运行包实际安装迁移/回滚拒写、升级回滚/DPAPI及两端合成四组已有资格保持；五秒/初始化稳定性、在途排空/客户端重启、容量及真实24小时与到期重开、逐端额度持久预留后的真实provider、最新安装器交付和受控启用仍未全部完成。冻结长测未访问，真实模型0。
+
+## 2026-10-25：55e正式Responses仍5005ms失败，扩展非刷新文件操作记录而不改持久门禁
+
+55e3d0dbc242cc588f526dcc87071d00b8e4c1f7普通40174440473八项success，coverage121111974026十二次最终ACK1026–1878ms、276次COMMIT最大149ms；独立时序40174440607三组各50通过/零skip，十八次最终ACK1228–2058ms。原负载I/O40174440481/121111973957也success，三段原覆盖率完整执行，两份清理/源码/阶段回执确认；十二次最终ACK1053–2892ms、276次COMMIT最大1710ms。proxy窗口只有34对journal刷新、最大694ms、database计数零；client窗口207对刷新、database最大35ms、journal最大102ms。记录仍不完整，不能把未捕获的database事件解释成不存在数据库刷新，也不能跨runner归因。
+
+但正式40174440515/source121111973975终态failure，context121115116824跳过；第二段客户端覆盖率内Responses持久首轮request_failed5005ms，requests4/handshakes4/roots1，尚无该轮headers。该轮sequence5 scan493ms、sequence6预留保存1429ms/COMMIT1263ms、sequence7结算616ms/COMMIT526ms、sequence8下一次预留446ms/COMMIT287ms、sequence9读取结算899ms/COMMIT635ms、sequence10公开准备874ms/COMMIT697ms；这些COMMIT线程CPU均零。先前startup/seed的扫描及保存另列在HTTP之前，不能混入此请求。实际CI为Node22.23.4（setup-node的Node22兼容环境），不据此卸载或改换本机工具版本。本批前的预留解析2到1改动已通过其相关范围，但不足以关闭五秒问题；失败保留、不重跑、未启动55e安装。
+
+已有记录仅含Flush/OperationEnd，无法区分其他文件操作。核对[SQLite Windows I/O退避说明](https://www.sqlite.org/c3ref/c_fcntl_begin_atomic_write.html)与[Windows VFS源码](https://github.com/sqlite/sqlite/blob/master/src/os_win.c)，确认存在底层I/O退避机制；尚未确认本次实际触发，不能直接认定为杀毒软件原因。没有修改SQLite重试参数、busy_timeout、FULL/DELETE/secure_delete或任何5秒/10秒/30秒门限，也未调整系统安全配置。
+
+扩展现有32MiB有界记录的解码，按[FileIo_ReadWrite](https://learn.microsoft.com/en-us/windows/win32/etw/fileio-readwrite)、[FileIo_Info](https://learn.microsoft.com/en-us/windows/win32/etw/fileio-info)及Microsoft PerfView固定x64 v2/v3布局采集read/write/set-info/delete/cleanup/close；未知版本/长度仍拒绝。只汇总目标合成数据库/journal的次数、成功耗时、非零状态耗时，以及固定的access-denied/sharing-violation/file-lock-conflict计数；不输出原始路径、指针、事件或状态文本。原100万枚举/10万筛选/8192待配对/256名字/256MiB ETL等界保持。新增操作复用独立有界配对器，原刷新成功次数及冲突零门禁保持，不把其他操作结束冒充刷新成功；未统计的rename/query/fs-control复用也使旧配对失效。
+
+同时修复实际解码边界中的IRP复用遗漏：已跟踪IRP后出现无关文件的后续操作，以前会在PowerShell过滤时丢掉新起点却留下旧IRP，后续结束可能被旧flush误配。从55e已提交函数重放该纯合成场景，实际得到filteredReplacementStarts=0且原CLI仍报告pairedFlushes=1，确认可制造错误正观察；旧I/O摘要不能单独作为精确配对或根因证明。现在先移除旧跟踪并输出不含路径的固定invalidate记录，JS失效旧配对并保留冲突，不制造成功。扩展摘要采用schema2及固定新scope，捕获器只接受封闭字段/有限整数及一致计数；schema1原摘要仍可读取，所有完整性/五秒资格恒false。非零状态与NTSTATUS错误类分别计数，不把正值信息状态直接归为访问拒绝或共享冲突。回执仍须源码/阶段绑定、helper正常退出及清理确认；原覆盖率失败继续独立保存，摘要不能覆盖原退出。
+
+相关39项本机回归通过、零skip，包括真实PowerShell二进制/命名字段、正常/带尾部布局、非法/极端/未知版本、复用/无关IRP、失败状态/计数/界及schema2完整捕获回执。新增测试自动进入统一CI，实际扩展WPR记录仍须本批新SHA；本批是补齐根因证据，不宣称产品超时已修复。原商用发行签名门禁、最大预算预扣ACK、各发布转换ACK、原期限与原文留存不变。安装/迁移已有资格与未完成的在途排空、客户端重启、容量/真实24小时及到期重开、逐端额度预留后的真实provider和受控自用交付范围均保持；冻结长测未访问、模型0。
+
+## 2026-10-25：保留3db的5003ms失败，消除合并原文读取事务的第二次完整预留解析
+
+3db4c70f8dfd18e9c7a423e2157e02186d6c30b3普通40173001583为七项success、coverage121107640763失败：Claude long-persistent首轮request_failed5003ms，requests4/handshakes4/roots1，尚无该轮headers。预留保存sequence6耗时1300ms，其中COMMIT992ms、线程CPU零；LIST reply2208ms、其结算存储857ms，READ reply800ms，completeAsync571ms、startPublicationAsync750ms。多笔串行等待仍在，不能因另一runner快速刷新或成功请求就归为唯一CPU/I/O原因，也不合并prepared/sending/final各自原持久ACK。该失败不重跑，当前安装未触发。正式40173001582/source121107641028已success，N08/N09为121111597221/121111597246，观察时仍运行；与普通失败分别记录。
+
+沿失败路径检查实际SQLite实现，read-source-and-settle先validateRecoveryReadReservation，然后createRecoveryReadSettlement再次做同样完整预留/引用元数据解析。独立加载真实模块、只观察引用解析次数的回归先得到10通过/1失败，明确2次不等于1次，非静态文本断言。现在用私有prepareRecoveryReadSettlement在源I/O前校验并复制一次预留事实，返回只用一次的同步结算闭包；同一SQL事务拿到页面后仍执行原页面、编码字节、预算退款/覆盖和结算校验，随后原COMMIT、独立快照与OS锚点ACK保持。闭包成功或失败都消费并清除其预留事实，原输入后续突变不能改变事实；不缓存跨事务结果，不增加模型接口或外部能力，不改原文认证、时间采样/原expiry、最大预算预扣ACK和精确revision相等。
+
+原createRecoveryReadSettlement接口和独立validate接口保留，原调用仍完整校验；默认引擎仅替换这一处重复工作。回归含正常/空/较大来源、原输入变更、重复消费、非法/极端时钟、未预扣、非法页面/getter/Proxy及失败不可复用。相关三份文件65/65通过、零skip；扩大的锚定SQLite/发布/引用blob/容量持久与时钟五文件157通过、1项Mac默认原生worker开库失败、零skip，失败未进入此读取路径，保留。既有真实COMMIT回滚、坏CAS/预算在载荷读取前拒绝、密文损坏、UTF-8、空/失败页面和原期限断言完整保留。原负载I/O工作流增加这两个生产模块和本测试的路径触发，原全部测试、四分片、期限与失败退出不变，待新SHA实际运行。本批减少已证实重复工作，不宣称物理COMMIT等待或五秒稳定性已修复。
+
+4acbbf5完整普通40171960202八项及正式40171960164四项均已success，正式N08/N09为121108267319/121108267286；正式source十二次最终ACK1227–2587ms、276次COMMIT最大69ms。其独立原负载记录中旧PowerShell解密10085ms超时及历史五秒/容量失败继续保留，不被这些成功覆盖。旧版582迁移/回滚拒写、已安装两端合成验收证据不变；在途排空/客户端重启、容量/真实24小时与到期重开、逐端额度预留后的真实provider、最新自用安装器与受控启用仍未全部完成。冻结长测未访问、模型0。
+
+## 2026-10-25：4ac完整普通CI通过，原负载记录保留旧后端超时；修复密钥回执重复字段
+
+4acbbf5c1b93993692b821675071456b068c9ca3普通Verify40171960202八项全部success；coverage121104485697两段共12次最终持久ACK为877–3559ms，276次COMMIT最大1776ms，该次线程CPU为零。正式40171960164/source121104485361观察时仍在原统一门禁，未启动本批安装；不重启原作业或用普通成功替代正式结果。
+
+独立原覆盖率I/O40171960265/121104485766终态failure，但proxy阶段取得源码/阶段绑定、cleanupVerified=true的有效回执：193条筛选记录、69对成功刷新，database23次最大60ms、journal46次最大24ms；冲突/未配对/失败/未完成均零，完整性及五秒资格仍false。该文件六次最终ACK1582–2467ms，138次COMMIT最大118ms。原test:coverage随后因旧DPAPI兼容测试失败而非零退出：native_protect134ms成功，legacy_unprotect在10085ms报ETIMEDOUT，用例10221.3186ms；原10秒期限不改。回执验证成功后仍按原覆盖率失败停止，未进入client阶段。实际安装默认选择原生后端，只有缺少默认原生文件的源码环境保留固定PowerShell兼容后端；测试显式选择null以验证跨后端兼容，不能把此失败改称五秒HTTP恢复的根因。独立两完整文件I/O40171960195/121104485525另50/50通过、零skip，207对刷新最大database213/journal220ms，六次最终ACK1154–1651ms；不同runner的物理与COMMIT观测不可合并为同一请求因果。
+
+检查同一密钥边界时实际复现重复JSON响应字段被JSON.parse覆盖：先ok:false后ok:true可被当成成功，native/legacy与protect/unprotect四组合回归修复前均失败。现在在原长度检查和JSON.parse后要求固定后端的紧凑JSON精确重序列化相等，拒绝重复字段、转义别名及额外空白，再执行原字段/基数/长度校验。当前原生serde输出及固定PowerShell输出均为该紧凑格式，包装前缀、CurrentUser/entropy、原10秒/20000字节子进程界、失败不重试/不切换后端保持。新测试还覆盖正常和最大合法包装、空/非法/越界/私有错误及单次超时派发；统一unit自动发现，无新增skip。本机含原密钥/锚点相关测试56通过、零失败，7项既有Windows平台限定skip；本批修复尚待新的Windows源码身份，不授五秒稳定性。
+
+旧版运行包简称“582”，来自原manifest的582个源码文件，不是版本号或问题数；实际安装迁移/回滚拒写和两端合成验收已有4ec安装证据。五秒/初始化稳定性、旧后端超时、在途排空/客户端重启留存、容量与真实24小时及到期重开、逐端额度预留后的真实provider、自用安装器交付和受控启用仍未全部完成。冻结长测未访问，真实模型0。
+
+## 2026-10-25：在原两段完整覆盖率中限定记录窗口，保留4495正式五秒失败与4ec安装通过
+
+4495a806c8789ce08f819fd976ef37364b631c67普通Verify40168842863八项最终全部success；正式40168842861/source121095372732仍failure，第二段客户端覆盖率内Chat/Claude首轮fetch分别5012/5016ms失败（栈为undici，尚无该轮headers）；不能把第一段公开发布快速通过当成完整稳定性。原正式失败保留不重跑，未触发4495安装候选。下一步需要取得相同覆盖率负载下的物理刷新证据，单独两文件的成功ETW样本不能解释该失败。
+
+新增独立windows-persistent-io-coverage作业，按原顺序各执行一次完整test:coverage、test:client:coverage、test:frontend:coverage；原四分片runner、发现的全部测试、原断言和期限保持，原阶段失败不进入后续覆盖率阶段。只在每段完整client-context-target文件之前/之后通过现有node:test钩子启停记录，未过滤、追加或重试任何用例；普通CI无专用开关时没有这些记录钩子。开关必须匹配当前40位源码SHA、固定proxy/client阶段、专用workflow及一次性hosted Windows X64，用户主机/自托管/其他workflow拒绝。
+
+PowerShell复用既有32MiB内存WPRP、唯一实例、原30秒WPR调用、256MiB ETL及事件/配对/输入界；新增私有管道只接受有界finish加换行及EOF，空/非法/超长/额外命令/读取错误拒绝。父进程断开通过EOF进入原finally，结束后才停记录/解码/清理；没有观察到正常helper退出及清理就不写成功回执，超时只处置本次子进程，不取消其他记录或授清理资格。新诊断控制/收尾预算不改变任何5秒HTTP、12秒原生控制、30秒存储或10秒key/5秒ACL产品门限。
+
+Node组合器只继承必需系统/CI环境，不向helper转发token/API_KEY/NODE_OPTIONS；stdout/stderr各有界，未收到就绪、提前/重复/非法摘要、信号/非零退出及错误输出全部失败且不转发原始文本。回执固定源码/阶段、原正观察摘要及cleanupVerified，拒绝碰撞、重复JSON、越界、变更来源/阶段、未确认清理；文件读取使用有界fd读取及身份重查，拒绝硬链接/替换的父目录。proxy/client回执不可互用。原覆盖率退出单独保存，回执验证成功也不能覆盖非零原退出；实际PowerShell执行写入的workflow脚本并注入每一原命令/回执失败已验证只执行到正确阶段，无后续测试或重试。
+
+相关协议/实际私有PowerShell管道、控制EOF、回执/文件边界、workflow失败顺序及原ETW解码共34/34本机通过、零skip。首轮测试的注入超时未消费原Promise导致异步活动失败已修正注入模型，原失败保留为诊断回归，非产品根因。默认关闭记录的原Core完整文件25通过/3项既有Mac原生开库失败/2项既有Windows限定skip，未新增skip或回退；实际WPR全覆盖率观测仍须本批新SHA，不能授五秒资格。原始ETL和解码事件（含其中路径）、数据库、密钥、原文和模型响应均不上传；traceCompletenessVerified/fiveSecondQualified继续false。
+
+4ec842f实际安装40167122824/121090414574已终态success，manifest5a05e77a5292b5bbe3bf9ef86cc08376bc411d6cc433d73598b30d585def8c37、应用SHA72aed6c67bece6dcd9077778000cab22b872b03eb126e3514a474b96e54af095。实际582八阶段默认worker迁移/旧版拒写、同格式安装升级回滚/DPAPI、两次实际exe空闲停止重开及原到期、两端默认/增强四组各3次原生压缩/精确最终答案及TLS/归属/清理/卸载均通过；新默认owner原子启动封存已进入实际安装范围。真实provider/24小时资格false，原daemon矩阵forced_cleanup、在途排空和客户端重启留存未授资格。原主coverage初始化失败保持，不能被安装/正式/review成功覆盖。
+
+本批生产实现未改，Lint/格式/全树语法与CI/release治理通过；仍保留五秒/初始化稳定性、完整在途排空/重启留存、固定容量/真实24小时及到期重开、逐端额度预留后的真实provider验收、自用安装器交付和受控启用等全部范围。冻结长测未访问、真实模型0。
+
+## 2026-10-25：保留新阶段及9a五秒失败，补齐保守测量器Proxy拒绝和真正异常传播
+
+2685fde普通Verify40167763038八项最终全部success；正式40167763051/source121092197215失败，原生uncertain的COMMIT前SIGKILL/释放两例5161.3449/5014.6711ms等待ready超时。新增安全回执已确认两次默认原生开库均完成：startup=ready分别2237/4520ms，lastFixture分别fixture-observed/native-opened，尚未advance。第一例停在fixture-observed至fixture-prepared之间，包含view构造及公开持久准备；第二例在开库后进入观察初始化时余量不足。回执只缩小阶段，尚未确认唯一I/O或调度原因；这两次不是“原生开库尚未返回”，也不是已经发生中断后的恢复失败。旧DPAPI兼容在10122.5873ms另有context_recovery_key_unavailable，独立保留，所有原5秒/10秒期限不变。
+
+9a13b44主Verify40168024252的unit0/121092957280、review unit0/121093010960及正式source121092957206暴露原WorkBuddy测量器故障注入冲突：旧测试用Proxy模拟内部反射错误，新的数据边界会把它作为非法输入正常拒绝。进一步新增安全回归确认测量器自己的dataProperty仍可在进入规范化之前执行Proxy陷阱；本批在自有字段反射与数组检查之前用内建types.isProxy拒绝，含已撤销Proxy，保留原requiredContextMeasured=false保守结果，不改变正常测量/规划/预算准入。无关assistant输出仍不遍历。
+
+原“意外反射/校验异常必须传播”的两处断言保留，改为对两类普通对象精确注入getOwnPropertyDescriptor故障，并检查两处确实到达注入点、同一个异常对象原样传播；没有删除断言、吞内部异常或将失败强行变为已测量。新增Proxy回归改前整文件11通过/2失败，改后与envelope21/21通过；扩大WorkBuddy上下文/任务状态/原生上下文及envelope92/92通过、零skip。9a原失败不重跑，本批新SHA仍须完整Windows与安装门禁。
+
+9a主coverage121092957195同时独立失败于Chat首轮fetch5007ms及Responses首轮最终publication_wait_failed5004ms（headers4858ms）。Chat seq8 clock_write493ms/COMMIT919ms、seq9 COMMIT766ms；Responses seq5 clock_write676ms/COMMIT1121ms、seq6 clock_write748ms/COMMIT446ms，所列COMMIT线程CPU均0。Responses启动COMMIT690ms在HTTP之前，不能算入请求根因；这些阶段只定位等待，不能用另一个runner的成功ETW记录解释其物理原因。review coverage121093010828仅同一测量故障注入失败，所有原五秒/最终ACK/FULL/DELETE/预算及到期门禁保持。
+
+4ec正式40167116315四项最终全success，N08/N09为121093787018/121093786919；主coverage初始化超时保持。7d实际安装40166039585/121087243460已终态success：manifest3e53947fcabf04c2e87b43151a445f9836a244b41671a230f24edf2d38c45191，应用SHA620650f98325776fa179f8cce3265790f03d01bc1ebf8a3ffd34fe26c483d223。同格式安装升级回滚/runner-local DPAPI、实际582八阶段迁移/旧版拒写均通过；实际exe两次空闲停止重开及原到期保持，默认worker/自然Job为空。实际Codex/Claude默认及增强四组各3次原生压缩/精确最终答案、TLS/非回环/监听归属/进程socket清理/卸载通过；上游合成，真实provider及24小时仍false。旧daemon矩阵forced_cleanup/gracefulDrainQualified=false、客户端重启留存未资格保持。
+
+4ec和9a原安装作业继续，不取消/重跑。当前五秒及初始化稳定性、在途排空/客户端重启、固定容量、真实24小时及到期后重开、额度安全的真实provider验收、自用安装器交付和受控启用仍未完成；本机已生成逐项交付状态回执，不用局部绿色替代整体。冻结长测未访问，模型0。
+
+## 2026-10-25：修复共用压缩/恢复数据解析执行Proxy陷阱，4ec review完整通过仍保留主失败
+
+阶段观察回归中复现共用normalizeCompactionData在Object.getPrototypeOf/ownKeys/描述符检查时能执行Proxy陷阱，并接受可正常反射的Proxy记录；与模块原“不执行外部钩子”的输入边界冲突。新回归修改前完整envelope文件7通过/1失败（Proxy记录未被拒绝），修改后在每层对象结构读取前用Node内建types.isProxy拒绝，已撤销Proxy也返回原固定invalid_local_compaction；storageData仍映射原503/context_recovery_storage_unavailable。不引入新依赖、配置、恢复能力或缓存，正常数据、字节/深度/节点界、原文/期限/预算/ACK与持久语义不变。
+
+新增根对象/数组/嵌套/已撤销Proxy同时经过压缩与恢复入口的回归，getPrototypeOf/ownKeys/getOwnPropertyDescriptor/get陷阱计数严格为0；正常null-prototype对象及Unicode/空文本/null/false/数字仍逐字保持。完整相关存储/锚点/结算七文件144/144、扩大压缩系列和root/branch/reader共246/246通过，零skip；新回归在既有统一unit文件内。Lint、改动文件格式、全树语法及CI/release治理通过，完整Windows须新SHA。
+
+4ec842f review Verify40167122873已八项全部success。coverage121090350985新增12次持久公开最终ACK1179–2435ms、276次COMMIT最大109ms，内含原生发布中断20项全ok；主Verify coverage121090332601的初始ready5162.6964ms失败继续保留，不被review或三runner覆盖。2685fde的固定阶段诊断仍在原CI，4ec正式/实际安装及7d实际安装继续原作业；观察时7d已进实际Codex/Claude四组合成上游阶段，尚无最终资格，不取消/重跑。五秒/初始化根因仍待阶段回执，既定在途排空/重启留存、容量/真实24小时及到期重开、真实provider与受控交付缺口保持，冻结长测未访问、模型0。
+
+## 2026-10-25：4ec842f三runner及主unit原生中断通过，coverage初始ready失败保留并细分安全阶段
+
+4ec842f7617274a35597d9a4c537ecf165b9fe66三runner40167116307均终态success（121090333244/121090333292/121090333320），各完整两文件50/50、零skip。18次持久公开最终ACK为1178–3741ms，各138次COMMIT，最大52/53/980ms；相比7d各144次，实际默认worker启动事务减少已生效，但不覆盖历史超时。主unit3/121090332789原生发布内部中断20项全ok、无not ok；同主Verify40167116305最终七success/coverage121090332601失败：uncertain/SIGKILL/OS anchor-before-ACK用例5162.6964ms初始writer.phase('ready')超时，堆栈helper75，尚未advance。该次不能当成已进入中断后恢复失败，不能因另一unit20/20或三runner通过关闭初始化/五秒阻塞。
+
+本批只为现有原生发布夹具增加现有openContextRecoveryStorage.onStartup只读阶段观察，保留开库/默认worker/DPAPI/OS锚点和所有原请求/fixture期限与断言。父端独立小模块先拒绝Proxy/访问器/额外字段/非普通对象，再复用实际导出的createStorageStartupProgress验证阶段及顺序；不假设模块导出私有STORAGE_STARTUP_PHASES数组。只保留闭合阶段名及0..60000整数毫秒，拒绝时间倒退、未知/重复阶段和终态后消息；无原文、路径、key、header、模型响应或底层异常。新诊断解析器首轮泛用数据解析触发Proxy回归后已改为严格自有数据描述符，完整两项纯回归通过且hook零执行，不将其当产品根因。
+
+子进程另报告已观察、已准备、已开始发布三处固定fixture阶段，5秒失败时才组合awaiting/lastFixture/startup/startupElapsedMs，避免在轮询热路径重建诊断对象。原5秒/750ms/15秒与故障见证、精确ACK/revision/expiry/FULL/DELETE均不变，畸形观察只形成固定夹具失败，不能制造绿色。完整COMMIT/发布/格式及观察41/41本机通过、零skip，新增测试进入统一unit发现；Windows阶段回执待新SHA，不宣称已定位或修复全部原生初始化根因。
+
+d273正式40166295033最终四项全success，N08/N09为121091148310/121091148375；该SHA主coverage原生ready失败仍保留。7d安装40166039585/121087243460已通过其自身完整门禁及构建，正在实际同格式/DPAPI阶段，4ec正式/review/安装原作业继续，不取消/重跑，尚无新实际安装结论。既定五秒稳定性、在途排空/客户端重启、容量/真实24小时及到期重开、真实provider和受控交付缺口保持，冻结长测未访问、模型0。
+
+## 2026-10-25：默认owner原子完成启动与锚定布局封存，减少一笔启动事务
+
+7d56650主Verify40166031041最终八项全部success，但review的Claude5002ms、Rust WouldBlock及正式原生ready/DPAPI超时保持，不能据主CI取绿。d7dbad6 Rust121089299919终态success，新增强制非阻塞/分段请求和原chunked用例均实际Windows通过；完整应用40项、二进制1项、原生20项零ignore，fmt/严格Clippy/审计通过。其余原作业及7d安装40166039585/121087243460继续，不取消/重跑、不授尚未完成资格。
+
+本批为实际启动路径修改：默认createStorageOwner用严格内部anchoredStartup布尔能力，将已有布局封存放入启动的同一BEGIN IMMEDIATE事务，在独立anchor.validateStartup准入、原时钟/配额/清理全部完成之后、同一COMMIT之前执行。随后仍独立BEGIN快照重新认证，并等待OS锚点持久ACK才engine_ready；初始锚点意图仍在SQLite提交前持久化。旧显式prepareAnchoredFormat能力仍用自己的事务，public storageRequest和产品配置不新增此能力。FULL/DELETE/secure_delete、所有原期限、原到期/预算/CAS和ACK版本相等不变。
+
+实测默认owner新建/重开均只有启动事务加独立只读快照，不再另开封存事务；空库和旧布局1/2少一笔写提交，已为3时少一笔独立只读封存事务。真实SQLite回归覆盖空库、已有1/2/3、完整reference原文读取、准入先于封存、正常旧行/blob密文与revision/到期/预算保持；非法/极端布尔及缺失准入能力在访问数据库前拒绝。准入、封存、COMMIT失败及实际max_page_count触发SQLite FULL(13)均回滚时钟/布局/密文，随后相同数据库重开能读回原到期/预算/revision。专项新增用例修改前13项8通过/5失败，修改后扩大九文件149/149通过、零skip；新增最终FULL错误码见证后完整格式文件15/15通过。独立owner接线回归还精确核验BEGIN IMMEDIATE/COMMIT(schema3)/BEGIN/COMMIT(schema3)及两次初始锚点写，未省略后提交认证。
+
+另存储service/blobs完整两文件87通过/1项既有Mac原生开库失败/1项既有Windows限定preload测试skip；本批未新增skip，保留失败及平台界，不用本机合成保护器替代Windows DPAPI/OS锚点。改动Lint/格式、全树1589JS语法及CI/release治理通过。初始化工作减少仍须本批新SHA完整Windows、三runner原时序及实际安装；不能声称解除HTTP五秒或所有初始ready超时。d273首次216对真实ETW刷新资格仅限其观测范围，五秒总稳定性、在途排空/客户端重启、容量/真实24小时及到期重开、真实provider和受控安装交付缺口保持。冻结长测未访问、模型0。
+
+## 2026-10-25：首次取得真实ETW刷新配对，保留7d五秒及原生初始化失败，修复Windows测试夹具模式
+
+d2736ab812ca8600b09c654e5955ea0b7d670651独立I/O40166295023/121087926753已终态success：原两份完整测试50/50、零skip，ETL29229056字节；首次实际读得582条有界筛选记录、216对成功Flush/OperationEnd，其中database72次最大60ms，journal144次最大78ms，collisions/unmatchedEnds/failedFlushes/unfinishedFlushes全部0。相同作业六次持久公开最终ACK1213–1543ms、144次COMMIT最大132ms。ProcessingErrorData/EventPayload标准载荷补充后实际解码链已可用；仍保留traceCompletenessVerified=false、fiveSecondQualified=false，环形记录可能丢事件、跟踪可能扰动，不能由本次无慢刷新解释或覆盖另一runner历史超时，也不授整体五秒稳定性。
+
+7d56650 review Verify40166039552终态六success/两failure。coverage121087176443中的Claude long-persistent首轮fetch在5002ms超时（requests4/handshakes4/roots1），不是最终ACK失败：尚未headers，startPublicationAsync439ms在请求超时后才结束。前段settle/read/prepare COMMIT为513/672/391ms，prepare阶段sqlite_clock_write另408ms，均只定位等待边界，不能由另一runner的ETW统计替代本次物理原因。原五秒和全部失败保持，同事务解密减少未解除该阻塞。
+
+同review Rust121087176310为38通过/1失败/0ignore：health chunked测试的服务器夹具在src/proxy_health.rs读取请求返回Windows10035/WouldBlock。非阻塞监听器accept后继承模式与源码吻合；本批仅在cfg(test)夹具已接受socket上显式恢复阻塞读取，原1秒夹具超时、300ms产品调用与全部生产实现不变。新增跨平台强制非阻塞并分段发送请求的回归，修改前完整模块6通过/1失败且同为WouldBlock，修改后7/7通过、零ignore；独立rustc严格告警、Clippy驱动及cargo fmt检查通过。实际Windows完整Rust仍须新SHA；这不是持久恢复五秒产品修复。
+
+7d正式40166031010/source121087151590亦failure：原生发布transport-finished两项5156.9907/5162.3043ms初始ready等待超时，均helper75、尚未advance；另旧DPAPI包装兼容测试在10066.5624ms以context_recovery_key_unavailable失败。d273普通40166294991为七success/coverage121087926978失败，原生prepared/ACK前SIGKILL用例5278.4866ms也停初始ready，尚未中断。均保留、不重跑、不提高5秒/10秒界，不能当成已证明中断后恢复缺陷。7d主coverage和实际安装原作业继续，不取消。下一步沿原负载定位初始化/串行存储等待；完整在途排空、重启留存、容量/真实24小时及到期重开、真实provider与受控交付缺口保持。冻结长测未访问、真实模型0。
+
+## 2026-10-25：7d56650三runner原时序全通过，继续修复ETW渲染失败载荷边界
+
+7d5665067dff482ec42e66e6f87dff53a502cdc1独立时序40166031015三个原作业均终态success（121087151444/121087151521/121087151536），各执行完整两文件50/50、零skip且不重试。三组各六次持久公开最终ACK分别1267–1421ms、1191–1331ms、1265–2438ms；各144次COMMIT最大54/39/521ms。原五秒断言、默认worker/DPAPI/OS锚点均保留。此结果验证本批产品在三个独立runner上的原负载，不覆盖旧5002/5018/5028ms等失败；普通/正式/实际安装原作业尚在完整门禁，未授本批完整交付资格。
+
+7d独立I/O40166031013/121087151445终态失败：原50项全通过，ETL为29491200字节；枚举第24事件、第二个FileIo、首条待选记录即decode-record失败，formats={unmapped:1}、字段位图0且无已知文件/待配对。说明此前三种表示仍未覆盖该记录，不是有效刷新证据或产品根因。本批按微软公开事件schema补充ProcessingErrorData/EventPayload标准二进制载荷路径，仍须单一表示、唯一System/Version及原严格x64版本/长度/UTF-16校验；不使用错误描述或原始数据日志，不忽略解码失败、不改记录/配对/时限界。新增v2/v3该表示、重复载荷/混合表示/重复版本拒绝，完整九项测试修改前8通过/1失败，修改后9/9通过、零skip。实际失败是否采用此标准表示仍待新Windows作业确认，不能提前称已定位唯一根因。
+
+另核对70f3991正式失败的完整堆栈，helper第75行为初始writer.phase('ready')，尚未发送advance；故该次5463.6451ms失败是初始化见证超时，不能称作已经进入转换或COMMIT中断后的失败。原五秒fixture门限及失败保持。产品本批未再改变；7d正在运行的完整CI、正式及安装不取消/重跑，旧582实际迁移资格、全部剩余范围和原门禁保持。冻结长测未访问，模型0。
+
+## 2026-10-25：同事务清理认证复用及经典FileIo解码，保留70f3991正式中断失败
+
+70f39915ab010c542dc6d76689cc64656ba1b02a普通Verify40164282003八项已全success，但正式40164281984/source121082016694终态failure：publication transport-finished/release control inside durable commit before ACK在原fixture phase期限内未到达见证阶段，耗时5463.6451ms，错误fixture phase deadline exceeded，整文件19通过/1失败，后续context-recovery跳过。尚未定位该阶段等待的实际原因，不当成五秒HTTP唯一根因，也不延长期限或重跑原失败作业。45419e6正式40163808163/source121080639483另有Claude第二轮headers/body4964ms、最终publication_wait_failed5018ms，finish180ms；与同SHA unit5002ms失败及此前全部失败并存。a8b4324普通八项/正式四项最终全success，不能覆盖上述失败。
+
+70独立I/O40164281997/121082016681原两份完整测试50/50通过，固定32MiB记录产生29622272字节ETL，在原256MiB界内；枚举383676事件，其中383263 FileIo、193517条待选记录，五个命名字段的存在位图全部为0，knownFiles/pendingFlushes均0，终态decode-summary失败。证明原命名字段解码未取得所需元数据，不能仅凭位图断言唯一二进制表示或产品物理刷新根因。本批新增独立纯PowerShell经典FileIo二进制解码模块，只接受已知小端x64版本及精确布局；支持BinaryEventData、EventData/Binary、单匿名Data，统一十进制/十六进制指针，拒绝混合/重复载荷、未知版本、非法UTF-16和错误长度。仅hosted X64可记录；原事件/内存/文件/时限界保持，汇总有指针碰撞即拒绝资格。真实PowerShell到Node汇总九项全通过、零skip，含三种表示、v2/v3、Unicode、混合指针和失败边界；固定WPRP亦通过微软公开XSD的实际编译验证。尚须新Windows作业取得有效刷新配对，不宣称已修复五秒。
+
+产品修改继续减少实际重复解密：prune已完成认证及语义验证的当前目标reference元数据，只在同一同步事务回调内保留；后续SELECT所得密文及全部AAD的SHA256标签必须精确相等才复用，否则重新认证。配额admissions仍只有标签/版本，不缓存原文、其他root或跨事务数据；独立提交后快照/OS锚点认证保持。正常和空source回归先复现旧实现两次认证，再验证本批一次；新nonce必须重新认证，损坏密文和改变预算必须拒绝并实际回滚，原到期保持。完整blobs文件63通过/1项既有Mac原生开库失败，零skip；另七份锚点/格式/读取结算/COMMIT与发布中断文件105/105通过、零skip。新回归进入统一unit发现，不以Mac局部结果替代Windows默认worker/DPAPI/OS锚点资格。
+
+改动文件格式/Lint、全树JS语法、CI及release治理检查通过；全树格式既有LF/CRLF问题不批量改写。认证、预算预扣ACK、精确版本/CAS、FULL/DELETE、原到期和全部期限保持。下一步新SHA完整Windows、固定三runner时序、实际安装迁移/两端四组及有效I/O证据；本批CPU工作减少不等于COMMIT物理等待已解决。582实际安装迁移/旧版拒写已有资格保持；在途排空/客户端重启、容量稳定性、真实24小时及到期后重开、真实provider和受控安装交付仍未完成。冻结长测未访问、真实模型0，额度逐端预留未核验前不调用。
+
+## 2026-10-25：保留45419e6最终发布ACK五秒失败，固定WPR记录缓冲与停止阶段
+
+45419e682ac31a69573f5805006c1e6117ced0f4普通Verify40163808290的unit shard2/121080640113终态failure：Claude long-persistent第二轮ownerEpoch2在4736ms收headers、4737ms收完body，publication_wait_start为4737ms，publication_wait_failed为5002ms；finishPublicationAsync耗时315ms，最终save301ms、COMMIT170ms、anchor72ms，ACK在原截止之后才完成。前段准入/结算/读取有858/506/521/793ms COMMIT等待，多数线程CPU为零。此为最终发布持久ACK超时，不改写为fetch完全未响应；原5000ms包含发布ACK的断言保留，不省略最终ACK、提前标记transport-finished或用其他通过覆盖。
+
+同SHA独立I/O40163808175/121080639391的两份原测试仍50/50通过，但随后固定trace-stop阶段失败，未进入解码，仍无有效HPM_PERSISTENT_IO。它与前次a8 decode失败属于不同已观察阶段；当前旧回执不足以确认是WPR退出、管道、文件类型还是256MiB上限，不猜测单一根因，也不重跑旧作业。
+
+本批用提交内固定WPRP取代隐式内置FileIO配置：仅Filename/FileIO/FileIOInit，64KiB乘512个内存环形缓冲即32MiB，无栈或额外事件provider，原1百万读取/10万汇总事件、256MiB文件和16MiB stdin界均不变。仍是完整两文件各一次，原期限/全部断言保持，缺失配对不能授完整性或五秒资格。停止命令、trace文件检查、文件大小检查分别记录闭合阶段；WPR只输出固定cause及数字退出码，文件只输出字节数，不转发原生stdout/stderr。记录scope仍是隔离hosted诊断，不改产品FULL/DELETE或用户环境。
+
+增加真实PowerShell读取WPRP的内存/模式/provider范围回归，本机八项完整通过、零skip；配置需新SHA的Windows WPR实际验证，不能把本机XML或测试通过当作成功物理I/O记录。a8普通Verify40163260932八项已success，正式40163260961及454正式40163808163 source观察时仍运行；保留原作业。当前产品五秒稳定性、在途排空/客户端重启、容量/真实24小时、真实provider和受控交付仍未完成，冻结长测未访问、模型0。
+
+## 2026-10-25：保留首次ETW解码失败，原50项通过不当成刷新证据
+
+a8b4324ffaf4ffa5a1cc06535d3528fcf9dad5e0独立I/O作业40163260955/121079049885终态failure：原两份完整测试50/50通过、零fail，随后在decode阶段固定persistent_io_diagnostic_failed失败，Node汇总也因未取得有效输入返回persistent_io_summary_failed；没有HPM_PERSISTENT_IO成功回执。不能把这个诊断脚本失败当成产品开库/恢复根因，也不能从50项通过推断已取得物理刷新时序。旧5028ms、5003ms及全部历史失败保持，不重跑原失败作业。
+
+本批仅把解码失败分为固定enumeration/provider/record/limit/summary阶段，并记录有界事件数、已知provider类别计数和五个微软公开字段的存在位图；不记录任意provider名称/字段名、路径、事件值或底层异常。字段位图只有0..31的字符串键及次数，另记录已关联文件和待配对数；实际原因仍须新作业确认，没有提高原事件/文件/内存界或忽略任何失败。PowerShell实际元数据回归同时验证位图及安全JSON序列化，本机七项完整通过、零skip。
+
+观察时a8普通Verify40163260932七项success、coverage仍运行，正式40163260961 source仍在完整门禁，保持原作业不重启。产品、认证、FULL/DELETE、ACK和期限未改，真实模型0，冻结长测未访问。下一步先取得闭合失败阶段，修复实际解码边界后再用成功的文件刷新证据继续五秒定位；在途排空/客户端重启、容量/真实24小时、真实provider及受控交付等完整剩余范围保持。
+
+## 2026-10-25：2f32016完整门禁通过，增加隔离ETW文件刷新诊断以继续定位五秒等待
+
+2f32016738a7ff34fb0054039503fb677b4d3136普通Verify40161378828八项、正式Windows40161378886四项均已终态success，N08/N09为121075736802/121075736835；新增原生发布内部中断20项已在完整门禁执行。正式source121073482410另12次持久公开发布810–1557ms、288次COMMIT最大189ms；coverage121073482109另12次1366–2133ms、288次COMMIT最大288ms。38c2d5e的5028ms和父批5003ms/COMMIT2085ms等历史失败继续保留，这些成功不能关闭五秒稳定性。
+
+本批没有为取绿修改事务/认证/时钟/ACK/原期限。只对三个已有较小固定容量profile作本机合成CPU诊断，原参数及正确性断言保持；替代编码循环与原实现的468/198/59ms对473/197/59ms未见实质收益，因此未改生产编码器、未运行暂停的最大档，也不把三档合成结果当作完整容量或Windows性能资格。核对Node v22.22.3原始node_sqlite.cc确认get/all返回时会重置游标，当前证据不支持把游标未释放当作已确认根因。
+
+新增独立Windows persistent I/O diagnostic，只在一次性hosted Windows/本仓库环境运行两份完整原Core/WBIPC与Codex-summary文件各一次，所有原5000ms请求/断言保持，无过滤、重试或continue-on-error。使用系统WPR FileIO内存环形记录和唯一随机instancename，start/stop/cancel均绑定该名称且单次调用30秒有界；不取消其他记录、不改变系统策略或用户主机环境。原始ETL不上传，停止后只读解码，最后独立清理自建目录及自己创建/尝试创建的跟踪实例。
+
+入口仅组合，记录/解码模块和纯JS有界配对汇总独立。只选合成hpm-wbipc-core目录的checkpoint.sqlite及DELETE journal名称，以FileKey和IrpPtr绑定成功NtStatus的Flush/OperationEnd；名称/指针复用、未完成/丢失配对、失败flush不能制造成功证据。不相关路径在进入Node前过滤/清空；日志只有按database/journal的次数、最大耗时和阈值计数，不含路径、原始事件、原文、密钥或响应。XML拒绝DTD/重复字段，stdin严格UTF-8/规范JSON及16MiB上限，事件/文件/待配对数有界；没有成功配对就固定失败。traceCompletenessVerified/fiveSecondQualified恒false：环形丢事件不能证明无慢I/O，跟踪本身可扰动时序，也不能把一次刷新直接当作某次COMMIT的唯一因果解释。
+
+本机7项回归通过、零skip，含真实PowerShell元数据解码/非hosted拒绝、非法/访问器/Proxy/极端/容量/指针复用/失败状态/重复JSON/错误UTF-8及实体拒绝；新测试进入统一unit发现。Windows WPR实际记录仍须新提交独立作业，不宣称已经取得物理刷新根因或修复五秒问题。38c2d5e实际582迁移及两端四组资格保持；在途排空/客户端重启、容量稳定性、真实24小时、真实provider与受控交付仍未完成。冻结长测未访问、模型0。
+
+## 2026-10-25：38c2d5e实际安装582迁移及两端四组通过，2f32016原生内部中断20项通过
+
+38c2d5e3bbcd5826d461c384947a12a9da943cff实际安装40159540153/121068085491终态success。安装manifest为2bfc2de39418c098d7228c1485e4f84feafe1f2891a6cd45959ac263fd67259f，应用SHA256为71180a708b36f1a49dce50bab78b1aa7018fdada0461c53c974634296877b867。固定582完整恢复后，实际NSIS安装目录执行八阶段默认worker迁移：旧版seed/read、当前未登记拒绝、显式登记/布局1到3、当前resave/read、旧版拒写且文件保持、当前最终read；原到期、预算、原文、密钥身份及revision仅增一保持，外层installedMigrationQualified=true、ownedTreeEmpty/uninstalled=true。内层驱动自身nsisQualified=false仍保留，不把独立运行包资格改名；外层安装归属及卸载见证才授实际安装迁移资格。
+
+同一安装随后通过实际应用两次正常空闲停止/默认worker重开、原到期保持和清理前自然Job为空；scope仍为installed_native_idle_stop_storage_reopen，restartRetention/clientQualified/24h仍false。随后Codex、Claude默认/增强四组实际CLI各三次原生压缩、精确最终答案通过；默认零代理恢复、增强私有读取后独立公开生成，TLS/非回环阻断/监听归属/进程树与socket清理及最终卸载通过。上游仍为合成环境，真实provider/24h资格false，真实模型0。旧daemon-http-settings-matrix的forced_cleanup/gracefulDrainQualified=false保留，不能用独立空闲停止证明在途排空。
+
+2f32016738a7ff34fb0054039503fb677b4d3136普通Verify40161378828的unit shard3/121073482168已success，日志逐项确认新增20项native worker publication全部通过：prepared/sending/transport-finished/uncertain/withdrawn各含实际COMMIT PENDING锁等待、独立OS锚点完成后发布层ACK前，以及强杀/正常释放对照；同目录默认原生worker重开后的原/后继精确revision、期限、原文、预算和发布状态断言保持。无平台skip、注入保护器/锚点/WorkerType或合成时钟。这授予该固定worker层内部中断范围证据，不扩大为完整实际安装故障资格、五秒稳定性或真实24小时。Mac20项原生开库失败仍保留。
+
+观察时2f32016普通CI七项success、coverage仍在test:coverage，正式40161378886 source-gates仍在完整原门禁；继续原作业，不重跑。38c2d5e主coverage的5028ms及所有历史失败仍保持，不能被582/新中断测试通过覆盖。38到2f的lib/src/src-tauri/native/runtime及package/lock无变化，当前产品身份与上述实际安装一致；2f新增测试及文档本身的完整CI尚待终态。
+
+582实际迁移/回滚拒写和默认worker内部发布中断本轮分别取得了明确范围的实测证据；剩余五秒及混合/最大容量稳定性、在途排空/客户端重启留存、真实24小时与到期后重开、额度预留核验后的真实provider以及受控自用安装器交付/启用仍未完成。冻结长测未访问、模型0。
+
+## 2026-10-25：将发布内部中断扩展到默认原生worker，等待Windows实际结果
+
+新增20项原生发布中断验收，复用原五种发布转换prepared/sending/transport-finished/uncertain/withdrawn及两种边界的强杀/正常释放对照。原文件SQLite路径和24项已有COMMIT/发布回归完整保留且本机24/24通过、零skip；新路径直接使用openContextRecoveryStorage默认worker、默认DPAPI和OS锚点，真实Date.now，不传递或注入数据密钥、不替换WorkerType/保护器/锚点库。仍用原15000ms用例、5000ms阶段和750ms PENDING见证期限，未提高任何预算或重试。
+
+COMMIT边界先由独立进程持有真实SQLite SHARED读锁，发布转换发起后还必须实际观察SQLITE_BUSY/PENDING与非空DELETE journal，不能把父进程的调用前阶段通知当成已经进入COMMIT。ACK前边界必须先等默认worker完成SQLite及独立OS锚点持久回执，再由验收包装层暂缓交给发布状态机；不更改生产worker或放宽ACK。强杀后及正常释放后均以同目录默认原生worker重开，精确比较原/后继revision、原期限、发布状态、预算及原文，并验真实数据库完整性与DELETE/FULL。原直接SQLite连接busy_timeout断言保持；原生只读检查连接不冒充worker的连接局部busy_timeout。
+
+新文件由统一unit发现，未添加平台skip或忽略门禁。本机新增20项全部在native-opening之后、native-opened之前失败，尚未进入转换；该失败保留，不宣称Mac或Windows原生中断资格，Windows必须由新提交完整原门禁实际执行。这批是补齐真实边界验证，不是5028ms五秒等待的产品修复；五秒及历史失败保持，582原安装作业继续原身份，不重启、不抢占用户长测环境。
+
+另以Idle只读重核原预算文件，数值仍为maximum177/used169、请求169、Codex99/Claude70/其他0，与交接相等。前次固定numeric-fields失败由本机诊断仅接受Int32导致；允许Int32或Int64且保持0..10000原界后安全读取成功，没有修改台账或额度。剩余Codex1/Claude7仍来自用户分端授权且不能合并；逐端持久预留尚未核验，不发真实请求、不自动重试。冻结长测未访问，真实模型0。
+
+## 2026-10-25：38c2d5e正式Windows和review通过，保留主coverage新5028ms失败
+
+38c2d5e3bbcd5826d461c384947a12a9da943cff正式Windows40159526465四项全部success：source-gates121067972485、egress121067972616、N08 121070300026、N09 121070300033。独立review Verify40159540131八项全部success；其中coverage121068016371的12次持久公开发布1209–2426ms、288次COMMIT最大122ms。正式source另12次738–1389ms、288次COMMIT最大77ms。它们是各自原作业结果，不替代同SHA其他失败。
+
+主Verify40159526473七项success，coverage121067972718在原test:client:coverage失败：Chat long-persistent首轮5028ms，requests=4、handshakes=4、roots=1、ownerEpoch=1，原5000ms门限保持。该轮sequence7 settle-reader的COMMIT627ms、线程CPU为零；sequence9 read-source-and-settle的COMMIT312ms、anchor255ms；sequence10带admission/publication的保存403ms、completeAsync451ms，之后仍有独立startPublicationAsync139ms。失败时已经到第四次合成上游请求，不能把它改称只在首次开库或首次LIST失败。启动阶段另有1392ms COMMIT，但启动完成在HTTP计时之前，不能用它解释请求总时长。多个串行持久阶段及等待并存，尚未确认底层I/O、锁或调度唯一根因；不删预算预扣ACK、持久发布或独立公开生成，不改FULL/DELETE、时钟水位和期限。
+
+父批db493bb正式40158989393 source121066344344的Chat首轮5003ms失败也保留：requests=2、handshakes=2、roots=1；sequence6带admission保存2405ms、COMMIT2085ms且线程CPU为零，后续结算/保存/读取仍有445/791/492ms COMMIT。三runner独立时序全通过不能覆盖这项失败，更不能覆盖本批5028ms。
+
+实际安装40159540153/121068085491已通过固定582归档与官方Node接收、旧锁依赖恢复及完整582身份验证，也已通过当前候选完整门禁；观察时正在构建安装器，实际582安装迁移、旧读者拒写及随后两端四组尚未执行。空根键修复已获Windows完整旧包恢复证据，迁移资格仍未获得，不重启该原作业。模型预算的新增安全读取仅返回固定budget_snapshot_unavailable，未获得新额度或预留证明，真实模型仍为零。冻结长测未访问。
+
+剩余交付保持：五秒及混合/最大容量稳定性、原生持久发布内部中断完整资格、最新实际安装582迁移/回滚拒写、在途排空与客户端重启留存、真实24小时及到期重开、额度安全核验后的实际provider两端使用、受控自用安装器交付与启用。普通CI/review/正式或局部恢复成功均不授予整体完成。
+
+## 2026-10-24：保留db493bb恢复失败，修正npm旧锁空根键解析；三组独立五秒时序通过
+
+db493bb48c0d4e00a98d7a0efe8741e3d7403da5独立安装40159004855/121066458592终态failure：原625草稿接收和新增582私有归档/官方Node接收均成功，随后Restore old locked dependencies and verify complete 582 identity在npm ci之前仅返回固定legacy_runtime_restore_refused，尚未进入候选门禁、构建或582实际安装迁移。该失败保留、不重跑；不能把下载成功当作旧包恢复或迁移通过。
+
+直接读取固定582归档中的原锁文件（SHA256仍为762f7ba751ba65e0158313e5cf1f949327a3b3ddbd86eca94995d41ee69f55ef）复现确定的解析缺陷：合法的packages[空字符串]根条目被PowerShell默认ConvertFrom-Json拒绝，错误分类EmptyKeyInJsonString/InvalidOperation。这是足以导致该恢复路径失败的实际问题，原托管日志没有内部阶段，尚不能断言排除所有更早或后续问题。独立模块导入诊断第一次因命令行脚本块PSScriptRoot为空而失败；改用模块明确ModuleBase后两项命令均可见，该诊断自身错误不当成产品根因。
+
+本批提取可测试的锁文件解析边界并使用ConvertFrom-Json -AsHashtable保留空键，严格校验4MiB输入上限、数字版本3、原name/version、packages字典及空键根包/直接依赖字典；不改锁文件字节、依赖版本、npm ci --ignore-scripts或安装门禁。合法空根键回归先在原解析逻辑失败，修复后通过；实际原锁也成功保留空键和117个条目。另增加仅含固定枚举的恢复失败阶段回执，不转发底层异常或数据，以便新Windows链区分路径、解压、元数据和依赖安装阶段。入口仍拒绝非hosted运行。本机扩大46/46通过、零skip，修改文件Lint及CI/发行治理通过；该局部通过不授予Windows完整恢复或迁移资格。
+
+独立三runner时序40158989433的121066344474/121066344565/121066344612均success，各完整50项/零skip、每份文件仅执行一次。三组分别6次持久公开发布896–1061、857–1215、1319–1502ms，总18次均在原5000ms内；432次COMMIT最大90ms。真实Windows worker、DPAPI、OS锚点及所有原断言保持，上游均为受控合成环境，真实模型0。这增强当前产品的固定负载稳定性证据，不覆盖历史5007ms/其他失败或真实24小时。
+
+db493bb普通Verify40158989400当前七项success、coverage仍运行，正式40158989393 source-gates仍运行；它们继续原身份，不因本批修复取消或重启。新SHA仍须完整CI、实际582旧包恢复/安装迁移与原两端四组。容量/真实24小时最终证据、在途排空/客户端重启留存、真实provider和受控自用交付尚未完成；冻结长测未访问，真实模型请求0。
+
+## 2026-10-24：89d8c00完整托管与安装通过，接入固定582旧包的隔离接收、恢复和实际安装迁移链
+
+89d8c0001d805cb6b1913aee2d5942a061c6c547普通Verify40156764926八项、review Verify40156770852八项和正式Windows40156764938四项均success；正式N09/N08为121062226123/121062226144。coverage121059692375的12次持久公开发布1136–2960ms、288次COMMIT最大353ms；正式source121059692848另12次925–1805ms、288次COMMIT最大106ms。此24次固定负载在原五秒内，不覆盖b2a27b5的5007ms及所有历史失败，不宣称无限负载/24小时稳定性。新增旧行重复解密回归已进入完整Windows门禁。
+
+同一产品SHA实际安装40156770824/121059781694终态success，manifest为6248275d12f1545e8358cc77f008321729b4732981a90e0c96b32dc3219d6863、应用SHA256为186feddbb284aec1c5f36247951c6214def169a55d1ff88297bf02a79c931311。实际安装升级回滚/DPAPI、原生两次正常启停和持久重开/原到期保持、清理前Job自然为空均通过，随后Codex/Claude默认/增强四组各三次原生压缩与精确最终答案、TLS/非回环/监听归属/清理及卸载通过。原生资格仅为空闲停止重开，矩阵上游仍为合成环境，真实provider、客户端重启留存和24小时未合格；旧daemon forced_cleanup不改名。
+
+本批新增独立模块接收582固定草稿423120279/asset673959578：分别绑定旧草稿target与当前checkout SHA，接收前后核验作者/未发布/唯一asset的精确名称、大小、服务端digest及匿名404；流式下载有界，归档和官方Node分别校验固定摘要。官方Node请求不携带GitHub凭据且拒绝重定向。ZIP先验证固定manifest摘要和585个条目全集、路径/大小/总量/链接类型，再有界解压并逐项验hash；已有输出、重复/缺失/额外条目、路径穿越和父路径链接拒绝。旧依赖只用npm ci --omit=dev --ignore-scripts，随后重验全部582源码、Node、native和旧锁文件，未运行旧包安装脚本或升级依赖。
+
+原独立安装workflow保留所有候选/安全门禁、原625安装升级回滚、原生启停及两端四组；新增独立的582实际安装步骤，位于同格式验收后、原客户端四组之前。它复用原actual-NSIS payload安装/注册/源码身份/卸载保护，以该次真实安装目录运行原八阶段默认worker驱动：原582种入与读取、未登记拒绝、显式登记及布局1到3迁移、resave/读取、旧版拒写且字节保持、当前最终重开。驱动必须在原Job归属后才放行stdin，保留原240秒外层、120秒单阶段与自然退出检查；最大预算预扣、精确ACK、FULL/DELETE及原期限不变。严格15字段回执校验拒绝字符串布尔/数字、重复/额外字段和越界资格；只有安装保护、八阶段、Job自然为空和卸载全部成功后，外层才可授installedMigrationQualified。原驱动自身nsisQualified=false仍原样保留，不把单独运行包证明改名。
+
+本机扩大45/45通过、零skip，含真实ZIP16类场景及PowerShell回执83边界、无Job放行/非hosted入口拒绝和原安装保护回归。对实际固定582公开归档也执行了解压，585项身份通过，未执行Windows Node/native。全树1586文件语法通过，Lint零错误/五个既有警告、CI/发行治理通过，audit满足原high门槛并保留既有moderate。本机全树format:check在1526个既有文件失败；未修改.prettierrc.json与HEAD字节相等，单独复核仅LF/CRLF差异（项目要求crlf），不批量格式化无关文件或改门禁。本批文件格式单独检查；新增全部测试进入统一CI。原工作流凭据下载步骤从一项变两项，契约仅允许两个固定下载入口持token，恢复/迁移/客户端步骤不携带token。
+
+另外补齐独立三runner时序workflow对SQLite实现及本批相关回归文件的路径触发，仍每个runner仅执行一次两个完整原测试文件，无过滤、重试或门限变更。本批新SHA仍须完整Windows与实际582安装链结果，不能用89d8c00替代尚未执行的新步骤。真实24小时、在途排空/客户端重启留存、容量、真实provider和受控自用交付仍未完成；冻结长测未访问，真实模型0。
+
+## 2026-10-24：582固定公开文件归档已通过同用户安全认证私有传递
+
+89d8c0001d805cb6b1913aee2d5942a061c6c547的普通Verify40156764926当前七项success、coverage仍在客户端覆盖阶段；正式40156764938的source-gates和独立安装40156770824/121059781694仍在原完整门禁。原b2a27b5的Claude5007ms及历史失败保持，不重跑旧失败、不以在运行或七项成功授完整资格。
+
+为解除582旧布局隔离验收的材料阻塞，通过已确认授权的同一MicrosoftAccount交互会话，以Limited/Idle一次性任务上传固定公开归档。未发布草稿release ID为423120279，唯一tag为hpm-582-public-transfer-22d1b5ef-40af-484c-b4a0-53ac09359f19，target_commitish为89d8c0001d805cb6b1913aee2d5942a061c6c547；唯一asset ID为673959578，名称hpm-582-public-runtime-without-node.zip，1461331字节，GitHub服务端digest精确为sha256:ced2c62a472107876b75dad73bd3161954988fa341f526d918f85b7be6812abb。独立已连接账户再次读取确认作者cbhandsun、draft=true、published_at=null及上述身份；无认证HTTP读取该release返回404。没有发布、覆盖或替换旧625安装器草稿，公开release.yml签名门禁未改。
+
+归档只含原固定manifest声明的582源码、旧native、旧锁文件及原manifest，共585项；此前逐项摘要、ZIP复读和公开源码凭据特征扫描通过。Node与node_modules尚不在其中，不能直接执行或当作完整旧包。现已从https://nodejs.org/dist/v22.22.3/SHASUMS256.txt取得官方清单，win-x64/node.exe摘要与旧manifest精确相等：780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b。旧锁文件为v3、117个package条目，根直接依赖与原manifest相等、无根devDependencies。后续须在隔离runner补齐固定Node、仅按旧锁文件恢复依赖，严格验证下载/解压/运行包身份后，再用最新实际安装目录执行默认worker八阶段迁移与旧版拒写。
+
+首次传递辅助调用在identity阶段失败、未进入草稿创建，原失败回执保留；核对不存在同tag草稿后，改用独立命名且带固定错误分类的辅助调用成功，不据此声称已确定首次失败唯一原因或否定用户授权。两次临时任务和目录均已清理，未导出凭据，未读取或上传数据库、密钥、OS锚点、私有日志或原文。Windows用户主机仅执行公开归档写入和GitHub CLI传递，没有运行产品代理、storage worker或安装器，冻结长测未访问、真实模型0。
+
+本批完成的是私有传递，不是582迁移或回滚资格；最新源码完整CI/安装、五秒稳定性、最新安装582迁移、在途排空/客户端重启、容量/真实24小时、真实provider和自用交付仍需后续证据。
+
+## 2026-10-24：复现并消除单笔持久变更中的旧行重复解密，五秒稳定性仍待新Windows验证
+
+沿b2a27b5正式Claude long-persistent第二轮5007ms失败继续审查，实际SQLite回归确认：带admission的save-reference-state在同一事务内解密旧状态三次，其中清理检查一次、admission一次、saveReference再一次。空来源和正常来源的新回归在修改前均因3不等于2失败；合并read-source-and-settle另在同一操作内重复打开旧行，新增回归用提交前原模块加载复现2不等于1。失败日志保留，不改变既有断言取绿。
+
+当前SQLite执行回调对一次读取出的prior行及AAD使用局部惰性openPrior，仅在本次同步锁定事务内共享其认证解密结果；admission、结算和重新编码继续各自原语义校验。清理扫描的认证检查、其他根的配额摘要检查均保持，局部值不跨回调或事务，不持久保存明文。读结算旧行从两次打开降为一次，admission保存从三次降为两次；SQLite提交数量、FULL/DELETE、安全删除、原时钟/期限、最大预算预扣、来源关联、CAS及精确ACK不变，没有把LIST提前到最大预扣ACK之前。
+
+新增三项回归均进入既有统一CI测试文件；覆盖空/正常来源、重开后的精确预算及期限、跨操作陈旧admission拒绝和版本保持、精确读取结算及单次提交。结算/契约及真实文件SQLite发布和COMMIT内部中断37/37通过、零skip。扩大SQLite/blob/anchor/admission回归115通过、一项Mac原生worker开库失败、零skip；使用提交前原模块单独复核同一worker用例也失败，该失败保留，不把本机扩大回归称为全通过。修改文件Lint、CI/发行治理及格式检查通过；全树1581文件语法通过，Lint零错误/五个既有警告，npm audit满足原high门槛、保留一项既有moderate，未升级依赖。
+
+这是实际重复工作修复，不是五秒等待唯一根因的结论；b2a27b5的5007ms以及历史COMMIT等待、五秒/六十秒和容量失败全部保持。完整Windows默认worker/DPAPI/OS锚点、持久时序和实际安装仍须本批新SHA门禁，不能拿b2安装成功替代。582迁移、在途排空/客户端重启留存、容量/真实24小时、真实provider及自用交付仍未完成。冻结长测未访问，真实模型请求0。
+
+## 2026-10-24：b2a27b5实际安装启停/持久重开与两端四组通过，582公开文件归档已重建
+
+独立安装40154568348 / 121053147383已终态success。源身份b2a27b5e36bbfbe398e846f7549bdca6c2854aeb，安装manifest为27b2b34208311ce623012b680dbb430eba5dc09ef42c161ef668b7bcdf5b008c，实际应用SHA256为47396fb3c4af66566e76f66bc722ceecdb9f36c2900ee24259f50d19f65b366b。完整候选门禁、构建、实际安装升级回滚和同用户DPAPI通过，随后新增原生探针首次完整通过：实际exe两次启动、两次正常停止、默认worker持久库重开、原到期时间保持，并在显式清理之前确认进程树自然为空。资格严格为installed_native_idle_stop_storage_reopen；restartRetention、clientQualified、retention24hQualified仍false，不扩大为空闲范围之外的在途排空或客户端重启证明。旧start-1/deadline失败全部保留，句柄修复在这一实际候选中已通过原期限验证，不据此认定它独自解释所有旧失败。
+
+同一安装任务随后完成Codex/Claude默认与增强四组实际CLI，各三次原生压缩、最终答案精确相等；默认代理恢复为零，增强执行私有读取和独立公开生成。矩阵passed/syntheticClientQualified、TLS、非回环阻断、监听归属、进程树空与模拟socket关闭均true，最终卸载成功。上游为合成环境，realProviderQualified及retention24hQualified均false，真实模型请求0。既有daemon-http-settings-matrix仍如实标为forced_cleanup、gracefulDrainQualified=false，与独立原生正常停止探针资格分开，未改名覆盖。
+
+正式Windows40154476053的Claude long-persistent第二轮5007ms失败保持；安装链独立成功不覆盖五秒稳定性问题，正式N08/N09未执行的事实保持。最新安装582迁移与回滚拒写、在途排空/客户端重启留存、容量/真实24小时、真实provider与受控自用安装器交付仍未完成。
+
+582旧包固定manifest 4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f已仅从其公开路径读取并核验。本机源码通过原始字节或CRLF候选的精确摘要匹配复原358项；另外224项公开源码、旧native及锁文件共226项/2223022字节经Idle只读传回，逐项摘要与固定manifest相等。未扫描或复制数据库、密钥、锚点、私有日志或冻结长测路径。
+
+Mac已生成只含582源码、旧native、旧锁文件和原manifest的确定性ZIP，585项、1461331字节，SHA256 ced2c62a472107876b75dad73bd3161954988fa341f526d918f85b7be6812abb，并从ZIP重新逐项校验。该传递归档刻意不含Node与node_modules，不能称完整可运行旧包；后续隔离runner须从官方取得v22.22.3且SHA256精确为780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b，并仅按旧锁文件安装依赖，全部身份验证后才可执行迁移。尚未上传任何582归档或授予迁移资格；用户Windows未启动代理、worker或安装器，冻结长测未访问，模型0。
+
+## 2026-10-24：确认同一微软账号的GitHub授权有效，建立不导出凭据的交互执行方式
+
+继续按用户要求核查：仅查询explorer.exe的拥有者SID，确认桌面会话与SSH为同一个MicrosoftAccount用户；PowerShell实际程序为非重解析实体文件。先前通过-File启动的受限一次性任务确实进入Running，但原30秒内无结果，终态诊断与清理保留，不能认定用户未授权或确定该任务卡住的唯一原因。
+
+改为同一用户Limited/Idle一次性任务直接执行固定编码命令，保持原30秒外层、10秒gh请求期限，不改执行策略、不提权、不复制或导出token。该任务成功调用gh api --hostname github.com user --jq .login，只把结果转为账号是否精确等于cbhandsun的布尔值；principalMatches、commandSucceeded、expectedOwner均true，临时任务和目录已清理，凭据导出false、模型0。因此用户已完成的GitHub授权有效，后续可在此受支持交互会话内通过gh进行582公开运行包的私有传递；不再要求重复登录。SSH本身的失败与旧-File任务无回执不能覆盖此成功，也不宣称已定位全部会话差异。尚未创建或上传任何582归档，最新安装582迁移仍未完成。
+
+原b2a27b5的Claude持久恢复5007ms失败保持；独立安装40154568348/121053147383已完成构建，正在实际安装同格式/DPAPI验收，尚无原生启停或四组新结论。冻结长测未访问，原门禁和真实模型额度约束保持。
+
+## 2026-10-24：b2a27b5普通CI及Windows管道回归通过，正式Claude持久恢复新增5007ms失败
+
+b2a27b5e36bbfbe398e846f7549bdca6c2854aeb普通Verify `40154476073`八项全success，独立review Verify `40154568293`八项也全success。Windows Rust `121052792755`严格all-targets Clippy、应用39项、二进制1项、原生助手20项及审计通过；新增实际Cargo进程目标proxy_control_pipes明确运行，两种对照在原12000ms期限下通过（固定后台子进程13秒、无代理/模型）。此结果确认句柄回归进入完整Windows门禁，不代表实际安装控制已通过。
+
+同SHA正式Windows `40154476053`的source-gates `121052793339`终态failure：actual core claude WBIPC recovery在long-persistent第二轮5007ms触发原5000ms期限，requests=8、handshakes=8、roots=1，错误位置为client-context-target.test.js的await pending。重开ownerEpoch=2未观察到load-reference；同一owner后段有681/471/359ms的COMMIT等待及多个串行持久阶段，不能将其中单笔提交称为已确认的全部根因。该失败与历史五秒、六十秒及容量失败并存，不重跑、延长期限或用普通CI成功覆盖。正式后续context-recovery因门禁失败跳过，未授N08/N09资格。
+
+独立安装 `40154568348` / `121053147383`已通过自身完整候选门禁，正在构建当前安装器；尚未取得安装升级回滚、原生正常启停/重开或四组客户端的新结果。保留旧安装start-1-deadline失败，不能从管道回归通过推断安装阻塞已经解除。
+
+按用户建议只读核对Windows账号：当前juhon为MicrosoftAccount/CloudAP，SSH SID与该账号一致；SSH具有NETWORK组、未见交互组，准确logonType查询未成功。GitHub CLI与KnownFolder配置目录一致且hosts.yml存在，没有读取配置或凭据内容。同用户Limited/Idle一次性交互任务可注册并启动，但原30秒等待内没有有效认证回执；临时任务与目录已清理，不能认定认证成功或确定唯一原因。未导出凭据、再次索要登录或上传582包，私有传递仍待解决。
+
+本批仅记录实际证据，不改变产品、认证、FULL/DELETE、精确ACK、原到期时间或任何期限。最新安装582迁移/拒写、正常停机及重启留存、容量/真实24小时、真实provider与受控自用交付仍未完成；冻结长测未访问，真实模型请求0。
+
+## 2026-10-24：保留611a20b托管Clippy失败，修正Windows管道测试字节数组写法
+
+句柄隔离产品修复已推送611a20b567d5a1c74ab6a021f432b71dd33301c6。普通Verify `40153832279`的Rust作业`121050787481`在原all-targets Clippy -D warnings终态failure：Windows实际管道读写测试中的`[b'x']`触发byte_char_slices，尚未进入Rust运行回归。本批仅改为等价的`*b"x"`，原读字节/数量断言、句柄修复、12秒控制/13秒后台子进程、全部门禁不变；保留该失败，不重跑或屏蔽告警。当前正式 `40153832280`及原安装 `40153990974`仍在完整门禁，继续各自原作业，不因后续测试修正取消或替换身份。本批仍须新SHA完整Windows和实际安装验收，不能宣称产品启动已通过。
+
+## 2026-10-24：安装控制触发原12秒期限，隔离Windows控制管道句柄的继承
+
+29105067c1fef0d6df42809f9e3a28337dcad37d普通Verify `40150085835`八项、正式Windows `40150085804`四项全部success，N08/N09为`121042871467`/`121042871561`。完整coverage另12次持久发布1247–3122ms、288次COMMIT最大151ms；正式source另12次1081–2278ms、288次COMMIT最大230ms。历史五秒/六十秒和容量失败仍保留。原安装 `40150108669` / `121039745756`已终态failure：完整候选门禁、构建及实际升级回滚/DPAPI成功，随后固定诊断明确为start-1-deadline，即原生控制父调用的原12000ms期限；尚未正常停止或执行两端四组。安装manifest为184ad1cf9ffa0f3852907ef9e25729238615f5563df012fc886fbb80125dc902，不重跑该失败候选。
+
+3a09cfd原安装 `40149071659` / `121036646742`也已终态failure，前置门禁、构建和升级回滚/DPAPI通过后仍在start-1失败；其manifest为326e39f69bf9de056f97b13b2c10d3276e87d3e877858c8b3a4a55b05b35f4e8。此前启动身份修复没有独自解除阻塞。2910506源码健康端点与实际Rust健康模块在Mac独立交叉检查，两次均在原250ms内解码完整chunked响应，认证/实例拒绝/正常停止断言保持；该局部通过不替代Windows安装验证。
+
+定点Windows极小复现发现独立的管道生命周期缺陷：GUI控制程序启动一个固定三秒后台子进程后，父进程已退出0、stdout精确匹配固定四字段回执且stderr为空，Node仍触发1500ms诊断期限；不启动后台进程时相同GUI回执通过。清除父进程三个标准流句柄的继承标志后，同样GUI回执在原1500ms内完成、无超时，后台子进程自然退出。console对照的首次启动超时仍保留，不扩大解释。该证据确认一个与安装期限症状匹配的问题，尚不能认作全部安装失败的唯一根因。
+
+本批新增独立proxy_control_stdio模块，只在已识别的无界面控制入口、任何后台进程启动前，清除并核验stdin/stdout/stderr的HANDLE_FLAG_INHERIT；保留句柄本身及其他标志，当前进程继续沿原管道读取请求和写回执。任何更新或核验失败先于命令执行拒绝。正常桌面入口、认证、进程身份、固定四字段、失败退出、原五秒启动/十二秒父调用和持久语义保持，不修改系统策略或使用nightly接口。
+
+新增显式Cargo进程回归目标，沿原cargo test统一执行：固定后台子进程存活13秒，控制调用仍以原12秒为界；Windows未隔离对照须观察到父进程已退出而管道未结束，隔离后须在子进程仍存活时得到精确回执，随后观察自然结束并确认清理成功。Mac两种模式同样实际执行，平台既有流行为保持；没有ignore或新增skip。句柄更新失败、无法核验、极端标志、空/非法句柄以及清除继承后真实管道读写由单元测试覆盖。测试完成标记在写入并关闭后原子发布，避免把空标记当成自然完成。
+
+Mac实际Cargo目标发现/两种进程回归、七项组合模块测试、独立all-targets Clippy -D warnings及fmt通过，完整Tauri应用构建仍待托管验证。自定义harness最初重复包含单测辅助代码的告警已修正为库测试单独入口；Windows严格Clippy的布尔表达式告警也已用保持MSRV的显式分支修正，没有降低告警门禁。Windows早期冻结源码的两个模块测试及两种进程回归通过；最新同源码检查曾跨过模块编译与两项测试，但进程回归失败，随后受限编译又触发原短期限，具体原因尚未确认，不能用早期通过覆盖。本批完整Windows应用/最终进程回归及安装资格仍须新托管门禁。
+
+用户已完成GitHub CLI安全登录；SSH只读账户复核仍未确认且后续触发期限，没有再次索取凭据或上传文件，582私有传递独立待核实。原生完整容量/真实24小时、最新安装582迁移与拒写、正常停止/重启留存、两端真实provider及自用交付仍未完成。冻结长测未访问，真实模型请求0。
+
+## 2026-10-24：保留cb1e357安装start-1失败，补齐原生控制固定原因回执
+
+cb1e357普通Verify `40147691147`八项、正式Windows `40147862597`四项全部success；正式source `121032975985`另12次持久公开发布1183–2110ms、288次COMMIT最大468ms。原安装 `40147691148` / `121032541818`已终态failure：完整候选门禁、构建、实际安装升级回滚及DPAPI阶段success，随后原生控制仍停start-1，未进入正常停止/重开或四组客户端。安装manifest为a928bed6919875eae14f1c84ad03c3be63f80dcff86420d6165f7c322624774d，旧daemon forced_cleanup及所有false资格保持。健康解析修复单独不足以解除该阻塞，不重跑或以局部成功覆盖失败，具体原因尚未知。
+
+后续3a09cfdbbc62992e65cebc2f6de164c6b64894f1普通Verify `40149031388`八项已全success，完整Windows Rust应用36项、二进制1项、原生助手20项及审计通过，新增启动身份测试实际通过。正式 `40149031432`和原安装 `40149071659` / `121036646742`仍在原门禁，不因后续诊断修改而取消或替换身份。
+
+此前控制链只记录start-1且丢弃所有具体失败，无法区分实际exe启动失败、进程退出、健康超时或回执拒绝。本批只增加固定原因枚举：实际原生入口失败时保留原固定错误并附闭合集合中的阶段，不转发底层异常、output或任何路径/凭据；成功仍只输出原四字段，非零退出和原失败判定保持。父端只接受逐字节匹配的固定stderr，其他内容归为泛化失败；固定原四步与原因组合写入原受保护阶段文件，PowerShell同步白名单后才输出。任何诊断写入错误仍失败，不吞异常或重试，没有更改启动/健康/停止/HTTP期限、认证或存储语义。这是定位批，不是start-1产品修复。
+
+JS/PowerShell相关13项全pass、零skip，覆盖原成功/失败门禁、传输各失败类、未知/空/极端/注入内容、getter/Proxy零执行、阶段报告失败及完整跨语言枚举相等。Rust控制模块六项和独立Clippy -D warnings通过；独立harness的应用协调器入口是不可调用的panic边界，没有运行产品代理，不能替代完整Windows应用资格。新回归沿原统一单元与Rust测试自动发现。
+
+另在用户Windows新OS-temp、Idle执行的极小标准流诊断已完成：初始rustc符号链接在CreateProcess前被Windows拒绝，原生错误448，未进入编译；现使用已安装rustup解析到的物理工具链，console/windows两个小程序固定stdin/stdout回执均精确通过、stderr为空。未改变系统策略或工具版本，未启动代理/worker；不把该环境错误认作产品根因，也不把小程序通过扩大为实际exe验证。现有GitHub CLI失败已只读归为authentication，已请求用户通过本机浏览器安全登录，不读取或输出token；安装验收独立继续。582安装迁移、正常停止/重启留存、原生容量/真实24小时、真实provider和自用交付仍未完成；冻结长测未访问，模型0。
+
+## 2026-10-24：cb1e357完整普通CI通过，收紧新启动进程的健康身份确认
+
+cb1e3577bb65aa36d0e8d7159d75df9c5c5d453e普通Verify `40147691147`八项终态success，完整Windows Rust应用35项、二进制1项及原生助手20项通过，新增健康读取六项进入实际应用测试，fmt/Clippy及安全审计通过。coverage `121032463095`的12次持久公开发布1207–2530ms，288次COMMIT最大86ms；初始owner有六次load-reference，重开ownerEpoch=2未观察到该操作，不把两者混为全部冷路径零载入。Windows真实文件SQLite的五种发布状态、COMMIT锁等待内及持久提交后ACK前强杀/正控20项，另COMMIT中断四项全部通过；不扩大为默认worker、DPAPI或安装版中断资格，历史失败保留。
+
+同一SHA正式运行 `40147862597`的source-gates `121032975985`及egress已success，N08/N09 `121036069764`/`121036069646`仍运行；原安装 `40147691148` / `121032541818`仍在完整候选门禁。没有取消或重跑，尚不能授予正式四项或安装启动/停止/两端资格。
+
+启动路径审查确认：已有进程分支校验runtime root，但spawn后循环只要读到appId正确的健康JSON就报告成功，未核对目录或新子进程PID，端口竞争可能把其他进程误认为本次启动。本批在独立proxy_process模块校验非零子进程PID与健康pid精确相等，并复用原运行目录/入口匹配；主入口只组合，身份不符立即固定错误拒绝，不杀其他进程、不重试、不改变五秒启动或单次健康读取期限。新增回归覆盖正确身份、异PID、异目录/入口、零/负数/浮点/字符串/极大PID及空/非法回执；模块四项零ignore、独立Clippy -D warnings及cargo fmt通过，完整Windows应用仍须本批后续门禁，不以独立模块代替。
+
+该身份修复不宣称解释2a5ce0e的start-1失败，不改变正在运行的cb1e357验收身份。最新安装582迁移、正常停止/重启留存、原生完整容量/真实24小时、真实provider与自用安装交付仍未完成。冻结长测未访问，真实模型请求0。
+
+## 2026-10-24：2a5ce0e完整CI与正式四项通过，实际安装探针在start-1失败；修复Rust健康读取未解码chunked
+
+2a5ce0e4b81e4b7530ec670faae14c30fdeca75f普通Verify `40145270485`八项、正式Windows `40145270355`四项均终态success，N08/N09为`121028373948`/`121028373939`。独立时序 `40145270396`三组各50项/零skip通过，18次持久公开发布855–1480ms，432次COMMIT最大207ms；完整coverage `121025142758`另12次最大2043ms、288次COMMIT最大232ms；正式source `121025142043`另12次最大2119ms、288次COMMIT最大131ms。三份范围共核对42次持久恢复/公开发布，冷owner重复load-reference均为零。该结果证明冷路径修复在实际Windows worker/DPAPI/OS锚点链生效，不覆盖历史5004/5012ms、暖路径慢COMMIT或真实24小时资格。
+
+原安装review `40145279889` / job `121025260499`完整候选门禁、构建、实际安装升级回滚和同用户DPAPI阶段均success。当前安装包manifest为2339a36e6443b223c068db69106bc584522324863df6095d7f0620962553397d。随后实际原生控制探针在start-1失败，尚未进入ready-1、正常stop或Codex/Claude四组，最终job failure；旧daemon HTTP仍是forced_cleanup，gracefulDrainQualified/restartRetention/clientQualified为false。该失败保留、不重跑，不把前置成功当成安装两端或正常停止资格。
+
+定点源码审查找到独立且可复现的产品缺陷：Node管理sendJson先writeHead再end，真实源码HTTP健康回执确认为chunked；Rust read_proxy_health_direct_on_port却将头后的分块大小、分隔和终止标记直接交给serde_json，无法识别合法健康响应。保持旧函数逻辑的真实Rust回环测试先失败；新模块proxy_health在相同请求和同一分块fixture下通过。此缺陷足以导致已启动代理被误判未就绪，并影响后续正常停机的健康身份读取；尚未证明它是安装start-1的唯一失败原因，须新候选实际复验。
+
+主入口现在只组合健康读取模块，HTTP/1.1固定回环路径、无模型或任意目标输入。新模块先验证200状态、合法且无重复的HTTP头、互斥/精确Content-Length与chunked帧、终止位置、UTF8/JSON和appId，再交回原root/PID/实例/认证门禁；不改Node认证、停止202/进程退出判定或存储协议。健康响应总上限64KiB、头16KiB；每次连接/发送/读取共用原调用者的绝对期限，持续滴流不能滚动延长读期限，不提高原250/300ms调用、五秒启动、三秒停止HTTP或四秒退出观察期限。
+
+Rust模块六项零ignore通过，覆盖真实回环chunked、长度/close/多块跨UTF8边界、空/非法/截断、错误身份/状态、冲突重复HTTP头、溢出/尾随块/非法编码、精确大小边界和实际滴流截止；独立Clippy -D warnings通过。真实源码HTTP回归确认chunked且原认证/Origin、业务端口拒绝、过期实例及正常退出断言保持；相关Node与原治理18/18通过、零skip。全树Lint零错误/五个既有警告，1581文件语法、CI/发行治理、格式及cargo fmt通过；完整Rust应用和安装行为须原Windows链，不以独立模块代替。本机只给现有stable工具链补齐官方Clippy组件，没有更换Rust版本或升级依赖。
+
+另一个仅在Windows全新临时目录的极小GUI标准流诊断未完成，停在compile-console阶段，不能据此排除标准流问题，也不作产品根因；没有启动代理、安装器、存储worker或模型。582旧包已再次只读核验全部582源码及Node/native/lock共585项、91610502字节摘要相等，但最新安装582迁移仍未获资格。Windows gh只读账户核验未确认预期所有者，没有上传任何包、私有证据或凭据。冻结长测未访问，真实模型请求0，所有既定剩余范围保持。
+
+## 2026-10-24：安装前置再现第二轮5004ms，冷恢复复用已扫描CAS事实以减少一次提交
+
+8225e2b普通Verify `40143389800`八项和正式Windows `40143389838`四项均success；其coverage/source-gates日志各12次持久公开发布全部通过，最大2570/1786ms，各300次COMMIT最大75/148ms。68ce156普通Verify `40143684424`八项及正式 `40143684430`四项也全success，coverage/source-gates各12次发布最大2722/1611ms，各300次COMMIT最大125/91ms。成功不覆盖独立安装链：8225e2b原安装 `40143410686` / job `121019741120`已终态failure，完整候选门禁的Chat long-persistent第二轮5004ms触发原5000ms，requests=6/handshakes=6/roots=1；尚未构建或执行安装启停探针，不能授予安装资格。孤立开库诊断随后两次成功不覆盖原请求失败，不重跑该候选。
+
+安装失败日志中重开段的load-reference/settle-reader/save-reference-state分别有1101/1077/997ms的COMMIT，CPU增量分别31/0/0ms；该提交尚无ownerEpoch，保留分段与归属限制，不把同作业其他重复sequence合为精确因果。不能将此失败简化为单个四秒提交或宣布I/O/调度根因已确认。所有历史五秒与六十秒失败保留。
+
+一个仅在工作区的LIST合并候选被原maximum-debit ACK门禁回归拒绝：它提前构造了LIST结果。候选及新增不适用断言均已撤除，原LIST/READ测试未改，失败实验日志保留在任务本机，不作为产品修复或提高baseline。当前采用另一条路径：当前请求完成授权、完整扫描代际核对、发布投影、唯一根选择及实际导入后，只向该已注册的活跃根记住扫描所得的精确revision、来源ID和发布状态。启动deny-only discovery不变，不创建原文、快照或绑定权限；独立解析模块复用原目录scope/record关联校验，不保留原文。
+
+第一次预算写入仍使用原save-reference-state/admission，SQLite在真实事务中重新验证关联、精确expectedRevision及原最大预扣后才ACK；LIST/READ仍在最大预扣ACK之后执行。缺能力的旧backend保持原载入路径，任何支持路径的关联、CAS或ACK错误立即失败，不回退或重试。不接受不存在/已关闭/异主/重复登记的缓存事实，不允许启动扫描直接授予权限。该修复只减少授权冷恢复后对同一记录的一次独立load-reference事务；不取消锚点flush，不降低FULL/DELETE或安全删除，不改期限、原到期时间或ACK相等语义，不能据此关闭其他暖路径慢提交问题。
+
+新冷恢复回归先在旧实现因额外load-reference失败；修复后真实磁盘、每次变化的时钟及真实DELETE rollback journal确认首个LIST从三次COMMIT减为两次，最大预算预扣、来源/原期限与最终精确预算均保持。额外覆盖空/非法/极端记录、scope/revision/expiry关联、getter/Proxy不执行、未导入或关闭/异主/重复事实、竞争实际写入，以及提交前后丢失/高低ACK；失败不执行LIST结算或重试，已提交的16384字节最大预扣不退款。专项78项通过、两个原有平台skip不变；扩大回归272通过、一项Mac原生key_protect开库失败、五个既有skip，原失败保留，不能称本机完整验收通过。全树Lint零错误/五个既有警告、1581文件语法、CI/发行治理及原架构/secret回归通过，新模块已进入发行清单；本批仍须新的完整Windows与安装候选验证。
+
+再次只读Windows台账仍177/169、169条记录、Codex99/Claude70，与用户交接一致，没有预留或调用真实模型，两端余量不合并。冻结长测未访问。最新安装582迁移/回滚、安装启停/重启留存、容量/真实24小时、真实provider和自用安装包交付仍未完成。
+
+## 2026-10-24：8225e2b完整Windows Rust通过，补齐慢样本owner归属
+
+8225e2b59f75ffb8068805e653dce5cdca25d078已提交推送，普通Verify `40143389800`的Rust作业`121019601628`终态success，完整fmt/Clippy/应用测试与审计通过；实际应用模块29项、二进制1项及原生助手20项通过，零ignore，新增proxy_control五项和Windows只读进程句柄观察均在真实Windows执行。node-quality、integration及unit0/unit2也已success，其余普通CI与正式Windows `40143389838`仍执行；安装review `40143410686` / job `121019741120`仍在原完整候选门禁，未重跑、未宣称安装启停资格。原7f18e86合成WFP25秒超时及所有历史五秒失败保留。
+
+定点读取慢样本日志接线发现：同一kind/mode在关库重开后engine sequence重新从一计数，原诊断缺少owner归属，不能把重复sequence的COMMIT与失败请求直接归因。本批仅在测试观察器增加独立分配、闭包固定的正整数ownerEpoch，首个owner为1、重开为2；延迟到达的旧stderr仍保留旧epoch，父端生命周期/存储耗时与其worker阶段共用同一个固定归属。原产品请求、worker消息、存储回执和所有超时不变，不记录路径、凭据、原文或原始响应。
+
+新增回归验证重开后的同序号可区分、旧事件延迟到达不被新epoch覆盖、独立作用域从一开始、数据按原身份传递且不触发getter/Proxy，以及观察器错误不转成功；原阶段与实际SQLite事务回归合计11/11通过、零skip，定点Lint和CI/发行治理通过。该批是后续因果定位所需的证据修正，不是性能修复；五秒COMMIT/系统等待根因仍未关闭，完整交付缺口与长测/额度约束保持。
+
+## 2026-10-24：安装原生启停与持久重开探针，等待实际 Windows 候选验证
+
+7f18e86普通Verify `40140373521`终态七项success、一项failure；Rust作业`121010660051`完整fmt/Clippy/应用测试和审计通过，coverage与integration也通过。unit3 `121010659961`的合成WFP policy layout子进程在25070ms触发原25000ms的spawnSync pwsh ETIMEDOUT，未取得该用例最终断言；不据此声称确定发生在启动阶段，不重跑或提高期限。正式Windows `40140373537`四项全success。上述证据修复了旧E0432和管理契约遗漏，但不关闭bb952a7的5012ms及历史五秒/六十秒失败。
+
+新增固定--hpm-proxy-control-v1入口，在启动WebView之前复用桌面与托盘的原命令协调器，stdin仅接受有界的start/stop/restart/status枚举；不接受目录、端口、凭据或任意命令。未知字段、重复字段、空/非法/极端输入拒绝，失败退出非零，stdout仅含固定四字段，不透传异常、输出、路径或原生回复。仍沿原管理认证、目标实例绑定及停止观察期限，无强杀回退。
+
+在现有独立GitHub hosted Windows实际安装四组链之前加入安装原生空闲启停探针，不在用户SSH主机运行。核验安装manifest、源码和实际exe身份后，以默认worker和真实DPAPI/OS锚点种入固定24小时来源；两次调用实际exe启动、要求健康回执身份和持久模式，同时独立确认真实SQLite writer锁被持有；两次经同一exe正常停止，再由默认worker重开读取。原文、预算、key、root/source、原绝对expiry及布局/版本元数据均须相等，第二次启动要求新实例标识，允许退出后的PID合法复用。
+
+探针始终位于原Job容器中并在放行stdin前完成归属；成功回执后先用只读Job accounting确认全部后代自然退出，再执行已有显式清理。未自然退出、失败、超时或强制清理均不能授予正常停机资格；原四组客户端matrix及其forced_cleanup回执保持不变。限定scope为installed_native_idle_stop_storage_reopen，restartRetention/clientQualified/retention24hQualified仍false；该探针不是在途请求排空或客户端重启恢复证明。有限阶段诊断只输出固定枚举，不记录数据库、密钥、原文或原始回复。
+
+本机相关Node/PowerShell19项全通过、零skip；真实Rust源码独立模块13项通过，外层应用仍是占位边界，不能当作完整Rust应用或Windows执行证明。扩大回归40/41通过，唯一失败为原Windows Job实际进程边界在Mac创建Job阶段拒绝；独立构造检查同样失败，不跳过或改测试，须新候选Windows验证。PowerShell变更文件解析、实际C#编译和cargo fmt通过；npm audit满足原high门槛，另有一项既有moderate，未升级依赖。全树Lint零错误/五个既有警告、1580文件语法、CI和发行治理通过；实际安装资格须新候选原Windows链，不能使用旧7f18e86结果替代本批。五秒持久恢复根因、最新安装582完整迁移/回滚、在途排空/客户端重启、容量/真实24小时、真实provider和自用安装包交付仍未完成。原认证、FULL/DELETE、精确ACK和所有原期限保持，冻结长测未访问，真实模型请求0。
+
+## 2026-10-24：修复桌面正常停止绕过排空及失败后强杀，保留新五秒超时
+
+106c17f原Verify `40139510287`现终态五项success、三项failure：Rust `121008062310`在desktop_shell残留的run_proxy_bat导入报E0432，unit3 `121008062257`及coverage `121008062340`因原管理边界契约发现Node新POST /runtime/stop未同步Rust白名单而拒绝。11ab5ee的Rust/unit3也已failure，coverage仍在执行，均保留，不重跑。定点读取确认三个残留调用均是托盘启停/重启的强杀回退；现统一调用同一个直接命令协调器，失败不恢复批处理。托盘原先立即发送started/stopped/restarted字符串，而前端消费的是完成结果对象；现后台操作真正完成后才发送command/code/output回执，失败明确code=1且不附异常原文，不能提前通知成功。原管理边界契约测试文件保持不变，Rust仅增加新固定POST路由并补错方法/额外路径拒绝。修复后相关Node含该契约24/24通过、Rust独立模块8/8通过；完整Rust应用和托盘真实安装行为仍待新候选Windows原链，不把局部模块通过覆盖E0432失败。
+
+bb952a7普通Verify `40137024601`七项success、coverage `121000597330`终态failure：actual core chat WBIPC持久请求再次5012ms超时，requests=2/handshakes=2/roots=1。该作业还观察到COMMIT1584ms且线程CPU增量为零，但重复kind/sequence的回执不足以证明这条提交属于同一次失败请求，不把它写成已确认因果。正式Windows `40137024573` source-gates `121000597194`亦failure：publication transport-finished/release-control在writer ready阶段超过原5000ms，尚未进入该用例的COMMIT中断边界；独立Python子进程20012ms触发原20000ms。所有失败保留，不延长期限或重跑取绿。af0d94a普通Verify `40137638390`八项success，正式 `40137638394`四项也已success（N09 121006587627、N08 121006587680），成功不覆盖前述失败。
+
+实际安装证据一直明确gracefulDrainQualified=false、restartRetention=false。源码确认桌面stop_proxy_direct直接taskkill /T /F，并在直接命令失败、退出和重启路径退回同样强杀的批处理；这使已有Node排空协调器无法保障正常桌面停机。本批新增独立proxy-stop-control与Rust proxy_stop/proxy_stop_process模块，主入口仅组合。新POST /v1/local/runtime/stop沿原管理token和Origin门禁，另精确绑定真实管理回环socket/监听端口、当前PID和每次启动的128位公开实例标识；该标识只防过期目标，不授予管理权限。请求上限128字节，非法/空/过大/错目标拒绝。202仅是接受意图，先结束响应再调用原shutdown，不把意图当排空完成。启动健康回执增加公开shutdown身份，所有旧客户端认证、存储ACK、原期限和FULL/DELETE保持。
+
+桌面先核对原runtime root与entrypoint，持有目标进程对象的只读查询/同步句柄，再经原管理凭据发送固定回环请求；有界UTF8/HTTP/JSON回执须严格匹配PID、实例及202意图，拒绝重复字段、额外字段、错误长度/传输编码及非法header。随后沿原四秒观察期限等待同一进程对象真正退出且退出码0，才报告gracefulDrain；端口为零、root/runtime类型非法、残留PID或文件状态检查错误均不能当作已经停止；非零、超时、失去身份或认证失败均返回失败。没有TerminateProcess权限、PID重用后重新查杀、直接删除PID文件或静默批处理强杀回退；重启只在停止成功后启动，异根端口不自动清理。普通启动的失败也不再绕到可能清理占用端口的批处理；旧daemon不支持新停机协议时报告未确认，不能伪造正常停止。安装器已有显式受控清理和独立验收环境的forced_cleanup仍保留，未把它改名为gracefulDrain。
+
+真实openai-proxy.js HTTP回归首次发现业务入口也会分发管理路由，合法token在业务端口得到202；补充实际socket绑定后，业务端口拒绝，原token/Origin门禁保持。当前源码子进程已验证无token、错误token、Bearer替代、非法Origin、业务端口、过期PID/实例及非法/空/极端body均不能停止；正确请求得到精确202后进程退出0且PID文件消失。中断body/响应、重复意图和错误组合不触发多次shutdown，getter/Proxy不执行。相关及原排空/管理/架构/secret及管理边界契约共24/24通过、零skip；Rust独立模块以真实源码和已锁定依赖编译，实际回环传输/解析/截止、停止状态准入及原进程/托盘回执8/8通过，但外层应用组合为只用于编译模块的占位边界，不能授予完整Rust应用或Windows资格。Windows专属进程句柄测试会在原Rust CI执行，覆盖活进程、零/无限哨兵期限、退出0及退出1，无新增ignore/skip。
+
+扩大本机检查另有entry-auth-integration在配置解密阶段ERR_SECRET_DECRYPTION_FAILED，未进入请求断言；新监听单元夹具最初漏传socket造成的失败已修正，原失败日志分别保留，不修改解密策略或跳过该文件。全树Lint零错误/五个既有警告、1575文件语法、四项架构/secret及CI/发行治理、变更文件格式和cargo fmt通过。原cargo check --tests --locked因未准备发行资源失败；按原release:prepare补准备仍失败，定点检查确认npm生成三个Unix .bin符号链接被原发行metadata守卫拒绝，同时Mac没有Windows原生助手，完整发行资源/manifest未产生。没有删链接、伪造资源或改平台/门禁来通过；完整Rust检查和最新安装正常停机/重启留存仍须Windows原链，不宣称安装资格已获得。
+
+本批是正常停止路径的产品修复，不是五秒COMMIT等待修复；新五秒失败、真实24小时、最新安装器582迁移、安装正常排空/重启留存、真实provider额度核验和受控自用交付仍待收口。没有访问冻结长测或Windows日常代理，真实模型0，无依赖升级，公开release签名要求不变。
+
+
+## 2026-10-24：1de2903安装原生两端四组首次完整通过，补齐582默认worker迁移驱动
+
+1de2903c9d931a961064ebf0ccac266beca17455的原安装运行 `40134799322` / job `120994177817` 已终态success，没有重跑旧失败候选。完整候选门禁、构建、实际安装/升级回滚及同用户DPAPI生命周期通过；当前包manifest为2f475d631b43a92a6fba76c53befc0843b1a78b9f53f087ade190950580314f0。NSIS_INSTALLED_CLIENTS给出installed_native_cli_four_cases的passed/syntheticClientQualified=true：实际Codex、Claude各默认/增强两组都完成三次原生压缩及精确最终答案；默认两组defaultZeroRecovery=true/privateRead=false/publicGeneration=false，增强两组privateRead=true/publicGeneration=true。TLS、非回环拒绝、监听归属、进程树为空、合成socket关闭和卸载回执均通过。真实模型请求0，realProviderQualified和retention24hQualified仍false；不是用户真实provider或24小时验收。
+
+同提交正式Windows源码门禁的12次持久公开发布均通过，最慢4663ms，距离原5000ms门限仍近；300次COMMIT最慢1808ms，最慢项线程CPU增量为零，等待根因仍未关闭。独立普通coverage中的6次持久公开发布最大2329ms、150次COMMIT最大139ms，成功不覆盖其整个作业失败或历史五秒失败。同提交正式Windows `40134759752` 四项全部success（N08 `120996595956`、N09 `120996596057`）；普通Verify `40134759747` 七项success、coverage `120993807320` failure仍独立保留。后者native rejection preserves caller-owned reply memory在PowerShell子进程运行15031ms后status=null，与原15000ms截止一致，但日志未给出child.error/signal，尚未得到内存校验结果，不能据此声称原生内存被改写；另一项真实PowerShell/rg读路径为spawnSync powershell.exe ETIMEDOUT，原20000ms未变。不提高期限、不跳过或重跑取绿；以前五秒COMMIT等待和60秒重开失败也未关闭。安装成功不能覆盖另一个作业的coverage失败。
+
+现新增独立固定默认worker迁移入口qualify-context-recovery-legacy-worker.cjs，不改变原直接owner驱动或其门禁。共用状态夹具由同一个操作序列提供同步/异步执行，保持固定原文、正确性、预算、key、root/source、绝对expiry和一次resave版本增量；默认worker的execute必须返回普通原生Promise，失败立即终止并关闭会话。实际驱动仅传directory/onStartup给安装包原openContextRecoveryStorage，不传WorkerType、protector、clock或timeout，不替换worker原生后端。显式旧库登记仍验证preview/enroll只增加OS锚点且SQLite字节不变；登记后直接让默认worker首次执行布局1到3迁移，不先用直接owner开库掩盖覆盖缺口。
+
+八阶段仍是582 seed/read、当前拒绝未登记旧库、显式登记并迁移、resave/read、582拒绝新格式、当前再读；每步前后核验完整包身份、独占新OS-temp目录，退出错误立即停止。拒绝前只读确认布局，拒绝后核验实际SQLite锁可独占且全部store字节保持。worker启动证据独立于直接owner的nativeCalls计数，有限阶段观察器遇到非法事件保持失败，避免产品可选observer吞异常后误授资格；只返回固定布尔字段，不伪造跨线程native调用计数。原120秒单步期限和输出上限不变。新工具本机同步兼容、异步状态、非法/空/极端/安全输入、失败不重试、锁释放和四项架构/secret回归61/61通过、零skip；统一单元自动发现。本批变更文件按原CRLF格式检查通过；全树原format:check在Mac的既有LF检出上报1532项行尾不符，记录失败且未改配置或批量格式化。另行仅用于归因的end-of-line auto诊断全树通过，不代替原门禁；Lint零错误/五个既有警告，语法1572文件及CI/发行治理通过。Windows实际执行现已退出0并返回完整八阶段passed=true、workerQualified=true回执：真实582默认worker seed/read、当前未登记拒绝、登记后由默认worker执行布局1到3迁移、resave/read、582拒绝新格式且store字节不变、当前最终重开均通过。新建独占OS-temp目录、Idle优先级，不访问既有数据库或冻结验收环境。驱动快照逐文件SHA256与bb952a7工作区相等；当前运行包仍为已核验e490a58的541源码包，manifest b73b4354d398157f49d60938f82edd36fa057ef4c5170e0d20a2497e31a07d6a，582基线manifest为4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f。Git比较确认e490a58到bb952a7的context-recovery/context-evidence存储及native源码未变。资格仅为该精确包的packaged_runtime_default_worker_legacy_layout_migration；nsisQualified/retention24hQualified/clientQualified仍false，不把它冒充最新安装器582迁移。原文、预算、key/root/source及原绝对expiry全程相等，唯一resave的revisionDelta=1，所有旧失败保留。
+
+安装实际daemon回执仍明确gracefulDrainQualified=false、restartRetention=false、cleanupSemantics=forced_cleanup；最新安装器582完整迁移、容量/真实24小时、失败注入余项、真实provider和可交付自用安装器仍未收口。冻结长测未访问，原认证、FULL/DELETE、精确ACK和期限保持，整体未完成。
+
+## 2026-10-24：真实原生Claude经源码入口复现并修复已声明空参数工具被改写成文本
+
+8f74184原安装 `40130181062` / job `120980112439`已终态failure：其自身完整候选门禁、构建、实际安装/升级回滚/DPAPI生命周期均success，仍失败于claude-default-cli，四组不合格。未重跑该失败候选；这证明MCP元数据修复不足以消除全部阻塞。31e3bf0完整Verify `40131035072`八项、正式Windows `40131035076`四项已全部success，加三组独立时序诊断通过，均按各自提交/范围记录。901bdb3正式Windows `40131769563`四项success，普通Verify `40131769594`七项success、coverage `120984787863`failure；失败为旧DPAPI互操作的legacy_unprotect PowerShell启动10089ms触发原10000ms，之前native_protect为25ms。失败保留，未增期限或重试；原五秒COMMIT等待和60秒重开问题仍未关闭。
+
+为了脱离粗粒度Windows日志定位，读取官方npm精确版本2.1.292的Darwin/arm64包，验证官方SHA512 SRI，二进制235017328字节、SHA256 97a01e5bc74a199e67189435d0331ea3a24eac2e07db4b76d9148c5b0386138f。仅在新临时HOME/config/tmp下运行，macOS子进程沙箱只放行回环网络，拒绝用户目录与钥匙串；回环正控、外网与用户目录拒绝负控均实际核验，无日常配置读写或真实模型。最初共享/tmp目录写入被拒绝、源码探针未放行回环监听及token长度不足的组合错误分别保留，不作产品根因。修正仅探针隔离配置后，原生CLI直连合成上游完成8请求、一次原文、三次原生压缩及最终答案；真正openai-proxy.js、原管理配置/入口认证转发后却在seed触发原120秒截止，sourceCalls=0。没有注入Core/路由/入口认证，也没有把合成工具重放当作恢复。
+
+对第一条公开SSE只采集有限事件结构：合成上游829字节为message_start、tool_use start、两字节空参数delta、stop、tool_use终止；真实代理返回947字节却将该tool_use变成text。实际sanitizeGeminiToolCall({name:'mcp__fixture__original',args:{}},[])明确拒绝empty args for unknown tool。Claude原生流过滤器一直丢弃当前请求的工具声明，故把已声明且允许{}的MCP工具误判为未知；未把完整响应或原文写入诊断。该实际源码入口复现确认了独立产品缺陷，不能仅凭旧Windows有限阶段断言所有失败都只有此原因。
+
+现由独立claude-stream-tool-context模块从当前请求的有界UTF8 JSON提取函数名称/输入schema，复用原functionToolContract；无效、重复、非函数/服务端声明及非法字节不提供空参数调用的声明依据。主入口只组合该上下文，压缩输入复用原已解压buffer。过滤器仅向原参数校验器提供名称逐字相等的声明，不引入其他声明的Gemini跨工具/exec修复，不全局放行未知空参数。原参数清理、必填项、SSE完整性、thinking隔离、终止事件、认证与恢复持久语义不变。新增模块已加入发行源码清单，首次发行治理因未声明而拒绝的记录保留，补齐清单后通过，无依赖升级。
+
+真实HTTP新回归在旧实现实际失败declared empty arguments must remain a tool call；修复后明文/gzip已声明{}均保留工具调用，未知空参数、必填缺失及下一请求无声明仍拒绝工具输出，且不把无关exec声明用于重命名。原malformed/unclosed/missing-terminal三项仍分别失败502，每次请求只有一次终态日志且无私有内容。解析边界覆盖正常/空/非法/重复/极端大小/UTF8/Proxy/getter/原型，以及非预期内部错误不得吞为无声明。专项30/30通过、零skip；扩大含真实Core的59项中54pass、3项在Mac原生持久开库拒绝、2项原Windows-only skip，完整日志保留，没有改skip或替换存储，须交Windows原门禁复验。全树Lint零错误/五个既有警告、语法、四项架构/secret和CI/发行治理通过。
+
+修复后的同版本原生Claude经真实源码入口已完成8次合成请求、一次MCP原文、三次原生压缩及最终回答，进程组为空；内部最终见证仍明确fullCoreEntrypointVerified/defaultZeroRecovery=false，因此helper在见证门禁拒绝，未伪造独立观察器、安装、Windows或持久资格。该结果证明原生协议已跨过原失败路径，仍须新候选完整CI及Windows实际安装四组。原期限、ACK精确相等、FULL/DELETE和旧失败均保持；冻结长测未访问、真实模型请求0，整体交付未完成。
+
+## 2026-10-24：三组原始Windows时序验收通过，保留正式五秒失败并细化安装CLI阶段回执
+
+31e3bf04b9bca81391a218066ffa1b1a60778732的独立Windows时序运行 `40131035057` 三项全部success（jobs `120982593289`、`120982593483`、`120982593512`）。每组完整执行原Core/WBIPC与Codex-summary两个文件，50项全pass、零skip，实际默认原生worker、DPAPI及OS锚点参与。三组各6次持久公开发布，组内最大分别1395/1883/1503ms，共18次仍受原5000ms门限；各150条COMMIT最慢108/104/56ms。四种物理owner场景在每组均通过，覆盖非inline/inline的两次物理重开及强杀、撤销后再次强杀；新逐次启动挑战已由实际Windows链核验。该独立诊断不替代完整CI或安装客户端资格。
+
+8f74184的正式Windows `40130155278` source-gates `120979955520`现为终态failure，Chat第二轮、Responses首轮、Claude第二轮均在5002ms失败；N08/N09按原依赖跳过。该作业另有8次成功的持久公开发布、最大4237ms，全部成功与失败并存，不合并为稳定性结论。之前coverage中COMMIT4248ms/线程CPU16ms的等待失败保留，具体I/O或调度原因仍未关闭。31e3bf0普通Verify `40131035072`七项success，coverage的代理部分已success、客户端覆盖率仍在执行；正式Windows `40131035076` source-gates仍在执行，不能称最新完整门禁通过。
+
+原8f74184安装运行 `40130181062` / job `120980112439`已跨过其自身完整候选门禁并完成构建，正在实际安装/升级回滚/DPAPI生命周期；未取消、重跑或替换该作业。它与8f74184独立正式门禁失败分别保留，不由其自身通过覆盖其他失败。Claude MCP元数据修复仍待原安装四组结果。
+
+当前安装失败只保留到codex/claude默认/增强的cli，无法区分首次工具、原生压缩或最终恢复，已妨碍定位前述实际失败。本批将既有协议进度中的seed、compact-1/2/3、between-1/2、final接入原固定阶段回执，并同步JavaScript写入端与PowerShell读取端的闭合集合；在阶段切换时更新，以便客户端超时或被原Job结束时也保留最后有限阶段。没有新增响应、异常文本、进度计数、身份、路径或凭据日志，不改变客户端请求、压缩次数、原文一次、最终正确性、原240/120/60秒及五秒期限。未知、空、非法类型、极端长度或第4次压缩阶段拒绝且不写任意内容；回执失败仍使验收失败，不吞异常或重试。
+
+三个相关文件新增断言在旧实现15pass/4fail，修复后19/19通过；扩大所有相关客户端及阶段探针173/173通过、零skip，最后补充的阶段空/非法/极端边界6/6通过。定向Lint、全树语法、四项架构/secret及CI/发行治理通过，统一单元自动发现。本批仅补足实际失败所需的有限阶段证据，不是五秒性能修复，也未获得完整安装资格。冻结长测未访问，模型请求0，原迁移/default worker、原生容量/真实24小时、最终真实provider及自用交付范围保持。
+
+## 2026-10-24：保留8f74184五秒失败与COMMIT线程CPU证据，修正物理owner验收的PID复用误判
+
+8f74184a8d000f551e2e7460048513225953b6b0的普通Verify `40130155268`终态七项success、coverage `120979955892`failure，不能称完整CI通过。coverage中Chat long-persistent第二轮5014ms、Responses首轮5002ms触发原5000ms截止。Responses sequence=6 save-reference-state耗时4665ms，engine_execute4554ms，其中SQLite COMMIT4248ms，当前存储线程同期threadCpuUserUs=16000/threadCpuSystemUs=0；此前sequence=4提交1663ms、sequence=5 scan提交1334ms，均为零线程CPU增量。Chat最慢提交1045ms/927ms亦为零线程CPU增量。证据将主要时间确定为COMMIT内等待而非该线程解密计算，尚不能区分具体持久I/O、调度或系统因素；不降低FULL/DELETE、删准入持久化、提前ACK或提高期限。
+
+同一coverage还出现两个仅使用合成后端的WFP PowerShell启动超时，以及四次物理owner强杀/重开验收末尾的3 !== 4：四次spawnSync均已完成，各步版本、expiry、强杀ACK等原断言均通过，但Windows在这些已顺序退出的子进程间复用了PID数值。该处要求四个PID数值互不相同并不能证明四次独立启动，合法复用会误拒绝；不是持久状态或撤销丢失。
+
+现每次实际spawnSync前生成独立128位父端挑战，由stdin传入，helper验证格式后将该挑战和固定operation随原回执返回。父端逐次精确核对挑战及操作，统一校验2/4次启动的数量、唯一挑战、正整数且非仍存活父进程的PID；允许已退出子进程的PID数值复用。没有复用子进程、重试运行、替换worker或删任何强杀、持久ACK、原文精确读取、版本10、原expiry、撤销和无明文断言。新增独立回归正控四个相同PID但四次不同启动，负控拒绝重放/替换/缺失挑战、操作漂移、数量不足、父PID/非法PID、空/非法输入、getter及Proxy。统一单元自动发现；本机相关回归与四项架构/secret共27/27通过、零skip，Lint、CI及发行治理通过。Mac沿原平台分支不执行Windows DPAPI强杀链，新挑战仍须Windows实际复验。
+
+另一个已完成Windows普通unit1 `120979955991`具有6次实际持久HTTP发布1194–1471ms、150条COMMIT最慢58ms；unit2 `120979955950`完整重开80阶段耗时3625.56ms。成功与失败分别保留，不以成功覆盖上述等待。正式Windows `40130155278`及原安装 `40130181062` / job `120980112439`尚在各自完整源码门禁；不取消或重跑原作业，继续等其原结果检验Claude MCP修复。本批测试误判修复不是产品性能修复，整体范围未完成，冻结长测未访问、模型请求0。
+
+## 2026-10-24：安装链跨过Codex两组，修复Claude MCP源服务误拒绝传输元数据
+
+fbcaac60e45f1688ac58368a3a997928061ecfc2的完整Verify `40126883229`八项、正式Windows `40126883187`四项（含N08/N09）全部success。原安装运行 `40126903131` / job `120970263541`已终态failure：完整候选门禁、构建及实际安装/升级回滚/DPAPI生命周期success，客户端阶段于claude-default-cli失败。顺序控制已跨过Codex默认/增强两组，但没有四组整体通过回执，Claude增强尚未完成；不重跑该失败候选。
+
+锁定Claude 2.1.292 Windows EXE（254858400字节，SHA256 eb95bb65955f8b1702e800815f9a2c0388a5de0f196c354c7ee1dd5cb9a2ba23）的实际嵌入调用代码带claudecode/toolUseId及tools/call.params._meta；未执行该二进制或模型。当前合成原文MCP源服务只允许name/arguments，必然拒绝这类合法调用。新增真实已锁定MCP SDK的Client/StdioClientTransport启动实际源服务，经initialize/listTools后携带Claude元数据和SDK进度token调用，在旧实现实际报source_request_invalid；这确认独立协议阻塞，不把有限Windows阶段日志当成唯一根因证明。
+
+现允许有界的可选_meta，先快照完整请求并保持原16KiB含JSON转义上限，拒绝getter/Proxy/自定义原型/序列化hook/循环及深度、节点极端；progressToken须为字符串或有限数，Claude工具标识须为字符串。扩展元数据仅被校验后忽略，没有工具、端点、参数或凭据权限。仍仅允许original和精确空arguments；task及其他工具参数仍拒绝，原文一次读取且失败也消耗该次权限，固定127.0.0.1端点、五秒整次HTTP与128KiB响应上限保持。非平凡解析独立模块，无新增依赖，SDK已是直接依赖。
+
+六项新增回归覆盖实际stdio正控及重复读取拒绝、失败消耗、非法/空/极端/安全边界、16KiB精确边界和转义后超限、元数据不能改端点/工具/参数以及可执行输入零hook。统一单元发现自动纳入。扩大相关客户端与owner探针171/171通过、零skip；定向Lint、1566文件语法、四项架构/secret、CI及发行治理通过。原五秒COMMIT和60秒重开失败保留，尚无性能根因修复；当前通过样本不能消除旧失败。冻结长测未访问、模型请求0。本批仍需新候选完整CI及实际安装四组，不授予Claude或整体交付资格。
+
+## 2026-10-24：修复Claude增强阶段，模块预置后Core恢复串联通过
+
+以真实sessions、beginContextRecoveryRequest及isolated coordinator补充Claude seed回归，旧实现实际失败：首个外部tool call完成后提交其结果，visibleSources=1，合法私有请求只含LIST/READ；Claude合成上游却只允许final阶段出现私有工具。该限制同样覆盖摘要和摘要间继续，不能仅放行seed后再逐次撞下一个阶段。
+
+现增强组严格逐阶段要求私有后独立公开：seed为首次外部调用、私有观察其结果、独立公开READY；三次摘要及两次摘要间继续各为私有/公开两请求。只有公开摘要计入原三次压缩，私有回复带sentinel以核验不外泄；seed私有/公开请求必须引用同一call及逐字节相同的原始结果。默认组仍8请求且拒绝全部私有工具；增强组正确的完整路径为17请求，仍在原24请求上界内，没有放宽240秒矩阵、120秒客户端回合或五秒HTTP期限，也未增加压缩次数/原始工具执行次数。原最终精确READ、独立公开生成及签名/私有工具拒绝保持。
+
+真实会话新回归先失败后通过；新增负控拒绝绕过私有阶段、提前切阶段、重复私有请求、公开私有sentinel、相同内容更换原始wire表示、单个私有工具，失败保持sticky。首轮扩大直接node --test漏用了统一入口既有physical-test-temp预载，57项中33通过、24项路径拒绝，失败日志保留；按原统一入口预载和已安装独立pwsh执行，全部客户端及阶段探针165/165通过、零skip，未修改路径守卫或工具版本。定向Lint/语法、四项架构/secret及CI/发行治理通过。
+
+本机独立诊断先由真实sessions模块预置首个实际tool call，再从其结果起走真实Core HTTP及仅本机合成上游：增强路径17次合成请求、三次可解析摘要receipt、原始工具一次、精确READ、独立公开生成和最终答案相等，公开流不含私有工具名/思考/签名sentinel。首个普通转发未通过的旧fixture诊断仍独立保留，本结果不把该组合缺项当产品根因，不宣称首个普通转发、原生CLI、Windows安装或DPAPI资格。真实模型请求0。
+
+2bb4325普通Verify `40125641680`八项已全success；正式Windows `40125641677` source-gates仍在运行。原安装 `40125667621` / job `120966512135`完整候选门禁已success，正在构建，未重启；其中尚无a8cce14的coverage接线或本批Claude修复，旧结果不能授予新候选资格。五秒COMMIT与60秒重开失败继续未关闭，冻结长测未访问，完整原交付范围保持。下一步新候选走原门禁和实际安装四组，再按结果处理具体阻塞。
+
+## 2026-10-24：真实Core串联发现LIST覆盖范围接线错误，修复后Codex内存诊断通过
+
+在2bb4325原Windows作业继续运行期间，使用真实Core HTTP、真实内存sessions及只监听127.0.0.1的固定合成上游，串联seed、三次原生摘要及最终恢复。seed已跨过，三次摘要都返回可解析的原receipt；最终LIST却被合成Codex上游拒绝，状态502、requests=11、readPages=0。有限形状证明LIST本身ok=true、sources=1、nextAfterSourceId=null，但带有真实生产coverage字段；原retainedSource只接受不含coverage的旧三字段主体，严格键检查误拒绝。真实view.reply(LIST,{})新增断言在旧实现失败，未用手造成功数据代替。
+
+现验收解析器要求coverage存在，精确核验生产projectContextEvidenceCoverage(1,1)的五字段：仅本分支观察范围、该固定单调用/单来源已完整、未就绪调用为零；不是忽略未知字段或接受任意覆盖声明。原digest/bytes、唯一来源、原分页/关联、provenance与原文断言保持。新增负控拒绝缺失、null/空对象/数组、范围或状态漂移、零/额外/极端/分数计数、负数未就绪计数及附加字段；相关全部客户端与探针163/163通过、零skip。
+
+同一本机Core内存串联修复后通过：13次本机合成请求、三次摘要receipt、一次原始工具结果、一次精确READ及独立公开生成，最终答案精确相等，公开流未出现私有sentinel/工具名。该诊断使用测试Core组合授权与内存存储，没有Windows安装/原生CLI/DPAPI资格，真实模型请求0。首次探针复用的Core fixture缺少普通转发所需loadConfig/getProfiles，发生诊断组合错误；补齐仅探针的空配置回调后才取得上述业务失败与成功，原错误单独保留，不作产品根因。
+
+Claude独立诊断的首次本机target漏/v1，修正后普通转发又因该测试fixture的原生流组合不完整而未取得协议结果；均保留且不作产品结论。随后以真实sessions模块预置首个实际tool call，再通过Core HTTP提交其结果，确认合法私有LIST/READ请求被Claude合成上游的seed守卫拒绝，502且sourceCalls=1。此独立阻塞尚未修改，下一批处理私有/独立公开阶段及其回归，不以Codex结果替代Claude。
+
+2bb4325普通Verify `40125641680`当前七项success、coverage的代理部分success而客户端覆盖率尚在运行；正式Windows `40125641677` source-gates及原安装 `40125667621` / job `120966512135`仍处于原完整门禁，未重启。三个Windows队列各取得150条COMMIT线程计数，当前最慢分别121/101/136ms，不能解释或撤销951a2cc的4126ms提交失败；仍须慢样本与实际修复。冻结长测未访问、原门禁和持久语义保持，整体仍未交付。
+
+## 2026-10-24：安装链进入Codex增强CLI，修复首次工具结果后的私有seed接线
+
+25acc53的原安装运行 `40123107840` / job `120958818328`已终态failure：完整候选门禁、构建及实际安装/升级/回滚/DPAPI生命周期success，客户端步骤失败，有限回执为codex-enhanced-cli / owned_scenario。当前包manifest为ef466db595155ea63438675999e2cf47542b8faa3733863448d6d361047401dc。顺序控制已跨过Codex默认组，但没有四组最终回执，Claude尚未执行，不授予完整客户端资格。未重跑该失败作业。
+
+独立用真实createContextRecoverySessions、beginContextRecoveryRequest、真实首个外部tool call/结果和isolated coordinator复现必然接线冲突：增强seed的首次工具结果已使visibleSources=1，下一次上游请求正确只含私有LIST/READ；合成Codex上游却在seed阶段一律拒绝privateTools。原实现下新回归失败。有限Windows日志没有seed子阶段，故该实证是可确认的独立阻塞，不宣称它解释全部Windows错误。
+
+现合成上游允许增强seed的这一私有阶段，精确核对原call及原文字节，返回带私有sentinel的内部回复，仍不完成seed；必须再接收到不含私有工具/文本的独立公开请求，再次核对同一原始工具结果后，才返回READY并允许压缩。没有重跑外部工具、删正确性断言或把私有回复公开。原默认模式拒绝私有工具，原三次压缩、最终精确LIST/分页READ及独立公开生成保持。真实会话正控验证私有sentinel不进入公开请求，负控拒绝提前切阶段、重复私有请求、再次私有调用、原文变更、空历史、单个私有工具和公开私有文本，失败保持sticky。
+
+另为五秒失败定位补充已有owner-stage探针：仅sqlite_commit测量当前存储worker线程的threadCpuUserUs/threadCpuSystemUs差值，使用现有Node22.22运行时支持的threadCpuUsage，不查询其他线程/PID、冻结环境或用户数据。原四字段回执仍可解析，新字段仅允许成对出现在COMMIT；负数、分数、非安全整数、缺字段、计数倒退、getter/Proxy拒绝。原SQLite调用、结果、异常、receiver、期限和提交次数不变。10项探针回归通过；本批全部客户端与探针扩大163/163通过、零skip，统一CI自动发现。CPU新观测尚无Windows失败样本，不能据此宣称五秒问题修复。
+
+951a2cc的普通Verify `40123574946`八项已全部success；其正式Windows五秒失败及7556263原60秒失败独立保留。相同源码coverage中Claude后段COMMIT仅19–84ms、末轮公开发布1651ms，不能消除正式运行4126ms的COMMIT等待。下一步新候选须走原完整CI及安装四组；仍需实际性能修复、原生容量/24小时到期重开、真实provider与受控启用。冻结长测未访问，真实模型请求0。
+
+## 2026-10-24：951a2cc正式Windows再次触发五秒截止，定位到实际SQLite提交
+
+`951a2cc045614e87f95236dfcf69715da7dafdfd`的正式Windows运行 `40123574934` / source-gates `120960131561`终态failure，统一源码门禁1596项通过、1项失败、零skip，后续context-recovery按原依赖跳过。失败为actual core claude WBIPC recovery has exclusive ownership and live credential revocation，位置client-context-target.test.js:2738，实际long-persistent首轮fetch于5001ms失败，requests=1、handshakes=1、roots=1；上游是原固定合成fixture，未调用真实模型。
+
+有限owner阶段把本次关键等待缩小到sequence=6的save-reference-state（combinedAdmission=true）：storage耗时4567ms，其中sqlite_clock_write=49ms、sqlite_commit=4126ms、engine_execute=4208ms、engine_snapshot=22ms、anchor_persist=314ms。此前sequence=5的scan-reference耗时556ms，commit=374ms、anchor=79ms。第一笔慢提交位于必须先持久化的准入/预算状态，不能删除它、提前返回ACK或降低FULL/DELETE来通过。观测只证明SQLite COMMIT调用占据主要等待，尚不能证明具体系统调用、磁盘、调度或其他系统因素是根因；不把它归因于模型、凭据或JS解密，也不把此前成功样本作为稳定性结论。
+
+原60秒重开失败仍独立保留。951a2cc普通Windows unit1 `120960131691`成功回执有80条完整事件，末阶段3076.5123ms，Node自身累计user/system CPU为1078/500ms；此成功队列不解释7556263失败队列。951a2cc普通Verify `40123574946`当前七项成功、coverage尚无终态，不能称完整CI通过。
+
+保持原25acc53安装运行 `40123107840` / job `120958818328`：完整候选门禁已success，正在构建测试安装器，实际生命周期及客户端步骤尚未执行；未重启作业或以其覆盖951a2cc的失败。本批保存新失败定位证据，不宣称产品性能修复；下一步按实际COMMIT等待和安装结果继续处理。冻结长测未访问、真实模型请求0，原期限、认证、精确ACK、FULL/DELETE及完整交付范围不变。
+
+## 2026-10-24：同提交成功/失败重开对照及失败后最小原生诊断接线
+
+继续核对7556263原60秒失败，不重跑失败候选。该提交完整coverage `120953707146`、正式source-gates `120953707438`均取得80条完整阶段事件，末阶段分别约6651ms、5778ms；初次ready约731ms、472ms。失败安装作业同一源码的初次ready却约18584ms，多个后续段也变慢，revoke累计59476.59ms后才开始clear。此对照证明延迟跨多段变化，不足以确认JS计算、外部原生进程、持久I/O或环境等待哪项是根因，也不以成功样本消除失败。
+
+为下一次实际Windows结果补充有限证据：原真实回归的onPhase输出仅增加本测试Node进程自身cpuUserMs/cpuSystemMs累计计数，原phase/sequence及60000ms期限不变，不读取其他进程或机器状态。安装链在candidate_gates失败后才运行已有diagnose-context-recovery-open.js，仍用默认worker、原生助手、原期限和全新OS-temp空库，两次开库/重开；不读取失败数据库，不运行模型或安装器，不上传数据。诊断退出非零继续失败，成功也不能改变原gate失败；后续build与安装仍沿原默认success条件跳过，没有continue-on-error或重试verify。
+
+新增门禁回归校验失败条件、原verify顺序、固定诊断命令及无期限/目录覆盖，无发布、密钥或额外权限；原开库诊断、重开断言和draft门禁三文件31项通过、1项原Windows-only skip，未增加skip。新测试首次因当前CRLF文件按LF分割未命中而失败，归一化测试读取换行后通过，失败日志保留；不涉及产品原生根因。定向Lint/语法、CI和发行治理通过。本机尚未执行Windows CPU及原生阶段观测，根因仍未解决，不宣称性能修复。
+
+25acc53的完整Verify `40122931446`现七项成功、coverage运行中；正式Windows `40122931561`的egress成功、source-gates运行中，安装链 `40123107840` / job `120958818328`仍在原完整候选门禁，未重启它。后续诊断批次需自身完整门禁。原安装两端、容量/24小时、实际provider与自用启用范围保持；冻结长测未访问、真实模型请求0。
+
+## 2026-10-24：保留7556263原60秒重开失败，修复Claude验收初始监听协议
+
+`7556263b98e6f5dbe601aa1e6d2358526cea8a7c`的完整Verify `40121458356`八项和业务边界诊断 `40121458373`两项均success；正式Windows `40121458384`的egress和source-gates成功，N08 `120957998887`、N09 `120957998899`已运行、尚无终态结论。安装链 `40121484825` / job `120953889091`在完整候选verify阶段终态failure，原真实默认runtime/worker撤销清空重开测试用时60013.0193ms，触发原60000ms期限，安装构建及客户端步骤均未运行。未重跑同一失败候选，不能以独立Verify成功覆盖安装门禁失败。
+
+这次取得46条有限阶段事件：revoke初次ready耗时18584ms，第一次begin约4032ms、complete约4971ms，LIST约7354ms、READ约7907ms；invalidate约2201ms，direct open约3254ms、direct inspect约4123ms，之后reopen ready约861ms。revoke全段到59476.59ms才结束，clear的initial-ready于59476.59ms开始、60562.04ms结束，原总期限在期间触发。最后停在clear初始ready不证明清空开库是根因；证据显示此前多段耗时累积，尚不能区分JS/worker计算、原生调用、持久I/O或运行环境等待。原60秒、原生5/30秒、HTTP5秒、FULL/DELETE、ACK和期限保持，旧8067628超时及本次失败均保留，根因仍待解决。
+
+并行开展不依赖模型/长测的实际源码入口HTTP诊断：新临时HOME/config/runtime、真实openai-proxy.js和管理API、仅本机哨兵上游，未注入Core或认证。Responses初始监听下，Codex缺失/错误key均拒绝、上游零调用，正确key恰好到达哨兵一次。随后保存Claude配置得到200/ok，但实际health监听协议仍为openai-responses，诊断按原要求失败。源码确认ENTRY_SERVERS/监听协议在启动时确定，保存配置不重启监听器；当前客户端控制器四组初始配置却均固定Responses。该探针是提前发现的独立验收接线缺陷，不是把7556263的重开失败归因于Claude。
+
+本批只改客户端验收的受控控制器副本：00/01从启动使用Responses，10/11从启动使用Claude，双处初始配置同步，ValidateSet仅接受这两种协议；原PS源文件、设置矩阵、默认关闭恢复及默认入口认证保持。owned adapter增加严格四项、快照冻结的初始协议期望；未提供时仍原四组Responses，提供时必须逐项核对实际health，而不是改写health响应。新参数没有任意进程、URL、认证或存储选择能力；原顺序、PID/目录/端口/凭据校验及15秒握手期限保持。
+
+先执行生成控制器中真实PowerShell函数与调用语句，在旧实现复现initial_protocol_mismatch；修复后四标签配置与认证/关闭恢复断言通过。新回归还验证计划快照、真实健康协议不匹配时停止并拒绝、空/非法/极端/访问器/Proxy输入；扩大安装客户端、owned控制器及设置矩阵206/206通过、零跳过，统一CI自动发现。全树1565文件语法、Lint零错误/五个既有警告、四项架构/secret、CI和发行治理通过。
+
+重新从启动使用生产固定Claude协议的实际源码入口探针，缺失/错误key拒绝且上游零调用、正确key恰好到本机哨兵一次，owned子进程已停止；只证明本机源码HTTP接线，不授予Windows安装/原生CLI/DPAPI资格。该探针首次又因复用硬编码Responses的健康探针而拒绝，失败记录保留；改用原启动marker后独立精确核对PID、管理/入口端口、Claude协议与TLS标志才取得上述结果，未改变产品健康检查或安装门禁。
+
+当前最紧要剩余阻塞仍为7556263的真实60秒重开耗时定位修复；本批协议修复仍须新候选完整门禁及实际安装四组。冻结长测未访问、日常配置未修改，真实模型请求0；24小时/到期重开、原生容量、实际provider和受控启用等原范围不缩减。
+
+## 2026-10-24：ac32f58完整门禁与安装生命周期通过，修正默认冷态观察误拒绝
+
+`ac32f58fa1e48eac1ee5a5dbf02e2f8fba998f34`完整Verify `40118884107`八项、正式Windows `40118884185`四项全部completed/success。source-gates `120945898629`、N08 `120949751890`、N09 `120949751937`均success，N08/N09安全probe与ownedTreeEmpty均true，仍只授予原固定场景门禁范围。Windows普通unit0和coverage均通过326875440字节Codex受控启动回归；新增哈希边界六项在unit1通过。
+
+本候选完整coverage `120945898573`及正式source-gates各取得12次long-persistent公开发布结束，共24次865–2790ms，原5000ms门禁保持，真实默认worker、DPAPI、OS锚点及FULL/DELETE参与，上游仍为合成fixture。真实默认runtime撤销/清空后重开分别4455.452ms与6738.2809ms，原60000ms保持；旧8067628 coverage 60002ms失败及未知根因继续保留。两份日志中的原五档合成capacity-command为36255.94/22680.18ms、43790.04/30819.91ms，原180000执行预算及60000性能目标均满足；不覆盖旧67393.97ms未达目标、Windows原生持久容量或24小时资格。
+
+最新安装链 `40119078841` / encrypted job `120946560726`终态failure。其完整候选门禁、NSIS构建、实际安装/升级/回滚/重装/卸载及625旧格式登记/拒写与DPAPI生命周期步骤均success；随后实际客户端步骤报告`hpm_installed_client_phase=codex-default-auth`、`hpm_network_failed_stage=owned_scenario`，退出1，尚无CLI四组通过证据。旧unobserved身份阻塞已跨过。另保留操作失败：首次为本候选创建的短名称review分支不符合原路由格式，run `40118951357` resolve拒绝、encrypted跳过；未改路由门禁，改用同一不可变基线身份与完整候选SHA的新ref后才得到本次有效安装链。
+
+旧auth阶段包含原缺失/错误入口key拒绝探针与首次独立观察，有限日志不能区分具体失败点。源码及实际默认runtime回归另确认一个必然阻塞：默认关闭恢复时runtime正确保持冷态，尚不调用sessions工厂；观察器却要求至少一个会话，因而拒绝真实默认态。先新增真实复制的runtime、原configureSettings(false/false)、签名邮箱回归，在旧实现实际报installed_client_observer_rejected。现观察器同时核验安装manifest内sessions/runtime两个精确源码摘要且拒绝预加载，再原样委托真实runtime工厂，仅记录返回实例及inspect结果，绝不访问会导致初始化的sessions getter。只有实际捕获runtime、七个冷态字段精确匹配、会话工厂零调用且roots/snapshots=0、enabled/closed=false时，才签名报告coldDisabled=true；缺少真实实例仍拒绝。已有真实会话继续报告实际聚合计数，coldDisabled必须false；接收端严格校验新字段与全部数值一致性，不以空数组自报零权限。
+
+没有为通过验收启用恢复、创建假会话或改产品默认行为。签名邮箱、单调sequence/PID/manifest、物理路径/链接、原五秒观察期限及所有认证要求保持。闭包验证只增加固定bootstrap内的runtime精确导入，其他位置和其他动态导入仍拒绝。主组合使用已有observe阶段在首次观察之前标记，未来可区分auth探针与独立观察；不据本机复现断言旧Windows日志仅有这一原因。
+
+相关三个文件36项与扩大全部安装客户端150项通过、零跳过；覆盖真实冷态→显式会话初始化、无实例拒绝、七种冷态漂移、runtime预加载/摘要漂移/缺失、签名冷态回执计数矛盾及原异常/清理路径。全树1564文件语法、Lint零错误/五个既有警告、四项架构/secret、CI与发行治理通过，新回归沿原统一入口运行。本批尚须新候选完整门禁和实际安装客户端执行；clientQualified仍false。冻结长测未访问、日常配置未改、真实模型请求0；持久重启/优雅退出、原生最大/混合容量及真实24小时/到期重开、真实provider与受控启用仍未交付。
+
+## 2026-10-24：最新安装生命周期通过，修复锁定Codex二进制在客户端身份校验被误拒绝
+
+当前文档提交3ca4139697c5f0d5132ab17427fdb50adba2b896的完整Verify `40116804395`八项和正式Windows `40116804421`四项已全部completed/success。固定运行候选a9836cd的安装链 `40115097429` / job `120937948810`现为终态failure：完整候选门禁、NSIS构建和实际安装升级回滚/DPAPI步骤日志均成功，随后客户端步骤在17:55:44报告`hpm_installed_client_phase=unobserved`、`hpm_network_failed_stage=owned_scenario`，最终`nsis_installed_clients_failed`。首次resolve取消与本次失败均保留，不重跑同一失败候选。真实CLI四组没有通过证据。
+
+确认一个必然阻塞：矩阵身份校验在首个phase之前对clients/codex.exe使用通用digest，其文件上限256 MiB。按tools/nsis-clients锁中原URL下载两份原版本归档，实际SHA-512均与锁定SRI精确一致；Codex 0.160.1-win32-x64的EXE为326875440字节、SHA256=9e7c59c05cc1ce5677b1f94e835b2ac038ca3be14504e78d558eacdb0ea3f55d，超过通用上限；Claude 2.1.292为254858400字节、SHA256=eb95bb65955f8b1702e800815f9a2c0388a5de0f196c354c7ee1dd5cb9a2ba23。直接用两份真实EXE证明旧digest拒绝Codex、接受Claude；新专用流式结果与独立摘要均一致。仅读取这些公开二进制，没有运行CLI或模型。
+
+新增客户端专用哈希模块，固定codex/claude文件名及各锁定版本的精确大小上界，使用最多1 MiB缓冲逐字节SHA256；保持物理路径/单链接、描述符及前后inode/dev/size/mtime/ctime/nlink一致性检查，异常只给固定码、始终关闭描述符。矩阵身份、逐组复核和owned launcher三处改用专用函数；包SRI、预备证明、原SHA相等及Job归属仍必需。通用digest的256 MiB上限、依赖版本、原240秒矩阵/CLI期限、所有认证和产品持久语义均不改变，不以放宽性能baseline求绿。
+
+先增加326875440字节owned-launch回归，在旧实现实际失败nsis_client_owned_failed；接入修复后通过，且继续要求通用digest拒绝该文件。新增边界覆盖两端跨缓冲精确字节、单字节、空/缺失/目录/错误名称与客户端、各上限+1、硬链接/父符号链接、读取中变更、异常EOF和读取异常，以及描述符关闭。四个相关测试文件31/31通过、零跳过；此前扩大首次18/21因本机PATH未配置已安装的独立pwsh而失败，随后显式复用该pwsh，未跳过测试或安装覆盖其他版本。统一单元发现递归包含新测试。全树1564文件语法、Lint零错误/五个既有警告、四项架构/secret治理、CI和发行治理通过。
+
+本批仍需新候选完整CI及实际安装四组验收，不能据本机哈希/模拟启动断言授予clientQualified。历史五秒/60秒重开及容量未达目标记录、原生24小时/到期重开、实际provider与受控启用缺口保持。未访问冻结长测、未改日常配置，真实模型请求0。
+
+## 2026-10-24：a9836cd完整Verify与正式Windows通过，安装链恢复后仍待实际四组
+
+固定候选`a9836cdb0c5a5b279d6e2e0f0912c8ea8747c7e9`的Verify `40114984440`八项全部completed/success，正式Windows `40114984375`四项全部success，含source-gates `120934299723`、N08 `120937840124`、N09 `120937840153`。原完整verify、审计、格式/类型相关治理、Rust及三套覆盖率门禁保持；本记录不把原场景门禁成功扩为安装客户端、24小时或真实provider资格。
+
+CRLF正控已由Windows unit-tests (3) `120934300207`通过核验，额外CRCRLF负控继续由原锁摘要拒绝。真实默认runtime/worker、DPAPI/OS锚点撤销和清空后重开的三份有限阶段回执均完整80事件：普通unit0 `120934300111`为3754.54ms；并发coverage `120934300158`为4822.18ms；正式source-gates为4227.88ms。两条路径的实际seed/读取/失效/关闭/direct存储/重开/拒读都完成，原60000ms期限与ACK断言保持。此前8067628 coverage 60002ms失败仍保留，未确定其旧根因，不能称生产问题已修或用新通过删除它。
+
+本候选coverage和正式source-gates各取得12次原long-persistent固定请求（chat、Responses、Claude两轮，proxy/client两套入口），共24次完整公开发布结束1175–3973ms，全部小于原5000ms。实际默认worker、DPAPI和OS锚点及FULL/DELETE、预扣和精确ACK参与，模型上游仍为合成fixture，realModelRequests=0。相对e490a58的生产lib/native/src无变更，故不宣称本批进行了额外生产性能优化；9401的既有42样本及be7五秒失败独立保留，不跨候选混称任意负载稳定保证。
+
+从本次既有Windows coverage日志读取五档capacity-command两轮耗时67393.97ms和38658.10ms：均满足原180000执行预算，但前者performanceTargetMet=false，后者true，原60000目标没有抬高。在Mac Apple M5 Ultra/arm64、Node22.22.2上又独立按原双worker/五档执行一次，外层仍限定180000，命令9425.11ms、worker9391.82ms，五档正确性均通过、性能目标满足；最大档1920轮/400精确恢复/20次重开。该结果仅为当前Mac合成会话容量，不替代Windows持久容量、原生最大档或真实24小时。历史混合运行/最大文件长测未终态通过及新67393.97ms未达目标记录全部保留。
+
+安装链`40115097429`的首次resolve job `120934639971`终态cancelled，后续encrypted跳过；日志接口BlobNotFound且步骤列表为空，取消原因没有足够证据确认。仅恢复此已取消job后，同一候选的resolve `120937854333`成功，encrypted `120937948810`已in_progress，仍须执行完整候选verify、audit、build、实际安装升级回滚后才运行四组。尚未确认客户端矩阵步骤已开始，不授予clientQualified或syntheticClientQualified；旧NSIS的gracefulDrain/restartRetention/forced_cleanup边界保持。
+
+本阶段没有访问或改变冻结Windows长测，未动日常代理/客户端配置，额度仅保留原177/169计数核验，两端授权仍未核验，实际模型调用0。整体仍待最新安装四组和实际provider/受控启用、持久重启/优雅退出及原生容量/24小时到期重开证据。
+
+## 2026-10-24：8067628完整门禁失败已收齐，修正CRLF夹具并接入原60秒重开诊断
+
+`806762898269682e842c9eb0afc6ddceab33ebe8`的Verify `40113538815`终态failure：六项success，unit-tests (3) `120930020899`和coverage `120930020922`failure。正式Windows `40113538709`也终态failure，source-gates `120930020554`失败、egress通过、后续context-recovery被原依赖门禁跳过。安装链 `40113568952`的resolve成功，但encrypted `120930181450`在完整候选verify因同一夹具失败终止；安装器构建、升级回滚和四组客户端均未执行。此前608da0f的unit-tests (2)已success，证明路径断言修正消除了原失败；未重跑旧候选制造绿色。
+
+共同失败为nsis-client-inputs.test.js的crlf正控。已在Mac实际pwsh强制使用Windows CRLF锁副本复现：原夹具把已有CRLF再次LF→CRLF，生成CRCRLF，生产固定摘要守卫正确拒绝。现只修夹具先CRLF→LF再LF→CRLF，并让所有平台都使用Windows字节副本；新增doublecrlf负控继续要求在npm/安装之前拒绝，原13情形全部保留，合计14模式。正控失败信息仅附固定mode，生产inputs/orchestration/receipt模块和依赖锁没有变更。Windows独立mock重跑尚未取得回执，不计作通过，正式Windows CI仍须核验。
+
+coverage还保留独立失败：真实default runtime/worker、DPAPI/OS锚点的撤销和清空后关闭重开测试在60002ms触发原60000ms总超时。旧日志没有阶段信息，不能据此确认是开库、串行FULL提交、关闭或重开的产品根因；不提高期限、跳过、替换存储或用单次成功覆盖它。新增默认关闭的有限诊断第二参数{onPhase}，旧input边界不变，独立progress模块对每个实际await报告固定action/phase/event、sequence<=128和单调elapsedMs，绝无路径、scope/receipt、原文或异常内容。真实Windows原测试立即写stderr，保持原60000、默认API、ACK及全部结果断言；观察器失败保持失败且仍执行实际资源清理，不重试。
+
+本机三文件回归30pass、1个原Windows-only skip（无新增skip），定向Lint/格式、CI/发行治理及架构/模块/secret检查通过。阶段诊断只提供定位能力，尚未修复或关闭真实重开超时；四组安装验收仍没有通过证据。新候选继续走原完整verify/audit/build/安装门禁，不使用已有单项结果扩授client/restartRetention/gracefulDrain资格。真实模型请求0、两端授权未核验，冻结长测与日常配置未访问或改变，整体未完成。
+
+## 2026-10-24：受控CLI的PowerShell EOF额外stdout已修，真实Windows管道探针通过
+
+路径夹具修正已提交推送`608da0f0ab13442443a9ff09ed7f2c77649a1a25`，Verify `40113203823`当前node-quality/integration/rust成功、其余尚在运行；正式Windows `40113203821`及新安装链`40113227807`已启动，后者check-run确认resolve成功、encrypted job `120929192649`in_progress，四组CLI步骤未确认已执行。详细可复用workflow jobs接口仍可能ReadTimeout/502，已改用原commit check-runs取得同一job身份，未重启旧运行或用观察超时判定终止。
+
+对已接通启动链继续审查，实证确认`nsis-client-owned-process.ps1`裸调用CopyToAsync任务的GetAwaiter().GetResult()，会把System.Threading.Tasks.VoidTaskResult写入PowerShell成功输出流，污染原CLI协议stdout。现只给该无返回值的完成调用加`$null =`；不屏蔽异常、不改EOF等待、退出码、Job归属、原20秒stop/5秒退出和清理门禁。原客户端仍持续观察直到stop确认，非法/私有迟到帧仍失败。
+
+新增回归从生产PowerShell AST抽取这一完成语句执行；以实际未抑制的CopyToAsync作为负控，要求固定类型确实产生，然后执行生产语句要求零stdout，原始010203字节保持。既有管道fixture的退出/字节上限/EOF等12项保持，扩为14项；本机owned transport11/11通过，Windows7实际PowerShell在全新OS-temp/Idle进程运行同一生产helper fixture也退出0，回执checks=14、nativeCalls=0、networkCalls=0。此证据只证明实际PowerShell管道行为，不证明安装CLI或模型通过。
+
+其余启动链只读审查未发现第二个确定接线问题；配置/官方HTTPS、8项argv、独立签名观察器、先分配Job后授权、两端隔离HOME/配置、MCP固定Node以及全部原认证/持久期限保持。无生产源码或依赖变更，未访问冻结长测或日常配置，真实模型调用0。新候选仍须完整CI、审计、构建、安装升级回滚后，才可取得四组实际安装客户端证据；历史失败与整体未完成状态保持。
+
+## 2026-10-24：412c800 Windows门禁暴露路径断言问题，保留失败并修正跨平台夹具
+
+已提交推送的矩阵总入口为`412c800a5c7b8382022bb6b677b2a5d40b932f81`，其Verify `40112658934`的unit-tests (2) job `120927442702`已completed/failure。日志唯一该文件失败为nsis-client-controller.test.js的路径转义检查：夹具使用path.join创建Windows反斜线路径，却把预期片段固定成`work''s/prep.ps1`，在Windows误报。安装矩阵链`40112676779`现有运行记录仍in_progress，但详细jobs读取持续ReadTimeout/502；未因此判定终止或重启同一运行，也未取得四组实际CLI执行结果。新候选必须重新通过完整门禁，不能用先前a204通过替代。
+
+现把两处检查改成完整本机路径的单引号转义精确比对，仍验证prepare和temporary两条路径；缺失/重复/已变换锚点、非法路径及摘要的原拒绝断言保持。只修改测试，不改变生产或验收工具实现、管理/入口认证、原Job、FULL/DELETE、ACK或期限。本机控制器9项与矩阵/单case12项共21项通过、零skip，定向Lint/格式及CI/发行治理通过。
+
+在用户Windows的全新OS-temp目录以Idle优先级运行独立原源码探针，五个源码逐字节散列固定，使用现有Node22.22.3且SHA256=`780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b`；旧正斜线断言确实为false，新完整路径检查通过，PowerShell7 AST解析两条引号字面量后的Value均与原路径完全相同，退出0、真实模型请求0。该探针不安装客户端、不创建网络约束、不读DB或冻结长测。首次传输的编码命令过长被SSH拒绝、其次SSH PATH没有Node导致未执行断言；改成stdin传输并显式核验现有Node路径后才取得上述结果，未覆盖工具版本或借用长测运行环境。
+
+总台账仍只核对177/169及169条计数，两端各自授权尚未核验，真实模型调用保持0。整体仍待原门禁后的实际安装四组、持久重启/优雅退出、原生容量混合超时和真实24小时/到期重开、真实provider及受控启用；历史失败和既有资格边界保留。
+
+## 2026-10-24：安装版四组验收入口已接通，实际托管执行待门禁
+
+独立观察器和单组用例组合已先提交推送`b2929bdb22d621516c33400de5f91560b8b63265`；其Verify `40112370063`、正式Windows `40112370059`和业务边界诊断 `40112370074`均已实际启动、当前in_progress，不能用下述旧候选通过覆盖它。总入口/工作流集成在本次后续批次中提交。
+
+重新读取GitHub当前状态确认，`a204c4cced424bb846c5e4c0d8ecece85bc3bb5c`的Verify `40105361343`和正式Windows `40105361357`均已completed/success。它们证明已提交工具候选的原门禁，不覆盖本批尚未提交的安装矩阵组合；实际最新安装版Codex/Claude默认与增强四组尚未启动。总入口现已接通：锁定客户端准备、实际NSIS安装、原网络profile、单控制器顺序四个新daemon、真实管理配置/入口认证、真实CLI、每次默认上游前独立会话观察、私有READ后独立公开生成及强制清树/卸载。薄入口只组合，有界参数/物理身份/有限phase文件与单case逻辑拆为模块；固定安全回执仅在四组与全部清理真实通过后输出。
+
+本批接通真实NSIS安装准备、固定锁客户端、三程序原网络约束、原Job控制器及安装daemon管理HTTP配置。管理认证、入口认证和官方provider HTTPS目标保留；缺失/错误入口key必须被拒且上游请求计数保持零。新增显式安装观察器只包装真实安装sessions工厂并原样委托，不替换Core、认证、上游或存储；按真实PID、manifest和独立签名递增请求观察root/snapshot计数。默认模式由实际会话零root/零snapshot证明，不能由合成上游自报；增强模式仍必须精确私有READ后收到独立公开生成。
+
+组合审查发现真实发行清单是缩进JSON，而新观察器误套用了签名邮箱的canonical JSON约束，已用真实发行格式复现并修复为独立物理路径、有界、原SHA精确及严格UTF8解析；签名邮箱约束未变。另修复来源HTTP的ASCII解码会把高位非法字节折叠成`{}`的问题，先红后绿，现逐字节限定唯一空对象；组合清理失败不再覆盖原失败或产生成功回执。控制器嵌套env accessor/Proxy不执行，错误仅固定码。全部为验收工具变更，不改变生产恢复认证、FULL/DELETE、ACK精确版本或原期限。
+
+矩阵总组合另9项通过，覆盖官方路径/auth、默认观察发生于respond之前、真实token工厂时机、各准备/执行/清理失败及首次失败phase保留；这里的外部运行仍为mock，尚不是Windows安装CLI结果。
+
+当前扩大回归114项通过（含原两端协议、合成上游、安装/进程能力、控制器、观察器和原边界），新增组合及准备/配置/回环检查通过。完整Lint退出0（五条既有warning），1557项JS语法通过，架构/模块预算/secret/CI/发行治理通过。Mac完整format:check失败1545文件：本机既有LF检出与CRLF格式规则冲突，已对未修改HEAD的.prettierrc.json逐字节相同并复现格式失败；本批文件定向格式检查通过，不全仓重排或放宽门禁。Windows仍须执行原完整verify/audit/build及安装生命周期后才运行新增矩阵。
+
+另已只读核对Windows私有台账的有限计数：maximum=177、used=169、requests.length=169，其中Codex历史99、Claude历史70；与交接累计快照一致。未输出请求内容/私有日志、未修改台账；两端各自剩余授权尚未核验，总剩余8不得合并或当成新授权，本批真实模型请求0。原控制器/adapter、默认preload和N09/closure四文件扩大35项通过；最初一项精确导出列表未包括新observer导出而失败，已更新列表并新增observer未启用时返回null断言，未放宽行为门禁。
+
+整体仍缺最新安装两端实际矩阵、持久重启保留/优雅退出、原生容量混合超时及正式真实24小时/到期重开结论、额度核验后的真实provider验收和受控自用启用。582运行包八步通过不等于默认worker/安装版迁移均已获得资格，旧NSIS回执clientQualified/gracefulDrainQualified/restartRetention边界仍保留。本批没有访问、改变或重启冻结长测，没有读取日常客户端配置，真实模型请求0。
+
+## 2026-10-24：固定安装与受控CLI启动前置已完成，尚待实际四组矩阵接入
+
+`717241a`的Verify `40103958224`现已八项全部success，正式Windows `40103958111`的source-gates仍在运行；后续网络批已提交推送`7f94a4a`，不能用717的通过覆盖它。e490a58完整CI、9401ca6最新实际NSIS生命周期和582实际八步迁移/回滚拒写已获前述限定资格。
+
+新增独立安装准备模块，只接受托管Windows干净主机及固定RUNNER_TEMP/hpm-installed-clients/payload真正NSIS目标。复用原隔离/物理路径/原180000ms进程门槛；安装器目录与manifest所属checkout分别精确匹配CurrentSha，唯一安装器、原离线配置、安装注册0.1.1、manifest全源码及Node/native/lock/gateway摘要均核对。callback前后验证root/payload lease，结束必须先收到treeEmpty=true，才按已固定摘要的本次uninstaller卸载；注册或文件身份意外时拒绝，部分安装失败留下未固定卸载器则保留目录报清理失败，绝不执行它。成功顺序严格payload lease释放→卸载→root lease释放→删除目录。不伪造build/npm完成回执，也不授予客户端资格。
+
+新增固定受控启动capability：原安装Node启动唯一launcher，PowerShell先将其分配原HpmRuntimeBoundaryJob，才给首字节授权；launcher在授权前零CLI启动，此后只选固定三程序根中的codex.exe或claude.exe并转发原生stdio。spec只在全新case内创建，限定参数/隔离环境，绑定manifest、Node、客户端和launcher散列，开始与结束复验。关闭stdin后原5秒内launcher必须退出0，原20秒stop和Job5秒均保留；非0、信号、超时、管道故障或stdout/stderr各262144字节超限都失败，finally清树成功不覆盖失败，没有任意PID终止兜底。
+
+本机两模块13项全部通过（21种安装状态、3种安装进程结果及12项实际PowerShell管道/终态断言），零跳过；范围包括部分start、同一能力重复使用、隔离spec漂移、非0退出、超限、Job清理回执与不泄露原始错误。全树1545项JS语法、局部Lint及六项架构/模块预算/secret/CI/发行治理通过。它们仍是离线host/process/registry mocks，没有在用户主机真实安装NSIS、创建实际Job或启动CLI。
+
+实际四组安装版Codex/Claude默认/增强矩阵尚未启动；剩余接入为固定锁定客户端准备、该安装模块与新网络profile、实际daemon管理配置/入口认证、上述Job启动能力、合成上游及独立默认零root/私有READ/独立公开生成见证和最终完整清理回执。现有clientQualified/gracefulDrainQualified/restartRetention边界均不抬高。不要因为这些前置通过而直接消费模型额度或启用日常配置；冻结长测未访问或改变、额度未核验、真实模型请求仍0，整体未完成。
+
+## 2026-10-24：安装矩阵网络约束前置及Windows路径守卫通过，客户端矩阵尚未启动
+
+已提交推送`717241af34edde2762d670a101550bfe37fc6075`的两端隔离协议/合成上游批次：Verify `40103958224`当前7项success、coverage尚在执行；正式Windows `40103958111`的egress成功、source-gates仍在执行，不能称该候选完整CI通过。此前e490a58完整门禁和582实际迁移结论不覆盖本批新增工具。
+
+为最新实际安装两端验收新增显式InstalledClientMatrix网络profile，只允许一次性托管Windows固定RUNNER_TEMP/hpm-installed-clients根及固定payload Node、clients/codex.exe、clients/claude.exe三程序。原N08/N09默认Guard/constructor、默认两个SAN/hosts名称、脚本复制闭包和callback字段均保持；新增helper仅此profile、原build/Node/manifest校验通过后加载。每程序独立持有文件物理身份lease和SHA、对应防火墙及原动态WFP过滤/回读/清理；Node还须与原build.nodeSha256精确相等。api.anthropic.com只在新profile加入证书SAN和hosts，保持原provider官方HTTPS/443门禁，不让产品接受回环上游；未停止的进程树继续保留containment，不因清理失败提前放行。此profile尚未在真实系统调用，不能授予实际WFP或客户端资格。
+
+Mac三项新PowerShell/C#模拟回归通过（12类程序创建/身份/部分失败/清理、4类hosts冲突/原字节还原、三WFP模拟lease），原9项失败阶段通过固定本地pwsh的纯mock执行。原Windows正控fixture在Mac因Windows平台Guard拒绝失败，保留该记录；用717241a原始C#及原fixture对照得到相同拒绝，未改成skip。随后在用户Windows全新隔离临时目录以低优先级实编译当前C#和fixture，只使用same-assembly fake API：原24拒绝/10路径与新3固定路径正控/24拒绝/3模拟lease全部通过、退出0、stderr空，nativeWfpCalls=0、networkRequests=0。没有调用真实WFP、改防火墙/hosts/证书或访问冻结日档。新Windows-only正控仍将沿统一CI入口执行。
+
+审查新合成MCP来源请求时修复其socket inactivity timeout不能约束持续滴流的缺口：保留5000ms，新增覆盖整个请求的deadline，超时关闭owned请求且失败不重试；传输同步失败不遗留timer，仅严格回环无user-info URL，UTF8非法字节也拒绝。33项Claude/来源回归及两端扩大覆盖率门禁通过；该工具修复不改生产持久HTTP五秒实现或任何既有期限。安装与受控客户端进程树launcher仍在接入，最新NSIS真实CLI矩阵未启动；额度未核验、真实模型请求0，整体未交付。
+
+## 2026-10-24：两端隔离协议与精确恢复合成上游已实现，实际安装客户端尚未执行
+
+582迁移及完整门禁证据已单独提交推送为`3879741`，未夹带在建客户端文件。本批新增Codex/Claude各自可复用协议模块：只接受受控spawnOwned能力，不自行选择日常客户端、读取日常认证或配置；严格回环入口、全新且物理身份固定的隔离HOME，合成entry token，Codex重试0，Claude bare/strict MCP/无session持久化。固定一次来源工具、三次实际压缩协议及对应完成事件，全部最终公开文本必须精确匹配。持续观察到受控stop确认terminal/treeStopped均true，拒绝清理期间迟到的私有工具、sentinel、非法或未结束帧；不使用PID回收或任意进程终止兜底。
+
+独立纯合成上游按真实Codex Responses/compact与Claude Messages协议响应，复用生产summary识别及stored source/page解析。seed必须从唯一已发出call_id的结果取得精确原文，后续LIST身份、digest、bytes和READ连续UTF8页必须与原文逐字节相等；私有READ完成后的sentinel回答不可作为公开结果，必须再收到独立公开generation，其支持页连续完整、无私有工具和thinking/signature sentinel，才给最终合成marker。stream=true严格SSE、真实compact endpoint为JSON，不以降级JSON冒充客户端流式成功；阶段跳跃、重放、错误页、摘要/公开泄漏和固定请求上限失败即停。所有原文仅在内存核对，无日志或公有回执输出。
+
+本机新增四文件70项全部通过，加原RPC28项共98/98、零跳过。新模块定向c8语句/行97.31%、分支93.91%、函数98.5%，高于既有85/80/90/85参考门槛；Lint、语法、前端架构和CI/发行治理已通过。新测试沿统一递归发现进入CI；没有替换或跳过既有测试。仅测试工具新增独立tools/nsis-clients锁，固定历史Codex0.160.1与Claude2.1.292的官方Windows x64原生包及SHA512，应用自身依赖/锁文件未改。Mac元数据生成前两次因目标平台不匹配正确拒绝；只用package-lock-only生成锁，未安装或执行客户端，Windows准备仍须普通npm ci通过其原平台门禁。
+
+这些局部协议/上游回归不等于真实CLI、最新NSIS两端或零外连验收。协议回执只声明directModelRequests=0，安装/上游/客户端资格仍false；默认零恢复root与完整Core入口须由独立安装见证，不能由合成上游自报true。下一步为一次性GitHub Windows runner接入固定安装身份、三个可执行文件的WFP/防火墙约束、真实客户端和进程树清理见证，再收默认/增强两端结果。当前未启动该实际客户端矩阵，不在长测主机安装或改证书/hosts；额度未核验，真实模型请求仍0，整体尚未交付。
+
+## 2026-10-24：e490a58完整CI及最新安装生命周期通过，582实际迁移/回滚拒写通过
+
+`e490a58a5dff83f7699221015de19759848934a4` 的完整Verify `40098018857` 八项全部success，正式Windows `40098018924` 四项全部success，含source-gates `120884240572`、N09 `120888057797`、N08 `120888057808`。没有重跑旧失败、改动原门禁或据此扩授完整N08/N09/日档/两端客户端资格。五秒稳定性的既有五runner、42次1024–2369ms证据仍按9401ca6记录；e490a58相对9401ca6未改生产源码、依赖锁或原生Rust，不将新CI成功冒充额外延迟样本。
+
+最新加密NSIS生命周期 `40096977916` 已最终success，resolve `120881174431` 和encrypted-lifecycle `120881245475` 均成功。候选固定9401ca6、实际安装manifest `df511afda0dded1236e7738a03b1b6f5afddd07f4b1ded57d44f3abfc46cc500`，真实安装、升级、回滚、重装、卸载及同用户DPAPI、原625基线拒绝隐式迁移保字节、显式登记、迁移后读取/重存、全新锚定库重开、旧625拒写新格式均通过。安装模块API四组合与真实daemon管理HTTP四组合均成功；原clientQualified=false、gracefulDrainQualified=false、restartRetention=false、dependencyIdentity=lock_only与forced_cleanup边界保留。公开release.yml签名要求、不可变625安装器身份及未发布draft链未改；没有公开发布安装器。
+
+在用户Windows主机的全新独立OS-temp目录，以低优先级实际执行e490a58已提交的582八步工具，八阶段全部完成、进程退出0。582原包manifest固定`4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f`，每步前后重验全部源码和Node/native身份。当前运行包由Mac的干净e490a58快照按发行清单与锁定生产依赖准备、原validator验证，再配核验的Windows Node 22.22.3及与当前Rust源码一致的原生助手；manifest为`b73b4354d398157f49d60938f82edd36fa057ef4c5170e0d20a2497e31a07d6a`，541项源文件，Node SHA256 `780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b`、native `95726a7cd114f9b38c9261059f0fac071f2c2cb2e62dcb06413736c82bbec410`。该独立运行包不是上述NSIS安装产物，二者资格不混用。
+
+实际顺序为582 seed/read、当前拒绝隐式迁移、当前preview/enroll并首次read、当前resave/read、582拒绝新格式、当前最终read。真实CurrentUser DPAPI与OS锚点owner参与；只读SQLite见证旧schema1无blob、显式迁移后schema3、resave生成实际blob且revision精确+1，后续读取和旧版拒写均不漂移。原文/root/source/预算/wrapped-key/原expiry只在内部逐字段比对且全部相等；旧版拒写前后文件库存字节一致。未读用户旧数据库，未复制数据库、密钥、锚点或私有日志入库。工具明确nsisQualified=false、workerQualified=false、retention24hQualified=false、clientQualified=false；本批关闭的是582实际运行包迁移/回滚拒写，不能替代安装版客户端或默认worker迁移验收。
+
+准备失败记录保留：首次Mac原release:prepare因生产依赖.bin符号链接和缺Windows原生助手而拒绝，未弱化validator；后续只在独立新运行包用锁文件、--ignore-scripts和--bin-links=false准备生产依赖，沿原裁剪/打包/校验模块验证，再配核验的Windows二进制。Windows只解包和执行独立短测，没有编译、日常代理、系统代理或信任证书改动。全部八步只执行一遍，失败即停规则和原120000ms驱动/原生期限保留，没有重试模型或替换TTL。
+
+下一步为最新实际安装身份下Codex/Claude默认与增强隔离客户端验收：旧脚本只能参考协议，不能沿用其日常凭据读取或工作区Core/认证注入。新协议模块和固定合成上游正在接入，实际客户端资格尚未授予。冻结长测未访问、改变或重启，额度未核验，真实模型请求为0；历史失败继续保留，整体交付尚未完成。
+
+## 2026-10-24：9401ca6完整门禁通过，启动最新安装生命周期并找回582实包
+
+`9401ca6fcd6493956516b721028796d9bb64cca6` 的完整Verify `40095495560` 八项全部success；正式Windows `40095495598` 四项全部success，含source-gates `120876761893`、N08 `120880517161`、N09 `120880517157`。N08/N09最终probesPassed、ownedTreeEmpty、tlsVerified、nonLoopbackBlocked均true，范围仍为原各六场景；其n08Qualified=false及工作流中完整N08/N09、安装、24小时等未授予边界保持，不能改写为整体完成。此前2c39a56的完整门禁失败及be7bacee五秒失败均保留，未重跑旧失败制造绿色。
+
+独立timing `40095495577` 三个冷runner各完整执行Core/WBIPC和Codex摘要两个文件，均50/50、无跳过。各六次long-persistent请求为：job `120876762047` 1103/1280、1111/1267、1120/1291ms；job `120876762094` 1024/1235、1065/1238、1058/1268ms；job `120876761881` 1167/1266、1213/1365、1127/1336ms（各按chat、responses、Claude两轮排列）。完整coverage `120876762062` 在proxy/client两套入口另执行12次，最大2369ms；正式source-gates另12次，最大2355ms。合计本候选五个独立runner、42次固定负载持久恢复1024–2369ms，零long-persistent request_failed，原5000ms、默认worker、DPAPI、OS锚点、预扣和精确ACK均保留。该固定负载稳定性门禁已获重复通过，不宣称任意负载或机器的延迟保证，也不替代真实模型或日档。
+
+按原新建review分支机制启动最新候选的加密NSIS生命周期 `40096977916`，固定完整9401ca6 SHA，复用原625安装器不可变身份及未发布draft获取门禁。resolve `120881174431`已success，`encrypted / encrypted-lifecycle` job `120881245475`在候选完整verify阶段，安装/升级/回滚尚未取得最终结果；不发布新安装器，公开release.yml签名要求未改。该review push另触发既有Verify `40096977814`，未修改原触发器或跳过门禁。
+
+用户授权在Windows查找后，找到原582运行包`hpm-isolated-release-Wr2O5s/dist/staging/runtime`，manifest精确为`4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f`。以低优先级、只读方式核对全部582个源文件（4306633字节）及Node、native和lock摘要，全部一致；关键源码经manifest核验后用于兼容审查，未复制用户数据库、密钥或私有日志到GitHub。又在独立全新合成目录，以该包自己的Node/原生助手和9401ca6已提交NSIS driver真实seed、关闭、独立进程read，真实CurrentUser DPAPI成功，原文/root/source/预算/wrapped-key/原expiry内部回执逐字段相等；安全回执仅报告两次owner启动及布尔值。没有运行代理、读旧用户DB、修改日常配置或访问冻结日档。该步只证明582真实基线建库/重开，不是582迁移、NSIS或worker资格。
+
+新增可复现入口`node scripts/qualify-context-recovery-legacy-layout.cjs <582运行包绝对目录> <当前运行包绝对目录> <当前manifest SHA256>`。主入口只组合；参数、582固定manifest/Node/native身份、精确回执和八步序列，与新建OS-temp目录、隔离环境、原120000ms driver边界及只读SQLite见证分开。它不接受数据库目录，每次只创建全新数据根，逐步失败即停不重试；源身份每步前后重验，日志只有固定阶段、数值与包manifest。八步为582 seed/read、当前refuse-legacy、当前preview/enroll并首次read、当前resave/read、582 refuse-new-format、当前再次read。原driver内部证明preview/enroll不改库，再单独见证schema1→3；resave必须实际产生blob且revision精确+1。原expiry、root/source、预算、key和原文摘要只在内部比较，不进入公有回执。工具成功也明确nsisQualified/workerQualified/retention24hQualified/clientQualified=false。
+
+13项工具回归通过、零跳过，覆盖参数/访问器/非法与极端输入、错误包身份、目录替换、每一步失败停止、超时/退出/输出/重复JSON键、错误回执、期限/预算/布局/revision漂移、只读DB字节不变和安全日志。自动统一测试发现已确认。新两模块范围c8语句/行100%、函数100%、分支93.43%，沿85/80/90/85门槛通过；工具及NSIS/登记/拒写四文件扩大57项首次56通过、1项因Mac缺pwsh失败，失败保留。随后从官方发布核验SHA256后在本任务work中配置独立PowerShell，不覆盖其他版本，57项全部通过、无跳过。全树1527 JS语法、Lint（零错误、5个既有警告）、模块大小/图/组合根、生产secret、CI与发行治理通过；依赖/锁文件和生产运行源码未改。本批未实际执行完整582八步迁移，须在独立环境取得当前完整运行包后执行，不能把13项模拟回归或旧基线短测计作通过。
+
+下一步收齐9401ca6最新安装/升级回滚结果，执行582→当前实包的完整迁移/回滚拒写，再接入最新安装身份下的Codex/Claude实际客户端隔离验收。旧机四组客户端脚本已找回供审查，但仍读取旧日常认证并注入工作区，未直接运行，也未冒充最新NSIS客户端资格。本批没有访问、修改或重启冻结日档，未核验额度，真实模型调用为0；整体仍未交付。
+
+## 2026-10-24：收齐2c39a56失败门禁，修正摘要恢复夹具的双时钟
+
+`2c39a56af1ea1dc2ef1b2230f56b27641bcfddc8` 完整Verify `40092807977` 终态为六项success、coverage `120868791653` 与unit-tests (2) `120868791732` failure。正式Windows `40092807751` egress成功、source-gates `120868790904` failure，后续context-recovery未执行；不得称为正式验收通过。三个失败均为context-recovery-codex-summary.test.js的 restored Codex summary completes isolated READ and encrypted public publication 返回context_recovery_unavailable，不是本轮五秒超时。旧失败全部保留。
+
+本机用原命令复现20项中19通过、该项失败。根因为夹具session从1000重开后仅到1001，SQLite时钟却固定10000；复合READ实际持久observedAt=10000，host实际结算观测=1001，生产时间门禁正确拒绝。现让该夹具暴露自己的now并同时注入storage，不修改生产断言、不延长期限、不把未来持久观测降为成功；末尾1002的重开检查与原expiry断言保留。修正后摘要、复合READ合同/引擎及root-reader四文件81项全通过、零跳过，包含未来时间、回拨、取消、错误/丢失ACK和预扣屏障负控。Lint、变更格式、CI/发行治理通过。
+
+2c39a56独立Windows timing `40092807887` job `120868791092` 完整原Core/WBIPC文件30/30通过；六次long-persistent请求chat 1566/1561ms、responses 1282/1227ms、Claude 1690/1580ms。完整coverage和正式source-gates虽被上述摘要夹具挡住，各自Core/WBIPC六次long-persistent也均通过：coverage 2076/2038、1920/2161、2265/2301ms；正式source-gates 2309/2744、1546/1927、2422/1955ms。同一源码在三个独立runner共18次持久请求1227–2744ms，零long-persistent request_failed；默认原生worker、DPAPI、OS锚点及原5000ms请求均保留。这是稳定性改善证据，不能用它覆盖完整CI失败、关闭所有稳定性或授予安装版资格。
+
+下一候选的独立timing扩展为三个互不共享环境的冷runner，每个完整执行Core/WBIPC和Codex-summary两个文件各一次，无过滤、无自动重试；fail-fast关闭仅用于保留每个样本结果，任何失败仍使作业失败。完整Verify和正式Windows仍为独立必过门禁，通过后才推进旧582布局、升级回滚和最新安装版验收。生产代码及锁文件本批不变。未访问、修改或重启冻结日档，未核验额度或调用真实模型。整体尚未交付。
+
+## 2026-10-24：定位Windows五秒尾延迟，生产READ减少一次串行持久提交
+
+整体仍处于上下文压缩/精确恢复的稳定性与最终自用验收阶段。本轮先核对CI：`6c0f43f` 的Verify `40089577296` 与正式Windows `40089577293`，`75e1b52` 的Verify `40089968550` 与正式Windows `40089968552` 均已全部success，包含N08/N09。不能用这些单次通过撤销be7bacee及更早五秒失败，也不覆盖本条后续生产修复。默认客户端原生压缩、可选精确恢复和私有恢复后独立公开生成均未改变。
+
+读取旧失败job `120838108532` 的限定数值阶段，Claude long-persistent第0轮在5002ms失败：后段save/read-source/settle-reader的SQLite COMMIT分别约540/816/805ms，settle时钟写入368ms，snapshot约36ms；公开生成持久发布操作后续记录2313ms。证据指向串行耐久I/O尾延迟放大，不能只归因快照CPU，也未擅自断言磁盘/杀毒等系统层根因。另读取75e1b52通过的Windows源码门禁 `120860470208`，同类12次请求约1063–2660ms、未失败；这反映波动，不构成稳定性关闭。
+
+本轮实际修改生产读取路径：保留独立maximum-debit save、FULL COMMIT、锚点持久化及精确版本ACK，之后在一个SQLite事务内完成来源/密文认证、页面读取、真实时钟水位及结算保存。新增显式内部read-source-and-settle能力，owner仍只在snapshot认证和独立锚点persist成功后返回。host持有的预扣前预算来自私有reader事务闭包；先验证页面、重算规范结算、核对精确revision，再与实际owner预算/进度逐字段相等，成功才确认预算及返回页面。worker持久observedAt必须介于请求观测和host后续真实观测之间，host更晚时间不冒充已持久。没有跨事务缓存、少做原文认证、弱化FULL/DELETE或减少预扣。
+
+LIST、非法参数、零页面预算及不声明能力的适配器仍走原流程；特别保留LIST在maximum-debit ACK前零reader调用、不确定写入不退款门禁。复合操作失败、取消、到期、见证不一致或ACK丢失后拒绝结果，不向旧协议回退重试。可信owner-to-storage边界沿用原settle-reader合同，不将序列化预算宣称为独立读权限或防恶意宿主能力。没有扩大模型可选参数或产品配置。
+
+集成红测抓到初稿少计session provenance的70字节：现将原tagged函数及既有96字节预留提为共用模块，真正canonical编码用于worker与host，原对外结果不变。真实文件SQLite顺序对照令时钟随操作推进，要求每个计数COMMIT均有实际DELETE rollback journal；成功READ从3次持久提交降为2次，原文、预算、连续进度、revision及expiry精确一致，时间水位实际持久。新回归还覆盖预扣ACK屏障、UTF8/空/seek/重复/失败页、末尾余额、损坏来源、CAS/预算/未来观测/回拨/到期拒绝、COMMIT回滚、取消和丢失/错误ACK。新测试进入统一递归入口与显式client coverage清单，新生产模块进入发行源码清单；首次release治理因漏登记新模块失败，补齐后通过，没有绕过门禁。
+
+相关七文件146项：144通过、2项原Windows原生跳过、零失败；新协议/阶段观察器四文件23项通过，六项后端架构/安全/发行治理通过。扩展Core、session、storage、blob和COMMIT五文件186项：180通过、4失败、2原平台跳过；四项失败明确为Mac缺少Windows原生能力时的三个Core持久fixture开库及一个blob默认worker开库，原失败保留，不加skip、不替换内存冒充Windows。生产语法、Lint、变更格式、模块预算、CI/发行检查通过，锁文件与依赖版本未改。
+
+新增独立托管Windows timing作业，完整执行原client-context-target.test.js（无测试过滤、无重试、保留5000ms请求和原断言），尽快取得本修复的真实DPAPI/OS锚点持久HTTP反馈；它不替代完整Verify和正式Windows门禁。不上传数据库、密钥、原文或原生响应。当前还没有本条候选的Windows五秒最终结论，不能写作已解决。
+
+正在运行的Windows冻结长测未访问、未修改、未重启或抢占。额度仍未核验，真实模型请求为0。后续先收本候选Windows性能/正确性结果，继续关闭持久恢复稳定性，再收迁移回滚与最新安装版Codex/Claude实际验收；原冻结日档及到期后重开单独按原身份收据判断，整体尚未交付。
+
+## 2026-10-24：认证快照减少完整重建，保留重新解密与旧聚合准入
+
+发布转换中断矩阵与取消修复已按原钩子提交并推送 `6c0f43f56a9948da79caa51ef0d1c38ec3ac28f7`，远端同SHA；其Verify `40089577296` 与正式Windows `40089577293`已启动，尚无本修复最终资格。再次核对旧候选 `1dd06ea`：Verify八项及正式Windows四项（含N08/N09）均success。不能据此关闭历史五秒性能不稳定，也不能覆盖后续生产修改。
+
+快照优化保留每次事务内所有blob的重新解密，保留库存精确匹配、AEAD、digest、bytes、source关联、UTF-8覆盖边界、敏感内容策略和元数据校验；没有跨事务缓存、跳过认证或减少owner的锚点持久化调用。引用快照只需expiry/revision/tag见证，新增内部认证路径避免为它再次构造、规范化和散列包含全部原文的完整checkpoint；legacy存储仍走原decode路径。
+
+复核发现并先补红回归：旧v8容量下，16条160000字节NUL的metadata和raw总量合法，完整hydrate因JSON转义后超12MiB拒绝，轻量初稿却错误接受。修正为对同结构、空output的最终checkpoint骨架运行原normalizeRecoveryCheckpointData，保留节点/深度及旧原始key预算，再以骨架大小加6×全部原文字节的保守JSON上界证明聚合准入。不能证明时回到原完整decode校验，绝不保守误拒或直接放行。8条密集NUL及20条160KB ASCII（保守上界超限但原路径合法）的正控仍接受，16条密集NUL负控重新拒绝；证明和回退均限本次调用。
+
+新增回归还覆盖600KB、多source、空source、legacy、完整load兼容、snapshot metadata/quota精确一致，及缺失、额外、替换密文、自洽但错误的sourceId/bytes/digest、UTF-8切分、敏感原文、reference checksum和重算digest后的非法metadata；同一损坏重复调用仍拒绝。构造密集转义夹具时首次被既有请求准入拒绝，后改用受控认证密文注入以测试开库后边界，未改请求门禁。此前Mac默认原生worker开库失败仍保留。
+
+最终五文件组合157项：156通过、1失败、零跳过，唯一失败仍为现有 actual encrypted worker 跨重开测试在Mac默认原生开库不可用；不改为内存、不新增skip。快照新增五项及发布/COMMIT回归全部通过。每次600KB样本快照旧/新均3次cipher.open、604644密文字节，完整hydrate由1降至0；加入骨架检查后交替6批、每批10次，旧约82–89ms、新约47–63ms，仅本Mac合成观察。全树1520个JS语法、变更格式/Lint、架构预算、CI/发布治理均通过；全树Lint零错误、5个既有警告，high级npm审计通过，传递fast-uri moderate仍保留，锁文件未升级。生产代码改变，旧安装器资格不覆盖新候选，尚未重建或授予最终Windows安装版资格。
+
+本批没有访问或修改正在运行的Windows冻结长测、没有核验额度或新增模型请求；原期限、FULL/DELETE、固定画像、ACK精确版本均保持。优化不宣称消除必要的重复解密，不授予Windows五秒HTTP、原生日档或最终安装资格。
+
+## 2026-10-24：持久发布转换内部中断矩阵与取消清理修正
+
+按用户要求先核对现有CI，没有重跑：`1dd06ea` 的Verify `40088184535` 八项均success，正式Windows `40088184542` source-gates与egress成功、N08/N09进行中；`ad1d769` 的Verify `40088855196` 七项成功、coverage进行中，正式Windows `40088855188` source-gates进行中、egress成功。历史be7bacee失败继续保留，单次通过不关闭五秒性能稳定性问题。
+
+新增 `context-recovery-publication-interruption.test.js` 使用真实session、发布状态机、引用存储事务与加密文件SQLite。五种目标状态为prepared、sending、transport-finished、uncertain、withdrawn；每种分别在真实COMMIT的PENDING锁等待内部，以及COMMIT完成但存储ACK尚未返回时强杀，另有对应释放正控，共20项。前者要求真实journal、无ACK、实际SIGKILL及同目录重开得到旧完整版本；后者要求无ACK但同目录重开得到精确新版本，不能把丢失ACK解释为未提交。正控要求单次精确版本ACK，检查原expiry、原文、预算、FULL/DELETE、1000ms busy期限及integrity_check。所有新测试由统一递归入口进入CI，不访问长测目录、不调用模型。
+
+测试发现并以直接回归复现真实取消缺陷：引用存储的取消先使session失效，随后保存withdrawn/uncertain时，即使所有原文已持久化、缺少payload的ID集合为空，仍调用owner.payloads，导致清理在实际COMMIT前失败。现仅对空集合返回空payload，新增原文仍必须通过原owner能力；存储侧引用/密文认证、版本相等检查和ACK顺序均保留。直接回归覆盖prepared、sending及transport-finished后的取消，确认清理完成、状态正确、原文保留且session失效。
+
+初稿比较存储返回的空原型预算与IPC普通对象时产生夹具断言失败，已按其JSON数据语义比较，完整记录精确断言仍在；撤回失败则是上述独立复现的产品问题，两者没有混为根因。修正后发布/内部中断/COMMIT三文件共52项通过、零跳过，Lint、架构、CI及发布治理通过。此批证据范围仍为Mac文件SQLite和真实session层，不授予Windows DPAPI/OS锚点、磁盘同步瞬间中断或最终安装HTTP资格。
+
+本批不包含尚在复核的快照优化。原文留存、原期限、固定负载、ACK精确版本和持久语义保持；正在运行的冻结真实日档未访问、未修改或重启。未核验额度，没有新增真实模型请求，整体交付仍未完成。
+
+## 2026-10-24：续接修改已推送，独立补齐 COMMIT 锁等待内部中断回归
+
+续接诊断、真实日档入口、留存见证和 idle 测试锁竞争修正已按原提交钩子提交并推送为 `1dd06eabcd3716f6c9638e026ae72375ff8171af`，远端分支 SHA 已核对一致。该提交的 Verify `40088184535` 已有七项成功（四个单测分片、Rust、Node质量、集成），coverage仍在client coverage阶段；正式 Windows `40088184542` 的egress成功、source-gates进行中，两条均不能记作完整通过。此前 be7bacee 的 coverage 锁竞争和正式 Claude long-persistent 约5002ms失败保留，不能用局部回归覆盖。
+
+用户要求不等待日档空转：未访问或抢占冻结 Windows 验收环境，未修改、重启或重新冻结原日档。下面新增测试仅在 Mac 的独立临时目录执行，不改变长测源码身份；1dd06ea 的推送也不会将已启动的 dirty 冻结树变成该干净提交。
+
+新增 `test/context-recovery-commit-interruption.test.js`，由统一递归单测入口及 CI 自动发现。真实加密文件 SQLite 使用生产 store，核对 DELETE/FULL 和原 busy_timeout=1000；独立进程持有 SHARED 读锁，写进程进入实际 COMMIT，第三进程中的连接以 SQLITE_BUSY 证实 PENDING 锁，并要求真实 rollback journal 存在。此后强杀写进程、等待实际 SIGKILL 退出，确认没有提交 ACK，再释放读锁并同目录新连接开库，要求原 revision、原 expiry 和完整 Unicode checkpoint 精确不变、integrity_check=ok。另有三个对照：相同等待释放后只提交/ACK一次且重开得到新版本；COMMIT 前强杀没有 PENDING 见证，不能充当内部中断；不释放锁则在原1000ms预算失败且没有 ACK，重开仍是旧版本。没有提高期限或重试。
+
+初版探针因读锁和探针连接位于同一进程，受 POSIX 共享读锁影响而未观察到 PENDING，新增测试失败；已将锁持有者拆为独立进程并保留提交前负控。修正后新四项和原存储文件共50项通过、零跳过。扩展到存储、blob、锚定格式及备份回滚五文件后112项中109通过、2项平台跳过、1项失败：现有 actual encrypted worker 跨重开测试在Mac默认原生开库报 context_recovery_storage_unavailable，该测试未按平台跳过；非Windows不能提供其DPAPI/OS锚点资格。保留这一扩展失败，不改用内存后端或跳过测试制造全绿。此证据仅覆盖 Mac 的 SQLite COMMIT 锁等待内部，不覆盖磁盘同步瞬间、持久发布转换内部强杀、DPAPI/OS锚点或 Windows 原生资格；完整矩阵仍未关闭。
+
+持久请求延迟只读排查确认重复工作：owner 每次操作完成后另取 engine.snapshot，snapshot 经 decodeState 全量恢复原文。Mac 内存 SQLite、真实 session/engine、600000字节合成原文的局部计量中，1024字节 read-source 本身解密603541字节，随后 snapshot 再解密603541字节；settle-reader 为610125+603543；元数据 save-reference-state 为13214+603541。该测量不含 HTTP、DPAPI、OS锚点或真实模型，不能解释全部 Windows 五秒失败。尚未改动生产快照路径；后续优化必须保持每条 blob 的认证、digest/bytes/source关联、UTF-8边界和原锚点持久化，不得跳过认证或跨事务缓存制造提速。
+
+新增文件Lint、格式、全树语法、架构预算、CI/发布治理检查均通过；统一发现入口已实际确认包含新测试。生产源码和锁文件未改动，本阶段未重建Windows安装器。没有新增模型调用，额度台账仍未核验。日档终态、五秒性能稳定性、持久发布内部中断、迁移/回滚、最终安装两端资格和受控启用继续未完成。
+
+## 2026-10-24：Windows 原生短测通过，真实日档已启动；交接提交 CI 实际失败仍保留
+
+已通过用户在 Mac 上建立的 SSH 共享连接访问 Windows，在独立目录 `E:\DEV\WorkSpace\https-proxy-context-recovery-20261024-mac` 克隆同分支，HEAD 为 be7bacee，初始工作区干净。复用实际安装的 Node 22.22.3/npm 10.9.8、Rust/Cargo 1.92.0、MSVC 14.44/14.50、Windows SDK 10.0.22621/26100；SSH 中 nodejs 与 rustup 符号链接入口被 Windows 拒绝，改用现有物理安装路径，没有重装、切换或修改全局配置。首次 npm ci 因旧缓存经过 nodejs 符号链接失败，保留该失败；指定本验收目录内独立缓存后根依赖及插件锁文件安装均退出 0。原生助手 release 构建实际成功，指定容量/时钟 16 项回归全部通过、零跳过。
+
+默认 worker 的空库开库、关闭、同目录重开通过，首开约 4091ms、重开约 1695ms，实际经过 DPAPI、OS 锚点及 SQLite 引擎阶段。旧开库失败在当前隔离环境未复现，根因仍不能宣布已修复。随后真实时钟、默认存储与持久容量驱动完成 native-short：2 根、2 轮/根、32768 字节原文，4 轮、4 次精确恢复、2 次重开、3 次开库/关闭，约23秒；再加入真实 catalog 留存见证复验，约24秒仍通过，两个根的原 expiry 在重开间保持。两次都明确 realtime24hStarted=false、fullCapacityQualified=false。Windows 相关七文件76项通过、零跳过；新增留存/日档组合及诊断三文件19项通过、零跳过，冻结目录再验19项通过。新模块测试由统一递归入口发现；注入时钟的回归不授予真实日档资格。
+
+正式真实日档已于 **2026-10-24 10:24:50.417 UTC / 洛杉矶03:24:50** 实际启动，首个默认原生开库及 advance(0) 已完成，随后真实五分钟节拍已有回执。运行任务为 `HPM-context-recovery-native-day-20261024-102437`，实际 Node PID `236272`（仅标识本次运行，不能在后续机器上照用）。独立冻结工作树为 `E:\DEV\WorkSpace\https-proxy-native-day-frozen-20261024`，基于 be7bacee 加本轮诊断/验收候选，dirty=true，不冒充干净交接提交。源码输入及本机 Node/原生助手已复制并设为只读；不共享日常代理、配置、证书、凭据、数据库或缓存。Windows 当前用户的独立一次性任务承载进程，不依赖 SSH 窗口；没有自动重试，外层26小时终止界限不改变原生5000/30000ms期限。
+
+启动身份：550 个源码/锁文件输入 SHA256 `8167ed7afe40bb7df03fe80bd67d95c827a27c63a2d75310834d272f1047c0cf`；Node SHA256 `780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b`；原生助手 SHA256 `95726a7cd114f9b38c9261059f0fac071f2c2cb2e62dcb06413736c82bbec410`。每次开库/关闭边界复核身份。安全进度和控制回执保存在冻结树 `.hpm-acceptance/progress.jsonl`、`task.json`、`prelaunch-identity.json`，只含固定阶段、数值、源码身份和合成负载结果，不含 scope、原文或密钥。读取侧状态脚本曾因 stderr 正被写入而报共享访问错误，已改为只读文件大小；该诊断读取错误没有终止或重启长测。
+
+入口为 `node scripts/qualify-context-recovery-native-day.js`，只允许 Windows 和真实默认时钟/worker；当前日档运行时不要再次执行它。它保留冻结 day-small 的288轮、24次恢复、12次重开，最后一轮仅23h55m，之后继续真实 advance(24h)，并等待每个根的实际出生 monotonic+24h及原 wall expiry 同时到达；两次新 worker 同目录开库均须 catalog为空、既知 scope 的 load/load-reference为空、inspect为零且关闭成功。有限数值采样、scope/expiry精确相等及 revision不倒退见证有独立失败/安全回归。运行中不能记作24小时通过；最早也须洛杉矶10月25日03:24之后才能取得到期后报告。当前尚无最终日档结论，其余四档原生容量也未授予资格。
+
+be7bacee 的托管结果现已收齐，未重跑：Verify `40082282025` 七项成功、coverage `120838108720` 失败，具体为 client coverage 的 idle corruption 外部 UPDATE（原测试605行）报 database is locked；正式 Windows `40082282010` 的 source-gates `120838108532` 失败、egress成功，后续context-recovery跳过。正式门禁的实际core claude WBIPC long-persistent第0轮约5002ms请求失败，4次请求/握手，原5秒性能不稳定继续未关闭。不能用本轮局部通过覆盖这些失败。
+
+独立检查并修正 idle 故障注入测试的竞争：原25ms加速 sweep 可在外部 SELECT/UPDATE 间夺取锁，现用已有测试专用 SharedArrayBuffer gate 在开库前暂停，外部损坏事务关闭后恢复真实 sweep；计数断言要求注入期间零 sweep、恢复后真实 sweep 执行，继续检查实际 worker 退出、拒绝后续操作及释放 writer。仅改测试、不改生产或1000ms/30000ms期限、不重试。新增初始暂停/恢复负控，Mac该文件11通过、2项Windows原生跳过；Windows复验及新候选托管结果仍未取得。为隔离正在进行的正式日档，不在同一远端环境并行重跑重型验收。
+
+本轮修改文件 Lint、格式、全树语法、架构预算、CI/发布治理通过；全树 Lint 为零错误、5个既有警告。Mac 初始全树格式检查受 LF 检出与项目 CRLF 要求影响，临时对齐工作副本后通过，所有无内容变更文件随后逐字节恢复，未提交全树格式修改。npm high级审计通过，仍有传递 fast-uri moderate 项，未升级锁文件。没有新增真实模型请求，额度台账仍未核验；COMMIT/发布内部中断、迁移回滚、持久HTTP五秒问题、最终安装两端资格及受控启用均未完成。
+
+## 2026-10-24：Mac 换机续接，重建可复现开库诊断，Windows 实测待 SSH 认证
+
+在新目录克隆指定分支，起始 HEAD 精确为 `be7bacee2ab2a266f9fb356b87c1b22cd33112cf`，工作区干净，没有后续提交或适用的 AGENTS.md。已读取交接、顶部状态、架构、package 和 Verify 门禁。当前主机是 macOS arm64，复用 Node 22.22.2/npm 12.0.1；按官方 rustup 安装 Rust/Cargo 1.99.1，未修改 shell PATH。此环境不能提供 MSVC、Windows SDK、WebView2、CurrentUser DPAPI 或注册表锚点的实际资格。
+
+根目录及 evidence 插件的锁文件安装均退出 0，未升级依赖。`prepare-context-recovery-native.js` 退出 0，但非 Windows 分支直接返回 null，未构建 Windows 原生助手。指定容量/时钟两文件 16 项通过；随后开库诊断、storage service/opening、anchor owner/admission、容量/时钟七文件共 76 项，74 通过、2 项平台跳过。Rust 原生助手的跨平台协议/解析测试 16 项通过，编译有既有 Windows 专用代码的 dead_code 警告，不构成 Windows 原生验收。新增回归首次因测试漏导入 DatabaseSync 失败，修正后通过；不将夹具错误归为产品根因。修改文件 Lint、架构大小预算、CI 和发布治理通过。
+
+源码及实际加载确认 progress 模块仅导出 createStorageStartupProgress，STORAGE_STARTUP_PHASES 是内部常量；旧临时脚本展开它的错误不能解释原生首次开库失败。本轮新增 `node scripts/diagnose-context-recovery-open.js`：记录 HEAD、dirty 标志、当前检出模块导出/解析身份、限定源码集合 SHA256、Node/平台以及本机原生助手 SHA256。仅 Windows 且原生助手存在才使用默认 openContextRecoveryStorage，以原期限对专用新临时目录开库、inspect、关闭并同目录重开；没有请求模型、注入内存后端或修改日常配置。失败不重试，不输出异常、目录、数据密钥或存储内容。诊断结果明确 capacityQualified=false、realtime24hStarted=false；源码身份记录不是冻结长测清单。
+
+沿用既有有界 onStartup 机制增加 anchor_open_started/opened、engine_prepare_started/prepared、anchor_persist_started/finished，缩小原有两个观察盲区；不修改持久语义或期限。新增构造、读取、初次 enrollment commit 及后续 persist commit 失败回归，确认固定阶段、安全错误和真实 writer 锁释放。仍未确认旧 Windows 原生故障根因。实际 Mac 入口返回 windows_required、attempted=false；现有真实 worker 回归到 key_protect_started 后按平台拒绝，不能当旧 Windows 失败复现。
+
+GitHub API 在检查时显示本交接 SHA 的 Verify `40082282025`、Disposable Windows context recovery `40082282010` 均 in_progress，无最终结论；未重跑。npm 审计有一个传递 fast-uri moderate 项（无 high/critical），保留锁文件，未自动修复。已从本机 SSH 已知主机和历史目标识别出一台 Windows 候选，网络可达但 BatchMode 认证拒绝；默认 agent 无身份，另一个已有 agent socket 无响应并已停止探测。待本机安全认证可用后继续远端环境检查与原生诊断，不索取聊天密钥。
+
+原生短测、真实容量/连续 24 小时和到期后重开均尚未启动；没有新增真实模型请求，原预算快照尚未核验。旧超时、五秒请求延迟、COMMIT/发布内部中断、迁移回滚和最终安装两端资格均保留，整体交付未完成。
+
+## 2026-10-24：按用户要求暂停，保存换机续接检查点
+
+用户要求暂停实施并提交、推送，改在另一台电脑继续。本次只保存容量驱动、回归和交接记录；不是完整交付或生产启用。续接入口见[换机交接说明](context-recovery-handoff.md)。本机长期容量诊断已按用户要求停止，原执行句柄94510终态exit -1，PID535632已不存在；未取得最终报告，不计通过，保留本机中间证据。当前没有活跃子代理，也没有启动原生24小时长测或新增真实模型请求。
+
+最新原生短测已经实际失败：首次开库尝试后、首个节拍之前退出，storeOpens为1，目录中未发现预期持久文件。另一个独立目录的原生ACL调用成功，不能据此解释或覆盖短测失败。后续开库诊断脚本在导入STORAGE_STARTUP_PHASES时因不可迭代而失败，发生在原生调用前；下一步先检查冻结源码的导出与加载身份。故障根因尚未确定。本提交不包含本机冻结副本、数据库、数据密钥、凭据或原始日志。
+
+## 2026-10-24：第六场景正式通过；持久容量驱动正在补齐
+
+`d1669a83f57b88b2b266483b1d83380e4b21f71d`的Verify `40076052487`八项全部success；独立诊断`40076052488`两项success；正式Windows `40076052496`的源码门禁、网络、N08及N09均success。正式N09 `120823367353`最终probesPassed、ownedTreeEmpty、tlsVerified、nonLoopbackBlocked全部true，现覆盖六场景。公开响应在上游挂起期间强杀、零公开字节、同目录重启精确读回已获本候选正式证据；仍不能替代SQLite COMMIT内部或持久发布转换内部强杀的剩余边界。
+
+当前工作区将固定容量负载提取为共同的命令序列，保留原同步JSON重建执行器，并新增实际异步存储的关闭/重开执行器和真实时钟节拍器。真实文件SQLite多页、多根、重开丢失与清理失败等8项回归通过；真实时钟8项回归通过，覆盖单调等待、墙钟跳变、错误输入、暂停失败和重入。新增abort返回失败不能记为成功的负控先在新驱动原实现失败，再修正并通过。它们不构成原生DPAPI/独立锚点、真实24小时或安装客户端资格。
+
+扩大两文件运行18项，17通过、完整五档命令达到原180000ms预算而失败，原失败保留。随后以同一原预算分别运行旧`d1669a83`执行器及新候选：旧版160762ms、新版152028ms，五档均完整通过，最大档均1920轮、400次精确恢复、20次重开；不将这次顺序对照当成稳定性能提升证明，也不撤销首次混合运行超时。原60000ms性能目标仍未达成。新代码的Lint零警告、格式及CI/发布治理通过；随本次暂停检查点保存，尚未取得本提交的托管资格。原文件容量与原生短测的后续状态见顶部暂停记录，真实时间长测尚未启动，本轮真实模型调用为0。
+
+## 2026-10-24：公开响应中断场景完成组合回归，准备托管验收
+
+在发布完成屏障修正`e2c394beffbde43cd72f5ee973bc044e8f185370`之上复核第六场景：先正控读回，再完成私有READ并将独立公开生成响应挂起于上游；实际强杀后要求客户端零公开字节且以传输中断结束，随后同目录新PID精确读回原文，持久版本与预算不回退，外部工具仅执行一次。超时、主动取消、成功空回复和任何已输出字节均不能冒充强杀通过。该边界不等于在SQLite COMMIT或持久发布转换内部强杀。
+
+完整组合回归覆盖19个受影响文件，272项全部通过、零跳过，耗时101205ms；Lint、格式、PowerShell解析、CI及发布治理通过，新测试由统一入口发现。固定入口和PowerShell回执要求六个场景与六个adapter全部清理，原期限、ACK精确版本、负载和清理断言保持。本变更只含验收脚本、回归和文档，不触及生产lib/src/src-tauri，不能把本地结果计为托管第六场景通过。
+
+原`e2c394`的Verify `40074503421`八项及正式Windows `40074503380`四项均已终态success；正式N09 `120818810841`最终回执probesPassed、ownedTreeEmpty、tlsVerified、nonLoopbackBlocked均true。加上独立诊断`40074503395`，本轮关闭发布确认竞态修正的原五场景正式复验缺口；单次通过不关闭此前反复出现的持久请求5秒性能/稳定性问题。
+
+第六场景已独立提交为`d1669a83f57b88b2b266483b1d83380e4b21f71d`并正常推送，API确认远端同SHA。原提交钩子通过；仅临时修正本机lint-staged的跨盘Git路径解析，随后逐字节恢复依赖，没有跳过钩子或更改仓库依赖。生产源码与原安装候选一致，原Cargo修改及私有目录保留。新正式Windows `40076052496`、独立诊断`40076052488`正在运行，Verify `40076052487`排队；新增场景仍未取得托管通过结果。原容量句柄94510仍运行，未重启；完整COMMIT/发布故障矩阵、旧布局迁移、全天原生容量、最终安装客户端和受控启用继续未完成。无新增真实模型请求。
+
+## 当前交付范围：自用安装与两端可用
+
+2026-10-24用户明确项目仅自用。本轮以用户自己的Windows机器可安装、升级/回滚、Codex/Claude精确恢复实际可用为交付目标；商业代码签名、公开安装器发行及其发布凭据移出本轮，不再等待证书。现有release.yml的公开发布签名检查适用于正式发行，未删除或绕过。自用未签名安装可能出现Windows未知发布者/SmartScreen提示；权限、原文/密钥保护、持久化正确性和现有验收失败仍需处理。下方历史条目中的“待签名/发布”不再是本轮自用交付阻塞。
+
+本轮发布顺序修正已独立提交为`e2c394beffbde43cd72f5ee973bc044e8f185370`：136项候选回归全部通过，无跳过；Lint、格式、CI及发布治理通过，原Git钩子正常执行。第六场景及其他保留修改的15个文件已校验原字节一致，生产lib/src/src-tauri未纳入本提交。
+
+2026-10-24 07:45 UTC复核：本候选独立诊断`40074503395`的N08、N09均终态success，N09范围仍为原五场景。Verify `40074503421`已有七项success，coverage继续运行；正式Windows `40074503380`的egress success、source-gates继续运行，不能将其记作完整通过。生产lib/src/src-tauri与已获隔离安装生命周期证据的`44d3f7467c090b9253dcce5c7a13f98712b474a3`经Git差异核对一致，无需为仅验收脚本变更重建安装器。原最大文件容量句柄94510继续运行，尚无最终报告；原5秒持久请求超时和最终安装版两端验收仍未关闭。本轮没有新增真实模型请求、修改日常配置或申请签名证书。
+
+## 2026-10-24：真实发布时序竞态已本地复现和修正，完整交付仍未完成
+
+原候选`04fa754`的结果已收齐：Verify `40072374857`八项success；独立诊断`40072374863`的N08 success、N09 case85/exit144 failure，确认精确快照版本与原生产者ACK版本不一致。正式Windows `40072374868`的egress success、source-gates failure，后续业务任务skipped。源码失败为`client-context-target.test.js`的chat/WBIPC long-persistent第0轮：约4495ms开始等待最终发布，5009ms达到既有5000ms请求期限，随后才完成最终写入。该性能/稳定性失败保留，未提高期限、削减负载或重跑原任务求绿色。
+
+新增真实sessions、加密SQLite、原HTTP发布路径与ACK hooks的确定性回归：公开HTTP finish之后分别挂起最终COMMIT及存储回复，稳定复现DB领先ACK和旧快照落后ACK两种144拒绝；等待原onOutcome完成后，精确版本撤销成功。该复现没有原生owner、DPAPI、托管Windows或真实模型，不作为这些边界的资格证据。读计数settlement与最终发布是不同写入；此次证明的是最终发布时序竞态，不将所有历史ACK失败都归为同一原因。
+
+验收适配器现于摘要/恢复请求前读取隔离宿主的完成计数基线，收到响应后等待原Core在finishPublicationAsync之后记录的完成信号，再取存储快照。信号必须同PID、持久化启用、零失败、恰好一次新绑定和完成；错PID、额外请求、回退/畸形/极端计数、getter/Proxy及超时均拒绝。等待使用同一15秒绝对预算，不重发业务请求；它不构造持久ACK，原签名回执、精确版本相等及ACK后立即强杀均保持。新增两条适配器回归在修复前失败，修复后通过；新测试进入统一自动发现入口。仅推进此修正及回归，第六故障场景继续保留在工作区。
+
+当前完整交付仍缺：本修正的托管复验及上述性能失败闭环、完整COMMIT/发布中断与旧布局迁移边界、原生文件容量/真实24小时资格、最终安装版两端真实验收、签名发布与受控启用。原容量句柄94510仍在运行，不能以此前小档通过替代最大档。签名仍待已有问题答复；本轮真实模型请求为0，日常配置未变。
+
+## 2026-10-23：正式N09备份场景失败；修复确认通道丢失诊断
+
+`6d3df4d`正式Windows `40070262397` 已收齐：source-gates、egress、N08 `120805945959` success，N09 `120805945980` failure，有限日志为case85/exit155，外层另报restore失败。该次失败发生在原第五个备份回滚场景的ACK同步调用，不等于此前case83/254的同一根因；原失败及清理失败均保留。Verify八项与独立诊断五场景的成功不能覆盖正式失败。
+
+检查实际调用链发现，lifecycle-client-v2的PID绑定facade仍将已签名并经本地WeakMap标记的细分ACK错误替换成通用错误，最终被记作155。新增真实文件签名mailbox→实际lifecycle facade→durable command回归，在修复前稳定得到155而不是144；另一条回归确认有限错误被丢失。修复仅保留本地可信阶段并重新创建固定脱敏错误，不读取未知异常字段，不接受伪造stage或执行getter/Proxy，也不改变成功ACK、精确版本匹配、超时或重试规则。55项相关完整回归、Lint、CI与发布治理通过。此处修复的是诊断丢失，实际托管ACK失败根因仍待新证据。
+
+本次仅提交确认通道修复及其回归和状态记录。已通过197项本地回归的第六场景继续保留在工作区，不纳入本候选，不启动新安装构建。原容量句柄94510仍运行，PID535632的CPU持续增加；不重启、不将小档结果当作最大档或真实24小时资格。签名配置仍待原问题答复。
+
+## 2026-10-23：在途公开响应中断的本地边界补齐，托管候选保持不变
+
+2026-10-24 06:45 UTC实时复核：6d3df4d的Verify `40070262384` 八项全部终态success，独立诊断 `40070262401` 两项success；正式Windows `40070262397`仍在原source-gates运行，未重启或叠加新候选。正式流程自06:27 UTC开始，不能把其尚未结束记为失败或通过。最大文件容量原句柄94510仍运行，PID535632的CPU累计持续增加；小档通过不替代该档或真实全天资格。签名问题仍待原问题答复。
+
+在等待6d3df4d正式源码门禁期间，补全已保留第六场景的纯业务适配器验收：先精确读回正控，再完成私有读取并挂起独立公开响应，验证强杀后零公开字节，同目录新PID恢复且原文/授权/到期/预算不回退、外部工具不重放。成功路径要求三次实际适配器读回、两次公开生成、一次外部工具执行，仍返回adapter-orchestration-only、n09Complete:false，不冒充真实SQLite COMMIT或持久发布转换期间的中断证据。
+
+补测发现两处实现缺陷并修正：观察器构造校验失败后未取消已启动请求；重启读回仅校验预算而遗漏持久化版本不回退。分别对保留的原实现与修复前驱动运行回归，得到取消次数0而非1、缺少预期拒绝的确定性失败；初步五个相关测试文件168项通过。测试覆盖错误/超时/取消不能算强杀、公开字节不能出现、错误PID/路径/版本/预算拒绝、独立清理、getter/Proxy不执行，以及真实回环socket中断。
+
+第六场景现已在本地接入composition、固定入口回执和PowerShell严格解析，要求六个适配器全部清理；新增phase86但仍拒绝84/87及非法诊断。工作流摘要按实际六场景范围更新，仍明确不包含COMMIT/持久发布转换期间中断。新增组合负控覆盖缺读、重复生成/工具执行、意外ACK、缺seed及清理失败。最终12个相关文件197项测试全部通过，Lint、格式、PowerShell语法、CI与发布治理通过，统一测试入口自动发现新文件。改动尚未提交或推送；先收齐6d3df4d原五场景正式结果，再决定下一次候选，不能把本地通过算成托管运行证据。
+
+## 2026-10-23：撤权回执失败分类与四任务文件容量结果
+
+为定位正式 N09 case83/254，ACK 失败链路增加有限阶段140–157：区分命令读取/校验、运行绑定/根身份/原生产者版本、撤权执行/结果、原保存观察、回执校验/写入、客户端读取及固定预算。阶段仅通过已签名的 failure control 和进程内 WeakMap 传递，未知异常的属性、message、cause均不被读取或转发。成功回执、精确版本匹配、签名与身份约束、15秒预算和ACK后立即强杀保持原样；已有HTTP恢复失败优先于其后的轮询失败。本次是定位能力补充，未宣称已修复正式失败。
+
+诊断候选已提交为 `6d3df4d165f473c480dd8c57280c2cb89a81da2e`，推送成功且API确认远端同SHA。新独立诊断 `40070262401`、正式Windows `40070262397`、Verify `40070262384` 已实时确认运行，沿用原五场景且未启动新安装构建。提交前发现本地lint-staged在C盘工作树/E盘Git目录的路径拼接错误：原钩子失败后，从本轮原始补丁恢复被隐藏的未提交修改，再逐文件备份；临时将工具的该处join修正为resolve后，原提交钩子全部通过，工具原文件随后逐字节恢复，六个保留文件摘要校验一致。未跳过钩子、改仓库依赖或纳入第六场景。
+
+随后独立诊断 `40070262401` 终态success：N08 `120801979674`、N09 `120801979905` 均通过，外层回执probesPassed/ownedTreeEmpty/tlsVerified/nonLoopbackBlocked均true。它证明本候选原五场景独立执行成功；本次没有复现此前正式case83/254，不能将增加诊断当成根因修复。Verify `40070262384` 八项现已全部success，正式Windows `40070262397` 的source-gates仍在原任务运行，等待其完整结果。另以Git差异确认本候选lib/src/src-tauri与已通过安装验收的44d3f746一致。
+
+相关221项本地测试通过，最终业务适配器50项复验通过，Lint、CI治理与发布治理通过。覆盖实际文件签名回执传递、签名篡改、getter/Proxy不执行、原生产者版本变化时严格拒绝、固定预算不重置和失败后清理。最初新增阶段覆盖了已有HTTP失败诊断，回归发现后已修正；失败记录保留。第六场景相关未提交修改继续保留，不纳入这次托管候选。
+
+原句柄5292终态成功：`four-tasks-small` 保持4根、每根96轮、512字节、8次恢复、每24轮重开，完成384轮/32次精确恢复/4次重开，无覆盖缺口或读回失败；实际文件SQLite为1376256字节，耗时1097796ms。该诊断使用合成时钟、nativeCalls/modelRequests均0，不替代原生DPAPI/OS锚点或真实全天资格。最大档原句柄94510仍运行，未重启。
+
+一次既有本地 Core/native mailbox 探针在首次合成HTTP时返回503，未到达ACK边界，已终态失败并关闭自有子进程；不能作为托管撤权根因证据，也未因此重跑。没有真实模型请求、日常配置更改或公开日志/原文上传。
+
+## 2026-10-23：正式结果已收齐，先收敛当前失败
+
+实时复核 `d233e5a43bc4efd9baacd098aca12da9120d4aef`：Verify `40067263709` 八项全部终态 success；正式 Windows `40067263745` 的 source-gates `120793019527`、egress `120793019712`、N08 `120796492468` success，N09 `120796492515` failure。有限日志为 case83 / exit254，对应 revoke 场景已进入持久回执轮询；这个最后阶段不能单独证明超时或存储故障的根因。外层同时报告 network restore failure，清理资格也不能视为通过。独立诊断五场景的成功不覆盖本次正式失败，不重启原任务以求绿色。
+
+当前优先级调整为定位并收敛这次正式失败，暂缓将第六个“公开响应尚未发送时强杀”场景接入托管组合。该场景的未提交实现和已通过的57项相关本地测试保留，不回滚、不计入完成；实际 SQL COMMIT 和持久发布状态转换期间的中断验证仍属原范围缺口。
+
+两个原文件容量诊断句柄5292和94510仍在运行，未因观察超时重启；它们使用合成时钟且没有 native owner/DPAPI/OS锚点，不能证明真实全天容量。代码签名配置的用户问题仍待答，暂缓历史 GitHub Support 申请也不阻塞当前修复。本轮未请求真实模型、修改日常凭据、发布或启用生产。
+
+整体交付继续未完成：当前正式崩溃恢复失败、剩余故障/旧布局迁移、原生持久容量和全天运行、最终安装客户端组合、签名发布及受控启用均需按各自边界完成。后续围绕这些既有缺口收口，避免将局部修复、验收扩展与发布收尾交错造成反复验证；不再以独立场景通过推断整体即将完成。
+
+## 2026-10-23：旧备份回滚的独立Windows五场景通过
+
+`d233e5a43bc4efd9baacd098aca12da9120d4aef` 独立诊断 `40067263703` 已终态success，N08 `120793019516`、N09 `120793019634` 均成功。固定子入口要求五个场景完成，备份场景实际经过首次精确读回、强杀后捕获、同目录新PID正控读回、revoke ACK后立即强杀、只恢复两份加密文件、再次新PID存活且明确拒绝存储与HTTP读取；整个组合要求五adapter和listener关闭。最终外层回执 `probesPassed`、`ownedTreeEmpty`、`tlsVerified`、`nonLoopbackBlocked` 均true。此前case85/184失败及本地锁日志复现保留；本次关闭该夹具冲突的独立整机复验缺口，不将 `n09Complete:false` 扩大为完整故障矩阵通过。
+
+同候选正式Windows `40067263745` 的source-gates `120793019527`、Verify `40067263709` 的coverage `120793019483` 仍在原任务运行；Verify其他七个job已success。没有重启原任务，尚不授予新候选正式或生产资格。
+
+原源码门禁失败的分阶段证据已收敛：chat/WBIPC long-persistent第0轮请求在5014ms失败；相关SQLite COMMIT多次为约402–1358ms，LIST阶段replyAsync约2903ms、后续READ阶段约1410ms。同步事务提交占主要已观察耗时，但日志不能区分磁盘flush、系统调度或实际锁等待，不将猜测当根因；原FULL/DELETE持久语义与5000ms请求预算保持。
+
+并行启动冻结 `four-tasks-small` 的真实文件SQLite诊断，原4根、96轮、512字节、300000ms合成间隔、每24轮重开、恢复画像保持，执行句柄5292。仍是合成时钟、无native owner/DPAPI/OS锚点和真实模型的诊断；最终结果尚未返回，不构成完整持久容量或真实全天资格。后续必须收齐原句柄终态，不能因观察超时重启。
+
+## 2026-10-23：复现并修正强杀后空所有权日志导致备份夹具拒绝
+
+`00637811` 独立诊断 `40065012773` 终态 failure：N08 success，N09 `120786299885` 在新增 case85、最后有限阶段184失败。184仅表示快照读取进入收尾，不能单凭此编号判定故障发生在快照还是后续步骤。真实本地 SQLite 子进程按产品所有权路径执行 `BEGIN EXCLUSIVE` 后强杀，稳定留下0字节 `.writer.sqlite` 及512字节未提交日志头；原备份夹具拒绝任何 `.writer.sqlite-journal`，因此捕获失败。该复现证明一个确定的夹具冲突，整机失败是否还有其他原因仍须托管复验。
+
+修正仅限验收工具：在停止确认后，严格验证空锁库、未提交且无数据页的单扇区日志头、文件身份/单链接/大小和操作前后摘要；不打开SQLite、不修复、删除、复制或恢复锁日志。数据库事务日志、WAL/SHM、非空锁库、有效热日志头、非法尺寸/页面、替换、链接和操作中变化继续失败。两份加密文件及独立OS锚点的原备份范围、ACK到强杀顺序、业务负载与期限均不变。
+
+13项备份边界测试通过，其中实际SQLite子进程强杀、捕获、正常重新取得锁、再次强杀、恢复及再次取得锁全部通过；相关adapter/driver/composition/拒绝存储6文件112项通过，合计125项。新回归仍在统一发现入口，Lint、格式、CI/release治理及改动脚本语法通过；这不是完整托管或产品交付资格。生产lib/frontend和无关Cargo.toml未修改，真实模型及native DPAPI/registry调用为0。
+
+`00637811` Verify `40065012790` 已终态success。正式Windows `40065012748` 则在source-gates `120786299713` 失败，业务任务跳过：`client-context-target.test.js` 的chat/WBIPC long-persistent第0轮约5014ms请求失败，原请求预算为5000ms，后台仍记录存储阶段。此结果保留为待定位的性能/稳定性失败，不提高超时、不重启原任务，也不以独立Verify成功覆盖。当前修正尚待新候选托管结果；完整容量、在途故障、旧布局迁移、最终安装客户端、签名发布和生产启用继续未完成。
+
+修正已提交并推送为 `d233e5a43bc4efd9baacd098aca12da9120d4aef`，提交钩子通过，GitHub API确认远端同SHA。新正式Windows `40067263745`、独立诊断 `40067263703`、Verify `40067263709` 均确认为in_progress；无额外安装构建。最后将真实子进程测试的清理等待改为close事件后，针对该回归复验1/1通过，以同时确认IPC描述符关闭。此处仅记录运行中，不授予新资格。
+
+## 2026-10-23：争锁修复候选正式门禁及实际安装终态通过；补完整代理备份回滚
+
+同一生产候选 `44d3f7467c090b9253dcce5c7a13f98712b474a3` 的 Verify `40061781774` 已终态 success，八项全部通过；正式 Windows `40061781781` 的 source-gates、egress、N08 `120780535436`、N09 `120780535444` 均终态 success。此前独立诊断通过之外，现取得同源码正式六项切换及四项强杀重启场景结果；不扩展成完整 N09。
+
+实际加密 NSIS 生命周期 `40062089174` 的 job `120777671704` 全部步骤 success。私有日志绑定本候选，实际 manifest 为 `adf5d0d4c2302cdde5eede9bb0f63f7a4c6f748dddf5641d2a0b281aaddfa8a7`；安装、升级、回滚、重装、卸载及清理通过，同用户 DPAPI、旧库拒绝且保留字节、显式登记、迁移库重开/resave、新锚定库重开和旧 baseline 对新认证格式拒写均通过。实际管理 HTTP 四组合仍是 `forced_cleanup`、`clientQualified:false`、`gracefulDrainQualified:false`；旧582布局、完整故障矩阵、最终安装版真实客户端和全天持久容量未因此关闭。未发布安装器、上传 DB/key/原文或请求真实模型。
+
+当前本地新增第五个 N09 场景：真实业务读回后确认强杀，内存中保留有界加密库/包裹密钥副本；先正常重启并精确读回作为正控，再取得实际 revoke ACK 并立即强杀，停止后恢复旧文件，保持 inode/ACL 且不读取或恢复独立 OS 锚点。最终须同目录新 PID 存活、配置仍开启增强和持久化、健康状态明确存储不可用、业务 HTTP 明确503且零上游请求。死亡、超时、禁用设置或其他错误不能冒充防回滚通过。活动事务日志、替换/硬链接/目录别名、超界文件及部分恢复失败均拒绝；恢复夹具不宣称文件对原子恢复。
+
+该扩展只修改验收脚本和测试，生产源码保持上一候选；原四场景、120秒外层期限、业务期限、负载、失败与清理断言保持。新增边界与既有 adapter/lifecycle/driver/composition/closure 八文件本地通过；首轮 lifecycle 新负控错误预期名称不匹配已纠正，未修改产品拒绝语义。新测试由统一测试发现入口包含。最终脚本、格式、语法与托管第五场景仍待收齐，不能沿用上一四场景成功宣称新增场景已通过。
+
+最终文件备份边界九项通过，新增有限阶段85的实际PowerShell解析回归通过；相关Lint、CI治理和发布治理通过。扩大脚本检查中的原安全子进程文件再次达到45000ms期限，仍记失败，不提高期限或去掉原54次失败子进程断言；本地不能宣称全绿，需隔离Windows按原门禁复验。第五场景尚未获得托管运行证据。
+
+完整语法检查原句柄30306终态退出0，1497个JavaScript文件通过；检查清单收集后新增的有限阶段回归另行 `node --check` 通过。暂存区不含生产lib/frontend、原有Cargo.toml或任何私有诊断文件。上述本地脚本超时继续保留为未通过项。
+
+验收扩展已提交为 `00637811cbd8f46309df802991d49f449e3dd5bb`，提交钩子通过。SSH推送因DNS失败；一次HTTPS推送本地超时后，通过GitHub连接器只读API确认原远端分支精确指向本提交，未再次推送。新同源码独立诊断 `40065012773`、正式Windows `40065012748`、Verify `40065012790` 均已实时确认为 in_progress。没有额外启动安装工作流，原生产候选的安装结果保持其原范围；新第五场景仍待实际运行结果。
+
+## 2026-10-23：冻结争锁修复候选，收齐既有并行验收
+
+当前交付候选固定为 `44d3f7467c090b9253dcce5c7a13f98712b474a3`，暂停外围性能优化；不因等待重新启动已在运行的工作流。本次仅更新证据，不改变运行源码或授予新的发布资格。
+
+独立 Windows 诊断 `40061781773` 已终态 success，N08 `120776654604`、N09 `120776654691` 均通过。N09 日志绑定本候选，最终固定回执确认 `probesPassed`、`ownedTreeEmpty`、`tlsVerified`、`nonLoopbackBlocked` 均为 true；它只证明既有四场景，仍不是正式资格或完整 N09。本地最终 Core 短暂读锁探针已完整完成 8/8 精确读取及独立公开生成，失败 0、模型请求 0、native owner 调用 0；不覆盖此前未完成探针的失败记录，也不代替真实 DPAPI/安装验收。
+
+本轮实时读取：Verify `40061781774` 的质量、集成、Rust 和四个 unit 分片已 success，coverage 尚在运行；正式 Windows `40061781781` 的 egress 已 success、source-gates 尚在运行。相同源码的实际加密 NSIS 生命周期 `40062089174` 已在既有未发布草稿基线上启动，上次成功观察为 resolve success、encrypted-lifecycle in_progress；本轮 API 未取得该任务的新状态，不能将查询失败当成任务失败或成功。所有任务继续使用原 run，不重复构建或发布草稿。
+
+整体仍未交付：当前候选正式结果、完整在途崩溃/备份及历史布局迁移、真实持久容量、最终安装版两端客户端/模型组合、费用与资源证据、签名发布和受控生产启用仍需按原范围完成。合成容量、局部存储和历史源码客户端的通过不可拼成当前完整资格。GitHub Support 历史常量清理按用户意见暂缓，不列为产品交付阻塞。
+
+## 2026-10-23：修复短暂只读锁导致发送确认失败，并缩短观察器持锁区间
+
+生产写连接增加SQLite内部1000ms busy handler，处理DELETE journal下短暂只读事务与最终COMMIT竞争；只等待原事务释放锁，不重放事务体或业务请求。持续占锁仍失败并完整回滚。所有权mutex与只读inspection仍busy_timeout=0；worker原30000ms期限、验收总时限、ACK到kill的操作顺序和原负载均未变。本项改变的是正常读写竞争的产品处理行为，不是上调测试预算，也不能用局部通过代替完整验收。
+
+N09只读观察器改为在同一事务中复制原有有界加密header/rows后立即ROLLBACK、close，再进行解密、认证及元数据解析；仍校验同scope、revision、expiry、schema、文件pins及全部错误分支，仍只输出committed-metadata-only/hostDurableAck=false。关闭失败仍只调用一次close并返回原固定错误，不吞异常。
+
+新增真实文件SQLite与独立worker只读锁回归：原实现短暂占锁时失败，修正后单次COMMIT成功；持续占锁依然安全失败，旧数据和revision保持，释放后可保存且旧CAS被拒绝。新增观察器释放顺序回归在修改前失败。相关存储、anchor、发布事务及观察器六文件164/164通过，原有进程退出、篡改、回滚失败及只读拒写断言保留。新测试由统一unit/coverage的discoverTestFiles自动发现。ESLint、Prettier、CI/release治理通过，完整语法检查仍在原句柄运行。
+
+Core短暂读锁私有探针首次在人为延迟finished入口期间提前发继续请求，返回既有busy拒绝，不能记成功；调整为发送前持锁、finished入口立即执行的对照后，本地文件owner初始化后续失败而未完成全8轮，同样不授予完整Core资格。无需扩大这些本地探针的时间限制；产品修复需以同一候选的隔离Windows业务/安装验收确认。
+
+修复6cfd69b及测试退出观察同步44d3f746已一起推送；最终锁竞争文件2/2通过，完整check:syntax原句柄9002退出0（1493文件），提交钩子通过。新同源码正式Windows40061781781、独立诊断40061781773、Verify40061781774均已确认运行。上一ad888f39正式Windows40059467940终态source/egress/N08成功、N09作业120773714993失败（case81/223），与独立诊断save场景同属finished阶段。本次候选尚未取得正式Windows或实际安装资格。
+
+## 2026-10-23：Windows失败收敛到finished确认；只读事务竞争可确定性复现
+
+修正诊断后的ad888f39独立Windows40059467942：N08成功，N09作业120769624774失败，有限输出case82 / exit223，即HTTP finished持久化确认阶段；Verify40059467959八项终态success。正式Windows40059467940仍运行，不继承独立诊断或上一源码资格。上一5bee正式40058446149已终态：source-gates、egress、N08成功，N09失败（case82 /224）。
+
+私有Core探针使用实际HTTP入口、真实时钟、加密内存SQLite，8轮精确读取/独立公开生成通过；进一步使用实际文件SQLite、createStorageOwner、异步存储调用及保留式测试anchor后端，同样8轮通过。该后端不调用DPAPI或HKCU，不代表真实native anchor资格。首个文件探针在setup阶段失败且没有完成案例，不用后一次成功抹去该失败。
+
+检查现有验收观察器发现：摘要HTTP返回后立即committed()读取；readonly-snapshot.js在BEGIN只读事务内执行解密和元数据解析，而写入端busy_timeout=0。确定性负控仅在摘要finished写入期间持有同文件只读事务，即真实save-reference-state失败、httpFinishFailed=1、后续previous-unavailable、缺少READ，复现与Windows一致的223阶段。此证据证明该竞争足以导致当前症状，尚不能证明Windows实际失败一定由这个观察器造成。后续需验证并修复读写竞争；不能增加ACK到kill间I/O、把committed观测改称durable ACK，或放宽原负载/超时/失败断言。
+
+## 2026-10-23：修复首次 missing READ 诊断丢弃已有 HTTP 阶段的问题
+
+本地实际 Core HTTP、加密内存 SQLite 与隔离公开生成探针在正常路径 8/8 精确读取通过；仅注入摘要 finished 持久化失败后，后续准入为 previous-unavailable、没有 READ，HTTP 单例计数明确为 httpFinishFailed=1。该人为负控不能证明 Windows 实际故障根因，但证明此前 admission 投影将任一 HTTP 失败统一折叠为224，会丢掉已有217–223阶段证据。现改为经过全部计数校验后优先保留唯一 HTTP 失败阶段，多个阶段或非法数据仍为224；adapter只透传固定白名单。不改变产品代码、成功路径、负载、超时、清理或失败判定。
+
+新增回归先以224!=217失败，修正后相关五文件91/91通过，ESLint与Prettier通过。覆盖全部七阶段、completed为0/1、非法编号、异常、getter/Proxy不执行和失败后的强制清理。现有文件继续由统一unit/coverage入口发现。上一候选5bee8025的Verify40058446038已终态八项success；正式Windows40058446149仍在原source-gates作业，独立诊断40058446054终态N08成功/N09失败（case83、224）。没有重启这些原作业，没有把负控当成根因修复或完整验收。
+
+## 2026-10-23：正式 N09 save 首读仍失败；增加失败后的有限准入分类
+
+`07a8fb24` 正式 Windows `40056132359` 已终态 failure：egress、source-gates、N08 `120763507254` success，N09 `120763507211` failure，安全日志 case82 / exit249。该位置仍是 save ACK 之前的首次 readThrough，不能解释成 save ACK、强杀或重启读回失败；与独立诊断 clear case81 / exit248 一样，首次私有读取未被合成上游观察到。
+
+新增仅在首次 missing READ 的 HTTP 502 已发生后查询现有 owned management health：200 表示匿名 bindingUnavailable 计数非零，202 表示绑定计数至少四次，210 表示绑定不足四次且无 unavailable 计数；异常、非法或混合诊断只给原224。适用前提是每个新隔离 owner 的三次 seed/summary，此分类仍不能单独证明 provider、零来源或 controls 分支的具体原因。生产模块、请求/响应内容、摘要、原文、预算、期限、ACK和强杀断言均不变。成功 clear/save/revoke 不增加诊断请求，ACK成功与强杀之间也不增加I/O。有限入口和PowerShell只新增对应三个数字的识别，子进程非零仍一律失败。
+
+新增准入分类及adapter两项回归在修改前失败，初步相关五文件89项通过，覆盖非法/空/极端计数、getter/Proxy不求值、诊断失败不改变原失败与强制清理、成功路径无新增查询、management身份不匹配时零HTTP请求。数值与PowerShell封装更新后的扩大检查另行复核。现有测试文件仍由统一unit/coverage发现。本项只是诊断缺口修复，不代表N09根因已修复或候选完整资格已取得。
+
+最终编号下五文件89/89通过，ESLint、Prettier、CI/release治理及diff检查通过。PowerShell解析/阶段/真实安全子进程扩大检查12/13通过，其中子进程边界文件仍在原45000ms超时；该文件单独复跑同样2/3通过、子进程项超时。没有延时、跳项或删除负控，也不将此记作全绿。候选需在隔离托管环境验证这项未通过检查；本机结果仍作为未解决项保留。当前只推进首次恢复故障的证据和修复，暂停外围性能优化。
+
+推送前diff审查发现本机诊断编号替换误触原合成负载repeat(256)和非法UTF8负控字节，尚未推送。新增冻结原文长度/完整尾段回归在误替换状态下失败；两处恢复原值，必须在恢复后重新执行相关检查。该中间89项结果不能作为原负载的最终验证。后续推送必须包含纠正，不授予任何负载减少的验收资格。
+
+## 2026-10-23：当前候选 Verify 八项通过；文件容量单档完成；N09 首读失败继续定位
+
+实时复核 `07a8fb24` 的 Verify `40056132385` 已终态 success，coverage、integration、四个 unit shard、node-quality、Rust 八项全部 success；coverage 内主库、client、frontend 三套覆盖率步骤均 success。正式 Windows `40056132359` 的 source-gates `120759410074` 此次观察仍 in_progress，未重启或继承其他源码资格。独立诊断 `40056132468` 的 N08 success、N09 failure；后者 `120759410611` 的有限日志为 clear case81 / exit248，外层 network restore 另记录 failure，不能宣称清理或稳定性通过。
+
+原文件容量句柄 `63355` 已退出 0，安全回执 `.codex-tmp/durable-capacity-creator-v1-day-small.json`：冻结 1 root、288 turns、1024 bytes、300000ms 合成间隔未变，实际完成 288 turns、24 recoveries、12 次 close/reopen、final results observed，coverage/read/operation 首错均 null，SQLite 1724416 bytes，耗时 844133.0927ms（约 14 分 4 秒）。旧实现单次 892500.9646ms，此两次观测不能建立稳定性能收益；更不能将该单档 `qualified:true` 外推到全五档原 60000ms 性能目标、native owner/DPAPI/anchor worker 或真实时钟全天容量。
+
+检查实际 clear driver 后确认 exit248 对应 clear 操作之前、同进程 seed-summary 后首次 readThrough，而非 clear 后重启读回。新增私有 `.codex-tmp/n09-summary-admission-probe.cjs` 以实际加密 SQLite 引擎、完整 async admission/publication API、本地合成上游，复现 seed-call、seed-output、summary 隔离生成及回执继续：16/16 可见原文，8/8 在 sending 与 finished 之间的继续请求返回原 `context_recovery_busy`，零空来源、零 native owner/真实模型请求。因此简单的“摘要 finished ACK 未完成便静默普通转发”尚未在该边界复现，不据此修改生产等待、准入或错误规则。此诊断没有实际 Core HTTP/Windows native owner，不能代替失败的 hosted N09；下一步需区分 Core 入口的 bindingUnavailable、provider gate、零 visibleSources 与普通 controls 分支。
+
+## 2026-10-23：创建阶段优化候选已推送；隔离完整复验及原档文件容量重跑中
+
+候选 `07a8fb24` 已推送原 acceptance 分支，只提交本项引用状态模块、回归与状态文档；保留无关 Cargo.toml 变更和所有私有临时证据。全库 `npm run check:syntax` 1492 文件通过；独立 ledger-admission/root-owner 两文件 59/59 通过、native 调用 0，新增 creator 两项通过。此前三文件扩大检查的 4 项 native 保护拒绝仍保留，不用这些独立成功覆盖。
+
+新同源码 Verify `40056132385`、正式 Windows `40056132359`、独立业务诊断 `40056132468` 已启动。正式 egress `120759409855` success，source-gates `120759410074` in_progress，业务尚待源码门禁。此处不继承 bef 的业务或 f18 的实际安装资格。全库语法检查结束后才启动原冻结 day-small 的实际文件 SQLite 重跑，句柄 `63355`；wrapper 仅为报告改成不可覆盖的新路径 `.codex-tmp/durable-capacity-creator-v1-day-small.json`，轮数/字节/恢复/重开和确认断言不变。仍是合成时钟、无 native owner 的诊断，不能替代正式容量或真实全天运行。
+
+## 2026-10-23：引用状态创建去除自生成结构的重复复制及摘要；完整候选资格待复验
+
+文件 SQLite 的 48 轮分阶段诊断保留原会话 API、确认和真正关闭重开，但仅作为缩短画像排查，不能替代冻结容量目标。首次总计 30763.7307ms，session.complete 20540.3792ms，129 次 SQL COMMIT 合计 2893.3143ms；另次 CPU 采样显示 state encoder、普通 normalizer 和指纹遍历为主要 JavaScript 热点。批量读取属性描述符的实验虽有一次文件 SQLite 数字较低，同进程正反交替微基准反而持续退步，未进入生产代码。
+
+定位到 `createReferenceState` 对本地生成 payload 与最终 envelope 重复复制、重复计算摘要。现先按原 normalizer 对含固定 64 字节 ASCII digest 占位的完整最终 envelope 进行一次独立复制；该完整结构对字节、节点、深度的准入不宽于 payload。摘要只从当前独立副本计算一次，所有元数据、源、发布状态语义检查仍执行。外部 parse/reader/transition/association 入口保持完整复制和摘要重算，无跨调用值/权限缓存，无公开跳过验证接口，持久化、撤权、期限及 ACK 语义不变。
+
+新增工作次数回归修改前以 admissions=2 而非 1 失败，修改后两项回归通过；另覆盖空源、非法/空输入、超大结构、非法发布状态、时间/预算错误、getter/循环/自定义原型、返回值隔离、后续篡改、语义检查抛错。与 `328b014` 的旧 creator 在同一进程用同一实际会话生成的状态正反交替 6 组，每组 3 次：288 轮状态旧实现合计 1859.618ms、新实现 1308.463ms，约减少 29.6%，仅为创建阶段微基准，不外推到整条链路或原 60 秒目标。
+
+本地扩大 root-state/ledger-admission/root-owner 三文件共 130 项中 126 通过、4 项因显式本机 native-storage 保护拒绝而失败；没有移除保护、跳用例或把它记全绿。实际 DPAPI/worker 和完整 native 路径需隔离 hosted CI 复验。新回归已在现有统一 unit、coverage、client-coverage 文件中，ESLint 和 CI/release 治理通过；当前代码尚未获得最终统一/安装/业务资格。用户已明确暂缓两处已核实第三方 OAuth 常量的 Support 清理申请，未提交外部消息。
+
+修改后的 48 轮文件 SQLite 缩短诊断完成 48 turns、4 recoveries、2 reopen 与 final drain，首错均 null。总耗时 38938.7302ms，期间全库语法检查并行占用本机资源，COMMIT 合计升至 6485.3526ms；该次没有显示整条链路提速，不能拿创建阶段微基准替代整体结果。生产优化的端到端性能收益继续待独立测量。
+
+## 2026-10-23：当前正式 Windows 四场景及统一门禁终态通过
+
+已实时复核同一源码 `bef2503026b9182d37a57f5a38f30da29242eedb`：正式 Windows run `40053143333` 的 source-gates `120750039365`、N08 `120754367276`、N09 `120754367200` 和 egress 均终态 success；同源码 Verify `40053143347` 八项 success。N09 固定入口要求 committed、clear、save、revoke 四场景，后两者必须实际 adapter durable ACK、同目录新 PID；composition 校验实际读回/公开生成/ACK/不重放计数，且四 adapter 与 listener 清理成功，外层 Job 确认 owned tree 为空。最终网络回执确认 TLS、负向非 loopback、probes 与清理均通过。日志原有固定 `n08Qualified:false` 不被解释成完整 N08 通过，`n09Complete:false` 保留。
+
+此结果关闭本次候选的四场景正式执行缺口，但同源码独立诊断曾出现 clear 首读 248，不能抹去或据此声称已稳定。commit/publication 在途强杀、备份回滚、582 布局、真实全天容量、最终安装版真实客户端/模型、签名及生产资格仍开放。安装 payload 与已通过的 f18 候选一致，仅验收工具和测试发生变化。
+
+发现工作流 always-summary 和 hosted README 仍声称 save/revoke ACK 尚未接通，与当前固定执行断言不一致。新增实际 PowerShell 摘要回归在修改前失败；本轮只按匹配场景且 job success 才输出有限 passed scope，失败/取消/跳过/空/非法组合不输出通过声明，所有结果保留完整资格排除项。不改变任何行为断言、门禁、期限或生产代码；这些新增本地修改不继承上述已冻结源码的验收资格。
+
+原句柄 `93557` 的实际文件 SQLite 诊断已终态退出 0，安全回执 `.codex-tmp/durable-capacity-day-small.json`：原画像 1 root、288 turns、1024 bytes、300000ms 合成间隔保持，完成 288 turns、24 recoveries、12 次实际 close/reopen，final drain 成功，coverage/read/operation 首错均 null；SQLite 1720320 bytes。耗时 892500.9646ms（约 14 分 53 秒），native/model 调用均 0。此处 `qualified:true` 只指该单档功能计数，scope 明确为 `file_sqlite_synthetic_clock_no_native_owner`；不包含 native owner/DPAPI/anchor worker、真实时钟全天运行或整套五档，也不关闭原 60000ms 全套性能目标。比内存画像慢很多是已观察问题，尚无分阶段证据确认瓶颈，下一步需定位持久化执行成本。
+
+摘要与工作流治理两文件 15/15 通过，扩大到 PowerShell 解析及固定入口 closure 四文件 19/19 通过，零失败/跳过/取消；ESLint、Prettier、`npm run check:ci`、`npm run release:check` 和 `git diff --check` 通过。生产 payload 不变，未为范围说明修改重启托管作业；真实模型请求 0，未提交 Support 工单。
+
+## 2026-10-23：当前Verify八项通过；开始实际文件SQLite容量诊断
+
+`bef25030` Verify `40053143347` 已终态success，四unit、集成、质量、Rust与coverage全部通过；正式Windows `40053143333` source `120750039365` 仍在同一原作业统一门禁，不能替代N08/N09业务资格。安装候选f18与当前HEAD差异仅状态、验收工具及测试，生产payload不变。
+
+独立本地诊断将原冻结day-small画像的轮数/间隔/字节/恢复次数/重开频率保留，替换为实际session异步持久路径、加密文件SQLite及实际关闭重开；使用合成时钟和仅存内存的合成dataKey，不调用native owner、DPAPI、模型或日常配置。`.codex-tmp/durable-capacity-probe.cjs` 通过精确源码替换保护生成探针，首次因CRLF未规范化而在启动前安全拒绝，规范化后运行中；非正式门禁或可发布实现。原存储文件02:27:06Z仍在更新（811008字节），进程句柄93557仍live，不因等待重启或缩小画像。即使最终功能计数全部通过，也不等于真实24小时、原60秒全套性能或最终owner/客户端容量资格。
+
+## 2026-10-23：schema3真实安装、旧reader拒写与迁移重开终态通过
+
+源码 `f18b4a79c5d8939d59b5b19812f602b3e52b1267` 的安装run `40052046114`、encrypted job `120746710466` 已终态success：完整字面源码门禁、实际NSIS构建、安装/升级/回滚/重装/卸载和清理通过。实际manifest SHA256 `fbc493736370e623c94afeb98d6c7a8c536974c8925213137db9f390f71cd8f6`。同用户真实DPAPI、无anchor旧625-source库拒绝且字节保留、显式离线登记、迁移库跨进程读回/resave/重开、新锚定库重开均通过；实际旧baseline对认证schema3拒写且库存字节保留，当前重装后重开通过。四组合module API与实际daemon管理HTTP通过，后者仍明确forced_cleanup、clientQualified=false、gracefulDrainQualified=false。最终固定范围回执在私有job日志40665行；未上传安装器、DB、key或原文，draft未发布，模型请求0。`55c1cd9b`至此源码只有测试/状态变化，之后的诊断/观察器修复亦不改生产payload，不能替代各自正式业务复验。
+
+该证据关闭本候选schema3实际安装/旧reader拒写缺口；不授予582布局、旧二进制打开另行恢复的旧格式历史备份、完整N09在途故障矩阵、真实24小时容量、安装版真实客户端/模型、签名或生产资格。完整目标继续active。
+
+`bef25030` 独立诊断 `40053143357` 的N08 `120750039552` success；N09 `120750039530` 在clear case81的248（预期READ前公开生成）failure，本次未到save，不可当作上一轮save502已修复。另用实际session、root-storage、ACK生产者、runtime hook与schema3内存加密SQLite执行初次LIST/READ、arm、再次LIST/READ/complete及原生产者receipt，固定合成原文精确读回通过，native调用0；这是排查探针，不含签名mailbox、HTTP、worker、文件系统或强杀，不授予正式资格。探针开发时曾漏显式授权函数及使用abort代替完成，分别在begin/arm拒绝；修正夹具后通过，未修改产品或放宽准入。
+
+## 2026-10-23：schema3观察器修复后N08独立诊断通过；N09定位save的LIST后502
+
+源码 `a4a04eaf` 的独立业务诊断 `40052480008` 已结束：N08 `120747945899` success，N09 `120747945704` failure，case82固定阶段213，说明save触发恢复已收到LIST调用而后续恢复步骤前HTTP502；不能据此判断是reader、运行、编码或ACK观察器错误，也不能排除强杀收尾覆盖阶段。正式Windows及安装资格仍独立。Verify `40052480047` unit0 `120747946185` failure是旧DPAPI互通原10000ms期限：native_protect 19ms完成，legacy_unprotect 10023ms ETIMEDOUT，未改变期限或把它当格式错误。
+
+本轮复用原有只读健康诊断：只有performN09DurableCommand已失败、save响应明确502、无更具体synthetic上游失败时，才读取一次现有固定httpFailurePhase；未知/异常映射224且原失败保持。成功签名ACK到强杀之间不新增查询或等待，15秒操作预算与外层期限不变；不输出health、请求、原文、身份或异常。新增回归修复前因诊断调用0失败，修复后adapter/command/driver/failure-phase四文件102项通过，成功save/revoke另断言诊断调用0及ACK下一事件仍为kill。Lint、CI/release治理通过。此处仅补齐失败定位，尚未宣称N09根因修复。
+
+## 2026-10-23：新格式正式 N08/N09 的共同观察器拒绝已复现修复
+
+`f18b4a79` 正式Windows `40050413829` source-gates与egress成功，N08 `120746110196` 和N09 `120746110072` 均终态failure，固定阶段均179（N09 case80），network restore另失败。定位到验收只读观察器仍硬编码PRAGMA/header schema2；正常owner封为schema3后，它在实际业务恢复前拒绝。新增2/3正常、PRAGMA/header错配、未来版本、类型错误及旧schema1矩阵，旧实现明确在schema3正常路径失败。观察器现在只接受已知2或3，解密header必须精确匹配同一事务内PRAGMA；不授予writer/owner/原文读取权限，继续query_only/ROLLBACK且hostDurableAck=false。实际内存SQLite SQL回归切到schema3，旧schema2 sibling/损坏测试保留；观察器/driver/closure三文件46项通过。此修复是验收工具格式适配，不修改生产格式、防回滚或成功断言；正式业务仍须新源码复验。
+
+已为完整Verify八项及正式source-gates通过的 `f18b4a79` 新建精确SHA review分支。安装run `40052046114` resolve `120746629713` success，encrypted job `120746710466` in_progress；只复用原未发布draft及固定assets，不重复上传、不发布、不改写引用。它与schema3生产payload相同，但不包含本轮观察器修复，不可替代新正式N08/N09资格。`a4cb2328` 的HTTP失败诊断修复已提交并推送，相关托管验收另行运行。
+
+## 2026-10-23：save ACK 的 HTTP 拒绝诊断缺口已复现修复；当前候选 Verify 八项通过
+
+正式 Windows `40048655431` 已终态 failure：source-gates、egress、N08 success，N09 `120740811141` 在 save case82 的254（最终receipt轮询）失败，network restore另有failure，不能计作完整恢复或清理通过。检查发现startSave与重启readThrough不对称：前者已收到401/503/502等HTTP失败时只置failed，留下254而丢失安全状态/进度分类。两项新增回归修复前均失败（254取代163、253/254取代169/212）。现在二者复用固定HTTP/上游/恢复进度分类，不读取或打印响应内容；不增加请求/诊断I/O，不改15秒操作预算、5秒门禁、ACK成功条件、强杀/恢复/清理断言。相关adapter/command/driver三文件99项通过，修改文件Lint、格式、CI及release治理通过，沿用现有统一测试发现。此修复仅提高失败可定位性，尚未证明正式ACK失败的根因。
+
+`f18b4a79` 的 Verify `40050413856` coverage `120741614098` 已success，连同此前七项为八项全绿；正式Windows `40050413829` 的source `120741614156` 仍在同一原作业的统一门禁，未因观察等待重启。生产payload未因此轮诊断/测试变动，schema3实际安装资格、完整N09及真实24小时容量仍未取得。
+
+## 2026-10-23：新格式安装被原5秒持久化门禁阻断；验收预算策略等待明确选择
+
+`55c1cd9b` 的独立Verify `40049815271` 中unit shard1 `120739778950` 已failure：chat/Responses/Claude 的 long-persistent 请求在原5000ms期限失败。安全阶段汇总中单次SQLite COMMIT最高2323ms，部分replyAsync为2918/3441/2609ms；begin/storage/reply层级重叠，不能重复相加。其他已经结束的质量、Rust、集成及其余unit分片通过，coverage仍有独立状态，不能记全绿。
+
+加密安装 `40049843526` 的job `120740003265` 终态failure，完整门禁同样在WBIPC超时失败；安装器构建与新格式旧reader拒写验收均skipped。因此尚无schema3安装资格，也不能将它称作新格式拒写断言失败。原始日志保留在本机临时job文件，有限汇总工具在 `.codex-tmp/summarize-wbipc-latency.cjs`，没有模型或凭据请求。
+
+重新读取历史证据：TRUNCATE此前仍在重开第二轮5015ms失败，PERSIST负控保留已丢弃密文片段；没有重试这两种实验或改变DELETE/FULL/secure_delete。已请求用户明确选择：继续保留5秒硬门禁，或将功能验证预算与5秒性能红项分离、仍阻止生产。现有计划明确不延长原期限，未收到选择前不调整门禁。原作业不因读取超时重启，`f18b4a79` 的后续Verify/正式Windows仍使用原期限。
+
+## 2026-10-23：补齐封版 COMMIT 后、最终 anchor ACK 前的非空旧库恢复断言
+
+新增非空旧库登记后的故障回归：正常 owner 的schema3事务已提交，最终独立anchor flush故意失败，owner必须抛固定503且不能返回ready；磁盘schema3存在、原state密文字节未变，旧anchor watermark未被虚假推进。随后通过正常owner重开，原文、revision=1和绝对expiry保留。初始化中断的既有回归另明确验证落盘schema3与anchor intent同一storeId，并在重开后继续保持身份。两项定向回归通过，原生storage服务保护计数0；不授予OS强杀或业务publication在途资格。
+
+`55c1cd9b` 的新建候选SHA后缀review分支已成功解析：`40049843526` 的resolve `120739873360` success，真实加密安装job `120740003265` 仍in_progress。一次读取超时仅是观察失败，继续同一run而未重启。`57254fbe` Verify `40048655436` 八项已全部success；正式Windows另有独立状态，不能用此替代。
+
+## 2026-10-23：锚定 owner 新格式保护及旧读器拒写门禁实现，托管验证待执行
+
+当前 owner 在独立 anchor 准入后、ready 与最终 anchor ACK前，通过一个 SQLite 事务将旧schema1/2封为认证schema3；header内版本与PRAGMA相互校验，原state/blob密文字节、revision、撤销、budget、maxTime及绝对expiry不变。schema1补齐blob表与版本/header更新同事务，DDL/版本/header/COMMIT失败回滚；真实SQLITE_FULL、关闭对象、伪造pragma与未来版本均拒绝。已有schema3再次打开不重写header；generic离线引擎保留1/2兼容，只有正常锚定owner获得私有封版能力，RPC不新增操作。legacy登记入口另明确只接受1/2，现代3丢失anchor不能通过preview或旧fingerprint重新登记。
+
+新格式6项独立测试通过；owner/legacy两文件在新格式实现下31项通过（native-storage保护调用0），之后新增封版失败释放writer及现代库禁止重新登记两项定向回归通过（调用0）。新格式/安装序列/拒写回执/管理HTTP与设置矩阵五文件52项通过；新增现代库拒登记与驱动schema3精确检查之后的完整托管验证仍待执行。新格式测试加入统一unit及client coverage，不提高容量或时间门禁。
+
+NSIS流程不再把旧reader读当前库当作成功：要求真实旧baseline在schema3上503拒绝、全部库存字节保留、没有anchor写入/engine-ready且锁释放，再由current重装后读回。baseline自己的未升级legacy库仍必须读回，之后登记/封版/读回/resave/重开。新candidate不能沿用 `eb43df9a` 的旧格式安装结果。该保护不是“旧二进制对所有历史旧格式备份也能实施撤销”；这一不可能由新格式单独保证的范围仍不宣称。
+
+同时，`57254fbe` 的独立业务诊断 `40048655447` 已终态success，N08/N09各job success；这在重复provider ID修复后给出一次完整独立业务通过，但不能替代仍在运行的正式源码门禁或完整N09故障矩阵。
+
+## 2026-10-23：N09 合成上游重复响应/输出项身份已复现并修复
+
+新增跨完整 save/kill/restart 恢复轮次的协议回归，在修复前发现15次上游响应仅5个不同 response ID，退出1。合成上游先前让 LIST/READ 使用相同私有响应ID，后续公开生成也重复既有ID；这不是有效的独立上游事件身份。回复现在使用同一adapter内有界安全整数请求序号，为每次 response 与output item生成不同ID，call_id保持原值以保留工具配对和原证据关系；不修改原文、summary、压缩、步骤数、预算、期限、ACK、强杀或重开断言。业务适配器、durable command与driver三文件共97项本地通过；没有进程、网络、DPAPI或模型请求。
+
+该重复ID缺口位于合成验收上游，不是生产恢复防护的放宽；仍不能仅凭本地回归认定它是云端254/250间歇失败的根因。固定warning诊断修复已推送 `1b646842`，本轮身份修复还需同一完整托管业务资格验证。
+
+## 2026-10-23：修复 SQLite 固定 warning 导致有限失败阶段丢失的诊断缺口
+
+严格80字节失败回执解析器会将 Node SQLite 的固定 ExperimentalWarning 与后续有限 n09_primary_phase/n09_case_phase 一并丢弃。新增回归在原实现明确失败，修复只接受最多一段精确的已知 SQLite warning 前缀（含有界正整数 PID），之后仍按原80字节有限 schema 解析；未知前缀、重复 warning、额外输出、非法 UTF8、错误case、过量内容继续拒绝，任何非零子进程仍失败，不把诊断当作成功或业务证明，也不输出 warning、PID、异常或原始stderr。
+
+原有限诊断子进程改为实际 require(node:sqlite) 后输出同样254/82失败回执；原53个child_exit、所有失败/清理断言及45000ms进程期限保留。完整PowerShell边界3项通过，真实子进程测试42693ms，时延仍接近上限。中间曾新增一个额外子进程的版本在原45000ms超时，保留该失败；最终使用既有同一失败场景覆盖真实warning，没有放宽期限。此修复恢复安全可观察性，不是N09 ACK或首次私有读取根因修复，仍需云端复验。
+
+## 2026-10-23：真实 NSIS 旧库显式登记与迁移后重开验收终态通过
+
+源码 `eb43df9ab54d150abefffff86bcf920c95e24aa9` 的加密安装 `40045048891`，job `120724845166` 终态 success：安全草稿下载、字面完整门禁、实际 NSIS 构建、安装/升级/回滚/重装/卸载及清理全部 success。最终安装 manifest SHA256 为 `93bff440238f0a8fa445f7b897bf6ac9b56d7a2f0d4ada75dc3c719cbc8bae60`。旧625-source读器生成的合成旧库先被当前启动安全拒绝，随后通过安装目录内的命令模块显式 preview/enroll；真实 native key unwrap 两次、独立 anchor compare 一次，预览/登记前后库存文件不变，登记后实际 owner 精确读回，并跨进程 read/resave/read，原始身份、key、预算与绝对到期回执逐字段一致。新锚定库重开、四组合 module API 与实际管理 HTTP 也通过；HTTP回执仍明确 forced_cleanup、gracefulDrainQualified=false、clientQualified=false。
+
+这是一次性 Windows runner 同用户真实 DPAPI 与旧625-source格式迁移资格，使用合成原文，不请求模型，不上传安装器、DB、key或原文，也未发布draft。它不授予582布局、旧reader防回滚、完整N09故障矩阵、真实24小时容量、终端真实模型安装版或生产启用资格。新提交 `9c8f53df` 进一步补充本地登记后撤销备份回归、安全阶段定位和逐候选 SHA review 入口；不能将旧源码安装验收直接当作所有新源码门禁已通过。
+
+## 2026-10-23：登记后正常 owner 重开与撤销备份回归通过；N09 在 ACK 回执阶段失败
+
+旧库登记测试进一步接通真实 `createStorageOwner`（加密 SQLite，合成 key/anchor 后端）：登记后原文、revision、绝对到期保留，保存后重开保持 revision 与期限，撤销后不能读取；覆盖撤销前 checkpoint 字节后，正常 owner 拒绝启动且不改写该备份。另一回归确认早已过期旧库不会因登记或正常启动重新获得期限。该文件完整25项通过，沿用统一 unit/client coverage；这些结果不授予真实 DPAPI 或旧版本读器资格。
+
+草稿 review 入口新增可选候选 SHA 后缀；必须精确等于 push SHA，仍要求新建分支、零 before、非强推、固定基线与两 asset、固定 transfer tag、实际 checkout 匹配。允许同一未发布基线用于不同源码的独立新分支，不覆盖已有引用或重复上传安装器。新旧 route/download/transfer 加固定阶段解析共31项通过；新入口回归先在旧实现失败，再由精确 SHA 校验通过。权限、匿名拒绝与完整门禁保持。
+
+源码 `eb43df9a` 的独立 Verify `40045048833` 终态 success；同源另一 Verify `40044981516` 的 coverage `120724532170` failure，材料清理 fixture 的 pwsh 在25000ms超时，最后固定阶段仅到 helper_loaded，不能据此断言是 Add-Type 或资源争用。新增 sentinels_hashed/collision_checked/lease_compile_started 固定安全标记，原25000ms期限、哈希与清理断言不变；材料及解析5项本地通过，真实 fixture 约22626ms，延迟仍有风险。
+
+正式 Windows `40044981475` 的 source-gates 与 N08 success，N09 `120729727031` failure，child exit 254 对应已进入 durable ACK receipt polling；不能当作此前248的 clear首读错误，也不能判定 ACK已返回。日志另有 network restore failure 标记，不能计为完整清理成功。加密安装 `40045048891` 的完整门禁已 success，当前安装器构建仍在运行，迁移未取得最终结果。
+
+## 2026-10-23：离线旧库登记入口及安装验收迁移阶段补齐；最新 Windows 门禁失败已定位
+
+新增随运行时清单打包的离线 `context-recovery-enroll-cli.js`，业务边界独立在 `context-recovery-enrollment-command.js`，调用既有可信 offline owner。操作分 preview 与携精确 fingerprint 的 enroll；默认启动、HTTP 和 worker 均不获得登记权限。输出仅 fingerprint/scopeCount/maxTime 或固定 enrolled 回执，不打印原文、key、目录或原始异常。严格拒绝非法/极端参数、getter、Proxy、异步 owner、非法回执；登记期间快照变化、篡改、占用、已有锚点或清理失败沿用底层拒绝语义。完整操作与首次登记无法证明历史最新性的边界见 `context-recovery-legacy-enrollment.md`。
+
+命令边界与实际加密 SQLite owner 合计28项本地测试通过；owner 的 key protection 和 anchor repository 为合成依赖，不能算真实 DPAPI 登记。新命令测试进入客户端覆盖率入口，两个生产模块进入发布源码与哈希清单。安装生命周期另新增最终 current 阶段的旧库显式登记，要求真实 native unwrap 两次、独立 anchor 写入一次、预览/登记前后全部库存文件一致，再跨进程读回、resave、重开，并与 baseline 原文/身份/key/预算/到期回执逐字段比较。该新阶段尚待托管执行，不覆盖旧582布局或旧reader防回滚。
+
+已实时核实 `60f1825e` 的正式 Windows `40042056602` 终态 success，包括 N08/N09 当前限定子集；N09完整故障矩阵仍未完成。同源码加密安装 `40042101681` 终态 success，涵盖 DPAPI、旧库拒绝且字节保留、新锚定库重开、旧格式读兼容及实际管理 HTTP，不能算旧库导入。最新 `b725549e` Verify `40043419040` 八项全绿；正式 Windows `40043419176` source-gates `120719498695` failure，业务 skipped。日志明确 `context-recovery-key.test.js` native_protect 17ms成功，legacy_unprotect 在10019ms报 ETIMEDOUT；没有提高原10000ms期限，也未认定格式不兼容或自动归因于此前 N09 问题。
+
+## 2026-10-23：绑定时钟回拨后普通转发缺口已复现并修复
+
+新增纯回归通过实际binding registry受控1001→1000回拨，确认registry返回 `context_binding_unavailable` 且之后正常时间也不会重新打开；修复前共享 `blocksRecoveryAdmission` 却返回false，回归退出1。因此将该明确不可用状态加入原阻断集合，HTTP与WebSocket共享原拒绝路径；不平滑时钟、不重开失效registry、不恢复已撤销能力，也不改未知provider response ID的普通转发规则。该独立缺口尚不能证明是云端N09 248的根因。
+
+修复后HTTP entry完整19项通过；实际Core HTTP与真实WebSocket测试各扩展原准入失败矩阵，均确认不可用binding不触达普通上游，相关两项通过。上述客户端检查带本地native-storage保护、调用0，未运行真实加密worker或模型。修改文件Lint、格式、CI治理、发布治理通过，新回归沿用统一测试入口。
+
+`3eb453fb` 的Verify `40041620251` 已终态success（八项全绿）；正式Windows `40041620246` 则failure，source `120713779075` 的客户端覆盖率在Chat long-persistent首轮5000ms超时，正式业务跳过。有限阶段汇总显示本次scan准入约900ms，首轮reply约2188ms，后续reply约1695ms，SQLite单次提交最高1320ms；嵌套engine_execute/commit不重复求和。未提高原5秒期限，真实持久化延迟仍未解决。新的加密draft job继续观察原句柄。
+
+## 2026-10-23：五档原负载合成容量与原60秒目标通过；直接草稿下载在托管runner通过
+
+源码 `60f1825e9df4e2987742c58ecf8affc56fae0289` 在本地运行原五档 `qualify-context-recovery-capacity.js`，两worker、所有轮数/恢复次数/输出字节/重开频率和断言保持原值。工作负载39366.3241ms，含进程启动39905ms，退出0；五档均qualified，无firstFailure、firstCoverageGap或firstReadFailure。最大档四任务1920轮、400次恢复；其余档完成288/480/384/96轮及24/30/32/96次恢复。180秒执行预算与原60秒性能目标均通过。预加载保护在主进程及worker阻止真实storage调用，所有进程计数0；未读凭据或请求模型。此结果只授予合成时钟/JSON重构的session容量与本机性能，不授予真实SQLite、24小时墙钟运行、HTTP/客户端或生产资格。本地回执保存于日常工作区 `.hpm-acceptance/context-capacity-60f1825e-20261023/report.json`。
+
+同源码新建独立review分支启动 `40042101681`，resolve `120715320241` 成功；真实一次性Windows job `120715426832` 的 `Acquire immutable unpublished baseline directly on runner` 已success，说明该token权限与匿名拒绝/精确字节/identity完整校验路径在公开仓库实际可行。该job仍在完整源码门禁，NSIS构建和加密迁移未执行，不能计为迁移通过。分支新建前已确认远端不存在，未覆盖旧review引用、发布draft或上传安装器。本轮提交后的新旧路由/下载四文件28项回归、Lint、CI治理、发布治理均通过。
+
+## 2026-10-23：直接草稿迁移接通新建review分支；N09仍有clear公开读取失败
+
+新增独立 `acceptance/windows-encrypted-draft/**` review入口，固定解析release/两asset ID、v4 UUID和旧baseline SHA，并保留新建分支、零before、非删除/非强推、同仓库/同官方host、实际checkout SHA检查。只有draft lane接受公开仓库，原bridge/encrypted两lane继续只接受私有仓库。只读resolve job完成后才进入拥有draft读取权限的完整加密迁移workflow；不读取模型凭据、不上传产物。相关新旧四文件28项回归通过，统一测试发现包含新文件；Lint及CI治理通过。此处记录入口实现，不代表云端安装或加密迁移已通过。
+
+上一候选 `0678ec8e` 的正式Windows `40039814138` 已终态failure：source-gates、egress、N08成功，N09 `120712665533` 以248退出。按固定映射，这是case81（clear）的公开读取阶段；不能将先前独立N09诊断成功当作正式完成，也不能归因为强杀阶段或任意ACK失败。新候选 `3eb453fb` 的Verify和正式Windows继续观察原句柄，没有因等待重启。
+
+## 2026-10-23：独立 Verify 全绿；新增直接草稿下载的加密迁移入口
+
+`78bc2aea` 的 Verify `40040251437` 已终态 success，八项 job 全部通过。正式 Windows `40040251304` 则终态 failure：source-gates `120709389179` 在 `shared-hosted-materials.test.js` 的 collision/wrong-identity 合成夹具启动 PowerShell 子进程时达到原25秒期限；业务任务跳过。同轮四根2048条/32MiB实际私有恢复、512快照/8MiB及回拨诊断回归通过，不能推断此前stale根因已修复或全天容量已合格。上一候选 `0678ec8e` 的 coverage `120707978871` 单独失败于Claude long-persistent首轮5002ms超时，阶段记录含SQLite提交最高2401ms；未提高期限或忽略失败。
+
+公开仓库的原私有artifact入口仍保持拒绝。新增独立 `windows-encrypted-draft-lifecycle.yml` 与 `download-nsis-draft.cjs`：在一次性runner直接读取既有未发布草稿，分别固定旧baseline与当前checkout身份；下载前后检查草稿归属、未发布状态、精确两资产和匿名404，检查固定安装器SHA256及identity，拒绝已有输出目录，令牌仅用于同源下载，跨源重定向沿用已有剥离凭据规则。该工作流保留完整Verify、依赖审计、NSIS构建和原EncryptedRecovery验收，不上传安装器、DB、密钥或原文，不发布或修改草稿。仓库token仅在下载步骤传入；job为GitHub读取draft所需contents:write，不访问模型凭据。
+
+只读实测既有draft `421222330` 的两个资产：匿名API JSON、API二进制与浏览器下载地址全部HTTP404；另两份草稿匿名元数据也为404。这是当前可见性证据，不保证未来其他写入者不会发布。新增下载路径尚未云端执行，不计为加密迁移通过。新旧下载模块合计18项本地回归通过，含空/非法/极端/恶意输入、匿名可见或限流、网络失败、下载损坏、发布状态变化、输出目录重用、统一测试发现和工作流边界；Lint、CI治理与发布治理通过。首轮Lint发现未声明Node全局，已改为显式globalThis引用后复验通过；未降低规则。真实模型请求0，未安装或启用日常服务。
+
+## 2026-10-23：容量夹具取得 stale 分类，继续区分时钟回拨
+
+`8250daa5` 的正式 source-gates `120705637646` 除漏同步的临时目录调度断言外，还在四根32MiB夹具失败：第430分支第二次私有轮返回 `context_recovery_stale`，约50745ms，未触及180秒外层期限。该错误只证明能力不再有效，不能直接归因为容量不足、时钟回拨或原文丢失。
+
+夹具现在包裹原时钟，原值和调用次数照常传入产品；仅在失败断言增加第一次回拨差值，不输出时间戳、原文或密钥。未平滑时间、忽略错误、替换默认Date.now或修改负载/期限。新纯回归证明受控1ms回拨仍以同一stale错误拒绝、普通两轮恢复保持原时钟及原24小时到期、预取消仍不读取时钟，三项通过；首轮回归错误预期为disabled，实际确认stale后修正预期，未修改产品。是否解释云端第430分支仍待托管复验。
+
+## 2026-10-23：候选安装机械流程通过；同步遗漏的调度断言
+
+同源码 `90f668c3` 的真实安装任务 `40037851417` / `120701609779` 已终态 success，NSIS安装、升级、回滚、卸载、合成文件保留及清理通过；baseline为已清理的 `2295c452888449e9728b3ddcc2f80f31e9433e69`，未发布安装器。它只授予这对源码的安装机械流程资格，不替代加密迁移、全业务、全天容量或生产启用。
+
+调度候选 `8250daa5` 的 unit shard1 `120705638198` 因 `physical-test-temp.test.js` 仍断言旧 concurrency4命令而失败；上轮仅检查调度/隔离两文件，漏同步此断言。本地原测试复现失败后修正为选定的单文件调度，原真实junction/子进程和父环境不变检查保留；三文件12项回归通过，完整测试清单、阈值和产品期限未改。其原 coverage、正式 source-gates 和并发对照仍按原句柄观察，不从这次断言修正推断产品性能已过。
+
+干净 delivery 已切至 `8250daa5` 并标准重建运行时；537份源码在工作树/暂存/清单间逐字节哈希一致，Node、原生辅助程序、锁文件及发行目录核验通过。本地包内Node/代理专项86项中85通过，1项真实加密Worker重开用例被明确的本地native-storage阻断器拒绝，退出1；不是完整包内门禁通过，没有移除保护或改判失败。源码代理回落0。实际Worker仍需托管完整门禁覆盖。本轮真实模型请求0，未改日常配置、安装或生产。
+
+## 2026-10-23：独立 Verify 全绿，正式源码链仍失败；采用完整客户端覆盖率单文件调度候选
+
+`90f668c3` 的 Verify `40037044785` 已终态 success，八项 job均通过，包括 coverage `120698999162`。同提交正式 Windows `40037044751` 则终态 failure：source-gates `120698998654` 的客户端覆盖率1553项中1552通过，Chat WBIPC long-persistent 首轮在5003ms失败，正式业务跳过。失败计时表明请求准入扫描1851ms、后续读取路径约3040ms，SQLite单次提交最高2135ms；这是当次磁盘/持久路径证据，不足以断言所有失败均源于跨文件竞争。
+
+重新读取原反向顺序资源实验 `39920379859` 的终态日志：同一源码 `41fb9a9c`，job `120303911139` 中 concurrency4通过191156ms、concurrency1通过447246ms；job `120303911451` 中 concurrency1通过462288ms、concurrency4失败277798ms。因此将已保留的单文件调度实验作为新候选提交：完整客户端覆盖率仅将文件并发4改为1，95份文件清单、用例内并发行为、原5000ms期限、覆盖率阈值与完整源码依赖均保持；诊断工具仍支持正反两种调度。相关边界与治理回归进入原统一入口。旧实验不是当前源码资格，不据此宣布持久性能或原60秒目标修复；需要新候选完整复验。
+
+干净 delivery 工作树已确认无本地改动且原detached提交仍为当前候选祖先，切换至 `90f668c3` 后根/插件锁定依赖安装均零漏洞，标准 release:prepare成功。其输出限定该工作树 `dist/staging/runtime`，不是安装或生产启用。旧两个commit API当次均HTTP200；Support核验草稿仅存本地 `.codex-tmp/github-history-withdrawal-request.md`，未发送、不含字面值。官方删除政策说明普通引用删除不能清除缓存对象，公开第三方客户端常量是否受理仍待GitHub判断。
+
+## 2026-10-23：当前候选独立 N08/N09 首次同时通过，正式门禁继续
+
+为并行推进已授权的安装验收，在确认新远端引用不存在后创建 `acceptance/windows-lifecycle/90f668c3`，指向相同候选 `90f668c3`，未覆盖已有 review 分支。原 review 工作流自动启动 `40037851417`，job `120701609779` 已确认 in_progress；固定已清理 baseline `2295c452888449e9728b3ddcc2f80f31e9433e69`，仅 runner 本地构建，不上传安装器、不读取模型/签名凭据。它验证真实安装/升级/回滚/卸载及合成文件保留，不替代旧安装包的加密恢复迁移；后者私有 artifact 边界在当前公开仓库仍保持拒绝，未为提速放宽。
+
+`90f668c30a62deacb579e05c5ba3a552f534049d` 的独立诊断 `40037044772` 已终态 success：N08 job `120698998646`、N09 job `120698998932` 均通过。N09 原入口仍要求 committed 强杀重开精确读取、clear 后旧收据拒绝、save/revoke 签名宿主 ACK、同目录新 PID 及四个 adapter 的清理；本次未放宽这些断言、15秒业务预算或原强杀顺序。固定公开网络收据报告 probesPassed、ownedTreeEmpty、nonLoopbackBlocked、tlsVerified 均 true。该工作流明确仅作诊断，不授予正式资格；单次通过也不证明此前 ACK 波动已根治。
+
+上一候选 `6c67e14d` 的正式 Windows `40035545244` 已终态 failure：source-gates、egress 和 N08 均 success，N09 failure。当前候选 Verify `40037044785` 的质量、Rust、集成与四个单元分片已通过，coverage仍在运行；正式 Windows `40037044751` 的 source-gates仍在运行，egress已通过。继续观察原句柄，不重复启动。安装迁移、完整 N09、24小时活跃容量、原60秒性能目标、历史保留对象撤回和生产启用均未据此完成。本轮新增真实模型请求0。
+
+## 2026-10-23：预算修复后的托管剩余故障与实际签名 mailbox 探针
+
+`6c67e14d` 的独立 N09 `120693976548` 终态 failure254，仍未完成托管资格；此时254只表明进入宿主客户端后的 ACK 流程，尚不能确认是未武装还是最终收据失败。现将253保留至武装完成前，254只在首次最终收据轮询时记录，并保留已经产生的上游业务失败类别。固定入口额外记录外层已选择的80..83场景，PowerShell仅在整个受限诊断语法、UTF8、长度与类别验证通过后显示该数字；额外内容、重复字段、未知场景与原始错误仍不披露。父子安全测试保留45秒上限与原有子进程断言。
+
+临时子进程探针进一步替换被动 IPC ACK 外壳，使用实际签名 mailbox host/client、实际 runtime hooks/原生产 ACK、实际加密存储与 Core HTTP。保存签名 ACK、立即强杀、同目录重开和精确读取通过；撤销签名 ACK也成功读回，后续完整撤销流程未完成，不能算撤销资格通过。日志仅保留修订/计数/有限状态，不含签名、密钥或原文；未使用真实模型。不能据此认定云端254已修复。
+
+同源码 Verify `40035545225` 的质量、安全、Rust、集成和四个单元分片均通过，coverage因四根32MiB测试在恢复入口构造时失败而未通过；补充只含位置及本地错误码的断言诊断，保留负载与期限。本地该真实加密 Worker 测试在约80秒通过，尚未证明托管失败根因。完整 Windows `40035545244` 的 source-gates仍需跟踪原句柄。
+
+## 2026-10-23：修复保存 ACK 预留额度与已结算额度混淆
+
+实际 Core 子进程合成探针复现了原验收器的误判：ACK 修订15的 returnedBytes=22963含16KiB读取预留，随后读取正常结算，强杀重开后的精确读取及公开生成成功，最终修订27的 returnedBytes=19737；原 driver 却因小于 ACK 中的预留值拒绝。额外1500ms仅延迟本地收据观察以稳定重现该竞争窗口，未加入托管 driver 或任何生产请求预算。
+
+保存 driver 现在仍在 ACK 校验后立即强杀原 Job，确认其终止后、重启前读取原有只读解密观察器的磁盘检查点，再要求重启后的调用数、计费字节和修订均不低于这个持久基线。检查点必须绑定原根与原到期时间，修订不得低于签名 ACK，调用数不得低于 ACK，字节不得低于此前实际消费，也不得超过每个持久修订最多退款16KiB的生产结算边界；与 ACK 同修订时计数必须完全相同。没有删除预算比较、改变期限或修改生产结算行为。新观察能力仅在已确认强杀后可用，重启或关闭后撤销，并拒绝错误身份、Proxy和访问器。
+
+相关六文件176项测试通过，包括合法结算、未记录退款、过量退款、调用/字节/修订回退、身份/期限变化、缺失/失败/可执行观察器与清理回归。此前失败的延迟收据实际子进程探针在修复后通过，即时收据探针也通过；均为隔离合成数据，不构成托管或安装资格。`45b0458d` 独立诊断 `40034091866` 仍为N08 success、N09 failure184，说明需用此修复继续托管复验，不能仅从184直接断定该机制是云端唯一根因。
+
+## 2026-10-23：修复新增压缩请求体依赖安全门禁
+
+`17c107cb` 的 Verify `40033199041` 中 node-quality 在 npm audit 拒绝 `body-parser 2.3.0`，公告 GHSA-27r3-jxmh-p828 涉及压缩请求体尾随字节拒绝服务。根项目和本地证据插件锁文件单独升级至2.4.0，同时仅更新其所需 qs 至6.16.1；未修改包声明、审计等级或性能门禁。两处 npm audit 均零漏洞。增加安装版本与锁文件安全下限回归，并重建绑定锁文件的证据网关产物后，依赖、安全库存、真实 MCP stdio 和网关分发相关22项测试通过。旧产物因输入锁文件变更而拒绝启动属于预期的来源绑定，重建后通过；生成产物未提交。
+
+## 2026-10-23：分离快照完成与 ACK 握手失败
+
+`17c107cb` 独立诊断 `40033199026` 已终态：N08 success，N09 `120686248175` failure184。184 是只读快照的末尾观察点，不能直接认定是 ACK 失败，也不能认定是重启后的 READ 失败。现在在快照返回后以253标记基线验证、254标记获取宿主客户端后的持久 ACK 握手；保留后续原有业务失败分类。新增定向拒绝回归验证握手失败仍拒绝整个 driver 并完成强杀和清理；父子边界仅接受有限码至254，未知255、无效 UTF8、附加内容和重复阶段仍拒绝，45秒期限保留。尚未修改 ACK 的修订匹配或强杀时机。
+
+上一候选 `a0f49062` 完整 Windows `40031676368` 已终态失败：source-gates 的覆盖率执行1553项，通过1551项，Responses 与 Claude 的 long-persistent 首轮分别5009ms、5020ms触发原5000ms截止；普通恢复通过。其独立 Verify `40031676348` 全绿不能覆盖这一失败。最新本地实际 Core 子进程合成探针再次通过保存 ACK→立即强杀→同目录重开→精确读回；未使用真实模型，也不代表托管安装验收通过。
+
+## 2026-10-23：N09 已收敛到保存 ACK 场景，保留精确子阶段诊断
+
+`a0f49062` 的 Verify `40031676348` 已全部 success。独立诊断 `40031676404` 的 N08 success，N09 `120681171689` failure249：失败位于 save driver，前置 committed、clear 以及清除后的四组合流程已走过，但仍不构成完整 N09 或安装资格。现在进一步保留原首次读取的230类别，并以251区分 ACK 触发中的请求、252区分已有成功读取后的后续恢复；仍不接受缺失读取，不输出错误、内容或凭据。父子固定边界同步接纳这两个有限类别，未知253仍拒绝，原45秒子进程测试期限不变。
+
+临时实际 Core 子进程探针增加 producer 修订和有限 publication 状态观察，保存 ACK 后强杀重开读回再次通过；额外500ms收据观察延迟的探针也通过，尚未复现托管249。延迟仅用于本地诊断，不进入资格 driver，也没有改动原 ACK 后立即强杀规则。另一个中间候选 `6fdb15ec` 的单元 shard 1 在 Responses long-persistent 首轮遇到原5000ms超时，存储事务多次 commit 达272–846ms；当前全绿不证明性能波动已根治。性能及原60秒目标继续跟踪。
+
+## 2026-10-23：完整 Windows 源码门禁通过，N09 失败场景继续隔离
+
+`9b6a4fd9` 的完整 Windows `40028691580` 已终态：source-gates、egress 和正式 N08 均 success，正式 N09 `120677338277` failure230。配置异步提升修复已提交 `6fdb15ec`；独立诊断 `40030867872` 的 N08 success、N09 `120678497590` 仍为230，确认该修复没有消除当前业务故障。
+
+本地临时子进程使用实际 Core HTTP、实际加密存储、原始 N09 runtime hooks/producer ACK 和原始业务 adapter/driver，保存 ACK 后立即强杀该子进程、同目录新 PID 重开及精确读回通过；committed-observed-kill 也通过。它使用隔离合成数据和本地路由，不等同托管网络/Job、安装或生产验收。托管四场景共用230仍不足以定位；入口现在只按外层已选定的四个 driver，将该失败映射为247 committed、248 clear、249 save、250 revoke。其余失败类别不变，未知251、额外 stderr、无效 UTF8、重复字段仍不透出。子进程原45秒测试期限与原业务断言保留。
+
+## 2026-10-23：Verify 全部通过；修复连续配置保存的 Windows 文件竞争
+
+`9b6a4fd9` 的 Verify `40028691603` 已终态 success：node-quality、四个单元 shard、Rust、integration 和 coverage 均通过。这不替代业务或安装资格；同源码独立诊断 `40028691590` 的 N08 success、N09 job `120671229324` failure230，表示公开生成前尚未观察到有效原文读取。完整 Windows `40028691580` 的 source-gates 仍在运行，egress 已通过。
+
+另一个临时合成探针使用真实管理 handler、加密配置、异步 watcher/controller 和加密恢复运行时，稳定在 11→00→01→10 的第四次保存复现 HTTP400；安全分类仅输出 rename/EPERM。原同步 rename 的有限等待不能让同进程异步读句柄继续完成关闭。配置保存、切换 profile 和策略迁移现在等待异步原子提升；仍先设置私有权限、写入并 fsync、关闭临时文件，提升前后保持文件身份与权限校验。Windows 仍最多三次 rename、等待 10/20ms，仅 EPERM/EBUSY 可重试；不删除旧目标、不重复 HTTP 或业务操作。保留原同步写 API 的调用约定。
+
+修复后真实合成探针 11→00→01→10→11 五次保存、修订读回和最终运行模式全部通过。新增回归覆盖事件循环中的读者释放、永久/非 Windows 错误、权限拒绝、非法路径、失败时保留原文件、提升后权限失败不重复 rename、异步策略提交等待及拒绝。十个相关测试文件共 48 项通过，原有测试和期限不变；Lint、CI/release 治理通过。另一本地实际 Core HTTP 探针通过同一摘要连续两次精确恢复和正常关闭后重开恢复，但不证明 ACK 后强杀资格。本轮没有真实模型请求或日常配置变更。
+
+## 2026-10-23：N09 确认保存与有效配置之间的异步 reload 竞态
+
+`a6dddbea` 独立诊断 `40027143893` 的 N09 job `120666071795` 已终态 failure234，明确为健康投影的 requestedEnabled 与保存目标不一致。生产 `reloadProxyConfig` 调用 watcher.scheduleNow 后立即返回；watcher 的 fs.readFile、loadConfig 和 applyConfig 是异步链。管理接口 200 和文件修订读回正确，只能证明保存完成，不能证明健康接口已经使用新配置。此前只允许 pending_application 的等待器错误拒绝了这段仍报告旧健康终态的合法间隔。
+
+候选仅在一次配置保存及修订/开关读回均已验证后，向等待器传入保存前的精确模式。等待器允许同主体、有效配置、完整匹配该旧模式的健康终态作为过渡探测；它永远不是成功条件。达到新 requested/applied 开关及对应存储终态才继续业务。其余调用不授予旧状态等待能力；未知/非法状态、存储故障、错主体和异常仍失败。原从操作开始计算的 15000ms 总期限、150 次探测上限、单次管理 HTTP 期限、单次保存及不重试业务均保留。旧模式持续不变的回归在原期限失败。
+
+旧提交函数对同一已确认保存的旧健康回复在第一次读取即 failure190/detail234，已本地复现；修复后四种组合的旧终态→pending→新终态均通过，完整生命周期夹具确认每次恰好一次组合保存、四次应用状态读取。前置模式的空/非法/额外字段/getter/Proxy 均拒绝且不触发访问。相关五文件 86/86 测试通过。临时目录真实配置保存、真实异步 watcher/controller 及真实加密运行时也观察到保存返回后 requestedEnabled 仍旧，11 和 00 随后达到新终态；该额外连续探针在后续 10 的配置保存返回400，不能作为完整四组合验收通过。托管复验和该保存失败继续跟踪。
+
+## 2026-10-23：安全补丁通过托管门禁，N09 健康失败继续细分
+
+`ba0ca72c` 将根项目和可分发本地证据插件的间接 Zod 依赖从 4.6.5 更新至 4.6.7，修复 GHSA-mrhx-c7xc-m3w5；新增安装版本及锁文件的安全版本回归，保留完整 npm audit 门禁。两处审计均为零漏洞。`9aa83368` 的 Verify `40025455539` 已终态 failure：node-quality、Rust、integration 和四个 unit 分片全部 success，coverage job `120660383640` 的实际 core chat WBIPC 用例失败；不能将安全门禁修复算作完整 Verify 通过。完整 Windows `40025455652` 最近 source-gates 仍在运行，继续原句柄。
+
+同源码独立诊断 `40025455631` 已终态 failure：N08 success，N09 `120660384197` 返回 190，属于健康身份或应用状态校验，不能认定这轮已经到达公开生成。此前 `f1b19fc1` 独立诊断 `40024821284` 返回 199，拆分拒绝回执的阶段后，199 已仅指向合成上游的公开生成前置条件。当前候选继续保留 190 原失败类别，并只补充固定细分码：232..239 区分恢复主体、配置、请求模式、存储故障、应用值、存储模式、终态及存活状态；240..246 区分健康 PID、产品状态、入口、工作目录、配置目录、运行目录及管理端口。225..231 的拒绝回执与公开证据阶段同步进入原 PowerShell 父边界白名单；其余退出和原始 stderr 继续不可见，未知 247、无效 UTF-8、附加内容及重复阶段仍拒绝。
+
+应用状态、生命周期、composition 和诊断工作流 44 项回归通过；实际安全 PowerShell 子进程边界 3/3 通过，完整子进程用例约 18.7 秒，原 45 秒上限及原用例均保留，另加新范围端点和越界检查。Lint、格式和 CI/release 治理通过。本地临时目录真实运行时以 11→00→01→10→11 切换均达到匹配终态；另一个真实加密 Worker 加实际 N09 ACK 观察器的探针对同一摘要执行两次精确 LIST/READ、独立公开生成和完整持久发布通过。这些探针均为合成数据，不替代托管强杀重启、安装态客户端或全量性能验收；未发起真实模型请求或修改日常配置。
+
+## 2026-10-23：历史 OAuth 字面量来源及 GitHub 清理边界
+
+只在本地读取旧源码并计算哈希，与公开仓库源码作精确指纹比较，确认历史两个 OAuth secret 字面量分别匹配 `google-gemini/gemini-cli` 的 `packages/core/src/code_assist/oauth2.ts`（blob `8ec92848c1a77bb28ae394b9e9720e41b64177c2`）和 `NoeFabris/opencode-antigravity-auth` 的 `src/constants.ts`（blob `e9ab496866b503ceb0cf8294400b2434aa96a577`）。这两项是公开客户端常量的匹配，不等于完成全部客户凭据的历史审计；没有输出其值、API Key、令牌或源码行。
+
+重新 fetch 后，以 `ls-remote --heads --tags` 当时实际公布的全部 SHA 为起点检查历史，未发现这两个旧字面量或原提交祖先。不能使用包含已删除远端分支的陈旧本地 tracking refs 代替当前远端清单。GitHub commit API 仍能读取旧提交 `aaac8d57` 和 `79ddffd1`，所以普通分支历史已无此内容，但 GitHub 保留对象尚未彻底撤回；隐藏引用、缓存、fork 和其他凭据格式不在本次证明范围。未做强推、删除本地证据或承诺全站清除，GitHub 保留对象仍需服务端清理。
+
+## 2026-10-23：配置组合验收等待真实应用完成
+
+`736bb96b` 独立诊断 `40022221813`：N08 success，N09 `120649368726` failure119；119明确在配置保存及读回校验之后，因此先前118不能证明读回本身失败。检查发现setCombination在配置读回后立即发业务请求，没有等待异步存储切换；生产health会明确报告pending_application。候选在原有从操作开始计算的15000ms总期限内，等待配置有效、requested/applied开关匹配、终态及启用时的storage模式匹配；只允许显式pending_application进入存活检查和元数据轮询。失败状态、错主体、HTTP/传输错误、未知状态和时限仍立即/有界失败，既不重复配置写入也不重试业务。关闭恢复只需确认disabled，不能因保留的持久化偏好而误要求新建存储。
+
+四组合pending→ready回归均确认三次应用探测和恰好一次组合保存；空、非法、可执行预期值、错配置/终态/模式及已有deadline/清理覆盖保留。相关四文件共71个不同测试通过，Lint/格式及CI/release治理通过。旧回执业务拒绝新增既有HTTP阶段分类，避免业务503或异常答案被错误归到最后成功的配置步骤；模拟503仍失败、5次原业务请求及两次强杀/一次关闭完整保留。候选修复了确定存在的验收竞态，尚未证明它就是本次托管119的全部根因，仍待同源码完整验收。没有真实模型请求或日常配置变更；独立原生WindowsWBIPC的5秒性能门禁仍未解决。
+
+## 2026-10-23：N09 发布失败定位到验收观察器的预扣/结算混淆
+
+配置开关读回新增既有固定分类127/128/129/130，成功读回明确推进119，避免后续业务失败仍被最后一个118误标为读回失败。四种错误注入保持原2秒HTTP期限、单次保存/读回及独立清理，生命周期与闭包32/32通过。临时目录真实配置handler、加密存储及loadConfig合成探针逐一验证00/01/10/11：均200、修订一致、两个布尔值准确，保存448–571ms、读回4–5ms；这不是托管读回失败的复现或完整安装验收。`8a22641d`完整Windows `40020812580`终态failure：source-gates `120644583068`在chat和Claude实际WBIPC用例失败，业务job跳过；原DPAPI用例不再作为本轮失败原因。先前`71fa3cdc`完整Windows源码门禁及N08已通过，N09仍失败，不能混用候选证据。
+
+修复已推送为 `8a22641d`。同源码独立诊断 `40020812587` 的N09 job `120644582833`已终态failure118（管理配置保存后的读回边界），尚不能认定完整N09通过；该阶段复用了现有118，下一步需区分读回HTTP失败、修订不一致和开关值不一致。同源码Verify `40020812633`及完整Windows `40020812580`已启动，沿用既有run，不以独立诊断替代完整资格。
+
+本地完整客户端覆盖率的串行调度实验已终态failure：1553 tests、1552 pass、1 fail、0 skipped，926591ms；statements/lines 99.11%、branches 95.3%、functions 99.33%，原85/80/90/85门槛未变。唯一失败为 Claude WBIPC long-persistent turn1，在原5000ms请求期限5010ms失败；读取、独立公开生成和completeAsync已执行，startPublicationAsync尚在完成。安全阶段日志显示一次settle-reader SQLite commit耗时1389ms。原95文件及全部负载保留，串行调度本身仍不足以消除时限失败；四个调度实验文件暂不纳入修复提交，不能把历史串行成功或本次覆盖率数字当作完整通过证据。
+
+`71fa3cdc` 独立诊断 `40018666245`：N08 success，N09 job `120637221249` 固定阶段220，定位到独立公开生成后的持久发布 prepare。新的本地合成探针使用真实加密存储 Worker、先持久提交摘要、同进程恢复并执行精确 LIST/READ 和独立公开生成；无观察器时通过，加原验收观察器时在 completeAsync 重现 storage_unavailable。安全计数显示修订6的预扣字节17158，在修订8按实际消费结算为6540；调用次数仍为2，成功读取及来源读取次数从0增至1。原观察器把预扣余额当作不可减少的最终消费，错误终止真实发布。
+
+候选保留根/主体/到期身份、修订号递增、调用次数及成功读取次数不回退；字节下降必须跨过至少一个未产生 producer ACK 的结算修订，并通过现有生产 `applyReferenceReaderSettlement` 验证同调用次数、单次至多16384字节退款、成功读取和来源进度。没有删除退款校验或增加预算。新增回归先红后绿，覆盖合法退款、缺少结算修订、超额退款、调用次数变化、空/畸形/可执行输入；相关观察器、实际安装钩子、安全签名闭包和业务适配器64/64通过，Lint、格式和CI治理通过。真实加密Worker的同一复现探针修复后prepare/sending/finished全部通过。正式托管同源码N09、完整Windows资格及整体交付仍待验证；没有真实模型请求或日常配置修改。
+
+## 2026-10-23：摘要续接公开答案的持久发布修复候选
+
+`d7d37130` 独立诊断 `40012360250`：N08 `120615678214` success、N09 `120615677811` failure216，证实精确原文已校验、独立公开生成已派发，随后HTTP502；不再将此故障描述为读取原文失败。`dcfb5961` 完整disposable `40010447849` 已终态failure：source-gates `120609150799` 和N08 `120613538487` success，N09 `120613538510` failure169。
+
+新增真实会话、摘要回执重建、加密内存SQLite和实际异步发布的回归，在旧实现先复现公开答案 `completeAsync` 被拒绝。根元数据校验存在两处错误：把输入窗口kind=summary当作输出本身是摘要，拒绝普通独立公开答案；私有历史映射的完整frontier校验只允许full/delta窗口，拒绝同一合法摘要输入窗口。候选依据实际宿主摘要回执字段 `summaryResponseKey` 区分摘要响应；原生compaction、无responseKey或含待发私有结果仍不能成为公开祖先。摘要窗口的映射继续逐项验证scope、frontier、publishedFrontier、count、offset、父关联及创建时间，offset按该窗口完整请求计数，只有delta累加父窗口。
+
+修复后约4.9KB原文LIST/READ、私有完成、独立公开生成共四轮及prepare/sending/finished三段持久发布通过。JSON/SSE不含私有工具，存储load后的完整根再次重建并接受已完成公开response-ID的后续隔离请求，原到期时间不变。九种摘要响应冒充公开答案、空responseKey、compaction及映射字段篡改仍拒绝；相关23项明确筛选的纯/实际会话内存回归通过。root-reader回归也补上真实异步发布及加密内存存储。新增测试已在统一unit发现和既有客户端覆盖入口中；候选尚待同源码托管复验，未提升期限、容量、覆盖阈值或修改安全基线，未进行本机产品持久worker、DPAPI、注册表、安装器或真实模型操作。
+
+## 2026-10-23：N09 的 502 分段诊断与真实会话隔离生成回归
+
+`dcfb5961` 独立诊断 `40010447986`：N08 `120609151519` success，N09 `120609151070` failure169（HTTP 502），尚不能判断失败发生于种子留存还是重启恢复。新增固定阶段211（种子工具结果502）、212（恢复尚未到达上游）、213（已派发LIST）、214（已派发READ）、215（已校验精确原文）、216（已派发公开生成）。原HTTP状态阶段仍先记录；已知合成上游拒绝优先保留原196–209分类，不被502进度覆盖。父边界仅允许这些有限整数，未知阶段、原始异常及内容继续不披露。五处恢复中断注入均验证原请求次数、强杀和关闭，无业务重试、时限或断言放宽。
+
+新增真实sessions的隔离生成回归，在驻留及加密内存SQLite两种模式完成LIST、精确约4.9KB原文READ、私有完成和独立公开生成共四轮，验证公开请求没有私有调用配对、公开答案没有原文。相关34/34纯业务/闭包/安全子进程回归与2/2明确筛选的真实会话内存测试通过；Lint、格式及CI/release治理通过。新增测试进入既有统一unit及客户端覆盖入口；本机产品持久worker、DPAPI、注册表、安装器和真实模型请求执行均为0。
+
+`dcfb5961` Verify `40010447732` 七项job success，但coverage `120609150486` failure：真实加密worker清理孤立staging并跨重开保留已提交证据的用例发生原30秒超时。完整disposable `40010447849` 的source-gates `120609150799` 最近仍运行、egress success；继续原句柄，不重复派发。此前source-gates `120603677123` 的安全时间记录显示首次打开约6.4秒、初始scan/load/save各约3–4秒，导致Core续接测试在原30秒期限内未完成；没有据此提高期限或跳过持久化步骤。整体资格、容量性能和安装交付仍未通过。
+
+## 2026-10-23：模型侧页标记及已绑定快照范围修复候选
+
+`8e45df76` 独立诊断 `40008853430` 的N08 `120603677410` success、N09 `120603676826` failure203，已定位原文页协议/来源解析。真实sessions及加密内存SQLite回归确认：模型侧工具输出含`observation=client_reported`与`verification=not_verified`；存储内部页解析器只接受`ok,page,source`，直接用于模型侧输出会拒绝正确原文。本候选新增独立observed-page边界，严格校验这五个顶层字段及两个固定标记，再保留原内部页校验、来源绑定、完整范围和精确摘要。缺标记、错误标记、额外字段、非法范围、损坏内容和可执行输入仍拒绝，未去掉生产安全标记或放宽存储解析器。
+
+N08此前182位于快照行读取/认证；代码检查发现普通准入探测可合法创建第二个根，观察器却要求后续全库始终只有一行。真实内存SQLite回归复现：首次快照绑定唯一根后插入另一个合法根，旧观察器拒绝。本候选后续只查询首次认证的固定scope，继续验证原根身份、期限、revision及密文；首次多根仍拒绝，原根损坏/替换、同scope重复、revision倒退均不能成为成功。若绑定scope消失而其他行仍在，保持拒绝，不能用另一个根制造空库观察。此为观察器候选，尚未证明托管182的具体实例全部由此触发。
+
+83/83业务/快照/安全边界专项及5/5明确筛选的真实会话/加密内存SQLite用例通过；新增回归纳入统一unit发现，root-reader新增用例也进入已有客户端覆盖率入口。Lint、CI/release治理及108文件静态闭包通过。没有本机产品worker、DPAPI、注册表、安装器或真实模型请求执行。
+
+`ccff7f5d` Verify `40007608732`八项job全部success，完整disposable `40007608831`源码门禁success但N08/N09业务failure；不能替代完整资格。`8e45df76` Verify `40008853447`最近七项success、coverage运行；完整disposable `40008853449`源码门禁 `120603677123` failure，失败属于实际Core HTTP从存储续接到新lifecycle owner用例，业务跳过。当前候选仍需同一源码完整托管验收，容量、安装升级回滚及生产资格未完成。
+
+## 2026-10-23：索引契约修正后推进至原文页，完整资格仍未通过
+
+`ccff7f5d` 独立诊断 `40007608963` 已failure：N09 `120599421703` 固定198，已越过索引来源回执匹配，失败推进至原文页校验；N08 `120599422011` 固定182，位于只读快照行读取/认证阶段，具体原因仍待查，不能用此前通过覆盖本轮失败。该候选Verify `40007608732` 最近七项job success、coverage `120599421485`运行；完整disposable `40007608831` source-gates `120599421460`运行、egress success，沿用原句柄。
+
+上一候选 `c920b6e4` 的coverage `120593887659`现已success，完整disposable `40005987593` 的source-gates `120593885753`及N08业务 `120598767701`均success，N09 `120598767797`failure。独立ACL读回候选已有完整源码/覆盖率通过证据，但该轮Verify仍因独立PowerShell/rg读取发现测试超时failure，不能认定全仓门禁通过。
+
+本次为原文页增加有限错误分类：201配对输出/JSON，203页协议或来源绑定，204精确内容，205完整范围，206读取不可用，207预算，208非法范围，209未知拒绝；未分配的202及越界210拒绝成为primary phase。只输出固定整数，保留原单次业务请求、原文负载、全部页校验和清理。新增纯回归覆盖畸形JSON/页、有效但不完整页、固定拒绝及未知私有文本，确保不把有效部分页误报为内容损坏。专项41/41通过，包含原安全子进程与primary parser，Lint及CI/release治理通过。原文页根因及完整N09仍待托管证据，不将分类候选称为恢复修复。
+
+## 2026-10-23：N09 索引回执身份与期限契约修正候选
+
+`c920b6e4` 独立诊断 `40005987682` 的N08 job `120593886859` success，N09 job `120593886074` failure197，已将HTTP502定位到合成上游的索引校验边界。核对真实sessions：工具结果来源ID按捕获分支绑定为`hpa_`摘要，并非客户端原始callId；来源TTL从实际捕获时刻计算，会话根的绝对期限另行限制实际读取。实际会话模块加受认证快照回归已复现原始callId不同、来源期限比根晚1ms的正常场景，不能据此修改生产身份或期限策略。
+
+本候选让只读快照从已验证reference metadata投影捕获callId与来源回执，不读取blob或工具内容、不创建写入或授权能力。强杀前确认唯一捕获记录绑定本次原始工具、原文摘要和大小、参数摘要；重启业务索引必须与该已提交回执全部字段完全一致，包括分支callId、sourceId和来源原到期时间。保留会话根原期限及原文精确分页、预算、工具不重放、隔离公开生成和清理断言。新增回归逐项篡改ID、摘要、大小、工具名及来源期限均拒绝，78/78专项通过；Lint、CI/release治理与107文件静态闭包核验通过。托管实际N09仍待本候选验证。
+
+`c920b6e4` Verify `40005987670` 最近六项job success、unit2 `120593887324` failure（已有真实PowerShell/rg读取发现边界用例发生ETIMEDOUT）、coverage运行；完整disposable `40005987593` 的source-gates运行，egress success，沿用原句柄。上一候选`bb95ec11`完整disposable `40003005576`已failure，source-gates `120583691198` failure，业务跳过，不能视作通过。没有为变绿放宽任何期限或阈值，未执行本机真实持久/系统操作或新增真实模型请求。
+
+## 2026-10-23：N09 502 上游边界分类与独立 ACL 读回候选
+
+`bb95ec11` 独立诊断 `40003005399` 已 failure：N08 job `120583689897` success（连续三候选通过），N09 job `120583690196` 固定退出169，证明重启后的业务读回收到HTTP502，尚不能区分产品恢复失败与合成上游严格断言拒绝。Verify `40003005380` 八项job七项success，coverage `120583690652` 的实际Responses WBIPC恢复用例失败；完整disposable `40003005576` 最近egress success、source-gates运行，沿用原句柄。
+
+本候选为N09合成上游增加196..199固定阶段，分别区分请求身份/结构、返回索引来源、返回原文页、独立公开生成拒绝。非200先记录原HTTP分类，再保留同次调用的合成拒绝阶段；无合成拒绝仍保留169。只保存白名单整数，不输出请求、工具结果、异常或回复正文，保留全部精确读回和清理断言。
+
+先前 `0283708e` coverage的独立ACL描述符查询发生原10秒PowerShell子进程ETIMEDOUT，尚未证明产品ACL设置失败。本候选优先使用已安装的固定PowerShell7路径，通过Get-Item/Get-Acl独立读取；不存在时沿用WindowsPowerShell原查询，派发失败后不换壳重试。四个原目标、SID集合、保护位、Allow/FullControl、非继承、目录/文件继承位及原10秒查询和30秒外层期限全部保留。是否解决托管超时仍待实际Windows验收。
+
+本地48/48专项通过，包含实际验证脚本配合纯假描述符的正常及八种拒绝情形、固定阶段解析、安全子进程及签名闭包测试。测试修复了负向断言被统一错误处理吞掉及Console.SetIn未给重放脚本提供目标列表的问题；断言现位于错误处理外，显式替换重放输入并校验子进程退出、错误和输出。统一unit入口自动发现新增测试。ESLint、CI/release治理通过；本机产品持久worker、DPAPI、注册表、安装器和真实模型请求均未执行。完整目标及24小时持久容量、安装升级回滚、生产资格继续未完成。
+
+## 2026-10-23：N08 连续两候选独立通过，N09 推进至重启后的业务读回
+
+`0283708e` 已推送，独立诊断 `40001502984` 的 N08 job `120578468971` success、N09 job `120578468376` failure，固定阶段107。该轮已越过重启、配置与实际持久应用核验和重开后的快照，失败在实际业务精确读回；不能据此认定最终读回或完整N09通过。完整 Verify `40001503052` 已failure，其余七项success，coverage job `120578469141` 失败项为实际原生ACL保护及junction祖先拒绝；完整disposable `40001503014` 最近egress success、source-gates仍运行，沿用原句柄。
+
+此前 `eae81512` Verify `39999706510` 已 failure：coverage job `120572319363` 的 Responses WBIPC 长持久模式第1轮在4117ms读完公开响应，随后等待发布确认到5001ms失败，原5秒期限保留。完整disposable `39999706539` 已 failure：source-gates job `120572319349` 失败项为实际原生ACL保护及junction祖先拒绝，业务未启动；尚未确认其具体根因。不能把旧源码曾经通过或独立N08成功替代这两项失败，未为观察而重复启动原任务。
+
+阶段107暂不能区分HTTP拒绝与成功回复的协议/精确读回不符。候选只在重启业务读回收到非200时复用现有162..173固定HTTP分类，不读取或输出错误正文、凭据或原文；200保留全部原协议、精确原文、公开生成、一次工具执行和快照会计校验。新增401/403/502/503/504拒绝回归先RED后GREEN，验证只有原一次业务请求及两次强杀/独立close；最初测试写错既有固定driver错误名已修正，未修改driver。业务/组合/闭包35/35及Lint、格式、CI/release治理通过。完整目标继续未完成，新增真实模型请求0、本机真实持久及安装操作0。
+
+## 2026-10-23：独立 N08 托管通过，N09 重启等待实际持久应用的候选
+
+`eae81512` 已提交并推送，独立诊断 `39999706331` 中 N08 job `120572317779` 已 success；N09 job `120572317317` 已 failure，固定阶段119。N08 的持久关闭契约候选已取得本轮托管通过证据，但独立诊断不代替完整 source-gates 后的正式业务资格。该源码 Verify `39999706510` 最近七项 job success、coverage仍运行；完整 disposable `39999706539` 的egress success、source-gates仍运行，继续原句柄。
+
+真实 runtime/lifecycle 与内存 SQLite 的受控 catalog 初始化回归证实：管理诊断可在 `configValid=true,requestedEnabled=true,appliedEnabled=false,state=pending_application` 时已提供健康回复，之后存储完成才变为持久已应用。N09 原重启 attestation 只检查一次恢复状态；纯生命周期的管理已就绪、恢复应用仍等待夹具在旧代码先失败。候选将配置核验提前，失败固定130；健康阶段只对上述明确的待应用状态及已确认存活的同一pid等待，沿用从管理就绪前开始的原15秒总期限、原两秒HTTP期限，最多150次纯健康探测。配置、禁用、无效结构、失败状态、错误pid、HTTP或传输错误均直接失败；不重发保存、业务或模型请求，不读取原文。健康失败使用已有固定阶段，未知原始异常不输出。
+
+新增独立纯等待模块及正常、空、非法、极端时钟、getter/Proxy、安全与失败回归；相关生命周期、等待、闭包组合48/48及五项真实内存 runtime 回归通过，ESLint、格式与CI/release治理通过。首轮新增测试有两处错误预期及顶层async返回Proxy触发Promise自身then查找的夹具问题，均修正后完整复验通过，未跳过用例或放宽期限。新模块由现有静态闭包发现、新测试由统一unit发现；是否解除托管119仍待候选验证。
+
+当前源码原五档、两个worker的纯内存CPU剖析退出0，约77401ms，满足180秒执行预算但未满足原60秒性能目标；worker时间主要在公开窗口编码、哈希、历史克隆与GC，未据此引入未经验证的优化。私有证据目录为 `capacity-eae81512-cpu`，仍不授予传输、持久存储或24小时资格。本轮新增真实模型请求0、本机产品持久worker/DPAPI/安装器/注册表/防火墙操作0。完整范围保持未完成。
+
+## 2026-10-23：校正 N08 关闭恢复的存储契约，修正 N09 后续开关保存的悬空路由
+
+`bdfa65b0` 的完整 Verify `39996893217` 已 success，全部八项 job 通过；完整 disposable `39996893239` 已 failure，source-gates 与 egress success，N08 job `120570202639` 固定阶段148，N09 job `120570202734` 固定阶段115。独立诊断 `39996893337` 亦分别148/115。旧 `f825158e` 完整 disposable `39994647499` 已 failure，不能继续记为运行中。完整源码门禁通过不替代业务与安装交付资格。
+
+真实 runtime、lifecycle 与内存 SQLite 回归证实：先启用持久恢复，再保存 `enabled=false,persistence=true` 会同步停止准入，保留同一持久 owner、已存内容及原到期时间，不隐式切换为内存或清空存储。N08 原验收同时要求关闭恢复和 `storage=memory`，与独立持久化偏好契约矛盾。候选继续严格要求 `appliedEnabled=false`，将存储断言校正为 `persistent`；原15秒期限、身份、配置回读以及后续撤权、退出、根身份、到期与防重放断言保留。保留真实状态的验收夹具在旧代码先失败约15秒，校正后通过；不据此认定托管148只由此引起。
+
+N09 `setCombination` 与先前 N08 保存存在同类缺陷：读取配置会补入官方 profile 及内置路由，后续合成保存只替换 profile，却保留引用已移除官方 profile 的路由。使用真实 `mergeBuiltinModelRoutes` 和 `validateConfig` 的四种开关组合回归在旧代码先失败，候选在替换合成 profile 时显式清空 modelRoutes 后通过，保持私有合成凭据和单次保存。另将重启后 attestation 和开关变更的配置读取、保存、回读及健康检查标记为既有116/117/118/119，避免这些后续失败仍停在已完成的115；新增五种失败注入验证固定阶段、请求次数和独立清理。该缺陷可能解释托管115，但尚待新候选托管验证。
+
+N09业务、生命周期、组合与输入边界纯回归69/69，N08纯回归11/11、四项相关真实内存 SQLite/runtime 回归通过；管理健康等待相关三文件先前合计44/44通过。ESLint、格式、CI/release治理和diff检查通过，新回归由统一unit入口发现。本机未执行产品持久worker、DPAPI、安装器、注册表或防火墙，新增真实模型请求0。完整I0–I5/H1、N01–N11、24小时持久容量、安装迁移回滚与生产交付保持未完成。
+
+## 2026-10-23：N08 读回内置路由导致变更保存失效，N09 等待管理凭据发布
+
+f825158e独立业务诊断39994647455已failure：N08 job120554897361阶段196，确认是配置校验拒绝；N09 job120554896871阶段187，已越过连接拒绝但健康回复非200，具体状态仍待新增固定状态分类验证。完整Verify39994647438八项job全部success；完整disposable39994647499最近source-gates仍运行、egress success，沿用原句柄。
+
+纯回归复现N08后续变更保存的悬空路由：生产loadConfig会重新添加官方profile及其内置modelRoutes，验收save以两个合成profile覆盖读取结果，却保留引用被移除profile的modelRoutes，真实validateConfig拒绝。候选在每次合成save显式清空modelRoutes，保持两条合成profile、所有原变更和回读断言。disable、target-change、permission-change三种场景分别使用真实mergeBuiltinModelRoutes/validateConfig验证，旧代码RED、修正后GREEN；是否解除托管196仍待业务复验，不改生产加载行为。
+
+生产server-lifecycle在listen回调异步发布管理凭据，credentialStartup.ready之前固定返回503及单字段初始化回复。N09候选仅把该严格匹配回复视为健康就绪探测，沿用原15秒总期限、300次上限及原HTTP两秒期限；未知503、401、额外字段、非法结构、getter/Proxy不成为可重试的初始化回复。永久初始化未完成仍期限失败。新增两次初始化探测后成功及一次配置POST的纯生命周期回归；其他HTTP拒绝复用既有162..173固定状态码，未扩大外层白名单。该窗口已在纯测试RED→GREEN，尚不能将托管187直接认定为503。
+
+相关两端业务、生命周期、输入边界和闭包回归51/51通过，新增对抗性用例修正Promise自身then查找的夹具后独立通过；ESLint、格式、CI/release治理与diff检查通过。未增加真实模型请求，未执行本机产品持久worker、DPAPI、安装器、注册表或防火墙。原五档、两个worker的纯合成容量命令本轮退出0、五档全部功能通过，父命令耗时73076.3038ms：满足原180秒执行预算，未满足原60秒性能目标。证据capacity-f825158e-current-report.json与capacity-f825158e-current-receipt.redacted.json保存在既有私有验收目录；仅是synthetic-session-capacity，transportQualified和durableStorageQualified仍false，不授予24小时持久容量或客户端资格。完整I0–I5/H1、N01–N11、24小时持久容量、安装迁移回滚与生产资格未完成。
+
+## 2026-10-23：N09 监听启动竞态修复候选，N08 配置 400 安全分类
+
+99667aaf 的完整 disposable 39990378959 已 failure：源码与 egress 门禁 success，N08 job 120547932460 固定阶段162（配置保存 HTTP400），N09 job 120547932588 固定阶段191（首次管理连接拒绝）；独立诊断39990378864同样分别162/191。Verify39990378935八项 job 中七项success，unit1的纯模拟 WFP setup 测试因原25秒期限超时失败，不能称完整 Verify 通过。前一版本1d3b97a5的完整disposable39988709269亦已failure。
+
+N09候选修正“私有预加载完成早于管理端口listen”的验收启动竞态：只对固定健康探测的连接拒绝等待，沿用原15秒总启动期限、每次HTTP原两秒期限及全部身份/状态断言。其他传输失败及HTTP拒绝立即终止，不重试配置写入、业务或模型请求。纯回归先RED后GREEN，新增模块覆盖正常、短暂拒绝、永久拒绝、期限、冻结/倒退时钟、异常时钟/等待与可执行输入；候选托管复验待完成。
+
+N08从真实DEFAULT_CONFIG生成的合成配置通过真实validateConfig，尚不能据此认定实际HTTP400根因。候选只读取有限自有error字符串，输出固定196=校验拒绝、197=加密失败、198=解密失败、199=其余拒绝、200=无效错误结构；不输出响应正文或异常。新增集成回归先RED后GREEN，保持一次POST、失败立即停止。外层只扩大N08退出码至200，N09 primary-phase白名单不变，201继续拒绝。两端纯生命周期与管理相关回归42/42通过，新测试由统一unit入口发现。
+
+WFP setup纯模拟改用PowerShell类作为假对象，继续覆盖原生产Add-Type调用的编译失败、安装失败及成功路径，避免为假对象额外运行C#编译器；原25秒期限和全部断言保留，单项复验通过。另一次相关纯回归25/26通过，安全子进程完整回归超过原45秒期限仍记失败；新增退出码用例曾遗漏同步计数断言，已同步，未提高期限或删除原用例。相同安全子进程文件独立复验3/3通过，其中完整子进程用例约40秒，不能据此宣称并发长尾已解决。ESLint及CI/release治理通过。本机未执行产品持久worker、DPAPI、安装器、注册表、防火墙或真实模型请求。完整两端业务、24小时容量、安装迁移回滚与生产资格均未宣称完成。
+
+## 2026-10-23：完整 Verify 全通过，业务管理失败已排除原两秒期限
+
+1d3b97a5 的完整 Verify 39988709235 已 success，八项 job 全通过。独立业务诊断 39988709290 已 failure：N09 job 120534564788 返回 186（管理 HTTP 的非原期限传输／读取失败），N08 job 120534565244 返回 187（配置 POST 收到非 200）。当前证据排除这两次请求触发原 HTTP 两秒计时器，但尚不能区分连接拒绝、重置、响应中断或无效响应，以及 N08 具体状态。完整 disposable 39988709269 最近 source-gates 仍运行、egress success；沿用原句柄，不重启。完整 Verify success 不替代两端业务、24 小时、安装迁移和生产资格。
+
+候选保留 HTTP 客户端原固定错误文本与原两秒期限，新增有限故障码：191=ECONNREFUSED，192=ECONNRESET，193=响应 aborted，194=无效 JSON／对象回复，195=回复超过原字节上限。仅已知原生错误自有数据描述符进入固定映射，不读取 getter／Proxy，不把原始错误、响应或任意 code 写入日志；原生事件不能伪造本地期限。N08 非 200 配置保存复用既有 162..173 状态分类，未知或非法状态仍拒绝。两端外层 parser 同步至195，139、196及附加文本继续拒绝。没有增加请求、自动重试、模型调用或改产品存储／TTL／断言。
+
+新传输分类回归在旧代码先 RED（固定连接拒绝码缺失），接入后 HTTP／生命周期／矩阵纯回归55/55、快照／协议54/54、实际安全 PowerShell边界3/3，共112项通过。安全子进程回归本轮完整运行约22.6秒，保留原45秒上限与全部既有用例；先前超时记录保留，不据此宣称长尾永久修复。ESLint、格式、CI/release治理及diff检查通过，新增回归由统一unit入口发现。本机未执行产品持久worker、DPAPI、注册表、安装器、防火墙或真实模型请求，完整目标保持未完成。
+
+## 2026-10-23：新候选在快照前失败，细分管理健康与 N08 配置保存边界
+
+5ac19e9f 已提交并推送，独立诊断 39985706079 已 failure：N09 job 120524190790 返回 115（首次健康检查），N08 job 120524191206 返回 146（配置 POST）。本轮两端未到达快照，不能宣称首次落盘时间修正已解除真实阶段 183。Verify 39985706163 最近七项 job success、coverage 仍 in_progress；完整 disposable 39985706037 的 egress success、source-gates 仍 in_progress，继续原句柄。
+
+本候选只补充管理失败固定分类：185=原两秒 HTTP 期限，186=其他传输失败，187=非 200 响应，188=结构／回执失败，189=健康响应返回时原总启动期限已到，190=健康身份／运行状态不符。N08 配置保存与 N09 首次健康检查共用只读取 error 自有数据描述符的分类模块，不执行 accessor／Proxy，不转发原始错误、响应或内容。正常请求、原期限、原校验与资源清理保持；外层只接受新增明确范围，139、191 和附加文本继续拒绝。新增纯模拟测试进入统一 unit 自动发现；本机只运行模拟、内存 SQLite 与安全合成子进程边界，没有执行产品持久 worker、DPAPI、注册表、安装器、防火墙或真实模型请求。完整目标保持未完成。
+
+管理分类／生命周期纯模拟 32/32、快照／两端协议 54/54 通过，ESLint、格式及 CI/release 治理通过。PowerShell 白名单曾漏同步 regex，实际安全边界测试先失败，已修；新增阶段的逐项解析、未知 139/191 拒绝在单独实际 PowerShell 纯解析中通过。完整安全子进程回归随后两次超过原 45 秒期限，仍为失败，未提高期限或关闭测试；原有真实安全子进程用例保留，新增阶段的所有值由纯解析覆盖，新增实际子进程覆盖范围端点及越界拒绝。不能把单独解析通过当成该完整回归通过。Verify 39985706163 现已终态 failure（coverage 失败，其余七项 success）；完整 disposable 原句柄仍需继续核对，不为观察而重启任务。
+
+## 2026-10-23：两端快照阶段 183，修正首次落盘时间与根创建时间的契约差异
+
+eb4c9cc6 独立诊断 39984308079 已 failure：N08 job 120519393318、N09 job 120519393928 均返回 183。两端均已越过 pins、密钥解封、schema、时钟及状态解密，当前失败范围是 reference 解析及元数据校验，未输出任何状态或原始异常。核对生产 context-recovery-storage-sqlite 的首次 row.created_at=time，以及 storage-record／storage-contract 的 root.createdAt<=row.created_at 契约，发现只读验收观察器错误要求两者相等。根先创建、首次异步持久化后完成是合法生产路径。
+
+新增纯回归先在旧观察器复现正常延迟落盘被拒绝；修正观察器后，保持严格绝对到期一致、拒绝根晚于落盘和到期错配，且后续 revision 读取正常。真实内存 SQLite 回归同样改用首次落盘晚于根创建的认证 envelope。快照及两端相关测试 61/61 通过，统一 unit 自动发现；首次负例夹具因其 AAD 自身超过 24 小时被 cipher 提前拒绝，已修为合法 AAD 后重新执行 RED→GREEN。没有修改生产存储、TTL、期限、请求、负载、读取权限或 ACK，也未读取原文 blob。此修正是否解除真实托管阶段 183 仍待新候选验证，不能把契约回归当成两端通过。
+
+补正旧终态：9c9462ed Verify 39982513085 已 failure，coverage 的 actual core responses WBIPC recovery has exclusive ownership and live credential revocation 失败，其余七项 job success；其完整 disposable 39982513196 的 32 MiB 四根重开测试返回固定 context_recovery_storage_unavailable，尚未证实超时。a20cfd4d 完整 disposable 39980129782 已 failure，source-gates/egress success、两端业务 failure。当前 eb4c9cc6 Verify 39984308056 与完整 disposable 39984308033 最近仍 in_progress，继续原句柄，不重启。完整 I0–I5/H1、N01–N11、24 小时容量、安装迁移和生产交付保持未完成。本轮真实模型请求新增 0；本机未执行产品持久 worker、DPAPI、安装器、注册表或防火墙操作。
+
+## 2026-10-23：observed ACK 修复让两端越过 503，业务推进至恢复／快照边界
+
+9c9462ed 的独立诊断 39982568481 已终态 failure：N08 job 120513375453 返回 154，已越过三次种入与摘要请求，进入 waitUpstreamHold（包括随后快照读取）；N09 job 120513375876 返回 137，已越过工具结果回传和摘要回执校验，进入快照创建／读取。原工具结果 503 在该次两端执行中已越过，但后续尚未通过，不能宣称 N08/N09 完成。
+
+候选给现有只读快照观察器增加固定 174..184：创建文件观察器、首次 pin、读取包裹密钥、解封／建 cipher、打开数据库与 BEGIN、schema、header、时钟、row 解密、reference 解析、清理。两端显式传递同一固定 phase observer，范围同步进入原父边界；未知 139、185 及附加文本继续拒绝。观察器异常只返回既有固定错误，既有 rollback、database/cipher close 和最终 pins 仍独立尝试；失败后的清理不覆盖首失败阶段。不读取原文 blob，不输出密钥、行、路径、错误或用户内容，不改变 SQL、断言、请求和期限。
+
+原有与新增快照纯回归 25/25，包括每一 observer 阶段失败后的资源清理、非法函数／accessor／Proxy 不执行，以及真实内存 SQLite 的既有 schema 与认证 envelope 读取通过。两端业务和外层安全 PowerShell parser 相关 58 项在新增 SQLite 单项之前通过，新 SQLite 单项与其余快照随后全部通过；统一 unit 自动发现。未在本机运行产品 worker、DPAPI、注册表、安装器、防火墙或模型请求。
+
+9c9462ed 的 Verify 39982513085 最近七个 job success、coverage 仍运行；完整 disposable 39982513196 已 failure，source-gates job 120513174856 失败项为 encrypted worker reopens four full session roots with 32 MiB of exact private history，尚未据此断言超时或具体产品根因，业务未启动。既有 a20cfd4d 完整 disposable 39980129782 的原句柄仍需核对终态。完整 I0–I5/H1、N01–N11、容量、安装迁移和生产交付保持未完成。
+
+
+## 2026-10-23：两端确认 503，纯回归证实 observed 持久化与下一轮准入竞态
+
+a20cfd4d 的独立诊断 39980129686 已终态 failure：N09 job 120504944221、N08 job 120504944749 均返回 170，明确为工具结果回传 HTTP 503。该轮完整 Verify 39980129735 已 success，全部 job 通过；完整 disposable 39980129782 最近 source-gates 仍运行、egress success。较早 b1a46aaf 完整 disposable 39978412033 已 failure，source-gates job 120499004023 失败于 actual core claude WBIPC recovery has exclusive ownership and live credential revocation，业务未启动；原失败保留，未重跑掩盖。
+
+独立纯内存存储夹具阻塞首次 observed publication 的 save ACK：首次响应已 completeObserved，但下一轮同 root beginAsync 立即返回 context_recovery_busy；释放 ACK 后，同一输入能够准入。三个正常／撤权／写入失败的新回归在旧代码先 RED，证实客户端已见响应、原观察写入仍持有 owner 的竞态。该缺陷可能解释实际两端 503，但尚无托管证据证明其为唯一根因。
+
+候选只跟踪真实 observed publication 的待确认 Promise；异步 loader 在选定同一 root 后等待该 ACK，再重新检查授权、代际和存活，随后执行原准入。其他 principal 的新 root 不等待；实际恢复／公开生成 owner 仍按原规则返回 busy。没有重发请求、轮询上游、延长期限、绕过 durable ACK 或提前释放 owner；失败 ACK 和等待期间撤权均拒绝。五项新增纯回归通过，另有 14 项既有纯 loader／session 回归和 32 项 hosted 协议回归通过。新的 busy 夹具初次漏导出 first 引用已修正；Lint 曾发现裸 structuredClone，改为 globalThis.structuredClone 后重新验证。新增测试由统一 unit 自动发现，完整托管与业务资格仍待候选验证。
+
+
+## 2026-10-23：两端首失败点收敛于工具结果回传，追加固定 HTTP 分类
+
+b1a46aaf 的独立诊断 39978411930：N08 job 120499003138 返回 150，N09 job 120499003401 返回 134。两端配置、首次工具调用已越过；N09 工具结果回传已取得 HTTP 响应，但协议或最终文本校验失败，N08 同一步失败。该证据仍不能区分非 200、无效 JSON 或成功响应内容不符，不能断言已找到产品根因。旧完整 disposable 39975429867 已终态 failure，源码门禁与 egress success，N09/N08 分别仍为 102/71。
+
+候选只在工具结果回传的非 200 响应增加固定分类：162..171 分别为 400、401、403、409、413、429、500、502、503、504；172 为其他合法非 200 状态，173 为非法状态。模块只处理整数状态，不读取正文、凭据或异常；200 保持原协议校验。有限范围同步接入子进程和 primary-phase parser，139、174 及附加文本继续拒绝。新增纯分类与两端真实接线模拟，原请求数量、摘要与原文断言、期限和强制清理保持。
+
+纯分类及 N08/N09 回归 32/32、外层安全子进程 PowerShell parser 3/3 通过。新 N09 夹具初次误用不存在的方法名，已改为既有 bindVerifiedNetworkProof/startFreshBusinessHost 并重跑通过。此前提交 b1a46aaf 误绕过 hook 后，已在推送前按该提交范围补跑相同 lint-staged，全部通过且没有产生变更；后续提交恢复正常 hook。
+
+b1a46aaf 的 Verify 39978411927 已观察到 unit3 job 120499003876 失败：actual storage native ACL independently verifies protected access and rejects junction ancestors，PowerShell spawnSync ETIMEDOUT。Rust、node-quality、integration 及其余三个 unit 分片已 success，coverage 最近仍运行；本候选不调整该期限、不重跑掩盖失败。业务恢复、24 小时容量、安装生命周期及生产交付仍未完成，本机仍无产品持久 worker、DPAPI、注册表、安装器、防火墙或真实模型请求。
+
+
+## 2026-10-23：完整 Verify 通过，业务失败推进至 seed，补有限阶段诊断
+
+原生批量解密候选 033428165b9558c96757e418244f47e70f673fef 的完整 Verify 39975430107 已 success，Rust、coverage、四个 unit 分片、integration、node-quality 全部通过。独立诊断 39975548334 的 N09 job 120489059616 返回 102，已越过配置保存、管理读回及持久应用，失败推进到 seedThroughBusinessHttp；N08 job 120489059202 仍为 71。完整 disposable 39975429867 本轮查询时源码门禁及 egress 已 success，N08/N09 仍 in_progress，继续观察原句柄，不重启。
+
+候选将 N09 seed 拆为固定 131..138（首次请求、响应校验、工具输出请求及校验、摘要请求及校验、已提交快照读取及校验），N08 增加 140..161（controller、session、启动、配置、seed、恢复、mutation、withdrawal、清理、closure）。父边界仅接受明确范围，139 和 162 继续拒绝。原业务请求、六个场景、正确性断言、期限及资源清理保持；失败后的清理不覆盖原失败阶段，observer 抛错仍分别尝试 stop 和 closeSession，不输出异常或业务内容。
+
+纯模拟 N08/N09 回归 29/29、外层安全子进程 PowerShell parser 3/3、既有 plan/closure/proxy-boundary 30/30 通过。新增测试由统一 test-discovery 递归发现。最初两项新夹具错误地把 close 当作显式 stop，已按既有 killOwnedJob 后 close 的驱动契约修正并重跑；没有修改产品清理行为。未在本机运行产品持久 worker、DPAPI、安装器、注册表、防火墙或真实模型。阶段细分仍待新候选托管验证，不能据此宣称原文 seed、重启恢复、N08 mutation、24 小时容量或完整交付通过。
+
+
+## 2026-10-23：管理 GET 原两秒期限已确认，候选接入打包原生批量解密
+
+分类诊断 `709bb803`／`39972986699` 的 N09 job `120480243527` 返回 127，确认实际配置 GET 触发原两秒请求期限，没有进入 profiles 或其他内容校验；N08 job `120480243216` 仍为 71。静态链路存在确定性启动成本：常规批量解密只有环境指定桌面主程序 helper 才免于 PowerShell。候选在已打包的轻量原生程序增加独立 `--hpm-profile-unprotect-v1`，沿用原 CurrentUser、无 optional entropy 的 profile 格式，不改变上下文数据密钥协议。该优化是否足以解除真实期限仍待托管验证。
+
+原生边界严格拒绝重复／未知字段、非法／非规范 base64、空／超过 64 项、超限输入和奇数 UTF16 长度，整批解密成功才输出，失败仅固定回执。JS 复用固定程序和物理路径检查、stdin 与私有有界 pipes，严格核对整批回执和数量；常规凭据走一次轻量批处理。缺失程序／非 Windows 和大旧凭据保留既有兼容路径；已调用原生失败则固定拒绝，不走 PowerShell 或原有重试循环。已有成功解密缓存规则保持，没有新增明文缓存或延长管理期限。
+
+两项接线回归在 HEAD 旧代码先 RED，新候选 JS 纯模拟 27/27、隔离发布 12/12、Rust 纯解析／假加解密 6/6 通过，格式、零警告 Lint、CI／release 治理及全 target Clippy 通过。实际 Windows profile roundtrip 新回归进入统一原生 CI，本机过滤执行了全部六项 parse 测试，没有执行实际 DPAPI、产品 worker、安装器、注册表、防火墙或真实模型。Tokio 升级候选 `f0be7cc6` 的 Rust job 已 success，但 coverage job `120483774241` 已失败、完整 Verify 和 disposable 最近仍运行，未以依赖修复或局部回归声称整体通过。完整目标保持未完成。
+
+## 2026-10-23：完整 Verify 七项通过，单独更新 Tokio 修复审计阻塞
+
+`d2e6fe05` 的 Verify `39971570468` 终态 failure，coverage、四个 unit 分片、integration 和 node-quality 七个 job 全部 success；Rust job `120475330106` 失败于 Windows Rust audit，固定诊断为 `unsound:RUSTSEC-2026-0386:tokio@1.52.3`。该次实际存储原有回归和覆盖率通过，但不据此宣称此前所有长尾永久消除；完整 disposable `39971570600` 最近仍运行。
+
+核对 RustSec 官方公告，修复分支包含 Tokio >=1.53.3。候选只将 Cargo.lock 的 Tokio 更新为 1.53.3 及对应 registry 校验和，保留其他版本与依赖边；初次隔离解析产生的无关 windows-sys 边变化未采用，最小锁文件在隔离 HEAD manifest 上 cargo tree --locked 成功。用户 Cargo.toml 未改动或暂存。cargo audit 返回 0、漏洞列表为空、Tokio 警告为空；仓库原 Windows 审计入口通过，252 个目标包、5 项原有信息提示、锁文件摘要前后不变；既有审计治理回归通过。实际构建、Clippy 和 Rust 测试仍须新候选托管验证，没有禁用门禁、调整 baseline 或在本机启动产品／DPAPI／安装器／注册表／防火墙。整体目标未完成。
+
+## 2026-10-23：细分管理读回失败，保持原两秒请求期限
+
+规范 profiles 修复后的托管 N09 仍返回 118，尚不能区分 GET 传输、解密耗时或返回内容。候选只将该阶段失败分为固定 127（原管理 HTTP 定时器期限）、128（其他传输／解码）、129（非 200）、130（返回内容或一致性拒绝）；原一次 POST、两次配置 GET、所有配置／身份／隔离断言与期限保持，不披露配置、异常或响应。父边界及 primary-phase parser 只接受完整固定格式和有限阶段码，131 及附加文本继续拒绝。
+
+生命周期与 closure 纯回归 23/23，额外业务／readiness／profile 纯回归 31/31。外层安全 Node 子进程和 PowerShell parser 回归先发现新阶段未接入正则的错误，修正后 3/3、38970ms，在原 45000ms 期限内；没有运行产品或安装器。格式、Lint、CI／release 治理通过，实际托管读回分类待验证。`d2e6fe05` 的 Verify `39971570468` 与 disposable `39971570600` 最近仍运行；Rust job `120475330106` 已失败于 Windows Rust audit，出现 `RUSTSEC-2026-0386`，依赖原因待核实，未跳过门禁。整体目标未完成。
+
+## 2026-10-23：精确文件身份回归证实 Number 碰撞漏检，候选改用 BigInt
+
+`1b2c81aa` 的 Verify unit2 job `120455357629` 明确为 changed-inode 场景缺少预期拒绝，而非超时。独立纯文件系统夹具在加载前替换 ACL/native 边界，模拟不同的 64 位文件 ID 转为 Number 后相等、创建时间及文件内容相同；旧实现先 RED，未拒绝读取过程中的文件替换。该证据证明精度缺陷，但不单独证明它是该次托管失败的唯一因素。
+
+候选只在存储路径模块改用 Node bigint stat，设备、inode 与纳秒创建时间精确比较，链接数和目录容量使用 BigInt；仅已通过原有大小上限检查的读取长度转为 Number 分配 Buffer。原文件名、配额、摘要、ACL、描述符前后核验及祖先固定均保留。四组纯回归通过：同内容替换、已固定数据库与目录替换、正常写入／重开固定／空文件、硬链接和同 inode 内容／长度篡改；格式、Lint、CI／release 治理通过，新测试进入统一 unit 发现。没有执行本机原生权限、DPAPI、产品 worker、安装器或真实模型。
+
+上一候选 `d30bb482` 的诊断 `39970599297` 已终态失败，N09 job `120471929729` 仍为 118，N08 job `120471930293` 仍为 71。规范 profile 修复没有解除实际读回阻塞；GET 传输／解密延迟与其余一致性条件尚待区分。该候选 Verify `39970599190` 与 disposable `39970599105` 本次查询仍 in_progress，沿用原句柄，不重启或改判。整体目标未完成。
+
+## 2026-10-23：配置保存已越过两秒期限，修复有效配置读回契约
+
+候选 `1b2c81aa` 的独立诊断 `39965909873`，N09 job `120455614220` 返回 118，表明配置 POST 已在原两秒期限内返回成功回执，失败推进到 GET 读回或一致性校验；不能据此声称持久业务通过。N08 job `120455614930` 仍返回 71。独立 Verify `39965837043` 和完整 disposable `39965837173` 均 failure；Verify 的 unit2 为 inventory descriptor read 回归失败，coverage 仍有实际加密重开、ACL 与清理等失败，未将其归为已解决问题。
+
+纯管理 HTTP 夹具已复现确定性契约缺陷：实际 loadConfig 会向原始单合成 profile 配置补入 Tianxi／WorkBuddy 两个官方默认项，管理 GET 再遮盖合成凭据；旧 N09 configure 和 restart attest 均误要求有效配置仅一个 profile。候选增加独立纯验证模块，严格接受恰好三个固定 profile、每项恰好六个固定字段、合成 apiKey 为管理遮盖标记、两个默认项无凭据。拒绝额外／重复／缺失项、目标及协议篡改、默认项凭据、稀疏／巨大数组、getter／Proxy 及继承字段；活动 profile、entryAuth profile/port 限定、TLS、原请求期限和网络隔离断言保持。
+
+原单项回归先 RED，修复后四文件纯回归 51/51，另三文件组合回归 19/19，零失败或跳过。fixture 区分原始 POST 与有效 GET，并模拟实际凭据遮盖；不执行本机产品 worker、DPAPI、安装器、注册表、防火墙或真实模型。新测试由统一 unit 递归发现，格式、Lint、CI／release 治理通过。完整托管结果仍待验证，I0–I5/H1、N01–N11、容量、安装迁移与生产目标均保持未完成。
+
+## 2026-10-23：实际 POST 两秒期限已确认，移除打包凭据加密的 PowerShell 启动链候选
+
+`8078fc64056c5a87d1539513bcceb098fe81a41c` 的独立诊断 `39963668334`，N09 job `120447821376` 返回 126，确认原管理 POST 两秒定时器触发。该证据证明期限失败，不单独证明所有耗时都在加密；原同步加密路径确实包含首次双进程 probe、各字段 PowerShell protect 和后续解密，候选先消除其中可确定的启动开销。
+
+候选在现有已打包 native 程序中增加独立 `--hpm-profile-secret-v1` 协议，使用与既有凭据相同的 CurrentUser、UI forbidden、无 optional entropy DPAPI，并在同进程严格回读比对后才返回。上下文数据密钥继续保留原专属 entropy 和协议。JS 只执行固定物理路径，拒绝符号链接／多硬链和符号链接父目录；字段只经 stdin，输出须为有界、无重复字段的规范 JSON 和规范 base64，所有失败为固定错误。打包原生路径失败不静默转后端；源码缺少程序或非 Windows 继续原兼容路径，超过 profile 协议长度的既有大 secret 也保持兼容处理，不截断。
+
+原生 module、运行时源码清单和隔离构建快照均纳入变更及漂移拒绝回归。两项接线回归先在旧实现失败，JS 纯模拟／发布治理相关 33 项通过；Rust 三项 parse／模拟 roundtrip／固定失败测试通过，fmt、全 target clippy 通过。这里只运行纯输入与假加密回归，没有本机 DPAPI、产品 worker、安装器、注册表、防火墙或真实模型请求。实际 Windows DPAPI roundtrip 已进入既有统一原生 CI，是否解除两秒 POST、旧格式读取和完整 N08／N09 仍待新托管结果，完整目标未完成。
+
+## 2026-10-23：配置 POST 确认没有可用响应，继续区分原两秒期限
+
+`7ef3a17465217215d8befdf997b64ea5e64d3488` 的独立诊断 `39962150747`，N09 job `120442560939` 返回 121：配置 POST 发生传输／解码失败，没有进入 400／409／其他 HTTP 状态或成功回执校验分支。实际原因仍可能是请求期限、传输或响应解码，不能仅凭同步凭据加密代码认定真实超时。
+
+候选保留原管理 HTTP 客户端两秒定时器，仅为该定时器自身产生的失败附固定 `HPM_DAEMON_HTTP_DEADLINE`，生命周期映射为固定 126；其他传输异常即使携带同名 code 也不会被转发或冒充期限事件。原错误信息、一次 POST、响应大小、解码、配置断言和 Job／清理期限保持。补真实定时器加假传输的无网络回归，以及生命周期到固定退出码的组合测试；不使用本机 DPAPI 或产品进程。等待托管结果后再决定性能修复，完整目标保持未完成。
+
+## 2026-10-23：冷启动修复已越过实际状态检查，失败推进到配置 POST
+
+`b7204fc97acae6e21ed827295a18504285d9d25d` 的独立诊断 `39961087867`，N09 job `120438954869` 返回 117。实际 IPC 启动、private preload 等待、凭据隐私、管理健康身份和初次配置 GET 已越过；失败发生在 POST 配置请求或其响应校验，尚未 seed 原文。不能把该阶段当作完整恢复通过。N08 同轮仍失败，完整目标未完成。
+
+下一候选保留原 POST 两秒期限、一次请求、完整配置与读回断言，仅将失败分为固定码 121（传输／解码）、122（400）、123（409）、124（其他拒绝状态）、125（200 但成功回执格式不符）。不会披露响应体或错误，也不通过增加超时假设解决问题。该诊断用于区分配置契约拒绝与加密／持久化延迟等候选原因；真实具体原因尚未确定。
+
+## 2026-10-23：N09 越过 IPC 启动，修复冷启动就绪竞态候选
+
+`a85eb5cf9396a8aef0c1b25f8d864ded500a5be0` 的独立诊断 `39959853373`，N09 job `120434810685` 已失败于 114。IPC lease 已返回宿主身份，失败在首个 status RPC 或其存活／凭据隐私／preload 判定，尚未进入管理 HTTP。该固定码本身不能区分具体状态字段，不能声称真实根因已确定。
+
+静态执行链证明启动只释放 gate 后立即返回身份；preload 与管理凭据文件在子进程随后初始化。旧管理入口却仅检查一次，合法冷启动会被拒绝。纯冷启动协议回归先在旧实现失败；候选拆出独立、有界的 metadata readiness 等待，只有 alive、credentialsPrivate、preload passed 全部满足才进行原健康身份校验。进程退出、preload failed、未知字段／类型、getter／Proxy、RPC 异常均安全拒绝。等待与配置应用共用原 15 秒预算，并限制 300 次 metadata 轮询，时钟回退／到期和迟到成功不放行，不改变外层 Job 期限；没有额外模型请求。纯回归已证明该竞态缺陷和修正，但是否解决实际托管 114 仍须新候选验证。
+
+## 2026-10-23：Verify 全部通过，N09 首失败点确认在业务宿主启动
+
+`9f0ef0f1fb2c705ed237ad3e98cfcdc112f68a8e` 的 Verify `39957936206` 已 success；该次结果不证明此前偶发的五秒持久请求性能问题已经根治。完整 disposable `39957936200` 仍在运行，沿用原句柄继续观察。独立诊断 `39957936184` 的 N09 job `120428345859` 返回 101：进入首个 committed-observed 场景的业务宿主启动，尚未 seed 原文。按实际执行顺序，该轮此前的 TLS 和出站阻断探针已越过，不能延伸为完整业务或环境恢复通过；N08 仍失败。
+
+下一候选将业务宿主启动细分为 109–120 固定阶段，区分 adapter 启动、IPC lease start、管理 status／health、配置 GET／POST／读回及持久存储应用。阶段观察传入真实生命周期，不改变业务操作、配置校验、清理、期限、请求数或资格断言。父边界仅接受固定整数及完整固定失败格式，继续拒绝未知码和附加文本；没有输出 token、原文、异常或原生回复。本机仅执行纯模拟与安全测试子进程，没有启动产品 worker／DPAPI／安装器／防火墙，没有真实模型请求。完整目标保持未完成。
+
+## 2026-10-23：路径修复后 adapter 清理越过，继续定位首场景
+
+`7dd7ce86dc4db981e3408f67f9f795e314e41e9d` 的独立诊断 `39956824308` 两端已失败。N09 job `120424616662` 返回 80，已不再返回 adapter 清理失败 98，说明该轮 adapter／listener 清理未拒绝，但首个 committed-observed 场景仍失败；网络环境恢复仍失败。N08 job `120424616253` 仍为 71，不能与 N09 混用为通过证据。
+
+下一候选为原场景补 101–108 固定步骤：启动业务宿主、通过业务 HTTP 种入原文、首次 committed 快照、强制 kill、同目录重启、重启后快照、业务精确读回和最终会计一致性校验。所有步骤、实际方法、断言、finally kill／close 与期限保持。父边界仅扩充这些固定整数，primary-phase 解析继续拒绝 85／97／100／109、额外文本和无效编码，不输出业务数据或异常。
+
+五文件 47/47 相关回归通过、零跳过，覆盖原顺序、八阶段逐项拒绝、非法／Proxy 观察器、已拥有资源收尾和安全子进程固定码。Lint、PowerShell 解析、CI／发布治理通过；原 44 项路径修复回归保持。该候选仍待新托管结果，本机产品／DPAPI／安装器／防火墙与真实模型请求均未执行，完整目标未完成。
+
+## 2026-10-23：修正 N09 重定位生命周期的原生 Job 源码路径
+
+`14683eff96b6594ea8788a69d833d667737ebf33` 的独立诊断 `39955592207` 已失败；N09 job `120420522440` 同时返回 98 和原始阶段 80，确认首个 committed-observed 场景内失败，随后 adapter 清理失败。不能从清理失败认定场景已完成，也不能认定具体启动子步骤已经越过。
+
+静态链路核对发现独立缺陷：控制器重定位目录只写入两个控制器入口文件，而 `New-HpmN09OwnedLease` 在首次原生 Job 类型尚未加载时，仍从该目录寻找 `nsis-runtime-boundary-job.cs`。本地纯文件回归先证明生成的生命周期仍指向不存在的副本位置。候选沿用原固定 candidate Job 源码，增加独立 SHA256 准入与复制后复核，并将生命周期中的该编译路径替换为已核验原文件；不改 Job 类型、约束、ACK、期限或业务断言。
+
+相关五文件 44/44 纯回归通过、零跳过，覆盖错误／空／非法摘要、缺失原文件、源码闭包及原业务和清理边界。没有编译或运行原生 Job／产品 worker／DPAPI／注册表／安装器／防火墙，也没有真实模型请求。该路径缺陷已被本地证明，但是否解除实际托管阶段 80／98 仍待新候选验证，完整目标保持未完成。
+
+## 2026-10-23：N09 确认 adapter 清理失败，保留被覆盖的原始阶段
+
+`fba58206ff2903681712149609cb26e5a66da9a8` 的独立诊断 `39954540073` 已失败；N09 job `120416971974` 返回 98，证明 adapter 清理失败、listener 清理成功。网络恢复仍失败，不授予隔离或业务资格。`103aeaf9` 的 Verify `39953340609` 也已失败；其 disposable `39953340429` 尚在运行，不重启或以观察超时替代终态。
+
+候选仅为清理失败附加一个固定的原始阶段：N09 stderr 必须完整符合固定前缀、两位数字、换行且不含任何额外内容，父边界才披露白名单 73–84／86–96 的整数；未知码、重复字段、附加文本、超长、非法 UTF-8、空输入均不披露。stderr 沿用原 4096 字节上限，子进程失败、所有权／Job 清理、管道和期限保持；不会把原始 stderr 或异常上传。此观察用于同时定位早期业务失败与后续清理失败，不把清理失败改判为成功。实际新托管结果仍待验证。
+
+## 2026-10-23：WFP 读回已越过，N09 清理资源细分
+
+`103aeaf9324ea7dee389f6d92395f821b970148a` 的独立诊断 `39953340466` 已失败：N09 `120412975620` 返回 84，N08 `120412975240` 返回 71，两端网络最终恢复均失败。此前的 WFP 安装／读回阶段已越过，但不能据此认定实际正负连接、业务或恢复通过。N09 清理失败会覆盖先前阶段，需要区分具体资源，而不是重新解释为业务成功。
+
+下一候选保留 84 为正常清理回执核对，新增仅含固定资源类别的退出码 98（adapter 清理失败）、99（listener 清理失败）和 100（两类均失败）；所有已拥有资源仍尝试清理，异常保持失败，不转发错误、对象或原文。纯组合及安全子进程回归 13/13 通过，覆盖三类失败、未知码 85／97／101 拒绝和原期限／管道／Job 清理；未运行本机产品 worker、DPAPI、注册表、安装器或防火墙。
+
+另外，`57734593` 的 Verify `39951411860` 与 disposable `39951411856` 均已失败。独立 unit 和 coverage 的共同失败项实际为 Responses WBIPC 请求在 `client-context-target.test.js:2736` 等待响应时超时；日志中的 `ERR_SECRET_DECRYPTION_FAILED` 不是该失败的已证实根因。新候选的 Verify `39953340609` 和 disposable `39953340429` 仍须跟踪各自终态；完整交付保持未完成。
+
+## 2026-10-23：WFP 已添加到读回阶段，修正表示等价校验
+
+`577345935d0fa8540fca58a091c74c54a895f9e3` 的 N09 独立诊断 job `120406512607` 失败于固定 WFP 阶段 10（规则读回校验）；会话、应用身份、sublayer、至少一条规则添加和原生读取已越过，但尚未执行实际连接探针，不能宣称隔离生效。
+
+本地合成后端复现了两个等价表示的拒绝：条件数组顺序变化，以及 SDK 定义的 INDEXED 优化标志。候选按字段 GUID 校验条件身份并拒绝重复／额外字段，仅允许无标志或 INDEXED；persistent、disabled、未知标志、动作、数量、匹配类型、应用身份字节与唯一允许 IPv4 地址仍严格校验。不是删去读回门禁，也不替代实际正负网络探针。固定读回阶段细分为 12–22，后续可明确身份、flags、动作、条件和应用字节等失败，仍不输出原生回复。
+
+两项合成等价表示先在旧实现失败，修复后通过；扩展为 24 项拒绝，包含禁用／持久标志、重复条件和错误地址，另保留原生布局、回滚、关闭重试和 10 项路径准入。实际托管读回差异的具体项尚未证实，候选是否解除该阻塞仍待新一轮验证。本机原生 WFP 调用和真实网络请求为 0，完整目标保持未完成。
+
+## 2026-10-23：两端负向连接成功，新增动态 WFP 隔离候选
+
+`08b84db76cfa38fa9da9332179a2519cbabff46a` 的独立诊断 `39948896985` 已失败，N09 `120398238109` 与 N08 `120398238444` 均返回 95：受限 Node 到本机非回环地址的连接实际成功，现有 Windows Firewall 规则不能满足这项负向探针。此前仅有规则创建、读取和地址过滤核对成功，不能据此授予实际隔离资格。
+
+候选保留原防火墙和负向探针，新增独立 C# 动态 WFP 会话：仅允许 RUNNER_TEMP 下固定 N08／N09 payload 的 Node 路径；校验实体路径和宿主标记后才调用系统 API。按应用 ID 加入 ALE_AUTH_CONNECT IPv4／IPv6 阻断条件，IPv4 唯一例外为 127.0.0.1，IPv6 全阻断；自有动态 sublayer 与 filter 均不持久化，添加后按 ID 读回条件及应用身份。原拥有子树已确认关闭后才释放会话；未确认关闭或释放失败保持失败，不授予业务资格。原 TLS、实际基线、拒绝断言、Job 和所有期限保持。
+
+新 helper 纳入源码身份和两端 libraryPins，先校验摘要再编译。固定原生阶段 1–11 只用于定位守卫、创建、读取和关闭失败，不输出 API 状态、异常、地址或用户数据。本机仅编译并运行合成后端：原生布局、精确条件、19 项拒绝、部分添加失败回滚、关闭重试和 10 项路径准入已通过；四文件 18 项相关回归通过，原生 WFP 调用、真实网络和模型请求均为 0。实际 WFP 安装、阻断和恢复仍待隔离 Windows 托管验证，不能预先宣称修复生效；完整 I0–I5/H1、N01–N11 及交付目标保持。
+
+## 2026-10-23：N09 网络失败定位到受限 Node 负向连接
+
+`f63324adf8eea40df56f00452b248efe4ab31ed6` 的 N09 独立诊断 job `120394726650` 已失败，固定码 93。探针准入、监听器身份、CA、DNS、TLS、本机非回环基线和基线连接计数均已越过；受限 Node 未取得符合原断言的拒绝结果。尚不能区分成功连接与非权限类连接错误，也不能仅凭规则创建成功证明网络隔离。
+
+候选补固定码 95（负向连接实际成功）和 96（连接错误不构成权限拒绝），只披露这两个枚举，不输出错误码、消息、地址或原生回复。两类结果均继续拒绝，白名单仍排除 85、97；正常成功路径、原期限和网络保护不变。纯夹具覆盖两类失败及原安全边界，托管复验待进行。
+
+## 2026-10-23：清理已越过，N09 定位到网络探针
+
+清理修复 `992e7c51bcf448b08c23ad5c8efc1c09f13fe6c5` 的独立诊断 `39946751950` 仍失败，N09 `120391167346` 返回 76（网络探针），N08 `120391167412` 返回 71。N09 清理成功后保留了原失败阶段，已越过先前 84；不能推导网络保护或后续业务已通过。
+
+下一候选将共享探针细分为固定码 86–94：探针准入、监听器身份、CA 摘要、DNS、TLS、本机非回环可达性基线、基线连接计数、受限 Node 的拒绝探针和最终连接计数。两端入口转发固定整数，Job 白名单继续拒绝 85 和 95，不输出原始异常或原生回复。TLS、主机绑定、严格证书验证、实际基线及拒绝断言、2 秒／1 秒原期限保持。
+
+纯 VM 夹具替代全部网络和子进程，先复现缺失阶段信息，再验证完整成功路径、逐阶段拒绝、七项实际断言失败和非法观察器；没有执行真实网络或原生存储。正式托管复验仍待进行，整体范围及发布资格保持未完成。
+
+## 2026-10-23：托管清理阶段失败，修复连接关闭事件竞态
+
+`ee9512f050c266cac4d2c95393cbd9203e81ed1e` 的独立诊断 `39926201116` 已失败：N09 job `120323082856` 返回 84（清理阶段），N08 job `120323083185` 返回 71。清理失败可能覆盖先前业务失败，因此不能从 84 推导其余业务阶段已通过。
+
+本机仅用临时回环 TCP 连接确认 Node 的 server.close 回调可先于 socket.close 事件；旧共享监听器立即检查连接集合，可能将正常收尾误判失败。将关闭逻辑拆为独立模块，销毁前先订阅每条已拥有连接的 close，等待服务器及连接全部收尾后再检查集合；异常时仍尝试其他资源并保留失败。沿用外层原 Job 期限，不增加宽限、不放松清理断言、不改变 TLS 或防火墙。
+
+同一源码的独立 Verify `39926201154` 已成功；完整 disposable `39926201197` 的 source-gates `120323083563` 和 egress 均成功，但业务 N09 `120328242962`／N08 `120328243007` 失败，不能授予完整资格。新清理模块已验证会进入两端静态依赖 pin 闭包，未执行产品代码。
+
+旧顺序在确定性事件夹具和真实临时回环两项回归均先失败，修复后通过；相关四文件 11 项回归通过，覆盖空资源、已停止监听器、关闭异常、不完整所有权和静态闭包。没有运行产品 worker、DPAPI、注册表、安装器或真实模型。此缺陷已本地证明，但尚待新托管确认是否解除 84，其他业务失败和完整交付资格继续未完成。
+
+## 2026-10-23：N09 组合内部固定阶段诊断
+
+独立诊断 `39923636426` 两格均失败；N09 已返回固定入口码 71，证明失败在组合内部，不能归因于已通过的入口授权、计划或依赖闭包。新增组合内部码 73–84，依次为组合准入、业务适配器、监听器、网络探针、控制器、生命周期、复制文件复核、committed、clear、save、revoke 和清理。入口仅接收这些固定整数，共享 Job 只扩展固定码白名单，仍不转发 stderr、异常、凭据或原文；其余退出保持 `other`。业务失败后成功清理不会覆盖原阶段，清理自身失败单列 84。
+
+纯组合回归先在旧实现失败，候选覆盖四场景成功、逐阶段拒绝、全部已获取适配器清理、清理失败和非法观察器；没有启动产品 worker、真实监听器、DPAPI、注册表、安装器或模型请求。安全子进程回归另覆盖白名单两端和 85 拒绝。当前仅完成诊断细化，尚未获得新托管业务结论；原业务断言、期限、网络保护和完整资格要求保持。
+
+## 2026-10-23：独立业务诊断仍失败，补固定入口阶段
+
+`8a77c934ba9fd5dce75dd0be0e61a569c9d437f2` 的独立业务诊断 `39922362542` 两格均失败：N08 `120310385644`、N09 `120310385964` 仍为 `hpm_runtime_child_failed_stage=child_exit`。stdin 无 BOM 缺陷虽已由安全子进程回归证明修复，但没有解除此托管阻塞，不能认定为其唯一根因。日志按 job ID 私有封存；正式两路门禁仍需分别跟踪。
+
+候选为固定入口增加非零退出码 64–72，分别标记环境、授权、计划路径、计划内容、pin 文件、依赖闭包、计划契约、业务组合和最终回执；共享 Job 边界仅披露这些码，其余退出记为 `other`，始终不转发原始 stderr 或异常。19 项相关回归通过，覆盖安全子进程的前六个拒绝阶段、未知退出拒绝、BOM、管道上限、原期限及清理；当前真实源码的静态闭包核验 N08 86 文件／N09 99 文件通过，未执行产品。Lint、PowerShell 解析、CI／发布治理通过。业务诊断增加相关源码路径触发，正式门禁未改；托管阶段证据待复验，测试调度隔离尚未进入正式执行器。
+
+## 2026-10-23：资源实验源码独立 Verify 全绿，业务诊断解耦准备
+
+资源实验已终态：`39920379859` 中 `120303911139` 按 4→1 两档均通过，用时分别 191156／447246ms；`120303911451` 按 1→4 用时 462288／277798ms，串行通过、并发 4 失败于 Chat long-persistent 第 0 轮请求 5009ms。两次串行成功和并发档的一次失败支持进一步定位文件间资源竞争，但样本不足以证明唯一根因或正式稳定资格。全量串行明显延长执行时间，尚未修改正式测试调度；后续评估仅隔离持久请求文件。终态日志私有封存，固定数字提取器 `summarize-resource-probe-v1.cjs` 不输出原始日志或测试内容。
+
+`41fb9a9c5a67a878f821456fdaf6dbd318f40239` 的独立 Verify `39920379670` 八个 job 全部成功，包括 coverage `120303911855`。同一源码 disposable `39920379860` 的 source-gates `120303911764` 仍在 unit 阶段因 Claude long-persistent 第 0 轮请求 5002ms 失败，N08／N09 跳过。两路结果分别保留，不从独立成功认定稳定性或完整资格。终态日志已按 job ID 私有封存。资源对照 `39920379859` 两组完整实验仍在运行，未给出并发影响结论。
+
+新增独立 N08／N09 业务边界诊断工作流，复用原源码 SHA、payload／plan pin、网络保护、bounded Job 及业务断言；仅将定位任务与完整源码门禁解耦，不改动正式工作流的 `needs: source-gates`、完整 verify 或安全审计。该诊断不会授予发布或业务资格，当前仅完成工作流与治理回归，真实托管结果待收集；本地不执行真实 worker、DPAPI、注册表或业务原生环境。完整 I0–I5/H1、N01–N11 和交付边界保持。
+
+## 2026-10-23：编码候选仍受持久请求期限阻塞，准备资源对照
+
+`1e5b0f103c6b0eff4ac9c0ff003950066bb1eecf` 的 Verify `39918613152` 七个 job 成功，coverage `120298099314` 失败于 Chat long-persistent 第 0 轮的发布等待，5014ms 触发原 5000ms 期限。disposable `39918613280` source-gates `120298099656` 在 unit 阶段失败于 Chat long-persistent 第 1 轮请求，5000ms；N08／N09 跳过，因此 stdin 编码修复尚无托管业务效果结论。标准暂存已按此提交重建，536 份源码和关键程序摘要一致，回执 `current-1e5b0f10-staging-v1.json`。日志按 job ID 私有封存。
+
+独立资源诊断工作流准备以两组 Windows runner 分别按 1→4、4→1 的文件并发顺序运行原完整客户端覆盖率命令。测试清单、覆盖率阈值、实际持久操作和各测试原期限均保持；直接读取当前 package 脚本生成 Node/c8 argv，不经过 shell、不维护缩小的测试清单。每组观察到任一次失败后仍记录另一并发档，最终 job 保留失败。诊断不授予资格，也不修改正式 Verify、完整 source-gates 或其并发配置。参数、安全拒绝及本地执行保护 3 项回归、Lint、格式、CI／发布治理通过；实验尚待托管结果，不先认定资源竞争为根因。未在本地运行真实存储 worker 或模型请求。
+
+## 2026-10-23：完整源码门禁通过，独立覆盖率与托管业务仍失败
+
+`9c915d26b55e9a03a5e3e33c34b4585d34cf6cc2` 的 disposable `39916258882` source-gates `120290388292` 已通过字面 `npm run verify` 和依赖安全审计；N08 `120293877914`、N09 `120293878028` 均在约 11 秒的受限子进程执行阶段失败，固定诊断为 `child_exit`。独立 Verify `39916258979` 七个 job 成功，coverage `120290387652` 失败：Claude long-persistent 第 0 轮正文 4249ms 完成，发布等待在 5004ms 触发原 5000ms 期限；附近两次 SQLite commit 分别 1288／1295ms。不能从单个源码门禁成功推导稳定性，也不能将磁盘竞争认作已证明的唯一根因。终态日志私有封存，汇总 `current-9c915d26-qualified-split-v1.json`。
+
+同一源码的正式五档容量合成命令全部通过，工作线程用时 46723.544ms，单次达到原 60000ms 目标；负载、逐页验证、重开及最终结果断言保持。该结果不是覆盖率环境稳定性能、真实 SQLite、传输或全天活跃任务资格。标准暂存重建成功，536 份运行时源码和关键程序摘要一致，清单与上一暂存相同；回执 `current-9c915d26-staging-v1.json`、`current-9c915d26-staging-binding-v1.json`。未重跑上一四格矩阵，也未构建或执行当前 NSIS／GUI。
+
+共同入口编码缺陷已在安全子进程中先失败后修复：当调用方提供带 BOM 的 UTF-8 stdin 编码时，原 Job helper 写入的授权不再是子进程要求的单字节 `1`。共享边界现在在启动前固定无 BOM UTF-8；测试故意保留带 BOM 调用方，证明边界自身规范化。16 项相关回归、PowerShell 解析及治理通过，真实存储 worker、DPAPI、注册表、安装器和模型请求均未在本地运行。此候选尚待托管复验，不将可复现缺陷直接等同于上述两项托管失败的已证根因。全部 I0–I5/H1、N01–N11 与安装迁移、全天和生产目标保持。
+
+## 2026-10-22：当前暂存原生四格通过，托管持久门禁仍失败
+
+`2717104bf4f93f6e96d7ff88da9266066ebbd46a` 的干净 delivery 工作树已完成标准 release:prepare，536 份清单源码在工作树／暂存／摘要间一致，Node、辅助程序、锁文件与发行目录通过；证据 `current-2717104b-staging-v1.json`。实际暂存 Node／代理模块两文件纯回归 70/70，工作区代理回落 0，并显式排除及阻断本机真实 worker；证据 `current-2717104b-staged-pure-v1.json`。尚未构建或运行该源码的 NSIS／ZIP／GUI。
+
+原生 Codex／Claude 的默认／增强四格合成任务均通过，各三次原生压缩；增强精确读回旧原文，默认零恢复，私有工具未泄漏。代理模块固定到当前暂存，辅助夹具从日常根映射到当前提交；Claude MCP 合成来源使用暂存 SDK。四格均工作区代理回落 0、JS 网络拒绝计数 0、原生客户端进程已收尾、配置未变、真实模型请求 0；源码、暂存、九份私有代码夹具及两个原生客户端二进制前后摘要不变。证据 `native-matrix-2717104b-outcome.json`。受控路由／认证、合成模型、临时客户端 home 的边界保持；JS 网络保护不是原生客户端的 OS 防火墙，不授予提供方质量、计费、真实持久化、安装、迁移或生产资格。
+
+同一源码的 Verify `39913024683` 已 failure：七个其他 job success，coverage `120280141323` 的 Claude long-persistent 第 1 轮约 5007ms 请求失败。disposable `39913024675` 也已 failure：source-gates `120280141254` 的 Responses 第 0 轮约 5008ms、Claude 第 0 轮约 5001ms 请求失败；actual idle worker 在 reopen 阶段触发原 30000ms 测试期限；独立长历史进程在原 20000ms 子进程期限 ETIMEDOUT。业务 `120284084931` 跳过。终态日志按 job ID 私有封存，原期限和全部负载保持，不从合成四格通过推导源码链通过。
+
+独立长历史进程的测试辅助器经检查仅使用显式随机数据密钥与直接 SQLite，不创建原生 owner／DPAPI／注册表。当前源码该单项在本机原期限及覆盖率下通过，证据 `current-2717104b-loading-covered-v1.log`；本机父进程保留原生入口 guard。局部通过不能替代托管失败，也不足以将资源竞争判为唯一根因。下一步须进一步定位托管 reopen／子进程内部耗时，避免仅靠反复微优化和重跑等待绿色。I0–I5/H1、N01–N11、当前包、私有迁移、全天和生产目标继续未完成。
+
+## 2026-10-22：创建器候选独立 Verify 全绿，完整源码链仍失败
+
+`2b04bf2ee4abb8b8ad75bffaacc4a9ab9f4e182b` 的 Verify `39911220219` 已 success，八个 job 全部 success，包括 coverage `120274434852` 的代理／客户端／前端覆盖率。终态回执 `current-2b04bf2e-verify-terminal-v1.json` 和 job 日志私有封存；long-persistent 三协议两轮的最终发布等待均在原 5 秒内完成，最慢观察为 Responses 4619ms。这只证明这轮成功，不撤销此前失败或授予稳定性资格。
+
+同一源码的 disposable `39911220297` 已 failure：source-gates `120274434818` 的 Chat 第 1 轮、Responses 第 0 轮、Claude 第 1 轮分别在约 5003／5010／5029ms 请求失败，业务 job `120278725886` 跳过。日志 `hosted-job-120274434818-final.log`；egress success。两路结果分别保留，完整 N08／N09 与源码链尚未通过，不取消或重启旧任务。
+
+为精确重建资格准备，复用干净的 context-recovery-delivery 工作树切换到该源码，原 detached 提交 8a91d7f8 另以本地 codex/preserve-context-delivery-8a91d7f8 分支保留，未推送；npm ci 已退出 0，证据 `current-2b04bf2e-delivery-npm-ci-v1.log`。源码链失败后暂缓安装包重建，没有启动安装器或本机持久 worker，日常配置未改。已完成 241 项纯回归的解析器候选 c071afc9 将在安全扫描后正常推送复验；性能微基准限制仍按下节保留。完整 I0–I5/H1、N01–N11、私有迁移、全天和生产目标未完成。
+
+## 2026-10-22：解析器规范化副本指纹候选，前一托管仍运行
+
+`2b04bf2e` 的 Verify `39911220219` 七个 job 已 success，coverage `120274434852` 仍运行；disposable `39911220297` 的 source-gates `120274434818` 仍运行，egress `120274435254` success。不取消或重启原任务，不从普通 unit 通过推导覆盖率或 N08／N09 资格。
+
+解析器候选保留 checkpointData 对每次未知输入完整规范化及最终尺寸限制，只将摘要投影的再次公开 fingerprintRecoveryCheckpoint 准入改为对本次已拥有字段调用内部同算法指纹。外部摘要仍逐次重算比较，语义校验和 expected 关联保持；不缓存或跨事务共享数据。新回归先在原实现因重复指纹准入失败，候选验证每调用一次输入准入、每次返回独立副本、篡改摘要／非法预算／空值／getter／Proxy 拒绝；原创建器回归只更新公开函数调用数断言，篡改摘要拒绝断言保持，另以直接准入计数证明外部边界仍执行。
+
+六文件纯回归 241/241，显式排除 encrypted worker／actual storage worker writes 并保留本机原生入口 guard，证据 `checkpoint-owned-parser-before-v1.log`、`checkpoint-owned-parser-targeted-v1.log`、`checkpoint-owned-parser-expanded-v1.log`。随后补充旧信封缺 publications 的兼容与 null-prototype 副本断言，两项定向通过 `checkpoint-owned-parser-legacy-final-v1.log`；首次比较 plain-object 与 null-prototype 副本的测试断言失败另留存，未改变产品行为。
+
+600 KB、预热后首轮八组实验墙钟中位数约下降 12%；随后绑定实际候选与 HEAD 源码的十六组、每组 20 次外部解析，墙钟中位数约 285.87→267.66ms（约 6.4%），CPU 中位数 266→264.5ms，且候选出现 1662.74ms 长尾，结果波动明显。两轮均保留于 `owned-checkpoint-parser-experiment-v1.json`／`v2.json`，不能据此声称稳定 CPU、完整持久请求或磁盘收益；未启动本机持久 worker、DPAPI 或注册表锚点。候选尚未推送，完整 I0–I5/H1、N01–N11、当前包、私有迁移、全天和生产目标仍未完成。
+
+## 2026-10-22：创建器指纹复用已规范化载荷，扩大纯回归通过
+
+前一轮 CPU 剖析后确认 createRootCheckpoint 在 checkpointData 完整准入后又通过公开 fingerprintRecoveryCheckpoint 重复规范化相同载荷。候选仅在这个同步创建器中调用内部 fingerprintNormalizedValue；载荷准入、最终信封准入、摘要算法和外部 parser 的独立摘要验证保持，不缓存原文、不改变持久事务、独立锚点、ACK、期限、预算或 TTL。新回归在原实现先因重复准入失败，候选确认创建器不重复公开准入、外部 parser 仍验证摘要并拒绝篡改，版本 1／8／9／10、数字属性、负零、Unicode／转义和副本隔离摘要一致。
+
+六文件显式排除 encrypted worker／actual storage worker writes 并保留私有原生入口 guard，240/240 通过，零失败／取消；这是选中纯回归的结果，不含被排除的真实持久测试。证据 `checkpoint-owned-fingerprint-before-v1.log`、`checkpoint-owned-fingerprint-targeted-v1.log`、`checkpoint-owned-fingerprint-expanded-v1.log`。同一 600000 字节原文、内存 SQLite、每实现预热 20 次、16 组正反交替各 20 次快照，墙钟中位数 561.59→531.23ms（约 5.4%）、CPU 中位数 570.5→523.5ms（约 8.2%）；证据 `checkpoint-owned-fingerprint-benchmark-v2.json`、`checkpoint-owned-fingerprint-benchmark-summary-v1.json`。早期未充分预热样本另存 v1，不用于代替后续结果。该收益不证明完整 5 秒请求或磁盘性能达标，尚待新候选完整托管。原 I0–I5/H1、N01–N11、当前包、私有迁移、全天和生产目标不缩减。
+
+## 2026-10-22：hydration 候选托管终态，发布确认仍超时
+
+`bdc7bbe13cc2cfbd319c09869e3d26d97c125444` 的 Verify `39908900710` 已 failure，七个其他 job success，coverage `120267081278` 唯一失败为 Claude long-persistent 第 0 轮：正文 4361ms 收完，但 publication_wait_failed 在 5001ms 触发原期限。普通 unit job `120267081254` 中三协议两轮正文约 1291–1548ms，不能替代覆盖率资格。disposable `39908900514` 也已 failure：source-gates `120267080232` 的覆盖率阶段三协议失败，Chat 正文 4522ms 后最终发布等待在 5002ms 超时，Responses／Claude 请求分别在 5005／5016ms 失败；业务跳过。日志均按 job ID 私有封存，不取消或重启原任务。
+
+新的纯内存 SQLite 80 次候选快照 CPU 剖析确认规范化、指纹编码和哈希仍占明显成本，证据 `hydration-candidate-bdc7bbe1-v1.cpuprofile`、`hydration-checkpoint-profile-bdc7bbe1-v1.json`。该诊断没有本机持久 worker、DPAPI、注册表锚点，不证明磁盘或完整期限已经修复；原期限、独立锚点落盘与 exact CAS 确认保持。
+
+检查同一规范化边界时补充引用版本探测的 Proxy 回归：输入及 metadata 的 descriptor trap 在旧实现先执行，测试失败；候选先拒绝 Proxy，普通对象、v9/v10、大小和指纹规则保持。扩大两文件 69 pass／4 skip，显式排除 encrypted worker 并保留私有原生入口 guard；首次未筛选运行的四项均被 guard 立即阻断，69 pass／4 fail 日志保留，未授予真实持久资格。证据 `reference-proxy-before-v1.log`、`reference-proxy-expanded-v1.log`、`reference-proxy-expanded-pure-v1.log`。此安全增量未推送，不解决发布确认超时。全部 I0–I5/H1、N01–N11、当前包重建、私有迁移、全天和生产资格仍未完成。
+
+## 2026-10-22：恢复 hydration 重复解析候选，原持久请求期限仍待复验
+
+`ef1ee580` 的 disposable `39906224760` 已 failure：source-gates `120258696172` 的 Responses long-persistent 第 0 轮约 5009ms 触发原 5 秒期限，业务 job 跳过。独立 Verify `39906224764` 也已 failure，其他七个 job success，coverage `120258696297` 的 chat long-persistent 第 0 轮约 5011ms 失败。两路均记录四次合成上游请求；终态日志按 job ID 私有封存。已通过的 `ff05b521` 安装 mechanics 不因此撤销，也不能替代当前持久请求门禁。
+
+候选为内部 hydration 增加 createValidatedRootCheckpoint：原创建器仍执行载荷及最终信封的尺寸／结构规范化并生成摘要，随后复用外部 parser 同一个语义校验函数；外部 parser 保留原未知输入规范化、摘要验证和 expected 关联。减少对刚创建信封的重复全量解析，不缓存原文、不跳过 blob 认证、不改事务、锚点、原期限、预算或 TTL。新回归在原实现为 3 次直接信封规范化而非 2 次，先失败；候选为 2 次，外部 parser 仍再规范化并拒绝篡改摘要。空载荷、600 KB、非法预算／快照／载荷／发布、容量超限、独立副本、getter／Proxy 与原语义错误对照均验证。版本探测提前拒绝 Proxy，避免其 descriptor trap 先运行。
+
+四文件带私有原生入口 guard 的扩大回归 170/170，显式排除全部 actual encrypted worker 和 actual storage worker writes，不算实际持久资格；证据 `hydration-checkpoint-expanded-v1.log`。最终测试名称／格式小调整另按受影响项核验。600000 字节同一合成原文、同一内存 SQLite、八组正反交替各十次 snapshot 的墙钟中位数约 222.50→171.60ms、CPU 中位数 219.5→172ms；证据 `hydration-checkpoint-benchmark-v1.json`。这是局部快照微基准，不能推导磁盘／锚点或完整 5 秒请求已达标。原 I0–I5/H1、N01–N11、私有迁移、全天及生产资格保持未完成。
+
+## 2026-10-22：当前源码重建安装生命周期通过
+
+`ff05b521` 的隔离 Windows 安装 mechanics run `39905400077`／job `120256079149` 已 success。源码身份校验、基线和当前 NSIS 构建、安装／升级／回滚／卸载步骤分别 success，终态日志中精确范围回执出现一次，确认合成配置／文件及原到期字节保留。私有证据为 `hosted-job-120256079149-final.log`、`current-ff05b521-hosted-installer-v1.json`。
+
+固定基线仍为源码 `2295c452888449e9728b3ddcc2f80f31e9433e69`，两版使用合成版本覆盖；本次不上传安装器，不触碰日常安装。该成功覆盖当前源码重建的安装机制，不覆盖私有原始安装包、真实用户迁移、加密恢复／DPAPI 迁移、签名、全天任务、提供方行为或生产。`ef1ee580` 的恢复及独立 Verify 仍按原句柄跟踪；下文此前运行中描述为历史观测。完整 I0–I5/H1、N01–N11 仍未完成。
+
+## 2026-10-22：公开 Job API 的实际安全子进程回归通过，安装进入执行
+
+安装 mechanics `39905400077` 的 job `120256079149` 已完成两版 runner 源码 NSIS 构建，正在执行安装／升级／回滚／卸载；尚未取得终态。`ef1ee580` 的恢复 run `39906224760` 仍执行完整 source-gates，独立 Verify `39906224764` 另行跟踪，不重启或取消原任务。
+
+原安全子进程夹具改为直接调用导出的有界 Job API，避免模块私有作用域掩盖导出遗漏。使用实际解包 Node 执行合成子进程，原回执、输出超限、非零退出、非法 UTF-8、原期限及后代清理三项父测试通过；没有产品、持久 worker、DPAPI 或注册表调用。另补仅固定枚举的 Job 类型／创建、进程启动／分配、stdin grant、管道、期限、输出上限、退出及解码阶段诊断；不输出子进程内容、原始异常、命令或环境。六条真实合成故障严格得到 output_limit 两条、child_exit、stdout_decode、deadline 两条，私有哨兵不进入日志。最终七文件扩大回归 38/38，证据 `hosted-exported-job-expanded-v1.log`；该诊断增量尚未推送，不等同 `ef1ee580` 的托管结果。
+
+`ff05b521` 的便携 ZIP 已实际解包：清单中 536 份源码与工作树及摘要匹配，Node／原生辅助程序／锁文件匹配，便携应用 EXE 与实际构建 EXE 一致，发行目录治理和 1 NSIS／1 ZIP 摘要清单通过。证据 `current-ff05b521-portable-source-v1.json`；仍未执行本机安装器、GUI 或改动生产。全部 I0–I5/H1、N01–N11、私有迁移及全天资格继续按原范围验证。
+
+## 2026-10-22：有界 Job 辅助函数缺少模块导出，回归修复待托管
+
+`ff05b521` 的 disposable `39904545105` 已 failure：source-gates 和网络诊断 success，两路业务失败。N08 `120256789496`、N09 `120256789510` 现均进入 owned-job 内部并记录 `bounded_child`，另有 network restore failure，不能授予业务或清理资格。日志按 job ID 私有封存。与上一源码没有 job-stage 诊断的失败不同，闭包调用已经越过函数解析边界。
+
+后续模块导入回归在原代码上失败：原 `nsis-runtime-boundary.psm1` 定义但未导出 `Invoke-HpmBoundedRuntimeChild`，而两路 owned-job 都在模块外按名称调用它。候选显式导出原共享函数，保留全部原实现、120 秒外层和内部期限、stdin grant、Job 分配、4096 字节管道上限、StopAndWait 和清理规则。回归修改前 0/1，六文件扩大回归修复后 35/35，分别为 `hosted-job-export-before-v1.log`、`hosted-job-export-pure-v1.log`；原 receipt-only PowerShell 解析用例另通过 1/1，没有运行产品、持久 worker、DPAPI 或注册表。新真实托管结果待确认。
+
+`ff05b521` 的便携包标准构建已退出 0，`verify-release-artifacts.js` 确认 1 份 NSIS 和 1 份 ZIP 的大小与 SHA256 清单通过；该检查尚不等于 ZIP 解包源码或实际安装资格。当前包与安装 mechanics 仍绑定原 `ff05b521`，不能冒称后续辅助脚本候选已通过。I0–I5/H1、N01–N11 与生产范围保持未完成。
+
+## 2026-10-22：闭包修复源码门禁通过，当前 NSIS 构建及包内合成回归通过
+
+`ff05b521dad2cca70bd18408130b2afa2c5f33a7` 的 disposable `39904545105` 中，source-gates `120253357790` 和独立网络诊断 `120253357551` 已 success；N08 `120256789496`、N09 `120256789510` 已启动，业务终态待确认。独立 Verify `39904545131` 四个 unit 分片、质量、集成和 Rust success，客户端覆盖率仍待终态。没有取消或重启原运行，也未增加真实模型请求。
+
+当前源码本机标准 `npm run build` 退出 0，生成 GUI／NSIS；仅用 7-Zip 解包，没有运行安装器或 GUI。staging 和 NSIS 分别核对清单中 536 份源码均与当前工作树一致，Node、原生辅助程序和锁文件摘要匹配，实际 NSIS 解包目录通过发行目录治理。私有证据为 `current-ff05b521-build-v1.log`、`current-ff05b521-staging-v1.json`、`current-ff05b521-nsis-source-v1.json`。
+
+使用实际 NSIS 内 Node，并将测试代理模块解析固定映射到解包目录，reader／publication 两文件合成回归 70/70，工作区代理模块回落 0；显式排除两项真实 worker 测试，另有私有 preload 阻断实际持久存储打开，证据 `current-ff05b521-nsis-pure-v1.log`。这不证明真实 worker、安装、迁移或全天能力。便携包组装另行跟踪，不能从 NSIS 结果推导 ZIP 完整性。
+
+为并行推进当前源码安装 mechanics，正常创建精确指向 `ff05b521` 的 `acceptance/windows-lifecycle/20261022-mechanics-ff05b521`，触发 `39905400077`；job `120256079149` 已进入 runner 源码基线构建。固定基线保持 `2295c452888449e9728b3ddcc2f80f31e9433e69`，不改默认分支，不上传安装器；不授予私有原包或真实用户数据迁移资格。原 I0–I5/H1、N01–N11 与生产范围保持未完成。
+
+## 2026-10-22：业务入口闭包作用域回归已复现，修复候选待托管
+
+`af56e4be` 的 disposable `39902537877` 现已 failure：source-gates 与独立网络诊断 success，N08 `120251652962`、N09 `120251652989` 的载荷构建 success，固定场景 failure。两路固定诊断均为 network owned_scenario、execution owned_job，且没有进入 owned-job 函数内部的 job-stage 诊断；收尾另记录 restore failure。原终态日志按 job ID 私有封存。
+
+模拟网络与 Job 库、复制真实 execution 入口的回归在两路原代码上均失败，显式捕获局部已加载函数后均通过：GetNewClosure 创建的动态模块不能按名称解析调用方局部 dot-source 的 Job 函数。候选在原库指纹校验和加载后捕获 FunctionInfo，闭包仅调用该对象；原固定参数、Job、120 秒外层期限、内部期限、安全检查及收尾规则保持。模拟不执行本机网络、证书、注册表或原生存储；不从该回归授予真实 N08／N09 资格。更早的请求超时、存储收尾 EBUSY 与完整 I0–I5/H1、N01–N11 范围继续保留。
+
+修改前两条回归 0/2，证据 `hosted-closure-before-v1.log`；修复后的诊断、PowerShell 解析、工作流治理、来源身份、N09 组合与共享边界六文件 34/34，证据 `hosted-closure-pure-v1.log`。LIST／发布两个文件再次以私有原生阻断入口验证 70/70，证据 `list-debit-boundary-final-v2.log`；真实 worker 显式排除，不能算作持久存储资格。受影响 JS 的 ESLint 零警告、格式及 diff 检查通过。
+
+## 2026-10-22：当前完整源码门禁通过，N08／N09 已进入载荷构建
+
+当前 `af56e4beb8aa39acee449295a4b19c28a635e7ad` 的独立 Verify `39902537855` 全部 success；coverage job `120247116788` 的代理、客户端、前端覆盖率步骤分别 success。disposable `39902537877` 的完整 source-gates `120247115892` 也已 success，N08 `120251652962`、N09 `120251652989` 已进入各自 runner-local 载荷构建，业务终态仍待确认。独立网络诊断 `120247116048` 已在真实 runner 回读并确认 IPv4、两个 IPv6 /1 及完整组合的 address filter，三组均 created／verified／cleaned true；原 IPv6 /0 拒绝保持。私有固定字段证据为 `egress-ipv6-split-native-filter-v1.json`。源码门禁和防火墙诊断不替代业务、安装迁移、全天容量或生产资格。
+
+较早 `38bdd862` 的 disposable `39902047946` 已 failure，source-gates `120245585332` 失败，业务 job 跳过。终态日志 `hosted-job-120245585332-final.log` 确认 Claude WBIPC 所有权测试发生请求超时；四根／32 MiB 原生测试在 finally 删除 `.writer.sqlite` 时 EBUSY，尚不能从收尾错误推断先前业务操作成功或锁占用根因。当前一次全绿不能撤销这些稳定性问题。
+
+新增 LIST 安全回归覆盖最大预算预扣 ACK 前不得执行 LIST，以及写前失败、写后丢 ACK、非法 ACK、挂起时关闭的保守扣款边界。隔离变异实现故意提前执行 LIST，被回归拒绝；最终带私有原生入口阻断 preload 的两个文件 70/70，显式排除两项真实 worker 测试，证据分别为 `list-debit-boundary-mutant-v1.log`、`list-debit-boundary-guarded-v1.log`。不合并 LIST 计算与结算来换取延迟收益，产品读前扣款及不确定 ACK 不退款规则保持。I0–I5/H1、N01–N11 原范围不缩减。
+
+## 2026-10-22：托管已定位 IPv6 /0 规则拒绝，等价地址修复待主验收
+
+独立 egress job `120245585579`（run `39902047946`，源码 `38bdd862`）已 success。五组固定结果：original 与 ipv6 的 `::/0` 在 create 阶段拒绝，category 5、HRESULT -2146233088、nativeCode 1；ipv4、ipv6_split、full_split 均 created／verified／cleaned true。日志 `hosted-job-120245585579-final.log` 只保留固定字段，不打印原始错误。本次独立诊断由同一 runner 上单独 IPv4 成功、IPv6 /0 失败及两半 /1 成功的对照定位到地址表达式，不能泛化为所有 Windows 版本不支持 /0。
+
+主网络规则将 `::/0` 改为 `::/1` 和 `8000::/1`，保持完整 IPv6 阻断及原 IPv4 仅排除 127.0.0.1；程序、方向、动作、profiles、启用、清理和原负向网络探针均保留。新地址回归在旧表达式上先失败（`egress-ipv6-split-before-v1.log`），随后四文件 mocked／解析／原 workflow 治理 18/18（`egress-ipv6-split-pure-v1.log`）。独立诊断还增加实际 address filter 回读比较，拒绝规则静默扩成 Any 或缺失地址；该新增回读本机仅 mock，通过不等于托管验证。网络主场景及 N08／N09 仍须原完整门禁之后验证。
+
+暖态发布候选 `ce0ef15b` 的 Verify `39900803138` 已 failure：四个 unit 分片、集成、Rust、质量 success，coverage failure。原生客户端新合并发布断言在普通 unit 通过，但 coverage 的 chat／Responses／Claude 第 0 轮仍分别在 5006／5018／5014ms 触发原期限；合并发布记录分别 3／2／3 条，不等同全部操作成功。终态及固定字段逐阶段证据为 `hosted-job-120241692609-final.log`、`hosted-job-120241692609-final-sanitized.json`。该优化尚未解决完整性能门禁。原 I0–I5/H1、N01–N11、当前包、私有迁移、全天及生产资格仍未完成。
+
+## 2026-10-22：网络失败已缩小到规则创建，新增独立诊断路径
+
+`4e14f5e5` 的 disposable `39899488692` 已 failure：source-gates success，N08 `120242253238`、N09 `120242253172` 均记录 `hpm_network_failed_stage=egress_rule_create`。两者尚未启动业务场景；不能归因于 durable ACK 或宣称生命周期失败根因已修复。终态日志按各自 job ID 私有封存。`ce0ef15b` 的独立托管验收另行跟踪，不因本轮诊断变更取消或重启。
+
+增加独立、最长 5 分钟的 egress-diagnostic job，跳过源码构建依赖仅用于诊断，不替代 source-gates → N08／N09 原验收链。一次性 hosted runner 内复制临时 Node，分别测试原三地址、IPv4、IPv6 /0、IPv6 两个 /1、原 IPv4 加两个 IPv6 /1；不启动副本、不改 hosts／证书或默认规则，不授予任何资格。仅输出固定 case、阶段、布尔结果、错误类别及数字 HRESULT／native code，原始消息与路径不外泄。每个规则使用独立随机名字，部分创建后抛错仍尝试清理；碰撞不删除原规则，清理未确认则 job 失败。临时副本和空目录按确切路径非递归删除。纯 mocked PowerShell、解析与原 workflow 治理共 13/13；尚待真实 runner 结果，实际隔离地址和主验收门禁未改。
+
+## 2026-10-22：暖态发布合并校验候选，本机回归通过，托管待验
+
+将已用于暖态 reader 的原子准入预条件用于 publication.prepare：仅当原能力、已知持久 revision／来源 ID 和发布视图条件均成立时，推迟独立 load-reference 到第一笔发布写事务内验证。新来源载荷仍由同一 save-reference-state 认证并保存；prepared、sending、transport-finished 各自原 durable ACK 不合并，读前预扣、CAS、旧发布记录、到期、时钟和锚点规则不变。未声明能力的适配器保持原先 load-before-save。此候选只减少一笔暖态发布前持久读取，不宣称已经修复 5 秒期限。
+
+新回归先在原实现得到 2 次 load 不等于预期 1 次（`combined-publication-before-v1.log`）。候选覆盖三协议的 observed／prepared 两种发布、新载荷只发送一次、sending／finished 不再附带原文、未声明能力回退、预算／发布记录／revision／密文／缺载荷／ACK 故障无重试，以及 ACK 前持有所有权和挂起时关闭不能复活。两文件的显式原生排除回归 69/69；最终带本机原生入口阻断 preload 的回归独立封存为 `combined-publication-reader-guarded-v1.log`。原客户端 long-persistent 新增重开前后合并发布计数大于零的断言，尚待真实 hosted 执行。
+
+第一次扩大命令的负向 name-pattern 未排除两项真实 worker 测试，结果为 69 pass／2 fail，二者均在 storage 初始化失败；该次本机误触记录保留在 `combined-publication-reader-pure-v1.log`，不能算作纯回归或原生资格。后续使用显式 skip-pattern，并用仅本机私有 preload 在 openContextRecoveryStorage 入口立即拒绝实际 worker，避免选择错误触发本机原生 owner；该 guard 不进入产品、发行或 CI，也不替代 hosted 原生测试。
+
+诊断源码 `4e14f5e5` 的 Verify `39899488698` 已 failure，四个 unit 分片、集成、Rust、代码质量 success；coverage 唯一 not-ok 位于 `context-recovery-key.test.js` 的独立原生 ACL 验证 PowerShell 子进程，原 10000ms 触发 ETIMEDOUT（测试约 10190ms），不同于前一源码的 Chat 期限失败。终态日志 `hosted-job-120237497349-final.log`；不据此关闭历史客户端性能问题。其 disposable `39899488692` 仍单独跟踪，不因本机候选变更重启。原 I0–I5/H1、N01–N11 及当前包、私有迁移、全天、生产范围保持未完成。
+
+## 2026-10-22：d1aaf83e 源码门禁通过，独立覆盖率及 N08／N09 失败
+
+同一源码 `d1aaf83ebf2ce1ca796652bd4b9feb44cc2efde0` 的 disposable run `39897831691` 已 failure：source-gates `120232255162` success，N08 `120235315971` 与 N09 `120235315938` 都在实际场景步骤 failure。两者依赖安装和固定载荷构建通过，固定诊断均为 `hpm_network_failed_stage=egress_containment`，尚未进入业务场景，不能授予生命周期资格或把本次失败归于业务 ACK。各自终态日志按 job ID 私有封存。独立 Verify `39897831931` 已 failure：四个 unit 分片、集成、Rust、代码质量 success，coverage `120232256095` failure。两路结果分别保留，不以其中一路通过覆盖另一路失败。
+
+为区分网络隔离初始化中的实际失败点，候选将原粗阶段细分为读取 profiles、启用 profiles、规则冲突、创建、读取、应用过滤器和身份核对。只输出固定阶段字面量，不输出异常、路径、规则内容或凭据；原防火墙地址、启用、检查和恢复语义不变。原控制块经全 mocked PowerShell 命令运行，覆盖七种故障及成功路径；包含原有脱敏回归的文件 5/5 通过，没有调用本机真实防火墙、证书、hosts、持久存储或注册表。新诊断尚待托管执行，不能声称网络根因已修复。
+
+完成的 unit 分片 `120232256125` 中，三协议各记录 3 次 combinedAdmission，单次相关 storage 操作最大值 chat／Responses／Claude 分别为 154／147／141ms；原测试的重开前后计数断言通过。这只证明本轮接线被执行，不证明完整请求或覆盖率性能。私有证据 `hosted-job-120232256125-admission-summary-v1.json`。
+
+覆盖率中间快照确认 chat long-persistent 第 0 轮在 5070ms 触发原 5000ms 期限；该轮已执行 2 次合并准入，仍不足以消除超时。序号 5 scan-reference 的 engine execute 为 1544ms，其中 sqlite_clock_write 111ms、sqlite_commit 1422ms；后两项嵌套于 execute，不能重复累加。snapshot 9ms、anchor 296ms，父 storage 记录 1859ms。序号 4 save-reference-state 的 COMMIT 784ms；不能将这些离散停顿外推为全部失败的共同根因。原始终态日志分别封存为 `hosted-job-120232255162-final.log`、`hosted-job-120232256095-final.log`，逐操作脱敏快照为 `hosted-job-120232256095-observation-v3-sanitized.json`。原期限、负载、并发、覆盖率与安全语义未改，本轮真实模型请求 0。完整 I0–I5/H1、N01–N11、当前包、私有迁移及生产目标保持未完成。
+
+## 2026-10-22：暖态读前校验与预算预扣合并候选，真实期限待验
+
+未改变 DELETE journal、FULL、secure_delete、时钟持久化或锚点确认。原生适配器新增内部 reference-admission 能力：只有已经取得持久修订号和来源 ID 集合的暖态 reader 才可把旧 load-reference 校验延后到第一笔 save-reference-state；该笔写事务同时验证实际已存状态与调用前的当前预算、绑定、策略、发布记录和 CAS，再保存预扣。返回 durable ACK 前不能 readSource 或 settleReader。冷启动、未声明能力的适配器和不适用的旧发布视图继续旧路径；没有新读权来源、隐式重试或失败退款。仅保留已知来源 ID，不缓存正文或以缓存代替存储认证。
+
+新边界模块 `context-recovery-reference-admission.js` 使用有界描述符预检及原有语义解析，拒绝循环、深度／节点越界、访问器及嵌套 Proxy，发布比较在与普通关联校验同一次解析中完成。存储打开包装层及 Core 测试观察包装层都转发新标记；发行源码清单已增加新模块。原 native long-persistent 测试新增重开前后合并事务计数大于零的断言，原客户端输入、请求数、覆盖率、并发与 5000ms 期限保留；本机不运行该原生测试。
+
+本地九文件纯／直接内存与普通文件回归 **155/155**，零失败／取消／跳过计数；命令明确过滤五项真实 worker 测试，不能记作原生全量通过。证据 `combined-reader-delivery-pure-v1.log`。包含三协议暖态、旧能力回退、空原文、非法调用仍扣预算、绝对到期、挂起撤权、ACK 前拒绝读取／结算及预算／发布／revision／密文／ACK 故障，无重放或错误退款。以旧 root-storage 模块替换运行的新回归先得到 3 次 load 不等于预期 1 次，随后候选通过（`combined-reader-admission-before-v1.log`）。格式、Lint、CI／发行规则及宿主闭包专项通过。
+
+纯内存 20 次暖态 LIST 对照中，三协议操作数 60→40、load 20→0，但本轮耗时从 488–549ms 增到 901–1089ms（`reader-admission-before-benchmark-v1.json`、`reader-admission-after-benchmark-v2.json`）。减少持久事务的代价是额外校验，不隐瞒该微基准退步；尚无当前候选的托管原生净时延收益，不能宣称 5 秒问题已修复。完整 Verify、字面 verify、N08／N09、安装迁移及整体资格仍待验证。
+
+## 2026-10-22：PERSIST 候选因已清理密文残留被否决
+
+在不改产品的直接 SQLite 引擎实验中，保持 FULL／secure_delete，分别完成撤销与到期清理；三模式都逻辑拒读。但 PERSIST 的 journal 分别保留 21032／29240 字节，原已清理 envelope 的 208 个固定 64 字节片段仍可找到 205 个；DELETE／TRUNCATE 为 0 个。不能用整段 `journal.includes(envelope)` 检测这一边界，因为 SQLite 页头会打断连续密文，先前 v1 整段查询的 false 不证明没有残留。证据 `sqlite-journal-retention-comparison-v2.json`。这些是合成密文片段，不是用户原文泄漏或权限复活；但不应为微基准收益悄悄扩大已清理密文的目录内保留。
+
+新增 `context-recovery-journal-retention.test.js`，3/3 通过（`journal-retention-regression-v2.log`）：当前产品的撤销、到期清理后 journal 不留已丢弃密文片段；PERSIST 负控确认相同检测能发现残留且逻辑拒读仍成立。该文件进入既有统一 unit 发现，没有更改生产配置、产品日志模式、期限或断言。仅直接 SQLite、临时普通文件与随机合成测试密钥；没有持久 storage worker、DPAPI、注册表或真实模型。PERSIST 不进入产品，后续须减少重复持久事务或从其他有证据的边界解决延迟，不能把此安全回归当成超时修复。
+
+## 2026-10-22：be393f0a 托管终态与 SQLite 写入停顿证据
+
+Verify `39892137258` 全部 success；独立 disposable `39892137257` 已 failure，source-gates 未通过，N08／N09 skipped。已下载 source job `120214126907` 在运行期提供的日志 `hosted-job-120214126907-observation-v1.log`：chat 与 Responses long-persistent 分别在 5024／5012ms 触发原期限。该日志为中间快照，不能把其中失败数当成最终完整失败清单。
+
+失败 chat 场景的序号 6 load-reference 中，engine execute 1101ms，内部 sqlite_clock_write 260ms、sqlite_commit 837ms，snapshot 10ms、anchor persist 86ms。前两项嵌套于 execute，合计解释该次事务约 1097ms，证明这次停顿主要出现在 SQLite 写入与提交，不能外推所有历史超时的根因。此前 TRUNCATE 比较仍在重开第二轮 5015ms 超时，见本文件 2026-10-21 的存储诊断历史；不能忘记该负证据并直接把更换日志模式称为修复。
+
+另做仅合成整数水位的独立普通文件 SQLite 对照（`sqlite-journal-io-comparison-v1.json`）：保持 FULL／secure_delete，40 次事务，DELETE／TRUNCATE／PERSIST 总计 193.30／98.58／86.62ms。未执行生产存储 worker、DPAPI、注册表或真实模型。该本机微基准没有重现托管停顿，也没有检查生产撤销、热 journal、崩溃或旧包兼容，不能作为更改产品日志模式或关闭 5 秒问题的依据。产品继续 DELETE，I5／H1 与完整目标仍未完成。
+
+## 2026-10-22：be393f0a 独立容量命令本机满足原 60 秒目标
+
+源码 `be393f0a8ceb9b9fec7382102994ea28976f17a1` 在没有其他本地重测试的情况下，原五档、两个 worker 的 CPU profile 运行功能通过，worker scope 35010.6352ms。另一次未启用 profiler 的原始 CLI 运行退出 0、五档功能全部通过；父进程从 spawn 到退出测得 `scope: capacity-command` **36088.9789ms**，worker scope 35742.9204ms，均满足原 60000ms 目标及批准的 180000ms 功能预算。没有改负载、调度、期限或断言，未执行原生持久 worker、DPAPI、注册表或真实模型请求。
+
+私有证据为 `capacity-be393f0a-command-v1.json`、`capacity-be393f0a-command-v1-report.json` 与 `capacity-be393f0a-profile-v1/`。本次独立本机性能达标不能覆盖既往并发／覆盖率超时，不能宣称宿主环境稳定性能、持久存储、传输、真实客户端或全天容量资格；报告仍明确 `transportQualified:false`、`durableStorageQualified:false`。同源码 Verify `39892137258` 和 disposable `39892137257` 尚在运行，不因本次容量结果授予完整资格。
+
+本轮已完成的普通 unit 1 日志 `hosted-job-120214127388-final.log` 中，严格解析 741 条阶段、0 条拒绝（`owner-sqlite-stage-plain-v1.json`）。SQLite begin／水位写入／commit 最大分别 6／19／46ms；engine execute／snapshot／anchor persist 最大分别 74／60／42ms。该组是全部三协议场景的汇总，嵌套阶段不相加；它未重现先前约 2 秒的事务延迟，不能证明覆盖率或失败环境中的 SQLite 提交为根因。当前 Verify 已进入 client coverage，独立完整门禁仍在运行；不为观察日志重启任务。
+
+## 2026-10-22：2b3040d7 Verify 全绿，独立完整门禁仍有持久事务超时
+
+同源码 Verify `39890689923` 已 success：四个单元分片、全部覆盖率、源码质量、Rust 与集成均通过。该结果不替代 disposable `39890689848` 的字面 `npm run verify`；后者已失败，N08／N09 未运行。其唯一失败文件为 `client-context-target.test.js`，chat WBIPC long-persistent 在原 5000ms 期限到期（5009ms）。失败前序号 6 的 load-reference：engine execute 1979ms、snapshot 6ms、anchor persist 368ms，父存储计时 2511ms。嵌套阶段不能重复相加。当前证据定位到事务开销，尚不能区分校验、SQLite 水位写入及 COMMIT 刷盘。
+
+材料夹具所在 unit 2 本轮通过，夹具用时 12478.6875ms，但历史 25000ms 超时根因仍未证明已修复。快照候选不得因一次 Verify 全绿宣称稳定达到 5 秒目标。
+
+测试专用 owner probe 继续细分固定 `sqlite_begin`、`sqlite_clock_write`、`sqlite_commit`、`sqlite_rollback` 阶段；原数据库方法与 statement receiver、结果及异常保留，不输出 SQL、参数或原始错误，不改产品事务、负载、期限或断言。这些阶段嵌套于 engine execute／snapshot，仅用于区分开销。纯与真实内存 SQLite 回归 **6/6**（`owner-sqlite-stage-probe-v2.log`），覆盖提交失败后的回滚、旧 revision 保留、密文参数不出日志与未知 SQL 不进入诊断；没有创建存储 worker、DPAPI 或注册表锚点。细分计时尚待托管执行，整体资格保持未完成。
+
+## 2026-10-22：c7a7d1aa 托管终态与快照重复准入修复
+
+Verify `39888650504` 已终态失败：coverage、源码质量、Rust、集成及 unit 0／1／3 通过，unit 2 的材料夹具仍触发原 25000ms 期限。Disposable `39888650440` 的 source-gates 也失败，N08／N09 未运行；其失败为 chat WBIPC long-persistent 在原 5000ms 请求期限到期（5003ms），不是完整验收通过。该 job 的 499 条 owner-stage 记录均通过严格解析；包含多次运行，不混作单次请求。失败前可见 engine execute 的最高记录 1210ms，其他阶段仍有开销，不能据此把根因单独归到锚点或快照。
+
+已修复 metadata snapshot 对同一 v3 reference 的重复解析与库存核对：完整 hydrate 仍验证库存、全部原文密文、摘要与根状态，再从该次验证结果核对绝对到期时间；无跨事务缓存。新回归修改前明确失败（库存核对 2 次），修改后确认每次 snapshot 只核对 1 次，并继续拒绝重新认证后的到期错配、损坏密文与缺失库存。统一单元入口已包含该文件。
+
+本地限定内存的该文件 **48/48** 通过，明确排除两项真实 encrypted-worker 测试；此前误跑全文件的结果是 48 通过、两项原生存储不可用失败，不作为原生或完整验收证据。内存 SQLite 每样本 20 次快照、三组基线／候选为 241.20／221.85、237.25／195.68、231.17／212.66ms，仅证明本机该微基准有收益，不证明托管 5 秒期限或整体验收已修复。证据为 `snapshot-single-admission-before-v1.log`、`snapshot-single-admission-memory-v1.log` 与 `benchmark-snapshot-single-admission-v2.json`。原有期限、负载、CI、认证与 ACK 条件保持；材料阶段诊断与本候选仍待同源码托管复验。
+
+## 2026-10-22：c7a7d1aa 托管中间证据与材料夹具超时诊断
+
+候选已推送，Verify `39888650504` 与 disposable Windows `39888650440` 使用同一源码。当前 Verify 源码质量、Rust、集成及 unit 0／1／3 通过；unit 2 失败，不能授予完整 Verify。失败仅定位到 `shared-hosted-materials.test.js` 的 PowerShell 文件系统夹具触发原 25000ms 子进程期限，尚无内部阶段，不能归因于 Add-Type、启动或清理。该夹具不执行网络、证书、注册表或持久存储操作。覆盖率与 disposable source-gates 仍在运行；运行矩阵尚无资格。
+
+已通过的 unit 1 包含 `nsis-installed-runtime-boundary.test.js`、`client-context-target.test.js` 及 owner-stage probe 回归。私有保存 job `120202779938` 日志，从中严格筛选 273 条固定阶段记录，0 条非法，汇总 `owner-stage-plain-v1.json`：三协议普通运行中 load/read/save/settle 等操作的快照中位数约 46–50ms，锚点约 25–28ms；各协议总计快照约 1212–1225ms、锚点约 795–812ms、事务约 742–755ms。均为整套两轮测试的 worker 阶段累计，不是单次请求延迟，也不与嵌套 storage／session 计时相加。当前普通运行通过不能抹去历史覆盖率超时，覆盖率分段数据仍待取得。
+
+材料夹具新增仅 stderr 固定枚举的顺序阶段，失败时父测试仅报告末阶段与耗时；保留原 25 秒／30 秒期限、清理和哨兵断言。两文件本地 5/5（`material-fixture-progress-v1.log`）；该结果只验证诊断接线，不代表已修复托管超时，也不重跑失败任务制造绿色。I0–I5/H1、N01–N11 原目标继续未完成。
+
+## 2026-10-22：持久化分段诊断与安装夹具清理候选
+
+WBIPC long-persistent 测试通过现有 WorkerType seam 包装原存储 worker，只在测试进程的专用 stderr 接收固定 `engine_execute`、`engine_snapshot`、`anchor_persist` 阶段、操作枚举、序号与整数耗时。原 workerData、协议、存储实现、5 秒请求期限、负载及断言保持；未知 stderr／原生错误不进入测试输出。当前尚无这三个阶段的真实 hosted 耗时，不能宣称锚点或快照已经被证明是主要瓶颈，也没有据此改变生产持久化语义。
+
+安装边界测试的所有子用例通过后，历史 after-hook 曾在删除复制的 Node 可执行文件时 EBUSY。合成夹具现在创建时固定临时根及祖先物理身份，退出后清理最多尝试四次，仅对 EBUSY／EPERM／ENOTEMPTY 等待 75ms 后再试；身份变化、未知错误、持续占用及删除未完成仍失败，且不重跑任何安装场景。该改动处理短暂占用，不证明历史问题来自 AV 或排除了残留进程。
+
+新增纯回归及实际复制 Node／模拟安装模块三文件 20/20（`owner-stage-and-cleanup-expanded-v1.log`）；随后调整计时异常路径以通过 Lint，诊断文件 4/4（`owner-stage-post-lint-v1.log`）。两组不累加。上述验证没有启动实际持久存储 worker、DPAPI、注册表或真实模型；真实托管 source-gates、运行矩阵与性能根因仍待验证。全部 I0–I5/H1、N01–N11 及原交付范围保持。
+
+## 2026-10-22：保存／撤销 ACK 已接入业务与四场景托管入口，真实运行待验
+
+lifecycle client 通过私有合成 token 验证当前 PID 的 bootstrap，延迟创建签名 mailbox client，不公开 token／派生密钥。旧 PID 句柄在停止后失效；只有原强制退出完成后才关闭通道。同目录新 PID 使用新的 bootstrap 和客户端。业务能力获取保持被动；启动、播种并精确读回之后，以只读快照作为命令前置条件，保存必须先收到 signed armed，再发起真实业务请求，最终确认只接受原生产者签名回执，撤销调用原 sessions 的 revokeAsync，不发送替代 HTTP。
+
+最终 ACK 后不读取快照或管理接口，直接进入原 Job 强杀。保存 HTTP 的成功／失败处理器立即安装，ACK 前已知业务失败会拒绝；强杀之后才回收尚未结束的请求，避免等待响应完成冒充保存边界。armed 与最终回执共用原 15 秒预算。托管入口现在依次运行 committed、clear、save、revoke 四个独立适配器场景，原 120 秒外层期限保持；保存／撤销的结果仍为 adapter-orchestration-only，不能授予真实宿主或完整 N09 资格。
+
+本地合成证据：托管基础设施及原控制器回归 366/366（`n09-ack-full-wiring-v2.log`）；随后补充被动能力闭包的错误脱敏及回归，业务文件 18/18（`n09-ack-callable-sanitization-v1.log`），两组不能累加为一次完整测试。新测试已进入统一 unit discovery，完整候选闭包 99 文件离线核验通过。未运行本机持久存储 worker、DPAPI、注册表、真实 daemon 或真实模型，也没有生产启用。真实 Windows 托管验证、持久存储延迟与清理 EBUSY 根因、全天容量、私有原安装包迁移及 N01–N11 完整交付仍未完成，原 I0–I5/H1 范围保持。
+
+## 2026-10-22：启动门与重启控制器已接入宿主观察器，业务确认消费仍待接入
+
+新增 bootstrap 合约、固定宿主安装器与纯控制器转换器。专用托管 N09 控制器在原 Job.Assign 成功后、原 stdin grant 前写入不可覆盖的 `bootstrap-<pid>.json`；同目录重启在同一位置按新 PID 写新 epoch。文件只包含源码 pins、身份与 HMAC，不写 token 或派生通道密钥。PowerShell 使用原合成 management token 签名，Node 按独立域派生 mailbox key；真实 PowerShell 的模拟文件用例验证了双方 JSON 顺序、UTF8／ASCII、签名及派生结果一致。重放写入失败且原计划不变。
+
+启动门对无计划保持原行为；有目录却缺少当前 PID 计划时拒绝。加载任何 ACK helper 前先核签名、逐文件哈希、相对路径及完整传递依赖闭包；动态加载仅允许精确 `host-install.js` 中两处固定已安装 ACK／lifecycle 模块，其他动态 require 仍拒绝。host-install 在加载前拒绝暖 cache，加载 lifecycle 后再次确认 root-storage 尚未加载，再安装观察器。缺失依赖、签名／来源变化、异身份、非法／超限字节、hardlink、恶意 getter、初始 warm cache 与 lifecycle 提前导入 root-storage 均有纯回归。合成安装模块使用真实内存 sessions 与 ACK producer，不建立持久存储或 native worker；关闭观察器不代替真实 shutdown。
+
+全部托管基础设施、原控制器与安装 PowerShell wrapper 扩大回归 **351/351**，零失败／取消／跳过，证据 `n09-bootstrap-expanded-v1.log`。随后补充的 hardlink／字节边界及提前导入路径按两文件复验 **6/6**，证据 `n09-bootstrap-extra-boundaries-v1.log`；两组计数不累加冒充一次完整运行。完整候选闭包离线核验 97 文件；ESLint、格式及 CI／release governance 通过。没有运行本机原生存储、DPAPI、注册表、真实 daemon 或真实模型。源码尚未取得新 hosted 运行资格。
+
+当时尚缺 lifecycle client 私下验证 bootstrap 并创建 mailbox client、业务适配器 arm → 实际恢复请求 → 签名 ACK、确认后立即强杀及同目录新 PID 复验、原始 revokeAsync 的最终确认消费；上述接线的后续进展见本文顶部。现有 committed/clear 场景不被替换成保存／撤权证明，N09 完整资格、全天容量、私有迁移及生产启用继续为未完成。
+
+## 2026-10-22：签名私有通道与生命周期适配已回归，安装 mechanics 托管通过
+
+新增固定文件名的 N09 mailbox：命令、armed 控制信号、最终回执与失败信号分域签名，绑定 PID／epoch／递增序号；完整 JSON 写入并 fsync 后才发布空 ready 标记。拒绝路径选择、硬链接、目录替换、未知 getter、重放、覆盖与非法完成结果。armed 仅表示已开始观察，不能作为持久化确认。runtime-hooks 先包原始 ACK producer，再包 lifecycle factory；仅绑定目标持久目录的真实 sessions，原 shutdownAsync 严格成功后才允许替换生命周期，全进程序号不重置。close 恢复自有描述符，不代替真实生命周期关闭。
+
+Node test runner 的 async_hooks 会为原生 Promise 附加符号数据属性，初版过严校验导致 10 项失败，已接受该属性并继续拒绝自有 constructor／then、访问器和子类。观察器撤权等待也改用同一校验，回归确认不会触发 species getter。只读审查另外发现非法返回的普通原生 Promise 拒绝可能未消费、异步 close 可能被当成功；现已消费可安全观察的拒绝、拒绝 async close，并将意外 Promise close 标为粘滞失败。不会为消费不可信 constructor／species 而执行它们。
+
+最终扩大回归包含全部 `test/context-hosted/*.test.js` 与安装 PowerShell wrapper，**332/332**、零失败／取消／跳过，证据 `n09-mailbox-expanded-v2.log`。组合用例经过原始 ACK factory、真实内存 sessions、runtime hook 与实际临时文件 mailbox，确认撤权发生在同一 sessions、文件不含 principal 或签名密钥。ESLint、Prettier、CI／release governance 及统一测试发现核验通过。这些仍是纯／合成证据，**gate／controller／已安装模块的来源校验与真实 daemon adapter 接线尚未完成**，`liveDaemonProved:false` 与 N09 未完成状态保留。
+
+精确源码 `0a6934b1` 的安装 mechanics run `39883291573` 已 **success**：托管 Windows 完成基线安装、当前升级、回滚、卸载及合成文件保留。该结果仅针对 runner 源码重建的安装器；不授予私有旧安装包、真实用户迁移、加密恢复／DPAPI、签名或 24 小时容量资格。
+
+同源码的独立 Verify `39883237256` 已 failure，仅 Responses WBIPC long-persistent 的 turn 0 在 5 秒内未收到 headers，Chat／Claude 此轮均通过；request 内 begin 与两次 reply 共约 4691ms，尚不能归因具体原生操作。disposable run `39883237225` 则已因完整 source-gates 失败终止，运行矩阵跳过：安装 runtime-boundary 的 11 个子测试通过，after 清理复制的 Node 可执行文件收到 EBUSY，尚无证据证明子进程泄漏；Claude WBIPC 在 4964ms 已返回响应，5003ms 等待 publication 确认超时，finishPublicationAsync 312ms 跨过期限。两次运行不能混用结论。下一诊断需区分 engine.execute、完整 snapshot 与 anchor.persist 耗时，期限、负载和断言均未放宽。本轮真实模型请求为零。
+
+## 2026-10-22：保存／撤权观察器纯模块已验证，真实接线仍未完成
+
+新增 `scripts/context-hosted/n09-ack/` 的严格 HMAC command/receipt 合约与宿主观察器。命令绑定 PID、epoch、单调 sequence、已观察 root／expiry／revision；save 仅在原始 ACK factory 成功后观察修订，revoke 调用同一绑定 sessions 的原始 `revokeAsync` 并等待严格成功。principal 仅留内存；撤权回执标注最后有效保存 revision，不能冒充 tombstone revision。close、失败、并发、迟到确认、预算回退和未知 getter 路径均有纯测试。首轮扩大专项 23/24，一项夹具只改 rootId 导致 reference codec 先拒绝，已改用真实 sessions 产生另一合法 root 后再验证观察器拒绝；getter 补显式返回以通过原 ESLint 规则。修正后专项 17/17，全部托管／安装回归 301/301，零失败、取消或跳过；新测试已核对进入统一 discovery。
+
+这些模块尚未接入启动 gate、签名私有 mailbox 或真实 daemon adapter，回执固定 `observer-boundary-only`、`liveDaemonProved:false`，不授予 N09 保存／撤权或生产资格。没有运行本机原生存储 worker、DPAPI、注册表或真实模型请求。
+
+## 2026-10-22：记录托管终态并补充固定失败阶段
+
+`e13c5852` 的 Verify `39880563255` 已 failure 终止：quality、integration、Rust、四个 unit shard 均成功；proxy/security coverage 通过，client coverage 仅剩三协议 WBIPC `long-persistent` 的 turn 0 请求触发原 5 秒期限。此前 38 项快速存储失败未重现；chat 保存操作记录 8164ms，replyAsync 8766ms，支持继续定位保存路径耗时，不能据此断言具体原生调用根因。
+
+同 SHA 的 disposable run `39880563520` 已 failure 终止：其字面完整 verify/audit 的 source-gates 成功，但实际 N08/N09 均失败于固定场景阶段；不能以该 source-gates 覆盖独立 Verify 的失败。新增 qualification、execution、network、owned Job 的固定失败阶段枚举，仅通过 Information 流输出，不打印异常、路径或输入，也不改变成功 JSON、120 秒 Job 期限、网络隔离和 finally 清理。真实本地前置拒绝及合成错误 review/pin 测试验证阶段区分和私有 sentinel 不输出，未调用本机原生存储或系统网络修改。全部 context-hosted 文件及安装 wrapper 扩大回归 301/301、零失败／取消／跳过，证据 `hosted-diagnostics-expanded-v1.log`。新诊断须在下一源码的真实 hosted 运行定位剩余问题，尚无 N08/N09 完整资格。
+
+## 2026-10-22：安装 mechanics 改用新建专用验收分支
+
+安装 review workflow 保留旧精确分支，并接受 `acceptance/windows-lifecycle/**` 的普通新分支创建事件；限定本仓库、created、非 forced/deleted 和全零 before。不覆盖已有旧分支，不改默认分支，也不上传私有旧 installer。固定基线仍为清理后的 `2295c452888449e9728b3ddcc2f80f31e9433e69`。此路由验证源码重建的安装／升级／回滚 mechanics，不能替代原始旧安装包及加密迁移资格。扩大回归包括全部托管基础设施及安装 wrapper，共 301/301，零失败、取消或跳过，证据 `hosted-diagnostics-expanded-v1.log`；真实 disposable Windows 新分支验收待启动。
+
+## 2026-10-22：修复 N09 启动 gate 的固定路径不一致
+
+hosted controller 使用 candidate 中经过哈希校验的原始启动 gate，但 lifecycle 将 controller 路径改为临时复制件后，重启捕获检查仍按该复制目录推导 gate，期待了一个未复制的路径。现在 lifecycle 明确接收 candidate 和 gate 摘要，在构造前后验证该固定文件，并且只将复制脚本中的单一 gate 路径表达式替换为它；原启动 gate、argv/env、Job、网络及期限不变，未放宽成多路径白名单。回归旧代码 1 失败／3 通过，修复后 composition、closure、hosted boundary 与 source identity 四文件 18/18，零失败、取消或跳过。证据 `n09-gate-path-before-v1.log`、`n09-gate-path-after-v1.log`；尚待新源码的真实 hosted N09。
+
+N09 纯 driver 的全部托管基础设施扩大回归另为 25 文件 284/284，零失败、取消或跳过，证据 `n09-durable-expanded-v1.log`。该扩大回归先于本次 gate 路径修改，不累加为当前完整候选通过。
+
+## 2026-10-22：N09 保存／撤权确认后的编排补齐，真实宿主接线仍开放
+
+独立纯 driver 已可执行保存／撤权 ACK → 强杀 → 同目录新 PID 重启。它要求受信 adapter 同步提供 callable capability，先验证 operation、PID、原文／授权身份、期限及不回退的累计消耗，确认后不插入额外 adapter I/O 即强杀。保存重启后必须精确读取且不重放工具；撤权重启后及四开关组合下都必须拒绝旧凭据。失败、部分启动、确认拒绝及清理失败保持固定错误并走独立 finally close。新增 34 条与既有 51 条合计 85/85，零失败、取消或跳过；原占位上的新回归为 0/23，证据 `n09-durable-driver-before-v2.log`、`n09-durable-driver-after-v3.log`。capability 获取中的未知 thenable／Proxy 不再先经过 await，避免校验前触发 getter。
+
+此项只完成 adapter 编排，结果仍固定 `adapter-orchestration-only`、`hostDurableAckObserved:false`、save/revoke 资格与 N09 完整资格均为 false。当前真实宿主 adapter 尚不提供此 callable，布尔 true 仍明确拒绝；已有 committed-metadata 和 clear 路径的托管范围不变。真实接线需观察宿主实际验证过的保存／撤权 Promise 返回，不能以只读数据库快照或 HTTP finish 冒充。正在运行的 `e13c5852` 托管任务不包含此后续编排改动。
+
+## 2026-10-22：两库安装序列回归通过，托管临时目录差异待复验
+
+`1a745a7f` 的 Verify `39878291287` 已失败终止：node-quality、integration、Rust 与单元 shard 0/2/3 成功；shard 1 的 PowerShell wrapper 超过原 30 秒，coverage 中 proxy/security 通过后 client 阶段出现 38 项失败。hosted N08/N09 `39878291341` 的 source gates 失败，后续矩阵跳过，未获得 N08/N09 运行资格。已观察到 WBIPC 原 5 秒请求超时及独立 ACL cross-check 原 10 秒超时，尚无证据证明它们与 wrapper 为同一根因。原期限和断言保留。
+
+安装脚本已将单库序列改为两库：旧 baseline 种入 legacy；current 必须因缺少独立锚点拒绝，确认零锚点写入、owner 释放 SQLite 锁且全部文件字节保持；current 另建 anchored 库后读取和重存；旧 reader 回滚读取两库；current 重装后重开 anchored 并再次拒绝 legacy。旧 reader 兼容磁盘格式仍不授予防回滚资格。安装、拒绝保留、HTTP/settings mock、临时目录及 coverage 治理九文件回归 63/63，通过且零失败、取消或跳过，证据 `installer-two-store-expanded-v2.log`。这仍是合成回归；public 仓库的私有旧 installer 传输门禁保留，未创建公开安装资产。
+
+客户端覆盖率命令原来直接启动 Node，缺少 unit runner 已有的物理 TEMP 规范化；生产 anchor 会拒绝短路径别名。新增固定测试 preload 复用既有解析器，只设置当前测试进程及子进程的 TEMP/TMP/TMPDIR，保留全部生产路径校验、文件列表、并发、阈值和期限。托管快速拒绝符合这个入口差异，但日志未直接证明具体别名，仍需新 SHA 的完整托管复验。wrapper 新增固定阶段枚举及数值耗时诊断，未修改产品 wrapper 或 30 秒期限。本机未运行真实存储 worker、DPAPI 或注册表锚点。
+
+实际 Node preload 子进程通过自有 junction 别名启动，确认 `os.tmpdir()` 为物理目录、三项临时环境变量一致、无关 sentinel 保留且父进程环境不变。与既有物理目录和 wrapper 回归共 21/21，零失败、取消或跳过；证据 `temp-wrapper-regression-v2.log`。专项 ESLint、格式、PowerShell AST、CI/release governance 与 diff 检查均通过。这些本地结果不替代真实加密 worker 的 hosted 资格。
+
+## 2026-10-22：安装验收准备中的基线与原生 helper 接线修复
+
+安装 review wrapper 改用历史清理后已在本地与 GitHub 核实存在的基线 `2295c452888449e9728b3ddcc2f80f31e9433e69`，旧运行记录保留原 SHA。安装驱动的精确 helper 白名单补齐 `--hpm-context-anchor-v1`，该命令不计为 DPAPI；额外参数、错误 helper 路径及未知版本仍拒绝。两处专项回归均先失败后修复，安装/私有路由/governance 三文件 41/41、零失败或跳过；ESLint、格式、diff 与 CI 治理通过。证据为 vault 中 `installer-sanitized-baseline-before-v1.log`、`installer-anchor-command-before-v1.log` 和 `installer-followup-after-v1.log`。
+
+以上尚非安装资格。当时单 store 序列仍需拆为 legacy 拒绝保留与新 store 连续性两条检查，现已完成的脚本回归见本页最新状态；旧 reader 可解析相同磁盘格式不代表它具有新锚点的防回滚能力。public 仓库下，旧私有资产的 route、bridge 与 consumer 可见性门禁继续保留，未创建公开 installer artifact。`1a745a7f` 的完整 Verify 与 hosted N08/N09 当时仍在运行，现已失败终止；后续本地安装脚本修改不自动继承该 SHA 的资格。
+
+## 2026-10-22：修复正常事务拒绝后 owner 被关闭的回归
+
+独立锚点接线将 `engine.execute` 的正常事务拒绝也纳入了关闭 owner 的异常边界，导致 stale CAS 或第五条活跃状态容量拒绝后，后续合法读取失败。现在由 SQLite 引擎维持原事务回滚契约；成功执行后若锚点持久化、快照认证或路径校验失败，仍关闭 owner 且不返回成功回执。引擎自身回滚失败时的关闭逻辑保持。
+
+新增两条回归在原 HEAD 上均失败；修复后 owner/admission/contract/sqlite 四文件 80/80，通过且零取消、跳过。容量回归保留四条已确认状态，第五条拒绝后核对锚点未变、原记录 revision/expiry/内容不变、合法更新与重开成功；原锚点落盘失败、旧备份回放拒绝和丢失 enrollment 测试继续通过。专项 ESLint、Prettier、diff 与 CI 治理通过，测试已在统一客户端覆盖率及单元入口中。证据为本地 vault 的 `owner-rejection-before-v1.log` 与 `owner-rejection-after-v1.log`；使用合成保护器与保留 backend，未执行本机注册表写入。
+
+旧提交 `d92f6e82` 的托管 Verify 已暴露 maintenance、四根十六 MiB 和覆盖率 idle worker 失败，当前修复后的真实 Windows 复验仍待完成；不以专项通过关闭这些失败。完整候选、安装迁移、I5/H1、N01–N11、全天容量及生产启用继续按原范围验收。
+
+## 2026-10-22：本地完整门禁通过，首次托管环境暴露交付差异
+
+冻结候选 v5 的字面 `npm run verify` 于 `2026-10-22T20:17:24.4063849Z` 退出 0；客户端 1397/1397，零失败、取消或跳过，root/plugin 新依赖审计均退出 0。独立核对确认提交 `da9dffc86f0d84b47a4ff89338ef39d10cc254bf` 的 607 个文件与该候选原始字节、归一化 Git blob 完全相同，范围外变更为零。完整门禁资格仅属于这份源码，不自动覆盖后续修复。
+
+[首次托管 Verify](https://github.com/cbhandsun/https-proxy/actions/runs/39852868735) 已观察到失败：Windows 临时目录的 `RUNNER~1` 短名称与工具返回的完整物理路径不一致，导致安装/插件测试夹具被原有安全边界拒绝；另有 runner 缺少 `rg`、独立 PowerShell ACL 检查一次超时。修复测试临时目录规范化时保留生产物理路径、junction、硬链接及完整性校验；真实 `rg` 测试改为直接声明的固定版本开发依赖，不依赖主机预装。后续完整托管门禁仍须取得新提交的终态。
+
+实际私有旧安装包上传已完成，但 GitHub 将文件名中的空格规范化为点，旧校验因此拒绝。提交 `40282c3399df908e76f2bee552888dde97e15d75` 明确分开远程规范名称与本地安装文件名，回归先失败四项、修复后相关两文件 16/16。失败 draft、两份资产及本地 state 均保留，未将上传成功冒称安装通过。
+
+N08/N09 后续业务驱动的 11 文件纯回归 75/75，零失败、取消或跳过；这不证明实际 hosted 网络、强杀或安装行为。真实安装/升级/回滚、业务在途撤权与强杀恢复、安装版客户端及全天容量仍未完成。24 小时是新记录的留存上限，不因读取、开关或重启而续期；不得仅凭 TTL 测试声称全天任务容量达标。原 60 秒性能目标另行保留为未达项。
+
+## 2026-10-22：Rust 与驱动纯回归通过，完整 v4 在格式阶段停止
+
+最终候选 npm run test:rust 退出 0，16 项库测试及 1 项其他测试通过，零失败或 ignored。vault N08/N09 proposal 四文件纯回归 91/91，零失败、取消或跳过；尚不覆盖实际 daemon、安装环境或后续托管网络/PowerShell 接线。证据 candidate-final-rust-v1{.log,-terminal.json}、candidate-final-n08-n09-proposal-regression-v1{.log,-terminal.json}。
+
+完整 verify v4 已退出 1，仅插件可分发配置测试的一处格式警告，未进入后续阶段。终态后只对 test/local-evidence-plugin-package.test.js 执行 Prettier 并通过文件格式检查，原字节保留于 candidate-final-format-v2/。原 v4 的 607 源在启动时全量 SHA 复核无漂移；后续源码身份 v5 单独冻结，不覆盖 v4。完整门禁仍未通过。
+
+
+## 2026-10-22：客户端受控并发全量通过，补齐此前未达门禁
+
+原默认文件并发的 client coverage v1 已退出 1：1397 项中 1394 通过、2 失败、1 取消。chat/responses WBIPC 在响应头前触发原 5 秒期限；MCP source runtime API 触发原 15 秒外层期限。相同 c8 配置单文件对照 30/30，43.42 秒；该诊断不检查整套覆盖率阈值，不授予全量资格。
+
+随后只将顶层文件并发改为 4 的全量诊断保持原 85 文件、全部断言、期限及覆盖率门槛：1397/1397 通过，零失败、取消或跳过，272929.8165ms；statements/lines 99.08%、branches 95.29%、functions 99.30%。这支持固定可复现的测试资源预算，不证明生产性能修复，也不改判原默认并行失败。package 仅新增 --test-concurrency=4；机器回执验证移除该参数后与原脚本逐字相同，文件清单/覆盖率参数不变。统一 unit 的治理回归 RED 1 失败后 GREEN 全部通过，拒绝筛选测试或移除覆盖率门禁。unit 四 shard 与 client 四文件 worker 只对齐顶层预算，不代表相同内部负载。
+
+单队列补跑此前未达的 security coverage、frontend coverage、frontend tests、thinking、env、integration、hooks、frontend build，8 项均退出 0。前端构建仍有 chunk 大小警告，未放宽阈值。Rust 及最终新源码完整 verify 仍待验证；以上不是完整 verify 通过。
+
+证据：candidate-final-client-coverage-v1{.log,-terminal.json}、candidate-final-wbipc-c8-solo-v1{.log,-terminal.json}、candidate-final-client-c8-concurrency4-v1{.log,-terminal.json}、candidate-final-client-concurrency-{red,green}-v1.log、candidate-final-client-concurrency-apply-v1/receipt.json、candidate-final-unreached-gates-v1.json。
+
+安装剩余缺口已重新核对：现有 hosted Windows workflow/controller 可复用；N08 在途撤权完整业务 driver、N09 durable ACK 后强杀及同目录恢复仍未接通。已有 orderly reopen-clear 或管理 HTTP 四组合不能替代这些资格。24 小时完整容量、原 60 秒性能目标、最终安装版客户端及生产启用仍未完成。
+
+
+## 2026-10-22：修复后真实管理 HTTP 四组合通过，最终候选已合成
+
+最终候选完整 verify v3 已退出 1：原生恢复测试 7/7；561 个 unit 文件中 558 通过、3 失败，后续 client/frontend/Rust 门禁未执行。失败分别为 WBIPC Claude 5 秒超时、插件单测依赖本机 gitignored `.codex/config.toml`、Python 环境测试引用已排除的独立 Tianxi 研究文件。原日志与终态保留，覆盖率输出不授予完整 verify 通过。
+
+终态后仅在独立候选修正两条测试依赖：插件改校验可分发的显式可选 TOML 示例，保留工具白名单及模型/凭据隔离断言，不自动激活插件；Python 改为真实通用 unittest 子进程，继续验证解释器及嵌套隔离环境，保留原 20 秒期限和正数测试数量断言。专项分别 11/11、6/6。WBIPC 只增加无内容的阶段耗时诊断，保留原 5 秒期限、断言及异常传播；整个 client-context-target 文件串行专项 30/30、零跳过，约 35.33 秒。该结果不消除四分片完整验证中已观察到的超时，仍待后续完整验证及负载定位。证据 `candidate-final-{plugin-policy-regression,python-regression,wbipc-phase}-v1.log`、`candidate-final-full-verify-v3-terminal.json`。
+
+最终候选的完整 verify v2 已通过格式、1333 个 JavaScript 语法、Lint（零错误，五条既有测试警告）及 CI 治理，随后在发布清单遗漏四个恢复模块处停止。独立候选补齐 budget-reader、key、key-worker、reauthorization；新增 release inventory 回归在修复前一失败、一通过，修复后与隔离运行包测试共 13/13、零跳过，release governance 退出 0。见 `candidate-final-full-verify-v2-terminal.json`、`candidate-final-release-inventory-{red,green}-v1.log`。候选源码已包含这些显式后续修复，早期 source identity v1 保留；完整 verify 尚未通过。
+
+root/plugin 依赖安装均已退出 0；安全下限与 SOCKS 传输回归 6/6，插件 build v2 退出 0，包版本 0.1.1、10 个文件，bundle SHA256 `b2cba52d774126fe596133b9e80fb579251ce26625ce486b15c48024592a0eae`。首次完整 verify 因 83 个已选定文件格式失败后，仅对这些文件运行 Prettier，保留原字节和前后哈希于 `candidate-final-format-v1/`；未据格式化声称行为验证通过。
+
+候选 fresh root audit 首次发现生产传递依赖 `ip-address` 10.7.2 命中 GHSA-rxp7-6hxx-x8q5。仅在独立候选通过 npm 更新到 10.7.4，既有父依赖范围兼容；插件独立锁本来已为 10.7.4。root/plugin 两次当前审计均为零漏洞，root 重新 npm ci 退出 0；增加独立生产依赖 floor 回归并复用非法版本边界测试，未新增直接依赖。证据 `candidate-final-root-audit-v1.json`、`candidate-final-root-audit-v2.json`、`candidate-final-plugin-audit-v1.json`；测试及插件安装仍待终态。
+
+root 单次执行 v11，退出 0（session 6703）：00/01/10/11 四组合的配置保存、应用观察、存储检查及 owned stop 均通过。原 gate/controller、readiness 与应用期限保持；新旧 payload、27 份 main harness、历史证据及既有条目不变检查均通过，四个 fresh case，零真实模型请求。证据 `daemon-http-owner-v11-terminal.json`。此项清理仍为 forced cleanup，不授予优雅退出、真实安装或最终客户端资格。
+
+独立 managed worktree `context-recovery-final/HTTPS-Proxy` 已按冻结 v3 投影：603 个文件全部写入并经 root 独立 SHA256 复核，35 个排除基线文件保留原 checkout 字节；主工作区、旧候选及 Git index 不变。证据 `delivery-scope-audit-a9CCVy/final-worktree-projection-v3/apply-receipt.json`。隔离候选的根锁文件由 npm 重新生成，确认 SDK 1.32.1、Vite 6.4.5、ws 8.22.0，根依赖声明匹配；后续依赖安装、安全审计与完整 verify 尚待终态。本状态段作为投影后的显式文档更新同步到候选，不冒充冻结投影原字节。
+
+## 2026-10-22：持久化 Worker 重放主进程 preload 根因已实证并修复
+
+v10 的 11 失败现场没有恢复存储目录。调用链为配置保存后 reload/apply、runtime `configureSettings` 切换持久化、storage 创建 Worker；此前 storage 与 key 的 Worker 均未指定 `execArgv`，默认继承父进程 `--require`。固定 daemon gate 会在 Worker 内再次执行，其 stdin/入口约束只适用于原主进程，因此在存储初始化之前拒绝。隔离纯 Node 夹具确认继承参数的 Worker 入口未执行、错误退出 1，显式空参数的 Worker 入口执行并退出 0；证据 `worker-preload-isolated-proof.json`。
+
+main 仅在两处 Worker options 增加 `execArgv: []` 和说明，stdout/stderr、gate、controller、原期限及失败策略不变。新增两条真实 Windows preload 回归覆盖 DPAPI round trip、受保护存储初始化/inspect/close；配合原 options 断言，修复前四项均失败，修复后完整八文件串行 233/233，零失败或跳过，约 126.96 秒。六文件 Lint/格式、语法、CI 治理及统一 unit/client discovery 检查通过。生产源码 SHA256：storage `fa7ab69d792c5e8f65692d85eabfe9d099436f4302534aae0ca83056b46c7dc0`，key `630cef89055306d1905e3e15272056451567ec8ae18900f1ca4023ffec9213ed`。证据：`worker-preload-fix-review-receipt.json`、`worker-preload-regression-green.json` 及原日志。
+
+旧 payload 与 v13 均保持不变；root 已复审并启动新 UUID payload 复制，仅叠加两份修复并重建 manifest，尚待复制终态及修复后的完整 HTTP 验收。另已从原 base `1a127de1aeccc81789f78c570ea44782091c2133` 创建干净 managed worktree `context-recovery-final/HTTPS-Proxy`，供合成已拆分的交付源码；尚未投影、生成锁文件或取得该候选完整门禁。上述 main 专项结果不授予真实安装、升级/回滚、最终跨端或生产资格。
+
+## 2026-10-22：v10 四组初始启动完成，11 在保存后的应用阶段超时
+
+root 复审固定 spawn 副本与 runner 差异、绑定 SHA256 `7643e53c52640b661a88f6b7b1156ad4e9fcb96e237a411a4943e6378af8ae29` 后单次执行 v10，终态退出 1（session 28600）。四组均取得完整七阶段记录；从各自 gate entered 至 gate passed 分别 8287/7711/8085/7597ms，至 ports listening 分别 12888/10052/10890/10451ms。该子进程时钟不同于 ACK 后轮询时钟，不把二者混用，也不据单次成功启动认定此前失败或启动性能问题已消除。
+
+00/01/10 的真实管理 HTTP 保存、应用、存储检查及 owned stop 均通过；11 初始启动也完成，配置保存成功，但后续应用观察为 `application_timeout`，尚未取得存储验证。controller close ACK、25 份 main harness、10 份固定诊断文件、payload manifest 与全部旧条目不变检查均通过，四个 fresh case，零真实模型请求。原 15 秒 readiness 及应用/案例期限保持，清理仍为 forced cleanup；整体 HTTP、优雅退出及真实安装资格均未获得。证据：`daemon-http-owner-v10-terminal.json`、`daemon-http-owner-v10-review.diff`。下一步定位 11 持久化切换与诊断投影，不重复原案例。
+
+交付范围审查补齐共享入口 v3（59 个选定路径，其中 54 个有 patch）及剩余路径建议（479 条：建议纳入 144、排除 297、待拆共享 38）。这些是可复审方案，尚未应用到最终候选，不能代替闭包或完整门禁。依赖版本裁定保留 root SDK `^1.32.1`/锁定 `1.32.1`、plugin 精确 `1.32.1`、开发依赖 Vite `^6.4.5`/锁定 `6.4.5`；依据为留存安全审计及包声明，不声称本轮在线审计。证据：`delivery-scope-audit-a9CCVy/scoped-proposal-v3/`、`remaining-scope-review-v1.json`、`sdk-version-decision-v1.json`；后两者均位于该 audit 目录。
+
+## 2026-10-22：核实容量功能预算通过，原性能目标与最终资格仍开放
+
+重新核对冻结 v13 原全量日志：容量文件 10/10、零失败或跳过；命令用时 75500.6162ms，满足用户批准的 180000ms 功能执行预算，原 60000ms 性能目标未达。文件总用时 83509.7459ms 不与容量命令计时混用。计划 H1 表已同步区分功能预算、性能目标与完整资格；早期失败记录保留。原完整 verify 仍因 portable runtime 测试文件失败退出 1，客户端及后续阶段未执行，不能将上述功能结果解释为完整容量、最终安装版或全天任务资格。证据：`candidate-full-verify-v13.log`、`candidate-full-verify-v13-terminal.json`。
+
+vault-only 启动阶段文件诊断已完成首轮静态复审及 8/8 纯模拟回归，固定记录七个阶段和单调毫秒数，最多 2048 字节，读回要求 owned controller close ACK。产品、原包、原期限及日常进程均未改；尚未执行带该诊断的 HTTP 启动案例。证据：`startup-phase-diagnostic-review-v1/review-receipt.json`。该产物用于定位身份校验与产品启动的时间分布，不授予 HTTP 启动通过资格。
+
+## 2026-10-22：N09 固定安装 driver 回归通过，补齐旧 API 的非执行边界
+
+N09 的 `reopen-clear` 已接入固定 installed module driver，要求 manifest 声明 storage 源、受 loader guard 保护的 installed runtime/storage export，经精确 capability wrapper 调用，并在执行后重新校验安装身份。完整 driver 文件 11/11，零失败或跳过；其中新增项覆盖 11 个串行合成子进程，含成功、非法导出、workspace fallback、关闭失败和执行后源码变更。证据：`installed-reopen-driver-regression-BKR2ot/result.json`。这是合成 installed API 经真实 Node/固定 driver 的回归，尚不授予真实安装存储或强杀恢复资格。
+
+PS 安装矩阵已将该固定 case 加入 current 模块序列，保留后续 HTTP 接线及 rollback 顺序。严格 parser 要求 `complete=true` 和精确六项 checks，拒绝缺失、多余、错序、false、错误类型、重复字段和越界资格；调用端 ValidateSet 仅为三个已实现 case。轻量 parser/接线回归 2/2，PS AST、JS Lint/格式通过。随后完整 parser/child/Job 文件 3/3（17.79 秒）、相关 lifecycle/cleanup 治理两文件 2/2（41.88 秒）终态通过，零失败或跳过。证据：`nsis-reopen-ps-regression-mAyxPG/result.json`，四份源码 hash 与接线版本一致。以上仍不授予实际 NSIS 安装存储、强杀恢复或 24 小时容量资格。
+
+root 另在原 module cases API 确认同类 `fn.bind` 读取外部函数属性问题。两条新增回归修改前均失败；改为拒绝 proxy function、通过固定 `Reflect.apply` 保持 receiver 后，完整文件 11/11，格式/Lint/CI 治理通过。原存储及关闭断言保留，没有放宽执行策略。证据：`runtime-boundary-capability-regression-v1.json`；仅 main 两文件，冻结候选未变。
+
+启动静态拆分确认 manifest 仅 71489 字节、只串行 hash 一次；627 源及三个附加文件的逐文件校验均在 worker 内，完整 pre/post 保护合计约 15148 次 lstat 与 13894 次 realpath。原 v9 失败保留，下一步测试固定四 worker 候选是否能在保留所有检查与原期限的前提下改善该成本，未以增加观测替代修复。
+
+四 Worker 实验完整 14 组专项通过，零失败或跳过；同包唯一一次测量 11442.84ms，成功校验 627 源，仍保留 12/15 秒期限。该样本未显示优于此前双 Worker 的 10513.10ms，不支持改善结论；不继续用于 HTTP，实验源码/测试另存后恢复已验证的双 Worker 字节。证据：`parallel-four-readonly-comparison-1792692926997/result.json`。未改 readiness、模型或日常进程。
+
+## 2026-10-22：Windows inode 夹具专项通过，并行校验尚未接入启动
+
+冻结 v13 的字面 `npm run verify` 已于 17:56:53Z 终态退出 1，约 23.28 分钟；全部四个 unit shard 已完成，688 个测试文件仅上述 portable runtime 文件失败，其余 687 文件通过。原命令链在 unit coverage 阶段失败后停止，后续阶段未执行，不能授予全局覆盖率或完整 verify 资格。前后 inventory 确认 1795 份源码及 11 个单列 pyc 均未改变。证据：`candidate-full-verify-v13-terminal.json` 和原日志。
+
+main 的 portable runtime 文件完整回归已终态退出 0，44/44，fail/cancelled/skipped/todo 均为 0，约 20.81 秒。确定不同的 inode 注入保持替换拒绝和不复制断言；源码 SHA256 与前述修复一致。证据：`portable-inode-fixture-regression-v1.json`（执行 session 40426）。该结果仅属于 main，冻结 v13 未改，已有全量失败仍保留。
+
+可选双 Worker 安装身份校验完整专项 14/14、原 serial 生命周期回归 35/35，均零跳过；真实小样本覆盖正常、篡改、硬链接与 junction，不能替代原 627 文件包的性能及 HTTP 启动证明。生产 gate 尚未切换，下一步在同一原包只读比较后再决定接入。
+
+安装 HTTP bridge 及三个相关 NSIS 文件的最新串行回归 47/47，零失败、取消或跳过，约 45.27 秒；JS/PS 语法、专项格式/Lint 和 CI 治理通过。桥接在 current 包 module 矩阵后、rollback 前接入 HTTP 矩阵，沿用原内层期限，要求 controller close ACK；真实安装、HTTP daemon 及 Windows Job 清理仍待托管 runner 验证，资源 doubles 不算安装通过。证据：`installed-http-main-v1/result.json` 及同目录日志。以上新增源码均未进入冻结 v13。
+
+同一原 627-source 包只读串行/并行各一次均成功，分别 12544.42ms/10513.10ms；12 秒 supervisor、15 秒父进程期限未改，源码及 manifest 前后无漂移。证据：`parallel-readonly-comparison-1792691978962/result.json`。单轮顺序采样不支持因果性能结论；preload 并行接线正在 main 实施，尚无修复后实际 HTTP 资格。
+
+并行接线现已完成 main-only 完整相关回归 18/18，零失败或跳过；原 serial API 保持固定原校验器，新增固定 parallel API 共用原 request/ownership/path guard，preload 选择后无 serial fallback，无 CLI 或环境选择器。格式/Lint/CI 治理通过。root 已绑定 25 份相关源码，v9 离线预检通过，并启动同包四组合实际 HTTP 验收（session 54270），原 15 秒 readiness 及 45/240 秒包络不改；运行中状态不计为通过。
+
+v9 随后已终态退出 1：初始 00 仍 `launch_failed/health_request_failed`，首次观察 preload passed 为 ACK 后 13453ms，63 次既有 health 请求均无可解析响应，最后 status 15097ms 时进程存活。controller close ACK、25 源码、payload manifest 与全部旧条目不变检查均通过，只新建一个 case，零模型请求。证据：`daemon-http-owner-v9-terminal.json`。双 Worker 未解决原期限内的启动失败，不以同轮测量或 preload passed 代替实际 HTTP 资格。
+
+N09 main assertions 增加 trusted capability 组合边界，显式传入已校验 API 时不加载或回落 checkout 实现；自有 bind getter 不执行。最终轻量 20/20，格式/Lint 通过；最终模块默认真实受保护存储直接验收 7916ms，通过撤销与清除 ACK、旧 reader 拒读、正常关闭后重开拒读及全部 owner 关闭。合成物理 store 和安全收据保留于 `runtime-reopen-main-kmXpnC/result.json`。这仅证明 main 的 orderly reopen；安装版接线、业务强杀与最终 24 小时容量资格均未获得。
+
+## 2026-10-22：v13 已冻结并启动全量检查，HTTP 启动失败继续保留
+
+root 将已复审的插件发布、daemon 诊断/有效配置及安装身份校验优化共 14 路径精确合入隔离候选 v13，1 新增、13 替换；完整前后 inventory 确认其余源码与原 11 个单列 pyc 不变，1795 份源码身份 SHA256 为 `88c499a105ead064bf3ab7e89f53e2c19d31e8b85f3774ff0a76535cfb3103e3`。备份、manifest 绑定及投影收据已保存，原字面 `npm run verify` 已启动，保留 16 阶段、4 shard、覆盖率及容量完整断言，尚未取得终态结果。证据：`candidate-v13-root-reviewed-manifest.json`、`candidate-v13-delta-apply-receipt.json`、`candidate-full-verify-v13-live.json`。投影及运行中状态不授予安装或生产资格。
+
+同轮格式、1566 个 JS 文件语法、Lint、CI/发布治理及原生恢复测试已通过；四 shard unit 仍在运行时，`test/governance/portable-runtime.test.js` 的 inode 替换子检查报告 Missing expected exception。夹具使用 `stat.ino + 1`，同一候选卷的只读观察确认 inode 超出安全整数精度、加一后不变。main 仅将注入值改为可确定不同的 0/1 并断言差异，保留原拒绝及不复制断言；候选源码不改，专项待资源时隙复验。main 测试 SHA256 `c50e426eecde0932f22d7e60dc06548110725b1fc33eb5a5f738344ae9142789`，候选原字节 `3450938e24666c46361db3cb15b1b9060e569f27f78acdb9fa6a12d6bbb08ce1`。当前全量运行已经出现失败，不得提前记为通过。
+
+安装身份校验仅复用紧邻 guard 已取得的最终叶子 stat，并按文件大小分配最多 1 MiB 的读取 buffer；前后祖先 lstat/realpath、打开后及读取后 descriptor、硬链接和元数据检查保持。统一发现文件 `test/nsis-encrypted-lifecycle.test.js` 35/35、零跳过，相关 Lint/格式通过。同一 frozen payload 六次串行旧/新 A/B 用时依次为 7576/7202/8464/13670/12293/10038ms，存在明显时间漂移，不能据此认定有可靠提速或启动问题已解决。见 `verifier-minimal-ab-v1.json`。
+
+保留原请求、启动起点及 15 秒期限的 v7 在 00 启动失败，`health_request_failed`，进程存活、preload 通过。v8 仅在 vault 的既有 HTTP client 外包裹有界状态码和耗时观察，不增加请求、不记录响应内容；00 同样失败，84 次既有健康请求均未取得响应，首次观察 preload passed 为 start ACK 后 13864ms，最后 status 为 15024ms。该结果支持本次窗口内服务未能给出可解析健康响应，不能解释成健康字段不匹配；passed 观察含轮询调度，也不等于纯 hash 耗时。两次均确认 controller close、harness/payload 与旧条目不变，各只创建一个 fresh case，零模型请求；四组合整体均失败。证据：`daemon-http-owner-v7-terminal.json`、`daemon-http-owner-v8-terminal.json`。不通过重试、延后起点、减检查或放宽期限改判。
+
+逐项复核 I0–I5/H1 与 N01–N11 后，完整交付仍缺最终候选门禁、实际安装/迁移、WorkBuddy 实际长载荷、最终 HTTP/WS 在途撤权和强杀/清除后重开等组合证据。已有原单机合成样本真实 24 小时到期与重开拒读记录（`retention-after-real-deadline.json`、`client-retention-review-outcome.json`），不能表述为完全未测，也不能扩展为最终安装版或全天活跃任务容量通过。旧 Codex/Claude Core 全真实通过记录继续保留，其认证/路由 fixture 与最终安装版凭据解析边界不变。当前 NSIS lifecycle 仅接入 module API 四组合，实际 HTTP 接入正在独立 main 分线实施；其未来通过仍不能替代业务强杀、撤销或清除验收。
+
+## 2026-10-22：分段观察确认 gate 校验占用大部分 readiness 窗口
+
+v6 vault-only 分段诊断保留原 harness、请求、期限及起点，复用既有 controller status 记录固定枚举和单调耗时。00/01/10 再次通过全部真实 HTTP 保存、应用、存储与停止检查；11 仍失败，分类为 `ready_health_rejected`，最后状态确认子进程存活、preload 已通过。四组首次观察 passed 分别在 start ACK 后 9333、9842、9044、11623ms，最后 status 分别为 14327、14223、12451、14210ms。观察时间含轮询与调度，不等于纯 hash 耗时，也不等于产品实际 ready 时间；不能据此认定第四组健康响应中的哪个字段不符。
+
+全部 close ACK、harness 与 payload、旧条目不变检查通过，四个新 case，零模型请求。证据为 `daemon-http-owner-v6-terminal.json`。整体 HTTP 资格继续失败；正在评估完整物理路径与文件校验中的重复 I/O，保留原 15 秒门禁，不将重试或移动计时起点作为修复。v13 合并及全量 runner 已准备但未绑定、未执行，候选仍为 v12。
+
+## 2026-10-22：无效验收配置已修复，HTTP 前三组合通过，第四组合健康期限失败
+
+controller 改为通过同一私有 builder 生成有效的纯本地 profile，使用空凭据，保持恢复默认关闭以及 audit、warmup、watchdog 禁用。实际 builder JSON 经真实 validateConfig 与 loadConfig 验证；旧配置变体复现 Missing activeProfile，修复配置四组合加载成功且网络尝试为零。相关回归 46/46，Lint、格式及 CI 治理通过，仅修改 harness 三路径，不改产品配置校验或期限。
+
+root 绑定修复后的 20 份 harness 执行 v5：00/01/10 的真实管理 HTTP 配置保存、应用观察、存储检查和停止 ACK 全部通过；11 初始启动在原 15 秒期限内未取得健康响应，结果 `health_request_failed`、`preloadPhase:passed`。四组初始配置均禁用恢复，不能将此失败解释为启用持久化失败。控制器 close ACK、源码及 payload、旧条目不变检查均通过，零模型请求，整体仍失败。证据为 `daemon-http-owner-v5-terminal.json`。
+
+只读调用同一 gate 身份检查的一次测量为 7468ms，校验 627 份源码及 Node、native、lock、manifest；该数值不代表 v5 第四组的实际耗时。原 readiness 起点之后尚未结束的 gate 校验会占用其 15 秒期限，现有 phase 没有时间戳，尚不能区分校验较晚完成与主入口启动较慢。下一次 vault-only 单次诊断复用原 channel/status，记录 start ACK 后阶段观察时间与轮询次数，不改 main harness、实际请求、原期限或计时起点；不能提前记为整体通过。
+
+## 2026-10-22：启动 gate 通过，发现验收初始配置不满足产品校验
+
+固定 preload 标记增量已通过 45/45 相关回归、Lint、格式及 CI 治理。root 复审并核对 20 份 harness 字节后执行新的 v4 隔离案例，终态仍为 `daemon_exited`，但 `preloadPhase:passed` 已证明 gate 身份校验完成。控制器 close ACK 成功，harness、原 payload manifest 及旧条目 metadata 不变，零模型请求。证据为 `daemon-http-owner-v4-terminal.json`。
+
+对 v4 新生成的合成配置调用实际 `validateConfig`，得到 activeProfile 缺失及 profiles 为空两项拒绝。controller 当前生成 `activeProfile:''`、`profiles:[]`；产品主入口调用 `loadConfig({throwOnError:true})`，其补默认官方 profile 后仍缺 activeProfile，因此发现一条具体启动拒绝路径。正在修复 harness 生成的配置并补实际加载回归，不放宽产品校验。尚未取得修复后的 HTTP 四组合通过证据。
+
+## 2026-10-22：HTTP 失败已收窄至子进程退出，尚未确认启动阶段
+
+main 的安全失败分类增量已完成相关 42/42 回归，零跳过，Lint、格式和 CI 治理通过。仅接纳内部创建错误的固定枚举诊断，不读取外部异常 message、cause 或 getter；保留原失败与清理失败的独立分类。候选 v12 未修改。
+
+root 复审后单次执行 main harness 的 v3 隔离验收，case 00 仍为 `launch_failed`，新增可信分类明确为 `daemon_exited`；控制器 close ACK 成功，harness 源码、原 payload manifest 和全部旧条目 metadata 前后不变，仅创建一个新 case，零模型请求。证据为 `daemon-http-owner-v3-terminal.json`。这证明实际子进程退出，但尚不能区分 preload 拒绝与产品主入口退出。
+
+真实 Node spawn 与 .NET Process 匿名管道的延迟写入检查均通过，系统与内置 Node 字节摘要一致，本条件下 stdin EAGAIN 假设未获支持。正在增加仅含固定 entered/passed/failed 的 preload 阶段标记，并以有界字节状态机提取，不留存或转发产品原始 stderr。待回归及复审完成再执行一次新隔离案例；未观察到标记不单独证明 preload 未运行。
+
+## 2026-10-22：v12 全量运行发现打包并发失败，HTTP 实际启动未通过
+
+v12 全量 verify 已终态退出 1，源码前后身份不变。格式、1565 个 JS 文件语法、Lint、CI 治理、发布治理及原生恢复组件测试通过；原 4 shard 共运行 688 个测试文件，仅 bundle 文件失败两个 case，其余文件通过。覆盖率语句/行 91.32%、分支 90.08%、函数 92.15%，但 test:coverage 仍因测试失败未通过，后续 security check 和原 verify 后段均未执行。首失败是共享内容寻址 generation 的 staging rename `EPERM`，第二项复用同一准备 Promise 的失败。静态 discovery 确认 bundle/package 测试分别位于独立 shard；同期 package prepare 成功，目标 manifest 与目录摘要一致、10 个 bundle 文件检查及全部 293 个 input 摘要校验通过，支持并发发布竞争的解释。
+
+main 已完成两路径修复：仅 Windows `EPERM` 且目标 generation 已存在时进入原完整赢家验证，所有包、文件及 marketplace 字节仍须一致；无目标、其他权限错误及篡改/链接目标均拒绝，不重试、不删除赢家。定向回归 18/18，跨进程收尾修订后 1/1；原 bundle/package 两文件完整并行验收 33/33、零跳过，约 49 秒，包含此前失败项及真实双进程同 hash 发布。ESLint/Prettier 通过，隔离配置，零模型请求；候选 v12 未修改。证据为 `bundle-publication-full-main-65b46220-ecbf-481d-8a48-a30296d7d134/result.json`，尚待合并最终候选并取得全量通过。
+
+HTTP v1 在 daemon 启动前被 vault 快照错误拒绝：BigInt `nlink` 与数字 `1` 比较。vault v2 仅修复 `1n` 并使用新单次收据，红绿回归确认普通文件接受、硬链接及目录链接拒绝，3/3 通过。root 执行 v2 后，case 00 `launch_failed`，控制器 close ACK 成功；候选相关源码、payload manifest 及全部旧条目 metadata 前后不变，仅创建一个 fresh case，零真实模型调用。case 的配置文件已生成而 runtime 为空，现有通用错误无法区分 process start、Job assignment、gate 或 health 阶段，正在补定位；不能据此认定 preload 超时或产品 daemon 已完成启动。原 v1 attempt 与 v2 terminal 均保留，不复用或自动重试。
+
+## 2026-10-22：v12 已合并并启动完整 verify，单独真实运行时 11 通过
+
+root 已将冻结的 hooks 五路径、安装设置二十一路径、HTTP 五路径及进程所有权九路径精确合并到隔离候选 v12，共 40 路径（34 新增、6 替换）。全量身份检查确认 1794 份源码与原 11 个单列 pyc，投影外无变化；身份 SHA256 为 `36dee187b1d1b2d05a73545c1de014235623ae5ce6e9b6a4f094fa343e0a8998`。原字面 `npm run verify` 已启动，保留 16 阶段、4 个单元测试 shard、覆盖率阈值及原测试断言，尚未取得终态结果。合并不授予安装或生产资格。
+
+针对原 staged 四组合失败，root 使用原不可变 payload 与三个独立新目录分别完成真实 ACL、默认 storage 初始化和关闭、默认 runtime 的 11 配置诊断。三项均通过；runtime 仅注入 `dataDirectory`，确认 requested/applied 两开关均为 true、`storage:persistent`、`state:enabled`、ready 和 shutdown ACK 均成功，约 3.7 秒。诊断未修改 loader，也未复用原失败案例。此前四组合失败继续保留，不能再据此将根因限定为 ACL；组合入口、加载校验及环境差异仍待定位。上述窄诊断不替代四组合、HTTP、installed、重启留存或 24 小时资格，零真实模型请求。
+
+随后，使用新 UUID、逐字复用原 matrix 的加载校验、PROXY 环境清理及 config/data 布局，单独 11 诊断仍通过，ready/shutdown/expected11 均为 true，约 12.3 秒。加载校验必然导致失败的解释未获支持；原四组合的总期限、重复校验开销与物理边界断言仍待核实。
+
+root 进一步在原 payload parent 下创建新 UUID case，沿用原 Job/gate、120000ms 单 case 期限，单次直接运行未改的原 `nsis-settings-matrix.cjs 11`。完整原 physical pins、两次 storageBoundary、关闭后 inspect 和严格 receipt 解析均通过，用时 63980ms；关闭后 wrapped key、writer、checkpoint 均存在，DACL 已保护。结果保存在新 case 的 `diagnostic-result.json`。此前失败未复现，根因仍未确认，不将此单 case 通过解释为原四组合整体、installed 或生产资格。静态对照也确认 120 秒按每 case 独立计时，原外层 540 秒未到期限；旧 `cleanupConfirmed:false` 缺乏安全错误分类，不能直接认定进程泄漏或清理超时。
+
+候选投影首次准备曾因历史 v1–v3 identity 没有 `version` 字段而被拒绝，未修改候选。vault 校验器已按历史原始 SHA 与实际 schema 修复，14/14 离线回归通过；旧失败准备目录保留，root 在新 UUID 准备后完成本次投影。
+
+## 2026-10-22：真实 staged 四组合未通过，安装设置接入离线通过
+
+root 已完成 v2 隔离目录准备：627 份声明源码、4193 份依赖文件，共 4824 文件、113392833 字节，复制后及源端复验通过。随后单次真实 staged module API 四组合执行终态退出 1；失败收据保留，`cleanupConfirmed:false`，没有自动重试或复用该 prepared attempt。00/01/10 的物理恢复目录均不存在；11 仅创建空恢复目录，密钥、writer 与 checkpoint 均不存在。后置只读 ACL 检查显示目录仍继承权限，当前仅能将诊断范围收窄至目录初始化/ACL 边界，不能认定 DPAPI 根因或前三组合已经取得独立资格。见 `staged-settings-matrix-v2-be981d932a5a4d619193cb8f4a955e7a/attempt-result.json`。依赖身份仍为 lock-only，未执行安装器或真实模型请求。
+
+安装流程的设置矩阵接入已精确备份并应用 main 四路径：显式导入 matrix、在 current 包回滚前调用真实矩阵、严格汇总收据、失败中止后续序列。新增 wrapper 与相关 encrypted/settings 回归 12/12、零跳过，PS 语法、相关 ESLint 与差异检查通过。候选尚未同步；离线结果不替代上述失败的真实 staged 执行，也不代表 installed、HTTP、重启保留或生产资格。
+
+## 2026-10-22：main 原 hooks 完整通过，冻结候选尚待同步
+
+补齐清理失败安全分类及固定枚举失败阶段诊断后，root 单次执行未注入 observer 的原字面 `npm run test:hooks` 已终态退出 0，2/2、零跳过，绑定十路径前后无漂移。合法代码真实 ESLint/Prettier、格式化文件及 Git index 检查，非法代码真实 `no-undef` 拒绝及 index 保留断言全部通过；原 30000ms hook 期限、5000ms 终止期限、命令及 stash 语义保持。相关 helper/PATH 回归 29/29，Lint/格式通过。证据为 `main-hooks-path-v2-terminal.json`、原日志及 `main-hooks-stage-diagnostic-v2-ready-receipt.json`。
+
+整项测试约 33.67 秒包含 Git setup 和合法/非法两轮，不作为单次 hook 耗时或 PATH 因果改善证据。此前 timeout、partial 诊断及清理失败结果继续保留；当前通过属于 main-only，v11 冻结候选未同步这五路径，完整 verify、安装及生产资格仍未完成。
+
+## 2026-10-22：新增独立设置矩阵，原 hooks 出现清理失败
+
+main-only 新增独立 settings case、Node runner、PowerShell controller、统一发现测试及 PS fixture 共五路径，既有十三路径冻结增量保持不变。四组合合成完整验收 4/4、零跳过，随后仅测试追加的 accessor/拒绝边界快测 4/4、零跳过，相关 Lint 通过。受测 runtime 仅收到 `dataDirectory`，00/01/10 要求无恢复存储，11 检查落盘结构及关闭 ACK；合成 helper 是不可执行占位符，未据此声称 DPAPI、installed、HTTP 或重启保留通过。见 `settings-matrix-main-only-result-v1.json`。
+
+受控 PATH helper 及原进程 helper 合并回归 25/25，新增 PATH 回归格式调整后再验 8/8，Lint/格式通过。仅保留五个验证后的工具目录，仍使用原 hook 命令、stash、30000ms/5000ms 和原断言；main/candidate ESLint 配置及 lint-staged 配置等价。这是固定测试运行环境的候选修复，尚未建立 PATH 根因或提速结论。
+
+root 随后单次原字面 `npm run test:hooks` 未注入观察器，终态退出 1、1/2，绑定九路径前后不变，见 `main-hooks-path-v1-terminal.json`。本次顶层错误是 fixture 清理失败，现有 TAP 未显示原检查是否同时失败；不能据此宣称 hook 已通过或仍为 timeout。清理错误分类正在补安全诊断，原失败结果保留，未改期限或自动重跑。
+
+## 2026-10-22：v11 hooks 分段诊断终态，保留原门禁失败
+
+绑定 v11 的一次原命令分段诊断已终态退出 1，1760 源文件与 11 个单列 pyc 前后无漂移。合法代码钩子触发原 30000ms 期限，进程树终止回调成功，约 4451ms，未放宽期限或重试。安全事件中已完成的 Git 子进程区间去重并集约 21575ms；被终止前没有观察到 ESLint 或 Prettier 启动，因此本次超时发生在工具检查之前的 Git 阶段，尚不能据此确定底层变慢原因。
+
+强制终止使 CLI observer 退出事件及最后一个子进程生命周期不完整，收据明确 `diagnosticComplete:false`。这些局部事件用于定位，不算完整诊断或原 hooks 通过，也不用于证明性能改善。证据为 `candidate-v11-hooks-stage-diagnostic-terminal.json` 和仅含固定枚举、数值的事件文件；未保存原始输出、命令参数或用户内容。完整 verify 与当前实际安装资格仍未完成。
+
+## 2026-10-22：按用户选择分离容量执行预算与性能目标，v10 hooks 超时已明确
+
+用户明确选择保留完整五档、双 worker、负载及全部功能与安全断言，将整套容量测试的运行预算重定为 180000ms，原 60000ms 独立作为未解决性能目标。CLI 记录 `capacity-workers` 耗时，统一 CI 父进程另记录 `capacity-command` 的完整子进程耗时；两种口径不混用，功能 `qualified` 不代表性能、持久化或安装资格。独立 timing 回归 2/2，新模块覆盖率 100%，静态与 CI 治理检查通过。见 `capacity-budget-separation-main-v1-receipt.json`。随后精确六路径投影为 v11：1760 源文件及原 11 个 pyc，package 仅新增一个测试路径，plan 仅插入新政策段，其他候选内容保留；见 `candidate-capacity-budget-v11r2-apply-receipt.json`。
+
+新预算下两阶段已完整终态退出 0，1760 源文件与 11 个单列 pyc 前后无漂移：完整 timing c8 2/2、新模块覆盖率 100%；完整原 workload c8 10/10、零跳过，五档及双 worker 不变。父进程记录容量资格命令耗时 158465.3493ms，满足 180000ms 执行预算，原 60000ms 性能目标仍未满足。证据为 `candidate-v11r2-capacity-budget-gates-terminal.json` 及两份原阶段日志。容量定向运行没有执行全局覆盖率阈值，不替代全仓 coverage/security/client 门禁；历史失败证据保留，完整 verify 仍未通过。
+
+仅将 fixture helper 的安全分类和 TAP 诊断修复两路径投影为 v10，完整 1758 源文件及 11 个单列 pyc 校验不变。候选完整 helper 回归 17/17 通过，但原字面 `npm run test:hooks` 仍为 1/2：合法代码检查明确触发原 30000ms 超时，本次 helper 的进程树终止成功返回，未将失败吞掉或提高原 hooks 期限。整项测试约 41.67 秒包含 Git setup 和终止，不能当作 CLI 本体耗时；尚不能归因到 ESLint、Prettier、Git 或环境。证据为 `candidate-v10-original-hooks-terminal.json` 及阶段日志，完整 verify 继续未通过。
+
+## 2026-10-22：v9 Rust 通过，当前容量诊断与安装边界继续推进
+
+原 `npm run test:rust` 已完整终态退出 0，包含 `release:prepare`，Rust 测试共 17 项通过、零忽略；1758 份源码及 11 个单列 pyc 前后无漂移。证据为 `candidate-v9-independent-test-rust-terminal.json` 与对应日志。此次隔离环境需要下载和编译依赖，整阶段约 23 分钟，不将编译等待归为产品请求延迟。先前六项独立门禁加本项均通过，但 hooks 及原容量期限仍失败，完整 verify 仍未通过。
+
+随后在同一 v9 身份上执行完整原五档、双 worker 的原生 CPU 采样诊断，退出 0，三份 profile 完整，源码前后不变，见 `candidate-v9-capacity-cpu/terminal.json`。采样子进程约 71.51 秒；这是诊断结果，不替代原 60 秒门禁，也不与历史运行直接比较宣称提速。当前正在按采样定位下一步优化，未修改容量负载、期限或覆盖率要求。
+
+main-only 安装边界 contract/cases 经独立源码审查及完整两文件复跑 17/17 通过。实际默认 runtime 的普通文件阻断场景验证初始化失败关闭、拒绝再次启用及失败关闭 ACK；默认值仅空目录子检查，四组合持久化分支使用合成生命周期。安装薄入口仍在接入，以上不代表实际安装包、DPAPI、管理 HTTP 或 GUI 资格。没有在日常机器运行安装器，没有新增真实模型请求。
+
+## 2026-10-22：v9 八样本资源对比通过，继续独立后段门禁
+
+绑定 v9 全部 1758 源文件与 11 个 pyc 的受控原生 Codex/Core 对比已退出 0：默认、增强各四样本、交替顺序、相同合成原文和提示，每样本三次原生压缩，零真实模型请求。所有样本均完成、精确恢复相关断言及配置/源码不变检查通过；默认路径验证恢复准入未调用且没有根或快照。最终收据为 `codex-controlled-cost-candidate-v9-outcome.json`，逐样本结果另存并绑定摘要。
+
+该固定合成任务中，默认/增强上游响应数分别为 6/13，请求字节分别为 135337/339273，Node CPU 中位数约 1305/2062ms，Node 峰值 RSS 最大值约 394/400MiB；样本总时长中位数约 4014/3953ms。仅四样本/模式，不计算 p95；CPU/RSS 不含原生 CLI，首上游到达不等于首个可见文本，内存峰值轮询可能漏峰。脚本预建两种模式的 session，不能代表冷启动；本地合成响应决定答案，不用于真实模型质量、延迟、token 或费用判断。隔离 native home/provider 指向 loopback，不声称存在 OS 级外联防火墙。资源结果不替代容量、持久化、24 小时、安装或生产资格。
+
+单 aggregate 前缀确认方向已按静态工作量先拒绝：最大档需重新 hash 约 15.13GB 正文，现 request-local leading 状态最多约 0.623GB，约 24.28 倍；计数不是墙钟性能证明，不将该原型接入产品，见 `prefix-confirmation-v1-static-cost-rejection.json`。CPU 离线归因也排除 metadata/seal 优化方向，其在原最慢 worker 合计仅约 59ms，不足以关闭容量差额。原 60 秒容量门禁仍失败；完整 verify 未通过。正在准备按原命令独立执行尚未验收的后段门禁，不跳过原门禁或更改覆盖阈值。
+
+独立后段执行已有六项原命令终态通过：`test:frontend:coverage`、`test:frontend`、`test:thinking`、`test:env`、`test:integration`、`frontend:build`。所有阶段前后全身份无漂移；前端完整文件 28/28，覆盖率语句/行 98.2%、分支 91.61%、函数 96.77%，保留原门槛。证据均为 `candidate-v9-independent-<script-name>-terminal.json` 及原日志；这些是独立完整 stage，不宣称完整 verify。
+
+未注入观察器的原 `test:hooks` 终态失败（1/2）：合法代码阶段已经格式化并写入 Git index，未到非法代码分支，约 39.39 秒后报进程树终止失败并保留 fixture。现 helper 丢失触发终止的原因及 taskkill 错误分类，不能严格区分原 30 秒超时、输出上限、PID 退出竞态或终止器超时；不得依据早先 v8 诊断通过关闭。已开始 main-only 安全分类及回归增量，候选未改，也未删除失败 fixture。`test:rust` 同一队列仍运行，原生密钥 helper 的 release 编译已完成，不能据此记 Rust stage 通过；沿用当前会话与进程继续观察，不启动第二份。完整 proxy/security/client coverage 仍保留原容量依赖，没有通过证明。
+
+## 2026-10-22：v9 行为回归通过，原容量期限复验仍失败
+
+仅将常见单条 function tool-call 消息的 descriptor clone 优化及既有 binding 测试两路径投影到隔离候选，维持 1758 份源码及 11 个单列 pyc。独立审查覆盖节点、字节、深度预算、属性顺序、冻结、可执行值与 Proxy 回退；不省略外部输入验证、不新增跨请求正文缓存。最终 49 项外部行为与安全测试在候选普通运行和 c8 运行均全数通过、零跳过。证据为 `history-function-clone-v2-outcome.json`、`history-function-clone-v2-independent-review.json`、`candidate-history-v9-apply-receipt.json`。
+
+随后完整 `context-recovery-capacity-workload.test.js` 在 c8 下仍为 9 通过、1 失败，原资格子命令触发 60000ms `ETIMEDOUT`。三阶段已全部终态，候选所有源码与单列生成物前后无漂移，见 `candidate-v9-history-gates-terminal.json` 与对应原始日志。原五档、两 worker、期限、coverage include/exclude 均未改变；本轮没有通过容量门禁，也没有足以证明性能改善的结果。完整 verify 尚未启动，不将定向覆盖率解释为全仓覆盖门禁通过；后续继续审查 frontier 热点并推进独立安装及连接验收准备。
+
+实际 WBIPC 能力探测首次执行记录 `probeStatus=ready`，但三帧发送计数均为零，因此探测器按设计拒绝资格，不记作真实握手通过。已定位 evidence-only 守卫在 `Socket.connect` 前设置的实例 `write` 被 Node 连接初始化覆盖；正在修正守卫安装时机并补离线回归。该次仅一次本地连接、零模型调用，前后全源码和日常配置校验不变，失败证据为 `wbipc-capability-probe-v9-result.json`。守卫修复不属于产品变更，也不替代载荷、恢复或完整客户端验收。
+
+后续 v10r2 探测器在连接同步返回后安装不可覆盖的发送守卫，并拒绝守卫安装前的同步 connect/data/error；离线 16/16 通过。根复审后真实执行退出 0：单连接、单守卫，session_hello、session_prove、broker/GetPipe 各一帧，`capability_verified`，无拒绝帧、额外连接或子进程；没有派发 http.fetch，零模型调用，前后全源码和日常配置均未变化。证据为 `wbipc-capability-probe-v10r2-result.json`。此结果仅证明真实 HMAC 会话及声明的 wb.request/http.fetch 能力，不关闭 N06 长历史载荷恢复、模型、安装或生产资格。
+
+## 2026-10-22：v8 完整相关回归通过，容量功能通过但原 60 秒门禁仍失败
+
+已精确合入恢复准入复用及继承 toJSON 修复：十条路径（七修改、三新增），冻结 1758 份源码和 11 个单列 pyc。完整 admission、ledger-state、root-state 三文件分别 16/16、31/31、67/67，零跳过；包含原 512 快照、四根 32 MiB 加密重开和大正文边界，各阶段前后全身份不变。证据为 `candidate-proof-sync-v8r2-receipt.json`、`candidate-v8r2-proof-related-terminal.json`。
+
+原五档、两 worker 的 `npm run qualify:context-capacity` 退出 0，五档覆盖和恢复计数均 qualified；包装器记录约 109 秒（包含后置身份检查），不等于原 60 秒门禁通过。随后完整原容量测试文件在 c8 下 9 通过、1 失败，资格子命令明确在约 60122ms 报 ETIMEDOUT，期限、负载均未改；证据为 `candidate-v8-original-capacity-terminal.json`、`candidate-v8-capacity-regression-terminal.json`。定向 c8 的覆盖百分比不代表全仓覆盖门禁结果。
+
+冻结 v8 的原负载 CPU 诊断完整退出 0，子进程约 80.12 秒，三份原始 profile 和前后全身份均封存。关键 worker 中 observe/begin 约 45.69 秒，restore 约 10.87 秒、export 约 6.69 秒；主要 inclusive 热点为 frontier 计算和 history normalization。采样含 profiler 开销，不能与前一次无采样包装器耗时比较得出加速结论；证据位于 `candidate-v8-capacity-cpu/`。后续优先审查常见 tool-call 消息的 descriptor clone 开销，不扩大原文缓存、不省略外部输入验证。
+
+原 Git hooks 两场景在诊断观察器下完整 2/2 通过，合法/非法代码分别得到预期通过和拒绝，未触发原 30 秒终止；源码不变、诊断事件有效，见 `candidate-v8-hooks-diagnostic-terminal.json`。这不是客户端产品 hook 验收，最终完整 verify 的未注入执行仍待完成。当前候选 `npm audit --audit-level=high` 退出 0，各严重度均为零，原始结果为 `candidate-v8-npm-audit.json`。最终构建、当前版本真实安装加密迁移、客户端矩阵和生产启用仍未交付。
+
+## 2026-10-22：v7 相关门禁通过、旧包归档完成，最终恢复候选准备中
+
+远端 review 触发路径已完成独立复审并精确合入 v7，冻结 1755 份源码及单列的 11 个 Python 字节码。完整解析、加密生命周期、传输测试及 CI、发行、Lint、格式共七阶段均退出 0，候选前后摘要一致；证据为 `candidate-routes-sync-v7-receipt.json`、`candidate-v7-route-related-terminal.json`。这仅证明候选相关门禁，不代表当前版本真实安装迁移或完整 verify 通过。
+
+旧运行闭包及真实 NSIS 安装包归档进程已退出 0，`preserved-old-nsis-baseline-v2/archive-receipt.json` 为成功终态。归档包含 625 份源码，安装包 SHA256 为 `e7dc2ec976df82c2679eb45b336312253caec2f7cf8e7629cc4940e147b85ce6`；归档过程校验复制前后源文件和目标文件，旧构建产物不再作为唯一基线。实际加密安装、升级、回滚仍待 GitHub 临时 Windows runner 验收，未在日常环境执行安装器。
+
+恢复准入复用已补齐原有 128 条/4 MiB 的调用内正文校验缓存；随后独立复审发现 Array.prototype 非标准父链上的继承 toJSON 会改变原序列化行为，已回退到原验证路径并补回归。修复前完整 admission 文件 14 通过、2 项预期失败，修复后完整 16/16、零跳过，相关 Lint 和格式通过；十项产品输入仅模块及其测试两项相对 v2 变化。证据为 `ledger-output-cache-v2-outcome.json`、`ledger-proof-inherited-tojson-v3-outcome.json`。当前正在准备 v8 精确投影，尚未据此通过完整三个相关文件、原五档容量、最终完整门禁或最终构建，不宣称性能改善或整体交付完成。
+
+## 2026-10-22：v6 传输专项通过，补齐实际远端触发路径与恢复准入复用
+
+传输链的三项复审问题已关闭：执行 commit 与 draft target 一致、失败保留未知远端资源、固定 GitHub 主机并净化环境覆盖；Git HEAD 校验同时净化继承的 Git 环境。独立复审后仅六个新文件进入 v6，冻结 1750 份源码，11 个 Python 字节码仍逐项单列。完整 transfer 测试 10/10、CI 治理、发布治理、相关 ESLint 与六文件格式五阶段全部退出 0，前后源码和生成物均无漂移。证据为 `private-baseline-transfer-implementation-v2.json`、`private-baseline-transfer-readonly-review-v2.json`、`candidate-transfer-sync-v6-receipt.json`、`candidate-v6-transfer-related-terminal.json`；没有真实上传或安装资格。
+
+只读远端盘点确认两个新 manual 工作流尚未进入默认分支，不能将本地文件存在视作可直接 dispatch。正在补同提交的专用 review push caller 和 `workflow_call` 路径，不修改 master：已审阅 source commit 先进入独立源分支，旧包 draft 绑定该 commit，再创建同 commit 的专用桥接验收别名，取得 artifact 后创建安装验收别名。解析只允许固定仓库、新建非强推分支、严格 ref/ID/UUID/SHA 与实际 HEAD；拒绝 Unicode 尾缀和超出 64 KiB 的最终输出。相关三文件首轮 21/21，最终解析器硬化后独立 5/5；尚待独立复审和候选内完整相关复验，不继承 v6 身份。证据为 `hosted-review-trigger-current-audit-v1.json`、`windows-recovery-review-routes-implementation-v3.json`。没有实际 push、dispatch 或默认分支变更。
+
+容量方向已开始窄产品集成：仅完整 v9/v10 恢复内部复用同一次有界 clone 的私有 proof，普通导出、公开可变副本、metadata 和 legacy 路径保留，语义验证、默认 1 MiB 输出限制、TTL 和 store 清理仍共用原实现。改前对照恰有两条真实 root 重复准入断言失败，改后 16/16 定向正确性通过，十文件摘要保持；证据为 `ledger-proof-product-v1-correctness-outcome.json`。随后只读审查发现新增结构路径会重复验证相同正文，正在按原 128 条/4 MiB 局部缓存边界补修及回归，不能沿用 v1 定向结果宣称修后资格。三个完整相关文件已准备原期限、零排除的 runner，待旧包归档结束后运行；独立五档容量、完整 verify、最终包、真实迁移和生产资格仍未完成。
+
+## 2026-10-22：加密安装候选 v5 专项通过，传输链复审修正中
+
+已将审核后的加密安装生命周期十文件精确合入独立候选，冻结 v5 共 1744 份源文件；11 个 Python 字节码生成物继续逐项单列。六阶段顺序检查全部退出 0：加密生命周期测试、既有 NSIS 生命周期治理、原 `npm run check:ci`、原 `npm run release:check`、相关五个 JS/test 文件零警告 ESLint，以及 workflow 与相关文件格式检查。每阶段前后源码及登记生成物摘要均一致。证据为 `candidate-nsis-sync-v5-receipt.json`、`candidate-source-identity-v5.json`、`candidate-v5-nsis-related-terminal.json`。这不是完整 verify 或真实安装迁移资格。
+
+私有旧包传输链新增独立本地默认 dry-run 入口及手动 hosted bridge，第一轮本地回归 8/8，Lint、格式、CI 治理通过；未发生上传、dispatch 或安装执行。独立复审发现执行提交身份未绑定、失败清理可能删除未知附件、gh 主机可能受环境覆盖三项问题，正在修正并补回归；首轮通过不构成传输链最终资格。证据为 `private-baseline-transfer-implementation-v1.json`、`private-baseline-transfer-readonly-review-v1.json`。真实旧包归档仍在同一受控进程中执行，成功收据出现前不覆盖旧 staging 或安装器。
+
+容量方向的 ledger 准入复用仍是证据目录实验，正确性对照通过，但单轮伴随归档 I/O 的 ABBA 诊断不足以建立稳定性能改善；未修改产品或通过原五档容量门禁。hooks 诊断已适配 v5 身份且仅通过语法检查，仍待归档结束后执行原期限命令。没有真实模型请求、日常配置修改或生产重启；容量、完整门禁、远端真实加密迁移和最终生产资格仍未完成。
+
+## 2026-10-22：完整候选终态、动态闭包补齐及隔离安装替代路径
+
+完整候选的字面 `npm run verify` 已终态退出 1，耗时约 20 分 26 秒；673 个单元测试文件中 669 通过，失败为容量工作负载、天玺 Python 授权、Python 隔离运行时及 Trae 扩展安全错误测试。1725 份事前冻结源码在运行后无修改或新增。代理覆盖率语句/行 91.3%、分支 90.05%、函数 92.13%；安全覆盖检查及后续 client/frontend/build/Rust 阶段因命令链失败没有执行，不能记作通过。证据为 `candidate-full-verify-v1-terminal.json` 与原始日志。
+
+后续核对发现候选缺失 11 个 Python 测试及传递依赖文件，并保留了旧 Trae `extension.js`；后者缺少已有主工作区安全错误实现，其余六个关联模块已一致。仅补齐审核闭包，不放宽断言、原 10s/20s Python 期限或容量 60s 期限。新增正数 unittest 执行计数校验及边界回归，防止旧 Python 的零测试成功退出产生假通过。回归保留在统一 unit 已发现的原测试文件中。
+
+补齐及 guard 后的 v3 冻结包含 1736 份源文件，五个 Python/Trae 专项文件普通和 c8 顺序隔离运行全部退出 0，每次前后源码摘要一致。此为专项验证，不替代完整候选门禁或全局覆盖率资格；容量超时继续未解决。证据为 `candidate-closure-sync-v3-receipt.json`、`candidate-python-guard-v3-receipt.json`、`candidate-targeted-v3-summary.json`、`candidate-targeted-v3-covered-summary.json`。动态入口审查另记录于 `candidate-dynamic-boundary-review-v3.json`，静态闭包不被视为任意计算导入、生成代码或外部原生依赖的完整证明。
+
+随后七项独立门禁终态为五通过、两失败：原 proxy 结果的安全覆盖检查、前端覆盖、thinking、env、integration 通过；frontend 的便携包旧委派断言和 hooks 终止失败保留。前端覆盖率语句/行 98.2%、分支 91.61%、函数 96.77%，不代表完整 verify 通过。专项生成的 11 个 Python 字节码文件逐项登记路径、大小及摘要，作为生成物检查，不纳入源码身份；1736 份源文件及这些生成物均未漂移。证据为 `candidate-independent-followup-v3-terminal.json`、`candidate-targeted-v3-generated-additions-supplement.json`。
+
+便携包脚本已由独立 runtime 模块执行完整闭包复制，旧 UX 断言仍查找脚本里的直接文件名。已更新委派契约，并新增八类真实文件拒绝回归，要求配置、token、日志和私有目录混入时在复制前失败，正常复制只包含配置模板。v4 仅投影该 UX 单一修改和完整便携包治理测试，继续排除无关 image 修改；v4 顺序隔离专项终态两文件均通过：UX 原 29 场景通过，便携包治理 44/44，通过后 1736 份源文件及 11 个字节码生成物摘要一致；证据为 `candidate-v4-scoped-terminal.json`。随后原 `npm run test:frontend` 完整入口终态退出 0，源码与生成物均无漂移，原 v3 前端失败由 v4 关闭；证据为 `candidate-v4-frontend-complete-terminal.json`。hooks 失败保留原 30s 命令期限及 5s 终止期限，没有放宽或自动重试；已知进程树与精确夹具参数快照未发现遗留，但不能由此证明所有未知孤儿进程不存在，也不能归因为环境负载。准备的诊断仅记录固定枚举与数字，不记录命令、参数、输出或环境。
+
+没有本地 Sandbox/VM 不再作为安装验收的必要阻塞：现有 GitHub 托管 Windows runner 已实际通过旧基线 NSIS 安装、升级、回滚、卸载与合成文件保留，运行编号 39761611237。那次候选不含本次完整恢复实现，未验证加密迁移或 24 小时容量。后续将在同一临时 Windows 用户下，以 runner 本地生成的合成 DPAPI 数据验证真实旧包到完整新包的读取、原期限保留和回滚；日常密钥、数据库和原文不上传。真实旧安装器与 625 份运行时源闭包须先归档且校验通过，才允许后续构建覆盖 staging。归档、迁移计划均不是已通过的完整安装资格。
+
+## 2026-10-22：健康探测延迟加载修复与天玺全文件诊断
+
+健康探测首次进入管理模块时，经 `management-profile` 顶层引用提前加载 Tianxi bridge/SDK；该依赖实际只用于 Tianxi 默认探测分支。已将加载移到该分支，并保持注入 bridge 的短路行为。隔离回归先复现提前加载失败，再验证模块导入、构造、非 Tianxi、注入 bridge、默认 bridge 及加载/构造/调用失败；三个定向测试文件全部通过，语法、Lint、格式与统一测试发现检查通过。证据为 `management-profile-lazy-bridge-scoped-v1-receipt.json`。
+
+修复后 Gemini 原 token-count 路由文件普通及独立 c8 运行均退出 0，保持原 15 秒 startup 期限、不使用模块计时 preload，7 个关键源码运行前后摘要一致。普通整命令约 5.04 秒，c8 整命令约 19.70 秒（包含报告生成，不是启动耗时）；证据为 `gemini-isolated-terminal-v2-receipt.json`。单文件 `--all` 覆盖率报告没有执行全局阈值及安全覆盖门禁，独立通过仍不替代四分片完整资格。
+
+天玺完整 `tianxi-sdk-handler.test.js` 在隔离目录、c8 与仅记录数字阶段的探针下终态退出 0，106/106 通过，整命令约 116.6 秒，原 HTTP 5000ms 不变。探针记录前 1024 个请求并明确省略其余 140 个，不把已记录最大耗时当作全部请求上界。此次仍不是四分片完整门禁；未复现的全量失败保持未关闭。终态与安全汇总为 `tianxi-full-covered-diagnostic-v2-terminal.json`、`tianxi-full-covered-diagnostic-v2-summary.json`。未发起真实模型请求、重启生产或变更日常配置。
+
+## 2026-10-22：本轮完整 verify 终态与下一修复
+
+`current-startup-full-verify-v1.log` 对应的字面 `npm run verify` 已终态退出 1：四个分片共 672 个文件，669 通过，失败为 `context-recovery-capacity-workload.test.js`、`gemini-token-count-routes.test.js`、`tianxi-sdk-handler.test.js`。覆盖率语句/行 91.25%、分支 90.04%、函数 92.13%；覆盖率不替代测试通过，后续 verify 阶段没有执行。终态封存于 `current-startup-full-verify-v1-terminal.json`，修改前复核 1610 路径 `changed=[]`。该冻结仍不含前述 native、插件模板及部分顶层输入，不扩大其事前身份范围。
+
+冻结解除后应用已有 Rust CAS 补丁：以保留 Acquire/AcqRel 的 compare_exchange_weak 循环替换弃用 fetch_update，并保留原容量、错误与 Drop 行为，新增容量拒绝、释放复用和并发争抢回归。正式 Cargo 测试 17/17、格式检查及 Clippy `--all-targets -- -D warnings` 全部通过。首轮 Clippy 拒绝新增回归中的立即调用闭包，改为具名失败函数后重新通过全部 Rust 检查，失败日志保留；没有关闭规则。证据为 `management-slot-cas-v2-receipt.json`，使用 Rust 1.92.0，未实际运行最低 1.77 工具链。此后源码身份不同，不沿用上段完整验证作为修改后资格。
+
+插件首两项 legacy 测试改为从明确模板与递归 lib 闭包生成独立临时产物，并使用精确限定的 test-only SDK 解析；新回归先证明干净目录没有 manifest/runtime，再验证来源字节不变、忽略目录不复制、夹具隔离及非法依赖/越界/缺失输入拒绝。实际隔离完整文件 11/11，通过原 60000ms 用例期限；静态、零警告 ESLint、格式及 CI 治理通过。Verify unit/coverage 的依赖阶段显式安装插件自己的锁文件依赖，测试中不联网安装；现代 bundle 测试仍使用本机现有 nested 依赖，实际最终候选的干净 CI 安装尚未执行。证据为 `plugin-clean-isolated-full-v1-receipt.json`，不把本机已装依赖当作干净 CI 资格。
+
+天玺原失败用例 `Unconfirmed continuation receipts...` 的请求阶段探针，在普通及覆盖率独立运行均 1/1 通过，原 5000ms 不变；这次没有复现完整分片中的超时，不据此关闭失败。延迟 history.load 的提议已否决，因为恢复后的重复 delta 请求需要其上下文签名，不能省略。仅记录数字请求号、固定阶段和耗时，无参数、内容或凭据；证据为 `tianxi-request-critical-path-original-v1.log`、`tianxi-request-critical-path-covered-v1.log`。容量、Gemini 启动与天玺整轮超时、最终候选安装/迁移及生产资格继续未完成。
+
+## 2026-10-22：当前依赖审计通过，候选闭包继续核对
+
+当前工作区实际执行 `npm audit --audit-level=high --json` 已退出 0，info/low/moderate/high/critical 总计均为 0。package.json 与 package-lock.json 摘要和本轮 1610 路径冻结一致，审计原始结果及摘要封存在 `current-dependency-audit-v1-receipt.json`。该结果只覆盖当前 Node 根锁文件依赖，不替代 Cargo 原生依赖、全仓门禁、远程 HEAD 基线的失败结果或生产资格。
+
+只读源码边界分析已排除一个无足够收益的容量方向：binding restore 的整体采样成本约 2.526s，不足以支撑原容量门禁；sessions.begin 的首次归一化与 frontier 是不同工作，binding.begin 二次归一化已有私有所有权复用，仅约 2.182ms。已有被拒编码、摘要及子树优化不换名重复实施。证据为 `capacity-readonly-structural-duplication-v1.json`、`capacity-readonly-begin-hotspots-v2.json`；没有据此修改产品、降低安全校验或增加负载。当前完整 verify 仍运行，已观测容量及天玺持久化 HTTP 原期限失败，终态尚未封存。
+
+## 2026-10-22：Node 24 原期限失败终态与远程安装推进
+
+Node 24.19.0 下原容量命令测试已终态退出 1：1 项失败，子进程在原 60000ms 期限触发 `ETIMEDOUT`，测试约 60.21s、整命令约 63.38s。五档画像、两 worker、负载和期限均未改变。该试跑与语法检查并发，不构成 Node 22/24 的受控性能对比，也不支持通过升级日常运行时关闭容量阻塞。原始日志和 SHA256 已绑定于 `capacity-node24-original-deadline-v1-terminal.json`；没有修改日常运行时或发起真实模型请求。
+
+真实远程 Windows 生命周期任务已终态成功：[run 39761611237](https://github.com/cbhandsun/https-proxy/actions/runs/39761611237) 的两个构建、安装、升级、回滚、卸载及清理全部通过。原日志确认 baseline→current→baseline 三阶段应用摘要，回滚准确还原 baseline，固定合成配置/数据（含到期字节）在升级、回滚和卸载后保留，卸载移除应用与注册信息。终态与安全筛选后的阶段证据保存在 `windows-lifecycle-remote-terminal-v1.json`。该候选仍仅为 9 文件安装验收分支，不包含主工作区的恢复实现，不扩大到加密迁移、24 小时容量、发行签名或生产资格。本地完整 verify 已通过格式、4053 文件语法、Lint（0 错误、5 警告）、CI 与发行治理并进入覆盖率单元阶段，终态待记录。
+
+核查发现 `current-startup-source-freeze-v1.json` 的 1610 路径范围没有包含实际构建的 `native/` 目录；该冻结只能证明其显式目录范围，不称为所有原生构建输入的事前冻结。保留原记录，最终候选需将原生源码及构建输入纳入完整身份校验，不能以事后快照补称事前冻结。当前完整 verify 运行期间继续禁止修改其已冻结源码。
+
+## 2026-10-22：启动重复认证修复与真实远程安装任务
+
+历史完整 verify 的 root-state 失败栈 `context-recovery-storage.js:193` 实际对应 open 尚未 ready 的期限，而不是 execute 请求期限；该文件摘要与历史冻结一致。历史失败是否发生在第二次 open 仍为推断，不将总耗时当作阶段采样。进一步真实 SQLite/cipher 计数回归先复现 5 行认证 8 次；启动原先先做 liveUsage、再 prune，存活行重复解密/语义解析。
+
+现改为同一启动事务先完成全部行认证，再用已有密文与完整 AAD 的小型 tag/version 凭据进行容量准入，之后才删除过期数据。没有跨事务或明文缓存，篡改、超限和失败仍回滚。新增 4/4 与原 storage/service/blobs 三文件 118/118 通过。原四根/32 MiB 带覆盖率单项退出 0，测试命令约 105.02s；两次 open 分别在 1668ms、8932ms ready，第二次 database_opened→engine_ready 为 7172ms。期限和负载未改；此次独立通过不能关闭完整套件超时，也没有受控前后性能结论。证据为 `storage-startup-admission-local-v1-receipt.json`、`storage-startup-admission-root32-v1.log`、`storage-startup-admission-progress-v1.json`。
+
+独立安装验收已从只写脚本推进到真实远程执行。干净 managed worktree 以 HEAD 基线仅加入 9 个验收文件，独立 npm ci 后，测试、Lint、格式及 CI 治理通过，提交为 `d074b385f575dd61b8a94c0d33f29f555154c72e`，分支为 `acceptance/windows-lifecycle-20261022`。保留 workflow_dispatch，增加 required-baseline 的 workflow_call 与仅响应该分支的 push wrapper，解决默认 master 尚无新工作流时不能手动触发的问题。默认分支、签名发布流程和日常安装均未改。
+
+[真实 Windows 安装任务](https://github.com/cbhandsun/https-proxy/actions/runs/39761611237)已启动并进入 baseline build；[原 Verify](https://github.com/cbhandsun/https-proxy/actions/runs/39761611113)同时自动触发。这里的两个产品快照是 HEAD 基线及只增加验收代码的提交，因此只验收该基线安装机制，不包含主工作区尚未提交的恢复增强和新资源修复，不能作为当前恢复候选的安装资格。后续真实终态另记，不把启动当通过。
+
+该分支原 Verify 已返回失败：node-quality 的 npm audit 报旧 MCP SDK/Vite 两项 high，Rust stable clippy 因 `AtomicUsize::fetch_update` 弃用且 `-D warnings` 失败，单元分片包含 HEAD 缺失 `scripts/lib/installed-evidence-acceptance-runtime.js` 的失败。没有把这些基线问题修饰为 9 文件验收代码通过全仓门禁。主工作区 MCP/Vite 已为 `^1.32.1`/`^6.4.5`，仍需其自身门禁；Rust 兼容修复待当前冻结验证结束后应用，不关闭警告、不直接引入超出声明 MSRV 1.77.2 的新 API。独立生命周期任务仍在运行，安装结果待定。
+
+Gemini 原 token-count 路由文件独立重跑仍出现 15s startup/no_stdout 失败；另一次固定模块加载探针执行通过，未得到足以支持产品修改的根因，原失败保留。原主工作区 1610 路径重新冻结，字面 `npm run verify` 已启动，日志为 `current-startup-full-verify-v1.log`，终态待记录；不沿用旧 663/670 冒充当前结论。当前 GUI/NSIS/portable 产物仍绑定上一个构建快照，不包含本段启动修复。容量、完整资格和生产启用继续未完成。
+
+## 2026-10-22：实际 NSIS 构建与无本地 VM 的验收路径
+
+实际 Tauri 资源映射同样遗漏 gateway scripts 与锁文件，已补齐并加入按真实映射投影安装目录的回归；修改前按预期失败，修复后 gateway/入口 7/7 通过。标准 `build-tauri-release.js` 已退出 0，完成前端、运行时准备、Rust 和 NSIS 构建。846 路径构建冻结在构建后复核一致；后续新增独立 CI 文件不扩展该冻结范围。日志为 `tauri-current-candidate-build-v1.log`。
+
+真实安装包 `dist/artifacts/installers/HTTPS Proxy Manager_0.1.0_x64-setup.exe` 的 SHA256 为 `e7dc2ec976df82c2679eb45b336312253caec2f7cf8e7629cc4940e147b85ce6`。仅解包、不执行安装器，完整运行闭包及 625 份源码摘要校验通过。初次要求打包前后 EXE 完全同 hash 的诊断失败保留；查明 Tauri 将唯一 bundle marker 从 UNK 改成 NSS 后，第二版仅还原该 marker 并逐字节核对其余全部内容，验证通过。证据为 `current-nsis-extraction-v2.json`，不能据此声称安装、升级或回滚通过。
+
+当前 raw GUI 与完整运行闭包已用实际 `build-portable.ps1 -SkipBuild -NoZip` 组装，终态退出 0；标准运行时刷新与发行目录检查通过。输出为 `dist/staging/portable/context-current-20261022/HTTPS Proxy Manager Portable`，没有生成新 ZIP。旧 ZIP 和校验文件已在 evidence 的 `previous-portable-artifacts-v1/` 保留。日常 GUI 具有全局 single-instance，故未启动候选 GUI，不宣称本地隔离 GUI 验收。
+
+用户没有隔离 Windows 环境，替代路线见[独立安装生命周期验收](windows-installer-lifecycle.md)：新增手动触发的 GitHub 托管 Windows 工作流，以两个明确提交和仅版本 overlay 构建，在临时 runner 验证安装、升级、回滚、卸载与固定合成文件字节保留。本地只执行 AST、路径防护和模拟流程测试，不执行安装器；远程工作流尚未触发。需先整理可审查、无无关修改的源提交，并确认 workflow_dispatch 可用的分支条件。现有签名发布门禁保留，合成文件不代表真实用户迁移、加密恢复或 24 小时容量资格。
+
+容量原五档、两 worker、无 CPU profiler 的原 60s 单项仍以 ETIMEDOUT 失败，证据为 `parallel-capacity-original-deadline-v1.log`。本轮没有重跑当前完整 verify、真实模型请求或重启生产/日常 GUI。容量、完整门禁、真实安装生命周期、迁移、成本资源与生产启用继续未完成。
+
+## 2026-10-22：并行收敛存储、容量与便携包阻塞
+
+存储 worker 的整包准入已经获得独立、受限的数据副本，原路径随后重复进行整请求归一化。本轮复用该副本进行原语义校验，并保留请求自身字节上限、深度与节点限制、冻结、跨线程重新验证和私有 WeakSet 身份。非法请求仍按原行为以有效消息 ID 负回复；非法 ID、关闭和终止行为另有实际 worker 回归。新增专项 4/4，完整 storage/service 两文件 65/65，原四根/32 MiB 覆盖率单项 1/1，均退出 0；原 180s 测试期限、30s 存储期限及负载未改。单项耗时 98.85s，不据不同主机负载下的历史耗时宣称受控性能提升。证据为 `storage-worker-fusion-v2-receipt.json`；完整套件中的存储超时尚未关闭。
+
+容量原五档、两 worker 的当前 CPU 采样功能全部通过，但诊断耗时 92.66s，仍不符合原 60s 期限。主要成本为完整历史归一化和精确指纹。严格单工具调用形态的候选通过 584 项差分，但微对照无收益，产品改动已撤回；保留两项契约回归，完整 binding 文件 48/48 通过。证据为 `capacity-parallel-investigation-v1-receipt.json`。没有降低负载、移除校验、调整期限或将 CPU 采样结果冒充容量门禁。
+
+插件包删除后继续精确服务的原用例在无覆盖率和独立覆盖率环境分别通过，主要耗时位于完整构建；未复现整套测试的 60s 超时，原失败仍保留。天玺原 HTTP 失败用例独立诊断通过；固定文件操作计时记录 596 次 lstat，不能将其直接相加当作端到端耗时，也未因观察结果省略祖先身份校验。
+
+便携包混用工作区源码与 staging 依赖、遗漏 gateway scripts/锁文件的缺陷已修复。新的独立模块校验全部源码、Node、原生辅助程序、锁文件和 gateway 清单，复制完整 staging 运行闭包并前后复查，拒绝篡改、链接、路径重叠、复制失败和输入变化。最新文件系统、发布治理与入口测试 37/37 通过；格式、Lint、语法、PowerShell AST 和 CI 治理通过，新测试由统一入口发现。首次刷新会话句柄缺失且没有 manifest，确认进程不存在后保留原日志，第二次标准刷新终态退出 0。625 份发布源码与工作区及 staging 清单一致，当前真实运行闭包的隔离复制和校验通过，临时输出已删除。证据为 `parallel-portable-stage-copy-v1-outcome.json`。本阶段未构建或执行当前 GUI EXE，旧 EXE 或 `-SkipBuild` 不能证明当前完整便携程序资格；NSIS 安装、升级和回滚仍需隔离 Windows 环境，不在当前用户安装上冒充验收。
+
+本阶段未重跑完整 verify，上一冻结的 663/670 失败结果保留；其他并发工作区修改不回退。生产进程启动时间仍为 2026-10-19 05:50:12，本阶段没有生产重启、日常配置变更或真实模型请求。容量、完整门禁、安装升级迁移回滚与生产启用继续是交付阻塞，整体目标未完成。
+
+## 2026-10-22：修复终止器失败后夹具遗留导致验证不退出
+
+此前完整 verify 中，Windows 树终止器失败已报错，但其自建 launcher 和管道持有后代仍存活，使测试文件不能退出。本轮只修改该测试及专用夹具：正常终止仍由原终止器、原 5s 期限负责；失败后的测试清理由独立 IPC 通道及夹具寿命上限负责，launcher 通过自己持有的 ChildProcess 句柄终止后代。清理使用专用退出码 73，正常终止断言拒绝以该退出码通过，不能用兜底清理掩盖终止器失败。
+
+新增回归验证强制终止失败仍以原安全错误拒绝、随后关闭实际管道与两个进程、重复清理、禁止清理后再启动、拒绝无关命令及 IPC 清理失败显式报错。回归保留在现有 `test/owned-fixture-command.test.js`，原统一单元入口仍发现 670 个文件。定向格式、语法、Lint、CI 治理通过；最终普通测试 10/10 通过。中间 v2 测试 8/9：原终止器再次失败，但测试在约 19.8s 内退出，新增清理回归通过，失败日志保留，没有人工清理进程；这验证了失败收尾，不代表 Windows 终止器稳定性已解决。
+
+产品代理模块和原终止器实现均未修改，完整 verify 仍保留上一冻结的 663/670 失败；本轮未重跑整轮或声称其他门禁通过。辅助模块覆盖率首轮 0/0，仅代表 c8 默认排除测试目录，没有有效覆盖率证据；随后单独纳入这两个辅助模块的诊断为 10/10，通过语句/行 95.79%、分支 91.11%、函数 100%，未改变 CI 排除或阈值。工作区同时存在本轮未编辑的前端测试改动，保留并单独记录，不纳入本轮修复。整体、I5/H1、安装生命周期与生产启用仍未完成。
+
+## 2026-10-22：诊断结束后出现前端测试入口漂移
+
+存储诊断于 `2026-10-22T08:00:33Z` 完成并校验原 1507 路径摘要一致。随后封存补充回执时，发现本轮未编辑的 `scripts/run-frontend-tests.js` 摘要已改变（文件修改时间为本机 01:02:34），当前入口加入 `image-services` 测试。保留这项工作区修改，不恢复或覆盖。原冻结路径中仅此文件改变，其余已核对路径不变；此结论不代表重新发现并覆盖所有新文件。历史 verify、包内矩阵和存储诊断各自保留原冻结边界，不扩展为修改后当前工作区的完整验收。补充封存必须明确记录漂移，不能绕过原摘要失败继续声称“当前全部一致”。
+
+## 2026-10-22：四根/32 MiB 独立诊断通过，未复现完整套件超时
+
+原四根/32 MiB 测试在当前冻结源码、覆盖率及固定 worker 回调计时下独立通过，测试 134300.17ms，含覆盖率收尾的整命令 188189.10ms。四次 `save-reference-state` 回调墙钟为 5111/6315/8053/8741ms，线程 CPU 为 4625/5375/6734/7734ms；四次 `load` 为 4470/3405/3930/3740ms，线程 CPU 为 3749/3266/3578/3328ms。仅记录固定操作名和数字，没有修改 SQLite 日志模式、原期限、校验或测试负载，1507 份源码及诊断脚本摘要复核一致。
+
+此次没有复现完整套件的存储期限失败，不能据单次通过关闭问题，也不能将全部失败归因于环境争用。worker 保存/加载回调合计约 43.8s，不能覆盖测试总耗时；夹具构建、调用方校验与序列化、传输等尚未进一步分解。两个 close 仅收到 start 指标，未采得 end，不能提供 close 耗时；进程终态和原测试断言通过另有证据。回执为 `reader-single-parse-storage-timing-v1-outcome.json`，指标为 `reader-single-parse-storage-timing-v1.json`。仍需完整门禁和原容量期限通过。
+
+安全覆盖检查独立通过：语句/行 81.97%、分支 76.12%、函数 82.97%，日志 `reader-single-parse-security-coverage-v1.log`；完整 verify 仍为本冻结的 663/670、退出 1。新增真实请求 0，生产和日常配置未变，整体未完成。
+
+## 2026-10-22：单次解析冻结的完整 verify 已终态失败，663/670
+
+`reader-single-parse-source-freeze-v2.json` 的 1507 份源码摘要复核不变，原 `npm run verify` 会话 40781 已退出 1。全仓格式、4043 文件/8 worker 语法、Lint（0 错误、5 条警告）、CI/发行治理和原生辅助程序 7 项测试通过。四分片均执行完毕，670 个测试文件中 663 通过、7 失败；代理覆盖率语句/行 91.26%、分支 90.03%、函数 92.13%，不构成门禁通过。因命令链在 `test:coverage` 失败，安全覆盖检查及后续阶段没有随 verify 执行；安全覆盖检查随后单独执行，不能补记为整轮 verify 通过。
+
+失败文件为容量负载、恢复 root-state、本地证据插件包、Gemini token-count 路由、天玺历史 HTTP、自建夹具命令及天玺 handler 七个文件。容量仍为原 60000ms 子进程期限触发 `ETIMEDOUT`（约 60126ms）；四根/32 MiB 加密 worker 测试约 164464ms 后由存储期限返回 `context_recovery_storage_unavailable`；其余失败保留原错误，不能统一归因。记录为 `reader-single-parse-verify-terminal-v1.json`，旧 668/670 不再作为本冻结的完整门禁结果。
+
+自建夹具终止器失败后留下 launcher 和持有管道的后代，导致测试文件不退出。核对固定夹具命令、PID、创建时间和父子关系后，仅清理该次自建的两个进程，原测试失败保留，未重启验证。介入回执为 `reader-single-parse-owned-fixture-orphan-cleanup-v1.json`；这项收尾介入必须随完整结果一并披露，不能称为无介入运行。
+
+接下来用原四根/32 MiB 用例做独立操作级诊断，记录固定操作名、墙钟和线程 CPU，保留原期限、负载、校验及 SQLite 日志模式。该诊断用于定位，不能替代完整资格。生产 PID 64716、日常配置及真实请求账本保持，本轮新增真实请求 0，整体继续进行。
+
+## 2026-10-22：读取引用单次解析落地，当前包四组原生合成验收通过
+
+读取结算此前先做通用 12 MiB 准入克隆，再由引用解析器完整归一化，导致同一输入重复克隆。本轮将读取专用准入合入共享解析器，一次归一化后仍完整校验语义；普通解析入口保持原行为。读取路径保留旧限制的交集：精确 v10 元数据 12 MiB，其余 2 MiB，描述符读取、深度、节点、校验和、根元数据、来源容量和发布校验保持。归一化后再次核对版本对应大小，拒绝 Proxy 在选择限制与克隆之间变更版本绕过限制。
+
+新增三个统一 CI 回归覆盖重复归一化、空/非法/访问器/循环/原型/符号/深度/节点输入、2/12 MiB 精确边界及超出一字节、变更版本 Proxy。修复前预期失败日志保留，最终三个回归通过。实际最终代码在覆盖率环境下的六组交替局部基准中，墙钟中位数 789.60→737.10ms，CPU 781→719ms，约下降 6.6%/7.9%；仅代表 32 来源元数据结算，不能外推为完整请求、存储或容量期限达标。
+
+当前冻结为 `reader-single-parse-source-freeze-v2.json`，绑定 1507 份源码。完整原始 `test:client:coverage` 已终态退出 1：1363 项中 1351 通过、6 失败、6 取消、零跳过；覆盖率语句/行 99.07%、分支 95.23%、函数 99.29%，不构成通过。失败涉及 gateway 启动、worker/加密库生命周期、WBIPC、来源捕获、容量、冷导入及 WebSocket 长历史等路径，不能归为同一个已确认根因。原期限、负载、worker、阈值及发现范围均未改动。
+
+标准发行准备已刷新 staging，625 份发布源码与当前工作区及包内字节一致。包内 Node v22.22.3 加严格模块重定向执行两个完整存储/读取测试文件，87/87 通过，工作区代理模块回退为零。当前包 Codex/Claude 默认与增强四组原生合成任务全部通过，各三次压缩；默认零恢复准入，增强精确读回、独立公开生成且无私有工具泄漏，配置未变、客户端终态。上游合成响应分别为 13/6/18/8，脚本不同，不能直接比较成本。
+
+证据为 `reader-single-parse-client-v2-result.json`、`reader-single-parse-staged-tests-v1.log`、`packaged-native-matrix-v2-outcome.json` 和本轮交付回执。仍使用隔离配置、注入入口认证/路由及合成上游，尚未证明 NSIS/便携包安装、日常多端生命周期或生产资格。本轮真实请求新增 0，累计 169/177，剩 Codex 专项 1 次、Claude 专项 7 次，不能混用。生产 PID 64716 与日常配置保持；统一 verify 另以当前源码运行记录，旧 668/670 不作为本轮结果，整体未完成。
+
+## 2026-10-21：子树编码完整覆盖率对照结束，未建立稳定收益
+
+此前仅有局部微基准的函数子树编码候选已完成原五档、两 worker 的正反顺序覆盖率对照。正向基线/候选墙钟 103316.13/106403.34ms，CPU 121142/126093ms；反向候选/基线墙钟 89001.62/105899.30ms，CPU 109344/121187ms。四次功能报告一致，但只有两个样本/实现，环境与顺序影响尚未排除，不能宣称稳定收益；四次均超过原 60000ms 期限。诊断观察包络 180000ms 不构成原期限资格。458 项有限归一化 JSON 编码/SHA 差分、缓存饱和、转义、额外字段及输入变化检查通过；不能替代完整协议与安全验收。候选不合入，原门禁失败保持。
+
+回执为 `.hpm-acceptance/context-plugin-vault-20261021-01/function-subtree-capacity-v1-receipt.json`，含完整结果、候选、预加载器、运行脚本与差分检查摘要。会话 46830 已终态退出 0，代表诊断完成；没有修改产品、负载、期限、覆盖范围或 worker 数。新增真实请求 0，累计账本仍 169/177，生产与日常配置未变，整体仍未完成。
+
+发行目标核对：当前 `src-tauri/tauri.conf.json` 配置为 `nsis` 与 `app`，便携包由 `scripts/build-portable.ps1` 构建；当前没有配置 MSI 目标。后续安装、升级、迁移与回滚资格按 NSIS/便携包验收。下文历史段落中的 MSI/portable 是旧泛称，不代表存在或已验证 MSI 产物。
+
+## 2026-10-21：设置页补齐默认策略、恢复成本与留存权限说明
+
+设置开关改为“精确上下文恢复增强（可选）”，明确新策略默认使用客户端原生压缩；内部恢复完成后独立公开生成会增加模型调用和等待。加密留存说明明确偏好独立保存，单开留存不会开启恢复或授予原文读取权限，期限以运行状态为准、已有记录不续期。两个输入通过 aria-describedby 关联说明。未修改代理行为、默认配置或运行状态的验收声明。
+
+静态回归进入既有统一前端测试文件；前端 28/28 文件、前端覆盖率 8/8 文件和原阈值、架构检查与生产构建通过。覆盖率为语句/行 98.2%、分支 91.61%、函数 96.77%。构建仍提示单个 JS chunk 超过 500 kB；未调整阈值。定向格式检查通过；定向 Lint 无错误，既有两条 prefer-const 警告保留。首轮新测试的闭合标签换行匹配错误、随后旧测试的属性换行匹配错误均已修正，失败日志保留。此次为静态标记与构建验收，尚无屏幕阅读器、键盘或实际安装 UI 验收。
+
+诊断候选均未合入：批量属性描述符覆盖率微基准墙钟 114.14→166.87ms；fast-null v1 归一化加前沿组合墙钟 9543.93→9737.14ms、CPU 8859.5→9640.5ms；fast-null v2 归一化墙钟 110.69→120.09ms。后两者各 466 项有限差分一致并不构成完整资格，V8 快速属性诊断仅用于定位。未因无收益候选重跑完整容量负载。
+
+回执为 `.hpm-acceptance/context-plugin-vault-20261021-01/recovery-settings-v1-receipt.json`。原 1507 文件冻结仅两个前端测试改变，HTML 单独绑定；此前原生与打包矩阵保持其原源码证据边界，不称为本轮完整复验。完整 verify 仍保留此前 668/670 终态，容量 60000ms 与 WBIPC 5000ms 失败未解决。真实请求仍 169/177，剩 Codex 专项 1 次、Claude 专项 7 次；未新增真实请求、修改日常配置或重启生产，整体未完成。
+
+## 2026-10-21：包内两端默认/增强四组原生预演通过，指纹融合候选拒绝合入
+
+在当前 staging 的 Node 与代理模块上执行 Codex CLI 0.160.1、Claude Code 2.1.292 默认/增强四组完整任务，四组全部通过，各完成三次原生压缩。默认恢复 admission/root/snapshot 均为 0；增强精确读回、独立公开生成及无私有工具泄漏通过，配置摘要不变、原生客户端终态。预加载器核对包内 Node 实际路径、将测试对工作区代理模块的引用映射至 staging，并在退出时验证没有加载工作区代理模块。全部 625 份发布源码及 1507 份产品冻结摘要一致。
+
+本次仍使用临时客户端配置、注入的入口认证/路由和合成上游，响应数分别为 Codex 增强/默认 13/6、Claude 增强/默认 18/8。Claude 的普通 MCP 仅提供原始来源夹具。包内 Node/Core 组合已有证据，但不等于日常配置、NSIS/portable 安装、跨设备、完整真实模型或生产资格。回执为 `packaged-native-matrix-v1-outcome.json`；共享 gateway、来源夹具、预加载器与旧冻结摘要逐一复核，统一封存在 `packaged-matrix-and-fusion-rejection-v1-receipt.json`。
+
+容量方向仅在诊断投影尝试标量指纹融合：描述符克隆时共享转义编码并计算精确指纹，避免前沿计算重复遍历。v1 因诊断代码的局部 `length` 遮蔽出现 ReferenceError，原文件保留，v2 修正后 466 项差分通过，覆盖编码预算、Unicode/转义、访问器零执行及修改后重验；这是有限差分，不是完整安全或协议资格。组合局部覆盖率基准墙钟 10988.03→10515.59ms、CPU 10609.5→9937.5ms，但完整原五档、两 worker 的正反顺序对照均变慢：基准/候选墙钟分别 92238.27/106761.63ms、110384.11/129294.38ms，CPU 分别 111547/122500ms、116812/144250ms，故拒绝合入。四次五档功能报告一致；180s 只是诊断观察包络，全部不能算原 60000ms 容量门禁通过。
+
+对照期间只读主机快照显示总 CPU 90%、16 个逻辑处理器、约 42 GiB 可用物理内存；未取得进程负载归属，不能据此证明具体超时根因。没有调整负载、worker、期限、阈值或产品源码。真实请求新增 0，累计 169/177；完整 verify 仍为 668/670，生产未动，整体继续进行。
+
+## 2026-10-21：当前冻结候选运行包刷新，包内 Node 回归 136/136
+
+刷新前确认 `dist/staging/runtime` 在当前工作区内且无进程使用该目录；原 staging 中的 `context-recovery-state-data.js` 摘要落后于当前缓存分层修复。标准 `scripts/prepare-release-runtime.js` 已退出 0，重新准备原生辅助程序、包内 Node 和八个直接运行依赖，安装 116 个包；未生成或安装 MSI/portable，也未动生产进程。
+
+新 manifest 的 625 个发布源码摘要逐一与工作区及 staging 实际字节一致，包内 Node 与当前执行 Node 摘要一致，版本 v22.22.3，原生辅助程序摘要校验通过。随后使用包内 Node 运行既有 root-state、history-map、binding 三个完整测试文件，136/136 通过，零失败、取消和跳过，总计 104761.57ms。预加载器将测试对工作区代理模块的引用重定向至 staging，三个文件均有实际重定向，退出时工作区代理模块加载数为 0；测试本身仍来自工作区，不能称为已安装客户端或完全独立安装包验收。
+
+全部 1507 个冻结产品源码摘要复核不变；回执 `current-freeze-staging-v1-receipt.json` 绑定准备日志、包内测试日志、预加载器和 manifest。当前完整 verify 仍为 668/670，WBIPC 和覆盖率容量超时不改判；日常配置、真实请求账本和生产保持，整体继续进行。
+
+## 2026-10-21：Codex 同输入合成成本对照完成，真实费用仍未测量
+
+使用同一验收脚本、Codex CLI 0.160.1、实际 Core handler、相同开发者指令与用户问题、10106 字节原始工具输出、三次原生压缩，分别运行默认与增强四轮交替样本，共八次完整任务均通过。所有样本原文 SHA256 一致；默认恢复 admission/root/snapshot 为 0，增强精确读取与独立公开生成、两种模式原始工具仅执行一次、无私有工具泄漏、客户端进程终态及日常配置摘要不变均通过。合成上游在增强模式强制执行精确恢复，两种模式的最终答案均由脚本预置，不能证明真实模型回答质量。
+
+| 指标 | 默认（4 样本） | 增强（4 样本） |
+| --- | --- | --- |
+| 每任务合成上游响应 | 均为 6 | 均为 13 |
+| 整任务墙钟 p50 / p95 | 1781.28 / 2253.41 ms | 2413.71 / 2714.85 ms |
+| 首个上游请求到达 p50 | 1502.07 ms | 1779.75 ms |
+| Node CPU p50 | 594 ms | 1250 ms |
+| 采样 Node RSS 最大值 | 83988480 字节 | 96591872 字节 |
+| 每任务上游请求 / 响应字节 | 135217 / 18585 | 339003 / 37833 |
+
+墙钟包含原生 CLI；CPU/RSS 只覆盖 Node Core 验收宿主，不包含原生 CLI。RSS 为 10ms 采样，可能遗漏峰值；四样本的最近秩 p95 等于最大值，不是稳定长尾估计。首个上游请求到达不是用户首字节；合成 usage 不是实际 token，更不是费用。宿主在两种模式均预先构造 sessions，不能据此证明默认冷启动完全不实例化恢复模块；未测持久库磁盘量。关闭回调尚可能排队，资源快照也不能证明句柄泄漏或无泄漏。
+
+v1 验收脚本错误地进入真实请求禁止分支，在一个合成响应后安全失败；失败结果保留。v2 明确只派发至合成上游，八任务通过，新增真实请求 0，账本仍 169/177。回执 `codex-controlled-cost-v2-receipt.json` 绑定样本、脚本、夹具及全部 1507 个产品冻结摘要；整体完整 verify 仍未通过，未激活生产。
+
+另一次参数对象专用克隆只在诊断投影验证，10 项有限差分一致，局部覆盖率基准墙钟 144.30→143.16ms，但 CPU 133.5→140.5ms，未建立收益而拒绝合入。`history-function-record-covered-micro-v1.json` 不是完整安全或容量资格。
+
+## 2026-10-21：当前源码两端默认与增强四组原生预演通过
+
+已落盘 `native-current-matrix-v1-outcome.json`：Codex CLI 0.160.1 与 Claude Code 2.1.292 分别完成默认、增强模式，四组均经过真实原生客户端和实际 Core handler，各三次原生压缩，1507 个产品源码摘要与验收脚本摘要复核一致。全部使用合成上游，本批新增真实模型请求 0。增强模式精确私有读取、独立公开生成及无私有工具泄漏通过；默认模式恢复 admission、root、snapshot 均为 0，保持原生压缩。四组上游响应分别为 13、6、18、8 次，但脚本和最终问题不同，不能据此比较真实成本。
+
+Codex 两组进一步使用 Core 内实际 `createAuthResolver` 只读解析当前官方凭据，并验证文件保护及恢复凭据资格；构造出的真实认证头在发往回环合成上游前全部替换，回环检查未收到真实 token。这补齐只读凭据解析路径证据，不能证明服务端凭据有效性或同一任务中真实模型与此凭据路径的完整组合。四组仍注入入口认证和路由，使用临时客户端配置，不能扩展为日常安装、跨设备或生产验收。恢复本身未安装 HPM 插件；Claude 的普通 MCP 仅提供原始来源夹具。
+
+Claude 默认 v8 的失败保留：合成上游对 `stream:true` 返回 JSON，引发原生 SDK 非流式回退，摘要请求从 3 变为 6。v9 仅修正验收上游按协议返回 SSE，保留原三次摘要断言，并增加全部 8 次请求为流式、没有回退的校验，最终通过；不是产品修复。完整 verify 仍为 668/670，两个超时失败没有改判。真实账本保持 169/177，剩余 Codex 专项 1 次、Claude 专项 7 次，不能混用；日常配置和生产未变，整体未完成。
+
+另两个仅诊断的性能候选未合入：函数子树编码缓存在局部覆盖率微基准墙钟 247.85→237.81ms，尚无完整负载收益；小前沿一次性 SHA 候选变慢，墙钟 4734.10→5033.46ms、CPU 4601.5→4687.5ms，拒绝采用。相关回执为 `function-subtree-covered-micro-v1.json`、`small-frontier-hash-covered-micro-v1.json`，均不能作为容量资格。
+
+随后仅在诊断投影中尝试复用指纹函数当次产生的小消息编码，避免前沿缓存未命中时重复序列化；不跨请求保留原文。24 项差分检查一致，但四轮交替覆盖率微基准墙钟 4516.41→4854.00ms、CPU 4445→4586.5ms，拒绝采用，没有进入产品源码或启动完整容量对照。此 24 项检查仅含三种 protocol 标签下同一 Chat 形状的历史与长度变化，不是三种协议的语义验收。证据为 `frontier-encoding-capture-covered-micro-v1.json`；产品冻结版本保持。
+
+## 2026-10-21：当前完整 verify 终态，668/670 文件通过
+
+缓存分层修复后的完整 `npm run verify` 会话 14146 已终态退出 1。原四分片全部结束，168/168/167/167 文件分别失败 0/0/1/1，共 670 文件中 668 通过；仅 `client-context-target.test.js` 的 chat WBIPC 持久化恢复第二轮请求超过原 5000ms，以及 `context-recovery-capacity-workload.test.js` 的资格命令超过原 60000ms。所有负载、断言、期限和阈值保持。代理覆盖率为语句/行 91.25%、分支 90.03%、函数 92.12%；独立运行原安全覆盖率检查通过（81.97%/76.12%/82.97%）。后续 verify 阶段未执行，不累加此前源码的通过结果。
+
+1507 个冻结源码摘要全部一致，终态回执为 `tiered-state-cache-verify-terminal-v1.json`。WBIPC 原失败用例随后在相同 c8 覆盖率采集下单独运行通过，17 类模式保持、原 5000ms 请求期限保持，总计 11097.676ms；第二轮私有读取耗时由完整运行中的 1721ms 到此次 352ms。该结果说明存在明显的并行负载差异，不追溯改判完整失败或宣称根因已修复。原容量文件独立带覆盖率运行仍为 9/10 通过，唯一失败仍是原 60000ms 子进程超时，总耗时 65675.3753ms；因此不能将容量超时全部归因于四分片竞争。
+
+随后对原五档、两 worker 命令进行 c8 加 CPU 剖析，诊断观察包络为 180s，不能替代原期限：五档功能报告通过，主进程墙钟 58216.09ms、CPU 85422ms，余量仍不足以宣称稳定。三个线程的剖析将主要开销定位至历史校验约 17445ms、前沿计算约 21228ms，其中消息指纹约 16586ms；为跨线程累计采样并含重叠调用，不能直接相加或当作请求延迟。减少通用标量叶子递归的第二个诊断候选在 c8 微基准也变慢（158.97→172.42ms，CPU 156.5→171.5ms），拒绝采用。缩小规模的纯缓存机制观察中，单/四 root 均无缓存驱逐，四 root 前沿命中 33040/39244 项，未支持“4 槽容量抖动”假设；这是定位用观察，不是容量资格。
+
+状态解析标量消息快路径仅在诊断投影实现，244 项差分检查一致，但交替微基准墙钟中位数 56.89→61.14ms，CPU 62→62.5ms，未建立收益，拒绝采用，不启动无收益候选的完整容量对照。产品未改变，未增加真实请求，未动日常配置和生产。证据位于 `.hpm-acceptance/context-plugin-vault-20261021-01/`：`isolated-wbipc-covered-v1.log`、`isolated-capacity-covered-v1.log`、`capacity-covered-profile-v1/summary.json`、`capacity-covered-profile-v1/lines.json`、`frontier-cache-observation-v1.json`、`state-scalar-differential-v1.json`、`state-scalar-micro-v1.json`、`inline-history-scalars-covered-micro-v1.json`。
+
+## 2026-10-21：当前源码 Codex 完整 Core 隔离全真实验收通过
+
+当前 1507 文件冻结版本经 v4/v5 官方桥接零真实请求预演，各以 13 次合成调用完成三次压缩、精确读回和独立公开生成。v4 首轮真实运行在桥接未传 AbortSignal 时失败，保守扣记 1 次；失败回执保留。仅修正隔离验收脚本传参后的 v5 完整真实任务通过：14 次真实请求、三次原生压缩、原始工具一次、精确私有读回、公开请求携带完整授权原文、独立生成答案精确一致、上游全部 200、无私有工具泄漏、配置未变且进程终态。产品源码和验收脚本哈希复核一致。
+
+本次 Core 入口认证和路由由隔离 fixture 注入，官方凭据绑定在出口桥接完成；不能扩展为 Core 自身官方凭据解析、日常安装、跨设备或生产启用证明。Claude 完整 Core 全真实结果仍属于此前源码快照；本次没有重新调用 Claude。专项授权 16 次已保守计用 15 次，剩 1 次；原有 7 次仍专留 Claude，累计账本为 169/177，不自动重试。
+
+当前完整 `npm run verify` 会话 14146 仍运行：格式、4022 文件语法、Lint、CI/发布治理及原生恢复检查已通过，进入原四分片单元覆盖率。已有 `client-context-target.test.js` 的 chat WBIPC 撤权用例请求超时失败，须保留完整运行并继续定位，不能宣称完整门禁通过。此前缓存分层修复的原容量文件独立运行 10/10 通过，原 60000ms 时限、五档负载和两 worker 保持；该结果不改判完整门禁。
+
+回执：`.hpm-acceptance/context-plugin-vault-20261021-01/codex-core-complete-v5-outcome.json`，真实及预演脚本、失败、授权和源码冻结均绑定 SHA256。整体仍 active；生产未重启，日常配置未改。
+
+## 2026-10-21：修复状态字节计数缓存饥饿，开始原期限验证
+
+重开状态的解析先遍历短标识和摘要；旧的请求内字节计数 memo 前 128 个槽可能因此耗尽，后续反复出现的大段原文无法复用计数。将 memo 分为短/大字符串两个 64 槽层，共享原 4 MiB raw-text 上限，总条目上限仍为 128，生命周期仍限一次解析。输入校验、转义字节计算、总预算、深度、节点、来源权限和状态语义均保留。
+
+新的统一 CI 回归先在旧实现失败，修复后通过，验证短标识后重复原文的扫描有界、跨解析重新计数、少一字节仍拒绝、超过缓存字节额度的大值不继续累积。定向诊断中一次解析的大原文计数次数从 256 降为 1；原状态及历史映射投影回归 88/88，通过。原五档、两 worker 正反顺序完整对照报告一致：基准/候选墙钟分别 53116.16/50533.47ms、59834.04/58441.65ms，CPU 分别 71453/70251ms、79859/75515ms。此为 180s 诊断观察，不代替原 60000ms 门禁。
+
+本轮产品改动仅 `context-recovery-state-data.js` 与既有统一测试 `context-recovery-root-state.test.js`，1507 文件冻结中仅此两文件摘要变化。定向格式、Lint 和新增两项回归通过；原容量文件完整运行正在进行，修复后完整门禁尚待执行。真实额度、日常配置及生产不变。证据：`state-size-cache-starvation-v1.json`、`tiered-state-cache-capacity-v1.json`、`tiered-state-cache-regression-before-v1.log`、`tiered-state-cache-regression-after-v1.log`、`tiered-state-cache-source-freeze-v1.json`。
+
+## 2026-10-21：完整 verify 已终态，670 文件仅容量命令失败
+
+同一 1507 文件冻结版本的完整 `npm run verify` 已终态退出 1。原四个 unit 分片全部结束，670 文件中 669 通过，唯一失败文件为 `context-recovery-capacity-workload.test.js`，失败用例是资格命令的原 60000ms 时限；未改变五档负载、两 worker、期限、断言或覆盖率阈值。代理覆盖率语句/行 91.25%、分支 90.02%、函数 92.12%，冻结源码和测试摘要全部一致。先行格式、语法、Lint、CI/发布治理、原生恢复 Rust 7/7 已通过。`verify` 在 `test:coverage` 的 unit 非零结果停止，后续客户端、前端、集成、构建及完整 Rust 门禁未由本次执行。随后单独执行安全覆盖率检查通过：语句/行 81.97%、分支 76.12%、函数 82.97%；该检查不改变完整门禁失败。
+
+后续八项门禁按独立命令全部执行终态：前端覆盖率、前端测试、thinking、环境、集成、前端构建、完整 Rust 测试均退出 0；hooks 退出 1，第二项用例在临时目录清理时出现 AggregateError，主失败与清理失败需继续分开诊断。独立通过不改判完整 verify，当前还存在容量和 hooks 两项失败。回执为 `independent-remaining-gates-v1-result.json`，各阶段完整日志分别保留。
+
+hooks 随后在原期限下单独运行，通过 2/2。只记录固定边界字段的诊断观察到合法/非法两次命令分别约 14.0s/13.4s，退出码 0/1，无执行失败，清理成功；该次没有重现先前的目录清理错误，不能据此确认其根因或追溯改判。完整 Rust 为主库 15 项、辅助程序 1 项通过，doc-tests 为 0 项。全部本地工作后，1507 文件冻结摘要仍一致，真实请求仍为 154/161、生产 PID 64716 启动时间仍为 2026-10-19 05:50:12，未重启。
+
+并排插件迁移 v1 在源包核验阶段失败，尚未执行任何安装：旧证据引用的日常缓存 0.1.0 已不存在，日常缓存目录当前只有 0.1.1。v2 重新核验此前独立 vault 中含诊断 launcher 元数据的旧包，使用两个 marketplace 身份，完成活动旧会话下安装、选择新身份、新建新版会话、选择旧身份和新建回滚会话；旧/新活动原文、原到期、跨线程拒绝、两个缓存完整及终态均通过。此项为显式受信宿主捕获，不含自动 Hook，候选流程尚未接入日常安装器。保留 v1 失败，未改日常配置或生产。
+
+Codex 新完整 Core 脚本 v2 合成验收及 v3 官方桥接零网络预演分别通过；v3 同时执行官方凭据绑定与请求规范化，再用合成响应完成三次压缩和独立公开生成，共 13 次合成响应、0 次真实请求，配置摘要不变、无私有工具泄漏。其 Core 入口授权和路由仍由隔离 fixture 注入，官方认证发生在桥接出口，不能声称验证了 Core 本身的官方凭据解析路径。完整 Core 真实 Codex 复验尚待专项请求授权；现有账本 154/161，余 7 次仅限 Claude。
+
+新增请求内编码复用候选仅存在于诊断投影，46 项绑定回归通过。规范化加 frontier 微基准墙钟中位数 28.50→25.66ms，CPU 31→32ms；原五档、两 worker 完整负载单顺序对照中，基准墙钟 58311.83ms、CPU 78609ms，候选墙钟 59463.41ms、CPU 80578ms，报告完全一致但未建立性能收益，拒绝合入。该对照采用 180s 诊断观察窗口，不替代原 60000ms 命令门禁；产品源码及统一测试均未改变。结果为 `shared-request-capacity-v1.json`，保留候选、微基准、投影回归及完整对照日志。
+
+证据：`native-core-complete-followup-verify-v1.log`、`followup-verify-terminal-v1.json`、`plugin-side-by-side-v1-result.json`、`plugin-side-by-side-v2-result.json`、`codex-native-core-complete-v3-preflight-result.json`。
+
+## 2026-10-21：安装版冷升级与回滚通过，完整 verify 正在运行
+
+使用当前实际 codex-cli 0.160.1，在新建隔离用户目录中安装日常缓存的真实 0.1.1 闭包包、切换到当前源码构建的 0.1.1 自包含包，再从独立 vault 恢复原闭包包。三轮均由原生 app-server 启动插件，暴露目录和读取两个工具；通过受信宿主适配器显式捕获合成原文后，精确读取正确、来源有原到期字段，三轮进程均终态。包完整性分别核对安装后的实际字节摘要；旧包 3691 文件、17409683 字节，新包 10 文件、1956936 字节，版本号相同而包摘要不同。全部安装/卸载/marketplace 命令退出 0，保留原 60000ms 安装期限。日常配置、项目配置和代理配置摘要均未变化，模型请求新增 0，累计 154/161。
+
+这是每次切换前结束隔离 app-server 的冷替换及回滚证明，不能扩展为旧活动进程下的热迁移、跨重启原文保留、原文 TTL 连续性或自动 Hook 执行证明。三轮来源属于各自新建的内存会话，未迁移旧插件内存原文。此前旧版活动回滚被原生安装器拒绝的结果继续保留。
+
+容量方向另验证单次标量工具调用消息的原生 canonical 序列化候选：逐项 SHA256 一致，六轮交替局部墙钟中位数 127.38→120.50ms、CPU 125→117ms；但原五档、两 worker 完整负载基准 71232.24ms、候选 85735.60ms，CPU 83765→97094ms，故未合入。180s 观察包络仅用于取得完整诊断报告，不替代原 60000ms 门禁。产品源码和测试仍与 1507 文件冻结摘要完全一致。
+
+字面 npm run verify 已启动；目前全仓格式、3992 个 JavaScript 文件语法、Lint、CI/发布治理及原生恢复 7 项测试通过，已经进入原四分片完整 unit 覆盖率阶段；后续门禁仍运行中，不能宣称完整 verify 通过。当前 exec 会话 11008，日志 native-core-complete-followup-verify-v1.log；继续工作时先观察同一活进程，不因观察超时另起整套。此前完整客户端容量失败和完整 unit 旧运行失败不改判。Codex 实际 Core 的完整真实模型组合仍缺证据：现有完整真实任务是隔离 owner 路径，Core 组合为合成模型；Claude Core 全真实通过保持。
+
+证据目录 .hpm-acceptance/context-plugin-vault-20261021-01/：native-installed-migration-v1-result.json、native-installed-and-capacity-followup-outcome.json、native-tool-call-candidate-rejected-outcome.json。整体 active；仍需容量期限、完整门禁、热迁移/实际宿主组合、Codex Core 全真实及受控生产启用。
+
+## 2026-10-21：Claude 完整 Core 全真实三次压缩验收通过
+
+同一完整任务脚本在真实模型下退出 0：17 次真实请求、三次原生客户端压缩、原始 MCP 工具仅执行一次、精确目录与原文读回、独立公开生成、最终答案完全一致；privateWireLeak=false、fullCoreEntrypointVerified=true、configurationUnchanged=true、processTerminal=true，全部上游响应为 200。实际 Core handler 使用隔离注入的入口认证和路由，模型、凭据复用现有配置；不把此验收扩展为日常客户端安装、跨设备迁移或生产启用。真实请求账本从 137/161 到 154/161，剩余 7 次，没有自动重试。
+
+真实任务结束后，1507 个产品源码和测试冻结摘要全部一致，三份验收脚本摘要也与启动前冻结一致。统一回执 claude-core-complete-v6-outcome.json 绑定真实与合成结果、脚本冻结和额度授权的 SHA256，passed=true；生产 PID 64716 的启动时间仍为 2026-10-19 05:50:12.6601782 -07:00，未重启。
+
+上一轮完整 unit 的五个失败文件单独隔离排查：codex-responses-routes、installer-process-cleanup、tianxi-sdk-history-http、tianxi-client-read-options 四文件通过；tianxi-sdk-handler 为 106 项中 105 通过、1 失败，失败是 receipt 已提交后历史保存失败用例的原 5000ms HTTP 请求超时。同一用例随后独立运行通过；没有提高期限、修改断言或改判原完整文件失败。该结果表明仍有完整文件运行下的期限问题，不能宣称全量绿色。原完整 unit、完整客户端容量 60000ms 失败和完整 verify 未通过的状态保留。
+
+证据目录 .hpm-acceptance/context-plugin-vault-20261021-01/：claude-native-core-complete-real-v6-result.json、claude-core-complete-v6-outcome.json、isolated-prior-unit-failures-v1-result.json 和 history-save-after-receipt-isolated-v1.log。当前仍需容量优化、完整门禁、日常插件迁移与生产启用，整体 active。
+
+## 2026-10-21：完整 Core 合成预演通过，两项 canonical 性能候选不合入
+
+沿用当前 1507 文件冻结源码，重新组装 Claude 原生客户端 → 实际 Core handler → 恢复会话 → 上游的完整任务验收脚本。入口认证和路由由隔离 fixture 注入，不修改日常客户端或生产配置。合成模型预演退出 0：三次客户端压缩、原始 MCP 工具仅执行一次、目录与精确读回、独立公开生成、最终答案完全一致，私有工具 wire 检查无泄漏，进程终态与清理通过，完整 Core 标记为 true。共 18 次合成上游响应、0 次真实请求；这不是完整 Core 的真实模型验收。依据用户追加 17 次的明确授权，累计真实请求上限从 144 调整至 161；启动时已用 137，本轮最多 24，复用现有凭据、不自动重试、不改日常配置。真实任务正在执行，终态另记。
+
+此前探索的两个 canonical 候选均未进入产品源码。小键排序网络的局部墙钟中位数 182.49→173.89ms，但 CPU 164.5→195.5ms，拒绝；标量 role/content 指纹缓存虽在微基准改善，原五档、两 worker 完整负载顺序比较仅 53103.67→52097.17ms，反向比较候选 83607.41ms、基准 78753.95ms，CPU 也变差，未建立稳定完整负载收益。诊断允许 180s 观察以取得完整报告，不能代替原 60000ms 容量门禁；不改变负载、阈值或期限。1507 个冻结文件摘要复核无变化。
+
+证据目录 .hpm-acceptance/context-plugin-vault-20261021-01/：claude-native-core-complete-synthetic-v6-result.json、claude-core-complete-real-v6-harness-freeze.json、budget-authorization-161.json 和 canonical-candidates-rejected-outcome.json。容量、完整 unit/verify、日常已安装插件迁移及生产启用仍未完成，整体 active。
+
+
+## 2026-10-21：常量拆分候选完整客户端仅容量失败，插件缓存移除独立通过
+
+当前冻结版本标准 `test:client:coverage` 已终态退出 1：1358 项中 1357 通过、1 失败、0 取消、0 跳过，主体 239442.9614ms；唯一失败是容量命令原 60000ms 期限。覆盖率语句/行 99.07%、分支 95.22%、函数 99.29%，保持原阈值。此前 Core 接续、WBIPC、ACL、存储重开和网关启动在本轮通过，但不能把跨轮变化全部归因于常量拆分。本轮开始前发布准备已经结束，没有上一轮准备与测试前段的重叠。
+
+原容量用例另在不加覆盖率、不加 CPU 剖析、没有其他验收并行的条件下独立运行，仍在 60000ms 超时退出 1；因此不能仅以完整门禁并发解释容量失败。现有剖析的调用树按样本去重归集后，主要累计路径是绑定 frontier 计算约 21.8s、历史规范化约 15.4s、重开约 12.1s、导出约 8.2s；这些范围互有包含，不能相加为独立成本。进一步优化应针对这些路径，保持原五档、两 worker、负载和期限。
+
+插件整包移除场景随后使用隔离环境独立运行原文件，10/10 通过、22931.3294ms，保持原 60000ms 用例期限；包括可丢弃整包移除后精确读取既有原文、继续捕获、不重置到期和拒绝外线程访问。这是临时包/缓存资格，不等于日常已安装插件迁移或生产启用，也不追溯改判旧完整 unit 的超时。
+
+完整客户端及插件独立运行后，1507 个冻结源码/测试摘要再次全部一致；六个相关产品模块的源码与 staging SHA256 均一致。原源码回归、扩大回归 43/43、无钩子 Core 4/4、原期限容量失败、完整客户端和插件结果分别封存，统一回执 `wbipc-constant-boundaries-outcome.json` 绑定所有原日志和冻结摘要。生产 PID 64716 启动时间实时复核仍为 2026-10-19 05:50:12；真实请求仍 137/144、本批新增 0，日常配置未改。
+
+当前新版本完整 670 文件 unit 尚未运行；上一版完整 unit 8 文件失败不能由本轮定向结果改判。完整 verify、容量期限、完整 Core 真实组合、日常插件迁移及生产启用仍待完成，整体 active。证据位于 `.hpm-acceptance/context-plugin-vault-20261021-01/`：`wbipc-constant-boundaries-client-full.log`、`wbipc-constant-boundaries-capacity-deadline-isolated.log`、`wbipc-constant-boundaries-plugin-removal-isolated.log`、`wbipc-constant-boundaries-outcome.json` 和 `capacity-current-digest-profile/callpaths.json`。
+
+## 2026-10-21：拆开 WBIPC 常量与执行模块依赖，定向回归通过
+
+独立同步边界诊断确认，恢复转换入口首次遇到 WBIPC 分支时，入口只为读取工具发现标识导入完整 catalog，派发只为读取两个默认限制导入完整旧规划器；不合资格请求也会同步加载这些执行依赖。将原常量移至 `context-tool-discovery-contract.js` 和 `workbuddy-context-limits.js`，原 catalog/规划器继续重导出相同字段和值；恢复入口/派发改用轻量模块。资格检查、请求和协议转换、限额、重试、授权与发布逻辑未改变，新增模块进入发布源码清单。
+
+新增统一 unit 回归在旧实现下失败，修改后通过。五文件扩大回归 43/43，通过原入口/派发、转换、catalog 和规划器用例；定向格式、Lint、CI/发布治理和 diff 检查通过。冻结 lib/test/scripts 全部 JS/CJS/MJS/JSON 与包清单和 ESLint 配置，共 1507 文件；相较上一轮仅四份既有产品模块、两份新常量模块、发布清单和回归文件改变。
+
+六轮交替、每个样本独立子进程，在相同 Core 导入后触发同一不合资格 WBIPC 请求：新增模块数稳定 38→14，墙钟中位数约 173.47→78.31ms，CPU 中位数 172.5→78.5ms；planner/catalog 不再加载。四份旧源文件由投影还原后分别核对原冻结 SHA256 一致，未用近似旧实现比较。这是单次冷拒绝路径的局部诊断，不等于完整 Core 请求、吞吐或容量修复。
+
+不带诊断钩子的原 Core 内存接续及 Chat/Responses/Claude WBIPC 用例 4/4 通过，37165.6576ms，均为合成模型。此前带钩子的两项存储失败受到诊断自身影响：Worker 共享 PID，按 PID 命名的出口文件碰撞导致 Worker 失败；该运行不能作为产品回归证据，日志保留，诊断命名已包含 threadId 与随机标识。发布 staging 刷新退出 0；当前容量原 60000ms 用例的独立诊断正在执行，当前版本完整客户端门禁仍待运行。真实请求仍 137/144、本批新增 0，生产未重启，日常配置未改，整体 active。
+
+证据目录 `.hpm-acceptance/context-plugin-vault-20261021-01/`：`wbipc-constant-boundaries-before.log`、`wbipc-constant-boundaries-after.log`、`wbipc-constant-boundaries-expanded.log`、`wbipc-constant-boundaries-benchmark.json`、`wbipc-constant-boundaries-core-uninstrumented.log`、`wbipc-constant-boundaries-complete-source-freeze.json`、`wbipc-constant-boundaries-release-prepare.log`。
+
+## 2026-10-21：当前完整客户端门禁退出 1，发布 staging 已刷新
+
+DPAPI 冷却版本的标准 `test:client:coverage` 已终态退出 1：1357 项中 1346 通过、8 失败、3 超时取消、0 跳过，测试主体 285232.1659ms。覆盖率语句/行 98.86%、分支 95.23%、函数 99.21%，达到原阈值；1505 个冻结源码和测试摘要再次全部一致。失败及取消涉及 Core 自动接续和 WBIPC、API 证据夹具启动、原容量 60000ms、原生 ACL 独立校验、加密重开及源网关启动/清理期限，不能笼统归因或改判。
+
+发布准备退出 0，staging 加密模块和源码 SHA256 一致。准备命令的末段与客户端门禁前段有时间重叠；保留这一诊断限制，未证明它导致失败，不用这一点抹去失败，也不把本次称为独立性能测量。回执为 `dpapi-probe-cooldown-client-terminal.json`，绑定实际统计、覆盖率、冻结复核和 staging 摘要；原日志、失败、诊断脚本各版本均保留。
+
+本批新增真实请求 0，累计 137/144；Claude v25 隔离原生全真实新任务通过的原有证据保持，但完整 Core 入口验收仍未完成。生产 PID 64716 的启动时间实时复核仍为 2026-10-19 05:50:12，未重启，日常配置未改。完整 verify、原容量期限、系统/存储长尾、插件迁移和生产启用仍未完成，整体 active。后续应先逐项定位失败，冻结修复后再运行相应门禁，避免对相同源码反复整套重跑。
+
+## 2026-10-21：当前完整代理门禁收尾，670 文件执行、8 文件失败
+
+DPAPI 冷却版本的标准 `npm run test:coverage` 已终态退出 1。原四分片执行文件数分别为 168、168、167、167，失败数分别为 3、0、2、3；670 文件全部执行，662 文件通过、8 文件失败。1505 个冻结源码与测试摘要全部一致。覆盖率语句/行 91.25%、分支 90.02%、函数 92.12%，达到原阈值；后接安全检查因 `&&` 未执行，随后使用本轮覆盖率单独运行原检查退出 0，语句/行 81.97%、分支 76.12%、函数 82.97%。这不改变完整门禁失败结论。
+
+最终失败文件为 `codex-responses-routes`、`context-recovery-capacity-workload`、`client-context-target`、`governance/installer-process-cleanup`、`local-evidence-plugin-package`、`tianxi-sdk-history-http`、`tianxi-client-read-options`、`tianxi-sdk-handler`。独立投影诊断在保持原测试逻辑的前提下向结构化输出断言前插入安全分类，仅失败时记录固定标签；第三版完整执行退出 0，没有复现本轮并发门禁中的路由 502，不能宣称已定位或修复。前两版诊断分别因插入位置不唯一和模板转义错误而未执行测试，脚本与日志均保留，不能计为产品失败或复现证据。
+
+终态回执 `dpapi-probe-cooldown-terminal.json` 绑定分片、最终失败和全部冻结文件复核。日志 `dpapi-probe-cooldown-proxy-full.log`、`dpapi-probe-cooldown-security-coverage.log`、`codex-structured-output-response-diagnostic-v3.log` 位于 `.hpm-acceptance/context-plugin-vault-20261021-01/`。当前版本发布 staging 已刷新、准备命令退出 0，源码和 staging 的 `secret-crypto.js` SHA256 一致，准备日志为 `dpapi-probe-cooldown-release-prepare.log`；标准完整客户端门禁已启动，日志为 `dpapi-probe-cooldown-client-full.log`，尚未终态，不能计为通过。真实请求保持 137/144、本次新增 0；整体仍 active，未重启生产或修改日常客户端配置。
+
+## 2026-10-21：DPAPI 失败探测加入可恢复冷却，完整代理门禁运行中
+
+发现 `dpapiProbe` 仅缓存成功，失败后下一次字段加密会立即再次启动同步 PowerShell；同一批配置字段可反复等待同一种失败。现以单调时钟记录 30000ms 冷却，探测或实际 Protect 失败后，后续加密在冷却内继续使用既有 AES-v2 加密回退，到期重新进行完整 Protect/Unprotect 往返。再次失败会续设冷却；成功后清除旧失败原因。受保护密文的严格解密及原三次尝试独立执行，不被该加密探测冷却抑制。未增加配置字段或改变加密格式、主密钥、解密重试及日志输出。
+
+新增三个统一 unit 回归，旧实现 12 项中 10 通过、2 失败；修复后与配置控制器合并 16/16 通过。覆盖冷却前后精确边界、失败续期、恢复成功、非法/空加密输入、已加密输入、缓存清理及冷却期间解密重试成功。隔离环境中的 probe、既有真实加密往返与配置迁移、配置控制器、启动凭据及运行时凭据共五文件均退出 0。当前定向格式、Lint、CI 和发布治理通过。
+
+1505 文件清单相较上节仅 `lib/proxy/secret-crypto.js` 与 `test/secret-crypto-probe.test.js` 改变，已另存当前冻结。标准 `npm run test:coverage` 已启动，保留四分片、670 文件、原负载、期限、阈值及失败后继续执行行为；当前尚未终态，不能给出通过数或最终失败清单。日志已有 Codex Responses 路由 502、Core Responses WBIPC 和容量期限失败，均保持失败等待完整收尾，未停止或重启该次运行。完整客户端上节 1357 项结果早于本修复，发布 staging 也尚未刷新本次 crypto 修改；后续必须补齐，整体 active。
+
+容量当前源码的完整 CPU 剖析按原五档、两 worker 执行，诊断约 76374ms，五档功能结果均通过，但诊断允许超过原 60000ms，不能计入期限资格。主要热点仍是规范化、指纹和重建。三个单独投影候选未进入产品：结构化 assistant 克隆快路径墙钟改善不足；循环 canonical 编码 CPU 中位数 125.5→148ms；ASCII 正则候选的两种负载均更慢。原候选、失败/比较证据保留。独立 ACL 原用例单跑约 3968ms 通过，不追溯改判并发超时或宣称已修复。
+
+累计真实请求仍为 137/144，本批新增 0；生产 PID 64716 启动时间保持 2026-10-19 05:50:12，未重启，日常配置未改。未终止任何归属不明进程，初步进程调查没有形成足够证据支持清理。证据位于 `.hpm-acceptance/context-plugin-vault-20261021-01/`：`dpapi-probe-cooldown-before.log`、`dpapi-probe-cooldown-after.log`、`dpapi-probe-cooldown-expanded.log`、`dpapi-cooldown-isolated/`、`dpapi-probe-cooldown-complete-source-freeze.json`、仍在写入的 `dpapi-probe-cooldown-proxy-full.log`、`capacity-current-digest-profile/`、`native-acl-isolated-after-digests.log`，以及三个候选的 benchmark JSON/log。全量运行结束前不修改冻结中的源码和测试。
+
+## 2026-10-21：内部重复探测复用不可变历史摘要，完整客户端仍有两项期限失败
+
+异步 root loader 在输入规范化、结果校验和授权检查完成后，显式为本次不可变请求启用摘要复用，初次 probe、离线选择和后续 begin 可复用同一组逐项指纹。普通同步请求和未启用的规范化请求仍逐次完整计算；外部 frozen 数组、代理、原始对象和伪造标记不能获得复用资格。每个 frontier cache 最多额外保留四组、每组最多 4096 项的摘要，弱引用键不保留原文；清空、协议变更、淘汰和计算失败仍重新计算。所有 scope、连续性链、授权、TTL、存储与发布检查保留，摘要不授予恢复读取权限。
+
+当前四文件扩大回归 91/91 通过，31940.0735ms；包括实际 loader 在授权后、首次 probe 前启用复用，未授权和非法结果不进入 probe，普通请求重复调用仍完整计算、四组淘汰、4096/4097 边界和失败不缓存。当前定向 Lint、格式、CI/发布治理及 diff 检查通过。实际 Core 的 Chat、Responses、Claude WBIPC 原负载与原期限定向测试 3/3 通过，40314.0448ms，均为合成模型，不是全真实 Core 验收。
+
+八组 480 轮、每个工具结果 8192 字节的历史，六轮交替比较同一原始实现和当前候选；规范化不计入时间，完整 frontier 结果逐次比较一致。独立运行的重复探测墙钟中位数 572.63→340.36ms、CPU 499.50→367.00ms；普通新请求墙钟 510.63→488.05ms，但 CPU 485.00→507.50ms，未证明普通路径有稳定收益。该局部诊断不等于请求、吞吐、容量或生产性能保证。此前与回归并行运行的 v4 结果另存，不作为独立测量。
+
+冻结 lib、test、scripts 下全部 JS/CJS/MJS/JSON 及包清单和 ESLint 配置，共 1505 文件，包含此前 65 文件清单遗漏的 `context-binding-frontiers.js`。原标准 `test:client:coverage` 终态退出 1：1357 项、1355 通过、2 失败、0 取消、0 跳过，测试主体 244900.8975ms；语句/行 99.07%、分支 95.22%、函数 99.29%，原阈值保留。失败为容量命令原 60000ms 期限和独立 PowerShell ACL 校验超时；本轮 Core 与加密 worker 重开用例通过，不将不同运行的波动直接归因为优化。结束后 1505 摘要复核一致。发布 staging 已按当前源码刷新，准备命令退出 0；三个产品模块的 staging 摘要核对一致。
+
+Claude v25 全真实隔离原生任务的原回执再次核对：17 次真实请求、三次压缩、精确最终答案、无私有 wire 泄漏，passed 为 true，但 `fullCoreEntrypointVerified` 为 false。累计请求保持 137/144，本批新增 0。原 24h 样本真实到期拒读结果继续有效。最近完整 unit 仍为 670 文件、13 文件失败的旧运行，早于四份断言修正及本次优化，不能用本次定向结果改判。完整 verify、容量期限、系统调用/持久化长尾、日常插件迁移和生产启用仍未完成；整体 active。生产 PID 64716 启动时间 2026-10-19 05:50:12 未变，日常配置未改。
+
+证据目录 `.hpm-acceptance/context-plugin-vault-20261021-01/`：`immutable-history-digests-expanded-v3.log`、`immutable-history-digests-benchmark-v5.json`、`immutable-history-digests-core-wbipc.log`、`immutable-history-digests-complete-source-freeze.json`、`immutable-history-digests-client-full.log`、`immutable-history-digests-release-prepare.log`。当前基准保留原始 frontier SHA256 `0bf9e2fcdcb4ad5a12efd98ed56401c3b318f0150ee798ae5a35e2d156c9fdd6` 的核对，所有失败和中间候选证据保留。
+
+## 2026-10-21：原始 24 小时样本真实到期拒读通过，整体交付仍未完成
+
+沿用最初于 `2026-10-21T00:55:55.109Z` 创建、绝对到期 `2026-10-22T00:55:55.109Z`
+的同一加密留存样本，没有重播种、延长或重置。前八次观察保留原文与检查点摘要及原 expiresAt，最近一次到期前检查仍能精确读回。第九次在真实墙钟超过原期限后，重新打开原加密存储并加载同一 scope，返回 null；检查脚本退出 0，回执阶段更新为
+`real-deadline-expiry-verified`。到期前回执与到期后回执另存副本，原记录字段和观察历史保留。
+
+本项证明该单机、单合成样本经历原绝对期限的留存观察与到期拒读，不把它扩展为容量、全天活跃任务、多客户端或跨设备资格，也没有独立证明物理介质擦除。容量 60000ms、Core 请求及持久化重开期限等仍未全部通过。当前完整客户端门禁为 1351 项、1348 通过、2 失败、1 取消、退出 1；最近完整 unit 为 670 文件执行、13 文件失败，且早于四份旧断言修正。扩大回归 60/60 不能代替完整门禁。完整 verify 与生产启用仍待完成，整体 active。
+
+65 个当前相关源码和测试摘要在本次完整客户端运行结束后复核一致；没有保留重复克隆性能候选。累计真实模型请求 137/144，本批新增 0；生产 PID
+64716 启动时间仍为 2026-10-19 05:50:12，没有重启，日常客户端配置未变。证据位于
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`preview-contract-alignment-client-full.log`、`retention-before-real-deadline-check.json`、`retention-after-real-deadline.json`、`client-retention-review-status-snapshot.md`；最终回执为
+`client-retention-review-outcome.json`，分别绑定源码冻结、客户端结果、留存观察及本次文档快照。
+
+## 2026-10-21：四份旧断言与现有安全契约对齐，扩大回归 60/60
+
+封存上节 670 文件完整失败后，仅修改四份测试：Responses JSON 接线必须明确包含已有
+`protocolOptions: PROTOCOL_OPTIONS`；串行工具由首个权限请求选中，不能用推测性预览顺序抢占；预览计划在权限确认前不发布片段，非法流失败后也保持零片段、零启动和零执行回调；合法 JSON 的错误值类型必须分类为
+`payload_shape`，并另加非法 JSON 标记仍为 `wire_grammar` 的检查。
+
+这些契约分别由现有入口注入、生产串行门禁的明确选取规则、预览暂存实现，以及独立的 production 解码/权限回归交叉确认。没有为了旧探针期望去修改产品权限、发布时点或错误分类。修改前三份旧预览测试 19 项中 16 通过、3 失败；修改后连同 runner、生产解码、权限选择、参数重试、HTTP 适配和运行时回归共 60/60 通过，5457.9904ms。实际 Responses
+JSON 文件也通过。定向格式、Lint、CI、发布治理和 diff 检查通过。未改测试负载、期限、并发、阈值、测试发现或排除列表。
+
+此前完整 unit 结果仍是 670 文件实际执行、657 文件通过、13 文件失败；本次断言修正后的完整 unit 门禁尚未重跑，不能直接宣称剩余九文件，也不把定向通过追溯计入旧完整结果。Core 请求期限、容量、原生校验与加密重开长尾，以及其他失败仍待定位；当前完整 verify 未通过。生产未重启、日常配置未变，真实请求仍为 137/144，本批新增 0。原 24h 样本仍按
+`2026-10-22T00:55:55.109Z` 到期，尚未到实际观察时间，未重置。
+
+随后对当前 65 个相关文件冻结运行标准完整
+`test:client:coverage`，终态退出 1：1351 项、1348 通过、2 失败、1 超时取消、0 跳过，主体 275434.7516ms；覆盖率语句/行 99.07%、分支 95.22%、函数 99.29%，保持原阈值。失败为 Chat
+Core
+WBIPC 与原容量 60000ms 用例，取消为加密 worker 清理孤立 staging 并重开用例。65 个冻结摘要复核一致。与此前 7 失败、9 取消的不同运行不可直接归因为性能改进；本批没有保留恢复产品性能候选，完整门禁仍失败。日志为
+`preview-contract-alignment-client-full.log`，单独记录本次修复后缺失的完整客户端证据，不覆盖已封存的 unit 结果。
+
+另对引用事务入口的一次通用克隆加一次严格解析进行独立候选比较，保留原 12
+MiB 准入；候选只存在于诊断文件。265856 字节合法私有历史、六轮交替、每轮三次 begin/save 的墙钟中位数约为原 249.17ms、候选 220.10ms，CPU 中位数约 226.50ms、219.00ms，但多轮墙钟或 CPU 未降低，不能认定稳定收益或容量修复，因此没有进入产品。第一版未构造出足够大的私有历史，第二版存储替身缺少必需能力声明，两次失败日志与脚本快照均保留；第三版通过后才产生比较结果。没有放宽实际存储能力检查或扩大原准入范围。
+
+证据位于
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`direct-responses-wiring-retained.log`、`stale-preview-contracts-before.log`、`stale-preview-contracts-expanded.log`、`root-reference-admission-benchmark-v3.json`、相应失败日志及 v1/v2 脚本快照。最终回执为
+`preview-contract-alignment-outcome.json`，另保存当前相关源码冻结；与上节完整运行的冻结和回执分别保留。
+
+## 2026-10-21：全量 670 文件执行完成，13 文件失败，安全模块覆盖率单独通过
+
+修复 unit 执行器在单文件失败时立即结束当前分片的问题：当前分片会继续按原顺序执行全部选中文件，逐项保留失败标签，最后汇总失败数量并返回非零退出码。没有修改测试发现、排除列表、四分片并发、容量两 worker、任何原负载、期限或覆盖率阈值。异常信号也必须判失败，不能由空退出码制造成功。测试运行目录仍逐文件创建并在 finally 中清理；基础设施异常保持失败，不以忽略清理错误继续运行。
+
+新增回归加载实际执行器源码并控制进程结果，旧实现复现首个失败后未执行后续文件；修复后覆盖多次非零/信号失败继续执行、逐项清理、空分片、全部成功、异常退出和错误内容不进入汇总。与既有实际信号子进程回归一起共 5/5 通过。测试追加到现有统一 unit 文件，没有新增测试排除。定向格式、Lint 与 CI 治理通过。
+
+61 个相关文件冻结后执行标准
+`test:coverage`，退出 1。四分片均完成，分别执行 168、168、167、167 个文件，失败数量分别为 1、2、5、5；总计 670 个文件实际执行，657 文件通过、13 文件失败。这是文件级统计，不累加各文件不一致的 TAP 格式生成虚假的总用例数。覆盖率语句/行 91.21%、分支 89.96%、函数 92.10%，达到原阈值，但不改变整体失败。后接的安全检查因命令中的
+`&&`
+没有执行；使用本次完整 coverage-final 单独执行原安全检查后退出 0，语句/行 81.97%、分支 76.12%、函数 82.97%。独立安全覆盖率通过不等于
+`test:coverage` 或完整 verify 通过。
+
+失败文件为
+`client-context-target`、`context-recovery-capacity-workload`、`context-recovery-key`、`context-recovery-root-state`、`direct-responses-json`、`tianxi-auth-research`、`tianxi-client-read-options`、`evidence-gateway-runtime`、`tianxi-sdk-history-http`、`tianxi-preview-plan`、`tianxi-sdk-runtime-history`、`tianxi-custom-input-decoder`、`tianxi-serial-preview-gate`。已定位的失败包括 Core
+Chat/Responses 请求期限、容量 60000ms、独立 PowerShell ACL 校验超时、四根 32
+MiB 加密重开 180000ms，以及入口接线静态断言没有包括当前 `protocolOptions`
+注入字段；其余失败保留待逐项定位，没有统一归因或改判。不能将此前分片提前停止时未执行的文件当作通过。
+
+入口接线修正先在单独投影的测试副本中验证，补上对现有
+`protocolOptions: PROTOCOL_OPTIONS` 的明确要求，整份 Responses
+JSON 转换测试通过；冻结中的原测试未变，不能用副本结果追溯改判本次完整失败。另准备了引用状态重复克隆候选，首次诊断在构造足够大的合法私有历史前失败，未修改产品或放宽容量。此前 DPAPI 轮的完整失败与容量对照保持有效；产品恢复源码、本次模型用量、日常客户端配置和生产进程均未因执行器修改而改变。整体 active。
+
+证据位于
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`unit-runner-completion-before.log`、`unit-runner-completion-after.log`、`unit-runner-completion-final-regression.log`、`unit-runner-completion-source-freeze.json`、`unit-runner-completion-proxy-full.log`、`unit-runner-completion-security-coverage.log`、`direct-responses-wiring-candidate.log`。终态回执为
+`unit-runner-completion-outcome.json`，封存本次源码、日志和文档摘要。
+
+## 2026-10-21：DPAPI 失败探测及时停止，集成通过，完整代理门禁仍失败
+
+修复 `secret-crypto`
+的 DPAPI 可用性探测：Protect 未返回有效密文时立即结束失败探测，不再启动必然无效的第二次 Unprotect。诊断中两次同步 PowerShell 调用分别约 10163ms 和 8800ms，阻塞请求中的配置加载并推迟重载定时器；本次只去除失败后的无效调用，没有修改解密重试、完整成功往返验证或 AES-v2 安全回退。新增统一 unit 回归覆盖超时、空值、空白、非法返回类型、成功缓存、解密失败与不匹配、AES-v2 精确往返、非 Windows 及错误内容脱敏。旧实现 9 项中 6 项失败，修复后 9/9，通过与配置控制器合并回归 13/13。
+
+集成测试继续暴露上游夹具固定返回
+`{ok:true}`，不符合现有协议转换器要求。新增固定合成协议响应夹具，提供 Chat、Responses、Messages、Gemini 的有效成功响应，并加强请求辅助函数的 HTTP
+200 与响应错误检查；原路由、凭据断言、期限及重试策略保留。实际未投影源码的
+`test:integration`
+已退出 0，12 项检查通过；此前凭据失败、ECONNRESET 及加载器诊断日志均保留。
+
+本批广泛检查中，全仓格式、3943 个 JS 文件语法、Lint（0 错误、5 警告）、CI 与发布治理通过；前端覆盖率 8 个文件通过，语句/行 98.20%、分支 91.61%、函数 96.77%，完整前端 28 个文件及构建通过。Rust
+16 项通过，thinking、env/config、hooks 通过。广泛静态、前端和 Rust 检查发生于本次 crypto 修复前；修复后的四个相关文件定向格式、Lint、语法及 CI/发布治理通过，隔离 home/master-key 的既有 crypto 往返也通过。没有改依赖。
+
+58 个相关源码、测试与原始负载文件冻结后执行标准
+`test:coverage`，退出 1：四个分片中三个失败，一个完整完成。失败涉及
+`context-recovery-compaction` 的 30000ms 加密重开用例、`client-context-target`
+的 Chat/Responses WBIPC 请求期限，以及 `context-recovery-capacity-workload`
+的 60000ms 子进程期限。覆盖率语句/行 71.95%、分支 79.72%、函数 74.62% 达到原阈值，但因分片提前停止，这不是全部 670 个 unit 文件通过；后接的 security
+coverage 检查没有执行。不得以覆盖率达标改判整体失败。
+
+另外在不启用覆盖率的普通运行时执行原始容量用例，仍使用五档负载、两个 worker 和 60000ms 子进程期限，60179.3102ms 后超时失败（用例进程总计 60666.5381ms）。这是独立的失败对照，说明容量问题不只出现在覆盖率环境，不能覆盖或替代完整门禁结果。没有放宽期限、并发、负载或覆盖率阈值。最新完整客户端门禁仍是之前的 1351 项、1335 通过、7 失败、9 取消，本批尚未执行修复后的完整客户端门禁。
+
+原 24h 样本第七次观察仍可精确读取，检查原文/检查点摘要与原绝对到期；到期保持
+`2026-10-22T00:55:55.109Z`，没有重置或延长，实际到期清除仍待观察。观察前回执副本单独保留。Claude
+v25 的完整真实三次压缩任务已通过，但范围仍为隔离原生 owner
+HTTP，`fullCoreEntrypointVerified:false`；本批真实模型请求新增 0，累计 137/144。生产 PID
+64716 启动时间仍为 2026-10-19
+05:50:12，未重启，日常配置未变。整体仍未完成；容量、并行存储长尾、完整客户端与安全门禁、完整 Core 组合、日常旧插件迁移及生产启用仍待处理。
+
+发布暂存随后重新执行
+`release:prepare`，退出 0，116 个生产包安装与目录治理完成；本次修复已复制到暂存，暂存与源码 crypto 摘要复核一致。这不是生产激活，也没有以此替代完整客户端、Rust 或 verify 复验。另执行原加密重开用例的普通运行时诊断，仍触发原 30000ms 超时，1 项取消、进程总计 42378.9554ms；该诊断与暂存刷新并发，不能当作无竞争性能基线。首次启动约 12621ms，重开约 28210ms 时进入所有权获取，完整阶段日志保留。
+
+本批证据位于
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`dpapi-probe-before.log`、`dpapi-probe-after.log`、`dpapi-probe-scoped-regression.log`、`dpapi-probe-integration-valid-fixture.log`、`dpapi-probe-proxy-full.log`、`dpapi-probe-capacity-normal-runtime.log`、`dpapi-probe-compaction-normal-runtime.log`、`dpapi-probe-release-stage.log`、`dpapi-probe-source-freeze-v2.json`。最终回执为
+`dpapi-probe-continuation-outcome.json`，绑定源码冻结、日志和文档摘要。冻结覆盖完整代理门禁前的源码；v2 创建时夹具集成命令已经启动，不宣称所有检查均在同一冻结之后开始。文档未计入该源码冻结。
+
+## 2026-10-21：WAL owner 诊断未建立稳定收益，产品模式不变
+
+完成六轮交替的实际 Core
+Responses、加密 owner 与合成 WBIPC 诊断，沿用原测试全部模式及 5000ms 请求期限，没有真实模型请求。DELETE 三轮中两轮通过，第三轮 long-persistent 请求约 5025ms 失败；WAL 三轮通过，但存在加载器额外读取模块的计时混杂，不能据此比较总体延迟或认定 WAL 已通过发布资格。四个产品源码与原测试的冻结摘要复查一致。
+
+按 worker 内部指标，DELETE 各轮 COMMIT 中位数约 9.66–10.19ms，WAL 约 5.19–5.37ms；但最长提交分别达到 1891.76ms 与 2177.91ms。较低中位数没有消除长尾，也没有证明原完整门禁的超时根因已修复。诊断 WAL 保留 FULL 与 secure_delete，并在成功操作返回前调用 TRUNCATE
+checkpoint，但未检查其 busy/result 列，因此不宣称物理截断成功；WAL/SHM
+ACL、崩溃恢复、恶意旁文件、配额及清除/到期语义均未资格化。产品继续使用 DELETE。
+
+原始结果保留在
+`.hpm-acceptance/context-plugin-vault-20261021-01/storage-wal-owner-compare-result.json`，逐操作指标汇总及原始证据摘要为同目录
+`storage-wal-owner-review-result.json`。该回执由独立审阅脚本生成，不覆盖先前日志。本批无产品源码变更，未重复运行相同源码的完整客户端门禁；最新失败结果仍为下节 1351 项、1335 通过、7 失败、9 取消。
+
+另检查读取结算固定 12 MiB 预规范化与 v10 引用 16
+MiB 准入的差异，但尚未用合法根状态复现拒绝，因此仅记录为待调查问题，没有据此修改产品。读取前持久化预算预扣、实时授权及独立结算顺序保持。
+
+用户授权的 Claude 新任务全真实复验已由既有 v25 回执完成：17 次请求、三次压缩、精确原文读取、独立公开生成、最终答案精确匹配，私有 wire 泄露检查通过；范围仍为隔离原生客户端 owner
+HTTP，`fullCoreEntrypointVerified:false`。累计请求 137/144，剩余 7 次，不能将其扩展为完整 Core 或生产验收。完整落地仍 active，保留原 24h 样本到期时间及所有既有发布阻塞。
+
+## 2026-10-21：引用保存去除一次重复完整校验，完整门禁仍未通过
+
+本批保留修改在 reference-state /
+storage-blobs：新增转换解析器对新、旧两个外部引用各进行完整规范化、摘要和根语义校验，再返回各自独立的安全克隆。当前格式的保存路径用返回的旧克隆做数据库载荷行关联和来源库存检查，避免先解析旧引用、再在转换比较中重复解析一次。原有 validateReferenceTransition 接口保持；旧格式迁移继续走原路径。没有跨事务明文缓存，没有跳过摘要、原到期、CAS、读取进度、迁移约束、载荷行或后续调用校验。
+
+新增统一 unit/client 回归先在旧实现复现 3 !==
+2 次根语义校验；修改后每个外部状态各校验一次。另验证返回的新旧库存互相独立且脱离输入，后续调用重新校验，空/非法输入、摘要和到期篡改、getter、非法封套及缺失载荷行均拒绝，失败后原持久化内容仍可精确读取。两文件扩展专项 84/84 通过，80649.3381ms；定向 Lint、格式、语法、CI 和发布治理通过。
+
+47 个相关源码、测试、原始负载与文档摘要冻结后，标准完整客户端覆盖率门禁终态为 1351 项、1335 通过、7 失败、9 超时取消、0 跳过，347678.8004ms，退出 1。语句/行 99.07%、分支 95.23%、函数 99.29%。失败/取消涉及三个协议的 WBIPC、容量 60000ms、Core 和代理夹具启动、原生 ACL，以及加密存储续接、重开、退出和四根 32
+MiB 重开等原有期限；未放宽任何期限、并发、负载或覆盖率门槛。相较上一轮 1349 项、1346 通过、3 失败，本轮整体结果更差，不能宣称超时根因已经修复，也不能把覆盖率达标当作完整门禁通过。
+
+容量阶段诊断仍使用原五档与两个 worker，但没有套用原 60000ms 子进程期限，因此其完整画像通过仅作为诊断。重负载 worker 的规范化包含计时约 12806ms、绑定计算约 18404ms、导出约 6068ms、恢复约 9470ms；包含计时会重叠，不能求和或替代延迟门禁。另对请求内重复字符串共享、通用双字符串记录分支做六轮交替比较，均没有稳定收益：字符串共享墙钟中位数旧约 362.77ms
+/ 候选 355.96ms，但 CPU 413.5ms / 422ms；双字符串分支墙钟旧约 943.41ms
+/ 候选 1100.70ms。两个候选都没有进入产品，history-request 源码与原始备份逐字节相同。首版诊断因 CRLF 匹配失败的日志保留。
+
+本批真实请求新增 0，累计 137/144；生产 PID 64716 启动时间仍为 2026-10-19
+05:50:12，未重启，日常配置未变。原 24h 样本仍于 2026-10-22T00:55:55.109Z 到期，没有重置。容量、持久化尾延迟、完整真实 Core
+/ WBIPC /
+Hook 组合、旧插件日常迁移、实际到期观察、完整 verify 和最终生产启用仍待完成，整体 active。既有 WAL 原语诊断不等于真实 owner 资格；如继续该方向，必须同时验证 WAL/SHM 的安全路径、配额、崩溃恢复与清除语义，不能直接切换产品日志模式。
+
+本批证据位于
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`reference-transition-once-before.log`、`reference-transition-once-after.log`、`reference-transition-once-expanded.log`、`reference-transition-once-client-full.log`、`reference-transition-once-source-freeze.json`、`reference-transition-once-outcome.json`，以及
+`history-string-sharing-benchmark.json`、`history-scalar-pair-benchmark.json`、`capacity-current-stage-v2-thread-*.json`。终态回执复核了所有冻结文件摘要。
+
+## 2026-10-21：旧版迁移诊断完成，撤回无效的热激活候选
+
+真实旧版 0.1.0 的二次隔离诊断再次通过升级、旧新会话精确读回与原绝对到期检查；同版本活动回滚仍失败。脱敏安装诊断归类为 cache/used，收集到 Windows
+OS error
+5，旧 MCP 进程的 cwd 位于原生版本缓存。安装错误没有明确包含旧缓存完整路径，因此只据此认定进程生命周期相关冲突，不宣称已定位具体失败路径。旧版执行代码不能由新版释放 cwd 的修复追溯改变。结束隔离 app-server 后，原安装命令成功，恢复版本握手为 0.1.0；失败后的旧、新活动会话仍可读取证据。
+
+随后实现并测试了“保留执行和依赖字节、只更新包身份到新 recovery 版本”的候选。三文件回归 30/30、定向 Lint、格式、语法、CI 与发布治理通过，43 个源码/测试/负载文件冻结后进行原生验收；但新版本活动安装仍返回 1，22481ms，未超时。结束隔离进程后同命令成功，49475ms，仍在原 60000ms 期限内，安装快照与 0.1.0 执行版本均匹配。因此更换版本身份不足以提供热回滚；候选工厂及专属测试已撤回，vault 实现恢复到原冻结摘要，原始失败和停机对照不改判。
+
+交付了独立包管理命令
+`scripts/local-evidence-plugin-vault.js`，只组合现有完整性模块，支持 inspect /
+retain /
+restore。它不安装插件、不读取或改写客户端配置、不结束客户端进程；非法操作、参数数量、路径、篡改和重复目标均按原边界拒绝，错误输出固定码。新命令端到端回归进入既有统一 unit 测试文件，覆盖原样保存与恢复、空参数、非法参数、极端路径、越界目标、覆盖拒绝及日志脱敏。首轮因测试缺少导入失败，修正后扩展回归 27/27 通过，未删除失败日志。[插件说明](./local-evidence-plugin.md)
+已列出可运行命令、结束旧会话后安装的步骤，以及包 vault 与原文存储的区别。
+
+这不是无感热迁移完成。可选插件的原文是内存 30 分钟，结束进程会丢失；包 vault 不恢复原文。主方案仍以客户端原生压缩为默认，24 小时加密精准恢复按独立开关启用。当前 Claude
+v25 已通过隔离原生 owner
+HTTP 的完整真实三次压缩验收，不能扩展为完整 Core、插件或生产验收。本批真实请求新增 0，累计 137/144，剩余 7 次仍限于 Claude 完整任务和必要诊断。
+
+最新完整客户端门禁仍为 1349 项、1346 通过、3 失败，不因插件工具变化重复跑相同代理源码来改判。容量 60000ms、两项 WBIPC
+5000ms、当前真实 Core 组合、原 24h 到期观察、完整 verify 与生产启用仍未完成。生产 PID
+64716 启动时间仍为 2026-10-19
+05:50:12，未重启，日常配置未变。原样本到期为 2026-10-22T00:55:55.109Z，没有延长或重置。整体 active。
+
+本批证据位于
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`plugin-legacy010-diagnose-result.json`、`plugin-fresh-activation-result.json`、`plugin-activation-stopped-control-result.json`、`plugin-vault-command-regression.log`、`plugin-vault-command-coverage.log`；最终回执为
+`plugin-vault-command-outcome.json`。
+
+## 2026-10-21：真实旧版升级成功，同版本活动回滚仍被原生安装器拒绝
+
+本轮只读取并完整校验日常缓存中的真实 0.1.0 插件包，再复制到全新临时 CODEX_HOME、APPDATA、LOCALAPPDATA 和 marketplace；没有把 0.1.1 改版本号来模拟旧包。旧包为 3678 文件、17244169 字节，快照
+`5d4a5f8b354b34bc8b1783e2ccbbcb2a9da91e6389dcae6ef8694d53d5e2c82f`，保留其原 SDK 和运行时闭包。诊断仅改隔离包的 MCP 启动参数以记录原生 serverInfo，旧版运行代码未改，新版使用现有 0.1.1 自包含包。
+
+原生 marketplace 注册、0.1.0 安装和升级安装均退出 0；安装耗时分别 17690ms、22605ms，仍使用原 60000ms 期限。独立握手与原生 app-server 的新会话均分别确认加载 0.1.0 和 0.1.1；观察记录的子进程父 ID 归属本次隔离 app-server。脚本在升级后精确读取旧会话原文、读取新会话原文并校验各自原 expiresAt，随后才进入已有阶段记录的来源删除和回滚步骤。这是合成原文的原生安装/活动会话适配器证据，不是自动 Hook 或真实模型验收。
+
+删除 marketplace 包后，从独立 vault 恢复 0.1.0 源快照成功，完整性校验通过；但同版本活动回滚的
+`plugin add`
+在 22626ms 返回退出码 1，没有超时，回滚版本握手和最终新会话验证未执行。因此整项结果仍为 passed=false，不将部分升级成功描述为旧版迁移全部完成。它重现了旧版闭包包的原生回滚失败，尚未取得此次安装器错误类别，不能直接把 Windows
+cwd 锁定或缓存裁剪当作已证明根因。当前诊断脚本在失败后终止了隔离 app-server 并清理临时目录；下一步需要保留失败缓存和固定脱敏的安装器错误分类，才能判断合适的回滚流程。
+
+最终进程已终态，本轮没有真实模型请求，累计仍为 137/144；没有操作日常客户端配置、安装到日常客户端或重启生产。最新产品完整门禁仍为 1349 项、1346 通过、3 失败；源码未因本次隔离迁移改变，整体 active。证据目录
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`plugin-legacy010-inventory.json`、`plugin-legacy010-migration.cjs`、`plugin-legacy010-migration-phases.jsonl`、`plugin-legacy010-migration-result.json`、`plugin-legacy010-migration-outcome.json`。
+
+## 2026-10-21：工具调用消息规范化候选未复现稳定收益，已撤回
+
+本轮针对容量采样中的历史克隆热点，在隔离加载器内比较单个 function-call 消息的固定结构路径。早期候选六轮交替基准曾显示较低墙钟；安全补强后最终版本的六轮结果却为旧实现中位数 263.62285ms、候选 296.49090ms，进程 CPU 中位数 250ms、候选 304.5ms，没有稳定收益。因此候选运行时和测试均完整撤回；history-request 与 binding 测试和修改前备份逐字节一致，上一轮 27 个冻结源码/测试/负载文件全部匹配。没有把约百行专用解析逻辑留在产品中。
+
+诊断仍保留完整失败证据：旧实现回归复现固定树的递归祖先跟踪；中间候选的原五档、两 worker、60000ms 容量测试通过，51523.1355ms，但该结果不能资格化已恢复的产品。补强时另发现候选字节超限后继续扫描后续字段，先以回归复现，再改为逐项扣减立即拒绝；最终候选的正常、空、Unicode、精确单项字节、全局节点、深度、getter、稀疏/隐藏字段、循环、继承 setter 与失败路径等绑定测试 46/46 通过。最终候选仍因性能证据不足而撤回，不能把安全测试通过解释为保留优化的理由。恢复后的产品绑定测试为 41/41 通过，2857.3601ms。
+
+未因撤回后的相同源码重复执行完整客户端；最新产品门禁仍是
+`startup-atomic-outcome.json`
+中的 1349 项、1346 通过、3 失败。没有增加真实模型请求、修改日常配置或重启生产。证据位于
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`history-tool-call-final-benchmark.json`、`history-tool-call-budget-before.log`、`history-tool-call-binding-final.log`、`history-tool-call-restored-binding.log`、`history-tool-call-outcome.json`；未采纳的源码和测试另存为 rejected 快照。整体仍 active，后续转向真实旧版插件的隔离升级/回滚验收。
+
+## 2026-10-21：新库启动合并为一次原子提交，完整客户端仍有三项超时
+
+本批只修改 context-recovery-storage-sqlite 的新库启动：建表、初始认证时钟和公共启动准入在同一 writer 事务中完成，由两次提交减为一次。新建表之后仍重新验证完整 schema 和 blob
+ownership，再读取公共启动数据；原有两次时钟观察、认证水位、页数配额、liveUsage、prune、DELETE
+journal、synchronous=FULL 和 secure_delete=ON 保留。已有数据库仍执行原来的一次启动事务和一次时钟观察。预算预扣、原文读取、读取结算和发布事务顺序没有改变。启动后半段失败现在连同初始表和 header 一起回滚，不留下仅完成前半段的初始化状态。
+
+新增两个回归进入既有统一 unit/client 的 storage 测试文件。旧源码复现多一次提交及启动失败后残留 schema；新代码验证新库一次提交、两次时钟检查、第二次水位在重开后仍被执行、已有库一次提交，以及时钟倒退、非法/极端时钟、时钟异常、配额失败、提交失败、schema 改变时完整回滚并可重新初始化。四文件专项 103/103 通过，36657.0497ms，包含加密重开、撤销、事务回滚和真实子进程崩溃恢复。
+
+冻结源码后的标准完整客户端门禁为 1349 项：1346 通过、3 失败、0 取消、0 跳过，测试执行 215491.6372ms，最终 exit
+1。语句/行 99.07%、分支 95.20%、函数 99.29%。失败仍为 Chat、Responses
+WBIPC 原 5000ms 请求时限和容量资格原 60000ms 子进程时限。Claude
+WBIPC、staging 重开以及四根 32
+MiB 加密重开本轮通过，后者为 114233.4393ms，原 180000ms 上限不变。没有调整负载、并发、期限或覆盖阈值；单轮通过数和耗时变化不能证明稳定性能改善，完整门禁仍未通过。
+
+定向格式、Lint、语法、CI 与发布治理通过；27 个源码、测试和原负载控制文件在终态回执时重新校验摘要。本批真实请求新增 0，累计 137/144；Claude
+v25 的完整真实三次压缩验收仍只覆盖隔离原生客户端 owner
+HTTP，不代表完整 Core、插件或生产验收。生产 PID 64716 启动时间仍为 2026-10-19
+05:50:12，未重启，本批没有改日常配置。原 24h 样本仍于 2026-10-22T00:55:55.109Z 到期，尚未到观察时刻。
+
+整体仍 active。容量内存路径不经过 SQLite，本批提交合并不能解决其主要 CPU 开销；后续需要针对原负载的历史规范化和绑定计算继续定位。同时仍待完成持久化并行尾延迟、旧版插件迁移、当前真实 Core 组合、24h 实际到期、完整 verify 和生产启用。证据目录
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`startup-atomic-before-regression.log`、`startup-atomic-after-regression.log`、`startup-atomic-expanded-regression.log`、`startup-atomic-client-full.log`、`startup-atomic-source-freeze.json`、`startup-atomic-checks.json`，最终回执为
+`startup-atomic-outcome.json`。
+
+## 2026-10-21：引用元数据内部校验去除整份私有历史的重复克隆
+
+本批保留修改只在 context-recovery-root-state：parseRoot 仍完整规范化外部根状态，再调用私有语义校验函数；validateRecoveryRootMetadata 仍完整规范化外部元数据封套，随后用本次调用的局部克隆构造更浅、更小的无原型根对象，直接执行同一私有语义校验。去除第二次完整 rootData 克隆，保留策略、身份、TTL、预算、绑定、私有历史、发布来源关联和所有恢复校验。私有函数不导出，不增加跨调用信任缓存，也不改变元数据入口的原有大小、节点和深度限制。
+
+新增回归已进入既有统一 unit/client 的 root-state 文件。最终测试在冻结旧源码回放中复现 1
+!==
+0 的多余根克隆；新代码检查外部封套仍规范化一次、返回值及历史脱离原输入、后续调用重新校验、内部根无原型、非法到期变更拒绝、空/非法封套拒绝和 getter 不执行。初版测试错误假设保守增加 callCount 必然非法，实际该值可合法保守计数；已改用明确非法的 expiresAt 变更，原失败日志保留，不作为产品缺陷。四文件扩展专项 125/125 通过，97949.676ms。
+
+隔离本地合成 Responses
+WBIPC 完整恢复通过，10772.6396ms，真实模型请求 0。相同诊断流程中主线程状态规范化从 1155 次减至 1016 次；引用规范化 312 次、扫描页解析 10 次及导出元数据校验调用保持。调用计数证明重复工作减少；两次单样本耗时不构成稳定延迟或生产改善结论。
+
+本批还诊断了存储 worker 自包含包：74 个源码模块形成 441198 字节诊断包，三轮交替执行实际 worker 的创建、加密写入、关闭、重开及精确读取，均完成且原 expiresAt 不变；启动收益不稳定，候选未进入产品代码。包只保留为隔离诊断证据，未修改 worker 入口、密钥后端、发布清单或生产进程。
+
+最终冻结源码的标准完整客户端门禁为 1347 项，1343 通过、3 失败、1 超时取消、0 跳过，272471.6542ms，exit
+1；语句/行 99.07%、分支 95.21%、函数 99.29%。Responses
+WBIPC 本轮通过；Chat、Claude
+WBIPC 仍触发原 5000ms 请求上限，容量资格仍触发原 60000ms 子进程上限，staging 重开仍在原 30000ms 期限取消。四根 32
+MiB 加密重开通过，156814.9418ms，原 180000ms 上限未变。最近完整门禁仍失败，不将失败项数量波动或局部调用下降当作问题全部修复。
+
+当前 Chat 失败记录显示多次数百毫秒的存储阶段在同一请求内累加，源码也确认读取会推进耐久时钟并进行同步事务提交；这为后续检查事务合并提供方向，尚未证明它是唯一瓶颈。任何后续优化仍须保留预算预扣、读取结算、取消、撤权、CAS、原到期与崩溃恢复语义，不能以减少耐久性或放宽期限达标。
+
+定向格式、Lint、语法、CI 与发布治理通过，23 个源码、测试及原始负载控制文件在最终回执时复核摘要。本批新增真实请求 0，累计 137/144；生产 PID
+64716 启动时间仍为 2026-10-19
+05:50:12，未重启，日常配置未变。原 24h 样本仍于 2026-10-22T00:55:55.109Z 到期，尚未到观察时刻。容量与持久化尾延迟、旧版插件迁移、当前真实 Core 组合、24h 实际到期、完整 verify 和生产启用仍待完成，整体 active。
+
+证据目录
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`metadata-local-before-regression-final.log`、`metadata-local-after-regression-v1.log`、`metadata-local-expanded-regression.log`、`metadata-local-wbipc.log`、`metadata-local-source-freeze.json`、`metadata-local-client-full.log`、`metadata-local-module-coverage.json`、`storage-worker-bundle-diagnostic.json`；最终回执为
+`metadata-local-outcome.json`，绑定本批源码、诊断、门禁及当前文档。
+
+## 2026-10-21：快照视图省去描述符复制，容量 60 秒资格仍不稳定
+
+本批先在修改前单独执行原有容量门禁，五档原负载、两 worker、60000ms 子进程期限保持：用例通过，58884.8064ms；这只证明一次孤立运行通过，不能覆盖此前完整并行门禁的容量失败。随后对当前容量命令采样 CPU，五档完整性、最终排空、重开和精确恢复计数均通过，但重 worker 的采样墙钟为 96227.144ms；采样不是原 60 秒资格测试，不将其算作门禁通过。原始采样文件与报告保留。
+
+保留的源码修改仅在 context-recovery-snapshot-index：view 工厂已返回拥有实时 size 访问器的新对象，builder 和冻结 snapshot 直接使用各自新建的视图，去除两次属性描述符集合的物化及复制。没有共享可变视图，也没有改变私有 WeakMap 识别、写入封印、祖先/兄弟隔离、键语义、顺序或持久化结构。三轮交替微基准各创建 19200 个快照，旧实现墙钟为 555/539/505ms，候选为 189/186/225ms；各轮进程 CPU 也较低。此结果只证明局部分配路径减少，不是客户端或生产延迟保证。
+
+新增回归在统一 unit/client 已有的 sessions 文件中，以旧实现复现创建两份视图时 4 份描述符集合，再检查直接视图不复制描述符、live
+size、属性描述符、完整冻结、重复 freeze 身份、父子隔离、迭代顺序和封印后写入拒绝。会话、根状态和根所有权三个文件共 152/152 通过，143351.6442ms；其中四根 32
+MiB 加密重开为 91946.7346ms，仍使用原 180000ms 期限。定向格式、Lint、语法、CI 与发布治理通过。未修改任何直接依赖。
+
+最终源码再次单独执行原始容量门禁，仍发生 60000ms 子进程超时，用例失败，进程总计 61137.3889ms；没有扩大期限或重试制造绿色。因此本批不能宣称容量资格已修复或稳定达标。完整客户端没有因这项局部分配简化重复执行，前一轮 1345 项、1337 通过、5 失败、3 超时取消的完整门禁仍是最近结果；当前完整 verify 未通过。
+
+21 个源码、测试及原始负载控制文件摘要在最终回执时复核。本批真实请求新增 0，累计 137/144；生产 PID
+64716 启动时间仍为 2026-10-19
+05:50:12，未重启，日常配置未变。整体 active；下一步仍需解决容量耗时与并行尾延迟，并完成旧版插件迁移、当前真实 Core 组合、原 24h 到期观察、完整 verify 和生产启用。原 24h 样本到期时间仍为 2026-10-22T00:55:55.109Z，尚未到观察时刻。
+
+证据目录
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`capacity-current-isolated.log`、`capacity-current-profile-report.json`、`capacity-current-hotspots.json`、`snapshot-view-benchmark.json`、`snapshot-view-before-regression.log`、`snapshot-view-regression.log`、`snapshot-view-capacity-isolated.log`、`snapshot-view-source-freeze.json`；本批最终回执为
+`snapshot-view-outcome.json`，绑定所有上述结果、源码与文档。
+
+## 2026-10-21：引用完整性哈希复用本次规范化结果，完整门禁仍失败
+
+当前保留修改把原有哈希遍历原样拆入内部 context-recovery-fingerprint-value 模块。四个外部 fingerprint 入口仍先按原有大小与能力边界规范化未知输入；parseReferenceState 仍先执行完整规范化、精确形状与版本校验，再对本次调用的局部克隆计算摘要，避免原先在哈希入口再次完整规范化。后续根元数据、容量、发布状态、来源关联和授权校验保持。没有跨调用缓存或扩大外部入口，新模块已进入发布源码清单。
+
+新增回归使用冻结旧源码复现重复规范化 2 !==
+1；修复后验证仅规范化一次、返回值脱离输入、后续调用仍重新校验、输入变更拒绝和 getter 不执行。原有摘要字节、数值键排序、JSON 转义、非法输入与大小边界回归保留。四文件扩展专项 110/110 通过，40104.6158ms，新测试进入既有统一 unit/client 入口。隔离本地合成 Responses
+WBIPC 完整恢复通过，主线程引用规范化从前轮 438 次降至 312 次，扫描页解析仍为 10 次；单次耗时 11143.9867ms 只作为诊断，不是稳定客户端或生产提速证明。
+
+另一项哈希 update 分批候选未显示稳定收益，没有进入产品源码。首版诊断脚本因 CRLF 未插入最终 flush，产生摘要不一致；修正诊断脚本后再次比较，不将脚本错误描述为产品缺陷，全部失败与候选证据保留。
+
+最终冻结源码的标准完整客户端门禁为 1345 项，1337 通过、5 失败、3 超时取消、0 跳过，231115.442ms，exit
+1；语句/行 99.07%、分支 95.23%、函数 99.29%。失败包括三个协议的 WBIPC
+5000ms 请求期限、容量资格 60000ms 和物理退出维护探针的 5000ms 子进程期限；取消为 staging 重开、未确认发布后的重开和重新授权重开各自原有 30000ms 期限。四根 32
+MiB 加密重开通过，135822.8253ms，仍在原 180000ms 内。完整门禁较前轮仍有波动，不能把局部调用减少当作尾延迟修复成功，也没有放宽期限、负载、并发或覆盖阈值。
+
+定向格式、Lint、CI 与发布治理通过；生产依赖 npm
+audit 为零漏洞。源码及原始负载控制文件在完整运行后重新校验摘要。本批真实请求新增 0，累计 137/144；生产 PID
+64716 启动时间仍为 2026-10-19
+05:50:12，未重启，日常配置未变。原 24h 样本仍按 2026-10-22T00:55:55.109Z 到期，尚未到观察时刻。整体 active：持久化尾延迟、容量期限、旧版插件迁移、当前真实 Core 组合、24h 实际到期、完整 verify 和生产启用仍待完成。
+
+证据目录
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`reference-hash-before-regression.log`、`reference-hash-expanded-regression.log`、`reference-hash-wbipc-v3.log`、`reference-hash-source-freeze.json`、`reference-hash-client-full.log`、`reference-hash-scoped-checks.log`；最终回执为
+`reference-hash-outcome.json`，绑定本批源码、诊断、回归和当前文档。
+
+## 2026-10-21：worker 扫描回复去除重复解析，完整门禁仍未通过
+
+当前保留修改只在 context-recovery-storage：scan /
+scan-reference 直接交给既有完整扫描页解析器，并同时传入 pending 中保存的原始请求游标。取消同一同步处理栈中额外的通用克隆和第二次语义解析；worker 消息边界、完整字段/字节/摘要/元数据校验、请求 ID 关联与终态失败处理仍保留。此前生产适配器已在第二次解析校验游标，本次没有宣称修复生产游标准入漏洞；改动是让独立结果验证器第一次解析就完成该关联。
+
+新增回归在统一 CI 原有两文件内。修正测试自身的普通对象/无原型对象比较后，使用冻结旧模块的独立加载回放，三项回归分别复现两种扫描的直接结果验证未使用游标，以及单条 worker 回复重复进入语义页解析器（2
+!==
+1）。修改后验证一次解析、错误游标拒绝、空页与非法输入拒绝、getter 不执行、返回值脱离输入、后续篡改重新拒绝及失败服务不能继续使用。相关两文件扩展回归 66/66，39382.7701ms；格式完成后关键三项再验 3/3，734.8154ms。早期断言失败及其日志保留，未追溯改判。
+
+同一 Responses
+WBIPC 全场景的隔离计数诊断前后均通过，扫描页解析器调用从 15 次降至 10 次；诊断只记录固定函数名、次数、失败次数与时长，没有参数、正文或凭据。旧/新单次耗时约 21864/16512ms 不是交替性能实验，不据此宣称客户端稳定提速，也不替代并行完整门禁。
+
+最终冻结源码的标准完整客户端终态：1344 项，1340 通过、3 失败、1 超时取消、0 跳过，218316.7128ms，exit
+1；语句/行 99.07%、分支 95.21%、函数 99.29%。失败仍为 Chat/Responses
+WBIPC 原 5000ms 请求期限及容量原 60000ms；取消为 staging 加密重开原 30000ms。四根 32
+MiB 加密重开本轮在原 180000ms 内通过，117945.6128ms；单轮通过不证明尾延迟根因已消除。WBIPC 日志另有单次发布状态保存约 2722ms，本次扫描去重不足以解决全部持久化超时。
+
+15 个运行、测试及负载文件摘要在完整门禁后再次一致。定向 Lint、格式、CI 和发布治理通过，根项目 npm
+audit 为零漏洞；新测试进入既有统一 unit/client 路径。所有原工作负载、期限、两 worker 与覆盖门槛均未修改。完整 verify 未通过，未激活生产；生产 PID
+64716 启动时间仍为 2026-10-19
+05:50:12，日常配置未变。本批真实请求新增 0，累计 137/144，整体 active。
+
+证据目录为
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`scan-reply-before-regression-v2.log`、`scan-reply-expanded-regression.log`、`scan-reply-final-regression.log`、`wbipc-parse-baseline-v1.log`
+/ `wbipc-parse-after-v2.log`、`wbipc-parse-counts-v1-*` /
+`wbipc-parse-counts-v2-*`、`scan-reply-client-full.log`、`scan-reply-source-freeze.json`
+与 `scan-reply-module-coverage.json`；最终回执为
+`scan-reply-outcome.json`。仍待处理持久化尾延迟、容量期限、旧版插件迁移、当前真实 Core 组合、24h 实际到期观察、完整 verify 和生产启用。
+
+## 2026-10-21：编码保真优化与容量 CPU 定位，完整门禁仍失败
+
+保持五档原负载、两 worker 与全部原期限，对容量命令进行 CPU 采样：五档原文完整性与恢复次数均通过，采样进程总计 66873ms，仍超出标准用例的 60000ms 上限。较重 worker 的主要自耗时包含 canonical 字符串编码约 6909ms、历史克隆约 6326ms、哈希更新约 5153ms；此诊断没有更改资格判定，也不覆盖真实传输或持久化。
+
+当前保留的小优化仅在请求局部 canonical 编码器中，对不含引号、反斜线、C0 控制和代理项的字符串直接添加 JSON 引号；其余字符串仍由原生 JSON.stringify 编码。保留原 128 项/4
+MiB 局部缓存，未增加跨请求原文缓存，也未改变哈希字节、授权、TTL 或预算。新增回归逐个覆盖全部 65536 个 UTF-16 单元，补充代理项组合、Unicode 分隔符、空值、大字符串、嵌套数值键及缓存饱和后的精确编码和 SHA-256。测试加入既有统一 unit/client 文件；最终三文件专项 70/70 通过，5050.1066ms。
+
+三轮交替 CPU 微基准的最终中位数为旧编码 1126ms、新编码 1048ms；只代表这一局部运算，不是客户端或生产提速证明。另一个绕过大字符串缓存的候选明显更慢，未进入产品源码。初次正则字面量触发 no-control-regex；没有关闭规则，改为数字端点构造的同义常量模式，并在最终专项中重新验证全部 UTF-16 单元。定向 Lint、格式、CI 与发布治理通过。
+
+正则写法修正前的完整标准客户端终态为 1342 项，1336 通过、4 失败、2 超时取消、0 跳过，317970.9253ms，exit
+1；语句/行 99.07%、分支 95.22%、函数 99.29%。失败为三个协议的 WBIPC
+5000ms 请求期限及容量 60000ms；取消为 staging 重开 30000ms 和四根 32
+MiB 加密重开 180000ms。其中一次 load-reference 约 4724ms，证明本轮小优化不足以解决持久化路径的超时，尚不能把资源竞争或某个局部调用认定为唯一根因。该轮六文件摘要结束后复核一致；最终同义正则写法仅完成上述 70 项专项，完整客户端未再次运行，不宣称当前完整门禁通过。
+
+本批真实请求新增 0，累计 137/144，生产 PID 64716 的启动时间仍为 2026-10-19
+05:50:12，日常配置未变。可选插件分发包的输入清单不含本次编码模块，前一轮插件证据仍保留原有范围。整体 active；持久化尾延迟、容量期限、旧版迁移、当前真实 Core 组合、24h 到期观察、完整 verify 和生产启用仍待完成。
+
+证据目录为
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`capacity-hotspot-baseline.json`、`CPU.20261021.130330.435176.*.cpuprofile`、`canonical-quote-*-microbenchmark.json`、`canonical-quote-client-full.log`、`canonical-quote-client-source-freeze.json`、`canonical-quote-final-regression.log`；最终回执为
+`canonical-quote-outcome.json`，分别绑定完整门禁时和最终保留的源码摘要。
+
+## 2026-10-21：原生自动 hook 与当前包升级、独立存档回滚通过
+
+在新建隔离 Codex 环境中，当前完整分发包的原生 PostToolUse
+hook 已实际执行：仅信任该包的确切 hook，本地合成 Responses 驱动一次真实源 MCP 工具调用，经原生 Code
+Mode 执行后自动留存；没有直接调用私有捕获接口。hook 开始/完成各一次，精确读回 140 字节，源工具正常完成，进程终止。此项为真实客户端、本地合成模型验收，真实模型请求为 0，不扩大为完整真实 Core 验收。
+
+当前 0.1.1 分发包的独立原生升级/回滚探针通过：只为诊断生成身份版本 0.1.2，经实际原生安装命令升级后，旧会话和新会话继续精确读取 Unicode/CRLF 原文；物理删除 marketplace 的完整 package，再从独立 vault 恢复原始 0.1.1 并执行原生回滚，旧、新及回滚后新建会话均通过读取、跨线程拒绝和原 expiresAt 不变检查。四个安装命令均在原 60000ms 期限内结束。诊断版没有发布，生产源码和当前分发包未改变。
+
+额外使用仅修改隔离启动元数据的只读握手观察器，核对同一原生 app-server 启动的 MCP 子进程：三个阶段新进程分别实际报告 0.1.1、0.1.2、0.1.1，每阶段两个进程的父 PID 均为该 app-server；完整升级/回滚流程再次通过。观察器只记录 PID、父 PID 和版本，握手后停止解析；运行包除诊断版身份变更外未增加业务行为。早期观察探针错误要求每阶段恰好一个进程，失败报告保留，未改判。
+
+原生安装器仍删除退役版本缓存，nativeRetiredCacheIntact=false；通过的是独立 vault 中完整版本可验证且可恢复。以上不覆盖旧 0.1.0 源码闭包的完整迁移。可选插件仍为内存 30 分钟，主恢复的 24 小时目标不变。日常配置和生产 PID
+64716 未改变，本批新增真实请求 0，累计 137/144。
+
+本批没有产品代码修改；17 文件源码摘要与上一分发包回执一致，不重复宣称全仓测试。此前标准完整客户端 1340 项中 1338 通过、2 失败仍有效：Responses
+WBIPC
+5000ms 请求期限与容量资格 60000ms。持久化尾延迟、旧插件迁移、当前真实 Core 组合、24h 实际到期观察、完整 verify 与生产启用仍未完成，整体 active。
+
+证据目录为
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`plugin-bundle-hook-v7-result.json`、`plugin-bundle-upgrade-v1-result.json`（未加观察器的原包）、`plugin-bundle-upgrade-v5-result.json`（隔离启动观察）；本批回执为
+`plugin-native-lifecycle-outcome.json`，绑定源码、探针、结果及当前文档摘要。
+
+## 2026-10-21：可选插件切换自包含分发包，缓存删除与隔离安装通过
+
+新增独立构建、包校验和薄命令入口，使用项目已直接声明的 Vite 构建完整 CJS 运行包；最终输出只允许 Node 内建运行时导入。直接读取当前源码及插件锁定的依赖，不改写旧暂存源码闭包。生成物保存在 runtime/local-evidence-plugin 的内容摘要目录，包含独立 marketplace；安装器和隔离探针都使用该同一分发源，原生旧缓存和日常配置没有迁移或安装操作。源码目录及旧包存档继续保留。
+
+新 runtime-manifest 使用独立 bundle
+schema，绑定所有运行包文件和构建输入摘要；第三方清单记录实际参与构建的依赖版本及许可证文本，绑定完整锁文件摘要。存档同时支持旧源码闭包和新 bundle，均完整清点文件、拒绝篡改、额外文件、链接、越界、过量及版本不一致。不可变产物在独立 staging 完成校验后发布；已存在的产物必须逐字节相同，并发发布只有在获胜包完整相同时才可复用，未知发布错误仍失败。命令入口只负责组合和固定错误输出。
+
+实际分发包为 10 文件、1956936 字节；完整缓存删除回归仍保留原 60000ms 期限，完整复制、启动、留存、物理删除整个安装包后继续精确读取和捕获，并验证跨线程拒绝及原 expiresAt 不变。一次最终源码专项中构建 18205ms、复制 98ms、删除 26ms；这是本机单次观测，不是生产性能保证。此前 35 秒复制、73 秒删除的旧目录负载记录保留，没有通过过滤旧 node_modules 制造通过。
+
+Codex 原生隔离安装 run98 已完成：实际包校验、stdio、合成捕获、精确读回、跨线程拒绝和原生进程终态均通过，0 次模型请求。其后新增并发发布保护，当前最终源码 run97 隔离复验同样全部通过。hook 在这两个新隔离环境中均为 untrusted，hookExecutionVerified 为 false，因此不能宣称真实 hook 自动触发通过。
+
+最终源码普通专项 28/28 通过，29923.6442ms；同五文件的 V8 覆盖运行也为 28/28 通过，24138.1899ms，exit
+0。构建、bundle 校验与存档三模块的专项覆盖为语句/行 99.69%、分支 94.28%、函数 100%，不是完整应用覆盖。全仓 npm
+run lint、format:check、check:ci 和 release:check 全部通过；根项目及插件 npm
+audit 均为零漏洞，修改模块与实际 bundle 语法检查通过。五个本批测试文件均已确认进入统一 unit 自动发现。当前完整 verify、完整单位覆盖和完整客户端没有因这批脚本修改重新执行，之前完整客户端两项失败仍有效。
+
+新测试进入统一 unit 自动发现；没有改变现有 CI 入口、覆盖率阈值、期限、负载或并发。整体仍 active：Responses
+WBIPC 请求期限、容量资格、持久化尾延迟、插件完整升级迁移与真实 hook、当前真实 Core 组合、24h 到期观察、完整 verify 和最终生产启用尚未完成。本批真实请求新增 0，累计 137/144，生产 PID
+64716 未重启。
+
+证据目录仍为 `.hpm-acceptance/context-plugin-vault-20261021-01/`，源码冻结为
+`plugin-bundle-source-freeze.json`（17 文件），最终回执为
+`plugin-bundle-outcome.json`，回归为
+`plugin-bundle-regression-published.log`，覆盖为
+`plugin-bundle-coverage.log`；原生隔离报告为
+`.hpm-runtime/context-local-plugin-native-20261012-run97-result.json`。最终回执复核源码摘要并绑定上述结果与文档摘要。旧候选和失败构建日志全部保留，所有本批执行命令均已结束。
+
+## 2026-10-21：保留引用校验解析去重，撤回索引块候选
+
+当前保留修改为 context-recovery-reference-state 的引用关联校验去重：两个外部输入仍各自完整解析一次，随后仅在模块内部比较新解析的局部值，避免原先再次解析两份完整状态。比较 helper 不导出，没有跨调用信任缓存，也不跳过后续输入变更、权限、预算、绑定或来源不可变性校验。新增回归先以 4
+!==
+2 复现重复解析，再验证解析次数、返回值脱离输入、空值/数组/非法摘要/异根拒绝、getter 不执行和后续变更拒绝；测试位于既有统一 unit/client 文件内。
+
+隔离 CPU 微基准交替执行三轮、每轮八次关联：小引用中位 CPU 109→47ms，含 512
+KiB 私有历史的引用 750→391ms。这只证明局部计算减少，不能作为客户端延迟或容量资格证据。
+
+另试验不可变索引的祖先块合并，候选的 48 项会话回归通过，但在 V8 覆盖下运行原五档、双 worker 完整负载，旧索引 66783.7105ms、候选 74634.5237ms，两版均完成所有 profile。单轮顺序对照不能证明稳定因果收益，且未运行原 60000ms 资格判定；未得到收益证据，已按本批之前备份恢复索引模块和会话测试，未撤销其他已有修改，失败与候选证据全部保留。最终源码三文件回归 125/125 通过，38231.9051ms；定向 Lint、格式、CI 和发布治理通过。
+
+候选尚在时的标准完整客户端为 1342 项、1338 通过、3 失败、1 取消，233645.4663ms，exit
+1；语句/行覆盖 99.07%、分支 95.22%、函数 99.29%。失败仍为 Chat/Responses
+WBIPC 原 5000ms 请求期限和容量原 60000ms，取消为 staging 加密重开原 30000ms。四根 32
+MiB 私有历史加密重开通过，131092.0327ms；不将该耗时与此前结果之差宣称为性能收益。
+
+撤回索引后的标准完整客户端终态为 1340 项、1338 通过、2 失败、0 取消/跳过，233899.5081ms，exit
+1；语句/行覆盖 99.06%、分支 95.21%、函数 99.29%。仍失败于 Responses
+WBIPC 原 5000ms 请求期限和容量原 60000ms。staging 加密重开本轮 21143.1181ms 通过，四根 32
+MiB 私有历史加密重开 132899.7822ms 通过；单轮通过不代表原先尾延迟根因已修复。
+
+再次复核 Claude
+v25：17 次真实请求、三次原生压缩、精确私有 READ、独立公开证据、精确最终答案和进程终态通过，privateWireLeak 为 false；范围仍仅为 owner
+HTTP 入口。累计真实请求 137/144，本批新增 0；未改日常配置、安装插件或重启生产。容量、持久化尾延迟、完整插件/迁移、当前真实 Core 组合、24h 到期观察、完整 verify 和最终生产激活仍未完成，整体 active。
+
+证据目录为
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`reference-parse-once-*`、`snapshot-block-*`、`reference-and-index-client-full.log`
+与
+`reference-parse-only-retained-*`。候选前后及最终保留源码分别冻结 11 个运行/测试/负载文件摘要；最终回执为
+`reference-and-index-outcome.json`，在完整客户端终态后复查源码并绑定证据摘要。
+
+## 2026-10-21：事务内容量分类复用，存储回归通过，标准完整客户端仍失败
+
+当前保留修改位于 context-recovery-storage-sqlite：保存前的清理已经对各根完成认证解密和语义校验，之后容量核算仅对完全相同的行复用其容量分类。复用键绑定密文 SHA256 和完整加密上下文（含 storeId、scope、revision、createdAt、expiresAt、kind、version）；行改变则重新解密验证。每次写事务内部新建小 Map，只保存摘要和版本，不保存明文根或密文副本，不跨提交、回滚、失败或后续请求。当前写入的新行仍正常解密分类，blob 数量和字节数仍从数据库重新核算。没有改变事务提交边界、模式 DELETE、synchronous=FULL、secure_delete=ON、加密、授权、预算、绝对 TTL 或期限。
+
+新增回归修改前以 2 !==
+1 复现同一未变根在一个写事务内重复解密；修改后验证一次解密，并在清理后、容量核算前分别篡改密文、revision、createdAt、expiresAt，确认重新认证失败且写入和篡改一起回滚。继续验证失败后正常保存，以及跨事务密文损坏连续两次拒绝且不修复证据。新增回归在既有统一 unit/client 文件内，统一发现已确认；未修改测试入口或跳过用例。存储两文件 78/78 通过，94294.4329ms；定向 Lint、语法、格式、CI 和发布治理通过，根项目完整 npm
+audit 为零漏洞。
+
+当前源码原字面 npm run
+test:client:coverage（无诊断 preload、无 CPU 采样）已退出 1：1339 项、1335 通过、3 失败、1 取消、0 跳过，测试主体 297433.2241ms；覆盖率语句/行 99.06%、分支 95.22%、函数 99.29%。失败为 Chat/Responses
+Core
+WBIPC 原 5000ms 请求期限、五档两 worker 容量原 60000ms；取消为 staging 加密重开原 30000ms。四根 32
+MiB 精确私有历史加密重开在完整并发中通过，166802.9994ms，仍在原 180000ms 内；该单项通过和失败数量变化不证明存储尾延迟已修复，也不构成端到端性能收益对照。
+
+证据为
+`.hpm-acceptance/context-plugin-vault-20261021-01/transaction-admission-outcome.json`，绑定 11 个运行/测试文件摘要并在完整客户端终态后复查一致；另有
+`transaction-admission-source-freeze.json`、前后回归日志、`transaction-admission-regression.log`、`transaction-admission-client-full.log`、`transaction-admission-discovery.log`
+和根审计/治理日志。生产 PID
+64716 启动时间未变，未安装插件或改日常配置，真实请求仍 137/144，本批新增 0。所有本批门禁命令已结束；完整 verify、剩余持久化与容量、完整插件/迁移、当前真实 Core 组合、24h 到期观察及最终生产启用仍未完成，整体 active。
+
+## 2026-10-21：存储等待与状态计算分别定位，完整诊断门禁仍失败
+
+本批没有修改产品代码、日志模式、耐久性、预算、TTL、负载、并发或期限。复核 Claude
+v25 原生全真实新任务报告：passed、精确私有 READ、独立公开请求证据、精确最终答案和进程终态均为 true，privateWireLeak 为 false；仍仅证明 owner
+HTTP 入口，不能外推为当前完整 Core、安装插件或生产验收。真实请求保持 137/144，本批新增 0。
+
+增加只记录固定操作名、次数、耗时和摘要的诊断。当前源码三协议 Core
+WBIPC 原定向用例 3/3 通过，31910.3692ms，但其中一次 load-reference 为 1517.9931ms，COMMIT 占 1486.3575ms、线程 CPU 为 0，说明定向重跑通过不能消除长尾。随后原 test:client:coverage 命令加诊断 preload，在原负载、并发和覆盖率门槛下退出 1：1338 项、1335 通过、2 失败、1 取消、0 跳过，测试主体 248273.8214ms；覆盖率语句/行 99.06%、分支 95.21%、函数 99.29%。失败为 Chat
+Core
+WBIPC 原 5000ms 请求期限及五档两 worker 容量原 60000ms，取消为 staging 加密重开原 30000ms。此为带额外计时的诊断运行，不替代上批无诊断标准门禁，也不能用失败数量变化声称稳定性改善。
+
+本次完整负载的 345 个存储操作记录揭示两类瓶颈：一次操作总计 5226.0708ms、线程 CPU
+46ms，其中 COMMIT 4441.1782ms、线程 CPU
+16ms；另一次 save-reference-state 总计 12685.5063ms、线程 CPU
+12219ms，而 COMMIT 仅 15.4557ms。不能将后者归因于文件系统，也不能将前者归因于纯 JavaScript 计算。进一步在 c8 与 CPU 采样下运行原四根、32
+MiB 精确私有历史加密重开用例，1/1 通过、82441.9304ms；三份采样的非 idle 热点集中于状态克隆、字符串字节核算、历史规范化和指纹计算。采样是墙钟归因，不能作为逐函数 CPU 用量；定向通过不替代完整失败门禁。八个运行/测试文件的 SHA256 在采样结束后复查一致。
+
+独立 SQLite 原语对照保持 synchronous=FULL、secure_delete=ON，并验证关闭重开精确字节与当前文件密文标记清除。两轮 DELETE 提交均值 9.0314/8.3635ms，TRUNCATE
+9.2807/9.3592ms，WAL
+3.1970/2.9338ms；这不是 owner、崩溃耐久性或容量资格测试，产品仍为 DELETE，WAL/SHM 路径与清除语义未获资格。另以 256
+KiB 加密合成负载交替比较系统临时目录与工作区证据目录，DELETE 提交均值分别 9.8052/9.3040ms 与 3.9768/4.3523ms，均验证重开及当前数据库清除。该毫秒级差异不足以解释完整负载的秒级尾部。系统磁盘队列的两次采样分别出现高队列和零队列，不能据此认定某个进程或磁盘是唯一根因，没有修改 TEMP/TMP、存储路径或系统安全配置。
+
+下一步需分别处理事务等待和重复状态计算：任何合并事务方案都必须保持 revision、授权、读取预算、发布和清除的原子边界；减少内部重复规范化需先证明不可变数据的内部来源与所有外部边界检查，不采用跨事务信任缓存。容量资格本身是合成会话计算负载，换存储磁盘不能替代其 60000ms 门禁。当前完整 verify、插件/Hooks 与迁移、当前真实 Core 组合、24h 到期观察和生产启用仍未完成，整体 active，生产 PID
+64716 启动时间未变。
+
+证据位于
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`storage-owner-current-outcome.json`（分离先前定向 43039 字节与后续完整负载计时，绑定源码和日志摘要）、`storage-owner-current-cpu-summary.json`、`storage-owner-current-cpu.log`、`storage-owner-client-instrumented-current.log`、`storage-owner-core-delete-current.log`、`sqlite-full-durability-io-result.json`、`sqlite-volume-comparison-result.json`
+与 `storage-owner-disk-snapshot.json`。所有诊断进程已退出，失败记录保留。
+
+## 2026-10-21：保留 JSON 字节核算优化，全仓格式与 Lint 通过，完整客户端仍失败
+
+本节为本批当前结论，下方各批快照保留原结论。context-recovery-state-data 保留普通 ASCII 快路径，以固定 JSON 字符范围扫描实际转义并正确消耗代理对；稀疏文本避免逐码元遍历，密集文本按固定窗口退回原精确计数，限制 match 分配。模式仅由内部常量构造，没有请求输入参与。未改变节点/深度/字节上限、克隆和描述符校验、原文内容、预算、绝对 TTL 或授权边界，没有增加运行时语法版本要求或关闭 Lint 规则。
+
+新增性能回归修改前失败，保留版定向 14/14 通过，包括全部 UTF-16 单元、全部补充平面码点、C0/C1、孤立代理、稀疏/密集切换、精确边界和旧 UTF-8 回退；模块语句/行/函数 100%，分支 96.46%。同进程交替微基准每轮 200 次归一化、5 轮：ASCII
+CPU 中位数 156/156ms；密集转义 594/577ms；其余选定样本 CPU 比率 0.157–0.725。这些是微基准，不是单次请求延迟或容量资格。直接逐匹配和 Unicode 属性筛选的退化候选未保留；另保留一次源码冻结不一致的诊断失败，不将该次结果作为性能依据。
+
+冻结源码的原标准完整客户端门禁为 1338 项、1331 通过、4 失败、3 取消、0 跳过，323141.6734ms，退出码 1。覆盖率语句/行 99.06%、分支 95.21%、函数 99.29%。失败/取消涉及三协议 Core
+WBIPC 的持久化请求、原五档两 worker 容量、staging 重开、不确定发布重开、四根 32MiB 重开。Chat
+long-persistent 本轮约 5098ms 触及原 5000ms，四根原 180000ms 等期限未调整。两轮失败数量变化不证明稳定性根因已消除，完整验收仍未通过。
+
+全仓格式首次检查失败于 404 个诊断/临时文件。仅为根 `.codex-tmp/` 与根 `tmp/`
+增加格式排除，归档内容未改写；新增统一 unit 范围回归先失败后通过，验证正式 lib、scripts、test、前端、扩展和正式源码内同名目录继续检查。排除后仅本批新建治理测试需格式修正，已仅格式化该新文件。最终字面 npm
+run format:check 通过，全仓 ESLint 再次通过（0 errors、5
+warnings）；格式/Lint 范围治理 2/2、CI 与发布治理通过。没有跳过正式测试、关闭规则或修改 baseline。
+
+本批代码与门禁证据为
+`.hpm-acceptance/context-plugin-vault-20261021-01/state-native-escapes-outcome.json`、`state-native-escapes-retained-source-freeze.json`、`state-native-escapes-v6-benchmark-result.json`、`state-native-escapes-retained-regression.log`、`state-native-escapes-client-full.log`、`format-scope-repository-final.log`、`format-scope-repository-lint-final.log`
+和
+`format-and-lint-scope-regression-final.log`。六个运行/测试文件在完整客户端终态后 SHA256 复查一致；格式范围的独立后续改动另行绑定。真实请求仍 137/144，本批新增 0；生产 PID
+64716 未重启，未安装插件或修改日常配置。完整 verify、安全/构建、真实组合与生产激活未完成，整体 active。
+
+## 2026-10-21：事务内归属校验去重与 Lint 范围治理，完整客户端仍失败
+
+SQLite 归属检查统一移至事务入口：每次 BEGIN
+IMMEDIATE 后验证 schema 和 blob 归属，再读取或清理；不跨事务缓存结果。此前 catalog、sweep 等路径会在同一锁内重复检查。新增回归先复现 2 次检查，再验证每事务 1 次，以及下一事务发生孤立 blob 后读取、清理和撤销均拒绝且不删除损坏证据。同步级别、日志模式、加密、权限、TTL、预算和事务提交边界未改变。
+
+存储两文件回归 77/77 通过。原标准完整客户端门禁为 1336 项、1325 通过、5 失败、6 取消、0 跳过，331526.0166ms，退出码 1；覆盖率语句/行 99.06%、分支 95.20%、函数 99.29%。失败及取消包括 Core 加密续接、三协议 WBIPC、隔离代理、原五档容量、Windows 密文清除/重开、压缩日志和 staging 重开、四根 32MiB 重开。定向通过不代表原 5000/30000/60000/180000ms 门禁合格，未放宽原期限或负载。
+
+此前全仓 Lint 错误来自诊断和冻结副本目录。现在仅排除 `**/.hpm-acceptance/**`、根
+`.codex-tmp/**` 和根
+`tmp/**`；新增统一 unit 治理测试验证正式 lib、scripts、test、前端和扩展仍被检查，且 no-undef 仍生效，近似目录名及正式源码内 tmp 不被排除。全仓 Lint 重跑通过：0
+errors、5
+warnings；修改范围格式、CI 与发布治理通过。没有关闭规则或修改 baseline。
+
+完整插件缓存删除的阶段诊断仍失败：复制 34591.041ms、删除 72680.5141ms，原 60000ms 用例超时，不能解释为纯模型或读取逻辑延迟。诊断只记录固定阶段、计数和耗时。真实请求仍 137/144，本批新增 0；未安装插件、更改日常配置或重启生产。整体 active，容量、存储稳定性、插件完整验收和全仓门禁未完成。
+
+证据为
+`.hpm-acceptance/context-plugin-vault-20261021-01/storage-ownership-outcome.json`，绑定四个修改文件摘要并终态复查，范围仅为该批次；另保留前后回归、`storage-ownership-client-full.log`、`lint-scope-repository-final.log`、Lint 范围前后回归和
+`plugin-cache-stage-timing.jsonl`。后续字符扫描候选单独验证，不把此批门禁当作之后源码的验收。
+
+## 2026-10-21：暂存插件 SDK 安全升级，包级缓存删除期限仍未通过
+
+复核已授权的 Claude
+v25 全真实新任务：17 次请求、三次原生压缩、原始工具仅调用一次、精确私有 READ 及独立公开证据、最终答案精确且无私有工具事件泄漏。此证据仅覆盖 owner
+HTTP 入口，不扩展为当前 Core、已安装插件或生产验收。真实请求仍为 137/144，本批新增 0，没有重复追加授权或重复执行该真实任务。
+
+暂存插件 `plugins/hpm-local-evidence` 的直接 MCP
+SDK 从 1.31.0 升至精确 1.32.1，更新 lockfile、安装依赖并重建 26 模块源码闭包。插件独立 npm
+audit 返回零漏洞。新增版本门槛回归修改前失败，修改后通过；包清单断言同步当前版本，旧版回滚合成夹具继续保留。三个回归文件均由统一 unit 发现；定向 Lint、格式、CI 与发布治理通过。
+
+最终三文件回归 20 项、19 通过、0 断言失败、1 取消、0 跳过，110016.2145ms，退出码 1：运行中删除完整插件缓存并继续读取用例仍超过原 60000ms。不能把安全审计和版本回归通过当作完整插件交付通过。未延长期限、跳过测试、安装插件、改日常配置或重启生产；生产 PID
+64716 的启动时间仍为 2026-10-19
+05:50:12。容量、存储重开稳定性、完整客户端/插件和全仓门禁继续阻塞整体交付，目标保持 active。
+
+证据位于
+`.hpm-acceptance/context-plugin-vault-20261021-01/`：`plugin-sdk-security-outcome.json`
+绑定源码摘要及请求计数；另保留
+`plugin-sdk-floor-before.log`、`plugin-sdk-regression-after.log`、`plugin-sdk-rebuilt-regression.log`、`plugin-sdk-final-regression.log`、`plugin-dependency-audit-before.json`
+与
+`plugin-dependency-audit-after.json`。中间旧清单断言和缓存超时的失败记录均保留。
+
+## 2026-10-21：保留历史请求的 Unicode 扫描优化，存储延迟仍阻塞交付
+
+CPU 采样发现 JSON 字节核算中的 Unicode 分类扫描热点。当前仅优化 context-recovery-history-request.js：保留 ASCII 路径，宽字符文本使用码元范围扫描与既有无损 UTF-8 校验；C0 控制字符、引号、反斜杠和孤立代理仍交给原生 JSON 编码。C1 字符及配对代理无需生成整段 JSON 副本。未改变节点、深度、逐项/总字节、冻结、预算、TTL 或授权边界。状态编码器候选在带转义 ASCII 对照中表现退化，已撤回，context-recovery-state-data.js 与本轮备份 SHA256 相同；不把候选收益套用到保留实现。
+
+新增 C1 无副本回归在修改前失败；全 UTF-16、补充平面及旧运行时回退检查进入既有统一 CI 文件。候选 v1 期间定向 30/30，包括四根 32MiB 加密重开 101915.8671ms；这是此前候选的定向证据，不能替代当前完整门禁。当前保留版本的前后 normalizer 对照见 json-scan-normalizer-benchmark-v2-result.json：Unicode 样本有 CPU 收益，ASCII 墙钟仍有波动，不作整条请求时延保证。
+
+当前源码完整 test:client:coverage 已退出 1：1335 项，1329 通过、3 失败、3 取消、0 跳过，主体 319355.0382ms。失败为 Chat/Responses
+Core 持久化请求原 5000ms 截止时间、原五档两 worker 容量资格 60000ms；取消为加密 staging 重开 30000ms、授权恢复重开 30000ms、四根 32MiB 重开 180000ms。覆盖率语句/行 99.06%、分支 95.22%、函数 99.29%；history-request 语句/函数 100%、分支 98.16%，state-data 与 UTF-8
+helper 语句/分支/函数 100%。32 文件源码冻结复核无差异。定向 Lint、语法、格式、CI 及发布治理通过，完整门禁仍未通过。
+
+进一步的隔离 worker 计时确认一次操作 3561ms、线程 CPU
+62ms、已记录文件检查约 22ms；下一次捕获 scan-reference 的 SQLite COMMIT
+2911ms、线程 CPU
+0ms。后一次 DELETE 诊断虽然通过，也不能撤销历史超时。仅在诊断进程比较 TRUNCATE，保留 synchronous=FULL 与 secure_delete=ON，仍在重开第二轮 5015ms 超时，因此未修改产品日志模式；运行源码仍使用 DELETE。现有证据说明存储线程内部阻塞是延迟来源之一，未证明所有超时有同一根因，也未排除系统调度或其他文件系统等待。
+
+证据均位于 .hpm-acceptance/context-plugin-vault-20261021-01/：json-scan-regression-before.log、json-scan-regression-after.log、json-scan-normalizer-benchmark-v1-result.json、json-scan-normalizer-benchmark-v2-result.json、json-scan-client-full.log、json-scan-source-freeze.json、storage-operation-worker-timing.jsonl、storage-operation-worker-sqlite-timing-v2.jsonl、storage-operation-worker-sqlite-TRUNCATE-timing-v3.jsonl 及对应 Core 日志。诊断只记录固定操作名、计数、耗时及 CPU，无请求参数、原文或凭据；辅助脚本未进入生产路径。真实请求仍 137/144，本轮新增 0；未安装插件、改日常配置或重启生产。容量、持久化期限、完整客户端/插件与全仓门禁仍待完成，整体 active。
+
+## 2026-10-21：实际 Core 大原文窗口回归与加密重开未通过
+
+实际 Core 的 WBIPC 测试新增 long-json、long-sse、long-failed：约 600KB 原始工具结果超过现有 384KiB/96Ki
+token 窗口，私有阶段使用可信留存引用，公开阶段使用中性占位及独立验证的 READ 证据；失败后仍能重新读取原始内容。该版本 Core 文件 30/30 通过，证据为
+`.hpm-acceptance/context-plugin-vault-20261021-01/wbipc-core-window-regression.log`。使用 FakeWbipcSocket，不代表真实 WBIPC 端点。
+
+随后新增 long-persistent，使用真实 Windows 加密存储 worker，关闭后物理重开，检查原文不出现在 SQLite 文件、来源与绝对到期时间不变、预算继续扣减及公开发布确认。当前测试仍未通过：完整文件 28/30，Responses 重开后第二轮和 Claude 第一轮超过原 5000ms；Chat 本轮通过。后续诊断还观察到普通内存模式超时，不能据此把根因归结为加密存储。最新单独 Responses 诊断在持久化第一轮完成私有读取及发布阶段，但仍超时；READ 和存储操作计时仅用于定位，未证明故障根因或修复。
+
+新增测试保留在既有统一 CI 入口
+`test/client-context-target.test.js`，原负载、5000ms 请求截止时间、预算及门禁均未放宽。阶段诊断仅记录固定测试模式、操作名、计数和耗时，不记录原文或凭据。证据：同目录
+`wbipc-core-persistent-regression-v3.log`、`wbipc-core-persistent-timing-v1.log`、`wbipc-core-persistent-timing-v2.log`、`wbipc-core-persistent-timing-v3.log`。定向 ESLint 通过；新增测试后的完整覆盖率门禁尚未重跑，前次完整门禁失败保持有效。
+
+最终当前源码复跑为 27/30，三个协议的 long-persistent 第一轮均超过原 5000ms（总耗时 125244.0704ms），0 取消、0 跳过；日志为同目录
+`wbipc-core-persistent-final.log`。其中 Responses 的 settle-reader 单次 3276ms，Claude 的 load-reference 单次 1801ms，Chat 的 save-reference-state 单次 1236ms；这些是耗时观测，不能单独证明因果。此前 Chat 通过保留为历史结果，不能作为当前通过。
+
+真实请求新增 0，累计 137/144；此前 Claude v25 的全真实验收仍仅覆盖 owner
+HTTP 入口，不扩大到当前 Core、已安装插件或生产。容量、加密重开期限、真实 WBIPC、插件迁移及全仓门禁仍阻塞整体交付。未修改日常配置、安装插件、重启或激活生产；整体保持 active。
+
+## 2026-10-21：WBIPC 双预算实现最终验证，完整门禁保持失败
+
+冻结 31 文件运行 npm run test:client:coverage，终态 exit
+1：1333 项，1328 通过、2 失败、3 取消、0 跳过，344657.0418ms。覆盖率行/语句 99.06%、分支 95.20%、函数 99.29%；三个 WBIPC 模块均行/语句/函数 100%，新窗口模块分支 97.61%。定向 97/97、Lint/格式、CI 与发布清单通过；新增测试已处于原统一客户端入口。失败为 direct-upload
+fixture 启动期限及原五档两 worker 容量 60000ms 超时；三项取消为 staging 清理重开 30000ms、当前授权/读取预算重开 30000ms、四根 32MiB 私有历史重开 180000ms。上次四根提前失败与本轮明确超时均保留，尚未定位共同根因；覆盖率达标不改变失败结论。全部 31 文件 SHA256 在门禁结束后复核一致。
+
+当前源码的 Codex 原生经实际 Core 合成复验通过。Claude 同期 v4 在原 20 秒启动期限内未发出请求并失败；在完整测试进程结束后，v5 单独复验以相同期限通过三次原生压缩、精确 READ/公开证据/最终答案、无私有事件泄漏及进程终结，失败记录保留，不能据此声称并发启动问题已修复。本轮真实调用新增 0，累计仍 137/144。
+
+WBIPC 双预算本地代码已实现：保留完整宿主原文，仅投影已证明留存的历史结果，继续使用现有最终发布事务；2.4MB 多轮会话、私有/公开隔离、非法 UTF-8、引用篡改、独立预算、撤权与发布前取消后的原文重读均有回归。仍需补实际 Core 的大窗口发布/加密重开组合及真实 WBIPC 端点验收，不以 FakeWbipcSocket 证据代替真实传输。容量/启动/重开稳定性、完整插件/Hooks 与迁移/真实旧读取器、24h 到期实测、全仓门禁及最终空闲生产启用继续待完成；生产与日常配置未更改，整体 active。
+
+证据：.hpm-acceptance/context-plugin-vault-20261021-01/wbipc-window-outcome.json、wbipc-window-runtime-source-freeze.json、wbipc-window-final-module-coverage.json、wbipc-window-client-full.log、claude-native-recovery-core-synthetic-wbipc-v5-result.json 与上节列出的回归/失败日志。
+
+## 2026-10-21：WBIPC 长历史增加原文证明和双预算传输投影（完整门禁运行中）
+
+新增 context-recovery-wbipc-window：保留宿主完整规范历史，仅在 format3 的 WBIPC 传输副本超限时，按当前会话 captured/visible 集合中的 callId、SHA256、精确 UTF-8 字节数和绝对到期证明，替换已留存的历史工具结果。私有阶段使用来源引用；独立公开阶段使用无私有目录标识的固定占位说明，并继续附带成功 READ 的已验证证据。用户消息、工具调用、工具定义和私有 READ 回执不截断；没有确切留存证明、非法 UTF-8 或替换后仍超任一预算时拒绝，不连接 IPC、不执行外部工具。引用查询不消耗或重置读取预算，不创建新保存事务；继续复用已有最终响应 prepare/sending/finished 与撤回边界。
+
+WBIPC 入口与协议转换采用 owner 的 historyFormat，format3 允许原 32MiB 历史边界，单项和单次结果批次仍为原 2MiB；传输仍受原 384KiB 和 96Ki
+Token 两项上限控制，未提高任何上限。旧 format2、凭据/endpoint 绑定、工具历史配对和认证撤销规则保留。新模块进入发布清单，新增回归位于原统一 test:client 测试文件。
+
+四文件定向 97/97 通过（21481.1165ms），包含已有实际 Core 集成、新 2.4MB 多轮会话的投影、精确 READ 和发布前取消后再次读原文。新窗口模块定向覆盖率语句/函数 100%、分支 93.75%（新增 UTF-8/非法边界回归之前的采集）；最终标准 test:client:coverage 正在运行。当前源码的 Codex 原生经过实际 Core 合成复验通过；Claude 同期在原 20 秒 native_deadline 内未发出模型请求，待完整门禁终态后单独复验，失败记录保留。不冒充真实 WBIPC 端点或已安装插件验收。
+
+证据：.hpm-acceptance/context-plugin-vault-20261021-01/wbipc-window-runtime-source-freeze.json（31 文件）、wbipc-window-core-regression.log、wbipc-window-owner-regression-final.log、wbipc-window-coverage.log、wbipc-window-lint-frozen.log、wbipc-window-format-frozen.log、wbipc-window-ci.log、wbipc-window-release.log、wbipc-window-client-full.log、codex-native-core-synthetic-wbipc-v2-result.json、claude-native-recovery-core-synthetic-wbipc-v4-result.json。本轮真实请求新增 0，累计 137/144；生产 PID 未重启，日常配置未改，整体 active。
+
+## 2026-10-21：两端原生客户端经过实际 Core 的合成验收通过
+
+新增端到端证据：原生 Claude 与 Codex 客户端经 createCoreRequestHandler 进入默认恢复路径，使用测试注入的认证、临时路由和本地合成上游。两端均完成三次原生压缩，原始外部工具只执行一次，私有 READ 后逐字节证据进入独立公开生成，最终答案精确，私有工具事件未泄漏，客户端进程结束。Claude 消耗 18 次本地合成响应，Codex
+13 次，真实模型新增 0。此证据覆盖原生客户端到实际 Core 的默认恢复调用链；不覆盖完整 openai-proxy
+composition、安装插件/Hooks、真实上游或生产部署。历史两端真实验收仍保持其原 owner
+HTTP 入口和源码范围。
+
+证据：.hpm-acceptance/context-plugin-vault-20261021-01/claude-native-recovery-core-synthetic-v3-result.json 和 codex-native-core-synthetic-v1-result.json。复核原 25 文件 diagnostic-source-freeze 的源码 SHA256 均一致，未通过变更恢复逻辑取得本轮通过。夹具早期路径/缺失依赖失败日志保留，最终两端均 exit
+0。容量 60000ms 稳定性及完整客户端失败门禁仍未解决；插件安装/迁移与真实旧读取器、WBIPC 长历史双预算、24h 到期实测、全仓门禁和最终生产启用仍待完成。真实预算仍 137/144，生产与日常配置未更改，整体 active。
+
+## 2026-10-21：撤回纯文本指纹候选，容量门禁保持未通过
+
+纯文本消息的 canonical
+SHA256 快路径通过 40 项等价性回归和定向 Lint，但原五档、两 worker、c8 覆盖率下的完整耗时对照为基线 58989.9289ms、候选 99477.4894ms，候选不具备可保留的稳定收益。候选在原 60000ms 资格用例中仍超时，已恢复源码和本轮候选测试；原 25 文件 diagnostic-source-freeze 的 SHA256 全部一致，恢复后绑定回归 39/39。诊断脚本的 qualified 字段只表示五档数据完整，未包含原资格命令的 60 秒期限，因此不得解释为标准门禁通过。历史完整客户端失败结果保持有效。
+
+证据位于 .hpm-acceptance/context-plugin-vault-20261021-01/：scalar-canonical-outcome.json、capacity-scalar-canonical-baseline-result.json、capacity-scalar-canonical-candidate-result.json、scalar-canonical-restored-regression.log。后续实际 Core 与两端原生客户端的合成链路已通过，见上节；未安装插件，未更改生产或日常配置，本轮真实请求新增 0，累计 137/144，整体 active。
+
+## 2026-10-21：原文 UTF-8 校验去除重复整段复制，完整门禁仍未通过
+
+新增共享 isWellFormedEvidenceText：在原生 String.prototype.isWellFormed 可用时直接校验 UTF-16 是否能无损往返 UTF-8；旧运行时保留原 Buffer 往返校验。原文形状门禁和摘要校验均使用它，避免为相同校验分配整段 Buffer/字符串副本。原输出字节上限、JSON 转义预算、SHA256、逐回执校验、读取偏移、缓存上限、所有期限与负载不变。
+
+账本回归 31/31：逐一比较全部 65536 个 UTF-16 单元，分块覆盖全部补充平面码点，同时验证原生与强制旧运行时回退等价；原生路径形状检查不分配原文 Buffer，摘要检查只创建所需的摘要/读取边界 Buffer，缓存命中仍拒绝错误摘要与非法 UTF-8 偏移。加密存储/根状态/收养三文件 72/72，包括四个根、32
+MiB 私有历史的真实加密重开，整组 92395.2424ms。定向 Lint、CI 与发布清单通过，新模块已声明。
+
+当前源码的标准 npm run
+test:client:coverage（含原生工具和网关标准重建）终态为 1325 项、1323 通过、2 失败、0 取消/跳过，144479.1159ms，exit
+1。全门禁覆盖率语句/行 99.06%、分支 95.18%、函数 99.29%；本次 UTF-8
+helper 与两个关联模块均达到语句/函数/分支 100%。失败为原 60000ms 容量资格超时，以及四根 32MiB
+fixture 在 38482ms 内恢复轮次提前失败（并非触及 180000ms 期限），具体错误码尚待诊断。已补只含 index/suffix/安全 code 的断言信息，原轮次、负载、并发与期限均未变；三文件诊断已 92/92 通过（95927.5439ms），其中原五档、两 worker 容量资格 51745.5068ms，通过原 60000ms 期限。该结果不替代全并发门禁，也未证明此前失败根因已消除。带安全断言的第二轮完整标准客户端门禁终态为 1325 项、1324 通过、1 失败、0 取消/跳过，218607.3158ms，exit
+1；仅原 60000ms 容量资格超时。覆盖率语句/行 99.06%、分支 95.19%、函数 99.29%。四根 32MiB 此轮通过，但首轮提前失败未定位到根因，不能据重跑通过声称已修复。日志 evidence-native-unicode-client-diagnostic-full.log，第一轮失败记录保留。额外隔离诊断：在 c8 下只运行原容量资格用例也于原 60000ms 超时（测试总计 60557.5647ms），不能只归因于文件并发；未关闭覆盖率采集，也未放宽任何门禁。日志 capacity-coverage-isolation.log。完整失败保持失败，独立 103 项通过不替代门禁。日志 evidence-native-unicode-client-full.log。当前源码的 Codex
+synthetic-unicode-v42 与 Claude
+synthetic-unicode-v27 原生零模型回归均通过三次压缩、精确最终答案、无私有事件泄漏和进程终结；scope 仍是原生客户端加恢复 owner
+HTTP 入口，不是完整安装插件或生产路径。新源码尚未做真实模型重验，历史 Codex/Claude 真实通过保留原证据范围。生产与日常配置不变，本轮真实请求新增 0，累计仍 137/144。容量 60000ms、全仓门禁、完整插件/Hooks 接入、WBIPC 长历史、迁移/真实旧读取器、24h 到期和最终生产启用仍待完成。整体 active。
+
+证据目录 .hpm-acceptance/context-plugin-vault-20261021-01/：evidence-native-unicode-regression.log、evidence-native-unicode-root-regression.log、evidence-native-unicode-lint.log、evidence-native-unicode-ci.log、evidence-native-unicode-release.log、evidence-native-unicode-runtime-source-freeze.json、evidence-native-unicode-outcome.json。
+
+## 2026-10-21：阶段计时完成，第二项缓存候选撤回
+
+原五档/两 worker 的最大负载阶段计时（含嵌套，不能相加）：入站历史规范化 19781ms、frontier.calculate
+30653ms、完整根导出 8849ms、重开恢复 16715ms。仅保留固定阶段名、次数与耗时，不记录原文或请求参数。
+
+第二项候选用请求内 UTF-16LE 摘要加速大文本缓存比较，保留持久化规范链、每次入站校验与缓存上限；独立 60000ms 门禁仍超时。紧邻的完整原负载对照为旧实现 92529.2461ms、候选 90796.9834ms，两者功能断言全过，差距约 1.87%，不足以证明稳定收益，已撤回新模块、接线、运行清单及实验测试。23 文件与前轮冻结清单再次逐一匹配，未保留新的缓存格式。下一步优先查完整状态导出/重开中的重复处理，不放松任何校验。
+
+证据：.hpm-acceptance/context-plugin-vault-20261021-01/capacity-stage-timing-thread-_.json、capacity-stage-timing-result.json、capacity-item-fingerprint-_-diagnostic-result.json、capacity-stage-and-rejected-fingerprint-outcome.json。本轮新增真实模型请求 0，预算仍 137/144，生产和日常配置不变。整体 active。
+
+## 2026-10-21：容量热点采样与文本复用实验撤回，性能门禁仍失败
+
+对原五档、两 worker 容量负载完成 CPU 采样：五档功能断言全部满足，带分析器总耗时约 134.7 秒；该结果不能替代原 60000ms 门禁。热点集中在历史克隆、规范编码、指纹 SHA 与 GC。请求内文本复用实验的定向比较虽较快，完整负载对照为原实现 120416.86ms、实验 126789.8618ms，两者功能断言均通过而性能门禁均失败，因此撤回源码与实验专用测试，原源码 SHA256 和上一轮 21 文件冻结清单全部复核一致。
+
+实验阶段绑定/私有容量/会话回归 90/90、定向 Lint 和 CI 清单通过，仅是被撤回候选的证据，不冒充最终性能验收。本轮无新增真实模型请求，累计仍 137/144；未修改任何期限、负载、worker 上限、日常配置或生产。证据：.hpm-acceptance/context-plugin-vault-20261021-01/capacity-profile-and-rejected-intern-outcome.json、capacity-intern-_-diagnostic-result.json、CPU.20261021.080819._.cpuprofile。整体 active。
+
+## 2026-10-21：默认隔离入口与 Claude 完整真实复验通过，整体未完成
+
+Core 集成补充：30/30 全部通过，含 JSON/SSE、多协议转换、三次规范压缩、WBIPC 与撤权。发现 Gemini 对含先前工具历史的相邻用户消息合并会破坏公开证据边界；修复恢复路径保持原消息边界，补回归。Gemini 转换与直接 Chat 测试通过；默认入口 Codex 原生合成 v41 三次压缩通过，零真实调用。标准完整客户端首次复跑为 1322 项、1299 通过、21 失败、2 取消（306757ms）；该次混有尚未更新的旧三轮 Core 测试。Core 修复后最终完整门禁为 1323 项、1315 通过、3 失败、5 取消、0 跳过，315001.7422ms，exit
+1。失败为容量资格、独立 ACL 校验和旧 DPAPI 互操作；取消涉及加密 worker 重开、加载、撤权、4 根 32MiB 历史及网关启动。覆盖率行/语句 99.06%、分支 95.18%、函数 99.28%，不因覆盖率达标改判通过。当前源码封存为 default-isolated-security-final-source-freeze.json，旧封存保留为历史。
+
+HTTP 与 WebSocket 默认恢复入口已改为内部恢复后独立公开生成。普通 HTTP 响应只有在实际传输完成后才获得公开来源标记；普通 WebSocket 响应先准备，完成发布确认后才允许续接。旧未知来源响应、未完成公开发布均不具备公开祖先权限。无法证明公开祖先时，清理成功后返回安全的 previous_response_not_found，客户端可自行携完整公开上下文重发；代理不会自动重试。
+
+WebSocket 增量投影加入工具目录一致性条件，避免公开阶段继承私有响应 ID。回归覆盖原生形态工具、长历史、连续三轮外部结果、分片、断线重连、客户端完整窗口重发、撤权、发布失败与加密 SQLite 关闭重开。私有阶段若返回未广告的外部工具调用，拒绝并隐藏；所有外部调用均来自独立公开阶段。相关五文件 210/210，协议转换等八文件 107/107；定向 Lint/格式通过。入口/WS 三模块覆盖率语句/行 95.89%、分支 91.08%、函数 96.15%。这些是合成上游和本地传输证据。
+
+Claude
+v25 使用真实原生客户端、新建隔离任务、真实模型贯穿 seed、三次压缩、两次中间续接和最终恢复；默认 HTTP 入口直接接管，无 isolated 选项包装。17 次真实请求、3 次原生压缩、原始 MCP 工具仅执行 1 次，精确私有读回、公开证据投影及最终答案全部通过，未检测到私有工具事件泄漏，客户端进程已终结。它验证恢复 owner
+HTTP 入口，仍不是完整 Core/插件安装或生产验收。Codex
+v38 的全真实通过属于先前源码，不能冒充当前源码重验。
+
+新授权仅用于 Claude 完整复验及诊断，累计预算 137/144，剩余 7 次；没有自动重试或修改日常配置。生产未重启、未启用本次改动、未安装插件。标准完整客户端门禁仍未通过，容量/worker/ACL/DPAPI/启动问题保持待解决。容量资格单独诊断仍在原 60000ms 超时（测试总计 61202.6754ms）；未改期限、负载或两 worker 上限。依赖升级后 Windows 密钥组单独诊断 24/24 通过，原生/旧 DPAPI 双向兼容通过；不能以单组通过替代原并发门禁或认定根因已修复。WBIPC 长历史、完整 Core/插件/Hooks 多端接入、迁移与真实旧读取器、24 小时到期及最终生产启用仍未交付，整体保持 active。
+
+安全依赖分两批升级：@modelcontextprotocol/sdk ^1.32.1、Vite
+^6.4.5。按标准流程重建网关完整性产物；升级后网关/发布回归 32/32、前端构建通过，npm
+audit 各严重度均为 0。完整客户端门禁发生在依赖升级前，未冒充升级后全量结果。升级后 Claude 默认入口原生合成 v26 三次压缩通过，零真实请求；精确答案、无私有事件泄漏及进程终结均通过。
+
+证据位于 .hpm-acceptance/context-plugin-vault-20261021-01/：default-isolated-source-freeze.json、default-isolated-entry-verified.log、default-isolated-protocols.log、default-isolated-coverage.log、default-isolated-lint-final.log、default-isolated-format-final.log、claude-native-recovery-isolated-complete-v25-result.json、real-model-budget.json。
+
+## 2026-10-21：独立公开响应来源与持久化续接边界
+
+已补宿主来源证明：Responses 的 previous_response_id 只有在当前 principal/target/policy 绑定到唯一父快照，父响应确由独立公开生成产生且完成发布后，才可进入公开请求。私有响应 ID、旧单缓冲流程的未知来源 ID、未完成发布与歧义祖先继续拒绝。私有读取仍沿原私有状态机进行；公开请求仅延续宿主证明过的公开响应 ID，绝不取私有阶段的 response
+ID，因此不需要另存完整用户历史。
+
+持久化采用显式 publicGenerationFormat=1 和每个快照的 publicResponse 布尔值；标记保存在原加密状态中，旧无标记状态默认不具备公开祖先权限。封存器/元数据层严格校验标记类型、协议与快照关联；既有快照的来源属性在引用状态更新中不可提升或降级。旧读取器的精确字段契约会拒绝新增格式，但真实旧版二进制仍待验收。没有增加原文容量、读预算、快照上限或延长绝对到期时间。
+
+测试已证明：完成发布后跨状态重开可续接；刚发生的私有 READ、草稿、私有响应 ID 均不进入公开请求；来源标记篡改、缺失、未知格式、未完成发布与旧状态均按边界拒绝；实际 Windows 加密 worker 关闭/重开后仍可使用公开祖先，原到期时间相同。扩展回归 153/153、持久化/绑定组 144/144、最新定向 46/46；隔离模块覆盖率行/语句 98.15%、分支 94.54%、函数 100%。定向 Lint/格式、CI 与发布清单检查通过。两端新原生合成模型验收均完成三次压缩、精确恢复、单根与无私有工具泄漏，零真实请求；不是完整 Core/插件或真实模型验收。
+
+性能字符扫描实验未保留：替代实现未呈现稳定收益，原五档/两 worker 容量实测 60121.7393ms，超过原 60000ms 并超时。恢复了历史计量源码的原始 SHA256，保留新增穷举回归，覆盖全部 UTF-16 单元和补充平面码点与 JSON 精确字节等价。不宣称容量或性能合格。
+
+目前来源证明仅由 isolated 宿主选项使用，默认 HTTP/WS 尚未切换；仍需验证实际发布时序、缓存失效、完整传输/插件与兼容迁移。上一轮 Codex
+v38 全真实通过属于上一轮源码，不冒充本轮新字段的真实复验。真实请求预算仍 120/120，本轮新增 0；追加授权待用户回复，不能继续真实调用。完整客户端与全仓门禁尚未在这批最终源码上重跑；上一轮失败记录仍有效，整体 active，生产与日常配置不变。
+
+证据：public-lineage-final-source-freeze.json（补充祖先注释后重封存）、public-lineage-source-freeze.json、public-lineage-outcome.json、public-lineage-_-final.log、public-lineage-coverage.log、两端 synthetic-v24/v40-result.json、history-character-_-benchmark-result.json 与 capacity-character-set-deadline-result.json，位于 .hpm-acceptance/context-plugin-vault-20261021-01/。
+
+## 2026-10-21：私有恢复与独立公开生成（未完成整体交付）
+
+最终冻结源码复核 SHA256 一致；最新扩展回归 274/274、定向 42/42，两端新合成原生三次压缩均通过；新模块覆盖率行/语句 98.07%、分支 93.82%、函数 100%。标准完整客户端最终终态：1314 项，1302 通过、3 失败、9 取消、0 跳过，373312.0762ms，exit
+1。整体交付未完成。
+
+全仓语法检查通过（3871 个 JavaScript 文件）；全仓 Lint 失败（7697 errors、669
+warnings），本轮修改文件定向 Lint/格式及 CI/发布清单检查通过。最终完整客户端覆盖率行/语句 99.01%、分支 95.13%、函数 99.13%；失败门禁不因覆盖率达标改判。全仓 verify/build/security 全链路未完成。
+
+用户已选择严格隔离：先内部完成恢复，再以独立公开请求生成最终输出。新增独立协调器与证据投影模块；公开侧仅收到原始可见请求、原外部工具和经宿主成功 READ 校验的证据页。目录回执、私有工具定义/调用 ID、错误、中间草稿和 thinking 不跨该边界。校验包括来源 ID、完整摘要、分页范围/总字节、UTF-8 和分块 SHA256；保留 8 轮、64 次读取、512
+KiB 上限，私有最多 7 轮，为公开生成预留一轮。无可读证据时直接公开生成，避免无效私有发现。
+
+目前仅新增宿主选项 publicGeneration=isolated，原生探针显式启用。默认 HTTP/WS 尚未切换，带 provider
+previous_response_id 且缺少完整公开祖先时明确拒绝，尚需设计可验证的公开历史重建；不能称为默认无感集成或完整 Core/Hook 验收。
+
+新隔离 Codex
+v38 全程真实模型验收通过（13 次请求）：真实原文捕获一次、三次原生压缩、后续私有请求读回精确原文、独立公开请求含精确授权证据、最终值精确匹配、单根、无私有工具事件泄漏。Claude
+v16/v18 全流程真实验收失败；v19 的安全结构诊断定位到公开摘要含两个 summary 开标签、一个闭标签，严格封存器正确拒绝 context_recovery_summary_invalid。没有放松封存规则；仅对已识别的原生摘要公开请求增加唯一 summary 块的系统格式要求，并关闭该请求的 thinking。v20 修复后单次真实公开摘要与原生压缩通过（种子/私有阶段合成），v21 最终真实公开生成答案严格匹配（种子/三次压缩/私有阶段合成）；二者不能合并冒充 Claude 全流程真实通过。
+
+累计真实模型预算已获批至 120 次，现 120/120；无自动上游重试、无日常配置改动、无生产重启/激活。完整标准客户端中间门禁为 1312 项、1297 通过、14 失败、1 取消、0 跳过，306295.54ms；覆盖率行/语句 99.06%、分支 95.17%、函数 99.28%。运行期间有源码后续修正，故该轮仅诊断，不是最终冻结源码门禁。失败包括加密 worker/ACL/DPAPI 启动与重开、冷导入期限及容量资格，均保留失败记录，没有提高期限或跳过测试。
+
+容量原负载诊断 85118ms 仍超过原 60000ms；热点包括历史 clone/编码、规范化、SHA、GC，尚不能认定性能合格。24h 原样本绝对到期仍为 2026-10-22T00:55:55.109Z，尚未实际到期验收，不重播种或延长。整体 active；仍需 Claude 修复后全真实复验、默认 HTTP/WS 与完整 Core/插件/Hook、WBIPC
+format3 长历史事务与传输、旧插件迁移/真实旧读取器和回滚、全仓门禁、到期观察及最终空闲激活。
+
+本轮证据目录：.hpm-acceptance/context-plugin-vault-20261021-01/。保留所有失败与成功报告；真实预算 real-model-budget.json，Codex
+codex-http-recovery-isolated-complete-v38-result.json，Claude
+claude-native-summary-stage-v19-result.json、claude-native-isolated-summary-format-v20-result.json、claude-native-isolated-final-format-v21-result.json。最终本地回归和源码摘要见 isolated-generation-outcome.json、isolated-generation-source-freeze.json。
+
+## 2026-10-21：Claude 原生续接、流元数据与计量兼容
+
+Claude 原生压缩后会插入 assistant 消息；旧的全 user 条件因此丢弃有效回执。现在解析完整回执，只有唯一已观察到且确实源于该回执的后代窗口才能优先于旧回执；不相关和歧义分支继续拒绝。绑定层返回本次是否真正跨摘要窗口，私有历史仅首次重建，后续继承最新映射，避免重复恢复到旧摘要。回归涵盖有/无 acknowledgment、重开后的原文精确读取与新映射保留、伪造/跨身份/跨目标/策略变更/撤回/撤权/到期和冲突分支。测试仍在统一 CI 入口。
+
+供应商只新增 Anthropic 的精确 beta=true 路径，以及 HTTPS443、同 host、api-key 模式和 claude
+profile 下 DeepSeek 的精确 /anthropic/v1/messages（含 beta=true）路径；额外查询、错 host/port/protocol/auth 和非法对象继续拒绝。对应扩展回归 61/61。
+
+真实 Claude
+v8/v9 首轮失败，v9 上游实际为 200/SSE；v10 原样转发公开响应后完成首次工具捕获，但后续恢复拒绝。安全结构诊断发现 usage.service_tier 为字符串；官方 Anthropic
+SDK 明确定义 standard/priority/batch/null。新增精确枚举校验，不把档位计入数值汇总，只保留最终响应的合法档位；未知字符串、嵌套伪造和 accessor 仍拒绝。Claude
+SSE 收集器另修复丢失 message_start 的 type/model/stop_sequence，并应用最终 delta 的 stop_sequence，空缺字段兼容旧 fixture，非法元数据拒绝。新增 JSON/SSE 往返、正常/空/非法/极端与安全回归 98/98，旧失败记录保留。官方类型来源：https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/main/src/resources/messages/messages.ts
+。
+
+原生 Claude
+v7 零模型通过三次实际压缩、真实 MCP 捕获一次、精确私下读取与答案、单根和无泄漏。两端新建全真实模型任务：Codex
+v36=true（9 次请求），Claude
+v11=false（6 次请求）。这些探针均经过恢复 HTTP 入口，并未覆盖完整 Core 或 Hook。
+
+回执/绑定扩展回归 289/289；元数据修复前的标准完整客户端门禁 1275 项，1269 通过、3 失败、3 取消、0 跳过，291435.413ms。覆盖率语句/行 99.08%、分支 95.14%、函数 99.27%；容量资格、加密 owner 重开/启动等未通过。存储用例单独复核 21/21 通过，不替代完整门禁。原五档负载、两 worker、所有期限未改变。最终源码仅完成相关扩展回归，完整门禁没有宣称绿色；Lint、格式、语法、CI 清单、架构与发布清单检查通过。
+
+当前真实模型预算 83/88，重复请求在探针网关拦截、不改日常配置、生产未激活。完整 Core
+HTTP/WS/Hook、WBIPC 长历史事务、容量性能、迁移/旧版回滚、全仓门禁、24h 到期观察与空闲激活仍未完成，整体 active。
+
+本轮机器证据：claude-receipt-outcome.json、claude-metadata-source-freeze.json、claude-receipt-expanded.log、claude-metadata-usage-expanded.log 与相应原生验收结果。
+
+## 2026-10-21：Codex 工具历史边界、原生摘要格式与可选读取字段
+
+新增 Codex
+additional_tools 协议边界：普通生成把完整内嵌工具清单（含原生 id）纳入策略和精确历史；只有已识别的本地压缩可使用独立连续性指纹定位唯一已观察祖先。principal、target、instructions/system 与歧义拒绝保持；连续摘要收据使用独立索引并随根状态导出、重开、撤回和到期清理。持久化增加显式 identityFormat 标记，未知标记、跨协议和篡改拒绝；旧解析器的精确字段规则会拒绝新增状态，但尚未以真实旧版二进制完成降级验收。
+
+原生零模型 v27 完成工具原文捕获、三次压缩、私下列目录/读取、后续请求精确原文与正确答案，且没有私有调用泄漏。v26/v27 证明探针使用 phase=final 会被当前原生客户端忽略；已支持并原样保留官方 final_answer（也支持 nullable
+phase）。真实摘要形状 v33 进一步发现 output_text.logprobs；仅接受并保留空数组，非空概率、非法类型、accessor、签名/opaque 和混合工具响应继续拒绝，避免新增收据与 token 概率错位。
+
+v34 全程真实模型执行 8 次请求，完成三次实际压缩，但最终模型只调用带 afterSourceId 的目录请求，未读回原文，保留 passed=false。官方文档说明 Responses 在省略 strict 时会尝试规范化为严格 schema；代理注入的两个读取函数现显式 strict=false 以保留原可选字段契约，不改外部工具，也不放松宿主参数验证。回归覆盖空参数、未知字段、非法游标、分页类型与上下界、必填 sourceId/digest 及其他协议。修复后 v35 用真实模型自行完成目录→读回→答案，3 次请求、精确原文字节、正确最终值与事件级隐私检查均通过；但 v35 的种子和三次摘要仍为合成响应，不能替代全程真实验收。v29 曾把用户回显误计为泄漏；原失败记录保留，v30 零模型通过事件路径证明同提示只在 userMessage 回显命中，未追溯改判 v29。
+
+Claude
+v3 零模型观察到无新对话时连续 /compact 只有一次实际压缩；v4 在压缩之间加入对话，完成三次摘要请求与三次 compact_boundary。该结果仅验证原生客户端命令/事件形状，不包含原文恢复、真实模型、Hook 或完整 Core 入口。另已只读验证生产能力检查当前拒绝 Anthropic 的 /v1/messages?beta=true 及现有 DeepSeek 的 /anthropic/v1/messages?beta=true；Claude 路由能力边界仍需精确修复和回归，尚未放宽供应商准入。
+
+本轮先后扩展回归 92/92、93/93 与最新读取声明回归 118/118。首轮完整客户端 1270 项中 1267 通过、1 失败、2 取消；相同冻结源码仅将外层测试进程限制为 2 的诊断为 1270 项、1269 通过、1 失败、0 取消，容量资格仍在原 60 秒超时，32
+MiB 加密重开在 163215ms 完成。该诊断没有进入 package/CI 配置；原五档负载、两 worker 和所有期限保持。最终 21 个源码/配置文件冻结后，标准完整客户端终态：1272 项，1265 通过、2 失败、5 取消、0 跳过，315205.9199ms；覆盖率语句/行 99.08%/99.08%、分支 95.14%、函数 99.27%。源码 SHA256 复核一致。
+
+用户授权累计上限 64 次，目前 64/64，本轮新增真实请求 20 次；没有自动重试、修改日常模型/凭据、安装插件或激活生产。真实新任务在修复后的全程 Codex/Claude 精确恢复、完整 Core
+HTTP/WS/Hook、WBIPC 长历史事务发布、容量性能、旧插件迁移/回滚、全仓门禁、24h 实际到期观察与空闲窗口生产激活仍未完成，整体 active。24h 样本仍沿原到期 2026-10-22T00:55:55.109Z，不重播种。继续使用统一预算账本；新增真实请求需追加授权。
+
+官方依据：[assistant phase](https://developers.openai.com/api/docs/guides/reasoning)、[Responses 输出格式](https://developers.openai.com/api/reference/resources/responses/methods/create)、[函数 schema 默认语义](https://developers.openai.com/api/docs/guides/function-calling)。本轮证据：inline-tools-_-source-freeze.json、inline-tools-_-client.log、optional-reader-schema-expanded.log、real-codex-http-recovery-\*-v27/v34/v35-result.json、claude-native-compaction-synthetic-v4-result.json；最终机器记录 inline-tools-schema-outcome.json。
+
+## 2026-10-21：省略 tools 的摘要识别修复，发现 additional_tools 历史边界
+
+本轮先定位而未重发上一失败任务。新建 v14 真实诊断执行 3 次请求，确认原生压缩包含预期 checkpoint/handoff 提示、tool_choice=auto，但省略顶层 tools，导致旧分类器未识别摘要。累计账本 44/48，剩余 4 次；没有自动重试，也没有改日常配置或激活生产。v14 的 passed 仅表示诊断阶段完成，不代表恢复通过。
+
+分类器现在接受省略或显式空数组 tools；显式 null、非空工具、错误选择器及非摘要继续拒绝。绑定与会话层重建内部摘要请求时省略内部 null 哨兵，避免规范化拒绝或错误策略冲突。重复收据窗口测试同时覆盖两种格式，并验证精确原文、多轮重开、单根及绝对到期时间。首次回归暴露绑定层尚未兼容的问题，修复后 3/3，完整绑定/摘要/协议/usage 扩展回归 67/67；Lint、格式、CI 与发布清单检查通过，测试仍在原统一 CI 入口。
+
+v15–v20 使用真实原生客户端与本地合成 SSE 响应，均为零模型请求并已终止；这些实验不是真实模型验收。v16–v20 仍拒绝摘要祖先为 context_binding_compaction_unobserved，失败证据保留。无内容结构诊断观察到：原生请求首项 type=additional_tools、role=developer；压缩时该项工具由 3 个变为 0 个，同时 id 更换，其他已比较的字段不变。该差异足以改变现有精确历史指纹，但合成响应没有证实完整原生任务输出链，不能将其解释为唯一剩余原因。没有通过删除整项或宽松匹配绕过边界。
+
+下一步需要将嵌入历史的工具策略纳入明确的 Codex 协议边界：普通生成保持完整工具策略与历史精确匹配；仅已识别的本地压缩可定位唯一已观察祖先，仍绑定 principal、target、instructions/system；摘要收据、歧义拒绝、持久化重开和旧读取器失败关闭必须同步验证。若新增祖先指纹字段，须显式处理持久化版本/降级兼容，不能挪用已有 echo 字段。之后才使用剩余额度验证实际原文进入后续上游请求与最终任务。
+
+冻结 15 个源码/配置文件后完整客户端测试终态 exit
+1：1263 项，1252 通过、4 失败、7 取消、0 跳过，耗时 341792ms；覆盖率语句/行 99.01%、分支 95.06%、函数 99.11%。11 个未通过项涉及加密冷恢复、两个入口启动、五档两 worker 容量资格、Windows 密文清理/ACL/启动/重开、32
+MiB 四根重开及 source runtime
+API；失败均记录原有超时，没有改变期限、负载、并发或跳过门禁。冻结 SHA256 全部复核一致。整体目标仍 active；WBIPC、真实多端精确恢复、性能/全仓门禁、24h 到期与生产激活尚未完成。证据为 omitted-tools-_.log/json、real-codex-http-summary-classifier-v14-result.json 及 real-codex-http-summary-native-local_-result.json。
+
+## 2026-10-21：真实第二轮 usage 根因修复，完整恢复仍未通过
+
+追加授权已记入账本，累计上限 48 次；本轮新增 17 次，目前 41/48，剩余 7 次。未自动重试，复用现有模型/凭据，日常配置及生产不变。v8/v9/v10 为独立结构诊断，只保存类型、字段名和计数是否合法，不保存原文、归因条目身份或凭据。
+
+真实工具回传后的第二轮响应增加 usage.attribution.request_fields.tools，内容为四项非负安全整数计数。归因校验模块精确支持此已观察结构；未知字段、非法计数及 content 嵌套继续拒绝，归因仍从公开 usage 中剔除。新增边界回归进入现有统一 CI 测试文件；4/4 定向、89/89 扩展回归通过，模块语句/分支/函数/行覆盖率均 100%，Lint、格式、CI 与发布清单检查通过。
+
+v11 隔离真实 Codex 工具调用、回传后第二轮校验、runner
+release 与编码通过，2 次请求、原生进程已终止。v12 新任务连续三次真实压缩通过，5 次请求；这仍不证明精确私有原文恢复。v13 新的完整闭环探针发起 4 次请求后，在第二次压缩阶段 gateway_failed（该请求未取得响应状态），仅完成一次压缩，进程已终止；未自动重发，也未宣布最终任务/原文后续上游请求验收通过。
+
+此前冻结的 1261 项完整门禁属于 usage 修订之前的源码；本次修订仅有上述定向验证，不能继承为完整最终门禁。当前完整目标仍 active，容量、冷恢复/启动、32
+MiB 重开、WBIPC、真实多端精确恢复与 24h 到期/生产激活仍待完成。证据为 request-fields-\*.log、real-codex-http-usage-shape-v8/v9/v10-result.json、real-codex-http-usage-fixed-v11-result.json、real-codex-http-compaction-fixed-v12-result.json 及 real-codex-http-recovery-fixed-v13-result.json。
+
+## 2026-10-21：WebSocket 延迟加载与冻结源码完整验证（整体未通过）
+
+新增独立 lazy-websocket-proxy 模块，主入口保留共享生命周期及实时配置 getter，仅在首次 upgrade 加载 WebSocket 实现。初始化失败返回空 503，仅记录固定错误码；成功初始化缓存，实际处理器的参数、接收者及返回值保持。新增 4 项定向回归通过，覆盖真实 HTTP
+upgrade 失败、安全日志、延迟加载、认证轮换及实际模块入口；扩展传输/生命周期/架构回归 101/101（第四项随后单独通过）。Lint、格式、CI 与发布清单检查通过。
+
+冻结源码 lazy-ws-source-freeze-v2.json 的 9 个文件 SHA256 已复核一致。完整客户端门禁 1261 项，1256 通过、3 失败、2 取消、0 跳过，总耗时 332135ms。五个未通过项：加密 worker 冷恢复 30 秒超时、两个入口启动 15 秒超时、原五档两 worker 容量资格 60 秒超时、四根 32
+MiB 历史重开 180 秒超时。覆盖率 statements/lines 99.06%、branches
+95.09%、functions
+99.27%。独立启动用例 2/2 通过不代表完整门禁下启动达标；未修改负载、并发或期限。
+
+内容无关编码诊断记录 192 轮/四根/每根 40 次读回，耗时 11018ms，仅用于定位；另一项 scalar-layout 实验 12944ms 对比基线 12990ms 无有意义改善，已字节恢复。未保留指纹算法优化，未把小负载诊断作为容量资格。
+
+用户已明确追加最多 24 次真实模型请求，统一账本累计上限从 24 调至 48；沿用现有模型和凭据、不自动重试、不改日常配置。后续先采集真实第二轮 usage 的无内容结构，再决定修复。生产未激活；WBIPC 事务压缩、真实多端恢复、完整门禁和 24h 到期观察仍待完成。证据位于 .hpm-acceptance/context-plugin-vault-20261021-01，整体目标保持 active。
+
+## 2026-10-21：容量性能采样与两项撤回实验（门槛未变）
+
+沿用现有实现，对四任务候选档执行 192 轮、每根 40 次读回的独立诊断，完成 768 次写入并精确读回；此诊断不替代原五档、两 worker、60 秒容量资格门禁。未采样基线单次耗时 12990ms，CPU 采样基线为 15191ms。采样定位到请求内编码函数，JSON.stringify 所在线 826 个采样 tick、字符串缓存查询所在行 295 个 tick；还包括校验、哈希和检查点往返，尚不能把容量超时归因于一个函数。
+
+实验一通过完整当前文本的校验和复用旧规范指纹，41 项局部回归通过，但同规模诊断为 24124ms；实验二将请求内字符串缓存改为 FIFO，诊断为 17192ms。两项均未证明提速，已经撤回；新增实验模块和测试从工作树移除，原 package 命令、发布清单及公共窗口源码恢复，原绑定回归 38/38。仅保留诊断结果及 CPU 采样证据，不将较小负载的通过写为容量达标，也未改变负载、并发或超时。
+
+本轮 0 次新增模型请求，账本仍为 24/24，追加额度尚未收到答复。真实第二轮 usage 差异、完整多端恢复、启动及容量门禁仍未通过；生产不变，整体目标保持 active。下一步继续沿序列化/验证调用次数定位，避免用额外哈希或缓存策略猜测替代实测。证据在同目录 capacity-profiling-outcome.json 和 capacity-diagnostic-192\*.json/cpuprofile。
+
+## 2026-10-21：真实 HTTP 原文捕获修复与 usage 边界，整体尚未验收
+
+本批累计真实模型请求 24/24（含失败请求），已到用户授权上限；未自动重试、未改日常模型/凭据配置、未激活生产。后续真实请求必须先获追加额度。所有本批原生探针已终止。
+
+真实 Codex 使用 Code
+Mode：外层 custom_tool_call 的 call_id 不同于客户端内层工具调用 ID；原文返回为 custom_tool_call_output.output 数组。原生回显会省略 metadata 和 internal_chat_message_metadata_passthrough 两个服务端字段。新增 context-responses-observed-echo.js，仅由独立观察到的服务端输出生成精确备用指纹；入站历史不做宽松投影，原始输出/原文保持完整。绑定、选择、现代私有历史窗口和持久化恢复支持该指纹。v3/v4 实测从两根分裂修复为单根，并观察到 visibleSources=1、24245 字节原文捕获。摘要收据允许受限 metadata/phase，仍拒绝签名与 opaque 内容。
+
+官方 usage.attribution 是输入条目级重复计数，包含条目身份和 content 数组；新增独立校验模块，合法结构不会进入汇总计量或公开 usage，避免重复计费统计及私有条目 ID 泄漏。保持未知/非法计数与可执行对象拒绝。真实首轮 usage 校验与 JSON/SSE 编码已通过诊断，但工具结果回传后的下一轮 usage 仍拒绝，runner 记录 context_recovery_invalid_turn；尚未查清该轮具体差异，不能据此认定恢复链路通过。最后单次诊断使用合成的已有工具调用/数组结果，只支持字段结构诊断，不算真实任务验收。
+
+本轮验证：定向回归 197/197、插件打包/存档测试 16/16；最新新增模块定向覆盖率 statements/lines/functions
+100%，branches
+98.36%；Lint、CI 配置与发布源码清单检查通过。插件运行闭包重新构建为 25 个模块，没有安装到日常客户端；旧存档升级/回滚的通过结论只对应原固定包，不能扩展为本次新增代理模块的原生回滚/Hook验收。
+
+最新完整客户端运行 1257 项：1255 通过、2 失败、0 取消、0 跳过；覆盖率 statements/lines
+99.06%，branches 95.09%，functions
+99.27%。仍失败：原有 15 秒启动期限与 60 秒容量资格测试。 独立运行同一五档/两 worker 容量命令也于 60103ms 触发原 60 秒超时，不能归因于覆盖率并行负载。该完整运行期间 attribution 路径校验有后续局部修订，最后源码仅经上述定向验证，仍须完成一次源码冻结后的完整门禁。此前 1254 项运行的 4 失败/2 取消与更早失败证据均保留，没有加长超时、删减五档负载或更改两 worker 配置。
+
+边界与后续：旧二进制可能拒绝新增 echo 指纹字段，旧读取器降级兼容未验收；现代窗口路径支持别名，旧逐项前缀路径不因此获得等价支持。仍待真实 Codex/Claude 三次压缩后精确读回、完整 core
+HTTP/WS、插件与真实 Hook、WBIPC 事务压缩、启动/容量性能及源码冻结后的全仓门禁。24h 到期样本保留原到期时间 2026-10-22T00:55:55.109Z，尚未到期，不重置样本。
+
+证据：.hpm-acceptance/context-plugin-vault-20261021-01 下 real-codex-http-recovery-v3/v4/v5-result.json、real-codex-http-usage-diagnostic-result.json、real-codex-http-compaction-v6-result.json、real-codex-http-stages-v7-result.json、real-codex-http-tool-array-diagnostic-v4-result.json、real-model-budget.json 与 echo-usage-outcome.json。完整目标保持 active，未宣称整体完成。
+
+## 现有凭据真实客户端基线：连通通过，Codex 三次本地摘要连续性已观察，代理恢复未验收
+
+用户已授权复用现有模型/凭据，以新建合成任务最多发起 24 次真实模型请求、不自动重试并保留日常配置。本批统一账本 real-model-budget.json 已计 8/24 次，包括失败请求；所有原生进程确认终止，凭据仅在内存转发，没有写入临时配置或普通输出。逐阶段转发门禁拒绝第二次请求，未将客户端重试再次转发。
+
+Claude 保持 deepseek-v4-flash，Codex 保持 gpt-6.1-sol；两者真实原生客户端生成及精确合成标记回答通过。首个 Claude 探针重复拼接 /anthropic 导致上游 404，1 次真实请求计入总额；客户端第二次尝试被本地门禁拦截。该失败原样保留。修正后的新合成任务 exit
+0、1 次尝试/转发、HTTP
+200。新增 scripts/lib/claude-acceptance-target.js 明确只允许 DeepSeek Anthropic
+messages 路径，正常/空/非法/极端/越界与敏感查询拒绝回归 2/2，通过统一 unit 自动发现；Lint、格式、check:ci 和 release:check 通过。
+
+Codex app-server 真实合成线程执行 seed → compact-1 → compact-2 → compact-3 →
+final，共 5 次转发、均 HTTP
+200，原生 turn 均 completed，观察到 3 个 contextCompaction 完成项，最终准确返回压缩前标记。实际走 /responses 本地摘要路径，未走 /responses/compact；原探针要求远程 compact 的 passed=false 与 compactionVerified=false 原样保留。这只支持“三次真实本地摘要压缩后标记连续性”的分项结论，不支持远程 opaque
+compact 通过，也不证明代理私有原文读取、插件恢复、Hook 执行或多端无感恢复完整验收。
+
+证据位于 .hpm-acceptance/context-plugin-vault-20261021-01：real-claude-baseline-result.json、real-claude-baseline-v2-result.json、real-codex-baseline-result.json、real-codex-native-compaction-result.json、real-codex-native-compaction-phases.jsonl、real-model-budget.json、real-acceptance-outcome.json。仍待代理原文精确进入后续上游请求/最终任务、Claude 连续压缩、插件/Hook、WBIPC 双预算、容量/启动/存储压力门禁和真实 24h 到期。整体目标保持未完成，生产未激活。
+
+## 独立存档原生升级与回滚验收通过，实际加载版本已确认（整体未完成）
+
+隔离 Codex 原生安装及 app-server 验收确认加载版本 0.1.1 → 诊断 0.1.2 →
+0.1.1。初装 30522ms、活动升级 37958ms、回退 37346ms，均在原 60000ms 安装期限内完成。两个活动线程在升级/回退后精确 Unicode/CRLF 原文和绝对到期时间保留，升级后及回退后新线程独立捕获/读回通过。诊断 0.1.2 只用于版本观察，不是产品发布。
+
+自有临时 marketplace 源被物理删除后，从固定 SHA256 存档恢复并完成原生回退；原生安装器仍清理了退役 0.1.2 缓存，该历史完整性门禁仍为 false。独立存档再次恢复校验通过，因此回滚来源无需依赖退役缓存。首次探针因未观察到版本而终止，未执行升级/回退；v2 仅在隔离 MCP
+launcher 显式传入观察环境，以握手版本作为断言，没有放宽版本门禁。
+
+证据 .hpm-acceptance/context-plugin-vault-20261021-01/native-vault-v2-result.json 与 native-vault-v2-phases.jsonl；原生进程确认终止。0 次模型请求，未变更日常配置或生产。实际 Hook、真实模型连续恢复、旧 0.1.0 首次迁移、容量/启动/存储压力门禁、WBIPC 和 24h 到期仍待完成，不能据此宣布整体交付。
+
+## 插件独立回滚包存档落地：真实整包删除后恢复与启动通过，原生回退验收仍待完成
+
+新增 scripts/lib/local-evidence-plugin-vault.js，以完整文件清单和 SHA256 为寻址身份，在原生可清理缓存之外保存运行包。安装脚本在调用原生 marketplace/add 之前保存待安装包，并在回执记录 snapshotId、版本、文件数与大小；原有日常一次性安装 guard 保留，本轮没有执行日常安装。
+
+存档包含运行模块、SDK 与依赖文件，检查三个包版本身份、lock/SDK 身份及完整 runtime
+closure；拒绝符号链接、硬链接、未声明根目录、路径越界、缺失/篡改/额外文件、非法 JSON、过深结构和超大文件。文件读取按已检查大小分配有界 buffer，单文件 16
+MiB、整包 128
+MiB、16384 文件、32 层。先构造并验证独立暂存目录再发布；恢复拒绝覆盖已有目标，写入失败清理本次拥有的暂存目录并返回固定错误，不输出原始路径或内容。
+
+新增 6 项边界/安全/失败回归由统一 unit 自动发现；局部覆盖率语句/行 99.25%、分支 97.67%、函数 100%，门槛通过。与原 MCP/整包删除用例合跑 20/20。Lint、格式、check:ci 与 release:check 通过。没有重跑并声称整体客户端或全仓门禁通过：上一轮完整客户端 1233/1244、5 失败和 6 取消仍保留，容量/启动/存储压力问题没有因包存档而解决。
+
+实际整包探针使用当前暂存 0.1.1，保存 3690 文件、17291656 字节，物理删除自有临时源副本，再从固定 snapshotId 恢复。真实 restored/server.cjs
+stdio 握手确认加载版本 0.1.1，Unicode/CRLF 精确原文读回及异线程拒绝通过，transport 已关闭、命令 exit
+0。此证据只证明独立包来源可恢复并运行，不证明原生 Codex 已从存档完成升级回退，也不关闭旧 0.1.0 首次迁移、Hook 或真实模型恢复验收。旧原生退役缓存完整性失败没有删除或改为通过。
+
+该存档保存插件程序包，插件证据 fallback 仍为 memory-only
+30 分钟；它没有把插件改成代理的 24h 加密原文存储，也没有迁移或读取用户原文、凭据、日常客户端配置。WBIPC 仍缺会话发布事务内的双预算压缩/恢复；不能仅放宽 32
+MiB 入口而称已落地。
+
+证据 .hpm-acceptance/context-plugin-vault-20261021-01：coverage.log、coverage/coverage-final.json、expanded.log、actual-package-result.json、ci.log、release.log、outcome.json 与源码哈希。本段插入前原文独立备份并逐字保留。整体目标继续，生产未变更。
+
+## 新启动器当前源码完整客户端门禁：1233/1244，整体未通过
+
+原 npm run
+test:client:coverage 已结束：1233 通过、5 失败、6 取消、0 跳过；测试 323787.6374ms。语句 98.78%、分支 95.02%、函数 99.1%、行 98.78%。没有修改源码、并发量、负载、期限或覆盖率门槛来改变本轮结果。
+
+未通过项目：
+
+- actual isolated proxy captures Chat/Responses/Claude JSON and SSE, then serves
+  exact evidence through generic MCP
+- qualification command distinguishes capacity refusal from execution error
+- actual encrypted worker startup removes orphan staging and retains committed
+  evidence across reopening
+- encrypted worker reopen continues writing after an uncertain publication
+  without exposing its source
+- encrypted worker reopens four full session roots with 32 MiB of exact private
+  history
+- standalone release uses only packaged files and builtins, reads exactly and
+  exits on EOF
+- source runtime API discovers tools, executes once and owns downstream cleanup
+- source runtime API startup failure closes transport and exposes a fixed error
+- actual startup credential failure drains recovery before reporting failed
+  process exit
+- actual management listener rejects requests while credentials are pending and
+  opens entries only after acknowledgement
+- core target detection defers protocol-specific validators but the first
+  matching request still validates
+
+本轮完整门禁不能替代为前轮 1241/1242 或局部 14/14。启动、容量、存储的压力稳定性仍需修复；原生升级/回退仍保留退役缓存完整性失败及真实加载版本、Hook、模型验收边界。local-evidence-plugin-package 回归由统一 unit 发现并执行，不在当前显式 test:client:coverage 文件列表；不能把本轮完整客户端门禁说成也执行了整包物理删除回归。该回归单独结果保留在本目录 regression.log/coverage.log。
+
+证据 .hpm-acceptance/context-plugin-cache-release-20261021-01/full-client-coverage.log、独立 full-coverage-final.json 与 full-outcome.json，含覆盖源码/测试/package
+SHA256。本段插入前另存 full.before 并逐字保留原尾部。无模型请求、日常插件或凭据变更、生产重启；整体目标继续。
+
+## 新启动器跨版本原生探针：活动升级与回退读写通过，退役缓存完整性失败（整体未交付）
+
+隔离 Codex 中以当前待发布 0.1.1 为基线，构造仅版本身份不同、其他行为相同的诊断 0.1.2，再切回 0.1.1。诊断版本只存在于隔离 marketplace，不是产品发布。初装 18767ms、活动升级 41431ms、活动回退 41267ms，原安装命令 60000ms 期限均未改变，全部 exit
+0；升级目录发生变化，目标安装闭包 25 模块校验通过。
+
+旧活动线程精确 Unicode/CRLF 原文和原到期时间保留；升级后新线程独立捕获/读取成功；回退后两个活动线程原文/到期时间保留，最终新线程捕获/读取成功。仅证明显式私有 RPC 和目标包身份，不证明真实 Hook、模型恢复或新线程实际加载版本身份。
+
+最后保留原退役包完整性门禁：安装器已清理诊断 0.1.2 的 server/manifest，因此探针在 retired_cache_integrity 断言失败、整体 exit
+1。没有删除或弱化该断言来宣称完整升级回滚通过。后续需要由我们维护独立、校验过的回滚包来源，不能依赖原生可清理缓存；旧日常 0.1.0 进程尚有 cwd 锁的首次迁移也未解决。
+
+证据 .hpm-acceptance/context-plugin-cache-release-20261021-01/native-version-result.json、native-version-phases.jsonl、native-version.cjs 与 version-outcome.json。原生进程已确认终止，无模型请求、日常安装/凭据变更或生产重启。当前源码完整客户端门禁另在执行，本段不预判其结果。
+
+## 插件释放 Windows 缓存目录占用：回归 14/14，原生同版本重装通过（整体未交付）
+
+实际 stdio 插件以缓存目录作为 cwd 时，删除整个运行包稳定触发 EBUSY。新增独立启动 helper，先加载模块并创建 runtime，再切换到系统临时目录，最后连接 stdio；普通 factory 使用者不改变 cwd。启动输入拒绝未知字段、访问器与非法函数，失败统一安全错误并尝试关闭 session。主入口只负责装配。
+
+新增真实整包删除回归：含 node_modules 的完整暂存包在进程活动时被物理删除，旧 Unicode/CRLF 原文仍精确读取、新捕获可用、原绝对到期时间不变、异线程拒绝。修复前真实 EBUSY，修复后回归及扩大失败路径覆盖均 14/14；MCP 模块语句/行/函数 100%，分支 90.32%。待发布 0.1.1 的 25 个模块逐一与源码和 manifest 匹配。相关 Lint、格式、check:ci、release:check 在前轮通过；当前新源码完整客户端门禁仍需重跑。
+
+实际隔离 Codex
+CLI/app-server：初装 17002ms、活动同版本重装 55232ms，均在原 60000ms 期限内 exit
+0；最终包完整，活动线程原文与到期时间保留，新线程捕获和精确读取通过。此原生重装证据没有 sentinel/inode 检查，不能证明安装器实际替换同版本缓存；物理删除证据来自独立回归，不能据此宣布跨版本升级回滚或 Hook 执行成功。
+
+证据 .hpm-acceptance/context-plugin-cache-release-20261021-01：baseline.log、regression.log、coverage.log、独立 coverage/coverage-final.json、native-reinstall-result.json、native-phases.jsonl 与 outcome.json。没有模型请求、日常插件/凭据配置变更或生产重启。旧 0.1.0 进程不能追溯释放 cwd，首次迁移和跨版本回滚仍待验收；容量 60s、WBIPC 双预算、真实模型连续恢复、24h 到期及生产激活继续属于完整交付范围。
+
+## 最新分页边界修复与完整门禁：1241/1242，剩余容量 60s 超时（2026-10-21 UTC；整体未交付）
+
+修复实际可复现的页长选择错误：payload 100001 字节、offset 99990、limit
+11、预算恰好容纳末页时，旧二分搜索只返回到 99999；因为末页 nextOffsetBytes=null 使编码大小不再严格递增。现在先检查最大候选，保留可完整放下的末页。
+
+分页大小改为精确的小 header 加 UTF-8 文本双重 JSON 编码成本，普通文本直接计字节，转义文本使用本次至多 64
+KiB 页范围的有界前缀计数。仍逐次选择合法 UTF-8 边界，返回前对真实 chunk 计算 SHA256，不将用于计尺寸的 digest 占位值作为结果。没有修改页大小、读额度或返回预算。新增全部 ASCII 字符、Unicode/控制/转义、空页/EOF、每一预算值与穷举合法 UTF-8 边界的独立 oracle 比对，以及真实 EOF 回归，直接进入统一客户端覆盖率和 unit 自动发现。
+
+扩大回归 60 项中 59 通过，唯一失败为原容量子进程 60s 超时；分页模块语句/分支/函数/行覆盖率均 100%。候选局部对照显示普通文本和转义文本分页明显减少序列化成本，不能等同整体任务提速。Lint、格式、check:ci、release:check 通过。待发布插件 0.1.1 重新构建后 25 模块都与当前源码/manifest
+SHA256 一致；这不是日常安装或实际新版 Hook/模型验收。
+
+最新完整 npm run test:client:coverage 已终止 exit
+1：1242 项中 1241 通过、1 失败、0 取消、0 跳过，测试执行 280618.7146ms。覆盖率语句/行 99.05%、分支 95.05%、函数 99.26%，门槛通过。本次实际代理启动、暂存清理及三次加密 worker 重开均通过；32
+MiB 四根精确私有历史加密重开 162742.7648ms，通过原 180s 期限，仅证明本轮结果。唯一失败仍是原五档、两个 worker 容量资格命令触发原 60000ms
+ETIMEDOUT，未用局部提速代替该门禁。
+
+证据 .hpm-acceptance/context-page-sizing-20261021-01：旧包模块 page.before.js 与旧 manifest 匹配；comparison-v2.json、scoped/scoped-v2.log、expanded.log、完整 full-client-coverage.log、独立 coverage-final.json 和 outcome.json；回执含当前覆盖源码/测试入口/package 的 SHA256 与插件全部 25 模块校验。本段插入前原文备份并逐字保留。
+
+整体仍待容量期限、WBIPC 双预算恢复、实际 Codex/Claude 连续原文恢复与 Hook、插件迁移回滚、真实 24h 到期和生产激活验收。本轮没有模型请求、日常凭据/插件安装变更或生产重启；不能宣布全面交付。
+
+## 最新容量性能迭代：单元素安全克隆已验证，60s 门禁仍未通过（2026-10-21 UTC；整体未交付）
+
+对恢复历史准入的单元素嵌套数组使用 array literal 创建 own data
+slot，保留每槽 descriptor、原型、key 数、循环、深度、共享节点、单项 2
+MiB 与总字节门禁；不调用继承数字 setter。原多元素和未知结构继续走既有完整校验。新增 exact
+Unicode/CRLF、独立冻结副本、深度边界、own
+accessor/iterator、隐藏槽、伪装空洞、循环、字节溢出及隔离子进程 index-zero
+setter 回归，直接进入已有统一 CI 的 context-binding 测试文件。
+
+相关绑定/会话覆盖率回归 83/83：修改模块语句/函数/行 100%、分支 98.07%，阈值通过；Lint、格式、check:ci 与 release:check 通过。包含原容量资格命令的扩大回归 93 项中 92 通过、1 失败、0 取消/跳过；唯一失败仍是原 60000ms
+ETIMEDOUT。之前 1237/1238 完整门禁保留在下方，但它不是本次新源码的完整覆盖率验收。
+
+重新对原五档和原两个 worker 的容量命令做 CPU 诊断：全部画像结束，最大档 1920 轮、400 次精确恢复、20 次 JSON 重开及最终 drain 完整；本次采样总时长 62651.631ms，最慢 worker
+62249.427ms。诊断没有把超过 60s 的结果算作期限内通过，也不代表 transport/durable/model 验收。旧采样约 88.7s 与本次 62.7s 的差异同时受代码和系统负载影响，不归因为单个小优化。当前仍需容量提速，不能宣布全面完成。
+
+另有 .hpm-acceptance/context-encoding-token-20261021-01：请求内编码 token 复用候选摘要相等，但交替基准无稳定收益，未应用运行代码；同目录保留改动前原容量 60s 单独失败证据。单元素候选交替基准、初始深度测试断言失败与修正后结果、当前 CPU 原件、cpu-summary.json、coverage/coverage-final.json、regression.log 和当前源码 SHA256 回执存于 .hpm-acceptance/context-single-array-20261021-01。
+
+未改变五档负载、两个 worker、容量/存储/启动期限或覆盖率门槛；没有模型请求、凭据或日常插件改动、没有生产重启。整体仍包含 WBIPC 双预算、实际 Codex/Claude 连续恢复与 Hook、迁移回滚、真实 24h 到期和生产激活等未完成验收。
+
+## 最新完整客户端门禁：1237/1238，剩余五档容量 60s 超时（2026-10-21 UTC；整体未交付）
+
+恢复状态克隆优化后，按当前源码再次执行原 npm run
+test:client:coverage，prepare、并发量、两个容量 worker、全部画像、期限与覆盖率阈值均保持原值。进程已终止 exit
+1：1238 项中 1237 通过、1 失败、0 取消、0 跳过；测试执行 284678.9037ms。覆盖率语句/行 99.04%、分支 95.01%、函数 99.26%，覆盖率门槛通过。
+
+上一轮四处未通过中，本次实际 Chat/Responses/Claude 代理与 direct-upload 均通过原 15s 启动门禁；首次真实请求分别 2835ms、2115ms。暂存清理及三次加密 worker 重开 18557.9696ms，四个完整 session
+root 的 32 MiB 精确私有历史加密重开 173483.4748ms，通过各自原 30s/180s 期限。32
+MiB 仍接近上限，且这些是本次结果，不能据此宣称压力稳定性已验证或把多次运行差异全部归因于克隆优化。
+
+唯一失败仍是 qualification command distinguishes capacity refusal from execution
+error：保留五档画像和两个 worker 的容量资格子进程约 60150ms 触发原 60000ms
+ETIMEDOUT。下一步继续针对容量真实热点优化，不缩减负载或改超时制造通过。当前整体还包含 WBIPC 双预算恢复、实际 Codex/Claude 多轮原文恢复/Hook、插件迁移回滚、真实 24h 到期与生产激活等待完成，不能把 1237/1238 当作全面交付。
+
+证据：.hpm-acceptance/context-root-cpu-20261021-01/full-client-coverage.log、coverage-final.json、full-outcome.json（覆盖源码/统一测试入口/包脚本当前 SHA256）。本段插入前原文另存 .full.before 并逐字保留。本轮模型请求为 0，没有改日常凭据、安装插件或重启生产。
+
+## 最新恢复状态克隆优化：扩大回归 168/168，完整并发待重验（2026-10-21 UTC；整体未交付）
+
+对原 32
+MiB 四根历史真实加密重开做 CPU 采样，单独用例通过，107684.5072ms。主线程和两次存储 worker 的采样中，恢复状态 clone 合计 self 约 26.6s，是最大的应用代码热点。完整 CPU 原件和摘要保存在 .hpm-acceptance/context-root-cpu-20261021-01。
+
+恢复状态数组克隆改用 null-prototype length carrier 的 Array.from own
+data-slot 构造，保留源数组原型、own-key、逐槽 data
+descriptor、递归深度、共享节点与精确 JSON 字节校验。不会通过继承数字 setter 或调用者/继承 iterator 构造内容；不新增全局原文缓存。新增继承 iterator、伪装空洞、隐藏槽与访问器、空数组字节边界回归，纳入既有统一 CI 测试文件。局部交替基准中位 45.40→35.48ms，约 21.8% 改善，仅代表克隆基准。
+
+实际 root-state、storage、storage-service、lifecycle、private-capacity 五个文件扩大回归 168/168，通过且无跳过或取消，156703.4291ms；其中 32
+MiB 四根历史重开 106882.758ms、暂存清理及三次重开 12154.0915ms。另有六项针对性回归、相关 Lint/格式、check:ci 与 release:check 通过。此处扩大回归不等同完整客户端并发：没有宣称端到端提速、容量 60s 或启动 15s 已修复，下面保留最近完整门禁的四处未通过记录。
+
+证据含 scoped.log、CPU 原件、cpu-summary.json、clone-comparison.json、normalizer.log、regression.log、改动前源码及 outcome.json 的当前源码 SHA256。未改期限、容量画像或 worker 数；未调用模型、改日常凭据/插件或重启生产。整体目标仍待完整并发和多端实际模型、WBIPC 双预算、迁移回滚、真实 24h 到期及生产激活验收。
+
+## 最新完整客户端门禁：延迟 core 初始化后 1232/1236 通过（2026-10-21 UTC；整体未交付）
+
+主入口通过独立 lazy
+core 工厂推迟请求处理模块加载；恢复生命周期仍在启动阶段组合。首次请求保持原来的认证、验证和分发，初始化失败可重试。新增回归已进入统一客户端覆盖率入口；局部扩展验证 13/13，Lint、格式、CI 入口检查和发布清单检查通过。
+
+完整并发 npm run test:client:coverage 已终止，exit
+1：1236 项中 1232 通过、2 失败、2 超时取消、0 跳过，测试执行 310705.7957ms。覆盖率语句/行 99.04%、分支 95.01%、函数 99.26%；覆盖率通过不代表行为门禁通过。
+
+四处未通过：实际 Chat/Responses/Claude 代理启动 15s、五档容量子进程 60s、孤立暂存清理及加密 worker 三次重开 30s、四个完整 session
+root 的 32
+MiB 私有历史加密重开 180s。所有期限、画像、两个 worker 和并发量保持原值。direct-upload 本次启动 11007ms、首次请求 2316ms；其中延迟 core 加载约 1974ms。该样本只证明真实请求执行到了延迟模块，不能证明并发启动已修复。
+
+证据目录 .hpm-acceptance/context-startup-lazy-core-20261021-01：完整日志、coverage-final.json、outcome.json、局部 expanded.log 及 lint.log。outcome 记录覆盖源码和测试入口的当前 SHA256；本段插入前原文已备份并逐字保留。模型请求为 0；未修改日常凭据、插件安装或重启生产。下一步按完整门禁暴露的阶段瓶颈继续处理，整体仍待性能、WBIPC 双预算、真实客户端/Hook、回滚与真实 24h 到期验收。
+
+## 最新回滚候选：新目录恢复旧行为可保留活跃读回，但旧缓存仍不完整（2026-10-21 UTC；整体未交付）
+
+在全新隔离环境中，将真实 0.1.0 的 13 个模块制作为仅用于诊断的 0.1.2 包：12 个模块逐字节不变，MCP 模块仅将握手版本标识从 0.1.0 改为 0.1.2；同步调整包身份和清单摘要，没有修改日常安装包、源码行为或生产配置。该诊断包不是正式发布版本，也不是当前 0.1.1 的后续交付包。
+
+原生 CLI 安装 0.1.0、升级 0.1.1、安装旧行为的新目录 0.1.2 分别约 30089/40836/37138ms，均在原 60000ms 安装期限内成功。各安装的独立 stdio 握手版本均验证；切换后原有 0.1.0 与升级后新建的两个活跃会话均仍可精确读取其原文、expiresAt 不变。它们都属于隔离私有 RPC 的合成证据，没有真实 Hook 或模型调用。
+
+最终完整性门禁失败：0.1.0、0.1.1 目录仍存在，但 server.cjs 与 runtime-manifest.json 均已消失；只有诊断 0.1.2 的 13 模块仍完整匹配清单。新版本目录安装也不能保证旧缓存文件保留，之前的 oldCacheRetainedAfterUpgrade 仅检查目录存在，不足以证明缓存可重用。当前证据不能确定每个旧文件具体在哪一次安装被清除；不据最终状态杜撰删除顺序或原生内部实现。
+
+结论仍为整体回滚不通过：本次只证明两代已运行的内存会话在切换后读回连续，不能证明惰性依赖、进程重开、实际 Hook 或新模型请求都安全。探针按原门禁在完整性失败处停止，没有执行后续新回滚线程验收。下一步需解决服务进程工作目录与安装缓存的生命周期耦合，并验证运行期间移除旧包时模块可用性；不能只靠递增版本号或跳过完整性检查交付。
+
+证据：.hpm-acceptance/context-plugin-forward-rollback-20261021-01/ 下 migration-v5-result.json、phases.jsonl、outcome.json。失败终态及隔离目录保留；各原生子进程已退出、日常 0.1.0 模块哈希仍匹配原清单。当前覆盖源码和测试文件仍匹配上一轮完整门禁回执：1230/1233，剩余两项启动和一项容量超时；没有修改运行代码来试凑通过结果。容量、WBIPC、实际客户端和其他完整目标继续保留。
+
+## 最新完整客户端门禁：1230/1233 通过，剩余启动与容量超时（2026-10-21 UTC；整体未交付）
+
+按当前源码重新执行 npm run
+test:client:coverage，含原有 prepare 与完整并发，1233 项中 1230 通过、3 失败、0 取消、0 跳过，测试执行 258639.8836ms，进程 exit
+1。覆盖率阈值通过：语句/行 99.04%、分支 95%、函数 99.25%；覆盖率通过不抵消行为测试失败。
+
+之前未通过的孤立暂存清理/加密 worker 重开，以及四个完整 session root 的 32
+MiB 私有历史加密重开，本次都在完整并发下通过。这只记录该次结果，不删除此前失败或声称压力稳定性、真实客户端和生产已经验收。
+
+剩余三个失败：实际隔离 Chat/Responses/Claude
+JSON+SSE 代理与 direct-upload 代理各触发原 15000ms 启动期限；五档原容量资格命令触发原 60000ms 子进程期限。没有改变五档画像、两个 worker、并发量、容量和存储期限或覆盖率门槛。一次启动已到 module_graph_ready 约 13.1s、servers_created 约 14.9s，尚需完成安全凭据落盘和监听，不能靠缩减健康检查或延长期限宣称修复。
+
+证据：.hpm-acceptance/context-client-current-gate-20261021-01/client-coverage.log、独立保存的 coverage-final.json 与 outcome.json；回执包含当前覆盖源码和客户端测试入口文件 SHA256。另有 .hpm-acceptance/context-fingerprint-buffer-20261021-01/comparison.json：局部摘要分块候选在长历史上仅约 2% 改善，未应用到运行代码，不能算容量修复。日常配置、插件和生产未因本轮门禁改动；整体仍待性能修复、实际 Hook/多端模型、WBIPC 双预算、回滚和真实 24h 到期等验收。
+
+## 最新回滚定位：活跃旧缓存重装失败并留下不完整目录（2026-10-21 UTC；整体未交付）
+
+补充带阶段计时的隔离验收：同步 CLI 演练在升级阶段达到原有 60000ms 安装期限，尚未到回滚。另起全新隔离环境，用异步管道持续消费活跃 app-server 输出，保持同一 60000ms 安装期限；旧版安装 21503ms、升级 42599ms 成功，已安装 stdio 身份握手、升级前原文精确读取和原 expiresAt 保持、新线程独立读取适配均通过。不能据此认定同步阻塞是前一轮超时的唯一原因。
+
+这次活跃回滚在安装 CLI 内经过 28498ms 返回 exit
+1，非超时，也未进入回滚握手。只保存错误词类 cache/used，不输出原始诊断。失败后只读检查发现 0.1.0 目录仍存在，但 server.cjs 与 runtime-manifest.json 均已消失；0.1.1 的 25 个模块仍全部匹配清单。因此目录存在不等于旧版本可用，不能采取未经验证的旧缓存复用或把失败当成无副作用。
+
+独立 Windows 对照用自有子进程占用自有空目录作为 cwd：非递归 rmdir 返回 EBUSY，观察子进程退出后相同空目录可以删除。这支持 cwd 占用机制与上述原生失败相容，但尚未取得原生系统调用级因果证明，不把对照误写成原生错误码。失败后活跃旧会话是否仍可读未继续验收，不作保留成功声明。
+
+回滚约束：不得在活跃宿主仍使用目标旧缓存时原地重装该版本。后续交付需要受控退出后的冷态恢复，或宿主支持且经过验收的不覆盖缓存切换；目前后者未实现、未验证。受控退出会丢失旧插件的内存证据，因此不能据冷态安装通过声称旧会话连续性或 24h 加密持久化兼容。代理新版本加密 root 的保留、权限、到期及关闭恢复后回滚仍须独立验收；不要清除新 schema 或延长旧记录期限。
+
+证据：.hpm-acceptance/context-plugin-active-rollback-20261021-01/migration-v3-result.json，以及 .hpm-acceptance/context-plugin-async-migration-20261021-01/ 的 migration-v4-result.json、phases.jsonl、failure-inspection.json、cwd-control.json、outcome.json。所有相关子进程均观察到终态，没有模型生成请求、凭据传递、日常配置改动或生产重启。日常旧插件 13 个模块哈希与先前清单一致，源码仍匹配此前 60/60 门禁所记录哈希；本轮没有新增完整代码门禁通过声明。实际 Hook、客户端三次连续压缩、性能/容量/并发存储、WBIPC 双预算和真实 24h 到期要求继续未完成。
+
+## 最新原生验收：隔离 Codex 安装和升级读取通过，活跃回滚未通过（2026-10-21 UTC；整体未交付）
+
+使用当前 Codex 0.160.1 原生 plugin
+marketplace/add 与 app-server，在新建隔离 CODEX_HOME 中安装 0.1.1：25 模块逐文件匹配当前源码及清单，实际已安装 server.cjs 的 stdio 握手版本为 0.1.1。原生宿主发现的模型可见工具仅为两个读取工具；通过宿主私有 RPC 注入合成完成事件后，精确换行/Unicode 读取与第二线程拒绝读取通过，新会话初始为空，相关原生子进程退出已观察到。
+
+这仍是原生安装/MCP 适配证明：隔离 Hook 已发现且 enabled，但 trustStatus 为 untrusted，没有自动信任或执行真实 Hook。没有模型调用、没有旧聊天读取或凭据传递；不得把显式私有 RPC 注入当成实际 PostToolUse 捕获，更不能当成多次模型压缩后恢复验收。
+
+升级/回滚演练先在探针 30000ms 期限失败；补充诊断显示安装器约 42330ms 可完成切换。项目既有正式安装器本来使用 60000ms，因此另起隔离演练按这个既有边界复验，没有修改正式安装器或容量/启动门禁。该演练 0.1.0→0.1.1 升级后，原会话原文仍可读、原 expiresAt 保持不变，升级后新建会话可加载并完成独立读取适配。旧插件默认的 30 分钟内存留存没有被冒充为新的 24h 加密留存。
+
+同一演练在活跃会话下退回 0.1.0 的阶段未通过，具体失败仍需进一步定位；已经关闭相关会话后，独立原生重新安装 0.1.0 在 34794ms 完成。后者只证明冷态重装，不能证明活跃会话回滚与旧原文连续性。故升级证据保留，回滚、实际 Hook 和多端模型验收继续标为未完成，不据此升级日常插件。
+
+证据：.hpm-acceptance/context-plugin-native-011-20261021-01/，含 native-result.json、migration-result.json、install-diagnostic-60s.json、migration-v2-result.json、rollback-diagnostic.json、outcome.json；首轮失败与后续诊断均保留，隔离目录保留用于核对。所有原文为新建合成数据，RPC 方法白名单不含 turn/start 或其他模型生成操作。日常 0.1.0 插件的 13 个副本仍匹配先前哈希，未修改日常配置、未重启生产。前一轮 60/60 代码门禁对应源码哈希仍一致，但本轮没有新增完整客户端门禁通过声明；此前启动、容量、存储并发、WBIPC 双预算、真实 24h 到期与整体落地要求均未关闭。
+
+## 最新交付包修复：可选插件 0.1.1 暂存包与当前源码一致，尚未安装激活（2026-10-21 UTC；整体未交付）
+
+重新核对真实安装缓存：hpm-local-evidence
+0.1.0 的 13 模块清单与其副本一致，但更新前有 8 个副本不同于当前源码；仓库暂存包有 4 个旧副本。不能把旧安装收据当成本轮交付。现已生成 0.1.1 暂存包：兼容 manifest、portable 模板、package/lock、MCP 握手版本一致；25 个依赖模块逐文件匹配当前源码与 SHA256 清单，运行目录没有清单外 JS。SDK 仍直接固定 1.31.0，没有升级依赖或改动已安装客户端。
+
+发现并修复构建器保留退役生成模块的问题：读取有大小、数量、路径和摘要校验的旧清单，只删除清单声明且摘要不变的退役文件；全部候选验证后才删除，拒绝用户改动、链接/硬链接及权限错误，不递归删除目录或处理清单外用户文件。三个历史孤立副本与旧已安装模块哈希一致，已单独备份后移出暂存包。负例回放旧构建器可复现新增回归失败；当前构建器通过。
+
+最新相关覆盖率回归 60/60、无失败或取消，MCP 入口和新退役边界共 129/129 语句、61/61 分支、6/6 函数全部覆盖。包含实际无凭据 stdio 子进程、暂存 server.cjs 握手、精确换行/Unicode 回读、跨线程拒绝、旧包残留检测、异常清单与链接/文件系统失败。已有测试文件由统一 unit/客户端入口发现；相关 Lint、格式、CI 入口与发布清单检查通过。此证据不等于 Codex 实际 Hook、多次模型压缩或已安装 0.1.1 加载验证。
+
+完整五档合成容量诊断另跑完毕，最大四任务 1920 轮、400 次精确恢复及最终 drain 均完成，但 CPU
+profile 总时长约 88677ms，明确超过原 60000ms 资格期限。该无期限诊断不替代资格门禁，也不证明传输或持久化存储容量通过。最新热点仍在归一化 clone、规范编码和 SHA 更新；ASCII 正则候选未改善、对象编码循环候选约 2% 差异，均未应用。没有修改工作量、worker 数、并发或门禁期限。
+
+证据：.hpm-acceptance/context-capacity-current-profile-20261021-01/，包括 plugin-static-inventory.json、plugin-static-inventory-after.json、staged-before/、version-before/、orphan-backup/、orphan-retirement.json、old-builder-negative.log、covered-complete.log、profile.log、profile-summary.json、outcome.json。安装缓存 13 个旧副本与其原清单仍逐字节哈希一致，未 reload、未改日常配置、未发模型请求、未重启生产。整体尚待完整门禁、WBIPC 双预算、真实多端多次压缩、最终安装迁移回滚、真实 24h 到期和生产验收；先前五项全量并发失败仍未关闭。
+
+## 最新局部改进：历史数组构造与安全回归通过，容量资格仍超时（2026-10-21 UTC；整体未交付）
+
+本轮仅将 normalizeRecoveryHistoryRequest 外层历史数组从逐项 Object.defineProperty 改为 Array.from 的原生 own-data-slot 构造。计数载体为 null
+prototype，不读取继承迭代器；原数组槽位仍逐项取 descriptor，全部输入、单项和总字节、节点、深度、原型及不可变校验保留。没有跨请求原文缓存。新增继承迭代器、空历史、晚项 getter、失败后修复重试与旧结果不可变回归；已有数字 setter 安全回归继续通过。测试文件已在统一客户端 CI 入口。
+
+局部交替基准 16 轮、每轮 8 次标准 480 轮/1440 条历史归一化，中位数 45.60→37.58ms，约 17.6% 改善；只证明本机该函数成本下降。批量 descriptor 候选 48.93→69.94ms、嵌套数组候选 79.09→83.88ms 均更慢，未应用。各基准负载及主机状态不同，不横向比较绝对值。
+
+绑定测试 35/35，扩展 binding/sessions/root-state/loading 覆盖率测试 162/162、无失败或取消，耗时 200247.2772ms；修改模块语句/行 100%、函数 100%、分支 97.97%。实际四根满额 32MiB 私有历史加密重开在专项中通过（145893.6084ms），不能替代完整并发验收。相关格式、Lint、CI 入口、发布清单检查通过。
+
+之后运行原 context-recovery-capacity-workload.test.js：9/10，通过不了资格子命令原 60000ms 期限（ETIMEDOUT），总 65719.9231ms。保留五档负载、两 worker、原超时和全部断言。未为这次局部改进重跑已知失败的完整客户端门禁；上一源码快照的 1226/1231 及五项未通过仍保留在下一节，不能当成本次源码完整验收。下一步仍需降低容量整体成本并解决启动和存储全量并发稳定性。
+
+证据：.hpm-acceptance/context-history-descriptor-batch-20261021-01/，包含 comparison-final.json、covered.log、capacity.log、outcome.json、原始源码备份与未采用候选。生产未启用、未修改安装配置、未发真实模型请求；WBIPC 双预算、多端实际客户端、安装迁移回滚和真实 24h 到期验收仍未完成。三份历史文档尾部逐字节保留。
+
+## 最新完整门禁：1226/1231，启动依赖拆分未解决全量并发超时（2026-10-21 UTC；整体未交付）
+
+本轮将 Responses 目标判定和上下文溢出响应拆成轻量模块；转换与规划依赖在已验证的请求分支加载。核心路由、鉴权和配置仍在就绪前加载，旧导出兼容。新增冷加载依赖拒绝、首个匹配请求验证、缺失模块传播与溢出边界回归，并将两模块纳入统一客户端覆盖率入口和发布清单。实际 core 冷加载项目模块 133→108；单次耗时受主机负载影响，没有证明启动延迟改善。
+
+最终定向覆盖率测试 60/60 通过，语句/行 90.64%、分支 89.44%、函数 91.83%。之后按原命令运行完整 test:client:coverage，退出 1：1231 项、1226 通过、3 失败、2 取消，耗时 320369.0051ms。完整覆盖率语句/行 99.04%、分支 95%、函数 99.17%，原阈值通过；完整测试门禁仍失败。未改变并发、两 worker、五档容量负载、15 秒启动、60 秒容量或原存储期限。
+
+同五项未通过：Chat/Responses/Claude
+JSON/SSE 实际隔离代理启动、direct-upload 隔离代理启动、容量资格命令、孤立 staging 清理和多次加密存储重开、四根满额 32MiB 私有历史加密物理重开。首条启动诊断 core 约 6.56 秒，但 15 秒内整个模块图仍未完成；不能将单个 import 或单次定向通过当成完整解决。存储重开三次打开累计约 29.86 秒，随后超过 30 秒；密钥解保护单次约 0.43–0.60 秒，不能仅归因为 DPAPI。
+
+证据目录：.hpm-acceptance/context-startup-provider-boundaries-20261020-01/，包括 covered-final.log、client-coverage-current.log、modules-before.json、modules-final.json、outcome-current.json；早期失败实验保留。下一步须定位全量并发下启动模块图、容量 CPU 和存储生命周期成本，并保持全部安全校验。WBIPC 双预算、真实客户端多次压缩、安装迁移回滚、真实 24h 到期及生产启用仍待完成；真实模型请求、安装配置修改和生产重启均未执行。三份方案原尾部逐字节保留。
+
+## 最新完整门禁：1225/1230，启动和容量及存储重开超时待修复（2026-10-20；整体未交付）
+
+包含新原文校验模块的原 test:client:coverage 完整运行退出 1：1230 项、1225 通过、3 失败、2 取消，302559.7993ms。覆盖率语句 99.04%、分支 95%、函数 99.17%、行 99.04%，原阈值通过，但完整测试门禁没有通过。
+
+原两条 15 秒代理启动和 60 秒容量命令仍超时；另有 actual encrypted worker startup
+removes orphan staging and retains committed evidence across
+reopening 触发原 30000ms 期限。其诊断显示第一次打开约 4.9 秒，第二次打开从约 8.3 秒到 21.3 秒，清理和关闭到约 29.1 秒，第三次打开尚未完成便到期。不能把这个整体失败归因为单个 DPAPI 调用，也不能用此前专项通过替代本次完整并发失败。没有调整测试并发、工作量、worker 数、期限或阈值。
+
+满额四根 32MiB 私有历史物理重开在本次完整并发中也触发原期限，属于取消项；此前 184/184 扩展专项通过保留，但不能证明全量并发稳定性。完整失败和取消名称共 5 项，精确列表保存在收据中。最新结果较上一源码快照额外暴露两项并发超时，尚未解决。
+
+证据：.hpm-acceptance/context-payload-verification-20261020-01/client-coverage-current.log、full-gate-outcome.json；184/184 专项和局部基准保留在该目录。账本解析的局部性能收益没有解决完整门禁。启动、容量和多次存储重开稳定性仍需修复，WBIPC 双预算、真实多端、最终安装迁移回滚、真实 24h 到期和生产验收也未完成。未发真实模型请求、未修改已安装客户端、未重启生产；凭据选择仍待用户答复。三份方案原尾部逐字节保留。
+
+## 最新增量：账本单次解析复用原文校验，原容量期限仍未通过（2026-10-20；整体未交付）
+
+新增独立 context-evidence-payload-verifier，仅在一次账本解析内缓存相同不可变字符串的 UTF-8
+Buffer 和 SHA-256，最多 128 项/4MiB；不跨请求、不跨解析保存。每条 source 仍独立验证原文长度、摘要、读取位置，所有者、时间、来源身份、配额和累计读取状态继续由账本解析器逐项验证。UTF-8 全文先精确往返检查，前缀位置通过 UTF-8
+continuation
+byte 判定边界，避免为完整前缀再分配和解码一份文本。空原文、控制字符、中英文/组合字符/emoji、孤立代理、非法和极端入参、摘要/字节/读取边界篡改、128 项/4MiB 饱和及跨解析隔离均有回归；新测试在原统一客户端门禁文件内。发布运行时清单已登记新模块，首次发布检查的缺失告警已修正，没有绕过门禁。
+
+新增集成回归在旧解析器下失败（相同内容逐条重算 4 次摘要，预期两个不同内容各一次），最终专项账本 29/29；扩展账本、sessions、root-state、storage-blobs 和 protocol 共 184/184、0 取消，修改的两个模块语句/行 186/186、分支 111/111、函数 9/9，均 100%，原覆盖率门槛通过。四根满额 32MiB 私有历史加密 worker 重开在该扩展运行通过，约 170 秒；此前 139 秒属于不同运行，不能称本次改善该路径。Lint、格式、CI 和最终发布治理通过。
+
+480 来源/15MiB 原文、10 种重复内容、8 轮交替、每轮 4 次解析的局部基准中位 249.5ms
+->
+57ms，约 77% 局部解析改善；不是整体恢复或生产提速。原容量整文件依然 9/10，原 60000ms 子进程 ETIMEDOUT，五种工作量、两 worker、并发和覆盖率要求未调整。最近完整客户端仍为上一源码快照 1227 项/1224 通过/3 失败，本次新增三个测试后的完整客户端尚待运行。
+
+本轮另两项实验未进入最终代码：大消息单次哈希约 307ms 对现有前缀复用 95.5ms，明显更慢；共享准入编码约 184ms 对 187.5ms，收益不足以支持新增接口。后者涉及四个运行时文件及绑定测试，已对先前备份/收据逐字节核验恢复。没有保留这些实验的产品接口或测试。
+
+证据：.hpm-acceptance/context-payload-verification-20261020-01/ 的 before.log、ledger.log、covered.log、comparison.json、capacity.log、\*-final.log、outcome.json；另外两实验结果在 context-large-fingerprint-20261020-01/experiment.json 和 context-admission-encoding-share-20261020-01/comparison.json。仍需启动与容量修复、WBIPC 双预算、真实多端、打包安装迁移回滚、真实 24h 到期和生产验收。真实模型凭据选择仍待答复；未发真实模型请求、未改已安装客户端、未重启生产。历史方案原尾部逐字节保留。
+
+## 最新完整门禁：1224/1227，三项原超时仍待修复（2026-10-20；整体未交付）
+
+在历史文本计数和小消息一次哈希改动后，原 test:client:coverage 完整运行测试结果为 1227 项、1224 通过、3 失败、0 取消，耗时 274348.84ms。覆盖率语句 99.04%、行 99.04%、分支 94.99%、函数 99.17%，原阈值通过，整体测试门禁仍失败。失败仍为两条 15 秒代理启动和原 60 秒容量子进程，没有修改工作量、并发、worker 数、超时或覆盖率门槛。本次其余物理存储和四任务路径通过，不能替代真实客户端或生产验收。
+
+当前源代码的独立 CPU 诊断保留原五种容量画像与两个 worker，五种均完成，最大画像完成 1920 轮、400 次精确恢复和最终结果观察；总耗时约 83.2 秒，最大 worker 约 82.7 秒。这是超过门槛的诊断结果，不能称为容量资格通过。主要自耗时仍是历史克隆约 8.4 秒、hash.update 约 8.1 秒、canonical 字符串编码约 7.4 秒，以及大小计算和转义扫描；包容耗时不可直接相加，也不能据前后宿主负载差异作总体提速承诺。
+
+证据：.hpm-acceptance/context-small-fingerprint-20261020-01/client-coverage-current.log、full-gate-outcome.json、profile-summary.json、profile-outcome.json。仍需修复启动与容量性能，并完成 WBIPC 双预算、真实多端恢复、打包安装迁移回滚、真实 24 小时到期和生产验收。真实模型凭据选择尚待答复；未发真实模型请求、未更改日常配置、未重启生产。历史原尾部逐字节保留。
+
+## 最新增量：小消息指纹减少哈希对象分配，容量期限仍未通过（2026-10-20；整体未交付）
+
+单次准入内的小 canonical 消息改用 Node 原生 crypto.hash 一次计算 SHA-256；旧运行时保留 createHash 回退，大消息继续使用既有前缀状态复制。canonical 字节、字段排序、摘要算法、128 项及 4MiB 缓存限制、认证作用域、绝对到期和持久格式不变。新增回归验证原生分支和旧运行时回退摘要一致，覆盖空对象、Unicode、孤立代理、NUL、嵌套工具、数字键序和大消息；已有缓存边界回归保留并纳入统一客户端门禁。
+
+最终绑定、history-map、sessions、protocol 共 118/118，通过原覆盖率门槛；修改模块语句/行 181/181、分支 83/83、函数 11/11，均为 100%。作用域 Lint、格式、CI 和发布治理检查通过。实际候选在预热后 8 轮交替、每轮 12 次准入、1441 条消息的局部测量中位数 109ms
+->
+93.5ms，约 14%；同候选未预热测量约 2%，初始诊断约 20%，说明宿主负载和 JIT 差异明显，不能当作整体性能承诺。
+
+原容量整文件仍 9/10，失败为原 60 秒资格子进程 ETIMEDOUT；五种工作量、两个 worker、测试并发与覆盖率阈值保持原值。最近完整客户端门禁是此前快照 1225 项中 1222 通过、3 失败，早于本次及上次文本计数优化，不能视为当前版本完整通过。完整仓库格式门禁此前仍有 404 文件告警，本轮没有批量改写或增加忽略。
+
+证据：.hpm-acceptance/context-small-fingerprint-20261020-01/ 的 before.log、covered.log、comparison-final.json、comparison-warm.json、capacity.log、final-\*.log、outcome.json。新容量 CPU 画像是诊断，不替代原 60 秒门禁。真实客户端凭据选择仍待用户答复；没有真实模型请求、日常配置变更或生产重启。整体仍需容量和并发启动修复、WBIPC 双预算、真实多端恢复、安装迁移回滚、真实 24h 到期和生产验收。三份历史方案尾部逐字节保留。
+
+## 最新增量：历史文本计数减少分配，容量期限仍未通过（2026-10-20；整体未交付）
+
+历史请求规范化在每次准入内缓存未命中文字的 UTF-8 大小；普通无转义文本直接加 JSON 双引号的两字节，不再为计数生成一份同样大的 JSON 字符串。Unicode 控制字符、引号、反斜杠和全部代理字符仍走原生 JSON.stringify，保持配对/孤立代理的既有结果；descriptor、节点、深度、单项/总字节、冻结和版本准入不变。Lint 不允许显式控制字符正则，最终采用既有模块使用的 Unicode 分类正则，没有关闭规则。新增回归在计数缓存饱和后阻止长普通文本序列化，同时检查实际 JSON 字节、克隆和冻结；原 Unicode/转义/孤立代理及 2MiB 精确边界回归保留。
+
+最终绑定、history-map、sessions、protocol 共 117/117，通过原 85/80/90/85 覆盖率门槛，修改模块语句/行 100%（221/221）、分支 98.01%（148/151）、函数 100%（9/9）。Lint、格式、CI 和发布治理通过。最终 1441 条消息/15836541 编码字节，每轮 12 次规范化、8 轮交替，中位数 128ms
+->
+117.5ms，约 8% 本地局部收益，不能外推生产或完整容量速度。另一项指纹编码实验未体现收益，生产文件已逐字节恢复原版本。
+
+最终原资格命令专项仍在原 60000ms 子进程期限 ETIMEDOUT；它仍执行原五种工作量和两个 worker，没有缩小四任务或绕过最终 drain。早先本轮容量整文件两次均 9/10；最终专项针对同一个失败测试，不能称为完整容量通过。最近完整 client 仍是上一快照 1225 项/1222 通过/3 失败/0 取消，本次没有重复完整 client，新增回归后的全量仍待验证。上一轮全仓 format:check 已退出 1，404 文件告警主要是 .codex-tmp/tmp 历史诊断和生成证据；没有批量改写、忽略或提高 baseline。
+
+证据：.hpm-acceptance/context-string-sizing-20261020-01/ 下 before.log、covered-final.log、comparison-final.json、capacity-current.log、final-\*.log、outcome.json。整体仍需处理两条 15 秒启动和原容量超时、WBIPC 双预算/实际客户端、包安装迁移回滚、真实 24h 到期及生产验收。未更改日常客户端、未发真实模型请求、未重启生产；三份历史方案原尾部逐字节保留。
+
+## 最新完整门禁：1222/1225、三项超时、无取消（2026-10-20；整体未交付）
+
+在存储请求不可变复用改动后，原 test:client:coverage 完整执行退出 1：1225 项、1222 通过、3 失败、0 取消，272140.9422ms。语句/行覆盖率 99.04%（23439/23665）、分支 94.98%（11280/11875）、函数 99.17%（1201/1211），原阈值通过，测试门禁未通过。两条原 15 秒代理启动和原 60 秒容量 qualification 命令仍超时；不修改并发、工作量、两个容量 worker 或期限。此前完整运行中另七个失败/取消事件本次未复现，不能据此承诺永久消除；特别是 DPAPI 与物理 worker 仍需稳定运行证据。
+
+本次启动诊断在 15 秒截止仍未完成模块加载：core
+imports 合计约 7.5/8.3 秒，并且到期时分别仍加载 profile_auth/rate_limits。该数据指导排查启动模块图，不证明已修复。容量命令为 spawnSync 原 60000ms
+ETIMEDOUT。四根完整私有历史物理测试在本次统一并发中通过，无取消；先前独立 139 秒结果保留。完整仓库 format:check 另行执行，已有非本任务 .codex-tmp 历史诊断与生成覆盖率文件格式告警；不批量改写用户证据或提高 baseline。
+
+证据：.hpm-acceptance/context-storage-request-reuse-20261020-01/client-coverage-current.log、full-gate-outcome.json、repository-format.log。整体目标仍需解决三项完整门禁失败、完成实际多端/WBIPC、安装迁移回滚、真实 24h 到期和生产验收。未发真实模型请求、未更改日常客户端配置、未重启生产。
+
+## 最新核验：存储请求不可变复用、物理恢复剖析及客户端声明配置（2026-10-20；整体未交付）
+
+存储 worker owner 与 SQLite
+engine 对同一已解析请求重复规范化。storageRequest 现在只复用模块私有 WeakSet 登记的深冻结解析结果；原输入不会冻结，跨 JSON/structuredClone/worker 边界重新校验，外部冻结对象或伪造字段不能获得复用资格。没有修改协议、权限、scope/revision/expiry 检查或配额。新增回归覆盖冻结嵌套结构、原输入隔离、复制后重验、getter/toJSON 不执行、非法字段/版本/大小拒绝、revision
+conflict、到期及关闭行为。存储、blob、service、opening、root-reader、lifecycle 共 195/195 通过；修改模块语句/行 98.91%、分支 96.44%、函数 100%，原覆盖率门槛通过；最终 Lint、格式、CI 和发布治理通过。
+
+8MiB 请求连续解析两次的 8 轮交替局部基准，中位数 2002ms ->
+986.5ms，约 51% 局部改善，不能外推整体请求速度。四根实际 session 历史、2048 快照、4096 私有调用、32MiB 私有历史的加密 save/close/reopen/load/restore 独立测试 1/1，139050.7264ms；此结果未体现整体提速，也未覆盖每根原文 16MiB 同时用满。新 CPU 剖析显示存储 worker 的 reference
+state 校验、清理、容量统计路径仍重复处理大记录，下一步应针对事务内重复工作验证优化；不得省掉认证或语义验证。
+
+只读安装和声明配置盘点：Codex CLI 0.160.1 选择 custom
+provider，origin 为 http://localhost:3085；Claude Code
+2.1.292 的 settings 与当前环境 origin 均为
+https://api.deepseek.com，当前声明路径绕过代理。只读取
+origin 和字段存在性，没有输出凭据、完整 base
+path 或用户内容，没有修改配置或发真实模型请求。因此无插件 Claude 兼容尚未交付，需隔离配置实际验收。最近完整 client 门禁仍为 1221 项、1211 通过、8 失败、2 取消，且早于本次修改；不能用本次专项绿色替代完整并发失败。
+
+证据：.hpm-acceptance/context-storage-request-reuse-20261020-01/ 下 before.log、covered.log、comparison.json、full-physical-profile.log、profile-summary.json、client-config-inventory.json、final-\*.log、outcome.json。保留原 24 小时观察数据和绝对到期时间；未重启生产。完整门禁、多端/WBIPC、安装迁移回滚及生产验收仍待完成，三份方案原尾部逐字节保留。
+
+## 最新核验：历史克隆分配优化、完整门禁重跑及超时清理（2026-10-20；整体未交付）
+
+历史请求 normalizer 将每个递归节点临时创建的 spend 闭包改为操作级函数，稠密数组按已验证长度直接索引，避免生成临时名字数组及回调。自有 descriptor、继承 setter 防护、冻结、单项/总字节、节点、深度及版本限制均保留，没有新增缓存或原文留存。绑定文件 32/32 通过。1441 条消息、15836541 编码字节、每轮 12 次规范化、8 轮交替基准，中位数 119.5ms
+-> 111ms，约 7% 本地局部改善，不能外推整体或生产速度。
+
+原完整 test:client:coverage 本轮退出 1：1221 项，1211 通过、8 失败、2 取消，328919.0238ms；覆盖率语句/行 99.01%、分支 94.99%、函数 99.09%，覆盖率阈值通过但测试未通过。修改 normalizer 的语句 216/216、函数 9/9、分支 149/152。失败包括原两条 15 秒代理启动、原 60 秒容量命令，以及 v7 强制退出、idle
+corruption、旧 DPAPI 互通、staged 清理重开、混合期限重开、物理强制退出和新增四根满额物理测试。两条取消为原 30 秒 staged 重开及新增 180 秒四根测试；不能继续用上一轮 3 项失败描述当前全量结果。
+
+新增存储/DPAPI/强制退出失败六条分组复核 6/6、15942.5316ms，并不证明完整并发失败已修复。日志明确记录一次 legacy_unprotect
+PowerShell 后端原 10 秒 ETIMEDOUT。新增满额测试完整并发下 180 秒超时，独立成功不能替代该失败。未降低统一并发、两个容量 worker、工作量、原期限或覆盖率阈值。
+
+为避免测试超时后的原异步函数继续构造后续根，在满额夹具循环和物理测试的 await 边界使用 runner 原取消信号；取消后进入原 finally 关闭 worker、session 并删除经校验的自有目录。新增已取消夹具回归验证在建 session/读取时钟前停止，与单根 512 快照/8MiB 实际恢复测试共 2/2；补信号后的四根物理测试独立 1/1，成功路径仍需四根、2048 个快照/4096 调用/32MiB 及相同内容/期限。此清理修正没有修复完整门禁的性能超时。Lint、Prettier、CI 与发布治理最终通过。
+
+24 小时真实观察第 6 次仍 awaiting-real-deadline，保留原绝对截止 2026-10-22T00:55:55.109Z。完整门禁、实际多端/WBIPC、安装迁移回滚与生产验收仍未完成；未重启生产、未改已安装客户端、未发真实模型请求。本轮只对修改后的取消边界及满额成功路径做专项验证，未再次重复完整 client 命令，最近全量结论仍为上述失败。
+
+证据：.hpm-acceptance/context-history-clone-20261020-01/ 下 benchmark.log、comparison.json、binding-regression.log、client-coverage-current.log、current-client-summary.json、failed-storage-group-recheck.log、cancellation-and-full-session.log、full-physical-cancellation-safe.log、final-\*.log、outcome.json。三份历史方案文档原尾部逐字节保留。
+
+## 最新核验：容量性能重采样与快照索引缺失查询优化（2026-10-20；整体未交付）
+
+原 60 秒容量门禁本轮基线仍为 9/10，耗时 72099.5716ms。另一次不作为门禁通过证据的 CPU 采样完成全部五画像，最大 worker
+85395ms、主进程 85816ms，五画像均 qualified，四任务画像完成 1920 轮、400 次精确恢复、20 次重开与最终原文 drain；它只证明合成会话逻辑能完成，不能替代原 60 秒性能资格、物理存储、真实客户端或生产验收。
+
+新采样主要耗时仍为 begin
+45944ms、历史规范化 19964ms、绑定指纹/前沿 22113ms、根恢复 15175ms（包含关系有重叠，不可直接相加）。索引 has 自身约 1199ms，因此不是主瓶颈。为减少已有线性父链上的缺失键遍历，给每个私有快照索引加入固定 256 字节位图，仅记录短字符串键的非加密混合位；不保存原文或键值，不参与授权、序列化、版本或到期判断。位图阴性才直接拒绝，任何可能命中仍通过原 Map 精确遍历。每个子分支独立复制位图，父快照和 sibling 不可互相加入键；非字符串和超过 256 字符的键保留原 Map 路径。位图饱和/碰撞仅影响性能，不改变成员关系。
+
+新增回归先在原实现得到缺失查询探测门禁失败，修复后 sessions
+45/45。扩大到 sessions、root-owner、private-capacity 共 93/93，修改模块语句/分支/函数/行均 100%，原 85/80/90/85 阈值通过。覆盖父子/sibling 隔离、空键、超长键、对象不强制转换、NaN、负零、symbol、4096 个字符串饱和、重复拒绝、完整迭代与恢复。测试留在既有统一入口列出的 sessions 文件。Lint、Prettier、CI 与发布治理通过。
+
+8 轮交替局部基准每轮 24 条 480 深度链，中位耗时 baseline 793.5ms、candidate
+627.5ms，约改善 21%；仅为本地合成索引基准，不代表整体恢复或生产速度。原容量门禁修改后仍 9/10、64788.8854ms，60 秒子进程超时，未解决整体性能失败；不能以两次超时总时长推算总体提速。五画像、两 worker、工作量、原超时和覆盖率阈值均未改动。本轮未再次执行完整 client
+coverage，最近全量 3 项失败仍未关闭。其余多端/WBIPC/打包安装回滚/真实 24 小时到期/生产验收仍待完成；未重启生产、未改已安装客户端、未发真实模型请求。
+
+证据：.hpm-acceptance/context-capacity-current-20261020-01/ 下 CPU
+profiles、profile-summary.json、profile-run.log、snapshot-filter-before.log、snapshot-filter-covered.log、snapshot-filter-benchmark.json、capacity-filter-after.log、snapshot-filter-outcome.json；基线原门禁为 .hpm-acceptance/context-request-encoding-reuse-20261020-01/capacity-current-baseline.log。三份历史文档原尾部逐字节保留。
+
+## 最新核验：真实会话四任务满额私有历史的加密重开（2026-10-20；整体未交付）
+
+新增两个测试进入已有 root-state 文件及统一 client
+coverage 入口。通过真实 sessions.begin、recovery.accept、complete 生成数据，未直接注入伪造历史：每根 512 个快照、512 条私有映射、1024 次私有调用、511 个实际原文来源。首快照混合公开 lookup 与私有 LIST，后续 511 个 sibling 分支捕获各自原文并执行两个参数不同的 LIST；原防重复调用检查保持不变。先以两个真实快照测量固定开销，再填充每条精确 16384 字节，断言每根私有历史合计 8MiB。
+
+四根实际通过 Windows 密钥保护的加密 worker 保存 reference-state，关闭所有原 sessions 和 worker，重新打开存储，逐根 load 并比较检查点摘要、全部私有历史摘要、全部原文来源及原绝对到期。随后四根批量恢复 sessions，再导出全部根并完整比对历史，单独验证 observedAt 单调递增，所有到期时间严格保持不变。总计 2048 个快照、4096 次私有调用、32MiB 私有历史。此处验证的是私有历史满额，未声称每根 16MiB 原文配额同时满额。
+
+首次物理测试已通过加密保存/重开/读取，但错误地要求恢复后 observedAt 不变而失败；测试现按既有观察时钟语义单独检查该字段，其他历史字段完整深比较，未修改运行时代码或放宽容量/期限。最终 root-state 全文件 55/55，通过耗时 186316.783ms；四根物理测试 131748.1165ms。单根满额独立测试通过，Lint、Prettier、CI 治理及发布治理通过。保留全部夹具调试失败记录。
+
+本轮没有再次执行完整客户端门禁，最近完整结果仍为 1214 项中 1211 通过、3 失败，两条代理启动和原 60 秒容量命令尚未修复。原五画像、两 worker、60 秒容量期限和既有覆盖率阈值均未修改。24 小时真实观察第 5 次仍 awaiting-real-deadline，原截止 2026-10-22T00:55:55.109Z；未重置或续期。后续仍需性能/重开稳定性、WBIPC 预算内恢复、全仓门禁、打包安装迁移回滚、真实多端和生产验收。未重启生产、未改安装客户端、未发真实模型请求。
+
+证据：.hpm-acceptance/context-request-encoding-reuse-20261020-01/full-session-capacity-sixth.log、full-physical-capacity-first.log、full-session-root-suite.log、full-session-physical-outcome.json。三份历史方案文档原尾部逐字节保留。
+
+## 最新核验：四根满容量历史的批量恢复修复（2026-10-20；整体未交付）
+
+新增实际 history-map 满容量用例，四个 v3 根各 512 条 sibling 记录、每条两次私有调用，共 2048 条记录/4096 次调用/精确计费 33554432 字节（32MiB）；各根 8MiB、1024 次调用。每个根先通过真实 prepare/commit 和 export 生成，导出 512 个 tip，再批量恢复并逐 tip 重建，以 SHA-256 比对全部 4096 个实际结果。此用例补充此前四根各四个条目的调用上限测试，没有替换旧测试或缩小容量目标。
+
+修复前，四根分别合法并可导出，合并 restoreContextHistoryRoots 却失败 invalid_context_history_state。证据为每根 19465 节点，批次 77885 节点、编码 33418437 字节（低于原 48MiB 总上限）；旧入口先整体规范化，错误地让四个新根共享一个 65536 节点预算。新增断言同时确认通用 normalizer 仍拒绝该批次，未扩大通用限制。
+
+现在批量入口仅用 descriptor 校验外层数组/包装及小 scope，每根交给原版本化 parser 独立检查字节、节点、深度及语义；计入逗号/包装/scope 的 48MiB 总编码上限保持不变，最终仍执行全局数量/字节/四根配额。v1/v2 子集继续通过原整体 normalizer 保持共享节点/深度限制，只有已定义的 v3 采用独立根预算。成功前不构造 live
+map。新增 malformed/sparse/accessor/隐藏字段/第五根/重复条目/末根失败等拒绝回归，验证不执行 getter、非法批次不调用 owner 时钟且既有源 map 仍可读；另验证两个分别合法的大 legacy 根仍因共享节点超限拒绝，v1/v2/v3 混合恢复保留原版本与各自绝对到期。
+
+修复前满容量负控 0/1，修复后 1/1；history-map 全文件 25/25。扩大到 history-map、root-state、root-owner、private-capacity 四文件后 126/126，语句/行 92.73%、分支 90.33%、函数 91.66%，原 85/80/90/85 专项阈值通过；Lint、Prettier、CI 与发布治理均通过。新增测试位于原 unit 自动发现与原 client
+coverage 显式列出的 history-map 文件中。
+
+本轮没有再次执行完整客户端门禁，最近完整结果仍为 1214 项中 1211 通过、3 失败（两条代理启动与原 60 秒容量命令），不能用此次专项替代全量。满容量用例是实际私有映射的内存导出/恢复，不证明同规模加密 SQLite/真实客户端/生产资格；此前七 MiB 物理 worker 恢复也不能外推到本次 32MiB 满额目标。后续仍需满额物理根验收、启动/容量性能与重开稳定性、WBIPC 预算内恢复、全仓门禁、最终打包安装迁移回滚、真实多端/24 小时到期及生产验收。未重启生产、未改已安装客户端、未发真实模型请求。
+
+证据：.hpm-acceptance/context-request-encoding-reuse-20261020-01/ 下 full-private-roots-before.log、full-private-roots-after.log、full-private-roots-expanded.log、full-private-covered.log、full-private-coverage/、full-private-roots-outcome.json。本次保留全部历史文档尾部，并记录新文件哈希。
+
+## 最新核验：JSON 克隆局部优化及数组 setter 边界修复（2026-10-20；整体未交付）
+
+通用 JSON 规范化中的空原型对象改用直接自有数据赋值，保留所有 descriptor 校验、深度/节点/字节限制、最终 JSON 转义后计量；数组仍使用 Object.defineProperty，避免继承的数字 setter。新增回归验证
+**proto**/constructor/prototype、继承 setter 不执行、精确数据描述符与克隆隔离。8000 条合成记录、每轮 12 次规范化、8 轮交替顺序对照，中位数 934ms
+->
+819.5ms，约 12% 局部改善；这是 normalizer 微基准，不能外推整体恢复或生产速度。原五画像、两 worker、60000ms 容量子进程仍超时，回归 9/10、65571.8341ms。
+
+沿此边界发现并修复两个实际缺陷：normalizeRecoveryStateData 与 normalizeRecoveryHistoryRequest 对数组直接赋值（后者还使用 history.push）会执行 Array.prototype 上继承的数字 setter，导致已验证值遗漏。两处独立回归在修复前均出现 setter 调用计数 1
+!=
+0；现在所有复制出的数组元素显式创建自有数据描述符，空原型对象保持直接赋值。请求回归覆盖外层 history 与嵌套 content 数组，检查完整 JSON 相等和冻结；状态回归检查末项、null
+prototype、数据描述符及源对象隔离。无接口、版本、容量或到期语义变更。
+
+初次四文件 87/87，但整个 envelope 模块语句覆盖 83.84% 未达 85% 门禁；补入已有 lifecycle/evidence 用例后 102/102、门禁通过。加入两处数组修复后最终七文件 135/135，三个修改模块语句/行 99.73%、分支 95.94%、函数 100%，原 85/80/90/85 阈值通过。新增测试均位于既有 unit 自动发现文件中，binding/root-state 也在 client 入口。Lint、Prettier、CI 和发布治理通过。保留首次覆盖率拒绝及修复前安全回归失败日志。
+
+最终原 test:client:coverage 退出 1：1214 项中 1211 通过、3 失败、0 取消，188503.9393ms；语句/行 99.04%、分支 94.96%、函数 99.17%。剩余失败是两条 isolated
+proxy 原 15000ms 启动期限与容量 qualification 原 60000ms 期限。存储重开本次通过，但此前全量存在超时，未确认根因，不能据此报告稳定性已修复。没有降低任何工作负载、并发、超时或覆盖率阈值。
+
+证据：.hpm-acceptance/context-request-encoding-reuse-20261020-01/ 下 normalizer-alternating.json、normalizer-comparison.cjs、normalizer-covered.log（首次覆盖率失败）、normalizer-covered-final.log、normalizer-security-covered.log、normalizer-capacity-original.log、state-array-setter-{before,after}.log、history-array-setter-{before,after}.log、client-coverage-normalizer-security.log、normalizer-security-outcome.json。整体仍未交付：启动/容量性能及重开稳定性、满容量私有存储和混合失败路径、WBIPC 预算内原生恢复、全仓门禁、打包安装迁移回滚、真实多端与 24 小时到期观察、生产验收未完成。未重启生产、未改已安装客户端、未发真实模型请求。
+
+## 最新核验：全量剩余超时与三协议私有调用边界（2026-10-20；整体未交付）
+
+原 test:client:coverage 重跑退出 1：1205 项中 1202 通过、2 失败、1 取消，193398.5769ms；语句/行 99.04%、分支 94.94%、函数 99.17%，覆盖率达标但测试门禁未通过。失败仍包括 isolated
+proxy
+15000ms 启动期限、容量 qualification 原 60000ms 子进程期限，以及真实加密 worker 三次重开测试的 30000ms 期限。最后一个测试第三次 ready 在 29957ms 才到达，尚未完成最终读取；不能报告恢复验收通过。未降低原工作负载、两 worker、并发、期限或阈值。
+
+修正三个测试中的旧版本假设：v10 是合法版本，非法版本改为 v11，新增 v9/v10 正常与超限解析覆盖。四文件定向测试 104/104。测试诊断增加受控 CPU
+user/system 累计毫秒，与墙钟耗时并列；固定标签、整数、限长，拒绝 getter/非法/倒退采样且不影响原操作。全量内存首请求从 first_start
+1241ms 到 storage_load_start
+3303ms，CPU 增量约 594ms；这只表明耗时差异，不足以确认超时根因。
+
+随后新增七个进入既有统一 unit/client 门禁的 history-map 回归，最终该文件 22/22：Chat/Responses/Claude 分别在旧私有版本 64 次和新版 1024 次调用后拒绝第 65/1025 次、祖先重复 ID 和版本切换；拒绝不改变存量计费；JSON 导出恢复逐条比对全部私有结果；到期前可读、绝对到期时引用与字节均清零。另一个实际 history-map 用例同时保留四个根、每根 1024 次调用，拒绝第五根且不丢已有结果，跨 scope 不可重建，并逐根导出恢复精确比对。它验证 8 个实际条目中的 4096 次调用，不等同于四根各 512 条/8MiB 的满容量物理存储验收。
+
+新增测试首轮因 Claude 公开字符串 content 的结果提取写法失败 2 项，改用 Array.isArray 后通过；保留失败日志。Lint、Prettier、CI 和发布治理均通过。最终 22/22 边界文件是在上述全量运行之后修改，尚未再次纳入完整并发重跑，不能把两个结果合并成新的全量通过。
+
+真实 Windows 密钥链加密留存第 4 次独立检查通过，仍 awaiting-real-deadline；原绝对到期 2026-10-22T00:55:55.109Z 未改，无后台任务。未重启生产、未改已安装客户端、未发真实模型请求。容量性能、启动/重开超时根因、四根完整条目/字节边界及混合/失败清理集成、WBIPC 预算内原生恢复、全仓门禁、最终打包安装迁移回滚、真实多端与生产验收仍未完成。
+
+证据：.hpm-acceptance/context-request-encoding-reuse-20261020-01/ 下 client-coverage-cpu-current.log、full-failure-fixes-focused.log、private-call-boundaries.log（首轮失败）、private-call-boundaries-final.log、private-four-roots-final.log、boundary-followup-outcome.json；留存使用原 receipt.json，未重置计时。
+
+## 最新核验：容量实验撤回与 v10 独立进程验收修正（2026-10-20；整体未交付）
+
+原始容量测试仍为 9/10，qualification 子进程在原 60000ms 上限超时；不带采样的完整五画像诊断随后也触及 180000ms 观察上限，未取得完整报告，不能据此宣称内容或性能通过。诊断超时没有替代或修改原门禁。
+
+尝试在单请求内复用规范化阶段的字符串 JSON 编码，跨请求仍重验全历史。1441 项历史、480 个 32KiB 工具输出、每轮八次完整 admission 的三轮局部对照，中位数由 1016ms 变为 1660ms，未证明收益。候选已撤回，history-request、public-window、binding-frontiers、binding 四个运行时文件与实验前备份逐字节一致；不保留该优化，不外推整体速度。
+
+修正了 v10 验收夹具遗漏：publication 容量新增 v10 正向断言并用 v11 检查未知版本；Codex 摘要 schema 断言更新为 v10，仍检查未知版本拒绝；独立 owner 辅助程序接受已支持的 v10，并保留 7/8/9。修正前绑定/摘要回归 39/41，两个子进程因辅助程序不接受 v10 失败；修正后 41/41，通过 Windows 加密存储的两独立 owner 精确读取，以及强制终止 owner、重开读取、提交撤销后再强制终止再重开的完整序列。publication 专项另为 1/1。Lint、格式、CI 与发布治理通过，测试位于既有统一 CI 入口。
+
+证据：.hpm-acceptance/context-request-encoding-reuse-20261020-01/ 下 capacity-before.log、baseline.json、admission-baseline.json、admission-candidate.json、after-restore-regression.log（失败记录）、after-helper-regression.log、outcome.json 和文档保尾收据。整体仍需容量性能与全量并发门禁、WBIPC 预算内恢复、全仓验证、最终安装/迁移/回滚、真实客户端、真实 24 小时观察结束及空闲窗口生产启用。已有留存观察不得重新 seed 或续期；未重启生产、未修改已安装客户端、未发真实模型请求。
+
+## 当前阶段：v10 私有历史容量、引用持久化及实际 worker 冷恢复（2026-10-20；整体未交付）
+
+新根版本为 v10，私有历史为绑定 rootId 的 v3：每根最多 512 条、8MiB、1024 个祖先私有调用；最多四根合计 2048 条/32MiB。旧根及 v1/v2 私有历史保持原共享 256 条/4MiB/64 次限制，不隐式升级；期限仍为原创建时间起 24 小时，不滑动续期。v9/v10 容量策略对象独立，禁止引用状态转换静默改变根容量类别。
+
+修复引用状态摘要仍受 2MiB 旧上限限制的问题：只有显式 v10 元数据可选择 16MiB 引用解析和摘要能力；请求、策略与普通摘要边界不扩大。加密落盘清单也按 v10 选择 16MiB+4096 字节封装上限，旧清单与普通加密状态仍为 12MiB。AES-GCM 在认证和解析后按明文版本再次检查实际长度，旧版有效认证密文也不能借用新版配额。原文继续分块；单块、原文总量、物理存储总配额及四任务边界保持原规则。
+
+验证分两组：引用与会话扩大回归 193/193，六模块专项覆盖语句/行 99.09%、分支 88.61%、函数 100%；随后新增封装与 worker 回归首次 150/151，暴露旧测试仍将 v10 视为未知版本，补充 v10 正向/越界断言并以 v11 作为未知版本后，原五文件复跑 151/151，三模块专项覆盖语句/行 98.12%、分支 93.09%、函数 100%。两组覆盖均保持既定 85/80/90/85 阈值；Lint、格式、CI 与发布治理通过。新回归位于统一 unit 自动发现文件，私有容量专项也纳入 client
+coverage 命令。
+
+超过 3MiB 的实际会话私有历史通过加密 SQLite 保存、扫描、加载、原文还原、篡改拒绝及原期限到期拒读。新增真实 Windows 密钥链/加密 worker 用例：7MiB 私有历史在关闭会话和 worker 后重开，引用与完整根摘要一致，七段隐藏消息和原文逐字节匹配，可重新构建下一轮模型输入。另有 13MiB 合成清单的加密层往返、精确上限/+1 拒绝、跨 scope 与密文篡改拒绝；此项是加密层边界验证，不等同于 13MiB 完整有效业务根验收。
+
+真实时钟 24 小时观察已启动：专用加密目录位于 .hpm-acceptance/context-retention-observation-20261020-01/context，收据不保存原文/密钥，只记录摘要、原期限与观察结果；首次写入后重开及独立进程再次重开均通过。固定到期时间为 2026-10-22T00:55:55.109Z，目前 phase=awaiting-real-deadline，未完成真实到期验收。后续使用 .hpm-acceptance/context-private-capacity-20261020-01/observe-retention.cjs
+check 检查，禁止重置创建时间；没有后台定时器或自动任务。
+
+证据：.hpm-acceptance/context-private-capacity-20261020-01/ 中 reference-outcome.json、reference-covered.log、manifest-cipher-first.log、private-worker-first.log、manifest-covered.log（首轮失败）、manifest-covered-final.log、coverage-manifest-final/、retention-seed.log、retention-check-initial.log 及本次文档保尾收据。以上均为局部验证，不替代原全量并发门禁；原 60 秒容量性能失败尚未重新解决。WBIPC 预算内恢复、全仓验证、最终打包/安装/迁移回滚、真实 Codex/Claude 和其他客户端验收、实际 24 小时观察结束及空闲窗口生产启用仍未完成。未重启生产、未修改已安装客户端、未发真实模型请求。
+
+## 当前阶段：去除原文写入配额的整表复制（2026-10-20；整体未交付）
+
+无采样原五画像基线 118163ms，文本计数候选 158630ms，均完成原内容覆盖/恢复校验；该候选没有证明收益，history-request.js 已逐字节恢复。保留另一处独立改进：artifact-store 的同步 admission 直接遍历已提交和待提交 Map，不再每次写入复制全部记录为新 Map；保持待提交同键覆盖优先级、全部全局/owner/session 字节与数量额度、原期限及事务边界。交替顺序三轮、2048 条混合已提交/待提交记录对照，中位数 662ms
+-> 602ms，约 9% 局部收益；不能外推成整体恢复或生产提速。
+
+新增六种配额在 live/pending 混合下的拒绝、回滚后释放、发布后不丢计费、发布不双计费、跨 owner 拒绝，以及已提交/待提交各自到期的回归。初次 10/10 但专项覆盖门禁未达标，补入已有 renewReferences 生命周期与账本测试后扩大为 43/43，语句/行 98.03%、分支 95.81%、函数 96.77%，保持原专项阈值并通过；Lint/格式/CI/发布治理通过。新测试位于既有 unit 自动发现文件中。原容量回归仍 9/10、60000ms 子进程超时，完整五画像、两 worker 和原门禁均未缩减。证据在 .hpm-acceptance/context-history-encoding-benchmark-20261020-01/outcome.json 及其引用日志。完整并发失败、WBIPC、私有历史配额、最终安装/迁移/回滚、真实客户端及实际 24 小时留存、生产启用仍未完成。
+
+## 当前阶段：四任务容量 CPU 定位（2026-10-20；性能门禁未通过）
+
+保留原五画像、两 worker、480 轮/四任务/32KiB 工具输出、400 次精确恢复和 20 次重建，增加 CPU 采样。五画像内容校验均通过，最大 worker 采样耗时 110108ms；这是带 profiler 的诊断时间，不是原门禁时延或生产时延。最大画像 inclusive 采样主要为 begin 约 56916ms、绑定摘要约 29187ms、请求规范化约 22730ms、根重建约 20800ms；这些调用时间有重叠，不可相加。原始工具用合成时钟和 JSON 重建，仍不证明真实传输、SQLite 或 24 小时观察。
+
+尝试不生成无转义文本的 JSON 编码副本后，原始容量回归仍 9/10、子进程 60000ms 超时；Lint 也拒绝了控制字符正则。该尝试已完整撤回，history-request.js 与实验前备份逐字节一致，不保留未经证实的性能改动。新增 JSON 字节边界回归保留：ASCII/CJK、控制及转义字符、成对/孤立代理字符、恰好 2MiB 单项及超一字节。绑定文件 31/31、专项覆盖率阈值及 Lint/格式/CI/发布治理均通过；统一 client
+coverage 已包含此文件。没有降低工作负载、超时、worker 数、并发或全量覆盖率阈值。
+
+证据：.hpm-acceptance/context-capacity-profile-20261020-02/ 下 baseline.log、CPU
+profiles、profile-summary.json、capacity-after.log、byte-coverage.log、outcome.json。原始全量并发失败及容量性能仍未修复；下一步围绕重复的全历史验证和冷重建成本开展结构性改进，保持完整输入校验、不跨请求缓存原文。此前恢复功能修复和未交付范围见下文。
+
+## 当前阶段：加密长历史冷恢复及完整窗口重建（2026-10-20；整体未交付）
+
+新增并验证两个独立 Node 进程的加密 SQLite 长历史交接：密钥仅由 stdin 传入；约 2.7MiB
+Unicode 历史在新 owner 中恢复后，LIST/READ 精确命中原文，并可继续发布。受控时钟从 1000 变为 2000，绝对到期仍为 86401000，没有滑动续期。此项使用测试随机密钥，不代表 DPAPI 全链路或真实 24 小时观察。
+
+WebSocket 冷重开分别覆盖响应 ID 增量续接和客户端重发完整历史。完整窗口用例修正测试输入位置后，仍在新连接发送阶段失败；原因是 assertRebuiltPendingResults 把公开/上游整段历史重新按私有结果的 2MiB 总量校验。现在由实际 binding.historyFormat 传入已有请求规范化模块：受信格式 3 的历史总量 32MiB，单项仍为 2MiB；默认/旧格式保持原限制。私有 pending 结果解析仍是原 2MiB/16 项，不扩大。公共历史不得冒入私有结果；上游必须按顺序恰好出现一次调用及其精确结果。
+
+新增回归包含可信长历史、空历史、默认及非法格式、重复/篡改/倒序结果、公共窗口混入私有结果、非法节点、单项及总量超限、私有结果超限，以及 getter/toJSON 不执行。首次两个文件回归 134/134；最终 root-state、websocket、sessions、loading 四文件专项 203/203，退出 0。pending-results 模块语句/行/函数 100%，分支 97.29%；Lint、Prettier、CI/release
+governance 均退出 0。证据位于 .hpm-acceptance/context-long-cold-reopen-20261020-01/，主要为 pending-coverage.log、pending-window-after.log 及 pending-{lint,format,ci,release}.log；修复前负控为 full-window-corrected-before.log。统一 client
+coverage 已包含这四个测试文件，没有另建不进入门禁的独立测试入口。
+
+此前完整原始 test:client:coverage 退出 1：1187 项中 1167 通过、12 失败、8 取消，耗时 428953ms；覆盖率语句/行 98.78%、分支 95.01%、函数 98.99%，但测试未通过。失败含真实 worker 重开/storage_unavailable、fixture/原生辅助进程启动和容量 60 秒超时，不能把原因统一认定为环境负载，也不能以本次专项取代全量门禁。原工作负载、60 秒容量超时、并发与覆盖率阈值均未降低。
+
+对全量失败中的 idle、policy-basis、publication 三文件做诊断复跑，普通运行 44/44、测试耗时 43546ms；保留 V8 覆盖率采集后仍 44/44、测试耗时 74672ms，两个命令均退出 0，未修改测试期限。后者仅是子集诊断，没有启用全量覆盖率验收阈值，不能代替原始全量门禁；全量并发下的失败仍未定位。证据为 storage-failure-recheck.log 与 storage-failure-covered-recheck.log。
+
+仍需完成 WBIPC 预算内恢复策略、版本化私有历史配额、全量并发失败根因、全仓验证、最终安装包与迁移回滚、真实 Codex/Claude 接入、实际 24 小时留存观察及空闲窗口生产启用。未重启生产、未修改已安装客户端、未发真实模型请求。
+
+## 当前阶段：WebSocket 长历史与共用异步加载入口修复（2026-10-20；整体未交付）
+
+真实压缩/分片 WebSocket 回归先复现两个阻断：旧消息/调度边界拒绝大历史；修复这些边界后，受信会话异步加载仍因 storageData 的 2MiB 总量返回 context_recovery_storage_unavailable。为异步 owner
+admission 单独增加负控，在修复前同样失败，随后将共用加载入口改为已有 normalizeRecoveryHistoryRequest(input,3)，保留单条消息和策略各 2MiB、总量 32MiB、深度/节点、所有者和旧根匹配限制。这个加载入口也被 HTTP 使用，先前 HTTP 发送验证不能替代真实异步会话验收。
+
+WebSocket 客户端消息在已授权连接内可先按 32MiB 暂存并验证每条历史及元数据，随后必须由实际 session 的 historyFormat 明确授权；没有可用绑定或格式 2 的大请求在发送前关闭，不通过普通转发绕过。默认消息解析、上游接收、客户端发送和累计响应仍是 2MiB。入站 ws 解压总量和上游发送按 32MiB 有界。连接保留原 16 个活跃回合、32 个待处理请求/命名流限制，所有在途请求合计不超过 32MiB；普通小请求合计仍按原 2MiB 限制计费，不借新大历史额度扩大。关闭/完成同步回收相应字节计数。
+
+恢复调度从 session 接收格式后，按同一额度校验请求与私有前缀合并；仍只保留逐项摘要来判断精确祖先，不能把修改过的历史投影为增量。warmup
+receipt 的下一条长历史只改变本地 admission，继续要求同连接/流、策略一致、单次使用、原 60 秒到期，并把实际请求原样发给上游。私有 deferred 结果自身的 2MiB 边界和延续总量没有在此阶段扩大，版本化私有历史配额仍是后续工作。
+
+新增真实本地上游用例完成：空 warmup -> 约 2.7MiB
+Unicode 历史（压缩、分片）-> 公开外部工具调用 -> 上报原文 -> 私有 LIST
+-> 私有 READ 精确命中 -> 公开最终响应。客户端事件未出现私有 LIST/READ 工具。另覆盖格式 2 调度拒绝、格式 3 长历史逐条保真与后续增量、恰好 32MiB/超一字节、单条/元数据超限、响应不扩容、没有受信绑定禁止发送，以及大请求队列溢出清理。测试使用生产 WS/会话/读取模块和本地合成上游，不代表真实 OpenAI 或 Codex 客户端验收，也未证明长历史断线后的冷恢复。
+
+最终冻结专项 185/185 通过；七个修改运行时模块合计语句/行 97.30%、分支 92%、函数 98.27%，原阈值未调整。零警告 Lint、格式、CI 治理和发布治理通过；1469 个源码/测试/配置文件摘要在验收前后一致。旧版拒绝、队列、取消、混合结果、加密重开和私有读取的既有回归均保留。证据目录：.hpm-acceptance/context-websocket-long-history-20261020-01/，包括原始失败、加载负控、真实链路中间失败、最终 coverage.log、receipt.json 和源码摘要。
+
+整体仍未交付：完整客户端覆盖率与全仓 verify 尚未通过；WBIPC、版本化私有历史配额、长历史冷恢复、最终包和隔离安装迁移/回滚、真实 Codex/Claude、真实 24 小时留存及生产激活仍需完成。没有修改生产进程、已安装客户端或调用真实模型。
+
+## 当前阶段：九条 HTTP 转换路径的长历史资格与发送验证完成（2026-10-20；整体未交付）
+
+本轮补齐 Chat/Claude 到 Responses、Chat/Responses 到 Claude
+Messages，以及 Chat/Responses/Claude 到 Gemini 的七条转换路径，与此前 Responses/Claude 到 Chat 合计九条。受信 session 的 historyFormat=3 经转换工厂传递，转换前后请求均使用已有 32MiB 总量、单条记录及非历史元数据各 2MiB 的边界；旧格式保持 2MiB。Gemini 出站请求只将 contents 作为历史，systemInstruction、工具和生成参数仍计入独立元数据预算。没有改变原生协议入口支持种类、上游权限或响应预算。
+
+同时修复长历史保真比较的隐藏瓶颈：请求侧事件数组使用版本化历史摘要，指令仍使用原有小额度摘要，工具定义与响应保真比较也保留小额度。Messages/Gemini 的原有投影先后比较均继续验证每条事件、角色、工具 ID/参数/结果及顺序，不通过跳过投影来放行长历史。请求体里的 historyFormat 字段不能申请受信额度。
+
+七个新转换用例在旧源码下 7/7 失败；修复后专项最初 77/77，最终包含真实本地 HTTP、四个转换家族、原生协议和 HTTP/入口的冻结验收 121/121 通过。新增本地真实 HTTP 用例逐一发送九条路径约 2.7MiB 的多条 Unicode 历史，校验完整原文、原顺序、Content-Length 与实际发送字节一致；使用真实生产转换函数与 HTTP
+dispatcher，但上游响应是本地合成，未调用真实模型，也不代表真实客户端和恢复会话全链路验收。资格回归额外检查七条新路径只有受信格式 3 才进入 provider 资格检查，未接管观察器。
+
+新增边界覆盖旧格式拒绝、空历史、超大单条消息、超大元数据、超过 32MiB 总量、请求体伪造格式、访问器不执行、输入不变与各路径逐条保真；已有响应协议回归继续通过。五个修改运行时模块合计语句/行 99.22%、分支 90.22%、函数 100%，阈值未调整。零警告 Lint、格式、CI 治理、发布治理通过。验收前后 1469 个源码/测试/配置文件摘要一致。新测试均进入已有统一单测发现和客户端覆盖率入口。
+
+证据：.hpm-acceptance/context-conversion-long-history-20261020-01/receipt.json、regression-before.log、coverage.log、http-long.log 及 source-before/source-after.json。前一轮完整客户端覆盖率的 5 项失败、4 项取消仍未解决，本轮专项不能替代它；修复后全量及全仓 verify 尚未通过。
+
+进一步核对发现 WBIPC 当前代码默认请求预算为 384KiB、输入 token 预算为 96Ki
+tokens，这是当前代理策略，并非本轮实测的服务端物理上限。其入口和转换仍需单独设计及验收，不能直接把 HTTP 长历史额度复制过去。WebSocket 的消息、调度、延续及缓存也仍有独立小边界。下一步仍包括这些路径、版本化私有历史配额、原完整并发超时、最终包/隔离安装迁移和回滚、真实 Codex/Claude、真实 24 小时留存及生产激活。整体仍未交付。
+
+## 当前阶段：转换到 Chat 的长历史补齐；完整门禁仍失败（2026-10-20）
+
+本轮保留两项增量：容量验收命令以估算负载降序分配到原来的两个 worker，最大档立即开始，五档内容、60 秒子进程超时及测试并发均未改变；Responses
+/
+Claude 转 Chat 的恢复转换器接收受信 session 的 historyFormat=3，使用已有 32MiB 请求历史总量，同时维持单消息和非历史元数据各 2MiB、旧格式总量 2MiB，以及响应独立 2MiB。请求体不能自行声明格式。其他转换家族、WBIPC、WebSocket 长历史尚未补齐；放宽公共入口总量不会绕过它们各自的资格检查。
+
+容量单独回归 10/10 通过，但之后运行原 test:client:coverage 完整命令仍失败：1168 项中通过 1159、失败 5、取消 4；语句/行 99.03%、分支 94.95%、函数 99.16%。失败涉及容量命令原 60 秒子进程超时、隔离代理 15 秒启动、故障注入子进程 10 秒启动、DPAPI
+10 秒后端，以及加密 worker/运行时 30 秒测试。覆盖率过线不代表门禁成功。这次完整运行发生在长历史转换修复之前，不能证明修复后的全量状态。
+
+长历史新增回归在旧源码下 3/3 失败；修复后两个文件 18/18 通过，随后包含四种转换家族、HTTP/入口和协议的专项 112/112 通过。两个修改模块合计语句/行/函数 100%、分支 96.11%；零警告 Lint、格式、CI 治理及发布治理通过。测试覆盖约 2.7MiB 中文/Unicode 历史逐条保真、受信和旧格式区分、超大单条/元数据/总量、请求体伪造格式、超大响应及发送前失败。真实客户端与生产上游仍未验收。
+
+三个候选运行时优化均因完整工作负载无收益而撤回：历史分配微优化、状态字符串缓存分区、快照负查询过滤。候选通过记录不作为当前源码验证；撤回证据保留在 context-history-allocation、context-state-encoding、context-snapshot-filter 各自验收目录。当前容量调度只是验收命令调度改进，不是生产恢复提速的证据。
+
+证据目录：.hpm-acceptance/context-capacity-scheduling-20261020-01/。下一步仍需解决原完整并发门禁超时，补齐其余协议长历史与私有历史配额，并完成最终包、隔离安装迁移/回滚、Codex/Claude 实际客户端、真实 24 小时留存及生产激活。整体未交付。
+
+## 当前阶段：重建来源策略的有界复用（2026-10-20，整体仍未交付）
+
+同一源码的串行对照：仅将来源策略复用替换为原逐来源解析，五档内容仍 5/5，未采样耗时 73633
+ms；启用复用的最终冻结为 69594 ms，单次配对减少 4039
+ms（约 5.49%）。该对照每档仅一次，不能推导稳定生产提速，也不能把历史 87571
+ms 与本次值的全部差异归因于本改动。新模块语句/分支/函数/行独立覆盖均为 100%，范围仍只代表该模块。
+
+CPU 采样定位到检查点恢复对相同来源原文反复执行完成状态/敏感内容/编码字节校验。本轮新增独立模块 context-recovery-source-policy，只在一次根重建调用内复用成功校验。调用 ID 每次仍检查格式，缓存同时固定工具名、调用 ID 长度和原文；ASCII
+ID 长度参与整体 JSON 字节边界，不能用较短 ID 的成功放行较长 ID。只保存最多 128 个成功组合、合计 4
+MiB，达到任一上限后继续完整校验；失败不缓存，函数结束不保留缓存。来源摘要、UTF-8、字节数、期限、所有者、预算和父子关联仍由原导入器逐条校验。
+
+负控用原逐来源解析行为时，重复校验回归明确失败（2 次对目标 1 次）；修复后通过。新增回归覆盖相同/不同工具和 ID 长度、编码恰好及超一字节、敏感文本、未完成响应、非法标识、钩子、Unicode/代理项、1
+MiB 原文、128 项和 4
+MiB 缓存边界，以及新操作不复用旧操作。第一冻结专项 284/284 和格式/Lint/治理/发布清单/网关准备通过，随后为排查末尾换行假设主动停止；独立实测证明当前 JavaScript 正则拒绝末尾换行，假设不成立，生产缓存逻辑未因此改动，中断记录保留。
+
+最终冻结证据 .hpm-acceptance/context-source-policy-20261020-02/receipt.json：专项 284/284，零失败/取消/跳过，格式、零警告 Lint、CI 治理、发布清单、网关准备及独立新模块覆盖门槛通过，1468 个源码文件摘要一致。原五档容量内容目标 5/5，四任务 1920 轮、400 次精确恢复与 20 次 JSON 重建保持；未采样命令耗时 69594
+ms，原 60 秒性能门槛仍未通过。原目标、超时、测试并发和覆盖率阈值未放宽；未执行完整客户端覆盖或全仓 verify，不能把专项通过当成整体交付。
+
+协议转换、WBIPC/WebSocket 与私有留存的大历史资格、启动稳定性、完整门禁、最终包、迁移/回滚、多端实机、24 小时实际留存观察和生产激活仍待完成。未重启生产、修改已安装客户端或请求真实模型。
+
+## 当前阶段：原生 HTTP 与私有恢复长历史（2026-10-20，整体仍未交付）
+
+本轮后续修复（2026-10-20）：两份方案曾被不兼容 CRLF 的段落替换误截短，现已从原始备份及成功历史写入精确重建。恢复时 SHA-256 分别与截短前记录完全相同，原生优先方案 45088 字节、多端方案 208338 字节；随后只更新顶部版本 9 进展，历史正文逐字相同，见
+`context-v9-http-20261020-02/doc-recovery/restoration-receipt.json` 和
+`post-doc-check.json`。源码 1467 文件哈希不变。另运行原五档容量命令的 CPU 采样，`context-capacity-profile-20261020-03/receipt.json`：内容 5/5，四任务 1920 轮/400 次精确恢复目标保持，带采样总耗时 92924
+ms。此值含采样成本，不能替代未采样的原 60 秒性能门禁。长任务 Worker 的含子调用采样热点为 begin 约 48.7%、绑定前沿约 24.6%、检查点恢复约 23.5%，各项有嵌套、不能相加；检查点导出另约 9.6%。尚未修改这些性能路径，不能声称性能已修复。采样原始文件、汇总和调用路径已留存；未修改门槛、并发或任务规模。
+
+原生 Chat、Responses、Claude 请求在协议解码、会话恢复、规范摘要、私有轮次拼接、HTTP 接管/发送和后续映射重建间贯通格式 3 的 32
+MiB 总预算。新模块 `context-recovery-request-data.js`
+按描述符克隆并累计编码字节，共享深度/节点限制；每条消息和独立元数据仍各限 2
+MiB，响应仍独立限 2
+MiB。默认调用保留格式 2，格式选择来自已绑定任务与会话能力，不能由请求字段切换。HTTP 压缩输入同时限制压缩前缓冲和解压后字节；旧格式任务重开后仍按原额度拒绝长历史，不自动升级。
+
+规范历史摘要使用专用入口，保留旧的排序和数组顺序；通用策略/请求指纹默认额度未放宽。Codex 长历史摘要请求继续走单独的 compaction 分类，不会误当普通生成。公有历史进入和离开私有映射时也按绑定格式校验，私有尾部保留额度仍独立为旧界限。测试使用实际观察到的公开工具调用作为后续绑定锚点；普通文本不因增加恢复逻辑而变成可跨请求定位的身份。
+
+冻结
+`.hpm-acceptance/context-v9-http-20261020-02/receipt.json`：23 个统一入口中的相关文件
+**469/469**，零失败/取消/跳过；格式、Lint（零警告）、CI 治理、发布清单、网关准备退出 0；1467 个源码/配置文件哈希前后一致。新增归一化模块独立覆盖 S/L
+**92.1%**、B **95.65%**、F **100%**，覆盖率运行的相关测试
+**59/59**。不是完整客户端覆盖或全仓 verify。
+
+证据覆盖三种原生协议各 2.7
+MiB 聚合历史的压缩/非压缩准入、私有读取续轮、公开输出提交与下一请求精确重建；格式 2 根恢复后拒绝超额历史；32
+MiB 编码恰好允许和多一字节拒绝；单消息/元数据独立超额、空/非法/稀疏/原型/访问器/toJSON/循环输入；实际本地 HTTP 发送超过 2
+MiB 的请求，仍拒绝超过原界限的响应。均为合成内容与本地服务，没有真实模型调用或已安装客户端验收。早期
+`context-v9-http-20261020-01`
+的 107/107 仅覆盖私有续轮；随后 178/179 暴露完整续接测试缺少公开观察锚点，补齐真实工具调用锚点后才完成当前全链路断言，失败日志保留。
+
+协议转换入口、WBIPC/WebSocket、独立私有历史留存还有各自的旧界限；本轮只运行它们的既有回归，不能称为大载荷资格通过。仍需解决原容量命令 87571
+ms 超过原 60 秒门禁和启动超时，完成完整统一门禁、最终包、迁移/回滚、多端实机与至少 24 小时真实留存观察。整轮缓冲仍是默认；未重启生产、修改已安装客户端或发起真实模型请求。
+
+## 上阶段：版本 9 加密持久化与 Worker 字节链路（2026-10-20，整体仍未交付）
+
+明确的版本 9 检查点、引用请求、完整加载/扫描和 Worker 消息现在按版本选择编码预算。通用 opaque/direct-root 状态仍限 12
+MiB，单个加密来源与清单仍限 12
+MiB；完整大检查点先分离来源再加密，不把整个大载荷塞进单个密文封装。旧根与不透明状态共享原 32
+MiB，新根四任务物理总额度为 512 MiB、每根最多 128 MiB；原文仍按每根 16
+MiB 校验。数据库文件上限 1 GiB，目录包含回滚日志的上限为 2 GiB + 2
+MiB，均为上限而非预分配。队列最多 8 项，合计 128 MiB，旧请求仍独立共享 16
+MiB 在途额度。
+
+物理配额类别来自已认证且经过语义校验的存储表示，伪造版本不能获得真实 SQLite 保存资格。完整快照写入也固定容量类别、预算版本与绑定格式；完整快照继续支持既有暂存来源替换，增量引用保持其独立的不可变来源约束。配额统计保留旧完整检查点的暂存语义，不将它错误转换成引用状态。旧任务的绝对到期时间不更新。
+
+冻结证据：`.hpm-acceptance/context-v9-storage-20261020-02/receipt.json`，16 个统一入口中的相关测试文件
+**351/351**，零失败/取消/跳过；格式、Lint（零警告）、CI 治理、发布源清单、网关准备均退出 0；1466 个源码/配置文件哈希前后一致。实际 Windows
+DPAPI 加密 Worker 完成四任务合计 **64 MiB**
+原文的保存、关闭、重开、摘要/期限核验、精确原文页及完整加载/扫描；第五任务拒绝后原四任务保留。另覆盖超过旧 12
+MiB 编码界限的控制字符原文、旧 32
+MiB 聚合额度、跨类别替换拒绝、队列释放、事务回滚、混合期限和精确到期清理。测试使用合成内容与受控时钟，不代表 24 小时真实等待观察。
+
+失败证据保留在
+`context-v9-storage-20261020-01`：首轮存储 67/71，扩大运行 350/351，分别暴露测试原型断言/来源编码准入、新配额统计误拒暂存来源、完整保存误套增量语义、旧清理回执上限断言；修复后才运行最终冻结。相关测试沿用统一单元和客户端入口，新增模块已进入发布源清单。完整客户端覆盖和全仓 verify 本轮未执行。
+
+仍须贯通 HTTP/私有生成长历史，解决原容量命令 87571
+ms 超过原 60 秒门禁及启动超时，完成完整统一门禁、最终包、安装迁移/回滚、Codex/Claude 多端实机与至少 24 小时实际留存观察。本轮不能将内存容量画像中的
+`durableStorageQualified:false`
+自动改为 true：实际存储测试已经通过，完整画像尚未组合存储与 HTTP 链路。整轮缓冲仍为私有恢复默认，额外公开生成请求未获选择；未重启生产、修改已安装客户端或请求真实模型。
+
+## 上阶段：版本 9 内存容量与检查点引用转换（2026-10-20，整体仍未交付）
+
+新根版本为 9，每根原文从 4 MiB 增至 16
+MiB，调用/来源/快照数量沿用版本 8 的 1024/512/512；版本 1–8 保留原字节配额，旧任务不自动升级或续期，仍为原来的绝对到期时间。完整根与检查点使用显式 112
+MiB 编码预算，覆盖原文 JSON 转义膨胀；按描述符逐项克隆和累计字节，不构造完整原文 JSON 来做准入。旧检查点仍限 12
+MiB，默认策略/请求指纹仍限 2 MiB，通用归一化器上限未提高。
+
+版本化准入已贯通完整检查点创建、解析、摘要、引用写入转换和引用状态重建。实际 16
+MiB 原文可经引用转换、完整重建及已有原文的空增量写入保持相同摘要和期限。引用原文批次根据已校验的来源版本选择编码预算，默认仍为旧界限。绑定优化保留原规范摘要：跨请求只保存有界摘要链；小消息及字符串编码缓存限于单次请求。时钟每次校验，只有到达最早期限才扫描过期索引；撤回和回滚仍即时失效。普通文本用原生 Unicode 类别扫描跳过无需转义的逐字符循环；控制字符、Unicode 和单独代理项继续精确计费。
+
+本轮复现并修复引用接收端的跨类别替换漏洞：原接收端会接受同一根从版本 8 升级到 9 的有效引用，尽管发送端已拒绝。接收端现在同时固定容量类别、读取预算版本及绑定格式；回归覆盖升级、降级、预算变更、同类别合法续写，以及真实加密内存 SQLite 事务拒绝后修订号、旧原文和期限保持。复现证据为
+`.hpm-acceptance/context-v9-reference-category-before.json`，不涉及生产数据。
+
+最终专项冻结
+`.hpm-acceptance/context-v9-checkpoint-codec-20261020-03/receipt.json`：六个统一客户端入口中的测试文件共
+**224/224**，零失败/取消/跳过；格式、Lint、CI 治理、发布清单和网关准备均退出 0，全部被测源哈希前后一致。当前源码独立容量命令耗时
+**87571 ms**，五档内容目标
+**5/5**：第五档完成四任务合计 1920 轮、400 次精确恢复、20 次 JSON 重建及末轮排空。但独立耗时仍超过原 60 秒门禁，不能将内容合格解释为性能或完整客户端门禁通过。目标、超时、测试并发和覆盖率阈值未放宽。
+
+失败记录完整保留：较早完整冻结 `context-v9-root-bytes-20261020-02`
+的相关 449/450、完整客户端 1144/1146（一项失败、一项取消）；检查点第一冻结
+`context-v9-checkpoint-codec-20261020-01`
+的相关 495/496、完整客户端 1147/1149（一项失败、一项取消），主要为容量 60 秒与网关 15 秒超时。它的相关 11 模块 S/L/F 为 100%、B 为 95.78%，该覆盖证据早于最终接收端修复，不能充作最终源码的完整覆盖通过。第二轮扩大运行
+`context-v9-checkpoint-codec-20261020-02`
+相关 486/497、七项失败和四项取消，包含多个启动/子进程超时与两项正则 Lint 错误；已显式终止该运行树，完整客户端未启动，Lint 随后已修正。不能将这些失败归因于单一环境问题，根因仍须定位。
+
+**新容量尚未贯通持久化与传输。**
+检查点/引用编解码的通过不证明 Worker、存储请求/响应、加密封装、物理总配额或四任务同时持久化合格；这些仍存在旧的 12/32
+MiB 边界。HTTP/私有生成仍有独立的 2
+MiB 准入及私有历史预算，需按版本贯通，不能只提高通用上限。五档画像的
+`transportQualified` 和 `durableStorageQualified`
+均为 false。后续依次补版本化存储字节链路与物理配额、HTTP/私有交换、性能与启动根因、完整统一门禁、最终包及安装/迁移/回滚、多端实机和至少 24 小时真实留存观察。整轮缓冲仍是隐藏恢复中间内容的默认；额外公开生成请求方案仍待用户决策。未激活生产、改变已安装客户端或发起真实模型请求。
+
+## 当前阶段：原文列表逐条校验（2026-10-20，版本化扩容尚未启用）
+
+新增
+`context-evidence-payload-envelope.js`，完整账本和引用写入的原文列表逐条复制校验，小元数据独立归一化，原文按 UTF-8 及 JSON 转义的实际字节累计。此处不再序列化包含全部原文的数组或对象，也不再为计算转义体积构造单条原文的 JSON 副本。输入只接受普通/空原型记录、稠密数组和自有可枚举数据字段，不调用访问器或
+`toJSON`；来源元数据为标量，列表最多 512 条。摘要、owner、重复身份、时间、策略及读取进度仍由原账本/引用校验器验证，安全日志不含原文。
+
+本轮保持旧的 12
+MiB 编码后总界限，单来源界限仍由调用方提供；没有升级根版本、提高每根 4
+MiB 原文额度或延长 24 小时绝对期限。它是后续版本化扩容的基础，不代表已贯通检查点、存储 Worker、加密封装或 HTTP 的大载荷链路；这些上层仍有整对象归一化和各自的字节门禁。
+
+新增回归覆盖精确 12
+MiB 与多 1 字节、转义膨胀、全部控制字符、Unicode、空与 512 条列表、非法 UTF-8、原型/访问器/非枚举/符号字段、嵌套元数据、单条及累计超额、独立副本，以及原回执、读取计数和到期时间。测试监测序列化调用，确认这两处校验不序列化原文。用例进入既有统一单元和客户端门禁，新增模块进入发布源清单。
+
+冻结 `.hpm-acceptance/context-payload-envelope-20261020-01/receipt.json`：相关
+**293/293**，三个相关模块联合 S/L/F **100%**、B **94.98%**，新增模块单独 S/L/B/F
+**100%**；字面 `npm run test:client:coverage`
+**1139/1139**，零失败/取消/跳过，S/L **98.99%**、B **94.80%**、F
+**99.14%**。格式、Lint、CI 治理、发布清单、网关准备均退出 0，源码冻结哈希一致。
+
+容量 CLI **16895
+ms**，仍因第五组第 130 轮应有 129 来源、实际 128 的原文缺口退出 1，四组通过、整体
+`capacityQualified: false`；目标、配额、超时和覆盖率阈值均未放宽。完整 verify、启动偶发故障根因、HTTP/私有生成长历史、版本化原文与物理存储扩容、最终包、多端实机、迁移回滚与至少 24 小时生产验收仍未完成。未激活生产、改变已安装客户端或发起真实模型请求。
+
+## 当前阶段：内部会话长历史格式 3（2026-10-20，原文容量与传输链路仍未完成）
+
+新会话根的绑定格式为 3，内部请求总准入上限 32
+MiB；每个历史条目及策略等其余元数据仍分别限制在 2
+MiB，全请求仍共用 65536 节点和 64 层深度约束。根版本仍为 8，数量、每根 4
+MiB 原文、存储字节、读取预算与 24 小时绝对期限不变。已存在格式 2 或无格式记录恢复后继续导出格式 2，普通续写不升级历史准入；格式 3 只适用于新根。旧解析器拒绝格式 3，不构成旧安装包回滚兼容承诺。
+
+新增独立历史请求模块，在未知输入的描述符、原型、数组密度、字段和 JSON 值校验过程中逐条克隆并累计转义后的精确字节数，随后冻结新克隆。绑定与会话复用同一份不可变请求，不构造完整历史的规范 JSON 来计算大小。字符串字节计数和规范编码各使用单次请求内的 128 项/4
+MiB
+UTF-8 计量缓存，结束后不跨请求保存；绑定注册表仍只保存摘要与因果元数据。数组顺序、对象键规范编码和已有摘要语义保持。
+
+绑定导出、独立/多根恢复、全根与引用元数据校验、持久引用转换和服务接纳均识别格式 3。已有根的历史格式固定，保存前和首次写入前也拒绝跨格式升级或降级。回归覆盖 2/32
+MiB 精确边界、空数组、元数据加空历史的总字节溢出、重复与不缓存文本、JSON 转义、数值/Unicode、总节点和总深度、稀疏数组、原型、访问器、不可变复用以及旧根保留原限制。内部超过 12
+MiB 历史的实际会话导出和重建后，可以精确读回原文，期限不续期。这些测试进入原有统一单元和客户端入口。
+
+第五组目标仍为 4×480 轮、每份 32
+KiB、每任务 100 次恢复，没有缩小。内部长历史已从第 65 轮拒绝推进到第 130 轮的真实原文缺口：四任务完成
+**516** 轮、**104**
+次精确恢复、5 次 JSON 重建后，根 0 应有 129 个来源而实际只有 128，符合原每根 4
+MiB 原文上限。画像现在在已记录首个覆盖缺口后停止继续修改任务，成功条件、目标轮次和完整排空要求不变；失败后少执行后续轮次不能使画像合格。五画像仍为
+**4/5**，`capacityQualified: false`。
+
+第一冻结 `context-history-v3-20261020-01/` 保留容量 CLI
+60 秒超时及网关启动 15 秒超时；不延长期限、不改覆盖阈值或测试并发入口。优化后第二冻结
+`.hpm-acceptance/context-history-v3-20261020-02/receipt.json`：相关
+**433/433**，历史模块及规范编码模块联合 S/L/F **100%**、B **97.38%**；字面
+`npm run test:client:coverage` **1134/1134**，零失败/取消/跳过，S/L
+**98.98%**、B **94.79%**、F
+**99.13%**。格式、Lint（零警告）、CI 治理、发布清单和网关准备均退出 0，冻结源码哈希一致。五画像命令
+**16659 ms**，因第五组缺口如实退出 1。第二轮通过不关闭原先偶发启动失败根因问题。
+
+本阶段只贯通内部会话历史准入。HTTP 恢复入口、私有生成状态机及私有历史重建仍有独立 2
+MiB 限制，尚未扩大或证明大载荷传输；原文与存储仍需版本化预算和分块校验/持久化。因此不能把内部 32
+MiB 准入视为完整端到端支持。完整 verify、私有交换长期容量、启动稳定性、最终安装包、多端实机、升级回滚和生产验收均未完成。本轮未切换生产、修改已安装客户端或发起真实模型请求。
+
+## 当前阶段：版本 8 持久发布容量贯通（2026-10-20，大载荷及整体资格仍未完成）
+
+检查字节链路时发现真实持久化服务仍将所有根的发布记录合计限制为 256，未使用版本 8 的数量容量。现在发布记录按已验证根版本准入：每个新根最多 512，所有已保留根合计最多 2048；旧根自己的发布记录合计仍最多 256，与新根共存也不自动升级。容量版本在服务内固定，跨容量类别的再次接纳被拒绝。
+
+新增独立的发布计数校验放在已有容量模块，验证未知输入、严格字段、版本、每根及总数边界，不执行访问器或用户转换。写入在等待存储前预留发布额度，并计入其他任务的并发准入；写入错误可能发生在持久提交之后，因此保留失败根的占用，不能以错误回执再次释放额度。根仍需原有 owner 租约和 CAS，未增加任何恢复授权。
+
+新增实际会话回归先在内存形成 511 个已提交快照，再通过原有异步发布链路提交第 512 个，写入加密的内存 SQLite，随后异步读回最早精确原文；独立持久化服务实例重新加载并保存 512 条发布记录，期限不变。该用例验证一次批量持久发布及重新接纳，不证明 512 轮逐轮持久化、磁盘文件重开或全天资源资格。另以合法撤回记录构造四根各 512 条的门禁用例，验证合计 2048 的加载和保存；这不是四根各 512 次真实客户端发布。旧根的 256 上限、并发抢占及不确定写入占用均有回归，沿用统一测试入口。
+
+冻结证据
+`.hpm-acceptance/context-publication-capacity-20261020-01/receipt.json`：相关
+**308/308**，容量与持久化服务两模块联合 S/L/F **100%**、B **95.41%**；字面
+`npm run test:client:coverage` **1128/1128**，零失败/取消/跳过，S/L
+**98.98%**、B **94.84%**、F
+**99.12%**。格式、Lint、CI 治理、发布清单和网关准备均退出 0，源码冻结哈希一致。完整五画像
+**20130 ms**，仍因第五组失败退出 1，保持四组通过及 `capacityQualified: false`。
+
+本轮只接通已经声明的数量容量与并发门禁，未扩大历史、原文、存储字节或 24 小时期限。第五组所需的版本化长历史和分块原文存储仍待实施；启动偶发失败、完整 verify、最终安装包、多端实机、升级回滚和生产验收也未完成。未修改生产进程或已安装客户端，未发起真实模型请求。
+
+## 当前阶段：大检查点摘要边界修复（2026-10-20，整体容量资格仍未完成）
+
+发现根状态允许 12 MiB，但写前检查点摘要沿用请求指纹的 2
+MiB 限制，导致合法大原文能导出却不能创建检查点。新增显式
+`fingerprintRecoveryCheckpoint`，仅用于完整检查点创建、解析和启动暂存清理，保持 12
+MiB 存储边界；请求、策略、授权及引用元数据的默认指纹仍限制 2
+MiB。没有调整原文字节预算、磁盘格式、根版本、读取预算或绝对到期时间。
+
+摘要在验证未知输入后增量写入 SHA256，不再另外构造完整的排序对象和其 JSON 字符串。保留旧摘要的 JSON 属性顺序：数组索引键按数值顺序，其他键按字典序；数组顺序、转义、负零和 Unicode 语义保持。正常、空值、数字键极值、孤立代理字符、访问器、toJSON、循环、非有限数字、稀疏数组、非法原型以及原始/转义字节溢出的回归进入现有统一测试入口。
+
+实际会话生成 7 份各约 400 KiB 的大量反斜杠原文，约 5.6 MiB
+JSON 检查点经加密 SQLite 保存、重开、引用状态转换及再次重开后，全部原文字节一致，期限不续期，到期后不可读取。该用例也断言旧的 2
+MiB 指纹入口仍拒绝这个载荷。这里验证的是本地加密存储引擎重建，不构成真实客户端或全天磁盘资源资格。
+
+冻结证据
+`.hpm-acceptance/context-checkpoint-fingerprint-20261020-01/receipt.json`：相关
+**361/361**，摘要模块 S/L/F **100%**、B **93.33%**；字面
+`npm run test:client:coverage`
+**1124/1124**，零失败/取消/跳过。格式、Lint、CI 治理、发布清单和网关准备均退出 0，冻结源码哈希一致。完整五画像仍因第五组失败退出 1，前四组保持通过，`capacityQualified: false`。
+
+第五组仍受 2 MiB 长历史与每根 4
+MiB 原文预算限制；下一步需要版本化的字节预算、历史绑定及分块存储链路，不能仅提高单个上限。偶发启动失败根因、完整 verify、私有交换长期容量、最终安装包、多端实机、升级回滚和生产验收仍未完成。本轮未修改生产进程或已安装客户端，未发起真实模型请求。
+
+## 当前阶段：版本 8 数量容量贯通（2026-10-20，四个小载荷画像通过，大载荷及整体资格仍未完成）
+
+新增独立
+`context-recovery-capacity.js`，用根状态版本选择不可变数量约束。新任务根版本 8：每根累计 1024 次观察调用、512 个来源、512 个已提交快照；共享绑定注册表总上限 2048，仍只容纳 4 个根。单次结果/观察调用仍最多 128 项，原文每根 4
+MiB、单来源 1 MiB、历史请求 2 MiB、根状态 12 MiB、存储 32
+MiB、任务读取预算和绝对 24 小时期限不变。这是数量容量升级，没有扩大原文字节预算。
+
+版本 1–7 的旧记录继续使用累计 128 调用、64 来源、256 快照；恢复和接纳仍检查旧记录合计最多 256 个快照，普通续写不升级容量。根状态、检查点、引用写入、引用状态转移及 SQLite 来源索引使用同一版本容量；检查点对比和已有引用转换拒绝跨容量类别升级/降级。旧 schema 的兼容重导出继续使用 6/7，旧预算及到期时间保持。旧解析器拒绝新根版本 8；这不构成旧安装包可读新任务或升级回滚资格声明。
+
+会话提交再检查容量，多个同时待提交的分支不能共同超过已提交上限。覆盖率观察按根版本允许 128/1024 个调用，旧默认接口仍限制 128，避免新根超过 128 调用后 LIST 因旧投影边界拒绝。来源页、载荷选择、持久确认后卸载及加密来源索引的数量边界同步接通；配额不足不淘汰已有原文。私有历史快照引用的导出/恢复支持 512 个 tips，旧根仍限制 256；私有交换自身的 256 条全局保留上限和 4
+MiB 字节预算保持，更多实际私有恢复轮次仍需另行容量设计和验收。
+
+回归验证累计 1024 调用及单轮/累计溢出、512 快照和并发提交溢出、旧来源 64 的缺口保留、旧根合计快照拒绝，以及 512 个精确来源进入加密引用存储、重开实例、JSON 重建并读回最早原文。第 513 个来源不挤掉旧原文。另验证超过 256 个快照引用同一已保留私有历史的导出和重建；这不等于 512 次私有模型恢复或 SQLite 全天资源资格。
+
+固定画像的前四组已按原目标通过：day-small 288 轮/24 次恢复、active-small
+480 轮/30 次恢复、four-tasks-small 共 384 轮/32 次恢复、frequent-recovery
+96 轮/96 次恢复；均排空最后结果且无覆盖缺口或读取失败。第五组 four-tasks-candidate 仍在第 65 轮、共完成 256 轮后因长历史 2
+MiB 限制拒绝，未达到 4×480 轮/32
+KiB 原文目标。这里仍是合成时钟下的实际会话与 JSON 重建画像，传输、持久长时资源和真实模型资格均为 false。
+
+扩大运行暴露容量 CLI 的串行五画像在并发测试下超过原 60 秒，第一冻结失败保留于
+`context-capacity-v8-20261020-01/`。现在两个固定工作线程完整执行五组画像并按原顺序汇总；不改期限、画像、并发测试入口或覆盖阈值。线程回复经限长、画像/字段/计数/状态一致性校验，必须恰好一个有效回复并正常退出；错误、畸形或提前退出不能被解释为容量拒绝，剩余线程会终止回收。纯边界和实际 CLI 测试沿用统一入口，独立线程模块 S/L/F
+**100%**、B **98.43%**。
+
+最终冻结 `.hpm-acceptance/context-capacity-v8-20261020-02/receipt.json`：相关
+**370/370**，两个新增模块联合 S/L/F **100%**、B **98.64%**；字面
+`npm run test:client:coverage` **1121/1121**，零失败/取消/跳过，S/L
+**98.97%**、B **94.87%**、F
+**99.03%**。格式、Lint、CI 治理、发布清单及网关重建退出 0，源码冻结哈希一致。完整五画像命令
+**20905 ms**、仍因第五组未达标退出 1；回执明确四个 `qualifiedProfiles`，并保持
+`capacityQualified: false`、`rootVersion: 8`、`oldRootCapacityPreserved: true`、`quotasChanged: true`。此前第一冻结及各轮诊断失败均保留，没有提高原 60 秒期限或减少画像。
+
+完整 verify、偶发启动失败根因、第五组大载荷、隐藏交换长期容量、最终安装包、多端实机、升级回滚和生产验收仍未完成。本轮未切换生产、修改已安装客户端或发起真实模型请求。
+
+## 前一阶段：持久读取稀疏结算（2026-10-20，全天容量仍未整体达标）
+
+持久读者此前每次结算都发送全部来源的进度，消息大小与保留来源数量一起增长。新增结算版本 2：单次预扣只允许一次读取，结算最多携带一个改变了 coveredThrough/readComplete 的来源；LIST、拒绝读取以及进度未变的重复读取携带空数组。owner 在预扣前记录进度基线，生成差异；确认或释放租约时清理基线。磁盘根状态、来源身份、权限、TTL、来源配额和读取预算不变。
+
+应用版本 2 时，省略的来源保留原进度；未知来源、多个来源、进度回退、越界、非法 UTF-8、预算版本/调用数变化、到期续命及跨根更新继续被拒绝。仍先落盘最大预算预扣，再读取并结算；失败保留保守扣款，不能通过重试、回退或取消恢复权限。引用存储只认证实际改变来源的原文载荷，未选择来源保持原关联；事务失败回滚到预扣状态。
+
+旧结算版本 1 继续要求完整的存活来源进度清单，省略来源仍被拒绝；版本 2 是独立且严格解析的内部事务消息，旧解析器会拒绝它。新消息不是新的恢复根或模型工具接口，不承诺旧安装包可处理新版事务，安装升级回滚仍需单独验收。16
+KiB 消息上限及所有旧容量目标保持，不通过放宽消息上限或缩小画像获得通过。
+
+回归覆盖新旧结算语义、非法/空/极端/访问器输入、64 个来源时空增量消息小于 512 字节、SQLite 加密重开、非选择来源损坏隔离、事务故障回滚，以及实际 session 的 LIST、重复读取、拒绝读取、空/大原文和 staged 来源结算。测试加入已有 owner、reader、storage-blobs 文件，沿用统一单元和客户端覆盖入口。第一冻结
+`context-sparse-settlement-20261020-01/`
+保留两项旧测试仍假定完整来源清单的失败；更新后分别验证版本 1 完整清单与版本 2 稀疏语义，没有取消旧格式检查。
+
+最终冻结
+`.hpm-acceptance/context-sparse-settlement-20261020-02/receipt.json`：相关
+**348/348**，结算模块 S/L **98.06%**、B **96.29%**、F **100%**；字面
+`npm run test:client:coverage` **1113/1113**，零失败/取消/跳过，S/L
+**98.96%**、B **94.90%**、F
+**99.03%**。格式、Lint、CI 治理、发布清单及网关重建退出 0，冻结源码哈希一致。容量命令仍退出 1，五个画像未整体达标；回执明确
+`capacityQualified: false`、`wireFormatChanged: true`、`quotasChanged: false`。
+
+本轮只消除扩大来源数量前的结算消息增长约束；来源 64、调用累计 128、全局快照 256 和长历史 2
+MiB 限制仍在。偶发启动失败、完整 verify、最终包、跨端实机、升级回滚及生产验收继续未完成；本轮没有修改生产进程、配置、已安装客户端或发起真实模型请求。
+
+## 前一阶段：分支索引结构共享（2026-10-20，全天容量仍未整体达标）
+
+实际会话此前每次 begin 都复制祖先的 calls/captured/visible，提交时又复制来源关联和可见集合；恢复路径也重新构造每个完整祖先视图。新增独立的
+`context-recovery-snapshot-index.js`：已提交节点不可再写，子节点只能继承可信的已封存同类父节点，每轮只保存本轮新条目。父分支和兄弟分支互不写入，未知/可变/伪造父节点及过深链被拒绝，遍历按原插入顺序迭代完成，不递归展开整条祖先链。
+
+会话、原生压缩提交和根状态恢复均使用同一索引模块。根导出直接枚举本轮增量，来源可见性汇总也按增量取并集，不再对全部祖先视图逐项展开再过滤。磁盘格式及调用、来源、快照、历史、字节、TTL 和预算限制不变；旧记录仍走原来的身份、权限和关联校验。新模块已进入发布运行源清单，测试进入现有统一单元和客户端覆盖入口。
+
+真实会话回归连续观察 60 次工具调用并排空最后结果：61 个已提交快照的完整逻辑视图共 5550 个索引条目，实际只保存 180 个增量条目；JSON 根状态重建后两项计数一致，完整可见来源仍为 60，最早原文精确读回。这里是已提交索引的条目数，不是 RSS/堆字节、SQLite 全天容量或真实宿主性能结论。内部 inspect 只新增两项数字计数，不暴露键、调用参数或原文。独立 480 层测试保存 480 个本地条目，完整逻辑视图共 115440 条，另覆盖封存后写入、伪造父节点、分支隔离和 4096 层迭代边界。
+
+本轮冻结证据在
+`.hpm-acceptance/context-shared-index-20261020-01/`，最终结果以回执为准。来源 64、累计调用 128、全局快照 256 和长历史 2
+MiB 的限制仍在；本轮解决扩大额度前的内存复制问题，不能据此宣称全天画像通过。启动偶发失败、完整 verify、最终包、跨端实机、升级回滚及生产验收继续未完成。
+
+最终冻结 `context-shared-index-20261020-01/receipt.json`：相关
+**343/343**，新增模块 S/L/B/F 均 **100%**；字面 `npm run test:client:coverage`
+**1108/1108**，零失败/取消/跳过，S/L **98.95%**、B **94.90%**、F
+**99.03%**。格式、Lint、CI 治理、发布清单及网关重建退出 0，冻结源码哈希一致。容量命令仍退出 1，五个画像未整体达标；回执明确
+`capacityQualified: false`、`wireFormatChanged: false`、`quotasChanged: false`。
+
+## 前一阶段：启动失败诊断与原生助手准备幂等性（2026-10-20，稳定性仍未关闭）
+
+对前一轮全量失败增加仅用于本地验收的 native 调用探针，保留原并发、原超时和原始客户端覆盖入口。探针只记录 ACL/密钥类别、固定结果分类和耗时，不记录路径、参数、输入、密钥、原生回复或异常文本。该诊断运行
+**1099/1099**，S/L **98.95%**、B **94.88%**、F **99.02%**；证据在
+`.hpm-acceptance/context-startup-native-probe-20261020-01/`。本轮没有复现原始失败，不能替代前一失败回执或证明原因已修复。采样中本机 ACL 调用最高 2895ms、密钥调用最高 2300ms，仅是该次测试的观测。
+
+确认原生构建准备每次都会替换内容完全相同的运行时助手。现在成功构建后读取固定身份、限长且无符号链接祖先的产物；已安装文件字节一致时保留其文件身份和时间。字节不同则写入独占临时文件、fsync 并校验后原子替换，发布失败清理本次暂存文件并保留旧助手。已有运行时目标仍拒绝硬链接、目录和 junction；构建输入允许 Cargo 正常的缓存硬链接，但只作固定身份的数据读取，复制为独立运行时文件，不能把缓存链接直接发布成运行时助手。
+
+新增回归覆盖真实文件身份复用、变更发布、非法/空/超大输入、运行时链接拒绝、Cargo 输入兼容、比较时身份替换和发布失败清理。测试加入现有密钥测试文件，进入统一单元发现及客户端覆盖入口。第一轮真实构建暴露了过严拒绝 Cargo 输入硬链接的问题，失败证据保留在
+`context-native-artifact-20261020-01/`；修正后的最终冻结在
+`context-native-artifact-20261020-02/`，最终门禁结果以其回执为准。这项改动减少无谓的可执行文件替换，尚不能证明它就是先前 worker/网关超时的根因。
+
+最终冻结 `context-native-artifact-20261020-02/receipt.json`：相关回归
+**184/184**、完整客户端覆盖 **1104/1104**，均零失败/取消/跳过；覆盖率 S/L
+**98.95%**、B **94.88%**、F **99.02%**。原生 fmt、Clippy、测试
+**7/7**、实际构建准备、格式、Lint、CI 治理和发布清单检查均退出 0。源码冻结哈希一致；实际构建准备前后，已安装助手的内容摘要、inode、创建时间及修改时间全部保持，`identicalNativeRetained: true`。回执仍明确记录
+`originalStartupFailureResolved: false`，单轮门禁通过不关闭此前偶发失败。
+
+本轮不更改运行中的代理进程、用户配置、已安装客户端或模型请求。全天容量、启动稳定性、完整 verify、最终安装包、跨端实机、升级回滚和生产验收仍未完成。
+
+## 前一阶段：全天任务读取预算分层（2026-10-20，容量仍未整体达标）
+
+新建恢复任务使用独立预算版本 2：任务累计上限 4096 次调用、16
+MiB 编码结果；每个请求视图仍限制 64 次调用、512 KiB，单个结果仍限制 16
+KiB。这是覆盖冻结容量画像的候选工程配置，不能作为全天容量或真实客户端资格声明。失败和非法调用也占用调用额度；读者异常或结果无法确认时保留本轮最大输出预扣额度，避免通过异常循环绕过单轮限制。
+
+根任务的累计预算随检查点持久化；读取继续执行最大扣款先落盘、读取、结算确认的顺序。重开请求可以获得新的单轮额度，不能重置任务累计消耗。新请求与并发读者共用同一任务预算；持久化结算、检查点比较、引用写入及引用状态转移不能改变预算版本。独立网关预算接口仍只接受原来的版本 1，不能通过提供版本 2 获得更大额度。
+
+旧任务恢复保留预算版本 1、已消耗额度及原到期时间，仍执行终身 64 次/512
+KiB 上限。预算版本不做静默升级。旧软件不支持新任务的预算版本 2，因此回滚验收必须覆盖拒绝此类记录的行为；当前没有旧软件继续读取新任务的兼容承诺，不能据此宣称升级回滚已完成。
+
+新增回归覆盖新旧预算解析、危险访问器、非法/极端输入、共享任务耗尽、单轮异常字节额度、保守预扣、异步失败、旧任务恢复，以及实际持久化读取跨 35 轮/70 次的累计消耗。测试进入已有统一单元发现和客户端覆盖入口。第一冻结
+`.hpm-acceptance/context-task-budget-20261020-01/`
+的客户端覆盖 1098/1098，但测试 getter 的 Lint 失败；失败证据保留。修正并增加独立网关版本拒绝测试后的最终冻结目录为
+`.hpm-acceptance/context-task-budget-20261020-02/`，最终结果以该目录回执为准。
+
+固定容量画像复测中，`frequent-recovery`
+从只能验证 32 次恢复提升为 96/96，五个画像的首个读取失败均为空；它们仍全部未整体达标。此处重开仍指合成时钟下的 JSON 根状态重建，不是 SQLite 长时容量、传输或真实模型验收。单独的加密存储和 worker 重开回归通过，也不构成五个容量画像的持久化验收。
+
+这一阶段只处理读取预算。来源 64、调用累计 128、全局快照 256 和长历史 2
+MiB 的限制仍在，完整容量画像继续按原目标执行；不会缩小画像来取得通过。生产、最终安装包、多端实机、完整 verify 和整体目标均未完成。
+
+最终冻结回执 `context-task-budget-20261020-02/receipt.json`：专项
+**170/170**，格式、Lint、CI 治理、发布清单和网关重建退出 0，源码冻结哈希一致。完整客户端覆盖
+**1096 通过、2 失败、1 取消**，因此门禁未通过；覆盖率 S/L **98.95%**、B
+**94.88%**、F
+**99.02%**。全量运行中加密 worker 生命周期重开和根状态重开发生固定存储错误，网关源运行时测试超过原 15 秒限制。没有更改超时、并发或覆盖阈值。
+
+同一源码下针对生命周期、目录边界和网关运行时的诊断 **67/67**
+通过（`startup-diagnostic.log`），只能证明较小范围可通过；不能覆盖全量失败，也未单独重复根状态失败项。启动稳定性原因仍待定位，不能以重跑成功关闭风险。完整 verify、安装包和生产验收继续未执行。
+
+## 前一阶段：候选新安装默认与运行选项观察（2026-10-20，I1/I2 部分完成，未发布）
+
+候选源码的 `DEFAULT_CONFIG` 与 `proxy.config.example.json`
+均明确设置策略版本 2，恢复、持久化偏好和原文捕获默认 false。Node 缺文件启动与从示例创建配置都选择原生优先；现有文件缺版本仍解释为 1，读取及普通前端规范化不补 2。缺文件和兼容回退返回独立默认副本，调用方修改不能污染后续默认。专项验证旧文件字节保持、偏好保留、新模板有效性及新默认传入真实策略合成；桌面/PowerShell 的安装包首启仍需单独验收。
+
+策略合成在共享选项中记录私有、不可序列化的观察标记；运行配置控制器将诊断关联到实际共享选项引用，启动和热加载均可观察。诊断新增
+`runtimeApplication`（unverified/unavailable/matched/mismatch）、`appliedVersion`
+和
+`appliedPolicy`，区分未关联、选项不可识别、一致及不一致。比较的是进程配置与共享规划选项，不是磁盘保存 ACK，也不证明每个 handler、在途请求或客户端已取得完整资格。标记不授予恢复权限，JSON/字符串/供应方选项不能伪造它；矛盾能力、访问器和异常描述符均不被当作成功。
+
+界面保留旧版状态兼容，区分策略选择、代理已载入及整体未验收。隔离代理进程证明旧文件启动载入 legacy，显式迁移后通过健康接口观察到版本 2/native-first，并验证认证转发继续成立；上游仍为本地夹具，未调用真实模型或修改生产。
+
+最终冻结
+`.hpm-acceptance/context-native-defaults-20261020-01/receipt.json`：相关
+**320/320**（69 文件），五模块 S/L **97.70%**、B **95.54%**、F **98.07%**；字面
+`npm run test:client:coverage` **1092/1092**，零失败/取消/跳过，S/L
+**98.95%**、B **94.87%**、F **99.02%**。完整前端入口 **28/28**、前端覆盖入口
+**8/8**（S/L **98.20%**、B **91.61%**、F
+**96.77%**）、构建、格式（包含通常被忽略的新模板）、Lint、CI 治理、发布清单、网关重建均退出 0。lib/test/scripts、前端、入口、包、模板及 Rust 冻结哈希一致。新默认测试进入统一单元发现和客户端覆盖命令，未改任何超时、并发或覆盖阈值。
+
+本次单轮通过不能关闭此前启动稳定性风险。未执行完整 verify、最终运行时/安装包重建、安装版 Codex/Claude、完整传输/多主机组合或生产验收；旧 staging 不代表当前候选。容量目标、私有流式和 steering、普通配置自动绑定的完整多端资格、升级回滚及最终发布仍未完成。`plannerApplication: unverified`
+和完整目标保持未完成，新源码默认不等于现网已切换。
+
+## 前一阶段：显式策略迁移与管理界面（2026-10-20，I1 部分完成，新默认当时未激活）
+
+新增管理接口
+`GET /v1/local/context-policy/preview`、`POST /v1/local/context-policy/apply`（同时支持
+`/local/`
+前缀）。预览只返回固定策略投影、配置修订号和静态影响提示，不返回配置内容或历史清单。应用要求显式确认、目标版本 2 与精确修订号，复用完整保存的串行队列；保留两个恢复开关、存储偏好及无关配置，不读取、续期或迁移原文。缺失配置、未知版本、非法偏好或配置冲突均拒绝，不自动生成配置或覆盖旧选择。
+
+管理界面增加“核对并应用新上下文策略”：原生模式说明超限报错及依赖恢复原文的旧聊天不能直接继续；增强模式保留已保存偏好。页面草稿不参与本次操作，也不因成功响应被丢弃。确认期间页面配置变化、超时、丢失响应或异常回执均不自动重复提交。接口只报告已保存和
+`runtimeApplication: pending`，异步重载不被当成生效或客户端验收证明。桌面桥只放行对应方法及精确路径，浏览器/桌面桥模拟均覆盖。
+
+额外回归覆盖外部程序在提交后改写配置：原子写入返回本次文件的修订号，响应前发现实际文件不一致就返回固定未确认错误，不把外部版本号授权给旧页面。实际隔离代理验证管理凭据、入口凭据隔离、来源限制、迁移保存及原有认证转发；上游为本地夹具，没有真实模型或生产请求。
+
+最终冻结
+`.hpm-acceptance/context-policy-migration-20261020-02/receipt.json`：后端
+**32/32**（11 文件），两个新增后端模块 S/L/F **100%**、B
+**96.61%**；格式、Lint、CI 治理、发布清单、网关重建全部退出 0，冻结哈希一致。统一单元发现包含新测试。前一冻结
+`context-policy-migration-20261020-01` 的前端 **28/28**、前端覆盖入口
+**8/8**（S/L **98.16%**、B **91.46%**、F
+**96.73%**）、前端构建和编译后的 Rust 桥接 **2/2**
+均通过；最终冻结校验对应前端、测试、Rust、脚本及包文件哈希相同，复用这些证据。构建仍有原有大 chunk 提示。
+
+第一冻结做过发布运行时准备，随后后端并发修复使那份 staging 过期；不能称为最终源码的新包验收。本次未运行完整 verify、完整客户端覆盖、渲染后的 UI 操作或安装包验证。新默认、统一有效状态、更广 I2 请求路径、容量与启动稳定性、私有流式、多端普通配置、升级回滚和生产验收仍未完成。整体
+`plannerApplication: unverified` 保留，I1/I2 和完整目标继续进行。
+
+## 前一阶段：WorkBuddy 原生优先请求路径接入（2026-10-20，I2 部分完成，新默认未激活）
+
+版本 2 且恢复未开启时，WorkBuddy 普通请求只测量完整窗口并发送一次：跳过预折叠、主动/后台规划、历史分支、工具发现、原文归档、私有读取和载荷拒绝后的压缩重试。字节或操作额度不足返回固定错误，保留原窗口，不把操作预算描述为已确认的模型上限。`force`
+不能越过原生策略；异步准备使用请求开始时的能力快照，后续配置切换不能把该请求升级成增强规划。缺字段/1 保留旧路径；版本 2 显式开启仍走自己的增强规划入口，尚不代表增强整体资格。
+
+新增纯测量/响应检查模块
+`workbuddy-native-context.js`，验证数据描述符、JSON 安全性、大小/深度/节点及完整工具历史；无历史副本留存、存储事务或摘要调用。响应仍检查已提供工具、参数形态和退役/重复调用 ID，拒绝私有工具调用，不把关闭恢复当成取消工具安全校验。
+
+客户端显式压缩保留独立兼容路径，原生模式生成摘要/可信容器时不捕获恢复原文；JSON/SSE 续接和退役调用 ID 均有回归。原有容器如依赖证据回执，切到原生模式后明确返回
+`409/context_recovery_disabled`，不读取或续租旧证据、不静默丢状态、不自动重开增强。需在迁移 UI 中说明这一连续性限制，不能把这种组合称为无感切换。
+
+实际代理入口发现并补齐 `createProxyHandlers`
+的共享策略传递；原始 Chat 的核心处理和 Claude→Chat 的 HTTP 桥也传入策略。大历史负控在实际隔离代理进程中覆盖 Chat/Responses/Messages：旧语义可规划，版本 2 原生在宿主调用前拒绝；API
+Key/本机桥接及旧/新策略四组基础入口、显式压缩和错误响应均通过。本机桥接与供应方由本地夹具代替，没有真实模型请求或已安装宿主验收。
+
+首轮冻结 **296/297**，新增实际入口负控暴露漏传策略，失败保留于
+`.hpm-acceptance/context-native-workbuddy-20261020-01/receipt.json`。修复后最终冻结
+**297/297**（59 文件），四模块 S/L **97.14%**、B **94.59%**、F
+**97.61%**；格式、Lint、CI 治理、发布清单和网关重建均退出 0，lib/test、入口、包及发布清单哈希一致。证据：`.hpm-acceptance/context-native-workbuddy-20261020-02/receipt.json`。新测试由既有统一单元发现入口收录，未提高任何期限或降低覆盖/并发要求。
+
+未执行此源码的完整客户端覆盖命令、完整 verify、安装包、真实客户端或生产验收。新默认、迁移 apply/旧容器提示、统一有效状态、容量及启动稳定性、私有流式、多端普通配置、升级回滚和最终发布仍待完成。整体诊断继续保留
+`plannerApplication: unverified`，I1/I2 与完整目标均不标完成。
+
+## 前一阶段：通用请求预算接入策略（2026-10-20，I2 部分完成，新默认未激活）
+
+启动与热加载共用
+`composeContextProtocolOptions`，从策略版本生成不可通过 JSON 伪造、可随协议选项 spread 传递的内部能力。缺字段/1 保持旧规划，2 的恢复关闭/开启组合均禁止通用预算器直接折叠或删除历史；保留完整窗口并测量超限，由现有固定
+`context_length_exceeded`
+错误入口拒绝。增强恢复需要独立合格的归档规划入口，不能借通用裁剪绕过归档。配置不被修改，旧版 nullable 偏好不因本次接入额外拒绝；热加载清除旧能力，非法版本不会改写共享选项，复制数据属性不触发
+`__proto__` setter。
+
+已验证客户端 truncation
+auto/disabled 均不能覆盖版本 2 的通用保留策略；供应方明确原生管理的 disabled/none 旁路继续有效，未知模型窗口仍不编造额度。回归覆盖固定输入超限、完整工具链、空/非法输入、访问器、伪造字段、序列化、模式切换和实际 Claude→Responses 转换。
+
+冻结范围 **79/79**，三个模块 S/L **98.60%**、B **94.83%**、F
+**97.05%**；格式、Lint、CI 治理、发布清单和网关重建均退出 0，运行前后 lib/test、入口与配置清单哈希一致。证据：`.hpm-acceptance/context-native-budget-20261020-01/receipt.json`。测试仍通过既有统一单元发现入口执行，没有降低期限、并发或覆盖阈值。
+
+本次没有执行整个客户端覆盖命令、完整 verify、安装包或真实宿主/生产验收。WorkBuddy 的主动/后台规划、历史分支、工具发现和超限重试仍需独立接入及资格验证；新默认、迁移 apply、多端普通配置、容量、启动稳定性、私有流式和最终发布仍未完成。管理诊断保留整体
+`plannerApplication: unverified`，因为通用入口通过不能代表所有规划入口已生效。
+
+## 前一阶段：策略版本识别及保存保护（2026-10-20，I1 部分完成，新默认未激活）
+
+新增独立纯模块 `context-recovery-policy.js`，冻结配置元数据名为
+`appSettings.contextPolicyVersion`。缺字段或数值 1 表示 legacy、需要迁移；数值 2 表示已选择新策略，其主项 false/true 分别投影 native-first/enhanced，保存偏好独立保留。只接受数值 1/2，字符串、null、未来版本及可执行属性均固定拒绝，不调用 getter 或把非法值默认成新策略。决策不可变，不修改配置、不访问模型/磁盘，也不授予历史读权。
+
+配置校验已接版本解析。管理面完整文档保存增加版本边界：当前已为 2 时，遗漏标记或写回 1 返回固定 409
+`context_policy_version_conflict`，不写文件、不刷新代理；当前未知版本也不被旧写入覆盖。旧版 1/缺字段的普通保存仍保留旧语义，显式 2 可保存为意图元数据。该保护只针对当前包的完整配置保存，不等价于已安装旧包懂得新字段，也不是已交付升级/回滚迁移工具。
+
+健康诊断新增 `policy`，分开返回 version、migrationRequired、requestedPolicy 和
+`plannerApplication:unverified`。界面以纯文本区分“旧版尚未迁移”“已选择原生优先/增强，普通请求规划尚未核验”，兼容没有该字段的旧代理；非法/未知诊断使用固定未核验文案，不渲染输入内容。前端 normalize 与表单保存保留已有及未知版本，不在普通读取/保存中偷偷补 2。
+
+负控先确认原 validator 接受非法版本、原 diagnostics 缺少策略投影；修复后冻结
+`context-policy-version-20261020-01/receipt.json`：相关回归
+**21/21**，策略/诊断/展示三个模块语句/行 **100%**、分支 **98.50%**、函数
+**100%**。格式、零警告 Lint、CI/发布治理、网关重建、完整前端
+**27/27**、前端覆盖入口 **7/7** 及前端构建退出 0；前端覆盖语句/行
+**98.08%**、分支 **90.51%**、函数
+**96.47%**。新模块进入发行源清单，回归进入统一 unit/原完整客户端入口，前端回归继续由统一入口发现。运行源、前端源及测试摘要前后一致。构建仍有现存 chunk 大于 500
+kB 警告，未提高警告阈值。
+
+本阶段未重复完整客户端；最近实际完整通过仍属于前一阶段
+`context-storage-boundary-20261020-02` 的
+**1081/1081**，不能冒充本次源码完整资格。`DEFAULT_CONFIG`、普通请求规划及用户安装配置均未改变，I1 的新默认/显式应用迁移操作及 I2 仍待完成；版本 2 目前只表达选择，不能据此声称已停止普通轮次裁剪或 WorkBuddy 主动摘要。容量、多端绑定、私有流式、安装升级回滚和真实宿主/生产验收继续待完成。
+
+## 当前阶段：存储重复校验与解密消除（2026-10-20，当前完整客户端通过，整体未完成）
+
+消除两处确定的重复工作。原生 ACL 的目标类型检查和精确身份记录现在共用同一次 BigInt
+lstat；同步和异步调用保留调用前后两道校验、完整祖先验证、硬链接拒绝及每次重新检查，不跨调用缓存权限。负控每次目标观察 4 次，修复后 2 次。存储清理原先对同一普通/到期/撤销记录先解密再在 decode 中重复解密，现把当前事务已认证值传入同一个语义校验函数；新负控三条记录为 6 次认证解密，修复后 3 次，损坏仍阻止整批删除，原事务及回滚规则保留。
+
+真实 DPAPI/ACL 空存储诊断位于 `context-storage-profile-20261020-01/profile.json`
+及 `-02/profile.json`。重开 lstat 次数 **357→349**，首次创建
+**373→365**，空 catalog 仍为 38 次；耗时样本波动，不能从这两组样本推导稳定提速或完整超时根因。未删安全边界、调整期限或降低并发。
+
+最终冻结 `context-storage-boundary-20261020-02/receipt.json`：五文件扩大
+**140/140**、零失败/取消/跳过；两个变更模块语句/行 **99.24%**、分支
+**93.52%**、函数
+**100%**。格式、零警告 Lint、语法、CI/发布治理及覆盖退出 0，运行源和测试摘要前后一致。新增回归由统一 unit 自动发现，SQLite 回归也在原完整客户端文件中；原生 ACL 回归由 unit 覆盖。
+
+同一冻结源码随后执行原
+`npm run test:client:coverage`（含原构建前置步骤），`context-storage-boundary-20261020-02/client-receipt.json`：**1081/1081**、零失败/取消/跳过，命令退出 0，语句/行
+**98.94%**、分支 **94.82%**、函数
+**99.01%**，源和测试摘要一致。先前失败的实际加密 worker 连续重开测试本次也通过。这证明当前源码的一次完整客户端资格，不证明启动波动永久消失、完整全仓 verify、发行安装版或生产已验收；回执
+`startupTimeoutFixed:false` 有意保留该边界。
+
+下文 1079/1080 与更早失败属于对应历史冻结，均保留。本节取代历史段落对最新客户端结果的描述。原生优先 I1/I2、全天容量、多端普通绑定、私有流式/steering、MSI/portable 安装升级回滚和真实宿主/生产验收继续待完成；未重启生产、修改已安装配置或调用真实模型。
+
+## 当前阶段：关闭及模式切换保留原文（2026-10-20，专项通过，完整门禁仍失败）
+
+用户设置关闭和内存/持久化模式切换现在调用独立的 suspension 路径：同步停止准入、使旧 capability 和事务失效，排空在途存储，再保留已提交原文及原到期、累计预算。重新开启必须由当前请求重新授权并从存储加载，不恢复旧权限；模式切换不自动搬运内存历史。保留主体拒绝索引，暂停期间及暂停后的显式主体撤销仍能删除对应数据。显式清除继续调用破坏性 configure(false)，即使先前已暂停也会升级为真正清除；底层原 configure/revoke/close
+API 的删除语义保留。
+
+补充到期条目释放准入配额、撤销优先于暂停、关闭期间不返回成功、未完成发布租约失效，以及缺少暂停能力时拒绝而非退回删除路径。新增真实 SQLite 和 Windows 加密 worker 回归覆盖 Unicode 原文、重新授权、旧权限拒绝、原到期和预算保留。定向生命周期
+**7/7**、runtime/clear/controller **37/37** 通过。
+
+首次冻结 `context-recovery-retaining-disable-20261020-01` 为
+**599/601**、零断言失败但两项原启动期限取消，范围门禁失败；覆盖和其余源门禁通过，未启动完整客户端。之后修正到期准入、撤销竞争和模式切换保留边界，第二次冻结
+`context-recovery-retaining-disable-20261020-02/receipt.json` 的扩大测试
+**602/602**、零失败/取消/跳过，31 模块语句/行 **98.63%**、分支 **94.82%**、函数
+**99.05%**。格式、Lint、网关构建、语法、CI/发布治理退出 0，运行源及测试摘要前后一致，专项门禁通过。
+
+随后实际执行原
+`npm run test:client:coverage`：**1079/1080**，0 断言失败、1 取消、0 跳过；语句/行
+**98.94%**、分支 **94.82%**、函数
+**99.01%**，覆盖门禁通过，但完整命令退出 1，整体资格失败。唯一取消是实际加密 worker 清除孤立 staging 后连续三次重开的原
+**30 秒**
+测试；第三次 worker 在约 23.4 秒启动、28.9 秒完成密钥解封，随后未在总期限内完成。主测试线程事件循环最大延迟约 197 毫秒。记录只定位到累计启动/文件及数据库验证成本，尚不能证明具体根因；未提高期限、降低并发或重跑追绿。冻结运行器进程自身退出 0 只代表回执已写入，不能替代回执中
+`overallGatePassed:false` 和
+`results.client.code:1`。首次失败保留，并发启动波动仍待修复。
+
+本节取代下面历史阶段中“设置关闭仍 revokeAll”的当前状态描述。I1 配置版本/迁移、I2 普通轮次原生优先、全天容量、启动波动、多端普通绑定、私有流式、MSI/portable 安装升级回滚及真实宿主/生产验收仍未完成。未重启生产、修改安装配置/认证或调用真实模型。
+
+## 当前阶段：关闭恢复时的保存偏好冷启动（2026-10-20，专项通过，整体未完成）
+
+修复 `contextRecoveryEnabled=false, contextRecoveryPersistenceEnabled=true`
+仍创建默认 session/存储所有者的问题。保存偏好现在只被记住，默认 runtime 的 ready、关闭和普通配置应用不因此加载生命周期、准备目录或打开 worker；已有内存所有者也不会为关闭状态提升到持久模式。显式开启会按最新保存偏好完成模式切换，在持久模式就绪前不短暂授予内存恢复权限。目录准备期间关闭时只建立关闭的内存所有者，不再打开过时持久实例；显式移除持久偏好仍可排空已有持久所有者。
+
+修复前的负控已失败：默认模块加载守卫捕获非预期所有者创建，100 次关闭状态偏好切换产生 50 次目录准备。修复后新增偏好/显式开启和无所有者显式清除回归，并加强实际 core
+composition、配置控制器及异步目录准备测试。默认所有者保持冷状态，显式清除仍使用独立有界路径；非法配置、初始化失败、撤销、关闭、清除和晚到启用等原门禁保留。
+
+冻结
+`.hpm-acceptance/context-recovery-disabled-preference-20261020-01/receipt.json`：扩大
+**594/594**，0 失败/取消/跳过；31 模块语句/行 **98.68%**、分支 **94.93%**、函数
+**99.04%**。格式、零警告 Lint、工作区网关重建、语法、CI/发布治理全部退出 0，运行源及测试摘要前后一致。运行测试进入统一 unit，恢复 runtime 回归继续由原完整客户端入口包含；未重复完整客户端、修改任何门禁期限/并发/阈值或激活生产。
+
+边界：本轮未完成原生优先的配置版本/迁移和普通轮次规划策略。已有持久所有者的关闭仍沿用旧 session
+`configure(false) -> revokeAll`
+路径，因此方案要求的“关闭不删除尚未到期数据”尚未实现；后续需区分停止准入、在途排空与显式删除，并验证重新开启不能恢复旧 capability。全天容量、启动波动、多端绑定、私有流式、安装升级回滚及真实宿主/生产验收仍待完成。
+
+## 当前阶段：中断发布后的冷恢复持久续写（2026-10-20，专项通过，整体未完成）
+
+修复引用冷接纳的确定性故障：投影正确剔除未完成发布的分支，却同时遗失其仍有效的来源描述，导致后续 LIST/发布的持久事务被严格来源转换校验拒绝。修复前新增真实 SQLite 回归在首次 LIST 返回失败，修复后通过；没有放宽
+`validateReferenceTransition` 或存储关联检查。
+
+引用投影现在返回独立的 `metadata,stagedSources`
+信封。被剔除分支的描述和原 staged 描述一起作为冷账本条目恢复，继续占用原配额并保留身份、计数、读取进度和绝对期限。`linkRoot`
+仍只用已发布来源建立描述及快照可见性；隔离来源不能列出、读取或满足已发布快照的来源关联。旧裸元数据导入兼容，完整载荷 importer 继续拒绝该信封；旧完整投影路径未切换。
+
+新增三项回归进入统一 unit 和完整客户端入口：四种 prepared/sending/uncertain/withdrawn 状态下继续持久读者/发布、再次关闭与冷接纳后继续写入；真实 Windows 加密 worker 关闭重开后保持隔离和写入；信封的原 staged 来源保留、零载荷驻留、逻辑账本保留、重复/超额/载荷混入/期限/可见性篡改及 getter 拒绝。测试确认被拒来源不触发
+`read-source`，保存仍保留原文、原到期时间和计数。
+
+冻结证据
+`.hpm-acceptance/context-recovery-interrupted-write-20261020-01/receipt.json`：扩大
+**544/544**，0 失败/取消/跳过；28 模块语句/行 **98.86%**、分支 **95.20%**、函数
+**99.21%**。格式、零警告 Lint、工作区网关重建、语法、CI/发布治理全部退出 0，运行源和测试摘要前后一致。未重跑完整客户端，未改变期限、并发、阈值或 CI 入口；最新完整客户端仍为下述
+**1051/1058**，不能用本轮专项替代整体资格。
+
+下一步仍需处理并发启动波动、全天容量、新默认策略、私有流式/steering、多端普通绑定、MSI/portable 安装升级回滚及真实宿主/生产验收。未重启生产代理、修改安装配置/认证或调用真实模型，整体目标保持未完成。
+
+## 当前阶段：发行运行目录与独立网关资格（2026-10-20，专项和隔离发行资格通过，整体未完成）
+
+新增独立
+`scripts/start-packaged-evidence-mcp-gateway.js`，不使用发行目录中不存在的源码/开发锁文件清单。发行清单解析及
+`lib/release/evidence-gateway.js`
+暂存模块复制六份固定启动/校验文件和同一个经过工作区验证的不可变 bundle。清单绑定六份文件、发行 package/lock、校验所需三份 proxy 模块、Node 主版本及包摘要；固定集合、顺序、字段、大小和摘要全部校验，错误固定拒绝，不回退工作区清单或源码。该机制是构建一致性检查，不是签名认证。
+
+`prepare-release-runtime.js`
+在清理生成目录前先准备/校验包，生产依赖裁剪后暂存网关；运行 manifest 记录网关与新增运行源摘要，发布治理要求有效发行网关。隔离快照纳入实际 bundle、全部声明输入及发行启动文件；副本校验并复用产物，不需要重新安装 Vite。隔离验证核对 bundle、原 source
+snapshot、Node/原生助手、生产依赖与原锁；probe 在显式参数验证后自动准备工作区包。
+
+新增 **5**
+项回归进入统一 unit 和完整客户端入口，覆盖发行锁区分、工作区清单替代拒绝、文件/包/Node/清单变更、空/超大/危险清单、参数脱敏、非法根/输出 junction 拒绝及目标哨兵保留。真实独立 stdio 测试在无
+`node_modules`、`lib/client`
+和 runtime 源模块的临时目录运行，加载守卫禁止导入目录外文件或 npm 模块，验证工具发现、仅一次执行、Unicode 原文、EOF 自行退出与下游回收。原隔离发布测试新增网关身份篡改检查，保留原依赖身份断言；自洽锁篡改 fixture 同时更新合成发行清单，继续验证与原锁不一致时拒绝，未放宽生产校验。
+
+最终冻结
+`.hpm-acceptance/context-recovery-gateway-release-20261020-01/receipt.json`：扩大
+**50/50**，0 失败/取消/跳过；网关与发行模块语句/行 **98.52%**、分支
+**94.56%**、函数
+**100%**。格式、零警告 Lint（含 fixture）、网关构建、语法、CI/发布治理全部退出 0，运行源和测试摘要前后一致。开发首轮 16/17，旧锁篡改 fixture 被新增网关锁校验提前拒绝；修复 fixture 自洽元数据后，冻结中保留并通过原依赖身份断言。
+
+同一冻结完成真实隔离发行暂存，根为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-PioRN5`，未覆盖工作区既有
+`dist/staging/runtime`。**595** 份运行源、**624**
+份构建输入、Node/原生助手/manifest 摘要与快照一致，**116**
+个实际生产依赖版本和 integrity 匹配原锁，发行目录治理通过。随后从无关 cwd 使用发行自带
+`runtime/node/node.exe` 运行新入口，禁止工作区与外部 npm 导入：连接 **2050
+ms**，完整验证 **2249
+ms**，原文、仅一次执行、EOF 和回收均通过。合成下游仅使用 Node 内置模块，不借用工作区 SDK；发行临时目录和回执保留。
+
+边界：这是实际发行运行目录构建与独立网关资格，没有生成或安装新 MSI/portable 包，也没有真实 Codex/Claude 接纳、升级/回滚或生产结论。未重启当前代理、修改客户端配置/认证或调用真实模型。最近完整客户端仍是
+`context-recovery-gateway-build-20261020-01/receipt.json` 的
+**1051/1058**（4 失败、3 取消，启动/重开/子进程期限）；本阶段未为追逐绿色重复完整命令。并发启动成本、投影后持久续写、全天容量、新默认策略、私有流式/steering、多端绑定和安装迁移/生产验收仍待完成。
+
+补充严格独立性验证：对同一发行目录进一步禁止加载**发行目录内部的
+`node_modules`**，也禁止工作区和外部模块；发行自带 Node 仍完成相同原文、仅一次执行、EOF 和回收断言。该次连接
+**1599 ms**、完整 **1725 ms**，独立回执
+`context-recovery-gateway-release-20261020-01/standalone-no-npm/receipt.json`。这是单次合成验证，不是生产延迟保证；初次发行资格的守卫只限定在发行目录内，不能把初次回执单独解释为已经阻止内部 npm 导入。
+
+## 当前阶段：工作区网关正式打包入口（2026-10-20，专项通过，整体门禁仍未通过）
+
+新增 `scripts/prepare-evidence-gateway.js` 和
+`scripts/lib/evidence-gateway-artifact.js`，以现有直接开发依赖 Vite 构建单个 CommonJS
+runtime。默认 `scripts/start-evidence-mcp-gateway.js`
+已加载经过校验的产物；导入 composition
+root 仍不加载 SDK，参数非法时在加载包前拒绝。构建记录 **36**
+项本地源码/构建脚本/包与锁文件摘要，加载前核对 Node 主版本、本地输入、固定格式清单、路径/大小及实际包摘要。源码/锁/Node/包不一致、缺失文件、目录替代或符号链接均固定拒绝，无源码回退。这里是本地构建一致性检查，不是签名认证或抵御可同时修改源码与清单的本机攻击者的权限边界。
+
+构建在读取本地模块的同一次 load 中捕获内容，并在发布前复核输入；按内容摘要命名不可变包，最后原子替换 manifest，保留此前生成的包。`build:evidence-gateway`
+提供显式构建；unit、unit:serial、proxy/client coverage 及 `evidence:gateway`
+的 npm 生命周期自动准备，输入未变时校验并复用。真实 MCP
+host 应直接配置 Node 和绝对脚本路径，避免 npm 生命周期文字进入协议 stdout；工作区使用说明已更新。当前包约
+**6.19 MB**，含单份原始 inline source map；未提高 **8 MiB** 上限，没有新增依赖。
+
+新增 **7**
+项回归进入既有统一 unit/客户端文件，覆盖产物有效与调用方修改隔离、源/锁/Node/包损坏、空/非法/超大清单、缺失/重复/越界来源、危险原型、路径穿越/大小/目录/符号链接、实际单份映射及 runtime 对应源码、构建 CLI 参数与错误脱敏。另对导出 runtime
+API 单独以真实 stdio 子进程验证工具发现、仅一次执行、EOF 下游回收及启动失败；已有真实打包 CLI、双宿主隔离和错误测试继续使用正式入口，没有改成源码 fixture。
+
+冻结回执
+`.hpm-acceptance/context-recovery-gateway-build-20261020-06/receipt.json`：专项
+**34/34**，0 失败/取消/跳过；网关模块语句/行 **97.57%**、分支 **96.02%**、函数
+**100%**；格式、零警告 Lint（含新 fixture）、构建、产物语法、CI/发布治理全部退出 0，运行源及测试摘要前后一致。产物摘要
+`ba5590f2c7d7e4e2ad5f430597fcf96dc29cc5fc058a5bd67fef8b8f9ffc6b1f`，回执记录实际大小与范围。发布治理通过只证明源码治理检查通过，不代表构建了新发行包。
+
+本阶段最近一次原完整客户端命令在
+`...-01/receipt.json`：**1051/1058**，4 失败、3 取消，总门禁未通过。包括双宿主连接超过原 30 秒、加密 worker 接纳/重开超时、两项代理 fixture 初始化期限、容量 CLI 子进程和独立 ACL 核验期限；双宿主第一连接约
+**12470 ms**，第二连接达到 **30001 ms**
+时已超过整项期限，不能声称打包已消除并发启动波动。完整覆盖阈值通过，功能失败记录仍有效。之后没有只为追逐绿色结果重跑完整命令；当前增加的 API/构建回归仅完成专项资格。
+
+开发失败全部保留：01 行覆盖不足；02 手工附加映射与原 inline map 重复，超过原 8
+MiB 而构建拒绝；03 去除 vendor 内容后仍未计入 runtime；04 单份映射与 remap 后过滤仍未解决路径表示问题；05 新测试 prefer-const 警告导致零警告 Lint 拒绝。先前“缺少 source
+map”的判断不准确。诊断实际证明 Node coverage cache 中的原源码为 `file://`
+URL，而当前 c8 的源码筛选使用本机路径；不能把原文 URL 与本机路径不匹配计为源码函数没有执行。最终恢复 Vite 原始单份完整映射和原 c8 参数/阈值，补上导出源码 API 的独立行为验证，同时保留正式包协议测试，不修改 c8 或依赖内部实现。04 的诊断脚本/原始报告与其失败回执均保留。
+
+下一步仍须定位并发下游/worker/代理模块启动成本，并将包及启动器纳入发行目录、独立安装、升级与回滚资格；当前 manifest 要求本地输入存在，不能直接把它拷到裁剪后的发行目录当作已安装支持。中断发布投影后的持久续写、全天容量、新默认策略、私有流式/steering、多端普通配置和生产验收继续未完成。未构建新发行包、部署、重启、修改用户客户端配置/认证或调用真实模型，整体目标保持未完成。
+
+## 当前阶段：网关打包启动原型测量（2026-10-20，隔离验证通过，未接入正式入口）
+
+为定位原完整客户端双宿主 30 秒超时，在
+`.hpm-acceptance/gateway-bundle-profile-20261020-01/`
+使用已声明的直接开发依赖 Vite，将现有网关 runtime 及 SDK 图打为约 **1.88 MB**
+的 CommonJS 文件。未直接调用未声明的 Rollup/esbuild 包，未新增依赖，未改变运行源、客户端命令、测试期限、并发或覆盖阈值。构建有两条上游 Zod 注释标注警告，保留原输出；产物实际可加载和运行，不能将警告解释为正式构建已合格。
+
+交替启动独立 Node 子进程的三轮模块加载样本：源码 **2601 / 12862 / 6731
+ms**，打包 **400 / 540 / 573 ms**，导出名称一致。`result.json`
+保留逐轮数据，说明本环境的模块图加载确有可消除成本，但样本不能推导并发完整门禁的稳定上界。
+
+`qualification.json` 记录同一真实 stdio 下游合成 fixture 的两宿主对比：源码整段
+**9143 ms**，打包 **3777
+ms**；连接、工具发现、载荷卸载引用、精确读取、执行记录、跨宿主拒绝、指定环境变量转发及关闭后进程不存在断言均通过。下游仍使用原源码 fixture，没有为提速更换下游或删减断言。宿主名称是协议兼容测试身份，不代表真实 Codex
+/ Claude 客户端验收。
+
+`eof-receipt.json` 单独证明：打包入口连接 **1893 ms**、整个 EOF 流程 **1989
+ms**；直接结束 stdin 后 3 秒内以 code 0 退出，下游已回收，未先调用 SDK
+close 强杀掩盖退出故障。另以模块加载守卫拒绝所有非内置依赖，独立 runtime 仍可加载。产物 SHA256 保存在回执中。这里未证明完整 CLI 可脱离工作区安装，原型 wrapper 仍引用现有配置解析和 shutdown 模块。
+
+下一步须把构建、入口选择、产物源码一致性、发布清单及独立安装资格接入正式生命周期，并在相同原期限下重跑原完整客户端门禁；不能仅在测试中改用打包入口或复用过期产物。当前只是隔离原型及性能证据，**原完整门禁失败仍有效**。中断发布投影后的持久续写、全天容量、默认策略、流式/steering、多端普通配置、迁移回滚及生产资格仍未完成。没有生产重启、配置/插件/认证变更或真实模型请求。
+
+## 当前阶段：持久 ACK 后自动卸载来源载荷（2026-10-20，范围通过，完整客户端门禁未通过）
+
+新增
+`context-recovery-durable-ack.js`。引用事务仅在保存 CAS 的 revision 回执通过校验、生命周期屏障仍有效后，生成进程内不透明回执；回执不可经 JSON/克隆传递，只保留根身份、账本策略摘要及已保存来源的不可变身份，不保留原文或整份历史。owner 在有效租约和当前 session
+capability 下，重新验证独立元数据、根身份/原期限/策略以及整批来源的 ID/摘要/字节/时间/调用关联，再调用已有“整批载荷认证完成后才丢弃”的卸载原语。旧回执只能释放其已确认且身份未变化的来源，不会释放后来新增的来源；不重置预算、进度、计数或原绝对期限。
+
+默认引用读者在读取前的持久预扣保存成功并复查 owner 后卸载，随后继续原授权异步页读取和持久结算。引用发布在 durable
+prepare 保存与 owner 复查后卸载，发送/终态仍走原 journal 与持久屏障。缺少引用状态/页读取/增量结算能力的旧适配器不自动卸载；引用失败不回退完整导出。回执未返回、非法回执、写前/写后失败均不触发卸载；晚到回执不能复活已释放租约、已中止、撤销、关闭或到期的 capability。卸载本身失败会停止该根后续存储 I/O，保留已经认证的磁盘记录，不能通过重试制造成功。
+
+增加独立受信
+`exportContextRecoveryRootMetadata`，沿用完整导出的根/时钟/租约屏障，返回明确的元数据封套；旧同步完整导出继续拒绝冷来源，不伪造空字符串。需要旧 importer 完整输入的测试夹具改为显式读取存储完整记录，字段/字节/权限断言保留。新增
+**9**
+项回归进入既有统一 unit 和原完整客户端文件，覆盖不透明/伪造/危险访问器/非法 revision、身份变化、真 SQLite
+ACK、幂等卸载、旧 ACK 与新增来源、延迟 ACK、保存失败、租约/撤销/到期、卸载失败停止 I/O、准备发布及精确读回。fixture 修复后原重新授权/投影
+**12/12** 通过。
+
+冻结证据
+`.hpm-acceptance/context-recovery-ack-eviction-20261020-02/receipt.json`：扩大
+**534/534**，0 失败/取消/跳过；28 模块语句/行 **98.86%**、分支 **95.16%**、函数
+**99.21%**，格式、零警告 Lint、语法、CI/发布治理退出 0，运行源和测试摘要一致。完整客户端
+**1054/1055**，0 失败、1 取消：双实际 stdio 宿主用例超过原
+**30 秒**。该次第一宿主连接约 **11161ms**，第二宿主连接约
+**28752ms**，两宿主工具调用均已完成；第一宿主关闭完成约
+**29800ms**，第二宿主关闭及最终断言未在期限内完成。完整覆盖阈值满足但命令退出 1，总门禁未通过，不能据范围通过宣称启动/关闭耗时波动已修复。未改变超时、并发、阈值或客户端命令。
+
+失败证据保留：01 冻结范围
+**520/522**（双 stdio 和 EOF 初始化两项取消），完整客户端
+**1043/1055**（12 项旧夹具仍调用冷来源同步完整导出而失败）；此前冷加载与引用阶段失败同样保留，没有用后续通过覆盖失败回执。本轮未构建新包、部署、修改用户配置或调用真实模型。
+
+边界：卸载的是原文 artifact 的来源载荷引用，不保证整个会话或进程没有其他原文副本；调用方 request、历史映射等仍可能持有内容，尚无堆内存/延迟改善测量。普通已发布路径的持久确认后卸载、重开冷接纳和精确页已在源码贯通，但完整门禁、网关启动成本、中断发布投影后的持久续写、全天容量、新默认策略、私有流式/steering、多端普通配置、旧发行包迁移/回滚、新包及生产资格仍未完成。
+
+## 当前阶段：引用扫描与冷会话接纳（2026-10-20，范围通过，完整客户端门禁未通过）
+
+SQLite、实际 worker 和显式适配器新增 `recoveryReferenceScanVersion:1` /
+`scan-reference`。每页校验请求游标、整代 catalog、scope/root/principal/原绝对期限/revision 和独立引用摘要，拒绝重复根、变化代次和危险访问器。普通 format
+3 启动发现只扫描元数据并登记撤销身份；存在中断暂存来源时，先完成整代验证，再显式完整认证所有待清理记录，之后才执行原清理事务。不在引用路径失败后回退旧 load。
+
+会话加载在引用扫描、引用状态、精确页和增量结算四项能力均明确存在时，使用独立元数据发布投影、联合选择与原子接纳。完整元数据图先验证再裁剪，只保留 transport-finished 且祖先已发布的快照；当前请求仍单独校验身份、策略、绑定与歧义。恢复来源不创建原文 artifact，保留预算、计数、历史和原到期时间；旧完整导出拒绝冷来源。能力缺失的旧适配器继续原完整路径，已选引用路径发生错误则停止接纳。
+
+真实加密 worker 重开及策略省略的原生压缩续接测试使用冷会话，精确读取成功；SQL 记录证明接纳不查询原文载荷，读页与进度结算分别认证选定来源。后续保存和发布仍使用引用格式。损坏的未选中密文不阻断元数据扫描或其他根的读取；选择损坏来源时读取失败并停止该根后续 I/O，不能把元数据接纳成功当成字节已认证。新增空/四根、能力缺失、畸形页、代次变化、getter、授权撤回/撤销/禁用/关闭/到期回归，进入既有统一 unit 与原完整客户端入口。
+
+冻结证据
+`.hpm-acceptance/context-recovery-cold-loading-20261020-02/receipt.json`：范围
+**465/465**，27 模块语句/行 **98.56%**、分支 **94.15%**、函数
+**98.65%**；格式、零警告 Lint、语法、CI/发布治理退出 0，运行源和测试摘要一致。原完整客户端
+**1044/1046**，0 失败、2 取消：双 stdio 宿主在第二宿主连接期间超过原
+**30 秒**，第一宿主连接约
+**20600ms**；孤立暂存清理与三次实际加密 worker 重开测试，在第三次 worker
+ready 约 **29968ms** 后超过原
+**30 秒**，尚未完成最后重开比较与清理断言。范围内双宿主通过但耗时约
+**23043ms**，不能用它覆盖完整门禁取消。完整客户端覆盖阈值满足，命令仍退出 1，总门禁未通过。未改变期限、并发、阈值或客户端命令；01
+runner 在执行任何门禁前因误把范围内 composition 治理测试要求纳入客户端脚本而失败，bootstrap 失败及源码快照保留。
+
+边界：冷接纳已接入源码，但尚未获得完整客户端资格。普通 format
+3 的来源载荷避免全量加载；旧格式或孤立暂存清理仍可完整认证，历史字段也可能保留证据页，不能声称整份会话零原文或已有内存/延迟收益。持久 ACK 后自动卸载仍未接入，新捕获来源仍驻留；中断发布投影后的持久续写、旧发行包冷迁移/回滚、全天容量、新默认策略、私有流式/steering、多端普通配置、新包及生产验收仍未完成。未部署、修改用户配置或调用真实模型。
+
+## 当前阶段：冷账本与独立根元数据恢复（2026-10-20，范围及完整客户端门禁通过）
+
+账本新增私有
+`restoreContextEvidenceMetadata`，只接受严格元数据账本并按受信 owner/thread/policy 恢复。非空来源不创建 artifact，保留来源描述、原期限、captured/readCount 和连续读取进度；空来源保留确定的空内容。冷来源只能经既有授权异步存储页路径读取，页仍核验来源/摘要/字节/UTF-8/范围。同步原文读取明确不可用，旧完整导出及选定冷来源载荷导出拒绝，不伪造空内容或暗中重载。冷状态在内部集合记录，不进入模型描述或序列化元数据。
+
+`restoreRecoveryRootMetadataStates`
+使用独立入口，先校验根元数据图，再按当前 binding 校验身份和策略、恢复绑定/历史/预算并关联冷账本。旧完整 importer 仍拒绝元数据格式，新 importer 拒绝完整原文根；临时组件或失败恢复的账本均关闭。当前版本的公开/私有历史关联、预算和绝对期限保持，过期根不创建可用 owner。元数据恢复不证明原文字节已读取，也不自行授予当前请求授权。
+
+新增私有 `evictContextEvidencePayloads` 及只返回数量/字节的
+`contextEvidenceResidency`。卸载选择有界、唯一且必须存在；整个选择的驻留内容先经完整类型、字节、摘要、UTF-8 和原期限验证，再统一丢弃 artifact，保留来源元数据。重复卸载幂等，零字节来源不创建虚假冷载荷。卸载不退预算、不改进度、不续期。捕获新增来源时还计算含冷来源的逻辑总字节，避免释放驻留内存后绕过原 maxBytes；来源槽位上限保持。
+
+新增五项回归进入原统一 unit/完整客户端入口，覆盖 0 驻留字节的冷恢复、正常/空来源、精确异步页、进度/预算/期限、非法/重复/极端来源选择、错误身份和 payload-bearing 元数据、过期/关闭、逻辑容量与幂等卸载。故障子进程扩展七种 artifact.read 错误（含内容与声明摘要不符），并证明批量卸载第二个来源失败时第一个仍驻留。相关开发
+**124/124**，扩展 helper 独立执行成功。
+
+冻结 `.hpm-acceptance/context-recovery-cold-ledger-20261020-01/receipt.json`
+扩大 **455/455**、完整客户端 **1036/1036**，0 失败/取消/跳过；18 模块语句/行
+**98.39%**、分支 **94.09%**、函数
+**98.77%**，格式、零警告 Lint、语法、CI/发布治理及原完整客户端覆盖门禁全通过，运行源和测试摘要一致。开发首次断言因普通/null-prototype 数据对象差别失败，按值规范化比较后通过，失败日志保留。此次网关并发测试通过不能证明此前初始化波动的根因已修复，上一阶段失败回执保留。
+
+边界：这是冷恢复和卸载的内部能力，尚未将卸载接在持久 ACK 后，也未将 startup
+scan、发布投影、候选选择与 adoption 切换到根元数据 importer。默认 artifact 仍驻留，不能声称默认内存下降、完整冷重开或全天容量达标；旧版本根的完整冷迁移也尚未单独验收。下一步贯通上述调用链和确认屏障，随后仍须新默认策略、流式/steering、多端配置、容量、新包、迁移回滚和生产资格。未改用户配置、构建新包、部署或调用真实模型。
+
+## 当前阶段：默认持久会话引用读写（2026-10-20，范围通过，完整客户端仍有网关初始化超时）
+
+持久读者和发布事务在适配器显式支持引用状态、来源页和增量结算时，改用 owner 元数据构造独立引用状态，`load-reference`
+之后以当前 owner 的身份、策略指纹、绑定 scope、账本 policy/owner、精确预算及单调来源/计数核验存储返回值。存储元数据不能自授当前授权。尚未声明完整能力的旧适配器保持原协议；一旦选用新路径，错误会使该根停止后续存储 I/O，不重试或退回完整原文。
+
+账本新增私有 `exportContextEvidencePayloads`，owner 的
+`payloads(capability, sourceIds)`
+受原 lease/capability/lifecycle 屏障保护。完整校验有界、唯一且存在的来源 ID 集合后，才读取选定 artifact，验证字节、摘要、期限与 UTF-8，并只返回 sourceId/output；不更新模型预算或读取进度，不暴露 locator。保存时由持久引用集合计算缺失来源，仅这些来源经过载荷导出；重复预算和发布状态保存不物化其它原文。旧完整导出共用相同内容验证，失败仍为固定安全错误。
+
+新增五项回归进入既有统一 unit 和原完整客户端入口，并扩展六种载荷故障及实际 Windows
+worker 发布/重开测试。Chat/Claude/Responses 证明
+`load-reference → save-reference-state → read-source → settle-reader`，重复保存不再传载荷；禁止完整 checkpoint 的 owner 仍可完成读/List/再读，导出 ID 集合精确为首次一个来源、后续空集合。预算/policy/外层回执伪造、错误 ACK 与存储拒绝均停止根，不产生额外读取或旧协议回退。相关开发
+**103/103**，之后补充的读者文件 **34/34**。
+
+冻结 `.hpm-acceptance/context-recovery-reference-host-20261020-01/receipt.json`
+扩大 **450/450**，18 模块语句/行 **98.37%**、分支 **94.06%**、函数
+**98.75%**；格式、零警告 Lint、语法、CI/发布治理及范围覆盖全部退出 0，源和测试摘要一致。原完整客户端
+**1030/1031**，0 失败、1 取消：`actual initialized gateway exits on host EOF and reaps its downstream`
+在 `connect_started` 后未完成初始化，超过原
+**15 秒**期限；尚未执行 EOF 断言。完整客户端覆盖阈值满足，但测试退出 1，因此总门禁未通过。未延长期限、减少并发、跳过测试或改客户端命令。
+
+独立补充运行同一网关文件 **7/7**，初始化约 **2849ms**、EOF 发送后约 **63ms**
+观察到正常退出并回收下游，记录
+`gateway-independent.log`。此结果不能抹去并发门禁失败，也不证明初始化耗时波动已修复；旧启动诊断和失败回执全部保留。
+
+边界：默认持久会话的读写/发布源路径已接入引用协议，但原文仍驻留 artifact，启动 scan/adoption 仍全量加载，历史字段也可能含证据页；尚未实现确认后的载荷卸载和完整冷恢复，无内存/延迟改善测量。后续仍需处理该门禁波动、冷恢复、全天容量、新默认策略、流式、多端配置、新包及生产验收。此次未构建新包、改用户配置、部署或调用真实模型。
+
+## 当前阶段：引用状态读取结算（2026-10-20，范围及完整客户端门禁通过）
+
+`settle-reader` 对已保存的 format
+3 使用元数据结算，不再完整解密全部来源或写回 format
+2。完整检查点和引用结算共用同一预算/计数/进度规则：root/time 关联、单次读取与成功计数增量、预留字节回收上限、来源完整集合及不倒退进度仍严格检查。引用结果经 blob
+owner 对实际变化来源的内容/UTF-8 校验后，在同一 CAS 事务提交；旧 inline/format
+2 结算路径保持兼容。
+
+新增两项回归进入统一 unit 和原完整客户端入口，真实 SQLite 证明结算只查询变化来源密文，保留 format
+3、原期限及预算；未选中损坏密文不被解密或覆盖，完整 load 仍拒绝。覆盖非法 root/time/预算/计数/来源、UTF-8 中间偏移、陈旧 revision、零来源 LIST，以及实际状态 SQL 写入后故障回滚预算与 revision，重试成功。相关开发
+**59/59**。
+
+冻结
+`.hpm-acceptance/context-recovery-reference-settlement-20261020-01/receipt.json`
+扩大 **445/445**、完整客户端 **1026/1026**，0 失败/取消/跳过；17 模块语句/行
+**98.47%**、分支 **93.98%**、函数
+**98.67%**，格式、零警告 Lint、语法、CI/发布治理及原完整客户端覆盖门禁全部退出 0，运行源与测试摘要一致。此轮未更改任何期限、覆盖阈值或客户端命令。
+
+边界：消除的是 format
+3 存储结算的全量物化和格式退回；默认 host/owner 尚未切换新引用协议，因此默认行为仍不能据此声称冷恢复或内存/延迟改善。下一步仍为受信当前策略核验、选择性载荷导出、默认保存/加载接入及确认后安全卸载；全天容量、新默认行为、多端配置、新包和生产资格仍未完成。未改用户配置、部署或调用真实模型。
+
+## 当前阶段：独立引用持久状态（2026-10-20，范围及完整客户端门禁通过）
+
+新增
+`context-recovery-reference-state.js`：元数据、暂存来源和发布 journal 使用独立摘要，不再依赖含完整原文的 sourceDigest。严格校验根关联、策略、期限、预算和来源描述；转换要求根身份/原绝对期限及保留来源身份不变，计数和读取进度不得倒退，未过期来源不得消失。它是内部存储协议，不授予当前请求接纳或读取权限。
+
+存储适配器显式声明 `recoveryReferenceStateVersion:1` 后支持
+`save-reference-state` /
+`load-reference`，未声明的包装器不推断支持。真实 SQLite 保留 schema
+2，在加密 envelope 中引入 format
+3：只保存引用元数据，新增来源分别加密。重复保存和引用加载校验 blob 表头及存在性，不读取保留来源密文；读取进度变化时只认证变化来源并验证 UTF-8 前缀。选定来源读取仍核验内容。旧 inline/format
+2 首次迁移完整验证，保留来源 ID、预算、绝对期限；旧完整 load 仍可完整还原，新状态经显式旧 save 可写回 format
+2。此为模块级兼容验证，不能代替实际旧发行包回滚验收。
+
+完整性边界：未选中来源密文损坏时，引用加载和不改变该来源进度的保存允许继续，且不覆盖损坏密文；选中损坏来源读取、旧完整加载、撤销和到期清理均拒绝。元数据摘要不证明原文字节可用，不能把引用加载成功当成所有来源已解密验证。缺失/额外 blob、错误表头和非法 envelope 拒绝，实际 SQL 写入故障回滚状态与新增 blob，原密文保留。
+
+新增 12 项回归进入既有统一 unit 和原完整客户端入口，覆盖空/零来源、Unicode 边界、进度倒退、非法回执、危险访问器、损坏密文、CAS、迁移、重开、撤销及绝对到期。实际 Windows
+worker 验证新保存/加载、精确页、旧完整 load、重开，数据库无合成原文明文。开发最终
+**38/38**。冻结
+`.hpm-acceptance/context-recovery-reference-state-20261020-01/receipt.json` 扩大
+**443/443**、完整客户端 **1024/1024**，均 0 失败/取消/跳过；17 模块语句/行
+**98.47%**、分支 **93.94%**、函数
+**98.66%**，格式/零警告 Lint/语法/CI 与发布治理全部退出 0，运行源和测试摘要一致。前期开发失败记录保留；未放宽任何门禁。
+
+边界：默认 host 保存、加载及 owner 仍未切换到新引用协议；读取结算仍可能完整物化并写回 format
+2，artifact 仍驻留内存。当前请求的可信策略核验、选择性载荷导出、确认后的卸载和冷恢复还需贯通。全天容量、新默认策略、流式、多端配置、新包及生产验收未完成；本轮未构建新包、部署、改用户配置或调用真实模型。
+
+## 当前阶段：根元数据关联校验与租约导出（2026-10-20，范围及完整客户端门禁通过）
+
+`context-recovery-root-state.js` 新增独立 `validateRecoveryRootMetadata`，只接受
+`{metadata, stagedSources}`
+且根 kind/version 为独立元数据格式。沿用原根 policy/版本/期限、账本元数据、预算、绑定祖先和历史组件校验，并复用原关联检查：快照与绑定顺序、父子 calls/captured/visible、来源匿名关联、暂存与已发布隔离、映射 tips/父关系、pending
+results、private-history 连续性及读取计数。验证器不创建账本载荷或返回运行时 token；临时绑定和历史 registry 在 finally 关闭。完整恢复仍先检查每份原文的完成来源契约，并保留原账本完整摘要与 UTF-8 校验。元数据的来源摘要/字节/中间 UTF-8 偏移仍须在读取载荷时验证，当前请求的授权/接纳也仍独立执行。
+
+owner 新增 `metadata(capability, reservation)`，复用当前 owner
+lease、读 capability、reservation 校验及撤销/关闭/到期屏障，由账本索引直接导出已发布与暂存来源，不读取 artifact。返回保留原预算、时间、绑定和历史的脱离内部引用的数据；已结算 reservation 使用原相同预算导出契约，不能使用未知 reservation。模型工具和恢复接纳入口没有增加新权限。旧
+`checkpoint` 仍导出完整原文。
+
+引用写入解析器在物化前调用根关联校验；发布 journal 也提取为共用的有界严格解析，旧完整检查点与引用路径均检查快照状态、重复 ID、未知字段和缺失快照的允许终态。v1 根没有 policyBasis，元数据验证仅按原存储 binding 校验其指纹与祖先，不伪造 null
+policy；v2+ 继续以保存的策略基础校验绑定。实际接纳仍要求当前原策略，新增非空策略的 v1 回归保持原指纹及旧到期时间，未授予 v1 自动接纳权限。
+
+新增五项测试进入既有统一 unit/完整客户端文件，扩充既有暂存隔离、租约失效和 v1/v2 保留期限测试；载荷故障子进程增加实际 session
+owner 的六种 artifact.read 故障验证，证明根元数据导出和关联验证均不访问载荷，而旧完整 checkpoint 仍拒绝故障。owner 开发
+**33/33**；开发中缺少 binding
+history 参数及一次无变化的空 tips 断言已按真实组件契约修正。
+
+冻结 `.hpm-acceptance/context-recovery-root-metadata-20261020-01/receipt.json`
+扩大范围 **431/431**、完整客户端
+**1012/1012**，均 0 失败/取消/跳过，runner 最终退出 0。16 个运行模块语句/行
+**98.59%**、分支 **94.04%**、函数
+**98.58%**；格式、零警告 Lint（含故障 helper）、语法、CI/发布治理及原完整客户端覆盖门禁均退出 0，运行源与测试摘要前后一致。本轮双真实 stdio 宿主和独立 native
+ACL 均通过，仍保留此前三份引用写入及一份账本元数据冻结失败，不据本轮通过宣称启动耗时波动或其根因已修复。未提高期限或覆盖阈值，未更改原完整客户端命令。
+
+边界：owner 元数据出口已具备，但现有事务和加载尚未切换到它。引用 v1 的 sourceDigest 仍依赖旧完整检查点；worker 保存/结算及 load 仍全量物化，历史字段也可能包含证据页。下一步需要独立版本的引用持久状态和显式 load 能力，先完成安全迁移及确认，再允许卸载载荷；不能删掉原文后依赖旧完整导出，也不能以无载荷元数据冒充旧恢复根。元数据校验是内部一致性边界，未来 load/adoption 必须另以当前受信策略核验额度和权限，不能以存储 policy 自身作为接纳依据。冷重开、全天容量、新包及生产、多端普通配置和迁移回滚仍未完成。
+
+## 当前阶段：账本元数据独立校验与内部导出（2026-10-20，范围通过，完整客户端未通过）
+
+`context-evidence-ledger-state.js` 在共用有界纯数据校验内新增独立
+`parseEvidenceLedgerMetadata`。元数据沿用独立 kind、严格字段集合及 256KiB 归一化界限，检查 owner/policy、来源身份、重复 sourceId/callId、时间/绝对到期、单源及累计容量、读取进度和计数，不接受 output 或私有 locator。旧完整状态接口仍强制原 kind、output、完整内容摘要及 UTF-8 前缀校验，不能通过新增参数选择元数据模式。元数据本身不证明内容字节、摘要真实性或 UTF-8 中间偏移，也不授予恢复权限；原页/完整状态验证继续承担这些边界。
+
+账本增加私有 WeakMap 管理的 owner 元数据导出，直接复制索引字段并校验，不调用 artifact.read，也不导出 locator。引用式写入的解析器在载荷物化前独立校验已发布和暂存来源的合并元数据；实际保存仍走原完整验证。新增四项回归进入已有统一 unit/客户端文件，六种真实 artifact.read 故障的子进程同时证明元数据导出不读取载荷、无可变引用外泄；覆盖空原文、到期/关闭、错 owner、旧/新格式互拒、非法计数、重复身份、容量和危险数据。相关开发回归
+**44/44** 通过。
+
+冻结 `.hpm-acceptance/context-recovery-metadata-index-20261020-01/receipt.json`
+沿用原期限/覆盖阈值，含此前真实 stdio 测试。扩大范围
+**426/426**、0 失败/取消/跳过；14 个运行模块语句/行 **98.36%**、分支
+**93.93%**、函数
+**98.44%**，格式、零警告 Lint、语法及 CI/发布治理均通过，运行源与测试摘要前后一致。完整客户端
+**1006/1007**、1 失败/0 取消/跳过，两个实际网关测试通过；唯一失败为独立 native
+ACL 测试中读取四个目标 DACL 的 PowerShell 核验子进程超过原 10 秒期限，抛 ETIMEDOUT，未到 ACL 判断结果。runner 终态退出 1，总门禁未通过，不能将此归类为已证实权限错误或已排除权限错误；单独复核结果见同目录
+`acl-diagnostic.log`。没有增大期限或降低门禁。
+
+ACL 同一现有测试独立复核 **1/1** 通过，测试约
+**2.73 秒**，包含四个目标的独立 DACL 判断及 junction 拒绝，原 10 秒子进程期限未变，证据同目录
+`acl-diagnostic.log`。此结果证明该独立样本，不清除完整客户端的 ETIMEDOUT，也不证明并发资源争用或单一根因。
+
+网关进一步独立诊断
+`.hpm-acceptance/gateway-startup-profile-20261020-01/result.json`
+使用固定阶段词表的测试预加载器，不修改运行代码、不输出任意模块名/原始 stderr/用户数据。两次真实初始化/列工具/调用合成工具路径连接分别约
+**5.47/4.94 秒**；网关模块图加载各约 **2.39 秒**，其中首次 SDK
+Client 导入约 1.85/1.76 秒，AJV 导入约 0.70/0.65 秒；下游进程启动及握手约
+**2.42/2.02 秒**。这些为独立诊断样本，不代表完整并发运行、不构成修复或性能改善结论。此前三份失败冻结仍有效。
+
+本阶段只建立独立元数据边界；owner 导出完整检查点、load、worker 保存/结算仍物化原文，未实现安全卸载和冷重开。下一步须以受版本约束的根元数据验证覆盖绑定/历史/分支/publication/预算，再引入显式引用加载能力和持久确认后的载荷卸载，禁止用元数据绕过旧恢复授权。全天容量、新包、生产、多端普通配置及迁移回滚仍未完成。
+
+## 当前阶段：引用式检查点写入（2026-10-20，范围通过，完整客户端未通过）
+
+真实加密 worker 新增显式 `recoveryReferenceWriteVersion:1` 能力和内部
+`save-reference`
+操作，opening 只转发实际适配器声明。宿主保存时传递独立版本的根/账本元数据、原完整检查点摘要及新增来源的
+`{sourceId, output}`；已有来源只传描述，不重复传其 output。无能力声明的旧适配器保留原 save。根、来源、SQLite 持久格式及模型工具接口不变；引用传输格式不是恢复权限。根身份和来源不可变字段固定，拒绝替换旧原文、重复/缺失/多余 payload、摘要不匹配、未知字段、危险原型/访问器及非法 UTF-8。worker 还原、验证完整检查点后，在原 SQLite 事务内复用 blob 并提交状态；已有到期时间不延长。
+
+八项新增回归进入既有统一 unit/完整客户端文件。覆盖 Chat/Claude/Responses 首次传原文、后续复用、混合新旧来源仅发新 payload、空原文/无来源、身份和完整性拒绝、真实 blob/state 写入后的原子回滚及确认异常保留最坏预留。实际 Windows
+worker 路径已验证
+`load → save-reference → read-source → settle-reader`、重开及加密文件无合成原文明文。新增运行模块
+`context-recovery-reference-write.js` 已进入发布源清单。
+
+首次冻结 `.hpm-acceptance/context-recovery-reference-write-20261020-01/` 范围
+**394/394**，完整客户端
+**1002/1003**；失败为 idle 清理测试固定等待 150ms 时实际 sweep 尚在执行。测试改为由成功且观察到已推进时钟的定时回调 Atomics.notify，观察端等待实际完成并继续用独立 SQLite 连接证明过期行已删除，未发送 owner 命令触发清理。未更改生产间隔、测试总期限或成功断言；新增等待通知断言通过。
+
+第二次冻结
+`.hpm-acceptance/context-recovery-reference-write-20261020-02/receipt.json`：含 idle 回归的扩大范围
+**406/406**，13 个运行模块语句/行 **98.29%**、分支 **93.66%**、函数
+**98.38%**；格式、零警告 Lint、语法、CI/发布治理通过，运行源和测试摘要前后一致。完整客户端
+**1001/1003**，0 失败、2 超时取消：双 generic host
+stdio 测试超过原 30 秒，初始化后 EOF 测试超过原 15 秒。两份失败回执保留，不能标为工程通过；后续为这两个真实宿主测试增加仅固定阶段名和耗时的诊断，定位连接、调用及关闭边界，未提高期限或修改生产逻辑。
+
+独立覆盖诊断两个实际宿主测试 **2/2** 通过，证据
+`...-02/gateway-diagnostic.log`：双宿主总约 12.9 秒，两次 connect 约 4.35/7.87 秒，关闭各约 0.24 秒；EOF 测试总约 4.65 秒，connect 约 4.34 秒，发送 EOF 后退出约 0.23 秒。该独立运行等待主要在连接阶段；不能据此证明完整并发运行的超时根因或性能修复，也不能清除失败门禁。
+
+第三次冻结 `...-03/receipt.json` 加入两份诊断测试，扩大范围
+**421/422**、0 失败/1 超时取消，完整客户端
+**1003/1003**、0 失败/取消/跳过；覆盖率、格式/Lint/语法及治理通过，运行源和测试摘要前后一致，runner 最终退出 1，总门禁仍未通过。范围中双宿主首个 connect
+**19.10 秒**、第二个
+**9.56 秒**，调用完成后关闭第二个宿主时达到原 30 秒总期限；EOF 专项约 11.06 秒通过。完整客户端双宿主约
+**20.32 秒**通过，两次 connect 约 9.47/9.80 秒。同一源码在不同运行下启动耗时波动明显，当前诊断仍将模块加载、进程启动与下游握手合在 connect 内，下一步须分段测量，不能将偶然通过视为根因已修复。三次冻结均保留，期限与阈值未变。
+
+边界：只去掉重复传输的来源 output；元数据仍含既有绑定和历史，可能含历史中的证据页，不能声称整个请求不含原文。宿主仍导出/持有全量检查点，sourceDigest 仍全量计算，load 和 worker 保存/结算仍还原全量原文，artifact
+store 仍驻留载荷。现有指纹归一化另有 2MiB 限制，12MiB 名义根上限不代表可用容量；全天容量画像仍失败。下一步先定位完整客户端超时，再实现真正独立校验的引用 owner/加载/淘汰及分层预算。无新包、生产激活、客户端配置/认证变更或真实模型请求，整体目标未完成。
+
+## 当前阶段：读取结算只传预算与进度（2026-10-20，范围及完整客户端门禁通过）
+
+真实 SQLite/加密 worker 新增内部 `settle-reader`
+操作及显式能力声明，opening 仅转发实际适配器声明，默认 worker 在启动前声明。支持该能力的根读取在完整预留检查点提交、原文读取结束后，改为由当前 owner 导出预算、根 ID、观察时间和每份来源的连续读取进度；结算请求不再携带 output、完整 root、绑定、发布 journal 或用户历史。未声明能力的旧适配器保留原完整检查点结算路径。模型工具接口未改变，不能直接指定结算、scope 或预算。
+
+新增 `context-recovery-reader-settlement.js`，有界归一化并严格解析 version
+1 的内部增量。应用时以已有、完整校验的检查点为基准，固定根身份，拒绝时间回退/过期、调用数改变、超过单次预留的退款、成功数和账本读取数不匹配、来源新增或未过期来源遗漏，以及读取进度回退、伪造完成、非 UTF-8 边界等。只更新当前读取相关的预算与进度，保留原文、来源期限、绑定、快照和 publication 状态，重建原检查点摘要后再次校验。源/检查点/SQLite 格式保持现有版本；增量属于内部传输协议，不是新模型权限或新的恢复根格式。
+
+账本增加内部 metadata-only 进度导出；故障子进程在六种真实 artifact.read 故障下确认该导出不访问原文，并验证调用方修改不会影响内部进度。支持增量结算时，预留提交后的权限复核改为 owner 当前 capability/lease 检查，避免为权限检查和结算再次调用全量 owner.checkpoint。事务层仍持有本次已保存的完整检查点用于校验；worker 仍还原原有完整检查点、校验、应用增量并在同一真实 SQLite 事务内保存，不回退失败的结算，不更改绝对期限。
+
+新增七项回归进入既有统一 unit/客户端文件，覆盖 READ/LIST、暂存来源、大于单页的 Unicode 原文与空原文；结算请求只含四个受限顶层字段且小于 16
+KiB；篡改身份/时间/预算/来源/进度、额外字段及访问器固定拒绝且不执行钩子。真实加密 SQLite 验证已有 blob 密文逐字不变、CAS 和错误 scope 拒绝、正常物理 owner 重开后原文/预算/进度/期限保持，以及撤销后拒绝结算。实际 recovery_state
+SQL 写入后注入异常能原子回滚，保留旧预留；确认前后异常均不自动重试或回退同步路径。结算确认被阻塞时结果不提前公开，abort/撤销/禁用/关闭/到期不能恢复权限。取消后若正常收到已持久提交的结算确认，允许沿用既有规则确认计数，但仍不返回内容；确认异常则保留最坏预留。
+
+实际 Windows 加密 worker 会话顺序已变为
+`load → save → read-source → settle-reader`，关闭重开验证原文、预算与期限保持，磁盘不含合成原文明文；测试代理明确转发两种能力，不再以旧路径代替新路径。最终冻结扩大
+**386/386**；12 个运行模块语句/行 **97.80%**、分支 **93.43%**、函数
+**98.26%**。范围格式、零警告 Lint（含故障 fixture）、语法、CI/发布治理及原完整客户端命令全部退出 0，完整客户端
+**995/995**，0 失败/取消/跳过；运行源与测试摘要前后一致。证据
+`.hpm-acceptance/context-recovery-reader-settlement-20261020-01/receipt.json`，新增模块已进入发布源清单。开发中一条取消断言误将“已收到正常结算确认”视为确认失败，按原允许晚确认计数但不复活权限的契约修正；生产规则未因此放宽。
+
+边界：本阶段去掉的是**结算请求中的完整原文及多次 owner 原文导出**，不是所有预算更新或检查点复制。初次预留、load、root/checkpoint/IPC 的其它路径仍携带全量原文；事务/worker 仍复制和校验已有完整检查点，私有 artifact
+store 仍驻留原文。没有完整冷存储、内存/延迟改善或全天容量达标结论。下一步必须将引用状态贯穿预留/加载和安全载荷卸载，再升级调用/快照容量及分层预算；原全天容量失败结果仍有效。未构建新包、部署、改变用户配置或调用真实模型，整体目标继续未完成。
+
+## 当前阶段：持久化异步原文分页读取（2026-10-20，范围及完整客户端门禁通过）
+
+真实加密 SQLite/worker 增加内部 `read-source`
+操作；只有明确声明 source-page 能力的存储走新路径，旧注入适配器继续既有同步读接口。opening 转发实际适配器能力，默认 worker 能力在启动发现前声明。模型仍只提供既有 sourceId、digest 和范围，不能提供 scope、内部引用或文件路径。session
+owner 在当前主体/策略/分支和租约有效时，先确认最坏预算预留已持久提交，再按当前 scope/revision 读取选定来源，返回后复查权限、来源期限和页数据；结算持久提交后才返回结果。LIST、非法参数、失效或兄弟分支来源不因此获得原文读取权限。
+
+新 `context-evidence-stored-page.js`
+对来源描述及页作有界纯数据校验，核对来源、字节、摘要、UTF-8、范围、续页及序列化结果预算；整份页同时验证整体摘要。标识规则与既有账本一致，拒绝访问器、自定义原型、额外字段和危险数据，不执行数据钩子。blob 读取认证 manifest 和指定来源密文，只查询选定 blob，不把其它来源全部还原；它仍依赖可信 owner 已授权、完整校验且提交的检查点及匹配 revision，存储选择器本身不是模型权限。原来源/根绝对期限保持，读取不续期。
+
+回归发现并修复新异步错误路径：存储抛错、非法 Promise 或返回损坏页时，上层工具会转换为安全失败，若事务层未标记失败，仍可能继续结算并释放预留字节。现在
+`readSource`
+的异常会使该根的存储路径失败，拒绝后续结算和读取，保留最坏预留；绝不回退驻留内存原文。合法的固定范围/预算拒绝仍按既有失败计数结算。异步账本读取在开始前校验范围，等待后重新检查来源，只有有效成功页才更新连续读取进度和计数。
+
+新增 18 项回归进入统一 unit 和完整客户端入口，覆盖 Unicode/空原文/末尾空页、分页和完整摘要、极端边界、模型结果预算、固定错误、危险数据、revision/scope/描述不匹配、缺失/损坏密文、旧 inline 兼容、异步单次预留及并发阻挡。真实 SQLite 分别阻塞预留、页和结算确认，证明结果不会提前公开；abort/撤销/禁用/关闭/到期发生在真实页读取后但确认前，均不能返回内容。Chat/Claude/Responses 三种会话保留原 LIST、参数和安全失败语义，随后仍能精确读取。实际 Windows 加密 worker 路径确认
+`load → save → read-source → save`，关闭重开后原文、预算和期限保持，文件不含合成原文明文。
+
+最终冻结扩大 **379/379**；11 个运行模块语句/行 **97.78%**、分支 **93.41%**、函数
+**98.15%**。范围格式、零警告 Lint、语法、CI/发布治理全部退出 0；原完整客户端
+**988/988**，0 失败/取消/跳过，覆盖率门禁通过。运行源和测试摘要前后一致，回执
+`.hpm-acceptance/context-recovery-stored-page-20261020-02/receipt.json`。新增运行模块已加入发布源清单。首个 runner 因引用不存在的 checkpoint 测试路径在格式检查退出 2，失败回执保留在
+`...-01/`；修正 runner 路径后另建冻结运行，未降低阈值。开发期间测试对 owner 锁内导出、SQLite
+Uint8Array、已关闭账本异常及既有错误脱敏的错误预期均按真实契约修正，未放宽生产权限。
+
+边界：完成的是**指定来源的异步持久读取链路**。每个选中 blob 仍整体解密后构造页；私有 artifact
+store 仍驻留原文，root/checkpoint 导出、IPC、load 和预算保存前验证仍物化全量原文，不能声称完整冷读取或内存/延迟改善。下一步仍须引用状态贯穿检查点/IPC/恢复并实现安全载荷卸载，再处理调用/快照容量和分层预算。全天容量画像仍未通过；新默认策略、完整流式/steering、多端普通配置、迁移回滚和生产资格仍未完成。此次未构建新包、部署、修改用户配置或调用真实模型，旧包资格不能用于当前源，整体目标继续未完成。
+
+## 当前阶段：账本索引载荷分离与单次检查点导出（2026-10-20，范围及完整客户端门禁通过）
+
+账本 sources/calls 索引在捕获和恢复时不再保存 output，仅保留元数据与内部 artifact
+handle；原文仍由既有私有 artifact
+store 持有。可信旧格式导出时按当前 owner/scope/handle/digest 取回原文，核对类型、字节、摘要和原期限后才交给既有 ledger 状态解析器。空来源按零字节规则导出。失败只返回固定 invalid_evidence_ledger_state，不从隐藏的旧 output 字段回退，不把内部 handle 暴露给模型。该 owner 导出不增加 readCount、coveredThrough、readComplete 或模型预算，读取/重开不延长原绝对到期。
+
+root 导出共用一次 partitionRecoveryRootState；新增内部 exportRecoveryRootCheckpoint 以同一次账本导出划分已发布与暂存来源，持久 owner.checkpoint 不再先导出 root 后再导出全部 ledger。reservation 仍按原契约使用：未读前保存最坏预留预算，读取后才允许导出结算预算；未知 reservation 在物化原文前拒绝。主体/策略/分支和 lease 检查保持原路径，暂存来源不会因进入检查点获得 root 发布权限。没有改变 root/ledger/checkpoint 或 SQLite 格式和公开工具定义。
+
+新增三项统一回归覆盖大于模型单页的 Unicode 原文及空来源的重复导出/恢复、预算与 TTL 不变；隔离子进程注入真实 artifact 读取边界的缺失/类型/字节/摘要/期限/异常六类故障，确认失败后不回退原文字段，正常恢复后仍能精确导出；混合已发布/暂存来源的 checkpoint 关联、调用方修改隔离、预留/实际结算、伪造 capability/reservation 和释放后拒绝。fixture 只在子进程加载时拦截模块，生产无新注入选项或模型载荷 provider。开发时新 owner 测试误用解析器对象引用相等及读取前结算参数，按已有克隆/预留契约更正，未放宽生产预算或断言目标。
+
+实际旧封存包的 ledger/artifact 模块复核与其 manifest 对应，使用相同故障 fixture 得到 Missing
+expected
+exception 负控，证明旧路径绕过了 artifact 读取失败；当前生产路径拒绝六类故障。负控和校验回执位于
+`.hpm-acceptance/context-recovery-ledger-payload-20261020-01/negative.log` 与
+`negative-receipt.json`。首轮专项 46/46，新增项最终单独 29/29；最终冻结扩大
+**320/320**，三个运行模块语句/行 **96.75%**、分支 **91.71%**、函数
+**97.61%**。格式、零警告 Lint（含新 fixture）、语法、CI/发布治理及原完整客户端命令全部退出 0，完整客户端
+**970/970**，0 失败/取消/跳过，运行源与测试摘要前后一致，证据同目录
+`receipt.json`。新增项进入既有统一 unit/客户端测试文件。
+
+边界：只移除了**索引上的原文字段和检查点二次账本导出**。私有 artifact
+store 仍将原文保存在内存中，旧导出协议、IPC、持久化加载仍物化完整原文；没有内存/延迟改善的测量或完整按需冷读取资格。下一步必须引入可独立验证的引用状态及异步按页读取，预算需先持久预留、返回前再次检查当前 lease/撤销。条数、累计调用、快照和任务累计预算未扩大，全天容量仍未达标。当前源码不沿用旧包资格，本轮未构建新包、重启/部署、修改用户配置/认证或调用真实模型；整体目标继续未完成。
+
+## 当前阶段：SQLite 原文与检查点磁盘分离（2026-10-20，范围与完整客户端门禁通过，完整冷存储未完成）
+
+已接入真实存储主路径：第一次保存合规 recovery-write-ahead 检查点时，在原 BEGIN
+IMMEDIATE 事务内新增 recovery_blob 严格表、升级 user_version 至 2、更新已认证 header 的布局版本，并保存只包含 outputRef 的加密检查点及按来源独立加密的原文。blob 的 AAD 绑定 store、root
+scope、内部引用及原创建/到期，引用由 sourceId、摘要、字节和原期限确定；它仅是内部定位，不授予主体/策略/分支权限。未改变公开 LIST/READ 接口或主体验证。重复预算保存重用原 blob 密文，不重新插入整份原文。
+
+布局 2 严格识别完整 DDL；原布局 1 的数据库在读取时不迁移，旧 inline 记录在布局 2 中也继续可读，当前检查点保存才转换为引用格式。root/ledger/write-ahead 的公开可信状态版本未变：存储内部封装为 version
+2、kind=recovery-referenced-checkpoint，当前加载边界会认证并完整还原旧状态后再交给已有解析器，不能把 root
+v7 重新标号当作新权限格式。数据、引用、布局和时间水位在同一事务提交；新增 blob、发布 manifest 或批量撤销的实际 SQL 写入后故障均回滚，保留旧记录。撤销/过期同时删除原文及引用；损坏、缺失、重复、越 scope、畸形内容或孤儿引用失败关闭，不通过清理掩盖损坏。逻辑配额和 inspect/sweep 字节计数包含 blob 密文，32
+MiB/4 root 及其他上限未提高。
+
+11 项新增回归进入统一 unit 和原完整客户端入口，覆盖正常、空原文/零来源、暂存来源、旧格式迁移、原预算/期限、重复保存、真实写入故障、畸形 manifest、UTF-8/字节/摘要/来源身份、跨 scope 密文替换、到期损坏及大载荷配额。首次开发回归暴露还原 source 为普通对象而旧数据契约为 null
+prototype，已修正生产边界返回归一化数据；随后修正一个测试的旧状态预期。首个冻结 runner 在 Lint 因未限定 structuredClone 全局名退出 1，失败回执保留；改为 globalThis.structuredClone 后建立新冻结 runner，未更改规则、原阈值或期限。
+
+最终冻结扩大 **300/300**，四个存储模块语句/行 **100%**、分支 **93.39%**、函数
+**97.05%**；格式、零警告 Lint、语法、CI/发布治理及原完整客户端命令全部退出 0，完整客户端
+**967/967**，0 失败/取消/跳过，运行源/测试摘要前后一致。新增模块进入发布源清单。证据
+`.hpm-acceptance/context-recovery-storage-blobs-20261020-02/receipt.json`；完整客户端覆盖亦包含既有实际加密 worker、跨物理 owner 正常重开和 v7 提交确认后强杀路径，不代表迁移确认前所有进程崩溃窗口。
+
+另用上一封存包实际 storage-sqlite 模块在真实 SQLite 文件写入 inline 检查点，核对该包
+**582** 个源文件和 manifest SHA256
+`4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f`。新模块读取后保存迁移至布局 2，重开后 checkpoint/sourceId/原文/预算/期限逐字段保持；实际旧包读取器拒绝布局 2，文件 SHA256 前后未变；新模块撤销后重开仍 load=null 且 blob 为 0。迁移完成与撤销后数据库均未发现合成原文明文。探针使用临时内存随机密钥，不是 OS 密钥保护或跨设备资格。证据同目录
+`migration-receipt.json`，不是新包验收或完整降级回滚资格。
+
+边界：这里只完成**磁盘存储分离**。ledger 仍保有 output，root/checkpoint 导出、IPC 和加载仍带全量原文；预算保存虽不重写原文密文，仍有全量验证/还原开销，未证明延迟或内存改善。不得据此宣称完整冷存储或全天容量完成。下一步须把可信来源 handle 贯穿 ledger、root/checkpoint 和异步按页读取，再同步处理调用/快照和分层预算。旧备份撤销水位、迁移提交前强杀、完整回滚、实时流式、多端普通配置和生产仍未完成。本轮未构建新包、重启/部署、改变用户配置/认证或调用真实模型；整体目标继续未完成。
+
+## 当前阶段：固定容量验收入口（2026-10-20，工具门禁通过，容量验收明确失败）
+
+新增正式命令 `npm run qualify:context-capacity`，任务构造及读取验证拆入
+`scripts/lib/context-recovery-capacity-workload.js`。五个不可变画像采用独立 workloadVersion
+1，保留 24 小时小结果、8 小时密集任务、四并发任务和频繁恢复，并加入四任务各 480 次调用、32
+KiB 原文、100 次恢复的工程候选。候选是工程验收输入，不是已经达到或用户认可的容量承诺。参数先做有界纯数据校验，拒绝访问器、额外字段及非法/极端值；输出仅含画像、计数和固定错误码，不包含原文或异常。
+
+修正旧一次性测量的成功判据：最后一次 complete 只观察到工具调用，未必收到其结果，因此必须额外 begin 排空最后结果后才能报告成功；恢复次数按画像精确安排，不向下取整到较低次数；固定首份 sourceId 的原文必须按 READ 分页全部拼接、校验每页及整体摘要，并在重开后逐字比较。重开明确只指 JSON 检查点重建，实际仍是 chat 累计公开历史、合成时钟和核心 API，不包含原生压缩、传输、SQLite 持久性、安装客户端或真实模型资格。尤其 32
+KiB 候选在第 65 轮 begin 返回 invalid_context_binding，不能把这个未细分的拒绝直接归因为某个单独配额，也不能宣称是压缩后任务容量测量。
+
+容量命令现有实际退出码为
+**1**、qualified=false，五个画像均未通过；执行错误单独返回
+**2**，只有所有画像达到完整要求才返回
+**0**。四个历史画像继续出现 64 来源、128 调用、256 快照及 32 次恢复组合的缺口；候选四任务仅完成总计 256 轮即拒绝。测试通过仅证明验收工具正常工作，不能替代容量命令通过。原始容量结果见
+`.hpm-acceptance/context-recovery-capacity-workload-20261020-01/qualification.json`
+及 `qualification-exit.json`。
+
+六项新增回归进入统一 unit 自动发现和原完整客户端命令，覆盖输入/安全、空来源、最后结果排空、多页原文、重开、缺口及 CLI 退出码区分。冻结扩大
+**235/235**，新增工具语句/行 **100%**、分支 **92.42%**、函数
+**100%**；格式、零警告 Lint、语法、CI/发布治理、原完整客户端命令均退出 0，完整客户端
+**956/956**，0 失败/取消/跳过，运行源与测试摘要前后一致，证据
+`.hpm-acceptance/context-recovery-capacity-workload-20261020-01/receipt.json`。此前首次开发测试 3/5 保留在工具输出：错误使用 READ 的 range 容器，按真实顶层 offsetBytes 契约修正后通过，未修改运行代码、原门禁或预算。
+
+本阶段只建立可维护的验收入口，没有改变代理运行源码、存储格式或任何容量上限，没有新包或部署。原文/检查点分离、预算分层、实际压缩与多端长任务资格等仍待实现；整体目标继续未完成。
+
+## 当前阶段：分支留存覆盖反馈（2026-10-20，完整客户端门禁通过，容量仍阻塞）
+
+修复容量负控中“新原文未留存，但索引只返回已有来源”的反馈缺口。自动恢复会话的 LIST 现在增加
+`coverage`：仅以已授权当前分支的 calls 和仍可见、未到期来源计算
+`observedCalls`、`availableSources`、`unavailableOrPendingCalls`，状态分别为
+`no_observed_calls`、`complete_for_observed_calls`、`incomplete_or_pending`，scope 明确为
+`observed_calls_on_branch`。不观察共享 ledger 的条数，不返回原文、参数、来源名或错误内容。它不能区分尚待返回、策略拒绝或容量丢失，因此保留不确定性；即使当前已观察调用全部有来源，也不声称整个聊天完整。
+
+非平凡投影拆为 `lib/proxy/context-evidence-coverage.js`
+并进入发布源清单。计数受当前 128 次调用契约限制，畸形/极端输入固定拒绝，不执行值转换钩子；未来容量契约升级须同步修改该校验。新回归在旧源码先失败：第 65 份结果被容量拒绝时索引缺 coverage。修复后确认 65 个已观察调用/64 个可读来源会报告缺口；兄弟分支只能得到自己的 0 个可读来源，序列化重开后仍能重建同样缺口，同时可精确读取第一份原文。状态派生自已有持久化字段，不新增存储格式或在重启时清账。两个新增测试进入既有统一 unit/客户端会话测试文件。
+
+首轮单文件 **31/31**；最终冻结扩大 **260/260**，新投影模块语句 **30/30**、分支
+**13/13**、函数 **1/1**
+全覆盖。格式、零警告 Lint、语法、CI/发布治理及原完整客户端命令全部退出 0，完整客户端
+**950/950**，0 失败/取消/跳过，运行源与测试摘要前后一致。证据
+`.hpm-acceptance/context-recovery-coverage-20261020-02/receipt.json`。首个冻结 runner 的完整客户端
+**949/950**
+失败保留：共享工具描述变更改变了历史 benchmark 语料摘要。恢复原共享说明后建立新冻结 runner，未更新历史摘要、提高 baseline 或关闭断言；最终运行源仅修改会话投影、增加投影模块及发布清单，共享工具说明保持原值。
+
+本轮没有扩大量、调用、快照或读预算，全天容量阻塞仍成立；coverage 是缺口反馈，不是容量修复。当前运行源已超过上一隔离包，旧包 429 项及安装客户端资格不能用于证明新投影，包内/实际客户端新行为仍待验收。未部署、安装插件、改变用户配置/认证或调用真实模型，整体目标继续未完成。
+
+## 当前阶段：全天容量负控（2026-10-20，已确认首发容量阻塞）
+
+本轮只新增隔离测量脚本，没有改变运行源码、测试、配额或配置。对当前真实 session/binding/ledger/reader 实现推进合成时钟，每轮生成一个合规工具调用、下一轮报告合成原文，并定期序列化/重开；通过正式 LIST/READ 固定读回第一份原文。四个画像均未达到其请求的任务长度：
+
+| 合成任务画像                                         | 实测最先出现的缺口                                                   | 后续硬限制                                                                   |
+| ---------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 24 小时，每 5 分钟一轮，每份 1 KiB，定期恢复         | 第 66 轮首次有 65 份已报告结果但仅 64 份可见（5 小时 25 分）         | 第 129 轮 complete 返回 invalid_recovery_calls，完成 128 轮（10 小时 40 分） |
+| 8 小时，每分钟一轮，每份 1 KiB                       | 第 66 轮首次缺留存（65 分钟）                                        | 第 129 轮不能继续提交（128 分钟）                                            |
+| 四任务各 8 小时，每 5 分钟一轮，每份 512 字节        | 四任务各完成 64 轮后                                                 | 第 65 轮 begin 返回 context_binding_quota，总计 256 轮（5 小时 20 分）       |
+| 8 小时，每 5 分钟一轮，每轮 LIST+READ，每份 512 字节 | 第 34 轮的第 33 次恢复组合在 LIST 返回 evidence_read_budget_exceeded | 成功恢复 32 次；后续同样出现 64 份来源上限                                   |
+
+这些结果不是实际耗时或真实客户端/压缩负载验收，而是按明确事件频率推进的容量负控。定期重开未清空预算或延长期限；已有第一份原文在成功读回时仍逐字一致，没有通过驱逐旧来源伪造容量。单份和总字节都很小，已经暴露条数、调用数、快照及读次数的独立约束，不能把问题归结为大文件。`final.rejectedCaptures`
+是重开后 owner 的当前计数，不是全天丢失总数；首次可见来源缺口及公开失败才是该测量的依据。
+
+源测量
+`.hpm-acceptance/context-recovery-daily-capacity-20261020-01/result.json`；沿用已封存隔离包、实际包内 Node 和 session/reader 模块运行同一画像，四份 profile 与源结果逐字段一致。`.hpm-acceptance/context-recovery-daily-capacity-package-20261020-01/milestone.json`
+复核当前运行源/包与原 manifest 摘要一致，明确
+`capacityShortfallConfirmed:true`、`fullGoalComplete:false`。测量脚本退出 0 仅表示负控成功执行，绝不表示全天容量通过。
+
+因此当前只能描述为“原期限最长 24 小时，受较小容量约束”，不能宣传“已覆盖全天长任务”。首发容量是实质阻塞；后续须同步处理来源冷存储、累计调用、快照保留及分层读预算，不通过简单放大单个上限、重开清账、按连接合并或驱逐仍有效原文解决。详细实施方向已补入完整方案。未部署、改变用户配置或调用真实模型；此前 948 项客户端及 429 项包内回归仍只证明其对应功能，不证明全天容量。
+
+## 当前阶段：v7 提交后强杀及撤销持久性（2026-10-20，完整客户端及原包范围通过）
+
+扩展已有跨物理拥有者回归，使用真实默认加密存储，新增四个不同 PID 的路径：保存 v7 检查点并收到提交确认后，通过
+`process.kill(process.pid, 'SIGKILL')`
+杀死拥有者，明确跳过 SQLite/worker 正常关闭；新进程重开后正式解析检查点、重建授权并精确读回旧原文；随后第三个进程完成撤销提交后再次强杀，第四个进程重开确认原 scope 的 load 为 null、目录中无原记录。父测试检查提交确认和跳过关闭的回执、强杀子进程非零退出、正常读进程退出 0，排除超时清理冒充成功。原到期不变，存储文件不含合成原文明文。正常退出两进程路径继续保留。没有运行源变更，新增路径位于既有统一 unit/客户端测试及其 fixture。
+
+首次摘要文件专项 **10/10**，冻结扩大
+**126/126**；格式、零警告 Lint、语法、CI/发布治理以及原完整客户端命令全部退出 0，完整客户端
+**948/948**，0 失败/取消/跳过。运行源及测试摘要前后一致，证据
+`.hpm-acceptance/context-recovery-v7-crash-20261020-01/receipt.json`。
+
+本次沿用上一阶段隔离包
+`hpm-isolated-release-Wr2O5s`，不重复构建。实际包内 Node/模块运行更新后的测试
+**429/429**，含提交后强杀和撤销后强杀；源码、包文件与 manifest SHA256
+`4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f`
+逐项匹配，新的测试及 fixture 摘要一致。封存
+`.hpm-acceptance/context-recovery-v7-crash-package-20261020-01/milestone.json`
+明确
+`runtimeRebuilt:false`、`unchangedPreviouslyBuiltRuntime:true`，链接上一包 milestone 摘要。复用 runner 中的
+`packagedProxyRuntimeChanged`
+历史字段不作为本轮新增运行源或新包证据，以封存的实际摘要核对为准。安装版客户端前阶段资格仍对应同一未改变的包，本轮未重复其探针。
+
+该资格仅证明 v7 **已确认提交后**
+的进程强杀恢复及撤销持久性。尚未证明 v7 发布事务在确认前的所有崩溃位置、机器断电、文件系统故障、旧备份恢复的撤销水位或完整回滚流程。未部署、修改用户配置/认证或调用真实模型。实时流式/steering、全天容量及多端普通配置等原目标仍未完成。
+
+## 当前阶段：v7 加密跨宿主与新隔离包资格（2026-10-20，范围及完整客户端门禁通过）
+
+新增统一回归
+`v7 summary survives two physical owners through real encrypted storage without extending expiry`，以及专用子进程 fixture
+`test/helpers/context-recovery-v7-owner.cjs`。使用真实时间、默认 Windows
+CurrentUser 密钥保护和加密 SQLite worker：一个拥有者进程保存 v7
+write-ahead 检查点并正常退出，另一个不同 PID 重新打开后通过正式存储记录解析器和会话重建，沿公开 Responses 请求重新授权，逐字读回旧原文；导出期限与保存前相同，存储目录中的文件不含该合成原文明文。子进程只输出固定结果字段，失败只输出固定错误，不转发异常或原文。该测试已进入既有 Codex 摘要测试文件及统一 unit/原客户端命令。此项是正常退出后的跨物理进程重开资格，不能替代强杀、断电、跨设备或真实模型资格。
+
+首次专项 **9/9**。最终冻结范围 **125/125**，修改的版本模块覆盖语句/行
+**99.82%**、分支 **95.89%**、函数
+**100%**。格式、零警告 Lint（包括新 fixture）、语法、CI/发布治理以及原命令
+`npm run test:client:coverage` 全部退出 0，完整客户端
+**947/947**，0 失败/取消/跳过，覆盖语句/行 **98.90%**、分支 **94.75%**、函数
+**99.05%**。终态运行源和测试摘要一致，证据
+`.hpm-acceptance/context-recovery-v7-host-20261020-01/receipt.json`。
+
+新隔离包为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-Wr2O5s\dist\staging\runtime`，核对
+**582** 个运行源、**595** 个构建源、**116** 个锁定运行依赖。manifest SHA256
+`4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f`，包内 Node
+SHA256
+`780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b`。实际包内 Node 和模块回归
+**428/428**，包括 v7 跨物理拥有者、旧期限/策略和原生 ACL 边界；复制测试只转换模块解析和子进程工作目录，不改断言、期限、并发或覆盖率门禁。新 fixture 也解析到包内模块，测试使用的 SDK 环境函数显式解析到包依赖。
+
+安装版隔离 Codex 用新包实际恢复入口完成四次默认本地摘要，固定同一旧 sourceId 的四次读取逐字一致，root 保持 1；Claude 三次原生压缩、三次精确读取及四物理宿主正常退出重开通过。客户端无私有工具泄露，合成原文未在存储文件中发现明文。父进程及其 fork 使用包内 Node。资格仍限定脚本循环上游和隔离配置；Codex 原生错误项的干净资格、真实模型、官方 HTTPS 和普通安装配置尚未建立。
+
+最终 `.hpm-acceptance/context-recovery-v7-package-20261020-01/milestone.json`
+对源、构建副本、包、测试、manifest/锁/Node 摘要及两类安装客户端结果进行封存，`packageScopePassed`
+和 `clientGatePassed` 为 true，`fullGoalComplete`
+为 false。未部署、安装插件、修改用户配置/认证或进行真实模型请求。完整实时流式/steering、全天容量、崩溃及完整迁移/降级/回滚、多端普通配置与全仓 verify 等仍待完成。
+
+## 当前阶段：Responses 摘要检查点版本边界（2026-10-20，当前完整客户端门禁通过）
+
+修复此前 Codex 本地摘要窗口仍沿用 recovery-root
+v6 标签的问题。`exportRecoveryRootState` 仅在已发布绑定含 Responses
+summary 窗口时导出
+**v7**；普通根继续导出 v6，旧格式按原有规则读取。当前读取器明确支持 v7，并拒绝把 Responses
+summary 状态重新标为 v1–v6；未知版本、空/超长绑定数组和访问器均安全拒绝，访问器不执行。新增回归还确认失败不撤销当前活跃 owner 的权限，正常重开仍为 v7，原绝对到期时间不变。未引入 SQL
+schema 迁移、旧记录续期或就地重写。此前未发布候选中若存在带 Responses
+summary 的 v6 检查点，当前版本会拒绝，而不会猜测其版本或继承权限。
+
+新回归先在旧源码失败（预期 v7，实际 v6），证据
+`.hpm-acceptance/context-recovery-stdio-eof-20261020-02/schema-negative.log`。使用上一阶段实际隔离包的旧策略读取器（SHA256
+`f91f8a021f16c50f0a6cdb45ad54c8de035cc554c5c206624ef012bd7908c651`），验证 **6**
+个 v7 检查点全部被拒绝，普通 v6 检查点仍被接受；这是实际旧模块的读取边界资格，不是完整旧程序启动或回滚操作资格。最终证据
+`.hpm-acceptance/context-recovery-summary-schema-20261020-03/old-reader.json`。
+
+冻结范围 **124/124**，0 失败/取消/跳过；两个修改模块覆盖语句/行 **99.82%**、分支
+**95.89%**、函数 **100%**。格式、零警告 Lint、语法、CI/发布治理及原命令
+`npm run test:client:coverage` 全部退出 0，完整客户端
+**946/946**，源和测试摘要前后一致。新回归位于既有 Codex 摘要测试文件，统一 unit 自动发现与原客户端命令均包含。首个 runner 的未声明 structuredClone 全局 Lint 失败保留；改用已有 JSON 数据复制方式后，第二个冻结 runner 完整通过，再补畸形输入边界后建立最终第三个 runner，完整通过，未改变门禁阈值或期限。
+
+本次运行源码已超过上一阶段隔离包，不沿用该包 417 项及安装版客户端的资格来证明新版本行为；新包及真实加密持久化的 v7 跨宿主资格仍待建立。旧读取器拒绝新版本只是回滚保护之一，安全备份/撤销水位、降级停写、回滚操作、崩溃与恢复仍需单独验收。未部署生产、修改配置/认证、安装插件或调用真实模型。完整流式/steering、全天容量、多端及整体交付继续保持未完成。
+
+## 当前阶段：可选 stdio 网关 EOF 修复（2026-10-20，当前完整客户端门禁通过）
+
+使用实际 SDK
+Client/StdioClientTransport 完成网关 initialize、目录发现及下游工具调用后，测试直接结束其拥有的子进程 stdin，独立等待退出，避免 SDK
+`client.close()`
+的两秒后强杀掩盖 EOF 缺陷。修改前网关三秒内未退出，回归失败；证据保留于
+`.hpm-acceptance/context-recovery-codex-summary-package-20261020-01/stdio-eof-regression-negative.log`。这次是有效的握手后 EOF 负控，不沿用之前未完成握手的两个手工探针。
+
+`scripts/lib/evidence-gateway-shutdown.js` 现在将 stdin
+end/close、绑定时已结束/销毁的输入和 SIGINT/SIGTERM 接入同一个幂等关闭事务，并一起移除监听器。实际回归要求网关正常退出码 0、无宿主强杀，并确认下游 PID 已退出；单元边界同时覆盖重复事件、已结束输入和 dispose。新增测试位于已有
+`test/evidence-gateway-runtime.test.js`，已核实统一 unit 自动发现及原完整客户端命令均包含该文件。未修改 SDK、期限、并发、覆盖率阈值或客户端配置。
+
+首轮两文件 16/16 通过；冻结扩大范围 **38/38**
+通过，关闭模块语句/分支/函数/行覆盖率均
+**100%**。首个 runner 因测试变量 prefer-const 警告失败，保留
+`.hpm-acceptance/context-recovery-stdio-eof-20261020-01/`，修正测试清理 PID 持有方式后建立第二个冻结 runner。最终
+`.hpm-acceptance/context-recovery-stdio-eof-20261020-02/receipt.json`
+确认格式、零警告 Lint、语法、CI/发布治理、范围覆盖率和原命令
+`npm run test:client:coverage` 全部退出 0；完整客户端
+**945/945**，0 失败/取消/跳过，覆盖语句/行 **98.90%**、分支 **94.74%**、函数
+**99.05%**，运行源及测试摘要前后一致。
+
+此前两个完整客户端超时在本轮未复现，但只确认当前冻结组合通过一次完整客户端门禁，不声称代理启动性能根因已修复，也不抹去历史失败。启动/目录发现期间的提前 EOF、非合作下游的强杀降级、跨平台与普通安装配置仍需分别验证。本次变动是仓库内可选 MCP 网关，未扩张代理包发布范围；上阶段代理隔离包资格仍仅覆盖其原有 417 项。未部署、安装插件、修改认证或调用真实模型。全仓 verify、完整实时流式/steering、容量、迁移/降级/回滚与多端真实模型验收仍未完成，整体目标保持未完成。
+
+## 当前阶段：最新恢复源码的隔离包资格（2026-10-20，包内范围通过，完整门禁仍未通过）
+
+已为包含异步原生 ACL 和 Codex 本地摘要修复的当前源码建立新隔离包，不再沿用 WS 身份阶段旧包。包目录
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-GDMBUC\dist\staging\runtime`；**582**
+个运行源、**595** 个构建源与工作区匹配，**116**
+个运行依赖与原锁文件匹配，发布目录治理通过。manifest SHA256
+`a7ad0d47c0a43834fe8d7e7632bd6a9429f140819cda571c598bc0d81be48b05`；包内裁剪锁文件 SHA256
+`762f7ba751ba65e0158313e5cf1f949327a3b3ddbd86eca94995d41ee69f55ef`；Node SHA256
+`780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b`。包内裁剪锁与项目完整锁是不同对象，不能直接比较文件摘要。首次 seal 错用了该比较并失败，修正比较对象后通过，失败记录保留；原完整锁仍通过构建副本逐字摘要校验。
+
+使用包内 Node 和包内模块执行 **417/417**
+回归，0 失败/取消/跳过。范围在上一包回归基础上加入本地摘要、异步/同步原生文件保护及重命名边界。复制的测试仅改模块解析到包目录及其子进程工作目录，不改变断言、期限或并发；复制前的源测试摘要进入回执，终态后再次核对。实际 Windows 原生助手异步保护测试执行通过。
+
+安装版隔离 Codex 使用该包的实际 WS 恢复入口：四次默认本地摘要后 root 始终为 1，固定第一次摘要后锁定的同一 sourceId，四次私有 LIST/READ 均逐字读取摘要前原文；客户端 WS 帧和 stdout 无私有工具名，退出 0。原生 error
+item 仍存在，此项不宣称干净的完整真实客户端输出资格。安装版 bare
+Claude 使用包内 Node 的实际 HTTP 入口、加密 SQLite 和 CurrentUser 密钥：三次原生压缩、三次精确原文读取、两次私有历史重建，通过四个物理宿主正常退出后重开；无磁盘明文原文或客户端私有工具名泄漏，退出 0。该范围没有重做进程崩溃资格。
+
+完整工程状态没有被包内通过覆盖：上一阶段原完整客户端
+**941/943**、1 失败/1 取消的结果仍有效，15 秒代理启动和 30 秒双宿主 stdio 超时未修复。本轮增加 stdio 诊断 preload，仅记录方法阶段/时长而无参数、工具结果或 stderr 内容；带 V8
+coverage 的独立原文件 **9/9**，两个 stdio connect 约 **3691/3961 ms**、close 约
+**2040/2033
+ms**。此时隔离包也在构建，这个单文件样本不能解释或清除完整命令中的超时。SDK 服务端没有 stdin
+end 的关闭接线、当前 CLI
+shutdown 只绑定信号，属于下一步待验证边界；尚未实施修复或据此认定 30 秒超时根因。
+
+额外 EOF 探针未取得行为资格：首探针误把仅供仓库使用的可选 MCP
+gateway 当作代理包内入口，因该文件未分发而在初始化前退出；第二探针改用正确仓库入口，但在原 15 秒探针初始化期限前未就绪，未实际发送 EOF。两次失败及终态保留，不是成功的 EOF 负控，也不说明应把可选 gateway 静默纳入代理包。该网关仍按
+`docs/local-evidence-plugin.md`
+的仓库路径提供，未安装或修改用户配置。后续需补足可靠的 EOF 生命周期回归及诊断。
+
+证据目录
+`.hpm-acceptance/context-recovery-codex-summary-package-20261020-01/`，`milestone.json`
+封存包、测试和两类客户端探针；终态后重新逐项核对当前运行源、构建副本、包内源、包内 Node、裁剪锁及复制前测试摘要。`packageScopePassed:true`，`aggregateGatePassed:false`，`fullGoalComplete:false`。全程没有生产激活、共享服务重启、真实模型请求或真实认证变化；仍限隔离配置和脚本循环上游。24 小时绝对 TTL、旧到期时间不续期不变。普通配置、官方 HTTPS、IDE/Desktop/远端、全天容量、私有实时流式/steering、迁移/回滚及完整门禁仍未完成。
+
+## 当前阶段：Codex 默认本地摘要恢复链修复（2026-10-20，范围验证通过，完整门禁未通过）
+
+上阶段实际安装版默认本地摘要的 root 分裂现已修复到当前源码。新增独立
+`context-recovery-codex-summary` 模块：只把空工具目录、auto tool
+choice、无 provider previous
+ID 且带已知默认摘要指令的请求识别为本地摘要；通过既有 compaction 专用索引匹配唯一已观察历史，继承原完整工具 policy 的绑定 scope。未观察或存在歧义的摘要不能创建继承权限，普通生成的完整 policy 校验不变。摘要文本本身及同一连接不提供绑定权限。
+
+已接纳的本地摘要复用既有私有恢复 coordinator 和发布事务，产生随机摘要回执、摘要片段 SHA256 与长度；只有成功发布后的回执可选择同主体/目标/完整 policy 下的已提交分支。Responses
+wire 上不能直接把该内部回执当作 provider
+`previous_response_id`。摘要采用后建立新的公开窗口并丢弃旧私有映射的重放依据，同时保留祖先原文权限及原到期时间。HTTP
+JSON/SSE、WS 及无原文来源的已观察摘要都进入同一发布边界；取消、撤销、未封存、非法或混合工具输出不能发布摘要回执。签名/不透明或歧义摘要输出当前失败关闭，尚未证明完整真实模型输出矩阵。没有新增固定的“恢复后再独立公开生成”请求或改变待决的实时流式方案。
+
+新增七项回归位于
+`test/context-recovery-codex-summary.test.js`，另补一项 HTTP 零来源摘要入口回归；统一 unit 自动发现，并显式加入原客户端覆盖命令。正常、空、非法、超限、getter、Unicode、回执篡改/重复、跨主体/工具 policy、到期、未发布/撤销/失败、连续摘要及序列化重开均覆盖。新增集成回归先在旧逻辑上以可见原文为 0 失败，证据
+`context-recovery-codex-compaction-20261020-01/local-summary-negative.log`
+保留。新模块加入发布源清单。
+
+最终冻结证据在
+`.hpm-acceptance/context-recovery-codex-summary-20261020-01/`。11 个修改文件的格式、9 个 JS 文件零警告 Lint/语法、CI/release 治理通过。扩大范围
+**288/288**，0 失败/取消/跳过；七个生产模块覆盖语句/行 **96.43%**、分支
+**90.46%**、函数 **95.8%**，达到原阈值。完整原客户端命令 **943**
+项：**941 通过、1 失败、1 取消**，退出 **1**；覆盖语句/行 **98.83%**、分支
+**94.69%**、函数
+**98.84%**。两项未通过分别为双宿主实际 stdio 测试的原 30 秒超时，以及实际代理原 15 秒启动失败（仅 preload/catalog/crypto/lifecycle 已到达）；stdio 超时本轮尚未定位，不能归因于负载或宣称无关。没有延长期限、降低并发/覆盖门槛、跳过断言或无改动重跑完整失败命令。
+
+上述门禁终态后，用同一最终源码运行安装版 Codex 的实际恢复 WS 入口（`native-proxy-v13`）：**四次默认本地摘要、root 始终为 1**；每次摘要采用后调用私有 LIST/READ，固定读取第一次摘要后锁定的同一个 sourceId，四次结果都与摘要前捕获的原文逐字相等。客户端 WS 帧和 stdout 未出现私有工具名，探针和客户端均退出
+**0**。v11 首次逐字读取探针未正确处理 provider 的增量私有结果，失败保留；v12 修正脚本对 delta 的处理，v13 又固定原 sourceId，避免用内容相同的新来源冒充旧原文。该修正没有改变生产恢复逻辑。
+
+`milestone.json` 汇总日志与回执摘要；冻结运行/构建/测试源、安装版探针及 **1426**
+文件的原生检查前后摘要一致。资格仍限于隔离 HOME/config、合成认证和脚本循环上游，不包含真实模型、官方 HTTPS、普通用户配置、IDE/Desktop、磁盘进程崩溃或新发布包；原生 error
+item 仍存在，不宣称干净的完整安装版验收。根状态序列化重开回归通过，但新增 Responses
+summary 窗口尚未完成旧包降级/回滚资格。未启用生产、安装插件或调用真实模型。24 小时绝对 TTL 与旧记录不续期不变。完整目标仍包括启动/stdio 门禁、新包、多端及真实输出矩阵、实时流式/steering、全天容量、迁移和回滚。
+
+## 当前阶段：安装版 Codex 默认本地摘要的恢复连续性负控（2026-10-20，未修复）
+
+实际安装版 Codex 的隔离自定义 Responses provider 不只使用独立
+`/compact`。以默认 compact prompt、10000 context
+window、1000 自动压缩阈值及脚本 usage 触发时，它通过 WS 发送普通生成形状的本地摘要请求：`tools: []`、`tool_choice: auto`、没有
+`previous_response_id`，input 包含默认 `CONTEXT CHECKPOINT COMPACTION` /
+`handoff summary`
+指令。摘要之后恢复原 9 项工具目录，并采用脚本返回的摘要窗口。这是当前安装版本及隔离配置的实测，不推论官方 HTTPS、真实模型或 IDE/Desktop 的行为。
+
+发现过程保留在
+`.hpm-acceptance/context-recovery-codex-compaction-20261020-01/`。v4 的默认摘要发现没有证明实际工具目录和结果；v5/v6 增加目录和脱敏错误分类，确认
+`get_goal`
+存在，观察到四个工具结果；v7 只改变合成请求的模型标签，不调用真实模型。各版本仍有原生 error
+item，不能据退出 0 宣称干净验收。没有保存原生错误全文、用户内容或认证材料。上述探针不替代统一 CI。
+
+v8 首次连接当前源码的实际 `createWebSocketProxy` /
+`createContextRecoverySessions`，复现会话分裂。v9 在此基础上加入摘要请求/摘要采用的 admission 分类、root 计数及显式失败断言，并冻结前后
+**1424**
+个运行、构建及测试源文件摘要。四次本地压缩、四个采用摘要的后续窗口、四个无 unknown-tool 标记的工具结果，客户端进程退出
+**0**；但是 admission 的 roots 从 **1 → 2 → 3 → 4**，全部已接纳请求的
+`visibleSources` 为 **0**，之后五次 admission 返回
+`context_recovery_quota`。因此 runner 明确退出
+**1**，`discoveryPassed:true`、`recoveryContinuityPassed:false`、`fullQualificationPassed:false`。工具结果计数及无 unknown-tool 标记不证明逐字原文恢复；本轮没有这项成功证据。
+
+权威记录为
+`native-proxy-v9.json`、`native-proxy-v9.log`、`native-proxy-v9-source-snapshot.json`
+和
+`native-proxy-v9-receipt.json`。回执确认源文件及探针未变、子进程已终止；安装版二进制 SHA256 为
+`9e7c59c05cc1ce5677b1f94e835b2ac038ca3be14504e78d558eacdb0ea3f55d`。脚本退出 1 是恢复连续性负控，不是安装客户端崩溃。循环上游、隔离 HOME/config 和合成认证；无真实模型请求、用户配置修改或生产激活。没有新包或生产代码修改，上一阶段完整客户端启动失败仍未解决。
+
+源码边界检查解释了待修复路径：Responses 普通请求绑定完整工具 policy；既有 standalone
+compaction 的省略工具专用索引只识别 tools/toolChoice 均缺失；Claude 的摘要回执延续仅适用于 Claude。此次本地摘要既改变 policy，又在下一次请求用摘要替换完整窗口，当前没有对应的已观察摘要过渡。后续必须建立窄化且可撤权的本地摘要过渡、摘要回执及持久化连续性，覆盖篡改/过期/跨主体/跨 policy/并发分叉，并在同一真实入口验证连续压缩后的逐字原文读取。不能用增大 root 配额、全局忽略工具 policy、按连接/文本相似度合并或普通生成退出 0 替代修复。
+
+私有恢复实时流式的额外公开生成请求仍是未选定的架构取舍。用户要求更多决策材料，尚未同意增加请求或切换默认模式；本轮没有实现这项变更。新原文 24 小时绝对 TTL、旧记录不续期保持既定要求；完整流式/steering、多端矩阵、容量、迁移/回滚、启动门禁和受控激活均未完成。
+
+## 当前阶段：异步管理凭据复用原生 ACL（2026-10-20，完整门禁未通过）
+
+检查当前源码发现同步敏感路径已有原生 ACL 操作，异步文件保护仍固定执行 whoami/icacls 兼容链。默认 Windows 异步文件路径现复用同一现有原生助手：私有路径通过 stdin 传递，固定参数、最小系统环境、5 秒期限、128 字节输出上限、隐藏子进程；等待成功回执并复查目标 inode 后才发布缓存成功。stdin 失败终止拥有的子进程，错误统一脱敏。助手执行失败不回退兼容后端；仅默认可选助手确实缺失时保持已有兼容行为，显式文件系统/进程/SID/环境适配器保持原路径。
+
+没有降低 ACL 标准或提前开放管理端口；原生操作仍负责目标与祖先固定、DACL 原子替换和读回验证。新增七项回归覆盖异步等待、stdin/回调/stderr 失败、固定执行参数、缺失/非法/极端/硬链接输入、替换竞态、缓存/force 失败撤销，以及实际本地助手；与异步 ACL 和凭据发布测试首次验证 18/18，进入既有统一 unit 自动发现。本地助手验证不称为新包资格。
+
+冻结候选 `.hpm-acceptance/context-recovery-async-native-acl-20261020-01/`
+已通过三文件格式、零警告 Lint、语法及 CI/release 治理。初次范围测试 172/172，函数覆盖 88.23% 低于原 90% 门禁，定位为范围清单遗漏既有文件重命名测试，两项既有函数未覆盖；此失败保留，未降低覆盖率要求。原完整客户端独立诊断 934/935，无取消/跳过，退出 1，覆盖语句/行 98.84%、分支 94.70%、函数 98.84%。唯一失败仍为原 15 秒真实代理启动，到期时模块图尚未就绪，pending 为 trae_official；第二项真实代理全部端口在 11662
+ms 就绪。这不能证明完整启动修复或等条件性能改善。
+
+首次 runner 终态之后，在逐项复核同一冻结摘要后，把既有
+`secure-file-rename.test.js`
+加入范围清单，补全范围 180/180，无失败、取消或跳过，覆盖语句/行 96.24%、分支 90%、函数 94.73%，原阈值全部通过。`complete-scope-receipt.json`
+保留初始回执关联，未重跑同一完整客户端失败命令；运行/构建源和全部测试结束后摘要一致，combinedGatePassed 仍为 false。源码/测试冻结期间未修改实现，未延长原启动 deadline 或降低并发。
+
+本轮没有新包或安装版资格，上阶段包的资格不沿用至这次源码。24 小时绝对 TTL、已有记录期限和完整目标保持不变，生产未启用，未修改真实认证、安装插件或发起真实模型请求。启动、私有流式/steering、多端连续压缩矩阵、全天容量及迁移/回滚继续列为未完成。
+
+## 当前阶段：WS 双响应身份校验（2026-10-20，完整门禁未通过）
+
+用户再次确认新原文采用 24 小时绝对 TTL；旧记录保持原到期时间，不因读取、恢复或配置更新续期。
+
+修复 WS 事件同时含有 envelope `response_id` 与嵌套 `response.id`
+时，前者掩盖后者冲突或非法值的问题。现在两个存在的字段均独立校验并与当前响应身份核对，在事件入队、公开进度和终态提交之前失败关闭。显式 null、空串、超长或非字符串身份不能被另一个合法字段掩盖；未发布分支撤销，不授予历史恢复权限。
+
+新增连接级非法/匹配身份回归及真实 socket 冲突终态回归；已有真实流式正例同时携带匹配的双身份。旧源码负控失败，WS 文件独立验证 78/78。冻结候选
+`.hpm-acceptance/context-recovery-ws-dual-identity-20261020-01/`
+格式、零警告 Lint、语法、CI/release 治理通过；范围 213/214，完整客户端 934/935，均无取消或跳过。唯一失败均为原 15 秒真实代理启动期限，完整门禁仍未通过。范围覆盖语句/行 98.37%、分支 93.54%、函数 100%；结束后运行/构建源和全部测试摘要保持一致。
+
+本次修复是响应身份边界，不代表私有恢复已支持实时流式或 steering。当前源码新隔离包匹配 581 个运行源、594 个构建源和 116 个锁定依赖，发布目录治理及源码/依赖摘要检查通过。实际包内 Node 和模块回归 386/386，无失败、取消或跳过；包含新支持模块、runtime、清除管理和 WS 身份测试。首次转换仍有初始化成本，未宣称整体提速。
+
+同一新包的安装版隔离 Codex
+0.160.1，经实际 WS 恢复入口和本地脚本上游完成混合搜索/私有 READ/外部调用及缓存失效后的自动全窗口补发：原目录保留、原文和私有历史精确、搜索回执各一次、混合顺序一致，无私有工具名泄漏。安装版 bare
+Claude
+2.1.292 也完成连续三次原生压缩、三次精确读取、两次私有历史重建，四个物理宿主正常退出后重开实际加密 SQLite 与 CurrentUser 密钥恢复通过，磁盘文件不包含明文原文。两项探针均退出 0，使用实际包内运行环境；仅为隔离配置/本地脚本上游/对应组合入口资格，不能外推普通完整配置、官方 HTTPS、全 core、真实模型或其他终端；本阶段没有重做强制终止资格。
+
+证据位于同一候选目录的
+`packaged-execution.json`、`native-codex-hosted-mixed-packaged.json`、`native-persistent-packaged-drained.json`。此前包的资格不沿用；完整门禁仍失败。生产未启用，未改真实认证、安装插件或发起真实模型请求。整体剩余范围仍包括启动、私有流式/steering、连续压缩客户端矩阵、全天容量、迁移和回滚。
+
+## 当前阶段：协议转换支持按首次使用初始化（2026-10-20，完整门禁未通过）
+
+实际启动继续卡在模块加载及管理凭据就绪之前。检查发现转换路由已有 lazy 工厂，但 handlers 在组合时仍加载 Responses 历史/语义桥接和请求校验器。新增
+`lazy-conversion-support`，与既有路由延迟加载边界衔接：原生透传的组合不导入这两类支持模块；显式查看历史或首次转换调用才创建对应真实工厂，复用同一个历史 Map 与所有方法。Responses 普通转换缓存也在该工厂首次使用时读取，首次转换仍承担加载成本，不承诺模型首字延迟改善。
+
+支持模块和工厂返回使用 own data
+descriptor 校验，不执行 getter；初始化失败与递归进入终态，固定脱敏 503，不在后续请求重复创建。正常方法在初始化后保持原同步/异步返回、receiver 和异常身份，不能把业务校验异常改写为初始化失败。新增模块已加入发布源清单。
+
+独立进程回归在旧源码上复现 eager-conversion-support 导入失败，证据
+`.hpm-acceptance/context-recovery-conversion-cold-20261020-01/negative.log`。四项新支持模块测试覆盖 cold
+composition、真实方法目录、共享状态与实例隔离、空/非法模块和工厂、极端参数原样转交、加载/方法异常、getter 和捕获递归异常后仍不能复活；与现有路由及 Responses 状态检查
+**8/8**。新增文件和既有 cold-process 回归由统一 unit 自动发现，冻结 runner 复查发现结果；本次没有修改字面客户端测试清单，新增失败注入单测不宣称单独进入该清单。
+
+首冻结候选停在 Lint：新增测试两处 getter 缺少 return，runner 又把 JSON 清单传给 ESLint 产生忽略警告。修复显式 return 和 JS/JSON 检查分工，未关闭规则或警告门禁；首失败回执保留。第二候选
+`.hpm-acceptance/context-recovery-conversion-cold-20261020-02/`
+的全部五文件格式、四 JS 文件零警告 Lint/语法、CI/release 治理通过。扩大范围
+**135/136**，唯一失败仍是第一项真实代理原 15 秒启动；五模块覆盖语句/行
+**98.13%**、分支 **92.63%**、函数 **100%**。handlers 导入 **65
+ms**，且没有两类支持模块的加载项；模块图就绪 **13232 ms**、服务器创建 **14120
+ms**，到期前管理凭据仍未就绪。这只能证明加载边界改变，不能据不同负载的样本声称整体提速。
+
+runner 按失败停止，未自动运行完整客户端；随后在逐项复核同一冻结摘要后，首次单独运行该源码的原完整客户端命令，作为独立诊断，不覆盖扩大范围失败。该命令
+**930/932**，两项实际代理启动失败，0 取消/跳过，退出 1；覆盖语句/行
+**98.84%**、分支 **94.70%**、函数 **98.84%**。第一项 core **9278
+ms**，到期时 runtime HTTP agents 尚在加载；第二项模块图 **13074 ms**、服务器创建
+**14456 ms**，到期前管理凭据未就绪。`client-diagnostic-receipt.json`
+确认运行/构建源和全部测试摘要仍一致，并保留
+`overallGatePassed:false`。未无改动重跑相同失败命令。没有新包或安装版资格。
+
+24 小时绝对 TTL、旧记录到期、读预算、原 deadline 和并发保持不变；生产服务与真实认证没有修改，未安装插件或发起真实模型请求。启动的完整工程资格仍缺失；WS 流式/steering、客户端连续压缩矩阵、容量及回滚等整体范围继续保留，不能被这些加载优化替代。
+
+## 当前阶段：关闭状态不创建恢复会话所有者（2026-10-20，完整门禁未通过）
+
+上阶段完整门禁的唯一启动失败仍有效，本阶段不改变 15 秒期限或并发。进一步检查发现默认 runtime 在构造时就创建 disabled 生命周期，core 在恢复关闭的每个普通请求上也读取 sessions；这要求启动先加载完整会话图。现在默认 runtime 在关闭状态仅保留配置和生命周期状态，配置启用或显式请求 sessions 才创建真实生命周期；启用配置同步开始创建，持久模式仍等待原 storage
+ready 屏障。core 的注入路径不再静态导入生命周期，关闭恢复的请求不读 sessions。未引入假 session、替代权限对象或跳过已启用服务的初始化。
+
+调用方注入 createLifecycle 的构造期严格校验不变；已有会话的禁用、切换、撤权、清理和 shutdown 保持原状态机。未分配会话时清除仍处理 inactive 存储，清除期间的新启用不能提前放行；退出或失败后不能新建所有者。首次 lifecycle 模块加载失败脱敏进入终态，不从请求重试或回退到内存恢复。
+
+新增四项回归进入统一 unit 和既有客户端覆盖入口，覆盖真实 core 的关闭请求路径、启用后真实身份及同步禁用、无所有者清除期间的较新启用/禁用/退出/失败、未使用服务退出和首次模块加载失败。冷图回归在旧代码上失败，记录保留在
+`.hpm-acceptance/context-recovery-disabled-owner-20261020-01/negative.log`；首次四文件检查
+**48/48**。第一冻结范围 **119/120**，唯一失败为现有主入口 **1201 行超过 1200**
+预算，未运行完整客户端。仅删除组合区一处空行，保留全部代码及原预算，单独治理与格式检查通过；此失败回执保留，不删除测试或放宽断言。
+
+第二候选 `.hpm-acceptance/context-recovery-disabled-owner-20261020-02/`
+的格式、零警告 Lint、四文件语法、CI/release 治理与扩大范围 **120/120**
+通过，覆盖实际 core、WS、配置切换、清除及组合入口；runtime/lifecycle/inactive-clear 三模块覆盖语句/行
+**97.52%**、分支 **92.09%**、函数 **100%**。完整客户端
+**931/932**，0 取消/跳过，退出 1；覆盖语句/行 **98.84%**、分支 **94.70%**、函数
+**98.84%**。完整门禁结束后运行/构建源和全部测试摘要一致。
+
+唯一失败仍是第一项原 15 秒实际代理启动：core **8100 ms**、handlers **1309
+ms**，到期时 cli-session-routing 尚在加载，未到模块图就绪。第二项 core **4678
+ms**、handlers **751 ms**，全部端口 **13909 ms**
+就绪。首次加载的生命周期耗时项已从 core 图消失，但不能从不同负载的单次结果推定总提速或启动问题解决。没有在相同源码失败后无改动复跑，没有重建包或沿用旧包/安装版资格；包内验证脚本只完成准备，尚未执行。后续需继续处理实际未使用转换支持模块的启动加载及完整门禁。
+
+24 小时绝对 TTL、旧记录到期和读预算不变；未安装插件、启用生产、重启共享服务或发起真实模型请求。后续仍需包内资格、WS 流式与 steering、安装版连续压缩、容量/迁移/回滚及客户端矩阵，完整目标没有缩小。
+
+## 当前阶段：持久化执行加载边界（2026-10-20，完整门禁未通过）
+
+上一轮嵌套加载诊断已经结束：`.hpm-acceptance/context-recovery-nested-startup-20261020-01/receipt.json`
+确认运行/构建源及测试冻结一致，格式、零警告 Lint、诊断 **6/6** 通过；完整客户端
+**923/925**，两项实际代理仍超过原 15 秒期限，0 取消/跳过。覆盖语句/行
+**98.83%**、分支 **94.67%**、函数 **98.83%**。第一项 core 导入 **8802
+ms**，超时时 handlers/request validators 尚在加载；第二项 core **6402
+ms**，模块图就绪 **12490 ms**，创建服务器 **13366
+ms**，在全部端口就绪前到期。与此前一项失败的快照分别保留，不将诊断变化解释为性能改善。
+
+嵌套计时使用精确拥有文件和固定标签，覆盖 core 与 handlers 的直接导入；不输出模块路径、参数、异常内容或用户数据。独立小范围测得 core 约 379/385
+ms，不能与完整并发覆盖门禁作等条件速度比较。耗时分散，现有证据不足以认定单一模块是全部超时的根因。
+
+检查确认内存生命周期和 runtime 的 inactive-clear 模块在组合时也会导入存储执行图。当前将 storage-opening 移到目录生命周期的已有构造事务中，将 storage 执行导入移到 inactive-clear 完成输入与现有目录/checkpoint 检查之后。无目录、空目录和内存模式不需要打开存储；有效清除仍走原 worker 的 revoke-all/inspect/close，不直接删除数据库。模块首次加载异常仍在原脱敏失败边界内，模式切换失败后旧会话保持关闭，不创建内存替代所有者。
+
+新增三项回归进入既有统一 unit 和客户端覆盖入口：内存组合/启用/禁用/退出不加载持久化执行、保留真实 session 身份；首次打开模块失败撤销旧准入并拒绝恢复；无效/空/缺失存储不加载执行模块，真实 checkpoint 加载失败脱敏且不改文件。第一项在旧代码上失败，记录保留于
+`.hpm-acceptance/context-recovery-storage-cold-20261020-01/negative.log`。五文件相关回归
+**89/89** 通过。
+
+最终冻结候选的格式、零警告 Lint、三文件语法、CI/release 治理通过；七文件范围
+**95/95**，两项修改模块覆盖语句/行 **98.67%**、分支 **95.50%**、函数
+**100%**。完整客户端 **927/928**，0 取消/跳过，退出 1，覆盖语句/行
+**98.83%**、分支 **94.67%**、函数
+**98.83%**。运行/构建源和所有测试在门禁结束后摘要一致，回执为上述候选目录的
+`receipt.json`。唯一失败仍是第一项原 15 秒实际代理启动：core 导入 **11392
+ms**，超时时 runtime HTTP agents 尚在加载；第二项 core **6667 ms**，全部端口
+**13904 ms**
+就绪。不同运行的加载时间有明显波动，不能从失败数量变化推定性能改善。本轮未证明完整启动修复，没有重建或沿用旧包/安装版资格到当前源码。
+
+新原文 **24 小时绝对 TTL**、旧记录原到期、读预算、原 15 秒/150
+ms/30 秒检查及并发均不变；未安装插件、启用生产、重启服务或发起真实模型请求。完整落地目标继续执行。
+
+目标：完整落地
+`context-recovery-multi-client-plan.md`，包括免手动 token 的接入、统一内部恢复、持久化、WebSocket 和实际客户端验收。当前目标仍在执行，以下里程碑不代表整体完成。
+
+## 当前阶段：HTTP 恢复执行模块冷加载（2026-10-20，完整门禁未通过）
+
+真实完整客户端门禁中的 15 秒启动超时仍未解决。本轮仅把 HTTP 私有 runner、进度解析、dispatch、client-wire 和 hosted-output 五个执行模块移出启动加载图；普通 provider 资格、授权、观察和会话初始化保留原边界。dispatch 在合格请求的准备事务内加载，runner 与输出编码在已接管的 execute 事务内加载；模块缺失或损坏仍归入原来的脱敏 502、未发布分支 abort 和清理流程，不能回退普通转发。编码加载失败发生在上游已完成之后时保留轮数与 usage。
+
+两项新增回归在旧源码上均失败，初次修复后 HTTP entry **13/13**
+通过。冷启动回归在独立子进程阻止这五个执行模块加载，再组合实际 core
+handler；首次加载失败覆盖 dispatch/runner/编码，校验不合格输入不触发加载、不发布、不重试、脱敏结果及监听器清理。随后加强 usage 保留与下一次正常请求不被失败污染的断言，已进入当前冻结验证。测试仍在统一 unit 自动发现和现有字面客户端覆盖入口内。
+
+实际 core handler 与 API evidence socket 路由 **3/3**
+通过。隔离无覆盖率的单样本 core 导入图从 **191 模块降至 186 模块**，耗时 **649
+ms → 1033
+ms**；不能声称启动加快，不能将模块数下降当成完整启动超时修复。没有延长期限或降低测试并发。第一候选
+`.hpm-acceptance/context-recovery-http-cold-20261020-01/`
+的格式/Lint/语法/治理、范围 **368/368** 通过，覆盖语句/行 **97.82%**、分支
+**92.37%**、函数 **97.15%**；扩大 **506/507**，实际加密 worker 的原 150 ms
+idle 观察未取得 ACK。runner 据原顺序停止，未运行完整客户端门禁；失败与全部未变摘要保留。
+
+该失败的诊断显示观察开始前已有定时回调在执行，原探针仅允许“回调开始时已观察中”确认，不能区分旧回调是否随后读到了新时钟并完成清理。新增时钟耦合探针：仅在实际 sweep 事务读取观察中的时钟且成功返回后，才允许定时回调完成确认；读取时先检查观察状态，再读时钟，再核对状态。普通命令、未读时钟、陈旧时钟和失败事务不能 ACK；确认后后续定时数据库工作仍暂停，独立只读连接检查物理删除。保留旧四字节通用回调探针，实际时钟探针另使用八字节控制，均有严格形状校验。
+
+新增确定性竞态回归在旧探针上失败，修正后 HTTP/idle 两文件
+**25/25**，实际物理删除、活记录、重开和失效写回继续通过。这里是测试确认机制修正，未改生产清理代码，未延长原 150
+ms 断言、30 秒用例期限或降低并发；既有失败不能因此改记通过，也未证明所有并发时序已修复。
+
+随后补充时钟读取先后约束，第二候选
+`.hpm-acceptance/context-recovery-http-cold-20261020-02/` 范围 **369/369**，扩大
+**507/508**，idle 物理删除与重开通过；唯一失败为新增 core 冷加载子进程超过原 10 秒期限，约 10574
+ms 退出。原 15 秒真实服务启动用例并未运行，不能写成其已修复。为使模块依赖回归直接验证变更边界，改用当前进程里重新加载实际 core 与 HTTP
+entry，并断言 HTTP
+entry 是新模块实例；在 finally 中恢复加载器和原缓存，保留同一禁加载断言与 10 秒测试期限。注入一条启动 eager
+runner require 后，新测试仍失败，`isolated-module-negative.log`
+保留，不能将缓存命中当成通过。新测试不再证明独立进程冷启动速度；原完整客户端的实际 15 秒启动检查不变。
+
+第三候选 `.hpm-acceptance/context-recovery-http-cold-20261020-03/`
+的格式、零警告 Lint、语法、CI/release 治理及范围 **369/369**、扩大 **508/508**
+通过，0 失败/取消/跳过；范围覆盖语句/行 **97.82%**、分支 **92.37%**、函数
+**97.15%**。运行/构建源码和全部测试摘要在门禁结束后保持冻结一致。完整客户端
+**925 项中 924 通过、1 失败**，0 取消/跳过，退出 1；完整覆盖语句/行
+**98.83%**、分支 **94.67%**、函数 **98.83%**。仍为第一项真实代理约 15381
+ms 启动超时，core 导入约 9233 ms、deadline 时 handlers 尚未结束。第二项约 14785
+ms 才完成所有端口监听，本轮通过但余量小；idle、密钥和新增回归通过，不能据此撤销历史间歇失败。没有放宽原门禁。
+
+最终冻结源码的安装版 Codex 混合搜索、私有原文及缓存失效自动补发探针再次通过，退出 0、公开目录保留、原文/私有 payload/搜索回执精确且各一次、原混合顺序一致、无私有工具名泄漏。实际 WS 恢复入口及 loopback 脚本上游的适用范围不变。
+
+新隔离发布包位于
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-ZK8Ubh\dist\staging\runtime`，匹配
+**580 个运行源、593 个构建源、116 个锁定依赖**，目录治理及源/锁摘要一致。实际包内 Node/模块的相关回归
+**344/344**，0 失败/取消/跳过。包内 Codex 探针再次通过上述精确原文、混合搜索位置和自动完整窗口补发断言；包内 bare
+Claude 经
+**3 次实际原生压缩、3 次精确原文读回、2 次私有片段恰好一次重建、4 个物理宿主正常退出重开**，实际加密 SQLite 与 CurrentUser 密钥被新进程打开，全部发布 outcome、退出 ACK 和进程退出成功，最终 root
+1，无私有工具名泄漏。本次沿用已修正的探针，等待所有已接管请求的发布 outcome 后再退出，未修改运行期限或生产代码凑绿。检查专用留存目录没有完整合成原文的明文字节，不代表所有片段或整个数据库的安全审计。
+
+以上安装版验收均为独立 HOME/配置、拥有的合成文件、合成凭据和 loopback 脚本上游，分别走实际 WS 恢复入口和 HTTP
+entry/observer 组合，不代表全 core/生产 HTTPS、真实模型、普通完整目录、IDE/Desktop/远程组合或本候选强制终止宿主资格。当前最终回执
+`final-milestone.json`
+绑定冻结源、测试、包、原失败与负对照、原生探针和文档；上一阶段资格不静默沿用。
+
+新原文仍为 24 小时绝对 TTL，旧记录不续期。生产未启用，完整目标未完成。
+
+## 此前阶段：Responses 搜索与私有读取混合轮的位置重建（2026-10-20，完整门禁未通过）
+
+此前 `web_search_call`
+与私有 LIST/READ 同轮会在读取前拒绝。本轮增加私有历史中的公开输出位置引用：仅保留公开项的输出索引和精确内容摘要，公开搜索回执、文本、函数/custom 调用本体仍由客户端窗口提供。提交时核对实际公开输出，重建时先验证完整公开窗口，再按引用恢复原始混合输出顺序并消费对应公开位置一次；不把搜索内容静默藏进私有 tail，也不复制另一份公开正文。内部确认请求仍剔除尚待客户端执行的外部调用；保存给历史映射的序列单独保留完整原始输出，再接已完成的私有结果。代理不执行外部工具或搜索，不新增原文选择器。
+
+历史映射增加严格
+`format:3`，保存位置引用；无引用的数据继续导出原 format。新读取器保留 format
+1/2 兼容，旧读取器不认识新格式时拒绝，不能将旧包资格沿用到新数据或降级后继续写入。输入引用的正常/空/非法/极端/访问器、重复历史与公开位置、私有工具伪装、提交内容篡改、跨协议、旧格式降级伪装和 restore 均有回归。签名/不透明混合输出仍在读取前拒绝；私有确认阶段新出现 hosted/外部工具继续拒绝。24 小时绝对 TTL、旧记录期限、既有读预算与发布事务不变。
+
+当前专项四文件 **118/118**
+通过。覆盖 HTTP 式确认和 WS 延迟结果两种模式、搜索在输出前/中/后、普通函数及 namespace
+custom 混合调用、同 root 精确原文、两类公共窗口的链式位置重建，以及完整 root 导出/恢复。一个初始测试缺少 policy 的 system:null，另一个未调用实际发布 finish
+ACK，均修正测试组合后通过，没有放宽发布保护。
+
+安装版 codex-cli
+0.160.1、隔离 HOME/忽略用户配置、本地脚本上游与实际 WS 代理入口的初次探针已通过：保留 function/namespace/web_search 原目录，搜索回执 + 私有 READ + 外部 get_goal 同轮后，原文精确读回；一次固定缓存失效后，原生客户端自动补发完整公开窗口，四项私有 payload 摘要一致且各一次，搜索回执摘要一致且一次，原始混合输出位置顺序一致。2 个连接、1 次错误、5 个脚本生成请求、客户端退出 0、无私有工具名泄漏。该探针不调用真实模型，不代表 core/生产 HTTPS、普通完整配置、IDE/Desktop 或所有搜索形态。最终冻结源码须独立重验，初次探针不替代最终回执。
+
+冻结候选范围 **366/366**、扩大回归 **505/505**
+通过，0 失败/取消/跳过；范围覆盖语句/行 **97.81%**、分支 **92.37%**、函数
+**97.15%**。格式、零警告 Lint、语法及 CI/release 治理通过；门禁结束后全部运行/构建源及测试摘要未变。完整客户端
+**922 项中 920 通过、2 失败**，0 取消/跳过，退出 1；完整覆盖语句/行
+**98.83%**、分支 **94.67%**、函数
+**98.83%**。两项仍为原 15 秒真实代理启动超时：第一项 core 导入约 9722
+ms，deadline 时 diagnostics 尚未结束；第二项约 12624 ms 完成模块图，约 13235
+ms 创建服务器，尚未监听就到期。本次密钥兼容用例通过，不能据此撤销此前实际 DPAPI 失败。没有延长期限、降低并发或重复执行未变失败。
+
+最终冻结源码另经安装版 Codex 重验，`native-codex-hosted-mixed-final.json`
+的精确原文、完整公开窗口自动补发、四项私有 payload 各一次、搜索回执各一次和混合输出顺序全部通过；保留原工具目录，客户端退出 0，无私有工具名泄漏。适用范围仍为隔离 HOME、本地脚本上游和实际 WS 恢复入口，不代表整个 core/生产 HTTPS 或真实模型资格。
+
+新隔离发布包匹配
+**580 个运行源、593 个构建源、116 个锁定依赖**，目录治理和源摘要一致；位于
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-iVjx4G\dist\staging\runtime`，未安装或启用。包内 Node 和实际包内模块的相关回归
+**341/341**
+通过，0 失败/取消/跳过。另以包内 Node、全部包内恢复模块及 ws 依赖重跑安装版隔离 Codex，`native-codex-hosted-mixed-packaged.json`
+的精确原文、自动完整窗口补发、私有/搜索各一次与混合位置顺序均通过，客户端退出 0，无私有工具名泄漏。本次没有沿用旧包的正常退出或强制终止 Claude 宿主资格，也未宣称当前包完成该项重验。
+
+候选和证据目录
+`.hpm-acceptance/context-recovery-hosted-mixed-20261020-01/`，最终回执
+`final-milestone.json`
+绑定冻结源、测试、包、原失败日志、原生客户端结果和文档。新原文 24 小时绝对 TTL，旧记录原到期不变。生产未启用，整体目标未完成。
+
+## 此前阶段：密钥分阶段诊断与包内宿主强制终止恢复（2026-10-19，完整门禁未通过）
+
+本轮运行源码未改变，仅为已有 Windows
+native/旧 DPAPI 兼容测试增加固定后端标签、耗时和有限错误码诊断，不输出执行参数、stdin、stdout、stderr 或原始异常。原 10 秒子进程、30 秒测试期限及整套并发不变。增加观测后执行一次完整诊断门禁：**918 项中 917 通过、1 失败、0 取消/跳过**，退出 1；完整覆盖语句/行
+**98.83%**、分支 **94.68%**、函数 **98.83%**。四步 native protect 158
+ms、旧 PowerShell unprotect 3480 ms、旧 PowerShell protect 3164 ms、native
+unprotect 421
+ms 均成功；不能据此证明此前密钥失败已修复，原失败仍有效。第一项真实代理仍约 15371
+ms 启动超时，core 导入约 9078
+ms，deadline 时 handlers 尚未结束。新增最小隔离环境的无覆盖率冷加载单样本为 190 模块、约 659
+ms，仅作为定位差异的证据，不作为优化收益或单一根因结论。未提高期限、降低并发或盲目复跑。
+
+`native-persistent-packaged-crash.json`
+经上阶段摘要一致的新包、包内 Node 和实际模块，使用安装版 bare
+Claude、隔离 HOME、完整三工具目录、合成凭据及本地脚本上游。在
+**3 次真实原生压缩边界后的已提交发布 ACK 之后**，不调用旧宿主 shutdown，直接终止进程；4 个不同 PID 的宿主顺序重开实际加密 SQLite 和 CurrentUser 密钥。三次精确原文 LIST/READ、两次私有 payload 恰好一次重建、同 root/最终 7 快照全部通过；前三个进程确认 SIGTERM，末个宿主正常 ACK/退出，全部已接管请求 outcome 成功，客户端退出 0、无私有工具名泄漏。这证明进程强制终止后的已提交数据恢复，不代表断电、写入中断、实际 HTTPS/core、真实模型或普通完整配置验收；探针不触碰共享服务。
+
+证据与回执位于
+`.hpm-acceptance/context-recovery-startup-profile-20261019-01/`。本轮没有重建包：运行源未变，仅测试诊断与独立探针有增量，包来源绑定见回执。新原文仍为 24 小时绝对 TTL，旧记录不续期；完整门禁和多端目标仍未完成，生产未启用。
+
+## 此前阶段：Claude 原生摘要回执与新窗口接续（2026-10-19，完整门禁未通过）
+
+已接入免插件的 Claude 原生总结回执：仅在当前请求已绑定父快照、符合安装版原生总结请求形态、且最终响应为无签名/不透明字段的单个纯文本块时，私有 runner 在摘要内部追加随机回执。回执包含 24 字节随机值、摘要精确摘要值与字符长度，复用现有已发布 response-key 索引；不新增按 session/root 自报标签查询的路径。客户端带回完整摘要片段时仍须满足当前主体、路由、完整策略、已提交父节点、原 root 期限和撤权核验。仅持有相似文字、摘要 hash 或 metadata 不够；没有成功发布的随机回执不能选择旧记录。Claude 外部
+`previous_response_id`
+字段拒绝，只有严格解析的摘要回执可形成内部续接键。后续完整窗口使用其新观察锚点，不让残留旧回执覆盖更新的后代。
+
+这是有明确协议痕迹的自动适配：回执位于总结文本，可能出现在 verbose/stream-json 输出；它不是“原始协议零变化”的支持声明。普通响应 observer 仍逐字节保真，不签发或修改回执；签名 thinking、多块响应、未知 envelope/块字段、歧义 summary 标签、空摘要和超出响应字节预算的形态不做注记。没有修改用户配置或安装插件。为解决本次实际 checksum 变化，协议准入和 runner 的策略比较只对首个完整纯文本 billing 块中已知 CLI/sdk-cli 格式的三位窗口校验后缀作相等投影；客户端版本、entrypoint、其他 system 块及所有未知字段继续显著，实际上游 system 不改写。
+
+新 `summary`
+窗口种类标记“保留同 root 的已授权原文，但不把旧私有对话插入摘要窗口”。增加导入验证以拒绝非 Claude、无父节点、无父 response-key、无锚点或非法计数的 summary 窗口；新的私有 map 从此窗口独立开始。初次二次重建测试发现旧 map 父关联不适用于摘要重置，修正后验证两次完整 root 导出/重建，旧私有 LIST 不插回，新私有 LIST/READ 能重建，原文与绝对到期不变。仍使用现有 root/binding/history
+schema 与严格枚举，旧读取器不认识新窗口种类时拒绝，不把它推断为普通全窗口。
+
+专项 4 项包含正常/Unicode/空/非法/极端/访问器/签名/失败路径、回执轮换、发布前不可读、篡改、主体/路由/策略隔离、撤权、到期、withdraw 和二次重建。首轮撤权用例错误使用自造 principal，修正为协议实际派生主体后通过；门禁规则未放宽。测试已加入字面客户端覆盖命令与统一 unit 自动发现，新模块加入 release
+manifest。
+
+安装版 Claude 2.1.292、独立配置 bare 模式的本地脚本端到端已完成
+**1 次真实 compact_boundary
+→ 回执自动带回 → 同 root 续接 → 私有 LIST/READ 各一次、精确 Unicode 原文 → 后续 native
+Read 结果上的四项私有 payload 各一次重建**，根数 1、快照 4、客户端退出 0、原生三项目录完整保留、未见私有工具名泄漏。证据
+`.hpm-acceptance/context-recovery-claude-compaction-20261019-01/native-recovery-after.json`。首个安装版尝试因原生总结指令有 379 字符前导而未签发，保留失败；匹配仅用于注记、并不授权，支持该前导后通过。一次失败探针的脚本在注入缺失时仍发送私有调用，导致该隔离探针的客户端看到私有名；后续脚本在缺失时先终止诊断，此失败未被删除或当成生产安全验收。源码门禁最终候选还须独立复验。
+
+当前冻结候选
+`.hpm-acceptance/context-recovery-claude-receipt-20261019-01/`，范围
+**362/362**、扩大 **501/501**，0 失败/取消/跳过；范围覆盖语句/行
+**97.76%**、分支 **92.29%**、函数
+**97.08%**。格式、零警告 Lint、语法及 CI/release 治理通过，运行源和全部测试摘要在门禁后复查未变。完整客户端
+**918 项中 915 通过、3 失败**，0 取消/跳过：两项仍为原 15 秒真实代理启动超时，另一项为实际 native
+helper 与旧 DPAPI 包装兼容测试中的密钥保护不可用。前者的第二项约 14957
+ms 才完成模块图；后者错误已经脱敏，现有证据尚不能证明它仅由负载造成。未延长期限、降低并发或盲目复跑。完整覆盖语句/行
+**98.83%**、分支 **94.68%**、函数 **98.83%**；日志 SHA-256
+`0509382823d75d10a32c85a9c7b7fdfc40bbcc7315554cc6f7523141e3c21245`，完整门禁退出 1。
+
+最终源码另经安装版 bare Claude 重验：`native-recovery-final.json`
+一次压缩通过；`native-three.json` 连续
+**3 次实际 compact_boundary、3 次精确原文 LIST/READ、2 次完整私有片段恰好一次重建**通过，原生三项目录不变、root
+1、快照 7、客户端退出 0、无私有工具名泄漏。`native-persistent.json`
+使用相同 13 次有界脚本上游交互，但把实际恢复入口放进
+**4 个不同 PID 的顺序宿主进程**；每次原生摘要后正常退出旧宿主，实际 SQLite
+worker、CurrentUser 密钥保护及加密文件由新宿主重新打开，再由当前请求重新核验绑定。三次压缩和精确读回、两次私有历史重建全部通过，4 次关闭 ACK/退出均成功，最终 root
+1/快照 7。关闭后检查留存目录文件均不含该合成原文的完整明文字节。这证明本探针的正常进程退出后恢复，不代表崩溃恢复、全部内容无任何明文片段或整个数据库的安全审计。
+
+当前新隔离包匹配
+**579 个运行源、592 个构建源、116 个锁定依赖**，目录治理及摘要一致；位于
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-lFaC5O\dist\staging\runtime`，未安装或启用。使用包内 Node 和实际包内模块的回归
+**337/337**，0 失败/取消/跳过。`native-persistent-packaged-drained.json`
+再经包内 Node、入口和存储模块完成三次实际原生压缩、四个物理宿主、三次精确读回及两次私有历史重建，全部发布 outcome、关闭 ACK 与宿主退出成功。原
+`native-persistent-packaged.json`
+的客户端虽退出 0，末次 outcome 为 502：验收脚本在最终持久化发布 ACK 前发起了 shutdown；该记录保留且不计为通过。修正脚本先等待全部已接管请求的 outcome，再关闭宿主，并加强每轮成功断言；没有修改运行源码、期限或并发凑绿。最终回执为本目录
+`final-milestone.json`，绑定冻结源、测试、原失败与新成功证据、文档和包。
+
+上述安装版验收均使用隔离配置、bare 三工具目录、合成凭据、拥有的合成文件和 loopback 脚本上游；直接组合实际恢复入口，未走整个 core/生产 HTTPS 资格，也未调用真实模型。不能外推普通完整配置、IDE/Desktop/远程宿主或所有上游。此前包资格不沿用。新原文 24 小时绝对 TTL，已有到期不变。生产未启用，整体目标未完成。
+
+## 此前阶段：Claude 原生压缩前的 assistant 缓存锚点兼容（2026-10-19，整体未完成）
+
+在安装版 Claude 2.1.292 的真实客户端压缩边界探针上接入源码
+`beginContextRecoveryRequest`
+与实际响应 observer 后，发现压缩总结请求已在进入新摘要窗口之前失去绑定：Claude 会给此前观察到的 assistant
+`tool_use` 添加 ephemeral
+`cache_control`。旧投影只处理 user 块；前后普通策略摘要一致、首条用户输入投影相等，但 assistant 输出仅该缓存字段发生变化，导致第二次请求误建 root、无法捕获并继承该次原生 Read 结果。
+
+现把**assistant tool_use**
+上经过严格验证的 ephemeral 缓存元数据纳入既有相等比较投影。仍仅用于绑定和私有 history
+map 的哈希比较；不改发给客户端或上游的消息、工具参数或目录。assistant 文本、thinking/redacted_thinking、未知块类型、签名及其他字段不参与此项忽略；不扩展 assistant 字符串/数组等价。缓存类型、ttl、未知字段、实际调用 ID/名字/参数变化、角色变化和协议变化继续隔离。旧持久状态未写入的新指纹不能反向制造匹配权限。
+
+两个回归在旧实现上均失败，修复后通过；新增绑定回归覆盖缓存添加/删除、5m/1h、非法/空缓存、内容/角色/协议变化、导出重开、未知字段和不执行 getter，现有会话回归增加 assistant 缓存迁移并验证私有读回/历史重建与公开 payload 保真。四个相关 CI 文件冻结验证
+**97/97**，变更身份模块行/语句、分支、函数覆盖率全部
+**100%**；格式、零警告 Lint、语法、CI/release 治理通过，源码/测试摘要未变。回执
+`.hpm-acceptance/context-recovery-claude-compaction-20261019-01/receipt.json`；这些测试已经位于统一 unit 和客户端覆盖入口，没有新增旁路测试入口。
+
+安装版原生 compaction 诊断的前后证据位于
+`.hpm-acceptance/context-recovery-startup-20261019-01/claude-compaction-binding-{before,diagnostic,after}.json`。相同受控场景下，第二次准入
+**isolated_request / 0 条可见原文 → observed_continuation /
+1 条可见原文**，roots
+**3→2**，三次 observer 发布均成功，客户端实际发出 1 次 compact_boundary。第三次压缩后请求仍为隔离窗口、可见原文 0，整个恢复目标断言仍退出
+**1**，失败没有被局部修复改写成通过。此探针直接组合源码准入和响应观察，不是全 core 路由、私有 runner 恢复、跨进程物理存储或真实模型资格；仅 bare 的三项原生工具、拥有的合成文件、本地脚本 SSE、独立 HOME/配置与合成凭据，没有用户配置变更。
+
+后续结构诊断确认第三次请求的 `.system.0.text` 是客户端 billing header，差异位于
+`cc_version`
+的三位校验后缀；仅在诊断内替换该后缀后三次摘要相同。生产代码**没有**忽略或重写这个字段，不能把诊断投影当成准入规则，也不能据此推断所有 system 差异均为无害元数据。压缩后旧工具锚点消失的问题仍需独立可信过渡；相同 metadata、摘要文字或自报 session
+ID 不足以授权。
+
+本轮按变更风险只运行相关冻结范围，没有重复上轮仍有两项启动失败的完整客户端门禁，也未建立新隔离包资格。下节的 357/357、496/496、911/913 属于上一份冻结源码，不能沿用为当前源的完整资格。新原文 24 小时绝对期限、旧记录原到期、撤权和 reader 预算不变，生产未启用，整体目标继续执行。
+
+## 此前阶段：恢复冷加载与存储初始化故障定位（2026-10-19，整体未完成）
+
+此前回合完成 Claude 缓存元数据兼容、两个安装版的本地脚本原文读回与重建；完整客户端仍有两项 15 秒启动失败，包内首次 storage
+owner 初始化另有一次安全失败。上述失败没有被这次独立诊断覆盖为通过。
+
+对 core 导入树的独立剖析显示 193 个模块、约 754.7
+ms；在完整并发覆盖门禁中，先前 core 导入约 7–11 秒。恢复会话现仅在完成历史/策略/继承结果检查、真正执行 recovery 时加载 coordinator，不再在禁用 owner、普通观察、精确 reader 或导出路径提前加载生成状态机。冷模块因果回归旧实现
+**0/4**、新实现 **4/4**；新增首次加载异常验证安全失败且不消耗 reader 预算，合计
+**5/5**。独立 core 模块数 **193→190**，后样本约 783.1
+ms，**未显示实际加速，不能宣称启动问题已修复**。
+
+对上轮实际隔离包的独立阶段诊断只使用 fixtureKey 和新合成目录，首次 owner 本次成功，四项 ACL 操作约 99–184
+ms，总初始化约 766
+ms。它没有复现原始失败，不是重跑原门禁，也不足以证明原失败由系统负载、ACL 超时或 SQLite 引起。新增固定阶段
+`paths_started`、`ownership_started`、`key_write_started/finished`、`database_prepare_started/prepared`，使失败可定位到路径、锁、密钥写入或数据库打开之前；仅发出静态阶段和耗时，所有原有期限、消息验证、失败关闭、身份及文件/链接检查保留。首次 owner 的原 CI 用例使用相同观察协议报告阶段，测试的操作和断言不变；观察者异常仍不能改变 owner 结果，新增阶段不授予 worker
+readiness，也不能重置原 deadline。
+
+专项会话/存储
+**49/49**，首次诊断扩展曾发现旧的阶段预期未更新（48/49）；增加精确阶段序列预期后通过，旧日志保留。冻结目录
+`.hpm-acceptance/context-recovery-startup-20261019-02/`
+已结束，源码与测试摘要未变；范围 **357/357**、扩大
+**496/496**，格式、零警告 Lint、语法及 CI/release 治理通过。范围覆盖率行/语句
+**97.64%**、分支 **91.95%**、函数 **97.02%**。
+
+完整客户端 **913 项，911 通过、2 失败、0 取消/跳过**，退出 1；覆盖率行/语句
+**98.8%**、分支 **94.59%**、函数 **98.82%**，不能替代失败的测试。失败仍为
+`context-api-evidence-routes.test.js` 两项原定 15 秒启动门禁：首次
+`no_stdout`、core 导入约 10918 ms、support 尚未返回；第二次
+`no_stdout`、module_graph_ready 14501 ms、composition_ready 14993
+ms、websocket 尚未返回。未更改期限、并发或断言，未重跑相同失败候选。完整日志 SHA256
+`04e823718e81ad443ea68ed7c75011f95978165b48b8ad8f0bbe88a56dba81b9`；回执
+`receipt.json`
+保留全部结果。未创建此源版本的新隔离包，上一轮包和宿主资格仅属于上一轮源，不能沿用为当前候选发布资格。生产未启用，新原文 24 小时绝对期限与旧记录到期均未改变；整体未完成。
+
+### Claude 原生压缩边界诊断（尚未接通压缩后原文恢复）
+
+冻结门禁结束后，使用相同安装版 Claude、独立 HOME/配置、合成 key、本地 Messages
+SSE 脚本上游、拥有的合成 Read 文件和
+`--autocompact 100k`，不接代理恢复。首次探针只在 message_start 报高用量，未触发压缩，不能计为成功。第二版在 message_delta 同样提供合成 input/cache 用量并使用 stream-json 观察事件，得到
+**1 次
+`system/compact_boundary`**；三个请求依次为原用户输入、含原工具调用/结果的总结请求、仅含合成摘要的新窗口，消息数
+**1→3→1**。第三版独立采样再次得到一次边界，补充仅摘要和结构的诊断：metadata（仅 user_id）摘要三次相同，context_management 摘要三次相同，工具目录三次相同；旧工具调用在第三次请求消失。metadata 相同不是授权证明，不能凭 session
+selector、摘要词命中或相同目录直接继承原文权限。
+
+证据在
+`.hpm-acceptance/context-recovery-startup-20261019-01/claude-compaction-shape{,-v2,-v3}.json`，不保存原客户端输出、请求消息或凭据。这证明安装版在本地脚本用量下确实进行了客户端压缩，不证明真实模型、整个代理入口、压缩后绑定、跨进程恢复或普通完整工具配置已经合格。下一步须建立“已授权旧窗口→已观察总结响应→新窗口”的可信过渡并覆盖伪造、重复摘要、并发分叉、过期/撤权和持久重开；无法建立唯一过渡时继续拒绝继承。
+
+## 此前阶段：Claude 安装版缓存标记兼容及原文精确读回（2026-10-19，整体未完成）
+
+Claude Code **2.1.292**
+的独立 HOME/配置、`--bare`、无会话落盘、无用户插件/MCP 配置探针，保留该模式原生提供的 3 项工具目录，已通过本地脚本 Messages
+SSE 上游执行两次拥有的合成文件 Read。它不是普通完整配置/IDE/Desktop 目录资格，不应把 bare 模式的目录数量当成常规客户端全目录。未读取真实凭据、未发真实模型请求、未变更用户配置或生产。
+
+安装版实际恢复探针发现两项连续的身份缺口：首轮单个 user text block 含 ephemeral
+cache_control，下一轮变为同文字符串；随后旧 tool_result 的缓存标记又移动到新结果。首轮普通调用观察成功，但旧实现均按原始 JSON 指纹匹配，分别造成全新隔离分支，或误匹配更早祖先、丢失已提交私有片段。安全结构诊断仅保存路径、摘要、类型与数量，不落原始客户端 stdout/stderr/消息内容；失败回执保留。
+
+新增独立 Claude 身份投影，仅在**绑定和私有历史映射的相等比较**中，把 user 单个纯 text
+block 与字符串视为同文，忽略 user
+text/tool_result 上经过精确校验的 ephemeral 缓存元数据（ttl 缺省、5m、1h）。多块内容不拼接；未知字段、非法缓存策略、签名、实际文本/结果、角色和协议仍有区别。不会把 tool_result 的数组内容转成字符串，不修改上游公开历史、工具目录、签名/opaque 块、root
+TTL 或现有记录期限。旧持久指纹无法匹配时保守不授予继承权限。绑定、导出/恢复、映射重建与客户端上游字节保真回归进入既有 unit/client
+CI 文件，新模块纳入 release manifest。
+
+安装版源码探针已验证：原目录保持一致，私有 LIST/READ 各一次、原文完全一致；提交后第二次真实客户端只读结果触发续接，上游四项私有调用/结果逐项摘要一致且各出现一次，两个原生 Read 调用/结果无重复，3 个快照，客户端退出 0 且未见私有标记。其实际入口为
+`tryHandleContextRecoveryHttp`、observer、session 和真实 loopback HTTP
+transport，供应方 HTTPS/官方认证资格在探针组合层明确绕开，生产供应方策略未放宽；未经过整个 core 路由，更不代表真实模型、原生 compaction、跨进程存储或生产验收。
+
+因果测试在旧实现明确失败于 isolated_request，修复后通过。首个冻结 `-02/`
+在 Lint 发现测试 getter-return 后停止，未绕过规则；补显式拒绝且验证 getter 未执行后，新冻结
+`-03/` 格式、零警告 Lint、语法、CI/release 治理通过，范围
+**356/356**，后续扩大/完整门禁及隔离包结果以下方最终回执为准。安装版及诊断证据在
+`.hpm-acceptance/context-recovery-claude-client-20261019-01/`。用户再次确认首发新原文
+**24 小时绝对 TTL**，已有期限不延长，整体仍未完成。
+
+最终冻结范围 **356/356**、扩大 **495/495**。范围覆盖语句/行 **97.56%**、分支
+**91.93%**、函数 **96.95%**；完整客户端
+**912 项中 910 通过、2 失败、0 取消/跳过**，测试执行约 83.8 秒、退出 1，两项仍为原 15 秒隔离代理启动期限，分别 no_stdout 与 servers_created 后未就绪。原 150
+ms idle 断言通过。完整覆盖语句/行 **98.78%**、分支 **94.58%**、函数
+**98.82%**。冻结运行源和全部测试摘要未变；完整日志 SHA-256 为
+`d2508e79cc82a245e6ddca4fc0eeeb3de698dd290630463cf56de64072c0ff30`。未放宽期限、并发或安全规则，也未重跑未改动失败凑绿；完整门禁仍未通过。
+
+新隔离包匹配
+**578 个运行源、591 个构建源、116 个锁定依赖**，目录治理与摘要通过，路径
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-XeSW7q\dist\staging\runtime`，未安装或启用。包内实际 Node/模块回归
+**320 项中 319 通过、1 失败、0 取消/跳过**，退出 1：`storage owner has an exclusive lifetime lock, persists a fixture key and detects key changes`
+在首次 createStorageOwner 抛固定
+`context_recovery_storage_unavailable`。该用例使用 fixtureKey，不是真实 OS 密钥保护验收；具体初始化失败阶段尚未定位，不能断言是环境抖动，也未重跑未改动失败凑绿。因此包的完整资格仍为失败，独立宿主探针不升级该结论。
+
+独立安装版 Claude 再经这个包的实际 HTTP
+entry/observer/session/transport 验证：原生 bare 目录保持一致，LIST/READ 各一次、原文精确、4 项已提交私有 payload 精确重建且各一次，两次原生 Read 调用/结果各一次，3 个快照、退出 0、无私有标记泄漏。安装版 Codex 使用同一包的实际 WS 模块仍验证原目录、精确 READ、一次安全 cache
+miss、2 连接和公开 7→完整 11 项重建，4 项私有 payload 逐项一致，退出 0。两种客户端均为隔离 loopback 脚本上游；Claude 未走整个 core 路由，也没有原生 compaction 或跨进程持久存储资格。冻结、失败门禁、包与两个宿主探针由
+`.hpm-acceptance/context-recovery-claude-client-20261019-03/final-milestone.json`
+分别记录，整体完成标志仍为 false。
+
+## 此前阶段：原生工具目录与空 warmup 准入、安装版私有原文读取（2026-10-19，整体未完成）
+
+本轮修复两个独立前置缺口，不能只依据客户端退出 0 判断恢复成功。恢复 turn 原先仅接纳平面 function；新增工具目录模块按
+`(namespace, name)` 精确索引 function/custom，保留原目录和 opaque
+schema，不 flatten 或改名。命名空间、子工具和响应调用均检查私有名称冲突、重复身份、类型不符与伪装；custom 输入按原始文本保留，只把外部调用交还客户端，代理没有外部 executor。支持已准入 web_search/preview 的独立 terminal 输出，校验搜索 action 并原样保留 hosted
+metadata；JSON 与重建 SSE 均保留 custom namespace/input 和正确 custom 输入事件。
+
+**同一上游响应混合 hosted 搜索结果与私有读取仍不支持**：在任何私有读取执行前失败，避免把搜索结果悄悄隐藏、重复发布或破坏重建顺序。它需要独立的公开输出位置契约，不能将本轮目录准入宣称为所有工具组合完整兼容。签名/opaque 混合轮次、私有流式与 steering 等原有退出条件继续保留。
+
+安装版第一次探针在工具修复后仍然
+`privateTools:false`。仅在独立探针进程增加安全状态诊断后确认：前两次准入均为
+`context_binding_previous_unavailable`，最后完整窗口才建零来源 root，未执行恢复 coordinator。原因是 Codex 的首次生成引用空
+`generate:false` warmup ID，而代理没有对此 ID 创建恢复快照。官方
+[WS 文档](https://developers.openai.com/api/docs/guides/websocket-mode)明确 warmup 无模型输出、可返回供续接的 ID；非空预填也合法，因此不能把所有 warmup 都当成空历史。
+
+新增连接私有 warmup 模块，仅记住成功投递、completed、input/output 均为空、没有真实祖先的 warmup。凭据主体与目标由连接 pin，记录额外绑定 lane、模型及指令/tools/tool_choice 策略摘要，单次使用、最多 33
+lane、60 秒到期；更改策略、跨连接/lane、到期、时钟倒退、非空预填、带祖先或有输出均不能借此准入。匹配时仅移除**本地准入副本**的空前驱，实际发给供应方的 previous_response_id 和目录保持不变，不创建空恢复快照，不保存 warmup 用户内容，也不修改 24 小时 root 到期策略。
+
+新增 warmup 快照断言在旧路径失败；工具目录及 client
+wire 新回归在旧路径 5 项中 4 项失败，日志保留。修复后的三文件组合
+**140/140**，包括真实双 socket：空 warmup
+→ 观察客户端工具调用 → 捕获精确 UTF-8 原文 → 私有 LIST/READ
+→ 完整 hosted 搜索与 namespaced
+custom 输出发布；客户端未见私有调用或结果。还覆盖 reserved
+namespace 伪装、歧义同名、错误类型、malformed/超限目录、custom
+opaque/空输入、非法搜索 action/URL、lane/策略/连接/到期/时钟和 getter 边界。新增测试进入既有 unit/client
+CI 文件，新增三个模块纳入 release manifest。
+
+Windows 安装版 codex-cli **0.160.1**
+在独立 HOME、原生未删减的 function/namespace/web_search 目录及实际 WS 代理路径，已观察私有工具注入、一次 LIST、一次 READ、原文摘要完全一致、一次固定安全 cache
+miss、两个 WS 连接和客户端自动完整窗口补发，退出 0、无私有标记泄漏。该探针的私有读取后紧接缓存失败，其未提交分支不能作为已提交私有片段重建证据；后续独立探针须验证提交之后再失效。所有上游均为 127.0.0.1 脚本服务，准入策略明确注入 loopback 测试适配，无真实模型或认证请求、无用户配置改动，不能等同官方登录、原生 compaction 或生产资格。因果及宿主证据在
+`.hpm-acceptance/context-recovery-native-tools-20261019-01/`。
+
+后续更强的独立安装版探针已验证**先提交私有片段，再缓存失效**：私有 LIST/READ 完成后发布第二个客户端只读调用，收到其结果后才返回一次固定 cache
+miss。客户端新连接主动补发 7 项公开窗口，代理按位置插入此前已提交的 4 项私有调用/结果，上游收到 11 项；两次外部调用和结果、LIST/READ 调用和结果各恰好一次，原公开前缀精确一致，原工具目录摘要在每轮保持一致，最终 3 个快照、退出 0。此探针未关闭重开存储、未触发原生 compaction，仍是脚本上游资格；其数量校验也不能替代包内更强的逐项私有 payload 摘要核验。证据为
+`codex-ws-private-committed-events-source.json`。
+
+首个冻结目录 `-02/`
+仅格式阶段发现新增 mixed 测试的格式问题后停止，日志未覆盖。完成格式修正后重新冻结
+`-03/`；范围 **354/354**、扩大 **493/493**，覆盖语句/行 **97.49%**、分支
+**91.76%**、函数
+**96.91%**，格式、零警告 Lint、语法和 CI/release 治理通过，冻结源与全部测试摘要未变。完整客户端
+**910 项中 908 通过、2 失败、0 取消/跳过**，退出 1，约 68.8 秒；均为原 15 秒隔离代理启动超时 no_stdout。第一项 core 导入约 9968
+ms、runtime_http_agents 尚未结束；第二项 14448 ms 才 module_graph_ready。原 150
+ms idle 断言通过，期限和并发未放宽、未重复运行未改动失败凑绿。完整覆盖语句/行
+**98.78%**、分支 **94.56%**、函数 **98.82%**，完整日志 SHA-256 为
+`42fa94e0f0d5c17782ee92e3a7d3ae6923053d796ea14cde3cb15eeb2d1f86c7`。包内资格以本目录独立回执为准，不沿用此前包资格。新原文仍为用户确认的 24 小时绝对 TTL，旧记录不续期；整体未完成、生产未启用。
+
+最终隔离包匹配
+**577 个运行源、590 个构建源、116 个锁定依赖**，摘要、锁定依赖和目录治理一致。包内实际 Node/模块回归
+**291/291**，0 失败/取消/跳过，包括新目录/输出、空 warmup、真实 socket 和原 idle 断言；未执行包内真实 core
+HTTP socket。包路径为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-rK7clw\dist\staging\runtime`，未安装或启用。安装版 Codex 再经此包实际 WS 模块验证先提交后失效的路径，原目录保持不变、原文 READ 精确、2 连接、1 固定安全错误、7→11 项重建、两次外部调用/结果均各一次，客户端无私有标记，退出 0。此包探针额外对重建后的 LIST 调用、LIST 结果、READ 调用、READ 结果逐项比较提交前的完整 payload 摘要，**4 项完全一致**；客户端结果也不是 unknown-tool 错误。`packaged-execution.json`、`codex-ws-private-committed-packaged.json`、`final-milestone.json`
+关联冻结源、测试、日志、文档和实际包，整体完成标志仍为 false。
+
+## 此前阶段：安装版 Codex 的受控 WS 回退与 stream 控制兼容（2026-10-19，整体未完成）
+
+用户确认新原文首发保留
+**24 小时绝对 TTL**，沿用现有版本化实现；已有记录保留原到期时间，读取、重启和迁移均不续期。生产尚未启用本候选。
+
+已使用 Windows 安装版 codex-cli
+**0.160.1**，在独立临时 HOME/CODEX_HOME、空工作目录、忽略用户配置和规则、ephemeral/read-only 模式下，连接只监听 127.0.0.1 的脚本上游。使用合成入口和上游凭据，未读取真实认证、未调用付费模型、未执行 shell 或子代理工具，也未修改用户配置。该脚本上游不是模型，验收不代表官方登录、真实模型或生产资格。
+
+原生 Codex 的 WS warmup 和生成帧都携带
+`stream:true`，旧解析器在首个上游生成请求之前拒绝。这轮只允许字段缺省或精确布尔 true，并移除该冗余 HTTP 控制后发送 WS 上游；false、null、数字、字符串、数组、对象和 background 仍拒绝。新增真实双 socket 回归保留 function、namespace 和 web_search 目录。最初 fixture 曾用 Buffer 误发二进制帧，其失败不作为因果证据；修正后的文本帧测试在摘要核验过的旧包 wire 模块上失败、新模块上通过，见
+`stream-legacy-text-before.log` 与 `stream-fixture-fixed.log`。
+
+安装版 Codex 已分别在直连脚本上游与实际 `createWebSocketProxy`
+路径验证：一次 warmup、三次生成请求、一次固定 cache
+miss、两个 WS 连接，原生客户端清除 previous_response_id 后自动补发完整公开窗口。原始前缀精确一致，外部调用和结果各一次，固定错误投递一次且不含私有错误标记，客户端退出 0。实际代理探针明确注入仅供 loopback 的供应方准入策略，不能冒充生产 HTTPS 供应方资格。源探针证据在
+`.hpm-acceptance/context-recovery-native-client-20261019-01/`。
+
+**原文私有恢复仍有明确缺口**：安装版实际目录含 namespace 和 web_search，当前恢复 turn 仅接纳平面 function。探针每次
+`privateTools:false`，因此上述成功证明原生完整窗口回退和普通代理兼容，不证明安装版自动读取原文。下一步必须保留真实工具目录，补 namespace 的函数/custom 身份、保留私有名称冲突检查，以及 hosted
+web_search_call 输出契约；不能删工具或关闭搜索来取得无感兼容结论。Claude Code
+**2.1.292** 目前仍只检查版本和 help，未完成实际恢复验收。
+
+本候选冻结范围 **311/311**、扩大
+**484/484**，格式、零警告 Lint、语法和 CI/release 治理通过；源与全部测试摘要未变。完整客户端
+**901 项中 899 通过、2 失败、0 取消/跳过**，约 69.4 秒，退出 1。两个失败均为原 15 秒隔离代理启动超时：一项 no_stdout、core 导入约 9999
+ms、尚有 runtime_http_agents 导入未结束；另一项接近期限才创建 servers。idle 原 150
+ms 断言通过。未放宽期限或并发，未重复运行未改动失败凑绿。范围覆盖语句/行
+**97.27%**、分支 **92.02%**、函数 **96.59%**；完整覆盖语句/行 **98.77%**、分支
+**94.54%**、函数 **98.8%**。完整日志 SHA-256 为
+`2aa129e50156d7bdb7fc11bc74ab9f9f075952b9246635125f184c852d8d73b7`，冻结回执在
+`.hpm-acceptance/context-recovery-native-client-20261019-02/`。当前隔离包及其安装客户端探针资格见该目录的独立回执，不沿用旧包资格。
+
+最终隔离包匹配
+**574 个运行源、587 个构建源、116 个锁定依赖**，源与依赖摘要、目录治理一致。包内实际 Node/模块回归
+**248/248**，0 失败/取消/跳过，包含本轮 stream 控制、存储及原 150 ms
+idle 断言；未执行包内真实 core HTTP
+socket。使用此包实际 WS 代理模块再次驱动安装版 Codex，确认相同的两个连接、一次固定安全错误、完整前缀及调用/结果各一次、退出 0；仍是 loopback 准入策略注入，且全部请求
+`privateTools:false`。包目录为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-AK24UW\dist\staging\runtime`，未安装或启用。`packaged-execution.json`、`codex-ws-proxy-packaged.json`
+和 `final-milestone.json`
+分别记录包内回归、受控宿主探针和冻结摘要；整体完成标志仍为 false。
+
+## 此前阶段：空闲清理耗时定位与无效写入消除（2026-10-19，整体未完成）
+
+本轮保留原 150 ms idle 观察断言、25
+ms 测试加速周期、15 秒代理启动期限、默认测试并发和全部安全断言。先增加仅测试使用的共享计数诊断，确认失败时定时器已经触发：观察开始前的 sweep 仍在执行，150
+ms 后下一轮也已开始但未完成，回调近期耗时约 112–116
+ms。进一步诊断区分 SQLite 引擎与外围验证：引擎约 2–20
+ms，主要耗时在重复的同步文件检查，不能把原失败归为未启动或随机跳过。
+
+生产改动有两处。认证时钟与已持久水位相等时，不再重加密并 UPDATE 相同 header，从而避免只读命令和空 sweep 无意义的 FULL 同步写盘；仍逐次认证 header、校验 schema、验证并清理到期行，时间前进仍写入，时间倒退仍拒绝。新增回归在原实现确认 inspect/load/catalog/scan/sweep 五次无效 UPDATE，并覆盖时间前进、准确到期删除、空 sweep、倒退和损坏 header 拒绝。单独消除写盘后 idle 仍失败，原日志保留，不将这项优化单独称为根因修复。
+
+文件 inventory 现复用本轮已校验的文件 stat，在读前与读后仍核对 exact
+inode、大小、硬链接数和 pinned
+digest，整轮前后仍逐一核验全部祖先身份；独立 read 也保留自身前后祖先验证。不缓存跨轮可信状态、不关闭检查、不改变权限或配额。本地探针对 10 次 inventory 的 lstat 从 360 次减少为 180 次，测得总时长约 273.6→97.2
+ms；这是本机探针而非生产吞吐承诺。新增文件丢失、同内容换 inode、读中新增硬链接和读后替换目录的拒绝回归；Windows 打开子文件时可能拒绝目录重命名，因此目录攻击发生在真实 close 后、整轮最终检查前，不能用操作系统拒绝替代应用边界验收。
+
+因果证据保留在 .hpm-acceptance/context-recovery-idle-causality-20261019-01/：诊断前后的失败、无效写入回归原失败、阶段探针与最终专项
+**68/68**
+均保留。只有诊断改动的完整客户端仍为 895/898，证明不是靠新增观测取绿。源码冻结后的最终候选范围
+**310/310**、扩大
+**483/483**，格式、零警告 Lint、语法与 CI/release 治理通过；冻结运行源和所有测试摘要未变。
+
+最终完整客户端
+**900 项中 899 通过、1 失败、0 取消/跳过**，退出 1，约 61.9 秒。idle 保留原断言且通过，诊断 observation=2，最近 sweep
+54 ms、最大 63
+ms；范围与扩大回归也通过同一原断言。剩余失败为真实隔离代理未在原 15 秒期限启动（no_stdout），诊断 core 导入约 9671
+ms，期限结束时仍有 lazy_protocol_handlers 导入未结束。另一 direct-upload 启动用例本次通过，但没有独立的启动根因修复，不宣称该类启动问题已解决。未重复运行未改动失败凑绿。
+
+范围覆盖语句/行 **97.27%**、分支 **92.01%**、函数 **96.59%**；完整覆盖语句/行
+**98.77%**、分支 **94.54%**、函数
+**98.8%**。最终完整日志 SHA-256 为 f804ff38f77b9553de582bcfc646dfbe54163e894ccef5067bf9fbb45c52ac2b。证据位于 .hpm-acceptance/context-recovery-idle-optimization-20261019-01/。最终隔离包匹配
+**574 个运行源、587 个构建源和 116 个锁定依赖**，源码/依赖摘要和目录治理一致。实际包内 Node/模块回归
+**247/247**，包含本轮 SQLite、maintenance、文件替换边界和原 150 ms
+idle 观察，后者 observation=2；同时执行此前 WS/HTTP
+dispatch/entry、WBIPC、绑定及片段重建回归。包内未执行真实 core HTTP
+socket，未安装或启用。包目录为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-V6Optb\dist\staging\runtime`；receipt、packaged-execution 和 final-milestone 关联最终冻结源、测试、日志、文档和因果证据。
+
+已以只读 --version 确认当前 Windows 命令入口为 codex-cli **0.160.1** 与 Claude
+Code **2.1.292**，没有改配置或发模型请求；已保存实际 CLI
+help：Codex 支持 --ignore-user-config/--ephemeral，Claude 提供 bare 模式并说明认证要求，后续可用于隔离本地上游验收；本轮没有发起生成。版本和选项存在不证明自动完整窗口回退或恢复已生效。当前持久化格式、24 小时新记录期限、旧记录原到期、预算和恢复协议均不变。仍待启动根因修复、安装宿主自动回退、私有 WS 流式/steering、完整并发、全天容量及全仓发布门禁；生产未激活，整体未完成。
+
+## 此前阶段：缓存失效安全投影与有界客户端完整窗口回退（2026-10-19，整体未完成）
+
+新增独立 cache-miss 边界，只接纳有真实 previous_response_id、严格 UTF-8、有界 JSON、明确 type/code/param 的 previous_response_not_found。HTTP 限于原生 Responses 的 400
+application/json；WS 还核对 lane、单一错误事件、总事件数及 wire/event 一致性，已经有进度的响应不冒充纯缓存失效。分类只记布尔结果，不保留或转出供应方原始消息、私有 ID 或输入。
+
+未发布分支先完成 abort
+ACK，且当前授权和连接仍有效后，HTTP 返回固定 400/no-store，WS 返回固定 lane 错误并保持连接。清理失败、撤权、关闭、取消及发送失败不发布可恢复错误；未知私有错误仍按既有安全失败路径处理。代理不自动重放模型请求、旧响应或任何外部工具。HTTP
+200 SSE 内承载的 cache miss 尚未接入此新增分类，不能据此声称所有上游形态兼容。
+
+真实双 WS 连接回归中，一个有界合成客户端收到固定错误后只补发一次完整公开窗口；私有调用及结果精确插回一次，外部结果保持原样，另一独立 lane 可继续完成。另有真实本地 HTTP
+socket 验证 400 传输及错误码、状态、协议、编码、前驱缺失拒绝；WS
+capability 回归验证等待清理 ACK、清理失败、撤权、关闭和投递失败。这些是受控测试客户端，不能代替已安装 Codex/Claude 的自动回退验收，也不证明同 root 的并发 fork 已合格。
+
+初始 WS 与 HTTP
+entry 回归在原实现失败，证据保留于 .hpm-acceptance/context-recovery-cache-miss-20261019-01/。补充测试曾因 fixture 没有真实准入 session 而被取消，已改为明确的受控 session
+capability；其失败日志保留，不计通过。首个冻结候选仅格式通过，因测试 Node
+globals 的 Lint 声明失败而停止，证据保留在 -02/；修正为 globalThis 后另建 -03/，没有覆盖原记录。
+
+最终冻结候选范围 **242/242**、扩大
+**415/415**，格式、零警告 Lint、语法和 CI/release 治理通过；运行源与全部测试摘要未变。范围覆盖语句/行
+**97%**、分支 **91.91%**、函数 **96.16%**。完整客户端
+**898 项中 895 通过、3 失败、0 取消/跳过**，退出 1，约 68.8 秒：两项真实隔离代理在原 15 秒启动期限失败，分别为 no_stdout 与 stdout_seen；加密 idle
+worker 在原 150 ms 观察等待后状态为 1 而非 2。完整覆盖语句/行 **98.76%**、分支
+**94.52%**、函数
+**98.8%**。原期限、并发和失败断言未放宽，不重复运行未改动失败以凑绿色。完整日志 SHA-256 为 3d88a7a6978d05fe681bd5a0bb8f3330e7055377599a3cbb49a9237762a35014。
+
+最终隔离包匹配
+**574 个运行源、587 个构建源和 116 个锁定依赖**，源码与依赖摘要及目录治理一致。使用实际包内 Node/模块执行 WS、HTTP
+dispatch/entry、WBIPC、binding、root-state 和 history map 回归
+**179/179**，含真实双 WS 连接、真实本地上游 HTTP
+socket 和独立加密 worker 重开；未执行包内真实 core HTTP
+socket 或安装版宿主，不扩大资格。包目录为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-aNPmrz\dist\staging\runtime`，未安装或启用。`-03/receipt.json`、`packaged-execution.json`
+与 `final-milestone.json`
+关联冻结源、测试、日志、隔离包和文档摘要。新原文仍按用户选择保留
+**24 小时绝对 TTL**，旧记录保留原到期，读取、重启与迁移不续期。容量、实际宿主自动补发、私有 WS 流式/steering、完整并发与发布门禁仍待完成。没有安装插件、共享服务重启、生产激活或真实模型请求；整体目标未完成。
+
+## 此前阶段：私有增量片段与完整公开窗口重建（2026-10-19，整体未完成）
+
+上一阶段仅修复累计公开绑定，Responses 的 previous-response-ID 轮次仍跳过私有 history
+tail。本轮复用原有 history
+map 的 prepare/commit、撤权、配额与加密 checkpoint，保存精确私有调用/结果以及累计公开窗口的指纹和位置。公开用户/system 输入不另存副本；公开与 continuity 指纹使用相同 canonical 编码。完整窗口续接时核验每段的请求及已发布指纹、位置和分支链，再按原位置插入；同连接 ID 续接仍依赖已验证的上游祖先，不重复插入旧片段。
+
+混合内部读取与外部工具的 pending 结果已经在私有片段中时，full-history 路径要求原调用与精确结果各一次，客户端原始历史不得含该私有 call
+ID，不再追加第二份。纯私有多轮保留允许的 opaque
+reasoning；外部调用仍交还客户端，不执行或重放。原 4 MiB history
+map、每段 1024 项、公开 16384 项、输出 128 项、root/调用及传输预算不扩大，旧 30 分钟和新 24 小时到期不变。
+
+新 root 统一导出 schema **6**，每个快照持久保存
+`privateHistoryComplete`。带累计片段的 history 使用 format **2**；binding
+format 仍为 2，history/binding 的 version 仍只表示 TTL。旧 Responses schema
+1–5 无法证明是否缺少曾经发生的私有轮次，因此导入后完整性为未知，不能因新增一个片段变成完整；该状态跨导出重开保持，完整窗口生成受控拒绝。旧 Chat/Claude 仍按既有完整历史契约恢复。经过已验证的原生 compaction 后，私有映射与完整性在新窗口重新开始，旧片段不插入新窗口。
+
+新增回归在修改前确认：完整窗口 pending 续接拒绝；首个实现还会把缺少旧私有轮次的历史当作可重建。两项原失败均保留。最终候选涵盖连续私有增量、精确 Unicode/opaque 数据、位置/指纹/账本/版本/分支状态篡改拒绝、旧完整性不升级及 compaction 重置。实际 Windows 加密 worker 关闭、重开所有 owner 后可精确重建；两条真实 WS 连接验证新连接主动提供完整公开窗口时只插回一次，公开事件无私有工具。这个测试没有模拟原生客户端自动 cache-miss 回退。
+
+首个冻结候选范围 **206/206**、扩大 **379/379**；完整客户端
+**886 项中 884 通过、2 失败、0 取消/跳过**，退出 1，原启动期限和 idle 观察失败保留。其后新增完整性回归在该候选源码失败，补强后的范围
+**95/95**、完整性/compaction 重置专项通过；最终冻结结果见下段，不沿用首个结果。证据在
+`.hpm-acceptance/context-recovery-private-window-20261019-01/`、`-02/`、`-03/`。`-01`
+的首个冻结工具因已有 lint 日志而在写入新日志前终止，未据此声称完成验证；后续使用独立目录。
+
+补强后的最终冻结候选专项 **207/207**、扩大
+**380/380**，范围格式、零警告 Lint、语法、CI/release 治理通过。完整客户端
+**887 项中 885 通过、2 失败、0 取消/跳过**，退出 1，耗时约 66.6 秒；一项隔离代理未在原 15 秒期限启动（no_stdout），一项 idle
+sweep 在原 150
+ms 观察等待后状态为 1 而非 2。原期限、并发、失败断言未放宽；运行源与所有测试的冻结摘要不变，不将首个候选或单跑结果合并为完整通过。
+
+专项覆盖语句/行 **96.95%**、分支 **91.37%**、函数 **95.88%**；完整覆盖语句/行
+**98.76%**、分支 **94.48%**、函数 **98.78%**。完整日志 SHA-256 为
+`251646cddffe31116d925972835d2955e3aebc7e263e6df227d6c4274135e035`。新 public-window 模块纳入显式客户端覆盖统计，新增回归均进入既有 unit 和客户端入口；覆盖达标不代替完整门禁通过。
+
+最终隔离包匹配
+**573 个运行源、586 个构建源及 116 个锁定依赖**，目录治理和源码摘要一致；实际包内 Node/模块执行 WS、HTTP
+entry、WBIPC、binding、root-state 和 history map 回归
+**144/144**。包内包含真实双 WS 连接和独立的真实加密 worker 重开测试，但未执行真实 core
+HTTP socket 用例或原生客户端，不扩大声称整机链路合格。目录为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-zRkZUH\dist\staging\runtime`，未安装或启用。`-03/receipt.json`、`packaged-execution.json`、`final-milestone.json`
+关联冻结源码、测试、日志和文档摘要。
+
+本轮重新获取的
+[OpenAI WebSocket Mode](https://developers.openai.com/api/docs/guides/websocket-mode)
+明确：连接缓存失效、`store=false`/ZDR 或 `previous_response_not_found`
+时，客户端清除 previous response
+ID 并发送该 lane 的完整上下文；可关联的错误按 stream 返回，其他 lane 可继续。文档与来源摘要保存在
+`-03/official-websocket-{mode.md,source.json}`。这只是公开 API 契约，不能证明官方登录端点或当前安装的 Codex/Claude 已自动执行；下一步按该边界实现固定安全错误投影并验收宿主回退。
+
+仍未完成：cache
+miss 的安全错误/公开 ID 投影与宿主自动完整窗口回退、私有 WS 流式进度和 steering、所有 HTTP/WS 并发 pending 形态、全天容量及实际安装宿主/真实模型验收。新格式回滚必须保留存储并禁用恢复，或走独立验证的清理流程；不得删字段伪造旧格式。尚未激活生产、安装插件、重启共享代理或调用真实模型，整体目标保持未完成。
+
+## 此前阶段：累计公开窗口绑定与旧期限迁移（2026-10-19，整体未完成）
+
+已验证 response
+ID 的增量现在接到父快照已发布的累计公开指纹，完整当前窗口可重新选择最新分支，包含磁盘状态导出和重新导入后的原文视图。携带完整窗口与 ID 的请求不重复拼接；原生 compaction 重新开始窗口。新增独立 window 模块只保存 full/delta/compaction/unavailable 标记及有界位置，不保留新的用户原文。请求局部 count/bytes 契约保持原样，累计位置单独存储。
+
+新导出统一为 root schema **5**、binding format **2**；binding
+version 仍仅表示旧 30 分钟或新 24 小时期限。旧 schema
+1–4 可导入，缺失的窗口完整性保持 unavailable，不通过迁移推断完整；已有记录绝不续期。新增旧 schema
+3/4 的 24 小时边界测试验证精确原文、升级、续接及到期拒绝；加上原 30 分钟回归，持久化专项
+**29/29**。该补充发生在下述完整冻结之后，只改测试，未重复运行未改动的完整失败门禁。
+
+修改前累计窗口回归失败；冻结范围专项 **187/187**、扩大回归
+**360/360**，格式、零警告 Lint、语法及 CI/release 治理通过。完整客户端
+**878 项中 877 通过、1 失败、0 取消/跳过**，退出 1；失败是既有 idle
+worker 在原 150
+ms 观察等待后状态仍为 1 而非 2。此前代理启动失败本次未出现，不据此认定根因已修复。运行源与全部测试的冻结摘要未变；随后仅补上述两项旧 24 小时格式测试，单独格式/Lint 通过。
+
+专项覆盖语句/行 **96.62%**、分支 **90.84%**、函数 **94.97%**；完整覆盖语句/行
+**98.79%**、分支 **94.48%**、函数 **98.77%**。完整日志 SHA-256 为
+`627b0fab385924637cdd6dcf54e71a42b0714f02b02424dfc62558cc218ebcd2`，原失败仍保留。证据在
+`.hpm-acceptance/context-recovery-cumulative-window-20261019-01/` 与
+`-02/`；首个冻结候选的 Lint 失败也保留，不合并为通过。
+
+本轮新隔离包匹配
+**572 个运行源、585 个构建源和 116 个锁定依赖**，目录治理、锁定依赖和运行源摘要一致性通过。实际包内 Node 与模块运行 WS、HTTP
+entry、WBIPC、binding 和 root-state 回归
+**126/126**，包含本轮累计窗口及旧 24 小时格式迁移测试；仅重定向生产模块/依赖导入，保留原断言与期限。目录为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-shEqqp\dist\staging\runtime`，包内未执行真实 core
+HTTP socket 用例，不能扩大资格。`packaged-execution.json` 与
+`final-milestone.json` 关联最终源码、测试、日志及文档摘要；完整客户端仍未通过。
+
+此增量只完成方案 8.3.1 的绑定基础。server-continuation 的私有片段尚未按累计位置保存并重建，full-history
+pending 仍明确拒绝；cache
+miss 自动回退、私有 WS 事件投影、公开/内部 ID 映射与 steering 仍未接通。新格式不能被旧构建读取；回滚应保留存储并禁用恢复，或走单独验证的清理流程，不能删除字段伪造兼容。安装版、真实模型、全天容量和生产激活均未验收，整体目标仍未完成。
+
+## 此前阶段：接纳失败不回落转发与 WS 接纳调度（2026-10-19，整体未完成）
+
+在上一阶段持久 pending 结果基础上，发现恢复接纳返回 busy、存储不可用或绑定改变时，普通 HTTP 和 WS 会继续进入原始转发；HTTP 内部恢复准备失败也返回“未处理”。这可能向上游发送缺少内部结果的续接。本轮增加独立、仅检查数据 descriptor 的 rejection 分类模块，核心入口只组合固定错误响应。已知存储、授权状态、绑定冲突及并发失败在普通 HTTP 入口返回固定 503，尚未执行上游请求；WS 沿现有安全失败契约关闭连接，不转发不完整请求。目前这仍会终止同连接其他流，不代表已交付逐流恢复错误协议。
+
+HTTP 已接纳会话的内部准备失败、能力调用/dispatch 构造异常或 observer 接管失败，现在进入受控错误与 abort 清理，不再返回旧 handler 重试。只有三个明确的不支持控制/工具/工具名碰撞错误可在接管前走原有允许路径。畸形或不支持的原始请求、缺少身份、未知上游 previous
+response 和新 root 配额仍保留原策略，未把所有接纳失败都描述为恢复成功。WBIPC 三协议复用相同发布器，没有启动旧循环、原生传输或外部工具重放。
+
+直接拒绝 busy 的初版暴露了单连接 16 个同时响应与 loader
+8 项接纳队列的差异；现仅串行执行同连接的接纳步骤，排队仍包含在原有 16 在途/32 请求和字节预算内，loader 原上限不变。完成接纳后模型响应可并行；关闭、撤权或超时后排队接纳不再执行。不串行整个模型响应，也未放宽任何期限、并发或原失败断言。
+
+新回归在旧模块上确认：WS 向上游发出不完整请求；HTTP entry 允许回落；真实 core
+HTTP 返回 200 而非拒绝；WBIPC 旧发布器也允许回落。当前受控回归通过，验证固定无内容错误、上游零请求、abort、观察器/监听器清理、排队取消、并行模型响应及原 16 流上限。scope
+**139/139**，扩大 HTTP/WS/会话/真实 core/WBIPC 回归
+**312/312**。新增用例均在既有 unit 和显式客户端测试入口。
+
+首个冻结候选客户端
+**872 项中 867 通过、5 失败、0 取消/跳过**，退出 1；两项代理启动、idle
+sweep 观察，以及两个 WBIPC 资格测试桩失败。后两个测试桩用无 code 的 `{ok:false}`
+作为旧提前退出哨兵，缺少 HTTP 发布器接口；现将“明确不支持控制项”的资格哨兵标明真实错误码，同时新增三个 WBIPC 协议的真实 EventEmitter 发布失败测试，不关闭规则或跳过失败。生产源码保持首个冻结候选不变，最终冻结结果见下方后续记录。
+
+最终冻结完整客户端
+**873 项中 871 通过、2 失败、0 取消/跳过**，退出 1，测试耗时约 66.7 秒。剩余一项隔离代理启动在原 15 秒期限失败（preload/lifecycle 已加载，尚无 stdout），一项 idle
+worker 在原 150
+ms 观察等待后仍为 sweep 握手状态 1 而非 2。另一启动用例本次通过，不据此关闭其历史间歇问题。最终范围格式、零警告 Lint、语法、CI/release 治理通过；运行源和全部测试摘要未变。scope 覆盖语句/行 95.52%、分支 88.67%、函数 93.50%；完整覆盖语句/行 98.79%、分支 94.42%、函数 98.76%。覆盖达标不代替完整门禁通过。完整日志 SHA-256 为
+`4feb4b4cd114004366404e0bfefdfd2cdb2049c62ca1de5877fd8d8dec141652`。
+
+新隔离包匹配
+**571 个运行源、584 个构建源、116 个锁定依赖**，运行源摘要未变，目录治理通过。使用实际包内 Node/运行模块执行同一 WS、HTTP
+entry 与 WBIPC 三组回归
+**77/77**，只重定向生产模块/依赖导入并复制测试专用转换 fixture，保留原期限和断言。真实 core
+HTTP 入口回归在工作区扩大/完整测试中执行，此次包内 77 项没有执行该 core
+socket 用例，不能扩大声称包内真实 core 入口合格。隔离目录为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-oCPhbu\dist\staging\runtime`；包与测试摘要在
+`isolated-package.log`、`packaged-execution.json`、`final-milestone.json`
+关联。此包未安装或启用，完整客户端门禁仍未通过。
+
+证据在 `.hpm-acceptance/context-recovery-admission-boundary-20261019-01/` 与
+`-02/`；前者保留旧源、修改前失败、首轮完整日志和回执，后者封存补强后的最终候选。整体仍未完成；下一项核心实现为方案 8.3.1 的跨连接累计窗口及私有片段重建。已知失败拒绝的回归不等于所有 HTTP/WS 并发 pending 状态均已验收。未改共享运行配置、安装版宿主或生产，未发真实模型请求。
+
+## 此前阶段：混合工具的内部读回结果持久续接（2026-10-19，整体未完成）
+
+用户选定新原文留存 24 小时，已有记录保持原到期时间。此前混合内部读回与外部工具调用的 pending 结果只在 WS 连接内保存，连接关闭后丢失；现在将已完成的内部只读结果绑定到获准接纳的父快照，通过既有加密 checkpoint 保存。新连接只能读取已完成发布、当前 owner 获准的父快照结果；未完成发布、撤权、到期、跨 owner、重复 call
+ID 或不支持的续接形态均拒绝。会话层在 verified previous response
+ID 的 delta 前拼接一次内部结果，WS 不再重复拼接；不执行外部工具，也不重新执行内部读取。
+
+新增独立 pending-results 校验模块，仅接受最多 16 项有界 function_call_output 数据，每 root 累计 pending
+payload 上限 2 MiB。携带 pending 结果的导出使用 root schema
+4，保留发布 readiness；不携带结果时保持原 schema 2/3。schema
+4 按 binding 版本保留旧 30 分钟或新 24 小时绝对期限，读取、重启与迁移均不续期。旧构建不能读取 schema
+4；回滚必须保留存储并禁用恢复，或执行另经验证的清理流程，不能通过删除 pending 字段伪造兼容。
+
+首个冻结候选专项 121/121、扩大回归 271/271；完整客户端 866 项中 862 通过、3 失败、1 取消。随后补强 schema 校验时发现直接调用校验函数可触发嵌套数组 getter；受控回归修改前失败，现通过 descriptor 检查拒绝 getter、自定义属性和稀疏数组，不执行输入代码。正常加密恢复入口预先规范化输入，此发现不等于已证明远程可利用。
+
+最终候选专项 **121/121**、扩大回归
+**271/271**，覆盖语句/行 95.40%、分支 88.25%、函数 93.33%。强化 WS 回归使用磁盘 SQLite 和真实 AES 加密：关闭连接、关闭 owner、关闭数据库，重开同一文件并创建新 owner，再接回内部结果与外部结果各一次；检查加密 envelope 不含指定合成明文。它不等于原生 worker/DPAPI 或真实客户端验收。pending 解析、未完成发布拒绝、授权/到期、schema
+mutation、总量上限和旧期限回归进入既有 unit 与客户端入口。
+
+最终冻结完整客户端
+**866 项中 863 通过、3 失败、0 取消/跳过**，退出 1，测试耗时约 71.6 秒。两项代理启动在原 15 秒期限失败，一项加密 idle
+worker 在原 150
+ms 观察等待后未完成 sweep 握手（状态 1，预期 2）。保留原并发、期限和断言，未重跑以制造通过。格式、零警告 Lint、语法、CI/release 治理通过；运行源及所有测试摘要未变。完整日志 SHA-256 为
+`a9b547d86fa6f7c6b64703afcfe2ef2e16ed05a061e7d017c57694b9f1ac138d`。
+
+证据分别保存在 `.hpm-acceptance/context-recovery-pending-results-20261019-01/`
+与
+`-02/`；前者保留首次候选和失败对照，后者包含补强回归的原失败、最终冻结源、日志及
+`receipt.json`。
+
+本轮新隔离包匹配
+**570 个运行源、583 个构建源和 116 个锁定依赖**，运行源未变、目录治理通过。实际包内 Node 与模块执行相同 WS 回归
+**59/59**，包括磁盘数据库关闭重开；仅替换测试导入路径，保留原期限和断言。包目录为
+`C:\Users\juhon\AppData\Local\Temp\hpm-isolated-release-HsLYyf\dist\staging\runtime`；`isolated-package.log`、`packaged-execution.json`
+与 `final-milestone.json`
+关联源码及日志摘要。完整覆盖语句/行 98.78%、分支 94.36%、函数 98.87%，不代替完整客户端通过。此包未安装或生产启用。
+
+**剩余边界**：本轮合成上游接受原 response ID，未证明 `store:false`
+跨连接缓存失效后的完整历史重建；full-history
+pending 续接目前明确拒绝。私有 WS 流式投影、公开/内部 ID 映射、steering、HTTP/WS 并发 pending 接纳和负向 cache-miss 尚未完整验收。2
+MiB/root
+pending 限额不构成全天容量证明。安装版宿主、真实模型及生产启用均未执行，完整门禁仍失败，整体目标保持未完成。
+
+## 此前阶段：WS 普通响应实时进度与持久终态分离（2026-10-19，整体未完成）
+
+此前普通 WS 也将
+`response.created`、文本增量等全部缓冲到上游终态，客户端无法在生成期间获得响应 ID 或内容。本轮为未注入私有恢复工具/结果的普通 dispatch 增加内部
+`onEvent`
+发送能力：通过既有身份、流、顺序和字节校验的非终态事件按发送确认串行发布；最终
+`completed`
+仍等待所有进度发送确认、持久 prepare 和 sending 确认后发布，再完成 finished。普通失败仍先 abort 未提交分支，再返回终态。早期进度不是已完成历史，不能授予续接原文权限。
+
+含私有恢复 coordinator 或 deferred 结果的 dispatch 不获得此发送能力，继续隐藏内部事件；没有把 private
+response
+ID 或私有工具调用直接暴露。此改动接通普通响应实时进度，但**尚未完成私有恢复轮次的流式投影、公开/内部 ID 映射、steering 或自动 successor 生命周期**，不能据此声明完整 WS 兼容。
+
+发送队列仍有界：每个 dispatch 保留原 2
+MiB/4096 事件上限，即使公开事件已发出也不重置累计计数；同流 FIFO、16 在途/32 请求、32 命名流及原期限不变。终态后追加事件、非法身份/顺序、发送失败、关闭或撤权继续终止；取消后未开始发送的 delta 和终态不得继续调用 transport，已经调用的发送可能晚到确认，不能将其当作终态成功。没有新增日志或模型/外部工具重放。
+
+新增回归进入既有 unit 和客户端入口。对照使用此前隔离包中与冷加载最终候选逐文件 SHA-256 一致的 connection/turn 模块，其余依赖和新增测试不变：真实 socket 等待早期 delta 的用例超时，三个发布子用例收不到早期 created 而失败，终态 5 项中 0 通过、4 失败、1 超时取消。新源码 WS 专项
+**58/58**，三模块覆盖语句/行 97.98%、分支 94.47%、函数 100%；扩大 HTTP、WS、coordinator、会话和发布回归
+**229/229**。新测试另覆盖发送确认顺序、关闭、撤权、发送失败、极端事件数量及无效持久 ACK；既有失败断言、并发、预算和期限未放宽。
+
+冻结候选完整客户端
+**862 项中 858 通过、3 失败、1 超时取消、0 跳过**，退出 1，总耗时约 101.6 秒；本轮 WS 新增回归全部通过。两项代理启动仍在原 15 秒期限失败，一项独立 PowerShell
+ACL 读取原期限超时，实际 stdio
+CLI 用例在原 30 秒期限取消。idle 用例本次通过，不能单次关闭此前的间歇问题。范围格式、零警告 Lint、语法、CI/release 治理通过，运行源与所有测试冻结摘要未变。完整覆盖语句/行 98.77%、分支 94.39%、函数 98.86%，覆盖达标不代替完整门禁通过。完整客户端日志 SHA-256 为
+`1b1226eebe85c8d9db914432dcff377eec5144228d09ceaa6970c8108623b058`。
+
+证据位于
+`.hpm-acceptance/context-recovery-ws-public-progress-20261019-01/`，包括旧模块摘要校验 preload、原失败、新专项、扩大回归、冻结源、各日志摘要和
+`receipt.json`。本次重新获取的官方 steering/WebSocket mode
+Markdown 也保存在该目录；不将公开 API 文档推定为 Codex 官方登录端点的实际支持证明。
+
+本轮重新生成的隔离包匹配
+**569 个运行源、582 个构建源和 116 个锁定依赖**，源摘要未变，目录治理通过；使用实际包内 Node 和运行模块执行同一 WS 测试
+**58/58**，保留原测试期限、断言和 socket 行为，仅将测试导入指向包内模块与依赖。该包同时包含此前的冷加载 root-contract 模块，但本次 58/58 的测试范围是 WS，不能代替该模块全部包内专项。`isolated-package.log`、`packaged-execution.json`、执行日志及
+`final-milestone.json`
+保留包与测试摘要关联。完整客户端门禁仍未通过，尚未取得安装版宿主、真实模型或生产资格。
+
+## 此前阶段：恢复冷路径按需加载与观察器读锁竞争（2026-10-19，整体未完成）
+
+恢复会话不再在普通构造时导入 root
+restore/loading、存储 reader/transaction/startup、checkpoint 和 publication 模块。异步接纳时才创建本会话唯一的 loader；存储附件、checkpoint 和可信状态导出/重建在实际调用处加载。错误工厂移到无状态的小型
+`context-recovery-root-contract.js`，root-state 继续导出相同工厂，保持 TypeError 与固定错误码契约；无效可信查询也无需加载整个重建图。尚未创建的 loader 不因 configure/drain/关闭而被实例化，已创建的 loader 仍完整 drain。
+
+禁用/关闭的异步接纳直接返回既有存储不可用结果。首次 loader 模块初始化失败时关闭本会话，清除能力并保持失败状态，不重试、不输出原生异常；已有存储清理和 drain 仍须完成。原有输入校验、当前授权、generation/revocation 复查、队列、原期限、账本和存储预算未改。
+
+四项独立进程回归在修改前 0/4、修改后 4/4：阻断全部九个冷模块时，纯内存同步捕获/Unicode 精确读回、异步完成、撤权和关闭仍完成；首次异步接纳只初始化一次 loader；首次可信导出/重建保持 schema
+3、24 小时原期限；模拟加载异常关闭 owner，后续接纳/启用/关闭不能制造成功且加载只尝试一次。回归位于既有 sessions 测试，进入原 unit 与客户端入口。扩大九文件专项 172/172，通过。
+
+独立进程导入清单显示 sessions 本地模块数 58→44、core 158→144、runtime
+69→55，九个冷模块均未进入三个入口的初始图，本地源码减少约 69
+KB。单次耗时样本分别为 140→177、462→778、151→264
+ms，未显示加速，不作速度比例、因果或稳定性结论。证据为
+`.hpm-acceptance/context-recovery-cold-state-20261019-01/{before,after}-imports.json`。
+
+该生产候选冻结完整客户端终态 850 项：848 通过、2 失败、0 取消/跳过，退出 1，运行源及全部测试摘要未变；范围格式、零警告 Lint、CI/release 治理通过。覆盖语句/行 98.77%、分支 94.37%、函数 98.86%。一次启动仍在 claude_filters 导入前到期，core 约 9272
+ms、配置调用约 735 ms；另一次 ports_listening 约 11069
+ms，通过原期限。剩余另一失败为真实 idle
+worker：本次原始错误确认是 external_probe 阶段待执行请求因 worker
+exit 被拒绝，已不再被 finally 的 close 错误遮蔽。完整客户端日志 SHA-256 为
+`00f794d860e1345659b2a0e833b13e0778c8d3c5862902e9d60a924af0472fd0`；终态
+`receipt.json` 保留。
+
+随后在独立合成存储上持有只读 SQLite 事务，真实 25 ms idle 调度触发 worker
+exit，后续读/close 均按原契约拒绝；受控复现退出 0，未使用真实内容或凭据。这证明独立观察器本身能与唯一 writer 的清理提交竞争，不能把该测试动作视为无侵入观察。未改变生产 SQLite
+busy/失败策略。
+
+现仅在测试 preload 增加共享观察握手：推进既有 SQLite 逻辑时钟后 arm，等待一次真实定时回调完整返回，再暂停后续定时 tick，独立只读连接验证过期行已删除，连接关闭后立即恢复。保留原 25
+ms 加速间隔、150 ms 固定观察等待、30 秒用例期限、300
+ms 保存延迟、精确删除/活数据/重开/续期拒绝断言；没有插入可顺便清理的 owner 命令。观察控制字段在生产 worker 解析前移除，错误维护仍会终止 worker，第二项 corruption 测试无观察暂停。新回归先失败后通过，覆盖 callback
+receiver/参数、异常不 ACK、在途旧回调不能 ACK 后来的 arm、非 idle
+timer 不变、恢复及非法控制输入；idle 专项 11/11。此专项结果不能替代下面的最终并发结果。
+
+最终冻结候选 `.hpm-acceptance/context-recovery-cold-state-20261019-02/`
+完整客户端
+**851 项中 848 通过、3 失败、0 取消/跳过**，退出 1，总耗时约 86.1 秒。范围格式、零警告 Lint、CI/release 治理通过；运行源与全部测试冻结摘要保持不变。两项代理启动在原 15 秒期限失败：一项 core 导入约 10374
+ms 后仍在 handlers，另一项已到 servers_created，但未在期限内确认监听。idle 物理用例在固定 150
+ms 等待后观察状态仍为 1，未达到回调完成的状态 2，因此在独立 SQLite 读取前失败。握手避免未完成时进入读锁竞争，但尚未证明该用例在原并发与期限下稳定；不能删除握手断言、延长等待或将其解释成清理成功。新增握手独立回归和四项冷加载回归在本次完整入口通过。完整客户端日志 SHA-256 为
+`1d743a20c68a02a7161d3e4ceabdaa23b833518789d3a4e36b390beca67bc45d`；原失败候选及两次回执分别保留，不合并为通过结果。下一步应针对启动加载和定时完成延迟取得受控因果证据，再修改并验证，不能仅重复完整入口直到通过。
+
+此增量晚于前一 ACL 包，尚未取得新源码的包内、安装版或真实客户端资格。未调用真实模型、重启共享代理、安装插件或激活生产，完整 WS、全天容量与其余发布门禁仍未完成。
+
+## 此前阶段：普通私密文件复用原生 ACL（2026-10-19，完整门禁未通过）
+
+固定调用计时确认配置读取包含 Windows 同步 ACL 工作，随后在同一合成文件上交替比较既有兼容与原生操作：旧路径首次 whoami + 两次 icacls、约 457
+ms，缓存 SID 后两次 icacls、约 305 ms；既有原生操作各一次子进程、约 157/176
+ms。这只证明这些局部样本的调用数和耗时，不能直接归因为整体启动失败，也不能承诺整体加速比例。
+
+现将恢复专用 native private-path dispatch 提取为无恢复状态依赖的共享模块
+`private-path-native.js`。普通同步私密文件/目录的默认本地路径复用同一固定原生命令，缓存与 force 语义不变，执行前后验证文件身份；显式文件系统、执行器、SID 或不同环境适配器保留原路径。UNC、超长路径和卷根目录也保留既有通路。目标/祖先的链接、硬链接、错误类型及无效原生程序在边界拒绝；已发出的原生请求错误、异常 ACK 或目标替换均安全失败，不降级重试或写入成功缓存。仅默认原生程序不存在时允许原兼容路径；恢复存储继续对外统一返回原 storage 错误，不暴露原生异常。异步日志/PID 等文件保护路径未改变。
+
+原生程序随发布准备流程从匹配源码构建；新增共享模块进入发布源清单。源码直接运行时，存在的原生程序也必须支持既有 private-path-v1 命令，不能以错误后重试兼容后端掩盖旧二进制。普通目录的原生成功不依赖旧的
+`.hpm-secured` 标记授信；进程内仅缓存已确认的文件身份。
+
+默认入口回归先复现 3 次子进程而失败，修改后验证一次原生调用、命中缓存、force、替换后重保、失败后无缓存和无自动重试。另覆盖缺失/非法原生程序分流、目标替换及异常输出；新测试由未变更的统一 unit
+selector 发现。扩大专项 129/129，范围格式、零警告 Lint、CI/release 治理通过。三模块专项覆盖语句/行 94.89%、分支 90.44%、函数 89.47%，该覆盖报告不代替统一客户端阈值门禁。真实 Windows 原生程序经独立 PowerShell
+ACL 读取验证普通与恢复目录/Unicode 文件的三主体 FullControl、禁止继承及内容不变，原 30 秒用例期限保持。
+
+冻结候选完整客户端终态 846 项：835 通过、4 失败、7 取消、0 跳过，退出 1；运行源及测试冻结摘要未变。四项失败为两个代理启动、独立 PowerShell
+ACL 读回超时及旧 DPAPI 包装互操作 key_unavailable；七项取消为实际 stdio、核心 HTTP 加密重建、inactive 密文清除、两项 idle 物理测试、staged 清理重开及加密重建。两次启动失败均未进入被测配置调用：一个 core 导入约 11172
+ms 后仍在 runtime_config_controller，另一个仍在 core。此证据表明本次 ACL 复用尚未解决核心加载阻塞，不能因为局部调用更少或专项通过就宣称整体更快、稳定或可发布。完整客户端覆盖语句/行 98.76%、分支 94.36%、函数 98.86%，不改变门禁失败。
+
+完整运行结束后仅补强新测试中的恢复存储兼容后端断言，生产源码未变；普通入口与存储入口均验证缺失默认原生程序可用兼容路径、非法原生程序不派发、兼容执行器的 5 秒/输出/环境边界保留。随后边界 17/17，三模块专项覆盖语句/行 96.28%、分支 84.56%、函数 94.73%；这是不同测试集合的独立报告，不合并覆盖率或重复完整入口以求绿色。证据目录
+`.hpm-acceptance/context-recovery-shared-acl-20261019-01/`；原冻结
+`receipt.json` 与 `source-snapshot.json` 保留，完整客户端日志 SHA-256 为
+`f9140982d7194ecf2d72a6c685884eaf24f21b6d1b6ce03db6e148f253a6587a`。
+
+隔离发布准备退出 0：568 个运行源、581 个构建源与 116 个原锁定依赖匹配，运行源未变，发布目录治理通过。随后使用包内 Node、实际原生程序及打包的共享 ACL/存储模块执行专项：真实普通目录/文件各一次原生 ACL 调用，独立 PowerShell 核对三主体权限；实际加密 worker 保存 24 小时记录、物理关闭重开、原期限及状态不变、续期拒绝，并在数据库文件中确认不出现合成载荷原文。原生调用保持 5 秒边界，独立 ACL 读取 10 秒、包内整个探针 30 秒；未借用真实认证或用户环境。`packaged-execution.json`
+记录包内专项退出 0 与前后源摘要一致。这不等于完整发布通过、实际应用安装/启动器采用、真实客户端效果或生产资格；以上完整客户端失败仍有效，下一步启动排查须转向核心导入路径。
+
+未修改 24 小时/旧记录期限、调用与存储预算，未改并发或期限，未修改真实认证、重启共享代理、安装插件或激活生产。完整 WS、容量、真实客户端及发布资格继续保留在总目标内。
+
+## 此前阶段：启动调用诊断与空闲清理失败核查（2026-10-19，整体未完成）
+
+24 小时生产候选源码保持下节冻结版本。仅在测试 preload 增加固定词表的首调用计时：迁移、配置读取、HTTP
+Agent、代理 transport 和 runtime
+support。包装保留函数属性、receiver、返回值及抛出对象，不执行访问器，不记录参数、错误正文或原文；监听完成后恢复原 loader。独立进程回归先复现缺少调用计时，修改后验证返回/抛出身份、重复调用仅计时一次、访问器不执行与私密内容不输出。专项 7/7、范围格式、零警告 Lint、CI/release 治理通过。
+
+完整客户端终态 846 项：844 通过、2 失败、0 取消/跳过，退出 1。运行源及测试冻结摘要未变，生产源码与 24 小时最终候选一致。启动失败样本的 core 导入约 11578
+ms，截止时仍在 support 导入，尚无任何被测函数调用；另一启动通过样本的 ports_listening 约 13971
+ms，配置调用约 1277 ms、Agent 构造约 1279
+ms。配置调用嵌套在 Agent 构造中，两者不可相加。这些样本不能证明配置或单个导入就是根因，也不证明启动已提速。证据目录
+`.hpm-acceptance/context-recovery-startup-calls-20261019-01/`；终态
+`receipt.json` 固定日志摘要，完整客户端 SHA-256 为
+`a01899fdaa40327234dfd151b66133d692758a3a5fb54cbbeb99b73fc45c181a`。
+
+另一失败为真实加密 idle worker：固定阶段定位到 independent SQLite
+external_probe，但 finally 中的 close 拒绝遮蔽原始错误，不能据此推断为删除失败、SQLite 锁冲突或此前的时钟竞争。现把清理移入 node:test 的 after
+hook，使原始断言/SQLite 错误与清理失败分别报告，保留原 30 秒期限、25
+ms 加速调度、150
+ms 观察等待及全部存储断言；仅修正诊断，不修改生产清理策略。该诊断版本的 idle 专项 10/10 通过；随后完整入口的 idle 用例也通过，但原始错误未复现，间歇失败不关闭。
+
+诊断候选最终完整客户端为 846 项：841 通过、3 失败、2 取消、0 跳过，退出 1；运行源及全部测试冻结摘要未变，生产源码仍与 24 小时最终候选一致。三项失败为两个代理启动及真实加密重建存储不可用；两项取消为实际 stdio
+CLI 和 staged 清理重开原 30 秒期限。清理重开的第三次打开在约 28325
+ms 完成密钥解封，尚未进入 database_opened，不能把该样本归为扫描或关闭耗时。范围格式、零警告 Lint、CI/release 治理及启动专项 7/7 通过，不改变完整入口失败。证据目录
+`.hpm-acceptance/context-recovery-idle-diagnostics-20261019-01/`；终态
+`receipt.json` 固定各门禁、源码及日志摘要，完整客户端 SHA-256 为
+`55765dadbf29648078ccb86c6a12141cd6187fbacd43635601638803a7b36d4d`。没有降低并发、延长超时或重跑至绿；后续须定位具体启动/重开耗时及失败，不能将本轮 idle 通过当作根因修复。
+
+未重跑已知未变化的全仓格式失败，未重启共享服务、调用真实模型、安装插件或激活生产。完整 WS、实际宿主、容量及发布资格仍未完成。
+
+## 此前阶段：24 小时版本化留存候选（2026-10-19，整体未完成）
+
+首发选择已落入候选源码：新 recovery root 为 schema
+3、绝对有效期 24 小时；binding/history 的新版组件为 schema 2。旧 schema 1/2
+root 保留 30 分钟期限及原账本策略，导入、继续、读回、重新导出均不续期；旧 root 的政策信息可按既有规则补全为 schema
+2，但不会变为 24 小时。重建后的新独立 root 使用新策略。原文账本保持默认 30 分钟供其他调用者使用，仅恢复会话显式采用 24 小时；账本可接受的上限同步改为 24 小时。
+
+存储、目录/worker 回复、密文 AAD 校验和 WS 私有结果续接统一接受最多 24 小时的原期限；SQLite
+schema、密钥包装和 AAD 编码不变，不重加密旧记录，也不修改其期限。原 CAS 规则仍拒绝延长已有记录。root 导入同时验证版本、根期限、binding 版本、非空 history 版本和账本期限一致性，防止只重标版本或混用期限。清除操作编号的独立 30 分钟有效期未修改。管理诊断的留存策略版本为 2，前端显示 24 小时并明确已有记录保持原到期时间；旧诊断版本仍可展示。
+
+新增回归在修改前因 root 仍为版本 2 而失败，修改后在 24 小时到期前 1
+ms 重建、精确原文读回、期限不变及到期拒绝均通过。另覆盖旧 schema
+1/2 的原期限、继续后不续期、新旧 root 共存、错误期限/版本/账本混合原子拒绝、账本上限及 WS 原期限。真实 Windows 加密 worker 新旧记录共存用例通过（约 3578
+ms）：物理关闭并重开后旧记录按 30 分钟删除，新记录在 24 小时到期前仍精确读回，到期清理后独立只读 SQLite 确认无剩余记录，续期请求被拒绝。时间推进仅通过已有测试专用 SQLite 时钟完成，真实 worker、DPAPI、文件系统及 30 秒用例期限保留。
+
+此前扩大专项 158/158，通过；随后加入跨组件一致性检查的冻结候选 306 项中 304 通过、2 失败。失败来自发布投影删除全部私有历史后保留了合法 schema
+2 空历史，而新增检查只接受 schema
+1 空历史；现空历史可保持任一已支持的组件版本，非空历史仍须匹配 root 策略，两项对应回归通过。两份失败候选回执及日志保留于
+`.hpm-acceptance/context-recovery-retention-24h-20261019-01/` 与
+`-02/`，前者还记录测试 helper 全局符号 Lint 的修正。
+
+候选 `-03/` 扩大专项 306/306，前端 coverage
+7/7 文件、独立目录构建、范围格式/Lint/CI/release/前端架构均通过；前端语句/行 98.06%、分支 90.44%、函数 96.42%。完整客户端 846 项中 844 通过、2 失败、0 取消：一个原期限隔离代理启动，另一个发布用例仍在逻辑时间 30 分钟触发“到期”。后者改为独立断言根期限精确等于创建时间 100 +
+86400000，再推进至该到期点；原墙钟期限、并发、失败断言均保留，修改后对应回归通过。
+
+最终候选 `.hpm-acceptance/context-recovery-retention-24h-20261019-04/`
+专项 325/325；完整客户端终态 846 项中
+**845 通过、1 失败、0 取消/跳过**，退出 1，整体未通过。覆盖语句/行 98.76%、分支 94.40%、函数 98.86%。唯一失败仍为原 15 秒隔离代理启动；该样本 core 导入约 10987
+ms，截止时所有被记录的顶层导入已完成、尚未记录 composition_ready，不能只据此认定根因。候选运行源及全部测试冻结摘要未变；与
+`-03/`
+的唯一差异为该发布测试，因此前端与构建资格按摘要复用，不重复运行。`receipt.json`
+同时记录复用依据与各入口/日志摘要；完整客户端日志 SHA-256 为
+`58f76afd6f05df8b686065135f428a4ad254aa77af44bc259110c74e6b47bf6e`。所有历史失败保留，不将本轮密钥、stdio、重建和清理重开通过归因于留存改动，也不据此关闭其稳定性需求。
+
+4 个活动 root、每 root 64 来源/4
+MiB、恢复调用与分页预算、全局存储限制均未扩大。24 小时是最长保留期限，尚不证明全天真实任务的容量/延迟满足要求；达到容量时仍按既有安全规则拒绝，不淘汰有效原文。不把该源码候选表述为当前共享进程已加载、实际宿主已验收或生产已激活。旧程序的 30 分钟存储边界无法接管新记录，回滚必须关闭恢复并保留新版本存储，或通过新版已验收的清除流程及持久 ACK 后另验旧版接管；不能依靠把 root 版本号改回旧值。完整 WS 生命周期、接入诊断、真实 Codex/Claude 路径、完整门禁、发布和回滚资格仍待完成。
+
+## 此前阶段：覆盖环境修正与首发留存决策（2026-10-19，整体未完成）
+
+用户已确定首发原文留存目标为
+**24 小时**。这是待交付目标，当前运行契约仍为 30 分钟、4 个活动 root；已有记录保持原到期时间，读取、重启和迁移均不自动续期。24 小时尚未接入生产，不把本次决策表述为实现完成。
+
+隔离测试此前显式启用逐夹具 Node compile cache，同时继承 V8 coverage。按 Node
+v22 官方 module compile
+cache 文档，此组合可能降低反序列化函数的覆盖精度。现测试环境统一设置
+`NODE_DISABLE_COMPILE_CACHE=1`，清除大小写变体，保留隔离路径和 V8
+coverage；生产启动缓存设置不变。实际 Node 子进程回归在修改前得到 cacheEnabled=true 而失败，修改后验证缓存关闭、覆盖开启及覆盖文件确实生成。此修正用于保证覆盖环境，不证明解决启动性能问题。
+
+冻结专项 50/50，范围格式、零警告 Lint、CI/release 治理通过。字面完整客户端终态 838 项：832 通过、3 失败、3 取消、0 跳过，退出 1；源码与冻结测试摘要未变。失败为两个隔离代理启动期限及 native
+helper 与旧 DPAPI 包装互操作的 key_unavailable；取消为实际 stdio、加密 HTTP 重建及 staged 清理重开。覆盖语句/行 98.75%、分支 94.37%、函数 98.86%，整体未通过。终态已确认，无需继续轮询该运行。证据目录
+`.hpm-acceptance/context-recovery-test-cache-20261019-01/`；`receipt.json`
+固定各入口及日志摘要。完整客户端日志 SHA-256 为
+`13f2a3b2a93db3164815e69e66773f73f9cf53bbe707629b941d940b4b88775c`。
+
+后续提速采用小范围修改与专项门禁，稳定候选再跑完整入口，不重复未变化的全仓格式失败，不放宽原超时、并发或覆盖阈值。24 小时实现须同时覆盖 binding/history、ledger、root
+checkpoint、存储/AAD、维护清理及诊断投影；其中 ledger 当前最大 2 小时，不能仅修改 sessions 常量。必须区分新策略与旧记录，保留旧到期时间；4
+root、每 root 及全局字节预算、128 调用预算能否覆盖全天任务仍需独立验证。之后完成 WS 生命周期、实际宿主和发布资格。当前未调用真实模型、未重启共享代理、未生产激活。
+
+## 此前阶段：分页整代认证去重与 idle 回归时钟（2026-10-19，整体未完成）
+
+四页读取在上一候选中会全量读取密文 8 次：每页认证一次，再为目录重复加载所有密文。新增实际 SQLite 计数回归在修改前得到 8 而失败。现目录查询仅取有界元数据，第一页与最后一页各执行整代认证/过期清理，中间页单独读取并认证选中记录；每页目录指纹、完整 checkpoint 与当前授权复查仍由既有遍历器执行。四页全量密文读取现为 2 次，与原 catalog/load/catalog 的整代边界一致；单页在同一事务内完成，不添加缓存或放宽字节/并发限额。最后一页通过前不导入 root、不注册 denial
+index、不执行 staged 清理。
+
+新增回归覆盖中间记录密文损坏立即拒绝、第一页之后损坏的过期 tombstone 在最后一页拒绝且事务不删除任何记录，以及后页失败时启动发现/请求恢复均不导入部分 root。首次扩大运行 52 项中 51 通过、1 失败，失败来自新增夹具试图同时创建第 5 条活动记录；已改为先创建并撤销 tombstone，再填充 4 条活动记录，未改变限额。随后三个对应回归 3/3 通过，最终统一验证另行记录。
+
+idle 清理物理用例存在独立墙钟竞争：其第一条保存只有 250
+ms 有效期。对首条保存注入 300
+ms 传输延迟后，旧用例确定在 expired_save 失败；固定阶段诊断保留该初始阶段，不输出错误正文。现复用已有测试专用 SQLite 共享时钟，两个保存和过期前读回完成后才推进到 expiresAt+1，再经真实空闲定时清理与独立 SQLite 连接检查；重开使用相同测试时钟，真实 worker、DPAPI、文件系统和原 30 秒用例期限保持。注入延迟保留，额外断言精确创建/到期时间，过期重写继续拒绝。专项修改后 1/1 通过，随后扩大运行中的该用例也通过。该修复证明夹具竞争被消除，不证明上一全量 idle
+worker 的全部失败根因已确定。
+
+四条记录的真实加密 worker 顺序交替样本：legacy 6 次调用耗时 350/289/296/268
+ms，当前 scan 4 次调用耗时 205/191/196/202
+ms。只是未控制其他系统负载的局部读取对照，不推算冷启动或实际宿主整体收益。证据目录
+`.hpm-acceptance/context-recovery-scan-generation-20261019-01/`，`baseline-results.json`
+校验两项修改前预期失败，并固定源码/日志摘要。最终候选扩大回归 145/145，格式、零警告 Lint、CI/release 治理通过。
+
+完整客户端终态 838 项：837 通过、1 失败、0 取消/跳过，退出 1；运行源与冻结测试摘要未变。覆盖语句/行 98.75%、分支 94.37%、函数 98.86%；SQLite 模块语句 334/334、函数 12/12、分支 168/177。`final-receipt.json`
+固定各入口结果与日志摘要，完整日志 SHA-256 为
+`fd3b728ae22ce98803966af1ee6eb6fc8f5c57df369edf24171f5162b2a320e1`，整体未通过。idle 用例在全量下通过（约 10451
+ms）；stdio、staged 清理重开及授权重建本次也通过，不将全部变化归因于本次优化。唯一失败为隔离代理启动；固定阶段显示 core 导入约 10887
+ms，原期限到达时仍在 runtime_http_agents 导入，未建立单一根因。保留所有原超时、并发、断言与前序失败，不用此次通过数推定稳定性。当前源码未取得新的隔离包/实际宿主/生产资格，未重启共享代理或调用真实模型。
+
+## 此前阶段：有界事务分页读取（2026-10-19，整体未完成）
+
+存储新增内部 `scan`
+协议：每次 SQLite 事务验证 schema、时钟、全部行认证与过期清理，返回完整有界目录和一条记录。空库/单条/四条记录分别为 1/1/4 次调用，原流程分别为 2/3/6 次。每页仍按 scope 顺序验证目录、记录元数据与完整 checkpoint，多页目录指纹必须一致；身份过滤前校验所有记录，等待前后保持当前授权检查。单页响应和在途请求字节预算未增加，schema 与留存期限未改变。
+
+只有 execute 函数显式声明版本 1 才选择新协议；异步打开适配器传递真实能力声明，未声明的适配器使用原目录/加载/目录协议。已选择 scan 后的任何失败不会降级或重试。会话重建与启动 denial-index
+discovery 共用遍历模块，暂不改变 staged 清理写入与 CAS/读回校验流程。发布源清单包含新模块。
+
+首次扩大回归 121/121，通过；随后修正测试计时包装不传递能力声明的问题，使真实 core
+HTTP 加密重开夹具实际走 scan，并断言两次 discovery 与三次请求共 5 次 scan、没有 catalog 调用。该夹具及计时器专项 32/32；最终冻结候选扩大回归 124/124，格式、零警告 Lint、CI/release 治理通过。完整客户端终态 835 项：829 通过、3 失败、3 取消，退出 1；运行源与冻结测试摘要未变。覆盖语句/行 98.75%、分支 94.38%、函数 98.85%，不改变整体未通过。`final-receipt.json`
+记录各入口退出码与日志摘要，完整客户端日志摘要为
+`7b1ceb9013a93b06ef308e9d8144101d9664d372209c35fd44e72a49e8dc47f1`。当前候选尚无新的隔离发布包、实际宿主或生产资格。
+
+完整失败为两个原期限代理启动及实际 idle worker 存储不可用；取消为实际 stdio
+CLI、staged 清理重开和加密重建授权。idle 用例最终 close 报错可能遮蔽原始失败，尚不能归因；其 250
+ms 墙钟有效期与 25
+ms 加速清理属于下一步核查点。清理重开探针显示第二次关闭约 29532
+ms 才结束，原 30 秒用例在第三次打开前到期，不证明单次 scan 为根因。所有原期限、并发、断言与失败证据保留。
+
+同一真实加密 worker 顺序交替对照，单条记录 discovery 的旧协议 3 次调用，样本耗时 434/494/458/624
+ms；新协议 1 次调用，样本为 171/131/178/183
+ms。四条记录的另一组对照，旧协议 6 次调用、378/711/625/542
+ms，新协议 4 次调用、1029/476/538/360
+ms，未显示稳定的延迟收益。当前新协议逐页认证全库，四页的解密工作量高于原两次目录认证，后续优化需要保留原整代认证边界；不能只凭调用数宣称四条场景更快。以上仅局部读取样本，未控制系统其他负载，不测冷启动，不作为整体启动或真实客户端加速比例。真实 HTTP 重开夹具新路径本次通过，但不据此关闭历史并发/启动失败。
+
+证据目录 `.hpm-acceptance/context-recovery-bounded-scan-20261019-01/`，初次
+`receipt.json` 与最终候选 `final-*`
+文件分别绑定各自源码；不合并为一次验收。另只读核对当前 PATH 首选 Codex
+CLI 为 0.160.1，Claude
+Code 为 2.1.292；这只是安装版本，不证明实际请求传输、路由、模型、应用加载版本或三次压缩验收。未调用真实模型、未重启共享代理、未激活生产，整体目标继续执行。
+
+## 此前阶段：存储读取计时与提速优先级（2026-10-19，整体未完成）
+
+新增测试专用固定阶段计时器，只记录阶段和整数耗时，不记录用户内容、路径、标识或异常正文；不改变生产代码、原请求 5 秒信号、用例 30 秒期限或并发。专项 32/32 通过，范围格式与零警告 Lint 通过，新计时器回归已确认由统一 unit
+selector 发现。
+
+完整客户端终态为 826 项：823 通过、2 失败、1 取消；运行源和冻结测试摘要未变，退出 1。失败为两个代理启动入口，取消为 staged 清理重开。实际加密存储 HTTP 重开本次通过，不代表此前请求失败根因已消除。完整覆盖语句/行 98.74%、分支 94.32%、函数 98.96%。终态回执与日志位于
+`.hpm-acceptance/context-recovery-storage-request-probe-20261019-01/`。
+
+本次通过样本以首次 worker_started 为时间零点，首次 engine_ready 约 4548
+ms，重开 worker_started 约 7788 ms、reopened 约 14806 ms；恢复请求约 18084
+ms 开始、19797 ms 收到 headers、21023
+ms 完成持久化确认。多次存储往返达数百毫秒，后续一次 save 约 2494
+ms。事件循环最大延迟约 113
+ms。该样本支持优先评估减少存储往返，不证明启动失败与取消具有相同根因。
+
+提速顺序：先专项验证，候选稳定后运行完整门禁；不重复扫描未变化的已知全仓格式失败。产品路径优先评估有界原子分页读取，保留整代一致性、全部记录校验、撤权复查与原 IPC 字节预算。该优化尚未实现，不以缓存或跳过校验替代。当前没有真实模型调用、安装版宿主验收、共享代理重启或生产激活，整体目标未完成。
+
+## 此前阶段：恢复 WS 栈按需加载（2026-10-19，未封存、整体未完成）
+
+启动探针扩展为固定词表的开始/完成记录，并共享同一白名单给写端和读端。新增独立进程回归验证失败模块仍记录完成、未知模块与错误内容不输出、重复加载不重复计数，并在 ports_listening 恢复原 loader；真实 HTTP 捕获入口与探针专项 4/4，通过零警告 Lint 和 CI 治理。新增探针测试由未变更的递归 unit
+selector 发现。
+
+该探针对应的完整客户端结果为 826 项：822 通过、2 失败、2 取消，冻结运行源与测试摘要未变。两个启动失败中，一个仍在 core 导入，另一个已经进入 composition_ready（约 14870
+ms），未完成 websocket 导入；后者不能归为模块图未完成。其余取消为核心 HTTP 加密重开及 staged 清理重开。固定事件循环最大延迟样本分别为约 401/96
+ms，不能单独据此确定性能根因。终态回执及完整日志在
+`.hpm-acceptance/context-recovery-startup-imports-20261019-01/`。
+
+现将恢复专用 WS
+transport 的加载移至入口认证、当前路由和恢复准入检查之后；普通 HTTP 启动与普通 Upgrade 转发不再提前加载该 transport 和
+`ws`。恢复已准入后的模块加载或初始化失败，以固定错误日志关闭当前 lifecycle，不落回普通转发，也不输出原生异常。未关闭恢复功能、改变原 deadline 或降低并发。
+
+新增独立进程回归在修改前失败，修改后通过，分别覆盖普通转发、提供方不准入和恢复准入后加载失败；最后一种必须没有普通上游请求且关闭客户端。HTTP/WS/探针扩大回归 62/62，0 失败/取消/跳过；范围格式、零警告 Lint 与 release 治理通过。新进程模块清单验证修改前实际加载 transport/`ws`、修改后两者均未加载；该依赖边界证据不是整体启动加速或稳定性证据。随后实际 WS 专项覆盖入口 58/58，通过；仅
+`websocket-proxy.js`
+范围覆盖语句/行 88.65%、分支 69.56%、函数 100%，它不是完整客户端覆盖或发布门禁。
+
+最终字面完整客户端为 826 项：824 通过、2 失败、0 取消/跳过，运行源与冻结测试摘要未变，退出 1。直传入口约 13713
+ms 进入 ports_listening，在原期限内通过；另一入口的 core 导入约 11252
+ms，原期限到达时仍在 runtime_http_agents 导入。第二项失败是实际加密重开的 HTTP
+fetch，原 5 秒请求信号和 30 秒用例期限保持，日志不足以确定请求失败根因。完整客户端覆盖语句/行 98.74%、分支 94.32%、函数 98.96%，不改变门禁失败。样本波动很大，不能将通过数变化归因于本次拆分；没有取得当前源码的隔离包、真实宿主或生产资格。证据与终态
+`client-receipt.json` 位于
+`.hpm-acceptance/context-recovery-lazy-ws-transport-20261019-01/`，失败日志和修改前源文件均保留。
+
+## 此前阶段：留存限制展示与完整客户端诊断（2026-10-19，整体未完成）
+
+管理状态新增实际留存策略投影，界面显示从代理建立恢复记录起最多保留 30 分钟、读取与重启不续期、整个代理最多同时维护 4 个活动聊天且分支共享限额。这是活动恢复名额，不代表磁盘只能保留 4 条记录。会话新建、持久化 root 接纳与诊断共用限额常量；未改变期限、准入或过期规则，也未解决全天任务的容量需求。旧版服务没有该字段、策略版本不支持、异常数值或访问器均显示“留存期限与聊天容量未核验”，不推定当前能力。响应仍为原状态 schema 的新增可选字段，不授予读取权限。
+
+专项 43/43、运行时/生命周期/策略/重建扩大回归 82/82 通过，包括实际第 5 个独立聊天拒绝、到期前保留、绝对到期后释放并重新接纳，以及诊断快照隔离和前端正常/空/非法/极端/异常输入。不展示 root 标识、用户内容或凭据；状态仍通过已有文本呈现路径输出。回归位于已有统一客户端、递归 unit 和前端 coverage 测试文件，发布源清单包含新常量模块。前端统一 coverage
+7 文件通过，语句/行 98.05%、分支 90.41%、函数 96.42%；范围零警告 Lint、CI/release 治理、前端架构和独立目录 Vite 构建通过。构建仍报告大于 500
+kB 的 chunk 警告，未提高阈值。证据目录
+`.hpm-acceptance/context-recovery-retention-display-20261019-01/`；实际界面与安装版尚未验收。
+
+上一 IP 依赖拆分候选的完整客户端结果为 824 项：821 通过、2 失败、1 取消；运行源摘要未变。失败为两个隔离代理启动和 staged 清理重开超时，证据在
+`.hpm-acceptance/context-recovery-validator-boundary-20261019-01/client-receipt.json`。
+
+随后仅增加测试启动分段诊断的完整客户端结果为 824 项：816 通过、4 失败、4 取消，运行源及冻结测试摘要未变。两个原 15 秒代理启动均未到 module_graph_ready；一个只完成 logger/metrics 导入，另一个记录 core 导入约 7317
+ms，随后经过 config/cert/routing 导入，但同样未完成整个模块图。因此证据定位到模块加载阶段，尚未确定单个根因。其余失败/取消涉及实际 stdio、加密重开、独立 ACL
+PowerShell 验证与 DPAPI 兼容，不作同源结论。focused routes
+2/2 通过，不能替代完整入口失败。证据及终态回执在
+`.hpm-acceptance/context-recovery-startup-phase-probe-20261019-01/`，日志摘要
+`d8a4de4c168b937c5bb8e3fc98d60e0a35f3b1cd6d8c758c337748e988b09ee3`。
+
+最终文案澄清活动限额后，文本专项 6/6 通过；最终格式、零警告 Lint、前端统一 coverage 和独立目录构建均退出 0，门禁前后 9 个范围源码/测试/发布清单摘要未变。`local-receipt.json`
+绑定上述结果与各日志摘要，仅表示本地范围资格；前面的 43/43、82/82 是各自变更时点的范围结果，不累计成一次完整客户端验收。
+
+本批先运行与变更相关的测试及门禁，不因历史全量失败重复启动相同扫描；冻结候选仍须取得完整工程、实际宿主和生产资格。当前整体未通过，未调用真实模型、未安装插件、未重启共享代理或生产激活。
+
+## 此前阶段：启动校验依赖拆分与维护回归时钟（2026-10-19，整体未完成）
+
+逐项检查完整客户端失败时，确认维护用例存在墙钟竞争：第一条记录仅存活 1 秒，而后续正常保存同样会执行过期清理；负载高时该保存已清掉第一条，随后显式 sweep 的精确删除数断言误报。现仅在测试 worker 的可信 preload 中向现有 SQLite
+`now`
+参数注入共享时钟，进入真实 worker 前移除该测试字段；两个保存完成后才推进时间。保持真实文件、DPAPI、worker 协议、清理与重开，以及原 30 秒超时、原删除数/字节/预算/过期重写拒绝断言；另增加精确创建时间和有效期断言。最终维护专项 8/8 通过，不能据此声称其他存储打开失败或锁错误已解决。
+
+原配置 validator 为一个 IP 分类函数加载整个外网探测模块及 DNS/HTTPS。新增独立进程回归在修改前因加载探测模块失败；现把同一地址分类函数与封锁网段原样移入
+`public-ip-address.js`，validator 直接依赖该模块，探测模块仍重导出相同函数。发布运行源清单已包含新增模块，不改变地址规则或执行网络请求。该回归在新的进程中禁止探测模块、DNS/HTTPS 加载后仍完成真实配置校验。
+
+格式完成后扩大回归 26/26 通过，覆盖配置、外网探测、管理入口、实际代理捕获入口、空闲清理、维护和 lazy
+routes；随后维护时间断言补强后的专项 8/8 通过。范围格式、零警告 Lint、CI/release 治理通过；新模块范围覆盖语句/行 100%、分支 90%、函数 100%。最新单次核心导入为约 763
+ms、197 个缓存模块，测量条件与此前约 1885
+ms 样本不同，不作加速比例或稳定性结论。本轮修改晚于下方包内候选，尚未取得本轮完整客户端/发布包资格。证据目录
+`.hpm-acceptance/context-recovery-validator-boundary-20261019-01/`；首次维护验证保留在上一构建输入目录中。
+
+## 此前阶段：Windows 存储权限启动候选（2026-10-19，整体未完成）
+
+针对加密存储多次重开超时，新增原生私有路径权限入口及 JS 存储边界。每次权限设置由一个有界原生调用完成，保留句柄固定、禁止 reparse/hardlink、受保护 DACL 替换与读回校验。已发出的原生调用失败不转兼容后端；仅默认 helper 缺失时允许原有权限实现。存储 schema、期限和权限要求未改变。
+
+原生协议现明确拒绝控制字符、通配符、保留设备名、重复/未知字段、相对/UNC/根路径与过长 UTF-16 路径。原生 fmt、零警告 Clippy 与 7 项测试通过，包括实际 Windows 文件/目录权限、类型与硬链接拒绝、Unicode 和 I/O 固定错误输出；CI 与发布源治理通过。源码与本地 helper 已更新，但尚无本轮完整客户端和隔离发布包资格。
+
+首次扩大存储回归 124 项中 123 通过、1 项原 30 秒超时取消，失败保留。该 staged 清理重开用例单独运行在 16.17 秒内通过；它不能证明原并行入口问题消失。初步三次 owner 打开探针从 24 次 icacls、1 次 whoami、3 次 key
+helper 变为 15 次 helper 调用，后两次 engine_ready 约 3.23/3.05 秒，但首次约 10.75 秒，三次总延迟没有明确下降。冷启动原因及稳定收益尚未证实，不能宣称整体加速完成。
+
+证据目录 `.hpm-acceptance/context-recovery-startup-targeted-20261019-01/`
+保留原 profile、候选 profile、首次扩大失败、单独复跑与原生门禁。本轮边界更新并重建 helper 后，原 7 文件并发入口扩大回归 124/124 通过，0 失败/取消/跳过，总计 53.14 秒；此前超时的 staged 清理重开用例 20.80 秒通过。范围格式、零警告 Lint、CI/release 治理通过；未放宽期限或调整并发。一次通过与此前失败并存，不能据此声称稳定性或性能根因已解决。
+
+冻结运行源后的字面完整客户端结果为 824 项：809 通过、11 失败、4 超时取消。失败包括两个原 15 秒代理入口启动、原生 ACL 独立 PowerShell 验证超时、DPAPI 兼容及多个存储打开失败、SQLite 锁错误和维护断言；不能把这些失败全部归于同一原因。覆盖语句/行 98.74%、分支 94.32%、函数 98.96%，不改变整体未通过。字面 verify 仍为同一 404 文件格式问题，日志摘要仍是
+`6c5fbd7968885629a06ee54c457a8dda244a465f551196fe89bf850d7401df4c`。
+
+本轮第一次隔离包准备失败。独立原生构建诊断确认 Rust
+`E0583`：隔离构建复制清单遗漏新增 `src/private_path.rs`。已补齐
+`lib/release/isolated-runtime.js`，新增回归在修复前 0/1、修复后治理测试 11/11；测试由现有递归 unit
+discovery 纳入统一入口。首次失败工作区未删除，诊断使用独立 target；修复后的构建/包内资格另行记录，不沿用此前包内结果。该修复只改变构建输入，已冻结的客户端运行源摘要保持不变。
+
+顺序 ABBA owner 探针每个新进程执行首次打开及两次重开：兼容后端两组约
+`[3480,1928,1459]`、`[1824,1282,2004]` ms，原生两组约
+`[1652,2078,3184]`、`[1763,1618,2268]`
+ms。每组三次打开的子进程调用从 28 降到 15，但总体耗时没有显示稳定收益；该探针没有控制 OS 冷缓存，也不是实际宿主性能验收。不得据此宣称已提速。
+
+完整失败、ABBA 探针与首次冻结回执位于
+`.hpm-acceptance/context-recovery-native-acl-20261019-01/`；构建输入修复与后续资格位于
+`.hpm-acceptance/context-recovery-native-acl-build-input-20261019-01/`。修复后范围格式、零警告 Lint、治理测试 11/11、CI/release 治理通过；隔离包匹配 564 个运行源、577 个构建源、116 个锁定依赖，源码摘要未变。包内实际 Node、模块与独立构建原生 helper 执行同一 7 文件存储回归 124/124 通过，0 失败/取消/跳过，总计 35.40 秒。
+
+首次包内探针误要求独立编译 helper 与本地 helper 字节相等，尚未运行任何包内测试即失败；独立 Windows 构建不保证这一条件。保留该脚本与失败日志，修正探针按发布清单的
+`contextRecoveryNativeSha256`
+核对实际 helper，同时保留构建源、运行源和测试源摘要检查，再取得上述包内结果。此校正不改变任何业务测试的断言、期限、并发或覆盖门槛。完整客户端的 11 失败/4 取消及全仓格式阻断仍未解决，未取得真实宿主或生产资格。以下 WS 结果属于此前封存源码。
+
+## 此前阶段：WS 命名流错误与安全边界（2026-10-19，整体未完成）
+
+主方案已补齐首发执行决策，统一代理恢复核心、一次接入助手、实际能力诊断及验收/回滚产物；当前 30 分钟/4
+root 的容量限制纳入首发条件。真实宿主、模型及生产资格仍未取得，不用旧阶段通过数推定当前工作区整体合格。
+
+WS stream
+admission 修改 wire、connection 与既有 websocket 测试文件，收紧命名流 ASCII/长度边界，并以固定错误回复非法 ID 或超出 32 个命名流的请求，保留已有流。错误回复发送前重新检查授权，发送失败关闭，最多 32 个在途回复；超限关闭并阻止排队回复继续发布。拒绝不分配流或改变请求/字节额度；非法上游 ID、畸形 JSON 和二进制保持关闭。编码器只接受固定错误码和合法标量 ID，不调用对象转换器或回显非法输入。
+
+新增三条基本回归在修改前 0/3、修改后 3/3；补充五条边界测试后，聚焦 8/8。首次完整 WS 回归为 45/46：旧容量测试将第 33 个新命名流当作请求预算溢出。现改为在 32 个待处理请求后向已有流追加请求，保留原关闭和字节归零断言，新增满额前的 16
+active/16 queued/32
+lanes 断言；命名流上限的保留连接由真实压缩 socket 独立验证。原失败保留，不放宽期限、并行或断言。
+
+| 检查                                 | 冻结候选结果                                             |
+| ------------------------------------ | -------------------------------------------------------- |
+| 完整 WS 专项                         | 46/46，通过；范围语句/行 99.04%、分支 95.38%、函数 100%  |
+| HTTP、转换、会话、协调和 WS 扩大回归 | 187/187，通过                                            |
+| 范围静态与治理                       | 格式、零警告 Lint、3 文件语法、CI/release 治理通过       |
+| 隔离发布包                           | 563 个运行源、575 个构建源、116 个锁定依赖匹配，摘要未变 |
+| 实际包内 Node/模块                   | 164/164，通过，无失败/取消/跳过                          |
+| 字面完整客户端                       | 821 项，813 通过、2 启动失败、6 超时取消；整体未通过     |
+| 字面全仓 verify                      | 相同 404 文件格式问题，退出 1，后续全仓阶段未运行        |
+
+完整客户端覆盖语句/行 98.78%、分支 94.31%、函数 99.07%，不改变门禁失败。两项启动失败仍在 lifecycle 预加载后未进入 server_start；六项取消分别是实际 stdio
+CLI、核心 HTTP 加密重开、压缩日志重开、staged 清理重开、维护重开及重新授权重开，均触及原 30 秒期限。当前不能断言这些超时同源，也不能把包内通过当作它们已修复。
+
+证据位于
+`.hpm-acceptance/context-recovery-ws-stream-errors-20261019-01/`。本阶段 runner 冻结并复核 6 个源码/清单输入，保留修改前、首次完整失败、最终范围/包内成功、完整客户端和全仓失败。最终回执同时绑定日志、包内运行源与两份文档。这些修改晚于下方启动候选，旧回执不覆盖当前增量。
+
+公开 steering 文档要求先收到 response.created，再发送 response.steer，并跟踪自动续接；当前恢复路径的整轮事件缓冲尚不满足该完整交互。接下来需实现公开事件生命周期、内部身份映射和发布边界，不能只增加控制事件分支。当前查阅的 Responses
+WS 文档未建立 response.cancel 契约，不声明其支持；停止、断连、steering 与副作用工具分别验证。
+
+本批只实施上述 WS 边界和回归，不安装插件、不改真实认证、不调用模型、不重启或激活服务；历史失败与回执保留。下一步针对启动及真实 worker/stdio 超时取证和修复，再完成完整传输、容量与真实宿主验收。
+
+## 实际入口基线与可选插件候选（2026-10-19，未激活）
+
+只读核对本机 Codex CLI 0.160.1、Claude Code
+2.1.292；进程元数据显示正在运行的 Windows 桌面分发为 26.1013.4894.0。Codex 用户级简单配置指向 localhost:3085、Responses；本项目配置没有观察到覆盖的模型入口。Claude
+Code 用户配置及当前 shell 的入口为远程 HTTPS，本项目已检查的设置文件没有入口覆盖。这里只读取指定配置层，不是完整 TOML/宿主有效配置解析，也不能证明已运行进程采用当前 shell 的环境。
+
+TCP 探测确认 3085、3443、3445、3543 接受连接，3545 拒绝。3543 的只读 health 返回预期代理 appId、PID
+64716、约 38689 秒运行时间，以及 requestedEnabled=false、appliedEnabled=false、state=disabled；入口路径指向当前工作区。路径相同与包版本 0.1.0 不证明新源码已经加载。没有发模型请求、发送管理写请求或重启服务。
+
+插件逐文件摘要核对发现：仓库生成包的 18 个清单文件自洽，但其中 2 个与当前源码不同；现有安装缓存的 13 个清单文件自洽，但其中 6 个与当前源码不同。对当前宿主仅发 initialize 与 hooks/list 的查询以 native_rpc_stream_closed 结束，控制子进程已终止；没有创建聊天、信任 Hook 或重载配置，加载及信任状态保持未验证。
+
+在独立 candidate-final 目录重新构建插件运行闭包：21 个模块与当前工作区摘要一致，复制的 95 个依赖版本匹配插件锁文件。实际 Node 子进程通过 stdio 启动候选 server.cjs，验证只暴露两个只读工具、可信合成捕获入口不在工具列表、原文中文/Unicode 精确读回与摘要一致、跨会话索引/读取拒绝及非法参数拒绝，最后关闭传输。依赖版本匹配不是 registry 字节完整性验收，也未证明安装后的宿主 Hook 执行。
+
+第一次隔离候选复制过滤器误排除依赖包内部的 runtime 目录，stdio 初始化失败；candidate.json 保留失败。最终过滤器只排除插件根 runtime，candidate-final.json 记录成功。未修改业务断言、已安装插件、共享代理或真实认证。源码、仓库生成包和安装缓存均保留原样。
+
+证据目录 `.hpm-acceptance/context-recovery-host-baseline-20261019-01/`
+包含 observations.json、health.json、hooks.json、plugin-files.json、两次候选与脚本。此轮没有修改运行源码，不新增源码资格；下面启动候选的完整客户端 2 项失败和全仓门禁阻塞仍然有效。下一步需修复启动、完整传输和容量，再按宿主实际支持方式更新有明确内容身份的插件候选、核验信任/加载与真实连续恢复，不能只覆盖相同 0.1.0 缓存就宣称升级完成。
+
+## 当前阶段（异步启动凭据屏障，2026-10-19，整体未完成）
+
+新增独立启动屏障，管理端口取得后异步写入凭据；目录保护先于文件创建，两个文件的权限设置可以并行等待。持久化确认前管理请求返回 503，业务入口不启动。关闭时立即撤销恢复能力，并等待在途写入结束后释放管理端口，防止晚到写入影响后续进程。保留原同步凭据接口；主入口仅组合依赖。
+
+范围回归与覆盖入口 20/20 通过，范围格式、零警告 Lint、语法及 CI/release 治理通过。范围覆盖语句/行 80.95%、分支 86.06%、函数 90.47%，不替代完整客户端门槛。完整客户端 813 项中 811 通过、2 失败、0 取消/跳过；两项均为原 15 秒期限内未就绪：第一项在 lifecycle 预加载后未进入 server_start，第二项约 14.27 秒开始 server_start、14.35 秒完成 servers_created 后未就绪。该结果不能证明启动问题已修复，没有放宽期限或降低并行度。
+
+隔离包匹配 563 个运行源、575 个构建源和 116 个锁定依赖；包内实际 Node/模块执行 156/156 通过，无失败/取消/跳过。字面全仓 verify 退出 1，仍为相同 404 文件格式问题，日志 SHA-256 为
+`6c5fbd7968885629a06ee54c457a8dda244a465f551196fe89bf850d7401df4c`；后续全仓阶段未运行。
+
+证据目录 `.hpm-acceptance/context-recovery-startup-credentials-20261019-01/`
+保留修改前缺少异步接口的 0/3 对照及旧生命周期收到异步 writer 后错误返回 200 的 0/1 对照。旧同步 writer 本身不因此判为泄漏。`milestone.json`
+确认 12 个冻结输入未变；`final-milestone.json`
+复核各阶段日志、包内测试与所有运行源，并绑定最终文档摘要。范围与包内通过不更新真实产品支持清单或生产状态。
+
+本次方案整理补充一次接入助手的检测、配置差异、备份/回退与分层验证设计，并重新读取 OpenAI
+Compaction、Codex MCP/插件打包及 Claude Code
+Hooks 官方页面。设计补充没有安装插件、修改真实认证或激活生产。
+
+## 此前阶段（Responses 显式空祖先的恢复兼容，2026-10-19，整体未完成）
+
+官方 Responses WS 重连契约允许 `previous_response_id: null`
+携带完整窗口重新开始。旧实现将 null 传入私有绑定 ID 校验，且内部 WS 调度器拒绝 null；普通请求可能继续，但无法进入原文自动恢复。三条新增回归在修改前全部失败，覆盖同步/异步协议准入、内部连续性投影和真实压缩 WS 的原文精确读回。
+
+现仅在 Responses 协议边界将 null 解释为未指定祖先，保留外发请求的 null 与完整输入；内部后续只对精确历史后代投影到刚得到的真实 response
+ID。会话比较同样允许 null 与省略等价；私有绑定接口仍拒绝 null，已绑定真实祖先的请求仍拒绝替换、省略或用 null 清空。原测试中“无祖先请求携带 null 必须失败”的断言按官方契约改为独立正向测试，其他非法 ID 与祖先篡改断言保持。
+
+HTTP/WS、协议、会话与协调扩大回归 136/136 通过；范围格式、零警告 Lint、语法和 CI/release 治理通过。协议与调度两模块范围覆盖为语句/行 99.73%、分支 91.11%、函数 100%，不替代完整客户端门槛。完整客户端 797 项中 795 通过、2 启动失败、0 取消/跳过；语句/行 98.75%、分支 94.25%、函数 99.07%。两项分别在 lifecycle 预加载后未进入 server_start，以及约 12.83 秒开始 server_start、12.88 秒完成 servers_created 后未在 15 秒内就绪，未证明启动问题已解决。
+
+隔离发布包已匹配 562 个运行源、574 个构建源和 116 个锁定依赖，冻结输入未变；包内实际 Node/模块执行 140/140 通过，无失败/取消/跳过。包内测试只重写模块解析和子进程工作目录，业务断言、期限与门槛保持。
+
+字面全仓 verify 最终退出 1，仍为 404 文件格式问题，日志摘要与此前相同；后续全仓门禁未运行。`final-milestone.json`
+再核对九个冻结输入、全部阶段日志、包内测试输入、562 个工作区及包内运行源，并绑定最终两份文档摘要；不将专项或包内通过升级为整体合格。
+
+证据目录 `.hpm-acceptance/context-recovery-null-continuation-20261019-01/`
+保留修改前源码、0/3 失败对照、修复后回归及冻结输入。当前真实 socket 用例是在活动连接上提交完整窗口，不能将它描述为断线重连、跨 HTTP/WS 或真实 Codex/Claude 已验收。没有新增依赖、安装插件、修改认证、发起真实模型请求、重启共享服务或激活生产。完整目标继续执行。
+
+## 此前阶段（WS 握手兼容与方案核对，2026-10-19，整体未完成）
+
+补齐恢复传输中被丢弃的选定握手响应元数据，并将上游握手拒绝从 socket
+reset 改为有界 HTTP 拒绝。新增独立纯模块校验头与拒绝体：固定允许列表、拒绝访问器与重复头、限制单值及总量，不复制凭据、Cookie 或帧级握手头；两跳独立协商。拒绝体最多 64
+KiB、读取绝对期限 10 秒，异常不发布部分原文，不自动重试。连接、握手、拒绝读取及发布持续检查当前授权，撤权关闭连接。
+
+| 检查                      | 握手候选记录                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| 修改前真实握手回归        | 0/2，复现元数据缺失及上游拒绝变为断连                                               |
+| 最终 WS/传输/生命周期专项 | 53/53，通过，无取消/跳过                                                            |
+| 范围静态与治理            | 格式、零警告 Lint、3 文件语法、CI/release 治理通过                                  |
+| 范围覆盖                  | 语句/行 91.94%、分支 82.82%、函数 100%；不替代全入口门槛                            |
+| 实际隔离包                | 562 个运行源、574 个构建源、116 个锁定依赖匹配，源码快照不变                        |
+| 包内实际 Node/模块        | 126/126，通过，无失败/取消/跳过                                                     |
+| 字面完整客户端            | 793 项，792 通过、1 启动失败、0 取消/跳过；语句/行 98.75%、分支 94.25%、函数 99.07% |
+| 字面全仓 verify           | 退出 1，404 文件格式问题，后续全仓门禁未执行                                        |
+
+证据目录为 `.hpm-acceptance/context-recovery-ws-handshake-20261019-01/`。原
+`milestone.json` 如实保留首次打包调用漏传 `--prepare`
+而在构建前被拒绝；更正调用后的成功见
+`isolated-package-final.log`、`package-probe-final.log` 与
+`packaged-execution.json`，没有覆盖原失败。包内回归只调整模块解析和子进程工作目录，保持业务断言与期限。
+
+完整客户端仍在 API-evidence
+fixture 的 15 秒启动期限失败，约 2.43 秒完成 lifecycle 预加载后没有进入 server_start；未修复启动根因。方案整理再次核对六个冻结输入摘要与包内报告、最终日志，未重跑代码测试。本阶段只形成握手本地资格；取消/steering、任意并发分叉、断连重连、跨 HTTP/WS 及持久混合结果仍待完成。公开 API 文档没有证明特定 Codex 版本必须使用
+`x-codex-turn-state`，实际宿主仍需核验。
+
+没有安装插件、变更真实认证、发起真实模型请求、重启共享服务或激活生产。实际 Codex/Claude、容量与保留策略、完整工程门禁及发布仍未完成。
+
+## 此前阶段（恢复位置与能力状态诊断，2026-10-19，整体未完成）
+
+修正诊断与设置页仍将 WebSocket 描述为透传的陈旧状态，改为受限实验路径、完整兼容未验收；新界面继续识别旧代理返回的透传枚举。此状态描述源码能力边界，不代表当前连接已经接管或实际宿主已经验收。加密留存的文案也改为跨重启读回尚未完成验收，避免将缺少产品资格混同于没有实现。
+
+管理 health 的 runtime 元数据新增实际代理主机名和 `DATA_DIR/context-recovery-v1`
+绝对目录。总览与设置页共用状态格式化器，标明目录只在开启加密留存后使用，不推断已有数据。路径支持 Windows 和 POSIX，拒绝控制字符、超限、相对路径、访问器和异常对象；使用 textContent 展示，包含 HTML 字样的合法目录不进入 HTML 解析。管理连接失效后清除旧位置。没有将路径、原文或宿主元数据加入日志、模型请求或恢复权限。
+
+回归在改动前的 backend 源码上复现两个失败，保留 before.log。新增与扩展回归沿现有 unit、客户端和前端 CI 入口执行，没有新增依赖或运行模块。首轮 Lint 拒绝控制字符正则，最终改用有界字符码校验，保留原失败，不关闭规则。
+
+| 检查                                     | 本阶段结果                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| 定向 backend、格式化器与真实状态刷新模块 | 10/10，通过                                                                    |
+| 最终修改范围格式与零警告 Lint            | 通过                                                                           |
+| CI 与 release 治理                       | 通过                                                                           |
+| 最终前端覆盖入口                         | 7/7 文件通过；语句/行 98.02%、分支 90.20%、函数 96.38%                         |
+| 最终前端完整入口与构建                   | 27/27 文件及生产构建通过；保留既有大包警告                                     |
+| 字面完整客户端                           | 786 项，785 通过、1 启动失败、0 取消；语句/行 98.82%、分支 94.29%、函数 98.95% |
+| 字面全仓 verify                          | 退出 1，404 文件格式问题；后续全仓门禁未执行                                   |
+
+完整客户端唯一失败仍为隔离 API-evidence
+fixture 的 15 秒启动期限：约 2.59 秒完成 lifecycle 预加载后，期限内未进入 server_start。另一实例约 14.39 秒监听就绪。这次通过数变化不证明启动问题已修复。
+
+记录在
+`.hpm-acceptance/context-recovery-product-diagnostics-20261019-01/`。`milestone.json`
+绑定首轮八文件快照与所有门禁，`final-milestone.json`
+绑定前端校验写法修正后的最终快照和重跑结果，并证明 backend 与测试输入未变；未重跑与该前端修正无关的完整客户端。此前实际发布包的 119/119 资格属于此前源码，不能用于本阶段；本阶段未重新构建隔离发布包。未进行视觉或实际安装版宿主验收，未安装插件、改变真实认证、调用模型、重启服务或激活生产。完整目标继续执行。
+
+## 此前阶段（恢复转换器按路由加载，2026-10-19，整体未完成）
+
+核心模块加载的 CPU 取证中，失败实例墙钟约 10.79 秒、CPU 约 2.56 秒；文件取证记录 197 次模块解析约 7.89 秒，包含真实路径解析约 1.15 秒，另有 157 次源码读取约 1.55 秒。计时类别有包含关系，不能相加；也不能据此区分所有调度、文件系统与执行成本。两次临时完整诊断分别为 786 项中 783 通过/2 失败/1 取消，以及 784 通过/2 失败/0 取消；它们不替代正式门禁。CPU 与 I/O 独立目录的历史回执保留。显式扩展名的冷进程对照没有减少探测：缺失探测 1073→1098、总探测 1731→1786，加载模块均为 203；未将该试验应用到生产源码，时长差异不当作稳定性能收益。
+
+冷加载回归另复现四类恢复转换器在普通代理入口中提前加载。现将各工厂移到对应转换路径通过既有资格检查后加载；未知/不适用路由不加载，WorkBuddy 继续使用其独立分支。导入位于请求形态拒绝的 catch 之外，四类模块缺失或加载异常保持原错误，不静默沿旧 handler 转发。没有新增模块、依赖、配置或重试策略。
+
+| 检查                                             | 当前冻结候选结果                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------- |
+| 扩展冷加载与既有转换/WBIPC/transport/lazy routes | 23/23，通过；新增冷加载断言先失败再通过                                         |
+| 范围静态与治理                                   | 3 文件语法、格式、零警告 Lint、CI/release 治理通过                              |
+| 隔离发布包                                       | 561 个运行源、573 个构建源、116 个锁定依赖匹配，快照不变                        |
+| 实际包内 Node/模块                               | 119/119，通过                                                                   |
+| 字面完整客户端                                   | 786 项，784 通过、2 失败、0 取消/跳过；语句/行 98.82%、分支 94.29%、函数 98.95% |
+| 字面全仓 verify                                  | 退出 1，404 文件格式问题；后续全仓门禁未执行                                    |
+
+两个完整客户端失败均为隔离 API-evidence
+fixture 启动超时：第一实例约 2.07 秒完成预加载后没有进入 server_start；另一实例约 13.15 秒进入启动、13.20 秒创建服务器，期限内尚未准备好管理令牌。加密 worker 重开本次通过，不证明此前超时已修复。按需加载已证明减少不适用组件的初始化，但完整启动问题尚未解决。管理令牌现有同步准备保证请求处理前完成凭据持久化，不能不加就绪门禁就换为异步调用。
+
+最终回执
+`.hpm-acceptance/context-recovery-lazy-conversion-20261019-01/milestone.json`
+复核源码、测试及包内所有运行源摘要；模块解析与工作目录改写仅用于实际包探测，业务断言不变。回归继续沿原 unit/客户端/CI 入口，未放宽期限、并行、断言或阈值。下一步仍需收敛核心依赖解析及安全初始化累计成本，并完成完整 WS、容量保留与真实宿主资格。未安装插件、修改真实认证、调用真实模型、重启服务或激活生产。
+
+## 此前补充取证（启动与加密 worker 阶段计时，2026-10-19，整体未完成）
+
+生产源码沿用上一阶段候选。本次完整客户端诊断运行使用进程内临时 preload，只记录固定导入/原生调用类别、存储打开阶段及单调耗时，没有修改测试期限、并行、断言或覆盖率阈值；786 项中 785 通过、1 隔离代理启动失败、0 取消。此结果是诊断证据，不替代上一阶段字面原门禁失败，也不证明此前 worker 超时已修复。
+
+失败代理的核心模块导入约 11.07 秒，约 13.96 秒才进入 whoami，随后触及原 15 秒启动期限；另一代理核心导入约 3.72 秒，约 14.30 秒完成监听。安全权限初始化也有可见成本，现有证据尚不能把模块导入差异归因于某个单独模块、并发或原生工具。
+
+同次实际加密 worker 的前三次打开约为 7.35、8.80、3.61 秒；密钥保护/解保护分别约 0.84、0.70、0.16 秒。路径准备、所有权建立、文件保护和数据库打开共同占用剩余时间，不能仅凭此前整体超时认定 DPAPI 是根因。worker 本次成功不消除上一阶段 30 秒重开超时的未决状态。
+
+已在原生命周期回归中加入最多 64 条固定阶段名及毫秒耗时，覆盖三次打开、staging、shutdown、close、清理初始化及最终清理，并报告事件循环最大延迟；不输出目录、内容或原生错误。原业务断言与 30 秒期限保持。首次计时 fixture 错误引用未导出的阶段常量，已改为本地固定白名单，原失败日志保留；修正后生命周期 41/41，通过语法、格式、零警告 Lint 与 CI 治理。该文件仍沿统一 unit/客户端/CI 入口运行；新计时版本未重新取得完整客户端资格。
+
+证据及摘要回执位于
+`.hpm-acceptance/context-recovery-startup-profile-20261019-02/milestone.json`。下一步继续区分核心模块加载中的执行与等待，以及路径/权限初始化的累计成本；不跳过安全初始化或放宽门禁。未安装插件、修改真实认证、调用真实模型、重启服务或激活生产。
+
+## 此前阶段（可选 WorkBuddy 依赖延迟加载，2026-10-19，整体未完成）
+
+冷子进程回归先复现普通代理入口导入时即加载 WorkBuddy
+planner、桌面宿主通信与 WBIPC 恢复入口。现将 HTTP
+transport 的执行依赖移到原有目标、认证和凭据检查之后，转换恢复入口只在命中既有 WorkBuddy 官方登录分支时加载 WBIPC 实现；没有改变提供方资格、注入依赖优先级、工具执行或请求重试行为。
+
+同一冷进程回归验证普通路由、空值与不适用凭据不加载可选执行栈，合格 WorkBuddy
+transport 和恢复分支仍按需加载；模拟模块导入失败时保留原错误，后续有效初始化不受失败缓存影响。回归位于既有
+`context-recovery-converted-http.test.js`，沿原 unit/客户端/CI 入口运行；没有新增运行模块或依赖。
+
+| 检查                                                  | 当前冻结候选结果                                                               |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 冷加载、转换恢复、WBIPC、transport 与既有 lazy routes | 23/23，通过；原冷加载回归 0/1 失败对照保留                                     |
+| 范围静态及治理                                        | 3 文件语法、格式、零警告 Lint、CI/release 治理通过                             |
+| 隔离发布包                                            | 561 个运行源、573 个构建源、116 个锁定依赖匹配，摘要不变                       |
+| 实际包内 Node/模块                                    | 119/119，通过，含新增冷加载、WorkBuddy 与既有 WS/会话/协调回归                 |
+| 字面完整客户端                                        | 786 项，784 通过、1 失败、1 超时取消；语句/行 98.82%、分支 94.29%、函数 98.95% |
+| 字面全仓 verify                                       | 退出 1，404 文件格式问题，后续全仓门禁未执行                                   |
+
+完整客户端仍在隔离代理启动 15 秒期限失败：约 2.36 秒完成预加载后没有进入 server_start；另一 fixture 约 12.92 秒开始服务启动、14.98 秒完成监听。真实加密 worker 的 staged 清理与连续重开用例本次在 30 秒超时，未证明与启动失败同源。模式切换本次约 8.21 秒完成两轮请求，不能据此宣布此前问题已修复。延迟加载已证明改善依赖边界，但没有解决全部启动成本；未调整测试期限、并行或覆盖率门槛。
+
+阶段目录 `.hpm-acceptance/context-recovery-lazy-startup-20261019-01/`
+保留修改前源码、原失败、最终回归、完整失败日志、范围检查、隔离包及
+`milestone.json`。回执复核当前候选摘要及全部包内运行源；测试只改模块解析与冷子进程工作目录以指向实际发布包，保持业务断言。下一步对加载后到 server_start 的安全初始化及真实 worker 重开继续取非内容性阶段计时。本阶段未安装插件、修改真实认证、调用真实模型、重启服务或激活生产。
+
+## 此前阶段（WS 普通错误保真及集成失败取证，2026-10-19，整体未完成）
+
+普通转发的 WS 请求收到上游 `error`、`response.failed` 或 `response.incomplete`
+时，旧 turn 会进入完成响应解码并断开连接，客户端拿不到原错误。现先等待本轮未提交分支的 abort
+ACK，再原样发送这些事件；失败输出不登记完成快照，不自动重试请求，连接可以接受客户端选择的下一轮。已注入私有结果或进入内部恢复的错误继续留在恢复边界内，不向客户端暴露内部工具和原文。
+
+真实 socket 回归用前阶段发布包的原 turn 源码、当前工作区依赖和同一测试参数复现三个终态全部断连，再对新源码确认三种事件完整返回、零失败快照及下一轮成功。另覆盖等待 abort
+ACK、abort 拒绝、撤权、发送失败，以及待合并私有工具结果注入后的错误不泄漏、不重放。初始 fixture 曾误发 binary
+Buffer，在进入上游前被正确拒绝；改为协议要求的文本消息后，另存旧 turn 的有效失败对照。后续两项断言修正分别比较 JSON 传输值和终态数量，保留全部字段及隐藏数据检查，未修改期限、并行或覆盖率门槛。
+
+| 检查                               | 当前记录                                                                   |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| 协调/异步/会话/WS 专项             | 99/99，通过                                                                |
+| HTTP、root、历史与既有 WS 扩大回归 | 191/191，通过；范围与此前 192 项不同，不累计或直接比较数量                 |
+| 范围静态与治理                     | 格式、无警告 Lint、生产模块语法、CI/release 治理通过                       |
+| 隔离包                             | 561 个运行源、573 个构建源、116 个锁定依赖匹配，源码及依赖闭包不变         |
+| 包内实际 Node/模块                 | 99/99，通过                                                                |
+| 完整字面客户端                     | 784/785，1 失败、0 取消/跳过；覆盖语句/行 98.82%、分支 94.29%、函数 98.95% |
+
+新增非内容性阶段计时与事件循环最大延迟。较早 trace 完整客户端为 774/775，失败代理没有 stdout 或 server_start 阶段；新冻结候选 784/785 中，同一代理仍未就绪，但子进程在约 0.65 秒进入 preload，约 2.17 秒完成 catalog/crypto/lifecycle 预加载，剩余时间尚未进入服务器启动。另一 direct-upload
+fixture 在约 11.60 秒进入 server_start，约 13.11 秒完成监听。这排除了“子进程根本没启动”的推断，但尚未定位预加载后到启动前的具体耗时点，也不能断言并发是唯一原因。模式切换当前两次 trace 均通过，不能反证此前 HTTP 请求失败已修复。
+
+当前阶段证据目录为
+`.hpm-acceptance/context-recovery-integration-diagnosis-20261019-01/`，包括冻结摘要、原失败、新回归、完整门禁日志、实际包探测及已验证的
+`milestone.json`。当前全仓 verify 重跑仍因 404 个文件格式问题退出，后续阶段未运行。额外的有界无内容 profile 将失败窗口缩小到
+`core-request-handler`
+模块加载：失败实例约 2.05 秒进入该导入后未返回，另一实例该段约 5.04 秒。后续嵌套 profile 的失败实例记录路由导入约 2.51 秒、WorkBuddy
+HTTP
+transport 约 1.89 秒、恢复生命周期约 1.06 秒，累计到约 14.22 秒才开始系统身份初始化。该嵌套实验保存在
+`client-startup-profile-nested.log` 和
+`startup-profile-419340.json`，不计入原门禁通过证明，也未写入此前回执；证据支持继续检查累计启动成本，尚不证明单一模块或并发是根因。此前 WS
+cache 阶段也已补真实失败汇总
+`milestone.json`，两份回执均明确为专项/包内通过、完整客户端及 verify 失败，不授予发布资格。本阶段未新增运行依赖、安装插件、改变真实认证、调用真实模型或激活生产，整体目标保持未完成。
+
+## 此前阶段（WS 连接缓存与混合工具续接，2026-10-19，完整客户端门禁仍失败）
+
+公开
+[OpenAI WS 契约](https://developers.openai.com/api/docs/guides/websocket-mode.md)
+明确：每条 lane 保留最近响应的连接内缓存，`store:false`
+无持久回退。此前测试桩没有模拟缓存失效，内部恢复每轮一直引用最初响应 ID 的问题未被覆盖。新真实 socket 回归只接受最新缓存 ID，先复现失败；独立
+`context-recovery-websocket-dispatch`
+现在对完整输入和前轮输出做精确指纹匹配，只有确切后代才改为最新响应 ID 并仅发送增量。配置、原始输入和工具参数不被原地修改；错误、未知或不同分支不被猜测重写。保留逐项摘要，避免额外保存原文，也避免合法请求和响应分别在限额内、合并摘要时却超过 2
+MiB 的错误。
+
+混合轮次通过仅由 WS 组合层传入的 `deferMixedResults`
+能力处理。代理完成内部只读查询后保留当前上游真实响应 ID，仅发布外部调用；不通过额外模型生成让该 ID 失去缓存。`context-recovery-websocket-continuation`
+将已完成的内部结果在下一次客户端工具结果前合并。普通 HTTP 协调器沿用原混合轮次行为。该连接内桥接最多 256 条、合计 2
+MiB，继承原 root 绝对到期时间；原会话失效、撤权、到期、坏时钟或连接关闭时清除。暂存、提交和丢弃使用进程内能力 token；公开响应 ID 本身不授予读权限，下一请求必须重新通过现有会话和策略绑定。重复私有结果不能由客户端替换或再次注入。
+
+真实 socket 测试覆盖 `store:false`
+下两次纯内部精确读回，以及连续混合索引/外部调用、混合原文读取/外部调用和最终续接。检查每轮真实缓存 ID、完整工具配对、精确 Unicode、零隐藏事件外泄和没有额外生成。另一回归持有最终发布确认，确认另一条 lane 的后代排队等待；确认失败会撤回分支并清空排队，不向上游发送已撤回的私有结果。桥接另覆盖非法输入、getter、授权、克隆隔离、配额、绝对到期和空闲清理。这些都是本地合成上游，未调用真实模型。
+
+| 检查                          | 当前冻结源码结果                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| Node 22 聚焦协调/异步/会话/WS | 89/89，通过                                                                          |
+| Node 22 扩大回归              | 192/192，通过，含 HTTP/转换、root 状态/所有权、既有 WS 生命周期及 header 隔离        |
+| 范围静态与治理                | 语法、格式、无警告 Lint、CI/release 治理通过；新模块在发布清单，测试沿统一入口发现   |
+| 隔离发布包                    | 561 个运行源、573 个构建源、116 个锁定依赖匹配；源码未变、目录治理通过               |
+| 包内 Node 和模块执行          | 同一四文件测试 89/89，通过；仅重写测试的模块解析路径                                 |
+| 字面完整客户端最终复跑        | 774/775，1 失败、0 取消/跳过；覆盖语句/行 98.81%、分支 94.20%、函数 98.95%，门槛未变 |
+| 字面全仓 verify               | 退出 1，404 个文件格式问题，后续全仓阶段未运行                                       |
+
+完整客户端首次记录为 775/775，期间为修复 Lint 做了两处局部语法调整，因此随后按冻结源码复跑。第一次冻结候选复跑失败于隔离代理启动，阶段停在证书就绪；第二次失败于加密模式切换后的 HTTP 请求。两次失败均保留。相应用例分别单跑为 2/2 与 1/1 通过，不能据此证明完整套件通过，也尚不能把两类失败认定为同一原因或归因于并发。没有调整超时、覆盖率、断言、统一测试命令或内部并行度。
+
+隔离包第一次因快照后修复 Lint 导致 `release_isolated_source_changed`
+被正确拒绝；失败记录保留，随后在源码稳定后重建并通过。早期边界测试的 null-prototype 对象比较失败也保留，断言调整为比较实际 JSON 传输值，仍验证每个字段、参数、顺序和原输入不变。依据为
+`.hpm-acceptance/context-recovery-ws-cache-20261019-01/` 内的
+`source-snapshot.json`、`scope.json`、`packaged-execution.json`
+及各次测试日志。后续在修改 WS turn 前，补齐并验证历史
+`milestone.json`：561 个包内生产源及对应工作区摘要匹配，完整客户端两次失败如实记录；没有把该失败阶段升级为整体合格。
+
+当前桥接仅在同一活动连接中保留待合并结果，不冒充跨重连、跨 HTTP/WS 或跨重启的完整恢复。任意并发多流分叉、取消/steering、错误和握手保真、真实提供方/官方登录、容量留存、实际客户端及完整工程门禁仍待完成。最近两个完整客户端失败继续作为待定位项；不能因为 WS 专项和包内测试通过而报告本候选整体合格。未安装插件、改变真实认证、启用生产恢复、重启共享服务或发起真实模型请求；完整目标保持未完成。
+
+## 此前阶段（WebSocket 消息恢复与增量连续性，2026-10-19，完整兼容未完成）
+
+新增独立 wire、turn、connection、transport 模块，`ws@8.22.0`
+声明为直接运行依赖并进入发布闭包。使用成熟帧实现处理压缩、分片、UTF-8 和掩码；消息大小、队列字节、多流数量、单流 FIFO、活跃请求、事件数量和请求期限有界。接管仅用于受信配置准入的 Responses 路径，当前请求持续复查入口身份、profile 和凭据出处。外部工具仍交客户端执行，内部只读工具不发布给客户端。
+
+初轮真实 socket 超时发现原始生命周期暂停后没有恢复 ws 的客户端读取，补
+`client.resume()`
+后通过。后续第三次客户端请求失败，现保留原失败日志，并将测试等待器改为在连接关闭时立即拒绝，避免用 15 秒超时掩盖真实失败位置。根因是把已经验证的
+`previous_response_id`
+增量输入交给完整窗口的私有历史映射。Responses 服务端续接现在保留其 ID 与输入增量，不重复插入祖先私有交换，也不为该服务端续接建立完整窗口映射；无 ID 的完整窗口继续走原映射。恢复能力还验证传入 body 的响应 ID 与准入请求完全一致，拒绝增加、替换或省略已绑定的服务端祖先。
+
+真实压缩/分片连接回归连续发送四次客户端请求，包含两次索引/精确 Unicode 原文读回、后续空增量，共八轮上游响应；验证同一 root、输入增量和响应 ID 保持、内部工具不外泄。另覆盖多流交错与同流 FIFO、非法身份/序列/消息、撤权、断连、超时、发送失败、队列额度及关闭时释放占用。实际加密 SQLite 内存库测试持有真实写后的 ACK，确认 ACK 前没有客户端输出，非法 ACK 安全失败；不能将该用例表述成物理 worker 或安装版的端到端证明。
+
+| 检查                  | 当前候选结果                                                                        |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| Node 22 WS 与会话专项 | 30/30，通过                                                                         |
+| Node 22 扩大回归      | 121/121，通过，含既有 WS 生命周期、HTTP、协议、历史及 root 状态                     |
+| 字面完整客户端覆盖    | 763/763，通过，0 失败/取消/跳过；语句/行 98.79%、分支 94.16%、函数 98.93%，阈值不变 |
+| 范围静态与治理        | 语法、Prettier、无警告 ESLint、CI/release 治理通过；新增测试进入统一客户端入口      |
+| 隔离发布包            | 559 个运行源、571 个构建源、116 个锁定依赖匹配；源码快照未变、目录治理通过          |
+| 包内执行              | 包内 Node 与真实包模块、`ws@8.22.0` 执行相同 WS/会话测试 30/30，通过                |
+| 字面全仓 verify       | 退出 1，404 个文件格式问题；后续全仓阶段未运行                                      |
+
+最终阶段回执见
+`.hpm-acceptance/context-recovery-ws-messages-20261019-01/milestone.json`。初始、恢复读取前后、连续性失败和最终结果分别保留，不累加历史通过数。包内测试只重写测试的模块解析指向实际发布目录，没有改动业务断言或测试期限；发布模块与工作区摘要逐项匹配。
+
+当前仅形成受支持 `response.create`
+轮次的本地资格，尚未完成取消/steering、错误透传、握手响应细节、同 root 多流分支、重连、跨 HTTP/WS 恢复及混合外部工具下服务端 ID 续接的完整兼容。API
+WS 的服务端历史与缓存可用性、官方登录形态和真实 Codex/Claude 未验收。容量/保留、在线失效分支清理、完整门禁、UI 支持矩阵、实际安装采用和生产激活仍待交付。没有启用生产恢复、安装插件、改变真实认证、重启共享服务或调用真实模型；整体目标保持未完成。
+
+## 此前未合格增量（WebSocket 消息级恢复，2026-10-19）
+
+已有基于 `ws` 的消息传输、连接调度、单轮内部恢复和协议校验草稿，并将 `ws@8.22.0`
+声明为直接运行依赖。现有日志
+`.hpm-acceptance/context-recovery-ws-messages-20261019-01/publication-after.log`
+记录 9 项测试中 8 项通过、1 项超时取消；失败项是实际压缩/分片 WS 下私有读回后继续下一次客户端请求。尚未定位根因，不能将此前短序列通过作为当前连续性通过。
+
+当前草稿没有最终里程碑回执、完整客户端复跑或包含新依赖的新隔离发布包资格。取消/steering、同 root 多流、重连、HTTP/WS 并发及实际 Codex/Claude 仍待验证。此前生命周期和存储回执仅对应各自冻结快照。主方案第 0 节汇总交付顺序；本次仅整理文档，没有重跑测试、安装插件、发起模型请求或重启服务。
+
+## 此前合格增量（WebSocket 连接生命周期，2026-10-19，消息级恢复未完成）
+
+实际 upgrade 已接入独立
+`websocket-lifecycle`：凭据等待期间断开不再产生迟到请求，客户端关闭会销毁待升级的上游请求；两端 EOF/错误关闭连接，迟到的 upgrade
+socket 被销毁。升级后的错误只关闭连接，不再向已升级的字节流写 HTTP
+502。握手前 head 与后续原始字节合计上限 2
+MiB，几何增长缓冲避免小块数据导致无界对象分配；完成握手后先暂停，再恢复全部输入，交回原生 pipe 背压。日志改为固定事件码，路径、查询、profile
+ID 和原生异常不进入该模块日志。
+
+回归先复现旧版两个取消缺陷。初轮真实 socket 用例和 Node 22
+mock 隔离失败记录保留：测试中的半关闭上游在 EOF 后主动关闭其写端，同一测试两次 mock 改成独立测试，既有 header 隔离 fixture 补齐实际 socket 的 resume 契约。没有提高期限或删除业务断言；最终真实网络回归覆盖客户端取消、head 和提前分块完整有序到达。
+
+| 检查                   | 冻结候选结果                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| Node 22 WebSocket 专项 | 17/17，通过                                                                        |
+| Node 24 扩大专项       | 30/30，通过，含 header 隔离、连接守卫和代理传输                                    |
+| 完整客户端             | 753/753，通过；0 失败/取消/跳过                                                    |
+| 新生命周期模块覆盖     | 语句、行、分支和函数均 100%                                                        |
+| 两个 WS 模块合计覆盖   | 语句/行 88.88%、分支 80.48%、函数 100%，未放宽任何既有门槛                         |
+| 范围静态及治理         | 格式、无警告 Lint、CI/release 治理通过；新模块进入发布清单，新测试由统一 unit 发现 |
+| 字面全仓 verify        | 退出 1，404 个文件格式问题；后续阶段未运行                                         |
+
+冻结摘要、失败对照及回执见
+`.hpm-acceptance/context-recovery-ws-lifecycle-20261019-01/final2/milestone.json`。这是实际原始 upgrade 的生命周期修复，不是 WebSocket 消息级内部恢复；本批没有为新增 WS 模块重新制作隔离安装包，也没有安装宿主或生产激活证据。此前存储隔离包资格保持对应原候选，不替代当前发布资格。
+
+另只读确认本机 Codex CLI
+`0.160.1`，用户配置为 Responses、`localhost:3085`、要求 OpenAI 认证；Claude Code
+`2.1.292`，全局配置指向
+`api.deepseek.com`。尚未核对项目覆盖与实际流量、HTTP/WS、Desktop/IDE 版本。没有输出凭据或改变配置。公开 API 的 WS 多流并发/分叉契约已补入主方案，不能由此推定 Codex 官方登录端点支持相同形态。
+
+剩余首发路径仍包括消息重组与压缩、多流调度、内部恢复、共享发布事务、容量/保留策略、实际 Codex/Claude 验收、完整门禁及发布。`goalComplete:false`、`productionActivation:false`、`websocketRecoveryImplemented:false`。
+
+## 此前合格源码快照（启动遗留 staged 回收，2026-10-19，整体未完成）
+
+新增独立
+`context-recovery-storage-staging`，在新所有者 session 初始化的 discovery 屏障内回收旧所有者遗留的不可导入 staged 原文。先验证整个有界 catalog、全部记录与 staged 字节，并复查稳定代次，再规划所有写入；原 revision
+CAS 写回，严格 ACK、认证读回摘要与最终更新 catalog 复查。仅删除 stagedSources，保持 root、已发布原文与 ID、publication
+journal、预算、计数、创建时间、绝对期限和字段版本。空 stage 不写，修订号溢出在任何写入前拒绝。
+
+所有存储 await 前后检查当前所有者生命周期；关闭、读回不一致或存储失败保持启动失败，不授予会话权限、不重试模型或外部工具。每 root 独立提交：中途失败可已清理前一 root，但本轮不登记任何 root；新 owner 完整扫描后只处理剩余 stage。这不是跨 root 全局事务，也不清理仍活跃的在线 pending 数据。
+
+回归覆盖正常与空、上限、损坏、后续 root 损坏、写失败、错误及可执行 ACK、缺失或不一致读回、catalog 变化、CAS/关闭竞争、多 root 部分失败后的新 owner 续清；真实 Windows
+DPAPI/SQLite
+worker 经关闭、初始化清理、再重开保持结果。初始缺陷复现、摘要封装与物理 fixture 参数失败日志保留；未通过调整期限/并行/阈值或移除断言制造通过。
+
+| 检查                                 | 当前冻结源码结果                                                                                     |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Node 22 生命周期                     | 41/41，通过                                                                                          |
+| 扩大专项                             | 176/176，通过                                                                                        |
+| 字面完整客户端                       | 753/753，通过；0 失败/取消/跳过                                                                      |
+| 覆盖率                               | 语句/行 98.90%、分支 94.34%、函数 99.01%，原阈值保持                                                 |
+| 范围静态/统一发现                    | 语法、格式、无警告 Lint、unit/client 注册通过                                                        |
+| CI/release/composition/coverage 治理 | 通过                                                                                                 |
+| 实际隔离发布                         | 554 运行源、566 构建源、115 锁定依赖匹配，源码摘要不变                                               |
+| 包内实际执行                         | 生产模块清 stage、root/计数/预算/TTL 保持、CAS；无启动权限；当前请求重新授权后已发布原文精确读回通过 |
+| 字面全仓 verify                      | 退出 1，404 文件格式问题；后续全仓阶段未运行                                                         |
+
+证据为
+`.hpm-acceptance/context-recovery-staging-20261019-01/milestone.json`。包内探测使用包内 Node
+v22.22.3 和实际 SQLite 内存库；真实 Windows 加密文件关闭/清理/重开是另一项物理用例，不拼接为安装版物理端到端资格。新模块进入 release，回归进入原生命周期测试文件和统一 unit/client/CI；无新依赖。
+
+在线失效分支的数据与内存额度回收、容量/保留策略、实际 WS、真实 Codex/Claude、完整工程门禁、产品发布与回滚仍待交付。`goalComplete:false`、`restartRetention:false`、`productionActivation:false`；未安装插件、调用真实模型、修改真实认证或重启生产。
+
+## 此前合格源码快照（schema 准入与事务回滚，2026-10-19，整体未完成）
+
+新增独立结构准入模块，检查 v1 版本、application
+ID、完整规范 DDL 和预期对象，拒绝额外表/索引/视图/触发器、临时对象、未知列、缺失约束或 STRICT、超长元数据及未知版本。启动在磁盘 PRAGMA 和应用表读取前检查，所有事务在
+`BEGIN IMMEDIATE`
+内复查，新建提交前验证完整结构。未知布局固定安全失败，不迁移、覆盖或回填权限。
+
+另修复启动首次结构检查后、读取 header 前的跨连接改库窗口：header、容量读取与启动回收现均位于锁内复查之后。真实双连接回归证明在获取锁前改结构时，应用表读取为零，原文/时钟不变；真实进程在首次建库 COMMIT 前退出后，SQLite 恢复空结构/版本，随后可完整初始化。
+
+初轮 27 项中 25 通过、2 失败的日志保留。旧触发器故障 fixture 改为受控数据库 facade，在真实 upsert/delete 之后抛错；明确确认两条撤销更新、原文更新和到期删除确实发生，再核验全部密文、revision 和认证时钟回滚。故障错误仍只返回固定码，未放宽期限、阈值、并行或业务断言。非平凡逻辑独立模块，新模块进入 release 清单，新回归由原测试文件进入统一 unit/客户端/CI。
+
+| 检查                                 | 当前冻结源码结果                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------------------- |
+| Node 22 存储与维护                   | 29/29，通过                                                                         |
+| 扩大专项                             | 113/113，通过，含真实 Windows worker、双连接竞态和进程崩溃                          |
+| 字面完整客户端覆盖                   | 746/746，通过；0 失败/取消/跳过                                                     |
+| 覆盖率                               | 语句/行 98.89%、分支 94.34%、函数 99.01%，原阈值保持                                |
+| 范围语法/格式/Lint                   | 通过，无 Lint 警告；统一 unit 发现确认                                              |
+| CI/release/composition/coverage 治理 | 通过                                                                                |
+| 实际隔离发布                         | 553 运行源、565 构建源、115 锁定依赖匹配，源码摘要不变                              |
+| 包内实际 Node/模块/helper            | DPAPI 互通、读取上一合格包生成的规范 v1、异常启动/在线结构拒绝及密文/时钟保持均通过 |
+| 字面全仓 verify                      | 退出 1，404 文件格式问题；后续全仓阶段未运行                                        |
+
+证据和冻结摘要见
+`.hpm-acceptance/context-recovery-schema-20261019-01/milestone.json`。范围 Lint/语法/格式只证明记录范围，隔离包不是实际安装宿主验收。没有修改无关文件以消除全仓格式失败，没有安装插件、修改真实凭据、调用真实模型或重启生产。
+
+结构准入不代表通用迁移器完成；有效 root 的 staged 整理、容量/保留策略、真实 WS、实际 Codex/Claude、完整工程门禁及灰度回滚继续推进。`goalComplete:false`、`restartRetention:false`、`productionActivation:false`，整体未交付。
+
+## 此前合格快照（原生 DPAPI helper 与隔离发布包，2026-10-19，客户端门禁通过，整体未完成）
+
+新增独立 Rust crate
+`native/context-recovery-key`，主入口仅组装参数和标准流，库模块负责精确 JSON/字段/规范 Base64 验证、Windows
+DPAPI 与有界读写。使用原有 CurrentUser、`hpm/context-recovery/data-key/v1`
+熵值和 `hpm-context-dpapi-v1:`
+包装格式；新保护结果在同一进程内先解保护并比较，再返回成功。与旧 PowerShell 实现真实双向互通，无密钥格式迁移或明文替代。密钥只经 stdin/stdout 管道传输；固定协议错误不包含输入或原生异常。
+
+Node 密钥边界优先使用应用内
+`runtime/native/hpm-context-recovery-key.exe`，验证普通文件、单硬链接和非 junction/符号链接祖先；仍保留原 10 秒进程期限、缓冲上限和最小环境。没有已构建 helper 的源码检出保留原固定 PowerShell 后端；已分派原生调用失败时不通过其他后端重试。发布目录门禁要求 helper 存在，隔离发布同时核对其 SHA-256。
+
+新增构建脚本使用独立 Cargo.lock 和 release 构建，产物先完整暂存再改名。`test:unit`、后端覆盖和客户端覆盖的前置步骤构建相同 helper；原客户端 c8 命令、测试列表、阈值、期限和并行策略未修改。统一 verify 增加
+`test:recovery-native`，包含 Rust 格式、拒绝警告的 all-targets
+Clippy 和测试；Windows
+CI 增加相同入口及该锁文件的依赖审计。发布包携带 helper，使用者不需要 Rust 工具链。
+
+| 检查                                                         | 最终源码结果                                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| 扩大专项                                                     | 61/61，通过，包含真实 DPAPI 互通、物理清除/重开、硬链接/junction、严格输入和发布治理 |
+| 原生 Rust                                                    | 3/3，通过；格式、Clippy 通过；依赖审计无漏洞                                         |
+| 完整字面客户端覆盖                                           | 742/742，通过，0 失败/取消/跳过                                                      |
+| 客户端覆盖率                                                 | 语句/行 98.89%，分支 94.34%，函数 99.01%，门槛不变                                   |
+| 原失败的物理清除/重开                                        | 完整负载约 14.7 秒，在原 30 秒期限内通过                                             |
+| 隔离发布                                                     | 552 个运行源、564 个构建源匹配，115 个锁定依赖匹配，目录与 helper 摘要通过           |
+| 包内实际执行                                                 | 用包内 Node v22.22.3、模块与 helper 完成真实保护/解保护，恰好两次原生调用            |
+| 范围语法、Lint、格式；CI、release、composition/coverage 治理 | 通过                                                                                 |
+
+完整客户端使用 Node v24；隔离发布及包内探测使用具备 npm 的 Node
+v22.22.3。首次用不含 npm 的捆绑 Node 准备隔离发布时失败，原失败记录保留；后续用开发发行版 Node 在新隔离目录中完成最终源码构建与验证，没有复用失败目录冒充新鲜结果。包内测试不是已安装宿主或完整 Node
+22 客户端套件验收。
+
+最终门禁、冻结摘要、失败对照和包内执行回执见
+`.hpm-acceptance/context-recovery-native-helper-20261019-01/milestone.json`；最终源码日志位于该目录
+`final/`。原 737 项负载超时保留在上一阶段，不被此次独立或完整通过覆盖。完整 verify 仍需消除全仓格式失败后运行其余阶段；未启用生产恢复、修改真实认证、安装插件、重启服务或调用模型。`restartRetention`
+的产品资格仍为 false；清理迁移、容量与保留策略、实际 WS、真实宿主及发布激活继续保留在完整目标中。
+
+## 此前候选（清除撤销、结束查询与有界轮询，2026-10-19，整体门禁仍失败）
+
+prepared 操作现在可经严格确认的 POST
+cancel 原子变为 cancelled，迟到或重传的 start 返回同一终态，不执行清除。running 或已终结操作的取消只返回实际状态，不中断清除、不改写终态。管理鉴权、Origin 防护、128 字节精确输入、方法与 Rust 桥白名单均覆盖新增入口。
+
+页面提供两个不同的明确确认操作：撤销未启动操作，以及结束本页结果查询。后者必须完成 sessionStorage 删除读回才释放当前查询，不发送后台请求，不代表旧操作成功或失败；再次清除仍需新确认。running 状态每次查询完成后间隔 1 秒、最多 30 次自动 GET；每请求保留原 10 秒期限，未知即停止自动查询，手动查询保留。不会自动重发 start。
+
+真实隔离 Chrome 与实际管理 router、合成生命周期验证了取消、迟到启动、页面重载仅 GET、真实定时查询、丢失响应后结束查询不发送请求，以及再次清除独立确认。浏览器验证不是实际安装宿主或真实模型验收；实际独立代理鉴权集成验证取消入口拒绝无管理 token、仅入口 key 和恶意 Origin，全段管理测试没有上游调用。
+
+| 检查                                                                | 本轮最终结果                                                         |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 扩大专项，含实际 Windows 加密库清除/重开                            | 48/48，通过                                                          |
+| 完整字面客户端覆盖                                                  | 737 项，736 通过，1 项超时取消，退出 1                               |
+| 客户端覆盖率                                                        | 语句/行 98.89%，分支 94.33%，函数 99.01%；阈值不变                   |
+| 前端 / 前端覆盖入口                                                 | 27/27 文件、7/7 文件，通过；语句/行 97.98%，分支 90.12%，函数 96.34% |
+| Rust 桥 / Clippy                                                    | 2/2，通过；all-targets、拒绝警告，通过                               |
+| 范围 Lint、格式、语法；CI、release、composition/coverage 治理；构建 | 通过                                                                 |
+| 字面 verify                                                         | 格式门禁报告 404 个文件，退出 1；后续阶段未执行                      |
+
+完整客户端的同一物理测试仍在原 30000ms 期限取消：种子库关闭约 11.8 秒，内存模式清除约 20.7 秒，第三次重开尚未完成。独立计时诊断保留测试原期限，完成实际清除/重开/拒绝旧写入；只记录工具类型、线程、耗时与成功位，没有参数、路径、原生输出或密钥。三次打开共启动 3 次 PowerShell、24 次 icacls、3 次 whoami；本次隔离 PowerShell 约 1.35–1.94 秒。该结果确认原生调用成本，不证明全量并发下的唯一根因，更不能替代完整失败结果。
+
+回执及冻结源码摘要位于
+`.hpm-acceptance/context-recovery-clear-finalization-20261019-01/milestone.json`；原失败日志保留。未改变超时、断言、覆盖率或并行策略，未批量格式化无关文件、安装插件、启用生产恢复、重启服务或调用真实模型。下一步仍需修复全量负载下原生启动稳定性，再推进清理迁移、实际 WS、真实宿主和完整发布。
+
+## 此前候选（清除操作编号、终态查询与页面续查，2026-10-19，整体门禁仍失败）
+
+方案复核补充：下述回执只覆盖已记录的两阶段清除候选。当前工作区另有 prepared 撤销、本地结束查询和最多 30 次自动 GET 查询的源码及测试草稿，尚未获得修改后验证回执；下文“没有自动轮询”等描述指已记录快照，不代表后续草稿。新增代码存在不等于已合格，本次仅整理方案。
+
+新增两阶段管理协议：先取得 prepared 操作编号，页面写入并读回 sessionStorage 后才发送带明确确认的 start。准备和 GET 查询不执行清除；同编号在运行中和终态均幂等，其他编号在已有操作运行时不能启动。只有严格 runtime
+ACK 能形成 succeeded，非法或拒绝 ACK 形成固定失败，不输出原生异常。
+
+registry 最多 32 条，只存编号、状态和期限；prepared／终态从创建起 30 分钟到期，running 不回收，时钟水位不回退。过期或未知编号从不重建；服务重启丢失进程内状态后旧编号不能执行，也不能据此认定清除成功。原同步接口继续兼容。每次管理请求沿用 10 秒期限。
+
+页面不确定时保留编号，刷新后仅 GET，不重发 start；新增“查询清除结果”按钮。存储不可用不发送 start；查询看到 prepared 也可能有延迟 start 在途中，继续保持未知。当前没有自动轮询或应用层重试；未知且无法恢复的旧操作仍缺后续处理流程，不能用 health 或新编号冒充旧结果。
+
+新增 6 项 registry／HTTP、6 项前端 client、2 项控件续查回归，进入统一 CI 与覆盖入口；新模块进入 release。实际隔离代理验证 prepare/start/status 拒绝无管理 token、仅入口 key 和恶意 Origin，完整操作与重复启动通过，模型上游调用为零；浏览器／桌面桥合成链路通过。
+
+| 检查             | 本轮结果                                                                                                                          |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 扩大专项         | **36/36，通过**，含独立真实 Windows 清除／重开                                                                                    |
+| 字面完整客户端   | **733 项中 732 通过，1 超时取消，退出 1**；原物理清除用例仍触发 30 秒期限，deadline、断言、并行方式保持                           |
+| 客户端覆盖率     | 语句／行 98.89%、分支 94.32%、函数 99.00%；不抵消超时                                                                             |
+| 前端／覆盖率     | **27/27 文件、7/7 文件，通过**；语句／行 97.81%、分支 89.24%、函数 96.05%                                                         |
+| 静态、治理、构建 | 范围 Lint／格式、CI/release、composition／coverage 治理、前端构建通过；Rust 管理桥 **2/2**、all-targets Clippy `-D warnings` 通过 |
+| 字面全仓 verify  | 退出 1，仍停在 **404 文件格式问题**，后续阶段未执行                                                                               |
+
+隔离 Chrome 使用实际控件、client、HTTP
+management/router 与合成 lifecycle。响应前断连导致 Chrome 自动重传同编号 POST，后台只执行一次；首次等待“未知”的假设因此失败，轨迹保留。补充响应已开始后中断，验证真正未知；两种场景刷新后均仅查询并最终确认，一次清除。断言调整针对已观测的传输行为，原重复执行防线保持；不代表完整 Tauri 或真实存储／客户端验收。
+
+证据为
+`.hpm-acceptance/context-recovery-clear-operations-20261019-01/`，保留首次空 body 边界失败、修复后专项、完整客户端失败、浏览器诊断和门禁。整体仍缺物理启动稳定性、用量／目录／保留策略、staged 整理迁移、WS、真实 Codex／Claude／模型及完整发布；`restartRetention:false`，未安装插件、修改真实凭据、请求模型或激活生产。目标继续执行。
+
+## 此前候选（加密留存与主动清除界面，2026-10-19，前端门禁通过，整体未完成）
+
+设置表单已独立读写
+`contextRecoveryPersistenceEnabled`，保持既有默认关闭与配置归一化；新增实验性加密留存控件，明确原期限不延长、跨重启读回尚未完成验收。自动恢复说明不再将所有模式描述为仅内存。
+
+新增独立 `context-recovery-controls`，composition
+root 仅注入并绑定。清除对话说明代理原文、插件独立库、原生聊天、审计的范围，以及清除后继续按已保存设置捕获。确认和请求期间禁用重复点击；仅在后端返回精确 ACK 后显示成功。使用固定状态文本和 textContent，不渲染原生异常或服务端错误内容；网络失败、非法 ACK、超时均显示结果未知并阻止页面内重复提交，不自动重试。桌面原生桥仅新增固定 POST 清除路径的白名单，沿用管理认证和现有 10 秒期限，GET 与路径后缀仍拒绝。
+
+**当前仍有操作查询缺口。**
+原生桥可能在实际清除完成前结束等待；中止前端等待不证明后端已停止。结果未知后本页禁止再次清除，但尚无持久操作编号和只读终态查询，不能通过 health 把它提升为清除成功。该缺口与完整客户端物理启动期限问题保留，后续补操作状态协议并做实际桌面／真实存储闭环；本轮不放宽既有 deadline。
+
+新增 8 项前端行为／安全回归，进入统一前端测试与覆盖率入口；现有表单回归验证两个设置独立往返，现有桥测试验证浏览器与桌面 native
+IPC 都只发一次固定 POST，renderer 不传管理凭据。前端
+**26/26 文件通过**；覆盖率运行
+**6/6 文件通过**，语句／行 97.45%、分支 87.46%、函数 95.23%，保持原门槛。范围 Lint 无警告与格式检查、CI/release 治理、composition
+root、前端构建通过；构建保留既有大 chunk 提示，未提高警告阈值。Rust 管理桥
+**2/2 通过**，范围 rustfmt 检查通过。
+
+Rust all-targets Clippy 在 `-D warnings` 下通过，未新增依赖或放宽规则。
+
+隔离 Chrome 组件检查使用实际 HTML 控件、构建 CSS 和生产控件模块，连接合成管理服务，验证取消零请求、留存开关独立、处理中禁用、成功 ACK、失败固定反馈和无页面错误；不读取生产配置或连接生产服务。首次 Playwright 默认浏览器缺失，使用已安装 Chrome 的独立临时 profile 后通过，没有下载浏览器。此证据不代表完整管理应用或已安装 Tauri 的端到端验收。
+
+本轮证据位于
+`.hpm-acceptance/context-recovery-ui-20261019-01/`。未重跑完整后端客户端或全仓 verify，不以本轮前端通过覆盖下节保留的 727 项中 1 项超时，以及此前全仓格式失败。用量／目录／保留策略、操作查询、物理启动稳定性、staged 清理迁移、WS、实际客户端／模型和发布仍待完成；`restartRetention:false`，未安装插件、请求真实模型或激活生产。整体目标继续执行。
+
+## 此前候选（主动清除后端与管理鉴权，2026-10-19，完整客户端门禁失败）
+
+新增 runtime
+`clearAsync()`：第一个 await 前废止在线能力，串行等待已有模式切换与在途 checkpoint，然后等待全部持久撤销确认。清理期间的请求不能重新开启读取；重复清除共享在途任务，结束后应用最新设置，新的禁用、模式切换或退出不会被旧策略覆盖。错误保持固定码，清理失败停止恢复接管。诊断将 clearing 投影为等待应用。
+
+新增独立
+`context-recovery-clear-storage`，处理当前为内存模式但磁盘仍保留旧记录的情况。仅打开现有、路径合法的数据库，通过真实加密 worker 认证并 revoke-all，再检查可读原文条目和字节均为零，关闭并释放锁；空目录或缺失目录不创建库，异常布局拒绝。保留未到期撤销标记和原期限，拒绝旧写入复活；不导入会话权限，不删除数据库/密钥，不声称介质安全擦除。清除范围仅为代理恢复数据，插件独立内存库、客户端原生日志和审计日志不在此范围；成功后新数据继续遵循当前捕获设置。
+
+管理路由新增 `POST /v1/local/context-recovery/clear` 及
+`/local/context-recovery/clear`，请求仅接受 128 字节内的
+`{"confirm":true}`，不接受文件路径、会话选择器或任意内容。复用现有管理 token 与 Origin 检查；回复只含固定状态，失败不泄漏原生错误，不自动重试或重放工具。代码已进入实际 composition
+root，但未激活共享生产。
+
+本候选最新扩大专项 **68/68，通过**，独立真实 Windows 物理诊断约
+**7.6 秒通过**，实际代理子进程鉴权集成通过：无 token/仅入口 key 均 401，恶意 Origin
+403，管理 token 200，模型上游调用为零。范围 Lint/格式、CI/release、composition
+root/模块图及统一 unit 发现通过；新增模块进入发布清单，新测试进入字面客户端和既有集成 CI。
+
+**字面客户端门禁尚未合格。** 两次完整命令均为
+**727 项中 726 通过、1 超时取消，退出 1**；原 30 秒期限、断言、并行方式和覆盖率阈值均保持。第二次增加固定阶段/耗时诊断：seed 约 10.2 秒关闭，闲置库清除约 20.8 秒确认，第三次打开约 25.4 秒进入 DPAPI 解包，随后触发整个物理用例 30 秒期限。没有证据证明首次超时完全同源，也不以单独通过或清除已确认改写整例失败。下一步继续诊断完整运行下的真实原生启动和解包耗时，达到既定门禁后才能提升资格。
+
+证据目录为
+`.hpm-acceptance/context-recovery-clear-20261019-01/`，初轮两个失败及无原型 ACK 比较修正、两次完整门禁失败和独立诊断分别保留。当前覆盖率为语句/行 98.99%、分支 94.34%、函数 98.98%，覆盖率达标不抵消用例超时。字面全仓 verify 仍在
+**404 个文件格式问题**处失败，后续全仓阶段未运行；该次 verify 在最终测试诊断补充之前执行，生产代码未因此改变。未批量格式化无关文件或放宽规则。用户清除界面、用量、保留策略、staged 整理、WS/真实客户端/模型与完整发布仍未完成，`restartRetention:false`
+保持；未安装插件、修改真实凭据、请求模型或重启生产。目标继续执行。
+
+## 已合格阶段（worker 空闲到期回收，2026-10-19，客户端门禁通过）
+
+新增独立
+`context-recovery-storage-idle`，由真实加密存储 worker 每 60 秒执行一次私有 sweep；定时器不维持进程存活，禁止重入，关闭先取消，再排空 owner。非法/异步 ACK 或清理失败终止 owner，父服务随后拒绝操作，不重试请求，不续期证据或恢复旧权限。取消异常为持续失败，无法用第二次关闭制造成功。
+
+扩大相关专项 **84/84**；字面客户端覆盖
+**713/713，通过，退出 0**，语句/行 99.01%、分支 94.44%、函数 98.97%。范围 Lint 无警告、格式、CI/release、composition
+root 与模块图通过；80 个 JS/CJS 语法通过，82 个枚举源码/测试/清单摘要无差异，不宣称完整依赖闭包。新测试已进入统一 unit 发现及字面客户端覆盖，新模块已进入发布清单。
+
+真实 Windows 加密 worker 的空闲删除通过独立只读 SQLite 连接观察，不借其他 owner 命令触发回收；损坏回归证明 worker 退出、后续操作拒绝及 writer 锁释放。物理测试用专用 preload 把该定时器加速至 25 毫秒，只证明生产回调路径，不证明实际 60 秒墙钟清理时限，也不承诺介质不可恢复或数据库文件立即缩小。
+
+最终范围 Lint、其他治理和候选摘要已补齐，阶段回执为
+`.hpm-acceptance/context-recovery-idle-20261019-01/milestone.json`。首次 Lint 失败和其他失败记录保留。新一轮字面
+`npm run verify` 仍退出 1，停在既有
+**404 个文件格式问题**，后续全仓阶段未运行，未批量改写无关文件或放宽门禁。`restartRetention:false`；实际 WS/宿主/模型、主动清除完整界面、容量与完整发布仍未交付。没有修改真实凭据、安装插件、发起模型请求或激活共享服务。
+
+## 此前合格阶段（绝对到期回收与清理崩溃恢复，2026-10-19，客户端门禁通过）
+
+新增独立
+`context-recovery-storage-maintenance`，在同一 SQLite 事务及认证时钟内先认证全部有界记录，再删除绝对到期的 payload 与撤销标记。未到期撤销标记不能回收，仍有效的原文、预算、revision、TTL 和发布状态保持。原始迟到 save 的期限已到或 revision 不符，不能因回收旧行而重新落盘；时钟水位保持，回拨拒绝。256 条记录上限不变，清理过期标记后可容纳新的不同 scope，不通过驱逐仍有效撤销记录释放容量。
+
+回收接入实际 engine 启动、catalog 和 save；另有私有 `sweep`
+请求和严格 ACK 校验，可经现有 worker/opening 通道调用。没有新增模型工具或公开清理端点。SQLite
+schema、密钥和 write-ahead 版本保持原值，不进行破坏性格式迁移。启动先检查数据库容量，再运行回收；新回归先复现“超额打开失败前已删除记录”，调整顺序后保持数据。坏密文、错误元数据、删行触发失败或事务故障均不提交部分删除，错误只含固定码。
+
+本批相关六文件扩大专项
+**84/84 通过**，包含真实进程在清理 COMMIT 前退出：SQLite 恢复未提交删除和时钟更新，再重新清理；以及真实 Windows
+DPAPI/SQLite
+worker 回收、关闭重开、迟到保存拒绝和有效预算保持。初轮扩大专项 83 项中 82 通过、1 失败来自 fixture 将无原型 ACK 与普通对象比较；按既有安全归一化契约比较后通过，没有改变业务断言。首次缺失维护能力回归、容量检查顺序回归和中间失败均保留。
+
+证据目录：`.hpm-acceptance/context-recovery-maintenance-20261019-01/`。新模块进入 release；新测试进入字面客户端覆盖和统一 unit 发现。
+
+| 检查               | 结果                                                                            |
+| ------------------ | ------------------------------------------------------------------------------- |
+| 相关扩大专项       | **84/84，通过**；含清理进程崩溃和真实加密 worker                                |
+| 最终字面客户端覆盖 | **703/703，通过，退出 0**；语句/行 99.02%、分支 94.48%、函数 98.95%             |
+| 范围静态与治理     | Lint 无警告、格式、77 个 JS/CJS 语法、CI/release、composition root 与模块图通过 |
+| 枚举候选一致性     | 79 个源码/测试/清单文件摘要差异 0；不宣称完整依赖闭包                           |
+
+本批字面 `npm run verify`
+退出 1，停在既有 404 文件格式问题，后续全仓阶段未执行；未批量改写无关文件或放宽门禁。客户端覆盖不能代替完整工程资格。历史失败、既定 deadline、断言和覆盖率阈值保持，没有新增依赖。
+
+当前是启动/访问/写入时的机会式回收，不能宣称空闲时到点物理删除。`secure_delete`
+和 DELETE
+journal 沿用原配置，不承诺介质不可恢复或数据库文件立即缩小。尚未交付空闲清理调度、用户主动清除完整体验、活跃检查点中不可发布 staged 数据整理、未来 schema 迁移、实际 WS/宿主、容量与完整产品发布；`restartRetention:false`
+保持。没有修改真实凭据、安装插件、发起模型请求或激活共享服务。
+
+## 此前合格阶段（原策略依据与物理 HTTP 重开，2026-10-19，客户端门禁通过）
+
+完成 root
+v2 的私有原策略依据：新建 root 保存规范化策略，导出与读取检查点验证依据的指纹；未知版本、空对象、额外字段、访问器、超限和关联篡改均拒绝。v1 记录仍要求当前完整策略匹配，验证通过后升级；write-ahead 封装与 SQLite
+schema 保持 v1。省略工具策略的离线压缩用已验证依据完成导入校验，联合候选选择继续使用原始当前请求。不同工具策略共享同一历史时仍拒绝歧义；主体、路由、指令、system 和显式工具冲突继续约束准入。策略依据不进入模型读取信封或来源描述。
+
+扩大专项先复现空对象通过局部形状边界，显式拒绝非 v1/v2 后相关七文件
+**101/101 通过**。随后新增真实 Windows DPAPI/SQLite
+worker 关闭重开，使用全新 runtime 自动接纳省略工具策略的压缩请求，提交规范下一窗口，再精确读回原文；策略专项
+**9/9 通过**，保留原 30 秒期限、预算与绝对 TTL。
+
+实际核心 HTTP 原有内存用例保留 10 秒期限，新增真实加密 worker 用例采用现有物理重开用例的 30 秒期限：HTTP 前瞻捕获并提交 → 普通生命周期退出 → 关闭 worker
+→ 检查数据库不包含明文 → 重开同一加密库 → 新生命周期 HTTP 自动续接 → 原文精确读回；预算和到期时间不变。两种模式
+**2/2 通过**，本次形成同一物理存储与实际核心 HTTP 链路，不再仅以两个 fixture 拼接。它仍是合成提供方和本地 HTTP 客户端，不是实际 Codex/Claude、共享服务物理进程重启或真实模型验收。首轮新增预算断言误用子快照 ID 调用只接受 root
+ID 的导出接口，改为原始 root ID 后通过；业务断言未放宽，失败日志保留。
+
+证据目录：`.hpm-acceptance/context-recovery-policy-basis-20261019-01/`。
+
+| 检查               | 结果                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| 最终字面客户端覆盖 | **695/695，通过，退出 0**；语句/行 99.02%、分支 94.50%、函数 98.95%                    |
+| 新模块和测试注册   | 原策略模块进入 release；新测试进入字面客户端覆盖和统一 unit 发现                       |
+| 范围门禁           | Lint 无警告；格式、74 个 JS 语法、CI/release、composition root 与模块图通过            |
+| 原失败证据         | 原 7/8 失败、当前修复前复现、HTTP 断言 fixture 失败均保留；未修改 deadline、阈值或依赖 |
+
+本批字面 `npm run verify`
+退出 1，仍在格式检查报告 404 文件问题，后续全仓门禁未运行；未批量改写无关研究文件或放宽门禁。客户端覆盖不能代替完整工程资格。完整清理迁移、物理进程故障重启、长期启动稳定性、日常 WS、真实客户端/模型、容量与用户设置以及发布仍未交付。`restartRetention:false`
+保持；没有安装插件、修改真实凭据、发起模型请求或激活共享服务。下一步完成清理迁移与故障重开，并推进首发实际传输。
+
+## 此前工作区状态（原策略依据草稿，2026-10-19，失败记录保留）
+
+以下是本批修复前的只读核对记录，保留失败边界；不代表上节修复后的资格。此前异步加载与 HTTP 准入的 685/685 结果不覆盖后续草稿修改。
+
+工作区新增 `context-recovery-root-policy.js` 和
+`context-recovery-policy-basis.test.js`，并修改 root 导出/导入、检查点、会话及加载路径，尝试以 root
+v2 私有保存并校验原策略依据，支持离线压缩省略工具策略。write-ahead 与数据库 schema 保持 v1；联合选择应继续使用当前请求。
+
+证据目录 `.hpm-acceptance/context-recovery-policy-basis-20261019-01/`
+中，`focused-first.log` 记录初步相关 30/30 通过；扩大后的 `policy-first.log` 为
+**8 项中 7 通过、1 失败**。源码核对发现未知版本回退为空字段表，空对象因此通过局部形状校验。须显式拒绝未知版本、保留失败回归，完成新文件的统一 CI/覆盖/release 注册，并重新验证物理重开及 HTTP 闭环。当前不得把这批草稿报告为完整支持或发布候选。
+
+主方案新增多端交付矩阵与下一批 A–E 工作包；整体仍未完成，`restartRetention:false`
+的产品边界保持。未安装插件、修改认证、请求真实模型或激活共享服务。
+
+## 最近合格阶段（同所有者异步加载与 HTTP 准入，2026-10-19，客户端门禁通过）
+
+新增
+`context-recovery-root-loading`，将在线/离线联合选择、已发布状态投影、异步存储加载和原子接纳接到现有 session 的
+`beginAsync`。每所有者最多八个在途准入任务，串行加载且只接纳唯一选中的离线 root；同 root 后续请求复用已有所有者和预算，不创建独立可写副本。重复 catalog 校验和每次 ACK 前后当前权限复查阻止过时接纳；其他在线聊天和 pending
+capability 保留。普通退出排空加载，禁用和撤权代次阻止迟到 ACK 复活能力。请求授权使用独立、不可逆的守卫，返回后的读回和发布仍受其约束，不作为共享时钟。
+
+新增协议异步入口复用原解析、解压、身份及目标派生。核心 HTTP 普通请求和独立压缩路径已调用异步准入；原同步转发回调外增加异步错误边界，失败返回固定错误且不重放请求，发送后失败终止连接。存储等待后复查请求权限和取消，正常 finish 后的 close 允许观察提交继续完成。最初没有可信官方凭据绑定的 fixture 导致 403；补齐可信测试前提，并保留未获可选恢复准入时普通转发仍可用的产品行为，另有独立回归证明等待期间撤权不会进入旧 handler。
+
+本地证据分别覆盖：实际核心 HTTP 经前瞻捕获、持久提交、新生命周期所有者自动接纳和精确原文读取；真实 Windows 加密 worker 关闭重开后实际 runtime 自动接纳，保持原预算与绝对期限。前者使用合成内存 SQLite，后者是真实 DPAPI/文件/worker 重开；两者不能拼成一次真实客户端经物理进程重启的端到端验收。物理用例仍使用原 30 秒期限，完整运行通过也不证明长期启动稳定性。
+
+证据目录：`.hpm-acceptance/context-recovery-loading-20261019-01/`。
+
+| 检查               | 结果                                                                                                            |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| 扩大相关回归       | 107/107 通过；随后新增的普通转发/安全失败回归另有独立通过及最终统一覆盖                                         |
+| 最终字面客户端覆盖 | **685/685，通过，退出 0**；语句/行 99.02%、分支 94.47%、函数 98.95%                                             |
+| 覆盖范围           | 选择与加载测试进入统一 unit 和字面客户端；新增模块进入发布清单；抽出的 context-binding-selection 也纳入覆盖统计 |
+| 范围静态与治理     | Lint、格式、CI/release、composition root 与模块图通过；最终源码摘要及语法结果绑定阶段回执                       |
+| 完整字面 verify    | 退出 1，在 404 文件格式问题处失败，后续阶段未运行；没有批量格式化无关研究文件或放宽门禁                         |
+
+首次加载测试 9/10，失败来自测试误读分页字段；扩大协议测试 47/48，失败来自普通对象与安全解析后的 null
+prototype 比较；二者修正为现有 page.text 与无原型对象契约。HTTP 新转发失败用例首次在已发 header 后抛错，连接按契约终止，不能再期待 502
+JSON；改为注入发送前失败以验证该分支，未改变发送后失败规则。相关失败日志、最初两份清单格式失败以及未纳入抽出选择模块的第一次覆盖结果全部保留；加入覆盖 include 后重新运行原门槛命令，未变更 deadline、阈值、断言目标或依赖。最终客户端覆盖比此前 663 项多 22 项，不累加不同历史阶段。
+
+当前离线导入要求完整策略指纹匹配。独立压缩省略原生成策略且无法与离线策略匹配时，安全拒绝本次恢复准入，保留普通压缩转发；尚无可信原策略依据来恢复该形态，不能宣称所有压缩续接已支持。`restartRetention:false`
+保持；清理迁移、日常 WS、真实 Codex/Claude、产品界面、长期稳定性和完整发布仍未完成。没有安装插件、修改真实认证、激活或重启共享服务、发起模型请求。
+
+下一步补齐离线压缩省略策略的可信依据与续接，验证全部已提交/不可发布分支及并发场景，再继续清理迁移、实际传输和真实宿主验收。当前目标保持未完成。
+
+## 此前候选边界（现有会话内原子接纳，2026-10-19，最终客户端门禁通过）
+
+新增私有 `adoptContextRecoveryRoots` 及独立
+`context-recovery-root-adoption`，将已由可信所有者授权的 root 接纳进现有会话集合。仍通过完整 root
+importer 验证关联；绑定 registry 与私有 history
+map 先准备、检查配额和冲突，再在没有 await、时钟或外部回调的同步提交段更新。保留原集合、在线与待完成 capability、ledger、预算和映射，不通过替换全局 session 恢复旧记录。临时导入对象在成功和失败时均释放，失败不清除无关在线聊天。
+
+同一 root
+ID 重复接纳被拒绝，不能覆盖已用预算；root、绑定快照及私有历史总容量继续受原限制约束，不驱逐在线 root。接纳期间重入 begin 返回 busy，重入接纳安全失败。新增回归先复现最终时钟检查期间到期未阻止接纳，再补最终绝对期限检查及主体撤权 generation；禁用、撤权和退出不能被迟到接纳反转。存储新增 admitRoot，区别于只登记拒绝依据的 registerRoot，拒绝已撤销或失败的离线 root。
+
+专项验证在线聊天与 pending 分支继续读回/完成、导入私有历史和精确 Unicode 原文、预算保持、重复接纳、非法批次/getter、空/过期输入、root/绑定/历史容量、重入和检查期间撤权/到期，以及使用现有持久 owner 的 CAS 读回与发布。首轮容量用例错误地用超过单次输入上限的条目构造总容量边界，改为多个合法条目后验证总量拒绝，未放宽任何上限。最终四文件扩大专项
+**73/73 通过**，其中新增接纳文件 9 项；已有实际加密 worker 回归包含在扩大范围内，不代表新 API 已在 HTTP/runtime 物理重启路径自动调用。
+
+证据目录为 `.hpm-acceptance/context-recovery-root-adoption-20261019-01/`：
+
+| 检查                 | 结果                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| 首次字面客户端覆盖   | 663 项，662 通过、1 取消，退出 1；既有独立压缩物理重开在原 30 秒期限取消                   |
+| 相同物理用例独立诊断 | 1/1 通过，约 7.9 秒；保留原期限与原文、发布日志、预算、TTL 断言                            |
+| 最终字面客户端覆盖   | **663/663，通过，退出 0**；语句/行 99.03%、分支 94.52%、函数 98.91%                        |
+| 范围静态及治理门禁   | Lint 无警告、格式、65 个 JS 文件语法、unit 发现、CI/release、composition root 与模块图通过 |
+| 源码冻结             | 67 个枚举源码/测试/清单文件摘要差异 0，不宣称完整依赖闭包                                  |
+
+首次完整运行中，物理用例首次 ready 约 15.9 秒，关闭约 19.5 秒，重开解包约 29.1 秒，未在期限内完成；独立诊断及最终完整运行通过，最终完整运行重开验证约 23.1 秒。各日志分别保留，不将独立通过抵消首轮失败，也不以一次最终通过认定长期性能稳定或全部失败同源。范围 Lint 首次报告的测试 global/const 问题也保留，修正后无警告。期限、断言、覆盖率阈值和依赖均未改变。新模块进入发布清单，新测试进入字面客户端及统一 unit 发现。本批没有重复全仓 verify；此前阶段的字面 verify 在 404 文件格式问题处失败仍未解决，不能宣称完整工程通过。两份文档在业务门禁后单独检查格式并绑定摘要。
+
+下一步实现在线/离线候选联合的非变更式唯一续接判定、同一所有者内的异步加载串行化，再把当前授权校验和原子接纳连接到实际 runtime/HTTP 入口；请求级取消不能成为共享会话的时钟或生命周期。当前只有私有接纳 API，尚未实现自动重启恢复调度，继续
+`restartRetention:false`。清理迁移、WS、真实客户端/模型、产品界面与完整发布仍未完成。未安装插件、修改真实认证、启用或重启共享生产、请求真实模型。
+
+## 此前候选边界（授权重建原语与完整记录校验，2026-10-19，客户端门禁通过）
+
+实现并验证
+`context-recovery-restore-projection`、`context-recovery-reauthorization`。先完整验证 root，再保留发布状态为 transport-finished 且祖先仍可见的分支；移除不可见来源及私有映射，绝不导入 stagedSources，全部已用预算和原绝对期限保持。当前可信请求必须唯一匹配已观察续接，才创建新的受限能力；主体、路由、策略、历史或响应 ID 不匹配不授予权限。授权在存储 ACK 前后复查，返回后的能力仍受不可逆的授权守卫约束。
+
+新增回归先复现不匹配当前主体的记录会跳过检查点摘要校验：期望安全拒绝，实际返回 null。抽取
+`context-recovery-storage-record`，供启动发现和授权重建共用；校验目录元数据、root 范围、主体格式、期限和检查点后才按当前身份筛选。修复前失败日志保留为 record-regression-before.log，修复后相同回归通过。没有扩大读取范围或自动修复损坏记录。
+
+本批专项与存储服务集成 30/30 通过，包含两个独立 root 匹配同一历史的真实歧义、不可发布父节点下的已完成子节点、非空 stagedSources、私有历史筛选，以及读回 save
+ACK 期间撤权后无内容泄露、预算不回退。真实 Windows 加密 worker 关闭重开保持原 30 秒测试期限，验证精确原文、绝对 TTL 和读回扣账。最初 8 项日志及扩大 10 项日志保留，最终扩大专项包含 12 项授权重建测试。
+
+新测试进入字面 test:client:coverage 及统一 unit 发现，三个新增模块进入发布清单，无新增依赖。最终完整客户端覆盖
+**654/654，通过，退出 0**；语句/行 99.01%、分支 94.62%、函数 98.89%，期限、断言和阈值未改。范围 Lint 无警告、格式、61 个 JS 文件语法、CI/release、发现与 composition
+root 通过；63 个枚举源码/测试/清单文件摘要差异 0，不宣称完整依赖闭包。证据目录为
+`.hpm-acceptance/context-recovery-reauthorization-20261019-01/`。
+
+本批重新执行字面
+`npm run verify`，退出 1，仍在格式检查报告 404 文件问题，后续全仓阶段未执行。原失败日志保留，未批量改写无关临时研究文件或放宽规则；该结果不能被客户端覆盖通过替代。两份状态/方案文档在业务门禁后更新并单独检查格式、绑定摘要。
+
+该原语尚未接入 runtime，也未完成单 root 所有者与现存在线聊天的原子接纳，`restartRetention:false`
+保持不变。不能在每个请求中独立创建可写副本，不能将请求级授权回调直接变成其他请求共享的会话时钟。下一步按主方案第 7.5 节完成所有权和授权生命周期集成，再补实际 runtime/HTTP 共存、并发与重开回归。清理迁移、WS、真实客户端/模型、产品界面与完整发布继续未完成。未安装插件、修改真实认证、激活或重启共享服务、请求真实模型。
+
+## 最近合格阶段快照（外部运行目录与原生密钥边界，2026-10-19，客户端门禁通过）
+
+新增独立 context-recovery-runtime-directory，仅在选择持久化、旧 owner 完成撤权和排空后异步准备应用运行目录。逐级验证目录类型与祖先身份，拒绝 junction、符号链接、文件和身份替换，限制深度；不对未检查路径执行递归 mkdir，不改已有祖先权限，不触碰原文文件。worker 仍负责专用叶目录、ACL、系统密钥和数据库检查。失败进入安全终态，准备期间的新设置或退出不能启动旧设置要求的持久 owner；默认内存路径不创建目录。
+
+修复前真实 Windows 回归证实：尚未创建的嵌套运行目录导致就绪返回存储不可用。修复后相同测试通过，实际核心 HTTP 模式切换也覆盖该形态。回归覆盖非法/极端路径、访问器、EEXIST 竞争、祖先替换/消失、原生失败、真实 junction 和重复准备。模块进入发布清单，测试进入统一发现和字面客户端覆盖入口，无新增依赖。
+
+原生密钥脚本严格接受内部固定编码器产生的双字段报文，拒绝额外/重复字段。修复前实际子进程回归证实额外字段被接受；修复后两类输入均拒绝。保持 stdin 传密钥、最小环境、固定系统程序、CurrentUser
+DPAPI 和 protect 后解包一致性回验；通过固定强名称系统程序集、有界报文匹配和固定 JSON 回复，移除 Add-Type/ConvertFrom-Json/ConvertTo-Json 的 Utility 模块加载依赖。没有调整原生、worker 或测试期限，没有密钥缓存或明文 fallback。
+
+以下证据目录均位于 .hpm-acceptance/：
+
+| 检查                                   | 当前结果                                                                      | 证据                                                                 |
+| -------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 目录修复前真实回归                     | 1 项失败：存储不可用                                                          | context-recovery-runtime-directory-20261019-01/regression-before.log |
+| 目录修复专项/扩大专项                  | 19/19、59/59，通过                                                            | 同目录 focused.log、integration.log                                  |
+| 目录中间快照字面客户端                 | 641 项，640 通过、1 取消，退出 1；原压缩重开仍超时                            | 同目录 client-coverage.log、client-coverage-result.json              |
+| 原生密钥修复前回归                     | 1 项失败：未拒绝额外字段                                                      | context-recovery-native-startup-20261019-01/regression-before.log    |
+| 密钥/真实 worker/目录/runtime/压缩专项 | 61/61，通过                                                                   | 同目录 focused.log                                                   |
+| 最终字面客户端覆盖                     | **642/642，通过，退出 0**；语句/行 99.01%、分支 94.62%、函数 99.01%，阈值未改 | 同目录 client-coverage.log、client-coverage-result.json              |
+| 模块覆盖                               | 目录语句/行/函数 100%、分支 96.96%；密钥模块四项均 100%                       | 同目录 coverage/coverage-summary.json                                |
+| 范围工程门禁                           | Lint 无警告、格式、语法、CI/release、发现与 composition root 通过             | 同目录 gates.json                                                    |
+| 源码核对                               | 59 个枚举源码/测试/清单文件，摘要差异 0；不是完整依赖闭包                     | 同目录 baseline.json、source-check.json                              |
+
+本轮完整客户端中，实际独立压缩重开约 27.3 秒完成，原期限以及精确原文、预算、TTL、发布日志断言保留；一轮通过不证明长期稳定性或全部历史失败同源。早期单次保护/解包探针只作诊断，没有受控性能结论。本轮实际执行 npm
+run
+verify，退出 1，仍在首个格式门禁报告 404 文件问题，后续全仓门禁未运行；本批范围格式检查通过。失败记录见同目录 verify.log、verify-result.json。未批量改写其他研究文件，也未放宽忽略或检查规则。客户端覆盖不能替代全仓发布资格。
+
+跨重启当前授权重建、发布状态过滤和清理迁移、WS 恢复、真实客户端/模型验收、持久化 GUI、容量策略和完整发布仍未交付。保持 restartRetention:false 和默认恢复/持久化关闭。未安装插件、修改真实认证、激活或重启共享服务、请求真实模型。下一步进入当前授权重建，复用现有导入、身份和持久撤销边界，不能把磁盘检查点直接导入为读取权限。
+
+## 此前候选边界（独立持久化策略与目录源码接线，2026-10-19，完整客户端仍未通过）
+
+本节依据已有日志、源码及结果文件整理，不代表本次重新执行测试或激活服务。新增
+`context-recovery-runtime`，在主入口通过 `DATA_DIR` 创建，独立读取
+`contextRecoveryEnabled` 和
+`contextRecoveryPersistenceEnabled`，两者默认均关闭。持久化选择
+`DATA_DIR/context-recovery-v1`；默认仍使用内存。配置控制器立即应用完整设置；核心入口每个请求取得当前 session，避免切换后持有已关闭的旧 session。
+
+模式切换立即废止旧范围，等待持久撤权和旧 owner 排空，再创建最新设置要求的 owner；中间设置可被更新设置取代。普通进程退出仅排空关闭，保留已提交数据，不按禁用处理。非法设置、能力、ACK、状态投影和存储失败产生固定安全错误，无隐式迁移、自动恢复旧权限或静默内存 fallback。诊断区分内存、持久化、切换和失败；`restartRetention:false`
+仍成立。前端尚无持久化开关控件，不能视为完整用户流程。
+
+证据目录：`.hpm-acceptance/context-recovery-storage-policy-20261019-01/`。
+
+| 检查                                | 已记录结果                                                                          | 证据                                   |
+| ----------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------- |
+| 最终扩大专项                        | 68/68，通过；含真实 Windows 加密 runtime、HTTP 模式切换、配置、诊断、退出及前端模型 | `integration-final.log`                |
+| 字面 `npm run test:client:coverage` | 634 项，628 通过、4 失败、2 取消，退出 1                                            | `client-coverage.log`                  |
+| 客户端覆盖率                        | 语句/行 99%、分支 94.61%、函数 99%；阈值未改                                        | 同上                                   |
+| 前端覆盖/测试/构建                  | 三项退出均为 0；覆盖入口 5/5，前端测试入口 25/25；构建保留 chunk 大小警告           | `frontend-results.json` 及三个前端日志 |
+| 范围工程门禁                        | Lint、语法、格式、CI/release、发现与 composition root 通过                          | `gates.json` 及对应日志                |
+| 验证源码范围                        | 57 个枚举文件，原记录摘要差异 0；不宣称完整依赖闭包                                 | `baseline.json`、`source-check.json`   |
+
+完整客户端失败涉及 stdio
+CLI、隔离代理启动、真实加密 HTTP 模式切换、分支/私有历史重开、预算 worker 重开和独立压缩重开。新 HTTP 测试专项通过，但完整运行在存储就绪时失败；不能用专项抵消该失败。独立压缩重开仍触及原 30 秒期限。各失败尚未建立统一根因，不调整期限、断言或阈值制造通过。
+
+当前源码已接目录选择及持久化策略，但跨重启当前授权重建、发布状态过滤、清理迁移、真实 WS、实际宿主和完整门禁仍未完成。外部自定义运行目录的父目录准备顺序尚需验证：存储边界要求父目录已存在，不应只因传入了路径就宣称所有启动形态可用。原 30 分钟 TTL、最多 4
+root 不支持隔天续接承诺。全仓 `verify`
+本批未重跑，历史格式失败保留；未安装插件、修改真实认证、重启生产或请求真实模型。
+
+## 此前候选边界（异步存储打开与启动屏障，2026-10-19，完整客户端仍未通过）
+
+新增
+`context-recovery-storage-opening`：提供同步 capability，在后台打开实际 storage
+worker，并立即接入既有 session 启动屏障。生命周期所有者现在可接收显式
+`directory`，无需等待 worker 就绪才创建 owner。严格验证目录、选项及 storage 能力；拒绝同时传入 directory/storage，开启或非空 session 在打开目录前拒绝。主入口仍未传目录，默认保持内存，没有启用生产持久化或重建当前读取授权。
+
+打开入口一次调用工厂，校验并克隆请求，最多排队 8 项和 16
+MiB。已接受操作等待打开；关闭立即停止新准入，等待已接受操作和实际 worker 关闭，幂等返回同一关闭 Promise。非法结果、revision 或撤销数量不匹配会使入口终态失败；普通操作失败只返回固定安全错误，不自动重试。复用原 worker 结果验证器，不放宽其 schema。修复异常 native
+Promise 回复未进入终态失败的问题，增加 constructor
+getter 和 prototype 回归，不执行其访问器。
+
+生命周期 directory 回归验证非法目录、storage 冲突、active
+session、getter 在文件副作用前拒绝；实际 SQLite/session 回归覆盖打开期间迟到启用与较新禁用/退出。真实 Windows 目录测试验证系统密钥、实际加密数据库打开、启动未完成前不得启用，以及 worker 排空后才清理服务 PID。原物理 lifecycle
+owner 测试首次打开改经新入口，保留真实重开、持久撤销、旧 revision 拒绝和无原文落盘断言及原 30 秒期限。
+
+证据目录：`.hpm-acceptance/context-recovery-storage-opening-20261019-01/`。
+
+| 检查                                  | 本阶段结果                                                     | 证据                                     |
+| ------------------------------------- | -------------------------------------------------------------- | ---------------------------------------- |
+| 草稿初次专项                          | 43 项，40 通过、3 失败；安全解析返回无原型对象与测试预期不一致 | `focused.log`                            |
+| 修复后打开/生命周期/worker 三文件专项 | 62/62，通过，含真实 Windows worker 与物理重开                  | `focused-fix.log`                        |
+| 字面 `npm run test:client:coverage`   | 620 项，619 通过、0 失败、1 取消；最终退出 1                   | `client-coverage.log`                    |
+| 新打开模块在该客户端运行中的覆盖      | 语句/行 98.93%、分支 96.87%、函数 100%                         | `coverage/coverage-summary.json`         |
+| 范围工程门禁                          | Lint、格式、语法、CI/release、发现与 composition root 全通过   | `gates.json` 及对应日志                  |
+| 验证源码范围                          | 47 个枚举运行/测试/清单文件，摘要差异 0；不宣称完整依赖闭包    | `fix-baseline.json`、`source-check.json` |
+
+客户端总覆盖为语句/行 99.07%、分支 94.72%、函数 98.97%，阈值未改。唯一取消仍为真实加密 worker 独立压缩重开：初次 ready 约 15.5 秒、关闭约 17.8 秒、重开解包开始约 24.9 秒，触及原 30 秒期限；不能据此证明全部历史失败同源。实际生命周期 owner 在该完整运行中完成重开和撤销验证，约 28.1 秒；专项通过不抵消完整门禁失败。
+
+本阶段将已验证的异步打开接口连接到已有生命周期屏障，尚未完成生产目录选择、持久化设置、当前授权重建、清理迁移、WS 和真实客户端验收。未重跑全仓库 verify，历史格式失败继续有效；未安装插件、修改真实认证、重启生产或发起真实模型请求。下一步完成受控目录/持久策略与当前授权恢复，并继续定位真实重开期限问题；整体目标保持未完成。
+
+## 此前候选边界（运行设置与服务退出接线，2026-10-19，完整门禁仍失败）
+
+主入口现在创建并注入同一个
+`contextRecoveryLifecycle`，供运行配置控制器、核心请求处理器和服务退出使用。初始化应用既有布尔开关，配置更新完成时立即通知所有者，不必等待下一个请求才撤权。重复值仍由所有者合并；退出后的配置不能重新启用会话。默认仅创建内存会话，没有打开持久化目录或重建旧权限。
+
+新增独立
+`server-shutdown`，在首次退出调用内立即停止恢复准入，等待全部 HTTP 监听器及恢复事务排空，再停止 PID 写入并清理 PID；重复退出共享同一 Promise。恢复 ACK、监听器错误或 PID 清理失败均不能得到成功退出；非法回复、getter、thenable、原生 Promise 异常及同步/异步报告异常有回归。监听失败、管理凭据初始化失败均进入同一排空路径。修复取消初次 PID 写入时，未生成文件的
+`ENOENT` 被错误判断为清理失败的问题；其他读取错误仍失败。
+
+新增接线最初触及主入口既有 1200 行门禁，没有提高限制或删除空行应付检查。将请求关联和异步日志作用域包装移到既有
+`request-observability`，通过惰性派发保持原行为，并补作用域、响应头与断连回归；主入口恢复为 1198 个物理行。新模块进入发布清单，新测试进入统一 unit 发现，无新增依赖。
+
+证据目录：`.hpm-acceptance/context-recovery-runtime-wiring-20261019-01/`。
+
+| 检查                       | 结果与范围                                                                         | 证据                                                 |
+| -------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 初次运行接线专项           | 10 项，9 通过、1 失败：主入口行数超限                                              | `focused.log`                                        |
+| 提取请求包装后专项         | 11/11，通过                                                                        | `focused-fix.log`                                    |
+| 扩大专项首次运行           | 21 项，20 通过、1 失败：未生成 PID 的退出返回 1                                    | `runtime-focused.log`                                |
+| PID 修复及最终运行专项     | 22/22，通过，包含实际 HTTP 与隔离服务子进程                                        | `runtime-focused-fix.log`、`runtime-final.log`       |
+| 新退出模块覆盖专项         | 7/7，通过；语句、分支、函数、行均 100%，阈值未降低                                 | `shutdown-coverage.log`                              |
+| 前一源码快照字面客户端覆盖 | 609 项，607 通过、1 失败、1 取消、退出 1                                           | `client-coverage.log`、`client-coverage-result.json` |
+| 最终源码字面客户端覆盖     | 609 项，608 通过、0 失败、1 取消、退出 1                                           | `client-coverage-final.log`、`final-results.json`    |
+| 最终范围门禁               | Lint 无警告、格式、语法、CI/release、发现与 composition root 通过；45 文件摘要一致 | `*-final.log`、`source-check-final.json`             |
+
+最终客户端覆盖率为语句/行 99.07%、分支 94.67%、函数 98.97%。唯一取消为真实加密 worker 的独立压缩重开测试，仍使用原 30 秒期限：首次就绪约 16.2 秒、关闭约 18.7 秒，重开系统解包完成约 29.5 秒，随后未能在期限内完成。未修改 deadline，不把取消算作通过。包含新服务退出协调器的真实生命周期 owner 物理测试在完整运行内通过：约 27.9 秒，保持持久撤销、关闭排空、重开拒绝旧 revision 等原断言。这些结果不证明系统启动稳定性或所有历史失败同源。
+
+隔离服务子进程验证：真实监听器在 PID 权限操作挂起时继续响应 health；退出立即关闭实际恢复会话，等待 PID 操作结束后返回 0 且不重建 PID。另一个隔离进程在合成凭据初始化失败时保持退出等待，实际恢复会话先关闭，释放恢复排空后才返回 1。上述是本地运行与合成故障证据，不是已激活服务或真实凭据验收。
+
+生产目录打开与完整存储生命周期、当前授权重建、清理迁移、WS、真实客户端及完整工程门禁仍未交付。当前阶段接通源码中的设置和退出路径，不授予完整发布资格；没有启用生产持久化、重启生产、安装插件、修改真实认证或请求真实模型。完整 verify 本阶段未重跑，历史 404 文件格式失败保留。下一步继续定位剩余物理启动期限问题，并接入受控生产存储打开及当前授权重建。
+
+## 此前候选边界（设置策略所有者与真实 worker 接入，2026-10-19，完整门禁仍失败）
+
+独立 `context-recovery-lifecycle`
+协调一个 session 和可选的已打开 storage，合并重复布尔设置，等待启动与持久撤销 ACK，并在普通退出时先停止准入、排空 session 及策略，再关闭 worker。核心 HTTP 入口已使用该所有者；实际本地 HTTP 回归验证两次连续请求只应用一次启用、关闭后旧读取能力立即失效。修复外部关闭 session 后
+`ready()`
+仍可能报告成功的问题，并验证内存配置异常会终止准入。非布尔、访问器、非法 ACK、thenable、启动失败、迟到启用、关闭失败和排空顺序均有回归。
+
+新库密钥写入现在返回已设置权限、fsync、读取核对并固定身份/摘要的包装字节，owner 复用本次结果，避免紧接着对相同文件再次设置权限；已有库及新 owner 重开仍使用
+`pinKey()`
+并由系统解包。新增落盘内容不一致拒绝与持久 pin 回归。没有调整 ACL/原生进程/worker/test 期限，没有跨重启明文缓存。
+
+证据目录：`.hpm-acceptance/context-recovery-policy-owner-20261019-01/`。
+
+| 检查                                | 当前结果                                                        | 证据                                                 |
+| ----------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| 接入前首轮生命周期                  | 32 项，31 通过、1 取消、退出 1；仅对话输出记录                  | `initial-observation.json`                           |
+| 核心 HTTP 与生命周期首次接入        | 56 项，55 通过、1 失败、退出 1                                  | `focused.log`、`baseline.json`                       |
+| 文件写入优化后三文件专项            | 75 项，66 通过、9 失败、退出 1；多项未越过目录初始化            | `focused-fix.log`、`fix-baseline.json`               |
+| 字面 `npm run test:client:coverage` | 609 项，598 通过、10 失败、1 取消、退出 1                       | `client-coverage.log`、`client-coverage-result.json` |
+| 实际生命周期 owner 物理专项         | 1/1，通过，约 12.8 秒，原 30 秒期限                             | `physical-owner.log`、`physical-owner-result.json`   |
+| 范围工程门禁                        | Lint、格式、语法、CI/release 治理、发现与 composition root 通过 | 对应 `*-fix.log`、`discovery-composition.log`        |
+
+客户端覆盖率为语句/行 99.04%、分支 94.67%、函数 98.97%，阈值未改；覆盖率通过不能抵消测试失败。新边界回归在统一客户端运行中通过。完整失败仍涉及 stdio
+CLI、隔离代理、系统密钥和各实际加密重开路径。独立合成目录探针观测到 `whoami.exe`
+约 5.8 秒触及既定 5 秒超时，且完整运行后段的实际 storage
+worker 可以打开和重开；随后才单独核验新 owner 物理路径。该证据定位了一项原生命令失败，不证明全部失败同源，也不是稳定性或性能资格。
+
+物理 owner 专项使用实际 Windows 加密文件、实际 session 初始化、持久禁用、owner 排空关闭及全新 worker 重开；验证离线 root 不被自动导入、撤销记录不可读取、旧 revision 不可复活和数据库不含原文。它不验证当前读取授权恢复或生产组合。`extended-fix-baseline.json`
+将未变化的 33 文件修复基线扩展为包含 storage-paths 的 34 文件枚举范围；最终摘要核对见阶段回执，不宣称完整依赖闭包。
+
+尚未连接生产目录打开、应用设置事件及实际服务退出；当前权限重建、清理迁移、WS、真实 Codex/Claude 组合与完整统一门禁继续未完成。默认生产存储设计仍是内存，没有启用持久化、安装插件、修改真实认证、重启生产或请求真实模型。下一步完成设置变更与退出接线，并继续定位原生启动失败；本阶段不重跑或改写历史全仓 verify。
+
+## 此前候选边界（启动阶段诊断与密钥初始化，2026-10-19，客户端门禁仍失败）
+
+方案整理补充：工作区另有 `context-recovery-lifecycle`
+与核心入口接入草稿，用于合并重复设置、协调已打开存储的初始化与退出。初次运行记录为 32 项、31 通过、1 取消、退出 1，物理重开仍触及原 30 秒期限；见
+`.hpm-acceptance/context-recovery-policy-owner-20261019-01/initial-observation.json`。未取得完整集成资格，尚未接通生产目录打开、设置事件、服务退出和当前读取授权重建。本次只整理方案和核对既有记录，没有重跑测试或产生新合格里程碑。下文启动诊断数字仍属于原阶段快照。
+
+新增独立
+`context-recovery-storage-progress`，提供有界、单调的固定阶段与非内容性耗时。实际 storage
+worker 在加载、目录保护、取得所有权、密钥包装/解包、打开数据库和引擎就绪时发送严格校验的启动帧；普通 ready
+ACK 仍是准入条件。未知、重复、倒退、附加内容、访问器和 ready 后的阶段帧拒绝；进度不重置原启动 deadline。可选观察器的同步/异步失败不改变业务结果，不执行任意 thenable，不转发原生异常、目录、密钥或用户内容。
+
+实际重开测试增加固定步骤诊断。在仅补诊断、尚未优化密钥初始化的快照中，字面客户端 596 项有 594 通过、2 超时取消；随后三文件物理专项 52 项有 50 通过、2 超时取消。阶段记录证明两个业务都已经完成首次提交与关闭，但首次打开耗时约 20–23 秒，重开时超过原有 30 秒测试期限。这只定位了这两次运行的阶段，不能解释所有历史失败。
+
+修复新库重复启动原生进程的问题：DPAPI 的固定 protect 程序在同一进程内立即解包并比较原密钥，成功后才返回受保护字节。owner 写入并固定文件、核对落盘 wrapping 后复用原生成密钥；已有库与重开仍必须从已固定文件读取并由系统解包。没有缓存跨重开的明文密钥，没有改变 stdin-only、CurrentUser、目录身份、事务或现有 10 秒原生超时，也没有回退明文。新增真实原生 wrapping 篡改拒绝测试与 fresh/reopen 调用次数回归。
+
+修复后四文件专项 63/63 通过；两项原超时测试观测到约 21.4 秒、18.6 秒完成，仍使用原 30 秒期限。这不是受控性能基准，不承诺固定加速比例。新增共 7 组回归进入已注册测试文件，新增运行模块进入 release 清单，无新增直接依赖。修复范围 Lint/格式、31 个枚举文件内 JS 语法、CI/release 治理、发现与 composition
+root 测试通过。
+
+修复后字面客户端覆盖输出为 598 项，588 通过、9 失败、1 取消。失败/取消仍涉及 stdio
+CLI、隔离代理启动、实际加密 ledger/分支/预算/独立压缩/生命周期/root
+reader 重开以及系统密钥 worker；专项通过不能抵消完整失败。生命周期记录进一步显示初始包装阶段约 10 秒后失败；目前没有足够证据将所有失败归于单一 DPAPI、并发或其他根因。最终进程退出码、覆盖摘要与源码摘要以
+`.hpm-acceptance/context-recovery-startup-diagnostics-20261019-01/`
+的回执为准；本阶段不得获得完整发布资格。
+
+该目录分别保留诊断前后运行、`baseline.json`、`physical-baseline.json`、`fix-baseline.json`，避免把不同源码混用。默认生产存储生命周期和当前授权重建仍未接通；没有激活功能、修改真实认证、安装插件、重启生产或发起真实模型请求。完整 verify 未重跑，历史失败不改写，整体目标未完成。
+
+## 此前候选边界（实际会话启动屏障，2026-10-19，客户端门禁失败）
+
+本次方案整理核对既有源码与证据，确认此前客户端运行句柄已终结、退出码为 1；未重跑工程测试、未修改运行代码、未创建新的合格里程碑。重新核对
+`.hpm-acceptance/context-recovery-startup-20261019-01/baseline.json`
+的 26 个枚举代码/测试/清单文件，0 不匹配。
+
+候选新增 `context-recovery-storage-startup` 和可信
+`initializeContextRecoveryStorage`，仅允许全新、空且未启用的实际 session。先登记存储事务，完成有界发现，等待启动期间排队的禁用、主体撤销或关闭 ACK，再同步安装 reader/publication；不导入旧 root、不恢复读取权限、不自动启用。失败保持终态，不回退内存或自动重试。禁用 generation 防止较旧异步启用跨越较新禁用；普通退出与撤销性关闭分开，普通退出之后仍可显式持久撤销。
+
+生命周期文件新增 9 组，现为 24 组；覆盖目录扫描各阶段的撤权、非法 discovery/ACK/thenable、启禁竞态、重复 attachment、安装时钟失败，以及真实 Windows
+worker 经 fresh
+session 初始化、撤销、重开后不能由旧 revision 复活。首两次 fixture 失败保留；修正使用真实已观察函数调用锚点，并由同步假后端直接返回恶意 thenable，未放宽绑定或输入边界。
+
+| 验证               | 已有结果                                 | 本阶段目录内证据                           |
+| ------------------ | ---------------------------------------- | ------------------------------------------ |
+| 生命周期专项       | 24/24，通过                              | `lifecycle-attempt3.log`                   |
+| 十五文件扩大专项   | 187/187，退出 0                          | `focused-final.log`、`focused-result.json` |
+| 字面客户端覆盖     | 591 项，582 通过、6 失败、3 取消，退出 1 | `client-final.log`、`client-result.json`   |
+| 范围语法/Lint/格式 | 24 个 JS 语法无失败；Lint/格式退出 0     | `scoped-gates.json`                        |
+| CI/release 治理    | 两项退出 0                               | `governance.json`                          |
+
+证据目录为
+`.hpm-acceptance/context-recovery-startup-20261019-01/`。客户端失败/取消涉及真实 stdio
+CLI、隔离代理启动、实际加密 ledger/私有历史/预算 worker、独立压缩物理重开、系统密钥 worker 和生命周期物理重开；不能以专项全通过抵消，也没有证据判定单一并发或 DPAPI 根因。该阶段为部分通过，完整目标未完成。
+
+默认生产 `core-request-handler` 仍构造内存 session 并逐请求同步
+`configure`，没有调用新初始化接口。诊断保持 memory、无重启保留、WS 透传是正确边界。剩余重点为失败诊断、当前授权重建与发布筛选、生产设置/服务生命周期所有者、staged 清理、实际 WS/HTTP 并发、当前版本 Codex/Claude 验收及完整发布门禁。未核验生产加载版本，未安装插件、修改真实凭据、调用真实模型、激活持久化或重启服务。历史完整 verify 失败保留。
+
+## 此前候选边界（启动发现与撤权登记，2026-10-19，扩大门禁失败）
+
+本批新增私有存储 `catalog` 操作及 `context-recovery-storage-discovery`
+模块，未改变模型侧工具、生产设置、真实认证或运行服务。目录操作有界查询至 257 行并限制总记录 256，认证包括过期记录及 tombstone 的每条密文，再返回最多 4 个未过期 state 的 scope、revision 与原始时间元数据，不返回正文或能力。
+
+发现模块逐条读取并校验检查点、scope 与 rootId 摘要绑定、主体、期限及目录 revision，最后复查目录 generation；读取失败、损坏、记录消失或并发变动均拒绝整批。`createRecoveryRootStorage().discover()`
+在初始空注册表上建立准入屏障，扫描完整成功后才登记撤权索引；失败保持关闭，关闭竞态不能复活准入。登记后的主体撤权可覆盖尚未在线读过的未过期 root，其他主体保持隔离。它不导出正文、还原 ledger 或创建会话能力，也不把 prepared/sending/uncertain 当作发布成功。
+
+新增 7 组测试进入原有统一 CI 文件：catalog 输入及认证过滤、worker 元数据 ACK、离线主体撤权、空库与准入屏障、损坏/读取失败/目录变化、可执行输入和扫描关闭；既有真实 Windows
+worker 重开测试增加 catalog/撤销后空目录断言。新运行模块已加入发布清单，无新增直接依赖。
+
+证据目录为
+`.hpm-acceptance/context-recovery-discovery-20261019-01/`。首轮三文件专项 42/42 通过；枚举源码冻结后十五文件专项 178 项中 176 通过、2 取消，退出码 1，取消为独立压缩和生命周期物理重开 30 秒超时。字面
+`npm run test:client:coverage`
+为 582 项中 572 通过、9 失败、1 取消，退出码 1；不得据 98.99% 行/语句覆盖率宣称通过。失败包含 stdio
+CLI、两个隔离代理启动、ledger/branch/budget/compaction/lifecycle 的加密 worker、系统密钥，以及凭据日志隔离子进程未在其原有期限内退出；尚未证明单一根因。
+
+本轮还在修改前对此前生命周期候选独立复测，575 项中 567 通过、5 失败、3 取消，退出码 1，见
+`.hpm-acceptance/context-recovery-lifecycle-20261019-02/`。该结果属于修改前源码，不与新候选混用。无密钥 PowerShell 启动探针的单次约 1.3–1.6 秒、8 并发约 5.2–5.8 秒及系统密钥专项 9/9 只能证明观测到启动成本，不足以给所有失败定因。
+
+范围 Lint/格式、23 个 JS 语法、CI/release 治理通过；25 个枚举源码/测试/清单摘要核对 0 不匹配。首轮 Lint 发现新增测试的全局
+`structuredClone` 名称未声明，已改为 `globalThis.structuredClone`
+并通过；没有降低 timeout、门槛、断言或用模拟 worker 替换真实测试。冻结源码的最终三文件实际 worker 复测 42/42 通过，结果单列于
+`focused-physical-final-result.json` /
+`focused-physical-final.log`，不覆盖扩大门禁失败。阶段回执 `milestone.json` 标记
+`partial-gates-failed`、整体未完成和未激活生产。
+
+剩余边界：发现原语尚未接到真实 session 的启动 attachment/生产 composition
+root，当前授权重建及发布筛选、staged 清理、设置/服务退出接线、WebSocket 和真实 Codex/Claude 验收仍未交付。默认生产证据仍在内存；没有新合格里程碑、没有生产激活。本轮未重跑完整 verify，历史全仓格式失败保留。下一步先定位启动失败并完成有屏障的异步启动 attachment，随后接当前授权恢复；整体目标保持未完成。
+
+## 此前候选边界（持久生命周期，2026-10-19，扩大门禁失败）
+
+本次整理重新读取源码、日志和退出码文件，并核对生命周期 baseline 的 24 个枚举文件摘要，0 不匹配；未重新运行工程测试、未核验生产进程加载情况。最近完整通过所述客户端门禁的快照仍是下方独立压缩发布阶段。生命周期候选尚无新的合格 milestone，不据部分通过宣称完整交付。
+
+当前候选包含以下变化：
+
+- 存储契约与加密 SQLite 引擎增加原子
+  `revoke-all`、`revoke-scopes`。终态撤销覆盖最新持久 revision，保留原期限，批量损坏/写入失败回滚，旧保存不能复活已撤销记录。
+- root
+  storage 登记主体、scope、原期限及在途 I/O；全局撤销阻止新事务，等待旧事务结束后撤销磁盘全部记录，包括未在线登记记录。主体撤销仅覆盖已登记的匹配 root；启动发现未接通，不能宣称覆盖未知磁盘主体。
+- 实际 session 在同步禁用、撤销、关闭时立即废止在线能力，同时发起持久操作；`configureAsync`、`revokeAsync`、`closeAsync`
+  等待持久确认。撤销失败保持失败状态，阻止重新启用，不自动重试原不确定写入。
+- `shutdownAsync`
+  明确用于普通进程退出：停止在线能力并排空 I/O，保留已提交字节供重启重新授权；它与终态撤销性的
+  `closeAsync` 不同。已有真实 worker 留存测试改用普通退出语义。
+- 新增 `test/context-recovery-lifecycle.test.js`
+  的 11 组回归，并注册到字面客户端覆盖入口；存储引擎和 worker
+  ACK 回归进入既有注册文件。无新运行模块或直接依赖。
+
+已留存的验证结果：
+
+| 验证                 | 结果                                                    | 证据目录内文件                                                      |
+| -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------- |
+| 六文件专项           | 87/87 通过，包含 11 组生命周期回归及真实 Windows worker | `focused-attempt2.log`                                              |
+| 十五文件扩大专项     | 171 项，169 通过、2 取消；退出码 1                      | `focused-attempt3-timeout.log`、`focused-attempt3-result.json`      |
+| 首次字面客户端覆盖   | 575 项，563 通过、9 失败、3 取消；退出码 1              | `client-attempt1-startup-failed.log`、`client-attempt1-result.json` |
+| 第二次字面客户端覆盖 | 575 项，569 通过、3 失败、3 取消；退出码 1              | `client-final.log`、`client-result.json`                            |
+| 范围检查             | Lint/格式/diff 通过，22 个 JS 语法无失败                | `scoped-gates.json`                                                 |
+| CI/release 治理      | 两项退出码均为 0                                        | `governance-gates.json`                                             |
+
+证据目录为
+`.hpm-acceptance/context-recovery-lifecycle-20261019-01/`。第二次客户端失败/取消分别涉及真实 stdio
+CLI 超时、隔离代理启动超时、加密 ledger
+worker 不可用、独立压缩物理重开超时、系统密钥 worker 不可用、生命周期物理重开超时。首次部分运行存在重叠；第二次仍有失败，不能以重叠解释全部失败，也不能据此断言 DPAPI 是唯一根因。覆盖率百分比和范围门禁通过均不抵消测试失败，不放宽 timeout 或替换实际 worker 来获取资格。
+
+剩余交付：失败诊断与门禁恢复、启动发现/完整主体登记及当前授权重建、生产存储服务/设置/退出接线、staged 清理、WebSocket 与 HTTP 并发、当前版本 Codex/Claude 实际验收、完整工程门禁与受控激活。本次仅整理文档，没有调用真实模型、安装插件、改变凭据、启用功能、重启生产或更新历史回执；完整 verify 的历史失败继续保留。
+
+## 此前交付边界（独立原生压缩持久发布，2026-10-19）
+
+主方案已重排为产品边界、架构、数据/事务、各端适配、实施与验收。首发拟聚焦 Windows、Codex 日常入口和 Claude
+Code；这不是新增支持声明。最新独立压缩持久发布阶段新增 14 组回归，十二文件专项 136/136，字面客户端覆盖 559/559；真实 Windows
+worker 重开验证独立压缩发布日志、精确原文、已用预算和绝对期限。此前 HTTP 发布的 160/160、545/545、读回的 527/527、所有权的 507/507、完整 root 的 94 项及异步阶段失败均保留各自源码快照，不据当前通过结果改写历史，也不宣称全仓库或产品已完成。
+
+完整设计及当前差距统一见
+[多端无感上下文恢复方案](./context-recovery-multi-client-plan.md)。此前分支/私有历史状态阶段为客户端覆盖 455/455、六文件专项 67 项；原文 ledger 阶段为 440/440、七文件专项 67 项，存储服务阶段为 421/421、专项 35 项，预算阶段为 431/431、专项 58 项。各阶段数字只覆盖其源码快照，不累加，也不表示整体目标通过。
+
+`context-evidence-budget-state` 与 `context-recovery-budget-reader`
+的预算读回原语已完成下述阶段验证，统一客户端覆盖更新为 431/431。它仍由调用方提供在线已授权 ledger，不能从预算记录重建原文权限；生产会话的完整授权、分支、来源、历史与预算恢复均未完成。
+
+当前生产证据仍为内存；没有已启用的统一持久化目录。WebSocket 恢复、真实日常 Codex/Claude 组合验收、完整统一门禁与生产激活继续保留为未完成项。最近已记录的完整
+`verify`
+停在 404 个文件格式问题，本阶段没有重跑或改写该结果。下方按阶段保留历史事实；其中“尚未实现”均须结合本节及后续阶段判断。
+
+## 独立原生压缩异步持久发布（2026-10-19）
+
+真实 session 增加 `completeCompactionAsync`，完整存储 attachment 通过现有 root
+publication 服务在 owner 租约内完成独立压缩提交，复用共享 CAS、预算、私有快照身份和发布日志；没有另建存储或重置额度。同步
+`completeCompaction`
+仍禁止绕过持久化。默认内存模式在首个 await 前提交，原有同步兼容入口继续保留。
+
+独立压缩 publication 增加可等待的准备、发送意图和 finish 确认；native
+collector 与 core request
+handler 已接线。收齐完整 UTF-8/JSON 规范窗口并校验后才准备，持久 ACK 和当前授权都通过后发送原始 wire，保留空白、未知字段与不透明块。正常 upstream
+end→close 不取消待提交发布；真正客户端取消或错误立即阻止迟到发布。finish 标记同步登记，正常 finish→close 不撤回正在等待的最终 ACK；报告成功前再次检查授权。任何字节已发出后失败只终止与安全报告，不追加替代 JSON、不重试模型或原工具。
+
+新回归还发现共享 root
+publication 的一个竞态：finish 保存最终获确认、同时 capability 已被撤回时，清理仍沿用 sending 并尝试写 uncertain，转换被拒绝。现在在 ACK 后同步登记 transport-finished，随后撤销保存 withdrawn；未确认或发送中的失败仍保守处理。普通 HTTP 与独立压缩各有回归，不能把本端 finish 解释为客户端处理完成。
+
+新增 14 组覆盖三个 ACK 等待、取消/授权变化、私有身份、非法/空/超大/getter 输入、异常与非法 ACK、部分写、无 fallback/重试、重复 finish、异步回调拒绝与 thenable 不执行、终态报告异常、在线撤权/禁用/到期/关闭、连续三次规范压缩与精确 Unicode 读回、原生窗口不变和累积预算。真实 Windows 加密 worker 关闭重开验证 transport-finished 日志、精确合成原文、两次已用调用/一次成功读取、原绝对期限及数据库无合成原文明文字节。
+
+全局关闭仍会使在线能力立即失效，但服务关闭后不能继续写持久 tombstone，关闭竞态下磁盘可能保留 prepared；测试明确验证其不得发布成功，并不把该状态视为可恢复授权。该缺口和 principal 全局持久撤销、启动筛选及清理属于下一阶段；没有据此开启生产存储或提供跨重启产品承诺。
+
+冻结十七个枚举代码/测试/清单文件，十二个实际存在的测试文件专项 136/136；字面
+`npm run test:client:coverage`
+559/559，语句/行 98.95%、分支 94.40%、函数 98.89%。范围 Lint/格式、十五文件语法、CI/release 治理、composition
+root 和统一发现通过。新增用例位于既有已注册测试文件，无新增运行模块或依赖；最终枚举摘要再次核对。客户端覆盖率的 include 范围保持原样，不将其百分比冒充 core/collector 或全仓库覆盖率。
+
+回执为
+`.hpm-acceptance/context-recovery-compaction-publication-20261019-01/milestone.json`，资格
+`local-native-compaction-durable-publication-qualified`。首轮失败、数据对象原型比较的测试建模修正和源码摘要保留；其中共享发布竞态作了产品修复，关闭持久化限制继续明确保留，没有放松门槛。首次扩大专项误填一个不存在的 discovery 测试路径，Node 多文件运行未报告缺失；保留原日志后逐项检查路径，改用真实
+`test/test-discovery.test.js`
+重跑十二文件专项，未沿用原 135 项结果宣称发现门禁通过。
+
+仍需完成全局持久撤权/关闭、生产存储生命周期和设置、staged 清理、启动发现及当前授权恢复、WebSocket 与实际 Codex/Claude 组合验收、完整工程门禁与受控激活。本轮未调用真实模型、安装插件、改变凭据、启用功能或重启生产；全仓库 verify 未重跑，历史 404 文件格式失败不改写。整体目标仍在执行。
+
+## 实际会话异步最终提交与 HTTP 发布（2026-10-19，此前阶段）
+
+新增共享 `context-recovery-root-storage`、`context-recovery-root-publication`
+与安全调用边界 `context-recovery-publication`。可信组合层可使用
+`attachContextRecoveryStorage`，让实际 session 的读取和发布使用同一个 root
+CAS/revision/quarantine 与发布日志；此前 reader-only
+attachment 保持独立语义，默认生产构造仍未连接存储。owner 新增私有
+`identity`，使用真实 session WeakMap 中的 snapshot
+ID，修改 capability 的公开 snapshotId 不能选择发布对象。
+
+完整存储模式提供 completeAsync/completeObservedAsync/startPublicationAsync/finishPublicationAsync/withdrawAsync/abortAsync；同步 complete 和独立压缩 completeCompaction 返回 async_required，不能绕过持久化。普通默认内存模式维持同步提交发生在首个 await 前。独立压缩的异步 collector 接入仍待完成，因此本次不具备生产持久化激活条件。
+
+HTTP 核心入口（WBIPC 共享该入口）现在等待准备提交、发送意图与本地 writer 完成的三个确认，持有 root 租约到实际发布结束；确认前不发布最终字节，取消/授权变化后不发布迟到成功。正常 finish 后 close 不再误取消等待中的完成确认；报告回调异常不撤回已成功输出，异步撤回失败也不能打断安全失败通知和监听器清理，使用独立内容无关计数 publicationCleanupFailed。
+
+写前封装增加发布日志，保留旧五字段封装校验兼容。每个快照区分 unobserved/prepared/sending/transport-finished/uncertain/withdrawn；转换矩阵禁止跳过发送阶段及终态复活，后续读取保留日志。总发布日志最多 256，跨四 root 共享，load/save 均检查；有合法摘要但与私有已知 journal 不一致的回滚也会隔离该 root。transport-finished 只证明本端传输完成，不是远端 ACK。已完成视图显式撤回会取当前完整检查点再保存 withdrawn，保留兄弟读取后的共享预算；没有当前在线能力时安全失败，不用旧缓存补造权限。
+
+普通透传观察器通过 completeObservedAsync 在 finish 后捕获，消费存储拒绝并撤回该视图；这不构成发送前持久化。模块不会把 prepared/sending/uncertain 写前记录自动导入成可信会话，也不会自动重跑模型或外部工具。全局 principal 撤销、configure(false)、服务关闭的持久撤销及重开筛选仍未闭环，本阶段只验证在线失效及迟到结果不能成功。
+
+18 组新增测试覆盖三协议真实 session/runner/HTTP 的内部原文进入后续请求和最终私有历史、三个 ACK 延迟、正常 finish→close、各边界取消/授权变化、部分发送/write-error、存储异常/非法 ACK、读取后的日志保留与预算撤回、私有身份、关闭/到期/禁用/根撤权、发送后观察、非执行 getter/thenable/非法输入、30 种转换组合、合法摘要回滚、全局日志配额及实际 Windows 加密 worker 重开。新测试进入统一 unit 发现和字面客户端覆盖，三个新运行模块进入 release 清单；未降低超时、覆盖率、断言或安全门槛。
+
+冻结十二个枚举代码/测试/清单文件后，十二文件专项 160/160，字面
+`npm run test:client:coverage`
+545/545；语句/行 98.98%、分支 94.49%、函数 98.88%。范围 Lint/格式、十文件语法、CI/release 治理、composition-root 与 unit 发现通过，最终枚举摘要无漂移。真实 worker 关闭原 runtime 与 worker 后重开同一临时数据库，验证已完成发布日志、精确 UTF-8、预算与原绝对期限；检查数据库无合成原文的明文字节。这不是生产启动授权恢复或真实客户端验收。
+
+回执
+`.hpm-acceptance/context-recovery-publication-20261019-01/milestone.json`，资格
+`local-http-durable-publication-qualified`。保留首轮新增测试的失败日志与源码摘要；该轮包含 JSON 转义比对错误、观察器测试头部错误及把已确认 finish 后撤回误期望成 uncertain 的测试建模错误，修正为实际数据解码与发布契约后验证，没有借此放松产品保证。后续全局配额和安全输入回归均进入最终冻结候选。
+
+仍需交付：原生独立压缩异步发布、生产存储生命周期/设置、全局持久撤权/关闭和 staged 清理、启动发现与当前权限恢复、WebSocket、真实客户端和完整工程门禁。最近全仓库 verify 的 404 文件格式失败保持原记录；本阶段未重跑全仓库 verify，未启用生产存储、安装插件、重启服务、改真实凭据或发起真实模型请求。
+
+## 实际会话异步存储读回事务（2026-10-19，此前阶段）
+
+新增
+`context-recovery-root-checkpoint`、`context-recovery-root-reader`，会话增加可信组合层专用
+`attachContextRecoveryReaderStorage`。连接后实际 `session.replyAsync`
+经同一 root 的存储事务执行；模型没有新增 scope、rootId、存储地址或 session
+selector。同步内部读工具返回固定
+`context_recovery_async_required`，不能绕开存储回落内存。默认构造及生产入口尚未连接此适配器，当前生产默认路径仍为内存，本次未启用新设置或目录。
+
+一次读回独占 root，校验已有记录的主体/协议/目标/策略、原绝对到期、版本、摘要、绑定结构、ledger 来源与预算；参数在首次 await 前做无执行快照，非法尝试继续按既有 parser 错误扣额。以 CAS 将最大调用/字节预扣、内部已提交 root 投影和待提交来源写入同一 scope，确认前不触碰 ledger；读后写入实际进度与预算，确认后才返回完整页。存储异常、非法确认、回滚或 CAS 冲突使该 root 的存储读回进入失败状态，后续不再尝试存储或走同步 fallback，不自动重试模型或原工具。四 root、12
+MiB 单记录、现有总容量及读取额度不变。
+
+写前格式为独立 `recovery-write-ahead`：`root` 是内部已提交投影，`stagedSources`
+保存该 root 尚未进入投影的原文，摘要用于一致性检查，不能授予权限。来源只保存参数摘要和精确文本，不保存原工具参数。该封装不是
+`recovery-root`，现有会话 importer 拒绝直接导入；即使可信调用方单独验证并恢复
+`root`
+投影，也无法枚举或读取旁侧 staged 来源。内部 committed 仍不等于客户端网络发布成功，后续必须单独处理发布和撤销状态。
+
+每个异步边界复核会话、取消、关闭和到期。未确认结算失败或取消保留最大扣额；若实际结算写入已确认、同时发生取消，新增可信
+`confirmBudget`
+只同步已确认的计数，使内存与磁盘一致，不恢复租约、读回、提交或发布权限，也不返回已取消的原文。普通
+`settleBudget`
+的有效租约要求保持不变。租约一直保留到当前存储操作结束，再在 finally 释放，避免旧写入尚未结束时新修改进入。
+
+20 组新回归覆盖三协议实际 session/runner 的 list→read→完整页进入下一请求、待提交原文隔离、两次确认等待、并发、每个存储边界的取消、撤权/关闭/到期、写入前后异常、非法 ACK、无执行 Promise/thenable、损坏记录、回滚/CAS 竞争、原 parser 错误、参数修改、空来源、额度耗尽、四 scope 与绝对过期、封装拒绝导入、绑定/敏感来源拒绝及真实存储重开。真实 Windows
+worker 关闭原会话和 worker 后重开，验证精确 UTF-8、同一 scope 的预算和原期限，并检查数据库未出现合成原文的明文字节；这验证未发布写前数据，不是生产会话授权恢复或服务重启验收。
+
+最终十文件专项 148/148，字面 `npm run test:client:coverage`
+527/527，语句/行 99.08%、分支 94.62%、函数 98.99%；范围 Lint/格式、四文件语法、CI/发布治理、统一 unit 发现及 diff 检查通过。两个运行模块进入发布清单，新测试进入显式客户端覆盖和统一发现；六个枚举运行/测试/清单文件与最终验证前摘要匹配。回执为
+`.hpm-acceptance/context-recovery-root-reader-20261019-01/milestone.json`，资格
+`local-session-storage-reader-qualified`。此前失败日志和原门槛、超时及断言均保留。
+
+仍需交付：生产存储服务生命周期/设置接入、最终输出与私有历史的持久化提交、prepared/sending/uncertain 发布状态、持久化撤权与 staged 数据清理、启动 root 发现及当前权限恢复、WebSocket 和真实客户端验收。现有 HTTP/WBIPC 仍同步 complete，本阶段没有把未发布记录当成可自动续跑的授权，也不启用跨设备迁移。没有安装插件、重启生产、改真实凭据或调用真实模型；完整
+`verify` 未重跑，最近 404 文件格式失败继续保留。
+
+## 完整 root 所有权与共享预算预扣（2026-10-19，此前阶段）
+
+新增 `context-recovery-root-owner` 和
+`context-evidence-budget-owner`。会话增加仅可信服务可使用的
+`acquireContextRecoveryRoot`：返回私有租约，以显式 capability 操作该 root，不能把 JSON、root 标签或外来 session 当成权限，也不使用环境式异步上下文继承所有者身份。普通绑定、读回、提交、原生压缩、恢复历史准备和 root 导出在租约持有期间返回 busy 或安全错误，其他 root 可以继续工作。恢复出的 root 重建新的所有权实例。
+
+abort、withdraw、撤权、关闭和绝对到期会立即使租约失效；失效不提前解锁，调用方必须等待在途写入结束并在 finally 释放，避免旧保存尚未完成时新状态进入。迟到租约不能再读、结算、提交或导出。该边界处理在线所有权，不等于已实现持久化撤权；原磁盘状态及提交不确定性仍需后续生命周期处理。
+
+预算实现移到独立模块，原有创建、导出、恢复及 reader 契约保留。写前预扣直接修改既有预算对象，所有已创建 reader 都看到同一次调用和最大页字节扣额；不替换其闭包引用。未确认期间普通 reader 暂停，每个私有 reservation 只允许匹配预算的一次读取。候选结算状态可写进同一个完整 root，确认后原位更新实际计数；未结算就释放或取消时保留最大扣额。64 次、512
+KiB、单响应 16 KiB 和全局四 root 上限不变。
+
+17 组新增回归覆盖独占、空和伪造租约、跨 root、同步入口、异步确认期间取消、撤权/过期、原生压缩窗口不变、共享旧 reader、一次读取、保守失败、非法/执行性输入、极端预算和完整状态恢复。加密 SQLite 测试由调用方顺序保存预扣、结算和最终完整 root，只有一个存储记录；关闭原会话、重开同一内存数据库上的存储引擎后，创建全新会话验证精确 Unicode 和预算保持。这是引擎及所有权集成验证，不是生产服务或 worker 重启验收。
+
+首轮扩大专项 127 通过、1 失败，首轮字面客户端覆盖 506 通过、1 失败；失败是拆分预算后
+`createContextEvidenceTools`
+的非法预算错误文本改变。通过私有预算成员校验恢复原 TypeError 契约，原断言未改动；原始日志和对应源码摘要分别保留为
+`focused-attempt1-contract-failed.log`、`client-attempt1-contract-failed.log` 和
+`baseline-attempt1.json`。另修复空 token 在没有租约时被误报释放成功的分支，并补断言。
+
+修复后冻结七个运行/测试/清单文件，17 组新专项及九文件 128 项均通过；最终字面
+`npm run test:client:coverage`
+507/507，语句/行 99.05%、分支 94.60%、函数 98.96%，原门槛和超时不变。范围 Lint/格式、五文件语法、CI/发布治理、统一 unit 发现和 diff 检查通过。两个新运行模块进入发布清单，新测试进入显式客户端覆盖与统一发现。七个枚举文件与最终验证前摘要全部匹配；回执为
+`.hpm-acceptance/context-recovery-root-owner-20261019-01/milestone.json`，资格
+`local-root-ownership-qualified`。历史失败不改写，本阶段也不声称已修复此前宿主启动超时的根因。
+
+生产 `replyAsync`
+仍包装内存 reader，HTTP/WBIPC 完成入口尚未等待完整 root 存储。待提交新来源的持久化、发布状态、持久化撤权、启动 root 发现、清理/设置、WebSocket 及实际客户端验收仍需接通。本阶段没有启用功能、重启生产、安装插件、修改真实凭据或调用真实模型，完整
+`verify` 未重跑。
+
+## 异步 reader、协调器与 runner（2026-10-19，此前阶段专项部分通过）
+
+coordinator 把已有同步状态机抽成单一 generator，保留同步 `accept`，增加异步
+`acceptAsync`，同一个 busy 门禁止重入和重复读回。只等待普通原生 Promise，拒绝其他 thenable 和执行性结果；同步入口不能释放尚在进行的异步读回，并消费普通 Promise 的迟到拒绝。reader-result 限制结果为经过无执行校验的文本和固定成功状态；progress 独立校验轮数、调用数及有界数值用量。
+
+runner 优先等待
+`acceptAsync`，把读取等待纳入原有总超时及取消竞态；等待结束后再次检查取消。失败从可信 run 读取经过校验的进度，保留已经完成并可能计费的上游用量。coordinator 在迟到读回后复核 terminal 与权限；session 在异步返回后再次检查当前有效性，禁止取消后暂存或提交私有历史。没有增加上游重试或外部工具执行路径。
+
+新增异步专项 15 组、实际 session 异步历史/取消 2 组；测试进入显式客户端覆盖和统一 unit 发现，两个新运行模块进入发布清单。覆盖三协议内部/混合调用、busy、取消和撤权、拒绝/非法/超限/getter/toJSON/thenable 数据、同步迟到拒绝、读取等待中的超时和取消及用量保持、实际私有历史精确读回与分支隔离。受控 CAS 存储测试把预扣和结算确认分别挂起，证明预扣前不访问 ledger、结算前不发下一次模型请求；它使用独立预算记录及在线 ledger，不能作为生产完整 root 持久化验收。
+
+三文件专项 67/67；冻结九个明确运行/测试/清单文件后的八文件扩大专项为 106 通过、2 失败，失败均为既有实际存储 worker 打开时返回
+`context_recovery_storage_unavailable`。原始失败保留在
+`.hpm-acceptance/context-recovery-async-20261019-01/focused-final.log`，不修改超时、断言或门槛。范围 Lint/格式、七文件语法、CI/发布治理、统一测试发现和 diff 检查通过。统一客户端覆盖结果和合成密钥隔离诊断见本阶段回执；不能沿用此前 455/455 或完整 root 的 94 项宣称当前候选完整通过。
+
+字面 `npm run test:client:coverage`
+退出 1：490 项中 478 通过、10 失败、2 取消。未通过项涉及原有 stdio CLI 启动、API
+proxy fixture ready、Windows
+DPAPI/存储 worker 和依赖其完成的用例，新增 17 组均通过。失败测试运行产生语句/行 98.81%、分支 94.44%、函数 98.89% 的覆盖率，超过阈值不抵消测试失败。完整日志为
+`client-final.log`。随后仅用新建随机合成数据密钥做隔离诊断，当前用户 DPAPI 子进程在原有 10 秒期限内超时；没有输出或保存密钥、原生错误和 stdout/stderr。该观测说明密钥保护启动路径也能独立超时，不证明所有 fixture 失败具有同一原因。
+
+本阶段机器可读回执为
+`.hpm-acceptance/context-recovery-async-20261019-01/milestone.json`，资格为
+`partial-gates-failed`；九个枚举文件与验证前源码摘要匹配。合成密钥诊断和既有 worker 失败不能据此降低生产密钥保护要求或改用明文。当前仍未获得本候选的完整客户端门禁通过。
+
+另一个不传任何密钥或凭据的固定程序探针使用相同 Windows
+PowerShell 可执行文件、最小环境和 10 秒期限：空宿主输出探针耗时 10,223
+ms 并超时；随后加载 Security 程序集的探针在 8,851 ms 成功。记录为
+`powershell-startup-diagnostic.json`，不保存子进程输出。这确认至少一次基础宿主启动也能超过当前期限，但不能据此认定 DPAPI 算法、权限或所有失败测试的根因。后续应定位宿主启动延迟并维持原有失败保护，不能直接提高期限或豁免真实 worker 测试。
+
+`replyAsync` 当前仍调用内存 reader，HTTP 完成路径仍同步调用
+`session.complete`。完整 root 的生产保存、读前预扣与结算、发布、撤权和清理尚未统一接通，也未解决同步入口与异步保存之间的状态所有权。因此当前状态仍是“持久化底座与受控恢复已分阶段验证，生产生命周期集成未完成”。
+
+本阶段未安装插件、启用恢复开关、重启生产、修改真实凭据或调用真实模型。完整
+`verify`
+未重跑，最近 404 个文件格式失败保留。后续继续接入完整 root 所有权、持久化预扣/结算、发布不确定状态与撤权生命周期，再进行 WebSocket 和实际客户端验收。
+
+## 完整 root 受控导出与新会话恢复（2026-10-19）
+
+新增 `context-recovery-root-state`，会话模块增加可信调用方专用的
+`exportContextRecoveryRoot` 与
+`restoreContextRecoverySessions`。完整 root 原子状态包含当前主体/目标/策略关联、绝对时间、绑定树、观察调用、每快照可见来源、原文 ledger、共享读取预算与已提交私有历史。会话观察调用只保留工具名和参数摘要；原参数首次观察时仍执行既有敏感字段、旧 transcript 与大小策略，未来结果重新执行结果策略，再关联原参数摘要。
+
+导出仅选已提交且祖先完整的分支，来源按已提交快照可见性裁剪；pending、abort 和 withdraw 分支的原文不能因共用底层 ledger 被导出。调用配额与读回计数保留已消耗值，不按有效分支重新计数。快照保存调用、来源和捕获的增量，避免每个后代重复保存整个继承视图。恢复逐字段验证新捕获必须对应父快照先前观察的调用，并核对工具名、参数摘要、来源 ID、内部调用摘要和创建时间；私有历史 tip 与快照映射及其祖先逐一对应。
+
+当前可信调用方必须先认证存储 root、复核当前权限与持久化撤销，再提供当前 binding
+basis。保存的标签/哈希不能自行授予权限，JSON 中不恢复旧 capability。恢复重建新的会话、ledger、预算、绑定及私有历史 token；完整批次先通过校验再返回新实例，失败关闭新建对象，不改变原在线会话。批次最多四 root，共享原有全局绑定快照与私有历史配额；逐 root 校验 12
+MiB，支持合法批次总量超过单次 normalizer 的 16 MiB 上限，不扩大存储服务的 32
+MiB 总额度。恢复后继续使用真实时钟，root、来源和历史保持原绝对期限；整个 root 到期后不保留较晚创建的后代。
+
+十八组新回归覆盖精确 Unicode、预算/读取进度、未来结果关联原摘要、原参数不入检查点、原参数敏感策略、兄弟分支隔离、pending/撤回排除、私有历史继承及二次恢复、Responses 原生压缩窗口、Claude 来源、非法链接、执行性输入、安全错误、时间回拨、到期/撤权、空及多 root 歧义、超过 16
+MiB 的合法批次与全局 256 快照上限。实际 Windows 加密 worker 保存完整 root 后关闭原会话和 worker，重开存储并重建新会话，验证同一来源精确读回、原预算与私有历史续接；不依赖旧在线 ledger。
+
+八文件专项 94 项通过，范围 Lint/格式、四个 JS 语法、CI/发布治理和统一 unit 发现通过；新模块进入发布清单，新测试进入显式客户端覆盖。字面统一客户端命令两次未通过：首轮 470 通过、2 失败、1 取消；单独重跑 469 通过、3 失败、1 取消。错误涉及既有 stdio 网关 30 秒超时、代理 fixture 启动期限及一次既有存储 worker 不可用。失败日志分别保留为
+`client-attempt1-startup-failed.log` 和 `client-attempt2-startup-failed.log`。
+
+保持全部用例、超时和阈值不变，仅降低测试进程并行度的对照为 472 通过、1 失败；剩余 direct-upload
+fixture 在 `server_start_requested,certificate_ready`
+后未在原期限内 ready。随后不带覆盖率运行原
+`context-api-evidence-routes.test.js`，两个真实隔离代理用例均通过，未修改该测试。该对照不替代字面统一命令，不足以证明并行度是唯一原因，因此未修改统一入口的并行度或任何门槛。当前不宣称客户端门禁通过。六个明确源码/测试/清单文件与本阶段验证前摘要匹配；最终结果和日志定位见
+`.hpm-acceptance/context-recovery-root-state-20261019-01/milestone.json`。
+
+这是完整状态恢复模块及调用方驱动的真实存储重开验证。生产会话尚未在捕获、读回、发布、取消或撤权时等待完整 root 的持久化事务；异步协调器/runner 接入、发布不确定状态、持久化撤销、清理和设置、WebSocket、真实客户端及最终整体门禁仍待交付。当前生产证据仍为内存；未启用功能、重启服务、安装插件、修改真实凭据或调用真实模型。完整
+`verify` 本阶段未重跑，最近 404 文件格式失败记录保留。
+
+## 分支注册表与私有历史受控恢复（2026-10-19）
+
+新增 `context-recovery-binding-state` 与
+`context-recovery-history-state`，既有绑定注册表及历史映射增加可信调用方专用的导出/恢复函数。导出经模块私有 WeakMap 访问，不增加网络或模型导入接口。注册表按 root 导出已提交且祖先完整的树，记录原始窗口/公开窗口与压缩连续性指纹、响应别名哈希、策略、锚点和绝对时间，不保存公开聊天原文。恢复依据当前可信绑定基础逐字段验证后重建窗口、压缩输入及响应别名索引，生成新 token；旧 token 与字符串 ID 不能操作新实例。
+
+私有历史只导出明确请求的已提交 tip 与其完整祖先，拒绝 pending、已丢弃、已失效或外部范围的 token。持久状态只包含公开项指纹及允许的私有交换，保留顺序、插入位置、原始到期与字节计数；恢复重新执行已有三协议工具配对校验，拒绝高权限角色、外部工具、孤立结果、祖先重用调用、前缀冲突、缺失/循环父节点和不可达额外项。保留原生及签名块数据，不重新解释或改写它们。
+
+批量恢复最多四个 root，并合并重建共享索引。重复窗口或响应别名继续保持歧义隔离，不能分别恢复后把多个候选缩成一个；绑定总快照上限及历史全局 256 条/4
+MiB 仍共用，不能按 root 重置。时间水位取批次最大值；旧 root 到期时整个树失效，不剥离祖先后保留更新的孩子，也不延长私有历史期限。调用方必须先认证当前 root 并复核撤销，状态哈希本身不授予权限。
+
+十五组新回归覆盖三协议精确私有交换、签名块保持、新旧 token、公开文本不落入状态、siblings、撤销、pending/丢弃/关闭、策略与主体变化、祖先和工具配对非法状态、各类执行性输入、根过期/时钟回拨、空批次、多 root 歧义、全局快照/容量和重复导入。实际 Windows 加密 worker 一次保存分支与私有历史后关闭原实例、关闭重开存储，再用新注册表与新历史 map 验证自动续接和精确 Unicode 私有交换。
+
+最终 `npm run test:client:coverage`
+455/455，语句/行 98.97%、分支 94.33%、函数 98.82%；新分支状态、既有绑定/历史、会话、压缩和 composition
+root 六文件专项 67 项通过。五文件语法、范围 Lint/格式/diff、CI/发布治理、统一 unit 发现通过；两个运行模块进入发布清单，新测试进入显式客户端覆盖及统一 unit 发现。七个代码/测试/清单文件与验证前摘要一致，回执为
+`.hpm-acceptance/context-recovery-branch-state-20261019-01/milestone.json`。
+
+这完成受控状态恢复模块，生产会话尚未调用它们。这里的 committed 是模块内部提交，不是客户端网络发布成功的证据；完整 root 仍需原子保存授权、可见来源、调用观察、原文、预算、分支与历史关系，接通异步读回、发布确认、失败/取消撤回及持久化撤销。尚未完成生产聊天跨重启恢复、WebSocket、清理/设置、真实客户端或整体门禁。本阶段未重跑完整 verify，最近 404 文件格式失败不变；未启用功能、重启服务、安装插件、修改真实凭据或调用真实模型。
+
+## 原文 ledger 受控导出与恢复（2026-10-19）
+
+新增
+`context-evidence-ledger-state`，既有 ledger 增加仅供可信调用方使用的导出/恢复函数，通过模块私有 WeakMap 访问导出闭包，不增加模型读工具或网络导入接口。快照记录版本、当前 owner/thread 的绑定摘要、完整配额策略、时钟水位、累计捕获/读取数，以及原来源 ID、调用 ID、工具名、参数摘要、内容摘要、字节数、创建/绝对到期时间、精确文本和连续读取进度；不保存原工具参数或私有 artifact
+locator。
+
+恢复要求调用方提供当前可信 owner/thread 与配置，并在进入本模块前认证完整 root。绑定摘要与配额必须完全匹配；摘要不是授权凭据。状态经 12
+MiB 有界无执行规范化，字段、重复来源/调用、顺序、总字节、UTF-8、摘要、进度边界及计数一致性均严格检查。校验成功后创建新的私有 artifact 句柄，使用来源原创建时间建立原 hard
+expiry，不重计 TTL；当前已过期的来源不重建，时间回拨拒绝。失败关闭新 ledger，不改变旧实例。恢复后的来源仍计入既有存储配额。
+
+九组回归覆盖精确 Unicode/CRLF、不可变快照、来源 ID 与读取进度、空 ledger/空结果/全部过期、seek 与完整读回、绝对到期、时钟、主体/聊天/策略不匹配、重复及篡改、配额/顺序、非法 getter/toJSON/原型/循环，以及实际 Windows 加密 worker 关闭重开。实际测试关闭原 ledger 后，由新 ledger 使用原 receipt 读回内容；不复用原在线 ledger，但也不据此声称分支、私有历史和认证已恢复。
+
+最终 `npm run test:client:coverage`
+440/440，语句/行 98.91%、分支 94.22%、函数 98.77%；ledger 状态、预算、会话、既有 reader、SQLite、系统密钥与 composition
+root 七文件专项 67 项通过。三文件语法、范围 Lint/格式/diff、CI/发布治理及统一 unit 发现通过。新运行模块进入发布清单，新测试进入显式客户端覆盖和统一 unit 发现；五个代码/测试/清单文件与验证前摘要一致。回执为
+`.hpm-acceptance/context-recovery-ledger-state-20261019-01/milestone.json`。
+
+生产入口尚未调用这些导出/恢复函数。下一步是可信分支注册表与已提交私有历史恢复、完整 root 的原子保存及发布/取消衔接，包括读取进度与预算结算失败之间的一致性。来源读取进度证明 ledger 页读取成功，不证明模型或客户端已经收到内容。过期清理、WebSocket、真实客户端及统一完整门禁仍未完成。本阶段未重跑完整 verify，最近 404 文件格式失败不变；未启用功能、重启服务、安装插件、修改真实凭据或调用真实模型。
+
+## 持久化读取预算与写前预扣（2026-10-19）
+
+新增预算状态校验与异步持久化读取器，既有同步 reader 增加受控计数导出/恢复。恢复生成新的私有预算 token，不接受序列化 token 作为 capability；只迁移调用数、已返回字节和成功读取数，不建立来源、分支或认证权限。未知数据经过有界且不执行 getter/coercion 的规范化，保存确认也严格验证单一整数 revision；异常内容不进入输出。
+
+每次已准入的读取先重载最新状态，以 CAS 持久化一次调用及本页最大字节预扣，确认后才访问在线 ledger；然后持久化实际计数，收到合法确认才返回原文。预扣失败不访问 ledger；结算失败或进程中断保留最坏扣额，不重试。跨实例版本冲突只允许一方访问 ledger；同实例在途并发拒绝。关闭期间检查每个异步边界，已关闭请求不发布原文。64 次/512
+KiB/单响应 16
+KiB 上限不变，非法参数和失败尝试仍计入预算，撤销记录不能重新初始化为零。
+
+十组回归覆盖正常、空/非法/极端/可执行状态、隔离计数、重开后耗尽、预扣/结算失败、撤销、合法元数据下的非法记录、各阶段非法确认、近字节上限、ledger 异常、CAS 竞态、关闭时预扣未确认及错误依赖。实际 Windows 存储 worker 保存后关闭重开，使用原在线 ledger 验证精确计数保持；这不是从磁盘恢复 ledger 授权。一次新增断言曾因 SQLite 规范对象使用 null
+prototype 而失败，随后改为比较其规范 JSON 数据，计数及失败行为断言保留。
+
+最终 `npm run test:client:coverage`
+431/431，语句/行 98.89%、分支 94.12%、函数 98.74%；预算、会话、既有 reader、SQLite、系统密钥与 composition
+root 六文件专项 58 项通过。范围 Lint、格式、四文件语法、diff、CI/发布治理、统一 unit 发现通过；两个新运行模块加入发布清单，新测试加入显式客户端覆盖及统一 unit 发现。六个代码/测试/清单文件与验证前摘要匹配，回执为
+`.hpm-acceptance/context-recovery-durable-budget-20261019-01/milestone.json`。
+
+这是持久化预算原语的资格验证，未接入生产会话。当前独立预算记录只服务测试/集成边界；完整 root 接入时须把预算与授权、来源、分支和历史保存在同一检查点，不能额外分配 root 绕过四 root 配额。真实来源和已提交历史的可信导出/恢复、发布事务、过期清理、WebSocket 及实际客户端仍待交付。本阶段未重跑全仓库 verify，最近 404 文件格式失败仍有效；未启用功能、重启服务、安装插件、修改真实凭据或发出模型请求。
+
+## 专用存储 worker、文件所有权和系统包装密钥（2026-10-19）
+
+新增存储异步接口、专用 worker、文件边界与连接所有者四个模块。生产入口尚未调用它们；实际测试均使用独立临时目录。父线程只传经过校验的目录和有界请求，数据密钥留在 worker 内；SQLite 和 ACL/DPAPI 原生操作均在 worker 执行。每实例最多八个普通在途请求、16
+MiB 请求总字节，初始化、操作及关闭都有期限；非法/重复响应、异常、超时和意外退出使实例永久失败，不重试。关闭必须收到合法确认并观察到正常退出，确认后不退出也会超时失败。
+
+存储目录仅创建指定专用叶目录，父目录必须已存在。初始化与每次操作验证祖先及固定文件身份，拒绝符号链接/junction、硬链接、未知文件、超限文件、UNC 和替代数据流路径；只接受固定文件名。先检查目录内容，再运行权限设置，防止已有权限标记硬链接被改写。目录和文件使用现有私有权限实现，原生 ACL 工具额外限制五秒超时和输出大小。持有独立
+`.writer.sqlite` 的 SQLite
+EXCLUSIVE 事务作为整个所有者生命周期的单写入锁，数据事务使用另一连接；不通过 PID 文件猜测锁状态。
+
+首次初始化生成随机 32 字节数据密钥，严格 CurrentUser DPAPI 包装后在私有目录创建
+`.data-key`
+并 fsync；只有系统包装串写入文件。重开只解保护现有包装密钥，验证数据库认证头；已有数据库缺少密钥时绝不生成替代密钥。密钥文件内容摘要与文件身份在服务生命周期内固定，变化后关闭所有者。首次密钥写入中断留下的部分文件不自动修复或重置；仍需显式恢复/清理策略。其他平台的系统密钥库仍未实现，真实 worker 明确失败，不使用测试注入的兼容后端。
+
+八项新测试组覆盖空/非法/可执行参数、过长路径、目录 junction、根/文件替换、硬链接、超限密钥、权限标记硬链接、系统保护失败、密钥丢失/变化、并发所有者、队列数量/字节、失败/非法/重复回复、初始化与操作超时、关闭确认后未退出。真实 Windows
+worker 使用 DPAPI 在临时目录完成保存、并发第二写入拒绝、精确 Unicode/序列化预算读回、关闭重开和再次重开后的撤销；没有直接向真实 worker 传递明文数据密钥或测试保护函数。文件层注入后端仅用于独立测试，不是可配置的生产回退。
+
+最终统一客户端覆盖 421/421，语句/行 98.86%、分支 94.06%、函数 98.71%；存储服务、SQLite 引擎、系统密钥、既有同步/异步私有文件及 composition
+root 六文件专项 35 项通过。范围 ESLint、Prettier、五文件语法、diff、CI/发布治理和统一 unit 发现通过。四运行模块进入发布清单，新测试进入显式客户端覆盖和统一 unit 发现。最终七个代码/测试/清单文件摘要与验证前基线匹配；较早同为 421 项的结果未覆盖最后补充的标记硬链接与极端路径场景，最终结果以
+`client-final.log` 和 `focused-final.log` 为准。回执为
+`.hpm-acceptance/context-recovery-storage-service-20261019-01/milestone.json`。
+
+这完成了可运行的本地存储服务底座，未完成聊天跨重启恢复。可信授权/分支/来源、私有历史、运行读取预算与撤销的导出恢复、客户端发布事务及取消后的持久状态、过期回收/清除和设置接入仍待实现。整库外部回滚保护、实际服务进程崩溃后的所有权恢复、磁盘满及系统密钥轮换仍需专项验证；不能把正常 worker 重开当成这些门禁已通过。生产原文仍仅在内存，未启用生产、重启服务、安装插件、修改真实凭据或发出模型请求。完整 verify 本阶段未重跑，最近已记录的 404 文件格式问题仍未收口。
+
+## SQLite 加密检查点事务引擎（2026-10-19，此前阶段）
+
+新增独立存储契约、AES-256-GCM 内容封装和 SQLite 同步事务引擎，未接入生产入口。每条检查点使用随机 12 字节 nonce；storeId、scope、revision、创建/绝对过期时间、记录类型和版本均参与认证。SQLite 仅保存最小化元数据和密文；数据库头中的时钟水位也经过认证，错误密钥、元数据或密文篡改拒绝读取。UTF-8 严格解码，未知输入经过有界、无 getter/强制转换执行的规范化；错误统一为固定 503，无原始异常或原因链。
+
+保存使用 expectedRevision 比较与单事务提交；已有条目的 TTL 只能缩短，不能重新计时。撤销用同一事务替换为加密 tombstone，重新打开数据库后仍拒绝旧范围的保存和读取。失败事务不改变原版本与已提交内容；ROLLBACK 自身失败则永久关闭该引擎和密钥边界。引擎不自动逐出活跃检查点或撤销记录，最多四个活跃检查点、256 条记录，规范状态每条 12
+MiB、活跃密文合计 32 MiB，数据库页上限 64
+MiB。这里是完整检查点容器上限，不扩大既有单条工具证据、root、TTL 或 reader 配额；会话层原有配额仍需分别保持。过期回收、清除与容量耗尽处理尚需存储服务接入。
+
+十一项新测试组覆盖正常、空/非法/极端数据、可执行对象、每个认证字段的篡改、错误密钥、随机 nonce、隔离范围、版本冲突、TTL、撤销、时钟回拨、未知 schema、配额和事务失败。真实临时文件关闭重开验证精确 Unicode 和序列化预算值；磁盘不含新生成的合成 ASCII 标记、中文原文或明文密钥。另以独立子进程提交后开启未提交修改并直接退出，由父进程重开数据库，验证只保留原提交、完整恢复原文且 integrity_check 正常。这是存储事务的实际进程退出测试，不是宿主聊天恢复或完整服务的崩溃验收。
+
+最终 `npm run test:client:coverage`
+为 413/413，语句/行 98.97%、分支 94.30%、函数 98.63%；存储、系统密钥和 composition
+root 三文件专项 21 项通过。范围 ESLint、Prettier、五文件语法、diff、CI/发布治理与统一 unit 发现通过。三运行模块进入发布清单，新测试显式进入客户端覆盖并由统一 unit 发现。七个明确代码/测试/fixture/清单文件与验证前摘要匹配；新增进程退出测试前的较早 412 项结果不覆盖最终测试快照。回执为
+`.hpm-acceptance/context-recovery-sqlite-engine-20261019-01/milestone.json`。
+
+当前引擎要求调用方提供独占连接和数据密钥，不自行打开文件或访问密钥库，尚无专用 worker、异步队列、受限目录/文件身份验证、独占进程所有权或 DPAPI 包装密钥生命周期接入。检查点 state 目前仅作有界 JSON 保存，不据此建立可信 capability；序列化预算值保持也不等于运行预算已经恢复。授权、分支、私有历史、来源出处、预算与撤销的可信导出/恢复及发布事务接入均待交付。认证加密不提供对整份旧数据库被外部替换的可信防回滚保证。当前生产证据仍仅在内存。
+
+本阶段未重跑完整
+`verify`；最近记录的 404 文件格式失败仍未收口。未启用生产、重启服务、安装插件、操作真实凭据或发出提供方请求。下一阶段将以专用 worker、目录与文件所有权、系统包装密钥管理为入口，随后接入可信会话状态恢复。
+
+## Windows 系统数据密钥保护（2026-10-19）
+
+新增四个独立模块：密钥请求与响应契约、严格 DPAPI 原生执行器、一次性 worker 和异步保护接口。数据密钥必须是规范 base64 编码的 32 字节；包装密钥使用明确版本前缀和有界编码。未知输入经过无 getter/强制转换执行的数据校验，所有失败返回固定 503 错误，不携带原始错误或原因链。
+
+Windows 使用当前用户 DPAPI 和固定命名空间熵。原生程序路径、脚本及参数固定；密钥只走有界 stdin/worker
+IPC，不进入命令行。子进程只继承必需的 Windows 目录变量，隐藏窗口，有独立超时和输出上限。此实现不调用现有凭据兼容加密，不回退到文件主密钥；非 Windows 平台明确失败，其他系统密钥库尚未实现。未写入真实密钥或用户内容。
+
+保护接口每实例最多两个并行 worker，没有队列或重试。只有单一合法结果并随后正常退出才成功；重复或非法消息、异常、提前退出、非零退出及超时安全失败。终止失败时请求虽已拒绝，容量继续占用，直到实际观察到 worker 退出，避免释放仍在运行任务的名额。worker 输出被消费但不转发到日志。
+
+九项新测试组覆盖正常、空、非法、非规范 base64、最大值、超限、可执行对象、原生进程错误/非法输出、stdin 与环境隔离、worker 启动/发送/消息/退出错误、终止失败、超时与并发。实际 Windows
+worker 使用新生成的合成随机密钥完成 DPAPI 保护、解保护、密文篡改和无效 blob 拒绝；没有提供方请求或真实凭据操作。
+
+最终 `npm run test:client:coverage`
+为 402/402，语句/行 98.92%、分支 94.26%、函数 98.56%；新测试与既有 secret-crypto、天禧恢复 key、composition
+root 四文件专项共 14 项通过。范围 ESLint、Prettier、五文件语法、diff、CI/发布治理及统一 unit 发现通过。四个运行模块进入发布清单，新测试显式进入客户端覆盖并由统一 unit 发现。七个明确代码/测试/清单文件与验证前摘要一致；不代表全依赖或整个工作区冻结。回执为
+`.hpm-acceptance/context-recovery-system-key-20261019-01/milestone.json`。
+
+这是 Windows 系统密钥保护模块的本地资格验证，不是持久化恢复完成。SQLite 加密存储、授权与分支恢复、持久化预算与撤销、存储配置接入、故障注入和跨重启验收仍待实现。完整
+`verify`
+本轮未重跑，最近 404 文件格式问题仍未收口。未启用生产、重启服务、安装插件或发出模型请求。
+
+## 恢复发布与结果报告隔离（2026-10-19）
+
+新增回归先复现共享 HTTP 恢复发布缺陷：客户端已收到成功结果后，`onOutcome`
+同步抛错会进入恢复失败分支，产生第二次终态通知并撤回已提交历史。修复将报告失败限制在独立边界内；同步异常和返回 Promise 的拒绝只增加固定类别
+`reportingFailed`，不保存异常内容，不重试请求，不改变已发布结果。异步报告不阻塞失败响应或清理。该计数在配置尚未应用或随后关闭时也可记录，避免遗漏边界错误。
+
+新专项覆盖成功、上游失败、写入失败和取消各自的同步/异步报告异常；断言仅一次通知、正确提交或撤回、502 安全错误、单次上游请求及监听器清理。三类实际本地核心 WBIPC 测试增加报告持续失败模式，仍完成两轮客户端请求、六次内部续接和下一轮私有历史精确读回，同时断言旧 handler 不执行，完成和失败计数不产生错误翻转。这里仍是合成认证和本地握手，不是提供方或安装客户端验收。
+
+最终统一客户端覆盖 393/393，语句/行 98.89%、分支 94.15%、函数 98.51%；五文件相关专项 14 项通过。范围 Lint、格式、五个 JS 语法、diff、CI/发布治理及 composition
+root 检查通过；七个明确代码/测试/清单文件按验证前基线复核未变，文档随后单独检查。新增回归已在现有统一客户端覆盖文件内；没有变更覆盖率阈值或测试入口。回执为
+`.hpm-acceptance/context-recovery-publication-reporting-20261019-01/milestone.json`。
+
+本阶段未重跑完整 verify，最近已记录的 404 个文件格式问题仍未收口；未安装插件、改变真实凭据、发起真实模型请求或启用生产恢复。持久化、WebSocket、完整能力诊断、策略与不透明历史、真实客户端及最终发布仍待交付。
+
+## 运行诊断与设置入口（2026-10-19）
+
+新增进程内
+`context-recovery-diagnostics`，核心请求入口记录 Chat、Responses、Messages 的绑定成功/不可用，以及内部续接完成/失败的固定类别计数；管理 health 返回该模块的安全投影。配置请求状态与进程实际应用状态分开：未应用、配置无效、关闭和受限开启均有独立状态。配置检查不执行 getter，诊断不保存目标、身份、参数、原文、凭据、来源引用或原始异常；返回的是脱离内部状态的副本。关闭后仍允许已在途请求的终态计数，避免丢失撤权后的失败记录。
+
+应用设置新增默认关闭的“自动上下文恢复”，沿现有表单读取、收集、保存和配置加载路径生效，不扩展旧 evidence 开关。首页沿既有 health 刷新展示进程累计绑定与续接计数，并明确原文仅存内存、重启丢失、WebSocket 透传、插件和实际客户端验收未核验。续接完成计数不证明模型发生了精确原文读取或最终任务正确。旧版、缺失、非法和不兼容状态显示不可用，不根据任意返回文本标记支持。
+
+最初前端测试和构建在架构门禁失败：domain 不允许直接导入新增模型函数。已修正为 bootstrap 组合入口注入 formatter，未修改或放宽门禁。最终前端完整测试 25/25 文件通过，前端覆盖命令 5/5 文件通过，语句/行 97.13%、分支 86.15%、函数 94.82%；前端生产构建通过，保留单 chunk 大于 500
+kB 的构建警告。统一客户端覆盖 391/391 通过，语句/行 98.89%、分支 94.14%、函数 98.50%；六文件相关专项共 9 项通过。三协议本地核心 WBIPC 测试同时断言真实执行对应的绑定、完成与失败计数。
+
+范围内 Lint、格式、15 个 JS 语法、diff、unit 发现、CI/发布治理和 composition
+root 门禁通过。初始 17 文件基线中的 tool-status 在架构修复时变化，另新增 bootstrap；修复后的 18 文件基线用于最终前端、构建与范围检查。客户端覆盖、前端模型覆盖和后端专项所对应的代码/测试/清单与初始基线匹配，未将两次验证间的前端变更宣称为全程冻结。文档随后单独检查。回执为
+`.hpm-acceptance/context-recovery-diagnostics-20261019-01/milestone.json`。
+
+本阶段重新执行字面
+`npm run verify`，在格式检查报告 404 个文件问题后退出 1，未进入其后统一阶段；保留完整输出，没有通过排除目录或批量格式化无关工作取得绿色结果。检查运行期间发生上述前端架构修复，因此该全仓库失败不是完整冻结源码快照的验收。范围检查与最终前端构建另行通过，不能替代全仓库 verify。
+
+这是聚合运行诊断与设置的阶段交付。逐客户端/传输/上游组合的实时能力矩阵、插件实际加载版本、存储用量与清除入口仍待完成；加密持久化、WebSocket、策略与不透明历史、真实验收及完整发布继续待交付。未启用生产恢复、重启运行服务、安装插件、修改真实认证或发起真实模型请求。
+
+## WBIPC 共享核心入口与唯一接管（2026-10-19）
+
+新增 `context-recovery-wbipc-entry`，核心入口为 Chat、Responses、Claude
+Messages 的受限文本/普通函数工具形态选择共享恢复协调器。恢复资格要求认证解析器绑定的加密 WorkBuddy 凭据出处、已知 HTTPS 目标、固定路径与有效模型；预设、优化策略、旧 artifact/discovery 工具及不支持内容在接管前拒绝。旧路径仍负责未取得共享资格的请求；共享路径接管后的任何失败终止本轮，不调用旧 handler、原工具或旧恢复循环。
+
+认证绑定覆盖配置与解析后的身份、完整凭据来源摘要及有界读取的实际认证文件字节，避免将另一版本文件绑定到旧解析结果。仅加密凭据分支获得资格。账号或凭据内容变化使旧授权失效，且新的 session
+target 与原账号隔离。加强回归先提交真实调用锚点并读取到来源，再用换账号后完全相同的续接窗口确认来源数为零；不是只用空会话证明隔离。
+
+共享 HTTP 发布器在转移 observer 所有权前构造并验证 dispatch/conversion，构造失败取消未发布计划。WBIPC 私有调度沿用固定 endpoint/ticket、实际发送前与响应后复查、无自动启动和不重试策略。请求或历史中出现旧工具时由旧入口独占；接管后上游产生旧 artifact/discovery 工具调用则返回固定失败，不将其释放为外部工具或再次进入旧循环。
+
+三类实际本地核心 HTTP 测试分别使用合成认证文件和带认证握手的 WBIPC
+socket，覆盖客户端 JSON/SSE、连续两次客户端请求及六轮内部恢复、精确 Unicode 原文、隐藏历史重建、混合外部调用的 ID/原参数保留，以及功能撤权、凭据变化、endpoint/ticket 变化、管道发现期间变化、500、opaque 输出、两类旧工具输出及取消。所有接管场景断言旧 handler 与旧 Chat
+transport/Claude
+conversion 调用为零。此处客户端 SSE 和调度模块已有的上游 SSE 契约分别验证，不能声称本阶段核心测试覆盖上游 WBIPC
+SSE。
+
+新模块进入发布清单，专项文件进入显式客户端覆盖及统一 unit 发现。最终
+`npm run test:client:coverage`
+为 388/388，语句/行 98.88%、分支 94.10%、函数 98.48%；十一文件相关契约共 47 项通过。范围内 ESLint、Prettier、13 个 JS 文件语法、diff、unit 发现、CI 治理、发布治理和 composition
+root 门禁通过。15 个明确列出的代码/测试/清单文件按验证前摘要复核不变；这不是完整依赖或全仓库冻结。文档随后独立格式检查并绑定最终摘要。回执为
+`.hpm-acceptance/context-recovery-wbipc-entry-20261019-01/milestone.json`。
+
+尚未执行真实 WorkBuddy/Code
+Assist 请求或实际客户端验收；没有启用生产恢复、安装插件、修改真实认证或重启服务。完整
+`npm run verify`
+本阶段未重跑，其最近已记录的格式失败仍未收口。持久化、WebSocket、不透明历史、预设/优化策略、受控用户文本归档、运行诊断和全端发布继续待交付。以下固定调度记录是此前快照，不能覆盖本节的新入口状态。
+
+## WBIPC 固定调度能力（2026-10-19，此前阶段）
+
+新增
+`context-recovery-wbipc-dispatch`，为后续共享入口提供独立传输能力。创建时固定模型、Chat 路径及 discovery
+endpoint/ticket；每次请求前、WBIPC 管道发现后实际发送前、响应返回后重新校验授权与端点。原 WBIPC 客户端增加可选
+`authorizeRequest` 能力，严格要求同步
+`true`，异常或其他值拒绝；未提供时沿用原行为。私有调度关闭自动启动，失败不重试、不切换端点、不调用已有 artifact 恢复循环或外部工具。
+
+请求先规范化未知输入、验证完整 Chat 历史与工具配对，再按现有 384 KiB 字节及 96
+Ki
+token 估算上限中适用的更严格配置准入；不裁剪历史或修复配对来取得通过。只生成传输所需的 content-type/accept，不携带入口凭据或内部 header。响应有界校验，取消、撤权和原始 IPC 异常统一转为固定安全错误；不暴露 ticket 或内容。
+
+新增八项测试组覆盖正常、空/非法/可执行对象、极端预算、getter 不执行、端点/ticket 变化、握手期间撤权、取消、单次派发、JSON/SSE，以及生产 Responses/Messages 转换器组合。共享 runner 通过带认证握手的 WBIPC
+socket 测试桩完成三轮索引、精确 Unicode 原文读取与最终输出，并验证下一轮私有历史重建。测试已加入统一 unit 发现及客户端覆盖，模块已加入发布清单。最终客户端覆盖为 379/379，语句/行 98.84%、分支 94.06%、函数 98.42%；八个既有 WorkBuddy 测试文件共 31 项通过。
+
+本阶段回执位于
+`.hpm-acceptance/context-recovery-wbipc-dispatch-20261019-01/milestone.json`。验证期间发布清单摘要发生变化；代码、测试及 package 四个范围文件匹配验证前摘要，当前清单另行完成发布治理和格式核对。没有将清单变化归因于某个进程，也没有将范围摘要核对声明为全仓库源码冻结。
+
+这是传输模块与共享 runner 的集成验证，主 HTTP 入口尚未选择该 WBIPC 能力，旧 WorkBuddy 路径仍拥有原恢复循环。尚需完成认证出处、唯一接管、核心入口和双循环互斥回归；不能把新增模块或 socket 测试桩视为真实 WorkBuddy/Code
+Assist 验收。持久化、WebSocket、运行诊断、真实客户端及完整统一门禁继续待完成。本阶段未运行全仓库 verify、启用生产恢复、重启服务、安装插件或发起真实模型请求。
+
+## 已落地的源码
+
+- HTTP 与 WebSocket 共用
+  `context-transport-policy`，在向上游发送前删除内部证据、目标绑定与工具发现 header；WebSocket 在入口认证启用时也删除入口凭据，然后使用独立上游凭据。
+- 转发头复制不调用 accessor 或未知对象的字符串转换，校验非法头名、CRLF、过大值和非法数组，并保留原始入站 header 供本地验证。
+- 新增 `context-binding`
+  基础模块，只持有指纹和因果元数据。纯文本相同不建立聊天身份；已观察输出窗口、显式响应关系和完整原生压缩窗口支持受限续接。
+- 相同候选窗口有歧义时隔离，不回退到更短祖先，也不合并候选；并行续接创建独立分支。认证主体、策略、协议或目标变化隔离；冲突、过期、非法时钟、伪造 capability 和配额耗尽安全失败。
+- 新模块加入发布源码清单；新测试已确认由统一 unit 发现器收录。
+
+- 新增 `context-recovery-sessions`、`context-recovery-protocol` 和
+  `context-recovery-observer`，并在普通 HTTP 核心入口接通受
+  `contextRecoveryEnabled`
+  开关保护的自动绑定与前瞻留存；默认关闭。显式 token 路径继续独立使用。
+- 会话服务按快照限定可见原文，兄弟分支不互读；同一根的不同读取视图共用预算。协议观察覆盖 Chat、Responses、Messages 的 JSON/SSE，观察器不改写客户端字节、不调用模型或外部工具。
+
+主 HTTP 入口现已接入受开关及提供方判定保护的内部恢复执行器，范围见下方最新阶段。其余转换、官方登录桥和不支持目标仍沿原观察/透传路径。协议适配器仍须完善输出 ID、调用 ID 和原生检查点来源及语义的能力校验；不能因为任意兼容服务返回一个 id 字段就认定其全局唯一。
+
+## 内部恢复与历史映射新增实现
+
+- `context-recovery-turn`
+  转换三种协议的只读工具定义、调用、结果与续接请求。禁止工具、强制工具、严格输出格式、不支持的托管工具和命名冲突不允许注入；外部工具没有执行器。
+- `context-recovery-coordinator`
+  管理最多 8 轮及 64 次内部调用、循环指纹、混合调用暂存和外部调用释放。外部调用保留原 ID 与参数；含不透明 reasoning 或签名的混合响应当前明确拒绝拆分，未声明该组合已支持。
+- `context-recovery-runner`
+  通过组合层注入的已授权 dispatch 执行 JSON/SSE 续接；统一处理取消、总时限、失败和逐轮 usage。它自身不选择上游、不重试、不执行外部工具、不写客户端响应。Claude
+  SSE 的起始与结束 usage 已合并保留；失败续接仍返回已完成轮次的用量。
+- `context-history-map`
+  使用私有 capability、公开历史指纹和内部工具交换重建下一轮上游历史；校验授权范围、完整前缀、工具配对、提交状态及祖先关系。上限为 256 个暂存或已提交记录、4
+  MiB 内容与指纹计费、30 分钟绝对有效期，不淘汰有效引用接纳新记录。该阶段尚未接原生压缩替换窗口，后续专项进展见下文；仅增量客户端输入及跨重启映射仍待完成。
+- 会话能力新增
+  `recovery(body)`：重建已授权祖先映射，暂存内部交换，并在公开输出与计划输出匹配后提交映射及绑定。取消、撤销、关闭和根过期释放相关映射。该阶段先交付会话服务集成；后续主入口接线见下方最新阶段。
+- 修复显式 response
+  ID 指向普通文本后代时，与较旧历史锚点发生的合法续接冲突。只允许完整历史窗口匹配且候选锚点均为已确认祖先的情况；编辑和异支冲突继续拒绝。
+- 新测试加入既有 unit 发现和
+  `test:client:coverage`，发布源码清单加入所有新模块；未调整覆盖率阈值。
+
+新增回执与最终客户端门禁日志保存在
+`.hpm-acceptance/context-recovery-coordinator-20261018/`。该目录中的早期专项覆盖对应各自源码快照，不代替最终客户端门禁。
+
+最终 `npm run test:client:coverage`
+为 252/252 通过；语句与行 98.74%，分支 94.46%，函数 98.03%。最终修改范围的语法、Lint、格式、unit 发现、发布清单、CI 治理与 composition
+root 检查通过。`milestone.json` 绑定源码摘要和覆盖率报告摘要，明确
+`automaticEndpointRecovery:false` 与 `goalComplete:false`。
+
+## HTTP 调度与最终输出模块（2026-10-19）
+
+- 新增
+  `context-recovery-http-dispatch`，固定组合层提供的目标和凭据快照，每次调度、收到响应及完成响应时重新调用授权检查。去除内部 header 和旧压缩/长度 header，发送有界 identity
+  JSON；不重试、不切换路由。提前关闭、截断、取消、超限、压缩响应、网络错误和授权异常均返回固定安全错误并销毁请求。
+- 新增
+  `context-recovery-client-wire`，为 Chat、Responses、Messages 编码最终 JSON 或完整 SSE，汇总已完成内部轮次的数值 usage，保留外部工具 ID、参数及不透明字段。两种输出模式都拒绝发布内部工具调用，移除响应中的内部工具定义；编码本身不写客户端、不提交会话。
+- 观察器新增发布前的
+  `detach()`，允许恢复执行器接管仍有效的会话；开始观察任何字节后拒绝转移，避免重复提交或把已公开事件当作未发布。
+- 新增真实本地 HTTP 集成，连接会话服务、runner、HTTP 调度、客户端 SSE 编码和下一轮历史映射：经过三轮上游测试桩完成索引、精确 Unicode 读回及外部调用释放，确认内部调用和原文不出现在最终客户端输出。该测试不证明压缩后的恢复，也不代替主入口或真实模型验收。
+- 新测试加入 `test:client:coverage`
+  和统一 unit 发现；两个模块加入发布源码清单。该阶段尚未接主入口；后续提供方判定、权限/目标复查和发布逻辑见下方最新阶段。默认恢复开关未改变。
+
+本阶段最终
+`npm run test:client:coverage`：275 项通过，0 失败；语句/行 98.66%，分支 94.05%，函数 98.08%。修改范围语法、ESLint、格式检查及发布、CI、composition
+root 治理检查通过，已确认新增测试被统一 unit 发现。回执位于
+`.hpm-acceptance/context-recovery-http-20261019-01/milestone.json`。未重新运行全仓库
+`verify`，此前全仓库格式失败仍未解决；不将本阶段门禁作为整体通过。
+
+## 主 HTTP 入口与发布阶段（2026-10-19）
+
+- 新增
+  `context-recovery-http-entry`，由核心入口组合实际 transport、固定请求选项、会话、观察器和终态登记。只有已有可读来源、完整请求可解析、工具策略允许且观察器尚未发布字节时才接管。
+- 默认提供方判定限于 HTTPS 443 的 `api.openai.com` Responses/Chat 与
+  `api.anthropic.com`
+  Messages 原生路径，并排除官方登录和环境重定向到其他主机/端口。兼容上游、转换路径、WorkBuddy、官方 Codex 登录桥及 WebSocket 尚未接入此通用入口恢复；不能将默认判定规则视为这些客户端已通过验收。
+- 授权闭包固定初始 Principal、完整 live
+  profile 及影响转发的环境设置；从当前配置重新做入口认证、路由授权、开关和凭据/目标检查。每次内部请求、收到响应、响应完成及发布前均复查，不沿用入口开始时的旧配置。恢复请求不参与原有自动重试与切换路由。
+- 最终结果完成有界编码和会话提交后才发布，保留客户端原始 JSON/SSE 选择；等
+  `finish` 再登记成功。错误、断开或发布前撤权不登记成功。新增
+  `withdraw`，在提交后发布失败时撤回本分支及后代响应别名/映射，保留祖先与兄弟分支。
+- 实际 `createCoreRequestHandler`
+  本地 HTTP 测试经过主入口、真实本地上游和三轮内部恢复，覆盖 JSON、最终 SSE、权限撤销、一次终态登记以及内部内容不公开。该测试显式注入仅供测试的本地提供方 capability；生产默认不接受 loopback 作为已验证提供方。尚未发起真实模型请求，不证明各客户端整体完成。
+
+本阶段客户端测试最终独立复跑为 283 项通过，0 失败；覆盖率及源码摘要绑定
+`.hpm-acceptance/context-recovery-http-entry-20261019-01/milestone.json`。修改范围语法、Lint、格式、unit 发现、发布清单、CI 及 composition
+root 治理通过。前两阶段数量与覆盖率均保持各自快照含义。整体目标、持久化和多端验收仍未完成。
+
+并行执行全仓库格式检查时，有一次客户端复跑为 282/283：既有 direct-upload 集成的隔离服务在 15 秒启动期限内只到达证书就绪，未进入请求断言。保留失败日志；全仓库检查结束后，以未修改超时、断言和阈值的相同客户端命令独立复跑通过，不将失败记录删除或算作通过。未证明该超时只可能由资源竞争造成。
+
+本阶段字面 `npm run verify`
+在格式检查报告 399 个文件问题后退出 1，其余整体验证未执行。检查期间共享工作区仍有修改，最终范围另行完成格式及 Lint；不将 399 项都认定为既有问题，不批量改写临时文件或降低门禁。
+
+## 独立原生压缩映射专项核对（2026-10-19）
+
+当前源码新增 `context-recovery-compaction`，在受支持的原生 Responses
+compact 路径接通会话映射与发布检查。省略生成工具定义的 compact 请求使用独立连续性索引定位已观察父快照，继承其完整策略；普通生成与读取不放宽策略校验。完整规范输出提交后保留原响应字节，撤权、取消和发布失败撤回对应映射。压缩替换时清空该分支旧的私有工具历史，继承可授权证据，不修改不透明块。
+
+本次方案整理重新执行以下六个测试文件：`context-recovery-compaction.test.js`、`context-binding.test.js`、`context-recovery-sessions.test.js`、`context-recovery-protocol.test.js`、`client-context-target.test.js`、`native-compaction-response.test.js`，62 项通过，0 失败。包含真实本地核心 HTTP 连续三次独立压缩及后续精确 Unicode 原文读回、规范响应字节不变，以及歧义、非法输入、超限、过期与撤权等专项回归。上游为测试桩，不是真实提供方或安装客户端验收。
+
+上述 62 项为方案整理时的源码快照。后续当前阶段的客户端覆盖与源码回执见下一节，不将上一阶段 283 项结果视为当前源码的重新验收。恢复映射 2
+MiB 边界与原生压缩通道 16
+MiB 上限分别适用。官方登录、服务端阈值压缩、增量输入、跨重启与 WebSocket 恢复仍未完成；默认开关和生产运行状态未改变。
+
+## 三协议 HTTP 连续性与原生压缩阶段（2026-10-19）
+
+新增实际核心 HTTP 的 Chat 与 Messages 测试，分别验证最终 JSON/SSE、两次客户端请求和六轮内部调用、精确 Unicode 读回、内部工具及原文不出现在最终客户端输出、聚合 usage、一次终态登记，以及运行时关闭功能后停止继续请求。与此前 Responses 回归共同覆盖三协议本地核心入口，上游均为本地测试桩；默认生产提供方判定没有扩展。
+
+新测试先复现了真实连续性缺陷：普通文本输出没有自己的观察锚点，下一次 Chat/Messages 请求会选择较旧的祖先，使上轮私有恢复历史缺失。修复后，只有完整包含已确认锚点窗口且唯一关联父快照的后代，才继续索引其公开历史。纯文本根、缺失完整窗口的增量 response-ID 续接不能建立文本查找身份；相同完整后代仍歧义隔离。回归覆盖跨主体、纯文本、增量、重复窗口及撤回分支，不放宽普通策略或原有配额。
+
+本阶段 `npm run test:client:coverage`
+为 300 项通过，0 失败；语句/行 98.69%，分支 94.51%，函数 98.20%，阈值未变。新增测试位于已有统一 unit 发现和客户端覆盖入口；修改范围语法、Lint、格式以及发布清单、CI、composition
+root 门禁通过。源码与覆盖摘要回执保存在
+`.hpm-acceptance/context-recovery-native-continuity-20261019-01/milestone.json`。
+
+本阶段未重跑全仓库
+`verify`；上一阶段 399 个文件格式问题的失败仍有效，不宣称其后整体阶段通过。未发起真实模型请求、启用恢复开关、安装插件或重启生产服务。官方登录、转换、持久化、WebSocket、实际客户端与整体门禁仍是完整目标的未交付项。
+
+## Codex 官方登录 HTTP 适配（2026-10-19）
+
+新增
+`context-recovery-auth`，由现有认证解析器为已解析的 OpenAI 官方凭据建立进程内出处能力。配置 profile 与解析后 profile 分别绑定摘要，支持既有的 ChatGPT 后端地址重写和配置密钥/本地登录文件两种来源。JSON、入站 header 或同名属性不能伪造该能力；正常的可信请求规范化保留能力。授权复查同时验证当前入口主体、完整 live
+profile、环境与凭据出处，不再错误要求配置中的占位 key 和解析后的 token 相等。
+
+默认恢复提供方判定新增严格的 HTTPS 443
+`chatgpt.com/backend-api/codex/responses`，独立压缩对应
+`/compact`；仅允许具有认证解析器出处能力的
+`official-login/openai`。不扩展到其他官方登录提供方或兼容主机。原生 API 判定继续保留；本地 HTTP 只由测试依赖显式允许。Codex 仍要求完整 input、`store:false`
+和上游 SSE，拒绝 `previous_response_id` 与 API
+`context_management`，客户端的 JSON/SSE 偏好由最终发布层保留。缺省 instructions 以该后端规范化后的空字符串参与绑定。
+
+本地登录文件出处只做摘要校验，不输出或保存原文。复查最多读取 128
+KiB，文件变化、删除、变成目录、超限或不可读使该请求的恢复授权失效，不静默换凭据重试。该上限约束可选恢复资格，不扩大原认证解析器的普通转发能力。凭据加载错误改为固定日志，并用隔离子进程验证原异常内容不会进入日志。
+
+内部 Responses HTTP 调度现在在收到完整 `response.completed`
+SSE 数据块后结束已完成请求，释放仍开放的上游连接，再由既有 runner 验证完整协议结果。不会因 event 名、文本中的标记或缺失空行的半个 SSE 块提前完成；非法 JSON、失败/不完整终帧和撤权安全失败。保留完整响应大小、取消、读回预算和无自动重试规则。
+
+实际本地核心入口新增官方登录 JSON/SSE 与凭据文件变更测试；使用真实认证解析器和独立临时合成登录文件，没有读取真实登录凭据。另有官方登录形态连续三次独立压缩、规范输出字节不变和精确原文读回；所有上游均为本地测试桩。该阶段不代表已安装 Codex 版本或真实提供方验收，不代表 WebSocket 支持。
+
+本阶段最终门禁、覆盖率与源码摘要记录在
+`.hpm-acceptance/context-recovery-official-http-20261019-01/milestone.json`。未启用生产恢复、修改真实登录文件、重启服务或调用真实模型；完整目标保持未完成。
+
+## 首批转换入口恢复（2026-10-19）
+
+新增 `context-recovery-conversion` 与
+`context-recovery-converted-http`。核心入口在旧转换 handler 接管前，尝试 Responses
+→ 原生 Chat、Messages
+→ 原生 Chat 的共享恢复；组合层注入已有生产纯转换器，内部历史仍以客户端协议保存，逐轮转换请求并验证原上游与转换后的响应。内部请求使用固定 HTTP 调度，不复用会重试、刷新认证或发布输出的完整 handler。入口与原生恢复共用授权复查、发布提交、取消和终态登记。
+
+首批只准入可验证的文本、普通函数工具和明确支持的控制项。未知字段、签名 thinking、不透明压缩项、多模态、托管工具、强制工具及未支持的选项不被过滤后继续；在接管前保留原有允许路径。提示词预设、上下文优化、官方登录转换与 WorkBuddy 暂不接管。工具定义丢失或生产参数清理改变外部调用时安全失败。工具调用 ID、名称及参数经过转换前后校验，外部工具仍由客户端执行。
+
+恢复上游请求使用非流式 Chat，接收 JSON 或合法 SSE；客户端最终 JSON/SSE 偏好仍保留。实际本地核心入口覆盖两次客户端请求与六轮内部恢复、精确 Unicode 原文、隐藏历史续接、聚合用量、内外部混合暂存、撤权、未完成响应安全失败和客户端取消。接管后的失败不调用旧 handler 重放。测试清除转发环境覆盖并使用合成 key，所有上游为本地测试桩。
+
+新增测试进入统一 unit 发现及客户端覆盖，模块加入发布清单。本阶段客户端覆盖 321/321 通过，语句/行 98.75%、分支 94.59%、函数 98.30%；专项 51 项及 3 个既有转换契约测试文件通过。修改范围 Lint、格式、31 个 JS 文件语法、unit 发现及 CI、发布、composition
+root 门禁通过。未重跑全仓库 verify，历史格式失败仍有效。
+
+本阶段最终门禁与源码摘要见
+`.hpm-acceptance/context-recovery-conversion-http-20261019-01/milestone.json`；以实际回执为准，不累加历史测试数量。未启用生产恢复、修改真实认证、安装插件、重启服务或发起真实模型请求；完整目标尚未完成。Chat/Messages
+→
+Responses、反向 Messages、Gemini、WBIPC、预设与优化策略、更多历史形态仍待分批交付。
+
+## Chat/Messages 到 Responses 转换恢复（2026-10-19）
+
+新增 `context-recovery-responses-conversion`，复用生产 Chat/Claude →
+Responses 请求与响应转换器，并抽取共享
+`context-recovery-conversion-guards`。核心转换入口新增 `chat->responses` 与
+`claude->responses`；原生 API 与具有认证解析器出处能力的 Codex 官方登录分别资格检查。组合层继续只注入转换函数；内部历史、客户端工具执行权与最终发布事务不变。
+
+每轮请求都保留完整历史，比较转换前后的文本、调用 ID、名称、参数、结果和错误状态；校验工具 schema、控制项与模型没有被改变。Chat 指令只允许连续前缀且不混合 system/developer 优先级，无法无损表示的历史在接管前沿既有允许路径处理。缺省指令保留空字符串，不额外注入默认角色提示。普通函数默认显式
+`strict:false`，防止上游隐式改变非严格 schema 契约。禁止内部工具策略被转换器静默改成强制工具。
+
+修复生产 Claude → Responses 转换器未响应 `nativeContextManagement:true`
+的缺口：该明确选项现在与 Chat 转换器一样禁用本地历史裁剪，普通调用仍沿原策略。既有直接转换契约增加激进预算下的完整保留回归，新增适配器也在相同预算下检查原文未丢失。
+
+上游固定使用完整 input、`store:false` 和 `stream:true`，官方登录仍不支持 API
+`previous_response_id`/`context_management`；最终客户端可选择 JSON/SSE。原始与转换后响应都经过验证，工具 ID 与参数漂移、文本丢失、非法配对和控制项漂移安全失败。含签名 thinking、不透明 reasoning/压缩项、托管工具及其他无法无损映射的形态仍未支持，不能因官方登录合成测试通过就宣称真实后端所有响应形态可用。失败后不重放旧 handler。
+
+实际本地核心测试现按六类转换/认证组合运行：已有两类到 Chat、新增 Chat/Messages 到 API
+Responses 及到官方登录形态 Responses。覆盖连续两次客户端请求、六轮内部恢复、精确 Unicode 原文、隐藏历史衔接、外部混合调用暂存、最终 JSON/SSE、上游 SSE、撤权、未完成与不透明响应安全失败、取消，以及真实认证解析器读取合成登录文件后变更撤权。默认生产资格规则不接受测试的 loopback；实际宿主和提供方尚未验收。
+
+本阶段最终客户端覆盖 337/337 通过，语句/行 98.83%、分支 94.31%、函数 98.33%；专项 54 项及 4 个既有转换契约测试文件通过，其中直接 Claude 转换测试包含 1650 个差分案例。修改范围 Lint、格式、36 个 JS 文件语法、统一 unit 发现及 CI、发布、composition
+root 门禁通过。38 个代码和清单文件在验证前冻结摘要并在最终回执生成时复查；两份文档在验证后更新，单独检查格式并绑定最终摘要。
+
+本阶段回执为
+`.hpm-acceptance/context-recovery-responses-conversion-20261019-01/milestone.json`。未重跑全仓库 verify，历史格式失败仍有效。未启用生产恢复、修改真实认证文件、安装插件、重启服务或发起真实模型请求。反向 Messages、Gemini、WBIPC、预设/优化策略、不透明历史映射、用户文本归档、持久化、WebSocket、UI 和完整统一门禁继续保留在总目标中。
+
+## Chat/Responses 到 Messages 转换恢复（2026-10-19）
+
+新增 `context-recovery-messages-conversion`，接通核心入口的 `openai->claude` 与
+`responses->claude`。Chat 复用生产 Messages 请求及 Chat 响应转换器；Responses 经受校验的生产 Chat 转换衔接。抽出共享
+`context-recovery-conversion-projection`，与到 Responses 的适配器共用有序文本、工具调用和结果投影。组合层只增加生产转换器注入。
+
+每轮关闭转换器的本地历史裁剪，验证完整文本、指令、工具配对、ID、参数、schema、strict、输出上限、采样和并行工具策略；比较中间 Chat 表示与最终 Messages 表示。转换前保存独立工具与控制项快照，拒绝转换器原地改写源对象后继续。未知输入、有歧义指令、孤立工具结果、空响应、重复 ID、文本/调用重排和转换漂移均安全失败。
+
+该入口使用固定 `/messages`、`x-api-key` 与
+`anthropic-version:2023-06-01`，不携带 OpenAI
+Bearer 头。资格限制为受验证的原生 Anthropic 目标；官方登录、其他版本或 beta 请求头、服务层级、预设、优化策略及尚不能无损表示的历史继续沿未支持边界管理。上游生成使用非流式请求，但可验证上游返回的 JSON 或完整 Messages
+SSE；客户端最终 JSON/SSE 选择保持。签名 thinking、托管与多模态内容尚未支持；接管后的失败不调用旧 handler 重放。
+
+实际本地核心测试扩为八类转换/认证组合，新增两类分别覆盖连续两次客户端请求、六轮内部恢复、精确 Unicode 原文、多轮隐藏历史、外部混合调用、客户端 JSON/SSE、上游 Messages
+SSE、撤权、取消、未完成及不透明响应。回归测试进入统一 unit 发现和客户端覆盖，两个新模块进入发布清单。
+
+本阶段客户端覆盖 352/352 通过，语句/行 98.75%、分支 94.45%、函数 98.36%；专项 69 项与 4 个既有转换契约测试文件通过。范围内 Lint、格式、39 个 JS 文件语法、unit 发现及 CI、发布、composition
+root 门禁通过；41 个代码/清单文件按验证前摘要复查，两份文档随后单独校验并绑定最终摘要。回执为
+`.hpm-acceptance/context-recovery-messages-conversion-20261019-01/milestone.json`。
+
+未重跑全仓库 verify，历史格式失败仍有效。未调用真实模型、改变运行服务、安装插件或修改真实认证。Gemini、WBIPC、预设/优化、更多不透明历史、API 服务端压缩/增量输入、受控用户文本归档、持久化、WebSocket、UI 和真实客户端验收仍未完成。
+
+## 三协议到 Gemini API 转换恢复（2026-10-19）
+
+新增
+`context-recovery-gemini-conversion`，为 Chat、Responses、Messages 客户端接通原生 Gemini
+API 的内部恢复。每个适配器通过组合层工厂创建独立的生产 Gemini 转换器，不复用含工具状态的全局单例。请求历史统一校验，再逐项比较文本、指令、调用与结果、参数及控制项；生产转换中的参数清理、名称修复或历史文本化一旦改变原语义，恢复安全失败。
+
+Gemini 原生请求入口使用固定 `generateContent` 路径、`x-goog-api-key`，或既有
+`ya29.` OAuth 格式的 Bearer 头。默认资格限定
+`generativelanguage.googleapis.com`、HTTPS
+443 和原生路径，环境重定向或兼容主机不能直接取得资格。官方登录、Code
+Assist/WBIPC 和其他桥接后端未纳入本阶段。
+
+新增内部 `nativeContextManagement:true` 选项，关闭 Gemini
+Chat 适配器与最终 builder 两处历史裁剪；同一选项保留已验证的历史函数结构，即使混合阶段只向模型提供私有读取工具，也不把先前完成的外部工具历史改写为文本。普通转换仍沿既有裁剪和文本化策略。激进预算下的回归同时验证普通路径裁剪与恢复路径完整保留。
+
+工具声明通过 Gemini 的 `parametersJsonSchema` 保留原始 JSON Schema，替换旧
+`parameters`
+的有损投影；不同时发送两字段，也不冒充支持 strict。2026-10-19 从公开
+[Gemini v1beta discovery](https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta)
+核对该字段、对象约束及互斥契约。此处是协议依据，尚非真实模型验收。严格工具、不能保证的禁止并行策略、超出现有原生输出预算的控制项、服务层级与其他未支持选项仍不接管。
+
+响应先验证原生 JSON/SSE、单候选 STOP 终态、调用完整性与用量，再复用生产响应转换器。保留提供方已有调用 ID；缺少 ID 时生成本次调用独立的随机 ID，不按名称和参数复用身份。转换器内部的工具 ID 包装经过明确校验后映射回原 ID；下一轮函数调用与结果继续携带同一 ID。多帧 SSE 合并用量字段，后帧仅有输出用量时不得清零先前输入用量。签名 thought、分片函数参数、多模态、托管输出及未完成/过滤终态继续安全失败，尚未声明这些组合可用。
+
+恢复解码使用新的 `preserveExternalToolCalls:true`
+选项，禁止生产转换器将超大 Write 调用落盘暂存并改写为 Bash。回归拦截暂存目录创建，验证完整参数仍交还客户端；普通转换的既有行为保持独立。另有两个独立适配器用相同调用 ID、不同参数反复转换的缓存隔离测试。
+
+实际本地核心回归现为十一类转换/认证组合；新增三类覆盖两次客户端请求、六轮内部恢复、精确 Unicode 原文、隐藏历史、混合外部工具、客户端 JSON/SSE、上游 Gemini
+SSE、撤权、取消、未完成和不透明输出。最终客户端覆盖 371/371 通过，语句/行 98.82%、分支 93.99%、函数 98.40%；专项和既有契约最终结果及源码摘要以
+`.hpm-acceptance/context-recovery-gemini-conversion-20261019-01/milestone.json`
+为准。
+
+保留首轮完整覆盖率中的 stdio 网关 30 秒超时记录；单独检查与最终完整复跑均通过，未修改超时或阈值。多帧用量回归先复现输入用量从 2 变为 0，再修复并纳入统一 CI。未运行全仓库 verify，历史格式失败仍有效；未安装插件、启用生产恢复、重启服务或发起真实模型请求。WBIPC、预设/优化策略、不透明状态、API 服务端压缩/增量输入、受控用户文本归档、持久化、WebSocket、UI 与真实客户端验收仍待完成。
+
+## 此前验证记录
+
+以下为此前快照的验证记录；本阶段最终门禁结果单独记录，不叠加历史数量。
+
+本次方案核对重新运行以下五文件，共 42 项通过，0 失败：`context-binding.test.js`、`context-recovery-protocol.test.js`、`context-recovery-sessions.test.js`、`client-context-target.test.js`、`context-transport-policy.test.js`。其中实际核心入口测试使用本地 HTTP 与上游测试桩，证明不带证据 token、不依赖插件即可自动关联先前观察调用并精确读回后续原文；不代表真实模型、完整应用或客户端整体验收。
+
+以下为先前里程碑的验证记录，不将其覆盖率或门禁结果视为当前全部源码的重新验收：
+
+- WebSocket 凭据转发回归先失败，再通过。
+- 13 项分支绑定测试及 4 项传输策略测试通过。
+- 相关五文件测试共 37 项通过，包含既有 WebSocket 与 API 三协议隔离集成。
+- 两个新增模块的专项覆盖率：语句与行 99.44%，分支 97.32%，函数 100%。这是该源码快照的专项覆盖，不是整体覆盖率门禁。
+- 语法、相关 ESLint、Prettier、发布清单、CI 治理和 composition root 门禁通过。
+
+回执位于
+`.hpm-acceptance/context-recovery-implementation-20261018-01/milestone.json`，专项覆盖位于同目录
+`coverage/`。回执绑定源码摘要，标记
+`goalComplete:false`、`productionActivation:false` 和
+`automaticEndpointIntegration:false`。随后仅调整了传输测试的合成上游认证方式，避免读取环境 API_KEY，并重跑该文件 4 项测试通过。
+
+## 2026-10-23 托管超时诊断候选
+
+长历史独立进程新增固定阶段与整数毫秒诊断，覆盖模块加载、数据库打开、恢复、读取、发布及清理；父测试只解析白名单阶段，不转发原始 stderr。真实空闲 worker 的打开及重开沿用已有安全启动阶段回调。原有负载、断言和 5 秒请求、20 秒子进程、30 秒空闲测试期限均未放宽。本次是诊断补充，尚未证明托管超时根因已修复。
+
+本地带覆盖率验证通过 38 项测试，真实 worker 测试由名称筛选排除并由本地 native storage 保护脚本兜底；覆盖直接 SQLite 合成长历史跨进程恢复、纯逻辑和诊断安全边界。首次筛选遗漏真实空闲 worker 测试，被保护脚本拦截后修正重跑，不计为真实 worker 验收。新增回归由统一 unit 测试自动发现；修改文件 Lint、CI 治理及发布治理通过。没有实际存储 worker、DPAPI、注册表、安装器或真实模型请求的本地执行。完整托管门禁仍待候选提交后的结果。
+
+## 仍需交付
+
+1. 完善运行状态诊断和提供方/客户端组合能力清单；已完成阶段的模块与本地回执不能代替真实验收。
+2. 扩展原生及官方登录 HTTP 恢复到协议转换与 WorkBuddy；补原生 API 服务端压缩/增量输入、不透明混合工具和真实客户端验收，完善取消后的用量诊断。官方 Codex 后端保持其完整 input 契约，不冒充支持 API 增量参数。
+3. 接通受控历史用户文本归档；保留现有保护、来源引用及事务不变量。
+4. 实现 SQLite worker、内容加密、系统密钥保护、授权与预算重启恢复、清理和迁移。
+5. 实现 WebSocket 协议感知留存与恢复，完成重连、背压、帧边界和 HTTP 并发验收。
+6. 接通设置、运行状态、兼容迁移与可选插件升级诊断。
+7. 运行完整统一门禁及按客户端、传输、上游组合的真实验收；按版本绑定生产候选与激活证据。
+
+协调器里程碑曾执行字面
+`npm run verify`，在全仓库格式检查报告 400 个文件问题后以退出码 1 停止；后续整体验证阶段未执行。该历史检查期间工作区仍在修改，最终修改范围另行完成格式与 Lint 验证，不把中途结果当作最终源码的全仓库门禁。主入口阶段的最新结果见上方，未批量改写临时证据或降低规则。
+
+未安装或升级客户端插件，未启用持久化，未发起真实模型请求，也未修改运行中的共享服务。后续按完整方案继续实施，不将模块测试或注入 dispatch 的离线执行替代实际入口和客户端交付。

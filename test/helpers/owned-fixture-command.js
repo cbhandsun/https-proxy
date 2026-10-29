@@ -4,16 +4,105 @@ const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
 const { spawn, execFile } = require('node:child_process');
+const { types } = require('node:util');
+const ownedFailureDetails = new WeakMap();
+
+function safeCleanupCode(error) {
+  if (!error || typeof error !== 'object' || types.isProxy(error)) return 'unknown';
+  try {
+    const slot = Object.getOwnPropertyDescriptor(error, 'code');
+    const code = slot && Object.hasOwn(slot, 'value') ? slot.value : null;
+    return typeof code === 'string' &&
+      [
+        'EACCES',
+        'EBUSY',
+        'EEXIST',
+        'EINVAL',
+        'EIO',
+        'EISDIR',
+        'EMFILE',
+        'ENFILE',
+        'ENOENT',
+        'ENOSPC',
+        'ENOTDIR',
+        'ENOTEMPTY',
+        'EPERM',
+        'EROFS',
+      ].includes(code)
+      ? code
+      : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+function safeTerminationDetails(error) {
+  // Proxy descriptors can execute arbitrary traps, even without invoking getters.
+  if (types.isProxy(error)) return Object.freeze({ kind: 'unknown', code: null });
+  const ownValue = (key) => {
+    try {
+      if (!error || typeof error !== 'object') return undefined;
+      const descriptor = Object.getOwnPropertyDescriptor(error, key);
+      return descriptor && Object.hasOwn(descriptor, 'value') ? descriptor.value : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const rawCode = ownValue('code');
+  const allowedCodes = new Set([
+    'ETIMEDOUT',
+    'ENOENT',
+    'EACCES',
+    'EPERM',
+    'ESRCH',
+    'EINVAL',
+    'EPIPE',
+    'ERR_CHILD_PROCESS_STDIO_MAXBUFFER',
+    'ERR_INVALID_OWNED_PID',
+  ]);
+  const code =
+    typeof rawCode === 'string' && allowedCodes.has(rawCode)
+      ? rawCode
+      : Number.isSafeInteger(rawCode) && rawCode >= -2147483648 && rawCode <= 4294967295
+        ? rawCode
+        : null;
+  const kind =
+    code === 'ERR_INVALID_OWNED_PID'
+      ? 'invalid_pid'
+      : code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
+        ? 'output_limit'
+        : code === 'ETIMEDOUT'
+          ? 'timeout'
+          : ownValue('killed') === true
+            ? 'killed'
+            : typeof code === 'number'
+              ? 'exit_failure'
+              : code === null
+                ? 'unknown'
+                : 'system_error';
+  // execFile's killed flag records a signal attempt, not proof of its cause or
+  // successful tree termination. Its timeout/max-buffer paths can both set it.
+  return Object.freeze({ kind, code });
+}
+
+function ownedFixtureFailure(message, failure, termination = null) {
+  // Never retain the raw error/cause, command, arguments, output or environment.
+  const error = Object.assign(new Error(message), { failure, termination });
+  ownedFailureDetails.set(error, Object.freeze({ failure, termination }));
+  return error;
+}
 
 function terminateFixtureTree(child) {
   if (!Number.isSafeInteger(child.pid) || child.pid < 1 || child.pid === process.pid)
-    return Promise.reject(new Error('Invalid owned fixture PID'));
+    return Promise.reject(
+      Object.assign(new Error('Invalid owned fixture PID'), { code: 'ERR_INVALID_OWNED_PID' })
+    );
   if (process.platform !== 'win32') {
     try {
       process.kill(-child.pid, 'SIGKILL');
       return Promise.resolve();
-    } catch {
-      return Promise.reject(new Error('Owned fixture termination failed'));
+    } catch (error) {
+      return Promise.reject(error);
     }
   }
   return new Promise((resolve, reject) => {
@@ -22,7 +111,7 @@ function terminateFixtureTree(child) {
       ['/PID', String(child.pid), '/T', '/F'],
       { windowsHide: true, timeout: 5000 },
       (error) => {
-        if (error) reject(new Error('Owned fixture termination failed'));
+        if (error) reject(error);
         else resolve();
       }
     );
@@ -73,7 +162,7 @@ function runOwnedFixtureCommand(
         shell: false,
       });
     } catch {
-      reject(new Error('Owned fixture launch failed'));
+      reject(ownedFixtureFailure('Owned fixture launch failed', 'launch_failed'));
       return;
     }
     let closed = false,
@@ -101,9 +190,15 @@ function runOwnedFixtureCommand(
             treeStopped = true;
             finish();
           },
-          () => {
+          (error) => {
             // Reject rather than pretending it is safe to remove the workspace.
-            reject(new Error('Owned fixture termination failed'));
+            reject(
+              ownedFixtureFailure(
+                'Owned fixture termination failed',
+                failure,
+                safeTerminationDetails(error)
+              )
+            );
           }
         );
     };
@@ -143,18 +238,36 @@ function cleanupHookFixture(directory, primaryFailure, cleanupSafe, remove = fs.
   )
     throw new TypeError('Invalid hook cleanup input');
   if (!cleanupSafe) {
+    // TAP may omit custom cause fields. Render only our privately signed safe
+    // snapshot; never inspect arbitrary error properties, getters or proxies.
+    const details = ownedFailureDetails.get(primaryFailure);
+    const diagnostic =
+      'diagnostic primary=' +
+      (details?.failure ?? 'unknown') +
+      ' termination=' +
+      (details?.termination?.kind ?? 'unknown') +
+      ' code=' +
+      (details?.termination?.code ?? 'none');
     throw new AggregateError(
       primaryFailure ? [primaryFailure] : [],
-      'Hook termination failed; fixture retained: ' + directory,
+      'Hook termination failed; fixture retained: ' + directory + '; ' + diagnostic,
       { cause: primaryFailure }
     );
   }
   try {
     remove(directory, { recursive: true, force: true });
   } catch (cleanupFailure) {
+    const details = ownedFailureDetails.get(primaryFailure);
+    const diagnostic =
+      'diagnostic primaryPresent=' +
+      Boolean(primaryFailure) +
+      ' primary=' +
+      (details?.failure ?? (primaryFailure ? 'unknown' : 'none')) +
+      ' cleanupCode=' +
+      safeCleanupCode(cleanupFailure);
     throw new AggregateError(
       primaryFailure ? [primaryFailure, cleanupFailure] : [cleanupFailure],
-      'Hook fixture cleanup failed; primary failure preserved',
+      'Hook fixture cleanup failed; primary failure preserved; ' + diagnostic,
       { cause: cleanupFailure }
     );
   }

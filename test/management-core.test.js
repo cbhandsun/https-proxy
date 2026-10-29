@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const { Readable } = require('stream');
 const { trackTianxiNativeTask } = require('../lib/proxy/tianxi-live-result-wait');
+const { createContextRecoveryDiagnostics } = require('../lib/proxy/context-recovery-diagnostics');
 
 const {
   createManagementCoreHandlers,
@@ -51,6 +52,7 @@ function sendJson(res, statusCode, data) {
       localServer: { managementPort: 'also-invalid' },
       promptPresets: [{ id: 'default', content: 'hello' }],
     };
+    const recoveryDiagnostics = createContextRecoveryDiagnostics();
     const handlers = createManagementCoreHandlers({
       sendJson,
       metricsInstance: { render: () => 'hpm_requests_total 1\n' },
@@ -66,6 +68,7 @@ function sendJson(res, statusCode, data) {
         reloads += 1;
       },
       configFile,
+      recoveryDiagnostics,
       usageSummary: async () => ({ totalRequests: 3 }),
     });
 
@@ -73,12 +76,29 @@ function sendJson(res, statusCode, data) {
     handlers.handleLocalHealthRequest(emptyReq(), healthRes);
     const health = JSON.parse(healthRes.body);
     assert.strictEqual(healthRes.statusCode, 200);
-    assert.deepStrictEqual(health.tianxi, { activeNativeTasks: 0 });
+    assert.strictEqual(health.contextRecovery.state, 'pending_application');
+    assert.strictEqual(health.contextRecovery.storage, 'memory');
+    assert.strictEqual(health.contextRecovery.clientAcceptance, 'not_verified');
+    assert.strictEqual(
+      health.runtime.contextRecoveryDirectory,
+      path.join(require('../lib/proxy/config').DATA_DIR, 'context-recovery-v1')
+    );
+    assert.strictEqual(health.tianxi.activeNativeTasks, 0);
+    currentConfig.appSettings = {};
+    currentConfig.appSettings.contextRecoveryEnabled = true;
+    recoveryDiagnostics.configure(true);
+    recoveryDiagnostics.record('responses', 'completed');
+    const appliedHealth = createRes();
+    handlers.handleLocalHealthRequest(emptyReq(), appliedHealth);
+    const recoveryHealth = JSON.parse(appliedHealth.body).contextRecovery;
+    assert.strictEqual(recoveryHealth.state, 'enabled_restricted');
+    assert.strictEqual(recoveryHealth.counters.responses.completed, 1);
+    assert.strictEqual(recoveryHealth.restartRetention, false);
     const endNativeTask = trackTianxiNativeTask();
     try {
       const busyHealth = createRes();
       handlers.handleLocalHealthRequest(emptyReq(), busyHealth);
-      assert.deepStrictEqual(JSON.parse(busyHealth.body).tianxi, { activeNativeTasks: 1 });
+      assert.strictEqual(JSON.parse(busyHealth.body).tianxi.activeNativeTasks, 1);
     } finally {
       endNativeTask();
     }

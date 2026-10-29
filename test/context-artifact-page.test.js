@@ -10,6 +10,79 @@ const {
 const { createContextArtifactStore } = require('../lib/proxy/context-artifact-store');
 
 const sha = (text) => createHash('sha256').update(text).digest('hex');
+// EOF uses null rather than a six-digit continuation offset. The largest page
+// can fit even when a shorter candidate exceeds the same exact wire budget.
+const eofTransitionText = 'x'.repeat(100001);
+const eofTransitionRange = { offsetBytes: 99990, limitBytes: 11 };
+const eofTransitionFull = buildContextArtifactPage(
+  eofTransitionText,
+  'utf8',
+  sha(eofTransitionText),
+  eofTransitionRange
+);
+const eofTransitionBudget = serializedContentBytes(eofTransitionFull);
+assert.equal(
+  buildContextArtifactPage(
+    eofTransitionText,
+    'utf8',
+    sha(eofTransitionText),
+    eofTransitionRange,
+    eofTransitionBudget
+  ).page.endOffsetBytes,
+  100001
+);
+
+// Compare page selection to exhaustive valid UTF-8 boundaries, including exact
+// budgets, escaped controls and the terminal continuation-size discontinuity.
+for (const sample of [
+  '',
+  'plain é🙂',
+  '\u0000\n"\\é🙂',
+  '汉字🙂'.repeat(8),
+  Array.from({ length: 128 }, (_, index) => String.fromCharCode(index)).join(''),
+]) {
+  const payload = 'x'.repeat(100000) + sample;
+  const bytes = Buffer.from(payload);
+  const start = 100000;
+  const digest = sha(payload);
+  const candidates = [];
+  for (let end = start; end <= bytes.length; end++) {
+    if (end < bytes.length && (bytes[end] & 0xc0) === 0x80) continue;
+    const chunk = bytes.subarray(start, end);
+    const candidate = {
+      ok: true,
+      page: {
+        encoding: 'utf8',
+        text: chunk.toString('utf8'),
+        offsetBytes: start,
+        endOffsetBytes: end,
+        totalBytes: bytes.length,
+        nextOffsetBytes: end < bytes.length ? end : null,
+        digest,
+        chunkDigest: sha(chunk),
+      },
+    };
+    candidates.push(candidate);
+  }
+  const maximum = serializedContentBytes(candidates[candidates.length - 1]);
+  for (let budget = 0; budget <= maximum + 1; budget++) {
+    const expected = candidates.filter((value) => serializedContentBytes(value) <= budget).at(-1);
+    const actual = buildContextArtifactPage(
+      payload,
+      'utf8',
+      digest,
+      { offsetBytes: start },
+      budget
+    );
+    if (!expected || (sample && expected.page.endOffsetBytes === start)) {
+      assert.deepEqual(actual, { ok: false, error: 'context_artifact_budget_exceeded' });
+    } else {
+      assert.deepEqual(actual, expected);
+      assert.ok(serializedContentBytes(actual) <= budget);
+    }
+  }
+}
+
 for (const text of [
   'plain text',
   '汉字🙂é'.repeat(150),

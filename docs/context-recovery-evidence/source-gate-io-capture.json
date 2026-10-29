@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "baseSource": "bb929029bc5577acd9c16db2758f455c1a286a5c",
+  "purpose": "Capture the original proxy coverage window in the formal source gate on the same runner without changing its command, parallelism or deadlines.",
+  "verification": {
+    "captureAndWorkflowTests": {
+      "tests": 79,
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0
+    },
+    "relatedIoTests": {
+      "tests": 39,
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0
+    },
+    "syntaxFiles": 1733,
+    "lintErrors": 0,
+    "existingLintWarnings": 5,
+    "ciGovernance": true,
+    "releaseGovernance": true,
+    "changedJavaScriptFormatting": true,
+    "powerShellModuleParsed": true,
+    "actualPowerShellWorkflowFailureCases": 5
+  },
+  "developmentFailuresRetained": [
+    "The new source-gate capture integration rejected the previously unauthorized workflow before implementation.",
+    "An intermediate 78/79 run rejected formatter changes to the fixed ten-scenario literal; the original literal was restored without changing the assertion.",
+    "Prettier cannot parse PowerShell modules; the module was checked with the PowerShell parser."
+  ],
+  "latestFormalCi": {
+    "runId": 40630050030,
+    "sourceJobId": 122624078755,
+    "sourceStatus": "failure",
+    "failedFile": "test/context-hosted/n09-publication-ack-channel.test.js",
+    "failedCases": [
+      "signed cancellation handshake: uncertain",
+      "authenticated observation during synchronous ACK hold: observation"
+    ],
+    "persistentPublicationSamplesMs": [
+      846,
+      1099,
+      745,
+      943,
+      1848,
+      1408
+    ],
+    "fiveSecondStabilityQualified": false,
+    "businessMatrix": "skipped after failed source gate",
+    "sourceLogCharacters": 2677944
+  },
+  "localCandidateBuild": {
+    "source": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+    "sourcePreparationExitCode": 0,
+    "cacheCopyExitCode": 0,
+    "npmCiExitCode": 0,
+    "pluginCiExitCode": 1,
+    "pluginCiElapsedMs": 114342,
+    "failureCode": "ECONNRESET",
+    "publicRegistryObserved": true,
+    "installerProduced": false,
+    "automaticBuildRestarted": false
+  },
+  "limits": {
+    "sameSourceWindowsCaptureExecuted": false,
+    "ioCaptureIsProductFix": false,
+    "fiveSecondStabilityQualified": false,
+    "oldFailuresRetained": true,
+    "frozenDayRunUnmodified": true,
+    "new24HourStarted": false,
+    "oldDailyInstanceUnmodified": true,
+    "realModelRequests": 0
+  }
+}

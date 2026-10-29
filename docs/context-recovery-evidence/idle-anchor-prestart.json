@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "baselineSource": "eac2df8bc9f9bbb722f4d43fba14a347326be16b",
+  "change": "Fresh async owner prestarts only its existing idle anchor process before key protection; original readiness deadline is armed after persisted-key verification.",
+  "invariants": [
+    "No frame, request, sequence or readiness authority before original key barrier",
+    "Existing-key reopen binding unchanged",
+    "Exact durable enrollment and final ACK preserved",
+    "Startup failure awaits actual child close before releasing writer",
+    "Authentication, FULL/DELETE, deadlines and existing expirations unchanged"
+  ],
+  "regressions": {
+    "before": "Fresh channel starts at anchor_open_started instead of expected key_protect_started; naive early prime also fails delayed-key original-window regression",
+    "pure": {
+      "tests": 91,
+      "pass": 91,
+      "fail": 0,
+      "skip": 0
+    },
+    "expanded": {
+      "tests": 116,
+      "pass": 115,
+      "fail": 0,
+      "skip": 1,
+      "skipReason": "Existing platform-specific real storage worker preload test"
+    }
+  },
+  "checks": [
+    "Targeted ESLint zero warnings/errors",
+    "CI governance passed",
+    "1737 JavaScript syntax checks passed",
+    "git diff --check passed"
+  ],
+  "baselineCi": {
+    "verify": 40753325287,
+    "formal": 40753325142,
+    "timing": 40753325171,
+    "extraIo": 40753325053,
+    "allConclusions": "success",
+    "timingRunners": 3,
+    "testsPerTimingRunner": 50,
+    "publicationRangeMs": [835, 1112],
+    "formalBusinessJobs": 10,
+    "scope": "Selected hosted scenarios only; not full N08/N09 or current local installation",
+    "extraIoLogCharacters": 3809613,
+    "extraIoReceiptsAcceptedByOriginalParser": 3,
+    "traceCompletenessQualified": false
+  },
+  "windowsBaseline": {
+    "rootTag": "hpm-short-eac2df8-acbb5520",
+    "nativeOpen": {
+      "opens": 2,
+      "closes": 2,
+      "readyMs": [13444, 10114],
+      "deadlineMs": 30000
+    },
+    "journalPass": 9,
+    "capacityClockPass": 28,
+    "blobsPass": 92,
+    "rootStatePass": 73,
+    "nativeInterruption": {
+      "visiblePass": 8,
+      "visibleFailures": 9,
+      "parentDeadlineMs": 120000,
+      "controllerExitCode": 126,
+      "failureStage": "await ready before target advance",
+      "observedWarmOpenMs": [2683, 3778],
+      "ownedProcessesAfterFailure": 0
+    },
+    "finalFiveSecondGroupStarted": false
+  },
+  "limitations": [
+    "No Windows measurement of this change yet",
+    "Old 5003ms request / 5448ms COMMIT failure retained",
+    "No valid 24h pass; frozen 868 process absent with only four ticks and missing final receipt",
+    "No new installer or real-provider qualification"
+  ],
+  "realModelRequests": 0,
+  "new24hStarted": false,
+  "fiveSecondQualified": false
+}

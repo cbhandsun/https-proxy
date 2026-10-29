@@ -50,6 +50,37 @@ pub(crate) fn proxy_health_matches_root(health: &serde_json::Value, root: &Path)
             .unwrap_or(false)
 }
 
+pub(crate) fn launched_proxy_health_matches(
+    health: &serde_json::Value,
+    root: &Path,
+    child_pid: u32,
+) -> bool {
+    child_pid != 0
+        && health.get("pid").and_then(|value| value.as_u64()) == Some(u64::from(child_pid))
+        && proxy_health_matches_root(health, root)
+}
+
+// Tray events have the same completed-result shape as direct frontend commands.
+// A queued command or a rejected drain must never emit a success notification.
+pub(crate) fn tray_command_receipt(
+    command: &str,
+    result: Result<serde_json::Value, String>,
+) -> serde_json::Value {
+    let allowed = matches!(command, "start" | "stop" | "restart" | "status");
+    let mut reply = match result {
+        Ok(serde_json::Value::Object(object)) if allowed &&
+            object.get("code").and_then(|v| v.as_i64()) == Some(0) &&
+            object.get("timedOut").and_then(|v| v.as_bool()) == Some(false) &&
+            object.get("output").and_then(|v| v.as_str()).is_some() => object,
+        _ => serde_json::json!({"code":1,"timedOut":false,"output":"Proxy command was not confirmed; check its current status."}).as_object().unwrap().clone(),
+    };
+    reply.insert(
+        "command".into(),
+        if allowed { command } else { "unknown" }.into(),
+    );
+    serde_json::Value::Object(reply)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -112,5 +143,84 @@ mod tests {
         assert!(!proxy_health_matches_root(&mismatched, &root));
         let _ = std::fs::remove_dir_all(root);
         let _ = std::fs::remove_dir_all(other);
+    }
+    #[test]
+    fn launched_health_requires_the_spawned_pid_and_the_selected_runtime() {
+        let root = std::env::temp_dir().join("hpm-start-identity-fixture");
+        let matching = serde_json::json!({
+            "pid": 1234,
+            "runtime": {
+                "runtimeDir": root.join(".hpm-runtime"),
+                "entrypoint": root.join("openai-proxy.js")
+            }
+        });
+        assert!(launched_proxy_health_matches(&matching, &root, 1234));
+        assert!(!launched_proxy_health_matches(&matching, &root, 4321));
+        assert!(!launched_proxy_health_matches(&matching, &root, 0));
+        assert!(!launched_proxy_health_matches(
+            &matching,
+            &root.join("other"),
+            1234
+        ));
+        for invalid in [
+            serde_json::Value::Null,
+            serde_json::json!({}),
+            serde_json::json!([]),
+            serde_json::json!({"pid":1234}),
+        ] {
+            assert!(!launched_proxy_health_matches(&invalid, &root, 1234));
+        }
+        for pid in [
+            serde_json::Value::Null,
+            serde_json::json!(0),
+            serde_json::json!(-1),
+            serde_json::json!(1234.5),
+            serde_json::json!("1234"),
+            serde_json::json!(u64::MAX),
+        ] {
+            let mut invalid = matching.clone();
+            invalid["pid"] = pid;
+            assert!(!launched_proxy_health_matches(&invalid, &root, 1234));
+        }
+        for field in ["runtimeDir", "entrypoint"] {
+            let mut invalid = matching.clone();
+            invalid["runtime"][field] = serde_json::json!("foreign-runtime");
+            assert!(!launched_proxy_health_matches(&invalid, &root, 1234));
+        }
+    }
+
+    #[test]
+    fn tray_receipts_preserve_completed_results_and_never_announce_failed_or_malformed_success() {
+        for command in ["start", "stop", "restart", "status"] {
+            let receipt = tray_command_receipt(
+                command,
+                Ok(
+                    serde_json::json!({"code":0,"timedOut":false,"output":"synthetic confirmed","gracefulDrain":true}),
+                ),
+            );
+            assert_eq!(receipt["code"], 0);
+            assert_eq!(receipt["command"], command);
+            assert_eq!(receipt["gracefulDrain"], true);
+            for result in [
+                Err("PRIVATE_FAILURE".into()),
+                Ok(serde_json::Value::Null),
+                Ok(serde_json::json!({})),
+                Ok(serde_json::json!({"code":1,"timedOut":false,"output":"PRIVATE_FAILURE"})),
+                Ok(serde_json::json!({"code":0,"timedOut":true,"output":"PRIVATE_FAILURE"})),
+                Ok(serde_json::json!({"code":0,"timedOut":false,"output":null})),
+            ] {
+                let receipt = tray_command_receipt(command, result);
+                assert_eq!(receipt["code"], 1);
+                assert_eq!(receipt["command"], command);
+                assert!(!receipt.to_string().contains("PRIVATE_FAILURE"));
+            }
+        }
+        assert_eq!(
+            tray_command_receipt(
+                "stop\r\nprivate",
+                Ok(serde_json::json!({"code":0,"timedOut":false,"output":"private"}))
+            )["command"],
+            "unknown"
+        );
     }
 }

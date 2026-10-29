@@ -3,6 +3,44 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// Unit expectations must not change when the installed WorkBuddy catalog changes,
+// and must never probe the user's real login file. Every default path is owned.
+const testAppData = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-workbuddy-official-env-'));
+const priorAppData = process.env.LOCALAPPDATA;
+process.env.LOCALAPPDATA = testAppData;
+process.on('exit', () => {
+  if (priorAppData === undefined) delete process.env.LOCALAPPDATA;
+  else process.env.LOCALAPPDATA = priorAppData;
+  assert.strictEqual(path.dirname(path.resolve(testAppData)), path.resolve(os.tmpdir()));
+  assert.ok(path.basename(testAppData).startsWith('hpm-workbuddy-official-env-'));
+  fs.rmSync(testAppData, { recursive: true, force: true });
+});
+const productFile = path.join(
+  testAppData,
+  'Programs',
+  'WorkBuddy',
+  'resources',
+  'app.asar.unpacked',
+  'cli',
+  'product.json'
+);
+fs.mkdirSync(path.dirname(productFile), { recursive: true });
+fs.writeFileSync(
+  productFile,
+  JSON.stringify({
+    models: [
+      {
+        id: 'deepseek-v4.1-flash',
+        name: 'Synthetic text model',
+        supportsImages: false,
+        supportsToolCall: true,
+        maxInputTokens: 1000000,
+        maxOutputTokens: 50000,
+      },
+    ],
+  })
+);
+
 const {
   getWorkBuddyAuthInfoPath,
   readWorkBuddyAuthInfo,
@@ -167,6 +205,8 @@ const ds41Support = workBuddyOfficialModelSupport('workbuddy/deepseek-v4.1-flash
 assert.strictEqual(ds41Support.known, true);
 assert.strictEqual(ds41Support.supported, true);
 assert.strictEqual(ds41Support.model, 'deepseek-v4.1-flash');
+assert.strictEqual(ds41Support.supportsImages, false);
+assert.strictEqual(ds41Support.displayName, 'Synthetic text model');
 
 const mmSupport = workBuddyOfficialModelSupport('workbuddy/minimax-m3', cache);
 assert.strictEqual(mmSupport.known, true);
@@ -278,11 +318,14 @@ assert.ok(routeKeys.includes('workbuddy/glm-5.1'));
   );
 }
 
-// 12. Test live credentials if local file exists
+// 12. Test the default auth path using mandatory synthetic credentials, never a live account.
 const authPath = getWorkBuddyAuthInfoPath();
-if (fs.existsSync(authPath)) {
+assert.ok(authPath.startsWith(testAppData + path.sep));
+fs.mkdirSync(path.dirname(authPath), { recursive: true });
+fs.writeFileSync(authPath, JSON.stringify({ auth: { accessToken: 'fixture-only-opaque-token' } }));
+{
   const authInfo = readWorkBuddyAuthInfo(authPath);
-  assert.ok(authInfo, 'Should parse live workbuddy-desktop.info');
+  assert.ok(authInfo, 'Should parse synthetic workbuddy-desktop.info');
   assert.ok(
     authInfo.accessToken || authInfo.accessTokenEncrypted,
     'Access token should be present as plaintext or encrypted'
@@ -290,7 +333,7 @@ if (fs.existsSync(authPath)) {
   if (authInfo.accessToken) {
     assert.strictEqual(isUsableWorkBuddyAccessToken(authInfo.accessToken), true);
   }
-  console.log('[TEST] Live WorkBuddy credential shape verified');
+  assert.strictEqual(authInfo.accessToken, 'fixture-only-opaque-token');
 }
 
 // 13. Encrypted WorkBuddy credentials are detected but never coerced into token strings

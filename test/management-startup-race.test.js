@@ -8,6 +8,7 @@ const vm = require('node:vm');
 const { EventEmitter, once } = require('node:events');
 const { createRequire } = require('node:module');
 const { authorizeManagementRequest } = require('../lib/proxy/management-auth');
+const { resolvePhysicalTestTempDirectory } = require('../lib/test-runtime');
 
 const filename = path.resolve(__dirname, '../lib/proxy/server-lifecycle.js');
 const source = fs.readFileSync(filename, 'utf8');
@@ -23,6 +24,11 @@ async function freePort() {
 }
 
 function harness(port, entryPort) {
+  const runtimeDirectory = fs.mkdtempSync(
+    path.join(resolvePhysicalTestTempDirectory(), 'hpm-management-race-')
+  );
+  const pidOwners = [];
+  const warnings = [];
   const servers = [];
   const writes = [];
   const exits = [];
@@ -49,8 +55,26 @@ function harness(port, entryPort) {
     source,
     {
       module,
-      require: (name) => (name === 'http' ? testingHttp : localRequire(name)),
-      process: { env: {}, nextTick: process.nextTick, on() {}, exit: (code) => exits.push(code) },
+      require(name) {
+        if (name === 'http') return testingHttp;
+        const loaded = localRequire(name);
+        if (name !== './proxy-pid-persistence') return loaded;
+        return {
+          ...loaded,
+          createProxyPidPersistence(options) {
+            const owner = loaded.createProxyPidPersistence(options);
+            pidOwners.push(owner);
+            return owner;
+          },
+        };
+      },
+      process: {
+        pid: process.pid,
+        env: {},
+        nextTick: process.nextTick,
+        on() {},
+        exit: (code) => exits.push(code),
+      },
       setImmediate,
       setTimeout,
       clearTimeout,
@@ -63,7 +87,7 @@ function harness(port, entryPort) {
     module.exports.startProxyServers({
       ACTIVE_HTTPS_SERVERS: [],
       APP_ID: 'test-proxy',
-      DATA_DIR: '/test-runtime',
+      DATA_DIR: runtimeDirectory,
       ensureCert: () => {
         throw new Error('HTTP-only startup must not generate TLS credentials');
       },
@@ -79,6 +103,9 @@ function harness(port, entryPort) {
             readiness.push(servers.filter((server) => server.listening).length);
         },
         error() {},
+        warn() {
+          warnings.push(true);
+        },
       },
       parsePortOrDefault: (value, fallback) => value || fallback,
       writeManagementTokenFile() {
@@ -140,12 +167,27 @@ function harness(port, entryPort) {
           })
       )
     );
+    assert.ok((await Promise.all(pidOwners.map((owner) => owner.stop()))).every(Boolean));
+    assert.equal(fs.existsSync(path.join(runtimeDirectory, '.proxy.pid')), false);
+    assert.equal(
+      fs.readdirSync(runtimeDirectory).some((name) => name.startsWith('.proxy.pid.')),
+      false
+    );
+    assert.equal(warnings.length, 0, 'owned PID persistence must not fail silently');
+  }
+  async function dispose() {
+    try {
+      await close();
+    } finally {
+      fs.rmSync(runtimeDirectory, { recursive: true, force: true });
+    }
   }
   return {
     start,
     settle,
     status,
     close,
+    dispose,
     writes,
     exits,
     readiness,
@@ -180,7 +222,7 @@ function harness(port, entryPort) {
     assert.equal(await test.status(oldToken), 401);
     assert.equal(await test.status(test.token()), 200);
   } finally {
-    await test.close();
+    await test.dispose();
   }
 
   const failure = harness(await freePort());
@@ -191,7 +233,7 @@ function harness(port, entryPort) {
     assert.deepEqual(failure.exits, [1], 'credential persistence failures must fail startup');
     assert.equal(failure.writes.length, 0);
   } finally {
-    await failure.close();
+    await failure.dispose();
   }
   console.log('[management-startup-race.test] ok');
 })().catch((error) => {

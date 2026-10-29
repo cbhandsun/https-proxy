@@ -242,7 +242,7 @@ const unavailableCheckpoint = checkpointPayload(
 assert.ok(unavailableCheckpoint.evidenceReceipts.length > 0);
 assert.ok(
   unavailableCheckpoint.evidenceReceipts.every(
-    (receipt) => !receipt.locator && receipt.recovery === 'rerun_or_reread_original_tool'
+    (receipt) => !receipt.locator && receipt.recovery === 'missing_no_guess_no_replay'
   )
 );
 assert.equal(

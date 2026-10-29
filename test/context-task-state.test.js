@@ -123,7 +123,16 @@ test('joined registered sources preserve stable IDs, role and revocation order a
 });
 
 test('indexed source bounds reject invalid order, coercions and accessor hooks without silently slicing', () => {
-  for (const indices of [[], [1], ['0', 1], [-1, 1], [2, 1], [1, 1], [0, 2049], Array(2)])
+  for (const indices of [
+    [],
+    [1],
+    ['0', 1],
+    [-1, 1],
+    [2, 1],
+    [1, 1],
+    [0, Number.MAX_SAFE_INTEGER + 1],
+    Array(2),
+  ])
     assert.throws(() => createTaskStateSource(messages.slice(0, 2), { sourceIndices: indices }));
   let hooks = 0;
   assert.throws(() =>

@@ -1,0 +1,10 @@
+{
+  "name": "hpm-owned-nsis-clients",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pinned Windows x64 native clients for isolated installer qualification only",
+  "dependencies": {
+    "@anthropic-ai/claude-code-win32-x64": "2.1.292",
+    "@openai/codex-win32-x64": "npm:@openai/codex@0.160.1-win32-x64"
+  }
+}

@@ -1,0 +1,602 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "6646f5923a4633f6f3afbdd3995ef4e1f21f50c8",
+  "verify": {
+    "runId": 40594726506,
+    "jobsSucceeded": 8
+  },
+  "formal": {
+    "runId": 40594726439,
+    "sourceJobId": 122507607690,
+    "sourceGatePassed": false,
+    "targetInterruptionEntered": false,
+    "failureCases": [
+      {
+        "awaiting": "ready",
+        "startupTimeline": [],
+        "storageOperations": [
+          {
+            "sequence": 1,
+            "operation": "load-reference",
+            "status": "started",
+            "elapsedMs": 56
+          },
+          {
+            "sequence": 1,
+            "operation": "load-reference",
+            "status": "completed",
+            "elapsedMs": 61
+          },
+          {
+            "sequence": 2,
+            "operation": "save-reference-state",
+            "status": "started",
+            "elapsedMs": 79
+          },
+          {
+            "sequence": 2,
+            "operation": "save-reference-state",
+            "status": "completed",
+            "elapsedMs": 3866
+          },
+          {
+            "sequence": 3,
+            "operation": "save-reference-state",
+            "status": "started",
+            "elapsedMs": 3926
+          }
+        ],
+        "executionProgress": [],
+        "sqlProgress": [
+          {
+            "sequence": 1,
+            "phase": "begin-write",
+            "status": "started",
+            "elapsedMs": 2
+          },
+          {
+            "sequence": 1,
+            "phase": "begin-write",
+            "status": "returned",
+            "elapsedMs": 3
+          },
+          {
+            "sequence": 2,
+            "phase": "clock-write",
+            "status": "started",
+            "elapsedMs": 8
+          },
+          {
+            "sequence": 2,
+            "phase": "clock-write",
+            "status": "returned",
+            "elapsedMs": 8
+          },
+          {
+            "sequence": 3,
+            "phase": "commit",
+            "status": "started",
+            "elapsedMs": 9
+          },
+          {
+            "sequence": 3,
+            "phase": "commit",
+            "status": "returned",
+            "elapsedMs": 658
+          },
+          {
+            "sequence": 4,
+            "phase": "begin-write",
+            "status": "started",
+            "elapsedMs": 717
+          },
+          {
+            "sequence": 4,
+            "phase": "begin-write",
+            "status": "returned",
+            "elapsedMs": 717
+          },
+          {
+            "sequence": 5,
+            "phase": "commit",
+            "status": "started",
+            "elapsedMs": 719
+          },
+          {
+            "sequence": 5,
+            "phase": "commit",
+            "status": "returned",
+            "elapsedMs": 719
+          },
+          {
+            "sequence": 6,
+            "phase": "begin-write",
+            "status": "started",
+            "elapsedMs": 740
+          },
+          {
+            "sequence": 6,
+            "phase": "begin-write",
+            "status": "returned",
+            "elapsedMs": 740
+          },
+          {
+            "sequence": 7,
+            "phase": "clock-write",
+            "status": "started",
+            "elapsedMs": 843
+          },
+          {
+            "sequence": 7,
+            "phase": "clock-write",
+            "status": "returned",
+            "elapsedMs": 844
+          },
+          {
+            "sequence": 8,
+            "phase": "commit",
+            "status": "started",
+            "elapsedMs": 852
+          },
+          {
+            "sequence": 8,
+            "phase": "commit",
+            "status": "returned",
+            "elapsedMs": 4525
+          },
+          {
+            "sequence": 9,
+            "phase": "begin-write",
+            "status": "started",
+            "elapsedMs": 4589
+          },
+          {
+            "sequence": 9,
+            "phase": "begin-write",
+            "status": "returned",
+            "elapsedMs": 4589
+          }
+        ]
+      },
+      {
+        "awaiting": "ready",
+        "startupTimeline": [
+          {
+            "phase": "worker_started",
+            "elapsedMs": 117
+          },
+          {
+            "phase": "paths_started",
+            "elapsedMs": 149
+          },
+          {
+            "phase": "directory_acl_started",
+            "elapsedMs": 161
+          },
+          {
+            "phase": "directory_acl_finished",
+            "elapsedMs": 198
+          },
+          {
+            "phase": "paths_ready",
+            "elapsedMs": 199
+          },
+          {
+            "phase": "ownership_started",
+            "elapsedMs": 199
+          },
+          {
+            "phase": "ownership_acquired",
+            "elapsedMs": 236
+          },
+          {
+            "phase": "key_protect_started",
+            "elapsedMs": 236
+          },
+          {
+            "phase": "key_protect_finished",
+            "elapsedMs": 266
+          },
+          {
+            "phase": "key_write_started",
+            "elapsedMs": 266
+          },
+          {
+            "phase": "key_file_open_started",
+            "elapsedMs": 266
+          },
+          {
+            "phase": "key_file_opened",
+            "elapsedMs": 329
+          },
+          {
+            "phase": "key_acl_started",
+            "elapsedMs": 330
+          },
+          {
+            "phase": "key_acl_finished",
+            "elapsedMs": 359
+          },
+          {
+            "phase": "key_file_write_started",
+            "elapsedMs": 359
+          },
+          {
+            "phase": "key_file_write_finished",
+            "elapsedMs": 359
+          },
+          {
+            "phase": "key_file_flush_started",
+            "elapsedMs": 359
+          },
+          {
+            "phase": "key_file_flush_finished",
+            "elapsedMs": 556
+          },
+          {
+            "phase": "key_file_closed",
+            "elapsedMs": 556
+          },
+          {
+            "phase": "key_file_readback_started",
+            "elapsedMs": 556
+          },
+          {
+            "phase": "key_file_readback_finished",
+            "elapsedMs": 558
+          },
+          {
+            "phase": "key_write_finished",
+            "elapsedMs": 559
+          },
+          {
+            "phase": "anchor_open_started",
+            "elapsedMs": 559
+          },
+          {
+            "phase": "anchor_opened",
+            "elapsedMs": 624
+          },
+          {
+            "phase": "database_prepare_started",
+            "elapsedMs": 625
+          },
+          {
+            "phase": "database_prepared",
+            "elapsedMs": 695
+          },
+          {
+            "phase": "database_opened",
+            "elapsedMs": 696
+          },
+          {
+            "phase": "engine_prepare_started",
+            "elapsedMs": 696
+          },
+          {
+            "phase": "engine_anchor_validate_started",
+            "elapsedMs": 708
+          },
+          {
+            "phase": "engine_anchor_validate_finished",
+            "elapsedMs": 957
+          },
+          {
+            "phase": "engine_prepared",
+            "elapsedMs": 1227
+          },
+          {
+            "phase": "anchor_persist_started",
+            "elapsedMs": 1227
+          },
+          {
+            "phase": "anchor_persist_finished",
+            "elapsedMs": 1347
+          },
+          {
+            "phase": "engine_ready",
+            "elapsedMs": 1347
+          },
+          {
+            "phase": "ready",
+            "elapsedMs": 1347
+          }
+        ],
+        "storageOperations": [
+          {
+            "sequence": 1,
+            "operation": "load-reference",
+            "status": "started",
+            "elapsedMs": 64
+          },
+          {
+            "sequence": 1,
+            "operation": "load-reference",
+            "status": "completed",
+            "elapsedMs": 223
+          },
+          {
+            "sequence": 2,
+            "operation": "save-reference-state",
+            "status": "started",
+            "elapsedMs": 239
+          },
+          {
+            "sequence": 2,
+            "operation": "save-reference-state",
+            "status": "completed",
+            "elapsedMs": 1111
+          },
+          {
+            "sequence": 3,
+            "operation": "save-reference-state",
+            "status": "started",
+            "elapsedMs": 1187
+          },
+          {
+            "sequence": 3,
+            "operation": "save-reference-state",
+            "status": "completed",
+            "elapsedMs": 2695
+          },
+          {
+            "sequence": 4,
+            "operation": "save-reference-state",
+            "status": "started",
+            "elapsedMs": 2736
+          }
+        ],
+        "executionProgress": [
+          {
+            "sequence": 2,
+            "phase": "verify_before_finished",
+            "elapsedMs": 1
+          },
+          {
+            "sequence": 2,
+            "phase": "engine_execute_started",
+            "elapsedMs": 1
+          },
+          {
+            "sequence": 2,
+            "phase": "engine_execute_finished",
+            "elapsedMs": 661
+          },
+          {
+            "sequence": 2,
+            "phase": "engine_snapshot_started",
+            "elapsedMs": 661
+          },
+          {
+            "sequence": 2,
+            "phase": "engine_snapshot_finished",
+            "elapsedMs": 667
+          },
+          {
+            "sequence": 2,
+            "phase": "anchor_persist_started",
+            "elapsedMs": 667
+          },
+          {
+            "sequence": 2,
+            "phase": "anchor_persist_finished",
+            "elapsedMs": 823
+          },
+          {
+            "sequence": 2,
+            "phase": "verify_after_started",
+            "elapsedMs": 823
+          },
+          {
+            "sequence": 2,
+            "phase": "verify_after_finished",
+            "elapsedMs": 824
+          },
+          {
+            "sequence": 2,
+            "phase": "completed",
+            "elapsedMs": 824
+          },
+          {
+            "sequence": 3,
+            "phase": "verify_before_started",
+            "elapsedMs": 0
+          },
+          {
+            "sequence": 3,
+            "phase": "verify_before_finished",
+            "elapsedMs": 1
+          },
+          {
+            "sequence": 3,
+            "phase": "engine_execute_started",
+            "elapsedMs": 1
+          },
+          {
+            "sequence": 3,
+            "phase": "engine_execute_finished",
+            "elapsedMs": 818
+          },
+          {
+            "sequence": 3,
+            "phase": "engine_snapshot_started",
+            "elapsedMs": 818
+          },
+          {
+            "sequence": 3,
+            "phase": "engine_snapshot_finished",
+            "elapsedMs": 825
+          },
+          {
+            "sequence": 3,
+            "phase": "anchor_persist_started",
+            "elapsedMs": 825
+          },
+          {
+            "sequence": 3,
+            "phase": "anchor_persist_finished",
+            "elapsedMs": 1484
+          },
+          {
+            "sequence": 3,
+            "phase": "verify_after_started",
+            "elapsedMs": 1484
+          },
+          {
+            "sequence": 3,
+            "phase": "verify_after_finished",
+            "elapsedMs": 1485
+          },
+          {
+            "sequence": 3,
+            "phase": "completed",
+            "elapsedMs": 1485
+          },
+          {
+            "sequence": 4,
+            "phase": "verify_before_started",
+            "elapsedMs": 0
+          },
+          {
+            "sequence": 4,
+            "phase": "verify_before_finished",
+            "elapsedMs": 1
+          },
+          {
+            "sequence": 4,
+            "phase": "engine_execute_started",
+            "elapsedMs": 1
+          }
+        ],
+        "sqlProgress": []
+      }
+    ],
+    "egressPassed": true,
+    "subsequentScenariosSkipped": true
+  },
+  "additionalIo": {
+    "runId": 40594726441,
+    "jobId": 122507607168,
+    "passed": false,
+    "originalStage": "proxy",
+    "firstChatTurnPublicationCompletedMs": 3701,
+    "failedChatTurn": 1,
+    "failedChatTurnElapsedMs": 5000,
+    "requests": 8,
+    "handshakes": 8,
+    "roots": 1,
+    "epoch2Operations": [
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "storage",
+        "operation": "scan-reference",
+        "elapsedMs": 161,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "storage",
+        "operation": "scan-reference",
+        "elapsedMs": 99,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "beginAsync",
+        "elapsedMs": 331,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "storage",
+        "operation": "save-reference-state",
+        "combinedAdmission": true,
+        "elapsedMs": 1099,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "storage",
+        "operation": "settle-reader",
+        "elapsedMs": 1445,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "replyAsync",
+        "elapsedMs": 2602,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "storage",
+        "operation": "save-reference-state",
+        "combinedAdmission": true,
+        "elapsedMs": 546,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "storage",
+        "operation": "read-source-and-settle",
+        "elapsedMs": 351,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "replyAsync",
+        "elapsedMs": 950,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "storage",
+        "operation": "save-reference-state",
+        "combinedAdmission": true,
+        "combinedPublication": true,
+        "elapsedMs": 235,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "completeAsync",
+        "elapsedMs": 311,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "storage",
+        "operation": "save-reference-state",
+        "elapsedMs": 424,
+        "ownerEpoch": 2
+      },
+      {
+        "kind": "chat",
+        "mode": "long-persistent",
+        "phase": "startPublicationAsync",
+        "elapsedMs": 457,
+        "ownerEpoch": 2
+      }
+    ],
+    "recordedWindowId": "native-publication-interruption",
+    "recordedWindowCleanupVerified": true,
+    "recordedWindowSchema": 6,
+    "recordedWindowIsFailedChatWindow": false,
+    "traceCompletenessVerified": false,
+    "fiveSecondQualified": false
+  },
+  "realModelRequests": 0,
+  "knownFailuresRetained": true
+}

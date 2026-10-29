@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "4bd3ffce4e38c813865e7da42ddc750fb7948ada",
+  "ordinaryRun": 40611496992,
+  "formalRun": 40611496944,
+  "ordinaryCompletedSuccessCount": 6,
+  "ordinaryFailure": {
+    "jobId": 122563851285,
+    "test": "actual native recovery helper interoperates with legacy DPAPI wrapping without key migration",
+    "testElapsedMs": 10041.4917,
+    "errorCode": "context_recovery_key_unavailable",
+    "nativeProtectElapsedMs": 14,
+    "legacyUnprotectOutcome": "ETIMEDOUT",
+    "legacyUnprotectElapsedMs": 10025,
+    "legacyPhase": "unobserved",
+    "uniqueCauseEstablished": false
+  },
+  "ordinaryCoverage": {
+    "jobId": 122563851529,
+    "statusAtObservation": "in_progress",
+    "conclusion": null
+  },
+  "formalSourceFailure": {
+    "jobId": 122563850968,
+    "test": "native worker publication sending: release control inside durable OS anchor before publication ACK",
+    "testElapsedMs": 5207.1281,
+    "awaiting": "ready",
+    "lastFixture": "fixture-observed",
+    "startupPhase": "ready",
+    "startupElapsedMs": 2087,
+    "operation3": "save-reference-state",
+    "operation3ElapsedStartMs": 1767,
+    "lastExecutionPhase": "engine_execute_started",
+    "sqlProgressCount": 0,
+    "targetInterruptionEntered": false,
+    "uniqueCauseEstablished": false
+  },
+  "formalEgress": "success",
+  "formalBusiness": "skipped",
+  "fullFailureLogsRead": true,
+  "rerunPerformed": false,
+  "allOriginalGatesRetained": true,
+  "fiveSecondStabilityEstablished": false,
+  "qualification": false,
+  "realModelRequests": 0
+}

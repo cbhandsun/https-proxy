@@ -10,8 +10,6 @@ const startupTiming = createStartupTiming();
 const { parseBoundedInteger } = require('./lib/proxy/management-utils');
 const {
   createLogger,
-  withRequest,
-  newRequestId,
   getReqId,
   installReqIdMiddleware,
   sanitizeLogArgs,
@@ -27,11 +25,17 @@ try {
 } catch (err) {}
 const { createAuthResolver } = require('./lib/proxy/auth-resolver');
 const { createClaudeSelfTestTargetResolver } = require('./lib/proxy/claude-self-test-target');
-const { createCoreRequestHandler } = require('./lib/proxy/core-request-handler');
+const { createLazyCoreRequestHandler } = require('./lib/proxy/lazy-core-request-handler');
+const { createContextRecoveryRuntime } = require('./lib/proxy/context-recovery-runtime');
+const { composeContextProtocolOptions } = require('./lib/proxy/context-recovery-policy');
 const { createLazyManagementHandlers } = require('./lib/proxy/lazy-management-handlers');
+const { createProxyStopControl } = require('./lib/proxy/proxy-stop-control');
 const lazyFeatures = require('./lib/proxy/lazy-feature-handlers');
 const { createProxyTransport } = require('./lib/proxy/proxy-transport');
-const { createRequestObservability } = require('./lib/proxy/request-observability');
+const {
+  createRequestObservability,
+  createObservedRequestHandler,
+} = require('./lib/proxy/request-observability');
 const { createRuntimeConfigController } = require('./lib/proxy/runtime-config-controller');
 const { createRuntimeSupport } = require('./lib/proxy/runtime-support');
 const { createRuntimeHttpAgents } = require('./lib/proxy/runtime/http-agents');
@@ -72,8 +76,8 @@ const runtimeSupport = createRuntimeSupport({
   initialToken: MANAGEMENT_TOKEN,
   logger: log,
 });
-function writeManagementTokenFile(managementPort) {
-  MANAGEMENT_TOKEN = runtimeSupport.writeManagementTokenFile(managementPort);
+async function writeManagementTokenFile(managementPort) {
+  MANAGEMENT_TOKEN = await runtimeSupport.writeManagementTokenFileAsync(managementPort);
   return MANAGEMENT_TOKEN;
 }
 const {
@@ -83,17 +87,9 @@ const {
   stableCreated,
 } = require('./lib/proxy/ids');
 const { CERT_DIR, CERT_FILE, KEY_FILE, ensureCert } = require('./lib/proxy/cert');
+const { createLocalTlsRefresh } = require('./lib/proxy/local-tls-refresh');
 const ACTIVE_HTTPS_SERVERS = [];
-function refreshLocalTlsServers() {
-  const tlsConfig = ensureCert();
-  let refreshed = 0;
-  for (const server of ACTIVE_HTTPS_SERVERS) {
-    if (!server || typeof server.setSecureContext !== 'function') continue;
-    server.setSecureContext(tlsConfig);
-    refreshed += 1;
-  }
-  return { refreshed };
-}
+const refreshLocalTlsServers = createLocalTlsRefresh({ servers: ACTIVE_HTTPS_SERVERS, ensureCert });
 const {
   localModelIds,
   buildLocalOpenAIModelObject,
@@ -172,14 +168,16 @@ const {
   deltaPartialJson,
   extractSseDataPayloads,
 } = require('./lib/proxy/sse');
-const { createOpenAIProtocol } = require('./lib/proxy/protocol-openai');
-const { createGeminiProtocol } = require('./lib/proxy/protocol-gemini');
-const { createClaudeStream } = require('./lib/proxy/stream-claude');
+const {
+  createOpenAIProtocol,
+  createGeminiProtocol,
+  createClaudeStream,
+} = require('./lib/proxy/lazy-protocol-handlers');
 const { createProxyHandlers } = require('./lib/proxy/handlers');
 const { createClaudeFilters } = require('./lib/proxy/claude-filters');
 const {
   logFilteredToolBody,
-  sendGeminiRateLimit: sendGeminiRateLimitResponse,
+  createGeminiRateLimitSender,
   createLocalTokenHandlers,
 } = require('./lib/proxy/local-handlers');
 const {
@@ -229,14 +227,6 @@ const {
   buildUsageReport,
 } = require('./lib/proxy/usage-report');
 const { dispatchLocalManagementRoute } = require('./lib/proxy/management-router');
-const {
-  ENV_CHECK_TOOLS,
-  startToolInstallJob,
-  runToolInstall,
-  listInstallJobs,
-  checkEnvironmentTools,
-  clearEnvCaches,
-} = require('./lib/proxy/env-tools');
 const {
   fileSignature,
   readLastLinesOfJsonl,
@@ -369,7 +359,7 @@ const PORT = parsePortOrDefault(process.env.PORT || LOCAL_SERVER.listenPort, 344
 const CLI_SESSIONS = new Map();
 let MODEL_ROUTES = getModelRoutes(CONFIG);
 let CLAUDE_DESKTOP_ROUTES = getClaudeDesktopRoutes(CONFIG);
-const PROTOCOL_OPTIONS = { ...DEFAULT_CONFIG.protocolOptions, ...(CONFIG.protocolOptions || {}) };
+const PROTOCOL_OPTIONS = composeContextProtocolOptions(DEFAULT_CONFIG.protocolOptions, CONFIG);
 const makeRequest = createHttpClient({
   httpAgent: globalHttpAgent,
   httpsAgent: globalHttpsAgent,
@@ -466,7 +456,6 @@ const {
   handleLocalGeminiCliApplyRequest,
   handleLocalGeminiCliRestoreRequest,
 } = lazyFeatures.createLazyToolConfigHandlers();
-
 const { resolveOfficialCredentials, resolveConfiguredProfile } = createAuthResolver({
   loadConfig,
   getProfiles,
@@ -543,8 +532,10 @@ const antigravityCredentialWatchdog = createAntigravityCredentialWatchdog({
   getRuntimeState: () => ({ CONFIG, MODEL_ROUTES, PROFILES }),
   logProxyEvent,
 });
-
+const contextRecoveryLifecycle = createContextRecoveryRuntime({ dataDirectory: DATA_DIR });
+contextRecoveryLifecycle.configureSettings(CONFIG);
 const { reloadProxyConfig } = createRuntimeConfigController({
+  contextRecoveryLifecycle,
   configFile: CONFIG_FILE,
   createHttpsAgent,
   defaultProtocolOptions: DEFAULT_CONFIG.protocolOptions,
@@ -576,7 +567,10 @@ const { reloadProxyConfig } = createRuntimeConfigController({
 });
 upstreamWarmup.refresh();
 antigravityCredentialWatchdog.refresh();
+const proxyStopControl = createProxyStopControl();
 const managementHandlers = createLazyManagementHandlers({
+  proxyStopControl,
+  contextRecoveryLifecycle,
   CONFIG: () => CONFIG,
   PROFILES: () => PROFILES,
   ACTIVE_PROFILE: () => ACTIVE_PROFILE,
@@ -667,7 +661,7 @@ exceptionHandlers.install({
   },
 });
 
-const geminiProtocol = createGeminiProtocol({
+const geminiProtocolDependencies = {
   stableHash,
   fallbackId,
   cleanToolArgs,
@@ -678,7 +672,8 @@ const geminiProtocol = createGeminiProtocol({
   isClaudeThinkingBlock,
   sampleGeminiToolEvent,
   protocolOptions: PROTOCOL_OPTIONS,
-});
+};
+const geminiProtocol = createGeminiProtocol({ ...geminiProtocolDependencies });
 const {
   geminiClaudeToolId,
   rememberGeminiToolCall,
@@ -717,6 +712,8 @@ const {
   processOpenAIChatSseChunkToResponses,
   flushOpenAIChatSseToResponses,
   openAIChatToResponsesRequest,
+  claudeMessagesToResponsesRequest,
+  responsesResponseToClaude,
   openAIResponsesToChatResponse,
   processOpenAIResponsesSseChunkToChat,
   flushOpenAIResponsesSseToChat,
@@ -824,28 +821,7 @@ const { handleTianxiOfficialResponses } = lazyFeatures.createLazyTianxiOfficialH
   stableCreated,
 });
 
-function sendGeminiRateLimit(
-  clientReq,
-  clientRes,
-  upstreamPath,
-  startTime,
-  targetModel,
-  retryAfterSeconds,
-  message,
-  meta
-) {
-  return sendGeminiRateLimitResponse(
-    clientReq,
-    clientRes,
-    upstreamPath,
-    startTime,
-    targetModel,
-    retryAfterSeconds,
-    message,
-    meta,
-    logRequestEnd
-  );
-}
+const sendGeminiRateLimit = createGeminiRateLimitSender(logRequestEnd);
 
 const { handleCountTokens, handleResponsesInputTokens } = createLocalTokenHandlers({
   estimateTokens,
@@ -869,6 +845,7 @@ const {
 } = createProxyHandlers({
   ...openAIProtocol,
   ...geminiProtocol,
+  protocolOptions: PROTOCOL_OPTIONS,
   createGeminiResponsesStream,
   createGeminiChatStream,
   createGeminiClaudeStream,
@@ -899,17 +876,23 @@ const {
 });
 
 const ENTRY_SERVERS = getEntryServers(CONFIG);
-function handleRequest(clientReq, clientRes, entry) {
-  const reqId = clientReq.reqId || clientReq.headers['x-request-id'] || newRequestId();
-  clientReq.reqId = reqId;
-  if (!clientRes.headersSent)
-    try {
-      clientRes.setHeader('x-request-id', reqId);
-    } catch (e) {}
-  return withRequest({ reqId }, () => handleRequestInner(clientReq, clientRes, entry));
-}
-
-const handleRequestInner = createCoreRequestHandler({
+const handleRequest = createObservedRequestHandler(() => handleRequestInner);
+const handleRequestInner = createLazyCoreRequestHandler({
+  contextRecoveryLifecycle,
+  contextRecoveryConverters: {
+    stableCreated,
+    createGeminiProtocol: () => createGeminiProtocol(geminiProtocolDependencies),
+    openAIChatToClaudeMessages,
+    claudeResponseToOpenAIChat,
+    openAIResponsesToChat,
+    claudeMessagesToOpenAIChat,
+    openAIChatToResponses,
+    openAIResponseToClaudeMessage,
+    openAIChatToResponsesRequest,
+    claudeMessagesToResponsesRequest,
+    openAIResponsesToChatResponse,
+    responsesResponseToClaude,
+  },
   AUDIT_MAX_CAPTURE_BYTES,
   AUDIT_MAX_TEXT_CHARS,
   MAX_CONVERSION_RESPONSE_BYTES,
@@ -1033,14 +1016,29 @@ const handleRequestInner = createCoreRequestHandler({
 
 startupTiming.mark('composition_ready');
 
+const { createLazyWebSocketProxy } = require('./lib/proxy/lazy-websocket-proxy');
+const handleUpgrade = createLazyWebSocketProxy({
+  contextRecoveryLifecycle,
+  getConfig: () => CONFIG,
+  getProfiles: () => PROFILES,
+  getActiveProfile: () => ACTIVE_PROFILE,
+  resolveRoute,
+  resolveOfficialCredentials,
+  globalHttpAgent,
+  globalHttpsAgent,
+});
+
 if (require.main === module) {
   startProxyServers({
+    contextRecoveryLifecycle,
+    proxyStopControl,
     ACTIVE_HTTPS_SERVERS,
     APP_ID,
     DATA_DIR,
     ensureCert,
     exceptionHandlers,
     handleRequest,
+    handleUpgrade,
     installManagementCorsGuard,
     log,
     parsePortOrDefault,
@@ -1185,4 +1183,5 @@ module.exports = {
   CERT_FILE,
   MANAGEMENT_TOKEN,
   managementHandlers,
+  handleUpgrade,
 };

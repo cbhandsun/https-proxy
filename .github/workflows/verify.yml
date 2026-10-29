@@ -43,6 +43,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+      - run: rustup default stable
       - run: npm run test:unit
 
   coverage:
@@ -54,9 +56,33 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run test:coverage
-      - run: npm run test:client:coverage
-      - run: npm run test:frontend:coverage
+      - run: npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+      - run: rustup default stable
+      - name: Execute complete original coverage commands with owned file recording windows
+        shell: pwsh
+        env:
+          HPM_COVERAGE_IO: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $env:HPM_COVERAGE_IO_STAGE = 'proxy'
+          $env:HPM_COVERAGE_IO_PROXY_WINDOW = 'publication-interruption'
+          npm run test:coverage
+          $coverageExit = $LASTEXITCODE
+          if ($coverageExit -ne 0) { [Console]::Error.WriteLine('coverage_original_stage_failed:stage=' + $env:HPM_COVERAGE_IO_STAGE) }
+          node scripts/check-coverage-io-receipt.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Coverage I/O observation was not completed safely.' }
+          if ($coverageExit -ne 0) { throw 'Original proxy coverage failed; I/O evidence does not override its failure.' }
+          Remove-Item Env:\HPM_COVERAGE_IO_PROXY_WINDOW
+          $env:HPM_COVERAGE_IO_STAGE = 'client'
+          npm run test:client:coverage
+          $coverageExit = $LASTEXITCODE
+          if ($coverageExit -ne 0) { [Console]::Error.WriteLine('coverage_original_stage_failed:stage=' + $env:HPM_COVERAGE_IO_STAGE) }
+          node scripts/check-coverage-io-receipt.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Client coverage I/O observation was not completed safely.' }
+          if ($coverageExit -ne 0) { throw 'Original client coverage failed; I/O evidence does not override its failure.' }
+          npm run test:frontend:coverage
+          if ($LASTEXITCODE -ne 0) { throw 'Original frontend coverage failed.' }
 
   integration-tests:
     runs-on: windows-latest
@@ -85,8 +111,10 @@ jobs:
           workspaces: src-tauri
       - run: npm ci
       - run: npm run release:prepare
+      - run: npm run test:recovery-native
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
       - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - run: npm run test:rust
       - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: node scripts/check-windows-rust-audit.js
+      - run: cargo audit --file native/context-recovery-key/Cargo.lock

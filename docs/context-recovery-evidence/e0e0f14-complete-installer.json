@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+  "runId": 40625996281,
+  "resolveJobId": 122610921859,
+  "lifecycleJobId": 122611063764,
+  "conclusion": "success",
+  "fullLogRead": true,
+  "fullLogBytes": 3837699,
+  "manifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+  "applicationSha256": "c829ede16770892e3877bf426adfbfb57729d993c66dbbcee3d17dc8fe34a5f7",
+  "lifecyclePhases": [
+    {
+      "phase": "baseline",
+      "version": "0.1.0",
+      "applicationSha256": "8ff3a666c521b2b0debec2200fa961d116cc8424716ee9c4fdd2499781e2590a"
+    },
+    {
+      "phase": "current",
+      "version": "0.1.1",
+      "applicationSha256": "c829ede16770892e3877bf426adfbfb57729d993c66dbbcee3d17dc8fe34a5f7"
+    },
+    {
+      "phase": "baseline",
+      "version": "0.1.0",
+      "applicationSha256": "8ff3a666c521b2b0debec2200fa961d116cc8424716ee9c4fdd2499781e2590a"
+    },
+    {
+      "phase": "current",
+      "version": "0.1.1",
+      "applicationSha256": "c829ede16770892e3877bf426adfbfb57729d993c66dbbcee3d17dc8fe34a5f7"
+    }
+  ],
+  "lifecycleReceipts": {
+    "NSIS_RUNTIME_BOUNDARIES": {
+      "schemaVersion": 1,
+      "caseId": "settings-matrix",
+      "phase": "current_pre_rollback",
+      "manifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+      "scope": "installed_module_api",
+      "dependencyIdentity": "lock_only",
+      "restartRetention": false,
+      "combinations": [
+        {
+          "schemaVersion": 1,
+          "combination": "00",
+          "manifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+          "scope": "verified_payload_module_api",
+          "dependencyIdentity": "lock_only",
+          "checks": [
+            "policy_applied",
+            "storage_boundary",
+            "shutdown_acknowledged"
+          ],
+          "restartRetention": false
+        },
+        {
+          "schemaVersion": 1,
+          "combination": "01",
+          "manifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+          "scope": "verified_payload_module_api",
+          "dependencyIdentity": "lock_only",
+          "checks": [
+            "policy_applied",
+            "storage_boundary",
+            "shutdown_acknowledged"
+          ],
+          "restartRetention": false
+        },
+        {
+          "schemaVersion": 1,
+          "combination": "10",
+          "manifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+          "scope": "verified_payload_module_api",
+          "dependencyIdentity": "lock_only",
+          "checks": [
+            "policy_applied",
+            "storage_boundary",
+            "shutdown_acknowledged"
+          ],
+          "restartRetention": false
+        },
+        {
+          "schemaVersion": 1,
+          "combination": "11",
+          "manifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+          "scope": "verified_payload_module_api",
+          "dependencyIdentity": "lock_only",
+          "checks": [
+            "policy_applied",
+            "storage_boundary",
+            "shutdown_acknowledged"
+          ],
+          "restartRetention": false
+        }
+      ]
+    },
+    "NSIS_DAEMON_HTTP": {
+      "schemaVersion": 1,
+      "caseId": "daemon-http-settings-matrix",
+      "phase": "current_pre_rollback",
+      "scope": "installed_daemon_management_http",
+      "manifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+      "dependencyIdentity": "lock_only",
+      "modelRequests": 0,
+      "restartRetention": false,
+      "clientQualified": false,
+      "gracefulDrainQualified": false,
+      "controllerClosed": true,
+      "cleanupSemantics": "forced_cleanup",
+      "combinations": [
+        {
+          "combination": "00",
+          "checks": [
+            "config_saved",
+            "application_observed",
+            "storage_verified",
+            "owned_stop_acknowledged"
+          ]
+        },
+        {
+          "combination": "01",
+          "checks": [
+            "config_saved",
+            "application_observed",
+            "storage_verified",
+            "owned_stop_acknowledged"
+          ]
+        },
+        {
+          "combination": "10",
+          "checks": [
+            "config_saved",
+            "application_observed",
+            "storage_verified",
+            "owned_stop_acknowledged"
+          ]
+        },
+        {
+          "combination": "11",
+          "checks": [
+            "config_saved",
+            "application_observed",
+            "storage_verified",
+            "owned_stop_acknowledged"
+          ]
+        }
+      ]
+    }
+  },
+  "legacy582": {
+    "retention24hQualified": false,
+    "scope": "installed_payload_default_worker_582_migration",
+    "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+    "clientQualified": false,
+    "modelRequests": 0,
+    "passed": true,
+    "driver": {
+      "schemaVersion": 1,
+      "scope": "packaged_runtime_default_worker_legacy_layout_migration",
+      "passed": true,
+      "stages": 8,
+      "baselineSourceCount": 582,
+      "baselineManifestSha256": "4eb1ea482224541c14e7ccddabbb94d75dd2cb698a14a78f6745f11eef43b66f",
+      "currentManifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+      "modelRequests": 0,
+      "layoutBefore": 1,
+      "layoutAfter": 3,
+      "revisionDelta": 1,
+      "nsisQualified": false,
+      "workerQualified": true,
+      "retention24hQualified": false,
+      "clientQualified": false
+    },
+    "phase": "installed_legacy_582_finished",
+    "ownedTreeEmpty": true,
+    "uninstalled": true,
+    "installedMigrationQualified": true
+  },
+  "installedClients": {
+    "phase": "installed_native_cli_four_cases_finished",
+    "matrix": {
+      "schemaVersion": 7,
+      "scope": "installed_native_cli_four_cases",
+      "passed": true,
+      "syntheticClientQualified": true,
+      "realProviderQualified": false,
+      "retention24hQualified": false,
+      "realModelRequests": 0,
+      "probesPassed": true,
+      "tlsVerified": true,
+      "nonLoopbackBlocked": true,
+      "listenerOwned": true,
+      "ownedTreeEmpty": true,
+      "daemonNaturalExitQualified": true,
+      "httpTransportDrainQualified": true,
+      "sseTransportDrainQualified": true,
+      "websocketDrainQualified": true,
+      "websocketDrains": [
+        {
+          "client": "codex",
+          "mode": "default",
+          "protocol": "responses",
+          "unauthorizedUpgradeRefused": true,
+          "partialFrames": 5,
+          "terminalFrames": 0,
+          "clientClosed": true,
+          "upstreamClosed": true
+        },
+        {
+          "client": "codex",
+          "mode": "enhanced",
+          "protocol": "responses",
+          "unauthorizedUpgradeRefused": true,
+          "partialFrames": 5,
+          "terminalFrames": 0,
+          "clientClosed": true,
+          "upstreamClosed": true
+        }
+      ],
+      "syntheticSocketsClosed": true,
+      "cases": [
+        {
+          "client": "codex",
+          "mode": "default",
+          "compactions": 3,
+          "exactFinalAnswer": true,
+          "defaultZeroRecovery": true,
+          "privateRead": false,
+          "publicGeneration": false,
+          "restartRetention": true
+        },
+        {
+          "client": "codex",
+          "mode": "enhanced",
+          "compactions": 3,
+          "exactFinalAnswer": true,
+          "defaultZeroRecovery": false,
+          "privateRead": true,
+          "publicGeneration": true,
+          "restartRetention": true
+        },
+        {
+          "client": "claude",
+          "mode": "default",
+          "compactions": 3,
+          "exactFinalAnswer": true,
+          "defaultZeroRecovery": true,
+          "privateRead": false,
+          "publicGeneration": false,
+          "restartRetention": true
+        },
+        {
+          "client": "claude",
+          "mode": "enhanced",
+          "compactions": 3,
+          "exactFinalAnswer": true,
+          "defaultZeroRecovery": false,
+          "privateRead": true,
+          "publicGeneration": true,
+          "restartRetention": true
+        }
+      ]
+    },
+    "nativeControl": {
+      "probe": {
+        "schemaVersion": 1,
+        "scope": "installed_native_idle_stop_storage_reopen",
+        "passed": true,
+        "normalStops": 2,
+        "originalExpiryPreserved": true,
+        "storageReopenVerified": true,
+        "idleGracefulStopVerified": true,
+        "restartRetention": false,
+        "clientQualified": false,
+        "retention24hQualified": false,
+        "modelRequests": 0,
+        "sourceCommit": "e0e0f14c5e86ae17462f4ffc982e7837820a523b",
+        "manifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+        "applicationSha256": "c829ede16770892e3877bf426adfbfb57729d993c66dbbcee3d17dc8fe34a5f7"
+      },
+      "naturalTreeEmpty": true
+    },
+    "uninstalled": true
+  },
+  "installedPublication": {
+    "uninstalled": true,
+    "probe": {
+      "schemaVersion": 1,
+      "scope": "installed_payload_publication_interior",
+      "passed": true,
+      "manifestSha256": "3dc88520158dbe22619451f32a59c5be6182e7023f5ba72e8a1819af8cbf2913",
+      "tests": 30,
+      "passedTests": 30,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "defaultWorkerQualified": true,
+      "daemonQualified": false,
+      "retention24hQualified": false,
+      "realModelRequests": 0
+    },
+    "naturalTreeEmpty": true,
+    "phase": "installed_publication_finished",
+    "realModelRequests": 0,
+    "sourceSha": "e0e0f14c5e86ae17462f4ffc982e7837820a523b"
+  },
+  "scope": {
+    "hostedInstalledCandidateOnly": true,
+    "localDesktopCandidateChanged": false,
+    "later6257b6bQualified": false,
+    "realProviderQualified": false,
+    "retention24hQualified": false,
+    "maximumCapacityLongRunQualified": false,
+    "allKnownFailuresRetained": true,
+    "realModelRequests": 0
+  }
+}

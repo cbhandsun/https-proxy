@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "source": "45798f9104e07bddba457627c2681d2588454903",
+  "runtimeSource": "6c801fac70e4c80b7ce64d32c8bc7a8698fa322e",
+  "scope": "partial complete-job CI results and first actual schema7 I/O association; overall source gates pending",
+  "unitJobs": [
+    {
+      "job": 123101899156,
+      "fullLogChars": 976655,
+      "visibleNotOk": 0,
+      "associationTests": [
+        "ok 1 - paired I/O retains detached synthetic fixture and explicitly labelled scalar identities",
+        "ok 2 - fixture tags join device/Win32 spellings and journals but do not equate distinct fixtures",
+        "ok 3 - missing IDs remain null and pointer/IRP reuse cannot inherit an old fixture association",
+        "ok 4 - association rejects getters, proxies, wrong shapes and invalid ID bounds without invoking hooks",
+        "ok 5 - receipt parser rejects identity injection and downgrade while retaining old schema6 evidence",
+        "ok 6 - actual owner instrumentation emits its PID and matching fixture tag without reading foreign getters",
+        "ok 7 - top eight associated operations stay bounded and reused IRPs carry only their new identity"
+      ]
+    },
+    {
+      "job": 123101899181,
+      "fullLogChars": 702740,
+      "visibleNotOk": 0,
+      "associationTests": []
+    },
+    {
+      "job": 123101899231,
+      "fullLogChars": 580911,
+      "visibleNotOk": 0,
+      "associationTests": [
+        "ok 1 - actual PowerShell retains payload issuer independently of event header and refuses malformed identities"
+      ]
+    },
+    {
+      "job": 123101899362,
+      "fullLogChars": 603039,
+      "visibleNotOk": 0,
+      "associationTests": []
+    }
+  ],
+  "timing": {
+    "run": 40769318796,
+    "runners": [
+      {
+        "job": 123101898190,
+        "fullLogChars": 327027,
+        "tests": 50,
+        "pass": 50,
+        "fail": 0,
+        "skip": 0,
+        "persistentPublication": [
+          {
+            "kind": "chat",
+            "mode": "long-persistent",
+            "turn": 0,
+            "elapsedMs": 961
+          },
+          {
+            "kind": "chat",
+            "mode": "long-persistent",
+            "turn": 1,
+            "elapsedMs": 1105
+          },
+          {
+            "kind": "responses",
+            "mode": "long-persistent",
+            "turn": 0,
+            "elapsedMs": 961
+          },
+          {
+            "kind": "responses",
+            "mode": "long-persistent",
+            "turn": 1,
+            "elapsedMs": 1062
+          },
+          {
+            "kind": "claude",
+            "mode": "long-persistent",
+            "turn": 0,
+            "elapsedMs": 961
+          },
+          {
+            "kind": "claude",
+            "mode": "long-persistent",
+            "turn": 1,
+            "elapsedMs": 1051
+          }
+        ],
+        "ownerSamples": 599,
+        "fixtureTags": 3,
+        "ownerPids": 1
+      },
+      {
+        "job": 123101898540,
+        "fullLogChars": 326009,
+        "tests": 50,
+        "pass": 50,
+        "fail": 0,
+        "skip": 0,
+        "persistentPublication": [
+          {
+            "kind": "chat",
+            "mode": "long-persistent",
+            "turn": 0,
+            "elapsedMs": 786
+          },
+          {
+            "kind": "chat",
+            "mode": "long-persistent",
+            "turn": 1,
+            "elapsedMs": 904
+          },
+          {
+            "kind": "responses",
+            "mode": "long-persistent",
+            "turn": 0,
+            "elapsedMs": 852
+          },
+          {
+            "kind": "responses",
+            "mode": "long-persistent",
+            "turn": 1,
+            "elapsedMs": 907
+          },
+          {
+            "kind": "claude",
+            "mode": "long-persistent",
+            "turn": 0,
+            "elapsedMs": 793
+          },
+          {
+            "kind": "claude",
+            "mode": "long-persistent",
+            "turn": 1,
+            "elapsedMs": 907
+          }
+        ],
+        "ownerSamples": 597,
+        "fixtureTags": 3,
+        "ownerPids": 1
+      },
+      {
+        "job": 123101898562,
+        "fullLogChars": 327620,
+        "tests": 50,
+        "pass": 50,
+        "fail": 0,
+        "skip": 0,
+        "persistentPublication": [
+          {
+            "kind": "chat",
+            "mode": "long-persistent",
+            "turn": 0,
+            "elapsedMs": 977
+          },
+          {
+            "kind": "chat",
+            "mode": "long-persistent",
+            "turn": 1,
+            "elapsedMs": 1067
+          },
+          {
+            "kind": "responses",
+            "mode": "long-persistent",
+            "turn": 0,
+            "elapsedMs": 962
+          },
+          {
+            "kind": "responses",
+            "mode": "long-persistent",
+            "turn": 1,
+            "elapsedMs": 1146
+          },
+          {
+            "kind": "claude",
+            "mode": "long-persistent",
+            "turn": 0,
+            "elapsedMs": 910
+          },
+          {
+            "kind": "claude",
+            "mode": "long-persistent",
+            "turn": 1,
+            "elapsedMs": 1062
+          }
+        ],
+        "ownerSamples": 600,
+        "fixtureTags": 3,
+        "ownerPids": 1
+      }
+    ]
+  },
+  "io": {
+    "run": 40769318773,
+    "job": 123101897673,
+    "fullLogChars": 333934,
+    "tests": 50,
+    "pass": 50,
+    "fail": 0,
+    "skip": 0,
+    "schemaVersion": 7,
+    "pairedFlushes": 144,
+    "databaseMaxMs": 33,
+    "journalMaxMs": 203,
+    "finiteParserAccepted": true,
+    "observedCommitAssociation": {
+      "kind": "chat",
+      "mode": "long-persistent",
+      "ownerEpoch": 2,
+      "sequence": 4,
+      "operation": "settle-reader",
+      "commitMs": 224,
+      "journalFlushMs": 203,
+      "journalWriteMs": 201,
+      "fixtureTagMatched": true,
+      "eventHeaderPidMatchedOwner": true,
+      "payloadIssuerMatchedEventHeaderThread": true,
+      "threadCpuUserUsRecorded": 0,
+      "threadCpuSystemUsRecorded": 0
+    },
+    "observedClockWriteAssociation": {
+      "kind": "responses",
+      "mode": "long-persistent",
+      "ownerEpoch": 2,
+      "sequence": 7,
+      "clockWriteMs": 139,
+      "journalWriteMs": 139,
+      "fixtureTagMatched": true,
+      "eventHeaderPidMatchedOwner": true,
+      "payloadIssuerObserved": false
+    },
+    "traceCompletenessVerified": false,
+    "fiveSecondQualified": false,
+    "physicalFileIdentityProven": false,
+    "uniqueCauseProven": false
+  },
+  "pendingRuns": [
+    {
+      "run": 40769318872,
+      "job": 123101898869,
+      "name": "Verify coverage"
+    },
+    {
+      "run": 40769318882,
+      "job": 123101898563,
+      "name": "formal source-gates"
+    },
+    {
+      "run": 40769318995,
+      "job": 123101899699,
+      "name": "extra coverage I/O"
+    }
+  ],
+  "followup": "Add the newly imported association modules and tests to filtered Windows workflow push paths. Existing gates, commands, deadlines, workloads and branch matching stay unchanged.",
+  "preserved": {
+    "priorFailures": true,
+    "oldLongTestFrozen": true,
+    "new24hStarted": false,
+    "realModelRequests": 0,
+    "oldDailyInstanceUntouched": true,
+    "maximumCapacityUserPaused": true,
+    "latestInstallerQualified": false,
+    "overallComplete": false
+  }
+}

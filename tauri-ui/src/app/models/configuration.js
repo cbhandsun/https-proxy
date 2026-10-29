@@ -380,6 +380,8 @@ export function normalizeAppSettings(value, options = {}) {
     verifyUpstreamTls: true,
     conversationAuditEnabled: true,
     conversationAuditCaptureContent: false,
+    contextRecoveryEnabled: false,
+    contextRecoveryPersistenceEnabled: false,
     forceResponseStreaming: false,
     forceChatStreaming: false,
     upstreamWarmupEnabled: false,

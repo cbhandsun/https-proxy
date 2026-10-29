@@ -145,6 +145,16 @@ for (const bytes of [undefined, null, Symbol('invalid'), [], {}, 0, -1, Infinity
 }
 
 const boundedProfiles = createContextCapacityController({ maxEntries: 2 });
+
+// A known accepted request only 830 bytes below the rejection is still direct
+// acceptance evidence, not permission to probe beyond the rejected request.
+const nearRejection = createContextCapacityController();
+nearRejection.recordSuccess('near', 391200, 393216);
+assert.equal(nearRejection.recordRejection('near', 392030).safeBytes, 391200);
+assert.equal(nearRejection.targetBytes('near', 393216), 391200);
+assert.ok(nearRejection.recordRejection('near', 391200).safeBytes < 391200);
+assert.equal(nearRejection.targetBytes('another', 393216), 393216);
+
 boundedProfiles.recordRejection('old-profile', 100000);
 boundedProfiles.recordSuccess('recent-profile', 5000, 393216);
 boundedProfiles.recordSuccess('new-profile', 5000, 393216);

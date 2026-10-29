@@ -1,0 +1,13 @@
+# Optional policy example for an already installed local evidence plugin.
+# This file is distributed under examples/ and never activates itself.
+# After explicit opt-in, merge only the desired tables into trusted project
+# configuration. Native installation, hook trust and actual policy acceptance
+# are separate checks; this example does not establish an installed-client pass.
+# Model, provider, authentication and approval defaults remain user controlled.
+
+[plugins."hpm-local-evidence@hpm-local"]
+enabled = true
+
+[plugins."hpm-local-evidence@hpm-local".mcp_servers.evidence]
+enabled = true
+enabled_tools = ["hpm_list_retained_evidence", "hpm_read_retained_evidence", "hpm_capture_completed_hook"]

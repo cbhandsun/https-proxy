@@ -5,8 +5,49 @@ const {
   handleResponsesInputTokens,
   createLocalTokenHandlers,
   sendGeminiRateLimit,
+  createGeminiRateLimitSender,
   sendRateLimit,
 } = require('../lib/proxy/local-handlers');
+
+{
+  for (const value of [undefined, null, false, 'PRIVATE', {}])
+    assert.throws(() => createGeminiRateLimitSender(value), TypeError);
+  const directLogs = [],
+    boundLogs = [];
+  const response = () => ({
+    writeHead(status, headers) {
+      this.status = status;
+      this.headers = headers;
+    },
+    end(body) {
+      this.body = body;
+    },
+  });
+  for (const retry of [undefined, 0, -1, Infinity, 7]) {
+    const direct = response(),
+      bound = response();
+    const args = [
+      { method: 'POST' },
+      null,
+      '/v1/messages',
+      100,
+      'fixture',
+      retry,
+      'busy',
+      { fixture: true },
+    ];
+    sendGeminiRateLimit(args[0], direct, ...args.slice(2), (...values) => directLogs.push(values));
+    createGeminiRateLimitSender((...values) => boundLogs.push(values))(
+      args[0],
+      bound,
+      ...args.slice(2)
+    );
+    assert.strictEqual(bound.status, direct.status);
+    assert.deepStrictEqual(bound.headers, direct.headers);
+    assert.strictEqual(bound.body, direct.body);
+    assert.deepStrictEqual(boundLogs, directLogs);
+  }
+}
 
 function estimateTokens(value) {
   return String(value || '')

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "6646f5923a4633f6f3afbdd3995ef4e1f21f50c8",
+  "runIdentity": "09921c096ed95fd403817b3318cd4b4c52109e2acbd90ad67ea662612c088e88",
+  "sourceSha256": "09734483741b1981790e438475885937e62415c41ac00e1bd79f058459356cac",
+  "nativeSha256": "0356dfca64c77622a7699f765ea32577f1aa2613ff896db23cff17c41d490937",
+  "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+  "started": {
+    "event": "native_day_started",
+    "atUtc": "2026-10-27T22:41:21.177Z",
+    "realtime24hStarted": true,
+    "scheduledMs": 0,
+    "started": true,
+    "elapsedMs": 1075.9482000000007,
+    "maximumLatenessMs": 0
+  },
+  "lastValidTick": {
+    "event": "capacity_tick",
+    "atUtc": "2026-10-28T00:06:22.978Z",
+    "realtime24hStarted": true,
+    "scheduledMs": 5100000,
+    "started": true,
+    "elapsedMs": 5102873.5839,
+    "maximumLatenessMs": 38.81649999972433
+  },
+  "validTicks": 18,
+  "failures": [
+    {
+      "event": "native_day_failed",
+      "stage": "capacity",
+      "storeOpens": 1,
+      "storeCloses": 0,
+      "driverFailure": {
+        "primary": {
+          "operation": "advance",
+          "stage": "advance",
+          "commandIndex": 58,
+          "scheduledMs": 5400000
+        }
+      }
+    },
+    {
+      "event": "native_day_failed",
+      "stage": "capacity",
+      "storeOpens": 1,
+      "storeCloses": 1,
+      "driverFailure": {
+        "primary": {
+          "operation": "advance",
+          "stage": "advance",
+          "commandIndex": 58,
+          "scheduledMs": 5400000
+        },
+        "cleanup": {
+          "operation": "close",
+          "stage": "storage-close",
+          "commandIndex": 59,
+          "scheduledMs": 5400000
+        }
+      }
+    }
+  ],
+  "processFinished": {
+    "event": "process_finished",
+    "exitCode": 1,
+    "reason": "child_exit",
+    "atUtc": "2026-10-28T00:11:30.7892569Z",
+    "elapsedMs": 5422114,
+    "stdoutBytes": 7833,
+    "stderrBytes": 27,
+    "autoRetry": false,
+    "realModelRequests": 0
+  },
+  "taskResult": 1,
+  "terminalConfirmed": true,
+  "failureLatched": true,
+  "lastValidScheduledMinutes": 85,
+  "failedAdvanceScheduledMinutes": 90,
+  "realtime24hPassed": false,
+  "expiredReopensPassed": 0,
+  "sourceIdentityAfterFailure": {
+    "event": "frozen_identity_after_failure",
+    "head": "6646f5923a4633f6f3afbdd3995ef4e1f21f50c8",
+    "sourceSha256": "09734483741b1981790e438475885937e62415c41ac00e1bd79f058459356cac",
+    "nativeSha256": "0356dfca64c77622a7699f765ea32577f1aa2613ff896db23cff17c41d490937",
+    "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+    "dirty": false,
+    "sourceFiles": 577
+  },
+  "systemTimeQuery": {
+    "observedEvents": 0,
+    "windowUtc": [
+      "2026-10-28T00:00:00Z",
+      "2026-10-28T00:13:00Z"
+    ],
+    "doesNotRuleOutClockFailure": true
+  },
+  "ownedProcessReadOnly": {
+    "event": "frozen_owned_process_readonly",
+    "nodeCount": 0,
+    "nativeHelperCount": 0,
+    "checkedAtUtc": "2026-10-28T00:17:00.4256310Z",
+    "processesTerminated": 0,
+    "tasksStarted": 0
+  },
+  "storageOperationFailureEventObserved": false,
+  "uniqueRootCauseConfirmed": false,
+  "missingFailureSubphase": "advance combined identity-before, real wait, identity-after and progress output; original exited process cannot be retrospectively reclassified",
+  "modelRequests": 0,
+  "newTaskStarted": false,
+  "autoRetry": false,
+  "frozenDataModified": false
+}

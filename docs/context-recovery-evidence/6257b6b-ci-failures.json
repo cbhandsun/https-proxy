@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "6257b6b73475af2202d4438008d617df22ec0528",
+  "verify": {
+    "runId": 40626851312,
+    "sevenOtherJobsPassed": true,
+    "failedCoverageJob": 122613736095,
+    "failedFiles": [
+      "test/context-hosted/n09-publication-ack-client.test.js"
+    ],
+    "fullFailureLogRead": true
+  },
+  "formal": {
+    "runId": 40626851354,
+    "failedSourceJob": 122613736247,
+    "egressPassed": true,
+    "businessSkipped": true,
+    "failedFiles": [
+      "test/client-context-target.test.js",
+      "test/context-hosted/installed-client-egress-wfp.test.js",
+      "test/context-hosted/n09-publication-ack-channel.test.js"
+    ],
+    "fullFailureLogRead": true
+  },
+  "persistentFailures": [
+    {
+      "kind": "responses",
+      "mode": "long-persistent",
+      "turn": 1,
+      "phase": "request_failed",
+      "elapsedMs": 5006
+    },
+    {
+      "kind": "claude",
+      "mode": "long-persistent",
+      "turn": 0,
+      "phase": "publication_wait_failed",
+      "elapsedMs": 5011
+    }
+  ],
+  "sqliteCommitObservations": [
+    {
+      "kind": "responses",
+      "ownerEpoch": 2,
+      "sequence": 3,
+      "operation": "save-reference-state",
+      "elapsedMs": 913,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "cpuResolutionCoarse": true
+    },
+    {
+      "kind": "responses",
+      "ownerEpoch": 2,
+      "sequence": 5,
+      "operation": "save-reference-state",
+      "elapsedMs": 3887,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "cpuResolutionCoarse": true
+    },
+    {
+      "kind": "claude",
+      "ownerEpoch": 1,
+      "sequence": 0,
+      "operation": "startup",
+      "elapsedMs": 733,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "cpuResolutionCoarse": true
+    },
+    {
+      "kind": "claude",
+      "ownerEpoch": 1,
+      "sequence": 3,
+      "operation": "save-reference-state",
+      "elapsedMs": 1487,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "cpuResolutionCoarse": true
+    },
+    {
+      "kind": "claude",
+      "ownerEpoch": 1,
+      "sequence": 4,
+      "operation": "save-reference-state",
+      "elapsedMs": 1640,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "cpuResolutionCoarse": true
+    },
+    {
+      "kind": "claude",
+      "ownerEpoch": 1,
+      "sequence": 5,
+      "operation": "settle-reader",
+      "elapsedMs": 706,
+      "threadCpuUserUs": 0,
+      "threadCpuSystemUs": 0,
+      "cpuResolutionCoarse": true
+    }
+  ],
+  "otherObservedFailures": {
+    "signedChannelArm750msRejected": true,
+    "installedWfpCompileSpawnSyncPwsh25000msTimedOut": true
+  },
+  "scope": {
+    "proxyGuardRegressionEstablished": false,
+    "uniqueIoCauseEstablished": false,
+    "zeroCpuCountProvesNoCpu": false,
+    "fiveSecondQualified": false,
+    "e0SuccessOverridesThisFailure": false,
+    "rerun": false,
+    "realModelCalls": 0
+  },
+  "extraIo": {
+    "runId": 40626851322,
+    "jobId": 122613735924,
+    "conclusion": "success",
+    "fullLogRead": true,
+    "allThreeOriginalReceiptsAccepted": true,
+    "windows": [
+      {
+        "windowId": "native-publication-interruption",
+        "pairedFlushes": 209,
+        "databaseMaxMs": 51,
+        "journalMaxMs": 35,
+        "fiveSecondQualified": false,
+        "traceCompletenessVerified": false
+      },
+      {
+        "windowId": "client-context-target",
+        "pairedFlushes": 144,
+        "databaseMaxMs": 63,
+        "journalMaxMs": 30,
+        "fiveSecondQualified": false,
+        "traceCompletenessVerified": false
+      },
+      {
+        "windowId": "publication-graceful-http",
+        "pairedFlushes": 63,
+        "databaseMaxMs": 11,
+        "journalMaxMs": 16,
+        "fiveSecondQualified": false,
+        "traceCompletenessVerified": false
+      }
+    ],
+    "doesNotOverrideCoverageOrSourceFailures": true
+  }
+}

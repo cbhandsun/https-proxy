@@ -70,6 +70,10 @@ function fixture(options = {}) {
         completed++;
       }),
     onFailure: (code) => failures.push(code),
+    ...(options.beforePublish ? { beforePublish: options.beforePublish } : {}),
+    ...(options.beforePublishAsync ? { beforePublishAsync: options.beforePublishAsync } : {}),
+    ...(options.afterFinishAsync ? { afterFinishAsync: options.afterFinishAsync } : {}),
+    ...(options.publicationAllowed ? { publicationAllowed: options.publicationAllowed } : {}),
     ...(options.diagnosticLog ? { diagnosticLog: options.diagnosticLog } : {}),
   });
   return {
@@ -94,6 +98,180 @@ test('native response holds every byte until complete, preserves exact wire and 
   f.proxyRes.emit('error', new Error('TOKEN_CONTENT_MUST_NOT_LEAK'));
   assert.equal(f.result().completed, 1);
   assert.deepEqual(f.failures, []);
+});
+
+const flush = () => new Promise((resolve) => setImmediate(resolve));
+function deferred() {
+  let resolve;
+  const promise = new Promise((yes) => {
+    resolve = yes;
+  });
+  return { promise, resolve };
+}
+test('async prepare and finish gate exact publication, tolerate upstream close and ignore duplicate finish', async () => {
+  const prepare = deferred(),
+    finish = deferred();
+  let finishCalls = 0;
+  const f = fixture({
+    beforePublishAsync: () => prepare.promise,
+    afterFinishAsync: () => {
+      finishCalls++;
+      return finish.promise;
+    },
+  });
+  f.proxyRes.emit('data', wire);
+  f.proxyRes.emit('end');
+  f.proxyRes.emit('close');
+  assert.equal(f.result().status, undefined);
+  prepare.resolve(true);
+  await flush();
+  assert.deepEqual(f.result().output, wire);
+  assert.equal(f.result().completed, 0);
+  f.clientRes.emit('close');
+  f.clientRes.emit('finish');
+  assert.equal(finishCalls, 1);
+  finish.resolve(true);
+  await flush();
+  assert.equal(f.result().completed, 1);
+  assert.deepEqual(f.failures, []);
+});
+
+test('async preparation cancellation prevents late headers and reports failure exactly once', async () => {
+  const pending = deferred();
+  const f = fixture({ beforePublishAsync: () => pending.promise });
+  f.proxyRes.emit('data', wire);
+  f.proxyRes.emit('end');
+  f.clientRes.destroy();
+  pending.resolve(true);
+  await flush();
+  assert.equal(f.result().status, undefined);
+  assert.equal(f.result().output.length, 0);
+  assert.equal(f.result().completed, 0);
+  assert.deepEqual(f.failures, ['compaction_publication_failed']);
+});
+
+test('async callbacks reject non-ACK values, executable thenables and rejections without leaking data', async () => {
+  let executed = 0;
+  const hostile = {
+    get then() {
+      executed++;
+      throw new Error('TOKEN_CONTENT');
+    },
+  };
+  for (const callback of [
+    () => true,
+    () => hostile,
+    () => Promise.resolve(false),
+    () => Promise.resolve({ ok: true }),
+    () => Promise.reject(new Error('TOKEN_CONTENT')),
+    () => {
+      throw new Error('TOKEN_CONTENT');
+    },
+  ]) {
+    for (const phase of ['prepare', 'finish']) {
+      const f = fixture(
+        phase === 'prepare' ? { beforePublishAsync: callback } : { afterFinishAsync: callback }
+      );
+      f.proxyRes.emit('data', wire);
+      f.proxyRes.emit('end');
+      await flush();
+      assert.equal(f.result().completed, 0);
+      assert.deepEqual(f.failures, ['context_recovery_compaction_unavailable']);
+      assert.equal(f.result().status, phase === 'prepare' ? 502 : 200);
+      assert.doesNotMatch(f.result().output.toString(), /TOKEN_CONTENT/);
+      if (phase === 'finish') assert.deepEqual(f.result().output, wire);
+    }
+  }
+  assert.equal(executed, 0);
+});
+
+test('permission is rechecked after asynchronous callbacks immediately before publish and success report', async () => {
+  for (const phase of ['prepare', 'finish']) {
+    const pending = deferred();
+    let allowed = true;
+    const f = fixture({
+      ...(phase === 'prepare'
+        ? { beforePublishAsync: () => pending.promise }
+        : { afterFinishAsync: () => pending.promise }),
+      publicationAllowed: () => allowed,
+    });
+    f.proxyRes.emit('data', wire);
+    f.proxyRes.emit('end');
+    allowed = false;
+    pending.resolve(true);
+    await flush();
+    assert.equal(f.result().completed, 0);
+    assert.deepEqual(f.failures, ['context_recovery_compaction_unavailable']);
+    assert.equal(f.result().status, phase === 'prepare' ? 502 : 200);
+  }
+});
+
+test('asynchronous terminal reporting errors are consumed and cannot revoke completed publication', async () => {
+  const diagnostics = [];
+  const f = fixture({
+    onComplete: () => Promise.reject(new Error('TOKEN_CONTENT')),
+    diagnosticLog: { error: (...args) => diagnostics.push(args) },
+  });
+  f.proxyRes.emit('data', wire);
+  f.proxyRes.emit('end');
+  await flush();
+  assert.deepEqual(f.result().output, wire);
+  assert.deepEqual(f.failures, []);
+  assert.equal(diagnostics.length, 1);
+  assert.doesNotMatch(JSON.stringify(diagnostics), /TOKEN_CONTENT/);
+});
+
+test('async callback configuration rejects invalid values and native Promise accessors are never executed', async () => {
+  for (const slot of ['beforePublishAsync', 'afterFinishAsync', 'publicationAllowed'])
+    for (const value of [null, false, 0, '', {}, []])
+      assert.throws(
+        () => guardNativeCompactionResponse({ maxBytes: 1, [slot]: value }),
+        /Invalid native compaction publication callback/
+      );
+  let executed = 0;
+  const promise = Promise.resolve(true);
+  Object.defineProperty(promise, 'then', {
+    get() {
+      executed++;
+      throw new Error('TOKEN_CONTENT');
+    },
+  });
+  const f = fixture({ beforePublishAsync: () => promise });
+  f.proxyRes.emit('data', wire);
+  f.proxyRes.emit('end');
+  await flush();
+  assert.deepEqual(f.result().output, wire);
+  assert.equal(f.result().completed, 1);
+  assert.equal(executed, 0);
+});
+
+test('native publication hook receives the complete canonical response and can block publication safely', () => {
+  let observed;
+  const accepted = fixture({
+    beforePublish(value) {
+      observed = value;
+      return true;
+    },
+  });
+  accepted.proxyRes.emit('data', wire);
+  assert.equal(observed, undefined);
+  accepted.proxyRes.emit('end');
+  assert.deepEqual(observed, body);
+  assert.deepEqual(accepted.result().output, wire);
+  for (const beforePublish of [
+    () => false,
+    () => {
+      throw new Error('TOKEN_CONTENT_MUST_NOT_LEAK');
+    },
+  ]) {
+    const rejected = fixture({ beforePublish });
+    rejected.proxyRes.emit('data', wire);
+    rejected.proxyRes.emit('end');
+    assert.equal(rejected.result().status, 502);
+    assert.equal(rejected.result().completed, 0);
+    assert.deepEqual(rejected.failures, ['context_recovery_compaction_unavailable']);
+    assert.doesNotMatch(rejected.result().output.toString(), /TOKEN_CONTENT|native-fixture/);
+  }
 });
 
 test('publication completes only on downstream finish, not upstream end or disconnect', () => {

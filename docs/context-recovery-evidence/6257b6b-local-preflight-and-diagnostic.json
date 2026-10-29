@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "6257b6b73475af2202d4438008d617df22ec0528",
+  "sourceIdentity": {
+    "event": "preflight_identity",
+    "head": "6257b6b73475af2202d4438008d617df22ec0528",
+    "dirty": false,
+    "sourceSha256": "e543b6ade3f9d2360c1d9fefc8583d914de8ac67ebd412123f8a9a7ec5733364",
+    "sourceFiles": 578,
+    "node": "v22.22.3",
+    "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+    "platform": "win32",
+    "arch": "x64",
+    "storageExports": [
+      "openContextRecoveryStorage",
+      "validateStorageResult"
+    ],
+    "progressExports": [
+      "createStorageStartupProgress"
+    ],
+    "storageResolvedToCheckout": true,
+    "nativeSha256": "0356dfca64c77622a7699f765ea32577f1aa2613ff896db23cff17c41d490937"
+  },
+  "lockInstallsAndNativeArtifact": [
+    {
+      "qualification": false,
+      "jobNaturallyEmpty": true,
+      "step": "source",
+      "elapsedMs": 24501,
+      "stdoutBytes": 246,
+      "stderrBytes": 795,
+      "event": "day_preflight_6257b6b_step_finished",
+      "atUtc": "2026-10-28T03:35:03.4655184Z",
+      "childExitCode": 0,
+      "realModelRequests": 0
+    },
+    {
+      "qualification": false,
+      "jobNaturallyEmpty": true,
+      "step": "npm-ci",
+      "elapsedMs": 39284,
+      "stdoutBytes": 275,
+      "stderrBytes": 0,
+      "event": "day_preflight_6257b6b_step_finished",
+      "atUtc": "2026-10-28T03:35:42.8384677Z",
+      "childExitCode": 0,
+      "realModelRequests": 0
+    },
+    {
+      "qualification": false,
+      "jobNaturallyEmpty": true,
+      "step": "plugin-ci",
+      "elapsedMs": 53497,
+      "stdoutBytes": 227,
+      "stderrBytes": 0,
+      "event": "day_preflight_6257b6b_step_finished",
+      "atUtc": "2026-10-28T03:36:36.4110242Z",
+      "childExitCode": 0,
+      "realModelRequests": 0
+    },
+    {
+      "qualification": false,
+      "jobNaturallyEmpty": true,
+      "step": "native-artifact",
+      "elapsedMs": 2631,
+      "stdoutBytes": 140,
+      "stderrBytes": 0,
+      "event": "day_preflight_6257b6b_step_finished",
+      "atUtc": "2026-10-28T03:36:39.1210455Z",
+      "childExitCode": 0,
+      "realModelRequests": 0
+    }
+  ],
+  "completeTwelveFilePreflight": {
+    "taskResult": 126,
+    "terminalState": {
+      "step": "regression",
+      "event": "day_preflight_6257b6b_failed",
+      "qualification": false,
+      "phase": "child-exit",
+      "realModelRequests": 0,
+      "atUtc": "2026-10-28T03:38:39.3650041Z",
+      "childExitObserved": null,
+      "cleanupFailed": false
+    },
+    "completedTopTests": 77,
+    "failedTopTests": 0,
+    "finalTapSummary": false,
+    "longestReportedTest": {
+      "outcome": "ok",
+      "number": 57,
+      "durationMs": 80531.8303,
+      "test": "qualification command distinguishes capacity refusal from execution error"
+    },
+    "commandTiming": [
+      {
+        "scope": "capacity-command",
+        "elapsedMs": 79782.2279,
+        "executionBudgetMs": 180000,
+        "executionBudgetMet": true,
+        "performanceTargetMs": 60000,
+        "performanceTargetMet": false
+      }
+    ],
+    "ownedProcessesAfterCleanup": 0,
+    "ownedFixtureFootprints": [
+      {
+        "modes": [
+          {
+            "treeReceiptExists": false,
+            "mode": "success",
+            "directoryExists": true
+          },
+          {
+            "treeReceiptExists": true,
+            "mode": "explicit-close",
+            "directoryExists": true
+          },
+          {
+            "treeReceiptExists": true,
+            "mode": "natural-leak",
+            "directoryExists": true
+          },
+          {
+            "treeReceiptExists": false,
+            "mode": "controller-kill",
+            "directoryExists": false
+          }
+        ],
+        "assemblyExists": true
+      }
+    ],
+    "uniqueProductCauseEstablished": false,
+    "qualified": false
+  },
+  "independentNativeDiagnostic": {
+    "taskResult": 0,
+    "steps": [
+      {
+        "stderrBytes": 0,
+        "elapsedMs": 19158,
+        "event": "native_open_diagnostic_6257b6b_step_finished",
+        "realModelRequests": 0,
+        "jobNaturallyEmpty": true,
+        "stdoutBytes": 6629,
+        "qualification": false,
+        "step": "capacity-regression",
+        "childExitCode": 0,
+        "atUtc": "2026-10-28T03:42:45.0995074Z"
+      },
+      {
+        "stderrBytes": 0,
+        "elapsedMs": 14443,
+        "event": "native_open_diagnostic_6257b6b_step_finished",
+        "realModelRequests": 0,
+        "jobNaturallyEmpty": true,
+        "stdoutBytes": 4171,
+        "qualification": false,
+        "step": "native-open",
+        "childExitCode": 0,
+        "atUtc": "2026-10-28T03:42:59.6658769Z"
+      }
+    ],
+    "originalTwoFileTests": [
+      "# tests 28",
+      "# pass 28",
+      "# fail 0",
+      "# cancelled 0",
+      "# skipped 0",
+      "# duration_ms 16139.5046"
+    ],
+    "completedOpens": 2,
+    "completedCloses": 2,
+    "readyEvents": [
+      {
+        "attempt": 1,
+        "phase": "ready",
+        "elapsedMs": 4499
+      },
+      {
+        "attempt": 2,
+        "phase": "ready",
+        "elapsedMs": 2348
+      }
+    ],
+    "startupEvents": 57,
+    "defaultWorker": true,
+    "realDpapiAndOsAnchor": true,
+    "sameDirectoryReopen": true,
+    "originalDefaultOpenTimeoutMs": 30000,
+    "fiveSecondQualification": false
+  },
+  "independentOriginalFortyCaseShort": {
+    "taskResult": 126,
+    "terminalState": {
+      "cleanupFailed": false,
+      "event": "day_short_6257b6b_failed",
+      "childExitObserved": null,
+      "qualification": false,
+      "atUtc": "2026-10-28T03:52:00.0499504Z",
+      "step": "short",
+      "phase": "child-exit",
+      "realModelRequests": 0
+    },
+    "completedTopTests": 36,
+    "failedTopTests": 0,
+    "finalTapSummary": [],
+    "observedPersistentPhases": [
+      {
+        "elapsedMs": 1996,
+        "phase": "body_end",
+        "turn": 0,
+        "kind": "chat",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 2138,
+        "phase": "publication_wait_end",
+        "turn": 0,
+        "kind": "chat",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 2100,
+        "phase": "body_end",
+        "turn": 1,
+        "kind": "chat",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 2248,
+        "phase": "publication_wait_end",
+        "turn": 1,
+        "kind": "chat",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 1835,
+        "phase": "body_end",
+        "turn": 0,
+        "kind": "responses",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 1979,
+        "phase": "publication_wait_end",
+        "turn": 0,
+        "kind": "responses",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 2033,
+        "phase": "body_end",
+        "turn": 1,
+        "kind": "responses",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 2205,
+        "phase": "publication_wait_end",
+        "turn": 1,
+        "kind": "responses",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 1878,
+        "phase": "body_end",
+        "turn": 0,
+        "kind": "claude",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 2024,
+        "phase": "publication_wait_end",
+        "turn": 0,
+        "kind": "claude",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 2894,
+        "phase": "body_end",
+        "turn": 1,
+        "kind": "claude",
+        "mode": "long-persistent"
+      },
+      {
+        "elapsedMs": 3039,
+        "phase": "publication_wait_end",
+        "turn": 1,
+        "kind": "claude",
+        "mode": "long-persistent"
+      }
+    ],
+    "actualOwnedNodeAlive": false,
+    "qualified": false,
+    "parentDeadlineMs": 120000,
+    "launchTransportFailurePreserved": {
+      "sshExit": 255,
+      "beforeFurtherStartTaskEnumerationSucceeded": true,
+      "taskMatches": 0,
+      "rootExists": false,
+      "ownedNodeMatches": 0,
+      "productAttemptHadNotStarted": true
+    }
+  },
+  "scope": {
+    "completePreflightPassed": false,
+    "oldFailuresOverridden": false,
+    "new24hStarted": false,
+    "maximumCapacityLongRunPassed": false,
+    "realModelRequests": 0,
+    "dailyConfigChanged": false,
+    "frozen6646Touched": false
+  }
+}

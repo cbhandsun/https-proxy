@@ -1,5 +1,7 @@
 'use strict';
 
+const { performance } = require('node:perf_hooks');
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -408,6 +410,11 @@ test(
   'actual stdio CLI works for two generic host identities with independent evidence scopes',
   { timeout: 30000 },
   async (t) => {
+    const started = performance.now();
+    const phases = [];
+    const phase = (name) =>
+      phases.push({ phase: name, elapsedMs: Math.round(performance.now() - started) });
+    t.after(() => t.diagnostic(JSON.stringify({ gatewayHosts: phases })));
     const clients = [];
     const processes = [];
     for (const name of ['codex-compatible-fixture', 'claude-compatible-fixture']) {
@@ -437,7 +444,9 @@ test(
       });
       transport.stderr?.on('data', () => {});
       t.after(() => client.close());
+      phase(name + ':connect_started');
       await client.connect(transport);
+      phase(name + ':connected');
       const catalog = await client.listTools();
       assert.equal(catalog.tools.length, 4);
       const reference = json(await client.callTool({ name: 'fresh_source' }));
@@ -456,6 +465,7 @@ test(
       assert.ok(Number.isSafeInteger(transport.pid) && Number.isSafeInteger(source.pid));
       processes.push({ transport, gatewayPid: transport.pid, sourcePid: source.pid });
       const execution = json(await client.callTool({ name: 'hpm_list_execution_records' }));
+      phase(name + ':calls_finished');
       assert.equal(execution.records[0].state, 'completed');
       assert.equal(execution.records[0].verification, 'not_verified');
     }
@@ -471,10 +481,12 @@ test(
       true
     );
     for (let i = 0; i < clients.length; i++) {
+      phase('close_started:' + i);
       await clients[i].close();
       assert.equal(processes[i].transport.pid, null);
       await assertProcessExited(processes[i].gatewayPid);
       await assertProcessExited(processes[i].sourcePid);
+      phase('close_finished:' + i);
     }
   }
 );

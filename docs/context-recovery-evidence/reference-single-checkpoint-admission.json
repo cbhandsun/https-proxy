@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-28",
+  "baseSource": "b7ab0ee59dd84cf4900322ea135a8114abcd36b3",
+  "change": "Checkpoint-to-reference projection performs one complete checkpoint admission instead of two consecutive clones.",
+  "before": {
+    "checkpointAdmissions": 2,
+    "expected": 1,
+    "regressionExitCode": 1
+  },
+  "after": {
+    "relatedTests": 174,
+    "pass": 174,
+    "fail": 0,
+    "skip": 0,
+    "scope": "Mac execution; Windows-only test bodies returning on this platform do not grant Windows qualification."
+  },
+  "invariants": [
+    "unknown input normalized each invocation",
+    "digest recomputed from owned normalized fields",
+    "root policy, identity, binding, budget, ledger, publication and source validation unchanged",
+    "output isolated from input mutation",
+    "no persistent or cross-call authority cache",
+    "original limits, authentication, expiration and durable ACK semantics unchanged"
+  ],
+  "regressions": [
+    "one admission each invocation",
+    "legacy checkpoint without publications",
+    "valid digest with invalid budget rejected",
+    "tampered digest and mutated expiry rejected",
+    "empty/invalid/hostile getter/Proxy rejected without invoking hooks"
+  ],
+  "profile": {
+    "sameFourRootsPrivateBytes": 33554432,
+    "modifiedMacMs": 4242,
+    "priorMemoOnlyMacMs": 4241,
+    "nativeStorage": false,
+    "qualification": false,
+    "conclusion": "No measured end-to-end speed improvement. Windows five-second and full-root timeout remain unresolved."
+  },
+  "targetedLintPassed": true,
+  "ciGovernancePassed": true,
+  "realModelRequests": 0,
+  "new24hStarted": false,
+  "originalFailuresPreserved": true
+}

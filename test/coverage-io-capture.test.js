@@ -1,0 +1,1297 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { EventEmitter } = require('node:events');
+const { PassThrough, Writable } = require('node:stream');
+const {
+  installCoverageIoCapture,
+  parseSummary,
+  readCoverageIoReceipt,
+} = require('../scripts/lib/coverage-io-capture');
+const summary = () => ({
+  schemaVersion: 1,
+  scope: 'synthetic_sqlite_etw_flush_pairs',
+  events: 3,
+  pairedFlushes: 1,
+  database: { count: 1, maxMs: 20, over100Ms: 0, over1000Ms: 0 },
+  journal: { count: 0, maxMs: 0, over100Ms: 0, over1000Ms: 0 },
+  collisions: 0,
+  unmatchedEnds: 0,
+  failedFlushes: 0,
+  unfinishedFlushes: 0,
+  traceCompletenessVerified: false,
+  fiveSecondQualified: false,
+  realModelRequests: 0,
+});
+const failure = { message: 'coverage_io_capture_failed' };
+
+test('the real PowerShell recorder admits only the exact workflow and job pairs', () => {
+  const { spawnSync } = require('node:child_process');
+  const cases = [
+    ['windows-persistent-io-coverage.yml@refs/heads/fixture', 'coverage-file-flush', true],
+    ['verify.yml@refs/pull/1/merge', 'coverage', true],
+    ['verify.yml@refs/heads/fixture', 'unit-tests', false],
+    ['verify.yml@refs/heads/fixture', 'coverage-file-flush', false],
+    ['windows-persistent-io-coverage.yml@refs/heads/fixture', 'coverage', false],
+    ['verify.yml@refs/heads/fixture', '', false],
+    ['verify.yml@', 'coverage', false],
+    ['', 'coverage', false],
+  ];
+  const modulePath = path
+    .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  const script = `Import-Module '${modulePath}';Remove-Item Env:\\HPM_COVERAGE_IO_VERIFY_PROXY_ONLY -ErrorAction SilentlyContinue;$cases=[Console]::In.ReadToEnd()|ConvertFrom-Json;$results=@(foreach($case in $cases){$env:GITHUB_WORKFLOW_REF='cbhandsun/https-proxy/.github/workflows/'+$case[0];$env:GITHUB_JOB=$case[1];& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWorkflow}});ConvertTo-Json -Compress -InputObject $results`;
+  // Keep the fixture JSON on stdin so the command contains only reviewable PowerShell.
+  const result = spawnSync(
+    'pwsh',
+    ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
+    { input: JSON.stringify(cases), encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+  );
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map((value) => value[2])
+  );
+});
+
+test('the real PowerShell recorder refuses a foreign or stale proxy-window selector', () => {
+  const { spawnSync } = require('node:child_process');
+  const cases = [
+    ['proxy', null, true],
+    ['client', null, true],
+    ['proxy', 'native-publication-interruption', true],
+    ['proxy', 'publication-interruption', true],
+    ['proxy', 'publication-graceful-http', true],
+    ['client', 'native-publication-interruption', false],
+    ['client', 'publication-interruption', false],
+    ['client', 'publication-graceful-http', false],
+    ['proxy', 'PRIVATE', false],
+    ['proxy', 'x'.repeat(4096), false],
+    ['', null, false],
+  ];
+  const modulePath = path
+    .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  const code = `Import-Module '${modulePath}';$cases=[Console]::In.ReadToEnd()|ConvertFrom-Json;$results=@(foreach($case in $cases){$env:HPM_COVERAGE_IO_STAGE=$case[0];if($null -eq $case[1]){Remove-Item Env:\\HPM_COVERAGE_IO_PROXY_WINDOW -ErrorAction SilentlyContinue}else{$env:HPM_COVERAGE_IO_PROXY_WINDOW=$case[1]};& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWindow}});ConvertTo-Json -Compress -InputObject $results`;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    input: JSON.stringify(cases),
+    encoding: 'utf8',
+    timeout: 5000,
+    maxBuffer: 4096,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map((row) => row[2])
+  );
+});
+
+test('the actual Verify coverage job can record its own failure window without accepting other jobs', async (t) => {
+  for (const coverageStage of ['proxy', 'client']) {
+    const f = fixture(t);
+    f.environment.GITHUB_WORKFLOW_REF =
+      'cbhandsun/https-proxy/.github/workflows/verify.yml@refs/heads/acceptance/context-recovery/fixture';
+    f.environment.GITHUB_JOB = 'coverage';
+    f.environment.HPM_COVERAGE_IO_STAGE = coverageStage;
+    f.install('success');
+    await f.hooks.before();
+    await f.hooks.after();
+    const receipt = readCoverageIoReceipt(f.environment);
+    assert.equal(receipt.coverageStage, coverageStage);
+    assert.equal(receipt.cleanupVerified, true);
+    assert.equal(receipt.summary.fiveSecondQualified, false);
+  }
+  for (const [workflow, job] of [
+    ['verify.yml', 'unit-tests'],
+    ['verify.yml', 'coverage-file-flush'],
+    ['windows-persistent-io-coverage.yml', 'coverage'],
+    ['verify.yml', ''],
+  ]) {
+    const f = fixture(t);
+    f.environment.GITHUB_WORKFLOW_REF =
+      'cbhandsun/https-proxy/.github/workflows/' +
+      workflow +
+      '@refs/heads/acceptance/context-recovery/fixture';
+    f.environment.GITHUB_JOB = job;
+    assert.throws(() => f.install('success'), failure);
+  }
+});
+
+test('extended operation summary survives capture cleanup and source/stage receipt verification', async (t) => {
+  const { createPersistentIoSummary } = require('../scripts/lib/persistent-io-summary');
+  const value = createPersistentIoSummary();
+  for (const event of [
+    { type: 'schedule-start', key: '1', timeMs: 0, name: '' },
+    {
+      type: 'name',
+      key: '1',
+      timeMs: 0,
+      name: 'C:\\Temp\\hpm-wbipc-core-abcdef\\context\\checkpoint.sqlite',
+    },
+    { type: 'flush', key: '2', timeMs: 1, name: '1' },
+    { type: 'end', key: '2', timeMs: 2, name: '0' },
+    { type: 'delete', key: '3', timeMs: 3, name: '1' },
+    { type: 'end', key: '3', timeMs: 103, name: '0xc0000022' },
+  ])
+    value.observe(event);
+  const recorded = value.snapshot();
+  const f = fixture(t);
+  f.install('success', { start: f.start('success', recorded) });
+  await f.hooks.before();
+  await f.hooks.after();
+  assert.deepEqual(readCoverageIoReceipt(f.environment).summary, recorded);
+  assert.equal(f.reports[0].cleanupVerified, true);
+  assert.equal(f.reports[0].summary.ioOperations.delete.database.accessDenied, 1);
+  assert.equal(f.reports[0].summary.schemaVersion, 6);
+  assert.equal(f.reports[0].summary.ioWindows[0].operation, 'delete');
+  assert.equal(f.reports[0].summary.fiveSecondQualified, false);
+});
+
+function fixture(t) {
+  const root = fs.mkdtempSync(
+    path.join(fs.realpathSync.native(os.tmpdir()), 'hpm-coverage-capture-')
+  );
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const environment = {
+    HPM_COVERAGE_IO: 'a'.repeat(40),
+    HPM_COVERAGE_IO_STAGE: 'proxy',
+    GITHUB_SHA: 'a'.repeat(40),
+    GITHUB_ACTIONS: 'true',
+    GITHUB_JOB: 'coverage-file-flush',
+    CI: 'true',
+    RUNNER_ENVIRONMENT: 'github-hosted',
+    RUNNER_OS: 'Windows',
+    RUNNER_ARCH: 'X64',
+    GITHUB_REPOSITORY: 'cbhandsun/https-proxy',
+    GITHUB_WORKFLOW_REF:
+      'cbhandsun/https-proxy/.github/workflows/windows-persistent-io-coverage.yml@refs/heads/acceptance/context-recovery/fixture',
+    GITHUB_WORKSPACE: path.resolve(__dirname, '..'),
+    RUNNER_TEMP: root,
+    TOKEN: 'PRIVATE',
+    API_KEY: 'PRIVATE',
+    NODE_OPTIONS: 'PRIVATE',
+  };
+  const hooks = {},
+    timeouts = {},
+    reports = [],
+    commands = [],
+    killed = [];
+  const host = {
+    before(fn, options) {
+      hooks.before = fn;
+      timeouts.before = options.timeout;
+    },
+    after(fn, options) {
+      hooks.after = fn;
+      timeouts.after = options.timeout;
+    },
+  };
+  function start(mode = 'success', recorded = summary()) {
+    return (program, args, options) => {
+      assert.equal(program, 'pwsh');
+      assert.deepEqual(args.slice(0, 4), ['-NoLogo', '-NoProfile', '-NonInteractive', '-File']);
+      assert.equal(options.shell, false);
+      for (const key of ['TOKEN', 'API_KEY', 'NODE_OPTIONS'])
+        assert.equal(Object.hasOwn(options.env, key), false);
+      const child = new EventEmitter();
+      child.stdout = new PassThrough();
+      child.stderr = new PassThrough();
+      child.kill = (signal) => {
+        killed.push(signal);
+        child.emit('close', null, signal);
+        return true;
+      };
+      child.stdin = new Writable({
+        write(chunk, _encoding, done) {
+          const command = chunk.toString();
+          commands.push(command);
+          done();
+          if (command === 'abort\n') {
+            queueMicrotask(() => child.emit('close', 1, null));
+            return;
+          }
+          assert.equal(command, 'finish\n');
+          if (mode === 'stop-timeout') return;
+          queueMicrotask(() => {
+            let text = 'HPM_PERSISTENT_IO=' + JSON.stringify(recorded) + '\n';
+            if (mode === 'private-output') text = 'PRIVATE_MODEL_REPLY\n';
+            if (mode === 'duplicate-summary') text += text;
+            if (mode !== 'missing-summary') child.stdout.write(text);
+            if (mode === 'pending-stdout') child.stdout.write('PRIVATE');
+            if (mode === 'nonzero-control')
+              child.stderr.write(
+                'PRIVATE_ERROR_DETAIL\npersistent_io_wpr_failed:cause=deadline\r\npersistent_io_diagnostic_failed:phase=trace-stop\r\n'
+              );
+            child.stderr.write(
+              mode === 'extra-stderr'
+                ? 'persistent_io_trace_bytes=1024\n\n'
+                : mode === 'private-error'
+                  ? 'PRIVATE_ERROR\n'
+                  : mode === 'stderr-overflow'
+                    ? 'x'.repeat(16385)
+                    : mode === 'size-overflow'
+                      ? 'persistent_io_trace_bytes=999999999\n'
+                      : 'persistent_io_trace_bytes=1024\n'
+            );
+            if (mode === 'stdin-error') child.stdin.emit('error', new Error('PRIVATE'));
+            child.emit(
+              'close',
+              ['nonzero', 'nonzero-control'].includes(mode) ? 1 : 0,
+              mode === 'signal' ? 'SIGTERM' : null
+            );
+          });
+        },
+      });
+      queueMicrotask(() => {
+        if (mode === 'ready-timeout') return;
+        if (mode === 'spawn-error') {
+          child.emit('error', new Error('PRIVATE'));
+          return;
+        }
+        child.stdout.write('HPM_PERSISTENT_IO_CAPTURE_READY\r\n');
+        if (mode === 'duplicate-ready') child.stdout.write('HPM_PERSISTENT_IO_CAPTURE_READY\n');
+        if (mode === 'stdout-overflow') child.stdout.write('x'.repeat(16385));
+        if (mode === 'premature-summary')
+          child.stdout.write('HPM_PERSISTENT_IO=' + JSON.stringify(recorded) + '\n');
+      });
+      return child;
+    };
+  }
+  return {
+    root,
+    environment,
+    hooks,
+    timeouts,
+    reports,
+    commands,
+    killed,
+    host,
+    start,
+    install(mode, extra = {}) {
+      return installCoverageIoCapture(host, {
+        environment,
+        platform: 'win32',
+        start: start(mode),
+        report: (value) => reports.push(value),
+        ...extra,
+      });
+    },
+  };
+}
+
+test('capture is absent by default and refuses foreign/nonhosted/invalid authority before starting a process', (t) => {
+  const f = fixture(t);
+  let started = 0;
+  const start = () => {
+    started++;
+    throw new Error('unexpected');
+  };
+  assert.equal(installCoverageIoCapture(f.host, { environment: {}, start }), false);
+  assert.deepEqual(f.hooks, {});
+  for (const change of [
+    { CI: 'false' },
+    { GITHUB_ACTIONS: 'false' },
+    { RUNNER_ENVIRONMENT: 'self-hosted' },
+    { RUNNER_OS: 'Linux' },
+    { RUNNER_ARCH: 'ARM64' },
+    { GITHUB_REPOSITORY: 'other/repo' },
+    { GITHUB_WORKFLOW_REF: 'other' },
+    { HPM_COVERAGE_IO: '' },
+    { HPM_COVERAGE_IO: 'b'.repeat(40) },
+    { GITHUB_SHA: 'x' },
+    { GITHUB_SHA: 'a'.repeat(40) + '\n', HPM_COVERAGE_IO: 'a'.repeat(40) + '\n' },
+    { HPM_COVERAGE_IO_STAGE: 'other' },
+  ]) {
+    assert.throws(
+      () =>
+        installCoverageIoCapture(f.host, {
+          environment: { ...f.environment, ...change },
+          platform: 'win32',
+          start,
+        }),
+      failure
+    );
+  }
+  assert.throws(
+    () =>
+      installCoverageIoCapture(f.host, { environment: f.environment, platform: 'darwin', start }),
+    failure
+  );
+  let touched = 0;
+  const env = Object.defineProperty({}, 'HPM_COVERAGE_IO', {
+    get() {
+      touched++;
+      return 'a'.repeat(40);
+    },
+  });
+  assert.throws(() => installCoverageIoCapture(f.host, { environment: env, start }), failure);
+  assert.throws(
+    () =>
+      installCoverageIoCapture(f.host, {
+        environment: new Proxy(
+          {},
+          {
+            get() {
+              touched++;
+            },
+          }
+        ),
+        start,
+      }),
+    failure
+  );
+  assert.equal(touched, 0);
+  assert.equal(started, 0);
+});
+
+test('only a finished owned capture with clean exit can write the source-bound observation receipt', async (t) => {
+  const f = fixture(t);
+  assert.equal(f.install('success'), true);
+  await f.hooks.before();
+  assert.equal(f.reports.length, 0);
+  await f.hooks.after();
+  assert.deepEqual(f.commands, ['finish\n']);
+  assert.deepEqual(f.killed, []);
+  assert.equal(f.reports.length, 1);
+  assert.deepEqual(readCoverageIoReceipt(f.environment), f.reports[0]);
+  assert.equal(f.reports[0].cleanupVerified, true);
+  assert.equal(f.reports[0].summary.fiveSecondQualified, false);
+  assert.doesNotMatch(JSON.stringify(f.reports), /PRIVATE|checkpoint|Temp|0x/);
+  assert.equal(f.timeouts.before, 65000);
+  assert.equal(f.timeouts.after, 305000);
+  assert.throws(
+    () => f.install('success'),
+    failure,
+    'a prior receipt cannot qualify another capture'
+  );
+});
+
+for (const mode of [
+  'private-output',
+  'duplicate-summary',
+  'missing-summary',
+  'private-error',
+  'extra-stderr',
+  'stderr-overflow',
+  'size-overflow',
+  'stdin-error',
+  'nonzero',
+  'signal',
+]) {
+  test('failed capture cannot produce a receipt or leak output: ' + mode, async (t) => {
+    const f = fixture(t);
+    f.install(mode);
+    await f.hooks.before();
+    await assert.rejects(f.hooks.after(), failure);
+    assert.equal(f.reports.length, 0);
+    assert.throws(() => readCoverageIoReceipt(f.environment));
+  });
+}
+for (const mode of ['duplicate-ready', 'stdout-overflow', 'premature-summary', 'spawn-error']) {
+  test(
+    'capture startup refuses protocol failure and requests owned cleanup: ' + mode,
+    async (t) => {
+      const f = fixture(t);
+      f.install(mode);
+      await assert.rejects(f.hooks.before(), failure);
+      assert.ok(f.commands.includes('abort\n'));
+      assert.equal(f.reports.length, 0);
+    }
+  );
+}
+
+test('startup and stopping deadlines fail without extending recording or reporting confirmed cleanup', async (t) => {
+  const f = fixture(t);
+  f.install('ready-timeout', {
+    wait: (promise, ms) =>
+      ms === 30000 && !f.commands.length
+        ? Promise.race([promise, Promise.reject(new Error('deadline'))])
+        : promise,
+  });
+  await assert.rejects(f.hooks.before(), failure);
+  assert.deepEqual(f.commands, ['abort\n']);
+  const second = fixture(t);
+  second.install('stop-timeout', {
+    wait: (promise, ms) =>
+      ms === 300000 ? Promise.race([promise, Promise.reject(new Error('deadline'))]) : promise,
+  });
+  await second.hooks.before();
+  await assert.rejects(second.hooks.after(), failure);
+  assert.deepEqual(second.killed, ['SIGKILL']);
+  assert.equal(second.reports.length, 0);
+});
+
+test('summary admits only bounded positive observations, with no qualification or arbitrary fields', () => {
+  assert.deepEqual(parseSummary(JSON.stringify(summary())), summary());
+  for (const mutate of [
+    (v) => {
+      v.fiveSecondQualified = true;
+    },
+    (v) => {
+      v.traceCompletenessVerified = true;
+    },
+    (v) => {
+      v.realModelRequests = 1;
+    },
+    (v) => {
+      v.collisions = 1;
+    },
+    (v) => {
+      v.pairedFlushes = 0;
+    },
+    (v) => {
+      v.events = 100001;
+    },
+    (v) => {
+      v.journal.count = 2;
+    },
+    (v) => {
+      v.database.maxMs = -1;
+    },
+    (v) => {
+      v.database.over100Ms = 2;
+    },
+    (v) => {
+      v.private = 'PRIVATE';
+    },
+  ]) {
+    const value = summary();
+    mutate(value);
+    assert.throws(() => parseSummary(JSON.stringify(value)));
+  }
+  for (const text of [
+    '',
+    'PRIVATE',
+    JSON.stringify(summary()).replace('"schemaVersion":1', '"schemaVersion":1,"schemaVersion":1'),
+    'x'.repeat(16385),
+  ])
+    assert.throws(() => parseSummary(text));
+  let touched = 0;
+  assert.throws(() =>
+    parseSummary({
+      toString() {
+        touched++;
+        return '{}';
+      },
+    })
+  );
+  assert.equal(touched, 0);
+});
+
+test('the PowerShell capture entry refuses this nonhosted environment before trace access', () => {
+  const { spawnSync } = require('node:child_process');
+  const result = spawnSync(
+    'pwsh',
+    [
+      '-NoLogo',
+      '-NoProfile',
+      '-NonInteractive',
+      '-File',
+      path.resolve(__dirname, '../scripts/capture-persistent-io.ps1'),
+    ],
+    { encoding: 'utf8', timeout: 5000, env: { ...process.env, GITHUB_ACTIONS: 'false' } }
+  );
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr.trim(), 'persistent_io_diagnostic_failed:phase=host');
+});
+
+test('PowerShell control consumes only the bounded finish line and EOF without executing input', () => {
+  const { spawnSync } = require('node:child_process');
+  const modulePath = path
+    .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  const code = `
+    $ErrorActionPreference='Stop'
+    $state=@{phase='import';reason='invoke';inputLength=0}
+    try {
+    $module=Import-Module '${modulePath}' -PassThru -Force
+    & $module {
+      param($state)
+      $state.phase='valid';$state.inputLength=7
+      Read-HpmCoverageIoCommand -Reader ([IO.StringReader]::new("finish\u0060n"))
+      $index=0
+      foreach($text in @('', 'finish', "abort\u0060n", "finish\u0060r\u0060n", "finish\u0060nextra", "finish\u0060n\u0060n", ('x'*9+"\u0060n"), "完成\u0060n")) {
+        $state.phase='invalid_'+$index;$state.reason='invoke';$state.inputLength=([string]$text).Length;$index++
+        $refused=$false
+        try { Read-HpmCoverageIoCommand -Reader ([IO.StringReader]::new($text)) }
+        catch { if($_.Exception.Message -cne 'persistent_io_capture_command_refused'){$state.reason='unexpected_error';throw 'unsafe_capture_control_error'};$refused=$true }
+        if(-not $refused){$state.reason='accepted_invalid';throw 'invalid_capture_control_accepted'}
+      }
+      $state.phase='disposed';$state.reason='invoke';$state.inputLength=0
+      $reader=[IO.StringReader]::new('');$reader.Dispose()
+      $refused=$false;try {Read-HpmCoverageIoCommand -Reader $reader}catch{if($_.Exception.Message -cne 'persistent_io_capture_command_refused'){$state.reason='unexpected_error';throw 'unsafe_reader_error'};$refused=$true}
+      if(-not $refused){$state.reason='accepted_invalid';throw 'failed_reader_accepted'}
+    } $state
+    } catch {
+      [Console]::Error.WriteLine('capture_control_failed:phase='+$state.phase+';reason='+$state.reason+';length='+$state.inputLength)
+      exit 1
+    }
+  `;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    encoding: 'utf8',
+    timeout: 5000,
+    maxBuffer: 4096,
+  });
+  assert.equal(result.error, undefined);
+  // Never copy arbitrary PowerShell errors, paths or external input into CI.
+  const { parseCoverageControlFailure } = require('./helpers/coverage-control-progress.cjs');
+  const phase = parseCoverageControlFailure(result.stderr || '');
+  assert.equal(
+    result.status,
+    0,
+    phase
+      ? `PowerShell control failed at ${phase.phase};reason=${phase.reason};length=${phase.length}`
+      : 'PowerShell control failed before a fixed phase receipt'
+  );
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
+});
+
+test('source/stage receipt rejects wrong identity, duplicate JSON, unconfirmed cleanup and file boundaries', async (t) => {
+  const f = fixture(t);
+  f.install('success');
+  await f.hooks.before();
+  await f.hooks.after();
+  const file = path.join(f.root, 'hpm-coverage-io-' + f.environment.GITHUB_SHA + '-proxy.json');
+  const original = fs.readFileSync(file, 'utf8');
+  for (const mutate of [
+    (v) => {
+      v.sourceSha = 'b'.repeat(40);
+    },
+    (v) => {
+      v.coverageStage = 'client';
+    },
+    (v) => {
+      v.cleanupVerified = false;
+    },
+    (v) => {
+      v.summary.fiveSecondQualified = true;
+    },
+    (v) => {
+      v.extra = 'PRIVATE';
+    },
+  ]) {
+    const value = JSON.parse(original);
+    mutate(value);
+    fs.writeFileSync(file, JSON.stringify(value) + '\n');
+    assert.throws(() => readCoverageIoReceipt(f.environment));
+  }
+  for (const text of [
+    '',
+    original.replace('"schemaVersion":1', '"schemaVersion":1,"schemaVersion":1'),
+    'x'.repeat(16385),
+  ]) {
+    fs.writeFileSync(file, text);
+    assert.throws(() => readCoverageIoReceipt(f.environment));
+  }
+  fs.writeFileSync(file, original);
+  const client = path.join(f.root, 'hpm-coverage-io-' + f.environment.GITHUB_SHA + '-client.json');
+  fs.copyFileSync(file, client);
+  assert.throws(() => readCoverageIoReceipt({ ...f.environment, HPM_COVERAGE_IO_STAGE: 'client' }));
+  fs.rmSync(client);
+  fs.linkSync(file, path.join(f.root, 'linked.json'));
+  assert.throws(() => readCoverageIoReceipt(f.environment));
+});
+
+test('the original second coverage command gets a distinct source-bound observation', async (t) => {
+  const f = fixture(t);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+  f.install('success');
+  await f.hooks.before();
+  await f.hooks.after();
+  assert.equal(readCoverageIoReceipt(f.environment).coverageStage, 'client');
+});
+
+test('real PowerShell private stdin/EOF handshake completes before the receipt is admitted', async (t) => {
+  const { spawn } = require('node:child_process');
+  const f = fixture(t);
+  const modulePath = path
+    .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  for (const key of ['SystemRoot', 'WINDIR']) {
+    if (typeof process.env[key] === 'string') f.environment[key] = process.env[key];
+  }
+  const file = path.join(f.root, 'synthetic-control.ps1');
+  fs.writeFileSync(
+    file,
+    `$ErrorActionPreference='Stop'
+$module=Import-Module '${modulePath}' -PassThru -Force
+[Console]::Out.WriteLine('HPM_PERSISTENT_IO_CAPTURE_READY')
+& $module { Read-HpmCoverageIoCommand }
+[Console]::Error.WriteLine('persistent_io_trace_bytes=1024')
+[Console]::Out.WriteLine('HPM_PERSISTENT_IO=${JSON.stringify(summary())}')
+`
+  );
+  f.install('success', {
+    start: (program, args, options) =>
+      spawn(program, [...args.slice(0, 4), file], {
+        ...options,
+        env: { ...options.env, PATH: process.env.PATH },
+      }),
+  });
+  await f.hooks.before();
+  await f.hooks.after();
+  assert.equal(readCoverageIoReceipt(f.environment).summary.pairedFlushes, 1);
+  assert.equal(f.reports[0].summary.fiveSecondQualified, false);
+});
+
+for (const workflowName of ['windows-persistent-io-coverage.yml', 'verify.yml']) {
+  test(
+    'actual ' +
+      workflowName +
+      ' stops after each failed original stage or receipt and never masks its exit',
+    () => {
+      const { spawnSync } = require('node:child_process');
+      const workflow = fs
+        .readFileSync(path.resolve(__dirname, '../.github/workflows/', workflowName), 'utf8')
+        .replaceAll('\r\n', '\n');
+      const block = workflow.slice(
+        workflow.indexOf('      - name: Execute complete original coverage commands')
+      );
+      const matched = block.match(/ {8}run: \|\n((?: {10}[^\n]*\n)+)/);
+      assert.ok(matched);
+      const body = matched[1].replace(/^ {10}/gm, '');
+      const all = [
+        'npm run test:coverage',
+        'receipt proxy',
+        'npm run test:client:coverage',
+        'receipt client',
+        'npm run test:frontend:coverage',
+      ];
+      for (const [mode, count] of [
+        ['success', 5],
+        ['npm-test:coverage', 2],
+        ['receipt-proxy', 2],
+        ['npm-test:client:coverage', 4],
+        ['receipt-client', 4],
+        ['npm-test:frontend:coverage', 5],
+      ]) {
+        const code = `
+      $mode='${mode}'
+      $calls=[Collections.Generic.List[string]]::new()
+      function npm {
+        param([Parameter(ValueFromRemainingArguments=$true)][string[]]$Parts)
+        [void]$calls.Add('npm '+($Parts -join ' '))
+        $global:LASTEXITCODE=if($mode -ceq ('npm-'+$Parts[1])){1}else{0}
+      }
+      function node {
+        param([Parameter(ValueFromRemainingArguments=$true)][string[]]$Parts)
+        if($Parts.Count -ne 1 -or $Parts[0] -cne 'scripts/check-coverage-io-receipt.cjs'){throw 'unexpected_receipt_command'}
+        [void]$calls.Add('receipt '+$env:HPM_COVERAGE_IO_STAGE)
+        $global:LASTEXITCODE=if($mode -ceq ('receipt-'+$env:HPM_COVERAGE_IO_STAGE)){1}else{0}
+      }
+      $failed=$false
+      try { ${body} } catch { $failed=$true }
+      [ordered]@{calls=@($calls);failed=$failed}|ConvertTo-Json -Compress
+    `;
+        const result = spawnSync(
+          'pwsh',
+          ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code],
+          { encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+        );
+        assert.equal(result.error, undefined);
+        assert.equal(result.status, 0);
+        assert.deepEqual(JSON.parse(result.stdout), {
+          calls: all.slice(0, count),
+          failed: mode !== 'success',
+        });
+        if (mode === 'npm-test:coverage')
+          assert.equal(result.stderr.trim(), 'coverage_original_stage_failed:stage=proxy');
+        else if (mode === 'npm-test:client:coverage')
+          assert.equal(result.stderr.trim(), 'coverage_original_stage_failed:stage=client');
+        else assert.equal(result.stderr, '');
+      }
+    }
+  );
+}
+
+test('receipt publication refuses a replaced owned parent directory', async (t) => {
+  const f = fixture(t);
+  f.install('success');
+  await f.hooks.before();
+  const moved = f.root + '-owned-original';
+  t.after(() => fs.rmSync(moved, { recursive: true, force: true }));
+  fs.renameSync(f.root, moved);
+  fs.mkdirSync(f.root);
+  await assert.rejects(f.hooks.after(), failure);
+  assert.equal(f.reports.length, 0);
+  assert.deepEqual(fs.readdirSync(f.root), []);
+});
+
+test('control failure receipts contain only fixed phases, reasons and bounded synthetic lengths', () => {
+  const { parseCoverageControlFailure: parse } = require('./helpers/coverage-control-progress.cjs');
+  const line = 'capture_control_failed:phase=invalid_6;reason=accepted_invalid;length=10';
+  assert.deepEqual(parse(line + '\n'), {
+    phase: 'invalid_6',
+    reason: 'accepted_invalid',
+    length: 10,
+  });
+  assert.deepEqual(parse(line + '\r\n'), parse(line + '\n'));
+  assert.ok(Object.isFrozen(parse(line + '\n')));
+  for (const invalid of [
+    null,
+    {},
+    '',
+    line,
+    line + '\nPRIVATE',
+    line + '\n\n',
+    line.replace('invalid_6', 'PRIVATE') + '\n',
+    line.replace('accepted_invalid', 'PRIVATE') + '\n',
+    line.replace('length=10', 'length=13') + '\n',
+    line.replace('length=10', 'length=-1') + '\n',
+    line.replace('length=10', 'length=01') + '\n',
+    'PRIVATE'.repeat(128),
+  ])
+    assert.equal(parse(invalid), null);
+});
+
+test('first persistent request failure preserves its capture window without waiting for file completion', async (t) => {
+  const f = fixture(t);
+  let stop;
+  f.install('success', {
+    onReady(value) {
+      stop = value;
+    },
+  });
+  assert.equal(stop, undefined);
+  await f.hooks.before();
+  assert.equal(typeof stop, 'function');
+  assert.equal(stop(), true);
+  assert.equal(stop(), false);
+  await new Promise(setImmediate);
+  // Recording can close early; receipt publication still requires the original
+  // file's after hook and all existing child/cleanup/summary checks.
+  assert.equal(f.reports.length, 0);
+  assert.deepEqual(f.commands, ['finish\n']);
+  await f.hooks.after();
+  assert.deepEqual(f.commands, ['finish\n']);
+  const receipt = readCoverageIoReceipt(f.environment);
+  assert.equal(receipt.schemaVersion, 2);
+  assert.equal(receipt.windowTermination, 'persistent-request-failed');
+  assert.equal(receipt.summary.fiveSecondQualified, false);
+  assert.equal(receipt.summary.traceCompletenessVerified, false);
+  assert.equal(stop(), false);
+});
+
+test('publication window has its own source/stage identity without replacing the client window', async (t) => {
+  const f = fixture(t);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+  f.install('success');
+  await f.hooks.before();
+  await f.hooks.after();
+  const client = readCoverageIoReceipt(f.environment);
+  f.install('success', { windowId: 'publication-graceful-http' });
+  await f.hooks.before();
+  await f.hooks.after();
+  const publication = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
+  assert.equal(publication.schemaVersion, 3);
+  assert.equal(publication.windowId, 'publication-graceful-http');
+  assert.equal(publication.windowTermination, 'file-completed');
+  assert.deepEqual(readCoverageIoReceipt(f.environment), client);
+  assert.equal(f.reports.length, 2);
+  assert.equal(publication.summary.traceCompletenessVerified, false);
+  assert.equal(publication.summary.fiveSecondQualified, false);
+});
+
+test('the actual stage checker requires the publication receipt in client coverage and preserves proxy checks', async (t) => {
+  const { spawnSync } = require('node:child_process');
+  const f = fixture(t);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+  const environment = Object.fromEntries(
+    Object.entries(f.environment).filter(
+      ([key]) => !['TOKEN', 'API_KEY', 'NODE_OPTIONS'].includes(key)
+    )
+  );
+  for (const name of ['SystemRoot', 'WINDIR'])
+    if (process.env[name]) environment[name] = process.env[name];
+  const check = (expected, extra = []) => {
+    const result = spawnSync(
+      process.execPath,
+      [path.resolve(__dirname, '../scripts/check-coverage-io-receipt.cjs'), ...extra],
+      { env: environment, encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+    );
+    assert.equal(result.error, undefined);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, expected);
+    assert.equal(result.stdout, expected === 0 ? 'coverage_io_receipt_verified\n' : '');
+    assert.equal(result.stderr, expected === 0 ? '' : 'coverage_io_receipt_failed\n');
+  };
+  f.install('success');
+  await f.hooks.before();
+  await f.hooks.after();
+  check(1); // A valid client window cannot stand in for the publication file.
+  f.install('success', { windowId: 'publication-graceful-http' });
+  await f.hooks.before();
+  await f.hooks.after();
+  check(0);
+  const file = path.join(
+    f.root,
+    'hpm-coverage-io-' + f.environment.GITHUB_SHA + '-client-publication-graceful-http.json'
+  );
+  const receipt = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
+  fs.writeFileSync(file, JSON.stringify({ ...receipt, sourceSha: 'b'.repeat(40) }) + '\n');
+  check(1);
+  fs.writeFileSync(file, JSON.stringify(receipt) + '\n');
+  check(1, ['PRIVATE']);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'proxy';
+  environment.HPM_COVERAGE_IO_STAGE = 'proxy';
+  f.install('success');
+  await f.hooks.before();
+  await f.hooks.after();
+  fs.rmSync(file);
+  check(0); // The parallel proxy stage still owns only its original window.
+});
+
+test('the actual proxy checker requires the explicitly selected publication window receipt', async (t) => {
+  for (const windowId of [
+    'native-publication-interruption',
+    'publication-graceful-http',
+    'publication-interruption',
+  ])
+    await t.test(windowId, async (t) => {
+      const { spawnSync } = require('node:child_process');
+      const f = fixture(t);
+      f.install('success');
+      await f.hooks.before();
+      await f.hooks.after();
+      f.environment.HPM_COVERAGE_IO_PROXY_WINDOW = windowId;
+      const environment = Object.fromEntries(
+        Object.entries(f.environment).filter(
+          ([key]) => !['TOKEN', 'API_KEY', 'NODE_OPTIONS'].includes(key)
+        )
+      );
+      for (const name of ['SystemRoot', 'WINDIR'])
+        if (process.env[name]) environment[name] = process.env[name];
+      const check = (expected) => {
+        const result = spawnSync(
+          process.execPath,
+          [path.resolve(__dirname, '../scripts/check-coverage-io-receipt.cjs')],
+          { env: environment, encoding: 'utf8', timeout: 5000, maxBuffer: 4096 }
+        );
+        assert.equal(result.error, undefined);
+        assert.equal(result.signal, null);
+        assert.equal(result.status, expected);
+        assert.equal(result.stdout, expected === 0 ? 'coverage_io_receipt_verified\n' : '');
+        assert.equal(result.stderr, expected === 0 ? '' : 'coverage_io_receipt_failed\n');
+      };
+      check(1);
+      assert.equal(f.install('success'), false);
+      f.install('success', { windowId });
+      await f.hooks.before();
+      await f.hooks.after();
+      const receipt = readCoverageIoReceipt(f.environment, windowId);
+      assert.equal(receipt.schemaVersion, 3);
+      assert.equal(receipt.windowId, windowId);
+      check(0);
+      assert.throws(() => readCoverageIoReceipt(f.environment));
+      environment.HPM_COVERAGE_IO_STAGE = 'client';
+      check(1);
+    });
+});
+
+test('publication window stops on its own fixture failure and retains cleanup gates', async (t) => {
+  for (const stage of ['proxy', 'client'])
+    await t.test(stage, async (t) => {
+      const f = fixture(t);
+      f.environment.HPM_COVERAGE_IO_STAGE = stage;
+      if (stage === 'proxy')
+        f.environment.HPM_COVERAGE_IO_PROXY_WINDOW = 'publication-graceful-http';
+      let stop;
+      f.install('success', {
+        windowId: 'publication-graceful-http',
+        onReady(value) {
+          stop = value;
+        },
+      });
+      await f.hooks.before();
+      assert.equal(stop(), true);
+      assert.equal(stop(), false);
+      assert.equal(f.reports.length, 0);
+      await f.hooks.after();
+      const receipt = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
+      assert.equal(receipt.windowTermination, 'publication-fixture-failed');
+      assert.equal(receipt.coverageStage, stage);
+      assert.deepEqual(f.commands, ['finish\n']);
+      assert.equal(receipt.cleanupVerified, true);
+    });
+});
+
+test('publication window refuses invalid scopes and cross-window or legacy receipts', async (t) => {
+  const f = fixture(t);
+  f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+  let hooks = 0;
+  const hostile = {
+    toString() {
+      hooks++;
+      throw Error('PRIVATE');
+    },
+  };
+  for (const windowId of [null, '', 'PRIVATE', '../client', 'x'.repeat(4096), hostile]) {
+    assert.throws(() => f.install('success', { windowId }), failure);
+    assert.throws(() => readCoverageIoReceipt(f.environment, windowId), failure);
+  }
+  assert.equal(hooks, 0);
+  f.install('success', { windowId: 'publication-graceful-http' });
+  await f.hooks.before();
+  await f.hooks.after();
+  const file = path.join(
+    f.root,
+    'hpm-coverage-io-' + f.environment.GITHUB_SHA + '-client-publication-graceful-http.json'
+  );
+  const current = readCoverageIoReceipt(f.environment, 'publication-graceful-http');
+  for (const value of [
+    { ...current, windowId: 'client-context-target' },
+    { ...current, windowTermination: 'persistent-request-failed' },
+    { ...current, schemaVersion: 2 },
+    { ...current, windowId: undefined },
+    { ...current, coverageStage: 'proxy' },
+    { ...current, sourceSha: 'b'.repeat(40) },
+    { ...current, cleanupVerified: false },
+    { ...current, extra: 'PRIVATE' },
+  ]) {
+    fs.writeFileSync(file, JSON.stringify(value) + '\n');
+    assert.throws(() => readCoverageIoReceipt(f.environment, 'publication-graceful-http'), failure);
+  }
+});
+
+test('recording failure reports only a closed cause without exposing stderr or losing its original gate', async (t) => {
+  for (const [mode, cause] of [
+    ['nonzero', 'recorder_exit'],
+    ['signal', 'recorder_signal'],
+    ['pending-stdout', 'pending_stdout'],
+    ['missing-summary', 'missing_summary'],
+    ['private-output', 'protocol'],
+    ['private-error', 'trace_control'],
+    ['size-overflow', 'trace_limit'],
+  ]) {
+    const f = fixture(t);
+    f.install(mode);
+    await f.hooks.before();
+    await assert.rejects(f.hooks.after(), (error) => {
+      assert.equal(error.message, 'coverage_io_capture_failed');
+      assert.equal(error.cause?.message, 'coverage_io_capture_' + cause);
+      assert.equal(error.code, 'coverage_io_capture_' + cause);
+      assert.equal(String(error.cause).includes('PRIVATE'), false);
+      return true;
+    });
+    assert.equal(f.reports.length, 0);
+  }
+});
+
+test('publication window never competes with the recorder in parallel proxy shards', (t) => {
+  const f = fixture(t);
+  assert.equal(f.install('success', { windowId: 'publication-graceful-http' }), false);
+  assert.deepEqual(f.hooks, {});
+  assert.deepEqual(f.commands, []);
+  assert.throws(() => readCoverageIoReceipt(f.environment, 'publication-graceful-http'), failure);
+  f.environment.GITHUB_JOB = 'unit-tests';
+  assert.throws(() => f.install('success', { windowId: 'publication-graceful-http' }), failure);
+});
+
+for (const mode of ['nonzero', 'missing-summary', 'stdin-error', 'private-output']) {
+  test(`publication window cannot publish after ${mode}`, async (t) => {
+    const f = fixture(t);
+    f.environment.HPM_COVERAGE_IO_STAGE = 'client';
+    let stop;
+    f.install(mode, {
+      windowId: 'publication-graceful-http',
+      onReady(value) {
+        stop = value;
+      },
+    });
+    await f.hooks.before();
+    stop();
+    await assert.rejects(f.hooks.after(), failure);
+    assert.equal(f.reports.length, 0);
+    assert.throws(() => readCoverageIoReceipt(f.environment, 'publication-graceful-http'));
+  });
+}
+
+test('normal file completion records its boundary and legacy receipts cannot claim an early window', async (t) => {
+  const f = fixture(t);
+  let stop;
+  f.install('success', {
+    onReady(value) {
+      stop = value;
+    },
+  });
+  await f.hooks.before();
+  await f.hooks.after();
+  assert.equal(stop(), false);
+  const current = readCoverageIoReceipt(f.environment);
+  assert.equal(current.schemaVersion, 2);
+  assert.equal(current.windowTermination, 'file-completed');
+  const file = path.join(f.root, 'hpm-coverage-io-' + f.environment.GITHUB_SHA + '-proxy.json');
+  const { windowTermination: _windowTermination, ...old } = current;
+  old.schemaVersion = 1;
+  fs.writeFileSync(file, JSON.stringify(old) + '\n');
+  assert.deepEqual(readCoverageIoReceipt(f.environment), old);
+  for (const bad of [
+    { ...old, windowTermination: 'persistent-request-failed' },
+    { ...current, windowTermination: 'PRIVATE' },
+    { ...current, windowTermination: null },
+    { ...current, windowTermination: 'file-completed', earlyQualification: true },
+    { ...current, schemaVersion: 3 },
+  ]) {
+    fs.writeFileSync(file, JSON.stringify(bad) + '\n');
+    assert.throws(() => readCoverageIoReceipt(f.environment), failure);
+  }
+});
+
+for (const mode of ['nonzero', 'missing-summary', 'stdin-error', 'private-output']) {
+  test(`early failed-request capture still refuses ${mode} and cannot publish a receipt`, async (t) => {
+    const f = fixture(t);
+    let stop;
+    f.install(mode, {
+      onReady(value) {
+        stop = value;
+      },
+    });
+    await f.hooks.before();
+    assert.equal(stop(), true);
+    await assert.rejects(f.hooks.after(), failure);
+    assert.deepEqual(f.commands, ['finish\n']);
+    assert.equal(f.reports.length, 0);
+    assert.deepEqual(fs.readdirSync(f.root), []);
+  });
+}
+
+test('capture control registration rejects unknown executable inputs before recording starts', (t) => {
+  let hooks = 0;
+  const f = fixture(t);
+  const proxy = new Proxy(() => {}, {
+    apply() {
+      hooks++;
+    },
+  });
+  for (const onReady of [null, {}, 'PRIVATE', proxy, async () => {}, function* () {}])
+    assert.throws(() => f.install('success', { onReady }), failure);
+  assert.equal(hooks, 0);
+  assert.deepEqual(f.hooks, {});
+  assert.deepEqual(f.commands, []);
+});
+
+test('recorder exit keeps its original rejection and exposes only validated phase literals', async (t) => {
+  const f = fixture(t);
+  f.install('nonzero-control');
+  await f.hooks.before();
+  await assert.rejects(f.hooks.after(), (error) => {
+    assert.equal(
+      error.message,
+      'coverage_io_capture_failed; recorder_phase=trace-stop; wpr_cause=deadline'
+    );
+    assert.equal(error.code, 'coverage_io_capture_recorder_exit');
+    assert.equal(error.cause.message, 'coverage_io_capture_recorder_exit');
+    assert.equal(String(error).includes('PRIVATE'), false);
+    return true;
+  });
+  assert.equal(f.reports.length, 0);
+  assert.deepEqual(f.commands, ['finish\n']);
+  assert.deepEqual(f.killed, []);
+  assert.equal(fs.readdirSync(f.root).length, 0, 'failure never writes a success receipt');
+});
+
+test('recorder failure detail parses complete fixed lines without reflecting unrelated diagnostics', () => {
+  const {
+    coverageIoRecorderFailureDetail: detail,
+  } = require('../scripts/lib/coverage-io-recorder-failure');
+  for (const phase of [
+    'host',
+    'paths',
+    'trace-start',
+    'original-tests',
+    'capture-wait',
+    'trace-stop',
+    'trace-file',
+    'trace-size',
+    'decode-enumeration',
+    'decode-limit',
+    'decode-provider',
+    'decode-thread-record',
+    'decode-record',
+    'decode-summary',
+    'original-assertions',
+  ]) {
+    assert.equal(
+      detail('persistent_io_diagnostic_failed:phase=' + phase + '\n'),
+      '; recorder_phase=' + phase
+    );
+  }
+  for (const cause of ['start', 'deadline', 'pipes', 'output-limit', 'exit']) {
+    assert.equal(
+      detail(
+        'PRIVATE_INPUT\npersistent_io_wpr_failed:cause=' +
+          cause +
+          '\r\npersistent_io_diagnostic_failed:phase=trace-stop\r\n'
+      ),
+      '; recorder_phase=trace-stop; wpr_cause=' + cause
+    );
+  }
+});
+
+test('recorder failure detail refuses absent, malformed, ambiguous and extreme controls without coercion', () => {
+  const {
+    coverageIoRecorderFailureDetail: detail,
+  } = require('../scripts/lib/coverage-io-recorder-failure');
+  let touched = 0;
+  const hostile = {
+    toString() {
+      touched++;
+      throw Error('PRIVATE');
+    },
+  };
+  const revoked = Proxy.revocable({}, {});
+  revoked.revoke();
+  const phase = 'persistent_io_diagnostic_failed:phase=trace-stop\n';
+  const cause = 'persistent_io_wpr_failed:cause=deadline\n';
+  for (const value of [
+    undefined,
+    null,
+    false,
+    1,
+    {},
+    hostile,
+    revoked.proxy,
+    '',
+    '\n',
+    'PRIVATE\n',
+    phase.trimEnd(),
+    phase + 'unfinished',
+    'x'.repeat(16385),
+    '界'.repeat(6000),
+    phase + phase,
+    phase + cause + cause,
+    cause,
+    'persistent_io_diagnostic_failed:phase=trace-stopPRIVATE\n',
+    'persistent_io_diagnostic_failed:phase=trace-stop\0\n',
+    phase + 'persistent_io_diagnostic_failed:phase=PRIVATE\n',
+    phase + 'persistent_io_wpr_failed:cause=PRIVATE\n',
+    phase + 'persistent_io_wpr_failed:cause=deadline\r\r\n',
+  ])
+    assert.equal(detail(value), '');
+  assert.equal(touched, 0);
+  assert.equal(
+    detail('x'.repeat(16384 - phase.length) + '\n' + phase),
+    '',
+    'byte bound is unchanged'
+  );
+});
+
+test('recorder phase text never converts a successful exit with invalid controls into a receipt', async (t) => {
+  const f = fixture(t);
+  const start = f.start('success');
+  f.install('success', {
+    start(...args) {
+      const child = start(...args);
+      child.stderr.write('persistent_io_diagnostic_failed:phase=trace-stop\n');
+      return child;
+    },
+  });
+  await f.hooks.before();
+  await assert.rejects(f.hooks.after(), (error) => {
+    assert.equal(error.message, 'coverage_io_capture_failed');
+    assert.equal(error.code, 'coverage_io_capture_trace_control');
+    return true;
+  });
+  assert.equal(f.reports.length, 0);
+  assert.equal(fs.readdirSync(f.root).length, 0);
+});
+
+test('formal source gate records its original proxy window and omits only the later client command', async (t) => {
+  const f = fixture(t);
+  f.environment.GITHUB_WORKFLOW_REF =
+    'cbhandsun/https-proxy/.github/workflows/windows-context-recovery-hosted.yml@refs/heads/acceptance/context-recovery/fixture';
+  f.environment.GITHUB_JOB = 'source-gates';
+  f.environment.HPM_COVERAGE_IO_VERIFY_PROXY_ONLY = '1';
+  f.environment.npm_lifecycle_event = 'test:coverage';
+  assert.equal(f.install('success'), true);
+  await f.hooks.before();
+  await f.hooks.after();
+  assert.equal(f.reports.length, 1);
+  assert.equal(f.reports[0].coverageStage, 'proxy');
+  assert.equal(f.reports[0].summary.fiveSecondQualified, false);
+  const second = fixture(t);
+  Object.assign(second.environment, f.environment);
+  second.environment.RUNNER_TEMP = second.root;
+  second.environment.npm_lifecycle_event = 'test:client:coverage';
+  assert.equal(second.install('success'), false);
+  assert.deepEqual(second.hooks, {});
+});
+
+test('source proxy omission cannot bypass the exact hosted authority or fixed window', (t) => {
+  for (const change of [
+    { HPM_COVERAGE_IO_VERIFY_PROXY_ONLY: undefined },
+    { HPM_COVERAGE_IO_VERIFY_PROXY_ONLY: '0' },
+    { GITHUB_JOB: 'coverage' },
+    {
+      GITHUB_WORKFLOW_REF: 'cbhandsun/https-proxy/.github/workflows/verify.yml@refs/heads/fixture',
+    },
+    { GITHUB_SHA: 'b'.repeat(40) },
+    { GITHUB_REPOSITORY: 'other/repository' },
+    { RUNNER_ENVIRONMENT: 'self-hosted' },
+    { HPM_COVERAGE_IO_STAGE: 'client' },
+    { HPM_COVERAGE_IO_PROXY_WINDOW: 'unknown' },
+    { npm_lifecycle_event: 'verify' },
+    { npm_lifecycle_event: '' },
+  ]) {
+    const f = fixture(t);
+    Object.assign(
+      f.environment,
+      {
+        GITHUB_JOB: 'source-gates',
+        GITHUB_WORKFLOW_REF:
+          'cbhandsun/https-proxy/.github/workflows/windows-context-recovery-hosted.yml@refs/heads/fixture',
+        HPM_COVERAGE_IO_VERIFY_PROXY_ONLY: '1',
+        npm_lifecycle_event: 'test:client:coverage',
+      },
+      change
+    );
+    for (const key of Object.keys(f.environment))
+      if (f.environment[key] === undefined) delete f.environment[key];
+    assert.throws(() => f.install('success'), failure);
+    assert.deepEqual(f.hooks, {});
+  }
+  const legacy = fixture(t);
+  legacy.environment.HPM_COVERAGE_IO_VERIFY_PROXY_ONLY = '1';
+  legacy.environment.npm_lifecycle_event = 'test:coverage';
+  assert.throws(() => legacy.install('success'), failure);
+});
+
+test('PowerShell source recorder requires explicit proxy scope and the original coverage command', () => {
+  const { spawnSync } = require('node:child_process');
+  const cases = [
+    ['1', 'test:coverage', 'proxy', 'source-gates', true],
+    ['1', 'test:client:coverage', 'proxy', 'source-gates', false],
+    ['1', 'verify', 'proxy', 'source-gates', false],
+    ['1', 'test:coverage', 'client', 'source-gates', false],
+    ['1', 'test:coverage', 'proxy', 'coverage', false],
+    ['0', 'test:coverage', 'proxy', 'source-gates', false],
+    [null, 'test:coverage', 'proxy', 'source-gates', false],
+  ];
+  const modulePath = path
+    .resolve(__dirname, '../scripts/lib/persistent-io-recording.psm1')
+    .replaceAll("'", "''");
+  const code = `Import-Module '${modulePath}';$cases=[Console]::In.ReadToEnd()|ConvertFrom-Json;$env:GITHUB_WORKFLOW_REF='cbhandsun/https-proxy/.github/workflows/windows-context-recovery-hosted.yml@refs/heads/fixture';$rows=@(foreach($row in $cases){if($null -eq $row[0]){Remove-Item Env:\\HPM_COVERAGE_IO_VERIFY_PROXY_ONLY -ErrorAction SilentlyContinue}else{$env:HPM_COVERAGE_IO_VERIFY_PROXY_ONLY=$row[0]};$env:npm_lifecycle_event=$row[1];$env:HPM_COVERAGE_IO_STAGE=$row[2];$env:GITHUB_JOB=$row[3];& (Get-Module persistent-io-recording) {Test-HpmCoverageIoWorkflow}});ConvertTo-Json -Compress -InputObject $rows`;
+  const result = spawnSync('pwsh', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', code], {
+    input: JSON.stringify(cases),
+    encoding: 'utf8',
+    timeout: 5000,
+    maxBuffer: 4096,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map((row) => row[4])
+  );
+});

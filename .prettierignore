@@ -13,6 +13,11 @@ package-lock.json
 .claude/
 .hpm-runtime/
 .hpm-runtime-probe/
+.hpm-acceptance/
+/.codex-tmp/
+/tmp/
+runtime/evidence-gateway/
+runtime/local-evidence-plugin/
 .common-tools/
 .common-tools-audit/
 .git/

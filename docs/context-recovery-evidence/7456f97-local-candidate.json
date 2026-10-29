@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7456f97e9c3222089b4e7a01fe6c8fe636930f8d",
+  "build": {
+    "allOriginalStagesPassed": true,
+    "stageCount": 7,
+    "nativeRustTestsPassed": 47,
+    "applicationRustTestsPassed": 41,
+    "originalJobExitDeadlineMs": 5000,
+    "jobNaturalExitPassed": true,
+    "installerBytes": 28459218,
+    "installerSha256": "1ac6fbac9d2b70938f2dd1c4596440d14a3f7fadbae9d97bd943f0b601636d3b",
+    "runtimeManifestSha256": "f7dac869eaf216b4febd8b9651ec94c8a84499c350276aef458223cf7dcd2a28",
+    "applicationSha256": "c078e2e8c28dbe5f8da4d02f8fdbf13f8010c3c98125aa4ae5b3a28d236de71c",
+    "nativeSha256": "0356dfca64c77622a7699f765ea32577f1aa2613ff896db23cff17c41d490937",
+    "scopedToolchain": "LLVM 23.1.4 clang-cl and Rust bundled LLD",
+    "desktopDeliveryReadbackVerified": true,
+    "installerExecuted": false
+  },
+  "nativeShort": {
+    "capacityAndClockTestsPassed": 26,
+    "originalProtocolFilesTestsPassed": 40,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "originalProtocolParentDeadlineMs": 120000,
+    "originalProtocolParentElapsedMs": 105093,
+    "originalHttpDeadlineMs": 5000,
+    "jobNaturalExitPassed": true,
+    "persistentBodyMs": {
+      "chat": [
+        2032,
+        1727
+      ],
+      "responses": [
+        1505,
+        1872
+      ],
+      "claude": [
+        2130,
+        1862
+      ]
+    },
+    "requestFailuresObserved": 0
+  },
+  "qualification": {
+    "fiveSecondStability": false,
+    "newLocalBinaryInstalledClients": false,
+    "realtime24h": false,
+    "realProvider": false
+  },
+  "realModelRequests": 0,
+  "latestCi": {
+    "sourceCommit": "f5fed6fa1fb5249ed59f0ec0094d5a531c278678",
+    "verify": {
+      "runId": 40590040956,
+      "successJobs": 7,
+      "failedJobId": 122491600260,
+      "failure": "PowerShell rg read/discovery integration spawnSync powershell.exe ETIMEDOUT"
+    },
+    "formalWindows": {
+      "runId": 40590041058,
+      "successJobs": 4
+    },
+    "oldPersistent5015msFailureRetained": true
+  }
+}

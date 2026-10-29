@@ -1,0 +1,454 @@
+{
+  "schemaVersion": 1,
+  "baseline": "b92a5bb9184fe39970240bd5dbaff72b7ec7f3c9",
+  "runtimeSource": "6c801fac70e4c80b7ce64d32c8bc7a8698fa322e",
+  "scope": "record failing non-native publication preparation under original coverage; retain all source gate failures",
+  "ci457": {
+    "verify": {
+      "run": 40769318872,
+      "job": 123101898869,
+      "conclusion": "failure",
+      "fullLogChars": 2814903,
+      "failures": [
+        {
+          "test": "not ok 1 - publication prepared: SIGKILL inside actual COMMIT lock wait",
+          "awaiting": "ready",
+          "lastFixture": "unobserved",
+          "commits": [
+            {
+              "sequence": 3,
+              "startedElapsedMs": 13,
+              "returned": true,
+              "durationMs": 1371
+            },
+            {
+              "sequence": 5,
+              "startedElapsedMs": 1483,
+              "returned": true,
+              "durationMs": 0
+            },
+            {
+              "sequence": 8,
+              "startedElapsedMs": 1940,
+              "returned": false
+            }
+          ],
+          "targetInterruptionReached": false
+        },
+        {
+          "test": "not ok 3 - publication prepared: SIGKILL inside durable commit before ACK",
+          "awaiting": "ready",
+          "lastFixture": "unobserved",
+          "commits": [
+            {
+              "sequence": 3,
+              "startedElapsedMs": 16,
+              "returned": true,
+              "durationMs": 2277
+            },
+            {
+              "sequence": 5,
+              "startedElapsedMs": 2342,
+              "returned": true,
+              "durationMs": 0
+            },
+            {
+              "sequence": 8,
+              "startedElapsedMs": 2793,
+              "returned": true,
+              "durationMs": 2011
+            }
+          ],
+          "targetInterruptionReached": false
+        },
+        {
+          "test": "not ok 4 - publication prepared: release control inside durable commit before ACK",
+          "awaiting": "ready",
+          "lastFixture": "unobserved",
+          "commits": [
+            {
+              "sequence": 3,
+              "startedElapsedMs": 14,
+              "returned": true,
+              "durationMs": 2353
+            },
+            {
+              "sequence": 5,
+              "startedElapsedMs": 2480,
+              "returned": true,
+              "durationMs": 0
+            },
+            {
+              "sequence": 8,
+              "startedElapsedMs": 2752,
+              "returned": false
+            }
+          ],
+          "targetInterruptionReached": false
+        }
+      ]
+    },
+    "formal": {
+      "test": "real PowerShell/rg read and discovery cover hidden, ignored, empty, malformed and failure paths",
+      "errorCode": "ETIMEDOUT",
+      "executables": [
+        "powershell.exe"
+      ],
+      "locations": [
+        {
+          "line": 209,
+          "column": 1
+        },
+        {
+          "line": 236,
+          "column": 22
+        },
+        {
+          "line": 306,
+          "column": 11
+        },
+        {
+          "line": 312,
+          "column": 24
+        },
+        {
+          "line": 247,
+          "column": 14
+        },
+        {
+          "line": 236,
+          "column": 22
+        },
+        {
+          "line": 306,
+          "column": 11
+        },
+        {
+          "line": 312,
+          "column": 24
+        }
+      ],
+      "run": 40769318882,
+      "job": 123101898563,
+      "fullLogChars": 2824129,
+      "source": "45798f9104e07bddba457627c2681d2588454903",
+      "businessJobsSkipped": true,
+      "conclusion": "failure"
+    },
+    "extraIo": {
+      "run": 40769318995,
+      "job": 123101899699,
+      "conclusion": "failure",
+      "fullLogChars": 2812787,
+      "keyBackends": [
+        {
+          "backend": "native_protect",
+          "outcome": "completed",
+          "elapsedMs": 25
+        },
+        {
+          "backend": "legacy_unprotect",
+          "outcome": "ETIMEDOUT",
+          "elapsedMs": 10234,
+          "legacyPhase": "unobserved"
+        }
+      ],
+      "dpapiRootCauseConfirmed": false
+    },
+    "corePublications": {
+      "samples": 42,
+      "minMs": 786,
+      "maxMs": 2119,
+      "actualPersistentRequestFailuresObserved": 0,
+      "scope": "selected Core/WBIPC requests across original unit-coverage, three timing runners and independent I/O; does not qualify failed source gates or erase older five-second failures"
+    }
+  },
+  "ciB92": {
+    "verify": {
+      "job": 123106537758,
+      "fullLogChars": 2800710,
+      "phase": "decode-summary",
+      "reason": "coverage_io_capture_recorder_exit",
+      "nativePublicationCasePassCount": 20,
+      "unknownAggregatorReason": true,
+      "originalFailurePreserved": true,
+      "run": 40770635793,
+      "conclusion": "failure"
+    },
+    "formal": {
+      "run": 40770635832,
+      "job": 123106537966,
+      "conclusion": "failure",
+      "fullLogChars": 2856698,
+      "failures": [
+        {
+          "test": "not ok 8 - native worker publication sending: release control inside durable OS anchor before publication ACK",
+          "durationMs": 5028.654,
+          "awaiting": "ready",
+          "lastFixture": "native-opening",
+          "startup": "anchor_persist_started",
+          "startupElapsedMs": 4763,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 13 - publication uncertain: SIGKILL inside actual COMMIT lock wait",
+          "durationMs": 5857.8278,
+          "awaiting": "ready",
+          "lastFixture": "fixture-observed",
+          "startup": "unobserved",
+          "startupElapsedMs": 0,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 9 - native worker publication transport-finished: SIGKILL inside actual COMMIT lock wait",
+          "durationMs": 5022.2298,
+          "awaiting": "ready",
+          "lastFixture": "native-opening",
+          "startup": "anchor_persist_started",
+          "startupElapsedMs": 4350,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 14 - publication uncertain: release control inside actual COMMIT lock wait",
+          "durationMs": 6568.2104,
+          "awaiting": "ready",
+          "lastFixture": "fixture-observed",
+          "startup": "unobserved",
+          "startupElapsedMs": 0,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 10 - native worker publication transport-finished: release control inside actual COMMIT lock wait",
+          "durationMs": 5013.9249,
+          "awaiting": "ready",
+          "lastFixture": "native-opened",
+          "startup": "ready",
+          "startupElapsedMs": 4840,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 15 - publication uncertain: SIGKILL inside durable commit before ACK",
+          "durationMs": 5287.3488,
+          "awaiting": "ready",
+          "lastFixture": "fixture-observed",
+          "startup": "unobserved",
+          "startupElapsedMs": 0,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 11 - native worker publication transport-finished: SIGKILL inside durable OS anchor before publication ACK",
+          "durationMs": 5357.5269,
+          "awaiting": "ready",
+          "lastFixture": "native-opened",
+          "startup": "ready",
+          "startupElapsedMs": 3759,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 14 - native worker publication uncertain: release control inside actual COMMIT lock wait",
+          "durationMs": 5675.5048,
+          "awaiting": "ready",
+          "lastFixture": "fixture-observed",
+          "startup": "ready",
+          "startupElapsedMs": 1664,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 15 - native worker publication uncertain: SIGKILL inside durable OS anchor before publication ACK",
+          "durationMs": 5369.8818,
+          "awaiting": "ready",
+          "lastFixture": "native-opened",
+          "startup": "ready",
+          "startupElapsedMs": 3356,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 7 - native rejection preserves caller-owned reply memory",
+          "durationMs": 15152.3325,
+          "startupElapsedMs": null,
+          "expectedZeroActualNull": false
+        },
+        {
+          "test": "not ok 16 - native worker publication uncertain: release control inside durable OS anchor before publication ACK",
+          "durationMs": 5089.549,
+          "awaiting": "ready",
+          "lastFixture": "fixture-observed",
+          "startup": "ready",
+          "startupElapsedMs": 2943,
+          "expectedZeroActualNull": false
+        }
+      ],
+      "businessJobsSkipped": true
+    },
+    "positiveJobs": [
+      {
+        "run": 40770635811,
+        "id": 123106537686,
+        "name": "file-flush",
+        "status": "completed",
+        "conclusion": "success",
+        "fullLogChars": 333968,
+        "visibleNotOk": 0,
+        "totals": [
+          "# tests 50",
+          "# pass 50",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0"
+        ],
+        "publicationSamplesMs": [
+          886,
+          961,
+          859,
+          992,
+          857,
+          1000
+        ]
+      },
+      {
+        "run": 40770636006,
+        "id": 123106538794,
+        "name": "core-wbipc (1)",
+        "status": "completed",
+        "conclusion": "success",
+        "fullLogChars": 327079,
+        "visibleNotOk": 0,
+        "totals": [
+          "# tests 50",
+          "# pass 50",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0"
+        ],
+        "publicationSamplesMs": [
+          1028,
+          1114,
+          1033,
+          1113,
+          978,
+          1104
+        ]
+      },
+      {
+        "run": 40770636006,
+        "id": 123106539254,
+        "name": "core-wbipc (2)",
+        "status": "completed",
+        "conclusion": "success",
+        "fullLogChars": 326634,
+        "visibleNotOk": 0,
+        "totals": [
+          "# tests 50",
+          "# pass 50",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0"
+        ],
+        "publicationSamplesMs": [
+          1036,
+          1146,
+          991,
+          1141,
+          989,
+          1097
+        ]
+      },
+      {
+        "run": 40770636006,
+        "id": 123106539364,
+        "name": "core-wbipc (3)",
+        "status": "completed",
+        "conclusion": "success",
+        "fullLogChars": 327623,
+        "visibleNotOk": 0,
+        "totals": [
+          "# tests 50",
+          "# pass 50",
+          "# fail 0",
+          "# cancelled 0",
+          "# skipped 0"
+        ],
+        "publicationSamplesMs": [
+          1044,
+          1090,
+          1035,
+          1191,
+          2100,
+          1421
+        ]
+      }
+    ],
+    "extraIo": {
+      "run": 40770635805,
+      "job": 123106537413,
+      "conclusion": "success",
+      "fullLogChars": 3949992,
+      "visibleNotOk": 0,
+      "finiteReceiptsAccepted": 3,
+      "sourceMatched": true,
+      "cleanupVerified": true,
+      "publicationSamplesMs": [
+        1639,
+        1984,
+        1209,
+        1535,
+        1355,
+        1451,
+        898,
+        1102,
+        914,
+        1112,
+        914,
+        1100
+      ],
+      "fiveSecondQualified": false
+    }
+  },
+  "changes": [
+    "Verify selects publication-interruption recording during its original complete coverage command. Native interruption and all other original tests still run; extra coverage keeps its original native recording window and formal source scope stays unchanged.",
+    "The standalone I/O diagnostic retains both original complete files (50 tests) and adds the complete original non-native publication interruption file (20 tests); no name filter, model request, retry or raised deadline.",
+    "Test-only SQL progress optionally carries the actual child PID, anonymous fixture tag and UTC sample. Parent binds identity to its owned child and expected fixture; original relative time/sequence/phase/status checks and 32-entry retention remain.",
+    "Relative elapsedMs is an observer-origin sample, not a call duration. Pair same PID/tag/sequence and started/returned; a UTC rollback cannot qualify a chronological I/O match. SQL return is not a publication or native durable ACK.",
+    "Summary refusals retain exit1/no success stdout and original limits. A closed stage vocabulary now distinguishes argument/input/record/snapshot/no-flush/collision/output rejection without emitting records or exception text. Earlier decode-summary failure remains unexplained until a new actual receipt."
+  ],
+  "validation": {
+    "baselineSqlProgress": {
+      "tests": 11,
+      "pass": 8,
+      "fail": 3,
+      "newMetadataCasesFailOnOriginal": true,
+      "sourceUnmodifiedInMemoryOnly": true
+    },
+    "baselineControlLimitation": "First comparison omitted the physical-temp preload and added an existing fixture path refusal. Its output is preserved separately; corrected physical comparison proves only the three new metadata boundaries.",
+    "localExpanded": {
+      "tests": 71,
+      "pass": 71,
+      "fail": 0,
+      "skip": 0,
+      "actualOriginalPublicationInterruptionCases": 20,
+      "publicationSqlRecords": 651,
+      "distinctFixtureTags": 20,
+      "distinctChildPids": 20,
+      "windowsNativeQualified": false
+    },
+    "targetedLint": "pass",
+    "format": "pass",
+    "ciGovernance": "pass",
+    "unifiedDiscovery": "new test auto-discovered"
+  },
+  "preserved": {
+    "authentication": true,
+    "exactAckEquality": true,
+    "fullDeleteDurability": true,
+    "originalExpiry": true,
+    "fixedOriginalLoads": true,
+    "originalDeadlines": true,
+    "priorFailures": true,
+    "oldLongTestFrozen": true,
+    "new24hStarted": false,
+    "realModelRequests": 0,
+    "oldDailyInstanceUntouched": true,
+    "maximumCapacityUserPaused": true,
+    "overallComplete": false
+  }
+}

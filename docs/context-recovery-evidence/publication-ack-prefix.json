@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "scope": "private-ack-prefix-and-diagnostic-summary-fixes",
+  "localRelated": {
+    "files": 12,
+    "tests": 143,
+    "passed": 143,
+    "failed": 0,
+    "skipped": 0
+  },
+  "portableSummaryRegression": {
+    "before": "8 !== 10",
+    "afterPassed": true,
+    "statusScenarioRows": 8,
+    "originalAssertionsRetained": true,
+    "windowsSkipRemovedForPortableSummaryOnly": true
+  },
+  "reentrantInspectionRegression": {
+    "baselineOuterRejected": true,
+    "baselinePrematureHeldReceipts": 1,
+    "currentOuterRejected": true,
+    "currentPrematureHeldReceipts": 0,
+    "actualProductAckExposureProved": false
+  },
+  "prefix": {
+    "hostWiredTarget": "sending",
+    "requiredPriorTransition": "prepared",
+    "exactPerStepRevision": true,
+    "sameGenerationRootExpiry": true,
+    "noPredecessorHeldReceipt": true,
+    "originalOpaqueAcksRetained": true,
+    "actualSendingDaemonCaseQualified": false,
+    "transportPrefixModuleOnly": true
+  },
+  "originalWitnessMs": 750,
+  "originalHoldMs": 5000,
+  "fiveSecondStabilityQualified": false,
+  "modelRequests": 0,
+  "longRunSnapshot": {
+    "taskName": "HPM-native-day-20261027-6646f59-8e34b1",
+    "checkedAtUtc": "2026-10-27T23:37:47.657Z",
+    "state": "running",
+    "reason": "progress_advanced",
+    "passed": false,
+    "lastScheduledMs": 3300000,
+    "elapsedMs": 3300910.8484,
+    "observedTicks": 12,
+    "processAlive": true,
+    "terminalConfirmed": false,
+    "runIdentity": "09921c096ed95fd403817b3318cd4b4c52109e2acbd90ad67ea662612c088e88",
+    "failureLatched": false
+  }
+}

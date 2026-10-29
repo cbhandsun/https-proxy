@@ -1,0 +1,3221 @@
+{
+  "schemaVersion": 1,
+  "source": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+  "verifyRunId": 40643442917,
+  "formalRunId": 40643443063,
+  "verifyJobs": [
+    {
+      "id": 122666664803,
+      "name": "node-quality",
+      "conclusion": "success"
+    },
+    {
+      "id": 122666665083,
+      "name": "integration-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 122666665092,
+      "name": "unit-tests (0)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122666665097,
+      "name": "coverage",
+      "conclusion": "failure"
+    },
+    {
+      "id": 122666665119,
+      "name": "unit-tests (3)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122666665137,
+      "name": "rust-tests",
+      "conclusion": "success"
+    },
+    {
+      "id": 122666665169,
+      "name": "unit-tests (2)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122666665276,
+      "name": "unit-tests (1)",
+      "conclusion": "success"
+    }
+  ],
+  "formalJobs": [
+    {
+      "id": 122666665419,
+      "name": "source-gates",
+      "conclusion": "success"
+    },
+    {
+      "id": 122666665735,
+      "name": "egress-diagnostic",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608352,
+      "name": "context-recovery (n09-sending-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608358,
+      "name": "context-recovery (n08)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608359,
+      "name": "context-recovery (n09-withdrawn-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608367,
+      "name": "context-recovery (n09-finished-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608383,
+      "name": "context-recovery (n09-sending-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608401,
+      "name": "context-recovery (n09-uncertain-commit)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608414,
+      "name": "context-recovery (n09-uncertain-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608427,
+      "name": "context-recovery (n09-finished-ack)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608477,
+      "name": "context-recovery (n09)",
+      "conclusion": "success"
+    },
+    {
+      "id": 122673608571,
+      "name": "context-recovery (n09-withdrawn-commit)",
+      "conclusion": "success"
+    }
+  ],
+  "formalExecutions": [
+    {
+      "jobId": 122673608352,
+      "schemaVersion": 1,
+      "scenario": "n09-sending-ack",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "e82f20cae8c5f74b4410f2430af8ad59f2923678c66b2edb71bee60e6fc78904",
+      "buildReceiptSha256": "d577357b28827f5f0d1a655b2cf594a0b91d90c8194839205ce9f7b0a7a530bf",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "probesPassed": true,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "tlsVerified": true
+      },
+      "fullLogCharacters": 34983
+    },
+    {
+      "jobId": 122673608358,
+      "schemaVersion": 1,
+      "scenario": "n08",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "c4bd596e7a3ee3a0d9e665d78a8d2d863f688733df35510f35d3c076ec7363d1",
+      "buildReceiptSha256": "a3da4e824b2eb57828854e063b28f0a418e7d786e21bd56154275c5acffcefae",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "probesPassed": true,
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "phase": "hosted_network_finished"
+      },
+      "fullLogCharacters": 34920
+    },
+    {
+      "jobId": 122673608359,
+      "schemaVersion": 1,
+      "scenario": "n09-withdrawn-ack",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "6dc7cb7f0858cb9592fd3b7129f00ff5bedbab05a231a1c38ecd67da5774d449",
+      "buildReceiptSha256": "cd80df38f88974e5de82593fe31ec7bcfff85ad11525603c16419d2f419a767a",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "n08Qualified": false
+      },
+      "fullLogCharacters": 34993
+    },
+    {
+      "jobId": 122673608367,
+      "schemaVersion": 1,
+      "scenario": "n09-finished-commit",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "8558413eac0b089b92114c2fbf6e1ca93693f91a57f77bcb09805a21388a1b73",
+      "buildReceiptSha256": "0d2d277f27f1dfdaffbcbe8494c0ddf76e0060a0aedd80c7e948c9d962edfbfe",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "probesPassed": true,
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "tlsVerified": true,
+        "n08Qualified": false,
+        "nonLoopbackBlocked": true
+      },
+      "fullLogCharacters": 35003
+    },
+    {
+      "jobId": 122673608383,
+      "schemaVersion": 1,
+      "scenario": "n09-sending-commit",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "96b60c4007fc3944ad545f070ad42e449f3b187fd384c88850ecf027111b5f01",
+      "buildReceiptSha256": "ac5ac2bd09277cd086e479ecc528010f59beabb7d5363d8448b2064796155da3",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "ownedTreeEmpty": true,
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "probesPassed": true
+      },
+      "fullLogCharacters": 34998
+    },
+    {
+      "jobId": 122673608401,
+      "schemaVersion": 1,
+      "scenario": "n09-uncertain-commit",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "64a17646d8c3cf7e0816bdb2d1223af372f52aa4ec9f002b6dea631fc2c7f4a1",
+      "buildReceiptSha256": "71a96f1d5edee795031cc44855dca5b21cb1abd6acf9b69ccc1e627c367ae6e5",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "ownedTreeEmpty": true,
+        "probesPassed": true,
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "n08Qualified": false
+      },
+      "fullLogCharacters": 35006
+    },
+    {
+      "jobId": 122673608414,
+      "schemaVersion": 1,
+      "scenario": "n09-uncertain-ack",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "0660d9cb3d3ebb495cadfe63de5171cbf5c7a47ef6f8bd9f44242cec0fec2ee6",
+      "buildReceiptSha256": "98357eddaf597550151dce33d95f23dfc5728369f5455792b3427a2a8f424e78",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "probesPassed": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "n08Qualified": false,
+        "ownedTreeEmpty": true,
+        "nonLoopbackBlocked": true
+      },
+      "fullLogCharacters": 34990
+    },
+    {
+      "jobId": 122673608427,
+      "schemaVersion": 1,
+      "scenario": "n09-finished-ack",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "359497d5cd67779dea597c926363575ab5ec2e327921f649526a85b82a1107c3",
+      "buildReceiptSha256": "85e4aa9fe283a8344833d58c0f96be86eb49b199a9d953c4bd43bba7fcb62002",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "ownedTreeEmpty": true,
+        "phase": "hosted_network_finished",
+        "tlsVerified": true,
+        "nonLoopbackBlocked": true,
+        "n08Qualified": false,
+        "probesPassed": true
+      },
+      "fullLogCharacters": 34986
+    },
+    {
+      "jobId": 122673608477,
+      "schemaVersion": 1,
+      "scenario": "n09",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "f832dff428996c41ebe4dd3338f60fd72e52b24a490d69359351e92b3d10f85b",
+      "buildReceiptSha256": "af0124617a7231fbdd8870166accae55e5d37efac683ba637169342ec9dddba3",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "n08Qualified": false,
+        "nonLoopbackBlocked": true,
+        "ownedTreeEmpty": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished",
+        "probesPassed": true
+      },
+      "fullLogCharacters": 34920
+    },
+    {
+      "jobId": 122673608571,
+      "schemaVersion": 1,
+      "scenario": "n09-withdrawn-commit",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "planSha256": "f22f93a9ecedc4c507d23930c05c0f5539ce4058db6208427d7f2534189bfa5e",
+      "buildReceiptSha256": "db07805976a832e924fdff5b7e7a081f1c653dabe840111a1e8e735976b10aa4",
+      "phase": "prepared_only",
+      "networkExecuted": false,
+      "daemonExecuted": false,
+      "execution": {
+        "n08Qualified": false,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "probesPassed": true,
+        "ownedTreeEmpty": true,
+        "tlsVerified": true
+      },
+      "fullLogCharacters": 35008
+    }
+  ],
+  "coverageFailureReports": [
+    {
+      "case": "not ok 8 - native worker HTTP normal stop drains uncertain inside durable OS anchor before publication ACK",
+      "durationMs": 5247.2051,
+      "location": "D:\\\\a\\\\https-proxy\\\\https-proxy\\\\test\\\\context-recovery-native-graceful-http.test.js:10:5",
+      "code": "ERR_ASSERTION",
+      "awaiting": "ready",
+      "startup": "ready",
+      "startupElapsedMs": 1214,
+      "operations": [
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "started",
+          "elapsedMs": 171
+        },
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "completed",
+          "elapsedMs": 231
+        },
+        {
+          "sequence": 2,
+          "operation": "save-reference-state",
+          "status": "started",
+          "elapsedMs": 337
+        },
+        {
+          "sequence": 2,
+          "operation": "save-reference-state",
+          "status": "completed",
+          "elapsedMs": 872
+        },
+        {
+          "sequence": 3,
+          "operation": "save-reference-state",
+          "status": "started",
+          "elapsedMs": 995
+        },
+        {
+          "sequence": 3,
+          "operation": "save-reference-state",
+          "status": "completed",
+          "elapsedMs": 3299
+        },
+        {
+          "sequence": 4,
+          "operation": "save-reference-state",
+          "status": "started",
+          "elapsedMs": 3329
+        }
+      ],
+      "execution": [
+        {
+          "sequence": 2,
+          "phase": "verify_before_finished",
+          "elapsedMs": 16
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_execute_started",
+          "elapsedMs": 16
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_execute_finished",
+          "elapsedMs": 355
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_snapshot_started",
+          "elapsedMs": 355
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_snapshot_finished",
+          "elapsedMs": 361
+        },
+        {
+          "sequence": 2,
+          "phase": "anchor_persist_started",
+          "elapsedMs": 361
+        },
+        {
+          "sequence": 2,
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 467
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_after_started",
+          "elapsedMs": 467
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_after_finished",
+          "elapsedMs": 468
+        },
+        {
+          "sequence": 2,
+          "phase": "completed",
+          "elapsedMs": 468
+        },
+        {
+          "sequence": 3,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 3,
+          "phase": "verify_before_finished",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 3,
+          "phase": "engine_execute_started",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 3,
+          "phase": "engine_execute_finished",
+          "elapsedMs": 2237
+        },
+        {
+          "sequence": 3,
+          "phase": "engine_snapshot_started",
+          "elapsedMs": 2238
+        },
+        {
+          "sequence": 3,
+          "phase": "engine_snapshot_finished",
+          "elapsedMs": 2247
+        },
+        {
+          "sequence": 3,
+          "phase": "anchor_persist_started",
+          "elapsedMs": 2247
+        },
+        {
+          "sequence": 3,
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 2281
+        },
+        {
+          "sequence": 3,
+          "phase": "verify_after_started",
+          "elapsedMs": 2281
+        },
+        {
+          "sequence": 3,
+          "phase": "verify_after_finished",
+          "elapsedMs": 2282
+        },
+        {
+          "sequence": 3,
+          "phase": "completed",
+          "elapsedMs": 2282
+        },
+        {
+          "sequence": 4,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 4,
+          "phase": "verify_before_finished",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 4,
+          "phase": "engine_execute_started",
+          "elapsedMs": 0
+        }
+      ],
+      "sql": []
+    },
+    {
+      "case": "not ok 6 - native worker publication sending: release control inside actual COMMIT lock wait",
+      "durationMs": 5092.0865,
+      "location": "D:\\\\a\\\\https-proxy\\\\https-proxy\\\\test\\\\context-recovery-native-publication-interruption.test.js:15:7",
+      "code": "ERR_ASSERTION",
+      "awaiting": "ready",
+      "startup": "ready",
+      "startupElapsedMs": 3567,
+      "operations": [
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "started",
+          "elapsedMs": 70
+        },
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "completed",
+          "elapsedMs": 263
+        },
+        {
+          "sequence": 2,
+          "operation": "save-reference-state",
+          "status": "started",
+          "elapsedMs": 284
+        }
+      ],
+      "execution": [
+        {
+          "sequence": 1,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 1,
+          "phase": "verify_before_finished",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_execute_started",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_execute_finished",
+          "elapsedMs": 4
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_snapshot_started",
+          "elapsedMs": 4
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_snapshot_finished",
+          "elapsedMs": 5
+        },
+        {
+          "sequence": 1,
+          "phase": "anchor_persist_started",
+          "elapsedMs": 5
+        },
+        {
+          "sequence": 1,
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 169
+        },
+        {
+          "sequence": 1,
+          "phase": "verify_after_started",
+          "elapsedMs": 169
+        },
+        {
+          "sequence": 1,
+          "phase": "verify_after_finished",
+          "elapsedMs": 170
+        },
+        {
+          "sequence": 1,
+          "phase": "completed",
+          "elapsedMs": 171
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_before_finished",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_execute_started",
+          "elapsedMs": 0
+        }
+      ],
+      "sql": []
+    },
+    {
+      "case": "not ok 10 - native worker HTTP normal stop drains withdrawn inside durable OS anchor before publication ACK",
+      "durationMs": 5459.0332,
+      "location": "D:\\\\a\\\\https-proxy\\\\https-proxy\\\\test\\\\context-recovery-native-graceful-http.test.js:10:5",
+      "code": "ERR_ASSERTION",
+      "awaiting": "ready",
+      "startup": "engine_anchor_validate_finished",
+      "startupElapsedMs": 2502,
+      "operations": [],
+      "execution": [],
+      "sql": []
+    },
+    {
+      "case": "not ok 8 - native worker publication sending: release control inside durable OS anchor before publication ACK",
+      "durationMs": 5224.9748,
+      "location": "D:\\\\a\\\\https-proxy\\\\https-proxy\\\\test\\\\context-recovery-native-publication-interruption.test.js:15:7",
+      "code": "ERR_ASSERTION",
+      "awaiting": "ready",
+      "startup": "ready",
+      "startupElapsedMs": 4084,
+      "operations": [
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "started",
+          "elapsedMs": 93
+        },
+        {
+          "sequence": 1,
+          "operation": "load-reference",
+          "status": "completed",
+          "elapsedMs": 133
+        },
+        {
+          "sequence": 2,
+          "operation": "save-reference-state",
+          "status": "started",
+          "elapsedMs": 156
+        }
+      ],
+      "execution": [
+        {
+          "sequence": 1,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 1,
+          "phase": "verify_before_finished",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_execute_started",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_execute_finished",
+          "elapsedMs": 3
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_snapshot_started",
+          "elapsedMs": 3
+        },
+        {
+          "sequence": 1,
+          "phase": "engine_snapshot_finished",
+          "elapsedMs": 4
+        },
+        {
+          "sequence": 1,
+          "phase": "anchor_persist_started",
+          "elapsedMs": 4
+        },
+        {
+          "sequence": 1,
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 29
+        },
+        {
+          "sequence": 1,
+          "phase": "verify_after_started",
+          "elapsedMs": 29
+        },
+        {
+          "sequence": 1,
+          "phase": "verify_after_finished",
+          "elapsedMs": 30
+        },
+        {
+          "sequence": 1,
+          "phase": "completed",
+          "elapsedMs": 30
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_before_started",
+          "elapsedMs": 0
+        },
+        {
+          "sequence": 2,
+          "phase": "verify_before_finished",
+          "elapsedMs": 1
+        },
+        {
+          "sequence": 2,
+          "phase": "engine_execute_started",
+          "elapsedMs": 1
+        }
+      ],
+      "sql": []
+    },
+    {
+      "case": "not ok 24 - encrypted worker reopens four full session roots with 32 MiB of exact private history",
+      "durationMs": 102357.8984,
+      "location": "D:\\\\a\\\\https-proxy\\\\https-proxy\\\\test\\\\context-recovery-root-state.test.js:948:1",
+      "code": "context_recovery_storage_unavailable",
+      "startupElapsedMs": null,
+      "operations": [],
+      "execution": [],
+      "sql": []
+    }
+  ],
+  "timing": [
+    {
+      "id": 122666664996,
+      "sourceMention": true,
+      "count": 6,
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 785
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 926
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 825
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 938
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 792
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 936
+        }
+      ],
+      "tests": [
+        "2026-10-28T06:23:41.4659322Z # tests 50",
+        "2026-10-28T06:23:41.4659940Z # pass 50",
+        "2026-10-28T06:23:41.4660241Z # fail 0",
+        "2026-10-28T06:23:41.4661237Z # skipped 0"
+      ]
+    },
+    {
+      "id": 122666665344,
+      "sourceMention": true,
+      "count": 6,
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 913
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 1600
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 1254
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 1433
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 1766
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 1169
+        }
+      ],
+      "tests": [
+        "2026-10-28T06:24:24.6043223Z # tests 50",
+        "2026-10-28T06:24:24.6043750Z # pass 50",
+        "2026-10-28T06:24:24.6044222Z # fail 0",
+        "2026-10-28T06:24:24.6044880Z # skipped 0"
+      ]
+    },
+    {
+      "id": 122666665385,
+      "sourceMention": true,
+      "count": 6,
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 1087
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 1306
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 860
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 1016
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 731
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 1078
+        }
+      ],
+      "tests": [
+        "2026-10-28T06:24:16.1601332Z # tests 50",
+        "2026-10-28T06:24:16.1601809Z # pass 50",
+        "2026-10-28T06:24:16.1602024Z # fail 0",
+        "2026-10-28T06:24:16.1602822Z # skipped 0"
+      ]
+    },
+    {
+      "id": 122666666255,
+      "sourceMention": true,
+      "count": 6,
+      "samples": [
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 811
+        },
+        {
+          "kind": "chat",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 915
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 802
+        },
+        {
+          "kind": "responses",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 937
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 0,
+          "elapsedMs": 806
+        },
+        {
+          "kind": "claude",
+          "mode": "long-persistent",
+          "turn": 1,
+          "elapsedMs": 953
+        }
+      ],
+      "tests": [
+        "2026-10-28T06:23:54.3373223Z # tests 50",
+        "2026-10-28T06:23:54.3375356Z # pass 50",
+        "2026-10-28T06:23:54.3375835Z # fail 0",
+        "2026-10-28T06:23:54.3376415Z # skipped 0"
+      ]
+    }
+  ],
+  "fiveSecondQualified": false,
+  "real24hStarted": false,
+  "realModelRequests": 0,
+  "limitsUnchanged": true,
+  "failureRecordsPreserved": true,
+  "ioReceipts": [
+    {
+      "jobId": 122666665419,
+      "kind": "COVERAGE_IO",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "coverageStage": "proxy",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 1195,
+        "pairedFlushes": 16,
+        "database": {
+          "count": 0,
+          "maxMs": 0,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 16,
+          "maxMs": 17,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0,
+        "ioOperations": {
+          "collisions": 0,
+          "unfinished": 0,
+          "read": {
+            "database": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 8,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225489,
+                  "count": 8
+                }
+              ]
+            }
+          },
+          "write": {
+            "database": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 183,
+              "maxMs": 147,
+              "over100Ms": 1,
+              "over1000Ms": 0,
+              "nonZeroStatus": 40,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3223060484,
+                  "count": 40
+                }
+              ]
+            }
+          },
+          "set-info": {
+            "database": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 7,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "delete": {
+            "database": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 8,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "cleanup": {
+            "database": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 24,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "close": {
+            "database": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 38,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "create": {
+            "database": {
+              "count": 6,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 1,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225525,
+                  "count": 1
+                }
+              ]
+            },
+            "journal": {
+              "count": 26,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 36,
+              "maxNonZeroStatusMs": 1,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225524,
+                  "count": 36
+                }
+              ]
+            }
+          }
+        },
+        "ioScheduling": {
+          "schemaVersion": 3,
+          "waitWindows": [
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168768632,
+              "finishedAtMs": 1793168768803,
+              "elapsedMs": 171
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793168768815,
+              "finishedAtMs": 1793168768962,
+              "elapsedMs": 147
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168768304,
+              "finishedAtMs": 1793168768371,
+              "elapsedMs": 67
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168769046,
+              "finishedAtMs": 1793168769080,
+              "elapsedMs": 34
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793168768427,
+              "finishedAtMs": 1793168768455,
+              "elapsedMs": 28
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168768610,
+              "finishedAtMs": 1793168768630,
+              "elapsedMs": 20
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168769278,
+              "finishedAtMs": 1793168769298,
+              "elapsedMs": 20
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793168768501,
+              "finishedAtMs": 1793168768519,
+              "elapsedMs": 18
+            }
+          ],
+          "unmappedMetadata": [],
+          "scope": "sqlite_associated_thread_switch_intervals",
+          "bindings": 3,
+          "unmappedEpochs": 0,
+          "retired": 3,
+          "switchOuts": 192,
+          "intervals": 192,
+          "gaps": 0,
+          "unfinished": 0,
+          "delayExecution": {
+            "count": 0,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "ready": {
+            "count": 29,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "otherWaiting": {
+            "count": 156,
+            "totalMs": 766,
+            "maxMs": 171,
+            "over100Ms": 2,
+            "over1000Ms": 0
+          },
+          "other": {
+            "count": 7,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "delayExecutionWindows": [],
+          "traceCompletenessVerified": false,
+          "commitCorrelationQualified": false
+        },
+        "ioWindows": [
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793168768815,
+            "finishedAtMs": 1793168768962,
+            "elapsedMs": 147,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793168768501,
+            "finishedAtMs": 1793168768519,
+            "elapsedMs": 18,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793168768409,
+            "finishedAtMs": 1793168768426,
+            "elapsedMs": 17,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793168768550,
+            "finishedAtMs": 1793168768567,
+            "elapsedMs": 17,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793168768567,
+            "finishedAtMs": 1793168768584,
+            "elapsedMs": 17,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793168768550,
+            "finishedAtMs": 1793168768566,
+            "elapsedMs": 16,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793168768567,
+            "finishedAtMs": 1793168768582,
+            "elapsedMs": 15,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793168768410,
+            "finishedAtMs": 1793168768424,
+            "elapsedMs": 14,
+            "status": 0
+          }
+        ]
+      }
+    },
+    {
+      "jobId": 122666664969,
+      "kind": "COVERAGE_IO",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "coverageStage": "proxy",
+      "windowId": "native-publication-interruption",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 24395,
+        "pairedFlushes": 207,
+        "database": {
+          "count": 69,
+          "maxMs": 42,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 138,
+          "maxMs": 32,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0,
+        "ioOperations": {
+          "collisions": 0,
+          "unfinished": 0,
+          "read": {
+            "database": {
+              "count": 2592,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 80,
+              "maxNonZeroStatusMs": 1,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225489,
+                  "count": 80
+                }
+              ]
+            },
+            "journal": {
+              "count": 33,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 69,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225489,
+                  "count": 69
+                }
+              ]
+            }
+          },
+          "write": {
+            "database": {
+              "count": 467,
+              "maxMs": 37,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 48,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3223060484,
+                  "count": 48
+                }
+              ]
+            },
+            "journal": {
+              "count": 1024,
+              "maxMs": 30,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 293,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3223060484,
+                  "count": 293
+                }
+              ]
+            }
+          },
+          "set-info": {
+            "database": {
+              "count": 16,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 75,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "delete": {
+            "database": {
+              "count": 16,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 72,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "cleanup": {
+            "database": {
+              "count": 204,
+              "maxMs": 2,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 1045,
+              "maxMs": 3,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "close": {
+            "database": {
+              "count": 236,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 1157,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "create": {
+            "database": {
+              "count": 211,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 17,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225525,
+                  "count": 17
+                }
+              ]
+            },
+            "journal": {
+              "count": 1045,
+              "maxMs": 5,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 1545,
+              "maxNonZeroStatusMs": 1,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225524,
+                  "count": 1545
+                }
+              ]
+            }
+          }
+        },
+        "ioScheduling": {
+          "schemaVersion": 3,
+          "waitWindows": [
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168733842,
+              "finishedAtMs": 1793168734045,
+              "elapsedMs": 203
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168741080,
+              "finishedAtMs": 1793168741228,
+              "elapsedMs": 148
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168739095,
+              "finishedAtMs": 1793168739236,
+              "elapsedMs": 141
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168749773,
+              "finishedAtMs": 1793168749908,
+              "elapsedMs": 135
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168735791,
+              "finishedAtMs": 1793168735921,
+              "elapsedMs": 130
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168755932,
+              "finishedAtMs": 1793168756062,
+              "elapsedMs": 130
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168747587,
+              "finishedAtMs": 1793168747713,
+              "elapsedMs": 126
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168747219,
+              "finishedAtMs": 1793168747342,
+              "elapsedMs": 123
+            }
+          ],
+          "unmappedMetadata": [],
+          "scope": "sqlite_associated_thread_switch_intervals",
+          "bindings": 16,
+          "unmappedEpochs": 0,
+          "retired": 16,
+          "switchOuts": 1641,
+          "intervals": 1641,
+          "gaps": 0,
+          "unfinished": 0,
+          "delayExecution": {
+            "count": 21,
+            "totalMs": 174,
+            "maxMs": 16,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "ready": {
+            "count": 400,
+            "totalMs": 103,
+            "maxMs": 18,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "otherWaiting": {
+            "count": 1177,
+            "totalMs": 7391,
+            "maxMs": 203,
+            "over100Ms": 9,
+            "over1000Ms": 0
+          },
+          "other": {
+            "count": 43,
+            "totalMs": 1,
+            "maxMs": 1,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "delayExecutionWindows": [
+            {
+              "startedAtMs": 1793168734089,
+              "finishedAtMs": 1793168734105,
+              "elapsedMs": 16
+            },
+            {
+              "startedAtMs": 1793168741259,
+              "finishedAtMs": 1793168741275,
+              "elapsedMs": 16
+            },
+            {
+              "startedAtMs": 1793168747747,
+              "finishedAtMs": 1793168747763,
+              "elapsedMs": 16
+            },
+            {
+              "startedAtMs": 1793168749949,
+              "finishedAtMs": 1793168749965,
+              "elapsedMs": 16
+            },
+            {
+              "startedAtMs": 1793168757958,
+              "finishedAtMs": 1793168757974,
+              "elapsedMs": 16
+            },
+            {
+              "startedAtMs": 1793168757944,
+              "finishedAtMs": 1793168757958,
+              "elapsedMs": 14
+            },
+            {
+              "startedAtMs": 1793168739266,
+              "finishedAtMs": 1793168739279,
+              "elapsedMs": 13
+            },
+            {
+              "startedAtMs": 1793168749936,
+              "finishedAtMs": 1793168749949,
+              "elapsedMs": 13
+            }
+          ],
+          "traceCompletenessVerified": false,
+          "commitCorrelationQualified": false
+        },
+        "ioWindows": [
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793168760062,
+            "finishedAtMs": 1793168760104,
+            "elapsedMs": 42,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "database",
+            "startedAtMs": 1793168760062,
+            "finishedAtMs": 1793168760099,
+            "elapsedMs": 37,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793168759817,
+            "finishedAtMs": 1793168759849,
+            "elapsedMs": 32,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793168743122,
+            "finishedAtMs": 1793168743153,
+            "elapsedMs": 31,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793168743122,
+            "finishedAtMs": 1793168743152,
+            "elapsedMs": 30,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793168733750,
+            "finishedAtMs": 1793168733778,
+            "elapsedMs": 28,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793168759818,
+            "finishedAtMs": 1793168759846,
+            "elapsedMs": 28,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "database",
+            "startedAtMs": 1793168733750,
+            "finishedAtMs": 1793168733775,
+            "elapsedMs": 25,
+            "status": 0
+          }
+        ]
+      }
+    },
+    {
+      "jobId": 122666664969,
+      "kind": "COVERAGE_IO",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "coverageStage": "client",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 25275,
+        "pairedFlushes": 144,
+        "database": {
+          "count": 48,
+          "maxMs": 29,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 96,
+          "maxMs": 26,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0,
+        "ioOperations": {
+          "collisions": 0,
+          "unfinished": 0,
+          "read": {
+            "database": {
+              "count": 8619,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 15,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225489,
+                  "count": 15
+                }
+              ]
+            },
+            "journal": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 48,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225489,
+                  "count": 48
+                }
+              ]
+            }
+          },
+          "write": {
+            "database": {
+              "count": 813,
+              "maxMs": 14,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 72,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3223060484,
+                  "count": 72
+                }
+              ]
+            },
+            "journal": {
+              "count": 878,
+              "maxMs": 24,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 216,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3223060484,
+                  "count": 216
+                }
+              ]
+            }
+          },
+          "set-info": {
+            "database": {
+              "count": 3,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 49,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "delete": {
+            "database": {
+              "count": 3,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 48,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "cleanup": {
+            "database": {
+              "count": 30,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 144,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "close": {
+            "database": {
+              "count": 34,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 233,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "create": {
+            "database": {
+              "count": 30,
+              "maxMs": 2,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 3,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225525,
+                  "count": 3
+                }
+              ]
+            },
+            "journal": {
+              "count": 144,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 201,
+              "maxNonZeroStatusMs": 1,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225524,
+                  "count": 201
+                }
+              ]
+            }
+          }
+        },
+        "ioScheduling": {
+          "schemaVersion": 3,
+          "waitWindows": [
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793169249046,
+              "finishedAtMs": 1793169249218,
+              "elapsedMs": 172
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793169253849,
+              "finishedAtMs": 1793169254009,
+              "elapsedMs": 160
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793169244285,
+              "finishedAtMs": 1793169244438,
+              "elapsedMs": 153
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793169255931,
+              "finishedAtMs": 1793169256056,
+              "elapsedMs": 125
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793169246345,
+              "finishedAtMs": 1793169246463,
+              "elapsedMs": 118
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793169251196,
+              "finishedAtMs": 1793169251313,
+              "elapsedMs": 117
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793169254406,
+              "finishedAtMs": 1793169254519,
+              "elapsedMs": 113
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793169244850,
+              "finishedAtMs": 1793169244953,
+              "elapsedMs": 103
+            }
+          ],
+          "unmappedMetadata": [],
+          "scope": "sqlite_associated_thread_switch_intervals",
+          "bindings": 6,
+          "unmappedEpochs": 0,
+          "retired": 6,
+          "switchOuts": 853,
+          "intervals": 853,
+          "gaps": 0,
+          "unfinished": 0,
+          "delayExecution": {
+            "count": 0,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "ready": {
+            "count": 22,
+            "totalMs": 1,
+            "maxMs": 1,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "otherWaiting": {
+            "count": 786,
+            "totalMs": 3627,
+            "maxMs": 172,
+            "over100Ms": 9,
+            "over1000Ms": 0
+          },
+          "other": {
+            "count": 45,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "delayExecutionWindows": [],
+          "traceCompletenessVerified": false,
+          "commitCorrelationQualified": false
+        },
+        "ioWindows": [
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793169244509,
+            "finishedAtMs": 1793169244538,
+            "elapsedMs": 29,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793169256301,
+            "finishedAtMs": 1793169256327,
+            "elapsedMs": 26,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793169249285,
+            "finishedAtMs": 1793169249310,
+            "elapsedMs": 25,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793169256301,
+            "finishedAtMs": 1793169256325,
+            "elapsedMs": 24,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793169254078,
+            "finishedAtMs": 1793169254101,
+            "elapsedMs": 23,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "database",
+            "startedAtMs": 1793169244522,
+            "finishedAtMs": 1793169244536,
+            "elapsedMs": 14,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793169250795,
+            "finishedAtMs": 1793169250809,
+            "elapsedMs": 14,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793169251143,
+            "finishedAtMs": 1793169251157,
+            "elapsedMs": 14,
+            "status": 0
+          }
+        ]
+      }
+    },
+    {
+      "jobId": 122666664969,
+      "kind": "COVERAGE_IO",
+      "sourceSha": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+      "coverageStage": "client",
+      "windowId": "publication-graceful-http",
+      "cleanupVerified": true,
+      "windowTermination": "file-completed",
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 3265,
+        "pairedFlushes": 63,
+        "database": {
+          "count": 21,
+          "maxMs": 11,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 42,
+          "maxMs": 15,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0,
+        "ioOperations": {
+          "collisions": 0,
+          "unfinished": 0,
+          "read": {
+            "database": {
+              "count": 141,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 25,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225489,
+                  "count": 25
+                }
+              ]
+            },
+            "journal": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 21,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225489,
+                  "count": 21
+                }
+              ]
+            }
+          },
+          "write": {
+            "database": {
+              "count": 142,
+              "maxMs": 8,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 15,
+              "maxNonZeroStatusMs": 1,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3223060484,
+                  "count": 15
+                }
+              ]
+            },
+            "journal": {
+              "count": 264,
+              "maxMs": 12,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 81,
+              "maxNonZeroStatusMs": 1,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3223060484,
+                  "count": 81
+                }
+              ]
+            }
+          },
+          "set-info": {
+            "database": {
+              "count": 4,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 19,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "delete": {
+            "database": {
+              "count": 5,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 21,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "cleanup": {
+            "database": {
+              "count": 20,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 63,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "close": {
+            "database": {
+              "count": 29,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 93,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "create": {
+            "database": {
+              "count": 20,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 5,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225524,
+                  "count": 5
+                }
+              ]
+            },
+            "journal": {
+              "count": 63,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 112,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225524,
+                  "count": 112
+                }
+              ]
+            }
+          }
+        },
+        "ioScheduling": {
+          "schemaVersion": 3,
+          "waitWindows": [
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793169448929,
+              "finishedAtMs": 1793169448937,
+              "elapsedMs": 8
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793169447118,
+              "finishedAtMs": 1793169447125,
+              "elapsedMs": 7
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793169447454,
+              "finishedAtMs": 1793169447461,
+              "elapsedMs": 7
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793169447922,
+              "finishedAtMs": 1793169447929,
+              "elapsedMs": 7
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793169446997,
+              "finishedAtMs": 1793169447003,
+              "elapsedMs": 6
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793169447377,
+              "finishedAtMs": 1793169447383,
+              "elapsedMs": 6
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793169447547,
+              "finishedAtMs": 1793169447553,
+              "elapsedMs": 6
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 0,
+              "startedAtMs": 1793169448014,
+              "finishedAtMs": 1793169448020,
+              "elapsedMs": 6
+            }
+          ],
+          "unmappedMetadata": [],
+          "scope": "sqlite_associated_thread_switch_intervals",
+          "bindings": 5,
+          "unmappedEpochs": 0,
+          "retired": 5,
+          "switchOuts": 395,
+          "intervals": 395,
+          "gaps": 0,
+          "unfinished": 0,
+          "delayExecution": {
+            "count": 0,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "ready": {
+            "count": 26,
+            "totalMs": 3,
+            "maxMs": 1,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "otherWaiting": {
+            "count": 355,
+            "totalMs": 482,
+            "maxMs": 8,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "other": {
+            "count": 14,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "delayExecutionWindows": [],
+          "traceCompletenessVerified": false,
+          "commitCorrelationQualified": false
+        },
+        "ioWindows": [
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793169447917,
+            "finishedAtMs": 1793169447932,
+            "elapsedMs": 15,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793169447917,
+            "finishedAtMs": 1793169447929,
+            "elapsedMs": 12,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793169448927,
+            "finishedAtMs": 1793169448939,
+            "elapsedMs": 12,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793169446925,
+            "finishedAtMs": 1793169446936,
+            "elapsedMs": 11,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793169447115,
+            "finishedAtMs": 1793169447126,
+            "elapsedMs": 11,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793169447452,
+            "finishedAtMs": 1793169447463,
+            "elapsedMs": 11,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793169449021,
+            "finishedAtMs": 1793169449032,
+            "elapsedMs": 11,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793169446995,
+            "finishedAtMs": 1793169447005,
+            "elapsedMs": 10,
+            "status": 0
+          }
+        ]
+      }
+    },
+    {
+      "jobId": 122666666255,
+      "kind": "PERSISTENT_IO",
+      "summary": {
+        "schemaVersion": 6,
+        "scope": "synthetic_sqlite_etw_file_operations",
+        "events": 25203,
+        "pairedFlushes": 144,
+        "database": {
+          "count": 48,
+          "maxMs": 22,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "journal": {
+          "count": 96,
+          "maxMs": 13,
+          "over100Ms": 0,
+          "over1000Ms": 0
+        },
+        "collisions": 0,
+        "unmatchedEnds": 0,
+        "failedFlushes": 0,
+        "unfinishedFlushes": 0,
+        "traceCompletenessVerified": false,
+        "fiveSecondQualified": false,
+        "realModelRequests": 0,
+        "ioOperations": {
+          "collisions": 0,
+          "unfinished": 0,
+          "read": {
+            "database": {
+              "count": 8619,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 15,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225489,
+                  "count": 15
+                }
+              ]
+            },
+            "journal": {
+              "count": 0,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 48,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225489,
+                  "count": 48
+                }
+              ]
+            }
+          },
+          "write": {
+            "database": {
+              "count": 813,
+              "maxMs": 10,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 48,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3223060484,
+                  "count": 48
+                }
+              ]
+            },
+            "journal": {
+              "count": 877,
+              "maxMs": 11,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 216,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3223060484,
+                  "count": 216
+                }
+              ]
+            }
+          },
+          "set-info": {
+            "database": {
+              "count": 4,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 49,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "delete": {
+            "database": {
+              "count": 3,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 48,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "cleanup": {
+            "database": {
+              "count": 30,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 144,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "close": {
+            "database": {
+              "count": 36,
+              "maxMs": 0,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            },
+            "journal": {
+              "count": 234,
+              "maxMs": 1,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 0,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": []
+            }
+          },
+          "create": {
+            "database": {
+              "count": 30,
+              "maxMs": 4,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 3,
+              "maxNonZeroStatusMs": 0,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225525,
+                  "count": 3
+                }
+              ]
+            },
+            "journal": {
+              "count": 144,
+              "maxMs": 4,
+              "over100Ms": 0,
+              "over1000Ms": 0,
+              "nonZeroStatus": 201,
+              "maxNonZeroStatusMs": 1,
+              "accessDenied": 0,
+              "sharingViolation": 0,
+              "lockConflict": 0,
+              "statuses": [
+                {
+                  "code": 3221225524,
+                  "count": 201
+                }
+              ]
+            }
+          }
+        },
+        "ioScheduling": {
+          "schemaVersion": 3,
+          "waitWindows": [
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168621934,
+              "finishedAtMs": 1793168622097,
+              "elapsedMs": 163
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168626046,
+              "finishedAtMs": 1793168626199,
+              "elapsedMs": 153
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168617726,
+              "finishedAtMs": 1793168617874,
+              "elapsedMs": 148
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168627832,
+              "finishedAtMs": 1793168627938,
+              "elapsedMs": 106
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168619520,
+              "finishedAtMs": 1793168619618,
+              "elapsedMs": 98
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168626537,
+              "finishedAtMs": 1793168626635,
+              "elapsedMs": 98
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168618210,
+              "finishedAtMs": 1793168618306,
+              "elapsedMs": 96
+            },
+            {
+              "kind": "otherWaiting",
+              "threadState": 5,
+              "waitReason": 15,
+              "startedAtMs": 1793168623733,
+              "finishedAtMs": 1793168623829,
+              "elapsedMs": 96
+            }
+          ],
+          "unmappedMetadata": [],
+          "scope": "sqlite_associated_thread_switch_intervals",
+          "bindings": 6,
+          "unmappedEpochs": 0,
+          "retired": 6,
+          "switchOuts": 838,
+          "intervals": 838,
+          "gaps": 0,
+          "unfinished": 0,
+          "delayExecution": {
+            "count": 0,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "ready": {
+            "count": 27,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "otherWaiting": {
+            "count": 784,
+            "totalMs": 2851,
+            "maxMs": 163,
+            "over100Ms": 4,
+            "over1000Ms": 0
+          },
+          "other": {
+            "count": 27,
+            "totalMs": 0,
+            "maxMs": 0,
+            "over100Ms": 0,
+            "over1000Ms": 0
+          },
+          "delayExecutionWindows": [],
+          "traceCompletenessVerified": false,
+          "commitCorrelationQualified": false
+        },
+        "ioWindows": [
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793168626263,
+            "finishedAtMs": 1793168626285,
+            "elapsedMs": 22,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793168617938,
+            "finishedAtMs": 1793168617958,
+            "elapsedMs": 20,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "database",
+            "startedAtMs": 1793168622168,
+            "finishedAtMs": 1793168622185,
+            "elapsedMs": 17,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793168617678,
+            "finishedAtMs": 1793168617691,
+            "elapsedMs": 13,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "journal",
+            "startedAtMs": 1793168617678,
+            "finishedAtMs": 1793168617689,
+            "elapsedMs": 11,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793168619727,
+            "finishedAtMs": 1793168619737,
+            "elapsedMs": 10,
+            "status": 0
+          },
+          {
+            "operation": "write",
+            "kind": "database",
+            "startedAtMs": 1793168626271,
+            "finishedAtMs": 1793168626281,
+            "elapsedMs": 10,
+            "status": 0
+          },
+          {
+            "operation": "flush",
+            "kind": "journal",
+            "startedAtMs": 1793168627964,
+            "finishedAtMs": 1793168627974,
+            "elapsedMs": 10,
+            "status": 0
+          }
+        ]
+      }
+    }
+  ],
+  "localShort": {
+    "event": "independent_short_observed",
+    "sourceHead": "523d9e83827ac972ea456e9c185cc70d7fda81de",
+    "taskState": "Ready",
+    "taskResult": 0,
+    "taskPriority": 4,
+    "state": {
+      "atUtc": "2026-10-28T06:30:26.100569Z",
+      "qualification": false,
+      "event": "independent_short_523d9e8_completed",
+      "realModelRequests": 0
+    },
+    "events": [
+      {
+        "childExitCode": 0,
+        "event": "independent_short_523d9e8_step_finished",
+        "qualification": false,
+        "stderrBytes": 0,
+        "stdoutBytes": 116,
+        "elapsedMs": 795,
+        "step": "source-admission",
+        "realModelRequests": 0,
+        "atUtc": "2026-10-28T06:26:02.9668119Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "childExitCode": 0,
+        "event": "independent_short_523d9e8_step_finished",
+        "qualification": false,
+        "stderrBytes": 0,
+        "stdoutBytes": 54,
+        "elapsedMs": 6632,
+        "step": "cache-copy",
+        "realModelRequests": 0,
+        "atUtc": "2026-10-28T06:26:09.6512208Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "childExitCode": 0,
+        "event": "independent_short_523d9e8_step_finished",
+        "qualification": false,
+        "stderrBytes": 0,
+        "stdoutBytes": 298,
+        "elapsedMs": 19451,
+        "step": "npm-ci",
+        "realModelRequests": 0,
+        "atUtc": "2026-10-28T06:26:29.1632207Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "childExitCode": 0,
+        "event": "independent_short_523d9e8_step_finished",
+        "qualification": false,
+        "stderrBytes": 0,
+        "stdoutBytes": 253,
+        "elapsedMs": 34000,
+        "step": "plugin-ci",
+        "realModelRequests": 0,
+        "atUtc": "2026-10-28T06:27:03.2227152Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "childExitCode": 0,
+        "event": "independent_short_523d9e8_step_finished",
+        "qualification": false,
+        "stderrBytes": 0,
+        "stdoutBytes": 140,
+        "elapsedMs": 1778,
+        "step": "native-artifact",
+        "realModelRequests": 0,
+        "atUtc": "2026-10-28T06:27:05.0740481Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "childExitCode": 0,
+        "event": "independent_short_523d9e8_step_finished",
+        "qualification": false,
+        "stderrBytes": 0,
+        "stdoutBytes": 4166,
+        "elapsedMs": 7839,
+        "step": "native-open",
+        "realModelRequests": 0,
+        "atUtc": "2026-10-28T06:27:12.9700242Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "childExitCode": 0,
+        "event": "independent_short_523d9e8_step_finished",
+        "qualification": false,
+        "stderrBytes": 0,
+        "stdoutBytes": 6625,
+        "elapsedMs": 8708,
+        "step": "regression",
+        "realModelRequests": 0,
+        "atUtc": "2026-10-28T06:27:21.7512705Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "childExitCode": 0,
+        "event": "independent_short_523d9e8_step_finished",
+        "qualification": false,
+        "stderrBytes": 0,
+        "stdoutBytes": 5293,
+        "elapsedMs": 94923,
+        "step": "native-interruption",
+        "realModelRequests": 0,
+        "atUtc": "2026-10-28T06:28:56.7222227Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "childExitCode": 0,
+        "event": "independent_short_523d9e8_step_finished",
+        "qualification": false,
+        "stderrBytes": 0,
+        "stdoutBytes": 177502,
+        "elapsedMs": 89338,
+        "step": "short",
+        "realModelRequests": 0,
+        "atUtc": "2026-10-28T06:30:26.0975563Z",
+        "jobNaturallyEmpty": true
+      }
+    ],
+    "actualNodeAlive": false,
+    "actualNodeIdentityVerified": false,
+    "real24hStarted": false,
+    "realModelRequests": 0,
+    "note": "Terminal task Ready/result0; process absent. Live identity was checked during execution, not inferred from absence.",
+    "originalPreparationFailurePreserved": true,
+    "originalPreparationFailure": "missing execFileSync import before product stages; admitted continuation used unchanged source and canonical helpers",
+    "fixedGroupDeadlineMs": 120000,
+    "tests": {
+      "capacityClock": {
+        "tests": 28,
+        "pass": 28,
+        "fail": 0,
+        "skip": 0
+      },
+      "nativeInterruption": {
+        "tests": 20,
+        "pass": 20,
+        "fail": 0,
+        "skip": 0
+      },
+      "clientAndNativeHttp": {
+        "tests": 40,
+        "pass": 40,
+        "fail": 0,
+        "skip": 0
+      }
+    }
+  }
+}

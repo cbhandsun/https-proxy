@@ -881,9 +881,9 @@ function tick(ms = 0) {
     );
     assert.ok(
       !portableScript.includes("(Join-Path $PortableDir 'proxy.config.json')") &&
-        portableScript.includes("'proxy.config.example.json'") &&
+        portableScript.includes("'lib\\release\\portable-runtime.js'") &&
         portableScript.includes('scripts/validate-release-package.js'),
-      'portable packages are stateless and validated before distribution'
+      'portable packaging delegates to the verified stateless runtime copy before distribution validation'
     );
   }
 

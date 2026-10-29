@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "baseHead": "7d06d880f018134cfba04520e2ab35d524898ec0",
+  "change": "Combine directory ACL and fixed writer creation/ACL in one native process; return authenticated directory/writer identities and consume the writer proof once. Correct metadata-only handles so no-delete sharing actually protects the objects.",
+  "nativePinningReference": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fsa/8c0e3f4f-0729-49f4-a14d-7f7add593819",
+  "preserved": [
+    "original five-second deadlines",
+    "strict DACL replacement and readback",
+    "reparse/ancestor/single-link/size/identity checks",
+    "exact ACK version equality",
+    "SQLite FULL and DELETE",
+    "original root expiry",
+    "failure residues and no dispatched-error fallback",
+    "one-use writer identity proof",
+    "no checkpoint precreation"
+  ],
+  "baselineCi": {
+    "verifyRun": 40778044751,
+    "verify": "failure",
+    "verifyFailedJob": 123132327998,
+    "failures": [
+      "native graceful HTTP initial readiness five-second timeout before target advance",
+      "PowerShell readiness original thirty-second timeout"
+    ],
+    "formalRun": 40778044836,
+    "formalJobsPassed": 12,
+    "formalScope": "source/egress and ten bounded synthetic lanes; not complete N08/N09, installer, providers or real24h",
+    "extraIoRun": 40778044911,
+    "extraIo": "success",
+    "freshReadRunJobsConfirmed": true,
+    "remoteBranchHeadConfirmed": "7d06d880f018134cfba04520e2ab35d524898ec0"
+  },
+  "windowsOriginalSource": {
+    "base": "90389ed",
+    "fullOriginalCoreAndCodexFiles": {
+      "tests": 50,
+      "pass": 50,
+      "fail": 0,
+      "skip": 0,
+      "exitCode": 0,
+      "elapsedMs": 146968,
+      "persistentPublicationMs": [
+        2167,
+        2641,
+        2365,
+        2785,
+        2400,
+        2975
+      ]
+    },
+    "nativeGracefulAndReadinessFiles": {
+      "tests": 12,
+      "pass": 5,
+      "fail": 7,
+      "exitCode": 1,
+      "elapsedMs": 67869,
+      "gracefulInitialReadinessFailures": 5,
+      "powershellHarnessResolutionFailures": 2,
+      "targetAdvanceNotEnteredForReadinessFailures": true
+    },
+    "limits": [
+      "Original incomplete 120-second attempt remains failed; the complete run used the original workflow fifteen-minute job bound without changing per-request deadlines.",
+      "Local stripped PATH PowerShell ENOENT differs from hosted thirty-second readiness timeout.",
+      "These local results do not qualify current uncommitted runtime changes or erase previous HTTP five-second failures."
+    ]
+  },
+  "nativeComponentA": {
+    "componentOnly": true,
+    "committed": false,
+    "tests": 14,
+    "pass": 13,
+    "fail": 1,
+    "cargoExitCode": 101,
+    "failure": "root_rename_unexpectedly_succeeded",
+    "releaseBuildExecuted": false,
+    "nodeActualTestsExecuted": false,
+    "terminalConfirmed": true,
+    "retained": true
+  },
+  "nativeComponentA2": {
+    "status": "terminal_node_assertion_failed_before_native_dispatch",
+    "fix": "Original common open requests FILE_READ_DATA/FILE_LIST_DIRECTORY in addition to attributes; no DELETE access and no fallback.",
+    "compatibilityBoundary": "Targets or ancestors denying read/list access now fail closed; actual Windows validation remains required.",
+    "regression": "Retain failed rename negative control; cover fresh/existing writer, root/ancestor/file guards, unchanged bytes and legitimate rename after handle close.",
+    "manifestSha256": "4ea9904496199349c0ed57da40024b89f807a273454b986b5f56a855da342984",
+    "inputNativeFiles": 13,
+    "rootVerifiedCurrentNativeHashes": true,
+    "expectedRustTests": 15,
+    "expectedNodeTests": 18,
+    "processIdentitiesVerified": true,
+    "startedAtUtc": "2026-10-28T23:24:22.2930630Z",
+    "firstStageReceiptUtc": "2026-10-28T23:24:31.7967696Z",
+    "stages": {
+      "sourceAdmission": {
+        "exitCode": 0,
+        "elapsedMs": 10629
+      },
+      "cargoCache": {
+        "exitCode": 0,
+        "elapsedMs": 922
+      },
+      "cargoFmt": {
+        "exitCode": 0,
+        "elapsedMs": 1482
+      },
+      "rustPrivatePath": {
+        "exitCode": 0,
+        "elapsedMs": 81255
+      },
+      "releaseBuild": {
+        "exitCode": 0,
+        "elapsedMs": 86982
+      },
+      "installArtifact": {
+        "exitCode": 0,
+        "elapsedMs": 549
+      },
+      "actualNode": {
+        "exitCode": 1,
+        "elapsedMs": 10613
+      }
+    },
+    "releaseBuildStartedAtUtc": "2026-10-28T23:26:06.712163Z",
+    "terminalConfirmed": true,
+    "taskResult": 1,
+    "ownedProcessesEmpty": true,
+    "rustResults": {
+      "tests": 15,
+      "pass": 15,
+      "fail": 0,
+      "ignored": 0,
+      "otherModulesNotRun": 38
+    },
+    "rustFmtChangedFiles": [],
+    "rootComparedReturnedRustBytes": true,
+    "automaticRetry": false,
+    "qualified": false,
+    "nodeResults": {
+      "tests": 18,
+      "pass": 17,
+      "fail": 1,
+      "skip": 0,
+      "cancelled": 0
+    },
+    "nativeArtifactSha256": "e3f72c893adefab704bcbf2b561386294250cdbbe3ecbd470ea1498460a5015b",
+    "installedDefaultArtifactMatchesBuild": true,
+    "installedArtifactNlink": 1,
+    "failure": {
+      "test": "pre-Unix exact Node stat assumption",
+      "line": 93,
+      "expectedBirthtimeNs": "-100",
+      "observedBirthtimeNs": "4294967295999999900",
+      "nativeDispatchedForFailingCase": false,
+      "otherActualNativeCasesPassed": 3
+    }
+  },
+  "localChecks": {
+    "relatedNode": {
+      "tests": 32,
+      "pass": 28,
+      "fail": 0,
+      "skip": 4,
+      "skipReason": "actual Windows cases on macOS"
+    },
+    "syntaxFiles": 1744,
+    "ciGovernanceExit": 0,
+    "releaseGovernanceExit": 0,
+    "lintExit": 0,
+    "lintExistingWarnings": 5,
+    "changedJavascriptFormatExit": 0,
+    "wholeCheckoutFormatExit": 1,
+    "wholeCheckoutFormatWarnedFiles": 1437,
+    "wholeCheckoutFormatLimit": "Three unchanged samples differ only in normalized line endings; full cause not asserted and no mass formatting performed.",
+    "unifiedUnitIncludesAllThreeNewFiles": true,
+    "existingIdentityAndAcl": {
+      "tests": 15,
+      "pass": 12,
+      "fail": 0,
+      "skip": 3,
+      "skipReason": "existing Windows-only cases on macOS"
+    },
+    "npmAudit": {
+      "exitCode": 0,
+      "auditLevel": "high",
+      "high": 0,
+      "critical": 0,
+      "moderate": 1,
+      "dependenciesChanged": false
+    },
+    "storageService": {
+      "tests": 25,
+      "pass": 24,
+      "fail": 0,
+      "skip": 1,
+      "platform": "macOS",
+      "limits": "Windows conditionally-returned bodies and platform skips do not qualify Windows DPAPI or anchors."
+    },
+    "finalCombinedCurrentSource": {
+      "tests": 57,
+      "pass": 52,
+      "fail": 0,
+      "skip": 5,
+      "platform": "macOS",
+      "exitCode": 0,
+      "windowsQualification": false
+    }
+  },
+  "realModelRequests": 0,
+  "new24hStarted": false,
+  "old868": {
+    "state": "failed",
+    "observedTicks": 4,
+    "lastScheduledMs": 900000,
+    "passed": false,
+    "terminalConfirmed": false,
+    "frozenEnvironmentUnchanged": true
+  },
+  "overallComplete": false,
+  "providerBudgetAudit": {
+    "receipt": "e0e0f14-provider-budget-reconciled.json",
+    "sealedCommit": "be6545ec",
+    "sealedCommitTime": "2026-10-27T20:21:53-07:00",
+    "receiptHasOwnCheckedAtUtc": false,
+    "maximum": 177,
+    "used": 169,
+    "codexRemaining": 1,
+    "claudeRemaining": 7,
+    "separateGrantCountsVerified": true,
+    "freshLedgerAndDurableReservationRequiredBeforeDispatch": true,
+    "dispatchReservationPrepared": false,
+    "newerValidLocalReceiptFound": false,
+    "providerRequestsThisBatch": 0
+  },
+  "nativeComponentA3": {
+    "status": "terminal_component_node43_passed",
+    "change": "Correct the test assumption: exact negative timestamp agreement or one actual dispatched strict refusal on the observed Node22 uint32-second wrap; never wrap the native timestamp or relax equality.",
+    "runtimeNativeAndFacadeUnchangedFromA2": true,
+    "originalA2FailureRetained": true,
+    "additionalOriginalServiceFile": "context-recovery-storage-service.test.js",
+    "serviceExpectationChange": "Three actual-owner expected phase pairs select the actual native/legacy backend; fake-worker legacy assertions unchanged.",
+    "manifestSha256": "ce118a526a79bd741a2e6a8e8cb0a6a120a36dfeeb3e933733cfea6a9244086d",
+    "rootVerifiedCurrentNativeAndSelectedRuntimeTests": true,
+    "nativeReceiptSuccessRequiredBeforeRefusalAssertion": true,
+    "expectedTests": {
+      "module": 18,
+      "storageService": 25
+    },
+    "freshPrivateTempProfileAndDatabases": true,
+    "actualRawTimestampCompatibilityQualified": false,
+    "processIdentitiesVerified": true,
+    "controllerCreatedAtUtc": "2026-10-28T23:37:11.8410710Z",
+    "nodeCreatedAtUtc": "2026-10-28T23:37:23.6301770Z",
+    "stages": {
+      "sourceAdmission": {
+        "exitCode": 0,
+        "elapsedMs": 17026
+      },
+      "installReusedArtifact": {
+        "exitCode": 0,
+        "elapsedMs": 1465
+      },
+      "nodeModule": {
+        "exitCode": 0,
+        "elapsedMs": 15974,
+        "tests": 18,
+        "pass": 18,
+        "fail": 0,
+        "skip": 0,
+        "cancelled": 0
+      },
+      "storageService": {
+        "exitCode": 0,
+        "elapsedMs": 85345,
+        "tests": 25,
+        "pass": 25,
+        "fail": 0,
+        "skip": 0,
+        "cancelled": 0
+      }
+    },
+    "nodeWrapRefusalAfterCanonicalExactNativeReceiptPassed": true,
+    "strictPreUnixCompatibilityNotGranted": true,
+    "terminalConfirmed": true,
+    "taskResult": 0,
+    "ownedProcessesEmpty": true,
+    "completedAtUtc": "2026-10-28T23:39:48.3032114Z",
+    "results": {
+      "tests": 43,
+      "pass": 43,
+      "fail": 0,
+      "skip": 0,
+      "cancelled": 0,
+      "todo": 0
+    },
+    "actualWorkerAndDpapiReopenPassed": true,
+    "componentFunctionalPassed": true,
+    "wholeRustCratePassed": false,
+    "fullExactCommitCiPassed": false,
+    "fiveSecondStableQualified": false,
+    "realtime24hPassed": false,
+    "artifactSha256": "e3f72c893adefab704bcbf2b561386294250cdbbe3ecbd470ea1498460a5015b"
+  },
+  "remainingRequirements": [
+    "Full CI on the new exact commit",
+    "Original Windows five-second stability and persistent publication gates",
+    "Latest installer full582 migration, upgrade and rollback refusal plus both installed clients",
+    "Fresh quota/reservation before real providers",
+    "New authorized effective real24h and actual expiry reopens; old868 must not restart",
+    "Controlled self-use switch by the user; old daily instance retained"
+  ]
+}

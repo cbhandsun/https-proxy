@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "31e6510fea631debb575cb136dd1a3f5bdd7b5b2",
+  "diagnosticRun": 40615577171,
+  "diagnosticConclusion": "success",
+  "fullFourBusinessLogsRead": true,
+  "scenarios": [
+    {
+      "jobId": 122577161198,
+      "scenario": "n08",
+      "sourceSha": "31e6510fea631debb575cb136dd1a3f5bdd7b5b2",
+      "planSha256": "1cd3f09029af96a8ea03f843285104bfd711ad08748da4594bca5820b87b3aa1",
+      "buildReceiptSha256": "0e8f95d9ff6768eebf6a461acaa6c514eb2e3695c75d3b3a9d9beca7969587e3",
+      "preparationWasNotExecution": true,
+      "finalReceipt": {
+        "n08Qualified": false,
+        "probesPassed": true,
+        "ownedTreeEmpty": true,
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "phase": "hosted_network_finished"
+      }
+    },
+    {
+      "jobId": 122577161405,
+      "scenario": "n09-finished-ack",
+      "sourceSha": "31e6510fea631debb575cb136dd1a3f5bdd7b5b2",
+      "planSha256": "438fe75c746f4065065267ae68801f6ba483bed479ffddb5be945b3800c1f7da",
+      "buildReceiptSha256": "63d49b5d706084d753d512720db7de6ea700f9f2da9b18eac88aa8377199f06a",
+      "preparationWasNotExecution": true,
+      "finalReceipt": {
+        "probesPassed": true,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "ownedTreeEmpty": true,
+        "n08Qualified": false,
+        "tlsVerified": true
+      }
+    },
+    {
+      "jobId": 122577161482,
+      "scenario": "n09",
+      "sourceSha": "31e6510fea631debb575cb136dd1a3f5bdd7b5b2",
+      "planSha256": "12860c650ad62f44d4683a4a7be68dc669cd8c0cba6ff3452ecdd5519b121e72",
+      "buildReceiptSha256": "39da5ea8624e65aef51d64830cc475e6943b1a4da7a699414998658de10ed767",
+      "preparationWasNotExecution": true,
+      "finalReceipt": {
+        "n08Qualified": false,
+        "phase": "hosted_network_finished",
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "ownedTreeEmpty": true,
+        "probesPassed": true
+      }
+    },
+    {
+      "jobId": 122577161503,
+      "scenario": "n09-sending-ack",
+      "sourceSha": "31e6510fea631debb575cb136dd1a3f5bdd7b5b2",
+      "planSha256": "41c962e27ab2cf45ba9dae580c218307e8b9de5840691e47f23e26bc1eda161f",
+      "buildReceiptSha256": "22a99762a921fe23020584ad7c809929c6d89d871c7cd76379ea7fc5a42b151e",
+      "preparationWasNotExecution": true,
+      "finalReceipt": {
+        "phase": "hosted_network_finished",
+        "ownedTreeEmpty": true,
+        "probesPassed": true,
+        "nonLoopbackBlocked": true,
+        "tlsVerified": true,
+        "n08Qualified": false
+      }
+    }
+  ],
+  "ordinaryRun": 40615577158,
+  "ordinaryUnit0Failure": {
+    "jobId": 122577161382,
+    "test": "collision and wrong identity preserve sentinels while owned material cleanup works",
+    "source": "test/context-hosted/shared-hosted-materials.test.js:46",
+    "testElapsedMs": 25205.4212,
+    "observedError": "spawnSync pwsh.exe ETIMEDOUT",
+    "originalTimeoutIncreased": false,
+    "uniqueCauseEstablished": false
+  },
+  "fullUnitFailureLogRead": true,
+  "oldFailuresRetained": true,
+  "fullQualification": false,
+  "realModelRequests": 0,
+  "ordinarySuccessfulJobs": 7,
+  "ordinaryConclusion": "failure",
+  "ordinaryCoverage": "success",
+  "extraIo": "success",
+  "extraIoEvidence": "31e6510-io-normal-completion.json",
+  "formalJobsObserved": [
+    {
+      "id": 122577161381,
+      "name": "source-gates",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122577161515,
+      "name": "egress-diagnostic",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122584138902,
+      "name": "context-recovery (n09-finished-ack)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122584138921,
+      "name": "context-recovery (n08)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122584138968,
+      "name": "context-recovery (n09)",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 122584138995,
+      "name": "context-recovery (n09-sending-ack)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "formalConclusionNotYetComplete": true
+}

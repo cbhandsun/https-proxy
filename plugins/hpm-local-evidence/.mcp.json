@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "evidence": { "cwd": ".", "command": "node", "args": ["./server.cjs"] }
+  }
+}

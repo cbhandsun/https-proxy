@@ -16,12 +16,21 @@ struct ManagementRequestPermit;
 
 impl ManagementRequestPermit {
     fn acquire() -> Result<Self, String> {
-        ACTIVE_MANAGEMENT_REQUESTS
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |active| {
-                (active < MAX_CONCURRENT_MANAGEMENT_REQUESTS).then_some(active + 1)
-            })
-            .map_err(|_| "too many concurrent management requests".to_string())?;
-        Ok(Self)
+        let mut active = ACTIVE_MANAGEMENT_REQUESTS.load(Ordering::Acquire);
+        loop {
+            if active >= MAX_CONCURRENT_MANAGEMENT_REQUESTS {
+                return Err("too many concurrent management requests".to_string());
+            }
+            match ACTIVE_MANAGEMENT_REQUESTS.compare_exchange_weak(
+                active,
+                active + 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => return Ok(Self),
+                Err(observed) => active = observed,
+            }
+        }
     }
 }
 
@@ -56,6 +65,8 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
         "GET" => matches!(
             route,
             "/health"
+                | "/context-recovery/clear-operations"
+                | "/context-policy/preview"
                 | "/config"
                 | "/log"
                 | "/env/check"
@@ -92,9 +103,15 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
         "POST" => matches!(
             route,
             "/select-directory"
+                | "/runtime/stop"
                 | "/cli/launch"
                 | "/cli/sessions/delete"
                 | "/audit/conversations/clear"
+                | "/context-recovery/clear"
+                | "/context-policy/apply"
+                | "/context-recovery/clear-operations"
+                | "/context-recovery/clear-operations/start"
+                | "/context-recovery/clear-operations/cancel"
                 | "/audit/retry"
                 | "/profile/test-auth"
                 | "/profile/latency"
@@ -416,6 +433,80 @@ mod tests {
     };
 
     #[test]
+    fn bounds_management_request_permits_and_releases_capacity() {
+        use super::{
+            ManagementRequestPermit, ACTIVE_MANAGEMENT_REQUESTS, MAX_CONCURRENT_MANAGEMENT_REQUESTS,
+        };
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::{Barrier, Mutex};
+
+        assert_eq!(ACTIVE_MANAGEMENT_REQUESTS.load(Ordering::Acquire), 0);
+        let mut held: Vec<_> = (0..MAX_CONCURRENT_MANAGEMENT_REQUESTS)
+            .map(|_| ManagementRequestPermit::acquire().expect("capacity is available"))
+            .collect();
+        assert_eq!(
+            ACTIVE_MANAGEMENT_REQUESTS.load(Ordering::Acquire),
+            MAX_CONCURRENT_MANAGEMENT_REQUESTS
+        );
+        assert!(ManagementRequestPermit::acquire().is_err());
+        assert_eq!(
+            ACTIVE_MANAGEMENT_REQUESTS.load(Ordering::Acquire),
+            MAX_CONCURRENT_MANAGEMENT_REQUESTS
+        );
+        drop(held.pop());
+        assert_eq!(
+            ACTIVE_MANAGEMENT_REQUESTS.load(Ordering::Acquire),
+            MAX_CONCURRENT_MANAGEMENT_REQUESTS - 1
+        );
+        let replacement = ManagementRequestPermit::acquire().expect("released slot is reusable");
+        drop(replacement);
+        drop(held);
+        assert_eq!(ACTIVE_MANAGEMENT_REQUESTS.load(Ordering::Acquire), 0);
+
+        fn fail_after_acquire() -> Result<(), &'static str> {
+            let _permit = ManagementRequestPermit::acquire().expect("capacity is available");
+            Err("synthetic request failure")
+        }
+        let failed = fail_after_acquire();
+        assert_eq!(failed, Err("synthetic request failure"));
+        assert_eq!(ACTIVE_MANAGEMENT_REQUESTS.load(Ordering::Acquire), 0);
+
+        let attempts = MAX_CONCURRENT_MANAGEMENT_REQUESTS * 4;
+        let start = Barrier::new(attempts);
+        let held = Mutex::new(Vec::new());
+        let rejected = AtomicUsize::new(0);
+        std::thread::scope(|scope| {
+            for _ in 0..attempts {
+                scope.spawn(|| {
+                    start.wait();
+                    match ManagementRequestPermit::acquire() {
+                        Ok(permit) => held
+                            .lock()
+                            .expect("test permit lock is available")
+                            .push(permit),
+                        Err(error) => {
+                            assert_eq!(error, "too many concurrent management requests");
+                            rejected.fetch_add(1, Ordering::Relaxed);
+                        }
+                    }
+                });
+            }
+        });
+        let held = held.into_inner().expect("test permit lock is available");
+        assert_eq!(held.len(), MAX_CONCURRENT_MANAGEMENT_REQUESTS);
+        assert_eq!(
+            rejected.load(Ordering::Relaxed),
+            attempts - MAX_CONCURRENT_MANAGEMENT_REQUESTS
+        );
+        assert_eq!(
+            ACTIVE_MANAGEMENT_REQUESTS.load(Ordering::Acquire),
+            MAX_CONCURRENT_MANAGEMENT_REQUESTS
+        );
+        drop(held);
+        assert_eq!(ACTIVE_MANAGEMENT_REQUESTS.load(Ordering::Acquire), 0);
+    }
+
+    #[test]
     fn validates_management_paths_and_content_types() {
         assert!(validate_path("GET", "/v1/local/config?limit=1").is_ok());
         assert!(validate_path("GET", "/local/health").is_ok());
@@ -423,6 +514,30 @@ mod tests {
         assert!(validate_path("GET", "/v1/local/config\r\nx: injected").is_err());
         assert!(validate_path("GET", &format!("/v1/local/{}", "x".repeat(4096))).is_err());
         assert!(validate_path("POST", "/v1/local/config").is_ok());
+        assert!(validate_path("POST", "/v1/local/runtime/stop").is_ok());
+        assert!(validate_path("GET", "/v1/local/runtime/stop").is_err());
+        assert!(validate_path("POST", "/v1/local/runtime/stop/other").is_err());
+        for prefix in ["/v1/local", "/local"] {
+            let preview = format!("{prefix}/context-policy/preview");
+            let apply = format!("{prefix}/context-policy/apply");
+            assert!(validate_path("GET", &preview).is_ok());
+            assert!(validate_path("POST", &preview).is_err());
+            assert!(validate_path("POST", &apply).is_ok());
+            assert!(validate_path("GET", &apply).is_err());
+            assert!(validate_path("POST", &format!("{apply}/other")).is_err());
+            let clear = format!("{prefix}/context-recovery/clear");
+            assert!(validate_path("POST", &clear).is_ok());
+            assert!(validate_path("GET", &clear).is_err());
+            assert!(validate_path("POST", &format!("{clear}/other")).is_err());
+            let operations = format!("{prefix}/context-recovery/clear-operations");
+            assert!(validate_path("POST", &operations).is_ok());
+            assert!(validate_path("GET", &format!("{operations}?operationId=example")).is_ok());
+            assert!(validate_path("POST", &format!("{operations}/start")).is_ok());
+            assert!(validate_path("GET", &format!("{operations}/start")).is_err());
+            assert!(validate_path("POST", &format!("{operations}/cancel")).is_ok());
+            assert!(validate_path("GET", &format!("{operations}/cancel")).is_err());
+            assert!(validate_path("POST", &format!("{operations}/other")).is_err());
+        }
         assert!(validate_path("POST", "/v1/local/diagnostics/ingress-probe").is_ok());
         assert!(validate_path("GET", "/v1/local/config/entry-auth-key/reveal").is_err());
         assert!(validate_path("GET", "/v1/local/future-ambient-capability").is_err());

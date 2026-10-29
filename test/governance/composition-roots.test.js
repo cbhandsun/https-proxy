@@ -30,6 +30,29 @@ assert.match(
   /createLazyManagementHandlers\(\{[\s\S]*?fetchGoogleOfficialAvailableModels,[\s\S]*?\}\);/
 );
 assert.doesNotMatch(nodeEntry, /function shouldVerifyUpstreamTls\(/);
+assert.match(
+  nodeEntry,
+  /const contextRecoveryLifecycle = createContextRecoveryRuntime\(\{ dataDirectory: DATA_DIR \}\);/
+);
+assert.match(nodeEntry, /contextRecoveryLifecycle\.configureSettings\(CONFIG\);/);
+assert.match(
+  nodeEntry,
+  /createProxyHandlers\(\{\s*\.\.\.openAIProtocol,\s*\.\.\.geminiProtocol,\s*protocolOptions: PROTOCOL_OPTIONS,/
+);
+assert.match(
+  nodeEntry,
+  /const PROTOCOL_OPTIONS = composeContextProtocolOptions\(DEFAULT_CONFIG\.protocolOptions, CONFIG\);/
+);
+for (const factory of [
+  'createRuntimeConfigController',
+  'createLazyCoreRequestHandler',
+  'createLazyWebSocketProxy',
+  'startProxyServers',
+])
+  assert.match(nodeEntry, new RegExp(factory + '\\(\\{\\s*contextRecoveryLifecycle,'));
+assert.doesNotMatch(nodeEntry, /require\(['"]\.\/lib\/proxy\/websocket-proxy['"]\)/);
+assert.match(nodeEntry, /createLocalTlsRefresh\(\{\s*servers: ACTIVE_HTTPS_SERVERS,\s*ensureCert/);
+assert.doesNotMatch(nodeEntry, /function refreshLocalTlsServers\(/);
 
 const tauriEntry = fs.readFileSync(path.join(repoRoot, 'src-tauri', 'src', 'lib.rs'), 'utf8');
 assert.match(tauriEntry, /mod proxy_root;/);

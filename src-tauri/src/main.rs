@@ -3,7 +3,7 @@
 mod dpapi_helper;
 
 fn main() {
-    if !dpapi_helper::run_from_process_args() {
+    if !dpapi_helper::run_from_process_args() && !app_lib::run_proxy_control_from_process_args() {
         app_lib::run();
     }
 }

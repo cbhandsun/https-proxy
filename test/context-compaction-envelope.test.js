@@ -19,6 +19,193 @@ const window = [
 ];
 const invalid = (fn, code = 'invalid_local_compaction') => assert.throws(fn, { code });
 
+test('normalization never serializes primitive originals or a complete data tree', () => {
+  const input = { output: '\u0000\b\t\n\f\r"\\🙂\ud800', values: [null, false, -0, 1e100] };
+  const stringify = JSON.stringify;
+  const expected = stringify(input);
+  let result;
+  try {
+    JSON.stringify = () => assert.fail('normalization must count without serialization');
+    result = normalizeCompactionData(input, 1024);
+  } finally {
+    JSON.stringify = stringify;
+  }
+  assert.equal(stringify(result), expected);
+});
+
+test('short metadata cannot evict repeated large text from request-local byte accounting', (t) => {
+  const body = 'large-body-'.repeat(2048);
+  const input = {
+    metadata: Array.from({ length: 128 }, (_, index) => `entry-${index}`),
+    body: Array(8).fill(body),
+  };
+  const expected = JSON.stringify(input);
+  const size = Buffer.byteLength(expected);
+  const original = RegExp.prototype.test;
+  let scans = 0;
+  t.mock.method(RegExp.prototype, 'test', function (value) {
+    if (value === body) scans++;
+    return Reflect.apply(original, this, [value]);
+  });
+  assert.equal(JSON.stringify(normalizeCompactionData(input, size)), expected);
+  assert.equal(scans, 1, 'large text is scanned once despite preceding short identifiers');
+  assert.equal(JSON.stringify(normalizeCompactionData(input, size)), expected);
+  assert.equal(scans, 2, 'a separate parse must validate again');
+  invalid(() => normalizeCompactionData(input, size - 1));
+});
+
+test('repeated large escaped text is charged for every occurrence after short metadata', () => {
+  for (const body of ['"\\\n\u0000'.repeat(1024), '原文🙂\ud800\udc00\ud800'.repeat(1024)]) {
+    const input = {
+      metadata: Array.from({ length: 128 }, (_, index) => `entry-${index}`),
+      body: Array(8).fill(body),
+    };
+    const expected = JSON.stringify(input);
+    const size = Buffer.byteLength(expected);
+    assert.equal(JSON.stringify(normalizeCompactionData(input, size)), expected);
+    invalid(() => normalizeCompactionData(input, size - 1));
+  }
+});
+
+test('large text memo retains bounded entries and a shared raw-byte cap', (t) => {
+  const original = RegExp.prototype.test;
+  let watched;
+  let scans = 0;
+  t.mock.method(RegExp.prototype, 'test', function (value) {
+    if (value === watched) scans++;
+    return Reflect.apply(original, this, [value]);
+  });
+  for (const values of [
+    Array.from({ length: 65 }, (_, index) => `${index}${'x'.repeat(1024)}`),
+    Array.from({ length: 4 }, (_, index) => `${index}${'x'.repeat(1024 * 1024)}`),
+  ]) {
+    watched = values.at(-1);
+    scans = 0;
+    const input = [...values, watched];
+    const expected = JSON.stringify(input);
+    const size = Buffer.byteLength(expected);
+    assert.equal(JSON.stringify(normalizeCompactionData(input, size)), expected);
+    assert.equal(scans, 2, 'text beyond an entry or byte cap must be scanned again');
+    invalid(() => normalizeCompactionData(input, size - 1));
+  }
+});
+
+test('normalization counts actual array bytes without invoking inherited JSON hooks', () => {
+  const previous = Object.getOwnPropertyDescriptor(Array.prototype, 'toJSON');
+  let hooks = 0;
+  let result;
+  Object.defineProperty(Array.prototype, 'toJSON', {
+    configurable: true,
+    get() {
+      hooks++;
+      return () => null;
+    },
+  });
+  try {
+    result = normalizeCompactionData(['exact'], 9);
+    invalid(() => normalizeCompactionData(['exact'], 8));
+  } finally {
+    if (previous) Object.defineProperty(Array.prototype, 'toJSON', previous);
+    else delete Array.prototype.toJSON;
+  }
+  assert.equal(hooks, 0);
+  assert.deepEqual(result, ['exact']);
+});
+
+test('normalization rejects a sparse array disguised by an out-of-range numeric key', () => {
+  for (const key of ['4294967295', '9007199254740991']) {
+    const input = [];
+    input.length = 1;
+    Object.defineProperty(input, key, { value: 'hidden', enumerable: true });
+    invalid(() => normalizeCompactionData(input, 1024));
+  }
+});
+
+test('normalization retains exact JSON byte admission across primitive and nested boundaries', () => {
+  for (const input of [
+    null,
+    true,
+    false,
+    0,
+    -0,
+    1e100,
+    '',
+    'ascii',
+    '原文🙂',
+    '\ud800',
+    '\udc00',
+    '\u0000\n\r\t"\\',
+    '\u0080\u2028\u2029',
+    [],
+    {},
+    [null, false, -0],
+    { 'escaped"key': ['原文🙂', { nested: '\ud800' }] },
+    { one: 'x'.repeat(600000), two: 'x'.repeat(600000) },
+    Array.from({ length: 129 }, (_, index) => `distinct-${index}`),
+    Array.from({ length: 5 }, (_, index) => `${index}${'x'.repeat(1024 * 1024)}`),
+    Array.from({ length: 65536 }, (_, index) => String.fromCharCode(index)).join(''),
+  ]) {
+    const size = Buffer.byteLength(JSON.stringify(input));
+    assert.equal(JSON.stringify(normalizeCompactionData(input, size)), JSON.stringify(input));
+    if (size > 1) invalid(() => normalizeCompactionData(input, size - 1));
+  }
+});
+
+test('normalized records preserve own data descriptors without invoking inherited setters', () => {
+  const input = JSON.parse(
+    '{"__proto__":{"exact":"原文🙂"},"constructor":null,"prototype":false,"nested":{"value":42}}'
+  );
+  const array = Array.from({ length: 1025 }, (_, index) => index);
+  const name = 'normalizer_inherited_setter_fixture';
+  Object.defineProperty(input, name, { value: 'exact', enumerable: true });
+  let invoked = 0;
+  assert.equal(Object.hasOwn(Object.prototype, name), false);
+  assert.equal(Object.hasOwn(Array.prototype, '1024'), false);
+  Object.defineProperty(Object.prototype, name, {
+    configurable: true,
+    set() {
+      invoked++;
+    },
+  });
+  Object.defineProperty(Array.prototype, '1024', {
+    configurable: true,
+    set() {
+      invoked++;
+    },
+  });
+  let result, copiedArray;
+  try {
+    result = normalizeCompactionData(input, 16384);
+    copiedArray = normalizeCompactionData(array, 16384);
+  } finally {
+    delete Object.prototype[name];
+    delete Array.prototype[1024];
+  }
+  assert.equal(invoked, 0);
+  assert.equal(JSON.stringify(result), JSON.stringify(input));
+  assert.equal(Object.getPrototypeOf(result), null);
+  assert.equal(Object.getPrototypeOf(result.__proto__), null);
+  assert.equal(Object.getPrototypeOf(result.nested), null);
+  for (const key of Object.keys(result))
+    assert.deepEqual(Object.getOwnPropertyDescriptor(result, key), {
+      value: result[key],
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+  assert.deepEqual(Object.getOwnPropertyDescriptor(copiedArray, '1024'), {
+    value: 1024,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
+  result.__proto__.exact = 'changed';
+  result.nested.value = 0;
+  assert.equal(input.__proto__.exact, '原文🙂');
+  assert.equal(input.nested.value, 42);
+  assert.deepEqual(copiedArray, array);
+});
+
 test('server-issued evidence metadata is privately bound, cloned, quota-accounted and never derived from a window marker', () => {
   const store = createContextCompactionEnvelopeStore({ now: () => 1000 });
   const receipt = {
@@ -250,4 +437,46 @@ test('unknown data boundary rejects empty, invalid, oversized and executable val
   } finally {
     store.close();
   }
+});
+
+test('compaction and recovery data reject root, array, nested and revoked proxies before any trap', () => {
+  const { storageData } = require('../lib/proxy/context-recovery-storage-contract');
+  let hooks = 0;
+  const handler = {
+    getPrototypeOf(target) {
+      hooks++;
+      return Reflect.getPrototypeOf(target);
+    },
+    ownKeys(target) {
+      hooks++;
+      return Reflect.ownKeys(target);
+    },
+    getOwnPropertyDescriptor(target, key) {
+      hooks++;
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    },
+    get(target, key, receiver) {
+      hooks++;
+      return Reflect.get(target, key, receiver);
+    },
+  };
+  const record = new Proxy({ synthetic: true }, handler);
+  const array = new Proxy(['synthetic'], handler);
+  const revoked = Proxy.revocable({}, handler);
+  revoked.revoke();
+  for (const input of [
+    record,
+    array,
+    { nested: record },
+    [array],
+    { nested: revoked.proxy },
+    revoked.proxy,
+  ]) {
+    invalid(() => normalizeCompactionData(input, 1024));
+    invalid(() => storageData(input, 1024), 'context_recovery_storage_unavailable');
+  }
+  assert.equal(hooks, 0);
+  const plain = Object.assign(Object.create(null), { synthetic: ['原文🙂', '', null, false, 0] });
+  assert.equal(JSON.stringify(normalizeCompactionData(plain, 1024)), JSON.stringify(plain));
+  assert.equal(JSON.stringify(storageData(plain, 1024)), JSON.stringify(plain));
 });

@@ -1,0 +1,269 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const root = path.resolve(__dirname, '../..');
+const source = fs.readFileSync(path.join(root, 'scripts/qualify-context-hosted.ps1'), 'utf8');
+const start = source.indexOf('    foreach ($file in @($reviewFile, $receiptFile, $execution))');
+const end = source.indexOf('    if ((Get-Item -LiteralPath $receiptFile).Length', start);
+
+test('qualification validates all path ancestors before receipt reads, hashing or execution', () => {
+  assert.ok(start >= 0 && end > start);
+  const before = source.slice(0, end);
+  assert.equal(before.includes('ReadAllText'), false);
+  assert.equal(before.includes('Get-FileHash'), false);
+  assert.equal(before.includes('    . $execution'), false);
+  assert.ok(source.indexOf('ReadAllText') > end);
+  assert.ok(source.indexOf('Get-FileHash') > end);
+  assert.ok(source.indexOf('    . $execution') > end);
+});
+
+for (const rejected of [false, true])
+  test(
+    `qualification path guard ${rejected ? 'rejects reparse before reading' : 'accepts physical ancestors before reading'}`,
+    {
+      skip: process.platform !== 'win32',
+      timeout: 30000,
+    },
+    () => {
+      const script = `
+      $ErrorActionPreference = 'Stop'
+      $reviewFile = 'C:\\owned\\review.json'
+      $receiptFile = 'C:\\owned\\receipt.json'
+      $execution = 'C:\\repo\\execution.ps1'
+      $script:visited = [Collections.Generic.List[string]]::new()
+      function Get-Item {
+        param([string]$LiteralPath, [switch]$Force)
+        $script:visited.Add($LiteralPath)
+        $attributes = [IO.FileAttributes]::Normal
+        if (${rejected ? '$true' : '$false'} -and $LiteralPath -eq 'C:\\owned') {
+          $attributes = [IO.FileAttributes]::ReparsePoint
+        }
+        return @{ Attributes = $attributes }
+      }
+      $read = $false
+      $rejected = $false
+      try {
+        ${source.slice(start, end)}
+        $read = $true
+      } catch { $rejected = $true }
+      @{ read = $read; rejected = $rejected; visited = @($script:visited.ToArray()) } | ConvertTo-Json -Compress
+    `;
+      const result = spawnSync(
+        'C:/Program Files/PowerShell/7/pwsh.exe',
+        ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', script],
+        { shell: false, windowsHide: true, timeout: 25000, maxBuffer: 8192, encoding: 'utf8' }
+      );
+      assert.equal(result.error, undefined);
+      assert.equal(result.status, 0);
+      const observed = JSON.parse(result.stdout);
+      assert.equal(observed.rejected, rejected);
+      assert.equal(observed.read, !rejected);
+      assert.ok(observed.visited.includes('C:\\owned'));
+      assert.equal(observed.visited.includes('C:\\repo\\execution.ps1'), !rejected);
+    }
+  );
+
+test('always summary makes generation conditional on reaching preparation stages', () => {
+  const workflow = fs.readFileSync(
+    path.join(root, '.github/workflows/windows-context-recovery-hosted.yml'),
+    'utf8'
+  );
+  assert.ok(workflow.includes('if: always()'));
+  assert.ok(workflow.includes('When their preparation stages run,'));
+  assert.equal(workflow.includes('were generated only'), false);
+});
+
+test(
+  'always summary reports scenario scope only for the matching successful job',
+  {
+    timeout: 30000,
+  },
+  () => {
+    const producer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/owned-entry.js'),
+      'utf8'
+    );
+    const consumer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/owned-job.ps1'),
+      'utf8'
+    );
+    const produced = [...producer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
+    const consumed = [...consumer.matchAll(/GetProperty\('cases'\)\.GetInt32\(\) -ne (\d+)/g)];
+    assert.equal(produced.length, 1);
+    assert.equal(consumed.length, 9);
+    const sendingProducer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/sending-ack-result.js'),
+      'utf8'
+    );
+    const sendingCases = [...sendingProducer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
+    assert.equal(sendingCases.length, 1);
+    const expectedSendingCases = Number(sendingCases[0][1]);
+    assert.equal(Number(consumed[1][1]), expectedSendingCases);
+    assert.equal(Number(consumed[2][1]), expectedSendingCases);
+    const terminalProducer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/cancellation-ack-result.js'),
+      'utf8'
+    );
+    const terminalCases = [...terminalProducer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
+    assert.equal(terminalCases.length, 1);
+    assert.equal(Number(consumed[3][1]), Number(terminalCases[0][1]));
+    assert.equal(Number(consumed[4][1]), Number(terminalCases[0][1]));
+    const commitProducer = fs.readFileSync(
+      path.join(root, 'scripts/context-hosted/n09/transition-commit-result.js'),
+      'utf8'
+    );
+    const commitCases = [...commitProducer.matchAll(/^\s+cases:\s*(\d+),\s*$/gm)];
+    assert.equal(commitCases.length, 1);
+    for (const index of [5, 6, 7, 8])
+      assert.equal(Number(consumed[index][1]), Number(commitCases[0][1]));
+    const expectedCases = Number(produced[0][1]);
+    assert.equal(Number(consumed[0][1]), expectedCases);
+    const workflow = fs
+      .readFileSync(
+        path.join(root, '.github/workflows/windows-context-recovery-hosted.yml'),
+        'utf8'
+      )
+      .replaceAll('\r\n', '\n');
+    const begin = workflow.indexOf(
+      '          @(\n',
+      workflow.indexOf('- name: Record bounded outcome')
+    );
+    const end = workflow.indexOf('          ) >> $env:GITHUB_STEP_SUMMARY', begin);
+    assert.ok(begin >= 0 && end > begin);
+    const expression = workflow.slice(begin, end) + '          )';
+    const result = spawnSync(
+      process.platform === 'win32' ? 'C:/Program Files/PowerShell/7/pwsh.exe' : 'pwsh',
+      [
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        `
+      $ErrorActionPreference = 'Stop'
+      $env:GITHUB_SHA = 'synthetic-source'
+      $rows = foreach ($case in @(
+        @('n09', 'success'), @('n08', 'success'), @('n09', 'failure'),
+        @('n09', 'cancelled'), @('n08', 'skipped'), @('', ''),
+        @('n09', 'SUCCESS'), @('unrecognized', 'success'),
+        @('n09-sending-ack', 'success'), @('n09-sending-ack', 'failure'), @('n09-sending-ack', 'cancelled'),
+        @('n09-finished-ack', 'success'), @('n09-finished-ack', 'failure'), @('n09-finished-ack', 'cancelled'),
+        @('n09-withdrawn-ack', 'success'), @('n09-withdrawn-ack', 'failure'), @('n09-withdrawn-ack', 'cancelled'),
+        @('n09-uncertain-ack', 'success'), @('n09-uncertain-ack', 'failure'), @('n09-uncertain-ack', 'cancelled'),
+        @('n09-sending-commit', 'success'), @('n09-sending-commit', 'failure'), @('n09-sending-commit', 'cancelled'),
+        @('n09-finished-commit', 'success'), @('n09-finished-commit', 'failure'), @('n09-finished-commit', 'cancelled'),
+        @('n09-withdrawn-commit', 'success'), @('n09-withdrawn-commit', 'failure'), @('n09-withdrawn-commit', 'cancelled'),
+        @('n09-uncertain-commit', 'success'), @('n09-uncertain-commit', 'failure'), @('n09-uncertain-commit', 'cancelled'),
+        @('n09-unknown-commit', 'success'), @('n09-sending-commit', 'SUCCESS'), @(("n09-sending-commit"+[char]10), 'success')
+      )) {
+        $env:SCENARIO = $case[0]
+        $env:JOB_STATUS = $case[1]
+        $summary = ${expression}
+        @{ scenario = $case[0]; status = $case[1]; summary = @($summary | Where-Object { $_.StartsWith('Passed scope:') -or $_.StartsWith('Not qualified:') }) }
+      }
+      ConvertTo-Json -Depth 4 -Compress -InputObject @($rows)
+    `,
+      ],
+      { shell: false, windowsHide: true, timeout: 25000, maxBuffer: 32768, encoding: 'utf8' }
+    );
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 0);
+    const rows = JSON.parse(result.stdout);
+    assert.equal(rows.length, 35);
+    for (const row of rows) {
+      const scopes = row.summary.filter((line) => line.startsWith('Passed scope:'));
+      const qualified =
+        row.status === 'success' &&
+        [
+          'n08',
+          'n09',
+          'n09-sending-ack',
+          'n09-finished-ack',
+          'n09-withdrawn-ack',
+          'n09-uncertain-ack',
+          'n09-sending-commit',
+          'n09-finished-commit',
+          'n09-withdrawn-commit',
+          'n09-uncertain-commit',
+        ].includes(row.scenario);
+      assert.equal(scopes.length, qualified ? 1 : 0);
+      if (qualified) {
+        if (
+          [
+            'n09',
+            'n09-sending-ack',
+            'n09-finished-ack',
+            'n09-withdrawn-ack',
+            'n09-uncertain-ack',
+            'n09-sending-commit',
+            'n09-finished-commit',
+            'n09-withdrawn-commit',
+            'n09-uncertain-commit',
+          ].includes(row.scenario)
+        ) {
+          const reported = scopes[0].match(/^Passed scope: (\d+) cases:/);
+          assert.ok(reported);
+          assert.equal(
+            Number(reported[1]),
+            row.scenario === 'n09' ? expectedCases : expectedSendingCases
+          );
+        }
+        assert.ok(
+          scopes[0].includes(
+            row.scenario === 'n09'
+              ? 'cases: committed metadata, clear ACK, save ACK, revoke ACK, same-format backup rollback after revoke, interruption with the upstream public final held, prepared SQLite COMMIT pending forced-kill/positive-release controls, and prepared durable-store-before-host-ACK forced-kill/positive-release controls'
+              : row.scenario === 'n09-sending-ack'
+                ? 'cases: sending durable-store-before-host-ACK forced-kill/positive-release controls after the exact prepared predecessor'
+                : row.scenario === 'n09-finished-ack'
+                  ? 'cases: transport-finished durable-store-before-host-ACK forced-kill/positive-release controls after exact prepared and sending predecessor ACKs'
+                  : row.scenario === 'n09-withdrawn-ack'
+                    ? 'cases: withdrawn durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared predecessor ACK and actual client transport closure'
+                    : row.scenario === 'n09-uncertain-ack'
+                      ? 'cases: uncertain durable-store-before-host-ACK forced-kill/cleanup-release controls after exact prepared and sending predecessor ACKs and actual client transport closure'
+                      : row.scenario.endsWith('-commit')
+                        ? 'cases: ' +
+                          (row.scenario === 'n09-finished-commit'
+                            ? 'transport-finished'
+                            : row.scenario.slice(4, -7)) +
+                          ' COMMIT pending forced-kill/release controls after real predecessor ACKs and a held reader'
+                        : 'six mutation/hold cases'
+          )
+        );
+      }
+      const prepared = row.scenario === 'n09' && row.status === 'success';
+      assert.ok(
+        row.summary.some((line) =>
+          line.includes(
+            prepared
+              ? 'Not qualified: other publication COMMIT interiors (sending, transport-finished, uncertain, withdrawn), other daemon durable-ACK interiors (sending, transport-finished, uncertain, withdrawn)'
+              : row.scenario === 'n09-sending-ack' && row.status === 'success'
+                ? 'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors (prepared, transport-finished, uncertain, withdrawn)'
+                : row.scenario === 'n09-finished-ack' && row.status === 'success'
+                  ? 'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors (prepared, sending, uncertain, withdrawn)'
+                  : ['n09-withdrawn-ack', 'n09-uncertain-ack'].includes(row.scenario) &&
+                      row.status === 'success'
+                    ? 'Not qualified: publication COMMIT interiors, other daemon durable-ACK interiors'
+                    : [
+                          'n09-sending-commit',
+                          'n09-finished-commit',
+                          'n09-withdrawn-commit',
+                          'n09-uncertain-commit',
+                        ].includes(row.scenario) && row.status === 'success'
+                      ? 'Not qualified: other publication COMMIT interiors'
+                      : 'Not qualified: commit/publication in progress'
+          )
+        )
+      );
+      assert.equal(
+        row.summary.some((line) => line.includes('prepared SQLite COMMIT pending')),
+        prepared
+      );
+      assert.equal(
+        row.summary.some((line) => line.includes('Not qualified: save/revoke durable ACK')),
+        false
+      );
+    }
+  }
+);

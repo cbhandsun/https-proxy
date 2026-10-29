@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "6646f5923a4633f6f3afbdd3995ef4e1f21f50c8",
+  "sourceSha256": "09734483741b1981790e438475885937e62415c41ac00e1bd79f058459356cac",
+  "sourceFiles": 577,
+  "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+  "nativeSha256": "0356dfca64c77622a7699f765ea32577f1aa2613ff896db23cff17c41d490937",
+  "observerJobSha256": "6041a2569465c90e7be4410f4d72cf81d20ca3b6457bd0fccc9eae7dc68f11c2",
+  "observerSmoke": {
+    "cases": [
+      {
+        "case": "success",
+        "naturalExitVerified": true,
+        "childExitCode": 0,
+        "ownedTreeClosed": true,
+        "elapsedMs": 267,
+        "deadlineExercised": false
+      },
+      {
+        "case": "nonzero",
+        "naturalExitVerified": false,
+        "childExitCode": 17,
+        "ownedTreeClosed": true,
+        "elapsedMs": 200,
+        "deadlineExercised": false
+      },
+      {
+        "case": "deadline",
+        "naturalExitVerified": false,
+        "childExitCode": null,
+        "ownedTreeClosed": true,
+        "elapsedMs": 1561,
+        "deadlineExercised": true
+      }
+    ],
+    "event": "observer_smoke_passed",
+    "powerReleased": true,
+    "real24hStarted": false,
+    "powerAcquired": true,
+    "sourceSha256": "316a4448b9ec4e9bddd3d563c218ac4b0dbeee1e08f88866e6008a7b907eda5c",
+    "realModelRequests": 0,
+    "dllSha256": "6041a2569465c90e7be4410f4d72cf81d20ca3b6457bd0fccc9eae7dc68f11c2",
+    "atUtc": "2026-10-27T22:27:28.6639723Z"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "event": "day_preparation_6646f59_step_finished",
+        "qualification": false,
+        "realModelRequests": 0,
+        "step": "npm-ci",
+        "stderrBytes": 0,
+        "childExitCode": 0,
+        "elapsedMs": 24953,
+        "stdoutBytes": 275,
+        "atUtc": "2026-10-27T22:30:22.5070255Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "event": "day_preparation_6646f59_step_finished",
+        "qualification": false,
+        "realModelRequests": 0,
+        "step": "plugin-ci",
+        "stderrBytes": 0,
+        "childExitCode": 0,
+        "elapsedMs": 49677,
+        "stdoutBytes": 227,
+        "atUtc": "2026-10-27T22:31:12.23507Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "event": "day_preparation_6646f59_step_finished",
+        "qualification": false,
+        "realModelRequests": 0,
+        "step": "native-artifact",
+        "stderrBytes": 0,
+        "childExitCode": 0,
+        "elapsedMs": 4865,
+        "stdoutBytes": 168,
+        "atUtc": "2026-10-27T22:31:21.6778047Z",
+        "jobNaturallyEmpty": true
+      },
+      {
+        "event": "day_preparation_6646f59_step_finished",
+        "qualification": false,
+        "realModelRequests": 0,
+        "step": "regression",
+        "stderrBytes": 0,
+        "childExitCode": 0,
+        "elapsedMs": 113555,
+        "stdoutBytes": 23228,
+        "atUtc": "2026-10-27T22:33:19.7911154Z",
+        "jobNaturallyEmpty": true
+      }
+    ],
+    "regression": {
+      "sourceHead": "6646f5923a4633f6f3afbdd3995ef4e1f21f50c8",
+      "sourceClean": true,
+      "requiredSourceFileRead": true,
+      "realModelRequests": 0,
+      "real24hStarted": false,
+      "counts": {
+        "cancelled": 0,
+        "skipped": 0,
+        "pass": 100,
+        "tests": 100,
+        "fail": 0
+      },
+      "event": "day_preparation_regression_summary"
+    }
+  },
+  "defaultNativeOpen": {
+    "real24hStarted": false,
+    "ready": [
+      {
+        "elapsedMs": 1648,
+        "attempt": 1
+      },
+      {
+        "elapsedMs": 1205,
+        "attempt": 2
+      }
+    ],
+    "completedCloses": 2,
+    "completedOpens": 2,
+    "passed": true,
+    "realModelRequests": 0,
+    "startupCount": 57,
+    "event": "day_preflight_native_open"
+  },
+  "failuresRetained": [
+    {
+      "scope": "private observer smoke controller",
+      "result": 126,
+      "phase": "compile",
+      "reason": "undefined LASTEXITCODE under strict mode after successful compilation; no native smoke case entered"
+    },
+    {
+      "scope": "private isolated npm preparation",
+      "result": 1,
+      "reason": "same empty file supplied as user and global npm config; duplicate-config rejection before installation"
+    }
+  ],
+  "qualification": {
+    "new24HourTaskRegistered": false,
+    "real24hStarted": false,
+    "retention24hPassed": false,
+    "fiveSecondRecoveryStabilityPassed": false,
+    "newLocalCandidateInstalled": false
+  },
+  "realModelRequests": 0,
+  "ciSnapshot": {
+    "sourceHead": "6646f5923a4633f6f3afbdd3995ef4e1f21f50c8",
+    "verifyRunId": 40594726506,
+    "nonCoverageJobsSucceeded": 7,
+    "coverageJobId": 122507607549,
+    "coverageStatus": "in_progress",
+    "formalRunId": 40594726439,
+    "formalSourceGatesJobId": 122507607690,
+    "formalSourceGatesStatus": "in_progress",
+    "egressSucceeded": true,
+    "ioDiagnosticRunId": 40594726441,
+    "ioDiagnosticStatus": "in_progress"
+  }
+}

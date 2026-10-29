@@ -1,0 +1,184 @@
+name: Windows coverage persistent I/O diagnostic
+
+on:
+  push:
+    branches:
+      - acceptance/context-recovery/**
+    paths:
+      - lib/proxy/context-compaction-envelope.js
+      - lib/proxy/context-compaction-byte-budget.js
+      - lib/proxy/context-evidence-utf8.js
+      - test/context-compaction-envelope.test.js
+      - test/**
+      - scripts/run-unit-tests.js
+      - scripts/run-unit-test-shards.js
+      - lib/test-discovery.js
+      - lib/test-sharding.js
+      - lib/test-runtime.js
+      - package.json
+      - package-lock.json
+      - scripts/prepare-context-recovery-native.js
+      - lib/proxy/context-recovery-key-dpapi.js
+      - lib/proxy/context-recovery-key-contract.js
+      - lib/proxy/context-recovery-anchor-wire.js
+      - lib/proxy/context-recovery-anchor.js
+      - test/context-recovery-anchor-wire.test.js
+      - lib/proxy/context-recovery-anchor-contract.js
+      - lib/proxy/context-recovery-anchor-admission.js
+      - lib/proxy/context-recovery-storage-owner.js
+      - lib/proxy/context-recovery-startup-sql-progress.js
+      - lib/proxy/context-recovery-storage-paths.js
+      - lib/proxy/context-recovery-private-path.js
+      - lib/proxy/private-path-native.js
+      - lib/proxy/secure-files.js
+      - lib/proxy/context-recovery-storage-progress.js
+      - lib/proxy/context-recovery-anchor-channel.js
+      - lib/proxy/context-recovery-anchor-protocol.js
+      - lib/proxy/context-recovery-storage-worker.js
+      - lib/proxy/context-recovery-storage.js
+      - lib/proxy/context-recovery-storage-inventory.js
+      - lib/proxy/context-recovery-storage-opening.js
+      - lib/proxy/context-recovery-root-storage.js
+      - lib/proxy/context-recovery-root-loading.js
+      - lib/proxy/context-recovery-sessions.js
+      - lib/proxy/context-recovery-storage-failure.js
+      - lib/proxy/context-recovery-storage-serial.js
+      - lib/proxy/context-recovery-storage-idle.js
+      - test/context-recovery-anchor-clock.test.js
+      - native/context-recovery-key/**
+      - test/helpers/recovery-owner-stage-probe.js
+      - test/helpers/recovery-anchor-stage-probe.js
+      - test/recovery-anchor-stage-probe.test.js
+      - test/recovery-owner-stage-probe.test.js
+      - .github/workflows/windows-persistent-io-coverage.yml
+      - scripts/capture-persistent-io-schema.ps1
+      - scripts/lib/persistent-io-schema*.psm1
+      - scripts/lib/persistent-io-schema-tdh*.cs
+      - scripts/lib/persistent-io-schema-tdh-child.ps1
+      - scripts/lib/persistent-io-schema-tests.cjs
+      - scripts/fixtures/persistent-io-schema.wprp
+      - scripts/check-persistent-io-capabilities.ps1
+      - scripts/lib/persistent-io-capabilities*.psm1
+      - scripts/capture-persistent-io.ps1
+      - scripts/check-coverage-io-receipt.cjs
+      - scripts/lib/coverage-io-capture.js
+      - scripts/lib/coverage-io-recorder-failure.js
+      - scripts/lib/coverage-io-windows.js
+      - scripts/lib/persistent-io-recording.psm1
+      - scripts/lib/persistent-io-binary.psm1
+      - scripts/lib/persistent-io-summary.js
+      - scripts/lib/persistent-io-association.js
+      - scripts/lib/persistent-io-association.psm1
+      - test/persistent-io-association.test.js
+      - test/persistent-io-association-powershell.test.js
+      - scripts/lib/persistent-io-windows.js
+      - test/persistent-io-windows.test.js
+      - scripts/lib/persistent-io-scheduling.js
+      - scripts/lib/persistent-io-scheduling.psm1
+      - test/persistent-io-scheduling.test.js
+      - scripts/lib/persistent-io-operation-summary.js
+      - test/persistent-io-operations.test.js
+      - scripts/summarize-persistent-io.cjs
+      - scripts/fixtures/persistent-file-io.wprp
+      - lib/proxy/context-recovery-read-settlement.js
+      - lib/proxy/context-recovery-storage-sqlite.js
+      - lib/proxy/context-recovery-storage-blobs.js
+      - test/context-recovery-read-settlement.test.js
+      - test/client-context-target.test.js
+      - test/coverage-io-capture.test.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  minifilter-schema-discovery:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Verify the actual read-only schema host before dependencies
+        run: ./scripts/capture-persistent-io-schema.ps1 --preflight
+      - run: npm ci
+      - run: npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+      - run: node scripts/prepare-context-recovery-native.js
+      - name: Discover finite schemas during the original three complete test files
+        run: ./scripts/capture-persistent-io-schema.ps1
+  coverage-file-flush:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Prepare the original locked coverage prerequisites
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency preparation failed.' }
+          npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture preparation failed.' }
+          rustup default stable
+          if ($LASTEXITCODE -ne 0) { throw 'Toolchain preparation failed.' }
+      - name: Execute complete original coverage commands with owned file recording windows
+        env:
+          HPM_COVERAGE_IO: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          if (Test-Path Env:\HPM_COVERAGE_IO_PROXY_WINDOW) { Remove-Item Env:\HPM_COVERAGE_IO_PROXY_WINDOW }
+          $env:HPM_COVERAGE_IO_STAGE = 'proxy'
+          $env:HPM_COVERAGE_IO_PROXY_WINDOW = 'native-publication-interruption'
+          npm run test:coverage
+          $coverageExit = $LASTEXITCODE
+          if ($coverageExit -ne 0) { [Console]::Error.WriteLine('coverage_original_stage_failed:stage=' + $env:HPM_COVERAGE_IO_STAGE) }
+          node scripts/check-coverage-io-receipt.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Coverage I/O observation was not completed safely.' }
+          if ($coverageExit -ne 0) { throw 'Original proxy coverage failed; I/O evidence does not override its failure.' }
+          Remove-Item Env:\HPM_COVERAGE_IO_PROXY_WINDOW
+          $env:HPM_COVERAGE_IO_STAGE = 'client'
+          npm run test:client:coverage
+          $coverageExit = $LASTEXITCODE
+          if ($coverageExit -ne 0) { [Console]::Error.WriteLine('coverage_original_stage_failed:stage=' + $env:HPM_COVERAGE_IO_STAGE) }
+          node scripts/check-coverage-io-receipt.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Client coverage I/O observation was not completed safely.' }
+          if ($coverageExit -ne 0) { throw 'Original client coverage failed; I/O evidence does not override its failure.' }
+          npm run test:frontend:coverage
+          if ($LASTEXITCODE -ne 0) { throw 'Original frontend coverage failed.' }
+      - name: Record the observation boundary
+        if: always()
+        run: |
+          @(
+            'Executes the complete original proxy, client and frontend coverage commands once each, in order, with original four-shard proxy coverage and all original assertions.'
+            'Proxy coverage selects exactly one complete native-publication-interruption file across the original four shards; client coverage retains serial client-context-target and publication-graceful-http windows. Selection changes recording ownership only; all native publication-interruption and other original tests retain their execution and assertions. A first observed fixture/request failure closes only its own recent ring window. No tests are filtered, retried or appended; a failed original stage still stops subsequent stages.'
+            'Original five-second HTTP and final durable ACK gates, worker, DPAPI, OS anchor and FULL/DELETE persistence remain unchanged.'
+            'WPR retains its own unique instance, 32 MiB circular buffers, bounded decoding and cleanup. Ring loss and tracing perturbation prevent completeness or stability qualification.'
+            'Read/write/info/delete/cleanup/close observations retain nonzero status counts; neither a VFS retry nor antivirus attribution is inferred.'
+            'All providers are synthetic. No raw ETL, decoded records, paths, keys, databases, originals or model replies are uploaded.'
+          ) >> $env:GITHUB_STEP_SUMMARY
+  wpr-read-only-capabilities:
+    runs-on: windows-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Inspect existing WPR metadata without recording
+        shell: pwsh
+        run: ./scripts/check-persistent-io-capabilities.ps1

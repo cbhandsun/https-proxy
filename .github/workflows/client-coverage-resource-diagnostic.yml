@@ -1,0 +1,56 @@
+name: Client coverage resource diagnostic
+
+on:
+  push:
+    branches:
+      - acceptance/context-recovery/**
+    paths:
+      - .github/workflows/client-coverage-resource-diagnostic.yml
+      - scripts/diagnose-client-coverage-resources.js
+      - scripts/lib/client-coverage-resource-command.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        order: ['1,4', '4,1']
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Prepare unchanged client coverage prerequisites
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm ci
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency preparation failed.' }
+          npm ci --prefix plugins/hpm-local-evidence --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture preparation failed.' }
+          rustup default stable
+          if ($LASTEXITCODE -ne 0) { throw 'Toolchain preparation failed.' }
+          npm run pretest:client:coverage
+          if ($LASTEXITCODE -ne 0) { throw 'Client prerequisite preparation failed.' }
+      - name: Compare identical full workloads in counterbalanced order
+        env:
+          PROBE_ORDER: ${{ matrix.order }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $failed = $false
+          foreach ($concurrency in $env:PROBE_ORDER.Split(',')) {
+            node scripts/diagnose-client-coverage-resources.js $concurrency
+            if ($LASTEXITCODE -ne 0) { $failed = $true }
+          }
+          if ($failed) { throw 'Resource diagnostic observed a failure; original qualification gates remain unchanged.' }

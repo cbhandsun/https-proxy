@@ -1,0 +1,372 @@
+{
+  "head": "6a69491e0213d940c270daeb3670891cf29d17a8",
+  "dirty": false,
+  "sourceSha256": "e543b6ade3f9d2360c1d9fefc8583d914de8ac67ebd412123f8a9a7ec5733364",
+  "nativeSha256": "9c7362db4cc538d2729ffe3ee7de8e7308606b3bc125133874bc2e26804e2a80",
+  "nodeSha256": "780f44f2c53c108bae261ada21a525b4bfe733c020ac85e41bfe94479090ac9b",
+  "passed": true,
+  "completedOpens": 2,
+  "completedCloses": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "readyMs": 3072,
+      "timeline": [
+        {
+          "attempt": 1,
+          "phase": "worker_started",
+          "elapsedMs": 432
+        },
+        {
+          "attempt": 1,
+          "phase": "paths_started",
+          "elapsedMs": 593
+        },
+        {
+          "attempt": 1,
+          "phase": "directory_acl_started",
+          "elapsedMs": 608
+        },
+        {
+          "attempt": 1,
+          "phase": "directory_acl_finished",
+          "elapsedMs": 1205
+        },
+        {
+          "attempt": 1,
+          "phase": "paths_ready",
+          "elapsedMs": 1210
+        },
+        {
+          "attempt": 1,
+          "phase": "ownership_started",
+          "elapsedMs": 1210
+        },
+        {
+          "attempt": 1,
+          "phase": "ownership_acquired",
+          "elapsedMs": 1518
+        },
+        {
+          "attempt": 1,
+          "phase": "key_protect_started",
+          "elapsedMs": 1531
+        },
+        {
+          "attempt": 1,
+          "phase": "key_protect_finished",
+          "elapsedMs": 1769
+        },
+        {
+          "attempt": 1,
+          "phase": "key_write_started",
+          "elapsedMs": 1777
+        },
+        {
+          "attempt": 1,
+          "phase": "key_file_open_started",
+          "elapsedMs": 1782
+        },
+        {
+          "attempt": 1,
+          "phase": "key_file_opened",
+          "elapsedMs": 1784
+        },
+        {
+          "attempt": 1,
+          "phase": "key_acl_started",
+          "elapsedMs": 1784
+        },
+        {
+          "attempt": 1,
+          "phase": "key_acl_finished",
+          "elapsedMs": 2011
+        },
+        {
+          "attempt": 1,
+          "phase": "key_file_write_started",
+          "elapsedMs": 2012
+        },
+        {
+          "attempt": 1,
+          "phase": "key_file_write_finished",
+          "elapsedMs": 2012
+        },
+        {
+          "attempt": 1,
+          "phase": "key_file_flush_started",
+          "elapsedMs": 2012
+        },
+        {
+          "attempt": 1,
+          "phase": "key_file_flush_finished",
+          "elapsedMs": 2017
+        },
+        {
+          "attempt": 1,
+          "phase": "key_file_closed",
+          "elapsedMs": 2017
+        },
+        {
+          "attempt": 1,
+          "phase": "key_file_readback_started",
+          "elapsedMs": 2017
+        },
+        {
+          "attempt": 1,
+          "phase": "key_file_readback_finished",
+          "elapsedMs": 2033
+        },
+        {
+          "attempt": 1,
+          "phase": "key_write_finished",
+          "elapsedMs": 2033
+        },
+        {
+          "attempt": 1,
+          "phase": "anchor_open_started",
+          "elapsedMs": 2043
+        },
+        {
+          "attempt": 1,
+          "phase": "anchor_opened",
+          "elapsedMs": 2306
+        },
+        {
+          "attempt": 1,
+          "phase": "database_prepare_started",
+          "elapsedMs": 2314
+        },
+        {
+          "attempt": 1,
+          "phase": "database_prepared",
+          "elapsedMs": 2551
+        },
+        {
+          "attempt": 1,
+          "phase": "database_opened",
+          "elapsedMs": 2552
+        },
+        {
+          "attempt": 1,
+          "phase": "engine_prepare_started",
+          "elapsedMs": 2561
+        },
+        {
+          "attempt": 1,
+          "phase": "engine_anchor_validate_started",
+          "elapsedMs": 2578
+        },
+        {
+          "attempt": 1,
+          "phase": "engine_anchor_validate_finished",
+          "elapsedMs": 2812
+        },
+        {
+          "attempt": 1,
+          "phase": "engine_prepared",
+          "elapsedMs": 2834
+        },
+        {
+          "attempt": 1,
+          "phase": "anchor_persist_started",
+          "elapsedMs": 2834
+        },
+        {
+          "attempt": 1,
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 3063
+        },
+        {
+          "attempt": 1,
+          "phase": "engine_ready",
+          "elapsedMs": 3071
+        },
+        {
+          "attempt": 1,
+          "phase": "ready",
+          "elapsedMs": 3072
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "readyMs": 2218,
+      "timeline": [
+        {
+          "attempt": 2,
+          "phase": "worker_started",
+          "elapsedMs": 342
+        },
+        {
+          "attempt": 2,
+          "phase": "paths_started",
+          "elapsedMs": 496
+        },
+        {
+          "attempt": 2,
+          "phase": "directory_acl_started",
+          "elapsedMs": 510
+        },
+        {
+          "attempt": 2,
+          "phase": "directory_acl_finished",
+          "elapsedMs": 700
+        },
+        {
+          "attempt": 2,
+          "phase": "paths_ready",
+          "elapsedMs": 707
+        },
+        {
+          "attempt": 2,
+          "phase": "ownership_started",
+          "elapsedMs": 708
+        },
+        {
+          "attempt": 2,
+          "phase": "ownership_acquired",
+          "elapsedMs": 954
+        },
+        {
+          "attempt": 2,
+          "phase": "key_unprotect_started",
+          "elapsedMs": 1189
+        },
+        {
+          "attempt": 2,
+          "phase": "key_unprotect_finished",
+          "elapsedMs": 1397
+        },
+        {
+          "attempt": 2,
+          "phase": "anchor_open_started",
+          "elapsedMs": 1407
+        },
+        {
+          "attempt": 2,
+          "phase": "anchor_opened",
+          "elapsedMs": 1645
+        },
+        {
+          "attempt": 2,
+          "phase": "database_prepare_started",
+          "elapsedMs": 1653
+        },
+        {
+          "attempt": 2,
+          "phase": "database_prepared",
+          "elapsedMs": 1904
+        },
+        {
+          "attempt": 2,
+          "phase": "database_opened",
+          "elapsedMs": 1905
+        },
+        {
+          "attempt": 2,
+          "phase": "engine_prepare_started",
+          "elapsedMs": 1916
+        },
+        {
+          "attempt": 2,
+          "phase": "engine_anchor_validate_started",
+          "elapsedMs": 1929
+        },
+        {
+          "attempt": 2,
+          "phase": "engine_anchor_validate_finished",
+          "elapsedMs": 1930
+        },
+        {
+          "attempt": 2,
+          "phase": "engine_prepared",
+          "elapsedMs": 1934
+        },
+        {
+          "attempt": 2,
+          "phase": "anchor_persist_started",
+          "elapsedMs": 1934
+        },
+        {
+          "attempt": 2,
+          "phase": "anchor_persist_finished",
+          "elapsedMs": 2206
+        },
+        {
+          "attempt": 2,
+          "phase": "engine_ready",
+          "elapsedMs": 2216
+        },
+        {
+          "attempt": 2,
+          "phase": "ready",
+          "elapsedMs": 2218
+        }
+      ]
+    }
+  ],
+  "originalStartupDeadlineMs": 30000,
+  "fiveSecondQualified": false,
+  "realModelRequests": 0,
+  "schemaVersion": 1,
+  "scope": "independent_local_short_preflight_only",
+  "taskPriority": 4,
+  "normalPriorityOnlyInOwnTask": true,
+  "originalOldShortPriority": 7,
+  "lockedNpmProcessesExitCodes": [
+    0,
+    0
+  ],
+  "originalPreparationFailuresPreserved": [
+    "Mac CRLF helper differs from committed LF bytes",
+    "post-plugin wrapper failed after npm exit zero; exact guard exception unobserved"
+  ],
+  "revalidatedSourceClean": true,
+  "fullForty": {
+    "parentDeadlineMs": 120000,
+    "parentResult": 126,
+    "visiblePassed": 37,
+    "visibleAssertionFailures": 0,
+    "finalTap": false,
+    "qualified": false,
+    "remainingNativeGroupNotEntered": true
+  },
+  "independentNativeTwenty": {
+    "parentDeadlineMs": 120000,
+    "parentResult": 126,
+    "visiblePassed": 19,
+    "visibleAssertionFailures": 0,
+    "finalTap": false,
+    "qualified": false,
+    "doesNotReplaceFullForty": true
+  },
+  "launchProbe": {
+    "event": "native_invalid_input_launch_cost",
+    "samples": [
+      {
+        "elapsedMs": 178.24540000000002,
+        "exitCode": 1,
+        "expectedInvalidInputRefusal": true
+      },
+      {
+        "elapsedMs": 182.17360000000008,
+        "exitCode": 1,
+        "expectedInvalidInputRefusal": true
+      },
+      {
+        "elapsedMs": 181.5219000000002,
+        "exitCode": 1,
+        "expectedInvalidInputRefusal": true
+      }
+    ],
+    "filesystemOperationRequested": false,
+    "keyOperationRequested": false,
+    "anchorOperationRequested": false,
+    "realModelRequests": 0,
+    "qualification": false
+  },
+  "priorLongTestFrozen": true,
+  "new24HourStarted": false,
+  "dailyInstanceChanged": false
+}

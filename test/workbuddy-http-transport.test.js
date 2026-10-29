@@ -1,6 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
+const { composeContextProtocolOptions } = require('../lib/proxy/context-recovery-policy');
 const { createWorkBuddyWbipcClient } = require('../lib/proxy/workbuddy-wbipc-client');
 const { normalizeWorkBuddyChatSse } = require('../lib/proxy/workbuddy-chat-stream-contract');
 const {
@@ -92,6 +93,36 @@ async function main() {
     assert.equal(createWorkBuddyHttpTransport(source, ''), null);
   assert.equal(createWorkBuddyHttpTransport(prepared, 'plaintext-fixture'), null);
   const normal = await fixture(success);
+  const nativeOptions = {
+    contextPolicyOptions: composeContextProtocolOptions(
+      {},
+      { appSettings: { contextPolicyVersion: 2 } }
+    ),
+    targetBodyBytes: 500000,
+    operationalInputTokens: 100000,
+  };
+  const intact = {
+    ...body,
+    messages: [
+      { role: 'user', content: 'historical'.repeat(4000) },
+      { role: 'assistant', content: 'answer' },
+      { role: 'user', content: 'latest' },
+    ],
+  };
+  const preserved = await fixture(success, intact, {}, nativeOptions);
+  assert.equal(preserved.status, 200);
+  assert.deepEqual(JSON.parse(preserved.calls[0].params.body), intact);
+  const rejected = await fixture(
+    [{ ok: false, status: 'E_PAYLOAD_TOO_LARGE' }, success],
+    intact,
+    {},
+    nativeOptions
+  );
+  assert.equal(rejected.status, 413);
+  assert.equal(rejected.calls.length, 1);
+  const preflight = await fixture(success, intact, {}, { ...nativeOptions, targetBodyBytes: 100 });
+  assert.equal(preflight.status, 413);
+  assert.equal(preflight.calls.length, 0);
   assert.equal(normal.status, 200);
   assert.equal(normal.text, success.body);
   assert.equal(normal.res.complete, true);

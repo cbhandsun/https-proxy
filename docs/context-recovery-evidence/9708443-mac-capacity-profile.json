@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "source": "9708443ffa086a198412a7896239dbe38e6afaee",
+  "diagnosticOnly": true,
+  "platform": "darwin",
+  "nodeVersion": "v22.22.2",
+  "originalCli": "node scripts/qualify-context-recovery-capacity.js",
+  "profilerEnabled": true,
+  "workers": 2,
+  "executionBudgetMs": 180000,
+  "performanceTargetMs": 60000,
+  "result": {
+    "event": "fixed_capacity_cpu_diagnostic_finished",
+    "exitCode": 0,
+    "deadlineExceeded": false,
+    "wallElapsedMs": 9810,
+    "stdoutBytes": 1871,
+    "stderrBytes": 0,
+    "profileFiles": 3,
+    "diagnosticOnly": true,
+    "realModelRequests": 0,
+    "workloadVersion": 1,
+    "profileQualified": true,
+    "timing": {
+      "scope": "capacity-workers",
+      "elapsedMs": 9710.304,
+      "executionBudgetMs": 180000,
+      "executionBudgetMet": true,
+      "performanceTargetMs": 60000,
+      "performanceTargetMet": true
+    },
+    "profileNames": [
+      "day-small",
+      "active-small",
+      "four-tasks-small",
+      "frequent-recovery",
+      "four-tasks-candidate"
+    ]
+  },
+  "samplingInterpretation": "Weights are sampled elapsed time, not exact CPU time or a cause of Windows COMMIT latency.",
+  "hotspots": [
+    {
+      "worker": 1,
+      "function": "fixed workload execute",
+      "sampleWeightPercent": 14.3
+    },
+    {
+      "worker": 1,
+      "function": "hash update",
+      "sampleWeightPercent": 12.4
+    },
+    {
+      "worker": 1,
+      "function": "garbage collector",
+      "sampleWeightPercent": 9.5
+    },
+    {
+      "worker": 1,
+      "function": "history encodedBytes",
+      "sampleWeightPercent": 5.9
+    },
+    {
+      "worker": 1,
+      "function": "canonical encodeString",
+      "sampleWeightPercent": 5.1
+    }
+  ],
+  "fixedWorkloadUnmodified": true,
+  "windowsPerformanceQualified": false,
+  "durableStorageQualified": false,
+  "real24hQualified": false,
+  "oldFailuresRetained": true,
+  "rawProfilesUploaded": false,
+  "realModelRequests": 0
+}

@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "source": "9708443ffa086a198412a7896239dbe38e6afaee",
+  "verifyRunId": 40632734602,
+  "coverageJobId": 122632640503,
+  "coverageStatus": "failure",
+  "fullCoverageLogRead": true,
+  "coverageLogCharacters": 2679388,
+  "coverageFailures": [
+    {
+      "case": "not ok 4 - encrypted file HTTP normal stop drains uncertain awaiting publication ACK",
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "defaultNativeWorker": false,
+      "DPAPI": false,
+      "OSAnchor": false,
+      "clock": "fixed synthetic 100; not real retention time",
+      "phaseDeadlineMs": 5000,
+      "completedCommitMaxMs": 1985,
+      "commits": [
+        {
+          "sequence": 3,
+          "startedMs": 11,
+          "returnedMs": 74,
+          "durationMs": 63
+        },
+        {
+          "sequence": 5,
+          "startedMs": 235,
+          "returnedMs": 235,
+          "durationMs": 0
+        },
+        {
+          "sequence": 8,
+          "startedMs": 283,
+          "returnedMs": 1062,
+          "durationMs": 779
+        },
+        {
+          "sequence": 10,
+          "startedMs": 1460,
+          "returnedMs": 3445,
+          "durationMs": 1985
+        },
+        {
+          "sequence": 12,
+          "startedMs": 4046,
+          "returnedMs": null,
+          "durationMs": null
+        }
+      ]
+    },
+    {
+      "case": "not ok 5 - encrypted file HTTP normal stop drains withdrawn awaiting publication ACK",
+      "awaiting": "ready",
+      "targetAdvanceReached": false,
+      "defaultNativeWorker": false,
+      "DPAPI": false,
+      "OSAnchor": false,
+      "clock": "fixed synthetic 100; not real retention time",
+      "phaseDeadlineMs": 5000,
+      "completedCommitMaxMs": 1515,
+      "commits": [
+        {
+          "sequence": 3,
+          "startedMs": 11,
+          "returnedMs": 1135,
+          "durationMs": 1124
+        },
+        {
+          "sequence": 5,
+          "startedMs": 1184,
+          "returnedMs": 1184,
+          "durationMs": 0
+        },
+        {
+          "sequence": 8,
+          "startedMs": 1728,
+          "returnedMs": 3243,
+          "durationMs": 1515
+        },
+        {
+          "sequence": 10,
+          "startedMs": 3674,
+          "returnedMs": null,
+          "durationMs": null
+        }
+      ]
+    }
+  ],
+  "keyInterop": {
+    "jobId": 122632640298,
+    "status": "failure",
+    "fullLogRead": true,
+    "error": "context_recovery_key_unavailable",
+    "nativeProtect": {
+      "outcome": "completed",
+      "elapsedMs": 15
+    },
+    "legacyUnprotect": {
+      "outcome": "ETIMEDOUT",
+      "elapsedMs": 10254,
+      "legacyPhase": "unobserved",
+      "originalDeadlineMs": 10000
+    },
+    "cryptographicFailureProven": false
+  },
+  "sourceGate": {
+    "runId": 40632734637,
+    "jobId": 122632640104,
+    "statusAtObservation": "in_progress"
+  },
+  "interpretation": {
+    "previousDifferentWindowReceiptCannotExplainThisFailure": true,
+    "SQLiteFileBackendFailureDoesNotRequireNativeWorkerDpapiOrAnchor": true,
+    "uniqueOsFsRootCauseProven": false,
+    "a7GreenCannotOverrideThisFailure": true,
+    "oldFailuresRetained": true,
+    "modelRequests": 0,
+    "frozenDayRunUnmodified": true,
+    "sameRunnerGracefulIoCaptured": false
+  }
+}

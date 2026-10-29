@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "baseline": "b92a5bb9184fe39970240bd5dbaff72b7ec7f3c9",
+  "baselineGitBlobSha256": "32f36311ec3e69a4f2d3e1a5bd83012241812dc059273a518989764a5722e6f1",
+  "baselineAgentWorktreeSha256": "8a9d184218639c4119ac1832287f78bd020d3ba8c37989ef3f49a39fabf593c3",
+  "problem": "A complete synthetic successful report could return passed=true for task states Queued, Unknown or null while terminalConfirmed=false.",
+  "reproducedCases": ["Queued", "Unknown", null],
+  "change": "The successful completion branch additionally requires the original strict terminalConfirmed predicate. All existing success requirements remain and failed-terminal logic is unchanged.",
+  "regressions": {
+    "baseline": {
+      "tests": 19,
+      "pass": 16,
+      "fail": 3,
+      "skip": 0
+    },
+    "fixedHealthFile": {
+      "tests": 19,
+      "pass": 19,
+      "fail": 0,
+      "skip": 0
+    },
+    "invalidCompletedTaskStates": ["Queued", "Unknown", null, "Running"],
+    "validTaskStatesWithAllOtherRequiredEvidence": ["Ready", "Disabled"],
+    "combinedLocalBatch": {
+      "tests": 90,
+      "pass": 90,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "preservedRequirements": [
+    "source/run identity",
+    "actual matching zero exit and child_exit reason",
+    "successful verified terminal task",
+    "complete original capacity profile",
+    "288 continuous real ticks",
+    "at least 86400000ms real elapsed",
+    "original root actual expiry",
+    "two expiry reopens",
+    "15 storage open/close cycles",
+    "native_day_completed and realtime24hPassed=true"
+  ],
+  "unchanged": [
+    "old frozen 868 validator and environment",
+    "Windows tasks/processes/databases/anchors",
+    "monitor scripts and schedules",
+    "model quota and credentials",
+    "controller stdin owned-Job authorization and KILL_ON_JOB_CLOSE",
+    "power-lease and independent durable journal",
+    "failed terminal evidence rules"
+  ],
+  "limits": [
+    "Pure health-predicate regression tests on local Node22.22.2; no Windows or actual24h qualification.",
+    "Old868 remains failed, four observed ticks/last scheduled900000 and missing final receipt; this change does not reclassify it.",
+    "A future failed-terminal certificate needs pinned controller PID/creation and same-task run identity plus authoritative status; current missing fields cannot be guessed.",
+    "Replacing the task Action with Node alone would drop stdout redirection, environment cleanup, lease and owned-Job authorization; no such change is made."
+  ],
+  "realModelRequests": 0,
+  "new24hStarted": false,
+  "overallComplete": false
+}
