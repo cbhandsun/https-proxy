@@ -32,7 +32,9 @@ namespace HpmIoSchemaTdh {
                     // Only the fixed native header is inspected. Payload and extended-data
                     // pointers are neither dereferenced, copied, hashed nor exported.
                     var header = Marshal.PtrToStructure<Header>(record);
-                    if (header.Size < Marshal.SizeOf<Header>()) throw new Failure("callback-header-size");
+                    // EVENT_RECORD_CALLBACK supplies the fixed EVENT_RECORD layout.
+                    // Size describes the logged record, not the callback allocation:
+                    // classic conversions can retain a 48-byte EVENT_TRACE_HEADER Size.
                     if (header.Provider != new Guid("90cbdc39-4a3e-11d1-84f4-0000f80464e3") ||
                         header.Descriptor.Opcode < 96 || header.Descriptor.Opcode > 101) return;
                     result.selectedEvents++;

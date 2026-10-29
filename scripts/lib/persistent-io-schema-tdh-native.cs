@@ -92,6 +92,7 @@ namespace HpmIoSchemaTdh {
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static extern uint GetInformation(IntPtr record, uint count, IntPtr context, IntPtr buffer, ref uint size);
         public ulong Open(ref Logfile logfile) {
+            Abi.Validate();Abi.ValidateLogfile(logfile);
             ulong handle=OpenTrace(ref logfile);
             if(handle==UInt64.MaxValue)throw new Failure("open",unchecked((uint)Marshal.GetLastPInvokeError()));
             return handle;
@@ -101,11 +102,26 @@ namespace HpmIoSchemaTdh {
         public uint Information(IntPtr record, IntPtr buffer, ref uint size) { return GetInformation(record, 0, IntPtr.Zero, buffer, ref size); }
     }
     internal static class Abi {
+        internal static void ValidateLogfile(Logfile logfile) {
+            if(logfile.ProcessTraceMode!=0x10000000 || logfile.EventRecordCallback==IntPtr.Zero ||
+                logfile.BufferCallback==IntPtr.Zero || logfile.LogFileName==IntPtr.Zero || logfile.LoggerName!=IntPtr.Zero)
+                throw new Failure("abi");
+        }
         internal static void Validate() {
             if (IntPtr.Size != 8 || Marshal.SizeOf<Descriptor>() != 16 || Marshal.SizeOf<Header>() != 80 ||
                 Marshal.SizeOf<TraceEvent>() != 88 || Marshal.SizeOf<LogHeader>() != 280 ||
                 Marshal.SizeOf<Logfile>() != 448 || Marshal.SizeOf<TraceInfo>() != 112 ||
                 Marshal.SizeOf<PropertyInfo>() != 24 ||
+                Marshal.OffsetOf<Header>("Size").ToInt64() != 0 ||
+                Marshal.OffsetOf<Header>("Flags").ToInt64() != 4 ||
+                Marshal.OffsetOf<Header>("Provider").ToInt64() != 24 ||
+                Marshal.OffsetOf<Header>("Descriptor").ToInt64() != 40 ||
+                Marshal.OffsetOf<Header>("Activity").ToInt64() != 64 ||
+                Marshal.OffsetOf<Descriptor>("Opcode").ToInt64() != 5 ||
+                Marshal.OffsetOf<Descriptor>("Keyword").ToInt64() != 8 ||
+                Marshal.OffsetOf<Logfile>("ProcessTraceMode").ToInt64() != 28 ||
+                Marshal.OffsetOf<Logfile>("CurrentEvent").ToInt64() != 32 ||
+                Marshal.OffsetOf<Logfile>("LogfileHeader").ToInt64() != 120 ||
                 Marshal.OffsetOf<Logfile>("BufferCallback").ToInt64() != 400 ||
                 Marshal.OffsetOf<Logfile>("EventRecordCallback").ToInt64() != 424 ||
                 Marshal.OffsetOf<Logfile>("Context").ToInt64() != 440)

@@ -21,7 +21,7 @@ test('actual compiled TDH metadata parser and fake native lifecycle fail closed 
   assert.equal(result.stderr, '');
   assert.doesNotMatch(result.stdout, /PRIVATE|metadataProvider|Field0|ProviderGuid|UserData/);
   const receipt = JSON.parse(result.stdout);
-  assert.ok(receipt.managedChecks >= 83);
+  assert.ok(receipt.managedChecks >= 95);
   assert.equal(receipt.contractRejections, 14);
   assert.equal(receipt.failureRejections, 12);
   assert.equal(receipt.nativeWindowsExecuted, false);

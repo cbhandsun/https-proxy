@@ -174,9 +174,35 @@ public static class HpmTdhManagedTests {
             var layout=new Layout();Metadata.Parse(layout,Schema(1,flags));
             Check(layout.unsupported=="unknown_property_flags" && layout.fields.Length==0);checks++;
         }
-        var shortHeader=new Fake();var shortValue=Event();shortValue.Size=79;shortHeader.Headers[0]=shortValue;
-        try {Reader.Consume(shortHeader,"none");throw new Exception("missing_failure");}
-        catch(Failure error){Check(error.phase=="callback-header-size" && shortHeader.Closed==1);checks++;}
+        // Microsoft's RawDispatchClassic produces a full EVENT_RECORD whose
+        // logged Size remains sizeof(EVENT_TRACE_HEADER), not sizeof(EVENT_HEADER).
+        var classic=new Fake();var classicValue=Event();classicValue.Size=48;classicValue.Flags=0x100|0x40;
+        classic.Headers[0]=classicValue;classic.Headers[1]=classicValue;
+        var classicResult=Reader.Consume(classic,"none");
+        Check(classicResult.events==2 && classicResult.layouts[0].headerFlags==(0x100|0x40) && classic.Closed==1);checks++;
+        // Size is not used as an allocation bound; changing it cannot change
+        // selection or parsing of the same fixed typed callback header.
+        foreach(ushort recordedSize in new ushort[] {0,1,47,79,80,UInt16.MaxValue}) {
+            var api=new Fake();var header=Event();header.Size=recordedSize;
+            api.Headers[0]=header;api.Headers[1]=header;
+            var summary=Reader.Consume(api,"none");
+            Check(summary.events==2 && summary.selectedEvents==2 && api.Closed==1);checks++;
+        }
+        var validLogfile=new Logfile {ProcessTraceMode=0x10000000,LogFileName=new IntPtr(1),
+            EventRecordCallback=new IntPtr(2),BufferCallback=new IntPtr(3)};
+        Abi.ValidateLogfile(validLogfile);checks++;
+        foreach(string field in new [] {"mode","callback","buffer","filename","logger"}) {
+            var invalid=validLogfile;
+            switch(field) {
+                case "mode":invalid.ProcessTraceMode=0;break;
+                case "callback":invalid.EventRecordCallback=IntPtr.Zero;break;
+                case "buffer":invalid.BufferCallback=IntPtr.Zero;break;
+                case "filename":invalid.LogFileName=IntPtr.Zero;break;
+                case "logger":invalid.LoggerName=new IntPtr(4);break;
+            }
+            try {new NativeApi().Open(ref invalid);throw new Exception("native_mode_guard_missing");}
+            catch(Failure error){Check(error.phase=="abi");checks++;}
+        }
         Check(Failure.Describe(new Exception("PRIVATE",new TracePinFailure("path-open",5)),"metadata").phase=="path-open");checks++;
         Check(Failure.Describe(new Exception("PRIVATE",new TracePinFailure("path-open",5)),"metadata").status==5);checks++;
         Check(Failure.Describe(new Exception("PRIVATE"),"serialization").phase=="serialization");checks++;

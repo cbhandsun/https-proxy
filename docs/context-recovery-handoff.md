@@ -1,5 +1,7 @@
 # 上下文恢复换机交接
 
+最新优先：32cf普通完整Verify八作业已通过，coverage完整日志/三份原parser回执已核，不能覆盖旧HTTP5002ms或授稳定性。857独立schema已真实定位callback-header-size误拒：记录Size不是typed callback结构内存长度；正确classic0x140/48旧probe先红，现取消错误>=80而强化固定ABI/file-mode门，父端80/80，新Windows待核。本机无控制台normal首版已成功；有界输出/read-lease固定版仍在实际夹具，未用于产品续建、包仍未完成。先读状态顶部，旧失败/旧实例/冻结日档与原门保留，模型和新24h均0。
+
 最新优先：32cf普通七作业成功、coverage仍运行，实际unit2完整日志通过；独立TDH schema失败metadata/null（原三文件exit0、清理true），具体拒绝点未定，不授五秒资格。本机1a5续建已确认0xC000013A终态、owned进程均无，未到40min且无Cargo错误；不能信残留Running，不归因用户，原失败均保留。新无控制台launcher须先证明退出/Job清理后再warm续建；安装器/appRust/桌面候选均未完成。旧实例自行切换、冻结日档不动、无新24h/模型。先读实施状态顶部。
 
 最新优先：固定1a5两npm/Native完整53+0+5及prepare已真实通过；应用首次在offline Cargo缺gtk索引失败，已封存30文件，新控制任务只补齐原全锁官方metadata并续原40min App构建，未产安装器/未安装。673事件采集成功但429325条均无命名payload；本批同一ETL强句柄覆盖XML→TDH，仅取样本结构，不读值、不授因果或五秒资格。673普通6成功2失败为进程夹具failure_not_latched，原日志未附mode；旧held-pipe构造不足已严格ready/detached/真实Job修复，不能提前说Windows根因或通过；父端85/85只是本机回归。所有原请求5002ms/日档失败保留，原门、旧实例、模型/新24h限制保持。先读实施状态顶部和有限证据。

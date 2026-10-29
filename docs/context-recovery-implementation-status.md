@@ -1,5 +1,13 @@
 # HTTPS Proxy 多端上下文恢复实施状态
 
+## 2026-10-29（UTC）：32cf 完整普通 CI 通过，修正实际 TDH 事件长度误判
+
+32cf普通Verify40825536372八作业全部成功，coverage/job123287603653完整4251371字符无not-ok；三份同source/cleanup=true回执经原parseSummary接受，原五秒HTTP/发布门不改。十二对publication_wait的真实差值69–137ms；末端elapsed最大2208ms是自场景开始累计，不是等待时长，不能混记或授长期稳定性。原97的HTTP5002ms及其余失败仍保留；正式source门仍在执行。
+
+857 schema/job123291955018完整42735字符实际失败callback-header-size/null，原三文件exit0、421433事件、清理true。官方EVENT_HEADER.Size为记录大小，微软RawDispatchClassic转换仍可保留48字节旧头Size，不能将其作为EVENT_RECORD_CALLBACK固定80字节前缀的内存长度。正确classic flags0x140/Size48/真实112字节结构与poison payload指针的旧857临时probe先红（metadata调用0、Close1）；删除错误>=80条件，不换另一下界，强化固定ABI关键offset、EVENT_RECORD文件模式及回调配置验证。父端四完整文件80/80零skip，含95managed检查；未读UserData/ExtendedData、未改原30s/16KiB/数量门或资格。尚未观测该runner具体Size，不写成已抓到48；新Windows验证待执行。官方依据和有限证据见context-recovery-evidence/1a5-installed-parallel-delivery.json。
+
+本机无控制台首版纯夹具已实际编译/subsystem2、normal任务exit0，同SID/1+EOF/noConsole=true且owned为空。父审发现输出硬上限缺口后未用于续建；固定版有界双流/read leases正在新目录实际验证。候选仍固定1a5，未产安装器/未安装，不因诊断提交重编；旧实例、冻结日档/最大容量暂停保持，模型/新24h均0。
+
 ## 2026-10-29（UTC）：新 Windows 分片通过，TDH 与本机续建失败分别定位
 
 32cf9e8普通Verify已观察七作业成功、coverage仍运行；unit2完整653624字符日志确认真实Windows进程夹具及TDH managed回归通过。该结果不覆盖原HTTP5002ms失败。独立schema job123287603328完整42339字符日志为失败：原三文件命令exit0，430710事件全部无命名payload，TDH child回执metadata/status=null，tdhMetadata=null，最终cleanupVerified=true。metadata阶段仍包含多个拒绝点，尚未确定具体根因；保持失败，下一步用固定有限阶段区分，不猜字段偏移、不输出事件值。
