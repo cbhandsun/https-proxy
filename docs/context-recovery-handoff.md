@@ -1,5 +1,9 @@
 # 上下文恢复换机交接
 
+本轮已按用户选择收口为脚本启动且保留托盘：PR21已合master，merge e78da7a、验证head aaddfec，树相同；push40854174517和PR40854183904均完整8/8通过，两份coverage完整日志无not ok。正式40854174909的source-gates123380863711完整通过，正式全链12/12通过，十个业务场景完整日志已核，无not ok/非零退出。用户明确允许先受控自用、五秒性能后续优化，暂不作为本轮合并前置；原五秒测试/期限、旧5002/5009失败、安全/正确性/精确ACK/FULL-DELETE/原到期时间全部保留，不授稳定五秒/有效24h/真实provider资格。
+
+Windows公共runtime与托盘候选已在新目录实际准备，源/目标官方清单558项、完整公共闭包5185文件及EXE/Node/Native哈希通过；产物固定1a5，生产输入及打包gateway与aadd无差异，不冒充新构建。旧E盘保留原路径/实例/配置/data/冻结证据；旧tracked修改191项，公共范围89项中57仅CRLF差、32仍不同，4203个旧公共文件共32880092bytes已实际保全，逐文件三SHA/flush及最终journal闭合、受限ACL/owned空，32项内容差异均保留；未覆盖/切换/启动候选。旧.git与白名单外修改原位保留，不假称Windows旧Git已更新。Mac已切master，既有来源未知status文档修改保留未混入。模型0，fresh09:26分账Codex1/Claude7仅是余额，实际请求仍须fresh核账与受支持安全预扣。
+
 当前合并跟进：00feb44的Windows四unit全部通过，原四目录隔离及新BigInt回归实跑通过；旧PowerShell超时本轮通过但根因未证。PR21仍draft。PR coverage真实Chat long-persistent请求5009ms失败，同轮clock-write456ms、COMMIT1771ms，不能当准备超时。formal另回收崩溃fixture把建库/两save/sweep全放进spawn5s，旧日志无法判阶段；现拆绝对准备30s与授权后sweep原5s，保留两行/原clock/COMMIT前37退出、marker和重开断言，close后才清理。局部16pass+2原Win skip、治理2pass，新Windows待核，不改产品。用户关于五秒性能是否暂缓作为单人合并前置的选择尚待回复，未擅自改门。fresh09:26额度177/169、Codex1/Claude7已核，未预扣未调用。Eroot非浅/脏、Codex版本进程5s超时未核；根下有私有冻结acceptance目录，禁止整根rename，配置/runtime身份和ACL仅只读记录，未改旧实例/配置/数据。脚本是否保留托盘界面亦待用户选择。
 
 当前用户授权处理PR21并走Codex单人脚本自用，安装器不作为前提。远端master2295为恢复分支祖先，快进无冲突；PR21仍draft/master未动。Windows旧Eroot是local master1a127de且有tracked修改，不覆盖、不把未核浅历史当真实分歧；Node alias磁盘缺失、Native不同、配置/data仅候选，Codex版本及fresh额度SSH超时未核，模型0，不沿用旧1/7。bd7原NSIS四目录Number inode Set3!=4已用确定性先红回归修为BigInt，原负控/四组合/期限不变；Mac完整fixture原HEAD也失败，Windows新源码CI待核。两项PowerShell5000/15000超时保留未定因，不扩诊断/不放宽或跳测；先原门禁通过再合master，之后保留本地工作/配置数据更新脚本运行环境。先读实施状态顶部。

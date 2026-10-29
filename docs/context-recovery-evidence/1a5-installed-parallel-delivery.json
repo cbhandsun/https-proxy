@@ -1321,7 +1321,8 @@
     "localFailed": 0,
     "governancePassed": 2,
     "productionCodeChanged": false,
-    "windowsNewSourceValidationPending": true
+    "windowsNewSourceValidationPending": false,
+    "windowsPassedSource": "aaddfec0111b1433dfea639cfc6145834643a503"
   },
   "freshWindowsPredeployment": {
     "checkedAtUtc": "2026-10-29T09:26:05.155Z",
@@ -1352,7 +1353,78 @@
     "existingPerformanceDeadlineMs": 5000,
     "existingGatePreserved": true,
     "changeRequiresExplicitUserDecision": true,
-    "decisionPending": true,
-    "safetyCorrectnessPersistenceAndExpiryRequirementsUnchanged": true
+    "decisionPending": false,
+    "safetyCorrectnessPersistenceAndExpiryRequirementsUnchanged": true,
+    "explicitUserDecision": "controlled self-use first; optimize five-second performance afterwards",
+    "performanceAsMergePrerequisiteDeferred": true,
+    "originalPerformanceTestsDeadlinesAndFailureRecordsUnchanged": true
+  },
+  "controlledScriptSelfUseMerge": {
+    "pullRequest": 21,
+    "mergeCommit": "e78da7a0217ddb945e0b1d5eb33af91aa94b93d3",
+    "validatedHead": "aaddfec0111b1433dfea639cfc6145834643a503",
+    "mergeTreeMatchesValidatedHead": true,
+    "pushVerify": {
+      "run": 40854174517,
+      "passed": 8,
+      "total": 8,
+      "coverageFullLogCharacters": 4277365
+    },
+    "prVerify": {
+      "run": 40854183904,
+      "passed": 8,
+      "total": 8,
+      "coverageFullLogCharacters": 4279262
+    },
+    "formal": {
+      "run": 40854174909,
+      "sourceJob": 123380863711,
+      "sourcePassed": true,
+      "sourceFullLogCharacters": 4369779,
+      "tenBusinessScenariosPending": false,
+      "allJobsPassed": 12,
+      "tenBusinessFullLogsVerified": true,
+      "businessJobIds": [
+        123391266749, 123391266785, 123391266799, 123391266817, 123391266841, 123391266853,
+        123391266877, 123391266973, 123391266974, 123391266992
+      ],
+      "businessLogsNotOk": 0,
+      "businessLogsNonzeroProcessExits": 0
+    },
+    "historicalFailuresRetained": true,
+    "fiveSecondStabilityQualified": false,
+    "valid24hQualified": false,
+    "realProviderAcceptanceQualified": false,
+    "keepTrayManager": true,
+    "candidateArtifactSource": "1a5ae1c8176b544c3d96d1fa10d0a320ac742109",
+    "candidateSourceManifestFiles": 558,
+    "candidateWholePublicFiles": 5185,
+    "candidateSourceAndDestinationOfficialVerificationPassed": true,
+    "candidatePrivateDataCopied": false,
+    "candidateStarted": false,
+    "windowsRuntimeSwitched": false,
+    "oldPublicTrackedChanges": 89,
+    "sameAsCandidateAfterOnlyCrlfNormalization": 57,
+    "differentAfterOnlyCrlfNormalization": 32,
+    "oldGitAndOutsidePublicChangesRetainedInPlace": true,
+    "publicBackupPending": false,
+    "modelRequests": 0,
+    "publicBackup": {
+      "status": "backup_verified_no_switch",
+      "files": 4203,
+      "bytes": 32880092,
+      "substantiveDifferencesPreserved": 32,
+      "perFileSourceBeforeAfterAndBackupShaEqual": true,
+      "filesFlushed": true,
+      "restrictedToCurrentUser": true,
+      "allAbsoluteAncestorsPhysical": true,
+      "journalSha256": "6443825ee034938ed4d3635debc999bc253413fb1a60c584aa103d7b6b50e395",
+      "terminalReceiptSha256": "cbe88b9f26be1267eceef6a57750e09f7ff3fd53c03becb52a4fe756d9480f12",
+      "ownedProcessesEmpty": true,
+      "initialSshObservationTimeoutRetained": true,
+      "copyIndependentExitCodeNotInferred": true,
+      "privateDataCopied": false,
+      "oldRootModified": false
+    }
   }
 }
