@@ -15,6 +15,27 @@ function fakeDeps() {
     stableCreated: () => 123,
   };
 }
+{
+  const response = buildTianxiResponsesResponse(
+    { input: 'ping' },
+    [
+      {
+        type: 'task_status',
+        data: {
+          status: 'FAILED',
+          error_code: 'INVALID_CREDENTIALS',
+          error_detail: 'Service Account token has expired',
+          refresh_state: { errorCode: 'tianxi_auth_build_changed' },
+        },
+      },
+    ],
+    'super',
+    fakeDeps()
+  );
+  assert.equal(response.status, 'failed');
+  assert.match(response.error.message, /automatic authentication.*installed client build/);
+  assert.match(response.error.message, /tianxi_auth_build_changed/);
+}
 
 function fakeRes() {
   const writes = [];

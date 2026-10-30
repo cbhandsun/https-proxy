@@ -8,7 +8,12 @@ const {
   validIdentity,
   invokeNative,
 } = require('../lib/proxy/tianxi-auth-exchange');
-const { peData, loadAuthBuild } = require('../lib/proxy/tianxi-auth-build');
+const {
+  peData,
+  loadAuthBuild,
+  selectAuthBuild,
+  BUILDS,
+} = require('../lib/proxy/tianxi-auth-build');
 const {
   refreshTianxiQoderToken,
   sanitizeRefreshState,
@@ -19,6 +24,29 @@ const { SCRIPT } = require('../lib/proxy/tianxi-auth-native-script');
 function jwt(exp, claims = {}) {
   return `sat-e30.${Buffer.from(JSON.stringify({ sub: 'owned-sub', iss: 'owned-issuer', aud: 'owned-aud', exp, ...claims })).toString('base64url')}.c2ln`;
 }
+test('authentication selects a complete supported build and rejects upgrades with mixed files', () => {
+  for (const build of BUILDS) {
+    assert.equal(selectAuthBuild({ ...build.files }), build);
+    for (const name of Object.keys(build.files)) {
+      assert.throws(
+        () => selectAuthBuild({ ...build.files, [name]: '0'.repeat(64) }),
+        /tianxi_auth_build_changed/
+      );
+      const missing = { ...build.files };
+      delete missing[name];
+      assert.throws(() => selectAuthBuild(missing), /tianxi_auth_build_changed/);
+    }
+  }
+  for (const value of [null, undefined, {}, [], '', 1])
+    assert.throws(() => selectAuthBuild(value), /tianxi_auth_build_changed/);
+  assert.throws(
+    () =>
+      selectAuthBuild({ ...BUILDS[1].files, 'WrapPlugin.dll': BUILDS[0].files['WrapPlugin.dll'] }),
+    /tianxi_auth_build_changed/
+  );
+  assert.equal(BUILDS[0].coreOffset, 0);
+  assert.equal(BUILDS[1].coreOffset, 0x30a0);
+});
 function fixture() {
   let header = {
     user_id: 'owned-user',

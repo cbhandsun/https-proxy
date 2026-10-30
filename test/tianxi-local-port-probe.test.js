@@ -5,6 +5,7 @@ const { test } = require('node:test');
 const {
   discoverReachableTianxiCommandPorts,
   isLoopbackPortReachable,
+  selectBindableTianxiPort,
 } = require('../lib/proxy/tianxi-local-port-probe');
 const {
   discoverTianxiTacServerWsUrls,
@@ -12,6 +13,68 @@ const {
   ensureTianxiTacServer,
   isTcpPortListening,
 } = require('../lib/proxy/tianxi-agentcore-local');
+
+test('Startup selects a bindable fallback without accepting arbitrary probe output', () => {
+  for (const port of [63982, 49306, 49307])
+    assert.equal(
+      selectBindableTianxiPort(63982, { forceWindows: true, execFileSync: () => String(port) }),
+      port
+    );
+  for (const output of ['', '0', '65536', '12345', '49306\n49307', 'x'.repeat(1025)])
+    assert.throws(
+      () => selectBindableTianxiPort(63982, { forceWindows: true, execFileSync: () => output }),
+      /port_unavailable/
+    );
+  for (const port of [null, '', '63982', -1, 0, 65536, NaN, Infinity])
+    assert.throws(() => selectBindableTianxiPort(port), /port_invalid/);
+  assert.throws(
+    () =>
+      selectBindableTianxiPort(63982, {
+        forceWindows: true,
+        execFileSync() {
+          throw new Error('private');
+        },
+      }),
+    /port_unavailable/
+  );
+});
+
+test('Transport follows the startup fallback port and propagates startup failures', async () => {
+  let selectedUrl;
+  class Socket {
+    constructor(url) {
+      selectedUrl = url;
+      this.listeners = {};
+      setImmediate(() => this.listeners.open());
+    }
+    addEventListener(name, listener) {
+      this.listeners[name] = listener;
+    }
+    send() {
+      this.listeners.message({
+        data: JSON.stringify({ type: 'task_status', data: { status: 'COMPLETED' } }),
+      });
+    }
+    close() {}
+  }
+  const transport = createTacServerTransport({
+    WebSocketImpl: Socket,
+    discoverWsUrls: () => [],
+    ensureServer: () => ({ port: 49306 }),
+  });
+  await transport.sendQuery({ type: 'query' });
+  assert.equal(selectedUrl, 'ws://127.0.0.1:49306/ws/connect');
+  selectedUrl = null;
+  const failed = createTacServerTransport({
+    WebSocketImpl: Socket,
+    discoverWsUrls: () => [],
+    ensureServer() {
+      throw new Error('tianxi_tac_server_port_unavailable');
+    },
+  });
+  await assert.rejects(failed.sendQuery({ type: 'query' }), /port_unavailable/);
+  assert.equal(selectedUrl, null);
+});
 
 test('Command-port fallback emits bounded numeric loopback endpoints only', () => {
   let script;

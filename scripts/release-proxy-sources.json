@@ -478,6 +478,7 @@
   "lib/proxy/tianxi-official.js",
   "lib/proxy/tianxi-permission-boundary.js",
   "lib/proxy/tianxi-progress-presentation.js",
+  "lib/proxy/tianxi-qoder-endpoint.js",
   "lib/proxy/tianxi-request-contract.js",
   "lib/proxy/tianxi-response-completion.js",
   "lib/proxy/tianxi-response-history.js",

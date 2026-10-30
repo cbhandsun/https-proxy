@@ -651,6 +651,7 @@ test('Tianxi tac-server ensure starts qoder daemon when port is not listening', 
     exePath: 'C:\\Program Files\\Lenovo\\AIAgent\\Modules\\AgentServer\\tac-server.exe',
     existsSync: () => true,
     isListening: () => false,
+    selectPort: (port) => port,
     waitMs: 1,
     spawn(file, args, options) {
       spawned = { file, args, options };

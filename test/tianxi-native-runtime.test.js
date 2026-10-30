@@ -24,6 +24,46 @@ function fakeJwt(exp) {
   return `sat-${encode({ alg: 'none' })}.${encode({ exp })}.signature`;
 }
 
+test('Native queries carry validated Qoder instance settings and preserve tool policy', async () => {
+  let sent;
+  const runtime = createTacServerTianxiNativeRuntime({
+    header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
+    readTianxiRegistryCredentialCache: () => ({ available: false, credentialExpiry: {} }),
+    readQoderEndpoint: () => 'owned-instance',
+    transport: {
+      async sendQuery(frame) {
+        sent = frame;
+        return [{ type: 'task_status', data: { status: 'COMPLETED' } }];
+      },
+    },
+  });
+  await runtime.sendResponses({
+    model: 'chat',
+    input: 'ping',
+    metadata: {
+      tianxi: { options: { allowedTools: ['Read'], settings: { vpcInstanceName: 'untrusted' } } },
+    },
+  });
+  assert.deepEqual(sent.data.options.settings, { vpcInstanceName: 'owned-instance' });
+  assert.deepEqual(sent.data.options.allowedTools, ['Read']);
+  const failed = createTacServerTianxiNativeRuntime({
+    header: { app_id: 'app', device_id: 'device', user_id: 'user', credentials: {} },
+    readTianxiRegistryCredentialCache: () => ({ available: false, credentialExpiry: {} }),
+    readQoderEndpoint() {
+      throw new Error('tianxi_sdk_endpoint_invalid');
+    },
+    transport: {
+      sendQuery() {
+        assert.fail('invalid instance must not reach transport');
+      },
+    },
+  });
+  await assert.rejects(
+    failed.sendResponses({ model: 'chat', input: 'ping' }),
+    /tianxi_native_runtime_failed/
+  );
+});
+
 test('Tianxi native long tasks survive five minutes but retain a hard deadline', async (t) => {
   assert.equal(DEFAULT_TIANXI_TAC_SERVER_TIMEOUT_MS, 1800000);
   t.mock.timers.enable({ apis: ['setTimeout'] });

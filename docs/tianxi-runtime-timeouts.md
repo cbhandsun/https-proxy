@@ -1,5 +1,26 @@
 # Tianxi Native Runtime Deadlines
 
+## Client upgrade compatibility
+
+The authentication adapter accepts complete, digest-pinned file sets for the
+original client and XLSmartUI 4.4.1.10081 / WrapPlugin 10.26.0.1212 /
+XLAgentCorePlugin 4.4.0.9151. Each set selects its own public-constant offsets;
+mixed or unknown files still fail with `tianxi_auth_build_changed`. This reason
+is now presented explicitly when automatic authentication fails.
+
+Native Qoder requests use the same validated VPC instance configuration as SDK
+requests. The instance comes from the existing native runtime log discovery;
+missing or ambiguous configuration fails closed. Credentials remain in pipes
+and request memory and are not added to settings files.
+
+Before starting a local tac-server, the adapter probes its configured port for
+bind permission. If Windows reserves it, startup tries 49306 and 49307, and the
+WebSocket follows the selected port. Exhausted candidates fail explicitly. The
+probe releases its listener before startup, so a concurrent port claimant can
+still cause startup to fail. Startup allows 15 seconds for the upgraded backend.
+
+## Native runtime deadlines
+
 The direct tac-server agent has a default no-progress deadline of 30 minutes. Native
 agents may execute many tools in one request, so their total execution budget is
 separate from the existing 120-second idle watchdog. For native queries the idle
