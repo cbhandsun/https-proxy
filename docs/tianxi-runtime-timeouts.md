@@ -54,6 +54,13 @@ incomplete even when partial assistant text exists.
 
 ## Responses Compatibility
 
+`tianxi/chat` is a text-only route. Use `tianxi/super` with the read-only bridge
+enabled for project inspection. Tool catalogs carried by Codex `additional_tools`
+or `tool_search_output` input items are checked before history is stripped, just
+like top-level tool declarations. Text-only routes reject these requests instead
+of returning model-generated tool-call markup as a successful answer. The proxy
+does not execute DSML text or silently switch the selected route.
+
 Text parts include `annotations` and `logprobs` arrays; text delta/done events
 include `logprobs`. Unavailable provider token usage remains `null`, not invented
 token counts. Initial response events include nullable error, incomplete details,
