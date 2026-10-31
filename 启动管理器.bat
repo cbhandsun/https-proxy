@@ -13,6 +13,12 @@ if not defined HPM_NODE_EXECUTABLE (
 )
 
 set "PORTABLE_EXE=%SCRIPT_DIR%https-proxy-manager.exe"
+set "CARGO_APP_EXE=%SCRIPT_DIR%src-tauri\target\release\app.exe"
+
+if exist "%CARGO_APP_EXE%" (
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "$src = '%CARGO_APP_EXE%'; $dst = '%PORTABLE_EXE%'; if (-not (Test-Path $dst) -or ((Get-Item $src).LastWriteTimeUtc -gt (Get-Item $dst).LastWriteTimeUtc)) { try { Copy-Item -Path $src -Destination $dst -Force -ErrorAction Stop } catch {} }" >nul 2>&1
+)
+
 if exist "%PORTABLE_EXE%" (
   start "" /D "%SCRIPT_DIR%" "%PORTABLE_EXE%"
   exit /b 0
@@ -24,35 +30,23 @@ if exist "%RELEASE_EXE%" (
   exit /b 0
 )
 
-set "RELEASE_EXE=%SCRIPT_DIR%src-tauri\target\release\app.exe"
-if exist "%RELEASE_EXE%" (
-  start "" /D "%SCRIPT_DIR%" "%RELEASE_EXE%"
+if exist "%CARGO_APP_EXE%" (
+  start "" /D "%SCRIPT_DIR%" "%CARGO_APP_EXE%"
   exit /b 0
 )
 
 where npm >nul 2>&1
 if errorlevel 1 (
-  echo 未检测到 npm，请先安装 Node.js。
-  echo.
+  echo [ERROR] npm not found. Please install Node.js.
   if not defined NO_PAUSE pause
   exit /b 1
 )
 
 if not exist "package.json" (
-  echo 未找到 package.json，当前目录不是管理器目录：%CD%
-  echo.
+  echo [ERROR] package.json not found in %CD%
   if not defined NO_PAUSE pause
   exit /b 1
 )
 
-if exist "%SCRIPT_DIR%启动管理器-开发版.bat" (
-  echo 未找到已构建的管理器，将启动开发版。
-  echo.
-  call "%SCRIPT_DIR%启动管理器-开发版.bat"
-  exit /b %ERRORLEVEL%
-)
-
-echo 未找到可启动的管理器程序，也未找到 启动管理器-开发版.bat。
-echo.
-if not defined NO_PAUSE pause
-exit /b 1
+npm run tauri:dev
+exit /b %ERRORLEVEL%

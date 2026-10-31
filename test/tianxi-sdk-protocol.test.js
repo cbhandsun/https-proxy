@@ -2,8 +2,14 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { parseSdkInput, createSdkProtocol } = require('../lib/proxy/tianxi-sdk-protocol');
-const { TIANXI_SDK_MODELS, tianxiSdkRoutes, sdkModel } = require('../lib/proxy/tianxi-sdk-models');
+const {
+  TIANXI_SDK_MODELS,
+  tianxiSdkRoutes,
+  sdkModel,
+  supportsTianxiSdkClientTools,
+} = require('../lib/proxy/tianxi-sdk-models');
 const { mergeBuiltinModelRoutes } = require('../lib/proxy/builtin-model-routes');
+const { buildLocalModelsResponse } = require('../lib/proxy/models');
 const { endpointFromLog, prepareSdkWorkspace } = require('../lib/proxy/tianxi-sdk-workspace');
 const token = 'sat-YQ.Yg.Yw';
 function protocol(options = {}) {
@@ -47,14 +53,31 @@ const result = {
   result: 'ok',
   modelUsage: { qfmodel: {} },
 };
-test('14 verified Tianxi aliases map uniquely and preserve configured routes', () => {
-  assert.equal(TIANXI_SDK_MODELS.length, 14);
-  assert.equal(new Set(TIANXI_SDK_MODELS.map((m) => m.modelId)).size, 14);
-  assert.equal(new Set(TIANXI_SDK_MODELS.map((m) => m.alias)).size, 14);
+test('current Tianxi catalog maps uniquely, advertises tools and preserves configured routes', () => {
+  assert.equal(TIANXI_SDK_MODELS.length, 12);
+  assert.equal(new Set(TIANXI_SDK_MODELS.map((m) => m.modelId)).size, 12);
+  assert.equal(new Set(TIANXI_SDK_MODELS.map((m) => m.alias)).size, 12);
+  assert.deepEqual(
+    TIANXI_SDK_MODELS.map((m) => m.modelId),
+    [
+      'auto',
+      'fast',
+      'qmodel_38max',
+      'qfmodel',
+      'qmodel',
+      'dmodel',
+      'dfmodel',
+      'gmodel',
+      'gfmodel',
+      'kmodel_latest',
+      'kmodel',
+      'mmodel',
+    ]
+  );
   assert.equal(sdkModel('__proto__'), null);
   for (const route of tianxiSdkRoutes()) {
     assert.equal(route.to, route.tianxiSdkModel);
-    assert.deepEqual(route.capabilities, []);
+    assert.deepEqual(route.capabilities, ['function-call']);
     assert.deepEqual(route.inputModalities, ['text']);
   }
   assert.equal(mergeBuiltinModelRoutes({ profiles: [], modelRoutes: [] }).modelRoutes.length, 0);
@@ -64,7 +87,38 @@ test('14 verified Tianxi aliases map uniquely and preserve configured routes', (
     modelRoutes: [override],
   }).modelRoutes;
   assert.deepEqual(routes[0], override);
-  assert.equal(routes.filter((r) => TIANXI_SDK_MODELS.some((m) => m.alias === r.from)).length, 14);
+  assert.equal(routes.filter((r) => TIANXI_SDK_MODELS.some((m) => m.alias === r.from)).length, 12);
+  const current = tianxiSdkRoutes();
+  for (const alias of ['tianxi/kimi-k3', 'tianxi/minimax-m2.7']) {
+    assert.equal(current.find((route) => route.from === alias).exposeInModels, false);
+  }
+  const publicModels = buildLocalModelsResponse(current, 'openai', 'openai-responses').data;
+  assert.deepEqual(
+    publicModels.map((model) => model.id).sort(),
+    TIANXI_SDK_MODELS.map((model) => model.alias).sort()
+  );
+  assert.equal(
+    current.find((route) => route.from === 'tianxi/kimi-k3.1-pro').tianxiSdkModel,
+    'kmodel_latest'
+  );
+  assert.equal(
+    current.find((route) => route.from === 'tianxi/minimax-m3.1-flash').tianxiSdkModel,
+    'mmodel'
+  );
+  for (const id of [
+    undefined,
+    null,
+    '',
+    '__proto__',
+    {},
+    [],
+    'dfmodel\n',
+    'qmodel_latest',
+    'q37fmodel',
+    'gm51model',
+  ]) {
+    assert.equal(supportsTianxiSdkClientTools(id), false);
+  }
 });
 test('SDK input validates text history, empty, illegal, extreme and media inputs', () => {
   const wrap = (input) => ({ input, metadata: { tianxi: { sdk_model: 'qfmodel' } } });

@@ -487,3 +487,215 @@ export const PROVIDER_PRESETS = Object.freeze([
     capabilities: ['thinking', 'vision'],
   }),
 ]);
+
+export const PROVIDER_PRESET_MAP = Object.freeze({
+  workbuddy: {
+    name: 'WorkBuddy Official',
+    defaultId: 'workbuddy-official',
+    protocol: 'workbuddy',
+    targetUrl: 'https://copilot.tencent.com',
+    keyUrl: 'https://www.workbuddy.cn',
+    desc: '腾讯 WorkBuddy 官方登录接口。直接复用本地客户端登录态，支持 DeepSeek-V4、MiniMax-M3、GLM-5.1/5.2、Kimi、混元等全系列大模型。',
+    recommendedModels: ['deepseek-v4', 'glm-5.1', 'minimax-m3'],
+  },
+  tianxi: {
+    name: 'Tianxi Official',
+    defaultId: 'tianxi-official',
+    protocol: 'tianxi',
+    targetUrl: 'http://127.0.0.1:49305',
+    keyUrl: '',
+    desc: '联想天禧 AI 本机模式。通过本地登录态自动直连 tac-server，提供 tianxi/chat 普通文本模型和 tianxi/super 超能模式，均通过 OpenAI Responses 调用。',
+    recommendedModels: ['tianxi/chat', 'tianxi/super'],
+  },
+  openai: {
+    name: 'OpenAI Official',
+    defaultId: 'openai-official',
+    protocol: 'openai',
+    targetUrl: 'https://api.openai.com/v1',
+    keyUrl: 'https://platform.openai.com/api-keys',
+    desc: '官方 OpenAI 接口。适用于 GPT-5.4, GPT-5.3-Codex, o3 等官方模型。',
+    recommendedModels: ['gpt-5.4', 'gpt-5.4-mini', 'gpt-5.3-codex', 'o3'],
+  },
+  'glm-coding-anthropic': {
+    name: 'GLM Coding Plan (Anthropic)',
+    defaultId: 'glm-coding-anthropic',
+    protocol: 'claude',
+    targetUrl: 'https://open.bigmodel.cn/api/anthropic',
+    keyUrl: 'https://bigmodel.cn/coding-plan',
+    desc: '智谱 GLM Coding Plan 的 Anthropic Messages 兼容入口，适合 Claude Code、Roo Code 等 Claude 协议客户端通过本地代理使用套餐模型。',
+    recommendedModels: ['glm-5.1', 'glm-4.7', 'glm-4.5-air'],
+  },
+  'glm-coding-openai': {
+    name: 'GLM Coding Plan (OpenAI)',
+    defaultId: 'glm-coding-openai',
+    protocol: 'openai',
+    targetUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
+    keyUrl: 'https://bigmodel.cn/coding-plan',
+    desc: '智谱 GLM Coding Plan 的 OpenAI Chat Completions 兼容入口，适合 OpenAI 兼容客户端通过本地代理使用套餐模型。',
+    recommendedModels: ['glm-5.1', 'glm-4.7', 'glm-4.5-air'],
+  },
+  'minimax-anthropic': {
+    name: 'MiniMax (Anthropic)',
+    defaultId: 'minimax-anthropic',
+    protocol: 'claude',
+    targetUrl: 'https://api.minimaxi.com/anthropic',
+    keyUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
+    desc: 'MiniMax 官方 Anthropic Messages 兼容入口，官方快速开始文档推荐用于 Claude Code 等 Anthropic 协议客户端。',
+    recommendedModels: ['MiniMax-M2.7', 'MiniMax-M2.5'],
+  },
+  'minimax-openai': {
+    name: 'MiniMax (OpenAI)',
+    defaultId: 'minimax-openai',
+    protocol: 'openai',
+    targetUrl: 'https://api.minimaxi.com/v1',
+    keyUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
+    desc: 'MiniMax 官方 OpenAI Chat Completions 兼容入口，适合 OpenAI 兼容客户端通过本地代理调用 MiniMax 模型。',
+    recommendedModels: ['MiniMax-M2.7', 'MiniMax-M2.5', 'MiniMax-Text-01'],
+  },
+  claude: {
+    name: 'Claude Official',
+    defaultId: 'claude-official',
+    protocol: 'claude',
+    targetUrl: 'https://api.anthropic.com/v1',
+    keyUrl: 'https://console.anthropic.com/settings/keys',
+    desc: '官方 Anthropic Claude 接口。适用于 Claude Sonnet 4.6 / Opus 4.6 / Haiku 4.5 官方模型。',
+    recommendedModels: ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5'],
+  },
+  gemini: {
+    name: 'Gemini Official',
+    defaultId: 'google-official',
+    protocol: 'gemini',
+    targetUrl: 'https://generativelanguage.googleapis.com',
+    keyUrl: 'https://aistudio.google.com/app/apikey',
+    desc: '官方 Google Gemini 开发者接口（通过 Google AI Studio 服务）。',
+    recommendedModels: ['gemini-2.5-pro', 'gemini-2.5-flash'],
+  },
+  'deepseek-anthropic': {
+    name: 'DeepSeek (Anthropic)',
+    defaultId: 'deepseek-anthropic',
+    protocol: 'claude',
+    targetUrl: 'https://api.deepseek.com/anthropic',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    desc: 'DeepSeek 兼容的 Anthropic Messages 接口，适合 Claude Code 等 Anthropic 协议客户端调用。',
+    recommendedModels: ['deepseek-chat', 'deepseek-reasoner'],
+  },
+  deepseek: {
+    name: 'DeepSeek Official',
+    defaultId: 'deepseek-official',
+    protocol: 'openai',
+    targetUrl: 'https://api.deepseek.com/v1',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    desc: 'DeepSeek 官方的 OpenAI 兼容接口，提供 deepseek-chat 与 deepseek-reasoner 高性价比编程推理能力。',
+    recommendedModels: ['deepseek-chat', 'deepseek-reasoner'],
+  },
+  'deepseek-openai': {
+    name: 'DeepSeek Official (OpenAI)',
+    defaultId: 'deepseek-official',
+    protocol: 'openai',
+    targetUrl: 'https://api.deepseek.com/v1',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    desc: 'DeepSeek 官方的 OpenAI 兼容接口，提供 deepseek-chat 与 deepseek-reasoner 高性价比编程推理能力。',
+    recommendedModels: ['deepseek-chat', 'deepseek-reasoner'],
+  },
+  moonshot: {
+    name: 'Kimi / Moonshot (OpenAI)',
+    defaultId: 'moonshot',
+    protocol: 'openai',
+    targetUrl: 'https://api.moonshot.cn/v1',
+    keyUrl: 'https://platform.moonshot.cn/console/api-keys',
+    desc: '月之暗面 Kimi OpenAI 兼容接口，支持 kimi-k2-0905-preview、kimi-k2-turbo-preview 等模型。',
+    recommendedModels: ['kimi-k2-0905-preview', 'kimi-k2-turbo-preview', 'kimi-thinking-preview'],
+  },
+  'kimi-coding-anthropic': {
+    name: 'Kimi For Coding (Anthropic)',
+    defaultId: 'kimi-coding-anthropic',
+    protocol: 'claude',
+    targetUrl: 'https://api.kimi.com/coding',
+    keyUrl: 'https://www.kimi.com/coding',
+    desc: 'Kimi For Coding 官方 Anthropic Messages 兼容接口，专为 Claude Code 等编程 Agent 打造。',
+    recommendedModels: ['kimi-for-coding', 'kimi-k2-0905-preview'],
+  },
+  'dashscope-openai': {
+    name: '阿里百炼 Qwen (OpenAI)',
+    defaultId: 'dashscope-openai',
+    protocol: 'openai',
+    targetUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    keyUrl: 'https://bailian.console.aliyun.com/?apiKey=1',
+    desc: '阿里云百炼 OpenAI 兼容接口，支持 qwen3-coder-plus、qwen-max-latest、qwq-plus 等模型。',
+    recommendedModels: ['qwen3-coder-plus', 'qwen-max-latest', 'qwq-plus'],
+  },
+  'dashscope-anthropic': {
+    name: '阿里百炼 Qwen (Anthropic)',
+    defaultId: 'dashscope-anthropic',
+    protocol: 'claude',
+    targetUrl: 'https://dashscope.aliyuncs.com/apps/anthropic',
+    keyUrl: 'https://bailian.console.aliyun.com/?apiKey=1',
+    desc: '阿里云百炼 Anthropic Messages 兼容接口，适合 Claude Code 直接接入 Qwen3-Coder。',
+    recommendedModels: ['qwen3-coder-plus', 'qwen-max-latest'],
+  },
+  siliconflow: {
+    name: 'SiliconFlow',
+    defaultId: 'siliconflow',
+    protocol: 'openai',
+    targetUrl: 'https://api.siliconflow.cn/v1',
+    keyUrl: 'https://siliconflow.cn/zh-cn/',
+    desc: '硅基流动开源大模型平台，提供 DeepSeek-V3/R1、Qwen3-Coder 等海量模型的超速托管服务。',
+    recommendedModels: [
+      'deepseek-ai/DeepSeek-V3',
+      'deepseek-ai/DeepSeek-R1',
+      'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+    ],
+  },
+  ollama: {
+    name: 'Ollama Local',
+    defaultId: 'ollama-local',
+    protocol: 'openai',
+    targetUrl: 'http://localhost:11434/v1',
+    keyUrl: '',
+    desc: '本地部署运行的 Ollama 服务，通常用于离线运行开源大模型。注：本地运行，不需要填写 API Key。',
+    recommendedModels: ['qwen2.5-coder:32b', 'deepseek-r1:32b', 'glm4:9b'],
+  },
+  openrouter: {
+    name: 'OpenRouter',
+    defaultId: 'openrouter',
+    protocol: 'openai',
+    targetUrl: 'https://openrouter.ai/api/v1',
+    keyUrl: 'https://openrouter.ai/settings/keys',
+    desc: '聚合了大量主流模型与开源模型的第三方转发网关，支持单 API Key 调用数百种模型。',
+    recommendedModels: [
+      'anthropic/claude-sonnet-4.6',
+      'openai/gpt-5.4',
+      'deepseek/deepseek-r1',
+      'google/gemini-2.5-pro',
+    ],
+  },
+});
+
+export function matchPresetByUrl(targetUrl) {
+  if (!targetUrl) return '';
+  const url = targetUrl.toLowerCase().trim();
+  if (
+    url.includes('copilot.tencent.com') ||
+    url.includes('workbuddy.cn') ||
+    url.includes('codebuddy')
+  )
+    return 'workbuddy';
+  if (url.includes('127.0.0.1:49305') || url.includes('tianxi')) return 'tianxi';
+  if (url.includes('api.openai.com')) return 'openai';
+  if (url.includes('open.bigmodel.cn/api/anthropic')) return 'glm-coding-anthropic';
+  if (url.includes('open.bigmodel.cn/api/coding/paas')) return 'glm-coding-openai';
+  if (url.includes('api.minimaxi.com/anthropic')) return 'minimax-anthropic';
+  if (url.includes('api.minimaxi.com/v1')) return 'minimax-openai';
+  if (url.includes('api.kimi.com/coding')) return 'kimi-coding-anthropic';
+  if (url.includes('api.moonshot.cn')) return 'moonshot';
+  if (url.includes('dashscope.aliyuncs.com/apps/anthropic')) return 'dashscope-anthropic';
+  if (url.includes('dashscope.aliyuncs.com')) return 'dashscope-openai';
+  if (url.includes('api.anthropic.com')) return 'claude';
+  if (url.includes('generativelanguage.googleapis.com')) return 'gemini';
+  if (url.includes('api.deepseek.com/anthropic')) return 'deepseek-anthropic';
+  if (url.includes('api.deepseek.com')) return 'deepseek-openai';
+  if (url.includes('api.siliconflow.cn')) return 'siliconflow';
+  if (url.includes('11434')) return 'ollama';
+  if (url.includes('openrouter.ai')) return 'openrouter';
+  return '';
+}

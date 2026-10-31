@@ -99,6 +99,7 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
                 | "/metrics"
                 | "/cli/sessions"
                 | "/client-activity"
+                | "/agents/bindings"
         ),
         "POST" => matches!(
             route,
@@ -158,6 +159,7 @@ fn is_allowed_management_route(method: &str, route: &str) -> bool {
                 | "/gemini-cli/apply"
                 | "/gemini-cli/restore"
                 | "/events/clear"
+                | "/agents/bind"
         ),
         _ => false,
     }

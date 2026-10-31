@@ -154,4 +154,41 @@ assert.ok(bestNorm2);
 assert.strictEqual(bestNorm2.entry.route, rNorm);
 console.log('[route-index.test] normalized matching ok');
 
+// 18. Cooldown-aware resolveRoute (peer load-balancing & fallback chains)
+const { resolveRoute } = require('../lib/proxy/routing');
+const cdProfiles = [
+  { id: 'p-primary', name: 'Primary', backupProfileId: 'p-backup', fallbackProfileIds: ['p-backup', 'p-backup-2'] },
+  { id: 'p-peer', name: 'Peer' },
+  { id: 'p-backup', name: 'Backup' },
+  { id: 'p-backup-2', name: 'Backup 2' },
+];
+const peerRoutes = [
+  { from: 'claude-sonnet-4-6', profileId: 'p-primary', to: 'sonnet-a' },
+  { from: 'claude-sonnet-4-6', profileId: 'p-peer', to: 'sonnet-b' },
+];
+const peerResolved = resolveRoute('claude-sonnet-4-6', peerRoutes, cdProfiles, cdProfiles[0], {
+  isCoolingDown: (pid) => pid === 'p-primary',
+});
+assert.strictEqual(peerResolved.profile.id, 'p-peer', 'should skip cooling-down peer route');
+assert.strictEqual(peerResolved.route.to, 'sonnet-b');
+
+const singleCooldownRoutes = [
+  {
+    from: 'claude-opus-4-6',
+    profileId: 'p-primary',
+    to: 'opus-primary',
+    fallbacks: [
+      { profileId: 'p-backup', to: 'opus-backup-1' },
+      { profileId: 'p-backup-2', to: 'opus-backup-2' },
+    ],
+  },
+];
+const fbResolved = resolveRoute('claude-opus-4-6', singleCooldownRoutes, cdProfiles, cdProfiles[0], {
+  isCoolingDown: (pid) => pid === 'p-primary' || pid === 'p-backup',
+});
+assert.strictEqual(fbResolved.profile.id, 'p-backup-2', 'should walk fallback chain until healthy profile');
+assert.strictEqual(fbResolved.route.to, 'opus-backup-2');
+assert.strictEqual(fbResolved.route.failoverFromProfileId, 'p-primary');
+console.log('[route-index.test] cooldown-aware routing ok');
+
 console.log('[route-index.test] ok');

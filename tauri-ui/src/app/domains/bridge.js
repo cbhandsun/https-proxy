@@ -1,6 +1,6 @@
 import { bindDomainDependencies } from '../runtime/dependencies.js';
 import { reportFrontendError } from '../runtime/frontend-errors.js';
-import { executeHealthCommand } from '../models/proxy-command.js';
+import { executeHealthCommand, formatProxyCommandError } from '../models/proxy-command.js';
 import { installAppShortcutHandler } from '../runtime/app-shortcuts.js';
 
 let bridgeDependencies;
@@ -759,7 +759,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         try {
           return await window.__TAURI__.core.invoke('execute_proxy_command', { command: cmd });
         } catch (e) {
-          return { code: -1, output: '执行命令失败: ' + e };
+          return formatProxyCommandError(e);
         }
       }
       if (cmd === 'status') {
@@ -881,7 +881,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         };
       }
     },
-    applyClaudeCode: async () => {
+    _legacyApplyClaudeCode: async () => {
       try {
         return await fetchJsonWithTimeout(
           getApiBase() + '/v1/local/claude-code/apply',
@@ -917,7 +917,7 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         };
       }
     },
-    applyAntigravityCli: async () => {
+    _legacyApplyAntigravityCli: async () => {
       try {
         return await fetchJsonWithTimeout(
           getApiBase() + '/v1/local/antigravity-cli/apply',
@@ -1030,7 +1030,13 @@ if (!window.proxyManager || !window.proxyManager.setActive) {
         };
       }
     },
-    applyGeminiCli: () => fetchLocalPostJson('/v1/local/gemini-cli/apply'),
+    applyClaudeCode: (payload = {}) => fetchLocalPostJson('/v1/local/claude-code/apply', payload),
+    applyAntigravityCli: (payload = {}) => fetchLocalPostJson('/v1/local/antigravity-cli/apply', payload),
+    applyGeminiCli: (payload = {}) => fetchLocalPostJson('/v1/local/gemini-cli/apply', payload),
+    agentBindingsStatus: () => fetchLocalJsonWithAuth('/v1/local/agents/bindings', {}, 7000).catch((err) => ({ ok: false, error: err.message })),
+    bindAgentModel: (payload = {}) => fetchLocalPostJson('/v1/local/agents/bind', payload),
+    cooldownsStatus: () => fetchLocalJsonWithAuth('/v1/local/cooldowns', {}, 5000).catch((err) => ({ ok: false, error: err.message })),
+    clearCooldowns: (payload = {}) => fetchLocalPostJson('/v1/local/cooldowns/clear', payload),
     restoreGeminiCli: () => fetchLocalPostJson('/v1/local/gemini-cli/restore'),
     cliCredentials: async (type) => {
       try {
@@ -1147,12 +1153,12 @@ if (window.__TAURI__ && window.__TAURI__.core) {
       };
     } catch (e) {
       reportFrontendError('proxy.command', e);
+      const failure = formatProxyCommandError(e);
       return {
-        code: -1,
-        output: String(e),
+        ...failure,
         ok: false,
-        error: String(e),
-        message: String(e),
+        error: failure.output,
+        message: failure.output,
         running: false,
       };
     }

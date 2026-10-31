@@ -345,6 +345,33 @@
                 <button id="openLog" class="light">打开日志</button>
               </div>
             </div>
+            <div class="card overview-agent-hub-card" style="margin-bottom: 14px">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px">
+                <div>
+                  <h3 style="margin: 0; font-size: 15px">⚡ Agent 模型中枢 · Every Agent's Model</h3>
+                  <div class="muted" style="font-size: 12px; margin-top: 2px">一处管理所有 AI 编程工具的模型路由（如 Claude Code 跑在 Kimi、Codex 跑在 DeepSeek、OpenCode / Aider 一键切换）</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+                  <select id="quickPresetSelect" style="font-size: 12px; min-height: 30px; padding: 4px 8px; max-width: 175px">
+                    <option value="kimi-coding-anthropic">预设: Kimi For Coding</option>
+                    <option value="deepseek-openai">预设: DeepSeek 官方</option>
+                    <option value="glm-coding-openai">预设: 智谱 GLM Coding</option>
+                    <option value="dashscope-openai">预设: 阿里百炼 Qwen</option>
+                    <option value="siliconflow">预设: 硅基流动 SiliconFlow</option>
+                    <option value="minimax-openai">预设: MiniMax 官方</option>
+                    <option value="openrouter">预设: OpenRouter</option>
+                    <option value="ollama">预设: Ollama 本地</option>
+                  </select>
+                  <input id="quickPresetApiKey" type="password" placeholder="填入 API Key 快速创建上游" style="font-size: 12px; min-height: 30px; padding: 4px 8px; width: 170px" />
+                  <button id="quickPresetAddBtn" class="secondary" style="margin: 0; padding: 4px 10px; font-size: 12px; min-height: 30px">+ 导入预设上游</button>
+                  <button id="bindAllAgentsToActiveBtn" class="light" style="margin: 0; padding: 4px 10px; font-size: 12px; min-height: 30px" title="一键将所有 AI 编程工具绑定到当前默认上游及其推荐主/快模型">⚡ 全员切到默认上游</button>
+                  <button id="copyIdePluginConfigBtn" class="light" style="margin: 0; padding: 4px 10px; font-size: 12px; min-height: 30px" title="一键复制 Roo Code / Cline / Continue / Cursor 本地代理接入配置">📋 复制 IDE 插件配置</button>
+                  <button id="refreshAgentHubBtn" class="light" style="margin: 0; padding: 4px 10px; font-size: 12px; min-height: 30px">刷新状态</button>
+                </div>
+              </div>
+              <div id="overviewCooldownBanner" style="display: none; margin-bottom: 10px; padding: 8px 12px; border-radius: var(--radius-sm); background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap"></div>
+              <div id="overviewAgentHubGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px"></div>
+            </div>
             <div class="card card-fill overview-route-card">
               <div class="overview-route-head">
                 <h3>当前路由</h3>
@@ -658,6 +685,10 @@
                       <option value="gemini">Google Gemini Official (官方接口)</option>
                       <option value="deepseek-openai">DeepSeek (OpenAI 协议)</option>
                       <option value="deepseek-anthropic">DeepSeek (Anthropic 协议)</option>
+                      <option value="moonshot">Kimi / Moonshot (OpenAI 协议)</option>
+                      <option value="kimi-coding-anthropic">Kimi For Coding (Anthropic 协议)</option>
+                      <option value="dashscope-openai">阿里百炼 Qwen (OpenAI 协议)</option>
+                      <option value="dashscope-anthropic">阿里百炼 Qwen (Anthropic 协议)</option>
                       <option value="siliconflow">SiliconFlow (硅基流动托管)</option>
                       <option value="ollama">Ollama (本地部署运行)</option>
                       <option value="openrouter">OpenRouter (多模聚合网关)</option>
@@ -729,7 +760,23 @@
                       placeholder="OpenAI: http://host:80/v1；Gemini: https://generativelanguage.googleapis.com"
                     />
                   </div>
-                  <div class="row"><label>API Key</label><input id="apiKey" type="password" /></div>
+                  <div class="row"><label>API Key</label><input id="apiKey" type="password" placeholder="支持单 Key 或逗号分隔多个 Key 自动轮询 (sk-1,sk-2)" /></div>
+                  <div class="row">
+                    <label>故障转移备选</label>
+                    <select id="backupProfileId">
+                      <option value="">-- 无备选上游 --</option>
+                    </select>
+                  </div>
+                  <label class="inline-check" style="margin-bottom: 6px"
+                    ><input id="allowPostFailover" type="checkbox" /> 允许对话请求 (POST) 在上游异常/限流时自动故障转移到备选上游</label
+                  >
+                  <label class="inline-check" style="margin-bottom: 6px"
+                    ><input id="promptMasking" type="checkbox" /> 启用可逆隐私脱敏 (Prompt Masking：自动在出网前遮蔽密钥/私钥并在响应流中还原)</label
+                  >
+                  <div class="row" style="margin-bottom: 8px">
+                    <label>自定义脱敏词</label>
+                    <input id="promptMaskingKeywords" placeholder="可选：内部域名/项目代号/敏感词，逗号分隔 (如 corp.internal,ProjectX)" />
+                  </div>
                   <label class="inline-check"
                     ><input id="allowInsecureHttpUpstream" type="checkbox" /> 明确允许非本机 HTTP
                     上游</label
@@ -940,6 +987,10 @@
                   <label for="modelRewriteLabel">展示名</label>
                   <input id="modelRewriteLabel" placeholder="可选" />
                 </div>
+                <div class="route-field route-field-label">
+                  <label for="modelRouteFallbacks">备选上游链 (Failover)</label>
+                  <input id="modelRouteFallbacks" placeholder="可选，逗号分隔备选上游 ID" />
+                </div>
                 <div class="route-protocol-picker" aria-label="客户端协议">
                   <span class="route-picker-label">客户端协议</span>
                   <label class="inline-check"
@@ -1102,6 +1153,22 @@
                       <span class="tool-item-desc">Codex 命令行助手</span>
                     </div>
                     <span class="badge" id="toolBadge-codex-cli">检查中...</span>
+                  </div>
+                  <!-- OpenCode CLI -->
+                  <div class="tool-item" data-tool-id="opencode" id="toolItem-opencode">
+                    <div class="tool-item-info">
+                      <span class="tool-item-title">OpenCode CLI</span>
+                      <span class="tool-item-desc">开源终端 AI 编程助手</span>
+                    </div>
+                    <span class="badge" id="toolBadge-opencode">一键绑定</span>
+                  </div>
+                  <!-- Aider CLI -->
+                  <div class="tool-item" data-tool-id="aider" id="toolItem-aider">
+                    <div class="tool-item-info">
+                      <span class="tool-item-title">Aider CLI</span>
+                      <span class="tool-item-desc">Git 结对编程终端助手</span>
+                    </div>
+                    <span class="badge" id="toolBadge-aider">一键绑定</span>
                   </div>
                 </div>
                 <div class="actions" style="margin-top: 12px">
@@ -1879,6 +1946,7 @@ Native Debug 未扫描。</pre
                       class="status-actions"
                       style="display: flex; gap: 8px; justify-content: flex-start"
                     >
+                    <div class="row" style="margin-bottom: 10px"><label style="font-size: 12px; color: var(--text-muted)">绑定模型 (ANTHROPIC_MODEL，可选)</label><input id="claudeCodeModel" list="availableModels" placeholder="例如 claude-sonnet-4-6 或路由客户端模型名" /></div>
                       <button id="applyClaudeCode" class="secondary" style="margin: 0">
                         应用本地代理
                       </button>
@@ -1952,6 +2020,7 @@ Native Debug 未扫描。</pre
                       class="status-actions"
                       style="display: flex; gap: 8px; justify-content: flex-start"
                     >
+                    <div class="row" style="margin-bottom: 10px"><label style="font-size: 12px; color: var(--text-muted)">绑定模型 (ANTIGRAVITY_MODEL，可选)</label><input id="antigravityCliModel" list="availableModels" placeholder="留空使用默认，或填写路由客户端模型名" /></div>
                       <button id="applyAntigravityCli" class="secondary" style="margin: 0">
                         应用本地代理
                       </button>
@@ -2025,6 +2094,7 @@ Native Debug 未扫描。</pre
                       class="status-actions"
                       style="display: flex; gap: 8px; justify-content: flex-start"
                     >
+                    <div class="row" style="margin-bottom: 10px"><label style="font-size: 12px; color: var(--text-muted)">绑定模型 (GEMINI_MODEL，可选)</label><input id="geminiCliModel" list="availableModels" placeholder="例如 gemini-2.5-pro 或路由客户端模型名" /></div>
                       <button id="applyGeminiCli" class="secondary" style="margin: 0">
                         应用本地代理
                       </button>
@@ -2055,6 +2125,47 @@ Native Debug 未扫描。</pre
                         2. <strong>恢复直连</strong>则抹除自定义端点设置，切回 Google
                         官方服务器，此时可顺畅进行常规命令行 OAuth 安全认证。
                       </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Codex CLI 配置面板 -->
+                <!-- OpenCode CLI 配置面板 -->
+                <div id="toolPanel-opencode" class="tool-panel">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px">
+                    <h3 style="margin: 0; font-size: 16px">OpenCode CLI 配置</h3>
+                  </div>
+                  <div class="muted hint" style="margin-bottom: 12px">
+                    自动接管 <code>~/.config/opencode/opencode.json</code>，将 OpenCode 的请求路由到任意本地代理上游。
+                  </div>
+                  <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px">
+                    <div class="row" style="margin-bottom: 10px">
+                      <label style="font-size: 12px; color: var(--text-muted)">绑定模型</label>
+                      <input id="opencodeCliModel" list="availableModels" value="deepseek-chat" placeholder="如 deepseek-chat、kimi-for-coding、glm-5.1" />
+                    </div>
+                    <div class="status-actions" style="display: flex; gap: 8px">
+                      <button id="applyOpenCodeCli" class="secondary" style="margin: 0">应用本地代理</button>
+                      <button id="restoreOpenCodeCli" class="danger" style="margin: 0">恢复原配置</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Aider CLI 配置面板 -->
+                <div id="toolPanel-aider" class="tool-panel">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px">
+                    <h3 style="margin: 0; font-size: 16px">Aider CLI 配置</h3>
+                  </div>
+                  <div class="muted hint" style="margin-bottom: 12px">
+                    自动接管 <code>~/.aider.conf.yml</code>，将 Aider 的 <code>openai-api-base</code> 与 <code>model</code> 绑定到本地代理。
+                  </div>
+                  <div class="card status-strip" style="background: var(--card-highlight); border: 1px solid var(--border); padding: 14px; margin-bottom: 16px">
+                    <div class="row" style="margin-bottom: 10px">
+                      <label style="font-size: 12px; color: var(--text-muted)">绑定模型</label>
+                      <input id="aiderCliModel" list="availableModels" value="deepseek-chat" placeholder="如 deepseek-chat、claude-sonnet-4-6" />
+                    </div>
+                    <div class="status-actions" style="display: flex; gap: 8px">
+                      <button id="applyAiderCli" class="secondary" style="margin: 0">应用本地代理</button>
+                      <button id="restoreAiderCli" class="danger" style="margin: 0">恢复原配置</button>
                     </div>
                   </div>
                 </div>
@@ -2097,6 +2208,7 @@ Native Debug 未扫描。</pre
                       class="status-actions"
                       style="display: flex; gap: 8px; justify-content: flex-start"
                     >
+                    <div class="row" style="margin-bottom: 10px"><label style="font-size: 12px; color: var(--text-muted)">绑定模型 (config.toml model，可选)</label><input id="codexCliModel" list="availableModels" placeholder="例如 gpt-5.4、deepseek-chat 或路由客户端模型名" /></div>
                       <button id="applyCodex" class="secondary" style="margin: 0">
                         使用本地代理(API)
                       </button>

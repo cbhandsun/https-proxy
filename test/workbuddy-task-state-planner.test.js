@@ -1238,3 +1238,144 @@ test('empty, invalid, disabled and unavailable sources do not dispatch independe
     false
   );
 });
+
+test('tool-loop turns reuse committed frontier across short evicted narration and back off repeated upstream failures until a new user turn', async () => {
+  const checkpoints = createContextSummaryCheckpoints();
+  const backoff = createContextCompactionBackoff({ now: () => 1000, cooldownMs: 30000 });
+  const coordinator = createContextCompactionCoordinator();
+  const store = createContextArtifactStore();
+  const binding = {
+    owner: 'owner',
+    provider: 'workbuddy-wbipc',
+    model: 'fixture-model',
+    endpoint: 'https://host/v2',
+  };
+  try {
+    const body = workload();
+    const initialHistory = createContextHistoryBranch(body, { owner: 'owner', scope: 'turn-0' });
+    let initialCalls = 0;
+    try {
+      const first = await prepareWorkBuddyTaskStateContext(
+        body,
+        options(store, { artifactScope: 'turn-0' }),
+        {
+          historyBranch: initialHistory,
+          coordinator,
+          compactionScope: 'turn-0',
+          summaryCheckpoints: checkpoints,
+          compactionRetryBinding: binding,
+          failureBackoff: backoff,
+          requestSummary: async (request) => {
+            initialCalls += 1;
+            return completion(summary(request));
+          },
+        }
+      );
+      assert.equal(initialCalls, 1);
+      assert.equal(first.diagnostics.taskStateStatus, 'applied');
+      assert.equal(first.diagnostics.taskStateCheckpointCommitted, true);
+    } finally {
+      initialHistory.close();
+    }
+
+    // Append a short assistant narration (< 1024 chars) plus 9 completed tool rounds
+    // so the short narration slides out of the 8-round window into historicalProgress.
+    const shortNarration = '简短中间旁白：先检查文件结构。';
+    body.messages.push({ role: 'assistant', content: shortNarration });
+    for (let round = 0; round < 9; round += 1) {
+      body.messages.push(
+        {
+          role: 'assistant',
+          tool_calls: [
+            {
+              id: `tail-call-${round}`,
+              type: 'function',
+              function: { name: 'read', arguments: '{}' },
+            },
+          ],
+        },
+        { role: 'tool', tool_call_id: `tail-call-${round}`, content: '证据🙂'.repeat(800) }
+      );
+    }
+    const shortTailHistory = createContextHistoryBranch(body, { owner: 'owner', scope: 'turn-1' });
+    try {
+      const reused = await prepareWorkBuddyTaskStateContext(
+        body,
+        options(store, { artifactScope: 'turn-1' }),
+        {
+          historyBranch: shortTailHistory,
+          coordinator,
+          compactionScope: 'turn-1',
+          summaryCheckpoints: checkpoints,
+          compactionRetryBinding: binding,
+          failureBackoff: backoff,
+          requestSummary: async () => {
+            throw new Error('short post-frontier assistant narration must not trigger a summary request');
+          },
+        }
+      );
+      assert.equal(reused.diagnostics.taskStateStatus, 'applied');
+      assert.equal(reused.diagnostics.taskStateFrontierReused, true);
+      assert.equal(reused.diagnostics.taskStateSummaryAttempted, false);
+      assert.equal(reused.diagnostics.compactionTiming.summaryRequests, 0);
+      assert.ok(
+        reused.body.messages.some((message) => message.content === shortNarration),
+        'deferred post-frontier narration remains in the working set until summarized'
+      );
+    } finally {
+      shortTailHistory.close();
+    }
+
+    // Once >= 1024 chars of post-frontier assistant narration accumulates and upstream fails,
+    // subsequent tool-loop turns back off without repeating the failing summary request.
+    body.messages.splice(
+      body.messages.findIndex((message) => message.content === shortNarration),
+      1,
+      { role: 'assistant', content: '长段进展旁白：'.repeat(200) }
+    );
+    let failingCalls = 0;
+    for (const [turnIndex, scope] of ['fail-turn-1', 'fail-turn-2'].entries()) {
+      if (turnIndex > 0) {
+        body.messages.push(
+          {
+            role: 'assistant',
+            tool_calls: [
+              { id: 'extra-tool', type: 'function', function: { name: 'read', arguments: '{}' } },
+            ],
+          },
+          { role: 'tool', tool_call_id: 'extra-tool', content: '证据🙂'.repeat(800) }
+        );
+      }
+      const turnHistory = createContextHistoryBranch(body, { owner: 'owner', scope });
+      try {
+        const result = await prepareWorkBuddyTaskStateContext(
+          body,
+          options(store, { artifactScope: scope }),
+          {
+            historyBranch: turnHistory,
+            coordinator,
+            compactionScope: scope,
+            summaryCheckpoints: checkpoints,
+            compactionRetryBinding: binding,
+            failureBackoff: backoff,
+            requestSummary: async () => {
+              failingCalls += 1;
+              return { ok: false, status: 502, body: 'upstream failure' };
+            },
+          }
+        );
+        assert.equal(result.diagnostics.taskStateStatus, 'invalid_compaction_candidate');
+        assert.equal(result.diagnostics.taskStateFailureReason, 'summary_upstream_failure');
+        assert.equal(result.diagnostics.taskStateBackoffApplied, turnIndex > 0);
+        assert.equal(result.diagnostics.compactionTiming.summaryRequests, turnIndex === 0 ? 1 : 0);
+      } finally {
+        turnHistory.close();
+      }
+    }
+    assert.equal(failingCalls, 1);
+  } finally {
+    checkpoints.close();
+    coordinator.close();
+    store.close();
+  }
+});

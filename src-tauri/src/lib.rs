@@ -22,6 +22,8 @@ mod proxy_process;
 mod proxy_root;
 mod proxy_stop;
 mod proxy_stop_process;
+mod tray_menu;
+use tray_menu::refresh_tray_menu;
 use app_shortcuts::execute_app_shortcut;
 use codex_login::launch_codex_login_script;
 #[cfg(test)]
@@ -637,7 +639,8 @@ pub fn run() {
             clear_audit_conversations_native,
             execute_proxy_command,
             get_launch_on_login,
-            set_launch_on_login
+            set_launch_on_login,
+            refresh_tray_menu
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

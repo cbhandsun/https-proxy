@@ -811,7 +811,8 @@ const {
   writeTraeBridgeClaudeLiveStream,
 });
 
-const { handleTianxiOfficialResponses } = lazyFeatures.createLazyTianxiOfficialHandlers({
+const { handleTianxiOfficialResponses, handleTianxiOfficialClaudeMessages } =
+  lazyFeatures.createLazyTianxiOfficialHandlers({
   sendJsonError,
   logRequestEnd,
   logProxyEvent,
@@ -940,6 +941,7 @@ const handleRequestInner = createLazyCoreRequestHandler({
   handleTraeOfficialClaudeMessages,
   handleTraeOfficialResponses,
   handleTianxiOfficialResponses,
+  handleTianxiOfficialClaudeMessages,
   installConversationAuditResponseCapture,
   recordAuditUpstreamFailure,
   installLocalManagementRequestEndLogger,

@@ -432,5 +432,52 @@ assert.strictEqual(explicitApiStatus.rawAuthMode, 'apikey');
 assert.strictEqual(explicitApiStatus.authMode, 'api');
 assert.strictEqual(explicitApiStatus.authConflict, true);
 
+// Model binding support across Claude Code, Antigravity CLI, Gemini CLI, and agent-bindings
+applyClaudeCodeProxy({ model: 'claude-sonnet-4-6' });
+const claudeWithModel = JSON.parse(fs.readFileSync(getClaudeCodeConfigPath(), 'utf8'));
+assert.strictEqual(claudeWithModel.env.ANTHROPIC_MODEL, 'claude-sonnet-4-6');
+restoreClaudeCodeProxy();
+assert.strictEqual(JSON.parse(fs.readFileSync(getClaudeCodeConfigPath(), 'utf8')).env.ANTHROPIC_MODEL, undefined);
+
+applyAntigravityCliProxy({ model: 'deepseek-chat' });
+const agyWithModel = JSON.parse(fs.readFileSync(getAntigravityCliConfigPath(), 'utf8'));
+assert.strictEqual(agyWithModel.env.ANTIGRAVITY_MODEL, 'deepseek-chat');
+restoreAntigravityCliProxy();
+assert.strictEqual(JSON.parse(fs.readFileSync(getAntigravityCliConfigPath(), 'utf8')).env.ANTIGRAVITY_MODEL, undefined);
+
+applyGeminiCliProxy({ model: 'gemini-2.5-pro' });
+assert.match(fs.readFileSync(getGeminiEnvPath(), 'utf8'), /^GEMINI_MODEL=gemini-2\.5-pro$/m);
+restoreGeminiCliProxy();
+assert.doesNotMatch(fs.readFileSync(getGeminiEnvPath(), 'utf8'), /^GEMINI_MODEL=/m);
+
+const { PROVIDER_PRESETS_CATALOG, normalizeAgentId } = require('../lib/proxy/agent-bindings');
+assert.ok(Boolean(PROVIDER_PRESETS_CATALOG['deepseek-anthropic']));
+assert.ok(Boolean(PROVIDER_PRESETS_CATALOG['kimi-coding-anthropic']));
+assert.strictEqual(normalizeAgentId('claude'), 'claude-code');
+assert.strictEqual(normalizeAgentId('codex'), 'codex');
+assert.strictEqual(normalizeAgentId('agy'), 'antigravity-cli');
+assert.strictEqual(normalizeAgentId('opencode'), 'opencode');
+assert.strictEqual(normalizeAgentId('aider'), 'aider');
+
+const {
+  applyOpenCodeProxy,
+  restoreOpenCodeProxy,
+  getOpenCodeStatus,
+  applyAiderProxy,
+  restoreAiderProxy,
+  getAiderStatus,
+} = require('../lib/proxy/extra-agent-configs');
+const ocStatus = applyOpenCodeProxy({ model: 'deepseek-chat' });
+assert.strictEqual(ocStatus.managed, true);
+assert.strictEqual(ocStatus.model, 'deepseek-chat');
+assert.strictEqual(restoreOpenCodeProxy().managed, false);
+assert.strictEqual(getOpenCodeStatus().model, '');
+
+const aiderStatus = applyAiderProxy({ model: 'kimi-for-coding' });
+assert.strictEqual(aiderStatus.managed, true);
+assert.strictEqual(aiderStatus.model, 'kimi-for-coding');
+assert.strictEqual(restoreAiderProxy().managed, false);
+assert.strictEqual(getAiderStatus().baseUrl, '');
+
 fs.rmSync(tempHome, { recursive: true, force: true });
 console.log('[tool-configs.test] ok');

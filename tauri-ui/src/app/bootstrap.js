@@ -1,4 +1,5 @@
 import { configureBridge, getApiBase, checkProxyHealth } from './domains/bridge.js';
+import { createAgentHubController } from './domains/agent-hub.js';
 import { configureAudit, initPromptsAuditView, initUsageReportView } from './domains/audit.js';
 import { createAppSettingsForm } from './domains/app-settings-form.js';
 import { bindContextRecoveryControls } from './domains/context-recovery-controls.js';
@@ -90,6 +91,8 @@ import {
   routeClientProtocols,
   routeProtocolHintState,
   splitEntryAuthList,
+  PROVIDER_PRESET_MAP as PROVIDER_PRESETS,
+  matchPresetByUrl as matchPresetByUrlModel,
 } from './models/configuration.js';
 import { buildProfileSaveCandidate } from './models/profile-save.js';
 import * as inspectionView from './models/inspection-view.js';
@@ -781,6 +784,8 @@ function routeForConfig(route) {
   if (Array.isArray(route.capabilities)) next.capabilities = [...route.capabilities];
   if (Array.isArray(route.inputModalities)) next.inputModalities = [...route.inputModalities];
   if (Array.isArray(route.outputModalities)) next.outputModalities = [...route.outputModalities];
+  if (Array.isArray(route.fallbackProfileIds) && route.fallbackProfileIds.length)
+    next.fallbackProfileIds = route.fallbackProfileIds.map((id) => String(id || '').trim()).filter(Boolean);
   const clientProtocols = normalizeRouteClientProtocols(route.clientProtocols);
   if (clientProtocols.length) next.clientProtocols = clientProtocols;
   return next;
@@ -1320,6 +1325,7 @@ function routeTableSignature() {
       to: route.to || '',
       profileId: route.profileId || '',
       labelOverride: route.labelOverride || '',
+      fallbackProfileIds: route.fallbackProfileIds || [],
       clientProtocols: normalizeRouteClientProtocols(route.clientProtocols),
     })),
     profiles: profiles.map((profile) => ({
@@ -1447,6 +1453,12 @@ function createRouteTableRow(route, index) {
     targetMeta.className = 'muted';
     targetMeta.textContent = `${protocolName(profile.protocol)} · ${profile.targetUrl || ''}`;
     targetCell.appendChild(targetMeta);
+    if (Array.isArray(route.fallbackProfileIds) && route.fallbackProfileIds.length) {
+      const fbMeta = document.createElement('div');
+      fbMeta.className = 'muted';
+      fbMeta.textContent = `🔄 备选链: ${route.fallbackProfileIds.join(' → ')}`;
+      targetCell.appendChild(fbMeta);
+    }
   } else {
     targetCell.textContent = route.profileId || '';
   }
@@ -1513,6 +1525,7 @@ function resetRouteEditor() {
   editingRouteIndex = null;
   $('modelRewriteFrom').value = '';
   $('modelRewriteLabel').value = '';
+  if ($('modelRouteFallbacks')) $('modelRouteFallbacks').value = '';
   setSelectedRouteClientProtocols([]);
   renderModelOptions('');
   $('modelStatus').textContent = '';
@@ -1659,6 +1672,10 @@ function bindRouteActions(container) {
       editingRouteIndex = index;
       $('modelRewriteFrom').value = route.from;
       $('modelRewriteLabel').value = route.labelOverride || '';
+      if ($('modelRouteFallbacks'))
+        $('modelRouteFallbacks').value = Array.isArray(route.fallbackProfileIds)
+          ? route.fallbackProfileIds.join(', ')
+          : '';
       $('modelRouteProfile').value = route.profileId;
       setSelectedRouteClientProtocols(route.clientProtocols || []);
       availableModels = [];
@@ -1751,6 +1768,42 @@ function bindRouteTableToolbar() {
   }
 }
 
+const agentHub = createAgentHubController({
+  $,
+  getConfig: () => config,
+  showToast,
+  reloadConfigAndRender: async () => {
+    config = await window.proxyManager.readConfig();
+    applyLoadedConfig(config);
+    if (window.__TAURI__?.core?.invoke) {
+      window.__TAURI__.core.invoke('refresh_tray_menu').catch(() => {});
+    }
+  },
+  addQuickProviderPreset: async (preset) => {
+    let nextState;
+    const saved = await saveConfig(`已导入预设上游：${preset.name}`, (currentConfig) => {
+      const existingIds = (currentConfig.profiles || []).map((p) => p.id);
+      let targetId = preset.id;
+      let counter = 1;
+      while (existingIds.includes(targetId)) {
+        targetId = `${preset.id}-${counter++}`;
+      }
+      nextState = buildProfileSaveCandidate(currentConfig, null, {
+        id: targetId,
+        name: preset.name,
+        protocol: preset.protocol,
+        targetUrl: preset.targetUrl,
+        apiKey: preset.apiKey,
+        promptMasking: true,
+      });
+      return nextState.configuration;
+    });
+    if (saved && nextState) {
+      fillForm(config.profiles.find((item) => item.id === nextState.selectedId));
+    }
+  },
+});
+
 function renderOverview() {
   const loadNotice = configurationLoadNotice(config);
   if (loadNotice) {
@@ -1785,6 +1838,7 @@ function renderOverview() {
     overviewRoutes.replaceChildren(createRoutesTableElement({ filters: false }));
     lastRenderedOverviewRoutesHtml = routesSignature;
     bindRouteActions(overviewRoutes);
+    agentHub.renderAgentHub();
   }
 }
 
@@ -1843,121 +1897,6 @@ function updateOfficialAuthSection(profileId) {
   }
 }
 
-const PROVIDER_PRESETS = {
-  workbuddy: {
-    name: 'WorkBuddy Official',
-    defaultId: 'workbuddy-official',
-    protocol: 'workbuddy',
-    targetUrl: 'https://copilot.tencent.com',
-    keyUrl: 'https://www.workbuddy.cn',
-    desc: '腾讯 WorkBuddy 官方登录接口。直接复用本地客户端登录态，支持 DeepSeek-V4、MiniMax-M3、GLM-5.1/5.2、Kimi、混元等全系列大模型。',
-  },
-  tianxi: {
-    name: 'Tianxi Official',
-    defaultId: 'tianxi-official',
-    protocol: 'tianxi',
-    targetUrl: 'http://127.0.0.1:49305',
-    keyUrl: '',
-    desc: '联想天禧 AI 本机模式。通过本地登录态自动直连 tac-server，提供 tianxi/chat 普通文本模型和 tianxi/super 超能模式，均通过 OpenAI Responses 调用。',
-  },
-  openai: {
-    name: 'OpenAI Official',
-    defaultId: 'openai-official',
-    protocol: 'openai',
-    targetUrl: 'https://api.openai.com/v1',
-    keyUrl: 'https://platform.openai.com/api-keys',
-    desc: '官方 OpenAI 接口。适用于 GPT-4o, GPT-4o-mini 等官方模型。',
-  },
-  'glm-coding-anthropic': {
-    name: 'GLM Coding Plan (Anthropic)',
-    defaultId: 'glm-coding-anthropic',
-    protocol: 'claude',
-    targetUrl: 'https://open.bigmodel.cn/api/anthropic',
-    keyUrl: 'https://bigmodel.cn/coding-plan',
-    desc: '智谱 GLM Coding Plan 的 Anthropic Messages 兼容入口，适合 Claude Code、Roo Code 等 Claude 协议客户端通过本地代理使用套餐模型。',
-  },
-  'glm-coding-openai': {
-    name: 'GLM Coding Plan (OpenAI)',
-    defaultId: 'glm-coding-openai',
-    protocol: 'openai',
-    targetUrl: 'https://open.bigmodel.cn/api/coding/paas/v4',
-    keyUrl: 'https://bigmodel.cn/coding-plan',
-    desc: '智谱 GLM Coding Plan 的 OpenAI Chat Completions 兼容入口，适合 OpenAI 兼容客户端通过本地代理使用套餐模型。',
-  },
-  'minimax-anthropic': {
-    name: 'MiniMax (Anthropic)',
-    defaultId: 'minimax-anthropic',
-    protocol: 'claude',
-    targetUrl: 'https://api.minimaxi.com/anthropic',
-    keyUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
-    desc: 'MiniMax 官方 Anthropic Messages 兼容入口，官方快速开始文档推荐用于 Claude Code 等 Anthropic 协议客户端。',
-  },
-  'minimax-openai': {
-    name: 'MiniMax (OpenAI)',
-    defaultId: 'minimax-openai',
-    protocol: 'openai',
-    targetUrl: 'https://api.minimaxi.com/v1',
-    keyUrl: 'https://platform.minimaxi.com/user-center/basic-information/interface-key',
-    desc: 'MiniMax 官方 OpenAI Chat Completions 兼容入口，适合 OpenAI 兼容客户端通过本地代理调用 MiniMax 模型。',
-  },
-  claude: {
-    name: 'Claude Official',
-    defaultId: 'claude-official',
-    protocol: 'claude',
-    targetUrl: 'https://api.anthropic.com/v1',
-    keyUrl: 'https://console.anthropic.com/settings/keys',
-    desc: '官方 Anthropic Claude 接口。适用于 Claude 3.5 Sonnet / Haiku / Opus 官方模型。',
-  },
-  gemini: {
-    name: 'Gemini Official',
-    defaultId: 'google-official',
-    protocol: 'gemini',
-    targetUrl: 'https://generativelanguage.googleapis.com',
-    keyUrl: 'https://aistudio.google.com/app/apikey',
-    desc: '官方 Google Gemini 开发者接口（通过 Google AI Studio 服务）。',
-  },
-  'deepseek-anthropic': {
-    name: 'DeepSeek (Anthropic)',
-    defaultId: 'deepseek-anthropic',
-    protocol: 'claude',
-    targetUrl: 'https://api.deepseek.com/anthropic',
-    keyUrl: 'https://platform.deepseek.com/api_keys',
-    desc: 'DeepSeek 兼容的 Anthropic Messages 接口，适合 Claude Code 等 Anthropic 协议客户端调用。',
-  },
-  deepseek: {
-    name: 'DeepSeek Official',
-    defaultId: 'deepseek-official',
-    protocol: 'openai',
-    targetUrl: 'https://api.deepseek.com/v1',
-    keyUrl: 'https://platform.deepseek.com/api_keys',
-    desc: 'DeepSeek 官方的 OpenAI 兼容接口，提供超低成本的高智能交互。',
-  },
-  siliconflow: {
-    name: 'SiliconFlow',
-    defaultId: 'siliconflow',
-    protocol: 'openai',
-    targetUrl: 'https://api.siliconflow.cn/v1',
-    keyUrl: 'https://siliconflow.cn/zh-cn/',
-    desc: '硅基流动开源大模型平台，提供 DeepSeek-V3/R1、Qwen、Llama 等海量模型的超速托管服务。',
-  },
-  ollama: {
-    name: 'Ollama Local',
-    defaultId: 'ollama-local',
-    protocol: 'openai',
-    targetUrl: 'http://localhost:11434/v1',
-    keyUrl: '',
-    desc: '本地部署运行的 Ollama 服务，通常用于离线运行开源大模型。注：本地运行，不需要填写 API Key。',
-  },
-  openrouter: {
-    name: 'OpenRouter',
-    defaultId: 'openrouter',
-    protocol: 'openai',
-    targetUrl: 'https://openrouter.ai/api/v1',
-    keyUrl: 'https://openrouter.ai/settings/keys',
-    desc: '聚合了大量主流模型与开源模型的第三方转发网关，支持单 API Key 调用数百种模型。',
-  },
-};
-
 function clearProviderPresetHelp() {
   const helpEl = $('providerPresetHelp');
   if (!helpEl) return;
@@ -1990,6 +1929,42 @@ function renderProviderPresetHelp(preset) {
     link.style.fontWeight = '500';
     link.textContent = '获取 API Key (访问官方申请页) ↗';
     helpEl.append(document.createElement('br'), link);
+  }
+  if (Array.isArray(preset.recommendedModels) && preset.recommendedModels.length > 0) {
+    const importModelsBtn = document.createElement('button');
+    importModelsBtn.type = 'button';
+    importModelsBtn.className = 'light';
+    importModelsBtn.style.margin = '8px 0 0 0';
+    importModelsBtn.style.padding = '4px 10px';
+    importModelsBtn.style.fontSize = '12px';
+    importModelsBtn.textContent = `一键导入推荐模型路由 (${preset.recommendedModels.join(', ')})`;
+    importModelsBtn.onclick = () => {
+      const targetProfileId = ($('id') && $('id').value.trim()) || selectedId || preset.defaultId;
+      let added = 0;
+      for (const modelName of preset.recommendedModels) {
+        const exists = modelRoutes.some(
+          (r) => r && r.from === modelName && r.profileId === targetProfileId
+        );
+        if (!exists) {
+          modelRoutes.push(
+            routeForConfig({
+              from: modelName,
+              profileId: targetProfileId,
+              to: modelName,
+              enabled: true,
+              clientProtocols: ['claude', 'openai-chat', 'openai-responses'],
+            })
+          );
+          added += 1;
+        }
+      }
+      scheduleDashboardRender({ rules: true });
+      showToast(
+        added > 0 ? `已为 ${targetProfileId} 导入 ${added} 条推荐模型路由，点击“保存当前配置”生效` : '推荐模型路由已存在',
+        added > 0 ? 'success' : 'info'
+      );
+    };
+    helpEl.append(document.createElement('br'), importModelsBtn);
   }
 }
 
@@ -2041,28 +2016,7 @@ function initProviderPresets() {
 }
 
 function matchPresetByUrl(targetUrl) {
-  if (!targetUrl) return '';
-  const url = targetUrl.toLowerCase().trim();
-  if (
-    url.includes('copilot.tencent.com') ||
-    url.includes('workbuddy.cn') ||
-    url.includes('codebuddy')
-  )
-    return 'workbuddy';
-  if (url.includes('127.0.0.1:49305') || url.includes('tianxi')) return 'tianxi';
-  if (url.includes('api.openai.com')) return 'openai';
-  if (url.includes('open.bigmodel.cn/api/anthropic')) return 'glm-coding-anthropic';
-  if (url.includes('open.bigmodel.cn/api/coding/paas')) return 'glm-coding-openai';
-  if (url.includes('api.minimaxi.com/anthropic')) return 'minimax-anthropic';
-  if (url.includes('api.minimaxi.com/v1')) return 'minimax-openai';
-  if (url.includes('api.anthropic.com')) return 'claude';
-  if (url.includes('generativelanguage.googleapis.com')) return 'gemini';
-  if (url.includes('api.deepseek.com/anthropic')) return 'deepseek-anthropic';
-  if (url.includes('api.deepseek.com')) return 'deepseek';
-  if (url.includes('api.siliconflow.cn')) return 'siliconflow';
-  if (url.includes('11434')) return 'ollama';
-  if (url.includes('openrouter.ai')) return 'openrouter';
-  return '';
+  return matchPresetByUrlModel(targetUrl);
 }
 
 function fillForm(profile) {
@@ -2071,6 +2025,19 @@ function fillForm(profile) {
   for (const field of fields) $(field).value = profile[field] || '';
   $('protocol').value = profile.protocol || 'openai';
   $('allowInsecureHttpUpstream').checked = profile.allowInsecureHttpUpstream === true;
+  if ($('allowPostFailover')) $('allowPostFailover').checked = profile.allowPostFailover === true;
+  if ($('promptMasking')) $('promptMasking').checked = profile.promptMasking === true || (profile.promptMasking && profile.promptMasking.enabled === true);
+  if ($('promptMaskingKeywords')) $('promptMaskingKeywords').value = profile.promptMaskingKeywords || '';
+  const backupSelect = $('backupProfileId');
+  if (backupSelect) {
+    clearElement(backupSelect);
+    appendOption(backupSelect, '', '-- 无备选上游 --');
+    for (const candidate of (config && config.profiles) || []) {
+      if (!candidate || !candidate.id || candidate.id === profile.id) continue;
+      appendOption(backupSelect, candidate.id, `${candidate.name || candidate.id} (${candidate.id})`);
+    }
+    backupSelect.value = profile.backupProfileId || '';
+  }
   // 反向匹配定位服务商模板下拉框
   const presetSelect = $('providerPreset');
   if (presetSelect) {
@@ -2099,6 +2066,10 @@ function collectForm() {
     protocol: $('protocol').value,
     apiKey: $('apiKey').value.trim(),
     allowInsecureHttpUpstream: $('allowInsecureHttpUpstream').checked,
+    backupProfileId: $('backupProfileId') ? $('backupProfileId').value.trim() : '',
+    allowPostFailover: Boolean($('allowPostFailover') && $('allowPostFailover').checked),
+    promptMasking: Boolean($('promptMasking') && $('promptMasking').checked),
+    promptMaskingKeywords: $('promptMaskingKeywords') ? $('promptMaskingKeywords').value.trim() : '',
   };
 }
 
@@ -2113,6 +2084,8 @@ function profilesSignature() {
             name: profile.name || '',
             protocol: profile.protocol || '',
             targetUrl: profile.targetUrl || '',
+            promptMasking: Boolean(profile.promptMasking === true || profile.promptMasking?.enabled),
+            backupProfileId: profile.backupProfileId || '',
             latency: profileLatencies[profile.id],
           }))
         : [],
@@ -2176,6 +2149,12 @@ function createProfileCardElement(profile) {
   badges.appendChild(createBadge(protocolName(profile.protocol), 'protocol'));
   if (isActive) badges.appendChild(createBadge('默认上游', 'active'));
   if (isSelected && !isActive) badges.appendChild(createBadge('正在编辑'));
+  if (profile.promptMasking === true || (profile.promptMasking && profile.promptMasking.enabled === true))
+    badges.appendChild(createBadge('🛡️ 隐私脱敏', 'protocol'));
+  if (profile.backupProfileId)
+    badges.appendChild(createBadge(`🔄 备选: ${profile.backupProfileId}`));
+  if (Number(profile.apiKeyPoolSize) > 1)
+    badges.appendChild(createBadge(`🔑 多Key池(${profile.apiKeyPoolSize})`, 'protocol'));
   const latencyBadge = createLatencyBadge(profile.id);
   if (latencyBadge) badges.appendChild(latencyBadge);
   titleRow.append(title, badges);
@@ -2462,6 +2441,9 @@ async function load() {
             start: '启动代理',
             stop: '停止代理',
             restart: '重启代理',
+            'switch-profile': '切换默认上游',
+            'bind-agent': '切换 Agent 模型',
+            'clear-cooldowns': '解除限流冷却',
           };
           const title = commandNames[result.command] || result.command;
           const msg = result.output || `${title}完成`;
@@ -2472,6 +2454,12 @@ async function load() {
             result.code === 0 ? 'success' : 'error'
           );
           await refreshLog().catch((e) => reportFrontendError('tray.refresh_log', e));
+          if (['switch-profile', 'bind-agent', 'clear-cooldowns'].includes(result.command)) {
+            window.proxyManager.readConfig({ quiet: true }).then((c) => {
+              if (c) { config = c; applyLoadedConfig(config); }
+              agentHub.refreshAgentHubStatus();
+            }).catch(() => {});
+          }
           await refreshProxyStatus().catch((e) => reportFrontendError('tray.refresh_proxy', e));
         })
       ).catch((err) => reportFrontendError('tray.listen', err));
@@ -2490,6 +2478,8 @@ async function load() {
   }
 
   applyLoadedConfig(config);
+  agentHub.bindQuickPresetBar();
+  setTimeout(() => agentHub.refreshAgentHubStatus(), 400);
   bindRouteTableToolbar();
 
   scheduleStartupTask(
@@ -2870,6 +2860,13 @@ $('addRule').onclick = () => {
   const isEditing = editingRouteIndex !== null && modelRoutes[editingRouteIndex];
   const previousRoute = index >= 0 ? modelRoutes[index] : null;
   if (labelOverride) nextRoute.labelOverride = labelOverride;
+  const fallbacksRaw = ($('modelRouteFallbacks') && $('modelRouteFallbacks').value.trim()) || '';
+  if (fallbacksRaw) {
+    nextRoute.fallbackProfileIds = fallbacksRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s && s !== profileId);
+  }
   if (clientProtocols.length) nextRoute.clientProtocols = clientProtocols;
   if (previousRoute) {
     if (previousRoute.group) nextRoute.group = previousRoute.group;
@@ -3273,7 +3270,8 @@ $('restoreClaudeDesktop').onclick = async () => {
 bindToolIntegrationActions({ $, showToast, confirmAction, refreshClaudeDesktopStatus });
 
 $('applyClaudeCode').onclick = async () => {
-  const status = await window.proxyManager.applyClaudeCode();
+  const model = ($('claudeCodeModel') && $('claudeCodeModel').value.trim()) || '';
+  const status = await window.proxyManager.applyClaudeCode(model ? { model } : {});
   await refreshClaudeCodeStatus();
   const msg = status.ok ? '已成功应用本地代理到 Claude Code！' : '应用本地代理失败';
   $('output').textContent = msg;
@@ -3376,7 +3374,8 @@ if (copyTraeVisibleProgressEnvButton) {
 
 // Antigravity CLI
 $('applyAntigravityCli').onclick = async () => {
-  const status = await window.proxyManager.applyAntigravityCli();
+  const model = ($('antigravityCliModel') && $('antigravityCliModel').value.trim()) || '';
+  const status = await window.proxyManager.applyAntigravityCli(model ? { model } : {});
   await refreshAntigravityCliStatus();
   const msg = status.ok ? '已成功应用本地代理到 Antigravity CLI！' : '应用本地代理失败';
   $('output').textContent = msg;
@@ -3399,7 +3398,8 @@ $('refreshAntigravityCli').onclick = refreshAntigravityCliStatus;
 
 // Google Gemini CLI
 $('applyGeminiCli').onclick = async () => {
-  const status = await window.proxyManager.applyGeminiCli();
+  const model = ($('geminiCliModel') && $('geminiCliModel').value.trim()) || '';
+  const status = await window.proxyManager.applyGeminiCli(model ? { model } : {});
   await refreshGeminiCliStatus();
   const msg = status.ok ? '已成功将 Google Gemini CLI 托管到路由代理！' : '托管到路由代理失败';
   $('output').textContent = msg;
@@ -3677,7 +3677,7 @@ if (switchCodexDesktopDirectApi) {
 $('applyCodex').onclick = async () => {
   await switchCodexMode(
     'cli',
-    { connection: 'proxy', auth: 'api' },
+    { connection: 'proxy', auth: 'api', ...(($('codexCliModel') && $('codexCliModel').value.trim()) ? { model: $('codexCliModel').value.trim() } : {}) },
     {
       savingText: '模型路由已保存，正在切换到 Codex CLI 本地代理 + API 登录...',
       successText: '已切换到 Codex CLI 本地代理 + API 登录',
@@ -3758,6 +3758,24 @@ document.querySelectorAll('[data-command]').forEach((button) => {
 });
 if (window.proxyManager.onOpenView) {
   window.proxyManager.onOpenView((viewId) => showView(viewId));
+  if (window.proxyManager.onTrayCommand) {
+    window.proxyManager.onTrayCommand(async (payload) => {
+      if (!payload || typeof payload !== 'object') return;
+      if (payload.command === 'switch-profile') {
+        config = await window.proxyManager.readConfig();
+        scheduleDashboardRender({ profiles: true, overview: true, rules: true });
+        showToast(`托盘已切换默认上游：${payload.profileId}`, 'success');
+      } else if (payload.command === 'bind-agent') {
+        config = await window.proxyManager.readConfig();
+        scheduleDashboardRender({ rules: true, overview: true });
+        refreshClaudeCodeStatus();
+        refreshAntigravityCliStatus();
+        refreshGeminiCliStatus();
+        refreshBothCodexStatuses();
+        showToast(`托盘已绑定 ${payload.agent} -> ${payload.model} (${payload.profileId})`, 'success');
+      }
+    });
+  }
 }
 
 document.querySelectorAll('[data-view-button]').forEach((button) => {

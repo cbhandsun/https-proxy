@@ -232,7 +232,9 @@ function prepareMonitorEvent(event) {
     const contextInfo = event.estimatedContextTokens
       ? ` | Context: ${event.contextEstimateTruncated ? '≥' : ''}${event.estimatedContextTokens}tok`
       : '';
-    details = `Profile: ${event.profileName} (${event.protocol})${contextInfo}`;
+    const maskInfo = Number(event.maskedCount) > 0 ? ` | 🛡️ 已脱敏 ${event.maskedCount} 项` : '';
+    const failoverInfo = event.failoverFrom ? ` | 🔄 故障转移自 ${event.failoverFrom}` : '';
+    details = `Profile: ${event.profileName} (${event.protocol})${contextInfo}${maskInfo}${failoverInfo}`;
     badgeClass = 'active';
   } else if (event.kind === 'request_end') {
     title = `${event.method} ${event.path} -> ${event.statusCode}`;
@@ -323,6 +325,8 @@ function monitorGroupDetails(group) {
   if (group.sourceModel || group.targetModel) {
     parts.push(`Model: ${group.sourceModel || '-'} -> ${group.targetModel || '-'}`);
   }
+  if (Number(group.maskedCount) > 0) parts.push(`🛡️ 已脱敏 ${group.maskedCount} 项`);
+  if (group.failoverFrom) parts.push(`🔄 转移自 ${group.failoverFrom}`);
   if (group.reqId) parts.push(`Req: ${group.reqId}`);
   if (group.clientIp) parts.push(`Client: ${group.clientIp}`);
   if (group.error) parts.push(`Error: ${group.error}`);

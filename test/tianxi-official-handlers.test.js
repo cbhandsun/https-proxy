@@ -121,6 +121,28 @@ function fakeRes() {
   assert.equal(sdkRes.statusCode, 200);
   assert.equal(bridgePayload.metadata.tianxi.sdk_model, 'qfmodel');
 
+  for (const toolChoice of [undefined, 'none']) {
+    const textRes = fakeRes();
+    await handlers.handleTianxiOfficialResponses(
+      { headers: {}, method: 'POST' },
+      textRes,
+      Buffer.from(
+        JSON.stringify({ model: 'tianxi/deepseek-flash', input: 'hello', tool_choice: toolChoice })
+      ),
+      {
+        model: 'tianxi/deepseek-flash',
+        rewriteTo: 'dfmodel',
+        profile: { id: 'tianxi-official', tianxiClientReadTools: true },
+        route: { to: 'dfmodel', tianxiSdkModel: 'dfmodel' },
+      },
+      Date.now(),
+      '/v1/responses'
+    );
+    assert.equal(textRes.statusCode, 200);
+    assert.equal(bridgePayload.metadata.tianxi.sdk_model, 'dfmodel');
+    assert.equal(bridgePayload.metadata.tianxi.options, undefined);
+  }
+
   let invalidBodyBridgeCalled = false;
   let invalidBodyError;
   const invalidBodyHandlers = createTianxiOfficialHandlers({
@@ -204,7 +226,7 @@ function fakeRes() {
       {
         model: 'tianxi/qwen3.8-flash',
         rewriteTo: 'qfmodel',
-        profile: { id: 'tianxi-official', tianxiClientReadTools: true },
+        profile: { id: 'tianxi-official', tianxiClientReadTools: false },
         route: { tianxiSdkModel: 'qfmodel' },
       },
       Date.now(),

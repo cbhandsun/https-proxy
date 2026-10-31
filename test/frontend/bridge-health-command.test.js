@@ -13,7 +13,8 @@ const source = fs.readFileSync(
 );
 
 (async () => {
-  const { executeHealthCommand } = await import('../../tauri-ui/src/app/models/proxy-command.js');
+  const { executeHealthCommand, formatProxyCommandError } =
+    await import('../../tauri-ui/src/app/models/proxy-command.js');
   const { requestContextRecoveryClear } =
     await import('../../tauri-ui/src/app/domains/context-recovery-controls.js');
   const { createContextRecoveryClearClient } =
@@ -62,7 +63,7 @@ const source = fs.readFileSync(
     };
   }
 
-  function loadBridge({ tauri }) {
+  function loadBridge({ tauri, commandError }) {
     const calls = [];
     const window = {
       location: { origin: tauri ? 'tauri://localhost' : 'http://localhost:1430' },
@@ -86,6 +87,7 @@ const source = fs.readFileSync(
         core: {
           invoke: async (command, payload) => {
             calls.push({ kind: 'invoke', command, payload });
+            if (command === 'execute_proxy_command' && commandError) throw commandError;
             if (command !== 'management_fetch_native') {
               throw new Error(`unexpected native command: ${command}`);
             }
@@ -123,6 +125,7 @@ const source = fs.readFileSync(
       installAppShortcutHandler() {},
       reportFrontendError() {},
       executeHealthCommand,
+      formatProxyCommandError,
     };
     vm.runInNewContext(stripEsmSyntax(source), sandbox);
     sandbox.fetch = window.fetch;
@@ -136,7 +139,15 @@ const source = fs.readFileSync(
   assert.equal(browser.calls.length, 1);
   assert.match(browser.calls[0].url, /\/v1\/local\/health$/);
 
-  const desktop = loadBridge({ tauri: true });
+  const desktop = loadBridge({ tauri: true, commandError: 'proxy_stop_drain_unconfirmed' });
+  const stopFailure = await desktop.window.proxyManager.command('restart');
+  assert.equal(stopFailure.code, -1);
+  assert.match(stopFailure.output, /4 秒内确认代理退出/);
+  assert.equal(stopFailure.ok, false);
+  assert.equal(stopFailure.message, stopFailure.output);
+  assert.equal(stopFailure.error, stopFailure.output);
+  assert.equal(stopFailure.output.includes('proxy_stop_drain_unconfirmed'), false);
+  desktop.calls.length = 0;
   const desktopResult = await desktop.window.proxyManager.command('health');
   assert.equal(desktopResult.code, 0);
   assert.equal(

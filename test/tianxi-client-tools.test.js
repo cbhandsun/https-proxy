@@ -18,6 +18,7 @@ const { createTianxiOfficialHandlers } = require('../lib/proxy/tianxi-official-h
 const { resolveTianxiResultBridge } = require('../lib/proxy/tianxi-tool-result-continuation');
 const { discoverTestFiles, selectUnitTestFiles } = require('../lib/test-discovery');
 const { createTianxiClientToolStream } = require('../lib/proxy/tianxi-client-tool-stream');
+const { TIANXI_SDK_MODELS } = require('../lib/proxy/tianxi-sdk-models');
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const nativeTools = {
   cwd: 'C:\\repo',
@@ -1537,97 +1538,118 @@ test('returned external starts preserve process boundaries without phantom pendi
   assert.ok(final.output.every((item) => item.type === 'message'));
   manager.close();
 });
-test('HTTP handler starts and resumes client execution without creating another native task', async () => {
-  let queries = 0;
-  const manager = createTianxiClientToolSessions({ compile: () => ({ cmd: 'safe' }) });
-  const handlers = createTianxiOfficialHandlers({
-    clientToolSessions: manager,
-    resolveTianxiNativeReadTools: () => nativeTools,
-    supportsTianxiClientTools: () => true,
-    logRequestEnd() {},
-    openAIResponsesToChat: () => ({}),
-    sendJsonError(res, status, body) {
-      res.writeHead(status, {});
-      res.end(JSON.stringify(body));
-    },
-    async callTianxiOfficialBridge(_payload, _profile, context) {
-      queries++;
-      await new Promise((resolve) =>
-        context.onExternalToolCall(
-          { data: { actions: [action('read_file', { file_path: 'probe.txt' })] } },
-          () => {
-            resolve();
-            return true;
-          }
+for (const sdkScenario of [null, ...TIANXI_SDK_MODELS])
+  test(`HTTP handler starts and resumes client execution without creating another native task (${sdkScenario?.modelId || 'super'})`, async () => {
+    let queries = 0;
+    const manager = createTianxiClientToolSessions({ compile: () => ({ cmd: 'safe' }) });
+    const handlers = createTianxiOfficialHandlers({
+      clientToolSessions: manager,
+      resolveTianxiNativeReadTools: () => nativeTools,
+      supportsTianxiClientTools: () => true,
+      logRequestEnd() {},
+      openAIResponsesToChat: () => ({}),
+      sendJsonError(res, status, body) {
+        res.writeHead(status, {});
+        res.end(JSON.stringify(body));
+      },
+      async callTianxiOfficialBridge(_payload, _profile, context) {
+        if (sdkScenario) {
+          assert.equal(_payload.metadata.tianxi.sdk_model, undefined);
+          assert.equal(_payload.metadata.tianxi.agent_id, 'super');
+          assert.equal(_payload.metadata.tianxi.llm, sdkScenario.modelId);
+        }
+        queries++;
+        await new Promise((resolve) =>
+          context.onExternalToolCall(
+            { data: { actions: [action('read_file', { file_path: 'probe.txt' })] } },
+            () => {
+              resolve();
+              return true;
+            }
+          )
+        );
+        return {
+          frames: [
+            { type: 'task_output', data: { content_type: 'text', content: 'FINAL' } },
+            { type: 'task_status', data: { status: 'COMPLETED' } },
+          ],
+        };
+      },
+    });
+    const prepared = {
+      rewriteTo: sdkScenario ? sdkScenario.modelId : 'super',
+      model: sdkScenario ? sdkScenario.alias : 'tianxi/super',
+      route: sdkScenario
+        ? { to: sdkScenario.modelId, tianxiSdkModel: sdkScenario.modelId }
+        : { to: 'super' },
+      profile: { id: 'profile', tianxiClientReadTools: true },
+    };
+    const req = { method: 'POST', headers: {}, entryAuth: { key: { id: 'key' } } };
+    const first = fakeResponse();
+    await handlers.handleTianxiOfficialResponses(
+      req,
+      first,
+      Buffer.from(
+        JSON.stringify(
+          sdkScenario
+            ? {
+                model: prepared.model,
+                input: [
+                  { type: 'additional_tools', role: 'developer', tools },
+                  { role: 'user', content: 'read' },
+                ],
+              }
+            : { model: prepared.model, input: 'read', tools }
         )
-      );
-      return {
-        frames: [
-          { type: 'task_output', data: { content_type: 'text', content: 'FINAL' } },
-          { type: 'task_status', data: { status: 'COMPLETED' } },
-        ],
-      };
-    },
+      ),
+      prepared,
+      0,
+      '/v1/responses'
+    );
+    const call = JSON.parse(first.body).output[0];
+    const denied = fakeResponse();
+    await handlers.handleTianxiOfficialResponses(
+      { ...req, entryAuth: { key: { id: 'other' } } },
+      denied,
+      Buffer.from(JSON.stringify({ input: [output(call)] })),
+      prepared,
+      0,
+      '/v1/responses'
+    );
+    assert.equal(denied.statusCode, 404);
+    const otherProfile = fakeResponse();
+    await handlers.handleTianxiOfficialResponses(
+      req,
+      otherProfile,
+      Buffer.from(JSON.stringify({ input: [output(call)] })),
+      { ...prepared, profile: { ...prepared.profile, id: 'other-profile' } },
+      0,
+      '/v1/responses'
+    );
+    assert.equal(otherProfile.statusCode, 404);
+    const invalidPolicy = fakeResponse();
+    await handlers.handleTianxiOfficialResponses(
+      req,
+      invalidPolicy,
+      Buffer.from(JSON.stringify({ input: [output(call)], parallel_tool_calls: 'false' })),
+      prepared,
+      0,
+      '/v1/responses'
+    );
+    assert.equal(invalidPolicy.statusCode, 400);
+    const last = fakeResponse();
+    await handlers.handleTianxiOfficialResponses(
+      req,
+      last,
+      Buffer.from(JSON.stringify({ input: [output(call)] })),
+      prepared,
+      0,
+      '/v1/responses'
+    );
+    assert.equal(JSON.parse(last.body).output_text, 'FINAL');
+    assert.equal(queries, 1);
+    manager.close();
   });
-  const prepared = {
-    rewriteTo: 'super',
-    model: 'tianxi/super',
-    profile: { id: 'profile', tianxiClientReadTools: true },
-  };
-  const req = { method: 'POST', headers: {}, entryAuth: { key: { id: 'key' } } };
-  const first = fakeResponse();
-  await handlers.handleTianxiOfficialResponses(
-    req,
-    first,
-    Buffer.from(JSON.stringify({ model: 'tianxi/super', input: 'read', tools })),
-    prepared,
-    0,
-    '/v1/responses'
-  );
-  const call = JSON.parse(first.body).output[0];
-  const denied = fakeResponse();
-  await handlers.handleTianxiOfficialResponses(
-    { ...req, entryAuth: { key: { id: 'other' } } },
-    denied,
-    Buffer.from(JSON.stringify({ input: [output(call)] })),
-    prepared,
-    0,
-    '/v1/responses'
-  );
-  assert.equal(denied.statusCode, 404);
-  const otherProfile = fakeResponse();
-  await handlers.handleTianxiOfficialResponses(
-    req,
-    otherProfile,
-    Buffer.from(JSON.stringify({ input: [output(call)] })),
-    { ...prepared, profile: { ...prepared.profile, id: 'other-profile' } },
-    0,
-    '/v1/responses'
-  );
-  assert.equal(otherProfile.statusCode, 404);
-  const invalidPolicy = fakeResponse();
-  await handlers.handleTianxiOfficialResponses(
-    req,
-    invalidPolicy,
-    Buffer.from(JSON.stringify({ input: [output(call)], parallel_tool_calls: 'false' })),
-    prepared,
-    0,
-    '/v1/responses'
-  );
-  assert.equal(invalidPolicy.statusCode, 400);
-  const last = fakeResponse();
-  await handlers.handleTianxiOfficialResponses(
-    req,
-    last,
-    Buffer.from(JSON.stringify({ input: [output(call)] })),
-    prepared,
-    0,
-    '/v1/responses'
-  );
-  assert.equal(JSON.parse(last.body).output_text, 'FINAL');
-  assert.equal(queries, 1);
-  manager.close();
-});
 test('official handler wires only fixed failure categories and call counts into proxy diagnostics', async () => {
   const diagnostics = [];
   const handlers = createTianxiOfficialHandlers({

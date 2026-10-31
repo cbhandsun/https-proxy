@@ -377,7 +377,10 @@ function auditHistoryRecordView(record) {
   const modelFlow = auditModelFlowLabel(record);
   const upstreamModel = auditUpstreamModel(record);
   const contextLabel = auditDependencies.auditContextListLabel(record);
-  const contextSuffix = contextLabel ? ` · ${contextLabel}` : '';
+  const maskTag = Number(record.maskedCount) > 0 ? `🛡️脱敏(${record.maskedCount})` : '';
+  const failoverTag = record.failoverFrom ? '🔄容灾' : '';
+  const extraTags = [contextLabel, maskTag, failoverTag].filter(Boolean).join(' · ');
+  const contextSuffix = extraTags ? ` · ${extraTags}` : '';
   return {
     timeStr,
     statusCode: record.statusCode || '???',
@@ -1079,6 +1082,12 @@ function createAuditDetailHeaderElement(record) {
     'span',
     `audit-badge ${isSuccess ? 'success' : 'error'}`
   );
+  if (Number(record.maskedCount) > 0) {
+    appendAuditText(title, `🛡️ 已脱敏 ${record.maskedCount} 项`, 'span', 'audit-badge info');
+  }
+  if (record.failoverFrom) {
+    appendAuditText(title, `🔄 故障转移 (${record.failoverFrom})`, 'span', 'audit-badge info');
+  }
 
   const retry = document.createElement('button');
   retry.id = 'retryAuditRequestBtn';

@@ -238,8 +238,8 @@ async function refreshClaudeCodeStatus() {
     }
     if (status.baseUrl) {
       toolStatusDependencies.$('claudeCodeStatus').textContent =
-        `已配置本地代理；网关地址: ${status.baseUrl}，配置路径: ${status.configPath}`;
-      toolStatusDependencies.$('claudeCodeStatus').className = 'notice green';
+        `已配置本地代理；网关地址: ${status.baseUrl}${status.model ? `，模型: ${status.model}` : ''}，配置路径: ${status.configPath}`;
+      toolStatusDependencies.$('claudeCodeStatus').className = 'notice green'; if (toolStatusDependencies.$('claudeCodeModel')) toolStatusDependencies.$('claudeCodeModel').value = status.model || '';
       if (badgeEl) {
         badgeEl.textContent = '已代理';
         badgeEl.className = 'badge active';
@@ -931,8 +931,8 @@ async function refreshAntigravityCliStatus() {
     }
     if (status.baseUrl) {
       toolStatusDependencies.$('antigravityCliStatus').textContent =
-        `已配置本地代理；网关地址: ${status.baseUrl}，配置路径: ${status.configPath}`;
-      toolStatusDependencies.$('antigravityCliStatus').className = 'notice green';
+        `已配置本地代理；网关地址: ${status.baseUrl}${status.model ? `，模型: ${status.model}` : ''}，配置路径: ${status.configPath}`;
+      toolStatusDependencies.$('antigravityCliStatus').className = 'notice green'; if (toolStatusDependencies.$('antigravityCliModel')) toolStatusDependencies.$('antigravityCliModel').value = status.model || '';
       if (badgeEl) {
         badgeEl.textContent = '已代理';
         badgeEl.className = 'badge active';
@@ -980,7 +980,7 @@ async function refreshGeminiCliStatus() {
     if (status.apiEndpoint || status.envBaseUrl) {
       const ep = status.apiEndpoint || status.envBaseUrl;
       toolStatusDependencies.$('geminiCliStatus').textContent =
-        `已配置本地代理；网关地址: ${ep}，配置路径: ${status.configPath}`;
+        `已配置本地代理；网关地址: ${ep}${status.model ? `，模型: ${status.model}` : ''}，配置路径: ${status.configPath}`; if (toolStatusDependencies.$('geminiCliModel')) toolStatusDependencies.$('geminiCliModel').value = status.model || '';
       toolStatusDependencies.$('geminiCliStatus').className = 'notice green';
       if (badgeEl) {
         badgeEl.textContent = '已代理';
@@ -1059,7 +1059,7 @@ async function refreshCodexStatus() {
     if (status.baseUrl) {
       const legacy = status.legacyBaseUrl && !status.openaiBaseUrl ? '（旧 base_url 写法）' : '';
       toolStatusDependencies.$('codexStatus').textContent =
-        `已配置本地代理；网关地址: ${status.baseUrl}${legacy}${auth}，配置路径: ${status.configPath}`;
+        `已配置本地代理；网关地址: ${status.baseUrl}${legacy}${status.model ? `，模型: ${status.model}` : ''}${auth}，配置路径: ${status.configPath}`; if (toolStatusDependencies.$('codexCliModel')) toolStatusDependencies.$('codexCliModel').value = status.model || '';
       toolStatusDependencies.$('codexStatus').className = 'notice green';
       if (badgeEl) {
         badgeEl.textContent = '已代理';

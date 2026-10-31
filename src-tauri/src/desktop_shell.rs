@@ -235,52 +235,20 @@ pub(crate) fn configure_desktop_shell(app: &mut tauri::App) -> Result<(), tauri:
     }
 
     if read_app_setting("showTrayMenu", true) {
-        use tauri::menu::{MenuBuilder, MenuItemBuilder};
         use tauri::tray::TrayIconBuilder;
 
-        let show_item = MenuItemBuilder::new("显示窗口")
-            .id("tray_show")
-            .build(app)?;
-        let start_item = MenuItemBuilder::new("启动代理")
-            .id("tray_start")
-            .accelerator("CmdOrCtrl+Alt+S")
-            .build(app)?;
-        let stop_item = MenuItemBuilder::new("停止代理")
-            .id("tray_stop")
-            .accelerator("CmdOrCtrl+Alt+X")
-            .build(app)?;
-        let restart_item = MenuItemBuilder::new("重启代理")
-            .id("tray_restart")
-            .accelerator("CmdOrCtrl+Alt+R")
-            .build(app)?;
-        let status_item = MenuItemBuilder::new("查看状态")
-            .id("tray_status")
-            .build(app)?;
-        let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
-        let quit_item = MenuItemBuilder::new("退出").id("tray_quit").build(app)?;
-
-        let menu = MenuBuilder::new(app)
-            .items(&[
-                &show_item,
-                &separator,
-                &start_item,
-                &stop_item,
-                &restart_item,
-                &tauri::menu::PredefinedMenuItem::separator(app)?,
-                &status_item,
-                &tauri::menu::PredefinedMenuItem::separator(app)?,
-                &quit_item,
-            ])
-            .build()?;
+        let menu = crate::tray_menu::build_tray_menu(app.handle())?;
 
         let icon = app.default_window_icon().unwrap().clone();
-        let _tray = TrayIconBuilder::new()
+        let tray = TrayIconBuilder::new()
             .icon(icon)
             .tooltip("HTTPS Proxy Manager")
             .menu(&menu)
             .on_menu_event(move |app_handle, event| {
                 let id = event.id().as_ref();
-                if id == "tray_show" {
+                if let Some(action) = crate::tray_menu::parse_tray_action(id) {
+                    crate::tray_menu::handle_tray_dynamic_action(app_handle, action);
+                } else if id == "tray_show" {
                     show_main_window(app_handle);
                 } else if id == "tray_start" {
                     run_tray_proxy_command(app_handle, "start");
@@ -302,6 +270,7 @@ pub(crate) fn configure_desktop_shell(app: &mut tauri::App) -> Result<(), tauri:
                 }
             })
             .build(app)?;
+        crate::tray_menu::remember_tray_id(tray.id().clone());
     }
 
     if let Some(window) = app.get_webview_window("main") {

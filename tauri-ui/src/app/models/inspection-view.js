@@ -154,6 +154,8 @@ function applyMonitorEvent(group, event) {
     if (typeof event.targetModel === 'string') group.targetModel = event.targetModel;
     if (typeof event.profileName === 'string') group.profileName = event.profileName;
     if (typeof event.protocol === 'string') group.protocol = event.protocol;
+    if (Number(event.maskedCount) > 0) group.maskedCount = Number(event.maskedCount);
+    if (typeof event.failoverFrom === 'string' && event.failoverFrom) group.failoverFrom = event.failoverFrom;
     if (typeof event.method === 'string' && !group.method) group.method = event.method;
     if (typeof event.path === 'string' && !group.path) group.path = event.path;
     return;

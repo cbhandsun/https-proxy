@@ -54,8 +54,26 @@ incomplete even when partial assistant text exists.
 
 ## Responses Compatibility
 
-`tianxi/chat` is a text-only route. Use `tianxi/super` with the read-only bridge
-enabled for project inspection. Tool catalogs carried by Codex `additional_tools`
+`tianxi/chat` is a text-only route. Use `tianxi/super` or a current SDK model
+with the read-only bridge enabled for project inspection. Tool requests use
+the native Qoder external-tool channel with the selected backend model ID;
+plain text requests retain the SDK worker. This preserves the selected model
+while allowing real client calls and same-task result continuation. The bridge
+supports read_file, find_files, and search_text through the client's validated
+command executor; it does not expose unrestricted client tools.
+
+The authenticated catalog refreshed on 2026-10-29 (America/Los_Angeles) contains
+12 entries: Auto, Fast, Qwen3.8-Max, Qwen3.8-Flash, Qwen3.7-Plus,
+DeepSeek-V4-Pro, DeepSeek-Flash, GLM-5.3, GLM-5.3-Flash, Kimi-K3.1-Pro,
+Kimi-K2.8-Preview, and MiniMax-M3.1-Flash. All advertise function-call capability.
+Legacy aliases `tianxi/kimi-k3` and `tianxi/minimax-m2.7` remain routable but are
+hidden from discovery. This is a checked-in catalog snapshot, not automatic refresh.
+
+All 12 passed isolated live HTTP/SSE read-tool round trips with real client command
+execution and same-task continuation. Production DeepSeek-Flash and MiniMax passed
+representative probes; MiniMax required a retry after an unexplained initial failure.
+These scoped probes do not establish full desktop or unrestricted-tool acceptance.
+Tool catalogs carried by Codex `additional_tools`
 or `tool_search_output` input items are checked before history is stripped, just
 like top-level tool declarations. Text-only routes reject these requests instead
 of returning model-generated tool-call markup as a successful answer. The proxy
@@ -82,7 +100,8 @@ lifecycle signal, not a model-generated thought summary.
 
 This is a compatibility bridge, not full OpenAI feature parity. Native tools run
 on the provider and remain progress summaries, not client function calls. Token
-usage, client tool execution, and multimodal inputs are not synthesized. Tianxi
+usage and multimodal inputs are not synthesized. Client read-tool execution
+requires the explicit bridge described above. Tianxi
 incomplete reasons and error diagnostics remain provider-specific extensions;
 strict OpenAI schema consumers need to account for those extensions.
 
@@ -95,3 +114,12 @@ Provider text buffered during a matched native tool operation is released as
 progress on the return frame. Explicit final text remains assistant output.
 
 Reference: https://developers.openai.com/api/reference/resources/responses/streaming-events
+
+## Desktop restart confirmation
+
+The desktop manager waits four seconds to confirm that the previous proxy process
+has exited. `proxy_stop_drain_unconfirmed` means this confirmation timed out; it
+does not establish the current proxy's health or whether a later manual start
+succeeded. The renderer translates known shutdown codes to fixed Chinese messages
+while preserving failure status. Exit checks and the shutdown deadline are unchanged.
+The updated message requires a rebuilt desktop application.

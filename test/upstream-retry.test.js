@@ -1,4 +1,9 @@
 const assert = require('assert');
+const {
+  selectApiKeyFromPool,
+  markApiKeyPoolRateLimited,
+} = require('../lib/proxy/errors');
+const { createAuthResolver } = require('../lib/proxy/auth-resolver');
 
 const {
   isRetryableStatusCode,
@@ -13,6 +18,7 @@ const {
   resolveUpstreamRecovery,
   isPreTransmissionFailure,
   readPreTransmissionContext,
+  advanceFailoverPrepared,
 } = require('../lib/proxy/upstream-retry');
 
 function testRetryableStatusCodes() {
@@ -385,6 +391,64 @@ function testReplayValidationRejectsMalformedBoundaryValues() {
   assert.strictEqual(canReplayRequest({ method: 'TRACE' }), false);
 }
 
+function testMultiHopAndCooldownAwareFailover() {
+  const pPrimary = { id: 'primary', fallbackProfileIds: ['b1', 'b2'], allowPostFailover: true };
+  const b1 = { id: 'b1', backupProfileId: 'b3' };
+  const b2 = { id: 'b2' };
+  const b3 = { id: 'b3' };
+  const profiles = [pPrimary, b1, b2, b3];
+
+  const prepared = {
+    profile: pPrimary,
+    route: {
+      from: 'claude-sonnet-4-6',
+      profileId: 'primary',
+      to: 'primary-sonnet',
+      fallbacks: [
+        { profileId: 'b1', to: 'b1-sonnet' },
+        { profileId: 'b2', to: 'b2-sonnet' },
+      ],
+    },
+    targetModel: 'primary-sonnet',
+  };
+
+  // Skip cooling down b1 and pick b2 on attempt 1
+  const fail1 = shouldFailoverOnStatus(429, 1, prepared, profiles, {
+    isCoolingDown: (pid) => pid === 'b1',
+  });
+  assert.strictEqual(fail1, b2);
+
+  // Multi-hop progression: attempt 1 -> b1, attempt 2 -> b2, attempt 3 -> b3 (via b1.backupProfileId)
+  const hop1 = shouldFailoverOnStatus(503, 1, prepared, profiles, { isCoolingDown: () => false });
+  assert.strictEqual(hop1, b1);
+  advanceFailoverPrepared(prepared, hop1, { attempt: 1, statusCode: 503 });
+  assert.strictEqual(prepared.profile, b1);
+  assert.strictEqual(prepared.targetModel, 'b1-sonnet');
+  assert.strictEqual(prepared.failoverCount, 1);
+
+  const hop2 = shouldFailoverOnStatus(503, 2, prepared, profiles, { isCoolingDown: () => false });
+  assert.strictEqual(hop2, b2);
+  advanceFailoverPrepared(prepared, hop2, { attempt: 2, statusCode: 503 });
+  assert.strictEqual(prepared.profile, b2);
+
+  const hop3 = shouldFailoverOnStatus(503, 3, prepared, profiles, { isCoolingDown: () => false });
+  assert.strictEqual(hop3, b3);
+
+  // allowPostFailover enables POST failover without idempotency key
+  const postPrepared = { profile: pPrimary, targetModel: 'primary-sonnet' };
+  const postRecovery = resolveUpstreamRecovery({
+    kind: 'status',
+    statusCode: 503,
+    attempt: 1,
+    maxRetries: 2,
+    prepared: postPrepared,
+    profiles,
+    method: 'POST',
+    isCoolingDown: () => false,
+  });
+  assert.deepStrictEqual(postRecovery, { type: 'failover', profile: b1 });
+}
+
 testRetryableStatusCodes();
 testRetryAttemptBoundary();
 testRetryDelayBoundsJitter();
@@ -399,5 +463,31 @@ testPreTransmissionTlsFailuresAreRetryableForUnsafeMethods();
 testHandshakePhaseResetsAreReplayableWithoutWeakeningResetsInGeneral();
 testPreTransmissionContextReadsSocketState();
 testReplayValidationRejectsMalformedBoundaryValues();
+function testApiKeyPoolPreservesSingleTokensAndRotatesOnRateLimit() {
+  const jwtToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature';
+  assert.strictEqual(selectApiKeyFromPool(jwtToken, 'openai-official'), jwtToken);
+  const resolver = createAuthResolver({
+    loadConfig: () => ({ profiles: [] }),
+    getProfiles: () => [],
+    decryptKey: (v) => v,
+  });
+  assert.strictEqual(
+    resolver.resolveConfiguredProfile({ id: 'openai-official', apiKey: jwtToken }).apiKey,
+    jwtToken
+  );
+
+  const poolRaw = 'sk-key-1, sk-key-2';
+  const k1 = selectApiKeyFromPool(poolRaw, 'pool-profile', 1000);
+  const k2 = selectApiKeyFromPool(poolRaw, 'pool-profile', 1000);
+  assert.strictEqual(k1, 'sk-key-1');
+  assert.strictEqual(k2, 'sk-key-2');
+
+  markApiKeyPoolRateLimited(poolRaw, 'sk-key-1', 'pool-profile', 30, 1000);
+  assert.strictEqual(selectApiKeyFromPool(poolRaw, 'pool-profile', 2000), 'sk-key-2');
+  assert.strictEqual(selectApiKeyFromPool(poolRaw, 'pool-profile', 2000), 'sk-key-2');
+}
+
+testMultiHopAndCooldownAwareFailover();
+testApiKeyPoolPreservesSingleTokensAndRotatesOnRateLimit();
 
 console.log('[upstream-retry.test] ok');
