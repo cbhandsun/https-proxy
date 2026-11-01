@@ -340,10 +340,7 @@ test('compaction_trigger produces hpm1 encrypted checkpoint and subsequent turn 
     // Resume after compaction with the hpm1 item + a follow-up user turn
     const resumedReq = {
       ...body,
-      input: [
-        compItem,
-        { role: 'user', content: 'Now run the test suite.' },
-      ],
+      input: [compItem, { role: 'user', content: 'Now run the test suite.' }],
     };
     const call = (await sessions.request(resumedReq, 'owner')).output[0];
     assert.equal(call.name, 'exec');
@@ -396,7 +393,6 @@ test('recoverOrphanContinuations cold-starts from full transcript after restart 
   }
 });
 
-
 test('mid-session continuation failure seamlessly failovers to a fresh session when recoverOrphanContinuations is enabled', async () => {
   let runs = 0;
   const sessions = createTianxiNativeGatewaySessions({
@@ -404,7 +400,11 @@ test('mid-session continuation failure seamlessly failovers to a fresh session w
       runs++;
       const exec = tools.find((tool) => tool.name.startsWith('exec_'));
       if (runs === 1) {
-        await onCall(exec.name, { input: 'const r = await tools.write_stdin({session_id: 1}); text(r);' }, { signal });
+        await onCall(
+          exec.name,
+          { input: 'const r = await tools.write_stdin({session_id: 1}); text(r);' },
+          { signal }
+        );
         throw new Error('tianxi_sdk_mcp_protocol_failed');
       }
       return { finalText: 'seamless-failover-ok' };
@@ -437,6 +437,64 @@ test('mid-session continuation failure seamlessly failovers to a fresh session w
     assert.equal(resumed.status, 'completed');
     assert.equal(resumed.output_text, 'seamless-failover-ok');
     assert.equal(runs, 2);
+  } finally {
+    await sessions.close();
+  }
+});
+
+test('native gateway emits reasoning summary and commentary items before tool calls and final answer', async () => {
+  const sessions = createTianxiNativeGatewaySessions({
+    run: async ({ tools, onCall, signal }) => {
+      const exec = tools.find((tool) => tool.name.startsWith('exec_'));
+      await onCall(
+        exec.name,
+        { input: 'const r = await tools.write_stdin({session_id: 1}); text(r);' },
+        {
+          signal,
+          thinking: 'Analyzing repository layout and test scripts.',
+          commentary: 'I will inspect the test runner first.',
+        }
+      );
+      return {
+        finalText: 'Audit completed.',
+        thinking: 'Synthesizing final verification findings.',
+      };
+    },
+  });
+  try {
+    const initial = await sessions.request(body, 'owner');
+    assert.equal(initial.status, 'completed');
+    assert.equal(initial.output.length, 3);
+    assert.equal(initial.output[0].type, 'reasoning');
+    assert.equal(
+      initial.output[0].summary[0].text,
+      'Analyzing repository layout and test scripts.'
+    );
+    assert.equal(initial.output[1].type, 'message');
+    assert.equal(initial.output[1].phase, 'commentary');
+    assert.equal(initial.output[1].content[0].text, 'I will inspect the test runner first.');
+    assert.equal(initial.output_text, '');
+    const call = initial.output[2];
+    assert.equal(call.name, 'exec');
+
+    const resumed = await sessions.request(
+      {
+        ...body,
+        input: [
+          ...body.input,
+          ...initial.output,
+          { type: 'custom_tool_call_output', call_id: call.call_id, output: 'ok' },
+        ],
+      },
+      'owner'
+    );
+    assert.equal(resumed.status, 'completed');
+    assert.equal(resumed.output.length, 2);
+    assert.equal(resumed.output[0].type, 'reasoning');
+    assert.equal(resumed.output[0].summary[0].text, 'Synthesizing final verification findings.');
+    assert.equal(resumed.output[1].type, 'message');
+    assert.equal(resumed.output[1].phase, 'final_answer');
+    assert.equal(resumed.output_text, 'Audit completed.');
   } finally {
     await sessions.close();
   }

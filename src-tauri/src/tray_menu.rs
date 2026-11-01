@@ -267,6 +267,7 @@ pub(crate) fn build_tray_menu(app: &AppHandle) -> Result<Menu<Wry>, tauri::Error
         ("gemini-cli", "Gemini CLI"),
         ("opencode", "OpenCode"),
         ("aider", "Aider"),
+        ("continue", "Continue IDE"),
     ];
     let mut agent_submenus = Vec::new();
     for (agent_id, agent_label) in agents {

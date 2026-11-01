@@ -238,7 +238,14 @@ function prepareMonitorEvent(event) {
     badgeClass = 'active';
   } else if (event.kind === 'request_end') {
     title = `${event.method} ${event.path} -> ${event.statusCode}`;
-    details = `Elapsed: ${event.elapsed}ms${event.reqId ? ` | Req: ${event.reqId}` : ''}${event.type ? ` | Type: ${event.type}` : ''}${event.usage ? ` | Tokens: ${event.usage.input_tokens}+${event.usage.output_tokens}` : ''}`;
+    const ttfbMs =
+      event.timings && event.timings.firstClientByteMs != null
+        ? event.timings.firstClientByteMs
+        : event.timings && event.timings.upstreamHeadersMs != null
+          ? event.timings.upstreamHeadersMs
+          : null;
+    const ttfbText = ttfbMs != null ? ` | TTFB: ${ttfbMs}ms` : '';
+    details = `Elapsed: ${event.elapsed}ms${ttfbText}${event.reqId ? ` | Req: ${event.reqId}` : ''}${event.type ? ` | Type: ${event.type}` : ''}${event.usage ? ` | Tokens: ${event.usage.input_tokens}+${event.usage.output_tokens}` : ''}`;
     if (event.statusCode >= 400) levelClass = 'error';
     else if (event.statusCode >= 200) levelClass = 'success';
   } else if (event.kind === 'upstream_error' || event.kind === 'proxy_error') {
@@ -322,6 +329,8 @@ function monitorGroupDetails(group) {
   if (group.protocol) parts.push(`Protocol: ${group.protocol}`);
   if (group.elapsed != null)
     parts.push(`Elapsed: ${diagnosticsDependencies.formatElapsedMs(group.elapsed)}`);
+  if (group.firstByteMs != null)
+    parts.push(`TTFB: ${diagnosticsDependencies.formatElapsedMs(group.firstByteMs)}`);
   if (group.sourceModel || group.targetModel) {
     parts.push(`Model: ${group.sourceModel || '-'} -> ${group.targetModel || '-'}`);
   }
@@ -363,8 +372,12 @@ function createMonitorGroupElement(group) {
   if (group.elapsed != null) {
     const latency = document.createElement('span');
     latency.className = 'badge';
-    const level = diagnosticsDependencies.classifyLatency(group.elapsed);
-    latency.textContent = `${diagnosticsDependencies.formatElapsedMs(group.elapsed)}${latencySuffix(level)}`;
+    const level = diagnosticsDependencies.classifyLatency(group.elapsed, group);
+    const ttfbHint =
+      group.firstByteMs != null && (level === 'slow' || level === 'very-slow')
+        ? ` (首包 ${diagnosticsDependencies.formatElapsedMs(group.firstByteMs)})`
+        : '';
+    latency.textContent = `${diagnosticsDependencies.formatElapsedMs(group.elapsed)}${ttfbHint}${latencySuffix(level)}`;
     if (level === 'slow' || level === 'very-slow') latency.classList.add('error');
     header.appendChild(latency);
   }
@@ -446,6 +459,7 @@ function renderMonitor() {
       status: diagnosticsDependencies.monitorGroupStatusLabel(group),
       level: group.level,
       elapsed: group.elapsed,
+      firstByteMs: group.firstByteMs,
       count: group.events.length,
     })),
   });

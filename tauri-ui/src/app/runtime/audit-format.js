@@ -181,5 +181,18 @@ export function auditDetailMetricRows(record) {
       auditProviderCacheState(providerCache),
       `${providerCache.provider || 'unknown'} · ${providerCache.policy || 'diagnostics-only'}`,
     ]);
+  const timings = record && record.timings;
+  if (timings && (timings.firstClientByteMs != null || timings.upstreamHeadersMs != null)) {
+    const ttfb =
+      timings.firstClientByteMs != null ? timings.firstClientByteMs : timings.upstreamHeadersMs;
+    const genMs = record.elapsed != null && record.elapsed >= ttfb ? record.elapsed - ttfb : null;
+    rows.push([
+      '首包耗时 (TTFB)',
+      `${ttfb}ms`,
+      genMs != null
+        ? `流式生成 ${genMs}ms · 总计 ${record.elapsed}ms`
+        : `总计 ${record.elapsed || 0}ms`,
+    ]);
+  }
   return rows;
 }

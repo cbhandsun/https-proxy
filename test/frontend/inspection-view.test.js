@@ -83,6 +83,23 @@ const modelPath = path.join(
   assert.equal(view.classifyLatency(5000), 'slow');
   assert.equal(view.classifyLatency(15000), 'very-slow');
   assert.equal(view.classifyLatency(undefined), 'unknown');
+  assert.equal(
+    view.classifyLatency(45000, { timings: { firstClientByteMs: 3800 } }),
+    'normal',
+    'TTFB under 5s keeps a long streaming generation classified as normal'
+  );
+  assert.equal(
+    view.classifyLatency(45000, { timings: { firstClientByteMs: 6500 } }),
+    'slow',
+    'TTFB between 5s and 15s classifies as slow'
+  );
+  assert.equal(
+    view.classifyLatency(18000, { endType: 'openai_stream_terminal' }),
+    'normal',
+    'streaming requests without TTFB use higher total-elapsed thresholds (20s/60s)'
+  );
+  assert.equal(view.classifyLatency(25000, { endType: 'openai_stream_terminal' }), 'slow');
+  assert.equal(view.classifyLatency(65000, { endType: 'openai_stream_terminal' }), 'very-slow');
   assert.equal(view.latencyLabel(6000), '偏慢');
   assert.equal(view.latencyLabel(20000), '极慢');
   assert.equal(view.latencyLabel(10), '');

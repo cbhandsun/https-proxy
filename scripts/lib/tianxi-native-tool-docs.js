@@ -10,7 +10,11 @@ const CONTRACTS = new Map([
   ['write_stdin', '693be7c60c3794d231d707aa3162101482a6a721b8845aa153bc79902a49e28b'],
 ]);
 const NAME = 'codex_native_documentation';
+const MAX_CACHED_DOCS = 32;
+const docsCache = new Map();
 function createNativeToolDocs(description) {
+  const cached = docsCache.get(description);
+  if (cached) return cached;
   if (
     typeof description !== 'string' ||
     description.length > 1048576 ||
@@ -36,7 +40,7 @@ function createNativeToolDocs(description) {
     [...found.values()].join('\n\n') +
     '\n\nAdditional original tool documentation is available through codex_native_documentation. Read it in bounded pages before using unfamiliar MCP or app tools. Native ALL_TOOLS discovery remains available. This is documentation only; execute actual tools through the host functions.exec.';
   if (compact.length > 30000) throw new Error('tianxi_native_docs_invalid');
-  return {
+  const result = {
     compact,
     definition: {
       name: NAME,
@@ -87,5 +91,10 @@ function createNativeToolDocs(description) {
       };
     },
   };
+  if (docsCache.size >= MAX_CACHED_DOCS) {
+    docsCache.delete(docsCache.keys().next().value);
+  }
+  docsCache.set(description, result);
+  return result;
 }
 module.exports = { createNativeToolDocs };

@@ -5,8 +5,16 @@ const DEFAULT_MODEL_BY_PRESET_HINT = [
   { match: /bigmodel\.cn/i, model: 'glm-5.1', fastModel: 'glm-4.5-air' },
   { match: /dashscope\.aliyuncs\.com/i, model: 'qwen3-coder-plus', fastModel: 'qwen-turbo-latest' },
   { match: /minimaxi\.com/i, model: 'MiniMax-M2.7', fastModel: 'MiniMax-M2.5' },
-  { match: /siliconflow\.cn/i, model: 'deepseek-ai/DeepSeek-V3', fastModel: 'Qwen/Qwen2.5-Coder-32B-Instruct' },
-  { match: /openrouter\.ai/i, model: 'anthropic/claude-sonnet-4.6', fastModel: 'anthropic/claude-haiku-4.5' },
+  {
+    match: /siliconflow\.cn/i,
+    model: 'deepseek-ai/DeepSeek-V3',
+    fastModel: 'Qwen/Qwen2.5-Coder-32B-Instruct',
+  },
+  {
+    match: /openrouter\.ai/i,
+    model: 'anthropic/claude-sonnet-4.6',
+    fastModel: 'anthropic/claude-haiku-4.5',
+  },
   { match: /11434/i, model: 'qwen2.5-coder:32b', fastModel: 'qwen2.5-coder:7b' },
   { match: /anthropic\.com/i, model: 'claude-sonnet-4-6', fastModel: 'claude-haiku-4-5' },
   { match: /googleapis\.com/i, model: 'gemini-2.5-pro', fastModel: 'gemini-2.5-flash' },
@@ -81,7 +89,13 @@ const DISPLAY_AGENTS = [
     fastLabel: '轻量副模型 (SMALL_FAST)',
   },
   { id: 'codex', name: 'Codex CLI', desc: 'OpenAI Codex 终端助手' },
-  { id: 'opencode', name: 'OpenCode', desc: '开源终端 AI 编程助手' },
+  {
+    id: 'opencode',
+    name: 'OpenCode',
+    desc: '开源终端 AI 编程助手',
+    supportsFastModel: true,
+    fastLabel: '轻量副模型 (small_model)',
+  },
   {
     id: 'aider',
     name: 'Aider',
@@ -89,6 +103,7 @@ const DISPLAY_AGENTS = [
     supportsFastModel: true,
     fastLabel: '轻量副模型 (weak-model)',
   },
+  { id: 'continue', name: 'Continue IDE', desc: 'VS Code / JetBrains 插件' },
   { id: 'antigravity-cli', name: 'Antigravity CLI', desc: 'Antigravity 智能编程终端' },
   { id: 'gemini-cli', name: 'Gemini CLI', desc: 'Google Gemini 终端助手' },
 ];
@@ -118,6 +133,7 @@ function inferFastModelForProfile(profile) {
 export function createAgentHubController(deps) {
   let latestAgentStatuses = {};
   let latestCooldowns = [];
+  let profileProbeResults = {};
   let isRefreshing = false;
 
   async function refreshCooldownsStatus() {
@@ -128,7 +144,9 @@ export function createAgentHubController(deps) {
         latestCooldowns = res.cooldowns;
         renderCooldownBanner();
       }
-    } catch (_err) {}
+    } catch (_err) {
+      // ignore cooldown poll errors
+    }
   }
 
   function renderCooldownBanner() {
@@ -141,7 +159,8 @@ export function createAgentHubController(deps) {
     }
     banner.style.display = 'flex';
     const left = document.createElement('div');
-    left.style.cssText = 'display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px;';
+    left.style.cssText =
+      'display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px;';
     const title = document.createElement('strong');
     title.style.color = '#d97706';
     title.textContent = `⏳ 节点限流冷却中 (${latestCooldowns.length})：`;
@@ -151,7 +170,7 @@ export function createAgentHubController(deps) {
       const tag = document.createElement('span');
       tag.className = 'badge';
       tag.style.cssText = 'background: rgba(245, 158, 11, 0.2); color: #b45309; font-size: 11.5px;';
-      tag.textContent = `${item.profileId} / ${item.model} (${item.retryAfterSeconds}s)`;
+      tag.textContent = `${item.profileId} / ${item.targetModel || item.model || 'upstream'} (${item.retryAfterSeconds}s)`;
       left.appendChild(tag);
     }
 
@@ -164,7 +183,7 @@ export function createAgentHubController(deps) {
       try {
         const res = await window.proxyManager.clearCooldowns({});
         if (res && res.ok) {
-          deps.showToast(`已解除 ${res.cleared || 0} 个冷却节点`, 'success');
+          deps.showToast(`已解除 ${res.clearedCount ?? res.cleared ?? 0} 个冷却节点`, 'success');
           latestCooldowns = [];
           renderCooldownBanner();
         }
@@ -221,8 +240,7 @@ export function createAgentHubController(deps) {
         const currentProfileId = status.profileId || activeProfileId;
         const selectedProfileObj =
           profiles.find((p) => p && p.id === currentProfileId) || profiles[0] || null;
-        const currentModel =
-          status.model || inferDefaultModelForProfile(selectedProfileObj);
+        const currentModel = status.model || inferDefaultModelForProfile(selectedProfileObj);
         const currentFastModel = status.fastModel || '';
 
         const card = document.createElement('div');
@@ -262,7 +280,9 @@ export function createAgentHubController(deps) {
         for (const p of profiles) {
           const opt = document.createElement('option');
           opt.value = p.id;
-          opt.textContent = `${p.name || p.id} (${p.protocol})`;
+          const probe = profileProbeResults[p.id];
+          const probeSuffix = probe ? (probe.ok ? ` · ${probe.latency}ms` : ' · 异常') : '';
+          opt.textContent = `${p.name || p.id} (${p.protocol})${probeSuffix}`;
           profileSelect.appendChild(opt);
         }
         if (currentProfileId) profileSelect.value = currentProfileId;
@@ -380,20 +400,18 @@ export function createAgentHubController(deps) {
     const profiles = Array.isArray(cfg.profiles) ? cfg.profiles : [];
     const active = profiles.find((p) => p && p.id === cfg.activeProfile) || profiles[0] || null;
     const defaultModel = inferDefaultModelForProfile(active);
-    const httpEntry =
-      (Array.isArray(cfg.entryServers) &&
-        cfg.entryServers.find((e) => e && e.enabled !== false && e.tls === false)) || {
-        host: 'localhost',
-        listenPort: 3080,
-        basePath: '/v1',
-      };
-    const httpsEntry =
-      (Array.isArray(cfg.entryServers) &&
-        cfg.entryServers.find((e) => e && e.enabled !== false && e.tls !== false)) || {
-        host: 'localhost',
-        listenPort: 3443,
-        basePath: '/v1',
-      };
+    const httpEntry = (Array.isArray(cfg.entryServers) &&
+      cfg.entryServers.find((e) => e && e.enabled !== false && e.tls === false)) || {
+      host: 'localhost',
+      listenPort: 3080,
+      basePath: '/v1',
+    };
+    const httpsEntry = (Array.isArray(cfg.entryServers) &&
+      cfg.entryServers.find((e) => e && e.enabled !== false && e.tls !== false)) || {
+      host: 'localhost',
+      listenPort: 3443,
+      basePath: '/v1',
+    };
     const httpBase = `http://${httpEntry.host || 'localhost'}:${httpEntry.listenPort || 3080}${httpEntry.basePath || '/v1'}`;
     const httpsBase = `https://${httpsEntry.host || 'localhost'}:${httpsEntry.listenPort || 3443}${httpsEntry.basePath || '/v1'}`;
 
@@ -426,6 +444,63 @@ export function createAgentHubController(deps) {
     const refreshBtn = deps.$('refreshAgentHubBtn');
     const copyIdeBtn = deps.$('copyIdePluginConfigBtn');
     const bindAllBtn = deps.$('bindAllAgentsToActiveBtn');
+    const probeAllBtn = deps.$('probeAllUpstreamsBtn');
+
+    if (probeAllBtn) {
+      probeAllBtn.onclick = async () => {
+        const cfg = deps.getConfig() || {};
+        const profiles = Array.isArray(cfg.profiles) ? cfg.profiles.filter((p) => p && p.id) : [];
+        if (profiles.length === 0) {
+          deps.showToast('暂无已配置的上游 Profile', 'error');
+          return;
+        }
+        probeAllBtn.disabled = true;
+        const origText = probeAllBtn.textContent;
+        probeAllBtn.textContent = '测速中...';
+        try {
+          const nextProbes = {};
+          await Promise.all(
+            profiles.map(async (p) => {
+              const t0 = Date.now();
+              try {
+                const res = await window.proxyManager.testRouteConnection({
+                  profileId: p.id,
+                  protocol: p.protocol,
+                  targetUrl: p.targetUrl,
+                  apiKey: '[redacted]',
+                });
+                nextProbes[p.id] = {
+                  ok: Boolean(res && res.ok),
+                  latency: Math.max(1, Date.now() - t0),
+                };
+              } catch (_err) {
+                nextProbes[p.id] = { ok: false, latency: null };
+              }
+            })
+          );
+          profileProbeResults = nextProbes;
+          renderAgentHub();
+          const healthyList = profiles
+            .filter((p) => nextProbes[p.id]?.ok)
+            .sort((a, b) => nextProbes[a.id].latency - nextProbes[b.id].latency);
+          if (healthyList.length > 0) {
+            const best = healthyList[0];
+            deps.showToast(
+              `全量测速完成：${healthyList.length}/${profiles.length} 可用，最快 ${best.name || best.id} (${nextProbes[best.id].latency}ms)`,
+              'success'
+            );
+          } else {
+            deps.showToast(
+              `全量测速完成：0/${profiles.length} 可用，请检查网络或 API Key`,
+              'error'
+            );
+          }
+        } finally {
+          probeAllBtn.disabled = false;
+          probeAllBtn.textContent = origText;
+        }
+      };
+    }
 
     if (bindAllBtn) {
       bindAllBtn.onclick = async () => {
@@ -437,18 +512,18 @@ export function createAgentHubController(deps) {
           return;
         }
         const model = inferDefaultModelForProfile(active);
-        const fastModel = inferFastModelForProfile(active, model);
+        const fastModel = inferFastModelForProfile(active);
         bindAllBtn.disabled = true;
         const origText = bindAllBtn.textContent;
         bindAllBtn.textContent = '切换中...';
         try {
           let okCount = 0;
-          for (const def of AGENT_DEFINITIONS) {
+          for (const def of DISPLAY_AGENTS) {
             const res = await window.proxyManager.bindAgentModel({
               agent: def.id,
               profileId: active.id,
               model,
-              fastModel,
+              ...(def.supportsFastModel ? { fastModel } : {}),
             });
             if (res && res.ok) okCount += 1;
           }

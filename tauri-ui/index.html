@@ -365,6 +365,7 @@
                   <input id="quickPresetApiKey" type="password" placeholder="填入 API Key 快速创建上游" style="font-size: 12px; min-height: 30px; padding: 4px 8px; width: 170px" />
                   <button id="quickPresetAddBtn" class="secondary" style="margin: 0; padding: 4px 10px; font-size: 12px; min-height: 30px">+ 导入预设上游</button>
                   <button id="bindAllAgentsToActiveBtn" class="light" style="margin: 0; padding: 4px 10px; font-size: 12px; min-height: 30px" title="一键将所有 AI 编程工具绑定到当前默认上游及其推荐主/快模型">⚡ 全员切到默认上游</button>
+                  <button id="probeAllUpstreamsBtn" class="light" style="margin: 0; padding: 4px 10px; font-size: 12px; min-height: 30px" title="一键并发测试所有已配置上游的连通性与延迟">🩺 全量测速</button>
                   <button id="copyIdePluginConfigBtn" class="light" style="margin: 0; padding: 4px 10px; font-size: 12px; min-height: 30px" title="一键复制 Roo Code / Cline / Continue / Cursor 本地代理接入配置">📋 复制 IDE 插件配置</button>
                   <button id="refreshAgentHubBtn" class="light" style="margin: 0; padding: 4px 10px; font-size: 12px; min-height: 30px">刷新状态</button>
                 </div>
@@ -507,6 +508,10 @@
                 <div class="usage-panel">
                   <h3>按模型</h3>
                   <div id="usageByModel" class="usage-table-wrap"></div>
+                </div>
+                <div class="usage-panel">
+                  <h3>按客户端 Agent</h3>
+                  <div id="usageByAgent" class="usage-table-wrap"></div>
                 </div>
               </div>
               <div class="usage-panel usage-recent-panel">
@@ -777,6 +782,29 @@
                     <label>自定义脱敏词</label>
                     <input id="promptMaskingKeywords" placeholder="可选：内部域名/项目代号/敏感词，逗号分隔 (如 corp.internal,ProjectX)" />
                   </div>
+                  <div class="row" style="margin-bottom: 8px">
+                    <label>自定义请求头</label>
+                    <input id="customHeaders" placeholder="可选：Header: Value 分号分隔 (如 HTTP-Referer: https://app.local; X-Title: MyCode)" />
+                  </div>
+                  <div class="row" style="margin-bottom: 8px">
+                    <label>上下文策略</label>
+                    <select id="contextPolicy" title="Profile 级上下文管理与压缩策略">
+                      <option value="inherit">跟随全局设置 (Inherit)</option>
+                      <option value="native-first">原生优先 (Native-First：适合官方 Claude/Codex 保护缓存)</option>
+                      <option value="enhanced">增强压缩与恢复 (Enhanced：推荐 DeepSeek/GLM/MiniMax 等三方模型)</option>
+                      <option value="legacy">传统裁剪 (Legacy)</option>
+                    </select>
+                  </div>
+                  <div class="row" style="margin-bottom: 8px">
+                    <label>上下文窗口上限</label>
+                    <input id="maxContextTokens" type="number" min="4096" step="1024" placeholder="可选：实际上游最大 Token 窗口 (如三方模型填 128000 或 96000)" />
+                  </div>
+                  <label class="inline-check" style="margin-bottom: 6px"
+                    ><input id="localCompactionEnabled" type="checkbox" /> 启用三方 Responses 本地检查点压缩 (/v1/responses/compact 与 hpm1:/magpie1: 自动展开)</label
+                  >
+                  <label class="inline-check" style="margin-bottom: 6px"
+                    ><input id="adaptiveCompactionWatermark" type="checkbox" /> 启用自适应客户端压缩水位缩放 (将 1M/200k 客户端计数按上游窗口等比放大以提前触发 /compact)</label
+                  >
                   <label class="inline-check"
                     ><input id="allowInsecureHttpUpstream" type="checkbox" /> 明确允许非本机 HTTP
                     上游</label

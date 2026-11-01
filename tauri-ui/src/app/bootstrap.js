@@ -785,7 +785,25 @@ function routeForConfig(route) {
   if (Array.isArray(route.inputModalities)) next.inputModalities = [...route.inputModalities];
   if (Array.isArray(route.outputModalities)) next.outputModalities = [...route.outputModalities];
   if (Array.isArray(route.fallbackProfileIds) && route.fallbackProfileIds.length)
-    next.fallbackProfileIds = route.fallbackProfileIds.map((id) => String(id || '').trim()).filter(Boolean);
+    next.fallbackProfileIds = route.fallbackProfileIds
+      .map((id) => String(id || '').trim())
+      .filter(Boolean);
+  if (Array.isArray(route.fallbacks) && route.fallbacks.length)
+    next.fallbacks = [...route.fallbacks];
+  if (route.backupProfileId) next.backupProfileId = route.backupProfileId;
+  if (route.enabled !== undefined) next.enabled = route.enabled !== false;
+  if (typeof route.adaptiveCompactionWatermark === 'boolean')
+    next.adaptiveCompactionWatermark = route.adaptiveCompactionWatermark;
+  if (Number.isFinite(Number(route.maxContextTokens)) && Number(route.maxContextTokens) >= 4096)
+    next.maxContextTokens = Math.floor(Number(route.maxContextTokens));
+  if (
+    Number.isFinite(Number(route.clientContextTokens)) &&
+    Number(route.clientContextTokens) >= 8192
+  )
+    next.clientContextTokens = Math.floor(Number(route.clientContextTokens));
+  for (const tianxiKey of ['tianxiAgentId', 'tianxiLlm', 'tianxiChannel', 'tianxiSdkModel']) {
+    if (route[tianxiKey]) next[tianxiKey] = route[tianxiKey];
+  }
   const clientProtocols = normalizeRouteClientProtocols(route.clientProtocols);
   if (clientProtocols.length) next.clientProtocols = clientProtocols;
   return next;
@@ -1960,7 +1978,9 @@ function renderProviderPresetHelp(preset) {
       }
       scheduleDashboardRender({ rules: true });
       showToast(
-        added > 0 ? `已为 ${targetProfileId} 导入 ${added} 条推荐模型路由，点击“保存当前配置”生效` : '推荐模型路由已存在',
+        added > 0
+          ? `已为 ${targetProfileId} 导入 ${added} 条推荐模型路由，点击“保存当前配置”生效`
+          : '推荐模型路由已存在',
         added > 0 ? 'success' : 'info'
       );
     };
@@ -2026,15 +2046,34 @@ function fillForm(profile) {
   $('protocol').value = profile.protocol || 'openai';
   $('allowInsecureHttpUpstream').checked = profile.allowInsecureHttpUpstream === true;
   if ($('allowPostFailover')) $('allowPostFailover').checked = profile.allowPostFailover === true;
-  if ($('promptMasking')) $('promptMasking').checked = profile.promptMasking === true || (profile.promptMasking && profile.promptMasking.enabled === true);
-  if ($('promptMaskingKeywords')) $('promptMaskingKeywords').value = profile.promptMaskingKeywords || '';
+  if ($('promptMasking'))
+    $('promptMasking').checked =
+      profile.promptMasking === true ||
+      (profile.promptMasking && profile.promptMasking.enabled === true);
+  if ($('promptMaskingKeywords'))
+    $('promptMaskingKeywords').value = profile.promptMaskingKeywords || '';
+  if ($('customHeaders')) $('customHeaders').value = profile.customHeaders || '';
+  if ($('contextPolicy')) $('contextPolicy').value = profile.contextPolicy || 'inherit';
+  if ($('maxContextTokens'))
+    $('maxContextTokens').value = profile.maxContextTokens ? String(profile.maxContextTokens) : '';
+  if ($('localCompactionEnabled'))
+    $('localCompactionEnabled').checked =
+      profile.localCompactionEnabled === true || profile.contextPolicy === 'enhanced';
+  if ($('adaptiveCompactionWatermark'))
+    $('adaptiveCompactionWatermark').checked =
+      profile.adaptiveCompactionWatermark !== false &&
+      (profile.adaptiveCompactionWatermark === true || profile.contextPolicy === 'enhanced');
   const backupSelect = $('backupProfileId');
   if (backupSelect) {
     clearElement(backupSelect);
     appendOption(backupSelect, '', '-- 无备选上游 --');
     for (const candidate of (config && config.profiles) || []) {
       if (!candidate || !candidate.id || candidate.id === profile.id) continue;
-      appendOption(backupSelect, candidate.id, `${candidate.name || candidate.id} (${candidate.id})`);
+      appendOption(
+        backupSelect,
+        candidate.id,
+        `${candidate.name || candidate.id} (${candidate.id})`
+      );
     }
     backupSelect.value = profile.backupProfileId || '';
   }
@@ -2069,7 +2108,22 @@ function collectForm() {
     backupProfileId: $('backupProfileId') ? $('backupProfileId').value.trim() : '',
     allowPostFailover: Boolean($('allowPostFailover') && $('allowPostFailover').checked),
     promptMasking: Boolean($('promptMasking') && $('promptMasking').checked),
-    promptMaskingKeywords: $('promptMaskingKeywords') ? $('promptMaskingKeywords').value.trim() : '',
+    promptMaskingKeywords: $('promptMaskingKeywords')
+      ? $('promptMaskingKeywords').value.trim()
+      : '',
+    customHeaders: $('customHeaders') ? $('customHeaders').value.trim() : '',
+    contextPolicy: $('contextPolicy') ? $('contextPolicy').value : 'inherit',
+    maxContextTokens: $('maxContextTokens')
+      ? $('maxContextTokens').value.trim()
+        ? Number($('maxContextTokens').value.trim())
+        : null
+      : undefined,
+    localCompactionEnabled: $('localCompactionEnabled')
+      ? Boolean($('localCompactionEnabled').checked)
+      : undefined,
+    adaptiveCompactionWatermark: $('adaptiveCompactionWatermark')
+      ? Boolean($('adaptiveCompactionWatermark').checked)
+      : undefined,
   };
 }
 
@@ -2084,8 +2138,13 @@ function profilesSignature() {
             name: profile.name || '',
             protocol: profile.protocol || '',
             targetUrl: profile.targetUrl || '',
-            promptMasking: Boolean(profile.promptMasking === true || profile.promptMasking?.enabled),
+            promptMasking: Boolean(
+              profile.promptMasking === true || profile.promptMasking?.enabled
+            ),
             backupProfileId: profile.backupProfileId || '',
+            contextPolicy: profile.contextPolicy || 'inherit',
+            localCompactionEnabled: Boolean(profile.localCompactionEnabled),
+            maxContextTokens: profile.maxContextTokens || 0,
             latency: profileLatencies[profile.id],
           }))
         : [],
@@ -2149,10 +2208,15 @@ function createProfileCardElement(profile) {
   badges.appendChild(createBadge(protocolName(profile.protocol), 'protocol'));
   if (isActive) badges.appendChild(createBadge('默认上游', 'active'));
   if (isSelected && !isActive) badges.appendChild(createBadge('正在编辑'));
-  if (profile.promptMasking === true || (profile.promptMasking && profile.promptMasking.enabled === true))
+  if (
+    profile.promptMasking === true ||
+    (profile.promptMasking && profile.promptMasking.enabled === true)
+  )
     badges.appendChild(createBadge('🛡️ 隐私脱敏', 'protocol'));
   if (profile.backupProfileId)
     badges.appendChild(createBadge(`🔄 备选: ${profile.backupProfileId}`));
+  if (profile.contextPolicy === 'enhanced' || profile.localCompactionEnabled === true)
+    badges.appendChild(createBadge('🗜️ 增强压缩', 'protocol'));
   if (Number(profile.apiKeyPoolSize) > 1)
     badges.appendChild(createBadge(`🔑 多Key池(${profile.apiKeyPoolSize})`, 'protocol'));
   const latencyBadge = createLatencyBadge(profile.id);
@@ -2455,10 +2519,16 @@ async function load() {
           );
           await refreshLog().catch((e) => reportFrontendError('tray.refresh_log', e));
           if (['switch-profile', 'bind-agent', 'clear-cooldowns'].includes(result.command)) {
-            window.proxyManager.readConfig({ quiet: true }).then((c) => {
-              if (c) { config = c; applyLoadedConfig(config); }
-              agentHub.refreshAgentHubStatus();
-            }).catch(() => {});
+            window.proxyManager
+              .readConfig({ quiet: true })
+              .then((c) => {
+                if (c) {
+                  config = c;
+                  applyLoadedConfig(config);
+                }
+                agentHub.refreshAgentHubStatus();
+              })
+              .catch(() => {});
           }
           await refreshProxyStatus().catch((e) => reportFrontendError('tray.refresh_proxy', e));
         })
@@ -2879,6 +2949,15 @@ $('addRule').onclick = () => {
       nextRoute.inputModalities = [...previousRoute.inputModalities];
     if (Array.isArray(previousRoute.outputModalities))
       nextRoute.outputModalities = [...previousRoute.outputModalities];
+    if (typeof previousRoute.adaptiveCompactionWatermark === 'boolean')
+      nextRoute.adaptiveCompactionWatermark = previousRoute.adaptiveCompactionWatermark;
+    if (previousRoute.maxContextTokens !== undefined)
+      nextRoute.maxContextTokens = previousRoute.maxContextTokens;
+    if (previousRoute.clientContextTokens !== undefined)
+      nextRoute.clientContextTokens = previousRoute.clientContextTokens;
+    for (const tianxiKey of ['tianxiAgentId', 'tianxiLlm', 'tianxiChannel', 'tianxiSdkModel']) {
+      if (previousRoute[tianxiKey]) nextRoute[tianxiKey] = previousRoute[tianxiKey];
+    }
   }
   if (index >= 0) modelRoutes[index] = nextRoute;
   else modelRoutes.push(nextRoute);
@@ -2897,6 +2976,16 @@ $('addRule').onclick = () => {
 };
 
 $('fetchModels').onclick = fetchModels;
+
+const contextPolicySelect = $('contextPolicy');
+if (contextPolicySelect) {
+  contextPolicySelect.onchange = () => {
+    if (contextPolicySelect.value === 'enhanced') {
+      if ($('localCompactionEnabled')) $('localCompactionEnabled').checked = true;
+      if ($('adaptiveCompactionWatermark')) $('adaptiveCompactionWatermark').checked = true;
+    }
+  };
+}
 
 const refreshLimitsAction = $('refresh-limits-action');
 if (refreshLimitsAction) {
@@ -3677,7 +3766,13 @@ if (switchCodexDesktopDirectApi) {
 $('applyCodex').onclick = async () => {
   await switchCodexMode(
     'cli',
-    { connection: 'proxy', auth: 'api', ...(($('codexCliModel') && $('codexCliModel').value.trim()) ? { model: $('codexCliModel').value.trim() } : {}) },
+    {
+      connection: 'proxy',
+      auth: 'api',
+      ...($('codexCliModel') && $('codexCliModel').value.trim()
+        ? { model: $('codexCliModel').value.trim() }
+        : {}),
+    },
     {
       savingText: '模型路由已保存，正在切换到 Codex CLI 本地代理 + API 登录...',
       successText: '已切换到 Codex CLI 本地代理 + API 登录',
@@ -3772,7 +3867,10 @@ if (window.proxyManager.onOpenView) {
         refreshAntigravityCliStatus();
         refreshGeminiCliStatus();
         refreshBothCodexStatuses();
-        showToast(`托盘已绑定 ${payload.agent} -> ${payload.model} (${payload.profileId})`, 'success');
+        showToast(
+          `托盘已绑定 ${payload.agent} -> ${payload.model} (${payload.profileId})`,
+          'success'
+        );
       }
     });
   }

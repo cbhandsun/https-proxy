@@ -369,7 +369,14 @@ function auditHistoryRecordView(record) {
     second: '2-digit',
   });
   const latency = record.elapsed ? `${record.elapsed}ms` : '??? ms';
-  const latencyLevel = auditDependencies.classifyLatency(record.elapsed);
+  const ttfbMs =
+    record.timings && record.timings.firstClientByteMs != null
+      ? record.timings.firstClientByteMs
+      : record.timings && record.timings.upstreamHeadersMs != null
+        ? record.timings.upstreamHeadersMs
+        : null;
+  const ttfbText = ttfbMs != null ? ` (首包 ${ttfbMs}ms)` : '';
+  const latencyLevel = auditDependencies.classifyLatency(record.elapsed, record);
   const latencySuffix =
     latencyLevel === 'very-slow' ? ' 极慢' : latencyLevel === 'slow' ? ' 偏慢' : '';
   const isSuccess = record.statusCode >= 200 && record.statusCode < 300;
@@ -389,7 +396,7 @@ function auditHistoryRecordView(record) {
     modelFlow,
     userSnippet,
     upstreamLine: `上游: ${upstreamModel || '未指定'} · ${record.profileName || '默认'}`,
-    metricsLine: `${formatAuditTokens(usage.totalTokens || 0)} tok · ${latency}${latencySuffix}${contextSuffix}`,
+    metricsLine: `${formatAuditTokens(usage.totalTokens || 0)} tok · ${latency}${ttfbText}${latencySuffix}${contextSuffix}`,
   };
 }
 
@@ -626,6 +633,8 @@ async function loadUsageReport() {
   const summary = auditDependencies.$('usageReportSummary');
   const byProfile = auditDependencies.$('usageByProfile');
   const byModel = auditDependencies.$('usageByModel');
+  const byAgent = auditDependencies.$('usageByAgent');
+  if (byAgent) byAgent.textContent = '';
   const recent = auditDependencies.$('usageRecent');
   if (!summary || !byProfile || !byModel || !recent) return;
   summary.textContent = '';
@@ -663,6 +672,8 @@ function renderUsageReport(report) {
   const summary = auditDependencies.$('usageReportSummary');
   const byProfile = auditDependencies.$('usageByProfile');
   const byModel = auditDependencies.$('usageByModel');
+  const byAgent = auditDependencies.$('usageByAgent');
+  if (byAgent) byAgent.textContent = '';
   const recent = auditDependencies.$('usageRecent');
   if (summary) {
     summary.textContent = '';
@@ -675,6 +686,10 @@ function renderUsageReport(report) {
   if (byModel) {
     byModel.textContent = '';
     byModel.appendChild(createUsageTableElement(report.byModel || [], 'model'));
+    if (byAgent) {
+      byAgent.textContent = '';
+      byAgent.appendChild(createUsageTableElement(report.byAgent || [], 'agent'));
+    }
   }
   if (recent) {
     recent.textContent = '';
@@ -1087,6 +1102,9 @@ function createAuditDetailHeaderElement(record) {
   }
   if (record.failoverFrom) {
     appendAuditText(title, `🔄 故障转移 (${record.failoverFrom})`, 'span', 'audit-badge info');
+  }
+  if (record.clientAgent) {
+    appendAuditText(title, `🤖 ${record.clientAgent}`, 'span', 'audit-badge info');
   }
 
   const retry = document.createElement('button');

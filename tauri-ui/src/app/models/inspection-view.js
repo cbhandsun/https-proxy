@@ -6,6 +6,8 @@
 export const INSPECTION_QUERY_MAX_CHARS = 200;
 export const SLOW_REQUEST_MS = 5000;
 export const VERY_SLOW_REQUEST_MS = 15000;
+export const STREAM_SLOW_REQUEST_MS = 20000;
+export const STREAM_VERY_SLOW_REQUEST_MS = 60000;
 export const DEFAULT_MONITOR_PAGE_SIZE = 30;
 export const DEFAULT_AUDIT_PAGE_SIZE = 30;
 export const MAX_MONITOR_PAGE_SIZE = 500;
@@ -118,16 +120,73 @@ export function formatElapsedMs(value) {
   return `${minutes}m${String(remainder).padStart(2, '0')}s`;
 }
 
-export function classifyLatency(value) {
-  const ms = toFiniteNumber(value);
+export function extractFirstByteMs(source) {
+  if (!isRecord(source)) return null;
+  const direct = toFiniteNumber(source.firstByteMs);
+  if (direct != null && direct >= 0) return direct;
+  const timings = isRecord(source.timings)
+    ? source.timings
+    : isRecord(source.timing)
+      ? source.timing
+      : null;
+  if (!timings) return null;
+  for (const key of ['firstClientByteMs', 'firstUpstreamChunkMs', 'upstreamHeadersMs']) {
+    const candidate = toFiniteNumber(timings[key]);
+    if (candidate != null && candidate >= 0) return candidate;
+  }
+  return null;
+}
+
+export function isStreamLatencyRecord(source) {
+  if (!isRecord(source)) return false;
+  if (source.stream === true) return true;
+  const endType = typeof source.endType === 'string' ? source.endType : '';
+  const type = typeof source.type === 'string' ? source.type : '';
+  if (/stream/i.test(endType) || /stream/i.test(type)) return true;
+  const resHeaders = isRecord(source.responseHeaders) ? source.responseHeaders : null;
+  if (resHeaders) {
+    const ct = String(resHeaders['content-type'] || resHeaders['Content-Type'] || '');
+    if (/text\/event-stream/i.test(ct)) return true;
+  }
+  const req = isRecord(source.request) ? source.request : null;
+  const reqHeaders = req && isRecord(req.headers) ? req.headers : null;
+  if (reqHeaders) {
+    const accept = String(reqHeaders.accept || reqHeaders.Accept || '');
+    if (/text\/event-stream/i.test(accept)) return true;
+  }
+  return false;
+}
+
+export function classifyLatency(value, options) {
+  let ms;
+  let streaming = false;
+  if (isRecord(value)) {
+    const ttfb = extractFirstByteMs(value);
+    if (ttfb != null) {
+      ms = ttfb;
+    } else {
+      ms = toFiniteNumber(value.elapsed);
+      streaming = isStreamLatencyRecord(value);
+    }
+  } else {
+    const ttfb = isRecord(options) ? extractFirstByteMs(options) : null;
+    if (ttfb != null) {
+      ms = ttfb;
+    } else {
+      ms = toFiniteNumber(value);
+      streaming = isRecord(options) && isStreamLatencyRecord(options);
+    }
+  }
   if (ms == null || ms < 0) return 'unknown';
-  if (ms >= VERY_SLOW_REQUEST_MS) return 'very-slow';
-  if (ms >= SLOW_REQUEST_MS) return 'slow';
+  const verySlowThreshold = streaming ? STREAM_VERY_SLOW_REQUEST_MS : VERY_SLOW_REQUEST_MS;
+  const slowThreshold = streaming ? STREAM_SLOW_REQUEST_MS : SLOW_REQUEST_MS;
+  if (ms >= verySlowThreshold) return 'very-slow';
+  if (ms >= slowThreshold) return 'slow';
   return 'normal';
 }
 
-export function latencyLabel(value) {
-  const level = classifyLatency(value);
+export function latencyLabel(value, options) {
+  const level = classifyLatency(value, options);
   if (level === 'very-slow') return '极慢';
   if (level === 'slow') return '偏慢';
   return '';
@@ -155,7 +214,8 @@ function applyMonitorEvent(group, event) {
     if (typeof event.profileName === 'string') group.profileName = event.profileName;
     if (typeof event.protocol === 'string') group.protocol = event.protocol;
     if (Number(event.maskedCount) > 0) group.maskedCount = Number(event.maskedCount);
-    if (typeof event.failoverFrom === 'string' && event.failoverFrom) group.failoverFrom = event.failoverFrom;
+    if (typeof event.failoverFrom === 'string' && event.failoverFrom)
+      group.failoverFrom = event.failoverFrom;
     if (typeof event.method === 'string' && !group.method) group.method = event.method;
     if (typeof event.path === 'string' && !group.path) group.path = event.path;
     return;
@@ -163,6 +223,10 @@ function applyMonitorEvent(group, event) {
   if (kind === 'request_end') {
     const elapsed = toFiniteNumber(event.elapsed);
     if (elapsed != null) group.elapsed = elapsed;
+    const firstByteMs = extractFirstByteMs(event);
+    if (firstByteMs != null) group.firstByteMs = firstByteMs;
+    if (isRecord(event.timings)) group.timings = event.timings;
+    else if (isRecord(event.timing)) group.timings = event.timing;
     const statusCode = toFiniteNumber(event.statusCode);
     if (statusCode != null) group.statusCode = statusCode;
     group.endTime = event.time || group.endTime;
@@ -221,6 +285,8 @@ export function aggregateMonitorEvents(events) {
         endTime: '',
         routedAt: '',
         elapsed: null,
+        firstByteMs: null,
+        timings: null,
         statusCode: null,
         level: 'unknown',
         routed: false,
@@ -274,7 +340,7 @@ export function filterMonitorGroups(groups, options = {}) {
     if (status === 'error' && group.level !== 'error') return false;
     if (status === 'route' && group.routed !== true) return false;
     if (status === 'slow') {
-      const level = classifyLatency(group.elapsed);
+      const level = classifyLatency(group.elapsed, group);
       if (level !== 'slow' && level !== 'very-slow') return false;
     }
     if (!query) return true;
@@ -374,7 +440,7 @@ export function filterAuditRecords(records, options = {}) {
     if (status === 'success' && !isSuccess) return false;
     if (status === 'error' && isSuccess) return false;
     if (status === 'slow') {
-      const level = classifyLatency(record.elapsed);
+      const level = classifyLatency(record.elapsed, record);
       if (level !== 'slow' && level !== 'very-slow') return false;
     }
     if (status === 'context-attention' && auditContextFilterState(record) !== 'attention') {
@@ -562,6 +628,7 @@ export function buildUsageReportExportRows(report) {
     ['total', [isRecord(report) ? report.total : null]],
     ['profile', isRecord(report) && Array.isArray(report.byProfile) ? report.byProfile : []],
     ['model', isRecord(report) && Array.isArray(report.byModel) ? report.byModel : []],
+    ['agent', isRecord(report) && Array.isArray(report.byAgent) ? report.byAgent : []],
     ['day', isRecord(report) && Array.isArray(report.byDay) ? report.byDay : []],
   ];
   return groups.flatMap(([groupType, rows]) =>
@@ -639,7 +706,8 @@ export function buildMonitorExportPayload(groups, options = {}) {
         path: toSearchableText(source.path),
         statusCode: source.statusCode == null ? null : toFiniteNumber(source.statusCode),
         elapsed: source.elapsed == null ? null : toFiniteNumber(source.elapsed),
-        latency: classifyLatency(source.elapsed),
+        firstByteMs: extractFirstByteMs(source),
+        latency: classifyLatency(source.elapsed, source),
         profileName: toSearchableText(source.profileName),
         protocol: toSearchableText(source.protocol),
         sourceModel: toSearchableText(source.sourceModel),

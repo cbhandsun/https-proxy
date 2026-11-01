@@ -103,7 +103,10 @@ const sseStream =
   'event: content_block_delta\ndata: {"type":"content_block_delta","delta":{"type":"text_delta","text":"The key __HPM_MASK_1_deadbe__ is revoked."}}\n\n';
 // Split right in the middle of __HPM_MASK_1_deadbe__
 const part1 = sseStream.slice(0, sseStream.indexOf('__HPM_MASK_') + 6);
-const part2 = sseStream.slice(sseStream.indexOf('__HPM_MASK_') + 6, sseStream.indexOf('deadbe') + 3);
+const part2 = sseStream.slice(
+  sseStream.indexOf('__HPM_MASK_') + 6,
+  sseStream.indexOf('deadbe') + 3
+);
 const part3 = sseStream.slice(sseStream.indexOf('deadbe') + 3);
 
 const out1 = unmasker.push(Buffer.from(part1, 'utf8'));
@@ -117,7 +120,7 @@ assert.ok(
 
 // 5. End-to-end applyBidirectionalPromptMasking + installResponseUnmasking
 const chunks = [];
-let removedHeaders = [];
+const removedHeaders = [];
 const mockRes = {
   writeHead(status, headers) {
     this.statusCode = status;
@@ -167,7 +170,10 @@ const kwMasked = maskPromptText(
   { customKeywords: 'ProjectApollo, gateway.corp.internal.local' }
 );
 assert.ok(!kwMasked.includes('ProjectApollo'), 'Custom keyword ProjectApollo should be masked');
-assert.ok(!kwMasked.includes('gateway.corp.internal.local'), 'Custom domain keyword should be masked');
+assert.ok(
+  !kwMasked.includes('gateway.corp.internal.local'),
+  'Custom domain keyword should be masked'
+);
 assert.strictEqual(
   unmaskText(kwMasked, kwState.tokenToSecret),
   'Deploying ProjectApollo to gateway.corp.internal.local with key sk-proj-1234567890abcdefghijklmnop'
@@ -205,5 +211,141 @@ assert.ok(listUpstreamCooldowns().length >= 3);
 const cleared = clearUpstreamCooldowns();
 assert.ok(cleared.clearedCount >= 3);
 assert.strictEqual(listUpstreamCooldowns().length, 0);
+
+// 8. Streaming <think>...</think> inline tag conversion to Claude thinking block
+const { createChatClaudeStream } = require('../lib/proxy/chat-claude-stream');
+const sseOutChunks = [];
+const mockSink = {
+  write(chunk) {
+    sseOutChunks.push(String(chunk));
+  },
+};
+const streamConverter = createChatClaudeStream({
+  options: {
+    id: 'msg_1',
+    model: 'deepseek-r1',
+    writeEvent: (_sink, _name, data) => sseOutChunks.push(JSON.stringify(data)),
+  },
+  deps: { toolToClaude: (t) => t, protocolOptions: {} },
+});
+streamConverter.start(mockSink);
+streamConverter.processChunk(
+  mockSink,
+  'data: {"choices":[{"index":0,"delta":{"content":"<thi"}}]}\n\n'
+);
+streamConverter.processChunk(
+  mockSink,
+  'data: {"choices":[{"index":0,"delta":{"content":"nk>Step 1: analyze</th"}}]}\n\n'
+);
+streamConverter.processChunk(
+  mockSink,
+  'data: {"choices":[{"index":0,"delta":{"content":"ink>\\nFinal answer!"}}]}\n\n'
+);
+streamConverter.processChunk(
+  mockSink,
+  'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n'
+);
+assert.strictEqual(streamConverter.finish(mockSink), true);
+const fullClaudeSse = sseOutChunks.join('');
+assert.ok(
+  fullClaudeSse.includes('"type":"thinking_delta"'),
+  'Should emit thinking_delta for <think> content'
+);
+assert.ok(fullClaudeSse.includes('Step 1: analyze'), 'Should preserve thinking content');
+assert.ok(fullClaudeSse.includes('Final answer!'), 'Should emit final text after </think>');
+assert.ok(!fullClaudeSse.includes('<think>'), 'Should strip <think> tag');
+assert.ok(!fullClaudeSse.includes('</think>'), 'Should strip </think> tag');
+
+// 9. Client Agent attribution & byAgent usage report
+const { inferClientAgentFromRecord, buildUsageReport } = require('../lib/proxy/usage-report');
+assert.strictEqual(
+  inferClientAgentFromRecord({ request: { headers: { 'user-agent': 'claude-cli/1.0.24' } } }),
+  'Claude Code'
+);
+assert.strictEqual(
+  inferClientAgentFromRecord({ request: { headers: { 'user-agent': 'aider/0.82.0' } } }),
+  'Aider'
+);
+const usageRep = buildUsageReport(
+  [
+    {
+      id: '1',
+      time: '2026-10-31T10:00:00Z',
+      profileId: 'kimi',
+      profileName: 'Kimi',
+      originalModel: 'kimi-for-coding',
+      statusCode: 200,
+      request: { headers: { 'user-agent': 'claude-cli/1.0' } },
+      usage: { input_tokens: 1000, output_tokens: 500 },
+    },
+    {
+      id: '2',
+      time: '2026-10-31T10:01:00Z',
+      profileId: 'deepseek',
+      profileName: 'DeepSeek',
+      originalModel: 'deepseek-chat',
+      statusCode: 200,
+      request: { headers: { 'user-agent': 'aider/0.82' } },
+      usage: { input_tokens: 600, output_tokens: 200 },
+    },
+  ],
+  {}
+);
+assert.strictEqual(usageRep.byAgent.length, 2);
+assert.strictEqual(usageRep.byAgent[0].key, 'Claude Code');
+assert.strictEqual(usageRep.byAgent[0].totalTokens, 1500);
+assert.strictEqual(usageRep.byAgent[1].key, 'Aider');
+assert.strictEqual(usageRep.byAgent[1].totalTokens, 800);
+
+// 10. Custom headers parsing & injection
+const { buildOutgoingHeaders, parseCustomHeaders } = require('../lib/proxy/upstream-request');
+const parsedCustom = parseCustomHeaders(
+  'HTTP-Referer: https://myapp.local; X-Title: MyCodingAgent; Host: evil.com'
+);
+assert.strictEqual(parsedCustom['http-referer'], 'https://myapp.local');
+assert.strictEqual(parsedCustom['x-title'], 'MyCodingAgent');
+assert.strictEqual(parsedCustom['host'], undefined, 'Forbidden header Host must be ignored');
+const builtHeaders = buildOutgoingHeaders(
+  { 'content-type': 'application/json' },
+  {
+    requestProtocol: 'openai',
+    apiKey: 'sk-test',
+    profile: {
+      id: 'openrouter',
+      customHeaders: 'HTTP-Referer: https://myapp.local; X-Title: MyCodingAgent',
+    },
+  }
+);
+assert.strictEqual(builtHeaders['http-referer'], 'https://myapp.local');
+assert.strictEqual(builtHeaders['x-title'], 'MyCodingAgent');
+
+// 11. OpenCode small_model & Continue IDE 1-click config
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const tmpAgentDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpm-extra-agents-'));
+process.env.OPENCODE_CONFIG_DIR = tmpAgentDir;
+process.env.CONTINUE_GLOBAL_DIR = tmpAgentDir;
+const {
+  applyOpenCodeProxy,
+  getOpenCodeStatus,
+  applyContinueProxy,
+  getContinueStatus,
+  restoreContinueProxy,
+} = require('../lib/proxy/extra-agent-configs');
+
+applyOpenCodeProxy({ model: 'glm-5.1', fastModel: 'glm-4.5-air' });
+const ocStatus = getOpenCodeStatus();
+assert.strictEqual(ocStatus.managed, true);
+assert.strictEqual(ocStatus.model, 'glm-5.1');
+assert.strictEqual(ocStatus.fastModel, 'glm-4.5-air');
+
+applyContinueProxy({ model: 'deepseek-chat' });
+const contStatus = getContinueStatus();
+assert.strictEqual(contStatus.managed, true);
+assert.strictEqual(contStatus.model, 'deepseek-chat');
+restoreContinueProxy();
+assert.strictEqual(getContinueStatus().managed, false);
+fs.rmSync(tmpAgentDir, { recursive: true, force: true });
 
 console.log('[prompt-masking.test] ok');

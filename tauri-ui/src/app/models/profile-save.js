@@ -101,6 +101,91 @@ function normalizeProfile(profile, existingProfile = null) {
     );
   }
 
+  const rawCustomHeaders =
+    profile.customHeaders !== undefined
+      ? profile.customHeaders
+      : isRecord(existingProfile)
+        ? existingProfile.customHeaders
+        : '';
+  if (typeof rawCustomHeaders === 'string' && rawCustomHeaders.trim()) {
+    normalized.customHeaders = normalizedString(
+      rawCustomHeaders,
+      'profile.customHeaders',
+      MAX_URL_LENGTH
+    );
+  }
+
+  const rawContextPolicy =
+    profile.contextPolicy !== undefined
+      ? profile.contextPolicy
+      : isRecord(existingProfile)
+        ? existingProfile.contextPolicy
+        : undefined;
+  if (
+    typeof rawContextPolicy === 'string' &&
+    ['inherit', 'native-first', 'enhanced', 'legacy'].includes(
+      rawContextPolicy.trim().toLowerCase()
+    )
+  ) {
+    const policyVal = rawContextPolicy.trim().toLowerCase();
+    if (policyVal !== 'inherit') {
+      normalized.contextPolicy = policyVal;
+    }
+  }
+
+  for (const boolKey of ['localCompactionEnabled', 'adaptiveCompactionWatermark']) {
+    const rawBool =
+      typeof profile[boolKey] === 'boolean'
+        ? profile[boolKey]
+        : isRecord(existingProfile) && typeof existingProfile[boolKey] === 'boolean'
+          ? existingProfile[boolKey]
+          : undefined;
+    if (rawBool === true || (rawBool === false && normalized.contextPolicy === 'enhanced')) {
+      normalized[boolKey] = rawBool;
+    }
+  }
+
+  for (const boolKey of ['optimizeContext', 'tianxiClientReadTools']) {
+    const rawBool =
+      typeof profile[boolKey] === 'boolean'
+        ? profile[boolKey]
+        : isRecord(existingProfile) && typeof existingProfile[boolKey] === 'boolean'
+          ? existingProfile[boolKey]
+          : undefined;
+    if (typeof rawBool === 'boolean') {
+      normalized[boolKey] = rawBool;
+    }
+  }
+
+  for (const [numKey, minVal] of [
+    ['maxContextTokens', 4096],
+    ['clientAdvertisedContextTokens', 8192],
+    ['timeoutMs', 1000],
+  ]) {
+    const rawNum =
+      profile[numKey] !== undefined
+        ? profile[numKey]
+        : isRecord(existingProfile)
+          ? existingProfile[numKey]
+          : undefined;
+    const parsedNum = Number(rawNum);
+    if (Number.isFinite(parsedNum) && parsedNum >= minVal) {
+      normalized[numKey] = Math.floor(parsedNum);
+    }
+  }
+
+  for (const strKey of ['api', 'authMode', 'authProvider', 'uid']) {
+    const rawStr =
+      profile[strKey] !== undefined
+        ? profile[strKey]
+        : isRecord(existingProfile)
+          ? existingProfile[strKey]
+          : undefined;
+    if (typeof rawStr === 'string' && rawStr.trim()) {
+      normalized[strKey] = rawStr.trim().slice(0, MAX_ID_LENGTH);
+    }
+  }
+
   return normalized;
 }
 
